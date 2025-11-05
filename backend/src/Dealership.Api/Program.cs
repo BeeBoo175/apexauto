@@ -1,4 +1,5 @@
 using Dealership.Api.Configuration;
+using Dealership.Api.Endpoints;
 using Dealership.Application;
 using Dealership.Infrastructure;
 using Dealership.Infrastructure.Configuration;
@@ -94,5 +95,7 @@ app.MapGet("/health/ready", async (DealershipDbContext db, CancellationToken can
     await db.Database.CanConnectAsync(cancellationToken)
         ? Results.Ok(new { status = "ready" })
         : Results.StatusCode(StatusCodes.Status503ServiceUnavailable));
+
+app.MapVehicleEndpoints();
 
 app.Run();
