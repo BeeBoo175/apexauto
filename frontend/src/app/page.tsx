@@ -33,7 +33,9 @@ export default function Home() {
       <section className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <span className="text-xs font-bold text-signal font-mono uppercase">Stage 01</span>
-          <h3 className="text-base font-bold uppercase tracking-wide mt-2">Intake &amp; Appraisal</h3>
+          <h3 className="text-base font-bold uppercase tracking-wide mt-2">
+            Intake &amp; Appraisal
+          </h3>
           <p className="text-xs text-muted mt-2 leading-normal">
             Carsome-style 4-step wizard with pure C# algorithmic depreciation curves and S3 photo
             capture.
@@ -42,7 +44,9 @@ export default function Home() {
 
         <Card>
           <span className="text-xs font-bold text-signal font-mono uppercase">Stage 02</span>
-          <h3 className="text-base font-bold uppercase tracking-wide mt-2">Inspection &amp; Recond</h3>
+          <h3 className="text-base font-bold uppercase tracking-wide mt-2">
+            Inspection &amp; Recond
+          </h3>
           <p className="text-xs text-muted mt-2 leading-normal">
             Static 210 checklist catalog with defect exception logging and Puspakom/B5 grading.
           </p>
@@ -50,7 +54,9 @@ export default function Home() {
 
         <Card>
           <span className="text-xs font-bold text-signal font-mono uppercase">Stage 03</span>
-          <h3 className="text-base font-bold uppercase tracking-wide mt-2">Storefront &amp; Hold</h3>
+          <h3 className="text-base font-bold uppercase tracking-wide mt-2">
+            Storefront &amp; Hold
+          </h3>
           <p className="text-xs text-muted mt-2 leading-normal">
             RSC vehicle catalogue with live trade-in loan offset and 48-hour row-locked reservation.
           </p>
@@ -58,7 +64,9 @@ export default function Home() {
 
         <Card>
           <span className="text-xs font-bold text-signal font-mono uppercase">Stage 04</span>
-          <h3 className="text-base font-bold uppercase tracking-wide mt-2">Deal Desk &amp; Closing</h3>
+          <h3 className="text-base font-bold uppercase tracking-wide mt-2">
+            Deal Desk &amp; Closing
+          </h3>
           <p className="text-xs text-muted mt-2 leading-normal">
             Itemized VPO contract with discount gate, bank LOU settlement, and printable receipts.
           </p>

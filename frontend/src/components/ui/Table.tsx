@@ -55,7 +55,10 @@ export const TableCell: React.FC<React.TdHTMLAttributes<HTMLTableCellElement>> =
   ...props
 }) => {
   return (
-    <td className={`p-3 border-b border-soft-line text-graphite font-mono tabular-nums ${className}`.trim()} {...props}>
+    <td
+      className={`p-3 border-b border-soft-line text-graphite font-mono tabular-nums ${className}`.trim()}
+      {...props}
+    >
       {children}
     </td>
   );

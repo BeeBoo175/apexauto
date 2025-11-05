@@ -11,13 +11,7 @@ export interface DialogProps {
   children: React.ReactNode;
 }
 
-export const Dialog: React.FC<DialogProps> = ({
-  open,
-  onClose,
-  title,
-  description,
-  children,
-}) => {
+export const Dialog: React.FC<DialogProps> = ({ open, onClose, title, description, children }) => {
   useEffect(() => {
     if (open) {
       document.body.style.overflow = "hidden";

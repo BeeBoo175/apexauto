@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Production & Next.js builds
+.next/
+.next-*/
+out/
+build/
+dist/
+
+# Test & coverage artifacts
+coverage/
+playwright-report/
+test-results/
+blob-report/
+
+# Generated types and local environments
+next-env.d.ts
+*.tsbuildinfo
+.env*.local
+
+# Package manager lockfiles
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+bun.lockb

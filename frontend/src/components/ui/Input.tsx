@@ -12,7 +12,10 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="flex flex-col gap-1 w-full">
         {label && (
-          <label htmlFor={inputId} className="text-xs uppercase font-bold tracking-wider text-muted">
+          <label
+            htmlFor={inputId}
+            className="text-xs uppercase font-bold tracking-wider text-muted"
+          >
             {label}
           </label>
         )}
@@ -27,7 +30,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         {error && <span className="text-xs text-signal font-medium">{error}</span>}
       </div>
     );
-  }
+  },
 );
 
 Input.displayName = "Input";

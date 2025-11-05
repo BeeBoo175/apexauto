@@ -1,6 +1,6 @@
 export function formatMalaysianDateTime(
   utcDate: string | Date,
-  options?: Intl.DateTimeFormatOptions
+  options?: Intl.DateTimeFormatOptions,
 ): string {
   const date = typeof utcDate === "string" ? new Date(utcDate) : utcDate;
 

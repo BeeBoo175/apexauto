@@ -1,7 +1,53 @@
 import type { NextConfig } from "next";
+import path from "path";
+import { loadEnvConfig } from "@next/env";
+
+if (process.env.NODE_ENV !== "production") {
+  // Reload at the monorepo root after Next.js has processed the frontend directory.
+  loadEnvConfig(
+    path.resolve(process.cwd(), ".."),
+    process.env.NODE_ENV === "development",
+    {
+      info: console.info,
+      error(message: string) {
+        throw new Error(message);
+      },
+    },
+    true,
+  );
+}
+
+const apiBaseUrl = process.env.API_BASE_URL;
+
+if (!apiBaseUrl?.trim()) {
+  throw new Error("API_BASE_URL is required in every environment.");
+}
+
+let parsedApiUrl: URL;
+
+try {
+  parsedApiUrl = new URL(apiBaseUrl);
+} catch {
+  throw new Error("API_BASE_URL must be an absolute HTTP(S) origin.");
+}
+
+if (
+  !["http:", "https:"].includes(parsedApiUrl.protocol) ||
+  parsedApiUrl.username ||
+  parsedApiUrl.password ||
+  parsedApiUrl.pathname !== "/" ||
+  parsedApiUrl.search ||
+  parsedApiUrl.hash
+) {
+  throw new Error(
+    "API_BASE_URL must be an HTTP(S) origin without credentials, a path, query or fragment.",
+  );
+}
+
+const imageProtocol = parsedApiUrl.protocol === "https:" ? "https" : "http";
 
 const nextConfig: NextConfig = {
-  distDir: process.env.NEXT_DIST_DIR ?? ".next",
+  ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
   // Remove X-Powered-By header to avoid fingerprinting the server stack.
   poweredByHeader: false,
 
@@ -12,18 +58,12 @@ const nextConfig: NextConfig = {
   },
 
   images: {
-    // Only proxy images from the configured API origin. Prevents arbitrary
-    // external domains from being served through Next.js Image Optimization.
+    // Add a separate exact delivery origin when the storage workflow is implemented.
     remotePatterns: [
       {
-        protocol: "http",
-        hostname: "localhost",
-        port: "5114",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "*.apexauto.my",
+        protocol: imageProtocol,
+        hostname: parsedApiUrl.hostname,
+        port: parsedApiUrl.port,
         pathname: "/**",
       },
     ],
