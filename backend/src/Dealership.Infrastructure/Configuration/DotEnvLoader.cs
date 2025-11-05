@@ -2,38 +2,22 @@ namespace Dealership.Infrastructure.Configuration;
 
 public static class DotEnvLoader
 {
-    public static void Load(string? explicitPath = null)
+    private const string EnvFileName = ".env";
+
+    // Only for local development: deployed hosts must inject real environment variables.
+    public static void LoadForDevelopment(string startDirectory)
     {
-        string? envPath = explicitPath;
+        var envPath = FindEnvFile(startDirectory)
+            ?? throw new FileNotFoundException(
+                $"Development requires a {EnvFileName} file at or above '{startDirectory}'. Copy .env.example to {EnvFileName}.");
 
-        if (string.IsNullOrWhiteSpace(envPath))
+        var lines = File.ReadAllLines(envPath);
+
+        for (var lineIndex = 0; lineIndex < lines.Length; lineIndex++)
         {
-            var current = new DirectoryInfo(Directory.GetCurrentDirectory());
+            var trimmed = lines[lineIndex].Trim();
 
-            while (current != null)
-            {
-                var candidate = Path.Combine(current.FullName, ".env");
-
-                if (File.Exists(candidate))
-                {
-                    envPath = candidate;
-                    break;
-                }
-
-                current = current.Parent;
-            }
-        }
-
-        if (string.IsNullOrWhiteSpace(envPath) || !File.Exists(envPath))
-        {
-            return;
-        }
-
-        foreach (var line in File.ReadAllLines(envPath))
-        {
-            var trimmed = line.Trim();
-
-            if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith('#'))
+            if (trimmed.Length == 0 || trimmed.StartsWith('#'))
             {
                 continue;
             }
@@ -42,21 +26,43 @@ public static class DotEnvLoader
 
             if (separatorIndex <= 0)
             {
-                continue;
+                throw new FormatException($"Malformed line in {envPath} at line {lineIndex + 1}. Expected KEY=VALUE.");
             }
 
             var key = trimmed[..separatorIndex].Trim();
             var value = trimmed[(separatorIndex + 1)..].Trim();
 
-            if (value.StartsWith('"') && value.EndsWith('"') && value.Length >= 2)
+            if (value.Length >= 2 && value.StartsWith('"') && value.EndsWith('"'))
             {
                 value = value[1..^1];
             }
 
+            // Real environment variables take precedence over the file.
             if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable(key)))
             {
                 Environment.SetEnvironmentVariable(key, value);
             }
         }
+    }
+
+    private static string? FindEnvFile(string startDirectory)
+    {
+        for (var current = new DirectoryInfo(startDirectory); current != null; current = current.Parent)
+        {
+            var candidate = Path.Combine(current.FullName, EnvFileName);
+
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+
+            // The repository root is the boundary; never read a .env outside it.
+            if (Directory.Exists(Path.Combine(current.FullName, ".git")))
+            {
+                return null;
+            }
+        }
+
+        return null;
     }
 }
