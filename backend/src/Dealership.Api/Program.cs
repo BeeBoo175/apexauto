@@ -48,6 +48,7 @@ builder.Host.UseSerilog((context, config) =>
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddApiRateLimiting();
 
 builder.Services.AddCors(options =>
 {
@@ -83,18 +84,21 @@ else
 }
 
 app.UseSerilogRequestLogging();
+// Rate limit before CORS so preflight requests consume the API budget.
+app.UseRateLimiter();
 app.UseCors("AllowFrontend");
 
+// Orchestrator probes share one source IP and must never be throttled into a container restart.
 app.MapGet("/health", () => Results.Ok(new
 {
     status = "healthy",
     timestamp = DateTime.UtcNow
-}));
+})).DisableRateLimiting();
 
 app.MapGet("/health/ready", async (DealershipDbContext db, CancellationToken cancellationToken) =>
     await db.Database.CanConnectAsync(cancellationToken)
         ? Results.Ok(new { status = "ready" })
-        : Results.StatusCode(StatusCodes.Status503ServiceUnavailable));
+        : Results.StatusCode(StatusCodes.Status503ServiceUnavailable)).DisableRateLimiting();
 
 app.MapVehicleEndpoints();
 
