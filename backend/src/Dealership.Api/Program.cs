@@ -101,5 +101,6 @@ app.MapGet("/health/ready", async (DealershipDbContext db, CancellationToken can
         : Results.StatusCode(StatusCodes.Status503ServiceUnavailable)).DisableRateLimiting();
 
 app.MapVehicleEndpoints();
+app.MapRegistrationEndpoints();
 
 app.Run();
