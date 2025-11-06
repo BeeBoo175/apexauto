@@ -1,4 +1,6 @@
 using Dealership.Infrastructure.Configuration;
+using Dealership.Application.Accounts;
+using Dealership.Infrastructure.Identity;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -19,6 +21,19 @@ public static class DependencyInjection
         }
 
         services.AddDbContext<DealershipDbContext>(options => options.UseNpgsql(connectionString));
+        services.AddIdentityCore<AccountUser>(options =>
+        {
+            options.User.RequireUniqueEmail = true;
+            // Email is the login identifier; a separate username alphabet must not narrow valid emails.
+            options.User.AllowedUserNameCharacters = string.Empty;
+            options.Password.RequiredLength = 8;
+            options.Password.RequireUppercase = true;
+            options.Password.RequireLowercase = true;
+            options.Password.RequireDigit = true;
+            options.Password.RequireNonAlphanumeric = true;
+        }).AddEntityFrameworkStores<DealershipDbContext>()
+            .AddPasswordValidator<AccountPasswordValidator>();
+        services.AddScoped<ICustomerRegistrationStore, CustomerRegistrationStore>();
 
         services.AddOptions<JwtSettings>()
             .Bind(configuration.GetSection(JwtSettings.SectionName))

@@ -1,4 +1,5 @@
 using Dealership.Application.Vehicles;
+using Dealership.Application.Accounts;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Dealership.Application;
@@ -9,6 +10,7 @@ public static class DependencyInjection
     {
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<ValuationService>();
+        services.AddScoped<RegistrationService>();
 
         return services;
     }
