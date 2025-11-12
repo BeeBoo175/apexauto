@@ -7,6 +7,8 @@ namespace Dealership.Api.Configuration;
 public static class ApiRateLimiting
 {
     public const int RequestsPerMinute = 100;
+    public const int LoginAttemptsPerMinute = 5;
+    public const string LoginPolicy = "login";
 
     public static readonly TimeSpan RequestWindow = TimeSpan.FromMinutes(1);
 
@@ -15,18 +17,19 @@ public static class ApiRateLimiting
         services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            options.AddPolicy(LoginPolicy, context =>
+            {
+                return RateLimitPartition.GetFixedWindowLimiter(GetClientAddress(context), _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = LoginAttemptsPerMinute,
+                    Window = RequestWindow,
+                    QueueLimit = 0,
+                    AutoReplenishment = true
+                });
+            });
             options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, IPAddress>(context =>
             {
-                // Unresolvable remote sockets share a conservative fallback partition rather than bypassing limits.
-                var address = context.Connection.RemoteIpAddress ?? IPAddress.None;
-
-                // Normalize dual-stack addresses so IPv4-mapped IPv6 clients share the same budget.
-                if (address.IsIPv4MappedToIPv6)
-                {
-                    address = address.MapToIPv4();
-                }
-
-                return RateLimitPartition.GetFixedWindowLimiter(address, _ => new FixedWindowRateLimiterOptions
+                return RateLimitPartition.GetFixedWindowLimiter(GetClientAddress(context), _ => new FixedWindowRateLimiterOptions
                 {
                     PermitLimit = RequestsPerMinute,
                     Window = RequestWindow,
@@ -54,5 +57,12 @@ public static class ApiRateLimiting
         });
 
         return services;
+    }
+
+    private static IPAddress GetClientAddress(HttpContext context)
+    {
+        // Missing sockets share a conservative partition; mapped IPv6 shares its IPv4 budget.
+        var address = context.Connection.RemoteIpAddress ?? IPAddress.None;
+        return address.IsIPv4MappedToIPv6 ? address.MapToIPv4() : address;
     }
 }

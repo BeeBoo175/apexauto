@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 using Dealership.Api.Configuration;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -17,16 +18,78 @@ public sealed class ApiRateLimitingTests
     private const string TrustedProxy = "10.1.0.5";
 
     [Fact]
-    public async Task GlobalBudgetReturnsRetryInformationWhenExhausted()
+    public async Task LoginBudgetCountsInvalidAttemptsAndSharesMappedAddressesWithoutTrustingSpoofing()
     {
         using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
-        for (var request = 0; request < ApiRateLimiting.RequestsPerMinute; request++)
+        for (var attempt = 0; attempt < ApiRateLimiting.LoginAttemptsPerMinute; attempt++)
+        {
+            var response = await SendLogin(factory, attempt % 2 == 0 ? FirstClient : $"::ffff:{FirstClient}");
+            Assert.Equal(StatusCodes.Status401Unauthorized, response.Response.StatusCode);
+        }
+
+        var rejected = await SendLogin(factory, FirstClient);
+        Assert.Equal(StatusCodes.Status429TooManyRequests, rejected.Response.StatusCode);
+        Assert.Equal("no-store", rejected.Response.Headers.CacheControl.ToString());
+        Assert.True(int.TryParse(rejected.Response.Headers.RetryAfter, out var retrySeconds));
+        Assert.InRange(retrySeconds, 1, (int)ApiRateLimiting.RequestWindow.TotalSeconds);
+        Assert.Equal(StatusCodes.Status401Unauthorized, (await SendLogin(factory, SecondClient)).Response.StatusCode);
+        Assert.Equal(StatusCodes.Status200OK, (await Send(factory, FirstClient, "/api/taxonomy")).Response.StatusCode);
+    }
+
+    private static Task<HttpContext> SendLogin(WebApplicationFactory<Program> factory, string sender)
+    {
+        return factory.Server.SendAsync(context =>
+        {
+            context.Connection.RemoteIpAddress = IPAddress.Parse(sender);
+            context.Request.Method = HttpMethods.Post;
+            context.Request.Path = "/api/auth/login";
+            context.Request.Host = new HostString("localhost");
+            context.Request.ContentType = "application/json";
+            context.Request.Body = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{}"));
+            context.Request.Headers["X-Forwarded-For"] = $"198.51.100.{Random.Shared.Next(20, 200)}";
+        });
+    }
+
+    [Fact]
+    public async Task GlobalBudgetIncludesPreflightWhileHealthProbesRemainExempt()
+    {
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+
+        using var healthResponse = await client.GetAsync("/health");
+        Assert.Equal(HttpStatusCode.OK, healthResponse.StatusCode);
+        using var healthJson = JsonDocument.Parse(await healthResponse.Content.ReadAsStringAsync());
+        Assert.Equal("healthy", healthJson.RootElement.GetProperty("status").GetString());
+
+        for (var request = 0; request <= ApiRateLimiting.RequestsPerMinute; request++)
+        {
+            var response = await Send(factory, FirstClient, "/health");
+            Assert.Equal(StatusCodes.Status200OK, response.Response.StatusCode);
+        }
+
+        var readinessBefore = await Send(factory, FirstClient, "/health/ready");
+        Assert.Contains(readinessBefore.Response.StatusCode,
+            new[] { StatusCodes.Status200OK, StatusCodes.Status503ServiceUnavailable });
+
+        for (var request = 0; request < ApiRateLimiting.RequestsPerMinute - 1; request++)
         {
             var response = await Send(factory, FirstClient, "/api/taxonomy");
             Assert.Equal(StatusCodes.Status200OK, response.Response.StatusCode);
         }
+
+        var origin = factory.Services.GetRequiredService<IConfiguration>()["APP_BASE_URL"];
+        var preflight = await factory.Server.SendAsync(context =>
+        {
+            context.Connection.RemoteIpAddress = IPAddress.Parse(FirstClient);
+            context.Request.Method = HttpMethods.Options;
+            context.Request.Path = "/api/valuations";
+            context.Request.Host = new HostString("localhost");
+            context.Request.Headers.Origin = origin;
+            context.Request.Headers.AccessControlRequestMethod = HttpMethods.Post;
+        });
+        Assert.Equal(StatusCodes.Status204NoContent, preflight.Response.StatusCode);
 
         var rejected = await Send(factory, FirstClient, "/api/taxonomy");
         Assert.Equal(StatusCodes.Status429TooManyRequests, rejected.Response.StatusCode);
@@ -37,32 +100,12 @@ public sealed class ApiRateLimitingTests
 
         var otherClient = await Send(factory, SecondClient, "/api/taxonomy");
         Assert.Equal(StatusCodes.Status200OK, otherClient.Response.StatusCode);
-    }
 
-    [Fact]
-    public async Task CorsPreflightConsumesTheGlobalBudget()
-    {
-        using var factory = CreateFactory();
-        using var client = factory.CreateClient();
-        var origin = factory.Services.GetRequiredService<IConfiguration>()["APP_BASE_URL"];
-
-        for (var request = 0; request < ApiRateLimiting.RequestsPerMinute; request++)
-        {
-            var response = await factory.Server.SendAsync(context =>
-            {
-                context.Connection.RemoteIpAddress = IPAddress.Parse(FirstClient);
-                context.Request.Method = HttpMethods.Options;
-                context.Request.Path = "/api/valuations";
-                context.Request.Host = new HostString("localhost");
-                context.Request.Headers.Origin = origin;
-                context.Request.Headers.AccessControlRequestMethod = HttpMethods.Post;
-            });
-
-            Assert.Equal(StatusCodes.Status204NoContent, response.Response.StatusCode);
-        }
-
-        var rejected = await Send(factory, FirstClient, "/api/taxonomy");
-        Assert.Equal(StatusCodes.Status429TooManyRequests, rejected.Response.StatusCode);
+        var healthAfter = await Send(factory, FirstClient, "/health");
+        Assert.Equal(StatusCodes.Status200OK, healthAfter.Response.StatusCode);
+        var readinessAfter = await Send(factory, FirstClient, "/health/ready");
+        Assert.Contains(readinessAfter.Response.StatusCode,
+            new[] { StatusCodes.Status200OK, StatusCodes.Status503ServiceUnavailable });
     }
 
     [Fact]
@@ -112,72 +155,6 @@ public sealed class ApiRateLimitingTests
         Assert.Equal(StatusCodes.Status429TooManyRequests, rejected.Response.StatusCode);
         var otherClient = await Send(factory, TrustedProxy, "/api/taxonomy", SecondClient);
         Assert.Equal(StatusCodes.Status200OK, otherClient.Response.StatusCode);
-    }
-
-    [Fact]
-    public async Task HealthProbesStayAvailableAfterTheBudgetIsExhausted()
-    {
-        using var factory = CreateFactory();
-        using var client = factory.CreateClient();
-
-        for (var request = 0; request < ApiRateLimiting.RequestsPerMinute; request++)
-        {
-            await Send(factory, FirstClient, "/api/taxonomy");
-        }
-
-        var limited = await Send(factory, FirstClient, "/api/taxonomy");
-        Assert.Equal(StatusCodes.Status429TooManyRequests, limited.Response.StatusCode);
-
-        var probe = await Send(factory, FirstClient, "/health");
-        Assert.Equal(StatusCodes.Status200OK, probe.Response.StatusCode);
-
-        var readiness = await Send(factory, FirstClient, "/health/ready");
-        Assert.Contains(readiness.Response.StatusCode,
-            new[] { StatusCodes.Status200OK, StatusCodes.Status503ServiceUnavailable });
-    }
-
-    [Fact]
-    public async Task HealthProbesDoNotConsumeTheBusinessRequestBudget()
-    {
-        using var factory = CreateFactory();
-        using var client = factory.CreateClient();
-
-        for (var request = 0; request <= ApiRateLimiting.RequestsPerMinute; request++)
-        {
-            var response = await Send(factory, FirstClient, "/health");
-            Assert.Equal(StatusCodes.Status200OK, response.Response.StatusCode);
-        }
-
-        var businessRequest = await Send(factory, FirstClient, "/api/taxonomy");
-        Assert.Equal(StatusCodes.Status200OK, businessRequest.Response.StatusCode);
-    }
-
-    [Fact]
-    public async Task PreflightAndTaxonomyShareOneBudgetAcrossRoutes()
-    {
-        using var factory = CreateFactory();
-        using var client = factory.CreateClient();
-        var origin = factory.Services.GetRequiredService<IConfiguration>()["APP_BASE_URL"];
-
-        for (var request = 0; request < ApiRateLimiting.RequestsPerMinute - 1; request++)
-        {
-            var response = await Send(factory, FirstClient, "/api/taxonomy");
-            Assert.Equal(StatusCodes.Status200OK, response.Response.StatusCode);
-        }
-
-        var preflight = await factory.Server.SendAsync(context =>
-        {
-            context.Connection.RemoteIpAddress = IPAddress.Parse(FirstClient);
-            context.Request.Method = HttpMethods.Options;
-            context.Request.Path = "/api/valuations";
-            context.Request.Host = new HostString("localhost");
-            context.Request.Headers.Origin = origin;
-            context.Request.Headers.AccessControlRequestMethod = HttpMethods.Post;
-        });
-
-        Assert.Equal(StatusCodes.Status204NoContent, preflight.Response.StatusCode);
-        var rejected = await Send(factory, FirstClient, "/api/taxonomy");
-        Assert.Equal(StatusCodes.Status429TooManyRequests, rejected.Response.StatusCode);
     }
 
     private static WebApplicationFactory<Program> CreateFactory()

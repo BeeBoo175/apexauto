@@ -4,6 +4,7 @@ using Dealership.Application;
 using Dealership.Infrastructure;
 using Dealership.Infrastructure.Configuration;
 using Dealership.Infrastructure.Persistence;
+using Dealership.Infrastructure.Identity;
 using Microsoft.AspNetCore.HttpOverrides;
 using Serilog;
 
@@ -49,6 +50,7 @@ builder.Host.UseSerilog((context, config) =>
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApiRateLimiting();
+builder.Services.AddApiAuthentication();
 
 builder.Services.AddCors(options =>
 {
@@ -71,6 +73,9 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
+// Prepare missing-account verification before requests so cold initialization cannot become a login signal.
+app.Services.GetRequiredService<MissingAccountPasswordHash>();
+
 app.UseForwardedHeaders();
 
 if (app.Environment.IsDevelopment())
@@ -87,6 +92,8 @@ app.UseSerilogRequestLogging();
 // Rate limit before CORS so preflight requests consume the API budget.
 app.UseRateLimiter();
 app.UseCors("AllowFrontend");
+app.UseAuthentication();
+app.UseAuthorization();
 
 // Orchestrator probes share one source IP and must never be throttled into a container restart.
 app.MapGet("/health", () => Results.Ok(new
@@ -102,5 +109,6 @@ app.MapGet("/health/ready", async (DealershipDbContext db, CancellationToken can
 
 app.MapVehicleEndpoints();
 app.MapRegistrationEndpoints();
+app.MapAuthenticationEndpoints();
 
 app.Run();
