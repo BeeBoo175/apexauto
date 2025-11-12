@@ -5,6 +5,7 @@ using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Identity;
 
 namespace Dealership.Infrastructure;
 
@@ -34,6 +35,12 @@ public static class DependencyInjection
         }).AddEntityFrameworkStores<DealershipDbContext>()
             .AddPasswordValidator<AccountPasswordValidator>();
         services.AddScoped<ICustomerRegistrationStore, CustomerRegistrationStore>();
+        services.AddScoped<IAccountSessionStore, AccountSessionStore>();
+        services.AddSingleton<MissingAccountPasswordHash>(provider =>
+        {
+            using var scope = provider.CreateScope();
+            return new MissingAccountPasswordHash(scope.ServiceProvider.GetRequiredService<IPasswordHasher<AccountUser>>());
+        });
 
         services.AddOptions<JwtSettings>()
             .Bind(configuration.GetSection(JwtSettings.SectionName))
