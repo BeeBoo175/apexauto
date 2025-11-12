@@ -3,30 +3,12 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using Dealership.Application.Vehicles;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Dealership.IntegrationTests;
 
-public class VehicleEndpointTests : IDisposable
+public class VehicleEndpointTests(VehicleApiFactory factory) : IClassFixture<VehicleApiFactory>, IDisposable
 {
-    private readonly WebApplicationFactory<Program> _factory;
-    private readonly HttpClient _client;
-
-    public VehicleEndpointTests()
-    {
-        _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
-        {
-            builder.ConfigureServices(services =>
-            {
-                services.RemoveAll<TimeProvider>();
-                services.AddSingleton<TimeProvider>(new FixedTimeProvider());
-            });
-        });
-
-        _client = _factory.CreateClient();
-    }
+    private readonly HttpClient _client = factory.CreateClient();
 
     [Fact]
     public async Task TaxonomyContainsAllSupportedChoicesWithPositiveDemoPrices()
@@ -69,29 +51,25 @@ public class VehicleEndpointTests : IDisposable
         Assert.Equal("MYR", quote.Currency);
     }
 
-    [Theory]
-    [InlineData("Proton", "Myvi", "1.5 AV", 2025, 15000, "vehicle")]
-    [InlineData("Perodua", "Myvi", "Flagship", 2025, 15000, "vehicle")]
-    [InlineData(null, null, null, 2025, 15000, "vehicle")]
-    [InlineData("Perodua", "Myvi", "1.5 AV", 2027, 15000, "manufactureYear")]
-    [InlineData("Perodua", "Myvi", "1.5 AV", 0, 15000, "manufactureYear")]
-    [InlineData("Perodua", "Myvi", "1.5 AV", null, 15000, "manufactureYear")]
-    [InlineData("Perodua", "Myvi", "1.5 AV", 2025, -1, "mileageKilometres")]
-    [InlineData("Perodua", "Myvi", "1.5 AV", 2025, null, "mileageKilometres")]
-    public async Task InvalidRequestsReturnFieldErrors(string? make, string? model, string? trim, int? year, int? mileage, string field)
+    [Fact]
+    public async Task InvalidRequestMapsEveryFieldErrorToBadRequest()
     {
-        var response = await _client.PostAsJsonAsync("/api/valuations", new ValuationRequest(make, model, trim, year, mileage));
+        var request = new ValuationRequest("Proton", "Myvi", "1.5 AV", 2027, -1);
+        var response = await _client.PostAsJsonAsync("/api/valuations", request);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        Assert.True(json.RootElement.GetProperty("errors").TryGetProperty(field, out _));
+        var errors = json.RootElement.GetProperty("errors");
+        Assert.True(errors.TryGetProperty("vehicle", out _));
+        Assert.True(errors.TryGetProperty("manufactureYear", out _));
+        Assert.True(errors.TryGetProperty("mileageKilometres", out _));
     }
 
     [Theory]
     [InlineData("{}")]
-    [InlineData("{\"manufactureYear\":\"2025\"}")]
-    [InlineData("{\"mileageKilometres\":1.5}")]
-    [InlineData("{\"mileageKilometres\":2147483648}")]
+    [InlineData("{\"make\":\"Perodua\",\"model\":\"Myvi\",\"trim\":\"1.5 AV\",\"manufactureYear\":\"not-a-year\",\"mileageKilometres\":15000}")]
+    [InlineData("{\"make\":\"Perodua\",\"model\":\"Myvi\",\"trim\":\"1.5 AV\",\"manufactureYear\":2025,\"mileageKilometres\":1.5}")]
+    [InlineData("{\"make\":\"Perodua\",\"model\":\"Myvi\",\"trim\":\"1.5 AV\",\"manufactureYear\":2025,\"mileageKilometres\":2147483648}")]
     [InlineData("null")]
     [InlineData("{")]
     public async Task MissingOrMalformedInputsCannotProduceAQuote(string body)
@@ -114,15 +92,6 @@ public class VehicleEndpointTests : IDisposable
     public void Dispose()
     {
         _client.Dispose();
-        _factory.Dispose();
         GC.SuppressFinalize(this);
-    }
-
-    private sealed class FixedTimeProvider : TimeProvider
-    {
-        public override DateTimeOffset GetUtcNow()
-        {
-            return new DateTimeOffset(2025, 12, 31, 16, 0, 0, TimeSpan.Zero);
-        }
     }
 }

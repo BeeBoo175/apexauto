@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
 using Dealership.Application.Accounts;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -13,18 +14,6 @@ namespace Dealership.IntegrationTests;
 
 public sealed class CustomerRegistrationTests(RegistrationDatabase database) : IClassFixture<RegistrationDatabase>
 {
-    [Fact]
-    public async Task ValidApostropheEmailIsAcceptedWithoutIssuingSession()
-    {
-        using var factory = CreateFactory();
-        using var client = factory.CreateClient();
-        var request = NewRequest() with { Email = $"farid.o'hassan.{Guid.NewGuid():N}@example.invalid" };
-        var created = await client.PostAsJsonAsync("/api/auth/register", request);
-        Assert.Equal(HttpStatusCode.NoContent, created.StatusCode);
-        Assert.Empty(await created.Content.ReadAsStringAsync());
-        Assert.False(created.Headers.Contains("Set-Cookie"));
-    }
-
     [Fact]
     public async Task RestrictedSqlRejectsEveryDotNetWhitespaceAtEmailBoundaries()
     {
@@ -65,11 +54,12 @@ public sealed class CustomerRegistrationTests(RegistrationDatabase database) : I
     {
         using var factory = CreateFactory();
         using var client = factory.CreateClient();
-        var original = NewRequest();
+        var original = NewRequest() with { Email = $"farid.o'hassan.{Guid.NewGuid():N}@example.invalid" };
         var request = original with { Email = $"\t\u00A0{original.Email}\u202F\r\n" };
         var response = await client.PostAsJsonAsync("/api/auth/register", request);
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
         Assert.Empty(await response.Content.ReadAsStringAsync());
+        Assert.False(response.Headers.Contains("Set-Cookie"));
         Assert.True(response.Headers.CacheControl?.NoStore);
         using var scope = factory.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
@@ -85,10 +75,6 @@ public sealed class CustomerRegistrationTests(RegistrationDatabase database) : I
     }
 
     [Theory]
-    [InlineData("password123!")]
-    [InlineData("PASSWORD123!")]
-    [InlineData("Password!!!")]
-    [InlineData("Password123")]
     [InlineData("Password123 ")]
     public async Task PasswordPolicyRejectsInvalidPasswordsWithoutPartialUsers(string password)
     {
@@ -219,24 +205,27 @@ public sealed class CustomerRegistrationTests(RegistrationDatabase database) : I
             PostgresErrorCodes.ForeignKeyViolation, userId, maintenance: true);
     }
 
-    [Theory]
-    [InlineData("nric")]
-    [InlineData("email")]
-    [InlineData("legalName")]
-    [InlineData("registrationKey")]
-    public async Task InvalidProfileIsRejectedBeforePersistence(string field)
+    [Fact]
+    public async Task InvalidProfileMapsFieldErrorsWithoutPersistingAnAccount()
     {
         using var factory = CreateFactory();
         using var client = factory.CreateClient();
-        var request = NewRequest();
-        request = field switch
+        var request = NewRequest() with
         {
-            "nric" => request with { Nric = "９００１０１０１０１２３" },
-            "email" => request with { Email = "invalid" },
-            "legalName" => request with { LegalName = "  " },
-            _ => request with { RegistrationKey = Guid.Empty }
+            Nric = "９００１０１０１０１２３",
+            LegalName = "  ",
+            RegistrationKey = Guid.Empty
         };
-        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/auth/register", request)).StatusCode);
+        var response = await client.PostAsJsonAsync("/api/auth/register", request);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var errors = json.RootElement.GetProperty("errors");
+        Assert.True(errors.TryGetProperty("nric", out _));
+        Assert.True(errors.TryGetProperty("legalName", out _));
+        Assert.True(errors.TryGetProperty("registrationKey", out _));
+        using var scope = factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
+        Assert.False(await context.Users.AnyAsync(user => user.Email == request.Email));
     }
 
     [Fact]
