@@ -38,7 +38,7 @@ public sealed class ApiRateLimitingTests
         Assert.Equal(StatusCodes.Status200OK, (await Send(factory, FirstClient, "/api/taxonomy")).Response.StatusCode);
     }
 
-    private static Task<HttpContext> SendLogin(WebApplicationFactory<Program> factory, string sender)
+    private static Task<HttpContext> SendLogin(WebApplicationFactory<Program> factory, string sender, string? forwardedClient = null)
     {
         return factory.Server.SendAsync(context =>
         {
@@ -48,7 +48,7 @@ public sealed class ApiRateLimitingTests
             context.Request.Host = new HostString("localhost");
             context.Request.ContentType = "application/json";
             context.Request.Body = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{}"));
-            context.Request.Headers["X-Forwarded-For"] = $"198.51.100.{Random.Shared.Next(20, 200)}";
+            context.Request.Headers["X-Forwarded-For"] = forwardedClient ?? $"198.51.100.{Random.Shared.Next(20, 200)}";
         });
     }
 
@@ -157,18 +157,41 @@ public sealed class ApiRateLimitingTests
         Assert.Equal(StatusCodes.Status200OK, otherClient.Response.StatusCode);
     }
 
+    [Fact]
+    public async Task TrustedProxyPreservesIndependentLoginBudgetsAndConsumesOnlyTheNearestAddress()
+    {
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+
+        for (var attempt = 0; attempt < ApiRateLimiting.LoginAttemptsPerMinute; attempt++)
+        {
+            var response = await SendLogin(factory, TrustedProxy, $"{SecondClient}, {FirstClient}");
+            Assert.Equal(StatusCodes.Status401Unauthorized, response.Response.StatusCode);
+        }
+
+        var rejected = await SendLogin(factory, TrustedProxy, $"198.51.100.99, {FirstClient}");
+        Assert.Equal(StatusCodes.Status429TooManyRequests, rejected.Response.StatusCode);
+        var otherClient = await SendLogin(factory, TrustedProxy, SecondClient);
+        Assert.Equal(StatusCodes.Status401Unauthorized, otherClient.Response.StatusCode);
+    }
+
     private static WebApplicationFactory<Program> CreateFactory()
     {
         return new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
+            // Readiness may probe only this unreachable test target, never the named database.
+            builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
+                new Dictionary<string, string?>
+                {
+                    ["ConnectionStrings:DefaultConnection"] = "Host=127.0.0.1;Port=1;Database=unavailable;Username=unavailable;Password=unavailable;Timeout=1"
+                }));
             builder.ConfigureServices(services =>
             {
                 services.PostConfigure<ForwardedHeadersOptions>(options =>
                 {
-                    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-                    options.KnownIPNetworks.Clear();
-                    options.KnownProxies.Clear();
-                    options.KnownProxies.Add(IPAddress.Parse(TrustedProxy));
+                    var configuration = new ConfigurationBuilder().AddInMemoryCollection(
+                        new Dictionary<string, string?> { ["ForwardedHeaders:KnownProxies:0"] = TrustedProxy }).Build();
+                    HostConfiguration.ConfigureForwardedHeaders(options, configuration);
                 });
             });
         });

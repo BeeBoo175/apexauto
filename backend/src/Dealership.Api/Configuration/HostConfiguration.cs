@@ -28,6 +28,7 @@ public static class HostConfiguration
     public static void ConfigureForwardedHeaders(ForwardedHeadersOptions options, IConfiguration configuration)
     {
         options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        options.ForwardLimit = 1;
         options.KnownIPNetworks.Clear();
         options.KnownProxies.Clear();
 
