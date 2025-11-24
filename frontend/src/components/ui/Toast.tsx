@@ -55,6 +55,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           return (
             <div
               key={t.id}
+              role={t.type === "error" ? "alert" : "status"}
               className={`pointer-events-auto p-4 border rounded-sm shadow-md text-xs font-bold uppercase tracking-wider ${typeStyles}`}
             >
               {t.message}
