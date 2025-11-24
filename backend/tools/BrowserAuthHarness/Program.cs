@@ -1,0 +1,217 @@
+using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Sockets;
+using System.Text.Json;
+using Dealership.Infrastructure.Persistence;
+using Dealership.IntegrationTests;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Configuration;
+
+namespace Dealership.BrowserAuthHarness;
+
+internal static class BrowserHarness
+{
+    public static async Task<int> Main(string[] args)
+    {
+        var repository = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../.."));
+        var frontend = Path.Combine(repository, "frontend");
+        var evidence = Path.Combine(repository, ".verifications", "browser-auth", $"{DateTime.UtcNow:yyyyMMdd-HHmmss}-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(evidence);
+        var state = new BrowserEvidence(evidence);
+        File.WriteAllText(Path.Combine(evidence, "counts.json"), "{}");
+        File.WriteAllText(Path.Combine(evidence, "fault.txt"), string.Empty);
+        File.Delete(Path.Combine(evidence, "revoked-token.txt"));
+        File.WriteAllText(Path.Combine(evidence, "profiles.json"), "[]");
+        var database = new RegistrationDatabase();
+        await database.InitializeAsync();
+        Environment.SetEnvironmentVariable("ASPNETCORE_URLS", "http://127.0.0.1:0");
+        Environment.SetEnvironmentVariable("AllowedHosts", "localhost;127.0.0.1");
+
+        try
+        {
+            foreach (var project in new[] { "desktop-auth", "mobile-auth" })
+            {
+                var exitCode = await RunBrowserAsync(project, args, database, state, evidence, frontend);
+
+                if (exitCode != 0)
+                {
+                    return exitCode;
+                }
+            }
+
+            await VerifyPersistenceAsync(database, evidence);
+            return 0;
+        }
+        finally
+        {
+            await database.DisposeAsync();
+            File.Delete(Path.Combine(evidence, "fault.txt"));
+            File.Delete(Path.Combine(evidence, "revoked-token.txt"));
+        }
+    }
+
+    private static async Task<int> RunBrowserAsync(string project, string[] args, RegistrationDatabase database,
+        BrowserEvidence state, string evidence, string frontend)
+    {
+        using var factory = new WebApplicationFactory<global::Program>().WithWebHostBuilder(builder =>
+        {
+            builder.UseContentRoot(Path.Combine(Path.GetDirectoryName(frontend)!, "backend", "src", "Dealership.Api"));
+            builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
+                new Dictionary<string, string?>
+                {
+                    ["ForwardedHeaders:KnownProxies:0"] = "127.0.0.1",
+                    ["ForwardedHeaders:KnownProxies:1"] = "::1"
+                }));
+            builder.ConfigureServices(services =>
+            {
+                services.RemoveAll<DbContextOptions<DealershipDbContext>>();
+                services.RemoveAll<DealershipDbContext>();
+                services.AddDbContext<DealershipDbContext>(options => options.UseNpgsql(database.RuntimeConnectionString));
+                services.AddSingleton<IStartupFilter>(state);
+            });
+        });
+        factory.UseKestrel(0);
+        using var client = factory.CreateClient();
+        var revokedTokenPath = Path.Combine(evidence, "revoked-token.txt");
+
+        if (File.Exists(revokedTokenPath))
+        {
+            using var restartedRequest = new HttpRequestMessage(HttpMethod.Get, "/api/account");
+            restartedRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", File.ReadAllText(revokedTokenPath));
+            using var restartedResponse = await client.SendAsync(restartedRequest);
+
+            if (restartedResponse.StatusCode != HttpStatusCode.Unauthorized)
+            {
+                throw new InvalidOperationException("Revoked browser session survived API restart.");
+            }
+
+            Console.WriteLine("Restarted real API rejects the revoked desktop session.");
+        }
+        var start = new ProcessStartInfo("node")
+        {
+            WorkingDirectory = frontend,
+            UseShellExecute = false
+        };
+        start.ArgumentList.Add("node_modules/@playwright/test/cli.js");
+        start.ArgumentList.Add("test");
+        start.ArgumentList.Add("--config=playwright.config.ts");
+        start.ArgumentList.Add($"--project={project}");
+
+        if (project == "desktop-auth")
+        {
+            start.ArgumentList.Add("--project=transport-auth");
+        }
+
+        foreach (var argument in args)
+        {
+            start.ArgumentList.Add(argument);
+        }
+
+        start.Environment["API_BASE_URL"] = client.BaseAddress!.GetLeftPart(UriPartial.Authority);
+        using var portProbe = new TcpListener(IPAddress.Loopback, 0);
+        portProbe.Start();
+        var frontendPort = ((IPEndPoint)portProbe.LocalEndpoint).Port;
+        portProbe.Stop();
+        var nextOrigin = $"http://127.0.0.1:{frontendPort}";
+        await using var ingress = await TrustedIngress.StartAsync(nextOrigin);
+        start.Environment["APP_BASE_URL"] = TrustedIngress.Origin(ingress);
+        start.Environment["AUTH_NEXT_ORIGIN"] = nextOrigin;
+        start.Environment["TRUSTED_CLIENT_IP_HEADER"] = TrustedIngress.ClientHeader;
+        start.Environment["AUTH_EVIDENCE_DIR"] = evidence;
+        start.Environment.Remove("NO_COLOR");
+        File.WriteAllText(Path.Combine(evidence, "fault.txt"), string.Empty);
+        using var browser = Process.Start(start) ?? throw new InvalidOperationException("Browser runner did not start.");
+        await browser.WaitForExitAsync();
+        return browser.ExitCode;
+    }
+
+    private static async Task VerifyPersistenceAsync(RegistrationDatabase database, string evidence)
+    {
+        var options = new DbContextOptionsBuilder<DealershipDbContext>().UseNpgsql(database.RuntimeConnectionString).Options;
+        await using var context = new DealershipDbContext(options);
+        var profiles = await context.CustomerProfiles.CountAsync();
+        var sessions = await context.AccountSessions.CountAsync();
+        var revoked = await context.AccountSessions.CountAsync(session => session.RevokedAt != null);
+
+        var expected = JsonSerializer.Deserialize<ExpectedProfile[]>(File.ReadAllText(Path.Combine(evidence, "profiles.json")))
+            ?? throw new InvalidOperationException("Browser profile evidence is missing.");
+
+        if (profiles != expected.Length || expected.Length == 0 || sessions == 0 || revoked == 0 ||
+            await context.Users.AnyAsync(user => user.EmailConfirmed))
+        {
+            throw new InvalidOperationException("Browser journeys did not persist the expected unverified accounts and session revocations.");
+        }
+
+        foreach (var profile in expected)
+        {
+            if (!await context.CustomerProfiles.AnyAsync(customer => customer.RegistrationKey == profile.RegistrationKey &&
+                customer.LegalName == profile.LegalName && customer.Nric == profile.Nric &&
+                context.Users.Any(user => user.Id == customer.UserId && user.Email == profile.Email)))
+            {
+                throw new InvalidOperationException("Persisted customer identity does not match its confirmed browser receipt.");
+            }
+        }
+
+        Console.WriteLine("Restricted PostgreSQL read confirms unverified profiles, durable sessions and revocation receipts.");
+    }
+}
+
+internal sealed record ExpectedProfile(Guid RegistrationKey, string LegalName, string Email, string Nric);
+
+internal sealed class BrowserEvidence(string directory) : IStartupFilter
+{
+    private readonly ConcurrentDictionary<string, int> _counts = new();
+    private readonly object _snapshotLock = new();
+
+    public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next)
+    {
+        return app =>
+        {
+            app.Use(async (context, continuation) =>
+            {
+                var path = context.Request.Path.Value ?? string.Empty;
+                var fault = File.ReadAllText(Path.Combine(directory, "fault.txt"));
+
+                if (fault == "unavailable")
+                {
+                    context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+                    await context.Response.WriteAsJsonAsync(new { title = "Unavailable" });
+                    return;
+                }
+
+                _counts.AddOrUpdate(path, 1, (_, count) => count + 1);
+
+                lock (_snapshotLock)
+                {
+                    File.WriteAllText(Path.Combine(directory, "counts.json"), JsonSerializer.Serialize(_counts));
+                }
+
+                if (fault == "invalid-login" && path == "/api/auth/login")
+                {
+                    await context.Response.WriteAsJsonAsync(new { accessToken = "invalid", expiresAt = DateTimeOffset.UtcNow.AddHours(1) });
+                    return;
+                }
+
+                if (fault == "slow-login" && path == "/api/auth/login")
+                {
+                    context.Response.ContentType = "application/json";
+                    await context.Response.WriteAsync("{");
+                    await context.Response.Body.FlushAsync();
+                    await Task.Delay(TimeSpan.FromSeconds(15), context.RequestAborted);
+                    return;
+                }
+
+                await continuation();
+            });
+            next(app);
+        };
+    }
+}

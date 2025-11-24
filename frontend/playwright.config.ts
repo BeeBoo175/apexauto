@@ -25,6 +25,11 @@ export default defineConfig({
     ...(browserAuth
       ? [
           {
+            name: "transport-auth",
+            testMatch: "e2e/auth-transport.spec.ts",
+            use: { baseURL: appBaseUrl },
+          },
+          {
             name: "desktop-auth",
             testMatch: "e2e/browser-auth*.spec.ts",
             use: {
