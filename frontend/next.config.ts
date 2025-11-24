@@ -19,6 +19,16 @@ if (process.env.NODE_ENV !== "production") {
 
 const apiBaseUrl = process.env.API_BASE_URL;
 
+const appBaseUrl = process.env.APP_BASE_URL;
+
+if (
+  !appBaseUrl ||
+  new URL(appBaseUrl).origin !== appBaseUrl ||
+  !["http:", "https:"].includes(new URL(appBaseUrl).protocol)
+) {
+  throw new Error("APP_BASE_URL must be an absolute HTTP(S) origin.");
+}
+
 if (!apiBaseUrl?.trim()) {
   throw new Error("API_BASE_URL is required in every environment.");
 }
@@ -85,6 +95,17 @@ const nextConfig: NextConfig = {
           // Enables HTTPS for 1 year; subdomains included.
           { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
         ],
+      },
+      {
+        source: "/account/:path*",
+        headers: [
+          { key: "Cache-Control", value: "no-store" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive, nosnippet" },
+        ],
+      },
+      {
+        source: "/api/:path*",
+        headers: [{ key: "Cache-Control", value: "no-store" }],
       },
       {
         source: "/auth/:path*",
