@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { test, expect } from "@playwright/test";
+import { request as httpRequest } from "node:http";
 
 const origin = process.env.APP_BASE_URL!;
 const evidence = process.env.AUTH_EVIDENCE_DIR!;
@@ -16,6 +17,52 @@ function fault(value: string) {
 }
 
 test.afterEach(() => fault(""));
+
+async function ingressLogin(localAddress: string, forgedAddress: string) {
+  const body = JSON.stringify({
+    loginKey: randomUUID(),
+    email: "unregistered@example.invalid",
+    password: "Password123!",
+  });
+  return new Promise<number>((resolve, reject) => {
+    const request = httpRequest(
+      new URL("/api/auth/login", origin),
+      {
+        method: "POST",
+        localAddress,
+        headers: {
+          Origin: origin,
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(body),
+          "X-ApexAuto-Client-IP": forgedAddress,
+          "X-Forwarded-For": forgedAddress,
+          "X-Forwarded-Proto": "https",
+          Forwarded: `for=${forgedAddress}`,
+        },
+      },
+      (response) => {
+        response.resume();
+        response.on("end", () => resolve(response.statusCode!));
+      },
+    );
+    request.on("error", reject);
+    request.end(body);
+  });
+}
+
+test("sanitizing ingress and Next preserve independent login budgets despite forged headers", async () => {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    expect(await ingressLogin("127.0.0.10", `198.51.100.${attempt + 10}`)).toBe(401);
+  }
+
+  expect(await ingressLogin("127.0.0.10", "198.51.100.99")).toBe(429);
+  expect(await ingressLogin("127.0.0.11", "198.51.100.99")).toBe(401);
+  for (let attempt = 1; attempt < 5; attempt++) {
+    expect(await ingressLogin("127.0.0.11", "127.0.0.10")).toBe(401);
+  }
+
+  expect(await ingressLogin("127.0.0.11", "198.51.100.100")).toBe(429);
+});
 
 test("origin and body protection, malformed sessions and bounded body consumption", async ({
   request,
