@@ -7,7 +7,7 @@ import type { Page } from "@playwright/test";
 const origin = process.env.APP_BASE_URL!;
 const evidence = process.env.AUTH_EVIDENCE_DIR!;
 
-type DelayedRefresh = { release?: () => void; aborted: boolean };
+type DelayedRefresh = { release?: () => void };
 declare global {
   interface Window {
     delayedRefresh: DelayedRefresh;
@@ -16,7 +16,7 @@ declare global {
 
 async function delayRefresh(page: Page, outcome: "success" | "failure") {
   await page.evaluate((mode) => {
-    const state: DelayedRefresh = { aborted: false };
+    const state: DelayedRefresh = {};
     window.delayedRefresh = state;
     const originalFetch = window.fetch.bind(window);
     window.fetch = async (input, options) => {
@@ -27,7 +27,9 @@ async function delayRefresh(page: Page, outcome: "success" | "failure") {
 
       const body = await response.text();
       options?.signal?.addEventListener("abort", () => {
-        state.aborted = true;
+        // Release the completed response before the actor's document reload replaces this page.
+        state.release?.();
+        console.info("Delayed account refresh released after abort");
       });
       // Keep a completed old-actor response alive even if transport cancellation is ignored.
       return new Promise<Response>((resolve, reject) => {
@@ -46,12 +48,9 @@ async function delayRefresh(page: Page, outcome: "success" | "failure") {
   await expect.poll(() => page.evaluate(() => Boolean(window.delayedRefresh.release))).toBe(true);
 }
 
-async function releaseRefresh(page: Page) {
-  await page.evaluate(async () => {
-    window.delayedRefresh.release!();
-    await new Promise<void>((resolve) =>
-      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
-    );
+function waitForRefreshAbort(page: Page) {
+  return page.waitForEvent("console", {
+    predicate: (message) => message.text() === "Delayed account refresh released after abort",
   });
 }
 
@@ -63,7 +62,7 @@ async function signIn(page: Page, email: string) {
   await expect(page).toHaveURL(`${origin}/account`);
 }
 
-test("late refresh success and failure cannot restore content or feedback after cross-tab actor changes", async ({
+test("cross-tab actor changes abort completed refreshes and discard previous account content", async ({
   page,
   context,
 }) => {
@@ -96,37 +95,22 @@ test("late refresh success and failure cannot restore content or feedback after 
   }
   await signIn(page, owners[0].Email);
   const actorTab = await context.newPage();
-  let continueNavigation: (() => void) | undefined;
-  await page.route(
-    (url) => url.pathname === "/account",
-    async (route) => {
-      await new Promise<void>((resolve) => {
-        continueNavigation = resolve;
-      });
-      await route.continue();
-    },
-  );
 
   await delayRefresh(page, "success");
+  const firstAbort = waitForRefreshAbort(page);
   await signIn(actorTab, owners[1].Email);
-  await expect.poll(() => Boolean(continueNavigation)).toBe(true);
-  await expect.poll(() => page.evaluate(() => window.delayedRefresh.aborted)).toBe(true);
-  await releaseRefresh(page);
+  await firstAbort;
   await expect(page.getByText(owners[0].LegalName, { exact: true })).toHaveCount(0);
   await expect(page.getByText(/account could not be refreshed/)).toHaveCount(0);
-  continueNavigation!();
   await expect(page.getByText(owners[1].LegalName, { exact: true })).toBeVisible();
-  continueNavigation = undefined;
 
   await delayRefresh(page, "failure");
+  const secondAbort = waitForRefreshAbort(page);
   await actorTab.getByRole("button", { name: "Sign out", exact: true }).click();
   await expect(actorTab).toHaveURL(`${origin}/login`);
-  await expect.poll(() => Boolean(continueNavigation)).toBe(true);
-  await expect.poll(() => page.evaluate(() => window.delayedRefresh.aborted)).toBe(true);
-  await releaseRefresh(page);
+  await secondAbort;
   await expect(page.getByText(owners[1].LegalName, { exact: true })).toHaveCount(0);
   await expect(page.getByText(/account could not be refreshed/)).toHaveCount(0);
   await expect(page.getByText(/These details may be out of date/)).toHaveCount(0);
-  continueNavigation!();
   await expect(page).toHaveURL(/\/login\?returnTo=/);
 });

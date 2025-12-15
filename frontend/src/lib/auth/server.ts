@@ -5,9 +5,8 @@ import { NextResponse } from "next/server";
 import { SESSION_COOKIE, parseAccount } from "./contracts";
 import { authUpstream } from "./http";
 
-// Cookie security posture: HttpOnly prevents JavaScript access (mitigating XSS token theft),
-// SameSite=Lax prevents CSRF on cross-origin requests while preserving top-level navigation,
-// and Secure ensures HTTPS transmission in production.
+// HttpOnly hides the token from JavaScript; SameSite=Lax limits cross-site cookie sends.
+// Mutating routes still require an explicit Origin check; production cookies require HTTPS.
 const cookieOptions = {
   httpOnly: true,
   sameSite: "lax" as const,

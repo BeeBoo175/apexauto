@@ -134,9 +134,23 @@ test("registration, unverified own account, bounded refresh and current-session 
   await expect(outsiderPage.getByText(other.legalName, { exact: true })).toBeVisible();
   await expect(outsiderPage.getByText(owner.legalName, { exact: true })).toHaveCount(0);
   const ownerId = JSON.parse(Buffer.from(cookie.value.split(".")[1], "base64url").toString()).sub;
-  const scoped = await outsider.request.get(`/api/account?userId=${ownerId}`);
-  expect((await scoped.json()).legalName).toBe(other.legalName);
-  expect(scoped.headers()["cache-control"]).toContain("no-store");
+  const scopedRequest = outsiderPage.waitForRequest((request) =>
+    request.url().includes("/api/account?userId="),
+  );
+  // Browser fetch exercises the Secure loopback cookie used by the production build.
+  const scoped = await outsiderPage.evaluate(async (id) => {
+    const response = await fetch(`/api/account?userId=${id}`, { cache: "no-store" });
+    return {
+      status: response.status,
+      account: await response.json(),
+      cacheControl: response.headers.get("cache-control"),
+    };
+  }, ownerId);
+  const scopedHeaders = await (await scopedRequest).allHeaders();
+  expect(scopedHeaders.cookie?.includes("apexauto_token=")).toBe(true);
+  expect(scoped.status).toBe(200);
+  expect(scoped.account.legalName).toBe(other.legalName);
+  expect(scoped.cacheControl).toContain("no-store");
 
   const refreshBefore = counts()["/api/account"];
   await page.getByRole("button", { name: "Refresh account" }).click();
@@ -184,7 +198,10 @@ test("registration, unverified own account, bounded refresh and current-session 
   });
   expect(revokedDocument.status()).toBe(307);
   expect(revokedDocument.headers().location).toBe("/login?returnTo=%2Faccount");
-  expect((await independent.request.get("/api/account")).status()).toBe(200);
+  const independentAccountStatus = await independentPage.evaluate(
+    async () => (await fetch("/api/account", { cache: "no-store" })).status,
+  );
+  expect(independentAccountStatus).toBe(200);
   await page.goto("/account");
   await expect(page).toHaveURL(/\/login\?returnTo=/);
   await independent.close();
