@@ -33,7 +33,7 @@ public sealed class AccountSessionStore(DealershipDbContext database, UserManage
         }
 
         if (!await users.CheckPasswordAsync(user, password) ||
-            !await database.CustomerProfiles.AnyAsync(profile => profile.UserId == user.Id, cancellationToken))
+            !await EligibleUsers().AnyAsync(account => account.Id == user.Id, cancellationToken))
         {
             return null;
         }
@@ -91,7 +91,7 @@ public sealed class AccountSessionStore(DealershipDbContext database, UserManage
         var now = clock.GetUtcNow();
         return await database.AccountSessions.AnyAsync(session => session.Id == sessionId && session.UserId == userId &&
             session.RevokedAt == null && session.ExpiresAt > now &&
-            database.Users.Any(user => user.Id == session.UserId && user.SecurityStamp == session.SecurityStamp), cancellationToken);
+            EligibleUsers().Any(user => user.Id == session.UserId && user.SecurityStamp == session.SecurityStamp), cancellationToken);
     }
 
     public async Task RevokeAsync(Guid userId, Guid sessionId, CancellationToken cancellationToken)
@@ -106,8 +106,20 @@ public sealed class AccountSessionStore(DealershipDbContext database, UserManage
     {
         return await (from profile in database.CustomerProfiles
                       join user in database.Users on profile.UserId equals user.Id
-                      where profile.UserId == userId
+                      where profile.UserId == userId && user.Role == AccountRoles.Customer && user.IsActive
                       select new CustomerAccount(user.Id, profile.LegalName, user.Email!, user.EmailConfirmed))
             .SingleOrDefaultAsync(cancellationToken);
+    }
+
+    private IQueryable<AccountUser> EligibleUsers()
+    {
+        // Current persisted assignment governs every request; JWTs carry identity only.
+        return database.Users.Where(user => user.IsActive &&
+            ((user.Role == AccountRoles.Customer &&
+              database.CustomerProfiles.Any(profile => profile.UserId == user.Id)) ||
+             user.Role == AccountRoles.GeneralManager || user.Role == AccountRoles.Administrator ||
+             ((user.Role == AccountRoles.SalesAgent || user.Role == AccountRoles.WorkshopTechnician ||
+               user.Role == AccountRoles.BranchManager) && user.BranchId != null &&
+              database.Branches.Any(branch => branch.Id == user.BranchId && branch.IsActive))));
     }
 }
