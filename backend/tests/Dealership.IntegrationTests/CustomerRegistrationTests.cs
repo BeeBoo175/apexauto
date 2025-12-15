@@ -68,6 +68,9 @@ public sealed class CustomerRegistrationTests(RegistrationDatabase database) : I
         Assert.Equal(request.LegalName, profile.LegalName);
         Assert.Equal(request.Nric, profile.Nric);
         Assert.False(user.EmailConfirmed);
+        Assert.Equal(AccountRoles.Customer, user.Role);
+        Assert.Null(user.BranchId);
+        Assert.True(user.IsActive);
         Assert.NotEqual(request.Password, user.PasswordHash);
         Assert.NotNull(user.PasswordHash);
         Assert.Equal(original.Email, user.Email);

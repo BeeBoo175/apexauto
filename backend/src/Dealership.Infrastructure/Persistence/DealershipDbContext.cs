@@ -1,3 +1,4 @@
+using Dealership.Domain.Branches;
 using Dealership.Domain.Customers;
 using Dealership.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -9,12 +10,15 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
 {
     public DbSet<CustomerProfile> CustomerProfiles => Set<CustomerProfile>();
 
+    public DbSet<Branch> Branches => Set<Branch>();
+
     public DbSet<AccountSession> AccountSessions => Set<AccountSession>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
         builder.ApplyConfiguration(new AccountUserConfiguration());
+        builder.ApplyConfiguration(new BranchConfiguration());
         builder.ApplyConfiguration(new CustomerProfileConfiguration());
         builder.ApplyConfiguration(new AccountSessionConfiguration());
     }
