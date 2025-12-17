@@ -4,10 +4,11 @@ using Dealership.Infrastructure.Configuration;
 using Dealership.Infrastructure.Development;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 
-if (args.Length != 1 || args[0] is not ("seed" or "review"))
+if (args.Length != 1 || args[0] is not ("seed" or "review" or "clear"))
 {
-    Console.Error.WriteLine("Usage: DevelopmentFixtures seed|review");
+    Console.Error.WriteLine("Usage: DevelopmentFixtures seed|review|clear");
     return 1;
 }
 
@@ -39,6 +40,16 @@ try
     await using var scope = provider.CreateAsyncScope();
     var runner = scope.ServiceProvider.GetRequiredService<DevelopmentFixtureRunner>();
     using var deadline = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+
+    if (args[0] == "clear")
+    {
+        var databaseName = new NpgsqlConnectionStringBuilder(target.ConnectionString).Database;
+        Console.WriteLine($"This erases every record in local database {databaseName} and reapplies migrations.");
+        Console.Write($"Type rebuild {databaseName} to continue: ");
+        await runner.RebuildAsync(target, Console.ReadLine(), deadline.Token);
+        Console.WriteLine("Local database rebuilt. Run seed deliberately to recreate fixtures.");
+        return 0;
+    }
 
     var reports = args[0] == "seed"
         ? await runner.SeedAsync(target, deadline.Token)
