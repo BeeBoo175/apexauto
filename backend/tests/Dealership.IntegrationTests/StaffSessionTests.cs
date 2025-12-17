@@ -2,10 +2,8 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Dealership.Application.Accounts;
-using Dealership.Domain.Branches;
 using Dealership.Infrastructure.Identity;
 using Dealership.Infrastructure.Persistence;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -102,31 +100,24 @@ public sealed class StaffSessionTests(RegistrationDatabase database) : IClassFix
     private static async Task<Guid> CreateBranchAsync(WebApplicationFactory<Program> factory, string name)
     {
         using var scope = factory.Services.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
-        var branch = new Branch(Guid.NewGuid(), name, "12 Jalan Pengaturcara U1/51A", "Shah Alam",
-            "Selangor", "+60355651234", DateTimeOffset.UtcNow);
-        context.Branches.Add(branch);
-        await context.SaveChangesAsync();
-        return branch.Id;
+        var provisioner = scope.ServiceProvider.GetRequiredService<StaffProvisioningService>();
+        var branchId = Guid.NewGuid();
+        var result = await provisioner.ProvisionBranchAsync(new BranchProvisioningRequest(branchId, name,
+            "12 Jalan Pengaturcara U1/51A", "Shah Alam", "Selangor", "+60355651234"), CancellationToken.None);
+        Assert.True(result.Created);
+        return branchId;
     }
 
     private static async Task<Guid> CreateStaffAsync(WebApplicationFactory<Program> factory, string email, string role,
         Guid? branchId)
     {
         using var scope = factory.Services.CreateScope();
-        var users = scope.ServiceProvider.GetRequiredService<UserManager<AccountUser>>();
-        var staff = new AccountUser
-        {
-            Id = Guid.NewGuid(),
-            Email = email,
-            UserName = email,
-            EmailConfirmed = true,
-            Role = role,
-            BranchId = branchId
-        };
-        var result = await users.CreateAsync(staff, "Password123!");
-        Assert.True(result.Succeeded, string.Join(", ", result.Errors.Select(error => error.Description)));
-        return staff.Id;
+        var provisioner = scope.ServiceProvider.GetRequiredService<StaffProvisioningService>();
+        var staffId = Guid.NewGuid();
+        var result = await provisioner.ProvisionStaffAsync(new StaffProvisioningRequest(staffId, email,
+            "Password123!", role, branchId), CancellationToken.None);
+        Assert.True(result.Created);
+        return staffId;
     }
 
     private static async Task<LoginSession> LoginAsync(HttpClient client, string email)

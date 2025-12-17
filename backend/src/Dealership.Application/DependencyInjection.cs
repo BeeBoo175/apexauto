@@ -12,6 +12,7 @@ public static class DependencyInjection
         services.AddSingleton<ValuationService>();
         services.AddScoped<RegistrationService>();
         services.AddScoped<AuthenticationService>();
+        services.AddScoped<StaffProvisioningService>();
 
         return services;
     }

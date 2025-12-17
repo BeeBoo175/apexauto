@@ -36,6 +36,7 @@ public static class DependencyInjection
             .AddPasswordValidator<AccountPasswordValidator>();
         services.AddScoped<ICustomerRegistrationStore, CustomerRegistrationStore>();
         services.AddScoped<IAccountSessionStore, AccountSessionStore>();
+        services.AddScoped<IStaffProvisioningStore, StaffProvisioningStore>();
         services.AddSingleton<MissingAccountPasswordHash>(provider =>
         {
             using var scope = provider.CreateScope();
