@@ -14,6 +14,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Configuration;
+using Dealership.Application.Accounts;
+using Dealership.Infrastructure.Development;
 
 namespace Dealership.BrowserAuthHarness;
 
@@ -80,6 +82,27 @@ internal static class BrowserHarness
         });
         factory.UseKestrel(0);
         using var client = factory.CreateClient();
+        using (var scope = factory.Services.CreateScope())
+        {
+            var registration = scope.ServiceProvider.GetRequiredService<RegistrationService>();
+            var customer = DevelopmentFixtureManifest.Customer;
+            var result = await registration.RegisterAsync(customer, CancellationToken.None);
+
+            if (result.Status != RegistrationStatus.Succeeded)
+            {
+                throw new InvalidOperationException("Canonical demo customer registration failed.");
+            }
+
+            var profilePath = Path.Combine(evidence, "profiles.json");
+            var profiles = JsonSerializer.Deserialize<List<ExpectedProfile>>(File.ReadAllText(profilePath))!;
+
+            if (!profiles.Any(profile => profile.RegistrationKey == customer.RegistrationKey))
+            {
+                profiles.Add(new ExpectedProfile(customer.RegistrationKey, customer.LegalName!, customer.Email!, customer.Nric!));
+                File.WriteAllText(profilePath, JsonSerializer.Serialize(profiles));
+            }
+        }
+
         var revokedTokenPath = Path.Combine(evidence, "revoked-token.txt");
 
         if (File.Exists(revokedTokenPath))
