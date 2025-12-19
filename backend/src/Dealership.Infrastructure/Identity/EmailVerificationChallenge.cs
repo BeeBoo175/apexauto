@@ -1,0 +1,32 @@
+namespace Dealership.Infrastructure.Identity;
+
+public sealed class EmailVerificationChallenge
+{
+    public Guid Id { get; init; }
+
+    public Guid UserId { get; init; }
+
+    public string RecipientEmail { get; init; } = string.Empty;
+
+    public DateTimeOffset CreatedAt { get; init; }
+
+    public DateTimeOffset ExpiresAt { get; init; }
+
+    public DateTimeOffset? InvalidatedAt { get; set; }
+
+    public DateTimeOffset? ConsumedAt { get; set; }
+
+    public int DeliveryAttempts { get; set; }
+
+    public DateTimeOffset NextDeliveryAt { get; set; }
+
+    public Guid? DeliveryClaimId { get; set; }
+
+    public DateTimeOffset? DeliveryClaimExpiresAt { get; set; }
+
+    public DateTimeOffset? DeliveredAt { get; set; }
+
+    public bool IsResend { get; init; }
+
+    public Guid? ResendKey { get; init; }
+}

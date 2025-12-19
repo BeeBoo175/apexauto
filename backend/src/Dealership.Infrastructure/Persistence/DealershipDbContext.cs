@@ -14,6 +14,8 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
 
     public DbSet<AccountSession> AccountSessions => Set<AccountSession>();
 
+    public DbSet<EmailVerificationChallenge> EmailVerificationChallenges => Set<EmailVerificationChallenge>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -21,5 +23,6 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
         builder.ApplyConfiguration(new BranchConfiguration());
         builder.ApplyConfiguration(new CustomerProfileConfiguration());
         builder.ApplyConfiguration(new AccountSessionConfiguration());
+        builder.ApplyConfiguration(new EmailVerificationChallengeConfiguration());
     }
 }
