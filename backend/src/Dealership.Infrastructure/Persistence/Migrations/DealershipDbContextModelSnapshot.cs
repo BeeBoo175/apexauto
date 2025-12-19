@@ -244,6 +244,75 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Dealership.Infrastructure.Identity.EmailVerificationChallenge", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ConsumedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DeliveredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DeliveryAttempts")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("DeliveryClaimExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeliveryClaimId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("InvalidatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsResend")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset>("NextDeliveryAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RecipientEmail")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("character varying(254)");
+
+                    b.Property<Guid?>("ResendKey")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NextDeliveryAt");
+
+                    b.HasIndex("ResendKey")
+                        .IsUnique()
+                        .HasFilter("\"ResendKey\" IS NOT NULL");
+
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasFilter("\"InvalidatedAt\" IS NULL AND \"ConsumedAt\" IS NULL");
+
+                    b.HasIndex("UserId", "CreatedAt");
+
+                    b.ToTable("EmailVerificationChallenges", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_EmailVerificationChallenges_Attempts", "\"DeliveryAttempts\" >= 0");
+
+                            t.HasCheckConstraint("CK_EmailVerificationChallenges_Lifetime", "\"ExpiresAt\" > \"CreatedAt\"");
+                        });
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<System.Guid>", b =>
                 {
                     b.Property<int>("Id")
@@ -332,6 +401,15 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("BranchId")
                         .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("Dealership.Infrastructure.Identity.EmailVerificationChallenge", b =>
+                {
+                    b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<System.Guid>", b =>
