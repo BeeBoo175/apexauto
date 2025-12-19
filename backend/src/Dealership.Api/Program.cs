@@ -49,6 +49,11 @@ builder.Host.UseSerilog((context, config) =>
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddOptions<EmailDeliverySettings>()
+    .Bind(builder.Configuration.GetSection(EmailDeliverySettings.SectionName))
+    .ValidateOnStart();
+builder.Services.AddSingleton<IVerificationMailSender, SmtpVerificationMailSender>();
+builder.Services.AddHostedService<VerificationMailWorker>();
 builder.Services.AddApiRateLimiting();
 builder.Services.AddApiAuthentication();
 

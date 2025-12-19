@@ -29,6 +29,17 @@ services:
     volumes:
       - s3data:/s3mockroot
 
+  mailpit:
+    profiles: ["mail"]
+    image: axllent/mailpit:latest
+    environment:
+      MP_DATABASE: /data/mailpit.db
+    ports:
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
+    volumes:
+      - maildata:/data
+
   # Production-image smoke test: docker compose --profile full up --build
   api:
     profiles: ["full"]
@@ -50,3 +61,4 @@ services:
 volumes:
   pgdata:
   s3data:
+  maildata:
