@@ -9,6 +9,7 @@ public static class ApiRateLimiting
     public const int RequestsPerMinute = 100;
     public const int LoginAttemptsPerMinute = 5;
     public const string LoginPolicy = "login";
+    public const string VerificationPolicy = "email-verification";
 
     public static readonly TimeSpan RequestWindow = TimeSpan.FromMinutes(1);
 
@@ -22,6 +23,16 @@ public static class ApiRateLimiting
                 return RateLimitPartition.GetFixedWindowLimiter(GetClientAddress(context), _ => new FixedWindowRateLimiterOptions
                 {
                     PermitLimit = LoginAttemptsPerMinute,
+                    Window = RequestWindow,
+                    QueueLimit = 0,
+                    AutoReplenishment = true
+                });
+            });
+            options.AddPolicy(VerificationPolicy, context =>
+            {
+                return RateLimitPartition.GetFixedWindowLimiter(GetClientAddress(context), _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 10,
                     Window = RequestWindow,
                     QueueLimit = 0,
                     AutoReplenishment = true

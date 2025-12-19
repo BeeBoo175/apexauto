@@ -7,7 +7,8 @@ using Npgsql;
 
 namespace Dealership.Infrastructure.Identity;
 
-public sealed class CustomerRegistrationStore(DealershipDbContext database, UserManager<AccountUser> users)
+public sealed class CustomerRegistrationStore(DealershipDbContext database, UserManager<AccountUser> users,
+    IEmailVerificationStore verification)
     : ICustomerRegistrationStore
 {
     private static readonly RegistrationResult Success = new(RegistrationStatus.Succeeded, new Dictionary<string, string[]>());
@@ -55,6 +56,7 @@ public sealed class CustomerRegistrationStore(DealershipDbContext database, User
             database.CustomerProfiles.Add(new CustomerProfile(user.Id, registration.RegistrationKey,
                 registration.LegalName, registration.Nric, registration.Mobile, registration.ResidentialAddress));
             await database.SaveChangesAsync(cancellationToken);
+            await verification.QueueInitialAsync(user.Id, cancellationToken);
             await transaction.CommitAsync(cancellationToken);
             return Success;
         }

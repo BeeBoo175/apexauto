@@ -11,6 +11,10 @@ public static class AuthenticationEndpoints
         app.MapPost("/api/auth/login", LoginAsync).RequireRateLimiting(ApiRateLimiting.LoginPolicy);
         app.MapPost("/api/auth/logout", LogoutAsync).RequireAuthorization();
         app.MapGet("/api/account", GetAccountAsync).RequireAuthorization();
+        app.MapPost("/api/auth/email-verification/resend", ResendVerificationAsync)
+            .RequireAuthorization().RequireRateLimiting(ApiRateLimiting.VerificationPolicy);
+        app.MapPost("/api/auth/email-verification", ConfirmEmailAsync)
+            .RequireRateLimiting(ApiRateLimiting.VerificationPolicy);
     }
 
     private static async Task<IResult> LoginAsync(HttpContext context, AuthenticationService authentication,
@@ -48,4 +52,55 @@ public static class AuthenticationEndpoints
         var account = await sessions.GetAccountAsync(userId, cancellationToken);
         return account is null ? Results.Forbid() : Results.Ok(account);
     }
+
+    private static async Task<IResult> ResendVerificationAsync(HttpContext context, EmailVerificationService verification,
+        CancellationToken cancellationToken)
+    {
+        context.Response.Headers.CacheControl = "no-store";
+        var (request, error) = await JsonRequestReader.ReadAsync<ResendVerificationRequest>(context.Request, cancellationToken);
+
+        if (error is not null)
+        {
+            return error;
+        }
+
+        var userId = Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Sub)!.Value);
+        var result = await verification.ResendAsync(userId, request!.ResendKey, cancellationToken);
+
+        if (result.Status == VerificationStatus.RateLimited)
+        {
+            context.Response.Headers.RetryAfter = Math.Max(1, (int)Math.Ceiling(result.RetryAfter!.Value.TotalSeconds))
+                .ToString(System.Globalization.CultureInfo.InvariantCulture);
+            return Results.Problem(statusCode: StatusCodes.Status429TooManyRequests,
+                title: "Wait before requesting another verification email.");
+        }
+
+        return result.Status switch
+        {
+            VerificationStatus.Forbidden => Results.Forbid(),
+            VerificationStatus.Invalid => Results.Problem(statusCode: StatusCodes.Status400BadRequest),
+            _ => Results.Accepted()
+        };
+    }
+
+    private static async Task<IResult> ConfirmEmailAsync(HttpContext context, EmailVerificationService verification,
+        CancellationToken cancellationToken)
+    {
+        context.Response.Headers.CacheControl = "no-store";
+        var (request, error) = await JsonRequestReader.ReadAsync<EmailVerificationRequest>(context.Request, cancellationToken);
+
+        if (error is not null)
+        {
+            return error;
+        }
+
+        var result = await verification.ConfirmAsync(request!.Token, cancellationToken);
+        return result.Status == VerificationStatus.Accepted
+            ? Results.NoContent()
+            : Results.Problem(statusCode: StatusCodes.Status400BadRequest, title: "Verification link is invalid or expired.");
+    }
+
+    private sealed record EmailVerificationRequest(string? Token);
+
+    private sealed record ResendVerificationRequest(Guid ResendKey);
 }

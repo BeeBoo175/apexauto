@@ -79,7 +79,10 @@ export function requireSameOrigin(request: Request) {
 }
 
 // Validate payload shape, whitelist allowed fields, and require UUID idempotency keys.
-export async function readAuthRequest(request: Request, kind: "login" | "register" | "logout") {
+export async function readAuthRequest(
+  request: Request,
+  kind: "login" | "register" | "logout" | "verify-email" | "resend-verification",
+) {
   requireSameOrigin(request);
 
   if (
@@ -111,6 +114,22 @@ export async function readAuthRequest(request: Request, kind: "login" | "registe
     }
 
     return {};
+  }
+
+  if (kind === "verify-email") {
+    if (!isRecord(value) || typeof value.token !== "string" || value.token.length > 160) {
+      throw new AuthHttpError(400, "The verification link is invalid.");
+    }
+
+    return { token: value.token };
+  }
+
+  if (kind === "resend-verification") {
+    if (!isRecord(value) || !isUuid(value.resendKey) || Object.keys(value).length !== 1) {
+      throw new AuthHttpError(400, "The resend request is invalid.");
+    }
+
+    return { resendKey: value.resendKey };
   }
 
   const key = kind === "login" ? "loginKey" : "registrationKey";
@@ -163,6 +182,7 @@ export async function authUpstream(
 
   if (
     response.status === 204 ||
+    response.status === 202 ||
     response.status === 401 ||
     response.status === 403 ||
     response.status === 429
@@ -206,7 +226,7 @@ export function upstreamDenial(status: number) {
     401: "Email or password is incorrect, or the session has ended.",
     403: "This account cannot access the requested service.",
     409: "These details conflict with an existing account or request. Use your existing account.",
-    429: "Too many attempts. Wait a minute before trying again.",
+    429: "Too many attempts. Wait before trying again.",
   };
 
   if (!(status in messages)) {
