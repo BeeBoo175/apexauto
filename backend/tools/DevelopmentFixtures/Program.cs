@@ -60,11 +60,14 @@ try
         Console.WriteLine($"{report.Fixture}: {report.State}");
     }
 
-    return reports.Any(report => report.State is "drift; preserved" or "conflict; preserved" or "missing") ? 2 : 0;
+    return reports.Any(report => report.RequiresAttention) ? 2 : 0;
 }
 catch (Exception exception)
 {
     // Provider errors can contain connection details; disclose only the failure category.
-    Console.Error.WriteLine($"Fixture operation failed ({exception.GetType().Name}). Check local configuration and applied migrations; existing records are preserved.");
+    var recovery = args[0] == "clear"
+        ? "The database may already have been deleted. Inspect its state before retrying the rebuild."
+        : "Existing records are preserved.";
+    Console.Error.WriteLine($"Fixture operation failed ({exception.GetType().Name}). Check local configuration and applied migrations. {recovery}");
     return 1;
 }

@@ -7,16 +7,42 @@ import type { Page } from "@playwright/test";
 const origin = process.env.APP_BASE_URL!;
 const evidence = process.env.AUTH_EVIDENCE_DIR!;
 
-type DelayedRefresh = { release?: () => void };
+type DelayedResponse = { release?: () => void };
 declare global {
   interface Window {
-    delayedRefresh: DelayedRefresh;
+    delayedRefresh: DelayedResponse;
+    delayedResend: DelayedResponse;
   }
+}
+
+async function delayResend(page: Page) {
+  await page.evaluate(() => {
+    const state: DelayedResponse = {};
+    window.delayedResend = state;
+    const originalFetch = window.fetch.bind(window);
+    window.fetch = async (input, options) => {
+      const response = await originalFetch(input, options);
+      if (input !== "/api/auth/email-verification/resend") {
+        return response;
+      }
+
+      const body = await response.text();
+      options?.signal?.addEventListener("abort", () => {
+        state.release?.();
+        console.info("Delayed verification resend released after abort");
+      });
+      return new Promise<Response>((resolve) => {
+        state.release = () => resolve(new Response(body, { status: response.status }));
+      });
+    };
+  });
+  await page.getByRole("button", { name: "Resend verification email" }).click();
+  await expect.poll(() => page.evaluate(() => Boolean(window.delayedResend.release))).toBe(true);
 }
 
 async function delayRefresh(page: Page, outcome: "success" | "failure") {
   await page.evaluate((mode) => {
-    const state: DelayedRefresh = {};
+    const state: DelayedResponse = {};
     window.delayedRefresh = state;
     const originalFetch = window.fetch.bind(window);
     window.fetch = async (input, options) => {
@@ -56,6 +82,8 @@ function waitForRefreshAbort(page: Page) {
 
 async function signIn(page: Page, email: string) {
   await page.goto("/login");
+  await page.getByRole("button", { name: "Use demo account" }).click();
+  await expect(page.getByLabel("Email", { exact: true })).toHaveValue(/@/);
   await page.getByLabel("Email", { exact: true }).fill(email);
   await page.getByLabel("Password", { exact: true }).fill("Password123!");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
@@ -96,12 +124,18 @@ test("cross-tab actor changes abort completed refreshes and discard previous acc
   await signIn(page, owners[0].Email);
   const actorTab = await context.newPage();
 
+  await delayResend(page);
   await delayRefresh(page, "success");
   const firstAbort = waitForRefreshAbort(page);
+  const resendAbort = page.waitForEvent("console", {
+    predicate: (message) => message.text() === "Delayed verification resend released after abort",
+  });
   await signIn(actorTab, owners[1].Email);
   await firstAbort;
+  await resendAbort;
   await expect(page.getByText(owners[0].LegalName, { exact: true })).toHaveCount(0);
   await expect(page.getByText(/account could not be refreshed/)).toHaveCount(0);
+  await expect(page.getByText(/verification is still needed/)).toHaveCount(0);
   await expect(page.getByText(owners[1].LegalName, { exact: true })).toBeVisible();
 
   await delayRefresh(page, "failure");

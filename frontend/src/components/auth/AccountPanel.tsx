@@ -3,11 +3,13 @@
 import { Button } from "@/components/ui/Button";
 import { useAuthMutation } from "@/hooks/use-auth-mutation";
 import { useAccountRefresh } from "@/hooks/use-account-refresh";
+import { useEmailVerificationResend } from "@/hooks/use-email-verification-resend";
 import type { CustomerAccount } from "@/lib/auth/contracts";
 
 export function AccountPanel({ initialAccount }: { initialAccount: CustomerAccount }) {
   const { account, refreshing, refreshFailed, refresh } = useAccountRefresh(initialAccount);
   const logout = useAuthMutation("logout", "/login");
+  const resend = useEmailVerificationResend(account);
 
   let logoutLabel = "Sign out";
 
@@ -43,6 +45,22 @@ export function AccountPanel({ initialAccount }: { initialAccount: CustomerAccou
         <p id="account-refresh-failure" role="status" className="text-sm text-muted">
           Refresh failed. These details may be out of date. Retry when the service is available.
         </p>
+      )}
+      {!account.emailVerified && (
+        <div className="flex flex-col gap-2">
+          <Button
+            variant="secondary"
+            disabled={resend.busy || refreshing || logout.busy || logout.uncertain}
+            onClick={() => void resend.resend()}
+          >
+            {resend.busy ? "Requesting email" : "Resend verification email"}
+          </Button>
+          {resend.message && (
+            <p role="status" className="text-sm text-muted">
+              {resend.message}
+            </p>
+          )}
+        </div>
       )}
       <div className="flex flex-wrap gap-3">
         <Button

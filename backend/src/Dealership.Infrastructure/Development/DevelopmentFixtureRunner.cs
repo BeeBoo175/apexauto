@@ -7,7 +7,7 @@ using Npgsql;
 
 namespace Dealership.Infrastructure.Development;
 
-public sealed record DevelopmentFixtureReport(string Fixture, string State);
+public sealed record DevelopmentFixtureReport(string Fixture, string State, bool RequiresAttention);
 
 public sealed class DevelopmentFixtureRunner(DealershipDbContext database, RegistrationService registration,
     StaffProvisioningService staff, IPasswordHasher<AccountUser> passwords)
@@ -72,7 +72,7 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Regis
         var branch = await database.Branches.AsNoTracking().SingleOrDefaultAsync(
             candidate => candidate.Id == DevelopmentFixtureManifest.Branch.Id, cancellationToken);
         reports.Add(new DevelopmentFixtureReport("Glenmarie branch", branch is null ? "missing" :
-            $"{branch.Name}; {branch.City}; {branch.State}; active={branch.IsActive}"));
+            $"{branch.Name}; {branch.City}; {branch.State}; active={branch.IsActive}", branch is null));
         var customer = await database.CustomerProfiles.AsNoTracking().SingleOrDefaultAsync(
             profile => profile.RegistrationKey == DevelopmentFixtureManifest.Customer.RegistrationKey, cancellationToken);
         reports.Add(await ReviewAccountAsync("Customer", customer?.UserId, cancellationToken));
@@ -95,7 +95,7 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Regis
         {
             var created = await registration.RegisterAsync(requested, cancellationToken);
             var state = created.Status == RegistrationStatus.Succeeded ? "created" : "conflict; preserved";
-            return new DevelopmentFixtureReport("Customer", state);
+            return new DevelopmentFixtureReport("Customer", state, created.Status != RegistrationStatus.Succeeded);
         }
 
         var user = await database.Users.AsNoTracking().SingleAsync(
@@ -115,7 +115,7 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Regis
             candidate => candidate.Id == id, cancellationToken);
         var state = account is null ? "missing" :
             $"role={account.Role}; branch={account.BranchId}; active={account.IsActive}; verified={account.EmailConfirmed}";
-        return new DevelopmentFixtureReport(fixture, state);
+        return new DevelopmentFixtureReport(fixture, state, account is null);
     }
 
     private void EnsureTargetMatches(DevelopmentFixtureTarget target)
@@ -134,9 +134,10 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Regis
     {
         if (result.Created)
         {
-            return new DevelopmentFixtureReport(fixture, "created");
+            return new DevelopmentFixtureReport(fixture, "created", false);
         }
 
-        return new DevelopmentFixtureReport(fixture, result.MatchesRequestedState ? "matches" : "drift; preserved");
+        return new DevelopmentFixtureReport(fixture, result.MatchesRequestedState ? "matches" : "drift; preserved",
+            !result.MatchesRequestedState);
     }
 }

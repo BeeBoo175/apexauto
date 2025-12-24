@@ -37,14 +37,22 @@ public sealed class DevelopmentFixtureTests(RegistrationDatabase fixture) : ICla
                 $"hakim.ismail.{Guid.NewGuid():N}@example.invalid", "OtherPassword123!",
                 AccountRoles.Administrator, null), CancellationToken.None);
             var runner = scope.ServiceProvider.GetRequiredService<DevelopmentFixtureRunner>();
-            Assert.All(await runner.ReviewAsync(target, CancellationToken.None), report => Assert.Equal("missing", report.State));
+            Assert.All(await runner.ReviewAsync(target, CancellationToken.None), report =>
+            {
+                Assert.Equal("missing", report.State);
+                Assert.True(report.RequiresAttention);
+            });
             await Assert.ThrowsAsync<IOException>(() => runner.SeedAsync(target, CancellationToken.None));
         }
 
         fault.Enabled = false;
         var competing = await Task.WhenAll(SeedAsync(provider, target), SeedAsync(provider, target));
         Assert.Equal(4, competing.SelectMany(reports => reports).Count(report => report.State == "created"));
-        Assert.All(competing.SelectMany(reports => reports), report => Assert.True(report.State is "created" or "matches"));
+        Assert.All(competing.SelectMany(reports => reports), report =>
+        {
+            Assert.True(report.State is "created" or "matches");
+            Assert.False(report.RequiresAttention);
+        });
         await AssertNormalAuthenticationAsync();
 
         string editedHash;
@@ -74,6 +82,7 @@ public sealed class DevelopmentFixtureTests(RegistrationDatabase fixture) : ICla
         await using var restarted = CreateProvider(connection, fault);
         var replay = await SeedAsync(restarted, target);
         Assert.Equal(3, replay.Count(report => report.State == "drift; preserved"));
+        Assert.Equal(3, replay.Count(report => report.RequiresAttention));
         await using var check = restarted.CreateAsyncScope();
         var saved = check.ServiceProvider.GetRequiredService<DealershipDbContext>();
         var retained = await saved.Users.SingleAsync(user => user.Id == DevelopmentFixtureManifest.Staff[0].Id);

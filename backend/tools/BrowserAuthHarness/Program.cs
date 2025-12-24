@@ -32,6 +32,7 @@ internal static class BrowserHarness
         File.WriteAllText(Path.Combine(evidence, "fault.txt"), string.Empty);
         File.Delete(Path.Combine(evidence, "revoked-token.txt"));
         File.WriteAllText(Path.Combine(evidence, "profiles.json"), "[]");
+        File.WriteAllText(Path.Combine(evidence, "confirmed-emails.json"), "[]");
         var database = new RegistrationDatabase();
         await database.InitializeAsync();
         Environment.SetEnvironmentVariable("ASPNETCORE_URLS", "http://127.0.0.1:0");
@@ -166,11 +167,17 @@ internal static class BrowserHarness
 
         var expected = JsonSerializer.Deserialize<ExpectedProfile[]>(File.ReadAllText(Path.Combine(evidence, "profiles.json")))
             ?? throw new InvalidOperationException("Browser profile evidence is missing.");
+        var confirmedEmails = JsonSerializer.Deserialize<string[]>(
+            File.ReadAllText(Path.Combine(evidence, "confirmed-emails.json")))
+            ?? throw new InvalidOperationException("Browser verification evidence is missing.");
+        var actualConfirmedEmails = await context.Users.Where(user => user.EmailConfirmed)
+            .Select(user => user.Email).ToListAsync();
 
         if (profiles != expected.Length || expected.Length == 0 || sessions == 0 || revoked == 0 ||
-            await context.Users.AnyAsync(user => user.EmailConfirmed))
+            actualConfirmedEmails.Count != confirmedEmails.Length ||
+            actualConfirmedEmails.Any(email => !confirmedEmails.Contains(email, StringComparer.OrdinalIgnoreCase)))
         {
-            throw new InvalidOperationException("Browser journeys did not persist the expected unverified accounts and session revocations.");
+            throw new InvalidOperationException("Browser journeys did not persist the expected accounts, verification and session revocations.");
         }
 
         foreach (var profile in expected)
@@ -183,7 +190,7 @@ internal static class BrowserHarness
             }
         }
 
-        Console.WriteLine("Restricted PostgreSQL read confirms unverified profiles, durable sessions and revocation receipts.");
+        Console.WriteLine("Restricted PostgreSQL read confirms profiles, verification, durable sessions and revocation receipts.");
     }
 }
 
