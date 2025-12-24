@@ -26,7 +26,5 @@ public sealed class EmailVerificationChallenge
 
     public DateTimeOffset? DeliveredAt { get; set; }
 
-    public bool IsResend { get; init; }
-
     public Guid? ResendKey { get; init; }
 }

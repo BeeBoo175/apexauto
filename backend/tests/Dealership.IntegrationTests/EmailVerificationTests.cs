@@ -29,7 +29,7 @@ public sealed class EmailVerificationTests(RegistrationDatabase database) : ICla
         {
             registration = await RegisterAsync(client);
             var first = await GetLatestChallengeAsync(factory, registration.Email!);
-            Assert.False(first.IsResend);
+            Assert.Null(first.ResendKey);
             Assert.Null(first.DeliveredAt);
             firstToken = GetToken(factory, first);
 
@@ -98,7 +98,7 @@ public sealed class EmailVerificationTests(RegistrationDatabase database) : ICla
                 new { resendKey = Guid.NewGuid() })).StatusCode);
         using var scope = restarted.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
-        Assert.Equal(3, await context.EmailVerificationChallenges.CountAsync(challenge => challenge.IsResend &&
+        Assert.Equal(3, await context.EmailVerificationChallenges.CountAsync(challenge => challenge.ResendKey != null &&
             challenge.RecipientEmail == registration.Email));
     }
 
@@ -219,8 +219,8 @@ public sealed class EmailVerificationTests(RegistrationDatabase database) : ICla
         await using var duplicate = new NpgsqlCommand("""
             INSERT INTO "EmailVerificationChallenges"
                 ("Id", "UserId", "RecipientEmail", "CreatedAt", "ExpiresAt", "DeliveryAttempts",
-                 "NextDeliveryAt", "IsResend")
-            VALUES (@id, @userId, @email, @createdAt, @expiresAt, 0, @createdAt, false)
+                 "NextDeliveryAt")
+            VALUES (@id, @userId, @email, @createdAt, @expiresAt, 0, @createdAt)
             """, connection);
         duplicate.Parameters.AddWithValue("id", Guid.NewGuid());
         duplicate.Parameters.AddWithValue("userId", challenge.UserId);

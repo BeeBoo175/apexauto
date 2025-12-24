@@ -46,7 +46,7 @@ public sealed class EmailVerificationStore(DealershipDbContext database, UserMan
 
         var now = clock.GetUtcNow();
         var recent = await database.EmailVerificationChallenges
-            .Where(challenge => challenge.UserId == userId && challenge.IsResend &&
+            .Where(challenge => challenge.UserId == userId && challenge.ResendKey != null &&
                 challenge.CreatedAt > now - ResendWindow)
             .OrderByDescending(challenge => challenge.CreatedAt)
             .Select(challenge => challenge.CreatedAt)
@@ -166,7 +166,6 @@ public sealed class EmailVerificationStore(DealershipDbContext database, UserMan
             CreatedAt = now,
             ExpiresAt = now + Lifetime,
             NextDeliveryAt = now,
-            IsResend = resendKey is not null,
             ResendKey = resendKey
         });
     }
