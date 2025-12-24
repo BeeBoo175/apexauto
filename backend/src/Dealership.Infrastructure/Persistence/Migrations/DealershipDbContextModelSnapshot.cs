@@ -274,9 +274,6 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("InvalidatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<bool>("IsResend")
-                        .HasColumnType("boolean");
-
                     b.Property<DateTimeOffset>("NextDeliveryAt")
                         .HasColumnType("timestamp with time zone");
 
