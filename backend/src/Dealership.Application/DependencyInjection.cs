@@ -14,6 +14,7 @@ public static class DependencyInjection
         services.AddScoped<AuthenticationService>();
         services.AddScoped<StaffProvisioningService>();
         services.AddScoped<EmailVerificationService>();
+        services.AddScoped<PasswordRecoveryService>();
 
         return services;
     }

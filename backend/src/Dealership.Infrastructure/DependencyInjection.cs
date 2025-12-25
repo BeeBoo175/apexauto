@@ -39,6 +39,8 @@ public static class DependencyInjection
         services.AddScoped<IStaffProvisioningStore, StaffProvisioningStore>();
         services.AddScoped<IEmailVerificationStore, EmailVerificationStore>();
         services.AddSingleton<EmailVerificationToken>();
+        services.AddScoped<IPasswordRecoveryStore, PasswordRecoveryStore>();
+        services.AddSingleton<PasswordResetToken>();
         services.AddSingleton<MissingAccountPasswordHash>(provider =>
         {
             using var scope = provider.CreateScope();
