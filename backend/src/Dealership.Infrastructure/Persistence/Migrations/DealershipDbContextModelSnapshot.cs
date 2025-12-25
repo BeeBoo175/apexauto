@@ -310,6 +310,73 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Dealership.Infrastructure.Identity.PasswordResetChallenge", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CompletedSecurityStamp")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<DateTimeOffset?>("ConsumedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DeliveredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DeliveryAttempts")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("DeliveryClaimExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeliveryClaimId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("InvalidatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("NextDeliveryAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RecipientEmail")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("character varying(254)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NextDeliveryAt");
+
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasFilter("\"InvalidatedAt\" IS NULL AND \"ConsumedAt\" IS NULL");
+
+                    b.HasIndex("UserId", "CreatedAt");
+
+                    b.ToTable("PasswordResetChallenges", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_PasswordResetChallenges_Attempts", "\"DeliveryAttempts\" >= 0");
+
+                            t.HasCheckConstraint("CK_PasswordResetChallenges_Identity", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"RecipientEmail\" ~ '[^[:space:]]'");
+
+                            t.HasCheckConstraint("CK_PasswordResetChallenges_Lifetime", "\"ExpiresAt\" = \"CreatedAt\" + interval '1 hour'");
+
+                            t.HasCheckConstraint("CK_PasswordResetChallenges_Receipt", "(\"ConsumedAt\" IS NULL AND \"CompletedSecurityStamp\" IS NULL) OR\n(\"ConsumedAt\" IS NOT NULL AND \"CompletedSecurityStamp\" IS NOT NULL AND\n length(\"CompletedSecurityStamp\") > 0 AND \"ConsumedAt\" >= \"CreatedAt\" AND\n \"ConsumedAt\" < \"ExpiresAt\" AND \"InvalidatedAt\" IS NULL)");
+                        });
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<System.Guid>", b =>
                 {
                     b.Property<int>("Id")
@@ -401,6 +468,15 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                 });
 
             modelBuilder.Entity("Dealership.Infrastructure.Identity.EmailVerificationChallenge", b =>
+                {
+                    b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Dealership.Infrastructure.Identity.PasswordResetChallenge", b =>
                 {
                     b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
                         .WithMany()
