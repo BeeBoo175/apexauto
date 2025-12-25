@@ -56,7 +56,9 @@ builder.Services.AddOptions<EmailDeliverySettings>()
 builder.Services.AddSingleton<IMailTransport, SmtpMailTransport>();
 builder.Services.AddSingleton<AuthMailLinks>();
 builder.Services.AddSingleton<VerificationMailComposer>();
+builder.Services.AddSingleton<PasswordResetMailComposer>();
 builder.Services.AddScoped<IMailDeliverySource, VerificationMailSource>();
+builder.Services.AddScoped<IMailDeliverySource, PasswordResetMailSource>();
 builder.Services.AddHostedService<MailDeliveryWorker>();
 builder.Services.AddApiRateLimiting();
 builder.Services.AddApiAuthentication();
@@ -119,5 +121,6 @@ app.MapGet("/health/ready", async (DealershipDbContext db, CancellationToken can
 app.MapVehicleEndpoints();
 app.MapRegistrationEndpoints();
 app.MapAuthenticationEndpoints();
+app.MapPasswordRecoveryEndpoints();
 
 app.Run();

@@ -14,8 +14,10 @@ namespace Dealership.IntegrationTests;
 
 public sealed class SmtpVerificationMailSenderTests
 {
-    [Fact]
-    public async Task LoopbackSmtpReceivesVerificationFragmentLink()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task LoopbackSmtpReceivesPurposeSpecificFragmentLink(bool passwordReset)
     {
         using var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();
@@ -54,7 +56,26 @@ public sealed class SmtpVerificationMailSenderTests
         var route = "/verify-email";
         var expectedToken = tokens.Create(challenge);
 
-        await transport.SendAsync(composer.Compose(challenge), CancellationToken.None);
+        if (passwordReset)
+        {
+            var resetTokens = new PasswordResetToken(jwt);
+            var resetComposer = new PasswordResetMailComposer(links, resetTokens);
+            var resetChallenge = new PasswordResetChallenge
+            {
+                Id = challenge.Id,
+                UserId = challenge.UserId,
+                RecipientEmail = challenge.RecipientEmail,
+                CreatedAt = challenge.CreatedAt,
+                ExpiresAt = challenge.CreatedAt.AddHours(1)
+            };
+            expectedToken = resetTokens.Create(resetChallenge);
+            route = "/reset-password";
+            await transport.SendAsync(resetComposer.Compose(resetChallenge), CancellationToken.None);
+        }
+        else
+        {
+            await transport.SendAsync(composer.Compose(challenge), CancellationToken.None);
+        }
 
         var message = await received.WaitAsync(TimeSpan.FromSeconds(10));
         var body = DecodeBody(message);
