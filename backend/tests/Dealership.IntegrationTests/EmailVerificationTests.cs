@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Dealership.Application.Accounts;
 using Dealership.Infrastructure.Identity;
+using Dealership.Infrastructure.Mail;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -175,7 +176,7 @@ public sealed class EmailVerificationTests(RegistrationDatabase database) : ICla
     {
         var clock = new VerificationClock();
         var registration = NewRegistration();
-        var failedSender = new RecordingSender(fail: true, registration.Email!);
+        var failedSender = new RecordingMailTransport(fail: true, registration.Email!);
         Guid challengeId;
 
         using (var factory = CreateFactory(clock, failedSender))
@@ -183,15 +184,17 @@ public sealed class EmailVerificationTests(RegistrationDatabase database) : ICla
         {
             await RegisterAsync(client, registration);
             challengeId = (await GetLatestChallengeAsync(factory, registration.Email!)).Id;
-            Assert.Equal(challengeId, await failedSender.Attempt.Task.WaitAsync(TimeSpan.FromSeconds(20)));
+            var attempted = await failedSender.Attempt.Task.WaitAsync(TimeSpan.FromSeconds(20));
+            Assert.Contains(GetToken(factory, await GetLatestChallengeAsync(factory, registration.Email!)), attempted.Body);
         }
 
         clock.Now += TimeSpan.FromMinutes(2);
-        var succeedingSender = new RecordingSender(fail: false, registration.Email!);
+        var succeedingSender = new RecordingMailTransport(fail: false, registration.Email!);
         using var restarted = CreateFactory(clock, succeedingSender);
         using var restartedClient = restarted.CreateClient();
         Assert.Equal(HttpStatusCode.OK, (await restartedClient.GetAsync("/health")).StatusCode);
-        Assert.Equal(challengeId, await succeedingSender.Attempt.Task.WaitAsync(TimeSpan.FromSeconds(20)));
+        var delivered = await succeedingSender.Attempt.Task.WaitAsync(TimeSpan.FromSeconds(20));
+        Assert.Contains(GetToken(restarted, await GetLatestChallengeAsync(restarted, registration.Email!)), delivered.Body);
         await WaitForDeliveredAsync(restarted, challengeId);
     }
 
@@ -258,7 +261,7 @@ public sealed class EmailVerificationTests(RegistrationDatabase database) : ICla
     }
 
     private WebApplicationFactory<Program> CreateFactory(VerificationClock? clock = null,
-        IVerificationMailSender? sender = null, bool interruptIntent = false)
+        IMailTransport? sender = null, bool interruptIntent = false)
     {
         return new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
@@ -286,7 +289,7 @@ public sealed class EmailVerificationTests(RegistrationDatabase database) : ICla
 
                 if (sender is not null)
                 {
-                    services.RemoveAll<IVerificationMailSender>();
+                    services.RemoveAll<IMailTransport>();
                     services.AddSingleton(sender);
                 }
             });
@@ -359,34 +362,6 @@ public sealed class EmailVerificationTests(RegistrationDatabase database) : ICla
         public DateTimeOffset Now { get; set; } = DateTimeOffset.UtcNow;
 
         public override DateTimeOffset GetUtcNow() => Now;
-    }
-
-    private sealed class RecordingSender(bool fail, string targetEmail) : IVerificationMailSender
-    {
-        public TaskCompletionSource<Guid> Attempt { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        public bool Enabled => true;
-
-        public void Validate()
-        {
-        }
-
-        public Task SendAsync(EmailVerificationChallenge challenge, CancellationToken cancellationToken)
-        {
-            if (challenge.RecipientEmail != targetEmail)
-            {
-                return Task.CompletedTask;
-            }
-
-            Attempt.TrySetResult(challenge.Id);
-
-            if (fail)
-            {
-                throw new IOException("Simulated local mail transport failure.");
-            }
-
-            return Task.CompletedTask;
-        }
     }
 
     private sealed class IntentFailureInterceptor : SaveChangesInterceptor

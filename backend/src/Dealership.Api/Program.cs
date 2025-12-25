@@ -56,8 +56,8 @@ builder.Services.AddOptions<EmailDeliverySettings>()
 builder.Services.AddSingleton<IMailTransport, SmtpMailTransport>();
 builder.Services.AddSingleton<AuthMailLinks>();
 builder.Services.AddSingleton<VerificationMailComposer>();
-builder.Services.AddSingleton<IVerificationMailSender, SmtpVerificationMailSender>();
-builder.Services.AddHostedService<VerificationMailWorker>();
+builder.Services.AddScoped<IMailDeliverySource, VerificationMailSource>();
+builder.Services.AddHostedService<MailDeliveryWorker>();
 builder.Services.AddApiRateLimiting();
 builder.Services.AddApiAuthentication();
 
