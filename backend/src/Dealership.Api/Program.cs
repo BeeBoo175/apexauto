@@ -5,6 +5,7 @@ using Dealership.Infrastructure;
 using Dealership.Infrastructure.Configuration;
 using Dealership.Infrastructure.Persistence;
 using Dealership.Infrastructure.Identity;
+using Dealership.Infrastructure.Mail;
 using Microsoft.AspNetCore.HttpOverrides;
 using Serilog;
 
@@ -52,6 +53,9 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddOptions<EmailDeliverySettings>()
     .Bind(builder.Configuration.GetSection(EmailDeliverySettings.SectionName))
     .ValidateOnStart();
+builder.Services.AddSingleton<IMailTransport, SmtpMailTransport>();
+builder.Services.AddSingleton<AuthMailLinks>();
+builder.Services.AddSingleton<VerificationMailComposer>();
 builder.Services.AddSingleton<IVerificationMailSender, SmtpVerificationMailSender>();
 builder.Services.AddHostedService<VerificationMailWorker>();
 builder.Services.AddApiRateLimiting();

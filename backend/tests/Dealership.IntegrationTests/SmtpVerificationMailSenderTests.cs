@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Dealership.Infrastructure.Configuration;
 using Dealership.Infrastructure.Identity;
+using Dealership.Infrastructure.Mail;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
@@ -14,7 +15,7 @@ namespace Dealership.IntegrationTests;
 public sealed class SmtpVerificationMailSenderTests
 {
     [Fact]
-    public async Task LoopbackSmtpReceivesVerificationLinkWithoutQueryToken()
+    public async Task LoopbackSmtpReceivesVerificationFragmentLink()
     {
         using var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();
@@ -37,7 +38,10 @@ public sealed class SmtpVerificationMailSenderTests
         });
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(
             new Dictionary<string, string?> { ["APP_BASE_URL"] = "http://localhost:3000" }).Build();
-        var sender = new SmtpVerificationMailSender(settings, new DevelopmentEnvironment(), configuration, tokens);
+        var environment = new DevelopmentEnvironment();
+        var transport = new SmtpMailTransport(settings, environment);
+        var links = new AuthMailLinks(configuration, settings, environment);
+        var composer = new VerificationMailComposer(links, tokens);
         var challenge = new EmailVerificationChallenge
         {
             Id = Guid.NewGuid(),
@@ -47,17 +51,49 @@ public sealed class SmtpVerificationMailSenderTests
             ExpiresAt = DateTimeOffset.UtcNow.AddHours(24)
         };
 
-        await sender.SendAsync(challenge, CancellationToken.None);
+        var route = "/verify-email";
+        var expectedToken = tokens.Create(challenge);
+
+        await transport.SendAsync(composer.Compose(challenge), CancellationToken.None);
+
         var message = await received.WaitAsync(TimeSpan.FromSeconds(10));
         var body = DecodeBody(message);
         var encoding = message.Split("\r\n", StringSplitOptions.None)
             .FirstOrDefault(line => line.StartsWith("Content-Transfer-Encoding:", StringComparison.OrdinalIgnoreCase));
-        Assert.True(body.Contains($"/verify-email#token={tokens.Create(challenge)}", StringComparison.Ordinal),
-            $"The SMTP body did not contain the verification fragment link. Encoding={encoding}, " +
-            $"length={body.Length}, route={body.Contains("verify-email", StringComparison.Ordinal)}, " +
+        Assert.True(body.Contains($"{route}#token={expectedToken}", StringComparison.Ordinal),
+            $"The SMTP body did not contain the expected fragment link. Encoding={encoding}, " +
+            $"length={body.Length}, route={body.Contains(route, StringComparison.Ordinal)}, " +
             $"fragment={body.Contains("#token=", StringComparison.Ordinal)}.");
-        Assert.DoesNotContain("/verify-email?token=", body);
+        Assert.DoesNotContain($"{route}?token=", body);
         Assert.Contains("nur.aina@example.invalid", message);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task StalledSmtpSendHonorsDeadlineAndCallerCancellation(bool cancelCaller)
+    {
+        using var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        var settings = Options.Create(new EmailDeliverySettings
+        {
+            Mode = "Loopback",
+            SmtpHost = "127.0.0.1",
+            SmtpPort = ((IPEndPoint)listener.LocalEndpoint).Port,
+            SenderEmail = "noreply@example.invalid"
+        });
+        var transport = new SmtpMailTransport(settings, new DevelopmentEnvironment());
+        using var cancellation = new CancellationTokenSource();
+        var send = transport.SendAsync(new OutboundMail("nur.aina@example.invalid", "Account confirmation", "Link"),
+            cancellation.Token);
+        using var connected = await listener.AcceptTcpClientAsync().WaitAsync(TimeSpan.FromSeconds(5));
+
+        if (cancelCaller)
+        {
+            await cancellation.CancelAsync();
+        }
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => send.WaitAsync(TimeSpan.FromSeconds(15)));
     }
 
     private static async Task<string> ReceiveMessageAsync(TcpListener listener)
