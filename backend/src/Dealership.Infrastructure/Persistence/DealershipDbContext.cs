@@ -16,6 +16,8 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
 
     public DbSet<EmailVerificationChallenge> EmailVerificationChallenges => Set<EmailVerificationChallenge>();
 
+    public DbSet<PasswordResetChallenge> PasswordResetChallenges => Set<PasswordResetChallenge>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -24,5 +26,6 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
         builder.ApplyConfiguration(new CustomerProfileConfiguration());
         builder.ApplyConfiguration(new AccountSessionConfiguration());
         builder.ApplyConfiguration(new EmailVerificationChallengeConfiguration());
+        builder.ApplyConfiguration(new PasswordResetChallengeConfiguration());
     }
 }
