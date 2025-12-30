@@ -1,6 +1,7 @@
 using Dealership.Api.Configuration;
 using Dealership.Api.Endpoints;
 using Dealership.Application;
+using Dealership.Application.Intake;
 using Dealership.Infrastructure;
 using Dealership.Infrastructure.Configuration;
 using Dealership.Infrastructure.Persistence;
@@ -50,6 +51,8 @@ builder.Host.UseSerilog((context, config) =>
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddSingleton(InspectionScheduleConfiguration.Read(builder.Configuration));
+builder.Services.AddScoped<IntakeDiscoveryService>();
 builder.Services.AddOptions<EmailDeliverySettings>()
     .Bind(builder.Configuration.GetSection(EmailDeliverySettings.SectionName))
     .ValidateOnStart();
@@ -122,5 +125,6 @@ app.MapVehicleEndpoints();
 app.MapRegistrationEndpoints();
 app.MapAuthenticationEndpoints();
 app.MapPasswordRecoveryEndpoints();
+app.MapIntakeDiscoveryEndpoints();
 
 app.Run();

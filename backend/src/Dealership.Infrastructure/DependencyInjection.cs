@@ -6,6 +6,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Identity;
+using Dealership.Application.Intake;
+using Dealership.Infrastructure.Intake;
 
 namespace Dealership.Infrastructure;
 
@@ -41,6 +43,7 @@ public static class DependencyInjection
         services.AddSingleton<EmailVerificationToken>();
         services.AddScoped<IPasswordRecoveryStore, PasswordRecoveryStore>();
         services.AddSingleton<PasswordResetToken>();
+        services.AddScoped<IPublicBranchStore, PublicBranchStore>();
         services.AddSingleton<MissingAccountPasswordHash>(provider =>
         {
             using var scope = provider.CreateScope();
