@@ -132,6 +132,6 @@ public sealed class PasswordRecoveryStore(DealershipDbContext database, UserMana
             }
         }
 
-        return errors.Distinct(StringComparer.Ordinal).ToArray();
+        return [.. errors.Distinct(StringComparer.Ordinal)];
     }
 }

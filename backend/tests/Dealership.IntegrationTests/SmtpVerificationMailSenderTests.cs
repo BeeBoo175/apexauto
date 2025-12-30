@@ -12,7 +12,7 @@ using Microsoft.Extensions.Options;
 
 namespace Dealership.IntegrationTests;
 
-public sealed class SmtpVerificationMailSenderTests
+public sealed partial class SmtpVerificationMailSenderTests
 {
     [Theory]
     [InlineData(false)]
@@ -182,12 +182,15 @@ public sealed class SmtpVerificationMailSenderTests
         {
             var unfolded = body.Replace("=\r\n", string.Empty, StringComparison.Ordinal)
                 .Replace("=\n", string.Empty, StringComparison.Ordinal);
-            return Regex.Replace(unfolded, "=([0-9A-Fa-f]{2})", match =>
+            return QuotedPrintableByteRegex().Replace(unfolded, match =>
                 ((char)Convert.ToByte(match.Groups[1].Value, 16)).ToString());
         }
 
         return body;
     }
+
+    [GeneratedRegex("=([0-9A-Fa-f]{2})")]
+    private static partial Regex QuotedPrintableByteRegex();
 
     private sealed class DevelopmentEnvironment : IHostEnvironment
     {
