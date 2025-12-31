@@ -118,6 +118,68 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Dealership.Domain.Intake.IntakePhoto", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Angle")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<DateTimeOffset?>("AvailableAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("Bytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Height")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ObjectKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<int>("Width")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExpiresAt");
+
+                    b.HasIndex("OwnerId", "CreatedAt");
+
+                    b.ToTable("IntakePhotos", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_IntakePhotos_Content", "\"Angle\" IN ('Driver', 'Passenger', 'Front', 'Rear') AND \"ContentType\" IN ('image/jpeg', 'image/png', 'image/webp') AND \"Bytes\" BETWEEN 1 AND 10485760 AND \"Sha256\" ~ '^[0-9a-f]{64}$' AND \"Width\" > 0 AND \"Height\" > 0");
+
+                            t.HasCheckConstraint("CK_IntakePhotos_Identity", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"ObjectKey\" = 'intake/photos/' || replace(\"Id\"::text, '-', '')");
+
+                            t.HasCheckConstraint("CK_IntakePhotos_Lifetime", "\"ExpiresAt\" > \"CreatedAt\" AND (\"AvailableAt\" IS NULL OR (\"AvailableAt\" >= \"CreatedAt\" AND \"AvailableAt\" < \"ExpiresAt\"))");
+                        });
+                });
+
             modelBuilder.Entity("Dealership.Infrastructure.Identity.AccountSession", b =>
                 {
                     b.Property<Guid>("Id")
@@ -373,7 +435,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("CK_PasswordResetChallenges_Lifetime", "\"ExpiresAt\" = \"CreatedAt\" + interval '1 hour'");
 
-                            t.HasCheckConstraint("CK_PasswordResetChallenges_Receipt", "(\"ConsumedAt\" IS NULL AND \"CompletedSecurityStamp\" IS NULL) OR\n(\"ConsumedAt\" IS NOT NULL AND \"CompletedSecurityStamp\" IS NOT NULL AND\n length(\"CompletedSecurityStamp\") > 0 AND \"ConsumedAt\" >= \"CreatedAt\" AND\n \"ConsumedAt\" < \"ExpiresAt\" AND \"InvalidatedAt\" IS NULL)");
+                            t.HasCheckConstraint("CK_PasswordResetChallenges_Receipt", "(\"ConsumedAt\" IS NULL AND \"CompletedSecurityStamp\" IS NULL) OR\r\n(\"ConsumedAt\" IS NOT NULL AND \"CompletedSecurityStamp\" IS NOT NULL AND\r\n length(\"CompletedSecurityStamp\") > 0 AND \"ConsumedAt\" >= \"CreatedAt\" AND\r\n \"ConsumedAt\" < \"ExpiresAt\" AND \"InvalidatedAt\" IS NULL)");
                         });
                 });
 
@@ -446,6 +508,15 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
                         .WithOne()
                         .HasForeignKey("Dealership.Domain.Customers.CustomerProfile", "UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Dealership.Domain.Intake.IntakePhoto", b =>
+                {
+                    b.HasOne("Dealership.Domain.Customers.CustomerProfile", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
