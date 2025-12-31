@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Net;
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Dealership.Api.Configuration;
 
@@ -18,6 +19,11 @@ public static class ApiRateLimiting
         services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            options.AddConcurrencyLimiter(Dealership.Api.Endpoints.IntakePhotoEndpoints.TransferPolicy, limiter =>
+            {
+                limiter.PermitLimit = 4;
+                limiter.QueueLimit = 0;
+            });
             options.AddPolicy(LoginPolicy, context =>
             {
                 return RateLimitPartition.GetFixedWindowLimiter(GetClientAddress(context), _ => new FixedWindowRateLimiterOptions
@@ -57,6 +63,10 @@ public static class ApiRateLimiting
                     // Round up remaining lease duration to guarantee a strictly positive integer seconds interval.
                     var seconds = Math.Max(1, (int)Math.Ceiling(retryAfter.TotalSeconds));
                     context.HttpContext.Response.Headers.RetryAfter = seconds.ToString(CultureInfo.InvariantCulture);
+                }
+                else
+                {
+                    context.HttpContext.Response.Headers.RetryAfter = "1";
                 }
 
                 // Prevent intermediate proxies and edge caches from caching transient 429 rejections.

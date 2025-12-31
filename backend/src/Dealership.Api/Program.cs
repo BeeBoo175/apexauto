@@ -7,6 +7,7 @@ using Dealership.Infrastructure.Configuration;
 using Dealership.Infrastructure.Persistence;
 using Dealership.Infrastructure.Identity;
 using Dealership.Infrastructure.Mail;
+using Dealership.Infrastructure.Intake;
 using Microsoft.AspNetCore.HttpOverrides;
 using Serilog;
 
@@ -53,6 +54,7 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddSingleton(InspectionScheduleConfiguration.Read(builder.Configuration));
 builder.Services.AddScoped<IntakeDiscoveryService>();
+builder.Services.AddIntakeMedia(builder.Configuration);
 builder.Services.AddOptions<EmailDeliverySettings>()
     .Bind(builder.Configuration.GetSection(EmailDeliverySettings.SectionName))
     .ValidateOnStart();
@@ -126,5 +128,6 @@ app.MapRegistrationEndpoints();
 app.MapAuthenticationEndpoints();
 app.MapPasswordRecoveryEndpoints();
 app.MapIntakeDiscoveryEndpoints();
+app.MapIntakePhotoEndpoints();
 
 app.Run();

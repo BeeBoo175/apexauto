@@ -52,9 +52,19 @@ services:
       JwtSettings__Secret: ${JwtSettings__Secret:?JwtSettings__Secret is required}
       APP_BASE_URL: ${APP_BASE_URL:?APP_BASE_URL is required}
       AllowedHosts: ${AllowedHosts:?AllowedHosts is required}
+      AWS__ServiceURL: http://s3:9090
+      AWS__AccessKey: ${AWS__AccessKey:?AWS__AccessKey is required}
+      AWS__SecretKey: ${AWS__SecretKey:?AWS__SecretKey is required}
+      AWS__BucketName: ${AWS__BucketName:?AWS__BucketName is required}
+      AWS__Region: ${AWS__Region:?AWS__Region is required}
+      AWS__ForcePathStyle: "true"
+      # The local S3Mock service uses HTTP only inside this Docker network.
+      AWS__AllowInsecureHttp: "true"
     depends_on:
       database:
         condition: service_healthy
+      s3:
+        condition: service_started
     ports:
       - "127.0.0.1:8080:8080"
 
