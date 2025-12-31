@@ -49,6 +49,31 @@ public sealed class IntakePhotoTests
     }
 
     [Fact]
+    public void StorageConfigurationRequiresCredentialsAndExplicitInsecureNetworkOptIn()
+    {
+        var settings = new PhotoStorageSettings
+        {
+            ServiceURL = "https://storage.example.invalid",
+            AccessKey = "test-access",
+            SecretKey = "test-secret",
+            BucketName = "apexauto-photos",
+            Region = "ap-southeast-1"
+        };
+        settings.Validate();
+        settings.ServiceURL = "http://storage.example.invalid";
+        Assert.Throws<InvalidOperationException>(settings.Validate);
+        settings.AllowInsecureHttp = true;
+        settings.Validate();
+        settings.ServiceURL = "https://user:password@storage.example.invalid";
+        Assert.Throws<InvalidOperationException>(settings.Validate);
+        settings.AllowInsecureHttp = false;
+        settings.ServiceURL = "http://127.0.0.1:9090";
+        settings.Validate();
+        settings.SecretKey = string.Empty;
+        Assert.Throws<InvalidOperationException>(settings.Validate);
+    }
+
+    [Fact]
     public void PhotoIdentityExpiryAndFirstAvailableReceiptAreStable()
     {
         var now = DateTimeOffset.UtcNow;
