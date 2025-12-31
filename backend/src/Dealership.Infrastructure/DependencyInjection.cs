@@ -44,6 +44,7 @@ public static class DependencyInjection
         services.AddScoped<IPasswordRecoveryStore, PasswordRecoveryStore>();
         services.AddSingleton<PasswordResetToken>();
         services.AddScoped<IPublicBranchStore, PublicBranchStore>();
+        services.AddScoped<IIntakePhotoStore, IntakePhotoStore>();
         services.AddSingleton<MissingAccountPasswordHash>(provider =>
         {
             using var scope = provider.CreateScope();

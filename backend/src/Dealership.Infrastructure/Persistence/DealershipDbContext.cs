@@ -1,5 +1,6 @@
 using Dealership.Domain.Branches;
 using Dealership.Domain.Customers;
+using Dealership.Domain.Intake;
 using Dealership.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +13,8 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
 
     public DbSet<Branch> Branches => Set<Branch>();
 
+    public DbSet<IntakePhoto> IntakePhotos => Set<IntakePhoto>();
+
     public DbSet<AccountSession> AccountSessions => Set<AccountSession>();
 
     public DbSet<EmailVerificationChallenge> EmailVerificationChallenges => Set<EmailVerificationChallenge>();
@@ -23,6 +26,7 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
         base.OnModelCreating(builder);
         builder.ApplyConfiguration(new AccountUserConfiguration());
         builder.ApplyConfiguration(new BranchConfiguration());
+        builder.ApplyConfiguration(new IntakePhotoConfiguration());
         builder.ApplyConfiguration(new CustomerProfileConfiguration());
         builder.ApplyConfiguration(new AccountSessionConfiguration());
         builder.ApplyConfiguration(new EmailVerificationChallengeConfiguration());
