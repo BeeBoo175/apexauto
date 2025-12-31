@@ -60,7 +60,8 @@ public sealed class IntakePhotoFixture : IAsyncLifetime, IAsyncDisposable
         }
     }
 
-    public WebApplicationFactory<Program> CreateFactory(bool failAfterPut = false, TimeProvider? clock = null)
+    public WebApplicationFactory<Program> CreateFactory(bool failAfterPut = false, TimeProvider? clock = null,
+        Action<Stream>? observeDownload = null)
     {
         return new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
@@ -89,7 +90,7 @@ public sealed class IntakePhotoFixture : IAsyncLifetime, IAsyncDisposable
                     }
 
                     return new StorageProbe(new S3PhotoStorage(provider.GetRequiredService<IAmazonS3>(), settings),
-                        failAfterPut, failure => LastStorageFailure = failure);
+                        failAfterPut, failure => LastStorageFailure = failure, observeDownload);
                 });
             });
         });
@@ -181,7 +182,8 @@ public sealed class IntakePhotoFixture : IAsyncLifetime, IAsyncDisposable
 
     ValueTask IAsyncDisposable.DisposeAsync() => new(DisposeAsync());
 
-    private sealed class StorageProbe(IPhotoStorage storage, bool failAfterPut, Action<string> observeFailure) : IPhotoStorage
+    private sealed class StorageProbe(IPhotoStorage storage, bool failAfterPut, Action<string> observeFailure,
+        Action<Stream>? observeDownload) : IPhotoStorage
     {
         public async Task PutAsync(Dealership.Domain.Intake.IntakePhoto photo, Stream content, CancellationToken cancellationToken)
         {
@@ -206,6 +208,7 @@ public sealed class IntakePhotoFixture : IAsyncLifetime, IAsyncDisposable
 
         public Task CopyToAsync(Dealership.Domain.Intake.IntakePhoto photo, Stream destination, CancellationToken cancellationToken)
         {
+            observeDownload?.Invoke(destination);
             return storage.CopyToAsync(photo, destination, cancellationToken);
         }
     }

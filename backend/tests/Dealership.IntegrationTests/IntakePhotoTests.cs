@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using Dealership.Application.Accounts;
 using Dealership.Application.Intake;
 using Dealership.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using SkiaSharp;
@@ -11,6 +12,66 @@ namespace Dealership.IntegrationTests;
 
 public sealed class IntakePhotoTests(IntakePhotoFixture fixture) : IClassFixture<IntakePhotoFixture>
 {
+    [Fact]
+    public async Task DownloadDeadlineAbortsStalledResponsesAndReleasesFilesAndTransferPermits()
+    {
+        var probe = new PhotoDownloadProbe();
+        using var factory = fixture.CreateFactory(clock: probe.Clock, observeDownload: probe.Files.Enqueue)
+            .WithWebHostBuilder(builder => builder.ConfigureServices(services => services.AddSingleton<IStartupFilter>(probe)));
+        using var client = factory.CreateClient();
+        client.Timeout = TimeSpan.FromSeconds(10);
+        using var requests = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        var registration = await IntakePhotoFixture.RegisterAsync(client);
+        await IntakePhotoFixture.VerifyAsync(factory, client, registration);
+        var id = Guid.NewGuid();
+        var bytes = IntakePhotoFixture.Image();
+        Assert.Equal(HttpStatusCode.OK, (await IntakePhotoFixture.UploadAsync(client, id, bytes)).StatusCode);
+        var downloads = Enumerable.Range(0, 4).Select(_ => client.GetAsync($"/api/intake/photos/{id}",
+            HttpCompletionOption.ResponseHeadersRead, requests.Token)).ToArray();
+
+        try
+        {
+            await probe.AllStalled.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.Equal(HttpStatusCode.TooManyRequests, (await client.GetAsync($"/api/intake/photos/{id}")).StatusCode);
+            var files = probe.Files.Cast<FileStream>().ToArray();
+            Assert.Equal(4, files.Length);
+            Assert.All(files, file => Assert.True(file.CanRead));
+
+            probe.ExpireDeadlines();
+            await probe.AllCompleted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+            Assert.All(files, file => Assert.False(file.CanRead));
+            Assert.All(files, file => Assert.False(File.Exists(file.Name)));
+            var responses = await Task.WhenAll(downloads);
+
+            foreach (var response in responses)
+            {
+                using (response)
+                {
+                    var failure = await Assert.ThrowsAsync<HttpRequestException>(() => response.Content.ReadAsByteArrayAsync());
+                    Assert.IsType<IOException>(failure.InnerException);
+                }
+            }
+
+            probe.Release.TrySetResult();
+            Assert.Equal(bytes, await client.GetByteArrayAsync($"/api/intake/photos/{id}"));
+        }
+        finally
+        {
+            probe.Release.TrySetResult();
+            await requests.CancelAsync();
+            await Task.WhenAll(downloads.Select(async download =>
+            {
+                try
+                {
+                    (await download).Dispose();
+                }
+                catch (OperationCanceledException)
+                {
+                }
+            }));
+        }
+    }
+
     [Fact]
     public async Task VerifiedOwnerUploadsRealFormatsAndContentOwnershipAndTransportAreEnforced()
     {
