@@ -10,6 +10,10 @@ public sealed class AppointmentCancellationConfiguration : IEntityTypeConfigurat
 {
     public void Configure(EntityTypeBuilder<AppointmentCancellation> builder)
     {
+        builder.ToTable("AppointmentCancellations", table =>
+        {
+            table.HasCheckConstraint("CK_AppointmentCancellations_Retention", "\"PhotosExpireAt\" > \"CancelledAt\"");
+        });
         builder.HasKey(item => item.AppointmentId);
         builder.Property(item => item.AppointmentId).ValueGeneratedNever();
         builder.HasOne<IntakeAppointment>().WithOne().HasForeignKey<AppointmentCancellation>(item => new { item.AppointmentId, item.OwnerId })

@@ -71,7 +71,8 @@ public sealed class S3PhotoStorageCompatibilityTests
             ["AWS:BucketName"] = settings.BucketName,
             ["AWS:Region"] = "auto",
             ["AWS:ForcePathStyle"] = "true",
-            ["IntakePhotos:UnsubmittedLifetimeHours"] = "24"
+            ["IntakePhotos:UnsubmittedLifetimeHours"] = "24",
+            ["IntakePhotos:CancelledRetentionDays"] = "30"
         }).Build();
         var services = new ServiceCollection();
         services.AddLogging();

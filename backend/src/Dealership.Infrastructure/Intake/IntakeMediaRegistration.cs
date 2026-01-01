@@ -22,6 +22,10 @@ public static class IntakeMediaRegistration
                 settings.UnsubmittedLifetimeHours is > 0 and <= 8760 &&
                 TimeSpan.FromHours(settings.UnsubmittedLifetimeHours).Ticks >= 10,
                 "IntakePhotos requires a positive unsubmitted lifetime of at most one year.").ValidateOnStart();
+        services.AddOptions<PhotoUploadSettings>().Validate(settings =>
+            double.IsFinite(settings.CancelledRetentionDays) && settings.CancelledRetentionDays is > 0 and <= 3650 &&
+            TimeSpan.FromDays(settings.CancelledRetentionDays).Ticks >= 10,
+            "IntakePhotos requires a positive cancelled-photo retention of at most ten years.").ValidateOnStart();
         services.AddSingleton(provider => provider.GetRequiredService<IOptions<PhotoStorageSettings>>().Value);
         services.AddSingleton(provider =>
         {
@@ -52,6 +56,7 @@ public static class IntakeMediaRegistration
 public sealed class PhotoUploadSettings
 {
     public double UnsubmittedLifetimeHours { get; set; }
+    public double CancelledRetentionDays { get; set; }
 }
 
 public sealed class PhotoStorageSettings

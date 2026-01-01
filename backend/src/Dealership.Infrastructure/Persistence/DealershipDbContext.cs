@@ -16,6 +16,8 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
 
     public DbSet<IntakePhoto> IntakePhotos => Set<IntakePhoto>();
 
+    public DbSet<PhotoRemoval> PhotoRemovals => Set<PhotoRemoval>();
+
     public DbSet<IntakeAppointment> IntakeAppointments => Set<IntakeAppointment>();
 
     public DbSet<SellerValuation> SellerValuations => Set<SellerValuation>();
@@ -40,6 +42,7 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
         builder.ApplyConfiguration(new AccountUserConfiguration());
         builder.ApplyConfiguration(new BranchConfiguration());
         builder.ApplyConfiguration(new IntakePhotoConfiguration());
+        builder.ApplyConfiguration(new PhotoRemovalConfiguration());
         var booking = new IntakeBookingConfiguration();
         builder.ApplyConfiguration<IntakeAppointment>(booking);
         builder.ApplyConfiguration<SellerValuation>(booking);

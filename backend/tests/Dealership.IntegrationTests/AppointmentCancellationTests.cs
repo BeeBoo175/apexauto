@@ -79,8 +79,8 @@ public sealed class AppointmentCancellationTests(IntakePhotoFixture fixture) : I
         immutable.Parameters.AddWithValue("id", receipt.Id);
         Assert.Equal(PostgresErrorCodes.CheckViolation, (await Assert.ThrowsAsync<PostgresException>(() => immutable.ExecuteNonQueryAsync())).SqlState);
         await using var missingMail = new NpgsqlCommand("""
-            INSERT INTO "AppointmentCancellations" ("AppointmentId", "OwnerId", "CancelledAt")
-            VALUES (@id, @owner, clock_timestamp())
+            INSERT INTO "AppointmentCancellations" ("AppointmentId", "OwnerId", "CancelledAt", "PhotosExpireAt")
+            VALUES (@id, @owner, clock_timestamp(), clock_timestamp() + interval '30 days')
             """, connection);
         missingMail.Parameters.AddWithValue("id", replacement.Id);
         missingMail.Parameters.AddWithValue("owner", owner);

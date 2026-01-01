@@ -3,10 +3,12 @@ using Dealership.Domain.Intake;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using Microsoft.Extensions.Options;
 
 namespace Dealership.Infrastructure.Intake;
 
-public sealed class AppointmentCancellationStore(DealershipDbContext database, TimeProvider clock) : IAppointmentCancellationStore
+public sealed class AppointmentCancellationStore(DealershipDbContext database, TimeProvider clock,
+    IOptions<PhotoUploadSettings> settings) : IAppointmentCancellationStore
 {
     public async Task<CancellationResult> CancelAsync(Guid ownerId, Guid appointmentId, CancellationToken cancellationToken)
     {
@@ -52,7 +54,7 @@ public sealed class AppointmentCancellationStore(DealershipDbContext database, T
             return new CancellationResult(CancellationStatus.TooLate);
         }
 
-        var cancellation = new AppointmentCancellation(appointment, now);
+        var cancellation = new AppointmentCancellation(appointment, now, TimeSpan.FromDays(settings.Value.CancelledRetentionDays));
         database.AppointmentCancellations.Add(cancellation);
         database.AppointmentCancellationMails.Add(new AppointmentCancellationMail
         {

@@ -6,9 +6,9 @@ public sealed class AppointmentCancellation
     {
     }
 
-    public AppointmentCancellation(IntakeAppointment appointment, DateTimeOffset now)
+    public AppointmentCancellation(IntakeAppointment appointment, DateTimeOffset now, TimeSpan photoRetention)
     {
-        if (now < appointment.CreatedAt || now >= appointment.StartsAt)
+        if (now < appointment.CreatedAt || now >= appointment.StartsAt || photoRetention <= TimeSpan.Zero)
         {
             throw new InvalidOperationException("Only future appointments can be cancelled.");
         }
@@ -16,9 +16,11 @@ public sealed class AppointmentCancellation
         AppointmentId = appointment.Id;
         OwnerId = appointment.OwnerId;
         CancelledAt = now.ToUniversalTime();
+        PhotosExpireAt = CancelledAt + photoRetention;
     }
 
     public Guid AppointmentId { get; private set; }
     public Guid OwnerId { get; private set; }
     public DateTimeOffset CancelledAt { get; private set; }
+    public DateTimeOffset PhotosExpireAt { get; private set; }
 }
