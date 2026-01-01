@@ -14,7 +14,32 @@ public static class IntakeBookingEndpoints
             return await next(context);
         });
         routes.MapPost("", BookAsync);
+        routes.MapGet("", ListAsync);
         routes.MapGet("/{id:guid}", GetReceiptAsync);
+    }
+
+    private static async Task<IResult> ListAsync(HttpContext context, IAppointmentHistoryStore history,
+        CancellationToken cancellationToken, string? from = null, string? to = null, int page = 1, int pageSize = 20)
+    {
+        var query = AppointmentHistoryQuery.Parse(from, to, page, pageSize);
+
+        if (query is null)
+        {
+            return Results.Problem(statusCode: 400, title: "Provide a valid paired date range of at most 366 days and valid paging.");
+        }
+
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(20));
+
+        try
+        {
+            var result = await history.ListAsync(OwnerId(context), query, deadline.Token);
+            return result is null ? Results.Forbid() : Results.Ok(result);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return Results.Problem(statusCode: 503, title: "Appointment history is temporarily unavailable.");
+        }
     }
 
     private static async Task<IResult> BookAsync(HttpContext context, IntakeBookingService bookings,
