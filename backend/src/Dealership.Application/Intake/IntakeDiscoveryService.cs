@@ -3,7 +3,8 @@ using Dealership.Domain.Intake;
 
 namespace Dealership.Application.Intake;
 
-public sealed class IntakeDiscoveryService(IPublicBranchStore branches, InspectionSchedule schedule, TimeProvider clock)
+public sealed class IntakeDiscoveryService(IPublicBranchStore branches, IIntakeBookingStore bookings,
+    InspectionSchedule schedule, TimeProvider clock)
 {
     public const int DefaultPageSize = 20;
     public const int MaximumPageSize = 50;
@@ -34,7 +35,15 @@ public sealed class IntakeDiscoveryService(IPublicBranchStore branches, Inspecti
             return new SlotDiscoveryResult(SlotDiscoveryStatus.BranchUnavailable);
         }
 
-        var offer = new InspectionSlotOffer(branchId, requestedDate, window, schedule.GetSlots(requestedDate, now));
+        var slots = schedule.GetSlots(requestedDate, now);
+
+        if (slots.Count > 0)
+        {
+            var occupied = await bookings.GetOccupiedSlotsAsync(branchId, slots[0].StartsAt, slots[^1].EndsAt, cancellationToken);
+            slots = slots.Where(slot => !occupied.Any(booked => booked.StartsAt < slot.EndsAt && slot.StartsAt < booked.EndsAt)).ToArray();
+        }
+
+        var offer = new InspectionSlotOffer(branchId, requestedDate, window, slots);
         return new SlotDiscoveryResult(SlotDiscoveryStatus.Succeeded, offer);
     }
 }

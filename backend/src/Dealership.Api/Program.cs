@@ -54,6 +54,7 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddSingleton(InspectionScheduleConfiguration.Read(builder.Configuration));
 builder.Services.AddScoped<IntakeDiscoveryService>();
+builder.Services.AddScoped<IntakeBookingService>();
 builder.Services.AddIntakeMedia(builder.Configuration);
 builder.Services.AddOptions<EmailDeliverySettings>()
     .Bind(builder.Configuration.GetSection(EmailDeliverySettings.SectionName))
@@ -64,6 +65,7 @@ builder.Services.AddSingleton<VerificationMailComposer>();
 builder.Services.AddSingleton<PasswordResetMailComposer>();
 builder.Services.AddScoped<IMailDeliverySource, VerificationMailSource>();
 builder.Services.AddScoped<IMailDeliverySource, PasswordResetMailSource>();
+builder.Services.AddScoped<IMailDeliverySource, AppointmentConfirmationSource>();
 builder.Services.AddHostedService<MailDeliveryWorker>();
 builder.Services.AddApiRateLimiting();
 builder.Services.AddApiAuthentication();
@@ -129,5 +131,6 @@ app.MapAuthenticationEndpoints();
 app.MapPasswordRecoveryEndpoints();
 app.MapIntakeDiscoveryEndpoints();
 app.MapIntakePhotoEndpoints();
+app.MapIntakeBookingEndpoints();
 
 app.Run();
