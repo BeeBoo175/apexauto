@@ -42,6 +42,12 @@ public sealed class InspectionSchedule
         return new InspectionDateWindow(today, today.AddDays(_horizonDays - 1));
     }
 
+    public InspectionSlot? FindSlot(DateTimeOffset startsAt, DateTimeOffset now)
+    {
+        var date = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(startsAt, Malaysia).DateTime);
+        return GetSlots(date, now).SingleOrDefault(slot => slot.StartsAt == startsAt);
+    }
+
     public IReadOnlyList<InspectionSlot> GetSlots(DateOnly date, DateTimeOffset now)
     {
         var window = GetDateWindow(now);
