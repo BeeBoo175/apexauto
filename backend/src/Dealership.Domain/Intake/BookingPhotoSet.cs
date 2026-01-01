@@ -1,7 +1,7 @@
 namespace Dealership.Domain.Intake;
 
 public sealed record BookingPhotoCandidate(Guid Id, Guid OwnerId, PhotoAngle Angle,
-    DateTimeOffset? AvailableAt, DateTimeOffset ExpiresAt, bool AlreadyAttached);
+    DateTimeOffset? AvailableAt, DateTimeOffset ExpiresAt, bool AlreadyAttached, bool RemovalPending);
 
 public sealed record BookingPhotoSelection(Guid Id, PhotoAngle Angle);
 
@@ -35,6 +35,7 @@ public sealed class BookingPhotoSet
     private static bool IsEligible(BookingPhotoCandidate photo, Guid ownerId, DateTimeOffset now)
     {
         return photo.Id != Guid.Empty && photo.OwnerId == ownerId && Enum.IsDefined(photo.Angle) &&
-            photo.AvailableAt is not null && photo.AvailableAt <= now && now < photo.ExpiresAt && !photo.AlreadyAttached;
+            photo.AvailableAt is not null && photo.AvailableAt <= now && now < photo.ExpiresAt &&
+            !photo.AlreadyAttached && !photo.RemovalPending;
     }
 }

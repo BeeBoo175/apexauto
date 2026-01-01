@@ -136,6 +136,7 @@ public static class IntakePhotoEndpoints
         {
             PhotoStatus.Available => Results.Ok(result.Receipt),
             PhotoStatus.Pending => Results.Json(result.Receipt, statusCode: 202),
+            PhotoStatus.DeletionPending or PhotoStatus.Deleted => Results.Json(result.Receipt, statusCode: 410),
             PhotoStatus.Forbidden => Results.Forbid(),
             PhotoStatus.Conflict => Results.Problem(statusCode: 409, title: "Upload ID already belongs to different photo contents or angle."),
             PhotoStatus.NotFound => Results.NotFound(),

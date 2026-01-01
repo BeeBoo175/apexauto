@@ -43,8 +43,10 @@ public sealed class IntakeBookingStore(DealershipDbContext database) : IIntakeBo
                 .AsNoTracking().ToArrayAsync(cancellationToken);
             var used = await database.AppointmentPhotos.Where(item => ids.Contains(item.PhotoId))
                 .Select(item => item.PhotoId).ToArrayAsync(cancellationToken);
+            var removed = await database.PhotoRemovals.Where(item => ids.Contains(item.PhotoId))
+                .Select(item => item.PhotoId).ToArrayAsync(cancellationToken);
             var candidates = photos.Select(photo => new BookingPhotoCandidate(photo.Id, photo.OwnerId, photo.Angle,
-                photo.AvailableAt, photo.ExpiresAt, used.Contains(photo.Id))).ToArray();
+                photo.AvailableAt, photo.ExpiresAt, used.Contains(photo.Id), removed.Contains(photo.Id))).ToArray();
             var context = new BookingContext(BookingStatus.Ready, BranchAvailable: branchAvailable, Photos: candidates);
             return new IntakeBookingTransaction(database, transaction, context, user.Email!);
         }

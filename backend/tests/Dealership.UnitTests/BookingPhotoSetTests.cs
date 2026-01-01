@@ -42,6 +42,7 @@ public sealed class BookingPhotoSetTests
     [InlineData("future-availability")]
     [InlineData("expired")]
     [InlineData("already-attached")]
+    [InlineData("removal-pending")]
     public void IneligiblePhotoPreventsTheEntireSet(string condition)
     {
         var owner = Guid.NewGuid();
@@ -57,6 +58,7 @@ public sealed class BookingPhotoSetTests
             "future-availability" => photos[0] with { AvailableAt = Now.AddTicks(1) },
             "expired" => photos[0] with { ExpiresAt = Now },
             "already-attached" => photos[0] with { AlreadyAttached = true },
+            "removal-pending" => photos[0] with { RemovalPending = true },
             _ => throw new ArgumentOutOfRangeException(nameof(condition))
         };
 
@@ -76,6 +78,6 @@ public sealed class BookingPhotoSetTests
     private static BookingPhotoCandidate[] Candidates(Guid owner)
     {
         return Enum.GetValues<PhotoAngle>().Select(angle => new BookingPhotoCandidate(Guid.NewGuid(), owner,
-            angle, Now.AddMinutes(-1), Now.AddHours(24), false)).ToArray();
+            angle, Now.AddMinutes(-1), Now.AddHours(24), false, false)).ToArray();
     }
 }

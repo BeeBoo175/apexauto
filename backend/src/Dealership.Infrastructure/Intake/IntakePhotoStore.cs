@@ -68,6 +68,13 @@ public sealed class IntakePhotoStore(DealershipDbContext database, TimeProvider 
 
         // Prepare may have tracked an earlier pending version in this same request scope.
         await database.Entry(photo).ReloadAsync(cancellationToken);
+        var removal = await database.PhotoRemovals.AsNoTracking().SingleOrDefaultAsync(item => item.PhotoId == id, cancellationToken);
+
+        if (removal is not null)
+        {
+            return Removed(photo, removal);
+        }
+
         var now = ReceiptTime();
 
         if (photo.IsExpired(now))
@@ -83,6 +90,13 @@ public sealed class IntakePhotoStore(DealershipDbContext database, TimeProvider 
 
     private async Task<PhotoPreparation> ClassifyAsync(IntakePhoto photo, CancellationToken cancellationToken)
     {
+        var removal = await database.PhotoRemovals.AsNoTracking().SingleOrDefaultAsync(item => item.PhotoId == photo.Id, cancellationToken);
+
+        if (removal is not null)
+        {
+            return Removed(photo, removal);
+        }
+
         if (photo.IsExpired(clock.GetUtcNow()) &&
             !await database.AppointmentPhotos.AnyAsync(item => item.PhotoId == photo.Id, cancellationToken))
         {
@@ -90,6 +104,12 @@ public sealed class IntakePhotoStore(DealershipDbContext database, TimeProvider 
         }
 
         return new PhotoPreparation(photo.AvailableAt is null ? PhotoStatus.Pending : PhotoStatus.Available, photo);
+    }
+
+    private static PhotoPreparation Removed(IntakePhoto photo, PhotoRemoval removal)
+    {
+        var status = removal.DeletedAt is null ? PhotoStatus.DeletionPending : PhotoStatus.Deleted;
+        return new PhotoPreparation(status, photo, removal);
     }
 
     private DateTimeOffset ReceiptTime()

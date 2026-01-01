@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <UseAppHost>false</UseAppHost>
+    <RunSettingsFilePath>$(MSBuildProjectDirectory)/integration.runsettings</RunSettingsFilePath>
   </PropertyGroup>
 
   <ItemGroup>

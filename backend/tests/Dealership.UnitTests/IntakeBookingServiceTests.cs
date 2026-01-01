@@ -27,7 +27,7 @@ public sealed class IntakeBookingServiceTests
         };
         var owner = Guid.NewGuid();
         var candidates = Enum.GetValues<PhotoAngle>().Select(angle => new BookingPhotoCandidate(Guid.NewGuid(), owner,
-            angle, clock.GetUtcNow().AddMinutes(-1), clock.GetUtcNow().AddHours(24), false)).ToArray();
+            angle, clock.GetUtcNow().AddMinutes(-1), clock.GetUtcNow().AddHours(24), false, false)).ToArray();
         var transaction = new RecordingTransaction(candidates);
         var service = new IntakeBookingService(new BookingStore(transaction), valuations,
             new InspectionSchedule(new TimeOnly(9, 0), new TimeOnly(18, 0), 90, 30, 120, [DayOfWeek.Saturday]), clock);

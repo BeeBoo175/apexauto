@@ -72,7 +72,8 @@ public sealed class IntakePhotoService(IAccountSessionStore accounts, IPhotoImag
     {
         var photo = result.Photo;
         var receipt = photo is null ? null : new PhotoReceipt(photo.Id, photo.Angle.ToString(), photo.ContentType,
-            photo.Bytes, photo.Width, photo.Height, photo.CreatedAt, photo.ExpiresAt, photo.AvailableAt);
+            photo.Bytes, photo.Width, photo.Height, photo.CreatedAt, photo.ExpiresAt, photo.AvailableAt,
+            result.Status.ToString(), result.Removal?.Reason.ToString(), result.Removal?.RequestedAt, result.Removal?.DeletedAt);
         return new PhotoResult(result.Status, receipt);
     }
 }

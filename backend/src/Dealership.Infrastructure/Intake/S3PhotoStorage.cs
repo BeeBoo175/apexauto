@@ -93,6 +93,25 @@ public sealed class S3PhotoStorage(IAmazonS3 client, PhotoStorageSettings settin
         }
     }
 
+    public async Task DeleteAsync(IntakePhoto photo, CancellationToken cancellationToken)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(30));
+
+        try
+        {
+            await client.DeleteObjectAsync(new DeleteObjectRequest
+            {
+                BucketName = settings.BucketName,
+                Key = photo.ObjectKey
+            }, deadline.Token);
+        }
+        catch (Exception exception) when (IsProviderFailure(exception, cancellationToken))
+        {
+            throw new PhotoStorageException(exception);
+        }
+    }
+
     private static bool IsProviderFailure(Exception exception, CancellationToken cancellationToken)
     {
         return exception is AmazonS3Exception or AmazonClientException or HttpRequestException or IOException ||

@@ -211,6 +211,11 @@ public sealed class IntakePhotoFixture : IAsyncLifetime, IAsyncDisposable
             observeDownload?.Invoke(destination);
             return storage.CopyToAsync(photo, destination, cancellationToken);
         }
+
+        public Task DeleteAsync(Dealership.Domain.Intake.IntakePhoto photo, CancellationToken cancellationToken)
+        {
+            return storage.DeleteAsync(photo, cancellationToken);
+        }
     }
 
     private sealed class UnknownLengthContent(byte[] bytes) : HttpContent

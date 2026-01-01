@@ -49,6 +49,8 @@ public static class IntakeMediaRegistration
         services.AddSingleton<IPhotoImageValidator, PhotoImageValidator>();
         services.AddSingleton<IPhotoStorage, S3PhotoStorage>();
         services.AddScoped<IntakePhotoService>();
+        services.AddScoped<PhotoCleanupStore>();
+        services.AddHostedService<PhotoCleanupWorker>();
         return services;
     }
 }
@@ -57,6 +59,7 @@ public sealed class PhotoUploadSettings
 {
     public double UnsubmittedLifetimeHours { get; set; }
     public double CancelledRetentionDays { get; set; }
+    public bool CleanupEnabled { get; set; }
 }
 
 public sealed class PhotoStorageSettings
