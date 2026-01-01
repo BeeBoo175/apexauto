@@ -61,12 +61,32 @@ public sealed class IntakePhotoFixture : IAsyncLifetime, IAsyncDisposable
     }
 
     public WebApplicationFactory<Program> CreateFactory(bool failAfterPut = false, TimeProvider? clock = null,
-        Action<Stream>? observeDownload = null)
+        Action<Stream>? observeDownload = null, bool failAfterDelete = false, bool failBeforeDelete = false,
+        double? unsubmittedLifetimeHours = null, double? cancelledRetentionDays = null)
     {
         return new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
-            builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
-                new Dictionary<string, string?> { ["Email:Mode"] = "Disabled", ["AWS:BucketName"] = _bucket }));
+            builder.ConfigureAppConfiguration((_, configuration) =>
+            {
+                var values = new Dictionary<string, string?>
+                {
+                    ["Email:Mode"] = "Disabled",
+                    ["AWS:BucketName"] = _bucket,
+                    ["IntakePhotos:CleanupEnabled"] = "false"
+                };
+
+                if (unsubmittedLifetimeHours is not null)
+                {
+                    values["IntakePhotos:UnsubmittedLifetimeHours"] = unsubmittedLifetimeHours.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                }
+
+                if (cancelledRetentionDays is not null)
+                {
+                    values["IntakePhotos:CancelledRetentionDays"] = cancelledRetentionDays.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                }
+
+                configuration.AddInMemoryCollection(values);
+            });
             builder.ConfigureServices(services =>
             {
                 services.RemoveAll<DbContextOptions<DealershipDbContext>>();
@@ -90,7 +110,7 @@ public sealed class IntakePhotoFixture : IAsyncLifetime, IAsyncDisposable
                     }
 
                     return new StorageProbe(new S3PhotoStorage(provider.GetRequiredService<IAmazonS3>(), settings),
-                        failAfterPut, failure => LastStorageFailure = failure, observeDownload);
+                        failAfterPut, failure => LastStorageFailure = failure, observeDownload, failAfterDelete, failBeforeDelete);
                 });
             });
         });
@@ -156,6 +176,19 @@ public sealed class IntakePhotoFixture : IAsyncLifetime, IAsyncDisposable
         });
     }
 
+    public async Task<bool> OwnedObjectExistsAsync(Guid id)
+    {
+        try
+        {
+            await _client!.GetObjectMetadataAsync(_bucket, $"intake/photos/{id:N}");
+            return true;
+        }
+        catch (AmazonS3Exception exception) when (exception.StatusCode == HttpStatusCode.NotFound)
+        {
+            return false;
+        }
+    }
+
     public async Task DisposeAsync()
     {
         if (_bucketCreated && _client is not null)
@@ -183,7 +216,7 @@ public sealed class IntakePhotoFixture : IAsyncLifetime, IAsyncDisposable
     ValueTask IAsyncDisposable.DisposeAsync() => new(DisposeAsync());
 
     private sealed class StorageProbe(IPhotoStorage storage, bool failAfterPut, Action<string> observeFailure,
-        Action<Stream>? observeDownload) : IPhotoStorage
+        Action<Stream>? observeDownload, bool failAfterDelete, bool failBeforeDelete) : IPhotoStorage
     {
         public async Task PutAsync(Dealership.Domain.Intake.IntakePhoto photo, Stream content, CancellationToken cancellationToken)
         {
@@ -212,9 +245,19 @@ public sealed class IntakePhotoFixture : IAsyncLifetime, IAsyncDisposable
             return storage.CopyToAsync(photo, destination, cancellationToken);
         }
 
-        public Task DeleteAsync(Dealership.Domain.Intake.IntakePhoto photo, CancellationToken cancellationToken)
+        public async Task DeleteAsync(Dealership.Domain.Intake.IntakePhoto photo, CancellationToken cancellationToken)
         {
-            return storage.DeleteAsync(photo, cancellationToken);
+            if (failBeforeDelete)
+            {
+                throw new PhotoStorageException();
+            }
+
+            await storage.DeleteAsync(photo, cancellationToken);
+
+            if (failAfterDelete)
+            {
+                throw new PhotoStorageException();
+            }
         }
     }
 
