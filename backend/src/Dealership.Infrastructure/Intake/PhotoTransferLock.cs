@@ -9,7 +9,9 @@ public sealed class PhotoTransferLock(DealershipDbContext database) : IPhotoTran
 {
     public async Task<IAsyncDisposable> AcquireAsync(Guid photoId, CancellationToken cancellationToken)
     {
-        return (await OpenAsync(photoId, wait: true, cancellationToken))!;
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(10));
+        return (await OpenAsync(photoId, wait: true, deadline.Token))!;
     }
 
     public Task<IAsyncDisposable?> TryAcquireAsync(Guid photoId, CancellationToken cancellationToken)
