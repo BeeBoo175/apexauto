@@ -4,7 +4,7 @@ using Dealership.Domain.Intake;
 namespace Dealership.Application.Intake;
 
 public sealed class IntakePhotoService(IAccountSessionStore accounts, IPhotoImageValidator validator,
-    IIntakePhotoStore photos, IPhotoStorage storage, IntakePhotoPolicy policy)
+    IIntakePhotoStore photos, IPhotoStorage storage, IntakePhotoPolicy policy, IPhotoTransferLock transfers)
 {
     public async Task<bool> CanUploadAsync(Guid ownerId, CancellationToken cancellationToken)
     {
@@ -31,6 +31,8 @@ public sealed class IntakePhotoService(IAccountSessionStore accounts, IPhotoImag
             return new PhotoResult(PhotoStatus.Invalid);
         }
 
+        await using var transfer = await transfers.AcquireAsync(id, cancellationToken);
+
         var prepared = await photos.PrepareAsync(ownerId, id, angle, validated, policy.UnsubmittedLifetime,
             cancellationToken);
 
@@ -52,6 +54,8 @@ public sealed class IntakePhotoService(IAccountSessionStore accounts, IPhotoImag
     public async Task<PhotoResult> DownloadAsync(Guid ownerId, Guid id, Stream destination,
         CancellationToken cancellationToken)
     {
+        await using var transfer = await transfers.AcquireAsync(id, cancellationToken);
+
         var found = await photos.FindAsync(ownerId, id, cancellationToken);
 
         if (found.Status != PhotoStatus.Available)

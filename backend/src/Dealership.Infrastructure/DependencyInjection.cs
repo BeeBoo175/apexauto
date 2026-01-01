@@ -45,6 +45,7 @@ public static class DependencyInjection
         services.AddSingleton<PasswordResetToken>();
         services.AddScoped<IPublicBranchStore, PublicBranchStore>();
         services.AddScoped<IIntakePhotoStore, IntakePhotoStore>();
+        services.AddScoped<IPhotoTransferLock, PhotoTransferLock>();
         services.AddScoped<IIntakeBookingStore, IntakeBookingStore>();
         services.AddScoped<IAppointmentHistoryStore, AppointmentHistoryStore>();
         services.AddScoped<IAppointmentCancellationStore, AppointmentCancellationStore>();
