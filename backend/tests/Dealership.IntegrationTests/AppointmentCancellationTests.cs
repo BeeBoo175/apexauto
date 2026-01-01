@@ -10,6 +10,53 @@ using Npgsql;
 
 namespace Dealership.IntegrationTests;
 
+public sealed class AppointmentCancellationSnapshotTests(IntakePhotoFixture fixture) : IClassFixture<IntakePhotoFixture>
+{
+    [Fact]
+    public async Task StaleRepeatableReadCannotAllocateAnAlreadyCommittedSlot()
+    {
+        using var factory = fixture.CreateFactory();
+        using var client = factory.CreateClient();
+        var registration = await IntakePhotoFixture.RegisterAsync(client);
+        await IntakePhotoFixture.VerifyAsync(factory, client, registration);
+        var request = await BookingTestData.RequestAsync(factory, client);
+        var owner = await BookingTestData.OwnerAsync(factory, registration);
+        using (var scope = factory.Services.CreateScope())
+        {
+            var branch = Dealership.Infrastructure.Development.DevelopmentFixtureManifest.Branch with
+            {
+                Id = Guid.NewGuid(),
+                Name = "ApexAuto Subang Jaya"
+            };
+            await scope.ServiceProvider.GetRequiredService<Dealership.Application.Accounts.StaffProvisioningService>()
+                .ProvisionBranchAsync(branch, CancellationToken.None);
+            request = request with { BranchId = branch.Id };
+        }
+
+        await using var connection = new NpgsqlConnection(fixture.Database.RuntimeConnectionString);
+        await connection.OpenAsync();
+        await using var transaction = await connection.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead);
+        await using (var snapshot = new NpgsqlCommand("SELECT count(*) FROM \"IntakeAppointments\"", connection, transaction))
+        {
+            await snapshot.ExecuteScalarAsync();
+        }
+
+        var receipt = await BookingTestData.BookAsync(client, request);
+        await using var duplicate = new NpgsqlCommand("""
+            INSERT INTO "IntakeAppointments" ("Id", "OwnerId", "BranchId", "RegistrationPlate", "StartsAt", "EndsAt", "CreatedAt")
+            VALUES (@id, @owner, @branch, 'BPL 2198', @start, @end, @created)
+            """, connection, transaction);
+        duplicate.Parameters.AddWithValue("id", Guid.NewGuid());
+        duplicate.Parameters.AddWithValue("owner", owner);
+        duplicate.Parameters.AddWithValue("branch", receipt.BranchId);
+        duplicate.Parameters.AddWithValue("start", receipt.Slot.StartsAt);
+        duplicate.Parameters.AddWithValue("end", receipt.Slot.EndsAt);
+        duplicate.Parameters.AddWithValue("created", receipt.CreatedAt);
+        var error = await Assert.ThrowsAsync<PostgresException>(() => duplicate.ExecuteNonQueryAsync());
+        Assert.Equal(PostgresErrorCodes.SerializationFailure, error.SqlState);
+    }
+}
+
 public sealed class AppointmentCancellationTests(IntakePhotoFixture fixture) : IClassFixture<IntakePhotoFixture>
 {
     [Fact]
