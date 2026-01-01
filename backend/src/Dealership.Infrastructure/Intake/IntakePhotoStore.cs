@@ -1,4 +1,3 @@
-using Dealership.Application.Accounts;
 using Dealership.Application.Intake;
 using Dealership.Domain.Intake;
 using Dealership.Infrastructure.Persistence;
@@ -26,7 +25,7 @@ public sealed class IntakePhotoStore(DealershipDbContext database, TimeProvider 
         if (existing is not null)
         {
             return existing.Matches(ownerId, angle, content)
-                ? Classify(existing)
+                ? await ClassifyAsync(existing, cancellationToken)
                 : new PhotoPreparation(PhotoStatus.Conflict);
         }
 
@@ -46,7 +45,7 @@ public sealed class IntakePhotoStore(DealershipDbContext database, TimeProvider 
 
         var photo = await database.IntakePhotos.AsNoTracking()
             .SingleOrDefaultAsync(candidate => candidate.Id == id && candidate.OwnerId == ownerId, cancellationToken);
-        return photo is null ? new PhotoPreparation(PhotoStatus.NotFound) : Classify(photo);
+        return photo is null ? new PhotoPreparation(PhotoStatus.NotFound) : await ClassifyAsync(photo, cancellationToken);
     }
 
     public async Task<PhotoPreparation> ConfirmAsync(Guid ownerId, Guid id, CancellationToken cancellationToken)
@@ -82,9 +81,10 @@ public sealed class IntakePhotoStore(DealershipDbContext database, TimeProvider 
         return new PhotoPreparation(PhotoStatus.Available, photo);
     }
 
-    private PhotoPreparation Classify(IntakePhoto photo)
+    private async Task<PhotoPreparation> ClassifyAsync(IntakePhoto photo, CancellationToken cancellationToken)
     {
-        if (photo.IsExpired(clock.GetUtcNow()))
+        if (photo.IsExpired(clock.GetUtcNow()) &&
+            !await database.AppointmentPhotos.AnyAsync(item => item.PhotoId == photo.Id, cancellationToken))
         {
             return new PhotoPreparation(PhotoStatus.NotFound);
         }
@@ -101,15 +101,6 @@ public sealed class IntakePhotoStore(DealershipDbContext database, TimeProvider 
 
     private async Task<bool> IsVerifiedOwnerAsync(Guid ownerId, bool lockUser, CancellationToken cancellationToken)
     {
-        var users = database.Users.AsQueryable();
-
-        if (lockUser)
-        {
-            users = database.Users.FromSqlInterpolated(
-                $"SELECT * FROM \"AspNetUsers\" WHERE \"Id\" = {ownerId} FOR UPDATE");
-        }
-
-        return await users.AnyAsync(user => user.Id == ownerId && user.IsActive && user.Role == AccountRoles.Customer &&
-            user.EmailConfirmed && database.CustomerProfiles.Any(profile => profile.UserId == user.Id), cancellationToken);
+        return await VerifiedCustomerQuery.ForOwner(database, ownerId, lockUser).AnyAsync(cancellationToken);
     }
 }
