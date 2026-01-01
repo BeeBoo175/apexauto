@@ -66,6 +66,7 @@ builder.Services.AddSingleton<PasswordResetMailComposer>();
 builder.Services.AddScoped<IMailDeliverySource, VerificationMailSource>();
 builder.Services.AddScoped<IMailDeliverySource, PasswordResetMailSource>();
 builder.Services.AddScoped<IMailDeliverySource, AppointmentConfirmationSource>();
+builder.Services.AddScoped<IMailDeliverySource, AppointmentCancellationMailSource>();
 builder.Services.AddHostedService<MailDeliveryWorker>();
 builder.Services.AddApiRateLimiting();
 builder.Services.AddApiAuthentication();

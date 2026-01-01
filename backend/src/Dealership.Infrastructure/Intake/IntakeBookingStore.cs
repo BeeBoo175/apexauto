@@ -70,7 +70,8 @@ public sealed class IntakeBookingStore(DealershipDbContext database) : IIntakeBo
         DateTimeOffset last, CancellationToken cancellationToken)
     {
         return await database.IntakeAppointments.Where(item => item.BranchId == branchId &&
-            item.EndsAt > first && item.StartsAt < last)
+            item.EndsAt > first && item.StartsAt < last &&
+            !database.AppointmentCancellations.Any(cancellation => cancellation.AppointmentId == item.Id))
             .Select(item => new InspectionSlot(item.StartsAt, item.EndsAt)).ToArrayAsync(cancellationToken);
     }
 }

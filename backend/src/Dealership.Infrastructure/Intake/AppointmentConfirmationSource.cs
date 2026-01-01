@@ -17,6 +17,7 @@ public sealed class AppointmentConfirmationSource(DealershipDbContext database, 
             SELECT * FROM "AppointmentConfirmations"
             WHERE "DeliveredAt" IS NULL AND "NextDeliveryAt" <= {now}
               AND ("DeliveryClaimExpiresAt" IS NULL OR "DeliveryClaimExpiresAt" <= {now})
+              AND NOT EXISTS (SELECT 1 FROM "AppointmentCancellations" c WHERE c."AppointmentId" = "AppointmentConfirmations"."Id")
             ORDER BY "NextDeliveryAt", "Id" LIMIT 1 FOR UPDATE SKIP LOCKED
             """).SingleOrDefaultAsync(cancellationToken);
 

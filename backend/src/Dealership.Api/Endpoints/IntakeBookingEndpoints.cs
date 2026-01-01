@@ -16,6 +16,31 @@ public static class IntakeBookingEndpoints
         routes.MapPost("", BookAsync);
         routes.MapGet("", ListAsync);
         routes.MapGet("/{id:guid}", GetReceiptAsync);
+        routes.MapPost("/{id:guid}/cancellation", CancelAsync);
+    }
+
+    private static async Task<IResult> CancelAsync(Guid id, HttpContext context, IAppointmentCancellationStore cancellations,
+        CancellationToken cancellationToken)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(20));
+
+        try
+        {
+            var result = await cancellations.CancelAsync(OwnerId(context), id, deadline.Token);
+            return result.Status switch
+            {
+                CancellationStatus.Succeeded => Results.Ok(result.Receipt),
+                CancellationStatus.Forbidden => Results.Forbid(),
+                CancellationStatus.NotFound => Results.NotFound(),
+                CancellationStatus.TooLate => Results.Problem(statusCode: 409, title: "The appointment has already started."),
+                _ => Results.BadRequest()
+            };
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return Results.Problem(statusCode: 503, title: "Cancellation is unconfirmed; reconcile using the same appointment ID.");
+        }
     }
 
     private static async Task<IResult> ListAsync(HttpContext context, IAppointmentHistoryStore history,

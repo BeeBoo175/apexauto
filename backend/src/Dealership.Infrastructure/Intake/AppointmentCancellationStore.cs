@@ -1,0 +1,77 @@
+using Dealership.Application.Intake;
+using Dealership.Domain.Intake;
+using Dealership.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+using Npgsql;
+
+namespace Dealership.Infrastructure.Intake;
+
+public sealed class AppointmentCancellationStore(DealershipDbContext database, TimeProvider clock) : IAppointmentCancellationStore
+{
+    public async Task<CancellationResult> CancelAsync(Guid ownerId, Guid appointmentId, CancellationToken cancellationToken)
+    {
+        if (appointmentId == Guid.Empty)
+        {
+            return new CancellationResult(CancellationStatus.Invalid);
+        }
+
+        await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
+        await database.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT pg_advisory_xact_lock(hashtextextended({"appointment:" + appointmentId}, 0))", cancellationToken);
+        var user = await VerifiedCustomerQuery.ForOwner(database, ownerId, lockUser: true)
+            .AsNoTracking().SingleOrDefaultAsync(cancellationToken);
+
+        if (user is null)
+        {
+            return new CancellationResult(CancellationStatus.Forbidden);
+        }
+
+        var appointment = await database.IntakeAppointments.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.Id == appointmentId && item.OwnerId == ownerId, cancellationToken);
+
+        if (appointment is null)
+        {
+            return new CancellationResult(CancellationStatus.NotFound);
+        }
+
+        await database.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT 1 FROM \"Branches\" WHERE \"Id\" = {appointment.BranchId} FOR UPDATE", cancellationToken);
+        var existing = await database.AppointmentCancellations.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.AppointmentId == appointmentId, cancellationToken);
+
+        if (existing is not null)
+        {
+            return new CancellationResult(CancellationStatus.Succeeded, new CancellationReceipt(appointmentId, existing.CancelledAt));
+        }
+
+        var now = clock.GetUtcNow();
+        now = new DateTimeOffset(now.UtcTicks - now.UtcTicks % 10, TimeSpan.Zero);
+
+        if (now < appointment.CreatedAt || now >= appointment.StartsAt)
+        {
+            return new CancellationResult(CancellationStatus.TooLate);
+        }
+
+        var cancellation = new AppointmentCancellation(appointment, now);
+        database.AppointmentCancellations.Add(cancellation);
+        database.AppointmentCancellationMails.Add(new AppointmentCancellationMail
+        {
+            Id = appointmentId,
+            RecipientEmail = user.Email!,
+            NextDeliveryAt = now
+        });
+        try
+        {
+            await database.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception) when (exception.InnerException is PostgresException
+        { ConstraintName: "CK_AppointmentCancellations_Time" })
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            database.ChangeTracker.Clear();
+            return new CancellationResult(CancellationStatus.TooLate);
+        }
+        return new CancellationResult(CancellationStatus.Succeeded, new CancellationReceipt(appointmentId, now));
+    }
+}

@@ -36,7 +36,9 @@ public sealed class AppointmentHistoryStore(DealershipDbContext database) : IApp
                 .OrderByDescending(row => row.Appointment.StartsAt).ThenByDescending(row => row.Appointment.Id)
                 .Skip((int)offset).Take(query.PageSize)
                 .Select(row => new AppointmentHistoryItem(row.Appointment.Id, row.Appointment.BranchId, row.BranchName,
-                    row.Appointment.RegistrationPlate, row.Appointment.StartsAt, row.Appointment.EndsAt, row.Appointment.CreatedAt))
+                    row.Appointment.RegistrationPlate, row.Appointment.StartsAt, row.Appointment.EndsAt, row.Appointment.CreatedAt,
+                    database.AppointmentCancellations.Where(cancellation => cancellation.AppointmentId == row.Appointment.Id)
+                        .Select(cancellation => (DateTimeOffset?)cancellation.CancelledAt).SingleOrDefault()))
                 .ToArrayAsync(cancellationToken);
         }
         await transaction.CommitAsync(cancellationToken);
