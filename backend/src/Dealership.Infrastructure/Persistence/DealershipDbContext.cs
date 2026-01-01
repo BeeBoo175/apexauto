@@ -24,6 +24,10 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
 
     public DbSet<AppointmentConfirmation> AppointmentConfirmations => Set<AppointmentConfirmation>();
 
+    public DbSet<AppointmentCancellation> AppointmentCancellations => Set<AppointmentCancellation>();
+
+    public DbSet<AppointmentCancellationMail> AppointmentCancellationMails => Set<AppointmentCancellationMail>();
+
     public DbSet<AccountSession> AccountSessions => Set<AccountSession>();
 
     public DbSet<EmailVerificationChallenge> EmailVerificationChallenges => Set<EmailVerificationChallenge>();
@@ -41,6 +45,9 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
         builder.ApplyConfiguration<SellerValuation>(booking);
         builder.ApplyConfiguration<AppointmentPhoto>(booking);
         builder.ApplyConfiguration<AppointmentConfirmation>(booking);
+        var cancellation = new AppointmentCancellationConfiguration();
+        builder.ApplyConfiguration<AppointmentCancellation>(cancellation);
+        builder.ApplyConfiguration<AppointmentCancellationMail>(cancellation);
         builder.ApplyConfiguration(new CustomerProfileConfiguration());
         builder.ApplyConfiguration(new AccountSessionConfiguration());
         builder.ApplyConfiguration(new EmailVerificationChallengeConfiguration());
