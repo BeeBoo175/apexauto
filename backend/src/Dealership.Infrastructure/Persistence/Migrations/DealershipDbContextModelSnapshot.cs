@@ -129,6 +129,9 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("OwnerId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTimeOffset>("PhotosExpireAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.HasKey("AppointmentId");
 
                     b.HasIndex("CancelledAt");
@@ -136,7 +139,10 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.HasIndex("AppointmentId", "OwnerId")
                         .IsUnique();
 
-                    b.ToTable("AppointmentCancellations");
+                    b.ToTable("AppointmentCancellations", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_AppointmentCancellations_Retention", "\"PhotosExpireAt\" > \"CancelledAt\"");
+                        });
                 });
 
             modelBuilder.Entity("Dealership.Domain.Intake.AppointmentPhoto", b =>
@@ -265,6 +271,47 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                             t.HasCheckConstraint("CK_IntakePhotos_Identity", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"ObjectKey\" = 'intake/photos/' || replace(\"Id\"::text, '-', '')");
 
                             t.HasCheckConstraint("CK_IntakePhotos_Lifetime", "\"ExpiresAt\" > \"CreatedAt\" AND (\"AvailableAt\" IS NULL OR (\"AvailableAt\" >= \"CreatedAt\" AND \"AvailableAt\" < \"ExpiresAt\"))");
+                        });
+                });
+
+            modelBuilder.Entity("Dealership.Domain.Intake.PhotoRemoval", b =>
+                {
+                    b.Property<Guid>("PhotoId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("ClaimExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ClaimId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("EligibleAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTimeOffset>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("PhotoId");
+
+                    b.HasIndex("NextAttemptAt", "PhotoId");
+
+                    b.ToTable("PhotoRemovals", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_PhotoRemovals_Shape", "\"Reason\" IN ('UnsubmittedExpired', 'CancelledRetentionExpired') AND \"RequestedAt\" >= \"EligibleAt\" AND \"Attempts\" >= 0 AND (\"DeletedAt\" IS NULL OR \"DeletedAt\" >= \"RequestedAt\") AND ((\"ClaimId\" IS NULL) = (\"ClaimExpiresAt\" IS NULL))");
                         });
                 });
 
@@ -770,6 +817,15 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.HasOne("Dealership.Domain.Customers.CustomerProfile", null)
                         .WithMany()
                         .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Dealership.Domain.Intake.PhotoRemoval", b =>
+                {
+                    b.HasOne("Dealership.Domain.Intake.IntakePhoto", null)
+                        .WithOne()
+                        .HasForeignKey("Dealership.Domain.Intake.PhotoRemoval", "PhotoId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
