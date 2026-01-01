@@ -19,6 +19,7 @@ public sealed class IntakePhotoConfiguration : IEntityTypeConfiguration<IntakePh
                 "\"ExpiresAt\" > \"CreatedAt\" AND (\"AvailableAt\" IS NULL OR (\"AvailableAt\" >= \"CreatedAt\" AND \"AvailableAt\" < \"ExpiresAt\"))");
         });
         builder.HasKey(photo => photo.Id);
+        builder.HasAlternateKey(photo => new { photo.Id, photo.OwnerId, photo.Angle });
         builder.Property(photo => photo.Id).ValueGeneratedNever();
         builder.HasOne<CustomerProfile>().WithMany().HasForeignKey(photo => photo.OwnerId)
             .OnDelete(DeleteBehavior.Restrict);
