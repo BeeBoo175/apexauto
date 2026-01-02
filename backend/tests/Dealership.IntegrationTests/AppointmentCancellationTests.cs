@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Dealership.Application.Branches;
 using Dealership.Application.Intake;
 using Dealership.Infrastructure.Intake;
 using Dealership.Infrastructure.Persistence;
@@ -28,7 +29,7 @@ public sealed class AppointmentCancellationSnapshotTests(IntakePhotoFixture fixt
                 Id = Guid.NewGuid(),
                 Name = "ApexAuto Subang Jaya"
             };
-            await scope.ServiceProvider.GetRequiredService<Dealership.Application.Accounts.StaffProvisioningService>()
+            await scope.ServiceProvider.GetRequiredService<BranchProvisioningService>()
                 .ProvisionBranchAsync(branch, CancellationToken.None);
             request = request with { BranchId = branch.Id };
         }

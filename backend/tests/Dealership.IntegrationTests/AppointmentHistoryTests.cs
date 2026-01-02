@@ -1,6 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
-using Dealership.Application.Accounts;
+using Dealership.Application.Branches;
 using Dealership.Application.Intake;
 using Dealership.Domain.Intake;
 using Dealership.Infrastructure.Development;
@@ -48,7 +48,7 @@ public sealed class AppointmentHistoryTests(IntakePhotoFixture fixture) : IClass
             }
 
             var secondBranch = DevelopmentFixtureManifest.Branch with { Id = Guid.NewGuid(), Name = "ApexAuto Petaling Jaya" };
-            await scope.ServiceProvider.GetRequiredService<StaffProvisioningService>().ProvisionBranchAsync(secondBranch, CancellationToken.None);
+            await scope.ServiceProvider.GetRequiredService<BranchProvisioningService>().ProvisionBranchAsync(secondBranch, CancellationToken.None);
             appointments.Add(await BookingTestData.BookAsync(client, request with { BranchId = secondBranch.Id }));
         }
 

@@ -1,4 +1,5 @@
 using System.Globalization;
+using Dealership.Application.Branches;
 using Dealership.Domain.Intake;
 
 namespace Dealership.Application.Intake;
@@ -6,19 +7,6 @@ namespace Dealership.Application.Intake;
 public sealed class IntakeDiscoveryService(IPublicBranchStore branches, IIntakeBookingStore bookings,
     InspectionSchedule schedule, TimeProvider clock)
 {
-    public const int DefaultPageSize = 20;
-    public const int MaximumPageSize = 50;
-
-    public async Task<PublicBranchPage?> GetBranchesAsync(int page, int pageSize, CancellationToken cancellationToken)
-    {
-        if (page < 1 || pageSize is < 1 or > MaximumPageSize)
-        {
-            return null;
-        }
-
-        return await branches.GetActiveAsync(page, pageSize, cancellationToken);
-    }
-
     public async Task<SlotDiscoveryResult> GetSlotsAsync(Guid branchId, string? date, CancellationToken cancellationToken)
     {
         var now = clock.GetUtcNow();

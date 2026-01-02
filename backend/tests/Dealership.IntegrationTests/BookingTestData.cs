@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using Dealership.Application.Accounts;
+using Dealership.Application.Branches;
 using Dealership.Application.Intake;
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Intake;
@@ -18,7 +19,7 @@ internal static class BookingTestData
     {
         using var scope = factory.Services.CreateScope();
         var branch = DevelopmentFixtureManifest.Branch;
-        await scope.ServiceProvider.GetRequiredService<StaffProvisioningService>()
+        await scope.ServiceProvider.GetRequiredService<BranchProvisioningService>()
             .ProvisionBranchAsync(branch, CancellationToken.None);
         var make = VehicleTaxonomy.Makes[0];
         var model = make.Models[0];

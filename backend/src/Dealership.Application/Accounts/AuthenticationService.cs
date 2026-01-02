@@ -6,8 +6,8 @@ public sealed class AuthenticationService(IAccountSessionStore sessions)
     {
         var email = request.Email?.Trim();
 
-        if (request.LoginKey == Guid.Empty || string.IsNullOrEmpty(email) || email.Length > RegistrationService.EmailMaximumLength ||
-            string.IsNullOrEmpty(request.Password) || request.Password.Length > RegistrationService.PasswordMaximumLength)
+        if (request.LoginKey == Guid.Empty || string.IsNullOrEmpty(email) || email.Length > AccountCredentialPolicy.EmailMaximumLength ||
+            string.IsNullOrEmpty(request.Password) || request.Password.Length > AccountCredentialPolicy.PasswordMaximumLength)
         {
             return null;
         }

@@ -1,4 +1,5 @@
 using Dealership.Application.Accounts;
+using Dealership.Application.Branches;
 using Dealership.Infrastructure.Identity;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
@@ -10,7 +11,7 @@ namespace Dealership.Infrastructure.Development;
 public sealed record DevelopmentFixtureReport(string Fixture, string State, bool RequiresAttention);
 
 public sealed class DevelopmentFixtureRunner(DealershipDbContext database, RegistrationService registration,
-    StaffProvisioningService staff, IPasswordHasher<AccountUser> passwords)
+    StaffProvisioningService staff, BranchProvisioningService branches, IPasswordHasher<AccountUser> passwords)
 {
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> SeedAsync(DevelopmentFixtureTarget target,
         CancellationToken cancellationToken)
@@ -23,14 +24,14 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Regis
 
         // A dedicated nonpooled connection owns the run lock; disposal releases it after failure or restart.
         var reports = new List<DevelopmentFixtureReport>();
-        var branch = await staff.ProvisionBranchAsync(DevelopmentFixtureManifest.Branch, token);
-        reports.Add(Report("Glenmarie branch", branch));
+        var branch = await branches.ProvisionBranchAsync(DevelopmentFixtureManifest.Branch, token);
+        reports.Add(Report("Glenmarie branch", branch.Created, branch.MatchesRequestedState));
         reports.Add(await SeedCustomerAsync(token));
 
         foreach (var account in DevelopmentFixtureManifest.Staff)
         {
             var provisioned = await staff.ProvisionStaffAsync(account, token);
-            reports.Add(Report(account.Role, provisioned));
+            reports.Add(Report(account.Role, provisioned.Created, provisioned.MatchesRequestedState));
         }
 
         return reports;
@@ -105,7 +106,7 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Regis
             profile.Nric == requested.Nric && profile.Mobile == requested.Mobile &&
             profile.ResidentialAddress == requested.ResidentialAddress && user.PasswordHash is not null &&
             passwords.VerifyHashedPassword(user, user.PasswordHash, requested.Password!) != PasswordVerificationResult.Failed;
-        return Report("Customer", new ProvisioningResult(false, matches));
+        return Report("Customer", created: false, matches);
     }
 
     private async Task<DevelopmentFixtureReport> ReviewAccountAsync(string fixture, Guid? id,
@@ -130,14 +131,13 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Regis
         }
     }
 
-    private static DevelopmentFixtureReport Report(string fixture, ProvisioningResult result)
+    private static DevelopmentFixtureReport Report(string fixture, bool created, bool matches)
     {
-        if (result.Created)
+        if (created)
         {
             return new DevelopmentFixtureReport(fixture, "created", false);
         }
 
-        return new DevelopmentFixtureReport(fixture, result.MatchesRequestedState ? "matches" : "drift; preserved",
-            !result.MatchesRequestedState);
+        return new DevelopmentFixtureReport(fixture, matches ? "matches" : "drift; preserved", !matches);
     }
 }

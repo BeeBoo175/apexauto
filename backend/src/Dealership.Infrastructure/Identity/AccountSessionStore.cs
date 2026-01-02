@@ -102,15 +102,6 @@ public sealed class AccountSessionStore(DealershipDbContext database, UserManage
             .ExecuteUpdateAsync(update => update.SetProperty(session => session.RevokedAt, now), cancellationToken);
     }
 
-    public async Task<CustomerAccount?> GetAccountAsync(Guid userId, CancellationToken cancellationToken)
-    {
-        return await (from profile in database.CustomerProfiles
-                      join user in database.Users on profile.UserId equals user.Id
-                      where profile.UserId == userId && user.Role == AccountRoles.Customer && user.IsActive
-                      select new CustomerAccount(user.Id, profile.LegalName, user.Email!, user.EmailConfirmed))
-            .SingleOrDefaultAsync(cancellationToken);
-    }
-
     private IQueryable<AccountUser> EligibleUsers()
     {
         // Current persisted assignment governs every request; JWTs carry identity only.

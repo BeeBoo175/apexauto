@@ -3,7 +3,6 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Dealership.Application;
 using Dealership.Application.Accounts;
-using Dealership.Domain.Branches;
 using Dealership.Infrastructure;
 using Dealership.Infrastructure.Development;
 using Dealership.Infrastructure.Identity;
@@ -171,11 +170,6 @@ public sealed class DevelopmentFixtureTests(RegistrationDatabase fixture) : ICla
 
     private sealed class InterruptingStore(StaffProvisioningStore inner, InterruptedSeed fault) : IStaffProvisioningStore
     {
-        public Task<ProvisioningResult> ProvisionBranchAsync(Branch branch, CancellationToken cancellationToken)
-        {
-            return inner.ProvisionBranchAsync(branch, cancellationToken);
-        }
-
         public Task<ProvisioningResult> ProvisionStaffAsync(ValidatedStaffProvisioning staff, CancellationToken cancellationToken)
         {
             if (fault.Enabled && staff.Role == AccountRoles.WorkshopTechnician)

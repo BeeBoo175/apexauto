@@ -1,8 +1,8 @@
-using Dealership.Application.Intake;
+using Dealership.Application.Branches;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-namespace Dealership.Infrastructure.Intake;
+namespace Dealership.Infrastructure.Branches;
 
 public sealed class PublicBranchStore(DealershipDbContext database) : IPublicBranchStore
 {

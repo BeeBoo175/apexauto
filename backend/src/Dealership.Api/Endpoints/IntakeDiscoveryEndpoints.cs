@@ -1,5 +1,4 @@
 using Dealership.Application.Intake;
-using System.Globalization;
 
 namespace Dealership.Api.Endpoints;
 
@@ -13,32 +12,7 @@ public static class IntakeDiscoveryEndpoints
             context.HttpContext.Response.Headers.CacheControl = "no-store";
             return await next(context);
         });
-        routes.MapGet("", GetBranchesAsync);
         routes.MapGet("/{branchId:guid}/inspection-slots", GetSlotsAsync);
-    }
-
-    private static async Task<IResult> GetBranchesAsync(string? page, string? pageSize, IntakeDiscoveryService discovery,
-        CancellationToken cancellationToken)
-    {
-        if (!int.TryParse(page ?? "1", NumberStyles.None, CultureInfo.InvariantCulture, out var selectedPage) ||
-            !int.TryParse(pageSize ?? IntakeDiscoveryService.DefaultPageSize.ToString(CultureInfo.InvariantCulture),
-                NumberStyles.None, CultureInfo.InvariantCulture, out var selectedSize))
-        {
-            return InvalidPagination();
-        }
-
-        var result = await discovery.GetBranchesAsync(selectedPage, selectedSize, cancellationToken);
-        return result is null
-            ? InvalidPagination()
-            : Results.Ok(result);
-    }
-
-    private static IResult InvalidPagination()
-    {
-        return Results.ValidationProblem(new Dictionary<string, string[]>
-        {
-            ["pagination"] = ["Use a positive page and a page size between 1 and 50."]
-        });
     }
 
     private static async Task<IResult> GetSlotsAsync(Guid branchId, string? date, IntakeDiscoveryService discovery,

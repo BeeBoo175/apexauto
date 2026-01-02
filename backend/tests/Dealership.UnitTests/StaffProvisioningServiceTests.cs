@@ -1,5 +1,4 @@
 using Dealership.Application.Accounts;
-using Dealership.Domain.Branches;
 
 namespace Dealership.UnitTests;
 
@@ -11,7 +10,7 @@ public sealed class StaffProvisioningServiceTests
     [InlineData(AccountRoles.Administrator, true)]
     public async Task InvalidAssignmentsAreRejectedBeforePersistence(string role, bool assignedBranch)
     {
-        var service = new StaffProvisioningService(new UnexpectedProvisioningStore(), TimeProvider.System);
+        var service = new StaffProvisioningService(new UnexpectedProvisioningStore());
         var request = new StaffProvisioningRequest(Guid.NewGuid(), "aina.sofia@example.invalid", "Password123!",
             role, assignedBranch ? Guid.NewGuid() : null);
         await Assert.ThrowsAsync<ArgumentException>(() => service.ProvisionStaffAsync(request, CancellationToken.None));
@@ -19,11 +18,6 @@ public sealed class StaffProvisioningServiceTests
 
     private sealed class UnexpectedProvisioningStore : IStaffProvisioningStore
     {
-        public Task<ProvisioningResult> ProvisionBranchAsync(Branch branch, CancellationToken cancellationToken)
-        {
-            throw new InvalidOperationException("Invalid staff input must not reach persistence.");
-        }
-
         public Task<ProvisioningResult> ProvisionStaffAsync(ValidatedStaffProvisioning staff, CancellationToken cancellationToken)
         {
             throw new InvalidOperationException("Invalid staff input must not reach persistence.");

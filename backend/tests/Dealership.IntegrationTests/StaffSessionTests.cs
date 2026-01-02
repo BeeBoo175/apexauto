@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Dealership.Application.Accounts;
+using Dealership.Application.Branches;
 using Dealership.Infrastructure.Identity;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -100,7 +101,7 @@ public sealed class StaffSessionTests(RegistrationDatabase database) : IClassFix
     private static async Task<Guid> CreateBranchAsync(WebApplicationFactory<Program> factory, string name)
     {
         using var scope = factory.Services.CreateScope();
-        var provisioner = scope.ServiceProvider.GetRequiredService<StaffProvisioningService>();
+        var provisioner = scope.ServiceProvider.GetRequiredService<BranchProvisioningService>();
         var branchId = Guid.NewGuid();
         var result = await provisioner.ProvisionBranchAsync(new BranchProvisioningRequest(branchId, name,
             "12 Jalan Pengaturcara U1/51A", "Shah Alam", "Selangor", "+60355651234"), CancellationToken.None);

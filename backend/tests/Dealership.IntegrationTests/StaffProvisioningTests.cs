@@ -1,4 +1,5 @@
 using Dealership.Application.Accounts;
+using Dealership.Application.Branches;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,9 +20,9 @@ public sealed class StaffProvisioningTests(RegistrationDatabase database) : ICla
             $"siti.aminah.{Guid.NewGuid():N}@example.invalid", "Password123!",
             AccountRoles.SalesAgent, branchId);
 
-        Assert.Equal(new ProvisioningResult(true, true), await ProvisionBranchAsync(services, branch));
+        Assert.Equal(new BranchProvisioningResult(true, true), await ProvisionBranchAsync(services, branch));
         Assert.Equal(new ProvisioningResult(true, true), await ProvisionStaffAsync(services, staff));
-        Assert.Equal(new ProvisioningResult(false, true), await ProvisionBranchAsync(services, branch));
+        Assert.Equal(new BranchProvisioningResult(false, true), await ProvisionBranchAsync(services, branch));
         Assert.Equal(new ProvisioningResult(false, true), await ProvisionStaffAsync(services, staff));
         Assert.Equal(new ProvisioningResult(false, false), await ProvisionStaffAsync(services,
             staff with { Password = "DifferentPassword123!" }));
@@ -39,7 +40,7 @@ public sealed class StaffProvisioningTests(RegistrationDatabase database) : ICla
         }
 
         using var restarted = database.CreateServices();
-        Assert.Equal(new ProvisioningResult(false, false), await ProvisionBranchAsync(restarted, branch));
+        Assert.Equal(new BranchProvisioningResult(false, false), await ProvisionBranchAsync(restarted, branch));
         Assert.Equal(new ProvisioningResult(false, false), await ProvisionStaffAsync(restarted,
             staff with { Password = "DifferentPassword123!" }));
 
@@ -91,11 +92,11 @@ public sealed class StaffProvisioningTests(RegistrationDatabase database) : ICla
         Assert.False(await saved.Users.AnyAsync(user => user.Id == request.Id));
     }
 
-    private static async Task<ProvisioningResult> ProvisionBranchAsync(ServiceProvider services,
+    private static async Task<BranchProvisioningResult> ProvisionBranchAsync(ServiceProvider services,
         BranchProvisioningRequest branch)
     {
         using var scope = services.CreateScope();
-        var service = scope.ServiceProvider.GetRequiredService<StaffProvisioningService>();
+        var service = scope.ServiceProvider.GetRequiredService<BranchProvisioningService>();
         return await service.ProvisionBranchAsync(branch, CancellationToken.None);
     }
 

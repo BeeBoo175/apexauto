@@ -8,6 +8,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Identity;
 using Dealership.Application.Intake;
 using Dealership.Infrastructure.Intake;
+using Dealership.Infrastructure.Accounts;
+using Dealership.Application.Branches;
+using Dealership.Infrastructure.Branches;
 
 namespace Dealership.Infrastructure;
 
@@ -38,7 +41,9 @@ public static class DependencyInjection
             .AddPasswordValidator<AccountPasswordValidator>();
         services.AddScoped<ICustomerRegistrationStore, CustomerRegistrationStore>();
         services.AddScoped<IAccountSessionStore, AccountSessionStore>();
+        services.AddScoped<ICustomerAccountQuery, CustomerAccountQuery>();
         services.AddScoped<IStaffProvisioningStore, StaffProvisioningStore>();
+        services.AddScoped<IBranchProvisioningStore, BranchProvisioningStore>();
         services.AddScoped<IEmailVerificationStore, EmailVerificationStore>();
         services.AddSingleton<EmailVerificationToken>();
         services.AddScoped<IPasswordRecoveryStore, PasswordRecoveryStore>();

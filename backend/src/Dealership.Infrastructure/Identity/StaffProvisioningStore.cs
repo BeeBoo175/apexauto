@@ -1,5 +1,4 @@
 using Dealership.Application.Accounts;
-using Dealership.Domain.Branches;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -10,29 +9,6 @@ public sealed class StaffProvisioningStore(DealershipDbContext database, UserMan
     IPasswordHasher<AccountUser> passwords)
     : IStaffProvisioningStore
 {
-    public async Task<ProvisioningResult> ProvisionBranchAsync(Branch branch,
-        CancellationToken cancellationToken)
-    {
-        await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
-        await LockFixtureAsync(branch.Id, cancellationToken);
-        var existing = await database.Branches.AsNoTracking()
-            .SingleOrDefaultAsync(candidate => candidate.Id == branch.Id, cancellationToken);
-
-        if (existing is not null)
-        {
-            // A fixture rerun reports drift without overwriting a person's edits.
-            var matches = existing.Name == branch.Name && existing.Address == branch.Address &&
-                existing.City == branch.City && existing.State == branch.State &&
-                existing.Phone == branch.Phone && existing.IsActive;
-            return new ProvisioningResult(false, matches);
-        }
-
-        database.Branches.Add(branch);
-        await database.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
-        return new ProvisioningResult(true, true);
-    }
-
     public async Task<ProvisioningResult> ProvisionStaffAsync(ValidatedStaffProvisioning staff,
         CancellationToken cancellationToken)
     {

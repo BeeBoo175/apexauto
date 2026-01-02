@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Dealership.Application.Accounts;
+using Dealership.Application.Branches;
 using Dealership.Application.Intake;
 using Dealership.Infrastructure.Development;
 using Dealership.Infrastructure.Persistence;
@@ -23,7 +24,7 @@ public sealed class IntakeDiscoveryTests(RegistrationDatabase database) : IClass
         Guid branchId;
         using (var scope = factory.Services.CreateScope())
         {
-            var provisioning = scope.ServiceProvider.GetRequiredService<StaffProvisioningService>();
+            var provisioning = scope.ServiceProvider.GetRequiredService<BranchProvisioningService>();
             var branch = DevelopmentFixtureManifest.Branch;
             var branches = new[]
             {

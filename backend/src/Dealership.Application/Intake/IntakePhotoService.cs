@@ -3,7 +3,7 @@ using Dealership.Domain.Intake;
 
 namespace Dealership.Application.Intake;
 
-public sealed class IntakePhotoService(IAccountSessionStore accounts, IPhotoImageValidator validator,
+public sealed class IntakePhotoService(ICustomerAccountQuery accounts, IPhotoImageValidator validator,
     IIntakePhotoStore photos, IPhotoStorage storage, IntakePhotoPolicy policy, IPhotoTransferLock transfers)
 {
     public async Task<bool> CanUploadAsync(Guid ownerId, CancellationToken cancellationToken)

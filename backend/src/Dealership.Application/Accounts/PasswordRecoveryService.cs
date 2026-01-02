@@ -6,7 +6,7 @@ public sealed class PasswordRecoveryService(IPasswordRecoveryStore store)
     {
         var email = request.Email?.Trim();
 
-        if (string.IsNullOrEmpty(email) || email.Length > RegistrationService.EmailMaximumLength)
+        if (string.IsNullOrEmpty(email) || email.Length > AccountCredentialPolicy.EmailMaximumLength)
         {
             return;
         }
@@ -17,7 +17,7 @@ public sealed class PasswordRecoveryService(IPasswordRecoveryStore store)
     public Task<PasswordResetResult> ResetAsync(PasswordResetRequest request, CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(request.Token) || request.Token.Length > 160 ||
-            string.IsNullOrEmpty(request.Password) || request.Password.Length > RegistrationService.PasswordMaximumLength)
+            string.IsNullOrEmpty(request.Password) || request.Password.Length > AccountCredentialPolicy.PasswordMaximumLength)
         {
             return Task.FromResult(new PasswordResetResult(PasswordResetStatus.Invalid));
         }

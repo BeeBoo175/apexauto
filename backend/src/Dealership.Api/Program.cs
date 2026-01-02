@@ -130,6 +130,7 @@ app.MapVehicleEndpoints();
 app.MapRegistrationEndpoints();
 app.MapAuthenticationEndpoints();
 app.MapPasswordRecoveryEndpoints();
+app.MapBranchDiscoveryEndpoints();
 app.MapIntakeDiscoveryEndpoints();
 app.MapIntakePhotoEndpoints();
 app.MapIntakeBookingEndpoints();

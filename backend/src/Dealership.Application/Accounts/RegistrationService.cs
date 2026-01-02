@@ -5,9 +5,6 @@ namespace Dealership.Application.Accounts;
 
 public sealed class RegistrationService(ICustomerRegistrationStore store)
 {
-    public const int EmailMaximumLength = 254;
-    public const int PasswordMaximumLength = 128;
-
     public async Task<RegistrationResult> RegisterAsync(RegistrationRequest request, CancellationToken cancellationToken)
     {
         var errors = new Dictionary<string, string[]>();
@@ -27,14 +24,14 @@ public sealed class RegistrationService(ICustomerRegistrationStore store)
             errors["nric"] = ["Enter a 12-digit NRIC without separators."];
         }
 
-        if (email.Length > EmailMaximumLength || !MailAddress.TryCreate(email, out var parsedEmail) || parsedEmail.Address != email)
+        if (email.Length > AccountCredentialPolicy.EmailMaximumLength || !MailAddress.TryCreate(email, out var parsedEmail) || parsedEmail.Address != email)
         {
             errors["email"] = ["Enter a valid email address."];
         }
 
-        if (string.IsNullOrEmpty(request.Password) || request.Password.Length > PasswordMaximumLength)
+        if (string.IsNullOrEmpty(request.Password) || request.Password.Length > AccountCredentialPolicy.PasswordMaximumLength)
         {
-            errors["password"] = [$"Enter a password no longer than {PasswordMaximumLength} characters."];
+            errors["password"] = [$"Enter a password no longer than {AccountCredentialPolicy.PasswordMaximumLength} characters."];
         }
 
         if (errors.Count > 0)

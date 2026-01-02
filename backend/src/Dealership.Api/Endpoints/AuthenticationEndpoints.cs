@@ -44,12 +44,12 @@ public static class AuthenticationEndpoints
         return Results.NoContent();
     }
 
-    private static async Task<IResult> GetAccountAsync(HttpContext context, IAccountSessionStore sessions,
+    private static async Task<IResult> GetAccountAsync(HttpContext context, ICustomerAccountQuery accounts,
         CancellationToken cancellationToken)
     {
         context.Response.Headers.CacheControl = "no-store";
         var userId = Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Sub)!.Value);
-        var account = await sessions.GetAccountAsync(userId, cancellationToken);
+        var account = await accounts.GetAccountAsync(userId, cancellationToken);
         return account is null ? Results.Forbid() : Results.Ok(account);
     }
 

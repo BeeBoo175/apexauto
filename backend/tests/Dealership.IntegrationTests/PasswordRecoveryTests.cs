@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Dealership.Application.Accounts;
+using Dealership.Application.Branches;
 using Dealership.Infrastructure.Development;
 using Dealership.Infrastructure.Identity;
 using Dealership.Infrastructure.Persistence;
@@ -207,7 +208,8 @@ public sealed class PasswordRecoveryTests(RegistrationDatabase database) : IClas
         using (var scope = host.Factory.Services.CreateScope())
         {
             var fixture = scope.ServiceProvider.GetRequiredService<StaffProvisioningService>();
-            await fixture.ProvisionBranchAsync(DevelopmentFixtureManifest.Branch, CancellationToken.None);
+            await scope.ServiceProvider.GetRequiredService<BranchProvisioningService>()
+                .ProvisionBranchAsync(DevelopmentFixtureManifest.Branch, CancellationToken.None);
             await fixture.ProvisionStaffAsync(DevelopmentFixtureManifest.Staff[0], CancellationToken.None);
             var context = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
             await context.Users.Where(user => user.Id == DevelopmentFixtureManifest.Staff[0].Id)

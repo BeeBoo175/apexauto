@@ -26,8 +26,8 @@ public sealed class AccountUserConfiguration : IEntityTypeConfiguration<AccountU
         builder.HasOne<Dealership.Domain.Branches.Branch>().WithMany().HasForeignKey(user => user.BranchId)
             .OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(user => user.BranchId);
-        builder.Property(user => user.Email).HasMaxLength(RegistrationService.EmailMaximumLength).IsRequired();
-        builder.Property(user => user.NormalizedEmail).HasMaxLength(RegistrationService.EmailMaximumLength).IsRequired();
+        builder.Property(user => user.Email).HasMaxLength(AccountCredentialPolicy.EmailMaximumLength).IsRequired();
+        builder.Property(user => user.NormalizedEmail).HasMaxLength(AccountCredentialPolicy.EmailMaximumLength).IsRequired();
         builder.Property(user => user.Role).HasMaxLength(32).HasDefaultValue(AccountRoles.Customer).IsRequired();
         builder.Property(user => user.IsActive).HasDefaultValue(true);
         builder.HasIndex(user => user.NormalizedEmail).HasDatabaseName("EmailIndex").IsUnique();
