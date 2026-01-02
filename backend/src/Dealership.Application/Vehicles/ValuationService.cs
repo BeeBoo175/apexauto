@@ -5,7 +5,7 @@ namespace Dealership.Application.Vehicles;
 
 public sealed class ValuationService(TimeProvider timeProvider)
 {
-    private static readonly TimeZoneInfo MalaysiaTimeZone = TimeZoneInfo.FindSystemTimeZoneById(DealershipConstants.MalaysiaTimeZoneId);
+    private static readonly TimeZoneInfo MalaysiaTimeZone = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
 
     public ValuationResult Calculate(ValuationRequest request)
     {
@@ -36,7 +36,7 @@ public sealed class ValuationService(TimeProvider timeProvider)
         }
 
         var quote = AlgorithmicValuationEngine.Calculate(trim!.BaselinePrice, request.ManufactureYear!.Value, request.MileageKilometres!.Value, currentYear);
-        var response = new ValuationResponse(quote.MinValuation.Amount, quote.MaxValuation.Amount, DealershipConstants.DefaultCurrency, currentYear);
+        var response = new ValuationResponse(quote.MinValuation.Amount, quote.MaxValuation.Amount, DealershipLocale.DefaultCurrency, currentYear);
 
         return new ValuationResult(response, errors);
     }

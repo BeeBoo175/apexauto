@@ -8,10 +8,6 @@ namespace Dealership.Infrastructure.Identity;
 public sealed class EmailVerificationStore(DealershipDbContext database, UserManager<AccountUser> users,
     EmailVerificationToken tokens, TimeProvider clock) : IEmailVerificationStore
 {
-    private static readonly TimeSpan Lifetime = TimeSpan.FromHours(24);
-    private static readonly TimeSpan ResendCooldown = TimeSpan.FromMinutes(1);
-    private static readonly TimeSpan ResendWindow = TimeSpan.FromHours(1);
-
     public async Task QueueInitialAsync(Guid userId, CancellationToken cancellationToken)
     {
         // Registration owns the surrounding transaction; the mail intent commits with the account.
@@ -47,19 +43,16 @@ public sealed class EmailVerificationStore(DealershipDbContext database, UserMan
         var now = clock.GetUtcNow();
         var recent = await database.EmailVerificationChallenges
             .Where(challenge => challenge.UserId == userId && challenge.ResendKey != null &&
-                challenge.CreatedAt > now - ResendWindow)
+                challenge.CreatedAt > now - EmailVerificationPolicy.ResendWindow)
             .OrderByDescending(challenge => challenge.CreatedAt)
             .Select(challenge => challenge.CreatedAt)
             .ToListAsync(cancellationToken);
 
-        if (recent.Count > 0 && recent[0] + ResendCooldown > now)
-        {
-            return new VerificationResult(VerificationStatus.RateLimited, recent[0] + ResendCooldown - now);
-        }
+        var delay = EmailVerificationPolicy.ResendDelay(now, recent);
 
-        if (recent.Count >= 3)
+        if (delay is not null)
         {
-            return new VerificationResult(VerificationStatus.RateLimited, recent[^1] + ResendWindow - now);
+            return new VerificationResult(VerificationStatus.RateLimited, delay);
         }
 
         await InvalidateOutstandingAsync(userId, now, cancellationToken);
@@ -164,7 +157,7 @@ public sealed class EmailVerificationStore(DealershipDbContext database, UserMan
             UserId = user.Id,
             RecipientEmail = user.Email!,
             CreatedAt = now,
-            ExpiresAt = now + Lifetime,
+            ExpiresAt = now + EmailVerificationPolicy.Lifetime,
             NextDeliveryAt = now,
             ResendKey = resendKey
         });

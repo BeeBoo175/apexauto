@@ -7,7 +7,7 @@ namespace Dealership.Infrastructure.Intake;
 
 public sealed class AppointmentConfirmationSource(DealershipDbContext database, TimeProvider clock) : IMailDeliverySource
 {
-    private static readonly TimeZoneInfo Malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipConstants.MalaysiaTimeZoneId);
+    private static readonly TimeZoneInfo Malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
 
     public async Task<ClaimedMail?> ClaimNextAsync(CancellationToken cancellationToken)
     {

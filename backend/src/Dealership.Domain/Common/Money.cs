@@ -6,7 +6,7 @@ public readonly record struct Money
 
     public string Currency { get; }
 
-    public Money(decimal amount, string currency = DealershipConstants.DefaultCurrency)
+    public Money(decimal amount, string currency = DealershipLocale.DefaultCurrency)
     {
         Amount = decimal.Round(amount, 2, MidpointRounding.AwayFromZero);
         Currency = currency;

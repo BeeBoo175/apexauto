@@ -1,3 +1,4 @@
+using Dealership.Application.Accounts;
 using Dealership.Infrastructure.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -10,7 +11,7 @@ public sealed class PasswordResetChallengeConfiguration : IEntityTypeConfigurati
     {
         builder.ToTable("PasswordResetChallenges", table =>
         {
-            table.HasCheckConstraint("CK_PasswordResetChallenges_Lifetime", "\"ExpiresAt\" = \"CreatedAt\" + interval '1 hour'");
+            table.HasCheckConstraint("CK_PasswordResetChallenges_Lifetime", $"\"ExpiresAt\" = \"CreatedAt\" + interval '{PasswordRecoveryPolicy.LifetimeHours} hour'");
             table.HasCheckConstraint("CK_PasswordResetChallenges_Attempts", "\"DeliveryAttempts\" >= 0");
             table.HasCheckConstraint("CK_PasswordResetChallenges_Receipt", """
                 ("ConsumedAt" IS NULL AND "CompletedSecurityStamp" IS NULL) OR

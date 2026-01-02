@@ -23,11 +23,11 @@ public sealed class PasswordRecoveryStore(DealershipDbContext database, UserMana
 
         var now = clock.GetUtcNow();
         var recent = await database.PasswordResetChallenges
-            .Where(challenge => challenge.UserId == user.Id && challenge.CreatedAt > now - TimeSpan.FromHours(1))
+            .Where(challenge => challenge.UserId == user.Id && challenge.CreatedAt > now - PasswordRecoveryPolicy.RequestWindow)
             .OrderByDescending(challenge => challenge.CreatedAt)
-            .Select(challenge => challenge.CreatedAt).Take(3).ToListAsync(cancellationToken);
+            .Select(challenge => challenge.CreatedAt).Take(PasswordRecoveryPolicy.MaximumRequestsPerWindow).ToListAsync(cancellationToken);
 
-        if (recent.Count >= 3 || (recent.Count > 0 && recent[0] + TimeSpan.FromMinutes(1) > now))
+        if (!PasswordRecoveryPolicy.CanRequest(now, recent))
         {
             return;
         }
@@ -41,7 +41,7 @@ public sealed class PasswordRecoveryStore(DealershipDbContext database, UserMana
             UserId = user.Id,
             RecipientEmail = user.Email!,
             CreatedAt = now,
-            ExpiresAt = now + TimeSpan.FromHours(1),
+            ExpiresAt = now + PasswordRecoveryPolicy.Lifetime,
             NextDeliveryAt = now
         });
         await database.SaveChangesAsync(cancellationToken);

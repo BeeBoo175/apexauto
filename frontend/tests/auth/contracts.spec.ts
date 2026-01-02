@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { parseAccount, parseSession, safeReturnTo } from "../../src/lib/auth/contracts";
-import { trustedClientAddress } from "../../src/lib/auth/client-address";
+import { trustedClientAddress } from "../../src/lib/server/http/client-address";
 
 test("return destinations stay inside the supported account route", () => {
   for (const destination of [

@@ -15,7 +15,7 @@ public static class VehicleEndpoints
     {
         return Results.Ok(new
         {
-            currency = DealershipConstants.DefaultCurrency,
+            currency = DealershipLocale.DefaultCurrency,
             makes = VehicleTaxonomy.Makes
         });
     }

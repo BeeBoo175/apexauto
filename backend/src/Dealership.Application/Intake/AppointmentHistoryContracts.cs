@@ -5,7 +5,7 @@ namespace Dealership.Application.Intake;
 
 public sealed record AppointmentHistoryQuery(DateTimeOffset? From, DateTimeOffset? Until, int Page, int PageSize)
 {
-    private static readonly TimeZoneInfo Malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipConstants.MalaysiaTimeZoneId);
+    private static readonly TimeZoneInfo Malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
 
     public static AppointmentHistoryQuery? Parse(string? from, string? to, int page, int pageSize)
     {

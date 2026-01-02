@@ -8,7 +8,7 @@ public sealed record InspectionDateWindow(DateOnly FirstDate, DateOnly LastDate)
 
 public sealed class InspectionSchedule
 {
-    private static readonly TimeZoneInfo Malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipConstants.MalaysiaTimeZoneId);
+    private static readonly TimeZoneInfo Malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
     private readonly TimeOnly _opensAt;
     private readonly TimeOnly _closesAt;
     private readonly TimeSpan _duration;

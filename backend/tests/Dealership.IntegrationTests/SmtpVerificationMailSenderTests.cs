@@ -86,6 +86,7 @@ public sealed partial class SmtpVerificationMailSenderTests
             $"length={body.Length}, route={body.Contains(route, StringComparison.Ordinal)}, " +
             $"fragment={body.Contains("#token=", StringComparison.Ordinal)}.");
         Assert.DoesNotContain($"{route}?token=", body);
+        Assert.Contains(passwordReset ? "This link expires in one hour." : "This link expires in 24 hours.", body);
         Assert.Contains("nur.aina@example.invalid", message);
     }
 
