@@ -2,6 +2,7 @@ using Dealership.Application;
 using Dealership.Infrastructure;
 using Dealership.Infrastructure.Configuration;
 using Dealership.Infrastructure.Development;
+using Dealership.Infrastructure.Development.Maintenance;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
@@ -32,13 +33,13 @@ try
     services.AddApplication();
     services.AddInfrastructure(configuration);
     services.AddScoped<DevelopmentFixtureRunner>();
+    services.AddScoped<DevelopmentDatabaseRebuilder>();
     await using var provider = services.BuildServiceProvider(new ServiceProviderOptions
     {
         ValidateScopes = true,
         ValidateOnBuild = true
     });
     await using var scope = provider.CreateAsyncScope();
-    var runner = scope.ServiceProvider.GetRequiredService<DevelopmentFixtureRunner>();
     using var deadline = new CancellationTokenSource(TimeSpan.FromMinutes(2));
 
     if (args[0] == "clear")
@@ -46,11 +47,13 @@ try
         var databaseName = new NpgsqlConnectionStringBuilder(target.ConnectionString).Database;
         Console.WriteLine($"This erases every record in local database {databaseName} and reapplies migrations.");
         Console.Write($"Type rebuild {databaseName} to continue: ");
-        await runner.RebuildAsync(target, Console.ReadLine(), deadline.Token);
+        var rebuilder = scope.ServiceProvider.GetRequiredService<DevelopmentDatabaseRebuilder>();
+        await rebuilder.RebuildAsync(target, Console.ReadLine(), deadline.Token);
         Console.WriteLine("Local database rebuilt. Run seed deliberately to recreate fixtures.");
         return 0;
     }
 
+    var runner = scope.ServiceProvider.GetRequiredService<DevelopmentFixtureRunner>();
     var reports = args[0] == "seed"
         ? await runner.SeedAsync(target, deadline.Token)
         : await runner.ReviewAsync(target, deadline.Token);

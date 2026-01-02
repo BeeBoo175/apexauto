@@ -11,6 +11,18 @@ public sealed class DevelopmentFixtureTarget
 
     public string ConnectionString { get; }
 
+    public void EnsureMatches(string? connectionString)
+    {
+        var actual = new NpgsqlConnectionStringBuilder(connectionString);
+        var expected = new NpgsqlConnectionStringBuilder(ConnectionString);
+
+        if (actual.Host != expected.Host || actual.Port != expected.Port || actual.Database != expected.Database ||
+            actual.Username != expected.Username || actual.Password != expected.Password)
+        {
+            throw new InvalidOperationException("Fixture target must match the service database connection.");
+        }
+    }
+
     public static DevelopmentFixtureTarget Validate(string? environment, string? configuredDatabase,
         string? connectionString)
     {

@@ -1,6 +1,8 @@
+using Dealership.Infrastructure.Mail;
+
 namespace Dealership.Infrastructure.Intake;
 
-public sealed class AppointmentCancellationMail
+public sealed class AppointmentCancellationMail : IMailDeliveryState
 {
     public Guid Id { get; init; }
     public string RecipientEmail { get; init; } = string.Empty;

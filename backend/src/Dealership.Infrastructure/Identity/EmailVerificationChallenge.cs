@@ -1,6 +1,8 @@
+using Dealership.Infrastructure.Mail;
+
 namespace Dealership.Infrastructure.Identity;
 
-public sealed class EmailVerificationChallenge
+public sealed class EmailVerificationChallenge : IMailDeliveryState
 {
     public Guid Id { get; init; }
 

@@ -1,6 +1,8 @@
+using Dealership.Infrastructure.Mail;
+
 namespace Dealership.Infrastructure.Identity;
 
-public sealed class PasswordResetChallenge
+public sealed class PasswordResetChallenge : IMailDeliveryState
 {
     public Guid Id { get; init; }
 

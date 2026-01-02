@@ -3,6 +3,7 @@ using Dealership.Application.Accounts;
 using Dealership.Application;
 using Dealership.Infrastructure;
 using Dealership.Infrastructure.Development;
+using Dealership.Infrastructure.Development.Maintenance;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -20,7 +21,7 @@ public sealed class DevelopmentFixtureRebuildTests(RegistrationDatabase fixture)
         var target = DevelopmentFixtureTarget.Validate("Development", databaseName, fixture.ConnectionString);
         await using var provider = CreateProvider(fixture.ConnectionString);
         await using var scope = provider.CreateAsyncScope();
-        var runner = scope.ServiceProvider.GetRequiredService<DevelopmentFixtureRunner>();
+        var rebuilder = scope.ServiceProvider.GetRequiredService<DevelopmentDatabaseRebuilder>();
         var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
         var registration = new RegistrationRequest(Guid.NewGuid(), "Nur Aina Abdullah",
             $"nur.aina.{Guid.NewGuid():N}@example.invalid", "Password123!", "940215140865",
@@ -31,7 +32,7 @@ public sealed class DevelopmentFixtureRebuildTests(RegistrationDatabase fixture)
         database.Branches.Add(new Branch(Guid.NewGuid(), "ApexAuto Glenmarie", "12 Jalan Pengaturcara U1/51A",
             "Shah Alam", "Selangor", "+60355651234", DateTimeOffset.UtcNow));
         await database.SaveChangesAsync();
-        await Assert.ThrowsAsync<InvalidOperationException>(() => runner.RebuildAsync(
+        await Assert.ThrowsAsync<InvalidOperationException>(() => rebuilder.RebuildAsync(
             target, $"rebuild {databaseName}_different", CancellationToken.None));
         Assert.Equal(1, await database.Users.CountAsync());
         var runtimeTarget = DevelopmentFixtureTarget.Validate("Development", databaseName, fixture.RuntimeConnectionString);
@@ -49,13 +50,13 @@ public sealed class DevelopmentFixtureRebuildTests(RegistrationDatabase fixture)
         await using (var runtimeProvider = CreateProvider(fixture.RuntimeConnectionString))
         {
             await using var runtimeScope = runtimeProvider.CreateAsyncScope();
-            var runtimeRunner = runtimeScope.ServiceProvider.GetRequiredService<DevelopmentFixtureRunner>();
-            await Assert.ThrowsAsync<InvalidOperationException>(() => runtimeRunner.RebuildAsync(
+            var runtimeRebuilder = runtimeScope.ServiceProvider.GetRequiredService<DevelopmentDatabaseRebuilder>();
+            await Assert.ThrowsAsync<InvalidOperationException>(() => runtimeRebuilder.RebuildAsync(
                 runtimeTarget, $"rebuild {databaseName}", CancellationToken.None));
         }
 
         Assert.Equal(1, await database.Users.CountAsync());
-        await runner.RebuildAsync(target, $"rebuild {databaseName}", CancellationToken.None);
+        await rebuilder.RebuildAsync(target, $"rebuild {databaseName}", CancellationToken.None);
         Assert.Equal(0, await database.Users.CountAsync());
         Assert.Equal(0, await database.Branches.CountAsync());
         Assert.Equal(0, await database.CustomerProfiles.CountAsync());
@@ -70,7 +71,7 @@ public sealed class DevelopmentFixtureRebuildTests(RegistrationDatabase fixture)
         services.AddLogging();
         services.AddApplication();
         services.AddInfrastructure(configuration);
-        services.AddScoped<DevelopmentFixtureRunner>();
+        services.AddScoped<DevelopmentDatabaseRebuilder>();
         return services.BuildServiceProvider(new ServiceProviderOptions
         {
             ValidateOnBuild = true,

@@ -1,6 +1,8 @@
+using Dealership.Infrastructure.Mail;
+
 namespace Dealership.Infrastructure.Intake;
 
-public sealed class AppointmentConfirmation
+public sealed class AppointmentConfirmation : IMailDeliveryState
 {
     public Guid Id { get; init; }
     public string RecipientEmail { get; init; } = string.Empty;

@@ -4,7 +4,6 @@ using Dealership.Infrastructure.Identity;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 
 namespace Dealership.Infrastructure.Development;
 
@@ -16,7 +15,7 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Regis
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> SeedAsync(DevelopmentFixtureTarget target,
         CancellationToken cancellationToken)
     {
-        EnsureTargetMatches(target);
+        target.EnsureMatches(database.Database.GetConnectionString());
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromMinutes(2));
         var token = deadline.Token;
@@ -37,38 +36,10 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Regis
         return reports;
     }
 
-    public async Task RebuildAsync(DevelopmentFixtureTarget target, string? confirmation,
-        CancellationToken cancellationToken)
-    {
-        EnsureTargetMatches(target);
-        var databaseName = new NpgsqlConnectionStringBuilder(target.ConnectionString).Database;
-
-        if (confirmation != $"rebuild {databaseName}")
-        {
-            throw new InvalidOperationException("Database rebuild requires the exact typed target confirmation.");
-        }
-
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(TimeSpan.FromMinutes(2));
-        await using var lockConnection = await DevelopmentFixtureLock.AcquireAsync(target, deadline.Token);
-        await using var permissions = new NpgsqlCommand(
-            "SELECT rolsuper OR rolcreatedb FROM pg_roles WHERE rolname = current_user", lockConnection);
-
-        if (await permissions.ExecuteScalarAsync(deadline.Token) is not true)
-        {
-            throw new InvalidOperationException("Database rebuild requires maintenance credentials able to recreate the database.");
-        }
-
-        // The lock lives in postgres so it survives removal and recreation of the target database.
-        await database.Database.EnsureDeletedAsync(deadline.Token);
-        await database.Database.MigrateAsync(deadline.Token);
-        database.ChangeTracker.Clear();
-    }
-
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> ReviewAsync(DevelopmentFixtureTarget target,
         CancellationToken cancellationToken)
     {
-        EnsureTargetMatches(target);
+        target.EnsureMatches(database.Database.GetConnectionString());
         var reports = new List<DevelopmentFixtureReport>();
         var branch = await database.Branches.AsNoTracking().SingleOrDefaultAsync(
             candidate => candidate.Id == DevelopmentFixtureManifest.Branch.Id, cancellationToken);
@@ -117,18 +88,6 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Regis
         var state = account is null ? "missing" :
             $"role={account.Role}; branch={account.BranchId}; active={account.IsActive}; verified={account.EmailConfirmed}";
         return new DevelopmentFixtureReport(fixture, state, account is null);
-    }
-
-    private void EnsureTargetMatches(DevelopmentFixtureTarget target)
-    {
-        var actual = new NpgsqlConnectionStringBuilder(database.Database.GetConnectionString());
-        var expected = new NpgsqlConnectionStringBuilder(target.ConnectionString);
-
-        if (actual.Host != expected.Host || actual.Port != expected.Port || actual.Database != expected.Database ||
-            actual.Username != expected.Username || actual.Password != expected.Password)
-        {
-            throw new InvalidOperationException("Fixture target must match the service database connection.");
-        }
     }
 
     private static DevelopmentFixtureReport Report(string fixture, bool created, bool matches)
