@@ -6,7 +6,7 @@ using Microsoft.Extensions.Options;
 
 namespace Dealership.Infrastructure.Intake;
 
-public sealed class PhotoCleanupWorker(IServiceScopeFactory scopes, IOptions<PhotoUploadSettings> settings,
+public sealed class PhotoCleanupWorker(IServiceScopeFactory scopes, IOptions<IntakePhotoSettings> settings,
     ILogger<PhotoCleanupWorker> logger) : BackgroundService
 {
     private static readonly Action<ILogger, string, Exception?> CleanupFailure = LoggerMessage.Define<string>(

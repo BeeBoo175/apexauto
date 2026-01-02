@@ -1,3 +1,4 @@
+using Dealership.Infrastructure.Storage;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
@@ -76,6 +77,7 @@ public sealed class S3PhotoStorageCompatibilityTests
         }).Build();
         var services = new ServiceCollection();
         services.AddLogging();
+        services.AddS3Storage(configuration);
         services.AddIntakeMedia(configuration);
         using var provider = services.BuildServiceProvider();
         var client = provider.GetRequiredService<IAmazonS3>();

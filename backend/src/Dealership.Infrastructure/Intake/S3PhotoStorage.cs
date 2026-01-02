@@ -1,3 +1,4 @@
+using Dealership.Infrastructure.Storage;
 using System.Net;
 using System.Security.Cryptography;
 using Amazon.S3;

@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 namespace Dealership.Infrastructure.Intake;
 
 public sealed class AppointmentCancellationStore(DealershipDbContext database, TimeProvider clock,
-    IOptions<PhotoUploadSettings> settings) : IAppointmentCancellationStore
+    IOptions<IntakePhotoSettings> settings) : IAppointmentCancellationStore
 {
     public async Task<CancellationResult> CancelAsync(Guid ownerId, Guid appointmentId, CancellationToken cancellationToken)
     {
