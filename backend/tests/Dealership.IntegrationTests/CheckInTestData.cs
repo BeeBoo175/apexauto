@@ -23,15 +23,16 @@ internal sealed class CheckInTestData : IDisposable
     private readonly DateOnly _date;
     private readonly TimeProvider _clock;
 
-    private CheckInTestData(IntakePhotoFixture fixture)
+    private CheckInTestData(IntakePhotoFixture fixture, InspectionSchedule? schedule, double? unsubmittedLifetimeHours)
     {
         _date = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, Malaysia).DateTime);
         _clock = new FixedClock(TimeZoneInfo.ConvertTimeToUtc(_date.ToDateTime(TimeOnly.MinValue), Malaysia));
-        Factory = fixture.CreateFactory(clock: _clock).WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+        Factory = fixture.CreateFactory(clock: _clock, unsubmittedLifetimeHours: unsubmittedLifetimeHours)
+            .WithWebHostBuilder(builder => builder.ConfigureServices(services =>
         {
             // Canonical bookings need a deterministic same-day slot on any test weekday, even after closing.
             services.RemoveAll<InspectionSchedule>();
-            services.AddSingleton(new InspectionSchedule(new TimeOnly(9, 0), new TimeOnly(18, 0),
+            services.AddSingleton(schedule ?? new InspectionSchedule(new TimeOnly(9, 0), new TimeOnly(18, 0),
                 90, 30, 0, Enum.GetValues<DayOfWeek>()));
         }));
     }
@@ -43,9 +44,10 @@ internal sealed class CheckInTestData : IDisposable
     public string CustomerEmail { get; private set; } = string.Empty;
     public string StaffEmail { get; private set; } = string.Empty;
 
-    public static async Task<CheckInTestData> CreateAsync(IntakePhotoFixture fixture)
+    public static async Task<CheckInTestData> CreateAsync(IntakePhotoFixture fixture, InspectionSchedule? schedule = null,
+        double? unsubmittedLifetimeHours = null)
     {
-        var data = new CheckInTestData(fixture);
+        var data = new CheckInTestData(fixture, schedule, unsubmittedLifetimeHours);
 
         try
         {

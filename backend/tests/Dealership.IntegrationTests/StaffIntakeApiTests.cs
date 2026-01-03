@@ -7,10 +7,13 @@ using System.Text.Json.Nodes;
 using Dealership.Application.Accounts;
 using Dealership.Application.Branches;
 using Dealership.Application.Intake;
+using Dealership.Domain.Intake;
 using Dealership.Infrastructure.Development;
+using Dealership.Infrastructure.Intake;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Dealership.IntegrationTests;
 
@@ -101,6 +104,40 @@ public sealed class StaffIntakeApiTests(IntakePhotoFixture fixture) : IClassFixt
         Assert.Equal(0, (await database.Vehicles.SingleAsync()).MileageKilometres);
         Assert.Equal(90000, (await database.SellerValuations.SingleAsync(item => item.AppointmentId == appointment.Id)).MileageKilometres);
         await AssertCurrentScopeAsync(reconciler, database, data, scope.ServiceProvider, path, evidence);
+        await database.Users.Where(user => user.Id == data.StaffId)
+            .ExecuteUpdateAsync(update => update.SetProperty(user => user.IsActive, true));
+        await database.Users.Where(user => user.Id == data.OwnerId)
+            .ExecuteUpdateAsync(update => update.SetProperty(user => user.EmailConfirmed, false));
+        Assert.Equal(HttpStatusCode.Conflict,
+            (await reconciler.PostAsJsonAsync($"{Route}/{duplicateVin.Id}/check-in", evidence)).StatusCode);
+        await database.Users.Where(user => user.Id == data.OwnerId)
+            .ExecuteUpdateAsync(update => update.SetProperty(user => user.EmailConfirmed, true));
+        await AssertLostReceiptAsync(data, duplicateVin.Id, reconciler);
+    }
+
+    private async Task AssertLostReceiptAsync(CheckInTestData data, Guid id, HttpClient reconciler)
+    {
+        using var lostReceipt = fixture.CreateFactory().WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+        {
+            services.RemoveAll<IAppointmentCheckInStore>();
+            services.AddScoped<IAppointmentCheckInStore>(provider => new LostReceiptStore(new AppointmentCheckInStore(
+                provider.GetRequiredService<DealershipDbContext>(), provider.GetRequiredService<TimeProvider>())));
+        }));
+        using var client = lostReceipt.CreateClient();
+        client.DefaultRequestHeaders.Authorization = reconciler.DefaultRequestHeaders.Authorization;
+        var evidence = CheckInTestData.Evidence with { Vin = "PL1BT65R84B123458" };
+        var path = $"{Route}/{id}/check-in";
+        var uncertain = await client.PostAsJsonAsync(path, evidence);
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, uncertain.StatusCode);
+        Assert.True(uncertain.Headers.CacheControl?.NoStore);
+        Assert.Contains("unconfirmed", await uncertain.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        var confirmed = await reconciler.PostAsJsonAsync(path, evidence);
+        Assert.Equal(HttpStatusCode.OK, confirmed.StatusCode);
+        var receipt = (await confirmed.Content.ReadFromJsonAsync<CheckInReceipt>())!;
+        Assert.Equal(id, receipt.AppointmentId);
+        Assert.Equal(data.StaffId, receipt.StaffId);
+        Assert.Equal(evidence, receipt.Evidence);
+        Assert.Equal(receipt, await (await reconciler.PostAsJsonAsync(path, evidence)).Content.ReadFromJsonAsync<CheckInReceipt>());
     }
 
     private static async Task AssertCurrentScopeAsync(HttpClient client, DealershipDbContext database, CheckInTestData data,
@@ -149,5 +186,17 @@ public sealed class StaffIntakeApiTests(IntakePhotoFixture fixture) : IClassFixt
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var session = (await response.Content.ReadFromJsonAsync<LoginSession>())!;
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
+    }
+
+    private sealed class LostReceiptStore(IAppointmentCheckInStore inner) : IAppointmentCheckInStore
+    {
+        public async Task<CheckInResult> CheckInAsync(Guid staffId, Guid appointmentId, CheckInEvidence evidence,
+            CancellationToken cancellationToken)
+        {
+            Assert.True(cancellationToken.CanBeCanceled);
+            var result = await inner.CheckInAsync(staffId, appointmentId, evidence, cancellationToken);
+            Assert.Equal(CheckInStatus.Succeeded, result.Status);
+            throw new OperationCanceledException("The committed response was lost.");
+        }
     }
 }
