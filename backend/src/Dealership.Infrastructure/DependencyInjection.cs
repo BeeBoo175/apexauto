@@ -55,6 +55,7 @@ public static class DependencyInjection
         services.AddScoped<IAppointmentHistoryStore, AppointmentHistoryStore>();
         services.AddScoped<IAppointmentCancellationStore, AppointmentCancellationStore>();
         services.AddScoped<IAppointmentCheckInStore, AppointmentCheckInStore>();
+        services.AddScoped<IStaffWorklistStore, StaffWorklistStore>();
         services.AddSingleton<MissingAccountPasswordHash>(provider =>
         {
             using var scope = provider.CreateScope();

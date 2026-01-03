@@ -1,0 +1,162 @@
+using System.Globalization;
+using System.Data.Common;
+using Dealership.Application.Accounts;
+using Dealership.Application.Branches;
+using Dealership.Application.Intake;
+using Dealership.Infrastructure.Development;
+using Dealership.Infrastructure.Intake;
+using Dealership.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Dealership.IntegrationTests;
+
+public sealed class StaffWorklistTests(IntakePhotoFixture fixture) : IClassFixture<IntakePhotoFixture>
+{
+    private static readonly int[] PageSizes = [20, 20, 1];
+
+    [Fact]
+    public async Task CanonicalPopulatedWorklistPreservesScopedPagingStatusesAndCurrentRoles()
+    {
+        using var data = await CheckInTestData.CreateAsync(fixture);
+        using var scope = data.Factory.Services.CreateScope();
+        var services = scope.ServiceProvider;
+        var database = services.GetRequiredService<DealershipDbContext>();
+        var otherBranch = Guid.NewGuid();
+        await services.GetRequiredService<BranchProvisioningService>().ProvisionBranchAsync(
+            DevelopmentFixtureManifest.Branch with { Id = otherBranch, Name = "ApexAuto Petaling Jaya" }, CancellationToken.None);
+        var manager = Guid.NewGuid();
+        await services.GetRequiredService<StaffProvisioningService>().ProvisionStaffAsync(new StaffProvisioningRequest(
+            manager, $"farah.aziz.{Guid.NewGuid():N}@example.invalid", "Password123!", AccountRoles.GeneralManager, null),
+            CancellationToken.None);
+        var booked = new List<AppointmentReceipt>();
+
+        for (var index = 0; index < 43; index++)
+        {
+            booked.Add(await data.BookAsync(index % 6, $"VCA {6200 + index}", index / 6));
+        }
+
+        var other = await data.BookAsync(0, "BPL 2198", branchId: otherBranch);
+        Assert.Equal(CheckInStatus.Succeeded,
+            (await services.GetRequiredService<IAppointmentCheckInStore>()
+                .CheckInAsync(data.StaffId, booked[0].Id, CheckInTestData.Evidence, CancellationToken.None)).Status);
+        Assert.Equal(CancellationStatus.Succeeded,
+            (await services.GetRequiredService<IAppointmentCancellationStore>()
+                .CancelAsync(data.OwnerId, booked[6].Id, CancellationToken.None)).Status);
+        var from = booked[0].Slot.StartsAt.AddHours(8).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        var to = booked[^1].Slot.StartsAt.AddHours(8).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        var query = StaffWorklistQuery.Parse(from, to, null, null, 1, 20, DateTimeOffset.UtcNow)!;
+        var pages = new List<StaffWorklistPage>();
+
+        for (var page = 1; page <= 3; page++)
+        {
+            pages.Add((await ListAsync(data, data.StaffId, query with { Page = page }))!);
+        }
+
+        Assert.Equal(PageSizes, pages.Select(page => page.Items.Count));
+        Assert.All(pages, page => Assert.Equal(41, page.Total));
+        var expected = booked.Where(item => item.Id != booked[0].Id && item.Id != booked[6].Id)
+            .OrderBy(item => item.Slot.StartsAt).ThenBy(item => item.Id).Select(item => item.Id);
+        Assert.Equal(expected, pages.SelectMany(page => page.Items).Select(item => item.Id));
+        Assert.All(pages.SelectMany(page => page.Items), item =>
+        {
+            Assert.Equal(data.BranchId, item.BranchId);
+            Assert.Equal("Nur Aina Abdullah", item.CustomerName);
+            Assert.Equal("Booked", item.Status);
+        });
+        Assert.Empty((await ListAsync(data, data.StaffId, query with { Page = int.MaxValue }))!.Items);
+        Assert.Equal(41, (await ListAsync(data, data.StaffId, query with { Page = int.MaxValue }))!.Total);
+        Assert.Null(await ListAsync(data, data.StaffId, query with { BranchId = otherBranch }));
+        Assert.Equal(43, (await ListAsync(data, data.StaffId, query with { Status = StaffWorklistStatus.All }))!.Total);
+        Assert.Equal(booked[0].Id, Assert.Single((await ListAsync(data, data.StaffId,
+            query with { Status = StaffWorklistStatus.CheckedIn }))!.Items).Id);
+        Assert.Equal(booked[6].Id, Assert.Single((await ListAsync(data, data.StaffId,
+            query with { Status = StaffWorklistStatus.Cancelled }))!.Items).Id);
+        var today = StaffWorklistQuery.Parse(null, null, null, null, 1, 20, booked[0].Slot.StartsAt)!;
+        Assert.Equal(5, (await ListAsync(data, data.StaffId, today))!.Total);
+        Assert.Equal(6, (await ListAsync(data, data.StaffId, today with
+        {
+            From = today.Until,
+            Until = today.Until.AddDays(1),
+            Status = StaffWorklistStatus.All
+        }))!.Total);
+
+        var allBranches = (await ListAsync(data, manager, query with { Status = StaffWorklistStatus.All, PageSize = 50 }))!;
+        Assert.Equal(44, allBranches.Total);
+        Assert.Equal(allBranches.Items.OrderBy(item => item.StartsAt).ThenBy(item => item.Id).Select(item => item.Id),
+            allBranches.Items.Select(item => item.Id));
+        var tie = allBranches.Items.Where(item => item.StartsAt == other.Slot.StartsAt).ToArray();
+        Assert.Equal(2, tie.Length);
+        Assert.Equal(tie.Select(item => item.Id).Order(), tie.Select(item => item.Id));
+        Assert.Equal(other.Id, Assert.Single((await ListAsync(data, manager,
+            query with { BranchId = otherBranch }))!.Items).Id);
+        Assert.Equal(0, (await ListAsync(data, manager, query with { BranchId = Guid.NewGuid() }))!.Total);
+        await AssertCountAndRowsShareSnapshotAsync(data, query, booked[7].Id);
+
+        foreach (var role in new[] { AccountRoles.Customer, AccountRoles.WorkshopTechnician, AccountRoles.Administrator })
+        {
+            var branchId = role == AccountRoles.WorkshopTechnician ? (Guid?)data.BranchId : null;
+            await database.Users.Where(user => user.Id == data.StaffId).ExecuteUpdateAsync(update => update
+                .SetProperty(user => user.Role, role).SetProperty(user => user.BranchId, branchId));
+            Assert.Null(await ListAsync(data, data.StaffId, query));
+        }
+
+        await database.Users.Where(user => user.Id == data.StaffId).ExecuteUpdateAsync(update => update
+            .SetProperty(user => user.Role, AccountRoles.BranchManager).SetProperty(user => user.BranchId, otherBranch));
+        Assert.Equal(other.Id, Assert.Single((await ListAsync(data, data.StaffId, query))!.Items).Id);
+        await database.Branches.Where(branch => branch.Id == otherBranch)
+            .ExecuteUpdateAsync(update => update.SetProperty(branch => branch.IsActive, false));
+        Assert.Null(await ListAsync(data, data.StaffId, query));
+        Assert.Equal(44, (await ListAsync(data, manager, query with { Status = StaffWorklistStatus.All }))!.Total);
+        await database.Users.Where(user => user.Id == manager)
+            .ExecuteUpdateAsync(update => update.SetProperty(user => user.IsActive, false));
+        Assert.Null(await ListAsync(data, manager, query));
+    }
+
+    private static async Task<StaffWorklistPage?> ListAsync(CheckInTestData data, Guid staffId, StaffWorklistQuery query)
+    {
+        using var scope = data.Factory.Services.CreateScope();
+        return await scope.ServiceProvider.GetRequiredService<IStaffWorklistStore>()
+            .ListAsync(staffId, query, CancellationToken.None);
+    }
+
+    private async Task AssertCountAndRowsShareSnapshotAsync(CheckInTestData data, StaffWorklistQuery query, Guid appointmentId)
+    {
+        var interceptor = new AfterCountInterceptor(async () =>
+        {
+            using var scope = data.Factory.Services.CreateScope();
+            Assert.Equal(CancellationStatus.Succeeded,
+                (await scope.ServiceProvider.GetRequiredService<IAppointmentCancellationStore>()
+                    .CancelAsync(data.OwnerId, appointmentId, CancellationToken.None)).Status);
+        });
+        var options = new DbContextOptionsBuilder<DealershipDbContext>()
+            .UseNpgsql(fixture.Database.RuntimeConnectionString).AddInterceptors(interceptor).Options;
+        await using var database = new DealershipDbContext(options);
+        var snapshot = (await new StaffWorklistStore(database)
+            .ListAsync(data.StaffId, query with { PageSize = 50 }, CancellationToken.None))!;
+        Assert.True(interceptor.Invoked);
+        Assert.Equal(41, snapshot.Total);
+        Assert.Equal(41, snapshot.Items.Count);
+        Assert.Equal("Booked", Assert.Single(snapshot.Items, item => item.Id == appointmentId).Status);
+        Assert.Equal(40, (await ListAsync(data, data.StaffId, query))!.Total);
+    }
+
+    private sealed class AfterCountInterceptor(Func<Task> afterCount) : DbCommandInterceptor
+    {
+        public bool Invoked { get; private set; }
+
+        public override async ValueTask<DbDataReader> ReaderExecutedAsync(DbCommand command,
+            CommandExecutedEventData eventData, DbDataReader result, CancellationToken cancellationToken = default)
+        {
+            if (!Invoked && command.CommandText.Contains("SELECT count(*)", StringComparison.Ordinal) &&
+                command.CommandText.Contains("IntakeAppointments", StringComparison.Ordinal))
+            {
+                Invoked = true;
+                await afterCount();
+            }
+
+            return result;
+        }
+    }
+}

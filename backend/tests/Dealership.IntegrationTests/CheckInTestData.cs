@@ -83,10 +83,13 @@ internal sealed class CheckInTestData : IDisposable
             CancellationToken.None);
     }
 
-    public async Task<AppointmentReceipt> BookAsync(int slot = 0, string plate = "WYY 8821", int dateOffset = 0)
+    public async Task<AppointmentReceipt> BookAsync(int slot = 0, string plate = "WYY 8821", int dateOffset = 0,
+        Guid? branchId = null)
     {
         using var scope = Factory.Services.CreateScope();
         var services = scope.ServiceProvider;
+        // Reuse this scenario scope's socket while canonical photo services retain their own transaction boundaries.
+        await services.GetRequiredService<DealershipDbContext>().Database.OpenConnectionAsync();
         var photoIds = new List<Guid>();
 
         foreach (var angle in Enum.GetValues<PhotoAngle>())
@@ -105,7 +108,7 @@ internal sealed class CheckInTestData : IDisposable
         var quote = services.GetRequiredService<ValuationService>().Calculate(vehicle).Quote!;
         var startsAt = services.GetRequiredService<InspectionSchedule>()
             .GetSlots(_date.AddDays(dateOffset), _clock.GetUtcNow())[slot].StartsAt;
-        var request = new BookingRequest(Guid.NewGuid(), BranchId, startsAt, plate, vehicle, quote, photoIds);
+        var request = new BookingRequest(Guid.NewGuid(), branchId ?? BranchId, startsAt, plate, vehicle, quote, photoIds);
         var result = await services.GetRequiredService<IntakeBookingService>().BookAsync(OwnerId, request, CancellationToken.None);
         Assert.Equal(BookingStatus.Succeeded, result.Status);
         return result.Receipt!;
