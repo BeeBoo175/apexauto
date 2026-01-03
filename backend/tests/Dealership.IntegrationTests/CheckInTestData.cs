@@ -83,7 +83,7 @@ internal sealed class CheckInTestData : IDisposable
             CancellationToken.None);
     }
 
-    public async Task<AppointmentReceipt> BookAsync(int slot = 0, string plate = "WYY 8821")
+    public async Task<AppointmentReceipt> BookAsync(int slot = 0, string plate = "WYY 8821", int dateOffset = 0)
     {
         using var scope = Factory.Services.CreateScope();
         var services = scope.ServiceProvider;
@@ -103,7 +103,8 @@ internal sealed class CheckInTestData : IDisposable
         var model = make.Models[0];
         var vehicle = new ValuationRequest(make.Name, model.Name, model.Trims[0].Name, 2020, 90000);
         var quote = services.GetRequiredService<ValuationService>().Calculate(vehicle).Quote!;
-        var startsAt = services.GetRequiredService<InspectionSchedule>().GetSlots(_date, _clock.GetUtcNow())[slot].StartsAt;
+        var startsAt = services.GetRequiredService<InspectionSchedule>()
+            .GetSlots(_date.AddDays(dateOffset), _clock.GetUtcNow())[slot].StartsAt;
         var request = new BookingRequest(Guid.NewGuid(), BranchId, startsAt, plate, vehicle, quote, photoIds);
         var result = await services.GetRequiredService<IntakeBookingService>().BookAsync(OwnerId, request, CancellationToken.None);
         Assert.Equal(BookingStatus.Succeeded, result.Status);
