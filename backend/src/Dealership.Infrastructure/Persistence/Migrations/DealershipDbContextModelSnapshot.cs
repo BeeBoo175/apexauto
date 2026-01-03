@@ -145,6 +145,70 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Dealership.Domain.Intake.AppointmentCheckIn", b =>
+                {
+                    b.Property<Guid>("AppointmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CheckedInAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("CustomerPresent")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IdentityConfirmed")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("MileageKilometres")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("OwnershipConfirmed")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("StaffId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("VehicleConfirmed")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("VehicleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Vin")
+                        .IsRequired()
+                        .HasMaxLength(17)
+                        .HasColumnType("character varying(17)");
+
+                    b.HasKey("AppointmentId");
+
+                    b.HasIndex("StaffId");
+
+                    b.HasIndex("BranchId", "CheckedInAt");
+
+                    b.HasIndex("AppointmentId", "OwnerId", "BranchId")
+                        .IsUnique();
+
+                    b.HasIndex("VehicleId", "AppointmentId", "OwnerId", "BranchId")
+                        .IsUnique();
+
+                    b.ToTable("AppointmentCheckIns", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_AppointmentCheckIns_Notes", "\"Notes\" IS NULL OR (\"Notes\" ~ '[^[:space:]]' AND length(\"Notes\") <= 1000)");
+
+                            t.HasCheckConstraint("CK_AppointmentCheckIns_Physical", "\"CustomerPresent\" AND \"IdentityConfirmed\" AND \"OwnershipConfirmed\" AND \"VehicleConfirmed\" AND \"MileageKilometres\" >= 0 AND \"Vin\" ~ '^[A-HJ-NPR-Z0-9]{17}$'");
+                        });
+                });
+
             modelBuilder.Entity("Dealership.Domain.Intake.AppointmentPhoto", b =>
                 {
                     b.Property<Guid>("AppointmentId")
@@ -365,6 +429,83 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.ToTable("SellerValuations", null, t =>
                         {
                             t.HasCheckConstraint("CK_SellerValuations_Shape", "\"Make\" ~ '[^[:space:]]' AND \"Model\" ~ '[^[:space:]]' AND \"Trim\" ~ '[^[:space:]]' AND \"ManufactureYear\" > 0 AND \"ManufactureYear\" <= \"ValuationYear\" AND \"MileageKilometres\" >= 0 AND \"Minimum\" >= 0 AND \"Maximum\" >= \"Minimum\" AND \"Currency\" = 'MYR'");
+                        });
+                });
+
+            modelBuilder.Entity("Dealership.Domain.Vehicles.Vehicle", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("IntakeAppointmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("IntakeOwnerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Make")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<int>("ManufactureYear")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MileageKilometres")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("RegistrationIdentity")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("RegistrationPlate")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Trim")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Vin")
+                        .IsRequired()
+                        .HasMaxLength(17)
+                        .HasColumnType("character varying(17)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RegistrationIdentity")
+                        .IsUnique();
+
+                    b.HasIndex("Vin")
+                        .IsUnique();
+
+                    b.HasIndex("IntakeAppointmentId", "IntakeOwnerId", "BranchId")
+                        .IsUnique();
+
+                    b.ToTable("Vehicles", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Vehicles_Identity", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"Vin\" ~ '^[A-HJ-NPR-Z0-9]{17}$' AND \"RegistrationIdentity\" ~ '[^[:space:]]'");
+
+                            t.HasCheckConstraint("CK_Vehicles_State", "\"MileageKilometres\" >= 0 AND \"Status\" = 'PendingInspection' AND \"ManufactureYear\" > 0");
                         });
                 });
 
@@ -662,6 +803,41 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Dealership.Infrastructure.Intake.AppointmentCheckInMail", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeliveredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DeliveryAttempts")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("DeliveryClaimExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeliveryClaimId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("NextDeliveryAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RecipientEmail")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NextDeliveryAt", "Id");
+
+                    b.ToTable("AppointmentCheckInMails", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_AppointmentCheckInMails_Shape", "\"RecipientEmail\" ~ '[^[:space:]]' AND \"DeliveryAttempts\" >= 0");
+                        });
+                });
+
             modelBuilder.Entity("Dealership.Infrastructure.Intake.AppointmentConfirmation", b =>
                 {
                     b.Property<Guid>("Id")
@@ -780,6 +956,29 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Dealership.Domain.Intake.AppointmentCheckIn", b =>
+                {
+                    b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
+                        .WithMany()
+                        .HasForeignKey("StaffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Dealership.Domain.Intake.IntakeAppointment", null)
+                        .WithOne()
+                        .HasForeignKey("Dealership.Domain.Intake.AppointmentCheckIn", "AppointmentId", "OwnerId", "BranchId")
+                        .HasPrincipalKey("Dealership.Domain.Intake.IntakeAppointment", "Id", "OwnerId", "BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Dealership.Domain.Vehicles.Vehicle", null)
+                        .WithOne()
+                        .HasForeignKey("Dealership.Domain.Intake.AppointmentCheckIn", "VehicleId", "AppointmentId", "OwnerId", "BranchId")
+                        .HasPrincipalKey("Dealership.Domain.Vehicles.Vehicle", "Id", "IntakeAppointmentId", "IntakeOwnerId", "BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Dealership.Domain.Intake.AppointmentPhoto", b =>
                 {
                     b.HasOne("Dealership.Domain.Intake.IntakeAppointment", null)
@@ -840,6 +1039,16 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Dealership.Domain.Vehicles.Vehicle", b =>
+                {
+                    b.HasOne("Dealership.Domain.Intake.IntakeAppointment", null)
+                        .WithOne()
+                        .HasForeignKey("Dealership.Domain.Vehicles.Vehicle", "IntakeAppointmentId", "IntakeOwnerId", "BranchId")
+                        .HasPrincipalKey("Dealership.Domain.Intake.IntakeAppointment", "Id", "OwnerId", "BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Dealership.Infrastructure.Identity.AccountSession", b =>
                 {
                     b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
@@ -880,6 +1089,15 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.HasOne("Dealership.Domain.Intake.AppointmentCancellation", null)
                         .WithOne()
                         .HasForeignKey("Dealership.Infrastructure.Intake.AppointmentCancellationMail", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Dealership.Infrastructure.Intake.AppointmentCheckInMail", b =>
+                {
+                    b.HasOne("Dealership.Domain.Intake.AppointmentCheckIn", null)
+                        .WithOne()
+                        .HasForeignKey("Dealership.Infrastructure.Intake.AppointmentCheckInMail", "Id")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
