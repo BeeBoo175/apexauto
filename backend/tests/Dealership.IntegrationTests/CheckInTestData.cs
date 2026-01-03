@@ -41,6 +41,7 @@ internal sealed class CheckInTestData : IDisposable
     public Guid BranchId { get; private set; }
     public Guid StaffId { get; private set; }
     public string CustomerEmail { get; private set; } = string.Empty;
+    public string StaffEmail { get; private set; } = string.Empty;
 
     public static async Task<CheckInTestData> CreateAsync(IntakePhotoFixture fixture)
     {
@@ -78,8 +79,9 @@ internal sealed class CheckInTestData : IDisposable
         await services.GetRequiredService<BranchProvisioningService>().ProvisionBranchAsync(
             DevelopmentFixtureManifest.Branch with { Id = BranchId }, CancellationToken.None);
         StaffId = Guid.NewGuid();
+        StaffEmail = $"aina.sofia.{Guid.NewGuid():N}@example.invalid";
         await services.GetRequiredService<StaffProvisioningService>().ProvisionStaffAsync(new StaffProvisioningRequest(
-            StaffId, $"aina.sofia.{Guid.NewGuid():N}@example.invalid", "Password123!", AccountRoles.SalesAgent, BranchId),
+            StaffId, StaffEmail, "Password123!", AccountRoles.SalesAgent, BranchId),
             CancellationToken.None);
     }
 

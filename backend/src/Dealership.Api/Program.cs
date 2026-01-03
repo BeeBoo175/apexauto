@@ -137,5 +137,6 @@ app.MapBranchDiscoveryEndpoints();
 app.MapIntakeDiscoveryEndpoints();
 app.MapIntakePhotoEndpoints();
 app.MapIntakeBookingEndpoints();
+app.MapStaffIntakeEndpoints();
 
 app.Run();
