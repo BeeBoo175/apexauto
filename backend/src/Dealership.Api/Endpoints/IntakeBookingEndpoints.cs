@@ -34,6 +34,7 @@ public static class IntakeBookingEndpoints
                 CancellationStatus.Forbidden => Results.Forbid(),
                 CancellationStatus.NotFound => Results.NotFound(),
                 CancellationStatus.TooLate => Results.Problem(statusCode: 409, title: "The appointment has already started."),
+                CancellationStatus.CheckedIn => Results.Problem(statusCode: 409, title: "The appointment is already checked in."),
                 _ => Results.BadRequest()
             };
         }

@@ -8,6 +8,7 @@ public enum CancellationStatus
     Forbidden,
     NotFound,
     TooLate,
+    CheckedIn,
     Invalid
 }
 

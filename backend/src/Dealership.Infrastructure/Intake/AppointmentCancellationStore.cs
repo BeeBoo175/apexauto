@@ -46,6 +46,11 @@ public sealed class AppointmentCancellationStore(DealershipDbContext database, T
             return new CancellationResult(CancellationStatus.Succeeded, new CancellationReceipt(appointmentId, existing.CancelledAt));
         }
 
+        if (await database.AppointmentCheckIns.AnyAsync(item => item.AppointmentId == appointmentId, cancellationToken))
+        {
+            return new CancellationResult(CancellationStatus.CheckedIn);
+        }
+
         var now = clock.GetUtcNow();
         now = new DateTimeOffset(now.UtcTicks - now.UtcTicks % 10, TimeSpan.Zero);
 
@@ -68,11 +73,14 @@ public sealed class AppointmentCancellationStore(DealershipDbContext database, T
             await transaction.CommitAsync(cancellationToken);
         }
         catch (DbUpdateException exception) when (exception.InnerException is PostgresException
-        { ConstraintName: "CK_AppointmentCancellations_Time" })
+        { ConstraintName: "CK_AppointmentCancellations_Time" or "CK_AppointmentCancellations_CheckedIn" })
         {
             await transaction.RollbackAsync(cancellationToken);
             database.ChangeTracker.Clear();
-            return new CancellationResult(CancellationStatus.TooLate);
+            var error = (PostgresException)exception.InnerException!;
+            return new CancellationResult(error.ConstraintName == "CK_AppointmentCancellations_CheckedIn"
+                ? CancellationStatus.CheckedIn
+                : CancellationStatus.TooLate);
         }
         return new CancellationResult(CancellationStatus.Succeeded, new CancellationReceipt(appointmentId, now));
     }

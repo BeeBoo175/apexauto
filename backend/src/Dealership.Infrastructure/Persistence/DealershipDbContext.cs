@@ -1,6 +1,7 @@
 using Dealership.Domain.Branches;
 using Dealership.Domain.Customers;
 using Dealership.Domain.Intake;
+using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Identity;
 using Dealership.Infrastructure.Intake;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -30,6 +31,12 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
 
     public DbSet<AppointmentCancellationMail> AppointmentCancellationMails => Set<AppointmentCancellationMail>();
 
+    public DbSet<Vehicle> Vehicles => Set<Vehicle>();
+
+    public DbSet<AppointmentCheckIn> AppointmentCheckIns => Set<AppointmentCheckIn>();
+
+    public DbSet<AppointmentCheckInMail> AppointmentCheckInMails => Set<AppointmentCheckInMail>();
+
     public DbSet<AccountSession> AccountSessions => Set<AccountSession>();
 
     public DbSet<EmailVerificationChallenge> EmailVerificationChallenges => Set<EmailVerificationChallenge>();
@@ -51,6 +58,10 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
         var cancellation = new AppointmentCancellationConfiguration();
         builder.ApplyConfiguration<AppointmentCancellation>(cancellation);
         builder.ApplyConfiguration<AppointmentCancellationMail>(cancellation);
+        builder.ApplyConfiguration(new VehicleConfiguration());
+        var checkIn = new AppointmentCheckInConfiguration();
+        builder.ApplyConfiguration<AppointmentCheckIn>(checkIn);
+        builder.ApplyConfiguration<AppointmentCheckInMail>(checkIn);
         builder.ApplyConfiguration(new CustomerProfileConfiguration());
         builder.ApplyConfiguration(new AccountSessionConfiguration());
         builder.ApplyConfiguration(new EmailVerificationChallengeConfiguration());
