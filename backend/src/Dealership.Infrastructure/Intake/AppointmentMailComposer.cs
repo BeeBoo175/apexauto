@@ -20,4 +20,10 @@ public static class AppointmentMailComposer
         var body = $"Your ApexAuto inspection booking is cancelled.\nReference: {message.Id:D}\nTo book again, repeat the vehicle intake process.";
         return new OutboundMail(message.RecipientEmail, "ApexAuto inspection booking cancelled", body);
     }
+
+    public static OutboundMail CheckIn(AppointmentCheckInMail message, IntakeAppointment appointment)
+    {
+        var body = $"Your vehicle has been checked in for inspection at ApexAuto.\nReference: {message.Id:D}\nRegistration: {appointment.RegistrationPlate}\nYour vehicle is pending inspection.";
+        return new OutboundMail(message.RecipientEmail, "ApexAuto vehicle check-in confirmed", body);
+    }
 }
