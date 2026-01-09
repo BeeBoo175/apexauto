@@ -15,6 +15,7 @@ public static class StaffIntakeEndpoints
             return await next(context);
         });
         routes.MapGet("", ListAsync);
+        routes.MapGet("/{id:guid}", DetailAsync);
         routes.MapPost("/{id:guid}/check-in", CheckInAsync);
     }
 
@@ -40,6 +41,29 @@ public static class StaffIntakeEndpoints
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
             return Results.Problem(statusCode: 503, title: "The staff worklist is temporarily unavailable.");
+        }
+    }
+
+    private static async Task<IResult> DetailAsync(Guid id, HttpContext context, IStaffAppointmentDetailStore appointments,
+        CancellationToken cancellationToken)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(20));
+
+        try
+        {
+            var result = await appointments.GetAsync(StaffId(context), id, deadline.Token);
+            return result.Status switch
+            {
+                StaffAppointmentDetailStatus.Succeeded => Results.Ok(result.Detail),
+                StaffAppointmentDetailStatus.Forbidden => Results.Forbid(),
+                StaffAppointmentDetailStatus.NotFound => Results.NotFound(),
+                _ => Results.Problem(statusCode: 500)
+            };
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return Results.Problem(statusCode: 503, title: "The staff appointment is temporarily unavailable.");
         }
     }
 

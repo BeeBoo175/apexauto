@@ -1,5 +1,4 @@
 using System.Data;
-using Dealership.Application.Accounts;
 using Dealership.Application.Intake;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -13,26 +12,15 @@ public sealed class StaffWorklistStore(DealershipDbContext database) : IStaffWor
     {
         // Authorization, scoped count and rows must describe one snapshot.
         await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead, cancellationToken);
-        var staff = await database.Users.AsNoTracking().SingleOrDefaultAsync(user => user.Id == staffId, cancellationToken);
+        var scope = await StaffIntakeReadScope.ResolveAsync(database, staffId, cancellationToken);
 
-        if (staff is not { IsActive: true } ||
-            staff.Role is not (AccountRoles.SalesAgent or AccountRoles.BranchManager or AccountRoles.GeneralManager))
+        if (scope is null ||
+            (scope.BranchId is not null && query.BranchId is not null && query.BranchId != scope.BranchId))
         {
             return null;
         }
 
-        var branchId = query.BranchId;
-
-        if (staff.Role != AccountRoles.GeneralManager)
-        {
-            if (staff.BranchId is null || (branchId is not null && branchId != staff.BranchId) ||
-                !await database.Branches.AnyAsync(branch => branch.Id == staff.BranchId && branch.IsActive, cancellationToken))
-            {
-                return null;
-            }
-
-            branchId = staff.BranchId;
-        }
+        var branchId = scope.BranchId ?? query.BranchId;
 
         var rows = database.IntakeAppointments.AsNoTracking()
             .Where(item => item.StartsAt >= query.From && item.StartsAt < query.Until &&
