@@ -23,6 +23,11 @@ internal static class BrowserHarness
 {
     public static async Task<int> Main(string[] args)
     {
+        if (args.Contains("--recovery", StringComparer.Ordinal))
+        {
+            return await RecoveryBrowserHarness.RunAsync(args.Where(argument => argument != "--recovery").ToArray());
+        }
+
         var repository = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../.."));
         var frontend = Path.Combine(repository, "frontend");
         var evidence = Path.Combine(repository, ".verifications", "browser-auth", $"{DateTime.UtcNow:yyyyMMdd-HHmmss}-{Guid.NewGuid():N}");
