@@ -86,7 +86,7 @@ public sealed class IntakeDiscoveryTests(RegistrationDatabase database) : IClass
             Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync(route + "?date=" + date)).StatusCode);
         }
 
-        var registration = DevelopmentFixtureManifest.Customer;
+        var registration = DevelopmentFixtureManifest.Customers[0].Registration;
         using (var scope = factory.Services.CreateScope())
         {
             Assert.Equal(RegistrationStatus.Succeeded, (await scope.ServiceProvider.GetRequiredService<RegistrationService>()

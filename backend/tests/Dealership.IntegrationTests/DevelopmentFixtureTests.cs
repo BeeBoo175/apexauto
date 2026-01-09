@@ -26,7 +26,8 @@ public sealed class DevelopmentFixtureTests(RegistrationDatabase fixture) : ICla
         var databaseName = new NpgsqlConnectionStringBuilder(connection).Database!;
         var target = DevelopmentFixtureTarget.Validate("Development", databaseName, connection);
         var fault = new InterruptedSeed();
-        await using var provider = CreateProvider(connection, fault);
+        var clock = new FixtureClock(DateTimeOffset.UtcNow);
+        await using var provider = CreateProvider(connection, fault, clock);
         var unrelatedId = Guid.NewGuid();
 
         await using (var scope = provider.CreateAsyncScope())
@@ -44,6 +45,9 @@ public sealed class DevelopmentFixtureTests(RegistrationDatabase fixture) : ICla
             await Assert.ThrowsAsync<IOException>(() => runner.SeedAsync(target, CancellationToken.None));
         }
 
+        fault.InterruptConfirmation = false;
+        clock.Advance(TimeSpan.FromHours(25));
+        await Assert.ThrowsAsync<IOException>(() => SeedAsync(provider, target));
         fault.Enabled = false;
         var competing = await Task.WhenAll(SeedAsync(provider, target), SeedAsync(provider, target));
         Assert.Equal(10, competing.SelectMany(reports => reports).Count(report => report.State == "created"));
@@ -59,9 +63,18 @@ public sealed class DevelopmentFixtureTests(RegistrationDatabase fixture) : ICla
         await using (var scope = provider.CreateAsyncScope())
         {
             var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
-            Assert.Equal(13, await database.Users.CountAsync());
-            Assert.Equal(1, await database.CustomerProfiles.CountAsync());
-            Assert.False((await database.Users.SingleAsync(user => user.Role == AccountRoles.Customer)).EmailConfirmed);
+            Assert.Equal(16, await database.Users.CountAsync());
+            Assert.Equal(4, await database.CustomerProfiles.CountAsync());
+            Assert.Equal(5, await database.EmailVerificationChallenges.CountAsync());
+            Assert.Equal(3, await database.EmailVerificationChallenges.CountAsync(challenge => challenge.ConsumedAt != null));
+            Assert.Equal(1, await database.EmailVerificationChallenges.CountAsync(challenge => challenge.ResendKey != null));
+
+            foreach (var customerFixture in DevelopmentFixtureManifest.Customers)
+            {
+                var user = await database.Users.SingleAsync(candidate => candidate.Email == customerFixture.Registration.Email);
+                Assert.Equal(customerFixture.VerifyEmail, user.EmailConfirmed);
+            }
+
             Assert.Equal(3, await database.Branches.CountAsync());
 
             foreach (var branch in DevelopmentFixtureManifest.Branches)
@@ -80,21 +93,27 @@ public sealed class DevelopmentFixtureTests(RegistrationDatabase fixture) : ICla
             editedHash = scope.ServiceProvider.GetRequiredService<IPasswordHasher<AccountUser>>()
                 .HashPassword(account, "EditedPassword123!");
             account.PasswordHash = editedHash;
-            var profile = await database.CustomerProfiles.SingleAsync();
+            var profile = await database.CustomerProfiles.SingleAsync(candidate =>
+                candidate.RegistrationKey == DevelopmentFixtureManifest.Customers[0].Registration.RegistrationKey);
             var customer = await database.Users.SingleAsync(user => user.Id == profile.UserId);
             editedCustomerHash = scope.ServiceProvider.GetRequiredService<IPasswordHasher<AccountUser>>()
                 .HashPassword(customer, "EditedCustomer123!");
             customer.PasswordHash = editedCustomerHash;
             customer.EmailConfirmed = true;
+            var seller = await database.Users.SingleAsync(candidate =>
+                candidate.Email == DevelopmentFixtureManifest.Customers[1].Registration.Email);
+            seller.EmailConfirmed = false;
             await database.SaveChangesAsync();
             await database.Branches.Where(branch => branch.Id == DevelopmentFixtureManifest.Branches[1].Id)
                 .ExecuteUpdateAsync(update => update.SetProperty(branch => branch.Phone, "+60378759999"));
         }
 
-        await using var restarted = CreateProvider(connection, fault);
+        clock.Advance(TimeSpan.FromMinutes(2));
+        await using var restarted = CreateProvider(connection, fault, clock);
         var replay = await SeedAsync(restarted, target);
         Assert.Equal(3, replay.Count(report => report.State == "drift; preserved"));
-        Assert.Equal(3, replay.Count(report => report.RequiresAttention));
+        Assert.Equal(4, replay.Count(report => report.RequiresAttention));
+        Assert.Single(replay, report => report.State == "verification requires attention; preserved");
         await using var check = restarted.CreateAsyncScope();
         var saved = check.ServiceProvider.GetRequiredService<DealershipDbContext>();
         var retained = await saved.Users.SingleAsync(user => user.Id == DevelopmentFixtureManifest.Staff[0].Id);
@@ -102,20 +121,24 @@ public sealed class DevelopmentFixtureTests(RegistrationDatabase fixture) : ICla
         Assert.Null(retained.BranchId);
         Assert.False(retained.IsActive);
         Assert.Equal(editedHash, retained.PasswordHash);
-        var retainedProfile = await saved.CustomerProfiles.SingleAsync();
+        var retainedProfile = await saved.CustomerProfiles.SingleAsync(profile =>
+            profile.RegistrationKey == DevelopmentFixtureManifest.Customers[0].Registration.RegistrationKey);
         var retainedCustomer = await saved.Users.SingleAsync(user => user.Id == retainedProfile.UserId);
         Assert.Equal(editedCustomerHash, retainedCustomer.PasswordHash);
         Assert.True(retainedCustomer.EmailConfirmed);
+        Assert.False((await saved.Users.SingleAsync(candidate =>
+            candidate.Email == DevelopmentFixtureManifest.Customers[1].Registration.Email)).EmailConfirmed);
+        Assert.Equal(5, await saved.EmailVerificationChallenges.CountAsync());
         Assert.Equal("+60378759999", (await saved.Branches.SingleAsync(
             branch => branch.Id == DevelopmentFixtureManifest.Branches[1].Id)).Phone);
         Assert.True(await saved.Users.AnyAsync(user => user.Id == unrelatedId));
-        Assert.Equal(13, await saved.Users.CountAsync());
+        Assert.Equal(16, await saved.Users.CountAsync());
         var before = await saved.AccountSessions.CountAsync();
         var review = await check.ServiceProvider.GetRequiredService<DevelopmentFixtureRunner>()
             .ReviewAsync(target, CancellationToken.None);
-        Assert.Equal(15, review.Count);
+        Assert.Equal(18, review.Count);
         Assert.All(review, report => Assert.False(report.RequiresAttention));
-        Assert.Equal(15, review.Select(report => report.Fixture).Distinct().Count());
+        Assert.Equal(18, review.Select(report => report.Fixture).Distinct().Count());
         Assert.Equal(before, await saved.AccountSessions.CountAsync());
     }
 
@@ -124,7 +147,11 @@ public sealed class DevelopmentFixtureTests(RegistrationDatabase fixture) : ICla
         // Separate hosts keep each normal process-local login budget below its limit.
         using var customerFactory = CreateFactory();
         using var customerClient = customerFactory.CreateClient();
-        await AssertLoginAsync(customerClient, DevelopmentFixtureManifest.Customer.Email!, HttpStatusCode.OK);
+        foreach (var customer in DevelopmentFixtureManifest.Customers)
+        {
+            await AssertLoginAsync(customerClient, customer.Registration.Email!, HttpStatusCode.OK);
+        }
+
         foreach (var accounts in DevelopmentFixtureManifest.Staff.Chunk(5))
         {
             using var staffFactory = CreateFactory();
@@ -162,7 +189,7 @@ public sealed class DevelopmentFixtureTests(RegistrationDatabase fixture) : ICla
         client.DefaultRequestHeaders.Authorization = null;
     }
 
-    private static ServiceProvider CreateProvider(string connection, InterruptedSeed fault)
+    private static ServiceProvider CreateProvider(string connection, InterruptedSeed fault, TimeProvider clock)
     {
         var configuration = new ConfigurationBuilder().AddEnvironmentVariables().AddInMemoryCollection(
             new Dictionary<string, string?> { ["ConnectionStrings:DefaultConnection"] = connection }).Build();
@@ -170,9 +197,14 @@ public sealed class DevelopmentFixtureTests(RegistrationDatabase fixture) : ICla
         services.AddLogging();
         services.AddApplication();
         services.AddInfrastructure(configuration);
+        services.RemoveAll<TimeProvider>();
+        services.AddSingleton(clock);
         services.AddScoped<DevelopmentFixtureRunner>();
+        services.AddScoped<DevelopmentCustomerFixtures>();
         services.AddScoped<IStaffProvisioningStore>(provider =>
             new InterruptingStore(ActivatorUtilities.CreateInstance<StaffProvisioningStore>(provider), fault));
+        services.AddScoped<IEmailVerificationStore>(provider =>
+            new InterruptingVerificationStore(ActivatorUtilities.CreateInstance<EmailVerificationStore>(provider), fault));
         return services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true });
     }
 
@@ -187,6 +219,44 @@ public sealed class DevelopmentFixtureTests(RegistrationDatabase fixture) : ICla
     private sealed class InterruptedSeed
     {
         public bool Enabled { get; set; } = true;
+
+        public bool InterruptConfirmation { get; set; } = true;
+    }
+
+    private sealed class FixtureClock(DateTimeOffset now) : TimeProvider
+    {
+        private DateTimeOffset _now = now;
+
+        public override DateTimeOffset GetUtcNow() => _now;
+
+        public void Advance(TimeSpan elapsed)
+        {
+            _now += elapsed;
+        }
+    }
+
+    private sealed class InterruptingVerificationStore(EmailVerificationStore inner, InterruptedSeed fault)
+        : IEmailVerificationStore
+    {
+        public Task QueueInitialAsync(Guid userId, CancellationToken cancellationToken)
+        {
+            return inner.QueueInitialAsync(userId, cancellationToken);
+        }
+
+        public Task<VerificationResult> ResendAsync(Guid userId, Guid resendKey, CancellationToken cancellationToken)
+        {
+            return inner.ResendAsync(userId, resendKey, cancellationToken);
+        }
+
+        public Task<VerificationResult> ConfirmAsync(string token, CancellationToken cancellationToken)
+        {
+            if (fault.InterruptConfirmation)
+            {
+                throw new IOException("Injected interruption after canonical registration committed.");
+            }
+
+            return inner.ConfirmAsync(token, cancellationToken);
+        }
     }
 
     private sealed class InterruptingStore(StaffProvisioningStore inner, InterruptedSeed fault) : IStaffProvisioningStore

@@ -91,7 +91,7 @@ internal static class BrowserHarness
         using (var scope = factory.Services.CreateScope())
         {
             var registration = scope.ServiceProvider.GetRequiredService<RegistrationService>();
-            var customer = DevelopmentFixtureManifest.Customer;
+            var customer = DevelopmentFixtureManifest.Customers[0].Registration;
             var result = await registration.RegisterAsync(customer, CancellationToken.None);
 
             if (result.Status != RegistrationStatus.Succeeded)

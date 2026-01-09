@@ -33,6 +33,7 @@ try
     services.AddApplication();
     services.AddInfrastructure(configuration);
     services.AddScoped<DevelopmentFixtureRunner>();
+    services.AddScoped<DevelopmentCustomerFixtures>();
     services.AddScoped<DevelopmentDatabaseRebuilder>();
     await using var provider = services.BuildServiceProvider(new ServiceProviderOptions
     {

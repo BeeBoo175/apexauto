@@ -3,6 +3,8 @@ using Dealership.Application.Branches;
 
 namespace Dealership.Infrastructure.Development;
 
+public sealed record DevelopmentCustomerFixture(RegistrationRequest Registration, bool VerifyEmail);
+
 public static class DevelopmentFixtureManifest
 {
     public const string Password = "Password123!";
@@ -17,10 +19,21 @@ public static class DevelopmentFixtureManifest
             "8 Jalan Mahsuri", "Bayan Lepas", "Pulau Pinang", "+6046411234")
     ]);
 
-    public static RegistrationRequest Customer { get; } = new(
-        Guid.Parse("af478aac-d87c-44f8-b95f-180565b08ebc"), "Nur Aisyah Rahman",
-        "nur.aisyah@example.invalid", Password, "940215140865", "0123456789",
-        "18 Jalan Melati, Petaling Jaya, Selangor");
+    public static IReadOnlyList<DevelopmentCustomerFixture> Customers { get; } = Array.AsReadOnly<DevelopmentCustomerFixture>(
+    [
+        new(new RegistrationRequest(Guid.Parse("af478aac-d87c-44f8-b95f-180565b08ebc"), "Nur Aisyah Rahman",
+            "nur.aisyah@example.invalid", Password, "940215140865", "0123456789",
+            "18 Jalan Melati, Petaling Jaya, Selangor"), VerifyEmail: false),
+        new(new RegistrationRequest(Guid.Parse("bb0a5d5d-54e8-4bc6-bca9-e18e0e6ecccf"), "Ahmad Faizal Hassan",
+            "ahmad.faizal@example.invalid", Password, "890612105137", "0132456789",
+            "24 Jalan Anggerik, Shah Alam, Selangor"), VerifyEmail: true),
+        new(new RegistrationRequest(Guid.Parse("6863d91e-5c35-438d-b566-527d5c35de4b"), "Tan Hui Min",
+            "tan.hui.min@example.invalid", Password, "920823145268", "0162345678",
+            "16 Jalan SS 2/44, Petaling Jaya, Selangor"), VerifyEmail: true),
+        new(new RegistrationRequest(Guid.Parse("304a1554-2604-46f6-b0ef-572801ca0902"), "Kavitha Rajan",
+            "kavitha.rajan@example.invalid", Password, "910507075486", "0173456789",
+            "32 Persiaran Mahsuri, Bayan Lepas, Pulau Pinang"), VerifyEmail: true)
+    ]);
 
     public static IReadOnlyList<StaffProvisioningRequest> Staff { get; } = Array.AsReadOnly<StaffProvisioningRequest>(
     [

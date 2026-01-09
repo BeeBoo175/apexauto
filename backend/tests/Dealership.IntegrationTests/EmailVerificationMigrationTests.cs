@@ -27,7 +27,7 @@ public sealed class EmailVerificationMigrationTests(RegistrationDatabase fixture
         await using var scope = provider.CreateAsyncScope();
         var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
         var registered = await scope.ServiceProvider.GetRequiredService<RegistrationService>()
-            .RegisterAsync(DevelopmentFixtureManifest.Customer, CancellationToken.None);
+            .RegisterAsync(DevelopmentFixtureManifest.Customers[0].Registration, CancellationToken.None);
         Assert.Equal(RegistrationStatus.Succeeded, registered.Status);
         var userId = await database.CustomerProfiles.Select(profile => profile.UserId).SingleAsync();
         var verification = scope.ServiceProvider.GetRequiredService<EmailVerificationService>();

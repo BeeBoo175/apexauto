@@ -1,16 +1,14 @@
 using Dealership.Application.Accounts;
 using Dealership.Application.Branches;
-using Dealership.Infrastructure.Identity;
 using Dealership.Infrastructure.Persistence;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dealership.Infrastructure.Development;
 
 public sealed record DevelopmentFixtureReport(string Fixture, string State, bool RequiresAttention);
 
-public sealed class DevelopmentFixtureRunner(DealershipDbContext database, RegistrationService registration,
-    StaffProvisioningService staff, BranchProvisioningService branches, IPasswordHasher<AccountUser> passwords)
+public sealed class DevelopmentFixtureRunner(DealershipDbContext database, DevelopmentCustomerFixtures customers,
+    StaffProvisioningService staff, BranchProvisioningService branches)
 {
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> SeedAsync(DevelopmentFixtureTarget target,
         CancellationToken cancellationToken)
@@ -29,7 +27,10 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Regis
             reports.Add(Report(branch.Name, provisioned.Created, provisioned.MatchesRequestedState));
         }
 
-        reports.Add(await SeedCustomerAsync(token));
+        foreach (var customer in DevelopmentFixtureManifest.Customers)
+        {
+            reports.Add(await customers.SeedAsync(customer, token));
+        }
 
         foreach (var account in DevelopmentFixtureManifest.Staff)
         {
@@ -53,9 +54,10 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Regis
                 $"{branch.Name}; {branch.City}; {branch.State}; active={branch.IsActive}", branch is null));
         }
 
-        var customer = await database.CustomerProfiles.AsNoTracking().SingleOrDefaultAsync(
-            profile => profile.RegistrationKey == DevelopmentFixtureManifest.Customer.RegistrationKey, cancellationToken);
-        reports.Add(await ReviewAccountAsync("Customer", customer?.UserId, cancellationToken));
+        foreach (var customer in DevelopmentFixtureManifest.Customers)
+        {
+            reports.Add(await customers.ReviewAsync(customer, cancellationToken));
+        }
 
         foreach (var account in DevelopmentFixtureManifest.Staff)
         {
@@ -63,29 +65,6 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Regis
         }
 
         return reports;
-    }
-
-    private async Task<DevelopmentFixtureReport> SeedCustomerAsync(CancellationToken cancellationToken)
-    {
-        var requested = DevelopmentFixtureManifest.Customer;
-        var profile = await database.CustomerProfiles.AsNoTracking().SingleOrDefaultAsync(
-            candidate => candidate.RegistrationKey == requested.RegistrationKey, cancellationToken);
-
-        if (profile is null)
-        {
-            var created = await registration.RegisterAsync(requested, cancellationToken);
-            var state = created.Status == RegistrationStatus.Succeeded ? "created" : "conflict; preserved";
-            return new DevelopmentFixtureReport("Customer", state, created.Status != RegistrationStatus.Succeeded);
-        }
-
-        var user = await database.Users.AsNoTracking().SingleAsync(
-            candidate => candidate.Id == profile.UserId, cancellationToken);
-        var matches = user.Email == requested.Email && user.Role == AccountRoles.Customer &&
-            user.BranchId is null && user.IsActive && profile.LegalName == requested.LegalName &&
-            profile.Nric == requested.Nric && profile.Mobile == requested.Mobile &&
-            profile.ResidentialAddress == requested.ResidentialAddress && user.PasswordHash is not null &&
-            passwords.VerifyHashedPassword(user, user.PasswordHash, requested.Password!) != PasswordVerificationResult.Failed;
-        return Report("Customer", created: false, matches);
     }
 
     private async Task<DevelopmentFixtureReport> ReviewAccountAsync(string fixture, Guid? id,

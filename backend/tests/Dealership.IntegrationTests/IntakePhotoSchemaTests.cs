@@ -17,7 +17,7 @@ public sealed class IntakePhotoSchemaTests(RegistrationDatabase fixture) : IClas
     {
         using var services = fixture.CreateServices();
         using var scope = services.CreateScope();
-        var registration = DevelopmentFixtureManifest.Customer;
+        var registration = DevelopmentFixtureManifest.Customers[0].Registration;
         Assert.Equal(RegistrationStatus.Succeeded, (await scope.ServiceProvider.GetRequiredService<RegistrationService>()
             .RegisterAsync(registration, CancellationToken.None)).Status);
         var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
