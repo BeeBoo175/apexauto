@@ -20,6 +20,9 @@ export default async function LoginPage({
       <Card>
         <AuthForm kind="login" destination={safeReturnTo(returnTo)} demoAccount={demoAccount} />
       </Card>
+      <a href="/forgot-password" className="underline">
+        Forgot password?
+      </a>
       <a href="/register" className="underline">
         Create a customer account
       </a>

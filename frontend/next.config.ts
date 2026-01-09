@@ -104,7 +104,7 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        source: "/verify-email",
+        source: "/:path(verify-email|forgot-password|reset-password)",
         headers: [
           { key: "Cache-Control", value: "no-store" },
           { key: "Referrer-Policy", value: "no-referrer" },

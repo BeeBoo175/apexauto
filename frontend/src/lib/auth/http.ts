@@ -11,7 +11,14 @@ export function authJson(body: unknown, status = 200) {
 // Validate payload shape, whitelist allowed fields, and require UUID idempotency keys.
 export async function readAuthRequest(
   request: Request,
-  kind: "login" | "register" | "logout" | "verify-email" | "resend-verification",
+  kind:
+    | "login"
+    | "register"
+    | "logout"
+    | "verify-email"
+    | "resend-verification"
+    | "password-recovery"
+    | "password-reset",
 ) {
   requireSameOrigin(request);
 
@@ -60,6 +67,36 @@ export async function readAuthRequest(
     }
 
     return { resendKey: value.resendKey };
+  }
+
+  if (kind === "password-recovery") {
+    if (
+      !isRecord(value) ||
+      typeof value.email !== "string" ||
+      value.email.length > 254 ||
+      Object.keys(value).length !== 1
+    ) {
+      throw new HttpError(400, "Enter your account email.");
+    }
+
+    return { email: value.email };
+  }
+
+  if (kind === "password-reset") {
+    if (
+      !isRecord(value) ||
+      typeof value.token !== "string" ||
+      !value.token ||
+      value.token.length > 160 ||
+      typeof value.password !== "string" ||
+      !value.password ||
+      value.password.length > 128 ||
+      Object.keys(value).length !== 2
+    ) {
+      throw new HttpError(400, "The password reset request is invalid.");
+    }
+
+    return { token: value.token, password: value.password };
   }
 
   const key = kind === "login" ? "loginKey" : "registrationKey";
