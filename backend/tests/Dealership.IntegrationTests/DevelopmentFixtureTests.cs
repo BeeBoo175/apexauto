@@ -20,7 +20,7 @@ namespace Dealership.IntegrationTests;
 public sealed class DevelopmentFixtureTests(RegistrationDatabase fixture) : IClassFixture<RegistrationDatabase>
 {
     [Fact]
-    public async Task SeedResumesSerializesPreservesEditsAndSupportsNormalSixRoleAuthentication()
+    public async Task SeedResumesSerializesPreservesEditsAndAuthenticatesSixRolesAcrossThreeBranches()
     {
         var connection = fixture.RuntimeConnectionString;
         var databaseName = new NpgsqlConnectionStringBuilder(connection).Database!;
@@ -46,7 +46,7 @@ public sealed class DevelopmentFixtureTests(RegistrationDatabase fixture) : ICla
 
         fault.Enabled = false;
         var competing = await Task.WhenAll(SeedAsync(provider, target), SeedAsync(provider, target));
-        Assert.Equal(4, competing.SelectMany(reports => reports).Count(report => report.State == "created"));
+        Assert.Equal(10, competing.SelectMany(reports => reports).Count(report => report.State == "created"));
         Assert.All(competing.SelectMany(reports => reports), report =>
         {
             Assert.True(report.State is "created" or "matches");
@@ -59,8 +59,20 @@ public sealed class DevelopmentFixtureTests(RegistrationDatabase fixture) : ICla
         await using (var scope = provider.CreateAsyncScope())
         {
             var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
-            Assert.Equal(7, await database.Users.CountAsync());
+            Assert.Equal(13, await database.Users.CountAsync());
             Assert.Equal(1, await database.CustomerProfiles.CountAsync());
+            Assert.False((await database.Users.SingleAsync(user => user.Role == AccountRoles.Customer)).EmailConfirmed);
+            Assert.Equal(3, await database.Branches.CountAsync());
+
+            foreach (var branch in DevelopmentFixtureManifest.Branches)
+            {
+                var persisted = await database.Branches.SingleAsync(candidate => candidate.Id == branch.Id);
+                Assert.Equal(branch.Name, persisted.Name);
+                Assert.Equal(branch.City, persisted.City);
+                Assert.Equal(branch.State, persisted.State);
+                Assert.Equal(3, await database.Users.CountAsync(user => user.BranchId == branch.Id));
+            }
+
             var account = await database.Users.SingleAsync(user => user.Id == DevelopmentFixtureManifest.Staff[0].Id);
             account.Role = AccountRoles.GeneralManager;
             account.BranchId = null;
@@ -75,7 +87,8 @@ public sealed class DevelopmentFixtureTests(RegistrationDatabase fixture) : ICla
             customer.PasswordHash = editedCustomerHash;
             customer.EmailConfirmed = true;
             await database.SaveChangesAsync();
-            await database.Branches.ExecuteUpdateAsync(update => update.SetProperty(branch => branch.Phone, "+60355659999"));
+            await database.Branches.Where(branch => branch.Id == DevelopmentFixtureManifest.Branches[1].Id)
+                .ExecuteUpdateAsync(update => update.SetProperty(branch => branch.Phone, "+60378759999"));
         }
 
         await using var restarted = CreateProvider(connection, fault);
@@ -93,11 +106,16 @@ public sealed class DevelopmentFixtureTests(RegistrationDatabase fixture) : ICla
         var retainedCustomer = await saved.Users.SingleAsync(user => user.Id == retainedProfile.UserId);
         Assert.Equal(editedCustomerHash, retainedCustomer.PasswordHash);
         Assert.True(retainedCustomer.EmailConfirmed);
-        Assert.Equal("+60355659999", (await saved.Branches.SingleAsync()).Phone);
+        Assert.Equal("+60378759999", (await saved.Branches.SingleAsync(
+            branch => branch.Id == DevelopmentFixtureManifest.Branches[1].Id)).Phone);
         Assert.True(await saved.Users.AnyAsync(user => user.Id == unrelatedId));
-        Assert.Equal(7, await saved.Users.CountAsync());
+        Assert.Equal(13, await saved.Users.CountAsync());
         var before = await saved.AccountSessions.CountAsync();
-        await check.ServiceProvider.GetRequiredService<DevelopmentFixtureRunner>().ReviewAsync(target, CancellationToken.None);
+        var review = await check.ServiceProvider.GetRequiredService<DevelopmentFixtureRunner>()
+            .ReviewAsync(target, CancellationToken.None);
+        Assert.Equal(15, review.Count);
+        Assert.All(review, report => Assert.False(report.RequiresAttention));
+        Assert.Equal(15, review.Select(report => report.Fixture).Distinct().Count());
         Assert.Equal(before, await saved.AccountSessions.CountAsync());
     }
 
@@ -107,12 +125,15 @@ public sealed class DevelopmentFixtureTests(RegistrationDatabase fixture) : ICla
         using var customerFactory = CreateFactory();
         using var customerClient = customerFactory.CreateClient();
         await AssertLoginAsync(customerClient, DevelopmentFixtureManifest.Customer.Email!, HttpStatusCode.OK);
-        using var staffFactory = CreateFactory();
-        using var staffClient = staffFactory.CreateClient();
-
-        foreach (var account in DevelopmentFixtureManifest.Staff)
+        foreach (var accounts in DevelopmentFixtureManifest.Staff.Chunk(5))
         {
-            await AssertLoginAsync(staffClient, account.Email, HttpStatusCode.Forbidden);
+            using var staffFactory = CreateFactory();
+            using var staffClient = staffFactory.CreateClient();
+
+            foreach (var account in accounts)
+            {
+                await AssertLoginAsync(staffClient, account.Email, HttpStatusCode.Forbidden);
+            }
         }
     }
 

@@ -24,7 +24,7 @@ public sealed class AppointmentCancellationSnapshotTests(IntakePhotoFixture fixt
         var owner = await BookingTestData.OwnerAsync(factory, registration);
         using (var scope = factory.Services.CreateScope())
         {
-            var branch = Dealership.Infrastructure.Development.DevelopmentFixtureManifest.Branch with
+            var branch = Dealership.Infrastructure.Development.DevelopmentFixtureManifest.Branches[0] with
             {
                 Id = Guid.NewGuid(),
                 Name = "ApexAuto Subang Jaya"

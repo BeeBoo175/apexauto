@@ -25,7 +25,7 @@ public sealed class StaffWorklistTests(IntakePhotoFixture fixture) : IClassFixtu
         var database = services.GetRequiredService<DealershipDbContext>();
         var otherBranch = Guid.NewGuid();
         await services.GetRequiredService<BranchProvisioningService>().ProvisionBranchAsync(
-            DevelopmentFixtureManifest.Branch with { Id = otherBranch, Name = "ApexAuto Petaling Jaya" }, CancellationToken.None);
+            DevelopmentFixtureManifest.Branches[0] with { Id = otherBranch, Name = "ApexAuto Petaling Jaya" }, CancellationToken.None);
         var manager = Guid.NewGuid();
         await services.GetRequiredService<StaffProvisioningService>().ProvisionStaffAsync(new StaffProvisioningRequest(
             manager, $"farah.aziz.{Guid.NewGuid():N}@example.invalid", "Password123!", AccountRoles.GeneralManager, null),

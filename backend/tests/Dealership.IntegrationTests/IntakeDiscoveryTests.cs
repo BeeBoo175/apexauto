@@ -25,7 +25,7 @@ public sealed class IntakeDiscoveryTests(RegistrationDatabase database) : IClass
         using (var scope = factory.Services.CreateScope())
         {
             var provisioning = scope.ServiceProvider.GetRequiredService<BranchProvisioningService>();
-            var branch = DevelopmentFixtureManifest.Branch;
+            var branch = DevelopmentFixtureManifest.Branches[0];
             var branches = new[]
             {
                 branch,

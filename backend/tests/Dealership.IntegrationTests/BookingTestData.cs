@@ -18,7 +18,7 @@ internal static class BookingTestData
     public static async Task<BookingRequest> RequestAsync(WebApplicationFactory<Program> factory, HttpClient client)
     {
         using var scope = factory.Services.CreateScope();
-        var branch = DevelopmentFixtureManifest.Branch;
+        var branch = DevelopmentFixtureManifest.Branches[0];
         await scope.ServiceProvider.GetRequiredService<BranchProvisioningService>()
             .ProvisionBranchAsync(branch, CancellationToken.None);
         var make = VehicleTaxonomy.Makes[0];

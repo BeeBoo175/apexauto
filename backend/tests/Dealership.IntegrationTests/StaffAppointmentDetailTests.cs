@@ -33,7 +33,7 @@ public sealed class StaffAppointmentDetailTests(IntakePhotoFixture fixture) : IC
         var database = services.GetRequiredService<DealershipDbContext>();
         var otherBranch = Guid.NewGuid();
         await services.GetRequiredService<BranchProvisioningService>().ProvisionBranchAsync(
-            DevelopmentFixtureManifest.Branch with { Id = otherBranch, Name = "ApexAuto Petaling Jaya" }, CancellationToken.None);
+            DevelopmentFixtureManifest.Branches[0] with { Id = otherBranch, Name = "ApexAuto Petaling Jaya" }, CancellationToken.None);
         var booked = await data.BookAsync();
         var cancellable = await data.BookAsync(0, "BPL 2198", dateOffset: 1);
         var other = await data.BookAsync(0, "VCA 6201", branchId: otherBranch);
@@ -45,15 +45,15 @@ public sealed class StaffAppointmentDetailTests(IntakePhotoFixture fixture) : IC
             await AssertStatusAsync(client, booked.Id, HttpStatusCode.Unauthorized);
             await LoginAsync(client, data.StaffEmail);
             authorization = client.DefaultRequestHeaders.Authorization!;
-            await AssertDetailAsync(client, booked, "Booked", DevelopmentFixtureManifest.Branch.Name);
+            await AssertDetailAsync(client, booked, "Booked", DevelopmentFixtureManifest.Branches[0].Name);
             await AssertStatusAsync(client, Guid.NewGuid(), HttpStatusCode.NotFound);
             await AssertStatusAsync(client, other.Id, HttpStatusCode.NotFound);
             await AssertCancellationSnapshotAsync(data, cancellable);
-            await AssertDetailAsync(client, cancellable, "Cancelled", DevelopmentFixtureManifest.Branch.Name);
+            await AssertDetailAsync(client, cancellable, "Cancelled", DevelopmentFixtureManifest.Branches[0].Name);
             Assert.Equal(CheckInStatus.Succeeded,
                 (await services.GetRequiredService<IAppointmentCheckInStore>()
                     .CheckInAsync(data.StaffId, booked.Id, CheckInTestData.Evidence, CancellationToken.None)).Status);
-            await AssertDetailAsync(client, booked, "CheckedIn", DevelopmentFixtureManifest.Branch.Name);
+            await AssertDetailAsync(client, booked, "CheckedIn", DevelopmentFixtureManifest.Branches[0].Name);
             Assert.NotEqual(booked.Vehicle.MileageKilometres, CheckInTestData.Evidence.MileageKilometres);
             await AssertCustomerEligibilityDoesNotHideHistoryAsync(client, database, data, booked, cancellable);
 
@@ -65,8 +65,8 @@ public sealed class StaffAppointmentDetailTests(IntakePhotoFixture fixture) : IC
         using var restarted = fixture.CreateFactory();
         using var reader = restarted.CreateClient();
         reader.DefaultRequestHeaders.Authorization = authorization;
-        await AssertDetailAsync(reader, booked, "CheckedIn", DevelopmentFixtureManifest.Branch.Name);
-        await AssertDetailAsync(reader, cancellable, "Cancelled", DevelopmentFixtureManifest.Branch.Name);
+        await AssertDetailAsync(reader, booked, "CheckedIn", DevelopmentFixtureManifest.Branches[0].Name);
+        await AssertDetailAsync(reader, cancellable, "Cancelled", DevelopmentFixtureManifest.Branches[0].Name);
         await AssertCurrentScopeAsync(reader, database, data, booked, other, otherBranch);
     }
 
@@ -100,8 +100,8 @@ public sealed class StaffAppointmentDetailTests(IntakePhotoFixture fixture) : IC
 
         try
         {
-            await AssertDetailAsync(client, checkedIn, "CheckedIn", DevelopmentFixtureManifest.Branch.Name);
-            await AssertDetailAsync(client, cancelled, "Cancelled", DevelopmentFixtureManifest.Branch.Name);
+            await AssertDetailAsync(client, checkedIn, "CheckedIn", DevelopmentFixtureManifest.Branches[0].Name);
+            await AssertDetailAsync(client, cancelled, "Cancelled", DevelopmentFixtureManifest.Branches[0].Name);
         }
         finally
         {
@@ -125,7 +125,7 @@ public sealed class StaffAppointmentDetailTests(IntakePhotoFixture fixture) : IC
         await AssertDetailAsync(client, other, "Booked", "ApexAuto Petaling Jaya");
         await database.Branches.Where(branch => branch.Id == data.BranchId)
             .ExecuteUpdateAsync(update => update.SetProperty(branch => branch.IsActive, false));
-        await AssertDetailAsync(client, booked, "CheckedIn", DevelopmentFixtureManifest.Branch.Name);
+        await AssertDetailAsync(client, booked, "CheckedIn", DevelopmentFixtureManifest.Branches[0].Name);
         await AssertStatusAsync(client, Guid.NewGuid(), HttpStatusCode.NotFound);
         await database.Branches.Where(branch => branch.Id == data.BranchId)
             .ExecuteUpdateAsync(update => update.SetProperty(branch => branch.IsActive, true));
@@ -134,7 +134,7 @@ public sealed class StaffAppointmentDetailTests(IntakePhotoFixture fixture) : IC
         await AssertDetailAsync(client, other, "Booked", "ApexAuto Petaling Jaya");
         await AssertStatusAsync(client, booked.Id, HttpStatusCode.NotFound);
         await SetStaffScopeAsync(database, data.StaffId, AccountRoles.SalesAgent, data.BranchId);
-        await AssertDetailAsync(client, booked, "CheckedIn", DevelopmentFixtureManifest.Branch.Name);
+        await AssertDetailAsync(client, booked, "CheckedIn", DevelopmentFixtureManifest.Branches[0].Name);
         await database.Branches.Where(branch => branch.Id == data.BranchId)
             .ExecuteUpdateAsync(update => update.SetProperty(branch => branch.IsActive, false));
         await AssertStatusAsync(client, booked.Id, HttpStatusCode.Unauthorized);
@@ -145,7 +145,7 @@ public sealed class StaffAppointmentDetailTests(IntakePhotoFixture fixture) : IC
         await AssertStatusAsync(client, booked.Id, HttpStatusCode.Unauthorized);
         await database.Users.Where(user => user.Id == data.StaffId)
             .ExecuteUpdateAsync(update => update.SetProperty(user => user.IsActive, true));
-        await AssertDetailAsync(client, booked, "CheckedIn", DevelopmentFixtureManifest.Branch.Name);
+        await AssertDetailAsync(client, booked, "CheckedIn", DevelopmentFixtureManifest.Branches[0].Name);
     }
 
     private static Task<int> SetStaffScopeAsync(DealershipDbContext database, Guid staffId, string role, Guid? branchId)

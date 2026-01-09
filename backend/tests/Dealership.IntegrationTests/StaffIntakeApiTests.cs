@@ -155,7 +155,7 @@ public sealed class StaffIntakeApiTests(IntakePhotoFixture fixture) : IClassFixt
 
         var otherBranch = Guid.NewGuid();
         await services.GetRequiredService<BranchProvisioningService>().ProvisionBranchAsync(
-            DevelopmentFixtureManifest.Branch with { Id = otherBranch, Name = "ApexAuto Petaling Jaya" }, CancellationToken.None);
+            DevelopmentFixtureManifest.Branches[0] with { Id = otherBranch, Name = "ApexAuto Petaling Jaya" }, CancellationToken.None);
         var filtered = (await client.GetFromJsonAsync<StaffWorklistPage>($"{Route}?branchId={otherBranch}"))!;
         Assert.Equal(0, filtered.Total);
         await database.Users.Where(user => user.Id == data.StaffId).ExecuteUpdateAsync(update => update

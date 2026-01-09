@@ -81,7 +81,7 @@ public sealed class AppointmentCheckInTests(IntakePhotoFixture fixture) : IClass
         Assert.Equal(receipt, (await CheckInAsync(restarted, colleagueId, appointment.Id, evidence)).Receipt);
         var otherBranchId = Guid.NewGuid();
         await scope.ServiceProvider.GetRequiredService<BranchProvisioningService>().ProvisionBranchAsync(
-            DevelopmentFixtureManifest.Branch with { Id = otherBranchId, Name = "ApexAuto Petaling Jaya" }, CancellationToken.None);
+            DevelopmentFixtureManifest.Branches[0] with { Id = otherBranchId, Name = "ApexAuto Petaling Jaya" }, CancellationToken.None);
         await database.Users.Where(user => user.Id == data.StaffId)
             .ExecuteUpdateAsync(update => update.SetProperty(user => user.BranchId, otherBranchId));
         Assert.Equal(CheckInStatus.NotFound,

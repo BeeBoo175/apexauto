@@ -23,14 +23,18 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Regis
 
         // A dedicated nonpooled connection owns the run lock; disposal releases it after failure or restart.
         var reports = new List<DevelopmentFixtureReport>();
-        var branch = await branches.ProvisionBranchAsync(DevelopmentFixtureManifest.Branch, token);
-        reports.Add(Report("Glenmarie branch", branch.Created, branch.MatchesRequestedState));
+        foreach (var branch in DevelopmentFixtureManifest.Branches)
+        {
+            var provisioned = await branches.ProvisionBranchAsync(branch, token);
+            reports.Add(Report(branch.Name, provisioned.Created, provisioned.MatchesRequestedState));
+        }
+
         reports.Add(await SeedCustomerAsync(token));
 
         foreach (var account in DevelopmentFixtureManifest.Staff)
         {
             var provisioned = await staff.ProvisionStaffAsync(account, token);
-            reports.Add(Report(account.Role, provisioned.Created, provisioned.MatchesRequestedState));
+            reports.Add(Report($"{account.Role} ({account.Email})", provisioned.Created, provisioned.MatchesRequestedState));
         }
 
         return reports;
@@ -41,17 +45,21 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Regis
     {
         target.EnsureMatches(database.Database.GetConnectionString());
         var reports = new List<DevelopmentFixtureReport>();
-        var branch = await database.Branches.AsNoTracking().SingleOrDefaultAsync(
-            candidate => candidate.Id == DevelopmentFixtureManifest.Branch.Id, cancellationToken);
-        reports.Add(new DevelopmentFixtureReport("Glenmarie branch", branch is null ? "missing" :
-            $"{branch.Name}; {branch.City}; {branch.State}; active={branch.IsActive}", branch is null));
+        foreach (var requested in DevelopmentFixtureManifest.Branches)
+        {
+            var branch = await database.Branches.AsNoTracking().SingleOrDefaultAsync(
+                candidate => candidate.Id == requested.Id, cancellationToken);
+            reports.Add(new DevelopmentFixtureReport(requested.Name, branch is null ? "missing" :
+                $"{branch.Name}; {branch.City}; {branch.State}; active={branch.IsActive}", branch is null));
+        }
+
         var customer = await database.CustomerProfiles.AsNoTracking().SingleOrDefaultAsync(
             profile => profile.RegistrationKey == DevelopmentFixtureManifest.Customer.RegistrationKey, cancellationToken);
         reports.Add(await ReviewAccountAsync("Customer", customer?.UserId, cancellationToken));
 
         foreach (var account in DevelopmentFixtureManifest.Staff)
         {
-            reports.Add(await ReviewAccountAsync(account.Role, account.Id, cancellationToken));
+            reports.Add(await ReviewAccountAsync($"{account.Role} ({account.Email})", account.Id, cancellationToken));
         }
 
         return reports;

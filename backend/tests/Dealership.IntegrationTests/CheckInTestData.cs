@@ -79,7 +79,7 @@ internal sealed class CheckInTestData : IDisposable
             (await services.GetRequiredService<IEmailVerificationStore>().ConfirmAsync(token, CancellationToken.None)).Status);
         BranchId = Guid.NewGuid();
         await services.GetRequiredService<BranchProvisioningService>().ProvisionBranchAsync(
-            DevelopmentFixtureManifest.Branch with { Id = BranchId }, CancellationToken.None);
+            DevelopmentFixtureManifest.Branches[0] with { Id = BranchId }, CancellationToken.None);
         StaffId = Guid.NewGuid();
         StaffEmail = $"aina.sofia.{Guid.NewGuid():N}@example.invalid";
         await services.GetRequiredService<StaffProvisioningService>().ProvisionStaffAsync(new StaffProvisioningRequest(

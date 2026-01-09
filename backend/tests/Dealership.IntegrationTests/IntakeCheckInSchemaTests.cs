@@ -38,7 +38,7 @@ public sealed class IntakeCheckInSchemaTests(IntakePhotoFixture fixture) : IClas
         using (var branchScope = data.Factory.Services.CreateScope())
         {
             await branchScope.ServiceProvider.GetRequiredService<BranchProvisioningService>().ProvisionBranchAsync(
-                DevelopmentFixtureManifest.Branch with { Id = Guid.NewGuid(), Name = "ApexAuto Petaling Jaya" }, CancellationToken.None);
+                DevelopmentFixtureManifest.Branches[0] with { Id = Guid.NewGuid(), Name = "ApexAuto Petaling Jaya" }, CancellationToken.None);
         }
 
         var attacks = new[]

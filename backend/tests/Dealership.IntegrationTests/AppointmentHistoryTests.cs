@@ -47,7 +47,7 @@ public sealed class AppointmentHistoryTests(IntakePhotoFixture fixture) : IClass
                 appointments.Add(result.Receipt!);
             }
 
-            var secondBranch = DevelopmentFixtureManifest.Branch with { Id = Guid.NewGuid(), Name = "ApexAuto Petaling Jaya" };
+            var secondBranch = DevelopmentFixtureManifest.Branches[0] with { Id = Guid.NewGuid(), Name = "ApexAuto Petaling Jaya" };
             await scope.ServiceProvider.GetRequiredService<BranchProvisioningService>().ProvisionBranchAsync(secondBranch, CancellationToken.None);
             appointments.Add(await BookingTestData.BookAsync(client, request with { BranchId = secondBranch.Id }));
         }

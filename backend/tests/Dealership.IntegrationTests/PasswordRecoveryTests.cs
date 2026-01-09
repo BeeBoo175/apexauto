@@ -209,7 +209,7 @@ public sealed class PasswordRecoveryTests(RegistrationDatabase database) : IClas
         {
             var fixture = scope.ServiceProvider.GetRequiredService<StaffProvisioningService>();
             await scope.ServiceProvider.GetRequiredService<BranchProvisioningService>()
-                .ProvisionBranchAsync(DevelopmentFixtureManifest.Branch, CancellationToken.None);
+                .ProvisionBranchAsync(DevelopmentFixtureManifest.Branches[0], CancellationToken.None);
             await fixture.ProvisionStaffAsync(DevelopmentFixtureManifest.Staff[0], CancellationToken.None);
             var context = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
             await context.Users.Where(user => user.Id == DevelopmentFixtureManifest.Staff[0].Id)
