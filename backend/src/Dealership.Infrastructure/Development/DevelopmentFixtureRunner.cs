@@ -8,12 +8,13 @@ namespace Dealership.Infrastructure.Development;
 public sealed record DevelopmentFixtureReport(string Fixture, string State, bool RequiresAttention);
 
 public sealed class DevelopmentFixtureRunner(DealershipDbContext database, DevelopmentCustomerFixtures customers,
-    StaffProvisioningService staff, BranchProvisioningService branches)
+    StaffProvisioningService staff, BranchProvisioningService branches, DevelopmentIntakeFixtures intake)
 {
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> SeedAsync(DevelopmentFixtureTarget target,
         CancellationToken cancellationToken)
     {
         target.EnsureMatches(database.Database.GetConnectionString());
+        intake.EnsureLocalStorage();
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromMinutes(2));
         var token = deadline.Token;
@@ -38,6 +39,7 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
             reports.Add(Report($"{account.Role} ({account.Email})", provisioned.Created, provisioned.MatchesRequestedState));
         }
 
+        reports.AddRange(await intake.SeedAsync(token));
         return reports;
     }
 
@@ -64,6 +66,7 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
             reports.Add(await ReviewAccountAsync($"{account.Role} ({account.Email})", account.Id, cancellationToken));
         }
 
+        reports.AddRange(await intake.ReviewAsync(cancellationToken));
         return reports;
     }
 

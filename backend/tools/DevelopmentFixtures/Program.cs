@@ -1,8 +1,11 @@
 using Dealership.Application;
+using Dealership.Application.Intake;
 using Dealership.Infrastructure;
 using Dealership.Infrastructure.Configuration;
 using Dealership.Infrastructure.Development;
 using Dealership.Infrastructure.Development.Maintenance;
+using Dealership.Infrastructure.Intake;
+using Dealership.Infrastructure.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
@@ -25,15 +28,24 @@ if (environment != "Development" || webEnvironment != "Development")
 try
 {
     DotEnvLoader.LoadForDevelopment(Directory.GetCurrentDirectory());
-    var configuration = new ConfigurationBuilder().AddEnvironmentVariables().Build();
+    var configuration = new ConfigurationBuilder()
+        .AddJsonFile(Path.Combine(AppContext.BaseDirectory, "appsettings.json"))
+        .AddEnvironmentVariables().Build();
     var target = DevelopmentFixtureTarget.Validate(environment, configuration["POSTGRES_DB"],
         configuration.GetConnectionString("DefaultConnection"));
     var services = new ServiceCollection();
     services.AddLogging();
     services.AddApplication();
     services.AddInfrastructure(configuration);
+    services.AddSingleton(InspectionScheduleConfiguration.Read(configuration));
+    services.AddScoped<IntakeDiscoveryService>();
+    services.AddScoped<IntakeBookingService>();
+    services.AddS3Storage(configuration);
+    services.AddIntakeMedia(configuration);
     services.AddScoped<DevelopmentFixtureRunner>();
     services.AddScoped<DevelopmentCustomerFixtures>();
+    services.AddScoped<DevelopmentIntakeFixtures>();
+    services.AddScoped<DevelopmentFixturePhotos>();
     services.AddScoped<DevelopmentDatabaseRebuilder>();
     await using var provider = services.BuildServiceProvider(new ServiceProviderOptions
     {

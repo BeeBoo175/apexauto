@@ -25,6 +25,7 @@ public sealed class IntakePhotoFixture : IAsyncLifetime, IAsyncDisposable
     private AmazonS3Client? _client;
     private bool _bucketCreated;
     public RegistrationDatabase Database { get; } = new();
+    public string BucketName => _bucket;
     public string? LastStorageFailure { get; private set; }
 
     public async Task InitializeAsync()

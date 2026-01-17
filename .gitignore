@@ -496,4 +496,7 @@ $RECYCLE.BIN/
 # Local database and private-object recovery archives
 backend/.database-backups/
 
+# Downloaded demo inputs; source, license and checksum manifest remains versioned
+/backend/src/Dealership.Infrastructure/Development/Media/*.jpg
+
 .verifications

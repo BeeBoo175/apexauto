@@ -1,6 +1,7 @@
 using Dealership.Domain.Intake;
+using Microsoft.Extensions.Configuration;
 
-namespace Dealership.Api.Configuration;
+namespace Dealership.Infrastructure.Configuration;
 
 public sealed class InspectionScheduleConfiguration
 {

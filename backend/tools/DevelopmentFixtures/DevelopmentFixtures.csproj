@@ -7,5 +7,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Dealership.Infrastructure/Dealership.Infrastructure.csproj" />
+    <None Include="../../src/Dealership.Api/appsettings.json" Link="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

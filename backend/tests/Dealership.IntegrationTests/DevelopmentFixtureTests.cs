@@ -3,12 +3,15 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Dealership.Application;
 using Dealership.Application.Accounts;
+using Dealership.Application.Intake;
 using Dealership.Infrastructure;
 using Dealership.Infrastructure.Development;
 using Dealership.Infrastructure.Identity;
+using Dealership.Infrastructure.Configuration;
+using Dealership.Infrastructure.Intake;
+using Dealership.Infrastructure.Storage;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,16 +20,16 @@ using Npgsql;
 
 namespace Dealership.IntegrationTests;
 
-public sealed class DevelopmentFixtureTests(RegistrationDatabase fixture) : IClassFixture<RegistrationDatabase>
+public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClassFixture<IntakePhotoFixture>
 {
     [Fact]
     public async Task SeedResumesSerializesPreservesEditsAndAuthenticatesSixRolesAcrossThreeBranches()
     {
-        var connection = fixture.RuntimeConnectionString;
+        var connection = fixture.Database.RuntimeConnectionString;
         var databaseName = new NpgsqlConnectionStringBuilder(connection).Database!;
         var target = DevelopmentFixtureTarget.Validate("Development", databaseName, connection);
-        var fault = new InterruptedSeed();
-        var clock = new FixtureClock(DateTimeOffset.UtcNow);
+        var fault = new DevelopmentFixtureInterruption();
+        var clock = new FixtureClock(DateTimeOffset.UtcNow.AddHours(-25));
         await using var provider = CreateProvider(connection, fault, clock);
         var unrelatedId = Guid.NewGuid();
 
@@ -42,6 +45,20 @@ public sealed class DevelopmentFixtureTests(RegistrationDatabase fixture) : ICla
                 Assert.Equal("missing", report.State);
                 Assert.True(report.RequiresAttention);
             });
+            var storage = scope.ServiceProvider.GetRequiredService<PhotoStorageSettings>();
+            var endpoint = storage.ServiceURL;
+
+            try
+            {
+                storage.ServiceURL = "https://example.invalid";
+                await Assert.ThrowsAsync<InvalidOperationException>(() => runner.SeedAsync(target, CancellationToken.None));
+                Assert.Equal(0, await scope.ServiceProvider.GetRequiredService<DealershipDbContext>().Branches.CountAsync());
+            }
+            finally
+            {
+                storage.ServiceURL = endpoint;
+            }
+
             await Assert.ThrowsAsync<IOException>(() => runner.SeedAsync(target, CancellationToken.None));
         }
 
@@ -49,14 +66,20 @@ public sealed class DevelopmentFixtureTests(RegistrationDatabase fixture) : ICla
         clock.Advance(TimeSpan.FromHours(25));
         await Assert.ThrowsAsync<IOException>(() => SeedAsync(provider, target));
         fault.Enabled = false;
-        var competing = await Task.WhenAll(SeedAsync(provider, target), SeedAsync(provider, target));
-        Assert.Equal(10, competing.SelectMany(reports => reports).Count(report => report.State == "created"));
+        await Assert.ThrowsAsync<IOException>(() => SeedAsync(provider, target));
+        await DevelopmentIntakeFixtureAssertions.AssertInterruptedMediaAsync(provider);
+        fault.InterruptPhoto = false;
+        await using var resumed = CreateProvider(connection, fault, clock);
+        var competing = await Task.WhenAll(SeedAsync(resumed, target), SeedAsync(resumed, target));
+        Assert.Equal(123, competing.SelectMany(reports => reports).Count(report => report.State == "created"));
         Assert.All(competing.SelectMany(reports => reports), report =>
         {
-            Assert.True(report.State is "created" or "matches");
+            Assert.True(report.State is "created" or "matches", $"{report.Fixture}: {report.State}");
             Assert.False(report.RequiresAttention);
         });
         await AssertNormalAuthenticationAsync();
+        await DevelopmentIntakeFixtureAssertions.VerifyAsync(provider);
+        var intakeSnapshot = await DevelopmentIntakeFixtureAssertions.SnapshotAsync(provider);
 
         string editedHash;
         string editedCustomerHash;
@@ -108,9 +131,10 @@ public sealed class DevelopmentFixtureTests(RegistrationDatabase fixture) : ICla
                 .ExecuteUpdateAsync(update => update.SetProperty(branch => branch.Phone, "+60378759999"));
         }
 
-        clock.Advance(TimeSpan.FromMinutes(2));
+        clock.Advance(TimeSpan.FromDays(2));
         await using var restarted = CreateProvider(connection, fault, clock);
         var replay = await SeedAsync(restarted, target);
+        Assert.Equal(intakeSnapshot, await DevelopmentIntakeFixtureAssertions.SnapshotAsync(restarted));
         Assert.Equal(3, replay.Count(report => report.State == "drift; preserved"));
         Assert.Equal(4, replay.Count(report => report.RequiresAttention));
         Assert.Single(replay, report => report.State == "verification requires attention; preserved");
@@ -136,16 +160,16 @@ public sealed class DevelopmentFixtureTests(RegistrationDatabase fixture) : ICla
         var before = await saved.AccountSessions.CountAsync();
         var review = await check.ServiceProvider.GetRequiredService<DevelopmentFixtureRunner>()
             .ReviewAsync(target, CancellationToken.None);
-        Assert.Equal(18, review.Count);
+        Assert.Equal(141, review.Count);
         Assert.All(review, report => Assert.False(report.RequiresAttention));
-        Assert.Equal(18, review.Select(report => report.Fixture).Distinct().Count());
+        Assert.Equal(141, review.Select(report => report.Fixture).Distinct().Count());
         Assert.Equal(before, await saved.AccountSessions.CountAsync());
     }
 
     private async Task AssertNormalAuthenticationAsync()
     {
         // Separate hosts keep each normal process-local login budget below its limit.
-        using var customerFactory = CreateFactory();
+        using var customerFactory = fixture.CreateFactory();
         using var customerClient = customerFactory.CreateClient();
         foreach (var customer in DevelopmentFixtureManifest.Customers)
         {
@@ -154,7 +178,7 @@ public sealed class DevelopmentFixtureTests(RegistrationDatabase fixture) : ICla
 
         foreach (var accounts in DevelopmentFixtureManifest.Staff.Chunk(5))
         {
-            using var staffFactory = CreateFactory();
+            using var staffFactory = fixture.CreateFactory();
             using var staffClient = staffFactory.CreateClient();
 
             foreach (var account in accounts)
@@ -162,19 +186,6 @@ public sealed class DevelopmentFixtureTests(RegistrationDatabase fixture) : ICla
                 await AssertLoginAsync(staffClient, account.Email, HttpStatusCode.Forbidden);
             }
         }
-    }
-
-    private WebApplicationFactory<Program> CreateFactory()
-    {
-        return new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
-        {
-            builder.ConfigureServices(services =>
-            {
-                services.RemoveAll<DbContextOptions<DealershipDbContext>>();
-                services.RemoveAll<DealershipDbContext>();
-                services.AddDbContext<DealershipDbContext>(options => options.UseNpgsql(fixture.RuntimeConnectionString));
-            });
-        });
     }
 
     private static async Task AssertLoginAsync(HttpClient client, string email, HttpStatusCode accountStatus)
@@ -189,22 +200,32 @@ public sealed class DevelopmentFixtureTests(RegistrationDatabase fixture) : ICla
         client.DefaultRequestHeaders.Authorization = null;
     }
 
-    private static ServiceProvider CreateProvider(string connection, InterruptedSeed fault, TimeProvider clock)
+    private ServiceProvider CreateProvider(string connection, DevelopmentFixtureInterruption fault, TimeProvider clock)
     {
-        var configuration = new ConfigurationBuilder().AddEnvironmentVariables().AddInMemoryCollection(
-            new Dictionary<string, string?> { ["ConnectionStrings:DefaultConnection"] = connection }).Build();
+        var configuration = new ConfigurationBuilder().AddJsonFile(Path.Combine(AppContext.BaseDirectory, "appsettings.json"))
+            .AddEnvironmentVariables().AddInMemoryCollection(
+            new Dictionary<string, string?>
+            {
+                ["ConnectionStrings:DefaultConnection"] = connection,
+                ["AWS:BucketName"] = fixture.BucketName,
+                ["IntakePhotos:CleanupEnabled"] = "false"
+            }).Build();
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddApplication();
         services.AddInfrastructure(configuration);
+        services.AddSingleton(InspectionScheduleConfiguration.Read(configuration));
+        services.AddScoped<IntakeDiscoveryService>();
+        services.AddScoped<IntakeBookingService>();
+        services.AddS3Storage(configuration);
+        services.AddIntakeMedia(configuration);
         services.RemoveAll<TimeProvider>();
         services.AddSingleton(clock);
         services.AddScoped<DevelopmentFixtureRunner>();
         services.AddScoped<DevelopmentCustomerFixtures>();
-        services.AddScoped<IStaffProvisioningStore>(provider =>
-            new InterruptingStore(ActivatorUtilities.CreateInstance<StaffProvisioningStore>(provider), fault));
-        services.AddScoped<IEmailVerificationStore>(provider =>
-            new InterruptingVerificationStore(ActivatorUtilities.CreateInstance<EmailVerificationStore>(provider), fault));
+        services.AddScoped<DevelopmentIntakeFixtures>();
+        services.AddScoped<DevelopmentFixturePhotos>();
+        fault.Configure(services);
         return services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true });
     }
 
@@ -216,13 +237,6 @@ public sealed class DevelopmentFixtureTests(RegistrationDatabase fixture) : ICla
             .SeedAsync(target, CancellationToken.None);
     }
 
-    private sealed class InterruptedSeed
-    {
-        public bool Enabled { get; set; } = true;
-
-        public bool InterruptConfirmation { get; set; } = true;
-    }
-
     private sealed class FixtureClock(DateTimeOffset now) : TimeProvider
     {
         private DateTimeOffset _now = now;
@@ -232,43 +246,6 @@ public sealed class DevelopmentFixtureTests(RegistrationDatabase fixture) : ICla
         public void Advance(TimeSpan elapsed)
         {
             _now += elapsed;
-        }
-    }
-
-    private sealed class InterruptingVerificationStore(EmailVerificationStore inner, InterruptedSeed fault)
-        : IEmailVerificationStore
-    {
-        public Task QueueInitialAsync(Guid userId, CancellationToken cancellationToken)
-        {
-            return inner.QueueInitialAsync(userId, cancellationToken);
-        }
-
-        public Task<VerificationResult> ResendAsync(Guid userId, Guid resendKey, CancellationToken cancellationToken)
-        {
-            return inner.ResendAsync(userId, resendKey, cancellationToken);
-        }
-
-        public Task<VerificationResult> ConfirmAsync(string token, CancellationToken cancellationToken)
-        {
-            if (fault.InterruptConfirmation)
-            {
-                throw new IOException("Injected interruption after canonical registration committed.");
-            }
-
-            return inner.ConfirmAsync(token, cancellationToken);
-        }
-    }
-
-    private sealed class InterruptingStore(StaffProvisioningStore inner, InterruptedSeed fault) : IStaffProvisioningStore
-    {
-        public Task<ProvisioningResult> ProvisionStaffAsync(ValidatedStaffProvisioning staff, CancellationToken cancellationToken)
-        {
-            if (fault.Enabled && staff.Role == AccountRoles.WorkshopTechnician)
-            {
-                throw new IOException("Injected process interruption after committed fixture units.");
-            }
-
-            return inner.ProvisionStaffAsync(staff, cancellationToken);
         }
     }
 }
