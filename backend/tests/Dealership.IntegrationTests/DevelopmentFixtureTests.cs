@@ -1,22 +1,20 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using Amazon.S3;
+using Dealership.Domain.Intake;
 using Dealership.Application;
 using Dealership.Application.Accounts;
 using Dealership.Application.Intake;
-using Dealership.Domain.Intake;
-using Dealership.Domain.Common;
 using Dealership.Infrastructure;
+using Dealership.Infrastructure.Configuration;
 using Dealership.Infrastructure.Development;
-using Dealership.Infrastructure.Identity;
 using Dealership.Infrastructure.Intake;
 using Dealership.Infrastructure.Storage;
 using Dealership.Infrastructure.Persistence;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Npgsql;
 
 namespace Dealership.IntegrationTests;
@@ -24,33 +22,19 @@ namespace Dealership.IntegrationTests;
 public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClassFixture<IntakePhotoFixture>
 {
     [Fact]
-    public async Task SeedResumesSerializesPreservesEditsAndAuthenticatesSixRolesAcrossThreeBranches()
+    public async Task SnapshotRollsBackResumesSerializesAndRetainsRuntimeGuardsAcrossThreeBranches()
     {
-        var connection = fixture.Database.RuntimeConnectionString;
-        var databaseName = new NpgsqlConnectionStringBuilder(connection).Database!;
-        var target = DevelopmentFixtureTarget.Validate("Development", databaseName, connection);
+        var connection = fixture.Database.ConnectionString;
+        var target = Target(connection);
         var fault = new DevelopmentFixtureInterruption();
-        var malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
-        var today = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, malaysia).Date;
-        var clock = new FixtureClock(new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(today, malaysia)).AddHours(-25));
-        await using var provider = CreateProvider(connection, fault, clock);
-        var unrelatedId = Guid.NewGuid();
-
+        await using var provider = CreateProvider(connection, fault);
+        var definitions = await ReadGuardsAsync();
         await using (var scope = provider.CreateAsyncScope())
         {
-            var provisioner = scope.ServiceProvider.GetRequiredService<StaffProvisioningService>();
-            await provisioner.ProvisionStaffAsync(new StaffProvisioningRequest(unrelatedId,
-                $"hakim.ismail.{Guid.NewGuid():N}@example.invalid", "OtherPassword123!",
-                AccountRoles.Administrator, null), CancellationToken.None);
             var runner = scope.ServiceProvider.GetRequiredService<DevelopmentFixtureRunner>();
-            Assert.All(await runner.ReviewAsync(target, CancellationToken.None), report =>
-            {
-                Assert.Equal("missing", report.State);
-                Assert.True(report.RequiresAttention);
-            });
+            Assert.All(await runner.ReviewAsync(target, CancellationToken.None), report => Assert.True(report.RequiresAttention));
             var storage = scope.ServiceProvider.GetRequiredService<PhotoStorageSettings>();
             var endpoint = storage.ServiceURL;
-
             try
             {
                 storage.ServiceURL = "https://example.invalid";
@@ -62,118 +46,109 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
                 storage.ServiceURL = endpoint;
             }
 
-            await Assert.ThrowsAsync<IOException>(() => runner.SeedAsync(target, CancellationToken.None));
+            await scope.ServiceProvider.GetRequiredService<IAmazonS3>().DeleteBucketAsync(fixture.BucketName);
         }
 
-        fault.InterruptConfirmation = false;
-        clock.Advance(TimeSpan.FromHours(25));
-        await Assert.ThrowsAsync<IOException>(() => SeedAsync(provider, target));
-        fault.Enabled = false;
-        await Assert.ThrowsAsync<IOException>(() => SeedAsync(provider, target));
-        await DevelopmentIntakeFixtureAssertions.AssertInterruptedMediaAsync(provider);
-        fault.InterruptPhoto = false;
-        await Assert.ThrowsAsync<IOException>(() => SeedAsync(provider, target));
-        fault.InterruptCancellation = false;
-        var deferred = await SeedAsync(provider, target);
-        Assert.Equal(3, deferred.Count(report => report.RequiresAttention));
-        await DevelopmentIntakeFixtureAssertions.AssertDeferredAsync(provider, target);
-        fault.DeferCheckIn = false;
-        await Assert.ThrowsAsync<IOException>(() => SeedAsync(provider, target));
-        fault.InterruptCheckIn = false;
-        await using var resumed = CreateProvider(connection, fault, clock);
-        var competing = await Task.WhenAll(SeedAsync(resumed, target), SeedAsync(resumed, target));
-        Assert.All(competing.SelectMany(reports => reports), report =>
+        await using (var runtime = CreateProvider(fixture.Database.RuntimeConnectionString, new DevelopmentFixtureInterruption()))
         {
-            Assert.True(report.State is "created" or "matches", $"{report.Fixture}: {report.State}");
-            Assert.False(report.RequiresAttention);
-        });
-        await AssertNormalAuthenticationAsync();
-        await DevelopmentIntakeFixtureAssertions.VerifyAsync(provider);
-        var intakeSnapshot = await DevelopmentIntakeFixtureAssertions.SnapshotAsync(provider);
+            var denied = await Assert.ThrowsAsync<PostgresException>(() => SeedAsync(runtime, Target(fixture.Database.RuntimeConnectionString)));
+            Assert.Equal(PostgresErrorCodes.InsufficientPrivilege, denied.SqlState);
+        }
 
-        string editedHash;
-        string editedCustomerHash;
+        await using (var scope = provider.CreateAsyncScope())
+        {
+            var services = scope.ServiceProvider;
+            var database = services.GetRequiredService<DealershipDbContext>();
+            var ownerId = await database.CustomerProfiles.Where(profile =>
+                profile.RegistrationKey == DevelopmentFixtureManifest.Customers[1].Registration.RegistrationKey)
+                .Select(profile => profile.UserId).SingleAsync();
+            using var content = DevelopmentFixturePhotos.Open(PhotoAngle.Driver);
+            var validated = await services.GetRequiredService<IPhotoImageValidator>().ValidateAsync(content, "image/jpeg", CancellationToken.None);
+            await services.GetRequiredService<IIntakePhotoStore>().PrepareAsync(ownerId, Guid.NewGuid(),
+                PhotoAngle.Driver, validated!, TimeSpan.FromHours(24), CancellationToken.None);
+            await Assert.ThrowsAsync<InvalidOperationException>(() => SeedAsync(provider, target));
+            Assert.Equal(1, await database.IntakePhotos.CountAsync());
+            await database.IntakePhotos.ExecuteDeleteAsync();
+        }
+
+        await Assert.ThrowsAsync<IOException>(() => SeedAsync(provider, target));
         await using (var scope = provider.CreateAsyncScope())
         {
             var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
-            Assert.Equal(16, await database.Users.CountAsync());
-            Assert.Equal(4, await database.CustomerProfiles.CountAsync());
-            Assert.Equal(5, await database.EmailVerificationChallenges.CountAsync());
-            Assert.Equal(3, await database.EmailVerificationChallenges.CountAsync(challenge => challenge.ConsumedAt != null));
-            Assert.Equal(1, await database.EmailVerificationChallenges.CountAsync(challenge => challenge.ResendKey != null));
-
-            foreach (var customerFixture in DevelopmentFixtureManifest.Customers)
-            {
-                var user = await database.Users.SingleAsync(candidate => candidate.Email == customerFixture.Registration.Email);
-                Assert.Equal(customerFixture.VerifyEmail, user.EmailConfirmed);
-            }
-
-            Assert.Equal(3, await database.Branches.CountAsync());
-
-            foreach (var branch in DevelopmentFixtureManifest.Branches)
-            {
-                var persisted = await database.Branches.SingleAsync(candidate => candidate.Id == branch.Id);
-                Assert.Equal(branch.Name, persisted.Name);
-                Assert.Equal(branch.City, persisted.City);
-                Assert.Equal(branch.State, persisted.State);
-                Assert.Equal(3, await database.Users.CountAsync(user => user.BranchId == branch.Id));
-            }
-
-            var account = await database.Users.SingleAsync(user => user.Id == DevelopmentFixtureManifest.Staff[0].Id);
-            account.Role = AccountRoles.GeneralManager;
-            account.BranchId = null;
-            account.IsActive = false;
-            editedHash = scope.ServiceProvider.GetRequiredService<IPasswordHasher<AccountUser>>()
-                .HashPassword(account, "EditedPassword123!");
-            account.PasswordHash = editedHash;
-            var profile = await database.CustomerProfiles.SingleAsync(candidate =>
-                candidate.RegistrationKey == DevelopmentFixtureManifest.Customers[0].Registration.RegistrationKey);
-            var customer = await database.Users.SingleAsync(user => user.Id == profile.UserId);
-            editedCustomerHash = scope.ServiceProvider.GetRequiredService<IPasswordHasher<AccountUser>>()
-                .HashPassword(customer, "EditedCustomer123!");
-            customer.PasswordHash = editedCustomerHash;
-            customer.EmailConfirmed = true;
-            var seller = await database.Users.SingleAsync(candidate =>
-                candidate.Email == DevelopmentFixtureManifest.Customers[1].Registration.Email);
-            seller.EmailConfirmed = false;
-            await database.SaveChangesAsync();
-            await database.Branches.Where(branch => branch.Id == DevelopmentFixtureManifest.Branches[1].Id)
-                .ExecuteUpdateAsync(update => update.SetProperty(branch => branch.Phone, "+60378759999"));
+            Assert.Equal(0, await database.IntakeAppointments.CountAsync());
+            Assert.Equal(0, await database.IntakePhotos.CountAsync());
+            Assert.Equal(15, await database.Users.CountAsync());
         }
 
-        clock.Advance(TimeSpan.FromDays(2));
-        await using var restarted = CreateProvider(connection, fault, clock);
-        var replay = await SeedAsync(restarted, target);
-        Assert.Equal(intakeSnapshot, await DevelopmentIntakeFixtureAssertions.SnapshotAsync(restarted));
-        Assert.Equal(3, replay.Count(report => report.State == "drift; preserved"));
-        Assert.Equal(4, replay.Count(report => report.RequiresAttention));
-        Assert.Single(replay, report => report.State == "verification requires attention; preserved");
-        await using var check = restarted.CreateAsyncScope();
-        var saved = check.ServiceProvider.GetRequiredService<DealershipDbContext>();
-        var retained = await saved.Users.SingleAsync(user => user.Id == DevelopmentFixtureManifest.Staff[0].Id);
-        Assert.Equal(AccountRoles.GeneralManager, retained.Role);
-        Assert.Null(retained.BranchId);
-        Assert.False(retained.IsActive);
-        Assert.Equal(editedHash, retained.PasswordHash);
-        var retainedProfile = await saved.CustomerProfiles.SingleAsync(profile =>
-            profile.RegistrationKey == DevelopmentFixtureManifest.Customers[0].Registration.RegistrationKey);
-        var retainedCustomer = await saved.Users.SingleAsync(user => user.Id == retainedProfile.UserId);
-        Assert.Equal(editedCustomerHash, retainedCustomer.PasswordHash);
-        Assert.True(retainedCustomer.EmailConfirmed);
-        Assert.False((await saved.Users.SingleAsync(candidate =>
-            candidate.Email == DevelopmentFixtureManifest.Customers[1].Registration.Email)).EmailConfirmed);
-        Assert.Equal(5, await saved.EmailVerificationChallenges.CountAsync());
-        Assert.Equal("+60378759999", (await saved.Branches.SingleAsync(
-            branch => branch.Id == DevelopmentFixtureManifest.Branches[1].Id)).Phone);
-        Assert.True(await saved.Users.AnyAsync(user => user.Id == unrelatedId));
-        Assert.Equal(16, await saved.Users.CountAsync());
-        var before = await saved.AccountSessions.CountAsync();
-        var review = await check.ServiceProvider.GetRequiredService<DevelopmentFixtureRunner>()
-            .ReviewAsync(target, CancellationToken.None);
-        Assert.Equal(147, review.Count);
-        Assert.All(review, report => Assert.False(report.RequiresAttention));
-        Assert.Equal(147, review.Select(report => report.Fixture).Distinct().Count());
-        Assert.Equal(before, await saved.AccountSessions.CountAsync());
+        Assert.Equal(definitions, await ReadGuardsAsync());
+        fault.Enabled = false;
+        await using var restarted = CreateProvider(connection, fault);
+        var competing = await Task.WhenAll(SeedAsync(provider, target), SeedAsync(restarted, target));
+        Assert.All(competing.SelectMany(reports => reports), report => Assert.False(report.RequiresAttention,
+            $"{report.Fixture}: {report.State}"));
+        Assert.Equal(definitions, await ReadGuardsAsync());
+        await AssertNormalAuthenticationAsync();
+        await DevelopmentIntakeFixtureAssertions.VerifyAsync(provider);
+        var snapshot = await DevelopmentIntakeFixtureAssertions.SnapshotAsync(provider);
+        Assert.All(await SeedAsync(restarted, target), report => Assert.False(report.RequiresAttention));
+        Assert.Equal(snapshot, await DevelopmentIntakeFixtureAssertions.SnapshotAsync(restarted));
+        await AssertRuntimeGuardsAsync();
+    }
+
+    private async Task<string[]> ReadGuardsAsync()
+    {
+        await using var connection = new NpgsqlConnection(fixture.Database.ConnectionString);
+        await connection.OpenAsync();
+        await using var command = new NpgsqlCommand("""
+            SELECT pg_get_functiondef(oid) FROM pg_proc WHERE pronamespace = 'public'::regnamespace
+                AND proname IN ('require_available_appointment_photo', 'validate_appointment_cancellation', 'validate_appointment_checkin')
+                ORDER BY proname
+            """, connection);
+        await using var reader = await command.ExecuteReaderAsync();
+        var definitions = new List<string>();
+        while (await reader.ReadAsync())
+        {
+            definitions.Add(reader.GetString(0));
+        }
+
+        Assert.Equal(3, definitions.Count);
+        return definitions.ToArray();
+    }
+
+    private async Task AssertRuntimeGuardsAsync()
+    {
+        await using var connection = new NpgsqlConnection(fixture.Database.RuntimeConnectionString);
+        await connection.OpenAsync();
+        await using var command = new NpgsqlCommand("""
+            INSERT INTO "AppointmentCheckIns" ("AppointmentId", "OwnerId", "BranchId", "VehicleId", "StaffId", "CheckedInAt",
+                "Vin", "MileageKilometres", "CustomerPresent", "IdentityConfirmed", "OwnershipConfirmed", "VehicleConfirmed")
+            SELECT a."Id", a."OwnerId", a."BranchId", @vehicle, u."Id", a."StartsAt", 'PM2M80010KC006242', 96000, true, true, true, true
+            FROM "IntakeAppointments" a JOIN "AspNetUsers" u ON u."BranchId" = a."BranchId" AND u."Role" = 'SalesAgent'
+            ORDER BY a."StartsAt" DESC LIMIT 1
+            """, connection);
+        command.Parameters.AddWithValue("vehicle", Guid.NewGuid());
+        var checkIn = await Assert.ThrowsAsync<PostgresException>(() => command.ExecuteNonQueryAsync());
+        Assert.Equal("CK_AppointmentCheckIns_Time", checkIn.ConstraintName);
+        command.Parameters.Clear();
+        command.CommandText = """
+            INSERT INTO "AppointmentCancellations" ("AppointmentId", "OwnerId", "CancelledAt", "PhotosExpireAt")
+            SELECT "AppointmentId", "OwnerId", "CancelledAt", "PhotosExpireAt" FROM "AppointmentCancellations" LIMIT 1
+            """;
+        var cancellation = await Assert.ThrowsAsync<PostgresException>(() => command.ExecuteNonQueryAsync());
+        Assert.Equal("CK_AppointmentCancellations_Time", cancellation.ConstraintName);
+        command.CommandText = """
+            INSERT INTO "AppointmentPhotos" ("AppointmentId", "OwnerId", "Angle", "PhotoId")
+            SELECT p."AppointmentId", p."OwnerId", p."Angle", p."PhotoId" FROM "AppointmentPhotos" p
+            JOIN "IntakePhotos" i ON i."Id" = p."PhotoId" WHERE i."ExpiresAt" < clock_timestamp() LIMIT 1
+            """;
+        var photo = await Assert.ThrowsAsync<PostgresException>(() => command.ExecuteNonQueryAsync());
+        Assert.Equal("CK_AppointmentPhotos_Available", photo.ConstraintName);
+        command.CommandText = """
+            SELECT count(*) FROM pg_trigger WHERE tgrelid IN ('public."IntakeAppointments"'::regclass,
+                'public."AppointmentPhotos"'::regclass, 'public."AppointmentCheckIns"'::regclass,
+                'public."AppointmentCancellations"'::regclass) AND tgenabled <> 'O'
+            """;
+        Assert.Equal(0L, await command.ExecuteScalarAsync());
     }
 
     private async Task AssertNormalAuthenticationAsync()
@@ -211,11 +186,10 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         client.DefaultRequestHeaders.Authorization = null;
     }
 
-    private ServiceProvider CreateProvider(string connection, DevelopmentFixtureInterruption fault, TimeProvider clock)
+    private ServiceProvider CreateProvider(string connection, DevelopmentFixtureInterruption fault)
     {
         var configuration = new ConfigurationBuilder().AddJsonFile(Path.Combine(AppContext.BaseDirectory, "appsettings.json"))
-            .AddEnvironmentVariables().AddInMemoryCollection(
-            new Dictionary<string, string?>
+            .AddEnvironmentVariables().AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["ConnectionStrings:DefaultConnection"] = connection,
                 ["AWS:BucketName"] = fixture.BucketName,
@@ -225,15 +199,13 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         services.AddLogging();
         services.AddApplication();
         services.AddInfrastructure(configuration);
-        // Keep the canonical same-date check-in rule deterministic on any test weekday or hour.
-        services.AddSingleton(new InspectionSchedule(new TimeOnly(9, 0), new TimeOnly(18, 0),
-            90, 30, 0, Enum.GetValues<DayOfWeek>()));
+        services.AddSingleton(InspectionScheduleConfiguration.Read(configuration));
+        services.AddSingleton<DevelopmentFixtureClock>();
+        services.AddSingleton<TimeProvider>(provider => provider.GetRequiredService<DevelopmentFixtureClock>());
         services.AddScoped<IntakeDiscoveryService>();
         services.AddScoped<IntakeBookingService>();
         services.AddS3Storage(configuration);
         services.AddIntakeMedia(configuration);
-        services.RemoveAll<TimeProvider>();
-        services.AddSingleton(clock);
         services.AddScoped<DevelopmentFixtureRunner>();
         services.AddScoped<DevelopmentCustomerFixtures>();
         services.AddScoped<DevelopmentIntakeFixtures>();
@@ -242,23 +214,15 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         return services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true });
     }
 
+    private static DevelopmentFixtureTarget Target(string connection)
+    {
+        return DevelopmentFixtureTarget.Validate("Development", new NpgsqlConnectionStringBuilder(connection).Database, connection);
+    }
+
     private static async Task<IReadOnlyList<DevelopmentFixtureReport>> SeedAsync(ServiceProvider provider,
         DevelopmentFixtureTarget target)
     {
         await using var scope = provider.CreateAsyncScope();
-        return await scope.ServiceProvider.GetRequiredService<DevelopmentFixtureRunner>()
-            .SeedAsync(target, CancellationToken.None);
-    }
-
-    private sealed class FixtureClock(DateTimeOffset now) : TimeProvider
-    {
-        private DateTimeOffset _now = now;
-
-        public override DateTimeOffset GetUtcNow() => _now;
-
-        public void Advance(TimeSpan elapsed)
-        {
-            _now += elapsed;
-        }
+        return await scope.ServiceProvider.GetRequiredService<DevelopmentFixtureRunner>().SeedAsync(target, CancellationToken.None);
     }
 }

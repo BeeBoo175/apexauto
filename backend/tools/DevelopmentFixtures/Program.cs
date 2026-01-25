@@ -38,6 +38,8 @@ try
     services.AddApplication();
     services.AddInfrastructure(configuration);
     services.AddSingleton(InspectionScheduleConfiguration.Read(configuration));
+    services.AddSingleton<DevelopmentFixtureClock>();
+    services.AddSingleton<TimeProvider>(provider => provider.GetRequiredService<DevelopmentFixtureClock>());
     services.AddScoped<IntakeDiscoveryService>();
     services.AddScoped<IntakeBookingService>();
     services.AddS3Storage(configuration);
@@ -83,7 +85,7 @@ catch (Exception exception)
     // Provider errors can contain connection details; disclose only the failure category.
     var recovery = args[0] == "clear"
         ? "The database may already have been deleted. Inspect its state before retrying the rebuild."
-        : "Existing records are preserved.";
+        : "Intake initialization rolls back on failure. Review the target; deliberately clear then seed to rebuild a populated snapshot. Initialization requires maintenance credentials.";
     Console.Error.WriteLine($"Fixture operation failed ({exception.GetType().Name}). Check local configuration and applied migrations. {recovery}");
     return 1;
 }

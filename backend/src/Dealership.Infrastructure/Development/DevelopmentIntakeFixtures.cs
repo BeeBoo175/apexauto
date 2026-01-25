@@ -1,21 +1,25 @@
-using System.Globalization;
+using System.Net;
+using Amazon.S3;
+using Amazon.S3.Model;
 using Dealership.Application.Accounts;
 using Dealership.Application.Intake;
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Intake;
+using Dealership.Domain.Vehicles;
+using Dealership.Infrastructure.Development.Maintenance;
 using Dealership.Infrastructure.Intake;
 using Dealership.Infrastructure.Persistence;
 using Dealership.Infrastructure.Storage;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace Dealership.Infrastructure.Development;
 
 public sealed class DevelopmentIntakeFixtures(DealershipDbContext database, DevelopmentFixturePhotos photos,
-    IntakeBookingService bookings, IntakeDiscoveryService discovery, ValuationService valuations,
-    InspectionSchedule schedule, PhotoStorageSettings storage, TimeProvider clock,
-    IAppointmentCancellationStore cancellations, IAppointmentCheckInStore checkIns)
+    InspectionSchedule schedule, PhotoStorageSettings storage, DevelopmentFixtureClock clock,
+    IOptions<IntakePhotoSettings> photoSettings, IAmazonS3 objects)
 {
-    public void EnsureLocalStorage()
+    public async Task EnsureLocalStorageAsync(CancellationToken cancellationToken)
     {
         storage.Validate();
 
@@ -23,189 +27,165 @@ public sealed class DevelopmentIntakeFixtures(DealershipDbContext database, Deve
         {
             throw new InvalidOperationException("Development demo uploads require explicitly configured local object storage.");
         }
-    }
-
-    public async Task<IReadOnlyList<DevelopmentFixtureReport>> SeedAsync(CancellationToken cancellationToken)
-    {
-        var reports = new List<DevelopmentFixtureReport>();
-        var slots = new Dictionary<Guid, Queue<InspectionSlot>>();
-        await database.Database.OpenConnectionAsync(cancellationToken);
 
         try
         {
-            foreach (var fixture in DevelopmentIntakeManifest.Appointments)
+            await objects.ListObjectsV2Async(new ListObjectsV2Request
             {
-                reports.Add(await SeedOneAsync(fixture, slots, cancellationToken));
-            }
+                BucketName = storage.BucketName,
+                MaxKeys = 1
+            }, cancellationToken);
         }
-        finally
+        catch (AmazonS3Exception exception) when (exception.StatusCode == HttpStatusCode.NotFound &&
+            exception.ErrorCode == "NoSuchBucket")
         {
-            await database.Database.CloseConnectionAsync();
+            await objects.PutBucketAsync(new PutBucketRequest
+            {
+                BucketName = storage.BucketName,
+                UseClientRegion = true
+            }, cancellationToken);
+        }
+    }
+
+    public async Task<IReadOnlyList<DevelopmentFixtureReport>> SeedAsync(DevelopmentFixtureTarget target,
+        CancellationToken cancellationToken)
+    {
+        if (await database.IntakeAppointments.AnyAsync(cancellationToken))
+        {
+            return await ReviewAsync(cancellationToken);
         }
 
-        return reports;
+        var timeline = clock.Timeline;
+        await using var initialization = await DevelopmentSnapshotInitialization.BeginAsync(database, target, cancellationToken);
+        foreach (var moment in timeline)
+        {
+            await CreateAppointmentAsync(moment, cancellationToken);
+        }
+
+        await initialization.CommitAsync(cancellationToken);
+        return DevelopmentIntakeManifest.Appointments.Select(fixture => Report(fixture, "created", false)).ToArray();
     }
 
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> ReviewAsync(CancellationToken cancellationToken)
     {
         var ids = DevelopmentIntakeManifest.Appointments.Select(item => item.Id).ToArray();
-        var existing = await database.IntakeAppointments.AsNoTracking().Where(item => ids.Contains(item.Id))
-            .Select(item => new
-            {
-                item.Id,
-                item.StartsAt,
-                Cancelled = database.AppointmentCancellations.Any(cancellation => cancellation.AppointmentId == item.Id),
-                CheckedIn = database.AppointmentCheckIns.Any(checkIn => checkIn.AppointmentId == item.Id)
-            }).ToDictionaryAsync(item => item.Id, cancellationToken);
+        var existing = await database.IntakeAppointments.AsNoTracking().Where(item => ids.Contains(item.Id)).Select(item => new
+        {
+            item.Id,
+            item.StartsAt,
+            Cancelled = database.AppointmentCancellations.Any(cancellation => cancellation.AppointmentId == item.Id),
+            CheckedIn = database.AppointmentCheckIns.Any(checkIn => checkIn.AppointmentId == item.Id)
+        }).ToDictionaryAsync(item => item.Id, cancellationToken);
         return DevelopmentIntakeManifest.Appointments.Select(fixture =>
         {
             if (!existing.TryGetValue(fixture.Id, out var appointment))
             {
-                return Report(fixture, "missing", true);
+                return Report(fixture, "missing; clear then seed to rebuild", true);
             }
 
-            var state = "Booked";
-
+            var state = StaffWorklistStatus.Booked;
             if (appointment.Cancelled)
             {
-                state = "Cancelled";
+                state = StaffWorklistStatus.Cancelled;
             }
 
             if (appointment.CheckedIn)
             {
-                state = "CheckedIn";
+                state = StaffWorklistStatus.CheckedIn;
             }
 
-            var attention = fixture.Status != StaffWorklistStatus.Booked && state != fixture.Status.ToString();
-            return Report(fixture, $"{state}; starts={appointment.StartsAt:O}", attention);
+            return Report(fixture, $"{state}; starts={appointment.StartsAt:O}", state != fixture.Status);
         }).ToArray();
     }
 
-    private async Task<DevelopmentFixtureReport> SeedOneAsync(DevelopmentIntakeFixture fixture,
-        Dictionary<Guid, Queue<InspectionSlot>> slots, CancellationToken cancellationToken)
+    private async Task CreateAppointmentAsync(DevelopmentIntakeMoment moment, CancellationToken cancellationToken)
     {
+        var fixture = moment.Fixture;
         var ownerId = await database.CustomerProfiles.Where(profile => profile.RegistrationKey == fixture.RegistrationKey)
-            .Select(profile => (Guid?)profile.UserId).SingleOrDefaultAsync(cancellationToken);
-        var exists = await database.IntakeAppointments.AnyAsync(item => item.Id == fixture.Id, cancellationToken);
-
-        if (exists)
+            .Select(profile => profile.UserId).SingleAsync(cancellationToken);
+        var owner = await VerifiedCustomerQuery.ForOwner(database, ownerId, lockUser: true)
+            .SingleAsync(cancellationToken);
+        if (!await database.Branches.AnyAsync(branch => branch.Id == fixture.BranchId && branch.IsActive, cancellationToken))
         {
-            // Reconcile immutable evidence before current eligibility, dates or quotes can change.
-            var receipt = await AppointmentReceiptReader.ReadAsync(database, fixture.Id, ownerId ?? Guid.Empty, cancellationToken);
-            var matches = receipt is not null && receipt.BranchId == fixture.BranchId &&
-                receipt.RegistrationPlate == fixture.RegistrationPlate && receipt.Vehicle == fixture.Vehicle &&
-                receipt.Photos.Select(photo => photo.Id).Order().SequenceEqual(PhotoIds(fixture.Id).Order());
-            if (!matches)
-            {
-                return Report(fixture, "drift; preserved", true);
-            }
-
-            return await ApplyStateAsync(fixture, ownerId!.Value, "matches", cancellationToken);
+            throw new InvalidOperationException("Snapshot appointments require an active branch.");
         }
 
-        if (ownerId is null || !await VerifiedCustomerQuery.ForOwner(database, ownerId.Value, lockUser: false)
-            .AnyAsync(cancellationToken))
+        var prepared = await photos.CreateAsync(ownerId, fixture.Id, moment.BookedAt, cancellationToken);
+        var candidates = prepared.Select(photo => new BookingPhotoCandidate(photo.Id, ownerId, photo.Angle,
+            photo.AvailableAt, photo.ExpiresAt, false, false)).ToArray();
+        if (!BookingPhotoSet.TryCreate(ownerId, candidates, moment.BookedAt, out var selected))
         {
-            return Report(fixture, "customer unavailable; preserved", true);
+            throw new InvalidOperationException("Snapshot booking requires four canonical eligible photos.");
         }
 
-        if (!slots.TryGetValue(fixture.BranchId, out var available))
+        var slot = schedule.FindSlot(moment.Slot.StartsAt, moment.BookedAt)
+            ?? throw new InvalidOperationException("Snapshot booking must obey the configured schedule.");
+        var appointment = new IntakeAppointment(fixture.Id, ownerId, fixture.BranchId, fixture.RegistrationPlate,
+            slot, moment.BookedAt);
+        var quote = new ValuationService(new SnapshotClock(moment.BookedAt)).Calculate(fixture.Vehicle).Quote
+            ?? throw new InvalidOperationException("Snapshot vehicle must have a canonical valuation at booking time.");
+        var vehicle = fixture.Vehicle;
+        var valuation = new SellerValuation(fixture.Id, ownerId, new ValuedVehicle(vehicle.Make!, vehicle.Model!,
+            vehicle.Trim!, vehicle.ManufactureYear!.Value, vehicle.MileageKilometres!.Value,
+            quote.MinValuation, quote.MaxValuation, quote.Currency, quote.ValuationYear));
+        database.IntakePhotos.AddRange(prepared);
+        database.IntakeAppointments.Add(appointment);
+        database.SellerValuations.Add(valuation);
+        database.AppointmentPhotos.AddRange(selected!.Selections.Select(photo => new AppointmentPhoto(fixture.Id, ownerId, photo)));
+        database.AppointmentConfirmations.Add(new AppointmentConfirmation
         {
-            available = await FindSlotsAsync(fixture.BranchId, cancellationToken);
-            slots.Add(fixture.BranchId, available);
-        }
-
-        if (available.Count == 0)
-        {
-            return Report(fixture, "slot unavailable; preserved", true);
-        }
-
-        var uploaded = await photos.UploadAsync(ownerId.Value, fixture.Id, cancellationToken);
-
-        if (uploaded != PhotoStatus.Available)
-        {
-            return Report(fixture, $"media {uploaded}; preserved", true);
-        }
-
-        var quote = valuations.Calculate(fixture.Vehicle).Quote
-            ?? throw new InvalidOperationException("Development vehicle must have a canonical valuation.");
-        var request = new BookingRequest(fixture.Id, fixture.BranchId, available.Dequeue().StartsAt,
-            fixture.RegistrationPlate, fixture.Vehicle, quote, PhotoIds(fixture.Id));
-        var result = await bookings.BookAsync(ownerId.Value, request, cancellationToken);
-
-        if (result.Status != BookingStatus.Succeeded)
-        {
-            return Report(fixture, $"booking {result.Status}; preserved", true);
-        }
-
-        return await ApplyStateAsync(fixture, ownerId.Value, "created", cancellationToken);
+            Id = fixture.Id,
+            RecipientEmail = owner.Email!,
+            NextDeliveryAt = moment.BookedAt
+        });
+        await database.SaveChangesAsync(cancellationToken);
+        AddTransition(moment, appointment, valuation, owner.Email!);
+        await database.SaveChangesAsync(cancellationToken);
+        database.ChangeTracker.Clear();
     }
 
-    private async Task<DevelopmentFixtureReport> ApplyStateAsync(DevelopmentIntakeFixture fixture,
-        Guid ownerId, string bookingState, CancellationToken cancellationToken)
+    private void AddTransition(DevelopmentIntakeMoment moment, IntakeAppointment appointment,
+        SellerValuation valuation, string email)
     {
-        if (fixture.Status == StaffWorklistStatus.Booked)
+        if (moment.Fixture.Status == StaffWorklistStatus.Cancelled)
         {
-            return Report(fixture, bookingState, false);
+            database.AppointmentCancellations.Add(new AppointmentCancellation(appointment, moment.TransitionAt!.Value,
+                TimeSpan.FromDays(photoSettings.Value.CancelledRetentionDays)));
+            database.AppointmentCancellationMails.Add(new AppointmentCancellationMail
+            {
+                Id = appointment.Id,
+                RecipientEmail = email,
+                NextDeliveryAt = moment.TransitionAt.Value
+            });
+            return;
         }
 
-        var cancelled = await database.AppointmentCancellations.AsNoTracking()
-            .AnyAsync(item => item.AppointmentId == fixture.Id, cancellationToken);
-        var checkIn = await database.AppointmentCheckIns.AsNoTracking()
-            .SingleOrDefaultAsync(item => item.AppointmentId == fixture.Id, cancellationToken);
-
-        if (cancelled || checkIn is not null)
+        if (moment.Fixture.Status != StaffWorklistStatus.CheckedIn)
         {
-            var matches = fixture.Status == StaffWorklistStatus.Cancelled ? cancelled :
-                checkIn is not null && checkIn.Matches(fixture.CheckIn!);
-            return Report(fixture, matches ? bookingState : "state drift; preserved", !matches);
-        }
-
-        if (fixture.Status == StaffWorklistStatus.Cancelled)
-        {
-            var result = await cancellations.CancelAsync(ownerId, fixture.Id, cancellationToken);
-            return Report(fixture, result.Status == CancellationStatus.Succeeded ? bookingState :
-                $"cancellation {result.Status}; preserved", result.Status != CancellationStatus.Succeeded);
+            return;
         }
 
         var staffId = DevelopmentFixtureManifest.Staff.Single(item =>
-            item.BranchId == fixture.BranchId && item.Role == AccountRoles.SalesAgent).Id;
-        var checkedIn = await checkIns.CheckInAsync(staffId, fixture.Id, fixture.CheckIn!, cancellationToken);
-        return Report(fixture, checkedIn.Status == CheckInStatus.Succeeded ? bookingState :
-            $"check-in {checkedIn.Status}; preserved; retry on booked Malaysian date", checkedIn.Status != CheckInStatus.Succeeded);
-    }
-
-    private async Task<Queue<InspectionSlot>> FindSlotsAsync(Guid branchId, CancellationToken cancellationToken)
-    {
-        var window = schedule.GetDateWindow(clock.GetUtcNow());
-        var slots = new Queue<InspectionSlot>();
-
-        for (var date = window.FirstDate; date <= window.LastDate; date = date.AddDays(1))
+            item.BranchId == appointment.BranchId && item.Role == AccountRoles.SalesAgent).Id;
+        var checkIn = new AppointmentCheckIn(Guid.NewGuid(), appointment, staffId,
+            moment.Fixture.CheckIn!, moment.TransitionAt!.Value);
+        database.Vehicles.Add(new Vehicle(appointment, valuation, checkIn));
+        database.AppointmentCheckIns.Add(checkIn);
+        database.AppointmentCheckInMails.Add(new AppointmentCheckInMail
         {
-            var result = await discovery.GetSlotsAsync(branchId, date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-                cancellationToken);
-
-            if (result.Status != SlotDiscoveryStatus.Succeeded)
-            {
-                return slots;
-            }
-
-            foreach (var slot in result.Offer!.Slots)
-            {
-                slots.Enqueue(slot);
-            }
-        }
-
-        return slots;
-    }
-
-    private static Guid[] PhotoIds(Guid appointmentId)
-    {
-        return Enum.GetValues<PhotoAngle>().Select(angle => DevelopmentIntakeManifest.PhotoId(appointmentId, angle)).ToArray();
+            Id = appointment.Id,
+            RecipientEmail = email,
+            NextDeliveryAt = checkIn.CheckedInAt
+        });
     }
 
     private static DevelopmentFixtureReport Report(DevelopmentIntakeFixture fixture, string state, bool attention)
     {
         return new DevelopmentFixtureReport($"Intake ({fixture.RegistrationPlate})", state, attention);
+    }
+
+    private sealed class SnapshotClock(DateTimeOffset now) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => now;
     }
 }

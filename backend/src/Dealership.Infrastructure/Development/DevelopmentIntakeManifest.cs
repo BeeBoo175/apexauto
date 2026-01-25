@@ -27,9 +27,7 @@ public static class DevelopmentIntakeManifest
     {
         var branch = DevelopmentFixtureManifest.Branches[branchIndex];
         string[] prefixes = ["VCA", "BPL", "PQA"];
-        // Give the check-in candidate the earliest available slot, before the booked worklist fills today.
-        var indices = new[] { TotalPerBranch - 1 }.Concat(Enumerable.Range(0, TotalPerBranch - 1));
-        return indices.Select(index =>
+        return Enumerable.Range(0, TotalPerBranch).Select(index =>
         {
             var customerIndex = (index + branchIndex) % 3 + 1;
             var registrationKey = DevelopmentFixtureManifest.Customers[customerIndex].Registration.RegistrationKey;

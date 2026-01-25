@@ -5,6 +5,7 @@ using System.Text.Json;
 using Dealership.Application.Accounts;
 using Dealership.Application.Intake;
 using Dealership.Domain.Intake;
+using Dealership.Domain.Common;
 using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Development;
 using Dealership.Infrastructure.Persistence;
@@ -45,7 +46,7 @@ internal static class DevelopmentIntakeFixtureAssertions
         }
 
         Assert.NotNull(staff);
-        var dates = $"from={DateTimeOffset.UtcNow.AddDays(-1):yyyy-MM-dd}&to={DateTimeOffset.UtcNow.AddDays(31):yyyy-MM-dd}";
+        var dates = $"from={DateTimeOffset.UtcNow.AddDays(-7):yyyy-MM-dd}&to={DateTimeOffset.UtcNow.AddDays(31):yyyy-MM-dd}";
         var url = $"/api/staff/intake/appointments?{dates}";
 
         if (staff.Role is AccountRoles.Administrator or AccountRoles.WorkshopTechnician)
@@ -75,28 +76,6 @@ internal static class DevelopmentIntakeFixtureAssertions
         }
     }
 
-    public static async Task AssertDeferredAsync(IServiceProvider provider, DevelopmentFixtureTarget target)
-    {
-        await using var scope = provider.CreateAsyncScope();
-        var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
-        Assert.Equal(129, await database.IntakeAppointments.CountAsync());
-        Assert.Equal(3, await database.AppointmentCancellations.CountAsync());
-        Assert.Equal(3, await database.AppointmentCancellationMails.CountAsync());
-        Assert.Equal(0, await database.AppointmentCheckIns.CountAsync());
-        Assert.Equal(0, await database.Vehicles.CountAsync());
-        var reports = await scope.ServiceProvider.GetRequiredService<DevelopmentFixtureRunner>()
-            .ReviewAsync(target, CancellationToken.None);
-        Assert.Equal(3, reports.Count(report => report.RequiresAttention));
-    }
-
-    public static async Task AssertInterruptedMediaAsync(IServiceProvider provider)
-    {
-        await using var scope = provider.CreateAsyncScope();
-        var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
-        Assert.Null((await database.IntakePhotos.SingleAsync()).AvailableAt);
-        Assert.Equal(0, await database.IntakeAppointments.CountAsync());
-    }
-
     public static async Task VerifyAsync(IServiceProvider provider)
     {
         await using var scope = provider.CreateAsyncScope();
@@ -114,6 +93,20 @@ internal static class DevelopmentIntakeFixtureAssertions
         Assert.Equal(3, await database.AppointmentCancellations.CountAsync());
         Assert.Equal(3, await database.AppointmentCancellationMails.CountAsync());
         Assert.Equal(516, await database.IntakePhotos.CountAsync(photo => photo.AvailableAt != null));
+        var schedule = services.GetRequiredService<InspectionSchedule>();
+        var malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
+        var valuations = await database.SellerValuations.AsNoTracking().ToDictionaryAsync(item => item.AppointmentId);
+        var confirmations = await database.EmailVerificationChallenges.Where(item => item.ConsumedAt != null)
+            .ToDictionaryAsync(item => item.UserId, item => item.ConsumedAt!.Value);
+        foreach (var appointment in appointments)
+        {
+            Assert.True(confirmations[appointment.OwnerId] <= appointment.CreatedAt);
+            Assert.Equal(new InspectionSlot(appointment.StartsAt, appointment.EndsAt),
+                schedule.FindSlot(appointment.StartsAt, appointment.CreatedAt));
+            Assert.Equal(TimeZoneInfo.ConvertTime(appointment.CreatedAt, malaysia).Year,
+                valuations[appointment.Id].ValuationYear);
+        }
+
         await AssertStatesAsync(database);
         var query = new StaffWorklistQuery(appointments.Min(item => item.StartsAt).AddDays(-1),
             appointments.Max(item => item.EndsAt).AddDays(1), StaffWorklistStatus.Booked, null, 1, 20);
@@ -185,10 +178,6 @@ internal static class DevelopmentIntakeFixtureAssertions
 
         var first = appointments.Single(item => item.Id == DevelopmentIntakeManifest.Appointments[0].Id);
         await AssertMediaAsync(services, first);
-        var lastId = DevelopmentIntakeManifest.Appointments.Last(item => item.Status == StaffWorklistStatus.Booked).Id;
-        var last = appointments.Single(item => item.Id == lastId);
-        Assert.Equal(CancellationStatus.Succeeded, (await services.GetRequiredService<IAppointmentCancellationStore>()
-            .CancelAsync(last.OwnerId, last.Id, CancellationToken.None)).Status);
     }
 
     private static async Task AssertStatesAsync(DealershipDbContext database)
@@ -196,6 +185,9 @@ internal static class DevelopmentIntakeFixtureAssertions
         foreach (var fixture in DevelopmentIntakeManifest.Appointments.Where(item => item.CheckIn is not null))
         {
             var checkIn = await database.AppointmentCheckIns.SingleAsync(item => item.AppointmentId == fixture.Id);
+            var appointment = await database.IntakeAppointments.SingleAsync(item => item.Id == fixture.Id);
+            Assert.Equal(appointment.StartsAt, checkIn.CheckedInAt);
+            Assert.True(checkIn.CheckedInAt < DateTimeOffset.UtcNow);
             Assert.True(checkIn.Matches(fixture.CheckIn!));
             Assert.Equal(DevelopmentFixtureManifest.Staff.Single(item =>
                 item.BranchId == fixture.BranchId && item.Role == AccountRoles.SalesAgent).Id, checkIn.StaffId);
@@ -210,7 +202,11 @@ internal static class DevelopmentIntakeFixtureAssertions
 
         foreach (var fixture in DevelopmentIntakeManifest.Appointments.Where(item => item.Status == StaffWorklistStatus.Cancelled))
         {
-            Assert.True(await database.AppointmentCancellations.AnyAsync(item => item.AppointmentId == fixture.Id));
+            var cancellation = await database.AppointmentCancellations.SingleAsync(item => item.AppointmentId == fixture.Id);
+            var appointment = await database.IntakeAppointments.SingleAsync(item => item.Id == fixture.Id);
+            Assert.True(appointment.CreatedAt <= cancellation.CancelledAt);
+            Assert.True(cancellation.CancelledAt < appointment.StartsAt);
+            Assert.True(appointment.EndsAt < DateTimeOffset.UtcNow);
         }
     }
 

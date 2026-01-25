@@ -14,11 +14,11 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
         CancellationToken cancellationToken)
     {
         target.EnsureMatches(database.Database.GetConnectionString());
-        intake.EnsureLocalStorage();
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromMinutes(2));
         var token = deadline.Token;
         await using var lockConnection = await DevelopmentFixtureLock.AcquireAsync(target, token);
+        await intake.EnsureLocalStorageAsync(token);
 
         // A dedicated nonpooled connection owns the run lock; disposal releases it after failure or restart.
         var reports = new List<DevelopmentFixtureReport>();
@@ -39,7 +39,7 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
             reports.Add(Report($"{account.Role} ({account.Email})", provisioned.Created, provisioned.MatchesRequestedState));
         }
 
-        reports.AddRange(await intake.SeedAsync(token));
+        reports.AddRange(await intake.SeedAsync(target, token));
         return reports;
     }
 

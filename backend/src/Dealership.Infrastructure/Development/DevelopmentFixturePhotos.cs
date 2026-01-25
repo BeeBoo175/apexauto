@@ -3,23 +3,26 @@ using Dealership.Domain.Intake;
 
 namespace Dealership.Infrastructure.Development;
 
-public sealed class DevelopmentFixturePhotos(IntakePhotoService photos)
+public sealed class DevelopmentFixturePhotos(IPhotoImageValidator validator, IPhotoStorage storage, IntakePhotoPolicy policy)
 {
-    public async Task<PhotoStatus> UploadAsync(Guid ownerId, Guid appointmentId, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<IntakePhoto>> CreateAsync(Guid ownerId, Guid appointmentId,
+        DateTimeOffset bookedAt, CancellationToken cancellationToken)
     {
+        var photos = new List<IntakePhoto>();
         foreach (var angle in Enum.GetValues<PhotoAngle>())
         {
             using var content = Open(angle);
-            var result = await photos.UploadAsync(ownerId, DevelopmentIntakeManifest.PhotoId(appointmentId, angle),
-                angle, "image/jpeg", content, cancellationToken);
-
-            if (result.Status != PhotoStatus.Available)
-            {
-                return result.Status;
-            }
+            var validated = await validator.ValidateAsync(content, "image/jpeg", cancellationToken)
+                ?? throw new InvalidOperationException("The development photo must pass canonical image validation.");
+            var photo = new IntakePhoto(DevelopmentIntakeManifest.PhotoId(appointmentId, angle), ownerId,
+                angle, validated, bookedAt, policy.UnsubmittedLifetime);
+            content.Position = 0;
+            await storage.PutAsync(photo, content, cancellationToken);
+            photo.ConfirmAvailable(bookedAt);
+            photos.Add(photo);
         }
 
-        return PhotoStatus.Available;
+        return photos;
     }
 
     public static Stream Open(PhotoAngle angle)
