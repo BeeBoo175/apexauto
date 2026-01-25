@@ -60,20 +60,20 @@ internal static class BookingSqlAssertions
         await using var connection = new NpgsqlConnection(fixture.RuntimeConnectionString);
         await connection.OpenAsync();
 
-        foreach (var attempt in attacks)
+        foreach (var (parentSqlAttempt, sql, constraint) in attacks)
         {
             await using var transaction = await connection.BeginTransactionAsync();
             var temporary = Guid.NewGuid();
-            await using (var parent = Command(attempt.Parent, connection, transaction, appointmentId, otherOwner, temporary))
+            await using (var parent = Command(parentSqlAttempt, connection, transaction, appointmentId, otherOwner, temporary))
             {
                 await parent.ExecuteNonQueryAsync();
             }
 
-            await using var attack = Command(attempt.Sql, connection, transaction, appointmentId, otherOwner, temporary);
+            await using var attack = Command(sql, connection, transaction, appointmentId, otherOwner, temporary);
             attack.Parameters.AddWithValue("photo", unusedPhotos[0]);
             var error = await Assert.ThrowsAsync<PostgresException>(() => attack.ExecuteNonQueryAsync());
             Assert.Equal(PostgresErrorCodes.ForeignKeyViolation, error.SqlState);
-            Assert.Equal(attempt.Constraint, error.ConstraintName);
+            Assert.Equal(constraint, error.ConstraintName);
         }
 
         const string photoCopy = """
@@ -91,7 +91,7 @@ internal static class BookingSqlAssertions
             (Expires: "now() + interval '1 day'", Available: "now() + interval '1 hour'")
         };
 
-        foreach (var candidate in unavailable)
+        foreach (var (expires, available) in unavailable)
         {
             await using var transaction = await connection.BeginTransactionAsync();
             var temporary = Guid.NewGuid();
@@ -100,7 +100,7 @@ internal static class BookingSqlAssertions
                 await parent.ExecuteNonQueryAsync();
             }
 
-            var sql = string.Format(System.Globalization.CultureInfo.InvariantCulture, photoCopy, candidate.Expires, candidate.Available);
+            var sql = string.Format(System.Globalization.CultureInfo.InvariantCulture, photoCopy, expires, available);
             await using var photo = Command(sql, connection, transaction, appointmentId, otherOwner, temporary);
             photo.Parameters.AddWithValue("photo", Guid.NewGuid());
             await photo.ExecuteNonQueryAsync();
@@ -141,24 +141,24 @@ internal static class BookingSqlAssertions
             (Photos: 4, Valuation: true, Mail: false)
         };
 
-        foreach (var candidate in cases)
+        foreach (var (photosCount, hasValuation, hasMail) in cases)
         {
             await using var transaction = await connection.BeginTransactionAsync();
             var temporary = Guid.NewGuid();
             await using var parent = Command(parentSql, connection, transaction, id, other, temporary);
             await parent.ExecuteNonQueryAsync();
 
-            if (candidate.Valuation)
+            if (hasValuation)
             {
                 await using var valuation = Command(valuationSql, connection, transaction, id, other, temporary);
                 await valuation.ExecuteNonQueryAsync();
             }
 
             await using var photos = Command(photosSql, connection, transaction, id, other, temporary);
-            photos.Parameters.AddWithValue("photos", unusedPhotos.Take(candidate.Photos).ToArray());
+            photos.Parameters.AddWithValue("photos", unusedPhotos.Take(photosCount).ToArray());
             await photos.ExecuteNonQueryAsync();
 
-            if (candidate.Mail)
+            if (hasMail)
             {
                 await using var mail = Command(mailSql, connection, transaction, id, other, temporary);
                 await mail.ExecuteNonQueryAsync();

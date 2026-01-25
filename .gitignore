@@ -500,3 +500,4 @@ backend/.database-backups/
 /backend/src/Dealership.Infrastructure/Development/Media/*.jpg
 
 .verifications
+

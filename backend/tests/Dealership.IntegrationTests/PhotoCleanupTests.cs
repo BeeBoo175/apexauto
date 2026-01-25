@@ -210,17 +210,17 @@ public sealed class PhotoCleanupTests(IntakePhotoFixture fixture) : IClassFixtur
             (Id: cancelledPhoto, Reason: "CancelledRetentionExpired", Sql: "SELECT c.\"CancelledAt\" FROM \"AppointmentCancellations\" c JOIN \"AppointmentPhotos\" a ON a.\"AppointmentId\" = c.\"AppointmentId\" WHERE a.\"PhotoId\" = @id")
         };
 
-        foreach (var attempt in attempts)
+        foreach (var (id, reason, sql) in attempts)
         {
-            await using var query = new NpgsqlCommand(attempt.Sql, connection);
-            query.Parameters.AddWithValue("id", attempt.Id);
+            await using var query = new NpgsqlCommand(sql, connection);
+            query.Parameters.AddWithValue("id", id);
             var timestamp = (DateTime)(await query.ExecuteScalarAsync())!;
             await using var insert = new NpgsqlCommand("""
                 INSERT INTO "PhotoRemovals" ("PhotoId", "Reason", "EligibleAt", "RequestedAt", "Attempts", "NextAttemptAt")
                 VALUES (@id, @reason, @at, @at, 0, @at)
                 """, connection);
-            insert.Parameters.AddWithValue("id", attempt.Id);
-            insert.Parameters.AddWithValue("reason", attempt.Reason);
+            insert.Parameters.AddWithValue("id", id);
+            insert.Parameters.AddWithValue("reason", reason);
             insert.Parameters.AddWithValue("at", timestamp);
             Assert.Equal("CK_PhotoRemovals_Eligibility", (await Assert.ThrowsAsync<PostgresException>(() => insert.ExecuteNonQueryAsync())).ConstraintName);
         }

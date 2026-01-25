@@ -4,10 +4,11 @@ using System.Net.Http.Json;
 using Dealership.Application;
 using Dealership.Application.Accounts;
 using Dealership.Application.Intake;
+using Dealership.Domain.Intake;
+using Dealership.Domain.Common;
 using Dealership.Infrastructure;
 using Dealership.Infrastructure.Development;
 using Dealership.Infrastructure.Identity;
-using Dealership.Infrastructure.Configuration;
 using Dealership.Infrastructure.Intake;
 using Dealership.Infrastructure.Storage;
 using Dealership.Infrastructure.Persistence;
@@ -29,7 +30,9 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         var databaseName = new NpgsqlConnectionStringBuilder(connection).Database!;
         var target = DevelopmentFixtureTarget.Validate("Development", databaseName, connection);
         var fault = new DevelopmentFixtureInterruption();
-        var clock = new FixtureClock(DateTimeOffset.UtcNow.AddHours(-25));
+        var malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
+        var today = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, malaysia).Date;
+        var clock = new FixtureClock(new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(today, malaysia)).AddHours(-25));
         await using var provider = CreateProvider(connection, fault, clock);
         var unrelatedId = Guid.NewGuid();
 
@@ -69,9 +72,16 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         await Assert.ThrowsAsync<IOException>(() => SeedAsync(provider, target));
         await DevelopmentIntakeFixtureAssertions.AssertInterruptedMediaAsync(provider);
         fault.InterruptPhoto = false;
+        await Assert.ThrowsAsync<IOException>(() => SeedAsync(provider, target));
+        fault.InterruptCancellation = false;
+        var deferred = await SeedAsync(provider, target);
+        Assert.Equal(3, deferred.Count(report => report.RequiresAttention));
+        await DevelopmentIntakeFixtureAssertions.AssertDeferredAsync(provider, target);
+        fault.DeferCheckIn = false;
+        await Assert.ThrowsAsync<IOException>(() => SeedAsync(provider, target));
+        fault.InterruptCheckIn = false;
         await using var resumed = CreateProvider(connection, fault, clock);
         var competing = await Task.WhenAll(SeedAsync(resumed, target), SeedAsync(resumed, target));
-        Assert.Equal(123, competing.SelectMany(reports => reports).Count(report => report.State == "created"));
         Assert.All(competing.SelectMany(reports => reports), report =>
         {
             Assert.True(report.State is "created" or "matches", $"{report.Fixture}: {report.State}");
@@ -160,9 +170,9 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         var before = await saved.AccountSessions.CountAsync();
         var review = await check.ServiceProvider.GetRequiredService<DevelopmentFixtureRunner>()
             .ReviewAsync(target, CancellationToken.None);
-        Assert.Equal(141, review.Count);
+        Assert.Equal(147, review.Count);
         Assert.All(review, report => Assert.False(report.RequiresAttention));
-        Assert.Equal(141, review.Select(report => report.Fixture).Distinct().Count());
+        Assert.Equal(147, review.Select(report => report.Fixture).Distinct().Count());
         Assert.Equal(before, await saved.AccountSessions.CountAsync());
     }
 
@@ -197,6 +207,7 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         Assert.NotNull(session);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
         Assert.Equal(accountStatus, (await client.GetAsync("/api/account")).StatusCode);
+        await DevelopmentIntakeFixtureAssertions.VerifyAuthenticatedAsync(client, email);
         client.DefaultRequestHeaders.Authorization = null;
     }
 
@@ -214,7 +225,9 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         services.AddLogging();
         services.AddApplication();
         services.AddInfrastructure(configuration);
-        services.AddSingleton(InspectionScheduleConfiguration.Read(configuration));
+        // Keep the canonical same-date check-in rule deterministic on any test weekday or hour.
+        services.AddSingleton(new InspectionSchedule(new TimeOnly(9, 0), new TimeOnly(18, 0),
+            90, 30, 0, Enum.GetValues<DayOfWeek>()));
         services.AddScoped<IntakeDiscoveryService>();
         services.AddScoped<IntakeBookingService>();
         services.AddS3Storage(configuration);

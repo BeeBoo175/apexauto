@@ -48,9 +48,5 @@ public interface IPhotoStorage
     Task DeleteAsync(IntakePhoto photo, CancellationToken cancellationToken);
 }
 
-public sealed class PhotoStorageException : Exception
-{
-    public PhotoStorageException(Exception? innerException = null) : base("Photo storage is temporarily unavailable.", innerException)
-    {
-    }
-}
+public sealed class PhotoStorageException(Exception? innerException = null)
+    : Exception("Photo storage is temporarily unavailable.", innerException);

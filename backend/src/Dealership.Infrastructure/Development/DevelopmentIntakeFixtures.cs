@@ -1,4 +1,5 @@
 using System.Globalization;
+using Dealership.Application.Accounts;
 using Dealership.Application.Intake;
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Intake;
@@ -11,7 +12,8 @@ namespace Dealership.Infrastructure.Development;
 
 public sealed class DevelopmentIntakeFixtures(DealershipDbContext database, DevelopmentFixturePhotos photos,
     IntakeBookingService bookings, IntakeDiscoveryService discovery, ValuationService valuations,
-    InspectionSchedule schedule, PhotoStorageSettings storage, TimeProvider clock)
+    InspectionSchedule schedule, PhotoStorageSettings storage, TimeProvider clock,
+    IAppointmentCancellationStore cancellations, IAppointmentCheckInStore checkIns)
 {
     public void EnsureLocalStorage()
     {
@@ -74,7 +76,8 @@ public sealed class DevelopmentIntakeFixtures(DealershipDbContext database, Deve
                 state = "CheckedIn";
             }
 
-            return Report(fixture, $"{state}; starts={appointment.StartsAt:O}", false);
+            var attention = fixture.Status != StaffWorklistStatus.Booked && state != fixture.Status.ToString();
+            return Report(fixture, $"{state}; starts={appointment.StartsAt:O}", attention);
         }).ToArray();
     }
 
@@ -92,7 +95,12 @@ public sealed class DevelopmentIntakeFixtures(DealershipDbContext database, Deve
             var matches = receipt is not null && receipt.BranchId == fixture.BranchId &&
                 receipt.RegistrationPlate == fixture.RegistrationPlate && receipt.Vehicle == fixture.Vehicle &&
                 receipt.Photos.Select(photo => photo.Id).Order().SequenceEqual(PhotoIds(fixture.Id).Order());
-            return Report(fixture, matches ? "matches" : "drift; preserved", !matches);
+            if (!matches)
+            {
+                return Report(fixture, "drift; preserved", true);
+            }
+
+            return await ApplyStateAsync(fixture, ownerId!.Value, "matches", cancellationToken);
         }
 
         if (ownerId is null || !await VerifiedCustomerQuery.ForOwner(database, ownerId.Value, lockUser: false)
@@ -124,8 +132,47 @@ public sealed class DevelopmentIntakeFixtures(DealershipDbContext database, Deve
         var request = new BookingRequest(fixture.Id, fixture.BranchId, available.Dequeue().StartsAt,
             fixture.RegistrationPlate, fixture.Vehicle, quote, PhotoIds(fixture.Id));
         var result = await bookings.BookAsync(ownerId.Value, request, cancellationToken);
-        return Report(fixture, result.Status == BookingStatus.Succeeded ? "created" : $"booking {result.Status}; preserved",
-            result.Status != BookingStatus.Succeeded);
+
+        if (result.Status != BookingStatus.Succeeded)
+        {
+            return Report(fixture, $"booking {result.Status}; preserved", true);
+        }
+
+        return await ApplyStateAsync(fixture, ownerId.Value, "created", cancellationToken);
+    }
+
+    private async Task<DevelopmentFixtureReport> ApplyStateAsync(DevelopmentIntakeFixture fixture,
+        Guid ownerId, string bookingState, CancellationToken cancellationToken)
+    {
+        if (fixture.Status == StaffWorklistStatus.Booked)
+        {
+            return Report(fixture, bookingState, false);
+        }
+
+        var cancelled = await database.AppointmentCancellations.AsNoTracking()
+            .AnyAsync(item => item.AppointmentId == fixture.Id, cancellationToken);
+        var checkIn = await database.AppointmentCheckIns.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.AppointmentId == fixture.Id, cancellationToken);
+
+        if (cancelled || checkIn is not null)
+        {
+            var matches = fixture.Status == StaffWorklistStatus.Cancelled ? cancelled :
+                checkIn is not null && checkIn.Matches(fixture.CheckIn!);
+            return Report(fixture, matches ? bookingState : "state drift; preserved", !matches);
+        }
+
+        if (fixture.Status == StaffWorklistStatus.Cancelled)
+        {
+            var result = await cancellations.CancelAsync(ownerId, fixture.Id, cancellationToken);
+            return Report(fixture, result.Status == CancellationStatus.Succeeded ? bookingState :
+                $"cancellation {result.Status}; preserved", result.Status != CancellationStatus.Succeeded);
+        }
+
+        var staffId = DevelopmentFixtureManifest.Staff.Single(item =>
+            item.BranchId == fixture.BranchId && item.Role == AccountRoles.SalesAgent).Id;
+        var checkedIn = await checkIns.CheckInAsync(staffId, fixture.Id, fixture.CheckIn!, cancellationToken);
+        return Report(fixture, checkedIn.Status == CheckInStatus.Succeeded ? bookingState :
+            $"check-in {checkedIn.Status}; preserved; retry on booked Malaysian date", checkedIn.Status != CheckInStatus.Succeeded);
     }
 
     private async Task<Queue<InspectionSlot>> FindSlotsAsync(Guid branchId, CancellationToken cancellationToken)

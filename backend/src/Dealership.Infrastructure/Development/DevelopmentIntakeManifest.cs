@@ -1,16 +1,18 @@
 using System.Security.Cryptography;
 using System.Text;
+using Dealership.Application.Intake;
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Intake;
 
 namespace Dealership.Infrastructure.Development;
 
 public sealed record DevelopmentIntakeFixture(Guid Id, Guid BranchId, Guid RegistrationKey,
-    string RegistrationPlate, ValuationRequest Vehicle);
+    string RegistrationPlate, ValuationRequest Vehicle, StaffWorklistStatus Status, CheckInEvidence? CheckIn);
 
 public static class DevelopmentIntakeManifest
 {
     public const int AppointmentsPerBranch = 41;
+    public const int TotalPerBranch = AppointmentsPerBranch + 2;
 
     public static IReadOnlyList<DevelopmentIntakeFixture> Appointments { get; } =
         Array.AsReadOnly(Enumerable.Range(0, DevelopmentFixtureManifest.Branches.Count)
@@ -25,14 +27,26 @@ public static class DevelopmentIntakeManifest
     {
         var branch = DevelopmentFixtureManifest.Branches[branchIndex];
         string[] prefixes = ["VCA", "BPL", "PQA"];
-        return Enumerable.Range(0, AppointmentsPerBranch).Select(index =>
+        // Give the check-in candidate the earliest available slot, before the booked worklist fills today.
+        var indices = new[] { TotalPerBranch - 1 }.Concat(Enumerable.Range(0, TotalPerBranch - 1));
+        return indices.Select(index =>
         {
             var customerIndex = (index + branchIndex) % 3 + 1;
             var registrationKey = DevelopmentFixtureManifest.Customers[customerIndex].Registration.RegistrationKey;
             var plate = $"{prefixes[branchIndex]} {6200 + index}";
             var vehicle = new ValuationRequest("Perodua", "Myvi", "1.5 AV", 2019, 45000 + index * 1200);
+            var status = index switch
+            {
+                AppointmentsPerBranch => StaffWorklistStatus.Cancelled,
+                AppointmentsPerBranch + 1 => StaffWorklistStatus.CheckedIn,
+                _ => StaffWorklistStatus.Booked
+            };
+            var evidence = status == StaffWorklistStatus.CheckedIn
+                ? new CheckInEvidence($"PM2M800{branchIndex + 1}0KC006242", 96000, true, true, true, true,
+                    "Customer attended with vehicle and ownership documents.")
+                : null;
             return new DevelopmentIntakeFixture(Identity($"appointment/{branch.Id:N}/{index}"), branch.Id,
-                registrationKey, plate, vehicle);
+                registrationKey, plate, vehicle, status, evidence);
         });
     }
 

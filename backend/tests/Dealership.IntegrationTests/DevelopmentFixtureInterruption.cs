@@ -12,6 +12,9 @@ internal sealed class DevelopmentFixtureInterruption
     public bool Enabled { get; set; } = true;
     public bool InterruptConfirmation { get; set; } = true;
     public bool InterruptPhoto { get; set; } = true;
+    public bool InterruptCancellation { get; set; } = true;
+    public bool InterruptCheckIn { get; set; } = true;
+    public bool DeferCheckIn { get; set; } = true;
 
     public void Configure(IServiceCollection services)
     {
@@ -21,6 +24,48 @@ internal sealed class DevelopmentFixtureInterruption
             new VerificationStore(ActivatorUtilities.CreateInstance<EmailVerificationStore>(provider), this));
         services.AddSingleton<IPhotoStorage>(provider =>
             new PhotoStorage(ActivatorUtilities.CreateInstance<S3PhotoStorage>(provider), this));
+        services.AddScoped<IAppointmentCancellationStore>(provider =>
+            new CancellationStore(ActivatorUtilities.CreateInstance<AppointmentCancellationStore>(provider), this));
+        services.AddScoped<IAppointmentCheckInStore>(provider =>
+            new CheckInStore(ActivatorUtilities.CreateInstance<AppointmentCheckInStore>(provider), this));
+    }
+
+    private sealed class CancellationStore(IAppointmentCancellationStore inner, DevelopmentFixtureInterruption fault)
+        : IAppointmentCancellationStore
+    {
+        public async Task<CancellationResult> CancelAsync(Guid ownerId, Guid appointmentId, CancellationToken cancellationToken)
+        {
+            var result = await inner.CancelAsync(ownerId, appointmentId, cancellationToken);
+
+            if (fault.InterruptCancellation && result.Status == CancellationStatus.Succeeded)
+            {
+                throw new IOException("Injected interruption after canonical cancellation committed.");
+            }
+
+            return result;
+        }
+    }
+
+    private sealed class CheckInStore(IAppointmentCheckInStore inner, DevelopmentFixtureInterruption fault)
+        : IAppointmentCheckInStore
+    {
+        public async Task<CheckInResult> CheckInAsync(Guid staffId, Guid appointmentId, CheckInEvidence evidence,
+            CancellationToken cancellationToken)
+        {
+            if (fault.DeferCheckIn)
+            {
+                return new CheckInResult(CheckInStatus.Unavailable);
+            }
+
+            var result = await inner.CheckInAsync(staffId, appointmentId, evidence, cancellationToken);
+
+            if (fault.InterruptCheckIn && result.Status == CheckInStatus.Succeeded)
+            {
+                throw new IOException("Injected interruption after canonical check-in committed.");
+            }
+
+            return result;
+        }
     }
 
     private sealed class StaffStore(StaffProvisioningStore inner, DevelopmentFixtureInterruption fault) : IStaffProvisioningStore
