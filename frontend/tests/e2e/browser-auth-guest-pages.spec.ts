@@ -8,7 +8,7 @@ const origin = process.env.APP_BASE_URL!;
 test("guest pages redirect only verified sessions and retain unavailable-session recovery", async ({
   page,
   context,
-}) => {
+}, testInfo) => {
   const accountReads = () => {
     const counts = JSON.parse(readFileSync(path.join(evidence, "counts.json"), "utf8"));
     return counts["/api/account"] ?? 0;
@@ -17,7 +17,8 @@ test("guest pages redirect only verified sessions and retain unavailable-session
   await page.goto("/login");
   await expect(page.getByLabel("Email", { exact: true })).toBeVisible();
   expect(accountReads()).toBe(initialReads);
-  await page.getByRole("button", { name: "Use demo account", exact: true }).click();
+  await page.getByText("Demo credentials", { exact: true }).click();
+  await page.getByRole("button", { name: "Use Customer demo account", exact: true }).click();
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page).toHaveURL(`${origin}/account`);
   const token = (await context.cookies()).find((cookie) => cookie.name === "apexauto_token")!.value;
@@ -40,6 +41,12 @@ test("guest pages redirect only verified sessions and retain unavailable-session
       page.getByRole("heading", { name: "Check your session", exact: true }),
     ).toBeVisible();
     await expect(page.getByLabel("Password", { exact: true })).toHaveCount(0);
+    const retry = page.getByRole("button", { name: "Try checking session again", exact: true });
+    expect((await retry.boundingBox())!.height).toBe(44);
+    await page.screenshot({
+      path: path.join(evidence, `${testInfo.project.name}-session-unavailable.png`),
+      fullPage: true,
+    });
     expect((await context.cookies()).some((cookie) => cookie.value === token)).toBe(true);
   } finally {
     writeFileSync(faultPath, "");

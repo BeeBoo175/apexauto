@@ -8,13 +8,20 @@
 
 .photograph {
   grid-area: photo;
-  position: relative;
+  position: sticky;
+  top: var(--site-header-height);
+  align-self: start;
   display: flex;
   align-items: flex-end;
-  min-height: 640px;
+  height: calc(100svh - var(--site-header-height));
   overflow: hidden;
   background: var(--color-graphite);
   color: var(--color-paper);
+}
+
+.imageContainer {
+  position: absolute;
+  inset: 0;
 }
 
 .image {
@@ -25,32 +32,20 @@
   position: absolute;
   inset: 0;
   content: "";
-  background: linear-gradient(180deg, rgb(12 12 12 / 18%), rgb(12 12 12 / 90%));
+  background: linear-gradient(180deg, transparent 50%, rgb(21 21 21 / 85%));
 }
 
 .photoContent {
   position: relative;
   z-index: 1;
-  width: 100%;
-  padding: clamp(40px, 7vw, 96px);
-}
-
-.photoHeading {
-  max-width: 12ch;
   margin: 0;
+  padding: 48px;
   font-family: var(--font-display);
-  font-size: clamp(48px, 6vw, 82px);
-  font-weight: 700;
-  line-height: 0.98;
-  letter-spacing: -0.04em;
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
   text-wrap: balance;
-}
-
-.photoDescription {
-  max-width: 45ch;
-  margin: 24px 0 0;
-  font-size: 17px;
-  line-height: 1.65;
 }
 
 .formRegion {
@@ -58,23 +53,21 @@
   display: flex;
   align-items: center;
   min-width: 0;
-  padding-block: 48px;
+  padding: 48px 40px;
 }
 
 .panel {
   display: flex;
   flex-direction: column;
   gap: 28px;
-  width: min(520px, calc(100% - 48px));
+  width: 100%;
+  max-width: 440px;
   margin-inline: auto;
-  padding: clamp(12px, 2.5vw, 36px);
-  border: 0;
-  border-radius: 0;
 }
 
 .heading h1 {
   margin: 0;
-  font-size: 26px;
+  font-size: 36px;
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: -0.025em;
@@ -82,28 +75,78 @@
 }
 
 .heading p {
-  margin: 12px 0 0;
+  max-width: 42ch;
+  margin: 8px 0 0;
   color: var(--color-muted);
   font-size: 15px;
   line-height: 1.6;
 }
 
+.panel label {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.panel input {
+  min-width: 0;
+  height: 44px;
+  font-size: 16px;
+  caret-color: var(--color-graphite);
+}
+
+.panel input:focus-visible {
+  outline: 2px solid var(--color-graphite);
+  outline-offset: 2px;
+}
+
+.panel button {
+  height: 44px;
+  padding-inline: 16px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
 .links {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin-top: -12px;
   font-size: 14px;
+  font-weight: 600;
   line-height: 1.5;
 }
 
+.links span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--color-muted);
+  font-weight: 400;
+}
+
+.links span a {
+  margin-left: 4px;
+}
+
 .links a {
-  text-decoration: underline;
-  text-underline-offset: 4px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--color-signal);
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 150ms ease;
 }
 
 .links a:hover {
   color: var(--color-signal-dark);
+  text-decoration: none;
 }
 
 .links a:focus-visible {
@@ -120,28 +163,21 @@
   }
 
   .photograph {
-    min-height: 360px;
+    position: relative;
+    top: auto;
+    height: 240px;
   }
 
   .photoContent {
-    padding: 40px 24px 32px;
-  }
-
-  .photoHeading {
-    max-width: 15ch;
-    font-size: clamp(40px, 8vw, 58px);
-  }
-
-  .photoDescription {
-    margin-top: 16px;
-    font-size: 15px;
+    padding: 32px 24px;
+    font-size: 24px;
   }
 
   .formRegion {
-    padding-block: 36px;
+    padding: 40px 24px;
   }
 
-  .panel {
-    padding: 0;
+  .heading h1 {
+    font-size: 32px;
   }
 }

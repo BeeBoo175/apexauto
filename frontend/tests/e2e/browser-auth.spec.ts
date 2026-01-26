@@ -40,8 +40,23 @@ function rememberProfile(registration: ReturnType<typeof customer>) {
   writeFileSync(file, JSON.stringify(profiles));
 }
 
+async function assertHydrationGuard(page: Page, html: string) {
+  const guarded = await page.evaluate((initialHtml) => {
+    const document = new DOMParser().parseFromString(initialHtml, "text/html");
+    const form = document.querySelector("form");
+    return (
+      form?.method === "post" &&
+      form.querySelector("fieldset")?.disabled === true &&
+      form.querySelector<HTMLButtonElement>("button[type=submit]")?.disabled === true &&
+      form.querySelector("noscript")?.textContent?.includes("JavaScript") === true
+    );
+  }, html);
+  expect(guarded, "Credentials and submit remain disabled until hydration").toBe(true);
+}
+
 async function signIn(page: Page, email: string) {
-  await page.goto("/login?returnTo=https://outside.invalid");
+  const response = await page.goto("/login?returnTo=https://outside.invalid");
+  await assertHydrationGuard(page, await response!.text());
   await page.getByLabel("Email", { exact: true }).fill(email);
   await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
@@ -63,7 +78,15 @@ test("registration, unverified own account, bounded refresh and current-session 
   expect(signedOut.headers().location).toBe("/login?returnTo=%2Faccount");
   expect(signedOut.headers()["cache-control"]).toContain("no-store");
   expect(signedOut.headers()["x-robots-tag"]).toContain("noindex");
-  await page.goto("/register");
+  const registrationPage = await page.goto("/register");
+  await assertHydrationGuard(page, await registrationPage!.text());
+  await page.screenshot({
+    path: path.join(evidence, `${testInfo.project.name}-register-layout.png`),
+    fullPage: true,
+  });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
   const before = counts();
   await page.getByLabel("Legal name", { exact: true }).fill(owner.legalName);
   await page.getByLabel("Email", { exact: true }).fill(owner.email);

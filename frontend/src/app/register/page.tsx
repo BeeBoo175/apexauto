@@ -6,11 +6,13 @@ export default function RegisterPage() {
   return (
     <GuestOnly>
       <AuthPage
-        title="Create a customer account"
-        introduction="Register your details, then verify your email before booking an appointment."
-        photoHeading="Your vehicle. Your account."
-        photoDescription="Keep your vehicle intake and appointments together in your ApexAuto account."
-        links={<a href="/login">Already registered? Sign in</a>}
+        title="Create an account"
+        introduction="Verify your email after registering to book an appointment."
+        links={
+          <span>
+            Already registered? <a href="/login">Sign in</a>
+          </span>
+        }
       >
         <AuthForm kind="register" destination="/login" />
       </AuthPage>

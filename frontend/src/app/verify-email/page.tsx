@@ -12,8 +12,6 @@ export default function VerifyEmailPage() {
     <AuthPage
       title="Verify your email"
       introduction="Confirm your email address before booking your vehicle intake."
-      photoHeading="Ready for the next step."
-      photoDescription="Verify your account email to continue with your vehicle intake."
     >
       <VerifyEmailControl />
     </AuthPage>

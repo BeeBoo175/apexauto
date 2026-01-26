@@ -11,9 +11,7 @@ export default function ForgotPasswordPage() {
   return (
     <AuthPage
       title="Forgot password"
-      introduction="Request a link to get back into your account."
-      photoHeading="Back to your account."
-      photoDescription="Recover access to your ApexAuto account with your email address."
+      introduction="Enter your account email for a reset link."
       links={<a href="/login">Return to sign in</a>}
     >
       <PasswordRecoveryForm />

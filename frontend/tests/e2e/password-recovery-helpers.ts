@@ -131,7 +131,8 @@ export async function assertInitialRecoveryPage(page: Page, route: string, headi
 }
 
 export async function signInRecovered(page: Page, email: string) {
-  await page.getByRole("button", { name: "Use demo account", exact: true }).click();
+  await page.getByText("Demo credentials", { exact: true }).click();
+  await page.getByRole("button", { name: "Use Customer demo account", exact: true }).click();
   await expect(page.getByLabel("Email", { exact: true })).toHaveValue(/@/);
   await page.getByLabel("Email", { exact: true }).fill(email);
   await page.getByLabel("Password", { exact: true }).fill(recoveredPassword);

@@ -12,8 +12,6 @@ export default function ResetPasswordPage() {
     <AuthPage
       title="Reset password"
       introduction="Set a new password, then return to sign in."
-      photoHeading="A fresh start."
-      photoDescription="Your account and vehicle records stay together when you reset your password."
       links={
         <>
           <a href="/forgot-password">Request a new reset link</a>

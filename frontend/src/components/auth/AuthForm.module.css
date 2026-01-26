@@ -1,0 +1,148 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.password {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.help {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.recoveryLink,
+.accountLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-signal);
+  text-decoration: none;
+  transition: color 150ms ease;
+}
+
+.secondaryLinks {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: -8px;
+}
+
+.recoveryLink:hover,
+.accountLink:hover {
+  color: var(--color-signal-dark);
+  text-decoration: none;
+}
+
+.recoveryLink:focus-visible,
+.accountLink:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 4px;
+}
+
+.pairedFields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: 20px;
+}
+
+.actions {
+  display: flex;
+}
+
+.submit {
+  width: 100%;
+}
+
+.demo {
+  min-width: 0;
+  margin-top: -4px;
+}
+
+.demoDetails {
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+}
+
+.demoSummary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+
+.demoSummary::-webkit-details-marker {
+  display: none;
+}
+
+.demoSummary:hover {
+  color: var(--color-graphite);
+}
+
+.demoSummary:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 4px;
+}
+
+.chevron {
+  transition: transform 200ms ease;
+  color: var(--color-subtle);
+}
+
+.demoDetails[open] .chevron {
+  transform: rotate(180deg);
+}
+
+.demoContent {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.demoRoles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.demoContent .demoRoles button {
+  padding-inline: 8px;
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.status {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.status:empty {
+  position: absolute;
+}

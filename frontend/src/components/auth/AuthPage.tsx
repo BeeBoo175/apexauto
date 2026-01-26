@@ -1,29 +1,20 @@
 import type { ReactNode } from "react";
 import Image from "next/image";
-import { Card } from "@/components/ui/Card";
+import detailPhoto from "../../../public/images/apexauto-detail.webp";
 import styles from "./AuthPage.module.css";
 
 interface AuthPageProps {
   title: string;
   introduction: string;
-  photoHeading: string;
-  photoDescription: string;
   children: ReactNode;
   links?: ReactNode;
 }
 
-export function AuthPage({
-  title,
-  introduction,
-  photoHeading,
-  photoDescription,
-  children,
-  links,
-}: AuthPageProps) {
+export function AuthPage({ title, introduction, children, links }: AuthPageProps) {
   return (
     <section className={styles.page} aria-labelledby="auth-title">
       <div className={styles.formRegion}>
-        <Card className={styles.panel}>
+        <div className={styles.panel}>
           <div className={styles.heading}>
             <h1 id="auth-title">{title}</h1>
             <p>{introduction}</p>
@@ -34,21 +25,20 @@ export function AuthPage({
               {links}
             </nav>
           )}
-        </Card>
+        </div>
       </div>
       <div className={styles.photograph}>
-        <Image
-          src="/images/apexauto-detail.avif"
-          alt=""
-          fill
-          sizes="(max-width: 820px) 100vw, 50vw"
-          preload
-          className={styles.image}
-        />
-        <div className={styles.photoContent}>
-          <p className={styles.photoHeading}>{photoHeading}</p>
-          <p className={styles.photoDescription}>{photoDescription}</p>
+        <div className={styles.imageContainer}>
+          <Image
+            src={detailPhoto}
+            alt=""
+            fill
+            sizes="(max-width: 820px) 100vw, 50vw"
+            preload
+            className={styles.image}
+          />
         </div>
+        <p className={styles.photoContent}>Your ApexAuto account</p>
       </div>
     </section>
   );

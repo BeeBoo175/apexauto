@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { usePasswordRecovery } from "@/hooks/use-password-recovery";
+import styles from "./AuthForm.module.css";
 
 export function PasswordRecoveryForm() {
   const [hydrated, setHydrated] = useState(false);
@@ -29,13 +30,12 @@ export function PasswordRecoveryForm() {
   }
 
   return (
-    <form method="post" onSubmit={handleSubmit} className="flex flex-col gap-5">
+    <form method="post" onSubmit={handleSubmit} className={styles.form}>
       <noscript>
         <p className="text-sm text-muted">
           JavaScript is required to submit this form. Enable JavaScript and reload this page.
         </p>
       </noscript>
-      <p>Enter your account email to request a password reset link.</p>
       <Input
         label="Email"
         name="email"
@@ -47,10 +47,10 @@ export function PasswordRecoveryForm() {
         disabled={!hydrated || busy || uncertain}
         required
       />
-      <p role="status" aria-live="polite" className="min-h-12 text-sm text-muted">
+      <p role="status" aria-live="polite" className={styles.status}>
         {message}
       </p>
-      <Button type="submit" disabled={!hydrated || busy}>
+      <Button type="submit" disabled={!hydrated || busy} className={styles.submit}>
         {label}
       </Button>
     </form>

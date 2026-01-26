@@ -2,11 +2,7 @@ import { AuthForm } from "@/components/auth/AuthForm";
 import { AuthPage } from "@/components/auth/AuthPage";
 import { GuestOnly } from "@/components/auth/GuestOnly";
 import { safeReturnTo } from "@/lib/auth/contracts";
-
-const demoAccount = {
-  email: "nur.aisyah@example.invalid",
-  password: "Password123!",
-};
+import { demoAccounts } from "./demo-accounts";
 
 export default async function LoginPage({
   searchParams,
@@ -17,19 +13,8 @@ export default async function LoginPage({
 
   return (
     <GuestOnly>
-      <AuthPage
-        title="Sign in"
-        introduction="Enter the email and password for your account."
-        photoHeading="Sign in to ApexAuto"
-        photoDescription="Access your account and manage your vehicle intake."
-        links={
-          <>
-            <a href="/forgot-password">Forgot password?</a>
-            <a href="/register">Create a customer account</a>
-          </>
-        }
-      >
-        <AuthForm kind="login" destination={safeReturnTo(returnTo)} demoAccount={demoAccount} />
+      <AuthPage title="Sign in" introduction="Welcome back to ApexAuto.">
+        <AuthForm kind="login" destination={safeReturnTo(returnTo)} demoAccounts={demoAccounts} />
       </AuthPage>
     </GuestOnly>
   );
