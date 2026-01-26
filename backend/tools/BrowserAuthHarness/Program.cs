@@ -16,6 +16,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Configuration;
 using Dealership.Application.Accounts;
 using Dealership.Infrastructure.Development;
+using Dealership.Application.Branches;
 
 namespace Dealership.BrowserAuthHarness;
 
@@ -39,6 +40,8 @@ internal static class BrowserHarness
         File.WriteAllText(Path.Combine(evidence, "profiles.json"), "[]");
         File.WriteAllText(Path.Combine(evidence, "confirmed-emails.json"), "[]");
         var database = new RegistrationDatabase();
+        var guestPageFixtures = args.Contains("--guest-pages", StringComparer.Ordinal);
+        args = args.Where(argument => argument != "--guest-pages").ToArray();
         await database.InitializeAsync();
         Environment.SetEnvironmentVariable("ASPNETCORE_URLS", "http://127.0.0.1:0");
         Environment.SetEnvironmentVariable("AllowedHosts", "localhost;127.0.0.1");
@@ -47,7 +50,7 @@ internal static class BrowserHarness
         {
             foreach (var project in new[] { "desktop-auth", "mobile-auth" })
             {
-                var exitCode = await RunBrowserAsync(project, args, database, state, evidence, frontend);
+                var exitCode = await RunBrowserAsync(project, args, database, state, evidence, frontend, guestPageFixtures);
 
                 if (exitCode != 0)
                 {
@@ -67,7 +70,7 @@ internal static class BrowserHarness
     }
 
     private static async Task<int> RunBrowserAsync(string project, string[] args, RegistrationDatabase database,
-        BrowserEvidence state, string evidence, string frontend)
+        BrowserEvidence state, string evidence, string frontend, bool guestPageFixtures)
     {
         using var factory = new WebApplicationFactory<global::Program>().WithWebHostBuilder(builder =>
         {
@@ -91,6 +94,54 @@ internal static class BrowserHarness
         using (var scope = factory.Services.CreateScope())
         {
             var registration = scope.ServiceProvider.GetRequiredService<RegistrationService>();
+            var branch = DevelopmentFixtureManifest.Branches[0];
+            var branchResult = await scope.ServiceProvider.GetRequiredService<BranchProvisioningService>()
+                .ProvisionBranchAsync(branch, CancellationToken.None);
+
+            if (!branchResult.MatchesRequestedState)
+            {
+                throw new InvalidOperationException("Canonical demo branch did not match its request.");
+            }
+
+            var staffService = scope.ServiceProvider.GetRequiredService<StaffProvisioningService>();
+            var confirmedFile = Path.Combine(evidence, "confirmed-emails.json");
+            var confirmedStaff = JsonSerializer.Deserialize<List<string>>(File.ReadAllText(confirmedFile))!;
+            foreach (var staff in DevelopmentFixtureManifest.Staff.Where(staff => staff.BranchId == branch.Id || staff.BranchId == null))
+            {
+                var staffResult = await staffService.ProvisionStaffAsync(staff, CancellationToken.None);
+                if (!staffResult.MatchesRequestedState)
+                {
+                    throw new InvalidOperationException("Canonical demo staff did not match its request.");
+                }
+
+                if (!confirmedStaff.Contains(staff.Email!, StringComparer.OrdinalIgnoreCase))
+                {
+                    confirmedStaff.Add(staff.Email!);
+                }
+            }
+
+            File.WriteAllText(confirmedFile, JsonSerializer.Serialize(confirmedStaff));
+            if (guestPageFixtures)
+            {
+                var staff = scope.ServiceProvider.GetRequiredService<StaffProvisioningService>();
+                var provisioned = await staff.ProvisionStaffAsync(new StaffProvisioningRequest(
+                    Guid.Parse("4ccabff9-76e5-4636-80cb-d2f204241a2b"), "guest.staff@example.invalid",
+                    "Password123!", AccountRoles.Administrator, null), CancellationToken.None);
+
+                if (!provisioned.MatchesRequestedState)
+                {
+                    throw new InvalidOperationException("Guest-page staff fixture did not match its canonical request.");
+                }
+
+                var confirmedPath = Path.Combine(evidence, "confirmed-emails.json");
+                var confirmed = JsonSerializer.Deserialize<List<string>>(File.ReadAllText(confirmedPath))!;
+                if (!confirmed.Contains("guest.staff@example.invalid", StringComparer.OrdinalIgnoreCase))
+                {
+                    confirmed.Add("guest.staff@example.invalid");
+                    File.WriteAllText(confirmedPath, JsonSerializer.Serialize(confirmed));
+                }
+            }
+
             var customer = DevelopmentFixtureManifest.Customers[0].Registration;
             var result = await registration.RegisterAsync(customer, CancellationToken.None);
 

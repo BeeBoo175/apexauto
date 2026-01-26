@@ -130,7 +130,23 @@ test("cross-tab actor changes abort completed refreshes and discard previous acc
   const resendAbort = page.waitForEvent("console", {
     predicate: (message) => message.text() === "Delayed verification resend released after abort",
   });
-  await signIn(actorTab, owners[1].Email);
+  await actorTab.goto("/account");
+  const changedActor = await actorTab.evaluate(async (email) => {
+    const response = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ loginKey: crypto.randomUUID(), email, password: "Password123!" }),
+    });
+    const receipt = await response.json();
+    if (response.ok && receipt.ok === true) {
+      const channel = new BroadcastChannel("apexauto-session");
+      channel.postMessage("session-changed");
+      channel.close();
+    }
+    return response.ok && receipt.ok === true;
+  }, owners[1].Email);
+  expect(changedActor).toBe(true);
+  await actorTab.goto("/account");
   await firstAbort;
   await resendAbort;
   await expect(page.getByText(owners[0].LegalName, { exact: true })).toHaveCount(0);
