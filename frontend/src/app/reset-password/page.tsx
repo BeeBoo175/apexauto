@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { PasswordResetForm } from "@/components/auth/PasswordResetForm";
-import { Card } from "@/components/ui/Card";
+import { AuthPage } from "@/components/auth/AuthPage";
 
 export const metadata: Metadata = {
   title: "Reset password | ApexAuto",
@@ -9,17 +9,19 @@ export const metadata: Metadata = {
 
 export default function ResetPasswordPage() {
   return (
-    <section className="max-w-lg mx-auto p-6 flex flex-col gap-5">
-      <h1 className="text-2xl font-bold">Reset password</h1>
-      <Card>
-        <PasswordResetForm />
-      </Card>
-      <a href="/forgot-password" className="underline">
-        Request a new reset link
-      </a>
-      <a href="/login" className="underline">
-        Return to sign in
-      </a>
-    </section>
+    <AuthPage
+      title="Reset password"
+      introduction="Set a new password, then return to sign in."
+      photoHeading="A fresh start."
+      photoDescription="Your account and vehicle records stay together when you reset your password."
+      links={
+        <>
+          <a href="/forgot-password">Request a new reset link</a>
+          <a href="/login">Return to sign in</a>
+        </>
+      }
+    >
+      <PasswordResetForm />
+    </AuthPage>
   );
 }

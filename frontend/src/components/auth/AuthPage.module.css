@@ -1,0 +1,147 @@
+.page {
+  display: grid;
+  grid-template-areas: "photo form";
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-height: calc(100svh - var(--site-header-height));
+  background: var(--color-paper);
+}
+
+.photograph {
+  grid-area: photo;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  min-height: 640px;
+  overflow: hidden;
+  background: var(--color-graphite);
+  color: var(--color-paper);
+}
+
+.image {
+  object-fit: cover;
+}
+
+.photograph::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: linear-gradient(180deg, rgb(12 12 12 / 18%), rgb(12 12 12 / 90%));
+}
+
+.photoContent {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  padding: clamp(40px, 7vw, 96px);
+}
+
+.photoHeading {
+  max-width: 12ch;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(48px, 6vw, 82px);
+  font-weight: 700;
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+
+.photoDescription {
+  max-width: 45ch;
+  margin: 24px 0 0;
+  font-size: 17px;
+  line-height: 1.65;
+}
+
+.formRegion {
+  grid-area: form;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding-block: 48px;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  width: min(520px, calc(100% - 48px));
+  margin-inline: auto;
+  padding: clamp(12px, 2.5vw, 36px);
+  border: 0;
+  border-radius: 0;
+}
+
+.heading h1 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+.heading p {
+  margin: 12px 0 0;
+  color: var(--color-muted);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.links {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.links a {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.links a:hover {
+  color: var(--color-signal-dark);
+}
+
+.links a:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 5px;
+}
+
+@media (max-width: 820px) {
+  .page {
+    grid-template-areas:
+      "form"
+      "photo";
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .photograph {
+    min-height: 360px;
+  }
+
+  .photoContent {
+    padding: 40px 24px 32px;
+  }
+
+  .photoHeading {
+    max-width: 15ch;
+    font-size: clamp(40px, 8vw, 58px);
+  }
+
+  .photoDescription {
+    margin-top: 16px;
+    font-size: 15px;
+  }
+
+  .formRegion {
+    padding-block: 36px;
+  }
+
+  .panel {
+    padding: 0;
+  }
+}

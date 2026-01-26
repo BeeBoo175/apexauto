@@ -1,16 +1,16 @@
 import { AuthForm } from "@/components/auth/AuthForm";
-import { Card } from "@/components/ui/Card";
+import { AuthPage } from "@/components/auth/AuthPage";
 
 export default function RegisterPage() {
   return (
-    <section className="max-w-lg mx-auto p-6 flex flex-col gap-5">
-      <h1 className="text-2xl font-bold">Create a customer account</h1>
-      <Card>
-        <AuthForm kind="register" destination="/login" />
-      </Card>
-      <a href="/login" className="underline">
-        Already registered? Sign in
-      </a>
-    </section>
+    <AuthPage
+      title="Create a customer account"
+      introduction="Register your details, then verify your email before booking an appointment."
+      photoHeading="Your vehicle. Your account."
+      photoDescription="Keep your vehicle intake and appointments together in your ApexAuto account."
+      links={<a href="/login">Already registered? Sign in</a>}
+    >
+      <AuthForm kind="register" destination="/login" />
+    </AuthPage>
   );
 }

@@ -1,5 +1,5 @@
 import { AuthForm } from "@/components/auth/AuthForm";
-import { Card } from "@/components/ui/Card";
+import { AuthPage } from "@/components/auth/AuthPage";
 import { safeReturnTo } from "@/lib/auth/contracts";
 
 const demoAccount = {
@@ -15,17 +15,19 @@ export default async function LoginPage({
   const { returnTo } = await searchParams;
 
   return (
-    <section className="max-w-lg mx-auto p-6 flex flex-col gap-5">
-      <h1 className="text-2xl font-bold">Sign in</h1>
-      <Card>
-        <AuthForm kind="login" destination={safeReturnTo(returnTo)} demoAccount={demoAccount} />
-      </Card>
-      <a href="/forgot-password" className="underline">
-        Forgot password?
-      </a>
-      <a href="/register" className="underline">
-        Create a customer account
-      </a>
-    </section>
+    <AuthPage
+      title="Sign in"
+      introduction="Enter the email and password for your account."
+      photoHeading="Sign in to ApexAuto"
+      photoDescription="Access your account and manage your vehicle intake."
+      links={
+        <>
+          <a href="/forgot-password">Forgot password?</a>
+          <a href="/register">Create a customer account</a>
+        </>
+      }
+    >
+      <AuthForm kind="login" destination={safeReturnTo(returnTo)} demoAccount={demoAccount} />
+    </AuthPage>
   );
 }

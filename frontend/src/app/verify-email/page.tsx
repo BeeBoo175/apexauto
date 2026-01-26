@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { VerifyEmailControl } from "@/components/auth/VerifyEmailControl";
-import { Card } from "@/components/ui/Card";
+import { AuthPage } from "@/components/auth/AuthPage";
 
 export const metadata: Metadata = {
   title: "Verify email | ApexAuto",
@@ -9,11 +9,13 @@ export const metadata: Metadata = {
 
 export default function VerifyEmailPage() {
   return (
-    <section className="max-w-lg mx-auto p-6 flex flex-col gap-5">
-      <h1 className="text-2xl font-bold">Verify your email</h1>
-      <Card>
-        <VerifyEmailControl />
-      </Card>
-    </section>
+    <AuthPage
+      title="Verify your email"
+      introduction="Confirm your email address before booking your vehicle intake."
+      photoHeading="Ready for the next step."
+      photoDescription="Verify your account email to continue with your vehicle intake."
+    >
+      <VerifyEmailControl />
+    </AuthPage>
   );
 }

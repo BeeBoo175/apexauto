@@ -20,7 +20,14 @@
 }
 
 :root {
+  --site-header-height: 72px;
   color-scheme: light;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --site-header-height: 112px;
+  }
 }
 
 body {
