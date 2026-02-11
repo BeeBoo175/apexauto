@@ -1,0 +1,51 @@
+import { calendarTime } from "@/lib/calendar";
+import tones from "../StatusTone.module.css";
+import type { CalendarEvent, CalendarProps } from "./types";
+import styles from "./CalendarEvents.module.css";
+
+export function CalendarEventButton<Data>({
+  event,
+  timeZone,
+  locale,
+  disabled,
+  busy,
+  renderEvent,
+  onEventSelect,
+  compact = false,
+}: Pick<
+  CalendarProps<Data>,
+  "timeZone" | "locale" | "disabled" | "busy" | "renderEvent" | "onEventSelect"
+> & {
+  event: CalendarEvent<Data>;
+  compact?: boolean;
+}) {
+  const time = calendarTime(event.startsAt, timeZone, locale);
+  return (
+    <button
+      type="button"
+      className={`${styles.event} ${tones[event.tone ?? "info"]}`}
+      data-tone={event.tone ?? "info"}
+      data-compact={(compact && !renderEvent) || undefined}
+      title={`${event.title}, ${time}${event.label ? `, ${event.label}` : ""}`}
+      aria-label={`Open ${event.title}, ${time}${event.label ? `, ${event.label}` : ""}`}
+      aria-disabled={disabled || busy || undefined}
+      onClick={() => {
+        if (!disabled && !busy) {
+          onEventSelect(event);
+        }
+      }}
+    >
+      {renderEvent ? (
+        renderEvent(event)
+      ) : (
+        <>
+          <time dateTime={event.startsAt}>
+            {compact ? calendarTime(event.startsAt, timeZone, locale, false) : time}
+          </time>
+          <strong>{event.title}</strong>
+          {event.label && <span>{event.label}</span>}
+        </>
+      )}
+    </button>
+  );
+}

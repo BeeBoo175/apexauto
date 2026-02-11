@@ -1,0 +1,61 @@
+.popover {
+  position: fixed;
+  inset: auto;
+  box-sizing: border-box;
+  width: min(360px, calc(100vw - 16px));
+  max-height: min(400px, calc(100dvh - 16px));
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm, 4px);
+  background: var(--color-paper, white);
+  color: var(--color-graphite, #151515);
+}
+
+.popover:popover-open {
+  display: flex;
+  flex-direction: column;
+}
+
+.popover:focus {
+  /* Initial dialog focus announces its context; tabbed controls keep their own focus rings. */
+  outline: none;
+}
+
+.header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-line-soft);
+}
+
+.header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.events {
+  display: grid;
+  min-height: 0;
+  gap: 6px;
+  padding: 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: var(--color-muted) var(--color-paper);
+}
+
+.events:focus-visible {
+  outline: 2px solid var(--color-graphite);
+  outline-offset: -2px;
+}
+
+@media (max-width: 820px) {
+  .popover:popover-open {
+    display: none;
+  }
+}
