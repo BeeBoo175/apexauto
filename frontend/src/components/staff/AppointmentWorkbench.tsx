@@ -10,9 +10,11 @@ import { intakeFetch } from "@/lib/intake/browser";
 import type { ApiResult } from "@/lib/intake/contracts";
 import type { CurrentActor } from "@/lib/auth/actor";
 import { emptyCheckIn, type AppointmentDetail, type CheckInDraft } from "@/lib/staff/contracts";
-import { checkInMatches, parseCheckIn, parseDetail } from "@/lib/staff/parse";
+import { checkInMatches, correctionMatches, parseCheckIn, parseDetail } from "@/lib/staff/parse";
+import { calendarDate } from "@/lib/calendar";
 import { formatMalaysianDate, formatMalaysianDateTime } from "@/lib/date-format";
 import { CheckInFields } from "./CheckInFields";
+import { NoShowCorrectionFields } from "./NoShowCorrectionFields";
 import { AppointmentStatus } from "./AppointmentStatus";
 import styles from "./AppointmentWorkbench.module.css";
 
@@ -41,14 +43,15 @@ export function AppointmentWorkbench({
   const [localDraft, setLocalDraft] = useState(emptyCheckIn);
   const [ready, setReady] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const correcting = snapshot.data?.status === "NoShow" && actor.role === "BranchManager";
   const controller = useRef<AbortController | null>(null);
   const command = useIntakeCommand(
-    `/api/staff/intake/appointments/${id}/check-in`,
+    `/api/staff/intake/appointments/${id}/${correcting ? "no-show-correction" : "check-in"}`,
     parseCheckIn,
     (receipt, request) =>
       receipt.appointmentId === id &&
       receipt.staffId === actor.userId &&
-      checkInMatches(receipt, request),
+      (correcting ? correctionMatches(receipt, request) : checkInMatches(receipt, request)),
   );
   const value = draft ?? localDraft;
   const locked = command.busy || command.uncertain;
@@ -96,6 +99,12 @@ export function AppointmentWorkbench({
     const result = await command.submit({
       ...value,
       mileageKilometres: Number(value.mileageKilometres),
+      ...(correcting && snapshot.data
+        ? {
+            attendedAt: `${calendarDate(new Date(snapshot.data.startsAt))}T${value.attendedTime}:00+08:00`,
+            reason: value.correctionReason,
+          }
+        : {}),
     });
     if (result) {
       onLock?.(false);
@@ -109,6 +118,9 @@ export function AppointmentWorkbench({
         ? {
             ...current.data,
             status: "CheckedIn",
+            attendanceCorrectedAt: result.data!.correction?.recordedAt ?? null,
+            correctionReason: result.data!.correction?.reason ?? null,
+            correctedBy: correcting ? result.data!.staffId : null,
           }
         : null,
     }));
@@ -195,49 +207,67 @@ export function AppointmentWorkbench({
           {actor.role === "GeneralManager" && (
             <p className={styles.help}>Your role has read-only intake access.</p>
           )}
-          {actor.role !== "GeneralManager" && detail.status === "Booked" && !command.receipt && (
-            <form
-              method="post"
-              className={styles.protocol}
-              onSubmit={(event) => {
-                event.preventDefault();
-                void checkIn();
-              }}
-            >
-              <h3>Physical check-in</h3>
-              <p className={styles.help}>
-                Check-in is available only on the booked Malaysian date,{" "}
-                {formatMalaysianDate(detail.startsAt)}. Confirm the physical vehicle and customer.
-                The service checks current eligibility.
-              </p>
-              <CheckInFields
-                draft={value}
-                onChange={onDraft ?? setLocalDraft}
-                disabled={!ready || locked || refreshing}
-              />
-              <div className={styles.actionFooter}>
-                <p className={styles.help}>
-                  Record the physical arrival. Booked facts remain unchanged.
-                </p>
-                <Button
-                  size="compact"
-                  type="submit"
-                  disabled={!ready || command.busy || refreshing}
-                >
-                  {commandLabel(command.uncertain)}
-                </Button>
-              </div>
-            </form>
+          {detail.status === "NoShow" && actor.role !== "BranchManager" && (
+            <p className={styles.help}>
+              Only the same-branch BranchManager can correct attendance. Later-date arrivals need a
+              new booking.
+            </p>
           )}
+          {actor.role !== "GeneralManager" &&
+            (detail.status === "Booked" || correcting) &&
+            !command.receipt && (
+              <form
+                method="post"
+                className={styles.protocol}
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void checkIn();
+                }}
+              >
+                <h3>{correcting ? "Correct no-show attendance" : "Physical check-in"}</h3>
+                <p className={styles.help}>
+                  {correcting
+                    ? "Record attendance that occurred on"
+                    : "Check-in is available only on"}{" "}
+                  the booked Malaysian date, {formatMalaysianDate(detail.startsAt)}. Confirm the
+                  physical vehicle and customer. The service checks current eligibility.
+                </p>
+                {correcting && (
+                  <NoShowCorrectionFields
+                    draft={value}
+                    onChange={onDraft ?? setLocalDraft}
+                    disabled={!ready || locked || refreshing}
+                  />
+                )}
+                <CheckInFields
+                  draft={value}
+                  onChange={onDraft ?? setLocalDraft}
+                  disabled={!ready || locked || refreshing}
+                  retrospective={correcting}
+                />
+                <div className={styles.actionFooter}>
+                  <p className={styles.help}>
+                    Record the physical arrival. Booked facts remain unchanged.
+                  </p>
+                  <Button
+                    size="compact"
+                    type="submit"
+                    disabled={!ready || command.busy || refreshing}
+                  >
+                    {commandLabel(correcting, command.uncertain)}
+                  </Button>
+                </div>
+              </form>
+            )}
         </>
       )}
     </div>
   );
 }
 
-function commandLabel(uncertain: boolean) {
+function commandLabel(correcting: boolean, uncertain: boolean) {
   if (uncertain) {
-    return "Retry same check-in";
+    return correcting ? "Retry same correction" : "Retry same check-in";
   }
-  return "Confirm check-in";
+  return correcting ? "Confirm attendance correction" : "Confirm check-in";
 }

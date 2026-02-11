@@ -32,7 +32,11 @@ export default defineConfig({
   projects: [
     {
       name: "contracts",
-      testMatch: ["auth/contracts.spec.ts", "intake/contracts.spec.ts"],
+      testMatch: [
+        "auth/contracts.spec.ts",
+        "intake/contracts.spec.ts",
+        "intake/no-show-contracts.spec.ts",
+      ],
     },
     ...(browserAuth
       ? [

@@ -140,3 +140,14 @@ function utcTimestamp(value: unknown): value is string {
     typeof value === "string" && /(Z|\+00:00)$/.test(value) && Number.isFinite(Date.parse(value))
   );
 }
+
+export function correctionMatches(receipt: CheckInReceipt, request: unknown) {
+  if (!isRecord(request) || typeof request.attendedAt !== "string") {
+    return false;
+  }
+  return (
+    checkInMatches(receipt, request) &&
+    Date.parse(receipt.checkedInAt) === Date.parse(request.attendedAt) &&
+    receipt.correction?.reason === String(request.reason ?? "").trim()
+  );
+}
