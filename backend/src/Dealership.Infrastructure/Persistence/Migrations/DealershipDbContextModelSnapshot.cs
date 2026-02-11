@@ -156,6 +156,13 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("CheckedInAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("CorrectionReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTimeOffset?>("CorrectionRecordedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<bool>("CustomerPresent")
                         .HasColumnType("boolean");
 
@@ -203,6 +210,8 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.ToTable("AppointmentCheckIns", null, t =>
                         {
+                            t.HasCheckConstraint("CK_AppointmentCheckIns_Correction", "(\"CorrectionRecordedAt\" IS NULL AND \"CorrectionReason\" IS NULL) OR (\"CorrectionRecordedAt\" IS NOT NULL AND \"CorrectionReason\" IS NOT NULL AND \"CorrectionReason\" ~ '[^[:space:]]' AND \"CorrectionReason\" !~ '[[:cntrl:]]')");
+
                             t.HasCheckConstraint("CK_AppointmentCheckIns_Notes", "\"Notes\" IS NULL OR (\"Notes\" ~ '[^[:space:]]' AND length(\"Notes\") <= 1000)");
 
                             t.HasCheckConstraint("CK_AppointmentCheckIns_Physical", "\"CustomerPresent\" AND \"IdentityConfirmed\" AND \"OwnershipConfirmed\" AND \"VehicleConfirmed\" AND \"MileageKilometres\" >= 0 AND \"Vin\" ~ '^[A-HJ-NPR-Z0-9]{17}$'");
