@@ -10,9 +10,9 @@ export function usePasswordReset() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [uncertain, setUncertain] = useState(false);
-  const [message, setMessage] = useState("Open the reset link from your email to continue.");
   const [passwordError, setPasswordError] = useState("");
   const activeToken = useRef<string | null>(null);
+  const fragmentRead = useRef(false);
   const attempt = useRef<string | null>(null);
   const controller = useRef<AbortController | null>(null);
   const { success, error, warning } = useToast();
@@ -29,10 +29,11 @@ export function usePasswordReset() {
       const nextToken =
         values.length === 1 && values[0].length > 0 && values[0].length <= 160 ? values[0] : null;
 
-      if (activeToken.current === nextToken) {
+      if (fragmentRead.current && activeToken.current === nextToken) {
         return;
       }
 
+      fragmentRead.current = true;
       controller.current?.abort();
       controller.current = null;
       activeToken.current = nextToken;
@@ -42,7 +43,9 @@ export function usePasswordReset() {
       setBusy(false);
       setUncertain(false);
       setPasswordError("");
-      setMessage(nextToken ? "" : "The reset link is missing or invalid. Request a new link.");
+      if (!nextToken) {
+        error("The reset link is missing or invalid. Request a new link.");
+      }
     }
 
     queueMicrotask(readFragment);
@@ -55,7 +58,7 @@ export function usePasswordReset() {
       attempt.current = null;
       window.removeEventListener("hashchange", readFragment);
     };
-  }, []);
+  }, [error]);
 
   useEffect(() => {
     if (!busy && !uncertain) {
@@ -82,7 +85,6 @@ export function usePasswordReset() {
     controller.current = request;
     setBusy(true);
     setPasswordError("");
-    setMessage("");
     const isCurrent = () =>
       controller.current === request &&
       activeToken.current === requestToken &&
@@ -123,9 +125,8 @@ export function usePasswordReset() {
       ) {
         attempt.current = null;
         setUncertain(false);
-        setMessage(receipt.message);
         setPasswordError(typeof receipt.passwordError === "string" ? receipt.passwordError : "");
-        error(receipt.message);
+        error(typeof receipt.passwordError === "string" ? receipt.passwordError : receipt.message);
         return;
       }
 
@@ -133,10 +134,9 @@ export function usePasswordReset() {
     } catch {
       if (isCurrent()) {
         setUncertain(true);
-        setMessage(
+        warning(
           "The result is unconfirmed. Keep this page open and retry the same link and password before the link expires.",
         );
-        warning("The password reset could not be confirmed.");
       }
     } finally {
       if (controller.current === request) {
@@ -146,5 +146,5 @@ export function usePasswordReset() {
     }
   }
 
-  return { token, password, setPassword, busy, uncertain, message, passwordError, submit };
+  return { token, password, setPassword, busy, uncertain, passwordError, submit };
 }

@@ -13,7 +13,7 @@ export function PasswordResetForm() {
     queueMicrotask(() => setHydrated(true));
   }, []);
 
-  const { token, password, setPassword, busy, uncertain, message, passwordError, submit } =
+  const { token, password, setPassword, busy, uncertain, passwordError, submit } =
     usePasswordReset();
   let label = "Reset password";
 
@@ -51,20 +51,14 @@ export function PasswordResetForm() {
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           disabled={!hydrated || !token || busy || uncertain}
-          aria-describedby="password-help password-error"
+          aria-describedby="password-help"
           aria-invalid={Boolean(passwordError)}
           required
         />
         <p id="password-help" className="text-sm text-muted">
           Use at least 8 characters with uppercase, lowercase, a digit and a symbol.
         </p>
-        <p id="password-error" role="status" className="text-sm text-signal">
-          {passwordError}
-        </p>
       </div>
-      <p role="status" aria-live="polite" className={styles.status}>
-        {message}
-      </p>
       <Button type="submit" disabled={!hydrated || !token || busy} className={styles.submit}>
         {label}
       </Button>

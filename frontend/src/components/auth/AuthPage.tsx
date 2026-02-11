@@ -17,7 +17,7 @@ export function AuthPage({ title, introduction, children, links }: AuthPageProps
         <div className={styles.panel}>
           <div className={styles.heading}>
             <h1 id="auth-title">{title}</h1>
-            <p>{introduction}</p>
+            {introduction && <p>{introduction}</p>}
           </div>
           {children}
           {links && (

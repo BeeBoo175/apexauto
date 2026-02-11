@@ -13,7 +13,7 @@ export function PasswordRecoveryForm() {
     queueMicrotask(() => setHydrated(true));
   }, []);
 
-  const { email, setEmail, busy, uncertain, message, submit } = usePasswordRecovery();
+  const { email, setEmail, busy, uncertain, submit } = usePasswordRecovery();
   let label = "Send reset link";
 
   if (uncertain) {
@@ -47,9 +47,6 @@ export function PasswordRecoveryForm() {
         disabled={!hydrated || busy || uncertain}
         required
       />
-      <p role="status" aria-live="polite" className={styles.status}>
-        {message}
-      </p>
       <Button type="submit" disabled={!hydrated || busy} className={styles.submit}>
         {label}
       </Button>

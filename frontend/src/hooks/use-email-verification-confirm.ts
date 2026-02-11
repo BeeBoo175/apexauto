@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useToast } from "@/components/ui/Toast";
 import { useRouter } from "next/navigation";
 import { AUTH_DEADLINE_MS, isRecord } from "@/lib/auth/contracts";
 
 export function useEmailVerificationConfirm() {
   const [token, setToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const { success, error, warning } = useToast();
+  const fragmentRead = useRef(false);
   const router = useRouter();
   const controller = useRef<AbortController | null>(null);
   const inFlight = useRef(false);
@@ -23,17 +25,20 @@ export function useEmailVerificationConfirm() {
       const fragment = new URLSearchParams(window.location.hash.slice(1));
       const nextToken = fragment.get("token");
 
-      if (activeToken.current === nextToken) {
+      if (fragmentRead.current && activeToken.current === nextToken) {
         return;
       }
 
+      fragmentRead.current = true;
       controller.current?.abort();
       controller.current = null;
       inFlight.current = false;
       activeToken.current = nextToken;
       setToken(nextToken);
       setBusy(false);
-      setMessage(null);
+      if (!nextToken) {
+        error("This verification link is missing its token.");
+      }
     };
 
     queueMicrotask(readFragment);
@@ -46,7 +51,7 @@ export function useEmailVerificationConfirm() {
       activeToken.current = null;
       window.removeEventListener("hashchange", readFragment);
     };
-  }, []);
+  }, [error]);
 
   async function confirm() {
     if (!token || inFlight.current) {
@@ -55,7 +60,6 @@ export function useEmailVerificationConfirm() {
 
     inFlight.current = true;
     setBusy(true);
-    setMessage(null);
     const attempt = new AbortController();
     controller.current = attempt;
     const requestToken = token;
@@ -79,6 +83,7 @@ export function useEmailVerificationConfirm() {
 
       if (response.ok && isRecord(receipt) && receipt.ok === true) {
         window.history.replaceState(null, "", "/verify-email");
+        success("Email verified. Sign in to continue.");
         router.push("/login");
         return;
       }
@@ -90,14 +95,14 @@ export function useEmailVerificationConfirm() {
         receipt.uncertain !== true &&
         response.status < 500
       ) {
-        setMessage(receipt.message);
+        error(receipt.message);
         return;
       }
 
       throw new Error("Unconfirmed verification response");
     } catch {
       if (isCurrent()) {
-        setMessage("The result is unconfirmed. Keep this page open and retry the same link.");
+        warning("The result is unconfirmed. Keep this page open and retry the same link.");
       }
     } finally {
       if (controller.current === attempt) {
@@ -108,5 +113,5 @@ export function useEmailVerificationConfirm() {
     }
   }
 
-  return { token, busy, message, confirm };
+  return { token, busy, confirm };
 }

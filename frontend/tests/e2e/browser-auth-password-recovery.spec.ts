@@ -57,7 +57,10 @@ if (process.env.AUTH_RECOVERY_SCENARIO) {
       }
     });
     await page.getByRole("button", { name: "Retry same request", exact: true }).click();
-    const accepted = page.getByRole("status").filter({ hasText: "If this account can receive" });
+    const accepted = page
+      .getByRole("status")
+      .filter({ hasText: "If this account can receive" })
+      .last();
     await expect(accepted).toBeVisible();
     const knownMessage = await accepted.textContent();
     expect(bodies[1] === bodies[0], "Recovery retry preserves the original request").toBe(true);
@@ -103,12 +106,8 @@ if (process.env.AUTH_RECOVERY_SCENARIO) {
       const before = upstreamCount(resetRoute);
       await page.getByLabel("New password", { exact: true }).fill("short");
       await page.getByRole("button", { name: "Reset password", exact: true }).click();
-      await expect(
-        page
-          .getByRole("status")
-          .filter({ hasText: "Choose a password that meets account policy." }),
-      ).toBeVisible();
-      await expect(page.locator("#password-error")).not.toBeEmpty();
+      await expect(page.getByRole("alert").filter({ hasText: /password/i })).toBeVisible();
+      await expect(page.getByLabel("New password", { exact: true })).toBeEditable();
       expect(
         (await page.getByLabel("New password", { exact: true }).inputValue()) === "short",
         "A denied password remains editable",
@@ -190,7 +189,7 @@ if (process.env.AUTH_RECOVERY_SCENARIO) {
     await page.getByLabel("New password", { exact: true }).fill("Abandoned123!");
     await page.getByRole("button", { name: "Reset password", exact: true }).click();
     await expect(
-      page.getByRole("status").filter({ hasText: "The reset link is invalid or expired." }),
+      page.getByRole("alert").filter({ hasText: "The reset link is invalid or expired." }),
     ).toBeVisible();
     expect(upstreamCount(resetRoute)).toBe(1);
     await screenshot(page, testInfo, "invalid-reset-link");

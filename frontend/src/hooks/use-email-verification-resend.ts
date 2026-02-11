@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useToast } from "@/components/ui/Toast";
 import { AUTH_DEADLINE_MS, isRecord, type CustomerAccount } from "@/lib/auth/contracts";
 import { sessionChanges } from "@/lib/auth/browser-session";
 
@@ -8,8 +9,8 @@ export function useEmailVerificationResend(account: CustomerAccount | null) {
   const [status, setStatus] = useState({
     actorId: account?.userId ?? null,
     busy: false,
-    message: null as string | null,
   });
+  const { success, error, warning } = useToast();
   const body = useRef<string | null>(null);
   const controller = useRef<AbortController | null>(null);
   const inFlight = useRef(false);
@@ -22,7 +23,7 @@ export function useEmailVerificationResend(account: CustomerAccount | null) {
       body.current = null;
       inFlight.current = false;
       actorId.current = null;
-      setStatus({ actorId: null, busy: false, message: null });
+      setStatus({ actorId: null, busy: false });
     };
 
     actorId.current = account?.userId ?? null;
@@ -47,7 +48,7 @@ export function useEmailVerificationResend(account: CustomerAccount | null) {
     inFlight.current = true;
     const attempt = new AbortController();
     const requestActor = account.userId;
-    setStatus({ actorId: requestActor, busy: true, message: null });
+    setStatus({ actorId: requestActor, busy: true });
     controller.current = attempt;
     body.current ??= JSON.stringify({ resendKey: crypto.randomUUID() });
     const isCurrent = () =>
@@ -68,11 +69,7 @@ export function useEmailVerificationResend(account: CustomerAccount | null) {
 
       if (response.ok && isRecord(receipt) && receipt.ok === true) {
         body.current = null;
-        setStatus({
-          actorId: requestActor,
-          busy: true,
-          message: "If verification is still needed, an email is queued. Check your inbox.",
-        });
+        success("If verification is still needed, an email is queued. Check your inbox.");
         return;
       }
 
@@ -83,19 +80,14 @@ export function useEmailVerificationResend(account: CustomerAccount | null) {
         receipt.uncertain !== true &&
         response.status < 500
       ) {
-        setStatus({ actorId: requestActor, busy: true, message: receipt.message });
+        error(receipt.message);
         return;
       }
 
       throw new Error("Unconfirmed resend response");
     } catch {
       if (isCurrent()) {
-        setStatus({
-          actorId: requestActor,
-          busy: true,
-          message:
-            "The result is unconfirmed. Retry the same request when the service is available.",
-        });
+        warning("The result is unconfirmed. Retry the same request when the service is available.");
       }
     } finally {
       if (controller.current === attempt) {
@@ -107,5 +99,5 @@ export function useEmailVerificationResend(account: CustomerAccount | null) {
   }
 
   const currentStatus = status.actorId === account?.userId ? status : null;
-  return { busy: currentStatus?.busy ?? false, message: currentStatus?.message ?? null, resend };
+  return { busy: currentStatus?.busy ?? false, resend };
 }

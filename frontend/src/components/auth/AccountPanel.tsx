@@ -41,11 +41,6 @@ export function AccountPanel({ initialAccount }: { initialAccount: CustomerAccou
           <dd>{account.emailVerified ? "Verified" : "Not verified"}</dd>
         </div>
       </dl>
-      {refreshFailed && (
-        <p id="account-refresh-failure" role="status" className="text-sm text-muted">
-          Refresh failed. These details may be out of date. Retry when the service is available.
-        </p>
-      )}
       {!account.emailVerified && (
         <div className="flex flex-col gap-2">
           <Button
@@ -55,18 +50,12 @@ export function AccountPanel({ initialAccount }: { initialAccount: CustomerAccou
           >
             {resend.busy ? "Requesting email" : "Resend verification email"}
           </Button>
-          {resend.message && (
-            <p role="status" className="text-sm text-muted">
-              {resend.message}
-            </p>
-          )}
         </div>
       )}
       <div className="flex flex-wrap gap-3">
         <Button
           variant="secondary"
           disabled={refreshing || logout.busy || logout.uncertain}
-          aria-describedby={refreshFailed ? "account-refresh-failure" : undefined}
           onClick={refresh}
         >
           {refreshFailed ? "Retry account refresh" : "Refresh account"}

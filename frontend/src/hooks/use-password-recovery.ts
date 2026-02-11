@@ -8,7 +8,6 @@ export function usePasswordRecovery() {
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [uncertain, setUncertain] = useState(false);
-  const [message, setMessage] = useState("");
   const attempt = useRef<string | null>(null);
   const controller = useRef<AbortController | null>(null);
   const { success, error, warning } = useToast();
@@ -40,7 +39,6 @@ export function usePasswordRecovery() {
     const request = new AbortController();
     controller.current = request;
     setBusy(true);
-    setMessage("");
     const isCurrent = () => controller.current === request && !request.signal.aborted;
 
     try {
@@ -59,10 +57,9 @@ export function usePasswordRecovery() {
       if (response.ok && isRecord(receipt) && receipt.ok === true) {
         attempt.current = null;
         setUncertain(false);
-        setMessage(
+        success(
           "If this account can receive a reset email, a link will be sent. Check your inbox; requests may be limited.",
         );
-        success("Password reset request accepted.");
         return;
       }
 
@@ -75,7 +72,6 @@ export function usePasswordRecovery() {
       ) {
         attempt.current = null;
         setUncertain(false);
-        setMessage(receipt.message);
         error(receipt.message);
         return;
       }
@@ -84,10 +80,9 @@ export function usePasswordRecovery() {
     } catch {
       if (isCurrent()) {
         setUncertain(true);
-        setMessage(
+        warning(
           "The result is unconfirmed. Keep this page open and check your inbox, or retry the same email. A retry may request another link; use the latest email.",
         );
-        warning("The password reset request could not be confirmed.");
       }
     } finally {
       if (controller.current === request) {
@@ -97,5 +92,5 @@ export function usePasswordRecovery() {
     }
   }
 
-  return { email, setEmail, busy, uncertain, message, submit };
+  return { email, setEmail, busy, uncertain, submit };
 }
