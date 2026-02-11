@@ -24,6 +24,10 @@ internal static class BrowserHarness
 {
     public static async Task<int> Main(string[] args)
     {
+        if (args.Contains("--intake-ui", StringComparer.Ordinal))
+        {
+            return await IntakeBrowserHarness.RunAsync(args.Where(argument => argument != "--intake-ui").ToArray());
+        }
         if (args.Contains("--recovery", StringComparer.Ordinal))
         {
             return await RecoveryBrowserHarness.RunAsync(args.Where(argument => argument != "--recovery").ToArray());
