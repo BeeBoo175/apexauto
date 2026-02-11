@@ -15,6 +15,7 @@ public static class StaffIntakeEndpoints
             return await next(context);
         });
         routes.MapGet("", ListAsync);
+        routes.MapGet("/export", StaffIntakeExportEndpoint.ExportAsync);
         routes.MapGet("/{id:guid}", DetailAsync);
         routes.MapPost("/{id:guid}/check-in", CheckInAsync);
     }

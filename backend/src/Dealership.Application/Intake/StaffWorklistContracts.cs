@@ -77,4 +77,5 @@ public sealed record StaffWorklistPage(IReadOnlyList<StaffWorklistItem> Items, i
 public interface IStaffWorklistStore
 {
     Task<StaffWorklistPage?> ListAsync(Guid staffId, StaffWorklistQuery query, CancellationToken cancellationToken);
+    Task<StaffWorklistPage?> ExportAsync(Guid staffId, StaffWorklistQuery query, CancellationToken cancellationToken);
 }

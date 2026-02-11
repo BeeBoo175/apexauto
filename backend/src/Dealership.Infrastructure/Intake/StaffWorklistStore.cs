@@ -11,6 +11,18 @@ public sealed class StaffWorklistStore(DealershipDbContext database) : IStaffWor
     public async Task<StaffWorklistPage?> ListAsync(Guid staffId, StaffWorklistQuery query,
         CancellationToken cancellationToken)
     {
+        return await ReadAsync(staffId, query, 0, cancellationToken);
+    }
+
+    public async Task<StaffWorklistPage?> ExportAsync(Guid staffId, StaffWorklistQuery query,
+        CancellationToken cancellationToken)
+    {
+        return await ReadAsync(staffId, query with { Page = 1, PageSize = 10000 }, 10000, cancellationToken);
+    }
+
+    private async Task<StaffWorklistPage?> ReadAsync(Guid staffId, StaffWorklistQuery query, int maximumRows,
+        CancellationToken cancellationToken)
+    {
         // Authorization, scoped count and rows must describe one snapshot.
         await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead, cancellationToken);
         var scope = await StaffIntakeReadScope.ResolveAsync(database, staffId, cancellationToken);
@@ -67,6 +79,10 @@ public sealed class StaffWorklistStore(DealershipDbContext database) : IStaffWor
                 EF.Functions.ILike(row.Id.ToString(), pattern, "!"));
         }
         var total = await records.CountAsync(cancellationToken);
+        if (maximumRows > 0 && total > maximumRows)
+        {
+            return new StaffWorklistPage([], total, 1, maximumRows);
+        }
         var offset = (long)(query.Page - 1) * query.PageSize;
         StaffWorklistItem[] items = [];
 

@@ -72,6 +72,13 @@ public sealed class StaffWorklistTests(IntakePhotoFixture fixture) : IClassFixtu
             query with { Sort = "registrationPlate", Direction = "desc" }))!;
         Assert.Equal("VCA 6242", descending.Items[0].RegistrationPlate);
         Assert.Equal(41, descending.Total);
+        var export = (await services.GetRequiredService<IStaffWorklistStore>().ExportAsync(data.StaffId,
+            query with { Page = 3, PageSize = 10, Sort = "registrationPlate", Direction = "desc" }, CancellationToken.None))!;
+        Assert.Equal(41, export.Items.Count);
+        Assert.Equal(descending.Items.Select(item => item.Id), export.Items.Take(20).Select(item => item.Id));
+        Assert.DoesNotContain(export.Items, item => item.Id == other.Id);
+        Assert.Null(await services.GetRequiredService<IStaffWorklistStore>().ExportAsync(data.StaffId,
+            query with { BranchId = otherBranch }, CancellationToken.None));
         Assert.All(pages.SelectMany(page => page.Items), item =>
         {
             Assert.Equal(data.BranchId, item.BranchId);
@@ -89,6 +96,8 @@ public sealed class StaffWorklistTests(IntakePhotoFixture fixture) : IClassFixtu
         var unrestricted = StaffWorklistQuery.Parse(null, null, "All", null, 1, 20, booked[0].Slot.StartsAt)!;
         Assert.Equal(43, (await ListAsync(data, data.StaffId, unrestricted))!.Total);
         Assert.Equal(44, (await ListAsync(data, manager, unrestricted))!.Total);
+        Assert.Equal(43, (await services.GetRequiredService<IStaffWorklistStore>()
+            .ExportAsync(data.StaffId, unrestricted, CancellationToken.None))!.Items.Count);
         var today = StaffWorklistQuery.Parse(from, from, null, null, 1, 20, booked[0].Slot.StartsAt)!;
         Assert.Equal(5, (await ListAsync(data, data.StaffId, today))!.Total);
         Assert.Equal(6, (await ListAsync(data, data.StaffId, today with
@@ -122,6 +131,7 @@ public sealed class StaffWorklistTests(IntakePhotoFixture fixture) : IClassFixtu
             await database.Users.Where(user => user.Id == data.StaffId).ExecuteUpdateAsync(update => update
                 .SetProperty(user => user.Role, role).SetProperty(user => user.BranchId, branchId));
             Assert.Null(await ListAsync(data, data.StaffId, query));
+            Assert.Null(await services.GetRequiredService<IStaffWorklistStore>().ExportAsync(data.StaffId, query, CancellationToken.None));
         }
 
         await database.Users.Where(user => user.Id == data.StaffId).ExecuteUpdateAsync(update => update
