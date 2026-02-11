@@ -1,6 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { createPortal } from "react-dom";
 
 export type ToastType = "success" | "error" | "warning" | "info";
 
@@ -43,7 +44,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none">
+      <ToastViewport>
         {toasts.map((t) => {
           const typeStyles = {
             success: "border-trust text-trust bg-paper",
@@ -62,10 +63,36 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             </div>
           );
         })}
-      </div>
+      </ToastViewport>
     </ToastContext.Provider>
   );
 };
+
+function ToastViewport({ children }: { children: React.ReactNode }) {
+  const [host, setHost] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    function updateHost() {
+      const dialogs = document.querySelectorAll<HTMLDialogElement>("dialog[open]");
+      setHost(dialogs.item(dialogs.length - 1) ?? document.body);
+    }
+    updateHost();
+    document.addEventListener("apexauto-dialog-change", updateHost);
+    return () => {
+      document.removeEventListener("apexauto-dialog-change", updateHost);
+    };
+  }, []);
+
+  const viewport = (
+    <div
+      aria-label="Notifications"
+      className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"
+    >
+      {children}
+    </div>
+  );
+  return host ? createPortal(viewport, host) : viewport;
+}
 
 export function useToast(): ToastContextValue {
   const context = useContext(ToastContext);
