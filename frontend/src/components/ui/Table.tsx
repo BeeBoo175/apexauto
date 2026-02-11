@@ -1,51 +1,32 @@
 import React from "react";
+import styles from "./Table.module.css";
 
-export type TableProps = React.TableHTMLAttributes<HTMLTableElement>;
-
-export const Table: React.FC<TableProps> = ({ className = "", children, ...props }) => {
-  return (
-    <div className="w-full overflow-x-auto border border-line rounded-sm bg-paper">
-      <table className={`w-full text-left border-collapse text-sm ${className}`.trim()} {...props}>
-        {children}
-      </table>
-    </div>
-  );
-};
-
-export interface TableHeaderProps extends React.ThHTMLAttributes<HTMLTableCellElement> {
-  sortDirection?: "asc" | "desc" | "none";
-  onSort?: () => void;
+export interface TableProps extends React.TableHTMLAttributes<HTMLTableElement> {
+  ref?: React.Ref<HTMLTableElement>;
+  density?: "default" | "compact";
+  containerClassName?: string;
+  framed?: boolean;
 }
 
-export const TableHeader: React.FC<TableHeaderProps> = ({
-  sortDirection,
-  onSort,
+export const Table: React.FC<TableProps> = ({
+  density = "default",
+  framed = true,
+  containerClassName = "",
   className = "",
   children,
   ...props
 }) => {
-  const isSortable = !!onSort;
-
   return (
-    <th
-      className={`p-3 text-xs uppercase font-bold tracking-wider text-muted border-b border-line bg-canvas ${
-        isSortable ? "cursor-pointer select-none" : ""
-      } ${className}`.trim()}
-      onClick={onSort}
-      aria-sort={
-        sortDirection === "asc" ? "ascending" : sortDirection === "desc" ? "descending" : undefined
-      }
-      {...props}
+    <div
+      className={`w-full overflow-x-auto bg-paper ${framed ? "border border-line rounded-sm" : ""} ${containerClassName}`.trim()}
     >
-      <div className="flex items-center gap-1.5">
-        <span>{children}</span>
-        {isSortable && (
-          <span className="text-[10px] text-muted">
-            {sortDirection === "asc" ? "▲" : sortDirection === "desc" ? "▼" : "▲"}
-          </span>
-        )}
-      </div>
-    </th>
+      <table
+        className={`w-full text-left border-collapse text-sm ${density === "compact" ? styles.compact : ""} ${className}`.trim()}
+        {...props}
+      >
+        {children}
+      </table>
+    </div>
   );
 };
 
@@ -56,7 +37,7 @@ export const TableCell: React.FC<React.TdHTMLAttributes<HTMLTableCellElement>> =
 }) => {
   return (
     <td
-      className={`p-3 border-b border-soft-line text-graphite font-mono tabular-nums ${className}`.trim()}
+      className={`p-3 border-b border-line-soft text-graphite font-mono tabular-nums ${className}`.trim()}
       {...props}
     >
       {children}
