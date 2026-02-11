@@ -1,0 +1,60 @@
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
+}
+
+nav[aria-label="Appointment views"] > span[aria-hidden] {
+  view-transition-name: intake-view-thumb;
+}
+
+nav[aria-label="Appointment views"] a[data-view="calendar"] {
+  view-transition-name: intake-calendar-icon;
+}
+
+nav[aria-label="Appointment views"] a[data-view="list"] {
+  view-transition-name: intake-table-icon;
+}
+
+/* Keep the workspace still while the named thumb crosses the document boundary. */
+::view-transition-group(root) {
+  animation-duration: 0s;
+}
+
+::view-transition-old(root) {
+  display: none;
+}
+
+::view-transition-new(root) {
+  animation: none;
+}
+
+::view-transition-group(intake-view-thumb) {
+  z-index: 1;
+  animation-duration: 180ms;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+::view-transition-group(intake-calendar-icon),
+::view-transition-group(intake-table-icon) {
+  z-index: 2;
+  animation-duration: 0s;
+}
+
+::view-transition-old(intake-view-thumb),
+::view-transition-old(intake-calendar-icon),
+::view-transition-old(intake-table-icon) {
+  display: none;
+}
+
+::view-transition-new(intake-view-thumb),
+::view-transition-new(intake-calendar-icon),
+::view-transition-new(intake-table-icon) {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*) {
+    animation-duration: 0s;
+  }
+}

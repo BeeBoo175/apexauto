@@ -1,6 +1,7 @@
 "use client";
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
+import { useStaffViewTransitions } from "@/hooks/use-staff-view-transitions";
 import { useIntakeActor } from "@/hooks/use-intake-actor";
 import { useAuthMutation } from "@/hooks/use-auth-mutation";
 import { Button } from "@/components/ui/Button";
@@ -17,6 +18,7 @@ export function StaffFrame({
   fitViewport?: boolean;
 }) {
   const session = useIntakeActor(actor);
+  useStaffViewTransitions();
   const logout = useAuthMutation("logout", "/login");
   const [mobileOpen, setMobileOpen] = useState(false);
   if (!session.active) {

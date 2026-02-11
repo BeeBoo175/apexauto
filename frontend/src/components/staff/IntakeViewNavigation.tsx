@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
+import { useStaffViewMemory } from "@/hooks/use-staff-view-memory";
 import styles from "./IntakeCalendar.module.css";
 
 const views = [
@@ -18,6 +19,7 @@ const views = [
 ] as const;
 
 export function IntakeViewNavigation({
+  actor,
   active,
   destinations,
 }: {
@@ -25,7 +27,7 @@ export function IntakeViewNavigation({
   active: "calendar" | "list";
   destinations: Record<"calendar" | "list", string>;
 }) {
-  const links = destinations;
+  const links = useStaffViewMemory(actor, active, destinations);
   const [destination, setDestination] = useState<(typeof views)[number] | null>(null);
 
   useEffect(() => {
