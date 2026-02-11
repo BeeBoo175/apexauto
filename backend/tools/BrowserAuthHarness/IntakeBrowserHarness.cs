@@ -25,7 +25,10 @@ internal static class IntakeBrowserHarness
         {
             "intake-ui-seller.spec.ts",
             "intake-ui-account.spec.ts",
-            "intake-ui-isolation.spec.ts"
+            "intake-ui-isolation.spec.ts",
+            "intake-ui-staff.spec.ts",
+            "intake-ui-table.spec.ts",
+            "intake-ui-navigation.spec.ts"
         };
         foreach (var specification in specifications)
         {
