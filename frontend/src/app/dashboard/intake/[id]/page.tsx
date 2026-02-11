@@ -11,6 +11,7 @@ import { AppointmentWorkbench } from "@/components/staff/AppointmentWorkbench";
 import { Card } from "@/components/ui/Card";
 import { SessionCheckUnavailable } from "@/components/auth/SessionCheckUnavailable";
 import { staffParams, staffViewQuery } from "@/lib/staff/query";
+import { calendarHref, calendarParams } from "@/lib/staff/calendar";
 import styles from "@/components/staff/Staff.module.css";
 
 export default async function IntakeDetailPage({
@@ -43,7 +44,10 @@ export default async function IntakeDetailPage({
   }
   const navigation = await searchParams;
   const { filters, page } = staffParams(navigation);
-  const returnTo = `/dashboard/intake?${staffViewQuery(filters, page)}`;
+  const returnTo =
+    navigation.view === "list"
+      ? `/dashboard/intake?${staffViewQuery(filters, page)}`
+      : calendarHref(calendarParams(navigation));
   return (
     <StaffFrame key={actorIdentity(actor)} actor={actor}>
       <StaffCommandBar title="Intake appointment" />

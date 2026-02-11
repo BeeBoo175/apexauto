@@ -16,11 +16,13 @@ import {
   type WorklistItem,
 } from "@/lib/staff/contracts";
 import { staffViewQuery } from "@/lib/staff/query";
+import { calendarViewHref } from "@/lib/staff/view-navigation";
 import { exportWorklist } from "@/lib/staff/export";
 import { appliedWorklistFilters } from "@/lib/staff/filter-summary";
 import { AppliedWorklistFilters } from "./AppliedWorklistFilters";
 import { WorklistFilters } from "./WorklistFilters";
 import { IntakeAppointmentDrawer } from "./IntakeAppointmentDrawer";
+import { IntakeViewNavigation } from "./IntakeViewNavigation";
 import { StaffCommandBar } from "./StaffPage";
 import { intakeColumns } from "./intake-columns";
 import styles from "./IntakeWorklist.module.css";
@@ -129,9 +131,14 @@ function Worklist({
                 disabled={disabled}
                 onClick={() => void worklist.load()}
               />
-              <a href={`/dashboard/intake?${query}`} aria-current="page">
-                Table
-              </a>
+              <IntakeViewNavigation
+                actor={actorIdentity(actor)}
+                active="list"
+                destinations={{
+                  calendar: calendarViewHref(active.filters),
+                  list: `/dashboard/intake?${query}`,
+                }}
+              />
             </>
           }
         />
