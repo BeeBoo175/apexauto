@@ -88,10 +88,22 @@ public sealed class AccountSessionStore(DealershipDbContext database, UserManage
 
     public async Task<bool> IsActiveAsync(Guid userId, Guid sessionId, CancellationToken cancellationToken)
     {
+        return await SessionUsers(userId, sessionId).AnyAsync(cancellationToken);
+    }
+
+    public async Task<CurrentActor?> GetActorAsync(Guid userId, Guid sessionId, CancellationToken cancellationToken)
+    {
+        return await SessionUsers(userId, sessionId)
+            .Select(user => new CurrentActor(user.Id, user.Role, user.BranchId))
+            .SingleOrDefaultAsync(cancellationToken);
+    }
+
+    private IQueryable<AccountUser> SessionUsers(Guid userId, Guid sessionId)
+    {
         var now = clock.GetUtcNow();
-        return await database.AccountSessions.AnyAsync(session => session.Id == sessionId && session.UserId == userId &&
-            session.RevokedAt == null && session.ExpiresAt > now &&
-            EligibleUsers().Any(user => user.Id == session.UserId && user.SecurityStamp == session.SecurityStamp), cancellationToken);
+        return EligibleUsers().Where(user => user.Id == userId && database.AccountSessions.Any(session =>
+            session.Id == sessionId && session.UserId == user.Id && session.RevokedAt == null &&
+            session.ExpiresAt > now && session.SecurityStamp == user.SecurityStamp));
     }
 
     public async Task RevokeAsync(Guid userId, Guid sessionId, CancellationToken cancellationToken)

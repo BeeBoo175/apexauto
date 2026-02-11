@@ -41,7 +41,8 @@ internal static class BrowserHarness
         File.WriteAllText(Path.Combine(evidence, "confirmed-emails.json"), "[]");
         var database = new RegistrationDatabase();
         var guestPageFixtures = args.Contains("--guest-pages", StringComparer.Ordinal);
-        args = args.Where(argument => argument != "--guest-pages").ToArray();
+        var demoRoleLogins = args.Contains("--demo-roles", StringComparer.Ordinal);
+        args = args.Where(argument => argument is not ("--guest-pages" or "--demo-roles")).ToArray();
         await database.InitializeAsync();
         Environment.SetEnvironmentVariable("ASPNETCORE_URLS", "http://127.0.0.1:0");
         Environment.SetEnvironmentVariable("AllowedHosts", "localhost;127.0.0.1");
@@ -50,7 +51,8 @@ internal static class BrowserHarness
         {
             foreach (var project in new[] { "desktop-auth", "mobile-auth" })
             {
-                var exitCode = await RunBrowserAsync(project, args, database, state, evidence, frontend, guestPageFixtures);
+                var exitCode = await RunBrowserAsync(project, args, database, state, evidence, frontend,
+                    guestPageFixtures, demoRoleLogins);
 
                 if (exitCode != 0)
                 {
@@ -70,7 +72,7 @@ internal static class BrowserHarness
     }
 
     private static async Task<int> RunBrowserAsync(string project, string[] args, RegistrationDatabase database,
-        BrowserEvidence state, string evidence, string frontend, bool guestPageFixtures)
+        BrowserEvidence state, string evidence, string frontend, bool guestPageFixtures, bool demoRoleLogins)
     {
         using var factory = new WebApplicationFactory<global::Program>().WithWebHostBuilder(builder =>
         {
@@ -185,7 +187,7 @@ internal static class BrowserHarness
         start.ArgumentList.Add("--config=playwright.config.ts");
         start.ArgumentList.Add($"--project={project}");
 
-        if (project == "desktop-auth")
+        if (project == "desktop-auth" && !demoRoleLogins)
         {
             start.ArgumentList.Add("--project=transport-auth");
         }
@@ -206,6 +208,11 @@ internal static class BrowserHarness
         start.Environment["AUTH_NEXT_ORIGIN"] = nextOrigin;
         start.Environment["TRUSTED_CLIENT_IP_HEADER"] = TrustedIngress.ClientHeader;
         start.Environment["AUTH_EVIDENCE_DIR"] = evidence;
+        start.Environment.Remove("AUTH_DEMO_ROLES");
+        if (demoRoleLogins)
+        {
+            start.Environment["AUTH_DEMO_ROLES"] = "1";
+        }
         start.Environment.Remove("NO_COLOR");
         File.WriteAllText(Path.Combine(evidence, "fault.txt"), string.Empty);
         using var browser = Process.Start(start) ?? throw new InvalidOperationException("Browser runner did not start.");

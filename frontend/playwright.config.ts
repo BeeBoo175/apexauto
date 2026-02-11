@@ -3,6 +3,7 @@ import { defineConfig, devices } from "@playwright/test";
 const browserAuth = Boolean(process.env.AUTH_EVIDENCE_DIR);
 const appBaseUrl = process.env.APP_BASE_URL;
 const nextOrigin = process.env.AUTH_NEXT_ORIGIN;
+const demoRoleLogins = Boolean(process.env.AUTH_DEMO_ROLES);
 
 if (browserAuth && (!process.env.API_BASE_URL || !appBaseUrl || !nextOrigin)) {
   throw new Error("Run browser auth through the disposable BrowserAuthHarness.");
@@ -31,7 +32,9 @@ export default defineConfig({
           },
           {
             name: "desktop-auth",
-            testMatch: "e2e/browser-auth*.spec.ts",
+            testMatch: demoRoleLogins
+              ? "e2e/demo-role-logins.spec.ts"
+              : "e2e/browser-auth*.spec.ts",
             use: {
               ...devices["Desktop Chrome"],
               viewport: { width: 1440, height: 1024 },
@@ -40,7 +43,9 @@ export default defineConfig({
           },
           {
             name: "mobile-auth",
-            testMatch: "e2e/browser-auth*.spec.ts",
+            testMatch: demoRoleLogins
+              ? "e2e/demo-role-logins.spec.ts"
+              : "e2e/browser-auth*.spec.ts",
             use: { ...devices["Pixel 7"], baseURL: appBaseUrl },
           },
         ]

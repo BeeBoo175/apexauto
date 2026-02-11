@@ -26,11 +26,18 @@ public sealed class StaffSessionTests(RegistrationDatabase database) : IClassFix
         var session = await LoginAsync(client, email);
 
         Assert.Equal(HttpStatusCode.Forbidden, await AccountStatusAsync(client, session));
+        var actorResponse = await client.GetAsync("/api/auth/session");
+        Assert.True(actorResponse.Headers.CacheControl?.NoStore);
+        Assert.Equal(new CurrentActor(userId, AccountRoles.SalesAgent, firstBranch),
+            await actorResponse.Content.ReadFromJsonAsync<CurrentActor>());
         await UpdateUserAsync(factory, userId, user => user.BranchId = secondBranch);
         Assert.Equal(HttpStatusCode.Forbidden, await AccountStatusAsync(client, session));
+        Assert.Equal(new CurrentActor(userId, AccountRoles.SalesAgent, secondBranch),
+            await client.GetFromJsonAsync<CurrentActor>("/api/auth/session"));
 
         await SetBranchActiveAsync(factory, secondBranch, false);
         Assert.Equal(HttpStatusCode.Unauthorized, await AccountStatusAsync(client, session));
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/auth/session")).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/auth/login",
             new LoginRequest(Guid.NewGuid(), email, "Password123!"))).StatusCode);
 
@@ -40,6 +47,8 @@ public sealed class StaffSessionTests(RegistrationDatabase database) : IClassFix
             user.BranchId = null;
         });
         Assert.Equal(HttpStatusCode.Forbidden, await AccountStatusAsync(client, session));
+        Assert.Equal(new CurrentActor(userId, AccountRoles.GeneralManager, null),
+            await client.GetFromJsonAsync<CurrentActor>("/api/auth/session"));
         await UpdateUserAsync(factory, userId, user =>
         {
             user.Role = AccountRoles.SalesAgent;
@@ -49,12 +58,17 @@ public sealed class StaffSessionTests(RegistrationDatabase database) : IClassFix
         using var restarted = CreateFactory();
         using var restartedClient = restarted.CreateClient();
         Assert.Equal(HttpStatusCode.Unauthorized, await AccountStatusAsync(restartedClient, session));
+        Assert.Equal(HttpStatusCode.Unauthorized, (await restartedClient.GetAsync("/api/auth/session")).StatusCode);
         await SetBranchActiveAsync(restarted, secondBranch, true);
         Assert.Equal(HttpStatusCode.Forbidden, await AccountStatusAsync(restartedClient, session));
         await UpdateUserAsync(restarted, userId, user => user.IsActive = false);
         Assert.Equal(HttpStatusCode.Unauthorized, await AccountStatusAsync(restartedClient, session));
+        Assert.Equal(HttpStatusCode.Unauthorized, (await restartedClient.GetAsync("/api/auth/session")).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await restartedClient.PostAsJsonAsync("/api/auth/login",
             new LoginRequest(Guid.NewGuid(), email, "Password123!"))).StatusCode);
+        await UpdateUserAsync(restarted, userId, user => user.IsActive = true);
+        Assert.Equal(HttpStatusCode.NoContent, (await restartedClient.PostAsync("/api/auth/logout", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await restartedClient.GetAsync("/api/auth/session")).StatusCode);
     }
 
     [Fact]
@@ -76,6 +90,7 @@ public sealed class StaffSessionTests(RegistrationDatabase database) : IClassFix
             (await client.PostAsJsonAsync("/api/auth/register", registration)).StatusCode);
         var customer = await LoginAsync(client, registration.Email!);
         Assert.Equal(HttpStatusCode.OK, await AccountStatusAsync(client, customer));
+        Assert.Equal(AccountRoles.Customer, (await client.GetFromJsonAsync<CurrentActor>("/api/auth/session"))!.Role);
 
         using var scope = factory.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
@@ -83,6 +98,7 @@ public sealed class StaffSessionTests(RegistrationDatabase database) : IClassFix
         user.Role = AccountRoles.Administrator;
         await context.SaveChangesAsync();
         Assert.Equal(HttpStatusCode.Forbidden, await AccountStatusAsync(client, customer));
+        Assert.Equal(AccountRoles.Administrator, (await client.GetFromJsonAsync<CurrentActor>("/api/auth/session"))!.Role);
     }
 
     private WebApplicationFactory<Program> CreateFactory()

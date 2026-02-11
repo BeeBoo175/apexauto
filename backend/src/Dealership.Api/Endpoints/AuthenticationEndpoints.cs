@@ -11,6 +11,7 @@ public static class AuthenticationEndpoints
         app.MapPost("/api/auth/login", LoginAsync).RequireRateLimiting(ApiRateLimiting.LoginPolicy);
         app.MapPost("/api/auth/logout", LogoutAsync).RequireAuthorization();
         app.MapGet("/api/account", GetAccountAsync).RequireAuthorization();
+        app.MapGet("/api/auth/session", GetActorAsync).RequireAuthorization();
         app.MapPost("/api/auth/email-verification/resend", ResendVerificationAsync)
             .RequireAuthorization().RequireRateLimiting(ApiRateLimiting.VerificationPolicy);
         app.MapPost("/api/auth/email-verification", ConfirmEmailAsync)
@@ -51,6 +52,16 @@ public static class AuthenticationEndpoints
         var userId = Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Sub)!.Value);
         var account = await accounts.GetAccountAsync(userId, cancellationToken);
         return account is null ? Results.Forbid() : Results.Ok(account);
+    }
+
+    private static async Task<IResult> GetActorAsync(HttpContext context, IAccountSessionStore sessions,
+        CancellationToken cancellationToken)
+    {
+        context.Response.Headers.CacheControl = "no-store";
+        var userId = Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Sub)!.Value);
+        var sessionId = Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Jti)!.Value);
+        var actor = await sessions.GetActorAsync(userId, sessionId, cancellationToken);
+        return actor is null ? Results.Unauthorized() : Results.Ok(actor);
     }
 
     private static async Task<IResult> ResendVerificationAsync(HttpContext context, EmailVerificationService verification,
