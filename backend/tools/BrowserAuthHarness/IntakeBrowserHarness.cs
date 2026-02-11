@@ -30,7 +30,8 @@ internal static class IntakeBrowserHarness
             "intake-ui-table.spec.ts",
             "intake-ui-navigation.spec.ts",
             "intake-ui-calendar.spec.ts",
-            "intake-ui-view-scope.spec.ts"
+            "intake-ui-view-scope.spec.ts",
+            "intake-ui-shared-filters.spec.ts"
         };
         foreach (var specification in specifications)
         {

@@ -74,6 +74,6 @@ for (const actor of [
     ).toBeVisible();
     await page.getByRole("link", { name: "Calendar", exact: true }).click();
     await expect(page.getByRole("button", { name: "Refresh calendar", exact: true })).toBeEnabled();
-    expect(new URL(page.url()).searchParams.get("date")).toBe(range.from);
+    expect(new URL(page.url()).searchParams.get("date")).toBe(date);
   });
 }
