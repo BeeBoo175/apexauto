@@ -163,5 +163,5 @@ test("cross-tab actor changes abort completed refreshes and discard previous acc
   await expect(page.getByText(owners[1].LegalName, { exact: true })).toHaveCount(0);
   await expect(page.getByText(/account could not be refreshed/)).toHaveCount(0);
   await expect(page.getByText(/These details may be out of date/)).toHaveCount(0);
-  await expect(page).toHaveURL(/\/login\?returnTo=/);
+  await expect(page).toHaveURL(/\/login$/);
 });

@@ -75,7 +75,7 @@ test("registration, unverified own account, bounded refresh and current-session 
   const other = customer("Lim Wei Jian");
   const signedOut = await context.request.get("/account", { maxRedirects: 0 });
   expect(signedOut.status()).toBe(307);
-  expect(signedOut.headers().location).toBe("/login?returnTo=%2Faccount");
+  expect(signedOut.headers().location).toBe("/login");
   expect(signedOut.headers()["cache-control"]).toContain("no-store");
   expect(signedOut.headers()["x-robots-tag"]).toContain("noindex");
   const registrationPage = await page.goto("/register");
@@ -199,7 +199,7 @@ test("registration, unverified own account, bounded refresh and current-session 
   fault("");
   await page.getByRole("button", { name: "Retry sign out" }).click();
   await expect(page).toHaveURL(`${origin}/login`);
-  await expect(sameActorTab).toHaveURL(/\/login\?returnTo=/);
+  await expect(sameActorTab).toHaveURL(/\/login$/);
   await expect(sameActorTab.getByText(owner.legalName, { exact: true })).toHaveCount(0);
   expect(
     (await context.cookies()).find((entry) => entry.name === "apexauto_token"),
@@ -213,13 +213,13 @@ test("registration, unverified own account, bounded refresh and current-session 
     maxRedirects: 0,
   });
   expect(revokedDocument.status()).toBe(307);
-  expect(revokedDocument.headers().location).toBe("/login?returnTo=%2Faccount");
+  expect(revokedDocument.headers().location).toBe("/login");
   const independentAccountStatus = await independentPage.evaluate(
     async () => (await fetch("/api/account", { cache: "no-store" })).status,
   );
   expect(independentAccountStatus).toBe(200);
   await page.goto("/account");
-  await expect(page).toHaveURL(/\/login\?returnTo=/);
+  await expect(page).toHaveURL(/\/login$/);
   await independent.close();
   await outsider.close();
 });

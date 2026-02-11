@@ -1,25 +1,42 @@
 import { redirect } from "next/navigation";
-import { AccountPanel } from "@/components/auth/AccountPanel";
-import { Card } from "@/components/ui/Card";
+import { AccountWorkspace } from "@/components/account/AccountWorkspace";
 import { readOwnAccount } from "@/lib/auth/server";
+import { privateIntakeRead } from "@/lib/intake/server";
+import { parseAppointment, parsePage } from "@/lib/intake/parse";
+import { historyParams, historyQuery } from "@/lib/intake/list-query";
 
-export default async function AccountPage() {
+export const metadata = {
+  title: "Your account | ApexAuto",
+  robots: { index: false, follow: false },
+};
+
+export default async function AccountPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const response = await readOwnAccount();
 
-  if (response.status === 401 || response.status === 403) {
-    redirect("/login?returnTo=%2Faccount");
+  if (response.status === 401) {
+    redirect("/login");
   }
 
   if (!response.account) {
     throw new Error("Account service unavailable");
   }
 
+  const { filters, page } = historyParams(await searchParams);
+  const history = await privateIntakeRead(
+    `/api/intake/appointments?${historyQuery(filters, page)}`,
+    (value) => parsePage(value, parseAppointment),
+  );
   return (
-    <section className="max-w-lg mx-auto p-6 flex flex-col gap-5">
-      <h1 className="text-2xl font-bold">Your account</h1>
-      <Card>
-        <AccountPanel key={response.account.userId} initialAccount={response.account} />
-      </Card>
-    </section>
+    <AccountWorkspace
+      key={response.account.userId}
+      account={response.account}
+      history={history}
+      filters={filters}
+      page={page}
+    />
   );
 }

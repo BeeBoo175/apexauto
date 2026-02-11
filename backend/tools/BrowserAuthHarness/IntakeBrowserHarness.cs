@@ -23,7 +23,9 @@ internal static class IntakeBrowserHarness
 
         var specifications = new[]
         {
-            "intake-ui-seller.spec.ts"
+            "intake-ui-seller.spec.ts",
+            "intake-ui-account.spec.ts",
+            "intake-ui-isolation.spec.ts"
         };
         foreach (var specification in specifications)
         {
