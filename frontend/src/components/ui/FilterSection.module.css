@@ -1,0 +1,28 @@
+.section {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  color: var(--color-graphite);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.heading h3 {
+  margin: 0;
+  font: inherit;
+}
+
+.content {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}

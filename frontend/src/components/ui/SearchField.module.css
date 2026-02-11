@@ -1,0 +1,48 @@
+.field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  border-radius: var(--radius-sm, 4px);
+  background: var(--color-paper);
+}
+
+.field::after {
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--color-line);
+  border-radius: inherit;
+  pointer-events: none;
+  content: "";
+}
+
+.field > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.field input {
+  border: 0;
+  background: transparent;
+  appearance: none;
+}
+
+.field input:focus-visible {
+  outline: none;
+}
+
+.field input::-webkit-search-cancel-button {
+  appearance: none;
+}
+
+.field:focus-within {
+  outline: 2px solid var(--color-graphite);
+  outline-offset: 2px;
+}
+
+.searchIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 0 0.35px currentColor);
+}

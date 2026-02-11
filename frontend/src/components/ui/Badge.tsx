@@ -1,7 +1,7 @@
 import React from "react";
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
-  variant?: "trust" | "warning" | "signal" | "neutral";
+  variant?: "trust" | "warning" | "signal" | "neutral" | "info";
 }
 
 export const Badge: React.FC<BadgeProps> = ({
@@ -14,7 +14,8 @@ export const Badge: React.FC<BadgeProps> = ({
     trust: "bg-paper text-trust border-line font-bold",
     warning: "bg-paper text-warning border-line font-bold",
     signal: "bg-paper text-signal border-signal font-bold",
-    neutral: "bg-paper text-muted border-soft-line font-medium",
+    neutral: "bg-paper text-muted border-line-soft font-medium",
+    info: "bg-[#e8edfd] text-[#2a46c4] border-[#a8b7ed] font-medium",
   }[variant];
 
   return (
