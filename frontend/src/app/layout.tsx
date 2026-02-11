@@ -3,6 +3,7 @@ import "./globals.css";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { ToastProvider } from "@/components/ui/Toast";
+import { IconSprite } from "@/components/ui/IconSprite";
 
 export const metadata: Metadata = {
   title: "ApexAuto | Editorial Service Bay Dealership Platform",
@@ -18,6 +19,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen flex flex-col bg-canvas text-graphite">
+        <IconSprite />
         <ToastProvider>
           <SiteHeader />
           <main className="flex-1">{children}</main>
