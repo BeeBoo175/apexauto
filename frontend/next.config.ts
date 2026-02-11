@@ -104,6 +104,13 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        source: "/sell/:rest*",
+        headers: [
+          { key: "Cache-Control", value: "private, no-store" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive, nosnippet" },
+        ],
+      },
+      {
         source: "/:path(login|register|verify-email|forgot-password|reset-password)",
         headers: [
           { key: "Cache-Control", value: "no-store" },
