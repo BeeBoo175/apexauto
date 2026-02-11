@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useColumnResize } from "./use-column-resize";
 import { Table, TableCell } from "../Table";
 import { useToast } from "../Toast";
 import { DataTableHeader } from "./DataTableHeader";
@@ -36,9 +37,15 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
     }
   }, [props.page]);
   const selectable = selectionScope !== undefined;
-  const tracks = columns.map(
-    (column) => `minmax(${column.minWidth ?? 100}px, ${column.width ?? 160}fr)`,
-  );
+  const { columnWidths, handleResizeStart } = useColumnResize(columns);
+  const tracks = columns.map((column) => {
+    const minimum = `${column.minWidth ?? 100}px`;
+    const resized = columnWidths[column.id];
+    if (resized !== undefined) {
+      return `${resized}px`;
+    }
+    return `minmax(${minimum}, ${column.width ?? 160}fr)`;
+  });
   if (selectable) {
     tracks.unshift("44px");
   }
@@ -140,13 +147,15 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
                 </label>
               </th>
             )}
-            {columns.map((column) => (
+            {columns.map((column, index) => (
               <DataTableHeader
                 key={column.id}
                 column={column}
                 sort={props.sort}
                 disabled={disabled}
+                resizable={index < columns.length - 1}
                 onSort={props.onSort}
+                onStart={(event) => handleResizeStart(index, event)}
               />
             ))}
           </tr>

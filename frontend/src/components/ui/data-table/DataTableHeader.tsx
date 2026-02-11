@@ -1,4 +1,5 @@
 import { Button } from "../Button";
+import type { PointerEvent } from "react";
 import { Icon } from "../Icon";
 import type { DataColumn, TableSort } from "./types";
 import styles from "./DataTable.module.css";
@@ -7,12 +8,16 @@ export function DataTableHeader<Row>({
   column,
   sort,
   disabled,
+  resizable,
   onSort,
+  onStart,
 }: {
   column: DataColumn<Row>;
   sort: TableSort | null;
   disabled: boolean;
+  resizable: boolean;
   onSort: (sort: TableSort | null) => void;
+  onStart: (event: PointerEvent<HTMLDivElement>) => void;
 }) {
   const active = sort?.column === column.id;
   let direction: "ascending" | "descending" | "none" = "none";
@@ -60,6 +65,19 @@ export function DataTableHeader<Row>({
           <span>{column.label}</span>
         )}
       </div>
+      {resizable && (
+        <div
+          aria-hidden="true"
+          data-resize-column={column.id}
+          className={styles.resize}
+          onPointerDown={(event) => {
+            if (disabled) {
+              return;
+            }
+            onStart(event);
+          }}
+        />
+      )}
     </th>
   );
 }
