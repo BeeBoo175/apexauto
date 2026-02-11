@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { AUTH_DEADLINE_MS, parseAccount } from "@/lib/auth/contracts";
 import type { CustomerAccount } from "@/lib/auth/contracts";
-import { sessionChanges } from "@/lib/auth/browser-session";
 
 export function useAccountRefresh(initialAccount: CustomerAccount) {
   const [account, setAccount] = useState<CustomerAccount | null>(initialAccount);
@@ -17,27 +16,9 @@ export function useAccountRefresh(initialAccount: CustomerAccount) {
   useEffect(() => {
     active.current = true;
 
-    function invalidateActor() {
-      active.current = false;
-      controller.current?.abort();
-      setAccount(null);
-      setRefreshFailed(false);
-      window.location.reload();
-    }
-
-    function restorePage(event: PageTransitionEvent) {
-      if (event.persisted) {
-        invalidateActor();
-      }
-    }
-
-    sessionChanges?.addEventListener("message", invalidateActor);
-    window.addEventListener("pageshow", restorePage);
     return () => {
       active.current = false;
       controller.current?.abort();
-      sessionChanges?.removeEventListener("message", invalidateActor);
-      window.removeEventListener("pageshow", restorePage);
     };
   }, []);
 
@@ -66,7 +47,7 @@ export function useAccountRefresh(initialAccount: CustomerAccount) {
         active.current = false;
         setAccount(null);
         setRefreshFailed(false);
-        window.location.assign(new URL("/login?returnTo=%2Faccount", window.location.origin).href);
+        window.dispatchEvent(new Event("apexauto-session-invalid"));
         return;
       }
 
@@ -84,7 +65,7 @@ export function useAccountRefresh(initialAccount: CustomerAccount) {
         active.current = false;
         setAccount(null);
         setRefreshFailed(false);
-        window.location.reload();
+        window.dispatchEvent(new Event("apexauto-session-invalid"));
         return;
       }
 
