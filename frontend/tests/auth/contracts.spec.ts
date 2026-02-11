@@ -11,13 +11,13 @@ test("return destinations stay inside the supported account route", () => {
     "/%2f%2foutside.invalid",
     "/api/auth/logout",
     "/login",
-    "/sell?draft=retained#details",
     ["/sell"],
   ]) {
     expect(safeReturnTo(destination)).toBe("/account");
   }
 
   expect(safeReturnTo("/account?view=details#profile")).toBe("/account?view=details#profile");
+  expect(safeReturnTo("/sell?draft=retained#details")).toBe("/sell?draft=retained#details");
 });
 
 test("client identity requires an explicitly selected single ingress address", () => {

@@ -64,7 +64,7 @@ export function parseSession(value: unknown) {
   return { accessToken: value.accessToken, expiresAt };
 }
 
-// Pin return targets strictly to /account to prevent open-redirect phishing.
+// Only implemented task destinations may receive an auth return.
 export function safeReturnTo(value: unknown): string {
   if (
     typeof value !== "string" ||
@@ -77,9 +77,20 @@ export function safeReturnTo(value: unknown): string {
 
   const destination = new URL(value, "https://local.invalid");
 
-  if (destination.origin !== "https://local.invalid" || destination.pathname !== "/account") {
+  if (
+    destination.origin !== "https://local.invalid" ||
+    !["/account", "/sell"].includes(destination.pathname)
+  ) {
     return "/account";
   }
 
   return `${destination.pathname}${destination.search}${destination.hash}`;
+}
+
+export function authHref(path: "/login" | "/auth/continue", returnTo?: unknown): string {
+  const destination = safeReturnTo(returnTo);
+  if (destination === "/account") {
+    return path;
+  }
+  return `${path}?returnTo=${encodeURIComponent(destination)}`;
 }
