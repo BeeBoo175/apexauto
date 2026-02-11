@@ -4,6 +4,9 @@ import { parseBooking, parseSlots, parseTaxonomy } from "../../src/lib/intake/pa
 
 import { bookingMatchesRequest } from "../../src/lib/intake/receipt";
 
+import { csvCell, selectedCsv } from "../../src/components/ui/data-table/csv";
+import { staffParams, staffQuery } from "../../src/lib/staff/query";
+
 const id = "d9a6e19a-c149-4fd7-bc85-ce7b2ff3f091";
 
 test("actor destinations require a validated persisted role and branch shape", () => {
@@ -73,4 +76,57 @@ test("booking receipts bind the exact operation and four distinct photo angles",
   expect(
     parseBooking({ ...receipt, photos: photos.map((photo) => ({ ...photo, angle: "Driver" })) }),
   ).toBeNull();
+});
+
+test("CSV quotes multiline cells and neutralizes formula and control prefixes", () => {
+  for (const value of [
+    "=SUM(1,2)",
+    " +123",
+    "\uFEFF-1",
+    " \u0001@name",
+    "\tplain",
+    "\u0085plain",
+  ]) {
+    expect(csvCell(value)).toBe(`"'${value}"`);
+  }
+  expect(csvCell('Nur "Aina", Abdullah\nSelangor')).toBe('"Nur ""Aina"", Abdullah\nSelangor"');
+  expect(csvCell(" ")).toBe('" "');
+  const csv = selectedCsv(
+    [{ value: "VCA 9701" }],
+    [
+      {
+        id: "value",
+        label: "Display",
+        exportLabel: "Registration",
+        cell: () => null,
+        exportValue: (row) => row.value,
+      },
+      { id: "action", label: "Action", cell: () => null },
+    ],
+  );
+  expect(csv).toBe('\uFEFF"Registration"\r\n"VCA 9701"\r\n');
+});
+
+test("staff queries preserve applied search, sorting, branch and page size through navigation", () => {
+  const input = {
+    from: "2026-10-20",
+    to: "2026-10-29",
+    status: "All",
+    branchId: id,
+    search: " VCA %_! ",
+    sort: "registrationPlate",
+    direction: "desc",
+    pageSize: "50",
+    page: "3",
+  };
+  const { filters, page } = staffParams(input);
+  expect(page).toBe(3);
+  const query = new URLSearchParams(staffQuery(filters, page));
+  expect(Object.fromEntries(query)).toEqual({ ...input, search: "VCA %_!" });
+  expect(staffParams({}).filters).toMatchObject({
+    sort: "startsAt",
+    direction: "asc",
+    pageSize: 20,
+    status: "All",
+  });
 });

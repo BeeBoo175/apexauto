@@ -79,7 +79,10 @@ export function safeReturnTo(value: unknown): string {
 
   if (
     destination.origin !== "https://local.invalid" ||
-    !["/account", "/sell"].includes(destination.pathname)
+    !(
+      ["/account", "/sell", "/dashboard", "/dashboard/intake"].includes(destination.pathname) ||
+      /^\/dashboard\/intake\/[0-9a-f-]{36}$/i.test(destination.pathname)
+    )
   ) {
     return "/account";
   }
