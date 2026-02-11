@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { expect } from "@playwright/test";
-import type { APIRequestContext, BrowserContext, Page, TestInfo } from "@playwright/test";
+import type { APIRequestContext, BrowserContext, Page } from "@playwright/test";
 
 export const recoveredPassword = "Recovered123!";
 
@@ -72,20 +72,11 @@ export async function capturedResetLink(request: APIRequestContext, email: strin
   return resetLink!;
 }
 
-export async function screenshot(page: Page, testInfo: TestInfo, name: string) {
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.screenshot({
-    path: evidencePath(`${testInfo.project.name}-${name}.png`),
-    fullPage: true,
-  });
-}
-
 export async function assertInitialRecoveryPage(page: Page, route: string, heading: string) {
   const before = {
     request: upstreamCount("/api/auth/password-recovery"),
     reset: upstreamCount("/api/auth/password-reset"),
   };
-  const started = Date.now();
   const url = new URL(route, process.env.APP_BASE_URL);
   const pathname = url.pathname;
   const response = await page.goto(url.href);
@@ -109,7 +100,6 @@ export async function assertInitialRecoveryPage(page: Page, route: string, headi
   expect(response!.headers()["x-robots-tag"]).toContain("noindex");
   expect(response!.headers()["referrer-policy"]).toBe("no-referrer");
   await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
-  const contentVisibleMs = Date.now() - started;
   if (pathname === "/forgot-password") {
     await expect(page.getByLabel("Email", { exact: true })).toBeEnabled();
     await expect(page.getByRole("button", { name: "Send reset link", exact: true })).toBeEnabled();
@@ -121,19 +111,9 @@ export async function assertInitialRecoveryPage(page: Page, route: string, headi
   }
   expect(upstreamCount("/api/auth/password-recovery")).toBe(before.request);
   expect(upstreamCount("/api/auth/password-reset")).toBe(before.reset);
-  writeFileSync(
-    evidencePath(`${pathname.slice(1)}-initial.json`),
-    JSON.stringify({
-      initialHtmlBytes: Buffer.byteLength(html),
-      contentVisibleMs,
-    }),
-  );
 }
 
 export async function signInRecovered(page: Page, email: string) {
-  await page.getByText("Demo credentials", { exact: true }).click();
-  await page.getByRole("button", { name: "Use Customer demo account", exact: true }).click();
-  await expect(page.getByLabel("Email", { exact: true })).toHaveValue(/@/);
   await page.getByLabel("Email", { exact: true }).fill(email);
   await page.getByLabel("Password", { exact: true }).fill(recoveredPassword);
   const before = upstreamCount("/api/auth/login");

@@ -9,7 +9,6 @@ import {
   recoveredPassword,
   recoveryFixture,
   rememberSession,
-  screenshot,
   signInRecovered,
   upstreamCount,
 } from "./password-recovery-helpers";
@@ -49,7 +48,7 @@ if (process.env.AUTH_RECOVERY_SCENARIO) {
       page.getByRole("status").filter({ hasText: "The result is unconfirmed" }),
     ).toBeVisible();
     expect(upstreamCount(requestRoute)).toBe(before + 1);
-    await screenshot(page, testInfo, "recovery-request-unconfirmed");
+
     await page.unroute(`**${requestRoute}`);
     page.on("request", (attempt) => {
       if (attempt.url().endsWith(requestRoute)) {
@@ -80,7 +79,6 @@ if (process.env.AUTH_RECOVERY_SCENARIO) {
     await expect.poll(() => upstreamCount(requestRoute)).toBe(before + 4);
     await expect(page.getByRole("button", { name: "Send reset link", exact: true })).toBeEnabled();
     expect(upstreamCount(resetRoute)).toBe(0);
-    await screenshot(page, testInfo, "recovery-request-accepted");
   });
 
   test("recovery reset: policy denial and lost committed receipt recover without a new operation", async ({
@@ -88,7 +86,7 @@ if (process.env.AUTH_RECOVERY_SCENARIO) {
     context,
     browser,
     request,
-  }, testInfo) => {
+  }) => {
     const owner = recoveryFixture();
     const link = await capturedResetLink(request, owner.Email);
     await installSession(context, owner.OldSessions[0]);
@@ -114,7 +112,7 @@ if (process.env.AUTH_RECOVERY_SCENARIO) {
       ).toBe(true);
       expect(upstreamCount(resetRoute)).toBe(before + 1);
       await expectPreservedSession(context, owner.OldSessions[0]);
-      await screenshot(page, testInfo, "password-policy-denied");
+
       await page.getByLabel("New password", { exact: true }).fill(recoveredPassword);
       const attempts: string[] = [];
       await page.route(`**${resetRoute}`, async (route) => {
@@ -137,7 +135,7 @@ if (process.env.AUTH_RECOVERY_SCENARIO) {
       ).toBe(true);
       await expectPreservedSession(context, owner.OldSessions[0]);
       expect(upstreamCount(resetRoute)).toBe(before + 2);
-      await screenshot(page, testInfo, "reset-unconfirmed");
+
       await page.unroute(`**${resetRoute}`);
       page.on("request", (attempt) => {
         if (attempt.url().endsWith(resetRoute)) {
@@ -166,7 +164,6 @@ if (process.env.AUTH_RECOVERY_SCENARIO) {
       rememberSession(
         (await context.cookies()).find((cookie) => cookie.name === "apexauto_token")!.value,
       );
-      await screenshot(page, testInfo, "recovered-account");
     } finally {
       await unrelated.close();
     }
@@ -175,7 +172,7 @@ if (process.env.AUTH_RECOVERY_SCENARIO) {
   test("recovery fragment: changing links clears the old draft and ignores a completed stale response", async ({
     page,
     request,
-  }, testInfo) => {
+  }) => {
     const owner = recoveryFixture();
     const link = await capturedResetLink(request, owner.Email);
     await assertInitialRecoveryPage(page, "/reset-password", "Reset password");
@@ -192,7 +189,7 @@ if (process.env.AUTH_RECOVERY_SCENARIO) {
       page.getByRole("alert").filter({ hasText: "The reset link is invalid or expired." }),
     ).toBeVisible();
     expect(upstreamCount(resetRoute)).toBe(1);
-    await screenshot(page, testInfo, "invalid-reset-link");
+
     await page.evaluate(
       (hash) => {
         window.location.hash = hash;
@@ -264,6 +261,5 @@ if (process.env.AUTH_RECOVERY_SCENARIO) {
       (await page.getByLabel("New password", { exact: true }).inputValue()) === "FreshDraft123!",
       "The replacement link accepts its own draft",
     ).toBe(true);
-    await screenshot(page, testInfo, "changed-reset-fragment");
   });
 }

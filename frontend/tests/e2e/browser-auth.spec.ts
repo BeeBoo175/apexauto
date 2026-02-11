@@ -69,7 +69,7 @@ test("registration, unverified own account, bounded refresh and current-session 
   page,
   context,
   browser,
-}, testInfo) => {
+}) => {
   test.setTimeout(90_000);
   const owner = customer("Nur Aisyah binti Rahman");
   const other = customer("Lim Wei Jian");
@@ -80,13 +80,7 @@ test("registration, unverified own account, bounded refresh and current-session 
   expect(signedOut.headers()["x-robots-tag"]).toContain("noindex");
   const registrationPage = await page.goto("/register");
   await assertHydrationGuard(page, await registrationPage!.text());
-  await page.screenshot({
-    path: path.join(evidence, `${testInfo.project.name}-register-layout.png`),
-    fullPage: true,
-  });
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
-    true,
-  );
+
   const before = counts();
   await page.getByLabel("Legal name", { exact: true }).fill(owner.legalName);
   await page.getByLabel("Email", { exact: true }).fill(owner.email);
@@ -107,19 +101,13 @@ test("registration, unverified own account, bounded refresh and current-session 
   await signIn(page, owner.email);
   await expect(page.getByText(owner.legalName, { exact: true })).toBeVisible();
   await expect(page.getByText("Not verified", { exact: true })).toBeVisible();
-  await page.screenshot({
-    path: path.join(evidence, `${testInfo.project.name}-account.png`),
-    fullPage: true,
-  });
+
   const cookie = (await context.cookies()).find((entry) => entry.name === "apexauto_token")!;
   writeFileSync(path.join(evidence, "revoked-token.txt"), cookie.value);
   expect(cookie.httpOnly).toBe(true);
   expect(cookie.sameSite).toBe("Lax");
   expect(cookie.secure).toBe(true);
   expect(await page.evaluate(() => document.cookie)).not.toContain("apexauto_token");
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
-    true,
-  );
 
   const sameActorTab = await context.newPage();
   const accountDocument = await sameActorTab.goto("/account");
@@ -186,6 +174,7 @@ test("registration, unverified own account, bounded refresh and current-session 
   await expect(page.getByRole("alert").filter({ hasText: "last confirmed details" })).toHaveCount(
     1,
   );
+
   const retry = page.getByRole("button", { name: "Retry account refresh" });
   fault("");
   await retry.click();

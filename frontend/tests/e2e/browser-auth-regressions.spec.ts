@@ -82,9 +82,6 @@ function waitForRefreshAbort(page: Page) {
 
 async function signIn(page: Page, email: string) {
   await page.goto("/login");
-  await page.getByText("Demo credentials", { exact: true }).click();
-  await page.getByRole("button", { name: "Use Customer demo account" }).click();
-  await expect(page.getByLabel("Email", { exact: true })).toHaveValue(/@/);
   await page.getByLabel("Email", { exact: true }).fill(email);
   await page.getByLabel("Password", { exact: true }).fill("Password123!");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();

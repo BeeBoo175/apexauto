@@ -1,15 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
 import { Button } from "@/components/ui/Button";
-import { useToast } from "@/components/ui/Toast";
+import { useInitialToast } from "@/hooks/use-initial-toast";
 
 export default function AccountError({ reset }: { reset: () => void }) {
-  const { error } = useToast();
-
-  useEffect(() => {
-    error("Your account could not be loaded. Try again when the service is available.");
-  }, [error]);
+  useInitialToast("Your account could not be loaded. Try again when the service is available.");
 
   return (
     <section className="max-w-lg mx-auto p-6 flex flex-col gap-5">

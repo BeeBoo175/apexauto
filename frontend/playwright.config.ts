@@ -3,15 +3,11 @@ import { defineConfig, devices } from "@playwright/test";
 const browserAuth = Boolean(process.env.AUTH_EVIDENCE_DIR);
 const appBaseUrl = process.env.APP_BASE_URL;
 const nextOrigin = process.env.AUTH_NEXT_ORIGIN;
-const demoRoleLogins = Boolean(process.env.AUTH_DEMO_ROLES);
 const intakeUi = Boolean(process.env.AUTH_INTAKE_UI);
 
 function browserTests() {
   if (intakeUi) {
     return "e2e/intake-ui*.spec.ts";
-  }
-  if (demoRoleLogins) {
-    return "e2e/demo-role-logins.spec.ts";
   }
   return "e2e/browser-auth*.spec.ts";
 }
