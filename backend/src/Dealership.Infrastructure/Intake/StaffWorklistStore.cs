@@ -1,4 +1,5 @@
 using System.Data;
+using System.Linq.Expressions;
 using Dealership.Application.Intake;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -22,9 +23,13 @@ public sealed class StaffWorklistStore(DealershipDbContext database) : IStaffWor
 
         var branchId = scope.BranchId ?? query.BranchId;
 
-        var rows = database.IntakeAppointments.AsNoTracking()
-            .Where(item => item.StartsAt >= query.From && item.StartsAt < query.Until &&
-                (branchId == null || item.BranchId == branchId))
+        var appointments = database.IntakeAppointments.AsNoTracking()
+            .Where(item => branchId == null || item.BranchId == branchId);
+        if (query.From is not null)
+        {
+            appointments = appointments.Where(item => item.StartsAt >= query.From && item.StartsAt < query.Until);
+        }
+        var rows = appointments
             .Select(item => new
             {
                 Appointment = item,
@@ -38,36 +43,66 @@ public sealed class StaffWorklistStore(DealershipDbContext database) : IStaffWor
             StaffWorklistStatus.Cancelled => rows.Where(row => row.Cancelled),
             _ => rows
         };
-        var total = await rows.CountAsync(cancellationToken);
+        var records = rows.Join(database.Branches, row => row.Appointment.BranchId, branch => branch.Id,
+                (row, branch) => new { Row = row, BranchName = branch.Name })
+            .Join(database.CustomerProfiles, row => row.Row.Appointment.OwnerId, customer => customer.UserId,
+                (row, customer) => new WorklistRow
+                {
+                    Id = row.Row.Appointment.Id,
+                    BranchId = row.Row.Appointment.BranchId,
+                    BranchName = row.BranchName,
+                    CustomerName = customer.LegalName,
+                    RegistrationPlate = row.Row.Appointment.RegistrationPlate,
+                    StartsAt = row.Row.Appointment.StartsAt,
+                    EndsAt = row.Row.Appointment.EndsAt,
+                    CheckedIn = row.Row.CheckedIn,
+                    Cancelled = row.Row.Cancelled
+                });
+        if (query.Search.Length > 0)
+        {
+            var pattern = "%" + query.Search.Replace("!", "!!", StringComparison.Ordinal)
+                .Replace("%", "!%", StringComparison.Ordinal).Replace("_", "!_", StringComparison.Ordinal) + "%";
+            records = records.Where(row => EF.Functions.ILike(row.RegistrationPlate, pattern, "!") ||
+                EF.Functions.ILike(row.CustomerName, pattern, "!") || EF.Functions.ILike(row.BranchName, pattern, "!") ||
+                EF.Functions.ILike(row.Id.ToString(), pattern, "!"));
+        }
+        var total = await records.CountAsync(cancellationToken);
         var offset = (long)(query.Page - 1) * query.PageSize;
         StaffWorklistItem[] items = [];
 
         if (offset < total)
         {
-            var page = await rows.Join(database.Branches, row => row.Appointment.BranchId, branch => branch.Id,
-                    (row, branch) => new { Row = row, BranchName = branch.Name })
-                .Join(database.CustomerProfiles, row => row.Row.Appointment.OwnerId, customer => customer.UserId,
-                    (row, customer) => new { row.Row, row.BranchName, CustomerName = customer.LegalName })
-                .OrderBy(row => row.Row.Appointment.StartsAt).ThenBy(row => row.Row.Appointment.Id)
+            var page = await Order(records, query)
+                .ThenBy(row => row.Id)
                 .Skip((int)offset).Take(query.PageSize)
-                .Select(row => new
-                {
-                    row.Row.Appointment.Id,
-                    row.Row.Appointment.BranchId,
-                    row.BranchName,
-                    row.CustomerName,
-                    row.Row.Appointment.RegistrationPlate,
-                    row.Row.Appointment.StartsAt,
-                    row.Row.Appointment.EndsAt,
-                    row.Row.CheckedIn,
-                    row.Row.Cancelled
-                }).ToArrayAsync(cancellationToken);
+                .ToArrayAsync(cancellationToken);
             items = page.Select(row => new StaffWorklistItem(row.Id, row.BranchId, row.BranchName, row.CustomerName,
                 row.RegistrationPlate, row.StartsAt, row.EndsAt, Status(row.CheckedIn, row.Cancelled))).ToArray();
         }
 
         await transaction.CommitAsync(cancellationToken);
         return new StaffWorklistPage(items, total, query.Page, query.PageSize);
+    }
+
+    private static IOrderedQueryable<WorklistRow> Order(IQueryable<WorklistRow> rows, StaffWorklistQuery query)
+    {
+        return query.Sort switch
+        {
+            "registrationPlate" => OrderBy(rows, row => row.RegistrationPlate, query.Direction),
+            "customerName" => OrderBy(rows, row => row.CustomerName, query.Direction),
+            "branchName" => OrderBy(rows, row => row.BranchName, query.Direction),
+            "status" => OrderStatus(rows, query.Direction),
+            _ => OrderBy(rows, row => row.StartsAt, query.Direction)
+        };
+    }
+
+    private static IOrderedQueryable<WorklistRow> OrderStatus(IQueryable<WorklistRow> rows, string direction)
+    {
+        if (direction == "desc")
+        {
+            return rows.OrderByDescending(row => row.CheckedIn).ThenByDescending(row => row.Cancelled);
+        }
+        return rows.OrderBy(row => row.CheckedIn).ThenBy(row => row.Cancelled);
     }
 
     private static string Status(bool checkedIn, bool cancelled)
@@ -78,5 +113,24 @@ public sealed class StaffWorklistStore(DealershipDbContext database) : IStaffWor
         }
 
         return cancelled ? nameof(StaffWorklistStatus.Cancelled) : nameof(StaffWorklistStatus.Booked);
+    }
+
+    private static IOrderedQueryable<WorklistRow> OrderBy<TKey>(IQueryable<WorklistRow> rows,
+        Expression<Func<WorklistRow, TKey>> key, string direction)
+    {
+        return direction == "desc" ? rows.OrderByDescending(key) : rows.OrderBy(key);
+    }
+
+    private sealed class WorklistRow
+    {
+        public Guid Id { get; init; }
+        public Guid BranchId { get; init; }
+        public required string BranchName { get; init; }
+        public required string CustomerName { get; init; }
+        public required string RegistrationPlate { get; init; }
+        public DateTimeOffset StartsAt { get; init; }
+        public DateTimeOffset EndsAt { get; init; }
+        public bool CheckedIn { get; init; }
+        public bool Cancelled { get; init; }
     }
 }

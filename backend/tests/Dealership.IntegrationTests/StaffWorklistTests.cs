@@ -59,6 +59,19 @@ public sealed class StaffWorklistTests(IntakePhotoFixture fixture) : IClassFixtu
         var expected = booked.Where(item => item.Id != booked[0].Id && item.Id != booked[6].Id)
             .OrderBy(item => item.Slot.StartsAt).ThenBy(item => item.Id).Select(item => item.Id);
         Assert.Equal(expected, pages.SelectMany(page => page.Items).Select(item => item.Id));
+        var beyondFirstPage = (await ListAsync(data, data.StaffId, query with { Search = "vca 6242" }))!;
+        Assert.Equal(1, beyondFirstPage.Total);
+        Assert.Equal(booked[^1].Id, Assert.Single(beyondFirstPage.Items).Id);
+        Assert.Equal(41, (await ListAsync(data, data.StaffId, query with { Search = "nUr AiNa" }))!.Total);
+        Assert.Equal(0, (await ListAsync(data, data.StaffId, query with { Search = "BPL 2198" }))!.Total);
+        Assert.Equal(0, (await ListAsync(data, data.StaffId, query with { Search = "%" }))!.Total);
+        Assert.Equal(0, (await ListAsync(data, data.StaffId, query with { Search = "_" }))!.Total);
+        Assert.Equal(booked[^1].Id, Assert.Single((await ListAsync(data, data.StaffId,
+            query with { Search = booked[^1].Id.ToString() }))!.Items).Id);
+        var descending = (await ListAsync(data, data.StaffId,
+            query with { Sort = "registrationPlate", Direction = "desc" }))!;
+        Assert.Equal("VCA 6242", descending.Items[0].RegistrationPlate);
+        Assert.Equal(41, descending.Total);
         Assert.All(pages.SelectMany(page => page.Items), item =>
         {
             Assert.Equal(data.BranchId, item.BranchId);
@@ -73,17 +86,26 @@ public sealed class StaffWorklistTests(IntakePhotoFixture fixture) : IClassFixtu
             query with { Status = StaffWorklistStatus.CheckedIn }))!.Items).Id);
         Assert.Equal(booked[6].Id, Assert.Single((await ListAsync(data, data.StaffId,
             query with { Status = StaffWorklistStatus.Cancelled }))!.Items).Id);
-        var today = StaffWorklistQuery.Parse(null, null, null, null, 1, 20, booked[0].Slot.StartsAt)!;
+        var unrestricted = StaffWorklistQuery.Parse(null, null, "All", null, 1, 20, booked[0].Slot.StartsAt)!;
+        Assert.Equal(43, (await ListAsync(data, data.StaffId, unrestricted))!.Total);
+        Assert.Equal(44, (await ListAsync(data, manager, unrestricted))!.Total);
+        var today = StaffWorklistQuery.Parse(from, from, null, null, 1, 20, booked[0].Slot.StartsAt)!;
         Assert.Equal(5, (await ListAsync(data, data.StaffId, today))!.Total);
         Assert.Equal(6, (await ListAsync(data, data.StaffId, today with
         {
             From = today.Until,
-            Until = today.Until.AddDays(1),
+            Until = today.Until!.Value.AddDays(1),
             Status = StaffWorklistStatus.All
         }))!.Total);
 
         var allBranches = (await ListAsync(data, manager, query with { Status = StaffWorklistStatus.All, PageSize = 50 }))!;
         Assert.Equal(44, allBranches.Total);
+        Assert.Equal(other.Id, Assert.Single((await ListAsync(data, manager,
+            query with { Search = "pEtAlInG" }))!.Items).Id);
+        var statusOrder = (await ListAsync(data, manager,
+            query with { Status = StaffWorklistStatus.All, Sort = "status", Direction = "desc", PageSize = 50 }))!;
+        Assert.Equal("CheckedIn", statusOrder.Items[0].Status);
+        Assert.Equal("Cancelled", statusOrder.Items[1].Status);
         Assert.Equal(allBranches.Items.OrderBy(item => item.StartsAt).ThenBy(item => item.Id).Select(item => item.Id),
             allBranches.Items.Select(item => item.Id));
         var tie = allBranches.Items.Where(item => item.StartsAt == other.Slot.StartsAt).ToArray();

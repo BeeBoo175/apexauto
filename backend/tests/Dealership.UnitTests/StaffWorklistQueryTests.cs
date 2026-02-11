@@ -7,12 +7,16 @@ public sealed class StaffWorklistQueryTests
     private static readonly DateTimeOffset BeforeMidnight = new(2026, 10, 15, 15, 59, 59, TimeSpan.Zero);
 
     [Fact]
-    public void DefaultTodayUsesMalaysianMidnightAndExplicitInclusiveDatesAreBounded()
+    public void OmittedDatesAreUnrestrictedAndExplicitInclusiveDatesUseMalaysianMidnight()
     {
-        var today = Parse(now: BeforeMidnight)!;
+        var unrestricted = Parse(now: BeforeMidnight)!;
+        Assert.Null(unrestricted.From);
+        Assert.Null(unrestricted.Until);
+        Assert.Null(Parse(now: BeforeMidnight.AddSeconds(1))!.From);
+        var today = Parse("2026-10-15", "2026-10-15")!;
         Assert.Equal(new DateTimeOffset(2026, 10, 14, 16, 0, 0, TimeSpan.Zero), today.From);
         Assert.Equal(new DateTimeOffset(2026, 10, 15, 16, 0, 0, TimeSpan.Zero), today.Until);
-        var tomorrow = Parse(now: BeforeMidnight.AddSeconds(1))!;
+        var tomorrow = Parse("2026-10-16", "2026-10-16")!;
         Assert.Equal(today.Until, tomorrow.From);
         Assert.Equal(StaffWorklistStatus.Booked, tomorrow.Status);
         Assert.Equal(20, tomorrow.PageSize);
@@ -53,5 +57,19 @@ public sealed class StaffWorklistQueryTests
         int page = 1, int pageSize = 20, DateTimeOffset? now = null)
     {
         return StaffWorklistQuery.Parse(from, to, status, null, page, pageSize, now ?? BeforeMidnight);
+    }
+
+    [Fact]
+    public void SearchAndSortAreBoundedAndExplicit()
+    {
+        var query = StaffWorklistQuery.Parse(null, null, null, null, 1, 20, BeforeMidnight,
+            "  VCA 6242  ", "registrationPlate", "desc")!;
+        Assert.Equal("VCA 6242", query.Search);
+        Assert.Equal("registrationPlate", query.Sort);
+        Assert.Equal("desc", query.Direction);
+        Assert.Null(StaffWorklistQuery.Parse(null, null, null, null, 1, 20, BeforeMidnight, new string('a', 161)));
+        Assert.Null(StaffWorklistQuery.Parse(null, null, null, null, 1, 20, BeforeMidnight, "a\nb"));
+        Assert.Null(StaffWorklistQuery.Parse(null, null, null, null, 1, 20, BeforeMidnight, sort: "arbitrary"));
+        Assert.Null(StaffWorklistQuery.Parse(null, null, null, null, 1, 20, BeforeMidnight, direction: "DESC"));
     }
 }

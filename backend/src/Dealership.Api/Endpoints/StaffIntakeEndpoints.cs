@@ -21,13 +21,14 @@ public static class StaffIntakeEndpoints
 
     private static async Task<IResult> ListAsync(HttpContext context, IStaffWorklistStore worklist,
         TimeProvider clock, CancellationToken cancellationToken, string? from = null, string? to = null,
-        string? status = null, Guid? branchId = null, int page = 1, int pageSize = 20)
+        string? status = null, Guid? branchId = null, int page = 1, int pageSize = 20,
+        string? search = null, string? sort = null, string? direction = null)
     {
-        var query = StaffWorklistQuery.Parse(from, to, status, branchId, page, pageSize, clock.GetUtcNow());
+        var query = StaffWorklistQuery.Parse(from, to, status, branchId, page, pageSize, clock.GetUtcNow(), search, sort, direction);
 
         if (query is null)
         {
-            return Results.Problem(statusCode: 400, title: "Provide a valid date range, status, branch and paging.");
+            return Results.Problem(statusCode: 400, title: "Provide valid dates, status, branch, search, sort and paging.");
         }
 
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
