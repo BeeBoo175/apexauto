@@ -36,9 +36,7 @@ test("staff reassignment clears old branch records and applies current permissio
       await page.getByRole("button", { name: "Workspaces", exact: true }).click();
     }
     await navigation.click();
-    await expect(
-      page.getByRole("table", { name: "Scoped intake appointments", exact: true }),
-    ).toBeVisible();
+    await expect(page.getByRole("region", { name: "Intake calendar", exact: true })).toBeVisible();
     await page.getByRole("link", { name: "Table", exact: true }).click();
   }
   try {
