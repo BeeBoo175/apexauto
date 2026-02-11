@@ -8,12 +8,14 @@ public static class StaffIntakeEndpoints
 {
     public static void MapStaffIntakeEndpoints(this WebApplication app)
     {
-        var routes = app.MapGroup("/api/staff/intake/appointments").RequireAuthorization();
-        routes.AddEndpointFilter(async (context, next) =>
+        var staff = app.MapGroup("/api/staff/intake").RequireAuthorization();
+        staff.AddEndpointFilter(async (context, next) =>
         {
             context.HttpContext.Response.Headers.CacheControl = "no-store";
             return await next(context);
         });
+        staff.MapGet("/calendar", StaffIntakeCalendarEndpoint.ReadAsync);
+        var routes = staff.MapGroup("/appointments");
         routes.MapGet("", ListAsync);
         routes.MapGet("/export", StaffIntakeExportEndpoint.ExportAsync);
         routes.MapGet("/{id:guid}", DetailAsync);

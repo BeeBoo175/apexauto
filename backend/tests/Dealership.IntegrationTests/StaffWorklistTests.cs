@@ -79,6 +79,30 @@ public sealed class StaffWorklistTests(IntakePhotoFixture fixture) : IClassFixtu
         Assert.DoesNotContain(export.Items, item => item.Id == other.Id);
         Assert.Null(await services.GetRequiredService<IStaffWorklistStore>().ExportAsync(data.StaffId,
             query with { BranchId = otherBranch }, CancellationToken.None));
+        var calendarQuery = query with { From = query.From!.Value.AddDays(-35), Until = query.From.Value.AddDays(7), Status = StaffWorklistStatus.All, BranchId = data.BranchId };
+        var calendar = await services.GetRequiredService<StaffCalendarService>().ReadAsync(data.StaffId, calendarQuery, CancellationToken.None);
+        Assert.Equal(StaffCalendarStatus.Succeeded, calendar.Status);
+        Assert.Equal(42, calendar.Snapshot!.Total);
+        Assert.Equal(42, calendar.Snapshot.Items.Count);
+        Assert.Contains(calendar.Snapshot.Items, item => item.Id == booked[41].Id);
+        Assert.DoesNotContain(calendar.Snapshot.Items, item => item.Id == booked[42].Id || item.Id == other.Id);
+        Assert.Equal(41, calendar.Snapshot.To.DayNumber - calendar.Snapshot.From.DayNumber);
+        Assert.Contains(calendar.Snapshot.Items, item => item.Id == booked[6].Id && item.Status == "Cancelled");
+        Assert.Contains(calendar.Snapshot.Items, item => item.Id == booked[0].Id && item.Status == "CheckedIn");
+        Assert.Equal(StaffCalendarStatus.Forbidden,
+            (await services.GetRequiredService<StaffCalendarService>().ReadAsync(data.StaffId,
+                calendarQuery with { BranchId = otherBranch }, CancellationToken.None)).Status);
+        var groupCalendar = await services.GetRequiredService<StaffCalendarService>().ReadAsync(manager,
+            calendarQuery with { BranchId = null }, CancellationToken.None);
+        Assert.Equal(43, groupCalendar.Snapshot!.Total);
+        Assert.Contains(groupCalendar.Snapshot.Items, item => item.Id == other.Id);
+        await AssertCalendarMatchesTableAsync(services, data.StaffId, calendarQuery);
+        await AssertCalendarMatchesTableAsync(services, manager, calendarQuery with { BranchId = null });
+        await AssertCalendarMatchesTableAsync(services, manager, calendarQuery with { BranchId = otherBranch });
+        foreach (var status in new[] { StaffWorklistStatus.Booked, StaffWorklistStatus.CheckedIn, StaffWorklistStatus.Cancelled })
+        {
+            await AssertCalendarMatchesTableAsync(services, data.StaffId, calendarQuery with { Status = status });
+        }
         Assert.All(pages.SelectMany(page => page.Items), item =>
         {
             Assert.Equal(data.BranchId, item.BranchId);
@@ -132,6 +156,7 @@ public sealed class StaffWorklistTests(IntakePhotoFixture fixture) : IClassFixtu
                 .SetProperty(user => user.Role, role).SetProperty(user => user.BranchId, branchId));
             Assert.Null(await ListAsync(data, data.StaffId, query));
             Assert.Null(await services.GetRequiredService<IStaffWorklistStore>().ExportAsync(data.StaffId, query, CancellationToken.None));
+            Assert.Null(await services.GetRequiredService<IStaffWorklistStore>().CalendarAsync(data.StaffId, calendarQuery, CancellationToken.None));
         }
 
         await database.Users.Where(user => user.Id == data.StaffId).ExecuteUpdateAsync(update => update
@@ -151,6 +176,25 @@ public sealed class StaffWorklistTests(IntakePhotoFixture fixture) : IClassFixtu
         using var scope = data.Factory.Services.CreateScope();
         return await scope.ServiceProvider.GetRequiredService<IStaffWorklistStore>()
             .ListAsync(staffId, query, CancellationToken.None);
+    }
+
+    private static async Task AssertCalendarMatchesTableAsync(IServiceProvider services, Guid staffId, StaffWorklistQuery query)
+    {
+        var calendar = await services.GetRequiredService<StaffCalendarService>()
+            .ReadAsync(staffId, query, CancellationToken.None);
+        Assert.Equal(StaffCalendarStatus.Succeeded, calendar.Status);
+        var snapshot = calendar.Snapshot!;
+        var table = new List<StaffWorklistItem>();
+        var store = services.GetRequiredService<IStaffWorklistStore>();
+        var pages = Math.Max(1, (snapshot.Total + query.PageSize - 1) / query.PageSize);
+        for (var page = 1; page <= pages; page++)
+        {
+            var result = await store.ListAsync(staffId, query with { Page = page }, CancellationToken.None);
+            Assert.NotNull(result);
+            Assert.Equal(snapshot.Total, result.Total);
+            table.AddRange(result.Items);
+        }
+        Assert.Equal(snapshot.Items, table);
     }
 
     private async Task AssertCountAndRowsShareSnapshotAsync(CheckInTestData data, StaffWorklistQuery query, Guid appointmentId)

@@ -20,6 +20,12 @@ public sealed class StaffWorklistStore(DealershipDbContext database) : IStaffWor
         return await ReadAsync(staffId, query with { Page = 1, PageSize = 10000 }, 10000, cancellationToken);
     }
 
+    public async Task<StaffWorklistPage?> CalendarAsync(Guid staffId, StaffWorklistQuery query, CancellationToken cancellationToken)
+    {
+        const int maximum = StaffCalendarService.MaximumAppointments;
+        return await ReadAsync(staffId, query with { Page = 1, PageSize = maximum }, maximum, cancellationToken);
+    }
+
     private async Task<StaffWorklistPage?> ReadAsync(Guid staffId, StaffWorklistQuery query, int maximumRows,
         CancellationToken cancellationToken)
     {

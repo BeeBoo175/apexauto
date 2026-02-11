@@ -80,6 +80,9 @@ public sealed class StaffExportEndpointTests
         public Task<StaffWorklistPage?> ListAsync(Guid staffId, StaffWorklistQuery query, CancellationToken cancellationToken)
             => throw new InvalidOperationException("Export must not page the list port.");
 
+        public Task<StaffWorklistPage?> CalendarAsync(Guid staffId, StaffWorklistQuery query, CancellationToken cancellationToken)
+            => throw new InvalidOperationException("Export must not use the calendar port.");
+
         public async Task<StaffWorklistPage?> ExportAsync(Guid staffId, StaffWorklistQuery query, CancellationToken cancellationToken)
         {
             StaffId = staffId;
