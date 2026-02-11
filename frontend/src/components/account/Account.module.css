@@ -1,0 +1,146 @@
+.page {
+  width: min(1200px, calc(100% - 48px));
+  margin: 36px auto 56px;
+}
+
+.page h1 {
+  margin-bottom: 28px;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.8fr) minmax(0, 2fr);
+  align-items: start;
+  gap: 28px;
+}
+
+.history,
+.records {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.heading h2 {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.heading h3 {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  align-items: end;
+  gap: 12px;
+}
+
+.help,
+.details {
+  color: var(--color-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.appointment {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.appointment .heading {
+  width: 100%;
+}
+
+.plate {
+  padding: 8px 12px;
+  background: var(--color-graphite);
+  color: var(--color-paper);
+  font-size: 20px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.state {
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.details {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+}
+
+.details div {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 16px;
+}
+
+.details dd {
+  color: var(--color-graphite);
+}
+
+.reference {
+  overflow-wrap: anywhere;
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.paging {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.recovery {
+  display: inline-block;
+  margin-top: 24px;
+  color: var(--color-signal);
+  font-size: 14px;
+}
+
+.page :focus-visible {
+  outline: 2px solid var(--color-graphite);
+  outline-offset: 4px;
+}
+
+@media (max-width: 900px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 540px) {
+  .page {
+    width: calc(100% - 32px);
+  }
+
+  .filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .details div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+}
