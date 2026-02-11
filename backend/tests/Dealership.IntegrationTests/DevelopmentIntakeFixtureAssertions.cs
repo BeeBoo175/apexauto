@@ -16,7 +16,7 @@ namespace Dealership.IntegrationTests;
 
 internal static class DevelopmentIntakeFixtureAssertions
 {
-    private static readonly int[] PageSizes = [20, 20, 3];
+    private static readonly int[] PageSizes = [20, 20, 4];
 
     public static async Task VerifyAuthenticatedAsync(HttpClient client, string email)
     {
@@ -35,8 +35,8 @@ internal static class DevelopmentIntakeFixtureAssertions
 
             var history = await client.GetFromJsonAsync<AppointmentHistoryPage>("/api/intake/appointments?page=3");
             Assert.NotNull(history);
-            Assert.Equal(43, history.Total);
-            Assert.Equal(3, history.Items.Count);
+            Assert.Equal(44, history.Total);
+            Assert.Equal(4, history.Items.Count);
             var ownedIds = DevelopmentIntakeManifest.Appointments.Where(item =>
                 item.RegistrationKey == customer.Registration.RegistrationKey).Select(item => item.Id).ToHashSet();
             Assert.All(history.Items, item => Assert.Contains(item.Id, ownedIds));
@@ -82,17 +82,17 @@ internal static class DevelopmentIntakeFixtureAssertions
         var services = scope.ServiceProvider;
         var database = services.GetRequiredService<DealershipDbContext>();
         var appointments = await database.IntakeAppointments.AsNoTracking().ToArrayAsync();
-        Assert.Equal(129, appointments.Length);
-        Assert.Equal(129, await database.SellerValuations.CountAsync());
-        Assert.Equal(516, await database.IntakePhotos.CountAsync());
-        Assert.Equal(516, await database.AppointmentPhotos.CountAsync());
-        Assert.Equal(129, await database.AppointmentConfirmations.CountAsync());
+        Assert.Equal(132, appointments.Length);
+        Assert.Equal(132, await database.SellerValuations.CountAsync());
+        Assert.Equal(528, await database.IntakePhotos.CountAsync());
+        Assert.Equal(528, await database.AppointmentPhotos.CountAsync());
+        Assert.Equal(132, await database.AppointmentConfirmations.CountAsync());
         Assert.Equal(3, await database.Vehicles.CountAsync());
         Assert.Equal(3, await database.AppointmentCheckIns.CountAsync());
         Assert.Equal(3, await database.AppointmentCheckInMails.CountAsync());
         Assert.Equal(3, await database.AppointmentCancellations.CountAsync());
         Assert.Equal(3, await database.AppointmentCancellationMails.CountAsync());
-        Assert.Equal(516, await database.IntakePhotos.CountAsync(photo => photo.AvailableAt != null));
+        Assert.Equal(528, await database.IntakePhotos.CountAsync(photo => photo.AvailableAt != null));
         var schedule = services.GetRequiredService<InspectionSchedule>();
         var malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
         var valuations = await database.SellerValuations.AsNoTracking().ToDictionaryAsync(item => item.AppointmentId);
@@ -167,7 +167,7 @@ internal static class DevelopmentIntakeFixtureAssertions
             {
                 var result = await history.ListAsync(owner.UserId, new AppointmentHistoryQuery(null, null, page, 20), CancellationToken.None);
                 Assert.NotNull(result);
-                Assert.Equal(43, result.Total);
+                Assert.Equal(44, result.Total);
                 Assert.Equal(PageSizes[page - 1], result.Items.Count);
                 actual.AddRange(result.Items.Select(item => item.Id));
             }

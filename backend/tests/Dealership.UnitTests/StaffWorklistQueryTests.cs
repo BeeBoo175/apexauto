@@ -27,7 +27,7 @@ public sealed class StaffWorklistQueryTests
         Assert.Null(Parse("2024-01-01", "2025-01-01"));
         Assert.NotNull(Parse(page: int.MaxValue));
 
-        foreach (var state in new[] { "Booked", "CheckedIn", "Cancelled", "All" })
+        foreach (var state in new[] { "Booked", "CheckedIn", "Cancelled", "NoShow", "All" })
         {
             Assert.Equal(state, Parse(status: state)!.Status.ToString());
         }

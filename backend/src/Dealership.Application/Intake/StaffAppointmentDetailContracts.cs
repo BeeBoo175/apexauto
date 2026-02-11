@@ -2,7 +2,8 @@ namespace Dealership.Application.Intake;
 
 public sealed record StaffAppointmentDetail(Guid Id, Guid BranchId, string BranchName, string CustomerName,
     string RegistrationPlate, DateTimeOffset StartsAt, DateTimeOffset EndsAt, string Status,
-    string Make, string Model, string Trim, int ManufactureYear, int MileageKilometres);
+    string Make, string Model, string Trim, int ManufactureYear, int MileageKilometres, DateTimeOffset? NoShowAt = null,
+    DateTimeOffset? AttendanceCorrectedAt = null, string? CorrectionReason = null, Guid? CorrectedBy = null);
 
 public enum StaffAppointmentDetailStatus
 {

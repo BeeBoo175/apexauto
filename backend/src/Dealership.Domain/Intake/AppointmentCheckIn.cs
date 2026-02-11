@@ -11,7 +11,8 @@ public sealed class AppointmentCheckIn
     }
 
     public AppointmentCheckIn(Guid vehicleId, IntakeAppointment appointment, Guid staffId,
-        CheckInEvidence evidence, DateTimeOffset now)
+        CheckInEvidence evidence, DateTimeOffset now, DateTimeOffset? correctionRecordedAt = null,
+        string? correctionReason = null)
     {
         var sameDate = TimeZoneInfo.ConvertTime(now, Malaysia).Date ==
             TimeZoneInfo.ConvertTime(appointment.StartsAt, Malaysia).Date;
@@ -22,6 +23,21 @@ public sealed class AppointmentCheckIn
         }
 
         var normalized = evidence.Normalize();
+        if (correctionRecordedAt is not null)
+        {
+            if (correctionRecordedAt < AppointmentDay.EndsAt(appointment.StartsAt))
+            {
+                throw new ArgumentException("No-show correction requires the booked day to have ended.");
+            }
+
+            CorrectionReason = NormalizeCorrectionReason(correctionReason ?? string.Empty);
+            CorrectionRecordedAt = correctionRecordedAt.Value.ToUniversalTime();
+        }
+        else if (correctionReason is not null)
+        {
+            throw new ArgumentException("A correction reason requires its recording time.");
+        }
+
         AppointmentId = appointment.Id;
         OwnerId = appointment.OwnerId;
         BranchId = appointment.BranchId;
@@ -50,6 +66,19 @@ public sealed class AppointmentCheckIn
     public bool OwnershipConfirmed { get; private set; }
     public bool VehicleConfirmed { get; private set; }
     public string? Notes { get; private set; }
+    public DateTimeOffset? CorrectionRecordedAt { get; private set; }
+    public string? CorrectionReason { get; private set; }
+
+    public static string NormalizeCorrectionReason(string reason)
+    {
+        var value = reason.Trim();
+        if (value.Length is 0 or > 1000 || value.Any(char.IsControl))
+        {
+            throw new ArgumentException("Provide a correction reason of at most 1000 characters without control characters.");
+        }
+
+        return value;
+    }
 
     public bool Matches(CheckInEvidence evidence)
     {

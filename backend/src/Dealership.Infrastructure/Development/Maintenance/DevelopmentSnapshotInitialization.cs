@@ -40,7 +40,7 @@ internal sealed class DevelopmentSnapshotInitialization : IAsyncDisposable
             await initialization.UseEventTimeAsync("require_available_appointment_photo",
                 "(SELECT a.\"CreatedAt\" FROM public.\"IntakeAppointments\" a WHERE a.\"Id\" = NEW.\"AppointmentId\")", 2, cancellationToken);
             await initialization.UseEventTimeAsync("validate_appointment_cancellation", "NEW.\"CancelledAt\"", 1, cancellationToken);
-            await initialization.UseEventTimeAsync("validate_appointment_checkin", "NEW.\"CheckedInAt\"", 2, cancellationToken);
+            await initialization.UseEventTimeAsync("validate_appointment_checkin", "NEW.\"CheckedInAt\"", 3, cancellationToken);
             return initialization;
         }
         catch

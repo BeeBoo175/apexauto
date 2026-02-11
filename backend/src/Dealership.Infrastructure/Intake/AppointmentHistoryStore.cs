@@ -1,5 +1,6 @@
 using System.Data;
 using Dealership.Application.Intake;
+using Dealership.Domain.Intake;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,6 +19,9 @@ public sealed class AppointmentHistoryStore(DealershipDbContext database) : IApp
             return null;
         }
 
+        var databaseNow = await database.Database.SqlQuery<DateTimeOffset>($"SELECT clock_timestamp() AS \"Value\"")
+            .SingleAsync(cancellationToken);
+        var today = AppointmentDay.StartUtc(databaseNow);
         var appointments = database.IntakeAppointments.AsNoTracking().Where(item => item.OwnerId == ownerId);
 
         if (query.From is not null)
@@ -38,9 +42,17 @@ public sealed class AppointmentHistoryStore(DealershipDbContext database) : IApp
                 .Select(row => new AppointmentHistoryItem(row.Appointment.Id, row.Appointment.BranchId, row.BranchName,
                     row.Appointment.RegistrationPlate, row.Appointment.StartsAt, row.Appointment.EndsAt, row.Appointment.CreatedAt,
                     database.AppointmentCancellations.Where(cancellation => cancellation.AppointmentId == row.Appointment.Id)
-                        .Select(cancellation => (DateTimeOffset?)cancellation.CancelledAt).SingleOrDefault()))
+                        .Select(cancellation => (DateTimeOffset?)cancellation.CancelledAt).SingleOrDefault(),
+                    row.Appointment.StartsAt < today &&
+                        !database.AppointmentCancellations.Any(item => item.AppointmentId == row.Appointment.Id) &&
+                        !database.AppointmentCheckIns.Any(item => item.AppointmentId == row.Appointment.Id)
+                            ? (DateTimeOffset?)row.Appointment.StartsAt : null,
+                    database.AppointmentCheckIns.Where(item => item.AppointmentId == row.Appointment.Id)
+                        .Select(item => (DateTimeOffset?)item.CheckedInAt).SingleOrDefault()))
                 .ToArrayAsync(cancellationToken);
         }
+        items = items.Select(item => item.NoShowAt is null ? item :
+            item with { NoShowAt = AppointmentDay.EndsAt(item.StartsAt) }).ToArray();
         await transaction.CommitAsync(cancellationToken);
         return new AppointmentHistoryPage(items, total, query.Page, query.PageSize);
     }

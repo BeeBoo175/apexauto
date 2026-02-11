@@ -20,6 +20,7 @@ public static class StaffIntakeEndpoints
         routes.MapGet("/export", StaffIntakeExportEndpoint.ExportAsync);
         routes.MapGet("/{id:guid}", DetailAsync);
         routes.MapPost("/{id:guid}/check-in", CheckInAsync);
+        routes.MapPost("/{id:guid}/no-show-correction", CorrectNoShowAsync);
     }
 
     private static async Task<IResult> ListAsync(HttpContext context, IStaffWorklistStore worklist,
@@ -74,6 +75,18 @@ public static class StaffIntakeEndpoints
     private static async Task<IResult> CheckInAsync(Guid id, HttpContext context, IAppointmentCheckInStore checkIns,
         CancellationToken cancellationToken)
     {
+        return await SubmitCheckInAsync(id, context, checkIns, false, cancellationToken);
+    }
+
+    private static async Task<IResult> CorrectNoShowAsync(Guid id, HttpContext context, IAppointmentCheckInStore checkIns,
+        CancellationToken cancellationToken)
+    {
+        return await SubmitCheckInAsync(id, context, checkIns, true, cancellationToken);
+    }
+
+    private static async Task<IResult> SubmitCheckInAsync(Guid id, HttpContext context, IAppointmentCheckInStore checkIns,
+        bool correction, CancellationToken cancellationToken)
+    {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(20));
 
@@ -95,6 +108,17 @@ public static class StaffIntakeEndpoints
 
             var evidence = new CheckInEvidence(value.Vin ?? string.Empty, value.MileageKilometres.Value,
                 value.CustomerPresent, value.IdentityConfirmed, value.OwnershipConfirmed, value.VehicleConfirmed, value.Notes);
+            if (correction)
+            {
+                if (value.AttendedAt is null || string.IsNullOrWhiteSpace(value.Reason))
+                {
+                    return Results.Problem(statusCode: 400, title: "Provide original-date attendance time and a correction reason.");
+                }
+
+                return Map(await checkIns.CorrectNoShowAsync(StaffId(context), id, evidence,
+                    new NoShowCorrectionRequest(value.AttendedAt.Value, value.Reason), deadline.Token));
+            }
+
             return Map(await checkIns.CheckInAsync(StaffId(context), id, evidence, deadline.Token));
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
@@ -122,5 +146,6 @@ public static class StaffIntakeEndpoints
     }
 
     private sealed record CheckInRequest(string? Vin, int? MileageKilometres, bool CustomerPresent,
-        bool IdentityConfirmed, bool OwnershipConfirmed, bool VehicleConfirmed, string? Notes);
+        bool IdentityConfirmed, bool OwnershipConfirmed, bool VehicleConfirmed, string? Notes,
+        DateTimeOffset? AttendedAt = null, string? Reason = null);
 }

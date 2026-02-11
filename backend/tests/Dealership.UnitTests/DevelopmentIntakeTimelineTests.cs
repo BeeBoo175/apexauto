@@ -24,10 +24,10 @@ public sealed class DevelopmentIntakeTimelineTests
     {
         var anchor = DateTimeOffset.Parse(date, CultureInfo.InvariantCulture);
         var timeline = DevelopmentIntakeTimeline.Create(Schedule, anchor);
-        Assert.Equal(129, timeline.Count);
+        Assert.Equal(132, timeline.Count);
         foreach (var branch in timeline.GroupBy(item => item.Fixture.BranchId))
         {
-            Assert.Equal(43, branch.Select(item => item.Slot.StartsAt).Distinct().Count());
+            Assert.Equal(44, branch.Select(item => item.Slot.StartsAt).Distinct().Count());
             Assert.Equal(41, branch.Count(item => item.Fixture.Status == StaffWorklistStatus.Booked));
         }
 
@@ -49,6 +49,12 @@ public sealed class DevelopmentIntakeTimelineTests
             if (moment.Fixture.Status == StaffWorklistStatus.Cancelled)
             {
                 Assert.True(moment.TransitionAt < moment.Slot.StartsAt);
+                continue;
+            }
+
+            if (moment.Fixture.Status == StaffWorklistStatus.NoShow)
+            {
+                Assert.Equal(AppointmentDay.EndsAt(moment.Slot.StartsAt), moment.TransitionAt);
                 continue;
             }
 

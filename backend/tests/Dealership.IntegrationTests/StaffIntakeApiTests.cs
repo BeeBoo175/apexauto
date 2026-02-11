@@ -190,6 +190,12 @@ public sealed class StaffIntakeApiTests(IntakePhotoFixture fixture) : IClassFixt
 
     private sealed class LostReceiptStore(IAppointmentCheckInStore inner) : IAppointmentCheckInStore
     {
+        public Task<CheckInResult> CorrectNoShowAsync(Guid staffId, Guid appointmentId, CheckInEvidence evidence,
+            NoShowCorrectionRequest correction, CancellationToken cancellationToken)
+        {
+            return inner.CorrectNoShowAsync(staffId, appointmentId, evidence, correction, cancellationToken);
+        }
+
         public async Task<CheckInResult> CheckInAsync(Guid staffId, Guid appointmentId, CheckInEvidence evidence,
             CancellationToken cancellationToken)
         {

@@ -28,6 +28,8 @@ public static class DevelopmentIntakeTimeline
             {
                 StaffWorklistStatus.Cancelled => new DevelopmentIntakeMoment(fixture, historical[0].Slot,
                     historical[0].BookedAt, historical[0].Slot.StartsAt.AddMinutes(-1)),
+                StaffWorklistStatus.NoShow => new DevelopmentIntakeMoment(fixture, historical[2].Slot,
+                    historical[2].BookedAt, AppointmentDay.EndsAt(historical[2].Slot.StartsAt)),
                 StaffWorklistStatus.CheckedIn => new DevelopmentIntakeMoment(fixture, historical[1].Slot,
                     historical[1].BookedAt, historical[1].Slot.StartsAt),
                 _ => new DevelopmentIntakeMoment(fixture, future[next++], anchor, null)
@@ -40,7 +42,7 @@ public static class DevelopmentIntakeTimeline
     {
         var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(anchor, Malaysia).DateTime);
         var result = new List<(InspectionSlot, DateTimeOffset)>();
-        for (var days = 1; days <= 366 && result.Count < 2; days++)
+        for (var days = 1; days <= 366 && result.Count < 3; days++)
         {
             var date = today.AddDays(-days);
             var localMidnight = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified);
@@ -52,7 +54,7 @@ public static class DevelopmentIntakeTimeline
             }
         }
 
-        if (result.Count != 2)
+        if (result.Count != 3)
         {
             throw new InvalidOperationException("The configured schedule cannot provide historical development appointments.");
         }

@@ -68,6 +68,8 @@ public sealed class DevelopmentIntakeFixtures(DealershipDbContext database, Deve
 
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> ReviewAsync(CancellationToken cancellationToken)
     {
+        var now = await database.Database.SqlQuery<DateTimeOffset>($"SELECT clock_timestamp() AS \"Value\"")
+            .SingleAsync(cancellationToken);
         var ids = DevelopmentIntakeManifest.Appointments.Select(item => item.Id).ToArray();
         var existing = await database.IntakeAppointments.AsNoTracking().Where(item => ids.Contains(item.Id)).Select(item => new
         {
@@ -87,6 +89,11 @@ public sealed class DevelopmentIntakeFixtures(DealershipDbContext database, Deve
             if (appointment.Cancelled)
             {
                 state = StaffWorklistStatus.Cancelled;
+            }
+
+            if (!appointment.Cancelled && !appointment.CheckedIn && now >= AppointmentDay.EndsAt(appointment.StartsAt))
+            {
+                state = StaffWorklistStatus.NoShow;
             }
 
             if (appointment.CheckedIn)

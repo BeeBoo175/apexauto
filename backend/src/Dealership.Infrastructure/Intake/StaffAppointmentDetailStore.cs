@@ -1,5 +1,6 @@
 using System.Data;
 using Dealership.Application.Intake;
+using Dealership.Domain.Intake;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -42,7 +43,9 @@ public sealed class StaffAppointmentDetailStore(DealershipDbContext database) : 
                     valuation.ManufactureYear,
                     valuation.MileageKilometres,
                     CheckedIn = database.AppointmentCheckIns.Any(checkIn => checkIn.AppointmentId == row.Appointment.Id),
-                    Cancelled = database.AppointmentCancellations.Any(cancellation => cancellation.AppointmentId == row.Appointment.Id)
+                    Cancelled = database.AppointmentCancellations.Any(cancellation => cancellation.AppointmentId == row.Appointment.Id),
+                    CheckIn = database.AppointmentCheckIns.Where(item => item.AppointmentId == row.Appointment.Id)
+                        .SingleOrDefault()
                 }).SingleOrDefaultAsync(cancellationToken);
 
         if (row is null)
@@ -57,6 +60,16 @@ public sealed class StaffAppointmentDetailStore(DealershipDbContext database) : 
             status = nameof(StaffWorklistStatus.Cancelled);
         }
 
+        var databaseNow = await database.Database.SqlQuery<DateTimeOffset>($"SELECT clock_timestamp() AS \"Value\"")
+            .SingleAsync(cancellationToken);
+        var noShowAt = AppointmentDay.EndsAt(row.StartsAt);
+        var wasNoShow = row.CheckIn?.CorrectionRecordedAt is not null ||
+            (!row.CheckedIn && !row.Cancelled && databaseNow >= noShowAt);
+        if (wasNoShow)
+        {
+            status = nameof(StaffWorklistStatus.NoShow);
+        }
+
         if (row.CheckedIn)
         {
             status = nameof(StaffWorklistStatus.CheckedIn);
@@ -64,7 +77,8 @@ public sealed class StaffAppointmentDetailStore(DealershipDbContext database) : 
 
         var detail = new StaffAppointmentDetail(row.Id, row.BranchId, row.BranchName, row.CustomerName,
             row.RegistrationPlate, row.StartsAt, row.EndsAt, status, row.Make, row.Model, row.Trim,
-            row.ManufactureYear, row.MileageKilometres);
+            row.ManufactureYear, row.MileageKilometres, wasNoShow ? noShowAt : null, row.CheckIn?.CorrectionRecordedAt, row.CheckIn?.CorrectionReason,
+            row.CheckIn?.CorrectionRecordedAt is null ? null : row.CheckIn.StaffId);
         await transaction.CommitAsync(cancellationToken);
         return new StaffAppointmentDetailResult(StaffAppointmentDetailStatus.Succeeded, detail);
     }

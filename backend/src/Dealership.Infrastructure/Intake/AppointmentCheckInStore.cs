@@ -10,8 +10,20 @@ namespace Dealership.Infrastructure.Intake;
 
 public sealed class AppointmentCheckInStore(DealershipDbContext database, TimeProvider clock) : IAppointmentCheckInStore
 {
-    public async Task<CheckInResult> CheckInAsync(Guid staffId, Guid appointmentId, CheckInEvidence evidence,
+    public Task<CheckInResult> CheckInAsync(Guid staffId, Guid appointmentId, CheckInEvidence evidence,
         CancellationToken cancellationToken)
+    {
+        return ExecuteAsync(staffId, appointmentId, evidence, null, cancellationToken);
+    }
+
+    public Task<CheckInResult> CorrectNoShowAsync(Guid staffId, Guid appointmentId, CheckInEvidence evidence,
+        NoShowCorrectionRequest correction, CancellationToken cancellationToken)
+    {
+        return ExecuteAsync(staffId, appointmentId, evidence, correction, cancellationToken);
+    }
+
+    private async Task<CheckInResult> ExecuteAsync(Guid staffId, Guid appointmentId, CheckInEvidence evidence,
+        NoShowCorrectionRequest? correction, CancellationToken cancellationToken)
     {
         if (appointmentId == Guid.Empty || staffId == Guid.Empty)
         {
@@ -21,6 +33,14 @@ public sealed class AppointmentCheckInStore(DealershipDbContext database, TimePr
         try
         {
             evidence = evidence.Normalize();
+            if (correction is not null)
+            {
+                correction = correction with
+                {
+                    Reason = AppointmentCheckIn.NormalizeCorrectionReason(correction.Reason),
+                    AttendedAt = new DateTimeOffset(correction.AttendedAt.UtcTicks - correction.AttendedAt.UtcTicks % 10, TimeSpan.Zero)
+                };
+            }
         }
         catch (ArgumentException)
         {
@@ -42,7 +62,8 @@ public sealed class AppointmentCheckInStore(DealershipDbContext database, TimePr
             var staff = users.SingleOrDefault(user => user.Id == staffId);
 
             if (staff is not { IsActive: true, BranchId: not null } ||
-                staff.Role is not (AccountRoles.SalesAgent or AccountRoles.BranchManager))
+                staff.Role is not (AccountRoles.SalesAgent or AccountRoles.BranchManager) ||
+                (correction is not null && staff.Role != AccountRoles.BranchManager))
             {
                 return new CheckInResult(CheckInStatus.Forbidden);
             }
@@ -66,7 +87,10 @@ public sealed class AppointmentCheckInStore(DealershipDbContext database, TimePr
 
             if (existing is not null)
             {
-                return existing.Matches(evidence)
+                var sameCorrection = correction is null ? existing.CorrectionRecordedAt is null :
+                    existing.CorrectionRecordedAt is not null && existing.CheckedInAt == correction.AttendedAt &&
+                    existing.CorrectionReason == correction.Reason;
+                return existing.Matches(evidence) && sameCorrection
                     ? new CheckInResult(CheckInStatus.Succeeded, Receipt(existing))
                     : new CheckInResult(CheckInStatus.Conflict);
             }
@@ -80,12 +104,23 @@ public sealed class AppointmentCheckInStore(DealershipDbContext database, TimePr
             }
 
             var now = clock.GetUtcNow();
+            if (correction is not null)
+            {
+                now = await database.Database.SqlQuery<DateTimeOffset>($"SELECT clock_timestamp() AS \"Value\"")
+                    .SingleAsync(cancellationToken);
+            }
             now = new DateTimeOffset(now.UtcTicks - now.UtcTicks % 10, TimeSpan.Zero);
             AppointmentCheckIn checkIn;
 
             try
             {
-                checkIn = new AppointmentCheckIn(Guid.NewGuid(), appointment, staffId, evidence, now);
+                if (correction is not null && now < AppointmentDay.EndsAt(appointment.StartsAt))
+                {
+                    return new CheckInResult(CheckInStatus.Unavailable);
+                }
+
+                checkIn = new AppointmentCheckIn(Guid.NewGuid(), appointment, staffId, evidence,
+                    correction?.AttendedAt ?? now, correction is null ? null : now, correction?.Reason);
             }
             catch (ArgumentException)
             {
@@ -139,6 +174,7 @@ public sealed class AppointmentCheckInStore(DealershipDbContext database, TimePr
     {
         return new CheckInReceipt(checkIn.AppointmentId, checkIn.VehicleId, checkIn.StaffId, checkIn.CheckedInAt,
             new CheckInEvidence(checkIn.Vin, checkIn.MileageKilometres, checkIn.CustomerPresent,
-                checkIn.IdentityConfirmed, checkIn.OwnershipConfirmed, checkIn.VehicleConfirmed, checkIn.Notes));
+                checkIn.IdentityConfirmed, checkIn.OwnershipConfirmed, checkIn.VehicleConfirmed, checkIn.Notes),
+            checkIn.CorrectionRecordedAt is null ? null : new CorrectionReceipt(checkIn.CorrectionRecordedAt.Value, checkIn.CorrectionReason!));
     }
 }

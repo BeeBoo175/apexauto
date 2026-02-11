@@ -33,7 +33,8 @@ public sealed record AppointmentHistoryQuery(DateTimeOffset? From, DateTimeOffse
 }
 
 public sealed record AppointmentHistoryItem(Guid Id, Guid BranchId, string BranchName, string RegistrationPlate,
-    DateTimeOffset StartsAt, DateTimeOffset EndsAt, DateTimeOffset CreatedAt, DateTimeOffset? CancelledAt);
+    DateTimeOffset StartsAt, DateTimeOffset EndsAt, DateTimeOffset CreatedAt, DateTimeOffset? CancelledAt,
+    DateTimeOffset? NoShowAt = null, DateTimeOffset? CheckedInAt = null);
 
 public sealed record AppointmentHistoryPage(IReadOnlyList<AppointmentHistoryItem> Items, int Total, int Page, int PageSize);
 

@@ -93,6 +93,7 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         Assert.All(await SeedAsync(restarted, target), report => Assert.False(report.RequiresAttention));
         Assert.Equal(snapshot, await DevelopmentIntakeFixtureAssertions.SnapshotAsync(restarted));
         await AssertRuntimeGuardsAsync();
+        await NoShowLifecycleAssertions.VerifyAsync(fixture);
     }
 
     private async Task<string[]> ReadGuardsAsync()

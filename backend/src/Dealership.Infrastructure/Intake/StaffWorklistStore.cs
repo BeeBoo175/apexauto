@@ -1,6 +1,7 @@
 using System.Data;
 using System.Linq.Expressions;
 using Dealership.Application.Intake;
+using Dealership.Domain.Intake;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -39,6 +40,9 @@ public sealed class StaffWorklistStore(DealershipDbContext database) : IStaffWor
             return null;
         }
 
+        var databaseNow = await database.Database.SqlQuery<DateTimeOffset>($"SELECT clock_timestamp() AS \"Value\"")
+            .SingleAsync(cancellationToken);
+        var today = AppointmentDay.StartUtc(databaseNow);
         var branchId = scope.BranchId ?? query.BranchId;
 
         var appointments = database.IntakeAppointments.AsNoTracking()
@@ -52,13 +56,17 @@ public sealed class StaffWorklistStore(DealershipDbContext database) : IStaffWor
             {
                 Appointment = item,
                 CheckedIn = database.AppointmentCheckIns.Any(checkIn => checkIn.AppointmentId == item.Id),
-                Cancelled = database.AppointmentCancellations.Any(cancellation => cancellation.AppointmentId == item.Id)
+                Cancelled = database.AppointmentCancellations.Any(cancellation => cancellation.AppointmentId == item.Id),
+                NoShow = item.StartsAt < today &&
+                    !database.AppointmentCancellations.Any(cancellation => cancellation.AppointmentId == item.Id) &&
+                    !database.AppointmentCheckIns.Any(checkIn => checkIn.AppointmentId == item.Id)
             });
         rows = query.Status switch
         {
-            StaffWorklistStatus.Booked => rows.Where(row => !row.CheckedIn && !row.Cancelled),
+            StaffWorklistStatus.Booked => rows.Where(row => !row.CheckedIn && !row.Cancelled && !row.NoShow),
             StaffWorklistStatus.CheckedIn => rows.Where(row => row.CheckedIn),
             StaffWorklistStatus.Cancelled => rows.Where(row => row.Cancelled),
+            StaffWorklistStatus.NoShow => rows.Where(row => row.NoShow),
             _ => rows
         };
         var records = rows.Join(database.Branches, row => row.Appointment.BranchId, branch => branch.Id,
@@ -74,7 +82,8 @@ public sealed class StaffWorklistStore(DealershipDbContext database) : IStaffWor
                     StartsAt = row.Row.Appointment.StartsAt,
                     EndsAt = row.Row.Appointment.EndsAt,
                     CheckedIn = row.Row.CheckedIn,
-                    Cancelled = row.Row.Cancelled
+                    Cancelled = row.Row.Cancelled,
+                    NoShow = row.Row.NoShow
                 });
         if (query.Search.Length > 0)
         {
@@ -99,7 +108,7 @@ public sealed class StaffWorklistStore(DealershipDbContext database) : IStaffWor
                 .Skip((int)offset).Take(query.PageSize)
                 .ToArrayAsync(cancellationToken);
             items = page.Select(row => new StaffWorklistItem(row.Id, row.BranchId, row.BranchName, row.CustomerName,
-                row.RegistrationPlate, row.StartsAt, row.EndsAt, Status(row.CheckedIn, row.Cancelled))).ToArray();
+                row.RegistrationPlate, row.StartsAt, row.EndsAt, Status(row.CheckedIn, row.Cancelled, row.NoShow))).ToArray();
         }
 
         await transaction.CommitAsync(cancellationToken);
@@ -122,16 +131,20 @@ public sealed class StaffWorklistStore(DealershipDbContext database) : IStaffWor
     {
         if (direction == "desc")
         {
-            return rows.OrderByDescending(row => row.CheckedIn).ThenByDescending(row => row.Cancelled);
+            return rows.OrderByDescending(row => row.NoShow).ThenByDescending(row => row.CheckedIn).ThenByDescending(row => row.Cancelled);
         }
-        return rows.OrderBy(row => row.CheckedIn).ThenBy(row => row.Cancelled);
+        return rows.OrderBy(row => row.NoShow).ThenBy(row => row.CheckedIn).ThenBy(row => row.Cancelled);
     }
 
-    private static string Status(bool checkedIn, bool cancelled)
+    private static string Status(bool checkedIn, bool cancelled, bool noShow)
     {
         if (checkedIn)
         {
             return nameof(StaffWorklistStatus.CheckedIn);
+        }
+        if (noShow)
+        {
+            return nameof(StaffWorklistStatus.NoShow);
         }
 
         return cancelled ? nameof(StaffWorklistStatus.Cancelled) : nameof(StaffWorklistStatus.Booked);
@@ -154,5 +167,6 @@ public sealed class StaffWorklistStore(DealershipDbContext database) : IStaffWor
         public DateTimeOffset EndsAt { get; init; }
         public bool CheckedIn { get; init; }
         public bool Cancelled { get; init; }
+        public bool NoShow { get; init; }
     }
 }

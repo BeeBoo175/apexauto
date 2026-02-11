@@ -8,6 +8,7 @@ public enum StaffWorklistStatus
     Booked,
     CheckedIn,
     Cancelled,
+    NoShow,
     All
 }
 
@@ -39,6 +40,7 @@ public sealed record StaffWorklistQuery(DateTimeOffset? From, DateTimeOffset? Un
             null or "Booked" => StaffWorklistStatus.Booked,
             "CheckedIn" => StaffWorklistStatus.CheckedIn,
             "Cancelled" => StaffWorklistStatus.Cancelled,
+            "NoShow" => StaffWorklistStatus.NoShow,
             "All" => StaffWorklistStatus.All,
             _ => (StaffWorklistStatus?)null
         };

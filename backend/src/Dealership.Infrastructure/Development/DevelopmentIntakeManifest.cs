@@ -12,7 +12,7 @@ public sealed record DevelopmentIntakeFixture(Guid Id, Guid BranchId, Guid Regis
 public static class DevelopmentIntakeManifest
 {
     public const int AppointmentsPerBranch = 41;
-    public const int TotalPerBranch = AppointmentsPerBranch + 2;
+    public const int TotalPerBranch = AppointmentsPerBranch + 3;
 
     public static IReadOnlyList<DevelopmentIntakeFixture> Appointments { get; } =
         Array.AsReadOnly(Enumerable.Range(0, DevelopmentFixtureManifest.Branches.Count)
@@ -37,6 +37,7 @@ public static class DevelopmentIntakeManifest
             {
                 AppointmentsPerBranch => StaffWorklistStatus.Cancelled,
                 AppointmentsPerBranch + 1 => StaffWorklistStatus.CheckedIn,
+                AppointmentsPerBranch + 2 => StaffWorklistStatus.NoShow,
                 _ => StaffWorklistStatus.Booked
             };
             var evidence = status == StaffWorklistStatus.CheckedIn
