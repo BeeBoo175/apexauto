@@ -8,6 +8,8 @@ export interface ApiRequestOptions {
   token?: string;
   signal?: AbortSignal;
   method?: string;
+  bytes?: Uint8Array;
+  contentType?: string;
 }
 
 export async function requestApi(
@@ -27,15 +29,21 @@ export async function requestApi(
   ]);
   const clientHeader = process.env.TRUSTED_CLIENT_IP_HEADER;
   const clientAddress = clientHeader ? trustedClientAddress(await headers(), clientHeader) : null;
+  let body: BodyInit | undefined;
+  if (options.body) body = JSON.stringify(options.body);
+  if (options.bytes) body = Buffer.from(options.bytes);
   const response = await fetch(new URL(path, origin), {
     method: options.method ?? "GET",
     headers: {
       Accept: "application/json",
       ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(options.bytes
+        ? { "Content-Type": options.contentType ?? "application/octet-stream" }
+        : {}),
       ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
       ...(clientAddress ? { "X-Forwarded-For": clientAddress } : {}),
     },
-    body: options.body ? JSON.stringify(options.body) : undefined,
+    body,
     cache: "no-store",
     redirect: "error",
     signal,

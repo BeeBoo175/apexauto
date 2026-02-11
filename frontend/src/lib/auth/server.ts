@@ -4,6 +4,8 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { SESSION_COOKIE, parseAccount } from "./contracts";
 import { authUpstream } from "./http";
+import { cache } from "react";
+import { parseActor } from "./actor";
 
 // HttpOnly hides the token from JavaScript; SameSite=Lax limits cross-site cookie sends.
 // Mutating routes still require an explicit Origin check; production cookies require HTTPS.
@@ -55,3 +57,19 @@ export async function readOwnAccount(signal?: AbortSignal) {
 
   return { status: 200, account };
 }
+
+export const readCurrentActor = cache(async (signal?: AbortSignal) => {
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  if (!token) {
+    return { status: 401, actor: null };
+  }
+  const response = await authUpstream("/api/auth/session", { token, signal });
+  if (response.status !== 200) {
+    return { status: response.status, actor: null };
+  }
+  const actor = parseActor(response.body);
+  if (!actor) {
+    throw new Error("Invalid current-actor response");
+  }
+  return { status: 200, actor };
+});

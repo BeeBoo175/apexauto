@@ -15,6 +15,16 @@ export async function readBoundedJson(
   signal: AbortSignal,
   maximumBytes: number,
 ): Promise<unknown> {
+  return JSON.parse(
+    Buffer.from(await readBoundedBytes(body, signal, maximumBytes)).toString("utf8"),
+  );
+}
+
+export async function readBoundedBytes(
+  body: ReadableStream<Uint8Array> | null,
+  signal: AbortSignal,
+  maximumBytes: number,
+): Promise<Uint8Array> {
   if (!body) {
     throw new HttpError(400, "A JSON body is required.");
   }
@@ -47,7 +57,7 @@ export async function readBoundedJson(
       chunks.push(chunk.value);
     }
 
-    return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    return Buffer.concat(chunks);
   } finally {
     await reader.cancel().catch(() => {});
     reader.releaseLock();
