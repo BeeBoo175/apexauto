@@ -7,6 +7,15 @@ import { bookingMatchesRequest } from "../../src/lib/intake/receipt";
 import { csvCell, selectedCsv } from "../../src/components/ui/data-table/csv";
 import { staffParams, staffQuery } from "../../src/lib/staff/query";
 
+import {
+  addCalendarDays,
+  calendarDate,
+  calendarRange,
+  calendarTime,
+  addCalendarMonths,
+} from "../../src/lib/calendar";
+import { calendarParams, calendarQuery, parseCalendar } from "../../src/lib/staff/calendar";
+
 const id = "d9a6e19a-c149-4fd7-bc85-ce7b2ff3f091";
 
 test("actor destinations require a validated persisted role and branch shape", () => {
@@ -129,4 +138,53 @@ test("staff queries preserve applied search, sorting, branch and page size throu
     pageSize: 20,
     status: "All",
   });
+});
+
+test("appointment dates use Malaysian midnight and retain year/leap boundaries", () => {
+  expect(calendarDate(new Date("2026-10-19T15:59:59Z"))).toBe("2026-10-19");
+  expect(calendarDate(new Date("2026-10-19T16:00:00Z"))).toBe("2026-10-20");
+  expect(calendarRange("2027-01-31")).toEqual({ from: "2026-12-28", to: "2027-02-07" });
+  expect(calendarRange("2028-02-29")).toEqual({ from: "2028-01-31", to: "2028-03-12" });
+  expect(calendarRange("2026-02-01")).toEqual({ from: "2026-01-26", to: "2026-03-08" });
+  expect(addCalendarDays("2028-02-28", 1)).toBe("2028-02-29");
+  expect(addCalendarMonths("2027-01-31", -1)).toBe("2026-12-01");
+  expect(addCalendarMonths("2028-01-31", 1)).toBe("2028-02-01");
+  expect(calendarTime("2026-10-20T01:00:00Z", "Asia/Kuala_Lumpur")).toContain("09:00");
+  const filters = calendarParams({ date: "2027-01-01", branchId: id });
+  expect(Object.fromEntries(new URLSearchParams(calendarQuery(filters)))).toEqual({
+    from: "2026-12-28",
+    to: "2027-02-07",
+    status: "All",
+    branchId: id,
+  });
+  expect(calendarParams({}).status).toBe("All");
+  expect(calendarParams({}).branchId).toBe("");
+});
+
+test("calendar snapshots refuse truncated, duplicate, out-of-range and oversized results", () => {
+  const row = {
+    id,
+    branchId: id,
+    branchName: "ApexAuto Glenmarie",
+    customerName: "Nur Aina Abdullah",
+    registrationPlate: "VCA 9701",
+    startsAt: "2026-10-20T01:00:00Z",
+    endsAt: "2026-10-20T02:30:00Z",
+    status: "Booked",
+  };
+  const range = calendarRange("2026-10-20");
+  const snapshot = { ...range, items: [row], total: 1 };
+  expect(parseCalendar(snapshot, range)?.items).toEqual([row]);
+  expect(parseCalendar({ ...snapshot, total: 2 })).toBeNull();
+  expect(parseCalendar({ ...snapshot, to: "2026-10-20" }, range)).toBeNull();
+  expect(parseCalendar({ ...snapshot, to: addCalendarDays(range.to, 1) })).toBeNull();
+  expect(parseCalendar({ ...snapshot, from: snapshot.to })).toBeNull();
+  expect(parseCalendar({ ...snapshot, items: [row, row], total: 2 })).toBeNull();
+  expect(
+    parseCalendar({ ...snapshot, items: [{ ...row, startsAt: "2026-11-09T00:00:00Z" }] }),
+  ).toBeNull();
+  const rows = Array.from({ length: 1000 }, () => ({ ...row, id: crypto.randomUUID() }));
+  expect(parseCalendar({ ...snapshot, items: rows, total: 1000 })?.items).toHaveLength(1000);
+  expect(parseCalendar({ ...snapshot, items: [...rows, row], total: 1001 })).toBeNull();
+  expect(parseCalendar({ ...range, items: [], total: 0 })?.total).toBe(0);
 });
