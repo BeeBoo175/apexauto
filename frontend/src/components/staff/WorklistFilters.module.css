@@ -1,0 +1,112 @@
+.filters {
+  display: grid;
+  gap: 24px;
+}
+
+.dateRangeInputs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.filters > div,
+.filters > section {
+  width: 100%;
+  min-width: 0;
+}
+
+.filters select {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dateRangeInputs label {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.filters button,
+.filters select {
+  font-weight: 500;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.help {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.footer {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 132px));
+  align-items: center;
+  justify-content: end;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  min-height: 28px;
+  padding: 4px 8px;
+  border: 1px solid var(--color-line-soft);
+  border-radius: var(--radius-sm, 4px);
+  background: var(--color-canvas);
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.chip span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.removeIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 14px;
+  width: 14px;
+  height: 14px;
+  line-height: 0;
+}
+
+.removeIcon > span {
+  width: 12px;
+  height: 12px;
+}
+
+@media (max-width: 820px) {
+  .chip {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 400px) {
+  .dateRangeInputs {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
