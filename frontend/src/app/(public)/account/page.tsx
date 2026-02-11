@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { AccountWorkspace } from "@/components/account/AccountWorkspace";
-import { readOwnAccount } from "@/lib/auth/server";
+import { readOwnAccount, readCurrentActor } from "@/lib/auth/server";
+import { actorDestination } from "@/lib/auth/actor";
 import { privateIntakeRead } from "@/lib/intake/server";
 import { parseAppointment, parsePage } from "@/lib/intake/parse";
 import { historyParams, historyQuery } from "@/lib/intake/list-query";
@@ -17,6 +18,12 @@ export default async function AccountPage({
 }) {
   const response = await readOwnAccount();
 
+  if (response.status === 403) {
+    const current = await readCurrentActor();
+    if (current.actor && current.actor.role !== "Customer") {
+      redirect(actorDestination(current.actor));
+    }
+  }
   if (response.status === 401) {
     redirect("/login");
   }

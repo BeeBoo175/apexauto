@@ -1,0 +1,98 @@
+.commandBar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  min-height: 56px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--color-line);
+  background: var(--color-command-surface, var(--color-canvas));
+  color: var(--color-command-foreground, var(--color-graphite));
+}
+
+.commandBar h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  transform: translateY(1px);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.actions > button {
+  color: var(--color-command-foreground, var(--color-graphite));
+}
+
+.actions > button:hover:not(:disabled) {
+  background-color: rgb(255 255 255 / 14%);
+}
+
+.actions > button:focus-visible {
+  outline-color: var(--color-command-foreground, var(--color-graphite));
+}
+
+.notice {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 720px;
+  margin: 20px;
+}
+
+.notice a,
+.backLink {
+  color: var(--color-signal);
+  text-underline-offset: 4px;
+}
+
+.direct {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 1000px;
+  margin: 20px;
+}
+
+.backLink {
+  align-self: flex-start;
+  padding-block: 8px;
+  font-size: 13px;
+}
+
+@media (max-width: 820px) {
+  .commandBar {
+    position: relative;
+    top: auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding-inline: 16px;
+    column-gap: 8px;
+  }
+
+  .actions {
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  .notice,
+  .direct {
+    margin: 16px;
+  }
+
+  .commandBar h1 {
+    min-width: 0;
+    font-size: 20px;
+    line-height: 1.2;
+  }
+}

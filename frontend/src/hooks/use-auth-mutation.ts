@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
-import { AUTH_DEADLINE_MS, isRecord } from "@/lib/auth/contracts";
+import { AUTH_DEADLINE_MS, authHref, isRecord } from "@/lib/auth/contracts";
 import { sessionChanges } from "@/lib/auth/browser-session";
 
 export function useAuthMutation(kind: "login" | "register" | "logout", destination: string) {
@@ -69,7 +69,8 @@ export function useAuthMutation(kind: "login" | "register" | "logout", destinati
         }
 
         // A new document discards the previous actor's router snapshots after cookie changes.
-        window.location.assign(new URL(destination, window.location.origin).href);
+        const next = kind === "login" ? authHref("/auth/continue", destination) : destination;
+        window.location.assign(new URL(next, window.location.origin).href);
         return;
       }
 

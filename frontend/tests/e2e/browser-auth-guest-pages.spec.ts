@@ -11,7 +11,7 @@ test("guest pages redirect only verified sessions and retain unavailable-session
 }, testInfo) => {
   const accountReads = () => {
     const counts = JSON.parse(readFileSync(path.join(evidence, "counts.json"), "utf8"));
-    return counts["/api/account"] ?? 0;
+    return counts["/api/auth/session"] ?? 0;
   };
   const initialReads = accountReads();
   await page.goto("/login");
@@ -89,6 +89,6 @@ test("guest pages redirect only verified sessions and retain unavailable-session
       maxRedirects: 0,
     });
     expect(response.status()).toBe(307);
-    expect(response.headers().location).toBe("/");
+    expect(response.headers().location).toBe("/dashboard");
   }
 });
