@@ -1,12 +1,10 @@
 import { expect, test } from "@playwright/test";
 import { parseActor, actorDestination } from "../../src/lib/auth/actor";
 import { parseBooking, parseSlots, parseTaxonomy } from "../../src/lib/intake/parse";
-
 import { bookingMatchesRequest } from "../../src/lib/intake/receipt";
-
 import { csvCell, selectedCsv } from "../../src/components/ui/data-table/csv";
 import { staffParams, staffQuery } from "../../src/lib/staff/query";
-
+import { parseViewMemory, restoreViewHref } from "../../src/lib/staff/view-memory";
 import {
   addCalendarDays,
   calendarDate,
@@ -16,7 +14,122 @@ import {
 } from "../../src/lib/calendar";
 import { calendarParams, calendarQuery, parseCalendar } from "../../src/lib/staff/calendar";
 
-const id = "d9a6e19a-c149-4fd7-bc85-ce7b2ff3f091";
+const id = "c77708bf-1a31-42f5-9a69-0c8766697a52";
+
+test("view memory ignores corrupt, oversized and other-actor state and bounds restored settings", () => {
+  const saved = JSON.stringify({ actor: "staff:branch", list: "page=3", calendar: 123 });
+  expect(parseViewMemory(saved, "staff:branch")).toEqual({ list: "page=3", calendar: undefined });
+  expect(parseViewMemory(saved, "staff:other-branch")).toEqual({});
+  expect(parseViewMemory("{broken", "staff:branch")).toEqual({});
+  expect(parseViewMemory(" ".repeat(16385), "staff:branch")).toEqual({});
+  const restored = restoreViewHref(
+    "list",
+    "/dashboard/intake?view=list",
+    "page=-1&pageSize=500&sort=evil&search=%00",
+  );
+  expect(restored).toBe("/dashboard/intake?view=list");
+});
+
+test("appointment dates use Malaysian midnight and retain year/leap boundaries", () => {
+  expect(calendarDate(new Date("2026-10-19T15:59:59Z"))).toBe("2026-10-19");
+  expect(calendarDate(new Date("2026-10-19T16:00:00Z"))).toBe("2026-10-20");
+  expect(calendarRange("2027-01-31")).toEqual({ from: "2026-12-28", to: "2027-02-07" });
+  expect(calendarRange("2028-02-29")).toEqual({ from: "2028-01-31", to: "2028-03-12" });
+  expect(calendarRange("2026-02-01")).toEqual({ from: "2026-01-26", to: "2026-03-08" });
+  expect(addCalendarDays("2028-02-28", 1)).toBe("2028-02-29");
+  expect(addCalendarMonths("2027-01-31", -1)).toBe("2026-12-01");
+  expect(addCalendarMonths("2028-01-31", 1)).toBe("2028-02-01");
+  expect(calendarTime("2026-10-20T01:00:00Z", "Asia/Kuala_Lumpur")).toContain("09:00");
+  const filters = calendarParams({ date: "2027-01-01", branchId: id });
+  expect(Object.fromEntries(new URLSearchParams(calendarQuery(filters)))).toEqual({
+    from: "2026-12-28",
+    to: "2027-02-07",
+    status: "All",
+    branchId: id,
+  });
+  expect(calendarParams({}).status).toBe("All");
+  expect(calendarParams({}).branchId).toBe("");
+});
+
+test("calendar snapshots refuse truncated, duplicate, out-of-range and oversized results", () => {
+  const row = {
+    id,
+    branchId: id,
+    branchName: "ApexAuto Glenmarie",
+    customerName: "Nur Aina Abdullah",
+    registrationPlate: "VCA 9701",
+    startsAt: "2026-10-20T01:00:00Z",
+    endsAt: "2026-10-20T02:30:00Z",
+    status: "Booked",
+  };
+  const range = calendarRange("2026-10-20");
+  const snapshot = { ...range, items: [row], total: 1 };
+  expect(parseCalendar(snapshot, range)?.items).toEqual([row]);
+  expect(parseCalendar({ ...snapshot, total: 2 })).toBeNull();
+  expect(parseCalendar({ ...snapshot, to: "2026-10-20" }, range)).toBeNull();
+  expect(parseCalendar({ ...snapshot, to: addCalendarDays(range.to, 1) })).toBeNull();
+  expect(parseCalendar({ ...snapshot, from: snapshot.to })).toBeNull();
+  expect(parseCalendar({ ...snapshot, items: [row, row], total: 2 })).toBeNull();
+  expect(
+    parseCalendar({ ...snapshot, items: [{ ...row, startsAt: "2026-11-09T00:00:00Z" }] }),
+  ).toBeNull();
+  const rows = Array.from({ length: 1000 }, () => ({ ...row, id: crypto.randomUUID() }));
+  expect(parseCalendar({ ...snapshot, items: rows, total: 1000 })?.items).toHaveLength(1000);
+  expect(parseCalendar({ ...snapshot, items: [...rows, row], total: 1001 })).toBeNull();
+  expect(parseCalendar({ ...range, items: [], total: 0 })?.total).toBe(0);
+});
+test("CSV quotes multiline cells and neutralizes formula and control prefixes", () => {
+  for (const value of [
+    "=SUM(1,2)",
+    " +123",
+    "\uFEFF-1",
+    " \u0001@name",
+    "\tplain",
+    "\u0085plain",
+  ]) {
+    expect(csvCell(value)).toBe(`"'${value}"`);
+  }
+  expect(csvCell('Nur "Aina", Abdullah\nSelangor')).toBe('"Nur ""Aina"", Abdullah\nSelangor"');
+  expect(csvCell(" ")).toBe('" "');
+  const csv = selectedCsv(
+    [{ value: "VCA 9701" }],
+    [
+      {
+        id: "value",
+        label: "Display",
+        exportLabel: "Registration",
+        cell: () => null,
+        exportValue: (row) => row.value,
+      },
+      { id: "action", label: "Action", cell: () => null },
+    ],
+  );
+  expect(csv).toBe('\uFEFF"Registration"\r\n"VCA 9701"\r\n');
+});
+
+test("staff queries preserve applied search, sorting, branch and page size through navigation", () => {
+  const input = {
+    from: "2026-10-20",
+    to: "2026-10-29",
+    status: "All",
+    branchId: id,
+    search: " VCA %_! ",
+    sort: "registrationPlate",
+    direction: "desc",
+    pageSize: "50",
+    page: "3",
+  };
+  const { filters, page } = staffParams(input);
+  expect(page).toBe(3);
+  const query = new URLSearchParams(staffQuery(filters, page));
+  expect(Object.fromEntries(query)).toEqual({ ...input, search: "VCA %_!" });
+  expect(staffParams({}).filters).toMatchObject({
+    sort: "startsAt",
+    direction: "asc",
+    pageSize: 20,
+    status: "All",
+  });
+});
 
 test("actor destinations require a validated persisted role and branch shape", () => {
   expect(parseActor({ userId: id, role: "SalesAgent", branchId: null })).toBeNull();
@@ -85,106 +198,4 @@ test("booking receipts bind the exact operation and four distinct photo angles",
   expect(
     parseBooking({ ...receipt, photos: photos.map((photo) => ({ ...photo, angle: "Driver" })) }),
   ).toBeNull();
-});
-
-test("CSV quotes multiline cells and neutralizes formula and control prefixes", () => {
-  for (const value of [
-    "=SUM(1,2)",
-    " +123",
-    "\uFEFF-1",
-    " \u0001@name",
-    "\tplain",
-    "\u0085plain",
-  ]) {
-    expect(csvCell(value)).toBe(`"'${value}"`);
-  }
-  expect(csvCell('Nur "Aina", Abdullah\nSelangor')).toBe('"Nur ""Aina"", Abdullah\nSelangor"');
-  expect(csvCell(" ")).toBe('" "');
-  const csv = selectedCsv(
-    [{ value: "VCA 9701" }],
-    [
-      {
-        id: "value",
-        label: "Display",
-        exportLabel: "Registration",
-        cell: () => null,
-        exportValue: (row) => row.value,
-      },
-      { id: "action", label: "Action", cell: () => null },
-    ],
-  );
-  expect(csv).toBe('\uFEFF"Registration"\r\n"VCA 9701"\r\n');
-});
-
-test("staff queries preserve applied search, sorting, branch and page size through navigation", () => {
-  const input = {
-    from: "2026-10-20",
-    to: "2026-10-29",
-    status: "All",
-    branchId: id,
-    search: " VCA %_! ",
-    sort: "registrationPlate",
-    direction: "desc",
-    pageSize: "50",
-    page: "3",
-  };
-  const { filters, page } = staffParams(input);
-  expect(page).toBe(3);
-  const query = new URLSearchParams(staffQuery(filters, page));
-  expect(Object.fromEntries(query)).toEqual({ ...input, search: "VCA %_!" });
-  expect(staffParams({}).filters).toMatchObject({
-    sort: "startsAt",
-    direction: "asc",
-    pageSize: 20,
-    status: "All",
-  });
-});
-
-test("appointment dates use Malaysian midnight and retain year/leap boundaries", () => {
-  expect(calendarDate(new Date("2026-10-19T15:59:59Z"))).toBe("2026-10-19");
-  expect(calendarDate(new Date("2026-10-19T16:00:00Z"))).toBe("2026-10-20");
-  expect(calendarRange("2027-01-31")).toEqual({ from: "2026-12-28", to: "2027-02-07" });
-  expect(calendarRange("2028-02-29")).toEqual({ from: "2028-01-31", to: "2028-03-12" });
-  expect(calendarRange("2026-02-01")).toEqual({ from: "2026-01-26", to: "2026-03-08" });
-  expect(addCalendarDays("2028-02-28", 1)).toBe("2028-02-29");
-  expect(addCalendarMonths("2027-01-31", -1)).toBe("2026-12-01");
-  expect(addCalendarMonths("2028-01-31", 1)).toBe("2028-02-01");
-  expect(calendarTime("2026-10-20T01:00:00Z", "Asia/Kuala_Lumpur")).toContain("09:00");
-  const filters = calendarParams({ date: "2027-01-01", branchId: id });
-  expect(Object.fromEntries(new URLSearchParams(calendarQuery(filters)))).toEqual({
-    from: "2026-12-28",
-    to: "2027-02-07",
-    status: "All",
-    branchId: id,
-  });
-  expect(calendarParams({}).status).toBe("All");
-  expect(calendarParams({}).branchId).toBe("");
-});
-
-test("calendar snapshots refuse truncated, duplicate, out-of-range and oversized results", () => {
-  const row = {
-    id,
-    branchId: id,
-    branchName: "ApexAuto Glenmarie",
-    customerName: "Nur Aina Abdullah",
-    registrationPlate: "VCA 9701",
-    startsAt: "2026-10-20T01:00:00Z",
-    endsAt: "2026-10-20T02:30:00Z",
-    status: "Booked",
-  };
-  const range = calendarRange("2026-10-20");
-  const snapshot = { ...range, items: [row], total: 1 };
-  expect(parseCalendar(snapshot, range)?.items).toEqual([row]);
-  expect(parseCalendar({ ...snapshot, total: 2 })).toBeNull();
-  expect(parseCalendar({ ...snapshot, to: "2026-10-20" }, range)).toBeNull();
-  expect(parseCalendar({ ...snapshot, to: addCalendarDays(range.to, 1) })).toBeNull();
-  expect(parseCalendar({ ...snapshot, from: snapshot.to })).toBeNull();
-  expect(parseCalendar({ ...snapshot, items: [row, row], total: 2 })).toBeNull();
-  expect(
-    parseCalendar({ ...snapshot, items: [{ ...row, startsAt: "2026-11-09T00:00:00Z" }] }),
-  ).toBeNull();
-  const rows = Array.from({ length: 1000 }, () => ({ ...row, id: crypto.randomUUID() }));
-  expect(parseCalendar({ ...snapshot, items: rows, total: 1000 })?.items).toHaveLength(1000);
-  expect(parseCalendar({ ...snapshot, items: [...rows, row], total: 1001 })).toBeNull();
-  expect(parseCalendar({ ...range, items: [], total: 0 })?.total).toBe(0);
 });
