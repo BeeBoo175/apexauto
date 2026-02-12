@@ -18,6 +18,7 @@ public static class StaffIntakeEndpoints
         var routes = staff.MapGroup("/appointments");
         routes.MapGet("", ListAsync);
         routes.MapGet("/export", StaffIntakeExportEndpoint.ExportAsync);
+        routes.MapPost("/export/background", StaffIntakeBackgroundExportEndpoint.ExportAsync);
         routes.MapGet("/{id:guid}", DetailAsync);
         routes.MapPost("/{id:guid}/check-in", CheckInAsync);
         routes.MapPost("/{id:guid}/no-show-correction", CorrectNoShowAsync);
