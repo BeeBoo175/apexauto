@@ -72,6 +72,9 @@ builder.Services.AddScoped<IMailDeliverySource, AppointmentConfirmationSource>()
 builder.Services.AddScoped<IMailDeliverySource, AppointmentCancellationMailSource>();
 builder.Services.AddScoped<IMailDeliverySource, AppointmentCheckInMailSource>();
 builder.Services.AddHostedService<MailDeliveryWorker>();
+builder.Services.AddSingleton<StaffExportWorker>();
+builder.Services.AddSingleton<IStaffExportWorker>(provider => provider.GetRequiredService<StaffExportWorker>());
+builder.Services.AddHostedService(provider => provider.GetRequiredService<StaffExportWorker>());
 builder.Services.AddApiRateLimiting();
 builder.Services.AddApiAuthentication();
 
