@@ -25,19 +25,15 @@ public static class StaffIntakeExportEndpoint
             {
                 return Results.Forbid();
             }
-            if (result.Total > 10000)
+            if (result.Total > StaffExportLimits.ImmediateRows)
             {
-                return Results.Problem(statusCode: 422, title: "More than 10,000 matching appointments. Narrow the filters before exporting.");
+                return Results.Problem(statusCode: 422, title: "This export requires the background worker.");
             }
-            var headings = new[] { "Registration", "Customer", "Branch", "Inspection start (UTC)", "Status", "Appointment reference" };
-            var csv = new StringBuilder("\uFEFF").AppendJoin(',', headings.Select(CsvCell)).Append("\r\n");
+            var csv = new StringBuilder(StaffIntakeCsv.Header);
             foreach (var item in result.Items)
             {
                 deadline.Token.ThrowIfCancellationRequested();
-                var values = new[] { item.RegistrationPlate, item.CustomerName, item.BranchName,
-                    item.StartsAt.UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", System.Globalization.CultureInfo.InvariantCulture),
-                    item.Status, item.Id.ToString() };
-                csv.AppendJoin(',', values.Select(CsvCell)).Append("\r\n");
+                csv.Append(StaffIntakeCsv.Row(item));
             }
             context.Response.Headers["X-Export-Row-Count"] = result.Total.ToString(System.Globalization.CultureInfo.InvariantCulture);
             return Results.File(Encoding.UTF8.GetBytes(csv.ToString()), "text/csv; charset=utf-8", "intake-appointments.csv");
@@ -48,19 +44,4 @@ public static class StaffIntakeExportEndpoint
         }
     }
 
-    internal static string CsvCell(string value)
-    {
-        var index = 0;
-        var controlPrefix = false;
-        while (index < value.Length && (char.IsWhiteSpace(value[index]) || char.IsControl(value[index]) || value[index] == '\uFEFF'))
-        {
-            controlPrefix |= char.IsControl(value[index]);
-            index++;
-        }
-        if (controlPrefix || (index < value.Length && "=+-@".Contains(value[index])))
-        {
-            value = "'" + value;
-        }
-        return "\"" + value.Replace("\"", "\"\"", StringComparison.Ordinal) + "\"";
-    }
 }

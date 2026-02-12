@@ -1,0 +1,36 @@
+using System.Globalization;
+
+namespace Dealership.Application.Intake;
+
+public static class StaffIntakeCsv
+{
+    public static readonly string Header = "\uFEFF" + string.Join(',',
+        new[] { "Registration", "Customer", "Branch", "Inspection start (UTC)", "Status", "Appointment reference" }
+            .Select(Cell)) + "\r\n";
+
+    public static string Row(StaffWorklistItem item)
+    {
+        var values = new[] { item.RegistrationPlate, item.CustomerName, item.BranchName,
+            item.StartsAt.UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", CultureInfo.InvariantCulture),
+            item.Status, item.Id.ToString() };
+        return string.Join(',', values.Select(Cell)) + "\r\n";
+    }
+
+    private static string Cell(string value)
+    {
+        var index = 0;
+        var controlPrefix = false;
+        while (index < value.Length && (char.IsWhiteSpace(value[index]) || char.IsControl(value[index]) || value[index] == '\uFEFF'))
+        {
+            controlPrefix |= char.IsControl(value[index]);
+            index++;
+        }
+
+        if (controlPrefix || (index < value.Length && "=+-@".Contains(value[index])))
+        {
+            value = "'" + value;
+        }
+
+        return "\"" + value.Replace("\"", "\"\"", StringComparison.Ordinal) + "\"";
+    }
+}
