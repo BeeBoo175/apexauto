@@ -77,6 +77,21 @@ public sealed class StaffWorklistTests(IntakePhotoFixture fixture) : IClassFixtu
         Assert.Equal(41, export.Items.Count);
         Assert.Equal(descending.Items.Select(item => item.Id), export.Items.Take(20).Select(item => item.Id));
         Assert.DoesNotContain(export.Items, item => item.Id == other.Id);
+        var actor = new CurrentActor(data.StaffId, AccountRoles.SalesAgent, data.BranchId);
+        await using (var csv = new MemoryStream())
+        {
+            Assert.True(await services.GetRequiredService<IStaffExportWriter>().WriteAsync(actor,
+                query with { Page = 3, PageSize = 10, Sort = "registrationPlate", Direction = "desc" }, csv, CancellationToken.None));
+            Assert.Equal(StaffIntakeCsv.Header + string.Concat(export.Items.Select(StaffIntakeCsv.Row)),
+                System.Text.Encoding.UTF8.GetString(csv.ToArray()));
+        }
+        await using (var deniedCsv = new MemoryStream())
+        {
+            var writer = services.GetRequiredService<IStaffExportWriter>();
+            Assert.False(await writer.WriteAsync(actor with { BranchId = otherBranch }, query, deniedCsv, CancellationToken.None));
+            Assert.False(await writer.WriteAsync(actor, query with { BranchId = otherBranch }, deniedCsv, CancellationToken.None));
+            Assert.Equal(0, deniedCsv.Length);
+        }
         Assert.Null(await services.GetRequiredService<IStaffWorklistStore>().ExportAsync(data.StaffId,
             query with { BranchId = otherBranch }, CancellationToken.None));
         var calendarQuery = query with { From = query.From!.Value.AddDays(-35), Until = query.From.Value.AddDays(7), Status = StaffWorklistStatus.All, BranchId = data.BranchId };
