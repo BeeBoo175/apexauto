@@ -7,6 +7,7 @@ import { DataTable } from "@/components/ui/data-table/DataTable";
 import type { TableSort } from "@/components/ui/data-table/types";
 import { useStaffWorklist } from "@/hooks/use-staff-worklist";
 import { useInitialToast } from "@/hooks/use-initial-toast";
+import { useToast } from "@/components/ui/Toast";
 import { useStaffAppointmentDrawer } from "@/hooks/use-staff-appointment-drawer";
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import type { ApiResult, Branch, Page } from "@/lib/intake/contracts";
@@ -63,6 +64,7 @@ function Worklist({
   );
   const drawer = useStaffAppointmentDrawer(selectedId, selected);
   const exportController = useRef<AbortController | null>(null);
+  const toast = useToast();
   useEffect(() => () => exportController.current?.abort(), []);
   const disabled = Boolean(drawer.id);
   const { snapshot, active } = worklist;
@@ -106,7 +108,7 @@ function Worklist({
     const controller = new AbortController();
     exportController.current = controller;
     try {
-      await exportWorklist(active.filters, actor, controller.signal);
+      await exportWorklist(active.filters, actor, controller.signal, toast.info);
     } catch (error) {
       if (!controller.signal.aborted) {
         throw error;

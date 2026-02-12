@@ -7,18 +7,40 @@ export async function exportWorklist(
   filters: StaffFilters,
   actor: CurrentActor,
   signal: AbortSignal,
+  notify: (message: string) => void,
 ) {
-  const response = await fetch(`/api/staff/intake/appointments/export?${staffQuery(filters)}`, {
-    headers: { "X-Expected-Actor": actorIdentity(actor) },
+  const url = `/api/staff/intake/appointments/export?${staffQuery(filters)}`;
+  const headers = { "X-Expected-Actor": actorIdentity(actor) };
+  let response = await fetch(url, {
+    headers,
     cache: "no-store",
     signal: AbortSignal.any([signal, AbortSignal.timeout(25000)]),
   });
+  let downloadSignal = signal;
+  if (response.status === 422) {
+    await response.body?.cancel();
+    signal.throwIfAborted();
+    notify("This large export is being prepared. The download will start automatically.");
+    downloadSignal = AbortSignal.any([signal, AbortSignal.timeout(130000)]);
+    response = await fetch(url, {
+      method: "POST",
+      headers,
+      cache: "no-store",
+      signal: downloadSignal,
+    });
+  }
   if (response.status === 401 || response.status === 409) {
     window.dispatchEvent(new Event("apexauto-session-invalid"));
   }
   if (!response.ok) {
-    if (response.status === 422) {
-      throw new Error("More than 10,000 appointments match. Narrow the filters before exporting.");
+    await response.body?.cancel();
+    if (response.status === 429) {
+      throw new Error(
+        "Another export is running or the request limit was reached. Try again shortly.",
+      );
+    }
+    if (response.status === 413) {
+      throw new Error("The export exceeds the download size limit. Narrow the filters.");
     }
     throw new Error("CSV export could not be completed. Existing rows remain shown.");
   }
@@ -26,6 +48,6 @@ export async function exportWorklist(
     throw new Error("The CSV response could not be confirmed.");
   }
   const blob = await response.blob();
-  signal.throwIfAborted();
+  downloadSignal.throwIfAborted();
   downloadCsv(blob, "intake-appointments-full.csv");
 }

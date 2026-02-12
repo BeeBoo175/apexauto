@@ -10,6 +10,7 @@ export interface ApiRequestOptions {
   method?: string;
   bytes?: Uint8Array;
   contentType?: string;
+  expectedActor?: string;
 }
 
 export async function requestApi(
@@ -41,6 +42,7 @@ export async function requestApi(
         ? { "Content-Type": options.contentType ?? "application/octet-stream" }
         : {}),
       ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
+      ...(options.expectedActor ? { "X-Expected-Actor": options.expectedActor } : {}),
       ...(clientAddress ? { "X-Forwarded-For": clientAddress } : {}),
     },
     body,

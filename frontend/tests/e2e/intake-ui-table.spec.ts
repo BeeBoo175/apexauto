@@ -105,14 +105,33 @@ test("server table searches all scoped rows, selects appointments and exports ap
   expect(all.split("\r\n")[1]).toContain(plates[0]);
   const downloads: string[] = [];
   page.on("download", (download) => downloads.push(download.suggestedFilename()));
+  await page.route("**/api/staff/intake/appointments/export?**", (route) => {
+    if (route.request().method() === "GET") {
+      return route.fulfill({ status: 422, json: {} });
+    }
+    return route.continue();
+  });
+  const backgroundEvent = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export full CSV", exact: true }).click();
+  await expect(
+    page.getByText("This large export is being prepared. The download will start automatically.", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  expect(await csv(await backgroundEvent)).toBe(all);
+  await page.unroute("**/api/staff/intake/appointments/export?**");
+  downloads.length = 0;
   await page.route("**/api/staff/intake/appointments/export?**", (route) =>
-    route.fulfill({ status: 422, json: {} }),
+    route.fulfill({ status: route.request().method() === "GET" ? 422 : 429, json: {} }),
   );
   await page.getByRole("button", { name: "Export full CSV", exact: true }).click();
   await expect(
-    page.getByText("More than 10,000 appointments match. Narrow the filters before exporting.", {
-      exact: true,
-    }),
+    page.getByText(
+      "Another export is running or the request limit was reached. Try again shortly.",
+      {
+        exact: true,
+      },
+    ),
   ).toBeVisible();
   expect(downloads).toEqual([]);
   await expect(page.getByRole("row")).toHaveCount(11);
