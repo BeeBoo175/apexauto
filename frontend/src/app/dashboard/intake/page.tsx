@@ -1,4 +1,5 @@
 import { StaffActorBoundary } from "@/components/staff/StaffActorBoundary";
+import { actorIdentity } from "@/lib/auth/actor";
 import { staffActor } from "@/lib/staff/server";
 import { hasIntakeAccess } from "@/lib/auth/actor";
 import { isUuid } from "@/lib/auth/contracts";
@@ -7,7 +8,7 @@ import { parseBranch, parsePage } from "@/lib/intake/parse";
 import { parseDetail, parseWorklistItem } from "@/lib/staff/parse";
 import { staffParams, staffQuery } from "@/lib/staff/query";
 import { StaffNotice } from "@/components/staff/StaffPage";
-import { IntakeWorklist } from "@/components/staff/IntakeWorklist";
+import { IntakeWorkspace } from "@/components/staff/IntakeWorkspace";
 import { SessionCheckUnavailable } from "@/components/auth/SessionCheckUnavailable";
 import {
   calendarParams,
@@ -15,7 +16,6 @@ import {
   calendarReadRange,
   parseCalendar,
 } from "@/lib/staff/calendar";
-import { IntakeCalendar } from "@/components/staff/IntakeCalendar";
 import { calendarDate } from "@/lib/calendar";
 
 export default async function IntakePage({
@@ -65,28 +65,22 @@ export default async function IntakePage({
   ]);
   return (
     <StaffActorBoundary actor={actor} path="/dashboard/intake" snapshotId={crypto.randomUUID()}>
-      {initial && (
-        <IntakeWorklist
-          actor={actor}
-          initial={initial}
-          filters={filters}
-          page={page}
-          branches={branches?.data ?? null}
-          selectedId={selectedId}
-          selected={selected}
-        />
-      )}
-      {calendar && (
-        <IntakeCalendar
-          actor={actor}
-          today={calendarDate()}
-          initial={calendar}
-          filters={calendarFilters}
-          branches={branches?.data ?? null}
-          selectedId={selectedId}
-          selected={selected}
-        />
-      )}
+      <IntakeWorkspace
+        key={actorIdentity(actor)}
+        actor={actor}
+        today={calendarDate()}
+        initial={{
+          view: listView ? "list" : "calendar",
+          worklist: initial,
+          calendar,
+          filters,
+          page,
+          calendarFilters,
+          branches: branches?.data ?? null,
+          selectedId,
+          selected,
+        }}
+      />
     </StaffActorBoundary>
   );
 }

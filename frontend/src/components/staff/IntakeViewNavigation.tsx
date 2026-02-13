@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { useStaffViewMemory } from "@/hooks/use-staff-view-memory";
 import styles from "./IntakeCalendar.module.css";
+import type { IntakeView } from "@/lib/staff/view-memory";
 
 const views = [
   {
@@ -22,39 +22,24 @@ export function IntakeViewNavigation({
   actor,
   active,
   destinations,
+  pending,
+  disabled,
+  onNavigate,
 }: {
   actor: string;
   active: "calendar" | "list";
   destinations: Record<"calendar" | "list", string>;
+  pending: IntakeView | null;
+  disabled: boolean;
+  onNavigate: (href: string) => void;
 }) {
   const links = useStaffViewMemory(actor, active, destinations);
-  const [destination, setDestination] = useState<(typeof views)[number] | null>(null);
-
-  useEffect(() => {
-    const navigation = (window as Window & { navigation?: EventTarget }).navigation;
-    function reconcile() {
-      setDestination(null);
-    }
-    function cancel(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        reconcile();
-      }
-    }
-    navigation?.addEventListener("navigateerror", reconcile);
-    window.addEventListener("pageshow", reconcile);
-    window.addEventListener("keydown", cancel);
-    return () => {
-      navigation?.removeEventListener("navigateerror", reconcile);
-      window.removeEventListener("pageshow", reconcile);
-      window.removeEventListener("keydown", cancel);
-    };
-  }, []);
 
   return (
     <nav
       aria-label="Appointment views"
-      aria-busy={Boolean(destination)}
-      data-view={destination?.id ?? active}
+      aria-busy={Boolean(pending)}
+      data-view={pending ?? active}
       className={styles.viewSwitch}
     >
       <span className={styles.viewThumb} aria-hidden="true" />
@@ -65,6 +50,7 @@ export function IntakeViewNavigation({
           title={view.label}
           aria-label={view.label}
           aria-current={active === view.id ? "page" : undefined}
+          aria-disabled={disabled || active === view.id}
           data-view={view.id}
           onClick={(event) => {
             if (
@@ -76,8 +62,11 @@ export function IntakeViewNavigation({
             ) {
               return;
             }
-            // Native navigation starts now; the browser carries the thumb between documents.
-            setDestination(view);
+            event.preventDefault();
+            if (disabled || active === view.id) {
+              return;
+            }
+            onNavigate(links[view.id]);
           }}
         >
           <Icon name={view.icon} />

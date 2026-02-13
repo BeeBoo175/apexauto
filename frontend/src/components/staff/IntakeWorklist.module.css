@@ -5,15 +5,6 @@
   min-height: 0;
 }
 
-.page > header {
-  position: static;
-}
-
-.page > header,
-.page > form {
-  flex-shrink: 0;
-}
-
 .body {
   display: flex;
   flex: 1;

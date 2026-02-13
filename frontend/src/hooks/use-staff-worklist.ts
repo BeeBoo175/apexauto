@@ -31,7 +31,13 @@ export function useStaffWorklist(
     return () => controller.current?.abort();
   }, []);
 
-  async function load(nextFilters = active.filters, nextPage = active.page) {
+  function cancel() {
+    controller.current?.abort();
+    controller.current = null;
+    setBusy(false);
+  }
+
+  async function load(nextFilters = active.filters, nextPage = active.page, updateHistory = true) {
     if (controller.current) {
       return;
     }
@@ -64,7 +70,9 @@ export function useStaffWorklist(
       if (selected) {
         query.set("appointment", selected);
       }
-      window.history.replaceState(null, "", `/dashboard/intake?${query}`);
+      if (updateHistory) {
+        window.history.replaceState(null, "", `/dashboard/intake?${query}`);
+      }
       return true;
     } catch {
       if (!attempt.signal.aborted) {
@@ -126,5 +134,6 @@ export function useStaffWorklist(
     revision,
     load,
     loadBranches,
+    cancel,
   };
 }

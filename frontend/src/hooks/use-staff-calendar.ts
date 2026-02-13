@@ -34,7 +34,13 @@ export function useStaffCalendar(
     return () => controller.current?.abort();
   }, []);
 
-  async function load(next = active) {
+  function cancel() {
+    controller.current?.abort();
+    controller.current = null;
+    setBusy(false);
+  }
+
+  async function load(next = active, updateHistory = true) {
     if (controller.current || !isCalendarDate(next.date)) {
       return;
     }
@@ -70,7 +76,9 @@ export function useStaffCalendar(
       if (selected) {
         url.searchParams.set("appointment", selected);
       }
-      window.history.replaceState(null, "", url);
+      if (updateHistory) {
+        window.history.replaceState(null, "", url);
+      }
       return true;
     } catch (error) {
       if (!attempt.signal.aborted) {
@@ -85,7 +93,9 @@ export function useStaffCalendar(
       if (!attempt.signal.aborted) {
         setBusy(false);
       }
-      controller.current = null;
+      if (controller.current === attempt) {
+        controller.current = null;
+      }
     }
   }
 
@@ -120,5 +130,5 @@ export function useStaffCalendar(
       controller.current = null;
     }
   }
-  return { snapshot, active, branches, ready, busy, load, loadBranches };
+  return { snapshot, active, branches, ready, busy, load, loadBranches, cancel };
 }

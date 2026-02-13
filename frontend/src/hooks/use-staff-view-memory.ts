@@ -49,7 +49,7 @@ export function useStaffViewMemory(
     }
     canonical.hash = current.hash;
     if (current.search && canonical.href !== current.href) {
-      window.history.replaceState(window.history.state, "", canonical);
+      window.history.replaceState(null, "", canonical);
     }
     return () => {
       disposed = true;
