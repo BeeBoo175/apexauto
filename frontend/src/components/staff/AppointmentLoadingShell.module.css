@@ -1,0 +1,55 @@
+.placeholder {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--color-line-soft);
+}
+
+.placeholder::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-paper) 65%, transparent),
+    transparent
+  );
+  content: "";
+  transform: translateX(-100%);
+  animation: shimmer 2.4s linear infinite;
+}
+
+.registration {
+  width: 128px;
+  height: 30px;
+}
+
+.status {
+  width: 72px;
+  height: 24px;
+  border-radius: 999px;
+}
+
+.value {
+  width: 85%;
+  height: 19.5px;
+}
+
+.reference {
+  width: 100%;
+  height: 36px;
+}
+
+@keyframes shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .placeholder::after {
+    animation: none;
+    background: none;
+  }
+}

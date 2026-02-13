@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Dialog } from "@/components/ui/Dialog";
 import { AppointmentWorkbench } from "./AppointmentWorkbench";
+import { AppointmentLoadingShell } from "./AppointmentLoadingShell";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { useStaffAppointmentDrawer } from "@/hooks/use-staff-appointment-drawer";
 
@@ -27,7 +28,7 @@ export function IntakeAppointmentDrawer({
       onClose={drawer.close}
       closeDisabled={drawer.locked || refreshing}
     >
-      {drawer.busy && <p role="status">Loading appointment…</p>}
+      {drawer.busy && <AppointmentLoadingShell />}
       {!drawer.busy && drawer.result && (
         <AppointmentWorkbench
           key={drawer.id}
