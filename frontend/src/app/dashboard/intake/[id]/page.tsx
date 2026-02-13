@@ -1,5 +1,5 @@
-import { StaffFrame } from "@/components/staff/StaffFrame";
-import { actorIdentity } from "@/lib/auth/actor";
+import { StaffActorBoundary } from "@/components/staff/StaffActorBoundary";
+import { StaffLink } from "@/components/staff/StaffLink";
 import { notFound } from "next/navigation";
 import { isUuid } from "@/lib/auth/contracts";
 import { hasIntakeAccess } from "@/lib/auth/actor";
@@ -31,11 +31,15 @@ export default async function IntakeDetailPage({
   }
   if (!hasIntakeAccess(actor)) {
     return (
-      <StaffFrame key={actorIdentity(actor)} actor={actor}>
+      <StaffActorBoundary
+        actor={actor}
+        path={`/dashboard/intake/${id}`}
+        snapshotId={crypto.randomUUID()}
+      >
         <StaffNotice title="Intake access unavailable">
           <a href="/dashboard">Return to your staff workspace</a>
         </StaffNotice>
-      </StaffFrame>
+      </StaffActorBoundary>
     );
   }
   const initial = await privateIntakeRead(`/api/staff/intake/appointments/${id}`, parseDetail);
@@ -49,16 +53,20 @@ export default async function IntakeDetailPage({
       ? `/dashboard/intake?${staffViewQuery(filters, page)}`
       : calendarHref(calendarParams(navigation));
   return (
-    <StaffFrame key={actorIdentity(actor)} actor={actor}>
+    <StaffActorBoundary
+      actor={actor}
+      path={`/dashboard/intake/${id}`}
+      snapshotId={crypto.randomUUID()}
+    >
       <StaffCommandBar title="Intake appointment" />
       <div className={styles.direct}>
-        <a className={styles.backLink} href={returnTo}>
+        <StaffLink className={styles.backLink} href={returnTo} prefetch={false}>
           Back to intake appointments
-        </a>
+        </StaffLink>
         <Card>
           <AppointmentWorkbench key={id} id={id} actor={actor} initial={initial} />
         </Card>
       </div>
-    </StaffFrame>
+    </StaffActorBoundary>
   );
 }

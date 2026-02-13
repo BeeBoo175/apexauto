@@ -1,5 +1,4 @@
-import { StaffFrame } from "@/components/staff/StaffFrame";
-import { actorIdentity } from "@/lib/auth/actor";
+import { StaffActorBoundary } from "@/components/staff/StaffActorBoundary";
 import { redirect } from "next/navigation";
 import { staffActor } from "@/lib/staff/server";
 import { hasIntakeAccess } from "@/lib/auth/actor";
@@ -15,7 +14,7 @@ export default async function DashboardPage() {
     redirect("/dashboard/intake");
   }
   return (
-    <StaffFrame key={actorIdentity(actor)} actor={actor}>
+    <StaffActorBoundary actor={actor} path="/dashboard" snapshotId={crypto.randomUUID()}>
       <StaffNotice title="Your staff workspace">
         <p className="text-muted">
           {actor.role === "WorkshopTechnician"
@@ -23,6 +22,6 @@ export default async function DashboardPage() {
             : "Administration tools arrive in a later slice. This role does not have intake access."}
         </p>
       </StaffNotice>
-    </StaffFrame>
+    </StaffActorBoundary>
   );
 }

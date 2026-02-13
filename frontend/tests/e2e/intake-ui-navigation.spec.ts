@@ -35,9 +35,14 @@ test("staff reassignment clears old branch records and applies current permissio
     if (!(await navigation.isVisible())) {
       await page.getByRole("button", { name: "Workspaces", exact: true }).click();
     }
+    const refreshed = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === "/dashboard/intake" &&
+        response.request().headers()["rsc"] === "1",
+    );
     await navigation.click();
-    await expect(page.getByRole("region", { name: "Intake calendar", exact: true })).toBeVisible();
-    await page.getByRole("link", { name: "Table", exact: true }).click();
+    await refreshed;
+    await expect(page.getByRole("button", { name: "Refresh worklist", exact: true })).toBeEnabled();
   }
   try {
     assignment("second-branch");
@@ -49,6 +54,7 @@ test("staff reassignment clears old branch records and applies current permissio
     await expect(page.getByRole("link", { name: /^Open BPL / }).first()).toBeVisible();
     assignment("group");
     await navigateWorkspace();
+    await expect(page.getByText("General manager", { exact: true })).toBeAttached();
     if (!(await navigation.isVisible())) {
       await page.getByRole("button", { name: "Workspaces", exact: true }).click();
     }
@@ -65,6 +71,7 @@ test("staff reassignment clears old branch records and applies current permissio
   } finally {
     assignment("restore");
     await page.reload();
+    await expect(page.getByText("Sales agent", { exact: true })).toBeAttached();
     if (await dialog.isVisible()) {
       await dialog.getByRole("button", { name: "Close dialog", exact: true }).click();
     }

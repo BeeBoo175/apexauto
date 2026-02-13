@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/Button";
 import { RefreshButton } from "@/components/ui/RefreshButton";
@@ -17,6 +17,7 @@ import { CheckInFields } from "./CheckInFields";
 import { NoShowCorrectionFields } from "./NoShowCorrectionFields";
 import { AppointmentStatus } from "./AppointmentStatus";
 import styles from "./AppointmentWorkbench.module.css";
+import { StaffNavigationLockContext } from "./StaffActorBoundary";
 
 export function AppointmentWorkbench({
   id,
@@ -55,6 +56,16 @@ export function AppointmentWorkbench({
   );
   const value = draft ?? localDraft;
   const locked = command.busy || command.uncertain;
+  const navigationLockedRef = useContext(StaffNavigationLockContext);
+  useEffect(() => {
+    if (!navigationLockedRef) {
+      return;
+    }
+    navigationLockedRef.current = locked;
+    return () => {
+      navigationLockedRef.current = false;
+    };
+  }, [locked, navigationLockedRef]);
   useEffect(() => {
     queueMicrotask(() => setReady(true));
     return () => controller.current?.abort();

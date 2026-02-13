@@ -1,5 +1,4 @@
-import { StaffFrame } from "@/components/staff/StaffFrame";
-import { actorIdentity } from "@/lib/auth/actor";
+import { StaffActorBoundary } from "@/components/staff/StaffActorBoundary";
 import { staffActor } from "@/lib/staff/server";
 import { hasIntakeAccess } from "@/lib/auth/actor";
 import { isUuid } from "@/lib/auth/contracts";
@@ -30,12 +29,12 @@ export default async function IntakePage({
   }
   if (!hasIntakeAccess(actor)) {
     return (
-      <StaffFrame key={actorIdentity(actor)} actor={actor}>
+      <StaffActorBoundary actor={actor} path="/dashboard/intake" snapshotId={crypto.randomUUID()}>
         <StaffNotice title="Intake access unavailable">
           <p>This role cannot access intake appointments.</p>
           <a href="/dashboard">Return to your staff workspace</a>
         </StaffNotice>
-      </StaffFrame>
+      </StaffActorBoundary>
     );
   }
   const params = await searchParams;
@@ -65,7 +64,7 @@ export default async function IntakePage({
       : null,
   ]);
   return (
-    <StaffFrame key={actorIdentity(actor)} actor={actor} fitViewport={listView}>
+    <StaffActorBoundary actor={actor} path="/dashboard/intake" snapshotId={crypto.randomUUID()}>
       {initial && (
         <IntakeWorklist
           actor={actor}
@@ -88,6 +87,6 @@ export default async function IntakePage({
           selected={selected}
         />
       )}
-    </StaffFrame>
+    </StaffActorBoundary>
   );
 }
