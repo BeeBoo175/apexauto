@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { SearchField } from "@/components/ui/SearchField";
 import { DataTable } from "@/components/ui/data-table/DataTable";
 import type { TableSort } from "@/components/ui/data-table/types";
@@ -29,12 +29,10 @@ export function IntakeWorklist({ actor, worklist, drawer }: IntakeWorklistProps)
   const disabled = Boolean(drawer.id);
   const { snapshot, active } = worklist;
   const filters = active.filters;
-  const [tableSort, setTableSort] = useState<TableSort | null>(() => {
-    if (filters.sort === "startsAt" && filters.direction === "asc") {
-      return null;
-    }
-    return { column: filters.sort, direction: filters.direction };
-  });
+  const tableSort: TableSort | null =
+    filters.sort === "startsAt" && filters.direction === "asc"
+      ? null
+      : { column: filters.sort, direction: filters.direction };
   const query = staffViewQuery(active.filters, active.page);
   const columns = intakeColumns(query, drawer.open);
   const filterControls = (
@@ -51,7 +49,7 @@ export function IntakeWorklist({ actor, worklist, drawer }: IntakeWorklistProps)
   const appliedFilters = appliedWorklistFilters(active.filters, branchName);
 
   async function sortWorklist(sort: TableSort | null) {
-    const confirmed = await worklist.load(
+    await worklist.load(
       {
         ...active.filters,
         sort: sort?.column ?? "startsAt",
@@ -59,9 +57,6 @@ export function IntakeWorklist({ actor, worklist, drawer }: IntakeWorklistProps)
       },
       1,
     );
-    if (confirmed) {
-      setTableSort(sort);
-    }
   }
 
   async function exportAll() {

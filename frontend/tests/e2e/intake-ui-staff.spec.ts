@@ -126,6 +126,19 @@ test("sales intake preserves scoped lists, drawer drafts and an exact lost check
   await expect(
     dialog.getByRole("button", { name: "Retry same check-in", exact: true }),
   ).toBeVisible();
+  const uncertainHref = page.url();
+  await page.evaluate(() => {
+    const current = window.location.href;
+    window.history.replaceState(null, "", "/dashboard/intake?view=list");
+    window.history.pushState(null, "", current);
+  });
+  const attemptedBack = page.waitForEvent("framenavigated");
+  await page.evaluate(() => window.history.back());
+  await attemptedBack;
+  await expect(page).toHaveURL(uncertainHref);
+  await expect(
+    dialog.getByRole("button", { name: "Retry same check-in", exact: true }),
+  ).toBeVisible();
   await dialog.getByRole("button", { name: "Retry same check-in", exact: true }).click();
   await expect(
     dialog.getByRole("heading", { name: "Check-in confirmed", exact: true }),
