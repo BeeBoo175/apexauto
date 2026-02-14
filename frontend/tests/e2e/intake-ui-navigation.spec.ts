@@ -1,5 +1,5 @@
 import { setAppointmentDates, expectWorklistPage } from "./intake-ui-controls";
-import { expect, test } from "@playwright/test";
+import { expect, test, type CDPSession } from "@playwright/test";
 import { writeFileSync } from "node:fs";
 import path from "node:path";
 
@@ -8,6 +8,86 @@ const assignment = (command: string) =>
   writeFileSync(path.join(evidence, "assignment.txt"), command);
 const day = (offset: number) =>
   new Date(Date.now() + (offset * 24 + 8) * 3600000).toISOString().slice(0, 10);
+
+async function swipe(touch: CDPSession, x: number, y: number, deltaX: number, deltaY: number) {
+  await touch.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+  for (let step = 1; step <= 8; step += 1) {
+    await touch.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [{ x: x + (deltaX * step) / 8, y: y + (deltaY * step) / 8 }],
+    });
+    // Give Chromium a frame between movements in the simulated finger swipe.
+    await new Promise((resolve) => setTimeout(resolve, 16));
+  }
+  // Finish the finger movement before lifting so the next tap does not stop a fling.
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  await touch.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+}
+
+test("intake content supports mobile touch scrolling and preserves desktop viewport fit", async ({
+  page,
+  context,
+}, testInfo) => {
+  const mobile = testInfo.project.name === "mobile-auth";
+  if (mobile) {
+    await page.setViewportSize({ width: 390, height: 640 });
+  }
+  await page.goto("/login");
+  await page.getByLabel("Email", { exact: true }).fill("aina.sofia@example.invalid");
+  await page.getByLabel("Password", { exact: true }).fill("Password123!");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Refresh calendar", exact: true })).toBeEnabled();
+  if (!mobile) {
+    const bounds = await page
+      .getByRole("region", { name: "Intake calendar", exact: true })
+      .boundingBox();
+    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(page.viewportSize()!.height);
+    return;
+  }
+  const events = page.getByRole("region", { name: "Selected date events", exact: true });
+  const lastEvent = events.getByRole("button", { name: /^Open / }).last();
+  const before = await lastEvent.evaluate((node) => node.getBoundingClientRect().top);
+  const touch = await context.newCDPSession(page);
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await swipe(touch, 190, 550, 0, -420);
+    const visible = await lastEvent.evaluate((node) => {
+      const bounds = node.getBoundingClientRect();
+      return bounds.top >= 0 && bounds.bottom <= window.innerHeight;
+    });
+    if (visible) {
+      break;
+    }
+  }
+  await expect
+    .poll(() => lastEvent.evaluate((node) => node.getBoundingClientRect().top))
+    .toBeLessThan(before - 50);
+  await expect(lastEvent).toBeInViewport({ ratio: 1 });
+  await lastEvent.tap();
+  await expect(page.getByRole("dialog", { name: "Intake appointment", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Close dialog", exact: true }).tap();
+  await page.screenshot({
+    path: path.join(evidence, "mobile-calendar-scrolled.png"),
+    fullPage: true,
+  });
+
+  await page.getByRole("link", { name: "Table", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Refresh worklist", exact: true })).toBeEnabled();
+  const rows = page.getByRole("table", { name: "Scoped intake appointments" }).locator("..");
+  const bounds = (await rows.boundingBox())!;
+  const startY = bounds.y + bounds.height - 20;
+  await swipe(touch, 190, startY, 0, -180);
+  await expect.poll(() => rows.evaluate((node) => node.scrollTop)).toBeGreaterThan(0);
+  await swipe(touch, 330, startY, -260, 0);
+  await expect.poll(() => rows.evaluate((node) => node.scrollLeft)).toBeGreaterThan(0);
+  await expect(page.getByRole("button", { name: "Next records", exact: true })).toBeInViewport({
+    ratio: 1,
+  });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
+  await page.screenshot({ path: path.join(evidence, "mobile-table-scrolled.png"), fullPage: true });
+  await touch.detach();
+});
 
 test("staff reassignment clears old branch records and applies current permissions", async ({
   page,

@@ -56,13 +56,13 @@ export function DataTableHeader<Row>({
             onClick={cycleSort}
             aria-label={`Sort by ${column.label}`}
           >
-            {column.label}
+            <span className={styles.headerLabel}>{column.label}</span>
             <span aria-hidden="true" className={active ? styles.sortActive : styles.sortInactive}>
               <Icon name={sortIcons[direction]} />
             </span>
           </Button>
         ) : (
-          <span>{column.label}</span>
+          <span className={styles.headerLabel}>{column.label}</span>
         )}
       </div>
       {resizable && (

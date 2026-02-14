@@ -28,11 +28,6 @@ export function IntakeWorklist({ actor, worklist, drawer }: IntakeWorklistProps)
   useEffect(() => () => exportController.current?.abort(), []);
   const disabled = Boolean(drawer.id);
   const { snapshot, active } = worklist;
-  const filters = active.filters;
-  const tableSort: TableSort | null =
-    filters.sort === "startsAt" && filters.direction === "asc"
-      ? null
-      : { column: filters.sort, direction: filters.direction };
   const query = staffViewQuery(active.filters, active.page);
   const columns = intakeColumns(query, drawer.open);
   const filterControls = (
@@ -56,6 +51,8 @@ export function IntakeWorklist({ actor, worklist, drawer }: IntakeWorklistProps)
         direction: sort?.direction ?? "asc",
       },
       1,
+      true,
+      sort,
     );
   }
 
@@ -84,7 +81,7 @@ export function IntakeWorklist({ actor, worklist, drawer }: IntakeWorklistProps)
             columns={columns}
             rowId={(row) => row.id}
             page={{ ...snapshot, page: active.page }}
-            sort={tableSort}
+            sort={active.sort}
             disabled={disabled}
             busy={worklist.busy}
             selectionScope={`${actorIdentity(actor)}:${query}:${worklist.revision}`}

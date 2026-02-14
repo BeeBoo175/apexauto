@@ -140,7 +140,16 @@
 }
 
 .header button {
+  min-width: 0;
+  max-width: 100%;
   font-weight: inherit;
+}
+
+.headerLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .headerContent {
@@ -157,6 +166,7 @@
   justify-content: center;
   width: 16px;
   height: 16px;
+  flex-shrink: 0;
   margin-left: 8px;
 }
 
@@ -223,7 +233,10 @@
 }
 
 .cell {
-  overflow-wrap: anywhere;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .table tr[data-selected] {

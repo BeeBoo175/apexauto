@@ -46,8 +46,10 @@ function Workspace({ actor, today, initial }: Props) {
           <>
             <RefreshButton
               label={view === "calendar" ? "Refresh calendar" : "Refresh worklist"}
-              busy={busy}
-              disabled={Boolean(drawer.id) || !calendar.ready || !worklist.ready}
+              busy={busy && !pending}
+              disabled={
+                Boolean(drawer.id) || Boolean(pending) || !calendar.ready || !worklist.ready
+              }
               onClick={() => void refresh()}
             />
             <IntakeViewNavigation

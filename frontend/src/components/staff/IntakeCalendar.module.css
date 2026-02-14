@@ -101,6 +101,7 @@
   }
 
   .workspace {
+    flex: none;
     height: auto;
   }
 

@@ -10,6 +10,18 @@ import type { StaffFilters, WorklistItem } from "@/lib/staff/contracts";
 import { useToast } from "@/components/ui/Toast";
 import { useInitialToast } from "./use-initial-toast";
 
+interface WorklistSort {
+  column: string;
+  direction: "asc" | "desc";
+}
+
+function initialSort(filters: StaffFilters): WorklistSort | null {
+  if (filters.sort === "startsAt" && filters.direction === "asc") {
+    return null;
+  }
+  return { column: filters.sort, direction: filters.direction };
+}
+
 export function useStaffWorklist(
   initial: ApiResult<Page<WorklistItem>>,
   filters: StaffFilters,
@@ -19,7 +31,7 @@ export function useStaffWorklist(
   const [snapshot, setSnapshot] = useState(initial.data);
   const [branches, setBranches] = useState(initialBranches);
   const [draft, setDraft] = useState(filters);
-  const [active, setActive] = useState({ filters, page });
+  const [active, setActive] = useState({ filters, page, sort: initialSort(filters) });
   const [busy, setBusy] = useState(false);
   const [ready, setReady] = useState(false);
   useInitialToast(initial.message);
@@ -37,7 +49,12 @@ export function useStaffWorklist(
     setBusy(false);
   }
 
-  async function load(nextFilters = active.filters, nextPage = active.page, updateHistory = true) {
+  async function load(
+    nextFilters = active.filters,
+    nextPage = active.page,
+    updateHistory = true,
+    selectedSort?: WorklistSort | null,
+  ) {
     if (controller.current) {
       return;
     }
@@ -63,7 +80,14 @@ export function useStaffWorklist(
       }
       setSnapshot(result.data);
       setRevision((current) => current + 1);
-      setActive({ filters: nextFilters, page: nextPage });
+      let sort = selectedSort;
+      if (sort === undefined) {
+        const sameOrder =
+          nextFilters.sort === active.filters.sort &&
+          nextFilters.direction === active.filters.direction;
+        sort = sameOrder ? active.sort : initialSort(nextFilters);
+      }
+      setActive({ filters: nextFilters, page: nextPage, sort });
       setDraft(nextFilters);
       const query = new URLSearchParams(staffViewQuery(nextFilters, nextPage));
       const selected = new URL(window.location.href).searchParams.get("appointment");

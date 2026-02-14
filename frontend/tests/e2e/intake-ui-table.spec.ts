@@ -76,6 +76,24 @@ test("server table searches all scoped rows, selects appointments and exports ap
   await expect(page.getByRole("button", { name: "Export full CSV", exact: true })).toBeEnabled();
   await page.getByLabel("Rows per page", { exact: true }).selectOption("10");
   await expect(page.getByRole("row")).toHaveCount(11);
+  const inspectionHeader = page.locator('th[data-column-id="startsAt"]');
+  const inspectionSort = page.getByRole("button", { name: "Sort by Inspection time", exact: true });
+  await expect(inspectionHeader).toHaveAttribute("aria-sort", "none");
+  await inspectionSort.click();
+  await expect(inspectionHeader).toHaveAttribute("aria-sort", "ascending");
+  await page.getByRole("button", { name: "Refresh worklist", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Refresh worklist", exact: true })).toBeEnabled();
+  await expect(inspectionHeader).toHaveAttribute("aria-sort", "ascending");
+  const tableRoute = "**/api/staff/intake/appointments?**";
+  await page.route(tableRoute, (route) => route.fulfill({ status: 502, json: {} }));
+  await inspectionSort.click();
+  await expect(page.getByText(/The worklist could not be refreshed/)).toBeVisible();
+  await expect(inspectionHeader).toHaveAttribute("aria-sort", "ascending");
+  await page.unroute(tableRoute);
+  await inspectionSort.click();
+  await expect(inspectionHeader).toHaveAttribute("aria-sort", "descending");
+  await inspectionSort.click();
+  await expect(inspectionHeader).toHaveAttribute("aria-sort", "none");
   await page.getByRole("button", { name: "Sort by Registration", exact: true }).click();
   await expect(page.getByRole("columnheader").filter({ hasText: "Registration" })).toHaveAttribute(
     "aria-sort",
