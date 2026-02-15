@@ -1,7 +1,5 @@
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql;
 
 namespace Dealership.IntegrationTests;
@@ -13,12 +11,11 @@ internal static class ValuationMigrationAssertions
         var original = await ReadAsync(fixture.RuntimeConnectionString, embedded: true);
         var options = new DbContextOptionsBuilder<DealershipDbContext>().UseNpgsql(fixture.ConnectionString).Options;
         await using var database = new DealershipDbContext(options);
-        var migrator = database.GetService<IMigrator>();
 
-        await migrator.MigrateAsync("20261021184456_ConsolidateAppointmentMail");
+        await ConsolidationMigrationRange.DowngradeAsync(database, "20261021184456_ConsolidateAppointmentMail");
         Assert.Equal(original, await ReadAsync(fixture.RuntimeConnectionString, embedded: false));
         await AssertLegacyGuardsAsync(fixture.RuntimeConnectionString);
-        await migrator.MigrateAsync();
+        await ConsolidationMigrationRange.RestoreAsync(database, "20261021184456_ConsolidateAppointmentMail");
         Assert.Equal(original, await ReadAsync(fixture.RuntimeConnectionString, embedded: true));
 
         var appointments = await database.IntakeAppointments.AsNoTracking().ToArrayAsync();

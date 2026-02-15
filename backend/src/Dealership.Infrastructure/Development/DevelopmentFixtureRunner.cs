@@ -1,5 +1,7 @@
 using Dealership.Application.Accounts;
 using Dealership.Application.Branches;
+using Dealership.Application.Inspections;
+using Dealership.Application.Intake;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,7 +10,8 @@ namespace Dealership.Infrastructure.Development;
 public sealed record DevelopmentFixtureReport(string Fixture, string State, bool RequiresAttention);
 
 public sealed class DevelopmentFixtureRunner(DealershipDbContext database, DevelopmentCustomerFixtures customers,
-    StaffProvisioningService staff, BranchProvisioningService branches, DevelopmentIntakeFixtures intake)
+    StaffProvisioningService staff, BranchProvisioningService branches, DevelopmentIntakeFixtures intake,
+    IInspectionAssignmentStore assignments)
 {
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> SeedAsync(DevelopmentFixtureTarget target,
         CancellationToken cancellationToken)
@@ -40,6 +43,7 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
         }
 
         reports.AddRange(await intake.SeedAsync(target, token));
+        reports.AddRange(await InspectionDraftsAsync(true, token));
         return reports;
     }
 
@@ -67,6 +71,39 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
         }
 
         reports.AddRange(await intake.ReviewAsync(cancellationToken));
+        reports.AddRange(await InspectionDraftsAsync(false, cancellationToken));
+        return reports;
+    }
+
+    private async Task<IReadOnlyList<DevelopmentFixtureReport>> InspectionDraftsAsync(bool seed,
+        CancellationToken cancellationToken)
+    {
+        var reports = new List<DevelopmentFixtureReport>();
+        var checkedIn = DevelopmentIntakeManifest.Appointments.Where(item => item.Status == StaffWorklistStatus.CheckedIn);
+        foreach (var fixture in checkedIn)
+        {
+            var technicianId = DevelopmentFixtureManifest.Staff.Single(item =>
+                item.BranchId == fixture.BranchId && item.Role == AccountRoles.WorkshopTechnician).Id;
+            var vehicleId = await database.Vehicles.Where(item => item.IntakeAppointmentId == fixture.Id)
+                .Select(item => (Guid?)item.Id).SingleOrDefaultAsync(cancellationToken);
+            var draft = await database.InspectionDrafts.AsNoTracking()
+                .SingleOrDefaultAsync(item => item.VehicleId == vehicleId, cancellationToken);
+            var state = "missing";
+            var attention = true;
+            if (draft is not null)
+            {
+                attention = draft.Id != fixture.Id || draft.TechnicianId != technicianId || draft.AssignmentVersion != 1;
+                state = attention ? "drift; preserved" : "matches";
+            }
+            if (seed && draft is null && vehicleId.HasValue)
+            {
+                var assigned = await assignments.AssignAsync(technicianId, vehicleId.Value,
+                    new InspectionAssignmentRequest(fixture.Id, technicianId, 0, null), cancellationToken);
+                attention = assigned.Status != InspectionAssignmentStatus.Succeeded;
+                state = attention ? "claim unavailable; preserved" : "created";
+            }
+            reports.Add(new DevelopmentFixtureReport($"Inspection ({fixture.RegistrationPlate})", state, attention));
+        }
         return reports;
     }
 
