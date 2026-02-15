@@ -27,7 +27,7 @@ internal sealed class DevelopmentSnapshotInitialization : IAsyncDisposable
             await database.Database.ExecuteSqlRawAsync("""
                 LOCK TABLE public."IntakeAppointments", public."IntakePhotos", public."AppointmentPhotos",
                     public."AppointmentCancellations", public."AppointmentCheckIns", public."Vehicles",
-                    public."SellerValuations", public."AppointmentMailOutbox", public."PhotoRemovals" IN ACCESS EXCLUSIVE MODE;
+                    public."AppointmentMailOutbox", public."PhotoRemovals" IN ACCESS EXCLUSIVE MODE;
                 """, cancellationToken);
             if (await database.IntakeAppointments.AnyAsync(cancellationToken) ||
                 await database.IntakePhotos.AnyAsync(cancellationToken))

@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace Dealership.Infrastructure.Persistence;
 
 public sealed class IntakeBookingConfiguration : IEntityTypeConfiguration<IntakeAppointment>,
-    IEntityTypeConfiguration<SellerValuation>, IEntityTypeConfiguration<AppointmentPhoto>
+    IEntityTypeConfiguration<AppointmentPhoto>
 {
     public void Configure(EntityTypeBuilder<IntakeAppointment> builder)
     {
@@ -15,6 +15,8 @@ public sealed class IntakeBookingConfiguration : IEntityTypeConfiguration<Intake
         {
             table.HasCheckConstraint("CK_IntakeAppointments_Shape",
                 "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"RegistrationPlate\" ~ '[^[:space:]]' AND \"StartsAt\" > \"CreatedAt\" AND \"EndsAt\" > \"StartsAt\"");
+            table.HasCheckConstraint("CK_IntakeAppointments_Valuation",
+                "\"ValuationMake\" ~ '[^[:space:]]' AND \"ValuationModel\" ~ '[^[:space:]]' AND \"ValuationTrim\" ~ '[^[:space:]]' AND \"ValuationManufactureYear\" > 0 AND \"ValuationManufactureYear\" <= \"ValuationYear\" AND \"ValuationMileageKilometres\" >= 0 AND \"ValuationMinimum\" >= 0 AND \"ValuationMaximum\" >= \"ValuationMinimum\" AND \"ValuationCurrency\" = 'MYR'");
         });
         builder.HasKey(item => item.Id);
         builder.Property(item => item.Id).ValueGeneratedNever();
@@ -26,25 +28,20 @@ public sealed class IntakeBookingConfiguration : IEntityTypeConfiguration<Intake
         builder.HasIndex(item => new { item.OwnerId, item.StartsAt, item.Id });
         builder.HasIndex(item => new { item.OwnerId, item.CreatedAt });
         builder.Property(item => item.RegistrationPlate).HasMaxLength(20).IsRequired();
-    }
 
-    public void Configure(EntityTypeBuilder<SellerValuation> builder)
-    {
-        builder.ToTable("SellerValuations", table =>
+        builder.ComplexProperty(item => item.Valuation, valuation =>
         {
-            table.HasCheckConstraint("CK_SellerValuations_Shape",
-                "\"Make\" ~ '[^[:space:]]' AND \"Model\" ~ '[^[:space:]]' AND \"Trim\" ~ '[^[:space:]]' AND \"ManufactureYear\" > 0 AND \"ManufactureYear\" <= \"ValuationYear\" AND \"MileageKilometres\" >= 0 AND \"Minimum\" >= 0 AND \"Maximum\" >= \"Minimum\" AND \"Currency\" = 'MYR'");
+            valuation.IsRequired();
+            valuation.Property(item => item.Make).HasColumnName("ValuationMake").HasMaxLength(60).IsRequired();
+            valuation.Property(item => item.Model).HasColumnName("ValuationModel").HasMaxLength(100).IsRequired();
+            valuation.Property(item => item.Trim).HasColumnName("ValuationTrim").HasMaxLength(100).IsRequired();
+            valuation.Property(item => item.ManufactureYear).HasColumnName("ValuationManufactureYear");
+            valuation.Property(item => item.MileageKilometres).HasColumnName("ValuationMileageKilometres");
+            valuation.Property(item => item.Minimum).HasColumnName("ValuationMinimum").HasPrecision(18, 2);
+            valuation.Property(item => item.Maximum).HasColumnName("ValuationMaximum").HasPrecision(18, 2);
+            valuation.Property(item => item.Currency).HasColumnName("ValuationCurrency").HasMaxLength(3).IsRequired();
+            valuation.Property(item => item.ValuationYear).HasColumnName("ValuationYear");
         });
-        builder.HasKey(item => new { item.AppointmentId, item.OwnerId });
-        builder.Property(item => item.AppointmentId).ValueGeneratedNever();
-        builder.HasOne<IntakeAppointment>().WithOne().HasForeignKey<SellerValuation>(item => new { item.AppointmentId, item.OwnerId })
-            .HasPrincipalKey<IntakeAppointment>(item => new { item.Id, item.OwnerId }).OnDelete(DeleteBehavior.Restrict);
-        builder.Property(item => item.Make).HasMaxLength(60).IsRequired();
-        builder.Property(item => item.Model).HasMaxLength(100).IsRequired();
-        builder.Property(item => item.Trim).HasMaxLength(100).IsRequired();
-        builder.Property(item => item.Currency).HasMaxLength(3).IsRequired();
-        builder.Property(item => item.Minimum).HasPrecision(18, 2);
-        builder.Property(item => item.Maximum).HasPrecision(18, 2);
     }
 
     public void Configure(EntityTypeBuilder<AppointmentPhoto> builder)

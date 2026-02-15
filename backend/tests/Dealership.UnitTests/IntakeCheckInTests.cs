@@ -34,10 +34,9 @@ public sealed class IntakeCheckInTests
     public void ActualMileageAndPhysicalEvidenceDoNotRewriteTheBookingQuote()
     {
         var appointment = Appointment();
-        var valuation = new SellerValuation(appointment.Id, appointment.OwnerId,
-            new ValuedVehicle("Proton", "Saga", "Standard", 2020, 90000, 18000, 23000, "MYR", 2026));
+        var valuation = appointment.Valuation;
         var checkIn = new AppointmentCheckIn(Guid.NewGuid(), appointment, Guid.NewGuid(), Evidence, StartsAt);
-        var vehicle = new Vehicle(appointment, valuation, checkIn);
+        var vehicle = new Vehicle(appointment, checkIn);
 
         Assert.Equal("PL1BT65R84B123456", vehicle.Vin);
         Assert.Equal("WYY8821", vehicle.RegistrationIdentity);
@@ -53,7 +52,7 @@ public sealed class IntakeCheckInTests
         Assert.True(checkIn.Matches(Evidence with { Vin = " PL1BT65R84B123456 " }));
         Assert.False(checkIn.Matches(Evidence with { MileageKilometres = 91999 }));
         Assert.False(checkIn.Matches(Evidence with { Notes = "different physical finding" }));
-        Assert.Throws<ArgumentException>(() => new Vehicle(Appointment(), valuation, checkIn));
+        Assert.Throws<ArgumentException>(() => new Vehicle(Appointment(), checkIn));
     }
 
     [Theory]
@@ -98,6 +97,7 @@ public sealed class IntakeCheckInTests
     private static IntakeAppointment Appointment()
     {
         return new IntakeAppointment(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "WYY 8821",
-            new InspectionSlot(StartsAt, StartsAt.AddMinutes(90)), StartsAt.AddDays(-1));
+            new InspectionSlot(StartsAt, StartsAt.AddMinutes(90)), StartsAt.AddDays(-1),
+            new SellerValuation("Proton", "Saga", "Standard", 2020, 90000, 18000, 23000, "MYR", 2026));
     }
 }

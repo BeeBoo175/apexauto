@@ -19,8 +19,7 @@ internal static class AppointmentReceiptReader
             return null;
         }
 
-        var valuation = await database.SellerValuations.AsNoTracking()
-            .SingleAsync(item => item.AppointmentId == id, cancellationToken);
+        var valuation = appointment.Valuation;
         var photos = await database.AppointmentPhotos.AsNoTracking().Where(item => item.AppointmentId == id)
             .Select(item => new BookingPhotoSelection(item.PhotoId, item.Angle))
             .ToArrayAsync(cancellationToken);

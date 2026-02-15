@@ -61,7 +61,7 @@ public sealed class IntakeBookingServiceTests
         public BookingContext Context { get; } = new(BookingStatus.Ready, BranchAvailable: true, Photos: photos);
         public bool Committed { get; private set; }
 
-        public Task<BookingResult> CommitAsync(IntakeAppointment appointment, SellerValuation valuation,
+        public Task<BookingResult> CommitAsync(IntakeAppointment appointment,
             IReadOnlyList<AppointmentPhoto> attachments, CancellationToken cancellationToken)
         {
             Committed = true;

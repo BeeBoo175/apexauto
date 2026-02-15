@@ -135,11 +135,10 @@ internal sealed class CheckInTestData : IDisposable
         Guid appointmentId, CheckInEvidence? evidence = null)
     {
         var appointment = await database.IntakeAppointments.SingleAsync(item => item.Id == appointmentId);
-        var valuation = await database.SellerValuations.SingleAsync(item => item.AppointmentId == appointmentId);
         var now = DateTimeOffset.UtcNow;
         now = new DateTimeOffset(now.UtcTicks - now.UtcTicks % 10, TimeSpan.Zero);
         var checkIn = new AppointmentCheckIn(Guid.NewGuid(), appointment, StaffId, evidence ?? Evidence, now);
-        return (checkIn, new Vehicle(appointment, valuation, checkIn));
+        return (checkIn, new Vehicle(appointment, checkIn));
     }
 
     public void Dispose()

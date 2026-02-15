@@ -7,8 +7,10 @@ public sealed class IntakeAppointment
     }
 
     public IntakeAppointment(Guid id, Guid ownerId, Guid branchId, string registrationPlate,
-        InspectionSlot slot, DateTimeOffset createdAt)
+        InspectionSlot slot, DateTimeOffset createdAt, SellerValuation valuation)
     {
+        ArgumentNullException.ThrowIfNull(valuation);
+
         if (id == Guid.Empty || ownerId == Guid.Empty || branchId == Guid.Empty ||
             string.IsNullOrWhiteSpace(registrationPlate) || registrationPlate.Length > 20 ||
             slot.StartsAt <= createdAt || slot.EndsAt <= slot.StartsAt)
@@ -23,6 +25,7 @@ public sealed class IntakeAppointment
         StartsAt = slot.StartsAt.ToUniversalTime();
         EndsAt = slot.EndsAt.ToUniversalTime();
         CreatedAt = createdAt.ToUniversalTime();
+        Valuation = valuation;
     }
 
     public Guid Id { get; private set; }
@@ -32,4 +35,6 @@ public sealed class IntakeAppointment
     public DateTimeOffset StartsAt { get; private set; }
     public DateTimeOffset EndsAt { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
+
+    public SellerValuation Valuation { get; private set; } = null!;
 }

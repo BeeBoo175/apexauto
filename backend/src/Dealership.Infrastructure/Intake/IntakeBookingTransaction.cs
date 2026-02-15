@@ -12,11 +12,10 @@ internal sealed class IntakeBookingTransaction(DealershipDbContext database, IDb
 {
     public BookingContext Context => context;
 
-    public async Task<BookingResult> CommitAsync(IntakeAppointment appointment, SellerValuation valuation,
+    public async Task<BookingResult> CommitAsync(IntakeAppointment appointment,
         IReadOnlyList<AppointmentPhoto> photos, CancellationToken cancellationToken)
     {
         database.IntakeAppointments.Add(appointment);
-        database.SellerValuations.Add(valuation);
         database.AppointmentPhotos.AddRange(photos);
         database.AppointmentMailOutbox.Add(new AppointmentMail(appointment.Id, AppointmentMailKind.Confirmation,
             recipient, appointment.CreatedAt));

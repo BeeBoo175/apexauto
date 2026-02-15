@@ -15,8 +15,8 @@ public sealed class IntakeCheckInSchemaTests(IntakePhotoFixture fixture) : IClas
         INSERT INTO "Vehicles" ("Id", "IntakeAppointmentId", "IntakeOwnerId", "BranchId", "Vin", "RegistrationPlate",
             "RegistrationIdentity", "Make", "Model", "Trim", "ManufactureYear", "MileageKilometres", "Status", "CreatedAt")
         SELECT @vehicle, a."Id", a."OwnerId", a."BranchId", @vin, a."RegistrationPlate", @registration,
-            v."Make", v."Model", v."Trim", v."ManufactureYear", 92000, 'PendingInspection', @at
-        FROM "IntakeAppointments" a JOIN "SellerValuations" v ON v."AppointmentId" = a."Id"
+            a."ValuationMake", a."ValuationModel", a."ValuationTrim", a."ValuationManufactureYear", 92000, 'PendingInspection', @at
+        FROM "IntakeAppointments" a
         WHERE a."Id" = @appointment;
         """;
 
@@ -68,6 +68,10 @@ public sealed class IntakeCheckInSchemaTests(IntakePhotoFixture fixture) : IClas
             await RejectAsync(data, appointment.Id, sql, constraint, name);
         }
 
+        await RejectAsync(data, appointment.Id,
+            InsertVehicle.Replace("a.\"ValuationModel\"", "'Different model'", StringComparison.Ordinal),
+            "CK_Vehicles_Provenance", "vehicle differs from booked valuation", insertVehicle: false);
+
         var receipt = await data.SaveBundleAsync(appointment.Id);
         using var scope = data.Factory.Services.CreateScope();
         var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
@@ -75,7 +79,7 @@ public sealed class IntakeCheckInSchemaTests(IntakePhotoFixture fixture) : IClas
         Assert.Single(await database.AppointmentCheckIns.ToArrayAsync());
         Assert.Single(await database.AppointmentMailOutbox.Where(item => item.Kind == AppointmentMailKind.CheckIn).ToArrayAsync());
         Assert.Equal(92000, receipt.MileageKilometres);
-        Assert.Equal(90000, (await database.SellerValuations.SingleAsync()).MileageKilometres);
+        Assert.Equal(90000, (await database.IntakeAppointments.SingleAsync()).Valuation.MileageKilometres);
         Assert.Equal(CancellationStatus.CheckedIn,
             (await scope.ServiceProvider.GetRequiredService<IAppointmentCancellationStore>()
                 .CancelAsync(data.OwnerId, appointment.Id, CancellationToken.None)).Status);

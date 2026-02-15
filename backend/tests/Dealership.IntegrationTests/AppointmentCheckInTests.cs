@@ -38,7 +38,7 @@ public sealed class AppointmentCheckInTests(IntakePhotoFixture fixture) : IClass
         Assert.Equal(receipt.VehicleId, vehicle.Id);
         Assert.Equal(VehicleStatus.PendingInspection, vehicle.Status);
         Assert.Equal(92000, vehicle.MileageKilometres);
-        Assert.Equal(90000, (await database.SellerValuations.SingleAsync()).MileageKilometres);
+        Assert.Equal(90000, (await database.IntakeAppointments.SingleAsync()).Valuation.MileageKilometres);
         Assert.Single(await database.AppointmentCheckIns.ToArrayAsync());
         Assert.Equal(data.CustomerEmail, (await database.AppointmentMailOutbox.Where(item => item.Kind == AppointmentMailKind.CheckIn).SingleAsync()).RecipientEmail);
         Assert.Equal(CancellationStatus.CheckedIn,

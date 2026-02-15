@@ -53,7 +53,6 @@ public sealed class IntakeBookingTests(IntakePhotoFixture fixture) : IClassFixtu
             {
                 var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
                 Assert.False(await database.IntakeAppointments.AnyAsync());
-                Assert.False(await database.SellerValuations.AnyAsync());
                 Assert.False(await database.AppointmentMailOutbox.Where(item => item.Kind == AppointmentMailKind.Confirmation).AnyAsync());
             }
 
@@ -95,7 +94,6 @@ public sealed class IntakeBookingTests(IntakePhotoFixture fixture) : IClassFixtu
         {
             var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
             Assert.Single(await database.IntakeAppointments.ToArrayAsync());
-            Assert.Single(await database.SellerValuations.ToArrayAsync());
             var source = new AppointmentMailSource(database, new LaterClock());
             var claimed = await source.ClaimNextAsync(CancellationToken.None);
             Assert.NotNull(claimed);

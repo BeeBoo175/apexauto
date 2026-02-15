@@ -58,15 +58,15 @@ public sealed class IntakeBookingService(IIntakeBookingStore bookings, Valuation
             return new BookingResult(BookingStatus.PhotosUnavailable);
         }
 
-        var appointment = new IntakeAppointment(normalized.Id, ownerId, normalized.BranchId,
-            normalized.RegistrationPlate!, slot, now);
         var vehicle = normalized.Vehicle!;
         var quote = calculation.Quote;
-        var valuation = new SellerValuation(appointment.Id, ownerId, new ValuedVehicle(vehicle.Make!, vehicle.Model!,
+        var valuation = new SellerValuation(vehicle.Make!, vehicle.Model!,
             vehicle.Trim!, vehicle.ManufactureYear!.Value, vehicle.MileageKilometres!.Value,
-            quote.MinValuation, quote.MaxValuation, quote.Currency, quote.ValuationYear));
+            quote.MinValuation, quote.MaxValuation, quote.Currency, quote.ValuationYear);
+        var appointment = new IntakeAppointment(normalized.Id, ownerId, normalized.BranchId,
+            normalized.RegistrationPlate!, slot, now, valuation);
         var attachments = photoSet!.Selections.Select(photo => new AppointmentPhoto(appointment.Id, ownerId, photo)).ToArray();
-        return await transaction.CommitAsync(appointment, valuation, attachments, cancellationToken);
+        return await transaction.CommitAsync(appointment, attachments, cancellationToken);
     }
 
     public async Task<BookingResult> GetReceiptAsync(Guid ownerId, Guid id, CancellationToken cancellationToken)

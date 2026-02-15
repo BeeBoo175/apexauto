@@ -139,12 +139,10 @@ public sealed class AppointmentCheckInStore(DealershipDbContext database, TimePr
                 return new CheckInResult(CheckInStatus.Unavailable);
             }
 
-            var valuation = await database.SellerValuations.AsNoTracking()
-                .SingleAsync(item => item.AppointmentId == appointmentId, cancellationToken);
-            database.Vehicles.Add(new Vehicle(appointment, valuation, checkIn));
+            database.Vehicles.Add(new Vehicle(appointment, checkIn));
             database.AppointmentCheckIns.Add(checkIn);
             database.AppointmentMailOutbox.Add(new AppointmentMail(appointmentId, AppointmentMailKind.CheckIn,
-            customer.Email!, now));
+                customer.Email!, now));
             await database.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
             return new CheckInResult(CheckInStatus.Succeeded, Receipt(checkIn));

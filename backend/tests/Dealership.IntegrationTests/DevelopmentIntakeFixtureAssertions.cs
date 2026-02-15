@@ -84,7 +84,6 @@ internal static class DevelopmentIntakeFixtureAssertions
         var database = services.GetRequiredService<DealershipDbContext>();
         var appointments = await database.IntakeAppointments.AsNoTracking().ToArrayAsync();
         Assert.Equal(132, appointments.Length);
-        Assert.Equal(132, await database.SellerValuations.CountAsync());
         Assert.Equal(528, await database.IntakePhotos.CountAsync());
         Assert.Equal(528, await database.AppointmentPhotos.CountAsync());
         Assert.Equal(132, await database.AppointmentMailOutbox.Where(item => item.Kind == AppointmentMailKind.Confirmation).CountAsync());
@@ -96,7 +95,6 @@ internal static class DevelopmentIntakeFixtureAssertions
         Assert.Equal(528, await database.IntakePhotos.CountAsync(photo => photo.AvailableAt != null));
         var schedule = services.GetRequiredService<InspectionSchedule>();
         var malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
-        var valuations = await database.SellerValuations.AsNoTracking().ToDictionaryAsync(item => item.AppointmentId);
         var confirmations = await database.EmailVerificationChallenges.Where(item => item.ConsumedAt != null)
             .ToDictionaryAsync(item => item.UserId, item => item.ConsumedAt!.Value);
         foreach (var appointment in appointments)
@@ -105,7 +103,7 @@ internal static class DevelopmentIntakeFixtureAssertions
             Assert.Equal(new InspectionSlot(appointment.StartsAt, appointment.EndsAt),
                 schedule.FindSlot(appointment.StartsAt, appointment.CreatedAt));
             Assert.Equal(TimeZoneInfo.ConvertTime(appointment.CreatedAt, malaysia).Year,
-                valuations[appointment.Id].ValuationYear);
+                appointment.Valuation.ValuationYear);
         }
 
         await AssertStatesAsync(database);
@@ -198,7 +196,7 @@ internal static class DevelopmentIntakeFixtureAssertions
             Assert.Equal(fixture.BranchId, vehicle.BranchId);
             Assert.Equal(fixture.CheckIn!.MileageKilometres, vehicle.MileageKilometres);
             Assert.Equal(fixture.Vehicle.MileageKilometres,
-                (await database.SellerValuations.SingleAsync(item => item.AppointmentId == fixture.Id)).MileageKilometres);
+                (await database.IntakeAppointments.SingleAsync(item => item.Id == fixture.Id)).Valuation.MileageKilometres);
         }
 
         foreach (var fixture in DevelopmentIntakeManifest.Appointments.Where(item => item.Status == StaffWorklistStatus.Cancelled))
@@ -240,7 +238,6 @@ internal static class DevelopmentIntakeFixtureAssertions
         return JsonSerializer.Serialize(new
         {
             Appointments = await database.IntakeAppointments.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync(),
-            Valuations = await database.SellerValuations.AsNoTracking().OrderBy(item => item.AppointmentId).ToArrayAsync(),
             Photos = await database.IntakePhotos.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync(),
             Attachments = await database.AppointmentPhotos.AsNoTracking().OrderBy(item => item.AppointmentId).ThenBy(item => item.PhotoId).ToArrayAsync(),
             Mail = await database.AppointmentMailOutbox.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync(),

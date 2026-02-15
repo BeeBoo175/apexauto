@@ -26,27 +26,24 @@ public sealed class StaffAppointmentDetailStore(DealershipDbContext database) : 
                 (item, branch) => new { Appointment = item, BranchName = branch.Name })
             .Join(database.CustomerProfiles, row => row.Appointment.OwnerId, customer => customer.UserId,
                 (row, customer) => new { row.Appointment, row.BranchName, CustomerName = customer.LegalName })
-            .Join(database.SellerValuations, row => new { AppointmentId = row.Appointment.Id, row.Appointment.OwnerId },
-                valuation => new { valuation.AppointmentId, valuation.OwnerId },
-                (row, valuation) => new
-                {
-                    row.Appointment.Id,
-                    row.Appointment.BranchId,
-                    row.BranchName,
-                    row.CustomerName,
-                    row.Appointment.RegistrationPlate,
-                    row.Appointment.StartsAt,
-                    row.Appointment.EndsAt,
-                    valuation.Make,
-                    valuation.Model,
-                    valuation.Trim,
-                    valuation.ManufactureYear,
-                    valuation.MileageKilometres,
-                    CheckedIn = database.AppointmentCheckIns.Any(checkIn => checkIn.AppointmentId == row.Appointment.Id),
-                    Cancelled = database.AppointmentCancellations.Any(cancellation => cancellation.AppointmentId == row.Appointment.Id),
-                    CheckIn = database.AppointmentCheckIns.Where(item => item.AppointmentId == row.Appointment.Id)
-                        .SingleOrDefault()
-                }).SingleOrDefaultAsync(cancellationToken);
+            .Select(row => new
+            {
+                row.Appointment.Id,
+                row.Appointment.BranchId,
+                row.BranchName,
+                row.CustomerName,
+                row.Appointment.RegistrationPlate,
+                row.Appointment.StartsAt,
+                row.Appointment.EndsAt,
+                row.Appointment.Valuation.Make,
+                row.Appointment.Valuation.Model,
+                row.Appointment.Valuation.Trim,
+                row.Appointment.Valuation.ManufactureYear,
+                row.Appointment.Valuation.MileageKilometres,
+                CheckedIn = database.AppointmentCheckIns.Any(checkIn => checkIn.AppointmentId == row.Appointment.Id),
+                Cancelled = database.AppointmentCancellations.Any(cancellation => cancellation.AppointmentId == row.Appointment.Id),
+                CheckIn = database.AppointmentCheckIns.SingleOrDefault(item => item.AppointmentId == row.Appointment.Id)
+            }).SingleOrDefaultAsync(cancellationToken);
 
         if (row is null)
         {

@@ -44,8 +44,11 @@ public sealed class AppointmentCancellationSnapshotTests(IntakePhotoFixture fixt
 
         var receipt = await BookingTestData.BookAsync(client, request);
         await using var duplicate = new NpgsqlCommand("""
-            INSERT INTO "IntakeAppointments" ("Id", "OwnerId", "BranchId", "RegistrationPlate", "StartsAt", "EndsAt", "CreatedAt")
-            VALUES (@id, @owner, @branch, 'BPL 2198', @start, @end, @created)
+            INSERT INTO "IntakeAppointments" ("Id", "OwnerId", "BranchId", "RegistrationPlate", "StartsAt", "EndsAt", "CreatedAt",
+                "ValuationMake", "ValuationModel", "ValuationTrim", "ValuationManufactureYear", "ValuationMileageKilometres",
+                "ValuationMinimum", "ValuationMaximum", "ValuationCurrency", "ValuationYear")
+            VALUES (@id, @owner, @branch, 'BPL 2198', @start, @end, @created,
+                @make, @model, @trim, @year, @mileage, @minimum, @maximum, @currency, @valuationYear)
             """, connection, transaction);
         duplicate.Parameters.AddWithValue("id", Guid.NewGuid());
         duplicate.Parameters.AddWithValue("owner", owner);
@@ -53,6 +56,15 @@ public sealed class AppointmentCancellationSnapshotTests(IntakePhotoFixture fixt
         duplicate.Parameters.AddWithValue("start", receipt.Slot.StartsAt);
         duplicate.Parameters.AddWithValue("end", receipt.Slot.EndsAt);
         duplicate.Parameters.AddWithValue("created", receipt.CreatedAt);
+        duplicate.Parameters.AddWithValue("make", receipt.Vehicle.Make!);
+        duplicate.Parameters.AddWithValue("model", receipt.Vehicle.Model!);
+        duplicate.Parameters.AddWithValue("trim", receipt.Vehicle.Trim!);
+        duplicate.Parameters.AddWithValue("year", receipt.Vehicle.ManufactureYear!.Value);
+        duplicate.Parameters.AddWithValue("mileage", receipt.Vehicle.MileageKilometres!.Value);
+        duplicate.Parameters.AddWithValue("minimum", receipt.Quote.MinValuation);
+        duplicate.Parameters.AddWithValue("maximum", receipt.Quote.MaxValuation);
+        duplicate.Parameters.AddWithValue("currency", receipt.Quote.Currency);
+        duplicate.Parameters.AddWithValue("valuationYear", receipt.Quote.ValuationYear);
         var error = await Assert.ThrowsAsync<PostgresException>(() => duplicate.ExecuteNonQueryAsync());
         Assert.Equal(PostgresErrorCodes.SerializationFailure, error.SqlState);
     }

@@ -13,10 +13,9 @@ public sealed class Vehicle
     {
     }
 
-    public Vehicle(IntakeAppointment appointment, SellerValuation valuation, AppointmentCheckIn checkIn)
+    public Vehicle(IntakeAppointment appointment, AppointmentCheckIn checkIn)
     {
-        if (valuation.AppointmentId != appointment.Id || valuation.OwnerId != appointment.OwnerId ||
-            checkIn.AppointmentId != appointment.Id || checkIn.OwnerId != appointment.OwnerId ||
+        if (checkIn.AppointmentId != appointment.Id || checkIn.OwnerId != appointment.OwnerId ||
             checkIn.BranchId != appointment.BranchId)
         {
             throw new ArgumentException("Vehicle intake must retain one appointment's owner, branch and valuation provenance.");
@@ -29,10 +28,10 @@ public sealed class Vehicle
         Vin = checkIn.Vin;
         RegistrationPlate = appointment.RegistrationPlate;
         RegistrationIdentity = string.Concat(RegistrationPlate.Where(character => !char.IsWhiteSpace(character))).ToUpperInvariant();
-        Make = valuation.Make;
-        Model = valuation.Model;
-        Trim = valuation.Trim;
-        ManufactureYear = valuation.ManufactureYear;
+        Make = appointment.Valuation.Make;
+        Model = appointment.Valuation.Model;
+        Trim = appointment.Valuation.Trim;
+        ManufactureYear = appointment.Valuation.ManufactureYear;
         MileageKilometres = checkIn.MileageKilometres;
         CreatedAt = checkIn.CheckedInAt;
     }

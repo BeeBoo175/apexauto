@@ -127,28 +127,26 @@ public sealed class DevelopmentIntakeFixtures(DealershipDbContext database, Deve
 
         var slot = schedule.FindSlot(moment.Slot.StartsAt, moment.BookedAt)
             ?? throw new InvalidOperationException("Snapshot booking must obey the configured schedule.");
-        var appointment = new IntakeAppointment(fixture.Id, ownerId, fixture.BranchId, fixture.RegistrationPlate,
-            slot, moment.BookedAt);
         var quote = new ValuationService(new SnapshotClock(moment.BookedAt)).Calculate(fixture.Vehicle).Quote
             ?? throw new InvalidOperationException("Snapshot vehicle must have a canonical valuation at booking time.");
         var vehicle = fixture.Vehicle;
-        var valuation = new SellerValuation(fixture.Id, ownerId, new ValuedVehicle(vehicle.Make!, vehicle.Model!,
+        var valuation = new SellerValuation(vehicle.Make!, vehicle.Model!,
             vehicle.Trim!, vehicle.ManufactureYear!.Value, vehicle.MileageKilometres!.Value,
-            quote.MinValuation, quote.MaxValuation, quote.Currency, quote.ValuationYear));
+            quote.MinValuation, quote.MaxValuation, quote.Currency, quote.ValuationYear);
+        var appointment = new IntakeAppointment(fixture.Id, ownerId, fixture.BranchId, fixture.RegistrationPlate,
+            slot, moment.BookedAt, valuation);
         database.IntakePhotos.AddRange(prepared);
         database.IntakeAppointments.Add(appointment);
-        database.SellerValuations.Add(valuation);
         database.AppointmentPhotos.AddRange(selected!.Selections.Select(photo => new AppointmentPhoto(fixture.Id, ownerId, photo)));
         database.AppointmentMailOutbox.Add(new AppointmentMail(fixture.Id, AppointmentMailKind.Confirmation,
             owner.Email!, moment.BookedAt));
         await database.SaveChangesAsync(cancellationToken);
-        AddTransition(moment, appointment, valuation, owner.Email!);
+        AddTransition(moment, appointment, owner.Email!);
         await database.SaveChangesAsync(cancellationToken);
         database.ChangeTracker.Clear();
     }
 
-    private void AddTransition(DevelopmentIntakeMoment moment, IntakeAppointment appointment,
-        SellerValuation valuation, string email)
+    private void AddTransition(DevelopmentIntakeMoment moment, IntakeAppointment appointment, string email)
     {
         if (moment.Fixture.Status == StaffWorklistStatus.Cancelled)
         {
@@ -168,7 +166,7 @@ public sealed class DevelopmentIntakeFixtures(DealershipDbContext database, Deve
             item.BranchId == appointment.BranchId && item.Role == AccountRoles.SalesAgent).Id;
         var checkIn = new AppointmentCheckIn(Guid.NewGuid(), appointment, staffId,
             moment.Fixture.CheckIn!, moment.TransitionAt!.Value);
-        database.Vehicles.Add(new Vehicle(appointment, valuation, checkIn));
+        database.Vehicles.Add(new Vehicle(appointment, checkIn));
         database.AppointmentCheckIns.Add(checkIn);
         database.AppointmentMailOutbox.Add(new AppointmentMail(appointment.Id, AppointmentMailKind.CheckIn,
             email, checkIn.CheckedInAt));

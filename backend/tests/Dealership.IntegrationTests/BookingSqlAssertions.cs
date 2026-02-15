@@ -6,7 +6,7 @@ internal static class BookingSqlAssertions
 {
     public static async Task VerifyAsync(RegistrationDatabase fixture, Guid appointmentId, Guid otherOwner, Guid[] unusedPhotos)
     {
-        await RejectAsync(fixture, "UPDATE \"SellerValuations\" SET \"Minimum\" = 0 WHERE \"AppointmentId\" = @id",
+        await RejectAsync(fixture, "UPDATE \"IntakeAppointments\" SET \"ValuationMinimum\" = 0 WHERE \"Id\" = @id",
             appointmentId, otherOwner, PostgresErrorCodes.CheckViolation);
         await RejectAsync(fixture, "UPDATE \"IntakeAppointments\" SET \"RegistrationPlate\" = 'BPP 1234' WHERE \"Id\" = @id",
             appointmentId, otherOwner, PostgresErrorCodes.CheckViolation);
@@ -16,9 +16,13 @@ internal static class BookingSqlAssertions
             appointmentId, otherOwner, PostgresErrorCodes.InsufficientPrivilege);
 
         const string clone = """
-            INSERT INTO "IntakeAppointments" ("Id", "OwnerId", "BranchId", "RegistrationPlate", "StartsAt", "EndsAt", "CreatedAt")
+            INSERT INTO "IntakeAppointments" ("Id", "OwnerId", "BranchId", "RegistrationPlate", "StartsAt", "EndsAt", "CreatedAt",
+                "ValuationMake", "ValuationModel", "ValuationTrim", "ValuationManufactureYear", "ValuationMileageKilometres",
+                "ValuationMinimum", "ValuationMaximum", "ValuationCurrency", "ValuationYear")
             SELECT @new, "OwnerId", "BranchId", "RegistrationPlate", "StartsAt" + interval '1 day',
-                "EndsAt" + interval '1 day', "CreatedAt" FROM "IntakeAppointments" WHERE "Id" = @id
+                "EndsAt" + interval '1 day', "CreatedAt", a."ValuationMake", a."ValuationModel", a."ValuationTrim",
+                a."ValuationManufactureYear", a."ValuationMileageKilometres", a."ValuationMinimum", a."ValuationMaximum",
+                a."ValuationCurrency", a."ValuationYear" FROM "IntakeAppointments" a WHERE "Id" = @id
             """;
         await RejectAsync(fixture, clone, appointmentId, otherOwner, PostgresErrorCodes.CheckViolation);
         await RejectAsync(fixture, clone.Replace(" + interval '1 day'", string.Empty, StringComparison.Ordinal),
@@ -27,6 +31,25 @@ internal static class BookingSqlAssertions
             appointmentId, otherOwner, PostgresErrorCodes.ExclusionViolation);
         await RejectAsync(fixture, clone.Replace("\"OwnerId\", \"BranchId\", \"RegistrationPlate\", \"StartsAt\" +", "@other, @new, \"RegistrationPlate\", \"StartsAt\" +", StringComparison.Ordinal),
             appointmentId, otherOwner, PostgresErrorCodes.ForeignKeyViolation);
+
+        var invalidSnapshots = new[]
+        {
+            (Column: "ValuationMinimum", Value: "NULL", State: PostgresErrorCodes.NotNullViolation),
+            (Column: "ValuationMake", Value: "''", State: PostgresErrorCodes.CheckViolation),
+            (Column: "ValuationModel", Value: "''", State: PostgresErrorCodes.CheckViolation),
+            (Column: "ValuationTrim", Value: "''", State: PostgresErrorCodes.CheckViolation),
+            (Column: "ValuationManufactureYear", Value: "0", State: PostgresErrorCodes.CheckViolation),
+            (Column: "ValuationManufactureYear", Value: "a.\"ValuationYear\" + 1", State: PostgresErrorCodes.CheckViolation),
+            (Column: "ValuationMileageKilometres", Value: "-1", State: PostgresErrorCodes.CheckViolation),
+            (Column: "ValuationMinimum", Value: "-1", State: PostgresErrorCodes.CheckViolation),
+            (Column: "ValuationMaximum", Value: "a.\"ValuationMinimum\" - 1", State: PostgresErrorCodes.CheckViolation),
+            (Column: "ValuationCurrency", Value: "'USD'", State: PostgresErrorCodes.CheckViolation)
+        };
+        foreach (var (column, value, state) in invalidSnapshots)
+        {
+            await RejectAsync(fixture, clone.Replace($"a.\"{column}\"", value, StringComparison.Ordinal),
+                appointmentId, otherOwner, state);
+        }
 
         const string wrongPhotoOwner = """
             INSERT INTO "AppointmentPhotos" ("AppointmentId", "OwnerId", "PhotoId", "Angle")
@@ -43,19 +66,12 @@ internal static class BookingSqlAssertions
             SELECT @new, "OwnerId", "PhotoId", 'Rear' FROM "AppointmentPhotos"
             WHERE "AppointmentId" = @id AND "Angle" = 'Driver'
             """;
-        const string wrongValuationOwner = """
-            INSERT INTO "SellerValuations" ("AppointmentId", "OwnerId", "Make", "Model", "Trim", "ManufactureYear",
-                "MileageKilometres", "Minimum", "Maximum", "Currency", "ValuationYear")
-            SELECT @new, "OwnerId", "Make", "Model", "Trim", "ManufactureYear", "MileageKilometres",
-                "Minimum", "Maximum", "Currency", "ValuationYear" FROM "SellerValuations" WHERE "AppointmentId" = @id
-            """;
         var otherParent = clone.Replace("SELECT @new, \"OwnerId\"", "SELECT @new, @other", StringComparison.Ordinal);
         var attacks = new[]
         {
             (Parent: otherParent, Sql: wrongPhotoOwner, Constraint: "FK_AppointmentPhotos_IntakePhotos_PhotoId_OwnerId_Angle"),
             (Parent: otherParent, Sql: wrongAppointmentOwner, Constraint: "FK_AppointmentPhotos_IntakeAppointments_AppointmentId_OwnerId"),
-            (Parent: clone, Sql: wrongAngle, Constraint: "FK_AppointmentPhotos_IntakePhotos_PhotoId_OwnerId_Angle"),
-            (Parent: otherParent, Sql: wrongValuationOwner, Constraint: "FK_SellerValuations_IntakeAppointments_AppointmentId_OwnerId")
+            (Parent: clone, Sql: wrongAngle, Constraint: "FK_AppointmentPhotos_IntakePhotos_PhotoId_OwnerId_Angle")
         };
         await using var connection = new NpgsqlConnection(fixture.RuntimeConnectionString);
         await connection.OpenAsync();
@@ -120,12 +136,6 @@ internal static class BookingSqlAssertions
     private static async Task VerifyIncompleteBundlesAsync(NpgsqlConnection connection, string parentSql,
         Guid id, Guid other, Guid[] unusedPhotos)
     {
-        const string valuationSql = """
-            INSERT INTO "SellerValuations" ("AppointmentId", "OwnerId", "Make", "Model", "Trim", "ManufactureYear",
-                "MileageKilometres", "Minimum", "Maximum", "Currency", "ValuationYear")
-            SELECT @new, "OwnerId", "Make", "Model", "Trim", "ManufactureYear", "MileageKilometres",
-                "Minimum", "Maximum", "Currency", "ValuationYear" FROM "SellerValuations" WHERE "AppointmentId" = @id
-            """;
         const string photosSql = """
             INSERT INTO "AppointmentPhotos" ("AppointmentId", "OwnerId", "PhotoId", "Angle")
             SELECT @new, "OwnerId", "Id", "Angle" FROM "IntakePhotos" WHERE "Id" = ANY (@photos)
@@ -137,23 +147,16 @@ internal static class BookingSqlAssertions
             """;
         var cases = new[]
         {
-            (Photos: 3, Valuation: true, Mail: true),
-            (Photos: 4, Valuation: false, Mail: true),
-            (Photos: 4, Valuation: true, Mail: false)
+            (Photos: 3, Mail: true),
+            (Photos: 4, Mail: false)
         };
 
-        foreach (var (photosCount, hasValuation, hasMail) in cases)
+        foreach (var (photosCount, hasMail) in cases)
         {
             await using var transaction = await connection.BeginTransactionAsync();
             var temporary = Guid.NewGuid();
             await using var parent = Command(parentSql, connection, transaction, id, other, temporary);
             await parent.ExecuteNonQueryAsync();
-
-            if (hasValuation)
-            {
-                await using var valuation = Command(valuationSql, connection, transaction, id, other, temporary);
-                await valuation.ExecuteNonQueryAsync();
-            }
 
             await using var photos = Command(photosSql, connection, transaction, id, other, temporary);
             photos.Parameters.AddWithValue("photos", unusedPhotos.Take(photosCount).ToArray());

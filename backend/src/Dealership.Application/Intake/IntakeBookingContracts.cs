@@ -31,7 +31,7 @@ public interface IIntakeBookingTransaction : IAsyncDisposable
 {
     BookingContext Context { get; }
 
-    Task<BookingResult> CommitAsync(IntakeAppointment appointment, SellerValuation valuation,
+    Task<BookingResult> CommitAsync(IntakeAppointment appointment,
         IReadOnlyList<AppointmentPhoto> photos, CancellationToken cancellationToken);
 }
 

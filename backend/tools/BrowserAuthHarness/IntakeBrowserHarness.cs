@@ -133,7 +133,7 @@ internal static class IntakeBrowserHarness
             {
                 var receipt = JsonSerializer.Deserialize<Dealership.Application.Intake.CheckInReceipt>(File.ReadAllText(receiptFile), JsonSerializerOptions.Web)!;
                 var saved = await database.AppointmentCheckIns.SingleAsync(item => item.AppointmentId == receipt.AppointmentId);
-                var declared = await database.SellerValuations.SingleAsync(item => item.AppointmentId == receipt.AppointmentId);
+                var declared = (await database.IntakeAppointments.SingleAsync(item => item.Id == receipt.AppointmentId)).Valuation;
                 if (saved.VehicleId != receipt.VehicleId || saved.StaffId != receipt.StaffId || !saved.Matches(receipt.Evidence) ||
                     declared.MileageKilometres != 90000 || saved.MileageKilometres != 92000 ||
                     await database.AppointmentMailOutbox.CountAsync(item => item.Kind == AppointmentMailKind.CheckIn && item.AppointmentId == receipt.AppointmentId) != 1)
@@ -161,7 +161,7 @@ internal static class IntakeBrowserHarness
             {
                 appointments = await database.IntakeAppointments.CountAsync(),
                 photos = await database.IntakePhotos.CountAsync(),
-                valuations = await database.SellerValuations.CountAsync(),
+
                 cancellations = await database.AppointmentCancellations.CountAsync(),
                 checkIns = await database.AppointmentCheckIns.CountAsync()
             }));
