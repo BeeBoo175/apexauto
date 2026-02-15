@@ -11,6 +11,8 @@ using Dealership.Infrastructure.Intake;
 using Dealership.Infrastructure.Accounts;
 using Dealership.Application.Branches;
 using Dealership.Infrastructure.Branches;
+using Dealership.Application.Inspections;
+using Dealership.Infrastructure.Inspections;
 
 namespace Dealership.Infrastructure;
 
@@ -55,6 +57,7 @@ public static class DependencyInjection
         services.AddScoped<IAppointmentHistoryStore, AppointmentHistoryStore>();
         services.AddScoped<IAppointmentCancellationStore, AppointmentCancellationStore>();
         services.AddScoped<IAppointmentCheckInStore, AppointmentCheckInStore>();
+        services.AddScoped<IInspectionAssignmentStore, InspectionAssignmentStore>();
         services.AddScoped<IStaffWorklistStore, StaffWorklistStore>();
         services.AddScoped<IStaffExportWriter, StaffWorklistStore>();
         services.AddScoped<IStaffAppointmentDetailStore, StaffAppointmentDetailStore>();

@@ -140,5 +140,6 @@ app.MapIntakeDiscoveryEndpoints();
 app.MapIntakePhotoEndpoints();
 app.MapIntakeBookingEndpoints();
 app.MapStaffIntakeEndpoints();
+app.MapInspectionDraftEndpoints();
 
 app.Run();

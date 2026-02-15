@@ -2,6 +2,7 @@ using Dealership.Domain.Branches;
 using Dealership.Domain.Customers;
 using Dealership.Domain.Intake;
 using Dealership.Domain.Vehicles;
+using Dealership.Domain.Inspections;
 using Dealership.Infrastructure.Identity;
 using Dealership.Infrastructure.Intake;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -23,10 +24,13 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
 
     public DbSet<AppointmentPhoto> AppointmentPhotos => Set<AppointmentPhoto>();
 
-
     public DbSet<AppointmentMail> AppointmentMailOutbox => Set<AppointmentMail>();
 
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
+
+    public DbSet<InspectionDraft> InspectionDrafts => Set<InspectionDraft>();
+
+    public DbSet<InspectionAssignment> InspectionAssignments => Set<InspectionAssignment>();
 
     public DbSet<AppointmentCheckIn> AppointmentCheckIns => Set<AppointmentCheckIn>();
 
@@ -48,6 +52,9 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
         builder.ApplyConfiguration<AppointmentPhoto>(booking);
         builder.ApplyConfiguration(new AppointmentMailConfiguration());
         builder.ApplyConfiguration(new VehicleConfiguration());
+        var inspectionAssignments = new InspectionAssignmentConfiguration();
+        builder.ApplyConfiguration<InspectionDraft>(inspectionAssignments);
+        builder.ApplyConfiguration<InspectionAssignment>(inspectionAssignments);
         builder.ApplyConfiguration(new AppointmentCheckInConfiguration());
         builder.ApplyConfiguration(new CustomerProfileConfiguration());
         builder.ApplyConfiguration(new AccountSessionConfiguration());

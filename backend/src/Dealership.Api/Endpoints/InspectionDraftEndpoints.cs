@@ -1,0 +1,72 @@
+using System.IdentityModel.Tokens.Jwt;
+using Dealership.Application.Inspections;
+
+namespace Dealership.Api.Endpoints;
+
+public static class InspectionDraftEndpoints
+{
+    public static void MapInspectionDraftEndpoints(this WebApplication app)
+    {
+        var routes = app.MapGroup("/api/staff/inspection").RequireAuthorization();
+        routes.AddEndpointFilter(async (context, next) =>
+        {
+            context.HttpContext.Response.Headers.CacheControl = "no-store";
+            return await next(context);
+        });
+        routes.MapPost("/vehicles/{id:guid}/assignment", AssignAsync);
+        routes.MapGet("/drafts/{id:guid}", ReadAsync);
+    }
+
+    private static async Task<IResult> AssignAsync(Guid id, HttpContext context, IInspectionAssignmentStore assignments,
+        CancellationToken cancellationToken)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(20));
+        try
+        {
+            var request = await JsonRequestReader.ReadAsync<InspectionAssignmentRequest>(context.Request, deadline.Token);
+            if (request.Error is not null)
+            {
+                return request.Error;
+            }
+
+            var result = await assignments.AssignAsync(ActorId(context), id, request.Value!, deadline.Token);
+            return Map(result.Status, result.Receipt);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return Results.Problem(statusCode: 503, title: "Assignment is unconfirmed; reconcile with the same operation and contents.");
+        }
+    }
+
+    private static async Task<IResult> ReadAsync(Guid id, HttpContext context, IInspectionAssignmentStore assignments,
+        CancellationToken cancellationToken)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(20));
+        try
+        {
+            var result = await assignments.ReadAsync(ActorId(context), id, deadline.Token);
+            return Map(result.Status, result.Draft);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return Results.Problem(statusCode: 503, title: "Inspection draft is temporarily unavailable.");
+        }
+    }
+
+    private static Guid ActorId(HttpContext context) => Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Sub)!.Value);
+
+    private static IResult Map(InspectionAssignmentStatus status, object? value)
+    {
+        return status switch
+        {
+            InspectionAssignmentStatus.Succeeded => Results.Ok(value),
+            InspectionAssignmentStatus.Invalid => Results.Problem(statusCode: 400, title: "Provide valid assignment identities, version and reason."),
+            InspectionAssignmentStatus.Forbidden => Results.Forbid(),
+            InspectionAssignmentStatus.NotFound => Results.NotFound(),
+            InspectionAssignmentStatus.Conflict => Results.Problem(statusCode: 409, title: "The vehicle, assignment or operation has changed."),
+            _ => Results.Problem(statusCode: 500)
+        };
+    }
+}
