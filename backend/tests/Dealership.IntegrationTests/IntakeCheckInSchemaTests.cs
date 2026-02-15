@@ -89,7 +89,7 @@ public sealed class IntakeCheckInSchemaTests(IntakePhotoFixture fixture) : IClas
             ("UPDATE \"AppointmentCheckIns\" SET \"MileageKilometres\" = 1 WHERE \"AppointmentId\" = @appointment", "CK_IntakeAppointments_Immutable"),
             ("UPDATE \"Vehicles\" SET \"Vin\" = 'PL1BT65R84B123457' WHERE \"IntakeAppointmentId\" = @appointment", "CK_Vehicles_Immutable"),
             ("UPDATE \"AppointmentMailOutbox\" SET \"RecipientEmail\" = 'other@example.invalid' WHERE \"AppointmentId\" = @appointment", "CK_AppointmentMailOutbox_Immutable"),
-            ("INSERT INTO \"AppointmentCancellations\" (\"AppointmentId\", \"OwnerId\", \"CancelledAt\", \"PhotosExpireAt\") VALUES (@appointment, @owner, @at, @at + interval '30 days')", "CK_AppointmentCancellations_CheckedIn"),
+            ("UPDATE \"IntakeAppointments\" SET \"CancelledAt\" = @at, \"CancellationPhotosExpireAt\" = @at + interval '30 days' WHERE \"Id\" = @appointment", "CK_IntakeAppointments_CheckedIn"),
             ("INSERT INTO \"PhotoRemovals\" (\"PhotoId\", \"Reason\", \"EligibleAt\", \"RequestedAt\", \"Attempts\", \"NextAttemptAt\") SELECT \"PhotoId\", 'CancelledRetentionExpired', @at, @at, 0, @at FROM \"AppointmentPhotos\" WHERE \"AppointmentId\" = @appointment LIMIT 1", "CK_PhotoRemovals_CheckedIn")
         };
 

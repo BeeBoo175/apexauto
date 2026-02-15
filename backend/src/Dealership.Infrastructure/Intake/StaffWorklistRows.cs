@@ -35,9 +35,9 @@ internal static class StaffWorklistRows
             {
                 Appointment = item,
                 CheckedIn = database.AppointmentCheckIns.Any(checkIn => checkIn.AppointmentId == item.Id),
-                Cancelled = database.AppointmentCancellations.Any(cancellation => cancellation.AppointmentId == item.Id),
+                Cancelled = item.CancelledAt != null,
                 NoShow = item.StartsAt < today &&
-                    !database.AppointmentCancellations.Any(cancellation => cancellation.AppointmentId == item.Id) &&
+                    item.CancelledAt == null &&
                     !database.AppointmentCheckIns.Any(checkIn => checkIn.AppointmentId == item.Id)
             });
         rows = query.Status switch

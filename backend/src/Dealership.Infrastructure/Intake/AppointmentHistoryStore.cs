@@ -41,10 +41,9 @@ public sealed class AppointmentHistoryStore(DealershipDbContext database) : IApp
                 .Skip((int)offset).Take(query.PageSize)
                 .Select(row => new AppointmentHistoryItem(row.Appointment.Id, row.Appointment.BranchId, row.BranchName,
                     row.Appointment.RegistrationPlate, row.Appointment.StartsAt, row.Appointment.EndsAt, row.Appointment.CreatedAt,
-                    database.AppointmentCancellations.Where(cancellation => cancellation.AppointmentId == row.Appointment.Id)
-                        .Select(cancellation => (DateTimeOffset?)cancellation.CancelledAt).SingleOrDefault(),
+                    row.Appointment.CancelledAt,
                     row.Appointment.StartsAt < today &&
-                        !database.AppointmentCancellations.Any(item => item.AppointmentId == row.Appointment.Id) &&
+                        row.Appointment.CancelledAt == null &&
                         !database.AppointmentCheckIns.Any(item => item.AppointmentId == row.Appointment.Id)
                             ? (DateTimeOffset?)row.Appointment.StartsAt : null,
                     database.AppointmentCheckIns.Where(item => item.AppointmentId == row.Appointment.Id)

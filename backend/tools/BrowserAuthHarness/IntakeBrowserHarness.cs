@@ -162,7 +162,7 @@ internal static class IntakeBrowserHarness
                 appointments = await database.IntakeAppointments.CountAsync(),
                 photos = await database.IntakePhotos.CountAsync(),
 
-                cancellations = await database.AppointmentCancellations.CountAsync(),
+                cancellations = await database.IntakeAppointments.CountAsync(item => item.CancelledAt != null),
                 checkIns = await database.AppointmentCheckIns.CountAsync()
             }));
         }

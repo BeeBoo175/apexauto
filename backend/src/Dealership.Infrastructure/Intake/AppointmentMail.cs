@@ -26,7 +26,6 @@ public sealed class AppointmentMail : IMailDeliveryState
         Id = Guid.NewGuid();
         AppointmentId = appointmentId;
         Kind = kind;
-        CancellationAppointmentId = kind == AppointmentMailKind.Cancellation ? appointmentId : null;
         CheckInAppointmentId = kind == AppointmentMailKind.CheckIn ? appointmentId : null;
         RecipientEmail = recipientEmail;
         NextDeliveryAt = dueAt;
@@ -37,8 +36,6 @@ public sealed class AppointmentMail : IMailDeliveryState
     public Guid AppointmentId { get; private set; }
 
     public AppointmentMailKind Kind { get; private set; }
-
-    public Guid? CancellationAppointmentId { get; private set; }
 
     public Guid? CheckInAppointmentId { get; private set; }
 

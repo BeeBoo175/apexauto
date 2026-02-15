@@ -1,5 +1,4 @@
 using Dealership.Application.Intake;
-using Dealership.Domain.Intake;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -38,12 +37,12 @@ public sealed class AppointmentCancellationStore(DealershipDbContext database, T
 
         await database.Database.ExecuteSqlInterpolatedAsync(
             $"SELECT 1 FROM \"Branches\" WHERE \"Id\" = {appointment.BranchId} FOR UPDATE", cancellationToken);
-        var existing = await database.AppointmentCancellations.AsNoTracking()
-            .SingleOrDefaultAsync(item => item.AppointmentId == appointmentId, cancellationToken);
+        var existing = await database.IntakeAppointments.Where(item => item.Id == appointmentId)
+            .Select(item => item.CancelledAt).SingleAsync(cancellationToken);
 
         if (existing is not null)
         {
-            return new CancellationResult(CancellationStatus.Succeeded, new CancellationReceipt(appointmentId, existing.CancelledAt));
+            return new CancellationResult(CancellationStatus.Succeeded, new CancellationReceipt(appointmentId, existing.Value));
         }
 
         if (await database.AppointmentCheckIns.AnyAsync(item => item.AppointmentId == appointmentId, cancellationToken))
@@ -59,22 +58,24 @@ public sealed class AppointmentCancellationStore(DealershipDbContext database, T
             return new CancellationResult(CancellationStatus.TooLate);
         }
 
-        var cancellation = new AppointmentCancellation(appointment, now, TimeSpan.FromDays(settings.Value.CancelledRetentionDays));
-        database.AppointmentCancellations.Add(cancellation);
+        appointment.Cancel(now, TimeSpan.FromDays(settings.Value.CancelledRetentionDays));
         database.AppointmentMailOutbox.Add(new AppointmentMail(appointmentId, AppointmentMailKind.Cancellation,
             user.Email!, now));
         try
         {
+            await database.IntakeAppointments.Where(item => item.Id == appointmentId)
+                .ExecuteUpdateAsync(update => update
+                    .SetProperty(item => item.CancelledAt, appointment.CancelledAt)
+                    .SetProperty(item => item.CancellationPhotosExpireAt, appointment.CancellationPhotosExpireAt), cancellationToken);
             await database.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
         }
-        catch (DbUpdateException exception) when (exception.InnerException is PostgresException
-        { ConstraintName: "CK_AppointmentCancellations_Time" or "CK_AppointmentCancellations_CheckedIn" })
+        catch (PostgresException exception) when (exception.ConstraintName is
+            "CK_IntakeAppointments_CancellationTime" or "CK_IntakeAppointments_CheckedIn")
         {
             await transaction.RollbackAsync(cancellationToken);
             database.ChangeTracker.Clear();
-            var error = (PostgresException)exception.InnerException!;
-            return new CancellationResult(error.ConstraintName == "CK_AppointmentCancellations_CheckedIn"
+            return new CancellationResult(exception.ConstraintName == "CK_IntakeAppointments_CheckedIn"
                 ? CancellationStatus.CheckedIn
                 : CancellationStatus.TooLate);
         }

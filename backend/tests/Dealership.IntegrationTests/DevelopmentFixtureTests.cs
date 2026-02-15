@@ -90,6 +90,7 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         await AssertNormalAuthenticationAsync();
         await DevelopmentIntakeFixtureAssertions.VerifyAsync(provider);
         await ValuationMigrationAssertions.VerifyAsync(fixture.Database);
+        await CancellationMigrationAssertions.VerifyAsync(fixture.Database);
         var snapshot = await DevelopmentIntakeFixtureAssertions.SnapshotAsync(provider);
         Assert.All(await SeedAsync(restarted, target), report => Assert.False(report.RequiresAttention));
         Assert.Equal(snapshot, await DevelopmentIntakeFixtureAssertions.SnapshotAsync(restarted));
@@ -133,11 +134,12 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         Assert.Equal("CK_AppointmentCheckIns_Time", checkIn.ConstraintName);
         command.Parameters.Clear();
         command.CommandText = """
-            INSERT INTO "AppointmentCancellations" ("AppointmentId", "OwnerId", "CancelledAt", "PhotosExpireAt")
-            SELECT "AppointmentId", "OwnerId", "CancelledAt", "PhotosExpireAt" FROM "AppointmentCancellations" LIMIT 1
+            UPDATE "IntakeAppointments" SET "CancelledAt" = "CreatedAt",
+                "CancellationPhotosExpireAt" = "CreatedAt" + interval '30 days'
+            WHERE "Id" = (SELECT "Id" FROM "IntakeAppointments" WHERE "CancelledAt" IS NULL ORDER BY "StartsAt" LIMIT 1)
             """;
         var cancellation = await Assert.ThrowsAsync<PostgresException>(() => command.ExecuteNonQueryAsync());
-        Assert.Equal("CK_AppointmentCancellations_Time", cancellation.ConstraintName);
+        Assert.Equal("CK_IntakeAppointments_CancellationTime", cancellation.ConstraintName);
         command.CommandText = """
             INSERT INTO "AppointmentPhotos" ("AppointmentId", "OwnerId", "Angle", "PhotoId")
             SELECT p."AppointmentId", p."OwnerId", p."Angle", p."PhotoId" FROM "AppointmentPhotos" p
@@ -147,8 +149,7 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         Assert.Equal("CK_AppointmentPhotos_Available", photo.ConstraintName);
         command.CommandText = """
             SELECT count(*) FROM pg_trigger WHERE tgrelid IN ('public."IntakeAppointments"'::regclass,
-                'public."AppointmentPhotos"'::regclass, 'public."AppointmentCheckIns"'::regclass,
-                'public."AppointmentCancellations"'::regclass) AND tgenabled <> 'O'
+                'public."AppointmentPhotos"'::regclass, 'public."AppointmentCheckIns"'::regclass) AND tgenabled <> 'O'
             """;
         Assert.Equal(0L, await command.ExecuteScalarAsync());
     }

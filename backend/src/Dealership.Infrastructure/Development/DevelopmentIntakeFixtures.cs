@@ -75,7 +75,7 @@ public sealed class DevelopmentIntakeFixtures(DealershipDbContext database, Deve
         {
             item.Id,
             item.StartsAt,
-            Cancelled = database.AppointmentCancellations.Any(cancellation => cancellation.AppointmentId == item.Id),
+            Cancelled = item.CancelledAt != null,
             CheckedIn = database.AppointmentCheckIns.Any(checkIn => checkIn.AppointmentId == item.Id)
         }).ToDictionaryAsync(item => item.Id, cancellationToken);
         return DevelopmentIntakeManifest.Appointments.Select(fixture =>
@@ -150,8 +150,8 @@ public sealed class DevelopmentIntakeFixtures(DealershipDbContext database, Deve
     {
         if (moment.Fixture.Status == StaffWorklistStatus.Cancelled)
         {
-            database.AppointmentCancellations.Add(new AppointmentCancellation(appointment, moment.TransitionAt!.Value,
-                TimeSpan.FromDays(photoSettings.Value.CancelledRetentionDays)));
+            appointment.Cancel(moment.TransitionAt!.Value,
+                TimeSpan.FromDays(photoSettings.Value.CancelledRetentionDays));
             database.AppointmentMailOutbox.Add(new AppointmentMail(appointment.Id, AppointmentMailKind.Cancellation,
                 email, moment.TransitionAt.Value));
             return;

@@ -24,11 +24,7 @@ public sealed class AppointmentMailConfiguration : IEntityTypeConfiguration<Appo
         builder.HasOne<IntakeAppointment>().WithMany().HasForeignKey(item => item.AppointmentId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // Constructor values order EF inserts; generated keys prevent contradictory parent relationships in SQL.
-        builder.Property(item => item.CancellationAppointmentId)
-            .HasComputedColumnSql("CASE WHEN \"Kind\" = 'Cancellation' THEN \"AppointmentId\" END", stored: true);
-        builder.HasOne<AppointmentCancellation>().WithMany().HasForeignKey(item => item.CancellationAppointmentId)
-            .OnDelete(DeleteBehavior.Restrict);
+        // The generated key ties check-in mail to its immutable attendance evidence.
         builder.Property(item => item.CheckInAppointmentId)
             .HasComputedColumnSql("CASE WHEN \"Kind\" = 'CheckIn' THEN \"AppointmentId\" END", stored: true);
         builder.HasOne<AppointmentCheckIn>().WithMany().HasForeignKey(item => item.CheckInAppointmentId)

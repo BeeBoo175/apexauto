@@ -115,7 +115,7 @@ public sealed class AppointmentMailMigrationTests(IntakePhotoFixture fixture) : 
             INSERT INTO "AppointmentMailOutbox" ("Id", "AppointmentId", "Kind", "RecipientEmail", "DeliveryAttempts", "NextDeliveryAt")
             VALUES (@id, @appointment, @kind, 'customer@example.invalid', 0, now())
             """;
-        await RejectAsync(insert, pendingId, "Cancellation", PostgresErrorCodes.ForeignKeyViolation);
+        await RejectAsync(insert, pendingId, "Cancellation", PostgresErrorCodes.CheckViolation, "CK_AppointmentMailOutbox_Cancelled");
         await RejectAsync(insert, pendingId, "CheckIn", PostgresErrorCodes.ForeignKeyViolation);
         await RejectAsync(insert, pendingId, "Unknown", PostgresErrorCodes.CheckViolation);
         await RejectAsync(insert, pendingId, "Confirmation", PostgresErrorCodes.UniqueViolation);

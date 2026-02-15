@@ -90,7 +90,7 @@ internal static class DevelopmentIntakeFixtureAssertions
         Assert.Equal(3, await database.Vehicles.CountAsync());
         Assert.Equal(3, await database.AppointmentCheckIns.CountAsync());
         Assert.Equal(3, await database.AppointmentMailOutbox.Where(item => item.Kind == AppointmentMailKind.CheckIn).CountAsync());
-        Assert.Equal(3, await database.AppointmentCancellations.CountAsync());
+        Assert.Equal(3, await database.IntakeAppointments.CountAsync(item => item.CancelledAt != null));
         Assert.Equal(3, await database.AppointmentMailOutbox.Where(item => item.Kind == AppointmentMailKind.Cancellation).CountAsync());
         Assert.Equal(528, await database.IntakePhotos.CountAsync(photo => photo.AvailableAt != null));
         var schedule = services.GetRequiredService<InspectionSchedule>();
@@ -201,10 +201,9 @@ internal static class DevelopmentIntakeFixtureAssertions
 
         foreach (var fixture in DevelopmentIntakeManifest.Appointments.Where(item => item.Status == StaffWorklistStatus.Cancelled))
         {
-            var cancellation = await database.AppointmentCancellations.SingleAsync(item => item.AppointmentId == fixture.Id);
             var appointment = await database.IntakeAppointments.SingleAsync(item => item.Id == fixture.Id);
-            Assert.True(appointment.CreatedAt <= cancellation.CancelledAt);
-            Assert.True(cancellation.CancelledAt < appointment.StartsAt);
+            Assert.True(appointment.CreatedAt <= appointment.CancelledAt);
+            Assert.True(appointment.CancelledAt < appointment.StartsAt);
             Assert.True(appointment.EndsAt < DateTimeOffset.UtcNow);
         }
     }
@@ -241,7 +240,6 @@ internal static class DevelopmentIntakeFixtureAssertions
             Photos = await database.IntakePhotos.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync(),
             Attachments = await database.AppointmentPhotos.AsNoTracking().OrderBy(item => item.AppointmentId).ThenBy(item => item.PhotoId).ToArrayAsync(),
             Mail = await database.AppointmentMailOutbox.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync(),
-            Cancellations = await database.AppointmentCancellations.AsNoTracking().OrderBy(item => item.AppointmentId).ToArrayAsync(),
             CheckIns = await database.AppointmentCheckIns.AsNoTracking().OrderBy(item => item.AppointmentId).ToArrayAsync(),
             Vehicles = await database.Vehicles.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync()
         });

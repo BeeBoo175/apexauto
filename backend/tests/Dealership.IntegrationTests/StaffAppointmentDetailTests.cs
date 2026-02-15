@@ -20,8 +20,9 @@ public sealed class StaffAppointmentDetailTests(IntakePhotoFixture fixture) : IC
     private const string Route = "/api/staff/intake/appointments";
     private static readonly string[] DetailProperties =
     [
-        "branchId", "branchName", "customerName", "endsAt", "id", "make", "manufactureYear",
-        "mileageKilometres", "model", "registrationPlate", "startsAt", "status", "trim"
+        "attendanceCorrectedAt", "branchId", "branchName", "correctedBy", "correctionReason", "customerName",
+        "endsAt", "id", "make", "manufactureYear", "mileageKilometres", "model", "noShowAt", "registrationPlate",
+        "startsAt", "status", "trim"
     ];
 
     [Fact]

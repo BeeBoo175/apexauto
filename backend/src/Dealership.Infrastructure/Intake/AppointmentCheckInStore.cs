@@ -98,7 +98,7 @@ public sealed class AppointmentCheckInStore(DealershipDbContext database, TimePr
             var customer = users.Single(user => user.Id == ownerId);
 
             if (!customer.IsActive || !customer.EmailConfirmed || customer.Role != AccountRoles.Customer ||
-                await database.AppointmentCancellations.AnyAsync(item => item.AppointmentId == appointmentId, cancellationToken))
+                await database.IntakeAppointments.AnyAsync(item => item.Id == appointmentId && item.CancelledAt != null, cancellationToken))
             {
                 return new CheckInResult(CheckInStatus.Unavailable);
             }

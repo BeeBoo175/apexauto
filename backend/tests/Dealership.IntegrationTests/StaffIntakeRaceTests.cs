@@ -118,7 +118,7 @@ public sealed class StaffIntakeRaceTests(IntakePhotoFixture fixture) : IClassFix
         Assert.Equal(checkInFirst && sameDay,
             await database.AppointmentMailOutbox.AnyAsync(item => item.Kind == AppointmentMailKind.CheckIn && item.AppointmentId == appointmentId));
         Assert.Equal(!(checkInFirst && sameDay),
-            await database.AppointmentCancellations.AnyAsync(item => item.AppointmentId == appointmentId));
+            await database.IntakeAppointments.AnyAsync(item => item.Id == appointmentId && item.CancelledAt != null));
     }
 
     private async Task AssertCancelledWaiterAsync(WebApplicationFactory<Program> factory, CheckInTestData data, Guid id)

@@ -126,8 +126,8 @@ public sealed class PhotoCleanupTests(IntakePhotoFixture fixture) : IClassFixtur
         Assert.NotNull(deleted.DeletedAt);
         using (var scope = factory.Services.CreateScope())
         {
-            var expires = await scope.ServiceProvider.GetRequiredService<DealershipDbContext>().AppointmentCancellations
-                .Where(item => item.AppointmentId == cancelled.Id).Select(item => item.PhotosExpireAt).SingleAsync();
+            var expires = await scope.ServiceProvider.GetRequiredService<DealershipDbContext>().IntakeAppointments
+                .Where(item => item.Id == cancelled.Id).Select(item => item.CancellationPhotosExpireAt!.Value).SingleAsync();
             await WaitUntilAsync(expires);
         }
 
@@ -207,7 +207,7 @@ public sealed class PhotoCleanupTests(IntakePhotoFixture fixture) : IClassFixtur
         var attempts = new[]
         {
             (Id: unexpiredPhoto, Reason: "UnsubmittedExpired", Sql: "SELECT \"ExpiresAt\" FROM \"IntakePhotos\" WHERE \"Id\" = @id"),
-            (Id: cancelledPhoto, Reason: "CancelledRetentionExpired", Sql: "SELECT c.\"CancelledAt\" FROM \"AppointmentCancellations\" c JOIN \"AppointmentPhotos\" a ON a.\"AppointmentId\" = c.\"AppointmentId\" WHERE a.\"PhotoId\" = @id")
+            (Id: cancelledPhoto, Reason: "CancelledRetentionExpired", Sql: "SELECT c.\"CancelledAt\" FROM \"IntakeAppointments\" c JOIN \"AppointmentPhotos\" a ON a.\"AppointmentId\" = c.\"Id\" WHERE a.\"PhotoId\" = @id")
         };
 
         foreach (var (id, reason, sql) in attempts)

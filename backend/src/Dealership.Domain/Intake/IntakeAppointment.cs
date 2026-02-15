@@ -36,5 +36,23 @@ public sealed class IntakeAppointment
     public DateTimeOffset EndsAt { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
 
+    public DateTimeOffset? CancelledAt { get; private set; }
+    public DateTimeOffset? CancellationPhotosExpireAt { get; private set; }
     public SellerValuation Valuation { get; private set; } = null!;
+
+    public void Cancel(DateTimeOffset now, TimeSpan photoRetention)
+    {
+        if (CancelledAt is not null)
+        {
+            return;
+        }
+
+        if (now < CreatedAt || now >= StartsAt || photoRetention <= TimeSpan.Zero)
+        {
+            throw new InvalidOperationException("Only future appointments can be cancelled.");
+        }
+
+        CancelledAt = now.ToUniversalTime();
+        CancellationPhotosExpireAt = CancelledAt + photoRetention;
+    }
 }

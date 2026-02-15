@@ -73,7 +73,7 @@ public sealed class IntakeBookingStore(DealershipDbContext database) : IIntakeBo
     {
         return await database.IntakeAppointments.Where(item => item.BranchId == branchId &&
             item.EndsAt > first && item.StartsAt < last &&
-            !database.AppointmentCancellations.Any(cancellation => cancellation.AppointmentId == item.Id))
+            item.CancelledAt == null)
             .Select(item => new InspectionSlot(item.StartsAt, item.EndsAt)).ToArrayAsync(cancellationToken);
     }
 }

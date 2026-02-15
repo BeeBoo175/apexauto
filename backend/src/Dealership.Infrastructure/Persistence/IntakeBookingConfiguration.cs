@@ -15,6 +15,8 @@ public sealed class IntakeBookingConfiguration : IEntityTypeConfiguration<Intake
         {
             table.HasCheckConstraint("CK_IntakeAppointments_Shape",
                 "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"RegistrationPlate\" ~ '[^[:space:]]' AND \"StartsAt\" > \"CreatedAt\" AND \"EndsAt\" > \"StartsAt\"");
+            table.HasCheckConstraint("CK_IntakeAppointments_Cancellation",
+                "(\"CancelledAt\" IS NULL AND \"CancellationPhotosExpireAt\" IS NULL) OR (\"CancelledAt\" IS NOT NULL AND \"CancellationPhotosExpireAt\" IS NOT NULL AND \"CancellationPhotosExpireAt\" > \"CancelledAt\")");
             table.HasCheckConstraint("CK_IntakeAppointments_Valuation",
                 "\"ValuationMake\" ~ '[^[:space:]]' AND \"ValuationModel\" ~ '[^[:space:]]' AND \"ValuationTrim\" ~ '[^[:space:]]' AND \"ValuationManufactureYear\" > 0 AND \"ValuationManufactureYear\" <= \"ValuationYear\" AND \"ValuationMileageKilometres\" >= 0 AND \"ValuationMinimum\" >= 0 AND \"ValuationMaximum\" >= \"ValuationMinimum\" AND \"ValuationCurrency\" = 'MYR'");
         });

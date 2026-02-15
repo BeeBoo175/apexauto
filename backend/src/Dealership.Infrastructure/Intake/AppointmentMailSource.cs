@@ -14,7 +14,7 @@ public sealed class AppointmentMailSource(DealershipDbContext database, TimeProv
             WHERE m."DeliveredAt" IS NULL AND m."NextDeliveryAt" <= {now}
               AND (m."DeliveryClaimExpiresAt" IS NULL OR m."DeliveryClaimExpiresAt" <= {now})
               AND (m."Kind" <> 'Confirmation' OR NOT EXISTS (
-                  SELECT 1 FROM "AppointmentCancellations" c WHERE c."AppointmentId" = m."AppointmentId"))
+                  SELECT 1 FROM "IntakeAppointments" a WHERE a."Id" = m."AppointmentId" AND a."CancelledAt" IS NOT NULL))
             ORDER BY m."NextDeliveryAt", m."Id" LIMIT 1 FOR UPDATE OF m SKIP LOCKED
             """);
 

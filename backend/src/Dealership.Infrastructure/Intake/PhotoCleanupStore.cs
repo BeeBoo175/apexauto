@@ -15,8 +15,8 @@ public sealed class PhotoCleanupStore(DealershipDbContext database, TimeProvider
             !database.PhotoRemovals.Any(removal => removal.PhotoId == photo.Id) &&
             ((!database.AppointmentPhotos.Any(link => link.PhotoId == photo.Id) && photo.ExpiresAt <= now) ||
                 database.AppointmentPhotos.Any(link => link.PhotoId == photo.Id &&
-                    database.AppointmentCancellations.Any(cancellation => cancellation.AppointmentId == link.AppointmentId &&
-                        cancellation.PhotosExpireAt <= now))))
+                    database.IntakeAppointments.Any(appointment => appointment.Id == link.AppointmentId &&
+                        appointment.CancellationPhotosExpireAt <= now))))
             .Select(photo => photo.Id);
         var retries = database.PhotoRemovals.Where(removal => removal.DeletedAt == null && removal.NextAttemptAt <= now &&
                 (removal.ClaimExpiresAt == null || removal.ClaimExpiresAt <= now))
@@ -96,8 +96,8 @@ public sealed class PhotoCleanupStore(DealershipDbContext database, TimeProvider
             return (PhotoRemovalReason.UnsubmittedExpired, photo.ExpiresAt);
         }
 
-        var expiresAt = await database.AppointmentCancellations.AsNoTracking()
-            .Where(item => item.AppointmentId == appointment).Select(item => (DateTimeOffset?)item.PhotosExpireAt)
+        var expiresAt = await database.IntakeAppointments.AsNoTracking()
+            .Where(item => item.Id == appointment).Select(item => item.CancellationPhotosExpireAt)
             .SingleOrDefaultAsync(cancellationToken);
 
         if (expiresAt is null)

@@ -41,7 +41,7 @@ public sealed class StaffAppointmentDetailStore(DealershipDbContext database) : 
                 row.Appointment.Valuation.ManufactureYear,
                 row.Appointment.Valuation.MileageKilometres,
                 CheckedIn = database.AppointmentCheckIns.Any(checkIn => checkIn.AppointmentId == row.Appointment.Id),
-                Cancelled = database.AppointmentCancellations.Any(cancellation => cancellation.AppointmentId == row.Appointment.Id),
+                Cancelled = row.Appointment.CancelledAt != null,
                 CheckIn = database.AppointmentCheckIns.SingleOrDefault(item => item.AppointmentId == row.Appointment.Id)
             }).SingleOrDefaultAsync(cancellationToken);
 

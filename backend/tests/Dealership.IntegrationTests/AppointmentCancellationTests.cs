@@ -115,7 +115,7 @@ public sealed class AppointmentCancellationTests(IntakePhotoFixture fixture) : I
         using (var scope = factory.Services.CreateScope())
         {
             var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
-            Assert.Single(await database.AppointmentCancellations.ToArrayAsync());
+            Assert.Single(await database.IntakeAppointments.Where(item => item.CancelledAt != null).ToArrayAsync());
             Assert.Single(await database.AppointmentMailOutbox.Where(item => item.Kind == AppointmentMailKind.Cancellation).ToArrayAsync());
             var source = new AppointmentMailSource(database, TimeProvider.System);
             var claims = new[]
@@ -144,17 +144,19 @@ public sealed class AppointmentCancellationTests(IntakePhotoFixture fixture) : I
 
         await using var connection = new NpgsqlConnection(fixture.Database.RuntimeConnectionString);
         await connection.OpenAsync();
-        await using var immutable = new NpgsqlCommand("UPDATE \"AppointmentCancellations\" SET \"CancelledAt\" = \"CancelledAt\" + interval '1 second' WHERE \"AppointmentId\" = @id", connection);
+        await using var immutable = new NpgsqlCommand("UPDATE \"IntakeAppointments\" SET \"CancelledAt\" = \"CancelledAt\" + interval '1 second' WHERE \"Id\" = @id", connection);
         immutable.Parameters.AddWithValue("id", receipt.Id);
         Assert.Equal(PostgresErrorCodes.CheckViolation, (await Assert.ThrowsAsync<PostgresException>(() => immutable.ExecuteNonQueryAsync())).SqlState);
         await using var missingMail = new NpgsqlCommand("""
-            INSERT INTO "AppointmentCancellations" ("AppointmentId", "OwnerId", "CancelledAt", "PhotosExpireAt")
-            VALUES (@id, @owner, clock_timestamp(), clock_timestamp() + interval '30 days')
+            UPDATE "IntakeAppointments" SET "CancelledAt" = clock_timestamp(),
+                "CancellationPhotosExpireAt" = clock_timestamp() + interval '30 days' WHERE "Id" = @id
             """, connection);
         missingMail.Parameters.AddWithValue("id", replacement.Id);
         missingMail.Parameters.AddWithValue("owner", owner);
         var error = await Assert.ThrowsAsync<PostgresException>(() => missingMail.ExecuteNonQueryAsync());
-        Assert.Equal("CK_AppointmentCancellations_Mail", error.ConstraintName);
+        Assert.Equal("CK_IntakeAppointments_CancellationMail", error.ConstraintName);
+
+        await CancellationPersistenceAssertions.VerifyAsync(connection, receipt.Id, replacement.Id);
 
         using var restartedFactory = fixture.CreateFactory();
         using var restartedClient = restartedFactory.CreateClient();
