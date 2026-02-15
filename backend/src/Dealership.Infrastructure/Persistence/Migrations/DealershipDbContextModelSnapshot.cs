@@ -119,33 +119,6 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Dealership.Domain.Intake.AppointmentCancellation", b =>
-                {
-                    b.Property<Guid>("AppointmentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("CancelledAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("OwnerId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("PhotosExpireAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("AppointmentId");
-
-                    b.HasIndex("CancelledAt");
-
-                    b.HasIndex("AppointmentId", "OwnerId")
-                        .IsUnique();
-
-                    b.ToTable("AppointmentCancellations", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_AppointmentCancellations_Retention", "\"PhotosExpireAt\" > \"CancelledAt\"");
-                        });
-                });
-
             modelBuilder.Entity("Dealership.Domain.Intake.AppointmentCheckIn", b =>
                 {
                     b.Property<Guid>("AppointmentId")
@@ -255,6 +228,12 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("BranchId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTimeOffset?>("CancellationPhotosExpireAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -333,6 +312,8 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.ToTable("IntakeAppointments", null, t =>
                         {
+                            t.HasCheckConstraint("CK_IntakeAppointments_Cancellation", "(\"CancelledAt\" IS NULL AND \"CancellationPhotosExpireAt\" IS NULL) OR (\"CancelledAt\" IS NOT NULL AND \"CancellationPhotosExpireAt\" IS NOT NULL AND \"CancellationPhotosExpireAt\" > \"CancelledAt\")");
+
                             t.HasCheckConstraint("CK_IntakeAppointments_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"RegistrationPlate\" ~ '[^[:space:]]' AND \"StartsAt\" > \"CreatedAt\" AND \"EndsAt\" > \"StartsAt\"");
 
                             t.HasCheckConstraint("CK_IntakeAppointments_Valuation", "\"ValuationMake\" ~ '[^[:space:]]' AND \"ValuationModel\" ~ '[^[:space:]]' AND \"ValuationTrim\" ~ '[^[:space:]]' AND \"ValuationManufactureYear\" > 0 AND \"ValuationManufactureYear\" <= \"ValuationYear\" AND \"ValuationMileageKilometres\" >= 0 AND \"ValuationMinimum\" >= 0 AND \"ValuationMaximum\" >= \"ValuationMinimum\" AND \"ValuationCurrency\" = 'MYR'");
@@ -786,11 +767,6 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("AppointmentId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("CancellationAppointmentId")
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("uuid")
-                        .HasComputedColumnSql("CASE WHEN \"Kind\" = 'Cancellation' THEN \"AppointmentId\" END", true);
-
                     b.Property<Guid?>("CheckInAppointmentId")
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("uuid")
@@ -822,8 +798,6 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(256)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CancellationAppointmentId");
 
                     b.HasIndex("CheckInAppointmentId");
 
@@ -909,16 +883,6 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
                         .WithOne()
                         .HasForeignKey("Dealership.Domain.Customers.CustomerProfile", "UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Dealership.Domain.Intake.AppointmentCancellation", b =>
-                {
-                    b.HasOne("Dealership.Domain.Intake.IntakeAppointment", null)
-                        .WithOne()
-                        .HasForeignKey("Dealership.Domain.Intake.AppointmentCancellation", "AppointmentId", "OwnerId")
-                        .HasPrincipalKey("Dealership.Domain.Intake.IntakeAppointment", "Id", "OwnerId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
@@ -1048,11 +1012,6 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .HasForeignKey("AppointmentId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("Dealership.Domain.Intake.AppointmentCancellation", null)
-                        .WithMany()
-                        .HasForeignKey("CancellationAppointmentId")
-                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Dealership.Domain.Intake.AppointmentCheckIn", null)
                         .WithMany()
