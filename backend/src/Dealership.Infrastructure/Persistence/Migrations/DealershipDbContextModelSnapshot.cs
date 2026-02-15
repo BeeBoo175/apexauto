@@ -119,6 +119,98 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Dealership.Domain.Inspections.InspectionAssignment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("ExpectedVersion")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("InspectionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PreviousTechnicianId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTimeOffset>("RecordedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("TechnicianId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("Version")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorId");
+
+                    b.HasIndex("PreviousTechnicianId");
+
+                    b.HasIndex("TechnicianId");
+
+                    b.HasIndex("InspectionId", "BranchId");
+
+                    b.HasIndex("InspectionId", "Version")
+                        .IsUnique();
+
+                    b.ToTable("InspectionAssignments", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_InspectionAssignments_Reason", "(\"ExpectedVersion\" = 0 AND \"PreviousTechnicianId\" IS NULL AND \"Reason\" IS NULL AND \"ActorId\" = \"TechnicianId\") OR (\"ExpectedVersion\" > 0 AND \"PreviousTechnicianId\" IS NOT NULL AND \"PreviousTechnicianId\" <> \"TechnicianId\" AND \"Reason\" IS NOT NULL AND \"Reason\" ~ '[^[:space:]]' AND \"Reason\" !~ '[[:cntrl:]]')");
+
+                            t.HasCheckConstraint("CK_InspectionAssignments_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"ExpectedVersion\" >= 0 AND \"Version\" > 0 AND \"Version\" - 1 = \"ExpectedVersion\"");
+                        });
+                });
+
+            modelBuilder.Entity("Dealership.Domain.Inspections.InspectionDraft", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("AssignmentVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("TechnicianId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("VehicleId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TechnicianId");
+
+                    b.HasIndex("VehicleId")
+                        .IsUnique();
+
+                    b.HasIndex("VehicleId", "BranchId");
+
+                    b.HasIndex("BranchId", "CreatedAt", "Id");
+
+                    b.ToTable("InspectionDrafts", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_InspectionDrafts_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"AssignmentVersion\" > 0");
+                        });
+                });
+
             modelBuilder.Entity("Dealership.Domain.Intake.AppointmentCheckIn", b =>
                 {
                     b.Property<Guid>("AppointmentId")
@@ -883,6 +975,49 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
                         .WithOne()
                         .HasForeignKey("Dealership.Domain.Customers.CustomerProfile", "UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Dealership.Domain.Inspections.InspectionAssignment", b =>
+                {
+                    b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
+                        .WithMany()
+                        .HasForeignKey("PreviousTechnicianId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
+                        .WithMany()
+                        .HasForeignKey("TechnicianId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Dealership.Domain.Inspections.InspectionDraft", null)
+                        .WithMany()
+                        .HasForeignKey("InspectionId", "BranchId")
+                        .HasPrincipalKey("Id", "BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Dealership.Domain.Inspections.InspectionDraft", b =>
+                {
+                    b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
+                        .WithMany()
+                        .HasForeignKey("TechnicianId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Dealership.Domain.Vehicles.Vehicle", null)
+                        .WithMany()
+                        .HasForeignKey("VehicleId", "BranchId")
+                        .HasPrincipalKey("Id", "BranchId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
