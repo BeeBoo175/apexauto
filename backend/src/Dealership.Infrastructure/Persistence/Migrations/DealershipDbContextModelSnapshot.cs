@@ -777,10 +777,23 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Dealership.Infrastructure.Intake.AppointmentCancellationMail", b =>
+            modelBuilder.Entity("Dealership.Infrastructure.Intake.AppointmentMail", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
+
+                    b.Property<Guid>("AppointmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CancellationAppointmentId")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("uuid")
+                        .HasComputedColumnSql("CASE WHEN \"Kind\" = 'Cancellation' THEN \"AppointmentId\" END", true);
+
+                    b.Property<Guid?>("CheckInAppointmentId")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("uuid")
+                        .HasComputedColumnSql("CASE WHEN \"Kind\" = 'CheckIn' THEN \"AppointmentId\" END", true);
 
                     b.Property<DateTimeOffset?>("DeliveredAt")
                         .HasColumnType("timestamp with time zone");
@@ -794,40 +807,10 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("DeliveryClaimId")
                         .HasColumnType("uuid");
 
-                    b.Property<DateTimeOffset>("NextDeliveryAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("RecipientEmail")
+                    b.Property<string>("Kind")
                         .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("NextDeliveryAt", "Id");
-
-                    b.ToTable("AppointmentCancellationMails", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_AppointmentCancellationMails_Shape", "\"RecipientEmail\" ~ '[^[:space:]]' AND \"DeliveryAttempts\" >= 0");
-                        });
-                });
-
-            modelBuilder.Entity("Dealership.Infrastructure.Intake.AppointmentCheckInMail", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset?>("DeliveredAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("DeliveryAttempts")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTimeOffset?>("DeliveryClaimExpiresAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("DeliveryClaimId")
-                        .HasColumnType("uuid");
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
 
                     b.Property<DateTimeOffset>("NextDeliveryAt")
                         .HasColumnType("timestamp with time zone");
@@ -839,46 +822,20 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("NextDeliveryAt", "Id");
+                    b.HasIndex("CancellationAppointmentId");
 
-                    b.ToTable("AppointmentCheckInMails", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_AppointmentCheckInMails_Shape", "\"RecipientEmail\" ~ '[^[:space:]]' AND \"DeliveryAttempts\" >= 0");
-                        });
-                });
+                    b.HasIndex("CheckInAppointmentId");
 
-            modelBuilder.Entity("Dealership.Infrastructure.Intake.AppointmentConfirmation", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset?>("DeliveredAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("DeliveryAttempts")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTimeOffset?>("DeliveryClaimExpiresAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("DeliveryClaimId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("NextDeliveryAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("RecipientEmail")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.HasKey("Id");
+                    b.HasIndex("AppointmentId", "Kind")
+                        .IsUnique();
 
                     b.HasIndex("NextDeliveryAt", "Id");
 
-                    b.ToTable("AppointmentConfirmations", null, t =>
+                    b.ToTable("AppointmentMailOutbox", null, t =>
                         {
-                            t.HasCheckConstraint("CK_AppointmentConfirmations_Shape", "\"RecipientEmail\" ~ '[^[:space:]]' AND \"DeliveryAttempts\" >= 0");
+                            t.HasCheckConstraint("CK_AppointmentMailOutbox_Kind", "\"Kind\" IN ('Confirmation', 'Cancellation', 'CheckIn')");
+
+                            t.HasCheckConstraint("CK_AppointmentMailOutbox_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"RecipientEmail\" ~ '[^[:space:]]' AND \"DeliveryAttempts\" >= 0");
                         });
                 });
 
@@ -1093,31 +1050,23 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Dealership.Infrastructure.Intake.AppointmentCancellationMail", b =>
-                {
-                    b.HasOne("Dealership.Domain.Intake.AppointmentCancellation", null)
-                        .WithOne()
-                        .HasForeignKey("Dealership.Infrastructure.Intake.AppointmentCancellationMail", "Id")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Dealership.Infrastructure.Intake.AppointmentCheckInMail", b =>
-                {
-                    b.HasOne("Dealership.Domain.Intake.AppointmentCheckIn", null)
-                        .WithOne()
-                        .HasForeignKey("Dealership.Infrastructure.Intake.AppointmentCheckInMail", "Id")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Dealership.Infrastructure.Intake.AppointmentConfirmation", b =>
+            modelBuilder.Entity("Dealership.Infrastructure.Intake.AppointmentMail", b =>
                 {
                     b.HasOne("Dealership.Domain.Intake.IntakeAppointment", null)
-                        .WithOne()
-                        .HasForeignKey("Dealership.Infrastructure.Intake.AppointmentConfirmation", "Id")
+                        .WithMany()
+                        .HasForeignKey("AppointmentId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("Dealership.Domain.Intake.AppointmentCancellation", null)
+                        .WithMany()
+                        .HasForeignKey("CancellationAppointmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Dealership.Domain.Intake.AppointmentCheckIn", null)
+                        .WithMany()
+                        .HasForeignKey("CheckInAppointmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<System.Guid>", b =>
