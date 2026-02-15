@@ -18,12 +18,8 @@ internal sealed class IntakeBookingTransaction(DealershipDbContext database, IDb
         database.IntakeAppointments.Add(appointment);
         database.SellerValuations.Add(valuation);
         database.AppointmentPhotos.AddRange(photos);
-        database.AppointmentConfirmations.Add(new AppointmentConfirmation
-        {
-            Id = appointment.Id,
-            RecipientEmail = recipient,
-            NextDeliveryAt = appointment.CreatedAt
-        });
+        database.AppointmentMailOutbox.Add(new AppointmentMail(appointment.Id, AppointmentMailKind.Confirmation,
+            recipient, appointment.CreatedAt));
 
         try
         {

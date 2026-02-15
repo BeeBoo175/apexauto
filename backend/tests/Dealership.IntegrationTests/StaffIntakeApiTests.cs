@@ -100,7 +100,7 @@ public sealed class StaffIntakeApiTests(IntakePhotoFixture fixture) : IClassFixt
         using var scope = restarted.Services.CreateScope();
         var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
         Assert.Single(await database.AppointmentCheckIns.ToArrayAsync());
-        Assert.Single(await database.AppointmentCheckInMails.ToArrayAsync());
+        Assert.Single(await database.AppointmentMailOutbox.Where(item => item.Kind == AppointmentMailKind.CheckIn).ToArrayAsync());
         Assert.Equal(0, (await database.Vehicles.SingleAsync()).MileageKilometres);
         Assert.Equal(90000, (await database.SellerValuations.SingleAsync(item => item.AppointmentId == appointment.Id)).MileageKilometres);
         await AssertCurrentScopeAsync(reconciler, database, data, scope.ServiceProvider, path, evidence);

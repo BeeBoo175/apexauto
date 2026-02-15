@@ -1,3 +1,4 @@
+using Dealership.Infrastructure.Intake;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
@@ -135,7 +136,7 @@ internal static class IntakeBrowserHarness
                 var declared = await database.SellerValuations.SingleAsync(item => item.AppointmentId == receipt.AppointmentId);
                 if (saved.VehicleId != receipt.VehicleId || saved.StaffId != receipt.StaffId || !saved.Matches(receipt.Evidence) ||
                     declared.MileageKilometres != 90000 || saved.MileageKilometres != 92000 ||
-                    await database.AppointmentCheckInMails.CountAsync(item => item.Id == receipt.AppointmentId) != 1)
+                    await database.AppointmentMailOutbox.CountAsync(item => item.Kind == AppointmentMailKind.CheckIn && item.AppointmentId == receipt.AppointmentId) != 1)
                 {
                     throw new InvalidOperationException("Browser check-in did not match its single persisted receipt and retained declaration.");
                 }
@@ -151,7 +152,7 @@ internal static class IntakeBrowserHarness
                     saved.CorrectionRecordedAt != receipt.Correction.RecordedAt || saved.CheckedInAt != receipt.CheckedInAt ||
                     saved.StaffId != receipt.StaffId || saved.VehicleId != receipt.VehicleId || !saved.Matches(receipt.Evidence) ||
                     await database.Vehicles.CountAsync(item => item.IntakeAppointmentId == receipt.AppointmentId) != 1 ||
-                    await database.AppointmentCheckInMails.CountAsync(item => item.Id == receipt.AppointmentId) != 1)
+                    await database.AppointmentMailOutbox.CountAsync(item => item.Kind == AppointmentMailKind.CheckIn && item.AppointmentId == receipt.AppointmentId) != 1)
                 {
                     throw new InvalidOperationException("No-show correction did not match its single immutable check-in bundle.");
                 }

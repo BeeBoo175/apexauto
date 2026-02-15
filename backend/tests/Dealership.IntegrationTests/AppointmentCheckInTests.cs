@@ -1,3 +1,4 @@
+using Dealership.Infrastructure.Intake;
 using Dealership.Application.Accounts;
 using Dealership.Application.Branches;
 using Dealership.Application.Intake;
@@ -39,7 +40,7 @@ public sealed class AppointmentCheckInTests(IntakePhotoFixture fixture) : IClass
         Assert.Equal(92000, vehicle.MileageKilometres);
         Assert.Equal(90000, (await database.SellerValuations.SingleAsync()).MileageKilometres);
         Assert.Single(await database.AppointmentCheckIns.ToArrayAsync());
-        Assert.Equal(data.CustomerEmail, (await database.AppointmentCheckInMails.SingleAsync()).RecipientEmail);
+        Assert.Equal(data.CustomerEmail, (await database.AppointmentMailOutbox.Where(item => item.Kind == AppointmentMailKind.CheckIn).SingleAsync()).RecipientEmail);
         Assert.Equal(CancellationStatus.CheckedIn,
             (await scope.ServiceProvider.GetRequiredService<IAppointmentCancellationStore>()
                 .CancelAsync(data.OwnerId, appointment.Id, CancellationToken.None)).Status);
@@ -52,7 +53,7 @@ public sealed class AppointmentCheckInTests(IntakePhotoFixture fixture) : IClass
             (await CheckInAsync(data.Factory, data.StaffId, duplicatePlate.Id,
                 evidence with { Vin = "PL1BT65R84B123457" })).Status);
         Assert.Equal(1, await database.Vehicles.CountAsync());
-        Assert.Equal(1, await database.AppointmentCheckInMails.CountAsync());
+        Assert.Equal(1, await database.AppointmentMailOutbox.Where(item => item.Kind == AppointmentMailKind.CheckIn).CountAsync());
 
         await database.Users.Where(user => user.Id == data.OwnerId)
             .ExecuteUpdateAsync(update => update.SetProperty(user => user.EmailConfirmed, false));
@@ -130,7 +131,7 @@ public sealed class AppointmentCheckInTests(IntakePhotoFixture fixture) : IClass
             (await CheckInAsync(tomorrow, data.StaffId, cancellable.Id, evidence)).Status);
         Assert.False(await database.AppointmentCheckIns.AnyAsync(item => item.AppointmentId == appointment.Id));
         Assert.False(await database.Vehicles.AnyAsync(item => item.IntakeAppointmentId == appointment.Id));
-        Assert.False(await database.AppointmentCheckInMails.AnyAsync(item => item.Id == appointment.Id));
+        Assert.False(await database.AppointmentMailOutbox.AnyAsync(item => item.Kind == AppointmentMailKind.CheckIn && item.AppointmentId == appointment.Id));
     }
 
     private static async Task<CheckInResult> CheckInAsync(WebApplicationFactory<Program> factory, Guid staffId,

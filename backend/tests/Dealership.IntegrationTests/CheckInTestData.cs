@@ -125,12 +125,8 @@ internal sealed class CheckInTestData : IDisposable
         var (checkIn, vehicle) = await CreateBundleAsync(database, appointmentId, evidence);
         database.Vehicles.Add(vehicle);
         database.AppointmentCheckIns.Add(checkIn);
-        database.AppointmentCheckInMails.Add(new AppointmentCheckInMail
-        {
-            Id = appointmentId,
-            RecipientEmail = CustomerEmail,
-            NextDeliveryAt = checkIn.CheckedInAt
-        });
+        database.AppointmentMailOutbox.Add(new AppointmentMail(appointmentId, AppointmentMailKind.CheckIn,
+            CustomerEmail, checkIn.CheckedInAt));
         await database.SaveChangesAsync();
         return checkIn;
     }

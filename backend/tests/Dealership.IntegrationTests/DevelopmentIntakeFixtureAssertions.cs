@@ -1,3 +1,4 @@
+using Dealership.Infrastructure.Intake;
 using System.Net;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
@@ -86,12 +87,12 @@ internal static class DevelopmentIntakeFixtureAssertions
         Assert.Equal(132, await database.SellerValuations.CountAsync());
         Assert.Equal(528, await database.IntakePhotos.CountAsync());
         Assert.Equal(528, await database.AppointmentPhotos.CountAsync());
-        Assert.Equal(132, await database.AppointmentConfirmations.CountAsync());
+        Assert.Equal(132, await database.AppointmentMailOutbox.Where(item => item.Kind == AppointmentMailKind.Confirmation).CountAsync());
         Assert.Equal(3, await database.Vehicles.CountAsync());
         Assert.Equal(3, await database.AppointmentCheckIns.CountAsync());
-        Assert.Equal(3, await database.AppointmentCheckInMails.CountAsync());
+        Assert.Equal(3, await database.AppointmentMailOutbox.Where(item => item.Kind == AppointmentMailKind.CheckIn).CountAsync());
         Assert.Equal(3, await database.AppointmentCancellations.CountAsync());
-        Assert.Equal(3, await database.AppointmentCancellationMails.CountAsync());
+        Assert.Equal(3, await database.AppointmentMailOutbox.Where(item => item.Kind == AppointmentMailKind.Cancellation).CountAsync());
         Assert.Equal(528, await database.IntakePhotos.CountAsync(photo => photo.AvailableAt != null));
         var schedule = services.GetRequiredService<InspectionSchedule>();
         var malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
@@ -242,11 +243,9 @@ internal static class DevelopmentIntakeFixtureAssertions
             Valuations = await database.SellerValuations.AsNoTracking().OrderBy(item => item.AppointmentId).ToArrayAsync(),
             Photos = await database.IntakePhotos.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync(),
             Attachments = await database.AppointmentPhotos.AsNoTracking().OrderBy(item => item.AppointmentId).ThenBy(item => item.PhotoId).ToArrayAsync(),
-            Confirmations = await database.AppointmentConfirmations.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync(),
+            Mail = await database.AppointmentMailOutbox.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync(),
             Cancellations = await database.AppointmentCancellations.AsNoTracking().OrderBy(item => item.AppointmentId).ToArrayAsync(),
-            CancellationMails = await database.AppointmentCancellationMails.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync(),
             CheckIns = await database.AppointmentCheckIns.AsNoTracking().OrderBy(item => item.AppointmentId).ToArrayAsync(),
-            CheckInMails = await database.AppointmentCheckInMails.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync(),
             Vehicles = await database.Vehicles.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync()
         });
     }

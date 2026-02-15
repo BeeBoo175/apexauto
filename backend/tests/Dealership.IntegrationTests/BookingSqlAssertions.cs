@@ -131,8 +131,9 @@ internal static class BookingSqlAssertions
             SELECT @new, "OwnerId", "Id", "Angle" FROM "IntakePhotos" WHERE "Id" = ANY (@photos)
             """;
         const string mailSql = """
-            INSERT INTO "AppointmentConfirmations" ("Id", "RecipientEmail", "DeliveryAttempts", "NextDeliveryAt")
-            SELECT @new, "RecipientEmail", 0, now() FROM "AppointmentConfirmations" WHERE "Id" = @id
+            INSERT INTO "AppointmentMailOutbox" ("Id", "AppointmentId", "Kind", "RecipientEmail", "DeliveryAttempts", "NextDeliveryAt")
+            SELECT @new, @new, 'Confirmation', "RecipientEmail", 0, now() FROM "AppointmentMailOutbox"
+            WHERE "AppointmentId" = @id AND "Kind" = 'Confirmation'
             """;
         var cases = new[]
         {

@@ -61,12 +61,8 @@ public sealed class AppointmentCancellationStore(DealershipDbContext database, T
 
         var cancellation = new AppointmentCancellation(appointment, now, TimeSpan.FromDays(settings.Value.CancelledRetentionDays));
         database.AppointmentCancellations.Add(cancellation);
-        database.AppointmentCancellationMails.Add(new AppointmentCancellationMail
-        {
-            Id = appointmentId,
-            RecipientEmail = user.Email!,
-            NextDeliveryAt = now
-        });
+        database.AppointmentMailOutbox.Add(new AppointmentMail(appointmentId, AppointmentMailKind.Cancellation,
+            user.Email!, now));
         try
         {
             await database.SaveChangesAsync(cancellationToken);

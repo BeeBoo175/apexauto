@@ -139,12 +139,8 @@ public sealed class DevelopmentIntakeFixtures(DealershipDbContext database, Deve
         database.IntakeAppointments.Add(appointment);
         database.SellerValuations.Add(valuation);
         database.AppointmentPhotos.AddRange(selected!.Selections.Select(photo => new AppointmentPhoto(fixture.Id, ownerId, photo)));
-        database.AppointmentConfirmations.Add(new AppointmentConfirmation
-        {
-            Id = fixture.Id,
-            RecipientEmail = owner.Email!,
-            NextDeliveryAt = moment.BookedAt
-        });
+        database.AppointmentMailOutbox.Add(new AppointmentMail(fixture.Id, AppointmentMailKind.Confirmation,
+            owner.Email!, moment.BookedAt));
         await database.SaveChangesAsync(cancellationToken);
         AddTransition(moment, appointment, valuation, owner.Email!);
         await database.SaveChangesAsync(cancellationToken);
@@ -158,12 +154,8 @@ public sealed class DevelopmentIntakeFixtures(DealershipDbContext database, Deve
         {
             database.AppointmentCancellations.Add(new AppointmentCancellation(appointment, moment.TransitionAt!.Value,
                 TimeSpan.FromDays(photoSettings.Value.CancelledRetentionDays)));
-            database.AppointmentCancellationMails.Add(new AppointmentCancellationMail
-            {
-                Id = appointment.Id,
-                RecipientEmail = email,
-                NextDeliveryAt = moment.TransitionAt.Value
-            });
+            database.AppointmentMailOutbox.Add(new AppointmentMail(appointment.Id, AppointmentMailKind.Cancellation,
+                email, moment.TransitionAt.Value));
             return;
         }
 
@@ -178,12 +170,8 @@ public sealed class DevelopmentIntakeFixtures(DealershipDbContext database, Deve
             moment.Fixture.CheckIn!, moment.TransitionAt!.Value);
         database.Vehicles.Add(new Vehicle(appointment, valuation, checkIn));
         database.AppointmentCheckIns.Add(checkIn);
-        database.AppointmentCheckInMails.Add(new AppointmentCheckInMail
-        {
-            Id = appointment.Id,
-            RecipientEmail = email,
-            NextDeliveryAt = checkIn.CheckedInAt
-        });
+        database.AppointmentMailOutbox.Add(new AppointmentMail(appointment.Id, AppointmentMailKind.CheckIn,
+            email, checkIn.CheckedInAt));
     }
 
     private static DevelopmentFixtureReport Report(DevelopmentIntakeFixture fixture, string state, bool attention)

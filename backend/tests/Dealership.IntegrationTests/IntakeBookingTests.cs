@@ -20,6 +20,7 @@ public sealed class IntakeBookingTests(IntakePhotoFixture fixture) : IClassFixtu
         Guid owner;
         Guid otherOwner;
         Guid oldClaim;
+        Guid messageId;
         AppointmentReceipt receipt;
         BookingRequest request;
         Dealership.Application.Accounts.RegistrationRequest registration;
@@ -53,7 +54,7 @@ public sealed class IntakeBookingTests(IntakePhotoFixture fixture) : IClassFixtu
                 var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
                 Assert.False(await database.IntakeAppointments.AnyAsync());
                 Assert.False(await database.SellerValuations.AnyAsync());
-                Assert.False(await database.AppointmentConfirmations.AnyAsync());
+                Assert.False(await database.AppointmentMailOutbox.Where(item => item.Kind == AppointmentMailKind.Confirmation).AnyAsync());
             }
 
             var competing = await Task.WhenAll(BookingTestData.BookAsync(client, request), BookingTestData.BookAsync(client, request));
@@ -76,10 +77,11 @@ public sealed class IntakeBookingTests(IntakePhotoFixture fixture) : IClassFixtu
             await worker.DeliverBatchAsync(CancellationToken.None);
             using var mailScope = factory.Services.CreateScope();
             var message = await mailScope.ServiceProvider.GetRequiredService<DealershipDbContext>()
-                .AppointmentConfirmations.AsNoTracking().SingleAsync();
+                .AppointmentMailOutbox.Where(item => item.Kind == AppointmentMailKind.Confirmation).AsNoTracking().SingleAsync();
             Assert.Null(message.DeliveredAt);
             Assert.Equal(1, message.DeliveryAttempts);
             oldClaim = message.DeliveryClaimId!.Value;
+            messageId = message.Id;
         }
 
         using var restarted = fixture.CreateFactory();
@@ -94,17 +96,17 @@ public sealed class IntakeBookingTests(IntakePhotoFixture fixture) : IClassFixtu
             var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
             Assert.Single(await database.IntakeAppointments.ToArrayAsync());
             Assert.Single(await database.SellerValuations.ToArrayAsync());
-            var source = new AppointmentConfirmationSource(database, new LaterClock());
+            var source = new AppointmentMailSource(database, new LaterClock());
             var claimed = await source.ClaimNextAsync(CancellationToken.None);
             Assert.NotNull(claimed);
-            Assert.Equal(receipt.Id, claimed.Id);
+            Assert.Equal(messageId, claimed.Id);
             Assert.NotEqual(oldClaim, claimed.ClaimId);
             Assert.Contains(receipt.Id.ToString(), claimed.Message.Body);
             Assert.DoesNotContain(registration.Nric!, claimed.Message.Body);
             await source.MarkDeliveredAsync(claimed.Id, oldClaim, CancellationToken.None);
-            Assert.Null((await database.AppointmentConfirmations.AsNoTracking().SingleAsync()).DeliveredAt);
+            Assert.Null((await database.AppointmentMailOutbox.Where(item => item.Kind == AppointmentMailKind.Confirmation).AsNoTracking().SingleAsync()).DeliveredAt);
             await source.MarkDeliveredAsync(claimed.Id, claimed.ClaimId, CancellationToken.None);
-            Assert.NotNull((await database.AppointmentConfirmations.AsNoTracking().SingleAsync()).DeliveredAt);
+            Assert.NotNull((await database.AppointmentMailOutbox.Where(item => item.Kind == AppointmentMailKind.Confirmation).AsNoTracking().SingleAsync()).DeliveredAt);
         }
 
         var photosOne = await BookingTestData.PhotosAsync(restartedClient);

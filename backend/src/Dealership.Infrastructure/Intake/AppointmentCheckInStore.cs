@@ -143,12 +143,8 @@ public sealed class AppointmentCheckInStore(DealershipDbContext database, TimePr
                 .SingleAsync(item => item.AppointmentId == appointmentId, cancellationToken);
             database.Vehicles.Add(new Vehicle(appointment, valuation, checkIn));
             database.AppointmentCheckIns.Add(checkIn);
-            database.AppointmentCheckInMails.Add(new AppointmentCheckInMail
-            {
-                Id = appointmentId,
-                RecipientEmail = customer.Email!,
-                NextDeliveryAt = now
-            });
+            database.AppointmentMailOutbox.Add(new AppointmentMail(appointmentId, AppointmentMailKind.CheckIn,
+            customer.Email!, now));
             await database.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
             return new CheckInResult(CheckInStatus.Succeeded, Receipt(checkIn));

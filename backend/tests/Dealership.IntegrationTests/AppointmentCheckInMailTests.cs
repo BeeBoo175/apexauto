@@ -44,7 +44,7 @@ public sealed class AppointmentCheckInMailTests(IntakePhotoFixture fixture) : IC
         Assert.Single(competing, claim => claim is null);
         Assert.Equal(originalMessage, retry.Message);
         Assert.NotEqual(failed.DeliveryClaimId, retry.ClaimId);
-        await AcknowledgeAsync(restarted, appointment.Id, failed.DeliveryClaimId!.Value);
+        await AcknowledgeAsync(restarted, failed.Id, failed.DeliveryClaimId!.Value);
         Assert.Null((await IntentAsync(restarted)).DeliveredAt);
 
         clock.Now += TimeSpan.FromMinutes(3);
@@ -54,7 +54,7 @@ public sealed class AppointmentCheckInMailTests(IntakePhotoFixture fixture) : IC
         var delivered = await IntentAsync(restarted);
         Assert.Equal(clock.Now, delivered.DeliveredAt);
         Assert.Equal(3, delivered.DeliveryAttempts);
-        await AcknowledgeAsync(restarted, appointment.Id, retry.ClaimId);
+        await AcknowledgeAsync(restarted, retry.Id, retry.ClaimId);
         Assert.Equal(delivered.DeliveredAt, (await IntentAsync(restarted)).DeliveredAt);
         Assert.Null(await ClaimAsync(restarted));
         using var finalScope = restarted.Services.CreateScope();
@@ -81,16 +81,16 @@ public sealed class AppointmentCheckInMailTests(IntakePhotoFixture fixture) : IC
         await Source(scope.ServiceProvider).MarkDeliveredAsync(id, claimId, CancellationToken.None);
     }
 
-    private static AppointmentCheckInMailSource Source(IServiceProvider services)
+    private static AppointmentMailSource Source(IServiceProvider services)
     {
-        return services.GetServices<IMailDeliverySource>().OfType<AppointmentCheckInMailSource>().Single();
+        return services.GetServices<IMailDeliverySource>().OfType<AppointmentMailSource>().Single();
     }
 
-    private static async Task<AppointmentCheckInMail> IntentAsync(WebApplicationFactory<Program> factory)
+    private static async Task<AppointmentMail> IntentAsync(WebApplicationFactory<Program> factory)
     {
         using var scope = factory.Services.CreateScope();
         return await scope.ServiceProvider.GetRequiredService<DealershipDbContext>()
-            .AppointmentCheckInMails.AsNoTracking().SingleAsync();
+            .AppointmentMailOutbox.Where(item => item.Kind == AppointmentMailKind.CheckIn).AsNoTracking().SingleAsync();
     }
 
     private sealed class DeliveryClock : TimeProvider

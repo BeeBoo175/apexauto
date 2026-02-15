@@ -1,14 +1,12 @@
 using Dealership.Domain.Intake;
 using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Identity;
-using Dealership.Infrastructure.Intake;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Dealership.Infrastructure.Persistence;
 
-public sealed class AppointmentCheckInConfiguration : IEntityTypeConfiguration<AppointmentCheckIn>,
-    IEntityTypeConfiguration<AppointmentCheckInMail>
+public sealed class AppointmentCheckInConfiguration : IEntityTypeConfiguration<AppointmentCheckIn>
 {
     public void Configure(EntityTypeBuilder<AppointmentCheckIn> builder)
     {
@@ -34,19 +32,5 @@ public sealed class AppointmentCheckInConfiguration : IEntityTypeConfiguration<A
         builder.Property(item => item.Vin).HasMaxLength(17).IsRequired();
         builder.Property(item => item.Notes).HasMaxLength(CheckInEvidence.NotesMaximumLength);
         builder.Property(item => item.CorrectionReason).HasMaxLength(1000);
-    }
-
-    public void Configure(EntityTypeBuilder<AppointmentCheckInMail> builder)
-    {
-        builder.ToTable("AppointmentCheckInMails", table =>
-        {
-            table.HasCheckConstraint("CK_AppointmentCheckInMails_Shape", "\"RecipientEmail\" ~ '[^[:space:]]' AND \"DeliveryAttempts\" >= 0");
-        });
-        builder.HasKey(item => item.Id);
-        builder.Property(item => item.Id).ValueGeneratedNever();
-        builder.HasOne<AppointmentCheckIn>().WithOne().HasForeignKey<AppointmentCheckInMail>(item => item.Id)
-            .OnDelete(DeleteBehavior.Restrict);
-        builder.Property(item => item.RecipientEmail).HasMaxLength(256).IsRequired();
-        builder.HasIndex(item => new { item.NextDeliveryAt, item.Id });
     }
 }

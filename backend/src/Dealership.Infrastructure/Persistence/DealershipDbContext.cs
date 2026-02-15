@@ -25,17 +25,13 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
 
     public DbSet<AppointmentPhoto> AppointmentPhotos => Set<AppointmentPhoto>();
 
-    public DbSet<AppointmentConfirmation> AppointmentConfirmations => Set<AppointmentConfirmation>();
-
     public DbSet<AppointmentCancellation> AppointmentCancellations => Set<AppointmentCancellation>();
 
-    public DbSet<AppointmentCancellationMail> AppointmentCancellationMails => Set<AppointmentCancellationMail>();
+    public DbSet<AppointmentMail> AppointmentMailOutbox => Set<AppointmentMail>();
 
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
 
     public DbSet<AppointmentCheckIn> AppointmentCheckIns => Set<AppointmentCheckIn>();
-
-    public DbSet<AppointmentCheckInMail> AppointmentCheckInMails => Set<AppointmentCheckInMail>();
 
     public DbSet<AccountSession> AccountSessions => Set<AccountSession>();
 
@@ -54,14 +50,10 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
         builder.ApplyConfiguration<IntakeAppointment>(booking);
         builder.ApplyConfiguration<SellerValuation>(booking);
         builder.ApplyConfiguration<AppointmentPhoto>(booking);
-        builder.ApplyConfiguration<AppointmentConfirmation>(booking);
-        var cancellation = new AppointmentCancellationConfiguration();
-        builder.ApplyConfiguration<AppointmentCancellation>(cancellation);
-        builder.ApplyConfiguration<AppointmentCancellationMail>(cancellation);
+        builder.ApplyConfiguration(new AppointmentCancellationConfiguration());
+        builder.ApplyConfiguration(new AppointmentMailConfiguration());
         builder.ApplyConfiguration(new VehicleConfiguration());
-        var checkIn = new AppointmentCheckInConfiguration();
-        builder.ApplyConfiguration<AppointmentCheckIn>(checkIn);
-        builder.ApplyConfiguration<AppointmentCheckInMail>(checkIn);
+        builder.ApplyConfiguration(new AppointmentCheckInConfiguration());
         builder.ApplyConfiguration(new CustomerProfileConfiguration());
         builder.ApplyConfiguration(new AccountSessionConfiguration());
         builder.ApplyConfiguration(new EmailVerificationChallengeConfiguration());

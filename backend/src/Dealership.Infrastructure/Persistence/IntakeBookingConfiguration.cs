@@ -1,15 +1,13 @@
 using Dealership.Domain.Branches;
 using Dealership.Domain.Customers;
 using Dealership.Domain.Intake;
-using Dealership.Infrastructure.Intake;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Dealership.Infrastructure.Persistence;
 
 public sealed class IntakeBookingConfiguration : IEntityTypeConfiguration<IntakeAppointment>,
-    IEntityTypeConfiguration<SellerValuation>, IEntityTypeConfiguration<AppointmentPhoto>,
-    IEntityTypeConfiguration<AppointmentConfirmation>
+    IEntityTypeConfiguration<SellerValuation>, IEntityTypeConfiguration<AppointmentPhoto>
 {
     public void Configure(EntityTypeBuilder<IntakeAppointment> builder)
     {
@@ -62,18 +60,5 @@ public sealed class IntakeBookingConfiguration : IEntityTypeConfiguration<Intake
             .HasPrincipalKey(item => new { item.Id, item.OwnerId }).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<IntakePhoto>().WithMany().HasForeignKey(item => new { item.PhotoId, item.OwnerId, item.Angle })
             .HasPrincipalKey(item => new { item.Id, item.OwnerId, item.Angle }).OnDelete(DeleteBehavior.Restrict);
-    }
-
-    public void Configure(EntityTypeBuilder<AppointmentConfirmation> builder)
-    {
-        builder.ToTable("AppointmentConfirmations", table =>
-        {
-            table.HasCheckConstraint("CK_AppointmentConfirmations_Shape", "\"RecipientEmail\" ~ '[^[:space:]]' AND \"DeliveryAttempts\" >= 0");
-        });
-        builder.HasKey(item => item.Id);
-        builder.Property(item => item.Id).ValueGeneratedNever();
-        builder.HasOne<IntakeAppointment>().WithOne().HasForeignKey<AppointmentConfirmation>(item => item.Id).OnDelete(DeleteBehavior.Restrict);
-        builder.Property(item => item.RecipientEmail).HasMaxLength(256).IsRequired();
-        builder.HasIndex(item => new { item.NextDeliveryAt, item.Id });
     }
 }

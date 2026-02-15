@@ -104,21 +104,30 @@ public sealed class AppointmentCancellationTests(IntakePhotoFixture fixture) : I
         {
             var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
             Assert.Single(await database.AppointmentCancellations.ToArrayAsync());
-            Assert.Single(await database.AppointmentCancellationMails.ToArrayAsync());
-            var confirmations = new AppointmentConfirmationSource(database, TimeProvider.System);
-            Assert.Equal(replacement.Id, (await confirmations.ClaimNextAsync(CancellationToken.None))!.Id);
-            Assert.Null(await confirmations.ClaimNextAsync(CancellationToken.None));
-            var source = new AppointmentCancellationMailSource(database, TimeProvider.System);
-            var first = (await source.ClaimNextAsync(CancellationToken.None))!;
+            Assert.Single(await database.AppointmentMailOutbox.Where(item => item.Kind == AppointmentMailKind.Cancellation).ToArrayAsync());
+            var source = new AppointmentMailSource(database, TimeProvider.System);
+            var claims = new[]
+            {
+                (await source.ClaimNextAsync(CancellationToken.None))!,
+                (await source.ClaimNextAsync(CancellationToken.None))!
+            };
+            var confirmation = Assert.Single(claims, claim => claim.Message.Subject == "ApexAuto inspection booking confirmed");
+            Assert.Contains(replacement.Id.ToString(), confirmation.Message.Body);
+            await source.MarkDeliveredAsync(confirmation.Id, confirmation.ClaimId, CancellationToken.None);
+            var first = Assert.Single(claims, claim => claim.Message.Subject == "ApexAuto inspection booking cancelled");
+            Assert.Null(await source.ClaimNextAsync(CancellationToken.None));
+            var suppressed = await database.AppointmentMailOutbox.SingleAsync(item =>
+                item.AppointmentId == receipt.Id && item.Kind == AppointmentMailKind.Confirmation);
+            Assert.Equal(0, suppressed.DeliveryAttempts);
             Assert.Contains(receipt.Id.ToString(), first.Message.Body);
             Assert.DoesNotContain(registration.Nric!, first.Message.Body);
-            var restarted = new AppointmentCancellationMailSource(database, new FixedClock(DateTimeOffset.UtcNow.AddMinutes(2)));
+            var restarted = new AppointmentMailSource(database, new FixedClock(DateTimeOffset.UtcNow.AddMinutes(2)));
             var retry = (await restarted.ClaimNextAsync(CancellationToken.None))!;
             Assert.NotEqual(first.ClaimId, retry.ClaimId);
             await restarted.MarkDeliveredAsync(retry.Id, first.ClaimId, CancellationToken.None);
-            Assert.Null((await database.AppointmentCancellationMails.AsNoTracking().SingleAsync()).DeliveredAt);
+            Assert.Null((await database.AppointmentMailOutbox.Where(item => item.Kind == AppointmentMailKind.Cancellation).AsNoTracking().SingleAsync()).DeliveredAt);
             await restarted.MarkDeliveredAsync(retry.Id, retry.ClaimId, CancellationToken.None);
-            Assert.NotNull((await database.AppointmentCancellationMails.AsNoTracking().SingleAsync()).DeliveredAt);
+            Assert.NotNull((await database.AppointmentMailOutbox.Where(item => item.Kind == AppointmentMailKind.Cancellation).AsNoTracking().SingleAsync()).DeliveredAt);
         }
 
         await using var connection = new NpgsqlConnection(fixture.Database.RuntimeConnectionString);

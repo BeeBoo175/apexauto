@@ -116,7 +116,7 @@ public sealed class StaffIntakeRaceTests(IntakePhotoFixture fixture) : IClassFix
         Assert.Equal(checkInFirst && sameDay,
             await database.Vehicles.AnyAsync(vehicle => vehicle.IntakeAppointmentId == appointmentId));
         Assert.Equal(checkInFirst && sameDay,
-            await database.AppointmentCheckInMails.AnyAsync(mail => mail.Id == appointmentId));
+            await database.AppointmentMailOutbox.AnyAsync(item => item.Kind == AppointmentMailKind.CheckIn && item.AppointmentId == appointmentId));
         Assert.Equal(!(checkInFirst && sameDay),
             await database.AppointmentCancellations.AnyAsync(item => item.AppointmentId == appointmentId));
     }
@@ -137,7 +137,7 @@ public sealed class StaffIntakeRaceTests(IntakePhotoFixture fixture) : IClassFix
         var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
         Assert.False(await database.Vehicles.AnyAsync(vehicle => vehicle.IntakeAppointmentId == id));
         Assert.False(await database.AppointmentCheckIns.AnyAsync(item => item.AppointmentId == id));
-        Assert.False(await database.AppointmentCheckInMails.AnyAsync(item => item.Id == id));
+        Assert.False(await database.AppointmentMailOutbox.AnyAsync(item => item.Kind == AppointmentMailKind.CheckIn && item.AppointmentId == id));
     }
 
     private static async Task HoldAppointmentAsync(NpgsqlConnection connection, NpgsqlTransaction transaction, Guid id)

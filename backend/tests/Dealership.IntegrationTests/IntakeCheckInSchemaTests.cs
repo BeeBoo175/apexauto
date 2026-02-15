@@ -1,3 +1,4 @@
+using Dealership.Infrastructure.Intake;
 using Dealership.Application.Intake;
 using Dealership.Application.Branches;
 using Dealership.Infrastructure.Development;
@@ -26,8 +27,8 @@ public sealed class IntakeCheckInSchemaTests(IntakePhotoFixture fixture) : IClas
         """;
 
     private const string InsertMail = """
-        INSERT INTO "AppointmentCheckInMails" ("Id", "RecipientEmail", "DeliveryAttempts", "NextDeliveryAt")
-        VALUES (@appointment, @email, 0, @at);
+        INSERT INTO "AppointmentMailOutbox" ("Id", "AppointmentId", "Kind", "RecipientEmail", "DeliveryAttempts", "NextDeliveryAt")
+        VALUES (gen_random_uuid(), @appointment, 'CheckIn', @email, 0, @at);
         """;
 
     [Fact]
@@ -72,7 +73,7 @@ public sealed class IntakeCheckInSchemaTests(IntakePhotoFixture fixture) : IClas
         var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
         Assert.Single(await database.Vehicles.ToArrayAsync());
         Assert.Single(await database.AppointmentCheckIns.ToArrayAsync());
-        Assert.Single(await database.AppointmentCheckInMails.ToArrayAsync());
+        Assert.Single(await database.AppointmentMailOutbox.Where(item => item.Kind == AppointmentMailKind.CheckIn).ToArrayAsync());
         Assert.Equal(92000, receipt.MileageKilometres);
         Assert.Equal(90000, (await database.SellerValuations.SingleAsync()).MileageKilometres);
         Assert.Equal(CancellationStatus.CheckedIn,
@@ -83,7 +84,7 @@ public sealed class IntakeCheckInSchemaTests(IntakePhotoFixture fixture) : IClas
         {
             ("UPDATE \"AppointmentCheckIns\" SET \"MileageKilometres\" = 1 WHERE \"AppointmentId\" = @appointment", "CK_IntakeAppointments_Immutable"),
             ("UPDATE \"Vehicles\" SET \"Vin\" = 'PL1BT65R84B123457' WHERE \"IntakeAppointmentId\" = @appointment", "CK_Vehicles_Immutable"),
-            ("UPDATE \"AppointmentCheckInMails\" SET \"RecipientEmail\" = 'other@example.invalid' WHERE \"Id\" = @appointment", "CK_AppointmentConfirmations_Immutable"),
+            ("UPDATE \"AppointmentMailOutbox\" SET \"RecipientEmail\" = 'other@example.invalid' WHERE \"AppointmentId\" = @appointment", "CK_AppointmentMailOutbox_Immutable"),
             ("INSERT INTO \"AppointmentCancellations\" (\"AppointmentId\", \"OwnerId\", \"CancelledAt\", \"PhotosExpireAt\") VALUES (@appointment, @owner, @at, @at + interval '30 days')", "CK_AppointmentCancellations_CheckedIn"),
             ("INSERT INTO \"PhotoRemovals\" (\"PhotoId\", \"Reason\", \"EligibleAt\", \"RequestedAt\", \"Attempts\", \"NextAttemptAt\") SELECT \"PhotoId\", 'CancelledRetentionExpired', @at, @at, 0, @at FROM \"AppointmentPhotos\" WHERE \"AppointmentId\" = @appointment LIMIT 1", "CK_PhotoRemovals_CheckedIn")
         };
