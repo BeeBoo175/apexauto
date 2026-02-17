@@ -11,7 +11,7 @@ public sealed record DevelopmentFixtureReport(string Fixture, string State, bool
 
 public sealed class DevelopmentFixtureRunner(DealershipDbContext database, DevelopmentCustomerFixtures customers,
     StaffProvisioningService staff, BranchProvisioningService branches, DevelopmentIntakeFixtures intake,
-    IInspectionAssignmentStore assignments)
+    IInspectionAssignmentStore assignments, IInspectionDraftSaveStore inspectionSaves)
 {
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> SeedAsync(DevelopmentFixtureTarget target,
         CancellationToken cancellationToken)
@@ -103,8 +103,36 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
                 state = attention ? "claim unavailable; preserved" : "created";
             }
             reports.Add(new DevelopmentFixtureReport($"Inspection ({fixture.RegistrationPlate})", state, attention));
+            if (!attention && vehicleId.HasValue)
+            {
+                reports.Add(await InspectionEntriesAsync(seed, fixture.Id, technicianId, fixture.RegistrationPlate, cancellationToken));
+            }
         }
         return reports;
+    }
+
+    private async Task<DevelopmentFixtureReport> InspectionEntriesAsync(bool seed, Guid inspectionId, Guid technicianId,
+        string plate, CancellationToken cancellationToken)
+    {
+        var latest = await database.InspectionDraftSaves.AsNoTracking().Where(save => save.InspectionId == inspectionId)
+            .OrderByDescending(save => save.Version).FirstOrDefaultAsync(cancellationToken);
+        var request = new InspectionDraftSaveRequest(inspectionId, 1, 0, DevelopmentInspectionManifest.Entries);
+        if (latest is not null)
+        {
+            var expected = DevelopmentInspectionManifest.Entries.Select(entry => new Dealership.Domain.Inspections.InspectionDraftEntry(
+                entry.PointCode, entry.Kind, entry.Severity, entry.EstimatedRepairCost, entry.Notes)).ToArray();
+            var matches = latest.Id == request.OperationId && latest.Matches(technicianId, inspectionId, request, expected);
+            return new($"Inspection entries ({plate})", matches ? "matches" : "drift; preserved", !matches);
+        }
+
+        if (!seed)
+        {
+            return new($"Inspection entries ({plate})", "missing", true);
+        }
+
+        var saved = await inspectionSaves.SaveAsync(technicianId, inspectionId, request, cancellationToken);
+        var succeeded = saved.Status == InspectionAssignmentStatus.Succeeded;
+        return new($"Inspection entries ({plate})", succeeded ? "created" : "save unavailable; preserved", !succeeded);
     }
 
     private async Task<DevelopmentFixtureReport> ReviewAccountAsync(string fixture, Guid? id,

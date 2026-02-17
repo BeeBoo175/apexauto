@@ -10,7 +10,7 @@ internal static class JsonRequestReader
     public static readonly TimeSpan BodyReadDeadline = TimeSpan.FromSeconds(10);
 
     public static async Task<(T? Value, IResult? Error)> ReadAsync<T>(HttpRequest request,
-        CancellationToken cancellationToken) where T : class
+        CancellationToken cancellationToken, int maximumRequestBytes = MaximumRequestBytes) where T : class
     {
         if (!request.HasJsonContentType())
         {
@@ -21,10 +21,10 @@ internal static class JsonRequestReader
 
         if (sizeFeature is { IsReadOnly: false })
         {
-            sizeFeature.MaxRequestBodySize = MaximumRequestBytes;
+            sizeFeature.MaxRequestBodySize = maximumRequestBytes;
         }
 
-        if (request.ContentLength > MaximumRequestBytes)
+        if (request.ContentLength > maximumRequestBytes)
         {
             return (null, Results.Problem(statusCode: StatusCodes.Status413PayloadTooLarge));
         }
@@ -33,7 +33,7 @@ internal static class JsonRequestReader
         {
             using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             deadline.CancelAfter(BodyReadDeadline);
-            var value = await ReadBodyAsync<T>(request.Body, deadline.Token);
+            var value = await ReadBodyAsync<T>(request.Body, maximumRequestBytes, deadline.Token);
             return value is null ? (null, Results.Problem(statusCode: StatusCodes.Status400BadRequest)) : (value, null);
         }
         catch (JsonException)
@@ -50,10 +50,10 @@ internal static class JsonRequestReader
         }
     }
 
-    private static async Task<T?> ReadBodyAsync<T>(Stream body, CancellationToken cancellationToken)
+    private static async Task<T?> ReadBodyAsync<T>(Stream body, int maximumRequestBytes, CancellationToken cancellationToken)
     {
         // The extra byte detects oversized bodies even when Content-Length is absent.
-        var buffer = new byte[MaximumRequestBytes + 1];
+        var buffer = new byte[maximumRequestBytes + 1];
         var length = 0;
 
         while (length < buffer.Length)
@@ -68,7 +68,7 @@ internal static class JsonRequestReader
             length += read;
         }
 
-        if (length > MaximumRequestBytes)
+        if (length > maximumRequestBytes)
         {
             throw new BadHttpRequestException("JSON request is too large.", StatusCodes.Status413PayloadTooLarge);
         }

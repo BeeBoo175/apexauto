@@ -5,6 +5,7 @@ using Dealership.Domain.Vehicles;
 using Dealership.Domain.Inspections;
 using Dealership.Infrastructure.Identity;
 using Dealership.Infrastructure.Intake;
+using Dealership.Infrastructure.Inspections;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -32,6 +33,8 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
 
     public DbSet<InspectionAssignment> InspectionAssignments => Set<InspectionAssignment>();
 
+    public DbSet<InspectionDraftSave> InspectionDraftSaves => Set<InspectionDraftSave>();
+
     public DbSet<AppointmentCheckIn> AppointmentCheckIns => Set<AppointmentCheckIn>();
 
     public DbSet<AccountSession> AccountSessions => Set<AccountSession>();
@@ -55,6 +58,7 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
         var inspectionAssignments = new InspectionAssignmentConfiguration();
         builder.ApplyConfiguration<InspectionDraft>(inspectionAssignments);
         builder.ApplyConfiguration<InspectionAssignment>(inspectionAssignments);
+        builder.ApplyConfiguration(new InspectionDraftSaveConfiguration());
         builder.ApplyConfiguration(new AppointmentCheckInConfiguration());
         builder.ApplyConfiguration(new CustomerProfileConfiguration());
         builder.ApplyConfiguration(new AccountSessionConfiguration());

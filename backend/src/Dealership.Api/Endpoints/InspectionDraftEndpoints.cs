@@ -15,6 +15,29 @@ public static class InspectionDraftEndpoints
         });
         routes.MapPost("/vehicles/{id:guid}/assignment", AssignAsync);
         routes.MapGet("/drafts/{id:guid}", ReadAsync);
+        routes.MapPost("/drafts/{id:guid}/saves", SaveAsync);
+    }
+
+    private static async Task<IResult> SaveAsync(Guid id, HttpContext context, IInspectionDraftSaveStore saves,
+        CancellationToken cancellationToken)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(20));
+        try
+        {
+            var request = await JsonRequestReader.ReadAsync<InspectionDraftSaveRequest>(context.Request, deadline.Token, 512 * 1024);
+            if (request.Error is not null)
+            {
+                return request.Error;
+            }
+
+            var result = await saves.SaveAsync(ActorId(context), id, request.Value!, deadline.Token);
+            return Map(result.Status, result.Receipt);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return Results.Problem(statusCode: 503, title: "Save is unconfirmed; reconcile with the same operation and contents.");
+        }
     }
 
     private static async Task<IResult> AssignAsync(Guid id, HttpContext context, IInspectionAssignmentStore assignments,
@@ -62,7 +85,7 @@ public static class InspectionDraftEndpoints
         return status switch
         {
             InspectionAssignmentStatus.Succeeded => Results.Ok(value),
-            InspectionAssignmentStatus.Invalid => Results.Problem(statusCode: 400, title: "Provide valid assignment identities, version and reason."),
+            InspectionAssignmentStatus.Invalid => Results.Problem(statusCode: 400, title: "Provide valid inspection identities, versions and exception details."),
             InspectionAssignmentStatus.Forbidden => Results.Forbid(),
             InspectionAssignmentStatus.NotFound => Results.NotFound(),
             InspectionAssignmentStatus.Conflict => Results.Problem(statusCode: 409, title: "The vehicle, assignment or operation has changed."),

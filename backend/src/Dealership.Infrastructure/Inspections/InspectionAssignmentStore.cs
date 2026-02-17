@@ -146,7 +146,8 @@ public sealed class InspectionAssignmentStore(DealershipDbContext database) : II
             return new(InspectionAssignmentStatus.Forbidden);
         }
 
-        var query = database.InspectionDrafts.AsNoTracking().Where(item => item.Id == inspectionId);
+        var query = database.InspectionDrafts.FromSqlInterpolated(
+            $"SELECT * FROM \"InspectionDrafts\" WHERE \"Id\" = {inspectionId} FOR SHARE").AsNoTracking();
         if (actor.Role != AccountRoles.GeneralManager)
         {
             query = query.Where(item => item.BranchId == actor.BranchId);
@@ -157,7 +158,13 @@ public sealed class InspectionAssignmentStore(DealershipDbContext database) : II
         }
 
         var draft = await query.Select(item => new InspectionDraftSnapshot(item.Id, item.VehicleId, item.BranchId,
-            item.TechnicianId, item.AssignmentVersion, item.CreatedAt)).SingleOrDefaultAsync(cancellationToken);
+            item.TechnicianId, item.AssignmentVersion, item.CreatedAt, null)).SingleOrDefaultAsync(cancellationToken);
+        if (draft is not null)
+        {
+            var latest = await database.InspectionDraftSaves.AsNoTracking().Where(save => save.InspectionId == inspectionId)
+                .OrderByDescending(save => save.Version).FirstOrDefaultAsync(cancellationToken);
+            draft = draft with { LatestSave = latest?.Receipt() };
+        }
         return draft is null ? new(InspectionAssignmentStatus.NotFound) : new(InspectionAssignmentStatus.Succeeded, draft);
     }
 

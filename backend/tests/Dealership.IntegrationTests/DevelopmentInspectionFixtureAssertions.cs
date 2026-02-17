@@ -17,15 +17,29 @@ internal static class DevelopmentInspectionFixtureAssertions
         var drafts = await database.InspectionDrafts.AsNoTracking().ToArrayAsync();
         Assert.Equal(3, drafts.Length);
         Assert.Equal(3, await database.InspectionAssignments.CountAsync());
+        Assert.Equal(3, await database.InspectionDraftSaves.CountAsync());
         foreach (var draft in drafts)
         {
             var technician = DevelopmentFixtureManifest.Staff.Single(item =>
                 item.BranchId == draft.BranchId && item.Role == AccountRoles.WorkshopTechnician);
             Assert.Equal(technician.Id, draft.TechnicianId);
             Assert.Equal(1, draft.AssignmentVersion);
+            var savedDraft = await services.GetRequiredService<IInspectionAssignmentStore>()
+                .ReadAsync(technician.Id, draft.Id, CancellationToken.None);
+            Assert.Equal(1, savedDraft.Draft!.LatestSave!.Version);
+            Assert.Equal(250m, savedDraft.Draft.LatestSave.Assessment.EstimatedRepairCost);
+            Assert.Equal(2, savedDraft.Draft.LatestSave.Entries.Count);
         }
 
         var selected = drafts[0];
+        var edit = await services.GetRequiredService<IInspectionDraftSaveStore>().SaveAsync(selected.TechnicianId,
+            selected.Id, new(Guid.NewGuid(), 1, 1, []), CancellationToken.None);
+        Assert.Equal(InspectionAssignmentStatus.Succeeded, edit.Status);
+        var edited = await DevelopmentIntakeFixtureAssertions.SnapshotAsync(provider);
+        var drift = await services.GetRequiredService<DevelopmentFixtureRunner>().SeedAsync(target, CancellationToken.None);
+        Assert.Contains(drift, report => report.Fixture.StartsWith("Inspection entries (", StringComparison.Ordinal) &&
+            report.State == "drift; preserved" && report.RequiresAttention);
+        Assert.Equal(edited, await DevelopmentIntakeFixtureAssertions.SnapshotAsync(provider));
         var replacement = Guid.NewGuid();
         await services.GetRequiredService<StaffProvisioningService>().ProvisionStaffAsync(new StaffProvisioningRequest(
             replacement, $"farid.hakim.{replacement:N}@example.invalid", DevelopmentFixtureManifest.Password,
