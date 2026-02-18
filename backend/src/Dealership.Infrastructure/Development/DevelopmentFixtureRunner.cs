@@ -2,6 +2,7 @@ using Dealership.Application.Accounts;
 using Dealership.Application.Branches;
 using Dealership.Application.Inspections;
 using Dealership.Application.Intake;
+using Dealership.Application.Photos;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,7 +12,8 @@ public sealed record DevelopmentFixtureReport(string Fixture, string State, bool
 
 public sealed class DevelopmentFixtureRunner(DealershipDbContext database, DevelopmentCustomerFixtures customers,
     StaffProvisioningService staff, BranchProvisioningService branches, DevelopmentIntakeFixtures intake,
-    IInspectionAssignmentStore assignments, IInspectionDraftSaveStore inspectionSaves)
+    IInspectionAssignmentStore assignments, IInspectionDraftSaveStore inspectionSaves, InspectionPhotoService inspectionPhotos,
+    IPhotoImageValidator photoValidator)
 {
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> SeedAsync(DevelopmentFixtureTarget target,
         CancellationToken cancellationToken)
@@ -106,6 +108,7 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
             if (!attention && vehicleId.HasValue)
             {
                 reports.Add(await InspectionEntriesAsync(seed, fixture.Id, technicianId, fixture.RegistrationPlate, cancellationToken));
+                reports.Add(await InspectionPhotoAsync(seed, fixture.Id, technicianId, fixture.RegistrationPlate, cancellationToken));
             }
         }
         return reports;
@@ -133,6 +136,37 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
         var saved = await inspectionSaves.SaveAsync(technicianId, inspectionId, request, cancellationToken);
         var succeeded = saved.Status == InspectionAssignmentStatus.Succeeded;
         return new($"Inspection entries ({plate})", succeeded ? "created" : "save unavailable; preserved", !succeeded);
+    }
+
+    private async Task<DevelopmentFixtureReport> InspectionPhotoAsync(bool seed, Guid inspectionId, Guid technicianId,
+        string plate, CancellationToken cancellationToken)
+    {
+        var id = DevelopmentInspectionManifest.PhotoId(inspectionId);
+        using var content = DevelopmentFixturePhotos.Open(Dealership.Domain.Intake.PhotoAngle.Front);
+        var validated = await photoValidator.ValidateAsync(content, "image/jpeg", cancellationToken)
+            ?? throw new InvalidOperationException("The inspection fixture photo must pass canonical source validation.");
+        var existing = await database.InspectionPhotos.AsNoTracking().SingleOrDefaultAsync(photo => photo.Id == id, cancellationToken);
+        if (existing is not null)
+        {
+            var matches = existing.Matches(inspectionId, technicianId, 1, "EP-004", validated);
+            if (!matches || existing.AvailableAt is not null || !seed)
+            {
+                var receipt = await inspectionPhotos.GetReceiptAsync(technicianId, inspectionId, id, cancellationToken);
+                var complete = matches && receipt.Status == InspectionPhotoStatus.Available;
+                return new($"Inspection photo ({plate})", complete ? "matches" : "drift; preserved", !complete);
+            }
+        }
+
+        if (!seed)
+        {
+            return new($"Inspection photo ({plate})", "missing", true);
+        }
+
+        content.Position = 0;
+        var result = await inspectionPhotos.UploadAsync(technicianId, inspectionId, id, 1, "EP-004", "image/jpeg",
+            content, cancellationToken);
+        var succeeded = result.Status == InspectionPhotoStatus.Available;
+        return new($"Inspection photo ({plate})", succeeded ? "created" : "upload unavailable; preserved", !succeeded);
     }
 
     private async Task<DevelopmentFixtureReport> ReviewAccountAsync(string fixture, Guid? id,

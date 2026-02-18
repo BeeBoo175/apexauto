@@ -244,7 +244,8 @@ internal static class DevelopmentIntakeFixtureAssertions
             Vehicles = await database.Vehicles.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync(),
             InspectionDrafts = await database.InspectionDrafts.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync(),
             InspectionAssignments = await database.InspectionAssignments.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync(),
-            InspectionSaves = await database.InspectionDraftSaves.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync()
+            InspectionSaves = await database.InspectionDraftSaves.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync(),
+            InspectionPhotos = await database.InspectionPhotos.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync()
         });
     }
 }

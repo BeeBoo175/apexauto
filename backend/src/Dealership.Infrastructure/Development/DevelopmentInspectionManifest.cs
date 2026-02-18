@@ -1,10 +1,20 @@
 using Dealership.Application.Inspections;
 using Dealership.Domain.Inspections;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Dealership.Infrastructure.Development;
 
 public static class DevelopmentInspectionManifest
 {
+    public static Guid PhotoId(Guid inspectionId)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes($"apexauto/development/inspection/{inspectionId:N}/bumper"));
+        bytes[6] = (byte)((bytes[6] & 0x0f) | 0x80);
+        bytes[8] = (byte)((bytes[8] & 0x3f) | 0x80);
+        return Guid.ParseExact(Convert.ToHexString(bytes.AsSpan(0, 16)), "N");
+    }
+
     public static IReadOnlyList<InspectionDraftEntryInput> Entries { get; } = Array.AsReadOnly<InspectionDraftEntryInput>([
         new("EP-004", InspectionEntryKind.Finding, InspectionSeverity.MinorDefect, 250m,
             "Front bumper has a shallow surface scratch; refinish estimate retained for assessment."),

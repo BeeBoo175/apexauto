@@ -18,6 +18,7 @@ internal static class DevelopmentInspectionFixtureAssertions
         Assert.Equal(3, drafts.Length);
         Assert.Equal(3, await database.InspectionAssignments.CountAsync());
         Assert.Equal(3, await database.InspectionDraftSaves.CountAsync());
+        Assert.Equal(3, await database.InspectionPhotos.CountAsync());
         foreach (var draft in drafts)
         {
             var technician = DevelopmentFixtureManifest.Staff.Single(item =>
@@ -29,6 +30,13 @@ internal static class DevelopmentInspectionFixtureAssertions
             Assert.Equal(1, savedDraft.Draft!.LatestSave!.Version);
             Assert.Equal(250m, savedDraft.Draft.LatestSave.Assessment.EstimatedRepairCost);
             Assert.Equal(2, savedDraft.Draft.LatestSave.Entries.Count);
+            var photo = await services.GetRequiredService<InspectionPhotoService>().GetReceiptAsync(technician.Id,
+                draft.Id, DevelopmentInspectionManifest.PhotoId(draft.Id), CancellationToken.None);
+            Assert.Equal(InspectionPhotoStatus.Available, photo.Status);
+            using var bytes = new MemoryStream();
+            Assert.Equal(InspectionPhotoStatus.Available, (await services.GetRequiredService<InspectionPhotoService>()
+                .DownloadAsync(technician.Id, draft.Id, photo.Receipt!.Id, bytes, CancellationToken.None)).Status);
+            Assert.Equal(photo.Receipt.Bytes, bytes.Length);
         }
 
         var selected = drafts[0];

@@ -8,6 +8,7 @@ namespace Dealership.IntegrationTests;
 internal sealed class DevelopmentFixtureInterruption
 {
     public bool Enabled { get; set; } = true;
+    public bool FailInspectionUploadOnce { get; set; }
     private int _uploads;
 
     public void Configure(IServiceCollection services)
@@ -21,6 +22,11 @@ internal sealed class DevelopmentFixtureInterruption
         public async Task PutAsync(IPhotoObject photo, Stream content, CancellationToken cancellationToken)
         {
             await inner.PutAsync(photo, content, cancellationToken);
+            if (fault.FailInspectionUploadOnce && photo.ObjectKey.StartsWith("inspection/photos/", StringComparison.Ordinal))
+            {
+                fault.FailInspectionUploadOnce = false;
+                throw new IOException("Injected lost acknowledgement for the inspection fixture upload.");
+            }
             if (fault.Enabled && Interlocked.Increment(ref fault._uploads) == 5)
             {
                 throw new IOException("Injected lost acknowledgement after the first appointment bundle was inserted.");

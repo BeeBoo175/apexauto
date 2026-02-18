@@ -1,5 +1,6 @@
 using Dealership.Application.Photos;
 using Dealership.Application.Intake;
+using Dealership.Application.Inspections;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -25,8 +26,11 @@ public static class IntakeMediaRegistration
             return new IntakePhotoPolicy(TimeSpan.FromTicks(lifetime.Ticks - lifetime.Ticks % 10));
         });
         services.AddSingleton<IPhotoImageValidator, PhotoImageValidator>();
+        services.AddSingleton(provider => new InspectionPhotoPolicy(
+            provider.GetRequiredService<IntakePhotoPolicy>().UnsubmittedLifetime));
         services.AddSingleton<IPhotoStorage, S3PhotoStorage>();
         services.AddScoped<IntakePhotoService>();
+        services.AddScoped<InspectionPhotoService>();
         services.AddScoped<PhotoCleanupStore>();
         services.AddHostedService<PhotoCleanupWorker>();
         return services;

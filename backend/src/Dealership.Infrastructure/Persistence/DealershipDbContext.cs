@@ -35,6 +35,8 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
 
     public DbSet<InspectionDraftSave> InspectionDraftSaves => Set<InspectionDraftSave>();
 
+    public DbSet<InspectionPhoto> InspectionPhotos => Set<InspectionPhoto>();
+
     public DbSet<AppointmentCheckIn> AppointmentCheckIns => Set<AppointmentCheckIn>();
 
     public DbSet<AccountSession> AccountSessions => Set<AccountSession>();
@@ -59,6 +61,7 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
         builder.ApplyConfiguration<InspectionDraft>(inspectionAssignments);
         builder.ApplyConfiguration<InspectionAssignment>(inspectionAssignments);
         builder.ApplyConfiguration(new InspectionDraftSaveConfiguration());
+        builder.ApplyConfiguration(new InspectionPhotoConfiguration());
         builder.ApplyConfiguration(new AppointmentCheckInConfiguration());
         builder.ApplyConfiguration(new CustomerProfileConfiguration());
         builder.ApplyConfiguration(new AccountSessionConfiguration());
