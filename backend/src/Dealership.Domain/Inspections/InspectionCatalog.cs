@@ -228,3 +228,14 @@ public static class InspectionCatalog
             ?? throw new ArgumentException("Inspection point is absent from the retained catalog version.", nameof(pointCode));
     }
 }
+
+public enum InspectionCategory
+{
+    FrameChassis,
+    EngineTransmission,
+    ExteriorPaint,
+    InteriorElectrical,
+    UnderbodyBrakesSuspension
+}
+
+public sealed record InspectionPoint(string Code, InspectionCategory Category, string Description);

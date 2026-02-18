@@ -15,7 +15,7 @@ public class InspectionGradingTests
     [InlineData(15000, InspectionGrade.C)]
     public void AppliesApprovedCostBoundaries(decimal cost, InspectionGrade expected)
     {
-        var assessment = InspectionGrading.Calculate([new("EP-001", InspectionSeverity.Advisory, cost)]);
+        var assessment = InspectionGrading.Calculate([Finding("EP-001", InspectionSeverity.Advisory, cost)]);
 
         Assert.Equal(expected, assessment.Grade);
         Assert.False(assessment.IsRejected);
@@ -30,8 +30,8 @@ public class InspectionGradingTests
     public void UsesWorseOfSeverityAndCombinedCost(InspectionSeverity severity, decimal cost, InspectionGrade expected)
     {
         var assessment = InspectionGrading.Calculate([
-            new("EP-001", severity, cost),
-            new("EP-002", InspectionSeverity.Advisory, 0)
+            Finding("EP-001", severity, cost),
+            Finding("EP-002", InspectionSeverity.Advisory, 0)
         ]);
 
         Assert.Equal(expected, assessment.Grade);
@@ -41,8 +41,8 @@ public class InspectionGradingTests
     public void AggregatesAllFindingsBeforeGrading()
     {
         var assessment = InspectionGrading.Calculate([
-            new("EP-001", InspectionSeverity.Advisory, 2499.99m),
-            new("EP-002", InspectionSeverity.Advisory, 0.01m)
+            Finding("EP-001", InspectionSeverity.Advisory, 2499.99m),
+            Finding("EP-002", InspectionSeverity.Advisory, 0.01m)
         ]);
 
         Assert.Equal(2500m, assessment.EstimatedRepairCost);
@@ -57,7 +57,7 @@ public class InspectionGradingTests
     [InlineData(InspectionSeverity.CriticalDisqualifier, 15000)]
     public void RejectsWithoutAssigningAGrade(InspectionSeverity severity, decimal cost)
     {
-        var assessment = InspectionGrading.Calculate([new("FC-038", severity, cost)]);
+        var assessment = InspectionGrading.Calculate([Finding("FC-038", severity, cost)]);
 
         Assert.True(assessment.IsRejected);
         Assert.Null(assessment.Grade);
@@ -77,22 +77,22 @@ public class InspectionGradingTests
     [InlineData(0.001)]
     public void RefusesInvalidMoneyWithoutRounding(decimal cost)
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => new InspectionFinding("EP-001", InspectionSeverity.Advisory, cost));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Finding("EP-001", InspectionSeverity.Advisory, cost));
     }
 
     [Fact]
     public void RefusesUnknownPointsAndSeverities()
     {
-        Assert.Throws<ArgumentException>(() => new InspectionFinding("EP-046", InspectionSeverity.Advisory, 0));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new InspectionFinding("EP-001", (InspectionSeverity)99, 0));
+        Assert.Throws<ArgumentException>(() => Finding("EP-046", InspectionSeverity.Advisory, 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Finding("EP-001", (InspectionSeverity)99, 0));
     }
 
     [Fact]
     public void RefusesDuplicatePointsEvenWhenAlreadyDisqualified()
     {
         Assert.Throws<ArgumentException>(() => InspectionGrading.Calculate([
-            new("FC-038", InspectionSeverity.CriticalDisqualifier, 0),
-            new("FC-038", InspectionSeverity.Advisory, 1)
+            Finding("FC-038", InspectionSeverity.CriticalDisqualifier, 0),
+            Finding("FC-038", InspectionSeverity.Advisory, 1)
         ]));
     }
 
@@ -102,8 +102,8 @@ public class InspectionGradingTests
         Assert.Throws<ArgumentNullException>(() => InspectionGrading.Calculate(null!));
         Assert.Throws<ArgumentNullException>(() => InspectionGrading.Calculate([null!]));
         Assert.Throws<ArgumentOutOfRangeException>(() => InspectionGrading.Calculate([
-            new("EP-001", InspectionSeverity.Advisory, decimal.MaxValue),
-            new("EP-002", InspectionSeverity.Advisory, 1)
+            Finding("EP-001", InspectionSeverity.Advisory, decimal.MaxValue),
+            Finding("EP-002", InspectionSeverity.Advisory, 1)
         ]));
     }
 
@@ -111,8 +111,13 @@ public class InspectionGradingTests
     public void RefusesSilentMinorUnitLossBelowDecimalOverflow()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => InspectionGrading.Calculate([
-            new("EP-001", InspectionSeverity.Advisory, decimal.MaxValue - 1),
-            new("EP-002", InspectionSeverity.Advisory, 0.01m)
+            Finding("EP-001", InspectionSeverity.Advisory, decimal.MaxValue - 1),
+            Finding("EP-002", InspectionSeverity.Advisory, 0.01m)
         ]));
+    }
+
+    private static InspectionDraftEntry Finding(string pointCode, InspectionSeverity severity, decimal cost)
+    {
+        return new(pointCode, InspectionEntryKind.Finding, severity, cost, "Observed condition.");
     }
 }

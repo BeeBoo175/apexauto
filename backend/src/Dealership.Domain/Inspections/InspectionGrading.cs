@@ -2,6 +2,14 @@ using System.Numerics;
 
 namespace Dealership.Domain.Inspections;
 
+public enum InspectionSeverity
+{
+    Advisory,
+    MinorDefect,
+    MajorDefect,
+    CriticalDisqualifier
+}
+
 public enum InspectionGrade
 {
     A,
@@ -24,43 +32,34 @@ public sealed record InspectionAssessment
 
 public static class InspectionGrading
 {
-    public static InspectionAssessment Calculate(IReadOnlyCollection<InspectionFinding> findings)
+    public static InspectionAssessment Calculate(IReadOnlyCollection<InspectionDraftEntry> entries)
     {
-        ArgumentNullException.ThrowIfNull(findings);
-
-        if (findings.Count > InspectionCatalog.Points.Count)
-        {
-            throw new ArgumentException("An inspection has at most one finding per catalog point.", nameof(findings));
-        }
-
-        var pointCodes = new HashSet<string>(StringComparer.Ordinal);
+        InspectionDraftEntry.ValidateSet(entries);
         var total = 0m;
         var worstSeverity = InspectionSeverity.Advisory;
 
-        foreach (var finding in findings)
+        foreach (var finding in entries)
         {
-            ArgumentNullException.ThrowIfNull(finding);
-
-            if (!pointCodes.Add(finding.PointCode))
+            if (finding.Kind != InspectionEntryKind.Finding)
             {
-                throw new ArgumentException("An inspection cannot repeat a catalog point.", nameof(findings));
+                continue;
             }
 
             if (finding.EstimatedRepairCost > decimal.MaxValue - total)
             {
-                throw new ArgumentOutOfRangeException(nameof(findings), "Total repair estimate exceeds monetary precision.");
+                throw new ArgumentOutOfRangeException(nameof(entries), "Total repair estimate exceeds monetary precision.");
             }
 
             var nextTotal = total + finding.EstimatedRepairCost;
             if (MinorUnits(nextTotal) != MinorUnits(total) + MinorUnits(finding.EstimatedRepairCost))
             {
-                throw new ArgumentOutOfRangeException(nameof(findings), "Total repair estimate loses minor-unit precision.");
+                throw new ArgumentOutOfRangeException(nameof(entries), "Total repair estimate loses minor-unit precision.");
             }
 
             total = nextTotal;
-            if (finding.Severity > worstSeverity)
+            if (finding.Severity!.Value > worstSeverity)
             {
-                worstSeverity = finding.Severity;
+                worstSeverity = finding.Severity!.Value;
             }
         }
 

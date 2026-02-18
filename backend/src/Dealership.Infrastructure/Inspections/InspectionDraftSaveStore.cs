@@ -23,6 +23,8 @@ public sealed class InspectionDraftSaveStore(DealershipDbContext database) : IIn
         }
 
         InspectionDraftEntry[] entries;
+        InspectionAssessment assessment;
+        IReadOnlyList<string>? examinedPointCodes = null;
         try
         {
             if (request.Entries.Any(entry => entry is null))
@@ -32,10 +34,10 @@ public sealed class InspectionDraftSaveStore(DealershipDbContext database) : IIn
 
             entries = [.. request.Entries.Select(entry => new InspectionDraftEntry(entry.PointCode, entry.Kind,
                 entry.Severity, entry.EstimatedRepairCost, entry.Notes)).OrderBy(entry => entry.PointCode, StringComparer.Ordinal)];
-            InspectionDraftEntry.Assess(entries);
+            assessment = InspectionGrading.Calculate(entries);
             if (request.ExaminedPointCodes is not null)
             {
-                _ = InspectionChecklist.Attest(entries, request.ExaminedPointCodes);
+                examinedPointCodes = InspectionChecklist.Attest(entries, request.ExaminedPointCodes);
             }
         }
         catch (ArgumentException)
@@ -110,7 +112,15 @@ public sealed class InspectionDraftSaveStore(DealershipDbContext database) : IIn
                 return new(InspectionAssignmentStatus.Conflict);
             }
 
-            var saved = new InspectionDraftSave(inspectionId, draft.BranchId, actorId, request, entries, now);
+            var receipt = new InspectionDraftSaveReceipt(request.OperationId, inspectionId, actorId,
+                request.AssignmentVersion, request.ExpectedVersion, request.ExpectedVersion + 1,
+                InspectionCatalog.Version, entries,
+                new(assessment.EstimatedRepairCost, assessment.Grade, assessment.IsRejected), now)
+            {
+                PhotoIds = request.PhotoIds.Order().ToArray(),
+                ExaminedPointCodes = examinedPointCodes
+            };
+            var saved = new InspectionDraftSave(draft.BranchId, receipt);
             database.InspectionDraftSaves.Add(saved);
             await database.SaveChangesAsync(cancellationToken);
             database.InspectionDraftPhotos.AddRange(photos.Select(photo => new InspectionDraftPhoto
@@ -122,7 +132,7 @@ public sealed class InspectionDraftSaveStore(DealershipDbContext database) : IIn
             }));
             await database.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
-            return new(InspectionAssignmentStatus.Succeeded, saved.Receipt());
+            return new(InspectionAssignmentStatus.Succeeded, receipt);
         }
         catch (DbUpdateException exception) when (exception.InnerException is PostgresException
         { SqlState: PostgresErrorCodes.UniqueViolation })

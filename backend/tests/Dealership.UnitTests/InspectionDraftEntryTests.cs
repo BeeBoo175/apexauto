@@ -12,11 +12,11 @@ public sealed class InspectionDraftEntryTests
         var absent = new InspectionDraftEntry("IE-040", InspectionEntryKind.NotFitted, null, 0, "  Equipment absent  ");
         var defect = new InspectionDraftEntry("FC-001", InspectionEntryKind.Finding, InspectionSeverity.MajorDefect, 100, "Observed damage");
         Assert.Equal("Equipment absent", absent.Notes);
-        var assessment = InspectionDraftEntry.Assess([absent, defect]);
+        var assessment = InspectionGrading.Calculate([absent, defect]);
         Assert.Equal(100, assessment.EstimatedRepairCost);
         Assert.Equal(InspectionGrade.C, assessment.Grade);
-        Assert.Throws<ArgumentException>(() => InspectionDraftEntry.Assess([absent, absent]));
-        Assert.Throws<ArgumentException>(() => InspectionDraftEntry.Assess([null!]));
+        Assert.Throws<ArgumentException>(() => InspectionGrading.Calculate([absent, absent]));
+        Assert.Throws<ArgumentNullException>(() => InspectionGrading.Calculate([null!]));
     }
 
     [Theory]
