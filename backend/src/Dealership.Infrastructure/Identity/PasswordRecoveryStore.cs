@@ -2,11 +2,12 @@ using Dealership.Application.Accounts;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Dealership.Infrastructure.Mail;
 
 namespace Dealership.Infrastructure.Identity;
 
 public sealed class PasswordRecoveryStore(DealershipDbContext database, UserManager<AccountUser> users,
-    PasswordResetToken tokens, TimeProvider clock) : IPasswordRecoveryStore
+    PasswordResetToken tokens, TimeProvider clock, MailDeliverySignal mail) : IPasswordRecoveryStore
 {
     public async Task RequestAsync(string email, CancellationToken cancellationToken)
     {
@@ -46,6 +47,7 @@ public sealed class PasswordRecoveryStore(DealershipDbContext database, UserMana
         });
         await database.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+        mail.Request();
     }
 
     public async Task<PasswordResetResult> ResetAsync(string token, string password, CancellationToken cancellationToken)

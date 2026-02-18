@@ -3,11 +3,12 @@ using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Microsoft.Extensions.Options;
+using Dealership.Infrastructure.Mail;
 
 namespace Dealership.Infrastructure.Intake;
 
 public sealed class AppointmentCancellationStore(DealershipDbContext database, TimeProvider clock,
-    IOptions<IntakePhotoSettings> settings) : IAppointmentCancellationStore
+    IOptions<IntakePhotoSettings> settings, MailDeliverySignal mail) : IAppointmentCancellationStore
 {
     public async Task<CancellationResult> CancelAsync(Guid ownerId, Guid appointmentId, CancellationToken cancellationToken)
     {
@@ -69,6 +70,7 @@ public sealed class AppointmentCancellationStore(DealershipDbContext database, T
                     .SetProperty(item => item.CancellationPhotosExpireAt, appointment.CancellationPhotosExpireAt), cancellationToken);
             await database.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
+            mail.Request();
         }
         catch (PostgresException exception) when (exception.ConstraintName is
             "CK_IntakeAppointments_CancellationTime" or "CK_IntakeAppointments_CheckedIn")

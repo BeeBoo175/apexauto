@@ -2,10 +2,11 @@ using Dealership.Application.Intake;
 using Dealership.Domain.Intake;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Dealership.Infrastructure.Mail;
 
 namespace Dealership.Infrastructure.Intake;
 
-public sealed class IntakeBookingStore(DealershipDbContext database) : IIntakeBookingStore
+public sealed class IntakeBookingStore(DealershipDbContext database, MailDeliverySignal mail) : IIntakeBookingStore
 {
     public async Task<IIntakeBookingTransaction> LockAsync(Guid ownerId, BookingRequest request,
         CancellationToken cancellationToken)
@@ -21,7 +22,7 @@ public sealed class IntakeBookingStore(DealershipDbContext database) : IIntakeBo
 
             if (user is null)
             {
-                return new IntakeBookingTransaction(database, transaction, new BookingContext(BookingStatus.Forbidden), string.Empty);
+                return new IntakeBookingTransaction(database, transaction, new BookingContext(BookingStatus.Forbidden), string.Empty, mail);
             }
 
             var existingOwner = await database.IntakeAppointments.Where(item => item.Id == request.Id)
@@ -31,7 +32,7 @@ public sealed class IntakeBookingStore(DealershipDbContext database) : IIntakeBo
             {
                 var receipt = await AppointmentReceiptReader.ReadAsync(database, request.Id, ownerId, cancellationToken);
                 var status = existingOwner == ownerId ? BookingStatus.Ready : BookingStatus.Conflict;
-                return new IntakeBookingTransaction(database, transaction, new BookingContext(status, receipt), user.Email!);
+                return new IntakeBookingTransaction(database, transaction, new BookingContext(status, receipt), user.Email!, mail);
             }
 
             var branchAvailable = await database.Branches.FromSqlInterpolated(
@@ -48,7 +49,7 @@ public sealed class IntakeBookingStore(DealershipDbContext database) : IIntakeBo
             var candidates = photos.Select(photo => new BookingPhotoCandidate(photo.Id, photo.OwnerId, photo.Angle,
                 photo.AvailableAt, photo.ExpiresAt, used.Contains(photo.Id), removed.Contains(photo.Id))).ToArray();
             var context = new BookingContext(BookingStatus.Ready, BranchAvailable: branchAvailable, Photos: candidates);
-            return new IntakeBookingTransaction(database, transaction, context, user.Email!);
+            return new IntakeBookingTransaction(database, transaction, context, user.Email!, mail);
         }
         catch
         {

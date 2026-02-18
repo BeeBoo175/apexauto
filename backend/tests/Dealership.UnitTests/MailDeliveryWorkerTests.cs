@@ -16,7 +16,7 @@ public sealed class MailDeliveryWorkerTests
         var transport = new TestTransport { FailRecipient = failFirst ? "verification" : null };
         using var services = CreateServices(first, second);
         using var worker = new MailDeliveryWorker(services.GetRequiredService<IServiceScopeFactory>(),
-            transport, NullLogger<MailDeliveryWorker>.Instance);
+            transport, new MailDeliverySignal(), NullLogger<MailDeliveryWorker>.Instance);
 
         await worker.DeliverBatchAsync(CancellationToken.None);
 
@@ -35,7 +35,7 @@ public sealed class MailDeliveryWorkerTests
         var transport = new TestTransport();
         using var services = CreateServices(broken, recovery);
         using var worker = new MailDeliveryWorker(services.GetRequiredService<IServiceScopeFactory>(),
-            transport, NullLogger<MailDeliveryWorker>.Instance);
+            transport, new MailDeliverySignal(), NullLogger<MailDeliveryWorker>.Instance);
 
         await worker.DeliverBatchAsync(CancellationToken.None);
 
@@ -52,7 +52,7 @@ public sealed class MailDeliveryWorkerTests
         var transport = new TestTransport { BlockSend = true };
         using var services = CreateServices(first, second);
         using var worker = new MailDeliveryWorker(services.GetRequiredService<IServiceScopeFactory>(),
-            transport, NullLogger<MailDeliveryWorker>.Instance);
+            transport, new MailDeliverySignal(), NullLogger<MailDeliveryWorker>.Instance);
         using var cancellation = new CancellationTokenSource();
         var delivery = worker.DeliverBatchAsync(cancellation.Token);
         await transport.Started.Task.WaitAsync(TimeSpan.FromSeconds(5));
@@ -70,7 +70,7 @@ public sealed class MailDeliveryWorkerTests
         var transport = new TestTransport { Enabled = false };
         using var services = CreateServices(queue);
         using var worker = new MailDeliveryWorker(services.GetRequiredService<IServiceScopeFactory>(),
-            transport, NullLogger<MailDeliveryWorker>.Instance);
+            transport, new MailDeliverySignal(), NullLogger<MailDeliveryWorker>.Instance);
 
         await worker.StartAsync(CancellationToken.None);
         await worker.ExecuteTask!;

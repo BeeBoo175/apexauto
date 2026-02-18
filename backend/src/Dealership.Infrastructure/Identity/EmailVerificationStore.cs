@@ -2,11 +2,12 @@ using Dealership.Application.Accounts;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Dealership.Infrastructure.Mail;
 
 namespace Dealership.Infrastructure.Identity;
 
 public sealed class EmailVerificationStore(DealershipDbContext database, UserManager<AccountUser> users,
-    EmailVerificationToken tokens, TimeProvider clock) : IEmailVerificationStore
+    EmailVerificationToken tokens, TimeProvider clock, MailDeliverySignal mail) : IEmailVerificationStore
 {
     public async Task QueueInitialAsync(Guid userId, CancellationToken cancellationToken)
     {
@@ -59,6 +60,7 @@ public sealed class EmailVerificationStore(DealershipDbContext database, UserMan
         AddChallenge(user, resendKey);
         await database.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+        mail.Request();
         return new VerificationResult(VerificationStatus.Accepted);
     }
 

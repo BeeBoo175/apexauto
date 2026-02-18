@@ -4,11 +4,12 @@ using Dealership.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using Dealership.Infrastructure.Mail;
 
 namespace Dealership.Infrastructure.Identity;
 
 public sealed class CustomerRegistrationStore(DealershipDbContext database, UserManager<AccountUser> users,
-    IEmailVerificationStore verification)
+    IEmailVerificationStore verification, MailDeliverySignal mail)
     : ICustomerRegistrationStore
 {
     private static readonly RegistrationResult Success = new(RegistrationStatus.Succeeded, new Dictionary<string, string[]>());
@@ -58,6 +59,7 @@ public sealed class CustomerRegistrationStore(DealershipDbContext database, User
             await database.SaveChangesAsync(cancellationToken);
             await verification.QueueInitialAsync(user.Id, cancellationToken);
             await transaction.CommitAsync(cancellationToken);
+            mail.Request();
             return Success;
         }
         catch (DbUpdateException exception) when (exception.InnerException is PostgresException

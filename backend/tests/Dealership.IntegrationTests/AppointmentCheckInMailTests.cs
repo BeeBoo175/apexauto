@@ -16,12 +16,16 @@ public sealed class AppointmentCheckInMailTests(IntakePhotoFixture fixture) : IC
     {
         using var data = await CheckInTestData.CreateAsync(fixture);
         var appointment = await data.BookAsync();
+        var signal = data.Factory.Services.GetRequiredService<MailDeliverySignal>();
+        await signal.WaitAsync(CancellationToken.None).AsTask().WaitAsync(TimeSpan.FromSeconds(5));
         using (var scope = data.Factory.Services.CreateScope())
         {
             var result = await scope.ServiceProvider.GetRequiredService<IAppointmentCheckInStore>()
                 .CheckInAsync(data.StaffId, appointment.Id, CheckInTestData.Evidence, CancellationToken.None);
             Assert.Equal(CheckInStatus.Succeeded, result.Status);
         }
+
+        await signal.WaitAsync(CancellationToken.None).AsTask().WaitAsync(TimeSpan.FromSeconds(5));
 
         var clock = new DeliveryClock();
         using var firstHost = fixture.CreateFactory(clock: clock);
@@ -66,7 +70,7 @@ public sealed class AppointmentCheckInMailTests(IntakePhotoFixture fixture) : IC
     private static MailDeliveryWorker Worker(WebApplicationFactory<Program> factory, IMailTransport transport)
     {
         return new MailDeliveryWorker(factory.Services.GetRequiredService<IServiceScopeFactory>(), transport,
-            NullLogger<MailDeliveryWorker>.Instance);
+            new MailDeliverySignal(), NullLogger<MailDeliveryWorker>.Instance);
     }
 
     private static async Task<ClaimedMail?> ClaimAsync(WebApplicationFactory<Program> factory)

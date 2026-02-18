@@ -4,10 +4,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Dealership.Infrastructure.Mail;
 
-public sealed class MailDeliveryWorker(IServiceScopeFactory scopes, IMailTransport transport,
+public sealed class MailDeliveryWorker(IServiceScopeFactory scopes, IMailTransport transport, MailDeliverySignal signal,
     ILogger<MailDeliveryWorker> logger) : BackgroundService
 {
-    private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(5);
     private static readonly Action<ILogger, string, Exception?> DeliveryFailure = LoggerMessage.Define<string>(
         LogLevel.Warning, new EventId(1, nameof(DeliveryFailure)),
         "Mail delivery is unconfirmed ({FailureType}); the intent remains retryable.");
@@ -20,11 +19,13 @@ public sealed class MailDeliveryWorker(IServiceScopeFactory scopes, IMailTranspo
         }
 
         transport.Validate();
+        signal.Request();
 
         while (!stoppingToken.IsCancellationRequested)
         {
+            // Avoid idle database usage on free hosting; retries wait for another event or restart.
+            await signal.WaitAsync(stoppingToken);
             await DeliverBatchAsync(stoppingToken);
-            await Task.Delay(PollInterval, stoppingToken);
         }
     }
 
@@ -52,6 +53,9 @@ public sealed class MailDeliveryWorker(IServiceScopeFactory scopes, IMailTranspo
                 return;
             }
         }
+
+        // Continue a full batch without requiring another business event to drain the backlog.
+        signal.Request();
     }
 
     private async Task<bool> DeliverNextAsync(int sourceIndex, CancellationToken cancellationToken)

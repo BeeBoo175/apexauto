@@ -4,6 +4,7 @@ using System.Text.Json;
 using Dealership.Application.Branches;
 using Dealership.Application.Intake;
 using Dealership.Infrastructure.Intake;
+using Dealership.Infrastructure.Mail;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -85,8 +86,11 @@ public sealed class AppointmentCancellationTests(IntakePhotoFixture fixture) : I
         var outsider = await IntakePhotoFixture.RegisterAsync(other);
         await IntakePhotoFixture.VerifyAsync(factory, other, outsider);
         Assert.Equal(HttpStatusCode.NotFound, (await other.PostAsync($"/api/intake/appointments/{receipt.Id}/cancellation", null)).StatusCode);
+        var signal = factory.Services.GetRequiredService<MailDeliverySignal>();
+        await signal.WaitAsync(CancellationToken.None).AsTask().WaitAsync(TimeSpan.FromSeconds(5));
         var responses = await Task.WhenAll(client.PostAsync($"/api/intake/appointments/{receipt.Id}/cancellation", null),
             client.PostAsync($"/api/intake/appointments/{receipt.Id}/cancellation", null));
+        await signal.WaitAsync(CancellationToken.None).AsTask().WaitAsync(TimeSpan.FromSeconds(5));
         Assert.All(responses, response => Assert.Equal(HttpStatusCode.OK, response.StatusCode));
         var cancelled = (await responses[0].Content.ReadFromJsonAsync<CancellationReceipt>())!;
         Assert.Equal(cancelled, await responses[1].Content.ReadFromJsonAsync<CancellationReceipt>());

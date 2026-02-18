@@ -56,7 +56,10 @@ public sealed class IntakeBookingTests(IntakePhotoFixture fixture) : IClassFixtu
                 Assert.False(await database.AppointmentMailOutbox.Where(item => item.Kind == AppointmentMailKind.Confirmation).AnyAsync());
             }
 
+            var signal = factory.Services.GetRequiredService<MailDeliverySignal>();
+            await signal.WaitAsync(CancellationToken.None).AsTask().WaitAsync(TimeSpan.FromSeconds(5));
             var competing = await Task.WhenAll(BookingTestData.BookAsync(client, request), BookingTestData.BookAsync(client, request));
+            await signal.WaitAsync(CancellationToken.None).AsTask().WaitAsync(TimeSpan.FromSeconds(5));
             receipt = competing[0];
             Assert.Equal(JsonSerializer.Serialize(receipt), JsonSerializer.Serialize(competing[1]));
             Assert.Equal(request.AcceptedQuote, receipt.Quote);
@@ -72,7 +75,7 @@ public sealed class IntakeBookingTests(IntakePhotoFixture fixture) : IClassFixtu
             Assert.DoesNotContain(offer!.Slots, slot => slot.StartsAt == request.StartsAt);
 
             var worker = new MailDeliveryWorker(factory.Services.GetRequiredService<IServiceScopeFactory>(),
-                new FailedMailTransport(), NullLogger<MailDeliveryWorker>.Instance);
+                new FailedMailTransport(), new MailDeliverySignal(), NullLogger<MailDeliveryWorker>.Instance);
             await worker.DeliverBatchAsync(CancellationToken.None);
             using var mailScope = factory.Services.CreateScope();
             var message = await mailScope.ServiceProvider.GetRequiredService<DealershipDbContext>()

@@ -4,11 +4,12 @@ using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Npgsql;
+using Dealership.Infrastructure.Mail;
 
 namespace Dealership.Infrastructure.Intake;
 
 internal sealed class IntakeBookingTransaction(DealershipDbContext database, IDbContextTransaction transaction,
-    BookingContext context, string recipient) : IIntakeBookingTransaction
+    BookingContext context, string recipient, MailDeliverySignal mail) : IIntakeBookingTransaction
 {
     public BookingContext Context => context;
 
@@ -24,6 +25,7 @@ internal sealed class IntakeBookingTransaction(DealershipDbContext database, IDb
         {
             await database.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
+            mail.Request();
         }
         catch (DbUpdateException exception) when (exception.InnerException is PostgresException
         { SqlState: PostgresErrorCodes.UniqueViolation, ConstraintName: "IX_IntakeAppointments_BranchId_StartsAt" } or

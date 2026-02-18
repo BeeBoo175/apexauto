@@ -13,6 +13,7 @@ using Dealership.Application.Branches;
 using Dealership.Infrastructure.Branches;
 using Dealership.Application.Inspections;
 using Dealership.Infrastructure.Inspections;
+using Dealership.Infrastructure.Mail;
 
 namespace Dealership.Infrastructure;
 
@@ -29,6 +30,7 @@ public static class DependencyInjection
         }
 
         services.AddDbContext<DealershipDbContext>(options => options.UseNpgsql(connectionString));
+        services.AddSingleton<MailDeliverySignal>();
         services.AddIdentityCore<AccountUser>(options =>
         {
             options.User.RequireUniqueEmail = true;

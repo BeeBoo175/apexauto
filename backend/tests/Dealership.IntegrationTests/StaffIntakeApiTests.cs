@@ -121,7 +121,8 @@ public sealed class StaffIntakeApiTests(IntakePhotoFixture fixture) : IClassFixt
         {
             services.RemoveAll<IAppointmentCheckInStore>();
             services.AddScoped<IAppointmentCheckInStore>(provider => new LostReceiptStore(new AppointmentCheckInStore(
-                provider.GetRequiredService<DealershipDbContext>(), provider.GetRequiredService<TimeProvider>())));
+                provider.GetRequiredService<DealershipDbContext>(), provider.GetRequiredService<TimeProvider>(),
+                provider.GetRequiredService<Dealership.Infrastructure.Mail.MailDeliverySignal>())));
         }));
         using var client = lostReceipt.CreateClient();
         client.DefaultRequestHeaders.Authorization = reconciler.DefaultRequestHeaders.Authorization;

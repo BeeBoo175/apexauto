@@ -20,7 +20,7 @@ public sealed class MailDeliveryFailureTests(RegistrationDatabase database) : IC
         interruption.FailNextClaim = true;
         var transport = new RecordingMailTransport(fail: false);
         using var worker = new MailDeliveryWorker(host.Factory.Services.GetRequiredService<IServiceScopeFactory>(),
-            transport, NullLogger<MailDeliveryWorker>.Instance);
+            transport, new MailDeliverySignal(), NullLogger<MailDeliveryWorker>.Instance);
 
         await worker.DeliverBatchAsync(CancellationToken.None);
 

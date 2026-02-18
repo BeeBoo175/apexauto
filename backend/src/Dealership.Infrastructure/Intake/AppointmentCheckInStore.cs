@@ -1,5 +1,6 @@
 using Dealership.Application.Accounts;
 using Dealership.Application.Intake;
+using Dealership.Infrastructure.Mail;
 using Dealership.Domain.Intake;
 using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Persistence;
@@ -8,7 +9,8 @@ using Npgsql;
 
 namespace Dealership.Infrastructure.Intake;
 
-public sealed class AppointmentCheckInStore(DealershipDbContext database, TimeProvider clock) : IAppointmentCheckInStore
+public sealed class AppointmentCheckInStore(DealershipDbContext database, TimeProvider clock, MailDeliverySignal mail)
+    : IAppointmentCheckInStore
 {
     public Task<CheckInResult> CheckInAsync(Guid staffId, Guid appointmentId, CheckInEvidence evidence,
         CancellationToken cancellationToken)
@@ -145,6 +147,7 @@ public sealed class AppointmentCheckInStore(DealershipDbContext database, TimePr
                 customer.Email!, now));
             await database.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
+            mail.Request();
             return new CheckInResult(CheckInStatus.Succeeded, Receipt(checkIn));
         }
         catch (DbUpdateException exception) when (exception.InnerException is PostgresException
