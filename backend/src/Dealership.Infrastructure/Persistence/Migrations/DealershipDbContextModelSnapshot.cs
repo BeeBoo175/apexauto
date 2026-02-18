@@ -928,6 +928,31 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Dealership.Infrastructure.Inspections.InspectionDraftPhoto", b =>
+                {
+                    b.Property<Guid>("SaveId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("PhotoId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("InspectionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PointCode")
+                        .IsRequired()
+                        .HasMaxLength(6)
+                        .HasColumnType("character varying(6)");
+
+                    b.HasKey("SaveId", "PhotoId");
+
+                    b.HasIndex("SaveId", "InspectionId");
+
+                    b.HasIndex("PhotoId", "InspectionId", "PointCode");
+
+                    b.ToTable("InspectionDraftPhotos", (string)null);
+                });
+
             modelBuilder.Entity("Dealership.Infrastructure.Inspections.InspectionDraftSave", b =>
                 {
                     b.Property<Guid>("Id")
@@ -957,6 +982,12 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("InspectionId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("PhotoIdsJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasDefaultValue("[]");
+
                     b.Property<DateTimeOffset>("RecordedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -975,6 +1006,42 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.ToTable("InspectionDraftSaves", null, t =>
                         {
                             t.HasCheckConstraint("CK_InspectionDraftSaves_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"AssignmentVersion\" > 0 AND \"ExpectedVersion\" >= 0 AND \"Version\" > 0 AND \"Version\" - 1 = \"ExpectedVersion\"");
+                        });
+                });
+
+            modelBuilder.Entity("Dealership.Infrastructure.Inspections.InspectionPhotoRemoval", b =>
+                {
+                    b.Property<Guid>("PhotoId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("ClaimExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ClaimId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("EligibleAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("PhotoId");
+
+                    b.HasIndex("NextAttemptAt", "PhotoId");
+
+                    b.ToTable("InspectionPhotoRemovals", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_InspectionPhotoRemovals_Shape", "isfinite(\"EligibleAt\") AND isfinite(\"RequestedAt\") AND \"RequestedAt\" >= \"EligibleAt\" AND \"Attempts\" >= 0 AND isfinite(\"NextAttemptAt\") AND (\"DeletedAt\" IS NULL OR (isfinite(\"DeletedAt\") AND \"DeletedAt\" >= \"RequestedAt\")) AND ((\"ClaimId\" IS NULL) = (\"ClaimExpiresAt\" IS NULL)) AND (\"ClaimId\" IS NULL OR (\"ClaimId\" <> '00000000-0000-0000-0000-000000000000'::uuid AND isfinite(\"ClaimExpiresAt\")))");
                         });
                 });
 
@@ -1283,6 +1350,23 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Dealership.Infrastructure.Inspections.InspectionDraftPhoto", b =>
+                {
+                    b.HasOne("Dealership.Infrastructure.Inspections.InspectionDraftSave", null)
+                        .WithMany()
+                        .HasForeignKey("SaveId", "InspectionId")
+                        .HasPrincipalKey("Id", "InspectionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Dealership.Domain.Inspections.InspectionPhoto", null)
+                        .WithMany()
+                        .HasForeignKey("PhotoId", "InspectionId", "PointCode")
+                        .HasPrincipalKey("Id", "InspectionId", "PointCode")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Dealership.Infrastructure.Inspections.InspectionDraftSave", b =>
                 {
                     b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
@@ -1295,6 +1379,15 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("InspectionId", "BranchId")
                         .HasPrincipalKey("Id", "BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Dealership.Infrastructure.Inspections.InspectionPhotoRemoval", b =>
+                {
+                    b.HasOne("Dealership.Domain.Inspections.InspectionPhoto", null)
+                        .WithOne()
+                        .HasForeignKey("Dealership.Infrastructure.Inspections.InspectionPhotoRemoval", "PhotoId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
