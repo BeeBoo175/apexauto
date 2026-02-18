@@ -1,3 +1,5 @@
+using Dealership.Domain.Photos;
+using Dealership.Application.Photos;
 using Dealership.Application.Accounts;
 using Dealership.Domain.Intake;
 
@@ -14,7 +16,7 @@ public sealed class IntakePhotoService(ICustomerAccountQuery accounts, IPhotoIma
     public async Task<PhotoResult> UploadAsync(Guid ownerId, Guid id, PhotoAngle angle, string contentType,
         Stream content, CancellationToken cancellationToken)
     {
-        if (id == Guid.Empty || !Enum.IsDefined(angle) || !IntakePhoto.IsSupportedContentType(contentType))
+        if (id == Guid.Empty || !Enum.IsDefined(angle) || !PhotoContent.IsSupportedContentType(contentType))
         {
             return new PhotoResult(PhotoStatus.Invalid);
         }

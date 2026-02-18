@@ -1,4 +1,4 @@
-using Dealership.Domain.Intake;
+using Dealership.Domain.Photos;
 
 namespace Dealership.Api.Endpoints;
 
@@ -39,7 +39,7 @@ internal static class PhotoTemporaryFile
 
             total += read;
 
-            if (total > IntakePhoto.MaximumBytes)
+            if (total > PhotoContent.MaximumBytes)
             {
                 throw new BadHttpRequestException("Photo exceeds 10 MiB.", StatusCodes.Status413PayloadTooLarge);
             }

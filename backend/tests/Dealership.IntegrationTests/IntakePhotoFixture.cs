@@ -1,3 +1,5 @@
+using Dealership.Domain.Photos;
+using Dealership.Application.Photos;
 using Dealership.Infrastructure.Storage;
 using System.Net;
 using System.Net.Http.Headers;
@@ -220,7 +222,7 @@ public sealed class IntakePhotoFixture : IAsyncLifetime, IAsyncDisposable
     private sealed class StorageProbe(IPhotoStorage storage, bool failAfterPut, Action<string> observeFailure,
         Action<Stream>? observeDownload, bool failAfterDelete, bool failBeforeDelete) : IPhotoStorage
     {
-        public async Task PutAsync(Dealership.Domain.Intake.IntakePhoto photo, Stream content, CancellationToken cancellationToken)
+        public async Task PutAsync(IPhotoObject photo, Stream content, CancellationToken cancellationToken)
         {
             try
             {
@@ -241,13 +243,13 @@ public sealed class IntakePhotoFixture : IAsyncLifetime, IAsyncDisposable
             }
         }
 
-        public Task CopyToAsync(Dealership.Domain.Intake.IntakePhoto photo, Stream destination, CancellationToken cancellationToken)
+        public Task CopyToAsync(IPhotoObject photo, Stream destination, CancellationToken cancellationToken)
         {
             observeDownload?.Invoke(destination);
             return storage.CopyToAsync(photo, destination, cancellationToken);
         }
 
-        public async Task DeleteAsync(Dealership.Domain.Intake.IntakePhoto photo, CancellationToken cancellationToken)
+        public async Task DeleteAsync(IPhotoObject photo, CancellationToken cancellationToken)
         {
             if (failBeforeDelete)
             {

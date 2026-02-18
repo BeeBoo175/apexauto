@@ -1,3 +1,4 @@
+using Dealership.Domain.Photos;
 using Dealership.Infrastructure.Storage;
 using System.Security.Cryptography;
 using Dealership.Domain.Intake;
@@ -42,7 +43,7 @@ public sealed class IntakePhotoTests
     {
         using var validator = new PhotoImageValidator();
         using var empty = new MemoryStream();
-        using var oversized = new MemoryStream(new byte[IntakePhoto.MaximumBytes + 1]);
+        using var oversized = new MemoryStream(new byte[PhotoContent.MaximumBytes + 1]);
         using var masquerade = new MemoryStream("this is not an exterior photograph"u8.ToArray());
         Assert.Null(await validator.ValidateAsync(empty, "image/png", CancellationToken.None));
         Assert.Null(await validator.ValidateAsync(oversized, "image/png", CancellationToken.None));

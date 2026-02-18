@@ -1,3 +1,4 @@
+using Dealership.Application.Photos;
 using Dealership.Application.Intake;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;

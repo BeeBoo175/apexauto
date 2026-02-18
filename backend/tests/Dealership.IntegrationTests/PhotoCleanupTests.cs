@@ -1,3 +1,4 @@
+using Dealership.Application.Photos;
 using System.Net;
 using System.Net.Http.Json;
 using Dealership.Application.Intake;

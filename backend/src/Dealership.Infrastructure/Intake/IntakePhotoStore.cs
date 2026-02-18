@@ -1,3 +1,4 @@
+using Dealership.Domain.Photos;
 using Dealership.Application.Intake;
 using Dealership.Domain.Intake;
 using Dealership.Infrastructure.Persistence;

@@ -1,17 +1,17 @@
+using Dealership.Domain.Photos;
+using Dealership.Application.Photos;
 using Dealership.Infrastructure.Storage;
 using System.Net;
 using System.Security.Cryptography;
 using Amazon.S3;
 using Amazon.S3.Model;
 using Amazon.Runtime;
-using Dealership.Application.Intake;
-using Dealership.Domain.Intake;
 
 namespace Dealership.Infrastructure.Intake;
 
 public sealed class S3PhotoStorage(IAmazonS3 client, PhotoStorageSettings settings) : IPhotoStorage
 {
-    public async Task PutAsync(IntakePhoto photo, Stream content, CancellationToken cancellationToken)
+    public async Task PutAsync(IPhotoObject photo, Stream content, CancellationToken cancellationToken)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(30));
@@ -45,7 +45,7 @@ public sealed class S3PhotoStorage(IAmazonS3 client, PhotoStorageSettings settin
         await CopyToAsync(photo, Stream.Null, cancellationToken);
     }
 
-    public async Task CopyToAsync(IntakePhoto photo, Stream destination, CancellationToken cancellationToken)
+    public async Task CopyToAsync(IPhotoObject photo, Stream destination, CancellationToken cancellationToken)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(30));
@@ -94,7 +94,7 @@ public sealed class S3PhotoStorage(IAmazonS3 client, PhotoStorageSettings settin
         }
     }
 
-    public async Task DeleteAsync(IntakePhoto photo, CancellationToken cancellationToken)
+    public async Task DeleteAsync(IPhotoObject photo, CancellationToken cancellationToken)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(30));

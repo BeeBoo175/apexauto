@@ -1,4 +1,5 @@
 using Dealership.Domain.Intake;
+using Dealership.Domain.Photos;
 
 namespace Dealership.Application.Intake;
 
@@ -24,11 +25,6 @@ public sealed record PhotoPreparation(PhotoStatus Status, IntakePhoto? Photo = n
 
 public sealed record IntakePhotoPolicy(TimeSpan UnsubmittedLifetime);
 
-public interface IPhotoImageValidator
-{
-    Task<PhotoContent?> ValidateAsync(Stream content, string contentType, CancellationToken cancellationToken);
-}
-
 public interface IIntakePhotoStore
 {
     Task<PhotoPreparation> PrepareAsync(Guid ownerId, Guid id, PhotoAngle angle, PhotoContent content,
@@ -38,15 +34,3 @@ public interface IIntakePhotoStore
 
     Task<PhotoPreparation> ConfirmAsync(Guid ownerId, Guid id, CancellationToken cancellationToken);
 }
-
-public interface IPhotoStorage
-{
-    Task PutAsync(IntakePhoto photo, Stream content, CancellationToken cancellationToken);
-
-    Task CopyToAsync(IntakePhoto photo, Stream destination, CancellationToken cancellationToken);
-
-    Task DeleteAsync(IntakePhoto photo, CancellationToken cancellationToken);
-}
-
-public sealed class PhotoStorageException(Exception? innerException = null)
-    : Exception("Photo storage is temporarily unavailable.", innerException);

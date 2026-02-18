@@ -1,5 +1,5 @@
-using Dealership.Application.Intake;
-using Dealership.Domain.Intake;
+using Dealership.Domain.Photos;
+using Dealership.Application.Photos;
 using Dealership.Infrastructure.Intake;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -18,7 +18,7 @@ internal sealed class DevelopmentFixtureInterruption
 
     private sealed class PhotoStorage(IPhotoStorage inner, DevelopmentFixtureInterruption fault) : IPhotoStorage
     {
-        public async Task PutAsync(IntakePhoto photo, Stream content, CancellationToken cancellationToken)
+        public async Task PutAsync(IPhotoObject photo, Stream content, CancellationToken cancellationToken)
         {
             await inner.PutAsync(photo, content, cancellationToken);
             if (fault.Enabled && Interlocked.Increment(ref fault._uploads) == 5)
@@ -27,12 +27,12 @@ internal sealed class DevelopmentFixtureInterruption
             }
         }
 
-        public Task CopyToAsync(IntakePhoto photo, Stream destination, CancellationToken cancellationToken)
+        public Task CopyToAsync(IPhotoObject photo, Stream destination, CancellationToken cancellationToken)
         {
             return inner.CopyToAsync(photo, destination, cancellationToken);
         }
 
-        public Task DeleteAsync(IntakePhoto photo, CancellationToken cancellationToken)
+        public Task DeleteAsync(IPhotoObject photo, CancellationToken cancellationToken)
         {
             return inner.DeleteAsync(photo, cancellationToken);
         }

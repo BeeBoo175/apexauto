@@ -1,3 +1,5 @@
+using Dealership.Domain.Photos;
+
 namespace Dealership.Domain.Intake;
 
 public enum PhotoAngle
@@ -8,12 +10,8 @@ public enum PhotoAngle
     Rear
 }
 
-public sealed record PhotoContent(string ContentType, long Bytes, string Sha256, int Width, int Height);
-
-public sealed class IntakePhoto
+public sealed class IntakePhoto : IPhotoObject
 {
-    public const int MaximumBytes = 10 * 1024 * 1024;
-
     private IntakePhoto()
     {
     }
@@ -22,9 +20,7 @@ public sealed class IntakePhoto
         DateTimeOffset createdAt, TimeSpan lifetime)
     {
         if (id == Guid.Empty || ownerId == Guid.Empty || !Enum.IsDefined(angle) || lifetime <= TimeSpan.Zero ||
-            !IsSupportedContentType(content.ContentType) || content.Bytes is < 1 or > MaximumBytes ||
-            content.Width < 1 || content.Height < 1 || content.Sha256.Length != 64 ||
-            !content.Sha256.All(character => character is >= '0' and <= '9' or >= 'a' and <= 'f'))
+            !content.IsValid)
         {
             throw new ArgumentException("Photo identity, content and lifetime must be valid.");
         }
@@ -54,11 +50,6 @@ public sealed class IntakePhoto
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset ExpiresAt { get; private set; }
     public DateTimeOffset? AvailableAt { get; private set; }
-
-    public static bool IsSupportedContentType(string? value)
-    {
-        return value is "image/jpeg" or "image/png" or "image/webp";
-    }
 
     public bool Matches(Guid ownerId, PhotoAngle angle, PhotoContent content)
     {

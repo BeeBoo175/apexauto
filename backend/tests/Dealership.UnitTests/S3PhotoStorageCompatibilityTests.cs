@@ -1,3 +1,5 @@
+using Dealership.Domain.Photos;
+using Dealership.Application.Photos;
 using Dealership.Infrastructure.Storage;
 using System.Net;
 using System.Net.Http.Headers;
@@ -15,14 +17,21 @@ namespace Dealership.UnitTests;
 public sealed class S3PhotoStorageCompatibilityTests
 {
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task HttpsUploadUsesPortableHeadersAndVerifiesOriginalBytesBeforeSuccess(bool corruptReadBack)
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task HttpsUploadUsesPortableHeadersAndVerifiesOriginalBytesBeforeSuccess(bool corruptReadBack,
+        bool inspectionObject)
     {
         byte[] bytes = "validated photo contents"u8.ToArray();
-        var photo = new IntakePhoto(Guid.NewGuid(), Guid.NewGuid(), PhotoAngle.Front,
+        var intakePhoto = new IntakePhoto(Guid.NewGuid(), Guid.NewGuid(), PhotoAngle.Front,
             new PhotoContent("image/jpeg", bytes.Length, Convert.ToHexStringLower(SHA256.HashData(bytes)), 8, 8),
             DateTimeOffset.UtcNow, TimeSpan.FromHours(24));
+        IPhotoObject photo = inspectionObject
+            ? new EvidenceObject($"inspection/photos/{Guid.NewGuid():N}", intakePhoto.ContentType,
+                intakePhoto.Bytes, intakePhoto.Sha256)
+            : intakePhoto;
         var settings = Settings();
         using var handler = new StorageHandler(bytes, corruptReadBack);
         using var client = new AmazonS3Client(new BasicAWSCredentials(settings.AccessKey, settings.SecretKey),
@@ -100,6 +109,8 @@ public sealed class S3PhotoStorageCompatibilityTests
             ForcePathStyle = true
         };
     }
+
+    private sealed record EvidenceObject(string ObjectKey, string ContentType, long Bytes, string Sha256) : IPhotoObject;
 
     private sealed class TestClientFactory(Func<HttpClient> createClient) : Amazon.Runtime.HttpClientFactory
     {

@@ -1,3 +1,5 @@
+using Dealership.Domain.Photos;
+using Dealership.Application.Photos;
 using System.IdentityModel.Tokens.Jwt;
 using Dealership.Application.Intake;
 using Dealership.Domain.Intake;
@@ -34,7 +36,7 @@ public static class IntakePhotoEndpoints
 
         var contentType = context.Request.ContentType?.Split(';', 2)[0].Trim().ToLowerInvariant();
 
-        if (!IntakePhoto.IsSupportedContentType(contentType))
+        if (!PhotoContent.IsSupportedContentType(contentType))
         {
             return Results.Problem(statusCode: 415, title: "Upload a JPEG, PNG or WebP photo.");
         }
@@ -48,10 +50,10 @@ public static class IntakePhotoEndpoints
 
         if (sizeFeature is { IsReadOnly: false })
         {
-            sizeFeature.MaxRequestBodySize = IntakePhoto.MaximumBytes;
+            sizeFeature.MaxRequestBodySize = PhotoContent.MaximumBytes;
         }
 
-        if (context.Request.ContentLength > IntakePhoto.MaximumBytes)
+        if (context.Request.ContentLength > PhotoContent.MaximumBytes)
         {
             return Results.Problem(statusCode: 413, title: "Photo exceeds 10 MiB.");
         }

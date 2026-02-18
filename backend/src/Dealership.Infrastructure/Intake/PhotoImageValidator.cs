@@ -1,6 +1,6 @@
+using Dealership.Domain.Photos;
+using Dealership.Application.Photos;
 using System.Security.Cryptography;
-using Dealership.Application.Intake;
-using Dealership.Domain.Intake;
 using SkiaSharp;
 
 namespace Dealership.Infrastructure.Intake;
@@ -12,7 +12,7 @@ public sealed class PhotoImageValidator(long maximumPixels = PhotoImageValidator
 
     public async Task<PhotoContent?> ValidateAsync(Stream content, string contentType, CancellationToken cancellationToken)
     {
-        if (!content.CanSeek || content.Length is < 1 or > IntakePhoto.MaximumBytes)
+        if (!content.CanSeek || content.Length is < 1 or > PhotoContent.MaximumBytes)
         {
             return null;
         }
