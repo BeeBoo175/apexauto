@@ -976,6 +976,9 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("jsonb");
 
+                    b.Property<string>("ExaminedPointCodesJson")
+                        .HasColumnType("jsonb");
+
                     b.Property<long>("ExpectedVersion")
                         .HasColumnType("bigint");
 
@@ -1005,6 +1008,8 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.ToTable("InspectionDraftSaves", null, t =>
                         {
+                            t.HasCheckConstraint("CK_InspectionDraftSaves_Attestation", "\"ExaminedPointCodesJson\" IS NULL OR valid_inspection_attestation(\"EntriesJson\", \"ExaminedPointCodesJson\")");
+
                             t.HasCheckConstraint("CK_InspectionDraftSaves_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"AssignmentVersion\" > 0 AND \"ExpectedVersion\" >= 0 AND \"Version\" > 0 AND \"Version\" - 1 = \"ExpectedVersion\"");
                         });
                 });
