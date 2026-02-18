@@ -27,6 +27,6 @@ internal static class AppointmentReceiptReader
             new InspectionSlot(appointment.StartsAt, appointment.EndsAt), appointment.CreatedAt,
             new ValuationRequest(valuation.Make, valuation.Model, valuation.Trim, valuation.ManufactureYear, valuation.MileageKilometres),
             new ValuationResponse(valuation.Minimum, valuation.Maximum, valuation.Currency, valuation.ValuationYear),
-            photos.OrderBy(photo => photo.Angle).ToArray());
+            [.. photos.OrderBy(photo => photo.Angle)]);
     }
 }

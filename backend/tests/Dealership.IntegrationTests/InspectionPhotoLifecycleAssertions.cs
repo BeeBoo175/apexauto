@@ -28,7 +28,7 @@ internal static class InspectionPhotoLifecycleAssertions
         var request = new InspectionDraftSaveRequest(Guid.NewGuid(), 1, 0,
             [new("EP-004", InspectionEntryKind.Finding, InspectionSeverity.MinorDefect, 250m, "Bumper scratch with retained images")])
         {
-            PhotoIds = ids.Take(4).Reverse().ToArray()
+            PhotoIds = [.. ids.Take(4).Reverse()]
         };
         foreach (var invalid in new[]
         {
@@ -55,7 +55,7 @@ internal static class InspectionPhotoLifecycleAssertions
         var read = await client.GetFromJsonAsync<InspectionDraftSnapshot>($"/api/staff/inspection/drafts/{inspection}");
         Assert.Equal(saved.Receipt.PhotoIds, read!.LatestSave!.PhotoIds);
         using var restarted = fixture.CreateFactory();
-        var replay = await SaveAsync(restarted, actor, inspection, request with { PhotoIds = request.PhotoIds!.Reverse().ToArray() });
+        var replay = await SaveAsync(restarted, actor, inspection, request with { PhotoIds = [.. request.PhotoIds!.Reverse()] });
         Assert.Equal(JsonSerializer.Serialize(saved.Receipt), JsonSerializer.Serialize(replay.Receipt));
         Assert.Equal(InspectionAssignmentStatus.Conflict,
             (await SaveAsync(restarted, actor, inspection, request with { PhotoIds = [] })).Status);

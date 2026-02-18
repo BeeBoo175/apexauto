@@ -52,7 +52,7 @@ internal static class BookingTestData
             ids.Add(id);
         }
 
-        return ids.ToArray();
+        return [.. ids];
     }
 
     public static async Task<Guid> OwnerAsync(WebApplicationFactory<Program> factory, RegistrationRequest registration)

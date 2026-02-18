@@ -8,17 +8,17 @@ public sealed class StaffCalendarTests
     public void PeriodUsesMalaysianDaysAndAcceptsExactlySixWeeks()
     {
         var now = new DateTimeOffset(2026, 10, 19, 16, 0, 0, TimeSpan.Zero);
-        Assert.Null(StaffCalendarService.Parse(null, null, null, null, now));
-        var today = StaffCalendarService.Parse("2026-10-20", "2026-10-20", null, null, now)!;
+        Assert.Null(StaffCalendarService.Parse(null, null, null, null));
+        var today = StaffCalendarService.Parse("2026-10-20", "2026-10-20", null, null)!;
         Assert.Equal(now, today.From);
         Assert.Equal(now.AddDays(1), today.Until);
         Assert.Equal(StaffWorklistStatus.All, today.Status);
-        var month = StaffCalendarService.Parse("2026-09-28", "2026-11-08", "All", null, now)!;
+        var month = StaffCalendarService.Parse("2026-09-28", "2026-11-08", "All", null)!;
         Assert.Equal(TimeSpan.FromDays(42), month.Until - month.From);
-        Assert.Null(StaffCalendarService.Parse("2026-09-28", "2026-11-09", "All", null, now));
-        Assert.Null(StaffCalendarService.Parse("2026-10-20", null, null, null, now));
-        Assert.Null(StaffCalendarService.Parse("2026-10-20", "2026-10-19", null, null, now));
-        Assert.Null(StaffCalendarService.Parse("2026-10-20", "2026-10-20", "Unknown", null, now));
+        Assert.Null(StaffCalendarService.Parse("2026-09-28", "2026-11-09", "All", null));
+        Assert.Null(StaffCalendarService.Parse("2026-10-20", null, null, null));
+        Assert.Null(StaffCalendarService.Parse("2026-10-20", "2026-10-19", null, null));
+        Assert.Null(StaffCalendarService.Parse("2026-10-20", "2026-10-20", "Unknown", null));
     }
 
     [Theory]
@@ -34,7 +34,7 @@ public sealed class StaffCalendarTests
             startsAt, startsAt.AddMinutes(90), "Booked")).ToArray();
         var store = new CalendarStore(total < 0 ? null : new StaffWorklistPage(rows, total, 1, 1000));
         var service = new StaffCalendarService(store);
-        var query = StaffCalendarService.Parse("2026-09-28", "2026-11-08", null, Guid.NewGuid(), startsAt)!;
+        var query = StaffCalendarService.Parse("2026-09-28", "2026-11-08", null, Guid.NewGuid())!;
         var actor = Guid.NewGuid();
         var result = await service.ReadAsync(actor, query, CancellationToken.None);
         Assert.Equal(expected, result.Status);

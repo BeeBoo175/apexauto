@@ -79,7 +79,7 @@ public sealed class StaffWorklistStore(DealershipDbContext database) : IStaffWor
         {
             var page = await StaffWorklistRows.Order(records, query).ThenBy(row => row.Id)
                 .Skip((int)offset).Take(query.PageSize).ToArrayAsync(cancellationToken);
-            items = page.Select(StaffWorklistRows.ToItem).ToArray();
+            items = [.. page.Select(StaffWorklistRows.ToItem)];
         }
 
         await transaction.CommitAsync(cancellationToken);

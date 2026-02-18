@@ -46,7 +46,7 @@ public sealed class StaffWorklistTests(IntakePhotoFixture fixture) : IClassFixtu
                 .CancelAsync(data.OwnerId, booked[6].Id, CancellationToken.None)).Status);
         var from = booked[0].Slot.StartsAt.AddHours(8).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         var to = booked[^1].Slot.StartsAt.AddHours(8).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-        var query = StaffWorklistQuery.Parse(from, to, null, null, 1, 20, DateTimeOffset.UtcNow)!;
+        var query = StaffWorklistQuery.Parse(from, to, null, null, 1, 20)!;
         var pages = new List<StaffWorklistPage>();
 
         for (var page = 1; page <= 3; page++)
@@ -132,12 +132,12 @@ public sealed class StaffWorklistTests(IntakePhotoFixture fixture) : IClassFixtu
             query with { Status = StaffWorklistStatus.CheckedIn }))!.Items).Id);
         Assert.Equal(booked[6].Id, Assert.Single((await ListAsync(data, data.StaffId,
             query with { Status = StaffWorklistStatus.Cancelled }))!.Items).Id);
-        var unrestricted = StaffWorklistQuery.Parse(null, null, "All", null, 1, 20, booked[0].Slot.StartsAt)!;
+        var unrestricted = StaffWorklistQuery.Parse(null, null, "All", null, 1, 20)!;
         Assert.Equal(43, (await ListAsync(data, data.StaffId, unrestricted))!.Total);
         Assert.Equal(44, (await ListAsync(data, manager, unrestricted))!.Total);
         Assert.Equal(43, (await services.GetRequiredService<IStaffWorklistStore>()
             .ExportAsync(data.StaffId, unrestricted, CancellationToken.None))!.Items.Count);
-        var today = StaffWorklistQuery.Parse(from, from, null, null, 1, 20, booked[0].Slot.StartsAt)!;
+        var today = StaffWorklistQuery.Parse(from, from, null, null, 1, 20)!;
         Assert.Equal(5, (await ListAsync(data, data.StaffId, today))!.Total);
         Assert.Equal(6, (await ListAsync(data, data.StaffId, today with
         {

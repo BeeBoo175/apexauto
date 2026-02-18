@@ -32,7 +32,7 @@ public sealed class IntakeBookingServiceTests
         var service = new IntakeBookingService(new BookingStore(transaction), valuations,
             new InspectionSchedule(new TimeOnly(9, 0), new TimeOnly(18, 0), 90, 30, 120, [DayOfWeek.Saturday]), clock);
         var request = new BookingRequest(Guid.NewGuid(), Guid.NewGuid(), clock.GetUtcNow().AddDays(1).AddHours(1),
-            "WYY 8821", vehicle, accepted, candidates.Select(photo => photo.Id).ToArray());
+            "WYY 8821", vehicle, accepted, [.. candidates.Select(photo => photo.Id)]);
         var result = await service.BookAsync(owner, request, CancellationToken.None);
         Assert.Equal(BookingStatus.QuoteChanged, result.Status);
         Assert.Equal(quote, result.FreshQuote);

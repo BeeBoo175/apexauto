@@ -13,7 +13,7 @@ public sealed class InspectionPhotoTests
         var photo = new InspectionPhoto(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
             3, "EP-004", content, now, TimeSpan.FromHours(24));
         Assert.Equal($"inspection/photos/{photo.Id:N}", photo.ObjectKey);
-        Assert.IsAssignableFrom<IPhotoObject>(photo);
+        Assert.IsType<IPhotoObject>(photo, exactMatch: false);
         Assert.True(photo.Matches(photo.InspectionId, photo.ActorId, 3, "EP-004", content));
         Assert.False(photo.Matches(Guid.NewGuid(), photo.ActorId, 3, "EP-004", content));
         Assert.False(photo.Matches(photo.InspectionId, Guid.NewGuid(), 3, "EP-004", content));

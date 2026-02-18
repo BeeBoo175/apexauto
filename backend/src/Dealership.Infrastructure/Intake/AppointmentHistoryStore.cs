@@ -50,8 +50,8 @@ public sealed class AppointmentHistoryStore(DealershipDbContext database) : IApp
                         .Select(item => (DateTimeOffset?)item.CheckedInAt).SingleOrDefault()))
                 .ToArrayAsync(cancellationToken);
         }
-        items = items.Select(item => item.NoShowAt is null ? item :
-            item with { NoShowAt = AppointmentDay.EndsAt(item.StartsAt) }).ToArray();
+        items = [.. items.Select(item => item.NoShowAt is null ? item :
+            item with { NoShowAt = AppointmentDay.EndsAt(item.StartsAt) })];
         await transaction.CommitAsync(cancellationToken);
         return new AppointmentHistoryPage(items, total, query.Page, query.PageSize);
     }

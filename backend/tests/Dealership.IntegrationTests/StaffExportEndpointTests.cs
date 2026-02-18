@@ -15,13 +15,13 @@ public sealed class StaffExportEndpointTests
         var staffId = Guid.NewGuid();
         var context = Context(staffId);
         var store = new ExportStore(new StaffWorklistPage([], 10001, 1, 10000));
-        var invalid = await StaffIntakeExportEndpoint.ExportAsync(context, store, TimeProvider.System,
+        var invalid = await StaffIntakeExportEndpoint.ExportAsync(context, store,
             CancellationToken.None, sort: "untrusted");
-        Assert.Equal(400, Assert.IsAssignableFrom<IStatusCodeHttpResult>(invalid).StatusCode);
+        Assert.Equal(400, Assert.IsType<IStatusCodeHttpResult>(invalid, exactMatch: false).StatusCode);
         Assert.Null(store.Query);
-        var refused = await StaffIntakeExportEndpoint.ExportAsync(context, store, TimeProvider.System,
+        var refused = await StaffIntakeExportEndpoint.ExportAsync(context, store,
             CancellationToken.None, search: " VCA ", sort: "customerName", direction: "desc");
-        Assert.Equal(422, Assert.IsAssignableFrom<IStatusCodeHttpResult>(refused).StatusCode);
+        Assert.Equal(422, Assert.IsType<IStatusCodeHttpResult>(refused, exactMatch: false).StatusCode);
         Assert.False(refused is Microsoft.AspNetCore.Http.HttpResults.FileContentHttpResult);
         Assert.Equal(staffId, store.StaffId);
         Assert.Equal("VCA", store.Query!.Search);
@@ -29,7 +29,7 @@ public sealed class StaffExportEndpointTests
         Assert.Equal("desc", store.Query.Direction);
         Assert.Null(context.Response.Headers.ContentDisposition.FirstOrDefault());
         store.Result = null;
-        var denied = await StaffIntakeExportEndpoint.ExportAsync(context, store, TimeProvider.System, CancellationToken.None);
+        var denied = await StaffIntakeExportEndpoint.ExportAsync(context, store, CancellationToken.None);
         Assert.IsType<Microsoft.AspNetCore.Http.HttpResults.ForbidHttpResult>(denied);
     }
 
@@ -39,10 +39,10 @@ public sealed class StaffExportEndpointTests
         var item = new StaffWorklistItem(Guid.NewGuid(), Guid.NewGuid(), " \u0001@branch", " \t=SUM(1,2)",
             "VCA \"9701\"\nA", new DateTimeOffset(2026, 10, 20, 9, 0, 0, TimeSpan.FromHours(8)),
             DateTimeOffset.UtcNow, "Booked");
-        var store = new ExportStore(new StaffWorklistPage(Enumerable.Repeat(item, 10000).ToArray(), 10000, 1, 10000));
+        var store = new ExportStore(new StaffWorklistPage([.. Enumerable.Repeat(item, 10000)], 10000, 1, 10000));
         var context = Context(Guid.NewGuid());
-        var result = Assert.IsAssignableFrom<Microsoft.AspNetCore.Http.HttpResults.FileContentHttpResult>(await StaffIntakeExportEndpoint.ExportAsync(
-            context, store, TimeProvider.System, CancellationToken.None));
+        var result = Assert.IsType<Microsoft.AspNetCore.Http.HttpResults.FileContentHttpResult>(await StaffIntakeExportEndpoint.ExportAsync(
+            context, store, CancellationToken.None), exactMatch: false);
         var csv = Encoding.UTF8.GetString(result.FileContents.Span);
         Assert.StartsWith("\uFEFF\"Registration\",\"Customer\",\"Branch\",\"Inspection start (UTC)\",\"Status\",\"Appointment reference\"\r\n", csv);
         Assert.Contains("\"' \t=SUM(1,2)\"", csv);
@@ -57,12 +57,12 @@ public sealed class StaffExportEndpointTests
     {
         var store = new ExportStore(null) { Stall = true };
         var expired = await StaffIntakeExportEndpoint.ExportAsync(Context(Guid.NewGuid()), store,
-            TimeProvider.System, CancellationToken.None);
-        Assert.Equal(503, Assert.IsAssignableFrom<IStatusCodeHttpResult>(expired).StatusCode);
+            CancellationToken.None);
+        Assert.Equal(503, Assert.IsType<IStatusCodeHttpResult>(expired, exactMatch: false).StatusCode);
         using var caller = new CancellationTokenSource();
         caller.Cancel();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => StaffIntakeExportEndpoint.ExportAsync(
-            Context(Guid.NewGuid()), store, TimeProvider.System, caller.Token));
+            Context(Guid.NewGuid()), store, caller.Token));
     }
 
     private static DefaultHttpContext Context(Guid id) => new()

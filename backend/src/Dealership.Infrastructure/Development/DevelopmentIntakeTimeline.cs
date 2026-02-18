@@ -21,7 +21,7 @@ public static class DevelopmentIntakeTimeline
         }
 
         var historical = HistoricalSlots(schedule, anchor);
-        return DevelopmentIntakeManifest.Appointments.GroupBy(item => item.BranchId).SelectMany(branch =>
+        return [.. DevelopmentIntakeManifest.Appointments.GroupBy(item => item.BranchId).SelectMany(branch =>
         {
             var next = 0;
             return branch.Select(fixture => fixture.Status switch
@@ -34,7 +34,7 @@ public static class DevelopmentIntakeTimeline
                     historical[1].BookedAt, historical[1].Slot.StartsAt),
                 _ => new DevelopmentIntakeMoment(fixture, future[next++], anchor, null)
             });
-        }).OrderBy(moment => moment.Slot.StartsAt).ThenBy(moment => moment.Fixture.Id).ToArray();
+        }).OrderBy(moment => moment.Slot.StartsAt).ThenBy(moment => moment.Fixture.Id)];
     }
 
     private static (InspectionSlot Slot, DateTimeOffset BookedAt)[] HistoricalSlots(InspectionSchedule schedule,
@@ -59,7 +59,7 @@ public static class DevelopmentIntakeTimeline
             throw new InvalidOperationException("The configured schedule cannot provide historical development appointments.");
         }
 
-        return result.ToArray();
+        return [.. result];
     }
 
     private static IEnumerable<InspectionSlot> Slots(InspectionSchedule schedule, DateTimeOffset now)

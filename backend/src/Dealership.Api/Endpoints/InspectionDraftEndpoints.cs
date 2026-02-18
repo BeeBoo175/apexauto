@@ -25,13 +25,13 @@ public static class InspectionDraftEndpoints
         deadline.CancelAfter(TimeSpan.FromSeconds(20));
         try
         {
-            var request = await JsonRequestReader.ReadAsync<InspectionDraftSaveRequest>(context.Request, deadline.Token, 512 * 1024);
-            if (request.Error is not null)
+            var (request, error) = await JsonRequestReader.ReadAsync<InspectionDraftSaveRequest>(context.Request, deadline.Token, 512 * 1024);
+            if (error is not null)
             {
-                return request.Error;
+                return error;
             }
 
-            var result = await saves.SaveAsync(ActorId(context), id, request.Value!, deadline.Token);
+            var result = await saves.SaveAsync(ActorId(context), id, request!, deadline.Token);
             return Map(result.Status, result.Receipt);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
@@ -47,13 +47,13 @@ public static class InspectionDraftEndpoints
         deadline.CancelAfter(TimeSpan.FromSeconds(20));
         try
         {
-            var request = await JsonRequestReader.ReadAsync<InspectionAssignmentRequest>(context.Request, deadline.Token);
-            if (request.Error is not null)
+            var (request, error) = await JsonRequestReader.ReadAsync<InspectionAssignmentRequest>(context.Request, deadline.Token);
+            if (error is not null)
             {
-                return request.Error;
+                return error;
             }
 
-            var result = await assignments.AssignAsync(ActorId(context), id, request.Value!, deadline.Token);
+            var result = await assignments.AssignAsync(ActorId(context), id, request!, deadline.Token);
             return Map(result.Status, result.Receipt);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)

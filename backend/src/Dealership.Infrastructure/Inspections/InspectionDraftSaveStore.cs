@@ -30,8 +30,8 @@ public sealed class InspectionDraftSaveStore(DealershipDbContext database) : IIn
                 return new(InspectionAssignmentStatus.Invalid);
             }
 
-            entries = request.Entries.Select(entry => new InspectionDraftEntry(entry.PointCode, entry.Kind,
-                entry.Severity, entry.EstimatedRepairCost, entry.Notes)).OrderBy(entry => entry.PointCode, StringComparer.Ordinal).ToArray();
+            entries = [.. request.Entries.Select(entry => new InspectionDraftEntry(entry.PointCode, entry.Kind,
+                entry.Severity, entry.EstimatedRepairCost, entry.Notes)).OrderBy(entry => entry.PointCode, StringComparer.Ordinal)];
             InspectionDraftEntry.Assess(entries);
         }
         catch (ArgumentException)

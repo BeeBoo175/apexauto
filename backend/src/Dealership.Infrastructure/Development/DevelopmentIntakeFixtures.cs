@@ -63,7 +63,7 @@ public sealed class DevelopmentIntakeFixtures(DealershipDbContext database, Deve
         }
 
         await initialization.CommitAsync(cancellationToken);
-        return DevelopmentIntakeManifest.Appointments.Select(fixture => Report(fixture, "created", false)).ToArray();
+        return [.. DevelopmentIntakeManifest.Appointments.Select(fixture => Report(fixture, "created", false))];
     }
 
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> ReviewAsync(CancellationToken cancellationToken)
@@ -78,7 +78,7 @@ public sealed class DevelopmentIntakeFixtures(DealershipDbContext database, Deve
             Cancelled = item.CancelledAt != null,
             CheckedIn = database.AppointmentCheckIns.Any(checkIn => checkIn.AppointmentId == item.Id)
         }).ToDictionaryAsync(item => item.Id, cancellationToken);
-        return DevelopmentIntakeManifest.Appointments.Select(fixture =>
+        return [.. DevelopmentIntakeManifest.Appointments.Select(fixture =>
         {
             if (!existing.TryGetValue(fixture.Id, out var appointment))
             {
@@ -102,7 +102,7 @@ public sealed class DevelopmentIntakeFixtures(DealershipDbContext database, Deve
             }
 
             return Report(fixture, $"{state}; starts={appointment.StartsAt:O}", state != fixture.Status);
-        }).ToArray();
+        })];
     }
 
     private async Task CreateAppointmentAsync(DevelopmentIntakeMoment moment, CancellationToken cancellationToken)

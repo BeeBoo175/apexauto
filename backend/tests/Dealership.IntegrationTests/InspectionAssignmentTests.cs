@@ -26,14 +26,14 @@ public sealed class InspectionAssignmentTests(IntakePhotoFixture fixture) : ICla
             .CheckInAsync(data.StaffId, appointment.Id, CheckInTestData.Evidence, CancellationToken.None);
         Assert.Equal(CheckInStatus.Succeeded, checkIn.Status);
         var vehicleId = checkIn.Receipt!.VehicleId;
-        var first = await ProvisionAsync(services, data.BranchId, AccountRoles.WorkshopTechnician, "azlan.rahim");
-        var second = await ProvisionAsync(services, data.BranchId, AccountRoles.WorkshopTechnician, "arif.hakimi");
-        var manager = await ProvisionAsync(services, data.BranchId, AccountRoles.BranchManager, "siti.aminah");
-        var group = await ProvisionAsync(services, null, AccountRoles.GeneralManager, "farah.aziz");
+        var (firstId, _) = await ProvisionAsync(services, data.BranchId, AccountRoles.WorkshopTechnician, "azlan.rahim");
+        var (secondId, _) = await ProvisionAsync(services, data.BranchId, AccountRoles.WorkshopTechnician, "arif.hakimi");
+        var (managerId, managerEmail) = await ProvisionAsync(services, data.BranchId, AccountRoles.BranchManager, "siti.aminah");
+        var (groupId, _) = await ProvisionAsync(services, null, AccountRoles.GeneralManager, "farah.aziz");
         var claims = new[]
         {
-            new InspectionAssignmentRequest(Guid.NewGuid(), first.Id, 0, null),
-            new InspectionAssignmentRequest(Guid.NewGuid(), second.Id, 0, null)
+            new InspectionAssignmentRequest(Guid.NewGuid(), firstId, 0, null),
+            new InspectionAssignmentRequest(Guid.NewGuid(), secondId, 0, null)
         };
         var competing = await Task.WhenAll(claims.Select(request => AssignAsync(data.Factory, request.TechnicianId, vehicleId, request)));
         var won = Array.FindIndex(competing, result => result.Status == InspectionAssignmentStatus.Succeeded);
@@ -53,9 +53,9 @@ public sealed class InspectionAssignmentTests(IntakePhotoFixture fixture) : ICla
 
         var reassignment = new InspectionAssignmentRequest(Guid.NewGuid(), replacement, 1, "  Cover the workshop handover  ");
         Assert.Equal(InspectionAssignmentStatus.Forbidden,
-            (await AssignAsync(restarted, first.Id, vehicleId, reassignment)).Status);
-        var changes = await Task.WhenAll(AssignAsync(restarted, manager.Id, vehicleId, reassignment),
-            AssignAsync(restarted, manager.Id, vehicleId, reassignment with { OperationId = Guid.NewGuid() }));
+            (await AssignAsync(restarted, firstId, vehicleId, reassignment)).Status);
+        var changes = await Task.WhenAll(AssignAsync(restarted, managerId, vehicleId, reassignment),
+            AssignAsync(restarted, managerId, vehicleId, reassignment with { OperationId = Guid.NewGuid() }));
         Assert.Single(changes, result => result.Status == InspectionAssignmentStatus.Succeeded);
         Assert.Single(changes, result => result.Status == InspectionAssignmentStatus.Conflict);
         var changed = changes.Single(result => result.Status == InspectionAssignmentStatus.Succeeded).Receipt!;
@@ -63,22 +63,22 @@ public sealed class InspectionAssignmentTests(IntakePhotoFixture fixture) : ICla
         Assert.Equal(claim.TechnicianId, changed.PreviousTechnicianId);
         Assert.Equal("Cover the workshop handover", changed.Reason);
         var exact = reassignment with { OperationId = changed.OperationId };
-        Assert.Equal(changed, (await AssignAsync(restarted, manager.Id, vehicleId, exact)).Receipt);
+        Assert.Equal(changed, (await AssignAsync(restarted, managerId, vehicleId, exact)).Receipt);
         Assert.Equal(InspectionAssignmentStatus.Conflict,
-            (await AssignAsync(restarted, manager.Id, vehicleId, exact with { Reason = "Different contents" })).Status);
+            (await AssignAsync(restarted, managerId, vehicleId, exact with { Reason = "Different contents" })).Status);
         Assert.Equal(receipt, (await AssignAsync(restarted, claim.TechnicianId, vehicleId, claim)).Receipt);
         Assert.Equal(InspectionAssignmentStatus.NotFound, (await ReadAsync(restarted, claim.TechnicianId, receipt.InspectionId)).Status);
         Assert.Equal(2, (await ReadAsync(restarted, replacement, receipt.InspectionId)).Draft!.AssignmentVersion);
-        Assert.Equal(InspectionAssignmentStatus.Succeeded, (await ReadAsync(restarted, manager.Id, receipt.InspectionId)).Status);
-        Assert.Equal(InspectionAssignmentStatus.Succeeded, (await ReadAsync(restarted, group.Id, receipt.InspectionId)).Status);
+        Assert.Equal(InspectionAssignmentStatus.Succeeded, (await ReadAsync(restarted, managerId, receipt.InspectionId)).Status);
+        Assert.Equal(InspectionAssignmentStatus.Succeeded, (await ReadAsync(restarted, groupId, receipt.InspectionId)).Status);
         Assert.Equal(InspectionAssignmentStatus.Forbidden, (await ReadAsync(restarted, data.StaffId, receipt.InspectionId)).Status);
 
         var database = services.GetRequiredService<DealershipDbContext>();
         Assert.Equal(1, await database.InspectionDrafts.CountAsync());
         Assert.Equal(2, await database.InspectionAssignments.CountAsync());
-        await InspectionAssignmentSqlAssertions.VerifyAsync(fixture.Database, receipt, changed, first.Id, second.Id, manager.Id);
-        await AssertApiAsync(restarted, vehicleId, changed, exact, manager.Email);
-        await AssertScopeDenialsAsync(data, database, manager.Id, replacement, receipt.InspectionId, vehicleId, exact);
+        await InspectionAssignmentSqlAssertions.VerifyAsync(fixture.Database, receipt, changed, firstId, secondId, managerId);
+        await AssertApiAsync(restarted, vehicleId, changed, exact, managerEmail);
+        await AssertScopeDenialsAsync(data, database, managerId, replacement, receipt.InspectionId, vehicleId, exact);
     }
 
     private static async Task AssertApiAsync(WebApplicationFactory<Program> factory, Guid vehicleId,

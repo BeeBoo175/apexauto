@@ -25,10 +25,10 @@ public sealed class InspectionPhotoStore(DealershipDbContext database, IInspecti
         await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
         try
         {
-            var access = await LockUploadAsync(actorId, inspectionId, assignmentVersion, cancellationToken);
-            if (access.Status != InspectionPhotoStatus.Available)
+            var (status, draft) = await LockUploadAsync(actorId, inspectionId, assignmentVersion, cancellationToken);
+            if (status != InspectionPhotoStatus.Available)
             {
-                return new(access.Status);
+                return new(status);
             }
 
             await database.Database.ExecuteSqlInterpolatedAsync(
@@ -42,7 +42,7 @@ public sealed class InspectionPhotoStore(DealershipDbContext database, IInspecti
                     ? await ClassifyAsync(existing, now, cancellationToken) : new(InspectionPhotoStatus.Conflict);
             }
 
-            var photo = new InspectionPhoto(id, inspectionId, access.Draft!.BranchId, actorId, assignmentVersion,
+            var photo = new InspectionPhoto(id, inspectionId, draft!.BranchId, actorId, assignmentVersion,
                 pointCode, content, now, lifetime);
             database.InspectionPhotos.Add(photo);
             await database.SaveChangesAsync(cancellationToken);
@@ -62,10 +62,10 @@ public sealed class InspectionPhotoStore(DealershipDbContext database, IInspecti
         await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
         try
         {
-            var access = await LockUploadAsync(actorId, inspectionId, null, cancellationToken);
-            if (access.Status != InspectionPhotoStatus.Available)
+            var (status, draft) = await LockUploadAsync(actorId, inspectionId, null, cancellationToken);
+            if (status != InspectionPhotoStatus.Available)
             {
-                return new(access.Status);
+                return new(status);
             }
 
             var photo = await database.InspectionPhotos.FromSqlInterpolated(
@@ -76,7 +76,7 @@ public sealed class InspectionPhotoStore(DealershipDbContext database, IInspecti
                 return new(InspectionPhotoStatus.NotFound);
             }
 
-            if (photo.ActorId != actorId || photo.AssignmentVersion != access.Draft!.AssignmentVersion)
+            if (photo.ActorId != actorId || photo.AssignmentVersion != draft!.AssignmentVersion)
             {
                 return new(InspectionPhotoStatus.Conflict);
             }

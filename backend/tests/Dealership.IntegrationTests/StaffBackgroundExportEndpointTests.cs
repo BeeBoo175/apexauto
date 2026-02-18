@@ -17,11 +17,11 @@ public sealed class StaffBackgroundExportEndpointTests
         var worker = new Worker { Error = new StaffExportBusyException() };
         var context = Context(actor);
         var busy = await ExportAsync(context, worker, sessions);
-        Assert.Equal(429, Assert.IsAssignableFrom<IStatusCodeHttpResult>(busy).StatusCode);
+        Assert.Equal(429, Assert.IsType<IStatusCodeHttpResult>(busy, exactMatch: false).StatusCode);
         Assert.Equal("1", context.Response.Headers.RetryAfter);
         Assert.Null(context.Response.Headers.ContentDisposition.FirstOrDefault());
         worker.Error = new StaffExportTooLargeException();
-        Assert.Equal(413, Assert.IsAssignableFrom<IStatusCodeHttpResult>(await ExportAsync(context, worker, sessions)).StatusCode);
+        Assert.Equal(413, Assert.IsType<IStatusCodeHttpResult>(await ExportAsync(context, worker, sessions), exactMatch: false).StatusCode);
         worker.Error = null;
         var completed = Assert.IsType<Microsoft.AspNetCore.Http.HttpResults.FileStreamHttpResult>(
             await ExportAsync(context, worker, sessions));
@@ -35,22 +35,22 @@ public sealed class StaffBackgroundExportEndpointTests
         var sessions = new Sessions(actor);
         var worker = new Worker();
         var invalid = await StaffIntakeBackgroundExportEndpoint.ExportAsync(Context(actor), worker, sessions,
-            TimeProvider.System, CancellationToken.None, sort: "untrusted");
-        Assert.Equal(400, Assert.IsAssignableFrom<IStatusCodeHttpResult>(invalid).StatusCode);
+            CancellationToken.None, sort: "untrusted");
+        Assert.Equal(400, Assert.IsType<IStatusCodeHttpResult>(invalid, exactMatch: false).StatusCode);
         Assert.Equal(0, worker.Calls);
         sessions.Actor = actor with { Role = AccountRoles.Administrator, BranchId = null };
         Assert.IsType<Microsoft.AspNetCore.Http.HttpResults.ForbidHttpResult>(await ExportAsync(Context(actor), worker, sessions));
         Assert.Equal(0, worker.Calls);
         sessions = new Sessions(actor) { ReassignOnSecondRead = true };
         var denied = await ExportAsync(Context(actor), worker, sessions);
-        Assert.Equal(409, Assert.IsAssignableFrom<IStatusCodeHttpResult>(denied).StatusCode);
+        Assert.Equal(409, Assert.IsType<IStatusCodeHttpResult>(denied, exactMatch: false).StatusCode);
         Assert.False(worker.File!.CanRead);
     }
 
     private static Task<IResult> ExportAsync(HttpContext context, Worker worker, Sessions sessions)
     {
         return StaffIntakeBackgroundExportEndpoint.ExportAsync(context, worker, sessions,
-            TimeProvider.System, CancellationToken.None);
+            CancellationToken.None);
     }
 
     private static DefaultHttpContext Context(CurrentActor actor) => new()

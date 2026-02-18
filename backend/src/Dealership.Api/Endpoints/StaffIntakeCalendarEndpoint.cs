@@ -5,10 +5,10 @@ namespace Dealership.Api.Endpoints;
 
 public static class StaffIntakeCalendarEndpoint
 {
-    public static async Task<IResult> ReadAsync(HttpContext context, StaffCalendarService calendar, TimeProvider clock,
+    public static async Task<IResult> ReadAsync(HttpContext context, StaffCalendarService calendar,
         CancellationToken cancellationToken, string? from = null, string? to = null, string? status = null, Guid? branchId = null)
     {
-        var query = StaffCalendarService.Parse(from, to, status, branchId, clock.GetUtcNow());
+        var query = StaffCalendarService.Parse(from, to, status, branchId);
         if (query is null)
         {
             return Results.Problem(statusCode: 400, title: "Choose a valid calendar period of at most 42 days.");

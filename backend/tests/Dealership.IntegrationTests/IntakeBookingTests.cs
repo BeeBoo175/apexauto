@@ -47,7 +47,7 @@ public sealed class IntakeBookingTests(IntakePhotoFixture fixture) : IClassFixtu
             Assert.Equal(request.AcceptedQuote, await response.Content.ReadFromJsonAsync<ValuationResponse>());
 
             Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/intake/appointments",
-                request with { PhotoIds = request.PhotoIds!.Take(3).ToArray() })).StatusCode);
+                request with { PhotoIds = [.. request.PhotoIds!.Take(3)] })).StatusCode);
             Assert.Equal(HttpStatusCode.Conflict, (await other.PostAsJsonAsync("/api/intake/appointments", request)).StatusCode);
             using (var scope = factory.Services.CreateScope())
             {

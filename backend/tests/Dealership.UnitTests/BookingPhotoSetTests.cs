@@ -77,7 +77,7 @@ public sealed class BookingPhotoSetTests
 
     private static BookingPhotoCandidate[] Candidates(Guid owner)
     {
-        return Enum.GetValues<PhotoAngle>().Select(angle => new BookingPhotoCandidate(Guid.NewGuid(), owner,
-            angle, Now.AddMinutes(-1), Now.AddHours(24), false, false)).ToArray();
+        return [.. Enum.GetValues<PhotoAngle>().Select(angle => new BookingPhotoCandidate(Guid.NewGuid(), owner,
+            angle, Now.AddMinutes(-1), Now.AddHours(24), false, false))];
     }
 }

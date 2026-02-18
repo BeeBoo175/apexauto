@@ -76,14 +76,14 @@ public static class IntakeBookingEndpoints
 
         try
         {
-            var request = await JsonRequestReader.ReadAsync<BookingRequest>(context.Request, deadline.Token);
+            var (request, error) = await JsonRequestReader.ReadAsync<BookingRequest>(context.Request, deadline.Token);
 
-            if (request.Error is not null)
+            if (error is not null)
             {
-                return request.Error;
+                return error;
             }
 
-            return Map(await bookings.BookAsync(OwnerId(context), request.Value!, deadline.Token));
+            return Map(await bookings.BookAsync(OwnerId(context), request!, deadline.Token));
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {

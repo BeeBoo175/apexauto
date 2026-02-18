@@ -33,24 +33,24 @@ public sealed class InspectionPhotoTests(IntakePhotoFixture fixture) : IClassFix
         using var activeFactory = fixture.CreateFactory();
         using var photoScope = activeFactory.Services.CreateScope();
         var services = photoScope.ServiceProvider;
-        var technician = await ProvisionAsync(services, data.BranchId, AccountRoles.WorkshopTechnician);
-        var replacement = await ProvisionAsync(services, data.BranchId, AccountRoles.WorkshopTechnician);
-        var manager = await ProvisionAsync(services, data.BranchId, AccountRoles.BranchManager);
-        var group = await ProvisionAsync(services, null, AccountRoles.GeneralManager);
-        var administrator = await ProvisionAsync(services, null, AccountRoles.Administrator);
+        var (technicianId, technicianEmail) = await ProvisionAsync(services, data.BranchId, AccountRoles.WorkshopTechnician);
+        var (replacementId, _) = await ProvisionAsync(services, data.BranchId, AccountRoles.WorkshopTechnician);
+        var (managerId, _) = await ProvisionAsync(services, data.BranchId, AccountRoles.BranchManager);
+        var (groupId, _) = await ProvisionAsync(services, null, AccountRoles.GeneralManager);
+        var (administratorId, _) = await ProvisionAsync(services, null, AccountRoles.Administrator);
         var otherBranch = Guid.NewGuid();
         await services.GetRequiredService<BranchProvisioningService>().ProvisionBranchAsync(
             DevelopmentFixtureManifest.Branches[1] with { Id = otherBranch }, CancellationToken.None);
-        var outsider = await ProvisionAsync(services, otherBranch, AccountRoles.WorkshopTechnician);
-        var claim = await services.GetRequiredService<IInspectionAssignmentStore>().AssignAsync(technician.Id, vehicleId,
-            new(Guid.NewGuid(), technician.Id, 0, null), CancellationToken.None);
+        var (outsiderId, _) = await ProvisionAsync(services, otherBranch, AccountRoles.WorkshopTechnician);
+        var claim = await services.GetRequiredService<IInspectionAssignmentStore>().AssignAsync(technicianId, vehicleId,
+            new(Guid.NewGuid(), technicianId, 0, null), CancellationToken.None);
         var inspectionId = claim.Receipt!.InspectionId;
         var id = Guid.NewGuid();
         var path = $"/api/staff/inspection/drafts/{inspectionId}/photos/{id}";
         var bytes = IntakePhotoFixture.Image();
         using var client = activeFactory.CreateClient();
         Assert.Equal(HttpStatusCode.Unauthorized, (await UploadAsync(client, path, bytes)).StatusCode);
-        var login = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest(Guid.NewGuid(), technician.Email, "Password123!"));
+        var login = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest(Guid.NewGuid(), technicianEmail, "Password123!"));
         Assert.Equal(HttpStatusCode.OK, login.StatusCode);
         var session = (await login.Content.ReadFromJsonAsync<LoginSession>())!;
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
@@ -63,7 +63,7 @@ public sealed class InspectionPhotoTests(IntakePhotoFixture fixture) : IClassFix
         Assert.Equal("nosniff", Assert.Single(response.Headers.GetValues("X-Content-Type-Options")));
         var receipt = (await response.Content.ReadFromJsonAsync<InspectionPhotoReceipt>())!;
         Assert.Equal(inspectionId, receipt.InspectionId);
-        Assert.Equal(technician.Id, receipt.ActorId);
+        Assert.Equal(technicianId, receipt.ActorId);
         Assert.Equal("EP-004", receipt.PointCode);
         var competing = await Task.WhenAll(UploadAsync(client, path, bytes), UploadAsync(client, path, bytes));
         foreach (var replay in competing)
@@ -80,7 +80,7 @@ public sealed class InspectionPhotoTests(IntakePhotoFixture fixture) : IClassFix
             (await UploadAsync(client, path, new byte[PhotoContent.MaximumBytes + 1])).StatusCode);
         Assert.Equal(bytes, await client.GetByteArrayAsync(path));
 
-        foreach (var reader in new[] { technician.Id, manager.Id, group.Id })
+        foreach (var reader in new[] { technicianId, managerId, groupId })
         {
             using var output = new MemoryStream();
             var read = await services.GetRequiredService<InspectionPhotoService>()
@@ -89,23 +89,23 @@ public sealed class InspectionPhotoTests(IntakePhotoFixture fixture) : IClassFix
             Assert.Equal(receipt, read.Receipt);
             Assert.Equal(bytes, output.ToArray());
         }
-        foreach (var denied in new[] { manager.Id, group.Id, administrator.Id, data.StaffId, data.OwnerId })
+        foreach (var denied in new[] { managerId, groupId, administratorId, data.StaffId, data.OwnerId })
         {
             using var input = new MemoryStream(bytes);
             Assert.Equal(InspectionPhotoStatus.Forbidden, (await services.GetRequiredService<InspectionPhotoService>()
                 .UploadAsync(denied, inspectionId, Guid.NewGuid(), 1, "EP-004", "image/jpeg", input, CancellationToken.None)).Status);
         }
         Assert.Equal(InspectionPhotoStatus.NotFound, (await services.GetRequiredService<InspectionPhotoService>()
-            .GetReceiptAsync(replacement.Id, inspectionId, id, CancellationToken.None)).Status);
+            .GetReceiptAsync(replacementId, inspectionId, id, CancellationToken.None)).Status);
         Assert.Equal(InspectionPhotoStatus.NotFound, (await services.GetRequiredService<InspectionPhotoService>()
-            .CheckUploadAsync(outsider.Id, inspectionId, 1, CancellationToken.None)));
+            .CheckUploadAsync(outsiderId, inspectionId, 1, CancellationToken.None)));
         Assert.Equal(InspectionPhotoStatus.NotFound, (await services.GetRequiredService<InspectionPhotoService>()
-            .GetReceiptAsync(outsider.Id, inspectionId, id, CancellationToken.None)).Status);
-        await InspectionPhotoSqlAssertions.VerifyAsync(fixture.Database, id, technician.Id, replacement.Id, manager.Id);
-        await InspectionPhotoLifecycleAssertions.VerifyAsync(fixture, activeFactory, client, technician.Id, inspectionId, id, bytes);
+            .GetReceiptAsync(outsiderId, inspectionId, id, CancellationToken.None)).Status);
+        await InspectionPhotoSqlAssertions.VerifyAsync(fixture.Database, id, technicianId, replacementId, managerId);
+        await InspectionPhotoLifecycleAssertions.VerifyAsync(fixture, activeFactory, client, technicianId, inspectionId, id, bytes);
         await AssertLostAcknowledgementAsync(client.DefaultRequestHeaders.Authorization!, inspectionId, bytes);
         await AssertExpiryAsync(client.DefaultRequestHeaders.Authorization!, inspectionId, bytes);
-        await AssertRevocationDuringReadAsync(client.DefaultRequestHeaders.Authorization!, technician.Id, path, receipt);
+        await AssertRevocationDuringReadAsync(client.DefaultRequestHeaders.Authorization!, technicianId, path, receipt);
 
         var changed = (byte[])bytes.Clone();
         changed[^1] ^= 1;
@@ -129,11 +129,11 @@ public sealed class InspectionPhotoTests(IntakePhotoFixture fixture) : IClassFix
         using (var input = new MemoryStream(bytes))
         {
             await Assert.ThrowsAsync<PhotoStorageException>(() => failedScope.ServiceProvider.GetRequiredService<InspectionPhotoService>()
-                .UploadAsync(technician.Id, inspectionId, pendingId, 1, "EP-004", "image/jpeg", input, CancellationToken.None));
+                .UploadAsync(technicianId, inspectionId, pendingId, 1, "EP-004", "image/jpeg", input, CancellationToken.None));
         }
 
-        var handover = await services.GetRequiredService<IInspectionAssignmentStore>().AssignAsync(manager.Id, vehicleId,
-            new(Guid.NewGuid(), replacement.Id, 1, "Workshop handover after evidence upload"), CancellationToken.None);
+        var handover = await services.GetRequiredService<IInspectionAssignmentStore>().AssignAsync(managerId, vehicleId,
+            new(Guid.NewGuid(), replacementId, 1, "Workshop handover after evidence upload"), CancellationToken.None);
         Assert.Equal(InspectionAssignmentStatus.Succeeded, handover.Status);
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync(path + "/receipt")).StatusCode);
         using var restarted = fixture.CreateFactory();
@@ -141,13 +141,13 @@ public sealed class InspectionPhotoTests(IntakePhotoFixture fixture) : IClassFix
         var photoService = newScope.ServiceProvider.GetRequiredService<InspectionPhotoService>();
         var photoStore = newScope.ServiceProvider.GetRequiredService<IInspectionPhotoStore>();
         Assert.Equal(InspectionPhotoStatus.NotFound,
-            (await photoStore.ConfirmAsync(technician.Id, inspectionId, pendingId, CancellationToken.None)).Status);
+            (await photoStore.ConfirmAsync(technicianId, inspectionId, pendingId, CancellationToken.None)).Status);
         Assert.Equal(InspectionPhotoStatus.Conflict,
-            (await photoStore.ConfirmAsync(replacement.Id, inspectionId, pendingId, CancellationToken.None)).Status);
+            (await photoStore.ConfirmAsync(replacementId, inspectionId, pendingId, CancellationToken.None)).Status);
         await InspectionPhotoSqlAssertions.VerifyStaleConfirmationAsync(fixture.Database, pendingId);
-        Assert.Equal(receipt, (await photoService.GetReceiptAsync(replacement.Id, inspectionId, id, CancellationToken.None)).Receipt);
+        Assert.Equal(receipt, (await photoService.GetReceiptAsync(replacementId, inspectionId, id, CancellationToken.None)).Receipt);
         using var newInput = new MemoryStream(bytes);
-        Assert.Equal(InspectionPhotoStatus.Conflict, (await photoService.UploadAsync(replacement.Id, inspectionId, id,
+        Assert.Equal(InspectionPhotoStatus.Conflict, (await photoService.UploadAsync(replacementId, inspectionId, id,
             2, "EP-004", "image/jpeg", newInput, CancellationToken.None)).Status);
     }
 

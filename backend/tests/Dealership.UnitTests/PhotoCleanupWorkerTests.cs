@@ -122,7 +122,7 @@ public sealed class PhotoCleanupWorkerTests
                 throw new IOException("Simulated cleanup scan failure.");
             }
 
-            return Task.FromResult<IReadOnlyList<Guid>>(_pending.Keys.ToArray());
+            return Task.FromResult<IReadOnlyList<Guid>>([.. _pending.Keys]);
         }
 
         public Task<PhotoDeletionClaim?> ClaimAsync(Guid id, CancellationToken cancellationToken)

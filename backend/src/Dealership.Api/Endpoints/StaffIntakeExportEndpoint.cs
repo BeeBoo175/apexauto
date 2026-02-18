@@ -7,10 +7,10 @@ namespace Dealership.Api.Endpoints;
 public static class StaffIntakeExportEndpoint
 {
     public static async Task<IResult> ExportAsync(HttpContext context, IStaffWorklistStore worklist,
-        TimeProvider clock, CancellationToken cancellationToken, string? from = null, string? to = null,
+        CancellationToken cancellationToken, string? from = null, string? to = null,
         string? status = null, Guid? branchId = null, string? search = null, string? sort = null, string? direction = null)
     {
-        var query = StaffWorklistQuery.Parse(from, to, status, branchId, 1, 20, clock.GetUtcNow(), search, sort, direction);
+        var query = StaffWorklistQuery.Parse(from, to, status, branchId, 1, 20, search, sort, direction);
         if (query is null)
         {
             return Results.Problem(statusCode: 400, title: "Provide valid export filters and sorting.");

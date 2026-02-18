@@ -7,9 +7,9 @@ public sealed class StaffCalendarService(IStaffWorklistStore worklist)
     public const int MaximumAppointments = 1000;
     private static readonly TimeZoneInfo Malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
 
-    public static StaffWorklistQuery? Parse(string? from, string? to, string? status, Guid? branchId, DateTimeOffset now)
+    public static StaffWorklistQuery? Parse(string? from, string? to, string? status, Guid? branchId)
     {
-        var query = StaffWorklistQuery.Parse(from, to, status ?? "All", branchId, 1, 20, now);
+        var query = StaffWorklistQuery.Parse(from, to, status ?? "All", branchId, 1, 20);
         return query is { From: not null, Until: not null } && query.Until - query.From <= TimeSpan.FromDays(42) ? query : null;
     }
 

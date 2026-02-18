@@ -4,15 +4,12 @@ namespace Dealership.UnitTests;
 
 public sealed class StaffWorklistQueryTests
 {
-    private static readonly DateTimeOffset BeforeMidnight = new(2026, 10, 15, 15, 59, 59, TimeSpan.Zero);
-
     [Fact]
     public void OmittedDatesAreUnrestrictedAndExplicitInclusiveDatesUseMalaysianMidnight()
     {
-        var unrestricted = Parse(now: BeforeMidnight)!;
+        var unrestricted = Parse()!;
         Assert.Null(unrestricted.From);
         Assert.Null(unrestricted.Until);
-        Assert.Null(Parse(now: BeforeMidnight.AddSeconds(1))!.From);
         var today = Parse("2026-10-15", "2026-10-15")!;
         Assert.Equal(new DateTimeOffset(2026, 10, 14, 16, 0, 0, TimeSpan.Zero), today.From);
         Assert.Equal(new DateTimeOffset(2026, 10, 15, 16, 0, 0, TimeSpan.Zero), today.Until);
@@ -50,26 +47,26 @@ public sealed class StaffWorklistQueryTests
     public void InvalidFiltersAreRejected(string? from, string? to, string? status, int page, int pageSize)
     {
         Assert.Null(Parse(from, to, status, page, pageSize));
-        Assert.Null(StaffWorklistQuery.Parse(null, null, null, Guid.Empty, 1, 20, BeforeMidnight));
+        Assert.Null(StaffWorklistQuery.Parse(null, null, null, Guid.Empty, 1, 20));
     }
 
     private static StaffWorklistQuery? Parse(string? from = null, string? to = null, string? status = null,
-        int page = 1, int pageSize = 20, DateTimeOffset? now = null)
+        int page = 1, int pageSize = 20)
     {
-        return StaffWorklistQuery.Parse(from, to, status, null, page, pageSize, now ?? BeforeMidnight);
+        return StaffWorklistQuery.Parse(from, to, status, null, page, pageSize);
     }
 
     [Fact]
     public void SearchAndSortAreBoundedAndExplicit()
     {
-        var query = StaffWorklistQuery.Parse(null, null, null, null, 1, 20, BeforeMidnight,
+        var query = StaffWorklistQuery.Parse(null, null, null, null, 1, 20,
             "  VCA 6242  ", "registrationPlate", "desc")!;
         Assert.Equal("VCA 6242", query.Search);
         Assert.Equal("registrationPlate", query.Sort);
         Assert.Equal("desc", query.Direction);
-        Assert.Null(StaffWorklistQuery.Parse(null, null, null, null, 1, 20, BeforeMidnight, new string('a', 161)));
-        Assert.Null(StaffWorklistQuery.Parse(null, null, null, null, 1, 20, BeforeMidnight, "a\nb"));
-        Assert.Null(StaffWorklistQuery.Parse(null, null, null, null, 1, 20, BeforeMidnight, sort: "arbitrary"));
-        Assert.Null(StaffWorklistQuery.Parse(null, null, null, null, 1, 20, BeforeMidnight, direction: "DESC"));
+        Assert.Null(StaffWorklistQuery.Parse(null, null, null, null, 1, 20, new string('a', 161)));
+        Assert.Null(StaffWorklistQuery.Parse(null, null, null, null, 1, 20, "a\nb"));
+        Assert.Null(StaffWorklistQuery.Parse(null, null, null, null, 1, 20, sort: "arbitrary"));
+        Assert.Null(StaffWorklistQuery.Parse(null, null, null, null, 1, 20, direction: "DESC"));
     }
 }

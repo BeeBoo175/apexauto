@@ -27,7 +27,7 @@ public class InspectionCatalogTests
             Assert.Same(point, InspectionCatalog.GetPoint(point.Code));
         });
 
-        var collection = Assert.IsAssignableFrom<IList<InspectionPoint>>(InspectionCatalog.Points);
+        var collection = Assert.IsType<IList<InspectionPoint>>(InspectionCatalog.Points, exactMatch: false);
         Assert.Throws<NotSupportedException>(() => collection.RemoveAt(0));
     }
 }

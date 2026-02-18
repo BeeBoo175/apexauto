@@ -18,7 +18,7 @@ public sealed record StaffWorklistQuery(DateTimeOffset? From, DateTimeOffset? Un
     private static readonly TimeZoneInfo Malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
 
     public static StaffWorklistQuery? Parse(string? from, string? to, string? status, Guid? branchId,
-        int page, int pageSize, DateTimeOffset now, string? search = null, string? sort = null, string? direction = null)
+        int page, int pageSize, string? search = null, string? sort = null, string? direction = null)
     {
         if (page < 1 || pageSize is < 1 or > 50 || branchId == Guid.Empty)
         {

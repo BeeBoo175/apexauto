@@ -25,11 +25,11 @@ public static class StaffIntakeEndpoints
     }
 
     private static async Task<IResult> ListAsync(HttpContext context, IStaffWorklistStore worklist,
-        TimeProvider clock, CancellationToken cancellationToken, string? from = null, string? to = null,
+        CancellationToken cancellationToken, string? from = null, string? to = null,
         string? status = null, Guid? branchId = null, int page = 1, int pageSize = 20,
         string? search = null, string? sort = null, string? direction = null)
     {
-        var query = StaffWorklistQuery.Parse(from, to, status, branchId, page, pageSize, clock.GetUtcNow(), search, sort, direction);
+        var query = StaffWorklistQuery.Parse(from, to, status, branchId, page, pageSize, search, sort, direction);
 
         if (query is null)
         {
@@ -93,14 +93,14 @@ public static class StaffIntakeEndpoints
 
         try
         {
-            var request = await JsonRequestReader.ReadAsync<CheckInRequest>(context.Request, deadline.Token);
+            var (request, error) = await JsonRequestReader.ReadAsync<CheckInRequest>(context.Request, deadline.Token);
 
-            if (request.Error is not null)
+            if (error is not null)
             {
-                return request.Error;
+                return error;
             }
 
-            var value = request.Value!;
+            var value = request!;
 
             if (value.MileageKilometres is null)
             {

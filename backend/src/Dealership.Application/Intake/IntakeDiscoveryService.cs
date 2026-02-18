@@ -28,7 +28,7 @@ public sealed class IntakeDiscoveryService(IPublicBranchStore branches, IIntakeB
         if (slots.Count > 0)
         {
             var occupied = await bookings.GetOccupiedSlotsAsync(branchId, slots[0].StartsAt, slots[^1].EndsAt, cancellationToken);
-            slots = slots.Where(slot => !occupied.Any(booked => booked.StartsAt < slot.EndsAt && slot.StartsAt < booked.EndsAt)).ToArray();
+            slots = [.. slots.Where(slot => !occupied.Any(booked => booked.StartsAt < slot.EndsAt && slot.StartsAt < booked.EndsAt))];
         }
 
         var offer = new InspectionSlotOffer(branchId, requestedDate, window, slots);

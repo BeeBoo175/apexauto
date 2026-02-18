@@ -125,7 +125,7 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         }
 
         Assert.Equal(3, definitions.Count);
-        return definitions.ToArray();
+        return [.. definitions];
     }
 
     private async Task AssertRuntimeGuardsAsync()
