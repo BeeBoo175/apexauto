@@ -107,8 +107,8 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
             reports.Add(new DevelopmentFixtureReport($"Inspection ({fixture.RegistrationPlate})", state, attention));
             if (!attention && vehicleId.HasValue)
             {
-                reports.Add(await InspectionEntriesAsync(seed, fixture.Id, technicianId, fixture.RegistrationPlate, cancellationToken));
                 reports.Add(await InspectionPhotoAsync(seed, fixture.Id, technicianId, fixture.RegistrationPlate, cancellationToken));
+                reports.Add(await InspectionEntriesAsync(seed, fixture.Id, technicianId, fixture.RegistrationPlate, cancellationToken));
             }
         }
         return reports;
@@ -119,7 +119,10 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
     {
         var latest = await database.InspectionDraftSaves.AsNoTracking().Where(save => save.InspectionId == inspectionId)
             .OrderByDescending(save => save.Version).FirstOrDefaultAsync(cancellationToken);
-        var request = new InspectionDraftSaveRequest(inspectionId, 1, 0, DevelopmentInspectionManifest.Entries);
+        var request = new InspectionDraftSaveRequest(inspectionId, 1, 0, DevelopmentInspectionManifest.Entries)
+        {
+            PhotoIds = [DevelopmentInspectionManifest.PhotoId(inspectionId)]
+        };
         if (latest is not null)
         {
             var expected = DevelopmentInspectionManifest.Entries.Select(entry => new Dealership.Domain.Inspections.InspectionDraftEntry(

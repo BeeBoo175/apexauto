@@ -38,7 +38,7 @@ public sealed class InspectionPhotoStore(DealershipDbContext database, IInspecti
             if (existing is not null)
             {
                 return existing.Matches(inspectionId, actorId, assignmentVersion, pointCode, content)
-                    ? Classify(existing, now) : new(InspectionPhotoStatus.Conflict);
+                    ? await ClassifyAsync(existing, now, cancellationToken) : new(InspectionPhotoStatus.Conflict);
             }
 
             var photo = new InspectionPhoto(id, inspectionId, access.Draft!.BranchId, actorId, assignmentVersion,
@@ -80,7 +80,7 @@ public sealed class InspectionPhotoStore(DealershipDbContext database, IInspecti
             }
 
             var now = await DatabaseTimeAsync(cancellationToken);
-            var result = Classify(photo, now);
+            var result = await ClassifyAsync(photo, now, cancellationToken);
             if (result.Status != InspectionPhotoStatus.Pending)
             {
                 return result;
@@ -110,12 +110,25 @@ public sealed class InspectionPhotoStore(DealershipDbContext database, IInspecti
         var photo = await database.InspectionPhotos.AsNoTracking()
             .SingleOrDefaultAsync(item => item.Id == id && item.InspectionId == inspectionId, cancellationToken);
         return photo is null ? new(InspectionPhotoStatus.NotFound)
-            : Classify(photo, await DatabaseTimeAsync(cancellationToken));
+            : await ClassifyAsync(photo, await DatabaseTimeAsync(cancellationToken), cancellationToken);
     }
 
-    private static InspectionPhotoPreparation Classify(InspectionPhoto photo, DateTimeOffset now)
+    private async Task<InspectionPhotoPreparation> ClassifyAsync(InspectionPhoto photo, DateTimeOffset now,
+        CancellationToken cancellationToken)
     {
-        if (now >= photo.ExpiresAt)
+        var removal = await database.InspectionPhotoRemovals.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.PhotoId == photo.Id, cancellationToken);
+        if (removal is not null)
+        {
+            return new(removal.DeletedAt is null ? InspectionPhotoStatus.DeletionPending : InspectionPhotoStatus.Deleted, photo)
+            {
+                RemovalRequestedAt = removal.RequestedAt,
+                DeletedAt = removal.DeletedAt
+            };
+        }
+
+        if (now >= photo.ExpiresAt &&
+            !await database.InspectionDraftPhotos.AnyAsync(link => link.PhotoId == photo.Id, cancellationToken))
         {
             return new(InspectionPhotoStatus.Gone, photo);
         }

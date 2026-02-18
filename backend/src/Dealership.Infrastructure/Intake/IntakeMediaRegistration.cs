@@ -1,6 +1,7 @@
 using Dealership.Application.Photos;
 using Dealership.Application.Intake;
 using Dealership.Application.Inspections;
+using Dealership.Infrastructure.Inspections;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -33,6 +34,8 @@ public static class IntakeMediaRegistration
         services.AddScoped<InspectionPhotoService>();
         services.AddScoped<PhotoCleanupStore>();
         services.AddHostedService<PhotoCleanupWorker>();
+        services.AddScoped<InspectionPhotoCleanupStore>();
+        services.AddHostedService<InspectionPhotoCleanupWorker>();
         return services;
     }
 }

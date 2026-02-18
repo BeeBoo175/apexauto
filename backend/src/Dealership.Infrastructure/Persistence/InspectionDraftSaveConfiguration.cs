@@ -20,6 +20,7 @@ public sealed class InspectionDraftSaveConfiguration : IEntityTypeConfiguration<
         builder.Property(item => item.Id).ValueGeneratedNever();
         builder.Property(item => item.CatalogVersion).HasMaxLength(40);
         builder.Property(item => item.EntriesJson).HasColumnType("jsonb");
+        builder.Property(item => item.PhotoIdsJson).HasColumnType("jsonb").HasDefaultValue("[]");
         builder.HasIndex(item => new { item.InspectionId, item.Version }).IsUnique();
         builder.HasOne<InspectionDraft>().WithMany().HasForeignKey(item => new { item.InspectionId, item.BranchId })
             .HasPrincipalKey(item => new { item.Id, item.BranchId }).OnDelete(DeleteBehavior.Restrict);

@@ -141,7 +141,8 @@ public static class InspectionPhotoEndpoints
         {
             InspectionPhotoStatus.Available => Results.Ok(result.Receipt),
             InspectionPhotoStatus.Pending => Results.Json(result.Receipt, statusCode: 202),
-            InspectionPhotoStatus.Gone => Results.Json(result.Receipt, statusCode: 410),
+            InspectionPhotoStatus.Gone or InspectionPhotoStatus.DeletionPending or InspectionPhotoStatus.Deleted =>
+                Results.Json(result.Receipt, statusCode: 410),
             InspectionPhotoStatus.Forbidden => Results.Forbid(),
             InspectionPhotoStatus.NotFound => Results.NotFound(),
             InspectionPhotoStatus.Conflict => Results.Problem(statusCode: 409, title: "The inspection assignment or upload contents changed."),

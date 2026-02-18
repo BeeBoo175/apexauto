@@ -22,6 +22,7 @@ public sealed class InspectionDraftSave
         Version = request.ExpectedVersion + 1;
         CatalogVersion = InspectionCatalog.Version;
         EntriesJson = JsonSerializer.Serialize(entries, JsonSerializerOptions.Web);
+        PhotoIdsJson = JsonSerializer.Serialize(request.PhotoIds!.Order().ToArray());
         RecordedAt = recordedAt;
     }
 
@@ -34,6 +35,7 @@ public sealed class InspectionDraftSave
     public long Version { get; private set; }
     public string CatalogVersion { get; private set; } = string.Empty;
     public string EntriesJson { get; private set; } = string.Empty;
+    public string PhotoIdsJson { get; private set; } = "[]";
     public DateTimeOffset RecordedAt { get; private set; }
 
     public InspectionDraftSaveReceipt Receipt()
@@ -41,13 +43,18 @@ public sealed class InspectionDraftSave
         var entries = JsonSerializer.Deserialize<InspectionDraftEntry[]>(EntriesJson, JsonSerializerOptions.Web)!;
         var assessment = InspectionDraftEntry.Assess(entries);
         return new(Id, InspectionId, ActorId, AssignmentVersion, ExpectedVersion, Version, CatalogVersion,
-            entries, new(assessment.EstimatedRepairCost, assessment.Grade, assessment.IsRejected), RecordedAt);
+            entries, new(assessment.EstimatedRepairCost, assessment.Grade, assessment.IsRejected), RecordedAt)
+        {
+            PhotoIds = JsonSerializer.Deserialize<Guid[]>(PhotoIdsJson)!
+        };
     }
 
     public bool Matches(Guid actorId, Guid inspectionId, InspectionDraftSaveRequest request,
         IReadOnlyList<InspectionDraftEntry> entries)
     {
+        var receipt = Receipt();
         return ActorId == actorId && InspectionId == inspectionId && AssignmentVersion == request.AssignmentVersion &&
-            ExpectedVersion == request.ExpectedVersion && Receipt().Entries.SequenceEqual(entries);
+            ExpectedVersion == request.ExpectedVersion && receipt.Entries.SequenceEqual(entries) &&
+            receipt.PhotoIds.SequenceEqual(request.PhotoIds!.Order());
     }
 }

@@ -4,14 +4,20 @@ using System.Text.Json.Serialization;
 namespace Dealership.Application.Inspections;
 
 public sealed record InspectionDraftSaveRequest(Guid OperationId, long AssignmentVersion, long ExpectedVersion,
-    IReadOnlyList<InspectionDraftEntryInput>? Entries);
+    IReadOnlyList<InspectionDraftEntryInput>? Entries)
+{
+    public IReadOnlyList<Guid>? PhotoIds { get; init; } = [];
+}
 
 public sealed record InspectionDraftEntryInput(string PointCode, InspectionEntryKind Kind, InspectionSeverity? Severity,
     [property: JsonConverter(typeof(InspectionEstimateJsonConverter))] decimal EstimatedRepairCost, string Notes);
 
 public sealed record InspectionDraftSaveReceipt(Guid OperationId, Guid InspectionId, Guid ActorId,
     long AssignmentVersion, long ExpectedVersion, long Version, string CatalogVersion,
-    IReadOnlyList<InspectionDraftEntry> Entries, InspectionDraftAssessment Assessment, DateTimeOffset RecordedAt);
+    IReadOnlyList<InspectionDraftEntry> Entries, InspectionDraftAssessment Assessment, DateTimeOffset RecordedAt)
+{
+    public IReadOnlyList<Guid> PhotoIds { get; init; } = [];
+}
 
 public sealed record InspectionDraftAssessment(decimal EstimatedRepairCost, InspectionGrade? Grade, bool IsRejected);
 

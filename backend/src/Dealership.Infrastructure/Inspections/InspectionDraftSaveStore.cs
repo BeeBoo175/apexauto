@@ -15,7 +15,9 @@ public sealed class InspectionDraftSaveStore(DealershipDbContext database) : IIn
     {
         if (actorId == Guid.Empty || inspectionId == Guid.Empty || request.OperationId == Guid.Empty ||
             request.AssignmentVersion < 1 || request.ExpectedVersion is < 0 or long.MaxValue ||
-            request.Entries is null || request.Entries.Count > InspectionCatalog.Points.Count)
+            request.Entries is null || request.Entries.Count > InspectionCatalog.Points.Count || request.PhotoIds is null ||
+            request.PhotoIds.Count > InspectionPhotoLimits.MaximumPerSave || request.PhotoIds.Contains(Guid.Empty) ||
+            request.PhotoIds.Distinct().Count() != request.PhotoIds.Count)
         {
             return new(InspectionAssignmentStatus.Invalid);
         }
@@ -82,16 +84,49 @@ public sealed class InspectionDraftSaveStore(DealershipDbContext database) : IIn
                 return new(InspectionAssignmentStatus.Conflict);
             }
 
+            var photos = await database.InspectionPhotos.FromSqlInterpolated($"""
+                SELECT * FROM "InspectionPhotos" WHERE "Id" = ANY({request.PhotoIds.ToArray()}) ORDER BY "Id" FOR UPDATE
+                """).AsNoTracking().ToArrayAsync(cancellationToken);
             var now = await database.Database.SqlQuery<DateTimeOffset>($"SELECT clock_timestamp() AS \"Value\"")
                 .SingleAsync(cancellationToken);
+            var findingCodes = entries.Where(entry => entry.Kind == InspectionEntryKind.Finding)
+                .Select(entry => entry.PointCode).ToHashSet(StringComparer.Ordinal);
+            if (photos.Length != request.PhotoIds.Count || photos.Any(photo => photo.InspectionId != inspectionId ||
+                photo.AvailableAt is null || !findingCodes.Contains(photo.PointCode)) ||
+                photos.GroupBy(photo => photo.PointCode).Any(group => group.Count() > InspectionPhotoLimits.MaximumPerFinding))
+            {
+                return new(InspectionAssignmentStatus.Invalid);
+            }
+            var photoIds = photos.Select(photo => photo.Id).ToArray();
+            var retained = await database.InspectionDraftPhotos.Where(link => photoIds.Contains(link.PhotoId))
+                .Select(link => link.PhotoId).Distinct().ToArrayAsync(cancellationToken);
+            if (photos.Any(photo => photo.ExpiresAt <= now && !retained.Contains(photo.Id)) ||
+                await database.InspectionPhotoRemovals.AnyAsync(removal => photoIds.Contains(removal.PhotoId), cancellationToken))
+            {
+                return new(InspectionAssignmentStatus.Conflict);
+            }
+
             var saved = new InspectionDraftSave(inspectionId, draft.BranchId, actorId, request, entries, now);
             database.InspectionDraftSaves.Add(saved);
+            await database.SaveChangesAsync(cancellationToken);
+            database.InspectionDraftPhotos.AddRange(photos.Select(photo => new InspectionDraftPhoto
+            {
+                SaveId = saved.Id,
+                InspectionId = inspectionId,
+                PhotoId = photo.Id,
+                PointCode = photo.PointCode
+            }));
             await database.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
             return new(InspectionAssignmentStatus.Succeeded, saved.Receipt());
         }
         catch (DbUpdateException exception) when (exception.InnerException is PostgresException
         { SqlState: PostgresErrorCodes.UniqueViolation })
+        {
+            return new(InspectionAssignmentStatus.Conflict);
+        }
+        catch (DbUpdateException exception) when (exception.InnerException is PostgresException
+        { ConstraintName: "CK_InspectionDraftPhotos_Available" })
         {
             return new(InspectionAssignmentStatus.Conflict);
         }

@@ -11,16 +11,26 @@ public enum InspectionPhotoStatus
     Forbidden,
     Conflict,
     NotFound,
-    Gone
+    Gone,
+    DeletionPending,
+    Deleted
 }
 
 public sealed record InspectionPhotoReceipt(Guid Id, Guid InspectionId, Guid ActorId, long AssignmentVersion,
     string PointCode, string ContentType, long Bytes, int Width, int Height, DateTimeOffset CreatedAt,
-    DateTimeOffset ExpiresAt, DateTimeOffset? AvailableAt);
+    DateTimeOffset ExpiresAt, DateTimeOffset? AvailableAt)
+{
+    public DateTimeOffset? RemovalRequestedAt { get; init; }
+    public DateTimeOffset? DeletedAt { get; init; }
+}
 
 public sealed record InspectionPhotoResult(InspectionPhotoStatus Status, InspectionPhotoReceipt? Receipt = null);
 
-public sealed record InspectionPhotoPreparation(InspectionPhotoStatus Status, InspectionPhoto? Photo = null);
+public sealed record InspectionPhotoPreparation(InspectionPhotoStatus Status, InspectionPhoto? Photo = null)
+{
+    public DateTimeOffset? RemovalRequestedAt { get; init; }
+    public DateTimeOffset? DeletedAt { get; init; }
+}
 
 public sealed record InspectionPhotoPolicy(TimeSpan UnattachedLifetime);
 

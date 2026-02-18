@@ -74,7 +74,11 @@ public sealed class InspectionPhotoService(IInspectionPhotoStore photos, IPhotoI
         var photo = result.Photo;
         var receipt = photo is null ? null : new InspectionPhotoReceipt(photo.Id, photo.InspectionId, photo.ActorId,
             photo.AssignmentVersion, photo.PointCode, photo.ContentType, photo.Bytes, photo.Width, photo.Height,
-            photo.CreatedAt, photo.ExpiresAt, photo.AvailableAt);
+            photo.CreatedAt, photo.ExpiresAt, photo.AvailableAt)
+        {
+            RemovalRequestedAt = result.RemovalRequestedAt,
+            DeletedAt = result.DeletedAt
+        };
         return new(result.Status, receipt);
     }
 }

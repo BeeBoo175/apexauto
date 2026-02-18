@@ -99,6 +99,7 @@ public sealed class InspectionPhotoTests(IntakePhotoFixture fixture) : IClassFix
         Assert.Equal(InspectionPhotoStatus.NotFound, (await services.GetRequiredService<InspectionPhotoService>()
             .GetReceiptAsync(outsider.Id, inspectionId, id, CancellationToken.None)).Status);
         await InspectionPhotoSqlAssertions.VerifyAsync(fixture.Database, id, technician.Id, replacement.Id, manager.Id);
+        await InspectionPhotoLifecycleAssertions.VerifyAsync(fixture, activeFactory, client, technician.Id, inspectionId, id, bytes);
         await AssertLostAcknowledgementAsync(client.DefaultRequestHeaders.Authorization!, inspectionId, bytes);
         await AssertExpiryAsync(client.DefaultRequestHeaders.Authorization!, inspectionId, bytes);
         await AssertRevocationDuringReadAsync(client.DefaultRequestHeaders.Authorization!, technician.Id, path, receipt);
