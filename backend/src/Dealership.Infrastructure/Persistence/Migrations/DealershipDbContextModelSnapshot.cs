@@ -211,6 +211,83 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Dealership.Domain.Inspections.InspectionPhoto", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("AssignmentVersion")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTimeOffset?>("AvailableAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("Bytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Height")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("InspectionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ObjectKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("PointCode")
+                        .IsRequired()
+                        .HasMaxLength(6)
+                        .HasColumnType("character varying(6)");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<int>("Width")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorId");
+
+                    b.HasIndex("ExpiresAt");
+
+                    b.HasIndex("InspectionId", "BranchId");
+
+                    b.HasIndex("InspectionId", "PointCode", "CreatedAt", "Id");
+
+                    b.ToTable("InspectionPhotos", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_InspectionPhotos_Content", "\"ContentType\" IN ('image/jpeg', 'image/png', 'image/webp') AND \"Bytes\" BETWEEN 1 AND 10485760 AND \"Sha256\" ~ '^[0-9a-f]{64}$' AND \"Width\" > 0 AND \"Height\" > 0");
+
+                            t.HasCheckConstraint("CK_InspectionPhotos_Identity", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"AssignmentVersion\" > 0 AND \"ObjectKey\" = 'inspection/photos/' || replace(\"Id\"::text, '-', '')");
+
+                            t.HasCheckConstraint("CK_InspectionPhotos_Lifetime", "isfinite(\"CreatedAt\") AND isfinite(\"ExpiresAt\") AND \"ExpiresAt\" > \"CreatedAt\" AND (\"AvailableAt\" IS NULL OR (isfinite(\"AvailableAt\") AND \"AvailableAt\" >= \"CreatedAt\" AND \"AvailableAt\" < \"ExpiresAt\"))");
+
+                            t.HasCheckConstraint("CK_InspectionPhotos_Point", "\"PointCode\" ~ '^(FC|ET|EP|IE|UB)-[0-9]{3}$' AND right(\"PointCode\", 3)::integer BETWEEN 1 AND CASE left(\"PointCode\", 2) WHEN 'FC' THEN 45 WHEN 'ET' THEN 50 WHEN 'EP' THEN 45 WHEN 'IE' THEN 40 WHEN 'UB' THEN 30 END");
+                        });
+                });
+
             modelBuilder.Entity("Dealership.Domain.Intake.AppointmentCheckIn", b =>
                 {
                     b.Property<Guid>("AppointmentId")
@@ -1067,6 +1144,22 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.HasOne("Dealership.Domain.Vehicles.Vehicle", null)
                         .WithMany()
                         .HasForeignKey("VehicleId", "BranchId")
+                        .HasPrincipalKey("Id", "BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Dealership.Domain.Inspections.InspectionPhoto", b =>
+                {
+                    b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Dealership.Domain.Inspections.InspectionDraft", null)
+                        .WithMany()
+                        .HasForeignKey("InspectionId", "BranchId")
                         .HasPrincipalKey("Id", "BranchId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
