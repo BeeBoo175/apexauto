@@ -121,7 +121,8 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
             .OrderByDescending(save => save.Version).FirstOrDefaultAsync(cancellationToken);
         var request = new InspectionDraftSaveRequest(inspectionId, 1, 0, DevelopmentInspectionManifest.Entries)
         {
-            PhotoIds = [DevelopmentInspectionManifest.PhotoId(inspectionId)]
+            PhotoIds = [DevelopmentInspectionManifest.PhotoId(inspectionId)],
+            ExaminedPointCodes = DevelopmentInspectionManifest.ExaminedPointCodes
         };
         if (latest is not null)
         {

@@ -32,6 +32,7 @@ internal static class DevelopmentInspectionFixtureAssertions
             Assert.Equal(250m, savedDraft.Draft.LatestSave.Assessment.EstimatedRepairCost);
             Assert.Equal(2, savedDraft.Draft.LatestSave.Entries.Count);
             Assert.Equal([DevelopmentInspectionManifest.PhotoId(draft.Id)], savedDraft.Draft.LatestSave.PhotoIds);
+            Assert.Equal(DevelopmentInspectionManifest.ExaminedPointCodes, savedDraft.Draft.LatestSave.ExaminedPointCodes);
             var photo = await services.GetRequiredService<InspectionPhotoService>().GetReceiptAsync(technician.Id,
                 draft.Id, DevelopmentInspectionManifest.PhotoId(draft.Id), CancellationToken.None);
             Assert.Equal(InspectionPhotoStatus.Available, photo.Status);

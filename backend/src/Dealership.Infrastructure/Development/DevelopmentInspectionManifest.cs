@@ -21,4 +21,8 @@ public static class DevelopmentInspectionManifest
         new("IE-040", InspectionEntryKind.NotFitted, null, 0m,
             "Vehicle specification and physical examination confirm no powered roof is fitted.")
     ]);
+
+    public static IReadOnlyList<string> ExaminedPointCodes { get; } = Array.AsReadOnly(InspectionCatalog.Points
+        .Where(point => !Entries.Any(entry => entry.PointCode == point.Code && entry.Kind == InspectionEntryKind.NotFitted))
+        .Select(point => point.Code).Order(StringComparer.Ordinal).ToArray());
 }

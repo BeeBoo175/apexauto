@@ -23,6 +23,8 @@ public sealed class InspectionDraftSave
         CatalogVersion = InspectionCatalog.Version;
         EntriesJson = JsonSerializer.Serialize(entries, JsonSerializerOptions.Web);
         PhotoIdsJson = JsonSerializer.Serialize(request.PhotoIds!.Order().ToArray());
+        ExaminedPointCodesJson = request.ExaminedPointCodes is null ? null :
+            JsonSerializer.Serialize(InspectionChecklist.Attest(entries, request.ExaminedPointCodes));
         RecordedAt = recordedAt;
     }
 
@@ -36,6 +38,7 @@ public sealed class InspectionDraftSave
     public string CatalogVersion { get; private set; } = string.Empty;
     public string EntriesJson { get; private set; } = string.Empty;
     public string PhotoIdsJson { get; private set; } = "[]";
+    public string? ExaminedPointCodesJson { get; private set; }
     public DateTimeOffset RecordedAt { get; private set; }
 
     public InspectionDraftSaveReceipt Receipt()
@@ -45,7 +48,8 @@ public sealed class InspectionDraftSave
         return new(Id, InspectionId, ActorId, AssignmentVersion, ExpectedVersion, Version, CatalogVersion,
             entries, new(assessment.EstimatedRepairCost, assessment.Grade, assessment.IsRejected), RecordedAt)
         {
-            PhotoIds = JsonSerializer.Deserialize<Guid[]>(PhotoIdsJson)!
+            PhotoIds = JsonSerializer.Deserialize<Guid[]>(PhotoIdsJson)!,
+            ExaminedPointCodes = ExaminedPointCodesJson is null ? null : JsonSerializer.Deserialize<string[]>(ExaminedPointCodesJson)!
         };
     }
 
@@ -55,6 +59,17 @@ public sealed class InspectionDraftSave
         var receipt = Receipt();
         return ActorId == actorId && InspectionId == inspectionId && AssignmentVersion == request.AssignmentVersion &&
             ExpectedVersion == request.ExpectedVersion && receipt.Entries.SequenceEqual(entries) &&
-            receipt.PhotoIds.SequenceEqual(request.PhotoIds!.Order());
+            receipt.PhotoIds.SequenceEqual(request.PhotoIds!.Order()) &&
+            MatchesAttestation(receipt.ExaminedPointCodes, request.ExaminedPointCodes);
+    }
+
+    private static bool MatchesAttestation(IReadOnlyList<string>? saved, IReadOnlyList<string>? requested)
+    {
+        if (saved is null || requested is null)
+        {
+            return saved is null && requested is null;
+        }
+
+        return saved.SequenceEqual(requested.Order(StringComparer.Ordinal));
     }
 }

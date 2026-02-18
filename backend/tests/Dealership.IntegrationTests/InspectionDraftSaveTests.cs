@@ -38,7 +38,10 @@ public sealed class InspectionDraftSaveTests(IntakePhotoFixture fixture) : IClas
         [
             new("IE-040", InspectionEntryKind.NotFitted, null, 0, " No powered roof is fitted "),
             new("EP-004", InspectionEntryKind.Finding, InspectionSeverity.MinorDefect, 500m, "Bumper scratch")
-        ]);
+        ])
+        {
+            ExaminedPointCodes = [.. InspectionCatalog.Points.Where(point => point.Code != "IE-040").Select(point => point.Code)]
+        };
         var race = await Task.WhenAll(SaveAsync(data.Factory, technicianId, inspectionId, request),
             SaveAsync(data.Factory, technicianId, inspectionId, request with { OperationId = Guid.NewGuid() }));
         var receipt = Assert.Single(race, result => result.Status == InspectionAssignmentStatus.Succeeded).Receipt!;
@@ -47,12 +50,25 @@ public sealed class InspectionDraftSaveTests(IntakePhotoFixture fixture) : IClas
         Assert.Equal(InspectionGrade.B, receipt.Assessment.Grade);
         Assert.Equal(500m, receipt.Assessment.EstimatedRepairCost);
         Assert.Equal("No powered roof is fitted", receipt.Entries[1].Notes);
+        Assert.Equal(209, receipt.ExaminedPointCodes!.Count);
         using var restarted = fixture.CreateFactory();
         var replay = await Task.WhenAll(SaveAsync(restarted, technicianId, inspectionId, request),
-            SaveAsync(restarted, technicianId, inspectionId, request with { Entries = [.. request.Entries!.Reverse()] }));
+            SaveAsync(restarted, technicianId, inspectionId, request with
+            {
+                Entries = [.. request.Entries!.Reverse()],
+                ExaminedPointCodes = [.. request.ExaminedPointCodes!.Reverse()]
+            }));
         Assert.All(replay, result => EqualReceipt(receipt, result.Receipt));
         Assert.Equal(InspectionAssignmentStatus.Conflict, (await SaveAsync(restarted, technicianId, inspectionId,
-            request with { Entries = [] })).Status);
+            request with { Entries = [], ExaminedPointCodes = null })).Status);
+        Assert.Equal(InspectionAssignmentStatus.Conflict, (await SaveAsync(restarted, technicianId, inspectionId,
+            request with { ExaminedPointCodes = null })).Status);
+        foreach (var codes in new IReadOnlyList<string>[] { [], request.ExaminedPointCodes!.SkipLast(1).ToArray(),
+            [.. request.ExaminedPointCodes, "IE-040"], [.. request.ExaminedPointCodes.Skip(1), request.ExaminedPointCodes[1]] })
+        {
+            Assert.Equal(InspectionAssignmentStatus.Invalid, (await SaveAsync(restarted, technicianId, inspectionId,
+                request with { ExaminedPointCodes = codes })).Status);
+        }
         Assert.Equal(InspectionAssignmentStatus.Conflict, (await SaveAsync(restarted, technicianId, inspectionId,
             request with { OperationId = Guid.NewGuid(), AssignmentVersion = 2 })).Status);
 
@@ -60,6 +76,7 @@ public sealed class InspectionDraftSaveTests(IntakePhotoFixture fixture) : IClas
         Assert.Equal(InspectionAssignmentStatus.Succeeded, cleared.Status);
         Assert.Equal(2, cleared.Receipt!.Version);
         Assert.Empty(cleared.Receipt.Entries);
+        Assert.Null(cleared.Receipt.ExaminedPointCodes);
         EqualReceipt(receipt, (await SaveAsync(restarted, technicianId, inspectionId, request)).Receipt);
         foreach (var reader in new[] { technicianId, managerId, groupId })
         {
@@ -75,6 +92,7 @@ public sealed class InspectionDraftSaveTests(IntakePhotoFixture fixture) : IClas
         Assert.Equal(InspectionAssignmentStatus.NotFound, (await SaveAsync(restarted, replacementId, inspectionId, request)).Status);
         await AssertInvalidAsync(restarted, technicianId, inspectionId, request);
         await InspectionDraftSaveSqlAssertions.VerifyAsync(fixture.Database, cleared.Receipt, data.BranchId, replacementId, managerId);
+        await InspectionAttestationSqlAssertions.VerifyAsync(fixture.Database, cleared.Receipt, data.BranchId);
         await AssertApiAsync(restarted, technicianEmail, inspectionId, request, receipt);
 
         using var changeScope = restarted.Services.CreateScope();
@@ -135,7 +153,9 @@ public sealed class InspectionDraftSaveTests(IntakePhotoFixture fixture) : IClas
         Assert.Equal(HttpStatusCode.BadRequest,
             (await client.PostAsJsonAsync(path, original with { Entries = [null!] })).StatusCode);
         Assert.Equal(HttpStatusCode.Conflict,
-            (await client.PostAsJsonAsync(path, original with { Entries = [] })).StatusCode);
+            (await client.PostAsJsonAsync(path, original with { Entries = [], ExaminedPointCodes = null })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest,
+            (await client.PostAsJsonAsync(path, original with { ExaminedPointCodes = [] })).StatusCode);
         foreach (var estimate in new[] { "0.010000000000000000000000000001", "1e-100", "7922816251426433759354395033.51" })
         {
             using var raw = new StringContent($$"""

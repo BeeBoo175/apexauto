@@ -7,6 +7,8 @@ public sealed record InspectionDraftSaveRequest(Guid OperationId, long Assignmen
     IReadOnlyList<InspectionDraftEntryInput>? Entries)
 {
     public IReadOnlyList<Guid>? PhotoIds { get; init; } = [];
+    // Null leaves this save unattested; later edits must attest again explicitly.
+    public IReadOnlyList<string>? ExaminedPointCodes { get; init; }
 }
 
 public sealed record InspectionDraftEntryInput(string PointCode, InspectionEntryKind Kind, InspectionSeverity? Severity,
@@ -17,6 +19,7 @@ public sealed record InspectionDraftSaveReceipt(Guid OperationId, Guid Inspectio
     IReadOnlyList<InspectionDraftEntry> Entries, InspectionDraftAssessment Assessment, DateTimeOffset RecordedAt)
 {
     public IReadOnlyList<Guid> PhotoIds { get; init; } = [];
+    public IReadOnlyList<string>? ExaminedPointCodes { get; init; }
 }
 
 public sealed record InspectionDraftAssessment(decimal EstimatedRepairCost, InspectionGrade? Grade, bool IsRejected);

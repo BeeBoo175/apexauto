@@ -33,6 +33,10 @@ public sealed class InspectionDraftSaveStore(DealershipDbContext database) : IIn
             entries = [.. request.Entries.Select(entry => new InspectionDraftEntry(entry.PointCode, entry.Kind,
                 entry.Severity, entry.EstimatedRepairCost, entry.Notes)).OrderBy(entry => entry.PointCode, StringComparer.Ordinal)];
             InspectionDraftEntry.Assess(entries);
+            if (request.ExaminedPointCodes is not null)
+            {
+                _ = InspectionChecklist.Attest(entries, request.ExaminedPointCodes);
+            }
         }
         catch (ArgumentException)
         {
