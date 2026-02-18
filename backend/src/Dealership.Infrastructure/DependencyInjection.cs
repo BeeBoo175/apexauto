@@ -14,6 +14,7 @@ using Dealership.Infrastructure.Branches;
 using Dealership.Application.Inspections;
 using Dealership.Infrastructure.Inspections;
 using Dealership.Infrastructure.Mail;
+using Dealership.Infrastructure.Photos;
 
 namespace Dealership.Infrastructure;
 
@@ -31,6 +32,7 @@ public static class DependencyInjection
 
         services.AddDbContext<DealershipDbContext>(options => options.UseNpgsql(connectionString));
         services.AddSingleton<MailDeliverySignal>();
+        services.AddSingleton<PhotoCleanupSignal>();
         services.AddIdentityCore<AccountUser>(options =>
         {
             options.User.RequireUniqueEmail = true;

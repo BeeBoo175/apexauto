@@ -6,6 +6,7 @@ using Dealership.Application.Intake;
 using Dealership.Application.Photos;
 using Dealership.Domain.Inspections;
 using Dealership.Infrastructure.Inspections;
+using Dealership.Infrastructure.Photos;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -171,7 +172,7 @@ internal static class InspectionPhotoLifecycleAssertions
 
     private static async Task RunCleanupAsync(WebApplicationFactory<Program> factory)
     {
-        using var worker = ActivatorUtilities.CreateInstance<InspectionPhotoCleanupWorker>(factory.Services);
+        using var worker = ActivatorUtilities.CreateInstance<PhotoCleanupWorker>(factory.Services);
         await worker.RunBatchAsync(CancellationToken.None);
     }
 

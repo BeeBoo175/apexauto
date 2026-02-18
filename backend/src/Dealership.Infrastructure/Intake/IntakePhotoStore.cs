@@ -3,10 +3,11 @@ using Dealership.Application.Intake;
 using Dealership.Domain.Intake;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Dealership.Infrastructure.Photos;
 
 namespace Dealership.Infrastructure.Intake;
 
-public sealed class IntakePhotoStore(DealershipDbContext database, TimeProvider clock) : IIntakePhotoStore
+public sealed class IntakePhotoStore(DealershipDbContext database, TimeProvider clock, PhotoCleanupSignal cleanup) : IIntakePhotoStore
 {
     public async Task<PhotoPreparation> PrepareAsync(Guid ownerId, Guid id, PhotoAngle angle, PhotoContent content,
         TimeSpan lifetime, CancellationToken cancellationToken)
@@ -34,6 +35,7 @@ public sealed class IntakePhotoStore(DealershipDbContext database, TimeProvider 
         database.IntakePhotos.Add(photo);
         await database.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+        cleanup.Request();
         return new PhotoPreparation(PhotoStatus.Pending, photo);
     }
 
@@ -86,6 +88,7 @@ public sealed class IntakePhotoStore(DealershipDbContext database, TimeProvider 
         photo.ConfirmAvailable(now);
         await database.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+        cleanup.Request();
         return new PhotoPreparation(PhotoStatus.Available, photo);
     }
 
@@ -98,8 +101,12 @@ public sealed class IntakePhotoStore(DealershipDbContext database, TimeProvider 
             return Removed(photo, removal);
         }
 
-        if (photo.IsExpired(clock.GetUtcNow()) &&
-            !await database.AppointmentPhotos.AnyAsync(item => item.PhotoId == photo.Id, cancellationToken))
+        var attachment = await database.AppointmentPhotos.Where(link => link.PhotoId == photo.Id)
+            .Join(database.IntakeAppointments, link => link.AppointmentId, appointment => appointment.Id,
+                (_, appointment) => new { appointment.CancellationPhotosExpireAt })
+            .SingleOrDefaultAsync(cancellationToken);
+        var now = clock.GetUtcNow();
+        if ((attachment is null && photo.IsExpired(now)) || attachment?.CancellationPhotosExpireAt <= now)
         {
             return new PhotoPreparation(PhotoStatus.NotFound);
         }

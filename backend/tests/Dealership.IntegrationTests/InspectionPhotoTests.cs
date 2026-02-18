@@ -12,6 +12,7 @@ using Dealership.Domain.Photos;
 using Dealership.Infrastructure.Persistence;
 using Dealership.Infrastructure.Development;
 using Dealership.Infrastructure.Storage;
+using Dealership.Infrastructure.Photos;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -56,6 +57,8 @@ public sealed class InspectionPhotoTests(IntakePhotoFixture fixture) : IClassFix
 
         var response = await UploadAsync(client, path, bytes);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        await activeFactory.Services.GetRequiredService<PhotoCleanupSignal>().WaitAsync(CancellationToken.None)
+            .AsTask().WaitAsync(TimeSpan.FromSeconds(5));
         Assert.True(response.Headers.CacheControl?.NoStore);
         Assert.Equal("nosniff", Assert.Single(response.Headers.GetValues("X-Content-Type-Options")));
         var receipt = (await response.Content.ReadFromJsonAsync<InspectionPhotoReceipt>())!;

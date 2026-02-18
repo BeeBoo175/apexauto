@@ -5,10 +5,11 @@ using Dealership.Domain.Photos;
 using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Dealership.Infrastructure.Photos;
 
 namespace Dealership.Infrastructure.Inspections;
 
-public sealed class InspectionPhotoStore(DealershipDbContext database, IInspectionAssignmentStore assignments)
+public sealed class InspectionPhotoStore(DealershipDbContext database, IInspectionAssignmentStore assignments, PhotoCleanupSignal cleanup)
     : IInspectionPhotoStore
 {
     public async Task<InspectionPhotoStatus> CheckUploadAsync(Guid actorId, Guid inspectionId, long assignmentVersion,
@@ -46,6 +47,7 @@ public sealed class InspectionPhotoStore(DealershipDbContext database, IInspecti
             database.InspectionPhotos.Add(photo);
             await database.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
+            cleanup.Request();
             return new(InspectionPhotoStatus.Pending, photo);
         }
         finally
@@ -89,6 +91,7 @@ public sealed class InspectionPhotoStore(DealershipDbContext database, IInspecti
             photo.ConfirmAvailable(now);
             await database.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
+            cleanup.Request();
             return new(InspectionPhotoStatus.Available, photo);
         }
         finally

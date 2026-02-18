@@ -1,12 +1,11 @@
 using Dealership.Domain.Intake;
+using Dealership.Infrastructure.Photos;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dealership.Infrastructure.Intake;
 
-public sealed record PhotoDeletionClaim(IntakePhoto Photo, Guid ClaimId);
-
-public sealed class PhotoCleanupStore(DealershipDbContext database, TimeProvider clock)
+public sealed class PhotoCleanupStore(DealershipDbContext database, TimeProvider clock) : IPhotoCleanupSource
 {
     public async Task<IReadOnlyList<Guid>> GetCandidatesAsync(CancellationToken cancellationToken)
     {

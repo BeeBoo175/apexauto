@@ -2,6 +2,7 @@ using Dealership.Application.Intake;
 using Dealership.Domain.Common;
 using Dealership.Domain.Intake;
 using Dealership.Infrastructure.Intake;
+using Dealership.Infrastructure.Photos;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;

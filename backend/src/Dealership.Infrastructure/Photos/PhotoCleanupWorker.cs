@@ -1,13 +1,14 @@
 using Dealership.Application.Photos;
 using Dealership.Application.Intake;
+using Dealership.Infrastructure.Intake;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Dealership.Infrastructure.Intake;
+namespace Dealership.Infrastructure.Photos;
 
-public sealed class PhotoCleanupWorker(IServiceScopeFactory scopes, IOptions<IntakePhotoSettings> settings,
+public sealed class PhotoCleanupWorker(IServiceScopeFactory scopes, IOptions<IntakePhotoSettings> settings, PhotoCleanupSignal signal,
     ILogger<PhotoCleanupWorker> logger) : BackgroundService
 {
     private static readonly Action<ILogger, string, Exception?> CleanupFailure = LoggerMessage.Define<string>(
@@ -21,41 +22,57 @@ public sealed class PhotoCleanupWorker(IServiceScopeFactory scopes, IOptions<Int
             return;
         }
 
+        signal.Request();
         while (!stoppingToken.IsCancellationRequested)
         {
-            try
-            {
-                await RunBatchAsync(stoppingToken);
-            }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-            {
-                throw;
-            }
-            catch (Exception exception)
-            {
-                CleanupFailure(logger, exception.GetType().Name, null);
-            }
-
-            await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+            // Free hosting can defer physical cleanup until activity resumes.
+            await signal.WaitAsync(stoppingToken);
+            await RunBatchAsync(stoppingToken);
         }
     }
 
     public async Task RunBatchAsync(CancellationToken cancellationToken)
     {
-        IReadOnlyList<Guid> candidates;
+        int sourceCount;
 
         await using (var scope = scopes.CreateAsyncScope())
         {
-            candidates = await scope.ServiceProvider.GetRequiredService<PhotoCleanupStore>().GetCandidatesAsync(cancellationToken);
+            sourceCount = scope.ServiceProvider.GetServices<IPhotoCleanupSource>().Count();
         }
 
-        foreach (var id in candidates)
+        for (var sourceIndex = 0; sourceIndex < sourceCount; sourceIndex++)
         {
-            await DeleteNextAsync(id, cancellationToken);
+            await RunSourceAsync(sourceIndex, cancellationToken);
         }
     }
 
-    private async Task DeleteNextAsync(Guid id, CancellationToken cancellationToken)
+    private async Task RunSourceAsync(int sourceIndex, CancellationToken cancellationToken)
+    {
+        try
+        {
+            IReadOnlyList<Guid> candidates;
+            await using (var scope = scopes.CreateAsyncScope())
+            {
+                candidates = await scope.ServiceProvider.GetServices<IPhotoCleanupSource>().ElementAt(sourceIndex)
+                    .GetCandidatesAsync(cancellationToken);
+            }
+
+            foreach (var id in candidates)
+            {
+                await DeleteNextAsync(sourceIndex, id, cancellationToken);
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            CleanupFailure(logger, exception.GetType().Name, null);
+        }
+    }
+
+    private async Task DeleteNextAsync(int sourceIndex, Guid id, CancellationToken cancellationToken)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(40));
@@ -71,7 +88,7 @@ public sealed class PhotoCleanupWorker(IServiceScopeFactory scopes, IOptions<Int
                 return;
             }
 
-            var store = services.GetRequiredService<PhotoCleanupStore>();
+            var store = services.GetServices<IPhotoCleanupSource>().ElementAt(sourceIndex);
             var claim = await store.ClaimAsync(id, deadline.Token);
 
             if (claim is null)

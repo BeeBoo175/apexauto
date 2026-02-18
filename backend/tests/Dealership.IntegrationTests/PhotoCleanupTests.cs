@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using Dealership.Application.Intake;
 using Dealership.Domain.Intake;
 using Dealership.Infrastructure.Intake;
+using Dealership.Infrastructure.Photos;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -31,7 +32,10 @@ public sealed class PhotoCleanupTests(IntakePhotoFixture fixture) : IClassFixtur
             StartsAt = request.StartsAt.AddMinutes(90),
             PhotoIds = await BookingTestData.PhotosAsync(client)
         });
+        var signal = factory.Services.GetRequiredService<PhotoCleanupSignal>();
+        await signal.WaitAsync(CancellationToken.None).AsTask().WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Equal(HttpStatusCode.OK, (await client.PostAsync($"/api/intake/appointments/{cancelled.Id}/cancellation", null)).StatusCode);
+        await signal.WaitAsync(CancellationToken.None).AsTask().WaitAsync(TimeSpan.FromSeconds(5));
         await RunCleanupAsync(factory);
         Assert.True(await fixture.OwnedObjectExistsAsync(cancelled.Photos[0].Id));
         var unexpired = Guid.NewGuid();
@@ -40,6 +44,8 @@ public sealed class PhotoCleanupTests(IntakePhotoFixture fixture) : IClassFixtur
         {
             longClient.DefaultRequestHeaders.Authorization = client.DefaultRequestHeaders.Authorization;
             Assert.Equal(HttpStatusCode.OK, (await IntakePhotoFixture.UploadAsync(longClient, unexpired, IntakePhotoFixture.Image())).StatusCode);
+            await longLifetime.Services.GetRequiredService<PhotoCleanupSignal>().WaitAsync(CancellationToken.None)
+                .AsTask().WaitAsync(TimeSpan.FromSeconds(5));
         }
         await VerifyPrematureSqlAsync(unexpired, cancelled.Photos[0].Id);
         var unsubmitted = Guid.NewGuid();
@@ -131,6 +137,11 @@ public sealed class PhotoCleanupTests(IntakePhotoFixture fixture) : IClassFixtur
                 .Where(item => item.Id == cancelled.Id).Select(item => item.CancellationPhotosExpireAt!.Value).SingleAsync();
             await WaitUntilAsync(expires);
         }
+
+        Assert.True(await fixture.OwnedObjectExistsAsync(cancelled.Photos[0].Id));
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/intake/photos/{cancelled.Photos[0].Id}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/intake/photos/{cancelled.Photos[0].Id}/receipt")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"/api/intake/photos/{active.Photos[0].Id}")).StatusCode);
 
         using (var afterRetention = fixture.CreateFactory())
         {
