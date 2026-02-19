@@ -13,7 +13,7 @@ public sealed record DevelopmentFixtureReport(string Fixture, string State, bool
 public sealed class DevelopmentFixtureRunner(DealershipDbContext database, DevelopmentCustomerFixtures customers,
     StaffProvisioningService staff, BranchProvisioningService branches, DevelopmentIntakeFixtures intake,
     IInspectionAssignmentStore assignments, IInspectionDraftSaveStore inspectionSaves, InspectionPhotoService inspectionPhotos,
-    IPhotoImageValidator photoValidator, IInspectionReportStore inspectionReports)
+    IPhotoImageValidator photoValidator, IInspectionReportStore inspectionReports, IInspectionRepairRequestStore inspectionRepairs)
 {
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> SeedAsync(DevelopmentFixtureTarget target,
         CancellationToken cancellationToken)
@@ -113,7 +113,7 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
             reports.Add(await InspectionPhotoAsync(seed, fixture.Id, technicianId, fixture.RegistrationPlate, cancellationToken));
             var entries = await InspectionEntriesAsync(seed, fixture.Id, technicianId, fixture.RegistrationPlate, cancellationToken);
             reports.Add(entries);
-            if (entries.RequiresAttention || fixture.BranchId != DevelopmentFixtureManifest.Branches[0].Id)
+            if (entries.RequiresAttention || fixture.BranchId == DevelopmentFixtureManifest.Branches[2].Id)
             {
                 continue;
             }
@@ -125,10 +125,41 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
                 continue;
             }
 
-            reports.Add(await InspectionReopeningAsync(seed, fixture.Id, fixture.BranchId,
-                fixture.RegistrationPlate, cancellationToken));
+            if (fixture.BranchId == DevelopmentFixtureManifest.Branches[0].Id)
+            {
+                reports.Add(await InspectionReopeningAsync(seed, fixture.Id, fixture.BranchId,
+                    fixture.RegistrationPlate, cancellationToken));
+                continue;
+            }
+
+            reports.Add(await InspectionRepairAsync(seed, fixture.Id, technicianId, fixture.RegistrationPlate, cancellationToken));
         }
         return reports;
+    }
+
+    private async Task<DevelopmentFixtureReport> InspectionRepairAsync(bool seed, Guid inspectionId, Guid technicianId,
+        string plate, CancellationToken cancellationToken)
+    {
+        var request = DevelopmentInspectionManifest.RepairRequest(inspectionId);
+        var draft = await database.InspectionDrafts.AsNoTracking().SingleAsync(item => item.Id == inspectionId, cancellationToken);
+        var latest = await database.InspectionRepairRequests.AsNoTracking().Where(item => item.InspectionId == inspectionId)
+            .OrderByDescending(item => item.Version).FirstOrDefaultAsync(cancellationToken);
+        if (latest is not null)
+        {
+            var expected = new Dealership.Domain.Inspections.InspectionRepairScope(request.Items, request.Budget);
+            var matches = latest.Id == request.OperationId && latest.Matches(technicianId, inspectionId, request, expected) &&
+                draft.IsSigned && draft.Revision == 1 && draft.RepairVersion == 1;
+            return new($"Inspection repairs ({plate})", matches ? "matches" : "drift; preserved", !matches);
+        }
+
+        if (!seed || !draft.IsSigned || draft.Revision != 1 || draft.RepairVersion != 0)
+        {
+            return new($"Inspection repairs ({plate})", "missing or changed; preserved", true);
+        }
+
+        var saved = await inspectionRepairs.RequestAsync(technicianId, inspectionId, request, cancellationToken);
+        var succeeded = saved.Status == InspectionAssignmentStatus.Succeeded;
+        return new($"Inspection repairs ({plate})", succeeded ? "created" : "repair request unavailable; preserved", !succeeded);
     }
 
     private async Task<DevelopmentFixtureReport> InspectionEntriesAsync(bool seed, Guid inspectionId, Guid technicianId,

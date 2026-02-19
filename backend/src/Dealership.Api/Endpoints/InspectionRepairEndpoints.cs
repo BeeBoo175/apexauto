@@ -1,0 +1,68 @@
+using System.IdentityModel.Tokens.Jwt;
+using Dealership.Application.Inspections;
+
+namespace Dealership.Api.Endpoints;
+
+public static class InspectionRepairEndpoints
+{
+    public static void MapInspectionRepairEndpoints(this WebApplication app)
+    {
+        var routes = app.MapGroup("/api/staff/inspection").RequireAuthorization();
+        routes.AddEndpointFilter(async (context, next) =>
+        {
+            context.HttpContext.Response.Headers.CacheControl = "no-store";
+            return await next(context);
+        });
+        routes.MapPost("/drafts/{id:guid}/repair-requests", RequestAsync);
+        routes.MapGet("/reports/{id:guid}/revisions/{revision:long}/repairs", ReadAsync);
+    }
+
+    private static async Task<IResult> RequestAsync(Guid id, HttpContext context, IInspectionRepairRequestStore repairs,
+        CancellationToken cancellationToken)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(20));
+        try
+        {
+            var (request, error) = await JsonRequestReader.ReadAsync<InspectionRepairRequest>(context.Request, deadline.Token, 512 * 1024);
+            if (error is not null)
+            {
+                return error;
+            }
+
+            var result = await repairs.RequestAsync(ActorId(context), id, request!, deadline.Token);
+            return Map(result);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return Results.Problem(statusCode: 503, title: "Repair request is unconfirmed; reconcile with the same operation and contents.");
+        }
+    }
+
+    private static async Task<IResult> ReadAsync(Guid id, long revision, HttpContext context,
+        IInspectionRepairRequestStore repairs, CancellationToken cancellationToken)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(20));
+        try
+        {
+            return Map(await repairs.ReadAsync(ActorId(context), id, revision, deadline.Token));
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return Results.Problem(statusCode: 503, title: "Repair request is temporarily unavailable.");
+        }
+    }
+
+    private static Guid ActorId(HttpContext context) => Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Sub)!.Value);
+
+    private static IResult Map(InspectionRepairResult result) => result.Status switch
+    {
+        InspectionAssignmentStatus.Succeeded => Results.Ok(result.Receipt),
+        InspectionAssignmentStatus.Invalid => Results.Problem(statusCode: 400, title: "Provide valid repair scope, budget and versions."),
+        InspectionAssignmentStatus.Forbidden => Results.Forbid(),
+        InspectionAssignmentStatus.NotFound => Results.NotFound(),
+        InspectionAssignmentStatus.Conflict => Results.Problem(statusCode: 409, title: "The inspection, repair scope or operation has changed."),
+        _ => Results.Problem(statusCode: 500)
+    };
+}

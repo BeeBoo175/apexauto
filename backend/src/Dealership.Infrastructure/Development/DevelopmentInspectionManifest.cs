@@ -11,6 +11,9 @@ public static class DevelopmentInspectionManifest
 
     public static Guid ReopenId(Guid inspectionId) => StableId(inspectionId, "reopen");
 
+    public static InspectionRepairRequest RepairRequest(Guid inspectionId) => new(StableId(inspectionId, "repair"),
+        1, 1, 0, [new("EP-004", "Prepare and refinish the scratched front bumper surface")], 250m);
+
     public static Guid PhotoId(Guid inspectionId)
     {
         return StableId(inspectionId, "bumper");

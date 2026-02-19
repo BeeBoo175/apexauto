@@ -142,5 +142,6 @@ app.MapIntakeBookingEndpoints();
 app.MapStaffIntakeEndpoints();
 app.MapInspectionDraftEndpoints();
 app.MapInspectionPhotoEndpoints();
+app.MapInspectionRepairEndpoints();
 
 app.Run();

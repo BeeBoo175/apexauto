@@ -162,7 +162,8 @@ public sealed class InspectionAssignmentStore(DealershipDbContext database) : II
         {
             Revision = item.Revision,
             IsSigned = item.IsSigned,
-            ReopenedAfterSaveVersion = item.ReopenedAfterSaveVersion
+            ReopenedAfterSaveVersion = item.ReopenedAfterSaveVersion,
+            RepairVersion = item.RepairVersion
         }).SingleOrDefaultAsync(cancellationToken);
         if (draft is not null)
         {
