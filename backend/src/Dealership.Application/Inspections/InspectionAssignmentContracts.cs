@@ -7,6 +7,7 @@ public sealed record InspectionDraftSnapshot(Guid Id, Guid VehicleId, Guid Branc
 {
     public long Revision { get; init; } = 1;
     public bool IsSigned { get; init; }
+    public long ReopenedAfterSaveVersion { get; init; }
 }
 
 public sealed record InspectionAssignmentReceipt(Guid OperationId, Guid InspectionId, Guid VehicleId, Guid BranchId,

@@ -32,6 +32,7 @@ public sealed class InspectionDraft
     public long AssignmentVersion { get; private set; }
     public long Revision { get; private set; } = 1;
     public bool IsSigned { get; private set; }
+    public long ReopenedAfterSaveVersion { get; private set; }
 
     public void Reassign(Guid technicianId, long expectedVersion)
     {

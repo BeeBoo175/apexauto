@@ -20,7 +20,7 @@ public sealed record InspectionReport(Guid OperationId, Guid InspectionId, long 
             vehicle.Id != draft.VehicleId || vehicle.BranchId != draft.BranchId ||
             vehicle.Status != VehicleStatus.PendingInspection || save.OperationId == Guid.Empty ||
             save.InspectionId != draft.Id || save.ActorId != draft.TechnicianId ||
-            save.AssignmentVersion != draft.AssignmentVersion || save.Version < 1 ||
+            save.AssignmentVersion != draft.AssignmentVersion || save.Version <= draft.ReopenedAfterSaveVersion ||
             save.CatalogVersion != InspectionCatalog.Version || signedAt < save.RecordedAt ||
             save.RecordedAt < draft.CreatedAt || save.ExaminedPointCodes is null)
         {
@@ -85,8 +85,19 @@ public sealed record InspectionSignRequest(Guid OperationId, long AssignmentVers
 
 public sealed record InspectionReportResult(InspectionAssignmentStatus Status, InspectionReport? Report = null);
 
+public sealed record InspectionReopenRequest(Guid OperationId, long AssignmentVersion, long Revision, string? Reason);
+
+public sealed record InspectionReopenReceipt(Guid OperationId, Guid InspectionId, Guid BranchId, Guid ActorId,
+    Guid SignedRevisionId, long AssignmentVersion, long ExpectedRevision, long Revision,
+    long AfterSaveVersion, string Reason, DateTimeOffset RecordedAt);
+
+public sealed record InspectionReopenResult(InspectionAssignmentStatus Status, InspectionReopenReceipt? Receipt = null);
+
 public interface IInspectionReportStore
 {
+    Task<InspectionReopenResult> ReopenAsync(Guid actorId, Guid inspectionId, InspectionReopenRequest request,
+        CancellationToken cancellationToken);
+
     Task<InspectionReportResult> SignAsync(Guid actorId, Guid inspectionId, InspectionSignRequest request,
         CancellationToken cancellationToken);
 

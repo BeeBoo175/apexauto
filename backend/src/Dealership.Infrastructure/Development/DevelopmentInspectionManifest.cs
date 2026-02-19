@@ -7,9 +7,18 @@ namespace Dealership.Infrastructure.Development;
 
 public static class DevelopmentInspectionManifest
 {
+    public const string ReopenReason = "Manager requests a fresh examination after reviewing the retained bumper evidence.";
+
+    public static Guid ReopenId(Guid inspectionId) => StableId(inspectionId, "reopen");
+
     public static Guid PhotoId(Guid inspectionId)
     {
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes($"apexauto/development/inspection/{inspectionId:N}/bumper"));
+        return StableId(inspectionId, "bumper");
+    }
+
+    private static Guid StableId(Guid inspectionId, string purpose)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes($"apexauto/development/inspection/{inspectionId:N}/{purpose}"));
         bytes[6] = (byte)((bytes[6] & 0x0f) | 0x80);
         bytes[8] = (byte)((bytes[8] & 0x3f) | 0x80);
         return Guid.ParseExact(Convert.ToHexString(bytes.AsSpan(0, 16)), "N");

@@ -21,13 +21,16 @@ internal static class DevelopmentInspectionFixtureAssertions
         Assert.Equal(3, await database.InspectionPhotos.CountAsync());
         Assert.Equal(3, await database.InspectionDraftPhotos.CountAsync());
         Assert.Equal(1, await database.InspectionSignedRevisions.CountAsync());
+        Assert.Equal(1, await database.InspectionReopenings.CountAsync());
         foreach (var draft in drafts)
         {
             var technician = DevelopmentFixtureManifest.Staff.Single(item =>
                 item.BranchId == draft.BranchId && item.Role == AccountRoles.WorkshopTechnician);
             Assert.Equal(technician.Id, draft.TechnicianId);
-            Assert.Equal(draft.BranchId == DevelopmentFixtureManifest.Branches[0].Id, draft.IsSigned);
-            Assert.Equal(1, draft.Revision);
+            var reopened = draft.BranchId == DevelopmentFixtureManifest.Branches[0].Id;
+            Assert.False(draft.IsSigned);
+            Assert.Equal(reopened ? 2 : 1, draft.Revision);
+            Assert.Equal(reopened ? 1 : 0, draft.ReopenedAfterSaveVersion);
             Assert.Equal(1, draft.AssignmentVersion);
             var savedDraft = await services.GetRequiredService<IInspectionAssignmentStore>()
                 .ReadAsync(technician.Id, draft.Id, CancellationToken.None);
@@ -43,17 +46,20 @@ internal static class DevelopmentInspectionFixtureAssertions
             Assert.Equal(InspectionPhotoStatus.Available, (await services.GetRequiredService<InspectionPhotoService>()
                 .DownloadAsync(technician.Id, draft.Id, photo.Receipt!.Id, bytes, CancellationToken.None)).Status);
             Assert.Equal(photo.Receipt.Bytes, bytes.Length);
-            if (draft.IsSigned)
+            if (reopened)
             {
                 var signed = await services.GetRequiredService<IInspectionReportStore>()
                     .ReadAsync(technician.Id, draft.Id, 1, CancellationToken.None);
                 Assert.Equal(InspectionAssignmentStatus.Succeeded, signed.Status);
                 Assert.Equal(250m, signed.Report!.Assessment.EstimatedRepairCost);
                 Assert.Equal(210, signed.Report.Checklist.Count);
+                var receipt = await database.InspectionReopenings.SingleAsync(item => item.InspectionId == draft.Id);
+                Assert.Equal(signed.Report.OperationId, receipt.SignedRevisionId);
+                Assert.Equal(DevelopmentInspectionManifest.ReopenReason, receipt.Reason);
             }
         }
 
-        var selected = drafts.First(draft => !draft.IsSigned);
+        var selected = drafts.First(draft => draft.Revision == 1);
         var edit = await services.GetRequiredService<IInspectionDraftSaveStore>().SaveAsync(selected.TechnicianId,
             selected.Id, new(Guid.NewGuid(), 1, 1, []), CancellationToken.None);
         Assert.Equal(InspectionAssignmentStatus.Succeeded, edit.Status);

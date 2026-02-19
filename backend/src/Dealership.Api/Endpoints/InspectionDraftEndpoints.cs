@@ -17,7 +17,30 @@ public static class InspectionDraftEndpoints
         routes.MapGet("/drafts/{id:guid}", ReadAsync);
         routes.MapPost("/drafts/{id:guid}/saves", SaveAsync);
         routes.MapPost("/drafts/{id:guid}/sign", SignAsync);
+        routes.MapPost("/drafts/{id:guid}/reopen", ReopenAsync);
         routes.MapGet("/reports/{id:guid}/revisions/{revision:long}", ReportAsync);
+    }
+
+    private static async Task<IResult> ReopenAsync(Guid id, HttpContext context, IInspectionReportStore reports,
+        CancellationToken cancellationToken)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(20));
+        try
+        {
+            var (request, error) = await JsonRequestReader.ReadAsync<InspectionReopenRequest>(context.Request, deadline.Token);
+            if (error is not null)
+            {
+                return error;
+            }
+
+            var result = await reports.ReopenAsync(ActorId(context), id, request!, deadline.Token);
+            return Map(result.Status, result.Receipt);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return Results.Problem(statusCode: 503, title: "Reopening is unconfirmed; reconcile with the same operation and contents.");
+        }
     }
 
     private static async Task<IResult> SignAsync(Guid id, HttpContext context, IInspectionReportStore reports,

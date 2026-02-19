@@ -105,16 +105,28 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
                 state = attention ? "claim unavailable; preserved" : "created";
             }
             reports.Add(new DevelopmentFixtureReport($"Inspection ({fixture.RegistrationPlate})", state, attention));
-            if (!attention && vehicleId.HasValue)
+            if (attention || !vehicleId.HasValue)
             {
-                reports.Add(await InspectionPhotoAsync(seed, fixture.Id, technicianId, fixture.RegistrationPlate, cancellationToken));
-                var entries = await InspectionEntriesAsync(seed, fixture.Id, technicianId, fixture.RegistrationPlate, cancellationToken);
-                reports.Add(entries);
-                if (!entries.RequiresAttention && fixture.BranchId == DevelopmentFixtureManifest.Branches[0].Id)
-                {
-                    reports.Add(await InspectionReportAsync(seed, fixture.Id, technicianId, fixture.RegistrationPlate, cancellationToken));
-                }
+                continue;
             }
+
+            reports.Add(await InspectionPhotoAsync(seed, fixture.Id, technicianId, fixture.RegistrationPlate, cancellationToken));
+            var entries = await InspectionEntriesAsync(seed, fixture.Id, technicianId, fixture.RegistrationPlate, cancellationToken);
+            reports.Add(entries);
+            if (entries.RequiresAttention || fixture.BranchId != DevelopmentFixtureManifest.Branches[0].Id)
+            {
+                continue;
+            }
+
+            var report = await InspectionReportAsync(seed, fixture.Id, technicianId, fixture.RegistrationPlate, cancellationToken);
+            reports.Add(report);
+            if (report.RequiresAttention)
+            {
+                continue;
+            }
+
+            reports.Add(await InspectionReopeningAsync(seed, fixture.Id, fixture.BranchId,
+                fixture.RegistrationPlate, cancellationToken));
         }
         return reports;
     }
@@ -157,8 +169,7 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
             .FirstOrDefaultAsync(cancellationToken);
         if (existing is not null)
         {
-            var matches = existing.Id == inspectionId && existing.Matches(technicianId, inspectionId, request) &&
-                draft.IsSigned && draft.Revision == 1;
+            var matches = existing.Id == inspectionId && existing.Matches(technicianId, inspectionId, request);
             return new($"Inspection report ({plate})", matches ? "matches" : "drift; preserved", !matches);
         }
 
@@ -170,6 +181,33 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
         var signed = await inspectionReports.SignAsync(technicianId, inspectionId, request, cancellationToken);
         var succeeded = signed.Status == InspectionAssignmentStatus.Succeeded;
         return new($"Inspection report ({plate})", succeeded ? "created" : "sign-off unavailable; preserved", !succeeded);
+    }
+
+    private async Task<DevelopmentFixtureReport> InspectionReopeningAsync(bool seed, Guid inspectionId, Guid branchId,
+        string plate, CancellationToken cancellationToken)
+    {
+        var managerId = DevelopmentFixtureManifest.Staff.Single(item =>
+            item.BranchId == branchId && item.Role == AccountRoles.BranchManager).Id;
+        var request = new InspectionReopenRequest(DevelopmentInspectionManifest.ReopenId(inspectionId), 1, 1,
+            DevelopmentInspectionManifest.ReopenReason);
+        var draft = await database.InspectionDrafts.AsNoTracking().SingleAsync(item => item.Id == inspectionId, cancellationToken);
+        var existing = await database.InspectionReopenings.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.Id == request.OperationId, cancellationToken);
+        if (existing is not null)
+        {
+            var matches = existing.Matches(managerId, inspectionId, request) && existing.SignedRevisionId == inspectionId &&
+                existing.AfterSaveVersion == 1 && !draft.IsSigned && draft.Revision == 2 && draft.ReopenedAfterSaveVersion == 1;
+            return new($"Inspection reopening ({plate})", matches ? "matches" : "drift; preserved", !matches);
+        }
+
+        if (!seed || !draft.IsSigned || draft.Revision != 1)
+        {
+            return new($"Inspection reopening ({plate})", "missing or changed; preserved", true);
+        }
+
+        var reopened = await inspectionReports.ReopenAsync(managerId, inspectionId, request, cancellationToken);
+        var succeeded = reopened.Status == InspectionAssignmentStatus.Succeeded;
+        return new($"Inspection reopening ({plate})", succeeded ? "created" : "reopening unavailable; preserved", !succeeded);
     }
 
     private async Task<DevelopmentFixtureReport> InspectionPhotoAsync(bool seed, Guid inspectionId, Guid technicianId,
