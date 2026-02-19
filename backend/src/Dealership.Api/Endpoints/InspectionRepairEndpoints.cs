@@ -15,6 +15,45 @@ public static class InspectionRepairEndpoints
         });
         routes.MapPost("/drafts/{id:guid}/repair-requests", RequestAsync);
         routes.MapGet("/reports/{id:guid}/revisions/{revision:long}/repairs", ReadAsync);
+        routes.MapPost("/drafts/{id:guid}/repair-approvals", ApproveAsync);
+        routes.MapGet("/reports/{id:guid}/revisions/{revision:long}/repair-approvals", ReadApprovalAsync);
+    }
+
+    private static async Task<IResult> ApproveAsync(Guid id, HttpContext context, IInspectionRepairApprovalStore approvals,
+        CancellationToken cancellationToken)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(20));
+        try
+        {
+            var (request, error) = await JsonRequestReader.ReadAsync<InspectionRepairApprovalRequest>(context.Request, deadline.Token, 512 * 1024);
+            if (error is not null)
+            {
+                return error;
+            }
+
+            var result = await approvals.ApproveAsync(ActorId(context), id, request!, deadline.Token);
+            return MapApproval(result);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return Results.Problem(statusCode: 503, title: "Repair approval is unconfirmed; reconcile with the same operation and contents.");
+        }
+    }
+
+    private static async Task<IResult> ReadApprovalAsync(Guid id, long revision, HttpContext context,
+        IInspectionRepairApprovalStore approvals, CancellationToken cancellationToken)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(20));
+        try
+        {
+            return MapApproval(await approvals.ReadAsync(ActorId(context), id, revision, deadline.Token));
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return Results.Problem(statusCode: 503, title: "Repair approval is temporarily unavailable.");
+        }
     }
 
     private static async Task<IResult> RequestAsync(Guid id, HttpContext context, IInspectionRepairRequestStore repairs,
@@ -55,6 +94,16 @@ public static class InspectionRepairEndpoints
     }
 
     private static Guid ActorId(HttpContext context) => Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Sub)!.Value);
+
+    private static IResult MapApproval(InspectionRepairApprovalResult result) => result.Status switch
+    {
+        InspectionAssignmentStatus.Succeeded => Results.Ok(result.Receipt),
+        InspectionAssignmentStatus.Invalid => Results.Problem(statusCode: 400, title: "Provide a repair request and valid approval versions."),
+        InspectionAssignmentStatus.Forbidden => Results.Forbid(),
+        InspectionAssignmentStatus.NotFound => Results.NotFound(),
+        InspectionAssignmentStatus.Conflict => Results.Problem(statusCode: 409, title: "The inspection, repair request or approval has changed."),
+        _ => Results.Problem(statusCode: 500)
+    };
 
     private static IResult Map(InspectionRepairResult result) => result.Status switch
     {

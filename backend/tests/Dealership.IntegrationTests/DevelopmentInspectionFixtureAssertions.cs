@@ -23,6 +23,7 @@ internal static class DevelopmentInspectionFixtureAssertions
         Assert.Equal(2, await database.InspectionSignedRevisions.CountAsync());
         Assert.Equal(1, await database.InspectionReopenings.CountAsync());
         Assert.Equal(1, await database.InspectionRepairRequests.CountAsync());
+        Assert.Equal(1, await database.InspectionRepairApprovals.CountAsync());
         foreach (var draft in drafts)
         {
             var technician = DevelopmentFixtureManifest.Staff.Single(item =>
@@ -53,6 +54,11 @@ internal static class DevelopmentInspectionFixtureAssertions
                 Assert.Equal(250m, repair.Receipt!.Budget);
                 Assert.Equal(DevelopmentInspectionManifest.RepairRequest(draft.Id).Items, repair.Receipt.Items);
                 Assert.Equal(draft.RepairVersion, repair.Receipt.Version);
+                var approval = await services.GetRequiredService<IInspectionRepairApprovalStore>()
+                    .ReadAsync(technician.Id, draft.Id, 1, CancellationToken.None);
+                Assert.Equal(InspectionAssignmentStatus.Succeeded, approval.Status);
+                Assert.Equal(repair.Receipt.OperationId, approval.Receipt!.RequestId);
+                Assert.Equal(DevelopmentInspectionManifest.RepairApproval(draft.Id).OperationId, approval.Receipt.OperationId);
             }
             using var bytes = new MemoryStream();
             Assert.Equal(InspectionPhotoStatus.Available, (await services.GetRequiredService<InspectionPhotoService>()
@@ -78,8 +84,13 @@ internal static class DevelopmentInspectionFixtureAssertions
             ExpectedVersion = 1,
             Budget = 275m
         };
-        Assert.Equal(InspectionAssignmentStatus.Succeeded, (await services.GetRequiredService<IInspectionRepairRequestStore>()
-            .RequestAsync(repairDraft.TechnicianId, repairDraft.Id, changedRepair, CancellationToken.None)).Status);
+        var changed = await services.GetRequiredService<IInspectionRepairRequestStore>()
+            .RequestAsync(repairDraft.TechnicianId, repairDraft.Id, changedRepair, CancellationToken.None);
+        Assert.Equal(InspectionAssignmentStatus.Succeeded, changed.Status);
+        var repairManager = DevelopmentFixtureManifest.Staff.Single(item =>
+            item.BranchId == repairDraft.BranchId && item.Role == AccountRoles.BranchManager);
+        Assert.Equal(InspectionAssignmentStatus.Succeeded, (await services.GetRequiredService<IInspectionRepairApprovalStore>()
+            .ApproveAsync(repairManager.Id, repairDraft.Id, new(Guid.NewGuid(), changed.Receipt!.OperationId, 1, 1, 2), CancellationToken.None)).Status);
         var repairSnapshot = await DevelopmentIntakeFixtureAssertions.SnapshotAsync(provider);
         var repairDrift = await services.GetRequiredService<DevelopmentFixtureRunner>().SeedAsync(target, CancellationToken.None);
         Assert.Contains(repairDrift, report => report.Fixture.StartsWith("Inspection repairs (", StringComparison.Ordinal) &&

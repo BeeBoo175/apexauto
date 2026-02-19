@@ -13,7 +13,8 @@ public sealed record DevelopmentFixtureReport(string Fixture, string State, bool
 public sealed class DevelopmentFixtureRunner(DealershipDbContext database, DevelopmentCustomerFixtures customers,
     StaffProvisioningService staff, BranchProvisioningService branches, DevelopmentIntakeFixtures intake,
     IInspectionAssignmentStore assignments, IInspectionDraftSaveStore inspectionSaves, InspectionPhotoService inspectionPhotos,
-    IPhotoImageValidator photoValidator, IInspectionReportStore inspectionReports, IInspectionRepairRequestStore inspectionRepairs)
+    IPhotoImageValidator photoValidator, IInspectionReportStore inspectionReports, IInspectionRepairRequestStore inspectionRepairs,
+    IInspectionRepairApprovalStore inspectionApprovals)
 {
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> SeedAsync(DevelopmentFixtureTarget target,
         CancellationToken cancellationToken)
@@ -132,9 +133,39 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
                 continue;
             }
 
-            reports.Add(await InspectionRepairAsync(seed, fixture.Id, technicianId, fixture.RegistrationPlate, cancellationToken));
+            var repair = await InspectionRepairAsync(seed, fixture.Id, technicianId, fixture.RegistrationPlate, cancellationToken);
+            reports.Add(repair);
+            if (!repair.RequiresAttention)
+            {
+                reports.Add(await InspectionApprovalAsync(seed, fixture.Id, fixture.BranchId, fixture.RegistrationPlate, cancellationToken));
+            }
         }
         return reports;
+    }
+
+    private async Task<DevelopmentFixtureReport> InspectionApprovalAsync(bool seed, Guid inspectionId, Guid branchId,
+        string plate, CancellationToken cancellationToken)
+    {
+        var managerId = DevelopmentFixtureManifest.Staff.Single(item =>
+            item.BranchId == branchId && item.Role == AccountRoles.BranchManager).Id;
+        var request = DevelopmentInspectionManifest.RepairApproval(inspectionId);
+        var existing = await database.InspectionRepairApprovals.AsNoTracking()
+            .Where(item => item.InspectionId == inspectionId).OrderByDescending(item => item.RepairVersion)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (existing is not null)
+        {
+            var matches = existing.Id == request.OperationId && existing.Matches(managerId, inspectionId, request);
+            return new($"Inspection approval ({plate})", matches ? "matches" : "drift; preserved", !matches);
+        }
+
+        if (!seed)
+        {
+            return new($"Inspection approval ({plate})", "missing", true);
+        }
+
+        var approved = await inspectionApprovals.ApproveAsync(managerId, inspectionId, request, cancellationToken);
+        var succeeded = approved.Status == InspectionAssignmentStatus.Succeeded;
+        return new($"Inspection approval ({plate})", succeeded ? "created" : "approval unavailable; preserved", !succeeded);
     }
 
     private async Task<DevelopmentFixtureReport> InspectionRepairAsync(bool seed, Guid inspectionId, Guid technicianId,
