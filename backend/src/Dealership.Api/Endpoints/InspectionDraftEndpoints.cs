@@ -19,6 +19,23 @@ public static class InspectionDraftEndpoints
         routes.MapPost("/drafts/{id:guid}/sign", SignAsync);
         routes.MapPost("/drafts/{id:guid}/reopen", ReopenAsync);
         routes.MapGet("/reports/{id:guid}/revisions/{revision:long}", ReportAsync);
+        routes.MapGet("/reports/{id:guid}/revisions", HistoryAsync);
+    }
+
+    private static async Task<IResult> HistoryAsync(Guid id, int? page, int? pageSize, HttpContext context,
+        IInspectionHistoryStore history, CancellationToken cancellationToken)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(20));
+        try
+        {
+            var result = await history.RevisionsAsync(ActorId(context), id, new(page ?? 1, pageSize ?? 25), deadline.Token);
+            return Map(result.Status, result.History);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return Results.Problem(statusCode: 503, title: "Inspection history is temporarily unavailable.");
+        }
     }
 
     private static async Task<IResult> ReopenAsync(Guid id, HttpContext context, IInspectionReportStore reports,

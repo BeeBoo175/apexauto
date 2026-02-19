@@ -59,6 +59,9 @@ internal static class DevelopmentInspectionFixtureAssertions
                 Assert.Equal(InspectionAssignmentStatus.Succeeded, approval.Status);
                 Assert.Equal(repair.Receipt.OperationId, approval.Receipt!.RequestId);
                 Assert.Equal(DevelopmentInspectionManifest.RepairApproval(draft.Id).OperationId, approval.Receipt.OperationId);
+                var history = await services.GetRequiredService<IInspectionHistoryStore>()
+                    .RepairsAsync(technician.Id, draft.Id, 1, new(), CancellationToken.None);
+                Assert.Equal(approval.Receipt, Assert.Single(history.History!.Items).Approval);
             }
             using var bytes = new MemoryStream();
             Assert.Equal(InspectionPhotoStatus.Available, (await services.GetRequiredService<InspectionPhotoService>()
@@ -74,6 +77,10 @@ internal static class DevelopmentInspectionFixtureAssertions
                 var receipt = await database.InspectionReopenings.SingleAsync(item => item.InspectionId == draft.Id);
                 Assert.Equal(signed.Report.OperationId, receipt.SignedRevisionId);
                 Assert.Equal(DevelopmentInspectionManifest.ReopenReason, receipt.Reason);
+                var history = await services.GetRequiredService<IInspectionHistoryStore>()
+                    .RevisionsAsync(technician.Id, draft.Id, new(), CancellationToken.None);
+                Assert.Equal(receipt.Receipt(), Assert.Single(history.History!.Items).Reopening);
+                Assert.False(history.History.IsSigned);
             }
         }
 

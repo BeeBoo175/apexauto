@@ -17,6 +17,30 @@ public static class InspectionRepairEndpoints
         routes.MapGet("/reports/{id:guid}/revisions/{revision:long}/repairs", ReadAsync);
         routes.MapPost("/drafts/{id:guid}/repair-approvals", ApproveAsync);
         routes.MapGet("/reports/{id:guid}/revisions/{revision:long}/repair-approvals", ReadApprovalAsync);
+        routes.MapGet("/reports/{id:guid}/revisions/{revision:long}/repair-history", HistoryAsync);
+    }
+
+    private static async Task<IResult> HistoryAsync(Guid id, long revision, int? page, int? pageSize, HttpContext context,
+        IInspectionHistoryStore history, CancellationToken cancellationToken)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(20));
+        try
+        {
+            var result = await history.RepairsAsync(ActorId(context), id, revision, new(page ?? 1, pageSize ?? 25), deadline.Token);
+            return result.Status switch
+            {
+                InspectionAssignmentStatus.Succeeded => Results.Ok(result.History),
+                InspectionAssignmentStatus.Invalid => Results.Problem(statusCode: 400, title: "Provide a valid revision, page and page size."),
+                InspectionAssignmentStatus.Forbidden => Results.Forbid(),
+                InspectionAssignmentStatus.NotFound => Results.NotFound(),
+                _ => Results.Problem(statusCode: 500)
+            };
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return Results.Problem(statusCode: 503, title: "Repair history is temporarily unavailable.");
+        }
     }
 
     private static async Task<IResult> ApproveAsync(Guid id, HttpContext context, IInspectionRepairApprovalStore approvals,
