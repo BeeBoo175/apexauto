@@ -16,6 +16,46 @@ public static class InspectionDraftEndpoints
         routes.MapPost("/vehicles/{id:guid}/assignment", AssignAsync);
         routes.MapGet("/drafts/{id:guid}", ReadAsync);
         routes.MapPost("/drafts/{id:guid}/saves", SaveAsync);
+        routes.MapPost("/drafts/{id:guid}/sign", SignAsync);
+        routes.MapGet("/reports/{id:guid}/revisions/{revision:long}", ReportAsync);
+    }
+
+    private static async Task<IResult> SignAsync(Guid id, HttpContext context, IInspectionReportStore reports,
+        CancellationToken cancellationToken)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(20));
+        try
+        {
+            var (request, error) = await JsonRequestReader.ReadAsync<InspectionSignRequest>(context.Request, deadline.Token);
+            if (error is not null)
+            {
+                return error;
+            }
+
+            var result = await reports.SignAsync(ActorId(context), id, request!, deadline.Token);
+            return Map(result.Status, result.Report);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return Results.Problem(statusCode: 503, title: "Sign-off is unconfirmed; reconcile with the same operation and contents.");
+        }
+    }
+
+    private static async Task<IResult> ReportAsync(Guid id, long revision, HttpContext context,
+        IInspectionReportStore reports, CancellationToken cancellationToken)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(20));
+        try
+        {
+            var result = await reports.ReadAsync(ActorId(context), id, revision, deadline.Token);
+            return Map(result.Status, result.Report);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return Results.Problem(statusCode: 503, title: "Inspection report is temporarily unavailable.");
+        }
     }
 
     private static async Task<IResult> SaveAsync(Guid id, HttpContext context, IInspectionDraftSaveStore saves,

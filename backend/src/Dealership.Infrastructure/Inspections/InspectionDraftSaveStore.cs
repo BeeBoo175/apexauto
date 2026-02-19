@@ -85,7 +85,7 @@ public sealed class InspectionDraftSaveStore(DealershipDbContext database) : IIn
             var version = await database.InspectionDraftSaves.Where(save => save.InspectionId == inspectionId)
                 .Select(save => (long?)save.Version).MaxAsync(cancellationToken) ?? 0;
             if (draft.AssignmentVersion != request.AssignmentVersion || version != request.ExpectedVersion ||
-                vehicle.Status != VehicleStatus.PendingInspection)
+                vehicle.Status != VehicleStatus.PendingInspection || draft.IsSigned)
             {
                 return new(InspectionAssignmentStatus.Conflict);
             }

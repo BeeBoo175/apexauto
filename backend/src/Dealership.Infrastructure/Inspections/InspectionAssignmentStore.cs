@@ -85,7 +85,7 @@ public sealed class InspectionAssignmentStore(DealershipDbContext database) : II
 
             var draft = await database.InspectionDrafts.SingleOrDefaultAsync(item => item.VehicleId == vehicleId, cancellationToken);
             if (claim && draft is not null || !claim && (draft is null || draft.AssignmentVersion != request.ExpectedVersion ||
-                draft.TechnicianId == request.TechnicianId))
+                draft.TechnicianId == request.TechnicianId || draft.IsSigned))
             {
                 return new(InspectionAssignmentStatus.Conflict);
             }
@@ -158,7 +158,11 @@ public sealed class InspectionAssignmentStore(DealershipDbContext database) : II
         }
 
         var draft = await query.Select(item => new InspectionDraftSnapshot(item.Id, item.VehicleId, item.BranchId,
-            item.TechnicianId, item.AssignmentVersion, item.CreatedAt, null)).SingleOrDefaultAsync(cancellationToken);
+            item.TechnicianId, item.AssignmentVersion, item.CreatedAt, null)
+        {
+            Revision = item.Revision,
+            IsSigned = item.IsSigned
+        }).SingleOrDefaultAsync(cancellationToken);
         if (draft is not null)
         {
             var latest = await database.InspectionDraftSaves.AsNoTracking().Where(save => save.InspectionId == inspectionId)

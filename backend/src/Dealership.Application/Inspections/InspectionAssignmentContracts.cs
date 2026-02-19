@@ -3,7 +3,11 @@ namespace Dealership.Application.Inspections;
 public sealed record InspectionAssignmentRequest(Guid OperationId, Guid TechnicianId, long ExpectedVersion, string? Reason);
 
 public sealed record InspectionDraftSnapshot(Guid Id, Guid VehicleId, Guid BranchId, Guid TechnicianId,
-    long AssignmentVersion, DateTimeOffset CreatedAt, InspectionDraftSaveReceipt? LatestSave);
+    long AssignmentVersion, DateTimeOffset CreatedAt, InspectionDraftSaveReceipt? LatestSave)
+{
+    public long Revision { get; init; } = 1;
+    public bool IsSigned { get; init; }
+}
 
 public sealed record InspectionAssignmentReceipt(Guid OperationId, Guid InspectionId, Guid VehicleId, Guid BranchId,
     Guid ActorId, Guid TechnicianId, Guid? PreviousTechnicianId, long ExpectedVersion, long Version,

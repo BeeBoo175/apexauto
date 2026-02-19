@@ -165,7 +165,7 @@ public sealed class InspectionPhotoStore(DealershipDbContext database, IInspecti
             return (InspectionPhotoStatus.NotFound, null);
         }
 
-        if (vehicle.Status != VehicleStatus.PendingInspection || assignmentVersion is < 1 ||
+        if (vehicle.Status != VehicleStatus.PendingInspection || draft.IsSigned || assignmentVersion is < 1 ||
             assignmentVersion.HasValue && draft.AssignmentVersion != assignmentVersion)
         {
             return (InspectionPhotoStatus.Conflict, null);

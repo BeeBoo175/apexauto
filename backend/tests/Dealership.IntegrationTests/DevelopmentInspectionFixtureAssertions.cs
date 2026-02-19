@@ -20,11 +20,14 @@ internal static class DevelopmentInspectionFixtureAssertions
         Assert.Equal(3, await database.InspectionDraftSaves.CountAsync());
         Assert.Equal(3, await database.InspectionPhotos.CountAsync());
         Assert.Equal(3, await database.InspectionDraftPhotos.CountAsync());
+        Assert.Equal(1, await database.InspectionSignedRevisions.CountAsync());
         foreach (var draft in drafts)
         {
             var technician = DevelopmentFixtureManifest.Staff.Single(item =>
                 item.BranchId == draft.BranchId && item.Role == AccountRoles.WorkshopTechnician);
             Assert.Equal(technician.Id, draft.TechnicianId);
+            Assert.Equal(draft.BranchId == DevelopmentFixtureManifest.Branches[0].Id, draft.IsSigned);
+            Assert.Equal(1, draft.Revision);
             Assert.Equal(1, draft.AssignmentVersion);
             var savedDraft = await services.GetRequiredService<IInspectionAssignmentStore>()
                 .ReadAsync(technician.Id, draft.Id, CancellationToken.None);
@@ -40,9 +43,17 @@ internal static class DevelopmentInspectionFixtureAssertions
             Assert.Equal(InspectionPhotoStatus.Available, (await services.GetRequiredService<InspectionPhotoService>()
                 .DownloadAsync(technician.Id, draft.Id, photo.Receipt!.Id, bytes, CancellationToken.None)).Status);
             Assert.Equal(photo.Receipt.Bytes, bytes.Length);
+            if (draft.IsSigned)
+            {
+                var signed = await services.GetRequiredService<IInspectionReportStore>()
+                    .ReadAsync(technician.Id, draft.Id, 1, CancellationToken.None);
+                Assert.Equal(InspectionAssignmentStatus.Succeeded, signed.Status);
+                Assert.Equal(250m, signed.Report!.Assessment.EstimatedRepairCost);
+                Assert.Equal(210, signed.Report.Checklist.Count);
+            }
         }
 
-        var selected = drafts[0];
+        var selected = drafts.First(draft => !draft.IsSigned);
         var edit = await services.GetRequiredService<IInspectionDraftSaveStore>().SaveAsync(selected.TechnicianId,
             selected.Id, new(Guid.NewGuid(), 1, 1, []), CancellationToken.None);
         Assert.Equal(InspectionAssignmentStatus.Succeeded, edit.Status);

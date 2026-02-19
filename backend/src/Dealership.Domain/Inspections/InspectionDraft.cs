@@ -30,10 +30,12 @@ public sealed class InspectionDraft
     public Guid TechnicianId { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
     public long AssignmentVersion { get; private set; }
+    public long Revision { get; private set; } = 1;
+    public bool IsSigned { get; private set; }
 
     public void Reassign(Guid technicianId, long expectedVersion)
     {
-        if (technicianId == Guid.Empty || technicianId == TechnicianId || expectedVersion != AssignmentVersion ||
+        if (IsSigned || technicianId == Guid.Empty || technicianId == TechnicianId || expectedVersion != AssignmentVersion ||
             AssignmentVersion == long.MaxValue)
         {
             throw new ArgumentException("Reassignment requires a different technician and the current assignment version.");

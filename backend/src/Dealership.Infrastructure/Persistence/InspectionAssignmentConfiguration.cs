@@ -12,7 +12,7 @@ public sealed class InspectionAssignmentConfiguration : IEntityTypeConfiguration
     public void Configure(EntityTypeBuilder<InspectionDraft> builder)
     {
         builder.ToTable("InspectionDrafts", table => table.HasCheckConstraint("CK_InspectionDrafts_Shape",
-            "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"AssignmentVersion\" > 0"));
+            "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"AssignmentVersion\" > 0 AND \"Revision\" > 0"));
         builder.HasKey(item => item.Id);
         builder.Property(item => item.Id).ValueGeneratedNever();
         builder.HasAlternateKey(item => new { item.Id, item.BranchId });
@@ -22,6 +22,8 @@ public sealed class InspectionAssignmentConfiguration : IEntityTypeConfiguration
             .HasPrincipalKey(item => new { item.Id, item.BranchId }).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<AccountUser>().WithMany().HasForeignKey(item => item.TechnicianId).OnDelete(DeleteBehavior.Restrict);
         builder.Property(item => item.AssignmentVersion).IsConcurrencyToken();
+        builder.Property(item => item.Revision).HasDefaultValue(1L).IsConcurrencyToken();
+        builder.Property(item => item.IsSigned).HasDefaultValue(false).IsConcurrencyToken();
     }
 
     public void Configure(EntityTypeBuilder<InspectionAssignment> builder)

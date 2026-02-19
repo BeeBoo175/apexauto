@@ -35,6 +35,8 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
 
     public DbSet<InspectionDraftSave> InspectionDraftSaves => Set<InspectionDraftSave>();
 
+    public DbSet<InspectionSignedRevision> InspectionSignedRevisions => Set<InspectionSignedRevision>();
+
     public DbSet<InspectionPhoto> InspectionPhotos => Set<InspectionPhoto>();
 
     public DbSet<InspectionDraftPhoto> InspectionDraftPhotos => Set<InspectionDraftPhoto>();
@@ -65,6 +67,7 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
         builder.ApplyConfiguration<InspectionDraft>(inspectionAssignments);
         builder.ApplyConfiguration<InspectionAssignment>(inspectionAssignments);
         builder.ApplyConfiguration(new InspectionDraftSaveConfiguration());
+        builder.ApplyConfiguration(new InspectionSignedRevisionConfiguration());
         builder.ApplyConfiguration(new InspectionPhotoConfiguration());
         var inspectionMedia = new InspectionPhotoAttachmentConfiguration();
         builder.ApplyConfiguration<InspectionDraftPhoto>(inspectionMedia);

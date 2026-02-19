@@ -80,3 +80,15 @@ public sealed record InspectionReportPhoto(Guid Id, string ContentType, long Byt
 public sealed record InspectionReportVehicle(Guid Id, Guid IntakeAppointmentId, Guid IntakeOwnerId,
     string Vin, string RegistrationPlate, string Make, string Model, string Trim, int ManufactureYear,
     int MileageKilometres, DateTimeOffset CheckedInAt);
+
+public sealed record InspectionSignRequest(Guid OperationId, long AssignmentVersion, long SaveVersion, long Revision);
+
+public sealed record InspectionReportResult(InspectionAssignmentStatus Status, InspectionReport? Report = null);
+
+public interface IInspectionReportStore
+{
+    Task<InspectionReportResult> SignAsync(Guid actorId, Guid inspectionId, InspectionSignRequest request,
+        CancellationToken cancellationToken);
+
+    Task<InspectionReportResult> ReadAsync(Guid actorId, Guid inspectionId, long revision, CancellationToken cancellationToken);
+}
