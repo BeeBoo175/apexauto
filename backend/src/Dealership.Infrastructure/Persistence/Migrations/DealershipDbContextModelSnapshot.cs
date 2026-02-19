@@ -188,6 +188,18 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("IsSigned")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<long>("Revision")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(1L);
+
                     b.Property<Guid>("TechnicianId")
                         .HasColumnType("uuid");
 
@@ -207,7 +219,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.ToTable("InspectionDrafts", null, t =>
                         {
-                            t.HasCheckConstraint("CK_InspectionDrafts_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"AssignmentVersion\" > 0");
+                            t.HasCheckConstraint("CK_InspectionDrafts_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"AssignmentVersion\" > 0 AND \"Revision\" > 0");
                         });
                 });
 
@@ -1050,6 +1062,59 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Dealership.Infrastructure.Inspections.InspectionSignedRevision", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("AssignmentVersion")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("InspectionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ReportJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<long>("Revision")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("SaveId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("SaveVersion")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTimeOffset>("SignedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("TechnicianId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SaveId")
+                        .IsUnique();
+
+                    b.HasIndex("TechnicianId");
+
+                    b.HasIndex("InspectionId", "BranchId");
+
+                    b.HasIndex("InspectionId", "Revision")
+                        .IsUnique();
+
+                    b.HasIndex("SaveId", "InspectionId");
+
+                    b.ToTable("InspectionSignedRevisions", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_InspectionSignedRevisions_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"Revision\" > 0 AND \"AssignmentVersion\" > 0 AND \"SaveVersion\" > 0 AND isfinite(\"SignedAt\") AND jsonb_typeof(\"ReportJson\") = 'object' AND octet_length(\"ReportJson\"::text) <= 4194304");
+                        });
+                });
+
             modelBuilder.Entity("Dealership.Infrastructure.Intake.AppointmentMail", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1393,6 +1458,29 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.HasOne("Dealership.Domain.Inspections.InspectionPhoto", null)
                         .WithOne()
                         .HasForeignKey("Dealership.Infrastructure.Inspections.InspectionPhotoRemoval", "PhotoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Dealership.Infrastructure.Inspections.InspectionSignedRevision", b =>
+                {
+                    b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
+                        .WithMany()
+                        .HasForeignKey("TechnicianId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Dealership.Domain.Inspections.InspectionDraft", null)
+                        .WithMany()
+                        .HasForeignKey("InspectionId", "BranchId")
+                        .HasPrincipalKey("Id", "BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Dealership.Infrastructure.Inspections.InspectionDraftSave", null)
+                        .WithMany()
+                        .HasForeignKey("SaveId", "InspectionId")
+                        .HasPrincipalKey("Id", "InspectionId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
