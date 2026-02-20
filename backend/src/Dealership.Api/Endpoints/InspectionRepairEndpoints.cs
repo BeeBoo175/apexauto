@@ -17,8 +17,39 @@ public static class InspectionRepairEndpoints
         routes.MapPost("/drafts/{id:guid}/repair-requests", RequestAsync);
         routes.MapGet("/reports/{id:guid}/revisions/{revision:long}/repairs", ReadAsync);
         routes.MapPost("/drafts/{id:guid}/repair-approvals", ApproveAsync);
+        routes.MapPost("/drafts/{id:guid}/repair-completions", CompleteAsync);
         routes.MapGet("/reports/{id:guid}/revisions/{revision:long}/repair-approvals", ReadApprovalAsync);
         routes.MapGet("/reports/{id:guid}/revisions/{revision:long}/repair-history", HistoryAsync);
+    }
+
+    private static async Task<IResult> CompleteAsync(Guid id, HttpContext context, IInspectionRepairCompletionStore completions,
+        CancellationToken cancellationToken)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(20));
+        try
+        {
+            var (request, error) = await JsonRequestReader.ReadAsync<InspectionRepairCompletionRequest>(context.Request, deadline.Token, 512 * 1024);
+            if (error is not null)
+            {
+                return error;
+            }
+
+            var result = await completions.CompleteAsync(ActorId(context), id, request!, deadline.Token);
+            return result.Status switch
+            {
+                InspectionAssignmentStatus.Succeeded => Results.Ok(result.Receipt),
+                InspectionAssignmentStatus.Invalid => Results.Problem(statusCode: 400, title: "Provide a repair request, valid versions and completion/reinspection notes."),
+                InspectionAssignmentStatus.Forbidden => Results.Forbid(),
+                InspectionAssignmentStatus.NotFound => Results.NotFound(),
+                InspectionAssignmentStatus.Conflict => Results.Problem(statusCode: 409, title: "The inspection, repair request, approval or completion has changed."),
+                _ => Results.Problem(statusCode: 500)
+            };
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return Results.Problem(statusCode: 503, title: "Repair completion is unconfirmed; reconcile with the same operation and contents.");
+        }
     }
 
     private static async Task<IResult> HistoryAsync(Guid id, long revision, int? page, int? pageSize, HttpContext context,

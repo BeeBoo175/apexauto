@@ -249,6 +249,7 @@ internal static class DevelopmentIntakeFixtureAssertions
             InspectionReopenings = await database.InspectionReopenings.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync(),
             InspectionRepairRequests = await database.InspectionRepairRequests.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync(),
             InspectionRepairApprovals = await database.InspectionRepairApprovals.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync(),
+            InspectionRepairCompletions = await database.InspectionRepairCompletions.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync(),
             InspectionPhotos = await database.InspectionPhotos.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync(),
             InspectionDraftPhotos = await database.InspectionDraftPhotos.AsNoTracking().OrderBy(item => item.SaveId).ThenBy(item => item.PhotoId).ToArrayAsync(),
             InspectionPhotoRemovals = await database.InspectionPhotoRemovals.AsNoTracking().OrderBy(item => item.PhotoId).ToArrayAsync()

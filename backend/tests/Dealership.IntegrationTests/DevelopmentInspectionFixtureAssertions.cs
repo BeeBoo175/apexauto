@@ -27,6 +27,7 @@ internal static class DevelopmentInspectionFixtureAssertions
         Assert.Equal(1, await database.InspectionReopenings.CountAsync());
         Assert.Equal(154, await database.InspectionRepairRequests.CountAsync());
         Assert.Equal(1, await database.InspectionRepairApprovals.CountAsync());
+        Assert.Equal(1, await database.InspectionRepairCompletions.CountAsync());
         foreach (var draft in drafts)
         {
             var technician = DevelopmentFixtureManifest.Staff.Single(item =>
@@ -65,6 +66,10 @@ internal static class DevelopmentInspectionFixtureAssertions
                 var history = await services.GetRequiredService<IInspectionHistoryStore>()
                     .RepairsAsync(technician.Id, draft.Id, 1, new(), CancellationToken.None);
                 Assert.Equal(approval.Receipt, Assert.Single(history.History!.Items).Approval);
+                var completion = Assert.Single(history.History.Items).Completion;
+                Assert.NotNull(completion);
+                Assert.Equal(DevelopmentInspectionManifest.RepairCompletion(draft.Id).OperationId, completion.OperationId);
+                Assert.Equal(approval.Receipt.OperationId, completion.ApprovalId);
             }
             using var bytes = new MemoryStream();
             Assert.Equal(InspectionPhotoStatus.Available, (await services.GetRequiredService<InspectionPhotoService>()

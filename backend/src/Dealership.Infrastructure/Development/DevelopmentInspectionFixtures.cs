@@ -10,7 +10,7 @@ namespace Dealership.Infrastructure.Development;
 public sealed class DevelopmentInspectionFixtures(DealershipDbContext database, IInspectionAssignmentStore assignments,
     IInspectionDraftSaveStore inspectionSaves, InspectionPhotoService inspectionPhotos, IPhotoImageValidator photoValidator,
     IInspectionReportStore inspectionReports, IInspectionRepairRequestStore inspectionRepairs,
-    IInspectionRepairApprovalStore inspectionApprovals)
+    IInspectionRepairApprovalStore inspectionApprovals, IInspectionRepairCompletionStore inspectionCompletions)
 {
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> RunAsync(bool seed,
         CancellationToken cancellationToken)
@@ -81,10 +81,37 @@ public sealed class DevelopmentInspectionFixtures(DealershipDbContext database, 
             reports.Add(repair);
             if (!repair.RequiresAttention && baseline)
             {
-                reports.Add(await InspectionApprovalAsync(seed, fixture.Id, fixture.BranchId, fixture.RegistrationPlate, cancellationToken));
+                var approval = await InspectionApprovalAsync(seed, fixture.Id, fixture.BranchId, fixture.RegistrationPlate, cancellationToken);
+                reports.Add(approval);
+                if (!approval.RequiresAttention)
+                {
+                    reports.Add(await InspectionCompletionAsync(seed, fixture.Id, technicianId, fixture.RegistrationPlate, cancellationToken));
+                }
             }
         }
         return reports;
+    }
+
+    private async Task<DevelopmentFixtureReport> InspectionCompletionAsync(bool seed, Guid inspectionId, Guid technicianId,
+        string plate, CancellationToken cancellationToken)
+    {
+        var request = DevelopmentInspectionManifest.RepairCompletion(inspectionId);
+        var existing = await database.InspectionRepairCompletions.AsNoTracking()
+            .Where(item => item.InspectionId == inspectionId).OrderByDescending(item => item.RepairVersion)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (existing is not null)
+        {
+            var matches = existing.Id == request.OperationId && existing.Matches(technicianId, inspectionId, request);
+            return new($"Inspection completion ({plate})", matches ? "matches" : "drift; preserved", !matches);
+        }
+        if (!seed)
+        {
+            return new($"Inspection completion ({plate})", "missing", true);
+        }
+
+        var completed = await inspectionCompletions.CompleteAsync(technicianId, inspectionId, request, cancellationToken);
+        var succeeded = completed.Status == InspectionAssignmentStatus.Succeeded;
+        return new($"Inspection completion ({plate})", succeeded ? "created" : "completion unavailable; preserved", !succeeded);
     }
 
     private async Task<DevelopmentFixtureReport> InspectionApprovalAsync(bool seed, Guid inspectionId, Guid branchId,

@@ -106,6 +106,8 @@ public sealed class InspectionQueueStore(DealershipDbContext database) : IInspec
                    join branch in database.Branches.AsNoTracking() on request.BranchId equals branch.Id
                    join approved in database.InspectionRepairApprovals.AsNoTracking() on request.Id equals approved.RequestId into approvals
                    from approval in approvals.DefaultIfEmpty()
+                   join completed in database.InspectionRepairCompletions.AsNoTracking() on request.Id equals completed.RequestId into completions
+                   from completion in completions.DefaultIfEmpty()
                    from covering in (from granted in database.InspectionRepairApprovals.AsNoTracking()
                                      join scope in database.InspectionRepairRequests.AsNoTracking() on granted.RequestId equals scope.Id
                                      where scope.InspectionId == request.InspectionId && scope.Revision == request.Revision &&
@@ -121,6 +123,7 @@ public sealed class InspectionQueueStore(DealershipDbContext database) : IInspec
                        BranchName = branch.Name,
                        ApprovalId = (Guid?)approval.Id,
                        CoveringApprovalId = (Guid?)covering.Id,
+                       CompletionId = (Guid?)completion.Id,
                        ApprovalState = covering == null ? InspectionRepairQueueStatus.PendingApproval : InspectionRepairQueueStatus.Approved
                    };
         var priced = rows.Select(row => new
@@ -131,16 +134,29 @@ public sealed class InspectionQueueStore(DealershipDbContext database) : IInspec
             row.BranchName,
             row.ApprovalId,
             row.CoveringApprovalId,
+            row.CompletionId,
             State = row.Request.Budget == 0 ? InspectionRepairQueueStatus.ApprovalNotRequired : row.ApprovalState
         });
+        var completedWork = priced.Select(row => new
+        {
+            row.Request,
+            row.Draft,
+            row.Vehicle,
+            row.BranchName,
+            row.ApprovalId,
+            row.CoveringApprovalId,
+            row.CompletionId,
+            State = row.CompletionId != null ? InspectionRepairQueueStatus.Completed : row.State
+        });
         // Retained approval evidence cannot grant actionability to an old request or reopened revision.
-        var work = priced.Select(row => new
+        var work = completedWork.Select(row => new
         {
             row.Request,
             row.Vehicle,
             row.BranchName,
             row.ApprovalId,
             row.CoveringApprovalId,
+            row.CompletionId,
             row.Draft.TechnicianId,
             State = !row.Draft.IsSigned || row.Draft.Revision != row.Request.Revision ||
                 row.Draft.AssignmentVersion != row.Request.AssignmentVersion || row.Draft.RepairVersion != row.Request.Version ||
@@ -164,7 +180,7 @@ public sealed class InspectionQueueStore(DealershipDbContext database) : IInspec
         var items = page.Select(row => new InspectionRepairQueueItem(row.Request.Id, row.Request.InspectionId,
             row.Vehicle.Id, row.Request.BranchId, row.BranchName, row.Vehicle.RegistrationPlate, row.TechnicianId,
             row.Request.AssignmentVersion, row.Request.Revision, row.Request.Version, row.Request.Budget,
-            row.Request.RequestedAt, row.ApprovalId, row.CoveringApprovalId, row.State)).ToArray();
+            row.Request.RequestedAt, row.ApprovalId, row.CoveringApprovalId, row.State, row.CompletionId)).ToArray();
 
         await transaction.CommitAsync(cancellationToken);
         return new(InspectionAssignmentStatus.Succeeded, new(Array.AsReadOnly(items), total, filter.Page, filter.PageSize));

@@ -43,6 +43,8 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
 
     public DbSet<InspectionRepairApproval> InspectionRepairApprovals => Set<InspectionRepairApproval>();
 
+    public DbSet<InspectionRepairCompletion> InspectionRepairCompletions => Set<InspectionRepairCompletion>();
+
     public DbSet<InspectionPhoto> InspectionPhotos => Set<InspectionPhoto>();
 
     public DbSet<InspectionDraftPhoto> InspectionDraftPhotos => Set<InspectionDraftPhoto>();
@@ -77,6 +79,7 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
         builder.ApplyConfiguration(new InspectionReopeningConfiguration());
         builder.ApplyConfiguration(new InspectionRepairRequestConfiguration());
         builder.ApplyConfiguration(new InspectionRepairApprovalConfiguration());
+        builder.ApplyConfiguration(new InspectionRepairCompletionConfiguration());
         builder.ApplyConfiguration(new InspectionPhotoConfiguration());
         var inspectionMedia = new InspectionPhotoAttachmentConfiguration();
         builder.ApplyConfiguration<InspectionDraftPhoto>(inspectionMedia);

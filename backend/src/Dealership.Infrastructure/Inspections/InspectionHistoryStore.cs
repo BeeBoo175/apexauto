@@ -67,10 +67,13 @@ public sealed class InspectionHistoryStore(DealershipDbContext database) : IInsp
         var rows = await (from request in requests
                           join approved in database.InspectionRepairApprovals.AsNoTracking() on request.Id equals approved.RequestId into approvals
                           from approval in approvals.DefaultIfEmpty()
-                          select new { Request = request, Approval = approval })
+                          join completed in database.InspectionRepairCompletions.AsNoTracking() on request.Id equals completed.RequestId into completions
+                          from completion in completions.DefaultIfEmpty()
+                          select new { Request = request, Approval = approval, Completion = completion })
             .OrderByDescending(row => row.Request.Version)
             .ReadPageAsync(query.Page, query.PageSize, total, cancellationToken);
-        var items = rows.Select(row => new InspectionRepairHistoryEntry(row.Request.Receipt(), row.Approval?.Receipt())).ToArray();
+        var items = rows.Select(row => new InspectionRepairHistoryEntry(row.Request.Receipt(), row.Approval?.Receipt(),
+            row.Completion?.Receipt())).ToArray();
 
         await transaction.CommitAsync(cancellationToken);
         return new(InspectionAssignmentStatus.Succeeded,

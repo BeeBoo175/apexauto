@@ -14,7 +14,8 @@ public sealed record InspectionRevisionSummary(Guid OperationId, long Revision, 
 public sealed record InspectionRevisionHistory(Guid InspectionId, long CurrentRevision, bool IsSigned,
     IReadOnlyList<InspectionRevisionSummary> Items, int TotalCount, int Page, int PageSize);
 
-public sealed record InspectionRepairHistoryEntry(InspectionRepairReceipt Request, InspectionRepairApprovalReceipt? Approval);
+public sealed record InspectionRepairHistoryEntry(InspectionRepairReceipt Request, InspectionRepairApprovalReceipt? Approval,
+    InspectionRepairCompletionReceipt? Completion);
 
 public sealed record InspectionRepairHistory(Guid InspectionId, long Revision,
     IReadOnlyList<InspectionRepairHistoryEntry> Items, int TotalCount, int Page, int PageSize);

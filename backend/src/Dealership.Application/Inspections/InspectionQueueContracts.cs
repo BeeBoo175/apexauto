@@ -16,6 +16,7 @@ public enum InspectionRepairQueueStatus
     PendingApproval,
     Approved,
     ApprovalNotRequired,
+    Completed,
     Superseded
 }
 
@@ -46,7 +47,7 @@ public sealed record InspectionQueueItem(Guid VehicleId, Guid BranchId, string B
 public sealed record InspectionRepairQueueItem(Guid RequestId, Guid InspectionId, Guid VehicleId, Guid BranchId,
     string BranchName, string RegistrationPlate, Guid TechnicianId, long AssignmentVersion, long Revision,
     long RepairVersion, decimal Budget, DateTimeOffset RequestedAt, Guid? ApprovalId, Guid? CoveringApprovalId,
-    InspectionRepairQueueStatus Status);
+    InspectionRepairQueueStatus Status, Guid? CompletionId);
 
 public sealed record InspectionQueuePage(IReadOnlyList<InspectionQueueItem> Items, int Total, int Page, int PageSize);
 

@@ -19,6 +19,9 @@ public static class DevelopmentInspectionManifest
 
     public static Guid ReopenId(Guid inspectionId) => StableId(inspectionId, "reopen");
 
+    public static InspectionRepairCompletionRequest RepairCompletion(Guid inspectionId) => new(StableId(inspectionId, "completion"),
+        RepairRequest(inspectionId).OperationId, 1, 1, 1, "Bumper refinished and reinspected; finish and fit are satisfactory.");
+
     public static InspectionRepairApprovalRequest RepairApproval(Guid inspectionId) => new(StableId(inspectionId, "approval"),
         RepairRequest(inspectionId).OperationId, 1, 1, 1);
 
