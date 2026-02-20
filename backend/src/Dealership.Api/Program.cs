@@ -143,5 +143,6 @@ app.MapStaffIntakeEndpoints();
 app.MapInspectionDraftEndpoints();
 app.MapInspectionPhotoEndpoints();
 app.MapInspectionRepairEndpoints();
+app.MapInspectionQueueEndpoints();
 
 app.Run();
