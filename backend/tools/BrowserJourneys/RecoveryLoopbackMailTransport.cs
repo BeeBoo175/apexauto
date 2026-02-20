@@ -4,7 +4,7 @@ using Dealership.Infrastructure.Mail;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
-namespace Dealership.BrowserAuthHarness;
+namespace Dealership.BrowserJourneys;
 
 internal sealed class RecoveryLoopbackMailTransport(IOptions<EmailDeliverySettings> settings,
     IHostEnvironment environment) : IMailTransport

@@ -3,7 +3,7 @@ import { expect, test, type Page, type BrowserContext } from "@playwright/test";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-const evidence = process.env.AUTH_EVIDENCE_DIR!;
+const evidence = process.env.BROWSER_EVIDENCE_DIR!;
 const refs = () =>
   JSON.parse(readFileSync(path.join(evidence, "references.json"), "utf8")) as {
     id: string;
@@ -53,7 +53,7 @@ test("sales intake preserves scoped lists, drawer drafts and an exact lost check
       })
     ).status(),
   ).toBe(404);
-  const arrivalPlate = testInfo.project.name === "mobile-auth" ? "VCA 9702" : "VCA 9701";
+  const arrivalPlate = testInfo.project.name === "mobile" ? "VCA 9702" : "VCA 9701";
   const link = page.getByRole("link", { name: `Open ${arrivalPlate}`, exact: true });
   const detailHref = await link.getAttribute("href");
   await link.click();

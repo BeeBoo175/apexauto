@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-const evidence = process.env.AUTH_EVIDENCE_DIR!;
+const evidence = process.env.BROWSER_EVIDENCE_DIR!;
 
 async function login(page: Page, email: string, destination: string) {
   await page.goto("/login");
@@ -17,7 +17,7 @@ test("no-show is a visible state and a manager can reconcile original-date atten
   context,
 }, testInfo) => {
   test.setTimeout(120000);
-  const mobile = testInfo.project.name === "mobile-auth";
+  const mobile = testInfo.project.name === "mobile";
   const plate = mobile ? "BPL 6243" : "VCA 6243";
   const records = JSON.parse(readFileSync(path.join(evidence, "references.json"), "utf8")) as {
     id: string;

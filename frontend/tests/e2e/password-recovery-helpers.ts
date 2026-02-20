@@ -16,7 +16,7 @@ export function recoveryFixture(): {
 }
 
 export function evidencePath(name: string) {
-  return path.join(process.env.AUTH_EVIDENCE_DIR!, name);
+  return path.join(process.env.BROWSER_EVIDENCE_DIR!, name);
 }
 
 export function upstreamCount(route: string): number {
@@ -29,7 +29,7 @@ export function rememberSession(token: string) {
 }
 
 export async function capturedResetLink(request: APIRequestContext, email: string) {
-  const inbox = process.env.AUTH_MAILPIT_BASE_URL;
+  const inbox = process.env.BROWSER_MAILPIT_BASE_URL;
   expect(inbox, "Recovery acceptance requires the loopback inbox").toBeTruthy();
   let resetLink: URL | null = null;
 

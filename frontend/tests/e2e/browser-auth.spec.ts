@@ -4,7 +4,7 @@ import path from "node:path";
 import { test, expect } from "@playwright/test";
 import type { Page } from "@playwright/test";
 
-const evidence = process.env.AUTH_EVIDENCE_DIR!;
+const evidence = process.env.BROWSER_EVIDENCE_DIR!;
 const password = "Password123!";
 const origin = process.env.APP_BASE_URL!;
 

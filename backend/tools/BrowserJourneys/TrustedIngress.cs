@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace Dealership.BrowserAuthHarness;
+namespace Dealership.BrowserJourneys;
 
 internal static class TrustedIngress
 {

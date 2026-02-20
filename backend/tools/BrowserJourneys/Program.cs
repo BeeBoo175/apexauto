@@ -1,0 +1,68 @@
+namespace Dealership.BrowserJourneys;
+
+internal static class BrowserJourneysCli
+{
+    public static async Task<int> Main(string[] args)
+    {
+        if (args.Length == 0 || args.Contains("--help", StringComparer.Ordinal))
+        {
+            Console.WriteLine("BrowserJourneys <auth|intake|recovery> <spec filename|request|reset|fragment|--all> [--both]");
+            Console.WriteLine("Desktop only by default. --both adds mobile. No arguments start no services.");
+            return 0;
+        }
+
+        var mode = args[0];
+        if (mode is not ("auth" or "intake" or "recovery"))
+        {
+            Console.Error.WriteLine("Choose auth, intake or recovery. Use --help for usage.");
+            return 2;
+        }
+
+        var repository = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../.."));
+        var specifications = Path.Combine(repository, "frontend", "tests", "e2e");
+        var available = AvailableSelections(mode, specifications);
+        var requested = args.Skip(1).Where(argument => argument != "--both").ToArray();
+        if (requested.Length == 0 || (requested.Contains("--all") && requested.Length != 1))
+        {
+            Console.Error.WriteLine("Select a journey explicitly, or use --all for this group.");
+            return 2;
+        }
+
+        var selected = requested[0] == "--all" ? available : requested.Distinct(StringComparer.Ordinal).ToArray();
+        if (selected.Any(selection => !available.Contains(selection, StringComparer.Ordinal)))
+        {
+            Console.Error.WriteLine($"Available {mode} journeys: {string.Join(", ", available)}");
+            return 2;
+        }
+
+        string[] projects = args.Contains("--both", StringComparer.Ordinal) ? ["desktop", "mobile"] : ["desktop"];
+        foreach (var selection in selected)
+        {
+            var selectedProjects = selection == "auth-transport.spec.ts" ? new[] { "desktop" } : projects;
+            var result = mode switch
+            {
+                "auth" => await AuthBrowserJourney.RunAsync(selection, selectedProjects),
+                "intake" => await IntakeBrowserJourney.RunAsync(selection, projects),
+                _ => await RecoveryBrowserJourney.RunAsync(selection, projects)
+            };
+            if (result != 0)
+            {
+                return result;
+            }
+        }
+        return 0;
+    }
+
+    private static string[] AvailableSelections(string mode, string directory)
+    {
+        if (mode == "recovery")
+        {
+            return ["request", "reset", "fragment"];
+        }
+
+        var pattern = mode == "intake" ? "intake-ui*.spec.ts" : "*auth*.spec.ts";
+        return Directory.GetFiles(directory, pattern).Select(Path.GetFileName).OfType<string>()
+            .Where(name => name != "browser-auth-password-recovery.spec.ts")
+            .Order(StringComparer.Ordinal).ToArray();
+    }
+}

@@ -1,6 +1,3 @@
-using System.Diagnostics;
-using System.Net;
-using System.Net.Sockets;
 using System.Text.Json;
 using Dealership.Infrastructure.Mail;
 using Dealership.Infrastructure.Persistence;
@@ -12,11 +9,11 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
-namespace Dealership.BrowserAuthHarness;
+namespace Dealership.BrowserJourneys;
 
-internal static class RecoveryBrowserHarness
+internal static class RecoveryBrowserJourney
 {
-    public static async Task<int> RunAsync(string[] args)
+    public static async Task<int> RunAsync(string scenario, string[] projects)
     {
         ValidateInbox();
         var repository = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../.."));
@@ -31,16 +28,13 @@ internal static class RecoveryBrowserHarness
 
         try
         {
-            foreach (var project in new[] { "desktop-auth", "mobile-auth" })
+            foreach (var project in projects)
             {
-                foreach (var scenario in new[] { "request", "reset", "fragment" })
-                {
-                    var exitCode = await RunScenarioAsync(project, scenario, args, database, evidence, frontend);
+                var exitCode = await RunScenarioAsync(project, scenario, database, evidence, frontend);
 
-                    if (exitCode != 0)
-                    {
-                        return exitCode;
-                    }
+                if (exitCode != 0)
+                {
+                    return exitCode;
                 }
             }
 
@@ -53,9 +47,9 @@ internal static class RecoveryBrowserHarness
         }
     }
 
-    private static void ValidateInbox()
+    internal static void ValidateInbox()
     {
-        var inbox = Environment.GetEnvironmentVariable("AUTH_MAILPIT_BASE_URL");
+        var inbox = Environment.GetEnvironmentVariable("BROWSER_MAILPIT_BASE_URL");
 
         if (!Uri.TryCreate(inbox, UriKind.Absolute, out var address) ||
             address.Scheme != "http" || address.Host is not ("localhost" or "127.0.0.1" or "::1") ||
@@ -66,7 +60,7 @@ internal static class RecoveryBrowserHarness
         }
     }
 
-    private static async Task<int> RunScenarioAsync(string project, string scenario, string[] args,
+    private static async Task<int> RunScenarioAsync(string project, string scenario,
         RegistrationDatabase database, string evidence, string frontend)
     {
         var directory = Path.Combine(evidence, $"{project}-{scenario}");
@@ -78,7 +72,7 @@ internal static class RecoveryBrowserHarness
 
         try
         {
-            var nextOrigin = AllocateNextOrigin();
+            var nextOrigin = BrowserProcess.AllocateNextOrigin();
             await using var ingress = await TrustedIngress.StartAsync(nextOrigin);
             var browserOrigin = TrustedIngress.Origin(ingress);
             using (var factory = CreateFactory(database, frontend, state, browserOrigin))
@@ -86,8 +80,10 @@ internal static class RecoveryBrowserHarness
             {
                 account = await RecoveryBrowserFixture.PrepareAsync(factory.Services, scenario);
                 File.WriteAllText(Path.Combine(directory, "recovery.json"), JsonSerializer.Serialize(account));
-                var exitCode = await RunPlaywrightAsync(project, scenario, args, directory, frontend, client,
-                    browserOrigin, nextOrigin);
+                var exitCode = await BrowserProcess.RunAsync(frontend, project,
+                    ["browser-auth-password-recovery.spec.ts", $"--grep=recovery {scenario}:"],
+                    directory, client.BaseAddress!, browserOrigin, nextOrigin,
+                    new Dictionary<string, string> { ["BROWSER_RECOVERY_SCENARIO"] = scenario });
 
                 if (exitCode != 0)
                 {
@@ -142,51 +138,4 @@ internal static class RecoveryBrowserHarness
         return factory;
     }
 
-    private static string AllocateNextOrigin()
-    {
-        using var portProbe = new TcpListener(IPAddress.Loopback, 0);
-        portProbe.Start();
-        var frontendPort = ((IPEndPoint)portProbe.LocalEndpoint).Port;
-        return $"http://127.0.0.1:{frontendPort}";
-    }
-
-    private static async Task<int> RunPlaywrightAsync(string project, string scenario, string[] args,
-        string evidence, string frontend, HttpClient client, string browserOrigin, string nextOrigin)
-    {
-        var start = new ProcessStartInfo("node") { WorkingDirectory = frontend, UseShellExecute = false };
-        start.ArgumentList.Add("node_modules/@playwright/test/cli.js");
-        start.ArgumentList.Add("test");
-        start.ArgumentList.Add("--config=playwright.config.ts");
-        start.ArgumentList.Add($"--project={project}");
-        start.ArgumentList.Add("e2e/browser-auth-password-recovery.spec.ts");
-        start.ArgumentList.Add($"--grep=recovery {scenario}:");
-
-        foreach (var argument in args)
-        {
-            start.ArgumentList.Add(argument);
-        }
-
-        start.Environment["API_BASE_URL"] = client.BaseAddress!.GetLeftPart(UriPartial.Authority);
-        start.Environment["APP_BASE_URL"] = browserOrigin;
-        start.Environment["AUTH_NEXT_ORIGIN"] = nextOrigin;
-        start.Environment["TRUSTED_CLIENT_IP_HEADER"] = TrustedIngress.ClientHeader;
-        start.Environment["AUTH_EVIDENCE_DIR"] = evidence;
-        start.Environment["AUTH_RECOVERY_SCENARIO"] = scenario;
-        start.Environment.Remove("NO_COLOR");
-        start.Environment.Remove("FORCE_COLOR");
-        using var browser = Process.Start(start) ?? throw new InvalidOperationException("Recovery browser runner did not start.");
-        using var deadline = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-
-        try
-        {
-            await browser.WaitForExitAsync(deadline.Token);
-            return browser.ExitCode;
-        }
-        catch (OperationCanceledException) when (deadline.IsCancellationRequested)
-        {
-            browser.Kill(entireProcessTree: true);
-            await browser.WaitForExitAsync();
-            throw new TimeoutException("Recovery browser scenario exceeded its five-minute deadline.");
-        }
-    }
 }

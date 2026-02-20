@@ -5,8 +5,8 @@ import { expect, test } from "@playwright/test";
 import type { APIRequestContext, Page } from "@playwright/test";
 
 const origin = process.env.APP_BASE_URL!;
-const mailpit = process.env.AUTH_MAILPIT_BASE_URL;
-const evidence = process.env.AUTH_EVIDENCE_DIR!;
+const mailpit = process.env.BROWSER_MAILPIT_BASE_URL;
+const evidence = process.env.BROWSER_EVIDENCE_DIR!;
 
 function confirmationCount() {
   const counts = JSON.parse(readFileSync(path.join(evidence, "counts.json"), "utf8"));

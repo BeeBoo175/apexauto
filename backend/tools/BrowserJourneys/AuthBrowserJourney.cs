@@ -1,14 +1,10 @@
-using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Headers;
-using System.Net.Sockets;
 using System.Text.Json;
 using Dealership.Infrastructure.Persistence;
 using Dealership.IntegrationTests;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,21 +13,12 @@ using Microsoft.Extensions.Configuration;
 using Dealership.Application.Accounts;
 using Dealership.Infrastructure.Development;
 
-namespace Dealership.BrowserAuthHarness;
+namespace Dealership.BrowserJourneys;
 
-internal static class BrowserHarness
+internal static class AuthBrowserJourney
 {
-    public static async Task<int> Main(string[] args)
+    public static async Task<int> RunAsync(string specification, string[] projects)
     {
-        if (args.Contains("--intake-ui", StringComparer.Ordinal))
-        {
-            return await IntakeBrowserHarness.RunAsync(args.Where(argument => argument != "--intake-ui").ToArray());
-        }
-        if (args.Contains("--recovery", StringComparer.Ordinal))
-        {
-            return await RecoveryBrowserHarness.RunAsync(args.Where(argument => argument != "--recovery").ToArray());
-        }
-
         var repository = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../.."));
         var frontend = Path.Combine(repository, "frontend");
         var evidence = Path.Combine(repository, ".verifications", "browser-auth", $"{DateTime.UtcNow:yyyyMMdd-HHmmss}-{Guid.NewGuid():N}");
@@ -43,17 +30,16 @@ internal static class BrowserHarness
         File.WriteAllText(Path.Combine(evidence, "profiles.json"), "[]");
         File.WriteAllText(Path.Combine(evidence, "confirmed-emails.json"), "[]");
         var database = new RegistrationDatabase();
-        var guestPageFixtures = args.Contains("--guest-pages", StringComparer.Ordinal);
-        args = args.Where(argument => argument != "--guest-pages").ToArray();
+        var guestPageFixtures = specification == "browser-auth-guest-pages.spec.ts";
         await database.InitializeAsync();
         Environment.SetEnvironmentVariable("ASPNETCORE_URLS", "http://127.0.0.1:0");
         Environment.SetEnvironmentVariable("AllowedHosts", "localhost;127.0.0.1");
 
         try
         {
-            foreach (var project in new[] { "desktop-auth", "mobile-auth" })
+            foreach (var project in projects)
             {
-                var exitCode = await RunBrowserAsync(project, args, database, state, evidence, frontend,
+                var exitCode = await RunBrowserAsync(project, specification, database, state, evidence, frontend,
                     guestPageFixtures);
 
                 if (exitCode != 0)
@@ -62,7 +48,7 @@ internal static class BrowserHarness
                 }
             }
 
-            await VerifyPersistenceAsync(database, evidence);
+            await VerifyPersistenceAsync(database, evidence, specification != "auth-transport.spec.ts");
             return 0;
         }
         finally
@@ -73,9 +59,17 @@ internal static class BrowserHarness
         }
     }
 
-    private static async Task<int> RunBrowserAsync(string project, string[] args, RegistrationDatabase database,
+    private static async Task<int> RunBrowserAsync(string project, string specification, RegistrationDatabase database,
         BrowserEvidence state, string evidence, string frontend, bool guestPageFixtures)
     {
+        var nextOrigin = BrowserProcess.AllocateNextOrigin();
+        await using var ingress = await TrustedIngress.StartAsync(nextOrigin);
+        var browserOrigin = TrustedIngress.Origin(ingress);
+        var verificationMail = specification == "browser-auth-email-verification.spec.ts";
+        if (verificationMail)
+        {
+            RecoveryBrowserJourney.ValidateInbox();
+        }
         using var factory = new WebApplicationFactory<global::Program>().WithWebHostBuilder(builder =>
         {
             builder.UseContentRoot(Path.Combine(Path.GetDirectoryName(frontend)!, "backend", "src", "Dealership.Api"));
@@ -83,7 +77,13 @@ internal static class BrowserHarness
                 new Dictionary<string, string?>
                 {
                     ["ForwardedHeaders:KnownProxies:0"] = "127.0.0.1",
-                    ["ForwardedHeaders:KnownProxies:1"] = "::1"
+                    ["ForwardedHeaders:KnownProxies:1"] = "::1",
+                    ["APP_BASE_URL"] = browserOrigin,
+                    ["Email:Mode"] = verificationMail ? "Loopback" : "Disabled",
+                    ["Email:SmtpHost"] = "127.0.0.1",
+                    ["Email:SmtpPort"] = "1025",
+                    ["Email:SenderEmail"] = "no-reply@apexauto.invalid",
+                    ["Email:EnableSsl"] = "false"
                 }));
             builder.ConfigureServices(services =>
             {
@@ -91,6 +91,11 @@ internal static class BrowserHarness
                 services.RemoveAll<DealershipDbContext>();
                 services.AddDbContext<DealershipDbContext>(options => options.UseNpgsql(database.RuntimeConnectionString));
                 services.AddSingleton<IStartupFilter>(state);
+                if (verificationMail)
+                {
+                    services.RemoveAll<Dealership.Infrastructure.Mail.IMailTransport>();
+                    services.AddSingleton<Dealership.Infrastructure.Mail.IMailTransport, RecoveryLoopbackMailTransport>();
+                }
             });
         });
         factory.UseKestrel(0);
@@ -152,45 +157,13 @@ internal static class BrowserHarness
 
             Console.WriteLine("Restarted real API rejects the revoked desktop session.");
         }
-        var start = new ProcessStartInfo("node")
-        {
-            WorkingDirectory = frontend,
-            UseShellExecute = false
-        };
-        start.ArgumentList.Add("node_modules/@playwright/test/cli.js");
-        start.ArgumentList.Add("test");
-        start.ArgumentList.Add("--config=playwright.config.ts");
-        start.ArgumentList.Add($"--project={project}");
-
-        if (project == "desktop-auth")
-        {
-            start.ArgumentList.Add("--project=transport-auth");
-        }
-
-        foreach (var argument in args)
-        {
-            start.ArgumentList.Add(argument);
-        }
-
-        start.Environment["API_BASE_URL"] = client.BaseAddress!.GetLeftPart(UriPartial.Authority);
-        using var portProbe = new TcpListener(IPAddress.Loopback, 0);
-        portProbe.Start();
-        var frontendPort = ((IPEndPoint)portProbe.LocalEndpoint).Port;
-        portProbe.Stop();
-        var nextOrigin = $"http://127.0.0.1:{frontendPort}";
-        await using var ingress = await TrustedIngress.StartAsync(nextOrigin);
-        start.Environment["APP_BASE_URL"] = TrustedIngress.Origin(ingress);
-        start.Environment["AUTH_NEXT_ORIGIN"] = nextOrigin;
-        start.Environment["TRUSTED_CLIENT_IP_HEADER"] = TrustedIngress.ClientHeader;
-        start.Environment["AUTH_EVIDENCE_DIR"] = evidence;
-        start.Environment.Remove("NO_COLOR");
         File.WriteAllText(Path.Combine(evidence, "fault.txt"), string.Empty);
-        using var browser = Process.Start(start) ?? throw new InvalidOperationException("Browser runner did not start.");
-        await browser.WaitForExitAsync();
-        return browser.ExitCode;
+        var selectedProject = specification == "auth-transport.spec.ts" ? "transport" : project;
+        return await BrowserProcess.RunAsync(frontend, selectedProject, [specification], evidence,
+            client.BaseAddress!, browserOrigin, nextOrigin);
     }
 
-    private static async Task VerifyPersistenceAsync(RegistrationDatabase database, string evidence)
+    private static async Task VerifyPersistenceAsync(RegistrationDatabase database, string evidence, bool requireSessionReceipts)
     {
         var options = new DbContextOptionsBuilder<DealershipDbContext>().UseNpgsql(database.RuntimeConnectionString).Options;
         await using var context = new DealershipDbContext(options);
@@ -206,7 +179,7 @@ internal static class BrowserHarness
         var actualConfirmedEmails = await context.Users.Where(user => user.EmailConfirmed)
             .Select(user => user.Email).ToListAsync();
 
-        if (profiles != expected.Length || expected.Length == 0 || sessions == 0 || revoked == 0 ||
+        if (profiles != expected.Length || expected.Length == 0 || (requireSessionReceipts && (sessions == 0 || revoked == 0)) ||
             actualConfirmedEmails.Count != confirmedEmails.Length ||
             actualConfirmedEmails.Any(email => !confirmedEmails.Contains(email, StringComparer.OrdinalIgnoreCase)))
         {
@@ -228,53 +201,3 @@ internal static class BrowserHarness
 }
 
 internal sealed record ExpectedProfile(Guid RegistrationKey, string LegalName, string Email, string Nric);
-
-internal sealed class BrowserEvidence(string directory) : IStartupFilter
-{
-    private readonly ConcurrentDictionary<string, int> _counts = new();
-    private readonly object _snapshotLock = new();
-
-    public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next)
-    {
-        return app =>
-        {
-            app.Use(async (context, continuation) =>
-            {
-                var path = context.Request.Path.Value ?? string.Empty;
-                var fault = File.ReadAllText(Path.Combine(directory, "fault.txt"));
-
-                if (fault == "unavailable")
-                {
-                    context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
-                    await context.Response.WriteAsJsonAsync(new { title = "Unavailable" });
-                    return;
-                }
-
-                _counts.AddOrUpdate(path, 1, (_, count) => count + 1);
-
-                lock (_snapshotLock)
-                {
-                    File.WriteAllText(Path.Combine(directory, "counts.json"), JsonSerializer.Serialize(_counts));
-                }
-
-                if (fault == "invalid-login" && path == "/api/auth/login")
-                {
-                    await context.Response.WriteAsJsonAsync(new { accessToken = "invalid", expiresAt = DateTimeOffset.UtcNow.AddHours(1) });
-                    return;
-                }
-
-                if (fault == "slow-login" && path == "/api/auth/login")
-                {
-                    context.Response.ContentType = "application/json";
-                    await context.Response.WriteAsync("{");
-                    await context.Response.Body.FlushAsync();
-                    await Task.Delay(TimeSpan.FromSeconds(15), context.RequestAborted);
-                    return;
-                }
-
-                await continuation();
-            });
-            next(app);
-        };
-    }
-}

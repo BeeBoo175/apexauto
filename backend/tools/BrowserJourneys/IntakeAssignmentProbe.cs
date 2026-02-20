@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Dealership.BrowserAuthHarness;
+namespace Dealership.BrowserJourneys;
 
 internal sealed class IntakeAssignmentProbe(string directory) : IStartupFilter
 {

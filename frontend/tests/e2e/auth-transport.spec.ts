@@ -5,7 +5,7 @@ import { test, expect } from "@playwright/test";
 import { request as httpRequest } from "node:http";
 
 const origin = process.env.APP_BASE_URL!;
-const evidence = process.env.AUTH_EVIDENCE_DIR!;
+const evidence = process.env.BROWSER_EVIDENCE_DIR!;
 const password = "Password123!";
 
 function counts(): Record<string, number> {

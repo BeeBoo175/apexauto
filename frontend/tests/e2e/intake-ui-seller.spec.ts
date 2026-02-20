@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 
-const evidence = process.env.AUTH_EVIDENCE_DIR!;
+const evidence = process.env.BROWSER_EVIDENCE_DIR!;
 const counts = () =>
   JSON.parse(readFileSync(path.join(evidence, "counts.json"), "utf8")) as Record<string, number>;
 

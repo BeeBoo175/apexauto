@@ -5,7 +5,7 @@ import { test, expect } from "@playwright/test";
 import type { Page } from "@playwright/test";
 
 const origin = process.env.APP_BASE_URL!;
-const evidence = process.env.AUTH_EVIDENCE_DIR!;
+const evidence = process.env.BROWSER_EVIDENCE_DIR!;
 
 type DelayedResponse = { release?: () => void };
 declare global {

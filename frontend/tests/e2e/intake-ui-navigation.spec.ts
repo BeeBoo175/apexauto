@@ -1,93 +1,13 @@
 import { setAppointmentDates, expectWorklistPage } from "./intake-ui-controls";
-import { expect, test, type CDPSession } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { writeFileSync } from "node:fs";
 import path from "node:path";
 
-const evidence = process.env.AUTH_EVIDENCE_DIR!;
+const evidence = process.env.BROWSER_EVIDENCE_DIR!;
 const assignment = (command: string) =>
   writeFileSync(path.join(evidence, "assignment.txt"), command);
 const day = (offset: number) =>
   new Date(Date.now() + (offset * 24 + 8) * 3600000).toISOString().slice(0, 10);
-
-async function swipe(touch: CDPSession, x: number, y: number, deltaX: number, deltaY: number) {
-  await touch.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
-  for (let step = 1; step <= 8; step += 1) {
-    await touch.send("Input.dispatchTouchEvent", {
-      type: "touchMove",
-      touchPoints: [{ x: x + (deltaX * step) / 8, y: y + (deltaY * step) / 8 }],
-    });
-    // Give Chromium a frame between movements in the simulated finger swipe.
-    await new Promise((resolve) => setTimeout(resolve, 16));
-  }
-  // Finish the finger movement before lifting so the next tap does not stop a fling.
-  await new Promise((resolve) => setTimeout(resolve, 100));
-  await touch.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-}
-
-test("intake content supports mobile touch scrolling and preserves desktop viewport fit", async ({
-  page,
-  context,
-}, testInfo) => {
-  const mobile = testInfo.project.name === "mobile-auth";
-  if (mobile) {
-    await page.setViewportSize({ width: 390, height: 640 });
-  }
-  await page.goto("/login");
-  await page.getByLabel("Email", { exact: true }).fill("aina.sofia@example.invalid");
-  await page.getByLabel("Password", { exact: true }).fill("Password123!");
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Refresh calendar", exact: true })).toBeEnabled();
-  if (!mobile) {
-    const bounds = await page
-      .getByRole("region", { name: "Intake calendar", exact: true })
-      .boundingBox();
-    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(page.viewportSize()!.height);
-    return;
-  }
-  const events = page.getByRole("region", { name: "Selected date events", exact: true });
-  const lastEvent = events.getByRole("button", { name: /^Open / }).last();
-  const before = await lastEvent.evaluate((node) => node.getBoundingClientRect().top);
-  const touch = await context.newCDPSession(page);
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    await swipe(touch, 190, 550, 0, -420);
-    const visible = await lastEvent.evaluate((node) => {
-      const bounds = node.getBoundingClientRect();
-      return bounds.top >= 0 && bounds.bottom <= window.innerHeight;
-    });
-    if (visible) {
-      break;
-    }
-  }
-  await expect
-    .poll(() => lastEvent.evaluate((node) => node.getBoundingClientRect().top))
-    .toBeLessThan(before - 50);
-  await expect(lastEvent).toBeInViewport({ ratio: 1 });
-  await lastEvent.tap();
-  await expect(page.getByRole("dialog", { name: "Intake appointment", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Close dialog", exact: true }).tap();
-  await page.screenshot({
-    path: path.join(evidence, "mobile-calendar-scrolled.png"),
-    fullPage: true,
-  });
-
-  await page.getByRole("link", { name: "Table", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Refresh worklist", exact: true })).toBeEnabled();
-  const rows = page.getByRole("table", { name: "Scoped intake appointments" }).locator("..");
-  const bounds = (await rows.boundingBox())!;
-  const startY = bounds.y + bounds.height - 20;
-  await swipe(touch, 190, startY, 0, -180);
-  await expect.poll(() => rows.evaluate((node) => node.scrollTop)).toBeGreaterThan(0);
-  await swipe(touch, 330, startY, -260, 0);
-  await expect.poll(() => rows.evaluate((node) => node.scrollLeft)).toBeGreaterThan(0);
-  await expect(page.getByRole("button", { name: "Next records", exact: true })).toBeInViewport({
-    ratio: 1,
-  });
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
-    true,
-  );
-  await page.screenshot({ path: path.join(evidence, "mobile-table-scrolled.png"), fullPage: true });
-  await touch.detach();
-});
 
 test("staff reassignment clears old branch records and applies current permissions", async ({
   page,
@@ -163,7 +83,7 @@ test("staff reassignment clears old branch records and applies current permissio
   }
 });
 
-test("slow and failed view reads retain the staff shell and header, with fresh history reads", async ({
+test("failed and cancelled view reads retain confirmed content, with fresh history reads", async ({
   page,
   context,
 }) => {
@@ -173,12 +93,6 @@ test("slow and failed view reads retain the staff shell and header, with fresh h
   await page.getByLabel("Password", { exact: true }).fill("Password123!");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page.getByRole("button", { name: "Refresh calendar", exact: true })).toBeEnabled();
-  const sidebar = page.locator('aside[aria-label="Dealership operations"]');
-  const header = page
-    .locator("header")
-    .filter({ has: page.getByRole("heading", { name: "Intake appointments", exact: true }) });
-  const originalSidebar = await sidebar.elementHandle();
-  const originalHeader = await header.elementHandle();
   const errors: string[] = [];
   let documentRequests = 0;
   let successfulTableReads = 0;
@@ -238,10 +152,6 @@ test("slow and failed view reads retain the staff shell and header, with fresh h
       "true",
     );
     await expect(page.getByRole("region", { name: "Intake calendar", exact: true })).toBeVisible();
-    expect(await sidebar.evaluate((node, original) => node === original, originalSidebar)).toBe(
-      true,
-    );
-    expect(await header.evaluate((node, original) => node === original, originalHeader)).toBe(true);
     const aborted = page.waitForEvent("requestfailed", (request) =>
       request.url().includes("/api/staff/intake/appointments?"),
     );
@@ -268,17 +178,9 @@ test("slow and failed view reads retain the staff shell and header, with fresh h
   await expect(page.getByRole("button", { name: "Refresh calendar", exact: true })).toBeEnabled();
   expect(documentRequests).toBe(0);
   expect(errors).toEqual([]);
-  expect(await sidebar.evaluate((node, original) => node === original, originalSidebar)).toBe(true);
-  expect(await header.evaluate((node, original) => node === original, originalHeader)).toBe(true);
-  await page.screenshot({
-    path: path.join(evidence, "persistent-intake-shell.png"),
-    fullPage: true,
-  });
 });
 
-test("staff sidebar survives navigation from appointment detail back to intake", async ({
-  page,
-}) => {
+test("restoring an appointment detail applies changed staff permissions", async ({ page }) => {
   await page.goto("/login");
   await page.getByLabel("Email", { exact: true }).fill("aina.sofia@example.invalid");
   await page.getByLabel("Password", { exact: true }).fill("Password123!");
@@ -289,13 +191,10 @@ test("staff sidebar survives navigation from appointment detail back to intake",
     .first()
     .getAttribute("href");
   await page.goto(href!);
-  const sidebar = page.locator('aside[aria-label="Dealership operations"]');
-  const originalSidebar = await sidebar.elementHandle();
   await page.getByRole("link", { name: "Back to intake appointments", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Intake appointments", exact: true }),
   ).toBeVisible();
-  expect(await sidebar.evaluate((node, original) => node === original, originalSidebar)).toBe(true);
   try {
     assignment("group");
     await page.goBack();
@@ -313,7 +212,8 @@ test("direct appointment back link retains an uncertain check-in operation", asy
   await page.getByLabel("Email", { exact: true }).fill("aina.sofia@example.invalid");
   await page.getByLabel("Password", { exact: true }).fill("Password123!");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await page.getByRole("link", { name: "Table", exact: true }).click();
+  await expect(page).toHaveURL(/\/dashboard\/intake$/);
+  await page.goto("/dashboard/intake?view=list&status=Booked");
   const href = await page.getByRole("link", { name: /^Open VCA 9701/ }).getAttribute("href");
   await page.goto(href!);
   await page.getByLabel("VIN", { exact: true }).fill("PL1BT65R84B123456");

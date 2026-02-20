@@ -3,7 +3,7 @@ using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Dealership.BrowserAuthHarness;
+namespace Dealership.BrowserJourneys;
 
 internal sealed record RecoveryBrowserAccount(Guid UserId, string Email, string LegalName,
     string[] OldSessions, string? UnrelatedSession);

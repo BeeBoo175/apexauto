@@ -17,7 +17,7 @@ const origin = process.env.APP_BASE_URL!;
 const resetRoute = "/api/auth/password-reset";
 const requestRoute = "/api/auth/password-recovery";
 
-if (process.env.AUTH_RECOVERY_SCENARIO) {
+if (process.env.BROWSER_RECOVERY_SCENARIO) {
   test("recovery request: generic outcomes preserve an uncertain email for deliberate retry", async ({
     page,
     request,
@@ -25,7 +25,7 @@ if (process.env.AUTH_RECOVERY_SCENARIO) {
     const owner = recoveryFixture();
     await assertInitialRecoveryPage(page, "/forgot-password", "Forgot password");
 
-    if (testInfo.project.name === "desktop-auth") {
+    if (testInfo.project.name === "desktop") {
       await assertRecoveryIngress(request);
     }
 

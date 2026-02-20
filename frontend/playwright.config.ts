@@ -1,9 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const browserAuth = Boolean(process.env.AUTH_EVIDENCE_DIR);
+const browserJourneys = Boolean(process.env.BROWSER_EVIDENCE_DIR);
 const appBaseUrl = process.env.APP_BASE_URL;
-const nextOrigin = process.env.AUTH_NEXT_ORIGIN;
-const intakeUi = Boolean(process.env.AUTH_INTAKE_UI);
+const nextOrigin = process.env.BROWSER_NEXT_ORIGIN;
+const intakeUi = Boolean(process.env.BROWSER_INTAKE);
 
 function browserTests() {
   if (intakeUi) {
@@ -12,8 +12,8 @@ function browserTests() {
   return "e2e/browser-auth*.spec.ts";
 }
 
-if (browserAuth && (!process.env.API_BASE_URL || !appBaseUrl || !nextOrigin)) {
-  throw new Error("Run browser auth through the disposable BrowserAuthHarness.");
+if (browserJourneys && (!process.env.API_BASE_URL || !appBaseUrl || !nextOrigin)) {
+  throw new Error("Run selected journeys through the disposable BrowserJourneys launcher.");
 }
 
 export default defineConfig({
@@ -34,15 +34,15 @@ export default defineConfig({
         "intake/no-show-contracts.spec.ts",
       ],
     },
-    ...(browserAuth
+    ...(browserJourneys
       ? [
           {
-            name: "transport-auth",
+            name: "transport",
             testMatch: "e2e/auth-transport.spec.ts",
             use: { baseURL: appBaseUrl },
           },
           {
-            name: "desktop-auth",
+            name: "desktop",
             testMatch: browserTests(),
             use: {
               ...devices["Desktop Chrome"],
@@ -51,14 +51,14 @@ export default defineConfig({
             },
           },
           {
-            name: "mobile-auth",
+            name: "mobile",
             testMatch: browserTests(),
             use: { ...devices["Pixel 7"], baseURL: appBaseUrl },
           },
         ]
       : []),
   ],
-  webServer: browserAuth
+  webServer: browserJourneys
     ? {
         command: `node node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port ${new URL(nextOrigin!).port}`,
         url: `${nextOrigin}/login`,

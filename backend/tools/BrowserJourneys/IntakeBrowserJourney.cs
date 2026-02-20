@@ -1,7 +1,4 @@
 using Dealership.Infrastructure.Intake;
-using System.Diagnostics;
-using System.Net;
-using System.Net.Sockets;
 using System.Text.Json;
 using Dealership.Infrastructure.Persistence;
 using Dealership.IntegrationTests;
@@ -11,43 +8,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Dealership.BrowserAuthHarness;
+namespace Dealership.BrowserJourneys;
 
-internal static class IntakeBrowserHarness
+internal static class IntakeBrowserJourney
 {
-    public static async Task<int> RunAsync(string[] args)
-    {
-        if (args.Length > 0)
-        {
-            return await RunSelectedAsync(args);
-        }
-
-        var specifications = new[]
-        {
-            "intake-ui-seller.spec.ts",
-            "intake-ui-account.spec.ts",
-            "intake-ui-staff.spec.ts",
-            "intake-ui-isolation.spec.ts",
-            "intake-ui-navigation.spec.ts",
-            "intake-ui-table.spec.ts",
-            "intake-ui-calendar.spec.ts",
-            "intake-ui-noshow.spec.ts",
-            "intake-ui-shared-filters.spec.ts",
-            "intake-ui-view-scope.spec.ts"
-        };
-        foreach (var specification in specifications)
-        {
-            // Mutating workflows need separate data; each desktop/mobile pair shares its own fixture.
-            var result = await RunSelectedAsync([specification]);
-            if (result != 0)
-            {
-                return result;
-            }
-        }
-        return 0;
-    }
-
-    private static async Task<int> RunSelectedAsync(string[] args)
+    public static async Task<int> RunAsync(string specification, string[] projects)
     {
         var repository = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../.."));
         var evidence = Path.Combine(repository, ".verifications", "intake-browser", $"{DateTime.UtcNow:yyyyMMdd-HHmmss}-{Guid.NewGuid():N}");
@@ -60,7 +25,7 @@ internal static class IntakeBrowserHarness
         Environment.SetEnvironmentVariable("ASPNETCORE_URLS", "http://127.0.0.1:0");
         Environment.SetEnvironmentVariable("AllowedHosts", "localhost;127.0.0.1");
 
-        foreach (var project in new[] { "desktop-auth", "mobile-auth" })
+        foreach (var project in projects)
         {
             var directory = Path.Combine(evidence, project, "selected");
             Directory.CreateDirectory(directory);
@@ -92,39 +57,14 @@ internal static class IntakeBrowserHarness
                     .IntakeAppointments.Select(item => new { item.Id, item.BranchId, item.RegistrationPlate, item.StartsAt }).ToArrayAsync();
                 File.WriteAllText(Path.Combine(directory, "references.json"), JsonSerializer.Serialize(records, JsonSerializerOptions.Web));
             }
-            using var port = new TcpListener(IPAddress.Loopback, 0);
-            port.Start();
-            var nextOrigin = $"http://127.0.0.1:{((IPEndPoint)port.LocalEndpoint).Port}";
-            port.Stop();
+            var nextOrigin = BrowserProcess.AllocateNextOrigin();
             await using var ingress = await TrustedIngress.StartAsync(nextOrigin);
-            var start = new ProcessStartInfo("node") { WorkingDirectory = Path.Combine(repository, "frontend"), UseShellExecute = false };
-            foreach (var argument in new[] { "node_modules/@playwright/test/cli.js", "test", "--config=playwright.config.ts", $"--project={project}" }.Concat(args))
+            var exitCode = await BrowserProcess.RunAsync(Path.Combine(repository, "frontend"), project,
+                [specification], directory, client.BaseAddress!, TrustedIngress.Origin(ingress), nextOrigin,
+                new Dictionary<string, string> { ["BROWSER_INTAKE"] = "1" });
+            if (exitCode != 0)
             {
-                start.ArgumentList.Add(argument);
-            }
-            start.Environment["API_BASE_URL"] = client.BaseAddress!.GetLeftPart(UriPartial.Authority);
-            start.Environment["APP_BASE_URL"] = TrustedIngress.Origin(ingress);
-            start.Environment["AUTH_NEXT_ORIGIN"] = nextOrigin;
-            start.Environment["TRUSTED_CLIENT_IP_HEADER"] = TrustedIngress.ClientHeader;
-            start.Environment["AUTH_EVIDENCE_DIR"] = directory;
-            start.Environment["AUTH_INTAKE_UI"] = "1";
-            start.Environment.Remove("NO_COLOR");
-            using var browser = Process.Start(start) ?? throw new InvalidOperationException("Intake browser did not start.");
-            using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(12));
-            try
-            {
-                await browser.WaitForExitAsync(timeout.Token);
-            }
-            finally
-            {
-                if (!browser.HasExited)
-                {
-                    browser.Kill(true);
-                }
-            }
-            if (browser.ExitCode != 0)
-            {
-                return browser.ExitCode;
+                return exitCode;
             }
             using var scope = factory.Services.CreateScope();
             var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();

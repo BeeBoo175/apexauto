@@ -4,14 +4,14 @@ import path from "node:path";
 import { calendarDate, calendarRange } from "../../src/lib/calendar";
 
 test.use({ timezoneId: "America/New_York", actionTimeout: 15000 });
-const evidence = process.env.AUTH_EVIDENCE_DIR!;
+const evidence = process.env.BROWSER_EVIDENCE_DIR!;
 const branchId = "c77708bf-1a31-42f5-9a69-0c8766697a52";
 test("month calendar retains its snapshot, supports overflow and refreshes the shared drawer after check-in", async ({
   page,
   context,
 }, testInfo) => {
   test.setTimeout(120000);
-  const mobile = testInfo.project.name === "mobile-auth";
+  const mobile = testInfo.project.name === "mobile";
   await page.goto("/login");
   await page.getByLabel("Email", { exact: true }).fill("aina.sofia@example.invalid");
   await page.getByLabel("Password", { exact: true }).fill("Password123!");

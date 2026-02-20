@@ -7,7 +7,7 @@ const demoAccount = {
   password: "Password123!",
 };
 
-const evidence = process.env.AUTH_EVIDENCE_DIR!;
+const evidence = process.env.BROWSER_EVIDENCE_DIR!;
 
 function loginCount() {
   const counts = JSON.parse(readFileSync(path.join(evidence, "counts.json"), "utf8"));

@@ -3,7 +3,7 @@ import { expect, test, type Download } from "@playwright/test";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-const evidence = process.env.AUTH_EVIDENCE_DIR!;
+const evidence = process.env.BROWSER_EVIDENCE_DIR!;
 const day = (offset: number) =>
   new Date(Date.now() + (offset * 24 + 8) * 3600000).toISOString().slice(0, 10);
 
