@@ -1,4 +1,5 @@
 using Dealership.Application.Inspections;
+using Dealership.Application.Intake;
 using Dealership.Domain.Inspections;
 using System.Security.Cryptography;
 using System.Text;
@@ -7,6 +8,13 @@ namespace Dealership.Infrastructure.Development;
 
 public static class DevelopmentInspectionManifest
 {
+    public static IReadOnlyList<DevelopmentIntakeFixture> Baselines { get; } = Array.AsReadOnly(
+        DevelopmentIntakeManifest.Appointments.Where(item => item.Status == StaffWorklistStatus.CheckedIn)
+            .GroupBy(item => item.BranchId).Select(group => group.First()).ToArray());
+
+    public static bool IsClaimable(DevelopmentIntakeFixture fixture) => fixture.Id ==
+        DevelopmentIntakeManifest.Appointments.Last(item => item.BranchId == fixture.BranchId).Id;
+
     public const string ReopenReason = "Manager requests a fresh examination after reviewing the retained bumper evidence.";
 
     public static Guid ReopenId(Guid inspectionId) => StableId(inspectionId, "reopen");

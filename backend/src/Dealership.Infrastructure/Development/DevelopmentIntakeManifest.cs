@@ -12,7 +12,9 @@ public sealed record DevelopmentIntakeFixture(Guid Id, Guid BranchId, Guid Regis
 public static class DevelopmentIntakeManifest
 {
     public const int AppointmentsPerBranch = 41;
-    public const int TotalPerBranch = AppointmentsPerBranch + 3;
+    public const int RepairRequestsPerBranch = 51;
+    public const int CheckedInPerBranch = RepairRequestsPerBranch + 2;
+    public const int TotalPerBranch = AppointmentsPerBranch + CheckedInPerBranch + 2;
 
     public static IReadOnlyList<DevelopmentIntakeFixture> Appointments { get; } =
         Array.AsReadOnly(Enumerable.Range(0, DevelopmentFixtureManifest.Branches.Count)
@@ -38,10 +40,11 @@ public static class DevelopmentIntakeManifest
                 AppointmentsPerBranch => StaffWorklistStatus.Cancelled,
                 AppointmentsPerBranch + 1 => StaffWorklistStatus.CheckedIn,
                 AppointmentsPerBranch + 2 => StaffWorklistStatus.NoShow,
-                _ => StaffWorklistStatus.Booked
+                < AppointmentsPerBranch => StaffWorklistStatus.Booked,
+                _ => StaffWorklistStatus.CheckedIn
             };
             var evidence = status == StaffWorklistStatus.CheckedIn
-                ? new CheckInEvidence($"PM2M800{branchIndex + 1}0KC006242", 96000, true, true, true, true,
+                ? new CheckInEvidence($"PM2M800{branchIndex + 1}0KC00{6200 + index}", 96000, true, true, true, true,
                     "Customer attended with vehicle and ownership documents.")
                 : null;
             return new DevelopmentIntakeFixture(Identity($"appointment/{branch.Id:N}/{index}"), branch.Id,

@@ -97,6 +97,7 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         Assert.Equal(definitions, await ReadGuardsAsync());
         await AssertNormalAuthenticationAsync();
         await DevelopmentIntakeFixtureAssertions.VerifyAsync(provider);
+        await InspectionQueueFixtureAssertions.VerifyAsync(provider);
         var snapshot = await DevelopmentIntakeFixtureAssertions.SnapshotAsync(provider);
         await ValuationMigrationAssertions.VerifyAsync(fixture.Database);
         await CancellationMigrationAssertions.VerifyAsync(fixture.Database);
@@ -220,6 +221,7 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         services.AddS3Storage(configuration);
         services.AddIntakeMedia(configuration);
         services.AddScoped<DevelopmentFixtureRunner>();
+        services.AddScoped<DevelopmentInspectionFixtures>();
         services.AddScoped<DevelopmentCustomerFixtures>();
         services.AddScoped<DevelopmentIntakeFixtures>();
         services.AddScoped<DevelopmentFixturePhotos>();

@@ -24,14 +24,14 @@ public static class DevelopmentIntakeTimeline
         return [.. DevelopmentIntakeManifest.Appointments.GroupBy(item => item.BranchId).SelectMany(branch =>
         {
             var next = 0;
+            var checkedIn = 1;
             return branch.Select(fixture => fixture.Status switch
             {
                 StaffWorklistStatus.Cancelled => new DevelopmentIntakeMoment(fixture, historical[0].Slot,
                     historical[0].BookedAt, historical[0].Slot.StartsAt.AddMinutes(-1)),
-                StaffWorklistStatus.NoShow => new DevelopmentIntakeMoment(fixture, historical[2].Slot,
-                    historical[2].BookedAt, AppointmentDay.EndsAt(historical[2].Slot.StartsAt)),
-                StaffWorklistStatus.CheckedIn => new DevelopmentIntakeMoment(fixture, historical[1].Slot,
-                    historical[1].BookedAt, historical[1].Slot.StartsAt),
+                StaffWorklistStatus.NoShow => new DevelopmentIntakeMoment(fixture, historical[^1].Slot,
+                    historical[^1].BookedAt, AppointmentDay.EndsAt(historical[^1].Slot.StartsAt)),
+                StaffWorklistStatus.CheckedIn => CheckedIn(fixture, historical[checkedIn++]),
                 _ => new DevelopmentIntakeMoment(fixture, future[next++], anchor, null)
             });
         }).OrderBy(moment => moment.Slot.StartsAt).ThenBy(moment => moment.Fixture.Id)];
@@ -42,7 +42,8 @@ public static class DevelopmentIntakeTimeline
     {
         var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(anchor, Malaysia).DateTime);
         var result = new List<(InspectionSlot, DateTimeOffset)>();
-        for (var days = 1; days <= 366 && result.Count < 3; days++)
+        var required = DevelopmentIntakeManifest.CheckedInPerBranch + 2;
+        for (var days = 1; days <= 366 && result.Count < required; days++)
         {
             var date = today.AddDays(-days);
             var localMidnight = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified);
@@ -54,13 +55,17 @@ public static class DevelopmentIntakeTimeline
             }
         }
 
-        if (result.Count != 3)
+        if (result.Count != required)
         {
             throw new InvalidOperationException("The configured schedule cannot provide historical development appointments.");
         }
 
         return [.. result];
     }
+
+    private static DevelopmentIntakeMoment CheckedIn(DevelopmentIntakeFixture fixture,
+        (InspectionSlot Slot, DateTimeOffset BookedAt) moment) =>
+        new(fixture, moment.Slot, moment.BookedAt, moment.Slot.StartsAt);
 
     private static IEnumerable<InspectionSlot> Slots(InspectionSchedule schedule, DateTimeOffset now)
     {

@@ -45,6 +45,7 @@ try
     services.AddS3Storage(configuration);
     services.AddIntakeMedia(configuration);
     services.AddScoped<DevelopmentFixtureRunner>();
+    services.AddScoped<DevelopmentInspectionFixtures>();
     services.AddScoped<DevelopmentCustomerFixtures>();
     services.AddScoped<DevelopmentIntakeFixtures>();
     services.AddScoped<DevelopmentFixturePhotos>();

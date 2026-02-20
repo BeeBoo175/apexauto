@@ -1,3 +1,4 @@
+using Dealership.Infrastructure.Development;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -19,7 +20,7 @@ internal static class ValuationMigrationAssertions
         Assert.Equal(original, await ReadAsync(fixture.RuntimeConnectionString, embedded: true));
 
         var appointments = await database.IntakeAppointments.AsNoTracking().ToArrayAsync();
-        Assert.Equal(132, appointments.Length);
+        Assert.Equal(DevelopmentIntakeManifest.Appointments.Count, appointments.Length);
         Assert.All(appointments, appointment => Assert.NotNull(appointment.Valuation));
         await using var connection = new NpgsqlConnection(fixture.RuntimeConnectionString);
         await connection.OpenAsync();

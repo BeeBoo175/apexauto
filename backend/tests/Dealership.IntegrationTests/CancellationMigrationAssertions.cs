@@ -1,3 +1,4 @@
+using Dealership.Infrastructure.Development;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -27,7 +28,7 @@ internal static class CancellationMigrationAssertions
         await ConsolidationMigrationRange.RestoreAsync(database, "20261021190743_EmbedAppointmentValuation");
         Assert.Equal(original, await ReadAsync(fixture.RuntimeConnectionString, embedded: true));
         var appointments = await database.IntakeAppointments.AsNoTracking().ToArrayAsync();
-        Assert.Equal(132, appointments.Length);
+        Assert.Equal(DevelopmentIntakeManifest.Appointments.Count, appointments.Length);
         Assert.Equal(3, appointments.Count(item => item.CancelledAt is not null));
         await using var current = new NpgsqlConnection(fixture.RuntimeConnectionString);
         await current.OpenAsync();

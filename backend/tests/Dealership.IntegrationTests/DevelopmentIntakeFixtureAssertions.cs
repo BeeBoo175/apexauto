@@ -17,7 +17,7 @@ namespace Dealership.IntegrationTests;
 
 internal static class DevelopmentIntakeFixtureAssertions
 {
-    private static readonly int[] PageSizes = [20, 20, 4];
+    private static readonly int[] PageSizes = [20, 20, 20, 20, 16];
 
     public static async Task VerifyAuthenticatedAsync(HttpClient client, string email)
     {
@@ -36,8 +36,8 @@ internal static class DevelopmentIntakeFixtureAssertions
 
             var history = await client.GetFromJsonAsync<AppointmentHistoryPage>("/api/intake/appointments?page=3");
             Assert.NotNull(history);
-            Assert.Equal(44, history.Total);
-            Assert.Equal(4, history.Items.Count);
+            Assert.Equal(DevelopmentIntakeManifest.TotalPerBranch, history.Total);
+            Assert.Equal(20, history.Items.Count);
             var ownedIds = DevelopmentIntakeManifest.Appointments.Where(item =>
                 item.RegistrationKey == customer.Registration.RegistrationKey).Select(item => item.Id).ToHashSet();
             Assert.All(history.Items, item => Assert.Contains(item.Id, ownedIds));
@@ -47,8 +47,8 @@ internal static class DevelopmentIntakeFixtureAssertions
         }
 
         Assert.NotNull(staff);
-        var dates = $"from={DateTimeOffset.UtcNow.AddDays(-7):yyyy-MM-dd}&to={DateTimeOffset.UtcNow.AddDays(31):yyyy-MM-dd}";
-        var url = $"/api/staff/intake/appointments?{dates}";
+
+        var url = "/api/staff/intake/appointments?";
 
         if (staff.Role is AccountRoles.Administrator or AccountRoles.WorkshopTechnician)
         {
@@ -83,16 +83,16 @@ internal static class DevelopmentIntakeFixtureAssertions
         var services = scope.ServiceProvider;
         var database = services.GetRequiredService<DealershipDbContext>();
         var appointments = await database.IntakeAppointments.AsNoTracking().ToArrayAsync();
-        Assert.Equal(132, appointments.Length);
-        Assert.Equal(528, await database.IntakePhotos.CountAsync());
-        Assert.Equal(528, await database.AppointmentPhotos.CountAsync());
-        Assert.Equal(132, await database.AppointmentMailOutbox.Where(item => item.Kind == AppointmentMailKind.Confirmation).CountAsync());
-        Assert.Equal(3, await database.Vehicles.CountAsync());
-        Assert.Equal(3, await database.AppointmentCheckIns.CountAsync());
-        Assert.Equal(3, await database.AppointmentMailOutbox.Where(item => item.Kind == AppointmentMailKind.CheckIn).CountAsync());
+        Assert.Equal(DevelopmentIntakeManifest.Appointments.Count, appointments.Length);
+        Assert.Equal(DevelopmentIntakeManifest.Appointments.Count * 4, await database.IntakePhotos.CountAsync());
+        Assert.Equal(DevelopmentIntakeManifest.Appointments.Count * 4, await database.AppointmentPhotos.CountAsync());
+        Assert.Equal(DevelopmentIntakeManifest.Appointments.Count, await database.AppointmentMailOutbox.Where(item => item.Kind == AppointmentMailKind.Confirmation).CountAsync());
+        Assert.Equal(DevelopmentIntakeManifest.CheckedInPerBranch * 3, await database.Vehicles.CountAsync());
+        Assert.Equal(DevelopmentIntakeManifest.CheckedInPerBranch * 3, await database.AppointmentCheckIns.CountAsync());
+        Assert.Equal(DevelopmentIntakeManifest.CheckedInPerBranch * 3, await database.AppointmentMailOutbox.Where(item => item.Kind == AppointmentMailKind.CheckIn).CountAsync());
         Assert.Equal(3, await database.IntakeAppointments.CountAsync(item => item.CancelledAt != null));
         Assert.Equal(3, await database.AppointmentMailOutbox.Where(item => item.Kind == AppointmentMailKind.Cancellation).CountAsync());
-        Assert.Equal(528, await database.IntakePhotos.CountAsync(photo => photo.AvailableAt != null));
+        Assert.Equal(DevelopmentIntakeManifest.Appointments.Count * 4, await database.IntakePhotos.CountAsync(photo => photo.AvailableAt != null));
         var schedule = services.GetRequiredService<InspectionSchedule>();
         var malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
         var confirmations = await database.EmailVerificationChallenges.Where(item => item.ConsumedAt != null)
@@ -162,17 +162,17 @@ internal static class DevelopmentIntakeFixtureAssertions
             var expected = appointments.Where(item => item.OwnerId == owner.UserId)
                 .OrderByDescending(item => item.StartsAt).ThenByDescending(item => item.Id).Select(item => item.Id);
 
-            for (var page = 1; page <= 3; page++)
+            for (var page = 1; page <= PageSizes.Length; page++)
             {
                 var result = await history.ListAsync(owner.UserId, new AppointmentHistoryQuery(null, null, page, 20), CancellationToken.None);
                 Assert.NotNull(result);
-                Assert.Equal(44, result.Total);
+                Assert.Equal(DevelopmentIntakeManifest.TotalPerBranch, result.Total);
                 Assert.Equal(PageSizes[page - 1], result.Items.Count);
                 actual.AddRange(result.Items.Select(item => item.Id));
             }
 
             Assert.Equal(expected, actual);
-            Assert.Empty((await history.ListAsync(owner.UserId, new AppointmentHistoryQuery(null, null, 4, 20), CancellationToken.None))!.Items);
+            Assert.Empty((await history.ListAsync(owner.UserId, new AppointmentHistoryQuery(null, null, PageSizes.Length + 1, 20), CancellationToken.None))!.Items);
         }
 
         var first = appointments.Single(item => item.Id == DevelopmentIntakeManifest.Appointments[0].Id);

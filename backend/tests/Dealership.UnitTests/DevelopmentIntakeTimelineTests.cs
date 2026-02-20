@@ -24,10 +24,10 @@ public sealed class DevelopmentIntakeTimelineTests
     {
         var anchor = DateTimeOffset.Parse(date, CultureInfo.InvariantCulture);
         var timeline = DevelopmentIntakeTimeline.Create(Schedule, anchor);
-        Assert.Equal(132, timeline.Count);
+        Assert.Equal(DevelopmentIntakeManifest.Appointments.Count, timeline.Count);
         foreach (var branch in timeline.GroupBy(item => item.Fixture.BranchId))
         {
-            Assert.Equal(44, branch.Select(item => item.Slot.StartsAt).Distinct().Count());
+            Assert.Equal(DevelopmentIntakeManifest.TotalPerBranch, branch.Select(item => item.Slot.StartsAt).Distinct().Count());
             Assert.Equal(41, branch.Count(item => item.Fixture.Status == StaffWorklistStatus.Booked));
         }
 

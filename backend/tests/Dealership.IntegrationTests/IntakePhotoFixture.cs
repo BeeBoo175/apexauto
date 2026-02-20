@@ -195,26 +195,50 @@ public sealed class IntakePhotoFixture : IAsyncLifetime, IAsyncDisposable
 
     public async Task DisposeAsync()
     {
-        if (_bucketCreated && _client is not null)
+        try
         {
-            if (!_bucket.StartsWith("aa02-photos-", StringComparison.Ordinal))
+            if (_bucketCreated && _client is not null)
             {
-                throw new InvalidOperationException("Refusing unowned bucket cleanup.");
+                await DeleteOwnedBucketAsync();
             }
+        }
+        finally
+        {
+            _client?.Dispose();
+            await Database.DisposeAsync();
+        }
+    }
 
-            var objects = await _client.ListObjectsV2Async(new ListObjectsV2Request { BucketName = _bucket });
-
-            foreach (var item in objects.S3Objects ?? [])
-            {
-                await _client.DeleteObjectAsync(_bucket, item.Key);
-            }
-
-            await _client.DeleteBucketAsync(_bucket);
-            _bucketCreated = false;
+    private async Task DeleteOwnedBucketAsync()
+    {
+        if (!_bucket.StartsWith("aa02-photos-", StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("Refusing unowned bucket cleanup.");
         }
 
-        _client?.Dispose();
-        await Database.DisposeAsync();
+        ListObjectsV2Response objects;
+        do
+        {
+            // Delete each bounded first page so no continuation token depends on removed keys.
+            objects = await _client!.ListObjectsV2Async(new ListObjectsV2Request { BucketName = _bucket, MaxKeys = 1000 });
+            if (objects.S3Objects is not { Count: > 0 })
+            {
+                break;
+            }
+            var deleted = await _client.DeleteObjectsAsync(new DeleteObjectsRequest
+            {
+                BucketName = _bucket,
+                Objects = [.. objects.S3Objects.Select(item => new KeyVersion { Key = item.Key })]
+            });
+            if (deleted.DeleteErrors is { Count: > 0 })
+            {
+                throw new InvalidOperationException("Owned fixture object cleanup was incomplete.");
+            }
+        }
+        while (objects.IsTruncated == true);
+
+        await _client!.DeleteBucketAsync(_bucket);
+        _bucketCreated = false;
     }
 
     ValueTask IAsyncDisposable.DisposeAsync() => new(DisposeAsync());
