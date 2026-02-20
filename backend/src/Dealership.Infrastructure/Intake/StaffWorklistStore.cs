@@ -73,14 +73,9 @@ public sealed class StaffWorklistStore(DealershipDbContext database) : IStaffWor
             return new StaffWorklistPage([], total, 1, maximumRows);
         }
 
-        var offset = (long)(query.Page - 1) * query.PageSize;
-        StaffWorklistItem[] items = [];
-        if (offset < total)
-        {
-            var page = await StaffWorklistRows.Order(records, query).ThenBy(row => row.Id)
-                .Skip((int)offset).Take(query.PageSize).ToArrayAsync(cancellationToken);
-            items = [.. page.Select(StaffWorklistRows.ToItem)];
-        }
+        var page = await StaffWorklistRows.Order(records, query).ThenBy(row => row.Id)
+            .ReadPageAsync(query.Page, query.PageSize, total, cancellationToken);
+        var items = page.Select(StaffWorklistRows.ToItem).ToArray();
 
         await transaction.CommitAsync(cancellationToken);
         return new StaffWorklistPage(items, total, query.Page, query.PageSize);

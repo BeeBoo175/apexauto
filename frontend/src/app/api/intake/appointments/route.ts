@@ -1,3 +1,4 @@
+import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 import { relayIntake } from "@/lib/intake/routes";
 import { parseAppointment, parseBooking, parsePage, parseQuote } from "@/lib/intake/parse";
 export function POST(request: Request) {
@@ -10,15 +11,15 @@ export function POST(request: Request) {
 }
 export function GET(request: Request) {
   const query = new URL(request.url).searchParams;
-  const allowed = new URLSearchParams();
-  for (const name of ["from", "to", "page"]) {
+  const allowed = new URLSearchParams({ pageSize: String(DEFAULT_PAGE_SIZE) });
+  for (const name of ["from", "to", "page", "pageSize"]) {
     if (query.has(name)) {
       allowed.set(name, query.get(name)!);
     }
   }
   return relayIntake(
     request,
-    `/api/intake/appointments?${allowed}&pageSize=20`,
+    `/api/intake/appointments?${allowed}`,
     (value) => parsePage(value, parseAppointment),
     true,
   );

@@ -1,3 +1,4 @@
+using Dealership.Application.Common;
 using System.IdentityModel.Tokens.Jwt;
 using Dealership.Application.Intake;
 using Dealership.Domain.Intake;
@@ -26,7 +27,7 @@ public static class StaffIntakeEndpoints
 
     private static async Task<IResult> ListAsync(HttpContext context, IStaffWorklistStore worklist,
         CancellationToken cancellationToken, string? from = null, string? to = null,
-        string? status = null, Guid? branchId = null, int page = 1, int pageSize = 20,
+        string? status = null, Guid? branchId = null, int page = 1, int pageSize = Pagination.DefaultPageSize,
         string? search = null, string? sort = null, string? direction = null)
     {
         var query = StaffWorklistQuery.Parse(from, to, status, branchId, page, pageSize, search, sort, direction);

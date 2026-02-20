@@ -9,7 +9,7 @@ namespace Dealership.UnitTests;
 public sealed class StaffExportWorkerTests
 {
     private static readonly CurrentActor Actor = new(Guid.NewGuid(), AccountRoles.BranchManager, Guid.NewGuid());
-    private static readonly StaffWorklistQuery Query = new(null, null, StaffWorklistStatus.All, null, 1, 20);
+    private static readonly StaffWorklistQuery Query = new(null, null, StaffWorklistStatus.All, null, 1, 25);
 
     [Fact]
     public async Task BusyWorkerRejectsOverlapAndCancellationReleasesTheSlotAndTemporaryFile()

@@ -1,3 +1,4 @@
+using Dealership.Application.Common;
 using Dealership.Application.Branches;
 using System.Globalization;
 
@@ -20,7 +21,7 @@ public static class BranchDiscoveryEndpoints
         CancellationToken cancellationToken)
     {
         if (!int.TryParse(page ?? "1", NumberStyles.None, CultureInfo.InvariantCulture, out var selectedPage) ||
-            !int.TryParse(pageSize ?? BranchDiscoveryService.DefaultPageSize.ToString(CultureInfo.InvariantCulture),
+            !int.TryParse(pageSize ?? Pagination.DefaultPageSize.ToString(CultureInfo.InvariantCulture),
                 NumberStyles.None, CultureInfo.InvariantCulture, out var selectedSize))
         {
             return InvalidPagination();
@@ -36,7 +37,7 @@ public static class BranchDiscoveryEndpoints
     {
         return Results.ValidationProblem(new Dictionary<string, string[]>
         {
-            ["pagination"] = ["Use a positive page and a page size between 1 and 50."]
+            ["pagination"] = ["Use a positive page and a page size of 10, 25 or 50."]
         });
     }
 }

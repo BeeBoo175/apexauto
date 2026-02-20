@@ -17,7 +17,7 @@ namespace Dealership.IntegrationTests;
 
 internal static class DevelopmentIntakeFixtureAssertions
 {
-    private static readonly int[] PageSizes = [20, 20, 20, 20, 16];
+    private static readonly int[] PageSizes = [25, 25, 25, 21];
 
     public static async Task VerifyAuthenticatedAsync(HttpClient client, string email)
     {
@@ -37,7 +37,7 @@ internal static class DevelopmentIntakeFixtureAssertions
             var history = await client.GetFromJsonAsync<AppointmentHistoryPage>("/api/intake/appointments?page=3");
             Assert.NotNull(history);
             Assert.Equal(DevelopmentIntakeManifest.TotalPerBranch, history.Total);
-            Assert.Equal(20, history.Items.Count);
+            Assert.Equal(25, history.Items.Count);
             var ownedIds = DevelopmentIntakeManifest.Appointments.Where(item =>
                 item.RegistrationKey == customer.Registration.RegistrationKey).Select(item => item.Id).ToHashSet();
             Assert.All(history.Items, item => Assert.Contains(item.Id, ownedIds));
@@ -64,7 +64,7 @@ internal static class DevelopmentIntakeFixtureAssertions
                 (staff.BranchId == null || item.BranchId == staff.BranchId) &&
                 (status == StaffWorklistStatus.All || item.Status == status)).ToArray();
             Assert.Equal(expected.Length, result.Total);
-            Assert.Equal(Math.Min(20, expected.Length), result.Items.Count);
+            Assert.Equal(Math.Min(25, expected.Length), result.Items.Count);
             Assert.All(result.Items, item => Assert.Contains(item.Id, expected.Select(row => row.Id)));
         }
 
@@ -108,7 +108,7 @@ internal static class DevelopmentIntakeFixtureAssertions
 
         await AssertStatesAsync(database);
         var query = new StaffWorklistQuery(appointments.Min(item => item.StartsAt).AddDays(-1),
-            appointments.Max(item => item.EndsAt).AddDays(1), StaffWorklistStatus.Booked, null, 1, 20);
+            appointments.Max(item => item.EndsAt).AddDays(1), StaffWorklistStatus.Booked, null, 1, 25);
 
         foreach (var staff in DevelopmentFixtureManifest.Staff)
         {
@@ -132,7 +132,7 @@ internal static class DevelopmentIntakeFixtureAssertions
                 var result = await store.ListAsync(staff.Id, query with { Page = page }, CancellationToken.None);
                 Assert.NotNull(result);
                 Assert.Equal(expected.Length, result.Total);
-                Assert.Equal(Math.Min(20, expected.Length - actual.Count), result.Items.Count);
+                Assert.Equal(Math.Min(25, expected.Length - actual.Count), result.Items.Count);
                 actual.AddRange(result.Items.Select(item => item.Id));
             }
 
@@ -154,7 +154,7 @@ internal static class DevelopmentIntakeFixtureAssertions
 
             if (!customer.VerifyEmail)
             {
-                Assert.Null(await history.ListAsync(owner.UserId, new AppointmentHistoryQuery(null, null, 1, 20), CancellationToken.None));
+                Assert.Null(await history.ListAsync(owner.UserId, new AppointmentHistoryQuery(null, null, 1, 25), CancellationToken.None));
                 continue;
             }
 
@@ -164,7 +164,7 @@ internal static class DevelopmentIntakeFixtureAssertions
 
             for (var page = 1; page <= PageSizes.Length; page++)
             {
-                var result = await history.ListAsync(owner.UserId, new AppointmentHistoryQuery(null, null, page, 20), CancellationToken.None);
+                var result = await history.ListAsync(owner.UserId, new AppointmentHistoryQuery(null, null, page, 25), CancellationToken.None);
                 Assert.NotNull(result);
                 Assert.Equal(DevelopmentIntakeManifest.TotalPerBranch, result.Total);
                 Assert.Equal(PageSizes[page - 1], result.Items.Count);
@@ -172,7 +172,7 @@ internal static class DevelopmentIntakeFixtureAssertions
             }
 
             Assert.Equal(expected, actual);
-            Assert.Empty((await history.ListAsync(owner.UserId, new AppointmentHistoryQuery(null, null, PageSizes.Length + 1, 20), CancellationToken.None))!.Items);
+            Assert.Empty((await history.ListAsync(owner.UserId, new AppointmentHistoryQuery(null, null, PageSizes.Length + 1, 25), CancellationToken.None))!.Items);
         }
 
         var first = appointments.Single(item => item.Id == DevelopmentIntakeManifest.Appointments[0].Id);

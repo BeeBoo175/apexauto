@@ -1,3 +1,4 @@
+import { DEFAULT_PAGE_SIZE, isPageSize } from "@/lib/pagination";
 import { historyParams, historyQuery } from "@/lib/intake/list-query";
 import type { StaffFilters } from "./contracts";
 
@@ -19,7 +20,13 @@ export function staffQuery(filters: StaffFilters, page = 1) {
 export function staffViewQuery(filters: StaffFilters, page = 1) {
   const query = new URLSearchParams(staffQuery(filters, page));
   query.set("view", "list");
-  const defaults = { page: "1", pageSize: "20", status: "All", sort: "startsAt", direction: "asc" };
+  const defaults = {
+    page: "1",
+    pageSize: String(DEFAULT_PAGE_SIZE),
+    status: "All",
+    sort: "startsAt",
+    direction: "asc",
+  };
   for (const [key, value] of Object.entries(defaults)) {
     if (query.get(key) === value) {
       query.delete(key);
@@ -39,7 +46,7 @@ export function staffParams(params: Record<string, string | string[] | undefined
       search: typeof params.search === "string" ? params.search : "",
       sort: typeof params.sort === "string" ? params.sort : "startsAt",
       direction: params.direction === "desc" ? ("desc" as const) : ("asc" as const),
-      pageSize: [10, 20, 50].includes(Number(params.pageSize)) ? Number(params.pageSize) : 20,
+      pageSize: isPageSize(Number(params.pageSize)) ? Number(params.pageSize) : DEFAULT_PAGE_SIZE,
     },
   };
 }

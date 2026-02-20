@@ -30,15 +30,9 @@ public sealed class AppointmentHistoryStore(DealershipDbContext database) : IApp
         }
 
         var total = await appointments.CountAsync(cancellationToken);
-        var offset = (long)(query.Page - 1) * query.PageSize;
-        AppointmentHistoryItem[] items = [];
-
-        if (offset < total)
-        {
-            items = await appointments.Join(database.Branches, item => item.BranchId, branch => branch.Id,
+        var items = await appointments.Join(database.Branches, item => item.BranchId, branch => branch.Id,
                     (item, branch) => new { Appointment = item, BranchName = branch.Name })
                 .OrderByDescending(row => row.Appointment.StartsAt).ThenByDescending(row => row.Appointment.Id)
-                .Skip((int)offset).Take(query.PageSize)
                 .Select(row => new AppointmentHistoryItem(row.Appointment.Id, row.Appointment.BranchId, row.BranchName,
                     row.Appointment.RegistrationPlate, row.Appointment.StartsAt, row.Appointment.EndsAt, row.Appointment.CreatedAt,
                     row.Appointment.CancelledAt,
@@ -48,8 +42,7 @@ public sealed class AppointmentHistoryStore(DealershipDbContext database) : IApp
                             ? (DateTimeOffset?)row.Appointment.StartsAt : null,
                     database.AppointmentCheckIns.Where(item => item.AppointmentId == row.Appointment.Id)
                         .Select(item => (DateTimeOffset?)item.CheckedInAt).SingleOrDefault()))
-                .ToArrayAsync(cancellationToken);
-        }
+                .ReadPageAsync(query.Page, query.PageSize, total, cancellationToken);
         items = [.. items.Select(item => item.NoShowAt is null ? item :
             item with { NoShowAt = AppointmentDay.EndsAt(item.StartsAt) })];
         await transaction.CommitAsync(cancellationToken);

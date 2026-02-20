@@ -1,10 +1,11 @@
+import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 import { relayIntake } from "@/lib/intake/routes";
 import { parsePage } from "@/lib/intake/parse";
 import { parseWorklistItem } from "@/lib/staff/parse";
 
 export function GET(request: Request) {
   const query = new URL(request.url).searchParams;
-  const allowed = new URLSearchParams({ pageSize: "20" });
+  const allowed = new URLSearchParams({ pageSize: String(DEFAULT_PAGE_SIZE) });
   for (const name of [
     "from",
     "to",

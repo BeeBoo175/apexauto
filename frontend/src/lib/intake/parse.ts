@@ -1,3 +1,4 @@
+import { isPageSize } from "@/lib/pagination";
 import { isRecord, isUuid } from "@/lib/auth/contracts";
 import { angles } from "./contracts";
 import type {
@@ -151,9 +152,7 @@ export function parsePage<T>(
     !integer(value.total) ||
     !integer(value.page) ||
     value.page < 1 ||
-    !integer(value.pageSize) ||
-    value.pageSize < 1 ||
-    value.pageSize > 50 ||
+    !isPageSize(value.pageSize) ||
     value.items.length > value.pageSize
   ) {
     return null;

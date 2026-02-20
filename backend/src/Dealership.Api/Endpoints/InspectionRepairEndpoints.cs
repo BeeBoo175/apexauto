@@ -1,3 +1,4 @@
+using Dealership.Application.Common;
 using System.IdentityModel.Tokens.Jwt;
 using Dealership.Application.Inspections;
 
@@ -27,7 +28,7 @@ public static class InspectionRepairEndpoints
         deadline.CancelAfter(TimeSpan.FromSeconds(20));
         try
         {
-            var result = await history.RepairsAsync(ActorId(context), id, revision, new(page ?? 1, pageSize ?? 25), deadline.Token);
+            var result = await history.RepairsAsync(ActorId(context), id, revision, new(page ?? 1, pageSize ?? Pagination.DefaultPageSize), deadline.Token);
             return result.Status switch
             {
                 InspectionAssignmentStatus.Succeeded => Results.Ok(result.History),

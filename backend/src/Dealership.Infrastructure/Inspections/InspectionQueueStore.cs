@@ -60,24 +60,19 @@ public sealed class InspectionQueueStore(DealershipDbContext database) : IInspec
         }
         if (filter.Search.Length > 0)
         {
-            var pattern = Pattern(filter.Search);
+            var pattern = LiteralSearch.Pattern(filter.Search);
             work = work.Where(row => EF.Functions.ILike(row.Vehicle.RegistrationPlate, pattern, "!") ||
                 EF.Functions.ILike(row.Vehicle.Make, pattern, "!") || EF.Functions.ILike(row.Vehicle.Model, pattern, "!") ||
                 EF.Functions.ILike(row.BranchName, pattern, "!") || EF.Functions.ILike(row.Vehicle.Id.ToString(), pattern, "!"));
         }
 
         var total = await work.CountAsync(cancellationToken);
-        var offset = (long)(filter.Page - 1) * filter.PageSize;
-        InspectionQueueItem[] items = [];
-        if (offset < total)
-        {
-            var page = await work.OrderByDescending(row => row.Vehicle.CreatedAt).ThenByDescending(row => row.Vehicle.Id)
-                .Skip((int)offset).Take(filter.PageSize).ToArrayAsync(cancellationToken);
-            items = [.. page.Select(row => new InspectionQueueItem(row.Vehicle.Id, row.Vehicle.BranchId, row.BranchName,
-                row.Vehicle.RegistrationPlate, row.Vehicle.Make, row.Vehicle.Model, row.Vehicle.CreatedAt,
-                row.Vehicle.Status.ToString(), row.Draft?.Id, row.Draft?.TechnicianId, row.Draft?.AssignmentVersion,
-                row.Draft?.Revision, row.State))];
-        }
+        var page = await work.OrderByDescending(row => row.Vehicle.CreatedAt).ThenByDescending(row => row.Vehicle.Id)
+            .ReadPageAsync(filter.Page, filter.PageSize, total, cancellationToken);
+        var items = page.Select(row => new InspectionQueueItem(row.Vehicle.Id, row.Vehicle.BranchId, row.BranchName,
+            row.Vehicle.RegistrationPlate, row.Vehicle.Make, row.Vehicle.Model, row.Vehicle.CreatedAt,
+            row.Vehicle.Status.ToString(), row.Draft?.Id, row.Draft?.TechnicianId, row.Draft?.AssignmentVersion,
+            row.Draft?.Revision, row.State)).ToArray();
 
         await transaction.CommitAsync(cancellationToken);
         return new(InspectionAssignmentStatus.Succeeded, new(Array.AsReadOnly(items), total, filter.Page, filter.PageSize));
@@ -157,24 +152,19 @@ public sealed class InspectionQueueStore(DealershipDbContext database) : IInspec
         }
         if (filter.Search.Length > 0)
         {
-            var pattern = Pattern(filter.Search);
+            var pattern = LiteralSearch.Pattern(filter.Search);
             work = work.Where(row => EF.Functions.ILike(row.Vehicle.RegistrationPlate, pattern, "!") ||
                 EF.Functions.ILike(row.BranchName, pattern, "!") || EF.Functions.ILike(row.Request.Id.ToString(), pattern, "!") ||
                 EF.Functions.ILike(row.Request.InspectionId.ToString(), pattern, "!"));
         }
 
         var total = await work.CountAsync(cancellationToken);
-        var offset = (long)(filter.Page - 1) * filter.PageSize;
-        InspectionRepairQueueItem[] items = [];
-        if (offset < total)
-        {
-            var page = await work.OrderByDescending(row => row.Request.RequestedAt).ThenByDescending(row => row.Request.Id)
-                .Skip((int)offset).Take(filter.PageSize).ToArrayAsync(cancellationToken);
-            items = [.. page.Select(row => new InspectionRepairQueueItem(row.Request.Id, row.Request.InspectionId,
-                row.Vehicle.Id, row.Request.BranchId, row.BranchName, row.Vehicle.RegistrationPlate, row.TechnicianId,
-                row.Request.AssignmentVersion, row.Request.Revision, row.Request.Version, row.Request.Budget,
-                row.Request.RequestedAt, row.ApprovalId, row.CoveringApprovalId, row.State))];
-        }
+        var page = await work.OrderByDescending(row => row.Request.RequestedAt).ThenByDescending(row => row.Request.Id)
+            .ReadPageAsync(filter.Page, filter.PageSize, total, cancellationToken);
+        var items = page.Select(row => new InspectionRepairQueueItem(row.Request.Id, row.Request.InspectionId,
+            row.Vehicle.Id, row.Request.BranchId, row.BranchName, row.Vehicle.RegistrationPlate, row.TechnicianId,
+            row.Request.AssignmentVersion, row.Request.Revision, row.Request.Version, row.Request.Budget,
+            row.Request.RequestedAt, row.ApprovalId, row.CoveringApprovalId, row.State)).ToArray();
 
         await transaction.CommitAsync(cancellationToken);
         return new(InspectionAssignmentStatus.Succeeded, new(Array.AsReadOnly(items), total, filter.Page, filter.PageSize));
@@ -200,7 +190,4 @@ public sealed class InspectionQueueStore(DealershipDbContext database) : IInspec
 
         return actor;
     }
-
-    private static string Pattern(string search) => "%" + search.Replace("!", "!!", StringComparison.Ordinal)
-        .Replace("%", "!%", StringComparison.Ordinal).Replace("_", "!_", StringComparison.Ordinal) + "%";
 }

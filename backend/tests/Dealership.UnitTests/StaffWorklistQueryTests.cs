@@ -16,7 +16,7 @@ public sealed class StaffWorklistQueryTests
         var tomorrow = Parse("2026-10-16", "2026-10-16")!;
         Assert.Equal(today.Until, tomorrow.From);
         Assert.Equal(StaffWorklistStatus.Booked, tomorrow.Status);
-        Assert.Equal(20, tomorrow.PageSize);
+        Assert.Equal(25, tomorrow.PageSize);
         var explicitDay = Parse("2026-10-16", "2026-10-16")!;
         Assert.Equal(tomorrow.From, explicitDay.From);
         Assert.Equal(tomorrow.Until, explicitDay.Until);
@@ -31,27 +31,27 @@ public sealed class StaffWorklistQueryTests
     }
 
     [Theory]
-    [InlineData("2026-10-16", null, null, 1, 20)]
-    [InlineData(null, "2026-10-16", null, 1, 20)]
-    [InlineData("", "", null, 1, 20)]
-    [InlineData("16/10/2026", "2026-10-16", null, 1, 20)]
-    [InlineData("2026-10-17", "2026-10-16", null, 1, 20)]
-    [InlineData("9999-12-31", "9999-12-31", null, 1, 20)]
-    [InlineData("0001-01-01", "0001-01-01", null, 1, 20)]
-    [InlineData(null, null, "booked", 1, 20)]
-    [InlineData(null, null, "0", 1, 20)]
-    [InlineData(null, null, "", 1, 20)]
-    [InlineData(null, null, null, 0, 20)]
+    [InlineData("2026-10-16", null, null, 1, 25)]
+    [InlineData(null, "2026-10-16", null, 1, 25)]
+    [InlineData("", "", null, 1, 25)]
+    [InlineData("16/10/2026", "2026-10-16", null, 1, 25)]
+    [InlineData("2026-10-17", "2026-10-16", null, 1, 25)]
+    [InlineData("9999-12-31", "9999-12-31", null, 1, 25)]
+    [InlineData("0001-01-01", "0001-01-01", null, 1, 25)]
+    [InlineData(null, null, "booked", 1, 25)]
+    [InlineData(null, null, "0", 1, 25)]
+    [InlineData(null, null, "", 1, 25)]
+    [InlineData(null, null, null, 0, 25)]
     [InlineData(null, null, null, 1, 0)]
     [InlineData(null, null, null, 1, 51)]
     public void InvalidFiltersAreRejected(string? from, string? to, string? status, int page, int pageSize)
     {
         Assert.Null(Parse(from, to, status, page, pageSize));
-        Assert.Null(StaffWorklistQuery.Parse(null, null, null, Guid.Empty, 1, 20));
+        Assert.Null(StaffWorklistQuery.Parse(null, null, null, Guid.Empty, 1, 25));
     }
 
     private static StaffWorklistQuery? Parse(string? from = null, string? to = null, string? status = null,
-        int page = 1, int pageSize = 20)
+        int page = 1, int pageSize = 25)
     {
         return StaffWorklistQuery.Parse(from, to, status, null, page, pageSize);
     }
@@ -59,14 +59,14 @@ public sealed class StaffWorklistQueryTests
     [Fact]
     public void SearchAndSortAreBoundedAndExplicit()
     {
-        var query = StaffWorklistQuery.Parse(null, null, null, null, 1, 20,
+        var query = StaffWorklistQuery.Parse(null, null, null, null, 1, 25,
             "  VCA 6242  ", "registrationPlate", "desc")!;
         Assert.Equal("VCA 6242", query.Search);
         Assert.Equal("registrationPlate", query.Sort);
         Assert.Equal("desc", query.Direction);
-        Assert.Null(StaffWorklistQuery.Parse(null, null, null, null, 1, 20, new string('a', 161)));
-        Assert.Null(StaffWorklistQuery.Parse(null, null, null, null, 1, 20, "a\nb"));
-        Assert.Null(StaffWorklistQuery.Parse(null, null, null, null, 1, 20, sort: "arbitrary"));
-        Assert.Null(StaffWorklistQuery.Parse(null, null, null, null, 1, 20, direction: "DESC"));
+        Assert.Null(StaffWorklistQuery.Parse(null, null, null, null, 1, 25, new string('a', 161)));
+        Assert.Null(StaffWorklistQuery.Parse(null, null, null, null, 1, 25, "a\nb"));
+        Assert.Null(StaffWorklistQuery.Parse(null, null, null, null, 1, 25, sort: "arbitrary"));
+        Assert.Null(StaffWorklistQuery.Parse(null, null, null, null, 1, 25, direction: "DESC"));
     }
 }

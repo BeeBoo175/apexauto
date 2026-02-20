@@ -1,5 +1,4 @@
-using System.Globalization;
-using Dealership.Domain.Common;
+using Dealership.Application.Common;
 
 namespace Dealership.Application.Inspections;
 
@@ -21,35 +20,21 @@ public enum InspectionRepairQueueStatus
 }
 
 public sealed record InspectionQueueFilter(DateTimeOffset? From = null, DateTimeOffset? Until = null,
-    Guid? BranchId = null, int Page = 1, int PageSize = 25, string Search = "")
+    Guid? BranchId = null, int Page = 1, int PageSize = Pagination.DefaultPageSize, string Search = "")
 {
-    private static readonly TimeZoneInfo Malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
-
-    public bool IsValid => Page >= 1 && PageSize is 10 or 25 or 50 && BranchId != Guid.Empty &&
-        Search is not null && Search.Length <= 160 && !Search.Any(char.IsControl) &&
-        (From is null && Until is null || From is not null && Until > From && Until - From <= TimeSpan.FromDays(366));
+    public bool IsValid => Pagination.IsValid(Page, PageSize) && BranchId != Guid.Empty &&
+        ListSearch.IsValid(Search) && ListDateRange.IsValid(From, Until);
 
     public static InspectionQueueFilter? Parse(string? from, string? to, Guid? branchId,
-        int page = 1, int pageSize = 25, string? search = null)
+        int page = 1, int pageSize = Pagination.DefaultPageSize, string? search = null)
     {
-        var filter = new InspectionQueueFilter(BranchId: branchId, Page: page, PageSize: pageSize, Search: search?.Trim() ?? "");
-        if (from is null && to is null)
-        {
-            return filter.IsValid ? filter : null;
-        }
-
-        if (!DateOnly.TryParseExact(from, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var first) ||
-            !DateOnly.TryParseExact(to, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var last) ||
-            last < first || last.DayNumber - first.DayNumber >= 366 || first == DateOnly.MinValue || last == DateOnly.MaxValue)
+        var dates = ListDateRange.Parse(from, to);
+        if (dates is null)
         {
             return null;
         }
 
-        filter = filter with
-        {
-            From = TimeZoneInfo.ConvertTimeToUtc(first.ToDateTime(TimeOnly.MinValue), Malaysia),
-            Until = TimeZoneInfo.ConvertTimeToUtc(last.AddDays(1).ToDateTime(TimeOnly.MinValue), Malaysia)
-        };
+        var filter = new InspectionQueueFilter(dates.From, dates.Until, branchId, page, pageSize, search?.Trim() ?? "");
         return filter.IsValid ? filter : null;
     }
 }

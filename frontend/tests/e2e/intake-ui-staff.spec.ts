@@ -36,7 +36,7 @@ test("sales intake preserves scoped lists, drawer drafts and an exact lost check
 }, testInfo) => {
   test.setTimeout(120000);
   await login(page, "aina.sofia@example.invalid", "/dashboard/intake");
-  await page.goto("/dashboard/intake?view=list");
+  await page.goto("/dashboard/intake?view=list&status=Booked");
   await expect(page.getByRole("button", { name: "Refresh worklist", exact: true })).toBeEnabled();
   const cross = refs().find((item) => item.branchId !== "c77708bf-1a31-42f5-9a69-0c8766697a52")!;
   expect(
@@ -156,14 +156,11 @@ test("sales intake preserves scoped lists, drawer drafts and an exact lost check
   await page.goto("/dashboard/intake?view=list");
   await setAppointmentDates(page, day(0), day(29));
   await page.getByRole("button", { name: "Apply filters", exact: true }).click();
-  await expect(page.getByRole("row")).toHaveCount(21);
+  await expect(page.getByRole("row")).toHaveCount(26);
   await page.getByRole("button", { name: "Next records", exact: true }).click();
   await expectWorklistPage(page, 2);
-  await expect(page.getByRole("row")).toHaveCount(21);
-  await page.getByRole("button", { name: "Next records", exact: true }).click();
-  await expectWorklistPage(page, 3);
   expect(await page.getByRole("row").count()).toBeGreaterThan(1);
-  expect(await page.getByRole("row").count()).toBeLessThan(21);
+  expect(await page.getByRole("row").count()).toBeLessThan(26);
   await page.route("**/api/staff/intake/appointments?**", (route) =>
     route.fulfill({
       status: 502,
@@ -184,8 +181,6 @@ test("sales intake preserves scoped lists, drawer drafts and an exact lost check
   ).toBeVisible();
   await expect(page.getByRole("row")).toHaveCount(oldRows);
   await page.unroute("**/api/staff/intake/appointments?**");
-  await page.getByRole("button", { name: "Previous records", exact: true }).click();
-  await expectWorklistPage(page, 2);
   await page.getByRole("button", { name: "Previous records", exact: true }).click();
   await expectWorklistPage(page, 1);
 
@@ -236,7 +231,7 @@ for (const [role, email, destination] of [
       .getByRole("radio", { name: "All statuses", exact: true })
       .check();
     await page.getByRole("button", { name: "Apply filters", exact: true }).click();
-    await expect(page.getByRole("row")).toHaveCount(21);
+    await expect(page.getByRole("row")).toHaveCount(26);
     const link = page.getByRole("link", { name: /^Open / }).first();
     await link.click();
     const dialog = page.getByRole("dialog", { name: "Intake appointment", exact: true });
@@ -272,7 +267,7 @@ for (const [role, email, destination] of [
       await page.getByRole("button", { name: "Apply filters", exact: true }).click();
       await expect(
         page.getByRole("cell", { name: "ApexAuto Petaling Jaya", exact: true }),
-      ).toHaveCount(20);
+      ).toHaveCount(25);
     }
   });
 }

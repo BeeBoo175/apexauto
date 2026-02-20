@@ -1,3 +1,4 @@
+import { paginationQuery } from "@/lib/pagination";
 import { StaffActorBoundary } from "@/components/staff/StaffActorBoundary";
 import { actorIdentity } from "@/lib/auth/actor";
 import { staffActor } from "@/lib/staff/server";
@@ -57,7 +58,7 @@ export default async function IntakePage({
         )
       : null,
     actor.role === "GeneralManager"
-      ? intakeRead("/api/branches?page=1&pageSize=20", (value) => parsePage(value, parseBranch))
+      ? intakeRead(`/api/branches?${paginationQuery()}`, (value) => parsePage(value, parseBranch))
       : null,
     selectedId
       ? privateIntakeRead(`/api/staff/intake/appointments/${selectedId}`, parseDetail)

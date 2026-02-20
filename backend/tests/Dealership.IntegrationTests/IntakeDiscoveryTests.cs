@@ -37,7 +37,15 @@ public sealed class IntakeDiscoveryTests(RegistrationDatabase database) : IClass
             };
             branchId = branch.Id;
 
-            foreach (var request in branches)
+            var additionalCities = new[] { "Shah Alam", "Ampang", "Kajang", "Bangi", "Puchong", "Selayang",
+                "Rawang", "Semenyih", "Seremban", "Nilai", "Melaka", "Muar", "Johor Bahru", "Ipoh", "Taiping", "Butterworth" };
+            var additional = additionalCities.Select(city => branch with
+            {
+                Id = Guid.NewGuid(),
+                Name = $"ApexAuto {city}",
+                City = city
+            });
+            foreach (var request in branches.Concat(additional))
             {
                 await provisioning.ProvisionBranchAsync(request, CancellationToken.None);
             }
@@ -51,20 +59,27 @@ public sealed class IntakeDiscoveryTests(RegistrationDatabase database) : IClass
 
         for (var page = 1; page <= 3; page++)
         {
-            pages.Add((await client.GetFromJsonAsync<PublicBranchPage>($"/api/branches?page={page}&pageSize=2"))!);
+            pages.Add((await client.GetFromJsonAsync<PublicBranchPage>($"/api/branches?page={page}&pageSize=10"))!);
         }
 
-        Assert.All(pages, page => Assert.Equal(5, page.Total));
-        Assert.Equal([2, 2, 1], pages.Select(page => page.Items.Count));
+        Assert.All(pages, page => Assert.Equal(21, page.Total));
+        Assert.Equal([10, 10, 1], pages.Select(page => page.Items.Count));
         var items = pages.SelectMany(page => page.Items).ToArray();
-        Assert.Equal(5, items.Select(branch => branch.Id).Distinct().Count());
+        Assert.Equal(21, items.Select(branch => branch.Id).Distinct().Count());
         Assert.Equal(items.Select(branch => branch.Name).Order(StringComparer.Ordinal), items.Select(branch => branch.Name));
         Assert.DoesNotContain(items, branch => branch.Name == "ApexAuto Subang Jaya");
         var beyond = await client.GetFromJsonAsync<PublicBranchPage>("/api/branches?page=2147483647&pageSize=50");
         Assert.Empty(beyond!.Items);
-        Assert.Equal(5, beyond.Total);
+        Assert.Equal(21, beyond.Total);
+        Assert.Equal(25, (await client.GetFromJsonAsync<PublicBranchPage>("/api/branches"))!.PageSize);
+        foreach (var size in new[] { 25, 50 })
+        {
+            var selected = (await client.GetFromJsonAsync<PublicBranchPage>($"/api/branches?pageSize={size}"))!;
+            Assert.Equal(size, selected.PageSize);
+            Assert.Equal(items.Select(item => item.Id), selected.Items.Select(item => item.Id));
+        }
 
-        foreach (var query in new[] { "page=0", "pageSize=51", "pageSize=0", "page=oops", "pageSize=" })
+        foreach (var query in new[] { "page=0", "pageSize=20", "pageSize=2", "pageSize=51", "pageSize=0", "page=oops", "pageSize=" })
         {
             var denied = await client.GetAsync("/api/branches?" + query);
             Assert.Equal(HttpStatusCode.BadRequest, denied.StatusCode);
@@ -114,7 +129,7 @@ public sealed class IntakeDiscoveryTests(RegistrationDatabase database) : IClass
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync(route + "?date=2026-10-15")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound,
             (await client.GetAsync($"/api/branches/{Guid.NewGuid()}/inspection-slots?date=2026-10-15")).StatusCode);
-        Assert.Equal(4, (await client.GetFromJsonAsync<PublicBranchPage>("/api/branches"))!.Total);
+        Assert.Equal(20, (await client.GetFromJsonAsync<PublicBranchPage>("/api/branches"))!.Total);
     }
 
     private WebApplicationFactory<Program> CreateFactory(bool fixedClock = true)

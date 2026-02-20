@@ -1,3 +1,4 @@
+using Dealership.Application.Common;
 using System.IdentityModel.Tokens.Jwt;
 using Dealership.Application.Inspections;
 
@@ -29,7 +30,7 @@ public static class InspectionDraftEndpoints
         deadline.CancelAfter(TimeSpan.FromSeconds(20));
         try
         {
-            var result = await history.RevisionsAsync(ActorId(context), id, new(page ?? 1, pageSize ?? 25), deadline.Token);
+            var result = await history.RevisionsAsync(ActorId(context), id, new(page ?? 1, pageSize ?? Pagination.DefaultPageSize), deadline.Token);
             return Map(result.Status, result.History);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)

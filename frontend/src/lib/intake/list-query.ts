@@ -1,10 +1,12 @@
+import { paginationQuery } from "@/lib/pagination";
+
 export interface HistoryFilters {
   from: string;
   to: string;
 }
 
 export function historyQuery(filters: HistoryFilters, page = 1) {
-  const query = new URLSearchParams({ page: String(page), pageSize: "20" });
+  const query = paginationQuery(page);
   if (filters.from) {
     query.set("from", filters.from);
   }

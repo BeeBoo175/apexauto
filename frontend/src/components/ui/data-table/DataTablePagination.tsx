@@ -1,3 +1,4 @@
+import { PAGE_SIZES } from "@/lib/pagination";
 import { Button } from "../Button";
 import { Select } from "../Input";
 import { Icon } from "../Icon";
@@ -31,7 +32,7 @@ export function DataTablePagination({
           disabled={disabled}
           onChange={(event) => onPage(1, Number(event.target.value))}
         >
-          {[10, 20, 50].map((size) => (
+          {PAGE_SIZES.map((size) => (
             <option key={size} value={size}>
               {size} / page
             </option>

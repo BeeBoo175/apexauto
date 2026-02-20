@@ -4,6 +4,8 @@ import { parseBooking, parseSlots, parseTaxonomy } from "../../src/lib/intake/pa
 import { bookingMatchesRequest } from "../../src/lib/intake/receipt";
 import { csvCell, selectedCsv } from "../../src/components/ui/data-table/csv";
 import { staffParams, staffQuery } from "../../src/lib/staff/query";
+import { DEFAULT_PAGE_SIZE, PAGE_SIZES, paginationQuery } from "../../src/lib/pagination";
+import { parsePage } from "../../src/lib/intake/parse";
 import { parseViewMemory, restoreViewHref } from "../../src/lib/staff/view-memory";
 import {
   addCalendarDays,
@@ -15,6 +17,19 @@ import {
 import { calendarParams, calendarQuery, parseCalendar } from "../../src/lib/staff/calendar";
 
 const id = "c77708bf-1a31-42f5-9a69-0c8766697a52";
+
+test("list queries and snapshots share 10/25/50 sizes and the default 25", () => {
+  expect(DEFAULT_PAGE_SIZE).toBe(25);
+  expect(Object.fromEntries(paginationQuery())).toEqual({ page: "1", pageSize: "25" });
+  for (const size of PAGE_SIZES) {
+    expect(staffParams({ pageSize: String(size) }).filters.pageSize).toBe(size);
+    expect(parsePage({ items: [], total: 0, page: 1, pageSize: size }, () => null)).not.toBeNull();
+  }
+  for (const size of [0, 1, 20, 51]) {
+    expect(staffParams({ pageSize: String(size) }).filters.pageSize).toBe(25);
+    expect(parsePage({ items: [], total: 0, page: 1, pageSize: size }, () => null)).toBeNull();
+  }
+});
 
 test("view memory ignores corrupt, oversized and other-actor state and bounds restored settings", () => {
   const saved = JSON.stringify({ actor: "staff:branch", list: "page=3", calendar: 123 });
@@ -126,7 +141,7 @@ test("staff queries preserve applied search, sorting, branch and page size throu
   expect(staffParams({}).filters).toMatchObject({
     sort: "startsAt",
     direction: "asc",
-    pageSize: 20,
+    pageSize: 25,
     status: "All",
   });
 });

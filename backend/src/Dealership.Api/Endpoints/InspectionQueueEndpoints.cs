@@ -1,3 +1,4 @@
+using Dealership.Application.Common;
 using System.IdentityModel.Tokens.Jwt;
 using Dealership.Application.Inspections;
 
@@ -21,7 +22,7 @@ public static class InspectionQueueEndpoints
         int? page, int? pageSize, string? search, HttpContext context, IInspectionQueueStore store,
         CancellationToken cancellationToken)
     {
-        var filter = InspectionQueueFilter.Parse(from, to, branchId, page ?? 1, pageSize ?? 25, search);
+        var filter = InspectionQueueFilter.Parse(from, to, branchId, page ?? 1, pageSize ?? Pagination.DefaultPageSize, search);
         if (filter is null || !Enum.TryParse<InspectionQueueStatus>(status ?? "All", out var state) ||
             !Enum.IsDefined(state) || state.ToString() != (status ?? "All"))
         {
@@ -45,7 +46,7 @@ public static class InspectionQueueEndpoints
         int? page, int? pageSize, string? search, HttpContext context, IInspectionQueueStore store,
         CancellationToken cancellationToken)
     {
-        var filter = InspectionQueueFilter.Parse(from, to, branchId, page ?? 1, pageSize ?? 25, search);
+        var filter = InspectionQueueFilter.Parse(from, to, branchId, page ?? 1, pageSize ?? Pagination.DefaultPageSize, search);
         if (filter is null || !Enum.TryParse<InspectionRepairQueueStatus>(status ?? "PendingApproval", out var state) ||
             !Enum.IsDefined(state) || state.ToString() != (status ?? "PendingApproval"))
         {

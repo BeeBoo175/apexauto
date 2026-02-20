@@ -1,8 +1,10 @@
+using Dealership.Application.Common;
+
 namespace Dealership.Application.Inspections;
 
-public sealed record InspectionHistoryQuery(int Page = 1, int PageSize = 25)
+public sealed record InspectionHistoryQuery(int Page = 1, int PageSize = Pagination.DefaultPageSize)
 {
-    public bool IsValid => Page > 0 && PageSize is 10 or 25 or 50;
+    public bool IsValid => Pagination.IsValid(Page, PageSize);
 }
 
 public sealed record InspectionRevisionSummary(Guid OperationId, long Revision, long SaveVersion, long AssignmentVersion,

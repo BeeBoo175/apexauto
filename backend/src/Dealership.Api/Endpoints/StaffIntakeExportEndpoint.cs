@@ -1,3 +1,4 @@
+using Dealership.Application.Common;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using Dealership.Application.Intake;
@@ -10,7 +11,7 @@ public static class StaffIntakeExportEndpoint
         CancellationToken cancellationToken, string? from = null, string? to = null,
         string? status = null, Guid? branchId = null, string? search = null, string? sort = null, string? direction = null)
     {
-        var query = StaffWorklistQuery.Parse(from, to, status, branchId, 1, 20, search, sort, direction);
+        var query = StaffWorklistQuery.Parse(from, to, status, branchId, 1, Pagination.DefaultPageSize, search, sort, direction);
         if (query is null)
         {
             return Results.Problem(statusCode: 400, title: "Provide valid export filters and sorting.");

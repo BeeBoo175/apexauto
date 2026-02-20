@@ -56,18 +56,18 @@ public sealed class AppointmentHistoryTests(IntakePhotoFixture fixture) : IClass
         var expected = appointments.OrderByDescending(item => item.Slot.StartsAt).ThenByDescending(item => item.Id).Select(item => item.Id).ToArray();
         var actual = new List<Guid>();
 
-        for (var page = 1; page <= 3; page++)
+        for (var page = 1; page <= 2; page++)
         {
             var response = await client.GetAsync($"/api/intake/appointments?page={page}");
             Assert.True(response.Headers.CacheControl?.NoStore);
             var result = (await response.Content.ReadFromJsonAsync<AppointmentHistoryPage>())!;
             Assert.Equal(42, result.Total);
-            Assert.Equal(page == 3 ? 2 : 20, result.Items.Count);
+            Assert.Equal(page == 2 ? 17 : 25, result.Items.Count);
             actual.AddRange(result.Items.Select(item => item.Id));
         }
 
         Assert.Equal(expected, actual);
-        var beyond = (await client.GetFromJsonAsync<AppointmentHistoryPage>("/api/intake/appointments?page=4"))!;
+        var beyond = (await client.GetFromJsonAsync<AppointmentHistoryPage>("/api/intake/appointments?page=3"))!;
         Assert.Empty(beyond.Items);
         Assert.Equal(42, beyond.Total);
         var date = DateOnly.FromDateTime(request.StartsAt.AddHours(8).DateTime);
@@ -86,6 +86,6 @@ public sealed class AppointmentHistoryTests(IntakePhotoFixture fixture) : IClass
         using var restartedClient = restarted.CreateClient();
         await IntakePhotoFixture.LoginAsync(restartedClient, registration);
         var again = (await restartedClient.GetFromJsonAsync<AppointmentHistoryPage>("/api/intake/appointments"))!;
-        Assert.Equal(expected.Take(20), again.Items.Select(item => item.Id));
+        Assert.Equal(expected.Take(25), again.Items.Select(item => item.Id));
     }
 }

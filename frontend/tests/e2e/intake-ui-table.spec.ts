@@ -27,7 +27,7 @@ test("server table searches all scoped rows, selects appointments and exports ap
 
   await page.getByRole("button", { name: "Apply filters", exact: true }).click();
   await expect(page.getByLabel("From", { exact: true })).toBeHidden();
-  await expect(page.getByRole("row")).toHaveCount(21);
+  await expect(page.getByRole("row")).toHaveCount(26);
   await page.getByRole("button", { name: "Next records", exact: true }).click();
   await expectWorklistPage(page, 2);
   const target = await page
@@ -69,11 +69,17 @@ test("server table searches all scoped rows, selects appointments and exports ap
   expect(full.split("\r\n")).toHaveLength(3);
   expect(full).toContain('"Inspection start (UTC)"');
   await page.getByRole("button", { name: "Clear search", exact: true }).click();
-  await expect(page.getByRole("row")).toHaveCount(21);
+  await expect(page.getByRole("row")).toHaveCount(26);
   await expect(page.getByRole("button", { name: "Export selected CSV", exact: true })).toHaveCount(
     0,
   );
   await expect(page.getByRole("button", { name: "Export full CSV", exact: true })).toBeEnabled();
+  await page.getByLabel("Rows per page", { exact: true }).selectOption("50");
+  await expect(page.getByLabel("Rows per page", { exact: true })).toHaveValue("50");
+  await expect(page.getByRole("row")).toHaveCount(44);
+  await expect(page.getByRole("button", { name: "Next records", exact: true })).toBeDisabled();
+  await page.getByLabel("Rows per page", { exact: true }).selectOption("25");
+  await expect(page.getByRole("row")).toHaveCount(26);
   await page.getByLabel("Rows per page", { exact: true }).selectOption("10");
   await expect(page.getByRole("row")).toHaveCount(11);
   const inspectionHeader = page.locator('th[data-column-id="startsAt"]');

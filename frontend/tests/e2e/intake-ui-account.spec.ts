@@ -27,14 +27,19 @@ test("owned history keeps scoped pages and confirmed content, then reconciles ca
     (counts()["/api/intake/appointments"] ?? 0) - (before["/api/intake/appointments"] ?? 0),
   ).toBe(1);
   const records = page.getByRole("heading", { level: 3 });
-  await expect(records).toHaveCount(20);
+  await expect(records).toHaveCount(25);
   await page.getByRole("button", { name: "Next appointments", exact: true }).click();
   await expect(page.getByText(/appointments · Page 2/)).toBeVisible();
-  await expect(records).toHaveCount(20);
+  await expect(records).toHaveCount(25);
   await page.getByRole("button", { name: "Next appointments", exact: true }).click();
   await expect(page.getByText(/appointments · Page 3/)).toBeVisible();
+  await expect(records).toHaveCount(25);
+  await page.getByRole("button", { name: "Next appointments", exact: true }).click();
+  await expect(page.getByText(/appointments · Page 4/)).toBeVisible();
   expect(await records.count()).toBeGreaterThanOrEqual(3);
-  expect(await records.count()).toBeLessThan(20);
+  expect(await records.count()).toBeLessThan(25);
+  await page.getByRole("button", { name: "Previous appointments", exact: true }).click();
+  await expect(page.getByText(/appointments · Page 3/)).toBeVisible();
   await page.getByRole("button", { name: "Previous appointments", exact: true }).click();
   await expect(page.getByText(/appointments · Page 2/)).toBeVisible();
   await page.getByRole("button", { name: "Previous appointments", exact: true }).click();
@@ -58,21 +63,21 @@ test("owned history keeps scoped pages and confirmed content, then reconciles ca
         "Appointment history could not be refreshed. The last confirmed records and filters remain shown.",
     }),
   ).toBeVisible();
-  await expect(records).toHaveCount(20);
+  await expect(records).toHaveCount(25);
   await page.unroute("**/api/intake/appointments?**");
   await page.getByLabel("From (Malaysia)", { exact: true }).fill("2026-01-01");
   await page.getByRole("button", { name: "Apply dates", exact: true }).click();
   await expect(
     page.getByText("Choose both From and To dates, or leave both empty.", { exact: true }).first(),
   ).toBeVisible();
-  await expect(records).toHaveCount(20);
+  await expect(records).toHaveCount(25);
   await page.getByLabel("To (Malaysia)", { exact: true }).fill("2026-01-01");
   await page.getByRole("button", { name: "Apply dates", exact: true }).click();
   await expect(page.getByText("No appointments match these filters.")).toBeVisible();
   await page.getByLabel("From (Malaysia)", { exact: true }).fill("");
   await page.getByLabel("To (Malaysia)", { exact: true }).fill("");
   await page.getByRole("button", { name: "Apply dates", exact: true }).click();
-  await expect(records).toHaveCount(20);
+  await expect(records).toHaveCount(25);
   let loseReceipt = true;
   const requests: string[] = [];
   await page.route("**/api/intake/appointments/*/cancellation", async (route) => {

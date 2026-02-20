@@ -66,8 +66,7 @@ internal static class StaffWorklistRows
                 });
         if (query.Search.Length > 0)
         {
-            var pattern = "%" + query.Search.Replace("!", "!!", StringComparison.Ordinal)
-                .Replace("%", "!%", StringComparison.Ordinal).Replace("_", "!_", StringComparison.Ordinal) + "%";
+            var pattern = LiteralSearch.Pattern(query.Search);
             records = records.Where(row => EF.Functions.ILike(row.RegistrationPlate, pattern, "!") ||
                 EF.Functions.ILike(row.CustomerName, pattern, "!") || EF.Functions.ILike(row.BranchName, pattern, "!") ||
                 EF.Functions.ILike(row.Id.ToString(), pattern, "!"));

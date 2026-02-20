@@ -28,18 +28,13 @@ public sealed class InspectionHistoryStore(DealershipDbContext database) : IInsp
 
         var revisions = database.InspectionSignedRevisions.AsNoTracking().Where(item => item.InspectionId == inspectionId);
         var total = await revisions.CountAsync(cancellationToken);
-        var offset = (long)(query.Page - 1) * query.PageSize;
-        InspectionRevisionSummary[] items = [];
-        if (offset < total)
-        {
-            var rows = await (from signed in revisions
-                              join reopened in database.InspectionReopenings.AsNoTracking() on signed.Id equals reopened.SignedRevisionId into reopenings
-                              from reopening in reopenings.DefaultIfEmpty()
-                              orderby signed.Revision descending
-                              select new { Signed = signed, Reopening = reopening })
-                .Skip((int)offset).Take(query.PageSize).ToArrayAsync(cancellationToken);
-            items = [.. rows.Select(row => Summary(row.Signed.Report(), row.Reopening?.Receipt()))];
-        }
+        var rows = await (from signed in revisions
+                          join reopened in database.InspectionReopenings.AsNoTracking() on signed.Id equals reopened.SignedRevisionId into reopenings
+                          from reopening in reopenings.DefaultIfEmpty()
+                          select new { Signed = signed, Reopening = reopening })
+            .OrderByDescending(row => row.Signed.Revision)
+            .ReadPageAsync(query.Page, query.PageSize, total, cancellationToken);
+        var items = rows.Select(row => Summary(row.Signed.Report(), row.Reopening?.Receipt())).ToArray();
 
         await transaction.CommitAsync(cancellationToken);
         return new(InspectionAssignmentStatus.Succeeded,
@@ -69,18 +64,13 @@ public sealed class InspectionHistoryStore(DealershipDbContext database) : IInsp
         var requests = database.InspectionRepairRequests.AsNoTracking()
             .Where(item => item.InspectionId == inspectionId && item.Revision == revision);
         var total = await requests.CountAsync(cancellationToken);
-        var offset = (long)(query.Page - 1) * query.PageSize;
-        InspectionRepairHistoryEntry[] items = [];
-        if (offset < total)
-        {
-            var rows = await (from request in requests
-                              join approved in database.InspectionRepairApprovals.AsNoTracking() on request.Id equals approved.RequestId into approvals
-                              from approval in approvals.DefaultIfEmpty()
-                              orderby request.Version descending
-                              select new { Request = request, Approval = approval })
-                .Skip((int)offset).Take(query.PageSize).ToArrayAsync(cancellationToken);
-            items = [.. rows.Select(row => new InspectionRepairHistoryEntry(row.Request.Receipt(), row.Approval?.Receipt()))];
-        }
+        var rows = await (from request in requests
+                          join approved in database.InspectionRepairApprovals.AsNoTracking() on request.Id equals approved.RequestId into approvals
+                          from approval in approvals.DefaultIfEmpty()
+                          select new { Request = request, Approval = approval })
+            .OrderByDescending(row => row.Request.Version)
+            .ReadPageAsync(query.Page, query.PageSize, total, cancellationToken);
+        var items = rows.Select(row => new InspectionRepairHistoryEntry(row.Request.Receipt(), row.Approval?.Receipt())).ToArray();
 
         await transaction.CommitAsync(cancellationToken);
         return new(InspectionAssignmentStatus.Succeeded,

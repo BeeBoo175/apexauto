@@ -1,3 +1,4 @@
+using Dealership.Application.Common;
 using System.IdentityModel.Tokens.Jwt;
 using Dealership.Application.Intake;
 
@@ -45,7 +46,7 @@ public static class IntakeBookingEndpoints
     }
 
     private static async Task<IResult> ListAsync(HttpContext context, IAppointmentHistoryStore history,
-        CancellationToken cancellationToken, string? from = null, string? to = null, int page = 1, int pageSize = 20)
+        CancellationToken cancellationToken, string? from = null, string? to = null, int page = 1, int pageSize = Pagination.DefaultPageSize)
     {
         var query = AppointmentHistoryQuery.Parse(from, to, page, pageSize);
 

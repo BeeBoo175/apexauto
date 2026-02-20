@@ -32,13 +32,13 @@ internal static class NoShowLifecycleAssertions
         var detail = await services.GetRequiredService<IStaffAppointmentDetailStore>().GetAsync(manager.Id, row.Id, CancellationToken.None);
         Assert.Equal("NoShow", detail.Detail!.Status);
         Assert.Equal(AppointmentDay.EndsAt(appointment.StartsAt), detail.Detail.NoShowAt);
-        var query = new StaffWorklistQuery(null, null, StaffWorklistStatus.NoShow, null, 1, 20);
+        var query = new StaffWorklistQuery(null, null, StaffWorklistStatus.NoShow, null, 1, 25);
         var worklist = services.GetRequiredService<IStaffWorklistStore>();
         Assert.Equal(row.Id, Assert.Single((await worklist.ListAsync(manager.Id, query, CancellationToken.None))!.Items).Id);
         Assert.DoesNotContain((await worklist.ListAsync(manager.Id, query with { Status = StaffWorklistStatus.Booked }, CancellationToken.None))!.Items,
             item => item.Id == row.Id);
         var history = await services.GetRequiredService<IAppointmentHistoryStore>().ListAsync(appointment.OwnerId,
-            new AppointmentHistoryQuery(null, null, 5, 20), CancellationToken.None);
+            new AppointmentHistoryQuery(null, null, 4, 25), CancellationToken.None);
         Assert.Contains(history!.Items, item => item.Id == row.Id && item.NoShowAt == detail.Detail.NoShowAt);
         Assert.Equal(originalCount, await database.AppointmentCheckIns.CountAsync());
         Assert.Equal(CheckInStatus.Forbidden, (await CorrectAsync(factory, agent.Id, row.Id, evidence, correction)).Status);

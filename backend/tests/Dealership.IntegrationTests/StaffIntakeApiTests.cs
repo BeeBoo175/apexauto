@@ -38,7 +38,7 @@ public sealed class StaffIntakeApiTests(IntakePhotoFixture fixture) : IClassFixt
         Assert.True(pageResponse.Headers.CacheControl?.NoStore);
         var page = (await pageResponse.Content.ReadFromJsonAsync<StaffWorklistPage>())!;
         Assert.Equal(3, page.Total);
-        Assert.Equal(20, page.PageSize);
+        Assert.Equal(25, page.PageSize);
         Assert.All(page.Items, item => Assert.Equal(data.BranchId, item.BranchId));
         var json = await pageResponse.Content.ReadAsStringAsync();
         Assert.DoesNotContain("nric", json, StringComparison.OrdinalIgnoreCase);
@@ -46,7 +46,7 @@ public sealed class StaffIntakeApiTests(IntakePhotoFixture fixture) : IClassFixt
         Assert.DoesNotContain(data.CustomerEmail, json, StringComparison.OrdinalIgnoreCase);
 
         foreach (var query in new[] { "from=2026-10-16", "from=bad&to=bad", "status=0", "status=booked",
-            "page=0", "page=abc", "pageSize=51", "branchId=bad", $"branchId={Guid.Empty}" })
+            "page=0", "page=abc", "pageSize=20", "pageSize=51", "branchId=bad", $"branchId={Guid.Empty}" })
         {
             Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync($"{Route}?{query}")).StatusCode);
         }
