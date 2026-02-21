@@ -689,7 +689,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         {
                             t.HasCheckConstraint("CK_Vehicles_Identity", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"Vin\" ~ '^[A-HJ-NPR-Z0-9]{17}$' AND \"RegistrationIdentity\" ~ '[^[:space:]]'");
 
-                            t.HasCheckConstraint("CK_Vehicles_State", "\"MileageKilometres\" >= 0 AND \"Status\" = 'PendingInspection' AND \"ManufactureYear\" > 0");
+                            t.HasCheckConstraint("CK_Vehicles_State", "\"MileageKilometres\" >= 0 AND \"Status\" IN ('PendingInspection', 'Rejected', 'Available') AND \"ManufactureYear\" > 0");
                         });
                 });
 
