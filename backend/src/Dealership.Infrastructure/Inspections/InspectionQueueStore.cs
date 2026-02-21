@@ -160,7 +160,7 @@ public sealed class InspectionQueueStore(DealershipDbContext database) : IInspec
             row.Draft.TechnicianId,
             State = !row.Draft.IsSigned || row.Draft.Revision != row.Request.Revision ||
                 row.Draft.AssignmentVersion != row.Request.AssignmentVersion || row.Draft.RepairVersion != row.Request.Version ||
-                row.Vehicle.Status != VehicleStatus.PendingInspection ? InspectionRepairQueueStatus.Superseded : row.State
+                row.Vehicle.Status == VehicleStatus.Rejected ? InspectionRepairQueueStatus.Superseded : row.State
         });
         if (status != InspectionRepairQueueStatus.All)
         {

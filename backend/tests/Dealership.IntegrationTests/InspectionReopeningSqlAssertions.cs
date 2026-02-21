@@ -31,6 +31,8 @@ internal static class InspectionReopeningSqlAssertions
         await AssertRejectedAsync(database.RuntimeConnectionString, report.InspectionId, """
             UPDATE "InspectionDrafts" SET "IsSigned" = false, "Revision" = 2, "ReopenedAfterSaveVersion" = 1
                 WHERE "Id" = @inspection;
+            UPDATE "Vehicles" SET "Status" = 'PendingInspection'
+                WHERE "Id" = (SELECT "VehicleId" FROM "InspectionDrafts" WHERE "Id" = @inspection);
             SET CONSTRAINTS ALL IMMEDIATE;
             """, "CK_InspectionDrafts_Reopening");
     }

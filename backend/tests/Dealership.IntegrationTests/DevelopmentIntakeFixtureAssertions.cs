@@ -191,7 +191,8 @@ internal static class DevelopmentIntakeFixtureAssertions
             Assert.Equal(DevelopmentFixtureManifest.Staff.Single(item =>
                 item.BranchId == fixture.BranchId && item.Role == AccountRoles.SalesAgent).Id, checkIn.StaffId);
             var vehicle = await database.Vehicles.SingleAsync(item => item.Id == checkIn.VehicleId);
-            Assert.Equal(VehicleStatus.PendingInspection, vehicle.Status);
+            var completedBaseline = fixture.Id == DevelopmentInspectionManifest.Baselines[1].Id;
+            Assert.Equal(completedBaseline ? VehicleStatus.Available : VehicleStatus.PendingInspection, vehicle.Status);
             Assert.Equal(fixture.Id, vehicle.IntakeAppointmentId);
             Assert.Equal(fixture.BranchId, vehicle.BranchId);
             Assert.Equal(fixture.CheckIn!.MileageKilometres, vehicle.MileageKilometres);

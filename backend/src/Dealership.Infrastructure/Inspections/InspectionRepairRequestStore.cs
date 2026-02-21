@@ -63,7 +63,8 @@ public sealed class InspectionRepairRequestStore(DealershipDbContext database) :
             }
 
             if (!draft.IsSigned || draft.Revision != request.Revision || draft.AssignmentVersion != request.AssignmentVersion ||
-                draft.RepairVersion != request.ExpectedVersion || vehicle.Status != VehicleStatus.PendingInspection)
+                draft.RepairVersion != request.ExpectedVersion ||
+                vehicle.Status is not (VehicleStatus.PendingInspection or VehicleStatus.Available))
             {
                 return new(InspectionAssignmentStatus.Conflict);
             }

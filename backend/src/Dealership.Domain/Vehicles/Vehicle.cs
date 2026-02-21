@@ -4,7 +4,9 @@ namespace Dealership.Domain.Vehicles;
 
 public enum VehicleStatus
 {
-    PendingInspection
+    PendingInspection,
+    Rejected,
+    Available
 }
 
 public sealed class Vehicle

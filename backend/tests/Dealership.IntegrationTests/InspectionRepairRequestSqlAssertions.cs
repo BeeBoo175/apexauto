@@ -48,7 +48,7 @@ internal static class InspectionRepairRequestSqlAssertions
         AssertInsertRejectedAsync(database.RuntimeConnectionString, Candidate(report, expectedVersion) with
         {
             Items = [new("FC-042", "Dry cabin")]
-        }, "CK_InspectionRepairRequests_Revision");
+        }, "CK_InspectionRepairRequests_Vehicle");
 
     public static async Task VerifyAfterAsync(RegistrationDatabase database, InspectionRepairReceipt receipt)
     {

@@ -66,7 +66,7 @@ public sealed class InspectionReportStore(DealershipDbContext database) : IInspe
             }
 
             if (!draft.IsSigned || draft.Revision != request.Revision || draft.AssignmentVersion != request.AssignmentVersion ||
-                vehicle.Status != VehicleStatus.PendingInspection)
+                vehicle.Status is not (VehicleStatus.PendingInspection or VehicleStatus.Rejected or VehicleStatus.Available))
             {
                 return new(InspectionAssignmentStatus.Conflict);
             }

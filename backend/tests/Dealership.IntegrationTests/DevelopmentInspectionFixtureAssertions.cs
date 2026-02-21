@@ -1,5 +1,6 @@
 using Dealership.Application.Accounts;
 using Dealership.Application.Inspections;
+using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Development;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -36,6 +37,8 @@ internal static class DevelopmentInspectionFixtureAssertions
             var reopened = draft.BranchId == DevelopmentFixtureManifest.Branches[0].Id;
             var repairing = draft.BranchId == DevelopmentFixtureManifest.Branches[1].Id;
             Assert.Equal(repairing, draft.IsSigned);
+            Assert.Equal(repairing ? VehicleStatus.Available : VehicleStatus.PendingInspection,
+                (await database.Vehicles.AsNoTracking().SingleAsync(item => item.Id == draft.VehicleId)).Status);
             Assert.Equal(repairing ? 1 : 0, draft.RepairVersion);
             Assert.Equal(reopened ? 2 : 1, draft.Revision);
             Assert.Equal(reopened ? 1 : 0, draft.ReopenedAfterSaveVersion);
