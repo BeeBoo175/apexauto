@@ -1,0 +1,44 @@
+.section {
+  min-width: 0;
+}
+
+.section ul {
+  margin-block: 12px;
+  padding-left: 20px;
+  list-style: disc;
+}
+
+.help {
+  color: var(--color-muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.historyRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-block: 16px;
+  border-top: 1px solid var(--color-line-soft);
+  overflow-wrap: anywhere;
+}
+
+.historyRow a {
+  color: var(--color-interaction-border);
+  text-underline-offset: 4px;
+}
+
+.historyRow span {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+@media print {
+  .historyRow {
+    break-inside: avoid;
+  }
+
+  .section {
+    background: #ffffff;
+  }
+}

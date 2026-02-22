@@ -1,12 +1,19 @@
-import type { Report } from "@/lib/inspection/report-contracts";
+import type { Report, RevisionHistory } from "@/lib/inspection/report-contracts";
 import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { label } from "@/lib/inspection/contracts";
 import { StaffLink } from "@/components/staff/StaffLink";
+import { RevisionHistoryView } from "./InspectionHistory";
 import { ReportPrintControls } from "./ReportPrintControls";
 import styles from "./SignedReport.module.css";
 
-export function SignedReport({ report }: { report: Report }) {
+export function SignedReport({
+  report,
+  revisions,
+}: {
+  report: Report;
+  revisions: RevisionHistory | null;
+}) {
   const { vehicle } = report;
   const categories = [...new Set(report.checklist.map((point) => point.category))];
   return (
@@ -147,7 +154,13 @@ export function SignedReport({ report }: { report: Report }) {
           Revision receipt {report.operationId}
         </footer>
 
-        <div className={styles.controls}></div>
+        <div className={styles.controls}>
+          {revisions ? (
+            <RevisionHistoryView initial={revisions} />
+          ) : (
+            <p>Revision history is unavailable. Refresh to load it.</p>
+          )}
+        </div>
       </article>
     </div>
   );
