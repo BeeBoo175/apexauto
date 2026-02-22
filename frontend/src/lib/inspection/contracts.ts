@@ -1,3 +1,5 @@
+import type { CurrentActor } from "@/lib/auth/actor";
+
 export const inspectionStatuses = ["All", "Unassigned", "Draft", "Sealed"] as const;
 export const repairStatuses = [
   "All",
@@ -111,3 +113,6 @@ export type QueueFilters = {
   pageSize: number;
 };
 export type Technician = { id: string; identity: string };
+export function hasInspectionAccess(actor: CurrentActor) {
+  return ["WorkshopTechnician", "BranchManager", "GeneralManager"].includes(actor.role);
+}
