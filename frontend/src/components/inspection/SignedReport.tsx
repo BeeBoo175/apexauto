@@ -3,6 +3,7 @@ import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { label } from "@/lib/inspection/contracts";
 import { StaffLink } from "@/components/staff/StaffLink";
+import { ReportPrintControls } from "./ReportPrintControls";
 import styles from "./SignedReport.module.css";
 
 export function SignedReport({ report }: { report: Report }) {
@@ -10,7 +11,9 @@ export function SignedReport({ report }: { report: Report }) {
   const categories = [...new Set(report.checklist.map((point) => point.category))];
   return (
     <div data-inspection-report>
-      <div className={styles.controls}></div>
+      <div className={styles.controls}>
+        <ReportPrintControls />
+      </div>
       <article className={styles.report}>
         <div className={styles.controls}>
           <StaffLink prefetch={false} href={`/dashboard/inspection/${report.inspectionId}`}>
