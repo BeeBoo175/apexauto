@@ -1,12 +1,15 @@
 "use client";
-
 import { useEffect, useRef, useState } from "react";
+import { useIntakeCommand } from "./use-intake-command";
 import { useInspectionLock } from "./use-inspection-lock";
 import { useInitialToast } from "./use-initial-toast";
 import { useToast } from "@/components/ui/Toast";
 import { inspectionFetch } from "@/lib/inspection/browser";
+import { parseSave } from "@/lib/inspection/parse";
+import { parseReport } from "@/lib/inspection/parse-report";
 import { parseEditor, type EditorSnapshot } from "@/lib/inspection/editor-snapshot";
-import { checklistDraft, type ChecklistDraft } from "@/lib/inspection/draft";
+import { checklistDraft, saveContents, type ChecklistDraft } from "@/lib/inspection/draft";
+import { isRecord } from "@/lib/auth/contracts";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { ApiResult } from "@/lib/intake/contracts";
 
@@ -36,7 +39,32 @@ export function useInspectionEditor(
   const controller = useRef<AbortController | null>(null);
   const toast = useToast();
   useInitialToast(initial.message);
-  const operating = childLocked;
+  const save = useIntakeCommand(
+    `drafts/${id}/saves`,
+    parseSave,
+    (r, body) =>
+      isRecord(body) &&
+      r.operationId === body.operationId &&
+      r.inspectionId === id &&
+      r.actorId === actor.userId &&
+      r.assignmentVersion === body.assignmentVersion &&
+      r.expectedVersion === body.expectedVersion,
+    inspectionFetch,
+  );
+  const sign = useIntakeCommand(
+    `drafts/${id}/sign`,
+    parseReport,
+    (r, body) =>
+      isRecord(body) &&
+      r.operationId === body.operationId &&
+      r.inspectionId === id &&
+      r.technicianId === actor.userId &&
+      r.assignmentVersion === body.assignmentVersion &&
+      r.revision === body.revision &&
+      r.saveVersion === body.saveVersion,
+    inspectionFetch,
+  );
+  const operating = save.busy || save.uncertain || sign.busy || sign.uncertain || childLocked;
   const formsDirty = Object.values(formDrafts).some(Boolean);
   const lockNavigation = useInspectionLock(dirty || formsDirty || operating);
   if (entry !== initial) {
@@ -126,6 +154,48 @@ export function useInspectionEditor(
     lockNavigation(false);
   }
 
+  async function saveDraft() {
+    if (!base || (operating && !save.uncertain)) {
+      return;
+    }
+    const contents = saveContents(base, value);
+    if (!contents.body) {
+      toast.error(contents.error);
+      return;
+    }
+    lockNavigation(true);
+    const result = await save.submit({ operationId: crypto.randomUUID(), ...contents.body });
+    if (result?.status === 200 && result.data) {
+      onChanged?.();
+      const next = { ...base, latestSave: result.data };
+      setBase(next);
+      setSnapshot((s) => (s ? { ...s, draft: next } : s));
+      setDirty(false);
+      lockNavigation(false);
+      setConfirmed(true);
+      await refresh(true);
+    }
+  }
+
+  async function signDraft() {
+    if (!base || dirty || (operating && !sign.uncertain)) {
+      return;
+    }
+    lockNavigation(true);
+    const result = await sign.submit({
+      operationId: crypto.randomUUID(),
+      assignmentVersion: base.assignmentVersion,
+      saveVersion: base.latestSave?.version ?? 0,
+      revision: base.revision,
+    });
+    if (result?.status === 200 && result.data) {
+      onChanged?.();
+      setConfirmed(true);
+      lockNavigation(false);
+      await refresh(true);
+    }
+  }
+
   function lockChild(locked: boolean) {
     lockNavigation(locked || dirty || Object.values(formDraftsRef.current).some(Boolean));
     setChildLocked(locked);
@@ -173,6 +243,10 @@ export function useInspectionEditor(
     confirmed,
     stale,
     editable,
+    save,
+    sign,
+    saveDraft,
+    signDraft,
     actionConfirmed,
     markForm,
     draftEpoch,

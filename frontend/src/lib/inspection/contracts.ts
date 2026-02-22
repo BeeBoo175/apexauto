@@ -119,3 +119,7 @@ export function hasInspectionAccess(actor: CurrentActor) {
 export function label(value: string) {
   return value.replace(/([a-z])([A-Z])/g, "$1 $2");
 }
+
+export function assessmentLabel(assessment: Assessment) {
+  return assessment.isRejected ? "Rejected" : `Grade ${assessment.grade}`;
+}
