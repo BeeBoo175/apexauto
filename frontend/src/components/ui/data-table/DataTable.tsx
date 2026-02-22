@@ -7,6 +7,7 @@ import { useToast } from "../Toast";
 import { DataTableHeader } from "./DataTableHeader";
 import { DataTableToolbar } from "./DataTableToolbar";
 import { DataTablePagination } from "./DataTablePagination";
+import { Button } from "@/components/ui/Button";
 import { downloadCsv, selectedCsv } from "./csv";
 import type { DataTableProps } from "./types";
 import styles from "./DataTable.module.css";
@@ -15,7 +16,7 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
   const { rows, rowId, selectionScope, disabled } = props;
   const columns = props.columns.filter((column) => !column.exportOnly);
   const [selection, setSelection] = useState<{ scope: string; ids: Set<string> }>({
-    scope: selectionScope ?? "",
+    scope: selectionScope,
     ids: new Set(),
   });
   const [exporting, setExporting] = useState(false);
@@ -25,9 +26,13 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
   useLayoutEffect(() => {
     const previous = confirmedPage.current;
     confirmedPage.current = props.page;
-    if (previous.page === props.page.page && previous.pageSize === props.page.pageSize) return;
+    if (previous.page === props.page.page && previous.pageSize === props.page.pageSize) {
+      return;
+    }
     const scroller = table.current?.parentElement;
-    if (!scroller) return;
+    if (!scroller) {
+      return;
+    }
     scroller.scrollTop = 0;
     if (
       window.matchMedia("(max-width: 820px)").matches &&
@@ -36,7 +41,6 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
       scroller.scrollIntoView({ block: "start", inline: "nearest", behavior: "instant" });
     }
   }, [props.page]);
-  const selectable = selectionScope !== undefined;
   const { columnWidths, handleResizeStart } = useColumnResize(columns);
   const tracks = columns.map((column) => {
     const minimum = `${column.minWidth ?? 100}px`;
@@ -46,15 +50,23 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
     }
     return `minmax(${minimum}, ${column.width ?? 160}fr)`;
   });
-  if (selectable) {
-    tracks.unshift("44px");
-  }
+  tracks.unshift("44px");
   const toast = useToast();
   // Selection belongs to exactly the confirmed query/page snapshot supplied by the caller.
-  const selected =
-    selectable && selection.scope === selectionScope ? selection.ids : new Set<string>();
+  const selected = selection.scope === selectionScope ? selection.ids : new Set<string>();
   const selectedRows = rows.filter((row) => selected.has(rowId(row)));
   const all = rows.length > 0 && selectedRows.length === rows.length;
+  const emptyState =
+    props.page.page > 1 || props.page.total > 0
+      ? {
+          title: "No records on this page",
+          description: "Return to the first page to see the latest results for your criteria.",
+          action: {
+            label: "Go to first page",
+            onClick: () => props.onPage(1, props.page.pageSize),
+          },
+        }
+      : props.emptyState;
   useEffect(() => {
     if (checkbox.current) {
       checkbox.current.indeterminate = selectedRows.length > 0 && !all;
@@ -68,10 +80,10 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
     } else {
       ids.add(id);
     }
-    setSelection({ scope: selectionScope ?? "", ids });
+    setSelection({ scope: selectionScope, ids });
   }
   async function exportAll() {
-    if (!props.onExportAll || exporting) {
+    if (exporting) {
       return;
     }
     setExporting(true);
@@ -97,38 +109,34 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
         selected={selectedRows.length}
         disabled={disabled}
         exporting={exporting}
-        onClear={
-          selectable ? () => setSelection({ scope: selectionScope, ids: new Set() }) : undefined
+        exportDisabled={props.busy || props.page.total === 0}
+        onClear={() => setSelection({ scope: selectionScope, ids: new Set() })}
+        onSelected={() =>
+          downloadCsv(
+            new Blob([selectedCsv(selectedRows, props.columns)], {
+              type: "text/csv;charset=utf-8",
+            }),
+            `${props.exportFileName}-selected.csv`,
+          )
         }
-        onSelected={
-          selectable && props.exportFileName
-            ? () =>
-                downloadCsv(
-                  new Blob([selectedCsv(selectedRows, props.columns)], {
-                    type: "text/csv;charset=utf-8",
-                  }),
-                  `${props.exportFileName}-selected.csv`,
-                )
-            : undefined
-        }
-        onAll={props.onExportAll ? () => void exportAll() : undefined}
+        onAll={() => void exportAll()}
       >
         {props.toolbar}
       </DataTableToolbar>
-      <Table
-        ref={table}
-        density="compact"
-        framed={false}
-        className={styles.table}
-        containerClassName={styles.scroll}
-        style={{
-          gridTemplateColumns: tracks.join(" "),
-        }}
-      >
-        <caption className="sr-only">{props.label}</caption>
-        <thead>
-          <tr>
-            {selectable && (
+      {rows.length > 0 ? (
+        <Table
+          ref={table}
+          density="compact"
+          framed={false}
+          className={styles.table}
+          containerClassName={styles.scroll}
+          style={{
+            gridTemplateColumns: tracks.join(" "),
+          }}
+        >
+          <caption className="sr-only">{props.label}</caption>
+          <thead>
+            <tr>
               <th scope="col" className={styles.selectionCell}>
                 <label className={styles.selectionControl}>
                   <span className="sr-only">Select all loaded rows</span>
@@ -146,49 +154,49 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
                   />
                 </label>
               </th>
-            )}
-            {columns.map((column, index) => (
-              <DataTableHeader
-                key={column.id}
-                column={column}
-                sort={props.sort}
-                disabled={disabled}
-                resizable={index < columns.length - 1}
-                onSort={props.onSort}
-                onStart={(event) => handleResizeStart(index, event)}
-              />
-            ))}
-          </tr>
-        </thead>
-        <tbody aria-busy={props.busy}>
-          {rows.map((row) => (
-            <tr
-              key={rowId(row)}
-              className={props.onRowClick && !disabled ? styles.interactiveRow : undefined}
-              tabIndex={props.onRowClick ? -1 : undefined}
-              onClick={(event) => {
-                if (!props.onRowClick || disabled || event.defaultPrevented) {
-                  return;
+              {columns.map((column, index) => (
+                <DataTableHeader
+                  key={column.id}
+                  column={column}
+                  sort={props.sort}
+                  disabled={disabled}
+                  resizable={index < columns.length - 1}
+                  onSort={props.onSort}
+                  onStart={(event) => handleResizeStart(index, event)}
+                />
+              ))}
+            </tr>
+          </thead>
+          <tbody aria-busy={props.busy}>
+            {rows.map((row) => (
+              <tr
+                key={rowId(row)}
+                className={props.onRowClick && !disabled ? styles.interactiveRow : undefined}
+                tabIndex={props.onRowClick ? -1 : undefined}
+                onClick={(event) => {
+                  if (!props.onRowClick || disabled || event.defaultPrevented) {
+                    return;
+                  }
+                  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+                    return;
+                  }
+                  const target = event.target as Element;
+                  if (
+                    target.closest(
+                      "a, button, input, label, select, textarea, [contenteditable]",
+                    ) ||
+                    window.getSelection()?.isCollapsed === false
+                  ) {
+                    return;
+                  }
+                  event.currentTarget.focus({ preventScroll: true });
+                  props.onRowClick(row);
+                }}
+                data-selected={
+                  props.selectedRowId === rowId(row) || selected.has(rowId(row)) || undefined
                 }
-                if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
-                  return;
-                }
-                const target = event.target as Element;
-                if (
-                  target.closest("a, button, input, label, select, textarea, [contenteditable]") ||
-                  window.getSelection()?.isCollapsed === false
-                ) {
-                  return;
-                }
-                event.currentTarget.focus({ preventScroll: true });
-                props.onRowClick(row);
-              }}
-              data-selected={
-                props.selectedRowId === rowId(row) || selected.has(rowId(row)) || undefined
-              }
-              data-active={props.selectedRowId === rowId(row) || undefined}
-            >
-              {selectable && (
+                data-active={props.selectedRowId === rowId(row) || undefined}
+              >
                 <TableCell className={styles.selectionCell}>
                   <label className={styles.selectionControl}>
                     <span className="sr-only">Select {rowId(row)}</span>
@@ -200,17 +208,33 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
                     />
                   </label>
                 </TableCell>
-              )}
-              {columns.map((column) => (
-                <TableCell key={column.id} style={{ textAlign: column.align ?? "left" }}>
-                  <div className={styles.cell}>{column.cell(row)}</div>
-                </TableCell>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </Table>
-      {rows.length === 0 && <p className={styles.empty}>No records match these filters.</p>}
+                {columns.map((column) => (
+                  <TableCell key={column.id} style={{ textAlign: column.align ?? "left" }}>
+                    <div className={styles.cell}>{column.cell(row)}</div>
+                  </TableCell>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      ) : (
+        <div className={styles.empty} aria-busy={props.busy}>
+          <div className={styles.emptyContent} role="status">
+            <h3>{emptyState.title}</h3>
+            <p>{emptyState.description}</p>
+          </div>
+          {emptyState.action && (
+            <Button
+              size="compact"
+              variant="secondary"
+              disabled={disabled || props.busy}
+              onClick={emptyState.action.onClick}
+            >
+              {emptyState.action.label}
+            </Button>
+          )}
+        </div>
+      )}
       <DataTablePagination
         page={props.page}
         count={rows.length}

@@ -4,12 +4,18 @@ import { useCallback, useState } from "react";
 import { useStaffSelection } from "./use-staff-selection";
 import type { ApiResult } from "@/lib/intake/contracts";
 import { emptyCheckIn, type AppointmentDetail, type CheckInDraft } from "@/lib/staff/contracts";
+import { parseDetail } from "@/lib/staff/parse";
 
 export function useStaffAppointmentDrawer(
   selectedId: string,
   selected: ApiResult<AppointmentDetail> | null,
 ) {
-  const selection = useStaffSelection(selectedId, selected);
+  const selection = useStaffSelection(selectedId, selected, {
+    parameter: "appointment",
+    path: (id) => `/api/staff/intake/appointments/${id}`,
+    parse: parseDetail,
+    matches: (value, id) => value.id === id,
+  });
   const [drafts, setDrafts] = useState<Record<string, CheckInDraft>>({});
   const [locked, setLocked] = useState(false);
   const lock = useCallback((value: boolean) => setLocked(value), []);

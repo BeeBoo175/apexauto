@@ -28,6 +28,11 @@ export interface DataTableProps<Row> {
   label: string;
   fillHeight?: boolean;
   rows: readonly Row[];
+  emptyState: {
+    title: string;
+    description: string;
+    action?: { label: string; onClick: () => void };
+  };
   columns: readonly DataColumn<Row>[];
   rowId: (row: Row) => string;
   page: TablePage;
@@ -36,15 +41,15 @@ export interface DataTableProps<Row> {
   onPage: (page: number, pageSize: number) => void;
   disabled: boolean;
   busy: boolean;
-  selectionScope?: string;
+  selectionScope: string;
   toolbar?: ReactNode;
   filters?: ReactNode;
-  filterCount?: number;
-  filterSummary?: ReactNode;
+  filterCount: number;
+  filterSummary: ReactNode;
   onFiltersOpenChange?: (open: boolean) => void;
   defaultFiltersExpanded?: boolean;
   selectedRowId?: string;
   onRowClick?: (row: Row) => void;
-  exportFileName?: string;
-  onExportAll?: () => Promise<void>;
+  exportFileName: string;
+  onExportAll: () => Promise<void>;
 }

@@ -3,10 +3,20 @@ import { useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { intakeFetch } from "@/lib/intake/browser";
 import type { ApiResult } from "@/lib/intake/contracts";
-import type { AppointmentDetail } from "@/lib/staff/contracts";
-import { parseDetail } from "@/lib/staff/parse";
 
-export function useStaffSelection(initialId: string, initial: ApiResult<AppointmentDetail> | null) {
+interface SelectionResource<T> {
+  parameter: string;
+  path: (id: string) => string;
+  parse: (value: unknown) => T | null;
+  matches: (value: T, id: string) => boolean;
+  read?: typeof intakeFetch;
+}
+
+export function useStaffSelection<T>(
+  initialId: string,
+  initial: ApiResult<T> | null,
+  resource: SelectionResource<T>,
+) {
   const toast = useToast();
   const [id, setId] = useState(initialId);
   const [result, setResult] = useState(initial);
@@ -18,32 +28,34 @@ export function useStaffSelection(initialId: string, initial: ApiResult<Appointm
     controller.current?.abort();
     const attempt = new AbortController();
     controller.current = attempt;
+    // Retain confirmed details only when refreshing the same record.
     if (id !== nextId) {
       setResult(null);
     }
     setId(nextId);
     setBusy(true);
     const url = new URL(window.location.href);
-    url.searchParams.set("appointment", nextId);
+    url.searchParams.set(resource.parameter, nextId);
     window.history.replaceState(null, "", url);
     try {
-      const response = await intakeFetch(`/api/staff/intake/appointments/${nextId}`, parseDetail, {
+      const read = resource.read ?? intakeFetch;
+      const response = await read(resource.path(nextId), resource.parse, {
         signal: attempt.signal,
       });
       if (attempt.signal.aborted) {
         return;
       }
-      if (response.data && response.data.id !== nextId) {
-        throw new Error("Mismatched appointment");
+      if (response.data && !resource.matches(response.data, nextId)) {
+        throw new Error("Mismatched record");
       }
       if (!response.data || response.status !== 200) {
-        throw new Error("Appointment unavailable");
+        throw new Error("Record unavailable");
       }
       setResult(response);
     } catch {
       if (!attempt.signal.aborted) {
         toast.error(
-          "The appointment could not be refreshed. Existing details and your draft remain shown.",
+          "The record could not be refreshed. Existing details and your draft remain shown.",
         );
         setResult((current) => ({
           status: 502,
@@ -64,7 +76,7 @@ export function useStaffSelection(initialId: string, initial: ApiResult<Appointm
     setResult(null);
     setBusy(false);
     const url = new URL(window.location.href);
-    url.searchParams.delete("appointment");
+    url.searchParams.delete(resource.parameter);
     window.history.replaceState(null, "", url);
   }
   return { id, result, busy, choose, close };

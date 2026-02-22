@@ -16,6 +16,7 @@ export function DataTableToolbar({
   selected,
   disabled,
   exporting,
+  exportDisabled = false,
   onClear,
   onSelected,
   onAll,
@@ -29,6 +30,7 @@ export function DataTableToolbar({
   selected: number;
   disabled: boolean;
   exporting: boolean;
+  exportDisabled?: boolean;
   onClear?: () => void;
   onSelected?: () => void;
   onAll?: () => void;
@@ -85,7 +87,7 @@ export function DataTableToolbar({
             <Button
               variant="secondary"
               size="compact"
-              disabled={disabled || exporting}
+              disabled={disabled || exporting || exportDisabled}
               onClick={exportAction}
             >
               {exporting ? "Preparing CSV…" : exportLabel}

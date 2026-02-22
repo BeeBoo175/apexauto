@@ -21,7 +21,9 @@ export function DataTablePagination({
   return (
     <nav className={styles.pagination} aria-label="Table pages">
       <span className={styles.meta} aria-live="polite">
-        {first}–{count > 0 ? first + count - 1 : 0} of {page.total}
+        {page.total === 0
+          ? "0 records"
+          : `${first}–${count > 0 ? first + count - 1 : 0} of ${page.total}`}
       </span>
       <div className={styles.paginationControls}>
         <Select

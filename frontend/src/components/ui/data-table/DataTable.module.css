@@ -275,9 +275,36 @@
 }
 
 .empty {
-  padding: 32px 16px;
-  color: var(--color-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  min-height: 240px;
+  padding: 40px 20px;
   text-align: center;
+}
+
+.fillHeight > .empty {
+  flex: 1 0 auto;
+}
+
+.emptyContent {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 360px;
+}
+
+.empty h3 {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.empty p {
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .table tbody tr:last-child td {

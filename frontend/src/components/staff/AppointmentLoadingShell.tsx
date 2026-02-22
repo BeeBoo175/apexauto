@@ -1,7 +1,7 @@
 import workbench from "./AppointmentWorkbench.module.css";
 import styles from "./AppointmentLoadingShell.module.css";
 
-const details = [
+const appointmentDetails = [
   "Branch",
   "Customer",
   "Inspection",
@@ -10,11 +10,17 @@ const details = [
   "Reference",
 ];
 
-export function AppointmentLoadingShell() {
+export function AppointmentLoadingShell({
+  label = "Loading appointment…",
+  details = appointmentDetails,
+}: {
+  label?: string;
+  details?: readonly string[];
+}) {
   return (
     <div>
       <p role="status" className="sr-only">
-        Loading appointment…
+        {label}
       </p>
       <div className={workbench.workbench} aria-hidden="true">
         <div className={workbench.recordHeading}>

@@ -10,7 +10,7 @@ import type { useStaffAppointmentDrawer } from "@/hooks/use-staff-appointment-dr
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import { staffViewQuery } from "@/lib/staff/query";
 import { exportWorklist } from "@/lib/staff/export";
-import { appliedWorklistFilters } from "@/lib/staff/filter-summary";
+import { appliedWorklistFilters, resetWorklistFilters } from "@/lib/staff/filter-summary";
 import { AppliedWorklistFilters } from "./AppliedWorklistFilters";
 import { WorklistFilters } from "./WorklistFilters";
 import { intakeColumns } from "./intake-columns";
@@ -42,6 +42,7 @@ export function IntakeWorklist({ actor, worklist, drawer }: IntakeWorklistProps)
     snapshot?.items.find((item) => item.branchId === active.filters.branchId)?.branchName ??
     "Selected branch";
   const appliedFilters = appliedWorklistFilters(active.filters, branchName);
+  const filtered = appliedFilters.length > 0 || Boolean(active.filters.search);
 
   async function sortWorklist(sort: TableSort | null) {
     await worklist.load(
@@ -78,6 +79,20 @@ export function IntakeWorklist({ actor, worklist, drawer }: IntakeWorklistProps)
             fillHeight
             label="Scoped intake appointments"
             rows={snapshot.items}
+            emptyState={{
+              title: filtered
+                ? "No appointments match your criteria"
+                : "No intake appointments yet",
+              description: filtered
+                ? "Try another search or clear the filters to see more appointments."
+                : "Booked appointments will appear here when customers schedule an inspection.",
+              ...(filtered && {
+                action: {
+                  label: "Clear search and filters",
+                  onClick: () => void worklist.load(resetWorklistFilters(active.filters), 1),
+                },
+              }),
+            }}
             columns={columns}
             rowId={(row) => row.id}
             page={{ ...snapshot, page: active.page }}

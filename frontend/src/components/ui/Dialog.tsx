@@ -13,6 +13,7 @@ export interface DialogProps {
   closeDisabled?: boolean;
   variant?: "dialog" | "drawer";
   density?: "default" | "compact";
+  width?: "default" | "wide";
 }
 
 export const Dialog: React.FC<DialogProps> = ({
@@ -25,10 +26,16 @@ export const Dialog: React.FC<DialogProps> = ({
   closeDisabled = false,
   variant = "dialog",
   density = "default",
+  width = "default",
 }) => {
   const element = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const descriptionId = useId();
+  const drawerWidth = width === "wide" ? "max-w-[1000px]" : "max-w-[520px]";
+  const placement =
+    variant === "drawer"
+      ? `inset-y-0 left-auto right-0 m-0 h-dvh max-h-dvh w-full ${drawerWidth}`
+      : "inset-0 m-auto w-[calc(100%-32px)] max-w-lg max-h-[90dvh] rounded-sm";
   useEffect(() => {
     if (!open || !element.current) {
       return;
@@ -102,7 +109,7 @@ export const Dialog: React.FC<DialogProps> = ({
           last?.focus();
         }
       }}
-      className={`fixed bg-paper text-graphite border border-line backdrop:bg-graphite/60 overflow-y-auto ${density === "compact" ? "p-5" : "p-6"} ${variant === "drawer" ? "inset-y-0 left-auto right-0 m-0 h-dvh max-h-dvh w-full max-w-[520px]" : "inset-0 m-auto w-[calc(100%-32px)] max-w-lg max-h-[90dvh] rounded-sm"}`}
+      className={`fixed bg-paper text-graphite border border-line backdrop:bg-graphite/60 overflow-y-auto ${density === "compact" ? "p-5" : "p-6"} ${placement}`}
     >
       <div className="flex items-center justify-between gap-4 border-b border-line-soft pb-4 mb-4">
         <div>

@@ -1,24 +1,23 @@
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import type { AppliedWorklistFilter } from "@/lib/staff/filter-summary";
-import type { StaffFilters } from "@/lib/staff/contracts";
 import styles from "./WorklistFilters.module.css";
 
-export function AppliedWorklistFilters({
+export function AppliedWorklistFilters<Filters>({
   filters,
   disabled,
   onRemove,
 }: {
-  filters: AppliedWorklistFilter[];
+  filters: AppliedWorklistFilter<Filters>[];
   disabled: boolean;
-  onRemove: (filters: StaffFilters) => void;
+  onRemove: (filters: Filters) => void;
 }) {
   if (filters.length === 0) {
     return null;
   }
 
   return (
-    <div className={styles.summary} role="group" aria-label="Applied appointment filters">
+    <div className={styles.summary} role="group" aria-label="Applied filters">
       {filters.map((filter) => {
         const without = filter.without;
         return (

@@ -8,6 +8,7 @@ export function useIntakeCommand<T>(
   path: string,
   parse: (value: unknown) => T | null,
   matches: (receipt: T, request: unknown) => boolean = () => true,
+  fetchCommand: typeof intakeFetch = intakeFetch,
 ) {
   const [busy, setBusy] = useState(false);
   const [uncertain, setUncertain] = useState(false);
@@ -30,12 +31,13 @@ export function useIntakeCommand<T>(
     if (controller.current) {
       return null;
     }
+    // Reconciliation must replay the captured payload and operation ID, even if the form changes.
     attempt.current ??= JSON.stringify(body);
     const operation = new AbortController();
     controller.current = operation;
     setBusy(true);
     try {
-      const result = await intakeFetch(path, parse, {
+      const result = await fetchCommand(path, parse, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: attempt.current,
