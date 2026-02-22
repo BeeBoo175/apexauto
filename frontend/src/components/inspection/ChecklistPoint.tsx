@@ -1,16 +1,18 @@
 import { Input, Select, Textarea } from "@/components/ui/Input";
 import { label, severities, type Point, type Draft } from "@/lib/inspection/contracts";
 import type { ChecklistDraft, EntryDraft } from "@/lib/inspection/draft";
+import { FindingPhotos } from "./FindingPhotos";
 import styles from "./Inspection.module.css";
 
 export function ChecklistPoint({
   point,
-
+  draft,
   value,
-
+  actorId,
   editable,
   disabled,
   onChange,
+  onLock,
 }: {
   point: Point;
   draft: Draft;
@@ -137,6 +139,24 @@ export function ChecklistPoint({
               {entry.severity ? `${label(entry.severity)} · MYR ${entry.estimate} · ` : ""}
               {entry.notes}
             </p>
+          )}
+          {entry.kind === "Finding" && editable && (
+            <FindingPhotos
+              inspectionId={draft.id}
+              pointCode={point.code}
+              assignmentVersion={draft.assignmentVersion}
+              actorId={actorId}
+              ids={value.photos[point.code] ?? []}
+              disabled={disabled}
+              onChange={(ids) =>
+                onChange({
+                  ...value,
+                  photos: { ...value.photos, [point.code]: ids },
+                  examined: value.examined.filter((code) => code !== point.code),
+                })
+              }
+              onLock={onLock}
+            />
           )}
         </div>
       )}
