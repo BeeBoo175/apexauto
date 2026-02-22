@@ -4,7 +4,7 @@ import { SignedReport } from "@/components/inspection/SignedReport";
 import { StaffNotice } from "@/components/staff/StaffPage";
 import { StaffLink } from "@/components/staff/StaffLink";
 import { inspectionRead } from "@/lib/inspection/server";
-import { parseReport, parseRevisions } from "@/lib/inspection/parse-report";
+import { parseReport, parseRevisions, parseRepairs } from "@/lib/inspection/parse-report";
 import { isUuid } from "@/lib/auth/contracts";
 
 export const metadata = { title: "Signed inspection report | ApexAuto" };
@@ -28,9 +28,10 @@ export default async function ReportPage({
     <InspectionEntry path={path}>
       {async () => {
         const base = `reports/${id}/revisions`;
-        const [report, revisions] = await Promise.all([
+        const [report, revisions, repairs] = await Promise.all([
           inspectionRead(`${base}/${revision}`, parseReport),
           inspectionRead(`${base}?page=1&pageSize=25`, parseRevisions),
+          inspectionRead(`${base}/${revision}/repair-history?page=1&pageSize=25`, parseRepairs),
         ]);
         if (
           !report.data ||
@@ -51,7 +52,9 @@ export default async function ReportPage({
             </StaffNotice>
           );
         }
-        return <SignedReport report={report.data} revisions={revisions.data} />;
+        return (
+          <SignedReport report={report.data} revisions={revisions.data} repairs={repairs.data} />
+        );
       }}
     </InspectionEntry>
   );

@@ -1,18 +1,20 @@
-import type { Report, RevisionHistory } from "@/lib/inspection/report-contracts";
+import type { Report, RevisionHistory, RepairHistory } from "@/lib/inspection/report-contracts";
 import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { label } from "@/lib/inspection/contracts";
 import { StaffLink } from "@/components/staff/StaffLink";
-import { RevisionHistoryView } from "./InspectionHistory";
+import { RevisionHistoryView, RepairHistoryView } from "./InspectionHistory";
 import { ReportPrintControls } from "./ReportPrintControls";
 import styles from "./SignedReport.module.css";
 
 export function SignedReport({
   report,
   revisions,
+  repairs,
 }: {
   report: Report;
   revisions: RevisionHistory | null;
+  repairs: RepairHistory | null;
 }) {
   const { vehicle } = report;
   const categories = [...new Set(report.checklist.map((point) => point.category))];
@@ -153,7 +155,11 @@ export function SignedReport({
           Signed by {report.technicianIdentity} · {formatMalaysianDateTime(report.signedAt)} ·
           Revision receipt {report.operationId}
         </footer>
-
+        {repairs ? (
+          <RepairHistoryView initial={repairs} />
+        ) : (
+          <p>Linked repair history is unavailable. Refresh to load it.</p>
+        )}
         <div className={styles.controls}>
           {revisions ? (
             <RevisionHistoryView initial={revisions} />
