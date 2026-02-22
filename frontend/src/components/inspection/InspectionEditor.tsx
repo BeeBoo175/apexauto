@@ -1,5 +1,6 @@
 "use client";
 
+import { ChecklistPoint } from "./ChecklistPoint";
 import { useEffect, useState } from "react";
 import { StaffLink } from "@/components/staff/StaffLink";
 import { Button } from "@/components/ui/Button";
@@ -217,25 +218,20 @@ export function InspectionEditor({
             </section>
 
             {!repairsOnly && (
-              <section aria-label="Examination declaration">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={base.catalog.every((point) =>
-                      editor.value.examined.includes(point.code),
-                    )}
-                    disabled={disabled || !editor.editable}
-                    onChange={(event) =>
-                      editor.change({
-                        ...editor.value,
-                        examined: event.target.checked
-                          ? base.catalog.map((point) => point.code)
-                          : [],
-                      })
-                    }
+              <section aria-label="Inspection checklist">
+                {base.catalog.map((point) => (
+                  <ChecklistPoint
+                    key={point.code}
+                    point={point}
+                    draft={base}
+                    value={editor.value}
+                    actorId={actor.userId}
+                    editable={editor.editable}
+                    disabled={disabled}
+                    onChange={editor.change}
+                    onLock={editor.lockChild}
                   />
-                  I have examined all fitted points
-                </label>
+                ))}
               </section>
             )}
 
