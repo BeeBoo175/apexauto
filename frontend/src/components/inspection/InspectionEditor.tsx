@@ -15,6 +15,7 @@ import type { EditorSnapshot } from "@/lib/inspection/editor-snapshot";
 import { formatCurrency } from "@/lib/currency-format";
 import { InspectionChecklist } from "./InspectionChecklist";
 import { ManagerActions } from "./ManagerActions";
+import { RepairPanel } from "./RepairPanel";
 import { RevisionHistoryView } from "./InspectionHistory";
 import styles from "./Inspection.module.css";
 import workbench from "@/components/staff/AppointmentWorkbench.module.css";
@@ -241,7 +242,15 @@ export function InspectionEditor({
                 onLock={editor.lockChild}
               />
             )}
-
+            <RepairPanel
+              key={`repairs:${editor.draftEpoch}`}
+              actor={actor}
+              snapshot={snapshot}
+              disabled={disabled}
+              onLock={editor.lockChild}
+              onConfirmed={editor.actionConfirmed}
+              onDraft={editor.markForm}
+            />
             <RevisionHistoryView initial={snapshot.revisions} disabled={editor.operating} />
           </>
         )}
