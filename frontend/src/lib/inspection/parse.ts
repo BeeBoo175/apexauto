@@ -24,6 +24,7 @@ export const money = (v: unknown): v is number =>
 export const timestamp = (v: unknown): v is string =>
   text(v) && /(?:Z|\+00:00)$/.test(v) && Number.isFinite(Date.parse(v));
 export const nullableId = (v: unknown) => v === null || isUuid(v);
+export const nullableTime = (v: unknown) => v === null || timestamp(v);
 export const ids = (v: Record<string, unknown>, keys: string[]) =>
   keys.every((key) => isUuid(v[key]));
 export const versions = (v: Record<string, unknown>, keys: string[]) =>

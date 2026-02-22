@@ -12,11 +12,13 @@ import {
   text,
   timestamp,
   nullableId,
+  nullableTime,
 } from "./parse";
 import type {
   Approval,
   Assignment,
   Completion,
+  PhotoReceipt,
   RepairRequest,
   Reopening,
   Report,
@@ -169,6 +171,24 @@ export function parseCompletion(v: unknown): Completion | null {
     return null;
   }
   return { ...v } as Completion;
+}
+
+export function parsePhoto(v: unknown): PhotoReceipt | null {
+  if (
+    !isRecord(v) ||
+    !ids(v, ["id", "inspectionId", "actorId"]) ||
+    !versions(v, ["assignmentVersion", "bytes", "width", "height"]) ||
+    !text(v.pointCode) ||
+    !["image/jpeg", "image/png", "image/webp"].includes(String(v.contentType)) ||
+    !timestamp(v.createdAt) ||
+    !timestamp(v.expiresAt) ||
+    !nullableTime(v.availableAt) ||
+    !nullableTime(v.removalRequestedAt) ||
+    !nullableTime(v.deletedAt)
+  ) {
+    return null;
+  }
+  return { ...v } as PhotoReceipt;
 }
 
 function parseRevision(v: unknown): RevisionSummary | null {

@@ -134,3 +134,19 @@ export type Assignment = {
   reason: string | null;
   recordedAt: string;
 };
+export type PhotoReceipt = {
+  id: string;
+  inspectionId: string;
+  actorId: string;
+  assignmentVersion: number;
+  pointCode: string;
+  contentType: string;
+  bytes: number;
+  width: number;
+  height: number;
+  createdAt: string;
+  expiresAt: string;
+  availableAt: string | null;
+  removalRequestedAt: string | null;
+  deletedAt: string | null;
+};
