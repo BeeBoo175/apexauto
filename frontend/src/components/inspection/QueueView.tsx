@@ -3,6 +3,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { DataTable } from "@/components/ui/data-table/DataTable";
 import type { DataColumn } from "@/components/ui/data-table/types";
+import { SearchField } from "@/components/ui/SearchField";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import { Button } from "@/components/ui/Button";
 import { StaffCommandBar } from "@/components/staff/StaffPage";
@@ -15,6 +16,7 @@ import { queueQuery } from "@/lib/inspection/query";
 import { label } from "@/lib/inspection/contracts";
 import type { QueueKind } from "@/lib/inspection/contracts";
 import type { useInspectionQueue } from "@/hooks/use-inspection-queue";
+import { QueueFilters } from "./QueueFilters";
 import layout from "@/components/staff/IntakeWorkspace.module.css";
 import styles from "@/components/staff/IntakeWorklist.module.css";
 
@@ -69,6 +71,18 @@ export function QueueView<T>({
       exportController.current = null;
     }
   }
+  const filters = (
+    <QueueFilters
+      kind={kind}
+      draft={state.draft}
+      onDraft={state.setDraft}
+      apply={(f) => state.load(f, 1)}
+      busy={state.busy || disabled}
+      group={actor.role === "GeneralManager"}
+      branches={state.branches}
+      loadBranches={(p) => void state.loadBranches(p)}
+    />
+  );
   return (
     <div className={layout.workspace}>
       <StaffCommandBar
@@ -129,6 +143,18 @@ export function QueueView<T>({
               onPage={(p, pageSize) => void state.load({ ...active.filters, pageSize }, p)}
               disabled={disabled}
               busy={state.busy}
+              filters={filters}
+              onFiltersOpenChange={(open) => {
+                if (!open) {
+                  state.setDraft((draft) => ({
+                    ...draft,
+                    from: active.filters.from,
+                    to: active.filters.to,
+                    status: active.filters.status,
+                    branchId: active.filters.branchId,
+                  }));
+                }
+              }}
               filterCount={applied.length}
               filterSummary={
                 <AppliedWorklistFilters
@@ -136,6 +162,28 @@ export function QueueView<T>({
                   disabled={disabled || state.busy}
                   onRemove={(filters) => void state.load(filters, 1)}
                 />
+              }
+              toolbar={
+                <form
+                  className={styles.search}
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    void state.load({ ...active.filters, search: state.draft.search.trim() }, 1);
+                  }}
+                >
+                  <SearchField
+                    label={`Search ${title.toLowerCase()}`}
+                    placeholder="Search vehicle or registration"
+                    value={state.draft.search}
+                    disabled={disabled}
+                    onChange={(search) => state.setDraft({ ...state.draft, search })}
+                    onClear={
+                      active.filters.search
+                        ? () => void state.load({ ...active.filters, search: "" }, 1)
+                        : undefined
+                    }
+                  />
+                </form>
               }
             />
           )}
@@ -147,6 +195,7 @@ export function QueueView<T>({
               <Button size="compact" variant="secondary" onClick={() => void state.load()}>
                 Retry queue
               </Button>
+              {filters}
             </div>
           )}
         </div>
