@@ -1,3 +1,48 @@
+import type { Assessment, Point, Severity } from "./contracts";
+
+export type ReportPhoto = {
+  id: string;
+  contentType: string;
+  bytes: number;
+  sha256: string;
+  width: number;
+  height: number;
+};
+export type ReportPoint = Point & {
+  kind: "Finding" | "NotFitted" | null;
+  severity: Severity | null;
+  estimatedRepairCost: number;
+  notes: string | null;
+  photos: ReportPhoto[];
+};
+export type Report = {
+  operationId: string;
+  inspectionId: string;
+  revision: number;
+  branchId: string;
+  saveId: string;
+  saveVersion: number;
+  assignmentVersion: number;
+  vehicle: {
+    id: string;
+    intakeAppointmentId: string;
+    intakeOwnerId: string;
+    vin: string;
+    registrationPlate: string;
+    make: string;
+    model: string;
+    trim: string;
+    manufactureYear: number;
+    mileageKilometres: number;
+    checkedInAt: string;
+  };
+  technicianId: string;
+  technicianIdentity: string;
+  catalogVersion: string;
+  assessment: Assessment;
+  checklist: ReportPoint[];
+  signedAt: string;
+};
 export type Reopening = {
   operationId: string;
   inspectionId: string;
