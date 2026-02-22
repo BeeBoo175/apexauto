@@ -13,7 +13,16 @@ import {
   timestamp,
   nullableId,
 } from "./parse";
-import type { Assignment, Reopening, Report, ReportPhoto, ReportPoint } from "./report-contracts";
+import type {
+  Approval,
+  Assignment,
+  Completion,
+  RepairRequest,
+  Reopening,
+  Report,
+  ReportPhoto,
+  ReportPoint,
+} from "./report-contracts";
 
 function parseReportPhoto(v: unknown): ReportPhoto | null {
   if (
@@ -109,4 +118,51 @@ export function parseReopening(v: unknown): Reopening | null {
     return null;
   }
   return { ...v } as Reopening;
+}
+
+export function parseRepairRequest(v: unknown): RepairRequest | null {
+  if (
+    !isRecord(v) ||
+    !ids(v, ["operationId", "inspectionId", "branchId", "actorId", "signedRevisionId"]) ||
+    !versions(v, ["assignmentVersion", "revision", "version"]) ||
+    !integer(v.expectedVersion) ||
+    !money(v.budget) ||
+    !timestamp(v.requestedAt)
+  ) {
+    return null;
+  }
+  const items = parseItems(v.items, (item) => {
+    if (!isRecord(item) || !text(item.pointCode) || !text(item.work)) {
+      return null;
+    }
+    return { pointCode: item.pointCode, work: item.work };
+  });
+  return items?.length ? ({ ...v, items } as RepairRequest) : null;
+}
+
+function repairReceipt(v: Record<string, unknown>) {
+  return (
+    ids(v, ["operationId", "inspectionId", "branchId", "actorId", "requestId"]) &&
+    versions(v, ["assignmentVersion", "revision", "repairVersion"])
+  );
+}
+
+export function parseApproval(v: unknown): Approval | null {
+  if (!isRecord(v) || !repairReceipt(v) || !timestamp(v.approvedAt)) {
+    return null;
+  }
+  return { ...v } as Approval;
+}
+
+export function parseCompletion(v: unknown): Completion | null {
+  if (
+    !isRecord(v) ||
+    !repairReceipt(v) ||
+    !nullableId(v.approvalId) ||
+    !text(v.notes) ||
+    !timestamp(v.completedAt)
+  ) {
+    return null;
+  }
+  return { ...v } as Completion;
 }

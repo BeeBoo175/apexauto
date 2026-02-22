@@ -43,6 +43,37 @@ export type Report = {
   checklist: ReportPoint[];
   signedAt: string;
 };
+export type RepairItem = { pointCode: string; work: string };
+export type RepairRequest = {
+  operationId: string;
+  inspectionId: string;
+  branchId: string;
+  actorId: string;
+  signedRevisionId: string;
+  assignmentVersion: number;
+  revision: number;
+  expectedVersion: number;
+  version: number;
+  items: RepairItem[];
+  budget: number;
+  requestedAt: string;
+};
+export type Approval = {
+  operationId: string;
+  inspectionId: string;
+  branchId: string;
+  actorId: string;
+  requestId: string;
+  assignmentVersion: number;
+  revision: number;
+  repairVersion: number;
+  approvedAt: string;
+};
+export type Completion = Omit<Approval, "approvedAt"> & {
+  approvalId: string | null;
+  notes: string;
+  completedAt: string;
+};
 export type Reopening = {
   operationId: string;
   inspectionId: string;
