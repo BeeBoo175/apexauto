@@ -22,6 +22,10 @@ import type {
   Report,
   ReportPhoto,
   ReportPoint,
+  RevisionHistory,
+  RevisionSummary,
+  RepairHistory,
+  RepairHistoryEntry,
 } from "./report-contracts";
 
 function parseReportPhoto(v: unknown): ReportPhoto | null {
@@ -165,4 +169,66 @@ export function parseCompletion(v: unknown): Completion | null {
     return null;
   }
   return { ...v } as Completion;
+}
+
+function parseRevision(v: unknown): RevisionSummary | null {
+  if (
+    !isRecord(v) ||
+    !ids(v, ["operationId", "technicianId"]) ||
+    !versions(v, ["revision", "saveVersion", "assignmentVersion"]) ||
+    !text(v.technicianIdentity) ||
+    !text(v.catalogVersion) ||
+    !timestamp(v.signedAt)
+  ) {
+    return null;
+  }
+  const assessment = parseAssessment(v.assessment);
+  const reopening = v.reopening === null ? null : parseReopening(v.reopening);
+  if (!assessment || (v.reopening !== null && !reopening)) {
+    return null;
+  }
+  return { ...v, assessment, reopening } as RevisionSummary;
+}
+
+function historyPage(v: Record<string, unknown>) {
+  return (
+    isUuid(v.inspectionId) &&
+    integer(v.totalCount) &&
+    positive(v.page) &&
+    [10, 25, 50].includes(Number(v.pageSize))
+  );
+}
+
+export function parseRevisions(v: unknown): RevisionHistory | null {
+  if (
+    !isRecord(v) ||
+    !historyPage(v) ||
+    !positive(v.currentRevision) ||
+    typeof v.isSigned !== "boolean"
+  ) {
+    return null;
+  }
+  const items = parseItems(v.items, parseRevision);
+  return items ? ({ ...v, items } as RevisionHistory) : null;
+}
+
+function parseRepairHistoryEntry(v: unknown): RepairHistoryEntry | null {
+  if (!isRecord(v)) {
+    return null;
+  }
+  const request = parseRepairRequest(v.request);
+  const approval = v.approval === null ? null : parseApproval(v.approval);
+  const completion = v.completion === null ? null : parseCompletion(v.completion);
+  if (!request || (v.approval !== null && !approval) || (v.completion !== null && !completion)) {
+    return null;
+  }
+  return { request, approval, completion };
+}
+
+export function parseRepairs(v: unknown): RepairHistory | null {
+  if (!isRecord(v) || !historyPage(v) || !positive(v.revision)) {
+    return null;
+  }
+  const items = parseItems(v.items, parseRepairHistoryEntry);
+  return items ? ({ ...v, items } as RepairHistory) : null;
 }

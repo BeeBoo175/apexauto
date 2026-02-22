@@ -87,6 +87,40 @@ export type Reopening = {
   reason: string;
   recordedAt: string;
 };
+export type RevisionSummary = {
+  operationId: string;
+  revision: number;
+  saveVersion: number;
+  assignmentVersion: number;
+  technicianId: string;
+  technicianIdentity: string;
+  catalogVersion: string;
+  assessment: Assessment;
+  signedAt: string;
+  reopening: Reopening | null;
+};
+export type RevisionHistory = {
+  inspectionId: string;
+  currentRevision: number;
+  isSigned: boolean;
+  items: RevisionSummary[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+};
+export type RepairHistoryEntry = {
+  request: RepairRequest;
+  approval: Approval | null;
+  completion: Completion | null;
+};
+export type RepairHistory = {
+  inspectionId: string;
+  revision: number;
+  items: RepairHistoryEntry[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+};
 export type Assignment = {
   operationId: string;
   inspectionId: string;
