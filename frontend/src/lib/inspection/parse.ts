@@ -1,16 +1,23 @@
 import { isRecord, isUuid } from "@/lib/auth/contracts";
 import { parsePage } from "@/lib/intake/parse";
-import { inspectionStatuses } from "./contracts";
-import type { InspectionRow, Technician } from "./contracts";
+import { inspectionStatuses, repairStatuses } from "./contracts";
+import type { InspectionRow, RepairRow, Technician } from "./contracts";
 
 export const text = (v: unknown): v is string => typeof v === "string" && v.length > 0;
 export const integer = (v: unknown): v is number => Number.isSafeInteger(v) && Number(v) >= 0;
 export const positive = (v: unknown): v is number => integer(v) && v > 0;
+export const money = (v: unknown): v is number =>
+  typeof v === "number" &&
+  Number.isFinite(v) &&
+  v >= 0 &&
+  Number.isSafeInteger(Math.round(v * 100));
 export const timestamp = (v: unknown): v is string =>
   text(v) && /(?:Z|\+00:00)$/.test(v) && Number.isFinite(Date.parse(v));
 export const nullableId = (v: unknown) => v === null || isUuid(v);
 export const ids = (v: Record<string, unknown>, keys: string[]) =>
   keys.every((key) => isUuid(v[key]));
+export const versions = (v: Record<string, unknown>, keys: string[]) =>
+  keys.every((key) => positive(v[key]));
 export function enumValue<T extends string>(values: readonly T[], value: unknown): T | null {
   return values.find((name, index) => name === value || index === value) ?? null;
 }
@@ -34,6 +41,25 @@ export function parseInspectionRow(v: unknown): InspectionRow | null {
   return { ...v, status: enumValue(inspectionStatuses, v.status) } as InspectionRow;
 }
 
+export function parseRepairRow(v: unknown): RepairRow | null {
+  if (
+    !isRecord(v) ||
+    !ids(v, ["requestId", "inspectionId", "vehicleId", "branchId", "technicianId"]) ||
+    !versions(v, ["assignmentVersion", "revision", "repairVersion"]) ||
+    !text(v.branchName) ||
+    !text(v.registrationPlate) ||
+    !money(v.budget) ||
+    !timestamp(v.requestedAt) ||
+    !nullableId(v.approvalId) ||
+    !nullableId(v.coveringApprovalId) ||
+    !nullableId(v.completionId) ||
+    !enumValue(repairStatuses, v.status)
+  ) {
+    return null;
+  }
+  return { ...v, status: enumValue(repairStatuses, v.status) } as RepairRow;
+}
+
 export function parseTechnician(v: unknown): Technician | null {
   if (!isRecord(v) || !isUuid(v.id) || !text(v.identity)) {
     return null;
@@ -42,4 +68,5 @@ export function parseTechnician(v: unknown): Technician | null {
 }
 
 export const parseInspectionPage = (v: unknown) => parsePage(v, parseInspectionRow);
+export const parseRepairPage = (v: unknown) => parsePage(v, parseRepairRow);
 export const parseTechnicians = (v: unknown) => parsePage(v, parseTechnician);
