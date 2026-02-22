@@ -1,6 +1,5 @@
 "use client";
 
-import { ChecklistPoint } from "./ChecklistPoint";
 import { useEffect, useState } from "react";
 import { StaffLink } from "@/components/staff/StaffLink";
 import { Button } from "@/components/ui/Button";
@@ -14,6 +13,7 @@ import type { Technician } from "@/lib/inspection/contracts";
 import { label, assessmentLabel } from "@/lib/inspection/contracts";
 import type { EditorSnapshot } from "@/lib/inspection/editor-snapshot";
 import { formatCurrency } from "@/lib/currency-format";
+import { InspectionChecklist } from "./InspectionChecklist";
 import { RevisionHistoryView } from "./InspectionHistory";
 import styles from "./Inspection.module.css";
 import workbench from "@/components/staff/AppointmentWorkbench.module.css";
@@ -218,21 +218,15 @@ export function InspectionEditor({
             </section>
 
             {!repairsOnly && (
-              <section aria-label="Inspection checklist">
-                {base.catalog.map((point) => (
-                  <ChecklistPoint
-                    key={point.code}
-                    point={point}
-                    draft={base}
-                    value={editor.value}
-                    actorId={actor.userId}
-                    editable={editor.editable}
-                    disabled={disabled}
-                    onChange={editor.change}
-                    onLock={editor.lockChild}
-                  />
-                ))}
-              </section>
+              <InspectionChecklist
+                draft={base}
+                value={editor.value}
+                actorId={actor.userId}
+                editable={editor.editable}
+                disabled={disabled}
+                onChange={editor.change}
+                onLock={editor.lockChild}
+              />
             )}
 
             <RevisionHistoryView initial={snapshot.revisions} disabled={editor.operating} />
