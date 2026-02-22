@@ -1,0 +1,75 @@
+import { severities, type Draft, type Entry } from "./contracts";
+import { parseMyr } from "./query";
+
+export type EntryDraft = Omit<Entry, "estimatedRepairCost"> & { estimate: string };
+export type ChecklistDraft = {
+  entries: Record<string, EntryDraft>;
+  examined: string[];
+  photos: Record<string, string[]>;
+};
+
+export function checklistDraft(
+  draft: Draft,
+  photos: { id: string; pointCode: string }[],
+): ChecklistDraft {
+  const entries = Object.fromEntries(
+    (draft.latestSave?.entries ?? []).map((entry) => [
+      entry.pointCode,
+      { ...entry, estimate: entry.estimatedRepairCost.toFixed(2) },
+    ]),
+  );
+  const grouped: Record<string, string[]> = {};
+  for (const photo of photos) {
+    grouped[photo.pointCode] = [...(grouped[photo.pointCode] ?? []), photo.id];
+  }
+  const save = draft.latestSave;
+  let examined: string[] = [];
+  // Findings survive handover and reopening; the examination declaration must be renewed.
+  if (
+    save &&
+    save.assignmentVersion === draft.assignmentVersion &&
+    save.version > draft.reopenedAfterSaveVersion
+  ) {
+    examined = save.examinedPointCodes ?? [];
+  }
+  return { entries, examined, photos: grouped };
+}
+
+export function saveContents(draft: Draft, value: ChecklistDraft) {
+  const entries = Object.values(value.entries);
+  const invalid = entries.find(
+    (entry) =>
+      !entry.notes.trim() ||
+      /[\u0000-\u001f\u007f]/.test(entry.notes) ||
+      (entry.kind === "Finding" && parseMyr(entry.estimate) === null),
+  );
+  if (invalid) {
+    return {
+      error: `${invalid.pointCode}: enter notes without line breaks and an exact nonnegative MYR estimate.`,
+      body: null,
+    };
+  }
+  const fitted = draft.catalog
+    .filter((point) => value.entries[point.code]?.kind !== "NotFitted")
+    .map((point) => point.code);
+  const examined = new Set(value.examined);
+  const attested = fitted.every((code) => examined.has(code));
+  return {
+    error: "",
+    body: {
+      assignmentVersion: draft.assignmentVersion,
+      expectedVersion: draft.latestSave?.version ?? 0,
+      entries: entries.map((entry) => ({
+        pointCode: entry.pointCode,
+        kind: entry.kind === "Finding" ? 0 : 1,
+        severity: entry.kind === "Finding" ? severities.indexOf(entry.severity!) : null,
+        estimatedRepairCost: entry.kind === "Finding" ? parseMyr(entry.estimate) : 0,
+        notes: entry.notes.trim(),
+      })),
+      photoIds: Object.entries(value.photos)
+        .filter(([code]) => value.entries[code]?.kind === "Finding")
+        .flatMap(([, ids]) => ids),
+      examinedPointCodes: attested ? fitted : null,
+    },
+  };
+}

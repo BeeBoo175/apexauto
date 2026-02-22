@@ -101,4 +101,13 @@ export type RepairRow = {
   completionId: string | null;
   status: (typeof repairStatuses)[number];
 };
+export type QueueKind = "vehicles" | "repair-requests";
+export type QueueFilters = {
+  search: string;
+  status: string;
+  branchId: string;
+  from: string;
+  to: string;
+  pageSize: number;
+};
 export type Technician = { id: string; identity: string };
