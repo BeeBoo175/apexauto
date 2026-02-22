@@ -65,3 +65,22 @@ export async function relayInspection<T>(
     return intakeError(error);
   }
 }
+
+export function relayInspectionResource<T>(
+  request: Request,
+  id: string,
+  path: string,
+  parse: (v: unknown) => T | null,
+  revision?: string,
+) {
+  if (!isUuid(id)) {
+    return intakeError(new HttpError(400, "Choose a valid inspection ID."));
+  }
+  if (
+    revision !== undefined &&
+    (!/^\d+$/.test(revision) || !Number.isSafeInteger(Number(revision)) || Number(revision) < 1)
+  ) {
+    return intakeError(new HttpError(400, "Choose a valid report revision."));
+  }
+  return relayInspection(request, path, parse);
+}

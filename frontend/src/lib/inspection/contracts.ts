@@ -7,6 +7,67 @@ export const repairStatuses = [
   "Completed",
   "Superseded",
 ] as const;
+export const severities = [
+  "Advisory",
+  "MinorDefect",
+  "MajorDefect",
+  "CriticalDisqualifier",
+] as const;
+export type Severity = (typeof severities)[number];
+export type Assessment = {
+  estimatedRepairCost: number;
+  grade: "A" | "B" | "C" | null;
+  isRejected: boolean;
+};
+export type Point = { code: string; category: string; description: string };
+export type Entry = {
+  pointCode: string;
+  kind: "Finding" | "NotFitted";
+  severity: Severity | null;
+  estimatedRepairCost: number;
+  notes: string;
+};
+export type Save = {
+  operationId: string;
+  inspectionId: string;
+  actorId: string;
+  assignmentVersion: number;
+  expectedVersion: number;
+  version: number;
+  catalogVersion: string;
+  entries: Entry[];
+  assessment: Assessment;
+  recordedAt: string;
+  photoIds: string[];
+  examinedPointCodes: string[] | null;
+};
+export type DraftVehicle = {
+  registrationPlate: string;
+  make: string;
+  model: string;
+  vin: string;
+  mileageKilometres: number;
+  status: string;
+  branchName: string;
+};
+export type Draft = {
+  photoReferences: PhotoReference[];
+  id: string;
+  vehicleId: string;
+  branchId: string;
+  technicianId: string;
+  assignmentVersion: number;
+  createdAt: string;
+  latestSave: Save | null;
+  revision: number;
+  isSigned: boolean;
+  reopenedAfterSaveVersion: number;
+  repairVersion: number;
+  catalogVersion: string;
+  catalog: Point[];
+  vehicle: DraftVehicle;
+};
+export type PhotoReference = { id: string; pointCode: string };
 export type InspectionRow = {
   vehicleId: string;
   branchId: string;
