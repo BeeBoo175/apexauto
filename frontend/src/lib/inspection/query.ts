@@ -35,6 +35,10 @@ export function queueQuery(filters: QueueFilters, page: number) {
   return query.toString();
 }
 
+export function queuePath(kind: QueueKind) {
+  return kind === "vehicles" ? "/dashboard/inspection" : "/dashboard/inspection/repairs";
+}
+
 export function parseMyr(value: string): number | null {
   if (!/^\d+(?:\.\d{1,2})?$/.test(value)) {
     return null;
