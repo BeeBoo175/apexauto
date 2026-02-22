@@ -14,6 +14,7 @@ import { label, assessmentLabel } from "@/lib/inspection/contracts";
 import type { EditorSnapshot } from "@/lib/inspection/editor-snapshot";
 import { formatCurrency } from "@/lib/currency-format";
 import { InspectionChecklist } from "./InspectionChecklist";
+import { ManagerActions } from "./ManagerActions";
 import { RevisionHistoryView } from "./InspectionHistory";
 import styles from "./Inspection.module.css";
 import workbench from "@/components/staff/AppointmentWorkbench.module.css";
@@ -23,6 +24,7 @@ export function InspectionEditor({
   id,
   actor,
   initial,
+  technicians,
 
   repairsOnly = false,
   onLocked,
@@ -216,7 +218,18 @@ export function InspectionEditor({
                 </div>
               )}
             </section>
-
+            {!repairsOnly && (
+              <ManagerActions
+                key={`manager:${editor.draftEpoch}:${snapshot.draft.revision}:${snapshot.draft.assignmentVersion}`}
+                actor={actor}
+                draft={snapshot.draft}
+                technicians={technicians}
+                disabled={disabled}
+                onLock={editor.lockChild}
+                onConfirmed={editor.actionConfirmed}
+                onDraft={(dirty) => editor.markForm("manager", dirty)}
+              />
+            )}
             {!repairsOnly && (
               <InspectionChecklist
                 draft={base}
