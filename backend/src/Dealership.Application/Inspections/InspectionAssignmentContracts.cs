@@ -1,3 +1,5 @@
+using Dealership.Domain.Inspections;
+
 namespace Dealership.Application.Inspections;
 
 public sealed record InspectionAssignmentRequest(Guid OperationId, Guid TechnicianId, long ExpectedVersion, string? Reason);
@@ -9,7 +11,22 @@ public sealed record InspectionDraftSnapshot(Guid Id, Guid VehicleId, Guid Branc
     public bool IsSigned { get; init; }
     public long ReopenedAfterSaveVersion { get; init; }
     public long RepairVersion { get; init; }
+    public string CatalogVersion { get; init; } = InspectionCatalog.Version;
+    public IReadOnlyList<InspectionPoint> Catalog { get; init; } = InspectionCatalog.Points;
+    public InspectionDraftVehicle? Vehicle { get; init; }
+    public IReadOnlyList<InspectionPhotoReference> PhotoReferences { get; init; } = [];
 }
+
+public sealed record InspectionPhotoReference(Guid Id, string PointCode);
+
+public sealed record InspectionDraftVehicle(string RegistrationPlate, string Make, string Model, string Vin,
+    int MileageKilometres, string Status, string BranchName);
+
+public sealed record InspectionTechnician(Guid Id, string Identity);
+
+public sealed record InspectionTechnicianPage(IReadOnlyList<InspectionTechnician> Items, int Total, int Page, int PageSize);
+
+public sealed record InspectionTechnicianResult(InspectionAssignmentStatus Status, InspectionTechnicianPage? Technicians = null);
 
 public sealed record InspectionAssignmentReceipt(Guid OperationId, Guid InspectionId, Guid VehicleId, Guid BranchId,
     Guid ActorId, Guid TechnicianId, Guid? PreviousTechnicianId, long ExpectedVersion, long Version,
@@ -30,6 +47,8 @@ public sealed record InspectionDraftResult(InspectionAssignmentStatus Status, In
 
 public interface IInspectionAssignmentStore
 {
+    Task<InspectionTechnicianResult> TechniciansAsync(Guid actorId, int page, int pageSize, CancellationToken cancellationToken);
+
     Task<InspectionAssignmentResult> AssignAsync(Guid actorId, Guid vehicleId, InspectionAssignmentRequest request,
         CancellationToken cancellationToken);
 

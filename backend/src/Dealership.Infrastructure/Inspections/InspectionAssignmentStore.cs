@@ -1,4 +1,6 @@
+using System.Data;
 using Dealership.Application.Accounts;
+using Dealership.Application.Common;
 using Dealership.Application.Inspections;
 using Dealership.Domain.Inspections;
 using Dealership.Domain.Vehicles;
@@ -10,6 +12,32 @@ namespace Dealership.Infrastructure.Inspections;
 
 public sealed class InspectionAssignmentStore(DealershipDbContext database) : IInspectionAssignmentStore
 {
+    public async Task<InspectionTechnicianResult> TechniciansAsync(Guid actorId, int page, int pageSize,
+        CancellationToken cancellationToken)
+    {
+        if (!Pagination.IsValid(page, pageSize))
+        {
+            return new(InspectionAssignmentStatus.Invalid);
+        }
+
+        await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead, cancellationToken);
+        var actor = await database.Users.AsNoTracking().SingleOrDefaultAsync(item => item.Id == actorId, cancellationToken);
+        if (actor is not { IsActive: true, Role: AccountRoles.BranchManager, BranchId: not null } ||
+            !await database.Branches.AnyAsync(item => item.Id == actor.BranchId && item.IsActive, cancellationToken))
+        {
+            return new(InspectionAssignmentStatus.Forbidden);
+        }
+
+        var technicians = database.Users.AsNoTracking().Where(item => item.IsActive &&
+            item.BranchId == actor.BranchId && item.Role == AccountRoles.WorkshopTechnician);
+        var total = await technicians.CountAsync(cancellationToken);
+        var items = await technicians.OrderBy(item => item.UserName).ThenBy(item => item.Id)
+            .Select(item => new InspectionTechnician(item.Id, item.UserName!))
+            .ReadPageAsync(page, pageSize, total, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return new(InspectionAssignmentStatus.Succeeded, new(Array.AsReadOnly(items), total, page, pageSize));
+    }
+
     public async Task<InspectionAssignmentResult> AssignAsync(Guid actorId, Guid vehicleId,
         InspectionAssignmentRequest request, CancellationToken cancellationToken)
     {
@@ -167,9 +195,22 @@ public sealed class InspectionAssignmentStore(DealershipDbContext database) : II
         }).SingleOrDefaultAsync(cancellationToken);
         if (draft is not null)
         {
+            var vehicle = await (from item in database.Vehicles.AsNoTracking()
+                                 join branch in database.Branches.AsNoTracking() on item.BranchId equals branch.Id
+                                 where item.Id == draft.VehicleId
+                                 select new InspectionDraftVehicle(item.RegistrationPlate, item.Make, item.Model,
+                                     item.Vin, item.MileageKilometres, item.Status.ToString(), branch.Name))
+                .SingleAsync(cancellationToken);
             var latest = await database.InspectionDraftSaves.AsNoTracking().Where(save => save.InspectionId == inspectionId)
                 .OrderByDescending(save => save.Version).FirstOrDefaultAsync(cancellationToken);
-            draft = draft with { LatestSave = latest?.Receipt() };
+            var saveId = latest?.Id;
+            // Older saves retain evidence, but only the latest save supplies the editable photo set.
+            var photos = await database.InspectionDraftPhotos.AsNoTracking()
+                .Where(photo => photo.SaveId == saveId && photo.InspectionId == inspectionId)
+                .OrderBy(photo => photo.PhotoId)
+                .Select(photo => new InspectionPhotoReference(photo.PhotoId, photo.PointCode))
+                .ToArrayAsync(cancellationToken);
+            draft = draft with { LatestSave = latest?.Receipt(), Vehicle = vehicle, PhotoReferences = photos };
         }
         return draft is null ? new(InspectionAssignmentStatus.NotFound) : new(InspectionAssignmentStatus.Succeeded, draft);
     }

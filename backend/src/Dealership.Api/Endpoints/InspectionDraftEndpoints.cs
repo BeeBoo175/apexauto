@@ -15,12 +15,30 @@ public static class InspectionDraftEndpoints
             return await next(context);
         });
         routes.MapPost("/vehicles/{id:guid}/assignment", AssignAsync);
+        routes.MapGet("/technicians", TechniciansAsync);
         routes.MapGet("/drafts/{id:guid}", ReadAsync);
         routes.MapPost("/drafts/{id:guid}/saves", SaveAsync);
         routes.MapPost("/drafts/{id:guid}/sign", SignAsync);
         routes.MapPost("/drafts/{id:guid}/reopen", ReopenAsync);
         routes.MapGet("/reports/{id:guid}/revisions/{revision:long}", ReportAsync);
         routes.MapGet("/reports/{id:guid}/revisions", HistoryAsync);
+    }
+
+    private static async Task<IResult> TechniciansAsync(int? page, int? pageSize, HttpContext context,
+        IInspectionAssignmentStore assignments, CancellationToken cancellationToken)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(20));
+        try
+        {
+            var result = await assignments.TechniciansAsync(ActorId(context), page ?? 1,
+                pageSize ?? Pagination.DefaultPageSize, deadline.Token);
+            return Map(result.Status, result.Technicians);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return Results.Problem(statusCode: 503, title: "Workshop technician choices are temporarily unavailable.");
+        }
     }
 
     private static async Task<IResult> HistoryAsync(Guid id, int? page, int? pageSize, HttpContext context,

@@ -1,10 +1,12 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Dealership.Application.Accounts;
 using Dealership.Application.Branches;
 using Dealership.Application.Inspections;
 using Dealership.Application.Intake;
+using Dealership.Domain.Inspections;
 using Dealership.Infrastructure.Development;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -72,8 +74,17 @@ public sealed class InspectionAssignmentTests(IntakePhotoFixture fixture) : ICla
         Assert.Equal(InspectionAssignmentStatus.Succeeded, (await ReadAsync(restarted, managerId, receipt.InspectionId)).Status);
         Assert.Equal(InspectionAssignmentStatus.Succeeded, (await ReadAsync(restarted, groupId, receipt.InspectionId)).Status);
         Assert.Equal(InspectionAssignmentStatus.Forbidden, (await ReadAsync(restarted, data.StaffId, receipt.InspectionId)).Status);
+        var draft = (await ReadAsync(restarted, replacement, receipt.InspectionId)).Draft!;
+        Assert.Equal(InspectionCatalog.Version, draft.CatalogVersion);
+        Assert.Equal(InspectionCatalog.Points, draft.Catalog);
+        Assert.Equal(appointment.RegistrationPlate, draft.Vehicle!.RegistrationPlate);
+        Assert.Equal(CheckInTestData.Evidence.Vin, draft.Vehicle.Vin);
+        Assert.Equal(CheckInTestData.Evidence.MileageKilometres, draft.Vehicle.MileageKilometres);
+        Assert.Equal("PendingInspection", draft.Vehicle.Status);
 
         var database = services.GetRequiredService<DealershipDbContext>();
+        await AssertTechniciansAsync(services, database, managerId, firstId, secondId,
+            [firstId, secondId, groupId, data.StaffId, data.OwnerId]);
         Assert.Equal(1, await database.InspectionDrafts.CountAsync());
         Assert.Equal(2, await database.InspectionAssignments.CountAsync());
         await InspectionAssignmentSqlAssertions.VerifyAsync(fixture.Database, receipt, changed, firstId, secondId, managerId);
@@ -87,6 +98,7 @@ public sealed class InspectionAssignmentTests(IntakePhotoFixture fixture) : ICla
         using var client = factory.CreateClient();
         var path = $"/api/staff/inspection/vehicles/{vehicleId}/assignment";
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync(path, request)).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/staff/inspection/technicians")).StatusCode);
         var login = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest(Guid.NewGuid(), email, "Password123!"));
         Assert.Equal(HttpStatusCode.OK, login.StatusCode);
         var session = (await login.Content.ReadFromJsonAsync<LoginSession>())!;
@@ -99,6 +111,15 @@ public sealed class InspectionAssignmentTests(IntakePhotoFixture fixture) : ICla
         Assert.Equal(HttpStatusCode.OK, read.StatusCode);
         Assert.True(read.Headers.CacheControl?.NoStore);
         Assert.Equal(receipt.Version, (await read.Content.ReadFromJsonAsync<InspectionDraftSnapshot>())!.AssignmentVersion);
+        using var json = JsonDocument.Parse(await read.Content.ReadAsStringAsync());
+        Assert.Equal(210, json.RootElement.GetProperty("catalog").GetArrayLength());
+        Assert.Equal(InspectionCatalog.Version, json.RootElement.GetProperty("catalogVersion").GetString());
+        var choices = await client.GetAsync("/api/staff/inspection/technicians");
+        Assert.True(choices.Headers.CacheControl?.NoStore);
+        var page = (await choices.Content.ReadFromJsonAsync<InspectionTechnicianPage>())!;
+        Assert.Equal(25, page.PageSize);
+        Assert.Equal(2, page.Total);
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/api/staff/inspection/technicians?pageSize=20")).StatusCode);
         foreach (var invalid in new[]
         {
             request with { OperationId = Guid.Empty }, request with { ExpectedVersion = -1 },
@@ -114,6 +135,33 @@ public sealed class InspectionAssignmentTests(IntakePhotoFixture fixture) : ICla
             (await client.PostAsJsonAsync($"/api/staff/inspection/vehicles/{Guid.NewGuid()}/assignment", request)).StatusCode);
     }
 
+    private static async Task AssertTechniciansAsync(IServiceProvider services, DealershipDbContext database,
+        Guid manager, Guid first, Guid second, Guid[] denied)
+    {
+        var store = services.GetRequiredService<IInspectionAssignmentStore>();
+        foreach (var pageSize in new[] { 10, 25, 50 })
+        {
+            var choices = (await store.TechniciansAsync(manager, 1, pageSize, CancellationToken.None)).Technicians!;
+            Assert.Equal(pageSize, choices.PageSize);
+            Assert.Equal(2, choices.Total);
+            Assert.Equal(new[] { first, second }.Order(), choices.Items.Select(item => item.Id).Order());
+            Assert.All(choices.Items, item => Assert.Contains("@example.invalid", item.Identity));
+        }
+        Assert.Empty((await store.TechniciansAsync(manager, int.MaxValue, 50, CancellationToken.None)).Technicians!.Items);
+        Assert.Equal(InspectionAssignmentStatus.Invalid, (await store.TechniciansAsync(manager, 0, 25, CancellationToken.None)).Status);
+        Assert.Equal(InspectionAssignmentStatus.Invalid, (await store.TechniciansAsync(manager, 1, 20, CancellationToken.None)).Status);
+        foreach (var actor in denied)
+        {
+            Assert.Equal(InspectionAssignmentStatus.Forbidden, (await store.TechniciansAsync(actor, 1, 25, CancellationToken.None)).Status);
+        }
+        await database.Users.Where(user => user.Id == first).ExecuteUpdateAsync(update => update.SetProperty(user => user.IsActive, false));
+        Assert.Equal(second, Assert.Single((await store.TechniciansAsync(manager, 1, 25, CancellationToken.None)).Technicians!.Items).Id);
+        await database.Users.Where(user => user.Id == first).ExecuteUpdateAsync(update => update.SetProperty(user => user.IsActive, true));
+        await database.Users.Where(user => user.Id == manager).ExecuteUpdateAsync(update => update.SetProperty(user => user.IsActive, false));
+        Assert.Equal(InspectionAssignmentStatus.Forbidden, (await store.TechniciansAsync(manager, 1, 25, CancellationToken.None)).Status);
+        await database.Users.Where(user => user.Id == manager).ExecuteUpdateAsync(update => update.SetProperty(user => user.IsActive, true));
+    }
+
     private static async Task AssertScopeDenialsAsync(CheckInTestData data, DealershipDbContext database, Guid managerId,
         Guid technicianId, Guid inspectionId, Guid vehicleId, InspectionAssignmentRequest request)
     {
@@ -122,6 +170,8 @@ public sealed class InspectionAssignmentTests(IntakePhotoFixture fixture) : ICla
         await scope.ServiceProvider.GetRequiredService<BranchProvisioningService>().ProvisionBranchAsync(
             DevelopmentFixtureManifest.Branches[0] with { Id = branch, Name = "ApexAuto Petaling Jaya" }, CancellationToken.None);
         await database.Users.Where(user => user.Id == managerId).ExecuteUpdateAsync(update => update.SetProperty(user => user.BranchId, branch));
+        var assignments = scope.ServiceProvider.GetRequiredService<IInspectionAssignmentStore>();
+        Assert.Empty((await assignments.TechniciansAsync(managerId, 1, 25, CancellationToken.None)).Technicians!.Items);
         Assert.Equal(InspectionAssignmentStatus.NotFound, (await AssignAsync(data.Factory, managerId, vehicleId, request)).Status);
         Assert.Equal(InspectionAssignmentStatus.NotFound, (await ReadAsync(data.Factory, managerId, inspectionId)).Status);
         await database.Users.Where(user => user.Id == managerId).ExecuteUpdateAsync(update => update.SetProperty(user => user.BranchId, data.BranchId));
@@ -131,6 +181,8 @@ public sealed class InspectionAssignmentTests(IntakePhotoFixture fixture) : ICla
             await database.Users.Where(user => user.Id == managerId).ExecuteUpdateAsync(update =>
                 update.SetProperty(user => user.Role, role).SetProperty(user => user.BranchId, assignment));
             Assert.Equal(InspectionAssignmentStatus.Forbidden, (await AssignAsync(data.Factory, managerId, vehicleId, request)).Status);
+            Assert.Equal(InspectionAssignmentStatus.Forbidden,
+                (await assignments.TechniciansAsync(managerId, 1, 25, CancellationToken.None)).Status);
         }
         await database.Users.Where(user => user.Id == managerId).ExecuteUpdateAsync(update =>
             update.SetProperty(user => user.Role, AccountRoles.BranchManager).SetProperty(user => user.BranchId, data.BranchId));
@@ -138,6 +190,8 @@ public sealed class InspectionAssignmentTests(IntakePhotoFixture fixture) : ICla
         Assert.Equal(InspectionAssignmentStatus.Forbidden, (await ReadAsync(data.Factory, technicianId, inspectionId)).Status);
         await database.Users.Where(user => user.Id == technicianId).ExecuteUpdateAsync(update => update.SetProperty(user => user.IsActive, true));
         await database.Branches.Where(item => item.Id == data.BranchId).ExecuteUpdateAsync(update => update.SetProperty(item => item.IsActive, false));
+        Assert.Equal(InspectionAssignmentStatus.Forbidden,
+            (await assignments.TechniciansAsync(managerId, 1, 25, CancellationToken.None)).Status);
         Assert.Equal(InspectionAssignmentStatus.Forbidden, (await AssignAsync(data.Factory, managerId, vehicleId, request)).Status);
         Assert.Equal(InspectionAssignmentStatus.Forbidden, (await ReadAsync(data.Factory, technicianId, inspectionId)).Status);
     }

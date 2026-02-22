@@ -54,6 +54,8 @@ internal static class InspectionPhotoLifecycleAssertions
             (await client.PostAsJsonAsync(endpoint, request with { PhotoIds = [] })).StatusCode);
         var read = await client.GetFromJsonAsync<InspectionDraftSnapshot>($"/api/staff/inspection/drafts/{inspection}");
         Assert.Equal(saved.Receipt.PhotoIds, read!.LatestSave!.PhotoIds);
+        Assert.Equal(saved.Receipt.PhotoIds, read.PhotoReferences.Select(photo => photo.Id));
+        Assert.All(read.PhotoReferences, photo => Assert.Equal("EP-004", photo.PointCode));
         using var restarted = fixture.CreateFactory();
         var replay = await SaveAsync(restarted, actor, inspection, request with { PhotoIds = [.. request.PhotoIds!.Reverse()] });
         Assert.Equal(JsonSerializer.Serialize(saved.Receipt), JsonSerializer.Serialize(replay.Receipt));
@@ -61,6 +63,12 @@ internal static class InspectionPhotoLifecycleAssertions
             (await SaveAsync(restarted, actor, inspection, request with { PhotoIds = [] })).Status);
         Assert.Equal(InspectionAssignmentStatus.Succeeded,
             (await SaveAsync(restarted, actor, inspection, new(Guid.NewGuid(), 1, 1, []))).Status);
+        using (var readScope = restarted.Services.CreateScope())
+        {
+            var cleared = (await readScope.ServiceProvider.GetRequiredService<IInspectionAssignmentStore>()
+                .ReadAsync(actor, inspection, CancellationToken.None)).Draft!;
+            Assert.Empty(cleared.PhotoReferences);
+        }
         Assert.Equal(JsonSerializer.Serialize(saved.Receipt),
             JsonSerializer.Serialize((await SaveAsync(restarted, actor, inspection, request)).Receipt));
         await InspectionPhotoAttachmentSqlAssertions.VerifyAsync(fixture.Database, saved.Receipt, ids[4]);

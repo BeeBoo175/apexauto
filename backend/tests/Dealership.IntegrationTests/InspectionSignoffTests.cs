@@ -70,6 +70,13 @@ public sealed class InspectionSignoffTests(IntakePhotoFixture fixture) : IClassF
         };
         var saved = await saves.SaveAsync(technician, inspection, saveRequest, CancellationToken.None);
         Assert.Equal(InspectionAssignmentStatus.Succeeded, saved.Status);
+        foreach (var actor in new[] { technician, manager, group })
+        {
+            var editor = (await services.GetRequiredService<IInspectionAssignmentStore>()
+                .ReadAsync(actor, inspection, CancellationToken.None)).Draft!;
+            Assert.Equal(new InspectionPhotoReference(photoId, "EP-004"), Assert.Single(editor.PhotoReferences));
+            Assert.Equal(saved.Receipt!.PhotoIds, editor.PhotoReferences.Select(photo => photo.Id));
+        }
         var request = new InspectionSignRequest(Guid.NewGuid(), 1, 2, 1);
         foreach (var denied in new[] { manager, group, data.StaffId, data.OwnerId })
         {
@@ -128,6 +135,7 @@ public sealed class InspectionSignoffTests(IntakePhotoFixture fixture) : IClassF
         var draft = await restored.GetRequiredService<IInspectionAssignmentStore>().ReadAsync(technician, inspection, CancellationToken.None);
         Assert.True(draft.Draft!.IsSigned);
         Assert.Equal(1, draft.Draft.Revision);
+        Assert.Equal(new InspectionPhotoReference(photoId, "EP-004"), Assert.Single(draft.Draft.PhotoReferences));
         await VerifyApiAsync(restarted, email, inspection, request, report);
         var database = restored.GetRequiredService<DealershipDbContext>();
         await database.Users.Where(user => user.Id == technician).ExecuteUpdateAsync(update =>
