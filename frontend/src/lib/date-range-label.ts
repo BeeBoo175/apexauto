@@ -8,11 +8,21 @@ export function dateRangeLabel(from: string, to: string) {
       year: "numeric",
       timeZone: "UTC",
     }).format(new Date(`${date}T00:00:00Z`));
-  if (!from && !to) return "All dates";
-  if ((from && !isCalendarDate(from)) || (to && !isCalendarDate(to))) return "Date range";
-  if (!from) return `Until ${format(to)}`;
-  if (!to) return `From ${format(from)}`;
-  if (from === to) return format(from);
+  if (!from && !to) {
+    return "All dates";
+  }
+  if ((from && !isCalendarDate(from)) || (to && !isCalendarDate(to))) {
+    return "Date range";
+  }
+  if (!from) {
+    return `Until ${format(to)}`;
+  }
+  if (!to) {
+    return `From ${format(from)}`;
+  }
+  if (from === to) {
+    return format(from);
+  }
   if (from < to) {
     const range = new Intl.DateTimeFormat("en-MY", {
       day: "numeric",

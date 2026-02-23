@@ -8,8 +8,8 @@ import {
   calendarDayLabel,
   calendarRange,
 } from "@/lib/calendar";
-import { Button } from "../Button";
-import { Icon } from "../Icon";
+import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
 import { CalendarMonth } from "./CalendarMonth";
 import { CalendarEventButton } from "./CalendarEventButton";
 import type { CalendarProps } from "./types";

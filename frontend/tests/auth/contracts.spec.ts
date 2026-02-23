@@ -1,8 +1,8 @@
 import { test, expect } from "@playwright/test";
-import { parseAccount, parseSession, safeReturnTo } from "../../src/lib/auth/contracts";
-import { trustedClientAddress } from "../../src/lib/server/http/client-address";
-import { HttpError, readBoundedJson } from "../../src/lib/http";
-import { apiFetch } from "../../src/lib/api-browser";
+import { parseAccount, parseSession, safeReturnTo } from "@/lib/auth/contracts";
+import { trustedClientAddress } from "@/lib/server/http/client-address";
+import { HttpError, readBoundedJson } from "@/lib/http";
+import { apiFetch } from "@/lib/api-browser";
 
 test("return destinations stay inside the supported account route", () => {
   for (const destination of [

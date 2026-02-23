@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Select, Textarea } from "@/components/ui/Input";
 import { useToast } from "@/components/ui/Toast";
-import { useIntakeCommand } from "@/hooks/use-intake-command";
+import { useApiCommand } from "@/hooks/use-api-command";
 import { inspectionFetch } from "@/lib/inspection/browser";
 import { parseAssignment } from "@/lib/inspection/parse-report";
 import { parseTechnicians } from "@/lib/inspection/parse";
@@ -38,7 +38,7 @@ export function AssignmentForm({
   const [reading, setReading] = useState(false);
   const controller = useRef<AbortController | null>(null);
   const toast = useToast();
-  const command = useIntakeCommand(
+  const command = useApiCommand(
     `vehicles/${vehicleId}/assignment`,
     parseAssignment,
     (r, body) =>

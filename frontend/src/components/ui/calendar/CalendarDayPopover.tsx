@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef } from "react";
 import { calendarDayLabel } from "@/lib/calendar";
-import { CloseButton } from "../CloseButton";
+import { CloseButton } from "@/components/ui/CloseButton";
 import { CalendarEventButton } from "./CalendarEventButton";
 import { dayPopoverPosition } from "./day-popover-position";
 import type { CalendarEvent, CalendarProps } from "./types";

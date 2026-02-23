@@ -31,8 +31,12 @@ export async function requestApi(
   const clientHeader = process.env.TRUSTED_CLIENT_IP_HEADER;
   const clientAddress = clientHeader ? trustedClientAddress(await headers(), clientHeader) : null;
   let body: BodyInit | undefined;
-  if (options.body) body = JSON.stringify(options.body);
-  if (options.bytes) body = Buffer.from(options.bytes);
+  if (options.body) {
+    body = JSON.stringify(options.body);
+  }
+  if (options.bytes) {
+    body = Buffer.from(options.bytes);
+  }
   const response = await fetch(new URL(path, origin), {
     method: options.method ?? "GET",
     headers: {

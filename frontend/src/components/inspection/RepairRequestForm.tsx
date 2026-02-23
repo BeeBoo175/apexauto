@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
 import { useToast } from "@/components/ui/Toast";
-import { useIntakeCommand } from "@/hooks/use-intake-command";
+import { useApiCommand } from "@/hooks/use-api-command";
 import { inspectionFetch } from "@/lib/inspection/browser";
 import { parseRepairRequest } from "@/lib/inspection/parse-report";
 import { parseMyr } from "@/lib/inspection/query";
@@ -37,7 +37,7 @@ export function RepairRequestForm({
   );
   const [budget, setBudget] = useState(latest?.budget.toFixed(2) ?? "0.00");
   const toast = useToast();
-  const command = useIntakeCommand(
+  const command = useApiCommand(
     `drafts/${draft.id}/repair-requests`,
     parseRepairRequest,
     (r, body) =>

@@ -1,4 +1,4 @@
-import { downloadCsv } from "@/components/ui/data-table/csv";
+import { downloadCsv } from "@/lib/csv";
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import type { StaffFilters } from "./contracts";
 import { staffQuery } from "./query";

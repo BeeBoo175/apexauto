@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { useIntakeCommand } from "./use-intake-command";
+import { useApiCommand } from "@/hooks/use-api-command";
 import { useInspectionLock } from "./use-inspection-lock";
 import { useInitialToast } from "./use-initial-toast";
 import { useToast } from "@/components/ui/Toast";
@@ -39,7 +39,7 @@ export function useInspectionEditor(
   const controller = useRef<AbortController | null>(null);
   const toast = useToast();
   useInitialToast(initial.message);
-  const save = useIntakeCommand(
+  const save = useApiCommand(
     `drafts/${id}/saves`,
     parseSave,
     (r, body) =>
@@ -51,7 +51,7 @@ export function useInspectionEditor(
       r.expectedVersion === body.expectedVersion,
     inspectionFetch,
   );
-  const sign = useIntakeCommand(
+  const sign = useApiCommand(
     `drafts/${id}/sign`,
     parseReport,
     (r, body) =>

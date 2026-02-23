@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import { useIntakeCommand } from "./use-intake-command";
+import { useApiCommand } from "@/hooks/use-api-command";
 import { parseBooking, parseQuote } from "@/lib/intake/parse";
 import type { PhotoAngle, PhotoReceipt, Quote, SellerSnapshot } from "@/lib/intake/contracts";
 import { emptyVehicle, parseVehicleDraft, type VehicleDraft } from "@/lib/intake/vehicle-draft";
@@ -15,8 +15,8 @@ export function useSellerWorkflow(initial: SellerSnapshot) {
   const [freshQuote, setFreshQuote] = useState<Quote | null>(null);
   const [photos, setPhotos] = useState<Partial<Record<PhotoAngle, PhotoReceipt>>>({});
   const [locks, setLocks] = useState<Partial<Record<PhotoAngle, boolean>>>({});
-  const valuation = useIntakeCommand("/api/intake/valuation", parseQuote);
-  const booking = useIntakeCommand(
+  const valuation = useApiCommand("/api/intake/valuation", parseQuote);
+  const booking = useApiCommand(
     "/api/intake/appointments",
     (value) => parseBooking(value) ?? parseQuote(value),
     (receipt, body) => bookingMatchesRequest(receipt, body),

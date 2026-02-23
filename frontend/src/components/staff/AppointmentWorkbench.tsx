@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import { useToast } from "@/components/ui/Toast";
 import { useInitialToast } from "@/hooks/use-initial-toast";
-import { useIntakeCommand } from "@/hooks/use-intake-command";
+import { useApiCommand } from "@/hooks/use-api-command";
 import { apiFetch } from "@/lib/api-browser";
 import type { ApiResult } from "@/lib/api";
 import type { CurrentActor } from "@/lib/auth/actor";
@@ -46,7 +46,7 @@ export function AppointmentWorkbench({
   const [refreshing, setRefreshing] = useState(false);
   const correcting = snapshot.data?.status === "NoShow" && actor.role === "BranchManager";
   const controller = useRef<AbortController | null>(null);
-  const command = useIntakeCommand(
+  const command = useApiCommand(
     `/api/staff/intake/appointments/${id}/${correcting ? "no-show-correction" : "check-in"}`,
     parseCheckIn,
     (receipt, request) =>

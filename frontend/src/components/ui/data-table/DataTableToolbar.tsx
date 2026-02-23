@@ -1,9 +1,9 @@
 "use client";
 
 import { useId, useState, type ReactNode } from "react";
-import { Button } from "../Button";
-import { Icon } from "../Icon";
-import { FilterShelf } from "../FilterShelf";
+import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
+import { FilterShelf } from "@/components/ui/FilterShelf";
 import styles from "./DataTable.module.css";
 
 export function DataTableToolbar({

@@ -1,11 +1,6 @@
 import { expect, test } from "@playwright/test";
-import {
-  correctionMatches,
-  parseCheckIn,
-  parseDetail,
-  parseWorklistItem,
-} from "../../src/lib/staff/parse";
-import { parseAppointment } from "../../src/lib/intake/parse";
+import { correctionMatches, parseCheckIn, parseDetail, parseWorklistItem } from "@/lib/staff/parse";
+import { parseAppointment } from "@/lib/intake/parse";
 
 const id = "c77708bf-1a31-42f5-9a69-0c8766697a52";
 const row = {

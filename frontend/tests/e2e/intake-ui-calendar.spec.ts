@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { calendarDate, calendarRange } from "../../src/lib/calendar";
+import { calendarDate, calendarRange } from "@/lib/calendar";
 
 test.use({ timezoneId: "America/New_York", actionTimeout: 15000 });
 const evidence = process.env.BROWSER_EVIDENCE_DIR!;

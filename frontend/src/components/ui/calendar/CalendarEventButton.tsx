@@ -1,5 +1,5 @@
 import { calendarTime } from "@/lib/calendar";
-import tones from "../StatusTone.module.css";
+import tones from "@/components/ui/StatusTone.module.css";
 import type { CalendarEvent, CalendarProps } from "./types";
 import styles from "./CalendarEvents.module.css";
 

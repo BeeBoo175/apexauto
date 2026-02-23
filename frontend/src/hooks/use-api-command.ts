@@ -4,7 +4,7 @@ import { apiFetch } from "@/lib/api-browser";
 import type { ApiResult, ApiRequest } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
 
-export function useIntakeCommand<T>(
+export function useApiCommand<T>(
   path: string,
   parse: (value: unknown) => T | null,
   matches: (receipt: T, request: unknown) => boolean = () => true,

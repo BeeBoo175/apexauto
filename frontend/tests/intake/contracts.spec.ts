@@ -1,20 +1,20 @@
 import { expect, test } from "@playwright/test";
-import { parseActor, actorDestination } from "../../src/lib/auth/actor";
-import { parseBooking, parseSlots, parseTaxonomy } from "../../src/lib/intake/parse";
-import { bookingMatchesRequest } from "../../src/lib/intake/receipt";
-import { csvCell, selectedCsv } from "../../src/components/ui/data-table/csv";
-import { staffParams, staffQuery } from "../../src/lib/staff/query";
-import { DEFAULT_PAGE_SIZE, PAGE_SIZES, paginationQuery } from "../../src/lib/pagination";
+import { parseActor, actorDestination } from "@/lib/auth/actor";
+import { parseBooking, parseSlots, parseTaxonomy } from "@/lib/intake/parse";
+import { bookingMatchesRequest } from "@/lib/intake/receipt";
+import { csvCell, selectedCsv } from "@/lib/csv";
+import { staffParams, staffQuery } from "@/lib/staff/query";
+import { DEFAULT_PAGE_SIZE, PAGE_SIZES, paginationQuery } from "@/lib/pagination";
 import { parsePage } from "@/lib/api";
-import { parseViewMemory, restoreViewHref } from "../../src/lib/staff/view-memory";
+import { parseViewMemory, restoreViewHref } from "@/lib/staff/view-memory";
 import {
   addCalendarDays,
   calendarDate,
   calendarRange,
   calendarTime,
   addCalendarMonths,
-} from "../../src/lib/calendar";
-import { calendarParams, calendarQuery, parseCalendar } from "../../src/lib/staff/calendar";
+} from "@/lib/calendar";
+import { calendarParams, calendarQuery, parseCalendar } from "@/lib/staff/calendar";
 
 const id = "c77708bf-1a31-42f5-9a69-0c8766697a52";
 
@@ -110,13 +110,11 @@ test("CSV quotes multiline cells and neutralizes formula and control prefixes", 
     [{ value: "VCA 9701" }],
     [
       {
-        id: "value",
         label: "Display",
         exportLabel: "Registration",
-        cell: () => null,
         exportValue: (row) => row.value,
       },
-      { id: "action", label: "Action", cell: () => null },
+      { label: "Action" },
     ],
   );
   expect(csv).toBe('\uFEFF"Registration"\r\n"VCA 9701"\r\n');

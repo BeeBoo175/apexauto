@@ -1,4 +1,4 @@
-import { downloadCsv, selectedCsv } from "@/components/ui/data-table/csv";
+import { downloadCsv, selectedCsv } from "@/lib/csv";
 import type { DataColumn } from "@/components/ui/data-table/types";
 import type { Page } from "@/lib/api";
 import type { QueueFilters, QueueKind } from "./contracts";

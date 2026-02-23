@@ -48,7 +48,9 @@ export function calendarQuery(filters: CalendarFilters) {
 
 export function calendarReadRange(filters: CalendarFilters) {
   const visible = calendarRange(filters.date);
-  if (!filters.range) return visible;
+  if (!filters.range) {
+    return visible;
+  }
   return {
     from: filters.range.from > visible.from ? filters.range.from : visible.from,
     to: filters.range.to < visible.to ? filters.range.to : visible.to,

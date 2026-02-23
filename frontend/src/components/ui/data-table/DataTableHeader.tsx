@@ -1,6 +1,6 @@
-import { Button } from "../Button";
+import { Button } from "@/components/ui/Button";
 import type { PointerEvent } from "react";
-import { Icon } from "../Icon";
+import { Icon } from "@/components/ui/Icon";
 import type { DataColumn, TableSort } from "./types";
 import styles from "./DataTable.module.css";
 

@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { resizeColumnWidths } from "./column-resize";
-import type { DataColumn } from "./types";
+import { resizeColumnWidths } from "@/lib/column-resize";
+import type { ResizeColumn } from "@/lib/column-resize";
 
-export function useColumnResize<Row>(columns: readonly DataColumn<Row>[]) {
+export function useColumnResize(columns: readonly ResizeColumn[]) {
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
   const cleanup = useRef<(() => void) | null>(null);
 

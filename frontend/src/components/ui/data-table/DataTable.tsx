@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useColumnResize } from "./use-column-resize";
-import { Table, TableCell } from "../Table";
-import { useToast } from "../Toast";
+import { useColumnResize } from "@/hooks/use-column-resize";
+import { Table, TableCell } from "@/components/ui/Table";
+import { useToast } from "@/components/ui/Toast";
 import { DataTableHeader } from "./DataTableHeader";
 import { DataTableToolbar } from "./DataTableToolbar";
 import { DataTablePagination } from "./DataTablePagination";
 import { Button } from "@/components/ui/Button";
-import { downloadCsv, selectedCsv } from "./csv";
+import { downloadCsv, selectedCsv } from "@/lib/csv";
 import type { DataTableProps } from "./types";
 import styles from "./DataTable.module.css";
 

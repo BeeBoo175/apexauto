@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { calendarDate, addCalendarDays } from "../../src/lib/calendar";
+import { calendarDate, addCalendarDays } from "@/lib/calendar";
 
 test("applied appointment filters preserve confirmed results on failure and survive view switches", async ({
   page,

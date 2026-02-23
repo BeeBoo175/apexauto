@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Input";
 import { Dialog } from "@/components/ui/Dialog";
-import { useIntakeCommand } from "@/hooks/use-intake-command";
+import { useApiCommand } from "@/hooks/use-api-command";
 import { inspectionFetch } from "@/lib/inspection/browser";
 import { parseReopening } from "@/lib/inspection/parse-report";
 import { isRecord } from "@/lib/auth/contracts";
@@ -34,7 +34,7 @@ export function ManagerActions({
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [locked, setLocked] = useState(false);
-  const command = useIntakeCommand(
+  const command = useApiCommand(
     `drafts/${draft.id}/reopen`,
     parseReopening,
     (r, body) =>

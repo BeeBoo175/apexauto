@@ -148,8 +148,14 @@ export function AppointmentHistory({
 }
 
 function historyStatus(item: Appointment) {
-  if (item.checkedInAt) return "Checked in";
-  if (item.noShowAt) return "No show";
-  if (item.cancelledAt) return "Cancelled";
+  if (item.checkedInAt) {
+    return "Checked in";
+  }
+  if (item.noShowAt) {
+    return "No show";
+  }
+  if (item.cancelledAt) {
+    return "Cancelled";
+  }
   return "Appointment";
 }

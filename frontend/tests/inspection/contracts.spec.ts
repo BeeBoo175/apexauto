@@ -5,11 +5,11 @@ import {
   parseInspectionPage,
   parsePoint,
   parseRepairPage,
-} from "../../src/lib/inspection/parse";
-import { parseMyr, queueParams, queueQuery } from "../../src/lib/inspection/query";
-import { appliedWorklistFilters } from "../../src/lib/staff/filter-summary";
-import { checklistDraft, saveContents } from "../../src/lib/inspection/draft";
-import type { Draft } from "../../src/lib/inspection/contracts";
+} from "@/lib/inspection/parse";
+import { parseMyr, queueParams, queueQuery } from "@/lib/inspection/query";
+import { appliedWorklistFilters } from "@/lib/staff/filter-summary";
+import { checklistDraft, saveContents } from "@/lib/inspection/draft";
+import type { Draft } from "@/lib/inspection/contracts";
 
 test("inspection adapters normalize numeric API enums and reject unknown authority values", () => {
   expect(parseAssessment({ estimatedRepairCost: 0, grade: 0, isRejected: false })?.grade).toBe("A");

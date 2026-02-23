@@ -1,6 +1,6 @@
 import "server-only";
 
-import { requestApi, type ApiRequestOptions } from "../server/http/upstream";
+import { requestApi, type ApiRequestOptions } from "@/lib/server/http/upstream";
 import { HttpError, readBoundedJson } from "@/lib/http";
 import { requireSameOrigin } from "@/lib/server/http/request";
 import { AUTH_BODY_LIMIT, AUTH_DEADLINE_MS, isRecord, isUuid } from "./contracts";

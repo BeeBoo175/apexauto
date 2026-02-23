@@ -1,4 +1,8 @@
-import type { DataColumn } from "./types";
+interface CsvColumn<Row> {
+  label: string;
+  exportLabel?: string;
+  exportValue?: (row: Row) => string;
+}
 
 export function csvCell(value: string): string {
   const prefix = value.match(/^[\s\u0000-\u001f\u007f-\u009f]*/u)?.[0] ?? "";
@@ -8,7 +12,7 @@ export function csvCell(value: string): string {
   return `"${safe.replaceAll('"', '""')}"`;
 }
 
-export function selectedCsv<Row>(rows: readonly Row[], columns: readonly DataColumn<Row>[]) {
+export function selectedCsv<Row>(rows: readonly Row[], columns: readonly CsvColumn<Row>[]) {
   const exported = columns.filter((column) => column.exportValue);
   const header = exported.map((column) => csvCell(column.exportLabel ?? column.label)).join(",");
   const body = rows.map((row) =>

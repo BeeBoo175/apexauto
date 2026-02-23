@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
-import { calendarDate, calendarRange } from "../../src/lib/calendar";
-import type { WorklistItem } from "../../src/lib/staff/contracts";
+import { calendarDate, calendarRange } from "@/lib/calendar";
+import type { WorklistItem } from "@/lib/staff/contracts";
 
 const branchId = "c77708bf-1a31-42f5-9a69-0c8766697a52";
 

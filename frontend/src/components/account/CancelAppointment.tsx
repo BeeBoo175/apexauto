@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
-import { useIntakeCommand } from "@/hooks/use-intake-command";
+import { useApiCommand } from "@/hooks/use-api-command";
 import { parseCancellation } from "@/lib/intake/parse";
 import type { Appointment } from "@/lib/intake/contracts";
 
@@ -15,7 +15,7 @@ export function CancelAppointment({
   onClose: () => void;
   onConfirmed: (id: string, cancelledAt: string) => void;
 }) {
-  const command = useIntakeCommand(
+  const command = useApiCommand(
     `/api/intake/appointments/${appointment.id}/cancellation`,
     parseCancellation,
     (receipt) => receipt.appointmentId === appointment.id,

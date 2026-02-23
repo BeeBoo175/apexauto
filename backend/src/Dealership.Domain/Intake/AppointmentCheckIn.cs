@@ -54,19 +54,33 @@ public sealed class AppointmentCheckIn
     }
 
     public Guid AppointmentId { get; private set; }
+
     public Guid OwnerId { get; private set; }
+
     public Guid BranchId { get; private set; }
+
     public Guid VehicleId { get; private set; }
+
     public Guid StaffId { get; private set; }
+
     public DateTimeOffset CheckedInAt { get; private set; }
+
     public string Vin { get; private set; } = string.Empty;
+
     public int MileageKilometres { get; private set; }
+
     public bool CustomerPresent { get; private set; }
+
     public bool IdentityConfirmed { get; private set; }
+
     public bool OwnershipConfirmed { get; private set; }
+
     public bool VehicleConfirmed { get; private set; }
+
     public string? Notes { get; private set; }
+
     public DateTimeOffset? CorrectionRecordedAt { get; private set; }
+
     public string? CorrectionReason { get; private set; }
 
     public static string NormalizeCorrectionReason(string reason)

@@ -1,6 +1,7 @@
-import type { DataColumn } from "./types";
-
-type ResizeColumn = Pick<DataColumn<unknown>, "id" | "minWidth">;
+export interface ResizeColumn {
+  id: string;
+  minWidth?: number;
+}
 type Widths = Record<string, number>;
 
 function availableWidth(column: ResizeColumn, widths: Widths) {

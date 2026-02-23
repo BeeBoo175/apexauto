@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Input";
-import { useIntakeCommand } from "@/hooks/use-intake-command";
+import { useApiCommand } from "@/hooks/use-api-command";
 import { inspectionFetch } from "@/lib/inspection/browser";
 import { parseApproval, parseCompletion } from "@/lib/inspection/parse-report";
 import { isRecord } from "@/lib/auth/contracts";
@@ -33,7 +33,7 @@ export function RepairActions({
   const action = manager ? "repair-approvals" : "repair-completions";
   const parse = (v: unknown): Approval | Completion | null =>
     manager ? parseApproval(v) : parseCompletion(v);
-  const command = useIntakeCommand(
+  const command = useApiCommand(
     `drafts/${draft.id}/${action}`,
     parse,
     (r, body) =>

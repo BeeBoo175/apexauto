@@ -1,7 +1,7 @@
 import { PAGE_SIZES } from "@/lib/pagination";
-import { Button } from "../Button";
-import { Select } from "../Input";
-import { Icon } from "../Icon";
+import { Button } from "@/components/ui/Button";
+import { Select } from "@/components/ui/Input";
+import { Icon } from "@/components/ui/Icon";
 import type { TablePage } from "./types";
 import styles from "./DataTable.module.css";
 
