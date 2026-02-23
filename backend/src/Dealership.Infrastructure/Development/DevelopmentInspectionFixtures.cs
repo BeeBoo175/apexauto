@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Dealership.Infrastructure.Development;
 
 public sealed class DevelopmentInspectionFixtures(DealershipDbContext database, InspectionAssignmentService assignments,
-    IInspectionDraftSaveStore inspectionSaves, InspectionPhotoService inspectionPhotos, IPhotoImageValidator photoValidator,
+    InspectionDraftSaveService inspectionSaves, InspectionPhotoService inspectionPhotos, IPhotoImageValidator photoValidator,
     IInspectionReportStore inspectionReports, IInspectionRepairRequestStore inspectionRepairs,
     IInspectionRepairApprovalStore inspectionApprovals, IInspectionRepairCompletionStore inspectionCompletions)
 {
@@ -178,7 +178,7 @@ public sealed class DevelopmentInspectionFixtures(DealershipDbContext database, 
         {
             var expected = DevelopmentInspectionManifest.Entries.Select(entry => new Dealership.Domain.Inspections.InspectionDraftEntry(
                 entry.PointCode, entry.Kind, entry.Severity, entry.EstimatedRepairCost, entry.Notes)).ToArray();
-            var matches = latest.Id == request.OperationId && latest.Matches(technicianId, inspectionId, request, expected);
+            var matches = latest.Id == request.OperationId && latest.Receipt().Matches(technicianId, inspectionId, request, expected);
             return new($"Inspection entries ({plate})", matches ? "matches" : "drift; preserved", !matches);
         }
 

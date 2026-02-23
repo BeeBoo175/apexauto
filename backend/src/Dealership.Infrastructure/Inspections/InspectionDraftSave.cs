@@ -50,25 +50,4 @@ public sealed class InspectionDraftSave
             ExaminedPointCodes = ExaminedPointCodesJson is null ? null : JsonSerializer.Deserialize<string[]>(ExaminedPointCodesJson)!
         };
     }
-
-    public bool Matches(Guid actorId, Guid inspectionId, InspectionDraftSaveRequest request,
-        IReadOnlyList<InspectionDraftEntry> entries)
-    {
-        return ActorId == actorId && InspectionId == inspectionId && AssignmentVersion == request.AssignmentVersion &&
-            ExpectedVersion == request.ExpectedVersion &&
-            JsonSerializer.Deserialize<InspectionDraftEntry[]>(EntriesJson, JsonSerializerOptions.Web)!.SequenceEqual(entries) &&
-            JsonSerializer.Deserialize<Guid[]>(PhotoIdsJson)!.SequenceEqual(request.PhotoIds!.Order()) &&
-            MatchesAttestation(ExaminedPointCodesJson is null ? null : JsonSerializer.Deserialize<string[]>(ExaminedPointCodesJson),
-                request.ExaminedPointCodes);
-    }
-
-    private static bool MatchesAttestation(IReadOnlyList<string>? saved, IReadOnlyList<string>? requested)
-    {
-        if (saved is null || requested is null)
-        {
-            return saved is null && requested is null;
-        }
-
-        return saved.SequenceEqual(requested.Order(StringComparer.Ordinal));
-    }
 }

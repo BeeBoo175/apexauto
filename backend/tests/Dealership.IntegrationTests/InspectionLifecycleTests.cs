@@ -31,7 +31,7 @@ public sealed class InspectionLifecycleTests(IntakePhotoFixture fixture) : IClas
             .AssignAsync(technician, vehicle, new(Guid.NewGuid(), technician, 0, null), CancellationToken.None);
         var inspection = assignment.Receipt!.InspectionId;
         var reports = services.GetRequiredService<IInspectionReportStore>();
-        var saves = services.GetRequiredService<IInspectionDraftSaveStore>();
+        var saves = services.GetRequiredService<InspectionDraftSaveService>();
         var requests = services.GetRequiredService<IInspectionRepairRequestStore>();
         var completions = services.GetRequiredService<IInspectionRepairCompletionStore>();
         await AssertStatusAsync(database, vehicle, VehicleStatus.PendingInspection);

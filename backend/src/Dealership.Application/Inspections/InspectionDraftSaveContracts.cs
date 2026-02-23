@@ -1,4 +1,5 @@
 using Dealership.Domain.Inspections;
+using Dealership.Domain.Vehicles;
 using System.Text.Json.Serialization;
 
 namespace Dealership.Application.Inspections;
@@ -20,14 +21,50 @@ public sealed record InspectionDraftSaveReceipt(Guid OperationId, Guid Inspectio
 {
     public IReadOnlyList<Guid> PhotoIds { get; init; } = [];
     public IReadOnlyList<string>? ExaminedPointCodes { get; init; }
+
+    public bool Matches(Guid actorId, Guid inspectionId, InspectionDraftSaveRequest request,
+        IReadOnlyList<InspectionDraftEntry> entries)
+    {
+        return ActorId == actorId && InspectionId == inspectionId && AssignmentVersion == request.AssignmentVersion &&
+            ExpectedVersion == request.ExpectedVersion && Entries.SequenceEqual(entries) &&
+            PhotoIds.SequenceEqual(request.PhotoIds!.Order()) && MatchesAttestation(ExaminedPointCodes, request.ExaminedPointCodes);
+    }
+
+    private static bool MatchesAttestation(IReadOnlyList<string>? saved, IReadOnlyList<string>? requested)
+    {
+        if (saved is null || requested is null)
+        {
+            return saved is null && requested is null;
+        }
+
+        return saved.SequenceEqual(requested.Order(StringComparer.Ordinal));
+    }
 }
 
 public sealed record InspectionDraftAssessment(decimal EstimatedRepairCost, InspectionGrade? Grade, bool IsRejected);
 
 public sealed record InspectionDraftSaveResult(InspectionAssignmentStatus Status, InspectionDraftSaveReceipt? Receipt = null);
 
+public sealed record InspectionDraftSaveContext(InspectionStaff? Actor, bool BranchActive, Vehicle? Vehicle,
+    InspectionDraft? Draft, InspectionDraftSaveReceipt? Existing, long Version);
+
+public sealed record InspectionSavePhoto(Guid Id, Guid InspectionId, string PointCode, DateTimeOffset ExpiresAt,
+    DateTimeOffset? AvailableAt, bool Retained, bool RemovalPending);
+
+public sealed record InspectionSavePhotoSet(IReadOnlyList<InspectionSavePhoto> Photos, DateTimeOffset RecordedAt);
+
+public interface IInspectionDraftSaveTransaction : IAsyncDisposable
+{
+    InspectionDraftSaveContext Context { get; }
+
+    Task<InspectionSavePhotoSet> LockPhotosAsync(IReadOnlyList<Guid> photoIds, CancellationToken cancellationToken);
+
+    Task<InspectionAssignmentStatus> CommitAsync(InspectionDraftSaveReceipt receipt, IReadOnlyList<InspectionSavePhoto> photos,
+        CancellationToken cancellationToken);
+}
+
 public interface IInspectionDraftSaveStore
 {
-    Task<InspectionDraftSaveResult> SaveAsync(Guid actorId, Guid inspectionId, InspectionDraftSaveRequest request,
+    Task<IInspectionDraftSaveTransaction> LockAsync(Guid actorId, Guid inspectionId, Guid operationId,
         CancellationToken cancellationToken);
 }

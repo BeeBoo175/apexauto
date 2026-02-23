@@ -197,7 +197,7 @@ internal static class InspectionPhotoLifecycleAssertions
         Guid actor, Guid inspection, InspectionDraftSaveRequest request)
     {
         using var scope = factory.Services.CreateScope();
-        return await scope.ServiceProvider.GetRequiredService<IInspectionDraftSaveStore>()
+        return await scope.ServiceProvider.GetRequiredService<InspectionDraftSaveService>()
             .SaveAsync(actor, inspection, request, CancellationToken.None);
     }
 }

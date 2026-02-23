@@ -36,7 +36,7 @@ public sealed class InspectionHistoryTests(IntakePhotoFixture fixture) : IClassF
         Assert.Empty((await histories.RevisionsAsync(technician, inspection, new(), CancellationToken.None)).History!.Items);
         Assert.Equal(InspectionAssignmentStatus.NotFound,
             (await histories.RepairsAsync(technician, inspection, 1, new(), CancellationToken.None)).Status);
-        var saves = services.GetRequiredService<IInspectionDraftSaveStore>();
+        var saves = services.GetRequiredService<InspectionDraftSaveService>();
         var reports = services.GetRequiredService<IInspectionReportStore>();
         var repairs = services.GetRequiredService<IInspectionRepairRequestStore>();
         var approvals = services.GetRequiredService<IInspectionRepairApprovalStore>();

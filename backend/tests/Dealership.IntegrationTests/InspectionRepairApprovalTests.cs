@@ -49,7 +49,7 @@ public sealed class InspectionRepairApprovalTests(IntakePhotoFixture fixture) : 
         {
             ExaminedPointCodes = [.. InspectionCatalog.Points.Select(point => point.Code)]
         };
-        await services.GetRequiredService<IInspectionDraftSaveStore>().SaveAsync(technician, inspection, save, CancellationToken.None);
+        await services.GetRequiredService<InspectionDraftSaveService>().SaveAsync(technician, inspection, save, CancellationToken.None);
         var reports = services.GetRequiredService<IInspectionReportStore>();
         var original = (await reports.SignAsync(technician, inspection, new(Guid.NewGuid(), 1, 1, 1), CancellationToken.None)).Report!;
         var request = new InspectionRepairRequest(Guid.NewGuid(), 1, 1, 0, [new("EP-004", "Refinish bumper")], 250m);

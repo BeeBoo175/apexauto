@@ -117,7 +117,7 @@ public static class InspectionDraftEndpoints
         }
     }
 
-    private static async Task<IResult> SaveAsync(Guid id, HttpContext context, IInspectionDraftSaveStore saves,
+    private static async Task<IResult> SaveAsync(Guid id, HttpContext context, InspectionDraftSaveService saves,
         CancellationToken cancellationToken)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);

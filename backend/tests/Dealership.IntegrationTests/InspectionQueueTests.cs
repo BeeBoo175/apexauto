@@ -80,7 +80,7 @@ public sealed class InspectionQueueTests(IntakePhotoFixture fixture) : IClassFix
         {
             ExaminedPointCodes = [.. InspectionCatalog.Points.Select(point => point.Code)]
         };
-        Assert.Equal(InspectionAssignmentStatus.Succeeded, (await services.GetRequiredService<IInspectionDraftSaveStore>()
+        Assert.Equal(InspectionAssignmentStatus.Succeeded, (await services.GetRequiredService<InspectionDraftSaveService>()
             .SaveAsync(technician, inspection, save, CancellationToken.None)).Status);
         Assert.Equal(InspectionAssignmentStatus.Succeeded, (await services.GetRequiredService<IInspectionReportStore>()
             .SignAsync(technician, inspection, new(Guid.NewGuid(), 1, 1, 1), CancellationToken.None)).Status);
@@ -143,7 +143,7 @@ public sealed class InspectionQueueTests(IntakePhotoFixture fixture) : IClassFix
             .ReopenAsync(manager, inspection, new(Guid.NewGuid(), 1, 1, "Recheck bumper condition"), CancellationToken.None)).Status);
         Assert.Empty((await queues.RepairsAsync(manager, new(), InspectionRepairQueueStatus.ApprovalNotRequired, CancellationToken.None)).Queue!.Items);
         Assert.Equal(5, (await queues.RepairsAsync(manager, new(), InspectionRepairQueueStatus.Superseded, CancellationToken.None)).Queue!.Total);
-        Assert.Equal(InspectionAssignmentStatus.Succeeded, (await services.GetRequiredService<IInspectionDraftSaveStore>()
+        Assert.Equal(InspectionAssignmentStatus.Succeeded, (await services.GetRequiredService<InspectionDraftSaveService>()
             .SaveAsync(technician, inspection, save with { OperationId = Guid.NewGuid(), ExpectedVersion = 1 }, CancellationToken.None)).Status);
         Assert.Equal(InspectionAssignmentStatus.Succeeded, (await services.GetRequiredService<IInspectionReportStore>()
             .SignAsync(technician, inspection, new(Guid.NewGuid(), 1, 2, 2), CancellationToken.None)).Status);

@@ -116,7 +116,7 @@ internal static class DevelopmentInspectionFixtureAssertions
         Assert.Equal(repairSnapshot, await DevelopmentIntakeFixtureAssertions.SnapshotAsync(provider));
 
         var selected = drafts.First(draft => draft.Revision == 1 && !draft.IsSigned);
-        var edit = await services.GetRequiredService<IInspectionDraftSaveStore>().SaveAsync(selected.TechnicianId,
+        var edit = await services.GetRequiredService<InspectionDraftSaveService>().SaveAsync(selected.TechnicianId,
             selected.Id, new(Guid.NewGuid(), 1, 1, []), CancellationToken.None);
         Assert.Equal(InspectionAssignmentStatus.Succeeded, edit.Status);
         var edited = await DevelopmentIntakeFixtureAssertions.SnapshotAsync(provider);
