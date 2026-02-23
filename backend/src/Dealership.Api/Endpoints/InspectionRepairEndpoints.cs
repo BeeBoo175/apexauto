@@ -112,7 +112,7 @@ public static class InspectionRepairEndpoints
         }
     }
 
-    private static async Task<IResult> RequestAsync(Guid id, HttpContext context, IInspectionRepairRequestStore repairs,
+    private static async Task<IResult> RequestAsync(Guid id, HttpContext context, InspectionRepairRequestService repairs,
         CancellationToken cancellationToken)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);

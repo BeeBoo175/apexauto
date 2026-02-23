@@ -34,7 +34,7 @@ public sealed class InspectionLifecycleTests(IntakePhotoFixture fixture) : IClas
         var reopenings = services.GetRequiredService<InspectionReopeningService>();
         var signoffs = services.GetRequiredService<InspectionSignoffService>();
         var saves = services.GetRequiredService<InspectionDraftSaveService>();
-        var requests = services.GetRequiredService<IInspectionRepairRequestStore>();
+        var requests = services.GetRequiredService<InspectionRepairRequestService>();
         var completions = services.GetRequiredService<IInspectionRepairCompletionStore>();
         await AssertStatusAsync(database, vehicle, VehicleStatus.PendingInspection);
         await AssertForgedStatusAsync(vehicle, VehicleStatus.Available);

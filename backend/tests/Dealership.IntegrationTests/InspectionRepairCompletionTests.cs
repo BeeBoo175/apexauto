@@ -50,9 +50,9 @@ public sealed class InspectionRepairCompletionTests(IntakePhotoFixture fixture) 
         var reopenings = services.GetRequiredService<InspectionReopeningService>();
         var signoffs = services.GetRequiredService<InspectionSignoffService>();
         var original = (await signoffs.SignAsync(technician, inspection, new(Guid.NewGuid(), 1, 1, 1), CancellationToken.None)).Report!;
-        var repairs = services.GetRequiredService<IInspectionRepairRequestStore>();
+        var repairRequests = services.GetRequiredService<InspectionRepairRequestService>();
         var request = new InspectionRepairRequest(Guid.NewGuid(), 1, 1, 0, [new("EP-004", "Refinish bumper")], 250m);
-        var repair = (await repairs.RequestAsync(technician, inspection, request, CancellationToken.None)).Receipt!;
+        var repair = (await repairRequests.RequestAsync(technician, inspection, request, CancellationToken.None)).Receipt!;
         var completion = new InspectionRepairCompletionRequest(Guid.NewGuid(), repair.OperationId, 1, 1, 1,
             " Bumper refinished and reinspected; fit and finish satisfactory. ");
         Assert.Equal(InspectionAssignmentStatus.Conflict, (await CompleteAsync(data.Factory, technician, inspection, completion)).Status);
@@ -73,7 +73,7 @@ public sealed class InspectionRepairCompletionTests(IntakePhotoFixture fixture) 
         var approval = (await services.GetRequiredService<IInspectionRepairApprovalStore>().ApproveAsync(manager, inspection,
             new(Guid.NewGuid(), repair.OperationId, 1, 1, 1), CancellationToken.None)).Receipt!;
         request = request with { OperationId = Guid.NewGuid(), ExpectedVersion = 1, Budget = 200m };
-        repair = (await repairs.RequestAsync(technician, inspection, request, CancellationToken.None)).Receipt!;
+        repair = (await repairRequests.RequestAsync(technician, inspection, request, CancellationToken.None)).Receipt!;
         completion = completion with { RequestId = repair.OperationId, RepairVersion = 2 };
         var candidate = new InspectionRepairCompletionReceipt(completion.OperationId, inspection, data.BranchId, technician,
             repair.OperationId, approval.OperationId, 1, 1, 2, completion.Notes!.Trim(), DateTimeOffset.UtcNow);
@@ -108,7 +108,7 @@ public sealed class InspectionRepairCompletionTests(IntakePhotoFixture fixture) 
             Assert.Equal(2L, await read.ExecuteScalarAsync());
         }
         request = request with { OperationId = Guid.NewGuid(), ExpectedVersion = 2, Budget = 300m };
-        repair = (await repairs.RequestAsync(technician, inspection, request, CancellationToken.None)).Receipt!;
+        repair = (await repairRequests.RequestAsync(technician, inspection, request, CancellationToken.None)).Receipt!;
         await InspectionRepairCompletionSqlAssertions.VerifyStaleAsync(stale, snapshot, receipt with { OperationId = Guid.NewGuid() });
         await snapshot.RollbackAsync();
         var fresh = completion with { OperationId = Guid.NewGuid(), RequestId = repair.OperationId, RepairVersion = 3 };
@@ -121,7 +121,7 @@ public sealed class InspectionRepairCompletionTests(IntakePhotoFixture fixture) 
             CompletedAt = DateTimeOffset.UtcNow
         }, "CK_InspectionRepairCompletions_Approval");
         request = request with { OperationId = Guid.NewGuid(), ExpectedVersion = 3, Budget = 100m, Items = [new("EP-004", "Replace bumper")] };
-        repair = (await repairs.RequestAsync(technician, inspection, request, CancellationToken.None)).Receipt!;
+        repair = (await repairRequests.RequestAsync(technician, inspection, request, CancellationToken.None)).Receipt!;
         fresh = fresh with { OperationId = Guid.NewGuid(), RequestId = repair.OperationId, RepairVersion = 4 };
         Assert.Equal(InspectionAssignmentStatus.Conflict, (await CompleteAsync(restarted, technician, inspection, fresh)).Status);
         await InspectionRepairCompletionSqlAssertions.ExpectAsync(fixture.Database, receipt with
@@ -133,7 +133,7 @@ public sealed class InspectionRepairCompletionTests(IntakePhotoFixture fixture) 
         }, "CK_InspectionRepairCompletions_Approval");
 
         request = request with { OperationId = Guid.NewGuid(), ExpectedVersion = 4, Budget = 0m };
-        repair = (await repairs.RequestAsync(technician, inspection, request, CancellationToken.None)).Receipt!;
+        repair = (await repairRequests.RequestAsync(technician, inspection, request, CancellationToken.None)).Receipt!;
         fresh = fresh with { OperationId = Guid.NewGuid(), RequestId = repair.OperationId, RepairVersion = 5 };
         var free = (await CompleteAsync(restarted, technician, inspection, fresh)).Receipt!;
         Assert.Null(free.ApprovalId);

@@ -39,11 +39,6 @@ public sealed class InspectionRepairRequestRecord
     public decimal Budget { get; private set; }
     public DateTimeOffset RequestedAt { get; private set; }
 
-    public bool Matches(Guid actorId, Guid inspectionId, InspectionRepairRequest request, InspectionRepairScope scope) =>
-        ActorId == actorId && InspectionId == inspectionId && AssignmentVersion == request.AssignmentVersion &&
-        Revision == request.Revision && ExpectedVersion == request.ExpectedVersion && Budget == scope.Budget &&
-        Receipt().Items.SequenceEqual(scope.Items);
-
     public InspectionRepairReceipt Receipt() => new(Id, InspectionId, BranchId, ActorId, SignedRevisionId,
         AssignmentVersion, Revision, ExpectedVersion, Version,
         Array.AsReadOnly(JsonSerializer.Deserialize<InspectionRepairItem[]>(ItemsJson, JsonSerializerOptions.Web)!), Budget, RequestedAt);

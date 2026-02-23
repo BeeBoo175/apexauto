@@ -167,7 +167,7 @@ public sealed class InspectionRepairRequestTests(IntakePhotoFixture fixture) : I
         Guid inspection, InspectionRepairRequest request)
     {
         using var scope = factory.Services.CreateScope();
-        return await scope.ServiceProvider.GetRequiredService<IInspectionRepairRequestStore>()
+        return await scope.ServiceProvider.GetRequiredService<InspectionRepairRequestService>()
             .RequestAsync(actor, inspection, request, CancellationToken.None);
     }
 }

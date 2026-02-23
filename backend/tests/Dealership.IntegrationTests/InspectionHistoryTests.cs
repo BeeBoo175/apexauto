@@ -39,7 +39,7 @@ public sealed class InspectionHistoryTests(IntakePhotoFixture fixture) : IClassF
         var saves = services.GetRequiredService<InspectionDraftSaveService>();
         var reopenings = services.GetRequiredService<InspectionReopeningService>();
         var signoffs = services.GetRequiredService<InspectionSignoffService>();
-        var repairs = services.GetRequiredService<IInspectionRepairRequestStore>();
+        var repairRequests = services.GetRequiredService<InspectionRepairRequestService>();
         var approvals = services.GetRequiredService<IInspectionRepairApprovalStore>();
         var originals = new List<InspectionReport>();
         var requests = new List<InspectionRepairReceipt>();
@@ -58,7 +58,7 @@ public sealed class InspectionHistoryTests(IntakePhotoFixture fixture) : IClassF
         }
         for (var version = 1; version <= 21; version++)
         {
-            var requested = await repairs.RequestAsync(technician, inspection, new(Guid.NewGuid(), 1, 21, version - 1,
+            var requested = await repairRequests.RequestAsync(technician, inspection, new(Guid.NewGuid(), 1, 21, version - 1,
                 [new("EP-004", "Prepare and refinish bumper surface")], 250m + version), CancellationToken.None);
             Assert.Equal(InspectionAssignmentStatus.Succeeded, requested.Status);
             requests.Add(requested.Receipt!);
@@ -73,7 +73,7 @@ public sealed class InspectionHistoryTests(IntakePhotoFixture fixture) : IClassF
         var unrelated = await ClaimAsync(data, colleague, 1, "VHP 7824", "PL1BT65R84B123457");
         await saves.SaveAsync(colleague, unrelated, Save(0), CancellationToken.None);
         await signoffs.SignAsync(colleague, unrelated, new(Guid.NewGuid(), 1, 1, 1), CancellationToken.None);
-        await repairs.RequestAsync(colleague, unrelated, new(Guid.NewGuid(), 1, 1, 0,
+        await repairRequests.RequestAsync(colleague, unrelated, new(Guid.NewGuid(), 1, 1, 0,
             [new("EP-004", "Refinish bumper")], 100m), CancellationToken.None);
         var database = services.GetRequiredService<DealershipDbContext>();
         await database.Users.Where(user => user.Id == technician)

@@ -102,7 +102,7 @@ internal static class DevelopmentInspectionFixtureAssertions
             ExpectedVersion = 1,
             Budget = 275m
         };
-        var changed = await services.GetRequiredService<IInspectionRepairRequestStore>()
+        var changed = await services.GetRequiredService<InspectionRepairRequestService>()
             .RequestAsync(repairDraft.TechnicianId, repairDraft.Id, changedRepair, CancellationToken.None);
         Assert.Equal(InspectionAssignmentStatus.Succeeded, changed.Status);
         var repairManager = DevelopmentFixtureManifest.Staff.Single(item =>

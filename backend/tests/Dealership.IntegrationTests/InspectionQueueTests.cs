@@ -85,9 +85,9 @@ public sealed class InspectionQueueTests(IntakePhotoFixture fixture) : IClassFix
         Assert.Equal(InspectionAssignmentStatus.Succeeded, (await services.GetRequiredService<InspectionSignoffService>()
             .SignAsync(technician, inspection, new(Guid.NewGuid(), 1, 1, 1), CancellationToken.None)).Status);
         Assert.Single((await queues.InspectionsAsync(technician, new(), InspectionQueueStatus.Sealed, CancellationToken.None)).Queue!.Items);
-        var repairs = services.GetRequiredService<IInspectionRepairRequestStore>();
+        var repairRequests = services.GetRequiredService<InspectionRepairRequestService>();
         var request = new InspectionRepairRequest(Guid.NewGuid(), 1, 1, 0, [new("EP-004", "Refinish bumper")], 250m);
-        var receipt = (await repairs.RequestAsync(technician, inspection, request, CancellationToken.None)).Receipt!;
+        var receipt = (await repairRequests.RequestAsync(technician, inspection, request, CancellationToken.None)).Receipt!;
         Assert.Single((await queues.RepairsAsync(manager, new(), InspectionRepairQueueStatus.PendingApproval, CancellationToken.None)).Queue!.Items);
         Assert.Empty((await queues.RepairsAsync(colleague, new(), InspectionRepairQueueStatus.All, CancellationToken.None)).Queue!.Items);
         var dates = new InspectionQueueFilter(From: receipt.RequestedAt, Until: receipt.RequestedAt.AddSeconds(1));
@@ -122,7 +122,7 @@ public sealed class InspectionQueueTests(IntakePhotoFixture fixture) : IClassFix
         var approved = Assert.Single((await queues.RepairsAsync(manager, new(), InspectionRepairQueueStatus.Approved, CancellationToken.None)).Queue!.Items);
         Assert.NotNull(approved.ApprovalId);
         Assert.Equal(250m, approved.Budget);
-        Assert.Equal(InspectionAssignmentStatus.Succeeded, (await repairs.RequestAsync(technician, inspection,
+        Assert.Equal(InspectionAssignmentStatus.Succeeded, (await repairRequests.RequestAsync(technician, inspection,
             request with { OperationId = Guid.NewGuid(), ExpectedVersion = 1, Budget = 200 }, CancellationToken.None)).Status);
         var reduced = Assert.Single((await queues.RepairsAsync(manager, new(), InspectionRepairQueueStatus.Approved, CancellationToken.None)).Queue!.Items);
         Assert.Null(reduced.ApprovalId);
@@ -130,13 +130,13 @@ public sealed class InspectionQueueTests(IntakePhotoFixture fixture) : IClassFix
         Assert.Empty((await queues.RepairsAsync(manager, new(), InspectionRepairQueueStatus.PendingApproval, CancellationToken.None)).Queue!.Items);
         var old = Assert.Single((await queues.RepairsAsync(manager, new(), InspectionRepairQueueStatus.Superseded, CancellationToken.None)).Queue!.Items);
         Assert.Equal(approved.ApprovalId, old.ApprovalId);
-        Assert.Equal(InspectionAssignmentStatus.Succeeded, (await repairs.RequestAsync(technician, inspection,
+        Assert.Equal(InspectionAssignmentStatus.Succeeded, (await repairRequests.RequestAsync(technician, inspection,
             request with { OperationId = Guid.NewGuid(), ExpectedVersion = 2, Budget = 275 }, CancellationToken.None)).Status);
         Assert.Single((await queues.RepairsAsync(manager, new(), InspectionRepairQueueStatus.PendingApproval, CancellationToken.None)).Queue!.Items);
-        Assert.Equal(InspectionAssignmentStatus.Succeeded, (await repairs.RequestAsync(technician, inspection,
+        Assert.Equal(InspectionAssignmentStatus.Succeeded, (await repairRequests.RequestAsync(technician, inspection,
             request with { OperationId = Guid.NewGuid(), ExpectedVersion = 3, Budget = 200, Items = [new("EP-004", "Replace bumper")] }, CancellationToken.None)).Status);
         Assert.Single((await queues.RepairsAsync(manager, new(), InspectionRepairQueueStatus.PendingApproval, CancellationToken.None)).Queue!.Items);
-        Assert.Equal(InspectionAssignmentStatus.Succeeded, (await repairs.RequestAsync(technician, inspection,
+        Assert.Equal(InspectionAssignmentStatus.Succeeded, (await repairRequests.RequestAsync(technician, inspection,
             request with { OperationId = Guid.NewGuid(), ExpectedVersion = 4, Budget = 0 }, CancellationToken.None)).Status);
         Assert.Single((await queues.RepairsAsync(manager, new(), InspectionRepairQueueStatus.ApprovalNotRequired, CancellationToken.None)).Queue!.Items);
         Assert.Equal(InspectionAssignmentStatus.Succeeded, (await services.GetRequiredService<InspectionReopeningService>()
@@ -147,7 +147,7 @@ public sealed class InspectionQueueTests(IntakePhotoFixture fixture) : IClassFix
             .SaveAsync(technician, inspection, save with { OperationId = Guid.NewGuid(), ExpectedVersion = 1 }, CancellationToken.None)).Status);
         Assert.Equal(InspectionAssignmentStatus.Succeeded, (await services.GetRequiredService<InspectionSignoffService>()
             .SignAsync(technician, inspection, new(Guid.NewGuid(), 1, 2, 2), CancellationToken.None)).Status);
-        Assert.Equal(InspectionAssignmentStatus.Succeeded, (await repairs.RequestAsync(technician, inspection,
+        Assert.Equal(InspectionAssignmentStatus.Succeeded, (await repairRequests.RequestAsync(technician, inspection,
             request with { OperationId = Guid.NewGuid(), ExpectedVersion = 5, Revision = 2, Budget = 200 }, CancellationToken.None)).Status);
         var fresh = Assert.Single((await queues.RepairsAsync(manager, new(), InspectionRepairQueueStatus.PendingApproval, CancellationToken.None)).Queue!.Items);
         Assert.Null(fresh.CoveringApprovalId);

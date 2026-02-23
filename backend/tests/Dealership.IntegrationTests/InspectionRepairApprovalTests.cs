@@ -55,8 +55,8 @@ public sealed class InspectionRepairApprovalTests(IntakePhotoFixture fixture) : 
         var signoffs = services.GetRequiredService<InspectionSignoffService>();
         var original = (await signoffs.SignAsync(technician, inspection, new(Guid.NewGuid(), 1, 1, 1), CancellationToken.None)).Report!;
         var request = new InspectionRepairRequest(Guid.NewGuid(), 1, 1, 0, [new("EP-004", "Refinish bumper")], 250m);
-        var repairs = services.GetRequiredService<IInspectionRepairRequestStore>();
-        var requested = (await repairs.RequestAsync(technician, inspection, request, CancellationToken.None)).Receipt!;
+        var repairRequests = services.GetRequiredService<InspectionRepairRequestService>();
+        var requested = (await repairRequests.RequestAsync(technician, inspection, request, CancellationToken.None)).Receipt!;
         approval = approval with { RequestId = requested.OperationId };
         foreach (var actor in new[] { technician, colleague, group, admin, data.StaffId, data.OwnerId })
         {
@@ -97,7 +97,7 @@ public sealed class InspectionRepairApprovalTests(IntakePhotoFixture fixture) : 
             Assert.Equal(1L, await read.ExecuteScalarAsync());
         }
         request = request with { OperationId = Guid.NewGuid(), ExpectedVersion = 1, Budget = 200m, Items = [new("EP-004", "Polish bumper surface")] };
-        requested = (await repairs.RequestAsync(technician, inspection, request, CancellationToken.None)).Receipt!;
+        requested = (await repairRequests.RequestAsync(technician, inspection, request, CancellationToken.None)).Receipt!;
         await InspectionRepairApprovalSqlAssertions.VerifyStaleSnapshotAsync(stale, oldSnapshot, receipt with { OperationId = Guid.NewGuid() });
         await oldSnapshot.RollbackAsync();
         Assert.Equal(InspectionAssignmentStatus.Conflict,
@@ -105,7 +105,7 @@ public sealed class InspectionRepairApprovalTests(IntakePhotoFixture fixture) : 
         var renewed = new InspectionRepairApprovalRequest(Guid.NewGuid(), requested.OperationId, 1, 1, 2);
         Assert.Equal(InspectionAssignmentStatus.Succeeded, (await ApproveAsync(restarted, manager, inspection, renewed)).Status);
         request = request with { OperationId = Guid.NewGuid(), ExpectedVersion = 2, Budget = 300m };
-        requested = (await repairs.RequestAsync(technician, inspection, request, CancellationToken.None)).Receipt!;
+        requested = (await repairRequests.RequestAsync(technician, inspection, request, CancellationToken.None)).Receipt!;
         renewed = renewed with { OperationId = Guid.NewGuid(), RequestId = requested.OperationId, RepairVersion = 3 };
         Assert.Equal(InspectionAssignmentStatus.Succeeded, (await ApproveAsync(restarted, manager, inspection, renewed)).Status);
         Assert.Equal(3, (await approvals.ReadAsync(group, inspection, 1, CancellationToken.None)).Receipt!.RepairVersion);
