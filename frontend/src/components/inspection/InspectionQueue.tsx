@@ -1,6 +1,4 @@
 "use client";
-
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
@@ -14,6 +12,9 @@ import type { ApiResult, Branch, Page } from "@/lib/intake/contracts";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { QueueView } from "./QueueView";
 import { AssignmentForm } from "./AssignmentForm";
+import { InspectionDrawer } from "./InspectionDrawer";
+import { useInspectionDrawer } from "@/hooks/use-inspection-drawer";
+import type { EditorSnapshot } from "@/lib/inspection/editor-snapshot";
 import styles from "@/components/staff/IntakeWorklist.module.css";
 
 export function InspectionQueue({
@@ -22,14 +23,17 @@ export function InspectionQueue({
   filters,
   page,
   branches,
+  selectedId = "",
+  selectedInspection = null,
 }: {
   actor: CurrentActor;
   initial: ApiResult<Page<InspectionRow>>;
   filters: QueueFilters;
   page: number;
   branches: Page<Branch> | null;
+  selectedId?: string;
+  selectedInspection?: ApiResult<EditorSnapshot> | null;
 }) {
-  const router = useRouter();
   const state = useInspectionQueue(
     "vehicles",
     initial,
@@ -41,9 +45,10 @@ export function InspectionQueue({
   const [selected, setSelected] = useState<InspectionRow | null>(null);
   const [locked, setLocked] = useState(false);
   const lockNavigation = useInspectionLock(locked);
+  const selection = useInspectionDrawer(selectedId, selectedInspection, () => void state.load());
   function open(row: InspectionRow) {
     if (row.inspectionId) {
-      router.push(`/dashboard/inspection/${row.inspectionId}`);
+      selection.open(row.inspectionId);
       return;
     }
     setSelected(row);
@@ -125,8 +130,10 @@ export function InspectionQueue({
       rowId={(r) => r.vehicleId}
       parse={parseInspectionPage}
       onOpen={open}
-
-      disabled={Boolean(selected)}
+      selectedRowId={
+        state.snapshot?.items.find((row) => row.inspectionId === selection.id)?.vehicleId
+      }
+      disabled={Boolean(selected) || Boolean(selection.id)}
     >
       <Dialog
         open={Boolean(selected)}
@@ -150,11 +157,12 @@ export function InspectionQueue({
               setLocked(false);
               setSelected(null);
               await state.load();
-              router.push(`/dashboard/inspection/${id}`);
+              selection.open(id);
             }}
           />
         )}
       </Dialog>
+      <InspectionDrawer actor={actor} selection={selection} />
     </QueueView>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
-
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { StaffLink } from "@/components/staff/StaffLink";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -17,6 +17,8 @@ import { InspectionChecklist } from "./InspectionChecklist";
 import { ManagerActions } from "./ManagerActions";
 import { RepairPanel } from "./RepairPanel";
 import { RevisionHistoryView } from "./InspectionHistory";
+import { RetainedRepairReview } from "./RetainedRepairReview";
+import type { RepairSelection } from "@/hooks/use-inspection-drawer";
 import styles from "./Inspection.module.css";
 import workbench from "@/components/staff/AppointmentWorkbench.module.css";
 import tones from "@/components/ui/StatusTone.module.css";
@@ -26,10 +28,11 @@ export function InspectionEditor({
   actor,
   initial,
   technicians,
-
+  actionsContainer,
   repairsOnly = false,
   onLocked,
   onChanged,
+  selectedRequest = null,
 }: {
   id: string;
   actor: CurrentActor;
@@ -39,6 +42,7 @@ export function InspectionEditor({
   repairsOnly?: boolean;
   onLocked?: (locked: boolean) => void;
   onChanged?: () => void;
+  selectedRequest?: RepairSelection | null;
 }) {
   const editor = useInspectionEditor(id, actor, initial, onChanged);
   const [confirm, setConfirm] = useState<"sign" | "discard" | null>(null);
@@ -46,19 +50,27 @@ export function InspectionEditor({
   const disabled = !editor.ready || editor.operating || editor.refreshing || editor.confirmed;
   const attested = Boolean(base?.latestSave?.examinedPointCodes);
   const locked = editor.dirty || editor.operating || editor.refreshing;
-
+  const historical =
+    repairsOnly &&
+    selectedRequest &&
+    selectedRequest.requestId !== snapshot?.repairState?.requestId;
   useEffect(() => {
     onLocked?.(locked);
     return () => onLocked?.(false);
   }, [locked, onLocked]);
   return (
     <>
-      <RefreshButton
-        label="Refresh inspection"
-        busy={editor.refreshing}
-        disabled={!editor.ready || editor.operating}
-        onClick={() => void editor.refresh()}
-      />
+      {actionsContainer &&
+        !historical &&
+        createPortal(
+          <RefreshButton
+            label="Refresh inspection"
+            busy={editor.refreshing}
+            disabled={!editor.ready || editor.operating}
+            onClick={() => void editor.refresh()}
+          />,
+          actionsContainer,
+        )}
       <div className={styles.workspace} inert={!editor.ready}>
         {!snapshot && (
           <section className={workbench.protocol}>
@@ -242,15 +254,24 @@ export function InspectionEditor({
                 onLock={editor.lockChild}
               />
             )}
-            <RepairPanel
-              key={`repairs:${editor.draftEpoch}`}
-              actor={actor}
-              snapshot={snapshot}
-              disabled={disabled}
-              onLock={editor.lockChild}
-              onConfirmed={editor.actionConfirmed}
-              onDraft={editor.markForm}
-            />
+            {historical ? (
+              <RetainedRepairReview
+                key={selectedRequest.requestId}
+                inspectionId={id}
+                selection={selectedRequest}
+                actionsContainer={actionsContainer}
+              />
+            ) : (
+              <RepairPanel
+                key={`repairs:${editor.draftEpoch}`}
+                actor={actor}
+                snapshot={snapshot}
+                disabled={disabled}
+                onLock={editor.lockChild}
+                onConfirmed={editor.actionConfirmed}
+                onDraft={editor.markForm}
+              />
+            )}
             <RevisionHistoryView initial={snapshot.revisions} disabled={editor.operating} />
           </>
         )}
