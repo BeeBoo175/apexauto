@@ -39,7 +39,7 @@ public sealed class StaffWorklistTests(IntakePhotoFixture fixture) : IClassFixtu
 
         var other = await data.BookAsync(0, "BPL 2198", branchId: otherBranch);
         Assert.Equal(CheckInStatus.Succeeded,
-            (await services.GetRequiredService<IAppointmentCheckInStore>()
+            (await services.GetRequiredService<AppointmentCheckInService>()
                 .CheckInAsync(data.StaffId, booked[0].Id, CheckInTestData.Evidence, CancellationToken.None)).Status);
         Assert.Equal(CancellationStatus.Succeeded,
             (await services.GetRequiredService<IAppointmentCancellationStore>()

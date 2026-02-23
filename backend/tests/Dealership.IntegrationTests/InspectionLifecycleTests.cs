@@ -22,7 +22,7 @@ public sealed class InspectionLifecycleTests(IntakePhotoFixture fixture) : IClas
         using var scope = data.Factory.Services.CreateScope();
         var services = scope.ServiceProvider;
         var database = services.GetRequiredService<DealershipDbContext>();
-        var checkedIn = await services.GetRequiredService<IAppointmentCheckInStore>()
+        var checkedIn = await services.GetRequiredService<AppointmentCheckInService>()
             .CheckInAsync(data.StaffId, appointment.Id, CheckInTestData.Evidence, CancellationToken.None);
         var vehicle = checkedIn.Receipt!.VehicleId;
         var technician = await ProvisionAsync(services, data.BranchId, AccountRoles.WorkshopTechnician);

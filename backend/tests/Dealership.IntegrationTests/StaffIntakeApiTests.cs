@@ -8,6 +8,7 @@ using Dealership.Application.Accounts;
 using Dealership.Application.Branches;
 using Dealership.Application.Intake;
 using Dealership.Domain.Intake;
+using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Development;
 using Dealership.Infrastructure.Intake;
 using Dealership.Infrastructure.Persistence;
@@ -121,7 +122,7 @@ public sealed class StaffIntakeApiTests(IntakePhotoFixture fixture) : IClassFixt
         {
             services.RemoveAll<IAppointmentCheckInStore>();
             services.AddScoped<IAppointmentCheckInStore>(provider => new LostReceiptStore(new AppointmentCheckInStore(
-                provider.GetRequiredService<DealershipDbContext>(), provider.GetRequiredService<TimeProvider>(),
+                provider.GetRequiredService<DealershipDbContext>(),
                 provider.GetRequiredService<Dealership.Infrastructure.Mail.MailDeliverySignal>())));
         }));
         using var client = lostReceipt.CreateClient();
@@ -191,19 +192,37 @@ public sealed class StaffIntakeApiTests(IntakePhotoFixture fixture) : IClassFixt
 
     private sealed class LostReceiptStore(IAppointmentCheckInStore inner) : IAppointmentCheckInStore
     {
-        public Task<CheckInResult> CorrectNoShowAsync(Guid staffId, Guid appointmentId, CheckInEvidence evidence,
-            NoShowCorrectionRequest correction, CancellationToken cancellationToken)
+        public async Task<IAppointmentCheckInTransaction> LockAsync(Guid staffId, Guid appointmentId,
+            CancellationToken cancellationToken)
         {
-            return inner.CorrectNoShowAsync(staffId, appointmentId, evidence, correction, cancellationToken);
+            var transaction = await inner.LockAsync(staffId, appointmentId, cancellationToken);
+            return new LostReceiptTransaction(transaction);
+        }
+    }
+
+    private sealed class LostReceiptTransaction(IAppointmentCheckInTransaction inner) : IAppointmentCheckInTransaction
+    {
+        public CheckInContext Context => inner.Context;
+
+        public Task<DateTimeOffset> ReadDatabaseTimeAsync(CancellationToken cancellationToken)
+        {
+            return inner.ReadDatabaseTimeAsync(cancellationToken);
         }
 
-        public async Task<CheckInResult> CheckInAsync(Guid staffId, Guid appointmentId, CheckInEvidence evidence,
+        public Task<IReadOnlyList<CheckInPhotoCandidate>> LockPhotosAsync(CancellationToken cancellationToken)
+        {
+            return inner.LockPhotosAsync(cancellationToken);
+        }
+
+        public async Task<CheckInStatus> CommitAsync(Vehicle vehicle, AppointmentCheckIn checkIn, DateTimeOffset recordedAt,
             CancellationToken cancellationToken)
         {
             Assert.True(cancellationToken.CanBeCanceled);
-            var result = await inner.CheckInAsync(staffId, appointmentId, evidence, cancellationToken);
-            Assert.Equal(CheckInStatus.Succeeded, result.Status);
+            var status = await inner.CommitAsync(vehicle, checkIn, recordedAt, cancellationToken);
+            Assert.Equal(CheckInStatus.Succeeded, status);
             throw new OperationCanceledException("The committed response was lost.");
         }
+
+        public ValueTask DisposeAsync() => inner.DisposeAsync();
     }
 }

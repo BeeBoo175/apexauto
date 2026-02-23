@@ -74,19 +74,19 @@ public static class StaffIntakeEndpoints
         }
     }
 
-    private static async Task<IResult> CheckInAsync(Guid id, HttpContext context, IAppointmentCheckInStore checkIns,
+    private static async Task<IResult> CheckInAsync(Guid id, HttpContext context, AppointmentCheckInService checkIns,
         CancellationToken cancellationToken)
     {
         return await SubmitCheckInAsync(id, context, checkIns, false, cancellationToken);
     }
 
-    private static async Task<IResult> CorrectNoShowAsync(Guid id, HttpContext context, IAppointmentCheckInStore checkIns,
+    private static async Task<IResult> CorrectNoShowAsync(Guid id, HttpContext context, AppointmentCheckInService checkIns,
         CancellationToken cancellationToken)
     {
         return await SubmitCheckInAsync(id, context, checkIns, true, cancellationToken);
     }
 
-    private static async Task<IResult> SubmitCheckInAsync(Guid id, HttpContext context, IAppointmentCheckInStore checkIns,
+    private static async Task<IResult> SubmitCheckInAsync(Guid id, HttpContext context, AppointmentCheckInService checkIns,
         bool correction, CancellationToken cancellationToken)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);

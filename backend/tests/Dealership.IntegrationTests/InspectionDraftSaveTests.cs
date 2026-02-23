@@ -23,7 +23,7 @@ public sealed class InspectionDraftSaveTests(IntakePhotoFixture fixture) : IClas
         var appointment = await data.BookAsync();
         using var scope = data.Factory.Services.CreateScope();
         var services = scope.ServiceProvider;
-        var checkIn = await services.GetRequiredService<IAppointmentCheckInStore>()
+        var checkIn = await services.GetRequiredService<AppointmentCheckInService>()
             .CheckInAsync(data.StaffId, appointment.Id, CheckInTestData.Evidence, CancellationToken.None);
         Assert.Equal(CheckInStatus.Succeeded, checkIn.Status);
         var vehicleId = checkIn.Receipt!.VehicleId;

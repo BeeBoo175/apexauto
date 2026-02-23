@@ -1,6 +1,7 @@
 using Dealership.Application.Vehicles;
 using Dealership.Application.Accounts;
 using Dealership.Application.Branches;
+using Dealership.Application.Intake;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Dealership.Application;
@@ -18,6 +19,7 @@ public static class DependencyInjection
         services.AddScoped<BranchDiscoveryService>();
         services.AddScoped<EmailVerificationService>();
         services.AddScoped<PasswordRecoveryService>();
+        services.AddScoped<AppointmentCheckInService>();
 
         return services;
     }

@@ -34,7 +34,7 @@ public sealed class InspectionQueueTests(IntakePhotoFixture fixture) : IClassFix
         for (var index = 0; index < 3; index++)
         {
             var appointment = await data.BookAsync(index, $"WYY {8821 + index}");
-            var checkedIn = await services.GetRequiredService<IAppointmentCheckInStore>().CheckInAsync(data.StaffId,
+            var checkedIn = await services.GetRequiredService<AppointmentCheckInService>().CheckInAsync(data.StaffId,
                 appointment.Id, CheckInTestData.Evidence with { Vin = $"PL1BT65R84B12345{index}" }, CancellationToken.None);
             Assert.Equal(CheckInStatus.Succeeded, checkedIn.Status);
             vehicles.Add(checkedIn.Receipt!.VehicleId);

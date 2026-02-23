@@ -52,7 +52,7 @@ public sealed class StaffAppointmentDetailTests(IntakePhotoFixture fixture) : IC
             await AssertCancellationSnapshotAsync(data, cancellable);
             await AssertDetailAsync(client, cancellable, "Cancelled", DevelopmentFixtureManifest.Branches[0].Name);
             Assert.Equal(CheckInStatus.Succeeded,
-                (await services.GetRequiredService<IAppointmentCheckInStore>()
+                (await services.GetRequiredService<AppointmentCheckInService>()
                     .CheckInAsync(data.StaffId, booked.Id, CheckInTestData.Evidence, CancellationToken.None)).Status);
             await AssertDetailAsync(client, booked, "CheckedIn", DevelopmentFixtureManifest.Branches[0].Name);
             Assert.NotEqual(booked.Vehicle.MileageKilometres, CheckInTestData.Evidence.MileageKilometres);

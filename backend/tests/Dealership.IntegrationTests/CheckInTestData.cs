@@ -4,7 +4,6 @@ using Dealership.Application.Intake;
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Common;
 using Dealership.Domain.Intake;
-using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Development;
 using Dealership.Infrastructure.Identity;
 using Dealership.Infrastructure.Intake;
@@ -121,24 +120,11 @@ internal sealed class CheckInTestData : IDisposable
     public async Task<AppointmentCheckIn> SaveBundleAsync(Guid appointmentId, CheckInEvidence? evidence = null)
     {
         using var scope = Factory.Services.CreateScope();
+        var result = await scope.ServiceProvider.GetRequiredService<AppointmentCheckInService>()
+            .CheckInAsync(StaffId, appointmentId, evidence ?? Evidence, CancellationToken.None);
+        Assert.Equal(CheckInStatus.Succeeded, result.Status);
         var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
-        var (checkIn, vehicle) = await CreateBundleAsync(database, appointmentId, evidence);
-        database.Vehicles.Add(vehicle);
-        database.AppointmentCheckIns.Add(checkIn);
-        database.AppointmentMailOutbox.Add(new AppointmentMail(appointmentId, AppointmentMailKind.CheckIn,
-            CustomerEmail, checkIn.CheckedInAt));
-        await database.SaveChangesAsync();
-        return checkIn;
-    }
-
-    public async Task<(AppointmentCheckIn CheckIn, Vehicle Vehicle)> CreateBundleAsync(DealershipDbContext database,
-        Guid appointmentId, CheckInEvidence? evidence = null)
-    {
-        var appointment = await database.IntakeAppointments.SingleAsync(item => item.Id == appointmentId);
-        var now = DateTimeOffset.UtcNow;
-        now = new DateTimeOffset(now.UtcTicks - now.UtcTicks % 10, TimeSpan.Zero);
-        var checkIn = new AppointmentCheckIn(Guid.NewGuid(), appointment, StaffId, evidence ?? Evidence, now);
-        return (checkIn, new Vehicle(appointment, checkIn));
+        return await database.AppointmentCheckIns.AsNoTracking().SingleAsync(item => item.AppointmentId == appointmentId);
     }
 
     public void Dispose()

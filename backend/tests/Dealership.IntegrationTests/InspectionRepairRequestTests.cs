@@ -27,7 +27,7 @@ public sealed class InspectionRepairRequestTests(IntakePhotoFixture fixture) : I
         var appointment = await data.BookAsync();
         using var scope = data.Factory.Services.CreateScope();
         var services = scope.ServiceProvider;
-        var checkIn = await services.GetRequiredService<IAppointmentCheckInStore>()
+        var checkIn = await services.GetRequiredService<AppointmentCheckInService>()
             .CheckInAsync(data.StaffId, appointment.Id, CheckInTestData.Evidence, CancellationToken.None);
         var (technician, email) = await ProvisionAsync(services, data.BranchId, AccountRoles.WorkshopTechnician);
         var (manager, _) = await ProvisionAsync(services, data.BranchId, AccountRoles.BranchManager);

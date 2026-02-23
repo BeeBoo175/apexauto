@@ -20,7 +20,7 @@ public sealed class AppointmentCheckInMailTests(IntakePhotoFixture fixture) : IC
         await signal.WaitAsync(CancellationToken.None).AsTask().WaitAsync(TimeSpan.FromSeconds(5));
         using (var scope = data.Factory.Services.CreateScope())
         {
-            var result = await scope.ServiceProvider.GetRequiredService<IAppointmentCheckInStore>()
+            var result = await scope.ServiceProvider.GetRequiredService<AppointmentCheckInService>()
                 .CheckInAsync(data.StaffId, appointment.Id, CheckInTestData.Evidence, CancellationToken.None);
             Assert.Equal(CheckInStatus.Succeeded, result.Status);
         }

@@ -138,7 +138,7 @@ public sealed class AppointmentCheckInTests(IntakePhotoFixture fixture) : IClass
         Guid appointmentId, CheckInEvidence evidence)
     {
         using var scope = factory.Services.CreateScope();
-        return await scope.ServiceProvider.GetRequiredService<IAppointmentCheckInStore>()
+        return await scope.ServiceProvider.GetRequiredService<AppointmentCheckInService>()
             .CheckInAsync(staffId, appointmentId, evidence, CancellationToken.None);
     }
 

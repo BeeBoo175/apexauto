@@ -173,7 +173,7 @@ public sealed class StaffIntakeRaceTests(IntakePhotoFixture fixture) : IClassFix
         Guid id, CheckInEvidence evidence, CancellationToken cancellationToken = default)
     {
         using var scope = factory.Services.CreateScope();
-        return await scope.ServiceProvider.GetRequiredService<IAppointmentCheckInStore>()
+        return await scope.ServiceProvider.GetRequiredService<AppointmentCheckInService>()
             .CheckInAsync(data.StaffId, id, evidence, cancellationToken);
     }
 

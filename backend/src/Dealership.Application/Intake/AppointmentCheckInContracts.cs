@@ -1,4 +1,5 @@
 using Dealership.Domain.Intake;
+using Dealership.Domain.Vehicles;
 
 namespace Dealership.Application.Intake;
 
@@ -22,11 +23,28 @@ public enum CheckInStatus
 
 public sealed record CheckInResult(CheckInStatus Status, CheckInReceipt? Receipt = null);
 
+public sealed record CheckInStaff(bool IsActive, string Role, Guid? BranchId);
+
+public sealed record CheckInCustomer(bool IsActive, bool EmailConfirmed, string Role);
+
+public sealed record CheckInContext(IntakeAppointment? Appointment, CheckInStaff? Staff,
+    CheckInCustomer? Customer, bool BranchActive, AppointmentCheckIn? Existing);
+
+public sealed record CheckInPhotoCandidate(Guid Id, DateTimeOffset? AvailableAt, bool RemovalPending);
+
+public interface IAppointmentCheckInTransaction : IAsyncDisposable
+{
+    CheckInContext Context { get; }
+
+    Task<DateTimeOffset> ReadDatabaseTimeAsync(CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<CheckInPhotoCandidate>> LockPhotosAsync(CancellationToken cancellationToken);
+
+    Task<CheckInStatus> CommitAsync(Vehicle vehicle, AppointmentCheckIn checkIn, DateTimeOffset recordedAt,
+        CancellationToken cancellationToken);
+}
+
 public interface IAppointmentCheckInStore
 {
-    Task<CheckInResult> CheckInAsync(Guid staffId, Guid appointmentId, CheckInEvidence evidence,
-        CancellationToken cancellationToken);
-
-    Task<CheckInResult> CorrectNoShowAsync(Guid staffId, Guid appointmentId, CheckInEvidence evidence,
-        NoShowCorrectionRequest correction, CancellationToken cancellationToken);
+    Task<IAppointmentCheckInTransaction> LockAsync(Guid staffId, Guid appointmentId, CancellationToken cancellationToken);
 }

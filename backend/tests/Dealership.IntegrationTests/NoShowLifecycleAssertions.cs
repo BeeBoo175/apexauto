@@ -104,7 +104,7 @@ internal static class NoShowLifecycleAssertions
         Guid appointmentId, CheckInEvidence evidence, NoShowCorrectionRequest correction)
     {
         using var scope = factory.Services.CreateScope();
-        return await scope.ServiceProvider.GetRequiredService<IAppointmentCheckInStore>()
+        return await scope.ServiceProvider.GetRequiredService<AppointmentCheckInService>()
             .CorrectNoShowAsync(staffId, appointmentId, evidence, correction, CancellationToken.None);
     }
 }

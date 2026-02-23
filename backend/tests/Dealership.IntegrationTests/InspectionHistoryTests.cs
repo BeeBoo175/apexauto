@@ -166,7 +166,7 @@ public sealed class InspectionHistoryTests(IntakePhotoFixture fixture) : IClassF
     {
         var appointment = await data.BookAsync(slot, plate);
         using var scope = data.Factory.Services.CreateScope();
-        var checkIn = await scope.ServiceProvider.GetRequiredService<IAppointmentCheckInStore>()
+        var checkIn = await scope.ServiceProvider.GetRequiredService<AppointmentCheckInService>()
             .CheckInAsync(data.StaffId, appointment.Id, CheckInTestData.Evidence with { Vin = vin }, CancellationToken.None);
         Assert.Equal(CheckInStatus.Succeeded, checkIn.Status);
         var claim = await scope.ServiceProvider.GetRequiredService<IInspectionAssignmentStore>().AssignAsync(technician,
