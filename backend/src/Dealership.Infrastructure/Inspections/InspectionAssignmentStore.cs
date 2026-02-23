@@ -2,11 +2,8 @@ using System.Data;
 using Dealership.Application.Accounts;
 using Dealership.Application.Common;
 using Dealership.Application.Inspections;
-using Dealership.Domain.Inspections;
-using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 
 namespace Dealership.Infrastructure.Inspections;
 
@@ -38,31 +35,11 @@ public sealed class InspectionAssignmentStore(DealershipDbContext database) : II
         return new(InspectionAssignmentStatus.Succeeded, new(Array.AsReadOnly(items), total, page, pageSize));
     }
 
-    public async Task<InspectionAssignmentResult> AssignAsync(Guid actorId, Guid vehicleId,
+    public async Task<IInspectionAssignmentTransaction> LockAsync(Guid actorId, Guid vehicleId,
         InspectionAssignmentRequest request, CancellationToken cancellationToken)
     {
-        if (actorId == Guid.Empty || vehicleId == Guid.Empty || request.OperationId == Guid.Empty ||
-            request.TechnicianId == Guid.Empty || request.ExpectedVersion is < 0 or long.MaxValue)
-        {
-            return new(InspectionAssignmentStatus.Invalid);
-        }
+        var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
 
-        try
-        {
-            request = request with { Reason = InspectionAssignment.NormalizeReason(request.Reason) };
-        }
-        catch (ArgumentException)
-        {
-            return new(InspectionAssignmentStatus.Invalid);
-        }
-
-        var claim = request.ExpectedVersion == 0;
-        if (claim && (request.TechnicianId != actorId || request.Reason is not null) || !claim && request.Reason is null)
-        {
-            return new(InspectionAssignmentStatus.Invalid);
-        }
-
-        await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
         try
         {
             await database.Database.ExecuteSqlInterpolatedAsync(
@@ -71,87 +48,43 @@ public sealed class InspectionAssignmentStore(DealershipDbContext database) : II
                 SELECT * FROM "AspNetUsers" WHERE "Id" IN ({actorId}, {request.TechnicianId}) ORDER BY "Id" FOR SHARE
                 """).AsNoTracking().ToArrayAsync(cancellationToken);
             var actor = users.SingleOrDefault(item => item.Id == actorId);
-            var role = claim ? AccountRoles.WorkshopTechnician : AccountRoles.BranchManager;
-            if (actor is not { IsActive: true, BranchId: not null } || actor.Role != role)
-            {
-                return new(InspectionAssignmentStatus.Forbidden);
-            }
+            var technician = users.SingleOrDefault(item => item.Id == request.TechnicianId);
+            var branchActive = false;
 
-            var activeBranch = await database.Branches.FromSqlInterpolated(
-                $"SELECT * FROM \"Branches\" WHERE \"Id\" = {actor.BranchId} FOR SHARE")
-                .AnyAsync(item => item.IsActive, cancellationToken);
-            if (!activeBranch)
+            if (actor?.BranchId is not null)
             {
-                return new(InspectionAssignmentStatus.Forbidden);
+                branchActive = await database.Branches.FromSqlInterpolated(
+                    $"SELECT * FROM \"Branches\" WHERE \"Id\" = {actor.BranchId} FOR SHARE")
+                    .AnyAsync(item => item.IsActive, cancellationToken);
             }
 
             var vehicle = await database.Vehicles.FromSqlInterpolated(
                 $"SELECT * FROM \"Vehicles\" WHERE \"Id\" = {vehicleId} FOR UPDATE")
                 .AsNoTracking().SingleOrDefaultAsync(cancellationToken);
-            if (vehicle is null || vehicle.BranchId != actor.BranchId)
-            {
-                return new(InspectionAssignmentStatus.NotFound);
-            }
-
             var existing = await database.InspectionAssignments.AsNoTracking()
                 .SingleOrDefaultAsync(item => item.Id == request.OperationId, cancellationToken);
-            if (existing is not null)
-            {
-                var sameVehicle = await database.InspectionDrafts.AnyAsync(
-                    item => item.Id == existing.InspectionId && item.VehicleId == vehicleId, cancellationToken);
-                var matches = sameVehicle && existing.ActorId == actorId && existing.TechnicianId == request.TechnicianId &&
-                    existing.ExpectedVersion == request.ExpectedVersion && existing.Reason == request.Reason;
-                return matches ? Success(existing, vehicleId) : new(InspectionAssignmentStatus.Conflict);
-            }
-
-            var technician = users.SingleOrDefault(item => item.Id == request.TechnicianId);
-            if (technician is not { IsActive: true } || technician.Role != AccountRoles.WorkshopTechnician ||
-                technician.BranchId != vehicle.BranchId || vehicle.Status != VehicleStatus.PendingInspection)
-            {
-                return new(InspectionAssignmentStatus.Conflict);
-            }
-
+            var existingVehicleId = existing is null ? null : await database.InspectionDrafts
+                .Where(item => item.Id == existing.InspectionId).Select(item => (Guid?)item.VehicleId)
+                .SingleOrDefaultAsync(cancellationToken);
             var draft = await database.InspectionDrafts.SingleOrDefaultAsync(item => item.VehicleId == vehicleId, cancellationToken);
-            if (claim && draft is not null || !claim && (draft is null || draft.AssignmentVersion != request.ExpectedVersion ||
-                draft.TechnicianId == request.TechnicianId || draft.IsSigned))
+            var context = new InspectionAssignmentContext(
+                actor is null ? null : new InspectionStaff(actor.IsActive, actor.Role, actor.BranchId), branchActive, vehicle,
+                technician is null ? null : new InspectionStaff(technician.IsActive, technician.Role, technician.BranchId),
+                existing, existingVehicleId, draft);
+            return new InspectionAssignmentTransaction(database, transaction, context);
+        }
+        catch
+        {
+            try
             {
-                return new(InspectionAssignmentStatus.Conflict);
+                await transaction.DisposeAsync();
+            }
+            finally
+            {
+                database.ChangeTracker.Clear();
             }
 
-            var now = await database.Database.SqlQuery<DateTimeOffset>($"SELECT clock_timestamp() AS \"Value\"")
-                .SingleAsync(cancellationToken);
-            Guid? previous = draft?.TechnicianId;
-            if (draft is null)
-            {
-                draft = new InspectionDraft(request.OperationId, vehicle, request.TechnicianId, now);
-                database.InspectionDrafts.Add(draft);
-            }
-            else
-            {
-                draft.Reassign(request.TechnicianId, request.ExpectedVersion);
-            }
-
-            // The deferred receipt guard keeps both writes atomic while the draft precedes its receipt.
-            await database.SaveChangesAsync(cancellationToken);
-            var assignment = new InspectionAssignment(request.OperationId, draft, actorId, previous,
-                request.ExpectedVersion, request.Reason, now);
-            database.InspectionAssignments.Add(assignment);
-            await database.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
-            return Success(assignment, vehicleId);
-        }
-        catch (DbUpdateException exception) when (exception.InnerException is PostgresException
-        { SqlState: PostgresErrorCodes.UniqueViolation })
-        {
-            return new(InspectionAssignmentStatus.Conflict);
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            return new(InspectionAssignmentStatus.Conflict);
-        }
-        finally
-        {
-            database.ChangeTracker.Clear();
+            throw;
         }
     }
 
@@ -213,12 +146,5 @@ public sealed class InspectionAssignmentStore(DealershipDbContext database) : II
             draft = draft with { LatestSave = latest?.Receipt(), Vehicle = vehicle, PhotoReferences = photos };
         }
         return draft is null ? new(InspectionAssignmentStatus.NotFound) : new(InspectionAssignmentStatus.Succeeded, draft);
-    }
-
-    private static InspectionAssignmentResult Success(InspectionAssignment assignment, Guid vehicleId)
-    {
-        return new(InspectionAssignmentStatus.Succeeded, new InspectionAssignmentReceipt(assignment.Id,
-            assignment.InspectionId, vehicleId, assignment.BranchId, assignment.ActorId, assignment.TechnicianId,
-            assignment.PreviousTechnicianId, assignment.ExpectedVersion, assignment.Version, assignment.Reason, assignment.RecordedAt));
     }
 }

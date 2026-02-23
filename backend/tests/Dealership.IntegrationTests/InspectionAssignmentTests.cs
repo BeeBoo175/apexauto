@@ -209,7 +209,7 @@ public sealed class InspectionAssignmentTests(IntakePhotoFixture fixture) : ICla
         Guid vehicle, InspectionAssignmentRequest request)
     {
         using var scope = factory.Services.CreateScope();
-        return await scope.ServiceProvider.GetRequiredService<IInspectionAssignmentStore>()
+        return await scope.ServiceProvider.GetRequiredService<InspectionAssignmentService>()
             .AssignAsync(actor, vehicle, request, CancellationToken.None);
     }
 

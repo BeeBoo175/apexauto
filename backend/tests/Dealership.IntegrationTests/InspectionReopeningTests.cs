@@ -36,7 +36,7 @@ public sealed class InspectionReopeningTests(IntakePhotoFixture fixture) : IClas
         await services.GetRequiredService<BranchProvisioningService>().ProvisionBranchAsync(
             DevelopmentFixtureManifest.Branches[1] with { Id = branch }, CancellationToken.None);
         var (outside, _) = await ProvisionAsync(services, branch, AccountRoles.BranchManager);
-        var claim = await services.GetRequiredService<IInspectionAssignmentStore>().AssignAsync(technician,
+        var claim = await services.GetRequiredService<InspectionAssignmentService>().AssignAsync(technician,
             checkIn.Receipt!.VehicleId, new(Guid.NewGuid(), technician, 0, null), CancellationToken.None);
         var inspection = claim.Receipt!.InspectionId;
         var request = new InspectionReopenRequest(Guid.NewGuid(), 1, 1, "Manager requests verification of retained flood evidence");

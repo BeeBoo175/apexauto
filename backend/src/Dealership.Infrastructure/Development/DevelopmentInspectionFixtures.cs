@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Dealership.Infrastructure.Development;
 
-public sealed class DevelopmentInspectionFixtures(DealershipDbContext database, IInspectionAssignmentStore assignments,
+public sealed class DevelopmentInspectionFixtures(DealershipDbContext database, InspectionAssignmentService assignments,
     IInspectionDraftSaveStore inspectionSaves, InspectionPhotoService inspectionPhotos, IPhotoImageValidator photoValidator,
     IInspectionReportStore inspectionReports, IInspectionRepairRequestStore inspectionRepairs,
     IInspectionRepairApprovalStore inspectionApprovals, IInspectionRepairCompletionStore inspectionCompletions)

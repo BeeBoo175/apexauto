@@ -37,7 +37,7 @@ public sealed class InspectionSignoffTests(IntakePhotoFixture fixture) : IClassF
         await services.GetRequiredService<BranchProvisioningService>().ProvisionBranchAsync(
             DevelopmentFixtureManifest.Branches[1] with { Id = otherBranch }, CancellationToken.None);
         var (outsideManager, _) = await ProvisionAsync(services, otherBranch, AccountRoles.BranchManager);
-        var claim = await services.GetRequiredService<IInspectionAssignmentStore>().AssignAsync(technician,
+        var claim = await services.GetRequiredService<InspectionAssignmentService>().AssignAsync(technician,
             checkIn.Receipt!.VehicleId, new(Guid.NewGuid(), technician, 0, null), CancellationToken.None);
         var inspection = claim.Receipt!.InspectionId;
         var photoId = Guid.NewGuid();
@@ -124,7 +124,7 @@ public sealed class InspectionSignoffTests(IntakePhotoFixture fixture) : IClassF
             (await restored.GetRequiredService<IInspectionReportStore>().ReadAsync(data.OwnerId, inspection, 1, CancellationToken.None)).Status);
         Assert.Equal(InspectionAssignmentStatus.Conflict, (await restored.GetRequiredService<IInspectionDraftSaveStore>()
             .SaveAsync(technician, inspection, saveRequest with { OperationId = Guid.NewGuid(), ExpectedVersion = 2 }, CancellationToken.None)).Status);
-        Assert.Equal(InspectionAssignmentStatus.Conflict, (await restored.GetRequiredService<IInspectionAssignmentStore>()
+        Assert.Equal(InspectionAssignmentStatus.Conflict, (await restored.GetRequiredService<InspectionAssignmentService>()
             .AssignAsync(manager, report.Vehicle.Id, new(Guid.NewGuid(), otherTechnician, 1, "Workshop handover"), CancellationToken.None)).Status);
         Assert.Equal(InspectionPhotoStatus.Conflict, await restored.GetRequiredService<InspectionPhotoService>()
             .CheckUploadAsync(technician, inspection, 1, CancellationToken.None));

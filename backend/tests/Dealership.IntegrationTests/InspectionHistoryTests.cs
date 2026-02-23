@@ -169,7 +169,7 @@ public sealed class InspectionHistoryTests(IntakePhotoFixture fixture) : IClassF
         var checkIn = await scope.ServiceProvider.GetRequiredService<AppointmentCheckInService>()
             .CheckInAsync(data.StaffId, appointment.Id, CheckInTestData.Evidence with { Vin = vin }, CancellationToken.None);
         Assert.Equal(CheckInStatus.Succeeded, checkIn.Status);
-        var claim = await scope.ServiceProvider.GetRequiredService<IInspectionAssignmentStore>().AssignAsync(technician,
+        var claim = await scope.ServiceProvider.GetRequiredService<InspectionAssignmentService>().AssignAsync(technician,
             checkIn.Receipt!.VehicleId, new(Guid.NewGuid(), technician, 0, null), CancellationToken.None);
         return claim.Receipt!.InspectionId;
     }

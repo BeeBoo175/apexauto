@@ -37,7 +37,7 @@ public sealed class InspectionRepairCompletionTests(IntakePhotoFixture fixture) 
         await services.GetRequiredService<BranchProvisioningService>().ProvisionBranchAsync(
             DevelopmentFixtureManifest.Branches[1] with { Id = branch }, CancellationToken.None);
         var (outside, _) = await ProvisionAsync(services, branch, AccountRoles.WorkshopTechnician);
-        var assigned = await services.GetRequiredService<IInspectionAssignmentStore>().AssignAsync(technician,
+        var assigned = await services.GetRequiredService<InspectionAssignmentService>().AssignAsync(technician,
             checkedIn.Receipt!.VehicleId, new(Guid.NewGuid(), technician, 0, null), CancellationToken.None);
         var inspection = assigned.Receipt!.InspectionId;
         var save = new InspectionDraftSaveRequest(Guid.NewGuid(), 1, 0,

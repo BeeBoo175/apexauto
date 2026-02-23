@@ -130,7 +130,7 @@ internal static class DevelopmentInspectionFixtureAssertions
             AccountRoles.WorkshopTechnician, selected.BranchId), CancellationToken.None);
         var manager = DevelopmentFixtureManifest.Staff.Single(item =>
             item.BranchId == selected.BranchId && item.Role == AccountRoles.BranchManager);
-        var change = await services.GetRequiredService<IInspectionAssignmentStore>().AssignAsync(manager.Id,
+        var change = await services.GetRequiredService<InspectionAssignmentService>().AssignAsync(manager.Id,
             selected.VehicleId, new InspectionAssignmentRequest(Guid.NewGuid(), replacement, 1, "Workshop reassignment"), CancellationToken.None);
         Assert.Equal(InspectionAssignmentStatus.Succeeded, change.Status);
         var saved = await DevelopmentIntakeFixtureAssertions.SnapshotAsync(provider);

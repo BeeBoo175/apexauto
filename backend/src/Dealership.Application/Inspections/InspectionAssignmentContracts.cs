@@ -1,4 +1,5 @@
 using Dealership.Domain.Inspections;
+using Dealership.Domain.Vehicles;
 
 namespace Dealership.Application.Inspections;
 
@@ -45,11 +46,26 @@ public sealed record InspectionAssignmentResult(InspectionAssignmentStatus Statu
 
 public sealed record InspectionDraftResult(InspectionAssignmentStatus Status, InspectionDraftSnapshot? Draft = null);
 
+public sealed record InspectionStaff(bool IsActive, string Role, Guid? BranchId);
+
+public sealed record InspectionAssignmentContext(InspectionStaff? Actor, bool BranchActive, Vehicle? Vehicle,
+    InspectionStaff? Technician, InspectionAssignment? Existing, Guid? ExistingVehicleId, InspectionDraft? Draft);
+
+public interface IInspectionAssignmentTransaction : IAsyncDisposable
+{
+    InspectionAssignmentContext Context { get; }
+
+    Task<DateTimeOffset> ReadDatabaseTimeAsync(CancellationToken cancellationToken);
+
+    Task<InspectionAssignmentStatus> CommitAsync(InspectionDraft draft, InspectionAssignment assignment,
+        CancellationToken cancellationToken);
+}
+
 public interface IInspectionAssignmentStore
 {
     Task<InspectionTechnicianResult> TechniciansAsync(Guid actorId, int page, int pageSize, CancellationToken cancellationToken);
 
-    Task<InspectionAssignmentResult> AssignAsync(Guid actorId, Guid vehicleId, InspectionAssignmentRequest request,
+    Task<IInspectionAssignmentTransaction> LockAsync(Guid actorId, Guid vehicleId, InspectionAssignmentRequest request,
         CancellationToken cancellationToken);
 
     Task<InspectionDraftResult> ReadAsync(Guid actorId, Guid inspectionId, CancellationToken cancellationToken);

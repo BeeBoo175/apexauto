@@ -43,7 +43,7 @@ public sealed class InspectionQueueTests(IntakePhotoFixture fixture) : IClassFix
                 continue;
             }
             var assigned = index == 0 ? technician : colleague;
-            Assert.Equal(InspectionAssignmentStatus.Succeeded, (await services.GetRequiredService<IInspectionAssignmentStore>()
+            Assert.Equal(InspectionAssignmentStatus.Succeeded, (await services.GetRequiredService<InspectionAssignmentService>()
                 .AssignAsync(assigned, vehicles[index], new(index == 0 ? inspection : Guid.NewGuid(), assigned, 0, null), CancellationToken.None)).Status);
         }
 

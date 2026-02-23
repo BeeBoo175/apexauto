@@ -27,7 +27,7 @@ public sealed class InspectionLifecycleTests(IntakePhotoFixture fixture) : IClas
         var vehicle = checkedIn.Receipt!.VehicleId;
         var technician = await ProvisionAsync(services, data.BranchId, AccountRoles.WorkshopTechnician);
         var manager = await ProvisionAsync(services, data.BranchId, AccountRoles.BranchManager);
-        var assignment = await services.GetRequiredService<IInspectionAssignmentStore>()
+        var assignment = await services.GetRequiredService<InspectionAssignmentService>()
             .AssignAsync(technician, vehicle, new(Guid.NewGuid(), technician, 0, null), CancellationToken.None);
         var inspection = assignment.Receipt!.InspectionId;
         var reports = services.GetRequiredService<IInspectionReportStore>();

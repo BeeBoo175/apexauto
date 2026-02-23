@@ -31,7 +31,7 @@ public sealed class InspectionDraftSaveTests(IntakePhotoFixture fixture) : IClas
         var (replacementId, _) = await ProvisionAsync(services, data.BranchId, AccountRoles.WorkshopTechnician);
         var (managerId, _) = await ProvisionAsync(services, data.BranchId, AccountRoles.BranchManager);
         var (groupId, _) = await ProvisionAsync(services, null, AccountRoles.GeneralManager);
-        var assignment = await services.GetRequiredService<IInspectionAssignmentStore>().AssignAsync(technicianId, vehicleId,
+        var assignment = await services.GetRequiredService<InspectionAssignmentService>().AssignAsync(technicianId, vehicleId,
             new(Guid.NewGuid(), technicianId, 0, null), CancellationToken.None);
         var inspectionId = assignment.Receipt!.InspectionId;
         var request = new InspectionDraftSaveRequest(Guid.NewGuid(), 1, 0,
@@ -97,7 +97,7 @@ public sealed class InspectionDraftSaveTests(IntakePhotoFixture fixture) : IClas
 
         using var changeScope = restarted.Services.CreateScope();
         var changeServices = changeScope.ServiceProvider;
-        var reassigned = await changeServices.GetRequiredService<IInspectionAssignmentStore>().AssignAsync(managerId,
+        var reassigned = await changeServices.GetRequiredService<InspectionAssignmentService>().AssignAsync(managerId,
             vehicleId, new(Guid.NewGuid(), replacementId, 1, "Workshop handover"), CancellationToken.None);
         Assert.Equal(InspectionAssignmentStatus.Succeeded, reassigned.Status);
         Assert.Equal(InspectionAssignmentStatus.NotFound, (await SaveAsync(restarted, technicianId, inspectionId, request)).Status);

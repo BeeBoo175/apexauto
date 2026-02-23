@@ -139,7 +139,7 @@ public static class InspectionDraftEndpoints
         }
     }
 
-    private static async Task<IResult> AssignAsync(Guid id, HttpContext context, IInspectionAssignmentStore assignments,
+    private static async Task<IResult> AssignAsync(Guid id, HttpContext context, InspectionAssignmentService assignments,
         CancellationToken cancellationToken)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);

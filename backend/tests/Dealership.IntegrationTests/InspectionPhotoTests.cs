@@ -42,7 +42,7 @@ public sealed class InspectionPhotoTests(IntakePhotoFixture fixture) : IClassFix
         await services.GetRequiredService<BranchProvisioningService>().ProvisionBranchAsync(
             DevelopmentFixtureManifest.Branches[1] with { Id = otherBranch }, CancellationToken.None);
         var (outsiderId, _) = await ProvisionAsync(services, otherBranch, AccountRoles.WorkshopTechnician);
-        var claim = await services.GetRequiredService<IInspectionAssignmentStore>().AssignAsync(technicianId, vehicleId,
+        var claim = await services.GetRequiredService<InspectionAssignmentService>().AssignAsync(technicianId, vehicleId,
             new(Guid.NewGuid(), technicianId, 0, null), CancellationToken.None);
         var inspectionId = claim.Receipt!.InspectionId;
         var id = Guid.NewGuid();
@@ -132,7 +132,7 @@ public sealed class InspectionPhotoTests(IntakePhotoFixture fixture) : IClassFix
                 .UploadAsync(technicianId, inspectionId, pendingId, 1, "EP-004", "image/jpeg", input, CancellationToken.None));
         }
 
-        var handover = await services.GetRequiredService<IInspectionAssignmentStore>().AssignAsync(managerId, vehicleId,
+        var handover = await services.GetRequiredService<InspectionAssignmentService>().AssignAsync(managerId, vehicleId,
             new(Guid.NewGuid(), replacementId, 1, "Workshop handover after evidence upload"), CancellationToken.None);
         Assert.Equal(InspectionAssignmentStatus.Succeeded, handover.Status);
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync(path + "/receipt")).StatusCode);
