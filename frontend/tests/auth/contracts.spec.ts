@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import { parseAccount, parseSession, safeReturnTo } from "../../src/lib/auth/contracts";
 import { trustedClientAddress } from "../../src/lib/server/http/client-address";
 import { HttpError, readBoundedJson } from "../../src/lib/http";
+import { apiFetch } from "../../src/lib/api-browser";
 
 test("return destinations stay inside the supported account route", () => {
   for (const destination of [
@@ -135,4 +136,58 @@ test("missing and malformed JSON bodies remain rejected after cleanup", async ()
   const body = new Response('{"budget":').body!;
   await expect(readBoundedJson(body, signal, 1024)).rejects.toBeInstanceOf(SyntaxError);
   expect(body.locked).toBe(false);
+});
+
+test("shared browser transport validates envelopes and preserves private actor requirements", async () => {
+  const previousFetch = globalThis.fetch;
+  const previousWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+  const events = new EventTarget();
+  let sessionChanges = 0;
+  events.addEventListener("apexauto-session-invalid", () => sessionChanges++);
+  Object.defineProperty(globalThis, "window", { configurable: true, value: events });
+  const parse = (value: unknown) => (value === "confirmed" ? value : null);
+  const envelope = { status: 200, data: "confirmed", message: "", uncertain: false };
+
+  try {
+    globalThis.fetch = async () => Response.json(envelope);
+    await expect(apiFetch("/api/intake/branches", parse)).resolves.toMatchObject({
+      data: "confirmed",
+    });
+    await expect(
+      apiFetch(
+        "/api/staff/inspection/vehicles",
+        parse,
+        {},
+        { deadlineMs: 1000, maximumResponseBytes: 1024, requireActor: true },
+      ),
+    ).rejects.toThrow("Unconfirmed service response");
+    globalThis.fetch = async () => Response.json({ ...envelope, status: 201 });
+    await expect(apiFetch("/api/intake/branches", parse)).rejects.toThrow(
+      "Unreadable service response",
+    );
+    globalThis.fetch = async () =>
+      Response.json(
+        { status: 403, data: null, message: "Access unavailable", uncertain: false },
+        { status: 403 },
+      );
+    await expect(
+      apiFetch(
+        "/api/staff/inspection/vehicles",
+        parse,
+        {},
+        { deadlineMs: 1000, maximumResponseBytes: 1024, requireActor: true },
+      ),
+    ).resolves.toMatchObject({
+      status: 403,
+      data: null,
+    });
+    expect(sessionChanges).toBe(1);
+  } finally {
+    globalThis.fetch = previousFetch;
+    if (previousWindow) {
+      Object.defineProperty(globalThis, "window", previousWindow);
+    } else {
+      Reflect.deleteProperty(globalThis, "window");
+    }
+  }
 });

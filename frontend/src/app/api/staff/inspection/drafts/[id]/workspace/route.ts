@@ -1,6 +1,6 @@
 import { isUuid } from "@/lib/auth/contracts";
 import { readCurrentActor } from "@/lib/auth/server";
-import { intakeError, intakeJson } from "@/lib/intake/routes";
+import { apiError, apiJson } from "@/lib/server/http/api";
 import { HttpError } from "@/lib/http";
 import { readEditor } from "@/lib/inspection/editor-server";
 
@@ -18,8 +18,8 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
         "Your session could not be confirmed.",
       );
     }
-    return intakeJson({ ...(await readEditor(id, signal)), actor: current.actor });
+    return apiJson({ ...(await readEditor(id, signal)), actor: current.actor });
   } catch (error) {
-    return intakeError(error);
+    return apiError(error);
   }
 }

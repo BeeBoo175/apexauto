@@ -2,9 +2,11 @@
 import { useEffect, useRef, useState } from "react";
 import { inspectionFetch } from "@/lib/inspection/browser";
 import { dateRangeError } from "@/lib/intake/list-query";
-import type { ApiResult, Branch, Page } from "@/lib/intake/contracts";
-import { parseBranch, parsePage } from "@/lib/intake/parse";
-import { intakeFetch } from "@/lib/intake/browser";
+import type { ApiResult, Page } from "@/lib/api";
+import type { Branch } from "@/lib/branches";
+import { parseBranch } from "@/lib/branches";
+import { parsePage } from "@/lib/api";
+import { apiFetch } from "@/lib/api-browser";
 import type { QueueFilters, QueueKind } from "@/lib/inspection/contracts";
 import { queuePath, queueQuery } from "@/lib/inspection/query";
 import { useToast } from "@/components/ui/Toast";
@@ -102,7 +104,7 @@ export function useInspectionQueue<T>(
     controller.current = attempt;
     setBusy(true);
     try {
-      const result = await intakeFetch(
+      const result = await apiFetch(
         `/api/intake/branches?page=${page}`,
         (v) => parsePage(v, parseBranch),
         { signal: attempt.signal },

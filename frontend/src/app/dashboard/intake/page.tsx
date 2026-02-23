@@ -2,8 +2,8 @@ import { StaffEntry } from "@/components/staff/StaffEntry";
 import { actorIdentity, hasIntakeAccess } from "@/lib/auth/actor";
 import { staffBranches } from "@/lib/staff/server";
 import { isUuid } from "@/lib/auth/contracts";
-import { privateIntakeRead } from "@/lib/intake/server";
-import { parsePage } from "@/lib/intake/parse";
+import { privateApiRead } from "@/lib/server/http/api";
+import { parsePage } from "@/lib/api";
 import { parseDetail, parseWorklistItem } from "@/lib/staff/parse";
 import { staffParams, staffQuery } from "@/lib/staff/query";
 import { IntakeWorkspace } from "@/components/staff/IntakeWorkspace";
@@ -36,13 +36,13 @@ export default async function IntakePage({
         const selectedId = isUuid(params.appointment) ? params.appointment : "";
         const [initial, calendar, branches, selected] = await Promise.all([
           listView
-            ? privateIntakeRead(
+            ? privateApiRead(
                 `/api/staff/intake/appointments?${staffQuery(filters, page)}`,
                 (value) => parsePage(value, parseWorklistItem),
               )
             : null,
           !listView
-            ? privateIntakeRead(
+            ? privateApiRead(
                 `/api/staff/intake/calendar?${calendarQuery(calendarFilters)}`,
                 (value) => parseCalendar(value, calendarReadRange(calendarFilters)),
                 undefined,
@@ -51,7 +51,7 @@ export default async function IntakePage({
             : null,
           staffBranches(actor),
           selectedId
-            ? privateIntakeRead(`/api/staff/intake/appointments/${selectedId}`, parseDetail)
+            ? privateApiRead(`/api/staff/intake/appointments/${selectedId}`, parseDetail)
             : null,
         ]);
         return (

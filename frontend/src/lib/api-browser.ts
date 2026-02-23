@@ -1,23 +1,31 @@
 import { isRecord } from "@/lib/auth/contracts";
-import { INTAKE_DEADLINE_MS } from "./contracts";
-import type { ApiResult } from "./contracts";
 import { parseActor } from "@/lib/auth/actor";
+import { API_DEADLINE_MS, type ApiResult } from "./api";
+import { readBoundedJson } from "./http";
 
-export async function intakeFetch<T>(
+export async function apiFetch<T>(
   path: string,
   parse: (value: unknown) => T | null,
   options: RequestInit = {},
-  deadline = INTAKE_DEADLINE_MS,
+  policy: {
+    deadlineMs?: number;
+    maximumResponseBytes?: number;
+    requireActor?: boolean;
+  } = {},
 ): Promise<ApiResult<T>> {
   const signal = AbortSignal.any([
-    AbortSignal.timeout(deadline + 2000),
+    AbortSignal.timeout(policy.deadlineMs ?? API_DEADLINE_MS + 2000),
     ...(options.signal ? [options.signal] : []),
   ]);
   const response = await fetch(path, { ...options, cache: "no-store", signal });
   if (response.status === 401 || response.status === 403) {
     window.dispatchEvent(new Event("apexauto-session-invalid"));
   }
-  const value: unknown = await response.json();
+  const value = await readBoundedJson(
+    response.body,
+    signal,
+    policy.maximumResponseBytes ?? 1200 * 1024,
+  );
   if (
     !isRecord(value) ||
     value.status !== response.status ||
@@ -26,12 +34,12 @@ export async function intakeFetch<T>(
   ) {
     throw new Error("Unreadable service response");
   }
-  const data = parse(value.data);
   const actor = parseActor(value.actor);
   if (actor) {
     window.dispatchEvent(new CustomEvent("apexauto-intake-actor", { detail: actor }));
   }
-  if (response.ok && !data) {
+  const data = parse(value.data);
+  if (response.ok && (!data || (policy.requireActor && !actor))) {
     throw new Error("Unconfirmed service response");
   }
   return { status: response.status, data, message: value.message, uncertain: value.uncertain };

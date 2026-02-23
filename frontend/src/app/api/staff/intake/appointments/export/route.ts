@@ -1,5 +1,5 @@
-import { intakeToken } from "@/lib/intake/server";
-import { intakeError } from "@/lib/intake/routes";
+import { sessionToken } from "@/lib/server/http/api";
+import { apiError } from "@/lib/server/http/api";
 import { requireSameOrigin } from "@/lib/server/http/request";
 import { relayPrivateCsv } from "@/lib/server/http/csv-export";
 
@@ -27,7 +27,7 @@ async function exportCsv(request: Request, background: boolean) {
     return await relayPrivateCsv(
       request,
       `/api/staff/intake/appointments/export${suffix}?${query}`,
-      await intakeToken(),
+      await sessionToken(),
       {
         deadlineMs: background ? 125000 : 22000,
         maximumBytes: (background ? 64 : 8) * 1024 * 1024,
@@ -35,6 +35,6 @@ async function exportCsv(request: Request, background: boolean) {
       },
     );
   } catch (error) {
-    return intakeError(error);
+    return apiError(error);
   }
 }

@@ -1,5 +1,5 @@
 import { isRecord } from "@/lib/auth/contracts";
-import { parseItems } from "@/lib/intake/parse";
+import { parseItems } from "@/lib/api";
 import { parseDraft, parseRepairPage, parsePhotoReference } from "./parse";
 import { parseReport, parseRevisions, parseRepairs } from "./parse-report";
 import type { Draft, RepairRow, PhotoReference } from "./contracts";

@@ -1,7 +1,6 @@
+import type { Branch } from "@/lib/branches";
+import type { Page } from "@/lib/api";
 import type { CustomerAccount } from "@/lib/auth/contracts";
-import type { CurrentActor } from "@/lib/auth/actor";
-
-export const INTAKE_DEADLINE_MS = 25_000;
 export const PHOTO_DEADLINE_MS = 100_000;
 export const PHOTO_MAX_BYTES = 10 * 1024 * 1024;
 export const angles = ["Driver", "Passenger", "Front", "Rear"] as const;
@@ -28,22 +27,6 @@ export interface Quote {
   maxValuation: number;
   currency: string;
   valuationYear: number;
-}
-
-export interface Branch {
-  id: string;
-  name: string;
-  address: string;
-  city: string;
-  state: string;
-  phone: string;
-}
-
-export interface Page<T> {
-  items: T[];
-  total: number;
-  page: number;
-  pageSize: number;
 }
 
 export interface Slot {
@@ -98,12 +81,4 @@ export interface SellerSnapshot {
   branches: Page<Branch> | null;
   account: CustomerAccount | null;
   access: number;
-}
-
-export interface ApiResult<T> {
-  status: number;
-  data: T | null;
-  message: string;
-  uncertain: boolean;
-  actor?: CurrentActor;
 }

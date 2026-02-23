@@ -2,8 +2,9 @@ import { redirect } from "next/navigation";
 import { AccountWorkspace } from "@/components/account/AccountWorkspace";
 import { readOwnAccount, readCurrentActor } from "@/lib/auth/server";
 import { actorDestination } from "@/lib/auth/actor";
-import { privateIntakeRead } from "@/lib/intake/server";
-import { parseAppointment, parsePage } from "@/lib/intake/parse";
+import { privateApiRead } from "@/lib/server/http/api";
+import { parseAppointment } from "@/lib/intake/parse";
+import { parsePage } from "@/lib/api";
 import { historyParams, historyQuery } from "@/lib/intake/list-query";
 
 export const metadata = {
@@ -33,7 +34,7 @@ export default async function AccountPage({
   }
 
   const { filters, page } = historyParams(await searchParams);
-  const history = await privateIntakeRead(
+  const history = await privateApiRead(
     `/api/intake/appointments?${historyQuery(filters, page)}`,
     (value) => parsePage(value, parseAppointment),
   );

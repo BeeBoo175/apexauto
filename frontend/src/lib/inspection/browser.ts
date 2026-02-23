@@ -1,42 +1,14 @@
-import { isRecord } from "@/lib/auth/contracts";
-import { parseActor } from "@/lib/auth/actor";
-import type { ApiResult } from "@/lib/intake/contracts";
-import { readBoundedJson } from "@/lib/http";
+import { apiFetch } from "@/lib/api-browser";
 
-export async function inspectionFetch<T>(
+export function inspectionFetch<T>(
   path: string,
-  parse: (v: unknown) => T | null,
+  parse: (value: unknown) => T | null,
   options: RequestInit = {},
   deadline = 22_000,
-): Promise<ApiResult<T>> {
-  const signal = AbortSignal.any([
-    AbortSignal.timeout(deadline),
-    ...(options.signal ? [options.signal] : []),
-  ]);
-  const response = await fetch(`/api/staff/inspection/${path}`, {
-    ...options,
-    cache: "no-store",
-    signal,
+) {
+  return apiFetch(`/api/staff/inspection/${path}`, parse, options, {
+    deadlineMs: deadline,
+    maximumResponseBytes: 1200 * 1024,
+    requireActor: true,
   });
-  if (response.status === 401 || response.status === 403) {
-    window.dispatchEvent(new Event("apexauto-session-invalid"));
-  }
-  const value = await readBoundedJson(response.body, signal, 1200 * 1024);
-  if (
-    !isRecord(value) ||
-    value.status !== response.status ||
-    typeof value.uncertain !== "boolean" ||
-    typeof value.message !== "string"
-  ) {
-    throw new Error("Unreadable inspection response");
-  }
-  const actor = parseActor(value.actor);
-  if (actor) {
-    window.dispatchEvent(new CustomEvent("apexauto-intake-actor", { detail: actor }));
-  }
-  const data = parse(value.data);
-  if (response.ok && (!data || !actor)) {
-    throw new Error("Unconfirmed inspection response");
-  }
-  return { status: response.status, data, message: value.message, uncertain: value.uncertain };
 }

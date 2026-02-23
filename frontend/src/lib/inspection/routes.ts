@@ -3,8 +3,8 @@ import { isRecord, isUuid } from "@/lib/auth/contracts";
 import { readCurrentActor } from "@/lib/auth/server";
 import { HttpError, readBoundedJson } from "@/lib/http";
 import { requireSameOrigin } from "@/lib/server/http/request";
-import { intakeRead, intakeToken } from "@/lib/intake/server";
-import { intakeError, intakeJson } from "@/lib/intake/routes";
+import { apiRead, sessionToken } from "@/lib/server/http/api";
+import { apiError, apiJson } from "@/lib/server/http/api";
 
 export function inspectionQuery(request: Request, history = false) {
   const source = new URL(request.url).searchParams;
@@ -30,7 +30,7 @@ export async function relayInspection<T>(
     if (request.method !== "GET") {
       requireSameOrigin(request);
     }
-    const token = await intakeToken();
+    const token = await sessionToken();
     if (!token) {
       throw new HttpError(401, "Sign in to continue.");
     }
@@ -51,19 +51,19 @@ export async function relayInspection<T>(
         throw new HttpError(400, "Provide an operation ID and valid inspection details.");
       }
     }
-    const result = await intakeRead(
+    const result = await apiRead(
       `/api/staff/inspection/${path}`,
       parse,
       { token, signal, method: request.method, body },
       20_000,
       1024 * 1024,
     );
-    return intakeJson({ ...result, actor: current.actor });
+    return apiJson({ ...result, actor: current.actor });
   } catch (error) {
     if (error instanceof SyntaxError) {
-      return intakeError(new HttpError(400, "Provide valid JSON details."));
+      return apiError(new HttpError(400, "Provide valid JSON details."));
     }
-    return intakeError(error);
+    return apiError(error);
   }
 }
 
@@ -75,13 +75,13 @@ export function relayInspectionResource<T>(
   revision?: string,
 ) {
   if (!isUuid(id)) {
-    return intakeError(new HttpError(400, "Choose a valid inspection ID."));
+    return apiError(new HttpError(400, "Choose a valid inspection ID."));
   }
   if (
     revision !== undefined &&
     (!/^\d+$/.test(revision) || !Number.isSafeInteger(Number(revision)) || Number(revision) < 1)
   ) {
-    return intakeError(new HttpError(400, "Choose a valid report revision."));
+    return apiError(new HttpError(400, "Choose a valid report revision."));
   }
   return relayInspection(request, path, parse);
 }

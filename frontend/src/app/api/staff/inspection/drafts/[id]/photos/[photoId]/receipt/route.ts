@@ -1,7 +1,7 @@
 import { relayInspectionResource } from "@/lib/inspection/routes";
 import { parsePhoto } from "@/lib/inspection/parse-report";
 import { isUuid } from "@/lib/auth/contracts";
-import { intakeError } from "@/lib/intake/routes";
+import { apiError } from "@/lib/server/http/api";
 import { HttpError } from "@/lib/http";
 
 export async function GET(
@@ -10,7 +10,7 @@ export async function GET(
 ) {
   const { id, photoId } = await context.params;
   if (!isUuid(photoId)) {
-    return intakeError(new HttpError(400, "Choose a valid photo ID."));
+    return apiError(new HttpError(400, "Choose a valid photo ID."));
   }
   return relayInspectionResource(request, id, `drafts/${id}/photos/${photoId}/receipt`, parsePhoto);
 }

@@ -1,15 +1,15 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
-import { intakeFetch } from "@/lib/intake/browser";
-import type { ApiResult } from "@/lib/intake/contracts";
+import { apiFetch } from "@/lib/api-browser";
+import type { ApiResult, ApiRequest } from "@/lib/api";
 
 interface SelectionResource<T> {
   parameter: string;
   path: (id: string) => string;
   parse: (value: unknown) => T | null;
   matches: (value: T, id: string) => boolean;
-  read?: typeof intakeFetch;
+  read?: ApiRequest;
 }
 
 export function useStaffSelection<T>(
@@ -38,7 +38,7 @@ export function useStaffSelection<T>(
     url.searchParams.set(resource.parameter, nextId);
     window.history.replaceState(null, "", url);
     try {
-      const read = resource.read ?? intakeFetch;
+      const read = resource.read ?? apiFetch;
       const response = await read(resource.path(nextId), resource.parse, {
         signal: attempt.signal,
       });

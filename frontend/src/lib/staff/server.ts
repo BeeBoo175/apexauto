@@ -2,8 +2,9 @@ import "server-only";
 import { redirect } from "next/navigation";
 import { readCurrentActor } from "@/lib/auth/server";
 import type { CurrentActor } from "@/lib/auth/actor";
-import { intakeRead } from "@/lib/intake/server";
-import { parseBranch, parsePage } from "@/lib/intake/parse";
+import { apiRead } from "@/lib/server/http/api";
+import { parseBranch } from "@/lib/branches";
+import { parsePage } from "@/lib/api";
 import { paginationQuery } from "@/lib/pagination";
 
 export async function staffActor(returnTo: string) {
@@ -22,5 +23,5 @@ export async function staffBranches(actor: CurrentActor) {
     return null;
   }
 
-  return intakeRead(`/api/branches?${paginationQuery()}`, (value) => parsePage(value, parseBranch));
+  return apiRead(`/api/branches?${paginationQuery()}`, (value) => parsePage(value, parseBranch));
 }

@@ -5,7 +5,7 @@ import { bookingMatchesRequest } from "../../src/lib/intake/receipt";
 import { csvCell, selectedCsv } from "../../src/components/ui/data-table/csv";
 import { staffParams, staffQuery } from "../../src/lib/staff/query";
 import { DEFAULT_PAGE_SIZE, PAGE_SIZES, paginationQuery } from "../../src/lib/pagination";
-import { parsePage } from "../../src/lib/intake/parse";
+import { parsePage } from "@/lib/api";
 import { parseViewMemory, restoreViewHref } from "../../src/lib/staff/view-memory";
 import {
   addCalendarDays,

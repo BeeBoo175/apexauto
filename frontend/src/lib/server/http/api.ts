@@ -2,27 +2,27 @@ import "server-only";
 import { cookies } from "next/headers";
 import { SESSION_COOKIE } from "@/lib/auth/contracts";
 import { requestApi, type ApiRequestOptions } from "@/lib/server/http/upstream";
-import { readBoundedJson } from "@/lib/http";
-import { INTAKE_DEADLINE_MS } from "./contracts";
-import type { ApiResult } from "./contracts";
+import { HttpError, readBoundedJson } from "@/lib/http";
+import { API_DEADLINE_MS } from "@/lib/api";
+import type { ApiResult } from "@/lib/api";
 
 const messages: Record<number, string> = {
   400: "Check the entered details and try again.",
   401: "Your session has ended. Sign in again.",
-  403: "This account cannot perform this action. Customer uploads and booking require verified email.",
+  403: "This account cannot perform this action.",
   404: "This record is unavailable to your account.",
-  409: "The request conflicts with the current record, photo or slot. Refresh the available choices.",
+  409: "The request conflicts with the current record. Refresh the available choices.",
   410: "This photo is pending deletion or has been removed. Choose a new photo.",
-  413: "Each photo must be no larger than 10 MiB.",
+  413: "The request or response is too large.",
   415: "Choose a JPEG, PNG or WebP photo.",
   429: "Too many requests. Wait before trying again.",
 };
 
-export async function intakeRead<T>(
+export async function apiRead<T>(
   path: string,
   parse: (value: unknown) => T | null,
   options: ApiRequestOptions = {},
-  deadline = INTAKE_DEADLINE_MS,
+  deadline = API_DEADLINE_MS,
   maximumResponseBytes = 256 * 1024,
 ): Promise<ApiResult<T>> {
   try {
@@ -72,19 +72,43 @@ export async function intakeRead<T>(
   }
 }
 
-export async function intakeToken() {
+export async function sessionToken() {
   return (await cookies()).get(SESSION_COOKIE)?.value;
 }
 
-export async function privateIntakeRead<T>(
+export async function privateApiRead<T>(
   path: string,
   parse: (value: unknown) => T | null,
   signal?: AbortSignal,
   maximumResponseBytes = 256 * 1024,
 ) {
-  const token = await intakeToken();
+  const token = await sessionToken();
   if (!token) {
     return { status: 401, data: null, message: messages[401], uncertain: false };
   }
-  return intakeRead(path, parse, { token, signal }, INTAKE_DEADLINE_MS, maximumResponseBytes);
+  return apiRead(path, parse, { token, signal }, API_DEADLINE_MS, maximumResponseBytes);
+}
+
+export function apiJson<T>(result: ApiResult<T>) {
+  return Response.json(result, {
+    status: result.status,
+    headers: {
+      "Cache-Control": "no-store",
+      "X-Content-Type-Options": "nosniff",
+      "X-Robots-Tag": "noindex, nofollow",
+    },
+  });
+}
+
+export function apiError(error: unknown) {
+  const status = error instanceof HttpError ? error.status : 502;
+  return apiJson({
+    status,
+    data: null,
+    message:
+      error instanceof HttpError
+        ? error.message
+        : "The result is unconfirmed. Retry the same request.",
+    uncertain: status >= 500,
+  });
 }

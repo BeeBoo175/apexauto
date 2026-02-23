@@ -11,7 +11,7 @@ import { parseEditor, type EditorSnapshot } from "@/lib/inspection/editor-snapsh
 import { checklistDraft, saveContents, type ChecklistDraft } from "@/lib/inspection/draft";
 import { isRecord } from "@/lib/auth/contracts";
 import type { CurrentActor } from "@/lib/auth/actor";
-import type { ApiResult } from "@/lib/intake/contracts";
+import type { ApiResult } from "@/lib/api";
 
 export function useInspectionEditor(
   id: string,

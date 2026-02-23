@@ -8,7 +8,7 @@ import { RefreshButton } from "@/components/ui/RefreshButton";
 import { Dialog } from "@/components/ui/Dialog";
 import { useInspectionEditor } from "@/hooks/use-inspection-editor";
 import type { CurrentActor } from "@/lib/auth/actor";
-import type { ApiResult, Page } from "@/lib/intake/contracts";
+import type { ApiResult, Page } from "@/lib/api";
 import type { Technician } from "@/lib/inspection/contracts";
 import { label, assessmentLabel } from "@/lib/inspection/contracts";
 import type { EditorSnapshot } from "@/lib/inspection/editor-snapshot";

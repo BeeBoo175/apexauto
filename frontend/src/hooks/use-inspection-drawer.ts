@@ -3,7 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import { inspectionFetch } from "@/lib/inspection/browser";
 import { parseEditor, type EditorSnapshot } from "@/lib/inspection/editor-snapshot";
-import type { ApiResult } from "@/lib/intake/contracts";
+import type { ApiResult } from "@/lib/api";
 import { useStaffSelection } from "./use-staff-selection";
 
 export type RepairSelection = { requestId: string; revision: number };

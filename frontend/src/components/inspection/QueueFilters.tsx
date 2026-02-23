@@ -4,7 +4,8 @@ import { FilterSection } from "@/components/ui/FilterSection";
 import { FilterChoices } from "@/components/ui/FilterChoices";
 import { inspectionStatuses, repairStatuses, label } from "@/lib/inspection/contracts";
 import type { QueueFilters as Filters, QueueKind } from "@/lib/inspection/contracts";
-import type { Branch, Page } from "@/lib/intake/contracts";
+import type { Branch } from "@/lib/branches";
+import type { Page } from "@/lib/api";
 import styles from "@/components/staff/WorklistFilters.module.css";
 
 export function QueueFilters({

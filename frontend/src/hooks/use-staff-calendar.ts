@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { intakeFetch } from "@/lib/intake/browser";
-import { parsePage, parseBranch } from "@/lib/intake/parse";
-import type { ApiResult, Branch, Page } from "@/lib/intake/contracts";
+import { apiFetch } from "@/lib/api-browser";
+import { parsePage } from "@/lib/api";
+import { parseBranch } from "@/lib/branches";
+import type { ApiResult, Page } from "@/lib/api";
+import type { Branch } from "@/lib/branches";
 import {
   calendarHref,
   calendarQuery,
@@ -48,7 +50,7 @@ export function useStaffCalendar(
     controller.current = attempt;
     setBusy(true);
     try {
-      const response = await intakeFetch(
+      const response = await apiFetch(
         `/api/staff/intake/calendar?${calendarQuery(next)}`,
         parseCalendar,
         { signal: attempt.signal },
@@ -107,7 +109,7 @@ export function useStaffCalendar(
     controller.current = attempt;
     setBusy(true);
     try {
-      const response = await intakeFetch(
+      const response = await apiFetch(
         `/api/intake/branches?page=${page}`,
         (value) => parsePage(value, parseBranch),
         { signal: attempt.signal },

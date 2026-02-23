@@ -1,11 +1,9 @@
-import { isPageSize } from "@/lib/pagination";
+import { parseItems } from "@/lib/api";
 import { isRecord, isUuid } from "@/lib/auth/contracts";
 import { angles } from "./contracts";
 import type {
   Appointment,
   BookingReceipt,
-  Branch,
-  Page,
   PhotoReceipt,
   Quote,
   Slot,
@@ -59,21 +57,6 @@ function parseMake(value: unknown) {
   return models ? { name: value.name, models } : null;
 }
 
-export function parseItems<T>(value: unknown, parse: (item: unknown) => T | null): T[] | null {
-  if (!Array.isArray(value)) {
-    return null;
-  }
-  const items: T[] = [];
-  for (const item of value) {
-    const parsed = parse(item);
-    if (parsed === null) {
-      return null;
-    }
-    items.push(parsed);
-  }
-  return items;
-}
-
 export function parseAngle(value: unknown) {
   return angles.find((angle, index) => angle === value || index === value) ?? null;
 }
@@ -118,50 +101,6 @@ export function parseVehicle(value: unknown): VehicleInput | null {
     manufactureYear: value.manufactureYear,
     mileageKilometres: value.mileageKilometres,
   };
-}
-
-export function parseBranch(value: unknown): Branch | null {
-  if (
-    !isRecord(value) ||
-    !isUuid(value.id) ||
-    !text(value.name) ||
-    !text(value.address) ||
-    !text(value.city) ||
-    !text(value.state) ||
-    !text(value.phone)
-  ) {
-    return null;
-  }
-  return {
-    id: value.id,
-    name: value.name,
-    address: value.address,
-    city: value.city,
-    state: value.state,
-    phone: value.phone,
-  };
-}
-
-export function parsePage<T>(
-  value: unknown,
-  parseItem: (item: unknown) => T | null,
-): Page<T> | null {
-  if (
-    !isRecord(value) ||
-    !Array.isArray(value.items) ||
-    !integer(value.total) ||
-    !integer(value.page) ||
-    value.page < 1 ||
-    !isPageSize(value.pageSize) ||
-    value.items.length > value.pageSize
-  ) {
-    return null;
-  }
-  const items = parseItems(value.items, parseItem);
-  if (!items || items.length > value.total) {
-    return null;
-  }
-  return { items, total: value.total, page: value.page, pageSize: value.pageSize };
 }
 
 export function parseSlot(value: unknown): Slot | null {

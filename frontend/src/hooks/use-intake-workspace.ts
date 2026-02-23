@@ -13,7 +13,8 @@ import {
 import { staffParams, staffViewQuery } from "@/lib/staff/query";
 import { tableViewHref, calendarViewHref } from "@/lib/staff/view-navigation";
 import type { IntakeView } from "@/lib/staff/view-memory";
-import type { ApiResult, Branch, Page } from "@/lib/intake/contracts";
+import type { ApiResult, Page } from "@/lib/api";
+import type { Branch } from "@/lib/branches";
 import type { AppointmentDetail, StaffFilters, WorklistItem } from "@/lib/staff/contracts";
 
 export interface IntakeWorkspaceSnapshot {

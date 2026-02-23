@@ -1,14 +1,14 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { intakeFetch } from "@/lib/intake/browser";
-import type { ApiResult } from "@/lib/intake/contracts";
+import { apiFetch } from "@/lib/api-browser";
+import type { ApiResult, ApiRequest } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
 
 export function useIntakeCommand<T>(
   path: string,
   parse: (value: unknown) => T | null,
   matches: (receipt: T, request: unknown) => boolean = () => true,
-  fetchCommand: typeof intakeFetch = intakeFetch,
+  fetchCommand: ApiRequest = apiFetch,
 ) {
   const [busy, setBusy] = useState(false);
   const [uncertain, setUncertain] = useState(false);

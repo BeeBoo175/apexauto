@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { useStaffSelection } from "./use-staff-selection";
-import type { ApiResult } from "@/lib/intake/contracts";
+import type { ApiResult } from "@/lib/api";
 import { emptyCheckIn, type AppointmentDetail, type CheckInDraft } from "@/lib/staff/contracts";
 import { parseDetail } from "@/lib/staff/parse";
 

@@ -1,9 +1,13 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
-import { intakeFetch } from "@/lib/intake/browser";
-import { parseBranch, parsePage, parseSlots } from "@/lib/intake/parse";
-import type { Branch, Page, SlotOffer } from "@/lib/intake/contracts";
+import { apiFetch } from "@/lib/api-browser";
+import { parseBranch } from "@/lib/branches";
+import { parsePage } from "@/lib/api";
+import { parseSlots } from "@/lib/intake/parse";
+import type { Branch } from "@/lib/branches";
+import type { Page } from "@/lib/api";
+import type { SlotOffer } from "@/lib/intake/contracts";
 
 export function useSellerAppointment(initialBranches: Page<Branch>) {
   const [branches, setBranches] = useState(initialBranches);
@@ -40,7 +44,7 @@ export function useSellerAppointment(initialBranches: Page<Branch>) {
     controller.current = attempt;
     setBusy(true);
     try {
-      const result = await intakeFetch(
+      const result = await apiFetch(
         `/api/intake/slots?branchId=${encodeURIComponent(branchId)}&date=${encodeURIComponent(date)}`,
         parseSlots,
         { signal: attempt.signal },
@@ -81,7 +85,7 @@ export function useSellerAppointment(initialBranches: Page<Branch>) {
     controller.current = attempt;
     setBusy(true);
     try {
-      const result = await intakeFetch(
+      const result = await apiFetch(
         `/api/intake/branches?page=${page}`,
         (value) => parsePage(value, parseBranch),
         { signal: attempt.signal },

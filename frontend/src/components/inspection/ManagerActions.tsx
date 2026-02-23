@@ -9,7 +9,7 @@ import { parseReopening } from "@/lib/inspection/parse-report";
 import { isRecord } from "@/lib/auth/contracts";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { Draft, Technician } from "@/lib/inspection/contracts";
-import type { Page } from "@/lib/intake/contracts";
+import type { Page } from "@/lib/api";
 import { AssignmentForm } from "./AssignmentForm";
 import styles from "./Inspection.module.css";
 import workbench from "@/components/staff/AppointmentWorkbench.module.css";

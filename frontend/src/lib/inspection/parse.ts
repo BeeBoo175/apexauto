@@ -1,5 +1,5 @@
 import { isRecord, isUuid } from "@/lib/auth/contracts";
-import { parseItems, parsePage } from "@/lib/intake/parse";
+import { parseItems, parsePage } from "@/lib/api";
 import { inspectionStatuses, repairStatuses, severities } from "./contracts";
 import type {
   Assessment,

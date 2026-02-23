@@ -1,6 +1,7 @@
 import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 import { relayIntake } from "@/lib/intake/routes";
-import { parseAppointment, parseBooking, parsePage, parseQuote } from "@/lib/intake/parse";
+import { parseAppointment, parseBooking, parseQuote } from "@/lib/intake/parse";
+import { parsePage } from "@/lib/api";
 export function POST(request: Request) {
   return relayIntake(
     request,

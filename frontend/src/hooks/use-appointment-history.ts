@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { intakeFetch } from "@/lib/intake/browser";
-import { parseAppointment, parsePage } from "@/lib/intake/parse";
+import { apiFetch } from "@/lib/api-browser";
+import { parseAppointment } from "@/lib/intake/parse";
+import { parsePage } from "@/lib/api";
 import { dateRangeError, historyQuery, type HistoryFilters } from "@/lib/intake/list-query";
-import type { ApiResult, Appointment, Page } from "@/lib/intake/contracts";
+import type { ApiResult, Page } from "@/lib/api";
+import type { Appointment } from "@/lib/intake/contracts";
 import { useToast } from "@/components/ui/Toast";
 import { useInitialToast } from "./use-initial-toast";
 
@@ -35,7 +37,7 @@ export function useAppointmentHistory(
     controller.current = attempt;
     setBusy(true);
     try {
-      const result = await intakeFetch(
+      const result = await apiFetch(
         `/api/intake/appointments?${historyQuery(nextFilters, nextPage)}`,
         (value) => parsePage(value, parseAppointment),
         { signal: attempt.signal },

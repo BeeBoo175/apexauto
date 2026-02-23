@@ -1,6 +1,6 @@
 import { downloadCsv, selectedCsv } from "@/components/ui/data-table/csv";
 import type { DataColumn } from "@/components/ui/data-table/types";
-import type { Page } from "@/lib/intake/contracts";
+import type { Page } from "@/lib/api";
 import type { QueueFilters, QueueKind } from "./contracts";
 import { inspectionFetch } from "./browser";
 import { queueQuery } from "./query";

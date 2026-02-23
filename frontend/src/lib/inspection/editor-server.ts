@@ -1,5 +1,5 @@
 import "server-only";
-import type { ApiResult } from "@/lib/intake/contracts";
+import type { ApiResult } from "@/lib/api";
 import { inspectionRead } from "./server";
 import { parseDraft, parseRepairPage } from "./parse";
 import { parseReport, parseRevisions, parseRepairs } from "./parse-report";

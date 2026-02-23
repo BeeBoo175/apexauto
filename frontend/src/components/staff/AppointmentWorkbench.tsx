@@ -6,8 +6,8 @@ import { RefreshButton } from "@/components/ui/RefreshButton";
 import { useToast } from "@/components/ui/Toast";
 import { useInitialToast } from "@/hooks/use-initial-toast";
 import { useIntakeCommand } from "@/hooks/use-intake-command";
-import { intakeFetch } from "@/lib/intake/browser";
-import type { ApiResult } from "@/lib/intake/contracts";
+import { apiFetch } from "@/lib/api-browser";
+import type { ApiResult } from "@/lib/api";
 import type { CurrentActor } from "@/lib/auth/actor";
 import { emptyCheckIn, type AppointmentDetail, type CheckInDraft } from "@/lib/staff/contracts";
 import { checkInMatches, correctionMatches, parseCheckIn, parseDetail } from "@/lib/staff/parse";
@@ -80,7 +80,7 @@ export function AppointmentWorkbench({
     controller.current = attempt;
     setRefreshing(true);
     try {
-      const result = await intakeFetch(`/api/staff/intake/appointments/${id}`, parseDetail, {
+      const result = await apiFetch(`/api/staff/intake/appointments/${id}`, parseDetail, {
         signal: attempt.signal,
       });
       if (attempt.signal.aborted) {

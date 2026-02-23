@@ -9,7 +9,7 @@ import { parseAssignment } from "@/lib/inspection/parse-report";
 import { parseTechnicians } from "@/lib/inspection/parse";
 import { isRecord } from "@/lib/auth/contracts";
 import type { CurrentActor } from "@/lib/auth/actor";
-import type { Page } from "@/lib/intake/contracts";
+import type { Page } from "@/lib/api";
 import type { Technician } from "@/lib/inspection/contracts";
 import styles from "./Inspection.module.css";
 

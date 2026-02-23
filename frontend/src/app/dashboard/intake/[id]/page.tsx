@@ -3,7 +3,7 @@ import { StaffLink } from "@/components/staff/StaffLink";
 import { notFound } from "next/navigation";
 import { isUuid } from "@/lib/auth/contracts";
 import { hasIntakeAccess } from "@/lib/auth/actor";
-import { privateIntakeRead } from "@/lib/intake/server";
+import { privateApiRead } from "@/lib/server/http/api";
 import { parseDetail } from "@/lib/staff/parse";
 import { StaffCommandBar } from "@/components/staff/StaffPage";
 import { AppointmentWorkbench } from "@/components/staff/AppointmentWorkbench";
@@ -32,10 +32,7 @@ export default async function IntakeDetailPage({
       deniedDescription="This role cannot access intake appointments."
     >
       {async (actor) => {
-        const initial = await privateIntakeRead(
-          `/api/staff/intake/appointments/${id}`,
-          parseDetail,
-        );
+        const initial = await privateApiRead(`/api/staff/intake/appointments/${id}`, parseDetail);
         if (initial.status === 404) {
           notFound();
         }

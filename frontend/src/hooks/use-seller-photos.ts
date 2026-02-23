@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { intakeFetch } from "@/lib/intake/browser";
+import { apiFetch } from "@/lib/api-browser";
 import { parsePhoto } from "@/lib/intake/parse";
 import { PHOTO_DEADLINE_MS, PHOTO_MAX_BYTES } from "@/lib/intake/contracts";
 import type { PhotoAngle, PhotoReceipt } from "@/lib/intake/contracts";
@@ -65,7 +65,7 @@ export function useSellerPhoto(
     setBusy(true);
     onLock(angle, true);
     try {
-      const result = await intakeFetch(
+      const result = await apiFetch(
         `/api/intake/photos/${captured.id}?angle=${angle}`,
         parsePhoto,
         {
@@ -74,7 +74,7 @@ export function useSellerPhoto(
           body: captured.file,
           signal: attempt.signal,
         },
-        PHOTO_DEADLINE_MS,
+        { deadlineMs: PHOTO_DEADLINE_MS + 2000 },
       );
       if (attempt.signal.aborted) {
         return;

@@ -1,6 +1,6 @@
 import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 import { relayIntake } from "@/lib/intake/routes";
-import { parsePage } from "@/lib/intake/parse";
+import { parsePage } from "@/lib/api";
 import { parseWorklistItem } from "@/lib/staff/parse";
 
 export function GET(request: Request) {

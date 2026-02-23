@@ -2,21 +2,10 @@ import "server-only";
 import { HttpError, readBoundedBytes, readBoundedJson } from "@/lib/http";
 import { requireSameOrigin } from "@/lib/server/http/request";
 import { isRecord, isUuid } from "@/lib/auth/contracts";
-import { intakeRead, intakeToken } from "./server";
-import { INTAKE_DEADLINE_MS, PHOTO_DEADLINE_MS, PHOTO_MAX_BYTES, angles } from "./contracts";
-import type { ApiResult } from "./contracts";
+import { apiRead, sessionToken, apiJson, apiError } from "@/lib/server/http/api";
+import { API_DEADLINE_MS } from "@/lib/api";
+import { PHOTO_DEADLINE_MS, PHOTO_MAX_BYTES, angles } from "./contracts";
 import { readCurrentActor } from "@/lib/auth/server";
-
-export function intakeJson<T>(result: ApiResult<T>) {
-  return Response.json(result, {
-    status: result.status,
-    headers: {
-      "Cache-Control": "no-store",
-      "X-Content-Type-Options": "nosniff",
-      "X-Robots-Tag": "noindex, nofollow",
-    },
-  });
-}
 
 export async function relayIntake<T>(
   request: Request,
@@ -26,11 +15,11 @@ export async function relayIntake<T>(
   maximumResponseBytes = 256 * 1024,
 ) {
   try {
-    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(INTAKE_DEADLINE_MS)]);
+    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(API_DEADLINE_MS)]);
     if (request.method !== "GET") {
       requireSameOrigin(request);
     }
-    const token = authenticated ? await intakeToken() : undefined;
+    const token = authenticated ? await sessionToken() : undefined;
     if (authenticated && !token) {
       throw new HttpError(401, "Sign in to continue.");
     }
@@ -59,7 +48,7 @@ export async function relayIntake<T>(
         throw new HttpError(400, "Provide valid request details.");
       }
     }
-    const result = await intakeRead(
+    const result = await apiRead(
       path,
       parse,
       {
@@ -68,32 +57,19 @@ export async function relayIntake<T>(
         method: request.method,
         signal,
       },
-      INTAKE_DEADLINE_MS,
+      API_DEADLINE_MS,
       maximumResponseBytes,
     );
-    return intakeJson({ ...result, ...(actor ? { actor } : {}) });
+    return apiJson({ ...result, ...(actor ? { actor } : {}) });
   } catch (error) {
-    return intakeError(error);
+    return apiError(error);
   }
-}
-
-export function intakeError(error: unknown) {
-  const status = error instanceof HttpError ? error.status : 502;
-  return intakeJson({
-    status,
-    data: null,
-    message:
-      error instanceof HttpError
-        ? error.message
-        : "The result is unconfirmed. Retry the same request.",
-    uncertain: status >= 500,
-  });
 }
 
 export async function relayPhoto(request: Request, id: string, parse: (value: unknown) => unknown) {
   try {
     requireSameOrigin(request);
-    const token = await intakeToken();
+    const token = await sessionToken();
     if (!token) {
       throw new HttpError(401, "Sign in to continue.");
     }
@@ -115,14 +91,14 @@ export async function relayPhoto(request: Request, id: string, parse: (value: un
       throw new HttpError(415, "Choose a JPEG, PNG or WebP photo.");
     }
     const bytes = await readBoundedBytes(request.body, signal, PHOTO_MAX_BYTES);
-    const result = await intakeRead(
+    const result = await apiRead(
       `/api/intake/photos/${id}?angle=${angle}`,
       parse,
       { token, bytes, contentType, method: "PUT", signal },
       PHOTO_DEADLINE_MS,
     );
-    return intakeJson({ ...result, actor });
+    return apiJson({ ...result, actor });
   } catch (error) {
-    return intakeError(error);
+    return apiError(error);
   }
 }

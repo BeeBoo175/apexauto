@@ -9,7 +9,7 @@ import { StaffCommandBar } from "@/components/staff/StaffPage";
 import { AppliedWorklistFilters } from "@/components/staff/AppliedWorklistFilters";
 import { appliedWorklistFilters } from "@/lib/staff/filter-summary";
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
-import type { Page } from "@/lib/intake/contracts";
+import type { Page } from "@/lib/api";
 import { exportQueue } from "@/lib/inspection/export";
 import { queueQuery } from "@/lib/inspection/query";
 import { label } from "@/lib/inspection/contracts";
