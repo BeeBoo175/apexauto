@@ -1,11 +1,13 @@
 import { notFound } from "next/navigation";
-import { InspectionEntry } from "@/components/inspection/InspectionEntry";
+import { StaffEntry } from "@/components/staff/StaffEntry";
 import { SignedReport } from "@/components/inspection/SignedReport";
 import { StaffNotice } from "@/components/staff/StaffPage";
 import { StaffLink } from "@/components/staff/StaffLink";
 import { inspectionRead } from "@/lib/inspection/server";
 import { parseReport, parseRevisions, parseRepairs } from "@/lib/inspection/parse-report";
 import { isUuid } from "@/lib/auth/contracts";
+import { hasInspectionAccess } from "@/lib/inspection/contracts";
+import { paginationQuery } from "@/lib/pagination";
 
 export const metadata = { title: "Signed inspection report | ApexAuto" };
 
@@ -25,13 +27,18 @@ export default async function ReportPage({
   }
   const path = `/dashboard/inspection/${id}/reports/${revision}`;
   return (
-    <InspectionEntry path={path}>
+    <StaffEntry
+      path={path}
+      access={hasInspectionAccess}
+      deniedTitle="Inspection access unavailable"
+      deniedDescription="This role cannot access inspections or repair requests."
+    >
       {async () => {
         const base = `reports/${id}/revisions`;
         const [report, revisions, repairs] = await Promise.all([
           inspectionRead(`${base}/${revision}`, parseReport),
-          inspectionRead(`${base}?page=1&pageSize=25`, parseRevisions),
-          inspectionRead(`${base}/${revision}/repair-history?page=1&pageSize=25`, parseRepairs),
+          inspectionRead(`${base}?${paginationQuery()}`, parseRevisions),
+          inspectionRead(`${base}/${revision}/repair-history?${paginationQuery()}`, parseRepairs),
         ]);
         if (
           !report.data ||
@@ -56,6 +63,6 @@ export default async function ReportPage({
           <SignedReport report={report.data} revisions={revisions.data} repairs={repairs.data} />
         );
       }}
-    </InspectionEntry>
+    </StaffEntry>
   );
 }

@@ -1,10 +1,11 @@
-import { InspectionEntry } from "@/components/inspection/InspectionEntry";
+import { StaffEntry } from "@/components/staff/StaffEntry";
 import { RepairQueue } from "@/components/inspection/RepairQueue";
 import { inspectionRead } from "@/lib/inspection/server";
 import { parseRepairPage } from "@/lib/inspection/parse";
 import { queueParams, queueQuery } from "@/lib/inspection/query";
-import { intakeRead } from "@/lib/intake/server";
-import { parseBranch, parsePage } from "@/lib/intake/parse";
+import { staffBranches } from "@/lib/staff/server";
+import { hasInspectionAccess } from "@/lib/inspection/contracts";
+import type { SearchParams } from "@/lib/query";
 import { actorIdentity } from "@/lib/auth/actor";
 import { isUuid } from "@/lib/auth/contracts";
 import { readEditor } from "@/lib/inspection/editor-server";
@@ -12,7 +13,7 @@ import { readEditor } from "@/lib/inspection/editor-server";
 export default async function RepairsPage({
   searchParams,
 }: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
+  searchParams: Promise<SearchParams>;
 }) {
   const params = await searchParams;
   const { filters, page } = queueParams(params, "repair-requests");
@@ -26,13 +27,16 @@ export default async function RepairsPage({
       ? { requestId: params.request, revision: Number(params.revision) }
       : null;
   return (
-    <InspectionEntry path="/dashboard/inspection/repairs">
+    <StaffEntry
+      path="/dashboard/inspection/repairs"
+      access={hasInspectionAccess}
+      deniedTitle="Inspection access unavailable"
+      deniedDescription="This role cannot access inspections or repair requests."
+    >
       {async (actor) => {
         const [initial, branches, selected] = await Promise.all([
           inspectionRead(`repair-requests?${queueQuery(filters, page)}`, parseRepairPage),
-          actor.role === "GeneralManager"
-            ? intakeRead("/api/branches?page=1&pageSize=25", (v) => parsePage(v, parseBranch))
-            : null,
+          staffBranches(actor),
           selectedId ? readEditor(selectedId) : null,
         ]);
         return (
@@ -49,6 +53,6 @@ export default async function RepairsPage({
           />
         );
       }}
-    </InspectionEntry>
+    </StaffEntry>
   );
 }

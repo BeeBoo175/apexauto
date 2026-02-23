@@ -1,5 +1,5 @@
 import { isUuid } from "@/lib/auth/contracts";
-import { isPageSize } from "@/lib/pagination";
+import { DEFAULT_PAGE_SIZE, isPageSize } from "@/lib/pagination";
 import { inspectionStatuses, repairStatuses, type QueueFilters, type QueueKind } from "./contracts";
 
 export function queueParams(
@@ -9,14 +9,14 @@ export function queueParams(
   const get = (key: string) => (typeof params[key] === "string" ? params[key] : "");
   const statuses = kind === "vehicles" ? inspectionStatuses : repairStatuses;
   const page = Number(get("page") || 1);
-  const size = Number(get("pageSize") || 25);
+  const size = Number(get("pageSize") || DEFAULT_PAGE_SIZE);
   const filters: QueueFilters = {
     search: get("search"),
     status: statuses.find((s) => s === get("status")) ?? "All",
     branchId: isUuid(get("branchId")) ? get("branchId") : "",
     from: get("from"),
     to: get("to"),
-    pageSize: isPageSize(size) ? size : 25,
+    pageSize: isPageSize(size) ? size : DEFAULT_PAGE_SIZE,
   };
   return { filters, page: Number.isSafeInteger(page) && page > 0 ? page : 1 };
 }
