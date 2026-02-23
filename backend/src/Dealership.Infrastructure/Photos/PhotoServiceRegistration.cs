@@ -2,16 +2,16 @@ using Dealership.Application.Photos;
 using Dealership.Application.Intake;
 using Dealership.Application.Inspections;
 using Dealership.Infrastructure.Inspections;
-using Dealership.Infrastructure.Photos;
+using Dealership.Infrastructure.Intake;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-namespace Dealership.Infrastructure.Intake;
+namespace Dealership.Infrastructure.Photos;
 
-public static class IntakeMediaRegistration
+public static class PhotoServiceRegistration
 {
-    public static IServiceCollection AddIntakeMedia(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddPhotos(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddOptions<IntakePhotoSettings>().Bind(configuration.GetRequiredSection("IntakePhotos"))
             .Validate(settings => double.IsFinite(settings.UnsubmittedLifetimeHours) &&
@@ -31,6 +31,7 @@ public static class IntakeMediaRegistration
         services.AddSingleton(provider => new InspectionPhotoPolicy(
             provider.GetRequiredService<IntakePhotoPolicy>().UnsubmittedLifetime));
         services.AddSingleton<IPhotoStorage, S3PhotoStorage>();
+        services.AddScoped<PhotoTransferService>();
         services.AddScoped<IntakePhotoService>();
         services.AddScoped<InspectionPhotoService>();
         services.AddScoped<PhotoCleanupStore>();

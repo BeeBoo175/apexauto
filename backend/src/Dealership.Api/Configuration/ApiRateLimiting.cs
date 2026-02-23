@@ -10,6 +10,7 @@ public static class ApiRateLimiting
     public const int RequestsPerMinute = 100;
     public const int LoginAttemptsPerMinute = 5;
     public const string LoginPolicy = "login";
+    public const string PhotoTransferPolicy = "photo-transfers";
     public const string VerificationPolicy = "email-verification";
 
     public static readonly TimeSpan RequestWindow = TimeSpan.FromMinutes(1);
@@ -19,7 +20,7 @@ public static class ApiRateLimiting
         services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-            options.AddConcurrencyLimiter(Dealership.Api.Endpoints.IntakePhotoEndpoints.TransferPolicy, limiter =>
+            options.AddConcurrencyLimiter(PhotoTransferPolicy, limiter =>
             {
                 limiter.PermitLimit = 4;
                 limiter.QueueLimit = 0;

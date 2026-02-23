@@ -1,3 +1,4 @@
+using Dealership.Infrastructure.Photos;
 using Dealership.Domain.Photos;
 using Dealership.Application.Photos;
 using Dealership.Infrastructure.Storage;
@@ -87,7 +88,7 @@ public sealed class S3PhotoStorageCompatibilityTests
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddS3Storage(configuration);
-        services.AddIntakeMedia(configuration);
+        services.AddPhotos(configuration);
         using var provider = services.BuildServiceProvider();
         var client = provider.GetRequiredService<IAmazonS3>();
         Assert.Equal(settings.ServiceURL, client.Config.ServiceURL.TrimEnd('/'));

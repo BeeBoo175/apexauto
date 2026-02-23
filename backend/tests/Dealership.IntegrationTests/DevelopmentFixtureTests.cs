@@ -1,3 +1,4 @@
+using Dealership.Infrastructure.Photos;
 using Dealership.Application.Photos;
 using System.Net;
 using System.Net.Http.Headers;
@@ -219,7 +220,7 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         services.AddScoped<IntakeDiscoveryService>();
         services.AddScoped<IntakeBookingService>();
         services.AddS3Storage(configuration);
-        services.AddIntakeMedia(configuration);
+        services.AddPhotos(configuration);
         services.AddScoped<DevelopmentFixtureRunner>();
         services.AddScoped<DevelopmentInspectionFixtures>();
         services.AddScoped<DevelopmentCustomerFixtures>();

@@ -1,3 +1,4 @@
+using Dealership.Api.Configuration;
 using System.IdentityModel.Tokens.Jwt;
 using Dealership.Application.Inspections;
 using Dealership.Application.Photos;
@@ -18,9 +19,9 @@ public static class InspectionPhotoEndpoints
             context.HttpContext.Response.Headers.XContentTypeOptions = "nosniff";
             return await next(context);
         });
-        routes.MapPut("/{id:guid}", UploadAsync).RequireRateLimiting(IntakePhotoEndpoints.TransferPolicy);
+        routes.MapPut("/{id:guid}", UploadAsync).RequireRateLimiting(ApiRateLimiting.PhotoTransferPolicy);
         routes.MapGet("/{id:guid}/receipt", ReceiptAsync);
-        routes.MapGet("/{id:guid}", DownloadAsync).RequireRateLimiting(IntakePhotoEndpoints.TransferPolicy);
+        routes.MapGet("/{id:guid}", DownloadAsync).RequireRateLimiting(ApiRateLimiting.PhotoTransferPolicy);
     }
 
     private static async Task<IResult> UploadAsync(Guid inspectionId, Guid id, string? pointCode,

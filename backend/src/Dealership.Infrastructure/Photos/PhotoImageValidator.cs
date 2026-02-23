@@ -3,7 +3,7 @@ using Dealership.Application.Photos;
 using System.Security.Cryptography;
 using SkiaSharp;
 
-namespace Dealership.Infrastructure.Intake;
+namespace Dealership.Infrastructure.Photos;
 
 public sealed class PhotoImageValidator(long maximumPixels = PhotoImageValidator.MaximumPixels) : IPhotoImageValidator, IDisposable
 {

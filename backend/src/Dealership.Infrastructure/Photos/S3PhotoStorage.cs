@@ -7,7 +7,7 @@ using Amazon.S3;
 using Amazon.S3.Model;
 using Amazon.Runtime;
 
-namespace Dealership.Infrastructure.Intake;
+namespace Dealership.Infrastructure.Photos;
 
 public sealed class S3PhotoStorage(IAmazonS3 client, PhotoStorageSettings settings) : IPhotoStorage
 {

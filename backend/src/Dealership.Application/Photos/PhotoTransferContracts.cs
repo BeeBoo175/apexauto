@@ -1,4 +1,4 @@
-namespace Dealership.Application.Intake;
+namespace Dealership.Application.Photos;
 
 public interface IPhotoTransferLock
 {

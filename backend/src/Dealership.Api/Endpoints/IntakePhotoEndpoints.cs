@@ -1,3 +1,4 @@
+using Dealership.Api.Configuration;
 using Dealership.Domain.Photos;
 using Dealership.Application.Photos;
 using System.IdentityModel.Tokens.Jwt;
@@ -9,8 +10,6 @@ namespace Dealership.Api.Endpoints;
 
 public static class IntakePhotoEndpoints
 {
-    public const string TransferPolicy = "intake-photo-transfers";
-
     public static void MapIntakePhotoEndpoints(this WebApplication app)
     {
         var routes = app.MapGroup("/api/intake/photos").RequireAuthorization();
@@ -20,9 +19,9 @@ public static class IntakePhotoEndpoints
             context.HttpContext.Response.Headers.XContentTypeOptions = "nosniff";
             return await next(context);
         });
-        routes.MapPut("/{id:guid}", UploadAsync).RequireRateLimiting(TransferPolicy);
+        routes.MapPut("/{id:guid}", UploadAsync).RequireRateLimiting(ApiRateLimiting.PhotoTransferPolicy);
         routes.MapGet("/{id:guid}/receipt", GetReceiptAsync);
-        routes.MapGet("/{id:guid}", DownloadAsync).RequireRateLimiting(TransferPolicy);
+        routes.MapGet("/{id:guid}", DownloadAsync).RequireRateLimiting(ApiRateLimiting.PhotoTransferPolicy);
     }
 
     private static async Task<IResult> UploadAsync(Guid id, string? angle, HttpContext context,

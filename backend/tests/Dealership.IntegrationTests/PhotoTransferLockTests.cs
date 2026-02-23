@@ -1,3 +1,4 @@
+using Dealership.Infrastructure.Photos;
 using Dealership.Infrastructure.Intake;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;

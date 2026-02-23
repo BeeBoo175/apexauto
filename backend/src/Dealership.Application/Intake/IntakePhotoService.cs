@@ -6,7 +6,7 @@ using Dealership.Domain.Intake;
 namespace Dealership.Application.Intake;
 
 public sealed class IntakePhotoService(ICustomerAccountQuery accounts, IPhotoImageValidator validator,
-    IIntakePhotoStore photos, IPhotoStorage storage, IntakePhotoPolicy policy, IPhotoTransferLock transfers)
+    IIntakePhotoStore photos, IntakePhotoPolicy policy, PhotoTransferService transfers)
 {
     public async Task<bool> CanUploadAsync(Guid ownerId, CancellationToken cancellationToken)
     {
@@ -33,19 +33,10 @@ public sealed class IntakePhotoService(ICustomerAccountQuery accounts, IPhotoIma
             return new PhotoResult(PhotoStatus.Invalid);
         }
 
-        await using var transfer = await transfers.AcquireAsync(id, cancellationToken);
-
-        var prepared = await photos.PrepareAsync(ownerId, id, angle, validated, policy.UnsubmittedLifetime,
-            cancellationToken);
-
-        if (prepared.Status != PhotoStatus.Pending)
-        {
-            return Result(prepared);
-        }
-
-        content.Position = 0;
-        await storage.PutAsync(prepared.Photo!, content, cancellationToken);
-        return Result(await photos.ConfirmAsync(ownerId, id, cancellationToken));
+        return Result(await transfers.UploadAsync(id, content,
+            token => photos.PrepareAsync(ownerId, id, angle, validated, policy.UnsubmittedLifetime, token),
+            prepared => prepared.Status == PhotoStatus.Pending ? prepared.Photo : null,
+            token => photos.ConfirmAsync(ownerId, id, token), cancellationToken));
     }
 
     public async Task<PhotoResult> GetReceiptAsync(Guid ownerId, Guid id, CancellationToken cancellationToken)
@@ -56,18 +47,9 @@ public sealed class IntakePhotoService(ICustomerAccountQuery accounts, IPhotoIma
     public async Task<PhotoResult> DownloadAsync(Guid ownerId, Guid id, Stream destination,
         CancellationToken cancellationToken)
     {
-        await using var transfer = await transfers.AcquireAsync(id, cancellationToken);
-
-        var found = await photos.FindAsync(ownerId, id, cancellationToken);
-
-        if (found.Status != PhotoStatus.Available)
-        {
-            return Result(found);
-        }
-
-        await storage.CopyToAsync(found.Photo!, destination, cancellationToken);
-        // Recheck eligibility and expiry after provider I/O, before releasing the bytes.
-        return Result(await photos.FindAsync(ownerId, id, cancellationToken));
+        return Result(await transfers.DownloadAsync(id, destination,
+            token => photos.FindAsync(ownerId, id, token),
+            found => found.Status == PhotoStatus.Available ? found.Photo : null, cancellationToken));
     }
 
     private static PhotoResult Result(PhotoPreparation result)

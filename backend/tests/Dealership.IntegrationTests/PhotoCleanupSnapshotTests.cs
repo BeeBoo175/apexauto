@@ -1,3 +1,4 @@
+using Dealership.Application.Photos;
 using System.Net;
 using Dealership.Application.Intake;
 using Dealership.Infrastructure.Intake;

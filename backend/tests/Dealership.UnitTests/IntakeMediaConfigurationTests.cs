@@ -1,3 +1,4 @@
+using Dealership.Infrastructure.Photos;
 using Dealership.Application.Intake;
 using Dealership.Infrastructure.Intake;
 using Dealership.Infrastructure.Storage;
@@ -22,7 +23,7 @@ public sealed class IntakeMediaConfigurationTests
     {
         var configuration = Configuration(key, value);
         var services = new ServiceCollection();
-        services.AddIntakeMedia(configuration);
+        services.AddPhotos(configuration);
         using var provider = services.BuildServiceProvider();
 
         Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<IStartupValidator>().Validate());
@@ -42,7 +43,7 @@ public sealed class IntakeMediaConfigurationTests
     public void IntakeLifecycleConfigurationRetainsUpperBoundsAndCleanupSwitchWithoutStorage()
     {
         var services = new ServiceCollection();
-        services.AddIntakeMedia(Configuration("IntakePhotos:CleanupEnabled", "true"));
+        services.AddPhotos(Configuration("IntakePhotos:CleanupEnabled", "true"));
         using var provider = services.BuildServiceProvider();
 
         provider.GetRequiredService<IStartupValidator>().Validate();

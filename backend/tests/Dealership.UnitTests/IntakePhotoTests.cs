@@ -1,3 +1,4 @@
+using Dealership.Infrastructure.Photos;
 using Dealership.Domain.Photos;
 using Dealership.Infrastructure.Storage;
 using System.Security.Cryptography;

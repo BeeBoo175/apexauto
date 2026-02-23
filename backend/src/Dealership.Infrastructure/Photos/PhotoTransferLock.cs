@@ -1,9 +1,9 @@
-using Dealership.Application.Intake;
+using Dealership.Application.Photos;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
-namespace Dealership.Infrastructure.Intake;
+namespace Dealership.Infrastructure.Photos;
 
 public sealed class PhotoTransferLock(DealershipDbContext database) : IPhotoTransferLock
 {

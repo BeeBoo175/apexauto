@@ -1,3 +1,4 @@
+using Dealership.Application.Photos;
 using Dealership.Infrastructure.Configuration;
 using Dealership.Application.Accounts;
 using Dealership.Infrastructure.Identity;

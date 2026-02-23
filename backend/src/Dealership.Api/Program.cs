@@ -1,3 +1,4 @@
+using Dealership.Infrastructure.Photos;
 using Dealership.Infrastructure.Storage;
 using Dealership.Api.Configuration;
 using Dealership.Api.Endpoints;
@@ -58,7 +59,7 @@ builder.Services.AddScoped<IntakeDiscoveryService>();
 builder.Services.AddScoped<StaffCalendarService>();
 builder.Services.AddScoped<IntakeBookingService>();
 builder.Services.AddS3Storage(builder.Configuration);
-builder.Services.AddIntakeMedia(builder.Configuration);
+builder.Services.AddPhotos(builder.Configuration);
 builder.Services.AddOptions<EmailDeliverySettings>()
     .Bind(builder.Configuration.GetSection(EmailDeliverySettings.SectionName))
     .ValidateOnStart();

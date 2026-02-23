@@ -1,3 +1,4 @@
+using Dealership.Infrastructure.Photos;
 using Dealership.Application;
 using Dealership.Application.Intake;
 using Dealership.Infrastructure;
@@ -90,7 +91,7 @@ internal static class IntakeBrowserSeed
         services.AddScoped<IntakeDiscoveryService>();
         services.AddScoped<IntakeBookingService>();
         services.AddS3Storage(configuration);
-        services.AddIntakeMedia(configuration);
+        services.AddPhotos(configuration);
         services.AddScoped<DevelopmentFixtureRunner>();
         services.AddScoped<DevelopmentInspectionFixtures>();
         services.AddScoped<DevelopmentCustomerFixtures>();
