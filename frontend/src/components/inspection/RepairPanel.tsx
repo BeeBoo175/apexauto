@@ -3,6 +3,7 @@ import type { EditorSnapshot } from "@/lib/inspection/editor-snapshot";
 import { label } from "@/lib/inspection/contracts";
 import { RepairRequestDetails } from "./RepairRequestDetails";
 import { RepairRequestForm } from "./RepairRequestForm";
+import { RepairActions } from "./RepairActions";
 import { RepairHistoryView } from "./InspectionHistory";
 import styles from "./Inspection.module.css";
 import workbench from "@/components/staff/AppointmentWorkbench.module.css";
@@ -58,6 +59,18 @@ export function RepairPanel({
                   ? " · exact request"
                   : " · retained authority from identical work with sufficient budget"}
               </p>
+            )}
+            {repairState && (
+              <RepairActions
+                key={`${repairState.requestId}:${repairState.status}`}
+                actor={actor}
+                draft={draft}
+                state={repairState}
+                disabled={disabled}
+                onLock={onLock}
+                onConfirmed={onConfirmed}
+                onDraft={(dirty) => onDraft("completion", dirty)}
+              />
             )}
           </>
         )}
