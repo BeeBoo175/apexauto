@@ -60,7 +60,7 @@ export function DataTableToolbar({
               aria-controls={panelId}
               popoverTarget={panelId}
               style={{ anchorName: anchor }}
-              className="gap-1.5"
+              className={styles.filterButton}
             >
               <Icon name="filter" />
               <span>Filters</span>

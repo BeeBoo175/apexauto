@@ -33,7 +33,7 @@ export function PasswordResetForm() {
   return (
     <form method="post" onSubmit={handleSubmit} className={styles.form}>
       <noscript>
-        <p className="text-sm text-muted">
+        <p className={styles.notice}>
           JavaScript is required to submit this form. Enable JavaScript and reload this page.
         </p>
       </noscript>
@@ -55,7 +55,7 @@ export function PasswordResetForm() {
           aria-invalid={Boolean(passwordError)}
           required
         />
-        <p id="password-help" className="text-sm text-muted">
+        <p id="password-help" className={styles.notice}>
           Use at least 8 characters with uppercase, lowercase, a digit and a symbol.
         </p>
       </div>

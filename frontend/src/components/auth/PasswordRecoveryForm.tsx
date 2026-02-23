@@ -32,7 +32,7 @@ export function PasswordRecoveryForm() {
   return (
     <form method="post" onSubmit={handleSubmit} className={styles.form}>
       <noscript>
-        <p className="text-sm text-muted">
+        <p className={styles.notice}>
           JavaScript is required to submit this form. Enable JavaScript and reload this page.
         </p>
       </noscript>

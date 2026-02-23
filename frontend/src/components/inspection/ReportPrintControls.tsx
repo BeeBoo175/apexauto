@@ -2,6 +2,7 @@
 import { Button } from "@/components/ui/Button";
 import { useInspectionPrint } from "@/hooks/use-inspection-print";
 import { StaffCommandBar } from "@/components/staff/StaffPage";
+import styles from "./SignedReport.module.css";
 
 export function ReportPrintControls() {
   const preparation = useInspectionPrint();
@@ -21,7 +22,7 @@ export function ReportPrintControls() {
         }
       />
       {preparation.message && (
-        <p className="px-5 py-3 text-sm" role="alert">
+        <p className={styles.printMessage} role="alert">
           {preparation.message}
         </p>
       )}

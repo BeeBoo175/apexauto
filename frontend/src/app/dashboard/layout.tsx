@@ -4,6 +4,7 @@ import { StaffFrame } from "@/components/staff/StaffFrame";
 import { SessionCheckUnavailable } from "@/components/auth/SessionCheckUnavailable";
 import { actorIdentity } from "@/lib/auth/actor";
 import { staffActor } from "@/lib/staff/server";
+import styles from "@/app/Shell.module.css";
 
 export const metadata: Metadata = {
   title: "Staff workspace | ApexAuto",
@@ -16,7 +17,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     return <SessionCheckUnavailable />;
   }
   return (
-    <main className="flex-1">
+    <main className={styles.main}>
       <StaffFrame key={actorIdentity(actor)} actor={actor}>
         {children}
       </StaffFrame>

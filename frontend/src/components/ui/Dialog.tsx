@@ -17,6 +17,10 @@ export interface DialogProps {
   width?: "default" | "wide";
 }
 
+export function DialogActionSlot({ ref }: { ref: React.Ref<HTMLDivElement> }) {
+  return <div ref={ref} className={styles.actionSlot} />;
+}
+
 export const Dialog: React.FC<DialogProps> = ({
   open,
   onClose,

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import styles from "./Shell.module.css";
 import { ToastProvider } from "@/components/ui/Toast";
 import { IconSprite } from "@/components/ui/IconSprite";
 
@@ -16,7 +17,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="min-h-screen flex flex-col bg-canvas text-graphite">
+      <body className={styles.body}>
         <IconSprite />
         <ToastProvider>{children}</ToastProvider>
       </body>

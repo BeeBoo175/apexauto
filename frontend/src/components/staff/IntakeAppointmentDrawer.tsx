@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog } from "@/components/ui/Dialog";
+import { Dialog, DialogActionSlot } from "@/components/ui/Dialog";
 import { AppointmentWorkbench } from "./AppointmentWorkbench";
 import { AppointmentLoadingShell } from "./AppointmentLoadingShell";
 import type { CurrentActor } from "@/lib/auth/actor";
@@ -24,7 +24,7 @@ export function IntakeAppointmentDrawer({
       variant="drawer"
       density="compact"
       title="Intake appointment"
-      headerActions={<div ref={setHeaderActions} className="flex items-center" />}
+      headerActions={<DialogActionSlot ref={setHeaderActions} />}
       onClose={drawer.close}
       closeDisabled={drawer.locked || refreshing}
     >

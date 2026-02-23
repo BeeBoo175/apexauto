@@ -1,3 +1,18 @@
+.error {
+  max-width: 512px;
+  margin-inline: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.errorTitle {
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 700;
+}
+
 .page {
   width: min(1200px, calc(100% - 48px));
   margin: 36px auto 56px;

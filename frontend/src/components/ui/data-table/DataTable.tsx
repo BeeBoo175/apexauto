@@ -209,7 +209,7 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
                   </label>
                 </TableCell>
                 {columns.map((column) => (
-                  <TableCell key={column.id} style={{ textAlign: column.align ?? "left" }}>
+                  <TableCell key={column.id} data-align={column.align ?? "left"}>
                     <div className={styles.cell}>{column.cell(row)}</div>
                   </TableCell>
                 ))}

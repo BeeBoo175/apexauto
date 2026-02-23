@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "./Button";
 import { Icon } from "./Icon";
+import styles from "./RefreshButton.module.css";
 
 export function RefreshButton({
   label,
@@ -24,7 +25,7 @@ export function RefreshButton({
       aria-label={label}
       title={busy ? "Refreshing…" : label}
       aria-busy={busy}
-      className="disabled:opacity-100"
+      className={styles.refresh}
       disabled={disabled || busy}
       onClick={() => {
         setAcknowledging(true);

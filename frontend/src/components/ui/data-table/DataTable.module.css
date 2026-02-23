@@ -357,3 +357,18 @@
     min-height: 220px;
   }
 }
+.filterButton {
+  gap: 6px;
+}
+
+.table td[data-align="left"] {
+  text-align: left;
+}
+
+.table td[data-align="center"] {
+  text-align: center;
+}
+
+.table td[data-align="right"] {
+  text-align: right;
+}

@@ -5,6 +5,7 @@ import { Dialog } from "@/components/ui/Dialog";
 import { useApiCommand } from "@/hooks/use-api-command";
 import { parseCancellation } from "@/lib/intake/parse";
 import type { Appointment } from "@/lib/intake/contracts";
+import styles from "./CancelAppointment.module.css";
 
 export function CancelAppointment({
   appointment,
@@ -35,11 +36,11 @@ export function CancelAppointment({
       onClose={onClose}
       closeDisabled={command.busy || command.uncertain}
     >
-      <div className="flex flex-col gap-5">
+      <div className={styles.content}>
         <p>
           {appointment.registrationPlate} at {appointment.branchName}
         </p>
-        <p className="text-sm text-muted">
+        <p className={styles.description}>
           Cancellation is available before the appointment starts and before check-in. Your history
           is retained. A new booking starts a new intake.
         </p>

@@ -5,6 +5,7 @@ import { useAuthMutation } from "@/hooks/use-auth-mutation";
 import { useAccountRefresh } from "@/hooks/use-account-refresh";
 import { useEmailVerificationResend } from "@/hooks/use-email-verification-resend";
 import type { CustomerAccount } from "@/lib/auth/contracts";
+import styles from "./AccountPanel.module.css";
 
 export function AccountPanel({ initialAccount }: { initialAccount: CustomerAccount }) {
   const { account, refreshing, refreshFailed, refresh } = useAccountRefresh(initialAccount);
@@ -26,23 +27,23 @@ export function AccountPanel({ initialAccount }: { initialAccount: CustomerAccou
   }
 
   return (
-    <div className="flex flex-col gap-5">
-      <dl className="flex flex-col gap-3 wrap-break-word">
+    <div className={styles.panel}>
+      <dl className={styles.facts}>
         <div>
-          <dt className="text-sm text-muted">Legal name</dt>
+          <dt className={styles.label}>Legal name</dt>
           <dd>{account.legalName}</dd>
         </div>
         <div>
-          <dt className="text-sm text-muted">Email</dt>
+          <dt className={styles.label}>Email</dt>
           <dd>{account.email}</dd>
         </div>
         <div>
-          <dt className="text-sm text-muted">Email verification</dt>
+          <dt className={styles.label}>Email verification</dt>
           <dd>{account.emailVerified ? "Verified" : "Not verified"}</dd>
         </div>
       </dl>
       {!account.emailVerified && (
-        <div className="flex flex-col gap-2">
+        <div className={styles.verification}>
           <Button
             variant="secondary"
             disabled={resend.busy || refreshing || logout.busy || logout.uncertain}
@@ -52,7 +53,7 @@ export function AccountPanel({ initialAccount }: { initialAccount: CustomerAccou
           </Button>
         </div>
       )}
-      <div className="flex flex-wrap gap-3">
+      <div className={styles.actions}>
         <Button
           variant="secondary"
           disabled={refreshing || logout.busy || logout.uncertain}

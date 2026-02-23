@@ -1,3 +1,9 @@
+.printMessage {
+  padding: 12px 20px;
+  font-size: 14px;
+  line-height: 20px;
+}
+
 .report {
   max-width: 1120px;
   margin: 20px;

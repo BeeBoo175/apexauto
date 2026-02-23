@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Dialog } from "@/components/ui/Dialog";
+import { Dialog, DialogActionSlot } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
 import { AppointmentLoadingShell } from "@/components/staff/AppointmentLoadingShell";
 import type { useInspectionDrawer } from "@/hooks/use-inspection-drawer";
@@ -29,7 +29,7 @@ export function InspectionDrawer({
       density="compact"
       width={repairs ? "default" : "wide"}
       title={repairs ? "Repair request" : "Inspection"}
-      headerActions={<div ref={setHeaderActions} className="flex items-center" />}
+      headerActions={<DialogActionSlot ref={setHeaderActions} />}
       closeDisabled={selection.locked}
       onClose={selection.close}
     >

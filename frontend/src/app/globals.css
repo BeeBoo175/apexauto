@@ -1,6 +1,8 @@
-@import "tailwindcss";
+@layer base, components;
+@import "./base.css";
 
-@theme {
+:root {
+  --radius-sm: 4px;
   --color-graphite: #151515;
   --color-graphite-soft: #242424;
   --color-paper: #fffdf8;
@@ -37,4 +39,16 @@ body {
   margin: 0;
   padding: 0;
   -webkit-font-smoothing: antialiased;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }

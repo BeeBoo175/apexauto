@@ -65,7 +65,7 @@ export function Calendar<Data>(props: CalendarProps<Data>) {
           <Button
             size="compact"
             variant="secondary"
-            className={props.busy ? "disabled:opacity-100" : undefined}
+            className={props.busy ? styles.readPending : undefined}
             disabled={
               props.disabled ||
               props.busy ||
@@ -83,7 +83,7 @@ export function Calendar<Data>(props: CalendarProps<Data>) {
             size="icon"
             variant="ghost"
             aria-label="Previous month"
-            className={props.busy ? "disabled:opacity-100" : undefined}
+            className={props.busy ? styles.readPending : undefined}
             disabled={
               props.disabled ||
               props.busy ||
@@ -98,7 +98,7 @@ export function Calendar<Data>(props: CalendarProps<Data>) {
             size="icon"
             variant="ghost"
             aria-label="Next month"
-            className={props.busy ? "disabled:opacity-100" : undefined}
+            className={props.busy ? styles.readPending : undefined}
             disabled={
               props.disabled ||
               props.busy ||

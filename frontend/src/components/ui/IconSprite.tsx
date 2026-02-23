@@ -1,4 +1,5 @@
 import "server-only";
+import styles from "./Icon.module.css";
 
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -22,7 +23,7 @@ export function IconSprite() {
       focusable="false"
       width="0"
       height="0"
-      style={{ position: "absolute", overflow: "hidden", pointerEvents: "none" }}
+      className={styles.sprite}
       // Only the fixed, checked-in SVG files above supply this markup.
       dangerouslySetInnerHTML={{ __html: symbols }}
     />
