@@ -1,7 +1,8 @@
 import "server-only";
 import { isRecord, isUuid } from "@/lib/auth/contracts";
 import { readCurrentActor } from "@/lib/auth/server";
-import { HttpError, readBoundedJson, requireSameOrigin } from "@/lib/server/http/request";
+import { HttpError, readBoundedJson } from "@/lib/http";
+import { requireSameOrigin } from "@/lib/server/http/request";
 import { intakeRead, intakeToken } from "@/lib/intake/server";
 import { intakeError, intakeJson } from "@/lib/intake/routes";
 

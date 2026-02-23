@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { Readable } from "node:stream";
 import { readCurrentActor } from "@/lib/auth/server";
 import { actorIdentity } from "@/lib/auth/actor";
-import { HttpError } from "./request";
+import { HttpError } from "@/lib/http";
 import { requestApi } from "./upstream";
 
 export async function relayPrivateCsv(

@@ -2,7 +2,7 @@ import { relayInspectionResource } from "@/lib/inspection/routes";
 import { parsePhoto } from "@/lib/inspection/parse-report";
 import { isUuid } from "@/lib/auth/contracts";
 import { intakeError } from "@/lib/intake/routes";
-import { HttpError } from "@/lib/server/http/request";
+import { HttpError } from "@/lib/http";
 
 export async function GET(
   request: Request,

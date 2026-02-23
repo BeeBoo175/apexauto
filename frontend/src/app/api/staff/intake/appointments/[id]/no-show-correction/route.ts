@@ -1,6 +1,6 @@
 import { isUuid } from "@/lib/auth/contracts";
 import { intakeError, relayIntake } from "@/lib/intake/routes";
-import { HttpError } from "@/lib/server/http/request";
+import { HttpError } from "@/lib/http";
 import { parseCheckIn } from "@/lib/staff/parse";
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {

@@ -1,7 +1,7 @@
 import { isUuid } from "@/lib/auth/contracts";
 import { readCurrentActor } from "@/lib/auth/server";
 import { intakeError, intakeJson } from "@/lib/intake/routes";
-import { HttpError } from "@/lib/server/http/request";
+import { HttpError } from "@/lib/http";
 import { readEditor } from "@/lib/inspection/editor-server";
 
 export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {

@@ -1,7 +1,7 @@
 import { relayIntake, intakeError } from "@/lib/intake/routes";
 import { parseCancellation } from "@/lib/intake/parse";
 import { isUuid } from "@/lib/auth/contracts";
-import { HttpError } from "@/lib/server/http/request";
+import { HttpError } from "@/lib/http";
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
   if (!isUuid(id)) {

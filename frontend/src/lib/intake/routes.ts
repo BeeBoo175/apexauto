@@ -1,10 +1,6 @@
 import "server-only";
-import {
-  HttpError,
-  readBoundedBytes,
-  readBoundedJson,
-  requireSameOrigin,
-} from "@/lib/server/http/request";
+import { HttpError, readBoundedBytes, readBoundedJson } from "@/lib/http";
+import { requireSameOrigin } from "@/lib/server/http/request";
 import { isRecord, isUuid } from "@/lib/auth/contracts";
 import { intakeRead, intakeToken } from "./server";
 import { INTAKE_DEADLINE_MS, PHOTO_DEADLINE_MS, PHOTO_MAX_BYTES, angles } from "./contracts";

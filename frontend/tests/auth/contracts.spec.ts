@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { parseAccount, parseSession, safeReturnTo } from "../../src/lib/auth/contracts";
 import { trustedClientAddress } from "../../src/lib/server/http/client-address";
+import { HttpError, readBoundedJson } from "../../src/lib/http";
 
 test("return destinations stay inside the supported account route", () => {
   for (const destination of [
@@ -75,4 +76,63 @@ test("account snapshots validate identity and verification fields before renderi
   expect(parseAccount({ ...account, emailVerified: "false" })).toBeNull();
   expect(parseAccount({ ...account, userId: "00000000-0000-0000-0000-000000000000" })).toBeNull();
   expect(parseAccount({ ...account, legalName: " " })).toBeNull();
+});
+
+test("shared JSON reads retain UTF-8 characters split across chunks at the byte limit", async () => {
+  const bytes = new TextEncoder().encode('{"customer":"Nur Aisyah 陈"}');
+  const body = new ReadableStream<Uint8Array>({
+    start(controller) {
+      for (const byte of bytes) {
+        controller.enqueue(Uint8Array.of(byte));
+      }
+      controller.close();
+    },
+  });
+
+  await expect(readBoundedJson(body, new AbortController().signal, bytes.length)).resolves.toEqual({
+    customer: "Nur Aisyah 陈",
+  });
+  expect(body.locked).toBe(false);
+});
+
+test("oversized JSON reads cancel unread data and release the body", async () => {
+  let cancelled = false;
+  const body = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(new TextEncoder().encode('{"budget":2500}'));
+    },
+    cancel() {
+      cancelled = true;
+    },
+  });
+
+  await expect(readBoundedJson(body, new AbortController().signal, 4)).rejects.toMatchObject({
+    status: 413,
+  });
+  expect(cancelled).toBe(true);
+  expect(body.locked).toBe(false);
+});
+
+test("aborting a stalled JSON read rejects without waiting for another chunk", async () => {
+  const abort = new AbortController();
+  let cancelled = false;
+  const body = new ReadableStream<Uint8Array>({
+    cancel() {
+      cancelled = true;
+    },
+  });
+  const reading = readBoundedJson(body, abort.signal, 1024);
+  abort.abort();
+
+  await expect(reading).rejects.toMatchObject({ name: "AbortError" });
+  expect(cancelled).toBe(true);
+  expect(body.locked).toBe(false);
+});
+
+test("missing and malformed JSON bodies remain rejected after cleanup", async () => {
+  const signal = new AbortController().signal;
+  await expect(readBoundedJson(null, signal, 1024)).rejects.toBeInstanceOf(HttpError);
+  const body = new Response('{"budget":').body!;
+  await expect(readBoundedJson(body, signal, 1024)).rejects.toBeInstanceOf(SyntaxError);
+  expect(body.locked).toBe(false);
 });

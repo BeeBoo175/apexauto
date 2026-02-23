@@ -1,45 +1,7 @@
 import { isRecord } from "@/lib/auth/contracts";
 import { parseActor } from "@/lib/auth/actor";
 import type { ApiResult } from "@/lib/intake/contracts";
-
-async function boundedJson(response: Response, signal: AbortSignal) {
-  const reader = response.body?.getReader();
-  if (!reader) {
-    throw new Error("Missing service response");
-  }
-  const cancel = () => {
-    void reader.cancel().catch(() => {});
-  };
-  signal.addEventListener("abort", cancel, { once: true });
-  const chunks: Uint8Array[] = [];
-  let size = 0;
-  try {
-    signal.throwIfAborted();
-    while (true) {
-      const chunk = await reader.read();
-      signal.throwIfAborted();
-      if (chunk.done) {
-        break;
-      }
-      size += chunk.value.byteLength;
-      if (size > 1200 * 1024) {
-        throw new Error("Service response too large");
-      }
-      chunks.push(chunk.value);
-    }
-    const bytes = new Uint8Array(size);
-    let offset = 0;
-    for (const chunk of chunks) {
-      bytes.set(chunk, offset);
-      offset += chunk.byteLength;
-    }
-    return JSON.parse(new TextDecoder().decode(bytes)) as unknown;
-  } finally {
-    await reader.cancel().catch(() => {});
-    reader.releaseLock();
-    signal.removeEventListener("abort", cancel);
-  }
-}
+import { readBoundedJson } from "@/lib/http";
 
 export async function inspectionFetch<T>(
   path: string,
@@ -59,7 +21,7 @@ export async function inspectionFetch<T>(
   if (response.status === 401 || response.status === 403) {
     window.dispatchEvent(new Event("apexauto-session-invalid"));
   }
-  const value = await boundedJson(response, signal);
+  const value = await readBoundedJson(response.body, signal, 1200 * 1024);
   if (
     !isRecord(value) ||
     value.status !== response.status ||

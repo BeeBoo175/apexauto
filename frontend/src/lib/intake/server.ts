@@ -2,7 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { SESSION_COOKIE } from "@/lib/auth/contracts";
 import { requestApi, type ApiRequestOptions } from "@/lib/server/http/upstream";
-import { readBoundedJson } from "@/lib/server/http/request";
+import { readBoundedJson } from "@/lib/http";
 import { INTAKE_DEADLINE_MS } from "./contracts";
 import type { ApiResult } from "./contracts";
 

@@ -1,7 +1,8 @@
 import "server-only";
 
 import { requestApi, type ApiRequestOptions } from "../server/http/upstream";
-import { HttpError, readBoundedJson, requireSameOrigin } from "../server/http/request";
+import { HttpError, readBoundedJson } from "@/lib/http";
+import { requireSameOrigin } from "@/lib/server/http/request";
 import { AUTH_BODY_LIMIT, AUTH_DEADLINE_MS, isRecord, isUuid } from "./contracts";
 
 export function authJson(body: unknown, status = 200) {
