@@ -1,0 +1,78 @@
+@layer components {
+  .surface {
+    position: fixed;
+    overflow-y: auto;
+    border: 1px solid var(--color-line);
+    padding: 24px;
+    background: var(--color-paper);
+    color: var(--color-graphite);
+  }
+
+  .surface::backdrop {
+    background: rgb(21 21 21 / 60%);
+  }
+
+  .dialog {
+    inset: 0;
+    margin: auto;
+    width: calc(100% - 32px);
+    max-width: 512px;
+    max-height: 90dvh;
+    border-radius: var(--radius-sm, 4px);
+  }
+
+  .drawer {
+    inset-block: 0;
+    left: auto;
+    right: 0;
+    margin: 0;
+    height: 100dvh;
+    max-height: 100dvh;
+    width: 100%;
+    max-width: 520px;
+  }
+
+  .drawer.wide {
+    max-width: 1000px;
+  }
+
+  .compact {
+    padding: 20px;
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    border-bottom: 1px solid var(--color-line-soft);
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+  }
+
+  .title {
+    font-size: 20px;
+    line-height: 28px;
+    font-weight: 700;
+    color: var(--color-graphite);
+  }
+
+  .compact .title {
+    font-size: 16px;
+    line-height: 24px;
+  }
+
+  .description {
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--color-muted);
+    margin-top: 8px;
+  }
+
+  .actions {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 8px;
+  }
+}

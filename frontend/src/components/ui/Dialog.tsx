@@ -2,6 +2,7 @@
 
 import React, { useEffect, useId, useRef } from "react";
 import { CloseButton } from "./CloseButton";
+import styles from "./Dialog.module.css";
 
 export interface DialogProps {
   open: boolean;
@@ -31,11 +32,6 @@ export const Dialog: React.FC<DialogProps> = ({
   const element = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const descriptionId = useId();
-  const drawerWidth = width === "wide" ? "max-w-[1000px]" : "max-w-[520px]";
-  const placement =
-    variant === "drawer"
-      ? `inset-y-0 left-auto right-0 m-0 h-dvh max-h-dvh w-full ${drawerWidth}`
-      : "inset-0 m-auto w-[calc(100%-32px)] max-w-lg max-h-[90dvh] rounded-sm";
   useEffect(() => {
     if (!open || !element.current) {
       return;
@@ -109,23 +105,20 @@ export const Dialog: React.FC<DialogProps> = ({
           last?.focus();
         }
       }}
-      className={`fixed bg-paper text-graphite border border-line backdrop:bg-graphite/60 overflow-y-auto ${density === "compact" ? "p-5" : "p-6"} ${placement}`}
+      className={`${styles.surface} ${styles[variant]} ${density === "compact" ? styles.compact : ""} ${width === "wide" ? styles.wide : ""}`}
     >
-      <div className="flex items-center justify-between gap-4 border-b border-line-soft pb-4 mb-4">
+      <div className={styles.header}>
         <div>
-          <h2
-            id={titleId}
-            className={`${density === "compact" ? "text-base" : "text-xl"} font-bold text-graphite`}
-          >
+          <h2 id={titleId} className={styles.title}>
             {title}
           </h2>
           {description && (
-            <p id={descriptionId} className="text-sm text-muted mt-2">
+            <p id={descriptionId} className={styles.description}>
               {description}
             </p>
           )}
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className={styles.actions}>
           {headerActions}
           <CloseButton
             size={density === "compact" ? "compact" : "md"}

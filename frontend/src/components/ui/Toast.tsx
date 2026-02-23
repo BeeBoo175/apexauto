@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
+import styles from "./Toast.module.css";
 
 export type ToastType = "success" | "error" | "warning" | "info";
 
@@ -46,18 +47,11 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       {children}
       <ToastViewport>
         {toasts.map((t) => {
-          const typeStyles = {
-            success: "border-trust text-trust bg-paper",
-            error: "border-signal text-signal bg-paper",
-            warning: "border-warning text-warning bg-paper",
-            info: "border-graphite text-graphite bg-paper",
-          }[t.type];
-
           return (
             <div
               key={t.id}
               role={t.type === "error" ? "alert" : "status"}
-              className={`pointer-events-auto p-4 border rounded-sm shadow-md text-xs font-bold uppercase tracking-wider ${typeStyles}`}
+              className={`${styles.toast} ${styles[t.type]}`}
             >
               {t.message}
             </div>
@@ -84,10 +78,7 @@ function ToastViewport({ children }: { children: React.ReactNode }) {
   }, []);
 
   const viewport = (
-    <div
-      aria-label="Notifications"
-      className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"
-    >
+    <div aria-label="Notifications" className={styles.viewport}>
       {children}
     </div>
   );

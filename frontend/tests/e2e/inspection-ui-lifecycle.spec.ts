@@ -234,7 +234,9 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     .getByLabel("Completion & reinspection notes", { exact: true })
     .fill("Bumper repair and finish checked. Reinspection complete.");
   await page.getByRole("button", { name: "Confirm repairs completed", exact: true }).click();
-  await expect(page.getByText("Available · Revision 1 · Signed", { exact: true })).toBeVisible();
+  const completedSummary = page.getByRole("region", { name: "Vehicle and confirmed assessment" });
+  await expect(completedSummary.getByText("Available", { exact: true })).toBeVisible();
+  await expect(completedSummary.getByText("1 · Signed", { exact: true })).toBeVisible();
   const reportHref = await page
     .getByRole("link", { name: "Open signed report · revision 1", exact: true })
     .getAttribute("href");
@@ -302,9 +304,9 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     .getByLabel("Reopening reason", { exact: true })
     .fill("Inspect newly reported suspension noise.");
   await manager.getByRole("button", { name: "Confirm reopening", exact: true }).click();
-  await expect(
-    manager.getByText("Pending Inspection · Revision 2 · Draft", { exact: true }),
-  ).toBeVisible();
+  const reopenedSummary = manager.getByRole("region", { name: "Vehicle and confirmed assessment" });
+  await expect(reopenedSummary.getByText("Pending Inspection", { exact: true })).toBeVisible();
+  await expect(reopenedSummary.getByText("2 · Draft", { exact: true })).toBeVisible();
   await manager
     .getByRole("dialog", { name: "Inspection", exact: true })
     .getByRole("button", { name: "Close dialog", exact: true })
@@ -356,7 +358,8 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   await expect(page.getByRole("button", { name: "Sign inspection", exact: true })).toBeEnabled();
   await page.getByRole("button", { name: "Sign inspection", exact: true }).click();
   await page.getByRole("button", { name: "Confirm sign-off", exact: true }).click();
-  await expect(page.getByText("Rejected · Revision 2 · Signed", { exact: true })).toBeVisible();
+  await expect(completedSummary.getByText("Rejected", { exact: true })).toBeVisible();
+  await expect(completedSummary.getByText("2 · Signed", { exact: true })).toBeVisible();
   const rejectedHref = await page
     .getByRole("link", { name: "Open signed report · revision 2", exact: true })
     .getAttribute("href");
@@ -368,9 +371,8 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     .getByLabel("Reopening reason", { exact: true })
     .fill("Review accident evidence in a new retained revision.");
   await manager.getByRole("button", { name: "Confirm reopening", exact: true }).click();
-  await expect(
-    manager.getByText("Pending Inspection · Revision 3 · Draft", { exact: true }),
-  ).toBeVisible();
+  await expect(reopenedSummary.getByText("Pending Inspection", { exact: true })).toBeVisible();
+  await expect(reopenedSummary.getByText("3 · Draft", { exact: true })).toBeVisible();
   await managerContext.close();
   const salesContext = await browser.newContext({
     ...info.project.use,

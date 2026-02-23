@@ -1,0 +1,50 @@
+@layer components {
+  .viewport {
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 384px;
+    width: 100%;
+    pointer-events: none;
+  }
+
+  .toast {
+    pointer-events: auto;
+    padding: 16px;
+    border: 1px solid;
+    border-radius: var(--radius-sm, 4px);
+    box-shadow:
+      0 4px 6px -1px rgb(0 0 0 / 10%),
+      0 2px 4px -2px rgb(0 0 0 / 10%);
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: var(--color-paper);
+  }
+
+  .success {
+    color: var(--color-trust);
+    border-color: var(--color-trust);
+  }
+
+  .error {
+    color: var(--color-signal);
+    border-color: var(--color-signal);
+  }
+
+  .warning {
+    color: var(--color-warning);
+    border-color: var(--color-warning);
+  }
+
+  .info {
+    color: var(--color-graphite);
+    border-color: var(--color-graphite);
+  }
+}
