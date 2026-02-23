@@ -1,0 +1,143 @@
+@layer components {
+  .button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid;
+    border-radius: var(--radius-sm, 4px);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition:
+      color 150ms,
+      background-color 150ms,
+      border-color 150ms;
+  }
+
+  .button:focus-visible {
+    outline: 2px solid var(--color-graphite);
+    outline-offset: 2px;
+  }
+
+  .button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .primary {
+    background: var(--color-signal);
+    color: var(--color-paper);
+    border-color: var(--color-signal-dark);
+  }
+
+  .secondary {
+    background: var(--color-paper);
+    color: var(--color-graphite);
+    border-color: var(--color-line);
+  }
+
+  .danger {
+    background: var(--color-signal-dark);
+    color: var(--color-paper);
+    border-color: var(--color-signal-dark);
+  }
+
+  .ghost {
+    background: transparent;
+    color: var(--color-graphite);
+    border-color: transparent;
+  }
+
+  .shell {
+    background: transparent;
+    color: white;
+    border-color: rgb(255 255 255 / 25%);
+  }
+
+  .shell:focus-visible {
+    outline-color: white;
+  }
+
+  .sm {
+    height: 36px;
+    padding-inline: 12px;
+    font-size: 12px;
+    line-height: 16px;
+  }
+
+  .md {
+    height: 44px;
+    padding-inline: 20px;
+    font-size: 12px;
+    line-height: 16px;
+  }
+
+  .lg {
+    height: 52px;
+    padding-inline: 28px;
+    font-size: 14px;
+    line-height: 20px;
+  }
+
+  .compact,
+  .row,
+  .icon {
+    font-weight: 600;
+    letter-spacing: normal;
+    text-transform: none;
+  }
+
+  .compact {
+    height: 32px;
+    padding-inline: 12px;
+    font-size: 13px;
+  }
+
+  .row {
+    min-height: 28px;
+    padding: 4px 10px;
+    font-size: 12px;
+    line-height: 16px;
+  }
+
+  .icon {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+  }
+
+  @media (hover: hover) {
+    .primary:hover {
+      background: var(--color-signal-dark);
+    }
+
+    .secondary:hover,
+    .ghost:hover {
+      background: var(--color-canvas);
+    }
+
+    .danger:hover {
+      background: var(--color-signal);
+    }
+
+    .shell:hover {
+      background: rgb(255 255 255 / 10%);
+    }
+  }
+
+  @media (max-width: 820px) {
+    .compact,
+    .icon {
+      height: 44px;
+    }
+
+    .icon {
+      width: 44px;
+    }
+
+    .row {
+      min-height: 44px;
+    }
+  }
+}
