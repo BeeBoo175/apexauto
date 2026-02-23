@@ -9,7 +9,7 @@ namespace Dealership.Infrastructure.Development;
 
 public sealed class DevelopmentInspectionFixtures(DealershipDbContext database, InspectionAssignmentService assignments,
     InspectionDraftSaveService inspectionSaves, InspectionPhotoService inspectionPhotos, IPhotoImageValidator photoValidator,
-    InspectionSignoffService inspectionSignoffs, IInspectionReportStore inspectionReports, IInspectionRepairRequestStore inspectionRepairs,
+    InspectionSignoffService inspectionSignoffs, InspectionReopeningService inspectionReopenings, IInspectionRepairRequestStore inspectionRepairs,
     IInspectionRepairApprovalStore inspectionApprovals, IInspectionRepairCompletionStore inspectionCompletions)
 {
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> RunAsync(bool seed,
@@ -228,7 +228,7 @@ public sealed class DevelopmentInspectionFixtures(DealershipDbContext database, 
             .SingleOrDefaultAsync(item => item.Id == request.OperationId, cancellationToken);
         if (existing is not null)
         {
-            var matches = existing.Matches(managerId, inspectionId, request) && existing.SignedRevisionId == inspectionId &&
+            var matches = existing.Receipt().Matches(managerId, inspectionId, request) && existing.SignedRevisionId == inspectionId &&
                 existing.AfterSaveVersion == 1 && !draft.IsSigned && draft.Revision == 2 && draft.ReopenedAfterSaveVersion == 1;
             return new($"Inspection reopening ({plate})", matches ? "matches" : "drift; preserved", !matches);
         }
@@ -238,7 +238,7 @@ public sealed class DevelopmentInspectionFixtures(DealershipDbContext database, 
             return new($"Inspection reopening ({plate})", "missing or changed; preserved", true);
         }
 
-        var reopened = await inspectionReports.ReopenAsync(managerId, inspectionId, request, cancellationToken);
+        var reopened = await inspectionReopenings.ReopenAsync(managerId, inspectionId, request, cancellationToken);
         var succeeded = reopened.Status == InspectionAssignmentStatus.Succeeded;
         return new($"Inspection reopening ({plate})", succeeded ? "created" : "reopening unavailable; preserved", !succeeded);
     }

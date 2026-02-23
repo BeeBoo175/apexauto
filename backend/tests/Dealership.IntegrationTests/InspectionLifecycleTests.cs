@@ -31,6 +31,7 @@ public sealed class InspectionLifecycleTests(IntakePhotoFixture fixture) : IClas
             .AssignAsync(technician, vehicle, new(Guid.NewGuid(), technician, 0, null), CancellationToken.None);
         var inspection = assignment.Receipt!.InspectionId;
         var reports = services.GetRequiredService<IInspectionReportStore>();
+        var reopenings = services.GetRequiredService<InspectionReopeningService>();
         var signoffs = services.GetRequiredService<InspectionSignoffService>();
         var saves = services.GetRequiredService<InspectionDraftSaveService>();
         var requests = services.GetRequiredService<IInspectionRepairRequestStore>();
@@ -98,7 +99,7 @@ public sealed class InspectionLifecycleTests(IntakePhotoFixture fixture) : IClas
 
             var reopen = new InspectionReopenRequest(Guid.NewGuid(), 1, revision, "Manager requests a fresh examination");
             Assert.Equal(InspectionAssignmentStatus.Succeeded,
-                (await reports.ReopenAsync(manager, inspection, reopen, CancellationToken.None)).Status);
+                (await reopenings.ReopenAsync(manager, inspection, reopen, CancellationToken.None)).Status);
             await AssertStatusAsync(database, vehicle, VehicleStatus.PendingInspection);
             Assert.Equal(JsonSerializer.Serialize(signed), JsonSerializer.Serialize((await reports
                 .ReadAsync(manager, inspection, revision, CancellationToken.None)).Report));

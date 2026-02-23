@@ -37,7 +37,7 @@ public sealed class InspectionHistoryTests(IntakePhotoFixture fixture) : IClassF
         Assert.Equal(InspectionAssignmentStatus.NotFound,
             (await histories.RepairsAsync(technician, inspection, 1, new(), CancellationToken.None)).Status);
         var saves = services.GetRequiredService<InspectionDraftSaveService>();
-        var reports = services.GetRequiredService<IInspectionReportStore>();
+        var reopenings = services.GetRequiredService<InspectionReopeningService>();
         var signoffs = services.GetRequiredService<InspectionSignoffService>();
         var repairs = services.GetRequiredService<IInspectionRepairRequestStore>();
         var approvals = services.GetRequiredService<IInspectionRepairApprovalStore>();
@@ -52,7 +52,7 @@ public sealed class InspectionHistoryTests(IntakePhotoFixture fixture) : IClassF
             originals.Add(signed.Report!);
             if (revision < 21)
             {
-                Assert.Equal(InspectionAssignmentStatus.Succeeded, (await reports.ReopenAsync(manager, inspection,
+                Assert.Equal(InspectionAssignmentStatus.Succeeded, (await reopenings.ReopenAsync(manager, inspection,
                     new(Guid.NewGuid(), 1, revision, "Verify the retained bumper assessment"), CancellationToken.None)).Status);
             }
         }

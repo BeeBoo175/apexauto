@@ -139,7 +139,7 @@ public sealed class InspectionQueueTests(IntakePhotoFixture fixture) : IClassFix
         Assert.Equal(InspectionAssignmentStatus.Succeeded, (await repairs.RequestAsync(technician, inspection,
             request with { OperationId = Guid.NewGuid(), ExpectedVersion = 4, Budget = 0 }, CancellationToken.None)).Status);
         Assert.Single((await queues.RepairsAsync(manager, new(), InspectionRepairQueueStatus.ApprovalNotRequired, CancellationToken.None)).Queue!.Items);
-        Assert.Equal(InspectionAssignmentStatus.Succeeded, (await services.GetRequiredService<IInspectionReportStore>()
+        Assert.Equal(InspectionAssignmentStatus.Succeeded, (await services.GetRequiredService<InspectionReopeningService>()
             .ReopenAsync(manager, inspection, new(Guid.NewGuid(), 1, 1, "Recheck bumper condition"), CancellationToken.None)).Status);
         Assert.Empty((await queues.RepairsAsync(manager, new(), InspectionRepairQueueStatus.ApprovalNotRequired, CancellationToken.None)).Queue!.Items);
         Assert.Equal(5, (await queues.RepairsAsync(manager, new(), InspectionRepairQueueStatus.Superseded, CancellationToken.None)).Queue!.Total);

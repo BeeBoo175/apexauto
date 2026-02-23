@@ -51,6 +51,7 @@ public sealed class InspectionRepairRequestTests(IntakePhotoFixture fixture) : I
         var saves = services.GetRequiredService<InspectionDraftSaveService>();
         Assert.Equal(InspectionAssignmentStatus.Succeeded, (await saves.SaveAsync(technician, inspection, save, CancellationToken.None)).Status);
         var reports = services.GetRequiredService<IInspectionReportStore>();
+        var reopenings = services.GetRequiredService<InspectionReopeningService>();
         var signoffs = services.GetRequiredService<InspectionSignoffService>();
         var original = (await signoffs.SignAsync(technician, inspection, new(Guid.NewGuid(), 1, 1, 1), CancellationToken.None)).Report!;
         var repairs = services.GetRequiredService<IInspectionRepairRequestStore>();
@@ -103,7 +104,7 @@ public sealed class InspectionRepairRequestTests(IntakePhotoFixture fixture) : I
         Assert.Equal(JsonSerializer.Serialize(original), JsonSerializer.Serialize((await reports.ReadAsync(group, inspection, 1, CancellationToken.None)).Report));
         await VerifyApiAsync(restarted, email, inspection, request, receipt);
 
-        Assert.Equal(InspectionAssignmentStatus.Succeeded, (await reports.ReopenAsync(manager, inspection,
+        Assert.Equal(InspectionAssignmentStatus.Succeeded, (await reopenings.ReopenAsync(manager, inspection,
             new(Guid.NewGuid(), 1, 1, "Verify revised condition before further repairs"), CancellationToken.None)).Status);
         Assert.Equal(InspectionAssignmentStatus.Conflict,
             (await RequestAsync(restarted, technician, inspection, changed with { OperationId = Guid.NewGuid(), ExpectedVersion = 2 })).Status);

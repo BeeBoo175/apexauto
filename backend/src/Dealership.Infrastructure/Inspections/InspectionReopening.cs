@@ -35,10 +35,6 @@ public sealed class InspectionReopening
     public string Reason { get; private set; } = string.Empty;
     public DateTimeOffset RecordedAt { get; private set; }
 
-    public bool Matches(Guid actorId, Guid inspectionId, InspectionReopenRequest request) =>
-        ActorId == actorId && InspectionId == inspectionId && AssignmentVersion == request.AssignmentVersion &&
-        ExpectedRevision == request.Revision && Reason == request.Reason;
-
     public InspectionReopenReceipt Receipt() => new(Id, InspectionId, BranchId, ActorId, SignedRevisionId,
         AssignmentVersion, ExpectedRevision, Revision, AfterSaveVersion, Reason, RecordedAt);
 }

@@ -89,18 +89,7 @@ public sealed record InspectionSignRequest(Guid OperationId, long AssignmentVers
 
 public sealed record InspectionReportResult(InspectionAssignmentStatus Status, InspectionReport? Report = null);
 
-public sealed record InspectionReopenRequest(Guid OperationId, long AssignmentVersion, long Revision, string? Reason);
-
-public sealed record InspectionReopenReceipt(Guid OperationId, Guid InspectionId, Guid BranchId, Guid ActorId,
-    Guid SignedRevisionId, long AssignmentVersion, long ExpectedRevision, long Revision,
-    long AfterSaveVersion, string Reason, DateTimeOffset RecordedAt);
-
-public sealed record InspectionReopenResult(InspectionAssignmentStatus Status, InspectionReopenReceipt? Receipt = null);
-
 public interface IInspectionReportStore
 {
-    Task<InspectionReopenResult> ReopenAsync(Guid actorId, Guid inspectionId, InspectionReopenRequest request,
-        CancellationToken cancellationToken);
-
     Task<InspectionReportResult> ReadAsync(Guid actorId, Guid inspectionId, long revision, CancellationToken cancellationToken);
 }

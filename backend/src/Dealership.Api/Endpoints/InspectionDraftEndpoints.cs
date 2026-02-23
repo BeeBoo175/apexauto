@@ -57,7 +57,7 @@ public static class InspectionDraftEndpoints
         }
     }
 
-    private static async Task<IResult> ReopenAsync(Guid id, HttpContext context, IInspectionReportStore reports,
+    private static async Task<IResult> ReopenAsync(Guid id, HttpContext context, InspectionReopeningService reports,
         CancellationToken cancellationToken)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);

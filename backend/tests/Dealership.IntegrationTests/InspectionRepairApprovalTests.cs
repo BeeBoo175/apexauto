@@ -51,6 +51,7 @@ public sealed class InspectionRepairApprovalTests(IntakePhotoFixture fixture) : 
         };
         await services.GetRequiredService<InspectionDraftSaveService>().SaveAsync(technician, inspection, save, CancellationToken.None);
         var reports = services.GetRequiredService<IInspectionReportStore>();
+        var reopenings = services.GetRequiredService<InspectionReopeningService>();
         var signoffs = services.GetRequiredService<InspectionSignoffService>();
         var original = (await signoffs.SignAsync(technician, inspection, new(Guid.NewGuid(), 1, 1, 1), CancellationToken.None)).Report!;
         var request = new InspectionRepairRequest(Guid.NewGuid(), 1, 1, 0, [new("EP-004", "Refinish bumper")], 250m);
@@ -111,7 +112,7 @@ public sealed class InspectionRepairApprovalTests(IntakePhotoFixture fixture) : 
         Assert.Equal(receipt, (await ApproveAsync(restarted, manager, inspection, approval)).Receipt);
         Assert.Equal(JsonSerializer.Serialize(original), JsonSerializer.Serialize((await reports.ReadAsync(group, inspection, 1, CancellationToken.None)).Report));
 
-        await reports.ReopenAsync(manager, inspection, new(Guid.NewGuid(), 1, 1, "Examine repaired bumper again"), CancellationToken.None);
+        await reopenings.ReopenAsync(manager, inspection, new(Guid.NewGuid(), 1, 1, "Examine repaired bumper again"), CancellationToken.None);
         Assert.Equal(InspectionAssignmentStatus.Conflict,
             (await ApproveAsync(restarted, manager, inspection, renewed with { OperationId = Guid.NewGuid() })).Status);
         Assert.Equal(receipt, (await ApproveAsync(restarted, manager, inspection, approval)).Receipt);

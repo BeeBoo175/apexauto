@@ -66,6 +66,7 @@ public static class DependencyInjection
         services.AddScoped<IInspectionDraftSaveStore, InspectionDraftSaveStore>();
         services.AddScoped<IInspectionReportStore, InspectionReportStore>();
         services.AddScoped<IInspectionSignoffStore, InspectionSignoffStore>();
+        services.AddScoped<IInspectionReopeningStore, InspectionReopeningStore>();
         services.AddScoped<IInspectionRepairRequestStore, InspectionRepairRequestStore>();
         services.AddScoped<IInspectionRepairApprovalStore, InspectionRepairApprovalStore>();
         services.AddScoped<IInspectionRepairCompletionStore, InspectionRepairCompletionStore>();
