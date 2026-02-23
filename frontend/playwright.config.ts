@@ -7,7 +7,7 @@ const intakeUi = Boolean(process.env.BROWSER_INTAKE);
 
 function browserTests() {
   if (intakeUi) {
-    return ["e2e/intake-ui*.spec.ts"];
+    return ["e2e/intake-ui*.spec.ts", "e2e/inspection-ui*.spec.ts"];
   }
   return "e2e/browser-auth*.spec.ts";
 }

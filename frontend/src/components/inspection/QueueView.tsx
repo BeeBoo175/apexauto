@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useRef, type ReactNode } from "react";
 import { DataTable } from "@/components/ui/data-table/DataTable";
 import type { DataColumn } from "@/components/ui/data-table/types";
@@ -37,7 +36,7 @@ export function QueueView<T>({
   state: ReturnType<typeof useInspectionQueue<T>>;
   columns: DataColumn<T>[];
   rowId: (row: T) => string;
-  onOpen?: (row: T) => void;
+  onOpen: (row: T) => void;
   selectedRowId?: string;
   parse: (value: unknown) => Page<T> | null;
   children?: ReactNode;

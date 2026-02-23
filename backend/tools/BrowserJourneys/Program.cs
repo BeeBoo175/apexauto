@@ -61,7 +61,12 @@ internal static class BrowserJourneysCli
         }
 
         var pattern = mode == "intake" ? "intake-ui*.spec.ts" : "*auth*.spec.ts";
-        return Directory.GetFiles(directory, pattern).Select(Path.GetFileName).OfType<string>()
+        var files = Directory.GetFiles(directory, pattern);
+        if (mode == "intake")
+        {
+            files = files.Concat(Directory.GetFiles(directory, "inspection-ui*.spec.ts")).ToArray();
+        }
+        return files.Select(Path.GetFileName).OfType<string>()
             .Where(name => name != "browser-auth-password-recovery.spec.ts")
             .Order(StringComparer.Ordinal).ToArray();
     }
