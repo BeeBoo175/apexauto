@@ -1,3 +1,32 @@
+@layer components {
+  .container {
+    width: 100%;
+    overflow-x: auto;
+    background: var(--color-paper);
+  }
+
+  .framed {
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-sm, 4px);
+  }
+
+  .table {
+    width: 100%;
+    text-align: left;
+    border-collapse: collapse;
+    font-size: 14px;
+    line-height: 20px;
+  }
+
+  .cell {
+    padding: 12px;
+    border-bottom: 1px solid var(--color-line-soft);
+    color: var(--color-graphite);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
 .compact th {
   padding: 10px 12px;
   font-size: 12px;

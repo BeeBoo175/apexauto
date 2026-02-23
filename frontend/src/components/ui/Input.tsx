@@ -1,5 +1,6 @@
 import React from "react";
 import { Icon } from "./Icon";
+import styles from "./Input.module.css";
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -7,36 +8,21 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
   density?: "default" | "compact";
 }
 
-const controlHeight = {
-  default: "h-11 text-sm",
-  compact: "h-8 text-[13px] max-[820px]:h-11 max-[820px]:text-base",
-};
-
-const inputFocus = {
-  default: "focus:outline-none focus:border-graphite",
-  compact: "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-graphite",
-};
-
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ label, labelHidden = false, density = "default", className = "", id, ...props }, ref) => {
     const inputId = id || (label ? label.toLowerCase().replace(/\s+/g, "-") : undefined);
 
     return (
-      <div className="flex flex-col gap-1 w-full">
+      <div className={styles.field}>
         {label && (
-          <label
-            htmlFor={inputId}
-            className={
-              labelHidden ? "sr-only" : "text-xs uppercase font-bold tracking-wider text-muted"
-            }
-          >
+          <label htmlFor={inputId} className={labelHidden ? "sr-only" : styles.label}>
             {label}
           </label>
         )}
         <input
           ref={ref}
           id={inputId}
-          className={`${controlHeight[density]} ${inputFocus[density]} min-w-0 px-3 bg-paper border border-line aria-invalid:border-signal rounded-sm text-graphite placeholder:text-muted disabled:bg-canvas disabled:text-muted ${className}`.trim()}
+          className={`${styles.control} ${styles.input} ${density === "compact" ? styles.compact : ""} ${className}`.trim()}
           {...props}
         />
       </div>
@@ -69,19 +55,14 @@ export function Select({
   const inputId = id ?? generatedId;
   const [open, setOpen] = React.useState(false);
   return (
-    <div className="flex flex-col gap-1 w-full">
-      <label
-        htmlFor={inputId}
-        className={
-          labelHidden ? "sr-only" : "text-xs uppercase font-bold tracking-wider text-muted"
-        }
-      >
+    <div className={styles.field}>
+      <label htmlFor={inputId} className={labelHidden ? "sr-only" : styles.label}>
         {label}
       </label>
-      <div className="relative w-full">
+      <div className={styles.selectFrame}>
         <select
           id={inputId}
-          className={`${density === "compact" ? controlHeight.compact : "h-11 text-base"} w-full min-w-0 pl-3 pr-7 appearance-none bg-paper border border-line rounded-sm text-graphite focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-graphite disabled:bg-canvas disabled:text-muted cursor-pointer disabled:cursor-not-allowed ${className}`.trim()}
+          className={`${styles.control} ${styles.select} ${density === "compact" ? styles.compact : ""} ${className}`.trim()}
           onClick={(event) => {
             setOpen((prev) => !prev);
             onClick?.(event);
@@ -104,14 +85,11 @@ export function Select({
         >
           {children}
         </select>
-        <span
-          className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2"
-          aria-hidden="true"
-        >
+        <span className={styles.selectArrow} aria-hidden="true">
           <span
-            className={`inline-flex items-center justify-center origin-center transition-transform duration-200 ease-in-out ${
-              open ? "rotate-180" : "rotate-0"
-            } ${props.disabled ? "text-muted" : "text-graphite"}`}
+            className={styles.arrow}
+            data-open={open || undefined}
+            data-disabled={props.disabled || undefined}
           >
             <Icon name="down" />
           </span>
@@ -129,13 +107,13 @@ export function Textarea({ label, id, className = "", ...props }: TextareaProps)
   const generatedId = React.useId();
   const inputId = id ?? generatedId;
   return (
-    <div className="flex flex-col gap-1 w-full">
-      <label htmlFor={inputId} className="text-xs uppercase font-bold tracking-wider text-muted">
+    <div className={styles.field}>
+      <label htmlFor={inputId} className={styles.label}>
         {label}
       </label>
       <textarea
         id={inputId}
-        className={`w-full min-w-0 p-3 bg-paper border border-line rounded-sm text-sm text-graphite focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-graphite disabled:bg-canvas disabled:text-muted max-[820px]:text-base ${className}`.trim()}
+        className={`${styles.control} ${styles.textarea} ${className}`.trim()}
         {...props}
       />
     </div>

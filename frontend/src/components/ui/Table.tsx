@@ -18,10 +18,10 @@ export const Table: React.FC<TableProps> = ({
 }) => {
   return (
     <div
-      className={`w-full overflow-x-auto bg-paper ${framed ? "border border-line rounded-sm" : ""} ${containerClassName}`.trim()}
+      className={`${styles.container} ${framed ? styles.framed : ""} ${containerClassName}`.trim()}
     >
       <table
-        className={`w-full text-left border-collapse text-sm ${density === "compact" ? styles.compact : ""} ${className}`.trim()}
+        className={`${styles.table} ${density === "compact" ? styles.compact : ""} ${className}`.trim()}
         {...props}
       >
         {children}
@@ -36,10 +36,7 @@ export const TableCell: React.FC<React.TdHTMLAttributes<HTMLTableCellElement>> =
   ...props
 }) => {
   return (
-    <td
-      className={`p-3 border-b border-line-soft text-graphite font-mono tabular-nums ${className}`.trim()}
-      {...props}
-    >
+    <td className={`${styles.cell} ${className}`.trim()} {...props}>
       {children}
     </td>
   );
