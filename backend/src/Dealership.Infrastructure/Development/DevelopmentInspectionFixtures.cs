@@ -9,7 +9,7 @@ namespace Dealership.Infrastructure.Development;
 
 public sealed class DevelopmentInspectionFixtures(DealershipDbContext database, InspectionAssignmentService assignments,
     InspectionDraftSaveService inspectionSaves, InspectionPhotoService inspectionPhotos, IPhotoImageValidator photoValidator,
-    IInspectionReportStore inspectionReports, IInspectionRepairRequestStore inspectionRepairs,
+    InspectionSignoffService inspectionSignoffs, IInspectionReportStore inspectionReports, IInspectionRepairRequestStore inspectionRepairs,
     IInspectionRepairApprovalStore inspectionApprovals, IInspectionRepairCompletionStore inspectionCompletions)
 {
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> RunAsync(bool seed,
@@ -202,7 +202,7 @@ public sealed class DevelopmentInspectionFixtures(DealershipDbContext database, 
             .FirstOrDefaultAsync(cancellationToken);
         if (existing is not null)
         {
-            var matches = existing.Id == inspectionId && existing.Matches(technicianId, inspectionId, request);
+            var matches = existing.Id == inspectionId && existing.Report().Matches(technicianId, inspectionId, request);
             return new($"Inspection report ({plate})", matches ? "matches" : "drift; preserved", !matches);
         }
 
@@ -211,7 +211,7 @@ public sealed class DevelopmentInspectionFixtures(DealershipDbContext database, 
             return new($"Inspection report ({plate})", "missing or changed; preserved", true);
         }
 
-        var signed = await inspectionReports.SignAsync(technicianId, inspectionId, request, cancellationToken);
+        var signed = await inspectionSignoffs.SignAsync(technicianId, inspectionId, request, cancellationToken);
         var succeeded = signed.Status == InspectionAssignmentStatus.Succeeded;
         return new($"Inspection report ({plate})", succeeded ? "created" : "sign-off unavailable; preserved", !succeeded);
     }

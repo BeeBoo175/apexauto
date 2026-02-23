@@ -47,7 +47,8 @@ public sealed class InspectionRepairCompletionTests(IntakePhotoFixture fixture) 
         };
         await services.GetRequiredService<InspectionDraftSaveService>().SaveAsync(technician, inspection, save, CancellationToken.None);
         var reports = services.GetRequiredService<IInspectionReportStore>();
-        var original = (await reports.SignAsync(technician, inspection, new(Guid.NewGuid(), 1, 1, 1), CancellationToken.None)).Report!;
+        var signoffs = services.GetRequiredService<InspectionSignoffService>();
+        var original = (await signoffs.SignAsync(technician, inspection, new(Guid.NewGuid(), 1, 1, 1), CancellationToken.None)).Report!;
         var repairs = services.GetRequiredService<IInspectionRepairRequestStore>();
         var request = new InspectionRepairRequest(Guid.NewGuid(), 1, 1, 0, [new("EP-004", "Refinish bumper")], 250m);
         var repair = (await repairs.RequestAsync(technician, inspection, request, CancellationToken.None)).Receipt!;

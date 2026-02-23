@@ -24,6 +24,7 @@ public static class DependencyInjection
         services.AddScoped<AppointmentCancellationService>();
         services.AddScoped<InspectionAssignmentService>();
         services.AddScoped<InspectionDraftSaveService>();
+        services.AddScoped<InspectionSignoffService>();
 
         return services;
     }

@@ -181,7 +181,7 @@ public sealed class InspectionSignoffTests(IntakePhotoFixture fixture) : IClassF
         Guid inspection, InspectionSignRequest request)
     {
         using var scope = factory.Services.CreateScope();
-        return await scope.ServiceProvider.GetRequiredService<IInspectionReportStore>()
+        return await scope.ServiceProvider.GetRequiredService<InspectionSignoffService>()
             .SignAsync(actor, inspection, request, CancellationToken.None);
     }
 }

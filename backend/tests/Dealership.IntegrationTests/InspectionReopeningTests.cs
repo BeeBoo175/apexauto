@@ -48,8 +48,8 @@ public sealed class InspectionReopeningTests(IntakePhotoFixture fixture) : IClas
         };
         var saves = services.GetRequiredService<InspectionDraftSaveService>();
         Assert.Equal(InspectionAssignmentStatus.Succeeded, (await saves.SaveAsync(technician, inspection, save, CancellationToken.None)).Status);
-        var reports = services.GetRequiredService<IInspectionReportStore>();
-        var original = (await reports.SignAsync(technician, inspection, new(Guid.NewGuid(), 1, 1, 1), CancellationToken.None)).Report!;
+        var signoffs = services.GetRequiredService<InspectionSignoffService>();
+        var original = (await signoffs.SignAsync(technician, inspection, new(Guid.NewGuid(), 1, 1, 1), CancellationToken.None)).Report!;
         Assert.True(original.Assessment.IsRejected);
 
         foreach (var actor in new[] { technician, group, admin, data.StaffId, data.OwnerId })
@@ -96,13 +96,14 @@ public sealed class InspectionReopeningTests(IntakePhotoFixture fixture) : IClas
         Assert.Equal(2, draft.Revision);
         Assert.Equal(1, draft.ReopenedAfterSaveVersion);
         var restoredReports = restored.GetRequiredService<IInspectionReportStore>();
+        var restoredSignoffs = restored.GetRequiredService<InspectionSignoffService>();
         Assert.Equal(InspectionAssignmentStatus.Conflict,
-            (await restoredReports.SignAsync(technician, inspection, new(Guid.NewGuid(), 1, 1, 2), CancellationToken.None)).Status);
+            (await restoredSignoffs.SignAsync(technician, inspection, new(Guid.NewGuid(), 1, 1, 2), CancellationToken.None)).Status);
         save = save with { OperationId = Guid.NewGuid(), ExpectedVersion = 1, ExaminedPointCodes = null };
         var restoredSaves = restored.GetRequiredService<InspectionDraftSaveService>();
         Assert.Equal(InspectionAssignmentStatus.Succeeded, (await restoredSaves.SaveAsync(technician, inspection, save, CancellationToken.None)).Status);
         Assert.Equal(InspectionAssignmentStatus.Conflict,
-            (await restoredReports.SignAsync(technician, inspection, new(Guid.NewGuid(), 1, 2, 2), CancellationToken.None)).Status);
+            (await restoredSignoffs.SignAsync(technician, inspection, new(Guid.NewGuid(), 1, 2, 2), CancellationToken.None)).Status);
         save = save with
         {
             OperationId = Guid.NewGuid(),
@@ -111,7 +112,7 @@ public sealed class InspectionReopeningTests(IntakePhotoFixture fixture) : IClas
             ExaminedPointCodes = [.. InspectionCatalog.Points.Select(point => point.Code)]
         };
         Assert.Equal(InspectionAssignmentStatus.Succeeded, (await restoredSaves.SaveAsync(technician, inspection, save, CancellationToken.None)).Status);
-        var second = (await restoredReports.SignAsync(technician, inspection, new(Guid.NewGuid(), 1, 3, 2), CancellationToken.None)).Report!;
+        var second = (await restoredSignoffs.SignAsync(technician, inspection, new(Guid.NewGuid(), 1, 3, 2), CancellationToken.None)).Report!;
         Assert.False(second.Assessment.IsRejected);
         Assert.Equal(InspectionGrade.A, second.Assessment.Grade);
         Assert.Equal(receipt, (await ReopenAsync(restarted, manager, inspection, request)).Receipt);

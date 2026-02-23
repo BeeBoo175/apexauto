@@ -51,7 +51,8 @@ public sealed class InspectionRepairRequestTests(IntakePhotoFixture fixture) : I
         var saves = services.GetRequiredService<InspectionDraftSaveService>();
         Assert.Equal(InspectionAssignmentStatus.Succeeded, (await saves.SaveAsync(technician, inspection, save, CancellationToken.None)).Status);
         var reports = services.GetRequiredService<IInspectionReportStore>();
-        var original = (await reports.SignAsync(technician, inspection, new(Guid.NewGuid(), 1, 1, 1), CancellationToken.None)).Report!;
+        var signoffs = services.GetRequiredService<InspectionSignoffService>();
+        var original = (await signoffs.SignAsync(technician, inspection, new(Guid.NewGuid(), 1, 1, 1), CancellationToken.None)).Report!;
         var repairs = services.GetRequiredService<IInspectionRepairRequestStore>();
         foreach (var actor in new[] { manager, group, admin, data.StaffId, data.OwnerId })
         {
@@ -114,7 +115,7 @@ public sealed class InspectionRepairRequestTests(IntakePhotoFixture fixture) : I
             Entries = [new("FC-042", InspectionEntryKind.Finding, InspectionSeverity.CriticalDisqualifier, 0, "Flood evidence confirmed")]
         };
         Assert.Equal(InspectionAssignmentStatus.Succeeded, (await saves.SaveAsync(technician, inspection, save, CancellationToken.None)).Status);
-        var rejected = (await reports.SignAsync(technician, inspection, new(Guid.NewGuid(), 1, 2, 2), CancellationToken.None)).Report!;
+        var rejected = (await signoffs.SignAsync(technician, inspection, new(Guid.NewGuid(), 1, 2, 2), CancellationToken.None)).Report!;
         Assert.True(rejected.Assessment.IsRejected);
         var rejectedRequest = new InspectionRepairRequest(Guid.NewGuid(), 1, 2, 2, [new("FC-042", "Dry cabin")], 100m);
         Assert.Equal(InspectionAssignmentStatus.Conflict, (await RequestAsync(restarted, technician, inspection, rejectedRequest)).Status);

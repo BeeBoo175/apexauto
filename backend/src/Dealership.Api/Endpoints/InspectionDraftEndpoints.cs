@@ -79,7 +79,7 @@ public static class InspectionDraftEndpoints
         }
     }
 
-    private static async Task<IResult> SignAsync(Guid id, HttpContext context, IInspectionReportStore reports,
+    private static async Task<IResult> SignAsync(Guid id, HttpContext context, InspectionSignoffService reports,
         CancellationToken cancellationToken)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);

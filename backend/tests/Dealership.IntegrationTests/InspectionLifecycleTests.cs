@@ -31,6 +31,7 @@ public sealed class InspectionLifecycleTests(IntakePhotoFixture fixture) : IClas
             .AssignAsync(technician, vehicle, new(Guid.NewGuid(), technician, 0, null), CancellationToken.None);
         var inspection = assignment.Receipt!.InspectionId;
         var reports = services.GetRequiredService<IInspectionReportStore>();
+        var signoffs = services.GetRequiredService<InspectionSignoffService>();
         var saves = services.GetRequiredService<InspectionDraftSaveService>();
         var requests = services.GetRequiredService<IInspectionRepairRequestStore>();
         var completions = services.GetRequiredService<IInspectionRepairCompletionStore>();
@@ -62,10 +63,10 @@ public sealed class InspectionLifecycleTests(IntakePhotoFixture fixture) : IClas
             }, CancellationToken.None);
             Assert.Equal(InspectionAssignmentStatus.Succeeded, saved.Status);
             var sign = new InspectionSignRequest(Guid.NewGuid(), 1, revision, revision);
-            var signed = (await reports.SignAsync(technician, inspection, sign, CancellationToken.None)).Report!;
+            var signed = (await signoffs.SignAsync(technician, inspection, sign, CancellationToken.None)).Report!;
             Assert.NotNull(signed);
             await AssertStatusAsync(database, vehicle, example.Status);
-            Assert.Equal(JsonSerializer.Serialize(signed), JsonSerializer.Serialize((await reports
+            Assert.Equal(JsonSerializer.Serialize(signed), JsonSerializer.Serialize((await signoffs
                 .SignAsync(technician, inspection, sign, CancellationToken.None)).Report));
 
             if (example.Status == VehicleStatus.PendingInspection ||
@@ -113,7 +114,7 @@ public sealed class InspectionLifecycleTests(IntakePhotoFixture fixture) : IClas
         {
             ExaminedPointCodes = [.. InspectionCatalog.Points.Select(point => point.Code)]
         }, CancellationToken.None);
-        await reports.SignAsync(technician, inspection, new(Guid.NewGuid(), 1, revision, revision), CancellationToken.None);
+        await signoffs.SignAsync(technician, inspection, new(Guid.NewGuid(), 1, revision, revision), CancellationToken.None);
         var partial = (await requests.RequestAsync(technician, inspection, new(Guid.NewGuid(), 1, revision,
             repairVersion, [new("EP-004", "Align bumper")], 0), CancellationToken.None)).Receipt!;
         repairVersion++;

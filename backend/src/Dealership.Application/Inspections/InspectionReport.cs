@@ -8,6 +8,10 @@ public sealed record InspectionReport(Guid OperationId, Guid InspectionId, long 
     Guid TechnicianId, string TechnicianIdentity, string CatalogVersion, InspectionDraftAssessment Assessment,
     IReadOnlyList<InspectionReportPoint> Checklist, DateTimeOffset SignedAt)
 {
+    public bool Matches(Guid actorId, Guid inspectionId, InspectionSignRequest request) =>
+        TechnicianId == actorId && InspectionId == inspectionId && AssignmentVersion == request.AssignmentVersion &&
+        SaveVersion == request.SaveVersion && Revision == request.Revision;
+
     public static InspectionReport Sign(Guid operationId, long revision, InspectionDraft draft, Vehicle vehicle,
         string technicianIdentity, InspectionDraftSaveReceipt save, IReadOnlyCollection<InspectionPhoto> photos,
         DateTimeOffset signedAt)
@@ -96,9 +100,6 @@ public sealed record InspectionReopenResult(InspectionAssignmentStatus Status, I
 public interface IInspectionReportStore
 {
     Task<InspectionReopenResult> ReopenAsync(Guid actorId, Guid inspectionId, InspectionReopenRequest request,
-        CancellationToken cancellationToken);
-
-    Task<InspectionReportResult> SignAsync(Guid actorId, Guid inspectionId, InspectionSignRequest request,
         CancellationToken cancellationToken);
 
     Task<InspectionReportResult> ReadAsync(Guid actorId, Guid inspectionId, long revision, CancellationToken cancellationToken);

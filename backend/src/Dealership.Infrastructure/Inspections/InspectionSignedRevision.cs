@@ -35,8 +35,4 @@ public sealed class InspectionSignedRevision
     public string ReportJson { get; private set; } = string.Empty;
 
     public InspectionReport Report() => JsonSerializer.Deserialize<InspectionReport>(ReportJson, JsonSerializerOptions.Web)!;
-
-    public bool Matches(Guid actorId, Guid inspectionId, InspectionSignRequest request) =>
-        TechnicianId == actorId && InspectionId == inspectionId && AssignmentVersion == request.AssignmentVersion &&
-        SaveVersion == request.SaveVersion && Revision == request.Revision;
 }

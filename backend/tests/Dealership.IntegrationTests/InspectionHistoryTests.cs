@@ -38,6 +38,7 @@ public sealed class InspectionHistoryTests(IntakePhotoFixture fixture) : IClassF
             (await histories.RepairsAsync(technician, inspection, 1, new(), CancellationToken.None)).Status);
         var saves = services.GetRequiredService<InspectionDraftSaveService>();
         var reports = services.GetRequiredService<IInspectionReportStore>();
+        var signoffs = services.GetRequiredService<InspectionSignoffService>();
         var repairs = services.GetRequiredService<IInspectionRepairRequestStore>();
         var approvals = services.GetRequiredService<IInspectionRepairApprovalStore>();
         var originals = new List<InspectionReport>();
@@ -46,7 +47,7 @@ public sealed class InspectionHistoryTests(IntakePhotoFixture fixture) : IClassF
         {
             var saved = await saves.SaveAsync(technician, inspection, Save(revision - 1), CancellationToken.None);
             Assert.Equal(InspectionAssignmentStatus.Succeeded, saved.Status);
-            var signed = await reports.SignAsync(technician, inspection, new(Guid.NewGuid(), 1, revision, revision), CancellationToken.None);
+            var signed = await signoffs.SignAsync(technician, inspection, new(Guid.NewGuid(), 1, revision, revision), CancellationToken.None);
             Assert.Equal(InspectionAssignmentStatus.Succeeded, signed.Status);
             originals.Add(signed.Report!);
             if (revision < 21)
@@ -71,7 +72,7 @@ public sealed class InspectionHistoryTests(IntakePhotoFixture fixture) : IClassF
         // A separate assigned inspection detects cross-record leaks in both totals and returned rows.
         var unrelated = await ClaimAsync(data, colleague, 1, "VHP 7824", "PL1BT65R84B123457");
         await saves.SaveAsync(colleague, unrelated, Save(0), CancellationToken.None);
-        await reports.SignAsync(colleague, unrelated, new(Guid.NewGuid(), 1, 1, 1), CancellationToken.None);
+        await signoffs.SignAsync(colleague, unrelated, new(Guid.NewGuid(), 1, 1, 1), CancellationToken.None);
         await repairs.RequestAsync(colleague, unrelated, new(Guid.NewGuid(), 1, 1, 0,
             [new("EP-004", "Refinish bumper")], 100m), CancellationToken.None);
         var database = services.GetRequiredService<DealershipDbContext>();
