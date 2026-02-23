@@ -42,7 +42,7 @@ public sealed class AppointmentCheckInTests(IntakePhotoFixture fixture) : IClass
         Assert.Single(await database.AppointmentCheckIns.ToArrayAsync());
         Assert.Equal(data.CustomerEmail, (await database.AppointmentMailOutbox.Where(item => item.Kind == AppointmentMailKind.CheckIn).SingleAsync()).RecipientEmail);
         Assert.Equal(CancellationStatus.CheckedIn,
-            (await scope.ServiceProvider.GetRequiredService<IAppointmentCancellationStore>()
+            (await scope.ServiceProvider.GetRequiredService<AppointmentCancellationService>()
                 .CancelAsync(data.OwnerId, appointment.Id, CancellationToken.None)).Status);
 
         var duplicateVin = await data.BookAsync(1, "BPP 1234");
@@ -125,7 +125,7 @@ public sealed class AppointmentCheckInTests(IntakePhotoFixture fixture) : IClass
             .ExecuteUpdateAsync(update => update.SetProperty(user => user.IsActive, true));
         var cancellable = await data.BookAsync(0, "VCA 6272", dateOffset: 1);
         Assert.Equal(CancellationStatus.Succeeded,
-            (await scope.ServiceProvider.GetRequiredService<IAppointmentCancellationStore>()
+            (await scope.ServiceProvider.GetRequiredService<AppointmentCancellationService>()
                 .CancelAsync(data.OwnerId, cancellable.Id, CancellationToken.None)).Status);
         Assert.Equal(CheckInStatus.Unavailable,
             (await CheckInAsync(tomorrow, data.StaffId, cancellable.Id, evidence)).Status);

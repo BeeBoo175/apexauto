@@ -20,6 +20,7 @@ public static class DependencyInjection
         services.AddScoped<EmailVerificationService>();
         services.AddScoped<PasswordRecoveryService>();
         services.AddScoped<AppointmentCheckInService>();
+        services.AddScoped<AppointmentCancellationService>();
 
         return services;
     }

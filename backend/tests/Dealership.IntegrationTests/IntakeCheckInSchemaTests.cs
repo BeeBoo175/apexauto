@@ -81,7 +81,7 @@ public sealed class IntakeCheckInSchemaTests(IntakePhotoFixture fixture) : IClas
         Assert.Equal(92000, receipt.MileageKilometres);
         Assert.Equal(90000, (await database.IntakeAppointments.SingleAsync()).Valuation.MileageKilometres);
         Assert.Equal(CancellationStatus.CheckedIn,
-            (await scope.ServiceProvider.GetRequiredService<IAppointmentCancellationStore>()
+            (await scope.ServiceProvider.GetRequiredService<AppointmentCancellationService>()
                 .CancelAsync(data.OwnerId, appointment.Id, CancellationToken.None)).Status);
 
         var retainedAttacks = new[]

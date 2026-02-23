@@ -77,7 +77,7 @@ public sealed class StaffAppointmentDetailTests(IntakePhotoFixture fixture) : IC
         {
             using var scope = data.Factory.Services.CreateScope();
             Assert.Equal(CancellationStatus.Succeeded,
-                (await scope.ServiceProvider.GetRequiredService<IAppointmentCancellationStore>()
+                (await scope.ServiceProvider.GetRequiredService<AppointmentCancellationService>()
                     .CancelAsync(data.OwnerId, appointment.Id, CancellationToken.None)).Status);
         });
         var options = new DbContextOptionsBuilder<DealershipDbContext>()

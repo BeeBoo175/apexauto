@@ -20,7 +20,7 @@ public static class IntakeBookingEndpoints
         routes.MapPost("/{id:guid}/cancellation", CancelAsync);
     }
 
-    private static async Task<IResult> CancelAsync(Guid id, HttpContext context, IAppointmentCancellationStore cancellations,
+    private static async Task<IResult> CancelAsync(Guid id, HttpContext context, AppointmentCancellationService cancellations,
         CancellationToken cancellationToken)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);

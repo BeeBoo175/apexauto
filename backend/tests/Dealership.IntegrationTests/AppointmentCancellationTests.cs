@@ -111,7 +111,7 @@ public sealed class AppointmentCancellationTests(IntakePhotoFixture fixture) : I
         using (var late = fixture.CreateFactory(clock: new FixedClock(request.StartsAt)))
         using (var scope = late.Services.CreateScope())
         {
-            var store = scope.ServiceProvider.GetRequiredService<IAppointmentCancellationStore>();
+            var store = scope.ServiceProvider.GetRequiredService<AppointmentCancellationService>();
             Assert.Equal(CancellationStatus.TooLate, (await store.CancelAsync(owner, replacement.Id, CancellationToken.None)).Status);
             Assert.Equal(cancelled, (await store.CancelAsync(owner, receipt.Id, CancellationToken.None)).Receipt);
         }
@@ -167,6 +167,18 @@ public sealed class AppointmentCancellationTests(IntakePhotoFixture fixture) : I
         await IntakePhotoFixture.LoginAsync(restartedClient, registration);
         Assert.Equal(cancelled, await (await restartedClient.PostAsync($"/api/intake/appointments/{receipt.Id}/cancellation", null))
             .Content.ReadFromJsonAsync<CancellationReceipt>());
+
+        using var revoked = restartedFactory.Services.CreateScope();
+        var accounts = revoked.ServiceProvider.GetRequiredService<DealershipDbContext>();
+        await accounts.Users.Where(user => user.Id == owner)
+            .ExecuteUpdateAsync(update => update.SetProperty(user => user.EmailConfirmed, false));
+        var cancellations = revoked.ServiceProvider.GetRequiredService<AppointmentCancellationService>();
+        Assert.Equal(CancellationStatus.Invalid,
+            (await cancellations.CancelAsync(owner, Guid.Empty, CancellationToken.None)).Status);
+        Assert.Equal(CancellationStatus.Forbidden,
+            (await cancellations.CancelAsync(owner, receipt.Id, CancellationToken.None)).Status);
+        Assert.Equal(CancellationStatus.Forbidden,
+            (await cancellations.CancelAsync(owner, Guid.NewGuid(), CancellationToken.None)).Status);
     }
 
     private sealed class FixedClock(DateTimeOffset now) : TimeProvider

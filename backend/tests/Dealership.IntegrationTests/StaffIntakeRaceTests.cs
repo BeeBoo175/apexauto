@@ -180,7 +180,7 @@ public sealed class StaffIntakeRaceTests(IntakePhotoFixture fixture) : IClassFix
     private static async Task<CancellationResult> CancelAsync(WebApplicationFactory<Program> factory, CheckInTestData data, Guid id)
     {
         using var scope = factory.Services.CreateScope();
-        return await scope.ServiceProvider.GetRequiredService<IAppointmentCancellationStore>()
+        return await scope.ServiceProvider.GetRequiredService<AppointmentCancellationService>()
             .CancelAsync(data.OwnerId, id, CancellationToken.None);
     }
 }

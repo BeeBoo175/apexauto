@@ -42,7 +42,7 @@ public sealed class StaffWorklistTests(IntakePhotoFixture fixture) : IClassFixtu
             (await services.GetRequiredService<AppointmentCheckInService>()
                 .CheckInAsync(data.StaffId, booked[0].Id, CheckInTestData.Evidence, CancellationToken.None)).Status);
         Assert.Equal(CancellationStatus.Succeeded,
-            (await services.GetRequiredService<IAppointmentCancellationStore>()
+            (await services.GetRequiredService<AppointmentCancellationService>()
                 .CancelAsync(data.OwnerId, booked[6].Id, CancellationToken.None)).Status);
         var from = booked[0].Slot.StartsAt.AddHours(8).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         var to = booked[^1].Slot.StartsAt.AddHours(8).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
@@ -218,7 +218,7 @@ public sealed class StaffWorklistTests(IntakePhotoFixture fixture) : IClassFixtu
         {
             using var scope = data.Factory.Services.CreateScope();
             Assert.Equal(CancellationStatus.Succeeded,
-                (await scope.ServiceProvider.GetRequiredService<IAppointmentCancellationStore>()
+                (await scope.ServiceProvider.GetRequiredService<AppointmentCancellationService>()
                     .CancelAsync(data.OwnerId, appointmentId, CancellationToken.None)).Status);
         });
         var options = new DbContextOptionsBuilder<DealershipDbContext>()

@@ -23,7 +23,7 @@ public sealed class AppointmentMailMigrationTests(IntakePhotoFixture fixture) : 
         var cancelled = await data.BookAsync(slot: 1, dateOffset: 1);
         using var scope = data.Factory.Services.CreateScope();
         var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
-        var cancellation = await scope.ServiceProvider.GetRequiredService<IAppointmentCancellationStore>()
+        var cancellation = await scope.ServiceProvider.GetRequiredService<AppointmentCancellationService>()
             .CancelAsync(data.OwnerId, cancelled.Id, CancellationToken.None);
         Assert.Equal(CancellationStatus.Succeeded, cancellation.Status);
 
