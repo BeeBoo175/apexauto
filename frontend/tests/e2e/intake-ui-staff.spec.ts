@@ -195,7 +195,7 @@ test("sales intake preserves scoped lists, drawer drafts and an exact lost check
 for (const [role, email, destination] of [
   ["Branch manager", "siti.aminah@example.invalid", "/dashboard/intake"],
   ["General manager", "farah.aziz@example.invalid", "/dashboard/intake"],
-  ["Workshop technician", "azlan.rahim@example.invalid", "/dashboard"],
+  ["Workshop technician", "azlan.rahim@example.invalid", "/dashboard/inspection"],
   ["Administrator", "muhammad.hafiz@example.invalid", "/dashboard"],
 ]) {
   test(`${role} receives its verified destination and current intake permission`, async ({
@@ -207,10 +207,9 @@ for (const [role, email, destination] of [
       await page.goto(route);
       await expect(page).toHaveURL(new RegExp(`${destination}$`));
     }
-    if (destination === "/dashboard") {
-      await expect(
-        page.getByRole("heading", { name: "Your staff workspace", exact: true }),
-      ).toBeVisible();
+    if (role === "Workshop technician" || role === "Administrator") {
+      const heading = role === "Workshop technician" ? "Inspections" : "Your staff workspace";
+      await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
       await page.goto("/dashboard/intake?view=list");
       await expect(
         page.getByRole("heading", { name: "Intake access unavailable", exact: true }),

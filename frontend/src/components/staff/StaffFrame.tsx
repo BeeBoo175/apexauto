@@ -6,6 +6,7 @@ import { useIntakeActor } from "@/hooks/use-intake-actor";
 import { useAuthMutation } from "@/hooks/use-auth-mutation";
 import { Button } from "@/components/ui/Button";
 import { hasIntakeAccess, roleNames, type CurrentActor } from "@/lib/auth/actor";
+import { hasInspectionAccess } from "@/lib/inspection/contracts";
 import styles from "./StaffFrame.module.css";
 import {
   StaffActorContext,
@@ -16,7 +17,11 @@ import {
 export function StaffFrame({ actor, children }: { actor: CurrentActor; children: ReactNode }) {
   const session = useIntakeActor(actor);
   const navigation = useStaffNavigation();
-  const fitViewport = navigation.pathname === "/dashboard/intake";
+  const fitViewport = [
+    "/dashboard/intake",
+    "/dashboard/inspection",
+    "/dashboard/inspection/repairs",
+  ].includes(navigation.pathname);
   const logout = useAuthMutation("logout", "/login");
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -71,14 +76,46 @@ export function StaffFrame({ actor, children }: { actor: CurrentActor; children:
                 <StaffLink
                   href="/dashboard/intake"
                   prefetch={false}
-                  className={styles.activeLink}
-                  aria-current="page"
+                  className={
+                    navigation.pathname.startsWith("/dashboard/intake")
+                      ? styles.activeLink
+                      : styles.navLink
+                  }
+                  aria-current={
+                    navigation.pathname.startsWith("/dashboard/intake") ? "page" : undefined
+                  }
                   onNavigate={(event) => navigate(event, "/dashboard/intake")}
                 >
                   Intake appointments
                 </StaffLink>
               )}
-              {!hasIntakeAccess(actor) && (
+              {hasInspectionAccess(actor) &&
+                [
+                  {
+                    href: "/dashboard/inspection",
+                    title: "Inspections",
+                    active:
+                      navigation.pathname.startsWith("/dashboard/inspection") &&
+                      navigation.pathname !== "/dashboard/inspection/repairs",
+                  },
+                  {
+                    href: "/dashboard/inspection/repairs",
+                    title: "Repair requests",
+                    active: navigation.pathname === "/dashboard/inspection/repairs",
+                  },
+                ].map((item) => (
+                  <StaffLink
+                    key={item.href}
+                    href={item.href}
+                    prefetch={false}
+                    className={item.active ? styles.activeLink : styles.navLink}
+                    aria-current={item.active ? "page" : undefined}
+                    onNavigate={(event) => navigate(event, item.href)}
+                  >
+                    {item.title}
+                  </StaffLink>
+                ))}
+              {!hasIntakeAccess(actor) && !hasInspectionAccess(actor) && (
                 <StaffLink
                   href="/dashboard"
                   prefetch={false}
@@ -96,7 +133,16 @@ export function StaffFrame({ actor, children }: { actor: CurrentActor; children:
                 variant="shell"
                 size="compact"
                 disabled={logout.busy}
-                onClick={() => void logout.submit()}
+                onPointerDown={(event) => {
+                  if (navigation.lockedRef.current) {
+                    event.preventDefault();
+                  }
+                }}
+                onClick={() => {
+                  if (!navigation.lockedRef.current) {
+                    void logout.submit();
+                  }
+                }}
               >
                 {logout.uncertain ? "Retry sign out" : "Sign out"}
               </Button>
