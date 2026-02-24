@@ -70,7 +70,7 @@ public sealed class InspectionRepairCompletionTests(IntakePhotoFixture fixture) 
                 (await CompleteAsync(data.Factory, technician, inspection, completion with { Notes = notes })).Status);
         }
 
-        var approval = (await services.GetRequiredService<IInspectionRepairApprovalStore>().ApproveAsync(manager, inspection,
+        var approval = (await services.GetRequiredService<InspectionRepairApprovalService>().ApproveAsync(manager, inspection,
             new(Guid.NewGuid(), repair.OperationId, 1, 1, 1), CancellationToken.None)).Receipt!;
         request = request with { OperationId = Guid.NewGuid(), ExpectedVersion = 1, Budget = 200m };
         repair = (await repairRequests.RequestAsync(technician, inspection, request, CancellationToken.None)).Receipt!;

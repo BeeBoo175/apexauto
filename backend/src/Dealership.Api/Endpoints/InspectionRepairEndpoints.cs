@@ -75,7 +75,7 @@ public static class InspectionRepairEndpoints
         }
     }
 
-    private static async Task<IResult> ApproveAsync(Guid id, HttpContext context, IInspectionRepairApprovalStore approvals,
+    private static async Task<IResult> ApproveAsync(Guid id, HttpContext context, InspectionRepairApprovalService approvals,
         CancellationToken cancellationToken)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);

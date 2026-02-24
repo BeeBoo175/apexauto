@@ -27,6 +27,7 @@ public static class DependencyInjection
         services.AddScoped<InspectionSignoffService>();
         services.AddScoped<InspectionReopeningService>();
         services.AddScoped<InspectionRepairRequestService>();
+        services.AddScoped<InspectionRepairApprovalService>();
 
         return services;
     }

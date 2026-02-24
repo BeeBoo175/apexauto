@@ -105,7 +105,7 @@ public sealed class InspectionQueueTests(IntakePhotoFixture fixture) : IClassFix
         var interceptor = new ApprovalAfterCount(async () =>
         {
             using var writer = data.Factory.Services.CreateScope();
-            Assert.Equal(InspectionAssignmentStatus.Succeeded, (await writer.ServiceProvider.GetRequiredService<IInspectionRepairApprovalStore>()
+            Assert.Equal(InspectionAssignmentStatus.Succeeded, (await writer.ServiceProvider.GetRequiredService<InspectionRepairApprovalService>()
                 .ApproveAsync(manager, inspection, new(Guid.NewGuid(), receipt.OperationId, 1, 1, 1), CancellationToken.None)).Status);
         });
         var options = new DbContextOptionsBuilder<DealershipDbContext>().UseNpgsql(fixture.Database.RuntimeConnectionString)

@@ -10,7 +10,7 @@ namespace Dealership.Infrastructure.Development;
 public sealed class DevelopmentInspectionFixtures(DealershipDbContext database, InspectionAssignmentService assignments,
     InspectionDraftSaveService inspectionSaves, InspectionPhotoService inspectionPhotos, IPhotoImageValidator photoValidator,
     InspectionSignoffService inspectionSignoffs, InspectionReopeningService inspectionReopenings, InspectionRepairRequestService inspectionRepairs,
-    IInspectionRepairApprovalStore inspectionApprovals, IInspectionRepairCompletionStore inspectionCompletions)
+    InspectionRepairApprovalService inspectionApprovals, IInspectionRepairCompletionStore inspectionCompletions)
 {
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> RunAsync(bool seed,
         CancellationToken cancellationToken)
@@ -125,7 +125,7 @@ public sealed class DevelopmentInspectionFixtures(DealershipDbContext database, 
             .FirstOrDefaultAsync(cancellationToken);
         if (existing is not null)
         {
-            var matches = existing.Id == request.OperationId && existing.Matches(managerId, inspectionId, request);
+            var matches = existing.Id == request.OperationId && existing.Receipt().Matches(managerId, inspectionId, request);
             return new($"Inspection approval ({plate})", matches ? "matches" : "drift; preserved", !matches);
         }
 

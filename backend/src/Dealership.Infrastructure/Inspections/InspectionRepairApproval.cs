@@ -31,10 +31,6 @@ public sealed class InspectionRepairApproval
     public long RepairVersion { get; private set; }
     public DateTimeOffset ApprovedAt { get; private set; }
 
-    public bool Matches(Guid actorId, Guid inspectionId, InspectionRepairApprovalRequest request) =>
-        ActorId == actorId && InspectionId == inspectionId && RequestId == request.RequestId &&
-        AssignmentVersion == request.AssignmentVersion && Revision == request.Revision && RepairVersion == request.RepairVersion;
-
     public InspectionRepairApprovalReceipt Receipt() => new(Id, InspectionId, BranchId, ActorId, RequestId,
         AssignmentVersion, Revision, RepairVersion, ApprovedAt);
 }

@@ -107,7 +107,7 @@ internal static class DevelopmentInspectionFixtureAssertions
         Assert.Equal(InspectionAssignmentStatus.Succeeded, changed.Status);
         var repairManager = DevelopmentFixtureManifest.Staff.Single(item =>
             item.BranchId == repairDraft.BranchId && item.Role == AccountRoles.BranchManager);
-        Assert.Equal(InspectionAssignmentStatus.Succeeded, (await services.GetRequiredService<IInspectionRepairApprovalStore>()
+        Assert.Equal(InspectionAssignmentStatus.Succeeded, (await services.GetRequiredService<InspectionRepairApprovalService>()
             .ApproveAsync(repairManager.Id, repairDraft.Id, new(Guid.NewGuid(), changed.Receipt!.OperationId, 1, 1, 2), CancellationToken.None)).Status);
         var repairSnapshot = await DevelopmentIntakeFixtureAssertions.SnapshotAsync(provider);
         var repairDrift = await services.GetRequiredService<DevelopmentFixtureRunner>().SeedAsync(target, CancellationToken.None);

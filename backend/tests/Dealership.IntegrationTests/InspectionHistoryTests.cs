@@ -40,7 +40,7 @@ public sealed class InspectionHistoryTests(IntakePhotoFixture fixture) : IClassF
         var reopenings = services.GetRequiredService<InspectionReopeningService>();
         var signoffs = services.GetRequiredService<InspectionSignoffService>();
         var repairRequests = services.GetRequiredService<InspectionRepairRequestService>();
-        var approvals = services.GetRequiredService<IInspectionRepairApprovalStore>();
+        var approvals = services.GetRequiredService<InspectionRepairApprovalService>();
         var originals = new List<InspectionReport>();
         var requests = new List<InspectionRepairReceipt>();
         for (var revision = 1; revision <= 21; revision++)

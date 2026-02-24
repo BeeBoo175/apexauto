@@ -1,33 +1,30 @@
 using Dealership.Application.Accounts;
 using Dealership.Application.Inspections;
-using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Identity;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 
 namespace Dealership.Infrastructure.Inspections;
 
 public sealed class InspectionRepairApprovalStore(DealershipDbContext database) : IInspectionRepairApprovalStore
 {
-    public async Task<InspectionRepairApprovalResult> ApproveAsync(Guid actorId, Guid inspectionId,
-        InspectionRepairApprovalRequest request, CancellationToken cancellationToken)
+    public async Task<IInspectionRepairApprovalTransaction> LockAsync(Guid actorId, Guid inspectionId, Guid operationId,
+        CancellationToken cancellationToken)
     {
-        if (actorId == Guid.Empty || inspectionId == Guid.Empty || request.OperationId == Guid.Empty ||
-            request.RequestId == Guid.Empty || request.AssignmentVersion < 1 || request.Revision < 1 || request.RepairVersion < 1)
-        {
-            return new(InspectionAssignmentStatus.Invalid);
-        }
-
-        await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
+        var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
         try
         {
             await database.Database.ExecuteSqlInterpolatedAsync(
-                $"SELECT pg_advisory_xact_lock(hashtextextended({"inspection-repair-approval:" + request.OperationId}, 0))", cancellationToken);
-            var actor = await LockActorAsync(actorId, cancellationToken);
-            if (actor is not { Role: AccountRoles.BranchManager })
+                $"SELECT pg_advisory_xact_lock(hashtextextended({"inspection-repair-approval:" + operationId}, 0))", cancellationToken);
+            var actor = await database.Users.FromSqlInterpolated(
+                $"SELECT * FROM \"AspNetUsers\" WHERE \"Id\" = {actorId} FOR SHARE")
+                .AsNoTracking().SingleOrDefaultAsync(cancellationToken);
+            var branchActive = false;
+            if (actor?.BranchId is not null)
             {
-                return new(InspectionAssignmentStatus.Forbidden);
+                branchActive = await database.Branches.FromSqlInterpolated(
+                    $"SELECT * FROM \"Branches\" WHERE \"Id\" = {actor.BranchId} FOR SHARE")
+                    .AnyAsync(branch => branch.IsActive, cancellationToken);
             }
 
             var vehicleId = await database.InspectionDrafts.Where(draft => draft.Id == inspectionId)
@@ -38,48 +35,25 @@ public sealed class InspectionRepairApprovalStore(DealershipDbContext database) 
             var draft = await database.InspectionDrafts.FromSqlInterpolated(
                 $"SELECT * FROM \"InspectionDrafts\" WHERE \"Id\" = {inspectionId} FOR UPDATE")
                 .AsNoTracking().SingleOrDefaultAsync(cancellationToken);
-            if (vehicle is null || draft is null || draft.BranchId != actor.BranchId)
-            {
-                return new(InspectionAssignmentStatus.NotFound);
-            }
-
             var existing = await database.InspectionRepairApprovals.AsNoTracking()
-                .SingleOrDefaultAsync(item => item.Id == request.OperationId, cancellationToken);
-            if (existing is not null)
+                .SingleOrDefaultAsync(item => item.Id == operationId, cancellationToken);
+            var context = new InspectionRepairApprovalContext(
+                actor is null ? null : new InspectionStaff(actor.IsActive, actor.Role, actor.BranchId),
+                branchActive, vehicle, draft, existing?.Receipt());
+            return new InspectionRepairApprovalTransaction(database, transaction, context);
+        }
+        catch
+        {
+            try
             {
-                return existing.Matches(actorId, inspectionId, request)
-                    ? new(InspectionAssignmentStatus.Succeeded, existing.Receipt()) : new(InspectionAssignmentStatus.Conflict);
+                await transaction.DisposeAsync();
+            }
+            finally
+            {
+                database.ChangeTracker.Clear();
             }
 
-            var repair = await database.InspectionRepairRequests.AsNoTracking()
-                .SingleOrDefaultAsync(item => item.Id == request.RequestId, cancellationToken);
-            if (!draft.IsSigned || draft.Revision != request.Revision || draft.AssignmentVersion != request.AssignmentVersion ||
-                draft.RepairVersion != request.RepairVersion || vehicle.Status != VehicleStatus.PendingInspection ||
-                repair is null || repair.InspectionId != inspectionId || repair.Revision != request.Revision ||
-                repair.Version != request.RepairVersion || repair.AssignmentVersion != request.AssignmentVersion ||
-                await database.InspectionRepairApprovals.AnyAsync(item => item.RequestId == request.RequestId, cancellationToken))
-            {
-                return new(InspectionAssignmentStatus.Conflict);
-            }
-
-            var now = await database.Database.SqlQuery<DateTimeOffset>($"SELECT clock_timestamp() AS \"Value\"")
-                .SingleAsync(cancellationToken);
-            var receipt = new InspectionRepairApprovalReceipt(request.OperationId, inspectionId, draft.BranchId, actorId,
-                repair.Id, draft.AssignmentVersion, draft.Revision, draft.RepairVersion, now);
-            // The immutable request owns approved scope/budget; later requests cannot rewrite this authority.
-            database.InspectionRepairApprovals.Add(new(receipt));
-            await database.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
-            return new(InspectionAssignmentStatus.Succeeded, receipt);
-        }
-        catch (DbUpdateException exception) when (exception.InnerException is PostgresException
-        { SqlState: PostgresErrorCodes.UniqueViolation })
-        {
-            return new(InspectionAssignmentStatus.Conflict);
-        }
-        finally
-        {
-            database.ChangeTracker.Clear();
+            throw;
         }
     }
 
