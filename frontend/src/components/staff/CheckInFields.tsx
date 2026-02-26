@@ -1,6 +1,7 @@
 import { Input, Textarea } from "@/components/ui/Input";
 import type { CheckInDraft } from "@/lib/staff/contracts";
 import styles from "./AppointmentWorkbench.module.css";
+import workspace from "./StaffWorkspace.module.css";
 
 const confirmations = [
   ["customerPresent", "The customer is personally present"],
@@ -21,7 +22,7 @@ export function CheckInFields({
   retrospective?: boolean;
 }) {
   return (
-    <fieldset disabled={disabled} className={styles.fields}>
+    <fieldset disabled={disabled} className={`${workspace.stack} ${styles.fields}`}>
       <legend className="sr-only">Physical vehicle and customer verification</legend>
       <div className={styles.vehicleFields}>
         <Input

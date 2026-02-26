@@ -6,7 +6,7 @@ import { RepairRequestForm } from "./RepairRequestForm";
 import { RepairActions } from "./RepairActions";
 import { RepairHistoryView } from "./InspectionHistory";
 import styles from "./Inspection.module.css";
-import workbench from "@/components/staff/AppointmentWorkbench.module.css";
+import workbench from "@/components/staff/StaffWorkspace.module.css";
 import { Badge } from "@/components/ui/Badge";
 import tones from "@/components/ui/StatusTone.module.css";
 

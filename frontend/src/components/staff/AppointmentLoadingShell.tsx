@@ -1,4 +1,4 @@
-import workbench from "./AppointmentWorkbench.module.css";
+import workbench from "./StaffWorkspace.module.css";
 import styles from "./AppointmentLoadingShell.module.css";
 
 const appointmentDetails = [

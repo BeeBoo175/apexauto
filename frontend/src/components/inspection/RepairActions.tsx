@@ -9,7 +9,7 @@ import { isRecord } from "@/lib/auth/contracts";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { Draft, RepairRow } from "@/lib/inspection/contracts";
 import type { Approval, Completion } from "@/lib/inspection/report-contracts";
-import workbench from "@/components/staff/AppointmentWorkbench.module.css";
+import workbench from "@/components/staff/StaffWorkspace.module.css";
 
 export function RepairActions({
   actor,

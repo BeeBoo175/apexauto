@@ -1,6 +1,7 @@
 import { Input, Textarea } from "@/components/ui/Input";
 import type { CheckInDraft } from "@/lib/staff/contracts";
 import styles from "./AppointmentWorkbench.module.css";
+import workspace from "./StaffWorkspace.module.css";
 
 export function NoShowCorrectionFields({
   draft,
@@ -12,7 +13,7 @@ export function NoShowCorrectionFields({
   disabled: boolean;
 }) {
   return (
-    <fieldset disabled={disabled} className={styles.fields}>
+    <fieldset disabled={disabled} className={`${workspace.stack} ${styles.fields}`}>
       <legend className="sr-only">Attendance correction</legend>
       <Input
         label="Actual attendance time (Malaysia)"

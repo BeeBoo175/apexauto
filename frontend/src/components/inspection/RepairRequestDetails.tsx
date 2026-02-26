@@ -3,7 +3,7 @@ import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { label } from "@/lib/inspection/contracts";
 import styles from "./Inspection.module.css";
-import workbench from "@/components/staff/AppointmentWorkbench.module.css";
+import workbench from "@/components/staff/StaffWorkspace.module.css";
 
 export function RepairRequestDetails({
   request,

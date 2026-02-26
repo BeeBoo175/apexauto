@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { RepairRequestDetails } from "./RepairRequestDetails";
 import styles from "./Inspection.module.css";
-import workbench from "@/components/staff/AppointmentWorkbench.module.css";
+import workbench from "@/components/staff/StaffWorkspace.module.css";
 import { AppointmentLoadingShell } from "@/components/staff/AppointmentLoadingShell";
 
 const requestDetails = ["Requested budget", "Requested", "Signed revision", "Work version"];

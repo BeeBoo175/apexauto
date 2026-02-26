@@ -12,7 +12,7 @@ import type { Draft, Technician } from "@/lib/inspection/contracts";
 import type { Page } from "@/lib/api";
 import { AssignmentForm } from "./AssignmentForm";
 import styles from "./Inspection.module.css";
-import workbench from "@/components/staff/AppointmentWorkbench.module.css";
+import workbench from "@/components/staff/StaffWorkspace.module.css";
 
 export function ManagerActions({
   actor,

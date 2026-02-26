@@ -20,7 +20,7 @@ import { RevisionHistoryView } from "./InspectionHistory";
 import { RetainedRepairReview } from "./RetainedRepairReview";
 import type { RepairSelection } from "@/hooks/use-inspection-drawer";
 import styles from "./Inspection.module.css";
-import workbench from "@/components/staff/AppointmentWorkbench.module.css";
+import workbench from "@/components/staff/StaffWorkspace.module.css";
 import tones from "@/components/ui/StatusTone.module.css";
 
 export function InspectionEditor({

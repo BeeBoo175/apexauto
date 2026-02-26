@@ -5,7 +5,7 @@ import { label, type Draft } from "@/lib/inspection/contracts";
 import type { ChecklistDraft } from "@/lib/inspection/draft";
 import { ChecklistPoint } from "./ChecklistPoint";
 import styles from "./Inspection.module.css";
-import workbench from "@/components/staff/AppointmentWorkbench.module.css";
+import workbench from "@/components/staff/StaffWorkspace.module.css";
 
 export function InspectionChecklist({
   draft,

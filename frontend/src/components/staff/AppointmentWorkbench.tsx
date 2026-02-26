@@ -16,7 +16,7 @@ import { formatMalaysianDate, formatMalaysianDateTime } from "@/lib/date-format"
 import { CheckInFields } from "./CheckInFields";
 import { NoShowCorrectionFields } from "./NoShowCorrectionFields";
 import { AppointmentStatus } from "./AppointmentStatus";
-import styles from "./AppointmentWorkbench.module.css";
+import styles from "./StaffWorkspace.module.css";
 import { StaffNavigationLockContext } from "./StaffActorBoundary";
 
 export function AppointmentWorkbench({

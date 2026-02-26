@@ -7,7 +7,7 @@ import { AppointmentLoadingShell } from "@/components/staff/AppointmentLoadingSh
 import type { useInspectionDrawer } from "@/hooks/use-inspection-drawer";
 import type { CurrentActor } from "@/lib/auth/actor";
 import { InspectionEditor } from "./InspectionEditor";
-import workbench from "@/components/staff/AppointmentWorkbench.module.css";
+import workbench from "@/components/staff/StaffWorkspace.module.css";
 
 const inspectionDetails = ["Branch", "Vehicle", "VIN", "Revision", "Mileage", "Saved assessment"];
 
