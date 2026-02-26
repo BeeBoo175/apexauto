@@ -46,82 +46,42 @@ public sealed class EmailVerificationStore(DealershipDbContext database, UserMan
         }
     }
 
-    public async Task<VerificationResult> ConfirmAsync(string token, CancellationToken cancellationToken)
+    public async Task<IEmailVerificationConfirmationTransaction?> LockConfirmationAsync(string token, CancellationToken cancellationToken)
     {
         if (!EmailVerificationToken.TryReadId(token, out var challengeId))
-        {
-            return new VerificationResult(VerificationStatus.Invalid);
-        }
-
-        await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
-        var userId = await database.EmailVerificationChallenges.Where(challenge => challenge.Id == challengeId)
-            .Select(challenge => (Guid?)challenge.UserId).SingleOrDefaultAsync(cancellationToken);
-
-        if (userId is null)
-        {
-            return new VerificationResult(VerificationStatus.Invalid);
-        }
-
-        var user = await LockedCustomerAsync(userId.Value, cancellationToken);
-
-        if (user is null)
-        {
-            return new VerificationResult(VerificationStatus.Invalid);
-        }
-
-        var challenge = await database.EmailVerificationChallenges.FromSqlInterpolated(
-            $"SELECT * FROM \"EmailVerificationChallenges\" WHERE \"Id\" = {challengeId} FOR UPDATE")
-            .SingleAsync(cancellationToken);
-
-        if (!tokens.Verify(token, challenge) || challenge.InvalidatedAt is not null ||
-            !string.Equals(user.Email, challenge.RecipientEmail, StringComparison.Ordinal))
-        {
-            return new VerificationResult(VerificationStatus.Invalid);
-        }
-
-        var now = clock.GetUtcNow();
-
-        if (challenge.ExpiresAt <= now)
-        {
-            return new VerificationResult(VerificationStatus.Invalid);
-        }
-
-        if (challenge.ConsumedAt is not null)
-        {
-            return new VerificationResult(user.EmailConfirmed ? VerificationStatus.Accepted : VerificationStatus.Invalid);
-        }
-
-        if (user.EmailConfirmed)
-        {
-            return new VerificationResult(VerificationStatus.Invalid);
-        }
-
-        user.EmailConfirmed = true;
-        var confirmed = await users.UpdateAsync(user);
-
-        if (!confirmed.Succeeded)
-        {
-            throw new InvalidOperationException("Identity could not confirm the account email.");
-        }
-
-        challenge.ConsumedAt = now;
-        await database.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
-        return new VerificationResult(VerificationStatus.Accepted);
-    }
-
-    private async Task<AccountUser?> LockedCustomerAsync(Guid userId, CancellationToken cancellationToken)
-    {
-        var user = await database.Users.FromSqlInterpolated(
-            $"SELECT * FROM \"AspNetUsers\" WHERE \"Id\" = {userId} FOR UPDATE")
-            .SingleOrDefaultAsync(cancellationToken);
-
-        if (user is null || !user.IsActive || user.Role != AccountRoles.Customer ||
-            !await database.CustomerProfiles.AnyAsync(profile => profile.UserId == userId, cancellationToken))
         {
             return null;
         }
 
-        return user;
+        var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
+
+        try
+        {
+            database.ChangeTracker.Clear();
+            var userId = await database.EmailVerificationChallenges.Where(challenge => challenge.Id == challengeId)
+                .Select(challenge => (Guid?)challenge.UserId).SingleOrDefaultAsync(cancellationToken);
+            var user = userId is null ? null : await database.Users.FromSqlInterpolated(
+                $"SELECT * FROM \"AspNetUsers\" WHERE \"Id\" = {userId} FOR UPDATE")
+                .SingleOrDefaultAsync(cancellationToken);
+            var hasProfile = user is not null &&
+                await database.CustomerProfiles.AnyAsync(profile => profile.UserId == userId, cancellationToken);
+            var customer = user is null ? null :
+                new EmailVerificationCustomer(user.IsActive, user.Role, hasProfile, user.EmailConfirmed);
+            var context = new EmailVerificationConfirmationContext(customer, user?.Email);
+            return new EmailVerificationConfirmationTransaction(database, transaction, context, user, users, tokens, token, challengeId);
+        }
+        catch
+        {
+            try
+            {
+                await transaction.DisposeAsync();
+            }
+            finally
+            {
+                database.ChangeTracker.Clear();
+            }
+
+            throw;
+        }
     }
 }

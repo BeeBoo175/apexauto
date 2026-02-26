@@ -64,7 +64,7 @@ public sealed class MailDeliveryQueueTests(RegistrationDatabase database) : ICla
             {
                 await context.EmailVerificationChallenges.Where(challenge => challenge.Id == invalidatedId)
                     .ExecuteUpdateAsync(update => update.SetProperty(challenge => challenge.InvalidatedAt, clock.Now));
-                var result = await scope.ServiceProvider.GetRequiredService<IEmailVerificationStore>()
+                var result = await scope.ServiceProvider.GetRequiredService<EmailVerificationService>()
                     .ConfirmAsync(consumedToken, CancellationToken.None);
                 Assert.Equal(VerificationStatus.Accepted, result.Status);
             }

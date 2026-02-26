@@ -76,7 +76,7 @@ internal sealed class CheckInTestData : IDisposable
         var challenge = await database.EmailVerificationChallenges.SingleAsync(item => item.UserId == OwnerId);
         var token = services.GetRequiredService<EmailVerificationToken>().Create(challenge);
         Assert.Equal(VerificationStatus.Accepted,
-            (await services.GetRequiredService<IEmailVerificationStore>().ConfirmAsync(token, CancellationToken.None)).Status);
+            (await services.GetRequiredService<EmailVerificationService>().ConfirmAsync(token, CancellationToken.None)).Status);
         BranchId = Guid.NewGuid();
         await services.GetRequiredService<BranchProvisioningService>().ProvisionBranchAsync(
             DevelopmentFixtureManifest.Branches[0] with { Id = BranchId }, CancellationToken.None);

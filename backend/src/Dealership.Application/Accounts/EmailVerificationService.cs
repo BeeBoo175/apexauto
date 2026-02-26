@@ -47,13 +47,48 @@ public sealed class EmailVerificationService(IEmailVerificationStore store, Time
         return new VerificationResult(VerificationStatus.Accepted);
     }
 
-    public Task<VerificationResult> ConfirmAsync(string? token, CancellationToken cancellationToken)
+    public async Task<VerificationResult> ConfirmAsync(string? token, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(token) || token.Length > 160)
         {
-            return Task.FromResult(new VerificationResult(VerificationStatus.Invalid));
+            return new VerificationResult(VerificationStatus.Invalid);
         }
 
-        return store.ConfirmAsync(token, cancellationToken);
+        await using var transaction = await store.LockConfirmationAsync(token, cancellationToken);
+        var context = transaction?.Context;
+        var customer = context?.Customer;
+
+        if (customer is not { IsActive: true, Role: AccountRoles.Customer, HasProfile: true })
+        {
+            return new VerificationResult(VerificationStatus.Invalid);
+        }
+
+        var challenge = await transaction!.ReadChallengeAsync(cancellationToken);
+
+        if (!challenge.TokenValid || challenge.InvalidatedAt is not null ||
+            !string.Equals(context!.Email, challenge.RecipientEmail, StringComparison.Ordinal))
+        {
+            return new VerificationResult(VerificationStatus.Invalid);
+        }
+
+        var now = clock.GetUtcNow();
+
+        if (challenge.ExpiresAt <= now)
+        {
+            return new VerificationResult(VerificationStatus.Invalid);
+        }
+
+        if (challenge.ConsumedAt is not null)
+        {
+            return new VerificationResult(customer.EmailConfirmed ? VerificationStatus.Accepted : VerificationStatus.Invalid);
+        }
+
+        if (customer.EmailConfirmed)
+        {
+            return new VerificationResult(VerificationStatus.Invalid);
+        }
+
+        await transaction.CommitAsync(now, cancellationToken);
+        return new VerificationResult(VerificationStatus.Accepted);
     }
 }

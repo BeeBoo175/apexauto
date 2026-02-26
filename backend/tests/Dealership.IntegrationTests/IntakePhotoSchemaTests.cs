@@ -24,7 +24,7 @@ public sealed class IntakePhotoSchemaTests(RegistrationDatabase fixture) : IClas
         var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
         var challenge = await database.EmailVerificationChallenges.SingleAsync();
         var token = scope.ServiceProvider.GetRequiredService<EmailVerificationToken>().Create(challenge);
-        Assert.Equal(VerificationStatus.Accepted, (await scope.ServiceProvider.GetRequiredService<IEmailVerificationStore>()
+        Assert.Equal(VerificationStatus.Accepted, (await scope.ServiceProvider.GetRequiredService<EmailVerificationService>()
             .ConfirmAsync(token, CancellationToken.None)).Status);
         var store = scope.ServiceProvider.GetRequiredService<IIntakePhotoStore>();
         var id = Guid.NewGuid();

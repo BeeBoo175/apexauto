@@ -12,6 +12,20 @@ public sealed record VerificationResult(VerificationStatus Status, TimeSpan? Ret
 
 public sealed record EmailVerificationCustomer(bool IsActive, string Role, bool HasProfile, bool EmailConfirmed);
 
+public sealed record EmailVerificationConfirmationContext(EmailVerificationCustomer? Customer, string? Email);
+
+public sealed record EmailVerificationConfirmationChallenge(bool TokenValid, string RecipientEmail,
+    DateTimeOffset ExpiresAt, DateTimeOffset? InvalidatedAt, DateTimeOffset? ConsumedAt);
+
+public interface IEmailVerificationConfirmationTransaction : IAsyncDisposable
+{
+    EmailVerificationConfirmationContext Context { get; }
+
+    Task<EmailVerificationConfirmationChallenge> ReadChallengeAsync(CancellationToken cancellationToken);
+
+    Task CommitAsync(DateTimeOffset consumedAt, CancellationToken cancellationToken);
+}
+
 public interface IEmailVerificationResendTransaction : IAsyncDisposable
 {
     EmailVerificationCustomer? Customer { get; }
@@ -29,5 +43,5 @@ public interface IEmailVerificationStore
 
     Task<IEmailVerificationResendTransaction> LockResendAsync(Guid userId, CancellationToken cancellationToken);
 
-    Task<VerificationResult> ConfirmAsync(string token, CancellationToken cancellationToken);
+    Task<IEmailVerificationConfirmationTransaction?> LockConfirmationAsync(string token, CancellationToken cancellationToken);
 }
