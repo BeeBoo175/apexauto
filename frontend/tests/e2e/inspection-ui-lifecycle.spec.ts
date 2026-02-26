@@ -84,10 +84,39 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   expect(await page.getByRole("table").innerText()).toBe(confirmedRow);
   await page.unroute("**/api/staff/inspection/vehicles?*");
   await page.getByRole("button", { name: "Claim inspection", exact: true }).click();
+  const assignmentBodies: string[] = [];
+  await page.route("**/api/staff/inspection/vehicles/*/assignment", async (route) => {
+    assignmentBodies.push(route.request().postData()!);
+    const response = await route.fetch();
+    expect(response.status()).toBe(200);
+    if (assignmentBodies.length === 1) {
+      await route.fulfill({
+        status: 502,
+        json: {
+          status: 502,
+          data: null,
+          message: "Controlled lost assignment receipt",
+          uncertain: true,
+        },
+      });
+      return;
+    }
+    await route.fulfill({ response });
+  });
   await page.getByRole("button", { name: "Confirm assignment", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Reconcile assignment", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("dialog").getByRole("button", { name: "Close dialog", exact: true }),
+  ).toBeDisabled();
+  await page.getByRole("button", { name: "Reconcile assignment", exact: true }).click();
+  expect(assignmentBodies).toHaveLength(2);
+  expect(assignmentBodies[1]).toBe(assignmentBodies[0]);
   await expect(page).toHaveURL(/\/dashboard\/inspection\?.*inspection=[a-f0-9-]+/);
   const id = new URL(page.url()).searchParams.get("inspection")!;
   await expect(page.getByRole("button", { name: "Save draft", exact: true })).toBeEnabled();
+  await page.unroute("**/api/staff/inspection/vehicles/*/assignment");
   const header = page.getByRole("heading", { level: 1 });
   await header.evaluate((element) => {
     (element as HTMLElement & { retained?: boolean }).retained = true;
@@ -341,6 +370,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
       inspectionId: id,
       reportOperationId: report.operationId,
       originalEstimate: report.assessment.estimatedRepairCost,
+      assignmentReplay: assignmentBodies[0] === assignmentBodies[1],
       saveReplay: bodies[0] === bodies[1],
       checklistPoints: report.checklist.length,
     }),
