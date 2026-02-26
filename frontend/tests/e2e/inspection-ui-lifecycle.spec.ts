@@ -23,6 +23,24 @@ async function screenshot(page: Page, name: string) {
   );
 }
 
+async function loseFirstReceipt(page: Page, endpoint: string) {
+  const bodies: string[] = [];
+  await page.route(endpoint, async (route) => {
+    bodies.push(route.request().postData()!);
+    const response = await route.fetch();
+    expect(response.status()).toBe(200);
+    if (bodies.length === 1) {
+      await route.fulfill({
+        status: 502,
+        json: { status: 502, data: null, message: "Controlled lost receipt", uncertain: true },
+      });
+      return;
+    }
+    await route.fulfill({ response });
+  });
+  return bodies;
+}
+
 test("inspection claim, retained draft/photo, exact reconciliation, signed report and repair lifecycle", async ({
   page,
   context,
@@ -84,25 +102,10 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   expect(await page.getByRole("table").innerText()).toBe(confirmedRow);
   await page.unroute("**/api/staff/inspection/vehicles?*");
   await page.getByRole("button", { name: "Claim inspection", exact: true }).click();
-  const assignmentBodies: string[] = [];
-  await page.route("**/api/staff/inspection/vehicles/*/assignment", async (route) => {
-    assignmentBodies.push(route.request().postData()!);
-    const response = await route.fetch();
-    expect(response.status()).toBe(200);
-    if (assignmentBodies.length === 1) {
-      await route.fulfill({
-        status: 502,
-        json: {
-          status: 502,
-          data: null,
-          message: "Controlled lost assignment receipt",
-          uncertain: true,
-        },
-      });
-      return;
-    }
-    await route.fulfill({ response });
-  });
+  const assignmentBodies = await loseFirstReceipt(
+    page,
+    "**/api/staff/inspection/vehicles/*/assignment",
+  );
   await page.getByRole("button", { name: "Confirm assignment", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Reconcile assignment", exact: true }),
@@ -152,22 +155,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   await page.getByRole("button", { name: "Refresh inspection", exact: true }).click();
   await expect(page.getByLabel("EP-004 estimate (MYR)", { exact: true })).toHaveValue("250.10");
   await page.unroute(`**/api/staff/inspection/drafts/${id}/workspace`);
-  const bodies: string[] = [];
-  let lose = true;
-  await page.route(`**/api/staff/inspection/drafts/${id}/saves`, async (route) => {
-    bodies.push(route.request().postData()!);
-    const response = await route.fetch();
-    expect(response.status()).toBe(200);
-    if (lose) {
-      lose = false;
-      await route.fulfill({
-        status: 502,
-        json: { status: 502, data: null, message: "Controlled lost save receipt", uncertain: true },
-      });
-      return;
-    }
-    await route.fulfill({ response });
-  });
+  const bodies = await loseFirstReceipt(page, `**/api/staff/inspection/drafts/${id}/saves`);
   await page.getByRole("button", { name: "Save draft", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Reconcile draft save", exact: true }),
@@ -208,25 +196,10 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     "  Repair bumper scuff and inspect finish.  ",
   );
   await expect(page.getByLabel("Requested budget (MYR)", { exact: true })).toHaveValue("250.10");
-  const requestBodies: string[] = [];
-  await page.route(`**/api/staff/inspection/drafts/${id}/repair-requests`, async (route) => {
-    requestBodies.push(route.request().postData()!);
-    const response = await route.fetch();
-    expect(response.status()).toBe(200);
-    if (requestBodies.length === 1) {
-      await route.fulfill({
-        status: 502,
-        json: {
-          status: 502,
-          data: null,
-          message: "Controlled lost repair request receipt",
-          uncertain: true,
-        },
-      });
-      return;
-    }
-    await route.fulfill({ response });
-  });
+  const requestBodies = await loseFirstReceipt(
+    page,
+    `**/api/staff/inspection/drafts/${id}/repair-requests`,
+  );
   await page.getByRole("button", { name: "Submit repair request", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Reconcile repair request", exact: true }),
@@ -295,20 +268,62 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   const repairRequestId = new URL(manager.url()).searchParams.get("request")!;
   await screenshot(manager, "repair-review");
   await expect(manager.getByRole("button", { name: /bulk.*approv/i })).toHaveCount(0);
+  const approvalBodies = await loseFirstReceipt(
+    manager,
+    `**/api/staff/inspection/drafts/${id}/repair-approvals`,
+  );
   await manager.getByRole("button", { name: "Approve repair budget", exact: true }).click();
+  await expect(
+    manager.getByRole("button", { name: "Reconcile repair action", exact: true }),
+  ).toBeVisible();
+  await expect(
+    manager
+      .getByRole("dialog", { name: "Repair request", exact: true })
+      .getByRole("button", { name: "Close dialog", exact: true }),
+  ).toBeDisabled();
+  await manager.getByRole("button", { name: "Reconcile repair action", exact: true }).click();
   await expect(
     manager
       .getByRole("dialog", { name: "Repair request", exact: true })
       .getByText("Approved", { exact: true }),
   ).toBeVisible();
+  expect(approvalBodies).toHaveLength(2);
+  expect(approvalBodies[1]).toBe(approvalBodies[0]);
+  expect(JSON.parse(approvalBodies[0])).not.toHaveProperty("notes");
+  await manager.unroute(`**/api/staff/inspection/drafts/${id}/repair-approvals`);
   await page.getByRole("button", { name: "Refresh inspection", exact: true }).click();
   await page
     .getByLabel("Completion & reinspection notes", { exact: true })
-    .fill("Bumper repair and finish checked. Reinspection complete.");
+    .fill("  Bumper repair and finish checked. Reinspection complete.  ");
+  await page.getByRole("button", { name: "Refresh inspection", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Refresh inspection", exact: true })).toBeEnabled();
+  await expect(page.getByLabel("Completion & reinspection notes", { exact: true })).toHaveValue(
+    "  Bumper repair and finish checked. Reinspection complete.  ",
+  );
+  const completionBodies = await loseFirstReceipt(
+    page,
+    `**/api/staff/inspection/drafts/${id}/repair-completions`,
+  );
   await page.getByRole("button", { name: "Confirm repairs completed", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Reconcile repair action", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Completion & reinspection notes", { exact: true })).toBeDisabled();
+  await expect(
+    page
+      .getByRole("dialog", { name: "Inspection", exact: true })
+      .getByRole("button", { name: "Close dialog", exact: true }),
+  ).toBeDisabled();
+  await page.getByRole("button", { name: "Reconcile repair action", exact: true }).click();
   const completedSummary = page.getByRole("region", { name: "Vehicle and confirmed assessment" });
   await expect(completedSummary.getByText("Available", { exact: true })).toBeVisible();
   await expect(completedSummary.getByText("1 · Signed", { exact: true })).toBeVisible();
+  expect(completionBodies).toHaveLength(2);
+  expect(completionBodies[1]).toBe(completionBodies[0]);
+  expect(JSON.parse(completionBodies[0]).notes).toBe(
+    "Bumper repair and finish checked. Reinspection complete.",
+  );
+  await page.unroute(`**/api/staff/inspection/drafts/${id}/repair-completions`);
   const reportHref = await page
     .getByRole("link", { name: "Open signed report · revision 1", exact: true })
     .getAttribute("href");
@@ -374,11 +389,41 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   await manager.getByRole("button", { name: "Reopen inspection", exact: true }).click();
   await manager
     .getByLabel("Reopening reason", { exact: true })
-    .fill("Inspect newly reported suspension noise.");
+    .fill("  Inspect newly reported suspension noise.  ");
+  await manager
+    .getByRole("dialog", { name: "Reopen signed inspection", exact: true })
+    .getByRole("button", { name: "Close dialog", exact: true })
+    .click();
+  await manager.getByRole("button", { name: "Refresh inspection", exact: true }).click();
+  await expect(
+    manager.getByRole("button", { name: "Refresh inspection", exact: true }),
+  ).toBeEnabled();
+  await manager.getByRole("button", { name: "Reopen inspection", exact: true }).click();
+  await expect(manager.getByLabel("Reopening reason", { exact: true })).toHaveValue(
+    "  Inspect newly reported suspension noise.  ",
+  );
+  const reopeningBodies = await loseFirstReceipt(
+    manager,
+    `**/api/staff/inspection/drafts/${id}/reopen`,
+  );
   await manager.getByRole("button", { name: "Confirm reopening", exact: true }).click();
+  await expect(
+    manager.getByRole("button", { name: "Reconcile reopening", exact: true }),
+  ).toBeVisible();
+  await expect(manager.getByLabel("Reopening reason", { exact: true })).toBeDisabled();
+  await expect(
+    manager
+      .getByRole("dialog", { name: "Reopen signed inspection", exact: true })
+      .getByRole("button", { name: "Close dialog", exact: true }),
+  ).toBeDisabled();
+  await manager.getByRole("button", { name: "Reconcile reopening", exact: true }).click();
   const reopenedSummary = manager.getByRole("region", { name: "Vehicle and confirmed assessment" });
   await expect(reopenedSummary.getByText("Pending Inspection", { exact: true })).toBeVisible();
   await expect(reopenedSummary.getByText("2 · Draft", { exact: true })).toBeVisible();
+  expect(reopeningBodies).toHaveLength(2);
+  expect(reopeningBodies[1]).toBe(reopeningBodies[0]);
+  expect(JSON.parse(reopeningBodies[0]).reason).toBe("Inspect newly reported suspension noise.");
+  await manager.unroute(`**/api/staff/inspection/drafts/${id}/reopen`);
   await manager
     .getByRole("dialog", { name: "Inspection", exact: true })
     .getByRole("button", { name: "Close dialog", exact: true })
@@ -416,6 +461,9 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
       assignmentReplay: assignmentBodies[0] === assignmentBodies[1],
       saveReplay: bodies[0] === bodies[1],
       repairRequestReplay: requestBodies[0] === requestBodies[1],
+      approvalReplay: approvalBodies[0] === approvalBodies[1],
+      completionReplay: completionBodies[0] === completionBodies[1],
+      reopeningReplay: reopeningBodies[0] === reopeningBodies[1],
       checklistPoints: report.checklist.length,
     }),
   );

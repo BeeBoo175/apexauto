@@ -3,10 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Input";
 import { Dialog } from "@/components/ui/Dialog";
-import { useApiCommand } from "@/hooks/use-api-command";
-import { inspectionFetch } from "@/lib/inspection/browser";
-import { parseReopening } from "@/lib/inspection/parse-report";
-import { isRecord } from "@/lib/auth/contracts";
+import { useInspectionManager } from "@/hooks/use-inspection-manager";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { Draft, Technician } from "@/lib/inspection/contracts";
 import type { Page } from "@/lib/api";
@@ -32,24 +29,16 @@ export function ManagerActions({
   onDraft: (dirty: boolean) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [reason, setReason] = useState("");
-  const [locked, setLocked] = useState(false);
-  const command = useApiCommand(
-    `drafts/${draft.id}/reopen`,
-    parseReopening,
-    (r, body) =>
-      isRecord(body) &&
-      r.operationId === body.operationId &&
-      r.inspectionId === draft.id &&
-      r.actorId === actor.userId &&
-      r.assignmentVersion === body.assignmentVersion &&
-      r.expectedRevision === body.revision,
-    inspectionFetch,
-  );
-  function lock(value: boolean) {
-    setLocked(value);
-    onLock(value);
-  }
+  const manager = useInspectionManager({
+    actor,
+    draft,
+    onLock,
+    onConfirmed,
+    onDraft,
+    onClose: () => setOpen(false),
+  });
+  const { reason, locked, command } = manager;
+
   if (actor.role !== "BranchManager") {
     return null;
   }
@@ -81,14 +70,9 @@ export function ManagerActions({
             vehicleId={draft.vehicleId}
             version={draft.assignmentVersion}
             initialChoices={technicians}
-            onLocked={lock}
+            onLocked={manager.lock}
             onDraft={onDraft}
-            onConfirmed={() => {
-              onDraft(false);
-              setOpen(false);
-              lock(false);
-              void onConfirmed();
-            }}
+            onConfirmed={manager.assignmentConfirmed}
           />
         )}
         {draft.isSigned && (
@@ -96,21 +80,7 @@ export function ManagerActions({
             className={styles.form}
             onSubmit={async (e) => {
               e.preventDefault();
-              lock(true);
-              const result = await command.submit({
-                operationId: crypto.randomUUID(),
-                assignmentVersion: draft.assignmentVersion,
-                revision: draft.revision,
-                reason: reason.trim(),
-              });
-              if (result) {
-                lock(false);
-              }
-              if (result?.status === 200 && result.data) {
-                onDraft(false);
-                setOpen(false);
-                await onConfirmed();
-              }
+              await manager.reopen();
             }}
           >
             <p>
@@ -124,10 +94,7 @@ export function ManagerActions({
               rows={3}
               value={reason}
               disabled={command.busy || command.uncertain}
-              onChange={(e) => {
-                setReason(e.target.value);
-                onDraft(Boolean(e.target.value));
-              }}
+              onChange={(e) => manager.changeReason(e.target.value)}
             />
             {command.uncertain && (
               <p role="alert">
