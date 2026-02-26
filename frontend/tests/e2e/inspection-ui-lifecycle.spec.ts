@@ -200,10 +200,53 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   await page.getByRole("checkbox", { name: /^EP-004 ·/ }).check();
   await page
     .getByLabel("EP-004 repair work", { exact: true })
-    .fill("Repair bumper scuff and inspect finish.");
+    .fill("  Repair bumper scuff and inspect finish.  ");
   await page.getByLabel("Requested budget (MYR)", { exact: true }).fill("250.10");
+  await page.getByRole("button", { name: "Refresh inspection", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Refresh inspection", exact: true })).toBeEnabled();
+  await expect(page.getByLabel("EP-004 repair work", { exact: true })).toHaveValue(
+    "  Repair bumper scuff and inspect finish.  ",
+  );
+  await expect(page.getByLabel("Requested budget (MYR)", { exact: true })).toHaveValue("250.10");
+  const requestBodies: string[] = [];
+  await page.route(`**/api/staff/inspection/drafts/${id}/repair-requests`, async (route) => {
+    requestBodies.push(route.request().postData()!);
+    const response = await route.fetch();
+    expect(response.status()).toBe(200);
+    if (requestBodies.length === 1) {
+      await route.fulfill({
+        status: 502,
+        json: {
+          status: 502,
+          data: null,
+          message: "Controlled lost repair request receipt",
+          uncertain: true,
+        },
+      });
+      return;
+    }
+    await route.fulfill({ response });
+  });
   await page.getByRole("button", { name: "Submit repair request", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Reconcile repair request", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByLabel("EP-004 repair work", { exact: true })).toBeDisabled();
+  await expect(page.getByLabel("Requested budget (MYR)", { exact: true })).toBeDisabled();
+  await expect(
+    page
+      .getByRole("dialog", { name: "Inspection", exact: true })
+      .getByRole("button", { name: "Close dialog", exact: true }),
+  ).toBeDisabled();
+  await page.getByRole("button", { name: "Reconcile repair request", exact: true }).click();
   await expect(page.getByText("Pending Approval", { exact: true })).toBeVisible();
+  expect(requestBodies).toHaveLength(2);
+  expect(requestBodies[1]).toBe(requestBodies[0]);
+  expect(JSON.parse(requestBodies[0])).toMatchObject({
+    budget: 250.1,
+    items: [{ pointCode: "EP-004", work: "Repair bumper scuff and inspect finish." }],
+  });
+  await page.unroute(`**/api/staff/inspection/drafts/${id}/repair-requests`);
   // Pace the accelerated actors within the real shared-loopback rate limit.
   await new Promise((resolve) => setTimeout(resolve, 61_000));
 
@@ -372,6 +415,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
       originalEstimate: report.assessment.estimatedRepairCost,
       assignmentReplay: assignmentBodies[0] === assignmentBodies[1],
       saveReplay: bodies[0] === bodies[1],
+      repairRequestReplay: requestBodies[0] === requestBodies[1],
       checklistPoints: report.checklist.length,
     }),
   );
