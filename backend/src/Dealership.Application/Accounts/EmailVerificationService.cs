@@ -1,20 +1,50 @@
 namespace Dealership.Application.Accounts;
 
-public sealed class EmailVerificationService(IEmailVerificationStore store)
+public sealed class EmailVerificationService(IEmailVerificationStore store, TimeProvider clock)
 {
-    public Task<VerificationResult> ResendAsync(Guid userId, Guid resendKey, CancellationToken cancellationToken)
+    public async Task<VerificationResult> ResendAsync(Guid userId, Guid resendKey, CancellationToken cancellationToken)
     {
         if (userId == Guid.Empty)
         {
-            return Task.FromResult(new VerificationResult(VerificationStatus.Forbidden));
+            return new VerificationResult(VerificationStatus.Forbidden);
         }
 
         if (resendKey == Guid.Empty)
         {
-            return Task.FromResult(new VerificationResult(VerificationStatus.Invalid));
+            return new VerificationResult(VerificationStatus.Invalid);
         }
 
-        return store.ResendAsync(userId, resendKey, cancellationToken);
+        await using var transaction = await store.LockResendAsync(userId, cancellationToken);
+        var customer = transaction.Customer;
+
+        if (customer is not { IsActive: true, Role: AccountRoles.Customer, HasProfile: true })
+        {
+            return new VerificationResult(VerificationStatus.Forbidden);
+        }
+
+        var replayOwner = await transaction.ReadResendOwnerAsync(resendKey, cancellationToken);
+
+        if (replayOwner is not null)
+        {
+            return new VerificationResult(replayOwner == userId ? VerificationStatus.Accepted : VerificationStatus.Forbidden);
+        }
+
+        if (customer.EmailConfirmed)
+        {
+            return new VerificationResult(VerificationStatus.Accepted);
+        }
+
+        var now = clock.GetUtcNow();
+        var recent = await transaction.ReadRecentResendsAsync(now, cancellationToken);
+        var delay = EmailVerificationPolicy.ResendDelay(now, recent);
+
+        if (delay is not null)
+        {
+            return new VerificationResult(VerificationStatus.RateLimited, delay);
+        }
+
+        await transaction.CommitAsync(resendKey, now, cancellationToken);
+        return new VerificationResult(VerificationStatus.Accepted);
     }
 
     public Task<VerificationResult> ConfirmAsync(string? token, CancellationToken cancellationToken)

@@ -28,7 +28,7 @@ public sealed class MailDeliveryEventTests(RegistrationDatabase database) : ICla
 
         using (var scope = host.Factory.Services.CreateScope())
         {
-            var result = await scope.ServiceProvider.GetRequiredService<IEmailVerificationStore>()
+            var result = await scope.ServiceProvider.GetRequiredService<EmailVerificationService>()
                 .ResendAsync(userId, Guid.NewGuid(), CancellationToken.None);
             Assert.Equal(VerificationStatus.Accepted, result.Status);
         }

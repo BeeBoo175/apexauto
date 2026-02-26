@@ -13,55 +13,37 @@ public sealed class EmailVerificationStore(DealershipDbContext database, UserMan
     {
         // Registration owns the surrounding transaction; the mail intent commits with the account.
         var user = await database.Users.SingleAsync(account => account.Id == userId, cancellationToken);
-        AddChallenge(user, null);
+        database.EmailVerificationChallenges.Add(EmailVerificationChallenge.Create(user, null, clock.GetUtcNow()));
         await database.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<VerificationResult> ResendAsync(Guid userId, Guid resendKey, CancellationToken cancellationToken)
+    public async Task<IEmailVerificationResendTransaction> LockResendAsync(Guid userId, CancellationToken cancellationToken)
     {
-        await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
-        var user = await LockedCustomerAsync(userId, cancellationToken);
+        var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
 
-        if (user is null)
+        try
         {
-            return new VerificationResult(VerificationStatus.Forbidden);
+            var user = await database.Users.FromSqlInterpolated(
+                $"SELECT * FROM \"AspNetUsers\" WHERE \"Id\" = {userId} FOR UPDATE")
+                .AsNoTracking().SingleOrDefaultAsync(cancellationToken);
+            var hasProfile = await database.CustomerProfiles.AnyAsync(profile => profile.UserId == userId, cancellationToken);
+            var customer = user is null ? null :
+                new EmailVerificationCustomer(user.IsActive, user.Role, hasProfile, user.EmailConfirmed);
+            return new EmailVerificationResendTransaction(database, transaction, customer, user, clock, mail);
         }
-
-        var replayOwner = await database.EmailVerificationChallenges
-            .Where(challenge => challenge.ResendKey == resendKey)
-            .Select(challenge => (Guid?)challenge.UserId).SingleOrDefaultAsync(cancellationToken);
-
-        if (replayOwner is not null)
+        catch
         {
-            return new VerificationResult(replayOwner == userId ? VerificationStatus.Accepted : VerificationStatus.Forbidden);
+            try
+            {
+                await transaction.DisposeAsync();
+            }
+            finally
+            {
+                database.ChangeTracker.Clear();
+            }
+
+            throw;
         }
-
-        if (user.EmailConfirmed)
-        {
-            return new VerificationResult(VerificationStatus.Accepted);
-        }
-
-        var now = clock.GetUtcNow();
-        var recent = await database.EmailVerificationChallenges
-            .Where(challenge => challenge.UserId == userId && challenge.ResendKey != null &&
-                challenge.CreatedAt > now - EmailVerificationPolicy.ResendWindow)
-            .OrderByDescending(challenge => challenge.CreatedAt)
-            .Select(challenge => challenge.CreatedAt)
-            .ToListAsync(cancellationToken);
-
-        var delay = EmailVerificationPolicy.ResendDelay(now, recent);
-
-        if (delay is not null)
-        {
-            return new VerificationResult(VerificationStatus.RateLimited, delay);
-        }
-
-        await InvalidateOutstandingAsync(userId, now, cancellationToken);
-        AddChallenge(user, resendKey);
-        await database.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
-        mail.Request();
-        return new VerificationResult(VerificationStatus.Accepted);
     }
 
     public async Task<VerificationResult> ConfirmAsync(string token, CancellationToken cancellationToken)
@@ -141,27 +123,5 @@ public sealed class EmailVerificationStore(DealershipDbContext database, UserMan
         }
 
         return user;
-    }
-
-    private async Task InvalidateOutstandingAsync(Guid userId, DateTimeOffset now, CancellationToken cancellationToken)
-    {
-        await database.EmailVerificationChallenges
-            .Where(challenge => challenge.UserId == userId && challenge.InvalidatedAt == null && challenge.ConsumedAt == null)
-            .ExecuteUpdateAsync(update => update.SetProperty(challenge => challenge.InvalidatedAt, now), cancellationToken);
-    }
-
-    private void AddChallenge(AccountUser user, Guid? resendKey)
-    {
-        var now = clock.GetUtcNow();
-        database.EmailVerificationChallenges.Add(new EmailVerificationChallenge
-        {
-            Id = Guid.NewGuid(),
-            UserId = user.Id,
-            RecipientEmail = user.Email!,
-            CreatedAt = now,
-            ExpiresAt = now + EmailVerificationPolicy.Lifetime,
-            NextDeliveryAt = now,
-            ResendKey = resendKey
-        });
     }
 }
