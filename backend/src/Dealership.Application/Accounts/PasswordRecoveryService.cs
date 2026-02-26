@@ -1,6 +1,6 @@
 namespace Dealership.Application.Accounts;
 
-public sealed class PasswordRecoveryService(IPasswordRecoveryStore store)
+public sealed class PasswordRecoveryService(IPasswordRecoveryStore store, TimeProvider clock)
 {
     public async Task RequestAsync(PasswordRecoveryRequest request, CancellationToken cancellationToken)
     {
@@ -11,7 +11,22 @@ public sealed class PasswordRecoveryService(IPasswordRecoveryStore store)
             return;
         }
 
-        await store.RequestAsync(email, cancellationToken);
+        await using var transaction = await store.LockRequestAsync(email, cancellationToken);
+
+        if (!transaction.Context.AccountExists)
+        {
+            return;
+        }
+
+        var now = clock.GetUtcNow();
+        var recent = await transaction.ReadRecentRequestsAsync(now, cancellationToken);
+
+        if (!PasswordRecoveryPolicy.CanRequest(now, recent))
+        {
+            return;
+        }
+
+        await transaction.CommitAsync(now, cancellationToken);
     }
 
     public Task<PasswordResetResult> ResetAsync(PasswordResetRequest request, CancellationToken cancellationToken)

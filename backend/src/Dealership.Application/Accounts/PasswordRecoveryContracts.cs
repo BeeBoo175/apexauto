@@ -13,9 +13,20 @@ public enum PasswordResetStatus
 
 public sealed record PasswordResetResult(PasswordResetStatus Status, string[]? PasswordErrors = null);
 
+public sealed record PasswordRecoveryRequestContext(bool AccountExists);
+
+public interface IPasswordRecoveryRequestTransaction : IAsyncDisposable
+{
+    PasswordRecoveryRequestContext Context { get; }
+
+    Task<IReadOnlyList<DateTimeOffset>> ReadRecentRequestsAsync(DateTimeOffset now, CancellationToken cancellationToken);
+
+    Task CommitAsync(DateTimeOffset requestedAt, CancellationToken cancellationToken);
+}
+
 public interface IPasswordRecoveryStore
 {
-    Task RequestAsync(string email, CancellationToken cancellationToken);
+    Task<IPasswordRecoveryRequestTransaction> LockRequestAsync(string email, CancellationToken cancellationToken);
 
     Task<PasswordResetResult> ResetAsync(string token, string password, CancellationToken cancellationToken);
 }

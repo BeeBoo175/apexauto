@@ -9,45 +9,32 @@ namespace Dealership.Infrastructure.Identity;
 public sealed class PasswordRecoveryStore(DealershipDbContext database, UserManager<AccountUser> users,
     PasswordResetToken tokens, TimeProvider clock, MailDeliverySignal mail) : IPasswordRecoveryStore
 {
-    public async Task RequestAsync(string email, CancellationToken cancellationToken)
+    public async Task<IPasswordRecoveryRequestTransaction> LockRequestAsync(string email, CancellationToken cancellationToken)
     {
         var normalized = users.NormalizeEmail(email);
-        await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
-        var user = await database.Users.FromSqlInterpolated(
-            $"SELECT * FROM \"AspNetUsers\" WHERE \"NormalizedEmail\" = {normalized} FOR UPDATE")
-            .SingleOrDefaultAsync(cancellationToken);
+        var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
 
-        if (user is null)
+        try
         {
-            return;
+            var user = await database.Users.FromSqlInterpolated(
+                $"SELECT * FROM \"AspNetUsers\" WHERE \"NormalizedEmail\" = {normalized} FOR UPDATE")
+                .AsNoTracking().SingleOrDefaultAsync(cancellationToken);
+            var context = new PasswordRecoveryRequestContext(user is not null);
+            return new PasswordRecoveryRequestTransaction(database, transaction, context, user, mail);
         }
-
-        var now = clock.GetUtcNow();
-        var recent = await database.PasswordResetChallenges
-            .Where(challenge => challenge.UserId == user.Id && challenge.CreatedAt > now - PasswordRecoveryPolicy.RequestWindow)
-            .OrderByDescending(challenge => challenge.CreatedAt)
-            .Select(challenge => challenge.CreatedAt).Take(PasswordRecoveryPolicy.MaximumRequestsPerWindow).ToListAsync(cancellationToken);
-
-        if (!PasswordRecoveryPolicy.CanRequest(now, recent))
+        catch
         {
-            return;
+            try
+            {
+                await transaction.DisposeAsync();
+            }
+            finally
+            {
+                database.ChangeTracker.Clear();
+            }
+
+            throw;
         }
-
-        await database.PasswordResetChallenges
-            .Where(challenge => challenge.UserId == user.Id && challenge.InvalidatedAt == null && challenge.ConsumedAt == null)
-            .ExecuteUpdateAsync(update => update.SetProperty(challenge => challenge.InvalidatedAt, now), cancellationToken);
-        database.PasswordResetChallenges.Add(new PasswordResetChallenge
-        {
-            Id = Guid.NewGuid(),
-            UserId = user.Id,
-            RecipientEmail = user.Email!,
-            CreatedAt = now,
-            ExpiresAt = now + PasswordRecoveryPolicy.Lifetime,
-            NextDeliveryAt = now
-        });
-        await database.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
-        mail.Request();
     }
 
     public async Task<PasswordResetResult> ResetAsync(string token, string password, CancellationToken cancellationToken)

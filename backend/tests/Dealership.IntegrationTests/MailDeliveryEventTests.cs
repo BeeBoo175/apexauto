@@ -38,6 +38,7 @@ public sealed class MailDeliveryEventTests(RegistrationDatabase database) : ICla
         await AssertWakeAsync(signal);
         Assert.NotNull(await host.LatestAsync(account.Email!));
 
+        await host.RequestAsync(account.Email!);
         await host.RequestAsync("unknown@example.invalid");
         using var cancellation = new CancellationTokenSource();
         var waiting = signal.WaitAsync(cancellation.Token).AsTask();
