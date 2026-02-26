@@ -2,6 +2,7 @@ using Dealership.Application.Accounts;
 using Dealership.Application.Branches;
 using Dealership.Application.Intake;
 using Dealership.Application.Vehicles;
+using Dealership.Domain.Vehicles;
 using Dealership.Domain.Common;
 using Dealership.Domain.Intake;
 using Dealership.Infrastructure.Development;

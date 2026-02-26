@@ -84,12 +84,12 @@ internal static class IntakeBrowserSeed
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddApplication();
+        services.AddIntakeApplication();
+        services.AddPhotoApplication();
         services.AddInfrastructure(configuration);
         services.AddSingleton(InspectionScheduleConfiguration.Read(configuration));
         services.AddSingleton<DevelopmentFixtureClock>();
         services.AddSingleton<TimeProvider>(provider => provider.GetRequiredService<DevelopmentFixtureClock>());
-        services.AddScoped<IntakeDiscoveryService>();
-        services.AddScoped<IntakeBookingService>();
         services.AddS3Storage(configuration);
         services.AddPhotos(configuration);
         services.AddScoped<DevelopmentFixtureRunner>();

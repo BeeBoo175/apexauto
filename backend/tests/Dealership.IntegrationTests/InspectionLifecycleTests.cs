@@ -35,7 +35,7 @@ public sealed class InspectionLifecycleTests(IntakePhotoFixture fixture) : IClas
         var signoffs = services.GetRequiredService<InspectionSignoffService>();
         var saves = services.GetRequiredService<InspectionDraftSaveService>();
         var requests = services.GetRequiredService<InspectionRepairRequestService>();
-        var completions = services.GetRequiredService<IInspectionRepairCompletionStore>();
+        var completions = services.GetRequiredService<InspectionRepairCompletionService>();
         await AssertStatusAsync(database, vehicle, VehicleStatus.PendingInspection);
         await AssertForgedStatusAsync(vehicle, VehicleStatus.Available);
         await AssertForgedStatusAsync(vehicle, VehicleStatus.Rejected);
@@ -137,7 +137,7 @@ public sealed class InspectionLifecycleTests(IntakePhotoFixture fixture) : IClas
         using var restarted = fixture.CreateFactory();
         using var restored = restarted.Services.CreateScope();
         Assert.Equal(InspectionAssignmentStatus.Succeeded, (await restored.ServiceProvider
-            .GetRequiredService<IInspectionRepairCompletionStore>()
+            .GetRequiredService<InspectionRepairCompletionService>()
             .CompleteAsync(technician, inspection, completedRequest, CancellationToken.None)).Status);
         await AssertStatusAsync(database, vehicle, VehicleStatus.Available);
 

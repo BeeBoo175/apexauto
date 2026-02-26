@@ -1,6 +1,6 @@
 using System.Collections.ObjectModel;
 
-namespace Dealership.Application.Vehicles;
+namespace Dealership.Domain.Vehicles;
 
 public static class VehicleTaxonomy
 {
@@ -103,3 +103,9 @@ public static class VehicleTaxonomy
 
     private sealed record TaxonomyEntry(string Make, string Model, string Trim, decimal BaselinePrice);
 }
+
+public sealed record TaxonomyMake(string Name, IReadOnlyList<TaxonomyModel> Models);
+
+public sealed record TaxonomyModel(string Name, IReadOnlyList<TaxonomyTrim> Trims);
+
+public sealed record TaxonomyTrim(string Name, decimal BaselinePrice);

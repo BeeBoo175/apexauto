@@ -1,5 +1,5 @@
+import { parseMyr } from "@/lib/currency-input";
 import { severities, type Draft, type Entry } from "./contracts";
-import { parseMyr } from "./query";
 
 export type EntryDraft = Omit<Entry, "estimatedRepairCost"> & { estimate: string };
 export type ChecklistDraft = {

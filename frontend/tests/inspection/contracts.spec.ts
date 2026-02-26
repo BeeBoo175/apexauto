@@ -6,7 +6,8 @@ import {
   parsePoint,
   parseRepairPage,
 } from "@/lib/inspection/parse";
-import { parseMyr, queueParams, queueQuery } from "@/lib/inspection/query";
+import { parseMyr } from "@/lib/currency-input";
+import { queueParams, queueQuery } from "@/lib/inspection/query";
 import { appliedWorklistFilters } from "@/lib/staff/filter-summary";
 import { checklistDraft, saveContents } from "@/lib/inspection/draft";
 import type { Draft } from "@/lib/inspection/contracts";
@@ -83,7 +84,18 @@ test("MYR input never silently rounds sub-cents or unsafe amounts", () => {
   expect(parseMyr("250.10")).toBe(250.1);
   expect(parseMyr("000250.1")).toBe(250.1);
   expect(parseMyr("0")).toBe(0);
-  for (const value of ["1.001", "-1", "1e3", "Infinity", "", "9007199254740993.01"]) {
+  expect(parseMyr("0.01")).toBe(0.01);
+  expect(parseMyr("1000000.99")).toBe(1000000.99);
+  for (const value of [
+    "1.001",
+    "-1",
+    "1e3",
+    "Infinity",
+    "",
+    "9007199254740993.01",
+    "90071992547409.92",
+    "70368744177664.01",
+  ]) {
     expect(parseMyr(value)).toBeNull();
   }
 });

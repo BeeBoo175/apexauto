@@ -6,7 +6,7 @@ import { useToast } from "@/components/ui/Toast";
 import { useApiCommand } from "@/hooks/use-api-command";
 import { inspectionFetch } from "@/lib/inspection/browser";
 import { parseRepairRequest } from "@/lib/inspection/parse-report";
-import { parseMyr } from "@/lib/inspection/query";
+import { parseMyr } from "@/lib/currency-input";
 import { isRecord } from "@/lib/auth/contracts";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { Draft } from "@/lib/inspection/contracts";

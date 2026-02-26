@@ -1,4 +1,5 @@
 using Dealership.Application.Vehicles;
+using Dealership.Domain.Vehicles;
 using Dealership.Domain.Common;
 
 namespace Dealership.Api.Endpoints;

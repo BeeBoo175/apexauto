@@ -31,9 +31,6 @@ public static class PhotoServiceRegistration
         services.AddSingleton(provider => new InspectionPhotoPolicy(
             provider.GetRequiredService<IntakePhotoPolicy>().UnsubmittedLifetime));
         services.AddSingleton<IPhotoStorage, S3PhotoStorage>();
-        services.AddScoped<PhotoTransferService>();
-        services.AddScoped<IntakePhotoService>();
-        services.AddScoped<InspectionPhotoService>();
         services.AddScoped<PhotoCleanupStore>();
         services.AddScoped<IPhotoCleanupSource>(provider => provider.GetRequiredService<PhotoCleanupStore>());
         services.AddHostedService<PhotoCleanupWorker>();

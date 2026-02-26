@@ -1,5 +1,6 @@
 using Dealership.Domain.Common;
 using Dealership.Domain.Valuation;
+using Dealership.Domain.Vehicles;
 
 namespace Dealership.Application.Vehicles;
 

@@ -22,7 +22,7 @@ public static class InspectionRepairEndpoints
         routes.MapGet("/reports/{id:guid}/revisions/{revision:long}/repair-history", HistoryAsync);
     }
 
-    private static async Task<IResult> CompleteAsync(Guid id, HttpContext context, IInspectionRepairCompletionStore completions,
+    private static async Task<IResult> CompleteAsync(Guid id, HttpContext context, InspectionRepairCompletionService completions,
         CancellationToken cancellationToken)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);

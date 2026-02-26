@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using Dealership.Application.Vehicles;
+using Dealership.Domain.Vehicles;
 
 namespace Dealership.IntegrationTests;
 

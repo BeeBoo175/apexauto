@@ -3,6 +3,7 @@ using Dealership.Application.Accounts;
 using Dealership.Application.Branches;
 using Dealership.Application.Intake;
 using Dealership.Application.Inspections;
+using Dealership.Application.Photos;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Dealership.Application;
@@ -28,7 +29,24 @@ public static class DependencyInjection
         services.AddScoped<InspectionReopeningService>();
         services.AddScoped<InspectionRepairRequestService>();
         services.AddScoped<InspectionRepairApprovalService>();
+        services.AddScoped<InspectionRepairCompletionService>();
 
+        return services;
+    }
+
+    public static IServiceCollection AddIntakeApplication(this IServiceCollection services)
+    {
+        services.AddScoped<IntakeDiscoveryService>();
+        services.AddScoped<IntakeBookingService>();
+        services.AddScoped<StaffCalendarService>();
+        return services;
+    }
+
+    public static IServiceCollection AddPhotoApplication(this IServiceCollection services)
+    {
+        services.AddScoped<PhotoTransferService>();
+        services.AddScoped<IntakePhotoService>();
+        services.AddScoped<InspectionPhotoService>();
         return services;
     }
 }

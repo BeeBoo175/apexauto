@@ -181,7 +181,7 @@ public sealed class InspectionRepairCompletionTests(IntakePhotoFixture fixture) 
         Guid actor, Guid inspection, InspectionRepairCompletionRequest request)
     {
         using var scope = factory.Services.CreateScope();
-        return await scope.ServiceProvider.GetRequiredService<IInspectionRepairCompletionStore>()
+        return await scope.ServiceProvider.GetRequiredService<InspectionRepairCompletionService>()
             .CompleteAsync(actor, inspection, request, CancellationToken.None);
     }
 }

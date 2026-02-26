@@ -53,11 +53,10 @@ builder.Host.UseSerilog((context, config) =>
 });
 
 builder.Services.AddApplication();
+builder.Services.AddIntakeApplication();
+builder.Services.AddPhotoApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddSingleton(InspectionScheduleConfiguration.Read(builder.Configuration));
-builder.Services.AddScoped<IntakeDiscoveryService>();
-builder.Services.AddScoped<StaffCalendarService>();
-builder.Services.AddScoped<IntakeBookingService>();
 builder.Services.AddS3Storage(builder.Configuration);
 builder.Services.AddPhotos(builder.Configuration);
 builder.Services.AddOptions<EmailDeliverySettings>()

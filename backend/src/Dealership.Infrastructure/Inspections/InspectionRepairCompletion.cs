@@ -35,11 +35,6 @@ public sealed class InspectionRepairCompletion
     public string Notes { get; private set; } = string.Empty;
     public DateTimeOffset CompletedAt { get; private set; }
 
-    public bool Matches(Guid actorId, Guid inspectionId, InspectionRepairCompletionRequest request) =>
-        ActorId == actorId && InspectionId == inspectionId && RequestId == request.RequestId &&
-        AssignmentVersion == request.AssignmentVersion && Revision == request.Revision &&
-        RepairVersion == request.RepairVersion && Notes == request.Notes;
-
     public InspectionRepairCompletionReceipt Receipt() => new(Id, InspectionId, BranchId, ActorId, RequestId,
         ApprovalId, AssignmentVersion, Revision, RepairVersion, Notes, CompletedAt);
 }
