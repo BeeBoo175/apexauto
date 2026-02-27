@@ -10,8 +10,10 @@ namespace Dealership.IntegrationTests;
 
 public sealed class PasswordRecoveryReliabilityTests(RegistrationDatabase database) : IClassFixture<RegistrationDatabase>
 {
-    [Fact]
-    public async Task InterruptedReceiptRollsBackCredentialsRevocationsAndConsumption()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task InterruptedReceiptRollsBackCredentialsRevocationsAndConsumptionBeforeSameScopeRetry(bool cancelled)
     {
         var interruption = new PasswordRecoveryInterruption();
         using var host = new PasswordRecoveryHost(database, interceptor: interruption);
@@ -20,18 +22,75 @@ public sealed class PasswordRecoveryReliabilityTests(RegistrationDatabase databa
         await host.RequestAsync(account.Email!);
         var challenge = await host.LatestAsync(account.Email!);
         var token = host.Token(challenge);
+        using var scope = host.Factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
+        var service = scope.ServiceProvider.GetRequiredService<PasswordRecoveryService>();
+        var request = new PasswordResetRequest(token, "Recovered123!");
+        var before = await context.Users.AsNoTracking().SingleAsync(user => user.Id == challenge.UserId);
+        using var cancellation = new CancellationTokenSource();
         interruption.FailReceipt = true;
-        await Assert.ThrowsAsync<InvalidOperationException>(() => host.ResetAsync(token));
+        interruption.ReceiptCancellation = cancelled ? cancellation : null;
+
+        if (cancelled)
+        {
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.ResetAsync(request, cancellation.Token));
+        }
+        else
+        {
+            await Assert.ThrowsAsync<InvalidOperationException>(() => service.ResetAsync(request, cancellation.Token));
+        }
+
+        Assert.Null(context.Database.CurrentTransaction);
+        Assert.Empty(context.ChangeTracker.Entries());
+        var retained = await context.Users.AsNoTracking().SingleAsync(user => user.Id == challenge.UserId);
+        Assert.Equal(before.PasswordHash, retained.PasswordHash);
+        Assert.Equal(before.SecurityStamp, retained.SecurityStamp);
+        Assert.Equal(before.ConcurrencyStamp, retained.ConcurrencyStamp);
+        Assert.False(await context.AccountSessions.AnyAsync(session => session.UserId == challenge.UserId && session.RevokedAt != null));
+        Assert.Null((await host.LatestAsync(account.Email!)).CompletedSecurityStamp);
         interruption.FailReceipt = false;
         Assert.NotNull(await host.LoginAsync(account));
         Assert.Null((await host.LatestAsync(account.Email!)).ConsumedAt);
-        using (var scope = host.Factory.Services.CreateScope())
-        {
-            var context = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
-            Assert.False(await context.AccountSessions.AnyAsync(session => session.UserId == challenge.UserId && session.RevokedAt != null));
-        }
 
-        Assert.Equal(PasswordResetStatus.Succeeded, (await host.ResetAsync(token)).Status);
+        Assert.Equal(PasswordResetStatus.Succeeded, (await service.ResetAsync(request, CancellationToken.None)).Status);
+        Assert.Null(context.Database.CurrentTransaction);
+        Assert.Empty(context.ChangeTracker.Entries());
+        Assert.NotNull((await host.LatestAsync(account.Email!)).ConsumedAt);
+    }
+
+    [Fact]
+    public async Task CurrentOrdinalRecipientAndExpiryGateFirstResetAndConsumedReplay()
+    {
+        var clock = new RecoveryClock();
+        using var host = new PasswordRecoveryHost(database, clock);
+        var account = await host.RegisterAsync();
+        await host.RequestAsync(account.Email!);
+        var challenge = await host.LatestAsync(account.Email!);
+        using var scope = host.Factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
+        var service = scope.ServiceProvider.GetRequiredService<PasswordRecoveryService>();
+        var request = new PasswordResetRequest(host.Token(challenge), "Recovered123!");
+
+        // A stale tracked user must not hide a current recipient change under the account lock.
+        await context.Users.SingleAsync(user => user.Id == challenge.UserId);
+        await context.Users.Where(user => user.Id == challenge.UserId).ExecuteUpdateAsync(update => update
+            .SetProperty(user => user.Email, account.Email!.ToUpperInvariant()));
+        Assert.Equal(PasswordResetStatus.Invalid, (await service.ResetAsync(request, CancellationToken.None)).Status);
+        Assert.Null((await host.LatestAsync(account.Email!)).ConsumedAt);
+        await context.Users.Where(user => user.Id == challenge.UserId).ExecuteUpdateAsync(update => update
+            .SetProperty(user => user.Email, account.Email));
+        Assert.Equal(PasswordResetStatus.Succeeded, (await service.ResetAsync(request, CancellationToken.None)).Status);
+        var consumed = await host.LatestAsync(account.Email!);
+        var credentials = await context.Users.AsNoTracking().SingleAsync(user => user.Id == challenge.UserId);
+        clock.Now = challenge.ExpiresAt.AddTicks(-1);
+        Assert.Equal(PasswordResetStatus.Succeeded, (await service.ResetAsync(request, CancellationToken.None)).Status);
+        clock.Now = challenge.ExpiresAt;
+        Assert.Equal(PasswordResetStatus.Invalid, (await service.ResetAsync(request, CancellationToken.None)).Status);
+        Assert.Equal(consumed.ConsumedAt, (await host.LatestAsync(account.Email!)).ConsumedAt);
+        var replayed = await context.Users.AsNoTracking().SingleAsync(user => user.Id == challenge.UserId);
+        Assert.Equal(credentials.PasswordHash, replayed.PasswordHash);
+        Assert.Equal(credentials.SecurityStamp, replayed.SecurityStamp);
+        Assert.Equal(credentials.ConcurrencyStamp, replayed.ConcurrencyStamp);
     }
 
     [Fact]

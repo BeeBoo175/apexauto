@@ -8,6 +8,8 @@ internal sealed class PasswordRecoveryInterruption : SaveChangesInterceptor
 {
     public bool FailReceipt { get; set; }
 
+    public CancellationTokenSource? ReceiptCancellation { get; set; }
+
     public bool PauseCredentials { get; set; }
 
     public TaskCompletionSource CredentialsReached { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -22,6 +24,8 @@ internal sealed class PasswordRecoveryInterruption : SaveChangesInterceptor
         if (FailReceipt && context.ChangeTracker.Entries<PasswordResetChallenge>()
             .Any(entry => entry.State == EntityState.Modified && entry.Entity.ConsumedAt is not null))
         {
+            ReceiptCancellation?.Cancel();
+            cancellationToken.ThrowIfCancellationRequested();
             throw new InvalidOperationException("Interrupted reset receipt write.");
         }
 

@@ -158,7 +158,7 @@ export function parsePhotoReference(v: unknown): PhotoReference | null {
   return { id: v.id, pointCode: v.pointCode };
 }
 
-export function parseInspectionRow(v: unknown): InspectionRow | null {
+function parseInspectionRow(v: unknown): InspectionRow | null {
   if (
     !isRecord(v) ||
     !ids(v, ["vehicleId", "branchId"]) ||
@@ -177,7 +177,7 @@ export function parseInspectionRow(v: unknown): InspectionRow | null {
   return { ...v, status: enumValue(inspectionStatuses, v.status) } as InspectionRow;
 }
 
-export function parseRepairRow(v: unknown): RepairRow | null {
+function parseRepairRow(v: unknown): RepairRow | null {
   if (
     !isRecord(v) ||
     !ids(v, ["requestId", "inspectionId", "vehicleId", "branchId", "technicianId"]) ||
@@ -196,7 +196,7 @@ export function parseRepairRow(v: unknown): RepairRow | null {
   return { ...v, status: enumValue(repairStatuses, v.status) } as RepairRow;
 }
 
-export function parseTechnician(v: unknown): Technician | null {
+function parseTechnician(v: unknown): Technician | null {
   if (!isRecord(v) || !isUuid(v.id) || !text(v.identity)) {
     return null;
   }
