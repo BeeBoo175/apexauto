@@ -1,25 +1,15 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { useColumnResize } from "@/hooks/use-column-resize";
 import { Table, TableCell } from "@/components/ui/Table";
-import { useToast } from "@/components/ui/Toast";
 import { DataTableHeader } from "./DataTableHeader";
-import { DataTableToolbar } from "./DataTableToolbar";
-import { DataTablePagination } from "./DataTablePagination";
 import { Button } from "@/components/ui/Button";
-import { downloadCsv, selectedCsv } from "@/lib/csv";
 import type { DataTableProps } from "./types";
 import styles from "./DataTable.module.css";
 
 export function DataTable<Row>(props: DataTableProps<Row>) {
-  const { rows, rowId, selectionScope, disabled } = props;
-  const columns = props.columns.filter((column) => !column.exportOnly);
-  const [selection, setSelection] = useState<{ scope: string; ids: Set<string> }>({
-    scope: selectionScope,
-    ids: new Set(),
-  });
-  const [exporting, setExporting] = useState(false);
+  const { rows, rowId, columns, selection, disabled } = props;
   const checkbox = useRef<HTMLInputElement>(null);
   const table = useRef<HTMLTableElement>(null);
   const confirmedPage = useRef(props.page);
@@ -50,12 +40,11 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
     }
     return `minmax(${minimum}, ${column.width ?? 160}fr)`;
   });
-  tracks.unshift("44px");
-  const toast = useToast();
-  // Selection belongs to exactly the confirmed query/page snapshot supplied by the caller.
-  const selected = selection.scope === selectionScope ? selection.ids : new Set<string>();
-  const selectedRows = rows.filter((row) => selected.has(rowId(row)));
-  const all = rows.length > 0 && selectedRows.length === rows.length;
+  if (selection) {
+    tracks.unshift("44px");
+  }
+  const selectedCount = rows.filter((row) => selection?.ids.has(rowId(row))).length;
+  const all = rows.length > 0 && selectedCount === rows.length;
   const emptyState =
     props.page.page > 1 || props.page.total > 0
       ? {
@@ -69,60 +58,26 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
       : props.emptyState;
   useEffect(() => {
     if (checkbox.current) {
-      checkbox.current.indeterminate = selectedRows.length > 0 && !all;
+      checkbox.current.indeterminate = selectedCount > 0 && !all;
     }
-  }, [selectedRows.length, all]);
+  }, [selectedCount, all]);
 
   function toggle(id: string) {
-    const ids = new Set(selected);
+    if (!selection) {
+      return;
+    }
+
+    const ids = new Set(selection.ids);
     if (ids.has(id)) {
       ids.delete(id);
     } else {
       ids.add(id);
     }
-    setSelection({ scope: selectionScope, ids });
+    selection.onChange(ids);
   }
-  async function exportAll() {
-    if (exporting) {
-      return;
-    }
-    setExporting(true);
-    try {
-      await props.onExportAll();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "CSV export could not be completed.");
-    } finally {
-      setExporting(false);
-    }
-  }
+
   return (
-    <section
-      className={`${styles.workspace} ${props.fillHeight ? styles.fillHeight : ""}`}
-      aria-label={props.label}
-    >
-      <DataTableToolbar
-        filters={props.filters}
-        filterCount={props.filterCount}
-        filterSummary={props.filterSummary}
-        onFiltersOpenChange={props.onFiltersOpenChange}
-        defaultFiltersExpanded={props.defaultFiltersExpanded}
-        selected={selectedRows.length}
-        disabled={disabled}
-        exporting={exporting}
-        exportDisabled={props.busy || props.page.total === 0}
-        onClear={() => setSelection({ scope: selectionScope, ids: new Set() })}
-        onSelected={() =>
-          downloadCsv(
-            new Blob([selectedCsv(selectedRows, props.columns)], {
-              type: "text/csv;charset=utf-8",
-            }),
-            `${props.exportFileName}-selected.csv`,
-          )
-        }
-        onAll={() => void exportAll()}
-      >
-        {props.toolbar}
-      </DataTableToolbar>
+    <>
       {rows.length > 0 ? (
         <Table
           ref={table}
@@ -137,31 +92,27 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
           <caption className="sr-only">{props.label}</caption>
           <thead>
             <tr>
-              <th scope="col" className={styles.selectionCell}>
-                <label className={styles.selectionControl}>
-                  <span className="sr-only">Select all loaded rows</span>
-                  <input
-                    ref={checkbox}
-                    type="checkbox"
-                    disabled={disabled || rows.length === 0}
-                    checked={all}
-                    onChange={() =>
-                      setSelection({
-                        scope: selectionScope,
-                        ids: new Set(all ? [] : rows.map(rowId)),
-                      })
-                    }
-                  />
-                </label>
-              </th>
+              {selection && (
+                <th scope="col" className={styles.selectionCell}>
+                  <label className={styles.selectionControl}>
+                    <span className="sr-only">Select all loaded rows</span>
+                    <input
+                      ref={checkbox}
+                      type="checkbox"
+                      disabled={disabled || rows.length === 0}
+                      checked={all}
+                      onChange={() => selection.onChange(new Set(all ? [] : rows.map(rowId)))}
+                    />
+                  </label>
+                </th>
+              )}
               {columns.map((column, index) => (
                 <DataTableHeader
                   key={column.id}
                   column={column}
-                  sort={props.sort}
+                  sorting={props.sorting}
                   disabled={disabled}
                   resizable={index < columns.length - 1}
-                  onSort={props.onSort}
                   onStart={(event) => handleResizeStart(index, event)}
                 />
               ))}
@@ -193,21 +144,23 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
                   props.onRowClick(row);
                 }}
                 data-selected={
-                  props.selectedRowId === rowId(row) || selected.has(rowId(row)) || undefined
+                  props.selectedRowId === rowId(row) || selection?.ids.has(rowId(row)) || undefined
                 }
                 data-active={props.selectedRowId === rowId(row) || undefined}
               >
-                <TableCell className={styles.selectionCell}>
-                  <label className={styles.selectionControl}>
-                    <span className="sr-only">Select {rowId(row)}</span>
-                    <input
-                      type="checkbox"
-                      checked={selected.has(rowId(row))}
-                      disabled={disabled}
-                      onChange={() => toggle(rowId(row))}
-                    />
-                  </label>
-                </TableCell>
+                {selection && (
+                  <TableCell className={styles.selectionCell}>
+                    <label className={styles.selectionControl}>
+                      <span className="sr-only">Select {rowId(row)}</span>
+                      <input
+                        type="checkbox"
+                        checked={selection.ids.has(rowId(row))}
+                        disabled={disabled}
+                        onChange={() => toggle(rowId(row))}
+                      />
+                    </label>
+                  </TableCell>
+                )}
                 {columns.map((column) => (
                   <TableCell key={column.id} data-align={column.align ?? "left"}>
                     <div className={styles.cell}>{column.cell(row)}</div>
@@ -235,12 +188,6 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
           )}
         </div>
       )}
-      <DataTablePagination
-        page={props.page}
-        count={rows.length}
-        disabled={disabled}
-        onPage={props.onPage}
-      />
-    </section>
+    </>
   );
 }

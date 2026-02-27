@@ -6,6 +6,7 @@ import type { DataColumn } from "@/components/ui/data-table/types";
 import { useInspectionQueue } from "@/hooks/use-inspection-queue";
 import { useInspectionLock } from "@/hooks/use-inspection-lock";
 import { parseInspectionPage } from "@/lib/inspection/parse";
+import { inspectionExportColumns } from "@/lib/inspection/export-columns";
 import { label, type InspectionRow, type QueueFilters } from "@/lib/inspection/contracts";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { ApiResult, Page } from "@/lib/api";
@@ -71,42 +72,36 @@ export function InspectionQueue({
           {row.registrationPlate}
         </Button>
       ),
-      exportValue: (row) => row.registrationPlate,
     },
     {
       id: "vehicle",
       label: "Vehicle",
       minWidth: 160,
       cell: (r) => `${r.make} ${r.model}`,
-      exportValue: (r) => `${r.make} ${r.model}`,
     },
     {
       id: "branch",
       label: "Branch",
       minWidth: 150,
       cell: (r) => r.branchName,
-      exportValue: (r) => r.branchName,
     },
     {
       id: "checkedIn",
       label: "Checked in",
       minWidth: 185,
       cell: (r) => <span className={styles.timing}>{formatMalaysianDateTime(r.checkedInAt)}</span>,
-      exportValue: (r) => formatMalaysianDateTime(r.checkedInAt),
     },
     {
       id: "progress",
       label: "Inspection",
       minWidth: 110,
       cell: (r) => label(r.status),
-      exportValue: (r) => label(r.status),
     },
     {
       id: "saleStatus",
       label: "Vehicle status",
       minWidth: 150,
       cell: (r) => label(r.vehicleStatus),
-      exportValue: (r) => label(r.vehicleStatus),
     },
     {
       id: "action",
@@ -128,6 +123,7 @@ export function InspectionQueue({
       kind="vehicles"
       state={state}
       columns={columns}
+      exportColumns={inspectionExportColumns}
       rowId={(r) => r.vehicleId}
       parse={parseInspectionPage}
       onOpen={open}

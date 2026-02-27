@@ -255,6 +255,17 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   await expect.poll(() => new URL(manager.url()).searchParams.get("search")).toBe(id);
   await expect(manager.locator("tbody tr")).toHaveCount(1);
   await manager.getByRole("checkbox", { name: "Select all loaded rows", exact: true }).check();
+  const repairDownload = manager.waitForEvent("download");
+  await manager.getByRole("button", { name: "Export selected CSV", exact: true }).click();
+  const repairFile = await (await repairDownload).path();
+  const repairCsv = readFileSync(repairFile!, "utf8");
+  expect(repairCsv.replace(/^\uFEFF/, "").split("\r\n")[0]).toBe(
+    '"Registration","Branch","Requested","Revision / work","Budget","Repair status"',
+  );
+  expect(repairCsv).toContain('"1 / 1","250.10","Pending Approval"');
+  expect(repairCsv.split("\r\n")).toHaveLength(3);
+  await manager.getByRole("button", { name: "Clear selection", exact: true }).click();
+  await manager.getByRole("checkbox", { name: "Select all loaded rows", exact: true }).check();
   await manager.locator("tbody tr").getByRole("cell").nth(2).click();
   await expect(manager.getByRole("dialog", { name: "Repair request", exact: true })).toBeVisible();
   await expect(

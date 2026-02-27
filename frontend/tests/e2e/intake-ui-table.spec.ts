@@ -91,13 +91,16 @@ test("server table searches all scoped rows, selects appointments and exports ap
   await expect(page.getByRole("button", { name: "Refresh worklist", exact: true })).toBeEnabled();
   await expect(inspectionHeader).toHaveAttribute("aria-sort", "ascending");
   const tableRoute = "**/api/staff/intake/appointments?**";
+  await page.getByRole("checkbox", { name: "Select all loaded rows", exact: true }).check();
   await page.route(tableRoute, (route) => route.fulfill({ status: 502, json: {} }));
   await inspectionSort.click();
   await expect(page.getByText(/The worklist could not be refreshed/)).toBeVisible();
   await expect(inspectionHeader).toHaveAttribute("aria-sort", "ascending");
+  await expect(page.getByRole("status").filter({ hasText: /^10 selected$/ })).toBeVisible();
   await page.unroute(tableRoute);
   await inspectionSort.click();
   await expect(inspectionHeader).toHaveAttribute("aria-sort", "descending");
+  await expect(page.getByText(/^\d+ selected$/)).toHaveCount(0);
   await inspectionSort.click();
   await expect(inspectionHeader).toHaveAttribute("aria-sort", "none");
   await page.getByRole("button", { name: "Sort by Registration", exact: true }).click();

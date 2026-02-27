@@ -1,0 +1,88 @@
+.toolbarMain,
+.queryActions,
+.exportActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.toolbarMain {
+  justify-content: space-between;
+}
+
+.toolbar {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 56px;
+  padding: 12px 20px;
+  gap: 8px;
+  border-bottom: 1px solid var(--color-line-soft);
+}
+
+.toolbar button,
+.toolbar input {
+  font-weight: 500;
+}
+
+.queryActions {
+  flex: 1 1 360px;
+  min-width: 0;
+}
+
+.query {
+  flex: 1 1 220px;
+  max-width: 520px;
+  min-width: 0;
+}
+
+.filterButton {
+  gap: 6px;
+}
+
+.filterCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 18px;
+  min-width: 18px;
+  padding-inline: 4px;
+  border-radius: 3px;
+  background: var(--color-graphite);
+  color: var(--color-paper);
+  font-size: 12px;
+  text-align: center;
+  line-height: 1;
+}
+
+.meta {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+@media (max-width: 820px) {
+  .toolbar {
+    padding-inline: 16px;
+  }
+
+  .queryActions {
+    flex-basis: 100%;
+  }
+
+  .query {
+    flex-basis: 160px;
+    max-width: none;
+  }
+
+  .exportActions {
+    margin-left: auto;
+  }
+}
+
+@media (min-width: 541px) and (max-width: 820px) {
+  .queryActions {
+    flex-basis: 300px;
+  }
+}

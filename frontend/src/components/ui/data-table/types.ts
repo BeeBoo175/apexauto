@@ -8,10 +8,7 @@ export interface TableSort {
 export interface DataColumn<Row> {
   id: string;
   label: string;
-  exportLabel?: string;
-  exportOnly?: boolean;
   cell: (row: Row) => ReactNode;
-  exportValue?: (row: Row) => string;
   sortable?: boolean;
   width?: number;
   minWidth?: number;
@@ -24,9 +21,18 @@ export interface TablePage {
   total: number;
 }
 
+export interface TableSelection {
+  ids: ReadonlySet<string>;
+  onChange: (ids: Set<string>) => void;
+}
+
+export interface TableSorting {
+  value: TableSort | null;
+  onChange: (sort: TableSort | null) => void;
+}
+
 export interface DataTableProps<Row> {
   label: string;
-  fillHeight?: boolean;
   rows: readonly Row[];
   emptyState: {
     title: string;
@@ -36,20 +42,11 @@ export interface DataTableProps<Row> {
   columns: readonly DataColumn<Row>[];
   rowId: (row: Row) => string;
   page: TablePage;
-  sort: TableSort | null;
-  onSort: (sort: TableSort | null) => void;
+  sorting?: TableSorting;
   onPage: (page: number, pageSize: number) => void;
   disabled: boolean;
   busy: boolean;
-  selectionScope: string;
-  toolbar?: ReactNode;
-  filters?: ReactNode;
-  filterCount: number;
-  filterSummary: ReactNode;
-  onFiltersOpenChange?: (open: boolean) => void;
-  defaultFiltersExpanded?: boolean;
+  selection?: TableSelection;
   selectedRowId?: string;
   onRowClick?: (row: Row) => void;
-  exportFileName: string;
-  onExportAll: () => Promise<void>;
 }

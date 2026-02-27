@@ -1,24 +1,24 @@
 import { Button } from "@/components/ui/Button";
 import type { PointerEvent } from "react";
 import { Icon } from "@/components/ui/Icon";
-import type { DataColumn, TableSort } from "./types";
+import type { DataColumn, TableSorting } from "./types";
 import styles from "./DataTable.module.css";
 
 export function DataTableHeader<Row>({
   column,
-  sort,
+  sorting,
   disabled,
   resizable,
-  onSort,
   onStart,
 }: {
   column: DataColumn<Row>;
-  sort: TableSort | null;
+  sorting?: TableSorting;
   disabled: boolean;
   resizable: boolean;
-  onSort: (sort: TableSort | null) => void;
   onStart: (event: PointerEvent<HTMLDivElement>) => void;
 }) {
+  const sort = sorting?.value;
+  const sortable = Boolean(column.sortable && sorting);
   const active = sort?.column === column.id;
   let direction: "ascending" | "descending" | "none" = "none";
   if (active) {
@@ -31,11 +31,15 @@ export function DataTableHeader<Row>({
   } as const;
 
   function cycleSort() {
-    if (active && sort?.direction === "desc") {
-      onSort(null);
+    if (!sorting) {
       return;
     }
-    onSort({
+
+    if (active && sort?.direction === "desc") {
+      sorting.onChange(null);
+      return;
+    }
+    sorting.onChange({
       column: column.id,
       direction: active ? "desc" : "asc",
     });
@@ -45,10 +49,10 @@ export function DataTableHeader<Row>({
       scope="col"
       data-column-id={column.id}
       className={styles.header}
-      aria-sort={column.sortable ? direction : undefined}
+      aria-sort={sortable ? direction : undefined}
     >
       <div className={styles.headerContent}>
-        {column.sortable ? (
+        {sortable ? (
           <Button
             variant="ghost"
             size="row"

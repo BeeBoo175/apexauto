@@ -1,8 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import { SearchField } from "@/components/ui/SearchField";
+import { RecordToolbar } from "@/components/ui/RecordToolbar";
+import { CsvExportActions } from "@/components/ui/CsvExportActions";
 import { DataTable } from "@/components/ui/data-table/DataTable";
+import { DataTableWorkspace } from "@/components/ui/data-table/DataTableWorkspace";
+import { DataTablePagination } from "@/components/ui/data-table/DataTablePagination";
+import { useRowSelection } from "@/hooks/use-row-selection";
+import { useCsvExport } from "@/hooks/use-csv-export";
 import type { TableSort } from "@/components/ui/data-table/types";
 import type { useStaffWorklist } from "@/hooks/use-staff-worklist";
 import { useToast } from "@/components/ui/Toast";
@@ -10,6 +15,7 @@ import type { useStaffAppointmentDrawer } from "@/hooks/use-staff-appointment-dr
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import { staffViewQuery } from "@/lib/staff/query";
 import { exportWorklist } from "@/lib/staff/export";
+import { intakeExportColumns } from "@/lib/staff/export-columns";
 import { appliedWorklistFilters, resetWorklistFilters } from "@/lib/staff/filter-summary";
 import { AppliedWorklistFilters } from "./AppliedWorklistFilters";
 import { WorklistFilters } from "./WorklistFilters";
@@ -23,13 +29,19 @@ interface IntakeWorklistProps {
 }
 
 export function IntakeWorklist({ actor, worklist, drawer }: IntakeWorklistProps) {
-  const exportController = useRef<AbortController | null>(null);
   const toast = useToast();
-  useEffect(() => () => exportController.current?.abort(), []);
   const disabled = Boolean(drawer.id);
   const { snapshot, active } = worklist;
   const query = staffViewQuery(active.filters, active.page);
   const columns = intakeColumns(query, drawer.open);
+  const selection = useRowSelection(
+    snapshot?.items ?? [],
+    (row) => row.id,
+    `${actorIdentity(actor)}:${query}:${worklist.revision}`,
+  );
+  const csv = useCsvExport(intakeExportColumns, "intake-appointments", (signal) =>
+    exportWorklist(active.filters, actor, signal, toast.info),
+  );
   const filterControls = (
     <WorklistFilters
       worklist={worklist}
@@ -57,17 +69,8 @@ export function IntakeWorklist({ actor, worklist, drawer }: IntakeWorklistProps)
     );
   }
 
-  async function exportAll() {
-    exportController.current?.abort();
-    const controller = new AbortController();
-    exportController.current = controller;
-    try {
-      await exportWorklist(active.filters, actor, controller.signal, toast.info);
-    } catch (error) {
-      if (!controller.signal.aborted) {
-        throw error;
-      }
-    }
+  function changePage(page: number, pageSize: number) {
+    void worklist.load({ ...active.filters, pageSize }, page);
   }
 
   return (
@@ -75,61 +78,41 @@ export function IntakeWorklist({ actor, worklist, drawer }: IntakeWorklistProps)
       {!snapshot && <div className={styles.unavailableFilters}>{filterControls}</div>}
       <div className={styles.body}>
         {snapshot && (
-          <DataTable
-            fillHeight
-            label="Scoped intake appointments"
-            rows={snapshot.items}
-            emptyState={{
-              title: filtered
-                ? "No appointments match your criteria"
-                : "No intake appointments yet",
-              description: filtered
-                ? "Try another search or clear the filters to see more appointments."
-                : "Booked appointments will appear here when customers schedule an inspection.",
-              ...(filtered && {
-                action: {
-                  label: "Clear search and filters",
-                  onClick: () => void worklist.load(resetWorklistFilters(active.filters), 1),
-                },
-              }),
-            }}
-            columns={columns}
-            rowId={(row) => row.id}
-            page={{ ...snapshot, page: active.page }}
-            sort={active.sort}
-            disabled={disabled}
-            busy={worklist.busy}
-            selectionScope={`${actorIdentity(actor)}:${query}:${worklist.revision}`}
-            selectedRowId={drawer.id}
-            onRowClick={(row) => drawer.open(row.id)}
-            onSort={(sort) => void sortWorklist(sort)}
-            onPage={(nextPage, pageSize) =>
-              void worklist.load({ ...active.filters, pageSize }, nextPage)
-            }
-            exportFileName="intake-appointments"
-            onExportAll={exportAll}
-            filters={filterControls}
-            onFiltersOpenChange={(open) => {
-              if (open) {
-                return;
+          <DataTableWorkspace label="Scoped intake appointments">
+            <RecordToolbar
+              filters={filterControls}
+              disabled={disabled}
+              onFiltersOpenChange={(open) => {
+                if (open) {
+                  return;
+                }
+                worklist.setDraft((draft) => ({
+                  ...draft,
+                  from: active.filters.from,
+                  to: active.filters.to,
+                  status: active.filters.status,
+                  branchId: active.filters.branchId,
+                }));
+              }}
+              filterCount={appliedFilters.length}
+              filterSummary={
+                <AppliedWorklistFilters
+                  filters={appliedFilters}
+                  disabled={disabled}
+                  onRemove={(filters) => void worklist.load(filters, 1)}
+                />
               }
-              worklist.setDraft((draft) => ({
-                ...draft,
-                from: active.filters.from,
-                to: active.filters.to,
-                status: active.filters.status,
-                branchId: active.filters.branchId,
-              }));
-            }}
-            filterCount={appliedFilters.length}
-            filterSummary={
-              <AppliedWorklistFilters
-                filters={appliedFilters}
-                disabled={disabled}
-                onRemove={(filters) => void worklist.load(filters, 1)}
-              />
-            }
-            toolbar={
+              actions={
+                <CsvExportActions
+                  selected={selection.selectedRows.length}
+                  disabled={disabled || worklist.busy || snapshot.total === 0}
+                  busy={csv.busy}
+                  onClear={selection.clear}
+                  onSelected={() => csv.exportSelected(selection.selectedRows)}
+                  onAll={() => void csv.exportAll()}
+                />
+              }
+            >
               <form
                 className={styles.search}
                 onSubmit={(event) => {
@@ -153,8 +136,42 @@ export function IntakeWorklist({ actor, worklist, drawer }: IntakeWorklistProps)
                   }
                 />
               </form>
-            }
-          />
+            </RecordToolbar>
+            <DataTable
+              label="Scoped intake appointments"
+              rows={snapshot.items}
+              emptyState={{
+                title: filtered
+                  ? "No appointments match your criteria"
+                  : "No intake appointments yet",
+                description: filtered
+                  ? "Try another search or clear the filters to see more appointments."
+                  : "Booked appointments will appear here when customers schedule an inspection.",
+                ...(filtered && {
+                  action: {
+                    label: "Clear search and filters",
+                    onClick: () => void worklist.load(resetWorklistFilters(active.filters), 1),
+                  },
+                }),
+              }}
+              columns={columns}
+              rowId={(row) => row.id}
+              page={{ ...snapshot, page: active.page }}
+              sorting={{ value: active.sort, onChange: (sort) => void sortWorklist(sort) }}
+              disabled={disabled}
+              busy={worklist.busy}
+              selection={selection.selection}
+              selectedRowId={drawer.id}
+              onRowClick={(row) => drawer.open(row.id)}
+              onPage={changePage}
+            />
+            <DataTablePagination
+              page={{ ...snapshot, page: active.page }}
+              count={snapshot.items.length}
+              disabled={disabled}
+              onPage={changePage}
+            />
+          </DataTableWorkspace>
         )}
       </div>
     </div>

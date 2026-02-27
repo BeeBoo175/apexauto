@@ -1,5 +1,4 @@
-import { downloadCsv, selectedCsv } from "@/lib/csv";
-import type { DataColumn } from "@/components/ui/data-table/types";
+import { downloadCsv, selectedCsv, type CsvColumn } from "@/lib/csv";
 import type { Page } from "@/lib/api";
 import type { QueueFilters, QueueKind } from "./contracts";
 import { inspectionFetch } from "./browser";
@@ -8,7 +7,7 @@ import { queueQuery } from "./query";
 export async function exportQueue<T>(
   kind: QueueKind,
   filters: QueueFilters,
-  columns: DataColumn<T>[],
+  columns: readonly CsvColumn<T>[],
   parse: (value: unknown) => Page<T> | null,
   rowId: (row: T) => string,
   cancellation: AbortSignal,

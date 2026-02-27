@@ -38,7 +38,6 @@ export function intakeColumns(
           {row.registrationPlate}
         </a>
       ),
-      exportValue: (row) => row.registrationPlate,
     },
     {
       id: "customerName",
@@ -47,7 +46,6 @@ export function intakeColumns(
       width: 210,
       minWidth: 160,
       cell: (row) => row.customerName,
-      exportValue: (row) => row.customerName,
     },
     {
       id: "branchName",
@@ -56,17 +54,14 @@ export function intakeColumns(
       width: 210,
       minWidth: 150,
       cell: (row) => row.branchName,
-      exportValue: (row) => row.branchName,
     },
     {
       id: "startsAt",
       label: "Inspection time",
-      exportLabel: "Inspection start (UTC)",
       sortable: true,
       width: 240,
       minWidth: 200,
       cell: (row) => <span className={styles.timing}>{formatMalaysianDateTime(row.startsAt)}</span>,
-      exportValue: (row) => new Date(row.startsAt).toISOString(),
     },
     {
       id: "status",
@@ -75,15 +70,6 @@ export function intakeColumns(
       width: 140,
       minWidth: 120,
       cell: (row) => <AppointmentStatus status={row.status} />,
-      exportValue: (row) => row.status,
-    },
-    {
-      id: "appointment",
-      label: "Appointment",
-      exportLabel: "Appointment reference",
-      exportOnly: true,
-      exportValue: (row) => row.id,
-      cell: () => null,
     },
   ];
 }

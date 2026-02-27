@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { calendarDate, addCalendarDays } from "@/lib/calendar";
+import { parsePage } from "@/lib/api";
+import { parseWorklistItem } from "@/lib/staff/parse";
 
 test("applied appointment filters preserve confirmed results on failure and survive view switches", async ({
   page,
@@ -86,6 +88,9 @@ test("applied appointment filters preserve confirmed results on failure and surv
   const clearedRead = page.waitForRequest((request) =>
     request.url().includes("/api/staff/intake/appointments?"),
   );
+  const clearedResponse = page.waitForResponse((response) =>
+    response.url().includes("/api/staff/intake/appointments?"),
+  );
   await filters.getByRole("button", { name: "Clear all filters", exact: true }).click();
   const clearQuery = new URL((await clearedRead).url()).searchParams;
   expect(clearQuery.has("from")).toBe(false);
@@ -96,6 +101,10 @@ test("applied appointment filters preserve confirmed results on failure and surv
   await expect(page.getByRole("button", { name: "Filters", exact: true })).toBeVisible();
   expect(new URL(page.url()).searchParams.has("from")).toBe(false);
   await expect(table.getByRole("link", { name: /^Open / })).toHaveCount(10);
-  await expect(table.getByRole("link", { name: "Open VCA 6242", exact: true })).toBeVisible();
-  await expect(table.getByRole("link", { name: "Open VCA 6241", exact: true })).toBeVisible();
+  const cleared = parsePage((await (await clearedResponse).json()).data, parseWorklistItem);
+  expect(cleared).not.toBeNull();
+  expect(cleared!.items.some((row) => calendarDate(new Date(row.startsAt)) < from)).toBe(true);
+  await expect(table.getByRole("link", { name: /^Open / })).toHaveText(
+    cleared!.items.map((row) => row.registrationPlate),
+  );
 });

@@ -110,11 +110,9 @@ test("CSV quotes multiline cells and neutralizes formula and control prefixes", 
     [{ value: "VCA 9701" }],
     [
       {
-        label: "Display",
-        exportLabel: "Registration",
-        exportValue: (row) => row.value,
+        label: "Registration",
+        value: (row) => row.value,
       },
-      { label: "Action" },
     ],
   );
   expect(csv).toBe('\uFEFF"Registration"\r\n"VCA 9701"\r\n');

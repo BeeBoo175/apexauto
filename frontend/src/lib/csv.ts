@@ -1,7 +1,6 @@
-interface CsvColumn<Row> {
+export interface CsvColumn<Row> {
   label: string;
-  exportLabel?: string;
-  exportValue?: (row: Row) => string;
+  value: (row: Row) => string;
 }
 
 export function csvCell(value: string): string {
@@ -13,11 +12,8 @@ export function csvCell(value: string): string {
 }
 
 export function selectedCsv<Row>(rows: readonly Row[], columns: readonly CsvColumn<Row>[]) {
-  const exported = columns.filter((column) => column.exportValue);
-  const header = exported.map((column) => csvCell(column.exportLabel ?? column.label)).join(",");
-  const body = rows.map((row) =>
-    exported.map((column) => csvCell(column.exportValue!(row))).join(","),
-  );
+  const header = columns.map((column) => csvCell(column.label)).join(",");
+  const body = rows.map((row) => columns.map((column) => csvCell(column.value(row))).join(","));
   return `\uFEFF${[header, ...body].join("\r\n")}\r\n`;
 }
 

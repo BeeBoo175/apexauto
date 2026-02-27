@@ -1,7 +1,14 @@
 "use client";
-import { useEffect, useRef, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { DataTable } from "@/components/ui/data-table/DataTable";
+import { DataTableWorkspace } from "@/components/ui/data-table/DataTableWorkspace";
+import { DataTablePagination } from "@/components/ui/data-table/DataTablePagination";
+import { RecordToolbar } from "@/components/ui/RecordToolbar";
+import { CsvExportActions } from "@/components/ui/CsvExportActions";
+import { useRowSelection } from "@/hooks/use-row-selection";
+import { useCsvExport } from "@/hooks/use-csv-export";
 import type { DataColumn } from "@/components/ui/data-table/types";
+import type { CsvColumn } from "@/lib/csv";
 import { SearchField } from "@/components/ui/SearchField";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import { Button } from "@/components/ui/Button";
@@ -24,6 +31,7 @@ export function QueueView<T>({
   kind,
   state,
   columns,
+  exportColumns,
   rowId,
   onOpen,
   selectedRowId,
@@ -35,6 +43,7 @@ export function QueueView<T>({
   kind: QueueKind;
   state: ReturnType<typeof useInspectionQueue<T>>;
   columns: DataColumn<T>[];
+  exportColumns: readonly CsvColumn<T>[];
   rowId: (row: T) => string;
   onOpen: (row: T) => void;
   selectedRowId?: string;
@@ -44,8 +53,14 @@ export function QueueView<T>({
 }) {
   const title = kind === "vehicles" ? "Inspections" : "Repair requests";
   const { snapshot, active } = state;
-  const exportController = useRef<AbortController | null>(null);
-  useEffect(() => () => exportController.current?.abort(), []);
+  const selection = useRowSelection(
+    snapshot?.items ?? [],
+    rowId,
+    `${actorIdentity(actor)}:${queueQuery(active.filters, active.page)}:${state.revision}`,
+  );
+  const csv = useCsvExport(exportColumns, kind, (signal) =>
+    exportQueue(kind, active.filters, exportColumns, parse, rowId, signal),
+  );
   const branchName =
     state.branches?.items.find((branch) => branch.id === active.filters.branchId)?.name ??
     "Selected branch";
@@ -57,19 +72,10 @@ export function QueueView<T>({
       ? "Checked-in vehicles will appear here when they are ready for inspection."
       : "Repair requests will appear here after work is requested from a signed inspection.";
 
-  async function exportAll() {
-    const controller = new AbortController();
-    exportController.current = controller;
-    try {
-      await exportQueue(kind, active.filters, columns, parse, rowId, controller.signal);
-    } catch (error) {
-      if (!controller.signal.aborted) {
-        throw error;
-      }
-    } finally {
-      exportController.current = null;
-    }
+  function changePage(page: number, pageSize: number) {
+    void state.load({ ...active.filters, pageSize }, page);
   }
+
   const filters = (
     <QueueFilters
       kind={kind}
@@ -102,71 +108,44 @@ export function QueueView<T>({
       >
         <div className={styles.body}>
           {snapshot && (
-            <DataTable
-              fillHeight
-              label={title}
-              rows={snapshot.items}
-              emptyState={{
-                title: filtered ? `No ${title.toLowerCase()} match your criteria` : emptyTitle,
-                description: filtered
-                  ? "Try another search or clear the filters to see more records."
-                  : emptyDescription,
-                ...(filtered && {
-                  action: {
-                    label: "Clear search and filters",
-                    onClick: () =>
-                      void state.load(
-                        {
-                          ...active.filters,
-                          status: "All",
-                          search: "",
-                          branchId: "",
-                          from: "",
-                          to: "",
-                        },
-                        1,
-                      ),
-                  },
-                }),
-              }}
-              columns={columns}
-              rowId={rowId}
-              selectionScope={`${actorIdentity(actor)}:${queueQuery(active.filters, active.page)}:${state.revision}`}
-              selectedRowId={selectedRowId}
-              onRowClick={onOpen}
-              exportFileName={kind}
-              onExportAll={exportAll}
-              page={snapshot}
-              sort={null}
-              onSort={() => {}}
-              onPage={(p, pageSize) => void state.load({ ...active.filters, pageSize }, p)}
-              disabled={disabled}
-              busy={state.busy}
-              filters={filters}
-              onFiltersOpenChange={(open) => {
-                if (!open) {
-                  state.setDraft((draft) => ({
-                    ...draft,
-                    from: active.filters.from,
-                    to: active.filters.to,
-                    status: active.filters.status,
-                    branchId: active.filters.branchId,
-                  }));
+            <DataTableWorkspace label={title}>
+              <RecordToolbar
+                filters={filters}
+                disabled={disabled}
+                onFiltersOpenChange={(open) => {
+                  if (!open) {
+                    state.setDraft((draft) => ({
+                      ...draft,
+                      from: active.filters.from,
+                      to: active.filters.to,
+                      status: active.filters.status,
+                      branchId: active.filters.branchId,
+                    }));
+                  }
+                }}
+                filterCount={applied.length}
+                filterSummary={
+                  <AppliedWorklistFilters
+                    filters={applied}
+                    disabled={disabled || state.busy}
+                    onRemove={(filters) => void state.load(filters, 1)}
+                  />
                 }
-              }}
-              filterCount={applied.length}
-              filterSummary={
-                <AppliedWorklistFilters
-                  filters={applied}
-                  disabled={disabled || state.busy}
-                  onRemove={(filters) => void state.load(filters, 1)}
-                />
-              }
-              toolbar={
+                actions={
+                  <CsvExportActions
+                    selected={selection.selectedRows.length}
+                    disabled={disabled || state.busy || snapshot.total === 0}
+                    busy={csv.busy}
+                    onClear={selection.clear}
+                    onSelected={() => csv.exportSelected(selection.selectedRows)}
+                    onAll={() => void csv.exportAll()}
+                  />
+                }
+              >
                 <form
                   className={styles.search}
-                  onSubmit={(e) => {
-                    e.preventDefault();
+                  onSubmit={(event) => {
+                    event.preventDefault();
                     void state.load({ ...active.filters, search: state.draft.search.trim() }, 1);
                   }}
                 >
@@ -183,8 +162,50 @@ export function QueueView<T>({
                     }
                   />
                 </form>
-              }
-            />
+              </RecordToolbar>
+              <DataTable
+                label={title}
+                rows={snapshot.items}
+                emptyState={{
+                  title: filtered ? `No ${title.toLowerCase()} match your criteria` : emptyTitle,
+                  description: filtered
+                    ? "Try another search or clear the filters to see more records."
+                    : emptyDescription,
+                  ...(filtered && {
+                    action: {
+                      label: "Clear search and filters",
+                      onClick: () =>
+                        void state.load(
+                          {
+                            ...active.filters,
+                            status: "All",
+                            search: "",
+                            branchId: "",
+                            from: "",
+                            to: "",
+                          },
+                          1,
+                        ),
+                    },
+                  }),
+                }}
+                columns={columns}
+                rowId={rowId}
+                selection={selection.selection}
+                selectedRowId={selectedRowId}
+                onRowClick={onOpen}
+                page={snapshot}
+                onPage={changePage}
+                disabled={disabled}
+                busy={state.busy}
+              />
+              <DataTablePagination
+                page={snapshot}
+                count={snapshot.items.length}
+                disabled={disabled}
+                onPage={changePage}
+              />
+            </DataTableWorkspace>
           )}
           {!snapshot && (
             <div className={styles.unavailableFilters}>

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/Button";
 import type { DataColumn } from "@/components/ui/data-table/types";
 import { useInspectionQueue } from "@/hooks/use-inspection-queue";
 import { parseRepairPage } from "@/lib/inspection/parse";
+import { repairExportColumns } from "@/lib/inspection/export-columns";
 import { label, type RepairRow, type QueueFilters } from "@/lib/inspection/contracts";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { ApiResult, Page } from "@/lib/api";
@@ -69,28 +70,24 @@ export function RepairQueue({
           {r.registrationPlate}
         </Button>
       ),
-      exportValue: (r) => r.registrationPlate,
     },
     {
       id: "branch",
       label: "Branch",
       minWidth: 150,
       cell: (r) => r.branchName,
-      exportValue: (r) => r.branchName,
     },
     {
       id: "requested",
       label: "Requested",
       minWidth: 185,
       cell: (r) => <span className={styles.timing}>{formatMalaysianDateTime(r.requestedAt)}</span>,
-      exportValue: (r) => formatMalaysianDateTime(r.requestedAt),
     },
     {
       id: "version",
       label: "Revision / work",
       minWidth: 125,
       cell: (r) => `${r.revision} / ${r.repairVersion}`,
-      exportValue: (r) => `${r.revision} / ${r.repairVersion}`,
     },
     {
       id: "budget",
@@ -98,14 +95,12 @@ export function RepairQueue({
       align: "right",
       minWidth: 145,
       cell: (r) => formatCurrency(r.budget),
-      exportValue: (r) => r.budget.toFixed(2),
     },
     {
       id: "status",
       label: "Repair status",
       minWidth: 170,
       cell: (r) => label(r.status),
-      exportValue: (r) => label(r.status),
     },
     {
       id: "report",
@@ -129,6 +124,7 @@ export function RepairQueue({
       kind="repair-requests"
       state={state}
       columns={columns}
+      exportColumns={repairExportColumns}
       rowId={(r) => r.requestId}
       parse={parseRepairPage}
       onOpen={open}
