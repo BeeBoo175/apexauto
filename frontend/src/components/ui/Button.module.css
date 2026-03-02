@@ -25,6 +25,10 @@
     cursor: not-allowed;
   }
 
+  .button:active:not(:disabled) {
+    filter: brightness(0.9);
+  }
+
   .primary {
     background: var(--color-signal);
     color: var(--color-paper);

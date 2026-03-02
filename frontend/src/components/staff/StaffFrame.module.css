@@ -137,6 +137,12 @@
   color: #ffffff;
 }
 
+.navLink:active,
+.activeLink:active {
+  background: #243e58;
+  color: #ffffff;
+}
+
 .navLink:focus-visible {
   outline: 2px solid #ffffff;
   outline-offset: 2px;

@@ -1,0 +1,17 @@
+.link {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgb(41 78 128 / 25%);
+  transition:
+    background-color 160ms ease-out,
+    color 160ms ease-out;
+}
+
+.link:active:not([aria-disabled="true"]) {
+  filter: brightness(0.85);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .link {
+    transition: none;
+  }
+}

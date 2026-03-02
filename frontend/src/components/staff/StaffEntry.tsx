@@ -6,6 +6,7 @@ import { staffActor } from "@/lib/staff/server";
 import { StaffActorBoundary } from "./StaffActorBoundary";
 import { StaffLink } from "./StaffLink";
 import { StaffNotice } from "./StaffPage";
+import { LoadingProgressReady } from "@/components/ui/LoadingProgress";
 
 export async function StaffEntry({
   path,
@@ -22,7 +23,12 @@ export async function StaffEntry({
 }) {
   const actor = await staffActor(path);
   if (!actor) {
-    return <SessionCheckUnavailable />;
+    return (
+      <>
+        <LoadingProgressReady />
+        <SessionCheckUnavailable />
+      </>
+    );
   }
 
   // Run page reads only after the current request's actor and feature access are confirmed.

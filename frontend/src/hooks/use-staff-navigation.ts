@@ -1,19 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { usePathname, useRouter } from "next/navigation";
 
 export function useStaffNavigation() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const router = useRouter();
   const lockedRef = useRef(false);
   const confirmed = useRef<{ href: string; state: unknown } | null>(null);
   const [historyPath, setHistoryPath] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
 
-  useEffect(() => {
+  const captureHistory = useCallback(() => {
     confirmed.current = { href: window.location.href, state: window.history.state };
-  }, [pathname, searchParams]);
+  }, []);
 
   useEffect(() => {
     function protectOperation(event: PopStateEvent) {
@@ -36,14 +36,16 @@ export function useStaffNavigation() {
   function navigate(event: { preventDefault: () => void }, href: string) {
     if (pathname === href) {
       event.preventDefault();
-      router.refresh();
+      startTransition(() => router.refresh());
     }
   }
 
   return {
     pathname,
+    pending,
     lockedRef,
     navigate,
+    captureHistory,
     historyPath,
     completeHistory: () => setHistoryPath(null),
   };

@@ -10,6 +10,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
+import { LoadingProgress, LoadingProgressReady } from "@/components/ui/LoadingProgress";
 
 export const StaffActorContext = createContext<CurrentActor | null>(null);
 export const StaffNavigationLockContext = createContext<RefObject<boolean> | null>(null);
@@ -65,5 +66,13 @@ export function StaffActorBoundary({
     }
   }, [actor, matches]);
 
-  return matches && !stale ? children : null;
+  if (!matches || stale) {
+    return <LoadingProgress label="Checking workspace" />;
+  }
+  return (
+    <>
+      <LoadingProgressReady />
+      {children}
+    </>
+  );
 }

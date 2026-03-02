@@ -12,6 +12,7 @@ import type { CsvColumn } from "@/lib/csv";
 import { SearchField } from "@/components/ui/SearchField";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import { Button } from "@/components/ui/Button";
+import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { StaffCommandBar } from "@/components/staff/StaffPage";
 import { AppliedWorklistFilters } from "@/components/staff/AppliedWorklistFilters";
 import { appliedWorklistFilters } from "@/lib/staff/filter-summary";
@@ -25,6 +26,7 @@ import type { useInspectionQueue } from "@/hooks/use-inspection-queue";
 import { QueueFilters } from "./QueueFilters";
 import layout from "@/components/staff/IntakeWorkspace.module.css";
 import styles from "@/components/staff/IntakeWorklist.module.css";
+import workspace from "@/components/staff/StaffWorkspace.module.css";
 
 export function QueueView<T>({
   actor,
@@ -90,6 +92,7 @@ export function QueueView<T>({
   );
   return (
     <div className={layout.workspace}>
+      <LoadingProgress label={`Loading ${title.toLowerCase()}`} active={state.busy} />
       <StaffCommandBar
         title={title}
         actions={
@@ -102,7 +105,7 @@ export function QueueView<T>({
         }
       />
       <div
-        className={styles.page}
+        className={`${styles.page} ${workspace.reveal}`}
         aria-busy={state.busy}
         inert={!state.ready || state.busy || disabled}
       >

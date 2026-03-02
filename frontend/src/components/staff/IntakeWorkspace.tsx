@@ -1,21 +1,26 @@
 "use client";
 
 import { useState } from "react";
-import { useIntakeWorkspace, type IntakeWorkspaceSnapshot } from "@/hooks/use-intake-workspace";
+import {
+  useIntakeWorkspace,
+  type IntakeWorkspaceSnapshot,
+  type IntakeViewComponent,
+} from "@/hooks/use-intake-workspace";
 import { useInitialToast } from "@/hooks/use-initial-toast";
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import { RefreshButton } from "@/components/ui/RefreshButton";
-import { IntakeCalendar } from "./IntakeCalendar";
-import { IntakeWorklist } from "./IntakeWorklist";
+import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { IntakeViewNavigation } from "./IntakeViewNavigation";
 import { IntakeAppointmentDrawer } from "./IntakeAppointmentDrawer";
 import { StaffCommandBar } from "./StaffPage";
 import styles from "./IntakeWorkspace.module.css";
+import layout from "./StaffWorkspace.module.css";
 
 interface Props {
   actor: CurrentActor;
   today: string;
   initial: IntakeWorkspaceSnapshot;
+  initialView: IntakeViewComponent;
 }
 
 export function IntakeWorkspace(props: Props) {
@@ -26,9 +31,9 @@ export function IntakeWorkspace(props: Props) {
   return <Workspace key={entry.revision} {...props} />;
 }
 
-function Workspace({ actor, today, initial }: Props) {
-  const workspace = useIntakeWorkspace(initial);
-  const { view, pending, busy, calendar, worklist, drawer, destinations } = workspace;
+function Workspace({ actor, today, initial, initialView }: Props) {
+  const workspace = useIntakeWorkspace(initial, initialView);
+  const { view, content, pending, busy, calendar, worklist, drawer, destinations } = workspace;
   useInitialToast(
     actor.role === "GeneralManager" && !initial.branches
       ? "Branch choices are unavailable. All-branch access remains available."
@@ -40,6 +45,7 @@ function Workspace({ actor, today, initial }: Props) {
 
   return (
     <div className={styles.workspace}>
+      <LoadingProgress label="Loading appointments" active={busy || Boolean(pending)} />
       <StaffCommandBar
         title="Intake appointments"
         actions={
@@ -68,11 +74,16 @@ function Workspace({ actor, today, initial }: Props) {
           Loading {pending === "calendar" ? "calendar" : "table"}…
         </p>
       )}
-      <div className={styles.content} inert={Boolean(pending)} aria-busy={Boolean(pending)}>
-        {view === "calendar" ? (
-          <IntakeCalendar actor={actor} today={today} calendar={calendar} drawer={drawer} />
+      <div
+        key={view}
+        className={`${styles.content} ${layout.reveal}`}
+        inert={Boolean(pending)}
+        aria-busy={Boolean(pending)}
+      >
+        {content.view === "calendar" ? (
+          <content.Component actor={actor} today={today} calendar={calendar} drawer={drawer} />
         ) : (
-          <IntakeWorklist actor={actor} worklist={worklist} drawer={drawer} />
+          <content.Component actor={actor} worklist={worklist} drawer={drawer} />
         )}
       </div>
       <IntakeAppointmentDrawer

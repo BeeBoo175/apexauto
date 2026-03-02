@@ -1,10 +1,12 @@
 "use client";
-import { useState, type ReactNode } from "react";
+import { Suspense, useEffect, useState, type ReactNode } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import { StaffLink } from "./StaffLink";
 import { useStaffNavigation } from "@/hooks/use-staff-navigation";
 import { useIntakeActor } from "@/hooks/use-intake-actor";
 import { useAuthMutation } from "@/hooks/use-auth-mutation";
 import { Button } from "@/components/ui/Button";
+import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { hasIntakeAccess, roleNames, type CurrentActor } from "@/lib/auth/actor";
 import { hasInspectionAccess } from "@/lib/inspection/contracts";
 import styles from "./StaffFrame.module.css";
@@ -14,7 +16,7 @@ import {
   StaffHistoryContext,
 } from "./StaffActorBoundary";
 
-export function StaffFrame({ actor, children }: { actor: CurrentActor; children: ReactNode }) {
+export function StaffFrame({ actor, children }: { actor?: CurrentActor; children: ReactNode }) {
   const session = useIntakeActor(actor);
   const navigation = useStaffNavigation();
   const fitViewport = [
@@ -33,12 +35,19 @@ export function StaffFrame({ actor, children }: { actor: CurrentActor; children:
     return null;
   }
   return (
-    <StaffActorContext.Provider value={actor}>
+    <StaffActorContext.Provider value={actor ?? null}>
       <StaffNavigationLockContext.Provider value={navigation.lockedRef}>
         <section
           className={`${styles.page} ${fitViewport ? styles.viewport : ""}`}
-          inert={!session.ready}
+          inert={Boolean(actor) && !session.ready}
         >
+          <Suspense fallback={null}>
+            <NavigationHistory capture={navigation.captureHistory} />
+          </Suspense>
+          <LoadingProgress
+            label="Opening workspace"
+            active={navigation.pending || Boolean(navigation.historyPath)}
+          />
           <div className={styles.mobileBar}>
             <span className={styles.brand}>
               Apex<span>Auto</span>
@@ -72,7 +81,7 @@ export function StaffFrame({ actor, children }: { actor: CurrentActor; children:
               </StaffLink>
             </div>
             <nav className={styles.navigation} aria-label="Staff navigation">
-              {hasIntakeAccess(actor) && (
+              {(!actor || hasIntakeAccess(actor)) && (
                 <StaffLink
                   href="/dashboard/intake"
                   prefetch={false}
@@ -89,7 +98,7 @@ export function StaffFrame({ actor, children }: { actor: CurrentActor; children:
                   Intake appointments
                 </StaffLink>
               )}
-              {hasInspectionAccess(actor) &&
+              {(!actor || hasInspectionAccess(actor)) &&
                 [
                   {
                     href: "/dashboard/inspection",
@@ -115,7 +124,7 @@ export function StaffFrame({ actor, children }: { actor: CurrentActor; children:
                     {item.title}
                   </StaffLink>
                 ))}
-              {!hasIntakeAccess(actor) && !hasInspectionAccess(actor) && (
+              {actor && !hasIntakeAccess(actor) && !hasInspectionAccess(actor) && (
                 <StaffLink
                   href="/dashboard"
                   prefetch={false}
@@ -127,26 +136,28 @@ export function StaffFrame({ actor, children }: { actor: CurrentActor; children:
                 </StaffLink>
               )}
             </nav>
-            <div className={styles.session}>
-              <span>{roleNames[actor.role]}</span>
-              <Button
-                variant="shell"
-                size="compact"
-                disabled={logout.busy}
-                onPointerDown={(event) => {
-                  if (navigation.lockedRef.current) {
-                    event.preventDefault();
-                  }
-                }}
-                onClick={() => {
-                  if (!navigation.lockedRef.current) {
-                    void logout.submit();
-                  }
-                }}
-              >
-                {logout.uncertain ? "Retry sign out" : "Sign out"}
-              </Button>
-            </div>
+            {actor && (
+              <div className={styles.session}>
+                <span>{roleNames[actor.role]}</span>
+                <Button
+                  variant="shell"
+                  size="compact"
+                  disabled={logout.busy}
+                  onPointerDown={(event) => {
+                    if (navigation.lockedRef.current) {
+                      event.preventDefault();
+                    }
+                  }}
+                  onClick={() => {
+                    if (!navigation.lockedRef.current) {
+                      void logout.submit();
+                    }
+                  }}
+                >
+                  {logout.uncertain ? "Retry sign out" : "Sign out"}
+                </Button>
+              </div>
+            )}
           </aside>
           <div className={styles.content}>
             <StaffHistoryContext.Provider
@@ -159,4 +170,13 @@ export function StaffFrame({ actor, children }: { actor: CurrentActor; children:
       </StaffNavigationLockContext.Provider>
     </StaffActorContext.Provider>
   );
+}
+
+function NavigationHistory({ capture }: { capture: () => void }) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    capture();
+  }, [capture, pathname, searchParams]);
+  return null;
 }

@@ -1,0 +1,48 @@
+.progress {
+  position: fixed;
+  z-index: 100;
+  inset: 0 0 auto;
+  display: block;
+  width: 100%;
+  height: 3px;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+  pointer-events: none;
+}
+
+.progress[hidden] {
+  display: none;
+}
+
+.track {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--color-signal);
+  transform: scaleX(0.04);
+  transform-origin: left;
+}
+
+.progress:not([data-phase]) .track {
+  animation: initial-fill 1100ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes initial-fill {
+  from {
+    transform: scaleX(0.04);
+  }
+
+  to {
+    transform: scaleX(0.8);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progress:not([data-phase]) .track {
+    animation: none;
+    transform: scaleX(0.8);
+  }
+}

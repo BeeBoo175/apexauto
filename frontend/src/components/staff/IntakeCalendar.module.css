@@ -34,6 +34,7 @@
 }
 
 .viewSwitch a {
+  touch-action: manipulation;
   position: relative;
   box-sizing: border-box;
   display: flex;
@@ -52,6 +53,10 @@
 
 .viewSwitch a:hover:not([aria-current]) {
   background: rgb(255 255 255 / 14%);
+}
+
+.viewSwitch a:active:not([aria-disabled="true"]) {
+  background: rgb(41 78 128 / 28%);
 }
 
 .viewSwitch[data-view="calendar"] a[data-view="calendar"],

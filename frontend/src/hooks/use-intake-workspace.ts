@@ -4,6 +4,9 @@ import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { useStaffCalendar } from "./use-staff-calendar";
 import { useStaffWorklist } from "./use-staff-worklist";
 import { useStaffAppointmentDrawer } from "./use-staff-appointment-drawer";
+import { useToast } from "@/components/ui/Toast";
+import type { IntakeCalendar } from "@/components/staff/IntakeCalendar";
+import type { IntakeWorklist } from "@/components/staff/IntakeWorklist";
 import {
   calendarHref,
   calendarParams,
@@ -31,7 +34,14 @@ export interface IntakeWorkspaceSnapshot {
 
 const unloaded = { status: 200, data: null, message: "", uncertain: false };
 
-export function useIntakeWorkspace(initial: IntakeWorkspaceSnapshot) {
+export type IntakeViewComponent =
+  | { view: "calendar"; Component: typeof IntakeCalendar }
+  | { view: "list"; Component: typeof IntakeWorklist };
+
+export function useIntakeWorkspace(
+  initial: IntakeWorkspaceSnapshot,
+  initialView: IntakeViewComponent,
+) {
   const calendar = useStaffCalendar(
     initial.calendar ?? unloaded,
     initial.calendarFilters,
@@ -44,10 +54,12 @@ export function useIntakeWorkspace(initial: IntakeWorkspaceSnapshot) {
     initial.branches,
   );
   const drawer = useStaffAppointmentDrawer(initial.selectedId, initial.selected);
-  const [view, setView] = useState(initial.view);
+  const [content, setContent] = useState(initialView);
+  const view = content.view;
   const [pending, setPending] = useState<IntakeView | null>(null);
   const attempt = useRef<symbol | null>(null);
   const confirmedHref = useRef("");
+  const toast = useToast();
   const busy = calendar.busy || worklist.busy;
   const destinations =
     view === "calendar"
@@ -73,6 +85,18 @@ export function useIntakeWorkspace(initial: IntakeWorkspaceSnapshot) {
     [],
   );
 
+  async function prepareView(nextView: IntakeView): Promise<IntakeViewComponent> {
+    if (nextView === content.view) {
+      return content;
+    }
+    if (nextView === "calendar") {
+      const { IntakeCalendar } = await import("@/components/staff/IntakeCalendar");
+      return { view: "calendar", Component: IntakeCalendar };
+    }
+    const { IntakeWorklist } = await import("@/components/staff/IntakeWorklist");
+    return { view: "list", Component: IntakeWorklist };
+  }
+
   async function navigate(destination: string, history: "push" | "replace" = "push") {
     if (drawer.id || (busy && !attempt.current)) {
       return;
@@ -87,24 +111,34 @@ export function useIntakeWorkspace(initial: IntakeWorkspaceSnapshot) {
     setPending(nextView);
     const nextCalendar = calendarParams(params);
     const nextWorklist = staffParams(params);
-    const success =
-      nextView === "calendar"
-        ? await calendar.load(nextCalendar, false)
-        : await worklist.load(nextWorklist.filters, nextWorklist.page, false);
-    if (attempt.current !== currentAttempt) {
-      return;
+    try {
+      const [success, prepared] = await Promise.all([
+        nextView === "calendar"
+          ? calendar.load(nextCalendar, false)
+          : worklist.load(nextWorklist.filters, nextWorklist.page, false),
+        prepareView(nextView),
+      ]);
+      if (attempt.current !== currentAttempt || !success) {
+        return;
+      }
+      const nextHref =
+        nextView === "calendar"
+          ? calendarHref(nextCalendar)
+          : `/dashboard/intake?${staffViewQuery(nextWorklist.filters, nextWorklist.page)}`;
+      window.history[history === "push" ? "pushState" : "replaceState"](null, "", nextHref);
+      setContent(prepared);
+    } catch {
+      if (attempt.current === currentAttempt) {
+        calendar.cancel();
+        worklist.cancel();
+        toast.error("The view could not be opened. The last confirmed view remains shown.");
+      }
+    } finally {
+      if (attempt.current === currentAttempt) {
+        attempt.current = null;
+        setPending(null);
+      }
     }
-    attempt.current = null;
-    setPending(null);
-    if (!success) {
-      return;
-    }
-    const nextHref =
-      nextView === "calendar"
-        ? calendarHref(nextCalendar)
-        : `/dashboard/intake?${staffViewQuery(nextWorklist.filters, nextWorklist.page)}`;
-    window.history[history === "push" ? "pushState" : "replaceState"](null, "", nextHref);
-    setView(nextView);
   }
 
   const restore = useEffectEvent(() => {
@@ -135,5 +169,5 @@ export function useIntakeWorkspace(initial: IntakeWorkspaceSnapshot) {
     };
   }, []);
 
-  return { view, pending, busy, calendar, worklist, drawer, destinations, navigate };
+  return { view, content, pending, busy, calendar, worklist, drawer, destinations, navigate };
 }

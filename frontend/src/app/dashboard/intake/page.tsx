@@ -7,6 +7,8 @@ import { parsePage } from "@/lib/api";
 import { parseDetail, parseWorklistItem } from "@/lib/staff/parse";
 import { staffParams, staffQuery } from "@/lib/staff/query";
 import { IntakeWorkspace } from "@/components/staff/IntakeWorkspace";
+import { IntakeCalendar } from "@/components/staff/IntakeCalendar";
+import { IntakeWorklist } from "@/components/staff/IntakeWorklist";
 import type { SearchParams } from "@/lib/query";
 import {
   calendarParams,
@@ -59,6 +61,11 @@ export default async function IntakePage({
             key={actorIdentity(actor)}
             actor={actor}
             today={calendarDate()}
+            initialView={
+              listView
+                ? { view: "list", Component: IntakeWorklist }
+                : { view: "calendar", Component: IntakeCalendar }
+            }
             initial={{
               view: listView ? "list" : "calendar",
               worklist: initial,
