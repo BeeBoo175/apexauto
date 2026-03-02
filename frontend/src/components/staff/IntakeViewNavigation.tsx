@@ -25,6 +25,8 @@ export function IntakeViewNavigation({
   pending,
   disabled,
   onNavigate,
+  onPrepare,
+  onCancel,
 }: {
   actor: string;
   active: "calendar" | "list";
@@ -32,8 +34,17 @@ export function IntakeViewNavigation({
   pending: IntakeView | null;
   disabled: boolean;
   onNavigate: (href: string) => void;
+  onPrepare: (view: IntakeView) => void;
+  onCancel: () => void;
 }) {
   const links = useStaffViewMemory(actor, active, destinations);
+  const selected = pending ?? active;
+
+  function prepare(view: IntakeView) {
+    if (!disabled && view !== active) {
+      onPrepare(view);
+    }
+  }
 
   return (
     <nav
@@ -49,9 +60,16 @@ export function IntakeViewNavigation({
           href={links[view.id]}
           title={view.label}
           aria-label={view.label}
-          aria-current={active === view.id ? "page" : undefined}
-          aria-disabled={disabled || active === view.id}
+          aria-current={selected === view.id ? "page" : undefined}
+          aria-disabled={disabled || selected === view.id}
           data-view={view.id}
+          onPointerEnter={() => prepare(view.id)}
+          onFocus={() => prepare(view.id)}
+          onPointerDown={(event) => {
+            if (event.button === 0) {
+              prepare(view.id);
+            }
+          }}
           onClick={(event) => {
             if (
               event.button !== 0 ||
@@ -63,7 +81,11 @@ export function IntakeViewNavigation({
               return;
             }
             event.preventDefault();
-            if (disabled || active === view.id) {
+            if (disabled || selected === view.id) {
+              return;
+            }
+            if (view.id === active && pending) {
+              onCancel();
               return;
             }
             onNavigate(links[view.id]);

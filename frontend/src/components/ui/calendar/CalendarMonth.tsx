@@ -18,7 +18,7 @@ export function CalendarMonth<Data>(props: MonthProps<Data>) {
 
   function selectDay(cell: HTMLElement, trigger: HTMLButtonElement) {
     const date = cell.dataset.date;
-    if (props.disabled || props.busy || !date) {
+    if (props.disabled || !date) {
       return;
     }
     props.onDateSelect(date);

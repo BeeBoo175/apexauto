@@ -8,12 +8,10 @@ import type { useStaffAppointmentDrawer } from "@/hooks/use-staff-appointment-dr
 export function IntakeAppointmentDrawer({
   actor,
   drawer,
-  refreshing,
   onConfirmed,
 }: {
   actor: CurrentActor;
   drawer: ReturnType<typeof useStaffAppointmentDrawer>;
-  refreshing: boolean;
   onConfirmed: () => void;
 }) {
   const [headerActions, setHeaderActions] = useState<HTMLDivElement | null>(null);
@@ -26,7 +24,7 @@ export function IntakeAppointmentDrawer({
       title="Intake appointment"
       headerActions={<DialogActionSlot ref={setHeaderActions} />}
       onClose={drawer.close}
-      closeDisabled={drawer.locked || refreshing}
+      closeDisabled={drawer.locked}
     >
       {drawer.busy && <AppointmentLoadingShell />}
       {!drawer.busy && drawer.result && (

@@ -97,8 +97,19 @@ export function useIntakeWorkspace(
     return { view: "list", Component: IntakeWorklist };
   }
 
+  function prefetchView(nextView: IntakeView) {
+    void prepareView(nextView).catch(() => {});
+  }
+
+  function cancelNavigation() {
+    attempt.current = null;
+    calendar.cancel();
+    worklist.cancel();
+    setPending(null);
+  }
+
   async function navigate(destination: string, history: "push" | "replace" = "push") {
-    if (drawer.id || (busy && !attempt.current)) {
+    if (drawer.id) {
       return;
     }
     calendar.cancel();
@@ -154,10 +165,7 @@ export function useIntakeWorkspace(
     if (event.key !== "Escape" || !attempt.current) {
       return;
     }
-    attempt.current = null;
-    calendar.cancel();
-    worklist.cancel();
-    setPending(null);
+    cancelNavigation();
   });
 
   useEffect(() => {
@@ -169,5 +177,17 @@ export function useIntakeWorkspace(
     };
   }, []);
 
-  return { view, content, pending, busy, calendar, worklist, drawer, destinations, navigate };
+  return {
+    view,
+    content,
+    pending,
+    busy,
+    calendar,
+    worklist,
+    drawer,
+    destinations,
+    navigate,
+    prefetchView,
+    cancelNavigation,
+  };
 }

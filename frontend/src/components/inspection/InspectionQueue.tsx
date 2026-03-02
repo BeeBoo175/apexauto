@@ -47,7 +47,7 @@ export function InspectionQueue({
   const [selected, setSelected] = useState<InspectionRow | null>(null);
   const [locked, setLocked] = useState(false);
   const lockNavigation = useInspectionLock(locked);
-  const selection = useInspectionDrawer(selectedId, selectedInspection, () => void state.load());
+  const selection = useInspectionDrawer(selectedId, selectedInspection, () => void state.refresh());
   function open(row: InspectionRow) {
     if (row.inspectionId) {
       selection.open(row.inspectionId);
@@ -153,7 +153,7 @@ export function InspectionQueue({
               lockNavigation(false);
               setLocked(false);
               setSelected(null);
-              await state.load();
+              await state.refresh();
               selection.open(id);
             }}
           />

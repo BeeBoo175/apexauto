@@ -47,7 +47,7 @@ export function RepairQueue({
   const selection = useInspectionDrawer(
     selectedId,
     selectedInspection,
-    () => void state.load(),
+    () => void state.refresh(),
     selectedRequest,
   );
   function open(row: RepairRow) {

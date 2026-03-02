@@ -45,6 +45,12 @@ export function useInspectionQueue<T>(
     return () => controller.current?.abort();
   }, []);
 
+  function refresh() {
+    controller.current?.abort();
+    controller.current = null;
+    return load();
+  }
+
   async function load(nextFilters = active.filters, nextPage = active.page) {
     if (controller.current) {
       return;
@@ -55,6 +61,7 @@ export function useInspectionQueue<T>(
       return;
     }
     const attempt = new AbortController();
+    const submittedDraft = draft;
     controller.current = attempt;
     setBusy(true);
     try {
@@ -75,12 +82,16 @@ export function useInspectionQueue<T>(
       setSnapshot(result.data);
       setRevision((value) => value + 1);
       setActive({ filters: nextFilters, page: nextPage });
-      setDraft(nextFilters);
-      window.history.replaceState(
-        null,
-        "",
-        `${queuePath(kind)}?${queueQuery(nextFilters, nextPage)}`,
-      );
+      setDraft((current) => (current === submittedDraft ? nextFilters : current));
+      const query = new URLSearchParams(queueQuery(nextFilters, nextPage));
+      const current = new URL(window.location.href);
+      for (const name of ["inspection", "request", "revision"]) {
+        const value = current.searchParams.get(name);
+        if (value) {
+          query.set(name, value);
+        }
+      }
+      window.history.replaceState(null, "", `${queuePath(kind)}?${query}`);
       return true;
     } catch {
       if (!attempt.signal.aborted) {
@@ -92,7 +103,9 @@ export function useInspectionQueue<T>(
       if (!attempt.signal.aborted) {
         setBusy(false);
       }
-      controller.current = null;
+      if (controller.current === attempt) {
+        controller.current = null;
+      }
     }
   }
 
@@ -120,8 +133,22 @@ export function useInspectionQueue<T>(
       if (!attempt.signal.aborted) {
         setBusy(false);
       }
-      controller.current = null;
+      if (controller.current === attempt) {
+        controller.current = null;
+      }
     }
   }
-  return { snapshot, active, draft, setDraft, branches, busy, ready, revision, load, loadBranches };
+  return {
+    snapshot,
+    active,
+    draft,
+    setDraft,
+    branches,
+    busy,
+    ready,
+    revision,
+    load,
+    loadBranches,
+    refresh,
+  };
 }

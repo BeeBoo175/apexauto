@@ -100,14 +100,14 @@ export function QueueView<T>({
             label={`Refresh ${title.toLowerCase()}`}
             busy={state.busy}
             disabled={!state.ready || disabled}
-            onClick={() => void state.load()}
+            onClick={() => void state.refresh()}
           />
         }
       />
       <div
         className={`${styles.page} ${workspace.reveal}`}
         aria-busy={state.busy}
-        inert={!state.ready || state.busy || disabled}
+        inert={!state.ready || disabled}
       >
         <div className={styles.body}>
           {snapshot && (
@@ -149,6 +149,9 @@ export function QueueView<T>({
                   className={styles.search}
                   onSubmit={(event) => {
                     event.preventDefault();
+                    if (state.busy) {
+                      return;
+                    }
                     void state.load({ ...active.filters, search: state.draft.search.trim() }, 1);
                   }}
                 >
@@ -157,6 +160,7 @@ export function QueueView<T>({
                     placeholder="Search vehicle or registration"
                     value={state.draft.search}
                     disabled={disabled}
+                    busy={state.busy}
                     onChange={(search) => state.setDraft({ ...state.draft, search })}
                     onClear={
                       active.filters.search
@@ -205,7 +209,7 @@ export function QueueView<T>({
               <DataTablePagination
                 page={snapshot}
                 count={snapshot.items.length}
-                disabled={disabled}
+                disabled={disabled || state.busy}
                 onPage={changePage}
               />
             </DataTableWorkspace>

@@ -33,6 +33,14 @@
     outline-offset: 2px;
   }
 
+  .control:focus:not(:disabled):not([aria-invalid="true"]) {
+    border-color: var(--color-interaction-border, var(--color-graphite));
+  }
+
+  .select:active:not(:disabled) {
+    background: var(--color-selected-surface, var(--color-canvas));
+  }
+
   .input {
     height: 44px;
     padding-inline: 12px;
@@ -50,7 +58,7 @@
 
   .input:not(.compact):focus {
     outline: none;
-    border-color: var(--color-graphite);
+    border-color: var(--color-interaction-border, var(--color-graphite));
   }
 
   .selectFrame {
@@ -122,5 +130,11 @@
     .textarea {
       font-size: 16px;
     }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arrow {
+    transition: none;
   }
 }

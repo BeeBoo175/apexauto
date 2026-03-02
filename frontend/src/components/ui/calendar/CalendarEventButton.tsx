@@ -8,13 +8,12 @@ export function CalendarEventButton<Data>({
   timeZone,
   locale,
   disabled,
-  busy,
   renderEvent,
   onEventSelect,
   compact = false,
 }: Pick<
   CalendarProps<Data>,
-  "timeZone" | "locale" | "disabled" | "busy" | "renderEvent" | "onEventSelect"
+  "timeZone" | "locale" | "disabled" | "renderEvent" | "onEventSelect"
 > & {
   event: CalendarEvent<Data>;
   compact?: boolean;
@@ -28,9 +27,9 @@ export function CalendarEventButton<Data>({
       data-compact={(compact && !renderEvent) || undefined}
       title={`${event.title}, ${time}${event.label ? `, ${event.label}` : ""}`}
       aria-label={`Open ${event.title}, ${time}${event.label ? `, ${event.label}` : ""}`}
-      aria-disabled={disabled || busy || undefined}
+      aria-disabled={disabled || undefined}
       onClick={() => {
-        if (!disabled && !busy) {
+        if (!disabled) {
           onEventSelect(event);
         }
       }}

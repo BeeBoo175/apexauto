@@ -111,7 +111,7 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
                   key={column.id}
                   column={column}
                   sorting={props.sorting}
-                  disabled={disabled}
+                  disabled={disabled || Boolean(props.busy)}
                   resizable={index < columns.length - 1}
                   onStart={(event) => handleResizeStart(index, event)}
                 />

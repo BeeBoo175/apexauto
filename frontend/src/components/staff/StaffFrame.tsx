@@ -13,7 +13,7 @@ import styles from "./StaffFrame.module.css";
 import {
   StaffActorContext,
   StaffNavigationLockContext,
-  StaffHistoryContext,
+  StaffNavigationContext,
 } from "./StaffActorBoundary";
 
 export function StaffFrame({ actor, children }: { actor?: CurrentActor; children: ReactNode }) {
@@ -35,140 +35,151 @@ export function StaffFrame({ actor, children }: { actor?: CurrentActor; children
     return null;
   }
   return (
-    <StaffActorContext.Provider value={actor ?? null}>
-      <StaffNavigationLockContext.Provider value={navigation.lockedRef}>
-        <section
-          className={`${styles.page} ${fitViewport ? styles.viewport : ""}`}
-          inert={Boolean(actor) && !session.ready}
-        >
-          <Suspense fallback={null}>
-            <NavigationHistory capture={navigation.captureHistory} />
-          </Suspense>
-          <LoadingProgress
-            label="Opening workspace"
-            active={navigation.pending || Boolean(navigation.historyPath)}
-          />
-          <div className={styles.mobileBar}>
-            <span className={styles.brand}>
-              Apex<span>Auto</span>
-            </span>
-            <Button
-              variant="shell"
-              size="compact"
-              aria-expanded={mobileOpen}
-              aria-controls="staff-navigation"
-              onClick={() => setMobileOpen(!mobileOpen)}
-            >
-              {mobileOpen ? "Close workspaces" : "Workspaces"}
-            </Button>
-          </div>
-          <aside
-            id="staff-navigation"
-            className={`${styles.sidebar} ${mobileOpen ? styles.sidebarOpen : ""}`}
-            aria-label="Dealership operations"
+    <StaffNavigationContext.Provider
+      value={{
+        pendingPath:
+          navigation.selectedPath === navigation.pathname ? null : navigation.selectedPath,
+        historyPath: navigation.historyPath,
+        completeHistory: navigation.completeHistory,
+        recordNavigation: navigation.recordNavigation,
+      }}
+    >
+      <StaffActorContext.Provider value={actor ?? null}>
+        <StaffNavigationLockContext.Provider value={navigation.lockedRef}>
+          <section
+            className={`${styles.page} ${fitViewport ? styles.viewport : ""}`}
+            inert={Boolean(actor) && !session.ready}
           >
-            <div className={styles.identity}>
-              <span className={`${styles.brand} ${styles.desktopBrand}`}>
+            <Suspense fallback={null}>
+              <NavigationHistory capture={navigation.captureHistory} />
+            </Suspense>
+            <LoadingProgress
+              label="Opening workspace"
+              active={navigation.pending || Boolean(navigation.historyPath)}
+            />
+            <div className={styles.mobileBar}>
+              <span className={styles.brand}>
                 Apex<span>Auto</span>
               </span>
-              <StaffLink
-                className={styles.publicLink}
-                href="/"
-                prefetch={false}
-                onNavigate={(event) => navigate(event, "/")}
+              <Button
+                variant="shell"
+                size="compact"
+                aria-expanded={mobileOpen}
+                aria-controls="staff-navigation"
+                onClick={() => setMobileOpen(!mobileOpen)}
               >
-                View public site
-              </StaffLink>
+                {mobileOpen ? "Close workspaces" : "Workspaces"}
+              </Button>
             </div>
-            <nav className={styles.navigation} aria-label="Staff navigation">
-              {(!actor || hasIntakeAccess(actor)) && (
+            <aside
+              id="staff-navigation"
+              className={`${styles.sidebar} ${mobileOpen ? styles.sidebarOpen : ""}`}
+              aria-label="Dealership operations"
+            >
+              <div className={styles.identity}>
+                <span className={`${styles.brand} ${styles.desktopBrand}`}>
+                  Apex<span>Auto</span>
+                </span>
                 <StaffLink
-                  href="/dashboard/intake"
+                  className={styles.publicLink}
+                  href="/"
                   prefetch={false}
-                  className={
-                    navigation.pathname.startsWith("/dashboard/intake")
-                      ? styles.activeLink
-                      : styles.navLink
-                  }
-                  aria-current={
-                    navigation.pathname.startsWith("/dashboard/intake") ? "page" : undefined
-                  }
-                  onNavigate={(event) => navigate(event, "/dashboard/intake")}
+                  onNavigate={(event) => navigate(event, "/")}
                 >
-                  Intake appointments
+                  View public site
                 </StaffLink>
-              )}
-              {(!actor || hasInspectionAccess(actor)) &&
-                [
-                  {
-                    href: "/dashboard/inspection",
-                    title: "Inspections",
-                    active:
-                      navigation.pathname.startsWith("/dashboard/inspection") &&
-                      navigation.pathname !== "/dashboard/inspection/repairs",
-                  },
-                  {
-                    href: "/dashboard/inspection/repairs",
-                    title: "Repair requests",
-                    active: navigation.pathname === "/dashboard/inspection/repairs",
-                  },
-                ].map((item) => (
-                  <StaffLink
-                    key={item.href}
-                    href={item.href}
-                    prefetch={false}
-                    className={item.active ? styles.activeLink : styles.navLink}
-                    aria-current={item.active ? "page" : undefined}
-                    onNavigate={(event) => navigate(event, item.href)}
-                  >
-                    {item.title}
-                  </StaffLink>
-                ))}
-              {actor && !hasIntakeAccess(actor) && !hasInspectionAccess(actor) && (
-                <StaffLink
-                  href="/dashboard"
-                  prefetch={false}
-                  className={styles.activeLink}
-                  aria-current="page"
-                  onNavigate={(event) => navigate(event, "/dashboard")}
-                >
-                  Your staff workspace
-                </StaffLink>
-              )}
-            </nav>
-            {actor && (
-              <div className={styles.session}>
-                <span>{roleNames[actor.role]}</span>
-                <Button
-                  variant="shell"
-                  size="compact"
-                  disabled={logout.busy}
-                  onPointerDown={(event) => {
-                    if (navigation.lockedRef.current) {
-                      event.preventDefault();
-                    }
-                  }}
-                  onClick={() => {
-                    if (!navigation.lockedRef.current) {
-                      void logout.submit();
-                    }
-                  }}
-                >
-                  {logout.uncertain ? "Retry sign out" : "Sign out"}
-                </Button>
               </div>
-            )}
-          </aside>
-          <div className={styles.content}>
-            <StaffHistoryContext.Provider
-              value={{ path: navigation.historyPath, complete: navigation.completeHistory }}
+              <nav className={styles.navigation} aria-label="Staff navigation">
+                {(!actor || hasIntakeAccess(actor)) && (
+                  <StaffLink
+                    href="/dashboard/intake"
+                    prefetch={false}
+                    prefetchOnIntent={Boolean(actor)}
+                    className={
+                      navigation.selectedPath.startsWith("/dashboard/intake")
+                        ? styles.activeLink
+                        : styles.navLink
+                    }
+                    aria-current={
+                      navigation.selectedPath.startsWith("/dashboard/intake") ? "page" : undefined
+                    }
+                    onNavigate={(event) => navigate(event, "/dashboard/intake")}
+                  >
+                    Intake appointments
+                  </StaffLink>
+                )}
+                {(!actor || hasInspectionAccess(actor)) &&
+                  [
+                    {
+                      href: "/dashboard/inspection",
+                      title: "Inspections",
+                      active:
+                        navigation.selectedPath.startsWith("/dashboard/inspection") &&
+                        navigation.selectedPath !== "/dashboard/inspection/repairs",
+                    },
+                    {
+                      href: "/dashboard/inspection/repairs",
+                      title: "Repair requests",
+                      active: navigation.selectedPath === "/dashboard/inspection/repairs",
+                    },
+                  ].map((item) => (
+                    <StaffLink
+                      key={item.href}
+                      href={item.href}
+                      prefetch={false}
+                      prefetchOnIntent={Boolean(actor)}
+                      className={item.active ? styles.activeLink : styles.navLink}
+                      aria-current={item.active ? "page" : undefined}
+                      onNavigate={(event) => navigate(event, item.href)}
+                    >
+                      {item.title}
+                    </StaffLink>
+                  ))}
+                {actor && !hasIntakeAccess(actor) && !hasInspectionAccess(actor) && (
+                  <StaffLink
+                    href="/dashboard"
+                    prefetch={false}
+                    className={styles.activeLink}
+                    aria-current="page"
+                    onNavigate={(event) => navigate(event, "/dashboard")}
+                  >
+                    Your staff workspace
+                  </StaffLink>
+                )}
+              </nav>
+              {actor && (
+                <div className={styles.session}>
+                  <span>{roleNames[actor.role]}</span>
+                  <Button
+                    variant="shell"
+                    size="compact"
+                    disabled={logout.busy}
+                    onPointerDown={(event) => {
+                      if (navigation.lockedRef.current) {
+                        event.preventDefault();
+                      }
+                    }}
+                    onClick={() => {
+                      if (!navigation.lockedRef.current) {
+                        void logout.submit();
+                      }
+                    }}
+                  >
+                    {logout.uncertain ? "Retry sign out" : "Sign out"}
+                  </Button>
+                </div>
+              )}
+            </aside>
+            <div
+              className={styles.content}
+              inert={navigation.pending && navigation.selectedPath !== navigation.pathname}
             >
               {children}
-            </StaffHistoryContext.Provider>
-          </div>
-        </section>
-      </StaffNavigationLockContext.Provider>
-    </StaffActorContext.Provider>
+            </div>
+          </section>
+        </StaffNavigationLockContext.Provider>
+      </StaffActorContext.Provider>
+    </StaffNavigationContext.Provider>
   );
 }
 

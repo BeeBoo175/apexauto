@@ -14,9 +14,11 @@ import { LoadingProgress, LoadingProgressReady } from "@/components/ui/LoadingPr
 
 export const StaffActorContext = createContext<CurrentActor | null>(null);
 export const StaffNavigationLockContext = createContext<RefObject<boolean> | null>(null);
-export const StaffHistoryContext = createContext<{
-  path: string | null;
-  complete: () => void;
+export const StaffNavigationContext = createContext<{
+  pendingPath: string | null;
+  historyPath: string | null;
+  completeHistory: () => void;
+  recordNavigation: (href: string) => void;
 } | null>(null);
 
 export function StaffActorBoundary({
@@ -31,10 +33,10 @@ export function StaffActorBoundary({
   snapshotId: string;
 }) {
   const router = useRouter();
-  const history = useContext(StaffHistoryContext);
+  const navigation = useContext(StaffNavigationContext);
   const expected = useContext(StaffActorContext);
   const matches = expected && actorIdentity(expected) === actorIdentity(actor);
-  const restoring = history?.path === path;
+  const restoring = navigation?.historyPath === path;
   const [cachedSnapshot, setCachedSnapshot] = useState<string | null>(
     restoring ? snapshotId : null,
   );
@@ -54,9 +56,9 @@ export function StaffActorBoundary({
 
   useEffect(() => {
     if (restoring && cachedSnapshot && cachedSnapshot !== snapshotId) {
-      history?.complete();
+      navigation?.completeHistory();
     }
-  }, [restoring, cachedSnapshot, snapshotId, history]);
+  }, [restoring, cachedSnapshot, snapshotId, navigation]);
 
   useEffect(() => {
     if (!matches) {

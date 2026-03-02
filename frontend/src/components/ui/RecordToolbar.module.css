@@ -41,6 +41,11 @@
   gap: 6px;
 }
 
+.filterButton[aria-expanded="true"] {
+  border-color: var(--color-interaction-border, var(--color-graphite));
+  background: var(--color-selected-surface, var(--color-canvas));
+}
+
 .filterCount {
   display: inline-flex;
   align-items: center;

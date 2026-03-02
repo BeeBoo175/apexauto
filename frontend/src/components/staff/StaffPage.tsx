@@ -1,18 +1,20 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useContext, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
+import { StaffNavigationContext } from "./StaffActorBoundary";
 import styles from "./Staff.module.css";
+
+const titles: Record<string, string> = {
+  "/dashboard/intake": "Intake appointments",
+  "/dashboard/inspection": "Inspections",
+  "/dashboard/inspection/repairs": "Repair requests",
+};
 
 export function StaffLoading() {
   const pathname = usePathname();
-  const titles: Record<string, string> = {
-    "/dashboard/intake": "Intake appointments",
-    "/dashboard/inspection": "Inspections",
-    "/dashboard/inspection/repairs": "Repair requests",
-  };
   return (
     <>
       <LoadingProgress label="Opening workspace" />
@@ -22,9 +24,11 @@ export function StaffLoading() {
 }
 
 export function StaffCommandBar({ title, actions }: { title: string; actions?: ReactNode }) {
+  const navigation = useContext(StaffNavigationContext);
+  const pendingTitle = navigation?.pendingPath ? titles[navigation.pendingPath] : undefined;
   return (
     <header className={styles.commandBar}>
-      <h1 tabIndex={-1}>{title}</h1>
+      <h1 tabIndex={-1}>{pendingTitle ?? title}</h1>
       {actions && <div className={styles.actions}>{actions}</div>}
     </header>
   );

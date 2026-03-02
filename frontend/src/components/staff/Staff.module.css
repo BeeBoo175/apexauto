@@ -42,6 +42,10 @@
   background-color: rgb(255 255 255 / 14%);
 }
 
+.actions > button:active:not(:disabled) {
+  background-color: rgb(255 255 255 / 24%);
+}
+
 .actions > button:focus-visible {
   outline-color: var(--color-command-foreground, var(--color-graphite));
 }

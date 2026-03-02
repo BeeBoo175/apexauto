@@ -66,6 +66,7 @@ export function useStaffWorklist(
       return;
     }
     const attempt = new AbortController();
+    const submittedDraft = draft;
     controller.current = attempt;
     setBusy(true);
     try {
@@ -90,7 +91,7 @@ export function useStaffWorklist(
         sort = sameOrder ? active.sort : initialSort(nextFilters);
       }
       setActive({ filters: nextFilters, page: nextPage, sort });
-      setDraft(nextFilters);
+      setDraft((current) => (current === submittedDraft ? nextFilters : current));
       const query = new URLSearchParams(staffViewQuery(nextFilters, nextPage));
       const selected = new URL(window.location.href).searchParams.get("appointment");
       if (selected) {

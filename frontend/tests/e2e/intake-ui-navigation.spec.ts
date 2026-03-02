@@ -72,8 +72,10 @@ test("staff reassignment clears old branch records and applies current permissio
     assignment("restore");
     await page.reload();
     await expect(page.getByText("Sales agent", { exact: true })).toBeAttached();
-    if (await dialog.isVisible()) {
+    if (new URL(page.url()).searchParams.has("appointment")) {
+      await expect(dialog).toBeVisible();
       await dialog.getByRole("button", { name: "Close dialog", exact: true }).click();
+      await expect(dialog).toBeHidden();
     }
     if (!(await navigation.isVisible())) {
       await page.getByRole("button", { name: "Workspaces", exact: true }).click();

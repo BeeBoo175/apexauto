@@ -136,6 +136,12 @@
   height: 16px;
 }
 
+.header[aria-sort="ascending"] .headerContent,
+.header[aria-sort="descending"] .headerContent {
+  border-radius: var(--radius-sm, 4px);
+  background: var(--color-selected-surface, var(--color-canvas));
+}
+
 .resize {
   position: absolute;
   right: -6px;
@@ -173,11 +179,17 @@
 }
 
 .selectionControl {
+  touch-action: manipulation;
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 28px;
   cursor: pointer;
+}
+
+.selectionControl:active:not(:has(input:disabled)) {
+  border-radius: var(--radius-sm, 4px);
+  background: var(--color-selected-surface, var(--color-canvas));
 }
 
 .selectionCell input {
@@ -200,6 +212,10 @@
 
 .interactiveRow {
   cursor: pointer;
+}
+
+.interactiveRow:active {
+  background: var(--color-selected-surface, var(--color-canvas));
 }
 
 .table .interactiveRow:hover {

@@ -22,16 +22,12 @@ export function IntakeCalendar({ actor, today, calendar, drawer }: Props) {
   const toolbar = (
     <CalendarFilters
       calendar={calendar}
-      disabled={disabled}
+      disabled={disabled || calendar.busy}
       group={actor.role === "GeneralManager"}
     />
   );
   return (
-    <div
-      className={styles.workspace}
-      inert={!calendar.ready || calendar.busy}
-      aria-busy={calendar.busy}
-    >
+    <div className={styles.workspace} inert={!calendar.ready} aria-busy={calendar.busy}>
       {snapshot ? (
         <Calendar
           label="Intake calendar"

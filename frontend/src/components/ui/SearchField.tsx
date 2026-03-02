@@ -10,6 +10,7 @@ export function SearchField({
   onChange,
   onClear,
   placeholder,
+  busy = false,
 }: {
   label: string;
   value: string;
@@ -17,6 +18,7 @@ export function SearchField({
   onChange: (value: string) => void;
   onClear?: () => void;
   placeholder: string;
+  busy?: boolean;
 }) {
   return (
     <div className={styles.field}>
@@ -38,7 +40,7 @@ export function SearchField({
           variant="ghost"
           aria-label="Clear search"
           title="Clear search"
-          disabled={disabled}
+          disabled={disabled || busy}
           onClick={onClear}
         >
           <Icon name="close" />
@@ -50,7 +52,7 @@ export function SearchField({
         variant="ghost"
         aria-label="Search"
         title="Search"
-        disabled={disabled}
+        disabled={disabled || busy}
       >
         <span className={styles.searchIcon}>
           <Icon name="search" />

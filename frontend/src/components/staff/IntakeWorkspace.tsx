@@ -40,7 +40,12 @@ function Workspace({ actor, today, initial, initialView }: Props) {
       : null,
   );
   function refresh() {
-    return view === "calendar" ? calendar.load() : worklist.load();
+    if (view === "calendar") {
+      calendar.cancel();
+      return calendar.load();
+    }
+    worklist.cancel();
+    return worklist.load();
   }
 
   return (
@@ -63,8 +68,10 @@ function Workspace({ actor, today, initial, initialView }: Props) {
               active={view}
               pending={pending}
               destinations={destinations}
-              disabled={Boolean(drawer.id) || busy}
+              disabled={Boolean(drawer.id) || !calendar.ready || !worklist.ready}
               onNavigate={(href) => void workspace.navigate(href)}
+              onPrepare={workspace.prefetchView}
+              onCancel={workspace.cancelNavigation}
             />
           </>
         }
@@ -86,12 +93,7 @@ function Workspace({ actor, today, initial, initialView }: Props) {
           <content.Component actor={actor} worklist={worklist} drawer={drawer} />
         )}
       </div>
-      <IntakeAppointmentDrawer
-        actor={actor}
-        drawer={drawer}
-        refreshing={busy}
-        onConfirmed={() => void refresh()}
-      />
+      <IntakeAppointmentDrawer actor={actor} drawer={drawer} onConfirmed={() => void refresh()} />
     </div>
   );
 }

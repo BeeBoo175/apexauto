@@ -129,7 +129,9 @@ export function useStaffCalendar(
       if (!attempt.signal.aborted) {
         setBusy(false);
       }
-      controller.current = null;
+      if (controller.current === attempt) {
+        controller.current = null;
+      }
     }
   }
   return { snapshot, active, branches, ready, busy, load, loadBranches, cancel };

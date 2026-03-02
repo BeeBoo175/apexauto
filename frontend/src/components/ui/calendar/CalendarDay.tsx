@@ -25,7 +25,8 @@ export function CalendarDay<Data>({ date, events, selected, active, ...props }: 
           data-selected={selected || undefined}
           aria-current={date === props.today ? "date" : undefined}
           aria-label={label}
-          disabled={props.disabled || props.busy}
+          aria-pressed={selected}
+          disabled={props.disabled}
         >
           <span className={styles.dayNumber}>
             <span className={styles.dayNumberText}>{Number(date.slice(-2))}</span>

@@ -49,6 +49,11 @@
   outline-offset: 2px;
 }
 
+.choice:active:not(:has(input:disabled)) {
+  border-color: var(--color-interaction-border, var(--color-graphite));
+  background: var(--color-selected-surface, var(--color-canvas));
+}
+
 .choice:has(input:disabled) {
   opacity: 0.5;
   cursor: not-allowed;

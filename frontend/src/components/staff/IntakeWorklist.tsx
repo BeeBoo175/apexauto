@@ -45,7 +45,7 @@ export function IntakeWorklist({ actor, worklist, drawer }: IntakeWorklistProps)
   const filterControls = (
     <WorklistFilters
       worklist={worklist}
-      disabled={disabled}
+      disabled={disabled || worklist.busy}
       group={actor.role === "GeneralManager"}
     />
   );
@@ -74,7 +74,7 @@ export function IntakeWorklist({ actor, worklist, drawer }: IntakeWorklistProps)
   }
 
   return (
-    <div className={styles.page} inert={!worklist.ready || worklist.busy} aria-busy={worklist.busy}>
+    <div className={styles.page} inert={!worklist.ready} aria-busy={worklist.busy}>
       {!snapshot && <div className={styles.unavailableFilters}>{filterControls}</div>}
       <div className={styles.body}>
         {snapshot && (
@@ -98,7 +98,7 @@ export function IntakeWorklist({ actor, worklist, drawer }: IntakeWorklistProps)
               filterSummary={
                 <AppliedWorklistFilters
                   filters={appliedFilters}
-                  disabled={disabled}
+                  disabled={disabled || worklist.busy}
                   onRemove={(filters) => void worklist.load(filters, 1)}
                 />
               }
@@ -117,6 +117,9 @@ export function IntakeWorklist({ actor, worklist, drawer }: IntakeWorklistProps)
                 className={styles.search}
                 onSubmit={(event) => {
                   event.preventDefault();
+                  if (worklist.busy) {
+                    return;
+                  }
                   void worklist.load(
                     { ...active.filters, search: worklist.draft.search.trim() },
                     1,
@@ -128,6 +131,7 @@ export function IntakeWorklist({ actor, worklist, drawer }: IntakeWorklistProps)
                   placeholder="Search appointments"
                   value={worklist.draft.search}
                   disabled={disabled}
+                  busy={worklist.busy}
                   onChange={(search) => worklist.setDraft({ ...worklist.draft, search })}
                   onClear={
                     active.filters.search
@@ -168,7 +172,7 @@ export function IntakeWorklist({ actor, worklist, drawer }: IntakeWorklistProps)
             <DataTablePagination
               page={{ ...snapshot, page: active.page }}
               count={snapshot.items.length}
-              disabled={disabled}
+              disabled={disabled || worklist.busy}
               onPage={changePage}
             />
           </DataTableWorkspace>
