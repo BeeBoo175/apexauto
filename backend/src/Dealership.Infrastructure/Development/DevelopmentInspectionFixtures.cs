@@ -10,7 +10,8 @@ namespace Dealership.Infrastructure.Development;
 public sealed class DevelopmentInspectionFixtures(DealershipDbContext database, InspectionAssignmentService assignments,
     InspectionDraftSaveService inspectionSaves, InspectionPhotoService inspectionPhotos, IPhotoImageValidator photoValidator,
     InspectionSignoffService inspectionSignoffs, InspectionReopeningService inspectionReopenings, InspectionRepairRequestService inspectionRepairs,
-    InspectionRepairApprovalService inspectionApprovals, InspectionRepairCompletionService inspectionCompletions)
+    InspectionRepairApprovalService inspectionApprovals, InspectionRepairCompletionService inspectionCompletions,
+    DevelopmentInspectionScenarioFixtures scenarios)
 {
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> RunAsync(bool seed,
         CancellationToken cancellationToken)
@@ -26,6 +27,14 @@ public sealed class DevelopmentInspectionFixtures(DealershipDbContext database, 
                 .Select(item => (Guid?)item.Id).SingleOrDefaultAsync(cancellationToken);
             var draft = await database.InspectionDrafts.AsNoTracking()
                 .SingleOrDefaultAsync(item => item.VehicleId == vehicleId, cancellationToken);
+            var scenario = DevelopmentInspectionScenarios.All.SingleOrDefault(item => item.Id == fixture.Id);
+            if (scenario is not null)
+            {
+                reports.Add(vehicleId.HasValue
+                    ? await scenarios.RunAsync(seed, scenario, vehicleId.Value, technicianId, cancellationToken)
+                    : new($"Inspection example ({fixture.RegistrationPlate})", "checked-in vehicle missing; preserved", true));
+                continue;
+            }
             if (DevelopmentInspectionManifest.IsClaimable(fixture))
             {
                 reports.Add(new($"Inspection ({fixture.RegistrationPlate})",

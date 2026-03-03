@@ -1,8 +1,6 @@
 using Dealership.Application.Inspections;
 using Dealership.Application.Intake;
 using Dealership.Domain.Inspections;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace Dealership.Infrastructure.Development;
 
@@ -13,32 +11,25 @@ public static class DevelopmentInspectionManifest
             .GroupBy(item => item.BranchId).Select(group => group.First()).ToArray());
 
     public static bool IsClaimable(DevelopmentIntakeFixture fixture) => fixture.Id ==
-        DevelopmentIntakeManifest.Appointments.Last(item => item.BranchId == fixture.BranchId).Id;
+        DevelopmentIntakeManifest.Appointments.Where(item => item.BranchId == fixture.BranchId)
+            .Take(DevelopmentIntakeManifest.BaselineTotalPerBranch).Last().Id;
 
     public const string ReopenReason = "Manager requests a fresh examination after reviewing the retained bumper evidence.";
 
-    public static Guid ReopenId(Guid inspectionId) => StableId(inspectionId, "reopen");
+    public static Guid ReopenId(Guid inspectionId) => DevelopmentInspectionScenarios.OperationId(inspectionId, "reopen");
 
-    public static InspectionRepairCompletionRequest RepairCompletion(Guid inspectionId) => new(StableId(inspectionId, "completion"),
+    public static InspectionRepairCompletionRequest RepairCompletion(Guid inspectionId) => new(DevelopmentInspectionScenarios.OperationId(inspectionId, "completion"),
         RepairRequest(inspectionId).OperationId, 1, 1, 1, "Bumper refinished and reinspected; finish and fit are satisfactory.");
 
-    public static InspectionRepairApprovalRequest RepairApproval(Guid inspectionId) => new(StableId(inspectionId, "approval"),
+    public static InspectionRepairApprovalRequest RepairApproval(Guid inspectionId) => new(DevelopmentInspectionScenarios.OperationId(inspectionId, "approval"),
         RepairRequest(inspectionId).OperationId, 1, 1, 1);
 
-    public static InspectionRepairRequest RepairRequest(Guid inspectionId) => new(StableId(inspectionId, "repair"),
+    public static InspectionRepairRequest RepairRequest(Guid inspectionId) => new(DevelopmentInspectionScenarios.OperationId(inspectionId, "repair"),
         1, 1, 0, [new("EP-004", "Prepare and refinish the scratched front bumper surface")], 250m);
 
     public static Guid PhotoId(Guid inspectionId)
     {
-        return StableId(inspectionId, "bumper");
-    }
-
-    private static Guid StableId(Guid inspectionId, string purpose)
-    {
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes($"apexauto/development/inspection/{inspectionId:N}/{purpose}"));
-        bytes[6] = (byte)((bytes[6] & 0x0f) | 0x80);
-        bytes[8] = (byte)((bytes[8] & 0x3f) | 0x80);
-        return Guid.ParseExact(Convert.ToHexString(bytes.AsSpan(0, 16)), "N");
+        return DevelopmentInspectionScenarios.OperationId(inspectionId, "bumper");
     }
 
     public static IReadOnlyList<InspectionDraftEntryInput> Entries { get; } = Array.AsReadOnly<InspectionDraftEntryInput>([

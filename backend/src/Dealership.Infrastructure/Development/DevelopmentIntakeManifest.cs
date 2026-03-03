@@ -13,12 +13,17 @@ public static class DevelopmentIntakeManifest
 {
     public const int AppointmentsPerBranch = 41;
     public const int RepairRequestsPerBranch = 51;
-    public const int CheckedInPerBranch = RepairRequestsPerBranch + 2;
+    public const int InspectionExamplesPerBranch = 12;
+    public const int BaselineTotalPerBranch = AppointmentsPerBranch + RepairRequestsPerBranch + 4;
+    public const int CheckedInPerBranch = RepairRequestsPerBranch + 2 + InspectionExamplesPerBranch;
     public const int TotalPerBranch = AppointmentsPerBranch + CheckedInPerBranch + 2;
 
     public static IReadOnlyList<DevelopmentIntakeFixture> Appointments { get; } =
         Array.AsReadOnly(Enumerable.Range(0, DevelopmentFixtureManifest.Branches.Count)
             .SelectMany(CreateBranch).ToArray());
+
+    public static IReadOnlyList<DevelopmentIntakeFixture> InspectionExamples { get; } = Array.AsReadOnly(
+        Appointments.GroupBy(item => item.BranchId).SelectMany(branch => branch.Skip(BaselineTotalPerBranch)).ToArray());
 
     public static Guid PhotoId(Guid appointmentId, PhotoAngle angle)
     {

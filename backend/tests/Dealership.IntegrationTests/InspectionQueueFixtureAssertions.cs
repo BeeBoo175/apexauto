@@ -17,10 +17,13 @@ internal static class InspectionQueueFixtureAssertions
         var queues = services.GetRequiredService<IInspectionQueueStore>();
         var vehicles = await database.Vehicles.AsNoTracking().ToArrayAsync();
         var requests = await database.InspectionRepairRequests.AsNoTracking()
-            .Where(item => !database.InspectionRepairApprovals.Any(approval => approval.RequestId == item.Id))
+            .Where(item => item.Budget > 0 &&
+                database.InspectionDrafts.Any(draft => draft.Id == item.InspectionId && draft.IsSigned &&
+                    draft.Revision == item.Revision && draft.RepairVersion == item.Version) &&
+                !database.InspectionRepairApprovals.Any(approval => approval.RequestId == item.Id))
             .ToArrayAsync();
-        Assert.Equal(159, vehicles.Length);
-        Assert.Equal(153, requests.Length);
+        Assert.Equal(195, vehicles.Length);
+        Assert.Equal(162, requests.Length);
         Assert.Contains(vehicles.GroupBy(item => item.CreatedAt), group => group.Count() == 3);
         foreach (var actor in DevelopmentFixtureManifest.Staff)
         {
@@ -75,9 +78,9 @@ internal static class InspectionQueueFixtureAssertions
                 continue;
             }
 
-            Assert.Equal(53, (await queues.InspectionsAsync(actor.Id, new(BranchId: selectedBranch),
+            Assert.Equal(65, (await queues.InspectionsAsync(actor.Id, new(BranchId: selectedBranch),
                 InspectionQueueStatus.All, CancellationToken.None)).Queue!.Total);
-            Assert.Equal(51, (await queues.RepairsAsync(actor.Id, new(BranchId: selectedBranch),
+            Assert.Equal(54, (await queues.RepairsAsync(actor.Id, new(BranchId: selectedBranch),
                 InspectionRepairQueueStatus.PendingApproval, CancellationToken.None)).Queue!.Total);
         }
     }

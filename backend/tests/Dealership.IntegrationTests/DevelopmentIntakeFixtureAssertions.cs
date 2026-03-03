@@ -17,7 +17,7 @@ namespace Dealership.IntegrationTests;
 
 internal static class DevelopmentIntakeFixtureAssertions
 {
-    private static readonly int[] PageSizes = [25, 25, 25, 21];
+    private static readonly int[] PageSizes = [25, 25, 25, 25, 8];
 
     public static async Task VerifyAuthenticatedAsync(HttpClient client, string email)
     {
@@ -192,7 +192,11 @@ internal static class DevelopmentIntakeFixtureAssertions
                 item.BranchId == fixture.BranchId && item.Role == AccountRoles.SalesAgent).Id, checkIn.StaffId);
             var vehicle = await database.Vehicles.SingleAsync(item => item.Id == checkIn.VehicleId);
             var completedBaseline = fixture.Id == DevelopmentInspectionManifest.Baselines[1].Id;
-            Assert.Equal(completedBaseline ? VehicleStatus.Available : VehicleStatus.PendingInspection, vehicle.Status);
+            var scenario = DevelopmentInspectionScenarios.All.SingleOrDefault(item => item.Id == fixture.Id);
+            if (scenario is null)
+            {
+                Assert.Equal(completedBaseline ? VehicleStatus.Available : VehicleStatus.PendingInspection, vehicle.Status);
+            }
             Assert.Equal(fixture.Id, vehicle.IntakeAppointmentId);
             Assert.Equal(fixture.BranchId, vehicle.BranchId);
             Assert.Equal(fixture.CheckIn!.MileageKilometres, vehicle.MileageKilometres);

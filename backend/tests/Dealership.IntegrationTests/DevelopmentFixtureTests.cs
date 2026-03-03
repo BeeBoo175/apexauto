@@ -91,6 +91,7 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
             var pending = await scope.ServiceProvider.GetRequiredService<DealershipDbContext>().InspectionPhotos.SingleAsync();
             Assert.Null(pending.AvailableAt);
         }
+        await DevelopmentInspectionScenarioAssertions.SeedInterruptedRevisionAsync(provider);
         await using var restarted = CreateProvider(connection, fault);
         var competing = await Task.WhenAll(SeedAsync(provider, target), SeedAsync(restarted, target));
         Assert.All(competing.SelectMany(reports => reports), report => Assert.False(report.RequiresAttention,
@@ -106,8 +107,10 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         Assert.All(await SeedAsync(restarted, target), report => Assert.False(report.RequiresAttention));
         Assert.Equal(snapshot, await DevelopmentIntakeFixtureAssertions.SnapshotAsync(restarted));
         await AssertRuntimeGuardsAsync();
+        await DevelopmentInspectionScenarioAssertions.VerifyAsync(provider, target);
         await NoShowLifecycleAssertions.VerifyAsync(fixture);
         await DevelopmentInspectionFixtureAssertions.VerifyAsync(provider, target);
+        await DevelopmentInspectionScenarioAssertions.VerifyHumanEditPreservationAsync(provider, target);
     }
 
     private async Task<string[]> ReadGuardsAsync()
@@ -223,6 +226,7 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         services.AddPhotos(configuration);
         services.AddScoped<DevelopmentFixtureRunner>();
         services.AddScoped<DevelopmentInspectionFixtures>();
+        services.AddScoped<DevelopmentInspectionScenarioFixtures>();
         services.AddScoped<DevelopmentCustomerFixtures>();
         services.AddScoped<DevelopmentIntakeFixtures>();
         services.AddScoped<DevelopmentFixturePhotos>();

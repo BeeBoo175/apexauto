@@ -46,6 +46,7 @@ try
     services.AddPhotos(configuration);
     services.AddScoped<DevelopmentFixtureRunner>();
     services.AddScoped<DevelopmentInspectionFixtures>();
+    services.AddScoped<DevelopmentInspectionScenarioFixtures>();
     services.AddScoped<DevelopmentCustomerFixtures>();
     services.AddScoped<DevelopmentIntakeFixtures>();
     services.AddScoped<DevelopmentFixturePhotos>();

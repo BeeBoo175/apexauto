@@ -38,7 +38,7 @@ internal static class NoShowLifecycleAssertions
         Assert.DoesNotContain((await worklist.ListAsync(manager.Id, query with { Status = StaffWorklistStatus.Booked }, CancellationToken.None))!.Items,
             item => item.Id == row.Id);
         var history = await services.GetRequiredService<IAppointmentHistoryStore>().ListAsync(appointment.OwnerId,
-            new AppointmentHistoryQuery(null, null, 4, 25), CancellationToken.None);
+            new AppointmentHistoryQuery(appointment.StartsAt, appointment.EndsAt, 1, 25), CancellationToken.None);
         Assert.Contains(history!.Items, item => item.Id == row.Id && item.NoShowAt == detail.Detail.NoShowAt);
         Assert.Equal(originalCount, await database.AppointmentCheckIns.CountAsync());
         Assert.Equal(CheckInStatus.Forbidden, (await CorrectAsync(factory, agent.Id, row.Id, evidence, correction)).Status);

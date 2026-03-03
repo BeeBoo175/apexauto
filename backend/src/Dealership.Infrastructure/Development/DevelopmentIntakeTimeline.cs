@@ -21,17 +21,19 @@ public static class DevelopmentIntakeTimeline
         }
 
         var historical = HistoricalSlots(schedule, anchor);
+        var examples = DevelopmentIntakeManifest.InspectionExamples.Select(item => item.Id).ToHashSet();
         return [.. DevelopmentIntakeManifest.Appointments.GroupBy(item => item.BranchId).SelectMany(branch =>
         {
             var next = 0;
-            var checkedIn = 1;
+            var checkedIn = DevelopmentIntakeManifest.InspectionExamplesPerBranch + 1;
+            var example = 1;
             return branch.Select(fixture => fixture.Status switch
             {
                 StaffWorklistStatus.Cancelled => new DevelopmentIntakeMoment(fixture, historical[0].Slot,
                     historical[0].BookedAt, historical[0].Slot.StartsAt.AddMinutes(-1)),
                 StaffWorklistStatus.NoShow => new DevelopmentIntakeMoment(fixture, historical[^1].Slot,
                     historical[^1].BookedAt, AppointmentDay.EndsAt(historical[^1].Slot.StartsAt)),
-                StaffWorklistStatus.CheckedIn => CheckedIn(fixture, historical[checkedIn++]),
+                StaffWorklistStatus.CheckedIn => CheckedIn(fixture, historical[examples.Contains(fixture.Id) ? example++ : checkedIn++]),
                 _ => new DevelopmentIntakeMoment(fixture, future[next++], anchor, null)
             });
         }).OrderBy(moment => moment.Slot.StartsAt).ThenBy(moment => moment.Fixture.Id)];
