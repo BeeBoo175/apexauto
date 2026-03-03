@@ -13,6 +13,8 @@ public enum DevelopmentInspectionStage
     RepairApproved,
     RepairCompleted,
     RepairSuperseded,
+    RepairScopeChanged,
+    RepairApprovalRetained,
     Reinspected
 }
 
@@ -22,6 +24,14 @@ public sealed record DevelopmentInspectionScenario(DevelopmentIntakeFixture Inta
     public Guid Id => Intake.Id;
 
     public Guid OperationId(string purpose) => DevelopmentInspectionScenarios.OperationId(Id, purpose);
+
+    public bool ReplacesRepair => Stage is DevelopmentInspectionStage.RepairSuperseded or
+        DevelopmentInspectionStage.RepairScopeChanged or DevelopmentInspectionStage.RepairApprovalRetained;
+
+    public bool ApprovesRepair => ReplacesRepair || Stage == DevelopmentInspectionStage.RepairApproved ||
+        Stage == DevelopmentInspectionStage.RepairCompleted && Budget > 0;
+
+    public bool CompletesRepair => Stage is DevelopmentInspectionStage.RepairCompleted or DevelopmentInspectionStage.RepairScopeChanged;
 
     public InspectionDraftSaveRequest Save(bool reinspection = false)
     {
@@ -37,11 +47,22 @@ public sealed record DevelopmentInspectionScenario(DevelopmentIntakeFixture Inta
     public InspectionSignRequest Sign(bool reinspection = false) =>
         new(OperationId(reinspection ? "sign-2" : "sign-1"), 1, reinspection ? 2 : 1, reinspection ? 2 : 1);
 
-    public InspectionRepairRequest Repair(bool replacement = false) =>
-        new(OperationId(replacement ? "repair-2" : "repair-1"), 1, 1, replacement ? 1 : 0,
-            [new(Entries.First(entry => entry.Kind == InspectionEntryKind.Finding).PointCode,
-                "Rectify the recorded defect and verify the affected component before release")],
-            replacement ? Budget + 150m : Budget);
+    public InspectionRepairRequest Repair(bool replacement = false)
+    {
+        var findings = Entries.Where(entry => entry.Kind == InspectionEntryKind.Finding);
+        var selected = replacement && Stage == DevelopmentInspectionStage.RepairScopeChanged ? findings : findings.Take(1);
+        var items = selected.Select(entry => new InspectionRepairItem(entry.PointCode,
+            "Rectify the recorded defect and verify the affected component before release")).ToArray();
+        var budget = replacement ? ReplacementBudget() : Budget;
+        return new(OperationId(replacement ? "repair-2" : "repair-1"), 1, 1, replacement ? 1 : 0, items, budget);
+    }
+
+    private decimal ReplacementBudget() => Stage switch
+    {
+        DevelopmentInspectionStage.RepairScopeChanged => Budget,
+        DevelopmentInspectionStage.RepairApprovalRetained => Budget - 50m,
+        _ => Budget + 150m
+    };
 
     public InspectionRepairApprovalRequest Approval() => new(OperationId("approval"), Repair().OperationId, 1, 1, 1);
 
@@ -101,7 +122,15 @@ public static class DevelopmentInspectionScenarios
             "Bumper preparation requires a revised budget after the first approved work estimate."), DevelopmentInspectionStage.RepairSuperseded, 750m),
         11 => new(intake, "Signed reinspection", Finding("EP-004", InspectionSeverity.MinorDefect, 750m,
             "Bumper damage recorded before the manager-authorized reinspection."), DevelopmentInspectionStage.Reinspected),
-        _ => throw new InvalidOperationException("Each branch requires exactly twelve inspection examples.")
+        12 => new(intake, "Changed repair scope after partial completion",
+            [.. Finding("EP-004", InspectionSeverity.MinorDefect, 750m, "Bumper finish requires repainting."),
+                new("EP-003", InspectionEntryKind.Finding, InspectionSeverity.MinorDefect, 0m,
+                    "Bonnet catch requires adjustment using existing workshop materials.")],
+            DevelopmentInspectionStage.RepairScopeChanged, 750m),
+        13 => new(intake, "Retained approval with lower budget", Finding("EP-004", InspectionSeverity.MinorDefect, 750m,
+            "Bumper refinish work is unchanged; the revised supplier estimate reduces the requested budget."),
+            DevelopmentInspectionStage.RepairApprovalRetained, 750m),
+        _ => throw new InvalidOperationException("The configured branch inspection example has no scenario.")
     };
 
     private static IReadOnlyList<InspectionDraftEntryInput> Finding(string point, InspectionSeverity severity,

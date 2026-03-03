@@ -35,6 +35,20 @@ public static class DevelopmentFixtureManifest
             "32 Persiaran Mahsuri, Bayan Lepas, Pulau Pinang"), VerifyEmail: true)
     ]);
 
+    public static IReadOnlyList<StaffProvisioningRequest> ReliefTechnicians { get; } = Array.AsReadOnly<StaffProvisioningRequest>(
+    [
+        new(Guid.Parse("71afccdb-f74c-44b1-a122-c33ae580d92f"), "farid.hakim@example.invalid",
+            Password, AccountRoles.WorkshopTechnician, Branches[0].Id),
+        new(Guid.Parse("d7d08a9c-2fc8-4b2b-b102-7bc31a572814"), "lee.jun.wei@example.invalid",
+            Password, AccountRoles.WorkshopTechnician, Branches[1].Id),
+        new(Guid.Parse("96e5687b-51ec-484d-8b3d-871173210b2d"), "amirul.izzat@example.invalid",
+            Password, AccountRoles.WorkshopTechnician, Branches[2].Id)
+    ]);
+
+    public static StaffProvisioningRequest PrimaryTechnician(Guid branchId) => Staff.Single(item =>
+        item.BranchId == branchId && item.Role == AccountRoles.WorkshopTechnician &&
+        !ReliefTechnicians.Any(relief => relief.Id == item.Id));
+
     public static IReadOnlyList<StaffProvisioningRequest> Staff { get; } = Array.AsReadOnly<StaffProvisioningRequest>(
     [
         new(Guid.Parse("d15eb7ab-de96-46fa-bd3c-057384244131"), "aina.sofia@example.invalid",
@@ -58,6 +72,7 @@ public static class DevelopmentFixtureManifest
         new(Guid.Parse("2fbe1418-c72f-4fb6-9aa8-672795212a1c"), "mohd.firdaus@example.invalid",
             Password, AccountRoles.WorkshopTechnician, Branches[2].Id),
         new(Guid.Parse("12d6d08e-921a-45e7-8c20-f37e8ca8b0e3"), "nur.syafiqah@example.invalid",
-            Password, AccountRoles.BranchManager, Branches[2].Id)
+            Password, AccountRoles.BranchManager, Branches[2].Id),
+        .. ReliefTechnicians
     ]);
 }

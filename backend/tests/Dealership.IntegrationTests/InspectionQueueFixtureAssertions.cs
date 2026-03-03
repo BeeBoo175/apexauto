@@ -16,14 +16,17 @@ internal static class InspectionQueueFixtureAssertions
         var database = services.GetRequiredService<DealershipDbContext>();
         var queues = services.GetRequiredService<IInspectionQueueStore>();
         var vehicles = await database.Vehicles.AsNoTracking().ToArrayAsync();
+        var drafts = await database.InspectionDrafts.AsNoTracking().ToArrayAsync();
+        var retainedApprovals = DevelopmentInspectionScenarios.All.Where(item => item.Stage == DevelopmentInspectionStage.RepairApprovalRetained)
+            .Select(item => item.Repair(true).OperationId).ToArray();
         var requests = await database.InspectionRepairRequests.AsNoTracking()
-            .Where(item => item.Budget > 0 &&
+            .Where(item => item.Budget > 0 && !retainedApprovals.Contains(item.Id) &&
                 database.InspectionDrafts.Any(draft => draft.Id == item.InspectionId && draft.IsSigned &&
                     draft.Revision == item.Revision && draft.RepairVersion == item.Version) &&
                 !database.InspectionRepairApprovals.Any(approval => approval.RequestId == item.Id))
             .ToArrayAsync();
-        Assert.Equal(195, vehicles.Length);
-        Assert.Equal(162, requests.Length);
+        Assert.Equal(201, vehicles.Length);
+        Assert.Equal(165, requests.Length);
         Assert.Contains(vehicles.GroupBy(item => item.CreatedAt), group => group.Count() == 3);
         foreach (var actor in DevelopmentFixtureManifest.Staff)
         {
@@ -36,7 +39,10 @@ internal static class InspectionQueueFixtureAssertions
                 continue;
             }
 
-            var expectedVehicles = vehicles.Where(item => actor.BranchId == null || item.BranchId == actor.BranchId)
+            var othersVehicles = drafts.Where(item => item.TechnicianId != actor.Id).Select(item => item.VehicleId).ToHashSet();
+            var assignedInspections = drafts.Where(item => item.TechnicianId == actor.Id).Select(item => item.Id).ToHashSet();
+            var expectedVehicles = vehicles.Where(item => (actor.BranchId == null || item.BranchId == actor.BranchId) &&
+                    (actor.Role != AccountRoles.WorkshopTechnician || !othersVehicles.Contains(item.Id)))
                 .OrderByDescending(item => item.CreatedAt).ThenByDescending(item => item.Id).Select(item => item.Id).ToArray();
             var actualVehicles = new List<Guid>();
             for (var page = 1; actualVehicles.Count < expectedVehicles.Length; page++)
@@ -49,9 +55,12 @@ internal static class InspectionQueueFixtureAssertions
             }
             Assert.Equal(expectedVehicles, actualVehicles);
 
-            var expectedRequests = requests.Where(item => actor.BranchId == null || item.BranchId == actor.BranchId)
+            var expectedRequests = requests.Where(item => (actor.BranchId == null || item.BranchId == actor.BranchId) &&
+                    (actor.Role != AccountRoles.WorkshopTechnician || assignedInspections.Contains(item.InspectionId)))
                 .OrderByDescending(item => item.RequestedAt).ThenByDescending(item => item.Id).Select(item => item.Id).ToArray();
             var actualRequests = new List<Guid>();
+            Assert.Equal(expectedRequests.Length, (await queues.RepairsAsync(actor.Id, new(),
+                InspectionRepairQueueStatus.PendingApproval, CancellationToken.None)).Queue!.Total);
             for (var page = 1; actualRequests.Count < expectedRequests.Length; page++)
             {
                 var result = await queues.RepairsAsync(actor.Id, new(Page: page), InspectionRepairQueueStatus.PendingApproval, CancellationToken.None);
@@ -78,9 +87,9 @@ internal static class InspectionQueueFixtureAssertions
                 continue;
             }
 
-            Assert.Equal(65, (await queues.InspectionsAsync(actor.Id, new(BranchId: selectedBranch),
+            Assert.Equal(67, (await queues.InspectionsAsync(actor.Id, new(BranchId: selectedBranch),
                 InspectionQueueStatus.All, CancellationToken.None)).Queue!.Total);
-            Assert.Equal(54, (await queues.RepairsAsync(actor.Id, new(BranchId: selectedBranch),
+            Assert.Equal(55, (await queues.RepairsAsync(actor.Id, new(BranchId: selectedBranch),
                 InspectionRepairQueueStatus.PendingApproval, CancellationToken.None)).Queue!.Total);
         }
     }

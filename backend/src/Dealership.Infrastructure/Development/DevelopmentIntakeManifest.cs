@@ -13,7 +13,7 @@ public static class DevelopmentIntakeManifest
 {
     public const int AppointmentsPerBranch = 41;
     public const int RepairRequestsPerBranch = 51;
-    public const int InspectionExamplesPerBranch = 12;
+    public const int InspectionExamplesPerBranch = 14;
     public const int BaselineTotalPerBranch = AppointmentsPerBranch + RepairRequestsPerBranch + 4;
     public const int CheckedInPerBranch = RepairRequestsPerBranch + 2 + InspectionExamplesPerBranch;
     public const int TotalPerBranch = AppointmentsPerBranch + CheckedInPerBranch + 2;

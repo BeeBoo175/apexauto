@@ -15,7 +15,7 @@ test("seeded inspections demonstrate grading, rejection, repairs and retained re
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page).toHaveURL(/\/dashboard\/inspection$/);
   const table = page.getByRole("table");
-  for (let number = 6296; number <= 6307; number++) {
+  for (let number = 6296; number <= 6309; number++) {
     await expect(
       table.getByRole("button", { name: `Open ${prefix} ${number}`, exact: true }),
     ).toBeVisible();
@@ -59,10 +59,49 @@ test("seeded inspections demonstrate grading, rejection, repairs and retained re
     { plate: 6301, status: "Completed" },
     { plate: 6306, status: "Pending Approval" },
     { plate: 6306, status: "Superseded" },
+    { plate: 6308, status: "Pending Approval" },
+    { plate: 6308, status: "Superseded" },
+    { plate: 6309, status: "Approved" },
   ];
   for (const repair of expectedRepairs) {
     const row = repairs.getByRole("row").filter({ hasText: `${prefix} ${repair.plate}` });
     await expect(row.getByText(repair.status, { exact: true })).toBeVisible();
   }
   await page.screenshot({ path: path.join(evidence, "seeded-repair-states.png") });
+  const historical = repairs
+    .getByRole("row")
+    .filter({ hasText: `${prefix} 6308` })
+    .filter({ hasText: "Superseded" });
+  await historical.getByRole("button", { name: `Open ${prefix} 6308`, exact: true }).click();
+  const retained = page.getByRole("dialog", { name: "Repair request", exact: true });
+  await expect(retained.getByText("Retained repair request", { exact: true })).toBeVisible();
+  await expect(retained.getByText(/This request is historical/)).toBeVisible();
+  await expect(
+    retained.getByText(/Recorded work completed and the affected component reinspected/),
+  ).toBeVisible();
+  await page.screenshot({ path: path.join(evidence, "seeded-retained-repair.png") });
+
+  await page.context().clearCookies();
+  await page.goto("/login");
+  await page
+    .getByLabel("Email", { exact: true })
+    .fill(mobile ? "nur.syafiqah@example.invalid" : "siti.aminah@example.invalid");
+  await page.getByLabel("Password", { exact: true }).fill("Password123!");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page).toHaveURL(/\/dashboard\/intake$/);
+  await page.goto("/dashboard/inspection");
+  await page.getByRole("button", { name: `Open ${prefix} 6296`, exact: true }).click();
+  await page.getByRole("button", { name: "Reassign technician", exact: true }).click();
+  const reassignment = page.getByRole("dialog", {
+    name: "Reassign unsigned inspection",
+    exact: true,
+  });
+  await reassignment.getByRole("button", { name: "Load technicians", exact: true }).click();
+  const choices = reassignment.getByLabel("Workshop technician", { exact: true });
+  await expect(choices.locator("option")).toHaveCount(3);
+  await expect(choices).toContainText(
+    mobile ? "amirul.izzat@example.invalid" : "farid.hakim@example.invalid",
+  );
+  await expect(reassignment.getByLabel("Assignment reason", { exact: true })).toBeVisible();
+  await page.screenshot({ path: path.join(evidence, "seeded-reassignment-choices.png") });
 });

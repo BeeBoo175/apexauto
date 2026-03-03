@@ -79,7 +79,7 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
             var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
             Assert.Equal(0, await database.IntakeAppointments.CountAsync());
             Assert.Equal(0, await database.IntakePhotos.CountAsync());
-            Assert.Equal(15, await database.Users.CountAsync());
+            Assert.Equal(18, await database.Users.CountAsync());
         }
 
         Assert.Equal(definitions, await ReadGuardsAsync());
@@ -92,6 +92,7 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
             Assert.Null(pending.AvailableAt);
         }
         await DevelopmentInspectionScenarioAssertions.SeedInterruptedRevisionAsync(provider);
+        await DevelopmentInspectionScenarioAssertions.SeedPartialRepairAsync(provider);
         await using var restarted = CreateProvider(connection, fault);
         var competing = await Task.WhenAll(SeedAsync(provider, target), SeedAsync(restarted, target));
         Assert.All(competing.SelectMany(reports => reports), report => Assert.False(report.RequiresAttention,

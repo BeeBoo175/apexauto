@@ -55,8 +55,7 @@ public sealed class DevelopmentInspectionScenarioFixtures(DealershipDbContext da
             return Report(scenario, "repair request missing/changed; preserved", true);
         }
 
-        if (scenario.Stage is DevelopmentInspectionStage.RepairApproved or DevelopmentInspectionStage.RepairSuperseded ||
-            scenario.Stage == DevelopmentInspectionStage.RepairCompleted && scenario.Budget > 0)
+        if (scenario.ApprovesRepair)
         {
             if (!await ApproveAsync(seed, scenario, managerId, cancellationToken))
             {
@@ -64,13 +63,13 @@ public sealed class DevelopmentInspectionScenarioFixtures(DealershipDbContext da
             }
         }
 
-        if (scenario.Stage == DevelopmentInspectionStage.RepairCompleted &&
+        if (scenario.CompletesRepair &&
             !await CompleteAsync(seed, scenario, technicianId, cancellationToken))
         {
             return Report(scenario, "completion missing/changed; preserved", true);
         }
 
-        if (scenario.Stage == DevelopmentInspectionStage.RepairSuperseded &&
+        if (scenario.ReplacesRepair &&
             !await RepairAsync(seed, scenario.Id, technicianId, scenario.Repair(true), cancellationToken))
         {
             return Report(scenario, "replacement request missing/changed; preserved", true);
@@ -98,19 +97,19 @@ public sealed class DevelopmentInspectionScenarioFixtures(DealershipDbContext da
             ids.AddRange([scenario.Reopening().OperationId, scenario.Save(true).OperationId, scenario.Sign(true).OperationId]);
         }
         if (scenario.Stage is DevelopmentInspectionStage.RepairRequested or DevelopmentInspectionStage.RepairApproved or
-            DevelopmentInspectionStage.RepairCompleted or DevelopmentInspectionStage.RepairSuperseded)
+            DevelopmentInspectionStage.RepairCompleted || scenario.ReplacesRepair)
         {
             ids.Add(scenario.Repair().OperationId);
         }
-        if (scenario.Stage is DevelopmentInspectionStage.RepairApproved or DevelopmentInspectionStage.RepairSuperseded)
+        if (scenario.ApprovesRepair)
         {
             ids.Add(scenario.Approval().OperationId);
         }
-        if (scenario.Stage == DevelopmentInspectionStage.RepairCompleted)
+        if (scenario.CompletesRepair)
         {
             ids.Add(scenario.Completion().OperationId);
         }
-        if (scenario.Stage == DevelopmentInspectionStage.RepairSuperseded)
+        if (scenario.ReplacesRepair)
         {
             ids.Add(scenario.Repair(true).OperationId);
         }
@@ -144,7 +143,7 @@ public sealed class DevelopmentInspectionScenarioFixtures(DealershipDbContext da
         if (existing is not null)
         {
             var entries = request.Entries!.Select(entry => new InspectionDraftEntry(entry.PointCode, entry.Kind,
-                entry.Severity, entry.EstimatedRepairCost, entry.Notes)).ToArray();
+                entry.Severity, entry.EstimatedRepairCost, entry.Notes)).OrderBy(entry => entry.PointCode, StringComparer.Ordinal).ToArray();
             return existing.Receipt().Matches(technicianId, id, request, entries);
         }
 

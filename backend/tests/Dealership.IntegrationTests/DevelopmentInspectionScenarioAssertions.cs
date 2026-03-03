@@ -47,13 +47,19 @@ internal static class DevelopmentInspectionScenarioAssertions
             (null, VehicleStatus.Rejected),
             (null, VehicleStatus.Rejected),
             (InspectionGrade.B, VehicleStatus.PendingInspection),
-            (InspectionGrade.A, VehicleStatus.Available)
+            (InspectionGrade.A, VehicleStatus.Available),
+            (InspectionGrade.B, VehicleStatus.PendingInspection),
+            (InspectionGrade.B, VehicleStatus.PendingInspection)
         ];
 
         foreach (var branch in DevelopmentInspectionScenarios.All.GroupBy(item => item.Intake.BranchId))
         {
             var scenarios = branch.ToArray();
-            Assert.Equal(12, scenarios.Length);
+            Assert.Equal(14, scenarios.Length);
+            var manager = DevelopmentFixtureManifest.Staff.Single(item => item.BranchId == branch.Key && item.Role == AccountRoles.BranchManager);
+            var choices = await services.GetRequiredService<IInspectionAssignmentStore>().TechniciansAsync(manager.Id, 1, 25, CancellationToken.None);
+            Assert.Equal(2, choices.Technicians!.Total);
+            Assert.Contains(choices.Technicians.Items, item => item.Id == DevelopmentFixtureManifest.ReliefTechnicians.Single(relief => relief.BranchId == branch.Key).Id);
             for (var index = 0; index < scenarios.Length; index++)
             {
                 var scenario = scenarios[index];
@@ -100,6 +106,7 @@ internal static class DevelopmentInspectionScenarioAssertions
                 InspectionRepairQueueStatus.All, CancellationToken.None);
             Assert.Equal(InspectionRepairQueueStatus.Approved, Assert.Single(approved.Queue!.Items).Status);
             await VerifyRetainedHistoryAsync(services, scenarios[10], scenarios[11]);
+            await VerifyRepairScopeAsync(services, scenarios[12], scenarios[13]);
         }
 
         var snapshot = await DevelopmentIntakeFixtureAssertions.SnapshotAsync(provider);
@@ -148,6 +155,57 @@ internal static class DevelopmentInspectionScenarioAssertions
         Assert.Equal(InspectionGrade.A, Assert.Single(history.History.Items, revision => revision.Revision == 2).Assessment.Grade);
     }
 
-    private static Guid Technician(DevelopmentInspectionScenario scenario) => DevelopmentFixtureManifest.Staff.Single(item =>
-        item.BranchId == scenario.Intake.BranchId && item.Role == AccountRoles.WorkshopTechnician).Id;
+    public static async Task SeedPartialRepairAsync(IServiceProvider provider)
+    {
+        using var scope = provider.CreateScope();
+        var services = scope.ServiceProvider;
+        var scenario = DevelopmentInspectionScenarios.All.First(item => item.Stage == DevelopmentInspectionStage.RepairScopeChanged);
+        var technician = Technician(scenario);
+        var manager = DevelopmentFixtureManifest.Staff.Single(item => item.BranchId == scenario.Intake.BranchId && item.Role == AccountRoles.BranchManager);
+        var database = services.GetRequiredService<DealershipDbContext>();
+        var vehicleId = await database.Vehicles.Where(item => item.IntakeAppointmentId == scenario.Id).Select(item => item.Id).SingleAsync();
+        Assert.Equal(InspectionAssignmentStatus.Succeeded, (await services.GetRequiredService<InspectionAssignmentService>()
+            .AssignAsync(technician, vehicleId, new(scenario.Id, technician, 0, null), CancellationToken.None)).Status);
+        Assert.Equal(InspectionAssignmentStatus.Succeeded, (await services.GetRequiredService<InspectionDraftSaveService>()
+            .SaveAsync(technician, scenario.Id, scenario.Save(), CancellationToken.None)).Status);
+        Assert.Equal(InspectionAssignmentStatus.Succeeded, (await services.GetRequiredService<InspectionSignoffService>()
+            .SignAsync(technician, scenario.Id, scenario.Sign(), CancellationToken.None)).Status);
+        Assert.Equal(InspectionAssignmentStatus.Succeeded, (await services.GetRequiredService<InspectionRepairRequestService>()
+            .RequestAsync(technician, scenario.Id, scenario.Repair(), CancellationToken.None)).Status);
+        Assert.Equal(InspectionAssignmentStatus.Succeeded, (await services.GetRequiredService<InspectionRepairApprovalService>()
+            .ApproveAsync(manager.Id, scenario.Id, scenario.Approval(), CancellationToken.None)).Status);
+        Assert.Equal(InspectionAssignmentStatus.Succeeded, (await services.GetRequiredService<InspectionRepairCompletionService>()
+            .CompleteAsync(technician, scenario.Id, scenario.Completion(), CancellationToken.None)).Status);
+        Assert.Equal(VehicleStatus.PendingInspection, (await database.Vehicles.AsNoTracking().SingleAsync(item => item.Id == vehicleId)).Status);
+    }
+
+    private static async Task VerifyRepairScopeAsync(IServiceProvider services, DevelopmentInspectionScenario changed,
+        DevelopmentInspectionScenario retained)
+    {
+        var queues = services.GetRequiredService<IInspectionQueueStore>();
+        var technician = Technician(changed);
+        var scope = await queues.RepairsAsync(technician, new(Search: changed.Intake.RegistrationPlate),
+            InspectionRepairQueueStatus.All, CancellationToken.None);
+        Assert.Equal(2, scope.Queue!.Total);
+        var latest = Assert.Single(scope.Queue.Items, item => item.RepairVersion == 2);
+        Assert.Equal(750m, latest.Budget);
+        Assert.Equal(InspectionRepairQueueStatus.PendingApproval, latest.Status);
+        Assert.Null(latest.CoveringApprovalId);
+        var partial = Assert.Single(scope.Queue.Items, item => item.RepairVersion == 1);
+        Assert.Equal(InspectionRepairQueueStatus.Superseded, partial.Status);
+        Assert.NotNull(partial.CompletionId);
+        var work = await services.GetRequiredService<IInspectionHistoryStore>().RepairsAsync(technician, changed.Id, 1, new(), CancellationToken.None);
+        Assert.Equal(2, Assert.Single(work.History!.Items, item => item.Request.Version == 2).Request.Items.Count);
+
+        var reuse = await queues.RepairsAsync(technician, new(Search: retained.Intake.RegistrationPlate),
+            InspectionRepairQueueStatus.All, CancellationToken.None);
+        var revised = Assert.Single(reuse.Queue!.Items, item => item.RepairVersion == 2);
+        Assert.Equal(700m, revised.Budget);
+        Assert.Equal(InspectionRepairQueueStatus.Approved, revised.Status);
+        Assert.Null(revised.ApprovalId);
+        Assert.Equal(retained.Approval().OperationId, revised.CoveringApprovalId);
+    }
+
+    private static Guid Technician(DevelopmentInspectionScenario scenario) =>
+        DevelopmentFixtureManifest.PrimaryTechnician(scenario.Intake.BranchId).Id;
 }
