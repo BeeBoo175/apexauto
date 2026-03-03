@@ -1,19 +1,19 @@
 .info {
-  --status-background: #e8edfd;
+  --status-background: #cbdcff;
   --status-foreground: #253c9a;
-  --status-border: #cbd6f6;
+  --status-border: #6d8fd0;
 }
 
 .success {
-  --status-background: #e7f2ec;
+  --status-background: #c8e6d3;
   --status-foreground: #145c44;
-  --status-border: #bddbc9;
+  --status-border: #659b79;
 }
 
 .neutral {
-  --status-background: #edf1f5;
+  --status-background: #d5dce6;
   --status-foreground: #465162;
-  --status-border: #d5dde6;
+  --status-border: #8492a6;
 }
 
 .badge {

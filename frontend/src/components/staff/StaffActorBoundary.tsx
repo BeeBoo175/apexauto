@@ -14,9 +14,11 @@ import { LoadingProgress, LoadingProgressReady } from "@/components/ui/LoadingPr
 
 export const StaffActorContext = createContext<CurrentActor | null>(null);
 export const StaffNavigationLockContext = createContext<RefObject<boolean> | null>(null);
+export const StaffPageEntranceContext = createContext(false);
 export const StaffNavigationContext = createContext<{
   pendingPath: string | null;
   historyPath: string | null;
+  entryPath: string | null;
   completeHistory: () => void;
   recordNavigation: (href: string) => void;
 } | null>(null);
@@ -72,9 +74,9 @@ export function StaffActorBoundary({
     return <LoadingProgress label="Checking workspace" />;
   }
   return (
-    <>
+    <StaffPageEntranceContext.Provider value={navigation?.entryPath === path}>
       <LoadingProgressReady />
       {children}
-    </>
+    </StaffPageEntranceContext.Provider>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 import { Dialog } from "@/components/ui/Dialog";
 import type { DataColumn } from "@/components/ui/data-table/types";
 import { useInspectionQueue } from "@/hooks/use-inspection-queue";
@@ -18,6 +19,7 @@ import { InspectionDrawer } from "./InspectionDrawer";
 import { useInspectionDrawer } from "@/hooks/use-inspection-drawer";
 import type { EditorSnapshot } from "@/lib/inspection/editor-snapshot";
 import styles from "@/components/staff/IntakeWorklist.module.css";
+import tones from "@/components/ui/StatusTone.module.css";
 
 export function InspectionQueue({
   actor,
@@ -101,7 +103,11 @@ export function InspectionQueue({
       id: "saleStatus",
       label: "Vehicle status",
       minWidth: 150,
-      cell: (r) => label(r.vehicleStatus),
+      cell: (r) => (
+        <Badge className={`${tones.badge} ${tones.info}`}>
+          {label(r.vehicleStatus)}
+        </Badge>
+      ),
     },
     {
       id: "action",

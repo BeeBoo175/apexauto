@@ -10,6 +10,7 @@ export function useStaffNavigation() {
   const confirmed = useRef<{ href: string; state: unknown } | null>(null);
   const previousPath = useRef(pathname);
   const [historyPath, setHistoryPath] = useState<string | null>(null);
+  const [entryPath, setEntryPath] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [selectedPath, selectPath] = useOptimistic(pathname);
 
@@ -18,7 +19,9 @@ export function useStaffNavigation() {
   }, []);
 
   const recordNavigation = useCallback((href: string) => {
-    previousPath.current = new URL(href, window.location.origin).pathname;
+    const destination = new URL(href, window.location.origin).pathname;
+    setEntryPath(destination === window.location.pathname ? null : destination);
+    previousPath.current = destination;
   }, []);
 
   useEffect(() => {
@@ -32,6 +35,7 @@ export function useStaffNavigation() {
         return;
       }
       if (previousPath.current !== window.location.pathname) {
+        setEntryPath(window.location.pathname);
         setHistoryPath(window.location.pathname);
       }
       previousPath.current = window.location.pathname;
@@ -64,6 +68,7 @@ export function useStaffNavigation() {
     captureHistory,
     recordNavigation,
     historyPath,
+    entryPath,
     completeHistory: () => setHistoryPath(null),
   };
 }

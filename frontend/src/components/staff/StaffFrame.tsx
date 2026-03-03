@@ -40,6 +40,7 @@ export function StaffFrame({ actor, children }: { actor?: CurrentActor; children
         pendingPath:
           navigation.selectedPath === navigation.pathname ? null : navigation.selectedPath,
         historyPath: navigation.historyPath,
+        entryPath: navigation.entryPath,
         completeHistory: navigation.completeHistory,
         recordNavigation: navigation.recordNavigation,
       }}

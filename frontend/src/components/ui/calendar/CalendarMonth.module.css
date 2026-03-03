@@ -138,12 +138,6 @@
   font-weight: 700;
 }
 
-.date[data-selected]:not([data-today]) .dayNumber {
-  background: var(--color-selected-surface, var(--color-canvas));
-  box-shadow: inset 0 0 0 1px var(--color-interaction-border, var(--color-graphite));
-  font-weight: 700;
-}
-
 .events {
   display: grid;
   gap: 4px;

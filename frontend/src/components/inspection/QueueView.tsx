@@ -1,5 +1,5 @@
 "use client";
-import type { ReactNode } from "react";
+import { useContext, type ReactNode } from "react";
 import { DataTable } from "@/components/ui/data-table/DataTable";
 import { DataTableWorkspace } from "@/components/ui/data-table/DataTableWorkspace";
 import { DataTablePagination } from "@/components/ui/data-table/DataTablePagination";
@@ -14,6 +14,7 @@ import { RefreshButton } from "@/components/ui/RefreshButton";
 import { Button } from "@/components/ui/Button";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { StaffCommandBar } from "@/components/staff/StaffPage";
+import { StaffPageEntranceContext } from "@/components/staff/StaffActorBoundary";
 import { AppliedWorklistFilters } from "@/components/staff/AppliedWorklistFilters";
 import { appliedWorklistFilters } from "@/lib/staff/filter-summary";
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
@@ -53,6 +54,7 @@ export function QueueView<T>({
   children?: ReactNode;
   disabled?: boolean;
 }) {
+  const animateEntry = useContext(StaffPageEntranceContext);
   const title = kind === "vehicles" ? "Inspections" : "Repair requests";
   const { snapshot, active } = state;
   const selection = useRowSelection(
@@ -105,7 +107,7 @@ export function QueueView<T>({
         }
       />
       <div
-        className={`${styles.page} ${workspace.reveal}`}
+        className={`${styles.page} ${animateEntry ? workspace.reveal : ""}`}
         aria-busy={state.busy}
         inert={!state.ready || disabled}
       >

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useContext, useState } from "react";
 import {
   useIntakeWorkspace,
   type IntakeWorkspaceSnapshot,
@@ -13,6 +13,7 @@ import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { IntakeViewNavigation } from "./IntakeViewNavigation";
 import { IntakeAppointmentDrawer } from "./IntakeAppointmentDrawer";
 import { StaffCommandBar } from "./StaffPage";
+import { StaffPageEntranceContext } from "./StaffActorBoundary";
 import styles from "./IntakeWorkspace.module.css";
 import layout from "./StaffWorkspace.module.css";
 
@@ -32,6 +33,7 @@ export function IntakeWorkspace(props: Props) {
 }
 
 function Workspace({ actor, today, initial, initialView }: Props) {
+  const animateEntry = useContext(StaffPageEntranceContext);
   const workspace = useIntakeWorkspace(initial, initialView);
   const { view, content, pending, busy, calendar, worklist, drawer, destinations } = workspace;
   useInitialToast(
@@ -82,8 +84,7 @@ function Workspace({ actor, today, initial, initialView }: Props) {
         </p>
       )}
       <div
-        key={view}
-        className={`${styles.content} ${layout.reveal}`}
+        className={`${styles.content} ${animateEntry ? layout.reveal : ""}`}
         inert={Boolean(pending)}
         aria-busy={Boolean(pending)}
       >
