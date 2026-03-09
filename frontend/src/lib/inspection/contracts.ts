@@ -103,7 +103,7 @@ export type RepairRow = {
   completionId: string | null;
   status: (typeof repairStatuses)[number];
 };
-export type QueueKind = "vehicles" | "repair-requests";
+export type QueueKind = "vehicles" | "repair-requests" | "workshop";
 export type QueueFilters = {
   search: string;
   status: string;
@@ -111,6 +111,8 @@ export type QueueFilters = {
   from: string;
   to: string;
   pageSize: number;
+  sort?: string;
+  direction?: "asc" | "desc";
 };
 export type Technician = { id: string; identity: string };
 export function hasInspectionAccess(actor: CurrentActor) {

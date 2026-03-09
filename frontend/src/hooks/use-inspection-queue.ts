@@ -8,9 +8,20 @@ import { parseBranch } from "@/lib/branches";
 import { parsePage } from "@/lib/api";
 import { apiFetch } from "@/lib/api-browser";
 import type { QueueFilters, QueueKind } from "@/lib/inspection/contracts";
-import { queuePath, queueQuery } from "@/lib/inspection/query";
+import { queueLocationQuery, queuePath, queueQuery } from "@/lib/inspection/query";
+import type { TechnicianTask } from "@/lib/inspection/workshop-contracts";
 import { useToast } from "@/components/ui/Toast";
 import { useInitialToast } from "./use-initial-toast";
+import type { TableSort } from "@/components/ui/data-table/types";
+
+function initialSort(filters: QueueFilters): TableSort | null {
+  const column = filters.sort ?? "since";
+  const direction = filters.direction ?? "desc";
+  if (column === "since" && direction === "desc") {
+    return null;
+  }
+  return { column, direction };
+}
 
 export function useInspectionQueue<T>(
   kind: QueueKind,
@@ -19,9 +30,10 @@ export function useInspectionQueue<T>(
   page: number,
   initialBranches: Page<Branch> | null,
   parse: (v: unknown) => Page<T> | null,
+  scope?: TechnicianTask,
 ) {
   const [snapshot, setSnapshot] = useState(initial.data);
-  const [active, setActive] = useState({ filters, page });
+  const [active, setActive] = useState({ filters, page, sort: initialSort(filters) });
   const [draft, setDraft] = useState(filters);
   const [branches, setBranches] = useState(initialBranches);
   const [busy, setBusy] = useState(false);
@@ -32,7 +44,7 @@ export function useInspectionQueue<T>(
     setEntry(initial);
     if (initial.data) {
       setSnapshot(initial.data);
-      setActive({ filters, page });
+      setActive({ filters, page, sort: initialSort(filters) });
       setDraft(filters);
       setRevision((value) => value + 1);
     }
@@ -45,13 +57,18 @@ export function useInspectionQueue<T>(
     return () => controller.current?.abort();
   }, []);
 
-  function refresh() {
+  function refresh(notifyFailure = true) {
     controller.current?.abort();
     controller.current = null;
-    return load();
+    return load(active.filters, active.page, undefined, notifyFailure);
   }
 
-  async function load(nextFilters = active.filters, nextPage = active.page) {
+  async function load(
+    nextFilters = active.filters,
+    nextPage = active.page,
+    selectedSort?: TableSort | null,
+    notifyFailure = true,
+  ) {
     if (controller.current) {
       return;
     }
@@ -61,6 +78,9 @@ export function useInspectionQueue<T>(
       return;
     }
     const attempt = new AbortController();
+    if (scope) {
+      nextFilters = { ...nextFilters, status: scope };
+    }
     const submittedDraft = draft;
     controller.current = attempt;
     setBusy(true);
@@ -81,24 +101,31 @@ export function useInspectionQueue<T>(
       }
       setSnapshot(result.data);
       setRevision((value) => value + 1);
-      setActive({ filters: nextFilters, page: nextPage });
-      setDraft((current) => (current === submittedDraft ? nextFilters : current));
-      const query = new URLSearchParams(queueQuery(nextFilters, nextPage));
-      const current = new URL(window.location.href);
-      for (const name of ["inspection", "request", "revision"]) {
-        const value = current.searchParams.get(name);
-        if (value) {
-          query.set(name, value);
-        }
+      let sort = selectedSort;
+      if (sort === undefined) {
+        const sameOrder =
+          nextFilters.sort === active.filters.sort &&
+          nextFilters.direction === active.filters.direction;
+        sort = sameOrder ? active.sort : initialSort(nextFilters);
       }
+      setActive({ filters: nextFilters, page: nextPage, sort });
+      setDraft((current) => {
+        if (current === submittedDraft) {
+          return nextFilters;
+        }
+        return { ...current, sort: nextFilters.sort, direction: nextFilters.direction };
+      });
+      const current = new URL(window.location.href);
+      const query = queueLocationQuery(current.searchParams, nextFilters, nextPage, scope);
       window.history.replaceState(null, "", `${queuePath(kind)}?${query}`);
       return true;
     } catch {
-      if (!attempt.signal.aborted) {
+      if (!attempt.signal.aborted && notifyFailure) {
         toast.error(
           "The queue could not be refreshed. The last confirmed rows and filters remain shown.",
         );
       }
+      return false;
     } finally {
       if (!attempt.signal.aborted) {
         setBusy(false);
