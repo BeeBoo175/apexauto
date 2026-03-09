@@ -1,0 +1,101 @@
+.history {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding-top: 20px;
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.heading h2 {
+  font-size: 16px;
+}
+
+.heading p {
+  margin-top: 8px;
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.heading > span {
+  flex-shrink: 0;
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.timeline {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline > li {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  padding: 20px;
+  border-left: 1px solid var(--color-line);
+}
+
+.timeline > li::before {
+  position: absolute;
+  top: 24px;
+  left: -4px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-interaction-border);
+  content: "";
+}
+
+.timeline time,
+.actor,
+.reference {
+  color: var(--color-muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.timeline strong {
+  font-size: 13px;
+}
+
+.timeline summary {
+  width: fit-content;
+  padding-block: 8px;
+  color: var(--color-interaction-border);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.timeline summary:focus-visible {
+  outline: 2px solid var(--color-interaction-border);
+  outline-offset: 2px;
+}
+
+.timeline details p {
+  margin-block: 8px 12px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.timeline a {
+  color: var(--color-interaction-border);
+  font-size: 13px;
+  text-underline-offset: 4px;
+}
+
+.paging {
+  border-top: 1px solid var(--color-line);
+}
+
+.paging h3 {
+  padding-block: 16px 4px;
+  color: var(--color-muted);
+  font-size: 12px;
+}

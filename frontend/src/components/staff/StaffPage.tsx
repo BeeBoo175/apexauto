@@ -11,7 +11,7 @@ import styles from "./Staff.module.css";
 
 const titles: Record<string, string> = {
   "/dashboard/intake": "Intake appointments",
-  "/dashboard/inspection": "Inspections",
+  "/dashboard/inspection": "Workshop",
   "/dashboard/inspection/repairs": "Repair requests",
 };
 

@@ -113,15 +113,8 @@ export function StaffFrame({ actor, children }: { actor?: CurrentActor; children
                   [
                     {
                       href: "/dashboard/inspection",
-                      title: "Inspections",
-                      active:
-                        navigation.selectedPath.startsWith("/dashboard/inspection") &&
-                        navigation.selectedPath !== "/dashboard/inspection/repairs",
-                    },
-                    {
-                      href: "/dashboard/inspection/repairs",
-                      title: "Repair requests",
-                      active: navigation.selectedPath === "/dashboard/inspection/repairs",
+                      title: "Workshop",
+                      active: navigation.selectedPath.startsWith("/dashboard/inspection"),
                     },
                   ].map((item) => (
                     <StaffLink

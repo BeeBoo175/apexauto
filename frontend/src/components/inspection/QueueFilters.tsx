@@ -2,14 +2,13 @@ import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Input";
 import { FilterSection } from "@/components/ui/FilterSection";
 import { FilterChoices } from "@/components/ui/FilterChoices";
-import { inspectionStatuses, repairStatuses, label } from "@/lib/inspection/contracts";
-import type { QueueFilters as Filters, QueueKind } from "@/lib/inspection/contracts";
+import { workshopTasks, workshopTaskLabel } from "@/lib/inspection/workshop-contracts";
+import type { QueueFilters as Filters } from "@/lib/inspection/contracts";
 import type { Branch } from "@/lib/branches";
 import type { Page } from "@/lib/api";
 import styles from "@/components/staff/WorklistFilters.module.css";
 
 export function QueueFilters({
-  kind,
   draft,
   onDraft,
   apply,
@@ -18,7 +17,6 @@ export function QueueFilters({
   branches,
   loadBranches,
 }: {
-  kind: QueueKind;
   draft: Filters;
   onDraft: (v: Filters) => void;
   apply: (v: Filters) => Promise<boolean | undefined>;
@@ -27,7 +25,6 @@ export function QueueFilters({
   branches: Page<Branch> | null;
   loadBranches: (page: number) => void;
 }) {
-  const statuses = kind === "vehicles" ? inspectionStatuses : repairStatuses;
   return (
     <form
       className={styles.filters}
@@ -40,7 +37,7 @@ export function QueueFilters({
         }
       }}
     >
-      <FilterSection title={kind === "vehicles" ? "Check-in dates" : "Request dates"}>
+      <FilterSection title="Work dates">
         <div className={styles.dateRangeInputs}>
           <Input
             label="From"
@@ -60,10 +57,10 @@ export function QueueFilters({
           />
         </div>
       </FilterSection>
-      <FilterSection title={group ? "Status & branch" : "Status"}>
+      <FilterSection title={group ? "Task & branch" : "Task"}>
         <FilterChoices
-          label="Status"
-          options={statuses.map((value) => ({ value, label: label(value) }))}
+          label="Task"
+          options={workshopTasks.map((value) => ({ value, label: workshopTaskLabel(value) }))}
           value={draft.status}
           disabled={busy}
           onChange={(status) => onDraft({ ...draft, status })}
@@ -122,6 +119,7 @@ export function QueueFilters({
         )}
       </FilterSection>
       <p className={styles.help}>
+        Work date is the current request date, or check-in date when there is no current request.{" "}
         Inclusive Malaysian dates, up to 366 days. Leave both empty for all history.
       </p>
       <div className={styles.footer}>

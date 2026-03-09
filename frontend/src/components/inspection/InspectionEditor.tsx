@@ -1,27 +1,32 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { StaffLink } from "@/components/staff/StaffLink";
 import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import { Dialog } from "@/components/ui/Dialog";
 import { useInspectionEditor } from "@/hooks/use-inspection-editor";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { ApiResult, Page } from "@/lib/api";
 import type { Technician } from "@/lib/inspection/contracts";
-import { label, assessmentLabel } from "@/lib/inspection/contracts";
 import type { EditorSnapshot } from "@/lib/inspection/editor-snapshot";
-import { formatCurrency } from "@/lib/currency-format";
+import type { SelectedRepairReview } from "@/lib/inspection/repair-review";
+import { InspectionRecord, InspectionDetails } from "./InspectionRecord";
+import { InspectionActions } from "./InspectionActions";
 import { InspectionChecklist } from "./InspectionChecklist";
 import { ManagerActions } from "./ManagerActions";
 import { RepairPanel } from "./RepairPanel";
-import { RevisionHistoryView } from "./InspectionHistory";
+import { InspectionTimeline } from "./InspectionTimeline";
 import { RetainedRepairReview } from "./RetainedRepairReview";
-import type { RepairSelection } from "@/hooks/use-inspection-drawer";
+import type { RepairSelection, WorkshopSection } from "@/lib/inspection/query";
 import styles from "./Inspection.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
-import tones from "@/components/ui/StatusTone.module.css";
+import workshop from "./Workshop.module.css";
+
+const sectionLabels: Record<WorkshopSection, string> = {
+  inspection: "Inspection",
+  repairs: "Repairs",
+  history: "History",
+};
 
 export function InspectionEditor({
   id,
@@ -29,31 +34,45 @@ export function InspectionEditor({
   initial,
   technicians,
   actionsContainer,
-  repairsOnly = false,
+  section,
+  onSection,
+  onReview,
   onLocked,
   onChanged,
   selectedRequest = null,
+  selectedReview = null,
 }: {
   id: string;
   actor: CurrentActor;
   initial: ApiResult<EditorSnapshot>;
   technicians: Page<Technician> | null;
   actionsContainer?: HTMLElement | null;
-  repairsOnly?: boolean;
+  section: WorkshopSection;
+  onSection: (section: WorkshopSection) => void;
+  onReview: (request: RepairSelection | null) => void;
   onLocked?: (locked: boolean) => void;
   onChanged?: () => void;
   selectedRequest?: RepairSelection | null;
+  selectedReview?: SelectedRepairReview | null;
 }) {
   const editor = useInspectionEditor(id, actor, initial, onChanged);
   const [confirm, setConfirm] = useState<"sign" | "discard" | null>(null);
+  const [footerActions, setFooterActions] = useState<HTMLDivElement | null>(null);
   const { snapshot, base } = editor;
+  const previousSigned = useRef(snapshot?.draft.isSigned);
+  useEffect(() => {
+    const signed = snapshot?.draft.isSigned;
+    if (previousSigned.current === false && signed && actor.role === "WorkshopTechnician") {
+      onReview(null);
+    }
+    previousSigned.current = signed;
+  }, [snapshot?.draft.isSigned, actor.role, onReview]);
   const disabled = !editor.ready || editor.operating || editor.refreshing || editor.confirmed;
-  const attested = Boolean(base?.latestSave?.examinedPointCodes);
   const locked = editor.dirty || editor.operating || editor.refreshing;
   const historical =
-    repairsOnly &&
     selectedRequest &&
-    selectedRequest.requestId !== snapshot?.repairState?.requestId;
+    (selectedRequest.requestId !== snapshot?.repairState?.requestId ||
+      selectedRequest.revision !== snapshot?.draft.revision);
   useEffect(() => {
     onLocked?.(locked);
     return () => onLocked?.(false);
@@ -61,7 +80,7 @@ export function InspectionEditor({
   return (
     <>
       {actionsContainer &&
-        !historical &&
+        !(historical && section === "repairs") &&
         createPortal(
           <RefreshButton
             label="Refresh inspection"
@@ -71,7 +90,7 @@ export function InspectionEditor({
           />,
           actionsContainer,
         )}
-      <div className={styles.workspace} inert={!editor.ready}>
+      <div className={workshop.workspace} inert={!editor.ready}>
         {!snapshot && (
           <section className={workbench.protocol}>
             <p>
@@ -89,190 +108,103 @@ export function InspectionEditor({
         )}
         {snapshot && base && (
           <>
-            <section className={workbench.workbench} aria-label="Vehicle and confirmed assessment">
-              <div className={workbench.recordHeading}>
-                <strong>{snapshot.draft.vehicle.registrationPlate}</strong>
-                <Badge className={`${tones.badge} ${tones.info}`}>
-                  {label(snapshot.draft.vehicle.status)}
-                </Badge>
-              </div>
-              <dl className={workbench.details}>
-                <div>
-                  <dt>Branch</dt>
-                  <dd>{snapshot.draft.vehicle.branchName}</dd>
-                </div>
-                <div>
-                  <dt>Vehicle</dt>
-                  <dd>
-                    {snapshot.draft.vehicle.make} {snapshot.draft.vehicle.model}
-                  </dd>
-                </div>
-                <div>
-                  <dt>VIN</dt>
-                  <dd className={workbench.reference}>{snapshot.draft.vehicle.vin}</dd>
-                </div>
-                <div>
-                  <dt>Revision</dt>
-                  <dd>
-                    {snapshot.draft.revision} · {snapshot.draft.isSigned ? "Signed" : "Draft"}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Mileage</dt>
-                  <dd>{snapshot.draft.vehicle.mileageKilometres.toLocaleString("en-MY")} km</dd>
-                </div>
-                <div>
-                  <dt>Saved assessment</dt>
-                  <dd>
-                    {snapshot.draft.latestSave
-                      ? `${assessmentLabel(snapshot.draft.latestSave.assessment)} · ${formatCurrency(snapshot.draft.latestSave.assessment.estimatedRepairCost)}`
-                      : "No saved assessment"}
-                  </dd>
-                </div>
-              </dl>
-              {snapshot.report && (
-                <StaffLink
-                  prefetch={false}
-                  target="_blank"
-                  rel="noopener"
-                  href={`/dashboard/inspection/${id}/reports/${snapshot.report.revision}`}
+            <InspectionRecord
+              id={id}
+              editor={editor}
+              section={section}
+              historical={Boolean(historical)}
+            />
+            <nav className={workshop.sections} aria-label="Workshop sections">
+              {(["inspection", "repairs", "history"] as const).map((value) => (
+                <Button
+                  key={value}
+                  size="compact"
+                  variant="ghost"
+                  className={workshop.sectionButton}
+                  aria-pressed={section === value}
+                  disabled={editor.operating}
+                  onClick={() => onSection(value)}
                 >
-                  Open signed report · revision {snapshot.report.revision}
-                </StaffLink>
-              )}
-              {editor.dirty && (
-                <p className={styles.help}>
-                  Unsaved changes. Save or discard your draft before leaving. The assessment above
-                  is the last backend-confirmed save.
-                </p>
-              )}
-              {editor.stale && (
-                <p role="alert">
-                  A newer assignment, save or revision is available. Your draft remains retained.
-                  Discard it to load the confirmed checklist before editing again.
-                </p>
-              )}
-              {editor.confirmed && (
-                <p role="alert">
-                  The action was confirmed, but the latest inspection read is unavailable. Refresh
-                  before another action.
-                </p>
-              )}
-              {editor.pendingSnapshot && (
-                <p role="status">
-                  Fresh inspection data is available. Local form drafts remain retained. Finish or
-                  discard them to use the fresh snapshot.
-                </p>
-              )}
-              {editor.save.uncertain && (
-                <p role="alert">
-                  Save is unconfirmed. Reconcile the exact captured checklist and operation.
-                </p>
-              )}
-              {editor.sign.uncertain && (
-                <p role="alert">
-                  Sign-off is unconfirmed. Reconcile the same saved version and revision.
-                </p>
-              )}
-              {(editor.editable || editor.sign.uncertain || editor.dirty) && (
-                <div className={workbench.actionFooter}>
-                  <p className={workbench.help}>Save your findings before signing this revision.</p>
-                  <div className={styles.actions}>
-                    {editor.editable && (
-                      <Button
-                        size="compact"
-                        disabled={
-                          editor.save.busy ||
-                          editor.sign.busy ||
-                          editor.childLocked ||
-                          editor.refreshing ||
-                          editor.sign.uncertain
-                        }
-                        onClick={() => void editor.saveDraft()}
-                      >
-                        {editor.save.uncertain ? "Reconcile draft save" : "Save draft"}
-                      </Button>
-                    )}
-                    {editor.editable && (
-                      <Button
-                        size="compact"
-                        variant="secondary"
-                        disabled={
-                          disabled ||
-                          editor.dirty ||
-                          !attested ||
-                          (base.latestSave?.version ?? 0) <= base.reopenedAfterSaveVersion
-                        }
-                        onClick={() => setConfirm("sign")}
-                      >
-                        Sign inspection
-                      </Button>
-                    )}
-                    {editor.sign.uncertain && (
-                      <Button
-                        size="compact"
-                        disabled={editor.sign.busy}
-                        onClick={() => void editor.signDraft()}
-                      >
-                        Reconcile sign-off
-                      </Button>
-                    )}
-                    {editor.dirty && (
-                      <Button
-                        size="compact"
-                        variant="secondary"
-                        disabled={editor.operating}
-                        onClick={() => setConfirm("discard")}
-                      >
-                        Discard local changes
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              )}
-            </section>
-            {!repairsOnly && (
+                  {sectionLabels[value]}
+                </Button>
+              ))}
+            </nav>
+            <div className={workshop.body}>
+              <InspectionDetails editor={editor} />
               <ManagerActions
                 key={`manager:${editor.draftEpoch}:${snapshot.draft.revision}:${snapshot.draft.assignmentVersion}`}
                 actor={actor}
                 draft={snapshot.draft}
                 technicians={technicians}
                 disabled={disabled}
+                active={section === "inspection"}
                 onLock={editor.lockChild}
                 onConfirmed={editor.actionConfirmed}
                 onDraft={(dirty) => editor.markForm("manager", dirty)}
               />
-            )}
-            {!repairsOnly && (
               <InspectionChecklist
                 draft={base}
+                report={snapshot.report}
                 value={editor.value}
                 actorId={actor.userId}
                 editable={editor.editable}
                 disabled={disabled}
+                active={section === "inspection"}
                 onChange={editor.change}
                 onLock={editor.lockChild}
               />
-            )}
-            {historical ? (
-              <RetainedRepairReview
-                key={selectedRequest.requestId}
-                inspectionId={id}
-                selection={selectedRequest}
-                actionsContainer={actionsContainer}
-              />
-            ) : (
+              {historical && section === "repairs" && (
+                <Button size="compact" variant="secondary" onClick={() => onReview(null)}>
+                  Return to current repair work
+                </Button>
+              )}
+              {historical && section === "repairs" && (
+                <RetainedRepairReview
+                  key={selectedRequest.requestId}
+                  inspectionId={id}
+                  selection={selectedRequest}
+                  actionsContainer={actionsContainer}
+                  initial={
+                    selectedReview?.selection.requestId === selectedRequest.requestId &&
+                    selectedReview.selection.revision === selectedRequest.revision
+                      ? selectedReview.result
+                      : null
+                  }
+                />
+              )}
               <RepairPanel
                 key={`repairs:${editor.draftEpoch}`}
                 actor={actor}
                 snapshot={snapshot}
                 disabled={disabled}
+                active={section === "repairs" && !historical}
                 onLock={editor.lockChild}
                 onConfirmed={editor.actionConfirmed}
                 onDraft={editor.markForm}
+                actionsContainer={footerActions}
               />
-            )}
-            <RevisionHistoryView initial={snapshot.revisions} disabled={editor.operating} />
+              {section === "history" && (
+                <InspectionTimeline
+                  snapshot={snapshot}
+                  disabled={editor.operating}
+                  onSelect={onReview}
+                />
+              )}
+            </div>
+            <footer className={workshop.footer}>
+              {section === "inspection" && (
+                <InspectionActions editor={editor} onConfirm={setConfirm} />
+              )}
+              {section !== "inspection" && (
+                <div className={workshop.footerContext}>
+                  <strong>{historical ? "Retained request" : "Current vehicle work"}</strong>
+                  <span>
+                    {historical ? "Read-only history" : "Original signed findings remain retained"}
+                  </span>
+                </div>
+              )}
+              <div ref={setFooterActions} className={workshop.footerActions} />
+            </footer>
           </>
         )}
       </div>

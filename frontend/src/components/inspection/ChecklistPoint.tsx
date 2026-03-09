@@ -1,27 +1,31 @@
 import { Input, Select, Textarea } from "@/components/ui/Input";
 import { label, severities, type Point, type Draft } from "@/lib/inspection/contracts";
 import type { ChecklistDraft, EntryDraft } from "@/lib/inspection/draft";
+import type { ReportPoint } from "@/lib/inspection/report-contracts";
+import type { useInspectionPhoto } from "@/hooks/use-inspection-photo";
 import { FindingPhotos } from "./FindingPhotos";
+import { SignedFinding } from "./SignedFinding";
 import styles from "./Inspection.module.css";
+import workshop from "./Workshop.module.css";
 
 export function ChecklistPoint({
   point,
   draft,
   value,
-  actorId,
+  photo,
   editable,
   disabled,
   onChange,
-  onLock,
+  signedPoint,
 }: {
   point: Point;
   draft: Draft;
   value: ChecklistDraft;
-  actorId: string;
+  photo: ReturnType<typeof useInspectionPhoto>;
   editable: boolean;
   disabled: boolean;
   onChange: (v: ChecklistDraft) => void;
-  onLock: (locked: boolean) => void;
+  signedPoint?: ReportPoint;
 }) {
   const entry = value.entries[point.code];
   const examined = value.examined.includes(point.code);
@@ -37,9 +41,11 @@ export function ChecklistPoint({
   const disposition = entry?.kind ?? "Passed";
   return (
     <div className={styles.point}>
-      <div className={styles.pointHeading}>
+      <div className={workshop.detailHeading}>
         <div>
-          <span className={styles.code}>{point.code}</span>
+          <span className={workshop.pointCode}>
+            {point.code} · {label(point.category)}
+          </span>
           <h3>{point.description}</h3>
         </div>
         {editable ? (
@@ -63,6 +69,9 @@ export function ChecklistPoint({
           <span>{label(disposition)}</span>
         )}
       </div>
+      {draft.isSigned && signedPoint && (
+        <SignedFinding point={signedPoint} inspectionId={draft.id} revision={draft.revision} />
+      )}
       {editable && (
         <Select
           label={`${point.code} disposition`}
@@ -91,7 +100,7 @@ export function ChecklistPoint({
           )}
         </Select>
       )}
-      {entry && (
+      {entry && !draft.isSigned && (
         <div className={styles.finding}>
           {editable ? (
             <>
@@ -144,8 +153,7 @@ export function ChecklistPoint({
             <FindingPhotos
               inspectionId={draft.id}
               pointCode={point.code}
-              assignmentVersion={draft.assignmentVersion}
-              actorId={actorId}
+              photo={photo}
               ids={value.photos[point.code] ?? []}
               disabled={disabled}
               onChange={(ids) =>
@@ -155,7 +163,6 @@ export function ChecklistPoint({
                   examined: value.examined.filter((code) => code !== point.code),
                 })
               }
-              onLock={onLock}
             />
           )}
         </div>

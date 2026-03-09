@@ -7,7 +7,7 @@ import { RecordToolbar } from "@/components/ui/RecordToolbar";
 import { CsvExportActions } from "@/components/ui/CsvExportActions";
 import { useRowSelection } from "@/hooks/use-row-selection";
 import { useCsvExport } from "@/hooks/use-csv-export";
-import type { DataColumn } from "@/components/ui/data-table/types";
+import type { DataColumn, TableSort } from "@/components/ui/data-table/types";
 import type { CsvColumn } from "@/lib/csv";
 import { SearchField } from "@/components/ui/SearchField";
 import { RefreshButton } from "@/components/ui/RefreshButton";
@@ -21,8 +21,7 @@ import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import type { Page } from "@/lib/api";
 import { exportQueue } from "@/lib/inspection/export";
 import { queueQuery } from "@/lib/inspection/query";
-import { label } from "@/lib/inspection/contracts";
-import type { QueueKind } from "@/lib/inspection/contracts";
+import { workshopTaskLabel } from "@/lib/inspection/workshop-contracts";
 import type { useInspectionQueue } from "@/hooks/use-inspection-queue";
 import { QueueFilters } from "./QueueFilters";
 import layout from "@/components/staff/IntakeWorkspace.module.css";
@@ -31,7 +30,6 @@ import workspace from "@/components/staff/StaffWorkspace.module.css";
 
 export function QueueView<T>({
   actor,
-  kind,
   state,
   columns,
   exportColumns,
@@ -43,7 +41,6 @@ export function QueueView<T>({
   disabled = false,
 }: {
   actor: CurrentActor;
-  kind: QueueKind;
   state: ReturnType<typeof useInspectionQueue<T>>;
   columns: DataColumn<T>[];
   exportColumns: readonly CsvColumn<T>[];
@@ -55,7 +52,8 @@ export function QueueView<T>({
   disabled?: boolean;
 }) {
   const animateEntry = useContext(StaffPageEntranceContext);
-  const title = kind === "vehicles" ? "Inspections" : "Repair requests";
+  const kind = "workshop";
+  const title = "Workshop";
   const { snapshot, active } = state;
   const selection = useRowSelection(
     snapshot?.items ?? [],
@@ -68,21 +66,25 @@ export function QueueView<T>({
   const branchName =
     state.branches?.items.find((branch) => branch.id === active.filters.branchId)?.name ??
     "Selected branch";
-  const applied = appliedWorklistFilters(active.filters, branchName, label);
+  const applied = appliedWorklistFilters(active.filters, branchName, workshopTaskLabel);
   const filtered = applied.length > 0 || Boolean(active.filters.search);
-  const emptyTitle = kind === "vehicles" ? "No inspection records yet" : "No repair requests yet";
-  const emptyDescription =
-    kind === "vehicles"
-      ? "Checked-in vehicles will appear here when they are ready for inspection."
-      : "Repair requests will appear here after work is requested from a signed inspection.";
+  const emptyTitle = "No workshop vehicles yet";
+  const emptyDescription = "Checked-in vehicles and their current workshop work will appear here.";
 
   function changePage(page: number, pageSize: number) {
     void state.load({ ...active.filters, pageSize }, page);
   }
 
+  function sortQueue(sort: TableSort | null) {
+    void state.load(
+      { ...active.filters, sort: sort?.column ?? "since", direction: sort?.direction ?? "desc" },
+      1,
+      sort,
+    );
+  }
+
   const filters = (
     <QueueFilters
-      kind={kind}
       draft={state.draft}
       onDraft={state.setDraft}
       apply={(f) => state.load(f, 1)}
@@ -199,6 +201,7 @@ export function QueueView<T>({
                   }),
                 }}
                 columns={columns}
+                sorting={{ value: active.sort, onChange: sortQueue }}
                 rowId={rowId}
                 selection={selection.selection}
                 selectedRowId={selectedRowId}

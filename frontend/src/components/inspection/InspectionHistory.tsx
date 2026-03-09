@@ -1,9 +1,7 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useInspectionHistory } from "@/hooks/use-inspection-history";
 import { StaffLink } from "@/components/staff/StaffLink";
 import { DataTablePagination } from "@/components/ui/data-table/DataTablePagination";
-import { useToast } from "@/components/ui/Toast";
-import { inspectionFetch } from "@/lib/inspection/browser";
 import { parseRevisions, parseRepairs } from "@/lib/inspection/parse-report";
 import type { RevisionHistory, RepairHistory } from "@/lib/inspection/report-contracts";
 import { formatCurrency } from "@/lib/currency-format";
@@ -18,50 +16,14 @@ export function RevisionHistoryView({
   initial: RevisionHistory;
   disabled?: boolean;
 }) {
-  const [history, setHistory] = useState(initial);
-  const [entry, setEntry] = useState(initial);
-  const [busy, setBusy] = useState(false);
-  const controller = useRef<AbortController | null>(null);
-  const toast = useToast();
-  if (entry !== initial) {
-    setEntry(initial);
-    setHistory(initial);
-  }
-  useEffect(() => () => controller.current?.abort(), []);
-  async function load(page: number, pageSize: number) {
-    if (controller.current) {
-      return;
-    }
-    const attempt = new AbortController();
-    controller.current = attempt;
-    setBusy(true);
-    try {
-      const result = await inspectionFetch(
-        `reports/${history.inspectionId}/revisions?page=${page}&pageSize=${pageSize}`,
-        parseRevisions,
-        { signal: attempt.signal },
-      );
-      if (attempt.signal.aborted) {
-        return;
-      }
-      if (
-        !result.data ||
-        result.data.inspectionId !== history.inspectionId ||
-        result.data.page !== page
-      ) {
-        throw new Error("History unavailable");
-      }
-      setHistory(result.data);
-    } catch {
-      if (!attempt.signal.aborted) {
-        toast.error("Revision history could not be refreshed. Existing revisions remain shown.");
-      }
-    } finally {
-      if (!attempt.signal.aborted) {
-        setBusy(false);
-      }
-      controller.current = null;
-    }
+  const { history, busy, load } = useInspectionHistory(
+    initial,
+    `reports/${initial.inspectionId}/revisions`,
+    parseRevisions,
+    "Revision history could not be refreshed. Existing revisions remain shown.",
+  );
+  if (!history) {
+    return null;
   }
   return (
     <section
@@ -112,51 +74,14 @@ export function RepairHistoryView({
   initial: RepairHistory;
   disabled?: boolean;
 }) {
-  const [history, setHistory] = useState(initial);
-  const [entry, setEntry] = useState(initial);
-  const [busy, setBusy] = useState(false);
-  const controller = useRef<AbortController | null>(null);
-  const toast = useToast();
-  if (entry !== initial) {
-    setEntry(initial);
-    setHistory(initial);
-  }
-  useEffect(() => () => controller.current?.abort(), []);
-  async function load(page: number, pageSize: number) {
-    if (controller.current) {
-      return;
-    }
-    const attempt = new AbortController();
-    controller.current = attempt;
-    setBusy(true);
-    try {
-      const result = await inspectionFetch(
-        `reports/${history.inspectionId}/revisions/${history.revision}/repair-history?page=${page}&pageSize=${pageSize}`,
-        parseRepairs,
-        { signal: attempt.signal },
-      );
-      if (attempt.signal.aborted) {
-        return;
-      }
-      if (
-        !result.data ||
-        result.data.inspectionId !== history.inspectionId ||
-        result.data.revision !== history.revision ||
-        result.data.page !== page
-      ) {
-        throw new Error("History unavailable");
-      }
-      setHistory(result.data);
-    } catch {
-      if (!attempt.signal.aborted) {
-        toast.error("Repair history could not be refreshed. Existing receipts remain shown.");
-      }
-    } finally {
-      if (!attempt.signal.aborted) {
-        setBusy(false);
-      }
-      controller.current = null;
-    }
+  const { history, busy, load } = useInspectionHistory(
+    initial,
+    `reports/${initial.inspectionId}/revisions/${initial.revision}/repair-history`,
+    parseRepairs,
+    "Repair history could not be refreshed. Existing receipts remain shown.",
+  );
+  if (!history) {
+    return null;
   }
   return (
     <section
@@ -173,9 +98,12 @@ export function RepairHistoryView({
       {!history.items.length && <p>No repair requests on this page.</p>}
       {history.items.map(({ request, approval, completion }) => (
         <div className={styles.historyRow} key={request.operationId}>
-          <strong>
+          <StaffLink
+            prefetch={false}
+            href={`/dashboard/inspection?inspection=${request.inspectionId}&section=repairs&request=${request.operationId}&revision=${request.revision}`}
+          >
             Work version {request.version} · {formatCurrency(request.budget)}
-          </strong>
+          </StaffLink>
           <span>
             Requested {formatMalaysianDateTime(request.requestedAt)} · {request.actorId}
           </span>

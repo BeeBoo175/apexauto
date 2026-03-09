@@ -1,40 +1,24 @@
 "use client";
-import { useInspectionPhoto } from "@/hooks/use-inspection-photo";
+import type { useInspectionPhoto } from "@/hooks/use-inspection-photo";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import type { PhotoReceipt } from "@/lib/inspection/report-contracts";
 import styles from "./Inspection.module.css";
 
 export function FindingPhotos({
   inspectionId,
   pointCode,
-  assignmentVersion,
-  actorId,
+  photo,
   ids,
   disabled,
   onChange,
-  onLock,
 }: {
   inspectionId: string;
   pointCode: string;
-  assignmentVersion: number;
-  actorId: string;
+  photo: ReturnType<typeof useInspectionPhoto>;
   ids: string[];
   disabled: boolean;
   onChange: (ids: string[]) => void;
-  onLock: (locked: boolean) => void;
 }) {
-  function attach(receipt: PhotoReceipt) {
-    onChange([...ids, receipt.id]);
-  }
-  const photo = useInspectionPhoto(
-    inspectionId,
-    assignmentVersion,
-    pointCode,
-    actorId,
-    attach,
-    onLock,
-  );
   return (
     <div className={styles.photoSection}>
       <p>Private evidence · {ids.length} of 4 photos</p>
