@@ -2,7 +2,6 @@ using System.Data;
 using Dealership.Application.Accounts;
 using Dealership.Application.Inspections;
 using Dealership.Domain.Vehicles;
-using Dealership.Infrastructure.Identity;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,7 +19,7 @@ public sealed class InspectionQueueStore(DealershipDbContext database) : IInspec
 
         // Current authorization, scoped totals and page rows must describe the same snapshot.
         await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead, cancellationToken);
-        var actor = await ScopeAsync(actorId, filter.BranchId, cancellationToken);
+        var actor = await InspectionQueueScope.ReadAsync(database, actorId, filter.BranchId, cancellationToken);
         if (actor is null)
         {
             return new(InspectionAssignmentStatus.Forbidden);
@@ -87,7 +86,7 @@ public sealed class InspectionQueueStore(DealershipDbContext database) : IInspec
         }
 
         await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead, cancellationToken);
-        var actor = await ScopeAsync(actorId, filter.BranchId, cancellationToken);
+        var actor = await InspectionQueueScope.ReadAsync(database, actorId, filter.BranchId, cancellationToken);
         if (actor is null)
         {
             return new(InspectionAssignmentStatus.Forbidden);
@@ -100,6 +99,7 @@ public sealed class InspectionQueueStore(DealershipDbContext database) : IInspec
             requests = requests.Where(item => item.RequestedAt >= filter.From && item.RequestedAt < filter.Until);
         }
 
+        var covered = InspectionRepairAuthority.CoveredRequests(database);
         var rows = from request in requests
                    join draft in database.InspectionDrafts.AsNoTracking() on request.InspectionId equals draft.Id
                    join vehicle in database.Vehicles.AsNoTracking() on draft.VehicleId equals vehicle.Id
@@ -108,12 +108,9 @@ public sealed class InspectionQueueStore(DealershipDbContext database) : IInspec
                    from approval in approvals.DefaultIfEmpty()
                    join completed in database.InspectionRepairCompletions.AsNoTracking() on request.Id equals completed.RequestId into completions
                    from completion in completions.DefaultIfEmpty()
-                   from covering in (from granted in database.InspectionRepairApprovals.AsNoTracking()
-                                     join scope in database.InspectionRepairRequests.AsNoTracking() on granted.RequestId equals scope.Id
-                                     where scope.InspectionId == request.InspectionId && scope.Revision == request.Revision &&
-                                         scope.ItemsJson == request.ItemsJson && scope.Budget >= request.Budget
-                                     orderby granted.ApprovedAt descending, granted.Id descending
-                                     select granted).Take(1).DefaultIfEmpty()
+                   from covering in covered.Where(item => item.Request.Id == request.Id)
+                       .OrderByDescending(item => item.Approval.ApprovedAt).ThenByDescending(item => item.Approval.Id)
+                       .Select(item => item.Approval).Take(1).DefaultIfEmpty()
                    where actor.Role != AccountRoles.WorkshopTechnician || draft.TechnicianId == actorId
                    select new
                    {
@@ -186,24 +183,4 @@ public sealed class InspectionQueueStore(DealershipDbContext database) : IInspec
         return new(InspectionAssignmentStatus.Succeeded, new(Array.AsReadOnly(items), total, filter.Page, filter.PageSize));
     }
 
-    private async Task<AccountUser?> ScopeAsync(Guid actorId, Guid? branchId, CancellationToken cancellationToken)
-    {
-        var actor = await database.Users.AsNoTracking().SingleOrDefaultAsync(item => item.Id == actorId, cancellationToken);
-        if (actor is not { IsActive: true } ||
-            actor.Role is not (AccountRoles.WorkshopTechnician or AccountRoles.BranchManager or AccountRoles.GeneralManager))
-        {
-            return null;
-        }
-        if (actor.Role == AccountRoles.GeneralManager)
-        {
-            return actor;
-        }
-        if (actor.BranchId is null || branchId is not null && actor.BranchId != branchId ||
-            !await database.Branches.AnyAsync(item => item.Id == actor.BranchId && item.IsActive, cancellationToken))
-        {
-            return null;
-        }
-
-        return actor;
-    }
 }

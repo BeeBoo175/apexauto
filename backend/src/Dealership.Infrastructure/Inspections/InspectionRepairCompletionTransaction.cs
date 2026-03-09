@@ -25,13 +25,11 @@ internal sealed class InspectionRepairCompletionTransaction(DealershipDbContext 
         CancellationToken cancellationToken)
     {
         var itemsJson = JsonSerializer.Serialize(lookup.ExactItems, JsonSerializerOptions.Web);
-        var approval = await (
-            from granted in database.InspectionRepairApprovals.AsNoTracking()
-            join scope in database.InspectionRepairRequests.AsNoTracking() on granted.RequestId equals scope.Id
-            where scope.InspectionId == lookup.InspectionId && scope.Revision == lookup.Revision &&
-                scope.ItemsJson == itemsJson && scope.Budget >= lookup.MinimumBudget
-            orderby granted.ApprovedAt descending, granted.Id descending
-            select granted).FirstOrDefaultAsync(cancellationToken);
+        var approval = await InspectionRepairAuthority.CoveredRequests(database)
+            .Where(item => item.Request.InspectionId == lookup.InspectionId && item.Request.Revision == lookup.Revision &&
+                item.Request.ItemsJson == itemsJson && item.Request.Budget == lookup.MinimumBudget)
+            .OrderByDescending(item => item.Approval.ApprovedAt).ThenByDescending(item => item.Approval.Id)
+            .Select(item => item.Approval).FirstOrDefaultAsync(cancellationToken);
         return approval?.Receipt();
     }
 
