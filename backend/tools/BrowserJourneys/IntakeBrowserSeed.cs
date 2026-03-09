@@ -1,5 +1,6 @@
 using Dealership.Infrastructure.Photos;
 using Dealership.Application;
+using Dealership.Application.Accounts;
 using Dealership.Application.Intake;
 using Dealership.Infrastructure;
 using Dealership.Infrastructure.Configuration;
@@ -22,13 +23,15 @@ namespace Dealership.BrowserJourneys;
 
 internal static class IntakeBrowserSeed
 {
-    public static async Task SeedArrivalsAsync(IntakePhotoFixture fixture)
+    public static async Task SeedArrivalsAsync(IntakePhotoFixture fixture, bool workshop = false)
     {
         var malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
         var date = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, malaysia).DateTime);
         var midnight = new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(date.ToDateTime(TimeOnly.MinValue), malaysia));
         // Canonical snapshot slots may fill today after midnight; arrivals use a separate test-only window.
-        var schedule = new InspectionSchedule(new TimeOnly(6, 0), new TimeOnly(9, 0), 90, 30, 0, Enum.GetValues<DayOfWeek>());
+        var schedule = workshop
+            ? new InspectionSchedule(new TimeOnly(4, 0), new TimeOnly(6, 0), 10, 30, 0, Enum.GetValues<DayOfWeek>())
+            : new InspectionSchedule(new TimeOnly(6, 0), new TimeOnly(9, 0), 90, 30, 0, Enum.GetValues<DayOfWeek>());
         using var factory = fixture.CreateFactory(clock: new ArrivalClock(midnight)).WithWebHostBuilder(builder =>
         {
             builder.UseContentRoot(Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../../backend/src/Dealership.Api")));
@@ -43,7 +46,8 @@ internal static class IntakeBrowserSeed
         var database = services.GetRequiredService<DealershipDbContext>();
         var email = DevelopmentFixtureManifest.Customers[1].Registration.Email;
         var owner = await database.Users.Where(user => user.Email == email).Select(user => user.Id).SingleAsync();
-        for (var index = 0; index < 2; index++)
+        var count = workshop ? 33 : 2;
+        for (var index = 0; index < count; index++)
         {
             var photos = new List<Guid>();
             foreach (var angle in Enum.GetValues<PhotoAngle>())
@@ -60,12 +64,39 @@ internal static class IntakeBrowserSeed
             }
             var vehicle = new ValuationRequest("Proton", "Saga", "Standard", 2020, 90000);
             var quote = services.GetRequiredService<ValuationService>().Calculate(vehicle).Quote!;
-            var request = new BookingRequest(Guid.NewGuid(), DevelopmentFixtureManifest.Branches[0].Id,
-                schedule.GetSlots(date, midnight)[index].StartsAt, $"VCA {9701 + index}", vehicle, quote, photos);
+            var branchIndex = workshop ? index / 11 : 0;
+            var slot = workshop ? index % 11 : index;
+            var branch = DevelopmentFixtureManifest.Branches[branchIndex];
+            var prefix = DevelopmentIntakeManifest.Appointments.First(item => item.BranchId == branch.Id)
+                .RegistrationPlate.Split(' ')[0];
+            var registration = workshop ? $"{prefix} {9801 + slot}" : $"VCA {9701 + index}";
+            var request = new BookingRequest(Guid.NewGuid(), branch.Id,
+                schedule.GetSlots(date, midnight)[slot].StartsAt, registration, vehicle, quote, photos);
             var result = await services.GetRequiredService<IntakeBookingService>().BookAsync(owner, request, CancellationToken.None);
             if (result.Status != BookingStatus.Succeeded)
             {
                 throw new InvalidOperationException("Same-day browser arrival booking was not confirmed.");
+            }
+            if (workshop)
+            {
+                if (slot == 0)
+                {
+                    string[] technicians = ["farid.hakim@example.invalid", "amirul.izzat@example.invalid", "lee.jun.wei@example.invalid"];
+                    await services.GetRequiredService<StaffProvisioningService>()
+                        .ProvisionStaffAsync(new StaffProvisioningRequest(Guid.NewGuid(),
+                            technicians[branchIndex], DevelopmentFixtureManifest.Password, AccountRoles.WorkshopTechnician,
+                            branch.Id), CancellationToken.None);
+                }
+                var staff = DevelopmentFixtureManifest.Staff.Single(item => item.BranchId == branch.Id &&
+                    item.Role == AccountRoles.SalesAgent);
+                var checkedIn = await services.GetRequiredService<AppointmentCheckInService>()
+                    .CheckInAsync(staff.Id, result.Receipt!.Id,
+                        new CheckInEvidence($"PL1BT65R84B9{branchIndex}{slot:D4}", 92000, true, true, true, true,
+                            "Owner present for workshop intake"), CancellationToken.None);
+                if (checkedIn.Status != CheckInStatus.Succeeded)
+                {
+                    throw new InvalidOperationException("Workshop browser claimable check-in was not confirmed.");
+                }
             }
         }
     }

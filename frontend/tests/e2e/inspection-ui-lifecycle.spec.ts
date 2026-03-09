@@ -23,6 +23,14 @@ async function screenshot(page: Page, name: string) {
   );
 }
 
+async function selectPoint(page: Page, code: string) {
+  await page.getByRole("searchbox", { name: "Find a checklist point", exact: true }).fill(code);
+  await page
+    .getByRole("navigation", { name: "Inspection points" })
+    .getByRole("button", { name: new RegExp(`^${code} `) })
+    .click();
+}
+
 async function loseFirstReceipt(page: Page, endpoint: string) {
   const bodies: string[] = [];
   await page.route(endpoint, async (route) => {
@@ -48,60 +56,39 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
 }, info) => {
   test.setTimeout(240_000);
   const mobile = info.project.name === "mobile";
-  const technician = mobile ? "mohd.firdaus@example.invalid" : "azlan.rahim@example.invalid";
+  const technician = mobile ? "lee.jun.wei@example.invalid" : "farid.hakim@example.invalid";
   const managerEmail = mobile ? "nur.syafiqah@example.invalid" : "siti.aminah@example.invalid";
   const counts = () =>
     JSON.parse(readFileSync(path.join(evidence, "counts.json"), "utf8")) as Record<string, number>;
-  const before = counts()["/api/staff/inspection/vehicles"] ?? 0;
+  const before = counts()["/api/staff/inspection/workshop"] ?? 0;
   await login(page, technician, "/dashboard/inspection");
-  await expect(
-    page.getByRole("button", { name: "Refresh inspections", exact: true }),
-  ).toBeEnabled();
-  expect(counts()["/api/staff/inspection/vehicles"] - before).toBe(1);
+  await expect(page.getByRole("button", { name: "Refresh workshop", exact: true })).toBeEnabled();
+  expect(counts()["/api/staff/inspection/workshop"] - before).toBe(3);
+  await expect(page.getByRole("heading", { name: "Select a job", exact: true })).toBeVisible();
   await screenshot(page, "inspection-queue");
-  if (mobile) {
-    const session = await context.newCDPSession(page);
-    await session.send("Input.dispatchTouchEvent", {
-      type: "touchStart",
-      touchPoints: [{ x: 210, y: 700 }],
-    });
-    await session.send("Input.dispatchTouchEvent", {
-      type: "touchMove",
-      touchPoints: [{ x: 210, y: 280 }],
-    });
-    await session.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-    await expect
-      .poll(() => page.getByRole("table").evaluate((table) => table.parentElement!.scrollTop))
-      .toBeGreaterThan(0);
-    await expect(page.getByRole("navigation", { name: "Table pages", exact: true })).toBeVisible();
-    await session.detach();
-  }
-  await page.getByRole("button", { name: /^Filters/ }).click();
-  await page.getByRole("radio", { name: "Unassigned", exact: true }).check();
-  await page.getByRole("button", { name: "Apply filters", exact: true }).click();
-  await expect(
-    page.getByRole("button", { name: "Remove status filter: Unassigned", exact: true }),
-  ).toBeVisible();
-  await page.getByRole("checkbox", { name: "Select all loaded rows", exact: true }).check();
-  const selectedDownload = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Export selected CSV", exact: true }).click();
-  const selectedFile = await (await selectedDownload).path();
-  expect(readFileSync(selectedFile!, "utf8")).toContain('"Registration","Vehicle","Branch"');
-  await page.getByRole("button", { name: "Clear selection", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Export full CSV", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Claim inspection", exact: true })).toHaveCount(1);
-  const confirmedRow = await page.getByRole("table").innerText();
-  await page.route("**/api/staff/inspection/vehicles?*", (route) =>
+  await page.getByRole("button", { name: "Claim inspection", exact: true }).last().click();
+  const claimButton = page.getByRole("button", { name: /^Claim inspection ·/ }).first();
+  const registration = (await claimButton.getAttribute("aria-label"))!.split(" · ")[1];
+  const confirmedRow = await page
+    .getByRole("region", { name: "Claim inspection", exact: true })
+    .innerText();
+  await page.route("**/api/staff/inspection/workshop?*", (route) =>
     route.fulfill({
       status: 502,
       json: { status: 502, data: null, message: "Controlled failed queue", uncertain: true },
     }),
   );
-  await page.getByRole("button", { name: "Refresh inspections", exact: true }).click();
-  await expect(page.getByRole("alert").filter({ hasText: "last confirmed rows" })).toBeVisible();
-  expect(await page.getByRole("table").innerText()).toBe(confirmedRow);
-  await page.unroute("**/api/staff/inspection/vehicles?*");
-  await page.getByRole("button", { name: "Claim inspection", exact: true }).click();
+  await page.getByRole("button", { name: "Refresh workshop", exact: true }).click();
+  await expect(
+    page.getByRole("alert").filter({ hasText: "last confirmed worklists" }),
+  ).toBeVisible();
+  expect(
+    await page.getByRole("region", { name: "Claim inspection", exact: true }).innerText(),
+  ).toBe(confirmedRow);
+  await page.unroute("**/api/staff/inspection/workshop?*");
+  await page
+    .getByRole("button", { name: `Claim inspection · ${registration}`, exact: true })
+    .click();
   const assignmentBodies = await loseFirstReceipt(
     page,
     "**/api/staff/inspection/vehicles/*/assignment",
@@ -124,7 +111,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   await header.evaluate((element) => {
     (element as HTMLElement & { retained?: boolean }).retained = true;
   });
-  await page.getByRole("searchbox", { name: "Find a checklist point", exact: true }).fill("EP-004");
+  await selectPoint(page, "EP-004");
   await page.getByLabel("EP-004 disposition", { exact: true }).selectOption("Finding");
   await page.getByLabel("EP-004 severity", { exact: true }).selectOption("MinorDefect");
   await page.getByLabel("EP-004 estimate (MYR)", { exact: true }).fill("250.10");
@@ -160,11 +147,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   await expect(
     page.getByRole("button", { name: "Reconcile draft save", exact: true }),
   ).toBeVisible();
-  await expect(
-    page
-      .getByRole("dialog", { name: "Inspection", exact: true })
-      .getByRole("button", { name: "Close dialog", exact: true }),
-  ).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Close job", exact: true })).toBeDisabled();
   expect(page.url()).toContain(id);
   await page.getByRole("button", { name: "Reconcile draft save", exact: true }).click();
   expect(bodies).toHaveLength(2);
@@ -184,8 +167,15 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   await expect(
     page.getByRole("link", { name: "Open signed report · revision 1", exact: true }),
   ).toBeVisible();
-  await page.getByText("Request repair work", { exact: true }).click();
-  await page.getByRole("checkbox", { name: /^EP-004 ·/ }).check();
+  await page
+    .getByRole("navigation", { name: "Workshop sections" })
+    .getByRole("button", { name: "Repairs", exact: true })
+    .click();
+  await page
+    .getByRole("navigation", { name: "Repair findings" })
+    .getByRole("button", { name: /^EP-004 / })
+    .click();
+  await page.getByRole("checkbox", { name: /^Include EP-004 ·/ }).check();
   await page
     .getByLabel("EP-004 repair work", { exact: true })
     .fill("  Repair bumper scuff and inspect finish.  ");
@@ -206,13 +196,13 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   ).toBeVisible();
   await expect(page.getByLabel("EP-004 repair work", { exact: true })).toBeDisabled();
   await expect(page.getByLabel("Requested budget (MYR)", { exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Close job", exact: true })).toBeDisabled();
+  await page.getByRole("button", { name: "Reconcile repair request", exact: true }).click();
   await expect(
     page
-      .getByRole("dialog", { name: "Inspection", exact: true })
-      .getByRole("button", { name: "Close dialog", exact: true }),
-  ).toBeDisabled();
-  await page.getByRole("button", { name: "Reconcile repair request", exact: true }).click();
-  await expect(page.getByText("Pending Approval", { exact: true })).toBeVisible();
+      .getByRole("region", { name: "Selected workshop job", exact: true })
+      .getByText("Budget approval needed", { exact: true }),
+  ).toBeVisible();
   expect(requestBodies).toHaveLength(2);
   expect(requestBodies[1]).toBe(requestBodies[0]);
   expect(JSON.parse(requestBodies[0])).toMatchObject({
@@ -236,23 +226,21 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   await screenshot(manager, "intake-parity-reference");
   await manager.goto("/dashboard/inspection/repairs");
   await expect(
-    manager.getByRole("button", { name: "Refresh repair requests", exact: true }),
+    manager.getByRole("button", { name: "Refresh workshop", exact: true }),
   ).toBeEnabled();
   await screenshot(manager, "repair-queue");
   await manager.getByRole("button", { name: /^Filters/ }).click();
-  await manager.getByRole("radio", { name: "Pending Approval", exact: true }).check();
+  await manager.getByRole("radio", { name: "Needs approval", exact: true }).check();
   await manager.getByRole("button", { name: "Apply filters", exact: true }).click();
   await expect(
-    manager.getByRole("button", { name: "Remove status filter: Pending Approval", exact: true }),
+    manager.getByRole("button", { name: "Remove status filter: Needs approval", exact: true }),
   ).toBeVisible();
   await expect(
-    manager.getByRole("button", { name: "Refresh repair requests", exact: true }),
+    manager.getByRole("button", { name: "Refresh workshop", exact: true }),
   ).toBeEnabled();
-  await manager.getByRole("searchbox", { name: "Search repair requests", exact: true }).fill(id);
-  await manager
-    .getByRole("searchbox", { name: "Search repair requests", exact: true })
-    .press("Enter");
-  await expect.poll(() => new URL(manager.url()).searchParams.get("search")).toBe(id);
+  await manager.getByRole("searchbox", { name: "Search workshop", exact: true }).fill(registration);
+  await manager.getByRole("searchbox", { name: "Search workshop", exact: true }).press("Enter");
+  await expect.poll(() => new URL(manager.url()).searchParams.get("search")).toBe(registration);
   await expect(manager.locator("tbody tr")).toHaveCount(1);
   await manager.getByRole("checkbox", { name: "Select all loaded rows", exact: true }).check();
   const repairDownload = manager.waitForEvent("download");
@@ -260,23 +248,24 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   const repairFile = await (await repairDownload).path();
   const repairCsv = readFileSync(repairFile!, "utf8");
   expect(repairCsv.replace(/^\uFEFF/, "").split("\r\n")[0]).toBe(
-    '"Registration","Branch","Requested","Revision / work","Budget","Repair status"',
+    '"Registration","Vehicle","Current work","Assigned technician","Branch","Requested budget","Since","Date source"',
   );
-  expect(repairCsv).toContain('"1 / 1","250.10","Pending Approval"');
+  expect(repairCsv).toContain('"Budget approval needed"');
+  expect(repairCsv).toContain('"250.10"');
   expect(repairCsv.split("\r\n")).toHaveLength(3);
   await manager.getByRole("button", { name: "Clear selection", exact: true }).click();
   await manager.getByRole("checkbox", { name: "Select all loaded rows", exact: true }).check();
   await manager.locator("tbody tr").getByRole("cell").nth(2).click();
-  await expect(manager.getByRole("dialog", { name: "Repair request", exact: true })).toBeVisible();
+  await expect(manager.getByRole("dialog", { name: registration, exact: true })).toBeVisible();
   await expect(
     manager
-      .getByRole("dialog", { name: "Repair request", exact: true })
+      .getByRole("dialog", { name: registration, exact: true })
       .getByRole("button", { name: "Refresh inspection", exact: true }),
   ).toBeEnabled();
   await expect(
     manager.getByText("Bumper scuff requires paint repair.", { exact: true }),
   ).toBeVisible();
-  const repairRequestId = new URL(manager.url()).searchParams.get("request")!;
+  const repairRequestId = JSON.parse(requestBodies[0]).operationId as string;
   await screenshot(manager, "repair-review");
   await expect(manager.getByRole("button", { name: /bulk.*approv/i })).toHaveCount(0);
   const approvalBodies = await loseFirstReceipt(
@@ -289,14 +278,14 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   ).toBeVisible();
   await expect(
     manager
-      .getByRole("dialog", { name: "Repair request", exact: true })
+      .getByRole("dialog", { name: registration, exact: true })
       .getByRole("button", { name: "Close dialog", exact: true }),
   ).toBeDisabled();
   await manager.getByRole("button", { name: "Reconcile repair action", exact: true }).click();
   await expect(
     manager
-      .getByRole("dialog", { name: "Repair request", exact: true })
-      .getByText("Approved", { exact: true }),
+      .getByRole("dialog", { name: registration, exact: true })
+      .getByText("Repairs to complete", { exact: true }),
   ).toBeVisible();
   expect(approvalBodies).toHaveLength(2);
   expect(approvalBodies[1]).toBe(approvalBodies[0]);
@@ -320,14 +309,10 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     page.getByRole("button", { name: "Reconcile repair action", exact: true }),
   ).toBeVisible();
   await expect(page.getByLabel("Completion & reinspection notes", { exact: true })).toBeDisabled();
-  await expect(
-    page
-      .getByRole("dialog", { name: "Inspection", exact: true })
-      .getByRole("button", { name: "Close dialog", exact: true }),
-  ).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Close job", exact: true })).toBeDisabled();
   await page.getByRole("button", { name: "Reconcile repair action", exact: true }).click();
   const completedSummary = page.getByRole("region", { name: "Vehicle and confirmed assessment" });
-  await expect(completedSummary.getByText("Available", { exact: true })).toBeVisible();
+  await expect(completedSummary.getByText("Ready for sale", { exact: true })).toBeVisible();
   await expect(completedSummary.getByText("1 · Signed", { exact: true })).toBeVisible();
   expect(completionBodies).toHaveLength(2);
   expect(completionBodies[1]).toBe(completionBodies[0]);
@@ -393,7 +378,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   await page.emulateMedia({ media: "screen" });
 
   await manager
-    .getByRole("dialog", { name: "Repair request", exact: true })
+    .getByRole("dialog", { name: registration, exact: true })
     .getByRole("button", { name: "Close dialog", exact: true })
     .click();
   await manager.goto(`/dashboard/inspection?inspection=${id}`);
@@ -429,14 +414,16 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   ).toBeDisabled();
   await manager.getByRole("button", { name: "Reconcile reopening", exact: true }).click();
   const reopenedSummary = manager.getByRole("region", { name: "Vehicle and confirmed assessment" });
-  await expect(reopenedSummary.getByText("Pending Inspection", { exact: true })).toBeVisible();
+  await expect(
+    reopenedSummary.getByText("Inspection underway", { exact: true }).first(),
+  ).toBeVisible();
   await expect(reopenedSummary.getByText("2 · Draft", { exact: true })).toBeVisible();
   expect(reopeningBodies).toHaveLength(2);
   expect(reopeningBodies[1]).toBe(reopeningBodies[0]);
   expect(JSON.parse(reopeningBodies[0]).reason).toBe("Inspect newly reported suspension noise.");
   await manager.unroute(`**/api/staff/inspection/drafts/${id}/reopen`);
   await manager
-    .getByRole("dialog", { name: "Inspection", exact: true })
+    .getByRole("dialog", { name: registration, exact: true })
     .getByRole("button", { name: "Close dialog", exact: true })
     .click();
   await manager.goto(
@@ -452,7 +439,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     manager.getByRole("button", { name: "Approve repair budget", exact: true }),
   ).toHaveCount(0);
   await manager
-    .getByRole("dialog", { name: "Repair request", exact: true })
+    .getByRole("dialog", { name: registration, exact: true })
     .getByRole("button", { name: "Close dialog", exact: true })
     .click();
   await manager.goto(`/dashboard/inspection?inspection=${id}`);
@@ -481,7 +468,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   await new Promise((resolve) => setTimeout(resolve, 61_000));
   await page.getByRole("link", { name: "Back to inspection", exact: true }).click();
   await expect(page.getByRole("button", { name: "Save draft", exact: true })).toBeEnabled();
-  await page.getByRole("searchbox", { name: "Find a checklist point", exact: true }).fill("EP-004");
+  await selectPoint(page, "EP-004");
   await page.getByLabel("EP-004 severity", { exact: true }).selectOption("CriticalDisqualifier");
   await page
     .getByLabel("EP-004 finding notes", { exact: true })
@@ -491,7 +478,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   await expect(page.getByRole("button", { name: "Sign inspection", exact: true })).toBeEnabled();
   await page.getByRole("button", { name: "Sign inspection", exact: true }).click();
   await page.getByRole("button", { name: "Confirm sign-off", exact: true }).click();
-  await expect(completedSummary.getByText("Rejected", { exact: true })).toBeVisible();
+  await expect(completedSummary.getByText("Rejected", { exact: true }).first()).toBeVisible();
   await expect(completedSummary.getByText("2 · Signed", { exact: true })).toBeVisible();
   const rejectedHref = await page
     .getByRole("link", { name: "Open signed report · revision 2", exact: true })
@@ -504,7 +491,9 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     .getByLabel("Reopening reason", { exact: true })
     .fill("Review accident evidence in a new retained revision.");
   await manager.getByRole("button", { name: "Confirm reopening", exact: true }).click();
-  await expect(reopenedSummary.getByText("Pending Inspection", { exact: true })).toBeVisible();
+  await expect(
+    reopenedSummary.getByText("Inspection underway", { exact: true }).first(),
+  ).toBeVisible();
   await expect(reopenedSummary.getByText("3 · Draft", { exact: true })).toBeVisible();
   await managerContext.close();
   const salesContext = await browser.newContext({
