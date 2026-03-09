@@ -1,11 +1,13 @@
 import type { Report, RevisionHistory, RepairHistory } from "@/lib/inspection/report-contracts";
 import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDateTime } from "@/lib/date-format";
-import { label } from "@/lib/inspection/contracts";
 import { StaffLink } from "@/components/staff/StaffLink";
+import { Badge } from "@/components/ui/Badge";
 import { RevisionHistoryView, RepairHistoryView } from "./InspectionHistory";
 import { ReportPrintControls } from "./ReportPrintControls";
+import { SignedReportChecklist } from "./SignedReportChecklist";
 import styles from "./SignedReport.module.css";
+import tones from "@/components/ui/StatusTone.module.css";
 
 export function SignedReport({
   report,
@@ -17,7 +19,7 @@ export function SignedReport({
   repairs: RepairHistory | null;
 }) {
   const { vehicle } = report;
-  const categories = [...new Set(report.checklist.map((point) => point.category))];
+  const findings = report.checklist.filter((point) => point.kind === "Finding").length;
   return (
     <div data-inspection-report>
       <div className={styles.controls}>
@@ -33,45 +35,50 @@ export function SignedReport({
           <div>
             <h1>Inspection report</h1>
             <p>
-              {vehicle.registrationPlate} · {vehicle.make} {vehicle.model} {vehicle.trim}
+              <strong>{vehicle.registrationPlate}</strong> · {vehicle.manufactureYear}{" "}
+              {vehicle.make} {vehicle.model} {vehicle.trim}
             </p>
           </div>
-          <strong>
+          <Badge
+            className={`${tones.badge} ${report.assessment.isRejected ? tones.neutral : tones.info}`}
+          >
             {report.assessment.isRejected ? "Rejected" : `Grade ${report.assessment.grade}`}
-          </strong>
+          </Badge>
         </header>
+        <dl className={styles.assessment}>
+          <div>
+            <dt>Original repair estimate</dt>
+            <dd>{formatCurrency(report.assessment.estimatedRepairCost)}</dd>
+          </div>
+          <div>
+            <dt>Signed checklist</dt>
+            <dd>
+              {report.checklist.length} points · {findings} findings
+            </dd>
+          </div>
+          <div>
+            <dt>Signed revision</dt>
+            <dd>
+              {report.revision} · {formatMalaysianDateTime(report.signedAt)}
+            </dd>
+          </div>
+        </dl>
         <dl className={styles.metadata}>
           <div>
             <dt>Inspection</dt>
             <dd>{report.inspectionId}</dd>
           </div>
           <div>
-            <dt>Signed revision</dt>
-            <dd>{report.revision}</dd>
-          </div>
-          <div>
             <dt>VIN</dt>
             <dd>{vehicle.vin}</dd>
-          </div>
-          <div>
-            <dt>Manufactured</dt>
-            <dd>{vehicle.manufactureYear}</dd>
           </div>
           <div>
             <dt>Recorded mileage</dt>
             <dd>{vehicle.mileageKilometres.toLocaleString("en-MY")} km</dd>
           </div>
           <div>
-            <dt>Original repair estimate</dt>
-            <dd>{formatCurrency(report.assessment.estimatedRepairCost)}</dd>
-          </div>
-          <div>
             <dt>Technician</dt>
             <dd>{report.technicianIdentity}</dd>
-          </div>
-          <div>
-            <dt>Signed (Malaysia)</dt>
-            <dd>{formatMalaysianDateTime(report.signedAt)}</dd>
           </div>
           <div>
             <dt>Catalog</dt>
@@ -96,61 +103,7 @@ export function SignedReport({
           This is the retained signed revision. Linked repair work does not change its original
           findings, estimates or grade.
         </p>
-        {categories.map((category) => (
-          <section className={styles.category} key={category}>
-            <h2>{label(category)}</h2>
-            <table>
-              <caption className="sr-only">{label(category)} signed checklist</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Point</th>
-                  <th scope="col">Disposition & notes</th>
-                  <th scope="col">Original estimate</th>
-                </tr>
-              </thead>
-              <tbody>
-                {report.checklist
-                  .filter((point) => point.category === category)
-                  .map((point) => (
-                    <tr key={point.code}>
-                      <th scope="row">
-                        <span>{point.code}</span>
-                        {point.description}
-                      </th>
-                      <td>
-                        <strong>{point.kind === null ? "Passed" : label(point.kind)}</strong>
-                        {point.severity && <span> · {label(point.severity)}</span>}
-                        {point.notes && <p>{point.notes}</p>}
-                        {point.photos.length > 0 && (
-                          <div className={styles.photos}>
-                            {point.photos.map((photo, index) => (
-                              <figure key={photo.id}>
-                                {/* Private signed evidence bypasses the shared image optimizer/cache. */}
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                  src={`/api/staff/inspection/drafts/${report.inspectionId}/photos/${photo.id}`}
-                                  alt={`${point.code} signed evidence ${index + 1}`}
-                                  loading="lazy"
-                                  width={photo.width}
-                                  height={photo.height}
-                                />
-                                <figcaption>
-                                  {point.code} · Photo {index + 1}
-                                </figcaption>
-                              </figure>
-                            ))}
-                          </div>
-                        )}
-                      </td>
-                      <td>
-                        {point.kind === "Finding" ? formatCurrency(point.estimatedRepairCost) : "—"}
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </section>
-        ))}
+        <SignedReportChecklist report={report} />
         <footer className={styles.footer}>
           Signed by {report.technicianIdentity} · {formatMalaysianDateTime(report.signedAt)} ·
           Revision receipt {report.operationId}

@@ -13,7 +13,6 @@ export function ReportPrintControls() {
         actions={
           <Button
             size="compact"
-            variant="shell"
             disabled={preparation.busy}
             onClick={() => void preparation.print()}
           >
