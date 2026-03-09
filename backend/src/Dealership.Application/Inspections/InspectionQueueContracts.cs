@@ -21,13 +21,17 @@ public enum InspectionRepairQueueStatus
 }
 
 public sealed record InspectionQueueFilter(DateTimeOffset? From = null, DateTimeOffset? Until = null,
-    Guid? BranchId = null, int Page = 1, int PageSize = Pagination.DefaultPageSize, string Search = "")
+    Guid? BranchId = null, int Page = 1, int PageSize = Pagination.DefaultPageSize, string Search = "",
+    string Sort = "since", string Direction = "desc")
 {
     public bool IsValid => Pagination.IsValid(Page, PageSize) && BranchId != Guid.Empty &&
-        ListSearch.IsValid(Search) && ListDateRange.IsValid(From, Until);
+        ListSearch.IsValid(Search) && ListDateRange.IsValid(From, Until) &&
+        Sort is "since" or "registrationPlate" or "status" or "technicianIdentity" or "branchName" or "budget" &&
+        Direction is "asc" or "desc";
 
     public static InspectionQueueFilter? Parse(string? from, string? to, Guid? branchId,
-        int page = 1, int pageSize = Pagination.DefaultPageSize, string? search = null)
+        int page = 1, int pageSize = Pagination.DefaultPageSize, string? search = null,
+        string? sort = null, string? direction = null)
     {
         var dates = ListDateRange.Parse(from, to);
         if (dates is null)
@@ -35,7 +39,8 @@ public sealed record InspectionQueueFilter(DateTimeOffset? From = null, DateTime
             return null;
         }
 
-        var filter = new InspectionQueueFilter(dates.From, dates.Until, branchId, page, pageSize, search?.Trim() ?? "");
+        var filter = new InspectionQueueFilter(dates.From, dates.Until, branchId, page, pageSize,
+            search?.Trim() ?? "", sort ?? "since", direction ?? "desc");
         return filter.IsValid ? filter : null;
     }
 }

@@ -16,6 +16,7 @@ public static class InspectionQueueEndpoints
         });
         routes.MapGet("/vehicles", InspectionsAsync);
         routes.MapGet("/repair-requests", RepairsAsync);
+        routes.MapGet("/workshop", WorkshopAsync);
     }
 
     private static async Task<IResult> InspectionsAsync(string? from, string? to, string? status, Guid? branchId,
@@ -67,6 +68,31 @@ public static class InspectionQueueEndpoints
     }
 
     private static Guid ActorId(HttpContext context) => Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Sub)!.Value);
+
+    private static async Task<IResult> WorkshopAsync(string? from, string? to, string? status, Guid? branchId,
+        int? page, int? pageSize, string? search, string? sort, string? direction, HttpContext context, IWorkshopQueueStore store,
+        CancellationToken cancellationToken)
+    {
+        var filter = InspectionQueueFilter.Parse(from, to, branchId, page ?? 1, pageSize ?? Pagination.DefaultPageSize,
+            search, sort, direction);
+        if (filter is null || !Enum.TryParse<WorkshopTask>(status ?? "Active", out var task) ||
+            !Enum.IsDefined(task) || task.ToString() != (status ?? "Active"))
+        {
+            return Invalid();
+        }
+
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(20));
+        try
+        {
+            var result = await store.ReadAsync(ActorId(context), filter, task, deadline.Token);
+            return Map(result.Status, result.Queue);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return Results.Problem(statusCode: 503, title: "Workshop queue is temporarily unavailable.");
+        }
+    }
 
     private static IResult Invalid() => Results.Problem(statusCode: 400,
         title: "Provide valid queue filters, Malaysian dates and a page size of 10, 25 or 50.");

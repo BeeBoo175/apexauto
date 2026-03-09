@@ -6,6 +6,9 @@
     padding: 24px;
     background: var(--color-paper);
     color: var(--color-graphite);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 1.5;
   }
 
   .surface::backdrop {
@@ -79,5 +82,43 @@
   .actionSlot {
     display: flex;
     align-items: center;
+  }
+
+  .workspace {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0;
+  }
+
+  .workspace .header {
+    flex-shrink: 0;
+    margin: 0;
+    padding: 20px 24px;
+  }
+
+  .workspace .title {
+    font-family: var(--font-sans);
+    font-size: 20px;
+    line-height: 28px;
+  }
+
+  .workspace .description {
+    margin-top: 4px;
+    font-size: 12px;
+    line-height: 18px;
+  }
+
+  .workspace .content {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  @media (max-width: 600px) {
+    .workspace .header {
+      padding: 16px;
+    }
   }
 }

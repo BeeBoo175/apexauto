@@ -15,6 +15,7 @@ export interface DialogProps {
   variant?: "dialog" | "drawer";
   density?: "default" | "compact";
   width?: "default" | "wide";
+  layout?: "flow" | "workspace";
 }
 
 export function DialogActionSlot({ ref }: { ref: React.Ref<HTMLDivElement> }) {
@@ -32,6 +33,7 @@ export const Dialog: React.FC<DialogProps> = ({
   variant = "dialog",
   density = "default",
   width = "default",
+  layout = "flow",
 }) => {
   const element = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -109,7 +111,7 @@ export const Dialog: React.FC<DialogProps> = ({
           last?.focus();
         }
       }}
-      className={`${styles.surface} ${styles[variant]} ${density === "compact" ? styles.compact : ""} ${width === "wide" ? styles.wide : ""}`}
+      className={`${styles.surface} ${styles[variant]} ${density === "compact" ? styles.compact : ""} ${width === "wide" ? styles.wide : ""} ${layout === "workspace" ? styles.workspace : ""}`}
     >
       <div className={styles.header}>
         <div>
@@ -131,7 +133,7 @@ export const Dialog: React.FC<DialogProps> = ({
           />
         </div>
       </div>
-      <div>{children}</div>
+      <div className={styles.content}>{children}</div>
     </dialog>
   );
 };
