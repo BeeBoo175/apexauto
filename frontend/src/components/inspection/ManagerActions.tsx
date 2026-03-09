@@ -19,6 +19,7 @@ export function ManagerActions({
   onLock,
   onConfirmed,
   onDraft,
+  active = true,
 }: {
   actor: CurrentActor;
   draft: Draft;
@@ -27,6 +28,7 @@ export function ManagerActions({
   onLock: (locked: boolean) => void;
   onConfirmed: () => Promise<void>;
   onDraft: (dirty: boolean) => void;
+  active?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const manager = useInspectionManager({
@@ -39,7 +41,7 @@ export function ManagerActions({
   });
   const { reason, locked, command } = manager;
 
-  if (actor.role !== "BranchManager") {
+  if (actor.role !== "BranchManager" || !active) {
     return null;
   }
   return (

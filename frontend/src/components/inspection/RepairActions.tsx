@@ -1,4 +1,6 @@
 "use client";
+import { useId } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Input";
 import { useInspectionRepairAction } from "@/hooks/use-inspection-repair-action";
@@ -14,6 +16,8 @@ export function RepairActions({
   onLock,
   onConfirmed,
   onDraft,
+  active = true,
+  actionsContainer,
 }: {
   actor: CurrentActor;
   draft: Draft;
@@ -22,16 +26,30 @@ export function RepairActions({
   onLock: (v: boolean) => void;
   onConfirmed: () => Promise<void>;
   onDraft: (dirty: boolean) => void;
+  active?: boolean;
+  actionsContainer?: HTMLElement | null;
 }) {
   const repair = useInspectionRepairAction({ actor, draft, state, onLock, onConfirmed, onDraft });
   const { notes, manager, actionable, command } = repair;
   const actionLabel = manager ? "Approve repair budget" : "Confirm repairs completed";
+  const formId = useId();
 
-  if (!actionable) {
+  if (!actionable || !active) {
     return null;
   }
+  const submit = (
+    <Button
+      size="compact"
+      type="submit"
+      form={formId}
+      disabled={command.busy || Boolean(command.receipt) || (disabled && !command.uncertain)}
+    >
+      {command.uncertain ? "Reconcile repair action" : actionLabel}
+    </Button>
+  );
   return (
     <form
+      id={formId}
       className={workbench.protocol}
       onSubmit={async (event) => {
         event.preventDefault();
@@ -57,15 +75,7 @@ export function RepairActions({
           before any further action.
         </p>
       )}
-      <div className={workbench.actionFooter}>
-        <Button
-          size="compact"
-          type="submit"
-          disabled={command.busy || Boolean(command.receipt) || (disabled && !command.uncertain)}
-        >
-          {command.uncertain ? "Reconcile repair action" : actionLabel}
-        </Button>
-      </div>
+      {actionsContainer ? createPortal(submit, actionsContainer) : submit}
     </form>
   );
 }

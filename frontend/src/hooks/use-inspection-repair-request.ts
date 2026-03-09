@@ -70,10 +70,16 @@ export function useInspectionRepairRequest({
   }
 
   async function submit() {
+    const incomplete = Object.entries(work).find(([, value]) => !value.trim());
+    if (incomplete) {
+      toast.error(`Describe the repair work for ${incomplete[0]} or remove it from the request.`);
+      return incomplete[0];
+    }
     const amount = parseMyr(budget);
-    const items = Object.entries(work)
-      .filter(([, value]) => value.trim())
-      .map(([pointCode, value]) => ({ pointCode, work: value.trim() }));
+    const items = Object.entries(work).map(([pointCode, value]) => ({
+      pointCode,
+      work: value.trim(),
+    }));
     if (amount === null || !items.length) {
       toast.error(
         "Choose at least one finding, describe its work and enter an exact nonnegative MYR budget.",
