@@ -3,65 +3,41 @@
 import { useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { inspectionFetch } from "@/lib/inspection/browser";
-import { parseReport, parseRepairs } from "@/lib/inspection/parse-report";
-import type { RepairHistoryEntry, Report } from "@/lib/inspection/report-contracts";
+import type { ApiResult } from "@/lib/api";
+import { readRepairReview, type RepairReview } from "@/lib/inspection/repair-review";
 import type { RepairSelection } from "./use-inspection-drawer";
+import { useInitialToast } from "./use-initial-toast";
 
-export function useRepairReview(inspectionId: string, selection: RepairSelection) {
-  const [result, setResult] = useState<{ report: Report; entry: RepairHistoryEntry } | null>(null);
-  const [busy, setBusy] = useState(true);
+export function useRepairReview(
+  inspectionId: string,
+  selection: RepairSelection,
+  initial: ApiResult<RepairReview> | null = null,
+) {
+  const [result, setResult] = useState(initial?.data ?? null);
+  const [busy, setBusy] = useState(!initial);
   const [attempt, setAttempt] = useState(0);
   const controller = useRef<AbortController | null>(null);
   const { error } = useToast();
   const { requestId, revision } = selection;
+  useInitialToast(initial?.message);
 
   useEffect(() => {
+    if (initial && attempt === 0) {
+      return;
+    }
     const cancellation = new AbortController();
     controller.current = cancellation;
     const signal = AbortSignal.any([cancellation.signal, AbortSignal.timeout(22_000)]);
-    const base = `reports/${inspectionId}/revisions/${revision}`;
 
     async function load() {
       try {
-        const reportRead = await inspectionFetch(base, parseReport, { signal });
-        const report = reportRead.data;
-        if (
-          reportRead.status !== 200 ||
-          report?.inspectionId !== inspectionId ||
-          report.revision !== revision
-        ) {
-          throw new Error("Selected report unavailable");
-        }
-        let page = 1;
-        while (true) {
-          const history = await inspectionFetch(
-            `${base}/repair-history?page=${page}&pageSize=50`,
-            parseRepairs,
-            { signal },
-          );
-          if (
-            history.status !== 200 ||
-            !history.data ||
-            history.data.inspectionId !== inspectionId ||
-            history.data.revision !== revision ||
-            history.data.page !== page
-          ) {
-            throw new Error("Selected repair history unavailable");
-          }
-          const entry = history.data.items.find((item) => item.request.operationId === requestId);
-          if (entry) {
-            signal.throwIfAborted();
-            setResult({ report, entry });
-            return;
-          }
-          if (
-            page * history.data.pageSize >= history.data.totalCount ||
-            !history.data.items.length
-          ) {
-            throw new Error("Selected request unavailable");
-          }
-          page += 1;
-        }
+        const next = await readRepairReview(
+          inspectionId,
+          { requestId, revision },
+          inspectionFetch,
+          signal,
+        );
+        setResult(next);
       } catch {
         if (!cancellation.signal.aborted) {
           error(
@@ -76,7 +52,7 @@ export function useRepairReview(inspectionId: string, selection: RepairSelection
     }
     void load();
     return () => cancellation.abort();
-  }, [inspectionId, requestId, revision, attempt, error]);
+  }, [inspectionId, requestId, revision, attempt, error, initial]);
 
   function retry() {
     controller.current?.abort();

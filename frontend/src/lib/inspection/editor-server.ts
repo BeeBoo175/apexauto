@@ -4,6 +4,30 @@ import { inspectionRead } from "./server";
 import { parseDraft, parseRepairPage } from "./parse";
 import { parseReport, parseRevisions, parseRepairs } from "./parse-report";
 import { parseEditor, type EditorSnapshot } from "./editor-snapshot";
+import { readRepairReview, type RepairReview } from "./repair-review";
+import type { RepairSelection } from "./query";
+
+export async function readSelectedRepair(
+  id: string,
+  selection: RepairSelection,
+): Promise<ApiResult<RepairReview>> {
+  try {
+    const data = await readRepairReview(
+      id,
+      selection,
+      (path, parse, options) => inspectionRead(path, parse, options?.signal ?? undefined),
+      AbortSignal.timeout(20_000),
+    );
+    return { status: 200, data, message: "", uncertain: false };
+  } catch {
+    return {
+      status: 502,
+      data: null,
+      message: "The selected repair request could not be loaded. Use refresh to retry.",
+      uncertain: false,
+    };
+  }
+}
 
 export async function readEditor(
   id: string,

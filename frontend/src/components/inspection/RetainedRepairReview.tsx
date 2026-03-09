@@ -10,6 +10,8 @@ import { RepairRequestDetails } from "./RepairRequestDetails";
 import styles from "./Inspection.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 import { AppointmentLoadingShell } from "@/components/staff/AppointmentLoadingShell";
+import type { ApiResult } from "@/lib/api";
+import type { RepairReview } from "@/lib/inspection/repair-review";
 
 const requestDetails = ["Requested budget", "Requested", "Signed revision", "Work version"];
 
@@ -17,12 +19,14 @@ export function RetainedRepairReview({
   inspectionId,
   selection,
   actionsContainer,
+  initial = null,
 }: {
   inspectionId: string;
   selection: RepairSelection;
   actionsContainer?: HTMLElement | null;
+  initial?: ApiResult<RepairReview> | null;
 }) {
-  const review = useRepairReview(inspectionId, selection);
+  const review = useRepairReview(inspectionId, selection, initial);
   const approval = review.result?.entry.approval;
   const completion = review.result?.entry.completion;
   return (
