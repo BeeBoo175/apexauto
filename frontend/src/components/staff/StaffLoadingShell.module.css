@@ -10,6 +10,7 @@
 .iconControl,
 .search,
 .monthTitle,
+.commandTitle,
 .dateValue,
 .weekdayBand,
 .calendarFilter,
@@ -40,6 +41,21 @@
 .monthTitle {
   width: 150px;
   height: 20px;
+}
+
+.commandTitle {
+  width: 150px;
+  height: 22px;
+  background: color-mix(
+    in srgb,
+    var(--color-command-foreground, var(--color-graphite)) 18%,
+    transparent
+  );
+}
+
+.commandTitle::after {
+  animation: none;
+  background: none;
 }
 
 .dateValue {

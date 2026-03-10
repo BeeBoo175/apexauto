@@ -67,6 +67,7 @@ export function StaffFrame({ actor, children }: { actor?: CurrentActor; children
                 size="compact"
                 aria-expanded={mobileOpen}
                 aria-controls="staff-navigation"
+                disabled={!actor}
                 onClick={() => setMobileOpen(!mobileOpen)}
               >
                 {mobileOpen ? "Close workspaces" : "Workspaces"}
@@ -91,7 +92,7 @@ export function StaffFrame({ actor, children }: { actor?: CurrentActor; children
                 </StaffLink>
               </div>
               <nav className={styles.navigation} aria-label="Staff navigation">
-                {(!actor || hasIntakeAccess(actor)) && (
+                {actor && hasIntakeAccess(actor) && (
                   <StaffLink
                     href="/dashboard/intake"
                     prefetch={false}
@@ -109,26 +110,26 @@ export function StaffFrame({ actor, children }: { actor?: CurrentActor; children
                     Intake appointments
                   </StaffLink>
                 )}
-                {(!actor || hasInspectionAccess(actor)) &&
-                  [
-                    {
-                      href: "/dashboard/inspection",
-                      title: "Workshop",
-                      active: navigation.selectedPath.startsWith("/dashboard/inspection"),
-                    },
-                  ].map((item) => (
-                    <StaffLink
-                      key={item.href}
-                      href={item.href}
-                      prefetch={false}
-                      prefetchOnIntent={Boolean(actor)}
-                      className={item.active ? styles.activeLink : styles.navLink}
-                      aria-current={item.active ? "page" : undefined}
-                      onNavigate={(event) => navigate(event, item.href)}
-                    >
-                      {item.title}
-                    </StaffLink>
-                  ))}
+                {actor && hasInspectionAccess(actor) && (
+                  <StaffLink
+                    href="/dashboard/inspection"
+                    prefetch={false}
+                    prefetchOnIntent={true}
+                    className={
+                      navigation.selectedPath.startsWith("/dashboard/inspection")
+                        ? styles.activeLink
+                        : styles.navLink
+                    }
+                    aria-current={
+                      navigation.selectedPath.startsWith("/dashboard/inspection")
+                        ? "page"
+                        : undefined
+                    }
+                    onNavigate={(event) => navigate(event, "/dashboard/inspection")}
+                  >
+                    Workshop
+                  </StaffLink>
+                )}
                 {actor && !hasIntakeAccess(actor) && !hasInspectionAccess(actor) && (
                   <StaffLink
                     href="/dashboard"

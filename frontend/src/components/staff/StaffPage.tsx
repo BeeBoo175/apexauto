@@ -4,10 +4,11 @@ import { useContext, type ReactNode } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
-import { StaffNavigationContext } from "./StaffActorBoundary";
+import { StaffActorContext, StaffNavigationContext } from "./StaffActorBoundary";
 import { StaffLoadingShell, type StaffLoadingView } from "./StaffLoadingShell";
 import reportStyles from "@/components/inspection/SignedReport.module.css";
 import styles from "./Staff.module.css";
+import loading from "./StaffLoadingShell.module.css";
 
 const titles: Record<string, string> = {
   "/dashboard/intake": "Intake appointments",
@@ -16,6 +17,7 @@ const titles: Record<string, string> = {
 };
 
 export function StaffLoading() {
+  const actor = useContext(StaffActorContext);
   const pathname = usePathname();
   const search = useSearchParams();
   const views: Record<string, StaffLoadingView> = {
@@ -37,19 +39,23 @@ export function StaffLoading() {
     <>
       <LoadingProgress label="Opening workspace" />
       <div className={view === "report" ? reportStyles.controls : undefined}>
-        <StaffCommandBar title={title} />
+        <StaffCommandBar title={actor ? title : null} />
       </div>
       <StaffLoadingShell view={view} />
     </>
   );
 }
 
-export function StaffCommandBar({ title, actions }: { title: string; actions?: ReactNode }) {
+export function StaffCommandBar({ title, actions }: { title: string | null; actions?: ReactNode }) {
   const navigation = useContext(StaffNavigationContext);
   const pendingTitle = navigation?.pendingPath ? titles[navigation.pendingPath] : undefined;
   return (
     <header className={styles.commandBar}>
-      <h1 tabIndex={-1}>{pendingTitle ?? title}</h1>
+      {title === null ? (
+        <span className={loading.commandTitle} aria-hidden="true" />
+      ) : (
+        <h1 tabIndex={-1}>{pendingTitle ?? title}</h1>
+      )}
       {actions && <div className={styles.actions}>{actions}</div>}
     </header>
   );
