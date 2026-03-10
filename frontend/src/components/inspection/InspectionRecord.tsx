@@ -100,9 +100,7 @@ export function InspectionDetails({ editor }: { editor: ReturnType<typeof useIns
   if (!snapshot) {
     return null;
   }
-  const request = snapshot.repairs?.items.find(
-    (item) => item.request.version === snapshot.draft.repairVersion,
-  )?.request;
+  const request = snapshot.currentRequest;
   return (
     <details className={workshop.metadata}>
       <summary>{request ? "Vehicle & request details" : "Vehicle & inspection details"}</summary>

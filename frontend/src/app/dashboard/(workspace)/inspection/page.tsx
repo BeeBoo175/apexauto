@@ -45,7 +45,7 @@ export default async function InspectionPage({
               `workshop?${queueQuery(claimable.filters, claimable.page)}`,
               parseWorkshopPage,
             ),
-            selected.id ? readEditor(selected.id) : null,
+            selected.id ? readEditor(selected.id, undefined, selected.section === "history") : null,
             selected.id && selected.request
               ? readSelectedRepair(selected.id, selected.request)
               : null,
@@ -73,7 +73,7 @@ export default async function InspectionPage({
         const [initial, branches, inspection, review] = await Promise.all([
           inspectionRead(`workshop?${queueQuery(filters, page)}`, parseWorkshopPage),
           staffBranches(actor),
-          selected.id ? readEditor(selected.id) : null,
+          selected.id ? readEditor(selected.id, undefined, selected.section === "history") : null,
           selected.id && selected.request
             ? readSelectedRepair(selected.id, selected.request)
             : null,

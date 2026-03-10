@@ -1,44 +1,33 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Input";
 import { StaffLink } from "@/components/staff/StaffLink";
-import { DataTablePagination } from "@/components/ui/data-table/DataTablePagination";
-import { useInspectionHistory } from "@/hooks/use-inspection-history";
-import { parseRevisions, parseRepairs } from "@/lib/inspection/parse-report";
+import type { useInspectionTimeline } from "@/hooks/use-inspection-timeline";
 import { inspectionTimeline } from "@/lib/inspection/timeline";
 import type { EditorSnapshot } from "@/lib/inspection/editor-snapshot";
 import type { RepairSelection } from "@/lib/inspection/query";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import styles from "./InspectionTimeline.module.css";
 import { InspectionPreviousWork } from "./InspectionPreviousWork";
+import { InspectionHistoryProgress } from "./InspectionHistory";
 
 export function InspectionTimeline({
   snapshot,
+  timeline,
   disabled,
   onSelect,
 }: {
   snapshot: EditorSnapshot;
+  timeline: ReturnType<typeof useInspectionTimeline>;
   disabled: boolean;
   onSelect: (selection: RepairSelection) => void;
 }) {
   const id = snapshot.draft.id;
-  const [previousRevision, setPreviousRevision] = useState(0);
-  const revisions = useInspectionHistory(
-    snapshot.revisions,
-    `reports/${id}/revisions`,
-    parseRevisions,
-    "Revision history could not be refreshed. Existing revisions remain shown.",
-  );
-  const repairs = useInspectionHistory(
-    snapshot.repairs,
-    `reports/${id}/revisions/${snapshot.draft.revision}/repair-history`,
-    parseRepairs,
-    "Repair history could not be refreshed. Existing receipts remain shown.",
-  );
-  const events = revisions.history ? inspectionTimeline(revisions.history, repairs.history) : [];
+  const { revisions, repairs, previous, previousRevision, selectRevision } = timeline;
+  const events = inspectionTimeline(revisions.history, repairs.history);
   const busy = revisions.busy || repairs.busy;
+  const loaded = revisions.history && (!snapshot.draft.isSigned || repairs.history);
   return (
     <section className={styles.history} aria-label="Record history" aria-busy={busy}>
       <div className={styles.heading}>
@@ -46,9 +35,9 @@ export function InspectionTimeline({
           <h2>Record history</h2>
           <p>Signed revisions and current-revision repair receipts, newest first.</p>
         </div>
-        <span>{events.length} loaded events</span>
+        {events.length > 0 && <span>{events.length} loaded events</span>}
       </div>
-      {!events.length && <p>No retained events on these pages.</p>}
+      {loaded && !events.length && <p>No retained events.</p>}
       <ol className={styles.timeline}>
         {events.map((event) => (
           <li key={`${event.title}:${event.id}`}>
@@ -63,7 +52,7 @@ export function InspectionTimeline({
                 <Button
                   size="compact"
                   variant="secondary"
-                  disabled={disabled || busy}
+                  disabled={disabled}
                   onClick={() => {
                     if (event.request) {
                       onSelect(event.request);
@@ -91,8 +80,8 @@ export function InspectionTimeline({
           label="Previous work revision"
           density="compact"
           value={previousRevision}
-          disabled={disabled || busy}
-          onChange={(event) => setPreviousRevision(Number(event.target.value))}
+          disabled={disabled}
+          onChange={(event) => selectRevision(Number(event.target.value))}
         >
           <option value={0}>Choose a signed revision</option>
           {revisions.history.items
@@ -106,34 +95,15 @@ export function InspectionTimeline({
       )}
       {previousRevision > 0 && (
         <InspectionPreviousWork
-          key={`${id}:${previousRevision}`}
-          inspectionId={id}
           revision={previousRevision}
+          read={previous}
           disabled={disabled}
           onSelect={onSelect}
         />
       )}
-      {revisions.history && (
-        <section className={styles.paging} aria-label="Signed revision pages">
-          <h3>Signed revision pages</h3>
-          <DataTablePagination
-            page={{ ...revisions.history, total: revisions.history.totalCount }}
-            count={revisions.history.items.length}
-            disabled={disabled || busy}
-            onPage={(page, size) => void revisions.load(page, size)}
-          />
-        </section>
-      )}
-      {repairs.history && (
-        <section className={styles.paging} aria-label="Repair request pages">
-          <h3>Repair request pages · revision {repairs.history.revision}</h3>
-          <DataTablePagination
-            page={{ ...repairs.history, total: repairs.history.totalCount }}
-            count={repairs.history.items.length}
-            disabled={disabled || busy}
-            onPage={(page, size) => void repairs.load(page, size)}
-          />
-        </section>
+      <InspectionHistoryProgress read={revisions} label="Signed revisions" disabled={disabled} />
+      {snapshot.draft.isSigned && (
+        <InspectionHistoryProgress read={repairs} label="Repair requests" disabled={disabled} />
       )}
     </section>
   );

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import { Dialog } from "@/components/ui/Dialog";
 import { useInspectionEditor } from "@/hooks/use-inspection-editor";
+import { useInspectionTimeline } from "@/hooks/use-inspection-timeline";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { ApiResult, Page } from "@/lib/api";
 import type { Technician } from "@/lib/inspection/contracts";
@@ -59,6 +60,7 @@ export function InspectionEditor({
   const [confirm, setConfirm] = useState<"sign" | "discard" | null>(null);
   const [footerActions, setFooterActions] = useState<HTMLDivElement | null>(null);
   const { snapshot, base } = editor;
+  const timeline = useInspectionTimeline(snapshot, section === "history");
   const previousSigned = useRef(snapshot?.draft.isSigned);
   useEffect(() => {
     const signed = snapshot?.draft.isSigned;
@@ -181,6 +183,7 @@ export function InspectionEditor({
               {section === "history" && (
                 <InspectionTimeline
                   snapshot={snapshot}
+                  timeline={timeline}
                   disabled={editor.operating}
                   onSelect={onReview}
                 />

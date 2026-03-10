@@ -12,9 +12,12 @@ export type InspectionEvent = {
   request: RepairSelection | null;
 };
 
-export function inspectionTimeline(revisions: RevisionHistory, repairs: RepairHistory | null) {
+export function inspectionTimeline(
+  revisions: RevisionHistory | null,
+  repairs: RepairHistory | null,
+) {
   const events: InspectionEvent[] = [];
-  for (const revision of revisions.items) {
+  for (const revision of revisions?.items ?? []) {
     events.push({
       id: revision.operationId,
       at: revision.signedAt,

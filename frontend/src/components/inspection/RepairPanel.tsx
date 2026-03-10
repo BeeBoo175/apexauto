@@ -25,9 +25,7 @@ export function RepairPanel({
   active?: boolean;
   actionsContainer?: HTMLElement | null;
 }) {
-  const { draft, report, repairs, repairState } = snapshot;
-  const latest =
-    repairs?.items.find((item) => item.request.version === draft.repairVersion)?.request ?? null;
+  const { draft, report, currentRequest: latest, repairState } = snapshot;
   if (!report || !draft.isSigned) {
     return active ? (
       <p className={workbench.help}>Sign the inspection before requesting repair work.</p>

@@ -1,15 +1,17 @@
 import { isRecord } from "@/lib/auth/contracts";
 import { parseItems } from "@/lib/api";
 import { parseDraft, parseRepairPage, parsePhotoReference } from "./parse";
-import { parseReport, parseRevisions, parseRepairs } from "./parse-report";
+import { parseReport, parseRevisions, parseRepairs, parseRepairRequest } from "./parse-report";
 import type { Draft, RepairRow, PhotoReference } from "./contracts";
-import type { Report, RevisionHistory, RepairHistory } from "./report-contracts";
+import type { Report, RevisionHistory, RepairHistory, RepairRequest } from "./report-contracts";
 
 export type EditorSnapshot = {
   draft: Draft;
   report: Report | null;
-  revisions: RevisionHistory;
+  revisions: RevisionHistory | null;
   repairs: RepairHistory | null;
+  historyRequested: boolean;
+  currentRequest: RepairRequest | null;
   repairState: RepairRow | null;
   photos: PhotoReference[];
 };
@@ -20,8 +22,9 @@ export function parseEditor(v: unknown): EditorSnapshot | null {
   }
   const draft = parseDraft(v.draft);
   const report = v.report === null ? null : parseReport(v.report);
-  const revisions = parseRevisions(v.revisions);
+  const revisions = v.revisions === null ? null : parseRevisions(v.revisions);
   const repairs = v.repairs === null ? null : parseRepairs(v.repairs);
+  const currentRequest = v.currentRequest === null ? null : parseRepairRequest(v.currentRequest);
   const state =
     v.repairState === null
       ? null
@@ -29,21 +32,43 @@ export function parseEditor(v: unknown): EditorSnapshot | null {
   const photos = parseItems(v.photos, parsePhotoReference);
   if (
     !draft ||
-    !revisions ||
     !photos ||
+    typeof v.historyRequested !== "boolean" ||
+    (v.revisions !== null && !revisions) ||
     (v.report !== null && !report) ||
     (v.repairs !== null && !repairs) ||
+    (v.currentRequest !== null && !currentRequest) ||
     (v.repairState !== null && !state)
   ) {
     return null;
   }
   if (
-    revisions.inspectionId !== draft.id ||
+    (revisions && revisions.inspectionId !== draft.id) ||
     (report && (report.inspectionId !== draft.id || report.revision !== draft.revision)) ||
     (repairs && (repairs.inspectionId !== draft.id || repairs.revision !== draft.revision)) ||
-    (state && (state.inspectionId !== draft.id || state.repairVersion !== draft.repairVersion))
+    (state &&
+      (state.inspectionId !== draft.id ||
+        state.revision !== draft.revision ||
+        state.repairVersion !== draft.repairVersion)) ||
+    (currentRequest &&
+      (currentRequest.inspectionId !== draft.id ||
+        currentRequest.revision !== draft.revision ||
+        currentRequest.version !== draft.repairVersion ||
+        currentRequest.signedRevisionId !== report?.operationId ||
+        currentRequest.operationId !== state?.requestId)) ||
+    (draft.isSigned && !report) ||
+    (draft.isSigned && draft.repairVersion > 0 && (!currentRequest || !state))
   ) {
     return null;
   }
-  return { draft, report, revisions, repairs, repairState: state ?? null, photos };
+  return {
+    draft,
+    report,
+    revisions,
+    repairs,
+    historyRequested: v.historyRequested,
+    currentRequest,
+    repairState: state ?? null,
+    photos,
+  };
 }
