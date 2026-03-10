@@ -3,19 +3,22 @@
 import { useState } from "react";
 import { Dialog } from "@/components/ui/Dialog";
 import { useInspectionLock } from "@/hooks/use-inspection-lock";
-import type { useInspectionQueue } from "@/hooks/use-inspection-queue";
+import type { useTechnicianQueue } from "@/hooks/use-technician-queue";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { WorkshopRow } from "@/lib/inspection/workshop-contracts";
 import { AssignmentForm } from "./AssignmentForm";
 import { TechnicianJobList } from "./TechnicianJobList";
+import styles from "./TechnicianWorkspace.module.css";
 
 export function TechnicianClaim({
   actor,
   state,
+  selectionLocked,
   onClaimed,
 }: {
   actor: CurrentActor;
-  state: ReturnType<typeof useInspectionQueue<WorkshopRow>>;
+  state: ReturnType<typeof useTechnicianQueue>;
+  selectionLocked: boolean;
   onClaimed: (id: string) => void;
 }) {
   const [vehicle, setVehicle] = useState<WorkshopRow | null>(null);
@@ -23,8 +26,14 @@ export function TechnicianClaim({
   const lockNavigation = useInspectionLock(locked);
   return (
     <>
-      <div inert={Boolean(vehicle)}>
-        <TechnicianJobList title="Claim inspection" state={state} claim onOpen={setVehicle} />
+      <div className={styles.queueList} inert={Boolean(vehicle)}>
+        <TechnicianJobList
+          title="Available to claim"
+          state={state}
+          claim
+          selectionLocked={selectionLocked}
+          onOpen={setVehicle}
+        />
       </div>
       <Dialog
         open={Boolean(vehicle)}

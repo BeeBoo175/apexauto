@@ -40,7 +40,7 @@ export function SignedReport({
             </p>
           </div>
           <Badge
-            className={`${tones.badge} ${report.assessment.isRejected ? tones.neutral : tones.info}`}
+            className={`${tones.badge} ${report.assessment.isRejected ? tones.danger : tones.info}`}
           >
             {report.assessment.isRejected ? "Rejected" : `Grade ${report.assessment.grade}`}
           </Badge>

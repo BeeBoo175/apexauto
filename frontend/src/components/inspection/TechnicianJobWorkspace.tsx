@@ -26,7 +26,7 @@ export function TechnicianJobWorkspace({
     return (
       <section className={styles.placeholder} aria-label="Job content">
         <h2>Select a job</h2>
-        <p>Choose a job from My work to continue its inspection or repairs.</p>
+        <p>Choose an assigned job to continue, or claim an available vehicle.</p>
       </section>
     );
   }

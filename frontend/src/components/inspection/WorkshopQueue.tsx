@@ -2,18 +2,13 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
 import { Dialog } from "@/components/ui/Dialog";
 import type { DataColumn } from "@/components/ui/data-table/types";
 import { useInspectionQueue } from "@/hooks/use-inspection-queue";
 import { useInspectionDrawer, type RepairSelection } from "@/hooks/use-inspection-drawer";
 import { parseWorkshopPage } from "@/lib/inspection/parse-workshop";
 import { workshopExportColumns } from "@/lib/inspection/workshop-export";
-import {
-  workshopRowSection,
-  workshopStatusLabel,
-  type WorkshopRow,
-} from "@/lib/inspection/workshop-contracts";
+import { workshopRowSection, type WorkshopRow } from "@/lib/inspection/workshop-contracts";
 import type { QueueFilters } from "@/lib/inspection/contracts";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { ApiResult, Page } from "@/lib/api";
@@ -25,19 +20,9 @@ import { formatMalaysianDateTime } from "@/lib/date-format";
 import { formatCurrency } from "@/lib/currency-format";
 import { QueueView } from "./QueueView";
 import { InspectionDrawer } from "./InspectionDrawer";
+import { WorkshopStatus } from "./WorkshopStatus";
 import styles from "@/components/staff/IntakeWorklist.module.css";
-import tones from "@/components/ui/StatusTone.module.css";
 import workshop from "./Workshop.module.css";
-
-const statusTones: Record<WorkshopRow["status"], string> = {
-  AwaitingInspection: tones.neutral,
-  InspectionUnderway: tones.info,
-  RepairRequestRequired: tones.info,
-  ApprovalRequired: tones.info,
-  RepairsToComplete: tones.info,
-  ReadyForSale: tones.success,
-  Rejected: tones.neutral,
-};
 
 export function WorkshopQueue({
   actor,
@@ -109,11 +94,7 @@ export function WorkshopQueue({
       label: "Current work",
       sortable: true,
       minWidth: 190,
-      cell: (row) => (
-        <Badge className={`${tones.badge} ${statusTones[row.status]}`}>
-          {workshopStatusLabel(row.status)}
-        </Badge>
-      ),
+      cell: (row) => <WorkshopStatus status={row.status} />,
     },
   ];
   if (actor.role !== "WorkshopTechnician") {

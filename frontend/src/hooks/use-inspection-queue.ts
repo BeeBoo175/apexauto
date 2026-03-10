@@ -9,7 +9,6 @@ import { parsePage } from "@/lib/api";
 import { apiFetch } from "@/lib/api-browser";
 import type { QueueFilters, QueueKind } from "@/lib/inspection/contracts";
 import { queueLocationQuery, queuePath, queueQuery } from "@/lib/inspection/query";
-import type { TechnicianTask } from "@/lib/inspection/workshop-contracts";
 import { useToast } from "@/components/ui/Toast";
 import { useInitialToast } from "./use-initial-toast";
 import type { TableSort } from "@/components/ui/data-table/types";
@@ -30,7 +29,6 @@ export function useInspectionQueue<T>(
   page: number,
   initialBranches: Page<Branch> | null,
   parse: (v: unknown) => Page<T> | null,
-  scope?: TechnicianTask,
 ) {
   const [snapshot, setSnapshot] = useState(initial.data);
   const [active, setActive] = useState({ filters, page, sort: initialSort(filters) });
@@ -78,9 +76,6 @@ export function useInspectionQueue<T>(
       return;
     }
     const attempt = new AbortController();
-    if (scope) {
-      nextFilters = { ...nextFilters, status: scope };
-    }
     const submittedDraft = draft;
     controller.current = attempt;
     setBusy(true);
@@ -116,7 +111,7 @@ export function useInspectionQueue<T>(
         return { ...current, sort: nextFilters.sort, direction: nextFilters.direction };
       });
       const current = new URL(window.location.href);
-      const query = queueLocationQuery(current.searchParams, nextFilters, nextPage, scope);
+      const query = queueLocationQuery(current.searchParams, nextFilters, nextPage);
       window.history.replaceState(null, "", `${queuePath(kind)}?${query}`);
       return true;
     } catch {

@@ -2,11 +2,13 @@ import { StaffEntry } from "@/components/staff/StaffEntry";
 import { WorkshopQueue } from "@/components/inspection/WorkshopQueue";
 import { TechnicianWorkspace } from "@/components/inspection/TechnicianWorkspace";
 import { inspectionRead } from "@/lib/inspection/server";
-import { parseWorkshopPage } from "@/lib/inspection/parse-workshop";
+import { parseWorkshopJobs, parseWorkshopPage } from "@/lib/inspection/parse-workshop";
 import {
   queueParams,
   queueQuery,
   technicianQueueParams,
+  technicianQueueQuery,
+  technicianQueueView,
   workshopSelection,
 } from "@/lib/inspection/query";
 import { staffBranches } from "@/lib/staff/server";
@@ -36,14 +38,17 @@ export default async function InspectionPage({
           const waiting = technicianQueueParams(params, "Waiting");
           const claimable = technicianQueueParams(params, "Claimable");
           const [readyJobs, waitingJobs, claimableJobs, inspection, review] = await Promise.all([
-            inspectionRead(`workshop?${queueQuery(ready.filters, ready.page)}`, parseWorkshopPage),
             inspectionRead(
-              `workshop?${queueQuery(waiting.filters, waiting.page)}`,
-              parseWorkshopPage,
+              `workshop/jobs?${technicianQueueQuery("MyWork", ready)}`,
+              parseWorkshopJobs,
             ),
             inspectionRead(
-              `workshop?${queueQuery(claimable.filters, claimable.page)}`,
-              parseWorkshopPage,
+              `workshop/jobs?${technicianQueueQuery("Waiting", waiting)}`,
+              parseWorkshopJobs,
+            ),
+            inspectionRead(
+              `workshop/jobs?${technicianQueueQuery("Claimable", claimable)}`,
+              parseWorkshopJobs,
             ),
             selected.id ? readEditor(selected.id, undefined, selected.section === "history") : null,
             selected.id && selected.request
@@ -55,11 +60,11 @@ export default async function InspectionPage({
               key={actorIdentity(actor)}
               actor={actor}
               queues={{
-                MyWork: { ...ready, initial: readyJobs },
-                Waiting: { ...waiting, initial: waitingJobs },
-                Claimable: { ...claimable, initial: claimableJobs },
+                MyWork: { search: ready, initial: readyJobs },
+                Waiting: { search: waiting, initial: waitingJobs },
+                Claimable: { search: claimable, initial: claimableJobs },
               }}
-              initialClaim={params.view === "claim"}
+              initialView={technicianQueueView(params)}
               selectedId={selected.id}
               selectedInspection={inspection}
               selectedRequest={selected.request}

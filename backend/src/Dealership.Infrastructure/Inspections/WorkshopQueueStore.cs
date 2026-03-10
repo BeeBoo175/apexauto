@@ -31,6 +31,69 @@ public sealed class WorkshopQueueStore(DealershipDbContext database) : IWorkshop
             return new(InspectionAssignmentStatus.Forbidden);
         }
 
+        var work = Filter(actor, filter, task);
+        var total = await work.CountAsync(cancellationToken);
+        var ordered = Order(work, filter);
+        ordered = filter.Direction == "desc"
+            ? ordered.ThenByDescending(row => row.VehicleId)
+            : ordered.ThenBy(row => row.VehicleId);
+        var page = await ordered
+            .ReadPageAsync(filter.Page, filter.PageSize, total, cancellationToken);
+        var items = Items(page);
+        await transaction.CommitAsync(cancellationToken);
+        return new(InspectionAssignmentStatus.Succeeded, new(Array.AsReadOnly(items), total, filter.Page, filter.PageSize));
+    }
+
+    public async Task<WorkshopJobsResult> ReadJobsAsync(Guid actorId, InspectionQueueFilter filter,
+        WorkshopTask task, string? after, CancellationToken cancellationToken)
+    {
+        if (!filter.IsValid || filter.Page != 1 || filter.BranchId is not null || filter.From is not null ||
+            filter.Sort != "since" || filter.Direction != "desc" ||
+            task is not (WorkshopTask.MyWork or WorkshopTask.Waiting or WorkshopTask.Claimable))
+        {
+            return new(InspectionAssignmentStatus.Invalid);
+        }
+
+        await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead, cancellationToken);
+        var actor = await InspectionQueueScope.ReadAsync(database, actorId, null, cancellationToken);
+        if (actor?.Role != AccountRoles.WorkshopTechnician)
+        {
+            return new(InspectionAssignmentStatus.Forbidden);
+        }
+
+        var cursor = after is null ? null : WorkshopQueueCursor.Parse(after);
+        if (after is not null && (cursor is null || !cursor.Matches(actorId, actor.BranchId, filter, task)))
+        {
+            return new(InspectionAssignmentStatus.Invalid);
+        }
+
+        var work = Filter(actor, filter, task);
+        var total = await work.CountAsync(cancellationToken);
+        if (cursor is not null)
+        {
+            // Use PostgreSQL's timestamp/uuid order for both the boundary and the ordered rows.
+            work = work.Where(row => EF.Functions.LessThan(
+                ValueTuple.Create(row.Since, row.VehicleId), ValueTuple.Create(cursor.Since, cursor.VehicleId)));
+        }
+
+        var rows = await work.OrderByDescending(row => row.Since).ThenByDescending(row => row.VehicleId)
+            .Take(filter.PageSize + 1).ToArrayAsync(cancellationToken);
+        var page = rows.Take(filter.PageSize).ToArray();
+        string? nextCursor = null;
+        if (rows.Length > filter.PageSize)
+        {
+            var last = page[^1];
+            nextCursor = new WorkshopQueueCursor(1, actorId, actor.BranchId, task,
+                filter.Search, filter.PageSize, last.Since, last.VehicleId).Encode();
+        }
+
+        await transaction.CommitAsync(cancellationToken);
+        return new(InspectionAssignmentStatus.Succeeded,
+            new(Array.AsReadOnly(Items(page)), total, filter.PageSize, after, nextCursor));
+    }
+
+    private IQueryable<WorkshopRow> Filter(AccountUser actor, InspectionQueueFilter filter, WorkshopTask task)
+    {
         var work = Rows(actor, filter.BranchId);
         work = task switch
         {
@@ -40,10 +103,10 @@ public sealed class WorkshopQueueStore(DealershipDbContext database) : IWorkshop
                 row.IsSigned && row.RequestId != null && !row.Completed && row.Budget > 0 && !row.Approved),
             WorkshopTask.Repairs => work.Where(row => row.VehicleStatus == VehicleStatus.PendingInspection &&
                 row.IsSigned && (row.RequestId == null || row.Completed || row.Budget == 0 || row.Approved)),
-            WorkshopTask.MyWork => work.Where(row => row.TechnicianId == actorId &&
+            WorkshopTask.MyWork => work.Where(row => row.TechnicianId == actor.Id &&
                 row.VehicleStatus == VehicleStatus.PendingInspection &&
                 (!row.IsSigned || row.RequestId == null || row.Completed || row.Budget == 0 || row.Approved)),
-            WorkshopTask.Waiting => work.Where(row => row.TechnicianId == actorId &&
+            WorkshopTask.Waiting => work.Where(row => row.TechnicianId == actor.Id &&
                 row.VehicleStatus == VehicleStatus.PendingInspection && row.IsSigned &&
                 row.RequestId != null && !row.Completed && row.Budget > 0 && !row.Approved),
             WorkshopTask.Claimable => work.Where(row => row.InspectionId == null &&
@@ -63,19 +126,15 @@ public sealed class WorkshopQueueStore(DealershipDbContext database) : IWorkshop
                 row.TechnicianIdentity != null && EF.Functions.ILike(row.TechnicianIdentity, pattern, "!"));
         }
 
-        var total = await work.CountAsync(cancellationToken);
-        var ordered = Order(work, filter);
-        ordered = filter.Direction == "desc"
-            ? ordered.ThenByDescending(row => row.VehicleId)
-            : ordered.ThenBy(row => row.VehicleId);
-        var page = await ordered
-            .ReadPageAsync(filter.Page, filter.PageSize, total, cancellationToken);
-        var items = page.Select(row => new WorkshopQueueItem(row.VehicleId, row.BranchId, row.BranchName,
+        return work;
+    }
+
+    private static WorkshopQueueItem[] Items(IEnumerable<WorkshopRow> page)
+    {
+        return page.Select(row => new WorkshopQueueItem(row.VehicleId, row.BranchId, row.BranchName,
             row.RegistrationPlate, row.Make, row.Model, row.VehicleStatus.ToString(), row.InspectionId,
             row.TechnicianId, row.TechnicianIdentity, row.Revision, row.RequestId, row.Budget,
             row.Since, row.RequestId is null ? "CheckedIn" : "Requested", Status(row))).ToArray();
-        await transaction.CommitAsync(cancellationToken);
-        return new(InspectionAssignmentStatus.Succeeded, new(Array.AsReadOnly(items), total, filter.Page, filter.PageSize));
     }
 
     private static IOrderedQueryable<WorkshopRow> Order(IQueryable<WorkshopRow> rows, InspectionQueueFilter filter)

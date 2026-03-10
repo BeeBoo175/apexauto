@@ -16,6 +16,18 @@
   --status-border: #8492a6;
 }
 
+.warning {
+  --status-background: #ffedc7;
+  --status-foreground: #8a4a00;
+  --status-border: #c28a2a;
+}
+
+.danger {
+  --status-background: #f8d7d7;
+  --status-foreground: #9b2424;
+  --status-border: #ca7777;
+}
+
 .badge {
   min-height: 24px;
   padding: 3px 9px;

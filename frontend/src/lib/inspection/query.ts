@@ -96,27 +96,35 @@ export function technicianQueueParams(
   params: Record<string, string | string[] | undefined>,
   task: TechnicianTask,
 ) {
-  const scoped = Object.fromEntries(
-    ["page", "pageSize", "search"].map((key) => [key, params[`${task}.${key}`]]),
-  );
-  const query = queueParams(scoped, "workshop");
-  return { ...query, filters: { ...query.filters, status: task } };
+  const search = params[`${task}.search`];
+  return typeof search === "string" ? search.trim() : "";
 }
 
-export function queueLocationQuery(
-  current: URLSearchParams,
-  filters: QueueFilters,
-  page: number,
-  scope?: TechnicianTask,
+export function technicianQueueQuery(
+  task: TechnicianTask,
+  search: string,
+  after: string | null = null,
 ) {
-  if (scope) {
-    const query = new URLSearchParams(current);
-    for (const key of ["page", "pageSize", "search"] as const) {
-      const value = key === "page" ? page : filters[key];
-      query.set(`${scope}.${key}`, String(value));
-    }
-    return query;
+  const query = new URLSearchParams({ status: task, search, pageSize: String(DEFAULT_PAGE_SIZE) });
+  if (after !== null) {
+    query.set("after", after);
   }
+  return query.toString();
+}
+
+export function technicianQueueView(
+  params: Record<string, string | string[] | undefined>,
+): TechnicianTask {
+  if (params.view === "claim") {
+    return "Claimable";
+  }
+  if (params.view === "waiting") {
+    return "Waiting";
+  }
+  return "MyWork";
+}
+
+export function queueLocationQuery(current: URLSearchParams, filters: QueueFilters, page: number) {
   const query = new URLSearchParams(queueQuery(filters, page));
   for (const name of ["inspection", "request", "revision", "section"]) {
     const value = current.get(name);

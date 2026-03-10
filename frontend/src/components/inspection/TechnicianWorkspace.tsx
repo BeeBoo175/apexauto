@@ -7,16 +7,15 @@ import { Button } from "@/components/ui/Button";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { useToast } from "@/components/ui/Toast";
-import { useInspectionQueue } from "@/hooks/use-inspection-queue";
+import { useTechnicianQueue } from "@/hooks/use-technician-queue";
 import { useInspectionDrawer } from "@/hooks/use-inspection-drawer";
-import { parseWorkshopPage } from "@/lib/inspection/parse-workshop";
 import {
   workshopRowSection,
   type TechnicianTask,
   type WorkshopRow,
+  type WorkshopJobs,
 } from "@/lib/inspection/workshop-contracts";
-import type { ApiResult, Page } from "@/lib/api";
-import type { QueueFilters } from "@/lib/inspection/contracts";
+import type { ApiResult } from "@/lib/api";
 import type { WorkshopQueue } from "./WorkshopQueue";
 import { TechnicianJobList } from "./TechnicianJobList";
 import { TechnicianClaim } from "./TechnicianClaim";
@@ -24,10 +23,27 @@ import { TechnicianJobWorkspace } from "./TechnicianJobWorkspace";
 import styles from "./TechnicianWorkspace.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 
+const viewLabels: Record<TechnicianTask, string> = {
+  MyWork: "Ready to work",
+  Waiting: "Awaiting approval",
+  Claimable: "Available to claim",
+};
+
+const viewTabs: Record<TechnicianTask, string> = {
+  MyWork: "Ready",
+  Waiting: "Waiting",
+  Claimable: "To claim",
+};
+
+const viewQueries: Record<TechnicianTask, string> = {
+  MyWork: "ready",
+  Waiting: "waiting",
+  Claimable: "claim",
+};
+
 export type TechnicianQueueEntry = {
-  initial: ApiResult<Page<WorkshopRow>>;
-  filters: QueueFilters;
-  page: number;
+  initial: ApiResult<WorkshopJobs>;
+  search: string;
 };
 
 type Props = Pick<
@@ -40,13 +56,13 @@ type Props = Pick<
   | "selectedReview"
 > & {
   queues: Record<TechnicianTask, TechnicianQueueEntry>;
-  initialClaim: boolean;
+  initialView: TechnicianTask;
 };
 
 export function TechnicianWorkspace({
   actor,
   queues,
-  initialClaim,
+  initialView,
   selectedId = "",
   selectedInspection = null,
   selectedRequest = null,
@@ -54,35 +70,15 @@ export function TechnicianWorkspace({
   selectedReview = null,
 }: Props) {
   const animateEntry = useContext(StaffPageEntranceContext);
-  const [claim, setClaim] = useState(initialClaim);
-  const [queueExpanded, setQueueExpanded] = useState(initialClaim);
+  const [view, setView] = useState(initialView);
+  const [queueExpanded, setQueueExpanded] = useState(initialView !== "MyWork");
   const toast = useToast();
-  const ready = useInspectionQueue(
-    "workshop",
-    queues.MyWork.initial,
-    queues.MyWork.filters,
-    queues.MyWork.page,
-    null,
-    parseWorkshopPage,
-    "MyWork",
-  );
-  const waiting = useInspectionQueue(
-    "workshop",
-    queues.Waiting.initial,
-    queues.Waiting.filters,
-    queues.Waiting.page,
-    null,
-    parseWorkshopPage,
-    "Waiting",
-  );
-  const claimable = useInspectionQueue(
-    "workshop",
-    queues.Claimable.initial,
-    queues.Claimable.filters,
-    queues.Claimable.page,
-    null,
-    parseWorkshopPage,
+  const ready = useTechnicianQueue("MyWork", queues.MyWork.initial, queues.MyWork.search);
+  const waiting = useTechnicianQueue("Waiting", queues.Waiting.initial, queues.Waiting.search);
+  const claimable = useTechnicianQueue(
     "Claimable",
+    queues.Claimable.initial,
+    queues.Claimable.search,
   );
 
   async function refresh(includeClaims = true) {
@@ -107,17 +103,12 @@ export function TechnicianWorkspace({
   );
   const busy = ready.busy || waiting.busy || claimable.busy;
   const interactive = ready.ready && waiting.ready && claimable.ready;
-  const noReadyWork = ready.snapshot?.total === 0 && !ready.active.filters.search;
+  const worklists = { MyWork: ready, Waiting: waiting, Claimable: claimable };
 
-  function showClaim(value: boolean) {
-    setClaim(value);
-    setQueueExpanded(value);
+  function showView(value: TechnicianTask) {
+    setView(value);
     const url = new URL(window.location.href);
-    if (value) {
-      url.searchParams.set("view", "claim");
-    } else {
-      url.searchParams.delete("view");
-    }
+    url.searchParams.set("view", viewQueries[value]);
     window.history.replaceState(null, "", url);
   }
 
@@ -132,25 +123,14 @@ export function TechnicianWorkspace({
     <div className={styles.workspace}>
       <LoadingProgress label="Loading workshop jobs" active={busy || selection.busy} />
       <StaffCommandBar
-        title={claim ? "Claim inspection" : "My work"}
+        title="Workshop"
         actions={
-          <>
-            <Button
-              size="compact"
-              variant="ghost"
-              aria-label={claim ? "Back to my work" : "Claim inspection"}
-              disabled={!interactive || selection.locked}
-              onClick={() => showClaim(!claim)}
-            >
-              {claim ? "My work" : "Claim inspection"}
-            </Button>
-            <RefreshButton
-              label="Refresh workshop"
-              busy={busy}
-              disabled={!interactive}
-              onClick={() => void refresh()}
-            />
-          </>
+          <RefreshButton
+            label="Refresh workshop"
+            busy={busy}
+            disabled={!interactive}
+            onClick={() => void refresh()}
+          />
         }
       />
       <div
@@ -165,7 +145,7 @@ export function TechnicianWorkspace({
         >
           {(selection.id || selection.pendingId) && (
             <div className={styles.mobileQueueBar}>
-              <strong>My work</strong>
+              <strong>{viewLabels[view]}</strong>
               <Button
                 size="compact"
                 variant="secondary"
@@ -178,53 +158,51 @@ export function TechnicianWorkspace({
             </div>
           )}
           <div className={styles.queueBody} id="technician-worklist-content">
-            {claim ? (
+            <nav className={styles.queueNavigation} aria-label="Workshop worklists">
+              {(["MyWork", "Waiting", "Claimable"] as const).map((task) => (
+                <Button
+                  key={task}
+                  size="compact"
+                  variant="ghost"
+                  className={styles.queueView}
+                  aria-pressed={view === task}
+                  title={viewLabels[task]}
+                  onClick={() => showView(task)}
+                >
+                  <span>{viewTabs[task]}</span>
+                  {worklists[task].snapshot && (
+                    <span className={styles.viewCount}>
+                      {worklists[task].snapshot.total}
+                      <span className="sr-only">
+                        {worklists[task].search ? " matching jobs" : " jobs"}
+                      </span>
+                    </span>
+                  )}
+                </Button>
+              ))}
+            </nav>
+            {view === "Claimable" ? (
               <TechnicianClaim
                 actor={actor}
                 state={claimable}
+                selectionLocked={selection.locked}
                 onClaimed={(id) => {
                   setQueueExpanded(false);
-                  showClaim(false);
+                  showView("MyWork");
                   void refresh();
                   selection.open(id);
                 }}
               />
             ) : (
-              <>
-                {noReadyWork && (
-                  <section className={styles.prompt}>
-                    <h2>Ready for your next inspection</h2>
-                    <p>
-                      Your assigned jobs have no actionable work. Claim an inspection to continue.
-                    </p>
-                    <Button
-                      size="compact"
-                      disabled={selection.locked}
-                      onClick={() => showClaim(true)}
-                    >
-                      Claim inspection
-                    </Button>
-                  </section>
-                )}
-                {!noReadyWork && (
-                  <TechnicianJobList
-                    title="Ready to continue"
-                    state={ready}
-                    onOpen={open}
-                    selectedId={selection.id}
-                    pendingId={selection.pendingId}
-                    selectionLocked={selection.locked}
-                  />
-                )}
-                <TechnicianJobList
-                  title="Waiting for approval"
-                  state={waiting}
-                  onOpen={open}
-                  selectedId={selection.id}
-                  pendingId={selection.pendingId}
-                  selectionLocked={selection.locked}
-                />
-              </>
+              <TechnicianJobList
+                key={view}
+                title={viewLabels[view]}
+                state={worklists[view]}
+                onOpen={open}
+                selectedId={selection.id}
+                pendingId={selection.pendingId}
+                selectionLocked={selection.locked}
+              />
             )}
           </div>
         </aside>

@@ -1,10 +1,11 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/Button";
 import { SearchField } from "@/components/ui/SearchField";
-import { DataTablePagination } from "@/components/ui/data-table/DataTablePagination";
-import type { useInspectionQueue } from "@/hooks/use-inspection-queue";
-import { workshopStatusLabel, type WorkshopRow } from "@/lib/inspection/workshop-contracts";
+import type { useTechnicianQueue } from "@/hooks/use-technician-queue";
+import type { WorkshopRow } from "@/lib/inspection/workshop-contracts";
+import { WorkshopStatus } from "./WorkshopStatus";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { formatCurrency } from "@/lib/currency-format";
 import styles from "./TechnicianWorkspace.module.css";
@@ -19,72 +20,76 @@ export function TechnicianJobList({
   selectionLocked = false,
 }: {
   title: string;
-  state: ReturnType<typeof useInspectionQueue<WorkshopRow>>;
+  state: ReturnType<typeof useTechnicianQueue>;
   onOpen: (row: WorkshopRow) => void;
   claim?: boolean;
   selectedId?: string;
   pendingId?: string;
   selectionLocked?: boolean;
 }) {
-  const { snapshot, active } = state;
+  const continuation = useRef<HTMLDivElement | null>(null);
+  const { snapshot, loadMore, busy, failed } = state;
+  const activeId = pendingId || selectedId;
+  useEffect(() => {
+    const target = continuation.current;
+    if (
+      !target ||
+      busy ||
+      failed ||
+      !snapshot?.nextCursor ||
+      typeof IntersectionObserver === "undefined"
+    ) {
+      return;
+    }
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        void loadMore();
+      }
+    });
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [busy, failed, snapshot?.nextCursor, loadMore]);
+
   return (
-    <section className={styles.list} aria-label={title} aria-busy={state.busy}>
-      <div className={styles.listHeading}>
-        <h2>{title}</h2>
-        {snapshot && (
-          <span>
-            {snapshot.total} {active.filters.search ? "matching " : ""}
-            {snapshot.total === 1 ? "job" : "jobs"}
-          </span>
-        )}
-      </div>
-      {(!snapshot || snapshot.total > 0 || active.filters.search || state.draft.search) && (
+    <section className={styles.list} aria-label={title} aria-busy={busy}>
+      {(!snapshot || snapshot.total > 0 || state.search || state.draft) && (
         <form
           className={styles.search}
           onSubmit={(event) => {
             event.preventDefault();
-            void state.load({ ...active.filters, search: state.draft.search.trim() }, 1);
+            if (!busy) {
+              void state.submit();
+            }
           }}
         >
           <SearchField
             label={`Search ${title.toLowerCase()}`}
             placeholder="Search vehicle or registration"
-            value={state.draft.search}
+            value={state.draft}
             disabled={!state.ready}
-            busy={state.busy}
-            onChange={(search) => state.setDraft({ ...state.draft, search })}
-            onClear={
-              active.filters.search
-                ? () => void state.load({ ...active.filters, search: "" }, 1)
-                : undefined
-            }
+            busy={busy}
+            onChange={state.setDraft}
+            onClear={state.search && !busy ? () => void state.clear() : undefined}
           />
         </form>
       )}
-      {!snapshot && (
+      {!snapshot && !failed && (
         <div className={styles.empty}>
-          <p>This worklist is unavailable. Retry to load your jobs.</p>
-          <Button size="compact" variant="secondary" onClick={() => void state.refresh()}>
-            Retry {title.toLowerCase()}
-          </Button>
-        </div>
-      )}
-      {snapshot?.total === 0 && (
-        <p className={styles.empty}>
-          {active.filters.search ? "No jobs match this search." : "No jobs in this worklist."}
-        </p>
-      )}
-      {snapshot && snapshot.items.length === 0 && snapshot.total > 0 && (
-        <div className={styles.empty}>
-          <p>No jobs remain on this page.</p>
+          <p>This worklist is unavailable.</p>
           <Button
             size="compact"
             variant="secondary"
-            onClick={() => void state.load(active.filters, 1)}
+            disabled={busy}
+            onClick={() => void state.retry()}
           >
-            Return to first page
+            Retry worklist
           </Button>
         </div>
+      )}
+      {snapshot?.items.length === 0 && (
+        <p className={styles.empty}>
+          {state.search ? "No jobs match this search." : "No jobs in this worklist."}
+        </p>
       )}
       <ul className={styles.jobs}>
         {snapshot?.items.map((row) => (
@@ -94,20 +99,23 @@ export function TechnicianJobList({
               size="row"
               className={styles.job}
               onClick={() => onOpen(row)}
-              aria-pressed={!claim && row.inspectionId === selectedId}
+              aria-pressed={!claim && row.inspectionId === activeId}
               aria-busy={(!claim && row.inspectionId === pendingId) || undefined}
-              disabled={selectionLocked && row.inspectionId !== selectedId}
+              disabled={selectionLocked && (claim || row.inspectionId !== selectedId)}
               aria-label={`${claim ? "Claim inspection" : "Open job"} · ${row.registrationPlate}`}
             >
-              <span className={styles.identity}>
-                <strong>{row.registrationPlate}</strong>
-                <span>
-                  {row.make} {row.model}
+              <span className={styles.jobHeading}>
+                <span className={styles.identity}>
+                  <strong>{row.registrationPlate}</strong>
+                  <span>
+                    {row.make} {row.model}
+                  </span>
                 </span>
+                <WorkshopStatus status={row.status} />
               </span>
               <span className={styles.jobState}>
-                <strong>{claim ? "Claim inspection" : workshopStatusLabel(row.status)}</strong>
-                <span>
+                {claim && <strong>Claim inspection</strong>}
+                <span className={styles.jobMeta}>
                   {row.dateSource === "Requested" ? "Requested" : "Checked in"}{" "}
                   {formatMalaysianDateTime(row.since)}
                   {row.budget !== null && ` · ${formatCurrency(row.budget)}`}
@@ -117,13 +125,21 @@ export function TechnicianJobList({
           </li>
         ))}
       </ul>
-      {snapshot && snapshot.total > 0 && (
-        <DataTablePagination
-          page={snapshot}
-          count={snapshot.items.length}
-          disabled={state.busy}
-          onPage={(page, pageSize) => void state.load({ ...active.filters, pageSize }, page)}
-        />
+      {(failed || snapshot?.nextCursor) && (
+        <div className={styles.continuation} ref={continuation}>
+          {failed && <p>Jobs could not be loaded. Confirmed work remains shown.</p>}
+          <Button
+            size="compact"
+            variant="secondary"
+            disabled={busy}
+            onClick={() => void (failed ? state.retry() : loadMore())}
+          >
+            {failed ? "Retry worklist" : "Load more jobs"}
+          </Button>
+          <span role="status" aria-live="polite">
+            {busy ? "Loading jobs…" : `${snapshot?.items.length ?? 0} jobs loaded`}
+          </span>
+        </div>
       )}
     </section>
   );

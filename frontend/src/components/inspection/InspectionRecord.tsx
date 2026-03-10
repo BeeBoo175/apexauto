@@ -1,12 +1,11 @@
 import { StaffLink } from "@/components/staff/StaffLink";
-import { Badge } from "@/components/ui/Badge";
+import { WorkshopStatus } from "./WorkshopStatus";
 import type { useInspectionEditor } from "@/hooks/use-inspection-editor";
 import { assessmentLabel } from "@/lib/inspection/contracts";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { formatCurrency } from "@/lib/currency-format";
 import styles from "./Inspection.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
-import tones from "@/components/ui/StatusTone.module.css";
 import workshop from "./Workshop.module.css";
 import { workshopSnapshotStatus, workshopStatusLabel } from "@/lib/inspection/workshop-contracts";
 
@@ -33,13 +32,7 @@ export function InspectionRecord({
           <strong className={workshop.summaryValue}>{summaryValue}</strong>
         </div>
         <div className={workshop.summaryContext}>
-          {request && (
-            <Badge
-              className={`${tones.badge} ${status === "ReadyForSale" ? tones.success : tones.info}`}
-            >
-              {workshopStatusLabel(status)}
-            </Badge>
-          )}
+          {request && <WorkshopStatus status={status} />}
           <span>
             {snapshot.draft.revision} · {snapshot.draft.isSigned ? "Signed" : "Draft"}
           </span>
