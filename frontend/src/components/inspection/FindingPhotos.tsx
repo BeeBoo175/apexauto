@@ -1,4 +1,5 @@
 "use client";
+import { useId, useRef } from "react";
 import type { useInspectionPhoto } from "@/hooks/use-inspection-photo";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -19,42 +20,74 @@ export function FindingPhotos({
   disabled: boolean;
   onChange: (ids: string[]) => void;
 }) {
+  const fileInput = useRef<HTMLInputElement>(null);
+  const formatHelpId = useId();
+  const canAdd = ids.length < 4;
   return (
     <div className={styles.photoSection}>
-      <p>Private evidence · {ids.length} of 4 photos</p>
-      <div className={styles.photos}>
-        {ids.map((id) => (
-          <figure key={id}>
-            {/* Private authenticated evidence must use the same-origin route without an image cache. */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={`/api/staff/inspection/drafts/${inspectionId}/photos/${id}`}
-              alt={`${pointCode} inspection evidence`}
-              width={160}
-              height={110}
-            />
-            <Button
-              type="button"
-              size="compact"
-              variant="secondary"
-              disabled={disabled || photo.busy || photo.uncertain}
-              onClick={() => onChange(ids.filter((value) => value !== id))}
-            >
-              Detach photo
-            </Button>
-          </figure>
-        ))}
-      </div>
-      {ids.length < 4 && (
+      {(ids.length > 0 || (canAdd && !photo.file)) && (
+        <div className={styles.photoHeader}>
+          {ids.length > 0 && <p>Private evidence · {ids.length} of 4 photos</p>}
+          {canAdd && !photo.file && (
+            <>
+              <Button
+                type="button"
+                size="compact"
+                variant="secondary"
+                disabled={disabled || photo.busy || photo.uncertain}
+                aria-describedby={formatHelpId}
+                onClick={() => fileInput.current?.click()}
+              >
+                Add evidence
+              </Button>
+              <span id={formatHelpId} className={styles.help}>
+                JPEG, PNG or WebP · up to 10 MiB
+              </span>
+            </>
+          )}
+        </div>
+      )}
+      {ids.length > 0 && (
+        <div className={styles.photos}>
+          {ids.map((id) => (
+            <figure key={id}>
+              {/* Private authenticated evidence must use the same-origin route without an image cache. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`/api/staff/inspection/drafts/${inspectionId}/photos/${id}`}
+                alt={`${pointCode} inspection evidence`}
+                width={160}
+                height={110}
+              />
+              <Button
+                type="button"
+                size="compact"
+                variant="secondary"
+                disabled={disabled || photo.busy || photo.uncertain}
+                onClick={() => onChange(ids.filter((value) => value !== id))}
+              >
+                Detach photo
+              </Button>
+            </figure>
+          ))}
+        </div>
+      )}
+      {(canAdd || photo.file || photo.uncertain) && (
         <>
-          <Input
-            id={`photo-${pointCode}`}
-            type="file"
-            label="Add JPEG, PNG or WebP (up to 10 MiB)"
-            accept="image/jpeg,image/png,image/webp"
-            disabled={(disabled && !photo.file) || photo.busy || photo.uncertain}
-            onChange={(event) => photo.select(event.target.files?.[0] ?? null)}
-          />
+          <div hidden>
+            <Input
+              ref={fileInput}
+              id={`photo-${pointCode}`}
+              type="file"
+              label="Add JPEG, PNG or WebP (up to 10 MiB)"
+              accept="image/jpeg,image/png,image/webp"
+              disabled={disabled || photo.busy || photo.uncertain}
+              onChange={(event) => {
+                photo.select(event.target.files?.[0] ?? null);
+                event.target.value = "";
+              }}
+            />
+          </div>
           {photo.file && (
             <div className={styles.actions}>
               <span>{photo.file.name}</span>
