@@ -1,57 +1,33 @@
 import { StaffLink } from "@/components/staff/StaffLink";
-import { Badge } from "@/components/ui/Badge";
 import type { useInspectionEditor } from "@/hooks/use-inspection-editor";
 import { assessmentLabel } from "@/lib/inspection/contracts";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { formatCurrency } from "@/lib/currency-format";
 import styles from "./Inspection.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
-import tones from "@/components/ui/StatusTone.module.css";
 import workshop from "./Workshop.module.css";
-import type { WorkshopSection } from "@/lib/inspection/query";
 import { workshopSnapshotStatus, workshopStatusLabel } from "@/lib/inspection/workshop-contracts";
 
 export function InspectionRecord({
   id,
   editor,
-  section,
-  historical,
 }: {
   id: string;
   editor: ReturnType<typeof useInspectionEditor>;
-  section: WorkshopSection;
-  historical: boolean;
 }) {
   const { snapshot, base } = editor;
   if (!snapshot || !base) {
     return null;
   }
   const status = workshopSnapshotStatus(snapshot);
-  let summaryValue = workshopStatusLabel(status);
-  let summaryLabel = "Current work";
-  if (section !== "inspection" && snapshot.repairState && !historical) {
-    summaryLabel = "Current request budget";
-    summaryValue = formatCurrency(snapshot.repairState.budget);
-  }
-  if (historical && section === "repairs") {
-    summaryLabel = "Selected repair history";
-    summaryValue = "Retained request";
-  }
   return (
     <section className={workshop.summary} aria-label="Vehicle and confirmed assessment">
       <div className={workshop.summaryMain}>
         <div>
-          <span className={workshop.summaryLabel}>{summaryLabel}</span>
-          <strong className={workshop.summaryValue}>{summaryValue}</strong>
+          <span className={workshop.summaryLabel}>Current work</span>
+          <strong className={workshop.summaryValue}>{workshopStatusLabel(status)}</strong>
         </div>
         <div className={workshop.summaryContext}>
-          {summaryLabel !== "Current work" && (
-            <Badge
-              className={`${tones.badge} ${status === "ReadyForSale" ? tones.success : tones.info}`}
-            >
-              {workshopStatusLabel(status)}
-            </Badge>
-          )}
           <span>
             {snapshot.draft.revision} · {snapshot.draft.isSigned ? "Signed" : "Draft"}
           </span>
@@ -59,6 +35,9 @@ export function InspectionRecord({
             {Object.values(editor.value.entries).filter((entry) => entry.kind === "Finding").length}{" "}
             findings
           </span>
+          {snapshot.repairState && (
+            <span>Current request budget · {formatCurrency(snapshot.repairState.budget)}</span>
+          )}
         </div>
       </div>
       {snapshot.report && (

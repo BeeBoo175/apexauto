@@ -108,12 +108,7 @@ export function InspectionEditor({
         )}
         {snapshot && base && (
           <>
-            <InspectionRecord
-              id={id}
-              editor={editor}
-              section={section}
-              historical={Boolean(historical)}
-            />
+            <InspectionRecord id={id} editor={editor} />
             <nav className={workshop.sections} aria-label="Workshop sections">
               {(["inspection", "repairs", "history"] as const).map((value) => (
                 <Button
