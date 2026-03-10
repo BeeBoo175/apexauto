@@ -169,7 +169,7 @@ export function WorkshopQueue({
       selectedRowId={
         state.snapshot?.items.find((row) => row.inspectionId === selection.id)?.vehicleId
       }
-      disabled={Boolean(unassigned) || Boolean(selection.id)}
+      disabled={Boolean(unassigned) || Boolean(selection.id) || selection.busy}
     >
       <Dialog
         open={Boolean(unassigned)}

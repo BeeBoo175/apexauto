@@ -130,7 +130,7 @@ export function TechnicianWorkspace({
 
   return (
     <div className={styles.workspace}>
-      <LoadingProgress label="Refreshing workshop jobs" active={busy} />
+      <LoadingProgress label="Loading workshop jobs" active={busy || selection.busy} />
       <StaffCommandBar
         title={claim ? "Claim inspection" : "My work"}
         actions={
@@ -155,7 +155,7 @@ export function TechnicianWorkspace({
       />
       <div
         className={`${styles.columns} ${animateEntry ? workbench.reveal : ""}`}
-        data-selected={Boolean(selection.id)}
+        data-selected={Boolean(selection.id || selection.pendingId)}
         inert={!interactive}
       >
         <aside
@@ -163,7 +163,7 @@ export function TechnicianWorkspace({
           aria-label="Technician worklists"
           data-expanded={queueExpanded}
         >
-          {selection.id && (
+          {(selection.id || selection.pendingId) && (
             <div className={styles.mobileQueueBar}>
               <strong>My work</strong>
               <Button
@@ -212,6 +212,7 @@ export function TechnicianWorkspace({
                     state={ready}
                     onOpen={open}
                     selectedId={selection.id}
+                    pendingId={selection.pendingId}
                     selectionLocked={selection.locked}
                   />
                 )}
@@ -220,6 +221,7 @@ export function TechnicianWorkspace({
                   state={waiting}
                   onOpen={open}
                   selectedId={selection.id}
+                  pendingId={selection.pendingId}
                   selectionLocked={selection.locked}
                 />
               </>

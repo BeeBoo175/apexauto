@@ -1,10 +1,12 @@
 import { StaffLink } from "@/components/staff/StaffLink";
+import { Badge } from "@/components/ui/Badge";
 import type { useInspectionEditor } from "@/hooks/use-inspection-editor";
 import { assessmentLabel } from "@/lib/inspection/contracts";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { formatCurrency } from "@/lib/currency-format";
 import styles from "./Inspection.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
+import tones from "@/components/ui/StatusTone.module.css";
 import workshop from "./Workshop.module.css";
 import { workshopSnapshotStatus, workshopStatusLabel } from "@/lib/inspection/workshop-contracts";
 
@@ -20,14 +22,24 @@ export function InspectionRecord({
     return null;
   }
   const status = workshopSnapshotStatus(snapshot);
+  const request = snapshot.repairState;
+  const summaryLabel = request ? "Current request budget" : "Current work";
+  const summaryValue = request ? formatCurrency(request.budget) : workshopStatusLabel(status);
   return (
     <section className={workshop.summary} aria-label="Vehicle and confirmed assessment">
       <div className={workshop.summaryMain}>
         <div>
-          <span className={workshop.summaryLabel}>Current work</span>
-          <strong className={workshop.summaryValue}>{workshopStatusLabel(status)}</strong>
+          <span className={workshop.summaryLabel}>{summaryLabel}</span>
+          <strong className={workshop.summaryValue}>{summaryValue}</strong>
         </div>
         <div className={workshop.summaryContext}>
+          {request && (
+            <Badge
+              className={`${tones.badge} ${status === "ReadyForSale" ? tones.success : tones.info}`}
+            >
+              {workshopStatusLabel(status)}
+            </Badge>
+          )}
           <span>
             {snapshot.draft.revision} · {snapshot.draft.isSigned ? "Signed" : "Draft"}
           </span>
@@ -35,9 +47,6 @@ export function InspectionRecord({
             {Object.values(editor.value.entries).filter((entry) => entry.kind === "Finding").length}{" "}
             findings
           </span>
-          {snapshot.repairState && (
-            <span>Current request budget · {formatCurrency(snapshot.repairState.budget)}</span>
-          )}
         </div>
       </div>
       {snapshot.report && (

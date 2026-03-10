@@ -21,6 +21,7 @@ export function useInspectionDrawer(
     parse: parseEditor,
     matches: (value, id) => value.draft.id === id,
     read: inspectionFetch,
+    commitAfterRead: true,
   });
   const [locked, setLocked] = useState(false);
   const [request, setRequest] = useState(initialRequest);
@@ -36,18 +37,17 @@ export function useInspectionDrawer(
     if (locked) {
       return;
     }
-    setRequest(request);
-    setSection(section);
-    void selection.choose(id);
-    const url = new URL(window.location.href);
-    url.searchParams.set("section", section);
-    url.searchParams.delete("request");
-    url.searchParams.delete("revision");
-    if (request) {
-      url.searchParams.set("request", request.requestId);
-      url.searchParams.set("revision", String(request.revision));
-    }
-    window.history.replaceState(null, "", url);
+    void selection.choose(id, (url) => {
+      setRequest(request);
+      setSection(section);
+      url.searchParams.set("section", section);
+      url.searchParams.delete("request");
+      url.searchParams.delete("revision");
+      if (request) {
+        url.searchParams.set("request", request.requestId);
+        url.searchParams.set("revision", String(request.revision));
+      }
+    });
   }
 
   function changeSection(next: WorkshopSection) {

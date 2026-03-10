@@ -15,6 +15,7 @@ export function TechnicianJobList({
   onOpen,
   claim = false,
   selectedId = "",
+  pendingId = "",
   selectionLocked = false,
 }: {
   title: string;
@@ -22,6 +23,7 @@ export function TechnicianJobList({
   onOpen: (row: WorkshopRow) => void;
   claim?: boolean;
   selectedId?: string;
+  pendingId?: string;
   selectionLocked?: boolean;
 }) {
   const { snapshot, active } = state;
@@ -93,6 +95,7 @@ export function TechnicianJobList({
               className={styles.job}
               onClick={() => onOpen(row)}
               aria-pressed={!claim && row.inspectionId === selectedId}
+              aria-busy={(!claim && row.inspectionId === pendingId) || undefined}
               disabled={selectionLocked && row.inspectionId !== selectedId}
               aria-label={`${claim ? "Claim inspection" : "Open job"} · ${row.registrationPlate}`}
             >

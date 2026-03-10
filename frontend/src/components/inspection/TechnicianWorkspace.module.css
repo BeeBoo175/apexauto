@@ -140,7 +140,8 @@
   text-align: left;
 }
 
-.job[aria-pressed="true"] {
+.job[aria-pressed="true"],
+.job[aria-busy="true"] {
   background: var(--color-selected-surface);
   box-shadow: inset 0 0 0 1px var(--color-interaction-border);
 }

@@ -22,7 +22,7 @@ export function TechnicianJobWorkspace({
 }) {
   const [headerActions, setHeaderActions] = useState<HTMLDivElement | null>(null);
   const vehicle = selection.result?.data?.draft.vehicle;
-  if (!selection.id) {
+  if (!selection.id && !selection.pendingId) {
     return (
       <section className={styles.placeholder} aria-label="Job content">
         <h2>Select a job</h2>
@@ -30,8 +30,20 @@ export function TechnicianJobWorkspace({
       </section>
     );
   }
+  if (selection.busy && !selection.result?.data) {
+    return (
+      <section className={styles.content} aria-label="Job content" aria-busy="true">
+        <WorkshopLoadingShell />
+      </section>
+    );
+  }
   return (
-    <section className={styles.content} aria-label="Selected workshop job">
+    <section
+      className={styles.content}
+      aria-label="Selected workshop job"
+      aria-busy={selection.busy}
+      inert={selection.busy}
+    >
       <header className={styles.contentHeader}>
         <div>
           <h2>{vehicle?.registrationPlate ?? "Workshop job"}</h2>
@@ -53,7 +65,6 @@ export function TechnicianJobWorkspace({
           <div ref={setHeaderActions} />
         </div>
       </header>
-      {selection.busy && !selection.result?.data && <WorkshopLoadingShell />}
       {selection.result?.data && (
         <InspectionEditor
           key={selection.id}
