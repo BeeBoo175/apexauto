@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import type { ComponentProps } from "react";
 import { Button } from "@/components/ui/Button";
 import type { useInspectionDrawer } from "@/hooks/use-inspection-drawer";
 import type { CurrentActor } from "@/lib/auth/actor";
@@ -13,14 +13,17 @@ export function TechnicianJobWorkspace({
   actor,
   selection,
   selectedReview,
+  actionsContainer,
+  refreshControl,
   onChanged,
 }: {
   actor: CurrentActor;
   selection: ReturnType<typeof useInspectionDrawer>;
   selectedReview: SelectedRepairReview | null;
+  actionsContainer: HTMLElement | null;
+  refreshControl: ComponentProps<typeof InspectionEditor>["refreshControl"];
   onChanged: () => void;
 }) {
-  const [headerActions, setHeaderActions] = useState<HTMLDivElement | null>(null);
   const vehicle = selection.result?.data?.draft.vehicle;
   if (!selection.id && !selection.pendingId) {
     return (
@@ -53,34 +56,26 @@ export function TechnicianJobWorkspace({
             </p>
           )}
         </div>
-        <div className={styles.contentActions}>
-          <Button
-            size="compact"
-            variant="ghost"
-            disabled={selection.locked}
-            onClick={selection.close}
-          >
-            Close job
-          </Button>
-          <div ref={setHeaderActions} />
-        </div>
       </header>
       {selection.result?.data && (
-        <InspectionEditor
-          key={selection.id}
-          id={selection.id}
-          actor={actor}
-          initial={selection.result}
-          technicians={null}
-          actionsContainer={headerActions}
-          section={selection.section}
-          onSection={selection.changeSection}
-          onReview={selection.review}
-          selectedRequest={selection.request}
-          selectedReview={selectedReview}
-          onLocked={selection.lock}
-          onChanged={onChanged}
-        />
+        <div className={styles.editor}>
+          <InspectionEditor
+            key={selection.id}
+            id={selection.id}
+            actor={actor}
+            initial={selection.result}
+            technicians={null}
+            actionsContainer={actionsContainer}
+            refreshControl={refreshControl}
+            section={selection.section}
+            onSection={selection.changeSection}
+            onReview={selection.review}
+            selectedRequest={selection.request}
+            selectedReview={selectedReview}
+            onLocked={selection.lock}
+            onChanged={onChanged}
+          />
+        </div>
       )}
       {!selection.busy && !selection.result?.data && (
         <div className={styles.empty}>

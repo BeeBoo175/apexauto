@@ -1,9 +1,11 @@
 "use client";
 
 import { createPortal } from "react-dom";
+import type { ComponentProps } from "react";
 import { useRepairReview } from "@/hooks/use-repair-review";
 import type { RepairSelection } from "@/hooks/use-inspection-drawer";
 import { RefreshButton } from "@/components/ui/RefreshButton";
+import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { Button } from "@/components/ui/Button";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { RepairRequestDetails } from "./RepairRequestDetails";
@@ -19,11 +21,13 @@ export function RetainedRepairReview({
   inspectionId,
   selection,
   actionsContainer,
+  refreshControl,
   initial = null,
 }: {
   inspectionId: string;
   selection: RepairSelection;
   actionsContainer?: HTMLElement | null;
+  refreshControl?: ComponentProps<typeof RefreshButton>;
   initial?: ApiResult<RepairReview> | null;
 }) {
   const review = useRepairReview(inspectionId, selection, initial);
@@ -35,13 +39,17 @@ export function RetainedRepairReview({
       aria-label="Selected retained repair request"
       aria-busy={review.busy}
     >
+      <LoadingProgress label="Loading selected repair request" active={review.busy} />
       {actionsContainer &&
         createPortal(
           <RefreshButton
-            label="Refresh repair request"
-            busy={review.busy}
-            disabled={false}
-            onClick={review.retry}
+            label={refreshControl?.label ?? "Refresh repair request"}
+            busy={review.busy || Boolean(refreshControl?.busy)}
+            disabled={Boolean(refreshControl?.disabled)}
+            onClick={() => {
+              refreshControl?.onClick();
+              review.retry();
+            }}
           />,
           actionsContainer,
         )}

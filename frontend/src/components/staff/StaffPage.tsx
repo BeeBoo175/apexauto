@@ -1,6 +1,6 @@
 "use client";
 
-import { useContext, type ReactNode } from "react";
+import { useContext, type ReactNode, type Ref } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
@@ -20,9 +20,13 @@ export function StaffLoading() {
   const actor = useContext(StaffActorContext);
   const pathname = usePathname();
   const search = useSearchParams();
+  let workshopView: StaffLoadingView = "technician";
+  if (actor && actor.role !== "WorkshopTechnician") {
+    workshopView = "inspection";
+  }
   const views: Record<string, StaffLoadingView> = {
     "/dashboard/intake": search.get("view") === "list" ? "intake" : "calendar",
-    "/dashboard/inspection": "inspection",
+    "/dashboard/inspection": workshopView,
     "/dashboard/inspection/repairs": "repairs",
   };
   let view = views[pathname] ?? "inspection";
@@ -41,12 +45,20 @@ export function StaffLoading() {
       <div className={view === "report" ? reportStyles.controls : undefined}>
         <StaffCommandBar title={actor ? title : null} />
       </div>
-      <StaffLoadingShell view={view} />
+      <StaffLoadingShell view={view} selected={Boolean(search.get("inspection"))} />
     </>
   );
 }
 
-export function StaffCommandBar({ title, actions }: { title: string | null; actions?: ReactNode }) {
+export function StaffCommandBar({
+  title,
+  actions,
+  actionsRef,
+}: {
+  title: string | null;
+  actions?: ReactNode;
+  actionsRef?: Ref<HTMLDivElement>;
+}) {
   const navigation = useContext(StaffNavigationContext);
   const pendingTitle = navigation?.pendingPath ? titles[navigation.pendingPath] : undefined;
   return (
@@ -56,7 +68,11 @@ export function StaffCommandBar({ title, actions }: { title: string | null; acti
       ) : (
         <h1 tabIndex={-1}>{pendingTitle ?? title}</h1>
       )}
-      {actions && <div className={styles.actions}>{actions}</div>}
+      {(actions || actionsRef) && (
+        <div ref={actionsRef} className={styles.actions}>
+          {actions}
+        </div>
+      )}
     </header>
   );
 }

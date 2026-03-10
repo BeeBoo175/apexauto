@@ -1,0 +1,39 @@
+.navigation,
+.job,
+.title,
+.context {
+  composes: placeholder from "../staff/AppointmentLoadingShell.module.css";
+}
+
+.navigation {
+  grid-column: 1 / -1;
+  width: 75%;
+  height: 16px;
+  margin-block: 16px;
+}
+
+.jobs {
+  display: grid;
+  gap: 16px;
+  padding: 16px;
+}
+
+.job {
+  height: 72px;
+}
+
+.identity {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+}
+
+.title {
+  width: min(100%, 160px);
+  height: 24px;
+}
+
+.context {
+  width: min(100%, 280px);
+  height: 14px;
+}

@@ -1,23 +1,29 @@
 import { Card } from "@/components/ui/Card";
 import { SignedReportLoadingShell } from "@/components/inspection/SignedReportLoadingShell";
+import { TechnicianLoadingShell } from "@/components/inspection/TechnicianLoadingShell";
 import { IntakeCalendarLoadingShell } from "./IntakeCalendarLoadingShell";
 import { StaffTableLoadingShell } from "./StaffTableLoadingShell";
 import layout from "./Staff.module.css";
 import styles from "./StaffLoadingShell.module.css";
 
 export type StaffLoadingView =
-  "calendar" | "intake" | "inspection" | "repairs" | "appointment" | "report";
+  "calendar" | "intake" | "inspection" | "technician" | "repairs" | "appointment" | "report";
 
-export function StaffLoadingShell({ view }: { view: StaffLoadingView }) {
+type LoadingShellProps = { view: StaffLoadingView; selected?: boolean };
+
+export function StaffLoadingShell({ view, selected }: LoadingShellProps) {
   return (
     <div className={styles.shell} role="status" aria-label="Loading workspace content">
       <span className="sr-only">Loading workspace content…</span>
-      <LoadingContent view={view} />
+      <LoadingContent view={view} selected={selected} />
     </div>
   );
 }
 
-function LoadingContent({ view }: { view: StaffLoadingView }) {
+function LoadingContent({ view, selected = false }: LoadingShellProps) {
+  if (view === "technician") {
+    return <TechnicianLoadingShell selected={selected} />;
+  }
   if (view === "calendar") {
     return <IntakeCalendarLoadingShell />;
   }

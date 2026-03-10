@@ -72,6 +72,7 @@ export function TechnicianWorkspace({
   const animateEntry = useContext(StaffPageEntranceContext);
   const [view, setView] = useState(initialView);
   const [queueExpanded, setQueueExpanded] = useState(initialView !== "MyWork");
+  const [headerActions, setHeaderActions] = useState<HTMLDivElement | null>(null);
   const toast = useToast();
   const ready = useTechnicianQueue("MyWork", queues.MyWork.initial, queues.MyWork.search);
   const waiting = useTechnicianQueue("Waiting", queues.Waiting.initial, queues.Waiting.search);
@@ -104,6 +105,12 @@ export function TechnicianWorkspace({
   const busy = ready.busy || waiting.busy || claimable.busy;
   const interactive = ready.ready && waiting.ready && claimable.ready;
   const worklists = { MyWork: ready, Waiting: waiting, Claimable: claimable };
+  const refreshControl = {
+    label: "Refresh workshop",
+    busy,
+    disabled: !interactive || selection.busy,
+    onClick: () => void refresh(),
+  };
 
   function showView(value: TechnicianTask) {
     setView(value);
@@ -124,14 +131,8 @@ export function TechnicianWorkspace({
       <LoadingProgress label="Loading workshop jobs" active={busy || selection.busy} />
       <StaffCommandBar
         title="Workshop"
-        actions={
-          <RefreshButton
-            label="Refresh workshop"
-            busy={busy}
-            disabled={!interactive}
-            onClick={() => void refresh()}
-          />
-        }
+        actionsRef={setHeaderActions}
+        actions={!selection.result?.data && <RefreshButton {...refreshControl} />}
       />
       <div
         className={`${styles.columns} ${animateEntry ? workbench.reveal : ""}`}
@@ -210,6 +211,8 @@ export function TechnicianWorkspace({
           actor={actor}
           selection={selection}
           selectedReview={selectedReview}
+          actionsContainer={headerActions}
+          refreshControl={refreshControl}
           onChanged={() => void refresh(false)}
         />
       </div>

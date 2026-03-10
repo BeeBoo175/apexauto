@@ -1,8 +1,9 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ComponentProps } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/Button";
 import { RefreshButton } from "@/components/ui/RefreshButton";
+import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { Dialog } from "@/components/ui/Dialog";
 import { useInspectionEditor } from "@/hooks/use-inspection-editor";
 import { useInspectionTimeline } from "@/hooks/use-inspection-timeline";
@@ -35,6 +36,7 @@ export function InspectionEditor({
   initial,
   technicians,
   actionsContainer,
+  refreshControl,
   section,
   onSection,
   onReview,
@@ -48,6 +50,7 @@ export function InspectionEditor({
   initial: ApiResult<EditorSnapshot>;
   technicians: Page<Technician> | null;
   actionsContainer?: HTMLElement | null;
+  refreshControl?: ComponentProps<typeof RefreshButton>;
   section: WorkshopSection;
   onSection: (section: WorkshopSection) => void;
   onReview: (request: RepairSelection | null) => void;
@@ -79,19 +82,24 @@ export function InspectionEditor({
     onLocked?.(locked);
     return () => onLocked?.(false);
   }, [locked, onLocked]);
+  const refresh = {
+    label: refreshControl?.label ?? "Refresh inspection",
+    busy: editor.refreshing || Boolean(refreshControl?.busy),
+    disabled: !editor.ready || editor.operating || Boolean(refreshControl?.disabled),
+    onClick: () => {
+      if (!editor.ready || editor.operating || editor.refreshing || refreshControl?.disabled) {
+        return;
+      }
+      void editor.refresh();
+      refreshControl?.onClick();
+    },
+  };
   return (
     <>
+      <LoadingProgress label="Refreshing inspection" active={editor.refreshing} />
       {actionsContainer &&
         !(historical && section === "repairs") &&
-        createPortal(
-          <RefreshButton
-            label="Refresh inspection"
-            busy={editor.refreshing}
-            disabled={!editor.ready || editor.operating}
-            onClick={() => void editor.refresh()}
-          />,
-          actionsContainer,
-        )}
+        createPortal(<RefreshButton {...refresh} />, actionsContainer)}
       <div className={workshop.workspace} inert={!editor.ready}>
         {!snapshot && (
           <section className={workbench.protocol}>
@@ -161,6 +169,7 @@ export function InspectionEditor({
                   inspectionId={id}
                   selection={selectedRequest}
                   actionsContainer={actionsContainer}
+                  refreshControl={refresh}
                   initial={
                     selectedReview?.selection.requestId === selectedRequest.requestId &&
                     selectedReview.selection.revision === selectedRequest.revision
