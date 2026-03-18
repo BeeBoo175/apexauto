@@ -2,8 +2,9 @@ import "server-only";
 import { cookies } from "next/headers";
 import { SESSION_COOKIE } from "@/lib/auth/contracts";
 import { requestApi, type ApiRequestOptions } from "@/lib/server/http/upstream";
-import { HttpError, readBoundedJson } from "@/lib/http";
-import { API_DEADLINE_MS } from "@/lib/api";
+import { HttpError, parseRetryAfterSeconds, readBoundedJson } from "@/lib/http";
+import { API_DEADLINE_MS, apiErrorMessages, parseApiErrorCode } from "@/lib/api";
+import { isRecord } from "@/lib/auth/contracts";
 import type { ApiResult } from "@/lib/api";
 
 const messages: Record<number, string> = {
@@ -39,14 +40,23 @@ export async function apiRead<T>(
         data: null,
         message: messages[response.status],
         uncertain: false,
+        ...(response.status === 429
+          ? { retryAfterSeconds: parseRetryAfterSeconds(response.headers.get("retry-after")) }
+          : {}),
       };
     }
     if (response.status >= 500 || response.status === 408) {
       throw new Error("Unconfirmed intake response");
     }
     let data: T | null = null;
+    let code: ApiResult<T>["code"];
     try {
-      data = parse(await readBoundedJson(response.body, signal, maximumResponseBytes));
+      const value = await readBoundedJson(response.body, signal, maximumResponseBytes);
+      if (response.ok) {
+        data = parse(value);
+      } else if (response.status === 409 && isRecord(value)) {
+        code = parseApiErrorCode(value.code);
+      }
     } catch (error) {
       if (response.ok) {
         throw error;
@@ -55,11 +65,15 @@ export async function apiRead<T>(
     if (response.ok && !data) {
       throw new Error("Invalid intake response");
     }
+    const message = code
+      ? apiErrorMessages[code]
+      : (messages[response.status] ?? "The request was not accepted.");
     return {
       status: response.status,
       data,
-      message: response.ok ? "" : (messages[response.status] ?? "The request was not accepted."),
+      message: response.ok ? "" : message,
       uncertain: false,
+      ...(code ? { code } : {}),
     };
   } catch {
     return {
@@ -90,12 +104,17 @@ export async function privateApiRead<T>(
 }
 
 export function apiJson<T>(result: ApiResult<T>) {
+  const retryAfterSeconds =
+    result.status === 429 && result.retryAfterSeconds !== undefined
+      ? parseRetryAfterSeconds(String(result.retryAfterSeconds))
+      : undefined;
   return Response.json(result, {
     status: result.status,
     headers: {
       "Cache-Control": "no-store",
       "X-Content-Type-Options": "nosniff",
       "X-Robots-Tag": "noindex, nofollow",
+      ...(retryAfterSeconds ? { "Retry-After": String(retryAfterSeconds) } : {}),
     },
   });
 }

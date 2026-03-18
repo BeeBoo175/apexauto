@@ -108,4 +108,94 @@ test("origin and body protection, malformed sessions and bounded body consumptio
   expect(slow.status()).toBe(502);
   expect(Date.now() - started).toBeLessThan(13_000);
   expect(slow.headers()["set-cookie"]).toBeUndefined();
+
+  const authRequests: [string, object][] = [
+    ["login", login],
+    [
+      "register",
+      {
+        ...login,
+        registrationKey: randomUUID(),
+        legalName: "Test",
+        nric: "900415141234",
+        mobile: "0123456789",
+        residentialAddress: "Test address",
+      },
+    ],
+    ["logout", {}],
+    ["email-verification", { token: "controlled-token" }],
+    ["email-verification/resend", { resendKey: randomUUID() }],
+    ["password-recovery", { email: login.email }],
+    ["password-reset", { token: "controlled-token", password }],
+  ];
+  for (const retry of ["37", "", "0", "1.5", "86401", "999999", "Wed, 21 Oct 2030 07:28:00 GMT"]) {
+    fault(`retry:${retry}`);
+    for (const [route, data] of authRequests) {
+      const response = await request.post(`/api/auth/${route}`, {
+        data,
+        headers: { Origin: origin, Cookie: "apexauto_token=controlled-session" },
+      });
+      expect(response.status(), route).toBe(429);
+      expect(response.headers()["cache-control"]).toContain("no-store");
+      expect(response.headers()["retry-after"]).toBe(retry === "37" ? "37" : undefined);
+      expect(await response.json()).toEqual({
+        message:
+          retry === "37"
+            ? "Too many attempts. Wait 37 seconds before trying again."
+            : "Too many attempts. Wait before trying again.",
+      });
+    }
+  }
+
+  fault("");
+  const signedIn = await request.post("/api/auth/login", {
+    data: { loginKey: randomUUID(), email: "nur.aisyah@example.invalid", password },
+    headers: { Origin: origin },
+  });
+  expect(signedIn.status()).toBe(200);
+  const cookie = signedIn.headers()["set-cookie"].split(";")[0];
+  const headers = { Cookie: cookie };
+  const conflicts = [
+    "check-in-content-conflict",
+    "check-in-unavailable",
+    "vehicle-identity-conflict",
+  ];
+  const messages = new Set<string>();
+  let actor: unknown;
+  for (const code of [...conflicts, "unknown", "__proto__"]) {
+    fault(`conflict:${code}`);
+    const response = await request.get("/api/intake/appointments", { headers });
+    expect(response.status()).toBe(409);
+    const body = await response.json();
+    expect(body.data).toBeNull();
+    expect(body.uncertain).toBe(false);
+    expect(JSON.stringify(body)).not.toContain("private provider detail");
+    expect(body.actor.role).toBe("Customer");
+    actor ??= body.actor;
+    expect(body.actor).toEqual(actor);
+    expect(body.code).toBe(conflicts.includes(code) ? code : undefined);
+    if (conflicts.includes(code)) {
+      messages.add(body.message);
+    }
+  }
+  expect(messages.size).toBe(3);
+  for (const retry of ["37", "", "86401", "1.5"]) {
+    fault(`retry:${retry}`);
+    const response = await request.get("/api/intake/appointments", { headers });
+    expect(response.status()).toBe(429);
+    expect(response.headers()["retry-after"]).toBe(retry === "37" ? "37" : undefined);
+    expect(response.headers()["cache-control"]).toContain("no-store");
+    expect(await response.json()).toEqual({
+      status: 429,
+      data: null,
+      uncertain: false,
+      message: "Too many requests. Wait before trying again.",
+      actor,
+      ...(retry === "37" ? { retryAfterSeconds: 37 } : {}),
+    });
+  }
+  fault("invalid-success");
+  const malformed = await request.get("/api/intake/appointments", { headers });
+  expect(malformed.status()).toBe(502);
+  expect(await malformed.json()).toMatchObject({ data: null, uncertain: true, actor });
 });

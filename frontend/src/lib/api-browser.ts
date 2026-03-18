@@ -1,7 +1,7 @@
 import { isRecord } from "@/lib/auth/contracts";
 import { parseActor } from "@/lib/auth/actor";
-import { API_DEADLINE_MS, type ApiResult } from "./api";
-import { readBoundedJson } from "./http";
+import { API_DEADLINE_MS, apiErrorMessages, parseApiErrorCode, type ApiResult } from "./api";
+import { parseRetryAfterSeconds, readBoundedJson } from "./http";
 
 export async function apiFetch<T>(
   path: string,
@@ -18,7 +18,7 @@ export async function apiFetch<T>(
     ...(options.signal ? [options.signal] : []),
   ]);
   const response = await fetch(path, { ...options, cache: "no-store", signal });
-  if (response.status === 401 || response.status === 403) {
+  if (response.status === 401) {
     window.dispatchEvent(new Event("apexauto-session-invalid"));
   }
   const value = await readBoundedJson(
@@ -38,9 +38,21 @@ export async function apiFetch<T>(
   if (actor) {
     window.dispatchEvent(new CustomEvent("apexauto-intake-actor", { detail: actor }));
   }
-  const data = parse(value.data);
+  const data = response.ok ? parse(value.data) : null;
   if (response.ok && (!data || (policy.requireActor && !actor))) {
     throw new Error("Unconfirmed service response");
   }
-  return { status: response.status, data, message: value.message, uncertain: value.uncertain };
+  const code = response.status === 409 ? parseApiErrorCode(value.code) : undefined;
+  const retryAfterSeconds =
+    response.status === 429
+      ? parseRetryAfterSeconds(response.headers.get("retry-after"))
+      : undefined;
+  return {
+    status: response.status,
+    data,
+    message: code ? apiErrorMessages[code] : value.message,
+    uncertain: value.uncertain,
+    ...(code ? { code } : {}),
+    ...(retryAfterSeconds ? { retryAfterSeconds } : {}),
+  };
 }

@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     });
 
     if (response.status !== 202) {
-      return upstreamDenial(response.status);
+      return upstreamDenial(response.status, response.retryAfterSeconds);
     }
 
     return authJson({ ok: true });

@@ -1,12 +1,18 @@
 import "server-only";
 
 import { requestApi, type ApiRequestOptions } from "@/lib/server/http/upstream";
-import { HttpError, readBoundedJson } from "@/lib/http";
+import { HttpError, parseRetryAfterSeconds, readBoundedJson } from "@/lib/http";
 import { requireSameOrigin } from "@/lib/server/http/request";
 import { AUTH_BODY_LIMIT, AUTH_DEADLINE_MS, isRecord, isUuid } from "./contracts";
 
-export function authJson(body: unknown, status = 200) {
-  return Response.json(body, { status, headers: { "Cache-Control": "no-store" } });
+export function authJson(body: unknown, status = 200, retryAfterSeconds?: number) {
+  return Response.json(body, {
+    status,
+    headers: {
+      "Cache-Control": "no-store",
+      ...(retryAfterSeconds ? { "Retry-After": String(retryAfterSeconds) } : {}),
+    },
+  });
 }
 
 // Validate payload shape, whitelist allowed fields, and require UUID idempotency keys.
@@ -121,6 +127,11 @@ export async function readAuthRequest(
 export async function authUpstream(path: string, options: ApiRequestOptions = {}) {
   const { response, signal } = await requestApi(path, AUTH_DEADLINE_MS, options);
 
+  const retryAfterSeconds =
+    response.status === 429
+      ? parseRetryAfterSeconds(response.headers.get("retry-after"))
+      : undefined;
+
   if (
     response.status === 204 ||
     response.status === 202 ||
@@ -129,7 +140,7 @@ export async function authUpstream(path: string, options: ApiRequestOptions = {}
     response.status === 429
   ) {
     await response.body?.cancel();
-    return { status: response.status, body: null };
+    return { status: response.status, body: null, retryAfterSeconds };
   }
 
   const mediaType = response.headers.get("content-type")?.split(";")[0].trim();
@@ -143,6 +154,7 @@ export async function authUpstream(path: string, options: ApiRequestOptions = {}
     return {
       status: response.status,
       body: await readBoundedJson(response.body, signal, AUTH_BODY_LIMIT),
+      retryAfterSeconds,
     };
   } catch {
     throw new Error("The authentication service response could not be confirmed.");
@@ -164,7 +176,7 @@ export function authFailure(error: unknown) {
   );
 }
 
-export function upstreamDenial(status: number) {
+export function upstreamDenial(status: number, retryAfterSeconds?: number) {
   const messages: Record<number, string> = {
     400: "Check your account details and try again.",
     401: "Email or password is incorrect, or the session has ended.",
@@ -177,5 +189,12 @@ export function upstreamDenial(status: number) {
     return authFailure(new Error("Unconfirmed upstream result"));
   }
 
-  return authJson({ message: messages[status] }, status);
+  const seconds =
+    status === 429 && retryAfterSeconds !== undefined
+      ? parseRetryAfterSeconds(String(retryAfterSeconds))
+      : undefined;
+  const message = seconds
+    ? `Too many attempts. Wait ${seconds} seconds before trying again.`
+    : messages[status];
+  return authJson({ message }, status, seconds);
 }

@@ -19,7 +19,7 @@ export async function POST(request: Request) {
       return authJson({ ok: true });
     }
 
-    return upstreamDenial(response.status);
+    return upstreamDenial(response.status, response.retryAfterSeconds);
   } catch (error) {
     return authFailure(error);
   }

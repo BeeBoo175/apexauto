@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     }
 
     if (response.status !== 400) {
-      return upstreamDenial(response.status);
+      return upstreamDenial(response.status, response.retryAfterSeconds);
     }
 
     const problem = response.body;

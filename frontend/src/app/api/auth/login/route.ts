@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     });
 
     if (response.status !== 200) {
-      return upstreamDenial(response.status);
+      return upstreamDenial(response.status, response.retryAfterSeconds);
     }
 
     const session = parseSession(response.body);

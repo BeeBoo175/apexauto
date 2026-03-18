@@ -1,3 +1,11 @@
+export function parseRetryAfterSeconds(value: string | null): number | undefined {
+  if (!value || !/^[0-9]{1,5}$/.test(value)) {
+    return undefined;
+  }
+  const seconds = Number(value);
+  return seconds > 0 && seconds <= 86_400 ? seconds : undefined;
+}
+
 export class HttpError extends Error {
   constructor(
     public status: number,

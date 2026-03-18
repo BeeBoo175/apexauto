@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { parseAccount, parseSession, safeReturnTo } from "@/lib/auth/contracts";
 import { trustedClientAddress } from "@/lib/server/http/client-address";
-import { HttpError, readBoundedJson } from "@/lib/http";
+import { HttpError, parseRetryAfterSeconds, readBoundedJson } from "@/lib/http";
 import { apiFetch } from "@/lib/api-browser";
 
 test("return destinations stay inside the supported account route", () => {
@@ -131,6 +131,24 @@ test("aborting a stalled JSON read rejects without waiting for another chunk", a
 });
 
 test("missing and malformed JSON bodies remain rejected after cleanup", async () => {
+  expect(parseRetryAfterSeconds("1")).toBe(1);
+  expect(parseRetryAfterSeconds("86400")).toBe(86400);
+  for (const value of [
+    null,
+    "",
+    "0",
+    "-1",
+    "1.5",
+    "1e2",
+    " 60",
+    "60 ",
+    "86401",
+    "999999999999999999",
+    "60, 120",
+    "Wed, 21 Oct 2026 07:28:00 GMT",
+  ]) {
+    expect(parseRetryAfterSeconds(value)).toBeUndefined();
+  }
   const signal = new AbortController().signal;
   await expect(readBoundedJson(null, signal, 1024)).rejects.toBeInstanceOf(HttpError);
   const body = new Response('{"budget":').body!;
@@ -161,6 +179,10 @@ test("shared browser transport validates envelopes and preserves private actor r
         { deadlineMs: 1000, maximumResponseBytes: 1024, requireActor: true },
       ),
     ).rejects.toThrow("Unconfirmed service response");
+    globalThis.fetch = async () => Response.json({ ...envelope, data: null });
+    await expect(apiFetch("/api/intake/branches", parse)).rejects.toThrow(
+      "Unconfirmed service response",
+    );
     globalThis.fetch = async () => Response.json({ ...envelope, status: 201 });
     await expect(apiFetch("/api/intake/branches", parse)).rejects.toThrow(
       "Unreadable service response",
@@ -181,6 +203,76 @@ test("shared browser transport validates envelopes and preserves private actor r
       status: 403,
       data: null,
     });
+    expect(sessionChanges).toBe(0);
+    globalThis.fetch = async () =>
+      Response.json(
+        { status: 401, data: null, message: "Sign in again", uncertain: false },
+        { status: 401 },
+      );
+    await expect(apiFetch("/api/staff/inspection/vehicles", parse)).resolves.toMatchObject({
+      status: 401,
+      data: null,
+    });
+    expect(sessionChanges).toBe(1);
+    for (const [code, message] of [
+      [
+        "check-in-content-conflict",
+        "This appointment was checked in with different details. Refresh to review the recorded check-in.",
+      ],
+      [
+        "check-in-unavailable",
+        "This appointment or its evidence is unavailable for check-in. Refresh the appointment before continuing.",
+      ],
+      [
+        "vehicle-identity-conflict",
+        "The VIN or registration already identifies a vehicle. Review the vehicle identity before continuing.",
+      ],
+    ]) {
+      globalThis.fetch = async () =>
+        Response.json(
+          {
+            status: 409,
+            data: "confirmed",
+            code,
+            message: "Private provider text",
+            uncertain: false,
+          },
+          { status: 409 },
+        );
+      await expect(apiFetch("/api/staff/intake/appointments/check-in", parse)).resolves.toEqual({
+        status: 409,
+        data: null,
+        code,
+        message,
+        uncertain: false,
+      });
+    }
+    for (const code of ["unknown-provider-code", "toString", "__proto__", null, 409, {}]) {
+      globalThis.fetch = async () =>
+        Response.json(
+          { status: 409, data: null, code, message: "Generic conflict", uncertain: false },
+          { status: 409 },
+        );
+      const result = await apiFetch("/api/staff/intake/appointments/check-in", parse);
+      expect(result.code).toBeUndefined();
+      expect(result.message).toBe("Generic conflict");
+    }
+    for (const retryAfter of ["60", "0", "-1", "86401", "not a duration", null]) {
+      globalThis.fetch = async () =>
+        Response.json(
+          {
+            status: 429,
+            data: null,
+            message: "Wait before retrying",
+            uncertain: false,
+            retryAfterSeconds: 999999999,
+          },
+          { status: 429, headers: retryAfter ? { "Retry-After": retryAfter } : {} },
+        );
+      const result = await apiFetch("/api/intake/branches", parse);
+      expect(result.retryAfterSeconds).toBe(retryAfter === "60" ? 60 : undefined);
+      expect(result.uncertain).toBe(false);
+    }
     expect(sessionChanges).toBe(1);
   } finally {
     globalThis.fetch = previousFetch;

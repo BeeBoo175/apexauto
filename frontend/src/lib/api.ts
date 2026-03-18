@@ -4,6 +4,24 @@ import { isPageSize } from "@/lib/pagination";
 
 export const API_DEADLINE_MS = 25_000;
 
+export const apiErrorMessages = {
+  "check-in-content-conflict":
+    "This appointment was checked in with different details. Refresh to review the recorded check-in.",
+  "check-in-unavailable":
+    "This appointment or its evidence is unavailable for check-in. Refresh the appointment before continuing.",
+  "vehicle-identity-conflict":
+    "The VIN or registration already identifies a vehicle. Review the vehicle identity before continuing.",
+};
+
+export type ApiErrorCode = keyof typeof apiErrorMessages;
+
+export function parseApiErrorCode(value: unknown): ApiErrorCode | undefined {
+  if (typeof value !== "string" || !Object.hasOwn(apiErrorMessages, value)) {
+    return undefined;
+  }
+  return value as ApiErrorCode;
+}
+
 export interface Page<T> {
   items: T[];
   total: number;
@@ -17,6 +35,8 @@ export interface ApiResult<T> {
   message: string;
   uncertain: boolean;
   actor?: CurrentActor;
+  code?: ApiErrorCode;
+  retryAfterSeconds?: number;
 }
 
 export type ApiRequest = <T>(

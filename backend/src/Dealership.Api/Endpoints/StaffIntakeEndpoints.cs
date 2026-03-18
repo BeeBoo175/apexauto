@@ -140,9 +140,15 @@ public static class StaffIntakeEndpoints
             CheckInStatus.Forbidden => Results.Forbid(),
             CheckInStatus.NotFound => Results.NotFound(),
             CheckInStatus.Invalid => Results.Problem(statusCode: 400, title: "Provide valid VIN, odometer and physical confirmations."),
-            CheckInStatus.Conflict => Results.Problem(statusCode: 409, title: "The appointment was checked in with different contents."),
-            CheckInStatus.Unavailable => Results.Problem(statusCode: 409, title: "The appointment or its evidence is unavailable for check-in."),
-            CheckInStatus.VehicleConflict => Results.Problem(statusCode: 409, title: "The VIN or registration already identifies a vehicle."),
+            CheckInStatus.Conflict => Results.Problem(statusCode: 409,
+                title: "The appointment was checked in with different contents.",
+                extensions: new Dictionary<string, object?> { ["code"] = "check-in-content-conflict" }),
+            CheckInStatus.Unavailable => Results.Problem(statusCode: 409,
+                title: "The appointment or its evidence is unavailable for check-in.",
+                extensions: new Dictionary<string, object?> { ["code"] = "check-in-unavailable" }),
+            CheckInStatus.VehicleConflict => Results.Problem(statusCode: 409,
+                title: "The VIN or registration already identifies a vehicle.",
+                extensions: new Dictionary<string, object?> { ["code"] = "vehicle-identity-conflict" }),
             _ => Results.Problem(statusCode: 500)
         };
     }

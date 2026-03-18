@@ -80,10 +80,14 @@ public sealed class StaffIntakeApiTests(IntakePhotoFixture fixture) : IClassFixt
         Assert.Equal(evidence, receipt.Evidence);
         Assert.Equal(data.StaffId, receipt.StaffId);
         Assert.Equal(appointment.Id, receipt.AppointmentId);
-        Assert.Equal(HttpStatusCode.Conflict,
-            (await client.PostAsJsonAsync(path, evidence with { MileageKilometres = 1 })).StatusCode);
-        Assert.Equal(HttpStatusCode.Conflict,
-            (await client.PostAsJsonAsync($"{Route}/{duplicateVin.Id}/check-in", evidence)).StatusCode);
+        using var contentConflict = await client.PostAsJsonAsync(path, evidence with { MileageKilometres = 1 });
+        Assert.Equal(HttpStatusCode.Conflict, contentConflict.StatusCode);
+        Assert.Equal("check-in-content-conflict",
+            (await contentConflict.Content.ReadFromJsonAsync<JsonObject>())!["code"]!.GetValue<string>());
+        using var vehicleConflict = await client.PostAsJsonAsync($"{Route}/{duplicateVin.Id}/check-in", evidence);
+        Assert.Equal(HttpStatusCode.Conflict, vehicleConflict.StatusCode);
+        Assert.Equal("vehicle-identity-conflict",
+            (await vehicleConflict.Content.ReadFromJsonAsync<JsonObject>())!["code"]!.GetValue<string>());
         Assert.Equal(HttpStatusCode.Conflict, (await client.PostAsJsonAsync($"{Route}/{duplicatePlate.Id}/check-in",
             evidence with { Vin = "PL1BT65R84B123457" })).StatusCode);
         var checkedIn = (await client.GetFromJsonAsync<StaffWorklistPage>($"{Route}?status=CheckedIn"))!;
@@ -109,8 +113,10 @@ public sealed class StaffIntakeApiTests(IntakePhotoFixture fixture) : IClassFixt
             .ExecuteUpdateAsync(update => update.SetProperty(user => user.IsActive, true));
         await database.Users.Where(user => user.Id == data.OwnerId)
             .ExecuteUpdateAsync(update => update.SetProperty(user => user.EmailConfirmed, false));
-        Assert.Equal(HttpStatusCode.Conflict,
-            (await reconciler.PostAsJsonAsync($"{Route}/{duplicateVin.Id}/check-in", evidence)).StatusCode);
+        using var unavailable = await reconciler.PostAsJsonAsync($"{Route}/{duplicateVin.Id}/check-in", evidence);
+        Assert.Equal(HttpStatusCode.Conflict, unavailable.StatusCode);
+        Assert.Equal("check-in-unavailable",
+            (await unavailable.Content.ReadFromJsonAsync<JsonObject>())!["code"]!.GetValue<string>());
         await database.Users.Where(user => user.Id == data.OwnerId)
             .ExecuteUpdateAsync(update => update.SetProperty(user => user.EmailConfirmed, true));
         await AssertLostReceiptAsync(data, duplicateVin.Id, reconciler);

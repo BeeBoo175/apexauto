@@ -23,7 +23,7 @@ export async function POST(request: Request) {
       return expiredSessionResponse();
     }
 
-    return upstreamDenial(response.status);
+    return upstreamDenial(response.status, response.retryAfterSeconds);
   } catch (error) {
     return authFailure(error);
   }
