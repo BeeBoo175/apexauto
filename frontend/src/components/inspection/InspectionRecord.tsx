@@ -1,10 +1,13 @@
+"use client";
+
+import { useState } from "react";
+import { Dialog } from "@/components/ui/Dialog";
 import { StaffLink } from "@/components/staff/StaffLink";
 import { WorkshopStatus } from "./WorkshopStatus";
 import type { useInspectionEditor } from "@/hooks/use-inspection-editor";
 import { assessmentLabel } from "@/lib/inspection/contracts";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { formatCurrency } from "@/lib/currency-format";
-import styles from "./Inspection.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 import workshop from "./Workshop.module.css";
 import { workshopSnapshotStatus, workshopStatusLabel } from "@/lib/inspection/workshop-contracts";
@@ -24,6 +27,9 @@ export function InspectionRecord({
   const request = snapshot.repairState;
   const summaryLabel = request ? "Current request budget" : "Current work";
   const summaryValue = request ? formatCurrency(request.budget) : workshopStatusLabel(status);
+  const findingCount = Object.values(editor.value.entries).filter(
+    (entry) => entry.kind === "Finding",
+  ).length;
   return (
     <section className={workshop.summary} aria-label="Vehicle and confirmed assessment">
       <div className={workshop.summaryMain}>
@@ -34,30 +40,26 @@ export function InspectionRecord({
         <div className={workshop.summaryContext}>
           {request && <WorkshopStatus status={status} />}
           <span>
-            {snapshot.draft.revision} · {snapshot.draft.isSigned ? "Signed" : "Draft"}
+            Revision {snapshot.draft.revision} · {snapshot.draft.isSigned ? "Signed" : "Draft"}
           </span>
           <span>
-            {Object.values(editor.value.entries).filter((entry) => entry.kind === "Finding").length}{" "}
-            findings
+            {findingCount} {findingCount === 1 ? "finding" : "findings"}
           </span>
         </div>
       </div>
-      {snapshot.report && (
-        <StaffLink
-          prefetch={false}
-          target="_blank"
-          rel="noopener"
-          href={`/dashboard/inspection/${id}/reports/${snapshot.report.revision}`}
-        >
-          Open signed report · revision {snapshot.report.revision}
-        </StaffLink>
-      )}
-      {editor.dirty && (
-        <p className={styles.help}>
-          Unsaved changes. Save or discard your draft before leaving. Inspection details retain the
-          last backend-confirmed assessment.
-        </p>
-      )}
+      <div className={workshop.summaryLinks}>
+        {snapshot.report && (
+          <StaffLink
+            prefetch={false}
+            target="_blank"
+            rel="noopener"
+            href={`/dashboard/inspection/${id}/reports/${snapshot.report.revision}`}
+          >
+            Open signed report · revision {snapshot.report.revision}
+          </StaffLink>
+        )}
+        <InspectionDetails editor={editor} />
+      </div>
       {editor.stale && (
         <p role="alert">
           A newer assignment, save or revision is available. Your draft remains retained. Discard it
@@ -89,14 +91,19 @@ export function InspectionRecord({
 }
 
 export function InspectionDetails({ editor }: { editor: ReturnType<typeof useInspectionEditor> }) {
+  const [open, setOpen] = useState(false);
   const { snapshot } = editor;
   if (!snapshot) {
     return null;
   }
   const request = snapshot.currentRequest;
+  const title = request ? "Vehicle & request details" : "Vehicle & inspection details";
   return (
-    <details className={workshop.metadata}>
-      <summary>{request ? "Vehicle & request details" : "Vehicle & inspection details"}</summary>
+    <div className={workshop.metadata}>
+      <button type="button" className={workshop.metadataTrigger} onClick={() => setOpen(true)}>
+        {title}
+      </button>
+      <Dialog open={open} title={title} onClose={() => setOpen(false)}>
       <dl className={workshop.facts}>
         <div>
           <dt>VIN</dt>
@@ -141,6 +148,7 @@ export function InspectionDetails({ editor }: { editor: ReturnType<typeof useIns
           </>
         )}
       </dl>
-    </details>
+      </Dialog>
+    </div>
   );
 }

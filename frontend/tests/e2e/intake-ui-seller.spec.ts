@@ -12,7 +12,7 @@ async function vehicle(page: Page) {
   await page.getByLabel("Trim", { exact: true }).selectOption("Standard");
   await page.getByLabel("Manufacture year").fill("2020");
   await page.getByLabel("Declared mileage (km)").fill("90000");
-  await page.getByLabel("Registration plate").fill(`UI${Date.now().toString().slice(-6)}`);
+  await page.getByLabel("Registration plate").fill(`ui ${Date.now().toString().slice(-6)}`);
 }
 
 test("seller journey retains vehicle handoff, confirms independent uploads and replays a lost booking receipt", async ({

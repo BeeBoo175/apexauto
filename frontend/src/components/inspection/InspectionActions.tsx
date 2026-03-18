@@ -29,7 +29,11 @@ export function InspectionActions({
     <div className={workshop.inspectionActions}>
       {(editor.editable || editor.sign.uncertain || editor.dirty) && (
         <div className={workbench.actionFooter}>
-          <p className={workbench.help}>Save your findings before signing this revision.</p>
+          <p className={workbench.help}>
+            {editor.dirty
+              ? "Unsaved changes will be lost if you leave. Save your findings before signing this revision."
+              : "Save your findings before signing this revision."}
+          </p>
           <div className={styles.actions}>
             {editor.editable && (
               <Button

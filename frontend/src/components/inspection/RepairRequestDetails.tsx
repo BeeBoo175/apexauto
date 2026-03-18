@@ -7,6 +7,7 @@ import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { label } from "@/lib/inspection/contracts";
 import { SignedFinding } from "./SignedFinding";
+import { InspectionPointStatus } from "./WorkshopStatus";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 import workshop from "./Workshop.module.css";
 
@@ -65,12 +66,13 @@ export function RepairRequestDetails({
                 <strong>
                   {report.checklist.find((point) => point.code === item.pointCode)?.description}
                 </strong>
-                <span className={workshop.pointState}>
-                  {label(
-                    report.checklist.find((point) => point.code === item.pointCode)?.severity ??
-                      "Finding",
-                  )}
-                </span>
+                <InspectionPointStatus
+                  kind="Finding"
+                  severity={
+                    report.checklist.find((point) => point.code === item.pointCode)?.severity
+                  }
+                  compact
+                />
                 <span>
                   {formatCurrency(
                     report.checklist.find((point) => point.code === item.pointCode)
@@ -84,13 +86,18 @@ export function RepairRequestDetails({
         {selected && (
           <section className={workshop.detail} aria-label="Selected repair work">
             <div className={workshop.detailHeading}>
-              <span className={workshop.pointCode}>
-                {selected.pointCode} · {finding ? label(finding.category) : "Repair work"}
-              </span>
-              <h3>{finding?.description ?? selected.pointCode}</h3>
-              {finding?.severity && (
-                <span className={workshop.pointState}>{label(finding.severity)}</span>
-              )}
+              <div>
+                <span className={workshop.pointContext}>
+                  <span className={workshop.pointCode}>{selected.pointCode}</span> ·{" "}
+                  {finding ? label(finding.category) : "Repair work"}
+                </span>
+                <h3>{finding?.description ?? selected.pointCode}</h3>
+                {finding?.severity && (
+                  <div>
+                    <InspectionPointStatus kind="Finding" severity={finding.severity} />
+                  </div>
+                )}
+              </div>
             </div>
             <div className={workshop.detailSection}>
               <h4>Requested work</h4>

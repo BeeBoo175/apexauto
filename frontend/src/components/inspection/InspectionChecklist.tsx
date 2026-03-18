@@ -1,12 +1,15 @@
 "use client";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 import { SearchField } from "@/components/ui/SearchField";
 import { useInspectionPhoto } from "@/hooks/use-inspection-photo";
+import { useInspectionChecklistScroll } from "@/hooks/use-inspection-checklist-scroll";
 import { label, type Draft } from "@/lib/inspection/contracts";
-import type { ChecklistDraft } from "@/lib/inspection/draft";
+import { checklistViews, type ChecklistDraft, type ChecklistView } from "@/lib/inspection/draft";
 import type { Report } from "@/lib/inspection/report-contracts";
 import { ChecklistPoint } from "./ChecklistPoint";
+import { InspectionPointStatus } from "./WorkshopStatus";
 import styles from "./Inspection.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 import workshop from "./Workshop.module.css";
@@ -33,21 +36,14 @@ export function InspectionChecklist({
   report?: Report | null;
 }) {
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"all" | "findings" | "remaining">("all");
+  const [filter, setFilter] = useState<ChecklistView>("all");
   const [selectedCode, setSelectedCode] = useState(draft.catalog[0]?.code ?? "");
-  const matches = draft.catalog.filter((point) => {
-    if (filter === "findings" && value.entries[point.code]?.kind !== "Finding") {
-      return false;
-    }
-    if (filter === "remaining" && value.examined.includes(point.code)) {
-      return false;
-    }
-    return `${point.code} ${point.description} ${point.category}`
-      .toLowerCase()
-      .includes(search.toLowerCase());
-  });
+  const views = checklistViews(draft.catalog, value, search);
+  const matches = views[filter];
   const selected = matches.find((point) => point.code === selectedCode) ?? matches[0];
   const pointCode = selected?.code ?? selectedCode;
+  const { sectionRef, toolsRef, selectedRef, selectedHidden, scrollDirection, showSelected } =
+    useInspectionChecklistScroll(active, selected?.code ?? "");
   const photo = useInspectionPhoto(
     draft.id,
     draft.assignmentVersion,
@@ -70,60 +66,94 @@ export function InspectionChecklist({
   if (!active) {
     return null;
   }
+  let jumpArrow = "↑";
+  let jumpPrefix = "Jump to ";
+  if (scrollDirection === "below") {
+    jumpArrow = "↓";
+  } else if (scrollDirection === "collapsed") {
+    jumpArrow = "↗";
+    jumpPrefix = "Expand ";
+  }
   return (
-    <section className={styles.section} aria-label="Inspection checklist">
-      <div className={workbench.toolbar}>
-        <h2 className={workbench.sectionTitle}>Inspection checklist</h2>
-        <span className={workbench.help}>
-          {draft.catalog.length} points · {draft.catalogVersion}
-        </span>
-      </div>
-      <div className={styles.checklistTools}>
-        <SearchField
-          label="Find a checklist point"
-          placeholder="Find a point or description"
-          value={search}
-          disabled={disabled}
-          onChange={setSearch}
-          onClear={search ? () => setSearch("") : undefined}
-        />
-        <div className={workshop.footerActions} aria-label="Checklist views">
-          {(["all", "findings", "remaining"] as const).map((view) => (
+    <section
+      ref={sectionRef}
+      className={`${styles.section} ${styles.checklist}`}
+      aria-label="Inspection checklist"
+    >
+      <div ref={toolsRef} className={styles.checklistHeader}>
+        <div className={styles.checklistHeading}>
+          <h2 className={workbench.sectionTitle}>Inspection checklist</h2>
+          <div
+            className={styles.selectionAction}
+            data-visible={selectedHidden && Boolean(selected)}
+          >
             <Button
-              key={view}
               size="compact"
               variant="secondary"
-              aria-pressed={filter === view}
-              disabled={photo.file !== null || photo.busy || photo.uncertain}
-              onClick={() => setFilter(view)}
+              className={styles.jumpHeaderButton}
+              aria-label={`Show selected point ${selected?.code ?? ""}`}
+              disabled={!selectedHidden || !selected}
+              onClick={showSelected}
             >
-              {label(view[0].toUpperCase() + view.slice(1))}
+              <span className={styles.jumpArrow} aria-hidden="true">
+                {jumpArrow}
+              </span>
+              <span>
+                {jumpPrefix}
+                <strong>{selected?.code}</strong>
+              </span>
             </Button>
-          ))}
+          </div>
         </div>
-        {editable && (
-          <label className={styles.checkbox}>
-            <input
-              type="checkbox"
-              checked={allExamined}
-              disabled={disabled}
-              onChange={(e) =>
-                onChange({
-                  ...value,
-                  examined: e.target.checked ? fitted.map((point) => point.code) : [],
-                })
-              }
-            />
-            I have examined all {fitted.length} fitted points
-          </label>
-        )}
+        <div className={styles.checklistTools}>
+          <SearchField
+            label="Find a checklist point"
+            placeholder="Find a point or description"
+            value={search}
+            disabled={disabled}
+            onChange={setSearch}
+            onClear={search ? () => setSearch("") : undefined}
+          />
+          <div className={styles.checklistViews} aria-label="Checklist views">
+            {(["all", "findings", "remaining"] as const).map((view) => (
+              <Button
+                key={view}
+                size="compact"
+                variant="secondary"
+                className={styles.checklistView}
+                aria-pressed={filter === view}
+                disabled={photo.file !== null || photo.busy || photo.uncertain}
+                onClick={() => setFilter(view)}
+              >
+                {label(view[0].toUpperCase() + view.slice(1))}
+                <Badge variant="count" data-selected={filter === view}>
+                  {views[view].length}
+                  <span className="sr-only">
+                    {search && " matching"}
+                    {views[view].length === 1 ? " point" : " points"}
+                  </span>
+                </Badge>
+              </Button>
+            ))}
+          </div>
+          {editable && (
+            <label className={styles.checkbox}>
+              <input
+                type="checkbox"
+                checked={allExamined}
+                disabled={disabled}
+                onChange={(e) =>
+                  onChange({
+                    ...value,
+                    examined: e.target.checked ? fitted.map((point) => point.code) : [],
+                  })
+                }
+              />
+              I have examined all {fitted.length} fitted points
+            </label>
+          )}
+        </div>
       </div>
-      {editable && (
-        <p className={styles.help}>
-          Record each exception and examine every fitted point before signing. Save preserves
-          exceptions; a partial examination remains unattested.
-        </p>
-      )}
       <div className={workshop.split}>
         <nav className={workshop.index} aria-label="Inspection points">
           {categories.map((category) => {
@@ -143,6 +173,7 @@ export function InspectionChecklist({
                 {points.map((point) => (
                   <Button
                     key={point.code}
+                    ref={selected?.code === point.code ? selectedRef : undefined}
                     size="compact"
                     variant="ghost"
                     className={workshop.indexItem}
@@ -152,14 +183,12 @@ export function InspectionChecklist({
                   >
                     <span className={workshop.pointCode}>{point.code}</span>
                     <strong>{point.description}</strong>
-                    <span className={workshop.pointState}>
-                      {label(
-                        value.entries[point.code]?.severity ??
-                          value.entries[point.code]?.kind ??
-                          (value.examined.includes(point.code) ? "Passed" : "Not examined"),
-                      )}
-                      {value.examined.includes(point.code) ? " · Examined" : ""}
-                    </span>
+                    <InspectionPointStatus
+                      kind={value.entries[point.code]?.kind}
+                      severity={value.entries[point.code]?.severity}
+                      examined={value.examined.includes(point.code)}
+                      compact
+                    />
                   </Button>
                 ))}
               </details>

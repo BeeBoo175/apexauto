@@ -31,7 +31,7 @@ export function RepairActions({
 }) {
   const repair = useInspectionRepairAction({ actor, draft, state, onLock, onConfirmed, onDraft });
   const { notes, manager, actionable, command } = repair;
-  const actionLabel = manager ? "Approve repair budget" : "Confirm repairs completed";
+  const actionLabel = manager ? "Approve budget" : "Complete repairs";
   const formId = useId();
 
   if (!actionable || !active) {
@@ -44,7 +44,7 @@ export function RepairActions({
       form={formId}
       disabled={command.busy || Boolean(command.receipt) || (disabled && !command.uncertain)}
     >
-      {command.uncertain ? "Reconcile repair action" : actionLabel}
+      {command.uncertain ? "Reconcile action" : actionLabel}
     </Button>
   );
   return (

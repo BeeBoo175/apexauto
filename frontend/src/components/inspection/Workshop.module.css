@@ -85,17 +85,25 @@
 
 .summary a,
 .metadata a {
-  color: var(--color-interaction-border);
+  color: var(--color-graphite);
   font-size: 12px;
+  text-decoration: underline;
   text-underline-offset: 4px;
 }
 
+.summary a:hover,
+.metadata a:hover {
+  color: var(--color-interaction-border);
+}
+
 .body {
+  container: workshop-content / inline-size;
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
   gap: 20px;
   min-height: 0;
+  min-width: 0;
   padding: 0 24px 24px;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -139,15 +147,49 @@
   border: 0;
 }
 
+.summaryLinks {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
 .metadata {
-  border-bottom: 1px solid var(--color-line);
+  margin-left: auto;
+}
+
+.metadataTrigger {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-graphite);
+  font: inherit;
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+.metadataTrigger:hover {
+  color: var(--color-interaction-border);
+}
+
+.metadataTrigger:focus-visible {
+  outline: 2px solid var(--color-interaction-border);
+  outline-offset: 2px;
 }
 
 .metadata summary {
-  padding-block: 16px;
-  color: var(--color-muted);
+  display: inline-block;
+  color: var(--color-graphite);
   font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
   cursor: pointer;
+}
+
+.metadata summary:hover {
+  color: var(--color-interaction-border);
 }
 
 .metadata summary:focus-visible {
@@ -159,7 +201,11 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
-  padding-bottom: 20px;
+  padding-top: 12px;
+}
+
+.body[data-section="repairs"] {
+  padding-top: 20px;
 }
 
 .facts dt {
@@ -179,18 +225,36 @@
   grid-template-columns: minmax(200px, 28%) minmax(0, 1fr);
   gap: 0;
   min-width: 0;
+  height: min(70vh, 720px);
+  min-height: 360px;
 }
 
 .split[data-single-item="true"] {
   grid-template-columns: minmax(0, 1fr);
 }
 
+.split[data-single-item="true"] .detail {
+  padding-left: 0;
+}
+
+.split[data-single-item="true"] {
+  height: auto;
+  min-height: 0;
+}
+
 .index {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  align-self: start;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   border-right: 1px solid var(--color-line);
+}
+
+.index > .indexGroup:first-child summary {
+  margin-top: 0;
 }
 
 .indexGroup {
@@ -241,20 +305,15 @@
   font-size: 12px;
 }
 
-.pointState {
-  font-size: 12px;
-  font-weight: 400;
-}
-
 .detail {
-  position: sticky;
-  align-self: start;
-  top: 20px;
   display: flex;
   flex-direction: column;
   gap: 20px;
+  min-height: 0;
   min-width: 0;
   padding-left: 24px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .detailHeading {
@@ -264,11 +323,23 @@
   border-bottom: 1px solid var(--color-line);
 }
 
-.detailHeading h3 {
+.detail .detailHeading h3 {
+  color: var(--color-graphite);
   font-size: 18px;
+  font-weight: 600;
   line-height: 1.4;
   text-transform: none;
   letter-spacing: normal;
+}
+
+.detailHeading > div {
+  display: grid;
+  gap: 8px;
+}
+
+.pointContext {
+  color: var(--color-muted);
+  font-size: 12px;
 }
 
 .detailSection {
@@ -300,18 +371,26 @@
 }
 
 @media (max-width: 820px) {
+  .workspace[data-scroll-with-host="true"] .body {
+    flex: 0 0 auto;
+    overflow: visible;
+  }
+
   .indexItem {
     min-height: 44px;
   }
+}
 
+@container workshop-content (max-width: 640px) {
   .split {
     grid-template-columns: minmax(0, 1fr);
     gap: 16px;
+    height: auto;
+    min-height: 0;
   }
 
   .index {
     max-height: 200px;
-    overflow-y: auto;
     padding-right: 0;
     padding-bottom: 12px;
     border-right: 0;
@@ -319,7 +398,7 @@
   }
 
   .detail {
-    position: static;
+    overflow-y: visible;
     padding-left: 0;
   }
 }

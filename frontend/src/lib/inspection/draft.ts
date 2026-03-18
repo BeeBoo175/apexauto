@@ -1,5 +1,5 @@
 import { parseMyr } from "@/lib/currency-input";
-import { severities, type Draft, type Entry } from "./contracts";
+import { severities, type Draft, type Entry, type Point } from "./contracts";
 
 export type EntryDraft = Omit<Entry, "estimatedRepairCost"> & { estimate: string };
 export type ChecklistDraft = {
@@ -7,6 +7,21 @@ export type ChecklistDraft = {
   examined: string[];
   photos: Record<string, string[]>;
 };
+
+export type ChecklistView = "all" | "findings" | "remaining";
+
+export function checklistViews(catalog: Point[], value: ChecklistDraft, search: string) {
+  const query = search.toLowerCase();
+  const all = catalog.filter((point) =>
+    `${point.code} ${point.description} ${point.category}`.toLowerCase().includes(query),
+  );
+  const examined = new Set(value.examined);
+  return {
+    all,
+    findings: all.filter((point) => value.entries[point.code]?.kind === "Finding"),
+    remaining: all.filter((point) => !examined.has(point.code)),
+  };
+}
 
 export function checklistDraft(
   draft: Draft,

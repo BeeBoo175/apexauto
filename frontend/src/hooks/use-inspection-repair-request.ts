@@ -30,6 +30,7 @@ export function useInspectionRepairRequest({
     Object.fromEntries((latest?.items ?? []).map((item) => [item.pointCode, item.work])),
   );
   const [budget, setBudget] = useState(latest?.budget.toFixed(2) ?? "0.00");
+  const [dirty, setDirty] = useState(false);
   const toast = useToast();
   const command = useApiCommand(
     `drafts/${draft.id}/repair-requests`,
@@ -45,8 +46,6 @@ export function useInspectionRepairRequest({
     inspectionFetch,
   );
   const locked = command.busy || command.uncertain;
-  const dirty =
-    Object.values(work).some(Boolean) || budget !== (latest?.budget.toFixed(2) ?? "0.00");
 
   function selectFinding(pointCode: string, selected: boolean) {
     const next = { ...work };
@@ -56,17 +55,31 @@ export function useInspectionRepairRequest({
       delete next[pointCode];
     }
     setWork(next);
+    setDirty(true);
     onDraft(true);
   }
 
   function changeWork(pointCode: string, value: string) {
     setWork({ ...work, [pointCode]: value });
+    setDirty(true);
     onDraft(true);
   }
 
   function changeBudget(value: string) {
     setBudget(value);
+    setDirty(true);
     onDraft(true);
+  }
+
+  function reset() {
+    if (locked || command.receipt) {
+      return false;
+    }
+    setWork(Object.fromEntries((latest?.items ?? []).map((item) => [item.pointCode, item.work])));
+    setBudget(latest?.budget.toFixed(2) ?? "0.00");
+    setDirty(false);
+    onDraft(false);
+    return true;
   }
 
   async function submit() {
@@ -99,6 +112,7 @@ export function useInspectionRepairRequest({
       onLock(false);
     }
     if (result?.data && result.status === 200) {
+      setDirty(false);
       onDraft(false);
       await onConfirmed();
     }
@@ -113,6 +127,7 @@ export function useInspectionRepairRequest({
     selectFinding,
     changeWork,
     changeBudget,
+    reset,
     submit,
   };
 }

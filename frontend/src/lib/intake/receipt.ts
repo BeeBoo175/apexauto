@@ -14,10 +14,12 @@ export function bookingMatchesRequest(receipt: unknown, request: unknown): boole
     booking.id === request.id &&
     booking.branchId === request.branchId &&
     Date.parse(booking.slot.startsAt) === Date.parse(String(request.startsAt)) &&
-    booking.registrationPlate ===
-      String(request.registrationPlate).replace(/\s/g, "").toUpperCase() &&
+    booking.registrationPlate === String(request.registrationPlate).trim().toUpperCase() &&
     Object.entries(booking.vehicle).every(([key, value]) => value === vehicle[key]) &&
-    Object.entries(booking.quote).every(([key, value]) => value === acceptedQuote[key]) &&
+    booking.quote.minValuation === acceptedQuote.minValuation &&
+    booking.quote.maxValuation === acceptedQuote.maxValuation &&
+    booking.quote.currency === acceptedQuote.currency &&
+    photoIds.length === 4 &&
     booking.photos.every((photo) => photoIds.includes(photo.id))
   );
 }

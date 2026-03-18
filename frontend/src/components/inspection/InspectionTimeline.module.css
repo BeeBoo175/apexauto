@@ -9,11 +9,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 16px;
 }
 
 .heading h2 {
   font-size: 16px;
+  font-weight: 600;
 }
 
 .heading p {
@@ -85,9 +87,22 @@
 }
 
 .timeline a {
+  justify-self: start;
+  width: fit-content;
   color: var(--color-interaction-border);
   font-size: 13px;
+  text-decoration: underline;
   text-underline-offset: 4px;
+}
+
+.timeline a[aria-disabled="true"] {
+  color: var(--color-muted);
+  cursor: not-allowed;
+}
+
+.timeline a:focus-visible {
+  outline: 2px solid var(--color-interaction-border);
+  outline-offset: 4px;
 }
 
 .paging {
@@ -98,4 +113,14 @@
   padding-block: 16px 4px;
   color: var(--color-muted);
   font-size: 12px;
+  font-weight: 600;
+}
+
+@media (max-width: 820px) {
+  .timeline summary,
+  .timeline a {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+  }
 }

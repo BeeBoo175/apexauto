@@ -12,7 +12,7 @@ import type { ApiResult, Page } from "@/lib/api";
 import type { Technician } from "@/lib/inspection/contracts";
 import type { EditorSnapshot } from "@/lib/inspection/editor-snapshot";
 import type { SelectedRepairReview } from "@/lib/inspection/repair-review";
-import { InspectionRecord, InspectionDetails } from "./InspectionRecord";
+import { InspectionRecord } from "./InspectionRecord";
 import { InspectionActions } from "./InspectionActions";
 import { InspectionChecklist } from "./InspectionChecklist";
 import { ManagerActions } from "./ManagerActions";
@@ -37,6 +37,7 @@ export function InspectionEditor({
   technicians,
   actionsContainer,
   refreshControl,
+  scrollWithHost = false,
   section,
   onSection,
   onReview,
@@ -51,6 +52,7 @@ export function InspectionEditor({
   technicians: Page<Technician> | null;
   actionsContainer?: HTMLElement | null;
   refreshControl?: ComponentProps<typeof RefreshButton>;
+  scrollWithHost?: boolean;
   section: WorkshopSection;
   onSection: (section: WorkshopSection) => void;
   onReview: (request: RepairSelection | null) => void;
@@ -100,7 +102,11 @@ export function InspectionEditor({
       {actionsContainer &&
         !(historical && section === "repairs") &&
         createPortal(<RefreshButton {...refresh} />, actionsContainer)}
-      <div className={workshop.workspace} inert={!editor.ready}>
+      <div
+        className={workshop.workspace}
+        data-scroll-with-host={scrollWithHost || undefined}
+        inert={!editor.ready}
+      >
         {!snapshot && (
           <section className={workbench.protocol}>
             <p>
@@ -134,8 +140,7 @@ export function InspectionEditor({
                 </Button>
               ))}
             </nav>
-            <div className={workshop.body}>
-              <InspectionDetails editor={editor} />
+            <div className={workshop.body} data-section={section}>
               <ManagerActions
                 key={`manager:${editor.draftEpoch}:${snapshot.draft.revision}:${snapshot.draft.assignmentVersion}`}
                 actor={actor}
@@ -160,7 +165,7 @@ export function InspectionEditor({
               />
               {historical && section === "repairs" && (
                 <Button size="compact" variant="secondary" onClick={() => onReview(null)}>
-                  Return to current repair work
+                  Current repair work
                 </Button>
               )}
               {historical && section === "repairs" && (
@@ -204,10 +209,10 @@ export function InspectionEditor({
               )}
               {section !== "inspection" && (
                 <div className={workshop.footerContext}>
-                  <strong>{historical ? "Retained request" : "Current vehicle work"}</strong>
-                  <span>
-                    {historical ? "Read-only history" : "Original signed findings remain retained"}
-                  </span>
+                  <strong>{section === "history" ? "Record history" : "Repair work"}</strong>
+                  {historical && section === "repairs" && (
+                    <span>Historical request · read only</span>
+                  )}
                 </div>
               )}
               <div ref={setFooterActions} className={workshop.footerActions} />

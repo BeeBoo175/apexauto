@@ -67,6 +67,7 @@ export function TechnicianJobWorkspace({
             technicians={null}
             actionsContainer={actionsContainer}
             refreshControl={refreshControl}
+            scrollWithHost
             section={selection.section}
             onSection={selection.changeSection}
             onReview={selection.review}

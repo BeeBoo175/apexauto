@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Input";
 import { StaffLink } from "@/components/staff/StaffLink";
 import type { useInspectionTimeline } from "@/hooks/use-inspection-timeline";
@@ -10,7 +9,7 @@ import type { RepairSelection } from "@/lib/inspection/query";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import styles from "./InspectionTimeline.module.css";
 import { InspectionPreviousWork } from "./InspectionPreviousWork";
-import { InspectionHistoryProgress } from "./InspectionHistory";
+import { InspectionHistoryProgress, InspectionRepairLink } from "./InspectionHistory";
 
 export function InspectionTimeline({
   snapshot,
@@ -49,18 +48,12 @@ export function InspectionTimeline({
               <p>{event.detail}</p>
               <p className={styles.reference}>Receipt: {event.id}</p>
               {event.request ? (
-                <Button
-                  size="compact"
-                  variant="secondary"
+                <InspectionRepairLink
+                  inspectionId={id}
+                  selection={event.request}
                   disabled={disabled}
-                  onClick={() => {
-                    if (event.request) {
-                      onSelect(event.request);
-                    }
-                  }}
-                >
-                  Open exact repair request
-                </Button>
+                  onSelect={onSelect}
+                />
               ) : (
                 <StaffLink
                   prefetch={false}

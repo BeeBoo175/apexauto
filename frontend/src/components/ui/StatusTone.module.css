@@ -29,6 +29,12 @@
 }
 
 .badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  max-width: 100%;
+  justify-self: start;
   min-height: 24px;
   padding: 3px 9px;
   border: 1px solid var(--status-border);
@@ -41,4 +47,18 @@
   letter-spacing: normal;
   text-transform: none;
   white-space: nowrap;
+}
+
+.label {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-weight: 500;
+  white-space: normal;
+}
+
+.label[data-quiet="true"] {
+  color: var(--color-muted);
 }

@@ -1,3 +1,7 @@
+"use client";
+
+import { useRef, useState } from "react";
+import { Button } from "@/components/ui/Button";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { EditorSnapshot } from "@/lib/inspection/editor-snapshot";
 import { RepairRequestDetails } from "./RepairRequestDetails";
@@ -25,6 +29,9 @@ export function RepairPanel({
   active?: boolean;
   actionsContainer?: HTMLElement | null;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [completionDirty, setCompletionDirty] = useState(false);
+  const heading = useRef<HTMLHeadingElement>(null);
   const { draft, report, currentRequest: latest, repairState } = snapshot;
   if (!report || !draft.isSigned) {
     return active ? (
@@ -34,17 +41,44 @@ export function RepairPanel({
   const canRequest =
     actor.role === "WorkshopTechnician" &&
     draft.technicianId === actor.userId &&
-    !report.assessment.isRejected;
+    !report.assessment.isRejected &&
+    report.checklist.some((point) => point.kind === "Finding");
+
+  function changeMode(next: boolean) {
+    setEditing(next);
+    heading.current?.focus();
+  }
+
   return (
     <>
       {active && (
         <section className={`${styles.section} ${workbench.stack}`}>
-          {!latest && !report.assessment.isRejected && (
+          <div className={workbench.toolbar}>
+            <h2 ref={heading} tabIndex={-1} className={workbench.sectionTitle}>
+              {editing ? "Edit repair work & budget" : "Current repair work"}
+            </h2>
+            {canRequest && !editing && (
+              <Button
+                size="compact"
+                variant="secondary"
+                disabled={disabled || completionDirty}
+                onClick={() => changeMode(true)}
+              >
+                {latest ? "Revise work & budget" : "Request repair work"}
+              </Button>
+            )}
+          </div>
+          {completionDirty && !editing && (
+            <p className={workbench.help}>
+              Complete this request or clear the completion notes before revising its work.
+            </p>
+          )}
+          {!editing && !latest && !report.assessment.isRejected && (
             <p className={workbench.help}>
               No repair work has been requested for this signed revision.
             </p>
           )}
-          {latest && (
+          {!editing && latest && (
             <>
               <RepairRequestDetails request={latest} report={report} showMetadata={false} />
               {repairState?.coveringApprovalId && (
@@ -71,14 +105,17 @@ export function RepairPanel({
           draft={draft}
           state={repairState}
           disabled={disabled}
-          active={active}
+          active={active && !editing}
           onLock={onLock}
           onConfirmed={onConfirmed}
-          onDraft={(dirty) => onDraft("completion", dirty)}
+          onDraft={(dirty) => {
+            setCompletionDirty(dirty);
+            onDraft("completion", dirty);
+          }}
           actionsContainer={actionsContainer}
         />
       )}
-      {canRequest && report.checklist.some((p) => p.kind === "Finding") && (
+      {canRequest && (
         <RepairRequestForm
           key={`${draft.revision}:${draft.repairVersion}`}
           actor={actor}
@@ -86,9 +123,13 @@ export function RepairPanel({
           report={report}
           latest={latest}
           disabled={disabled}
-          active={active}
+          active={active && editing}
           onLock={onLock}
-          onConfirmed={onConfirmed}
+          onConfirmed={async () => {
+            changeMode(false);
+            await onConfirmed();
+          }}
+          onCancel={() => changeMode(false)}
           onDraft={(dirty) => onDraft("request", dirty)}
           actionsContainer={actionsContainer}
         />

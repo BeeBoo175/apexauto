@@ -4,6 +4,7 @@ import { useContext, useState, type ComponentProps } from "react";
 import { StaffCommandBar } from "@/components/staff/StaffPage";
 import { StaffPageEntranceContext } from "@/components/staff/StaffActorBoundary";
 import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { useToast } from "@/components/ui/Toast";
@@ -172,12 +173,12 @@ export function TechnicianWorkspace({
                 >
                   <span>{viewTabs[task]}</span>
                   {worklists[task].snapshot && (
-                    <span className={styles.viewCount}>
+                    <Badge variant="count" data-selected={view === task}>
                       {worklists[task].snapshot.total}
                       <span className="sr-only">
                         {worklists[task].search ? " matching jobs" : " jobs"}
                       </span>
-                    </span>
+                    </Badge>
                   )}
                 </Button>
               ))}

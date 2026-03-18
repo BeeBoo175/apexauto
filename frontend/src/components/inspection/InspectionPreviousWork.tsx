@@ -1,9 +1,8 @@
 "use client";
 
-import { Button } from "@/components/ui/Button";
 import type { useInspectionHistory } from "@/hooks/use-inspection-history";
 import type { RepairHistory } from "@/lib/inspection/report-contracts";
-import { InspectionHistoryProgress } from "./InspectionHistory";
+import { InspectionHistoryProgress, InspectionRepairLink } from "./InspectionHistory";
 import { formatCurrency } from "@/lib/currency-format";
 import type { RepairSelection } from "@/lib/inspection/query";
 import styles from "./InspectionTimeline.module.css";
@@ -38,14 +37,12 @@ export function InspectionPreviousWork({
               {completion ? "Completed" : "Retained request"}
               {approval ? " · Approved" : ""}
             </span>
-            <Button
-              size="compact"
-              variant="secondary"
+            <InspectionRepairLink
+              inspectionId={request.inspectionId}
+              selection={{ requestId: request.operationId, revision }}
               disabled={disabled}
-              onClick={() => onSelect({ requestId: request.operationId, revision })}
-            >
-              View work and signed findings
-            </Button>
+              onSelect={onSelect}
+            />
           </li>
         ))}
       </ul>

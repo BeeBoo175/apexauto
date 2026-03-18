@@ -2,7 +2,7 @@ import React from "react";
 import styles from "./Badge.module.css";
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
-  variant?: "trust" | "warning" | "signal" | "neutral" | "info";
+  variant?: "trust" | "warning" | "signal" | "neutral" | "info" | "count";
 }
 
 export const Badge: React.FC<BadgeProps> = ({

@@ -5,6 +5,7 @@ import type { ReportPoint } from "@/lib/inspection/report-contracts";
 import type { useInspectionPhoto } from "@/hooks/use-inspection-photo";
 import { FindingPhotos } from "./FindingPhotos";
 import { SignedFinding } from "./SignedFinding";
+import { InspectionPointStatus } from "./WorkshopStatus";
 import styles from "./Inspection.module.css";
 import workshop from "./Workshop.module.css";
 
@@ -43,12 +44,19 @@ export function ChecklistPoint({
     <div className={styles.point}>
       <div className={workshop.detailHeading}>
         <div>
-          <span className={workshop.pointCode}>
-            {point.code} · {label(point.category)}
+          <span className={workshop.pointContext}>
+            <span className={workshop.pointCode}>{point.code}</span> · {label(point.category)}
           </span>
           <h3>{point.description}</h3>
+          <div>
+            <InspectionPointStatus
+              kind={entry?.kind}
+              severity={entry?.severity}
+              examined={examined}
+            />
+          </div>
         </div>
-        {editable ? (
+        {editable && (
           <label className={styles.checkbox}>
             <input
               type="checkbox"
@@ -65,8 +73,6 @@ export function ChecklistPoint({
             />
             Examined
           </label>
-        ) : (
-          <span>{label(disposition)}</span>
         )}
       </div>
       {draft.isSigned && signedPoint && (

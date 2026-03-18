@@ -185,7 +185,7 @@ test("booking receipts bind the exact operation and four distinct photo angles",
   const receipt = {
     id,
     branchId: id,
-    registrationPlate: "VCA9701",
+    registrationPlate: "VCA 9701",
     slot: { startsAt: "2026-10-20T01:00:00Z", endsAt: "2026-10-20T02:30:00Z" },
     createdAt: "2026-10-19T01:00:00Z",
     vehicle,
@@ -195,14 +195,33 @@ test("booking receipts bind the exact operation and four distinct photo angles",
   const request = {
     id,
     branchId: id,
-    registrationPlate: "VCA 9701",
+    registrationPlate: "  vca 9701  ",
     startsAt: receipt.slot.startsAt,
     vehicle,
-    acceptedQuote: quote,
+    acceptedQuote: { ...quote, valuationYear: 2025 },
     photoIds: photos.map((photo) => photo.id),
   };
   expect(bookingMatchesRequest(receipt, request)).toBe(true);
   expect(bookingMatchesRequest(receipt, { ...request, id: crypto.randomUUID() })).toBe(false);
+  expect(bookingMatchesRequest(receipt, { ...request, branchId: crypto.randomUUID() })).toBe(false);
+  expect(bookingMatchesRequest(receipt, { ...request, registrationPlate: "VCA9701" })).toBe(false);
+  expect(bookingMatchesRequest(receipt, { ...request, startsAt: receipt.slot.endsAt })).toBe(false);
+  expect(
+    bookingMatchesRequest(receipt, { ...request, vehicle: { ...vehicle, mileageKilometres: 1 } }),
+  ).toBe(false);
+  for (const acceptedQuote of [
+    { ...quote, minValuation: 9999 },
+    { ...quote, maxValuation: 12001 },
+    { ...quote, currency: "USD" },
+  ]) {
+    expect(bookingMatchesRequest(receipt, { ...request, acceptedQuote })).toBe(false);
+  }
+  expect(
+    bookingMatchesRequest(receipt, {
+      ...request,
+      photoIds: [...request.photoIds, crypto.randomUUID()],
+    }),
+  ).toBe(false);
   expect(
     bookingMatchesRequest(receipt, { ...request, photoIds: photos.map(() => crypto.randomUUID()) }),
   ).toBe(false);
