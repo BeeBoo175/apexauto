@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Dealership.Api\Dealership.Api.csproj" />
+    <ProjectReference Include="..\..\tools\DevelopmentFixtures\DevelopmentFixtures.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>

@@ -19,10 +19,7 @@ public sealed class StaffProvisioningStore(DealershipDbContext database, UserMan
 
         if (existing is not null)
         {
-            var matches = existing.Email == staff.Email && existing.Role == staff.Role &&
-                existing.BranchId == staff.BranchId && existing.IsActive && existing.EmailConfirmed &&
-                existing.PasswordHash is not null &&
-                passwords.VerifyHashedPassword(existing, existing.PasswordHash, staff.Password) != PasswordVerificationResult.Failed;
+            var matches = Matches(existing, staff, passwords);
             return new ProvisioningResult(false, matches);
         }
 
@@ -51,6 +48,15 @@ public sealed class StaffProvisioningStore(DealershipDbContext database, UserMan
 
         await transaction.CommitAsync(cancellationToken);
         return new ProvisioningResult(true, true);
+    }
+
+    internal static bool Matches(AccountUser existing, ValidatedStaffProvisioning requested,
+        IPasswordHasher<AccountUser> passwords)
+    {
+        return existing.Email == requested.Email && existing.Role == requested.Role &&
+            existing.BranchId == requested.BranchId && existing.IsActive && existing.EmailConfirmed &&
+            existing.PasswordHash is not null &&
+            passwords.VerifyHashedPassword(existing, existing.PasswordHash, requested.Password) != PasswordVerificationResult.Failed;
     }
 
     private Task<int> LockFixtureAsync(Guid id, CancellationToken cancellationToken)

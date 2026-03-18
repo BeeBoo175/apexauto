@@ -4,7 +4,6 @@ using Dealership.Infrastructure;
 using Dealership.Infrastructure.Configuration;
 using Dealership.Infrastructure.Development;
 using Dealership.Infrastructure.Development.Maintenance;
-using Dealership.Infrastructure.Intake;
 using Dealership.Infrastructure.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -39,17 +38,9 @@ try
     services.AddIntakeApplication();
     services.AddPhotoApplication();
     services.AddInfrastructure(configuration);
-    services.AddSingleton(InspectionScheduleConfiguration.Read(configuration));
-    services.AddSingleton<DevelopmentFixtureClock>();
-    services.AddSingleton<TimeProvider>(provider => provider.GetRequiredService<DevelopmentFixtureClock>());
+    services.AddDevelopmentFixtures(configuration);
     services.AddS3Storage(configuration);
     services.AddPhotos(configuration);
-    services.AddScoped<DevelopmentFixtureRunner>();
-    services.AddScoped<DevelopmentInspectionFixtures>();
-    services.AddScoped<DevelopmentInspectionScenarioFixtures>();
-    services.AddScoped<DevelopmentCustomerFixtures>();
-    services.AddScoped<DevelopmentIntakeFixtures>();
-    services.AddScoped<DevelopmentFixturePhotos>();
     services.AddScoped<DevelopmentDatabaseRebuilder>();
     await using var provider = services.BuildServiceProvider(new ServiceProviderOptions
     {

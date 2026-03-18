@@ -3,15 +3,15 @@ using Dealership.Application.Photos;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Diagnostics;
+using System.Text.Json;
 using Amazon.S3;
 using Dealership.Domain.Intake;
 using Dealership.Application;
 using Dealership.Application.Accounts;
 using Dealership.Application.Intake;
 using Dealership.Infrastructure;
-using Dealership.Infrastructure.Configuration;
 using Dealership.Infrastructure.Development;
-using Dealership.Infrastructure.Intake;
 using Dealership.Infrastructure.Storage;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -107,11 +107,94 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         Assert.Equal(snapshot, await DevelopmentIntakeFixtureAssertions.SnapshotAsync(provider));
         Assert.All(await SeedAsync(restarted, target), report => Assert.False(report.RequiresAttention));
         Assert.Equal(snapshot, await DevelopmentIntakeFixtureAssertions.SnapshotAsync(restarted));
+        await AssertReviewPreservesDriftAsync(provider, target);
         await AssertRuntimeGuardsAsync();
         await DevelopmentInspectionScenarioAssertions.VerifyAsync(provider, target);
         await NoShowLifecycleAssertions.VerifyAsync(fixture);
         await DevelopmentInspectionFixtureAssertions.VerifyAsync(provider, target);
         await DevelopmentInspectionScenarioAssertions.VerifyHumanEditPreservationAsync(provider, target);
+    }
+
+    private static async Task AssertReviewPreservesDriftAsync(ServiceProvider provider, DevelopmentFixtureTarget target)
+    {
+        await using var scope = provider.CreateAsyncScope();
+        var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
+        var runner = scope.ServiceProvider.GetRequiredService<DevelopmentFixtureRunner>();
+        Assert.All(await runner.ReviewAsync(target, CancellationToken.None), report => Assert.False(report.RequiresAttention));
+        var branch = DevelopmentFixtureManifest.Branches[0];
+        var administrator = DevelopmentFixtureManifest.Staff.Single(item => item.Role == AccountRoles.Administrator);
+        await database.Branches.Where(item => item.Id == branch.Id)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.Phone, "+60355659876"));
+        await database.Users.Where(item => item.Id == administrator.Id)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.IsActive, false));
+        try
+        {
+            var prerequisites = await SnapshotPrerequisitesAsync(database);
+            var business = await DevelopmentIntakeFixtureAssertions.SnapshotAsync(provider);
+            var reports = await runner.ReviewAsync(target, CancellationToken.None);
+            Assert.True(reports.Single(report => report.Fixture == branch.Name).RequiresAttention);
+            Assert.True(reports.Single(report => report.Fixture == $"{administrator.Role} ({administrator.Email})").RequiresAttention);
+            Assert.Equal(2, reports.Count(report => report.RequiresAttention));
+            Assert.Equal(2, await ReviewCommandExitCodeAsync(target));
+            Assert.Equal(prerequisites, await SnapshotPrerequisitesAsync(database));
+            Assert.Equal(business, await DevelopmentIntakeFixtureAssertions.SnapshotAsync(provider));
+        }
+        finally
+        {
+            await database.Branches.Where(item => item.Id == branch.Id)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.Phone, branch.Phone));
+            await database.Users.Where(item => item.Id == administrator.Id)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.IsActive, true));
+        }
+    }
+
+    private static async Task<string> SnapshotPrerequisitesAsync(DealershipDbContext database)
+    {
+        return JsonSerializer.Serialize(new
+        {
+            Branches = await database.Branches.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync(),
+            Users = await database.Users.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync(),
+            Profiles = await database.CustomerProfiles.AsNoTracking().OrderBy(item => item.UserId).ToArrayAsync(),
+            Verification = await database.EmailVerificationChallenges.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync(),
+            Recovery = await database.PasswordResetChallenges.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync()
+        });
+    }
+
+    private static async Task<int> ReviewCommandExitCodeAsync(DevelopmentFixtureTarget target)
+    {
+        var configuration = new DirectoryInfo(AppContext.BaseDirectory).Parent!.Name;
+        var command = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory,
+            $"../../../../../tools/DevelopmentFixtures/bin/{configuration}/net10.0/DevelopmentFixtures.dll"));
+        var start = new ProcessStartInfo("dotnet")
+        {
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
+        };
+        start.ArgumentList.Add(command);
+        start.ArgumentList.Add("review");
+        start.Environment["DOTNET_ENVIRONMENT"] = "Development";
+        start.Environment["ASPNETCORE_ENVIRONMENT"] = "Development";
+        start.Environment["POSTGRES_DB"] = new NpgsqlConnectionStringBuilder(target.ConnectionString).Database;
+        start.Environment["ConnectionStrings__DefaultConnection"] = target.ConnectionString;
+        using var process = Process.Start(start)!;
+        var output = process.StandardOutput.ReadToEndAsync();
+        var error = process.StandardError.ReadToEndAsync();
+        using var deadline = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+        try
+        {
+            await process.WaitForExitAsync(deadline.Token);
+            await Task.WhenAll(output, error);
+            return process.ExitCode;
+        }
+        finally
+        {
+            if (!process.HasExited)
+            {
+                process.Kill(entireProcessTree: true);
+            }
+        }
     }
 
     private async Task<string[]> ReadGuardsAsync()
@@ -220,17 +303,9 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         services.AddIntakeApplication();
         services.AddPhotoApplication();
         services.AddInfrastructure(configuration);
-        services.AddSingleton(InspectionScheduleConfiguration.Read(configuration));
-        services.AddSingleton<DevelopmentFixtureClock>();
-        services.AddSingleton<TimeProvider>(provider => provider.GetRequiredService<DevelopmentFixtureClock>());
+        services.AddDevelopmentFixtures(configuration);
         services.AddS3Storage(configuration);
         services.AddPhotos(configuration);
-        services.AddScoped<DevelopmentFixtureRunner>();
-        services.AddScoped<DevelopmentInspectionFixtures>();
-        services.AddScoped<DevelopmentInspectionScenarioFixtures>();
-        services.AddScoped<DevelopmentCustomerFixtures>();
-        services.AddScoped<DevelopmentIntakeFixtures>();
-        services.AddScoped<DevelopmentFixturePhotos>();
         fault.Configure(services);
         return services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true });
     }

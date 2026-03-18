@@ -1,6 +1,9 @@
 using Dealership.Application.Accounts;
 using Dealership.Application.Branches;
+using Dealership.Infrastructure.Branches;
+using Dealership.Infrastructure.Identity;
 using Dealership.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dealership.Infrastructure.Development;
@@ -9,7 +12,7 @@ public sealed record DevelopmentFixtureReport(string Fixture, string State, bool
 
 public sealed class DevelopmentFixtureRunner(DealershipDbContext database, DevelopmentCustomerFixtures customers,
     StaffProvisioningService staff, BranchProvisioningService branches, DevelopmentIntakeFixtures intake,
-    DevelopmentInspectionFixtures inspections)
+    DevelopmentInspectionFixtures inspections, IPasswordHasher<AccountUser> passwords)
 {
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> SeedAsync(DevelopmentFixtureTarget target,
         CancellationToken cancellationToken)
@@ -78,8 +81,9 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
             {
                 var branch = await database.Branches.AsNoTracking().SingleOrDefaultAsync(
                     candidate => candidate.Id == requested.Id, cancellationToken);
-                reports.Add(new DevelopmentFixtureReport(requested.Name, branch is null ? "missing" :
-                    $"{branch.Name}; {branch.City}; {branch.State}; active={branch.IsActive}", branch is null));
+                var matches = branch is not null && BranchProvisioningStore.Matches(branch, requested);
+                var state = branch is null ? "missing" : "drift; preserved";
+                reports.Add(new DevelopmentFixtureReport(requested.Name, matches ? "matches" : state, !matches));
             }
 
             foreach (var customer in DevelopmentFixtureManifest.Customers)
@@ -89,7 +93,7 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
 
             foreach (var account in DevelopmentFixtureManifest.Staff)
             {
-                reports.Add(await ReviewAccountAsync($"{account.Role} ({account.Email})", account.Id, cancellationToken));
+                reports.Add(await ReviewAccountAsync(account, cancellationToken));
             }
 
             reports.AddRange(await intake.ReviewAsync(cancellationToken));
@@ -105,14 +109,16 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
         }
     }
 
-    private async Task<DevelopmentFixtureReport> ReviewAccountAsync(string fixture, Guid? id,
+    private async Task<DevelopmentFixtureReport> ReviewAccountAsync(StaffProvisioningRequest requested,
         CancellationToken cancellationToken)
     {
         var account = await database.Users.AsNoTracking().SingleOrDefaultAsync(
-            candidate => candidate.Id == id, cancellationToken);
-        var state = account is null ? "missing" :
-            $"role={account.Role}; branch={account.BranchId}; active={account.IsActive}; verified={account.EmailConfirmed}";
-        return new DevelopmentFixtureReport(fixture, state, account is null);
+            candidate => candidate.Id == requested.Id, cancellationToken);
+        var staff = new ValidatedStaffProvisioning(requested.Id, requested.Email, requested.Password,
+            requested.Role, requested.BranchId);
+        var matches = account is not null && StaffProvisioningStore.Matches(account, staff, passwords);
+        var state = account is null ? "missing" : "drift; preserved";
+        return new DevelopmentFixtureReport($"{requested.Role} ({requested.Email})", matches ? "matches" : state, !matches);
     }
 
     private static DevelopmentFixtureReport Report(string fixture, bool created, bool matches)

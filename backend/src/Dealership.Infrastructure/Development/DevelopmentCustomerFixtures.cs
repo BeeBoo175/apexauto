@@ -60,9 +60,10 @@ public sealed class DevelopmentCustomerFixtures(DealershipDbContext database, Re
         var userId = profile?.UserId;
         var user = await database.Users.AsNoTracking().SingleOrDefaultAsync(
             candidate => candidate.Id == userId, cancellationToken);
-        var state = user is null ? "missing" :
-            $"role={user.Role}; branch={user.BranchId}; active={user.IsActive}; verified={user.EmailConfirmed}";
-        return new DevelopmentFixtureReport($"Customer ({requested.Email})", state, user is null);
+        var matches = user is not null && profile is not null && Matches(user, profile, requested) &&
+            user.EmailConfirmed == fixture.VerifyEmail;
+        var state = user is null ? "missing" : "drift; preserved";
+        return new DevelopmentFixtureReport($"Customer ({requested.Email})", matches ? "matches" : state, !matches);
     }
 
     private Task<CustomerProfile?> FindProfileAsync(Guid registrationKey, CancellationToken cancellationToken)

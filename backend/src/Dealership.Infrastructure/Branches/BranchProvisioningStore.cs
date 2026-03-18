@@ -20,9 +20,8 @@ public sealed class BranchProvisioningStore(DealershipDbContext database) : IBra
         if (existing is not null)
         {
             // A fixture rerun reports drift without overwriting a person's edits.
-            var matches = existing.Name == branch.Name && existing.Address == branch.Address &&
-                existing.City == branch.City && existing.State == branch.State &&
-                existing.Phone == branch.Phone && existing.IsActive;
+            var matches = Matches(existing, new BranchProvisioningRequest(branch.Id, branch.Name,
+                branch.Address, branch.City, branch.State, branch.Phone));
             return new BranchProvisioningResult(false, matches);
         }
 
@@ -30,5 +29,12 @@ public sealed class BranchProvisioningStore(DealershipDbContext database) : IBra
         await database.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return new BranchProvisioningResult(true, true);
+    }
+
+    internal static bool Matches(Branch existing, BranchProvisioningRequest requested)
+    {
+        return existing.Name == requested.Name && existing.Address == requested.Address &&
+            existing.City == requested.City && existing.State == requested.State &&
+            existing.Phone == requested.Phone && existing.IsActive;
     }
 }
