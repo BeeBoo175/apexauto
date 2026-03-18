@@ -1,5 +1,6 @@
 import styles from "./Home.module.css";
-import { Button } from "@/components/ui/Button";
+import Link from "next/link";
+import buttonStyles from "@/components/ui/Button.module.css";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 
@@ -20,12 +21,14 @@ export default function Home() {
           contract closing.
         </p>
         <div className={styles.actions}>
-          <Button variant="primary" size="lg">
-            Browse Verified Vehicles
-          </Button>
-          <Button variant="secondary" size="lg">
+          <span>Browse verified vehicles is not available yet.</span>
+          <Link
+            href="/sell"
+            prefetch={false}
+            className={`${buttonStyles.button} ${buttonStyles.secondary} ${buttonStyles.lg}`}
+          >
             Instant Trade-In Valuation
-          </Button>
+          </Link>
         </div>
       </section>
 

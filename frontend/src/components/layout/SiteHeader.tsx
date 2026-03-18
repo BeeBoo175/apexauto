@@ -12,9 +12,6 @@ export async function SiteHeader() {
       </Link>
       <nav className={styles.navigation} aria-label="Main navigation">
         {showAccount && <a href="/account">Account</a>}
-        <Link href="/vehicles" prefetch={false}>
-          Inventory
-        </Link>
         <Link href="/sell" prefetch={false}>
           Sell car
         </Link>

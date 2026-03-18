@@ -27,23 +27,31 @@ test("owned history keeps scoped pages and confirmed content, then reconciles ca
     (counts()["/api/intake/appointments"] ?? 0) - (before["/api/intake/appointments"] ?? 0),
   ).toBe(1);
   const records = page.getByRole("heading", { level: 3 });
+  const historySummary = page.getByText(/^\d+ appointments · Page 1/);
+  const total = Number((await historySummary.innerText()).match(/^(\d+) appointments/)![1]);
+  const pageSize = 25;
+  const finalPage = Math.ceil(total / pageSize);
+  expect(finalPage).toBeGreaterThan(1);
+  expect(total % pageSize).toBeGreaterThan(0);
   await expect(records).toHaveCount(25);
-  await page.getByRole("button", { name: "Next appointments", exact: true }).click();
-  await expect(page.getByText(/appointments · Page 2/)).toBeVisible();
-  await expect(records).toHaveCount(25);
-  await page.getByRole("button", { name: "Next appointments", exact: true }).click();
-  await expect(page.getByText(/appointments · Page 3/)).toBeVisible();
-  await expect(records).toHaveCount(25);
-  await page.getByRole("button", { name: "Next appointments", exact: true }).click();
-  await expect(page.getByText(/appointments · Page 4/)).toBeVisible();
-  expect(await records.count()).toBeGreaterThanOrEqual(3);
-  expect(await records.count()).toBeLessThan(25);
-  await page.getByRole("button", { name: "Previous appointments", exact: true }).click();
-  await expect(page.getByText(/appointments · Page 3/)).toBeVisible();
-  await page.getByRole("button", { name: "Previous appointments", exact: true }).click();
-  await expect(page.getByText(/appointments · Page 2/)).toBeVisible();
-  await page.getByRole("button", { name: "Previous appointments", exact: true }).click();
-  await expect(page.getByText(/appointments · Page 1/)).toBeVisible();
+  for (let current = 2; current <= finalPage; current++) {
+    await page.getByRole("button", { name: "Next appointments", exact: true }).click();
+    await expect(
+      page.getByText(`${total} appointments · Page ${current} · All dates`, { exact: true }),
+    ).toBeVisible();
+    await expect(records).toHaveCount(Math.min(pageSize, total - (current - 1) * pageSize));
+  }
+  await expect(page.getByRole("button", { name: "Next appointments", exact: true })).toBeDisabled();
+  for (let current = finalPage - 1; current >= 1; current--) {
+    await page.getByRole("button", { name: "Previous appointments", exact: true }).click();
+    await expect(
+      page.getByText(`${total} appointments · Page ${current} · All dates`, { exact: true }),
+    ).toBeVisible();
+    await expect(records).toHaveCount(pageSize);
+  }
+  await expect(
+    page.getByRole("button", { name: "Previous appointments", exact: true }),
+  ).toBeDisabled();
 
   await page.route("**/api/intake/appointments?**", (route) =>
     route.fulfill({

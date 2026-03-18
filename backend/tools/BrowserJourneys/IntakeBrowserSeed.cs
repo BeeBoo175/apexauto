@@ -79,14 +79,6 @@ internal static class IntakeBrowserSeed
             }
             if (workshop)
             {
-                if (slot == 0)
-                {
-                    string[] technicians = ["farid.hakim@example.invalid", "amirul.izzat@example.invalid", "lee.jun.wei@example.invalid"];
-                    await services.GetRequiredService<StaffProvisioningService>()
-                        .ProvisionStaffAsync(new StaffProvisioningRequest(Guid.NewGuid(),
-                            technicians[branchIndex], DevelopmentFixtureManifest.Password, AccountRoles.WorkshopTechnician,
-                            branch.Id), CancellationToken.None);
-                }
                 var staff = DevelopmentFixtureManifest.Staff.Single(item => item.BranchId == branch.Id &&
                     item.Role == AccountRoles.SalesAgent);
                 var checkedIn = await services.GetRequiredService<AppointmentCheckInService>()

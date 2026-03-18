@@ -46,13 +46,11 @@ test("sales intake preserves scoped lists, drawer drafts and an exact lost check
       })
     ).status(),
   ).toBe(404);
-  expect(
-    (
-      await context.request.get(`/dashboard/intake/${cross.id}`, {
-        headers: await privateHeaders(context),
-      })
-    ).status(),
-  ).toBe(404);
+  await page.goto(`/dashboard/intake/${cross.id}`);
+  await expect(page.getByRole("heading", { name: "404", exact: true })).toBeVisible();
+  await expect(page.getByLabel("VIN", { exact: true })).toHaveCount(0);
+  await expect(page.getByText(cross.registrationPlate, { exact: true })).toHaveCount(0);
+  await page.goto("/dashboard/intake?view=list&status=Booked");
   const arrivalPlate = testInfo.project.name === "mobile" ? "VCA 9702" : "VCA 9701";
   const link = page.getByRole("link", { name: `Open ${arrivalPlate}`, exact: true });
   const detailHref = await link.getAttribute("href");
@@ -65,8 +63,26 @@ test("sales intake preserves scoped lists, drawer drafts and an exact lost check
   expect(await reopened!.text()).toContain("Declared mileage");
   await expect(dialog.getByLabel("VIN", { exact: true })).toBeEditable();
   expect(counts()[detailPath] - detailReads).toBe(1);
+  await dialog.getByRole("button", { name: "Close dialog", exact: true }).click();
+  await page.evaluate(() => {
+    window.history.pushState(window.history.state, "", window.location.href);
+  });
+  await link.click();
+  await expect(dialog.getByLabel("VIN", { exact: true })).toBeEditable();
   const vin = `PL1BT65R84B${Date.now().toString().slice(-6)}`;
   await dialog.getByLabel("VIN", { exact: true }).fill(vin);
+  await page.route("**/api/staff/intake/appointments/*", (route) =>
+    route.fulfill({
+      status: 403,
+      json: { status: 403, data: null, uncertain: false, message: "Access unavailable" },
+    }),
+  );
+  await dialog.getByRole("button", { name: "Refresh appointment", exact: true }).click();
+  await expect(
+    page.getByRole("alert").filter({ hasText: "Existing details and your draft remain shown." }),
+  ).toBeVisible();
+  await expect(dialog.getByLabel("VIN", { exact: true })).toHaveValue(vin);
+  await page.unroute("**/api/staff/intake/appointments/*");
   await page.route("**/api/staff/intake/appointments/*", (route) =>
     route.fulfill({
       status: 502,
@@ -127,11 +143,6 @@ test("sales intake preserves scoped lists, drawer drafts and an exact lost check
     dialog.getByRole("button", { name: "Retry same check-in", exact: true }),
   ).toBeVisible();
   const uncertainHref = page.url();
-  await page.evaluate(() => {
-    const current = window.location.href;
-    window.history.replaceState(null, "", "/dashboard/intake?view=list");
-    window.history.pushState(null, "", current);
-  });
   const attemptedBack = page.waitForEvent("framenavigated");
   await page.evaluate(() => window.history.back());
   await attemptedBack;
@@ -190,6 +201,7 @@ test("sales intake preserves scoped lists, drawer drafts and an exact lost check
       { exact: true },
     ),
   ).toHaveCount(0);
+  await new Promise((resolve) => setTimeout(resolve, 61_000));
 });
 
 for (const [role, email, destination] of [
@@ -208,7 +220,7 @@ for (const [role, email, destination] of [
       await expect(page).toHaveURL(new RegExp(`${destination}$`));
     }
     if (role === "Workshop technician" || role === "Administrator") {
-      const heading = role === "Workshop technician" ? "Inspections" : "Your staff workspace";
+      const heading = role === "Workshop technician" ? "Workshop" : "Your staff workspace";
       await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
       await page.goto("/dashboard/intake?view=list");
       await expect(
