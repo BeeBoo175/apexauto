@@ -1,6 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useOptimistic, useRef, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useOptimistic,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 export function useStaffNavigation() {
@@ -15,8 +23,19 @@ export function useStaffNavigation() {
   const [selectedPath, selectPath] = useOptimistic(pathname);
 
   const captureHistory = useCallback(() => {
+    if (lockedRef.current) {
+      return;
+    }
     confirmed.current = { href: window.location.href, state: window.history.state };
   }, []);
+
+  const setLocked = useCallback((locked: boolean) => {
+    if (locked && !lockedRef.current) {
+      confirmed.current = { href: window.location.href, state: window.history.state };
+    }
+    lockedRef.current = locked;
+  }, []);
+  const operationLock = useMemo(() => ({ lockedRef, setLocked }), [setLocked]);
 
   const recordNavigation = useCallback((href: string) => {
     const destination = new URL(href, window.location.origin).pathname;
@@ -64,6 +83,7 @@ export function useStaffNavigation() {
     selectedPath,
     pending,
     lockedRef,
+    operationLock,
     navigate,
     captureHistory,
     recordNavigation,

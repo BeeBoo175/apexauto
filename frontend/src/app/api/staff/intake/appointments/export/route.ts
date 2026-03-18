@@ -4,6 +4,11 @@ import { requireSameOrigin } from "@/lib/server/http/request";
 import { relayPrivateCsv } from "@/lib/server/http/csv-export";
 
 export async function GET(request: Request) {
+  if (request.method === "HEAD") {
+    const response = await exportCsv(new Request(request, { method: "GET" }), false);
+    await response.body?.cancel();
+    return new Response(null, { status: response.status, headers: response.headers });
+  }
   return exportCsv(request, false);
 }
 

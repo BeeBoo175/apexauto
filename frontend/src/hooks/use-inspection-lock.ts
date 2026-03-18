@@ -3,11 +3,9 @@ import { useContext, useEffect } from "react";
 import { StaffNavigationLockContext } from "@/components/staff/StaffActorBoundary";
 
 export function useInspectionLock(locked: boolean) {
-  const navigationLockedRef = useContext(StaffNavigationLockContext);
+  const operationLock = useContext(StaffNavigationLockContext);
   useEffect(() => {
-    if (navigationLockedRef) {
-      navigationLockedRef.current = locked;
-    }
+    operationLock?.setLocked(locked);
     if (!locked) {
       return;
     }
@@ -15,14 +13,10 @@ export function useInspectionLock(locked: boolean) {
     window.addEventListener("beforeunload", guard);
     return () => {
       window.removeEventListener("beforeunload", guard);
-      if (navigationLockedRef) {
-        navigationLockedRef.current = false;
-      }
+      operationLock?.setLocked(false);
     };
-  }, [locked, navigationLockedRef]);
+  }, [locked, operationLock]);
   return (value: boolean) => {
-    if (navigationLockedRef) {
-      navigationLockedRef.current = value;
-    }
+    operationLock?.setLocked(value);
   };
 }

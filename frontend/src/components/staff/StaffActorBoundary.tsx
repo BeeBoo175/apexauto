@@ -13,7 +13,10 @@ import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import { LoadingProgress, LoadingProgressReady } from "@/components/ui/LoadingProgress";
 
 export const StaffActorContext = createContext<CurrentActor | null>(null);
-export const StaffNavigationLockContext = createContext<RefObject<boolean> | null>(null);
+export const StaffNavigationLockContext = createContext<{
+  lockedRef: RefObject<boolean>;
+  setLocked: (locked: boolean) => void;
+} | null>(null);
 export const StaffPageEntranceContext = createContext(false);
 export const StaffNavigationContext = createContext<{
   pendingPath: string | null;

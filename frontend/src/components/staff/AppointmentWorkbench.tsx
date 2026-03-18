@@ -51,21 +51,22 @@ export function AppointmentWorkbench({
     parseCheckIn,
     (receipt, request) =>
       receipt.appointmentId === id &&
-      receipt.staffId === actor.userId &&
-      (correcting ? correctionMatches(receipt, request) : checkInMatches(receipt, request)),
+      (correcting
+        ? correctionMatches(receipt, request)
+        : receipt.correction === null && checkInMatches(receipt, request)),
   );
   const value = draft ?? localDraft;
   const locked = command.busy || command.uncertain;
-  const navigationLockedRef = useContext(StaffNavigationLockContext);
+  const operationLock = useContext(StaffNavigationLockContext);
   useEffect(() => {
-    if (!navigationLockedRef) {
+    if (!operationLock) {
       return;
     }
-    navigationLockedRef.current = locked;
+    operationLock.setLocked(locked);
     return () => {
-      navigationLockedRef.current = false;
+      operationLock.setLocked(false);
     };
-  }, [locked, navigationLockedRef]);
+  }, [locked, operationLock]);
   useEffect(() => {
     queueMicrotask(() => setReady(true));
     return () => controller.current?.abort();
@@ -106,6 +107,7 @@ export function AppointmentWorkbench({
     }
   }
   async function checkIn() {
+    operationLock?.setLocked(true);
     onLock?.(true);
     const result = await command.submit({
       ...value,
@@ -123,15 +125,17 @@ export function AppointmentWorkbench({
     if (result?.status !== 200 || !result.data) {
       return;
     }
+    const receipt = result.data;
+    const correctionAuthor = receipt.correction ? receipt.staffId : null;
     setSnapshot((current) => ({
       ...current,
       data: current.data
         ? {
             ...current.data,
             status: "CheckedIn",
-            attendanceCorrectedAt: result.data!.correction?.recordedAt ?? null,
-            correctionReason: result.data!.correction?.reason ?? null,
-            correctedBy: correcting ? result.data!.staffId : null,
+            attendanceCorrectedAt: receipt.correction?.recordedAt ?? null,
+            correctionReason: receipt.correction?.reason ?? null,
+            correctedBy: correctionAuthor,
           }
         : null,
     }));

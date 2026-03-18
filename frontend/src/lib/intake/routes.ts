@@ -15,8 +15,9 @@ export async function relayIntake<T>(
   maximumResponseBytes = 256 * 1024,
 ) {
   try {
+    const method = request.method === "HEAD" ? "GET" : request.method;
     const signal = AbortSignal.any([request.signal, AbortSignal.timeout(API_DEADLINE_MS)]);
-    if (request.method !== "GET") {
+    if (method !== "GET") {
       requireSameOrigin(request);
     }
     const token = authenticated ? await sessionToken() : undefined;
@@ -32,7 +33,7 @@ export async function relayIntake<T>(
       );
     }
     let body: unknown;
-    if (request.method !== "GET") {
+    if (method !== "GET") {
       if (request.headers.get("content-type")?.split(";")[0] !== "application/json") {
         throw new HttpError(415, "Send application/json.");
       }
@@ -54,7 +55,7 @@ export async function relayIntake<T>(
       {
         token,
         body,
-        method: request.method,
+        method,
         signal,
       },
       API_DEADLINE_MS,

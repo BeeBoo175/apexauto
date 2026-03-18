@@ -26,8 +26,9 @@ export async function relayInspection<T>(
   parse: (v: unknown) => T | null,
 ) {
   try {
+    const method = request.method === "HEAD" ? "GET" : request.method;
     const signal = AbortSignal.any([request.signal, AbortSignal.timeout(20_000)]);
-    if (request.method !== "GET") {
+    if (method !== "GET") {
       requireSameOrigin(request);
     }
     const token = await sessionToken();
@@ -42,7 +43,7 @@ export async function relayInspection<T>(
       );
     }
     let body: unknown;
-    if (request.method === "POST") {
+    if (method === "POST") {
       if (request.headers.get("content-type")?.split(";")[0] !== "application/json") {
         throw new HttpError(415, "Send application/json.");
       }
@@ -54,7 +55,7 @@ export async function relayInspection<T>(
     const result = await apiRead(
       `/api/staff/inspection/${path}`,
       parse,
-      { token, signal, method: request.method, body },
+      { token, signal, method, body },
       20_000,
       1024 * 1024,
     );

@@ -46,7 +46,7 @@ export function StaffFrame({ actor, children }: { actor?: CurrentActor; children
       }}
     >
       <StaffActorContext.Provider value={actor ?? null}>
-        <StaffNavigationLockContext.Provider value={navigation.lockedRef}>
+        <StaffNavigationLockContext.Provider value={navigation.operationLock}>
           <section
             className={`${styles.page} ${fitViewport ? styles.viewport : ""}`}
             inert={Boolean(actor) && !session.ready}

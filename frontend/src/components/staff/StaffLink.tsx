@@ -10,7 +10,7 @@ export function StaffLink({
   prefetchOnIntent = false,
   ...props
 }: ComponentProps<typeof Link> & { prefetchOnIntent?: boolean }) {
-  const lockedRef = useContext(StaffNavigationLockContext);
+  const operationLock = useContext(StaffNavigationLockContext);
   const navigation = useContext(StaffNavigationContext);
   const [intent, setIntent] = useState(false);
   let prefetch = props.prefetch;
@@ -19,7 +19,7 @@ export function StaffLink({
   }
 
   function prepare() {
-    if (prefetchOnIntent && !lockedRef?.current && !props["aria-current"]) {
+    if (prefetchOnIntent && !operationLock?.lockedRef.current && !props["aria-current"]) {
       setIntent(true);
     }
   }
@@ -52,7 +52,7 @@ export function StaffLink({
         }
       }}
       onNavigate={(event) => {
-        if (lockedRef?.current) {
+        if (operationLock?.lockedRef.current) {
           event.preventDefault();
           return;
         }
