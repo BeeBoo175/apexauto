@@ -118,33 +118,7 @@ public sealed class InspectionAssignmentStore(DealershipDbContext database) : II
             query = query.Where(item => item.TechnicianId == actorId);
         }
 
-        var draft = await query.Select(item => new InspectionDraftSnapshot(item.Id, item.VehicleId, item.BranchId,
-            item.TechnicianId, item.AssignmentVersion, item.CreatedAt, null)
-        {
-            Revision = item.Revision,
-            IsSigned = item.IsSigned,
-            ReopenedAfterSaveVersion = item.ReopenedAfterSaveVersion,
-            RepairVersion = item.RepairVersion
-        }).SingleOrDefaultAsync(cancellationToken);
-        if (draft is not null)
-        {
-            var vehicle = await (from item in database.Vehicles.AsNoTracking()
-                                 join branch in database.Branches.AsNoTracking() on item.BranchId equals branch.Id
-                                 where item.Id == draft.VehicleId
-                                 select new InspectionDraftVehicle(item.RegistrationPlate, item.Make, item.Model,
-                                     item.Vin, item.MileageKilometres, item.Status.ToString(), branch.Name))
-                .SingleAsync(cancellationToken);
-            var latest = await database.InspectionDraftSaves.AsNoTracking().Where(save => save.InspectionId == inspectionId)
-                .OrderByDescending(save => save.Version).FirstOrDefaultAsync(cancellationToken);
-            var saveId = latest?.Id;
-            // Older saves retain evidence, but only the latest save supplies the editable photo set.
-            var photos = await database.InspectionDraftPhotos.AsNoTracking()
-                .Where(photo => photo.SaveId == saveId && photo.InspectionId == inspectionId)
-                .OrderBy(photo => photo.PhotoId)
-                .Select(photo => new InspectionPhotoReference(photo.PhotoId, photo.PointCode))
-                .ToArrayAsync(cancellationToken);
-            draft = draft with { LatestSave = latest?.Receipt(), Vehicle = vehicle, PhotoReferences = photos };
-        }
+        var draft = await InspectionDraftProjection.ReadAsync(database, query, inspectionId, cancellationToken);
         return draft is null ? new(InspectionAssignmentStatus.NotFound) : new(InspectionAssignmentStatus.Succeeded, draft);
     }
 }

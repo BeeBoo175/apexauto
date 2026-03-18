@@ -57,7 +57,8 @@ export function parseEditor(v: unknown): EditorSnapshot | null {
         currentRequest.signedRevisionId !== report?.operationId ||
         currentRequest.operationId !== state?.requestId)) ||
     (draft.isSigned && !report) ||
-    (draft.isSigned && draft.repairVersion > 0 && (!currentRequest || !state))
+    Boolean(currentRequest) !== Boolean(state) ||
+    (!draft.isSigned && Boolean(currentRequest))
   ) {
     return null;
   }
@@ -71,4 +72,17 @@ export function parseEditor(v: unknown): EditorSnapshot | null {
     repairState: state ?? null,
     photos,
   };
+}
+
+export function parseWorkspace(v: unknown): EditorSnapshot | null {
+  if (!isRecord(v) || !isRecord(v.draft)) {
+    return null;
+  }
+  return parseEditor({
+    ...v,
+    revisions: null,
+    repairs: null,
+    historyRequested: false,
+    photos: v.draft.photoReferences,
+  });
 }

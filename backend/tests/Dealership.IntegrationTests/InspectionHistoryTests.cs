@@ -33,6 +33,12 @@ public sealed class InspectionHistoryTests(IntakePhotoFixture fixture) : IClassF
         var (outside, _) = await ProvisionAsync(services, branch, AccountRoles.BranchManager);
         var inspection = await ClaimAsync(data, technician, 0, "WYY 8821", CheckInTestData.Evidence.Vin!);
         var histories = services.GetRequiredService<IInspectionHistoryStore>();
+        var workspace = services.GetRequiredService<IInspectionWorkspaceStore>();
+        var initial = (await workspace.ReadAsync(technician, inspection, CancellationToken.None)).Workspace!;
+        Assert.False(initial.Draft.IsSigned);
+        Assert.Null(initial.Report);
+        Assert.Null(initial.CurrentRequest);
+        Assert.Null(initial.RepairState);
         Assert.Empty((await histories.RevisionsAsync(technician, inspection, new(), CancellationToken.None)).History!.Items);
         Assert.Equal(InspectionAssignmentStatus.NotFound,
             (await histories.RepairsAsync(technician, inspection, 1, new(), CancellationToken.None)).Status);
@@ -106,16 +112,23 @@ public sealed class InspectionHistoryTests(IntakePhotoFixture fixture) : IClassF
         Assert.All(repairRows.Where(row => row.Approval is not null), row => Assert.Equal(row.Request.OperationId, row.Approval!.RequestId));
         foreach (var actor in new[] { technician, manager, group })
         {
+            var current = (await workspace.ReadAsync(actor, inspection, CancellationToken.None)).Workspace!;
+            Assert.Equal(originals[^1].OperationId, current.Report!.OperationId);
+            Assert.Equal(requests[^1].OperationId, current.CurrentRequest!.OperationId);
+            Assert.Equal(current.CurrentRequest.OperationId, current.RepairState!.RequestId);
+            Assert.Equal(InspectionRepairQueueStatus.PendingApproval, current.RepairState.Status);
             Assert.Equal(InspectionAssignmentStatus.Succeeded, (await histories.RevisionsAsync(actor, inspection, new(), CancellationToken.None)).Status);
             Assert.Equal(InspectionAssignmentStatus.Succeeded, (await histories.RepairsAsync(actor, inspection, 21, new(), CancellationToken.None)).Status);
         }
         foreach (var actor in new[] { colleague, outside })
         {
+            Assert.Equal(InspectionAssignmentStatus.NotFound, (await workspace.ReadAsync(actor, inspection, CancellationToken.None)).Status);
             Assert.Equal(InspectionAssignmentStatus.NotFound, (await histories.RevisionsAsync(actor, inspection, new(), CancellationToken.None)).Status);
             Assert.Equal(InspectionAssignmentStatus.NotFound, (await histories.RepairsAsync(actor, inspection, 21, new(), CancellationToken.None)).Status);
         }
         foreach (var actor in new[] { admin, data.OwnerId, data.StaffId })
         {
+            Assert.Equal(InspectionAssignmentStatus.Forbidden, (await workspace.ReadAsync(actor, inspection, CancellationToken.None)).Status);
             Assert.Equal(InspectionAssignmentStatus.Forbidden, (await histories.RevisionsAsync(actor, inspection, new(), CancellationToken.None)).Status);
             Assert.Equal(InspectionAssignmentStatus.Forbidden, (await histories.RepairsAsync(actor, inspection, 21, new(), CancellationToken.None)).Status);
         }
@@ -150,6 +163,24 @@ public sealed class InspectionHistoryTests(IntakePhotoFixture fixture) : IClassF
         Assert.True(response.Headers.CacheControl?.NoStore);
         Assert.Single((await response.Content.ReadFromJsonAsync<InspectionRepairHistory>())!.Items);
         Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync($"{repairPath}?pageSize=20")).StatusCode);
+        var workspaceResponse = await client.GetAsync($"/api/staff/inspection/drafts/{inspection}/workspace");
+        Assert.Equal(HttpStatusCode.OK, workspaceResponse.StatusCode);
+        Assert.True(workspaceResponse.Headers.CacheControl?.NoStore);
+        var wire = (await workspaceResponse.Content.ReadFromJsonAsync<InspectionWorkspace>())!;
+        Assert.Equal(requests[^1].OperationId, wire.CurrentRequest!.OperationId);
+        Assert.Equal(InspectionAssignmentStatus.Succeeded, (await reopenings.ReopenAsync(manager, inspection,
+            new(Guid.NewGuid(), 1, 21, "Recheck after retained repair work"), CancellationToken.None)).Status);
+        Assert.Equal(InspectionAssignmentStatus.Succeeded,
+            (await saves.SaveAsync(technician, inspection, Save(21), CancellationToken.None)).Status);
+        Assert.Equal(InspectionAssignmentStatus.Succeeded, (await signoffs.SignAsync(technician, inspection,
+            new(Guid.NewGuid(), 1, 22, 22), CancellationToken.None)).Status);
+        var revised = (await workspace.ReadAsync(technician, inspection, CancellationToken.None)).Workspace!;
+        Assert.True(revised.Draft.IsSigned);
+        Assert.Equal(22, revised.Report!.Revision);
+        Assert.Equal(21, revised.Draft.RepairVersion);
+        Assert.Null(revised.CurrentRequest);
+        Assert.Null(revised.RepairState);
+        Assert.Equal(21, (await histories.RepairsAsync(manager, inspection, 21, new(), CancellationToken.None)).History!.TotalCount);
         await database.Users.Where(user => user.Id == technician).ExecuteUpdateAsync(update => update.SetProperty(user => user.IsActive, false));
         Assert.Equal(InspectionAssignmentStatus.Forbidden, (await histories.RevisionsAsync(technician, inspection, new(), CancellationToken.None)).Status);
         await database.Branches.Where(item => item.Id == data.BranchId).ExecuteUpdateAsync(update => update.SetProperty(item => item.IsActive, false));

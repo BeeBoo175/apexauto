@@ -99,66 +99,8 @@ public sealed class InspectionQueueStore(DealershipDbContext database) : IInspec
             requests = requests.Where(item => item.RequestedAt >= filter.From && item.RequestedAt < filter.Until);
         }
 
-        var covered = InspectionRepairAuthority.CoveredRequests(database);
-        var rows = from request in requests
-                   join draft in database.InspectionDrafts.AsNoTracking() on request.InspectionId equals draft.Id
-                   join vehicle in database.Vehicles.AsNoTracking() on draft.VehicleId equals vehicle.Id
-                   join branch in database.Branches.AsNoTracking() on request.BranchId equals branch.Id
-                   join approved in database.InspectionRepairApprovals.AsNoTracking() on request.Id equals approved.RequestId into approvals
-                   from approval in approvals.DefaultIfEmpty()
-                   join completed in database.InspectionRepairCompletions.AsNoTracking() on request.Id equals completed.RequestId into completions
-                   from completion in completions.DefaultIfEmpty()
-                   from covering in covered.Where(item => item.Request.Id == request.Id)
-                       .OrderByDescending(item => item.Approval.ApprovedAt).ThenByDescending(item => item.Approval.Id)
-                       .Select(item => item.Approval).Take(1).DefaultIfEmpty()
-                   where actor.Role != AccountRoles.WorkshopTechnician || draft.TechnicianId == actorId
-                   select new
-                   {
-                       Request = request,
-                       Draft = draft,
-                       Vehicle = vehicle,
-                       BranchName = branch.Name,
-                       ApprovalId = (Guid?)approval.Id,
-                       CoveringApprovalId = (Guid?)covering.Id,
-                       CompletionId = (Guid?)completion.Id,
-                       ApprovalState = covering == null ? InspectionRepairQueueStatus.PendingApproval : InspectionRepairQueueStatus.Approved
-                   };
-        var priced = rows.Select(row => new
-        {
-            row.Request,
-            row.Draft,
-            row.Vehicle,
-            row.BranchName,
-            row.ApprovalId,
-            row.CoveringApprovalId,
-            row.CompletionId,
-            State = row.Request.Budget == 0 ? InspectionRepairQueueStatus.ApprovalNotRequired : row.ApprovalState
-        });
-        var completedWork = priced.Select(row => new
-        {
-            row.Request,
-            row.Draft,
-            row.Vehicle,
-            row.BranchName,
-            row.ApprovalId,
-            row.CoveringApprovalId,
-            row.CompletionId,
-            State = row.CompletionId != null ? InspectionRepairQueueStatus.Completed : row.State
-        });
-        // Retained approval evidence cannot grant actionability to an old request or reopened revision.
-        var work = completedWork.Select(row => new
-        {
-            row.Request,
-            row.Vehicle,
-            row.BranchName,
-            row.ApprovalId,
-            row.CoveringApprovalId,
-            row.CompletionId,
-            row.Draft.TechnicianId,
-            State = !row.Draft.IsSigned || row.Draft.Revision != row.Request.Revision ||
-                row.Draft.AssignmentVersion != row.Request.AssignmentVersion || row.Draft.RepairVersion != row.Request.Version ||
-                row.Vehicle.Status == VehicleStatus.Rejected ? InspectionRepairQueueStatus.Superseded : row.State
-        });
+        var technicianId = actor.Role == AccountRoles.WorkshopTechnician ? (Guid?)actorId : null;
+        var work = InspectionRepairProjection.Read(database, requests, technicianId);
         if (status != InspectionRepairQueueStatus.All)
         {
             work = work.Where(row => row.State == status);
@@ -174,10 +116,7 @@ public sealed class InspectionQueueStore(DealershipDbContext database) : IInspec
         var total = await work.CountAsync(cancellationToken);
         var page = await work.OrderByDescending(row => row.Request.RequestedAt).ThenByDescending(row => row.Request.Id)
             .ReadPageAsync(filter.Page, filter.PageSize, total, cancellationToken);
-        var items = page.Select(row => new InspectionRepairQueueItem(row.Request.Id, row.Request.InspectionId,
-            row.Vehicle.Id, row.Request.BranchId, row.BranchName, row.Vehicle.RegistrationPlate, row.TechnicianId,
-            row.Request.AssignmentVersion, row.Request.Revision, row.Request.Version, row.Request.Budget,
-            row.Request.RequestedAt, row.ApprovalId, row.CoveringApprovalId, row.State, row.CompletionId)).ToArray();
+        var items = page.Select(InspectionRepairProjection.Item).ToArray();
 
         await transaction.CommitAsync(cancellationToken);
         return new(InspectionAssignmentStatus.Succeeded, new(Array.AsReadOnly(items), total, filter.Page, filter.PageSize));

@@ -17,6 +17,7 @@ public static class InspectionDraftEndpoints
         routes.MapPost("/vehicles/{id:guid}/assignment", AssignAsync);
         routes.MapGet("/technicians", TechniciansAsync);
         routes.MapGet("/drafts/{id:guid}", ReadAsync);
+        routes.MapGet("/drafts/{id:guid}/workspace", WorkspaceAsync);
         routes.MapPost("/drafts/{id:guid}/saves", SaveAsync);
         routes.MapPost("/drafts/{id:guid}/sign", SignAsync);
         routes.MapPost("/drafts/{id:guid}/reopen", ReopenAsync);
@@ -158,6 +159,22 @@ public static class InspectionDraftEndpoints
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
             return Results.Problem(statusCode: 503, title: "Assignment is unconfirmed; reconcile with the same operation and contents.");
+        }
+    }
+
+    private static async Task<IResult> WorkspaceAsync(Guid id, HttpContext context, IInspectionWorkspaceStore workspace,
+        CancellationToken cancellationToken)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(20));
+        try
+        {
+            var result = await workspace.ReadAsync(ActorId(context), id, deadline.Token);
+            return Map(result.Status, result.Workspace);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return Results.Problem(statusCode: 503, title: "Inspection workspace is temporarily unavailable.");
         }
     }
 
