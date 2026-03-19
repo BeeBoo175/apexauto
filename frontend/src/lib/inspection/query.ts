@@ -1,3 +1,4 @@
+import type { SearchParams } from "@/lib/query";
 import { isUuid } from "@/lib/auth/contracts";
 import { DEFAULT_PAGE_SIZE, isPageSize } from "@/lib/pagination";
 import { inspectionStatuses, repairStatuses, type QueueFilters, type QueueKind } from "./contracts";
@@ -6,7 +7,7 @@ import { workshopTasks, workshopSorts, type TechnicianTask } from "./workshop-co
 export type WorkshopSection = "inspection" | "repairs" | "history";
 export type RepairSelection = { requestId: string; revision: number };
 
-export function workshopSelection(params: Record<string, string | string[] | undefined>) {
+export function workshopSelection(params: SearchParams) {
   const revision =
     typeof params.revision === "string" && /^\d+$/.test(params.revision)
       ? Number(params.revision)
@@ -21,7 +22,7 @@ export function workshopSelection(params: Record<string, string | string[] | und
   return { id: isUuid(params.inspection) ? params.inspection : "", request, section };
 }
 
-export function legacyRepairsPath(params: Record<string, string | string[] | undefined>) {
+export function legacyRepairsPath(params: SearchParams) {
   const { filters, page } = queueParams(params, "repair-requests");
   const tasks: Record<string, string> = {
     PendingApproval: "Approval",
@@ -46,10 +47,7 @@ export function legacyRepairsPath(params: Record<string, string | string[] | und
   return `/dashboard/inspection?${query}`;
 }
 
-export function queueParams(
-  params: Record<string, string | string[] | undefined>,
-  kind: QueueKind,
-) {
+export function queueParams(params: SearchParams, kind: QueueKind) {
   const get = (key: string) => (typeof params[key] === "string" ? params[key] : "");
   const options = {
     vehicles: inspectionStatuses,
@@ -92,10 +90,7 @@ export function queuePath(kind: QueueKind) {
   return kind === "repair-requests" ? "/dashboard/inspection/repairs" : "/dashboard/inspection";
 }
 
-export function technicianQueueParams(
-  params: Record<string, string | string[] | undefined>,
-  task: TechnicianTask,
-) {
+export function technicianQueueParams(params: SearchParams, task: TechnicianTask) {
   const search = params[`${task}.search`];
   return typeof search === "string" ? search.trim() : "";
 }
@@ -112,9 +107,7 @@ export function technicianQueueQuery(
   return query.toString();
 }
 
-export function technicianQueueView(
-  params: Record<string, string | string[] | undefined>,
-): TechnicianTask {
+export function technicianQueueView(params: SearchParams): TechnicianTask {
   if (params.view === "claim") {
     return "Claimable";
   }

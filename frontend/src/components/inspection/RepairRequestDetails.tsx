@@ -21,8 +21,11 @@ export function RepairRequestDetails({
   showMetadata?: boolean;
 }) {
   const [selectedCode, setSelectedCode] = useState(request.items[0]?.pointCode ?? "");
-  const selected =
-    request.items.find((item) => item.pointCode === selectedCode) ?? request.items[0];
+  const selectedIndex = Math.max(
+    0,
+    request.items.findIndex((item) => item.pointCode === selectedCode),
+  );
+  const selected = request.items[selectedIndex];
   const finding = report.checklist.find((point) => point.code === selected?.pointCode);
   const multipleFindings = request.items.length > 1;
   return (
@@ -53,34 +56,24 @@ export function RepairRequestDetails({
       <div className={workshop.split} data-single-item={!multipleFindings}>
         {multipleFindings && (
           <nav className={workshop.index} aria-label="Requested work">
-            {request.items.map((item) => (
-              <Button
-                key={item.pointCode}
-                size="compact"
-                variant="ghost"
-                className={workshop.indexItem}
-                aria-pressed={selected?.pointCode === item.pointCode}
-                onClick={() => setSelectedCode(item.pointCode)}
-              >
-                <span className={workshop.pointCode}>{item.pointCode}</span>
-                <strong>
-                  {report.checklist.find((point) => point.code === item.pointCode)?.description}
-                </strong>
-                <InspectionPointStatus
-                  kind="Finding"
-                  severity={
-                    report.checklist.find((point) => point.code === item.pointCode)?.severity
-                  }
-                  compact
-                />
-                <span>
-                  {formatCurrency(
-                    report.checklist.find((point) => point.code === item.pointCode)
-                      ?.estimatedRepairCost ?? 0,
-                  )}
-                </span>
-              </Button>
-            ))}
+            {request.items.map((item) => {
+              const itemFinding = report.checklist.find((point) => point.code === item.pointCode);
+              return (
+                <Button
+                  key={item.pointCode}
+                  size="compact"
+                  variant="ghost"
+                  className={workshop.indexItem}
+                  aria-pressed={selected?.pointCode === item.pointCode}
+                  onClick={() => setSelectedCode(item.pointCode)}
+                >
+                  <span className={workshop.pointCode}>{item.pointCode}</span>
+                  <strong>{itemFinding?.description}</strong>
+                  <InspectionPointStatus kind="Finding" severity={itemFinding?.severity} compact />
+                  <span>{formatCurrency(itemFinding?.estimatedRepairCost ?? 0)}</span>
+                </Button>
+              );
+            })}
           </nav>
         )}
         {selected && (
@@ -113,15 +106,14 @@ export function RepairRequestDetails({
             {multipleFindings && (
               <div className={workshop.detailPagination}>
                 <span>
-                  {request.items.indexOf(selected) + 1} of {request.items.length} findings
+                  {selectedIndex + 1} of {request.items.length} findings
                 </span>
                 <Button
                   size="compact"
                   variant="secondary"
                   onClick={() =>
                     setSelectedCode(
-                      request.items[(request.items.indexOf(selected) + 1) % request.items.length]
-                        .pointCode,
+                      request.items[(selectedIndex + 1) % request.items.length].pointCode,
                     )
                   }
                 >

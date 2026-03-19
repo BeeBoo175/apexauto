@@ -91,18 +91,8 @@ public sealed class InspectionAssignmentStore(DealershipDbContext database) : II
     public async Task<InspectionDraftResult> ReadAsync(Guid actorId, Guid inspectionId, CancellationToken cancellationToken)
     {
         await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
-        var actor = await database.Users.FromSqlInterpolated(
-            $"SELECT * FROM \"AspNetUsers\" WHERE \"Id\" = {actorId} FOR SHARE")
-            .AsNoTracking().SingleOrDefaultAsync(cancellationToken);
-        if (actor is not { IsActive: true } ||
-            actor.Role is not (AccountRoles.WorkshopTechnician or AccountRoles.BranchManager or AccountRoles.GeneralManager))
-        {
-            return new(InspectionAssignmentStatus.Forbidden);
-        }
-
-        if (actor.Role != AccountRoles.GeneralManager && (actor.BranchId is null ||
-            !await database.Branches.FromSqlInterpolated($"SELECT * FROM \"Branches\" WHERE \"Id\" = {actor.BranchId} FOR SHARE")
-                .AnyAsync(item => item.IsActive, cancellationToken)))
+        var actor = await InspectionReadScope.LockActorAsync(database, actorId, cancellationToken);
+        if (actor is null)
         {
             return new(InspectionAssignmentStatus.Forbidden);
         }

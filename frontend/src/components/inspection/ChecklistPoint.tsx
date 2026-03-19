@@ -40,6 +40,12 @@ export function ChecklistPoint({
     onChange({ ...value, entries, examined: value.examined.filter((code) => code !== point.code) });
   }
   const disposition = entry?.kind ?? "Passed";
+  const notesLabel = entry?.kind === "NotFitted" ? "absence reason" : "finding notes";
+  let readonlySeverity = "";
+  if (!editable && !draft.isSigned && entry?.severity) {
+    readonlySeverity = `${label(entry.severity)} · MYR ${entry.estimate} · `;
+  }
+
   return (
     <div className={styles.point}>
       <div className={workshop.detailHeading}>
@@ -141,7 +147,7 @@ export function ChecklistPoint({
                 </div>
               )}
               <Textarea
-                label={`${point.code} ${entry.kind === "NotFitted" ? "absence reason" : "finding notes"}`}
+                label={`${point.code} ${notesLabel}`}
                 maxLength={1000}
                 rows={2}
                 value={entry.notes}
@@ -151,7 +157,7 @@ export function ChecklistPoint({
             </>
           ) : (
             <p>
-              {entry.severity ? `${label(entry.severity)} · MYR ${entry.estimate} · ` : ""}
+              {readonlySeverity}
               {entry.notes}
             </p>
           )}

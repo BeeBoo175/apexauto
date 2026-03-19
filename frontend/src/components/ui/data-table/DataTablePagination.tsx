@@ -18,12 +18,13 @@ export function DataTablePagination({
 }) {
   const pages = Math.max(1, Math.ceil(page.total / page.pageSize));
   const first = count > 0 ? (page.page - 1) * page.pageSize + 1 : 0;
+  const last = count > 0 ? first + count - 1 : 0;
+  const recordLabel = page.total === 0 ? "0 records" : `${first}–${last} of ${page.total}`;
+
   return (
     <nav className={styles.pagination} aria-label="Table pages">
       <span className={styles.meta} aria-live="polite">
-        {page.total === 0
-          ? "0 records"
-          : `${first}–${count > 0 ? first + count - 1 : 0} of ${page.total}`}
+        {recordLabel}
       </span>
       <div className={styles.paginationControls}>
         <Select

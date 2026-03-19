@@ -20,6 +20,7 @@ export function DataTableHeader<Row>({
   const sort = sorting?.value;
   const sortable = Boolean(column.sortable && sorting);
   const active = sort?.column === column.id;
+  const sortClassName = active ? styles.sortActive : styles.sortInactive;
   let direction: "ascending" | "descending" | "none" = "none";
   if (active) {
     direction = sort?.direction === "asc" ? "ascending" : "descending";
@@ -61,7 +62,7 @@ export function DataTableHeader<Row>({
             aria-label={`Sort by ${column.label}`}
           >
             <span className={styles.headerLabel}>{column.label}</span>
-            <span aria-hidden="true" className={active ? styles.sortActive : styles.sortInactive}>
+            <span aria-hidden="true" className={sortClassName}>
               <Icon name={sortIcons[direction]} />
             </span>
           </Button>

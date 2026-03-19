@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/Button";
-import { Input, Select } from "@/components/ui/Input";
+import { Input } from "@/components/ui/Input";
 import { FilterSection } from "@/components/ui/FilterSection";
+import { BranchFilter } from "@/components/staff/BranchFilter";
 import { FilterChoices } from "@/components/ui/FilterChoices";
 import { workshopTasks, workshopTaskLabel } from "@/lib/inspection/workshop-contracts";
 import type { QueueFilters as Filters } from "@/lib/inspection/contracts";
@@ -66,56 +67,15 @@ export function QueueFilters({
           onChange={(status) => onDraft({ ...draft, status })}
         />
         {group && (
-          <Select
-            label="Branch"
-            density="compact"
-            value={draft.branchId}
+          <BranchFilter
+            branches={branches}
+            branchId={draft.branchId}
             disabled={busy}
-            onChange={(e) => onDraft({ ...draft, branchId: e.target.value })}
-          >
-            <option value="">All branches</option>
-            {draft.branchId && !branches?.items.some((b) => b.id === draft.branchId) && (
-              <option value={draft.branchId}>Selected branch</option>
-            )}
-            {branches?.items.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-          </Select>
-        )}
-        {group && !branches && (
-          <Button
-            size="compact"
-            variant="secondary"
-            type="button"
-            disabled={busy}
-            onClick={() => loadBranches(1)}
-          >
-            Retry branches
-          </Button>
-        )}
-        {group && branches && branches.total > branches.pageSize && (
-          <div className={styles.actions}>
-            <Button
-              size="compact"
-              variant="secondary"
-              type="button"
-              disabled={busy || branches.page === 1}
-              onClick={() => loadBranches(branches.page - 1)}
-            >
-              Previous branches
-            </Button>
-            <Button
-              size="compact"
-              variant="secondary"
-              type="button"
-              disabled={busy || branches.page * branches.pageSize >= branches.total}
-              onClick={() => loadBranches(branches.page + 1)}
-            >
-              More branches
-            </Button>
-          </div>
+            labelHidden={false}
+            paginationClassName={styles.actions}
+            onChange={(branchId) => onDraft({ ...draft, branchId })}
+            onPage={loadBranches}
+          />
         )}
       </FilterSection>
       <p className={styles.help}>

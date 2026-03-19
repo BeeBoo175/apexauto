@@ -104,50 +104,50 @@ export function InspectionDetails({ editor }: { editor: ReturnType<typeof useIns
         {title}
       </button>
       <Dialog open={open} title={title} onClose={() => setOpen(false)}>
-      <dl className={workshop.facts}>
-        <div>
-          <dt>VIN</dt>
-          <dd className={workbench.reference}>{snapshot.draft.vehicle.vin}</dd>
-        </div>
-        <div>
-          <dt>Mileage</dt>
-          <dd>{snapshot.draft.vehicle.mileageKilometres.toLocaleString("en-MY")} km</dd>
-        </div>
-        <div>
-          <dt>Assigned technician</dt>
-          <dd>{snapshot.report?.technicianIdentity ?? snapshot.draft.technicianId}</dd>
-        </div>
-        <div>
-          <dt>Saved assessment</dt>
-          <dd>
-            {snapshot.draft.latestSave
-              ? assessmentLabel(snapshot.draft.latestSave.assessment)
-              : "No saved assessment"}
-          </dd>
-        </div>
-        <div>
-          <dt>Saved estimate</dt>
-          <dd>
-            {snapshot.draft.latestSave
-              ? formatCurrency(snapshot.draft.latestSave.assessment.estimatedRepairCost)
-              : "No saved assessment"}
-          </dd>
-        </div>
-        {request && (
-          <>
-            <div>
-              <dt>Requested</dt>
-              <dd>{formatMalaysianDateTime(request.requestedAt)}</dd>
-            </div>
-            <div>
-              <dt>Work version</dt>
-              <dd>
-                {request.version} · Signed revision {request.revision}
-              </dd>
-            </div>
-          </>
-        )}
-      </dl>
+        <dl className={workshop.facts}>
+          <div>
+            <dt>VIN</dt>
+            <dd className={workbench.reference}>{snapshot.draft.vehicle.vin}</dd>
+          </div>
+          <div>
+            <dt>Mileage</dt>
+            <dd>{snapshot.draft.vehicle.mileageKilometres.toLocaleString("en-MY")} km</dd>
+          </div>
+          <div>
+            <dt>Assigned technician</dt>
+            <dd>{snapshot.report?.technicianIdentity ?? snapshot.draft.technicianId}</dd>
+          </div>
+          <div>
+            <dt>Saved assessment</dt>
+            <dd>
+              {snapshot.draft.latestSave
+                ? assessmentLabel(snapshot.draft.latestSave.assessment)
+                : "No saved assessment"}
+            </dd>
+          </div>
+          <div>
+            <dt>Saved estimate</dt>
+            <dd>
+              {snapshot.draft.latestSave
+                ? formatCurrency(snapshot.draft.latestSave.assessment.estimatedRepairCost)
+                : "No saved assessment"}
+            </dd>
+          </div>
+          {request && (
+            <>
+              <div>
+                <dt>Requested</dt>
+                <dd>{formatMalaysianDateTime(request.requestedAt)}</dd>
+              </div>
+              <div>
+                <dt>Work version</dt>
+                <dd>
+                  {request.version} · Signed revision {request.revision}
+                </dd>
+              </div>
+            </>
+          )}
+        </dl>
       </Dialog>
     </div>
   );

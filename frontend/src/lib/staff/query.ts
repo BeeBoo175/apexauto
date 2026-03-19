@@ -1,3 +1,4 @@
+import type { SearchParams } from "@/lib/query";
 import { DEFAULT_PAGE_SIZE, isPageSize } from "@/lib/pagination";
 import { historyParams, historyQuery } from "@/lib/intake/list-query";
 import type { StaffFilters } from "./contracts";
@@ -35,7 +36,7 @@ export function staffViewQuery(filters: StaffFilters, page = 1) {
   return query.toString();
 }
 
-export function staffParams(params: Record<string, string | string[] | undefined>) {
+export function staffParams(params: SearchParams) {
   const { filters, page } = historyParams(params);
   return {
     page,

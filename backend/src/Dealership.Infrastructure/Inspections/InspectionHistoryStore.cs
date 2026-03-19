@@ -2,7 +2,6 @@ using System.Data;
 using Dealership.Application.Accounts;
 using Dealership.Application.Inspections;
 using Dealership.Domain.Inspections;
-using Dealership.Infrastructure.Identity;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -87,18 +86,8 @@ public sealed class InspectionHistoryStore(DealershipDbContext database) : IInsp
     private async Task<(InspectionAssignmentStatus Status, InspectionDraft? Draft)> LockScopeAsync(Guid actorId,
         Guid inspectionId, CancellationToken cancellationToken)
     {
-        var actor = await database.Users.FromSqlInterpolated(
-            $"SELECT * FROM \"AspNetUsers\" WHERE \"Id\" = {actorId} FOR SHARE")
-            .AsNoTracking().SingleOrDefaultAsync(cancellationToken);
-        if (actor is not { IsActive: true } ||
-            actor.Role is not (AccountRoles.WorkshopTechnician or AccountRoles.BranchManager or AccountRoles.GeneralManager))
-        {
-            return (InspectionAssignmentStatus.Forbidden, null);
-        }
-
-        if (actor.Role != AccountRoles.GeneralManager && (actor.BranchId is null ||
-            !await database.Branches.FromSqlInterpolated($"SELECT * FROM \"Branches\" WHERE \"Id\" = {actor.BranchId} FOR SHARE")
-                .AnyAsync(branch => branch.IsActive, cancellationToken)))
+        var actor = await InspectionReadScope.LockActorAsync(database, actorId, cancellationToken);
+        if (actor is null)
         {
             return (InspectionAssignmentStatus.Forbidden, null);
         }

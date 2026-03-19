@@ -1,3 +1,4 @@
+import type { SearchParams } from "@/lib/query";
 import { isRecord } from "@/lib/auth/contracts";
 import { calendarDate, calendarRange, isCalendarDate } from "@/lib/calendar";
 import { parseWorklistItem } from "./parse";
@@ -17,9 +18,7 @@ export interface CalendarSnapshot {
   to: string;
 }
 
-export function calendarParams(
-  params: Record<string, string | string[] | undefined>,
-): CalendarFilters {
+export function calendarParams(params: SearchParams): CalendarFilters {
   const range =
     isCalendarDate(params.from) &&
     isCalendarDate(params.to) &&

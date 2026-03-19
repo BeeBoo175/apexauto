@@ -1,6 +1,5 @@
 using Dealership.Application.Accounts;
 using Dealership.Application.Inspections;
-using Dealership.Infrastructure.Identity;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,7 +16,7 @@ public sealed class InspectionReportStore(DealershipDbContext database) : IInspe
         }
 
         await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
-        var actor = await LockActorAsync(actorId, cancellationToken);
+        var actor = await InspectionReadScope.LockActorAsync(database, actorId, cancellationToken);
         if (actor is null)
         {
             return new(InspectionAssignmentStatus.Forbidden);
@@ -39,25 +38,5 @@ public sealed class InspectionReportStore(DealershipDbContext database) : IInspe
             .SingleOrDefaultAsync(cancellationToken);
         return signed is null ? new(InspectionAssignmentStatus.NotFound)
             : new(InspectionAssignmentStatus.Succeeded, signed.Report());
-    }
-
-    private async Task<AccountUser?> LockActorAsync(Guid actorId, CancellationToken cancellationToken)
-    {
-        var actor = await database.Users.FromSqlInterpolated(
-            $"SELECT * FROM \"AspNetUsers\" WHERE \"Id\" = {actorId} FOR SHARE")
-            .AsNoTracking().SingleOrDefaultAsync(cancellationToken);
-        if (actor is not { IsActive: true } ||
-            actor.Role is not (AccountRoles.WorkshopTechnician or AccountRoles.BranchManager or AccountRoles.GeneralManager))
-        {
-            return null;
-        }
-
-        if (actor.Role != AccountRoles.GeneralManager && (actor.BranchId is null ||
-            !await database.Branches.FromSqlInterpolated($"SELECT * FROM \"Branches\" WHERE \"Id\" = {actor.BranchId} FOR SHARE")
-                .AnyAsync(branch => branch.IsActive, cancellationToken)))
-        {
-            return null;
-        }
-        return actor;
     }
 }

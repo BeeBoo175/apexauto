@@ -1,3 +1,4 @@
+import type { SearchParams } from "@/lib/query";
 import { redirect } from "next/navigation";
 import { AccountWorkspace } from "@/components/account/AccountWorkspace";
 import { readOwnAccount, readCurrentActor } from "@/lib/auth/server";
@@ -15,7 +16,7 @@ export const metadata = {
 export default async function AccountPage({
   searchParams,
 }: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
+  searchParams: Promise<SearchParams>;
 }) {
   const response = await readOwnAccount();
 

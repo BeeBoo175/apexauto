@@ -19,6 +19,11 @@ export function CalendarEventButton<Data>({
   compact?: boolean;
 }) {
   const time = calendarTime(event.startsAt, timeZone, locale);
+  let displayTime = time;
+  if (compact && !renderEvent) {
+    displayTime = calendarTime(event.startsAt, timeZone, locale, false);
+  }
+
   return (
     <button
       type="button"
@@ -38,9 +43,7 @@ export function CalendarEventButton<Data>({
         renderEvent(event)
       ) : (
         <>
-          <time dateTime={event.startsAt}>
-            {compact ? calendarTime(event.startsAt, timeZone, locale, false) : time}
-          </time>
+          <time dateTime={event.startsAt}>{displayTime}</time>
           <strong>{event.title}</strong>
           {event.label && <span>{event.label}</span>}
         </>

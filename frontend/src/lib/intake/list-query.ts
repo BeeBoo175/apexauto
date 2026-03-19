@@ -1,3 +1,4 @@
+import type { SearchParams } from "@/lib/query";
 import { paginationQuery } from "@/lib/pagination";
 
 export interface HistoryFilters {
@@ -30,7 +31,7 @@ export function dateRangeError({ from, to }: HistoryFilters) {
   return "";
 }
 
-export function historyParams(params: Record<string, string | string[] | undefined>) {
+export function historyParams(params: SearchParams) {
   const from = typeof params.from === "string" ? params.from : "";
   const to = typeof params.to === "string" ? params.to : "";
   const page = typeof params.page === "string" ? Number(params.page) : 1;
