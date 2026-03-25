@@ -19,6 +19,8 @@ export function RepairPanel({
   onDraft,
   active = true,
   actionsContainer,
+  editing,
+  onEditingChange,
 }: {
   actor: CurrentActor;
   snapshot: EditorSnapshot;
@@ -28,8 +30,9 @@ export function RepairPanel({
   onDraft: (name: string, dirty: boolean) => void;
   active?: boolean;
   actionsContainer?: HTMLElement | null;
+  editing: boolean;
+  onEditingChange: (editing: boolean) => void;
 }) {
-  const [editing, setEditing] = useState(false);
   const [completionDirty, setCompletionDirty] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
   const { draft, report, currentRequest: latest, repairState } = snapshot;
@@ -45,7 +48,7 @@ export function RepairPanel({
     report.checklist.some((point) => point.kind === "Finding");
 
   function changeMode(next: boolean) {
-    setEditing(next);
+    onEditingChange(next);
     heading.current?.focus();
   }
 

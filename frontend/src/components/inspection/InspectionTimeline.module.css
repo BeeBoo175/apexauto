@@ -67,6 +67,19 @@
   font-size: 13px;
 }
 
+.timeline p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.eventActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
 .timeline summary {
   width: fit-content;
   padding-block: 8px;

@@ -233,6 +233,7 @@ export function useInspectionEditor(
     value,
     change,
     dirty: dirty || formsDirty,
+    checklistDirty: dirty,
     reset,
     refreshing,
     refresh,

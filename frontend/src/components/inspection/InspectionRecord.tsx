@@ -10,7 +10,7 @@ import { formatMalaysianDateTime } from "@/lib/date-format";
 import { formatCurrency } from "@/lib/currency-format";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 import workshop from "./Workshop.module.css";
-import { workshopSnapshotStatus, workshopStatusLabel } from "@/lib/inspection/workshop-contracts";
+import { workshopSnapshotStatus } from "@/lib/inspection/workshop-contracts";
 
 export function InspectionRecord({
   id,
@@ -25,8 +25,10 @@ export function InspectionRecord({
   }
   const status = workshopSnapshotStatus(snapshot);
   const request = snapshot.repairState;
-  const summaryLabel = request ? "Current request budget" : "Current work";
-  const summaryValue = request ? formatCurrency(request.budget) : workshopStatusLabel(status);
+  const assessment = snapshot.report?.assessment ?? snapshot.draft.latestSave?.assessment;
+  const summaryLabel = request ? "Requested repair budget" : "Saved repair estimate";
+  const estimate = request?.budget ?? assessment?.estimatedRepairCost;
+  const summaryValue = estimate === undefined ? "Not assessed" : formatCurrency(estimate);
   const findingCount = Object.values(editor.value.entries).filter(
     (entry) => entry.kind === "Finding",
   ).length;
@@ -38,7 +40,7 @@ export function InspectionRecord({
           <strong className={workshop.summaryValue}>{summaryValue}</strong>
         </div>
         <div className={workshop.summaryContext}>
-          {request && <WorkshopStatus status={status} />}
+          <WorkshopStatus status={status} />
           <span>
             Revision {snapshot.draft.revision} · {snapshot.draft.isSigned ? "Signed" : "Draft"}
           </span>

@@ -4,6 +4,7 @@ import type { useInspectionHistory } from "@/hooks/use-inspection-history";
 import type { RepairHistory } from "@/lib/inspection/report-contracts";
 import { InspectionHistoryProgress, InspectionRepairLink } from "./InspectionHistory";
 import { formatCurrency } from "@/lib/currency-format";
+import { formatMalaysianDateTime } from "@/lib/date-format";
 import type { RepairSelection } from "@/lib/inspection/query";
 import styles from "./InspectionTimeline.module.css";
 
@@ -22,17 +23,18 @@ export function InspectionPreviousWork({
   return (
     <section
       className={styles.paging}
-      aria-label={`Previous repair work · revision ${revision}`}
+      aria-label={`Repair requests for inspection ${revision}`}
       aria-busy={busy}
     >
-      <h3>Previous repair work · revision {revision}</h3>
-      {history?.totalCount === 0 && <p>No repair requests for this revision.</p>}
+      <h3>Repair requests</h3>
+      {history?.totalCount === 0 && <p>No repair requests were raised for this inspection.</p>}
       <ul className={styles.timeline}>
         {history?.items.map(({ request, approval, completion }) => (
           <li key={request.operationId}>
-            <strong>
-              Work version {request.version} · {formatCurrency(request.budget)}
-            </strong>
+            <strong>Repair request · {formatCurrency(request.budget)}</strong>
+            <time dateTime={request.requestedAt}>
+              {formatMalaysianDateTime(request.requestedAt)}
+            </time>
             <span>
               {completion ? "Completed" : "Retained request"}
               {approval ? " · Approved" : ""}

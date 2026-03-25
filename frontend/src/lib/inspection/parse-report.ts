@@ -194,6 +194,7 @@ export function parsePhoto(v: unknown): PhotoReceipt | null {
 function parseRevision(v: unknown): RevisionSummary | null {
   if (
     !isRecord(v) ||
+    typeof v.hasRepairRequests !== "boolean" ||
     !ids(v, ["operationId", "technicianId"]) ||
     !versions(v, ["revision", "saveVersion", "assignmentVersion"]) ||
     !text(v.technicianIdentity) ||

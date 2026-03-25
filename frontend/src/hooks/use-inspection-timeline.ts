@@ -41,7 +41,7 @@ export function useInspectionTimeline(snapshot: EditorSnapshot | null, active: b
     parseRepairs,
     "Previous repair work could not be loaded. Revealed work and your current draft remain shown.",
     { inspectionId: id, revision: previousRevision },
-    { enabled: active && previousRevision > 0, progressive: true },
+    { enabled: active && previousRevision > 0 && previousRevision !== revision, progressive: true },
   );
 
   useEffect(() => {
@@ -56,7 +56,7 @@ export function useInspectionTimeline(snapshot: EditorSnapshot | null, active: b
     if (!snapshot.historyRequested && before.draft.revision === revision && repairs.attempted) {
       void repairs.refresh();
     }
-    if (previousRevision > 0 && previous.attempted) {
+    if (previousRevision > 0 && previousRevision !== revision && previous.attempted) {
       void previous.refresh();
     }
   }, [snapshot, id, revision, revisions, repairs, previous, previousRevision]);

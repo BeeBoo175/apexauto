@@ -4,6 +4,7 @@ import type { RepairSelection } from "./query";
 
 export type InspectionEvent = {
   id: string;
+  kind: "inspection" | "reopening" | "request" | "approval" | "completion";
   at: string;
   title: string;
   actor: string;
@@ -20,10 +21,11 @@ export function inspectionTimeline(
   for (const revision of revisions?.items ?? []) {
     events.push({
       id: revision.operationId,
+      kind: "inspection",
       at: revision.signedAt,
-      title: `Inspection revision ${revision.revision} signed`,
+      title: "Inspection signed off",
       actor: revision.technicianIdentity,
-      detail: `${revision.assessment.isRejected ? "Rejected" : `Grade ${revision.assessment.grade}`} · Original estimate ${formatCurrency(revision.assessment.estimatedRepairCost)}`,
+      detail: `${revision.assessment.isRejected ? "Rejected" : `Grade ${revision.assessment.grade}`} · Repair estimate ${formatCurrency(revision.assessment.estimatedRepairCost)}`,
       revision: revision.revision,
       request: null,
     });
@@ -31,8 +33,9 @@ export function inspectionTimeline(
     if (reopening) {
       events.push({
         id: reopening.operationId,
+        kind: "reopening",
         at: reopening.recordedAt,
-        title: "Inspection reopened",
+        title: "Reinspection requested",
         actor: reopening.actorId,
         detail: reopening.reason,
         revision: revision.revision,
@@ -44,20 +47,22 @@ export function inspectionTimeline(
     const selection = { requestId: request.operationId, revision: request.revision };
     events.push({
       id: request.operationId,
+      kind: "request",
       at: request.requestedAt,
-      title: "Repair budget requested",
+      title: "Repair request submitted",
       actor: request.actorId,
-      detail: `Work version ${request.version} · ${formatCurrency(request.budget)}`,
+      detail: `Requested budget ${formatCurrency(request.budget)}`,
       revision: request.revision,
       request: selection,
     });
     if (approval) {
       events.push({
         id: approval.operationId,
+        kind: "approval",
         at: approval.approvedAt,
         title: "Repair budget approved",
         actor: approval.actorId,
-        detail: `Exact approval for work version ${request.version} · ${formatCurrency(request.budget)}`,
+        detail: `Approved budget ${formatCurrency(request.budget)}`,
         revision: request.revision,
         request: selection,
       });
@@ -65,6 +70,7 @@ export function inspectionTimeline(
     if (completion) {
       events.push({
         id: completion.operationId,
+        kind: "completion",
         at: completion.completedAt,
         title: "Repair work completed",
         actor: completion.actorId,

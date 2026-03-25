@@ -13,7 +13,7 @@ import type { Technician } from "@/lib/inspection/contracts";
 import type { EditorSnapshot } from "@/lib/inspection/editor-snapshot";
 import type { SelectedRepairReview } from "@/lib/inspection/repair-review";
 import { InspectionRecord } from "./InspectionRecord";
-import { InspectionActions } from "./InspectionActions";
+import { WorkshopFooter } from "./WorkshopFooter";
 import { InspectionChecklist } from "./InspectionChecklist";
 import { ManagerActions } from "./ManagerActions";
 import { RepairPanel } from "./RepairPanel";
@@ -65,6 +65,9 @@ export function InspectionEditor({
   const [confirm, setConfirm] = useState<"sign" | "discard" | null>(null);
   const [footerActions, setFooterActions] = useState<HTMLDivElement | null>(null);
   const { snapshot, base } = editor;
+  const repairKey = `${editor.draftEpoch}:${snapshot?.draft.revision}:${snapshot?.draft.repairVersion}`;
+  const [repairMode, setRepairMode] = useState({ key: repairKey, editing: false });
+  const repairEditing = repairMode.key === repairKey && repairMode.editing;
   const timeline = useInspectionTimeline(snapshot, section === "history");
   const previousSigned = useRef(snapshot?.draft.isSigned);
   useEffect(() => {
@@ -193,6 +196,8 @@ export function InspectionEditor({
                 onConfirmed={editor.actionConfirmed}
                 onDraft={editor.markForm}
                 actionsContainer={footerActions}
+                editing={repairEditing}
+                onEditingChange={(editing) => setRepairMode({ key: repairKey, editing })}
               />
               {section === "history" && (
                 <InspectionTimeline
@@ -203,20 +208,14 @@ export function InspectionEditor({
                 />
               )}
             </div>
-            <footer className={workshop.footer}>
-              {section === "inspection" && (
-                <InspectionActions editor={editor} onConfirm={setConfirm} />
-              )}
-              {section !== "inspection" && (
-                <div className={workshop.footerContext}>
-                  <strong>{section === "history" ? "Record history" : "Repair work"}</strong>
-                  {historical && section === "repairs" && (
-                    <span>Historical request · read only</span>
-                  )}
-                </div>
-              )}
-              <div ref={setFooterActions} className={workshop.footerActions} />
-            </footer>
+            <WorkshopFooter
+              editor={editor}
+              section={section}
+              historical={Boolean(historical)}
+              repairEditing={repairEditing}
+              onConfirm={setConfirm}
+              onActionsContainer={setFooterActions}
+            />
           </>
         )}
       </div>

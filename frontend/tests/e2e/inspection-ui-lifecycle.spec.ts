@@ -144,6 +144,18 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   await page.getByRole("button", { name: "Refresh workshop", exact: true }).click();
   await expect(page.getByLabel("EP-004 estimate (MYR)", { exact: true })).toHaveValue("250.10");
   await page.unroute(`**/api/staff/inspection/drafts/${id}/workspace`);
+  for (const section of ["Repairs", "History"]) {
+    await page
+      .getByRole("navigation", { name: "Workshop sections" })
+      .getByRole("button", { name: section, exact: true })
+      .click();
+    await expect(
+      page.locator("footer").getByText("Unsaved inspection changes", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.locator("footer").getByRole("button", { name: "Save draft", exact: true }),
+    ).toBeEnabled();
+  }
   const bodies = await loseFirstReceipt(page, `**/api/staff/inspection/drafts/${id}/saves`);
   await page.getByRole("button", { name: "Save draft", exact: true }).click();
   await expect(
@@ -158,6 +170,10 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   await page.getByRole("button", { name: "Reconcile draft save", exact: true }).click();
   expect(bodies).toHaveLength(2);
   expect(bodies[1]).toBe(bodies[0]);
+  await page
+    .getByRole("navigation", { name: "Workshop sections" })
+    .getByRole("button", { name: "Inspection", exact: true })
+    .click();
   await expect(page.getByRole("button", { name: "Sign inspection", exact: true })).toBeEnabled();
   expect(
     counts()[
@@ -178,11 +194,29 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     .getByRole("button", { name: "Repairs", exact: true })
     .click();
   await page.getByRole("button", { name: "Request repair work", exact: true }).click();
+  await expect(
+    page.locator("footer").getByText("Edit repair work and budget", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.locator("footer").getByText(/Submit the required work and budget for approval/),
+  ).toBeVisible();
   await page.getByRole("checkbox", { name: "Include in request", exact: true }).check();
   await page
     .getByLabel("EP-004 repair work", { exact: true })
     .fill("  Repair bumper scuff and inspect finish.  ");
   await page.getByLabel("Requested budget (MYR)", { exact: true }).fill("250.10");
+  await page
+    .getByRole("navigation", { name: "Workshop sections" })
+    .getByRole("button", { name: "Inspection", exact: true })
+    .click();
+  await expect(page.getByRole("button", { name: "Save draft", exact: true })).toHaveCount(0);
+  await page
+    .getByRole("navigation", { name: "Workshop sections" })
+    .getByRole("button", { name: "Repairs", exact: true })
+    .click();
+  await expect(
+    page.locator("footer").getByText("Edit repair work and budget", { exact: true }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Refresh workshop", exact: true }).click();
   await expect(page.getByRole("button", { name: "Refresh workshop", exact: true })).toBeEnabled();
   await expect(page.getByLabel("EP-004 repair work", { exact: true })).toHaveValue(

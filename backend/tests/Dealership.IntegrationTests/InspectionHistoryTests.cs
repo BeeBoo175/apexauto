@@ -100,6 +100,8 @@ public sealed class InspectionHistoryTests(IntakePhotoFixture fixture) : IClassF
         Assert.Equal(originals.AsEnumerable().Reverse().Select(item => item.OperationId), revisionRows.Select(item => item.OperationId));
         Assert.Equal(requests.AsEnumerable().Reverse().Select(item => item.OperationId), repairRows.Select(item => item.Request.OperationId));
         Assert.Equal(21, revisionRows.Select(item => item.OperationId).Distinct().Count());
+        Assert.True(revisionRows[0].HasRepairRequests);
+        Assert.All(revisionRows.Skip(1), row => Assert.False(row.HasRepairRequests));
         Assert.All(revisionRows, row =>
         {
             var original = originals.Single(item => item.Revision == row.Revision);
@@ -180,6 +182,9 @@ public sealed class InspectionHistoryTests(IntakePhotoFixture fixture) : IClassF
         Assert.Equal(21, revised.Draft.RepairVersion);
         Assert.Null(revised.CurrentRequest);
         Assert.Null(revised.RepairState);
+        var afterReinspection = (await histories.RevisionsAsync(technician, inspection, new(), CancellationToken.None)).History!;
+        Assert.False(afterReinspection.Items[0].HasRepairRequests);
+        Assert.True(afterReinspection.Items[1].HasRepairRequests);
         Assert.Equal(21, (await histories.RepairsAsync(manager, inspection, 21, new(), CancellationToken.None)).History!.TotalCount);
         await database.Users.Where(user => user.Id == technician).ExecuteUpdateAsync(update => update.SetProperty(user => user.IsActive, false));
         Assert.Equal(InspectionAssignmentStatus.Forbidden, (await histories.RevisionsAsync(technician, inspection, new(), CancellationToken.None)).Status);

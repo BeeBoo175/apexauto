@@ -127,6 +127,10 @@
   gap: 8px;
 }
 
+.footerActions:empty {
+  display: none;
+}
+
 .footerContext {
   display: grid;
   gap: 4px;
@@ -136,15 +140,6 @@
 .footerContext span {
   color: var(--color-muted);
   font-size: 12px;
-}
-
-.inspectionActions {
-  flex: 1 1 auto;
-}
-
-.inspectionActions > div {
-  padding: 0;
-  border: 0;
 }
 
 .summaryLinks {
@@ -206,6 +201,17 @@
 
 .body[data-section="repairs"] {
   padding-top: 20px;
+}
+
+.body[data-section="repairs"] .split {
+  height: auto;
+  min-height: 0;
+}
+
+.body[data-section="repairs"] .index,
+.body[data-section="repairs"] .detail {
+  max-height: none;
+  overflow-y: visible;
 }
 
 .facts dt {

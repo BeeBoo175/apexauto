@@ -11,6 +11,38 @@ import { queueParams, queueQuery } from "@/lib/inspection/query";
 import { appliedWorklistFilters } from "@/lib/staff/filter-summary";
 import { checklistDraft, saveContents } from "@/lib/inspection/draft";
 import type { Draft } from "@/lib/inspection/contracts";
+import { parseRevisions } from "@/lib/inspection/parse-report";
+
+test("inspection history requires explicit repair availability before offering a drill-down", () => {
+  const item = {
+    operationId: "ce97fac6-46af-4b15-ae89-a8b21e9eca34",
+    technicianId: "b2f1f72d-bc46-4b94-a742-69c4063d215e",
+    revision: 1,
+    saveVersion: 1,
+    assignmentVersion: 1,
+    technicianIdentity: "Farid Hakim",
+    catalogVersion: "v1",
+    signedAt: "2026-10-24T08:00:00Z",
+    assessment: { estimatedRepairCost: 250, grade: "B", isRejected: false },
+    reopening: null,
+  };
+  const history = {
+    inspectionId: "d0d2a660-9284-44b0-914f-eab11a0687dd",
+    currentRevision: 1,
+    isSigned: true,
+    totalCount: 1,
+    page: 1,
+    pageSize: 25,
+  };
+  for (const hasRepairRequests of [false, true]) {
+    expect(
+      parseRevisions({ ...history, items: [{ ...item, hasRepairRequests }] })?.items[0]
+        .hasRepairRequests,
+    ).toBe(hasRepairRequests);
+  }
+  expect(parseRevisions({ ...history, items: [item] })).toBeNull();
+  expect(parseRevisions({ ...history, items: [{ ...item, hasRepairRequests: "yes" }] })).toBeNull();
+});
 
 test("inspection adapters normalize numeric API enums and reject unknown authority values", () => {
   expect(parseAssessment({ estimatedRepairCost: 0, grade: 0, isRejected: false })?.grade).toBe("A");

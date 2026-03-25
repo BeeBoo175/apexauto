@@ -88,6 +88,7 @@ export type Reopening = {
   recordedAt: string;
 };
 export type RevisionSummary = {
+  hasRepairRequests: boolean;
   operationId: string;
   revision: number;
   saveVersion: number;
