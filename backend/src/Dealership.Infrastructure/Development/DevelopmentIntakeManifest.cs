@@ -14,8 +14,10 @@ public static class DevelopmentIntakeManifest
     public const int AppointmentsPerBranch = 41;
     public const int RepairRequestsPerBranch = 51;
     public const int InspectionExamplesPerBranch = 14;
+    public const int CatalogueExamplesPerBranch = 13;
     public const int BaselineTotalPerBranch = AppointmentsPerBranch + RepairRequestsPerBranch + 4;
-    public const int CheckedInPerBranch = RepairRequestsPerBranch + 2 + InspectionExamplesPerBranch;
+    public const int InspectionCheckedInPerBranch = RepairRequestsPerBranch + 2 + InspectionExamplesPerBranch;
+    public const int CheckedInPerBranch = InspectionCheckedInPerBranch + CatalogueExamplesPerBranch;
     public const int TotalPerBranch = AppointmentsPerBranch + CheckedInPerBranch + 2;
 
     public static IReadOnlyList<DevelopmentIntakeFixture> Appointments { get; } =
@@ -23,7 +25,12 @@ public static class DevelopmentIntakeManifest
             .SelectMany(CreateBranch).ToArray());
 
     public static IReadOnlyList<DevelopmentIntakeFixture> InspectionExamples { get; } = Array.AsReadOnly(
-        Appointments.GroupBy(item => item.BranchId).SelectMany(branch => branch.Skip(BaselineTotalPerBranch)).ToArray());
+        Appointments.GroupBy(item => item.BranchId).SelectMany(branch => branch.Skip(BaselineTotalPerBranch)
+            .Take(InspectionExamplesPerBranch)).ToArray());
+
+    public static IReadOnlyList<DevelopmentIntakeFixture> CatalogueExamples { get; } = Array.AsReadOnly(
+        Appointments.GroupBy(item => item.BranchId).SelectMany(branch => branch
+            .Skip(BaselineTotalPerBranch + InspectionExamplesPerBranch)).ToArray());
 
     public static Guid PhotoId(Guid appointmentId, PhotoAngle angle)
     {
@@ -39,7 +46,10 @@ public static class DevelopmentIntakeManifest
             var customerIndex = (index + branchIndex) % 3 + 1;
             var registrationKey = DevelopmentFixtureManifest.Customers[customerIndex].Registration.RegistrationKey;
             var plate = $"{prefixes[branchIndex]} {6200 + index}";
-            var vehicle = new ValuationRequest("Perodua", "Myvi", "1.5 AV", 2019, 45000 + index * 1200);
+            var catalogueIndex = index - BaselineTotalPerBranch - InspectionExamplesPerBranch;
+            var vehicle = catalogueIndex >= 0
+                ? CatalogueVehicle(catalogueIndex)
+                : new ValuationRequest("Perodua", "Myvi", "1.5 AV", 2019, 45000 + index * 1200);
             var status = index switch
             {
                 AppointmentsPerBranch => StaffWorklistStatus.Cancelled,
@@ -48,14 +58,27 @@ public static class DevelopmentIntakeManifest
                 < AppointmentsPerBranch => StaffWorklistStatus.Booked,
                 _ => StaffWorklistStatus.CheckedIn
             };
+            var mileage = catalogueIndex >= 0 ? vehicle.MileageKilometres!.Value : 96000;
             var evidence = status == StaffWorklistStatus.CheckedIn
-                ? new CheckInEvidence($"PM2M800{branchIndex + 1}0KC00{6200 + index}", 96000, true, true, true, true,
+                ? new CheckInEvidence($"PM2M800{branchIndex + 1}0KC00{6200 + index}", mileage, true, true, true, true,
                     "Customer attended with vehicle and ownership documents.")
                 : null;
             return new DevelopmentIntakeFixture(Identity($"appointment/{branch.Id:N}/{index}"), branch.Id,
                 registrationKey, plate, vehicle, status, evidence);
         });
     }
+
+    private static ValuationRequest CatalogueVehicle(int index) => index switch
+    {
+        0 or 1 => new("Perodua", "Ativa", "AV", 2022, 42000),
+        2 or 3 => new("Proton", "Saga", "Standard", 2021, 58000),
+        4 or 5 => new("Honda", "City", "V", 2022, 46000),
+        6 or 7 => new("Toyota", "Vios", "1.5 G", 2021, 62000),
+        8 or 9 => new("Mazda", "Mazda 3", "2.0 High", 2022, 38000),
+        10 or 11 => new("BYD", "Dolphin", "Dynamic Standard", 2024, 22000),
+        12 => new("Perodua", "Alza", "AV", 2023, 35000),
+        _ => throw new InvalidOperationException("The configured catalogue example has no vehicle specification.")
+    };
 
     private static Guid Identity(string name)
     {

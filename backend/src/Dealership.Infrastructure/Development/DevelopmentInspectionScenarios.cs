@@ -79,7 +79,9 @@ public static class DevelopmentInspectionScenarios
 {
     public static IReadOnlyList<DevelopmentInspectionScenario> All { get; } = Array.AsReadOnly(
         DevelopmentIntakeManifest.InspectionExamples.GroupBy(item => item.BranchId)
-            .SelectMany(branch => branch.Select(Create)).ToArray());
+            .SelectMany(branch => branch.Select(Create))
+            .Concat(DevelopmentIntakeManifest.CatalogueExamples.Select(intake =>
+                Create(intake, 1) with { Name = "Catalogue examination" })).ToArray());
 
     public static Guid OperationId(Guid inspectionId, string purpose)
     {

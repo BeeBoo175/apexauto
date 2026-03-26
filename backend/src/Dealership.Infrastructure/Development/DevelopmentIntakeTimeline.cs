@@ -22,17 +22,21 @@ public static class DevelopmentIntakeTimeline
 
         var historical = HistoricalSlots(schedule, anchor);
         var examples = DevelopmentIntakeManifest.InspectionExamples.Select(item => item.Id).ToHashSet();
+        var catalogue = DevelopmentIntakeManifest.CatalogueExamples.Select(item => item.Id).ToHashSet();
         return [.. DevelopmentIntakeManifest.Appointments.GroupBy(item => item.BranchId).SelectMany(branch =>
         {
             var next = 0;
             var checkedIn = DevelopmentIntakeManifest.InspectionExamplesPerBranch + 1;
             var example = 1;
+            var catalogueIndex = DevelopmentIntakeManifest.InspectionCheckedInPerBranch + 2;
+            var noShow = historical[DevelopmentIntakeManifest.InspectionCheckedInPerBranch + 1];
             return branch.Select(fixture => fixture.Status switch
             {
                 StaffWorklistStatus.Cancelled => new DevelopmentIntakeMoment(fixture, historical[0].Slot,
                     historical[0].BookedAt, historical[0].Slot.StartsAt.AddMinutes(-1)),
-                StaffWorklistStatus.NoShow => new DevelopmentIntakeMoment(fixture, historical[^1].Slot,
-                    historical[^1].BookedAt, AppointmentDay.EndsAt(historical[^1].Slot.StartsAt)),
+                StaffWorklistStatus.NoShow => new DevelopmentIntakeMoment(fixture, noShow.Slot,
+                    noShow.BookedAt, AppointmentDay.EndsAt(noShow.Slot.StartsAt)),
+                StaffWorklistStatus.CheckedIn when catalogue.Contains(fixture.Id) => CheckedIn(fixture, historical[catalogueIndex++]),
                 StaffWorklistStatus.CheckedIn => CheckedIn(fixture, historical[examples.Contains(fixture.Id) ? example++ : checkedIn++]),
                 _ => new DevelopmentIntakeMoment(fixture, future[next++], anchor, null)
             });

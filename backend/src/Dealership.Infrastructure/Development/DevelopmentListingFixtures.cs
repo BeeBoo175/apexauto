@@ -49,7 +49,8 @@ public sealed class DevelopmentListingFixtures(DealershipDbContext database, Lis
         var appointment = await database.IntakeAppointments.AsNoTracking()
             .SingleAsync(item => item.Id == scenario.Id, cancellationToken);
         var request = new ListingDraftRequest(scenario.OperationId("listing-draft"), 0,
-            appointment.Valuation.Maximum, 90m, VehicleTransmission.Automatic, VehicleFuel.Petrol,
+            appointment.Valuation.Maximum, 90m, VehicleTransmission.Automatic,
+            vehicle.Make == "BYD" ? VehicleFuel.Electric : VehicleFuel.Petrol,
             $"{vehicle.ManufactureYear} {vehicle.Make} {vehicle.Model} {vehicle.Trim}. " +
             "View the signed inspection checklist for the recorded vehicle condition.")
         {

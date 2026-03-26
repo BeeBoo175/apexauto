@@ -18,13 +18,13 @@ internal static class DevelopmentInspectionFixtureAssertions
         var allDrafts = await database.InspectionDrafts.AsNoTracking().ToArrayAsync();
         var baselineIds = DevelopmentInspectionManifest.Baselines.Select(item => item.Id).ToHashSet();
         var drafts = allDrafts.Where(item => baselineIds.Contains(item.Id)).ToArray();
-        Assert.Equal(198, allDrafts.Length);
+        Assert.Equal(237, allDrafts.Length);
         Assert.Equal(3, drafts.Length);
-        Assert.Equal(198, await database.InspectionAssignments.CountAsync());
-        Assert.Equal(201, await database.InspectionDraftSaves.CountAsync());
+        Assert.Equal(237, await database.InspectionAssignments.CountAsync());
+        Assert.Equal(240, await database.InspectionDraftSaves.CountAsync());
         Assert.Equal(3, await database.InspectionPhotos.CountAsync());
         Assert.Equal(3, await database.InspectionDraftPhotos.CountAsync());
-        Assert.Equal(197, await database.InspectionSignedRevisions.CountAsync());
+        Assert.Equal(236, await database.InspectionSignedRevisions.CountAsync());
         Assert.Equal(4, await database.InspectionReopenings.CountAsync());
         Assert.Equal(187, await database.InspectionRepairRequests.CountAsync());
         Assert.Equal(13, await database.InspectionRepairApprovals.CountAsync());

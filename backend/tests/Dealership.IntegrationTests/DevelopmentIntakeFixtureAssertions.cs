@@ -17,7 +17,7 @@ namespace Dealership.IntegrationTests;
 
 internal static class DevelopmentIntakeFixtureAssertions
 {
-    private static readonly int[] PageSizes = [25, 25, 25, 25, 10];
+    private static readonly int[] PageSizes = [25, 25, 25, 25, 23];
 
     public static async Task VerifyAuthenticatedAsync(HttpClient client, string email)
     {

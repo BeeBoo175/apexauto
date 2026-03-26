@@ -52,7 +52,9 @@ internal static class DevelopmentInspectionScenarioAssertions
             (InspectionGrade.B, VehicleStatus.PendingInspection)
         ];
 
-        foreach (var branch in DevelopmentInspectionScenarios.All.GroupBy(item => item.Intake.BranchId))
+        var exampleIds = DevelopmentIntakeManifest.InspectionExamples.Select(item => item.Id).ToHashSet();
+        foreach (var branch in DevelopmentInspectionScenarios.All.Where(item => exampleIds.Contains(item.Id))
+            .GroupBy(item => item.Intake.BranchId))
         {
             var scenarios = branch.ToArray();
             Assert.Equal(14, scenarios.Length);

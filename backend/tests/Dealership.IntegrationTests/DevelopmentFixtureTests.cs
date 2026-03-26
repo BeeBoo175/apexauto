@@ -109,6 +109,7 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         await AssertNormalAuthenticationAsync();
         await DevelopmentIntakeFixtureAssertions.VerifyAsync(provider);
         await InspectionQueueFixtureAssertions.VerifyAsync(provider);
+        await DevelopmentListingFixtureAssertions.VerifyCatalogueAsync(provider);
         var snapshot = await DevelopmentIntakeFixtureAssertions.SnapshotAsync(provider);
         await ValuationMigrationAssertions.VerifyAsync(fixture.Database);
         await CancellationMigrationAssertions.VerifyAsync(fixture.Database);
@@ -244,7 +245,9 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         command.CommandText = """
             UPDATE "IntakeAppointments" SET "CancelledAt" = "CreatedAt",
                 "CancellationPhotosExpireAt" = "CreatedAt" + interval '30 days'
-            WHERE "Id" = (SELECT "Id" FROM "IntakeAppointments" WHERE "CancelledAt" IS NULL ORDER BY "StartsAt" LIMIT 1)
+            WHERE "Id" = (SELECT a."Id" FROM "IntakeAppointments" a WHERE a."CancelledAt" IS NULL
+                AND NOT EXISTS (SELECT 1 FROM "AppointmentCheckIns" c WHERE c."AppointmentId" = a."Id")
+                ORDER BY a."StartsAt" LIMIT 1)
             """;
         var cancellation = await Assert.ThrowsAsync<PostgresException>(() => command.ExecuteNonQueryAsync());
         Assert.Equal("CK_IntakeAppointments_CancellationTime", cancellation.ConstraintName);

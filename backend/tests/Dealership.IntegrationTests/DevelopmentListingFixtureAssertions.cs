@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Dealership.Application.Accounts;
 using Dealership.Application.Vehicles;
+using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Development;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -16,7 +17,7 @@ internal static class DevelopmentListingFixtureAssertions
         var services = scope.ServiceProvider;
         var database = services.GetRequiredService<DealershipDbContext>();
         var expected = DevelopmentInspectionScenarios.All.Count(item => item.PublishListing);
-        Assert.Equal(12, expected);
+        Assert.Equal(51, expected);
         Assert.Equal(expected, await database.ListingRevisions.CountAsync());
         Assert.Equal(expected, await database.ListingPublications.CountAsync());
         Assert.Equal(expected * 4, await database.ListingPhotos.CountAsync(item => item.AvailableAt != null));
@@ -37,6 +38,55 @@ internal static class DevelopmentListingFixtureAssertions
         Assert.Contains(reports, item => item.Fixture.StartsWith("Listing (", StringComparison.Ordinal) &&
             item.State == "listing drift; preserved" && item.RequiresAttention);
         Assert.Equal(before, await SnapshotAsync(database));
+    }
+
+    public static async Task VerifyCatalogueAsync(IServiceProvider provider)
+    {
+        await using var scope = provider.CreateAsyncScope();
+        var services = scope.ServiceProvider;
+        var database = services.GetRequiredService<DealershipDbContext>();
+        var store = services.GetRequiredService<IPublicListingStore>();
+        var managers = services.GetRequiredService<IListingReadStore>();
+        foreach (var branch in DevelopmentFixtureManifest.Branches)
+        {
+            var expected = await database.ListingRevisions.Where(item => item.BranchId == branch.Id)
+                .OrderBy(item => item.VehiclePrice).ThenBy(item => item.VehicleId).ToArrayAsync();
+            Assert.Equal(17, expected.Length);
+            Assert.Contains(expected.GroupBy(item => item.VehiclePrice), group => group.Count() > 1);
+            var actual = new List<PublicListingItem>();
+            var filter = new PublicListingFilter(BranchId: branch.Id, Sort: "price", Direction: "asc");
+            for (var page = 1; page <= 3; page++)
+            {
+                var result = await store.ReadAsync(filter with { Page = page }, CancellationToken.None);
+                Assert.Equal(ListingStatus.Succeeded, result.Status);
+                Assert.Equal(17, result.Catalogue!.Total);
+                Assert.Equal(page == 3 ? 1 : 8, result.Catalogue.Items.Count);
+                Assert.All(result.Catalogue.Items, item => Assert.Equal(branch.Id, item.BranchId));
+                actual.AddRange(result.Catalogue.Items);
+            }
+
+            Assert.Equal(expected.Select(item => item.VehicleId), actual.Select(item => item.Id));
+            Assert.Equal(6, actual.Select(item => item.Make).Distinct().Count());
+            Assert.Equal(actual.Take(8).Select(item => item.Id),
+                (await store.ReadAsync(filter, CancellationToken.None)).Catalogue!.Items.Select(item => item.Id));
+            Assert.Empty((await store.ReadAsync(filter with { Page = 4 }, CancellationToken.None)).Catalogue!.Items);
+            var electric = await store.ReadAsync(filter with { Fuel = VehicleFuel.Electric }, CancellationToken.None);
+            Assert.Equal(2, electric.Catalogue!.Total);
+            Assert.All(electric.Catalogue.Items, item => Assert.Equal("BYD", item.Make));
+            var detail = await store.DetailAsync(actual[0].Id, CancellationToken.None);
+            Assert.Equal(ListingStatus.Succeeded, detail.Status);
+            Assert.Equal(210, detail.Detail!.Checklist.Points.Count);
+            Assert.Equal(4, detail.Detail.PhotoIds.Count);
+
+            var manager = DevelopmentFixtureManifest.Staff.Single(item =>
+                item.BranchId == branch.Id && item.Role == AccountRoles.BranchManager);
+            var workspace = await managers.ReadAsync(manager.Id, new(PageSize: 50), CancellationToken.None);
+            Assert.Equal(80, workspace.Listings!.Total);
+            var second = await managers.ReadAsync(manager.Id, new(Page: 2, PageSize: 50), CancellationToken.None);
+            Assert.Equal(17, workspace.Listings.Items.Concat(second.Listings!.Items).Count(item => item.IsPublic));
+        }
+
+        Assert.Equal(51, (await store.ReadAsync(new(), CancellationToken.None)).Catalogue!.Total);
     }
 
     private static async Task<string> SnapshotAsync(DealershipDbContext database)
