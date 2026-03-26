@@ -9,7 +9,7 @@ using Npgsql;
 namespace Dealership.Infrastructure.Vehicles;
 
 internal sealed class ReservationTransaction(DealershipDbContext database, IDbContextTransaction transaction,
-    MailDeliverySignal mail, ReservationContext context) : IReservationTransaction
+    MailDeliverySignal mail, ReservationExpirySignal expiry, ReservationContext context) : IReservationTransaction
 {
     public ReservationContext Context => context;
 
@@ -26,6 +26,7 @@ internal sealed class ReservationTransaction(DealershipDbContext database, IDbCo
         {
             await database.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
+            expiry.Request();
 
             if (reservation is not null)
             {
@@ -52,6 +53,7 @@ internal sealed class ReservationTransaction(DealershipDbContext database, IDbCo
         await transaction.RollbackToSavepointAsync("reservation_confirmation", cancellationToken);
         database.ChangeTracker.Clear();
         await transaction.CommitAsync(cancellationToken);
+        expiry.Request();
         return ReservationStatus.Conflict;
     }
 

@@ -221,7 +221,7 @@ public sealed class ReservationReadTests(IntakePhotoFixture fixture) : IClassFix
     private static async Task<Reservation> HoldAsync(ReservationTestClock clock, Guid customerId, ListingPublication publication)
     {
         await using var database = clock.CreateContext();
-        var result = await new ReservationService(new ReservationStore(database, new MailDeliverySignal()))
+        var result = await new ReservationService(new ReservationStore(database, new MailDeliverySignal(), new ReservationExpirySignal()))
             .ReserveAsync(customerId, publication.VehicleId, new(Guid.NewGuid(), publication.Id, null), CancellationToken.None);
         Assert.Equal(ReservationStatus.Succeeded, result.Status);
         return result.Reservation!;

@@ -1,5 +1,4 @@
 using System.Data;
-using Dealership.Application.Vehicles;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -45,15 +44,15 @@ internal static class ReservationReadSnapshot
     }
 
     public static async Task<bool> ReconcileDueAsync(DealershipDbContext database, IQueryable<Guid> vehicleIds,
-        CancellationToken cancellationToken)
+        int batchSize, CancellationToken cancellationToken)
     {
         var now = await database.Database.SqlQuery<DateTimeOffset>($"SELECT clock_timestamp() AS \"Value\"")
             .SingleAsync(cancellationToken);
         var due = database.Reservations.Where(item => item.IsActive && item.ExpiresAt <= now &&
             vehicleIds.Contains(item.VehicleId));
-        // Bound refund work to one catalogue page; never return a partial eligibility total.
+        // Bound each transaction and retain PostgreSQL UUID lock order across all callers.
         var candidates = await due.OrderBy(item => item.VehicleId).Select(item => item.VehicleId)
-            .Take(PublicListingFilter.PageSize).ToArrayAsync(cancellationToken);
+            .Take(batchSize).ToArrayAsync(cancellationToken);
         foreach (var vehicleId in candidates)
         {
             await ReconcileAsync(database, vehicleId, cancellationToken);

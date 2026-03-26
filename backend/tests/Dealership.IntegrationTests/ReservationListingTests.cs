@@ -118,6 +118,7 @@ public sealed class ReservationListingTests(IntakePhotoFixture fixture) : IClass
         await AssertUnavailableAsync(clock, manager, first.Publication.VehicleId);
         await using var final = clock.CreateContext();
         Assert.All(await final.Vehicles.ToArrayAsync(), vehicle => Assert.Equal(VehicleStatus.Available, vehicle.Status));
+        await ReservationExpiryAssertions.RunAsync(clock, services, data.OwnerId, records);
     }
 
     private async Task AssertUnavailableAsync(ReservationTestClock clock, Guid manager, Guid vehicleId)
@@ -234,7 +235,7 @@ public sealed class ReservationListingTests(IntakePhotoFixture fixture) : IClass
     private static async Task<Reservation> HoldAsync(ReservationTestClock clock, Guid customer, ListingPublication publication)
     {
         await using var writer = clock.CreateContext();
-        var result = await new ReservationService(new ReservationStore(writer, new MailDeliverySignal()))
+        var result = await new ReservationService(new ReservationStore(writer, new MailDeliverySignal(), new ReservationExpirySignal()))
             .ReserveAsync(customer, publication.VehicleId, new(Guid.NewGuid(), publication.Id, null), CancellationToken.None);
         Assert.Equal(ReservationStatus.Succeeded, result.Status);
         return result.Reservation!;

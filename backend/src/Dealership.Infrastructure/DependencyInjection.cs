@@ -36,6 +36,7 @@ public static class DependencyInjection
         services.AddDbContext<DealershipDbContext>(options => options.UseNpgsql(connectionString));
         services.AddSingleton<MailDeliverySignal>();
         services.AddSingleton<PhotoCleanupSignal>();
+        services.AddSingleton<ReservationExpirySignal>();
         services.AddIdentityCore<AccountUser>(options =>
         {
             options.User.RequireUniqueEmail = true;

@@ -30,7 +30,8 @@ public sealed class PublicListingStore(DealershipDbContext database) : IPublicLi
     private async Task<PublicListingPageResult> ReadSnapshotAsync(PublicListingFilter filter, CancellationToken cancellationToken)
     {
         var vehicleIds = Filter(PublicListingQuery.Published(database), filter).Select(row => row.Vehicle.Id);
-        var caughtUp = await ReservationReadSnapshot.ReconcileDueAsync(database, vehicleIds, cancellationToken);
+        var caughtUp = await ReservationReadSnapshot.ReconcileDueAsync(database, vehicleIds,
+            PublicListingFilter.PageSize, cancellationToken);
         if (!caughtUp)
         {
             return new(ListingStatus.Unavailable);

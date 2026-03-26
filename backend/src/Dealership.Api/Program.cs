@@ -72,6 +72,7 @@ builder.Services.AddScoped<IMailDeliverySource, PasswordResetMailSource>();
 builder.Services.AddScoped<IMailDeliverySource, AppointmentMailSource>();
 builder.Services.AddScoped<IMailDeliverySource, ReservationMailSource>();
 builder.Services.AddHostedService<MailDeliveryWorker>();
+builder.Services.AddHostedService<ReservationExpiryWorker>();
 builder.Services.AddSingleton<StaffExportWorker>();
 builder.Services.AddSingleton<IStaffExportWorker>(provider => provider.GetRequiredService<StaffExportWorker>());
 builder.Services.AddHostedService(provider => provider.GetRequiredService<StaffExportWorker>());

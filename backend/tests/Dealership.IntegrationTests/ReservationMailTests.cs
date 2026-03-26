@@ -25,17 +25,19 @@ public sealed class ReservationMailTests(IntakePhotoFixture fixture) : IClassFix
         database.PurchaseSettings.Add(new(500m, 0.08m, manager, DateTimeOffset.UtcNow));
         await database.SaveChangesAsync();
         var signal = new MailDeliverySignal();
+        var expiry = new ReservationExpirySignal();
         var request = new ReservationRequest(Guid.NewGuid(), listing.Publication.Id, null);
 
-        await AssertAtomicFailureAsync(data, listing.Revision.VehicleId, request, signal);
+        await AssertAtomicFailureAsync(data, listing.Revision.VehicleId, request, signal, expiry);
         await using (var command = NewContext())
         {
-            var service = new ReservationService(new ReservationStore(command, signal));
+            var service = new ReservationService(new ReservationStore(command, signal, expiry));
             Assert.Equal(ReservationStatus.Succeeded, (await service.ReserveAsync(data.OwnerId,
                 listing.Revision.VehicleId, request, CancellationToken.None)).Status);
         }
 
         await signal.WaitAsync(CancellationToken.None).AsTask().WaitAsync(TimeSpan.FromSeconds(5));
+        await expiry.WaitAsync(CancellationToken.None).AsTask().WaitAsync(TimeSpan.FromSeconds(5));
         var intent = await database.ReservationMailOutbox.AsNoTracking().SingleAsync();
         Assert.Equal(request.OperationId, intent.ReservationId);
         Assert.Null(intent.DeliveredAt);
@@ -50,7 +52,7 @@ public sealed class ReservationMailTests(IntakePhotoFixture fixture) : IClassFix
 
         await using (var restarted = NewContext())
         {
-            var service = new ReservationService(new ReservationStore(restarted, signal));
+            var service = new ReservationService(new ReservationStore(restarted, signal, new ReservationExpirySignal()));
             Assert.Equal(ReservationStatus.Succeeded, (await service.ReserveAsync(data.OwnerId,
                 listing.Revision.VehicleId, request, CancellationToken.None)).Status);
             Assert.Equal(ReservationStatus.Conflict, (await service.ReserveAsync(data.OwnerId,
@@ -87,7 +89,7 @@ public sealed class ReservationMailTests(IntakePhotoFixture fixture) : IClassFix
     }
 
     private async Task AssertAtomicFailureAsync(CheckInTestData data, Guid vehicleId, ReservationRequest request,
-        MailDeliverySignal signal)
+        MailDeliverySignal signal, ReservationExpirySignal expiry)
     {
         await using var maintenance = new DealershipDbContext(new DbContextOptionsBuilder<DealershipDbContext>()
             .UseNpgsql(fixture.Database.ConnectionString).Options);
@@ -103,7 +105,7 @@ public sealed class ReservationMailTests(IntakePhotoFixture fixture) : IClassFix
         {
             await using (var failed = NewContext())
             {
-                var service = new ReservationService(new ReservationStore(failed, signal));
+                var service = new ReservationService(new ReservationStore(failed, signal, expiry));
                 await Assert.ThrowsAsync<DbUpdateException>(() => service.ReserveAsync(data.OwnerId,
                     vehicleId, request, CancellationToken.None));
             }
@@ -112,9 +114,12 @@ public sealed class ReservationMailTests(IntakePhotoFixture fixture) : IClassFix
             Assert.False(await maintenance.ReservationMailOutbox.AnyAsync());
             using var cancellation = new CancellationTokenSource();
             var waiting = signal.WaitAsync(cancellation.Token).AsTask();
+            var expiryWaiting = expiry.WaitAsync(cancellation.Token).AsTask();
             Assert.False(waiting.IsCompleted);
+            Assert.False(expiryWaiting.IsCompleted);
             await cancellation.CancelAsync();
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() => waiting);
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => expiryWaiting);
         }
         finally
         {

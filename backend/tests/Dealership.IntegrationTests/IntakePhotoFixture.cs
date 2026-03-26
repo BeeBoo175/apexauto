@@ -1,4 +1,5 @@
 using Dealership.Infrastructure.Photos;
+using Dealership.Infrastructure.Vehicles;
 using Dealership.Domain.Photos;
 using Dealership.Application.Photos;
 using Dealership.Infrastructure.Storage;
@@ -18,6 +19,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using SkiaSharp;
 
 namespace Dealership.IntegrationTests;
@@ -94,6 +96,10 @@ public sealed class IntakePhotoFixture : IAsyncLifetime, IAsyncDisposable
             });
             builder.ConfigureServices(services =>
             {
+                // Expiry scenarios explicitly own execution so unrelated reads cannot refund their fixtures.
+                var expiry = services.Single(item => item.ServiceType == typeof(IHostedService) &&
+                    item.ImplementationType == typeof(ReservationExpiryWorker));
+                services.Remove(expiry);
                 services.RemoveAll<DbContextOptions<DealershipDbContext>>();
                 services.RemoveAll<DealershipDbContext>();
                 services.AddDbContext<DealershipDbContext>(options => options.UseNpgsql(Database.RuntimeConnectionString));

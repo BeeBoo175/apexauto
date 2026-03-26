@@ -31,7 +31,7 @@ internal static class ReservationCatalogueAssertions
             var publication = await clock.Maintenance.ListingPublications.AsNoTracking()
                 .SingleAsync(item => item.VehicleId == vehicleId);
             await using var writer = clock.CreateContext();
-            var held = await new ReservationService(new ReservationStore(writer, new MailDeliverySignal()))
+            var held = await new ReservationService(new ReservationStore(writer, new MailDeliverySignal(), new ReservationExpirySignal()))
                 .ReserveAsync(customer, vehicleId, new(Guid.NewGuid(), publication.Id, null), CancellationToken.None);
             Assert.Equal(ReservationStatus.Succeeded, held.Status);
             holds.Add(held.Reservation!);

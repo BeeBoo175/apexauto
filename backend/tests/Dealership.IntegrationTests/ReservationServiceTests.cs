@@ -119,7 +119,7 @@ public sealed class ReservationServiceTests(IntakePhotoFixture fixture) : IClass
         try
         {
             await using var restarted = clock.CreateContext();
-            var service = new ReservationService(new ReservationStore(restarted, new MailDeliverySignal()));
+            var service = new ReservationService(new ReservationStore(restarted, new MailDeliverySignal(), new ReservationExpirySignal()));
             Assert.Equal(held.ExpiresAt, await restarted.Database
                 .SqlQuery<DateTimeOffset>($"SELECT clock_timestamp() AS \"Value\"").SingleAsync());
             var rejected = await service.ReserveAsync(data.OwnerId, second.VehicleId,
