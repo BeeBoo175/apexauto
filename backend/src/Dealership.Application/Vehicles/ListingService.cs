@@ -8,12 +8,14 @@ public sealed class ListingService(IListingStore listings)
     public async Task<ListingResult> SaveAsync(Guid actorId, Guid vehicleId, ListingDraftRequest request,
         CancellationToken cancellationToken)
     {
-        if (!ValidIds(actorId, vehicleId, request.OperationId) || request.ExpectedVersion is < 0 or long.MaxValue)
+        if (!ValidIds(actorId, vehicleId, request.OperationId) || request.ExpectedVersion is < 0 or long.MaxValue ||
+            request.PhotoIds is null || request.PhotoIds.Contains(Guid.Empty) ||
+            request.PhotoIds.Distinct().Count() != request.PhotoIds.Count)
         {
             return new(ListingStatus.Invalid);
         }
 
-        await using var transaction = await listings.LockAsync(actorId, vehicleId, request.OperationId, cancellationToken);
+        await using var transaction = await listings.LockAsync(actorId, vehicleId, request.OperationId, cancellationToken, request.PhotoIds);
         var context = transaction.Context;
         var denied = CheckAccess(context);
         if (denied is not null)
@@ -31,7 +33,7 @@ public sealed class ListingService(IListingStore listings)
         {
             revision = new ListingRevision(request.OperationId, vehicleId, context.Vehicle!.BranchId, actorId,
                 request.ExpectedVersion + 1, request.VehiclePrice, request.RoadTax, request.Transmission,
-                request.Fuel, request.Description!, context.Now);
+                request.Fuel, request.Description!, context.Now, request.PhotoIds);
         }
         catch (ArgumentException)
         {
@@ -48,16 +50,18 @@ public sealed class ListingService(IListingStore listings)
             var matches = existing.VehicleId == vehicleId && existing.ActorId == actorId &&
                 existing.Version == revision.Version && existing.VehiclePrice == revision.VehiclePrice &&
                 existing.RoadTax == revision.RoadTax && existing.Transmission == revision.Transmission &&
-                existing.Fuel == revision.Fuel && existing.Description == revision.Description;
+                existing.Fuel == revision.Fuel && existing.Description == revision.Description &&
+                existing.PhotoIds.SequenceEqual(request.PhotoIds);
             return matches ? new(ListingStatus.Succeeded, Draft: existing) : new(ListingStatus.Conflict);
         }
 
-        if ((context.LatestRevision?.Version ?? 0) != request.ExpectedVersion)
+        if ((context.LatestRevision?.Version ?? 0) != request.ExpectedVersion ||
+            request.PhotoIds.Any(id => !context.AvailablePhotoIds.Contains(id)))
         {
             return new(ListingStatus.Conflict);
         }
 
-        var status = await transaction.SaveAsync(revision, cancellationToken);
+        var status = await transaction.SaveAsync(revision, request.PhotoIds, cancellationToken);
         return new(status, Draft: status == ListingStatus.Succeeded ? revision : null);
     }
 

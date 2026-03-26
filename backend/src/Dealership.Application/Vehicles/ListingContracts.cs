@@ -7,7 +7,10 @@ namespace Dealership.Application.Vehicles;
 public sealed record ListingDraftRequest(Guid OperationId, long ExpectedVersion,
     [property: JsonConverter(typeof(MyrAmountJsonConverter))] decimal VehiclePrice,
     [property: JsonConverter(typeof(MyrAmountJsonConverter))] decimal RoadTax,
-    VehicleTransmission Transmission, VehicleFuel Fuel, string? Description);
+    VehicleTransmission Transmission, VehicleFuel Fuel, string? Description)
+{
+    public IReadOnlyList<Guid> PhotoIds { get; init; } = [];
+}
 
 public sealed record ListingPublishRequest(Guid OperationId, Guid RevisionId, Guid SignedRevisionId);
 
@@ -30,13 +33,14 @@ public sealed record ListingManager(bool IsActive, string Role, Guid? BranchId);
 public sealed record ListingContext(ListingManager? Actor, bool BranchActive, Vehicle? Vehicle,
     ListingRevision? LatestRevision, ListingPublication? LatestPublication, bool IsWithdrawn,
     Guid? SignedRevisionId, DateTimeOffset Now, ListingRevision? ExistingDraft,
-    ListingPublication? ExistingPublication, ListingWithdrawal? ExistingWithdrawal);
+    ListingPublication? ExistingPublication, ListingWithdrawal? ExistingWithdrawal,
+    IReadOnlyList<Guid> AvailablePhotoIds);
 
 public interface IListingTransaction : IAsyncDisposable
 {
     ListingContext Context { get; }
 
-    Task<ListingStatus> SaveAsync(ListingRevision revision, CancellationToken cancellationToken);
+    Task<ListingStatus> SaveAsync(ListingRevision revision, IReadOnlyList<Guid> photoIds, CancellationToken cancellationToken);
 
     Task<ListingStatus> PublishAsync(ListingPublication publication, CancellationToken cancellationToken);
 
@@ -46,5 +50,5 @@ public interface IListingTransaction : IAsyncDisposable
 public interface IListingStore
 {
     Task<IListingTransaction> LockAsync(Guid actorId, Guid vehicleId, Guid operationId,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken, IReadOnlyList<Guid>? photoIds = null);
 }

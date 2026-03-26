@@ -50,6 +50,7 @@ public static class DependencyInjection
             .AddPasswordValidator<AccountPasswordValidator>();
         services.AddScoped<ICustomerRegistrationStore, CustomerRegistrationStore>();
         services.AddScoped<IListingStore, ListingStore>();
+        services.AddScoped<IListingPhotoStore, ListingPhotoStore>();
         services.AddScoped<IAccountSessionStore, AccountSessionStore>();
         services.AddScoped<ICustomerAccountQuery, CustomerAccountQuery>();
         services.AddScoped<IStaffProvisioningStore, StaffProvisioningStore>();

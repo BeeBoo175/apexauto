@@ -12,8 +12,10 @@ internal sealed class ListingTransaction(DealershipDbContext database, IDbContex
 {
     public ListingContext Context => context;
 
-    public Task<ListingStatus> SaveAsync(ListingRevision revision, CancellationToken cancellationToken)
+    public Task<ListingStatus> SaveAsync(ListingRevision revision, IReadOnlyList<Guid> photoIds, CancellationToken cancellationToken)
     {
+        database.ListingRevisionPhotos.AddRange(photoIds.Select((id, index) =>
+            new ListingRevisionPhoto(revision.Id, id, revision.VehicleId, revision.BranchId, index)));
         return CommitAsync(revision, cancellationToken);
     }
 

@@ -8,7 +8,7 @@ namespace Dealership.Infrastructure.Vehicles;
 public sealed class ListingStore(DealershipDbContext database) : IListingStore
 {
     public async Task<IListingTransaction> LockAsync(Guid actorId, Guid vehicleId, Guid operationId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, IReadOnlyList<Guid>? photoIds = null)
     {
         var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
         try
@@ -24,7 +24,7 @@ public sealed class ListingStore(DealershipDbContext database) : IListingStore
                 actor.Role == AccountRoles.BranchManager && actor.BranchId is null)
             {
                 return new ListingTransaction(database, transaction,
-                    new(manager, false, null, null, null, false, null, default, null, null, null));
+                    new(manager, false, null, null, null, false, null, default, null, null, null, []));
             }
 
             var branchId = await database.Vehicles.Where(item => item.Id == vehicleId)
@@ -57,9 +57,13 @@ public sealed class ListingStore(DealershipDbContext database) : IListingStore
                 .SingleOrDefaultAsync(item => item.Id == operationId, cancellationToken);
             var existingWithdrawal = await database.ListingWithdrawals.AsNoTracking()
                 .SingleOrDefaultAsync(item => item.Id == operationId, cancellationToken);
+            var requestedPhotos = photoIds?.ToArray() ?? [];
+            var availablePhotoIds = await database.ListingPhotos
+                .Where(item => item.VehicleId == vehicleId && item.AvailableAt != null && requestedPhotos.Contains(item.Id))
+                .Select(item => item.Id).ToArrayAsync(cancellationToken);
             return new ListingTransaction(database, transaction, new(manager, branchActive, vehicle,
                 latestRevision, latestPublication, isWithdrawn, signedId, now,
-                existingDraft, existingPublication, existingWithdrawal));
+                existingDraft, existingPublication, existingWithdrawal, availablePhotoIds));
         }
         catch
         {

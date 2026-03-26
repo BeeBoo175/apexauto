@@ -48,6 +48,7 @@ public static class DependencyInjection
         services.AddScoped<PhotoTransferService>();
         services.AddScoped<IntakePhotoService>();
         services.AddScoped<InspectionPhotoService>();
+        services.AddScoped<ListingPhotoService>();
         return services;
     }
 }
