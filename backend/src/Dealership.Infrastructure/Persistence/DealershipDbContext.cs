@@ -29,6 +29,12 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
 
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
 
+    public DbSet<ListingRevision> ListingRevisions => Set<ListingRevision>();
+
+    public DbSet<ListingPublication> ListingPublications => Set<ListingPublication>();
+
+    public DbSet<ListingWithdrawal> ListingWithdrawals => Set<ListingWithdrawal>();
+
     public DbSet<InspectionDraft> InspectionDrafts => Set<InspectionDraft>();
 
     public DbSet<InspectionAssignment> InspectionAssignments => Set<InspectionAssignment>();
@@ -71,6 +77,10 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
         builder.ApplyConfiguration<AppointmentPhoto>(booking);
         builder.ApplyConfiguration(new AppointmentMailConfiguration());
         builder.ApplyConfiguration(new VehicleConfiguration());
+        var listings = new ListingConfiguration();
+        builder.ApplyConfiguration<ListingRevision>(listings);
+        builder.ApplyConfiguration<ListingPublication>(listings);
+        builder.ApplyConfiguration<ListingWithdrawal>(listings);
         var inspectionAssignments = new InspectionAssignmentConfiguration();
         builder.ApplyConfiguration<InspectionDraft>(inspectionAssignments);
         builder.ApplyConfiguration<InspectionAssignment>(inspectionAssignments);
