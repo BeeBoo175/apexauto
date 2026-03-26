@@ -840,9 +840,9 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.HasIndex("PublicationId")
                         .IsUnique();
 
-                    b.HasIndex("PublicationId", "VehicleId", "BranchId");
-
                     b.HasIndex("VehicleId", "RecordedAt");
+
+                    b.HasIndex("PublicationId", "VehicleId", "BranchId");
 
                     b.ToTable("ListingWithdrawals", null, t =>
                         {
@@ -1889,6 +1889,42 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Dealership.Infrastructure.Vehicles.ReservationMail", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeliveredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DeliveryAttempts")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("DeliveryClaimExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeliveryClaimId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("NextDeliveryAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ReservationId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReservationId")
+                        .IsUnique();
+
+                    b.HasIndex("NextDeliveryAt", "Id");
+
+                    b.ToTable("ReservationMailOutbox", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ReservationMailOutbox_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"DeliveryAttempts\" >= 0");
+                        });
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<System.Guid>", b =>
                 {
                     b.Property<int>("Id")
@@ -2441,6 +2477,15 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("CheckInAppointmentId")
                         .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("Dealership.Infrastructure.Vehicles.ReservationMail", b =>
+                {
+                    b.HasOne("Dealership.Domain.Vehicles.Reservation", null)
+                        .WithOne()
+                        .HasForeignKey("Dealership.Infrastructure.Vehicles.ReservationMail", "ReservationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<System.Guid>", b =>
