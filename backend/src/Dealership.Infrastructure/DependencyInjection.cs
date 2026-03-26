@@ -16,6 +16,8 @@ using Dealership.Application.Inspections;
 using Dealership.Infrastructure.Inspections;
 using Dealership.Infrastructure.Mail;
 using Dealership.Infrastructure.Photos;
+using Dealership.Application.Vehicles;
+using Dealership.Infrastructure.Vehicles;
 
 namespace Dealership.Infrastructure;
 
@@ -47,6 +49,7 @@ public static class DependencyInjection
         }).AddEntityFrameworkStores<DealershipDbContext>()
             .AddPasswordValidator<AccountPasswordValidator>();
         services.AddScoped<ICustomerRegistrationStore, CustomerRegistrationStore>();
+        services.AddScoped<IListingStore, ListingStore>();
         services.AddScoped<IAccountSessionStore, AccountSessionStore>();
         services.AddScoped<ICustomerAccountQuery, CustomerAccountQuery>();
         services.AddScoped<IStaffProvisioningStore, StaffProvisioningStore>();
