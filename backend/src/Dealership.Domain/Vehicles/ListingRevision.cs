@@ -23,7 +23,7 @@ public sealed class ListingRevision
 
     public ListingRevision(Guid id, Guid vehicleId, Guid branchId, Guid actorId, long version,
         decimal vehiclePrice, decimal roadTax, VehicleTransmission transmission, VehicleFuel fuel,
-        string description, DateTimeOffset recordedAt)
+        string description, DateTimeOffset recordedAt, IReadOnlyList<Guid>? photoIds = null)
     {
         if (id == Guid.Empty || vehicleId == Guid.Empty || branchId == Guid.Empty || actorId == Guid.Empty ||
             version < 1 || !Enum.IsDefined(transmission) || !Enum.IsDefined(fuel))
@@ -37,6 +37,11 @@ public sealed class ListingRevision
         }
 
         PurchasePricing.CalculatePrice(vehiclePrice, 0m, roadTax, 0m);
+        if (photoIds is not null && (photoIds.Contains(Guid.Empty) || photoIds.Distinct().Count() != photoIds.Count))
+        {
+            throw new ArgumentException("Listing photos require distinct nonempty upload identities.");
+        }
+
         ArgumentOutOfRangeException.ThrowIfGreaterThan(vehiclePrice, 9999999999999999.99m);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(roadTax, 9999999999999999.99m);
         Id = id;
@@ -50,6 +55,7 @@ public sealed class ListingRevision
         Fuel = fuel;
         Description = description.Trim();
         RecordedAt = recordedAt;
+        PhotoIds = photoIds?.ToArray() ?? [];
     }
 
     public Guid Id { get; private set; }
@@ -63,4 +69,5 @@ public sealed class ListingRevision
     public VehicleFuel Fuel { get; private set; }
     public string Description { get; private set; } = string.Empty;
     public DateTimeOffset RecordedAt { get; private set; }
+    public Guid[] PhotoIds { get; private set; } = [];
 }

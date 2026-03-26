@@ -31,6 +31,7 @@ public sealed class ListingConfiguration : IEntityTypeConfiguration<ListingRevis
         builder.Property(item => item.Transmission).HasConversion<string>().HasMaxLength(32);
         builder.Property(item => item.Fuel).HasConversion<string>().HasMaxLength(32);
         builder.Property(item => item.Description).HasMaxLength(2000).IsRequired();
+        builder.Property(item => item.PhotoIds).HasDefaultValueSql("'{}'::uuid[]");
     }
 
     public void Configure(EntityTypeBuilder<ListingPublication> builder)
