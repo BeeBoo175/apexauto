@@ -29,7 +29,13 @@ public static class PublicListingEndpoints
             var filter = new PublicListingFilter(page ?? 1, make, model, minimumYear, maximumYear,
                 minimumPrice, maximumPrice, transmission, fuel, branchId, sort ?? "published", direction ?? "desc");
             var result = await store.ReadAsync(filter, deadline.Token);
-            return result.Status == ListingStatus.Succeeded ? Results.Ok(result.Catalogue) : Invalid();
+            return result.Status switch
+            {
+                ListingStatus.Succeeded => Results.Ok(result.Catalogue),
+                ListingStatus.Invalid => Invalid(),
+                ListingStatus.Unavailable => Unavailable(),
+                _ => Results.Problem(statusCode: 500)
+            };
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {

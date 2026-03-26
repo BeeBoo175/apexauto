@@ -1,4 +1,3 @@
-using System.Data;
 using System.Linq.Expressions;
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Vehicles;
@@ -23,13 +22,25 @@ public sealed class PublicListingStore(DealershipDbContext database) : IPublicLi
             return new(ListingStatus.Invalid);
         }
 
-        // The count and bounded rows must describe the same eligibility snapshot.
-        await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead, cancellationToken);
+        return await ReservationReadSnapshot.ReadAsync(database,
+            () => ReadSnapshotAsync(filter, cancellationToken),
+            new PublicListingPageResult(ListingStatus.Unavailable), cancellationToken);
+    }
+
+    private async Task<PublicListingPageResult> ReadSnapshotAsync(PublicListingFilter filter, CancellationToken cancellationToken)
+    {
+        var vehicleIds = Filter(PublicListingQuery.Published(database), filter).Select(row => row.Vehicle.Id);
+        var caughtUp = await ReservationReadSnapshot.ReconcileDueAsync(database, vehicleIds, cancellationToken);
+        if (!caughtUp)
+        {
+            return new(ListingStatus.Unavailable);
+        }
+
+        // The count and bounded rows include this snapshot's committed refund catch-up.
         var rows = Filter(PublicListingQuery.Read(database), filter);
         var total = await rows.CountAsync(cancellationToken);
         var items = await Order(rows, filter).Select(Item)
             .ReadPageAsync(filter.Page, PublicListingFilter.PageSize, total, cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
         return new(ListingStatus.Succeeded, new(Array.AsReadOnly(items), total, filter.Page, PublicListingFilter.PageSize));
     }
 
