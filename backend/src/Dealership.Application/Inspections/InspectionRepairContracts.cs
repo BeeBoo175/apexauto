@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Dealership.Application.Common;
 using Dealership.Domain.Inspections;
 using Dealership.Domain.Vehicles;
 
@@ -6,7 +7,7 @@ namespace Dealership.Application.Inspections;
 
 public sealed record InspectionRepairRequest(Guid OperationId, long AssignmentVersion, long Revision,
     long ExpectedVersion, IReadOnlyList<InspectionRepairItem> Items,
-    [property: JsonConverter(typeof(InspectionEstimateJsonConverter))] decimal Budget);
+    [property: JsonConverter(typeof(MyrAmountJsonConverter))] decimal Budget);
 
 public sealed record InspectionRepairReceipt(Guid OperationId, Guid InspectionId, Guid BranchId, Guid ActorId,
     Guid SignedRevisionId, long AssignmentVersion, long Revision, long ExpectedVersion, long Version,

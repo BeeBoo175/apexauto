@@ -1,6 +1,7 @@
 using Dealership.Domain.Inspections;
 using Dealership.Domain.Vehicles;
 using System.Text.Json.Serialization;
+using Dealership.Application.Common;
 
 namespace Dealership.Application.Inspections;
 
@@ -13,7 +14,7 @@ public sealed record InspectionDraftSaveRequest(Guid OperationId, long Assignmen
 }
 
 public sealed record InspectionDraftEntryInput(string PointCode, InspectionEntryKind Kind, InspectionSeverity? Severity,
-    [property: JsonConverter(typeof(InspectionEstimateJsonConverter))] decimal EstimatedRepairCost, string Notes);
+    [property: JsonConverter(typeof(MyrAmountJsonConverter))] decimal EstimatedRepairCost, string Notes);
 
 public sealed record InspectionDraftSaveReceipt(Guid OperationId, Guid InspectionId, Guid ActorId,
     long AssignmentVersion, long ExpectedVersion, long Version, string CatalogVersion,
