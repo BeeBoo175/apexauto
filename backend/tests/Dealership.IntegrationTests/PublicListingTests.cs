@@ -67,6 +67,8 @@ public sealed class PublicListingTests(IntakePhotoFixture fixture) : IClassFixtu
         Assert.Empty((await store.ReadAsync(filter with { Page = int.MaxValue }, CancellationToken.None)).Catalogue!.Items);
         Assert.Equal(18, (await store.ReadAsync(new(), CancellationToken.None)).Catalogue!.Total);
         await VerifyFiltersAsync(store, filter, pages[0].Items[0]);
+        await ListingReadAssertions.VerifyAsync(fixture, services, data, manager, outsideManager, technician,
+            records[0].VehicleId, other.VehicleId);
 
         using var client = data.Factory.CreateClient();
         var first = records[0];
@@ -100,6 +102,11 @@ public sealed class PublicListingTests(IntakePhotoFixture fixture) : IClassFixtu
             VehicleTransmission.Manual, VehicleFuel.Hybrid, "New description requires approval"), CancellationToken.None);
         Assert.Equal(ListingStatus.Succeeded, draft.Status);
         Assert.Equal(60000m, (await store.DetailAsync(first.VehicleId, CancellationToken.None)).Detail!.Listing.VehiclePrice);
+        var management = services.GetRequiredService<IListingReadStore>();
+        var editing = (await management.WorkspaceAsync(manager, first.VehicleId, CancellationToken.None)).Workspace!;
+        Assert.Equal(draft.Draft!.Id, editing.Draft!.Id);
+        Assert.Equal(first.Draft.Id, editing.ApprovedRevision!.Id);
+        Assert.True(editing.Vehicle.IsPublic);
         var approved = await listings.PublishAsync(manager, first.VehicleId,
             new(Guid.NewGuid(), draft.Draft!.Id, first.SignedId), CancellationToken.None);
         Assert.Equal(ListingStatus.Succeeded, approved.Status);
@@ -107,12 +114,18 @@ public sealed class PublicListingTests(IntakePhotoFixture fixture) : IClassFixtu
         Assert.Equal(ListingStatus.Succeeded, (await listings.WithdrawAsync(manager, first.VehicleId,
             new(Guid.NewGuid(), approved.Publication!.Id, "Correct listing specifications"), CancellationToken.None)).Status);
         Assert.Equal(ListingStatus.NotFound, (await store.DetailAsync(first.VehicleId, CancellationToken.None)).Status);
+        var withdrawn = (await management.WorkspaceAsync(manager, first.VehicleId, CancellationToken.None)).Workspace!;
+        Assert.True(withdrawn.Vehicle.IsWithdrawn);
+        Assert.False(withdrawn.Vehicle.IsPublic);
+        Assert.Equal(approved.Publication.Id, withdrawn.Withdrawal!.PublicationId);
         Assert.Equal(16, (await store.ReadAsync(filter, CancellationToken.None)).Catalogue!.Total);
 
         var reopened = await services.GetRequiredService<InspectionReopeningService>().ReopenAsync(manager, records[1].InspectionId,
             new(Guid.NewGuid(), 1, 1, "Reinspect before sale"), CancellationToken.None);
         Assert.Equal(InspectionAssignmentStatus.Succeeded, reopened.Status);
         Assert.Equal(ListingStatus.NotFound, (await store.DetailAsync(records[1].VehicleId, CancellationToken.None)).Status);
+        Assert.Null((await management.WorkspaceAsync(manager, records[1].VehicleId, CancellationToken.None))
+            .Workspace!.CurrentSignedRevisionId);
         var savedAgain = await services.GetRequiredService<InspectionDraftSaveService>().SaveAsync(technician, records[1].InspectionId,
             new(Guid.NewGuid(), 1, 1, []) { ExaminedPointCodes = [.. InspectionCatalog.Points.Select(point => point.Code)] },
             CancellationToken.None);
@@ -123,9 +136,14 @@ public sealed class PublicListingTests(IntakePhotoFixture fixture) : IClassFixtu
         Assert.Equal(VehicleStatus.Available, await database.Vehicles.Where(vehicle => vehicle.Id == records[1].VehicleId)
             .Select(vehicle => vehicle.Status).SingleAsync());
         Assert.Equal(ListingStatus.NotFound, (await store.DetailAsync(records[1].VehicleId, CancellationToken.None)).Status);
+        var reinspected = (await management.WorkspaceAsync(manager, records[1].VehicleId, CancellationToken.None)).Workspace!;
+        Assert.Equal(signedAgain.Report!.OperationId, reinspected.CurrentSignedRevisionId);
+        Assert.Equal(records[1].SignedId, reinspected.Publication!.SignedRevisionId);
+        Assert.False(reinspected.Vehicle.IsPublic);
         await database.Branches.Where(branch => branch.Id == outsideBranch)
             .ExecuteUpdateAsync(update => update.SetProperty(branch => branch.IsActive, false));
         Assert.Equal(ListingStatus.NotFound, (await store.DetailAsync(other.VehicleId, CancellationToken.None)).Status);
+        Assert.Equal(ListingStatus.Forbidden, (await management.ReadAsync(outsideManager, new(), CancellationToken.None)).Status);
         Assert.Equal(15, (await store.ReadAsync(new(), CancellationToken.None)).Catalogue!.Total);
     }
 
