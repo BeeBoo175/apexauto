@@ -14,6 +14,7 @@ interface Props {
   labelHidden?: boolean;
   showTitle?: boolean;
   paginationClassName?: string;
+  density?: "default" | "compact";
 }
 
 export function BranchFilter({
@@ -27,14 +28,16 @@ export function BranchFilter({
   labelHidden = true,
   showTitle = false,
   paginationClassName,
+  density = "compact",
 }: Props) {
   const selectedBranch = branches?.items.find((branch) => branch.id === branchId);
   const branchName = selectedBranch?.name ?? selectedBranchName ?? "Selected branch";
   const title = branchId ? branchName : "All branches";
+  const buttonSize = density === "compact" ? "compact" : "md";
   const pagination = branches && branches.total > branches.pageSize && (
     <>
       <Button
-        size="compact"
+        size={buttonSize}
         variant="secondary"
         type="button"
         disabled={disabled || branches.page === 1}
@@ -43,7 +46,7 @@ export function BranchFilter({
         Previous branches
       </Button>
       <Button
-        size="compact"
+        size={buttonSize}
         variant="secondary"
         type="button"
         disabled={disabled || branches.page * branches.pageSize >= branches.total}
@@ -59,7 +62,7 @@ export function BranchFilter({
       <Select
         label="Branch"
         labelHidden={labelHidden}
-        density="compact"
+        density={density}
         id={id}
         value={branchId}
         title={showTitle ? title : undefined}
@@ -76,7 +79,7 @@ export function BranchFilter({
       </Select>
       {!branches && (
         <Button
-          size="compact"
+          size={buttonSize}
           variant="secondary"
           type="button"
           disabled={disabled}

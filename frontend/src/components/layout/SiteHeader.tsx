@@ -11,6 +11,7 @@ export async function SiteHeader() {
         Apex<span>Auto</span>
       </Link>
       <nav className={styles.navigation} aria-label="Main navigation">
+        <a href="/vehicles">Buy car</a>
         {showAccount && <a href="/account">Account</a>}
         <Link href="/sell" prefetch={false}>
           Sell car

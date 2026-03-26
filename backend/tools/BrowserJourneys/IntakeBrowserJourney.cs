@@ -20,7 +20,10 @@ internal static class IntakeBrowserJourney
         await using var fixture = new IntakePhotoFixture();
         await fixture.InitializeAsync();
         await IntakeBrowserSeed.SeedAsync(fixture);
-        await IntakeBrowserSeed.SeedArrivalsAsync(fixture, specification == "inspection-ui-lifecycle.spec.ts");
+        if (!specification.StartsWith("vehicles-ui", StringComparison.Ordinal))
+        {
+            await IntakeBrowserSeed.SeedArrivalsAsync(fixture, specification == "inspection-ui-lifecycle.spec.ts");
+        }
         File.WriteAllBytes(Path.Combine(evidence, "upload.jpg"), IntakePhotoFixture.Image());
         Environment.SetEnvironmentVariable("ASPNETCORE_URLS", "http://127.0.0.1:0");
         Environment.SetEnvironmentVariable("AllowedHosts", "localhost;127.0.0.1");
