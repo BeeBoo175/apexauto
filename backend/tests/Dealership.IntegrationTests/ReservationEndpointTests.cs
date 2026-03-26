@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using Dealership.Application.Accounts;
 using Dealership.Application.Vehicles;
+using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,6 +24,22 @@ public sealed class ReservationEndpointTests(IntakePhotoFixture fixture) : IClas
         var manager = await ProvisionAsync(services, data.BranchId, AccountRoles.BranchManager);
         var technician = await ProvisionAsync(services, data.BranchId, AccountRoles.WorkshopTechnician);
         var listing = await CreateListingAsync(data, services, manager, technician, 0);
+        var photoId = Guid.NewGuid();
+        using (var photo = new MemoryStream(IntakePhotoFixture.Image()))
+        {
+            Assert.Equal(ListingPhotoStatus.Available, (await services.GetRequiredService<ListingPhotoService>()
+                .UploadAsync(manager, listing.Revision.VehicleId, photoId, "image/jpeg", photo, CancellationToken.None)).Status);
+        }
+
+        var listings = services.GetRequiredService<ListingService>();
+        var withPhoto = await listings.SaveAsync(manager, listing.Revision.VehicleId,
+            new(Guid.NewGuid(), 1, 60000m, 90m, VehicleTransmission.Automatic, VehicleFuel.Petrol, "Inspected Malaysian vehicle")
+            { PhotoIds = [photoId] }, CancellationToken.None);
+        Assert.Equal(ListingStatus.Succeeded, withPhoto.Status);
+        var published = await listings.PublishAsync(manager, listing.Revision.VehicleId,
+            new(Guid.NewGuid(), withPhoto.Draft!.Id, listing.Publication.SignedRevisionId), CancellationToken.None);
+        Assert.Equal(ListingStatus.Succeeded, published.Status);
+        listing = listing with { Revision = withPhoto.Draft, Publication = published.Publication! };
         await using var database = new DealershipDbContext(new DbContextOptionsBuilder<DealershipDbContext>()
             .UseNpgsql(fixture.Database.RuntimeConnectionString).Options);
         database.PurchaseSettings.Add(new(500m, 0.08m, manager, DateTimeOffset.UtcNow));
@@ -34,6 +51,10 @@ public sealed class ReservationEndpointTests(IntakePhotoFixture fixture) : IClas
         // Same-day booking setup uses midnight; bearer validation requires the normal live clock.
         using var factory = fixture.CreateFactory();
         using var client = factory.CreateClient();
+        var vehicleId = listing.Revision.VehicleId;
+        var publicPhotoPath = $"/api/vehicles/{vehicleId}/photos/{photoId}";
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync(publicPhotoPath)).StatusCode);
+        Assert.Equal(1, (await client.GetFromJsonAsync<PublicListingPage>("/api/vehicles"))!.Total);
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync(path, request)).StatusCode);
         await LoginAsync(client, data.CustomerEmail);
         await AssertBodyBoundsAsync(client, path);
@@ -51,6 +72,7 @@ public sealed class ReservationEndpointTests(IntakePhotoFixture fixture) : IClas
         var receipt = JsonSerializer.Deserialize<ReservationReceipt>(originalJson, JsonSerializerOptions.Web)!;
         Assert.Equal(TimeSpan.FromHours(48), receipt.ExpiresAt - receipt.CreatedAt);
         Assert.Equal(1, await database.ReservationMailOutbox.CountAsync(item => item.ReservationId == receipt.Id));
+        await AssertHeldVisibilityAsync(client, services, manager, vehicleId, publicPhotoPath, data.CustomerEmail);
 
         var cancellationPath = $"/api/reservations/{receipt.Id}/cancellation";
         var cancellation = new ReservationCancellationRequest(Guid.NewGuid(), null);
@@ -75,6 +97,9 @@ public sealed class ReservationEndpointTests(IntakePhotoFixture fixture) : IClas
         Assert.Equal(cancellation.OperationId, refund.Id);
         Assert.Equal(data.OwnerId, refund.ActorId);
         Assert.Equal(refundJson, await (await client.PostAsJsonAsync(cancellationPath, cancellation)).Content.ReadAsStringAsync());
+        Assert.Equal(1, (await client.GetFromJsonAsync<PublicListingPage>("/api/vehicles"))!.Total);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"/api/vehicles/{vehicleId}")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync(publicPhotoPath)).StatusCode);
 
         await database.PurchaseSettings.ExecuteUpdateAsync(update => update.SetProperty(item => item.ProcessingFee, 900m));
         using var restarted = factory.CreateClient();
@@ -85,6 +110,38 @@ public sealed class ReservationEndpointTests(IntakePhotoFixture fixture) : IClas
         Assert.Equal(1, await database.ReservationMailOutbox.CountAsync(item => item.ReservationId == receipt.Id));
         Assert.False(await database.Reservations.Where(item => item.Id == receipt.Id).Select(item => item.IsActive).SingleAsync());
         Assert.Equal(1, await database.ReservationReleases.CountAsync(item => item.ReservationId == receipt.Id));
+        var raceRequest = request with { OperationId = Guid.NewGuid() };
+        using var holding = fixture.CreateFactory(observeDownload: _ =>
+        {
+            using var writer = factory.Services.CreateScope();
+            var held = writer.ServiceProvider.GetRequiredService<ReservationService>().ReserveAsync(data.OwnerId,
+                vehicleId, raceRequest, CancellationToken.None).GetAwaiter().GetResult();
+            Assert.Equal(ReservationStatus.Succeeded, held.Status);
+        });
+        using var racingClient = holding.CreateClient();
+        var withheld = await racingClient.GetAsync(publicPhotoPath);
+        Assert.Equal(HttpStatusCode.NotFound, withheld.StatusCode);
+        Assert.Empty(await withheld.Content.ReadAsByteArrayAsync());
+        Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync(
+            $"/api/reservations/{raceRequest.OperationId}/cancellation",
+            new ReservationCancellationRequest(Guid.NewGuid(), null))).StatusCode);
+    }
+
+    private static async Task AssertHeldVisibilityAsync(HttpClient client, IServiceProvider services, Guid manager,
+        Guid vehicleId, string photoPath, string buyerEmail)
+    {
+        var catalogue = (await client.GetFromJsonAsync<PublicListingPage>("/api/vehicles"))!;
+        Assert.Equal(0, catalogue.Total);
+        Assert.Empty(catalogue.Items);
+        var detail = await client.GetAsync($"/api/vehicles/{vehicleId}");
+        Assert.Equal(HttpStatusCode.NotFound, detail.StatusCode);
+        Assert.DoesNotContain(buyerEmail, await detail.Content.ReadAsStringAsync());
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync(photoPath)).StatusCode);
+        Assert.Equal(PurchaseQuoteStatus.NotFound, (await services.GetRequiredService<PurchaseQuoteService>()
+            .QuoteAsync(vehicleId, null, CancellationToken.None)).Status);
+        var workspace = (await services.GetRequiredService<IListingReadStore>()
+            .WorkspaceAsync(manager, vehicleId, CancellationToken.None)).Workspace!;
+        Assert.False(workspace.Vehicle.IsPublic);
     }
 
     private static async Task AssertBodyBoundsAsync(HttpClient client, string path)

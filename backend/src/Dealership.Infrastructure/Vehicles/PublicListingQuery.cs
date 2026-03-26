@@ -21,6 +21,7 @@ internal static class PublicListingQuery
                join vehicle in database.Vehicles.AsNoTracking() on publication.VehicleId equals vehicle.Id
                join branch in database.Branches.AsNoTracking() on vehicle.BranchId equals branch.Id
                where branch.IsActive && vehicle.Status == VehicleStatus.Available &&
+                   !database.Reservations.Any(item => item.VehicleId == vehicle.Id && item.IsActive) &&
                    !database.ListingWithdrawals.Any(item => item.PublicationId == publication.Id) &&
                    !database.ListingPublications.Any(later => later.VehicleId == vehicle.Id &&
                        database.ListingRevisions.Any(r => r.Id == later.RevisionId && r.Version > revision.Version)) &&
