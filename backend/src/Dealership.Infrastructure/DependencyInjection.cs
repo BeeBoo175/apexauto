@@ -53,6 +53,7 @@ public static class DependencyInjection
         services.AddScoped<IListingPhotoStore, ListingPhotoStore>();
         services.AddScoped<IPublicListingStore, PublicListingStore>();
         services.AddScoped<IPurchaseQuoteStore, PurchaseQuoteStore>();
+        services.AddScoped<IPurchaseConfigurationStore, PurchaseConfigurationStore>();
         services.AddScoped<IListingReadStore, ListingReadStore>();
         services.AddScoped<IAccountSessionStore, AccountSessionStore>();
         services.AddScoped<ICustomerAccountQuery, CustomerAccountQuery>();

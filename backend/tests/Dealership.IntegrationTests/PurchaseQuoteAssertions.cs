@@ -15,6 +15,8 @@ internal static class PurchaseQuoteAssertions
         var database = services.GetRequiredService<DealershipDbContext>();
         var quotes = services.GetRequiredService<PurchaseQuoteService>();
         Assert.Equal(PurchaseQuoteStatus.Unavailable, (await quotes.QuoteAsync(vehicleId, null, CancellationToken.None)).Status);
+        using var missingSettings = await client.GetAsync($"/api/vehicles/{vehicleId}");
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, missingSettings.StatusCode);
         database.PurchaseSettings.Add(new(500m, 0.08m, updater, DateTimeOffset.UtcNow));
         database.PromoCodes.AddRange(
             new PromoCode(Guid.NewGuid(), "APEX500", 500m, DateTimeOffset.UtcNow.AddDays(1), true),
@@ -48,6 +50,12 @@ internal static class PurchaseQuoteAssertions
             .SetProperty(item => item.ProcessingFee, 600m).SetProperty(item => item.SstRate, 0.10m)
             .SetProperty(item => item.Version, 2));
         Assert.Equal(60250m, (await quotes.QuoteAsync(vehicleId, "APEX500", CancellationToken.None)).Quote!.Price.Total);
+        var detail = (await services.GetRequiredService<IPublicListingStore>()
+            .DetailAsync(vehicleId, CancellationToken.None)).Detail!;
+        Assert.Equal(60750m, detail.Price.Total);
+        Assert.Equal(600m, detail.Price.ProcessingFee);
+        Assert.Equal(60m, detail.Price.ServiceTax);
+        Assert.Equal(0.10m, detail.SstRate);
         await database.PurchaseSettings.ExecuteUpdateAsync(update => update
             .SetProperty(item => item.ProcessingFee, 500m).SetProperty(item => item.SstRate, 0.08m)
             .SetProperty(item => item.Version, 3));

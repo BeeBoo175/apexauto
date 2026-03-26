@@ -22,7 +22,8 @@ public enum ListingStatus
     Invalid,
     Forbidden,
     NotFound,
-    Conflict
+    Conflict,
+    Unavailable
 }
 
 public sealed record ListingResult(ListingStatus Status, ListingRevision? Draft = null,

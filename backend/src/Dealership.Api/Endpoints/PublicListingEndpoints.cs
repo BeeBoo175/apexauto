@@ -50,6 +50,7 @@ public static class PublicListingEndpoints
                 ListingStatus.Succeeded => Results.Ok(result.Detail),
                 ListingStatus.Invalid => Invalid(),
                 ListingStatus.NotFound => Results.NotFound(),
+                ListingStatus.Unavailable => Unavailable(),
                 _ => Results.Problem(statusCode: 500)
             };
         }

@@ -1,6 +1,7 @@
 using System.Data;
 using System.Linq.Expressions;
 using Dealership.Application.Vehicles;
+using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -47,6 +48,12 @@ public sealed class PublicListingStore(DealershipDbContext database) : IPublicLi
             return new(ListingStatus.NotFound);
         }
 
+        var settings = await database.PurchaseSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
+        if (settings is null)
+        {
+            return new(ListingStatus.Unavailable);
+        }
+
         var details = await listing.Select(row => new
         {
             row.Revision.RoadTax,
@@ -62,9 +69,11 @@ public sealed class PublicListingStore(DealershipDbContext database) : IPublicLi
             point.Description, point.Kind, point.Severity, point.EstimatedRepairCost)).ToArray();
         var checklist = new PublicChecklist(report.CatalogVersion, report.Assessment.Grade,
             report.SignedAt, Array.AsReadOnly(points));
+        var price = PurchasePricing.CalculatePrice(item.VehiclePrice, settings.ProcessingFee,
+            details.RoadTax, settings.SstRate);
         await transaction.CommitAsync(cancellationToken);
         return new(ListingStatus.Succeeded, new(item, details.RoadTax, details.Description,
-            Array.AsReadOnly(details.PhotoIds), checklist));
+            Array.AsReadOnly(details.PhotoIds), checklist, price, settings.SstRate));
     }
 
     private static IQueryable<PublicListingRow> Filter(IQueryable<PublicListingRow> rows, PublicListingFilter filter)

@@ -14,6 +14,7 @@ public static class DevelopmentFixtureRegistration
         services.AddScoped<DevelopmentFixtureRunner>();
         services.AddScoped<DevelopmentInspectionFixtures>();
         services.AddScoped<DevelopmentListingFixtures>();
+        services.AddScoped<DevelopmentPurchaseFixtures>();
         services.AddScoped<DevelopmentInspectionScenarioFixtures>();
         services.AddScoped<DevelopmentCustomerFixtures>();
         services.AddScoped<DevelopmentIntakeFixtures>();

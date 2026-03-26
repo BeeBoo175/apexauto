@@ -110,6 +110,7 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         await DevelopmentIntakeFixtureAssertions.VerifyAsync(provider);
         await InspectionQueueFixtureAssertions.VerifyAsync(provider);
         await DevelopmentListingFixtureAssertions.VerifyCatalogueAsync(provider);
+        await DevelopmentPurchaseFixtureAssertions.VerifyAsync(provider, target);
         var snapshot = await DevelopmentIntakeFixtureAssertions.SnapshotAsync(provider);
         await ValuationMigrationAssertions.VerifyAsync(fixture.Database);
         await CancellationMigrationAssertions.VerifyAsync(fixture.Database);

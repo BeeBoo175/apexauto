@@ -16,6 +16,7 @@ public static class DependencyInjection
         services.AddSingleton<ValuationService>();
         services.AddScoped<ListingService>();
         services.AddScoped<PurchaseQuoteService>();
+        services.AddScoped<PurchaseConfigurationService>();
         services.AddScoped<RegistrationService>();
         services.AddScoped<AuthenticationService>();
         services.AddScoped<StaffProvisioningService>();

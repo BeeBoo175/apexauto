@@ -82,6 +82,8 @@ public sealed class PublicListingTests(IntakePhotoFixture fixture) : IClassFixtu
         Assert.Equal(first.Draft.PhotoIds[0], detail.Listing.CoverPhotoId);
         Assert.Equal(60000m, detail.Listing.VehiclePrice);
         Assert.Equal(90m, detail.RoadTax);
+        Assert.Equal(new PurchasePrice(60000m, 500m, 90m, 40m, 0m, 60630m), detail.Price);
+        Assert.Equal(0.08m, detail.SstRate);
         var json = await response.Content.ReadAsStringAsync();
         foreach (var privateValue in new[] { data.OwnerId.ToString(), first.InspectionId.ToString(), first.SignedId.ToString(),
             technician.ToString(), manager.ToString(), first.Draft.Id.ToString(), "PL1BT000000000000", "WYY 8800", "Private owner reference" })
