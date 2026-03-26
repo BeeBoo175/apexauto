@@ -4,13 +4,31 @@ using Dealership.Application.Intake;
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Inspections;
 using Dealership.Domain.Vehicles;
+using Dealership.Infrastructure.Identity;
+using Dealership.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Dealership.IntegrationTests;
 
 internal static class ReservationTestData
 {
-    internal static async Task<Guid> ProvisionAsync(IServiceProvider services, Guid branchId, string role)
+    internal static async Task<Guid> RegisterCustomerAsync(IServiceProvider services, DealershipDbContext database)
+    {
+        var email = $"hafiz.{Guid.NewGuid():N}@example.invalid";
+        var registration = new RegistrationRequest(Guid.NewGuid(), "Hafiz Rahman", email, "Password123!",
+            $"920418{Random.Shared.Next(100000, 1000000)}", "0135678910", "20 Jalan Mawar, Shah Alam");
+        Assert.Equal(RegistrationStatus.Succeeded, (await services.GetRequiredService<RegistrationService>()
+            .RegisterAsync(registration, CancellationToken.None)).Status);
+        var customerId = await database.Users.Where(item => item.Email == email).Select(item => item.Id).SingleAsync();
+        var challenge = await database.EmailVerificationChallenges.SingleAsync(item => item.UserId == customerId);
+        var token = services.GetRequiredService<EmailVerificationToken>().Create(challenge);
+        Assert.Equal(VerificationStatus.Accepted, (await services.GetRequiredService<EmailVerificationService>()
+            .ConfirmAsync(token, CancellationToken.None)).Status);
+        return customerId;
+    }
+
+    internal static async Task<Guid> ProvisionAsync(IServiceProvider services, Guid? branchId, string role)
     {
         var id = Guid.NewGuid();
         await services.GetRequiredService<StaffProvisioningService>().ProvisionStaffAsync(

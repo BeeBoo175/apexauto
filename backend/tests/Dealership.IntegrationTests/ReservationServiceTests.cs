@@ -1,12 +1,10 @@
 using Dealership.Application.Accounts;
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Vehicles;
-using Dealership.Infrastructure.Identity;
 using Dealership.Infrastructure.Persistence;
 using Dealership.Infrastructure.Vehicles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Npgsql;
 using static Dealership.IntegrationTests.ReservationTestData;
 
 namespace Dealership.IntegrationTests;
@@ -106,16 +104,9 @@ public sealed class ReservationServiceTests(IntakePhotoFixture fixture) : IClass
     {
         var request = new ReservationRequest(Guid.NewGuid(), first.Id, null);
         var held = (await ReserveAsync(data, data.OwnerId, first.VehicleId, request)).Reservation!;
-        await using var maintenance = new DealershipDbContext(new DbContextOptionsBuilder<DealershipDbContext>()
-            .UseNpgsql(fixture.Database.ConnectionString).Options);
-        // A disposable search-path clock exercises the exact persisted deadline without sleeping or editing receipts.
-        await maintenance.Database.ExecuteSqlRawAsync("""
-            CREATE SCHEMA reservation_test_clock;
-            CREATE TABLE reservation_test_clock.time (at timestamptz NOT NULL);
-            CREATE FUNCTION reservation_test_clock.clock_timestamp() RETURNS timestamptz LANGUAGE sql AS
-                'SELECT at FROM reservation_test_clock.time';
-            GRANT USAGE ON SCHEMA reservation_test_clock TO PUBLIC;
-            GRANT SELECT ON reservation_test_clock.time TO PUBLIC;
+        await using var clock = new ReservationTestClock(fixture.Database);
+        await clock.InitializeAsync(held.ExpiresAt);
+        await clock.Maintenance.Database.ExecuteSqlRawAsync("""
             CREATE FUNCTION reservation_test_clock.expire_promo() RETURNS trigger LANGUAGE plpgsql AS $$
             BEGIN
                 UPDATE public."PromoCodes" SET "ExpiresAtUtc" = clock_timestamp() WHERE "Id" = NEW."PromoId";
@@ -124,16 +115,9 @@ public sealed class ReservationServiceTests(IntakePhotoFixture fixture) : IClass
             CREATE TRIGGER admission_promo_expiry BEFORE INSERT ON "Reservations"
                 FOR EACH ROW WHEN (NEW."PromoId" IS NOT NULL) EXECUTE FUNCTION reservation_test_clock.expire_promo();
             """);
-        await maintenance.Database.ExecuteSqlInterpolatedAsync(
-            $"INSERT INTO reservation_test_clock.time VALUES ({held.ExpiresAt})");
         try
         {
-            var connection = new NpgsqlConnectionStringBuilder(fixture.Database.RuntimeConnectionString)
-            {
-                SearchPath = "reservation_test_clock,public,pg_catalog"
-            };
-            await using var restarted = new DealershipDbContext(new DbContextOptionsBuilder<DealershipDbContext>()
-                .UseNpgsql(connection.ConnectionString).Options);
+            await using var restarted = clock.CreateContext();
             var service = new ReservationService(new ReservationStore(restarted));
             Assert.Equal(held.ExpiresAt, await restarted.Database
                 .SqlQuery<DateTimeOffset>($"SELECT clock_timestamp() AS \"Value\"").SingleAsync());
@@ -148,8 +132,7 @@ public sealed class ReservationServiceTests(IntakePhotoFixture fixture) : IClass
             var replacement = await service.ReserveAsync(data.OwnerId, second.VehicleId,
                 new(Guid.NewGuid(), second.Id, null), CancellationToken.None);
             Assert.Equal(ReservationStatus.Succeeded, replacement.Status);
-            await maintenance.Database.ExecuteSqlInterpolatedAsync(
-                $"UPDATE reservation_test_clock.time SET at = {replacement.Reservation!.ExpiresAt}");
+            await clock.AdvanceAsync(replacement.Reservation!.ExpiresAt);
             await restarted.PromoCodes.Where(item => item.Id == promoId).ExecuteUpdateAsync(update => update
                 .SetProperty(item => item.IsActive, true).SetProperty(item => item.ExpiresAtUtc, held.ExpiresAt.AddDays(10)));
             var failedAdmission = await service.ReserveAsync(data.OwnerId, first.VehicleId,
@@ -166,24 +149,8 @@ public sealed class ReservationServiceTests(IntakePhotoFixture fixture) : IClass
         }
         finally
         {
-            await maintenance.Database.ExecuteSqlRawAsync("DROP TRIGGER admission_promo_expiry ON \"Reservations\"");
-            await maintenance.Database.ExecuteSqlRawAsync("DROP SCHEMA reservation_test_clock CASCADE");
+            await clock.Maintenance.Database.ExecuteSqlRawAsync("DROP TRIGGER admission_promo_expiry ON \"Reservations\"");
         }
-    }
-
-    private static async Task<Guid> RegisterCustomerAsync(IServiceProvider services, DealershipDbContext database)
-    {
-        var email = $"hafiz.{Guid.NewGuid():N}@example.invalid";
-        var registration = new RegistrationRequest(Guid.NewGuid(), "Hafiz Rahman", email, "Password123!",
-            $"920418{Random.Shared.Next(100000, 1000000)}", "0135678910", "20 Jalan Mawar, Shah Alam");
-        Assert.Equal(RegistrationStatus.Succeeded, (await services.GetRequiredService<RegistrationService>()
-            .RegisterAsync(registration, CancellationToken.None)).Status);
-        var customerId = await database.Users.Where(item => item.Email == email).Select(item => item.Id).SingleAsync();
-        var challenge = await database.EmailVerificationChallenges.SingleAsync(item => item.UserId == customerId);
-        var token = services.GetRequiredService<EmailVerificationToken>().Create(challenge);
-        Assert.Equal(VerificationStatus.Accepted, (await services.GetRequiredService<EmailVerificationService>()
-            .ConfirmAsync(token, CancellationToken.None)).Status);
-        return customerId;
     }
 
     private static async Task<ReservationResult> ReserveAsync(CheckInTestData data, Guid customerId, Guid vehicleId,
