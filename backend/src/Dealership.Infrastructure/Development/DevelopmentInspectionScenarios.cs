@@ -23,6 +23,8 @@ public sealed record DevelopmentInspectionScenario(DevelopmentIntakeFixture Inta
 {
     public Guid Id => Intake.Id;
 
+    public bool PublishListing { get; init; }
+
     public Guid OperationId(string purpose) => DevelopmentInspectionScenarios.OperationId(Id, purpose);
 
     public bool ReplacesRepair => Stage is DevelopmentInspectionStage.RepairSuperseded or
@@ -92,6 +94,7 @@ public static class DevelopmentInspectionScenarios
         var scenario = CreateExample(intake, index);
         return scenario with
         {
+            PublishListing = index is 1 or 2 or 5 or 11,
             Entries = [.. scenario.Entries, new("IE-040", InspectionEntryKind.NotFitted, null, 0m,
                 "Vehicle specification and physical examination confirm no powered roof is fitted.")]
         };

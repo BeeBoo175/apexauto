@@ -1,0 +1,100 @@
+using Dealership.Application.Accounts;
+using Dealership.Application.Vehicles;
+using Dealership.Domain.Vehicles;
+using Dealership.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+
+namespace Dealership.Infrastructure.Development;
+
+public sealed class DevelopmentListingFixtures(DealershipDbContext database, ListingService listings)
+{
+    public async Task<IReadOnlyList<DevelopmentFixtureReport>> RunAsync(bool seed, CancellationToken cancellationToken)
+    {
+        var reports = new List<DevelopmentFixtureReport>();
+        foreach (var scenario in DevelopmentInspectionScenarios.All.Where(item => item.PublishListing))
+        {
+            reports.Add(await RunOneAsync(seed, scenario, cancellationToken));
+        }
+
+        return reports;
+    }
+
+    private async Task<DevelopmentFixtureReport> RunOneAsync(bool seed, DevelopmentInspectionScenario scenario,
+        CancellationToken cancellationToken)
+    {
+        var label = $"Listing ({scenario.Intake.RegistrationPlate})";
+        var vehicle = await database.Vehicles.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.IntakeAppointmentId == scenario.Id, cancellationToken);
+        if (vehicle is null)
+        {
+            return new(label, "checked-in vehicle missing; preserved", true);
+        }
+
+        var expectedSign = scenario.Sign(scenario.Stage == DevelopmentInspectionStage.Reinspected);
+        var currentInspection = await database.InspectionDrafts.AnyAsync(item => item.Id == scenario.Id &&
+            item.VehicleId == vehicle.Id && item.IsSigned && item.Revision == expectedSign.Revision &&
+            item.AssignmentVersion == 1, cancellationToken);
+        if (!currentInspection || vehicle.Status != VehicleStatus.Available ||
+            !await database.InspectionSignedRevisions.AnyAsync(item => item.Id == expectedSign.OperationId &&
+                item.InspectionId == scenario.Id && item.Revision == expectedSign.Revision, cancellationToken))
+        {
+            return new(label, "inspection drift; preserved", true);
+        }
+
+        var manager = DevelopmentFixtureManifest.Staff.Single(item =>
+            item.BranchId == vehicle.BranchId && item.Role == AccountRoles.BranchManager);
+        var appointment = await database.IntakeAppointments.AsNoTracking()
+            .SingleAsync(item => item.Id == scenario.Id, cancellationToken);
+        var request = new ListingDraftRequest(scenario.OperationId("listing-draft"), 0,
+            appointment.Valuation.Maximum, 90m, VehicleTransmission.Automatic, VehicleFuel.Petrol,
+            $"{vehicle.ManufactureYear} {vehicle.Make} {vehicle.Model} {vehicle.Trim}. " +
+            "View the signed inspection checklist for the recorded vehicle condition.");
+        var existing = await database.ListingRevisions.AsNoTracking()
+            .Where(item => item.VehicleId == vehicle.Id).OrderByDescending(item => item.Version)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (existing is not null && (existing.Id != request.OperationId || existing.Version != 1 ||
+            existing.ActorId != manager.Id || existing.VehiclePrice != request.VehiclePrice ||
+            existing.RoadTax != request.RoadTax || existing.Description != request.Description ||
+            existing.Transmission != request.Transmission || existing.Fuel != request.Fuel))
+        {
+            return new(label, "listing drift; preserved", true);
+        }
+
+        if (existing is null && seed)
+        {
+            var saved = await listings.SaveAsync(manager.Id, vehicle.Id, request, cancellationToken);
+            if (saved.Status != ListingStatus.Succeeded)
+            {
+                return new(label, "draft unavailable; preserved", true);
+            }
+
+            existing = saved.Draft;
+        }
+
+        if (existing is null)
+        {
+            return new(label, "draft missing", true);
+        }
+
+        var signedId = expectedSign.OperationId;
+        var publicationId = scenario.OperationId("listing-publication");
+        var published = await database.ListingPublications.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.RevisionId == existing.Id, cancellationToken);
+        if (published is not null)
+        {
+            var withdrawn = await database.ListingWithdrawals.AnyAsync(item => item.PublicationId == published.Id, cancellationToken);
+            var matches = published.Id == publicationId && published.ActorId == manager.Id &&
+                published.SignedRevisionId == signedId && !withdrawn && vehicle.Status == VehicleStatus.Available;
+            return new(label, matches ? "matches" : "publication drift; preserved", !matches);
+        }
+
+        if (!seed)
+        {
+            return new(label, "publication missing", true);
+        }
+
+        var result = await listings.PublishAsync(manager.Id, vehicle.Id, new(publicationId, existing.Id, signedId), cancellationToken);
+        var created = result.Status == ListingStatus.Succeeded && result.Publication!.SignedRevisionId == signedId;
+        return new(label, created ? "created" : "publication unavailable; preserved", !created);
+    }
+}

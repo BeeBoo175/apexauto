@@ -13,6 +13,7 @@ public static class DevelopmentFixtureRegistration
         services.AddSingleton<TimeProvider>(provider => provider.GetRequiredService<DevelopmentFixtureClock>());
         services.AddScoped<DevelopmentFixtureRunner>();
         services.AddScoped<DevelopmentInspectionFixtures>();
+        services.AddScoped<DevelopmentListingFixtures>();
         services.AddScoped<DevelopmentInspectionScenarioFixtures>();
         services.AddScoped<DevelopmentCustomerFixtures>();
         services.AddScoped<DevelopmentIntakeFixtures>();

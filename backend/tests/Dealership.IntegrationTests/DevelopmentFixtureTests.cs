@@ -113,6 +113,7 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         await NoShowLifecycleAssertions.VerifyAsync(fixture);
         await DevelopmentInspectionFixtureAssertions.VerifyAsync(provider, target);
         await DevelopmentInspectionScenarioAssertions.VerifyHumanEditPreservationAsync(provider, target);
+        await DevelopmentListingFixtureAssertions.VerifyAsync(provider, target);
     }
 
     private static async Task AssertReviewPreservesDriftAsync(ServiceProvider provider, DevelopmentFixtureTarget target)
