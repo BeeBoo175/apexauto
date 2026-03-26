@@ -14,11 +14,9 @@ import workshop from "./Workshop.module.css";
 export function RepairRequestDetails({
   request,
   report,
-  showMetadata = true,
 }: {
   request: RepairRequest;
   report: Report;
-  showMetadata?: boolean;
 }) {
   const [selectedCode, setSelectedCode] = useState(request.items[0]?.pointCode ?? "");
   const selectedIndex = Math.max(
@@ -30,29 +28,6 @@ export function RepairRequestDetails({
   const multipleFindings = request.items.length > 1;
   return (
     <div className={workbench.stack}>
-      {showMetadata && (
-        <details className={workshop.metadata}>
-          <summary>Request details</summary>
-          <dl className={workshop.facts}>
-            <div>
-              <dt>Requested budget</dt>
-              <dd>{formatCurrency(request.budget)}</dd>
-            </div>
-            <div>
-              <dt>Requested</dt>
-              <dd>{formatMalaysianDateTime(request.requestedAt)}</dd>
-            </div>
-            <div>
-              <dt>Signed revision</dt>
-              <dd>{request.revision}</dd>
-            </div>
-            <div>
-              <dt>Work version</dt>
-              <dd>{request.version}</dd>
-            </div>
-          </dl>
-        </details>
-      )}
       <div className={workshop.split} data-single-item={!multipleFindings}>
         {multipleFindings && (
           <nav className={workshop.index} aria-label="Requested work">
@@ -125,5 +100,31 @@ export function RepairRequestDetails({
         )}
       </div>
     </div>
+  );
+}
+
+export function RepairRequestMetadata({ request }: { request: RepairRequest }) {
+  return (
+    <details className={workshop.metadata}>
+      <summary>Request details</summary>
+      <dl className={workshop.facts}>
+        <div>
+          <dt>Requested budget</dt>
+          <dd>{formatCurrency(request.budget)}</dd>
+        </div>
+        <div>
+          <dt>Requested</dt>
+          <dd>{formatMalaysianDateTime(request.requestedAt)}</dd>
+        </div>
+        <div>
+          <dt>Signed revision</dt>
+          <dd>{request.revision}</dd>
+        </div>
+        <div>
+          <dt>Work version</dt>
+          <dd>{request.version}</dd>
+        </div>
+      </dl>
+    </details>
   );
 }

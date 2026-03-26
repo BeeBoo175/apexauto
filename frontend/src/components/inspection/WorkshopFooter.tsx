@@ -1,6 +1,7 @@
 import type { useInspectionEditor } from "@/hooks/use-inspection-editor";
 import type { WorkshopSection } from "@/lib/inspection/query";
 import { InspectionActions } from "./InspectionActions";
+import { Button } from "@/components/ui/Button";
 import workshop from "./Workshop.module.css";
 
 type Editor = ReturnType<typeof useInspectionEditor>;
@@ -12,6 +13,7 @@ export function WorkshopFooter({
   repairEditing,
   onConfirm,
   onActionsContainer,
+  onCurrentRepairs,
 }: {
   editor: Editor;
   section: WorkshopSection;
@@ -19,6 +21,7 @@ export function WorkshopFooter({
   repairEditing: boolean;
   onConfirm: (value: "sign" | "discard") => void;
   onActionsContainer: (container: HTMLDivElement | null) => void;
+  onCurrentRepairs: () => void;
 }) {
   const pendingInspection = editor.checklistDirty || editor.save.uncertain || editor.sign.uncertain;
   const context = footerContext(editor, section, historical, repairEditing);
@@ -33,6 +36,16 @@ export function WorkshopFooter({
           <InspectionActions editor={editor} onConfirm={onConfirm} />
         )}
         <div ref={onActionsContainer} className={workshop.footerActions} />
+        {section === "repairs" && historical && (
+          <Button
+            size="compact"
+            variant={pendingInspection ? "secondary" : "primary"}
+            disabled={!editor.ready || editor.operating || editor.refreshing}
+            onClick={onCurrentRepairs}
+          >
+            Back to current repairs
+          </Button>
+        )}
       </div>
     </footer>
   );

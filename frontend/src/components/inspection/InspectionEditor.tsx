@@ -167,11 +167,6 @@ export function InspectionEditor({
                 onLock={editor.lockChild}
               />
               {historical && section === "repairs" && (
-                <Button size="compact" variant="secondary" onClick={() => onReview(null)}>
-                  Current repair work
-                </Button>
-              )}
-              {historical && section === "repairs" && (
                 <RetainedRepairReview
                   key={selectedRequest.requestId}
                   inspectionId={id}
@@ -215,6 +210,7 @@ export function InspectionEditor({
               repairEditing={repairEditing}
               onConfirm={setConfirm}
               onActionsContainer={setFooterActions}
+              onCurrentRepairs={() => onReview(null)}
             />
           </>
         )}

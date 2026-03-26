@@ -66,7 +66,7 @@ export function InspectionHistoryProgress({
   if (!history && busy) {
     return (
       <div role="status" aria-label={`Loading ${label}`}>
-        <ul className={timeline.timeline} aria-hidden="true">
+        <ul className={timeline.repairs} aria-hidden="true">
           {[0, 1, 2].map((row) => (
             <li key={row}>
               <span className={`${placeholders.placeholder} ${placeholders.status}`} />

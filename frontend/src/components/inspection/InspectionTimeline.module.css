@@ -5,32 +5,13 @@
   padding-top: 20px;
 }
 
-.heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
-.heading h2 {
+.history h2 {
   font-size: 16px;
   font-weight: 600;
 }
 
-.heading p {
-  margin-top: 8px;
-  color: var(--color-muted);
-  font-size: 12px;
-}
-
-.heading > span {
-  flex-shrink: 0;
-  color: var(--color-muted);
-  font-size: 12px;
-}
-
-.timeline {
+.timeline,
+.repairs {
   margin: 0;
   padding: 0;
   list-style: none;
@@ -40,63 +21,102 @@
   position: relative;
   display: grid;
   gap: 8px;
-  padding: 20px;
+  padding: 0 0 28px 24px;
   border-left: 1px solid var(--color-line);
 }
 
 .timeline > li::before {
   position: absolute;
-  top: 24px;
+  top: 5px;
   left: -4px;
   width: 7px;
   height: 7px;
+  border: 1px solid var(--color-interaction-border);
   border-radius: 50%;
-  background: var(--color-interaction-border);
+  background: var(--color-paper);
   content: "";
 }
 
-.timeline time,
-.actor,
-.reference {
-  color: var(--color-muted);
-  font-size: 12px;
-  overflow-wrap: anywhere;
+.timeline > li:last-child {
+  padding-bottom: 0;
+  border-left-color: transparent;
 }
 
-.timeline strong {
-  font-size: 13px;
+.timeline > li:last-child::after {
+  position: absolute;
+  top: 0;
+  left: -1px;
+  width: 1px;
+  height: 5px;
+  background: var(--color-line);
+  content: "";
+}
+
+.timeline > li:first-child::before {
+  background: var(--color-interaction-border);
+}
+
+.timeline > li:focus {
+  outline: none;
+}
+
+.timeline > li:focus-visible {
+  outline: 2px solid var(--color-interaction-border);
+  outline-offset: 4px;
+}
+
+.eventHeading,
+.eventActions {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.eventHeading {
+  justify-content: space-between;
+}
+
+.eventHeading h3 {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.timeline time,
+.context {
+  color: var(--color-muted);
+  font-size: 12px;
 }
 
 .timeline p {
   margin: 0;
   font-size: 13px;
   line-height: 1.6;
+  overflow-wrap: anywhere;
 }
 
-.eventActions {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 16px;
+.repairs > li {
+  display: grid;
+  gap: 8px;
+  padding-block: 16px;
 }
 
-.timeline summary {
-  width: fit-content;
-  padding-block: 8px;
+.workSummary {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.disclosure {
+  gap: 6px;
+  padding-inline: 0;
   color: var(--color-interaction-border);
-  font-size: 12px;
-  cursor: pointer;
+  font-weight: 500;
 }
 
-.timeline summary:focus-visible {
-  outline: 2px solid var(--color-interaction-border);
-  outline-offset: 2px;
-}
-
-.timeline details p {
-  margin-block: 8px 12px;
-  font-size: 13px;
-  line-height: 1.6;
+.disclosure[aria-expanded="true"] svg {
+  transform: rotate(180deg);
 }
 
 .timeline a {
@@ -118,19 +138,7 @@
   outline-offset: 4px;
 }
 
-.paging {
-  border-top: 1px solid var(--color-line);
-}
-
-.paging h3 {
-  padding-block: 16px 4px;
-  color: var(--color-muted);
-  font-size: 12px;
-  font-weight: 600;
-}
-
 @media (max-width: 820px) {
-  .timeline summary,
   .timeline a {
     display: flex;
     align-items: center;

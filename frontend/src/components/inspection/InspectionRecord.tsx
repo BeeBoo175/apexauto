@@ -42,7 +42,7 @@ export function InspectionRecord({
         <div className={workshop.summaryContext}>
           <WorkshopStatus status={status} />
           <span>
-            Revision {snapshot.draft.revision} · {snapshot.draft.isSigned ? "Signed" : "Draft"}
+            {`Revision ${snapshot.draft.revision} · ${snapshot.draft.isSigned ? "Signed" : "Draft"}`}
           </span>
           <span>
             {findingCount} {findingCount === 1 ? "finding" : "findings"}

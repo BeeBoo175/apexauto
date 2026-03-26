@@ -26,7 +26,7 @@ export function SignedFinding({
   return (
     <>
       <div className={styles.detailSection}>
-        <h4>Original signed finding · revision {revision}</h4>
+        <h4>{`Original signed finding · revision ${revision}`}</h4>
         <p>{point.notes || "No finding recorded for this inspection point."}</p>
       </div>
       {(hasFinding || hasPhotos) && (

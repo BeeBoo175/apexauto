@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
 import { StaffLink } from "@/components/staff/StaffLink";
 import type { useInspectionTimeline } from "@/hooks/use-inspection-timeline";
 import { inspectionTimeline } from "@/lib/inspection/timeline";
@@ -8,7 +10,6 @@ import type { EditorSnapshot } from "@/lib/inspection/editor-snapshot";
 import type { RepairSelection } from "@/lib/inspection/query";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import styles from "./InspectionTimeline.module.css";
-import { InspectionPreviousWork } from "./InspectionPreviousWork";
 import { InspectionHistoryProgress, InspectionRepairLink } from "./InspectionHistory";
 
 export function InspectionTimeline({
@@ -22,87 +23,109 @@ export function InspectionTimeline({
   disabled: boolean;
   onSelect: (selection: RepairSelection) => void;
 }) {
+  const rail = useRef<HTMLOListElement>(null);
+  const revealRevision = useRef(0);
   const id = snapshot.draft.id;
   const { revisions, repairs, previous, previousRevision, selectRevision } = timeline;
-  const events = inspectionTimeline(revisions.history, repairs.history);
-  const busy = revisions.busy || repairs.busy;
-  const selectedRepairs = previousRevision === snapshot.draft.revision ? repairs : previous;
+  const revealed = previousRevision > 0 ? previous.history : null;
+  const events = inspectionTimeline(revisions.history, repairs.history, revealed);
   const hasRepairs = (revision: number) =>
     revisions.history?.items.some((item) => item.revision === revision && item.hasRepairRequests);
-  const loaded = revisions.history && (!snapshot.draft.isSigned || repairs.history);
+
+  useEffect(() => {
+    if (
+      !revealed ||
+      previous.busy ||
+      previous.failed ||
+      revealRevision.current !== revealed.revision
+    ) {
+      return;
+    }
+    revealRevision.current = 0;
+    rail.current
+      ?.querySelector<HTMLElement>(`[data-repair-revision="${revealed.revision}"]`)
+      ?.focus();
+  }, [revealed, previous.busy, previous.failed]);
+
   return (
-    <section className={styles.history} aria-label="Record history" aria-busy={busy}>
-      <div className={styles.heading}>
-        <div>
-          <h2>Record history</h2>
-          <p>Inspections and repair requests, newest first.</p>
-        </div>
-        {events.length > 0 && <span>{events.length} loaded events</span>}
-      </div>
-      {loaded && !events.length && <p>No retained events.</p>}
-      <ol className={styles.timeline}>
-        {events.map((event) => (
-          <li key={`${event.title}:${event.id}`}>
-            <time dateTime={event.at}>{formatMalaysianDateTime(event.at)}</time>
-            <strong>{event.title}</strong>
-            <p>{event.detail}</p>
-            {event.kind === "inspection" && <span className={styles.actor}>{event.actor}</span>}
-            {event.request && (
-              <InspectionRepairLink
-                inspectionId={id}
-                selection={event.request}
-                disabled={disabled}
-                onSelect={onSelect}
-              />
-            )}
-            {event.kind === "inspection" && (
-              <div className={styles.eventActions}>
-                <StaffLink
-                  prefetch={false}
-                  target="_blank"
-                  rel="noopener"
-                  href={`/dashboard/inspection/${id}/reports/${event.revision}`}
-                >
-                  View inspection report
-                </StaffLink>
-                {hasRepairs(event.revision) && (
-                  <Button
-                    size="compact"
-                    variant="secondary"
-                    disabled={disabled}
-                    aria-expanded={previousRevision === event.revision}
-                    onClick={() =>
-                      selectRevision(previousRevision === event.revision ? 0 : event.revision)
-                    }
-                  >
-                    {previousRevision === event.revision
-                      ? "Hide repair requests"
-                      : "View repair requests"}
-                  </Button>
-                )}
+    <section
+      className={styles.history}
+      aria-label="Record history"
+      aria-busy={revisions.busy || repairs.busy || previous.busy}
+    >
+      <h2>Record history</h2>
+      {revisions.history?.totalCount === 0 && <p>No signed inspections yet.</p>}
+      <ol ref={rail} className={styles.timeline}>
+        {events.map((event) => {
+          const signed = event.kind === "inspection";
+          const current = event.revision === snapshot.draft.revision;
+          const expanded = previousRevision === event.revision;
+          return (
+            <li
+              key={`${event.kind}:${event.id}`}
+              data-repair-revision={
+                signed || event.kind === "reopening" ? undefined : event.revision
+              }
+              tabIndex={-1}
+            >
+              <div className={styles.eventHeading}>
+                <h3>{event.title}</h3>
+                <time dateTime={event.at}>{formatMalaysianDateTime(event.at)}</time>
               </div>
-            )}
-            {event.kind === "inspection" &&
-              hasRepairs(event.revision) &&
-              previousRevision === event.revision && (
-                <InspectionPreviousWork
-                  revision={previousRevision}
-                  read={selectedRepairs}
+              <span className={styles.context}>{event.context}</span>
+              {event.detail && (
+                <p className={event.kind === "request" ? styles.workSummary : undefined}>
+                  {event.detail}
+                </p>
+              )}
+              {event.request && (
+                <InspectionRepairLink
+                  inspectionId={id}
+                  selection={event.request}
                   disabled={disabled}
                   onSelect={onSelect}
                 />
               )}
-            <details>
-              <summary>Record details</summary>
-              <p className={styles.reference}>Receipt: {event.id}</p>
-              {event.kind !== "inspection" && (
-                <p className={styles.reference}>Actor: {event.actor}</p>
+              {signed && (
+                <div className={styles.eventActions}>
+                  <StaffLink
+                    prefetch={false}
+                    target="_blank"
+                    rel="noopener"
+                    href={`/dashboard/inspection/${id}/reports/${event.revision}`}
+                  >
+                    View inspection report
+                  </StaffLink>
+                  {!current && hasRepairs(event.revision) && (
+                    <Button
+                      size="compact"
+                      variant="ghost"
+                      className={styles.disclosure}
+                      disabled={disabled}
+                      aria-expanded={expanded}
+                      onClick={() => {
+                        revealRevision.current = expanded ? 0 : event.revision;
+                        selectRevision(expanded ? 0 : event.revision);
+                      }}
+                    >
+                      <Icon name="down" />
+                      {expanded ? "Hide repair history" : "Show repair history"}
+                    </Button>
+                  )}
+                </div>
               )}
-            </details>
-          </li>
-        ))}
+              {signed && !current && expanded && (
+                <InspectionHistoryProgress
+                  read={previous}
+                  label="Repair requests"
+                  disabled={disabled}
+                />
+              )}
+            </li>
+          );
+        })}
       </ol>
-      <InspectionHistoryProgress read={revisions} label="Signed revisions" disabled={disabled} />
+      <InspectionHistoryProgress read={revisions} label="Signed inspections" disabled={disabled} />
       {snapshot.draft.isSigned && (
         <InspectionHistoryProgress read={repairs} label="Repair requests" disabled={disabled} />
       )}

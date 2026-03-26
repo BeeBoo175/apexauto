@@ -56,7 +56,7 @@ export function RepairPanel({
     <>
       {active && (
         <section className={`${styles.section} ${workbench.stack}`}>
-          <div className={workbench.toolbar}>
+          <div className={`${workbench.toolbar} ${styles.repairHeading}`}>
             <h2 ref={heading} tabIndex={-1} className={workbench.sectionTitle}>
               {editing ? "Edit repair work & budget" : "Current repair work"}
             </h2>
@@ -83,7 +83,7 @@ export function RepairPanel({
           )}
           {!editing && latest && (
             <>
-              <RepairRequestDetails request={latest} report={report} showMetadata={false} />
+              <RepairRequestDetails request={latest} report={report} />
               {repairState?.coveringApprovalId && (
                 <p className={styles.help}>
                   {repairState.approvalId === repairState.coveringApprovalId

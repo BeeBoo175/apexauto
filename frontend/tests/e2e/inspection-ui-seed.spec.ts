@@ -60,22 +60,30 @@ test("seeded inspections demonstrate grading, rejection, repairs and retained re
     const details = page.getByRole("dialog", { name: /^Vehicle & (inspection|request) details$/ });
     await expect(details.getByText(example.grade, { exact: true })).toBeVisible();
     await details.getByRole("button", { name: "Close dialog", exact: true }).click();
-    if (example.plate === 6307) {
+    if ([6296, 6297, 6307].includes(example.plate)) {
       await dialog
         .getByRole("navigation", { name: "Workshop sections" })
         .getByRole("button", { name: "History", exact: true })
         .click();
+    }
+    if ([6296, 6297].includes(example.plate)) {
+      const history = dialog.getByRole("region", { name: "Record history", exact: true });
+      await expect(history.getByRole("link", { name: "Open repair request" })).toHaveCount(0);
+      await expect(history.getByRole("button", { name: "Show repair history" })).toHaveCount(0);
+    }
+    if (example.plate === 6307) {
       for (const [revision, grade] of [
         [1, "Grade B"],
         [2, "Grade A"],
       ] as const) {
-        const event = dialog.getByRole("listitem").filter({
-          has: page.getByText(`Inspection revision ${revision} signed`, { exact: true }),
+        const inspection = dialog.getByRole("listitem").filter({
+          has: page.locator(`a[href$="/reports/${revision}"]`),
         });
-        await event.getByText("View details", { exact: true }).click();
-        await expect(event.getByText(new RegExp(`^${grade} · Original estimate`))).toBeVisible();
         await expect(
-          event.getByRole("link", { name: `Open signed revision ${revision}`, exact: true }),
+          inspection.getByText(`Inspection ${revision} · ${grade}`, { exact: true }),
+        ).toBeVisible();
+        await expect(
+          inspection.getByRole("link", { name: "View inspection report", exact: true }),
         ).toBeVisible();
       }
       await page.screenshot({ path: path.join(evidence, "seeded-reinspection.png") });
@@ -124,24 +132,42 @@ test("seeded inspections demonstrate grading, rejection, repairs and retained re
     const dialog = page.getByRole("dialog", { name: `${prefix} ${plate}`, exact: true });
     await dialog
       .getByRole("navigation", { name: "Workshop sections" })
+      .getByRole("button", { name: "Repairs", exact: true })
+      .click();
+    await expect(
+      dialog.getByRole("heading", { name: "Current repair work", exact: true }),
+    ).toBeVisible();
+    if (plate === 6308) {
+      await page.screenshot({ path: path.join(evidence, "seeded-current-repair.png") });
+    }
+    if (plate === 6306) {
+      await page.screenshot({ path: path.join(evidence, "seeded-single-current-repair.png") });
+    }
+    await dialog
+      .getByRole("navigation", { name: "Workshop sections" })
       .getByRole("button", { name: "History", exact: true })
       .click();
-    const original = dialog
-      .getByRole("listitem")
-      .filter({
-        has: page.getByText("Repair budget requested", { exact: true }),
-      })
-      .filter({ hasText: "Work version 1 ·" });
-    await original.getByText("View details", { exact: true }).click();
-    await original.getByRole("link", { name: "Open repair request", exact: true }).click();
+    const history = dialog.getByRole("region", { name: "Record history", exact: true });
+    const requests = history.getByRole("link", { name: "Open repair request", exact: true });
+    await expect(requests).toHaveCount(2);
+    if (plate === 6308) {
+      await page.screenshot({ path: path.join(evidence, "seeded-multiple-requests.png") });
+    }
+    await requests.last().click();
     const retained = dialog.getByRole("region", { name: "Selected retained repair request" });
     await expect(
       retained.getByRole("heading", { name: "Retained repair request", exact: true }),
     ).toBeVisible();
-    await expect(retained.getByText(/This request is historical/)).toBeVisible();
+    await expect(dialog.locator("footer").getByText("Historical repair work")).toBeVisible();
+    await expect(
+      dialog.locator("footer").getByRole("button", { name: "Back to current repairs" }),
+    ).toBeVisible();
     await expect(dialog.getByRole("button", { name: "Approve budget", exact: true })).toHaveCount(
       0,
     );
+    if (plate === 6306) {
+      await page.screenshot({ path: path.join(evidence, "seeded-single-retained-repair.png") });
+    }
     if (plate === 6308) {
       await expect(
         retained.getByText(/Recorded work completed and the affected component reinspected/),

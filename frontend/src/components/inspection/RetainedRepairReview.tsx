@@ -8,7 +8,7 @@ import { RefreshButton } from "@/components/ui/RefreshButton";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { Button } from "@/components/ui/Button";
 import { formatMalaysianDateTime } from "@/lib/date-format";
-import { RepairRequestDetails } from "./RepairRequestDetails";
+import { RepairRequestDetails, RepairRequestMetadata } from "./RepairRequestDetails";
 import styles from "./Inspection.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 import { AppointmentLoadingShell } from "@/components/staff/AppointmentLoadingShell";
@@ -53,10 +53,10 @@ export function RetainedRepairReview({
           />,
           actionsContainer,
         )}
-      <h2 className={workbench.sectionTitle}>Retained repair request</h2>
-      <p className={workbench.help}>
-        This request is historical. Approval and completion apply only to the current request.
-      </p>
+      <div className={`${workbench.toolbar} ${styles.repairHeading}`}>
+        <h2 className={workbench.sectionTitle}>Retained repair request</h2>
+        {review.result && <RepairRequestMetadata request={review.result.entry.request} />}
+      </div>
       {review.busy && !review.result && (
         <AppointmentLoadingShell
           label="Loading selected work and signed findings…"

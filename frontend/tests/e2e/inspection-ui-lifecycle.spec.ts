@@ -58,12 +58,24 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   const mobile = info.project.name === "mobile";
   const technician = mobile ? "amirul.izzat@example.invalid" : "farid.hakim@example.invalid";
   const managerEmail = mobile ? "nur.syafiqah@example.invalid" : "siti.aminah@example.invalid";
-  const counts = () =>
-    JSON.parse(readFileSync(path.join(evidence, "counts.json"), "utf8")) as Record<string, number>;
-  const before = counts()["/api/staff/inspection/workshop/jobs"] ?? 0;
+  const counts = async () => {
+    let snapshot: Record<string, number> | null = null;
+    await expect
+      .poll(() => {
+        try {
+          snapshot = JSON.parse(readFileSync(path.join(evidence, "counts.json"), "utf8"));
+          return true;
+        } catch {
+          return false;
+        }
+      })
+      .toBe(true);
+    return snapshot!;
+  };
+  const before = (await counts())["/api/staff/inspection/workshop/jobs"] ?? 0;
   await login(page, technician, "/dashboard/inspection");
   await expect(page.getByRole("button", { name: "Refresh workshop", exact: true })).toBeEnabled();
-  expect(counts()["/api/staff/inspection/workshop/jobs"] - before).toBe(3);
+  expect((await counts())["/api/staff/inspection/workshop/jobs"] - before).toBe(3);
   await expect(page.getByRole("heading", { name: "Select a job", exact: true })).toBeVisible();
   await screenshot(page, "inspection-queue");
   await page
@@ -176,7 +188,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     .click();
   await expect(page.getByRole("button", { name: "Sign inspection", exact: true })).toBeEnabled();
   expect(
-    counts()[
+    (await counts())[
       `/api/staff/inspection/drafts/${id}/photos/${JSON.parse(bodies[0]).photoIds[0]}/receipt`
     ] ?? 0,
   ).toBe(0);
@@ -361,6 +373,19 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     "Bumper repair and finish checked. Reinspection complete.",
   );
   await page.unroute(`**/api/staff/inspection/drafts/${id}/repair-completions`);
+  await page
+    .getByRole("navigation", { name: "Workshop sections" })
+    .getByRole("button", { name: "History", exact: true })
+    .click();
+  const history = page.getByRole("region", { name: "Record history", exact: true });
+  await expect(history.getByRole("link", { name: "Open repair request", exact: true })).toHaveCount(
+    1,
+  );
+  await expect(history.getByRole("button", { name: "Show repair history" })).toHaveCount(0);
+  await expect(
+    history.getByText("Bumper repair and finish checked. Reinspection complete.", { exact: true }),
+  ).toBeVisible();
+  await screenshot(page, "inspection-current-history");
   const reportHref = await page
     .getByRole("link", { name: "Open signed report · revision 1", exact: true })
     .getAttribute("href");
@@ -478,6 +503,11 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   ).toBeVisible();
   await expect(manager.getByRole("button", { name: "Approve budget", exact: true })).toHaveCount(0);
   await manager
+    .locator("footer")
+    .getByRole("button", { name: "Back to current repairs", exact: true })
+    .click();
+  await expect(manager.getByRole("heading", { name: "Retained repair request" })).toHaveCount(0);
+  await manager
     .getByRole("dialog", { name: registration, exact: true })
     .getByRole("button", { name: "Close dialog", exact: true })
     .click();
@@ -508,6 +538,33 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   await page.getByRole("link", { name: "Back to inspection", exact: true }).click();
   await expect(page.getByRole("button", { name: "Save draft", exact: true })).toBeEnabled();
   await selectPoint(page, "EP-004");
+  await page.getByLabel("EP-004 finding notes", { exact: true }).fill("Retained local findings.");
+  await page
+    .getByRole("navigation", { name: "Workshop sections" })
+    .getByRole("button", { name: "History", exact: true })
+    .click();
+  const previousHistory = `**/api/staff/inspection/reports/${id}/revisions/1/repair-history?*`;
+  await page.route(previousHistory, (route) => route.fulfill({ status: 502, body: "Unavailable" }));
+  await history.getByRole("button", { name: "Show repair history", exact: true }).click();
+  await expect(history.getByRole("button", { name: "Retry repair requests" })).toBeVisible();
+  await page.unroute(previousHistory);
+  await history.getByRole("button", { name: "Retry repair requests" }).click();
+  await expect(history.getByRole("link", { name: "Open repair request", exact: true })).toHaveCount(
+    1,
+  );
+  await screenshot(page, "inspection-previous-history");
+  await history.getByRole("link", { name: "Open repair request", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Retained repair request" })).toBeVisible();
+  await expect(page.locator("footer").getByRole("button", { name: "Save draft" })).toBeEnabled();
+  await screenshot(page, "inspection-retained-footer");
+  await page.locator("footer").getByRole("button", { name: "Back to current repairs" }).click();
+  await page
+    .getByRole("navigation", { name: "Workshop sections" })
+    .getByRole("button", { name: "Inspection", exact: true })
+    .click();
+  await expect(page.getByLabel("EP-004 finding notes", { exact: true })).toHaveValue(
+    "Retained local findings.",
+  );
   await page.getByLabel("EP-004 severity", { exact: true }).selectOption("CriticalDisqualifier");
   await page
     .getByLabel("EP-004 finding notes", { exact: true })

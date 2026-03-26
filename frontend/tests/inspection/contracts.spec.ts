@@ -12,6 +12,90 @@ import { appliedWorklistFilters } from "@/lib/staff/filter-summary";
 import { checklistDraft, saveContents } from "@/lib/inspection/draft";
 import type { Draft } from "@/lib/inspection/contracts";
 import { parseRevisions } from "@/lib/inspection/parse-report";
+import { inspectionTimeline } from "@/lib/inspection/timeline";
+import type { RepairHistory, RevisionHistory } from "@/lib/inspection/report-contracts";
+
+test("repair milestones remain chronological with one request destination and no duplicated receipts", () => {
+  const request = {
+    operationId: "request",
+    inspectionId: "inspection",
+    branchId: "branch",
+    actorId: "technician",
+    signedRevisionId: "signed",
+    assignmentVersion: 1,
+    revision: 1,
+    expectedVersion: 0,
+    version: 1,
+    items: [{ pointCode: "EP-004", work: "Refinish the bumper." }],
+    budget: 750,
+    requestedAt: "2026-10-24T08:10:00Z",
+  };
+  const receipt = {
+    inspectionId: "inspection",
+    branchId: "branch",
+    actorId: "manager",
+    requestId: request.operationId,
+    assignmentVersion: 1,
+    revision: 1,
+    repairVersion: 1,
+  };
+  const repairs: RepairHistory = {
+    inspectionId: "inspection",
+    revision: 1,
+    page: 1,
+    pageSize: 25,
+    totalCount: 1,
+    items: [
+      {
+        request,
+        approval: { ...receipt, operationId: "approval", approvedAt: "2026-10-24T08:20:00Z" },
+        completion: {
+          ...receipt,
+          operationId: "completion",
+          approvalId: "approval",
+          completedAt: "2026-10-24T08:30:00Z",
+          notes: "Finish checked after repair.",
+        },
+      },
+    ],
+  };
+  const revisions: RevisionHistory = {
+    inspectionId: "inspection",
+    currentRevision: 2,
+    isSigned: false,
+    page: 1,
+    pageSize: 25,
+    totalCount: 1,
+    items: [
+      {
+        operationId: "signed",
+        revision: 1,
+        saveVersion: 1,
+        assignmentVersion: 1,
+        technicianId: "technician",
+        technicianIdentity: "Workshop technician",
+        catalogVersion: "v1",
+        assessment: { estimatedRepairCost: 750, grade: "B", isRejected: false },
+        signedAt: "2026-10-24T08:00:00Z",
+        reopening: null,
+        hasRepairRequests: true,
+      },
+    ],
+  };
+  const events = inspectionTimeline(revisions, null, repairs);
+  expect(events.map((event) => event.kind)).toEqual([
+    "completion",
+    "approval",
+    "request",
+    "inspection",
+  ]);
+  expect(events.filter((event) => event.request).map((event) => event.request?.requestId)).toEqual([
+    "request",
+  ]);
+  expect(events[0].detail).toBe("Finish checked after repair.");
+  expect(inspectionTimeline(revisions, repairs, repairs)).toEqual(events);
+  expect(inspectionTimeline(null, null)).toEqual([]);
+});
 
 test("inspection history requires explicit repair availability before offering a drill-down", () => {
   const item = {
