@@ -1,4 +1,3 @@
-using System.Data;
 using System.Linq.Expressions;
 using Dealership.Application.Accounts;
 using Dealership.Application.Common;
@@ -27,8 +26,14 @@ public sealed class ListingReadStore(DealershipDbContext database) : IListingRea
             return new(ListingStatus.Invalid);
         }
 
-        // Current manager scope, totals and editor summaries share one snapshot.
-        await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead, cancellationToken);
+        return await ReservationReadSnapshot.ReadAsync(database,
+            () => ReadSnapshotAsync(actorId, filter, cancellationToken),
+            new ListingManagerPageResult(ListingStatus.Unavailable), cancellationToken);
+    }
+
+    private async Task<ListingManagerPageResult> ReadSnapshotAsync(Guid actorId, ListingReadFilter filter,
+        CancellationToken cancellationToken)
+    {
         var actor = await ReadActorAsync(actorId, filter.BranchId, cancellationToken);
         if (actor is null)
         {
@@ -45,10 +50,21 @@ public sealed class ListingReadStore(DealershipDbContext database) : IListingRea
         }
 
         var total = await rows.CountAsync(cancellationToken);
-        var items = await rows.OrderBy(row => row.BranchName).ThenBy(row => row.Vehicle.RegistrationPlate).ThenBy(row => row.Vehicle.Id)
-            .Select(Item)
+        var pageIds = await rows.OrderBy(row => row.BranchName).ThenBy(row => row.Vehicle.RegistrationPlate).ThenBy(row => row.Vehicle.Id)
+            .Select(row => row.Vehicle.Id)
             .ReadPageAsync(filter.Page, filter.PageSize, total, cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+        var vehicleIds = await database.Vehicles.Where(vehicle => pageIds.Contains(vehicle.Id) &&
+                database.Reservations.Any(item => item.VehicleId == vehicle.Id && item.IsActive))
+            .OrderBy(vehicle => vehicle.Id).Select(vehicle => vehicle.Id).ToArrayAsync(cancellationToken);
+        // Hold state does not change list membership; only this page needs ordered catch-up.
+        foreach (var vehicleId in vehicleIds)
+        {
+            await ReservationReadSnapshot.ReconcileAsync(database, vehicleId, cancellationToken);
+        }
+
+        var items = await rows.Where(row => pageIds.Contains(row.Vehicle.Id))
+            .OrderBy(row => row.BranchName).ThenBy(row => row.Vehicle.RegistrationPlate).ThenBy(row => row.Vehicle.Id)
+            .Select(Item).ToArrayAsync(cancellationToken);
         return new(ListingStatus.Succeeded, new(Array.AsReadOnly(items), total, filter.Page, filter.PageSize));
     }
 
@@ -59,20 +75,28 @@ public sealed class ListingReadStore(DealershipDbContext database) : IListingRea
             return new(ListingStatus.Invalid);
         }
 
-        await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead, cancellationToken);
+        return await ReservationReadSnapshot.ReadAsync(database,
+            () => WorkspaceSnapshotAsync(actorId, vehicleId, cancellationToken),
+            new ListingWorkspaceResult(ListingStatus.Unavailable), cancellationToken);
+    }
+
+    private async Task<ListingWorkspaceResult> WorkspaceSnapshotAsync(Guid actorId, Guid vehicleId,
+        CancellationToken cancellationToken)
+    {
         var actor = await ReadActorAsync(actorId, null, cancellationToken);
         if (actor is null)
         {
             return new(ListingStatus.Forbidden);
         }
 
-        var vehicle = await Rows(actor.BranchId).Where(row => row.Vehicle.Id == vehicleId).Select(Item)
-            .SingleOrDefaultAsync(cancellationToken);
-        if (vehicle is null)
+        var rows = Rows(actor.BranchId).Where(row => row.Vehicle.Id == vehicleId);
+        if (!await rows.AnyAsync(cancellationToken))
         {
             return new(ListingStatus.NotFound);
         }
 
+        await ReservationReadSnapshot.ReconcileAsync(database, vehicleId, cancellationToken);
+        var vehicle = await rows.Select(Item).SingleAsync(cancellationToken);
         var draft = await database.ListingRevisions.AsNoTracking()
             .SingleOrDefaultAsync(row => row.Id == vehicle.RevisionId, cancellationToken);
         var approved = await database.ListingRevisions.AsNoTracking()
@@ -85,7 +109,6 @@ public sealed class ListingReadStore(DealershipDbContext database) : IListingRea
                               join inspection in database.InspectionDrafts.AsNoTracking() on signed.InspectionId equals inspection.Id
                               where inspection.VehicleId == vehicleId && inspection.IsSigned && inspection.Revision == signed.Revision
                               select (Guid?)signed.Id).SingleOrDefaultAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
         return new(ListingStatus.Succeeded, new(vehicle, draft, approved, publication, withdrawal, signedId));
     }
 
@@ -97,7 +120,14 @@ public sealed class ListingReadStore(DealershipDbContext database) : IListingRea
             return new(ListingStatus.Invalid);
         }
 
-        await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead, cancellationToken);
+        return await ReservationReadSnapshot.ReadAsync(database,
+            () => PhotosSnapshotAsync(actorId, vehicleId, page, pageSize, cancellationToken),
+            new ListingPhotoPageResult(ListingStatus.Unavailable), cancellationToken);
+    }
+
+    private async Task<ListingPhotoPageResult> PhotosSnapshotAsync(Guid actorId, Guid vehicleId, int page, int pageSize,
+        CancellationToken cancellationToken)
+    {
         var actor = await ReadActorAsync(actorId, null, cancellationToken);
         if (actor is null)
         {
@@ -111,12 +141,12 @@ public sealed class ListingReadStore(DealershipDbContext database) : IListingRea
             return new(ListingStatus.NotFound);
         }
 
+        await ReservationReadSnapshot.ReconcileAsync(database, vehicleId, cancellationToken);
         var photos = database.ListingPhotos.AsNoTracking().Where(row => row.VehicleId == vehicleId);
         var total = await photos.CountAsync(cancellationToken);
         var items = await photos.OrderByDescending(row => row.CreatedAt).ThenBy(row => row.Id)
             .Select(row => new ListingPhotoItem(row.Id, row.ContentType, row.Bytes, row.Width, row.Height, row.CreatedAt, row.AvailableAt))
             .ReadPageAsync(page, pageSize, total, cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
         return new(ListingStatus.Succeeded, new(Array.AsReadOnly(items), total, page, pageSize));
     }
 

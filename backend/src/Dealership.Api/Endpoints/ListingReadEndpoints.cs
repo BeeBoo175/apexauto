@@ -79,6 +79,7 @@ public static class ListingReadEndpoints
         ListingStatus.Invalid => Results.Problem(statusCode: 400, title: "Provide valid listing filters and a page size of 10, 25 or 50."),
         ListingStatus.Forbidden => Results.Forbid(),
         ListingStatus.NotFound => Results.NotFound(),
+        ListingStatus.Unavailable => Unavailable(),
         _ => Results.Problem(statusCode: 500)
     };
 }

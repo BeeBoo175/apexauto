@@ -25,7 +25,7 @@ public sealed class ListingService(IListingStore listings)
 
         if (context.ExistingPublication is not null || context.ExistingWithdrawal is not null)
         {
-            return new(ListingStatus.Conflict);
+            return await CompleteAsync(transaction, new(ListingStatus.Conflict), cancellationToken);
         }
 
         ListingRevision revision;
@@ -37,11 +37,11 @@ public sealed class ListingService(IListingStore listings)
         }
         catch (ArgumentException)
         {
-            return new(ListingStatus.Invalid);
+            return await CompleteAsync(transaction, new(ListingStatus.Invalid), cancellationToken);
         }
         catch (OverflowException)
         {
-            return new(ListingStatus.Invalid);
+            return await CompleteAsync(transaction, new(ListingStatus.Invalid), cancellationToken);
         }
 
         var existing = context.ExistingDraft;
@@ -52,13 +52,14 @@ public sealed class ListingService(IListingStore listings)
                 existing.RoadTax == revision.RoadTax && existing.Transmission == revision.Transmission &&
                 existing.Fuel == revision.Fuel && existing.Description == revision.Description &&
                 existing.PhotoIds.SequenceEqual(request.PhotoIds);
-            return matches ? new(ListingStatus.Succeeded, Draft: existing) : new(ListingStatus.Conflict);
+            return await CompleteAsync(transaction,
+                matches ? new(ListingStatus.Succeeded, Draft: existing) : new(ListingStatus.Conflict), cancellationToken);
         }
 
         if ((context.LatestRevision?.Version ?? 0) != request.ExpectedVersion ||
             request.PhotoIds.Any(id => !context.AvailablePhotoIds.Contains(id)))
         {
-            return new(ListingStatus.Conflict);
+            return await CompleteAsync(transaction, new(ListingStatus.Conflict), cancellationToken);
         }
 
         var status = await transaction.SaveAsync(revision, request.PhotoIds, cancellationToken);
@@ -83,22 +84,23 @@ public sealed class ListingService(IListingStore listings)
 
         if (context.ExistingDraft is not null || context.ExistingWithdrawal is not null)
         {
-            return new(ListingStatus.Conflict);
+            return await CompleteAsync(transaction, new(ListingStatus.Conflict), cancellationToken);
         }
 
         var existing = context.ExistingPublication;
         if (existing is not null)
         {
-            return existing.ActorId == actorId && existing.VehicleId == vehicleId &&
-                existing.RevisionId == request.RevisionId && existing.SignedRevisionId == request.SignedRevisionId
-                ? new(ListingStatus.Succeeded, Publication: existing) : new(ListingStatus.Conflict);
+            var matches = existing.ActorId == actorId && existing.VehicleId == vehicleId &&
+                existing.RevisionId == request.RevisionId && existing.SignedRevisionId == request.SignedRevisionId;
+            return await CompleteAsync(transaction,
+                matches ? new(ListingStatus.Succeeded, Publication: existing) : new(ListingStatus.Conflict), cancellationToken);
         }
 
         var revision = context.LatestRevision;
         if (revision?.Id != request.RevisionId || context.Vehicle!.Status != VehicleStatus.Available ||
             context.SignedRevisionId != request.SignedRevisionId || context.LatestPublication?.RevisionId == request.RevisionId)
         {
-            return new(ListingStatus.Conflict);
+            return await CompleteAsync(transaction, new(ListingStatus.Conflict), cancellationToken);
         }
 
         var publication = new ListingPublication(request.OperationId, revision!, request.SignedRevisionId, actorId, context.Now);
@@ -125,25 +127,33 @@ public sealed class ListingService(IListingStore listings)
 
         if (context.ExistingDraft is not null || context.ExistingPublication is not null)
         {
-            return new(ListingStatus.Conflict);
+            return await CompleteAsync(transaction, new(ListingStatus.Conflict), cancellationToken);
         }
 
         var existing = context.ExistingWithdrawal;
         if (existing is not null)
         {
-            return existing.ActorId == actorId && existing.VehicleId == vehicleId &&
-                existing.PublicationId == request.PublicationId && existing.Reason == request.Reason.Trim()
-                ? new(ListingStatus.Succeeded, Withdrawal: existing) : new(ListingStatus.Conflict);
+            var matches = existing.ActorId == actorId && existing.VehicleId == vehicleId &&
+                existing.PublicationId == request.PublicationId && existing.Reason == request.Reason.Trim();
+            return await CompleteAsync(transaction,
+                matches ? new(ListingStatus.Succeeded, Withdrawal: existing) : new(ListingStatus.Conflict), cancellationToken);
         }
 
         if (context.LatestPublication?.Id != request.PublicationId || context.IsWithdrawn)
         {
-            return new(ListingStatus.Conflict);
+            return await CompleteAsync(transaction, new(ListingStatus.Conflict), cancellationToken);
         }
 
         var withdrawal = new ListingWithdrawal(request.OperationId, context.LatestPublication!, actorId, request.Reason, context.Now);
         var status = await transaction.WithdrawAsync(withdrawal, cancellationToken);
         return new(status, Withdrawal: status == ListingStatus.Succeeded ? withdrawal : null);
+    }
+
+    private static async Task<ListingResult> CompleteAsync(IListingTransaction transaction, ListingResult result,
+        CancellationToken cancellationToken)
+    {
+        await transaction.CompleteAsync(cancellationToken);
+        return result;
     }
 
     private static bool ValidIds(Guid actorId, Guid vehicleId, Guid operationId) =>

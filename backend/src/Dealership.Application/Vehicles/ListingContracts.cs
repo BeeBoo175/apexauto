@@ -41,6 +41,8 @@ public interface IListingTransaction : IAsyncDisposable
 {
     ListingContext Context { get; }
 
+    Task CompleteAsync(CancellationToken cancellationToken);
+
     Task<ListingStatus> SaveAsync(ListingRevision revision, IReadOnlyList<Guid> photoIds, CancellationToken cancellationToken);
 
     Task<ListingStatus> PublishAsync(ListingPublication publication, CancellationToken cancellationToken);

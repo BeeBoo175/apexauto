@@ -12,6 +12,11 @@ internal sealed class ListingTransaction(DealershipDbContext database, IDbContex
 {
     public ListingContext Context => context;
 
+    public Task CompleteAsync(CancellationToken cancellationToken)
+    {
+        return transaction.CommitAsync(cancellationToken);
+    }
+
     public Task<ListingStatus> SaveAsync(ListingRevision revision, IReadOnlyList<Guid> photoIds, CancellationToken cancellationToken)
     {
         database.ListingRevisionPhotos.AddRange(photoIds.Select((id, index) =>
@@ -32,6 +37,7 @@ internal sealed class ListingTransaction(DealershipDbContext database, IDbContex
     private async Task<ListingStatus> CommitAsync<TEntity>(TEntity operation, CancellationToken cancellationToken)
         where TEntity : class
     {
+        await transaction.CreateSavepointAsync("listing_operation", cancellationToken);
         database.Add(operation);
         try
         {
@@ -42,6 +48,10 @@ internal sealed class ListingTransaction(DealershipDbContext database, IDbContex
         catch (DbUpdateException exception) when (exception.InnerException is PostgresException
         { SqlState: PostgresErrorCodes.UniqueViolation })
         {
+            // A rejected listing write must retain refunds reconciled before its savepoint.
+            await transaction.RollbackToSavepointAsync("listing_operation", cancellationToken);
+            database.ChangeTracker.Clear();
+            await transaction.CommitAsync(cancellationToken);
             return ListingStatus.Conflict;
         }
     }

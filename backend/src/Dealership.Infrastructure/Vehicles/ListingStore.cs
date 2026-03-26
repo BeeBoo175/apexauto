@@ -35,6 +35,12 @@ public sealed class ListingStore(DealershipDbContext database) : IListingStore
             var vehicle = await database.Vehicles.FromSqlInterpolated(
                 $"SELECT * FROM \"Vehicles\" WHERE \"Id\" = {vehicleId} FOR UPDATE")
                 .AsNoTracking().SingleOrDefaultAsync(cancellationToken);
+            if (vehicle is not null && branchActive &&
+                (actor.Role == AccountRoles.GeneralManager || actor.BranchId == vehicle.BranchId))
+            {
+                await ReservationReadSnapshot.ReconcileAsync(database, vehicleId, cancellationToken);
+            }
+
             var latestRevision = await database.ListingRevisions.AsNoTracking()
                 .Where(item => item.VehicleId == vehicleId).OrderByDescending(item => item.Version)
                 .FirstOrDefaultAsync(cancellationToken);
