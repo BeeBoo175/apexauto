@@ -1,3 +1,5 @@
+using System.Numerics;
+
 namespace Dealership.Domain.Common;
 
 public readonly record struct Money
@@ -17,6 +19,36 @@ public readonly record struct Money
     public static Money From(decimal amount)
     {
         return new Money(amount);
+    }
+
+    public static Money FromProduct(decimal amount, decimal multiplier)
+    {
+        var (amountUnits, amountScale) = DecimalParts(amount);
+        var (multiplierUnits, multiplierScale) = DecimalParts(multiplier);
+        var product = amountUnits * multiplierUnits;
+        var divisor = BigInteger.Pow(10, amountScale + multiplierScale);
+        var minorUnits = BigInteger.DivRem(product * 100, divisor, out var remainder);
+
+        // Round once, after multiplication, so decimal precision cannot move a value onto a half-sen tie.
+        if (BigInteger.Abs(remainder) * 2 >= divisor)
+        {
+            minorUnits += product.Sign;
+        }
+
+        var whole = BigInteger.DivRem(minorUnits, 100, out var sen);
+        return From((decimal)whole + (decimal)sen / 100m);
+    }
+
+    private static (BigInteger Units, int Scale) DecimalParts(decimal value)
+    {
+        var bits = decimal.GetBits(value);
+        var units = (BigInteger)(uint)bits[0] | (BigInteger)(uint)bits[1] << 32 | (BigInteger)(uint)bits[2] << 64;
+        if (bits[3] < 0)
+        {
+            units = -units;
+        }
+
+        return (units, (bits[3] >> 16) & 0xff);
     }
 
     public static Money operator +(Money left, Money right)

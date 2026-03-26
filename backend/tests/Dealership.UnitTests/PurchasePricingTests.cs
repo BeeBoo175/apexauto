@@ -1,9 +1,22 @@
+using Dealership.Domain.Common;
 using Dealership.Domain.Vehicles;
 
 namespace Dealership.UnitTests;
 
 public sealed class PurchasePricingTests
 {
+    [Fact]
+    public void PriceRoundsTheExactTaxProductOnceAtMinorUnits()
+    {
+        const decimal rate = 0.1666666666666666666666666666m;
+        Assert.Equal(0m, PurchasePricing.CalculatePrice(1m, 0.03m, 0m, rate).ServiceTax);
+        Assert.Equal(0.01m, PurchasePricing.CalculatePrice(1m, 0.03m, 0m, rate + 0.0000000000000000000000000001m).ServiceTax);
+        Assert.Equal(0.01m, Money.FromProduct(0.05m, 0.1m).Amount);
+        Assert.Equal(-0.01m, Money.FromProduct(-0.05m, 0.1m).Amount);
+        Assert.Equal(0m, Money.FromProduct(-0.03m, rate).Amount);
+        Assert.Equal(decimal.MaxValue, Money.FromProduct(decimal.MaxValue, 1m).Amount);
+    }
+
     [Fact]
     public void PriceTaxesOnlyTheProcessingFeeAndSubtractsOnePromo()
     {

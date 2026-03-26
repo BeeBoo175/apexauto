@@ -26,7 +26,7 @@ public static class PurchasePricing
         ArgumentOutOfRangeException.ThrowIfGreaterThan(serviceTaxRate, 1m);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(promoDiscount, vehiclePrice);
 
-        var serviceTax = Money.From(processingFee * serviceTaxRate).Amount;
+        var serviceTax = Money.FromProduct(processingFee, serviceTaxRate).Amount;
         var total = vehiclePrice - promoDiscount + processingFee + roadTax + serviceTax;
         return new PurchasePrice(vehiclePrice, processingFee, roadTax, serviceTax, promoDiscount, total);
     }
