@@ -1,10 +1,8 @@
-using System.Data;
 using Dealership.Application.Accounts;
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 
 namespace Dealership.Infrastructure.Vehicles;
 
@@ -28,26 +26,14 @@ public sealed class ReservationReadStore(DealershipDbContext database) : IReserv
             return new(ReservationStatus.Invalid);
         }
 
-        // Reconciliation writes can race another release; retry the whole snapshot, never part of it.
-        for (var attempt = 0; attempt < 3; attempt++)
-        {
-            try
-            {
-                return await ReadSnapshotAsync(actorId, filter, staff, cancellationToken);
-            }
-            catch (Exception exception) when (IsSerializationFailure(exception))
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-            }
-        }
-
-        return new(ReservationStatus.Unavailable);
+        return await ReservationReadSnapshot.ReadAsync(database,
+            () => ReadSnapshotAsync(actorId, filter, staff, cancellationToken),
+            new ReservationHistoryResult(ReservationStatus.Unavailable), cancellationToken);
     }
 
     private async Task<ReservationHistoryResult> ReadSnapshotAsync(Guid actorId, ReservationReadFilter filter, bool staff,
         CancellationToken cancellationToken)
     {
-        await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead, cancellationToken);
         var actor = await ReadActorAsync(actorId, filter.BranchId, staff, cancellationToken);
         if (actor is null)
         {
@@ -75,12 +61,7 @@ public sealed class ReservationReadStore(DealershipDbContext database) : IReserv
         // PostgreSQL UUID ordering matches commands; the helper never locks another Customer.
         foreach (var vehicleId in vehicleIds)
         {
-            await database.Database.ExecuteSqlInterpolatedAsync(
-                $"SELECT 1 FROM \"Vehicles\" WHERE \"Id\" = {vehicleId} FOR UPDATE", cancellationToken);
-            await database.Database.ExecuteSqlInterpolatedAsync(
-                $"SELECT 1 FROM \"Reservations\" WHERE \"VehicleId\" = {vehicleId} AND \"IsActive\" FOR UPDATE", cancellationToken);
-            await database.Database.ExecuteSqlInterpolatedAsync(
-                $"SELECT release_unavailable_reservation({vehicleId})", cancellationToken);
+            await ReservationReadSnapshot.ReconcileAsync(database, vehicleId, cancellationToken);
         }
 
         var rows = await Rows(reservations.Where(item => pageIds.Contains(item.Id)))
@@ -93,7 +74,6 @@ public sealed class ReservationReadStore(DealershipDbContext database) : IReserv
             active = activeRow is null ? null : ToItem(activeRow);
         }
 
-        await transaction.CommitAsync(cancellationToken);
         return new(ReservationStatus.Succeeded, new(actor, Array.AsReadOnly(items), total, filter.Page, filter.PageSize, active));
     }
 
@@ -136,16 +116,6 @@ public sealed class ReservationReadStore(DealershipDbContext database) : IReserv
         }
 
         return actor;
-    }
-
-    private static bool IsSerializationFailure(Exception exception)
-    {
-        if (exception is PostgresException { SqlState: PostgresErrorCodes.SerializationFailure })
-        {
-            return true;
-        }
-
-        return exception.InnerException is not null && IsSerializationFailure(exception.InnerException);
     }
 
     private sealed record Row(Reservation Reservation, string BranchName, string Make, string Model, string Trim,

@@ -86,27 +86,35 @@ public sealed class ListingPhotoStore(DealershipDbContext database) : IListingPh
 
     public async Task<ListingPhotoPreparation> FindAsync(Guid? actorId, Guid vehicleId, Guid id, CancellationToken cancellationToken)
     {
-        await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
-        if (actorId.HasValue)
+        if (!actorId.HasValue)
         {
-            var access = await LockAccessAsync(actorId.Value, vehicleId, cancellationToken);
-            if (access != ListingPhotoStatus.Available)
-            {
-                return new(access);
-            }
-        }
-        else
-        {
-            var isPublic = await (from listing in PublicListingQuery.Read(database)
-                                  join link in database.ListingRevisionPhotos on listing.Revision.Id equals link.RevisionId
-                                  where link.PhotoId == id && listing.Vehicle.Id == vehicleId
-                                  select link.PhotoId).AnyAsync(cancellationToken);
-            if (!isPublic)
-            {
-                return new(ListingPhotoStatus.NotFound);
-            }
+            return await ReservationReadSnapshot.ReadAsync(database,
+                () => FindPublicAsync(vehicleId, id, cancellationToken),
+                new ListingPhotoPreparation(ListingPhotoStatus.Unavailable), cancellationToken);
         }
 
+        await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
+        var access = await LockAccessAsync(actorId.Value, vehicleId, cancellationToken);
+        if (access != ListingPhotoStatus.Available)
+        {
+            return new(access);
+        }
+
+        return await FindPhotoAsync(vehicleId, id, cancellationToken);
+    }
+
+    private async Task<ListingPhotoPreparation> FindPublicAsync(Guid vehicleId, Guid id, CancellationToken cancellationToken)
+    {
+        await ReservationReadSnapshot.ReconcileAsync(database, vehicleId, cancellationToken);
+        var isPublic = await (from listing in PublicListingQuery.Read(database)
+                              join link in database.ListingRevisionPhotos on listing.Revision.Id equals link.RevisionId
+                              where link.PhotoId == id && listing.Vehicle.Id == vehicleId
+                              select link.PhotoId).AnyAsync(cancellationToken);
+        return isPublic ? await FindPhotoAsync(vehicleId, id, cancellationToken) : new(ListingPhotoStatus.NotFound);
+    }
+
+    private async Task<ListingPhotoPreparation> FindPhotoAsync(Guid vehicleId, Guid id, CancellationToken cancellationToken)
+    {
         var photo = await database.ListingPhotos.AsNoTracking().SingleOrDefaultAsync(item => item.Id == id && item.VehicleId == vehicleId, cancellationToken);
         return photo is null ? new(ListingPhotoStatus.NotFound) : Classify(photo);
     }

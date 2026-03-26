@@ -10,7 +10,8 @@ public enum ListingPhotoStatus
     Invalid,
     Forbidden,
     NotFound,
-    Conflict
+    Conflict,
+    Unavailable
 }
 
 public sealed record ListingPhotoReceipt(Guid Id, Guid VehicleId, string ContentType, long Bytes,

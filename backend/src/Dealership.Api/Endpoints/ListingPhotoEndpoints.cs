@@ -149,6 +149,7 @@ public static class ListingPhotoEndpoints
             ListingPhotoStatus.Pending => Results.Json(result.Receipt, statusCode: 202),
             ListingPhotoStatus.Forbidden => Results.Forbid(),
             ListingPhotoStatus.NotFound => Results.NotFound(),
+            ListingPhotoStatus.Unavailable => StorageUnavailable(),
             ListingPhotoStatus.Conflict => Results.Problem(statusCode: 409, title: "The upload ID already belongs to different photo contents or ownership."),
             _ => Results.Problem(statusCode: 400, title: "Photo contents are invalid, animated or exceed the decoded pixel limit.")
         };

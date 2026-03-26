@@ -12,6 +12,11 @@ public sealed class PurchaseQuoteService(IPurchaseQuoteStore store)
         }
 
         var context = await store.ReadAsync(vehicleId, code?.Trim(), cancellationToken);
+        if (!context.IsAvailable)
+        {
+            return new(PurchaseQuoteStatus.Unavailable);
+        }
+
         if (context.Listing is null)
         {
             return new(PurchaseQuoteStatus.NotFound);

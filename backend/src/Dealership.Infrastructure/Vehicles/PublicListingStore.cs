@@ -40,7 +40,14 @@ public sealed class PublicListingStore(DealershipDbContext database) : IPublicLi
             return new(ListingStatus.Invalid);
         }
 
-        await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead, cancellationToken);
+        return await ReservationReadSnapshot.ReadAsync(database,
+            () => DetailSnapshotAsync(vehicleId, cancellationToken),
+            new PublicListingDetailResult(ListingStatus.Unavailable), cancellationToken);
+    }
+
+    private async Task<PublicListingDetailResult> DetailSnapshotAsync(Guid vehicleId, CancellationToken cancellationToken)
+    {
+        await ReservationReadSnapshot.ReconcileAsync(database, vehicleId, cancellationToken);
         var listing = PublicListingQuery.Read(database).Where(row => row.Vehicle.Id == vehicleId);
         var item = await listing.Select(Item).SingleOrDefaultAsync(cancellationToken);
         if (item is null)
@@ -71,7 +78,6 @@ public sealed class PublicListingStore(DealershipDbContext database) : IPublicLi
             report.SignedAt, Array.AsReadOnly(points));
         var price = PurchasePricing.CalculatePrice(item.VehiclePrice, settings.ProcessingFee,
             details.RoadTax, settings.SstRate);
-        await transaction.CommitAsync(cancellationToken);
         return new(ListingStatus.Succeeded, new(item, details.RoadTax, details.Description,
             Array.AsReadOnly(details.PhotoIds), checklist, price, settings.SstRate));
     }

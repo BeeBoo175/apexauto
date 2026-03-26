@@ -23,7 +23,10 @@ public sealed record PurchaseQuoteResult(PurchaseQuoteStatus Status, PurchaseQuo
 public sealed record PurchaseListingPrice(decimal VehiclePrice, decimal RoadTax);
 
 public sealed record PurchaseQuoteContext(PurchaseListingPrice? Listing, PurchaseSettings? Settings,
-    PromoCode? Promo, DateTimeOffset Now);
+    PromoCode? Promo, DateTimeOffset Now)
+{
+    public bool IsAvailable { get; init; } = true;
+}
 
 public interface IPurchaseQuoteStore
 {
