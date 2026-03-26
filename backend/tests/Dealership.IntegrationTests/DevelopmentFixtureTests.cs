@@ -93,6 +93,14 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         }
         await DevelopmentInspectionScenarioAssertions.SeedInterruptedRevisionAsync(provider);
         await DevelopmentInspectionScenarioAssertions.SeedPartialRepairAsync(provider);
+        fault.FailListingUploadOnce = true;
+        await Assert.ThrowsAsync<IOException>(() => SeedAsync(provider, target));
+        await using (var scope = provider.CreateAsyncScope())
+        {
+            var pending = await scope.ServiceProvider.GetRequiredService<DealershipDbContext>().ListingPhotos.SingleAsync();
+            Assert.Null(pending.AvailableAt);
+        }
+
         await using var restarted = CreateProvider(connection, fault);
         var competing = await Task.WhenAll(SeedAsync(provider, target), SeedAsync(restarted, target));
         Assert.All(competing.SelectMany(reports => reports), report => Assert.False(report.RequiresAttention,

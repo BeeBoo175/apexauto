@@ -10,6 +10,7 @@ internal sealed class DevelopmentFixtureInterruption
 {
     public bool Enabled { get; set; } = true;
     public bool FailInspectionUploadOnce { get; set; }
+    public bool FailListingUploadOnce { get; set; }
     private int _uploads;
 
     public void Configure(IServiceCollection services)
@@ -28,6 +29,13 @@ internal sealed class DevelopmentFixtureInterruption
                 fault.FailInspectionUploadOnce = false;
                 throw new IOException("Injected lost acknowledgement for the inspection fixture upload.");
             }
+
+            if (fault.FailListingUploadOnce && photo.ObjectKey.StartsWith("listings/photos/", StringComparison.Ordinal))
+            {
+                fault.FailListingUploadOnce = false;
+                throw new IOException("Injected lost acknowledgement for the listing fixture upload.");
+            }
+
             if (fault.Enabled && Interlocked.Increment(ref fault._uploads) == 5)
             {
                 throw new IOException("Injected lost acknowledgement after the first appointment bundle was inserted.");

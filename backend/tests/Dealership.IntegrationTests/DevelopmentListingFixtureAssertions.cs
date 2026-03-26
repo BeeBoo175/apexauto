@@ -19,6 +19,9 @@ internal static class DevelopmentListingFixtureAssertions
         Assert.Equal(12, expected);
         Assert.Equal(expected, await database.ListingRevisions.CountAsync());
         Assert.Equal(expected, await database.ListingPublications.CountAsync());
+        Assert.Equal(expected * 4, await database.ListingPhotos.CountAsync(item => item.AvailableAt != null));
+        Assert.Equal(expected * 4, await database.ListingRevisionPhotos.CountAsync());
+        Assert.All(await database.ListingRevisions.ToArrayAsync(), revision => Assert.Equal(4, revision.PhotoIds.Length));
         Assert.Empty(await database.ListingWithdrawals.ToListAsync());
         var original = await database.ListingRevisions.AsNoTracking().OrderBy(item => item.Id).FirstAsync();
         var manager = DevelopmentFixtureManifest.Staff.Single(item =>
@@ -41,6 +44,9 @@ internal static class DevelopmentListingFixtureAssertions
         var revisions = await database.ListingRevisions.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync();
         var publications = await database.ListingPublications.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync();
         var withdrawals = await database.ListingWithdrawals.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync();
-        return JsonSerializer.Serialize(new { revisions, publications, withdrawals });
+        var photos = await database.ListingPhotos.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync();
+        var attachments = await database.ListingRevisionPhotos.AsNoTracking()
+            .OrderBy(item => item.RevisionId).ThenBy(item => item.Position).ToArrayAsync();
+        return JsonSerializer.Serialize(new { revisions, publications, withdrawals, photos, attachments });
     }
 }

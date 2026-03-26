@@ -97,19 +97,9 @@ public sealed class ListingPhotoStore(DealershipDbContext database) : IListingPh
         }
         else
         {
-            var isPublic = await (from link in database.ListingRevisionPhotos
-                                  join publication in database.ListingPublications on link.RevisionId equals publication.RevisionId
-                                  join revision in database.ListingRevisions on link.RevisionId equals revision.Id
-                                  join vehicle in database.Vehicles on publication.VehicleId equals vehicle.Id
-                                  join branch in database.Branches on vehicle.BranchId equals branch.Id
-                                  where link.PhotoId == id && vehicle.Id == vehicleId && branch.IsActive &&
-                                      vehicle.Status == VehicleStatus.Available &&
-                                      !database.ListingWithdrawals.Any(item => item.PublicationId == publication.Id) &&
-                                      !database.ListingPublications.Any(later => later.VehicleId == vehicleId &&
-                                          database.ListingRevisions.Any(r => r.Id == later.RevisionId && r.Version > revision.Version)) &&
-                                      database.InspectionSignedRevisions.Any(signed => signed.Id == publication.SignedRevisionId &&
-                                          database.InspectionDrafts.Any(draft => draft.VehicleId == vehicleId && draft.Id == signed.InspectionId &&
-                                              draft.IsSigned && draft.Revision == signed.Revision))
+            var isPublic = await (from listing in PublicListingQuery.Read(database)
+                                  join link in database.ListingRevisionPhotos on listing.Revision.Id equals link.RevisionId
+                                  where link.PhotoId == id && listing.Vehicle.Id == vehicleId
                                   select link.PhotoId).AnyAsync(cancellationToken);
             if (!isPublic)
             {

@@ -1,12 +1,15 @@
 using Dealership.Application.Accounts;
+using Dealership.Application.Photos;
 using Dealership.Application.Vehicles;
+using Dealership.Domain.Intake;
 using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dealership.Infrastructure.Development;
 
-public sealed class DevelopmentListingFixtures(DealershipDbContext database, ListingService listings)
+public sealed class DevelopmentListingFixtures(DealershipDbContext database, ListingService listings,
+    ListingPhotoService photos, IPhotoImageValidator validator)
 {
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> RunAsync(bool seed, CancellationToken cancellationToken)
     {
@@ -48,16 +51,25 @@ public sealed class DevelopmentListingFixtures(DealershipDbContext database, Lis
         var request = new ListingDraftRequest(scenario.OperationId("listing-draft"), 0,
             appointment.Valuation.Maximum, 90m, VehicleTransmission.Automatic, VehicleFuel.Petrol,
             $"{vehicle.ManufactureYear} {vehicle.Make} {vehicle.Model} {vehicle.Trim}. " +
-            "View the signed inspection checklist for the recorded vehicle condition.");
+            "View the signed inspection checklist for the recorded vehicle condition.")
+        {
+            PhotoIds = Enum.GetValues<PhotoAngle>().Select(angle => scenario.OperationId($"listing-photo-{angle}")).ToArray()
+        };
         var existing = await database.ListingRevisions.AsNoTracking()
             .Where(item => item.VehicleId == vehicle.Id).OrderByDescending(item => item.Version)
             .FirstOrDefaultAsync(cancellationToken);
         if (existing is not null && (existing.Id != request.OperationId || existing.Version != 1 ||
             existing.ActorId != manager.Id || existing.VehiclePrice != request.VehiclePrice ||
             existing.RoadTax != request.RoadTax || existing.Description != request.Description ||
-            existing.Transmission != request.Transmission || existing.Fuel != request.Fuel))
+            existing.Transmission != request.Transmission || existing.Fuel != request.Fuel ||
+            !existing.PhotoIds.SequenceEqual(request.PhotoIds)))
         {
             return new(label, "listing drift; preserved", true);
+        }
+
+        if (!await PhotosAsync(seed, scenario, vehicle.Id, manager.Id, cancellationToken))
+        {
+            return new(label, "listing photos missing/changed; preserved", true);
         }
 
         if (existing is null && seed)
@@ -96,5 +108,41 @@ public sealed class DevelopmentListingFixtures(DealershipDbContext database, Lis
         var result = await listings.PublishAsync(manager.Id, vehicle.Id, new(publicationId, existing.Id, signedId), cancellationToken);
         var created = result.Status == ListingStatus.Succeeded && result.Publication!.SignedRevisionId == signedId;
         return new(label, created ? "created" : "publication unavailable; preserved", !created);
+    }
+
+    private async Task<bool> PhotosAsync(bool seed, DevelopmentInspectionScenario scenario, Guid vehicleId,
+        Guid managerId, CancellationToken cancellationToken)
+    {
+        foreach (var angle in Enum.GetValues<PhotoAngle>())
+        {
+            var id = scenario.OperationId($"listing-photo-{angle}");
+            using var content = DevelopmentFixturePhotos.Open(angle);
+            var validated = await validator.ValidateAsync(content, "image/jpeg", cancellationToken)
+                ?? throw new InvalidOperationException("The listing fixture photo must pass canonical image validation.");
+            var existing = await database.ListingPhotos.AsNoTracking().SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
+            if (existing is not null && !existing.Matches(vehicleId, managerId, validated))
+            {
+                return false;
+            }
+
+            if (existing?.AvailableAt is not null)
+            {
+                continue;
+            }
+
+            if (!seed)
+            {
+                return false;
+            }
+
+            content.Position = 0;
+            var result = await photos.UploadAsync(managerId, vehicleId, id, "image/jpeg", content, cancellationToken);
+            if (result.Status != ListingPhotoStatus.Available)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
