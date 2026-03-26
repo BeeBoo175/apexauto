@@ -72,6 +72,7 @@ public sealed class PublicListingTests(IntakePhotoFixture fixture) : IClassFixtu
 
         using var client = data.Factory.CreateClient();
         var first = records[0];
+        await PurchaseQuoteAssertions.VerifyAsync(services, client, first.VehicleId, manager);
         using var response = await client.GetAsync($"/api/vehicles/{first.VehicleId}");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.True(response.Headers.CacheControl!.NoStore);
@@ -114,6 +115,8 @@ public sealed class PublicListingTests(IntakePhotoFixture fixture) : IClassFixtu
         Assert.Equal(ListingStatus.Succeeded, (await listings.WithdrawAsync(manager, first.VehicleId,
             new(Guid.NewGuid(), approved.Publication!.Id, "Correct listing specifications"), CancellationToken.None)).Status);
         Assert.Equal(ListingStatus.NotFound, (await store.DetailAsync(first.VehicleId, CancellationToken.None)).Status);
+        Assert.Equal(PurchaseQuoteStatus.NotFound, (await services.GetRequiredService<PurchaseQuoteService>()
+            .QuoteAsync(first.VehicleId, "APEX500", CancellationToken.None)).Status);
         var withdrawn = (await management.WorkspaceAsync(manager, first.VehicleId, CancellationToken.None)).Workspace!;
         Assert.True(withdrawn.Vehicle.IsWithdrawn);
         Assert.False(withdrawn.Vehicle.IsPublic);
