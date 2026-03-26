@@ -30,6 +30,6 @@ public sealed class PurchaseQuoteService(IPurchaseQuoteStore store)
 
         var price = PurchasePricing.CalculatePrice(context.Listing.VehiclePrice, context.Settings.ProcessingFee,
             context.Listing.RoadTax, context.Settings.SstRate, context.Promo?.Discount ?? 0m);
-        return new(PurchaseQuoteStatus.Succeeded, new(context.Promo?.Code, price));
+        return new(PurchaseQuoteStatus.Succeeded, new(context.Promo?.Code, price) { PromoId = context.Promo?.Id });
     }
 }

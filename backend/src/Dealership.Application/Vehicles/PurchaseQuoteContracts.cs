@@ -13,7 +13,10 @@ public enum PurchaseQuoteStatus
     Unavailable
 }
 
-public sealed record PurchaseQuote(string? PromoCode, PurchasePrice Price);
+public sealed record PurchaseQuote(string? PromoCode, PurchasePrice Price)
+{
+    public Guid? PromoId { get; init; }
+}
 
 public sealed record PurchaseQuoteResult(PurchaseQuoteStatus Status, PurchaseQuote? Quote = null);
 

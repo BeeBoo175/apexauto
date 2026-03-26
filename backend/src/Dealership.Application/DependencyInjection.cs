@@ -15,6 +15,7 @@ public static class DependencyInjection
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<ValuationService>();
         services.AddScoped<ListingService>();
+        services.AddScoped<ReservationService>();
         services.AddScoped<PurchaseQuoteService>();
         services.AddScoped<PurchaseConfigurationService>();
         services.AddScoped<RegistrationService>();
