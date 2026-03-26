@@ -32,7 +32,7 @@ public sealed class DevelopmentIntakeTimelineTests
             var examples = DevelopmentIntakeManifest.InspectionExamples.Select(item => item.Id).ToHashSet();
             var catalogue = DevelopmentIntakeManifest.CatalogueExamples.Select(item => item.Id).ToHashSet();
             Assert.Equal(14, branch.Count(item => examples.Contains(item.Fixture.Id)));
-            Assert.Equal(13, branch.Count(item => catalogue.Contains(item.Fixture.Id)));
+            Assert.Equal(14, branch.Count(item => catalogue.Contains(item.Fixture.Id)));
             var newestBaseline = branch.Where(item => item.Fixture.Status == StaffWorklistStatus.CheckedIn &&
                 !examples.Contains(item.Fixture.Id) && !catalogue.Contains(item.Fixture.Id)).Max(item => item.Slot.StartsAt);
             Assert.All(branch.Where(item => examples.Contains(item.Fixture.Id)), item => Assert.True(item.Slot.StartsAt > newestBaseline));

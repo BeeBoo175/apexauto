@@ -17,7 +17,7 @@ internal static class DevelopmentListingFixtureAssertions
         var services = scope.ServiceProvider;
         var database = services.GetRequiredService<DealershipDbContext>();
         var expected = DevelopmentInspectionScenarios.All.Count(item => item.PublishListing);
-        Assert.Equal(51, expected);
+        Assert.Equal(54, expected);
         Assert.Equal(expected, await database.ListingRevisions.CountAsync());
         Assert.Equal(expected, await database.ListingPublications.CountAsync());
         Assert.Equal(expected * 4, await database.ListingPhotos.CountAsync(item => item.AvailableAt != null));
@@ -50,6 +50,7 @@ internal static class DevelopmentListingFixtureAssertions
         foreach (var branch in DevelopmentFixtureManifest.Branches)
         {
             var expected = await database.ListingRevisions.Where(item => item.BranchId == branch.Id)
+                .Where(item => !database.Reservations.Any(hold => hold.VehicleId == item.VehicleId && hold.IsActive))
                 .OrderBy(item => item.VehiclePrice).ThenBy(item => item.VehicleId).ToArrayAsync();
             Assert.Equal(17, expected.Length);
             Assert.Contains(expected.GroupBy(item => item.VehiclePrice), group => group.Count() > 1);
@@ -81,7 +82,7 @@ internal static class DevelopmentListingFixtureAssertions
             var manager = DevelopmentFixtureManifest.Staff.Single(item =>
                 item.BranchId == branch.Id && item.Role == AccountRoles.BranchManager);
             var workspace = await managers.ReadAsync(manager.Id, new(PageSize: 50), CancellationToken.None);
-            Assert.Equal(80, workspace.Listings!.Total);
+            Assert.Equal(81, workspace.Listings!.Total);
             var second = await managers.ReadAsync(manager.Id, new(Page: 2, PageSize: 50), CancellationToken.None);
             Assert.Equal(17, workspace.Listings.Items.Concat(second.Listings!.Items).Count(item => item.IsPublic));
         }

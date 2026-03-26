@@ -13,7 +13,7 @@ public sealed record DevelopmentFixtureReport(string Fixture, string State, bool
 public sealed class DevelopmentFixtureRunner(DealershipDbContext database, DevelopmentCustomerFixtures customers,
     StaffProvisioningService staff, BranchProvisioningService branches, DevelopmentIntakeFixtures intake,
     DevelopmentInspectionFixtures inspections, DevelopmentListingFixtures listings, DevelopmentPurchaseFixtures purchases,
-    IPasswordHasher<AccountUser> passwords)
+    DevelopmentReservationFixtures reservations, IPasswordHasher<AccountUser> passwords)
 {
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> SeedAsync(DevelopmentFixtureTarget target,
         CancellationToken cancellationToken)
@@ -56,6 +56,7 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
             reports.AddRange(await intake.SeedAsync(target, token));
             reports.AddRange(await inspections.RunAsync(true, token));
             reports.AddRange(await listings.RunAsync(true, token));
+            reports.AddRange(await reservations.RunAsync(true, token));
             return reports;
         }
         finally
@@ -103,6 +104,7 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
             reports.AddRange(await intake.ReviewAsync(cancellationToken));
             reports.AddRange(await inspections.RunAsync(false, cancellationToken));
             reports.AddRange(await listings.RunAsync(false, cancellationToken));
+            reports.AddRange(await reservations.RunAsync(false, cancellationToken));
             return reports;
         }
         finally

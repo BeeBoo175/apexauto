@@ -19,7 +19,9 @@ internal static class DevelopmentPurchaseFixtureAssertions
         Assert.Equal(0.08m, settings.SstRate);
         Assert.Equal(DevelopmentPurchaseFixtures.Settings.UpdatedById, settings.UpdatedById);
         Assert.Equal(2, await database.PromoCodes.CountAsync());
-        var vehicleId = await database.ListingPublications.Select(item => item.VehicleId).FirstAsync();
+        var vehicleId = await database.ListingPublications.Where(item =>
+            !database.Reservations.Any(hold => hold.VehicleId == item.VehicleId && hold.IsActive))
+            .Select(item => item.VehicleId).FirstAsync();
         var quotes = services.GetRequiredService<PurchaseQuoteService>();
         Assert.Equal(500m, (await quotes.QuoteAsync(vehicleId, "APEX500", CancellationToken.None)).Quote!.Price.PromoDiscount);
         Assert.Equal(1000m, (await quotes.QuoteAsync(vehicleId, "RAYA1000", CancellationToken.None)).Quote!.Price.PromoDiscount);

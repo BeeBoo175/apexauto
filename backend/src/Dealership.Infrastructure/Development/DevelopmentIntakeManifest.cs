@@ -14,7 +14,7 @@ public static class DevelopmentIntakeManifest
     public const int AppointmentsPerBranch = 41;
     public const int RepairRequestsPerBranch = 51;
     public const int InspectionExamplesPerBranch = 14;
-    public const int CatalogueExamplesPerBranch = 13;
+    public const int CatalogueExamplesPerBranch = 14;
     public const int BaselineTotalPerBranch = AppointmentsPerBranch + RepairRequestsPerBranch + 4;
     public const int InspectionCheckedInPerBranch = RepairRequestsPerBranch + 2 + InspectionExamplesPerBranch;
     public const int CheckedInPerBranch = InspectionCheckedInPerBranch + CatalogueExamplesPerBranch;
@@ -77,6 +77,7 @@ public static class DevelopmentIntakeManifest
         8 or 9 => new("Mazda", "Mazda 3", "2.0 High", 2022, 38000),
         10 or 11 => new("BYD", "Dolphin", "Dynamic Standard", 2024, 22000),
         12 => new("Perodua", "Alza", "AV", 2023, 35000),
+        13 => new("Honda", "City", "V", 2022, 46000),
         _ => throw new InvalidOperationException("The configured catalogue example has no vehicle specification.")
     };
 

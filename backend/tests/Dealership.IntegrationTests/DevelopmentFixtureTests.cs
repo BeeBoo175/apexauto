@@ -101,11 +101,15 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
             Assert.Null(pending.AvailableAt);
         }
 
+        fault.FailReservationCommitOnce = true;
+        await Assert.ThrowsAsync<IOException>(() => SeedAsync(provider, target));
+        var interrupted = await DevelopmentReservationFixtureAssertions.InterruptedAsync(provider);
         await using var restarted = CreateProvider(connection, fault);
         var competing = await Task.WhenAll(SeedAsync(provider, target), SeedAsync(restarted, target));
         Assert.All(competing.SelectMany(reports => reports), report => Assert.False(report.RequiresAttention,
             $"{report.Fixture}: {report.State}"));
         Assert.Equal(definitions, await ReadGuardsAsync());
+        await DevelopmentReservationFixtureAssertions.VerifyAsync(restarted, interrupted);
         await AssertNormalAuthenticationAsync();
         await DevelopmentIntakeFixtureAssertions.VerifyAsync(provider);
         await InspectionQueueFixtureAssertions.VerifyAsync(provider);
@@ -124,6 +128,7 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         await DevelopmentInspectionFixtureAssertions.VerifyAsync(provider, target);
         await DevelopmentInspectionScenarioAssertions.VerifyHumanEditPreservationAsync(provider, target);
         await DevelopmentListingFixtureAssertions.VerifyAsync(provider, target);
+        await DevelopmentReservationFixtureAssertions.VerifyPreservationAsync(restarted, target, fixture.Database);
     }
 
     private static async Task AssertReviewPreservesDriftAsync(ServiceProvider provider, DevelopmentFixtureTarget target)
