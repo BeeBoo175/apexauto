@@ -1,6 +1,7 @@
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Persistence;
+using Dealership.Infrastructure.Mail;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Npgsql;
@@ -8,7 +9,7 @@ using Npgsql;
 namespace Dealership.Infrastructure.Vehicles;
 
 internal sealed class ReservationTransaction(DealershipDbContext database, IDbContextTransaction transaction,
-    ReservationContext context) : IReservationTransaction
+    MailDeliverySignal mail, ReservationContext context) : IReservationTransaction
 {
     public ReservationContext Context => context;
 
@@ -18,12 +19,19 @@ internal sealed class ReservationTransaction(DealershipDbContext database, IDbCo
         if (reservation is not null)
         {
             database.Reservations.Add(reservation);
+            database.ReservationMailOutbox.Add(new ReservationMail(reservation));
         }
 
         try
         {
             await database.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
+
+            if (reservation is not null)
+            {
+                mail.Request();
+            }
+
             return ReservationStatus.Succeeded;
         }
         catch (DbUpdateException exception) when (exception.InnerException is PostgresException

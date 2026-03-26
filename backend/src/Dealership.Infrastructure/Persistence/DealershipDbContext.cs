@@ -6,6 +6,7 @@ using Dealership.Domain.Inspections;
 using Dealership.Infrastructure.Identity;
 using Dealership.Infrastructure.Intake;
 using Dealership.Infrastructure.Inspections;
+using Dealership.Infrastructure.Vehicles;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,6 +25,8 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
     public DbSet<Reservation> Reservations => Set<Reservation>();
 
     public DbSet<ReservationRelease> ReservationReleases => Set<ReservationRelease>();
+
+    public DbSet<ReservationMail> ReservationMailOutbox => Set<ReservationMail>();
 
     public DbSet<IntakePhoto> IntakePhotos => Set<IntakePhoto>();
 
@@ -87,6 +90,7 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
         var reservations = new ReservationConfiguration();
         builder.ApplyConfiguration<Reservation>(reservations);
         builder.ApplyConfiguration<ReservationRelease>(reservations);
+        builder.ApplyConfiguration(new ReservationMailConfiguration());
         builder.ApplyConfiguration(new IntakePhotoConfiguration());
         builder.ApplyConfiguration(new PhotoRemovalConfiguration());
         var booking = new IntakeBookingConfiguration();

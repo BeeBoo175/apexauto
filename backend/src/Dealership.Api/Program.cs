@@ -10,6 +10,7 @@ using Dealership.Infrastructure.Persistence;
 using Dealership.Infrastructure.Identity;
 using Dealership.Infrastructure.Mail;
 using Dealership.Infrastructure.Intake;
+using Dealership.Infrastructure.Vehicles;
 using Microsoft.AspNetCore.HttpOverrides;
 using Serilog;
 
@@ -69,6 +70,7 @@ builder.Services.AddSingleton<PasswordResetMailComposer>();
 builder.Services.AddScoped<IMailDeliverySource, VerificationMailSource>();
 builder.Services.AddScoped<IMailDeliverySource, PasswordResetMailSource>();
 builder.Services.AddScoped<IMailDeliverySource, AppointmentMailSource>();
+builder.Services.AddScoped<IMailDeliverySource, ReservationMailSource>();
 builder.Services.AddHostedService<MailDeliveryWorker>();
 builder.Services.AddSingleton<StaffExportWorker>();
 builder.Services.AddSingleton<IStaffExportWorker>(provider => provider.GetRequiredService<StaffExportWorker>());

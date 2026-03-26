@@ -1,11 +1,12 @@
 using Dealership.Application.Accounts;
 using Dealership.Application.Vehicles;
 using Dealership.Infrastructure.Persistence;
+using Dealership.Infrastructure.Mail;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dealership.Infrastructure.Vehicles;
 
-public sealed class ReservationStore(DealershipDbContext database) : IReservationStore
+public sealed class ReservationStore(DealershipDbContext database, MailDeliverySignal mail) : IReservationStore
 {
     public async Task<IReservationTransaction> LockAsync(Guid customerId, Guid vehicleId, ReservationRequest request,
         CancellationToken cancellationToken)
@@ -24,7 +25,7 @@ public sealed class ReservationStore(DealershipDbContext database) : IReservatio
             var customer = user is null ? null : new ReservationCustomer(user.IsActive, user.EmailConfirmed, user.Role, user.Email);
             if (user is not { IsActive: true, EmailConfirmed: true, Role: AccountRoles.Customer } || profile is null)
             {
-                return new ReservationTransaction(database, transaction,
+                return new ReservationTransaction(database, transaction, mail,
                     new(customer, profile, null, null, null, null, false, false, default, null, false));
             }
 
@@ -59,7 +60,7 @@ public sealed class ReservationStore(DealershipDbContext database) : IReservatio
             var vehicleHasHold = await database.Reservations.AnyAsync(item => item.VehicleId == vehicleId && item.IsActive, cancellationToken);
             var now = await database.Database.SqlQuery<DateTimeOffset>($"SELECT clock_timestamp() AS \"Value\"")
                 .SingleAsync(cancellationToken);
-            return new ReservationTransaction(database, transaction, new(customer, profile, listing?.Publication,
+            return new ReservationTransaction(database, transaction, mail, new(customer, profile, listing?.Publication,
                 listing?.Revision, settings, promo, customerHasHold, vehicleHasHold, now, existing, isRelease));
         }
         catch

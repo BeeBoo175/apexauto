@@ -2,6 +2,7 @@ using Dealership.Application.Accounts;
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Persistence;
+using Dealership.Infrastructure.Mail;
 using Dealership.Infrastructure.Vehicles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -118,7 +119,7 @@ public sealed class ReservationServiceTests(IntakePhotoFixture fixture) : IClass
         try
         {
             await using var restarted = clock.CreateContext();
-            var service = new ReservationService(new ReservationStore(restarted));
+            var service = new ReservationService(new ReservationStore(restarted, new MailDeliverySignal()));
             Assert.Equal(held.ExpiresAt, await restarted.Database
                 .SqlQuery<DateTimeOffset>($"SELECT clock_timestamp() AS \"Value\"").SingleAsync());
             var rejected = await service.ReserveAsync(data.OwnerId, second.VehicleId,
