@@ -616,6 +616,62 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Dealership.Domain.Vehicles.ListingPhoto", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("AvailableAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("Bytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Height")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ObjectKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("VehicleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Width")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorId");
+
+                    b.HasIndex("VehicleId", "BranchId");
+
+                    b.ToTable("ListingPhotos", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ListingPhotos_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"ContentType\" IN ('image/jpeg', 'image/png', 'image/webp') AND \"Bytes\" BETWEEN 1 AND 10485760 AND \"Width\" > 0 AND \"Height\" > 0 AND \"Sha256\" ~ '^[a-f0-9]{64}$' AND \"ObjectKey\" = 'listings/photos/' || replace(\"Id\"::text, '-', '') AND isfinite(\"CreatedAt\") AND (\"AvailableAt\" IS NULL OR (isfinite(\"AvailableAt\") AND \"AvailableAt\" >= \"CreatedAt\"))");
+                        });
+                });
+
             modelBuilder.Entity("Dealership.Domain.Vehicles.ListingPublication", b =>
                 {
                     b.Property<Guid>("Id")
@@ -677,6 +733,12 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
+                    b.PrimitiveCollection<Guid[]>("PhotoIds")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid[]")
+                        .HasDefaultValueSql("'{}'::uuid[]");
+
                     b.Property<DateTimeOffset>("RecordedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -711,6 +773,38 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.ToTable("ListingRevisions", null, t =>
                         {
                             t.HasCheckConstraint("CK_ListingRevisions_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"Version\" > 0 AND \"VehiclePrice\" > 0 AND \"RoadTax\" >= 0 AND isfinite(\"RecordedAt\") AND length(btrim(\"Description\")) BETWEEN 1 AND 2000 AND \"Description\" = btrim(\"Description\") AND \"Transmission\" IN ('Automatic', 'Manual') AND \"Fuel\" IN ('Petrol', 'Diesel', 'Hybrid', 'PlugInHybrid', 'Electric')");
+                        });
+                });
+
+            modelBuilder.Entity("Dealership.Domain.Vehicles.ListingRevisionPhoto", b =>
+                {
+                    b.Property<Guid>("RevisionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("PhotoId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("VehicleId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("RevisionId", "PhotoId");
+
+                    b.HasIndex("RevisionId", "Position")
+                        .IsUnique();
+
+                    b.HasIndex("PhotoId", "VehicleId", "BranchId");
+
+                    b.HasIndex("RevisionId", "VehicleId", "BranchId");
+
+                    b.ToTable("ListingRevisionPhotos", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ListingRevisionPhotos_Position", "\"Position\" >= 0");
                         });
                 });
 
@@ -1750,6 +1844,22 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Dealership.Domain.Vehicles.ListingPhoto", b =>
+                {
+                    b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Dealership.Domain.Vehicles.Vehicle", null)
+                        .WithMany()
+                        .HasForeignKey("VehicleId", "BranchId")
+                        .HasPrincipalKey("Id", "BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Dealership.Domain.Vehicles.ListingPublication", b =>
                 {
                     b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
@@ -1785,6 +1895,23 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("VehicleId", "BranchId")
                         .HasPrincipalKey("Id", "BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Dealership.Domain.Vehicles.ListingRevisionPhoto", b =>
+                {
+                    b.HasOne("Dealership.Domain.Vehicles.ListingPhoto", null)
+                        .WithMany()
+                        .HasForeignKey("PhotoId", "VehicleId", "BranchId")
+                        .HasPrincipalKey("Id", "VehicleId", "BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Dealership.Domain.Vehicles.ListingRevision", null)
+                        .WithMany()
+                        .HasForeignKey("RevisionId", "VehicleId", "BranchId")
+                        .HasPrincipalKey("Id", "VehicleId", "BranchId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
