@@ -57,6 +57,7 @@ public sealed class ListingConfiguration : IEntityTypeConfiguration<ListingRevis
         builder.HasKey(item => item.Id);
         builder.Property(item => item.Id).ValueGeneratedNever();
         builder.HasIndex(item => item.PublicationId).IsUnique();
+        builder.HasIndex(item => new { item.VehicleId, item.RecordedAt });
         builder.HasOne<ListingPublication>().WithMany().HasForeignKey(item => new { item.PublicationId, item.VehicleId, item.BranchId })
             .HasPrincipalKey(item => new { item.Id, item.VehicleId, item.BranchId }).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<AccountUser>().WithMany().HasForeignKey(item => item.ActorId).OnDelete(DeleteBehavior.Restrict);

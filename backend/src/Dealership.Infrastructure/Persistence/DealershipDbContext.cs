@@ -21,6 +21,10 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
 
     public DbSet<PurchaseSettings> PurchaseSettings => Set<PurchaseSettings>();
 
+    public DbSet<Reservation> Reservations => Set<Reservation>();
+
+    public DbSet<ReservationRelease> ReservationReleases => Set<ReservationRelease>();
+
     public DbSet<IntakePhoto> IntakePhotos => Set<IntakePhoto>();
 
     public DbSet<PhotoRemoval> PhotoRemovals => Set<PhotoRemoval>();
@@ -80,6 +84,9 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
         builder.ApplyConfiguration(new BranchConfiguration());
         builder.ApplyConfiguration(new PromoCodeConfiguration());
         builder.ApplyConfiguration(new PurchaseSettingsConfiguration());
+        var reservations = new ReservationConfiguration();
+        builder.ApplyConfiguration<Reservation>(reservations);
+        builder.ApplyConfiguration<ReservationRelease>(reservations);
         builder.ApplyConfiguration(new IntakePhotoConfiguration());
         builder.ApplyConfiguration(new PhotoRemovalConfiguration());
         var booking = new IntakeBookingConfiguration();
