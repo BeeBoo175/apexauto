@@ -65,7 +65,7 @@ public sealed class ReservationReadTests(IntakePhotoFixture fixture) : IClassFix
         var actual = new List<Guid>();
         for (var page = 1; page <= 3; page++)
         {
-            var response = await client.GetAsync($"/api/account/reservations?page={page}&pageSize=50&customerId={otherData.OwnerId}");
+            var response = await client.GetAsync($"/api/account/reservations?page={page}&pageSize=50&isActive=false&customerId={otherData.OwnerId}");
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.True(response.Headers.CacheControl?.NoStore);
             var history = (await response.Content.ReadFromJsonAsync<ReservationHistoryPage>())!;
@@ -92,6 +92,7 @@ public sealed class ReservationReadTests(IntakePhotoFixture fixture) : IClassFix
         Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/account/reservations")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/staff/reservations")).StatusCode);
         await LoginAsync(client, (await database.Users.Where(item => item.Id == manager).Select(item => item.Email).SingleAsync())!);
+        await AssertFilteredPagesAsync(client, expected, active.Id);
         await AssertManagerScopeAsync(client, database, manager, data.BranchId, otherData.BranchId);
         await AssertSnapshotAndRetryAsync(clock, data.OwnerId, active!, Array.IndexOf(expected, active!.Id) / 25 + 1);
 
@@ -129,6 +130,53 @@ public sealed class ReservationReadTests(IntakePhotoFixture fixture) : IClassFix
         var again = (await new ReservationReadStore(restarted).AccountAsync(data.OwnerId, 1, CancellationToken.None)).History!;
         Assert.Equal(expired, Assert.Single(again.Items, item => item.Receipt.Id == final.Id));
         Assert.All(await database.Vehicles.ToArrayAsync(), vehicle => Assert.Equal(VehicleStatus.Available, vehicle.Status));
+
+        var filteredHold = await HoldAsync(clock, data.OwnerId, listing.Publication);
+        await clock.AdvanceAsync(filteredHold.ExpiresAt);
+        await using (var filtered = clock.CreateContext())
+        {
+            var otherScope = await new ReservationReadStore(filtered).StaffAsync(manager,
+                new(otherData.BranchId, IsActive: false), CancellationToken.None);
+            Assert.Equal(ReservationStatus.Succeeded, otherScope.Status);
+            Assert.Single(otherScope.History!.Items);
+            Assert.False(await filtered.ReservationReleases.AnyAsync(item => item.ReservationId == filteredHold.Id));
+            // Even an empty requested page must reconcile the complete selected scope first.
+            var history = await new ReservationReadStore(filtered).StaffAsync(manager,
+                new(data.BranchId, Page: int.MaxValue, IsActive: false), CancellationToken.None);
+            Assert.Equal(53, history.History!.Total);
+            Assert.Empty(history.History.Items);
+            var holds = await new ReservationReadStore(filtered).StaffAsync(manager,
+                new(data.BranchId, IsActive: true), CancellationToken.None);
+            Assert.Equal(0, holds.History!.Total);
+            Assert.Empty(holds.History.Items);
+        }
+    }
+
+    private static async Task AssertFilteredPagesAsync(HttpClient client, Guid[] expected, Guid activeId)
+    {
+        var active = (await client.GetFromJsonAsync<ReservationHistoryPage>("/api/staff/reservations?isActive=true"))!;
+        Assert.Equal(1, active.Total);
+        Assert.Equal(activeId, Assert.Single(active.Items).Receipt.Id);
+        Assert.Null(active.Active);
+        var actual = new List<Guid>();
+        for (var page = 1; page <= 2; page++)
+        {
+            var response = await client.GetAsync($"/api/staff/reservations?isActive=false&page={page}");
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.True(response.Headers.CacheControl?.NoStore);
+            var history = (await response.Content.ReadFromJsonAsync<ReservationHistoryPage>())!;
+            Assert.Equal(50, history.Total);
+            Assert.Equal(25, history.Items.Count);
+            Assert.All(history.Items, item =>
+            {
+                Assert.False(item.IsActive);
+                Assert.Equal(500m, item.Release!.Refund);
+            });
+            actual.AddRange(history.Items.Select(item => item.Receipt.Id));
+        }
+
+        Assert.Equal(expected.Where(id => id != activeId), actual);
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/api/staff/reservations?isActive=unknown")).StatusCode);
     }
 
     private static async Task AssertManagerScopeAsync(HttpClient client, DealershipDbContext database, Guid manager,

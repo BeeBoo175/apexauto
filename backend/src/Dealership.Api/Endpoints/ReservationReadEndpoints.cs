@@ -34,7 +34,7 @@ public static class ReservationReadEndpoints
         }
     }
 
-    private static async Task<IResult> StaffAsync(Guid? branchId, int? page, int? pageSize, HttpContext context,
+    private static async Task<IResult> StaffAsync(Guid? branchId, int? page, int? pageSize, bool? isActive, HttpContext context,
         IReservationReadStore store, CancellationToken cancellationToken)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -42,7 +42,7 @@ public static class ReservationReadEndpoints
         try
         {
             var result = await store.StaffAsync(ActorId(context),
-                new(branchId, page ?? 1, pageSize ?? Pagination.DefaultPageSize), deadline.Token);
+                new(branchId, page ?? 1, pageSize ?? Pagination.DefaultPageSize, isActive), deadline.Token);
             return Map(result);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)

@@ -119,6 +119,7 @@ public sealed class ReservationListingTests(IntakePhotoFixture fixture) : IClass
         await using var final = clock.CreateContext();
         Assert.All(await final.Vehicles.ToArrayAsync(), vehicle => Assert.Equal(VehicleStatus.Available, vehicle.Status));
         await ReservationExpiryAssertions.RunAsync(clock, services, data.OwnerId, records);
+        await ReservationStaffReadAssertions.VerifyAsync(clock, manager, outsider, records);
     }
 
     private async Task AssertUnavailableAsync(ReservationTestClock clock, Guid manager, Guid vehicleId)
@@ -139,7 +140,8 @@ public sealed class ReservationListingTests(IntakePhotoFixture fixture) : IClass
         var session = (await login.Content.ReadFromJsonAsync<LoginSession>())!;
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
         foreach (var path in new[] { "/api/staff/listings", $"/api/staff/listings/{vehicleId}",
-            $"/api/staff/listings/{vehicleId}/photos" })
+            $"/api/staff/listings/{vehicleId}/photos", "/api/staff/reservations?isActive=true",
+            "/api/staff/reservations?isActive=false" })
         {
             var attempts = failures.Attempts;
             using var response = await client.GetAsync(path);

@@ -51,10 +51,24 @@ public sealed class ReservationReadStore(DealershipDbContext database) : IReserv
             reservations = reservations.Where(item => branchId == null || item.BranchId == branchId);
         }
 
+        if (staff && filter.IsActive is not null)
+        {
+            // Membership depends on refunds across the authorized scope, including off-page holds.
+            var caughtUp = await ReservationReadSnapshot.ReconcileDueAsync(database,
+                reservations.Select(item => item.VehicleId), 10, cancellationToken);
+            if (!caughtUp)
+            {
+                return new(ReservationStatus.Unavailable);
+            }
+
+            reservations = reservations.Where(item => item.IsActive == filter.IsActive);
+        }
+
         var total = await reservations.CountAsync(cancellationToken);
         var pageIds = await reservations.OrderByDescending(item => item.CreatedAt).ThenByDescending(item => item.Id)
             .Select(item => item.Id).ReadPageAsync(filter.Page, filter.PageSize, total, cancellationToken);
-        var activeVehicles = reservations.Where(item => item.IsActive && (!staff || pageIds.Contains(item.Id)))
+        var activeVehicles = reservations.Where(item => item.IsActive &&
+                (!staff || filter.IsActive == null && pageIds.Contains(item.Id)))
             .Select(item => item.VehicleId);
         var vehicleIds = await database.Vehicles.Where(vehicle => activeVehicles.Contains(vehicle.Id))
             .OrderBy(vehicle => vehicle.Id).Select(vehicle => vehicle.Id).ToArrayAsync(cancellationToken);
