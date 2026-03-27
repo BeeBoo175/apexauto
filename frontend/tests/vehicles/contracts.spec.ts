@@ -1,5 +1,12 @@
 import { expect, test } from "@playwright/test";
 import { parseCatalogue } from "@/lib/vehicles/parse";
+import { parseListings } from "@/lib/vehicles/parse-listings";
+import {
+  hasListingAccess,
+  listingParams,
+  listingQuery,
+  listingPublication,
+} from "@/lib/vehicles/listings";
 import {
   catalogueDefaults,
   catalogueFilterError,
@@ -28,6 +35,79 @@ const vehicle = {
   photoCount: 4,
   publishedAt: "2026-10-26T00:00:00+00:00",
 };
+
+test("manager listings validate private projections and independent staff paging", () => {
+  const row = {
+    vehicleId: ids[0],
+    branchId: ids[1],
+    branchName: "Glenmarie",
+    registrationPlate: "VCA 5172",
+    make: "Proton",
+    model: "Saga",
+    trim: "Standard",
+    manufactureYear: 2020,
+    mileageKilometres: 90000,
+    vehicleStatus: 2,
+    revisionId: ids[2],
+    version: 1,
+    vehiclePrice: 45000,
+    publicationId: ids[1],
+    publishedRevisionId: ids[2],
+    isWithdrawn: false,
+    isPublic: true,
+  };
+  const page = { items: [row], total: 1, page: 1, pageSize: 10 };
+  const parsed = parseListings(page)!.items[0];
+  expect(parsed.vehicleStatus).toBe("Available");
+  expect(listingPublication(parsed)).toBe("Published");
+  expect(listingPublication({ ...parsed, revisionId: ids[0] })).toBe("Published · draft changes");
+  expect(listingPublication({ ...parsed, isPublic: false })).toBe("Approved · unavailable");
+  for (const changed of [
+    { vehicleId: "invalid" },
+    { vehicleStatus: 3 },
+    { vehiclePrice: -1 },
+    { version: 1.5 },
+    { publicationId: "invalid" },
+    { isPublic: "true" },
+    { vehiclePrice: Infinity },
+  ]) {
+    expect(parseListings({ ...page, items: [{ ...row, ...changed }] })).toBeNull();
+  }
+  expect(parseListings({ ...page, pageSize: 8 })).toBeNull();
+  expect(parseListings({ ...page, items: [row, row], total: 2 })).toBeNull();
+  expect(
+    parseListings({ ...page, items: [{ ...row, buyerEmail: "private" }] })!.items[0],
+  ).not.toHaveProperty("buyerEmail");
+  const query = listingParams({
+    page: "2",
+    pageSize: "10",
+    branchId: ids[1],
+    search: " Saga ",
+    customerId: ids[0],
+  });
+  expect(Object.fromEntries(new URLSearchParams(listingQuery(query.filters, query.page)))).toEqual({
+    page: "2",
+    pageSize: "10",
+    branchId: ids[1],
+    search: "Saga",
+  });
+  expect(listingParams({ page: "-1", pageSize: "8", branchId: "invalid" })).toEqual({
+    page: 1,
+    filters: { search: "", pageSize: 25, branchId: "" },
+  });
+  for (const role of [
+    "Customer",
+    "SalesAgent",
+    "WorkshopTechnician",
+    "Administrator",
+    "BranchManager",
+    "GeneralManager",
+  ] as const) {
+    expect(hasListingAccess({ userId: ids[0], role, branchId: null })).toBe(
+      ["BranchManager", "GeneralManager"].includes(role),
+    );
+  }
+});
 
 test("catalogue accepts exact eight-item paging and rejects missing, duplicate or private projections", () => {
   const partial = { items: [vehicle], total: 17, page: 3, pageSize: 8 };

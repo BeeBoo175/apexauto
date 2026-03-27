@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { hasIntakeAccess, roleNames, type CurrentActor } from "@/lib/auth/actor";
 import { hasInspectionAccess } from "@/lib/inspection/contracts";
+import { hasListingAccess } from "@/lib/vehicles/listings";
 import styles from "./StaffFrame.module.css";
 import {
   StaffActorContext,
@@ -23,6 +24,7 @@ export function StaffFrame({ actor, children }: { actor?: CurrentActor; children
     "/dashboard/intake",
     "/dashboard/inspection",
     "/dashboard/inspection/repairs",
+    "/dashboard/management",
   ].includes(navigation.pathname);
   const logout = useAuthMutation("logout", "/login");
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -130,17 +132,38 @@ export function StaffFrame({ actor, children }: { actor?: CurrentActor; children
                     Workshop
                   </StaffLink>
                 )}
-                {actor && !hasIntakeAccess(actor) && !hasInspectionAccess(actor) && (
+                {actor && hasListingAccess(actor) && (
                   <StaffLink
-                    href="/dashboard"
+                    href="/dashboard/management"
                     prefetch={false}
-                    className={styles.activeLink}
-                    aria-current="page"
-                    onNavigate={(event) => navigate(event, "/dashboard")}
+                    prefetchOnIntent={true}
+                    className={
+                      navigation.selectedPath === "/dashboard/management"
+                        ? styles.activeLink
+                        : styles.navLink
+                    }
+                    aria-current={
+                      navigation.selectedPath === "/dashboard/management" ? "page" : undefined
+                    }
+                    onNavigate={(event) => navigate(event, "/dashboard/management")}
                   >
-                    Your staff workspace
+                    Listings
                   </StaffLink>
                 )}
+                {actor &&
+                  !hasIntakeAccess(actor) &&
+                  !hasInspectionAccess(actor) &&
+                  !hasListingAccess(actor) && (
+                    <StaffLink
+                      href="/dashboard"
+                      prefetch={false}
+                      className={styles.activeLink}
+                      aria-current="page"
+                      onNavigate={(event) => navigate(event, "/dashboard")}
+                    >
+                      Your staff workspace
+                    </StaffLink>
+                  )}
               </nav>
               {actor && (
                 <div className={styles.session}>

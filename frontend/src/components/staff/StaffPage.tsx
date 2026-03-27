@@ -14,6 +14,7 @@ const titles: Record<string, string> = {
   "/dashboard/intake": "Intake appointments",
   "/dashboard/inspection": "Workshop",
   "/dashboard/inspection/repairs": "Repair requests",
+  "/dashboard/management": "Listings",
 };
 
 export function StaffLoading() {
