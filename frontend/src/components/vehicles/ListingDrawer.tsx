@@ -6,6 +6,7 @@ import { Dialog } from "@/components/ui/Dialog";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { WorkshopLoadingShell } from "@/components/inspection/WorkshopLoadingShell";
+import { StaffLink } from "@/components/staff/StaffLink";
 import type { useStaffSelection } from "@/hooks/use-staff-selection";
 import type { ListingWorkspace } from "@/lib/vehicles/listing-workspace";
 import type { ApiResult } from "@/lib/api";
@@ -163,6 +164,19 @@ export function ListingDrawer({
                   </dl>
                   <h3>Description</h3>
                   <p>{draft?.description ?? "No listing description has been saved."}</p>
+                  <h3>Signed inspection</h3>
+                  {snapshot.currentSignedReport ? (
+                    <StaffLink
+                      prefetch={false}
+                      target="_blank"
+                      rel="noopener"
+                      href={`/dashboard/inspection/${snapshot.currentSignedReport.inspectionId}/reports/${snapshot.currentSignedReport.revision}`}
+                    >
+                      Open signed inspection report (new tab)
+                    </StaffLink>
+                  ) : (
+                    <p>No current signed inspection is available.</p>
+                  )}
                 </section>
               ) : (
                 <section className={workbench.stack}>

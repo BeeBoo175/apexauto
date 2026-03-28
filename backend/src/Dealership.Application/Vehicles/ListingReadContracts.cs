@@ -18,9 +18,11 @@ public sealed record ListingManagerItem(Guid VehicleId, Guid BranchId, string Br
 
 public sealed record ListingManagerPage(IReadOnlyList<ListingManagerItem> Items, int Total, int Page, int PageSize);
 
+public sealed record ListingSignedReport(Guid InspectionId, long Revision);
+
 public sealed record ListingWorkspace(ListingManagerItem Vehicle, ListingRevision? Draft,
     ListingRevision? ApprovedRevision, ListingPublication? Publication, ListingWithdrawal? Withdrawal,
-    Guid? CurrentSignedRevisionId);
+    Guid? CurrentSignedRevisionId, ListingSignedReport? CurrentSignedReport);
 
 public sealed record ListingPhotoItem(Guid Id, string ContentType, long Bytes, int Width, int Height,
     DateTimeOffset CreatedAt, DateTimeOffset? AvailableAt);

@@ -58,12 +58,27 @@ test("manager listing drawer retains confirmed details and cancels superseded se
   });
   const outsidePhotoId = (await outsideWorkspace.json()).data.draft.photoIds[0];
   const endpoint = `/api/staff/listings/${item.vehicleId}`;
+  const workspace = await context.request.get(endpoint, { headers: await headers(context) });
+  expect(workspace.status()).toBe(200);
+  const saved = (await workspace.json()).data;
+  const signedReport = saved.currentSignedReport;
+  expect(signedReport).not.toBeNull();
+  const reportPath = `/dashboard/inspection/${signedReport.inspectionId}/reports/${signedReport.revision}`;
   const before = counts()[endpoint] ?? 0;
   const initial = await page.goto(
-    `/dashboard/management?branchId=${branch}&pageSize=10&listing=${item.vehicleId}&section=publication`,
+    `/dashboard/management?branchId=${branch}&pageSize=10&listing=${item.vehicleId}`,
   );
-  expect(await initial!.text()).toContain(item.registrationPlate);
+  const initialHtml = await initial!.text();
+  expect(initialHtml).toContain(item.registrationPlate);
+  expect(initialHtml).toContain(`href="${reportPath}"`);
   const dialog = page.getByRole("dialog", { name: item.registrationPlate, exact: true });
+  const reportLink = dialog.getByRole("link", {
+    name: "Open signed inspection report (new tab)",
+    exact: true,
+  });
+  await expect(reportLink).toHaveAttribute("href", reportPath);
+  await expect(reportLink).toHaveAttribute("target", "_blank");
+  await dialog.getByRole("button", { name: "Publication", exact: true }).click();
   await expect(
     dialog.getByRole("heading", { name: "Publication record", exact: true }),
   ).toBeVisible();
@@ -89,13 +104,24 @@ test("manager listing drawer retains confirmed details and cancels superseded se
   await expect(
     page.getByRole("alert").filter({ hasText: "record could not be refreshed" }),
   ).toHaveCount(0);
-  const workspace = await context.request.get(endpoint, { headers: await headers(context) });
-  const photoIds: string[] = (await workspace.json()).data.draft.photoIds;
+  const photoIds: string[] = saved.draft.photoIds;
   expect(photoIds.length).toBeGreaterThan(1);
   const photoPath = `${endpoint}/photos/${photoIds[0]}`;
   await page.route(`**${photoPath}`, (route) => route.fulfill({ status: 503, body: "" }));
   await dialog.getByRole("button", { name: "Listing page", exact: true }).click();
   await expect(dialog.getByRole("heading", { name: "Description", exact: true })).toBeVisible();
+  const popupOpened = page.waitForEvent("popup");
+  await reportLink.click();
+  const reportPage = await popupOpened;
+  await expect(reportPage).toHaveURL(new RegExp(`${reportPath}$`));
+  await expect(
+    reportPage.getByRole("heading", { name: "Inspection report", exact: true }),
+  ).toBeVisible();
+  await expect(reportPage.locator("[data-inspection-report]")).toContainText(
+    saved.currentSignedRevisionId,
+  );
+  await reportPage.close();
+  await expect(dialog).toBeVisible();
   const gallery = dialog.getByRole("region", { name: "Saved listing photos", exact: true });
   await expect(gallery.getByRole("status")).toHaveText("Photo 1 is unavailable.");
   const remaining = gallery.locator("img");
@@ -145,6 +171,27 @@ test("manager listing drawer retains confirmed details and cancels superseded se
     page.getByRole("alert").filter({ hasText: "record could not be refreshed" }),
   ).toHaveCount(0);
   expect(photoIds.map((id) => counts()[`${endpoint}/photos/${id}`])).toEqual(mediaReads);
+  await expect(reportLink).toHaveAttribute("href", reportPath);
+  const confirmedListingUrl = page.url();
+  await page.route(`**${endpoint}`, (route) =>
+    route.fulfill({
+      status: 200,
+      json: {
+        status: 200,
+        data: { ...saved, currentSignedReport: { inspectionId: "invalid", revision: 0 } },
+        uncertain: false,
+      },
+    }),
+  );
+  await dialog.getByRole("button", { name: "Refresh listing", exact: true }).click();
+  await expect(
+    page.getByRole("alert").filter({ hasText: "record could not be refreshed" }),
+  ).toBeVisible();
+  await expect(reportLink).toHaveAttribute("href", reportPath);
+  expect(page.url()).toBe(confirmedListingUrl);
+  await page.unroute(`**${endpoint}`);
+  await reportLink.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: path.join(evidence, "listing-report.png") });
   await gallery.scrollIntoViewIfNeeded();
   await page.screenshot({ path: path.join(evidence, "listing-drawer.png") });
   let releasePhoto = () => {};
@@ -185,6 +232,10 @@ test("manager listing drawer retains confirmed details and cancels superseded se
     { headers: await headers(context) },
   );
   const opening = (await tableData.json()).data.items[0];
+  const openingResponse = await context.request.get(`/api/staff/listings/${opening.vehicleId}`, {
+    headers: await headers(context),
+  });
+  const openingWorkspace = (await openingResponse.json()).data;
   let release = () => {};
   let entered = () => {};
   let completed = () => {};
@@ -232,6 +283,14 @@ test("manager listing drawer retains confirmed details and cancels superseded se
     await expect(
       page.getByText("No photos have been selected for this saved draft.", { exact: true }),
     ).toBeVisible();
+  }
+  if (!openingWorkspace.currentSignedReport) {
+    await expect(
+      page.getByText("No current signed inspection is available.", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Open signed inspection report (new tab)", exact: true }),
+    ).toHaveCount(0);
   }
   await page.getByRole("dialog").getByRole("button", { name: "Close dialog", exact: true }).click();
   await signOut(page);
@@ -282,6 +341,10 @@ test("manager listing drawer retains confirmed details and cancels superseded se
       healthyPhotoRetained: true,
       scopedPrivateMedia: true,
       latePhotoDiscardedOnClose: true,
+      exactSignedReportLink: reportPath,
+      serverRenderedReportLink: true,
+      malformedRefreshRetainsReportLink: true,
+      reportReceipt: saved.currentSignedRevisionId,
     }),
   );
 });

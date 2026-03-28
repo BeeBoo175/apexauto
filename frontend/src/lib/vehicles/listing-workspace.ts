@@ -37,6 +37,7 @@ export interface ListingWorkspace {
     recordedAt: string;
   } | null;
   currentSignedRevisionId: string | null;
+  currentSignedReport: { inspectionId: string; revision: number } | null;
 }
 
 const date = (value: unknown): value is string =>
@@ -172,9 +173,23 @@ export function parseListingWorkspace(value: unknown): ListingWorkspace | null {
       recordedAt: withdrawn.recordedAt,
     };
   }
+  let currentSignedReport: ListingWorkspace["currentSignedReport"] = null;
+  if (value.currentSignedReport !== null) {
+    const report = value.currentSignedReport;
+    if (
+      !isRecord(report) ||
+      !isUuid(report.inspectionId) ||
+      !Number.isSafeInteger(report.revision) ||
+      Number(report.revision) < 1
+    ) {
+      return null;
+    }
+    currentSignedReport = { inspectionId: report.inspectionId, revision: Number(report.revision) };
+  }
   if (
     Boolean(withdrawal) !== vehicle.isWithdrawn ||
-    (value.currentSignedRevisionId !== null && !isUuid(value.currentSignedRevisionId))
+    (value.currentSignedRevisionId !== null && !isUuid(value.currentSignedRevisionId)) ||
+    Boolean(value.currentSignedRevisionId) !== Boolean(currentSignedReport)
   ) {
     return null;
   }
@@ -185,5 +200,6 @@ export function parseListingWorkspace(value: unknown): ListingWorkspace | null {
     publication,
     withdrawal,
     currentSignedRevisionId: value.currentSignedRevisionId as string | null,
+    currentSignedReport,
   };
 }

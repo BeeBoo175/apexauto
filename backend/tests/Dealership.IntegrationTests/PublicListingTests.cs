@@ -131,6 +131,8 @@ public sealed class PublicListingTests(IntakePhotoFixture fixture) : IClassFixtu
         Assert.Equal(ListingStatus.NotFound, (await store.DetailAsync(records[1].VehicleId, CancellationToken.None)).Status);
         Assert.Null((await management.WorkspaceAsync(manager, records[1].VehicleId, CancellationToken.None))
             .Workspace!.CurrentSignedRevisionId);
+        Assert.Null((await management.WorkspaceAsync(manager, records[1].VehicleId, CancellationToken.None))
+            .Workspace!.CurrentSignedReport);
         var savedAgain = await services.GetRequiredService<InspectionDraftSaveService>().SaveAsync(technician, records[1].InspectionId,
             new(Guid.NewGuid(), 1, 1, []) { ExaminedPointCodes = [.. InspectionCatalog.Points.Select(point => point.Code)] },
             CancellationToken.None);
@@ -143,6 +145,8 @@ public sealed class PublicListingTests(IntakePhotoFixture fixture) : IClassFixtu
         Assert.Equal(ListingStatus.NotFound, (await store.DetailAsync(records[1].VehicleId, CancellationToken.None)).Status);
         var reinspected = (await management.WorkspaceAsync(manager, records[1].VehicleId, CancellationToken.None)).Workspace!;
         Assert.Equal(signedAgain.Report!.OperationId, reinspected.CurrentSignedRevisionId);
+        Assert.Equal(signedAgain.Report.InspectionId, reinspected.CurrentSignedReport!.InspectionId);
+        Assert.Equal(signedAgain.Report.Revision, reinspected.CurrentSignedReport.Revision);
         Assert.Equal(records[1].SignedId, reinspected.Publication!.SignedRevisionId);
         Assert.False(reinspected.Vehicle.IsPublic);
         await database.Branches.Where(branch => branch.Id == outsideBranch)

@@ -50,6 +50,10 @@ internal static class ListingReadAssertions
         var workspace = (await store.WorkspaceAsync(manager, vehicleId, CancellationToken.None)).Workspace!;
         Assert.Equal(workspace.Draft!.Id, workspace.ApprovedRevision!.Id);
         Assert.Equal(workspace.Publication!.SignedRevisionId, workspace.CurrentSignedRevisionId);
+        var signed = await database.InspectionSignedRevisions.AsNoTracking()
+            .SingleAsync(item => item.Id == workspace.CurrentSignedRevisionId);
+        Assert.Equal(signed.InspectionId, workspace.CurrentSignedReport!.InspectionId);
+        Assert.Equal(signed.Revision, workspace.CurrentSignedReport.Revision);
         Assert.True(workspace.Vehicle.IsPublic);
         Assert.False(workspace.Vehicle.IsWithdrawn);
         Assert.Null(workspace.Withdrawal);
@@ -102,6 +106,7 @@ internal static class ListingReadAssertions
         Assert.Null(unlisted.ApprovedRevision);
         Assert.Null(unlisted.Publication);
         Assert.Null(unlisted.CurrentSignedRevisionId);
+        Assert.Null(unlisted.CurrentSignedReport);
         Assert.Equal(0, unlisted.Vehicle.Version);
         Assert.Null(unlisted.Vehicle.RevisionId);
         Assert.False(unlisted.Vehicle.IsPublic);

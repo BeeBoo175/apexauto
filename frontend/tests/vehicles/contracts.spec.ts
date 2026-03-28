@@ -166,6 +166,7 @@ test("listing workspace validates revision and publication relationships before 
     publication,
     withdrawal: null,
     currentSignedRevisionId: ids[2],
+    currentSignedReport: { inspectionId: ids[0], revision: 2, privateNotes: "omitted" },
   };
   expect(parseListingWorkspace(workspace)?.draft?.transmission).toBe("Automatic");
   expect(parseListingWorkspace(parseListingWorkspace(workspace))).toEqual(
@@ -187,6 +188,10 @@ test("listing workspace validates revision and publication relationships before 
     parseListingWorkspace(withdrawnWorkspace),
   );
   expect(parseListingWorkspace(workspace)?.draft).not.toHaveProperty("actorId");
+  expect(parseListingWorkspace(workspace)?.currentSignedReport).toEqual({
+    inspectionId: ids[0],
+    revision: 2,
+  });
   for (const changed of [
     { draft: { ...revision, vehicleId: ids[1] } },
     { draft: { ...revision, branchId: ids[0] } },
@@ -202,6 +207,12 @@ test("listing workspace validates revision and publication relationships before 
     { publication: null },
     { withdrawal: { publicationId: ids[1], reason: "Withdrawn" } },
     { currentSignedRevisionId: "invalid" },
+    { currentSignedRevisionId: null },
+    { currentSignedReport: null },
+    { currentSignedReport: { inspectionId: "invalid", revision: 2 } },
+    { currentSignedReport: { inspectionId: ids[0], revision: 0 } },
+    { currentSignedReport: { inspectionId: ids[0], revision: 1.5 } },
+    { currentSignedReport: { inspectionId: ids[0], revision: Number.MAX_SAFE_INTEGER + 1 } },
   ]) {
     expect(parseListingWorkspace({ ...workspace, ...changed })).toBeNull();
   }
@@ -221,6 +232,7 @@ test("listing workspace validates revision and publication relationships before 
       approvedRevision: null,
       publication: null,
       currentSignedRevisionId: null,
+      currentSignedReport: null,
     })?.draft,
   ).toBeNull();
   expect(listingParams({ listing: ids[0], section: "publication" })).toMatchObject({

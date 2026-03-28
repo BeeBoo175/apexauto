@@ -157,11 +157,12 @@ public sealed class ListingReadStore(DealershipDbContext database) : IListingRea
             .SingleOrDefaultAsync(row => row.Id == vehicle.PublicationId, cancellationToken);
         var withdrawal = await database.ListingWithdrawals.AsNoTracking()
             .SingleOrDefaultAsync(row => row.PublicationId == vehicle.PublicationId, cancellationToken);
-        var signedId = await (from signed in database.InspectionSignedRevisions.AsNoTracking()
-                              join inspection in database.InspectionDrafts.AsNoTracking() on signed.InspectionId equals inspection.Id
-                              where inspection.VehicleId == vehicleId && inspection.IsSigned && inspection.Revision == signed.Revision
-                              select (Guid?)signed.Id).SingleOrDefaultAsync(cancellationToken);
-        return new(ListingStatus.Succeeded, new(vehicle, draft, approved, publication, withdrawal, signedId));
+        var currentSigned = await (from signed in database.InspectionSignedRevisions.AsNoTracking()
+                                   join inspection in database.InspectionDrafts.AsNoTracking() on signed.InspectionId equals inspection.Id
+                                   where inspection.VehicleId == vehicleId && inspection.IsSigned && inspection.Revision == signed.Revision
+                                   select new { signed.Id, signed.InspectionId, signed.Revision }).SingleOrDefaultAsync(cancellationToken);
+        var report = currentSigned is null ? null : new ListingSignedReport(currentSigned.InspectionId, currentSigned.Revision);
+        return new(ListingStatus.Succeeded, new(vehicle, draft, approved, publication, withdrawal, currentSigned?.Id, report));
     }
 
     public async Task<ListingPhotoPageResult> PhotosAsync(Guid actorId, Guid vehicleId, int page, int pageSize,
