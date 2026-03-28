@@ -4,9 +4,11 @@ using Dealership.Domain.Vehicles;
 namespace Dealership.Application.Vehicles;
 
 public sealed record ListingReadFilter(Guid? BranchId = null, int Page = 1,
-    int PageSize = Pagination.DefaultPageSize, string Search = "")
+    int PageSize = Pagination.DefaultPageSize, string Search = "", string Sort = "", string Direction = "asc")
 {
-    public bool IsValid => BranchId != Guid.Empty && Pagination.IsValid(Page, PageSize) && ListSearch.IsValid(Search);
+    public bool IsValid => BranchId != Guid.Empty && Pagination.IsValid(Page, PageSize) && ListSearch.IsValid(Search) &&
+        Sort is "" or "registration" or "vehicle" or "branch" or "inspection" or "price" or "publication" &&
+        Direction is "asc" or "desc";
 }
 
 public sealed record ListingManagerItem(Guid VehicleId, Guid BranchId, string BranchName, string RegistrationPlate,

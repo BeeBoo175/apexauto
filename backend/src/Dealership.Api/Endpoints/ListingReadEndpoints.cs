@@ -20,6 +20,7 @@ public static class ListingReadEndpoints
     }
 
     private static async Task<IResult> ReadAsync(Guid? branchId, int? page, int? pageSize, string? search,
+        string? sort, string? direction,
         HttpContext context, IListingReadStore store, CancellationToken cancellationToken)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -27,7 +28,8 @@ public static class ListingReadEndpoints
         try
         {
             var result = await store.ReadAsync(ActorId(context),
-                new(branchId, page ?? 1, pageSize ?? Pagination.DefaultPageSize, search?.Trim() ?? ""), deadline.Token);
+                new(branchId, page ?? 1, pageSize ?? Pagination.DefaultPageSize, search?.Trim() ?? "",
+                    sort ?? "", direction ?? "asc"), deadline.Token);
             return Map(result.Status, result.Listings);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)

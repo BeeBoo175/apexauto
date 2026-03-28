@@ -69,6 +69,11 @@ internal static class ListingReadAssertions
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"/api/staff/listings/{vehicleId}")).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"/api/staff/listings/{vehicleId}/photos?pageSize=10")).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/api/staff/listings?pageSize=8")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/api/staff/listings?sort=unknown")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/api/staff/listings?sort=price&direction=sideways")).StatusCode);
+        var sorted = await client.GetFromJsonAsync<ListingManagerPage>("/api/staff/listings?sort=registration&direction=desc&pageSize=10");
+        Assert.Equal(first.Listings.Items.Concat(second.Items).OrderByDescending(item => item.RegistrationPlate)
+            .ThenBy(item => item.VehicleId).Take(10).Select(item => item.VehicleId), sorted!.Items.Select(item => item.VehicleId));
 
         await database.Users.Where(user => user.Id == manager).ExecuteUpdateAsync(update => update.SetProperty(user => user.BranchId, outsideBranch));
         Assert.Equal(1, (await store.ReadAsync(manager, new(), CancellationToken.None)).Listings!.Total);
@@ -103,6 +108,67 @@ internal static class ListingReadAssertions
         Assert.Contains((await store.ReadAsync(manager, new(), CancellationToken.None)).Listings!.Items,
             item => item.VehicleId == checkIn.Receipt.VehicleId && item.Version == 0);
         Assert.Empty((await store.PhotosAsync(manager, checkIn.Receipt.VehicleId, 1, 10, CancellationToken.None)).Photos!.Items);
+        await VerifySortingAsync(store, group);
+    }
+
+    private static async Task VerifySortingAsync(IListingReadStore store, Guid manager)
+    {
+        var all = (await store.ReadAsync(manager, new(PageSize: 50), CancellationToken.None)).Listings!.Items;
+        foreach (var sort in new[] { "registration", "vehicle", "branch", "inspection", "price", "publication" })
+        {
+            await VerifySortAsync(store, manager, all, sort, "asc");
+            await VerifySortAsync(store, manager, all, sort, "desc");
+        }
+    }
+
+    private static async Task VerifySortAsync(IListingReadStore store, Guid manager,
+        IReadOnlyList<ListingManagerItem> all, string sort, string direction)
+    {
+        Func<ListingManagerItem, IComparable?> key = sort switch
+        {
+            "registration" => item => item.RegistrationPlate,
+            "vehicle" => item => $"{item.ManufactureYear} {item.Make} {item.Model} {item.Trim}",
+            "branch" => item => item.BranchName,
+            "inspection" => item => item.VehicleStatus.ToString(),
+            "price" => item => item.VehiclePrice,
+            _ => item => PublicationOrder(item)
+        };
+        IEnumerable<ListingManagerItem> expected = direction == "desc" ? all.OrderByDescending(key) : all.OrderBy(key);
+        if (sort == "price")
+        {
+            expected = expected.OrderBy(item => item.VehiclePrice is null);
+        }
+
+        var ordered = expected.GroupBy(key).SelectMany(group => group.OrderBy(item => item.VehicleId)).ToArray();
+        var filter = new ListingReadFilter(PageSize: 10, Sort: sort, Direction: direction);
+        var first = (await store.ReadAsync(manager, filter, CancellationToken.None)).Listings!;
+        var second = (await store.ReadAsync(manager, filter with { Page = 2 }, CancellationToken.None)).Listings!;
+        Assert.Equal(all.Count, first.Total);
+        Assert.Equal(all.Count, second.Total);
+        var actual = first.Items.Concat(second.Items).ToArray();
+        Assert.True(ordered.Select(item => item.VehicleId).SequenceEqual(actual.Select(item => item.VehicleId)),
+            $"{sort} {direction}: expected {string.Join(", ", ordered.Select(item => item.RegistrationPlate))}; " +
+            $"actual {string.Join(", ", actual.Select(item => item.RegistrationPlate))}");
+    }
+
+    private static int PublicationOrder(ListingManagerItem item)
+    {
+        if (item.IsPublic)
+        {
+            return item.RevisionId == item.PublishedRevisionId ? 3 : 4;
+        }
+
+        if (item.IsWithdrawn)
+        {
+            return 5;
+        }
+
+        if (item.PublicationId is not null)
+        {
+            return 2;
+        }
+
+        return item.RevisionId is not null ? 1 : 0;
     }
 
     private static async Task VerifyPhotosAsync(IServiceProvider services, IListingReadStore store, Guid manager, Guid vehicleId)

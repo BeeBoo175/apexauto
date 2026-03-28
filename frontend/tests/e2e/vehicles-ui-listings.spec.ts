@@ -1,6 +1,7 @@
 import { expect, test, type Page, type BrowserContext } from "@playwright/test";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import type { ListingItem } from "@/lib/vehicles/listings";
 
 const evidence = process.env.BROWSER_EVIDENCE_DIR!;
 const counts = () =>
@@ -27,6 +28,38 @@ async function signOut(page: Page) {
   }
   await button.click();
   await expect(page).toHaveURL(/\/login$/);
+}
+
+async function readOrder(context: BrowserContext, sort: string, direction: string) {
+  const items: ListingItem[] = [];
+  let total = 1;
+  for (let number = 1; items.length < total; number += 1) {
+    const response = await context.request.get(
+      `/api/staff/listings?pageSize=50&page=${number}&branchId=${branch}&sort=${sort}&direction=${direction}`,
+      { headers: await headers(context) },
+    );
+    expect(response.status()).toBe(200);
+    const result = (await response.json()).data;
+    expect(result.total).toBeLessThan(10_000);
+    expect(result.items.length).toBeGreaterThan(0);
+    total = result.total;
+    items.push(...result.items);
+  }
+  expect(new Set(items.map((row) => row.vehicleId)).size).toBe(total);
+  return { items, total };
+}
+
+function publicationOrder(row: ListingItem): string {
+  if (row.isPublic) {
+    return row.revisionId === row.publishedRevisionId ? "3" : "4";
+  }
+  if (row.isWithdrawn) {
+    return "5";
+  }
+  if (row.publicationId) {
+    return "2";
+  }
+  return row.revisionId ? "1" : "0";
 }
 
 test("manager listing table preserves scoped server rows, drafts and complete filtered exports", async ({
@@ -62,6 +95,87 @@ test("manager listing table preserves scoped server rows, drafts and complete fi
   expect(await rows().allTextContents()).not.toEqual(first);
   await page.getByRole("button", { name: "Previous records", exact: true }).click();
   await expect(page).toHaveURL(/page=1/);
+  expect(await rows().allTextContents()).toEqual(first);
+
+  const sortHeader = table.locator('th[data-column-id="registration"]');
+  const sortButton = page.getByRole("button", { name: "Sort by Registration", exact: true });
+  await page.getByRole("button", { name: "Next records", exact: true }).click();
+  await expect(page).toHaveURL(/page=2/);
+  await sortButton.click();
+  await expect(sortHeader).toHaveAttribute("aria-sort", "ascending");
+  await expect(page).toHaveURL(/page=1.*sort=registration.*direction=asc/);
+  await sortButton.click();
+  await expect(sortHeader).toHaveAttribute("aria-sort", "descending");
+  await expect(page).toHaveURL(/direction=desc/);
+  const sorted = await readOrder(context, "registration", "desc");
+  expect(sorted.total).toBe(data.total);
+  const keys: Record<string, (row: ListingItem) => string> = {
+    vehicle: (row) => `${row.manufactureYear} ${row.make} ${row.model} ${row.trim}`,
+    publication: publicationOrder,
+  };
+  for (const [column, key] of Object.entries(keys)) {
+    expect(new Set(sorted.items.map(key)).size).toBeGreaterThan(1);
+    for (const direction of ["asc", "desc"]) {
+      const actual = await readOrder(context, column, direction);
+      const expected = [...sorted.items].sort((left, right) => {
+        const comparison = key(left).localeCompare(key(right), "en");
+        if (comparison === 0) {
+          return left.vehicleId.localeCompare(right.vehicleId, "en");
+        }
+        return direction === "desc" ? -comparison : comparison;
+      });
+      expect(actual.items.map((row) => row.vehicleId)).toEqual(
+        expected.map((row) => row.vehicleId),
+      );
+    }
+  }
+  expect(sorted.items.map((row: { registrationPlate: string }) => row.registrationPlate)).toEqual(
+    [...sorted.items]
+      .map((row: { registrationPlate: string }) => row.registrationPlate)
+      .sort()
+      .reverse(),
+  );
+  expect(await rows().allTextContents()).not.toEqual(first);
+  for (const row of sorted.items.slice(0, 10)) {
+    await expect(rows().filter({ hasText: row.registrationPlate })).toHaveCount(1);
+  }
+  await page.getByRole("button", { name: "Next records", exact: true }).click();
+  await expect(page).toHaveURL(/page=2.*direction=desc/);
+  for (const row of sorted.items.slice(10, 20)) {
+    await expect(rows().filter({ hasText: row.registrationPlate })).toHaveCount(1);
+  }
+  await page.reload();
+  await expect(sortHeader).toHaveAttribute("aria-sort", "descending");
+  await expect(rows().filter({ hasText: sorted.items[10].registrationPlate })).toHaveCount(1);
+  await page.getByLabel("Search listings", { exact: true }).fill("Unsubmitted sort search");
+  const sortedRows = await rows().allTextContents();
+  const sortedUrl = page.url();
+  writeFileSync(path.join(evidence, "fault.txt"), "unavailable");
+  try {
+    await page.getByRole("button", { name: "Sort by Draft price", exact: true }).click();
+    await expect(page.getByRole("alert").filter({ hasText: "last confirmed rows" })).toBeVisible();
+    expect(page.url()).toBe(sortedUrl);
+    expect(await rows().allTextContents()).toEqual(sortedRows);
+    await expect(sortHeader).toHaveAttribute("aria-sort", "descending");
+    await expect(page.getByLabel("Search listings", { exact: true })).toHaveValue(
+      "Unsubmitted sort search",
+    );
+  } finally {
+    writeFileSync(path.join(evidence, "fault.txt"), "");
+  }
+  const sortedDownload = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export full CSV", exact: true }).click();
+  const sortedFile = await sortedDownload;
+  const sortedCsv = readFileSync((await sortedFile.path())!, "utf8")
+    .trim()
+    .split("\r\n")
+    .slice(1);
+  expect(sortedCsv.map((row) => row.split(",")[0])).toEqual(
+    sorted.items.map((row: { registrationPlate: string }) => `"${row.registrationPlate}"`),
+  );
+  await sortButton.click();
+  await expect(sortHeader).toHaveAttribute("aria-sort", "none");
+  await expect(page).not.toHaveURL(/sort=/);
   expect(await rows().allTextContents()).toEqual(first);
 
   await page.getByLabel("Search listings", { exact: true }).fill("Unsubmitted search");
@@ -212,6 +326,9 @@ test("manager listing table preserves scoped server rows, drafts and complete fi
       failedRefreshRetained: true,
       draftRetained: true,
       exportVerified: true,
+      sortingAcrossPagesAndReload: true,
+      failedSortRetained: true,
+      sortedExportVerified: true,
     }),
   );
 });

@@ -4,6 +4,14 @@ import { isUuid } from "@/lib/auth/contracts";
 import { DEFAULT_PAGE_SIZE, isPageSize, paginationQuery } from "@/lib/pagination";
 
 export const vehicleStatuses = ["PendingInspection", "Rejected", "Available"] as const;
+export const listingSorts = [
+  "registration",
+  "vehicle",
+  "branch",
+  "inspection",
+  "price",
+  "publication",
+] as const;
 
 export interface ListingItem {
   vehicleId: string;
@@ -29,6 +37,8 @@ export interface ListingFilters {
   search: string;
   branchId: string;
   pageSize: number;
+  sort: string;
+  direction: "asc" | "desc";
 }
 
 export function hasListingAccess(actor: CurrentActor) {
@@ -42,6 +52,8 @@ export function listingParams(params: SearchParams) {
     search: typeof params.search === "string" ? params.search.trim() : "",
     branchId: isUuid(params.branchId) ? params.branchId : "",
     pageSize: isPageSize(size) ? size : DEFAULT_PAGE_SIZE,
+    sort: listingSorts.find((value) => value === params.sort) ?? "",
+    direction: params.direction === "desc" ? "desc" : "asc",
   };
   return {
     filters,
@@ -53,6 +65,10 @@ export function listingParams(params: SearchParams) {
 
 export function listingQuery(filters: ListingFilters, page = 1) {
   const query = paginationQuery(page, filters.pageSize);
+  if (filters.sort) {
+    query.set("sort", filters.sort);
+    query.set("direction", filters.direction);
+  }
   if (filters.search) {
     query.set("search", filters.search);
   }

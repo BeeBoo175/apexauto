@@ -49,23 +49,75 @@ public sealed class ListingReadStore(DealershipDbContext database) : IListingRea
                 EF.Functions.ILike(row.BranchName, pattern, "!"));
         }
 
+        // Publication order depends on availability across the complete filtered dataset.
+        if (filter.Sort == "publication" && !await ReservationReadSnapshot.ReconcileDueAsync(database,
+            rows.Select(row => row.Vehicle.Id), filter.PageSize, cancellationToken))
+        {
+            return new(ListingStatus.Unavailable);
+        }
+
         var total = await rows.CountAsync(cancellationToken);
-        var pageIds = await rows.OrderBy(row => row.BranchName).ThenBy(row => row.Vehicle.RegistrationPlate).ThenBy(row => row.Vehicle.Id)
+        var pageIds = await Order(rows, filter)
             .Select(row => row.Vehicle.Id)
             .ReadPageAsync(filter.Page, filter.PageSize, total, cancellationToken);
-        var vehicleIds = await database.Vehicles.Where(vehicle => pageIds.Contains(vehicle.Id) &&
+        var vehicleIds = await database.Vehicles.Where(vehicle => filter.Sort != "publication" && pageIds.Contains(vehicle.Id) &&
                 database.Reservations.Any(item => item.VehicleId == vehicle.Id && item.IsActive))
             .OrderBy(vehicle => vehicle.Id).Select(vehicle => vehicle.Id).ToArrayAsync(cancellationToken);
-        // Hold state does not change list membership; only this page needs ordered catch-up.
+        // Other sort keys do not depend on hold state; retain bounded page catch-up.
         foreach (var vehicleId in vehicleIds)
         {
             await ReservationReadSnapshot.ReconcileAsync(database, vehicleId, cancellationToken);
         }
 
-        var items = await rows.Where(row => pageIds.Contains(row.Vehicle.Id))
-            .OrderBy(row => row.BranchName).ThenBy(row => row.Vehicle.RegistrationPlate).ThenBy(row => row.Vehicle.Id)
+        var items = await Order(rows.Where(row => pageIds.Contains(row.Vehicle.Id)), filter)
             .Select(Item).ToArrayAsync(cancellationToken);
         return new(ListingStatus.Succeeded, new(Array.AsReadOnly(items), total, filter.Page, filter.PageSize));
+    }
+
+    private static IOrderedQueryable<Row> Order(IQueryable<Row> rows, ListingReadFilter filter)
+    {
+        var ordered = filter.Sort switch
+        {
+            "registration" => OrderBy(rows, row => row.Vehicle.RegistrationPlate, filter.Direction),
+            "vehicle" => OrderBy(rows, row => row.Vehicle.ManufactureYear + " " + row.Vehicle.Make + " " +
+                row.Vehicle.Model + " " + row.Vehicle.Trim, filter.Direction),
+            "branch" => OrderBy(rows, row => row.BranchName, filter.Direction),
+            "inspection" => OrderBy(rows, row => row.Vehicle.Status, filter.Direction),
+            "price" => OrderPrice(rows, filter.Direction),
+            "publication" => OrderPublication(rows, filter.Direction),
+            _ => rows.OrderBy(row => row.BranchName).ThenBy(row => row.Vehicle.RegistrationPlate)
+        };
+        return ordered.ThenBy(row => row.Vehicle.Id);
+    }
+
+    private static IOrderedQueryable<Row> OrderBy<TKey>(IQueryable<Row> rows,
+        Expression<Func<Row, TKey>> key, string direction)
+    {
+        return direction == "desc" ? rows.OrderByDescending(key) : rows.OrderBy(key);
+    }
+
+    private static IOrderedQueryable<Row> OrderPrice(IQueryable<Row> rows, string direction)
+    {
+        // Unprepared prices remain last in either direction.
+        var ordered = rows.OrderBy(row => row.Draft == null);
+        return direction == "desc"
+            ? ordered.ThenByDescending(row => row.Draft!.VehiclePrice)
+            : ordered.ThenBy(row => row.Draft!.VehiclePrice);
+    }
+
+    private static IOrderedQueryable<Row> OrderPublication(IQueryable<Row> rows, string direction)
+    {
+        // Follow preparation/publication progression, with withdrawn listings last when ascending.
+        if (direction == "desc")
+        {
+            return rows.OrderByDescending(row => row.IsWithdrawn).ThenByDescending(row => row.IsPublic)
+                .ThenByDescending(row => row.Publication != null).ThenByDescending(row => row.Draft != null)
+                .ThenByDescending(row => row.IsPublic && row.Draft!.Id != row.Publication!.RevisionId);
+        }
+
+        return rows.OrderBy(row => row.IsWithdrawn).ThenBy(row => row.IsPublic)
+            .ThenBy(row => row.Publication != null).ThenBy(row => row.Draft != null)
+            .ThenBy(row => row.IsPublic && row.Draft!.Id != row.Publication!.RevisionId);
     }
 
     public async Task<ListingWorkspaceResult> WorkspaceAsync(Guid actorId, Guid vehicleId, CancellationToken cancellationToken)

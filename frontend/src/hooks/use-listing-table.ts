@@ -98,10 +98,12 @@ export function useListingTable(
             ? nextFilters.branchId
             : current.branchId,
         pageSize: nextFilters.pageSize,
+        sort: nextFilters.sort,
+        direction: nextFilters.direction,
       }));
       setRevision((value) => value + 1);
       const query = new URLSearchParams(window.location.search);
-      for (const key of ["page", "pageSize", "search", "branchId"]) {
+      for (const key of ["page", "pageSize", "search", "branchId", "sort", "direction"]) {
         query.delete(key);
       }
       new URLSearchParams(listingQuery(nextFilters, nextPage)).forEach((value, key) =>

@@ -94,7 +94,7 @@ test("manager listings validate private projections and independent staff paging
   });
   expect(listingParams({ page: "-1", pageSize: "8", branchId: "invalid" })).toEqual({
     page: 1,
-    filters: { search: "", pageSize: 25, branchId: "" },
+    filters: { search: "", pageSize: 25, branchId: "", sort: "", direction: "asc" },
     listingId: "",
     section: "listing",
   });
@@ -110,6 +110,18 @@ test("manager listings validate private projections and independent staff paging
       ["BranchManager", "GeneralManager"].includes(role),
     );
   }
+});
+
+test("listing sort query round-trips supported columns and clears invalid sort inputs", () => {
+  for (const sort of ["registration", "vehicle", "branch", "inspection", "price", "publication"]) {
+    const state = listingParams({ sort, direction: "desc", page: "2" });
+    expect(
+      Object.fromEntries(new URLSearchParams(listingQuery(state.filters, state.page))),
+    ).toMatchObject({ sort, direction: "desc", page: "2" });
+  }
+  const invalid = listingParams({ sort: "customerEmail", direction: "sideways" });
+  expect(invalid.filters).toMatchObject({ sort: "", direction: "asc" });
+  expect(new URLSearchParams(listingQuery(invalid.filters)).has("sort")).toBe(false);
 });
 
 test("listing workspace validates revision and publication relationships before rendering", () => {

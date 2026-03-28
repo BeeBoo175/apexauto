@@ -25,7 +25,7 @@ export async function GET(request: Request) {
     }
     const source = new URL(request.url).searchParams;
     const allowed = new URLSearchParams();
-    for (const key of ["page", "pageSize", "search", "branchId"]) {
+    for (const key of ["page", "pageSize", "search", "branchId", "sort", "direction"]) {
       if (source.has(key)) {
         allowed.set(key, source.get(key)!);
       }

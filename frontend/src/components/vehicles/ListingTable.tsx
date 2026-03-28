@@ -13,7 +13,7 @@ import { CsvExportActions } from "@/components/ui/CsvExportActions";
 import { DataTable } from "@/components/ui/data-table/DataTable";
 import { DataTablePagination } from "@/components/ui/data-table/DataTablePagination";
 import { DataTableWorkspace } from "@/components/ui/data-table/DataTableWorkspace";
-import type { DataColumn } from "@/components/ui/data-table/types";
+import type { DataColumn, TableSort } from "@/components/ui/data-table/types";
 import { useListingTable } from "@/hooks/use-listing-table";
 import { useRowSelection } from "@/hooks/use-row-selection";
 import { useCsvExport } from "@/hooks/use-csv-export";
@@ -43,19 +43,22 @@ const columns: DataColumn<ListingItem>[] = [
   {
     id: "registration",
     label: "Registration",
+    sortable: true,
     minWidth: 145,
     cell: (row) => row.registrationPlate,
   },
   {
     id: "vehicle",
     label: "Vehicle",
+    sortable: true,
     minWidth: 230,
     cell: (row) => `${row.manufactureYear} ${row.make} ${row.model} ${row.trim}`,
   },
-  { id: "branch", label: "Branch", minWidth: 160, cell: (row) => row.branchName },
+  { id: "branch", label: "Branch", sortable: true, minWidth: 160, cell: (row) => row.branchName },
   {
     id: "inspection",
     label: "Inspection status",
+    sortable: true,
     minWidth: 175,
     cell: (row) =>
       row.vehicleStatus === "PendingInspection" ? "Pending inspection" : row.vehicleStatus,
@@ -63,11 +66,18 @@ const columns: DataColumn<ListingItem>[] = [
   {
     id: "price",
     label: "Draft price",
+    sortable: true,
     minWidth: 160,
     align: "right",
     cell: (row) => (row.vehiclePrice === null ? "Not set" : formatCurrency(row.vehiclePrice)),
   },
-  { id: "publication", label: "Publication", minWidth: 230, cell: listingPublication },
+  {
+    id: "publication",
+    label: "Publication",
+    sortable: true,
+    minWidth: 230,
+    cell: listingPublication,
+  },
 ];
 
 export function ListingTable({
@@ -140,6 +150,13 @@ export function ListingTable({
 
   function changePage(nextPage: number, pageSize: number) {
     void state.load({ ...active.filters, pageSize }, nextPage);
+  }
+
+  function sortListings(sort: TableSort | null) {
+    void state.load(
+      { ...active.filters, sort: sort?.column ?? "", direction: sort?.direction ?? "asc" },
+      1,
+    );
   }
 
   return (
@@ -217,6 +234,12 @@ export function ListingTable({
                 label="Listings"
                 rows={snapshot.items}
                 columns={listingColumns}
+                sorting={{
+                  value: active.filters.sort
+                    ? { column: active.filters.sort, direction: active.filters.direction }
+                    : null,
+                  onChange: sortListings,
+                }}
                 rowId={rowId}
                 selection={selection.selection}
                 page={snapshot}
