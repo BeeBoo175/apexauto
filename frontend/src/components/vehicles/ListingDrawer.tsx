@@ -6,26 +6,27 @@ import { Dialog } from "@/components/ui/Dialog";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { WorkshopLoadingShell } from "@/components/inspection/WorkshopLoadingShell";
-import { StaffLink } from "@/components/staff/StaffLink";
+import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import type { useStaffSelection } from "@/hooks/use-staff-selection";
 import type { ListingWorkspace } from "@/lib/vehicles/listing-workspace";
 import type { ApiResult } from "@/lib/api";
-import { listingPublication } from "@/lib/vehicles/listings";
-import { formatCurrency } from "@/lib/currency-format";
-import { formatMalaysianDateTime } from "@/lib/date-format";
-import { ListingGallery } from "./ListingGallery";
-import workshop from "@/components/inspection/Workshop.module.css";
+import { ListingEditor } from "./ListingEditor";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 
 export function ListingDrawer({
+  actor,
+  onSaved,
   selection,
   initial,
   initialSection,
 }: {
+  actor: CurrentActor;
+  onSaved: () => void;
   selection: ReturnType<typeof useStaffSelection<ListingWorkspace>>;
   initial: ApiResult<ListingWorkspace> | null;
   initialSection: "listing" | "publication";
 }) {
+  const [locked, setLocked] = useState(false);
   const [section, setSection] = useState(initialSection);
   const [entry, setEntry] = useState(initial);
   if (entry !== initial) {
@@ -34,7 +35,6 @@ export function ListingDrawer({
   }
   const snapshot = selection.result?.data;
   const vehicle = snapshot?.vehicle;
-  const draft = snapshot?.draft;
 
   function changeSection(next: "listing" | "publication") {
     setSection(next);
@@ -44,6 +44,9 @@ export function ListingDrawer({
   }
 
   function close() {
+    if (locked) {
+      return;
+    }
     selection.close();
     setSection("listing");
     const url = new URL(window.location.href);
@@ -65,6 +68,7 @@ export function ListingDrawer({
           vehicle ? `${vehicle.make} ${vehicle.model} · ${vehicle.branchName}` : undefined
         }
         onClose={close}
+        closeDisabled={locked}
         headerActions={
           <RefreshButton
             label="Refresh listing"
@@ -88,155 +92,19 @@ export function ListingDrawer({
           </div>
         )}
         {snapshot && vehicle && (
-          <div className={workshop.workspace}>
-            <div className={workshop.summary}>
-              <div className={workshop.summaryMain}>
-                <div>
-                  <span className={workshop.summaryLabel}>Saved draft price</span>
-                  <strong className={workshop.summaryValue}>
-                    {draft ? formatCurrency(draft.vehiclePrice) : "Not prepared"}
-                  </strong>
-                </div>
-                <div className={workshop.summaryContext}>
-                  <strong>{listingPublication(vehicle)}</strong>
-                  <span>{draft ? `Draft version ${draft.version}` : "No saved draft"}</span>
-                </div>
-              </div>
-            </div>
-            <nav className={workshop.sections} aria-label="Listing sections">
-              {(["listing", "publication"] as const).map((value) => (
-                <Button
-                  key={value}
-                  size="compact"
-                  variant="ghost"
-                  className={workshop.sectionButton}
-                  aria-pressed={section === value}
-                  onClick={() => changeSection(value)}
-                >
-                  {value === "listing" ? "Listing page" : "Publication"}
-                </Button>
-              ))}
-            </nav>
-            <div className={workshop.body}>
-              {section === "listing" ? (
-                <section className={workbench.stack}>
-                  <ListingGallery
-                    vehicleId={vehicle.vehicleId}
-                    photoIds={draft?.photoIds ?? []}
-                    vehicleName={`${vehicle.make} ${vehicle.model} ${vehicle.trim}`}
-                  />
-                  <h3>
-                    {vehicle.manufactureYear} {vehicle.make} {vehicle.model} {vehicle.trim}
-                  </h3>
-                  <dl className={workshop.facts}>
-                    <div>
-                      <dt>Mileage</dt>
-                      <dd>{vehicle.mileageKilometres.toLocaleString("en-MY")} km</dd>
-                    </div>
-                    <div>
-                      <dt>Inspection status</dt>
-                      <dd>
-                        {vehicle.vehicleStatus === "PendingInspection"
-                          ? "Pending inspection"
-                          : vehicle.vehicleStatus}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Transmission</dt>
-                      <dd>{draft?.transmission ?? "Not set"}</dd>
-                    </div>
-                    <div>
-                      <dt>Fuel</dt>
-                      <dd>
-                        {draft?.fuel === "PlugInHybrid"
-                          ? "Plug-in hybrid"
-                          : (draft?.fuel ?? "Not set")}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Road tax</dt>
-                      <dd>{draft ? formatCurrency(draft.roadTax) : "Not set"}</dd>
-                    </div>
-                    <div>
-                      <dt>Selected public photos</dt>
-                      <dd>{draft?.photoIds.length ?? 0}</dd>
-                    </div>
-                  </dl>
-                  <h3>Description</h3>
-                  <p>{draft?.description ?? "No listing description has been saved."}</p>
-                  <h3>Signed inspection</h3>
-                  {snapshot.currentSignedReport ? (
-                    <StaffLink
-                      prefetch={false}
-                      target="_blank"
-                      rel="noopener"
-                      href={`/dashboard/inspection/${snapshot.currentSignedReport.inspectionId}/reports/${snapshot.currentSignedReport.revision}`}
-                    >
-                      Open signed inspection report (new tab)
-                    </StaffLink>
-                  ) : (
-                    <p>No current signed inspection is available.</p>
-                  )}
-                </section>
-              ) : (
-                <section className={workbench.stack}>
-                  <h3>Publication record</h3>
-                  <dl className={workshop.facts}>
-                    <div>
-                      <dt>Availability</dt>
-                      <dd>{listingPublication(vehicle)}</dd>
-                    </div>
-                    <div>
-                      <dt>Current signed inspection</dt>
-                      <dd>
-                        {snapshot.currentSignedRevisionId
-                          ? "Signed inspection recorded"
-                          : "No current signed inspection"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Last approved</dt>
-                      <dd>
-                        {snapshot.publication
-                          ? formatMalaysianDateTime(snapshot.publication.recordedAt)
-                          : "Not approved"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Approved price</dt>
-                      <dd>
-                        {snapshot.approvedRevision
-                          ? formatCurrency(snapshot.approvedRevision.vehiclePrice)
-                          : "Not approved"}
-                      </dd>
-                    </div>
-                  </dl>
-                  {snapshot.approvedRevision && (
-                    <>
-                      <h3>Approved description</h3>
-                      <p>{snapshot.approvedRevision.description}</p>
-                    </>
-                  )}
-                  {snapshot.withdrawal && (
-                    <>
-                      <h3>Withdrawal reason</h3>
-                      <p>{snapshot.withdrawal.reason}</p>
-                      <p>{formatMalaysianDateTime(snapshot.withdrawal.recordedAt)}</p>
-                    </>
-                  )}
-                </section>
-              )}
-            </div>
-            <footer className={workshop.footer}>
-              <div className={workshop.footerContext}>
-                <strong>Listing review</strong>
-                <span>Saved listing and publication details are read only.</span>
-              </div>
-              <Button size="compact" variant="secondary" onClick={close}>
-                Back to listings
-              </Button>
-            </footer>
-          </div>
+          <ListingEditor
+            key={`${actorIdentity(actor)}:${vehicle.vehicleId}`}
+            snapshot={snapshot}
+            actor={actor}
+            section={section}
+            changeSection={changeSection}
+            close={close}
+            onLock={setLocked}
+            onSaved={() => {
+              onSaved();
+              void selection.choose(selection.id);
+            }}
+          />
         )}
       </Dialog>
     </>

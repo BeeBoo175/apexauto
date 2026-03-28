@@ -154,5 +154,23 @@ export function useListingTable(
     }
   }
 
-  return { snapshot, active, draft, setDraft, branches, busy, ready, revision, load, loadBranches };
+  function refreshAfterCommand() {
+    controller.current?.abort();
+    controller.current = null;
+    void load();
+  }
+
+  return {
+    snapshot,
+    active,
+    draft,
+    setDraft,
+    branches,
+    busy,
+    ready,
+    revision,
+    load,
+    loadBranches,
+    refreshAfterCommand,
+  };
 }

@@ -48,7 +48,7 @@ const money = (value: unknown): value is number =>
   value >= 0 &&
   Number.isSafeInteger(Math.round(value * 100));
 
-function parseRevision(value: unknown): ListingRevision | null {
+export function parseRevision(value: unknown): ListingRevision | null {
   if (
     !isRecord(value) ||
     !isUuid(value.id) ||

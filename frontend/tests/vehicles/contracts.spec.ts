@@ -3,6 +3,13 @@ import { parseCatalogue } from "@/lib/vehicles/parse";
 import { parseListings } from "@/lib/vehicles/parse-listings";
 import { parseListingWorkspace } from "@/lib/vehicles/listing-workspace";
 import {
+  listingDraft,
+  listingDraftContents,
+  matchesListingSave,
+  parseListingSave,
+  parseListingReceipt,
+} from "@/lib/vehicles/listing-draft";
+import {
   hasListingAccess,
   listingParams,
   listingQuery,
@@ -36,6 +43,80 @@ const vehicle = {
   photoCount: 4,
   publishedAt: "2026-10-26T00:00:00+00:00",
 };
+
+test("listing draft preserves exact prices and validates immutable save receipts", () => {
+  const value = {
+    vehiclePrice: "45000.01",
+    roadTax: "90.00",
+    transmission: "Manual",
+    fuel: "Hybrid",
+    description: " Maintained vehicle\nReady to view ",
+  };
+  const contents = listingDraftContents(value)!;
+  expect(contents).toEqual({
+    vehiclePrice: 45000.01,
+    roadTax: 90,
+    transmission: 1,
+    fuel: 2,
+    description: "Maintained vehicle\nReady to view",
+  });
+  for (const changed of [
+    { vehiclePrice: "1.001" },
+    { roadTax: "-1" },
+    { vehiclePrice: "9007199254740992" },
+    { transmission: "CVT" },
+    { fuel: "Hydrogen" },
+    { description: " " },
+    { description: "a\0b" },
+    { description: "a".repeat(2001) },
+  ]) {
+    expect(listingDraftContents({ ...value, ...changed })).toBeNull();
+  }
+  const request = {
+    ...contents,
+    operationId: ids[2],
+    expectedVersion: 1,
+    photoIds: [ids[2], ids[1]],
+  };
+  const raw = {
+    ...contents,
+    id: ids[2],
+    actorId: ids[1],
+    vehicleId: ids[0],
+    branchId: ids[1],
+    version: 2,
+    recordedAt: vehicle.publishedAt,
+    photoIds: request.photoIds,
+    privateNotes: "omitted",
+  };
+  const receipt = parseListingSave({ status: 0, draft: raw })!;
+  expect(parseListingReceipt(receipt)).toEqual(receipt);
+  expect(receipt).not.toHaveProperty("privateNotes");
+  expect(listingDraft(receipt)).toEqual({ ...value, description: contents.description });
+  expect(matchesListingSave(receipt, request)).toBe(true);
+  for (const changed of [
+    { operationId: ids[1] },
+    { expectedVersion: 2 },
+    { vehiclePrice: 45000.02 },
+    { roadTax: 91 },
+    { transmission: 0 },
+    { fuel: 0 },
+    { description: "Changed" },
+    { photoIds: [...request.photoIds].reverse() },
+    { photoIds: [] },
+  ]) {
+    expect(matchesListingSave(receipt, { ...request, ...changed })).toBe(false);
+  }
+  for (const changed of [
+    { actorId: "invalid" },
+    { id: "invalid" },
+    { version: 0 },
+    { photoIds: [ids[2], ids[2]] },
+  ]) {
+    expect(parseListingSave({ status: 0, draft: { ...raw, ...changed } })).toBeNull();
+  }
+  expect(parseListingSave({ status: 4, draft: raw })).toBeNull();
+});
 
 test("manager listings validate private projections and independent staff paging", () => {
   const row = {

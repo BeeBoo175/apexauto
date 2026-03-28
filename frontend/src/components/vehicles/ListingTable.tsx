@@ -273,7 +273,13 @@ export function ListingTable({
           )}
         </div>
       </div>
-      <ListingDrawer selection={drawer} initial={selected} initialSection={section} />
+      <ListingDrawer
+        actor={actor}
+        selection={drawer}
+        initial={selected}
+        initialSection={section}
+        onSaved={state.refreshAfterCommand}
+      />
     </div>
   );
 }
