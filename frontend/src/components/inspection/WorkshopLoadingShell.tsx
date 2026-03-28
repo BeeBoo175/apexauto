@@ -1,10 +1,10 @@
 import styles from "./WorkshopLoadingShell.module.css";
 
-export function WorkshopLoadingShell() {
+export function WorkshopLoadingShell({ label = "Loading workshop record…" }: { label?: string }) {
   return (
     <>
       <p role="status" className="sr-only">
-        Loading workshop record…
+        {label}
       </p>
       <div className={styles.shell} aria-hidden="true">
         <div className={styles.summary}>

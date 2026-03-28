@@ -43,7 +43,12 @@ export function listingParams(params: SearchParams) {
     branchId: isUuid(params.branchId) ? params.branchId : "",
     pageSize: isPageSize(size) ? size : DEFAULT_PAGE_SIZE,
   };
-  return { filters, page: Number.isSafeInteger(page) && page > 0 ? page : 1 };
+  return {
+    filters,
+    page: Number.isSafeInteger(page) && page > 0 ? page : 1,
+    listingId: isUuid(params.listing) ? params.listing : "",
+    section: params.section === "publication" ? ("publication" as const) : ("listing" as const),
+  };
 }
 
 export function listingQuery(filters: ListingFilters, page = 1) {

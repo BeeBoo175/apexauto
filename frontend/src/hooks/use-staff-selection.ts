@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { apiFetch } from "@/lib/api-browser";
 import type { ApiResult, ApiRequest } from "@/lib/api";
@@ -23,8 +23,21 @@ export function useStaffSelection<T>(
   const [result, setResult] = useState(initial);
   const [busy, setBusy] = useState(false);
   const [pendingId, setPendingId] = useState("");
+  const [entry, setEntry] = useState({ id: initialId, result: initial });
   const controller = useRef<AbortController | null>(null);
-  useEffect(() => () => controller.current?.abort(), []);
+  if (entry.id !== initialId || entry.result !== initial) {
+    setEntry({ id: initialId, result: initial });
+    setId(initialId);
+    setResult(initial);
+    setBusy(false);
+    setPendingId("");
+  }
+  useLayoutEffect(() => {
+    return () => {
+      controller.current?.abort();
+      controller.current = null;
+    };
+  }, [initialId, initial]);
 
   async function choose(nextId: string, onConfirmed?: (url: URL) => void) {
     controller.current?.abort();

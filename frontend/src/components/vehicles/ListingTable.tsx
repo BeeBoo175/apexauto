@@ -17,6 +17,8 @@ import type { DataColumn } from "@/components/ui/data-table/types";
 import { useListingTable } from "@/hooks/use-listing-table";
 import { useRowSelection } from "@/hooks/use-row-selection";
 import { useCsvExport } from "@/hooks/use-csv-export";
+import { useStaffSelection } from "@/hooks/use-staff-selection";
+import { apiFetch } from "@/lib/api-browser";
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import type { ApiResult, Page } from "@/lib/api";
 import type { Branch } from "@/lib/branches";
@@ -30,6 +32,8 @@ import {
 import { exportListings, listingExportColumns } from "@/lib/vehicles/listing-export";
 import type { AppliedWorklistFilter } from "@/lib/staff/filter-summary";
 import { ListingFilters } from "./ListingFilters";
+import { ListingDrawer } from "./ListingDrawer";
+import { parseListingWorkspace, type ListingWorkspace } from "@/lib/vehicles/listing-workspace";
 import layout from "@/components/staff/IntakeWorkspace.module.css";
 import styles from "@/components/staff/IntakeWorklist.module.css";
 import workspace from "@/components/staff/StaffWorkspace.module.css";
@@ -72,14 +76,44 @@ export function ListingTable({
   filters,
   page,
   branches,
+  listingId,
+  selected,
+  section,
 }: {
   actor: CurrentActor;
   initial: ApiResult<Page<ListingItem>>;
   filters: Filters;
   page: number;
   branches: Page<Branch> | null;
+  listingId: string;
+  selected: ApiResult<ListingWorkspace> | null;
+  section: "listing" | "publication";
 }) {
   const state = useListingTable(initial, filters, page, branches);
+  const drawer = useStaffSelection(listingId, selected, {
+    parameter: "listing",
+    path: (id) => `/api/staff/listings/${id}`,
+    parse: parseListingWorkspace,
+    matches: (value, id) => value.vehicle.vehicleId === id,
+    read: (path, parse, options) => apiFetch(path, parse, options, { requireActor: true }),
+    commitAfterRead: true,
+  });
+  const listingColumns = columns.map((column) =>
+    column.id === "registration"
+      ? {
+          ...column,
+          cell: (row: ListingItem) => (
+            <Button
+              size="compact"
+              variant="ghost"
+              onClick={() => void drawer.choose(row.vehicleId)}
+            >
+              {row.registrationPlate}
+            </Button>
+          ),
+        }
+      : column,
+  );
   const animateEntry = useContext(StaffPageEntranceContext);
   const { snapshot, active } = state;
   const selection = useRowSelection(
@@ -182,13 +216,15 @@ export function ListingTable({
               <DataTable
                 label="Listings"
                 rows={snapshot.items}
-                columns={columns}
+                columns={listingColumns}
                 rowId={rowId}
                 selection={selection.selection}
                 page={snapshot}
                 onPage={changePage}
                 busy={state.busy}
                 disabled={false}
+                selectedRowId={drawer.id}
+                onRowClick={(row) => void drawer.choose(row.vehicleId)}
                 emptyState={{
                   title: filtered ? "No listings match your criteria" : "No vehicles to list yet",
                   description: filtered
@@ -214,6 +250,7 @@ export function ListingTable({
           )}
         </div>
       </div>
+      <ListingDrawer selection={drawer} initial={selected} initialSection={section} />
     </div>
   );
 }

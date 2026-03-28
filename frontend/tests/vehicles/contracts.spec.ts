@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { parseCatalogue } from "@/lib/vehicles/parse";
 import { parseListings } from "@/lib/vehicles/parse-listings";
+import { parseListingWorkspace } from "@/lib/vehicles/listing-workspace";
 import {
   hasListingAccess,
   listingParams,
@@ -94,6 +95,8 @@ test("manager listings validate private projections and independent staff paging
   expect(listingParams({ page: "-1", pageSize: "8", branchId: "invalid" })).toEqual({
     page: 1,
     filters: { search: "", pageSize: 25, branchId: "" },
+    listingId: "",
+    section: "listing",
   });
   for (const role of [
     "Customer",
@@ -107,6 +110,111 @@ test("manager listings validate private projections and independent staff paging
       ["BranchManager", "GeneralManager"].includes(role),
     );
   }
+});
+
+test("listing workspace validates revision and publication relationships before rendering", () => {
+  const row = {
+    ...vehicle,
+    vehicleId: ids[0],
+    registrationPlate: "VCA 5172",
+    vehicleStatus: "Available",
+    revisionId: ids[2],
+    version: 1,
+    publicationId: ids[1],
+    publishedRevisionId: ids[2],
+    isWithdrawn: false,
+    isPublic: true,
+  };
+  const revision = {
+    id: ids[2],
+    vehicleId: ids[0],
+    branchId: ids[1],
+    actorId: ids[1],
+    version: 1,
+    vehiclePrice: 45000,
+    roadTax: 90,
+    transmission: 0,
+    fuel: 0,
+    description: "Maintained Proton Saga",
+    recordedAt: vehicle.publishedAt,
+    photoIds: [ids[2]],
+  };
+  const publication = {
+    id: ids[1],
+    vehicleId: ids[0],
+    branchId: ids[1],
+    revisionId: ids[2],
+    signedRevisionId: ids[2],
+    recordedAt: vehicle.publishedAt,
+  };
+  const workspace = {
+    vehicle: row,
+    draft: revision,
+    approvedRevision: revision,
+    publication,
+    withdrawal: null,
+    currentSignedRevisionId: ids[2],
+  };
+  expect(parseListingWorkspace(workspace)?.draft?.transmission).toBe("Automatic");
+  expect(parseListingWorkspace(parseListingWorkspace(workspace))).toEqual(
+    parseListingWorkspace(workspace),
+  );
+  const withdrawnWorkspace = {
+    ...workspace,
+    vehicle: { ...row, isWithdrawn: true, isPublic: false },
+    withdrawal: {
+      vehicleId: ids[0],
+      branchId: ids[1],
+      publicationId: ids[1],
+      reason: "Listing review",
+      recordedAt: vehicle.publishedAt,
+    },
+  };
+  expect(parseListingWorkspace(withdrawnWorkspace)?.withdrawal?.reason).toBe("Listing review");
+  expect(parseListingWorkspace(parseListingWorkspace(withdrawnWorkspace))).toEqual(
+    parseListingWorkspace(withdrawnWorkspace),
+  );
+  expect(parseListingWorkspace(workspace)?.draft).not.toHaveProperty("actorId");
+  for (const changed of [
+    { draft: { ...revision, vehicleId: ids[1] } },
+    { draft: { ...revision, branchId: ids[0] } },
+    { draft: { ...revision, version: 2 } },
+    { draft: { ...revision, id: ids[0] } },
+    { draft: { ...revision, photoIds: [ids[2], ids[2]] } },
+    { draft: { ...revision, transmission: 8 } },
+    { draft: { ...revision, roadTax: -1 } },
+    { draft: { ...revision, recordedAt: "yesterday" } },
+    { publication: { ...publication, revisionId: ids[0] } },
+    { publication: { ...publication, branchId: ids[0] } },
+    { approvedRevision: null, publication: { ...publication, revisionId: undefined } },
+    { publication: null },
+    { withdrawal: { publicationId: ids[1], reason: "Withdrawn" } },
+    { currentSignedRevisionId: "invalid" },
+  ]) {
+    expect(parseListingWorkspace({ ...workspace, ...changed })).toBeNull();
+  }
+  expect(
+    parseListingWorkspace({
+      ...workspace,
+      vehicle: {
+        ...row,
+        revisionId: null,
+        version: 0,
+        vehiclePrice: null,
+        publicationId: null,
+        publishedRevisionId: null,
+        isPublic: false,
+      },
+      draft: null,
+      approvedRevision: null,
+      publication: null,
+      currentSignedRevisionId: null,
+    })?.draft,
+  ).toBeNull();
+  expect(listingParams({ listing: ids[0], section: "publication" })).toMatchObject({
+    listingId: ids[0],
+    section: "publication",
+  });
 });
 
 test("catalogue accepts exact eight-item paging and rejects missing, duplicate or private projections", () => {
