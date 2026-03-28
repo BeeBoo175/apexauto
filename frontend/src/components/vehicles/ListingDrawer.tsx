@@ -12,6 +12,7 @@ import type { ApiResult } from "@/lib/api";
 import { listingPublication } from "@/lib/vehicles/listings";
 import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDateTime } from "@/lib/date-format";
+import { ListingGallery } from "./ListingGallery";
 import workshop from "@/components/inspection/Workshop.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 
@@ -118,6 +119,11 @@ export function ListingDrawer({
             <div className={workshop.body}>
               {section === "listing" ? (
                 <section className={workbench.stack}>
+                  <ListingGallery
+                    vehicleId={vehicle.vehicleId}
+                    photoIds={draft?.photoIds ?? []}
+                    vehicleName={`${vehicle.make} ${vehicle.model} ${vehicle.trim}`}
+                  />
                   <h3>
                     {vehicle.manufactureYear} {vehicle.make} {vehicle.model} {vehicle.trim}
                   </h3>

@@ -20,6 +20,22 @@ async function headers(context: BrowserContext) {
   return { Cookie: `apexauto_token=${cookie.value}` };
 }
 
+async function preparedListing(context: BrowserContext, branchId: string) {
+  for (let page = 1; ; page += 1) {
+    const response = await context.request.get(
+      `/api/staff/listings?branchId=${branchId}&pageSize=50&page=${page}`,
+      { headers: await headers(context) },
+    );
+    expect(response.status()).toBe(200);
+    const data = (await response.json()).data;
+    const item = data.items.find((row: { revisionId: string | null }) => row.revisionId);
+    if (item) {
+      return item;
+    }
+    expect(page * data.pageSize).toBeLessThan(data.total);
+  }
+}
+
 async function signOut(page: Page) {
   const button = page.getByRole("button", { name: "Sign out", exact: true });
   if (!(await button.isVisible())) {
@@ -35,26 +51,12 @@ test("manager listing drawer retains confirmed details and cancels superseded se
 }, info) => {
   test.setTimeout(120_000);
   await login(page, "farah.aziz@example.invalid");
-  const list = await context.request.get(`/api/staff/listings?branchId=${branch}&pageSize=50`, {
+  const item = await preparedListing(context, branch);
+  const outside = await preparedListing(context, "68f371ad-223a-43d6-b45b-b878eece79ae");
+  const outsideWorkspace = await context.request.get(`/api/staff/listings/${outside.vehicleId}`, {
     headers: await headers(context),
   });
-  const data = (await list.json()).data;
-  let item = data.items.find((row: { revisionId: string | null }) => row.revisionId);
-  for (let number = 2; !item && (number - 1) * data.pageSize < data.total; number += 1) {
-    const response = await context.request.get(
-      `/api/staff/listings?branchId=${branch}&pageSize=50&page=${number}`,
-      { headers: await headers(context) },
-    );
-    item = (await response.json()).data.items.find(
-      (row: { revisionId: string | null }) => row.revisionId,
-    );
-  }
-  expect(item).toBeDefined();
-  const otherBranch = await context.request.get(
-    "/api/staff/listings?branchId=68f371ad-223a-43d6-b45b-b878eece79ae&pageSize=10",
-    { headers: await headers(context) },
-  );
-  const outside = (await otherBranch.json()).data.items[0];
+  const outsidePhotoId = (await outsideWorkspace.json()).data.draft.photoIds[0];
   const endpoint = `/api/staff/listings/${item.vehicleId}`;
   const before = counts()[endpoint] ?? 0;
   const initial = await page.goto(
@@ -87,8 +89,50 @@ test("manager listing drawer retains confirmed details and cancels superseded se
   await expect(
     page.getByRole("alert").filter({ hasText: "record could not be refreshed" }),
   ).toHaveCount(0);
+  const workspace = await context.request.get(endpoint, { headers: await headers(context) });
+  const photoIds: string[] = (await workspace.json()).data.draft.photoIds;
+  expect(photoIds.length).toBeGreaterThan(1);
+  const photoPath = `${endpoint}/photos/${photoIds[0]}`;
+  await page.route(`**${photoPath}`, (route) => route.fulfill({ status: 503, body: "" }));
   await dialog.getByRole("button", { name: "Listing page", exact: true }).click();
   await expect(dialog.getByRole("heading", { name: "Description", exact: true })).toBeVisible();
+  const gallery = dialog.getByRole("region", { name: "Saved listing photos", exact: true });
+  await expect(gallery.getByRole("status")).toHaveText("Photo 1 is unavailable.");
+  const remaining = gallery.locator("img");
+  for (const image of await remaining.all()) {
+    await image.scrollIntoViewIfNeeded();
+    await expect
+      .poll(() => image.evaluate((element) => (element as HTMLImageElement).naturalWidth))
+      .toBeGreaterThan(0);
+  }
+  const healthyPath = `${endpoint}/photos/${photoIds[1]}`;
+  const healthyReads = counts()[healthyPath];
+  await page.unroute(`**${photoPath}`);
+  const recovered = page.waitForResponse((response) => response.url().endsWith(photoPath));
+  await gallery.getByRole("button", { name: "Retry photo 1", exact: true }).click();
+  const delivered = await recovered;
+  expect(delivered.status()).toBe(200);
+  expect(delivered.headers()["cache-control"]).toContain("no-store");
+  expect(delivered.headers()["x-content-type-options"]).toBe("nosniff");
+  expect(delivered.headers()["x-robots-tag"]).toBe("noindex, nofollow");
+  await expect
+    .poll(() =>
+      gallery
+        .locator("img")
+        .first()
+        .evaluate((image: HTMLImageElement) => image.naturalWidth),
+    )
+    .toBeGreaterThan(0);
+  expect(
+    await gallery
+      .locator("img")
+      .evaluateAll((images) =>
+        images.map((image) => new URL(image.getAttribute("src")!, location.href).pathname),
+      ),
+  ).toEqual(photoIds.map((id) => `${endpoint}/photos/${id}`));
+  expect(counts()[healthyPath]).toBe(healthyReads);
+  await expect(gallery.locator("figcaption").first()).toHaveText("Cover photo");
+  const mediaReads = photoIds.map((id) => counts()[`${endpoint}/photos/${id}`]);
   const refreshed = page.waitForResponse((response) => response.url().endsWith(endpoint));
   await dialog.getByRole("button", { name: "Refresh listing", exact: true }).click();
   expect((await refreshed).status()).toBe(200);
@@ -100,9 +144,39 @@ test("manager listing drawer retains confirmed details and cancels superseded se
   await expect(
     page.getByRole("alert").filter({ hasText: "record could not be refreshed" }),
   ).toHaveCount(0);
+  expect(photoIds.map((id) => counts()[`${endpoint}/photos/${id}`])).toEqual(mediaReads);
+  await gallery.scrollIntoViewIfNeeded();
   await page.screenshot({ path: path.join(evidence, "listing-drawer.png") });
+  let releasePhoto = () => {};
+  let photoEntered = () => {};
+  let photoCompleted = () => {};
+  const photoGate = new Promise<void>((resolve) => {
+    releasePhoto = resolve;
+  });
+  const photoPending = new Promise<void>((resolve) => {
+    photoEntered = resolve;
+  });
+  const photoHandled = new Promise<void>((resolve) => {
+    photoCompleted = resolve;
+  });
+  await page.route(`**${photoPath}`, async (route) => {
+    const response = await route.fetch();
+    photoEntered();
+    await photoGate;
+    await route.fulfill({ response }).catch(() => {});
+    photoCompleted();
+  });
+  await dialog.getByRole("button", { name: "Publication", exact: true }).click();
+  await dialog.getByRole("button", { name: "Listing page", exact: true }).click();
+  await photoPending;
   await dialog.getByRole("button", { name: "Back to listings", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
+  releasePhoto();
+  await photoHandled;
+  await expect(page.getByRole("region", { name: "Saved listing photos", exact: true })).toHaveCount(
+    0,
+  );
+  await page.unroute(`**${photoPath}`);
   expect(await table.locator("tbody").innerText()).toBe(rows);
   await expect(page).not.toHaveURL(/listing=/);
 
@@ -154,6 +228,11 @@ test("manager listing drawer retains confirmed details and cancels superseded se
   await expect(
     page.getByRole("dialog", { name: opening.registrationPlate, exact: true }),
   ).toBeVisible();
+  if (!opening.revisionId) {
+    await expect(
+      page.getByText("No photos have been selected for this saved draft.", { exact: true }),
+    ).toBeVisible();
+  }
   await page.getByRole("dialog").getByRole("button", { name: "Close dialog", exact: true }).click();
   await signOut(page);
   await login(page, "siti.aminah@example.invalid");
@@ -163,6 +242,13 @@ test("manager listing drawer retains confirmed details and cancels superseded se
   const own = await context.request.get(endpoint, { headers: await headers(context) });
   expect(own.status()).toBe(200);
   expect(denied.status()).toBe(404);
+  const ownPhoto = await context.request.get(photoPath, { headers: await headers(context) });
+  expect(ownPhoto.status()).toBe(200);
+  const deniedPhoto = await context.request.get(
+    `/api/staff/listings/${outside.vehicleId}/photos/${outsidePhotoId}`,
+    { headers: await headers(context) },
+  );
+  expect(deniedPhoto.status()).toBe(404);
   await page.goto(`/dashboard/management?listing=${outside.vehicleId}`);
   await expect(
     page
@@ -176,6 +262,14 @@ test("manager listing drawer retains confirmed details and cancels superseded se
   const forbidden = await context.request.get(endpoint, { headers: await headers(context) });
   expect(forbidden.status()).toBe(403);
   expect(counts()[endpoint]).toBe(beforeDenied);
+  const beforePhotoDenied = counts()[photoPath];
+  const forbiddenPhoto = await context.request.get(photoPath, { headers: await headers(context) });
+  expect(forbiddenPhoto.status()).toBe(403);
+  expect(counts()[photoPath]).toBe(beforePhotoDenied);
+  const invalidPhoto = await context.request.get(`${endpoint}/photos/not-a-uuid`, {
+    headers: await headers(context),
+  });
+  expect(invalidPhoto.status()).toBe(400);
   writeFileSync(
     path.join(evidence, `listing-drawer-${info.project.name}.json`),
     JSON.stringify({
@@ -183,6 +277,11 @@ test("manager listing drawer retains confirmed details and cancels superseded se
       retainedRefresh: true,
       supersededReadCancelled: true,
       salesDenied: true,
+      savedPhotoOrder: photoIds,
+      optionalPhotoRecovery: true,
+      healthyPhotoRetained: true,
+      scopedPrivateMedia: true,
+      latePhotoDiscardedOnClose: true,
     }),
   );
 });
