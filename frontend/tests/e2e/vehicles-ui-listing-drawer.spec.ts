@@ -122,7 +122,7 @@ test("manager listing drawer retains confirmed details and cancels superseded se
   );
   await reportPage.close();
   await expect(dialog).toBeVisible();
-  const gallery = dialog.getByRole("region", { name: "Saved listing photos", exact: true });
+  const gallery = dialog.getByRole("region", { name: "Selected listing photos", exact: true });
   await expect(gallery.getByRole("status")).toHaveText("Photo 1 is unavailable.");
   const remaining = gallery.locator("img");
   for (const image of await remaining.all()) {
@@ -220,9 +220,9 @@ test("manager listing drawer retains confirmed details and cancels superseded se
   await expect(page.getByRole("dialog")).toHaveCount(0);
   releasePhoto();
   await photoHandled;
-  await expect(page.getByRole("region", { name: "Saved listing photos", exact: true })).toHaveCount(
-    0,
-  );
+  await expect(
+    page.getByRole("region", { name: "Selected listing photos", exact: true }),
+  ).toHaveCount(0);
   await page.unroute(`**${photoPath}`);
   expect(await table.locator("tbody").innerText()).toBe(rows);
   await expect(page).not.toHaveURL(/listing=/);
@@ -281,7 +281,7 @@ test("manager listing drawer retains confirmed details and cancels superseded se
   ).toBeVisible();
   if (!opening.revisionId) {
     await expect(
-      page.getByText("No photos have been selected for this saved draft.", { exact: true }),
+      page.getByText("No photos are selected for this draft.", { exact: true }),
     ).toBeVisible();
   }
   if (!openingWorkspace.currentSignedReport) {

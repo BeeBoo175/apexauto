@@ -51,6 +51,7 @@ test("listing draft preserves exact prices and validates immutable save receipts
     transmission: "Manual",
     fuel: "Hybrid",
     description: " Maintained vehicle\nReady to view ",
+    photoIds: [ids[2], ids[1]],
   };
   const contents = listingDraftContents(value)!;
   expect(contents).toEqual({
@@ -59,6 +60,7 @@ test("listing draft preserves exact prices and validates immutable save receipts
     transmission: 1,
     fuel: 2,
     description: "Maintained vehicle\nReady to view",
+    photoIds: value.photoIds,
   });
   for (const changed of [
     { vehiclePrice: "1.001" },
@@ -69,6 +71,8 @@ test("listing draft preserves exact prices and validates immutable save receipts
     { description: " " },
     { description: "a\0b" },
     { description: "a".repeat(2001) },
+    { photoIds: [ids[2], ids[2]] },
+    { photoIds: ["invalid"] },
   ]) {
     expect(listingDraftContents({ ...value, ...changed })).toBeNull();
   }

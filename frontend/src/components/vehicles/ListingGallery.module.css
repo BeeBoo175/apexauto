@@ -5,8 +5,17 @@
 }
 
 .gallery h3,
+.gallery h4,
 .gallery p {
   margin: 0;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding-top: 8px;
 }
 
 .photos {

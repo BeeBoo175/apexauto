@@ -3,12 +3,13 @@
 import { Button } from "@/components/ui/Button";
 import { StaffLink } from "@/components/staff/StaffLink";
 import { useListingEditor } from "@/hooks/use-listing-editor";
+import { useListingPhotos } from "@/hooks/use-listing-photos";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { ListingWorkspace } from "@/lib/vehicles/listing-workspace";
 import { listingPublication } from "@/lib/vehicles/listings";
 import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDateTime } from "@/lib/date-format";
-import { ListingGallery } from "./ListingGallery";
+import { ListingPhotoPicker } from "./ListingPhotoPicker";
 import { ListingDraftFields } from "./ListingDraftFields";
 import workshop from "@/components/inspection/Workshop.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
@@ -31,6 +32,7 @@ export function ListingEditor({
   onSaved: () => void;
 }) {
   const editor = useListingEditor(snapshot, actor, onLock, onSaved);
+  const photos = useListingPhotos(snapshot);
   const draft = editor.base;
   const vehicle = {
     ...snapshot.vehicle,
@@ -70,10 +72,11 @@ export function ListingEditor({
       <div className={workshop.body}>
         {section === "listing" ? (
           <section className={workbench.stack}>
-            <ListingGallery
+            <ListingPhotoPicker
               vehicleId={vehicle.vehicleId}
-              photoIds={draft?.photoIds ?? []}
               vehicleName={`${vehicle.make} ${vehicle.model} ${vehicle.trim}`}
+              editor={editor}
+              photos={photos}
             />
             <h3>
               {vehicle.manufactureYear} {vehicle.make} {vehicle.model} {vehicle.trim}
@@ -93,7 +96,7 @@ export function ListingEditor({
               </div>
               <div>
                 <dt>Selected public photos</dt>
-                <dd>{draft?.photoIds.length ?? 0}</dd>
+                <dd>{editor.value.photoIds.length}</dd>
               </div>
             </dl>
             <ListingDraftFields editor={editor} />

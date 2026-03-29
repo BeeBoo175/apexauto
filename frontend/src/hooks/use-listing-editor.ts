@@ -96,7 +96,6 @@ export function useListingEditor(
       operationId: crypto.randomUUID(),
       expectedVersion: base?.version ?? 0,
       ...contents,
-      photoIds: base?.photoIds ?? [],
     });
     if (result?.status === 200 && result.data) {
       setBase(result.data);

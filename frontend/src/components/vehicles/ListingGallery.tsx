@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/Button";
 import styles from "./ListingGallery.module.css";
@@ -9,16 +9,17 @@ export function ListingGallery({
   vehicleId,
   photoIds,
   vehicleName,
+  controls,
 }: {
   vehicleId: string;
   photoIds: string[];
   vehicleName: string;
+  controls?: (id: string, index: number) => ReactNode;
 }) {
   return (
-    <section className={styles.gallery} aria-label="Saved listing photos">
-      <h3>Listing photos</h3>
+    <section className={styles.gallery} aria-label="Selected listing photos">
       {photoIds.length === 0 ? (
-        <p>No photos have been selected for this saved draft.</p>
+        <p>No photos are selected for this draft.</p>
       ) : (
         <div className={styles.photos}>
           {photoIds.map((id, index) => (
@@ -28,7 +29,9 @@ export function ListingGallery({
               id={id}
               position={index + 1}
               vehicleName={vehicleName}
-            />
+            >
+              {controls?.(id, index)}
+            </ListingPhoto>
           ))}
         </div>
       )}
@@ -36,16 +39,22 @@ export function ListingGallery({
   );
 }
 
-function ListingPhoto({
+export function ListingPhoto({
   vehicleId,
   id,
   position,
   vehicleName,
+  label = `Photo ${position}`,
+  caption = position === 1 ? "Cover photo" : `Photo ${position}`,
+  children,
 }: {
   vehicleId: string;
   id: string;
   position: number;
   vehicleName: string;
+  label?: string;
+  caption?: string;
+  children?: ReactNode;
 }) {
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -60,16 +69,16 @@ function ListingPhoto({
       <div className={styles.image}>
         {failed ? (
           <div className={styles.recovery}>
-            <p role="status">Photo {position} is unavailable.</p>
+            <p role="status">{label} is unavailable.</p>
             <Button size="compact" variant="secondary" onClick={retry}>
-              Retry photo {position}
+              Retry {label.toLowerCase()}
             </Button>
           </div>
         ) : (
           <Image
             key={attempt}
             src={`/api/staff/listings/${vehicleId}/photos/${id}`}
-            alt={`${vehicleName} · listing photo ${position}`}
+            alt={`${vehicleName} · listing ${label.toLowerCase()}`}
             width={960}
             height={640}
             unoptimized
@@ -78,7 +87,8 @@ function ListingPhoto({
           />
         )}
       </div>
-      <figcaption>{position === 1 ? "Cover photo" : `Photo ${position}`}</figcaption>
+      <figcaption>{caption}</figcaption>
+      {children}
     </figure>
   );
 }

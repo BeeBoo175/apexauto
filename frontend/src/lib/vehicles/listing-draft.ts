@@ -9,6 +9,7 @@ export interface ListingDraft {
   transmission: string;
   fuel: string;
   description: string;
+  photoIds: string[];
 }
 
 export interface ListingSaveReceipt extends ListingRevision {
@@ -22,6 +23,7 @@ export function listingDraft(revision: ListingRevision | null): ListingDraft {
     transmission: revision?.transmission ?? "",
     fuel: revision?.fuel ?? "",
     description: revision?.description ?? "",
+    photoIds: [...(revision?.photoIds ?? [])],
   };
 }
 
@@ -38,7 +40,10 @@ export function listingDraftContents(value: ListingDraft) {
     !fuel ||
     !description ||
     description.length > 2000 ||
-    description.includes("\0")
+    description.includes("\0") ||
+    !Array.isArray(value.photoIds) ||
+    !value.photoIds.every(isUuid) ||
+    new Set(value.photoIds).size !== value.photoIds.length
   ) {
     return null;
   }
@@ -48,6 +53,7 @@ export function listingDraftContents(value: ListingDraft) {
     transmission: transmissions.indexOf(transmission),
     fuel: fuels.indexOf(fuel),
     description,
+    photoIds: [...value.photoIds],
   };
 }
 
