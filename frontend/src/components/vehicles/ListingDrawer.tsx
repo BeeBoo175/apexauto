@@ -9,6 +9,7 @@ import { WorkshopLoadingShell } from "@/components/inspection/WorkshopLoadingShe
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import type { useStaffSelection } from "@/hooks/use-staff-selection";
 import type { ListingWorkspace } from "@/lib/vehicles/listing-workspace";
+import type { ListingSection } from "@/lib/vehicles/listings";
 import type { ApiResult } from "@/lib/api";
 import { ListingEditor } from "./ListingEditor";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
@@ -24,7 +25,7 @@ export function ListingDrawer({
   onSaved: () => void;
   selection: ReturnType<typeof useStaffSelection<ListingWorkspace>>;
   initial: ApiResult<ListingWorkspace> | null;
-  initialSection: "listing" | "publication";
+  initialSection: ListingSection;
 }) {
   const [locked, setLocked] = useState(false);
   const [section, setSection] = useState(initialSection);
@@ -36,7 +37,7 @@ export function ListingDrawer({
   const snapshot = selection.result?.data;
   const vehicle = snapshot?.vehicle;
 
-  function changeSection(next: "listing" | "publication") {
+  function changeSection(next: ListingSection) {
     setSection(next);
     const url = new URL(window.location.href);
     url.searchParams.set("section", next);

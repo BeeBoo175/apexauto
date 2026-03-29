@@ -27,6 +27,7 @@ import {
   listingQuery,
   listingPublication,
   type ListingItem,
+  type ListingSection,
   type ListingFilters as Filters,
 } from "@/lib/vehicles/listings";
 import { exportListings, listingExportColumns } from "@/lib/vehicles/listing-export";
@@ -97,7 +98,7 @@ export function ListingTable({
   branches: Page<Branch> | null;
   listingId: string;
   selected: ApiResult<ListingWorkspace> | null;
-  section: "listing" | "publication";
+  section: ListingSection;
 }) {
   const state = useListingTable(initial, filters, page, branches);
   const drawer = useStaffSelection(listingId, selected, {

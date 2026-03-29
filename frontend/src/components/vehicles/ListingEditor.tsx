@@ -7,11 +7,12 @@ import { useListingEditor } from "@/hooks/use-listing-editor";
 import { useListingPhotos } from "@/hooks/use-listing-photos";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { ListingWorkspace } from "@/lib/vehicles/listing-workspace";
-import { listingPublication } from "@/lib/vehicles/listings";
+import { listingPublication, listingSections, type ListingSection } from "@/lib/vehicles/listings";
 import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { ListingPhotoPicker } from "./ListingPhotoPicker";
 import { ListingDraftFields } from "./ListingDraftFields";
+import { ListingCardPreview } from "./ListingCardPreview";
 import workshop from "@/components/inspection/Workshop.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 
@@ -26,8 +27,8 @@ export function ListingEditor({
 }: {
   snapshot: ListingWorkspace;
   actor: CurrentActor;
-  section: "listing" | "publication";
-  changeSection: (section: "listing" | "publication") => void;
+  section: ListingSection;
+  changeSection: (section: ListingSection) => void;
   close: () => void;
   onLock: (locked: boolean) => void;
   onSaved: () => void;
@@ -58,7 +59,7 @@ export function ListingEditor({
         </div>
       </div>
       <nav className={workshop.sections} aria-label="Listing sections">
-        {(["listing", "publication"] as const).map((value) => (
+        {listingSections.map((value) => (
           <Button
             key={value}
             size="compact"
@@ -67,12 +68,12 @@ export function ListingEditor({
             aria-pressed={section === value}
             onClick={() => changeSection(value)}
           >
-            {value === "listing" ? "Listing page" : "Publication"}
+            {{ listing: "Listing page", card: "Catalogue card", publication: "Publication" }[value]}
           </Button>
         ))}
       </nav>
       <div className={workshop.body}>
-        {section === "listing" ? (
+        {section === "listing" && (
           <section className={workbench.stack}>
             <ListingPhotoPicker
               vehicleId={vehicle.vehicleId}
@@ -116,7 +117,9 @@ export function ListingEditor({
               <p>No current signed inspection is available.</p>
             )}
           </section>
-        ) : (
+        )}
+        {section === "card" && <ListingCardPreview snapshot={snapshot} draft={editor.value} />}
+        {section === "publication" && (
           <section className={workbench.stack}>
             <h3>Publication record</h3>
             <dl className={workshop.facts}>

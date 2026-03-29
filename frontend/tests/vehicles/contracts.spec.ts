@@ -324,6 +324,10 @@ test("listing workspace validates revision and publication relationships before 
     listingId: ids[0],
     section: "publication",
   });
+  expect(listingParams({ listing: ids[0], section: "card" })).toMatchObject({
+    listingId: ids[0],
+    section: "card",
+  });
 });
 
 test("catalogue accepts exact eight-item paging and rejects missing, duplicate or private projections", () => {
