@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/Button";
+import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { StaffLink } from "@/components/staff/StaffLink";
 import { useListingEditor } from "@/hooks/use-listing-editor";
 import { useListingPhotos } from "@/hooks/use-listing-photos";
@@ -41,6 +42,7 @@ export function ListingEditor({
   };
   return (
     <div className={workshop.workspace}>
+      <LoadingProgress label="Uploading listing photo" active={editor.upload.busy} />
       <div className={workshop.summary}>
         <div className={workshop.summaryMain}>
           <div>
@@ -172,7 +174,7 @@ export function ListingEditor({
               : "Save changes before a separate publication approval."}
           </span>
         </div>
-        {editor.dirty && (
+        {(editor.dirty || editor.stale) && (
           <Button
             size="compact"
             variant="secondary"
@@ -185,7 +187,9 @@ export function ListingEditor({
         <Button
           size="compact"
           disabled={
-            editor.command.busy || (!editor.command.uncertain && (!editor.dirty || editor.stale))
+            Boolean(editor.upload.file) ||
+            editor.command.busy ||
+            (!editor.command.uncertain && (!editor.dirty || editor.stale))
           }
           onClick={() => void editor.save()}
         >

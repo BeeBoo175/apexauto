@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useApiCommand } from "./use-api-command";
 import { useInspectionLock } from "./use-inspection-lock";
+import { useListingUpload } from "./use-listing-upload";
 import { useToast } from "@/components/ui/Toast";
 import { apiFetch } from "@/lib/api-browser";
 import type { CurrentActor } from "@/lib/auth/actor";
@@ -37,7 +38,12 @@ export function useListingEditor(
       matchesListingSave(receipt, body),
     (path, parse, options) => apiFetch(path, parse, options, { requireActor: true }),
   );
-  const operating = command.busy || command.uncertain;
+  const upload = useListingUpload(snapshot.vehicle.vehicleId, (id) => {
+    setValue((current) => ({ ...current, photoIds: [...current.photoIds, id] }));
+    setDirty(true);
+  });
+  const uploading = Boolean(upload.file);
+  const operating = command.busy || command.uncertain || uploading;
   const locked = dirty || operating;
   const lockNavigation = useInspectionLock(locked);
   useEffect(() => {
@@ -54,6 +60,15 @@ export function useListingEditor(
   }
 
   const stale = (snapshot.draft?.version ?? 0) > (base?.version ?? 0);
+
+  function selectPhoto(file: File | null) {
+    if (operating || !upload.select(file)) {
+      return false;
+    }
+    lockNavigation(true);
+    onLock(true);
+    return true;
+  }
 
   function change(next: ListingDraft) {
     if (operating) {
@@ -79,7 +94,7 @@ export function useListingEditor(
   }
 
   async function save() {
-    if (command.busy || (stale && !command.uncertain)) {
+    if (uploading || command.busy || (stale && !command.uncertain)) {
       return;
     }
     const contents = listingDraftContents(value);
@@ -116,6 +131,7 @@ export function useListingEditor(
     operating,
     locked,
     command,
+    upload: { ...upload, select: selectPhoto },
     validationAttempted,
     change,
     discard,

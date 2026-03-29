@@ -50,6 +50,27 @@ export function parseListingPhotos(value: unknown) {
   return page;
 }
 
+export function parseListingPhotoReceipt(value: unknown) {
+  const photo = parsePhoto(value);
+  if (!photo || !isRecord(value) || !isUuid(value.vehicleId)) {
+    return null;
+  }
+  return { ...photo, vehicleId: value.vehicleId };
+}
+
+export function matchesListingUpload(
+  receipt: NonNullable<ReturnType<typeof parseListingPhotoReceipt>>,
+  vehicleId: string,
+  upload: { id: string; file: { type: string; size: number } },
+) {
+  return (
+    receipt.id === upload.id &&
+    receipt.vehicleId === vehicleId &&
+    receipt.contentType === upload.file.type &&
+    receipt.bytes === upload.file.size
+  );
+}
+
 export function moveListingPhoto(ids: string[], id: string, offset: -1 | 1) {
   const from = ids.indexOf(id);
   const to = from + offset;

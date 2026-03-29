@@ -7,6 +7,7 @@ import type { useListingEditor } from "@/hooks/use-listing-editor";
 import type { useListingPhotos } from "@/hooks/use-listing-photos";
 import { moveListingPhoto } from "@/lib/vehicles/listing-photos";
 import { ListingGallery, ListingPhoto } from "./ListingGallery";
+import { ListingPhotoUpload } from "./ListingPhotoUpload";
 import workshop from "@/components/inspection/Workshop.module.css";
 import styles from "./ListingGallery.module.css";
 
@@ -21,10 +22,11 @@ export function ListingPhotoPicker({
   editor: ReturnType<typeof useListingEditor>;
   photos: ReturnType<typeof useListingPhotos>;
 }) {
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(Boolean(editor.upload.file));
   const { value, operating, change } = editor;
   const { snapshot, busy, failed, load, retry } = photos;
   const ids = value.photoIds;
+  const showingEditor = editing || Boolean(editor.upload.file);
 
   function edit() {
     setEditing(!editing);
@@ -42,13 +44,13 @@ export function ListingPhotoPicker({
           size="compact"
           variant="ghost"
           disabled={operating}
-          aria-expanded={editing}
+          aria-expanded={showingEditor}
           onClick={edit}
         >
-          {editing ? "Done editing photos" : "Edit photos"}
+          {showingEditor ? "Done editing photos" : "Edit photos"}
         </Button>
       </div>
-      {editing && (
+      {showingEditor && (
         <p>
           The first selected photo is the cover. Save the draft to keep this selection and order.
         </p>
@@ -58,7 +60,7 @@ export function ListingPhotoPicker({
         photoIds={ids}
         vehicleName={vehicleName}
         controls={
-          editing
+          showingEditor
             ? (id, index) => (
                 <div className={styles.controls}>
                   <Button
@@ -95,8 +97,9 @@ export function ListingPhotoPicker({
             : undefined
         }
       />
-      {editing && (
+      {showingEditor && (
         <section className={styles.gallery} aria-label="Uploaded photo choices">
+          <ListingPhotoUpload upload={editor.upload} disabled={operating} />
           <h4>Uploaded photos</h4>
           {failed && (
             <Button size="compact" variant="secondary" disabled={busy} onClick={() => void retry()}>

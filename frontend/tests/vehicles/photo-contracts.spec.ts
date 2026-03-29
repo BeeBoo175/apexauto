@@ -1,5 +1,10 @@
 import { expect, test } from "@playwright/test";
-import { parseListingPhotos, moveListingPhoto } from "@/lib/vehicles/listing-photos";
+import {
+  parseListingPhotos,
+  parseListingPhotoReceipt,
+  matchesListingUpload,
+  moveListingPhoto,
+} from "@/lib/vehicles/listing-photos";
 import { listingDraft, listingDraftContents } from "@/lib/vehicles/listing-draft";
 
 const ids = [
@@ -60,4 +65,37 @@ test("photo order changes retain off-page identities and save through the same d
     vehiclePrice: 45000.01,
   });
   expect(listingDraftContents({ ...draft, photoIds: [] })?.photoIds).toEqual([]);
+});
+
+test("upload receipts require the vehicle identity and validated photo metadata", () => {
+  const receipt = { ...photo, vehicleId: ids[1] };
+  expect(parseListingPhotoReceipt({ ...receipt, privateStorageKey: "private" })).toEqual(receipt);
+  expect(parseListingPhotoReceipt({ ...receipt, availableAt: null })).toEqual({
+    ...receipt,
+    availableAt: null,
+  });
+  for (const changed of [
+    { vehicleId: undefined },
+    { vehicleId: "invalid" },
+    { id: undefined },
+    { bytes: 0 },
+    { contentType: ["image/jpeg"] },
+    { availableAt: "invalid" },
+  ]) {
+    expect(parseListingPhotoReceipt({ ...receipt, ...changed })).toBeNull();
+  }
+});
+
+test("upload confirmation binds the captured ID, vehicle, MIME and exact file size", () => {
+  const receipt = { ...photo, vehicleId: ids[1] };
+  const upload = { id: ids[0], file: { type: "image/jpeg", size: photo.bytes } };
+  expect(matchesListingUpload(receipt, ids[1], upload)).toBe(true);
+  for (const changed of [
+    { id: ids[2] },
+    { vehicleId: ids[2] },
+    { contentType: "image/png" },
+    { bytes: photo.bytes + 1 },
+  ]) {
+    expect(matchesListingUpload({ ...receipt, ...changed }, ids[1], upload)).toBe(false);
+  }
 });
