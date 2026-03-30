@@ -9,7 +9,7 @@ import type { CurrentActor } from "@/lib/auth/actor";
 import type { ListingWorkspace } from "@/lib/vehicles/listing-workspace";
 import { listingPublication, listingSections, type ListingSection } from "@/lib/vehicles/listings";
 import { formatCurrency } from "@/lib/currency-format";
-import { formatMalaysianDateTime } from "@/lib/date-format";
+import { ListingPublication } from "./ListingPublication";
 import { ListingPhotoPicker } from "./ListingPhotoPicker";
 import { ListingDraftFields } from "./ListingDraftFields";
 import { ListingCardPreview } from "./ListingCardPreview";
@@ -44,6 +44,7 @@ export function ListingEditor({
   return (
     <div className={workshop.workspace}>
       <LoadingProgress label="Uploading listing photo" active={editor.upload.busy} />
+      <LoadingProgress label="Approving publication" active={editor.approval.busy} />
       <div className={workshop.summary}>
         <div className={workshop.summaryMain}>
           <div>
@@ -119,54 +120,7 @@ export function ListingEditor({
           </section>
         )}
         {section === "card" && <ListingCardPreview snapshot={snapshot} draft={editor.value} />}
-        {section === "publication" && (
-          <section className={workbench.stack}>
-            <h3>Publication record</h3>
-            <dl className={workshop.facts}>
-              <div>
-                <dt>Availability</dt>
-                <dd>{listingPublication(vehicle)}</dd>
-              </div>
-              <div>
-                <dt>Current signed inspection</dt>
-                <dd>
-                  {snapshot.currentSignedRevisionId
-                    ? "Signed inspection recorded"
-                    : "No current signed inspection"}
-                </dd>
-              </div>
-              <div>
-                <dt>Last approved</dt>
-                <dd>
-                  {snapshot.publication
-                    ? formatMalaysianDateTime(snapshot.publication.recordedAt)
-                    : "Not approved"}
-                </dd>
-              </div>
-              <div>
-                <dt>Approved price</dt>
-                <dd>
-                  {snapshot.approvedRevision
-                    ? formatCurrency(snapshot.approvedRevision.vehiclePrice)
-                    : "Not approved"}
-                </dd>
-              </div>
-            </dl>
-            {snapshot.approvedRevision && (
-              <>
-                <h3>Approved description</h3>
-                <p>{snapshot.approvedRevision.description}</p>
-              </>
-            )}
-            {snapshot.withdrawal && (
-              <>
-                <h3>Withdrawal reason</h3>
-                <p>{snapshot.withdrawal.reason}</p>
-                <p>{formatMalaysianDateTime(snapshot.withdrawal.recordedAt)}</p>
-              </>
-            )}
-          </section>
-        )}
+        {section === "publication" && <ListingPublication snapshot={snapshot} editor={editor} />}
       </div>
       <footer className={workshop.footer}>
         <div className={workshop.footerContext}>
@@ -191,6 +145,8 @@ export function ListingEditor({
           size="compact"
           disabled={
             Boolean(editor.upload.file) ||
+            editor.approval.busy ||
+            editor.approval.uncertain ||
             editor.command.busy ||
             (!editor.command.uncertain && (!editor.dirty || editor.stale))
           }
@@ -198,6 +154,15 @@ export function ListingEditor({
         >
           {editor.command.uncertain ? "Reconcile draft save" : "Save draft"}
         </Button>
+        {(section === "publication" || editor.approval.busy || editor.approval.uncertain) && (
+          <Button
+            size="compact"
+            disabled={editor.approval.busy || (!editor.approval.uncertain && !editor.canApprove)}
+            onClick={() => void editor.approve()}
+          >
+            {editor.approval.uncertain ? "Reconcile publication approval" : "Approve publication"}
+          </Button>
+        )}
         <Button size="compact" variant="secondary" disabled={editor.locked} onClick={close}>
           Back to listings
         </Button>

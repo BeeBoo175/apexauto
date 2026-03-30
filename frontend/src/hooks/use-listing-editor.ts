@@ -9,6 +9,10 @@ import { apiFetch } from "@/lib/api-browser";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { ListingWorkspace } from "@/lib/vehicles/listing-workspace";
 import {
+  matchesListingPublication,
+  parseListingPublicationReceipt,
+} from "@/lib/vehicles/listing-publication";
+import {
   listingDraft,
   listingDraftContents,
   matchesListingSave,
@@ -38,12 +42,23 @@ export function useListingEditor(
       matchesListingSave(receipt, body),
     (path, parse, options) => apiFetch(path, parse, options, { requireActor: true }),
   );
+  const approval = useApiCommand(
+    `/api/staff/listings/${snapshot.vehicle.vehicleId}/publications`,
+    parseListingPublicationReceipt,
+    (receipt, body) =>
+      receipt.vehicleId === snapshot.vehicle.vehicleId &&
+      receipt.branchId === snapshot.vehicle.branchId &&
+      receipt.actorId === actor.userId &&
+      matchesListingPublication(receipt, body),
+    (path, parse, options) => apiFetch(path, parse, options, { requireActor: true }),
+  );
   const upload = useListingUpload(snapshot.vehicle.vehicleId, (id) => {
     setValue((current) => ({ ...current, photoIds: [...current.photoIds, id] }));
     setDirty(true);
   });
   const uploading = Boolean(upload.file);
-  const operating = command.busy || command.uncertain || uploading;
+  const approving = approval.busy || approval.uncertain;
+  const operating = command.busy || command.uncertain || uploading || approving;
   const locked = dirty || operating;
   const lockNavigation = useInspectionLock(locked);
   useEffect(() => {
@@ -60,6 +75,15 @@ export function useListingEditor(
   }
 
   const stale = (snapshot.draft?.version ?? 0) > (base?.version ?? 0);
+  const canApprove = Boolean(
+    base &&
+    snapshot.currentSignedRevisionId &&
+    !dirty &&
+    !stale &&
+    !operating &&
+    snapshot.publication?.revisionId !== base.id &&
+    approval.receipt?.revisionId !== base.id,
+  );
 
   function selectPhoto(file: File | null) {
     if (operating || !upload.select(file)) {
@@ -94,7 +118,7 @@ export function useListingEditor(
   }
 
   async function save() {
-    if (uploading || command.busy || (stale && !command.uncertain)) {
+    if (uploading || approving || command.busy || (stale && !command.uncertain)) {
       return;
     }
     const contents = listingDraftContents(value);
@@ -123,6 +147,26 @@ export function useListingEditor(
     }
   }
 
+  async function approve() {
+    if (approval.busy || (!approval.uncertain && !canApprove)) {
+      return;
+    }
+    lockNavigation(true);
+    onLock(true);
+    const result = await approval.submit({
+      operationId: crypto.randomUUID(),
+      revisionId: base?.id,
+      signedRevisionId: snapshot.currentSignedRevisionId,
+    });
+    if (result) {
+      lockNavigation(false);
+      onLock(false);
+    }
+    if (result?.status === 200 && result.data) {
+      onSaved();
+    }
+  }
+
   return {
     base,
     value,
@@ -131,10 +175,13 @@ export function useListingEditor(
     operating,
     locked,
     command,
+    approval,
+    canApprove,
     upload: { ...upload, select: selectPhoto },
     validationAttempted,
     change,
     discard,
     save,
+    approve,
   };
 }
