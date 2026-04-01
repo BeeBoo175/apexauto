@@ -1,0 +1,54 @@
+import { expect, test } from "@playwright/test";
+import { calculateFinancing, defaultCashContribution } from "@/lib/vehicles/financing";
+
+test("flat estimate reconciles every sen through the final installment", () => {
+  expect(defaultCashContribution(60000)).toBe("6000.00");
+  expect(defaultCashContribution(0.05)).toBe("0.01");
+  expect(calculateFinancing(60000, 15000, 7)).toEqual({
+    principal: 45000,
+    months: 84,
+    interest: 9450,
+    totalRepayments: 54450,
+    monthlyInstallment: 648.21,
+    finalInstallment: 648.57,
+  });
+  for (const years of [1, 7, 9]) {
+    for (const total of [0.01, 0.49, 1, 45630.15, 60000]) {
+      const estimate = calculateFinancing(total, 0, years)!;
+      expect(estimate.finalInstallment).toBeGreaterThanOrEqual(0);
+      expect(
+        Math.round(estimate.monthlyInstallment * 100) * (estimate.months - 1) +
+          Math.round(estimate.finalInstallment * 100),
+      ).toBe(Math.round(estimate.totalRepayments * 100));
+    }
+  }
+  expect(calculateFinancing(0.5, 0, 1)?.interest).toBe(0.02);
+});
+
+test("cash includes the deposit and covered prices require zero financing without surplus", () => {
+  expect(calculateFinancing(60000, 6000, 7)?.principal).toBe(54000);
+  expect(calculateFinancing(60000, 500, 7)?.principal).toBe(59500);
+  for (const cash of [60000, 70000]) {
+    expect(calculateFinancing(60000, cash, 7)).toEqual({
+      principal: 0,
+      months: 84,
+      interest: 0,
+      totalRepayments: 0,
+      monthlyInstallment: 0,
+      finalInstallment: 0,
+    });
+  }
+});
+
+test("invalid money, unsafe output and non-whole terms never produce a financing estimate", () => {
+  for (const amount of [-1, NaN, Infinity, 1.001, Number.MAX_VALUE]) {
+    expect(calculateFinancing(amount, 0, 7)).toBeNull();
+    expect(calculateFinancing(60000, amount, 7)).toBeNull();
+    expect(defaultCashContribution(amount)).toBe("");
+  }
+  for (const years of [0, 10, 1.5, NaN, Infinity]) {
+    expect(calculateFinancing(60000, 6000, years)).toBeNull();
+  }
+  expect(calculateFinancing(80000000000000, 0, 9)).toBeNull();
+  expect(calculateFinancing(70000000000000.01, 0, 7)).toBeNull();
+});

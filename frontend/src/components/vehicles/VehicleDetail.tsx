@@ -9,6 +9,7 @@ import { formatMalaysianDate } from "@/lib/date-format";
 import { label } from "@/lib/inspection/contracts";
 import type { PublicVehicleDetail } from "@/lib/vehicles/public-detail";
 import { ListingPhoto } from "./ListingGallery";
+import { VehicleFinancing } from "./VehicleFinancing";
 import gallery from "./ListingGallery.module.css";
 import styles from "./VehicleDetail.module.css";
 
@@ -92,6 +93,7 @@ export function VehicleDetail({
               financial terms.
             </p>
           </section>
+          <VehicleFinancing key={id} total={snapshot.price.total} />
           <section aria-labelledby="vehicle-description">
             <h2 id="vehicle-description">About this vehicle</h2>
             <p className={styles.description}>{snapshot.description}</p>
