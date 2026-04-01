@@ -2,6 +2,13 @@ import { expect, test } from "@playwright/test";
 import { parseCatalogue } from "@/lib/vehicles/parse";
 import { parseListings } from "@/lib/vehicles/parse-listings";
 import { parseListingWorkspace } from "@/lib/vehicles/listing-workspace";
+import { parseReservations, parseReservationSnapshot } from "@/lib/vehicles/parse-reservations";
+import {
+  hasReservationAccess,
+  reservationParams,
+  reservationQuery,
+  reservationSorts,
+} from "@/lib/vehicles/reservations";
 import {
   listingDraft,
   listingDraftContents,
@@ -43,6 +50,125 @@ const vehicle = {
   photoCount: 4,
   publishedAt: "2026-10-26T00:00:00+00:00",
 };
+
+test("reservation queries explicitly scope membership and carry each server sort through paging", () => {
+  const initial = reservationParams({});
+  expect(initial.filters.isActive).toBe(true);
+  expect(new URLSearchParams(reservationQuery(initial.filters)).get("isActive")).toBe("true");
+  const history = reservationParams({
+    isActive: "false",
+    page: "2",
+    pageSize: "10",
+    branchId: ids[1],
+    sort: "buyer",
+    direction: "desc",
+  });
+  expect(history.page).toBe(2);
+  for (const sort of reservationSorts) {
+    const query = new URLSearchParams(reservationQuery({ ...history.filters, sort }, history.page));
+    expect(Object.fromEntries(query)).toEqual({
+      page: "2",
+      pageSize: "10",
+      isActive: "false",
+      branchId: ids[1],
+      sort,
+      direction: "desc",
+    });
+  }
+  expect(
+    reservationParams({
+      page: "-1",
+      pageSize: "500",
+      branchId: "bad",
+      sort: "secret",
+      direction: "bad",
+    }),
+  ).toEqual({ ...initial, filters: { ...initial.filters, branchId: "" } });
+  for (const role of [
+    "BranchManager",
+    "GeneralManager",
+    "SalesAgent",
+    "Customer",
+    "WorkshopTechnician",
+    "Administrator",
+  ] as const) {
+    expect(hasReservationAccess({ userId: ids[0], branchId: null, role })).toBe(
+      ["BranchManager", "GeneralManager"].includes(role),
+    );
+  }
+});
+
+test("reservation projections reject inconsistent receipts and keep private buyer fields off the table snapshot", () => {
+  const receipt = {
+    id: ids[0],
+    vehicleId: ids[2],
+    branchId: ids[1],
+    buyer: {
+      legalName: "Nur Aina",
+      email: "aina@example.invalid",
+      mobile: "0123456789",
+      nric: "private",
+    },
+    price: { total: 60540 },
+    createdAt: "2026-10-26T00:00:00Z",
+    expiresAt: "2026-10-28T00:00:00+00:00",
+  };
+  const item = {
+    receipt,
+    branchName: "Glenmarie",
+    make: "Proton",
+    model: "Saga",
+    trim: "Standard",
+    manufactureYear: 2020,
+    isActive: true,
+    release: null,
+  };
+  const raw = { items: [item], page: 1, pageSize: 10, total: 1 };
+  const parsed = parseReservations(raw)!;
+  expect(parsed.items[0]).toMatchObject({
+    id: ids[0],
+    buyer: "Nur Aina",
+    vehicle: "2020 Proton Saga Standard",
+    total: 60540,
+    status: "Active",
+  });
+  expect(JSON.stringify(parsed)).not.toMatch(/private|email|mobile|nric/);
+  expect(parseReservationSnapshot(parsed)).toEqual(parsed);
+  expect(parseReservations({ ...raw, items: [item, item], total: 2 })).toBeNull();
+  expect(
+    parseReservationSnapshot({ ...parsed, items: [parsed.items[0], parsed.items[0]], total: 2 }),
+  ).toBeNull();
+  for (const changed of [
+    { isActive: false },
+    { release: {} },
+    { receipt: { ...receipt, id: "bad" } },
+    { receipt: { ...receipt, buyer: { legalName: " " } } },
+    { receipt: { ...receipt, price: { total: -1 } } },
+    { receipt: { ...receipt, expiresAt: receipt.createdAt } },
+  ]) {
+    expect(parseReservations({ ...raw, items: [{ ...item, ...changed }] })).toBeNull();
+  }
+  const release = {
+    id: ids[2],
+    reservationId: ids[0],
+    kind: "StaffCancelled",
+    recordedAt: receipt.createdAt,
+  };
+  expect(
+    parseReservations({ ...raw, items: [{ ...item, isActive: false, release }] })?.items[0].status,
+  ).toBe("StaffCancelled");
+  for (const changed of [{ reservationId: ids[1] }, { kind: "Active" }, { kind: "Unknown" }]) {
+    expect(
+      parseReservations({
+        ...raw,
+        items: [{ ...item, isActive: false, release: { ...release, ...changed } }],
+      }),
+    ).toBeNull();
+  }
+  expect(
+    parseReservationSnapshot({ ...parsed, items: [{ ...parsed.items[0], status: "Unknown" }] }),
+  ).toBeNull();
+});
 
 test("listing draft preserves exact prices and validates immutable save receipts", () => {
   const value = {
