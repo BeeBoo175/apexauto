@@ -9,7 +9,7 @@ import { hasListingAccess } from "@/lib/vehicles/listings";
 export async function relayListingCommand<T>(
   request: Request,
   id: string,
-  action: "drafts" | "publications",
+  action: "drafts" | "publications" | "withdrawals",
   parse: (value: unknown) => T | null,
 ) {
   try {

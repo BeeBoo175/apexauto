@@ -9,6 +9,11 @@ import { apiFetch } from "@/lib/api-browser";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { ListingWorkspace } from "@/lib/vehicles/listing-workspace";
 import {
+  listingWithdrawalReason,
+  matchesListingWithdrawal,
+  parseListingWithdrawalReceipt,
+} from "@/lib/vehicles/listing-withdrawal";
+import {
   matchesListingPublication,
   parseListingPublicationReceipt,
 } from "@/lib/vehicles/listing-publication";
@@ -31,6 +36,9 @@ export function useListingEditor(
   const [dirty, setDirty] = useState(false);
   const [validationAttempted, setValidationAttempted] = useState(false);
   const [entry, setEntry] = useState(snapshot);
+  const [withdrawalReason, setWithdrawalReason] = useState("");
+  const [withdrawalTarget, setWithdrawalTarget] = useState<string | null>(null);
+  const [withdrawalValidationAttempted, setWithdrawalValidationAttempted] = useState(false);
   const toast = useToast();
   const command = useApiCommand(
     `/api/staff/listings/${snapshot.vehicle.vehicleId}/drafts`,
@@ -56,10 +64,21 @@ export function useListingEditor(
     setValue((current) => ({ ...current, photoIds: [...current.photoIds, id] }));
     setDirty(true);
   });
+  const withdrawal = useApiCommand(
+    `/api/staff/listings/${snapshot.vehicle.vehicleId}/withdrawals`,
+    parseListingWithdrawalReceipt,
+    (receipt, body) =>
+      receipt.vehicleId === snapshot.vehicle.vehicleId &&
+      receipt.branchId === snapshot.vehicle.branchId &&
+      receipt.actorId === actor.userId &&
+      matchesListingWithdrawal(receipt, body),
+    (path, parse, options) => apiFetch(path, parse, options, { requireActor: true }),
+  );
   const uploading = Boolean(upload.file);
   const approving = approval.busy || approval.uncertain;
-  const operating = command.busy || command.uncertain || uploading || approving;
-  const locked = dirty || operating;
+  const withdrawing = withdrawal.busy || withdrawal.uncertain;
+  const operating = command.busy || command.uncertain || uploading || approving || withdrawing;
+  const locked = dirty || Boolean(withdrawalReason) || operating;
   const lockNavigation = useInspectionLock(locked);
   useEffect(() => {
     onLock(locked);
@@ -79,11 +98,40 @@ export function useListingEditor(
     base &&
     snapshot.currentSignedRevisionId &&
     !dirty &&
+    !withdrawalReason &&
     !stale &&
     !operating &&
     snapshot.publication?.revisionId !== base.id &&
     approval.receipt?.revisionId !== base.id,
   );
+  const canWithdraw = Boolean(
+    snapshot.publication &&
+    !snapshot.withdrawal &&
+    !operating &&
+    (!withdrawalTarget || withdrawalTarget === snapshot.publication.id) &&
+    withdrawal.receipt?.publicationId !== snapshot.publication.id,
+  );
+
+  function changeWithdrawalReason(reason: string) {
+    if (operating) {
+      return;
+    }
+    setWithdrawalTarget(reason ? (withdrawalTarget ?? snapshot.publication?.id ?? null) : null);
+    setWithdrawalReason(reason);
+    lockNavigation(dirty || Boolean(reason));
+    onLock(dirty || Boolean(reason));
+  }
+
+  function discardWithdrawal() {
+    if (operating) {
+      return;
+    }
+    setWithdrawalReason("");
+    setWithdrawalTarget(null);
+    setWithdrawalValidationAttempted(false);
+    lockNavigation(dirty);
+    onLock(dirty);
+  }
 
   function selectPhoto(file: File | null) {
     if (operating || !upload.select(file)) {
@@ -113,12 +161,12 @@ export function useListingEditor(
     setValue(listingDraft(current));
     setDirty(false);
     setValidationAttempted(false);
-    lockNavigation(false);
-    onLock(false);
+    lockNavigation(Boolean(withdrawalReason));
+    onLock(Boolean(withdrawalReason));
   }
 
   async function save() {
-    if (uploading || approving || command.busy || (stale && !command.uncertain)) {
+    if (uploading || approving || withdrawing || command.busy || (stale && !command.uncertain)) {
       return;
     }
     const contents = listingDraftContents(value);
@@ -141,8 +189,8 @@ export function useListingEditor(
       setValue(listingDraft(result.data));
       setDirty(false);
       setValidationAttempted(false);
-      lockNavigation(false);
-      onLock(false);
+      lockNavigation(Boolean(withdrawalReason));
+      onLock(Boolean(withdrawalReason));
       onSaved();
     }
   }
@@ -167,6 +215,39 @@ export function useListingEditor(
     }
   }
 
+  async function withdraw() {
+    if (withdrawal.busy || (!withdrawal.uncertain && !canWithdraw)) {
+      return;
+    }
+    const reason = listingWithdrawalReason(withdrawalReason);
+    if (!withdrawal.uncertain && !reason) {
+      setWithdrawalValidationAttempted(true);
+      toast.error(
+        "Enter a withdrawal reason of at most 1000 characters without control characters.",
+      );
+      return;
+    }
+    lockNavigation(true);
+    onLock(true);
+    const result = await withdrawal.submit({
+      operationId: crypto.randomUUID(),
+      publicationId: withdrawalTarget ?? snapshot.publication?.id,
+      reason,
+    });
+    if (result) {
+      lockNavigation(dirty || Boolean(withdrawalReason));
+      onLock(dirty || Boolean(withdrawalReason));
+    }
+    if (result?.status === 200 && result.data) {
+      setWithdrawalReason("");
+      setWithdrawalTarget(null);
+      setWithdrawalValidationAttempted(false);
+      lockNavigation(dirty);
+      onLock(dirty);
+      onSaved();
+    }
+  }
+
   return {
     base,
     value,
@@ -177,11 +258,21 @@ export function useListingEditor(
     command,
     approval,
     canApprove,
+    withdrawal,
+    withdrawalReason,
+    withdrawalValidationAttempted,
+    withdrawalTargetChanged: Boolean(
+      withdrawalTarget && withdrawalTarget !== snapshot.publication?.id,
+    ),
+    canWithdraw,
+    changeWithdrawalReason,
+    discardWithdrawal,
     upload: { ...upload, select: selectPhoto },
     validationAttempted,
     change,
     discard,
     save,
     approve,
+    withdraw,
   };
 }

@@ -1,4 +1,7 @@
 import type { useListingEditor } from "@/hooks/use-listing-editor";
+import { Button } from "@/components/ui/Button";
+import { Textarea } from "@/components/ui/Input";
+import { listingWithdrawalReason } from "@/lib/vehicles/listing-withdrawal";
 import type { ListingWorkspace } from "@/lib/vehicles/listing-workspace";
 import { listingPublication } from "@/lib/vehicles/listings";
 import { formatCurrency } from "@/lib/currency-format";
@@ -82,6 +85,53 @@ export function ListingPublication({
           <h3>Withdrawal reason</h3>
           <p>{snapshot.withdrawal.reason}</p>
           <p>{formatMalaysianDateTime(snapshot.withdrawal.recordedAt)}</p>
+        </>
+      )}
+      {editor.withdrawal.receipt && (
+        <dl className={workshop.facts}>
+          <div>
+            <dt>Confirmed withdrawal receipt</dt>
+            <dd>{formatMalaysianDateTime(editor.withdrawal.receipt.recordedAt)}</dd>
+          </div>
+          <div>
+            <dt>Confirmed reason</dt>
+            <dd>{editor.withdrawal.receipt.reason}</dd>
+          </div>
+        </dl>
+      )}
+      {snapshot.publication && (
+        <>
+          <h3>Withdraw approved listing</h3>
+          <p>
+            Withdrawal takes effect immediately. Any active unconverted hold is cancelled with a
+            full simulated refund. Unsaved listing edits remain in this drawer.
+          </p>
+          <Textarea
+            label="Withdrawal reason"
+            required
+            maxLength={1000}
+            rows={3}
+            value={editor.withdrawalReason}
+            disabled={editor.operating || (!editor.canWithdraw && !editor.withdrawalTargetChanged)}
+            aria-invalid={
+              editor.withdrawalValidationAttempted &&
+              !listingWithdrawalReason(editor.withdrawalReason)
+            }
+            onChange={(event) => editor.changeWithdrawalReason(event.target.value)}
+          />
+          {editor.withdrawalTargetChanged && (
+            <p>The approved publication changed. Discard this reason before withdrawing another.</p>
+          )}
+          {editor.withdrawalReason && (
+            <Button
+              size="compact"
+              variant="secondary"
+              disabled={editor.operating}
+              onClick={editor.discardWithdrawal}
+            >
+              Discard withdrawal reason
+            </Button>
+          )}
         </>
       )}
     </section>

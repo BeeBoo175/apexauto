@@ -45,6 +45,7 @@ export function ListingEditor({
     <div className={workshop.workspace}>
       <LoadingProgress label="Uploading listing photo" active={editor.upload.busy} />
       <LoadingProgress label="Approving publication" active={editor.approval.busy} />
+      <LoadingProgress label="Withdrawing publication" active={editor.withdrawal.busy} />
       <div className={workshop.summary}>
         <div className={workshop.summaryMain}>
           <div>
@@ -147,6 +148,8 @@ export function ListingEditor({
             Boolean(editor.upload.file) ||
             editor.approval.busy ||
             editor.approval.uncertain ||
+            editor.withdrawal.busy ||
+            editor.withdrawal.uncertain ||
             editor.command.busy ||
             (!editor.command.uncertain && (!editor.dirty || editor.stale))
           }
@@ -161,6 +164,18 @@ export function ListingEditor({
             onClick={() => void editor.approve()}
           >
             {editor.approval.uncertain ? "Reconcile publication approval" : "Approve publication"}
+          </Button>
+        )}
+        {(section === "publication" || editor.withdrawal.busy || editor.withdrawal.uncertain) && (
+          <Button
+            size="compact"
+            variant="danger"
+            disabled={
+              editor.withdrawal.busy || (!editor.withdrawal.uncertain && !editor.canWithdraw)
+            }
+            onClick={() => void editor.withdraw()}
+          >
+            {editor.withdrawal.uncertain ? "Reconcile listing withdrawal" : "Withdraw listing"}
           </Button>
         )}
         <Button size="compact" variant="secondary" disabled={editor.locked} onClick={close}>
