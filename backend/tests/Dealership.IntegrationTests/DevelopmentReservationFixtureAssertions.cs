@@ -79,6 +79,13 @@ internal static class DevelopmentReservationFixtureAssertions
         var allIds = await database.Reservations.OrderByDescending(item => item.CreatedAt).ThenByDescending(item => item.Id)
             .Select(item => item.Id).ToArrayAsync();
         await VerifyStaffPagesAsync(reads, general.Id, new(PageSize: 50), allIds);
+        var all = new List<ReservationHistoryItem>();
+        for (var page = 1; page <= 4; page++)
+        {
+            all.AddRange((await reads.StaffAsync(general.Id, new(Page: page, PageSize: 50), CancellationToken.None)).History!.Items);
+        }
+
+        await ReservationSortingAssertions.VerifyAsync(reads, general.Id, all);
         var sales = DevelopmentFixtureManifest.Staff.First(item => item.Role == AccountRoles.SalesAgent);
         Assert.Equal(ReservationStatus.Forbidden, (await reads.StaffAsync(sales.Id, new(), CancellationToken.None)).Status);
         var before = await SnapshotAsync(database);

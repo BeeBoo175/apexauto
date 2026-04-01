@@ -93,6 +93,7 @@ public sealed class ReservationReadTests(IntakePhotoFixture fixture) : IClassFix
         Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/staff/reservations")).StatusCode);
         await LoginAsync(client, (await database.Users.Where(item => item.Id == manager).Select(item => item.Email).SingleAsync())!);
         await AssertFilteredPagesAsync(client, expected, active.Id);
+        await ReservationSortingAssertions.VerifyHttpAsync(client, expected);
         await AssertManagerScopeAsync(client, database, manager, data.BranchId, otherData.BranchId);
         await AssertSnapshotAndRetryAsync(clock, data.OwnerId, active!, Array.IndexOf(expected, active!.Id) / 25 + 1);
 

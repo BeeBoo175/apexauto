@@ -50,7 +50,7 @@ internal static class ReservationStaffReadAssertions
             var denied = await reads.StaffAsync(outsider, new(branchId, IsActive: false), CancellationToken.None);
             Assert.Equal(ReservationStatus.Forbidden, denied.Status);
             Assert.False(await reader.ReservationReleases.AnyAsync(item => ids.Contains(item.ReservationId)));
-            var incomplete = await reads.StaffAsync(manager, new(Page: int.MaxValue, IsActive: false), CancellationToken.None);
+            var incomplete = await reads.StaffAsync(manager, new(Page: int.MaxValue, Sort: "status"), CancellationToken.None);
             Assert.Equal(ReservationStatus.Unavailable, incomplete.Status);
             Assert.Null(incomplete.History);
             var ordered = await reader.Reservations.Where(item => ids.Contains(item.Id))
@@ -78,5 +78,14 @@ internal static class ReservationStaffReadAssertions
             Assert.Equal(500m, item.Refund);
             Assert.Equal(holds[0].ExpiresAt, item.RecordedAt);
         });
+
+        var releases = await historyReader.ReservationReleases.Where(item =>
+            historyReader.Reservations.Any(reservation => reservation.Id == item.ReservationId && reservation.BranchId == branchId))
+            .ToArrayAsync();
+        var sorted = (await new ReservationReadStore(historyReader).StaffAsync(manager,
+            new(PageSize: 50, Sort: "status"), CancellationToken.None)).History!;
+        Assert.Equal(releases.Length, sorted.Total);
+        Assert.Equal(releases.OrderBy(item => item.Kind.ToString()).ThenBy(item => item.ReservationId).Take(50)
+            .Select(item => item.ReservationId), sorted.Items.Select(item => item.Receipt.Id));
     }
 }

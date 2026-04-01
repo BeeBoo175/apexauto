@@ -34,7 +34,8 @@ public static class ReservationReadEndpoints
         }
     }
 
-    private static async Task<IResult> StaffAsync(Guid? branchId, int? page, int? pageSize, bool? isActive, HttpContext context,
+    private static async Task<IResult> StaffAsync(Guid? branchId, int? page, int? pageSize, bool? isActive,
+        string? sort, string? direction, HttpContext context,
         IReservationReadStore store, CancellationToken cancellationToken)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -42,7 +43,8 @@ public static class ReservationReadEndpoints
         try
         {
             var result = await store.StaffAsync(ActorId(context),
-                new(branchId, page ?? 1, pageSize ?? Pagination.DefaultPageSize, isActive), deadline.Token);
+                new(branchId, page ?? 1, pageSize ?? Pagination.DefaultPageSize, isActive,
+                    sort ?? "", direction ?? "asc"), deadline.Token);
             return Map(result);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
@@ -58,7 +60,7 @@ public static class ReservationReadEndpoints
     private static IResult Map(ReservationHistoryResult result) => result.Status switch
     {
         ReservationStatus.Succeeded => Results.Ok(result.History),
-        ReservationStatus.Invalid => Results.Problem(statusCode: 400, title: "Provide a valid reservation page and staff page size of 10, 25 or 50."),
+        ReservationStatus.Invalid => Results.Problem(statusCode: 400, title: "Provide valid reservation filters and a staff page size of 10, 25 or 50."),
         ReservationStatus.Forbidden => Results.Forbid(),
         ReservationStatus.Unavailable => Unavailable(),
         _ => Results.Problem(statusCode: 500)

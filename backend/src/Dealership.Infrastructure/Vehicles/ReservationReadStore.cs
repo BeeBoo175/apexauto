@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Dealership.Application.Accounts;
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Vehicles;
@@ -51,24 +52,27 @@ public sealed class ReservationReadStore(DealershipDbContext database) : IReserv
             reservations = reservations.Where(item => branchId == null || item.BranchId == branchId);
         }
 
-        if (staff && filter.IsActive is not null)
+        if (staff && (filter.IsActive is not null || filter.Sort == "status"))
         {
-            // Membership depends on refunds across the authorized scope, including off-page holds.
+            // Membership and status order depend on refunds across the authorized scope, including off-page holds.
             var caughtUp = await ReservationReadSnapshot.ReconcileDueAsync(database,
                 reservations.Select(item => item.VehicleId), 10, cancellationToken);
             if (!caughtUp)
             {
                 return new(ReservationStatus.Unavailable);
             }
+        }
 
+        if (staff && filter.IsActive is not null)
+        {
             reservations = reservations.Where(item => item.IsActive == filter.IsActive);
         }
 
         var total = await reservations.CountAsync(cancellationToken);
-        var pageIds = await reservations.OrderByDescending(item => item.CreatedAt).ThenByDescending(item => item.Id)
-            .Select(item => item.Id).ReadPageAsync(filter.Page, filter.PageSize, total, cancellationToken);
+        var pageIds = await Order(Rows(reservations), filter)
+            .Select(row => row.Reservation.Id).ReadPageAsync(filter.Page, filter.PageSize, total, cancellationToken);
         var activeVehicles = reservations.Where(item => item.IsActive &&
-                (!staff || filter.IsActive == null && pageIds.Contains(item.Id)))
+                (!staff || filter.IsActive == null && filter.Sort != "status" && pageIds.Contains(item.Id)))
             .Select(item => item.VehicleId);
         var vehicleIds = await database.Vehicles.Where(vehicle => activeVehicles.Contains(vehicle.Id))
             .OrderBy(vehicle => vehicle.Id).Select(vehicle => vehicle.Id).ToArrayAsync(cancellationToken);
@@ -78,7 +82,7 @@ public sealed class ReservationReadStore(DealershipDbContext database) : IReserv
             await ReservationReadSnapshot.ReconcileAsync(database, vehicleId, cancellationToken);
         }
 
-        var rows = await Rows(reservations.Where(item => pageIds.Contains(item.Id)))
+        var rows = await Order(Rows(reservations.Where(item => pageIds.Contains(item.Id))), filter)
             .ToArrayAsync(cancellationToken);
         var items = rows.Select(ToItem).ToArray();
         ReservationHistoryItem? active = null;
@@ -98,9 +102,51 @@ public sealed class ReservationReadStore(DealershipDbContext database) : IReserv
                join vehicle in database.Vehicles on reservation.VehicleId equals vehicle.Id
                join refunded in database.ReservationReleases.AsNoTracking() on reservation.Id equals refunded.ReservationId into releases
                from release in releases.DefaultIfEmpty()
-               orderby reservation.CreatedAt descending, reservation.Id descending
-               select new Row(reservation, branch.Name, vehicle.Make, vehicle.Model, vehicle.Trim,
-                   vehicle.ManufactureYear, release);
+               select new Row
+               {
+                   Reservation = reservation,
+                   BranchName = branch.Name,
+                   Make = vehicle.Make,
+                   Model = vehicle.Model,
+                   Trim = vehicle.Trim,
+                   ManufactureYear = vehicle.ManufactureYear,
+                   Release = release
+               };
+    }
+
+    private static IOrderedQueryable<Row> Order(IQueryable<Row> rows, ReservationReadFilter filter)
+    {
+        if (filter.Sort.Length == 0)
+        {
+            return rows.OrderByDescending(row => row.Reservation.CreatedAt).ThenByDescending(row => row.Reservation.Id);
+        }
+
+        var ordered = filter.Sort switch
+        {
+            "reference" => OrderBy(rows, row => row.Reservation.Id, filter.Direction),
+            "vehicle" => OrderBy(rows, row => row.ManufactureYear + " " + row.Make + " " + row.Model + " " + row.Trim, filter.Direction),
+            "buyer" => OrderBy(rows, row => row.Reservation.Buyer.LegalName, filter.Direction),
+            "branch" => OrderBy(rows, row => row.BranchName, filter.Direction),
+            "created" => OrderBy(rows, row => row.Reservation.CreatedAt, filter.Direction),
+            "expires" => OrderBy(rows, row => row.Reservation.ExpiresAt, filter.Direction),
+            "total" => OrderBy(rows, row => row.Reservation.Price.Total, filter.Direction),
+            _ => OrderStatus(rows, filter.Direction)
+        };
+        return ordered.ThenBy(row => row.Reservation.Id);
+    }
+
+    private static IOrderedQueryable<Row> OrderBy<TKey>(IQueryable<Row> rows,
+        Expression<Func<Row, TKey>> key, string direction)
+    {
+        return direction == "desc" ? rows.OrderByDescending(key) : rows.OrderBy(key);
+    }
+
+    private static IOrderedQueryable<Row> OrderStatus(IQueryable<Row> rows, string direction)
+    {
+        // Active precedes the alphabetically persisted release kinds when ascending.
+        return direction == "desc"
+            ? rows.OrderByDescending(row => row.Release != null).ThenByDescending(row => row.Release!.Kind)
+            : rows.OrderBy(row => row.Release != null).ThenBy(row => row.Release!.Kind);
     }
 
     private static ReservationHistoryItem ToItem(Row row) => new(ReservationReceipt.From(row.Reservation), row.BranchName,
@@ -132,6 +178,14 @@ public sealed class ReservationReadStore(DealershipDbContext database) : IReserv
         return actor;
     }
 
-    private sealed record Row(Reservation Reservation, string BranchName, string Make, string Model, string Trim,
-        int ManufactureYear, ReservationRelease? Release);
+    private sealed class Row
+    {
+        public required Reservation Reservation { get; init; }
+        public required string BranchName { get; init; }
+        public required string Make { get; init; }
+        public required string Model { get; init; }
+        public required string Trim { get; init; }
+        public int ManufactureYear { get; init; }
+        public required ReservationRelease? Release { get; init; }
+    }
 }
