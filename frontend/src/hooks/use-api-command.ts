@@ -46,7 +46,8 @@ export function useApiCommand<T>(
       if (operation.signal.aborted) {
         return null;
       }
-      if (result.uncertain || result.status >= 500) {
+      // Throttling a replay does not resolve the earlier unconfirmed write.
+      if (result.uncertain || result.status >= 500 || (uncertain && result.status === 429)) {
         throw new Error("Unconfirmed mutation");
       }
       if (

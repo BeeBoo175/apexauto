@@ -90,11 +90,13 @@ export function useReservationTable(
         branchId: current.branchId === submitted.branchId ? nextFilters.branchId : current.branchId,
       }));
       setRevision((value) => value + 1);
-      window.history.replaceState(
-        null,
-        "",
-        `/dashboard/reservations?${reservationQuery(nextFilters, nextPage)}`,
-      );
+      const url = new URL(window.location.href);
+      const selected = url.searchParams.get("reservation");
+      url.search = reservationQuery(nextFilters, nextPage);
+      if (selected) {
+        url.searchParams.set("reservation", selected);
+      }
+      window.history.replaceState(null, "", url);
       return true;
     } catch {
       if (!attempt.signal.aborted) {
@@ -140,6 +142,12 @@ export function useReservationTable(
     }
   }
 
+  function refresh() {
+    controller.current?.abort();
+    controller.current = null;
+    return load();
+  }
+
   return {
     snapshot,
     active,
@@ -151,6 +159,7 @@ export function useReservationTable(
     ready,
     revision,
     load,
+    refresh,
     loadBranches,
   };
 }

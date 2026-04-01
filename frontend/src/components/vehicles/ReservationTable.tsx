@@ -268,7 +268,15 @@ export function ReservationTable({
           )}
         </div>
       </div>
-      <ReservationDrawer selection={drawer} />
+      <ReservationDrawer
+        key={`${actorIdentity(actor)}:${drawer.id}`}
+        actor={actor}
+        selection={drawer}
+        onConfirmed={() => {
+          void state.refresh();
+          void drawer.choose(drawer.id);
+        }}
+      />
     </div>
   );
 }

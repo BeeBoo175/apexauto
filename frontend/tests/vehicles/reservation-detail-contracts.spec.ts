@@ -3,6 +3,11 @@ import {
   parseReservationDetail,
   parseReservationDetailSnapshot,
 } from "@/lib/vehicles/reservation-detail";
+import {
+  matchesReservationCancellation,
+  parseReservationCancellation,
+  reservationCancellationReason,
+} from "@/lib/vehicles/reservation-cancellation";
 
 const ids = [
   "47cf2705-95cc-48b6-b907-64bf18dd87da",
@@ -86,4 +91,45 @@ test("detail projection preserves exact retained prices and refunds while omitti
   expect(
     parseReservationDetailSnapshot({ ...refunded, release: { ...refunded.release, refund: 499 } }),
   ).toBeNull();
+});
+
+test("staff cancellation requires an exact operation, target, actor, reason and full refund receipt", () => {
+  const cancelled = { ...release, actorId: ids[1] };
+  const body = { operationId: cancelled.id, reason: cancelled.reason };
+  const parsed = parseReservationCancellation(cancelled)!;
+  expect(parsed).toEqual(cancelled);
+  const matches = (value: typeof parsed, request: unknown = body) =>
+    matchesReservationCancellation(value, request, receipt.id, ids[1], receipt.deposit);
+  expect(matches(parsed)).toBe(true);
+  for (const changed of [
+    { id: ids[0] },
+    { reservationId: ids[1] },
+    { actorId: ids[2] },
+    { reason: "Different reason" },
+    { refund: 499 },
+  ]) {
+    expect(matches({ ...parsed, ...changed })).toBe(false);
+  }
+  expect(matches(parsed, null)).toBe(false);
+  expect(matches(parsed, { ...body, operationId: ids[1] })).toBe(false);
+  for (const changed of [
+    { id: "bad" },
+    { reservationId: "bad" },
+    { actorId: null },
+    { kind: "Expired" },
+    { refund: 499 },
+    { refund: "500" },
+    { reason: null },
+    { reason: " Reason " },
+    { reason: "Reason\n" },
+    { recordedAt: "2026-10-26T01:00:00+08:00" },
+    { recordedAt: "bad" },
+  ]) {
+    expect(parseReservationCancellation({ ...cancelled, ...changed })).toBeNull();
+  }
+  expect(reservationCancellationReason("  Customer requested release  ")).toBe(cancelled.reason);
+  expect(reservationCancellationReason("a".repeat(1000))).toHaveLength(1000);
+  for (const reason of ["", "   ", "a".repeat(1001), "Reason\n", "Reason\u0085"]) {
+    expect(reservationCancellationReason(reason)).toBeNull();
+  }
 });
