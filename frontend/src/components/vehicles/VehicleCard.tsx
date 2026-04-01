@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { formatCurrency } from "@/lib/currency-format";
 import type { PublicVehicle } from "@/lib/vehicles/contracts";
 import { VehicleCardView } from "./VehicleCardView";
@@ -22,6 +23,11 @@ export function VehicleCard({
       }
       first={first}
       photoVersion={photoVersion}
+      action={
+        <Link href={`/vehicles/${vehicle.id}`} prefetch={false}>
+          View vehicle details
+        </Link>
+      }
     />
   );
 }

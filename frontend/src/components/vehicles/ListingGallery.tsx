@@ -44,6 +44,7 @@ export function ListingPhoto({
   id,
   position,
   vehicleName,
+  photoUrl,
   label = `Photo ${position}`,
   caption = position === 1 ? "Cover photo" : `Photo ${position}`,
   children,
@@ -52,6 +53,7 @@ export function ListingPhoto({
   id: string;
   position: number;
   vehicleName: string;
+  photoUrl?: string;
   label?: string;
   caption?: string;
   children?: ReactNode;
@@ -77,7 +79,7 @@ export function ListingPhoto({
         ) : (
           <Image
             key={attempt}
-            src={`/api/staff/listings/${vehicleId}/photos/${id}`}
+            src={photoUrl ?? `/api/staff/listings/${vehicleId}/photos/${id}`}
             alt={`${vehicleName} · listing ${label.toLowerCase()}`}
             width={960}
             height={640}

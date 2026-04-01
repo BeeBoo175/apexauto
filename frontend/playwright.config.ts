@@ -38,6 +38,7 @@ export default defineConfig({
         "vehicles/publication-contracts.spec.ts",
         "vehicles/withdrawal-contracts.spec.ts",
         "vehicles/reservation-detail-contracts.spec.ts",
+        "vehicles/public-detail-contracts.spec.ts",
       ],
     },
     ...(browserJourneys

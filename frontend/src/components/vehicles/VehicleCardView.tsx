@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Image from "next/image";
 import type { PublicVehicle } from "@/lib/vehicles/contracts";
 import styles from "./Catalogue.module.css";
@@ -19,12 +19,14 @@ export function VehicleCardView({
   photoUrl,
   first,
   photoVersion,
+  action,
 }: {
   vehicle: CardVehicle;
   price: string;
   photoUrl: string | null;
   first: boolean;
   photoVersion: number;
+  action?: ReactNode;
 }) {
   const [failedAt, setFailedAt] = useState<number | null>(null);
   // Healthy photos keep their lifetime across confirmed reads.
@@ -60,6 +62,7 @@ export function VehicleCardView({
         </p>
         <p className={styles.price}>{price}</p>
         <p className={styles.help}>Vehicle price, before fees and road tax</p>
+        {action}
       </div>
     </article>
   );
