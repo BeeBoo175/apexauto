@@ -1,6 +1,8 @@
 import { StaffEntry } from "@/components/staff/StaffEntry";
 import { ReservationTable } from "@/components/vehicles/ReservationTable";
 import { actorIdentity } from "@/lib/auth/actor";
+import { isUuid } from "@/lib/auth/contracts";
+import { parseReservationDetail } from "@/lib/vehicles/reservation-detail";
 import { privateApiRead } from "@/lib/server/http/api";
 import { staffBranches } from "@/lib/staff/server";
 import {
@@ -24,13 +26,18 @@ export default async function ReservationsPage({
       deniedDescription="Only Branch Managers and General Managers can view reservations."
     >
       {async (actor) => {
-        const { filters, page } = reservationParams(await searchParams);
-        const [initial, branches] = await Promise.all([
+        const params = await searchParams;
+        const { filters, page } = reservationParams(params);
+        const reservationId = isUuid(params.reservation) ? params.reservation : "";
+        const [initial, branches, selected] = await Promise.all([
           privateApiRead(
             `/api/staff/reservations?${reservationQuery(filters, page)}`,
             parseReservations,
           ),
           staffBranches(actor),
+          reservationId
+            ? privateApiRead(`/api/staff/reservations/${reservationId}`, parseReservationDetail)
+            : null,
         ]);
         return (
           <ReservationTable
@@ -40,6 +47,12 @@ export default async function ReservationsPage({
             filters={filters}
             page={page}
             branches={branches?.data ?? null}
+            reservationId={reservationId}
+            selected={
+              selected?.data?.reservation.id === reservationId
+                ? selected
+                : { status: selected?.status ?? 200, data: null, message: "", uncertain: false }
+            }
           />
         );
       }}

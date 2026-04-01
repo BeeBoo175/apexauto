@@ -30,6 +30,64 @@ async function read(context: BrowserContext, query: string) {
   return (await response.json()).data as { items: ReservationItem[]; total: number };
 }
 
+async function verifyDetails(page: Page, id: string) {
+  const target = `/api/staff/reservations/${id}`;
+  const before = counts()[target] ?? 0;
+  const mountedTable = await page
+    .getByRole("table", { name: "Reservations", exact: true })
+    .elementHandle();
+  await page.getByRole("button", { name: id, exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Reservation details", exact: true });
+  await expect(dialog.getByRole("heading", { name: "Retained price", exact: true })).toBeVisible();
+  expect(counts()[target] - before).toBe(1);
+  await expect(page).toHaveURL(new RegExp(`reservation=${id}`));
+  const html = await dialog.textContent();
+  const confirmedFacts = await dialog.locator("dl").allTextContents();
+  expect(html).toContain("MYR 500.00");
+  expect(html).not.toMatch(/nric|@example\.invalid/);
+  const refresh = dialog.getByRole("button", { name: "Refresh reservation details", exact: true });
+  writeFileSync(path.join(evidence, "fault.txt"), "unavailable");
+  try {
+    await refresh.click();
+    await expect(
+      page.getByRole("alert").filter({ hasText: "record could not be refreshed" }),
+    ).toBeVisible();
+    expect(await dialog.locator("dl").allTextContents()).toEqual(confirmedFacts);
+  } finally {
+    writeFileSync(path.join(evidence, "fault.txt"), "");
+  }
+  let release = () => {};
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route(`**${target}`, async (route) => {
+    await gate;
+    await route.continue();
+  });
+  try {
+    await refresh.click();
+    await expect(refresh).toBeDisabled();
+    await expect(
+      dialog.getByRole("heading", { name: "Retained price", exact: true }),
+    ).toBeVisible();
+  } finally {
+    release();
+  }
+  await expect(refresh).toBeEnabled();
+  await page.unroute(`**${target}`);
+  expect(await mountedTable!.evaluate((element) => element.isConnected)).toBe(true);
+  const beforeReload = counts()[target];
+  const response = await page.reload();
+  const initialHtml = await response!.text();
+  expect(initialHtml).toContain("Retained price");
+  expect(initialHtml).not.toContain("nric");
+  await expect(refresh).toBeEnabled();
+  expect(counts()[target] - beforeReload).toBe(1);
+  await dialog.getByRole("button", { name: "Close details", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page).not.toHaveURL(/reservation=/);
+}
+
 test("manager reservations retain scoped active/history snapshots, server order and actor isolation", async ({
   page,
   context,
@@ -66,6 +124,8 @@ test("manager reservations retain scoped active/history snapshots, server order 
     await expect(page).toHaveURL(new RegExp(`branchId=${branch}`));
     await expect(rows()).toHaveCount(1);
   }
+  const held = active.items.find((row) => mobile || row.branchId === branch)!;
+  await verifyDetails(page, held.id);
   const activeRows = await rows().allTextContents();
   let releaseRead = () => {};
   const readGate = new Promise<void>((resolve) => {
@@ -167,8 +227,15 @@ test("manager reservations retain scoped active/history snapshots, server order 
   await page.getByRole("button", { name: "Go to first page", exact: true }).click();
   await expect(page).toHaveURL(/page=1/);
   await expect(rows()).toHaveCount(10);
+  const releasedId = await rows().first().getByRole("button").first().textContent();
+  await verifyDetails(page, releasedId!.trim());
+  await page.getByRole("button", { name: releasedId!.trim(), exact: true }).click();
+  const details = page.getByRole("dialog", { name: "Reservation details", exact: true });
+  await expect(
+    details.getByRole("heading", { name: "Simulated refund", exact: true }),
+  ).toBeVisible();
   await page.screenshot({
-    path: path.join(evidence, `reservations-${info.project.name}.png`),
+    path: path.join(evidence, `reservation-details-${info.project.name}.png`),
     fullPage: true,
   });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
@@ -189,8 +256,9 @@ test("manager reservations retain scoped active/history snapshots, server order 
   await context.addCookies(
     (await sales.cookies()).filter((cookie) => cookie.name === "apexauto_token"),
   );
-  await refresh.click();
+  await details.getByRole("button", { name: "Refresh reservation details", exact: true }).click();
   await expect(table).toHaveCount(0);
+  await expect(details).toHaveCount(0);
   await expect(
     page.getByRole("heading", { name: "Reservation access unavailable", exact: true }),
   ).toBeVisible();

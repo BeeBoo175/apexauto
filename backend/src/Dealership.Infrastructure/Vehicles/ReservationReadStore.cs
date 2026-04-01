@@ -19,6 +19,45 @@ public sealed class ReservationReadStore(DealershipDbContext database) : IReserv
         return ReadAsync(actorId, filter, true, cancellationToken);
     }
 
+    public async Task<ReservationDetailResult> DetailAsync(Guid actorId, Guid reservationId, CancellationToken cancellationToken)
+    {
+        if (reservationId == Guid.Empty)
+        {
+            return new(ReservationStatus.Invalid);
+        }
+
+        return await ReservationReadSnapshot.ReadAsync(database,
+            () => DetailSnapshotAsync(actorId, reservationId, cancellationToken),
+            new ReservationDetailResult(ReservationStatus.Unavailable), cancellationToken);
+    }
+
+    private async Task<ReservationDetailResult> DetailSnapshotAsync(Guid actorId, Guid reservationId,
+        CancellationToken cancellationToken)
+    {
+        var actor = await ReadActorAsync(actorId, null, true, cancellationToken);
+        if (actor is null)
+        {
+            return new(ReservationStatus.Forbidden);
+        }
+
+        var reservations = database.Reservations.AsNoTracking().Where(item => item.Id == reservationId &&
+            (actor.BranchId == null || item.BranchId == actor.BranchId));
+        var target = await reservations.Select(item => new { item.VehicleId, item.IsActive })
+            .SingleOrDefaultAsync(cancellationToken);
+        if (target is null)
+        {
+            return new(ReservationStatus.NotFound);
+        }
+
+        if (target.IsActive)
+        {
+            await ReservationReadSnapshot.ReconcileAsync(database, target.VehicleId, cancellationToken);
+        }
+
+        var row = await Rows(reservations).SingleAsync(cancellationToken);
+        return new(ReservationStatus.Succeeded, actor, ToItem(row));
+    }
+
     private async Task<ReservationHistoryResult> ReadAsync(Guid actorId, ReservationReadFilter filter, bool staff,
         CancellationToken cancellationToken)
     {

@@ -16,6 +16,7 @@ public static class ReservationReadEndpoints
         });
         routes.MapGet("/account/reservations", AccountAsync);
         routes.MapGet("/staff/reservations", StaffAsync);
+        routes.MapGet("/staff/reservations/{reservationId:guid}", DetailAsync);
     }
 
     private static async Task<IResult> AccountAsync(int? page, HttpContext context, IReservationReadStore store,
@@ -54,6 +55,30 @@ public static class ReservationReadEndpoints
     }
 
     private static Guid ActorId(HttpContext context) => Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Sub)!.Value);
+
+    private static async Task<IResult> DetailAsync(Guid reservationId, HttpContext context,
+        IReservationReadStore store, CancellationToken cancellationToken)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(20));
+        try
+        {
+            var result = await store.DetailAsync(ActorId(context), reservationId, deadline.Token);
+            return result.Status switch
+            {
+                ReservationStatus.Succeeded => Results.Ok(result),
+                ReservationStatus.Invalid => Results.BadRequest(),
+                ReservationStatus.Forbidden => Results.Forbid(),
+                ReservationStatus.NotFound => Results.NotFound(),
+                ReservationStatus.Unavailable => Unavailable(),
+                _ => Results.Problem(statusCode: 500)
+            };
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return Unavailable();
+        }
+    }
 
     private static IResult Unavailable() => Results.Problem(statusCode: 503, title: "Reservation history is temporarily unavailable.");
 

@@ -16,6 +16,12 @@ import type { DataColumn, TableSort } from "@/components/ui/data-table/types";
 import { useReservationTable } from "@/hooks/use-reservation-table";
 import { useRowSelection } from "@/hooks/use-row-selection";
 import { useCsvExport } from "@/hooks/use-csv-export";
+import { useStaffSelection } from "@/hooks/use-staff-selection";
+import { apiFetch } from "@/lib/api-browser";
+import {
+  parseReservationDetailSnapshot,
+  type ReservationDetail,
+} from "@/lib/vehicles/reservation-detail";
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import type { ApiResult, Page } from "@/lib/api";
 import type { Branch } from "@/lib/branches";
@@ -30,6 +36,7 @@ import {
 import { exportReservations, reservationExportColumns } from "@/lib/vehicles/reservation-export";
 import type { AppliedWorklistFilter } from "@/lib/staff/filter-summary";
 import { ReservationFilters } from "./ReservationFilters";
+import { ReservationDrawer } from "./ReservationDrawer";
 import layout from "@/components/staff/IntakeWorkspace.module.css";
 import styles from "@/components/staff/IntakeWorklist.module.css";
 import workspace from "@/components/staff/StaffWorkspace.module.css";
@@ -77,14 +84,38 @@ export function ReservationTable({
   filters,
   page,
   branches,
+  reservationId,
+  selected,
 }: {
   actor: CurrentActor;
   initial: ApiResult<Page<ReservationItem>>;
   filters: Filters;
   page: number;
   branches: Page<Branch> | null;
+  reservationId: string;
+  selected: ApiResult<ReservationDetail> | null;
 }) {
   const state = useReservationTable(initial, filters, page, branches);
+  const drawer = useStaffSelection(reservationId, selected, {
+    parameter: "reservation",
+    path: (id) => `/api/staff/reservations/${id}`,
+    parse: parseReservationDetailSnapshot,
+    matches: (value, id) => value.reservation.id === id,
+    read: (path, parse, options) => apiFetch(path, parse, options, { requireActor: true }),
+    commitAfterRead: true,
+  });
+  const reservationColumns = columns.map((column) =>
+    column.id === "reference"
+      ? {
+          ...column,
+          cell: (row: ReservationItem) => (
+            <Button size="compact" variant="ghost" onClick={() => void drawer.choose(row.id)}>
+              {row.id}
+            </Button>
+          ),
+        }
+      : column,
+  );
   const animateEntry = useContext(StaffPageEntranceContext);
   const { snapshot, active } = state;
   const selectedView = state.pendingView ?? active.filters.isActive;
@@ -197,7 +228,7 @@ export function ReservationTable({
               <DataTable
                 label="Reservations"
                 rows={snapshot.items}
-                columns={columns}
+                columns={reservationColumns}
                 sorting={{
                   value: active.filters.sort
                     ? { column: active.filters.sort, direction: active.filters.direction }
@@ -210,6 +241,8 @@ export function ReservationTable({
                 onPage={changePage}
                 busy={state.busy}
                 disabled={false}
+                selectedRowId={drawer.id}
+                onRowClick={(row) => void drawer.choose(row.id)}
                 emptyState={{
                   title: active.filters.isActive ? "No active holds" : "No reservation history",
                   description: active.filters.isActive
@@ -235,6 +268,7 @@ export function ReservationTable({
           )}
         </div>
       </div>
+      <ReservationDrawer selection={drawer} />
     </div>
   );
 }

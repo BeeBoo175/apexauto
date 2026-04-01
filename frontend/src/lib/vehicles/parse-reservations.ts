@@ -7,7 +7,7 @@ const text = (value: unknown): value is string =>
 const timestamp = (value: unknown): value is string =>
   text(value) && /(?:Z|\+00:00)$/.test(value) && Number.isFinite(Date.parse(value));
 
-function parseReservation(value: unknown): ReservationItem | null {
+export function parseReservation(value: unknown): ReservationItem | null {
   if (!isRecord(value) || !isRecord(value.receipt)) {
     return null;
   }
@@ -78,7 +78,7 @@ export function parseReservations(value: unknown) {
   return page;
 }
 
-function parseReservationRow(value: unknown): ReservationItem | null {
+export function parseReservationRow(value: unknown): ReservationItem | null {
   if (
     !isRecord(value) ||
     !isUuid(value.id) ||

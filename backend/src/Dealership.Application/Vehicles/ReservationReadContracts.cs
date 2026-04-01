@@ -19,9 +19,14 @@ public sealed record ReservationHistoryPage(CurrentActor Actor, IReadOnlyList<Re
 
 public sealed record ReservationHistoryResult(ReservationStatus Status, ReservationHistoryPage? History = null);
 
+public sealed record ReservationDetailResult(ReservationStatus Status, CurrentActor? Actor = null,
+    ReservationHistoryItem? Item = null);
+
 public interface IReservationReadStore
 {
     Task<ReservationHistoryResult> AccountAsync(Guid customerId, int page, CancellationToken cancellationToken);
 
     Task<ReservationHistoryResult> StaffAsync(Guid actorId, ReservationReadFilter filter, CancellationToken cancellationToken);
+
+    Task<ReservationDetailResult> DetailAsync(Guid actorId, Guid reservationId, CancellationToken cancellationToken);
 }
