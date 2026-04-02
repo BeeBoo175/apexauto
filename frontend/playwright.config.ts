@@ -40,6 +40,7 @@ export default defineConfig({
         "vehicles/reservation-detail-contracts.spec.ts",
         "vehicles/public-detail-contracts.spec.ts",
         "vehicles/financing-contracts.spec.ts",
+        "vehicles/promo-contracts.spec.ts",
       ],
     },
     ...(browserJourneys

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { useVehicleDetail } from "@/hooks/use-vehicle-detail";
+import { useVehiclePromo } from "@/hooks/use-vehicle-promo";
 import type { ApiResult } from "@/lib/api";
 import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDate } from "@/lib/date-format";
@@ -10,6 +11,7 @@ import { label } from "@/lib/inspection/contracts";
 import type { PublicVehicleDetail } from "@/lib/vehicles/public-detail";
 import { ListingPhoto } from "./ListingGallery";
 import { VehicleFinancing } from "./VehicleFinancing";
+import { VehiclePromo } from "./VehiclePromo";
 import gallery from "./ListingGallery.module.css";
 import styles from "./VehicleDetail.module.css";
 
@@ -21,6 +23,8 @@ export function VehicleDetail({
   initial: ApiResult<PublicVehicleDetail>;
 }) {
   const { snapshot, unavailable, busy, refresh } = useVehicleDetail(id, initial);
+  const promo = useVehiclePromo(snapshot);
+  const price = promo.accepted?.price ?? snapshot?.price;
   const listing = snapshot?.listing;
   const name = listing
     ? `${listing.manufactureYear} ${listing.make} ${listing.model} ${listing.trim}`
@@ -37,7 +41,7 @@ export function VehicleDetail({
           {busy ? "Refreshing vehicle…" : "Refresh vehicle"}
         </Button>
       </header>
-      {!snapshot || !listing ? (
+      {!snapshot || !listing || !price ? (
         <p>
           {unavailable
             ? "This vehicle is currently unavailable. Browse the catalogue for available vehicles."
@@ -69,31 +73,38 @@ export function VehicleDetail({
             <dl className={styles.price}>
               <div>
                 <dt>Vehicle price</dt>
-                <dd>{formatCurrency(snapshot.price.vehiclePrice)}</dd>
+                <dd>{formatCurrency(price.vehiclePrice)}</dd>
               </div>
               <div>
                 <dt>Processing fee</dt>
-                <dd>{formatCurrency(snapshot.price.processingFee)}</dd>
+                <dd>{formatCurrency(price.processingFee)}</dd>
               </div>
               <div>
                 <dt>Road tax</dt>
-                <dd>{formatCurrency(snapshot.price.roadTax)}</dd>
+                <dd>{formatCurrency(price.roadTax)}</dd>
               </div>
               <div>
                 <dt>SST on processing fee ({snapshot.sstRate * 100}%)</dt>
-                <dd>{formatCurrency(snapshot.price.serviceTax)}</dd>
+                <dd>{formatCurrency(price.serviceTax)}</dd>
               </div>
+              {promo.accepted && (
+                <div>
+                  <dt>Promo discount ({promo.accepted.promoCode})</dt>
+                  <dd>−{formatCurrency(price.promoDiscount)}</dd>
+                </div>
+              )}
               <div>
                 <dt>Estimated total</dt>
-                <dd>{formatCurrency(snapshot.price.total)}</dd>
+                <dd>{formatCurrency(price.total)}</dd>
               </div>
             </dl>
             <p>
               Insurance and optional warranty are excluded. This portfolio estimate uses simulated
               financial terms.
             </p>
+            <VehiclePromo promo={promo} />
           </section>
-          <VehicleFinancing key={id} total={snapshot.price.total} />
+          <VehicleFinancing key={id} total={price.total} />
           <section aria-labelledby="vehicle-description">
             <h2 id="vehicle-description">About this vehicle</h2>
             <p className={styles.description}>{snapshot.description}</p>

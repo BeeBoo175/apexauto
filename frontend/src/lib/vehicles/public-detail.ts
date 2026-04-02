@@ -4,6 +4,7 @@ import { severities, type Point, type Severity } from "@/lib/inspection/contract
 import { enumValue, parsePoint, timestamp } from "@/lib/inspection/parse";
 import { parsePublicVehicle } from "./parse";
 import type { PublicVehicle } from "./contracts";
+import { parsePurchasePrice, type PurchasePrice } from "./purchase-quote";
 
 type ChecklistPoint = Point & {
   kind: "Finding" | "NotFitted" | null;
@@ -17,14 +18,7 @@ export interface PublicVehicleDetail {
   description: string;
   photoIds: string[];
   sstRate: number;
-  price: {
-    vehiclePrice: number;
-    processingFee: number;
-    roadTax: number;
-    serviceTax: number;
-    promoDiscount: number;
-    total: number;
-  };
+  price: PurchasePrice;
   checklist: {
     catalogVersion: string;
     grade: "A" | "B" | "C" | null;
@@ -62,7 +56,7 @@ export function parsePublicDetail(value: unknown, expectedId?: string): PublicVe
     return null;
   }
   const listing = parsePublicVehicle(value.listing);
-  const price = value.price;
+  const price = parsePurchasePrice(value.price);
   const checklist = value.checklist;
   const photoIds = parseItems(value.photoIds, (id) => (isUuid(id) ? id : null));
   const points = parseItems(checklist.points, parseChecklistPoint);
@@ -88,20 +82,10 @@ export function parsePublicDetail(value: unknown, expectedId?: string): PublicVe
     !Number.isFinite(value.sstRate) ||
     value.sstRate < 0 ||
     value.sstRate > 1 ||
-    !money(price.vehiclePrice) ||
-    !money(price.processingFee) ||
-    !money(price.roadTax) ||
-    !money(price.serviceTax) ||
-    !money(price.promoDiscount) ||
-    !money(price.total) ||
+    !price ||
     price.vehiclePrice !== listing.vehiclePrice ||
     price.roadTax !== value.roadTax ||
-    price.promoDiscount !== 0 ||
-    Math.round(price.total * 100) !==
-      Math.round(price.vehiclePrice * 100) +
-        Math.round(price.processingFee * 100) +
-        Math.round(price.roadTax * 100) +
-        Math.round(price.serviceTax * 100)
+    price.promoDiscount !== 0
   ) {
     return null;
   }
@@ -111,14 +95,7 @@ export function parsePublicDetail(value: unknown, expectedId?: string): PublicVe
     description: value.description,
     photoIds,
     sstRate: value.sstRate,
-    price: {
-      vehiclePrice: price.vehiclePrice,
-      processingFee: price.processingFee,
-      roadTax: price.roadTax,
-      serviceTax: price.serviceTax,
-      promoDiscount: price.promoDiscount,
-      total: price.total,
-    },
+    price,
     checklist: {
       catalogVersion: checklist.catalogVersion,
       grade,
