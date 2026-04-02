@@ -41,6 +41,7 @@ export default defineConfig({
         "vehicles/public-detail-contracts.spec.ts",
         "vehicles/financing-contracts.spec.ts",
         "vehicles/promo-contracts.spec.ts",
+        "vehicles/trade-in-contracts.spec.ts",
       ],
     },
     ...(browserJourneys

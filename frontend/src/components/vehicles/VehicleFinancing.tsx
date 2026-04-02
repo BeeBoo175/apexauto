@@ -2,19 +2,22 @@
 
 import { Input, Select } from "@/components/ui/Input";
 import { useVehicleFinancing } from "@/hooks/use-vehicle-financing";
+import { useVehicleTradeIn } from "@/hooks/use-vehicle-trade-in";
 import { formatCurrency } from "@/lib/currency-format";
 import styles from "./VehicleFinancing.module.css";
+import { VehicleTradeIn } from "./VehicleTradeIn";
 
 export function VehicleFinancing({ total }: { total: number }) {
+  const tradeIn = useVehicleTradeIn();
   const { cashContribution, setCashContribution, termYears, setTermYears, estimate, error } =
-    useVehicleFinancing(total);
+    useVehicleFinancing(total, tradeIn.accepted?.quote.minValuation ?? 0);
 
   return (
     <section aria-labelledby="vehicle-financing" className={styles.calculator}>
       <h2 id="vehicle-financing">Financing estimate</h2>
       <p>
-        Local portfolio estimate at 3% annual flat interest, before any trade-in allowance. This is
-        not a financing offer. Final purchase terms are subject to confirmation.
+        Local portfolio estimate at 3% annual flat interest. This is not a financing offer. Final
+        purchase terms are subject to confirmation.
       </p>
       <div className={styles.fields}>
         <Input
@@ -44,6 +47,7 @@ export function VehicleFinancing({ total }: { total: number }) {
         Defaults to 10% of the displayed total. Include any paid MYR 500 reservation deposit in your
         cash contribution; it is not deducted a second time.
       </p>
+      <VehicleTradeIn tradeIn={tradeIn} />
       <p id="financing-error" role="status">
         {error}
       </p>

@@ -9,12 +9,18 @@ export interface VehicleDraft {
   registrationPlate: string;
 }
 
-export const emptyVehicle: VehicleDraft = {
+export type ValuationDraft = Omit<VehicleDraft, "registrationPlate">;
+
+export const emptyValuation: ValuationDraft = {
   make: "",
   model: "",
   trim: "",
   manufactureYear: "",
   mileageKilometres: "",
+};
+
+export const emptyVehicle: VehicleDraft = {
+  ...emptyValuation,
   registrationPlate: "",
 };
 

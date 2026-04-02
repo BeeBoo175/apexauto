@@ -4,12 +4,13 @@ import { useState } from "react";
 import { parseMyr } from "@/lib/currency-input";
 import { calculateFinancing, defaultCashContribution } from "@/lib/vehicles/financing";
 
-export function useVehicleFinancing(total: number) {
+export function useVehicleFinancing(total: number, indicativeTradeIn = 0) {
   const [cashDraft, setCashDraft] = useState<string | null>(null);
   const [termYears, setTermYears] = useState("7");
   const cashContribution = cashDraft ?? defaultCashContribution(total);
   const cash = parseMyr(cashContribution);
-  const estimate = cash === null ? null : calculateFinancing(total, cash, Number(termYears));
+  const estimate =
+    cash === null ? null : calculateFinancing(total, cash, Number(termYears), indicativeTradeIn);
   const error =
     cash === null
       ? "Enter a non-negative cash contribution in MYR with at most two decimal places."

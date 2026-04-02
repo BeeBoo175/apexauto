@@ -40,12 +40,15 @@ export function calculateFinancing(
   total: number,
   cashContribution: number,
   termYears: number,
+  indicativeTradeIn = 0,
 ): FinancingEstimate | null {
   const totalSen = minorUnits(total);
   const cashSen = minorUnits(cashContribution);
+  const tradeInSen = minorUnits(indicativeTradeIn);
   if (
     totalSen === null ||
     cashSen === null ||
+    tradeInSen === null ||
     !Number.isInteger(termYears) ||
     termYears < 1 ||
     termYears > 9
@@ -53,7 +56,8 @@ export function calculateFinancing(
     return null;
   }
   // Any paid reservation deposit is already included in cash, never deducted again.
-  const principal = totalSen > cashSen ? totalSen - cashSen : BigInt(0);
+  const remaining = totalSen - cashSen - tradeInSen;
+  const principal = remaining > BigInt(0) ? remaining : BigInt(0);
   const interest = roundedDivision(principal * BigInt(3) * BigInt(termYears), BigInt(100));
   const repayments = principal + interest;
   if (repayments > BigInt(Number.MAX_SAFE_INTEGER)) {
