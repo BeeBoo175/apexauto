@@ -22,7 +22,7 @@ test("financing edits are local, reconcile payments and retain drafts through fa
       : "c77708bf-1a31-42f5-9a69-0c8766697a52";
   await page.goto(`/vehicles?branchId=${branchId}`);
   const destination = (await page
-    .getByRole("link", { name: "View vehicle details", exact: true })
+    .getByRole("link", { name: /^View details for / })
     .first()
     .getAttribute("href"))!;
   const response = await page.goto(destination);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import type { PublicVehicle } from "@/lib/vehicles/contracts";
 import styles from "./VehicleCardView.module.css";
@@ -19,14 +19,12 @@ export function VehicleCardView({
   photoUrl,
   first,
   photoVersion,
-  action,
 }: {
   vehicle: CardVehicle;
   price: string;
   photoUrl: string | null;
   first: boolean;
   photoVersion: number;
-  action?: ReactNode;
 }) {
   const [failedAt, setFailedAt] = useState<number | null>(null);
   // Healthy photos keep their lifetime across confirmed reads.
@@ -51,21 +49,18 @@ export function VehicleCardView({
         )}
       </div>
       <div className={styles.vehicleBody}>
+        <p className={styles.price}>{price}</p>
         <div className={styles.identity}>
           <h2>
-            {vehicle.manufactureYear} {vehicle.make} {vehicle.model}
+            {vehicle.manufactureYear} {vehicle.make} {vehicle.model} {vehicle.trim}
           </h2>
-          <p>{vehicle.trim}</p>
-        </div>
-        <p className={styles.specification}>
-          {vehicle.mileageKilometres.toLocaleString("en-MY")} km · {vehicle.transmission} ·{" "}
-          {vehicle.fuel === "PlugInHybrid" ? "Plug-in hybrid" : vehicle.fuel}
-        </p>
-        <p className={styles.location}>{vehicle.branchName}</p>
-        <div className={styles.purchase}>
-          <p className={styles.price}>{price}</p>
-          <p className={styles.help}>Vehicle price, before fees and road tax</p>
-          {action}
+          <div className={styles.metadata}>
+            <p>
+              {vehicle.mileageKilometres.toLocaleString("en-MY")} km · {vehicle.transmission} ·{" "}
+              {vehicle.fuel === "PlugInHybrid" ? "Plug-in hybrid" : vehicle.fuel}
+            </p>
+            <p>{vehicle.branchName}</p>
+          </div>
         </div>
       </div>
     </article>

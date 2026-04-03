@@ -21,7 +21,7 @@ test("canonical trade-in lower bound reduces financing and preserves accepted in
       : "c77708bf-1a31-42f5-9a69-0c8766697a52";
   await page.goto(`/vehicles?branchId=${branchId}`);
   const destination = (await page
-    .getByRole("link", { name: "View vehicle details", exact: true })
+    .getByRole("link", { name: /^View details for / })
     .first()
     .getAttribute("href"))!;
   await page.goto(destination);

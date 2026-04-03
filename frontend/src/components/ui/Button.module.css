@@ -71,6 +71,16 @@
     border-color: rgb(255 255 255 / 25%);
   }
 
+  .photo {
+    background: transparent;
+    color: rgb(21 21 21 / 45%);
+    border-color: transparent;
+  }
+
+  .photo:focus-visible {
+    outline-color: white;
+  }
+
   .shell:focus-visible {
     outline-color: white;
   }
@@ -139,6 +149,10 @@
 
     .shell:hover {
       background: rgb(255 255 255 / 10%);
+    }
+
+    .photo:hover {
+      color: rgb(21 21 21 / 70%);
     }
   }
 

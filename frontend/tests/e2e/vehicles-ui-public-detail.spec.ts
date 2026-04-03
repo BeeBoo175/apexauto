@@ -18,7 +18,7 @@ test("public detail shares its server snapshot and recovers deliberate reads wit
       ? "68f371ad-223a-43d6-b45b-b878eece79ae"
       : "c77708bf-1a31-42f5-9a69-0c8766697a52";
   await page.goto(`/vehicles?branchId=${branchId}`);
-  const link = page.getByRole("link", { name: "View vehicle details", exact: true }).first();
+  const link = page.getByRole("link", { name: /^View details for / }).first();
   const destination = (await link.getAttribute("href"))!;
   const id = destination.split("/").at(-1)!;
   const target = `/api/vehicles/${id}`;
