@@ -10,6 +10,7 @@
 }
 
 .photo {
+  position: relative;
   display: grid;
   flex-shrink: 0;
   place-items: center;
@@ -18,7 +19,14 @@
   background: var(--color-canvas);
 }
 
+.photoPlaceholder {
+  position: absolute;
+  inset: 0;
+  background: var(--color-line-soft);
+}
+
 .photo img {
+  position: relative;
   display: block;
   width: 100%;
   height: 100%;
@@ -26,6 +34,7 @@
 }
 
 .photo p {
+  position: relative;
   padding: 20px;
   color: var(--color-muted);
   text-align: center;
@@ -85,6 +94,15 @@
 
 .link:hover .vehicle {
   border-color: var(--color-graphite);
+}
+
+.link:active .vehicle {
+  border-color: var(--color-graphite);
+  background: var(--color-canvas);
+}
+
+.link:active .photo {
+  filter: brightness(0.9);
 }
 
 .link:focus-visible {

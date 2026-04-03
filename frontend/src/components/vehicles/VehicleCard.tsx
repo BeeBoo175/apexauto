@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { useVehicleCardPhotos } from "@/hooks/use-vehicle-card-photos";
 import { formatCurrency } from "@/lib/currency-format";
@@ -22,9 +21,8 @@ export function VehicleCard({
 
   return (
     <div className={styles.interactive}>
-      <Link
+      <a
         href={`/vehicles/${vehicle.id}`}
-        prefetch={false}
         className={styles.link}
         aria-label={`View details for ${name}`}
       >
@@ -32,10 +30,11 @@ export function VehicleCard({
           vehicle={vehicle}
           price={formatCurrency(vehicle.vehiclePrice)}
           photoUrl={photos.photoId ? `/api/vehicles/${vehicle.id}/photos/${photos.photoId}` : null}
+          photoPending={photos.position > 0 && !photos.photoId}
           first={first || photos.position > 0}
           photoVersion={photoVersion}
         />
-      </Link>
+      </a>
       {photos.count > 1 && (
         <div className={styles.photoNavigation}>
           <span className={styles.photoControl}>
@@ -44,7 +43,6 @@ export function VehicleCard({
                 size="icon"
                 variant="photo"
                 aria-label={`Previous photo of ${name}`}
-                disabled={photos.busy}
                 onClick={() => void photos.navigate(-1)}
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -60,7 +58,6 @@ export function VehicleCard({
                 size="icon"
                 variant="photo"
                 aria-label={`Next photo of ${name}`}
-                disabled={photos.busy}
                 onClick={() => void photos.navigate(1)}
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -71,7 +68,7 @@ export function VehicleCard({
             )}
           </span>
           <span className={styles.photoCount} role="status" aria-live="polite" aria-atomic="true">
-            {photos.busy ? "Loading photos…" : `${photos.position + 1} / ${photos.count}`}
+            {photos.position + 1} / {photos.count}
           </span>
         </div>
       )}

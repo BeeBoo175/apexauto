@@ -19,12 +19,14 @@ export function VehicleCardView({
   photoUrl,
   first,
   photoVersion,
+  photoPending = false,
 }: {
   vehicle: CardVehicle;
   price: string;
   photoUrl: string | null;
   first: boolean;
   photoVersion: number;
+  photoPending?: boolean;
 }) {
   const [failedAt, setFailedAt] = useState<number | null>(null);
   // Healthy photos keep their lifetime across confirmed reads.
@@ -33,9 +35,10 @@ export function VehicleCardView({
   return (
     <article className={styles.vehicle}>
       <div className={styles.photo}>
-        {photoUrl ? (
+        <span className={styles.photoPlaceholder} aria-hidden="true" />
+        {photoUrl && (
           <Image
-            key={photoKey}
+            key={`${photoUrl}:${photoKey}`}
             src={photoUrl}
             alt={`${vehicle.make} ${vehicle.model} ${vehicle.trim}`}
             width={960}
@@ -44,9 +47,8 @@ export function VehicleCardView({
             loading={first ? "eager" : "lazy"}
             onError={() => setFailedAt((current) => current ?? photoVersion)}
           />
-        ) : (
-          <p>Photography unavailable</p>
         )}
+        {!photoUrl && !photoPending && <p>Photography unavailable</p>}
       </div>
       <div className={styles.vehicleBody}>
         <p className={styles.price}>{price}</p>

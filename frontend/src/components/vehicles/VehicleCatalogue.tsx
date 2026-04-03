@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/Button";
+import { LoadingProgress, LoadingProgressReady } from "@/components/ui/LoadingProgress";
 import { useVehicleCatalogue } from "@/hooks/use-vehicle-catalogue";
 import type { ApiResult, Page } from "@/lib/api";
 import type { Branch } from "@/lib/branches";
@@ -24,6 +25,9 @@ export function VehicleCatalogue({
   const { snapshot, active, busy } = catalogue;
   return (
     <section className={styles.page}>
+      <LoadingProgressReady />
+      <LoadingProgress label="Loading vehicles" active={busy} />
+      <LoadingProgress label="Loading showroom branches" active={catalogue.branchBusy} />
       <header className={styles.heading}>
         <div>
           <h1>Find your next car</h1>

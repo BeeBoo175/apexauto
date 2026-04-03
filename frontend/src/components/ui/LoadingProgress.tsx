@@ -30,7 +30,13 @@ function synchronizeLayer(bar: HTMLElement) {
   bar.showPopover();
 }
 
-export function LoadingProgressProvider({ children }: { children: ReactNode }) {
+export function LoadingProgressProvider({
+  children,
+  initialLabel = "Opening workspace",
+}: {
+  children: ReactNode;
+  initialLabel?: string;
+}) {
   const element = useRef<HTMLSpanElement>(null);
   const started = useRef(0);
   const [initialPending, setInitialPending] = useState(true);
@@ -143,7 +149,7 @@ export function LoadingProgressProvider({ children }: { children: ReactNode }) {
     };
   }, [active]);
 
-  const label = Array.from(activities.values()).pop() ?? "Opening workspace";
+  const label = Array.from(activities.values()).pop() ?? initialLabel;
   return (
     <ProgressContext.Provider value={register}>
       <span ref={element} className={styles.progress} role="progressbar" aria-label={label}>

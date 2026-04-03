@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { VehicleCatalogue } from "@/components/vehicles/VehicleCatalogue";
+import { LoadingProgressProvider } from "@/components/ui/LoadingProgress";
 import { apiRead } from "@/lib/server/http/api";
 import { parseBranch } from "@/lib/branches";
 import { parsePage } from "@/lib/api";
@@ -30,12 +31,14 @@ export default async function VehiclesPage({
     apiRead("/api/branches?page=1&pageSize=25", (value) => parsePage(value, parseBranch)),
   ]);
   return (
-    <VehicleCatalogue
-      key={query}
-      initial={catalogue}
-      filters={filters}
-      page={page}
-      branches={branches.data}
-    />
+    <LoadingProgressProvider initialLabel="Loading vehicles">
+      <VehicleCatalogue
+        key={query}
+        initial={catalogue}
+        filters={filters}
+        page={page}
+        branches={branches.data}
+      />
+    </LoadingProgressProvider>
   );
 }
