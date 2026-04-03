@@ -1,17 +1,11 @@
 import { StaffEntry } from "@/components/staff/StaffEntry";
-import { StaffLink } from "@/components/staff/StaffLink";
+import { AppointmentClientEntry } from "@/components/staff/AppointmentClientEntry";
 import { notFound } from "next/navigation";
 import { isUuid } from "@/lib/auth/contracts";
 import { hasIntakeAccess } from "@/lib/auth/actor";
-import { privateApiRead } from "@/lib/server/http/api";
-import { parseDetail } from "@/lib/staff/parse";
-import { StaffCommandBar } from "@/components/staff/StaffPage";
-import { AppointmentWorkbench } from "@/components/staff/AppointmentWorkbench";
-import { Card } from "@/components/ui/Card";
 import type { SearchParams } from "@/lib/query";
 import { staffParams, staffViewQuery } from "@/lib/staff/query";
 import { calendarHref, calendarParams } from "@/lib/staff/calendar";
-import styles from "@/components/staff/Staff.module.css";
 
 export default async function IntakeDetailPage({
   params,
@@ -32,10 +26,6 @@ export default async function IntakeDetailPage({
       deniedDescription="This role cannot access intake appointments."
     >
       {async (actor) => {
-        const initial = await privateApiRead(`/api/staff/intake/appointments/${id}`, parseDetail);
-        if (initial.status === 404) {
-          notFound();
-        }
         const navigation = await searchParams;
         const { filters, page } = staffParams(navigation);
         const returnTo =
@@ -43,17 +33,12 @@ export default async function IntakeDetailPage({
             ? `/dashboard/intake?${staffViewQuery(filters, page)}`
             : calendarHref(calendarParams(navigation));
         return (
-          <>
-            <StaffCommandBar title="Intake appointment" />
-            <div className={styles.direct}>
-              <StaffLink className={styles.backLink} href={returnTo} prefetch={false}>
-                Back to intake appointments
-              </StaffLink>
-              <Card>
-                <AppointmentWorkbench key={id} id={id} actor={actor} initial={initial} />
-              </Card>
-            </div>
-          </>
+          <AppointmentClientEntry
+            key={crypto.randomUUID()}
+            id={id}
+            actor={actor}
+            returnTo={returnTo}
+          />
         );
       }}
     </StaffEntry>
