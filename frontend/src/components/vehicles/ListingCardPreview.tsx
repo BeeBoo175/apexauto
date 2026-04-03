@@ -6,7 +6,7 @@ import { parseMyr } from "@/lib/currency-input";
 import type { ListingDraft } from "@/lib/vehicles/listing-draft";
 import type { ListingWorkspace } from "@/lib/vehicles/listing-workspace";
 import { VehicleCardView } from "./VehicleCardView";
-import catalogue from "./Catalogue.module.css";
+import styles from "./ListingCardPreview.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 
 export function ListingCardPreview({
@@ -33,7 +33,7 @@ export function ListingCardPreview({
         This preview uses your current draft. Save the draft before a separate publication approval.
       </p>
       {price === null && <p>Enter a valid vehicle price before saving.</p>}
-      <div className={catalogue.vehicles}>
+      <div className={styles.card}>
         <VehicleCardView
           key={`${vehicle.vehicleId}:${coverPhotoId ?? "none"}`}
           vehicle={{

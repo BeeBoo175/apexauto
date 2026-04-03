@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import Image from "next/image";
 import type { PublicVehicle } from "@/lib/vehicles/contracts";
-import styles from "./Catalogue.module.css";
+import styles from "./VehicleCardView.module.css";
 
 type CardVehicle = Pick<
   PublicVehicle,
@@ -51,18 +51,22 @@ export function VehicleCardView({
         )}
       </div>
       <div className={styles.vehicleBody}>
-        <p className={styles.location}>{vehicle.branchName}</p>
-        <h2>
-          {vehicle.manufactureYear} {vehicle.make} {vehicle.model}
-        </h2>
-        <p>{vehicle.trim}</p>
+        <div className={styles.identity}>
+          <h2>
+            {vehicle.manufactureYear} {vehicle.make} {vehicle.model}
+          </h2>
+          <p>{vehicle.trim}</p>
+        </div>
         <p className={styles.specification}>
           {vehicle.mileageKilometres.toLocaleString("en-MY")} km · {vehicle.transmission} ·{" "}
           {vehicle.fuel === "PlugInHybrid" ? "Plug-in hybrid" : vehicle.fuel}
         </p>
-        <p className={styles.price}>{price}</p>
-        <p className={styles.help}>Vehicle price, before fees and road tax</p>
-        {action}
+        <p className={styles.location}>{vehicle.branchName}</p>
+        <div className={styles.purchase}>
+          <p className={styles.price}>{price}</p>
+          <p className={styles.help}>Vehicle price, before fees and road tax</p>
+          {action}
+        </div>
       </div>
     </article>
   );
