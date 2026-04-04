@@ -47,7 +47,9 @@ test("sales intake preserves scoped lists, drawer drafts and an exact lost check
     ).status(),
   ).toBe(404);
   await page.goto(`/dashboard/intake/${cross.id}`);
-  await expect(page.getByRole("heading", { name: "404", exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Intake appointment unavailable", exact: true }),
+  ).toBeVisible();
   await expect(page.getByLabel("VIN", { exact: true })).toHaveCount(0);
   await expect(page.getByText(cross.registrationPlate, { exact: true })).toHaveCount(0);
   await page.goto("/dashboard/intake?view=list&status=Booked");
@@ -60,7 +62,7 @@ test("sales intake preserves scoped lists, drawer drafts and an exact lost check
   const detailPath = `/api/staff/intake/appointments/${new URL(page.url()).searchParams.get("appointment")}`;
   const detailReads = counts()[detailPath];
   const reopened = await page.reload();
-  expect(await reopened!.text()).toContain("Declared mileage");
+  expect(await reopened!.text()).not.toContain("Declared mileage");
   await expect(dialog.getByLabel("VIN", { exact: true })).toBeEditable();
   expect(counts()[detailPath] - detailReads).toBe(1);
   await dialog.getByRole("button", { name: "Close dialog", exact: true }).click();

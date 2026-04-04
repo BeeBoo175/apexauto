@@ -61,7 +61,7 @@ test("no-show is a visible state and a manager can reconcile original-date atten
     "/dashboard/intake",
   );
   const response = await page.goto(`/dashboard/intake?view=list&status=NoShow`);
-  expect(await response!.text()).toContain(plate);
+  expect(await response!.text()).not.toContain(plate);
   expect(response!.headers()["cache-control"]).toContain("no-store");
   await expect(page.getByRole("link", { name: `Open ${plate}`, exact: true })).toBeVisible();
   await page.goto(`/dashboard/intake?view=calendar&status=NoShow&date=${date}`);

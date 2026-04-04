@@ -84,7 +84,12 @@ export function useIntakeClientEntry(actor: CurrentActor, parameters: SearchPara
         return;
       }
       const initial = listView ? worklist : calendar;
-      if (!initial || (listView && worklist?.data && worklist.data.page !== page)) {
+      if (
+        !initial ||
+        (listView &&
+          worklist?.data &&
+          (worklist.data.page !== page || worklist.data.pageSize !== filters.pageSize))
+      ) {
         throw new Error("Appointments unavailable");
       }
       if (selectedId && !selected?.data) {
@@ -119,6 +124,7 @@ export function useIntakeClientEntry(actor: CurrentActor, parameters: SearchPara
         error("Appointments could not be loaded. Retry to open the workspace.");
       }
     } finally {
+      attempt.abort();
       if (controller.current === attempt) {
         controller.current = null;
       }

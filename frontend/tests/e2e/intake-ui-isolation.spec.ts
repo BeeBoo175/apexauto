@@ -76,3 +76,71 @@ test("changed customer cookies clear prior snapshots and unavailable session rea
   await expect(page).toHaveURL(/\/login$/);
   await expect(page.getByText("Tan Hui Min", { exact: true })).toHaveCount(0);
 });
+
+test("a delayed initial staff read cannot restore private content after sign out", async ({
+  page,
+  context,
+}) => {
+  await page.goto("/login");
+  await page.getByLabel("Email", { exact: true }).fill("aina.sofia@example.invalid");
+  await page.getByLabel("Password", { exact: true }).fill("Password123!");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Refresh calendar", exact: true })).toBeEnabled();
+
+  let release = () => {};
+  let observed = () => {};
+  let completed = () => {};
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const requested = new Promise<void>((resolve) => {
+    observed = resolve;
+  });
+  const handled = new Promise<void>((resolve) => {
+    completed = resolve;
+  });
+  const routePattern = "**/api/staff/intake/appointments?**";
+  await page.route(routePattern, async (route) => {
+    const response = await route.fetch();
+    observed();
+    await gate;
+    await route.fulfill({ response }).catch(() => {});
+    completed();
+  });
+  const other = await context.newPage();
+  try {
+    const document = await page.goto("/dashboard/intake?view=list");
+    expect(document!.headers()["cache-control"]).toContain("no-store");
+    await requested;
+    await expect(page.getByRole("table", { name: "Scoped intake appointments" })).toHaveCount(0);
+    await other.goto("/dashboard/intake");
+    await expect(
+      other.getByRole("button", { name: "Refresh calendar", exact: true }),
+    ).toBeEnabled();
+    const signOut = other.getByRole("button", { name: "Sign out", exact: true });
+    if (!(await signOut.isVisible())) {
+      await other.getByRole("button", { name: "Workspaces", exact: true }).click();
+    }
+    await signOut.click();
+    await expect(other).toHaveURL(/\/login$/);
+    await expect(page).toHaveURL(/\/login(?:\?|$)/);
+    release();
+    await handled;
+    await expect(page.getByRole("table", { name: "Scoped intake appointments" })).toHaveCount(0);
+    await expect(page.getByLabel("VIN", { exact: true })).toHaveCount(0);
+    for (const endpoint of [
+      "/api/staff/intake/appointments",
+      "/api/staff/listings",
+      "/api/staff/reservations",
+      "/api/staff/inspection/workshop",
+    ]) {
+      const denied = await context.request.get(endpoint);
+      expect(denied.status()).toBe(401);
+      expect(denied.headers()["cache-control"]).toContain("no-store");
+    }
+  } finally {
+    release();
+    await page.unroute(routePattern);
+    await other.close();
+  }
+});

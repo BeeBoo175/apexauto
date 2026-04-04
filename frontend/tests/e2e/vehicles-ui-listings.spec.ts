@@ -71,8 +71,8 @@ test("manager listing table preserves scoped server rows, drafts and complete fi
   const initialReads = counts()["/api/staff/listings"] ?? 0;
   const initial = await page.goto(`/dashboard/management?pageSize=10&branchId=${branch}`);
   const html = await initial!.text();
-  expect(html).toContain("ApexAuto Glenmarie");
-  expect(html).toContain("Draft price");
+  expect(initial!.headers()["cache-control"]).toContain("no-store");
+  expect(html).not.toContain("Draft price");
   await expect(page.getByRole("button", { name: "Refresh listings", exact: true })).toBeEnabled();
   expect(counts()["/api/staff/listings"] - initialReads).toBe(1);
   const table = page.getByRole("table", { name: "Listings", exact: true });
@@ -259,7 +259,13 @@ test("manager listing table preserves scoped server rows, drafts and complete fi
   const oldComplete = new Promise<void>((resolve) => {
     oldHandled = resolve;
   });
+  let capturedOld = false;
   await page.route("**/api/staff/listings?**", async (route) => {
+    if (capturedOld) {
+      await route.continue();
+      return;
+    }
+    capturedOld = true;
     const response = await route.fetch();
     oldEntered();
     await oldGate;

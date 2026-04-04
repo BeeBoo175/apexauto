@@ -69,8 +69,8 @@ test("manager listing drawer retains confirmed details and cancels superseded se
     `/dashboard/management?branchId=${branch}&pageSize=10&listing=${item.vehicleId}`,
   );
   const initialHtml = await initial!.text();
-  expect(initialHtml).toContain(item.registrationPlate);
-  expect(initialHtml).toContain(`href="${reportPath}"`);
+  expect(initialHtml).not.toContain(item.registrationPlate);
+  expect(initialHtml).not.toContain(`href="${reportPath}"`);
   const dialog = page.getByRole("dialog", { name: item.registrationPlate, exact: true });
   const reportLink = dialog.getByRole("link", {
     name: "Open signed inspection report (new tab)",

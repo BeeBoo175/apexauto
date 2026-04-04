@@ -79,9 +79,10 @@ async function verifyDetails(page: Page, id: string) {
   const beforeReload = counts()[target];
   const response = await page.reload();
   const initialHtml = await response!.text();
-  expect(initialHtml).toContain("Retained price");
+  expect(initialHtml).not.toContain("Retained price");
   expect(initialHtml).not.toContain("nric");
   await expect(refresh).toBeEnabled();
+  await expect(dialog.getByRole("heading", { name: "Retained price", exact: true })).toBeVisible();
   expect(counts()[target] - beforeReload).toBe(1);
   await dialog.getByRole("button", { name: "Close details", exact: true }).click();
   await expect(dialog).toHaveCount(0);
@@ -99,8 +100,8 @@ test("manager reservations retain scoped active/history snapshots, server order 
   const before = counts()["/api/staff/reservations"] ?? 0;
   const response = await page.goto("/dashboard/reservations?pageSize=10");
   const html = await response!.text();
-  expect(html).toContain("Active hold");
-  expect(html).toContain("Reserved total");
+  expect(response!.headers()["cache-control"]).toContain("no-store");
+  expect(html).not.toContain("Reserved total");
   expect(html).not.toContain("nric");
   const refresh = page.getByRole("button", { name: "Refresh reservations", exact: true });
   await expect(refresh).toBeEnabled();

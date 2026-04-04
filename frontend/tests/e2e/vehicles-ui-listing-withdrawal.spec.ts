@@ -49,7 +49,7 @@ test("manager withdraws an exact publication with retained drafts, receipts, ref
   const entry = await page.goto(
     `/dashboard/management?branchId=${branch}&listing=${item.id}&section=publication`,
   );
-  expect(await entry!.text()).toContain("Withdraw approved listing");
+  expect(await entry!.text()).not.toContain("Withdraw approved listing");
   const dialog = page.getByRole("dialog", { name: saved.vehicle.registrationPlate, exact: true });
   const button = (name: string) => dialog.getByRole("button", { name, exact: true });
   const reason = dialog.getByLabel("Withdrawal reason", { exact: true });

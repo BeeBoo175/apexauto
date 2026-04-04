@@ -43,7 +43,7 @@ test("catalogue preview follows the same local draft through invalid edits, phot
   const entry = await page.goto(
     `/dashboard/management?branchId=${branch}&listing=${item.id}&section=card`,
   );
-  expect(await entry!.text()).toContain("Catalogue card preview");
+  expect(await entry!.text()).not.toContain("Catalogue card preview");
   const dialog = page.getByRole("dialog", { name: saved.vehicle.registrationPlate, exact: true });
   const preview = dialog.getByRole("region", { name: "Catalogue card preview", exact: true });
   const card = preview.getByRole("article");

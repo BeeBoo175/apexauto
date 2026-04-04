@@ -38,7 +38,7 @@ test("manager saves inline drafts with exact replay, retained publication and st
   ).data;
   const before = counts()[endpoint] ?? 0;
   const document = await page.goto(`/dashboard/management?branchId=${branch}&listing=${item.id}`);
-  expect(await document!.text()).toContain(saved.vehicle.registrationPlate);
+  expect(await document!.text()).not.toContain(saved.vehicle.registrationPlate);
   const dialog = page.getByRole("dialog", { name: saved.vehicle.registrationPlate, exact: true });
   await dialog.getByRole("button", { name: "Edit price", exact: true }).click();
   expect(counts()[endpoint] - before).toBe(1);

@@ -49,8 +49,11 @@ test("manager explicitly approves only saved drafts with bound receipts, exact r
   const entry = await page.goto(
     `/dashboard/management?branchId=${branch}&listing=${item.id}&section=publication`,
   );
-  expect(await entry!.text()).toContain("Publication record");
+  expect(await entry!.text()).not.toContain("Publication record");
   const dialog = page.getByRole("dialog", { name: saved.vehicle.registrationPlate, exact: true });
+  await expect(
+    dialog.getByRole("heading", { name: "Publication record", exact: true }),
+  ).toBeVisible();
   const approve = dialog.getByRole("button", { name: "Approve publication", exact: true });
   const reconcile = dialog.getByRole("button", {
     name: "Reconcile publication approval",
