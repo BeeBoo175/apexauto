@@ -1,16 +1,9 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  type ReactNode,
-  type RefObject,
-} from "react";
-import { useRouter } from "next/navigation";
+import { createContext, useContext, useEffect, type ReactNode, type RefObject } from "react";
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import { LoadingProgress, LoadingProgressReady } from "@/components/ui/LoadingProgress";
+import { StaffEntryIdentityContext } from "./StaffClientEntryBoundary";
 
 export const StaffActorContext = createContext<CurrentActor | null>(null);
 export const StaffNavigationLockContext = createContext<{
@@ -20,9 +13,7 @@ export const StaffNavigationLockContext = createContext<{
 export const StaffPageEntranceContext = createContext(false);
 export const StaffNavigationContext = createContext<{
   pendingPath: string | null;
-  historyPath: string | null;
   entryPath: string | null;
-  completeHistory: () => void;
   recordNavigation: (href: string) => void;
 } | null>(null);
 
@@ -37,34 +28,9 @@ export function StaffActorBoundary({
   path: string;
   snapshotId: string;
 }) {
-  const router = useRouter();
   const navigation = useContext(StaffNavigationContext);
   const expected = useContext(StaffActorContext);
   const matches = expected && actorIdentity(expected) === actorIdentity(actor);
-  const restoring = navigation?.historyPath === path;
-  const [cachedSnapshot, setCachedSnapshot] = useState<string | null>(
-    restoring ? snapshotId : null,
-  );
-  if (restoring && !cachedSnapshot) {
-    setCachedSnapshot(snapshotId);
-  }
-  if (!restoring && cachedSnapshot) {
-    setCachedSnapshot(null);
-  }
-  const stale = restoring && (!cachedSnapshot || cachedSnapshot === snapshotId);
-
-  useEffect(() => {
-    if (stale) {
-      router.refresh();
-    }
-  }, [stale, router]);
-
-  useEffect(() => {
-    if (restoring && cachedSnapshot && cachedSnapshot !== snapshotId) {
-      navigation?.completeHistory();
-    }
-  }, [restoring, cachedSnapshot, snapshotId, navigation]);
-
   useEffect(() => {
     if (!matches) {
       queueMicrotask(() => {
@@ -73,13 +39,15 @@ export function StaffActorBoundary({
     }
   }, [actor, matches]);
 
-  if (!matches || stale) {
+  if (!matches) {
     return <LoadingProgress label="Checking workspace" />;
   }
   return (
     <StaffPageEntranceContext.Provider value={navigation?.entryPath === path}>
       <LoadingProgressReady />
-      {children}
+      <StaffEntryIdentityContext.Provider value={snapshotId}>
+        {children}
+      </StaffEntryIdentityContext.Provider>
     </StaffPageEntranceContext.Provider>
   );
 }

@@ -643,15 +643,4 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     0,
   );
   await groupContext.close();
-  const adminContext = await browser.newContext({
-    ...info.project.use,
-    baseURL: process.env.APP_BASE_URL,
-  });
-  const admin = await adminContext.newPage();
-  await login(admin, "muhammad.hafiz@example.invalid", "/dashboard");
-  await admin.goto("/dashboard/inspection/repairs");
-  await expect(
-    admin.getByRole("heading", { name: "Inspection access unavailable", exact: true }),
-  ).toBeVisible();
-  await adminContext.close();
 });

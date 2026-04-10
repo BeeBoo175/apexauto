@@ -2,6 +2,7 @@
 import { Suspense, useEffect, useState, type ReactNode } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { StaffLink } from "./StaffLink";
+import { StaffClientEntryBoundary } from "./StaffClientEntryBoundary";
 import { useStaffNavigation } from "@/hooks/use-staff-navigation";
 import { useIntakeActor } from "@/hooks/use-intake-actor";
 import { useAuthMutation } from "@/hooks/use-auth-mutation";
@@ -20,6 +21,27 @@ import {
 
 export function StaffFrame({ actor, children }: { actor?: CurrentActor; children: ReactNode }) {
   const session = useIntakeActor(actor);
+  if (!session.active) {
+    return null;
+  }
+  return (
+    <StaffClientEntryBoundary>
+      <StaffFrameContent actor={actor} ready={session.ready}>
+        {children}
+      </StaffFrameContent>
+    </StaffClientEntryBoundary>
+  );
+}
+
+function StaffFrameContent({
+  actor,
+  children,
+  ready,
+}: {
+  actor?: CurrentActor;
+  children: ReactNode;
+  ready: boolean;
+}) {
   const navigation = useStaffNavigation();
   const fitViewport = [
     "/dashboard/intake",
@@ -35,17 +57,12 @@ export function StaffFrame({ actor, children }: { actor?: CurrentActor; children
     navigation.navigate(event, href);
     setMobileOpen(false);
   }
-  if (!session.active) {
-    return null;
-  }
   return (
     <StaffNavigationContext.Provider
       value={{
         pendingPath:
           navigation.selectedPath === navigation.pathname ? null : navigation.selectedPath,
-        historyPath: navigation.historyPath,
         entryPath: navigation.entryPath,
-        completeHistory: navigation.completeHistory,
         recordNavigation: navigation.recordNavigation,
       }}
     >
@@ -53,15 +70,12 @@ export function StaffFrame({ actor, children }: { actor?: CurrentActor; children
         <StaffNavigationLockContext.Provider value={navigation.operationLock}>
           <section
             className={`${styles.page} ${fitViewport ? styles.viewport : ""}`}
-            inert={Boolean(actor) && !session.ready}
+            inert={Boolean(actor) && !ready}
           >
             <Suspense fallback={null}>
               <NavigationHistory capture={navigation.captureHistory} />
             </Suspense>
-            <LoadingProgress
-              label="Opening workspace"
-              active={navigation.pending || Boolean(navigation.historyPath)}
-            />
+            <LoadingProgress label="Opening workspace" active={navigation.pending} />
             <div className={styles.mobileBar}>
               <span className={styles.brand}>
                 Apex<span>Auto</span>

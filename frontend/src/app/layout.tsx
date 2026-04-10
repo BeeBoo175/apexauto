@@ -3,6 +3,7 @@ import "./globals.css";
 import styles from "./Shell.module.css";
 import { ToastProvider } from "@/components/ui/Toast";
 import { IconSprite } from "@/components/ui/IconSprite";
+import { StaffHistoryBoundary } from "@/components/staff/StaffClientEntryBoundary";
 
 export const metadata: Metadata = {
   title: "ApexAuto | Editorial Service Bay Dealership Platform",
@@ -19,7 +20,9 @@ export default function RootLayout({
     <html lang="en">
       <body className={styles.body}>
         <IconSprite />
-        <ToastProvider>{children}</ToastProvider>
+        <StaffHistoryBoundary>
+          <ToastProvider>{children}</ToastProvider>
+        </StaffHistoryBoundary>
       </body>
     </html>
   );
