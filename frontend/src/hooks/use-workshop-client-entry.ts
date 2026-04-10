@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ComponentProps } from "react";
+import type { ComponentProps } from "react";
 import type { WorkshopQueue } from "@/components/inspection/WorkshopQueue";
 import type { TechnicianWorkspace } from "@/components/inspection/TechnicianWorkspace";
-import { useToast } from "@/components/ui/Toast";
+import { useStaffClientEntry } from "./use-staff-client-entry";
 import { apiFetch } from "@/lib/api-browser";
 import { parsePage, type ApiResult } from "@/lib/api";
 import type { CurrentActor } from "@/lib/auth/actor";
@@ -117,68 +117,27 @@ async function readTechnician(parameters: SearchParams, signal: AbortSignal) {
 }
 
 export function useWorkshopClientEntry(actor: CurrentActor, parameters: SearchParams) {
-  const [entry, setEntry] = useState<WorkshopEntry | null>(null);
-  const [failed, setFailed] = useState(false);
-  const controller = useRef<AbortController | null>(null);
-  const { error } = useToast();
-
-  const load = useCallback(async () => {
-    if (controller.current) {
-      return;
+  return useStaffClientEntry<WorkshopEntry>(async (signal) => {
+    let next: WorkshopEntry;
+    if (actor.role === "WorkshopTechnician") {
+      const [queues, selected, { TechnicianWorkspace: Workspace }] = await Promise.all([
+        readTechnician(parameters, signal),
+        readSelection(parameters, signal),
+        import("@/components/inspection/TechnicianWorkspace"),
+      ]);
+      next = {
+        kind: "technician",
+        Workspace,
+        props: { queues, initialView: technicianQueueView(parameters), ...selected },
+      };
+    } else {
+      const [{ Workspace, ...queue }, selected] = await Promise.all([
+        readManager(actor, parameters, signal),
+        readSelection(parameters, signal),
+      ]);
+      next = { kind: "manager", Workspace, props: { ...queue, ...selected } };
     }
-    const attempt = new AbortController();
-    const signal = AbortSignal.any([attempt.signal, AbortSignal.timeout(22_000)]);
-    controller.current = attempt;
-    setFailed(false);
-    try {
-      let next: WorkshopEntry;
-      if (actor.role === "WorkshopTechnician") {
-        const [queues, selected, { TechnicianWorkspace: Workspace }] = await Promise.all([
-          readTechnician(parameters, signal),
-          readSelection(parameters, signal),
-          import("@/components/inspection/TechnicianWorkspace"),
-        ]);
-        next = {
-          kind: "technician",
-          Workspace,
-          props: { queues, initialView: technicianQueueView(parameters), ...selected },
-        };
-      } else {
-        const [{ Workspace, ...queue }, selected] = await Promise.all([
-          readManager(actor, parameters, signal),
-          readSelection(parameters, signal),
-        ]);
-        next = { kind: "manager", Workspace, props: { ...queue, ...selected } };
-      }
-      if (!attempt.signal.aborted && controller.current === attempt) {
-        setEntry(next);
-      }
-    } catch {
-      if (!attempt.signal.aborted && controller.current === attempt) {
-        setFailed(true);
-        error("Workshop could not be loaded. Retry to open the workspace.");
-      }
-    } finally {
-      attempt.abort();
-      if (controller.current === attempt) {
-        controller.current = null;
-      }
-    }
-  }, [actor, parameters, error]);
-
-  useEffect(() => {
-    let active = true;
-    queueMicrotask(() => {
-      if (active) {
-        void load();
-      }
-    });
-    return () => {
-      active = false;
-      controller.current?.abort();
-      controller.current = null;
-    };
-  }, [load]);
-
-  return { entry, failed, retry: load };
+    signal.throwIfAborted();
+    return next;
+  }, "Workshop could not be loaded. Retry to open the workspace.");
 }

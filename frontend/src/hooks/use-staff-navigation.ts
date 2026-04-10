@@ -2,7 +2,9 @@
 
 import {
   useCallback,
-  useEffect,
+  useContext,
+  useEffectEvent,
+  useLayoutEffect,
   useMemo,
   useOptimistic,
   useRef,
@@ -10,14 +12,19 @@ import {
   useTransition,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import {
+  StaffEntryRequestsContext,
+  StaffHistoryContext,
+} from "@/components/staff/StaffClientEntryBoundary";
 
 export function useStaffNavigation() {
   const pathname = usePathname();
   const router = useRouter();
+  const entries = useContext(StaffEntryRequestsContext);
+  const historyRef = useContext(StaffHistoryContext);
   const lockedRef = useRef(false);
   const confirmed = useRef<{ href: string; state: unknown } | null>(null);
   const previousPath = useRef(pathname);
-  const [historyPath, setHistoryPath] = useState<string | null>(null);
   const [entryPath, setEntryPath] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [selectedPath, selectPath] = useOptimistic(pathname);
@@ -37,31 +44,49 @@ export function useStaffNavigation() {
   }, []);
   const operationLock = useMemo(() => ({ lockedRef, setLocked }), [setLocked]);
 
-  const recordNavigation = useCallback((href: string) => {
-    const destination = new URL(href, window.location.origin).pathname;
-    setEntryPath(destination === window.location.pathname ? null : destination);
-    previousPath.current = destination;
-  }, []);
+  const recordNavigation = useCallback(
+    (href: string) => {
+      entries?.cancel();
+      const destination = new URL(href, window.location.origin).pathname;
+      setEntryPath(destination === window.location.pathname ? null : destination);
+      previousPath.current = destination;
+    },
+    [entries],
+  );
 
-  useEffect(() => {
-    function protectOperation(event: PopStateEvent) {
-      if (!confirmed.current) {
-        return;
-      }
-      if (lockedRef.current) {
-        event.stopImmediatePropagation();
-        window.history.pushState(confirmed.current.state, "", confirmed.current.href);
-        return;
-      }
-      if (previousPath.current !== window.location.pathname) {
-        setEntryPath(window.location.pathname);
-        setHistoryPath(window.location.pathname);
-      }
-      previousPath.current = window.location.pathname;
+  const protectOperation = useEffectEvent((event: PopStateEvent) => {
+    if (!confirmed.current) {
+      return;
     }
-    window.addEventListener("popstate", protectOperation, true);
-    return () => window.removeEventListener("popstate", protectOperation, true);
-  }, []);
+    if (lockedRef.current) {
+      event.stopImmediatePropagation();
+      window.history.pushState(confirmed.current.state, "", confirmed.current.href);
+      return;
+    }
+    if (previousPath.current !== window.location.pathname) {
+      event.stopImmediatePropagation();
+      entries?.cancel();
+      const destination = window.location.pathname;
+      const href = window.location.href;
+      startTransition(() => {
+        selectPath(destination);
+        setEntryPath(destination);
+        // Re-enter through the server gate without adding a new browser history entry.
+        router.replace(href, { scroll: false });
+      });
+    }
+    previousPath.current = window.location.pathname;
+  });
+
+  useLayoutEffect(() => {
+    if (!historyRef) {
+      return;
+    }
+    historyRef.current = protectOperation;
+    return () => {
+      historyRef.current = null;
+    };
+  }, [historyRef]);
 
   function navigate(event: { preventDefault: () => void }, href: string) {
     event.preventDefault();
@@ -70,7 +95,7 @@ export function useStaffNavigation() {
     }
     startTransition(() => {
       selectPath(href);
-      if (pathname === href) {
+      if (pathname === href && window.location.pathname === href) {
         router.refresh();
         return;
       }
@@ -87,8 +112,6 @@ export function useStaffNavigation() {
     navigate,
     captureHistory,
     recordNavigation,
-    historyPath,
     entryPath,
-    completeHistory: () => setHistoryPath(null),
   };
 }

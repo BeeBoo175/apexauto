@@ -1,8 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
 import type { SignedReport } from "@/components/inspection/SignedReport";
-import { useToast } from "@/components/ui/Toast";
+import { useStaffClientEntry } from "./use-staff-client-entry";
 import { inspectionFetch } from "@/lib/inspection/browser";
 import { parseReport, parseRevisions, parseRepairs } from "@/lib/inspection/parse-report";
 import type { Report, RevisionHistory, RepairHistory } from "@/lib/inspection/report-contracts";
@@ -16,81 +15,36 @@ interface ReportEntry {
 }
 
 export function useSignedReportClientEntry(id: string, revision: number) {
-  const [entry, setEntry] = useState<ReportEntry | null>(null);
-  const [failed, setFailed] = useState(false);
-  const controller = useRef<AbortController | null>(null);
-  const { error } = useToast();
-
-  const load = useCallback(async () => {
-    if (controller.current) {
-      return;
-    }
-    const attempt = new AbortController();
-    const signal = AbortSignal.any([attempt.signal, AbortSignal.timeout(22_000)]);
-    controller.current = attempt;
-    setFailed(false);
+  return useStaffClientEntry<ReportEntry>(async (signal) => {
     const base = `reports/${id}/revisions`;
-    try {
-      const [report, revisions, repairs, { SignedReport: View }] = await Promise.all([
-        inspectionFetch(`${base}/${revision}`, parseReport, { signal }),
-        inspectionFetch(`${base}?${paginationQuery()}`, parseRevisions, { signal }).catch(
-          () => null,
-        ),
-        inspectionFetch(`${base}/${revision}/repair-history?${paginationQuery()}`, parseRepairs, {
-          signal,
-        }).catch(() => null),
-        import("@/components/inspection/SignedReport"),
-      ]);
-      if (attempt.signal.aborted || controller.current !== attempt) {
-        return;
-      }
-      signal.throwIfAborted();
-      if (
-        report.status !== 200 ||
-        report.data?.inspectionId !== id ||
-        report.data.revision !== revision
-      ) {
-        throw new Error("Signed report unavailable");
-      }
-      const revisionHistory = revisions?.data ?? null;
-      const repairHistory = repairs?.data ?? null;
-      setEntry({
-        View,
-        report: report.data,
-        revisions: matchesHistory(revisionHistory, id) ? revisionHistory : null,
-        repairs:
-          matchesHistory(repairHistory, id) && repairHistory?.revision === revision
-            ? repairHistory
-            : null,
-      });
-    } catch {
-      if (!attempt.signal.aborted && controller.current === attempt) {
-        setFailed(true);
-        error("The signed report could not be loaded. Retry to open it.");
-      }
-    } finally {
-      attempt.abort();
-      if (controller.current === attempt) {
-        controller.current = null;
-      }
+    const [report, revisions, repairs, { SignedReport: View }] = await Promise.all([
+      inspectionFetch(`${base}/${revision}`, parseReport, { signal }),
+      inspectionFetch(`${base}?${paginationQuery()}`, parseRevisions, { signal }).catch(() => null),
+      inspectionFetch(`${base}/${revision}/repair-history?${paginationQuery()}`, parseRepairs, {
+        signal,
+      }).catch(() => null),
+      import("@/components/inspection/SignedReport"),
+    ]);
+    signal.throwIfAborted();
+    if (
+      report.status !== 200 ||
+      report.data?.inspectionId !== id ||
+      report.data.revision !== revision
+    ) {
+      throw new Error("Signed report unavailable");
     }
-  }, [id, revision, error]);
-
-  useEffect(() => {
-    let active = true;
-    queueMicrotask(() => {
-      if (active) {
-        void load();
-      }
-    });
-    return () => {
-      active = false;
-      controller.current?.abort();
-      controller.current = null;
+    const revisionHistory = revisions?.data ?? null;
+    const repairHistory = repairs?.data ?? null;
+    return {
+      View,
+      report: report.data,
+      revisions: matchesHistory(revisionHistory, id) ? revisionHistory : null,
+      repairs:
+        matchesHistory(repairHistory, id) && repairHistory?.revision === revision
+          ? repairHistory
+          : null,
     };
-  }, [load]);
-
-  return { entry, failed, retry: load };
+  }, "The signed report could not be loaded. Retry to open it.");
 }
 
 function matchesHistory(history: RevisionHistory | RepairHistory | null, id: string) {
