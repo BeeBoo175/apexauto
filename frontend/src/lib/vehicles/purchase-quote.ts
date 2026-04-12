@@ -1,5 +1,5 @@
 import { isRecord, isUuid } from "@/lib/auth/contracts";
-import { parseMyr } from "@/lib/currency-input";
+import { isMyr } from "@/lib/currency-input";
 import type { PublicVehicleDetail } from "./public-detail";
 
 export interface PurchasePrice {
@@ -22,20 +22,17 @@ export function promoCode(value: string): string | null {
   return code && code.length <= 50 && !value.includes("\0") ? code : null;
 }
 
-const money = (value: unknown): value is number =>
-  typeof value === "number" && Number.isFinite(value) && parseMyr(value.toFixed(2)) === value;
-
 export function parsePurchasePrice(value: unknown): PurchasePrice | null {
   if (
     !isRecord(value) ||
-    !money(value.vehiclePrice) ||
+    !isMyr(value.vehiclePrice) ||
     value.vehiclePrice <= 0 ||
-    !money(value.processingFee) ||
-    !money(value.roadTax) ||
-    !money(value.serviceTax) ||
-    !money(value.promoDiscount) ||
+    !isMyr(value.processingFee) ||
+    !isMyr(value.roadTax) ||
+    !isMyr(value.serviceTax) ||
+    !isMyr(value.promoDiscount) ||
     value.promoDiscount > value.vehiclePrice ||
-    !money(value.total)
+    !isMyr(value.total)
   ) {
     return null;
   }

@@ -1,4 +1,4 @@
-import { parseMyr } from "@/lib/currency-input";
+import { isMyr } from "@/lib/currency-input";
 import { parseQuote, parseVehicle } from "@/lib/intake/parse";
 import type { ValuationDraft } from "@/lib/intake/vehicle-draft";
 
@@ -20,8 +20,8 @@ export function parseTradeInQuote(value: unknown) {
   if (
     !quote ||
     quote.currency !== "MYR" ||
-    parseMyr(String(quote.minValuation)) === null ||
-    parseMyr(String(quote.maxValuation)) === null
+    !isMyr(quote.minValuation) ||
+    !isMyr(quote.maxValuation)
   ) {
     return null;
   }

@@ -1,5 +1,6 @@
 import { parsePage } from "@/lib/api";
 import { isRecord, isUuid } from "@/lib/auth/contracts";
+import { isMyr } from "@/lib/currency-input";
 import { reservationStatuses, type ReservationItem } from "./reservations";
 
 const text = (value: unknown): value is string =>
@@ -21,10 +22,7 @@ export function parseReservation(value: unknown): ReservationItem | null {
     !isRecord(buyer) ||
     !text(buyer.legalName) ||
     !isRecord(price) ||
-    typeof price.total !== "number" ||
-    !Number.isFinite(price.total) ||
-    price.total < 0 ||
-    !Number.isSafeInteger(Math.round(price.total * 100)) ||
+    !isMyr(price.total) ||
     !timestamp(receipt.createdAt) ||
     !timestamp(receipt.expiresAt) ||
     Date.parse(receipt.expiresAt) <= Date.parse(receipt.createdAt) ||
@@ -90,10 +88,7 @@ export function parseReservationRow(value: unknown): ReservationItem | null {
     !timestamp(value.createdAt) ||
     !timestamp(value.expiresAt) ||
     Date.parse(value.expiresAt) <= Date.parse(value.createdAt) ||
-    typeof value.total !== "number" ||
-    !Number.isFinite(value.total) ||
-    value.total < 0 ||
-    !Number.isSafeInteger(Math.round(value.total * 100)) ||
+    !isMyr(value.total) ||
     typeof value.status !== "string" ||
     !Object.hasOwn(reservationStatuses, value.status)
   ) {

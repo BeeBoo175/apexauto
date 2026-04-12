@@ -1,4 +1,4 @@
-import { parseMyr } from "@/lib/currency-input";
+import { isMyr, parseMyr } from "@/lib/currency-input";
 
 export interface FinancingEstimate {
   principal: number;
@@ -10,7 +10,7 @@ export interface FinancingEstimate {
 }
 
 function minorUnits(amount: number): bigint | null {
-  if (!Number.isFinite(amount) || amount < 0 || parseMyr(String(amount)) === null) {
+  if (!isMyr(amount)) {
     return null;
   }
   return BigInt(Math.round(amount * 100));

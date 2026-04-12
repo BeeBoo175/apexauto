@@ -36,7 +36,7 @@ export function useVehicleCatalogue(
     [],
   );
 
-  async function load(nextFilters = active.filters, nextPage = active.page) {
+  async function load(nextFilters: CatalogueFilters, nextPage: number) {
     if (controller.current) {
       return;
     }
@@ -66,7 +66,7 @@ export function useVehicleCatalogue(
     } catch {
       if (!attempt.signal.aborted) {
         const message =
-          "The catalogue could not be refreshed. Your last confirmed vehicles and filters are still shown. Retry to check availability.";
+          "The catalogue could not be loaded. Your last confirmed vehicles and filters are still shown. Apply your filters again, or reload the page.";
         error(message);
       }
     } finally {

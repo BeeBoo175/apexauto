@@ -1,7 +1,7 @@
 import type { SearchParams } from "@/lib/query";
 import { isUuid } from "@/lib/auth/contracts";
 import { parseMyr } from "@/lib/currency-input";
-import { fuels, transmissions, type CatalogueFilters } from "./contracts";
+import { fuels, isVehicleDetailSection, transmissions, type CatalogueFilters } from "./contracts";
 
 export const catalogueDefaults: CatalogueFilters = {
   make: "",
@@ -16,6 +16,22 @@ export const catalogueDefaults: CatalogueFilters = {
   sort: "published",
   direction: "desc",
 };
+
+export function vehicleDetailSectionHref(id: string, params: SearchParams): string | null {
+  if (!isVehicleDetailSection(params.section)) {
+    return null;
+  }
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (key === "section" || value === undefined) {
+      continue;
+    }
+    const values = Array.isArray(value) ? value : [value];
+    values.forEach((entry) => query.append(key, entry));
+  }
+  const suffix = query.size > 0 ? `?${query}` : "";
+  return `/vehicles/${encodeURIComponent(id)}${suffix}#${params.section}`;
+}
 
 export function catalogueParams(params: SearchParams) {
   const filters = { ...catalogueDefaults };

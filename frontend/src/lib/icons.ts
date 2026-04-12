@@ -1,4 +1,9 @@
 export const iconFiles = {
+  car: "car.svg",
+  engine: "engine.svg",
+  armchair: "armchair.svg",
+  tool: "tool.svg",
+  inspection: "shield-search.svg",
   calendar: "calendar.svg",
   table: "table.svg",
   previous: "chevron-left.svg",

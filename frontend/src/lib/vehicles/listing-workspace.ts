@@ -1,4 +1,5 @@
 import { isRecord, isUuid } from "@/lib/auth/contracts";
+import { isMyr } from "@/lib/currency-input";
 import { fuels, transmissions } from "./contracts";
 import { parseListing } from "./parse-listings";
 import type { ListingItem } from "./listings";
@@ -42,11 +43,6 @@ export interface ListingWorkspace {
 
 const date = (value: unknown): value is string =>
   typeof value === "string" && /(?:Z|\+00:00)$/.test(value) && Number.isFinite(Date.parse(value));
-const money = (value: unknown): value is number =>
-  typeof value === "number" &&
-  Number.isFinite(value) &&
-  value >= 0 &&
-  Number.isSafeInteger(Math.round(value * 100));
 
 export function parseRevision(value: unknown): ListingRevision | null {
   if (
@@ -56,8 +52,8 @@ export function parseRevision(value: unknown): ListingRevision | null {
     !isUuid(value.branchId) ||
     !Number.isSafeInteger(value.version) ||
     Number(value.version) < 1 ||
-    !money(value.vehiclePrice) ||
-    !money(value.roadTax) ||
+    !isMyr(value.vehiclePrice) ||
+    !isMyr(value.roadTax) ||
     typeof value.description !== "string" ||
     !value.description.trim() ||
     value.description.length > 2000 ||

@@ -67,7 +67,7 @@ export function useVehicleCardPhotos(vehicle: PublicVehicle, photoVersion: numbe
         detail.listing.coverPhotoId !== vehicle.coverPhotoId ||
         detail.listing.photoCount !== vehicle.photoCount
       ) {
-        error("This listing has changed. Refresh the catalogue before browsing its photos.");
+        error("This listing has changed. Reload this page before browsing its photos.");
         setPosition(0);
         return;
       }
@@ -85,7 +85,7 @@ export function useVehicleCardPhotos(vehicle: PublicVehicle, photoVersion: numbe
   }
 
   return {
-    photoId: position === 0 ? vehicle.coverPhotoId : photoIds?.[position] ?? null,
+    photoId: position === 0 ? vehicle.coverPhotoId : (photoIds?.[position] ?? null),
     position,
     count: photoIds?.length ?? vehicle.photoCount,
     canPrevious: position > 0,

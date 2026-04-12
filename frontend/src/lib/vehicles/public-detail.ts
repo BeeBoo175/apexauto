@@ -1,5 +1,6 @@
 import { parseItems } from "@/lib/api";
 import { isRecord, isUuid } from "@/lib/auth/contracts";
+import { isMyr } from "@/lib/currency-input";
 import { severities, type Point, type Severity } from "@/lib/inspection/contracts";
 import { enumValue, parsePoint, timestamp } from "@/lib/inspection/parse";
 import { parsePublicVehicle } from "./parse";
@@ -27,16 +28,9 @@ export interface PublicVehicleDetail {
   };
 }
 
-const money = (value: unknown): value is number =>
-  typeof value === "number" &&
-  Number.isFinite(value) &&
-  value >= 0 &&
-  Number.isSafeInteger(Math.round(value * 100)) &&
-  Math.abs(value * 100 - Math.round(value * 100)) < 0.000001;
-
 function parseChecklistPoint(value: unknown): ChecklistPoint | null {
   const point = parsePoint(value);
-  if (!point || !isRecord(value) || !money(value.estimatedRepairCost)) {
+  if (!point || !isRecord(value) || !isMyr(value.estimatedRepairCost)) {
     return null;
   }
   const kind = enumValue(["Finding", "NotFitted"] as const, value.kind);
@@ -77,7 +71,7 @@ export function parsePublicDetail(value: unknown, expectedId?: string): PublicVe
     typeof value.description !== "string" ||
     !value.description.trim() ||
     value.description.length > 2000 ||
-    !money(value.roadTax) ||
+    !isMyr(value.roadTax) ||
     typeof value.sstRate !== "number" ||
     !Number.isFinite(value.sstRate) ||
     value.sstRate < 0 ||

@@ -1,4 +1,5 @@
 import { isRecord, isUuid } from "@/lib/auth/contracts";
+import { isMyr } from "@/lib/currency-input";
 import { parseReservation, parseReservationRow } from "./parse-reservations";
 import type { ReservationItem } from "./reservations";
 
@@ -18,13 +19,6 @@ export interface ReservationDetail {
   release: { id: string; reason: string | null; recordedAt: string; refund: number } | null;
 }
 
-const money = (value: unknown): value is number =>
-  typeof value === "number" &&
-  Number.isFinite(value) &&
-  value >= 0 &&
-  Number.isSafeInteger(Math.round(value * 100)) &&
-  Math.abs(value * 100 - Math.round(value * 100)) < 0.000001;
-
 function terms(value: unknown, reservation: ReservationItem | null): ReservationDetail | null {
   if (!isRecord(value) || !reservation || !isRecord(value.price)) {
     return null;
@@ -32,14 +26,14 @@ function terms(value: unknown, reservation: ReservationItem | null): Reservation
   const price = value.price;
   if (
     !isUuid(value.publicationId) ||
-    !money(value.deposit) ||
+    !isMyr(value.deposit) ||
     value.deposit !== 500 ||
-    !money(price.vehiclePrice) ||
-    !money(price.processingFee) ||
-    !money(price.roadTax) ||
-    !money(price.serviceTax) ||
-    !money(price.promoDiscount) ||
-    !money(price.total) ||
+    !isMyr(price.vehiclePrice) ||
+    !isMyr(price.processingFee) ||
+    !isMyr(price.roadTax) ||
+    !isMyr(price.serviceTax) ||
+    !isMyr(price.promoDiscount) ||
+    !isMyr(price.total) ||
     price.total !== reservation.total ||
     price.promoDiscount > price.vehiclePrice ||
     Math.round(price.total * 100) !==

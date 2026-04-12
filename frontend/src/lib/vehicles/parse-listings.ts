@@ -1,5 +1,6 @@
 import { parsePage } from "@/lib/api";
 import { isRecord, isUuid } from "@/lib/auth/contracts";
+import { isMyr } from "@/lib/currency-input";
 import { vehicleStatuses, type ListingItem } from "./listings";
 
 const text = (value: unknown): value is string =>
@@ -36,13 +37,7 @@ export function parseListing(value: unknown): ListingItem | null {
     return null;
   }
   const price = value.vehiclePrice;
-  if (
-    price !== null &&
-    (typeof price !== "number" ||
-      !Number.isFinite(price) ||
-      price < 0 ||
-      !Number.isSafeInteger(Math.round(price * 100)))
-  ) {
+  if (price !== null && !isMyr(price)) {
     return null;
   }
   return {
@@ -58,7 +53,7 @@ export function parseListing(value: unknown): ListingItem | null {
     vehicleStatus,
     revisionId: value.revisionId as string | null,
     version: value.version,
-    vehiclePrice: price as number | null,
+    vehiclePrice: price,
     publicationId: value.publicationId as string | null,
     publishedRevisionId: value.publishedRevisionId as string | null,
     isWithdrawn: value.isWithdrawn,

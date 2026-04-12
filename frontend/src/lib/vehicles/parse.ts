@@ -1,5 +1,6 @@
 import { parseItems } from "@/lib/api";
 import { isRecord, isUuid } from "@/lib/auth/contracts";
+import { isMyr } from "@/lib/currency-input";
 import { CATALOGUE_PAGE_SIZE, fuels, transmissions } from "./contracts";
 import type { CataloguePage, PublicVehicle } from "./contracts";
 
@@ -25,10 +26,7 @@ export function parsePublicVehicle(value: unknown): PublicVehicle | null {
     value.manufactureYear < 1886 ||
     value.manufactureYear > 9999 ||
     !integer(value.mileageKilometres) ||
-    typeof value.vehiclePrice !== "number" ||
-    !Number.isFinite(value.vehiclePrice) ||
-    value.vehiclePrice < 0 ||
-    !Number.isSafeInteger(Math.round(value.vehiclePrice * 100)) ||
+    !isMyr(value.vehiclePrice) ||
     !integer(value.photoCount) ||
     (value.coverPhotoId !== null && !isUuid(value.coverPhotoId)) ||
     (value.photoCount === 0) !== (value.coverPhotoId === null) ||

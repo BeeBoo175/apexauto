@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { apiFetch } from "@/lib/api-browser";
 import type { Quote, Taxonomy, VehicleInput } from "@/lib/intake/contracts";
@@ -12,7 +12,9 @@ export function useVehicleTradeIn() {
   const [taxonomy, setTaxonomy] = useState<Taxonomy | null>(null);
   const [draft, setDraft] = useState<ValuationDraft>(emptyValuation);
   const [accepted, setAccepted] = useState<{ vehicle: VehicleInput; quote: Quote } | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(true);
+  const [editing, setEditing] = useState(true);
+  const [optionsFailed, setOptionsFailed] = useState(false);
   const controller = useRef<AbortController | null>(null);
   const { error } = useToast();
 
@@ -34,39 +36,52 @@ export function useVehicleTradeIn() {
     setDraft(value);
   }
 
-  function remove() {
+  function startNewValuation() {
     cancel();
-    setAccepted(null);
+    setEditing(true);
   }
 
-  async function loadOptions() {
+  const readOptions = useCallback(() => {
     if (taxonomy || controller.current) {
       return;
     }
     const attempt = new AbortController();
     controller.current = attempt;
-    setBusy(true);
-    try {
-      const result = await apiFetch("/api/intake/taxonomy", parseTaxonomy, {
-        signal: attempt.signal,
+    return apiFetch("/api/intake/taxonomy", parseTaxonomy, { signal: attempt.signal })
+      .then((result) => {
+        if (attempt.signal.aborted || controller.current !== attempt) {
+          return;
+        }
+        if (!result.data || result.data.currency !== "MYR") {
+          throw new Error("Trade-in options unavailable");
+        }
+        setTaxonomy(result.data);
+      })
+      .catch(() => {
+        if (!attempt.signal.aborted && controller.current === attempt) {
+          setOptionsFailed(true);
+          error("Trade-in options could not be loaded. Retry deliberately.");
+        }
+      })
+      .finally(() => {
+        if (!attempt.signal.aborted && controller.current === attempt) {
+          setBusy(false);
+          controller.current = null;
+        }
       });
-      if (attempt.signal.aborted || controller.current !== attempt) {
-        return;
-      }
-      if (!result.data || result.data.currency !== "MYR") {
-        throw new Error("Trade-in options unavailable");
-      }
-      setTaxonomy(result.data);
-    } catch {
-      if (!attempt.signal.aborted && controller.current === attempt) {
-        error("Trade-in options could not be loaded. Retry deliberately.");
-      }
-    } finally {
-      if (!attempt.signal.aborted && controller.current === attempt) {
-        setBusy(false);
-        controller.current = null;
-      }
+  }, [taxonomy, error]);
+
+  useEffect(() => {
+    void readOptions();
+  }, [readOptions]);
+
+  function retryOptions() {
+    if (taxonomy || controller.current) {
+      return;
     }
+    setOptionsFailed(false);
+    setBusy(true);
+    void readOptions();
   }
 
   async function valueVehicle() {
@@ -102,6 +117,7 @@ export function useVehicleTradeIn() {
         return;
       }
       setAccepted({ vehicle, quote: result.data });
+      setEditing(false);
     } catch {
       if (!attempt.signal.aborted && controller.current === attempt) {
         error(
@@ -116,5 +132,16 @@ export function useVehicleTradeIn() {
     }
   }
 
-  return { taxonomy, draft, changeDraft, accepted, busy, loadOptions, valueVehicle, remove };
+  return {
+    taxonomy,
+    draft,
+    changeDraft,
+    accepted,
+    busy,
+    editing,
+    optionsFailed,
+    retryOptions,
+    valueVehicle,
+    startNewValuation,
+  };
 }

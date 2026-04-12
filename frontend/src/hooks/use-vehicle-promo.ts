@@ -77,7 +77,7 @@ export function useVehiclePromo(detail: PublicVehicleDetail | null) {
         return;
       }
       if (!matchesPurchaseTerms(result.data, detail.price)) {
-        error("The vehicle's pricing has changed. Refresh the vehicle before applying a promo.");
+        error("The vehicle's pricing has changed. Reload this page before applying a promo.");
         return;
       }
       setAccepted(result.data);

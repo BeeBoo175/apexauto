@@ -14,3 +14,9 @@ export function parseMyr(value: string): number | null {
   }
   return number;
 }
+
+export function isMyr(value: unknown): value is number {
+  return (
+    typeof value === "number" && Number.isFinite(value) && parseMyr(value.toFixed(2)) === value
+  );
+}
