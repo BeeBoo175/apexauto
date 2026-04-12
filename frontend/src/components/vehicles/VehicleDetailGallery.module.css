@@ -1,0 +1,144 @@
+.gallery {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.selected {
+  min-width: 0;
+}
+
+.selected .selectedFrame {
+  display: block;
+  aspect-ratio: auto;
+  border: 0;
+  border-radius: 8px;
+  background: var(--color-canvas);
+}
+
+.selected .selectedImage {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  animation: reveal 240ms ease-out;
+}
+
+.thumbnails {
+  display: flex;
+  gap: 10px;
+  padding: 3px;
+  overflow-x: auto;
+  scrollbar-color: var(--color-muted) var(--color-canvas);
+  scrollbar-width: thin;
+}
+
+.thumbnail {
+  position: relative;
+  flex: 1 0 100px;
+  min-width: 0;
+  max-width: 180px;
+  height: auto;
+  min-height: 0;
+  aspect-ratio: 3 / 2;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 8px;
+  background: var(--color-canvas);
+  cursor: pointer;
+  opacity: 0.65;
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+.thumbnail[aria-pressed="true"] {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 1px;
+  opacity: 1;
+}
+
+.thumbnail img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.thumbnail:hover {
+  opacity: 1;
+}
+
+.thumbnail:active {
+  transform: scale(0.97);
+}
+
+.thumbnail:focus-visible {
+  outline: 2px solid var(--color-graphite);
+  outline-offset: 1px;
+}
+
+.empty {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 3 / 2;
+  padding: 24px;
+  background: var(--color-canvas);
+  color: var(--color-muted);
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0.65;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 600px) {
+  .thumbnail {
+    flex-basis: 80px;
+  }
+}
+
+@container (min-width: 880px) {
+  .gallery {
+    grid-template-rows: minmax(0, 1fr) auto;
+    align-content: stretch;
+  }
+
+  .selected {
+    position: relative;
+    min-height: 400px;
+  }
+
+  .selected .selectedPhoto {
+    position: absolute;
+    inset: 0;
+    height: 100%;
+  }
+
+  .selected .selectedFrame {
+    height: 100%;
+  }
+
+  .selected .selectedImage {
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .selected .selectedImage {
+    animation: none;
+  }
+
+  .thumbnail {
+    transition: none;
+    transform: none;
+  }
+}

@@ -1,88 +1,86 @@
 .page {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 48px 32px 64px;
+  padding-block: 28px 80px;
+  color: var(--color-graphite);
 }
 
 .heading {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  margin: 24px 0;
+  margin-bottom: 20px;
 }
 
-.heading h1 {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: clamp(2rem, 5vw, 3.5rem);
-  line-height: 1.1;
+.heading a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 0;
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+  text-decoration: none;
+  transition: color 180ms ease;
 }
 
-.content {
-  display: grid;
-  gap: 24px;
-  min-width: 0;
+.heading a:hover,
+.heading a:active {
+  color: var(--color-signal-dark);
 }
 
-.price {
-  max-width: 600px;
-  font-variant-numeric: tabular-nums;
-}
-
-.price div {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--color-line);
-}
-
-.price dd {
-  margin: 0;
-}
-
-.price div:last-child {
-  font-weight: 700;
-}
-
-.description {
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-
-.checklist {
-  padding: 16px 0;
-  border-bottom: 1px solid var(--color-line);
-}
-
-.checklist summary {
-  cursor: pointer;
-  font-weight: 700;
-}
-
-.checklist summary:focus-visible {
-  outline: 2px solid var(--color-graphite);
+.heading a:focus-visible {
+  outline: 2px solid var(--color-signal);
   outline-offset: 4px;
 }
 
-.checklist li {
-  padding: 10px 0;
+.description {
+  max-width: 65ch;
+  margin: 0 0 28px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--color-muted);
+  font-size: 0.9375rem;
+  line-height: 1.75;
 }
 
-.checklist span {
-  display: block;
-  margin-top: 4px;
+.specifications {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0 32px;
+  margin: 0;
+}
+
+.specifications div {
+  min-width: 0;
+  padding: 24px 0 8px;
+}
+
+.specifications dt {
+  margin-bottom: 8px;
   color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+.specifications dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+@media (max-width: 760px) {
+  .specifications {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 20px;
+  }
 }
 
 @media (max-width: 640px) {
   .page {
-    padding: 32px 16px 48px;
+    padding-block: 20px 48px;
   }
+}
 
-  .heading {
-    flex-direction: column;
-    align-items: flex-start;
+@media (prefers-reduced-motion: reduce) {
+  .heading a {
+    transition: none;
   }
 }

@@ -1,0 +1,258 @@
+.tradeInPhoto {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  aspect-ratio: 4 / 3;
+}
+
+.tradeInPhoto img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 52%;
+}
+
+.tradeInContent {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  min-width: 0;
+}
+
+.tradeInContent > button {
+  align-self: start;
+}
+
+.tradeInIntroduction h2 {
+  max-width: 25ch;
+}
+
+.tradeInIntroduction p {
+  margin: 0 0 24px;
+  color: var(--color-muted);
+  font-size: 0.9375rem;
+  line-height: 1.65;
+}
+
+.tradeInForm {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 0;
+}
+
+.valuation {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: baseline;
+  gap: 6px 16px;
+  margin: 0;
+}
+
+.valuation:empty {
+  display: none;
+}
+
+.vehicle,
+.range {
+  grid-column: 1 / -1;
+}
+
+.vehicle {
+  margin-bottom: 16px;
+  color: var(--color-graphite);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.65;
+}
+
+.range {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 20px;
+  color: var(--color-graphite);
+  font-size: clamp(1.25rem, 2vw, 1.75rem);
+  font-weight: 600;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.range span {
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.allowanceLabel {
+  color: var(--color-trust);
+  font-size: 0.8125rem;
+}
+
+.allowanceValue {
+  margin: 0;
+  color: var(--color-trust);
+  font-size: 1rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  padding-top: 0;
+  margin-bottom: 24px;
+}
+
+.fields > div:nth-child(3) {
+  grid-column: 1 / -1;
+}
+
+.fields label {
+  margin-bottom: 4px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.fields input,
+.fields select {
+  font-size: 0.875rem;
+}
+
+.formAction {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: auto;
+  padding-top: 24px;
+}
+
+.tradeInSupport {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 4px;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-top: 16px;
+}
+
+.tradeInSupport a {
+  margin-top: 0;
+  min-height: 36px;
+}
+
+.tradeInSupport p {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  line-height: 1.65;
+}
+
+@container (min-width: 700px) {
+  .tradeInPhoto {
+    min-height: 320px;
+    aspect-ratio: auto;
+  }
+}
+
+@media (max-width: 440px) {
+  .tradeInForm {
+    padding: 0;
+  }
+
+  .fields {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .valuation {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .formAction > * {
+    width: 100%;
+  }
+}
+
+.modeStage {
+  display: grid;
+  flex: 1;
+  align-items: stretch;
+  min-height: 340px;
+}
+
+.editor,
+.result {
+  display: flex;
+  flex-direction: column;
+  grid-area: 1 / 1;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.editor > button {
+  align-self: flex-start;
+  margin-top: auto;
+}
+
+.editor[data-active="false"],
+.result[data-active="false"] {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.result {
+  padding-top: 0;
+}
+
+@media (max-width: 440px) {
+  .modeStage {
+    min-height: 460px;
+  }
+}
+
+.optionsShell {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+  gap: 24px 20px;
+  min-height: 284px;
+}
+
+.optionPlaceholder {
+  composes: placeholder from "../staff/AppointmentLoadingShell.module.css";
+  height: 64px;
+  border-radius: 8px;
+}
+
+.optionsShell span:nth-child(3) {
+  grid-column: 1 / -1;
+}
+
+.optionsError {
+  max-width: 45ch;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+
+@media (max-width: 440px) {
+  .optionsShell {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+    min-height: 384px;
+  }
+}
