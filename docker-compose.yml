@@ -22,8 +22,12 @@ services:
     container_name: apexauto_s3
     restart: unless-stopped
     environment:
+      COM_ADOBE_TESTING_S3MOCK_STORE_ROOT: /s3mockroot
+      COM_ADOBE_TESTING_S3MOCK_STORE_RETAIN_FILES_ON_EXIT: "true"
+      COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS: ${AWS__BucketName:?AWS__BucketName is required}
       initialBuckets: ${AWS__BucketName:?AWS__BucketName is required}
       retainFilesOnExit: "true"
+      root: /s3mockroot
     ports:
       - "127.0.0.1:${S3_PORT:?S3_PORT is required}:9090"
     volumes:
