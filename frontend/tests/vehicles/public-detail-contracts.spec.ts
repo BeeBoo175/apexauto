@@ -1,5 +1,8 @@
 import { expect, test } from "@playwright/test";
 import { parsePublicDetail } from "@/lib/vehicles/public-detail";
+import { parseCatalogue } from "@/lib/vehicles/parse";
+import { parsePurchasePrice } from "@/lib/vehicles/purchase-quote";
+import { vehicleDetailSectionHref } from "@/lib/vehicles/query";
 
 const id = "47cf2705-95cc-48b6-b907-64bf18dd87da";
 const photoId = "2f35e1b2-602b-43dc-8c5f-4085893b0ea8";
@@ -88,4 +91,48 @@ test("public detail rejects inconsistent price, photo identity and signed checkl
     parsePublicDetail({ ...raw, checklist: { ...raw.checklist, points: [finding] } })?.checklist
       .points[0].severity,
   ).toBe("Advisory");
+});
+
+test("catalogue and purchase projections agree on exact MYR precision", () => {
+  for (const amount of [
+    0.01,
+    123.45,
+    45000.99,
+    100.001,
+    0.1 + 0.2,
+    -1,
+    NaN,
+    Infinity,
+    Number.MAX_SAFE_INTEGER,
+    "100",
+    null,
+  ]) {
+    const vehicle = { ...listing, vehiclePrice: amount };
+    const purchase = {
+      vehiclePrice: amount,
+      processingFee: 0,
+      roadTax: 0,
+      serviceTax: 0,
+      promoDiscount: 0,
+      total: amount,
+    };
+    const accepted = amount === 0.01 || amount === 123.45 || amount === 45000.99;
+    expect(Boolean(parseCatalogue({ items: [vehicle], total: 1, page: 1, pageSize: 8 }))).toBe(
+      accepted,
+    );
+    expect(Boolean(parsePurchasePrice(purchase))).toBe(accepted);
+    expect(
+      Boolean(parsePublicDetail({ ...raw, listing: vehicle, price: purchase, roadTax: 0 })),
+    ).toBe(accepted);
+  }
+});
+
+test("legacy vehicle sections preserve repeated query values and reject unsupported destinations", () => {
+  expect(
+    vehicleDetailSectionHref(id, { section: "financing", ref: ["one", "two"], absent: undefined }),
+  ).toBe(`/vehicles/${id}?ref=one&ref=two#financing`);
+  expect(vehicleDetailSectionHref(id, { section: "trade-in" })).toBe(`/vehicles/${id}#trade-in`);
+  expect(vehicleDetailSectionHref(id, {})).toBeNull();
+  expect(vehicleDetailSectionHref(id, { section: "unsupported" })).toBeNull();
+  expect(vehicleDetailSectionHref(id, { section: ["overview", "inspection"] })).toBeNull();
 });

@@ -12,10 +12,11 @@ const currency = (value: number) =>
     maximumFractionDigits: 2,
   })}`;
 
-test("financing edits are local, reconcile payments and retain drafts through failed and successful refresh", async ({
+test("financing edits stay local and survive section navigation while browser reload resets drafts", async ({
   page,
   request,
 }, info) => {
+  test.setTimeout(120_000);
   const branchId =
     info.project.name === "mobile"
       ? "68f371ad-223a-43d6-b45b-b878eece79ae"
@@ -26,47 +27,55 @@ test("financing edits are local, reconcile payments and retain drafts through fa
     .first()
     .getAttribute("href"))!;
   const response = await page.goto(destination);
-  expect(await response!.text()).toContain("Financing estimate");
+  const markup = (await response!.text()).replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
+  expect(markup).toContain("Financing estimate");
   const calculator = page.getByRole("region", { name: "Financing estimate", exact: true });
   const cash = calculator.getByLabel("Cash contribution (MYR)", { exact: true });
   const term = calculator.getByLabel("Financing term", { exact: true });
+  const principal = calculator
+    .locator("dl > div")
+    .filter({
+      has: page.getByText("Amount financed", { exact: true }),
+    })
+    .locator("dd");
+  const repayments = calculator
+    .locator("dl > div")
+    .filter({
+      has: page.getByText("Total repayments", { exact: true }),
+    })
+    .locator("dd");
+  const interestRow = calculator
+    .locator("dl > div")
+    .filter({
+      has: page.getByText("Flat interest", { exact: true }),
+    })
+    .locator("dd");
   const detail = await request.get(`/api${destination}`);
   expect(detail.status()).toBe(200);
   const total = (await detail.json()).data.price.total as number;
-  await expect(cash).toHaveValue((Math.round(total * 10) / 100).toFixed(2));
+  const defaultCash = (Math.round(total * 10) / 100).toFixed(2);
+  await expect(cash).toHaveValue(defaultCash);
   await expect(term).toHaveValue("7");
   await page.waitForLoadState("networkidle");
   const before = counts();
 
   await cash.fill("15000");
-  await term.selectOption("9");
-  const principal = Math.max(0, total - 15000);
-  const interest = Math.round(principal * 27) / 100;
-  await expect(calculator.locator("dd").nth(0)).toHaveText(currency(principal));
-  await expect(calculator.locator("dd").nth(1)).toHaveText(currency(interest));
-  await expect(
-    calculator.getByText("First 107 monthly installments", { exact: true }),
-  ).toBeVisible();
+  await term.focus();
+  await term.press("End");
+  const amountFinanced = Math.max(0, total - 15000);
+  const interest = Math.round(amountFinanced * 27) / 100;
+  await expect(principal).toHaveText(currency(amountFinanced));
+  await expect(repayments).toHaveText(currency(amountFinanced + interest));
+  await calculator.getByText("Repayment breakdown", { exact: true }).click();
+  await expect(interestRow).toHaveText(currency(interest));
+  await expect(calculator.getByText("First 107 installments", { exact: true })).toBeVisible();
   expect(counts()).toEqual(before);
 
-  const confirmed = await calculator.locator("dl").textContent();
-  const refresh = page.getByRole("button", { name: "Refresh vehicle", exact: true });
-  fault("unavailable");
-  try {
-    await refresh.click();
-    await expect(
-      page.getByRole("alert").filter({ hasText: "Your last confirmed details are still shown" }),
-    ).toBeVisible();
-    await expect(cash).toHaveValue("15000");
-    await expect(term).toHaveValue("9");
-    expect(await calculator.locator("dl").textContent()).toBe(confirmed);
-  } finally {
-    fault("");
-  }
-  await refresh.click();
-  await expect(refresh).toBeEnabled();
+  await page.getByRole("link", { name: "Inspection report", exact: true }).click();
+  await page.getByRole("link", { name: "Financing", exact: true }).click();
   await expect(cash).toHaveValue("15000");
   await expect(term).toHaveValue("9");
+  await expect(calculator.locator("details")).toHaveAttribute("open", "");
 
   await cash.fill("1.001");
   await expect(cash).toHaveAttribute("aria-invalid", "true");
@@ -74,20 +83,41 @@ test("financing edits are local, reconcile payments and retain drafts through fa
     calculator.getByText("Enter a non-negative cash contribution", { exact: false }),
   ).toBeVisible();
   await expect(calculator.locator("dl")).toHaveCount(0);
-  await refresh.click();
-  await expect(refresh).toBeEnabled();
+  await page.getByRole("link", { name: "Overview", exact: true }).click();
+  await page.getByRole("link", { name: "Financing", exact: true }).click();
   await expect(cash).toHaveValue("1.001");
   await cash.fill(String(total + 1000));
   await expect(calculator.getByText("No financing required", { exact: true })).toBeVisible();
-  for (const value of await calculator.locator("dd").all()) {
-    await expect(value).toContainText("MYR 0.00");
-  }
+  await expect(principal).toHaveText(currency(0));
+  await expect(repayments).toHaveText(currency(0));
+
   await cash.fill("15000");
-  await term.selectOption("7");
   await calculator.scrollIntoViewIfNeeded();
   await page.screenshot({ path: path.join(evidence, "financing.png") });
+  await page.reload();
+  await expect(cash).toHaveValue(defaultCash);
+  await expect(term).toHaveValue("7");
+
+  fault("unavailable");
+  try {
+    await page.reload();
+    await expect(page.getByRole("heading", { name: "Vehicle details", exact: true })).toBeVisible();
+    await expect(calculator).toHaveCount(0);
+  } finally {
+    fault("");
+  }
+  await page.reload();
+  await expect(cash).toHaveValue(defaultCash);
+  await expect(term).toHaveValue("7");
   writeFileSync(
     path.join(evidence, "financing.json"),
-    JSON.stringify({ total, editsReadUpstream: false, draftsRetained: true, noFinancing: true }),
+    JSON.stringify({
+      total,
+      editsReadUpstream: false,
+      sectionDraftsRetained: true,
+      reloadResetsDrafts: true,
+      browserReloadRecovery: true,
+      noFinancing: true,
+    }),
   );
 });

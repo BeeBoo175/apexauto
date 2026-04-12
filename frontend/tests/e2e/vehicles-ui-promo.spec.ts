@@ -11,7 +11,7 @@ const currency = (value: number) =>
     maximumFractionDigits: 2,
   })}`;
 
-test("canonical promos update price and financing without stacking and retain confirmation on failed replacement", async ({
+test("canonical promos replace confirmed discounts and browser reload clears document-local quotes", async ({
   page,
   request,
 }, info) => {
@@ -27,9 +27,24 @@ test("canonical promos update price and financing without stacking and retain co
   await page.goto(destination);
   const detail = (await (await request.get(`/api${destination}`)).json()).data;
   const input = page.getByLabel("Promo code", { exact: true });
-  const apply = page.getByRole("button", { name: "Apply promo", exact: true });
-  const price = page.getByRole("region", { name: "Itemized price estimate", exact: true });
+  const promo = page
+    .locator("form")
+    .filter({ has: page.getByLabel("Promo code", { exact: true }) });
+  const apply = promo.getByRole("button", { name: "Apply", exact: true });
+  const applied = page.locator("#vehicle-promo-status");
+  const total = page
+    .locator('div[aria-live="polite"]')
+    .filter({
+      has: page.getByText("Estimated total", { exact: true }),
+    })
+    .locator("strong");
   const calculator = page.getByRole("region", { name: "Financing estimate", exact: true });
+  const principal = calculator
+    .locator("dl > div")
+    .filter({
+      has: page.getByText("Amount financed", { exact: true }),
+    })
+    .locator("dd");
   const cash = calculator.getByLabel("Cash contribution (MYR)", { exact: true });
   const term = calculator.getByLabel("Financing term", { exact: true });
   await page.waitForLoadState("networkidle");
@@ -42,16 +57,18 @@ test("canonical promos update price and financing without stacking and retain co
     vehicleId: detail.listing.id,
     code: "APEX500",
   });
-  await expect(price.getByText("Applied promo: APEX500", { exact: true })).toBeVisible();
-  await expect(price.locator("dd").last()).toHaveText(currency(detail.price.total - 500));
+  await expect(applied).toHaveText("APEX500 applied to the total below.");
+  await expect(total).toHaveText(currency(detail.price.total - 500));
   await expect(cash).toHaveValue((Math.round((detail.price.total - 500) * 10) / 100).toFixed(2));
   await cash.fill("15000");
-  await term.selectOption("9");
-  const confirmed = await calculator.locator("dl").textContent();
+  await term.focus();
+  await term.press("End");
+  const confirmedPrincipal = await principal.textContent();
   await input.fill("apex500");
   await apply.click();
   await expect(page.getByRole("alert").filter({ hasText: "exact case" })).toBeVisible();
-  await expect(price.getByText("Applied promo: APEX500", { exact: true })).toBeVisible();
+  await expect(applied).toHaveText("APEX500 applied to the total below.");
+
   await input.fill("RAYA1000");
   fault("unavailable");
   try {
@@ -59,28 +76,19 @@ test("canonical promos update price and financing without stacking and retain co
     await expect(
       page.getByRole("alert").filter({ hasText: "promo could not be checked" }),
     ).toBeVisible();
-    await page.getByRole("button", { name: "Refresh vehicle", exact: true }).click();
-    await expect(
-      page.getByRole("alert").filter({ hasText: "last confirmed details" }),
-    ).toBeVisible();
-    expect(await calculator.locator("dl").textContent()).toBe(confirmed);
+    await expect(principal).toHaveText(confirmedPrincipal!);
+    await expect(applied).toHaveText("APEX500 applied to the total below.");
     await expect(input).toHaveValue("RAYA1000");
   } finally {
     fault("");
   }
-  const refresh = page.getByRole("button", { name: "Refresh vehicle", exact: true });
-  await refresh.click();
-  await expect(refresh).toBeEnabled();
-  await expect(price.getByText("Applied promo: APEX500", { exact: true })).toBeVisible();
   await apply.click();
-  await expect(price.getByText("Applied promo: RAYA1000", { exact: true })).toBeVisible();
-  await expect(price.locator("dd").last()).toHaveText(currency(detail.price.total - 1000));
-  await expect(calculator.locator("dd").first()).toHaveText(
-    currency(detail.price.total - 1000 - 15000),
-  );
+  await expect(applied).toHaveText("RAYA1000 applied to the total below.");
+  await expect(total).toHaveText(currency(detail.price.total - 1000));
+  await expect(principal).toHaveText(currency(Math.max(0, detail.price.total - 1000 - 15000)));
   await expect(cash).toHaveValue("15000");
   await expect(term).toHaveValue("9");
-  await price.scrollIntoViewIfNeeded();
+  await promo.scrollIntoViewIfNeeded();
   await page.screenshot({ path: path.join(evidence, "promo.png") });
 
   // A delayed real quote cannot overwrite a newer draft or confirmation.
@@ -99,52 +107,65 @@ test("canonical promos update price and financing without stacking and retain co
   await page.route(
     "**/api/promos/validate",
     async (route) => {
-      const response = await route.fetch();
-      received();
-      await gate;
-      await route.fulfill({ response }).catch(() => {});
-      finished();
+      try {
+        const response = await route.fetch();
+        received();
+        await gate;
+        await route.fulfill({ response }).catch(() => {});
+      } finally {
+        finished();
+      }
     },
     { times: 1 },
   );
-  await input.fill("APEX500");
-  await apply.click();
-  await arrived;
-  await input.fill("RAYA1000");
-  await apply.click();
-  await expect(apply).toBeEnabled();
-  await expect(price.getByText("Applied promo: RAYA1000", { exact: true })).toBeVisible();
-  release();
-  await settled;
-  await expect(price.locator("dd").last()).toHaveText(currency(detail.price.total - 1000));
+  try {
+    await input.fill("APEX500");
+    await apply.click();
+    await arrived;
+    await input.fill("RAYA1000");
+    await apply.click();
+    await expect(apply).toBeEnabled();
+    await expect(applied).toHaveText("RAYA1000 applied to the total below.");
+  } finally {
+    release();
+    await settled;
+  }
+  await expect(total).toHaveText(currency(detail.price.total - 1000));
 
-  // A confirmed replacement with changed terms revokes the old quote, preserving drafts.
+  // A quote for changed base terms must not replace the current confirmed estimate.
   await page.route(
-    `**/api${destination}`,
+    "**/api/promos/validate",
     async (route) => {
       const response = await route.fetch();
       const body = await response.json();
       body.data.price.vehiclePrice += 100;
       body.data.price.total += 100;
-      body.data.listing.vehiclePrice += 100;
       await route.fulfill({ response, json: body });
     },
     { times: 1 },
   );
-  await refresh.click();
-  await expect(price.getByText("No promo applied", { exact: true })).toBeVisible();
-  await expect(price.locator("dd").last()).toHaveText(currency(detail.price.total + 100));
-  await expect(input).toHaveValue("RAYA1000");
+  await input.fill("APEX500");
+  await apply.click();
+  await expect(page.getByRole("alert").filter({ hasText: "Reload this page" })).toBeVisible();
+  await expect(applied).toHaveText("RAYA1000 applied to the total below.");
+  await expect(total).toHaveText(currency(detail.price.total - 1000));
   await expect(cash).toHaveValue("15000");
   await expect(term).toHaveValue("9");
-  await refresh.click();
-  await expect(refresh).toBeEnabled();
+
+  await page.reload();
+  await expect(applied).toBeEmpty();
+  await expect(total).toHaveText(currency(detail.price.total));
+  await expect(input).toHaveValue("");
+  await expect(cash).toHaveValue((Math.round(detail.price.total * 10) / 100).toFixed(2));
+  await expect(term).toHaveValue("7");
+  await input.fill("RAYA1000");
   await apply.click();
-  await expect(price.getByText("Applied promo: RAYA1000", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Remove promo", exact: true }).click();
-  await expect(price.locator("dd").last()).toHaveText(currency(detail.price.total));
+  await expect(applied).toHaveText("RAYA1000 applied to the total below.");
+  await promo.getByRole("button", { name: "Remove", exact: true }).click();
+  await expect(total).toHaveText(currency(detail.price.total));
   await expect(input).toHaveValue("");
 
+  await page.waitForLoadState("networkidle");
   const upstream = counts();
   const denied = await request.post("/api/promos/validate", {
     headers: { Origin: "https://foreign.invalid" },
@@ -162,8 +183,9 @@ test("canonical promos update price and financing without stacking and retain co
     JSON.stringify({
       canonicalCodes: ["APEX500", "RAYA1000"],
       failedReplacementRetained: true,
-      changedTermsProjection: "injected browser response",
+      changedTermsProjection: "injected promo response",
       supersededRealQuote: true,
+      browserReloadClearsQuote: true,
       originGuard: true,
     }),
   );

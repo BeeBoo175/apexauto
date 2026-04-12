@@ -7,7 +7,7 @@ const evidence = process.env.BROWSER_EVIDENCE_DIR!;
 const counts = () =>
   JSON.parse(readFileSync(path.join(evidence, "counts.json"), "utf8")) as Record<string, number>;
 
-test("catalogue renders populated HTML, retains failed reads and drafts, and refreshes outside-writer changes", async ({
+test("catalogue retains failed filter reads and uses browser reload for fresh availability", async ({
   page,
   request,
 }, info) => {
@@ -26,6 +26,7 @@ test("catalogue renders populated HTML, retains failed reads and drafts, and ref
   expect(initial!.headers()["cache-control"]).toContain("no-store");
   await page.waitForLoadState("networkidle");
   expect((counts()["/api/vehicles"] ?? 0) - before).toBe(1);
+  await expect(page.getByRole("button", { name: "Refresh vehicles", exact: true })).toHaveCount(0);
   await expect(
     page.getByText("17 available vehicles · Page 1 of 3", { exact: true }),
   ).toBeVisible();
@@ -55,7 +56,7 @@ test("catalogue renders populated HTML, retains failed reads and drafts, and ref
       .poll(() => image.evaluate((element) => (element as HTMLImageElement).naturalWidth))
       .toBeGreaterThan(0);
   }
-  const coverPath = await cover.getAttribute("src");
+  const coverPath = new URL((await cover.getAttribute("src"))!, page.url()).pathname;
   await page.route(`**${coverPath}`, (route) => route.fulfill({ status: 503, body: "" }));
   await page.reload();
   await expect
@@ -67,7 +68,7 @@ test("catalogue renders populated HTML, retains failed reads and drafts, and ref
     )
     .toBe(true);
   await page.unroute(`**${coverPath}`);
-  await page.getByRole("button", { name: "Refresh vehicles", exact: true }).click();
+  await page.reload();
   await expect
     .poll(() => cover.evaluate((image) => (image as HTMLImageElement).naturalWidth))
     .toBeGreaterThan(0);
@@ -100,7 +101,7 @@ test("catalogue renders populated HTML, retains failed reads and drafts, and ref
   const confirmedUrl = page.url();
   writeFileSync(path.join(evidence, "fault.txt"), "unavailable");
   try {
-    await page.getByRole("button", { name: "Refresh vehicles", exact: true }).click();
+    await page.getByRole("button", { name: "Apply filters", exact: true }).click();
     await expect(
       page
         .getByRole("alert")
@@ -173,7 +174,7 @@ test("catalogue renders populated HTML, retains failed reads and drafts, and ref
   );
   expect(withdrawal.status()).toBe(200);
   expect(await visibleIds()).toContain(vehicleId);
-  await page.getByRole("button", { name: "Refresh vehicles", exact: true }).click();
+  await page.reload();
   await expect(
     page.getByText("16 available vehicles · Page 1 of 2", { exact: true }),
   ).toBeVisible();
@@ -189,10 +190,6 @@ test("catalogue renders populated HTML, retains failed reads and drafts, and ref
   expect((await persisted.json()).withdrawal.reason).toBe(
     "Showroom withdrawal during catalogue review",
   );
-  await page.reload();
-  await expect(
-    page.getByText("16 available vehicles · Page 1 of 2", { exact: true }),
-  ).toBeVisible();
   const response = await request.get(`/api/vehicles?${query}`);
   const data = (await response.json()).data;
   expect(data.total).toBe(16);
@@ -219,6 +216,8 @@ test("catalogue renders populated HTML, retains failed reads and drafts, and ref
         catalogueBytes: Buffer.byteLength(JSON.stringify(data)),
         metrics,
         initialCatalogueReads: 1,
+        browserReloadRefresh: true,
+        failedFilterDraftRetained: true,
         fullPartialPageIds: [...firstIds, ...secondIds],
         withdrawnVehicleId: vehicleId,
       },

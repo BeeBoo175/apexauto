@@ -9,6 +9,7 @@ import type { CatalogueFilters as Filters, CataloguePage } from "@/lib/vehicles/
 import { CatalogueFilters } from "./CatalogueFilters";
 import { VehicleCard } from "./VehicleCard";
 import styles from "./Catalogue.module.css";
+import layout from "./VehicleLayout.module.css";
 
 export function VehicleCatalogue({
   initial,
@@ -24,18 +25,13 @@ export function VehicleCatalogue({
   const catalogue = useVehicleCatalogue(initial, filters, page, branches);
   const { snapshot, active, busy } = catalogue;
   return (
-    <section className={styles.page}>
+    <section className={`${layout.content} ${styles.page}`}>
       <LoadingProgressReady />
       <LoadingProgress label="Loading vehicles" active={busy} />
       <LoadingProgress label="Loading showroom branches" active={catalogue.branchBusy} />
       <header className={styles.heading}>
-        <div>
-          <h1>Find your next car</h1>
-          <p>Explore inspected vehicles approved for our showroom.</p>
-        </div>
-        <Button variant="secondary" disabled={busy} onClick={() => void catalogue.load()}>
-          {busy ? "Refreshing vehicles…" : "Refresh vehicles"}
-        </Button>
+        <h1>Find your next car</h1>
+        <p>Explore inspected vehicles approved for our showroom.</p>
       </header>
       <details className={styles.filterDisclosure}>
         <summary>Filter and sort vehicles</summary>

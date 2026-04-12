@@ -1,19 +1,26 @@
 "use client";
 
 import Link from "next/link";
+import { Icon } from "@/components/ui/Icon";
 import { Button } from "@/components/ui/Button";
-import { useVehicleDetail } from "@/hooks/use-vehicle-detail";
+import { LoadingProgress, LoadingProgressReady } from "@/components/ui/LoadingProgress";
+import { useInitialToast } from "@/hooks/use-initial-toast";
 import { useVehiclePromo } from "@/hooks/use-vehicle-promo";
+import { useVehicleTradeIn } from "@/hooks/use-vehicle-trade-in";
+import { useVehicleDetailSections } from "@/hooks/use-vehicle-detail-sections";
 import type { ApiResult } from "@/lib/api";
 import { formatCurrency } from "@/lib/currency-format";
-import { formatMalaysianDate } from "@/lib/date-format";
 import { label } from "@/lib/inspection/contracts";
 import type { PublicVehicleDetail } from "@/lib/vehicles/public-detail";
-import { ListingPhoto } from "./ListingGallery";
-import { VehicleFinancing } from "./VehicleFinancing";
+import { VehicleDetailView } from "./VehicleDetailView";
+import { VehicleDetailSections } from "./VehicleDetailSections";
+import { VehiclePurchaseSummary } from "./VehiclePurchaseSummary";
 import { VehiclePromo } from "./VehiclePromo";
-import gallery from "./ListingGallery.module.css";
+import { VehicleFinancing } from "./VehicleFinancing";
+import { VehicleInspection } from "./VehicleInspection";
+import { VehicleTradeIn } from "./VehicleTradeIn";
 import styles from "./VehicleDetail.module.css";
+import layout from "./VehicleLayout.module.css";
 
 export function VehicleDetail({
   id,
@@ -22,8 +29,12 @@ export function VehicleDetail({
   id: string;
   initial: ApiResult<PublicVehicleDetail>;
 }) {
-  const { snapshot, unavailable, busy, refresh } = useVehicleDetail(id, initial);
+  const snapshot = initial.data;
+  const unavailable = initial.status === 404;
+  useInitialToast(unavailable || snapshot ? null : initial.message);
   const promo = useVehiclePromo(snapshot);
+  const tradeIn = useVehicleTradeIn();
+  const tabs = useVehicleDetailSections();
   const price = promo.accepted?.price ?? snapshot?.price;
   const listing = snapshot?.listing;
   const name = listing
@@ -31,119 +42,120 @@ export function VehicleDetail({
     : "Vehicle details";
 
   return (
-    <section className={styles.page}>
-      <Link href="/vehicles" prefetch={false}>
-        Back to vehicles
-      </Link>
-      <header className={styles.heading}>
-        <h1>{name}</h1>
-        <Button variant="secondary" disabled={busy} onClick={() => void refresh()}>
-          {busy ? "Refreshing vehicle…" : "Refresh vehicle"}
-        </Button>
-      </header>
+    <section className={`${layout.content} ${styles.page}`}>
+      <LoadingProgressReady />
+      <LoadingProgress
+        label="Loading trade-in options"
+        active={!tradeIn.taxonomy && tradeIn.busy}
+      />
+      <div className={styles.heading}>
+        <Link href="/vehicles" prefetch={false}>
+          <Icon name="previous" />
+          Back to vehicles
+        </Link>
+      </div>
       {!snapshot || !listing || !price ? (
-        <p>
-          {unavailable
-            ? "This vehicle is currently unavailable. Browse the catalogue for available vehicles."
-            : "Refresh to check this vehicle's details and availability."}
-        </p>
-      ) : (
-        <div aria-busy={busy} className={styles.content}>
+        <div>
+          <h1>Vehicle details</h1>
           <p>
-            {listing.branchName} · {listing.mileageKilometres.toLocaleString("en-MY")} km ·{" "}
-            {listing.transmission} · {label(listing.fuel)}
+            {unavailable
+              ? "This vehicle is currently unavailable. Browse the catalogue for available vehicles."
+              : "Vehicle details could not be loaded. Reload the page to try again."}
           </p>
-          <section aria-label="Vehicle photos" className={gallery.gallery}>
-            {snapshot.photoIds.length === 0 && <p>Photography unavailable</p>}
-            <div className={gallery.photos}>
-              {snapshot.photoIds.map((photoId, index) => (
-                <ListingPhoto
-                  key={`${id}:${photoId}`}
-                  vehicleId={id}
-                  id={photoId}
-                  position={index + 1}
-                  vehicleName={name}
-                  photoUrl={`/api/vehicles/${id}/photos/${photoId}`}
-                />
-              ))}
-            </div>
-          </section>
-          <section aria-labelledby="vehicle-price">
-            <h2 id="vehicle-price">Itemized price estimate</h2>
-            <dl className={styles.price}>
-              <div>
-                <dt>Vehicle price</dt>
-                <dd>{formatCurrency(price.vehiclePrice)}</dd>
-              </div>
-              <div>
-                <dt>Processing fee</dt>
-                <dd>{formatCurrency(price.processingFee)}</dd>
-              </div>
-              <div>
-                <dt>Road tax</dt>
-                <dd>{formatCurrency(price.roadTax)}</dd>
-              </div>
-              <div>
-                <dt>SST on processing fee ({snapshot.sstRate * 100}%)</dt>
-                <dd>{formatCurrency(price.serviceTax)}</dd>
-              </div>
-              {promo.accepted && (
-                <div>
-                  <dt>Promo discount ({promo.accepted.promoCode})</dt>
-                  <dd>−{formatCurrency(price.promoDiscount)}</dd>
-                </div>
-              )}
-              <div>
-                <dt>Estimated total</dt>
-                <dd>{formatCurrency(price.total)}</dd>
-              </div>
-            </dl>
-            <p>
-              Insurance and optional warranty are excluded. This portfolio estimate uses simulated
-              financial terms.
-            </p>
-            <VehiclePromo promo={promo} />
-          </section>
-          <VehicleFinancing key={id} total={price.total} />
-          <section aria-labelledby="vehicle-description">
-            <h2 id="vehicle-description">About this vehicle</h2>
-            <p className={styles.description}>{snapshot.description}</p>
-          </section>
-          <section aria-labelledby="vehicle-inspection">
-            <h2 id="vehicle-inspection">Signed inspection checklist</h2>
-            <p>
-              {snapshot.checklist.grade ? `Grade ${snapshot.checklist.grade}` : "Ungraded"} · Signed{" "}
-              {formatMalaysianDate(snapshot.checklist.signedAt)}
-            </p>
-            {Array.from(new Set(snapshot.checklist.points.map((point) => point.category))).map(
-              (category) => (
-                <details key={category} className={styles.checklist}>
-                  <summary>{label(category)}</summary>
-                  <ul>
-                    {snapshot.checklist.points
-                      .filter((point) => point.category === category)
-                      .map((point) => (
-                        <li key={point.code}>
-                          <strong>
-                            {point.code} · {point.description}
-                          </strong>
-                          <span>
-                            {point.kind === null ? "No finding recorded" : label(point.kind)}
-                            {point.severity ? ` · ${label(point.severity)}` : ""}
-                          </span>
-                          {point.estimatedRepairCost > 0 && (
-                            <span>
-                              Estimated repair cost: {formatCurrency(point.estimatedRepairCost)}
-                            </span>
-                          )}
-                        </li>
-                      ))}
-                  </ul>
-                </details>
-              ),
-            )}
-          </section>
         </div>
+      ) : (
+        <VehicleDetailView
+          vehicleId={id}
+          name={name}
+          branch={listing.branchName}
+          mileage={`${listing.mileageKilometres.toLocaleString("en-MY")} km`}
+          transmission={listing.transmission}
+          fuel={label(listing.fuel)}
+          price={formatCurrency(price.vehiclePrice)}
+          photos={snapshot.photoIds.map((photoId) => ({
+            id: photoId,
+            url: `/api/vehicles/${id}/photos/${photoId}`,
+          }))}
+          summary={
+            <VehiclePurchaseSummary
+              promo={<VehiclePromo promo={promo} />}
+              total={formatCurrency(price.total)}
+              breakdown={[
+                { label: "Vehicle price", amount: formatCurrency(price.vehiclePrice) },
+                { label: "Processing fee", amount: formatCurrency(price.processingFee) },
+                { label: "Road tax", amount: formatCurrency(price.roadTax) },
+                {
+                  label: `SST on processing fee (${snapshot.sstRate * 100}%)`,
+                  amount: formatCurrency(price.serviceTax),
+                },
+                ...(promo.accepted
+                  ? [
+                      {
+                        label: `Promo discount (${promo.accepted.promoCode})`,
+                        amount: `−${formatCurrency(price.promoDiscount)}`,
+                      },
+                    ]
+                  : []),
+              ]}
+              financing={
+                <Button onClick={() => tabs.select("financing")}>Calculate financing</Button>
+              }
+            />
+          }
+        >
+          <VehicleDetailSections
+            section={tabs.section}
+            select={tabs.select}
+            overview={
+              <section aria-labelledby="vehicle-overview">
+                <h2 id="vehicle-overview">About this vehicle</h2>
+                <p className={styles.description}>{snapshot.description}</p>
+                <dl className={styles.specifications}>
+                  <div>
+                    <dt>Make</dt>
+                    <dd>{listing.make}</dd>
+                  </div>
+                  <div>
+                    <dt>Model</dt>
+                    <dd>{listing.model}</dd>
+                  </div>
+                  <div>
+                    <dt>Variant</dt>
+                    <dd>{listing.trim}</dd>
+                  </div>
+                  <div>
+                    <dt>Year</dt>
+                    <dd>{listing.manufactureYear}</dd>
+                  </div>
+                  <div>
+                    <dt>Mileage</dt>
+                    <dd>{listing.mileageKilometres.toLocaleString("en-MY")} km</dd>
+                  </div>
+                  <div>
+                    <dt>Transmission</dt>
+                    <dd>{listing.transmission}</dd>
+                  </div>
+                  <div>
+                    <dt>Fuel</dt>
+                    <dd>{label(listing.fuel)}</dd>
+                  </div>
+                  <div>
+                    <dt>Showroom</dt>
+                    <dd>{listing.branchName}</dd>
+                  </div>
+                </dl>
+              </section>
+            }
+            inspection={<VehicleInspection checklist={snapshot.checklist} />}
+            financing={
+              <VehicleFinancing
+                total={price.total}
+                tradeInAllowance={tradeIn.accepted?.quote.minValuation ?? 0}
+              />
+            }
+            tradeIn={<VehicleTradeIn tradeIn={tradeIn} />}
+          />
+        </VehicleDetailView>
       )}
     </section>
   );
