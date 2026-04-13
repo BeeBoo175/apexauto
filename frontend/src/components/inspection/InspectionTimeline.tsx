@@ -9,8 +9,9 @@ import { inspectionTimeline } from "@/lib/inspection/timeline";
 import type { EditorSnapshot } from "@/lib/inspection/editor-snapshot";
 import type { RepairSelection } from "@/lib/inspection/query";
 import { formatMalaysianDateTime } from "@/lib/date-format";
-import styles from "./InspectionTimeline.module.css";
-import { InspectionHistoryProgress, InspectionRepairLink } from "./InspectionHistory";
+import styles from "@/components/staff/StaffHistory.module.css";
+import { StaffHistoryProgress } from "@/components/staff/StaffHistoryProgress";
+import { InspectionRepairLink } from "./InspectionHistory";
 
 export function InspectionTimeline({
   snapshot,
@@ -115,7 +116,7 @@ export function InspectionTimeline({
                 </div>
               )}
               {signed && !current && expanded && (
-                <InspectionHistoryProgress
+                <StaffHistoryProgress
                   read={previous}
                   label="Repair requests"
                   disabled={disabled}
@@ -125,9 +126,9 @@ export function InspectionTimeline({
           );
         })}
       </ol>
-      <InspectionHistoryProgress read={revisions} label="Signed inspections" disabled={disabled} />
+      <StaffHistoryProgress read={revisions} label="Signed inspections" disabled={disabled} />
       {snapshot.draft.isSigned && (
-        <InspectionHistoryProgress read={repairs} label="Repair requests" disabled={disabled} />
+        <StaffHistoryProgress read={repairs} label="Repair requests" disabled={disabled} />
       )}
     </section>
   );
