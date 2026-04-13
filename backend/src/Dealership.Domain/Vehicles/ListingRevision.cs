@@ -17,6 +17,8 @@ public enum VehicleFuel
 
 public sealed class ListingRevision
 {
+    public const int MaximumPhotos = 4;
+
     private ListingRevision()
     {
     }
@@ -37,9 +39,10 @@ public sealed class ListingRevision
         }
 
         PurchasePricing.CalculatePrice(vehiclePrice, 0m, roadTax, 0m);
-        if (photoIds is not null && (photoIds.Contains(Guid.Empty) || photoIds.Distinct().Count() != photoIds.Count))
+        if (photoIds is not null && (photoIds.Count > MaximumPhotos ||
+            photoIds.Contains(Guid.Empty) || photoIds.Distinct().Count() != photoIds.Count))
         {
-            throw new ArgumentException("Listing photos require distinct nonempty upload identities.");
+            throw new ArgumentException("A listing supports up to four distinct nonempty photo identities.");
         }
 
         ArgumentOutOfRangeException.ThrowIfGreaterThan(vehiclePrice, 9999999999999999.99m);

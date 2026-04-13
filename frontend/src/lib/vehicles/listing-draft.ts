@@ -2,6 +2,7 @@ import { isRecord, isUuid } from "@/lib/auth/contracts";
 import { parseMyr } from "@/lib/currency-input";
 import { fuels, transmissions } from "./contracts";
 import { parseRevision, type ListingRevision } from "./listing-workspace";
+import { MAX_LISTING_PHOTOS } from "./listing-photos";
 
 export interface ListingDraft {
   vehiclePrice: string;
@@ -42,6 +43,7 @@ export function listingDraftContents(value: ListingDraft) {
     description.length > 2000 ||
     description.includes("\0") ||
     !Array.isArray(value.photoIds) ||
+    value.photoIds.length > MAX_LISTING_PHOTOS ||
     !value.photoIds.every(isUuid) ||
     new Set(value.photoIds).size !== value.photoIds.length
   ) {

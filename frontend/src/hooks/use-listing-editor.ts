@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/Toast";
 import { apiFetch } from "@/lib/api-browser";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { ListingWorkspace } from "@/lib/vehicles/listing-workspace";
+import { MAX_LISTING_PHOTOS } from "@/lib/vehicles/listing-photos";
 import {
   listingWithdrawalReason,
   matchesListingWithdrawal,
@@ -61,8 +62,12 @@ export function useListingEditor(
     (path, parse, options) => apiFetch(path, parse, options, { requireActor: true }),
   );
   const upload = useListingUpload(snapshot.vehicle.vehicleId, (id) => {
+    if (value.photoIds.length >= MAX_LISTING_PHOTOS) {
+      return false;
+    }
     setValue((current) => ({ ...current, photoIds: [...current.photoIds, id] }));
     setDirty(true);
+    return true;
   });
   const withdrawal = useApiCommand(
     `/api/staff/listings/${snapshot.vehicle.vehicleId}/withdrawals`,
@@ -96,6 +101,7 @@ export function useListingEditor(
   const stale = (snapshot.draft?.version ?? 0) > (base?.version ?? 0);
   const canApprove = Boolean(
     base &&
+    base.photoIds.length <= MAX_LISTING_PHOTOS &&
     snapshot.currentSignedRevisionId &&
     !dirty &&
     !withdrawalReason &&
@@ -134,7 +140,7 @@ export function useListingEditor(
   }
 
   function selectPhoto(file: File | null) {
-    if (operating || !upload.select(file)) {
+    if (operating || value.photoIds.length >= MAX_LISTING_PHOTOS || !upload.select(file)) {
       return false;
     }
     lockNavigation(true);
@@ -144,6 +150,10 @@ export function useListingEditor(
 
   function change(next: ListingDraft) {
     if (operating) {
+      return;
+    }
+    if (next.photoIds.length > MAX_LISTING_PHOTOS && next.photoIds.length > value.photoIds.length) {
+      toast.error("A listing can contain up to four photos. Remove one before adding another.");
       return;
     }
     lockNavigation(true);
@@ -170,8 +180,12 @@ export function useListingEditor(
       return;
     }
     const contents = listingDraftContents(value);
-    if (!contents) {
+    if (!contents && !command.uncertain) {
       setValidationAttempted(true);
+      if (value.photoIds.length > MAX_LISTING_PHOTOS) {
+        toast.error("Keep up to four photos in this listing before saving.");
+        return;
+      }
       toast.error(
         "Enter exact MYR prices, transmission, fuel and a description of at most 2000 characters.",
       );

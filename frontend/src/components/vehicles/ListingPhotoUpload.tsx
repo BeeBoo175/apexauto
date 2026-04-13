@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef } from "react";
+import { useId, useRef, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import type { useListingUpload } from "@/hooks/use-listing-upload";
@@ -9,14 +9,16 @@ import styles from "./ListingGallery.module.css";
 export function ListingPhotoUpload({
   upload,
   disabled,
+  children,
 }: {
   upload: ReturnType<typeof useListingUpload>;
   disabled: boolean;
+  children?: ReactNode;
 }) {
   const fileInput = useRef<HTMLInputElement>(null);
   const helpId = useId();
   return (
-    <section className={styles.gallery} aria-label="Upload listing photo">
+    <div className={styles.gallery}>
       <div hidden>
         <Input
           ref={fileInput}
@@ -30,28 +32,34 @@ export function ListingPhotoUpload({
           }}
         />
       </div>
-      <div className={styles.controls}>
-        {!upload.file && (
+      {!upload.file && (
+        <div className={styles.photoActions}>
           <Button
             size="compact"
             variant="secondary"
             disabled={disabled}
             aria-describedby={helpId}
+            title="JPEG, PNG or WebP · up to 10 MiB"
             onClick={() => fileInput.current?.click()}
           >
-            Add new photo
+            Upload
           </Button>
-        )}
-        {upload.file && (
-          <>
-            <span>{upload.file.name}</span>
+          {children}
+        </div>
+      )}
+      {upload.file && (
+        <div className={styles.pendingUpload}>
+          <span className={styles.fileName} title={upload.file.name}>
+            {upload.file.name}
+          </span>
+          <div className={styles.photoActions}>
             <Button
               size="compact"
               variant="secondary"
               disabled={upload.busy}
               onClick={() => void upload.upload()}
             >
-              {upload.uncertain ? "Retry same photo" : "Upload photo"}
+              {upload.uncertain ? "Retry upload" : "Upload photo"}
             </Button>
             {upload.uncertain ? (
               <Button
@@ -60,22 +68,19 @@ export function ListingPhotoUpload({
                 disabled={upload.busy}
                 onClick={() => void upload.upload(true)}
               >
-                Check photo receipt
+                Check receipt
               </Button>
             ) : (
-              <Button
-                size="compact"
-                variant="ghost"
-                disabled={upload.busy}
-                onClick={upload.discard}
-              >
-                Discard selected photo
+              <Button size="compact" variant="ghost" disabled={upload.busy} onClick={upload.discard}>
+                Discard
               </Button>
             )}
-          </>
-        )}
-      </div>
-      <p id={helpId}>JPEG, PNG or WebP · up to 10 MiB. Confirmed photos join this draft.</p>
-    </section>
+          </div>
+        </div>
+      )}
+      <span id={helpId} className="sr-only">
+        JPEG, PNG or WebP, up to 10 MiB.
+      </span>
+    </div>
   );
 }

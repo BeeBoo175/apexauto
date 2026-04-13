@@ -6,7 +6,7 @@ import { apiFetch } from "@/lib/api-browser";
 import { PHOTO_MAX_BYTES } from "@/lib/intake/contracts";
 import { matchesListingUpload, parseListingPhotoReceipt } from "@/lib/vehicles/listing-photos";
 
-export function useListingUpload(vehicleId: string, onConfirmed: (id: string) => void) {
+export function useListingUpload(vehicleId: string, onConfirmed: (id: string) => boolean) {
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [uncertain, setUncertain] = useState(false);
@@ -74,11 +74,15 @@ export function useListingUpload(vehicleId: string, onConfirmed: (id: string) =>
         throw new Error("Photo receipt mismatch");
       }
       if (result.status === 200 && receipt?.availableAt) {
-        onConfirmed(receipt.id);
+        const added = onConfirmed(receipt.id);
         operation.current = null;
         setFile(null);
         setUncertain(false);
-        toast.success("Photo confirmed. Save the draft to keep it in this listing.");
+        toast.success(
+          added
+            ? "Photo confirmed. Save the draft to keep it in this listing."
+            : "Photo confirmed in uploaded photos. Remove a listing photo before adding it.",
+        );
         return;
       }
       if (reconcile && result.status === 404) {

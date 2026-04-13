@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/Button";
 import { StaffWorkspaceFooter } from "@/components/staff/StaffWorkspaceFooter";
 import type { useListingEditor } from "@/hooks/use-listing-editor";
 import type { ListingSection } from "@/lib/vehicles/listings";
+import { MAX_LISTING_PHOTOS } from "@/lib/vehicles/listing-photos";
 
 export function ListingEditorFooter({
   editor,
@@ -99,6 +100,12 @@ function footerContext(
       description: section === "publication"
         ? "Approval and withdrawal records are read only. Your current draft is retained."
         : "Saved fields are read only; identity and mileage reflect the current vehicle record.",
+    };
+  }
+  if (editor.value.photoIds.length > MAX_LISTING_PHOTOS) {
+    return {
+      title: "Photo limit exceeded",
+      description: "Keep up to four photos in Listing, then save the draft before approval.",
     };
   }
   if (editor.upload.file) {

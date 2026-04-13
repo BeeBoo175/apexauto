@@ -28,6 +28,19 @@ public sealed class ListingService(IListingStore listings)
             return await CompleteAsync(transaction, new(ListingStatus.Conflict), cancellationToken);
         }
 
+        // Retained receipts remain replayable when an older revision exceeds today's photo limit.
+        var existing = context.ExistingDraft;
+        if (existing is not null)
+        {
+            var matches = existing.VehicleId == vehicleId && existing.ActorId == actorId &&
+                existing.Version == request.ExpectedVersion + 1 && existing.VehiclePrice == request.VehiclePrice &&
+                existing.RoadTax == request.RoadTax && existing.Transmission == request.Transmission &&
+                existing.Fuel == request.Fuel && existing.Description == request.Description?.Trim() &&
+                existing.PhotoIds.SequenceEqual(request.PhotoIds);
+            return await CompleteAsync(transaction,
+                matches ? new(ListingStatus.Succeeded, Draft: existing) : new(ListingStatus.Conflict), cancellationToken);
+        }
+
         ListingRevision revision;
         try
         {
@@ -42,18 +55,6 @@ public sealed class ListingService(IListingStore listings)
         catch (OverflowException)
         {
             return await CompleteAsync(transaction, new(ListingStatus.Invalid), cancellationToken);
-        }
-
-        var existing = context.ExistingDraft;
-        if (existing is not null)
-        {
-            var matches = existing.VehicleId == vehicleId && existing.ActorId == actorId &&
-                existing.Version == revision.Version && existing.VehiclePrice == revision.VehiclePrice &&
-                existing.RoadTax == revision.RoadTax && existing.Transmission == revision.Transmission &&
-                existing.Fuel == revision.Fuel && existing.Description == revision.Description &&
-                existing.PhotoIds.SequenceEqual(request.PhotoIds);
-            return await CompleteAsync(transaction,
-                matches ? new(ListingStatus.Succeeded, Draft: existing) : new(ListingStatus.Conflict), cancellationToken);
         }
 
         if ((context.LatestRevision?.Version ?? 0) != request.ExpectedVersion ||
@@ -97,6 +98,11 @@ public sealed class ListingService(IListingStore listings)
         }
 
         var revision = context.LatestRevision;
+        if (revision is not null && revision.PhotoIds.Length > ListingRevision.MaximumPhotos)
+        {
+            return await CompleteAsync(transaction, new(ListingStatus.Invalid), cancellationToken);
+        }
+
         if (revision?.Id != request.RevisionId || context.Vehicle!.Status != VehicleStatus.Available ||
             context.SignedRevisionId != request.SignedRevisionId || context.LatestPublication?.RevisionId == request.RevisionId)
         {

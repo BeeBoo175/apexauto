@@ -10,18 +10,129 @@
   margin: 0;
 }
 
-.controls {
+.gallery h3 {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.help {
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.library {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--color-line-soft);
+  background: var(--color-canvas);
+}
+
+.photoHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.photoHeading h3 span {
+  color: var(--color-muted);
+  font-weight: 400;
+}
+
+.photoHeading h4 {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.photoActions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  padding-top: 8px;
+}
+
+.pendingUpload {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.fileName {
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.libraryPhotos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+
+.libraryChoice {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.libraryChoice > button {
+  justify-self: start;
 }
 
 .photos {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
+}
+
+.sortablePhotos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 12px;
+  min-width: 0;
+}
+
+.sortablePhoto {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sortablePhoto[data-dragging="true"] {
+  outline: 2px solid var(--color-interaction-border);
+  outline-offset: 4px;
+  opacity: 0.7;
+}
+
+.dragArea {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.sortablePhoto[data-dragging="true"] .dragArea {
+  cursor: grabbing;
+}
+
+.sortablePhoto[data-disabled="true"] .dragArea {
+  cursor: default;
+  touch-action: auto;
+}
+
+.sortControls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px;
 }
 
 .photo {

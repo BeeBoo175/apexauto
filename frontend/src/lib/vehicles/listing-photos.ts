@@ -1,6 +1,8 @@
 import { parsePage } from "@/lib/api";
 import { isRecord, isUuid } from "@/lib/auth/contracts";
 
+export const MAX_LISTING_PHOTOS = 4;
+
 export interface ListingPhotoItem {
   id: string;
   contentType: string;
@@ -74,10 +76,41 @@ export function matchesListingUpload(
 export function moveListingPhoto(ids: string[], id: string, offset: -1 | 1) {
   const from = ids.indexOf(id);
   const to = from + offset;
-  if (from < 0 || to < 0 || to >= ids.length) {
+  return reorderListingPhoto(ids, id, to);
+}
+
+export function reorderListingPhoto(ids: string[], id: string, position: number) {
+  const from = ids.indexOf(id);
+  if (
+    from < 0 || !Number.isInteger(position) || position < 0 ||
+    position >= ids.length || from === position
+  ) {
     return ids;
   }
   const next = [...ids];
-  [next[from], next[to]] = [next[to], next[from]];
+  next.splice(from, 1);
+  next.splice(position, 0, id);
   return next;
+}
+
+export interface ListingPhotoSlot {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+}
+
+export function listingPhotoDropIndex(slots: ListingPhotoSlot[], x: number, y: number) {
+  let index = -1;
+  let distance = Infinity;
+  slots.forEach((slot, position) => {
+    const next =
+      (x - (slot.left + slot.right) / 2) ** 2 +
+      (y - (slot.top + slot.bottom) / 2) ** 2;
+    if (next < distance) {
+      index = position;
+      distance = next;
+    }
+  });
+  return index;
 }
