@@ -3,8 +3,43 @@ import { isRecord, isUuid } from "@/lib/auth/contracts";
 import { readCurrentActor } from "@/lib/auth/server";
 import { HttpError, readBoundedJson } from "@/lib/http";
 import { requireSameOrigin } from "@/lib/server/http/request";
-import { apiError, apiJson, apiRead, sessionToken } from "@/lib/server/http/api";
+import { apiError, apiJson, apiRead, privateApiRead, sessionToken } from "@/lib/server/http/api";
 import { hasListingAccess } from "@/lib/vehicles/listings";
+
+export async function relayListingRead<T>(
+  request: Request,
+  id: string,
+  resource: string,
+  parse: (value: unknown) => T | null,
+  matches: (value: T) => boolean,
+) {
+  try {
+    if (!isUuid(id)) {
+      throw new HttpError(400, "Choose a valid vehicle ID.");
+    }
+    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(25_000)]);
+    const current = await readCurrentActor(signal);
+    if (!current.actor) {
+      throw new HttpError(current.status === 401 ? 401 : 502, "Your session could not be confirmed.");
+    }
+    if (!hasListingAccess(current.actor)) {
+      return apiJson({
+        status: 403,
+        data: null,
+        message: "Listing access unavailable.",
+        uncertain: false,
+        actor: current.actor,
+      });
+    }
+    const result = await privateApiRead(`/api/staff/listings/${id}${resource}`, parse, signal);
+    if (result.data && !matches(result.data)) {
+      throw new HttpError(502, "The listing response could not be confirmed.");
+    }
+    return apiJson({ ...result, actor: current.actor });
+  } catch (error) {
+    return apiError(error);
+  }
+}
 
 export async function relayListingCommand<T>(
   request: Request,
