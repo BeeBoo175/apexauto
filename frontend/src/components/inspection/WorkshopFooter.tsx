@@ -2,7 +2,8 @@ import type { useInspectionEditor } from "@/hooks/use-inspection-editor";
 import type { WorkshopSection } from "@/lib/inspection/query";
 import { InspectionActions } from "./InspectionActions";
 import { Button } from "@/components/ui/Button";
-import workshop from "./Workshop.module.css";
+import { StaffWorkspaceFooter } from "@/components/staff/StaffWorkspaceFooter";
+import workspace from "@/components/staff/StaffWorkspace.module.css";
 
 type Editor = ReturnType<typeof useInspectionEditor>;
 
@@ -26,28 +27,22 @@ export function WorkshopFooter({
   const pendingInspection = editor.checklistDirty || editor.save.uncertain || editor.sign.uncertain;
   const context = footerContext(editor, section, historical, repairEditing);
   return (
-    <footer className={workshop.footer}>
-      <div className={workshop.footerContext}>
-        <strong>{context.title}</strong>
-        <span>{context.description}</span>
-      </div>
-      <div className={workshop.footerActions}>
-        {(section === "inspection" || pendingInspection) && (
-          <InspectionActions editor={editor} onConfirm={onConfirm} />
-        )}
-        <div ref={onActionsContainer} className={workshop.footerActions} />
-        {section === "repairs" && historical && (
-          <Button
-            size="compact"
-            variant={pendingInspection ? "secondary" : "primary"}
-            disabled={!editor.ready || editor.operating || editor.refreshing}
-            onClick={onCurrentRepairs}
-          >
-            Back to current repairs
-          </Button>
-        )}
-      </div>
-    </footer>
+    <StaffWorkspaceFooter title={context.title} description={context.description}>
+      {(section === "inspection" || pendingInspection) && (
+        <InspectionActions editor={editor} onConfirm={onConfirm} />
+      )}
+      <div ref={onActionsContainer} className={workspace.footerActions} />
+      {section === "repairs" && historical && (
+        <Button
+          size="compact"
+          variant={pendingInspection ? "secondary" : "primary"}
+          disabled={!editor.ready || editor.operating || editor.refreshing}
+          onClick={onCurrentRepairs}
+        >
+          Back to current repairs
+        </Button>
+      )}
+    </StaffWorkspaceFooter>
   );
 }
 

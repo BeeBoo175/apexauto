@@ -109,39 +109,6 @@
   overscroll-behavior: contain;
 }
 
-.footer {
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-  padding: 16px 24px;
-  border-top: 1px solid var(--color-line);
-  background: var(--color-paper);
-}
-
-.footerActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.footerActions:empty {
-  display: none;
-}
-
-.footerContext {
-  display: grid;
-  gap: 4px;
-  font-size: 13px;
-}
-
-.footerContext span {
-  color: var(--color-muted);
-  font-size: 12px;
-}
-
 .summaryLinks {
   display: flex;
   align-items: center;
@@ -410,8 +377,7 @@
 }
 
 @media (max-width: 600px) {
-  .summary,
-  .footer {
+  .summary {
     padding: 16px;
   }
 

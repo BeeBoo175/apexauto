@@ -195,8 +195,8 @@ export function ReservationDrawer({
                 )}
               </section>
             </div>
-            <footer className={workshop.footer}>
-              <div className={workshop.footerContext}>
+            <footer className={workbench.footer}>
+              <div className={workbench.footerContext}>
                 <strong>Simulated portfolio reservation</strong>
                 <span>No real payment or refund is processed.</span>
               </div>
