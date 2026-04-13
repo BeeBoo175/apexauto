@@ -99,7 +99,6 @@ export function ListingDrawer({
             actor={actor}
             section={section}
             changeSection={changeSection}
-            close={close}
             onLock={setLocked}
             onSaved={() => {
               onSaved();

@@ -7,7 +7,6 @@ import type { ListingDraft } from "@/lib/vehicles/listing-draft";
 import type { ListingWorkspace } from "@/lib/vehicles/listing-workspace";
 import { VehicleCardView } from "./VehicleCardView";
 import styles from "./ListingCardPreview.module.css";
-import workbench from "@/components/staff/StaffWorkspace.module.css";
 
 export function ListingCardPreview({
   snapshot,
@@ -27,28 +26,21 @@ export function ListingCardPreview({
   const coverPhotoId = draft.photoIds[0];
 
   return (
-    <section className={workbench.stack} aria-label="Catalogue card preview">
-      <h3>Catalogue card preview</h3>
-      <p>
-        This preview uses your current draft. Save the draft before a separate publication approval.
-      </p>
-      {price === null && <p>Enter a valid vehicle price before saving.</p>}
-      <div className={styles.card}>
-        <VehicleCardView
-          key={`${vehicle.vehicleId}:${coverPhotoId ?? "none"}`}
-          vehicle={{
-            ...vehicle,
-            transmission: draft.transmission || "Not set",
-            fuel: draft.fuel || "Not set",
-          }}
-          price={price === null ? draft.vehiclePrice || "Not set" : formatCurrency(price)}
-          photoUrl={
-            coverPhotoId ? `/api/staff/listings/${vehicle.vehicleId}/photos/${coverPhotoId}` : null
-          }
-          first
-          photoVersion={photoVersion}
-        />
-      </div>
-    </section>
+    <div className={styles.card}>
+      <VehicleCardView
+        key={`${vehicle.vehicleId}:${coverPhotoId ?? "none"}`}
+        vehicle={{
+          ...vehicle,
+          transmission: draft.transmission || "Not set",
+          fuel: draft.fuel || "Not set",
+        }}
+        price={price === null ? "Price incomplete" : formatCurrency(price)}
+        photoUrl={
+          coverPhotoId ? `/api/staff/listings/${vehicle.vehicleId}/photos/${coverPhotoId}` : null
+        }
+        first
+        photoVersion={photoVersion}
+      />
+    </div>
   );
 }
