@@ -31,48 +31,6 @@
   outline-offset: 4px;
 }
 
-.description {
-  max-width: 65ch;
-  margin: 0 0 28px;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  color: var(--color-muted);
-  font-size: 0.9375rem;
-  line-height: 1.75;
-}
-
-.specifications {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0 32px;
-  margin: 0;
-}
-
-.specifications div {
-  min-width: 0;
-  padding: 24px 0 8px;
-}
-
-.specifications dt {
-  margin-bottom: 8px;
-  color: var(--color-muted);
-  font-size: 0.75rem;
-}
-
-.specifications dd {
-  margin: 0;
-  overflow-wrap: anywhere;
-  font-size: 0.9375rem;
-  font-weight: 600;
-}
-
-@media (max-width: 760px) {
-  .specifications {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0 20px;
-  }
-}
-
 @media (max-width: 640px) {
   .page {
     padding-block: 20px 48px;

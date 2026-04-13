@@ -15,6 +15,7 @@ import type { PublicVehicleDetail } from "@/lib/vehicles/public-detail";
 import { VehicleDetailView } from "./VehicleDetailView";
 import { VehicleDetailSections } from "./VehicleDetailSections";
 import { VehiclePurchaseSummary } from "./VehiclePurchaseSummary";
+import { VehicleOverview } from "./VehicleOverview";
 import { VehiclePromo } from "./VehiclePromo";
 import { VehicleFinancing } from "./VehicleFinancing";
 import { VehicleInspection } from "./VehicleInspection";
@@ -107,44 +108,10 @@ export function VehicleDetail({
             section={tabs.section}
             select={tabs.select}
             overview={
-              <section aria-labelledby="vehicle-overview">
-                <h2 id="vehicle-overview">About this vehicle</h2>
-                <p className={styles.description}>{snapshot.description}</p>
-                <dl className={styles.specifications}>
-                  <div>
-                    <dt>Make</dt>
-                    <dd>{listing.make}</dd>
-                  </div>
-                  <div>
-                    <dt>Model</dt>
-                    <dd>{listing.model}</dd>
-                  </div>
-                  <div>
-                    <dt>Variant</dt>
-                    <dd>{listing.trim}</dd>
-                  </div>
-                  <div>
-                    <dt>Year</dt>
-                    <dd>{listing.manufactureYear}</dd>
-                  </div>
-                  <div>
-                    <dt>Mileage</dt>
-                    <dd>{listing.mileageKilometres.toLocaleString("en-MY")} km</dd>
-                  </div>
-                  <div>
-                    <dt>Transmission</dt>
-                    <dd>{listing.transmission}</dd>
-                  </div>
-                  <div>
-                    <dt>Fuel</dt>
-                    <dd>{label(listing.fuel)}</dd>
-                  </div>
-                  <div>
-                    <dt>Showroom</dt>
-                    <dd>{listing.branchName}</dd>
-                  </div>
-                </dl>
-              </section>
+              <VehicleOverview
+                vehicle={{ ...listing, fuel: label(listing.fuel) }}
+                description={snapshot.description}
+              />
             }
             inspection={<VehicleInspection checklist={snapshot.checklist} />}
             financing={

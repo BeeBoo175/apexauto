@@ -6,11 +6,13 @@ export function VehiclePurchaseSummary({
   breakdown,
   promo,
   financing,
+  notice,
 }: {
-  total: string;
+  total: string | null;
   breakdown: { label: string; amount: string }[];
   promo?: ReactNode;
   financing?: ReactNode;
+  notice?: string;
 }) {
   return (
     <div className={styles.summary}>
@@ -23,13 +25,16 @@ export function VehiclePurchaseSummary({
             </div>
           ))}
         </dl>
-        <p>Insurance and optional warranty are excluded.</p>
+        {total !== null && <p>Insurance and optional warranty are excluded.</p>}
       </div>
       {promo}
-      <div className={styles.total} aria-live="polite" aria-atomic="true">
-        <span>Estimated total</span>
-        <strong>{total}</strong>
-      </div>
+      {total !== null && (
+        <div className={styles.total} aria-live="polite" aria-atomic="true">
+          <span>Estimated total</span>
+          <strong>{total}</strong>
+        </div>
+      )}
+      {notice && <p className={styles.notice}>{notice}</p>}
       {financing}
     </div>
   );
