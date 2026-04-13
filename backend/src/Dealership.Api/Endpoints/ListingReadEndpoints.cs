@@ -17,6 +17,8 @@ public static class ListingReadEndpoints
         routes.MapGet("", ReadAsync);
         routes.MapGet("/{vehicleId:guid}", WorkspaceAsync);
         routes.MapGet("/{vehicleId:guid}/photos", PhotosAsync);
+        routes.MapGet("/{vehicleId:guid}/history", HistoryAsync);
+        routes.MapGet("/{vehicleId:guid}/revisions/{revisionId:guid}", RevisionAsync);
     }
 
     private static async Task<IResult> ReadAsync(Guid? branchId, int? page, int? pageSize, string? search,
@@ -64,6 +66,39 @@ public static class ListingReadEndpoints
             var result = await store.PhotosAsync(ActorId(context), vehicleId, page ?? 1,
                 pageSize ?? Pagination.DefaultPageSize, deadline.Token);
             return Map(result.Status, result.Photos);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return Unavailable();
+        }
+    }
+
+    private static async Task<IResult> HistoryAsync(Guid vehicleId, int? page, int? pageSize, HttpContext context,
+        IListingHistoryStore history, CancellationToken cancellationToken)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(20));
+        try
+        {
+            var result = await history.ReadAsync(ActorId(context), vehicleId,
+                new(page ?? 1, pageSize ?? Pagination.DefaultPageSize), deadline.Token);
+            return Map(result.Status, result.History);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return Unavailable();
+        }
+    }
+
+    private static async Task<IResult> RevisionAsync(Guid vehicleId, Guid revisionId, HttpContext context,
+        IListingHistoryStore history, CancellationToken cancellationToken)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(20));
+        try
+        {
+            var result = await history.RevisionAsync(ActorId(context), vehicleId, revisionId, deadline.Token);
+            return Map(result.Status, result.Snapshot);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {

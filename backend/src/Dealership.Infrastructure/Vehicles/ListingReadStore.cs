@@ -1,5 +1,4 @@
 using System.Linq.Expressions;
-using Dealership.Application.Accounts;
 using Dealership.Application.Common;
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Vehicles;
@@ -34,7 +33,7 @@ public sealed class ListingReadStore(DealershipDbContext database) : IListingRea
     private async Task<ListingManagerPageResult> ReadSnapshotAsync(Guid actorId, ListingReadFilter filter,
         CancellationToken cancellationToken)
     {
-        var actor = await ReadActorAsync(actorId, filter.BranchId, cancellationToken);
+        var actor = await ListingReadScope.ReadActorAsync(database, actorId, filter.BranchId, cancellationToken);
         if (actor is null)
         {
             return new(ListingStatus.Forbidden);
@@ -135,7 +134,7 @@ public sealed class ListingReadStore(DealershipDbContext database) : IListingRea
     private async Task<ListingWorkspaceResult> WorkspaceSnapshotAsync(Guid actorId, Guid vehicleId,
         CancellationToken cancellationToken)
     {
-        var actor = await ReadActorAsync(actorId, null, cancellationToken);
+        var actor = await ListingReadScope.ReadActorAsync(database, actorId, null, cancellationToken);
         if (actor is null)
         {
             return new(ListingStatus.Forbidden);
@@ -181,7 +180,7 @@ public sealed class ListingReadStore(DealershipDbContext database) : IListingRea
     private async Task<ListingPhotoPageResult> PhotosSnapshotAsync(Guid actorId, Guid vehicleId, int page, int pageSize,
         CancellationToken cancellationToken)
     {
-        var actor = await ReadActorAsync(actorId, null, cancellationToken);
+        var actor = await ListingReadScope.ReadActorAsync(database, actorId, null, cancellationToken);
         if (actor is null)
         {
             return new(ListingStatus.Forbidden);
@@ -229,29 +228,6 @@ public sealed class ListingReadStore(DealershipDbContext database) : IListingRea
                    IsWithdrawn = publication != null && database.ListingWithdrawals.Any(row => row.PublicationId == publication.Id),
                    IsPublic = publicRows.Any(row => row.Vehicle.Id == vehicle.Id)
                };
-    }
-
-    private async Task<ListingManager?> ReadActorAsync(Guid actorId, Guid? selectedBranch, CancellationToken cancellationToken)
-    {
-        var actor = await database.Users.AsNoTracking().Where(user => user.Id == actorId)
-            .Select(user => new ListingManager(user.IsActive, user.Role, user.BranchId)).SingleOrDefaultAsync(cancellationToken);
-        if (actor is not { IsActive: true } || actor.Role is not (AccountRoles.BranchManager or AccountRoles.GeneralManager))
-        {
-            return null;
-        }
-
-        if (actor.Role == AccountRoles.GeneralManager)
-        {
-            return actor;
-        }
-
-        if (actor.BranchId is null || selectedBranch is not null && selectedBranch != actor.BranchId ||
-            !await database.Branches.AnyAsync(branch => branch.Id == actor.BranchId && branch.IsActive, cancellationToken))
-        {
-            return null;
-        }
-
-        return actor;
     }
 
     private sealed class Row

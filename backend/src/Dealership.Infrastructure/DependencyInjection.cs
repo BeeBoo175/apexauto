@@ -59,6 +59,7 @@ public static class DependencyInjection
         services.AddScoped<IPurchaseQuoteStore, PurchaseQuoteStore>();
         services.AddScoped<IPurchaseConfigurationStore, PurchaseConfigurationStore>();
         services.AddScoped<IListingReadStore, ListingReadStore>();
+        services.AddScoped<IListingHistoryStore, ListingHistoryStore>();
         services.AddScoped<IAccountSessionStore, AccountSessionStore>();
         services.AddScoped<ICustomerAccountQuery, CustomerAccountQuery>();
         services.AddScoped<IStaffProvisioningStore, StaffProvisioningStore>();
