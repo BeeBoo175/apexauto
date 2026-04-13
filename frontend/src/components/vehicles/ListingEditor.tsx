@@ -7,12 +7,18 @@ import { useListingEditor } from "@/hooks/use-listing-editor";
 import { useListingPhotos } from "@/hooks/use-listing-photos";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { ListingWorkspace } from "@/lib/vehicles/listing-workspace";
+import {
+  listingRecordSection,
+  type ListingRecordSelection,
+} from "@/lib/vehicles/listing-history-selection";
 import { listingPublication, type ListingSection } from "@/lib/vehicles/listings";
 import { ListingPublication } from "./ListingPublication";
 import { ListingPhotoPicker } from "./ListingPhotoPicker";
 import { ListingDraftFields } from "./ListingDraftFields";
 import { ListingEditingWorkspace } from "./ListingEditingWorkspace";
 import { ListingEditorFooter } from "./ListingEditorFooter";
+import { ListingHistory } from "./ListingHistory";
+import { RetainedListingReview } from "./RetainedListingReview";
 import workshop from "@/components/inspection/Workshop.module.css";
 import styles from "./ListingEditor.module.css";
 
@@ -23,6 +29,8 @@ export function ListingEditor({
   actor,
   section,
   changeSection,
+  record,
+  onRecord,
   onLock,
   onSaved,
 }: {
@@ -30,6 +38,8 @@ export function ListingEditor({
   actor: CurrentActor;
   section: ListingSection;
   changeSection: (section: ListingSection) => void;
+  record: ListingRecordSelection | null;
+  onRecord: (record: ListingRecordSelection | null) => void;
   onLock: (locked: boolean) => void;
   onSaved: () => void;
 }) {
@@ -44,6 +54,9 @@ export function ListingEditor({
   const publication = section === "publication";
   const editing = section === "listing" || section === "card";
   const target = section === "listing" || section === "card" ? section : lastTarget;
+  const historical = Boolean(
+    record && listingRecordSection(record) === (editing ? "listing" : section),
+  );
   const vehicle = {
     ...snapshot.vehicle,
     revisionId: editor.base?.id ?? null,
@@ -55,15 +68,20 @@ export function ListingEditor({
     changeSection(next);
   }
 
+  function viewCurrent() {
+    onRecord(null);
+    changeSection(publication ? "publication" : lastTarget);
+  }
+
   return (
     <div className={workshop.workspace}>
       <LoadingProgress label="Uploading listing photo" active={editor.upload.busy} />
       <LoadingProgress label="Approving publication" active={editor.approval.busy} />
       <LoadingProgress label="Withdrawing publication" active={editor.withdrawal.busy} />
-      {(
+      {!historical && (
         <div className={styles.status}>
           <strong>{listingPublication(vehicle)}</strong>
-          {editing && (
+          {(editing || section === "history") && (
             <span>{editor.base ? `Saved draft v${editor.base.version}` : "No saved draft"}</span>
           )}
         </div>
@@ -90,9 +108,21 @@ export function ListingEditor({
         >
           Publication
         </Button>
+        <Button
+          size="compact"
+          variant="ghost"
+          className={workshop.sectionButton}
+          aria-pressed={section === "history"}
+          onClick={() => {
+            setLastTarget(target);
+            changeSection("history");
+          }}
+        >
+          History
+        </Button>
       </nav>
       <div className={styles.body}>
-        <div hidden={!editing}>
+        <div hidden={!editing || historical}>
           <ListingEditingWorkspace
             snapshot={snapshot}
             draft={editor.value}
@@ -118,15 +148,29 @@ export function ListingEditor({
             }
           />
         </div>
-        <div hidden={!publication}>
+        <div hidden={!publication || historical}>
           <div className={styles.publication}>
             <ListingPublication snapshot={snapshot} editor={editor} />
+          </div>
+        </div>
+        {historical && record && (
+          <RetainedListingReview
+            key={`${record.kind}:${record.eventId}:${record.revisionId}`}
+            snapshot={snapshot}
+            record={record}
+          />
+        )}
+        <div hidden={section !== "history"}>
+          <div className={styles.publication}>
+            <ListingHistory snapshot={snapshot} active={section === "history"} onSelect={onRecord} />
           </div>
         </div>
       </div>
       <ListingEditorFooter
         editor={editor}
         section={section}
+        historical={historical}
+        onCurrent={viewCurrent}
       />
     </div>
   );

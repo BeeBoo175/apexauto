@@ -6,14 +6,18 @@ import type { ListingSection } from "@/lib/vehicles/listings";
 export function ListingEditorFooter({
   editor,
   section,
+  historical,
+  onCurrent,
 }: {
   editor: ReturnType<typeof useListingEditor>;
   section: ListingSection;
+  historical: boolean;
+  onCurrent: () => void;
 }) {
-  const context = footerContext(editor, section);
-  const publication = section === "publication";
+  const context = footerContext(editor, section, historical);
+  const publication = section === "publication" && !historical;
   const draftActions =
-    (section === "listing" || section === "card") || editor.command.uncertain;
+    (!historical && (section === "listing" || section === "card")) || editor.command.uncertain;
 
   return (
     <StaffWorkspaceFooter title={context.title} description={context.description}>
@@ -65,6 +69,15 @@ export function ListingEditorFooter({
           {editor.withdrawal.uncertain ? "Reconcile listing withdrawal" : "Withdraw listing"}
         </Button>
       )}
+      {historical && (
+        <Button
+          size="compact"
+          variant={editor.operating ? "secondary" : "primary"}
+          onClick={onCurrent}
+        >
+          {section === "publication" ? "View current publication" : "Back to current listing"}
+        </Button>
+      )}
     </StaffWorkspaceFooter>
   );
 }
@@ -72,11 +85,20 @@ export function ListingEditorFooter({
 function footerContext(
   editor: ReturnType<typeof useListingEditor>,
   section: ListingSection,
+  historical: boolean,
 ) {
   if (editor.command.uncertain || editor.approval.uncertain || editor.withdrawal.uncertain) {
     return {
       title: "Listing action unconfirmed",
       description: "Reconcile the captured action before continuing.",
+    };
+  }
+  if (historical) {
+    return {
+      title: section === "publication" ? "Historical publication" : "Historical listing",
+      description: section === "publication"
+        ? "Approval and withdrawal records are read only. Your current draft is retained."
+        : "Saved fields are read only; identity and mileage reflect the current vehicle record.",
     };
   }
   if (editor.upload.file) {
@@ -95,6 +117,12 @@ function footerContext(
     return {
       title: "Unsaved draft changes",
       description: "Your edits are retained. Save or discard them in Listing before approval.",
+    };
+  }
+  if (section === "history") {
+    return {
+      title: "Listing history",
+      description: "Saved revisions and publication records are read only.",
     };
   }
   if (section === "publication") {

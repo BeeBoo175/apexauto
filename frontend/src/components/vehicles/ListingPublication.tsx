@@ -3,9 +3,9 @@ import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Input";
 import { listingWithdrawalReason } from "@/lib/vehicles/listing-withdrawal";
 import type { ListingWorkspace } from "@/lib/vehicles/listing-workspace";
-import { listingPublication } from "@/lib/vehicles/listings";
 import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDateTime } from "@/lib/date-format";
+import { ListingPublicationRecord } from "./ListingPublicationRecord";
 import workshop from "@/components/inspection/Workshop.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 
@@ -16,18 +16,17 @@ export function ListingPublication({
   snapshot: ListingWorkspace;
   editor: ReturnType<typeof useListingEditor>;
 }) {
-  const vehicle = {
-    ...snapshot.vehicle,
-    revisionId: editor.base?.id ?? null,
-    version: editor.base?.version ?? 0,
-  };
+  const showWithdrawal = Boolean(
+    snapshot.publication &&
+      (editor.withdrawal.busy ||
+        editor.withdrawal.uncertain ||
+        editor.withdrawalTargetChanged ||
+        editor.withdrawalReason ||
+        (!snapshot.withdrawal && editor.withdrawal.receipt?.publicationId !== snapshot.publication.id)),
+  );
   return (
     <section className={workbench.stack}>
-      <h3>Publication record</h3>
-      <p>
-        Approve the saved draft as a separate step after saving. Local edits must be saved or
-        discarded first. The listing and signed inspection are checked again on approval.
-      </p>
+      <h3>Saved draft</h3>
       <dl className={workshop.facts}>
         <div>
           <dt>Draft to approve</dt>
@@ -38,10 +37,6 @@ export function ListingPublication({
           <dd>{editor.base ? formatCurrency(editor.base.vehiclePrice) : "Not prepared"}</dd>
         </div>
         <div>
-          <dt>Availability</dt>
-          <dd>{listingPublication(vehicle)}</dd>
-        </div>
-        <div>
           <dt>Current signed inspection</dt>
           <dd>
             {snapshot.currentSignedRevisionId
@@ -49,24 +44,8 @@ export function ListingPublication({
               : "No current signed inspection"}
           </dd>
         </div>
-        <div>
-          <dt>Last approved</dt>
-          <dd>
-            {snapshot.publication
-              ? formatMalaysianDateTime(snapshot.publication.recordedAt)
-              : "Not approved"}
-          </dd>
-        </div>
-        <div>
-          <dt>Approved price</dt>
-          <dd>
-            {snapshot.approvedRevision
-              ? formatCurrency(snapshot.approvedRevision.vehiclePrice)
-              : "Not approved"}
-          </dd>
-        </div>
       </dl>
-      {editor.approval.receipt && (
+      {editor.approval.receipt && editor.approval.receipt.id !== snapshot.publication?.id && (
         <dl className={workshop.facts}>
           <div>
             <dt>Confirmed approval receipt</dt>
@@ -74,20 +53,13 @@ export function ListingPublication({
           </div>
         </dl>
       )}
-      {snapshot.approvedRevision && (
-        <>
-          <h3>Approved description</h3>
-          <p>{snapshot.approvedRevision.description}</p>
-        </>
-      )}
-      {snapshot.withdrawal && (
-        <>
-          <h3>Withdrawal reason</h3>
-          <p>{snapshot.withdrawal.reason}</p>
-          <p>{formatMalaysianDateTime(snapshot.withdrawal.recordedAt)}</p>
-        </>
-      )}
-      {editor.withdrawal.receipt && (
+      <ListingPublicationRecord
+        revision={snapshot.approvedRevision}
+        publication={snapshot.publication}
+        withdrawal={snapshot.withdrawal}
+      />
+      {editor.withdrawal.receipt &&
+        editor.withdrawal.receipt.publicationId !== snapshot.withdrawal?.publicationId && (
         <dl className={workshop.facts}>
           <div>
             <dt>Confirmed withdrawal receipt</dt>
@@ -99,7 +71,7 @@ export function ListingPublication({
           </div>
         </dl>
       )}
-      {snapshot.publication && (
+      {showWithdrawal && (
         <>
           <h3>Withdraw approved listing</h3>
           <p>

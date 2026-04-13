@@ -2,9 +2,10 @@ import type { CurrentActor } from "@/lib/auth/actor";
 import type { SearchParams } from "@/lib/query";
 import { isUuid } from "@/lib/auth/contracts";
 import { DEFAULT_PAGE_SIZE, isPageSize, paginationQuery } from "@/lib/pagination";
+import { parseListingRecord } from "./listing-history-selection";
 
 export const vehicleStatuses = ["PendingInspection", "Rejected", "Available"] as const;
-export const listingSections = ["listing", "card", "publication"] as const;
+export const listingSections = ["listing", "card", "publication", "history"] as const;
 export type ListingSection = (typeof listingSections)[number];
 export const listingSorts = [
   "registration",
@@ -62,6 +63,7 @@ export function listingParams(params: SearchParams) {
     page: Number.isSafeInteger(page) && page > 0 ? page : 1,
     listingId: isUuid(params.listing) ? params.listing : "",
     section: listingSections.find((section) => section === params.section) ?? "listing",
+    record: parseListingRecord(params),
   };
 }
 

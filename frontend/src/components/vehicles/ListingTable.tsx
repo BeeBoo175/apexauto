@@ -35,6 +35,7 @@ import type { AppliedWorklistFilter } from "@/lib/staff/filter-summary";
 import { ListingFilters } from "./ListingFilters";
 import { ListingDrawer } from "./ListingDrawer";
 import { parseListingWorkspace, type ListingWorkspace } from "@/lib/vehicles/listing-workspace";
+import type { ListingRecordSelection } from "@/lib/vehicles/listing-history-selection";
 import layout from "@/components/staff/IntakeWorkspace.module.css";
 import styles from "@/components/staff/IntakeWorklist.module.css";
 import workspace from "@/components/staff/StaffWorkspace.module.css";
@@ -90,6 +91,7 @@ export function ListingTable({
   listingId,
   selected,
   section,
+  record = null,
 }: {
   actor: CurrentActor;
   initial: ApiResult<Page<ListingItem>>;
@@ -99,6 +101,7 @@ export function ListingTable({
   listingId: string;
   selected: ApiResult<ListingWorkspace> | null;
   section: ListingSection;
+  record?: ListingRecordSelection | null;
 }) {
   const state = useListingTable(initial, filters, page, branches);
   const drawer = useStaffSelection(listingId, selected, {
@@ -279,6 +282,7 @@ export function ListingTable({
         selection={drawer}
         initial={selected}
         initialSection={section}
+        initialRecord={record}
         onSaved={state.refreshAfterCommand}
       />
     </div>
