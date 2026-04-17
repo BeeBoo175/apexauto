@@ -19,6 +19,7 @@ public static class ListingReadEndpoints
         routes.MapGet("/{vehicleId:guid}/photos", PhotosAsync);
         routes.MapGet("/{vehicleId:guid}/history", HistoryAsync);
         routes.MapGet("/{vehicleId:guid}/revisions/{revisionId:guid}", RevisionAsync);
+        routes.MapPost("/{vehicleId:guid}/price-estimate", EstimateAsync);
     }
 
     private static async Task<IResult> ReadAsync(Guid? branchId, int? page, int? pageSize, string? search,
@@ -99,6 +100,33 @@ public static class ListingReadEndpoints
         {
             var result = await history.RevisionAsync(ActorId(context), vehicleId, revisionId, deadline.Token);
             return Map(result.Status, result.Snapshot);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return Unavailable();
+        }
+    }
+
+    private static async Task<IResult> EstimateAsync(Guid vehicleId, HttpContext context,
+        ListingEstimateService estimates, CancellationToken cancellationToken)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(20));
+        try
+        {
+            var (request, error) = await JsonRequestReader.ReadAsync<ListingEstimateRequest>(context.Request, deadline.Token, 4096);
+            if (error is not null)
+            {
+                return error;
+            }
+
+            var result = await estimates.EstimateAsync(ActorId(context), vehicleId, request!, deadline.Token);
+            if (result.Status == ListingStatus.Invalid)
+            {
+                return Results.Problem(statusCode: 400, title: "Provide a branch, positive vehicle price and nonnegative road tax in exact MYR minor units.");
+            }
+
+            return Map(result.Status, result.Estimate);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {

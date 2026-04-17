@@ -1,3 +1,5 @@
+using System.Text.Json;
+using Dealership.Application.Vehicles;
 using Dealership.Domain.Common;
 using Dealership.Domain.Vehicles;
 
@@ -5,6 +7,43 @@ namespace Dealership.UnitTests;
 
 public sealed class PurchasePricingTests
 {
+    [Theory]
+    [InlineData("vehiclePrice", "60000.0000000000000000001")]
+    [InlineData("roadTax", "90.000000000000000000000000001")]
+    public void ListingEstimateRejectsRawJsonPrecisionLoss(string field, string amount)
+    {
+        var vehiclePrice = field == "vehiclePrice" ? amount : "60000";
+        var roadTax = field == "roadTax" ? amount : "90";
+        var json = $$"""{"branchId":"{{Guid.NewGuid()}}","vehiclePrice":{{vehiclePrice}},"roadTax":{{roadTax}}}""";
+
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<ListingEstimateRequest>(json, JsonSerializerOptions.Web));
+    }
+
+    [Theory]
+    [InlineData("60000.01", "90.00")]
+    [InlineData("6e4", "0")]
+    [InlineData("null", "null")]
+    public void ListingEstimateRetainsExactOrExplicitlyMissingAmounts(string vehiclePrice, string roadTax)
+    {
+        var branchId = Guid.NewGuid();
+        var json = $$"""{"branchId":"{{branchId}}","vehiclePrice":{{vehiclePrice}},"roadTax":{{roadTax}}}""";
+        var request = JsonSerializer.Deserialize<ListingEstimateRequest>(json, JsonSerializerOptions.Web)!;
+
+        Assert.Equal(branchId, request.BranchId);
+        Assert.Equal(JsonSerializer.Deserialize<decimal?>(vehiclePrice), request.VehiclePrice);
+        Assert.Equal(JsonSerializer.Deserialize<decimal?>(roadTax), request.RoadTax);
+    }
+
+    [Fact]
+    public void ListingEstimateKeepsOmittedAmountsMissing()
+    {
+        var json = $$"""{"branchId":"{{Guid.NewGuid()}}"}""";
+        var request = JsonSerializer.Deserialize<ListingEstimateRequest>(json, JsonSerializerOptions.Web)!;
+
+        Assert.Null(request.VehiclePrice);
+        Assert.Null(request.RoadTax);
+    }
+
     [Fact]
     public void PriceRoundsTheExactTaxProductOnceAtMinorUnits()
     {

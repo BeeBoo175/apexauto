@@ -1,5 +1,10 @@
 import { expect, test } from "@playwright/test";
 import {
+  matchesListingEstimate,
+  parseListingEstimate,
+  parseListingEstimateAmounts,
+} from "@/lib/vehicles/listing-estimate";
+import {
   matchesListingPublication,
   parseListingPublication,
   parseListingPublicationReceipt,
@@ -53,4 +58,44 @@ test("approval confirmation binds the exact operation, saved revision and signed
       }),
     ).toBe(false);
   }
+});
+
+test("draft estimates bind exact input amounts and actor, vehicle and branch without accepting promos", () => {
+  const amounts = { vehiclePrice: 45000.01, roadTax: 90 };
+  const expected = { ...amounts, actorId: ids[0], vehicleId: ids[1], branchId: ids[2] };
+  const raw = {
+    actorId: ids[0],
+    vehicleId: ids[1],
+    branchId: ids[2],
+    sstRate: 0.08,
+    price: { ...amounts, processingFee: 500, serviceTax: 40, promoDiscount: 0, total: 45630.01 },
+  };
+  const estimate = parseListingEstimate(raw)!;
+  expect(parseListingEstimateAmounts(amounts)).toEqual(amounts);
+  expect(matchesListingEstimate(estimate, expected)).toBe(true);
+  for (const changed of [
+    { vehiclePrice: 0 },
+    { vehiclePrice: 1.001 },
+    { roadTax: -1 },
+    { roadTax: Infinity },
+    { vehiclePrice: "45000.01" },
+  ]) {
+    expect(parseListingEstimateAmounts({ ...amounts, ...changed })).toBeNull();
+  }
+  for (const key of ["actorId", "vehicleId", "branchId"] as const) {
+    expect(parseListingEstimate({ ...raw, [key]: "invalid" })).toBeNull();
+    expect(matchesListingEstimate(estimate, { ...expected, [key]: crypto.randomUUID() })).toBe(
+      false,
+    );
+  }
+  for (const changed of [{ vehiclePrice: 45000.02 }, { roadTax: 90.01 }]) {
+    expect(matchesListingEstimate(estimate, { ...expected, ...changed })).toBe(false);
+  }
+  for (const sstRate of [-0.01, 1.01, NaN, undefined]) {
+    expect(parseListingEstimate({ ...raw, sstRate })).toBeNull();
+  }
+  expect(parseListingEstimate({ ...raw, price: { ...raw.price, total: 45630 } })).toBeNull();
+  expect(
+    parseListingEstimate({ ...raw, price: { ...raw.price, promoDiscount: 10, total: 45620.01 } }),
+  ).toBeNull();
 });

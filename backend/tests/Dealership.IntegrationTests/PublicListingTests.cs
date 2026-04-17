@@ -71,8 +71,10 @@ public sealed class PublicListingTests(IntakePhotoFixture fixture) : IClassFixtu
             records[0].VehicleId, other.VehicleId);
 
         using var client = data.Factory.CreateClient();
+        using var listingApi = fixture.CreateFactory();
+        using var listingClient = listingApi.CreateClient();
         var first = records[0];
-        await PurchaseQuoteAssertions.VerifyAsync(services, client, first.VehicleId, manager);
+        await PurchaseQuoteAssertions.VerifyAsync(services, client, listingClient, first.VehicleId, manager);
         using var response = await client.GetAsync($"/api/vehicles/{first.VehicleId}");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.True(response.Headers.CacheControl!.NoStore);

@@ -18,6 +18,7 @@ public static class DependencyInjection
         services.AddScoped<ReservationService>();
         services.AddScoped<ReservationCancellationService>();
         services.AddScoped<PurchaseQuoteService>();
+        services.AddScoped<ListingEstimateService>();
         services.AddScoped<PurchaseConfigurationService>();
         services.AddScoped<RegistrationService>();
         services.AddScoped<AuthenticationService>();
