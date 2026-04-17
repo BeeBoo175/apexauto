@@ -5,14 +5,18 @@ import { relayReservationRead } from "@/lib/vehicles/reservation-routes";
 import { parseReservationDetail } from "@/lib/vehicles/reservation-detail";
 
 export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
-  const { id } = await context.params;
-  if (!isUuid(id)) {
-    return apiError(new HttpError(400, "Choose a valid reservation ID."));
+  try {
+    const { id } = await context.params;
+    if (!isUuid(id)) {
+      throw new HttpError(400, "Choose a valid reservation ID.");
+    }
+    return await relayReservationRead(
+      request,
+      `/${id}`,
+      parseReservationDetail,
+      (value) => value.reservation.id === id,
+    );
+  } catch (error) {
+    return apiError(error);
   }
-  return relayReservationRead(
-    request,
-    `/${id}`,
-    parseReservationDetail,
-    (value) => value.reservation.id === id,
-  );
 }

@@ -3,7 +3,13 @@ import { isRecord, isUuid } from "@/lib/auth/contracts";
 import { readCurrentActor } from "@/lib/auth/server";
 import { HttpError, readBoundedJson } from "@/lib/http";
 import { requireSameOrigin } from "@/lib/server/http/request";
-import { apiError, apiJson, requestApiJson, privateApiRead, sessionToken } from "@/lib/server/http/api";
+import {
+  apiError,
+  apiJson,
+  requestApiJson,
+  privateApiRead,
+  sessionToken,
+} from "@/lib/server/http/api";
 import { hasListingAccess } from "@/lib/vehicles/listings";
 
 export async function relayListingRead<T>(
@@ -20,7 +26,10 @@ export async function relayListingRead<T>(
     const signal = AbortSignal.any([request.signal, AbortSignal.timeout(25_000)]);
     const current = await readCurrentActor(signal);
     if (!current.actor) {
-      throw new HttpError(current.status === 401 ? 401 : 502, "Your session could not be confirmed.");
+      throw new HttpError(
+        current.status === 401 ? 401 : 502,
+        "Your session could not be confirmed.",
+      );
     }
     if (!hasListingAccess(current.actor)) {
       return apiJson({

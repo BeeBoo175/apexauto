@@ -15,7 +15,7 @@ export function useSellerWorkflow(initial: SellerSnapshot) {
   const [freshQuote, setFreshQuote] = useState<Quote | null>(null);
   const [photos, setPhotos] = useState<Partial<Record<PhotoAngle, PhotoReceipt>>>({});
   const [locks, setLocks] = useState<Partial<Record<PhotoAngle, boolean>>>({});
-  const valuation = useApiCommand("/api/intake/valuation", parseQuote);
+  const valuation = useApiCommand("/api/intake/valuations", parseQuote);
   const booking = useApiCommand(
     "/api/intake/appointments",
     (value) => parseBooking(value) ?? parseQuote(value),

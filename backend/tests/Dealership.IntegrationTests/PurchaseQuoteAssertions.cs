@@ -32,7 +32,7 @@ internal static class PurchaseQuoteAssertions
         await database.SaveChangesAsync();
         await VerifyEstimatePriceAsync(listingClient, vehicleId, updater, estimateRequest, 500m, 0.08m, 40m, 61780.01m);
 
-        using var accepted = await client.PostAsJsonAsync("/api/promos/validate", new PromoValidationRequest(vehicleId, "\u00a0APEX500\t"));
+        using var accepted = await client.PostAsJsonAsync("/api/promos/validations", new PromoValidationRequest(vehicleId, "\u00a0APEX500\t"));
         Assert.Equal(HttpStatusCode.OK, accepted.StatusCode);
         Assert.True(accepted.Headers.CacheControl!.NoStore);
         var quote = (await accepted.Content.ReadFromJsonAsync<PurchaseQuote>())!;
@@ -41,13 +41,13 @@ internal static class PurchaseQuoteAssertions
         Assert.Equal(100m, (await quotes.QuoteAsync(vehicleId, "apex500", CancellationToken.None)).Quote!.Price.PromoDiscount);
         foreach (var code in new[] { "Apex500", "PAST500", "INACTIVE500", "EXCESS", "APEX500,RAYA1000", "" })
         {
-            using var denied = await client.PostAsJsonAsync("/api/promos/validate", new PromoValidationRequest(vehicleId, code));
+            using var denied = await client.PostAsJsonAsync("/api/promos/validations", new PromoValidationRequest(vehicleId, code));
             Assert.Equal(HttpStatusCode.BadRequest, denied.StatusCode);
         }
 
-        using var missing = await client.PostAsJsonAsync("/api/promos/validate", new PromoValidationRequest(Guid.NewGuid(), "APEX500"));
+        using var missing = await client.PostAsJsonAsync("/api/promos/validations", new PromoValidationRequest(Guid.NewGuid(), "APEX500"));
         Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
-        using var oversized = await client.PostAsJsonAsync("/api/promos/validate", new PromoValidationRequest(vehicleId, new string('a', 20000)));
+        using var oversized = await client.PostAsJsonAsync("/api/promos/validations", new PromoValidationRequest(vehicleId, new string('a', 20000)));
         Assert.Equal(HttpStatusCode.RequestEntityTooLarge, oversized.StatusCode);
         var undiscounted = await quotes.QuoteAsync(vehicleId, null, CancellationToken.None);
         Assert.Equal(60630m, undiscounted.Quote!.Price.Total);
@@ -76,7 +76,7 @@ internal static class PurchaseQuoteAssertions
         var outsideVehicle = await database.Vehicles.Where(vehicle => vehicle.BranchId != branchId)
             .Select(vehicle => new { vehicle.Id, vehicle.BranchId }).FirstAsync();
         var request = new ListingEstimateRequest(branchId, 61111.01m, 129m);
-        var path = $"/api/staff/listings/{vehicleId}/price-estimate";
+        var path = $"/api/staff/listings/{vehicleId}/price-estimates";
         using var anonymous = await client.PostAsJsonAsync(path, request);
         Assert.Equal(HttpStatusCode.Unauthorized, anonymous.StatusCode);
         var email = await database.Users.Where(user => user.Id == manager).Select(user => user.Email).SingleAsync();
@@ -89,7 +89,7 @@ internal static class PurchaseQuoteAssertions
 
         using var wrongBranch = await client.PostAsJsonAsync(path, request with { BranchId = outsideVehicle.BranchId });
         Assert.Equal(HttpStatusCode.Forbidden, wrongBranch.StatusCode);
-        using var wrongVehicle = await client.PostAsJsonAsync($"/api/staff/listings/{outsideVehicle.Id}/price-estimate", request);
+        using var wrongVehicle = await client.PostAsJsonAsync($"/api/staff/listings/{outsideVehicle.Id}/price-estimates", request);
         Assert.Equal(HttpStatusCode.NotFound, wrongVehicle.StatusCode);
         using var incomplete = await client.PostAsJsonAsync(path, request with { RoadTax = null });
         Assert.Equal(HttpStatusCode.BadRequest, incomplete.StatusCode);
@@ -119,7 +119,7 @@ internal static class PurchaseQuoteAssertions
     private static async Task VerifyEstimatePriceAsync(HttpClient client, Guid vehicleId, Guid actorId,
         ListingEstimateRequest request, decimal processingFee, decimal sstRate, decimal serviceTax, decimal total)
     {
-        using var response = await client.PostAsJsonAsync($"/api/staff/listings/{vehicleId}/price-estimate", request);
+        using var response = await client.PostAsJsonAsync($"/api/staff/listings/{vehicleId}/price-estimates", request);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.True(response.Headers.CacheControl!.NoStore);
         var estimate = (await response.Content.ReadFromJsonAsync<ListingEstimate>())!;

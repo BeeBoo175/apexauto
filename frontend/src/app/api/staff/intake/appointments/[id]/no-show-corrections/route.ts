@@ -9,5 +9,10 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   if (!isUuid(id)) {
     return apiError(new HttpError(400, "Provide a valid appointment reference."));
   }
-  return relayIntake(request, `/api/staff/intake/appointments/${id}/check-in`, parseCheckIn, true);
+  return relayIntake(
+    request,
+    `/api/staff/intake/appointments/${id}/no-show-corrections`,
+    parseCheckIn,
+    true,
+  );
 }

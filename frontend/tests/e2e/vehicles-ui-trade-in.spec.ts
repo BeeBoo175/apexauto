@@ -92,8 +92,8 @@ test("trade-in options load locally and confirmed allowance survives replacement
   await mileage.fill("90000");
   expect(counts()).toEqual(beforeTyping);
 
-  const sent = page.waitForRequest("**/api/intake/valuation");
-  const valued = page.waitForResponse("**/api/intake/valuation");
+  const sent = page.waitForRequest("**/api/intake/valuations");
+  const valued = page.waitForResponse("**/api/intake/valuations");
   await value.click();
   expect((await sent).postDataJSON()).toEqual({
     make: "Proton",
@@ -166,7 +166,7 @@ test("trade-in options load locally and confirmed allowance survives replacement
     finished = resolve;
   });
   await page.route(
-    "**/api/intake/valuation",
+    "**/api/intake/valuations",
     async (route) => {
       try {
         const response = await route.fetch();
@@ -179,7 +179,7 @@ test("trade-in options load locally and confirmed allowance survives replacement
     },
     { times: 1 },
   );
-  const replacement = page.waitForResponse("**/api/intake/valuation");
+  const replacement = page.waitForResponse("**/api/intake/valuations");
   try {
     await mileage.fill("92000");
     await value.click();

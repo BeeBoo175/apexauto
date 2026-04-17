@@ -56,7 +56,7 @@ export function useVehiclePromo(detail: PublicVehicleDetail | null) {
     setBusy(true);
     try {
       const result = await apiFetch(
-        "/api/promos/validate",
+        "/api/promos/validations",
         (value) => parsePurchaseQuote(value, code),
         {
           method: "POST",

@@ -52,7 +52,7 @@ export function useInspectionEditor(
     inspectionFetch,
   );
   const sign = useApiCommand(
-    `drafts/${id}/sign`,
+    `drafts/${id}/sign-offs`,
     parseReport,
     (r, body) =>
       isRecord(body) &&

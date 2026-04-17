@@ -15,7 +15,7 @@ test("changed customer cookies clear prior snapshots and unavailable session rea
   await expect(page).toHaveURL(/\/account$/);
   await expect(page.getByText("Ahmad Faizal Hassan", { exact: true })).toBeVisible();
   await page.getByLabel("From (Malaysia)", { exact: true }).fill("2026-01-01");
-  await page.route("**/api/intake/appointments/*/cancellation", async (route) => {
+  await page.route("**/api/intake/appointments/*/cancellations", async (route) => {
     const response = await route.fetch();
     if (response.status() !== 200) {
       await route.fulfill({ response });

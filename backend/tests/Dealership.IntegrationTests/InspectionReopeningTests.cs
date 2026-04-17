@@ -128,7 +128,7 @@ public sealed class InspectionReopeningTests(IntakePhotoFixture fixture) : IClas
         InspectionReopenRequest request, InspectionReopenReceipt receipt)
     {
         using var client = factory.CreateClient();
-        var path = $"/api/staff/inspection/drafts/{inspection}/reopen";
+        var path = $"/api/staff/inspection/drafts/{inspection}/reopenings";
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync(path, request)).StatusCode);
         var login = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest(Guid.NewGuid(), email, "Password123!"));
         var session = (await login.Content.ReadFromJsonAsync<LoginSession>())!;

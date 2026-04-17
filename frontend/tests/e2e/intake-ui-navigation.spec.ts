@@ -223,7 +223,7 @@ test("direct appointment back link retains an uncertain check-in operation", asy
   for (const checkbox of await page.getByRole("checkbox").all()) {
     await checkbox.check();
   }
-  await page.route("**/api/staff/intake/appointments/*/check-in", (route) =>
+  await page.route("**/api/staff/intake/appointments/*/check-ins", (route) =>
     route.fulfill({
       status: 502,
       json: {

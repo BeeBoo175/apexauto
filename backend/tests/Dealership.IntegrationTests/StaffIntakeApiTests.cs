@@ -31,7 +31,7 @@ public sealed class StaffIntakeApiTests(IntakePhotoFixture fixture) : IClassFixt
         var duplicatePlate = await data.BookAsync(2, "WYY8821");
         using var factory = fixture.CreateFactory();
         using var client = factory.CreateClient();
-        var path = $"{Route}/{appointment.Id}/check-in";
+        var path = $"{Route}/{appointment.Id}/check-ins";
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync(Route)).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync(path, CheckInTestData.Evidence)).StatusCode);
         await LoginAsync(client, data.StaffEmail);
@@ -69,7 +69,7 @@ public sealed class StaffIntakeApiTests(IntakePhotoFixture fixture) : IClassFixt
         using var wrongType = new StringContent("{}");
         Assert.Equal(HttpStatusCode.UnsupportedMediaType, (await client.PostAsync(path, wrongType)).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound,
-            (await client.PostAsJsonAsync($"{Route}/{Guid.NewGuid()}/check-in", evidence)).StatusCode);
+            (await client.PostAsJsonAsync($"{Route}/{Guid.NewGuid()}/check-ins", evidence)).StatusCode);
 
         var responses = await Task.WhenAll(client.PostAsJsonAsync(path, evidence), client.PostAsJsonAsync(path,
             evidence with { Vin = " pl1bt65r84b123456 ", Notes = " Owner present " }));
@@ -84,11 +84,11 @@ public sealed class StaffIntakeApiTests(IntakePhotoFixture fixture) : IClassFixt
         Assert.Equal(HttpStatusCode.Conflict, contentConflict.StatusCode);
         Assert.Equal("check-in-content-conflict",
             (await contentConflict.Content.ReadFromJsonAsync<JsonObject>())!["code"]!.GetValue<string>());
-        using var vehicleConflict = await client.PostAsJsonAsync($"{Route}/{duplicateVin.Id}/check-in", evidence);
+        using var vehicleConflict = await client.PostAsJsonAsync($"{Route}/{duplicateVin.Id}/check-ins", evidence);
         Assert.Equal(HttpStatusCode.Conflict, vehicleConflict.StatusCode);
         Assert.Equal("vehicle-identity-conflict",
             (await vehicleConflict.Content.ReadFromJsonAsync<JsonObject>())!["code"]!.GetValue<string>());
-        Assert.Equal(HttpStatusCode.Conflict, (await client.PostAsJsonAsync($"{Route}/{duplicatePlate.Id}/check-in",
+        Assert.Equal(HttpStatusCode.Conflict, (await client.PostAsJsonAsync($"{Route}/{duplicatePlate.Id}/check-ins",
             evidence with { Vin = "PL1BT65R84B123457" })).StatusCode);
         var checkedIn = (await client.GetFromJsonAsync<StaffWorklistPage>($"{Route}?status=CheckedIn"))!;
         Assert.Equal(appointment.Id, Assert.Single(checkedIn.Items).Id);
@@ -113,7 +113,7 @@ public sealed class StaffIntakeApiTests(IntakePhotoFixture fixture) : IClassFixt
             .ExecuteUpdateAsync(update => update.SetProperty(user => user.IsActive, true));
         await database.Users.Where(user => user.Id == data.OwnerId)
             .ExecuteUpdateAsync(update => update.SetProperty(user => user.EmailConfirmed, false));
-        using var unavailable = await reconciler.PostAsJsonAsync($"{Route}/{duplicateVin.Id}/check-in", evidence);
+        using var unavailable = await reconciler.PostAsJsonAsync($"{Route}/{duplicateVin.Id}/check-ins", evidence);
         Assert.Equal(HttpStatusCode.Conflict, unavailable.StatusCode);
         Assert.Equal("check-in-unavailable",
             (await unavailable.Content.ReadFromJsonAsync<JsonObject>())!["code"]!.GetValue<string>());
@@ -134,7 +134,7 @@ public sealed class StaffIntakeApiTests(IntakePhotoFixture fixture) : IClassFixt
         using var client = lostReceipt.CreateClient();
         client.DefaultRequestHeaders.Authorization = reconciler.DefaultRequestHeaders.Authorization;
         var evidence = CheckInTestData.Evidence with { Vin = "PL1BT65R84B123458" };
-        var path = $"{Route}/{id}/check-in";
+        var path = $"{Route}/{id}/check-ins";
         var uncertain = await client.PostAsJsonAsync(path, evidence);
         Assert.Equal(HttpStatusCode.ServiceUnavailable, uncertain.StatusCode);
         Assert.True(uncertain.Headers.CacheControl?.NoStore);

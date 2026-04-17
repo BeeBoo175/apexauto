@@ -7,7 +7,7 @@ public static class PromoEndpoints
 {
     public static void MapPromoEndpoints(this WebApplication app)
     {
-        app.MapPost("/api/promos/validate", ValidateAsync);
+        app.MapPost("/api/promos/validations", ValidateAsync);
     }
 
     private static async Task<IResult> ValidateAsync(PurchaseQuoteService quotes,

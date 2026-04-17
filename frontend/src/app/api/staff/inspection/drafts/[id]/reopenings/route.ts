@@ -1,7 +1,7 @@
 import { relayInspectionResource } from "@/lib/inspection/routes";
-import { parseAssignment } from "@/lib/inspection/parse-report";
+import { parseReopening } from "@/lib/inspection/parse-report";
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
-  return relayInspectionResource(request, id, `vehicles/${id}/assignment`, parseAssignment);
+  return relayInspectionResource(request, id, `drafts/${id}/reopenings`, parseReopening);
 }

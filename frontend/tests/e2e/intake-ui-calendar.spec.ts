@@ -97,7 +97,7 @@ test("month calendar retains its snapshot, supports overflow and refreshes the s
     await checkbox.check();
   }
   const receipt = page.waitForResponse(
-    (result) => result.url().includes("/check-in") && result.request().method() === "POST",
+    (result) => result.url().includes("/check-ins") && result.request().method() === "POST",
   );
   await dialog.getByRole("button", { name: "Confirm check-in", exact: true }).click();
   const saved = await (await receipt).json();

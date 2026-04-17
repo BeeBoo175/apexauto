@@ -23,5 +23,7 @@ export async function staffBranches(actor: CurrentActor) {
     return null;
   }
 
-  return requestApiJson(`/api/branches?${paginationQuery()}`, (value) => parsePage(value, parseBranch));
+  return requestApiJson(`/api/branches?${paginationQuery()}`, (value) =>
+    parsePage(value, parseBranch),
+  );
 }

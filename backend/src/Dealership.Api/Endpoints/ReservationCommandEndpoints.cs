@@ -14,7 +14,7 @@ public static class ReservationCommandEndpoints
             return await next(context);
         });
         routes.MapPost("/vehicles/{vehicleId:guid}/reservations", ReserveAsync);
-        routes.MapPost("/reservations/{reservationId:guid}/cancellation", CancelAsync);
+        routes.MapPost("/reservations/{reservationId:guid}/cancellations", CancelAsync);
     }
 
     private static async Task<IResult> ReserveAsync(Guid vehicleId, HttpContext context, ReservationService reservations,

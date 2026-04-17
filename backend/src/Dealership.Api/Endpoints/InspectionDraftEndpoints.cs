@@ -14,13 +14,13 @@ public static class InspectionDraftEndpoints
             context.HttpContext.Response.Headers.CacheControl = "no-store";
             return await next(context);
         });
-        routes.MapPost("/vehicles/{id:guid}/assignment", AssignAsync);
+        routes.MapPost("/vehicles/{id:guid}/assignments", AssignAsync);
         routes.MapGet("/technicians", TechniciansAsync);
         routes.MapGet("/drafts/{id:guid}", ReadAsync);
         routes.MapGet("/drafts/{id:guid}/workspace", WorkspaceAsync);
         routes.MapPost("/drafts/{id:guid}/saves", SaveAsync);
-        routes.MapPost("/drafts/{id:guid}/sign", SignAsync);
-        routes.MapPost("/drafts/{id:guid}/reopen", ReopenAsync);
+        routes.MapPost("/drafts/{id:guid}/sign-offs", SignAsync);
+        routes.MapPost("/drafts/{id:guid}/reopenings", ReopenAsync);
         routes.MapGet("/reports/{id:guid}/revisions/{revision:long}", ReportAsync);
         routes.MapGet("/reports/{id:guid}/revisions", HistoryAsync);
     }

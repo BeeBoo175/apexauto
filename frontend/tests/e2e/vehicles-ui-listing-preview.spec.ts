@@ -85,7 +85,7 @@ test("catalogue preview follows the same local draft through invalid edits, phot
     await button("Preview").click();
   }
   await button("Listing page").click();
-  const estimatePath = `${endpoint}/price-estimate`;
+  const estimatePath = `${endpoint}/price-estimates`;
   await page.route(`**${estimatePath}`, async (route) => {
     const response = await route.fetch();
     expect(response.status()).toBe(200);

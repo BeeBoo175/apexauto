@@ -116,7 +116,7 @@ test("sales intake preserves scoped lists, drawer drafts and an exact lost check
   let loseReceipt = true;
   const bodies: string[] = [];
   let receipt: unknown;
-  await page.route("**/api/staff/intake/appointments/*/check-in", async (route) => {
+  await page.route("**/api/staff/intake/appointments/*/check-ins", async (route) => {
     bodies.push(route.request().postData()!);
     const response = await route.fetch();
     expect(response.status()).toBe(200);
@@ -257,7 +257,7 @@ for (const [role, email, destination] of [
         dialog.getByRole("button", { name: "Confirm check-in", exact: true }),
       ).toHaveCount(0);
       const id = new URL(page.url()).searchParams.get("appointment");
-      const denial = await context.request.post(`/api/staff/intake/appointments/${id}/check-in`, {
+      const denial = await context.request.post(`/api/staff/intake/appointments/${id}/check-ins`, {
         headers: { ...(await privateHeaders(context)), Origin: new URL(page.url()).origin },
         data: {
           vin: "PL1BT65R84B123456",

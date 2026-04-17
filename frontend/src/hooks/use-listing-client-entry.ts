@@ -24,11 +24,9 @@ export function useListingClientEntry(actor: CurrentActor, parameters: SearchPar
     const { filters, page, listingId } = query;
 
     const [initial, branches, selected, { ListingTable: Table }] = await Promise.all([
-      privateApiFetch(
-        `/api/staff/listings?${listingQuery(filters, page)}`,
-        parseListings,
-        { signal },
-      ),
+      privateApiFetch(`/api/staff/listings?${listingQuery(filters, page)}`, parseListings, {
+        signal,
+      }),
       actor.role === "GeneralManager"
         ? apiFetch("/api/intake/branches?page=1", (value) => parsePage(value, parseBranch), {
             signal,

@@ -17,7 +17,7 @@ export function CancelAppointment({
   onConfirmed: (id: string, cancelledAt: string) => void;
 }) {
   const command = useApiCommand(
-    `/api/intake/appointments/${appointment.id}/cancellation`,
+    `/api/intake/appointments/${appointment.id}/cancellations`,
     parseCancellation,
     (receipt) => receipt.appointmentId === appointment.id,
   );

@@ -55,7 +55,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       branchId: body.branchId,
     };
     const result = await requestApiJson(
-      `/api/staff/listings/${id}/price-estimate`,
+      `/api/staff/listings/${id}/price-estimates`,
       (value) => {
         const estimate = parseListingEstimate(value);
         return estimate && matchesListingEstimate(estimate, expected) ? estimate : null;

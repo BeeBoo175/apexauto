@@ -150,7 +150,7 @@ public sealed class InspectionSignoffTests(IntakePhotoFixture fixture) : IClassF
         InspectionSignRequest request, InspectionReport report)
     {
         using var client = factory.CreateClient();
-        var signPath = $"/api/staff/inspection/drafts/{inspection}/sign";
+        var signPath = $"/api/staff/inspection/drafts/{inspection}/sign-offs";
         var reportPath = $"/api/staff/inspection/reports/{inspection}/revisions/1";
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync(reportPath)).StatusCode);
         var login = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest(Guid.NewGuid(), email, "Password123!"));

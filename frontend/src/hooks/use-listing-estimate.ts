@@ -49,7 +49,7 @@ export function useListingEstimate(
       setEntry((current) => (current.key === key ? { ...current, phase: "loading" } : current));
       try {
         const result = await privateApiFetch(
-          `/api/staff/listings/${vehicleId}/price-estimate`,
+          `/api/staff/listings/${vehicleId}/price-estimates`,
           parseListingEstimate,
           {
             method: "POST",

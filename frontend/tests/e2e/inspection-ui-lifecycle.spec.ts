@@ -105,7 +105,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     .click();
   const assignmentBodies = await loseFirstReceipt(
     page,
-    "**/api/staff/inspection/vehicles/*/assignment",
+    "**/api/staff/inspection/vehicles/*/assignments",
   );
   await page.getByRole("button", { name: "Confirm assignment", exact: true }).click();
   await expect(
@@ -120,7 +120,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   await expect(page).toHaveURL(/\/dashboard\/inspection\?.*inspection=[a-f0-9-]+/);
   const id = new URL(page.url()).searchParams.get("inspection")!;
   await expect(page.getByRole("button", { name: "Save draft", exact: true })).toBeEnabled();
-  await page.unroute("**/api/staff/inspection/vehicles/*/assignment");
+  await page.unroute("**/api/staff/inspection/vehicles/*/assignments");
   const header = page.getByRole("heading", { level: 1 });
   await header.evaluate((element) => {
     (element as HTMLElement & { retained?: boolean }).retained = true;
@@ -453,7 +453,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   );
   const reopeningBodies = await loseFirstReceipt(
     manager,
-    `**/api/staff/inspection/drafts/${id}/reopen`,
+    `**/api/staff/inspection/drafts/${id}/reopenings`,
   );
   await manager.getByRole("button", { name: "Confirm reopening", exact: true }).click();
   await expect(
@@ -474,7 +474,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   expect(reopeningBodies).toHaveLength(2);
   expect(reopeningBodies[1]).toBe(reopeningBodies[0]);
   expect(JSON.parse(reopeningBodies[0]).reason).toBe("Inspect newly reported suspension noise.");
-  await manager.unroute(`**/api/staff/inspection/drafts/${id}/reopen`);
+  await manager.unroute(`**/api/staff/inspection/drafts/${id}/reopenings`);
   await manager
     .getByRole("dialog", { name: registration, exact: true })
     .getByRole("button", { name: "Close dialog", exact: true })

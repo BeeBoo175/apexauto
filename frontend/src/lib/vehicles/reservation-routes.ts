@@ -19,10 +19,7 @@ import {
 async function reservationActor(signal: AbortSignal) {
   const current = await readCurrentActor(signal);
   if (!current.actor) {
-    throw new HttpError(
-      current.status === 401 ? 401 : 502,
-      "Your session could not be confirmed.",
-    );
+    throw new HttpError(current.status === 401 ? 401 : 502, "Your session could not be confirmed.");
   }
   const denied = !hasReservationAccess(current.actor)
     ? apiJson({
@@ -86,7 +83,7 @@ export async function relayReservationCancellation(request: Request, id: string)
       throw new HttpError(400, "Provide an operation ID and a valid cancellation reason.");
     }
     const result = await requestApiJson(
-      `/api/reservations/${id}/cancellation`,
+      `/api/reservations/${id}/cancellations`,
       parseReservationCancellation,
       {
         token,

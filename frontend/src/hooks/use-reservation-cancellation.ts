@@ -22,7 +22,7 @@ export function useReservationCancellation(
   const [validationAttempted, setValidationAttempted] = useState(false);
   const toast = useToast();
   const command = useApiCommand(
-    `/api/staff/reservations/${detail?.reservation.id}/cancellation`,
+    `/api/staff/reservations/${detail?.reservation.id}/cancellations`,
     parseReservationCancellation,
     (receipt, body) =>
       Boolean(

@@ -26,7 +26,7 @@ export function useInspectionManager({
   const [reason, setReason] = useState("");
   const [locked, setLocked] = useState(false);
   const command = useApiCommand(
-    `drafts/${draft.id}/reopen`,
+    `drafts/${draft.id}/reopenings`,
     parseReopening,
     (r, body) =>
       isRecord(body) &&

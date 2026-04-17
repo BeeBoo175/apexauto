@@ -99,7 +99,7 @@ export function useVehicleTradeIn() {
     controller.current = attempt;
     setBusy(true);
     try {
-      const result = await apiFetch("/api/intake/valuation", parseTradeInQuote, {
+      const result = await apiFetch("/api/intake/valuations", parseTradeInQuote, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(vehicle),

@@ -114,7 +114,7 @@ test("no-show is a visible state and a manager can reconcile original-date atten
   const bodies: string[] = [];
   let receipt: unknown;
   await page.route(
-    `**/api/staff/intake/appointments/${appointment.id}/no-show-correction`,
+    `**/api/staff/intake/appointments/${appointment.id}/no-show-corrections`,
     async (route) => {
       bodies.push(route.request().postData()!);
       const result = await route.fetch();

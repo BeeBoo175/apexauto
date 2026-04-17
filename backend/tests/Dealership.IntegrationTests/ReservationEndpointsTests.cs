@@ -74,7 +74,7 @@ public sealed class ReservationEndpointsTests(IntakePhotoFixture fixture) : ICla
         Assert.Equal(1, await database.ReservationMailOutbox.CountAsync(item => item.ReservationId == receipt.Id));
         await AssertHeldVisibilityAsync(client, services, manager, vehicleId, publicPhotoPath, data.CustomerEmail);
 
-        var cancellationPath = $"/api/reservations/{receipt.Id}/cancellation";
+        var cancellationPath = $"/api/reservations/{receipt.Id}/cancellations";
         var cancellation = new ReservationCancellationRequest(Guid.NewGuid(), null);
         await LoginAsync(client, otherEmail!);
         var denied = await client.PostAsJsonAsync(path, request);
@@ -123,7 +123,7 @@ public sealed class ReservationEndpointsTests(IntakePhotoFixture fixture) : ICla
         Assert.Equal(HttpStatusCode.NotFound, withheld.StatusCode);
         Assert.Empty(await withheld.Content.ReadAsByteArrayAsync());
         Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync(
-            $"/api/reservations/{raceRequest.OperationId}/cancellation",
+            $"/api/reservations/{raceRequest.OperationId}/cancellations",
             new ReservationCancellationRequest(Guid.NewGuid(), null))).StatusCode);
     }
 

@@ -3,10 +3,18 @@
 import { useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { privateApiFetch } from "@/lib/api-browser";
-import { matchesListingRecord, parseListingRevisionRead, type ListingRevisionRead } from "@/lib/vehicles/listing-history";
+import {
+  matchesListingRecord,
+  parseListingRevisionRead,
+  type ListingRevisionRead,
+} from "@/lib/vehicles/listing-history";
 import type { ListingRecordSelection } from "@/lib/vehicles/listing-history-selection";
 
-export function useListingRevision(vehicleId: string, branchId: string, record: ListingRecordSelection) {
+export function useListingRevision(
+  vehicleId: string,
+  branchId: string,
+  record: ListingRecordSelection,
+) {
   const [result, setResult] = useState<ListingRevisionRead | null>(null);
   const [busy, setBusy] = useState(true);
   const [attempt, setAttempt] = useState(0);

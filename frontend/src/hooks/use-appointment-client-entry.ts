@@ -15,11 +15,7 @@ interface AppointmentEntry {
 export function useAppointmentClientEntry(id: string) {
   return useStaffClientEntry<AppointmentEntry>(async (signal) => {
     const [initial, { AppointmentWorkbench: Workbench }] = await Promise.all([
-      privateApiFetch(
-        `/api/staff/intake/appointments/${id}`,
-        parseDetail,
-        { signal },
-      ),
+      privateApiFetch(`/api/staff/intake/appointments/${id}`, parseDetail, { signal }),
       import("@/components/staff/AppointmentWorkbench"),
     ]);
     signal.throwIfAborted();

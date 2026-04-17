@@ -96,7 +96,7 @@ public sealed class InspectionAssignmentTests(IntakePhotoFixture fixture) : ICla
         InspectionAssignmentReceipt receipt, InspectionAssignmentRequest request, string email)
     {
         using var client = factory.CreateClient();
-        var path = $"/api/staff/inspection/vehicles/{vehicleId}/assignment";
+        var path = $"/api/staff/inspection/vehicles/{vehicleId}/assignments";
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync(path, request)).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/staff/inspection/technicians")).StatusCode);
         var login = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest(Guid.NewGuid(), email, "Password123!"));
@@ -132,7 +132,7 @@ public sealed class InspectionAssignmentTests(IntakePhotoFixture fixture) : ICla
         Assert.Equal(HttpStatusCode.Conflict,
             (await client.PostAsJsonAsync(path, request with { Reason = "Changed request" })).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound,
-            (await client.PostAsJsonAsync($"/api/staff/inspection/vehicles/{Guid.NewGuid()}/assignment", request)).StatusCode);
+            (await client.PostAsJsonAsync($"/api/staff/inspection/vehicles/{Guid.NewGuid()}/assignments", request)).StatusCode);
     }
 
     private static async Task AssertTechniciansAsync(IServiceProvider services, DealershipDbContext database,

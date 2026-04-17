@@ -19,7 +19,7 @@ public static class ListingQueryEndpoints
         routes.MapGet("/{vehicleId:guid}/photos", PhotosAsync);
         routes.MapGet("/{vehicleId:guid}/history", HistoryAsync);
         routes.MapGet("/{vehicleId:guid}/revisions/{revisionId:guid}", RevisionAsync);
-        routes.MapPost("/{vehicleId:guid}/price-estimate", EstimateAsync);
+        routes.MapPost("/{vehicleId:guid}/price-estimates", EstimateAsync);
     }
 
     private static async Task<IResult> ReadAsync(Guid? branchId, int? page, int? pageSize, string? search,

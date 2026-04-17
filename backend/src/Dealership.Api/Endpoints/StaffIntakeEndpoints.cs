@@ -21,8 +21,8 @@ public static class StaffIntakeEndpoints
         routes.MapGet("/export", StaffIntakeExportEndpoint.ExportAsync);
         routes.MapPost("/export/background", StaffIntakeBackgroundExportEndpoint.ExportAsync);
         routes.MapGet("/{id:guid}", DetailAsync);
-        routes.MapPost("/{id:guid}/check-in", CheckInAsync);
-        routes.MapPost("/{id:guid}/no-show-correction", CorrectNoShowAsync);
+        routes.MapPost("/{id:guid}/check-ins", CheckInAsync);
+        routes.MapPost("/{id:guid}/no-show-corrections", CorrectNoShowAsync);
     }
 
     private static async Task<IResult> ListAsync(HttpContext context, IStaffWorklistStore worklist,

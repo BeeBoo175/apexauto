@@ -48,14 +48,15 @@ export function AppointmentWorkbench({
   const correcting = snapshot.data?.status === "NoShow" && actor.role === "BranchManager";
   const controller = useRef<AbortController | null>(null);
   const command = useApiCommand(
-    `/api/staff/intake/appointments/${id}/${correcting ? "no-show-correction" : "check-in"}`,
+    `/api/staff/intake/appointments/${id}/${correcting ? "no-show-corrections" : "check-ins"}`,
     parseCheckIn,
     (receipt, request) =>
       receipt.appointmentId === id &&
       (correcting
         ? correctionMatches(receipt, request)
         : receipt.correction === null && checkInMatches(receipt, request)),
-    (path, parse, options) => apiFetch(path, parse, options, { parseConflict: parseIntakeConflict }),
+    (path, parse, options) =>
+      apiFetch(path, parse, options, { parseConflict: parseIntakeConflict }),
   );
   const value = draft ?? localDraft;
   const locked = command.busy || command.uncertain;

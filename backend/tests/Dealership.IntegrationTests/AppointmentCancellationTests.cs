@@ -85,11 +85,11 @@ public sealed class AppointmentCancellationTests(IntakePhotoFixture fixture) : I
         using var other = factory.CreateClient();
         var outsider = await IntakePhotoFixture.RegisterAsync(other);
         await IntakePhotoFixture.VerifyAsync(factory, other, outsider);
-        Assert.Equal(HttpStatusCode.NotFound, (await other.PostAsync($"/api/intake/appointments/{receipt.Id}/cancellation", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await other.PostAsync($"/api/intake/appointments/{receipt.Id}/cancellations", null)).StatusCode);
         var signal = factory.Services.GetRequiredService<MailDeliverySignal>();
         await signal.WaitAsync(CancellationToken.None).AsTask().WaitAsync(TimeSpan.FromSeconds(5));
-        var responses = await Task.WhenAll(client.PostAsync($"/api/intake/appointments/{receipt.Id}/cancellation", null),
-            client.PostAsync($"/api/intake/appointments/{receipt.Id}/cancellation", null));
+        var responses = await Task.WhenAll(client.PostAsync($"/api/intake/appointments/{receipt.Id}/cancellations", null),
+            client.PostAsync($"/api/intake/appointments/{receipt.Id}/cancellations", null));
         await signal.WaitAsync(CancellationToken.None).AsTask().WaitAsync(TimeSpan.FromSeconds(5));
         Assert.All(responses, response => Assert.Equal(HttpStatusCode.OK, response.StatusCode));
         var cancelled = (await responses[0].Content.ReadFromJsonAsync<CancellationReceipt>())!;
@@ -165,7 +165,7 @@ public sealed class AppointmentCancellationTests(IntakePhotoFixture fixture) : I
         using var restartedFactory = fixture.CreateFactory();
         using var restartedClient = restartedFactory.CreateClient();
         await IntakePhotoFixture.LoginAsync(restartedClient, registration);
-        Assert.Equal(cancelled, await (await restartedClient.PostAsync($"/api/intake/appointments/{receipt.Id}/cancellation", null))
+        Assert.Equal(cancelled, await (await restartedClient.PostAsync($"/api/intake/appointments/{receipt.Id}/cancellations", null))
             .Content.ReadFromJsonAsync<CancellationReceipt>());
 
         using var revoked = restartedFactory.Services.CreateScope();

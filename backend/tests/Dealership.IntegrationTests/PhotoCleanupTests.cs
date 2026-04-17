@@ -34,7 +34,7 @@ public sealed class PhotoCleanupTests(IntakePhotoFixture fixture) : IClassFixtur
         });
         var signal = factory.Services.GetRequiredService<PhotoCleanupSignal>();
         await signal.WaitAsync(CancellationToken.None).AsTask().WaitAsync(TimeSpan.FromSeconds(5));
-        Assert.Equal(HttpStatusCode.OK, (await client.PostAsync($"/api/intake/appointments/{cancelled.Id}/cancellation", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.PostAsync($"/api/intake/appointments/{cancelled.Id}/cancellations", null)).StatusCode);
         await signal.WaitAsync(CancellationToken.None).AsTask().WaitAsync(TimeSpan.FromSeconds(5));
         await RunCleanupAsync(factory);
         Assert.True(await fixture.OwnedObjectExistsAsync(cancelled.Photos[0].Id));

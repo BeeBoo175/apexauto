@@ -51,7 +51,7 @@ test("canonical promos replace confirmed discounts and browser reload clears doc
   const before = counts();
   await input.fill("  APEX500  ");
   expect(counts()).toEqual(before);
-  const validation = page.waitForRequest("**/api/promos/validate");
+  const validation = page.waitForRequest("**/api/promos/validations");
   await apply.click();
   expect((await validation).postDataJSON()).toEqual({
     vehicleId: detail.listing.id,
@@ -105,7 +105,7 @@ test("canonical promos replace confirmed discounts and browser reload clears doc
     finished = resolve;
   });
   await page.route(
-    "**/api/promos/validate",
+    "**/api/promos/validations",
     async (route) => {
       try {
         const response = await route.fetch();
@@ -134,7 +134,7 @@ test("canonical promos replace confirmed discounts and browser reload clears doc
 
   // A quote for changed base terms must not replace the current confirmed estimate.
   await page.route(
-    "**/api/promos/validate",
+    "**/api/promos/validations",
     async (route) => {
       const response = await route.fetch();
       const body = await response.json();
@@ -167,12 +167,12 @@ test("canonical promos replace confirmed discounts and browser reload clears doc
 
   await page.waitForLoadState("networkidle");
   const upstream = counts();
-  const denied = await request.post("/api/promos/validate", {
+  const denied = await request.post("/api/promos/validations", {
     headers: { Origin: "https://foreign.invalid" },
     data: { vehicleId: detail.listing.id, code: "APEX500" },
   });
   expect(denied.status()).toBe(403);
-  const invalid = await request.post("/api/promos/validate", {
+  const invalid = await request.post("/api/promos/validations", {
     headers: { Origin: new URL(page.url()).origin, "Content-Type": "application/json" },
     data: "{",
   });

@@ -37,7 +37,7 @@ export function useInspectionAssignment({
   const controller = useRef<AbortController | null>(null);
   const toast = useToast();
   const command = useApiCommand(
-    `vehicles/${vehicleId}/assignment`,
+    `vehicles/${vehicleId}/assignments`,
     parseAssignment,
     (r, body) =>
       isRecord(body) &&

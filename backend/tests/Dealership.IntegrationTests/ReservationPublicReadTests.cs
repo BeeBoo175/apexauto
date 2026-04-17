@@ -96,7 +96,7 @@ public sealed class ReservationPublicReadTests(IntakePhotoFixture fixture) : ICl
         }));
         using var client = factory.CreateClient();
         var detail = await client.GetAsync($"/api/vehicles/{vehicleId}");
-        var quote = await client.PostAsJsonAsync("/api/promos/validate", new PromoValidationRequest(vehicleId, "APEX500"));
+        var quote = await client.PostAsJsonAsync("/api/promos/validations", new PromoValidationRequest(vehicleId, "APEX500"));
         var photo = await client.GetAsync($"/api/vehicles/{vehicleId}/photos/{photoId}");
         foreach (var response in new[] { detail, quote, photo })
         {

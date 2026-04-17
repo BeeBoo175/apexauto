@@ -37,8 +37,8 @@ test("staff cancellation binds its full refund receipt and deliberately replays 
     (item) => mobile || item.branchId === "c77708bf-1a31-42f5-9a69-0c8766697a52",
   )!;
   const endpoint = `/api/staff/reservations/${held.id}`;
-  const postPath = `${endpoint}/cancellation`;
-  const upstream = `/api/reservations/${held.id}/cancellation`;
+  const postPath = `${endpoint}/cancellations`;
+  const upstream = `/api/reservations/${held.id}/cancellations`;
   const selectedUrl = `/dashboard/reservations?reservation=${held.id}&branchId=${held.branchId}`;
   const denied = await browser.newContext({
     ...info.project.use,

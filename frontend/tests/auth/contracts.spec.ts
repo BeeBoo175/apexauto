@@ -242,7 +242,7 @@ test("shared browser transport validates envelopes and preserves private actor r
         );
       await expect(
         apiFetch(
-          "/api/staff/intake/appointments/check-in",
+          "/api/staff/intake/appointments/check-ins",
           parse,
           {},
           { parseConflict: parseIntakeConflict },
@@ -262,7 +262,7 @@ test("shared browser transport validates envelopes and preserves private actor r
           { status: 409 },
         );
       const result = await apiFetch(
-        "/api/staff/intake/appointments/check-in",
+        "/api/staff/intake/appointments/check-ins",
         parse,
         {},
         { parseConflict: parseIntakeConflict },

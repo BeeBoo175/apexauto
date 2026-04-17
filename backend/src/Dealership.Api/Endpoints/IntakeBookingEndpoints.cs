@@ -17,7 +17,7 @@ public static class IntakeBookingEndpoints
         routes.MapPost("", BookAsync);
         routes.MapGet("", ListAsync);
         routes.MapGet("/{id:guid}", GetReceiptAsync);
-        routes.MapPost("/{id:guid}/cancellation", CancelAsync);
+        routes.MapPost("/{id:guid}/cancellations", CancelAsync);
     }
 
     private static async Task<IResult> CancelAsync(Guid id, HttpContext context, AppointmentCancellationService cancellations,

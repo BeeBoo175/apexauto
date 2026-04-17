@@ -18,7 +18,7 @@ export async function POST(request: Request) {
       throw new HttpError(400, "Provide a vehicle and one promo code.");
     }
     return apiJson(
-      await requestApiJson("/api/promos/validate", (value) => parsePurchaseQuote(value, code), {
+      await requestApiJson("/api/promos/validations", (value) => parsePurchaseQuote(value, code), {
         method: "POST",
         body: { vehicleId: body.vehicleId, code },
         signal,

@@ -88,7 +88,7 @@ test("owned history keeps scoped pages and confirmed content, then reconciles ca
   await expect(records).toHaveCount(25);
   let loseReceipt = true;
   const requests: string[] = [];
-  await page.route("**/api/intake/appointments/*/cancellation", async (route) => {
+  await page.route("**/api/intake/appointments/*/cancellations", async (route) => {
     requests.push(`${route.request().url()} ${route.request().postData()}`);
     const response = await route.fetch();
     expect(response.status()).toBe(200);

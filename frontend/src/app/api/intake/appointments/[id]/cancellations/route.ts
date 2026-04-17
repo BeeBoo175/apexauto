@@ -10,7 +10,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   }
   return relayIntake(
     request,
-    `/api/intake/appointments/${id}/cancellation`,
+    `/api/intake/appointments/${id}/cancellations`,
     parseCancellation,
     true,
   );
