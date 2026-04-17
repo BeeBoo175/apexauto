@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useApiCommand } from "./use-api-command";
 import { useInspectionLock } from "./use-inspection-lock";
 import { useListingUpload } from "./use-listing-upload";
+import { useListingPublication } from "./use-listing-publication";
 import { useToast } from "@/components/ui/Toast";
 import { apiFetch } from "@/lib/api-browser";
 import type { CurrentActor } from "@/lib/auth/actor";
@@ -14,10 +15,6 @@ import {
   matchesListingWithdrawal,
   parseListingWithdrawalReceipt,
 } from "@/lib/vehicles/listing-withdrawal";
-import {
-  matchesListingPublication,
-  parseListingPublicationReceipt,
-} from "@/lib/vehicles/listing-publication";
 import {
   listingDraft,
   listingDraftContents,
@@ -51,16 +48,6 @@ export function useListingEditor(
       matchesListingSave(receipt, body),
     (path, parse, options) => apiFetch(path, parse, options, { requireActor: true }),
   );
-  const approval = useApiCommand(
-    `/api/staff/listings/${snapshot.vehicle.vehicleId}/publications`,
-    parseListingPublicationReceipt,
-    (receipt, body) =>
-      receipt.vehicleId === snapshot.vehicle.vehicleId &&
-      receipt.branchId === snapshot.vehicle.branchId &&
-      receipt.actorId === actor.userId &&
-      matchesListingPublication(receipt, body),
-    (path, parse, options) => apiFetch(path, parse, options, { requireActor: true }),
-  );
   const upload = useListingUpload(snapshot.vehicle.vehicleId, (id) => {
     if (value.photoIds.length >= MAX_LISTING_PHOTOS) {
       return false;
@@ -79,6 +66,31 @@ export function useListingEditor(
       matchesListingWithdrawal(receipt, body),
     (path, parse, options) => apiFetch(path, parse, options, { requireActor: true }),
   );
+  const stale = (snapshot.draft?.version ?? 0) > (base?.version ?? 0);
+  const withdrawnPublicationId =
+    snapshot.publication && withdrawal.receipt?.publicationId === snapshot.publication.id
+      ? snapshot.publication.id
+      : (snapshot.withdrawal?.publicationId ?? null);
+  const approval = useListingPublication(snapshot, actor, {
+    base,
+    ready:
+      !dirty &&
+      !withdrawalReason &&
+      !stale &&
+      !upload.file &&
+      !command.busy &&
+      !command.uncertain &&
+      !withdrawal.busy &&
+      !withdrawal.uncertain,
+    withdrawnPublicationId,
+    onPrepared: (receipt) => {
+      setBase(receipt);
+      setValue(listingDraft(receipt));
+      setDirty(false);
+      setValidationAttempted(false);
+    },
+    onSaved,
+  });
   const uploading = Boolean(upload.file);
   const approving = approval.busy || approval.uncertain;
   const withdrawing = withdrawal.busy || withdrawal.uncertain;
@@ -98,24 +110,13 @@ export function useListingEditor(
     }
   }
 
-  const stale = (snapshot.draft?.version ?? 0) > (base?.version ?? 0);
-  const canApprove = Boolean(
-    base &&
-    base.photoIds.length <= MAX_LISTING_PHOTOS &&
-    snapshot.currentSignedRevisionId &&
-    !dirty &&
-    !withdrawalReason &&
-    !stale &&
-    !operating &&
-    snapshot.publication?.revisionId !== base.id &&
-    approval.receipt?.revisionId !== base.id,
-  );
+  const isWithdrawn = Boolean(withdrawnPublicationId);
+  const hasActivePublication = Boolean(snapshot.publication && !isWithdrawn);
+  const canApprove = approval.canApprove;
   const canWithdraw = Boolean(
-    snapshot.publication &&
-    !snapshot.withdrawal &&
+    hasActivePublication &&
     !operating &&
-    (!withdrawalTarget || withdrawalTarget === snapshot.publication.id) &&
-    withdrawal.receipt?.publicationId !== snapshot.publication.id,
+    (!withdrawalTarget || withdrawalTarget === snapshot.publication?.id),
   );
 
   function changeWithdrawalReason(reason: string) {
@@ -124,19 +125,11 @@ export function useListingEditor(
     }
     setWithdrawalTarget(reason ? (withdrawalTarget ?? snapshot.publication?.id ?? null) : null);
     setWithdrawalReason(reason);
+    if (!reason) {
+      setWithdrawalValidationAttempted(false);
+    }
     lockNavigation(dirty || Boolean(reason));
     onLock(dirty || Boolean(reason));
-  }
-
-  function discardWithdrawal() {
-    if (operating) {
-      return;
-    }
-    setWithdrawalReason("");
-    setWithdrawalTarget(null);
-    setWithdrawalValidationAttempted(false);
-    lockNavigation(dirty);
-    onLock(dirty);
   }
 
   function selectPhoto(file: File | null) {
@@ -215,17 +208,10 @@ export function useListingEditor(
     }
     lockNavigation(true);
     onLock(true);
-    const result = await approval.submit({
-      operationId: crypto.randomUUID(),
-      revisionId: base?.id,
-      signedRevisionId: snapshot.currentSignedRevisionId,
-    });
-    if (result) {
+    const resolved = await approval.approve();
+    if (resolved) {
       lockNavigation(false);
       onLock(false);
-    }
-    if (result?.status === 200 && result.data) {
-      onSaved();
     }
   }
 
@@ -272,6 +258,8 @@ export function useListingEditor(
     command,
     approval,
     canApprove,
+    isWithdrawn,
+    hasActivePublication,
     withdrawal,
     withdrawalReason,
     withdrawalValidationAttempted,
@@ -280,7 +268,6 @@ export function useListingEditor(
     ),
     canWithdraw,
     changeWithdrawalReason,
-    discardWithdrawal,
     upload: { ...upload, select: selectPhoto },
     validationAttempted,
     change,
