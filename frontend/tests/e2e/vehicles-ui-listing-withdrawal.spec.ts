@@ -52,6 +52,21 @@ test("manager withdraws an exact publication with retained drafts, receipts, ref
   expect(await entry!.text()).not.toContain("Withdraw approved listing");
   const dialog = page.getByRole("dialog", { name: saved.vehicle.registrationPlate, exact: true });
   const button = (name: string) => dialog.getByRole("button", { name, exact: true });
+  async function showFields() {
+    await button("Listing").click();
+    if (mobile) {
+      await button("Fields").click();
+    } else if (await button("Show listing fields").isVisible()) {
+      await button("Show listing fields").click();
+    }
+  }
+  async function showCard() {
+    await button("Listing").click();
+    if (mobile) {
+      await button("Preview").click();
+    }
+    await button("Catalogue card").click();
+  }
   const reason = dialog.getByLabel("Withdrawal reason", { exact: true });
   const withdraw = button("Withdraw listing");
   const reconcile = button("Reconcile listing withdrawal");
@@ -65,60 +80,29 @@ test("manager withdraws an exact publication with retained drafts, receipts, ref
   await reason.fill("Showroom\nreview");
   await withdraw.click();
   expect(counts()[postPath] ?? 0).toBe(beforeValidation);
-  await button("Discard withdrawal reason").click();
+  await reason.fill("");
   await reason.fill("Reason retained while discarding listing edits");
-  await button("Listing page").click();
-  await button("Edit price").click();
+  await showFields();
   await dialog.getByLabel("Vehicle price (MYR)", { exact: true }).fill("123.456");
   await button("Discard changes").click();
   await button("Publication").click();
   await expect(reason).toHaveValue("Reason retained while discarding listing edits");
-  await expect(button("Back to listings")).toBeDisabled();
-  await button("Discard withdrawal reason").click();
+  await expect(button("Close dialog")).toBeDisabled();
+  await reason.fill("");
 
-  await button("Listing page").click();
-  await button("Edit photos").click();
+  await showFields();
+  await dialog.getByRole("button", { name: "Remove photo 1", exact: true }).click();
   await dialog
     .getByLabel("New listing photo", { exact: true })
     .setInputFiles(path.join(evidence, "upload.jpg"));
   await button("Publication").click();
   await expect(withdraw).toBeDisabled();
-  await button("Listing page").click();
-  await button("Discard selected photo").click();
-  await button("Edit price").click();
-  await dialog.getByLabel("Vehicle price (MYR)", { exact: true }).fill("45000.01");
+  await showFields();
+  await button("Discard").click();
+  await button("Discard changes").click();
   const savePath = `${endpoint}/drafts`;
-  await page.route(`**${savePath}`, async (route) => {
-    const response = await route.fetch();
-    expect(response.status()).toBe(200);
-    await route.fulfill({
-      status: 503,
-      json: { status: 503, data: null, uncertain: true, message: "Lost save" },
-    });
-  });
-  await button("Save draft").click();
-  await expect(button("Reconcile draft save")).toBeEnabled();
-  await button("Publication").click();
-  await expect(withdraw).toBeDisabled();
-  await page.unroute(`**${savePath}`);
-  await button("Reconcile draft save").click();
-  await expect(button("Approve publication")).toBeEnabled();
   const publicationPath = `${endpoint}/publications`;
-  await page.route(`**${publicationPath}`, async (route) => {
-    const response = await route.fetch();
-    expect(response.status()).toBe(200);
-    await route.fulfill({
-      status: 503,
-      json: { status: 503, data: null, uncertain: true, message: "Lost approval" },
-    });
-  });
-  await button("Approve publication").click();
-  await expect(button("Reconcile publication approval")).toBeEnabled();
-  await expect(withdraw).toBeDisabled();
-  await page.unroute(`**${publicationPath}`);
-  await button("Reconcile publication approval").click();
-  await expect(button("Refresh listing")).toBeEnabled();
-  await expect(withdraw).toBeEnabled();
+  await button("Publication").click();
   const prepared = await readWorkspace();
   await reason.fill("  Showroom stock review  ");
   const outsideDraft = await context.request.post(savePath, {
@@ -153,17 +137,16 @@ test("manager withdraws an exact publication with retained drafts, receipts, ref
   await button("Refresh listing").click();
   await expect(
     dialog.getByText(
-      "The approved publication changed. Discard this reason before withdrawing another.",
+      "The publication changed. Clear this reason before withdrawing the current publication.",
       { exact: true },
     ),
   ).toBeVisible();
   await expect(withdraw).toBeDisabled();
-  await button("Discard withdrawal reason").click();
+  await reason.fill("");
   await expect(withdraw).toBeEnabled();
   const target = await readWorkspace();
   await reason.fill("  Showroom stock review  ");
-  await button("Listing page").click();
-  await button("Edit price").click();
+  await showFields();
   await dialog.getByLabel("Vehicle price (MYR)", { exact: true }).fill("123.456");
   await button("Publication").click();
   await expect(reason).toHaveValue("  Showroom stock review  ");
@@ -187,21 +170,21 @@ test("manager withdraws an exact publication with retained drafts, receipts, ref
   await withdraw.click();
   await expect(reconcile).toBeEnabled();
   await expect(reason).toBeDisabled();
-  await expect(button("Save draft")).toBeDisabled();
+  await expect(button("Save draft")).toHaveCount(0);
   await expect(button("Approve publication")).toBeDisabled();
-  await expect(button("Discard changes")).toBeDisabled();
-  await expect(button("Discard withdrawal reason")).toBeDisabled();
-  await expect(button("Back to listings")).toBeDisabled();
+  await expect(button("Discard changes")).toHaveCount(0);
+  await expect(button("Close dialog")).toBeDisabled();
   await page.keyboard.press("Escape");
   await expect(dialog).toBeVisible();
-  await button("Catalogue card").click();
-  await expect(
-    dialog.getByRole("region", { name: "Catalogue card preview", exact: true }),
-  ).toContainText("123.456");
+  await showCard();
+  await expect(dialog.getByRole("region", { name: "Listing preview", exact: true })).toContainText(
+    "Price incomplete",
+  );
   await expect(reconcile).toBeEnabled();
-  await button("Listing page").click();
-  await expect(button("Edit price")).toBeDisabled();
-  await expect(button("Edit photos")).toBeDisabled();
+  await showFields();
+  await expect(dialog.getByLabel("Vehicle price (MYR)", { exact: true })).toBeDisabled();
+  await expect(button("Save draft")).toBeDisabled();
+  await expect(button("Discard changes")).toBeDisabled();
   await page.route(`**${endpoint}`, (route) =>
     route.fulfill({
       status: 503,
@@ -221,9 +204,7 @@ test("manager withdraws an exact publication with retained drafts, receipts, ref
   await expect(button("Refresh listing")).toBeEnabled();
   await expect(reconcile).toBeEnabled();
   await button("Publication").click();
-  await expect(dialog.getByText("Availability", { exact: true }).locator("..")).toContainText(
-    "Withdrawn",
-  );
+  await expect(dialog.getByText("Withdrawn", { exact: true })).toBeVisible();
   await expect(reason).toHaveValue("  Showroom stock review  ");
   for (let index = 1; index < mismatches.length; index += 1) {
     await reconcile.click();
@@ -239,12 +220,10 @@ test("manager withdraws an exact publication with retained drafts, receipts, ref
   const confirmedRefresh = failedRefresh();
   await reconcile.click();
   await confirmedRefresh;
-  await expect(dialog.getByText("Confirmed withdrawal receipt", { exact: true })).toBeVisible();
-  await expect(dialog.getByText("Confirmed reason", { exact: true }).locator("..")).toContainText(
-    "Showroom stock review",
-  );
-  await expect(withdraw).toBeDisabled();
-  await expect(button("Back to listings")).toBeDisabled();
+  await expect(reconcile).toHaveCount(0);
+  await expect(dialog.getByText("Withdrawn", { exact: true })).toBeVisible();
+  await expect(withdraw).toHaveCount(0);
+  await expect(button("Close dialog")).toBeDisabled();
   await page.unroute(`**${endpoint}`);
   await page.unroute(`**${postPath}`);
   expect(new Set(attempts).size).toBe(1);
@@ -271,17 +250,66 @@ test("manager withdraws an exact publication with retained drafts, receipts, ref
   expect(publicAfter.items.some((row: { id: string }) => row.id === item.id)).toBe(false);
   await button("Refresh listing").click();
   await expect(button("Refresh listing")).toBeEnabled();
-  await expect(dialog.getByText("Confirmed withdrawal receipt", { exact: true })).toBeVisible();
-  await expect(withdraw).toBeDisabled();
-  await button("Listing page").click();
-  await button("Edit price").click();
+  await expect(dialog.getByText("Withdrawn", { exact: true })).toBeVisible();
+  await expect(withdraw).toHaveCount(0);
+  await showFields();
   await expect(dialog.getByLabel("Vehicle price (MYR)", { exact: true })).toHaveValue("123.456");
   await button("Discard changes").click();
   await button("Publication").click();
-  await expect(button("Back to listings")).toBeEnabled();
+  await expect(button("Close dialog")).toBeEnabled();
+  const republicationAttempts: Record<"drafts" | "publications", string[]> = {
+    drafts: [],
+    publications: [],
+  };
+  for (const action of ["drafts", "publications"] as const) {
+    await page.route(`**${endpoint}/${action}`, async (route) => {
+      const requests = republicationAttempts[action];
+      requests.push(route.request().postData()!);
+      const response = await route.fetch();
+      expect(response.status()).toBe(200);
+      await route.fulfill(
+        requests.length === 1
+          ? {
+              status: 503,
+              json: { status: 503, data: null, message: "Lost receipt", uncertain: true },
+            }
+          : { response },
+      );
+    });
+  }
+  await button("Republish listing").click();
+  await expect(button("Reconcile republication")).toBeEnabled();
+  expect(republicationAttempts.publications).toHaveLength(0);
+  const preparedRepublication = await readWorkspace();
+  expect(preparedRepublication.draft.version).toBe(persisted.draft.version + 1);
+  expect(preparedRepublication.publication).toEqual(persisted.publication);
+  await button("Reconcile republication").click();
+  await expect.poll(() => republicationAttempts.publications.length).toBe(1);
+  await expect(button("Reconcile republication")).toBeEnabled();
+  await expect(button("Close dialog")).toBeDisabled();
+  await button("Reconcile republication").click();
+  await expect(button("Close dialog")).toBeEnabled();
+  for (const action of ["drafts", "publications"] as const) {
+    expect(republicationAttempts[action]).toHaveLength(2);
+    expect(new Set(republicationAttempts[action]).size).toBe(1);
+    await page.unroute(`**${endpoint}/${action}`);
+  }
+  expect(JSON.parse(republicationAttempts.drafts[0])).toMatchObject({
+    expectedVersion: persisted.draft.version,
+    ...listingDraftContents(listingDraft(persisted.draft)),
+  });
+  const capturedPublication = JSON.parse(republicationAttempts.publications[0]);
+  expect(capturedPublication).toMatchObject({
+    revisionId: preparedRepublication.draft.id,
+    signedRevisionId: persisted.currentSignedRevisionId,
+  });
+  const republished = await readWorkspace();
+  expect(republished.draft).toEqual(preparedRepublication.draft);
+  expect(republished.publication.id).toBe(capturedPublication.operationId);
+  expect((await context.request.get(publicDetail)).status()).toBe(200);
   await expect(page.getByRole("table", { name: "Listings", exact: true })).toBeVisible();
   await dialog
-    .getByRole("heading", { name: "Withdraw approved listing", exact: true })
+    .getByRole("heading", { name: "Saved listing", exact: true })
     .scrollIntoViewIfNeeded();
   await page.screenshot({ path: path.join(evidence, "listing-withdrawal.png") });
 
@@ -309,7 +337,7 @@ test("manager withdraws an exact publication with retained drafts, receipts, ref
     ).status(),
   ).toBe(404);
   await denied.close();
-  await button("Back to listings").click();
+  await button("Close dialog").click();
 
   const cookie = (await context.cookies()).find((entry) => entry.name === "apexauto_token")!;
   const backendHeaders = { Authorization: `Bearer ${cookie.value}` };
@@ -383,6 +411,7 @@ test("manager withdraws an exact publication with retained drafts, receipts, ref
       exactAttempts: attempts,
       publication: target.publication.id,
       withdrawal: persisted.withdrawal,
+      republicationAttempts,
       refund: refund.release,
       role: mobile ? "BranchManager" : "GeneralManager",
     }),

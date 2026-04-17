@@ -2,8 +2,7 @@ import { StaffLink } from "@/components/staff/StaffLink";
 import type { ListingRevision, ListingWorkspace } from "@/lib/vehicles/listing-workspace";
 import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDateTime } from "@/lib/date-format";
-import workshop from "@/components/inspection/Workshop.module.css";
-import workbench from "@/components/staff/StaffWorkspace.module.css";
+import styles from "./ListingPublication.module.css";
 
 export function ListingPublicationRecord({
   revision,
@@ -17,34 +16,36 @@ export function ListingPublicationRecord({
   signedReport?: ListingWorkspace["currentSignedReport"];
 }) {
   if (!publication || !revision) {
-    return <p>No publication has been approved.</p>;
+    return (
+      <section className={styles.section} aria-label="Publication record">
+        <h3>Publication record</h3>
+        <p className={styles.help}>No publication has been approved.</p>
+      </section>
+    );
   }
 
   return (
-    <section className={workbench.stack} aria-label="Approved publication record">
-      <h3>Approved publication</h3>
-      <dl className={workshop.facts}>
-        <div>
-          <dt>Listing revision</dt>
-          <dd>{revision.version}</dd>
-        </div>
-        <div>
+    <section className={styles.section} aria-label="Approved publication record">
+      <div className={styles.sectionHeading}>
+        <h3>Approved publication</h3>
+        <span className={styles.metadata}>Version {revision.version}</span>
+      </div>
+      <dl className={styles.facts}>
+        <div className={styles.recordPrice}>
           <dt>Approved price</dt>
           <dd>{formatCurrency(revision.vehiclePrice)}</dd>
         </div>
         <div>
           <dt>Approved</dt>
-          <dd>{formatMalaysianDateTime(publication.recordedAt)}</dd>
+          <dd>
+            <time dateTime={publication.recordedAt}>
+              {formatMalaysianDateTime(publication.recordedAt)}
+            </time>
+          </dd>
         </div>
-        {withdrawal && (
-          <div>
-            <dt>Withdrawn</dt>
-            <dd>{formatMalaysianDateTime(withdrawal.recordedAt)}</dd>
-          </div>
-        )}
       </dl>
-      <div>
-        <h4>Approved description</h4>
+      <div className={styles.recordText} aria-label="Published description">
+        <h4>Description</h4>
         <p>{revision.description}</p>
       </div>
       {signedReport && (
@@ -52,15 +53,24 @@ export function ListingPublicationRecord({
           prefetch={false}
           target="_blank"
           rel="noopener"
+          className={styles.reportLink}
           href={`/dashboard/inspection/${signedReport.inspectionId}/reports/${signedReport.revision}`}
         >
           Open approved signed inspection report (new tab)
         </StaffLink>
       )}
       {withdrawal && (
-        <div>
-          <h4>Withdrawal reason</h4>
-          <p>{withdrawal.reason}</p>
+        <div className={styles.withdrawalRecord}>
+          <div className={styles.sectionHeading}>
+            <h3>Withdrawal</h3>
+            <time className={styles.metadata} dateTime={withdrawal.recordedAt}>
+              {formatMalaysianDateTime(withdrawal.recordedAt)}
+            </time>
+          </div>
+          <div className={styles.recordText}>
+            <h4>Reason</h4>
+            <p>{withdrawal.reason}</p>
+          </div>
         </div>
       )}
     </section>

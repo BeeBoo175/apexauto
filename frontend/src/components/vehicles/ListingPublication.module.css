@@ -1,0 +1,144 @@
+.content {
+  display: grid;
+  gap: 32px;
+  min-width: 0;
+}
+
+.section {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.sectionHeading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 20px;
+}
+
+.section h3 {
+  margin: 0;
+  color: var(--color-graphite);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.metadata,
+.facts dt,
+.recordText h4 {
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px 32px;
+  margin: 0;
+}
+
+.facts > div {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-width: 0;
+}
+
+.facts dd {
+  margin: 0;
+  color: var(--color-graphite);
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.price dd {
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.recordPrice dd {
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.recordText {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.recordText h4 {
+  margin: 0;
+  font-weight: 600;
+}
+
+.recordText p,
+.help {
+  max-width: 68ch;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.recordText p {
+  white-space: pre-wrap;
+}
+
+.help {
+  color: var(--color-muted);
+}
+
+.withdrawalRecord,
+.withdrawalForm {
+  padding-top: 24px;
+  border-top: 1px solid var(--color-line-soft);
+}
+
+.withdrawalRecord {
+  display: grid;
+  gap: 12px;
+}
+
+.receipt {
+  padding: 16px;
+  border: 1px solid var(--color-line);
+  background: var(--color-canvas);
+}
+
+.reportLink {
+  justify-self: start;
+  color: var(--color-interaction-border);
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.reportLink:focus-visible {
+  outline: 2px solid var(--color-interaction-border);
+  outline-offset: 4px;
+}
+
+@media (max-width: 540px) {
+  .facts {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .content {
+    gap: 28px;
+  }
+
+  .reportLink {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+  }
+}

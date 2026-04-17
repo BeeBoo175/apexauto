@@ -43,10 +43,25 @@ test("catalogue preview follows the same local draft through invalid edits, phot
   const entry = await page.goto(
     `/dashboard/management?branchId=${branch}&listing=${item.id}&section=card`,
   );
-  expect(await entry!.text()).not.toContain("Catalogue card preview");
+  expect(await entry!.text()).not.toContain(saved.vehicle.registrationPlate);
   const dialog = page.getByRole("dialog", { name: saved.vehicle.registrationPlate, exact: true });
-  const preview = dialog.getByRole("region", { name: "Catalogue card preview", exact: true });
+  const preview = dialog.getByRole("region", { name: "Listing preview", exact: true });
   const card = preview.getByRole("article");
+  const button = (name: string) => dialog.getByRole("button", { name, exact: true });
+  async function showFields() {
+    await button("Listing").click();
+    if (info.project.name === "mobile") {
+      await button("Fields").click();
+    } else if (await button("Show listing fields").isVisible()) {
+      await button("Show listing fields").click();
+    }
+  }
+  async function showCard() {
+    if (info.project.name === "mobile") {
+      await button("Preview").click();
+    }
+    await button("Catalogue card").click();
+  }
   await expect(card).toContainText(formatCurrency(saved.draft.vehiclePrice));
   expect((counts()[endpoint] ?? 0) - initialReads).toBe(1);
   expect(counts()[`${endpoint}/photos`] ?? 0).toBe(metadataReads);
@@ -65,39 +80,70 @@ test("catalogue preview follows the same local draft through invalid edits, phot
   });
   expect(await publicCard.innerText()).toBe(initialCard);
   await publicPage.close();
-  await dialog.getByRole("button", { name: "Listing page", exact: true }).click();
-  await dialog.getByRole("button", { name: "Edit price", exact: true }).click();
+  await showFields();
+  if (info.project.name === "mobile") {
+    await button("Preview").click();
+  }
+  await button("Listing page").click();
+  const estimatePath = `${endpoint}/price-estimate`;
+  await page.route(`**${estimatePath}`, async (route) => {
+    const response = await route.fetch();
+    expect(response.status()).toBe(200);
+    expect(response.headers()["cache-control"]).toContain("no-store");
+    const body = await response.json();
+    await route.fulfill({ response, json: { ...body, data: { ...body.data, vehicleId: branch } } });
+  });
+  await showFields();
+  const estimateResponse = page.waitForResponse((response) =>
+    response.url().endsWith(estimatePath),
+  );
+  await dialog.getByLabel("Vehicle price (MYR)", { exact: true }).fill("54321.01");
+  await dialog.getByLabel("Road tax (MYR)", { exact: true }).fill("199.01");
+  await estimateResponse;
+  if (info.project.name === "mobile") {
+    await button("Preview").click();
+  }
+  await expect(button("Retry estimate")).toBeEnabled();
+  await expect(preview.getByText("Estimated total", { exact: true })).toHaveCount(0);
+  await page.unroute(`**${estimatePath}`);
+  const retriedEstimate = page.waitForResponse((response) => response.url().endsWith(estimatePath));
+  await button("Retry estimate").click();
+  const estimate = (await (await retriedEstimate).json()).data;
+  expect(estimate).toMatchObject({
+    vehicleId: item.id,
+    branchId: branch,
+    price: { vehiclePrice: 54321.01, roadTax: 199.01 },
+  });
+  await expect(preview.getByText("Estimated total", { exact: true }).locator("..")).toContainText(
+    formatCurrency(estimate.price.total),
+  );
+  const unsaved = (
+    await (await context.request.get(endpoint, { headers: await headers(context) })).json()
+  ).data;
+  expect(unsaved.draft).toEqual(saved.draft);
+  expect(counts()[postPath] ?? 0).toBe(writesBefore);
+  await showFields();
   await dialog.getByLabel("Vehicle price (MYR)", { exact: true }).fill("123.456");
-  await dialog.getByRole("button", { name: "Edit specifications", exact: true }).click();
   await dialog.getByLabel("Transmission", { exact: true }).selectOption("");
   await dialog.getByLabel("Fuel", { exact: true }).selectOption("PlugInHybrid");
   await dialog.getByLabel("Road tax (MYR)", { exact: true }).fill("19.999");
-  await dialog.getByRole("button", { name: "Edit description", exact: true }).click();
   const description = `Local description ${info.project.name}`;
   await dialog.getByLabel("Public description", { exact: true }).fill(description);
-  await dialog.getByRole("button", { name: "Catalogue card", exact: true }).click();
-  await expect(card).toContainText("123.456");
+  await showCard();
+  await expect(card).toContainText("Price incomplete");
   await expect(card).toContainText("Not set · Plug-in hybrid");
-  await expect(preview.getByText("Enter a valid vehicle price before saving.")).toBeVisible();
   await expect(card).not.toContainText(formatCurrency(saved.draft.vehiclePrice));
   await expect(card).not.toContainText(description);
-  await expect(
-    dialog.getByRole("button", { name: "Back to listings", exact: true }),
-  ).toBeDisabled();
-  await dialog.getByRole("button", { name: "Listing page", exact: true }).click();
-  await dialog.getByRole("button", { name: "Edit price", exact: true }).click();
+  await expect(dialog.getByRole("button", { name: "Close dialog", exact: true })).toBeDisabled();
+  await showFields();
   const price = (saved.draft.vehiclePrice + 321.01).toFixed(2);
   await expect(dialog.getByLabel("Vehicle price (MYR)", { exact: true })).toHaveValue("123.456");
   await dialog.getByLabel("Vehicle price (MYR)", { exact: true }).fill(price);
-  await dialog.getByRole("button", { name: "Edit specifications", exact: true }).click();
   await expect(dialog.getByLabel("Road tax (MYR)", { exact: true })).toHaveValue("19.999");
   await dialog.getByLabel("Road tax (MYR)", { exact: true }).fill("199.01");
   await dialog.getByLabel("Transmission", { exact: true }).selectOption("Manual");
-  await dialog.getByRole("button", { name: "Edit description", exact: true }).click();
   await expect(dialog.getByLabel("Public description", { exact: true })).toHaveValue(description);
-  await dialog.getByRole("button", { name: "Edit photos", exact: true }).click();
-  const selected = dialog.getByRole("region", { name: "Selected listing photos", exact: true });
-  await selected.getByRole("button", { name: "Move photo 2 earlier", exact: true }).click();
+  const selected = dialog.getByRole("group", { name: "Selected listing photos", exact: true });
   const ordered = [
     saved.draft.photoIds[1],
     saved.draft.photoIds[0],
@@ -105,7 +151,8 @@ test("catalogue preview follows the same local draft through invalid edits, phot
   ];
   const coverPath = `${endpoint}/photos/${ordered[0]}`;
   await page.route(`**${coverPath}`, (route) => route.fulfill({ status: 503, body: "" }));
-  await dialog.getByRole("button", { name: "Catalogue card", exact: true }).click();
+  await selected.getByLabel("Photo 2 position", { exact: true }).selectOption("0");
+  await showCard();
   await expect(card).toContainText(formatCurrency(Number(price)));
   await expect(card).toContainText("Manual · Plug-in hybrid");
   await expect(card.locator("img")).toHaveAttribute(
@@ -163,7 +210,8 @@ test("catalogue preview follows the same local draft through invalid edits, phot
     dialog.getByRole("button", { name: "Reconcile draft save", exact: true }),
   ).toBeEnabled();
   await dialog.getByRole("button", { name: "Publication", exact: true }).click();
-  await dialog.getByRole("button", { name: "Catalogue card", exact: true }).click();
+  await dialog.getByRole("button", { name: "Listing", exact: true }).click();
+  await showCard();
   await dialog.getByRole("button", { name: "Refresh listing", exact: true }).click();
   await expect(dialog.getByRole("button", { name: "Refresh listing", exact: true })).toBeEnabled();
   await expect(card).toContainText(formatCurrency(Number(price)));
@@ -173,7 +221,7 @@ test("catalogue preview follows the same local draft through invalid edits, phot
   );
   await expect(dialog.getByRole("button", { name: "Discard changes", exact: true })).toBeDisabled();
   await dialog.getByRole("button", { name: "Reconcile draft save", exact: true }).click();
-  await expect(dialog.getByRole("button", { name: "Back to listings", exact: true })).toBeEnabled();
+  await expect(dialog.getByRole("button", { name: "Close dialog", exact: true })).toBeEnabled();
   expect(attempts).toHaveLength(2);
   expect(attempts[0]).toBe(attempts[1]);
   await page.unroute(`**${postPath}`);
@@ -193,12 +241,11 @@ test("catalogue preview follows the same local draft through invalid edits, phot
   expect(current.publication).toEqual(saved.publication);
   const publicAfter = (await (await context.request.get(cataloguePath)).json()).data;
   expect(publicAfter.items.find((row: { id: string }) => row.id === item.id)).toEqual(item);
-  await dialog.getByRole("button", { name: "Listing page", exact: true }).click();
-  await dialog.getByRole("button", { name: "Edit photos", exact: true }).click();
+  await showFields();
   for (let index = 0; index < ordered.length; index += 1) {
     await selected.getByRole("button", { name: "Remove photo 1", exact: true }).click();
   }
-  await dialog.getByRole("button", { name: "Catalogue card", exact: true }).click();
+  await showCard();
   await expect(card.getByText("Photography unavailable", { exact: true })).toBeVisible();
   const outside = await context.request.post(postPath, {
     headers: await headers(context),
@@ -222,9 +269,7 @@ test("catalogue preview follows the same local draft through invalid edits, phot
   );
   await expect(page.getByRole("table", { name: "Listings", exact: true })).toBeVisible();
   await expect(card).toBeVisible();
-  await preview
-    .getByRole("heading", { name: "Catalogue card preview", exact: true })
-    .scrollIntoViewIfNeeded();
+  await preview.scrollIntoViewIfNeeded();
   await page.screenshot({ path: path.join(evidence, "listing-card-preview.png") });
   const sales = await browser.newContext({
     ...info.project.use,
@@ -237,9 +282,7 @@ test("catalogue preview follows the same local draft through invalid edits, phot
   );
   await dialog.getByRole("button", { name: "Refresh listing", exact: true }).click();
   await expect(dialog).toHaveCount(0);
-  await expect(
-    page.getByRole("region", { name: "Catalogue card preview", exact: true }),
-  ).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Listing preview", exact: true })).toHaveCount(0);
   await sales.close();
   writeFileSync(
     path.join(evidence, `listing-preview-${info.project.name}.json`),

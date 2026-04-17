@@ -19,6 +19,19 @@ export function ListingEditorFooter({
   const publication = section === "publication" && !historical;
   const draftActions =
     (!historical && (section === "listing" || section === "card")) || editor.command.uncertain;
+  const approvalAction = publication || editor.approval.busy || editor.approval.uncertain;
+  const withdrawalAction =
+    (publication && editor.hasActivePublication) ||
+    editor.withdrawal.busy ||
+    editor.withdrawal.uncertain;
+  const republishing = editor.isWithdrawn || editor.approval.republishing;
+  let approvalLabel = republishing ? "Republish listing" : "Approve publication";
+  if (editor.approval.busy) {
+    approvalLabel = republishing ? "Republishing…" : "Approving publication…";
+  }
+  if (editor.approval.uncertain) {
+    approvalLabel = republishing ? "Reconcile republication" : "Reconcile publication approval";
+  }
 
   return (
     <StaffWorkspaceFooter title={context.title} description={context.description}>
@@ -51,16 +64,16 @@ export function ListingEditorFooter({
           )}
         </>
       )}
-      {(publication || editor.approval.busy || editor.approval.uncertain) && (
+      {approvalAction && (
         <Button
           size="compact"
           disabled={editor.approval.busy || (!editor.approval.uncertain && !editor.canApprove)}
           onClick={() => void editor.approve()}
         >
-          {editor.approval.uncertain ? "Reconcile publication approval" : "Approve publication"}
+          {approvalLabel}
         </Button>
       )}
-      {(publication || editor.withdrawal.busy || editor.withdrawal.uncertain) && (
+      {withdrawalAction && (
         <Button
           size="compact"
           variant="danger"
@@ -97,9 +110,10 @@ function footerContext(
   if (historical) {
     return {
       title: section === "publication" ? "Historical publication" : "Historical listing",
-      description: section === "publication"
-        ? "Approval and withdrawal records are read only. Your current draft is retained."
-        : "Saved fields are read only; identity and mileage reflect the current vehicle record.",
+      description:
+        section === "publication"
+          ? "Approval and withdrawal records are read only. Your current draft is retained."
+          : "Saved fields are read only; identity and mileage reflect the current vehicle record.",
     };
   }
   if (editor.value.photoIds.length > MAX_LISTING_PHOTOS) {
@@ -133,9 +147,22 @@ function footerContext(
     };
   }
   if (section === "publication") {
+    if (editor.approval.awaitingRefresh) {
+      return {
+        title: "Publication confirmed",
+        description: "Refresh the listing to update its displayed publication record.",
+      };
+    }
+    if (editor.isWithdrawn) {
+      return {
+        title: "Listing withdrawn",
+        description:
+          "Republish listing approves these saved details and puts the listing back online.",
+      };
+    }
     return {
       title: "Publication review",
-      description: "Approve the saved draft separately. Withdrawal takes effect immediately.",
+      description: "Approve the saved draft to publish it. Withdrawal removes it immediately.",
     };
   }
   return {

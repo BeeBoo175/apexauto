@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/Button";
+import { StaffWorkspaceTabs } from "@/components/staff/StaffWorkspaceTabs";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { useListingEditor } from "@/hooks/use-listing-editor";
+import { useListingEstimate } from "@/hooks/use-listing-estimate";
 import { useListingPhotos } from "@/hooks/use-listing-photos";
+import { useWorkspaceTabs } from "@/hooks/use-workspace-tabs";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { ListingWorkspace } from "@/lib/vehicles/listing-workspace";
 import {
@@ -16,6 +18,7 @@ import { ListingPublication } from "./ListingPublication";
 import { ListingPhotoPicker } from "./ListingPhotoPicker";
 import { ListingDraftFields } from "./ListingDraftFields";
 import { ListingEditingWorkspace } from "./ListingEditingWorkspace";
+import { ListingEstimateSummary } from "./ListingEstimateSummary";
 import { ListingEditorFooter } from "./ListingEditorFooter";
 import { ListingHistory } from "./ListingHistory";
 import { RetainedListingReview } from "./RetainedListingReview";
@@ -27,7 +30,7 @@ type PreviewTarget = "listing" | "card";
 export function ListingEditor({
   snapshot,
   actor,
-  section,
+  section: requestedSection,
   changeSection,
   record,
   onRecord,
@@ -46,16 +49,47 @@ export function ListingEditor({
   const editor = useListingEditor(snapshot, actor, onLock, onSaved);
   const photos = useListingPhotos(snapshot);
   const [mode, setMode] = useState<"edit" | "preview">(
-    section === "card" ? "preview" : "edit",
+    requestedSection === "card" ? "preview" : "edit",
   );
   const [lastTarget, setLastTarget] = useState<PreviewTarget>(
-    section === "card" ? "card" : "listing",
+    requestedSection === "card" ? "card" : "listing",
+  );
+  const listingTarget =
+    requestedSection === "listing" || requestedSection === "card" ? requestedSection : lastTarget;
+  const publicationAvailable = Boolean(
+    editor.base ||
+    snapshot.publication ||
+    editor.approval.busy ||
+    editor.approval.uncertain ||
+    editor.approval.receipt ||
+    editor.withdrawal.busy ||
+    editor.withdrawal.uncertain ||
+    editor.withdrawal.receipt ||
+    editor.withdrawalReason ||
+    (record && record.kind !== "DraftSaved"),
+  );
+  const historyAvailable = Boolean(editor.base || snapshot.draft || snapshot.publication || record);
+  const { section, tabs } = useWorkspaceTabs<ListingSection>(
+    requestedSection,
+    [
+      { value: listingTarget, label: "Listing", available: true },
+      { value: "publication", label: "Publication", available: publicationAvailable },
+      { value: "history", label: "History", available: historyAvailable },
+    ],
+    listingTarget,
+    changeSection,
   );
   const publication = section === "publication";
   const editing = section === "listing" || section === "card";
   const target = section === "listing" || section === "card" ? section : lastTarget;
   const historical = Boolean(
     record && listingRecordSection(record) === (editing ? "listing" : section),
+  );
+  const estimate = useListingEstimate(
+    snapshot,
+    actor,
+    editor.value,
+    editing && !historical && target === "listing",
   );
   const vehicle = {
     ...snapshot.vehicle,
@@ -86,43 +120,17 @@ export function ListingEditor({
           )}
         </div>
       )}
-      <nav className={workshop.sections} aria-label="Listing workspace">
-        <Button
-          size="compact"
-          variant="ghost"
-          className={workshop.sectionButton}
-          aria-pressed={editing}
-          onClick={() => changeSection(lastTarget)}
-        >
-          Listing
-        </Button>
-        <Button
-          size="compact"
-          variant="ghost"
-          className={workshop.sectionButton}
-          aria-pressed={publication}
-          onClick={() => {
-            setLastTarget(target);
-            changeSection("publication");
-          }}
-        >
-          Publication
-        </Button>
-        <Button
-          size="compact"
-          variant="ghost"
-          className={workshop.sectionButton}
-          aria-pressed={section === "history"}
-          onClick={() => {
-            setLastTarget(target);
-            changeSection("history");
-          }}
-        >
-          History
-        </Button>
-      </nav>
-      <div className={styles.body}>
-        <div hidden={!editing || historical}>
+      <StaffWorkspaceTabs
+        label="Listing workspace"
+        tabs={tabs}
+        value={section}
+        onChange={(next) => {
+          setLastTarget(target);
+          changeSection(next);
+        }}
+      />
+      <div className={styles.body} data-split={editing || undefined}>
+        <div className={styles.tabContent} hidden={!editing || historical}>
           <ListingEditingWorkspace
             snapshot={snapshot}
             draft={editor.value}
@@ -130,6 +138,16 @@ export function ListingEditor({
             onTarget={selectTarget}
             mode={mode}
             onMode={setMode}
+            purchaseSummary={
+              <ListingEstimateSummary
+                estimate={estimate.estimate}
+                roadTax={editor.value.roadTax}
+                incomplete={estimate.incomplete}
+                busy={estimate.busy}
+                failed={estimate.failed}
+                onRetry={estimate.retry}
+              />
+            }
             fields={
               <ListingDraftFields
                 value={editor.value}
@@ -148,7 +166,7 @@ export function ListingEditor({
             }
           />
         </div>
-        <div hidden={!publication || historical}>
+        <div className={styles.tabContent} hidden={!publication || historical}>
           <div className={styles.publication}>
             <ListingPublication snapshot={snapshot} editor={editor} />
           </div>
@@ -160,9 +178,13 @@ export function ListingEditor({
             record={record}
           />
         )}
-        <div hidden={section !== "history"}>
+        <div className={styles.tabContent} hidden={section !== "history"}>
           <div className={styles.publication}>
-            <ListingHistory snapshot={snapshot} active={section === "history"} onSelect={onRecord} />
+            <ListingHistory
+              snapshot={snapshot}
+              active={section === "history"}
+              onSelect={onRecord}
+            />
           </div>
         </div>
       </div>

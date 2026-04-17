@@ -31,10 +31,14 @@ export function RetainedListingReview({
   const revision = saved?.revision;
   const draft = revision ? listingDraft(revision) : null;
   const publication = record.kind !== "DraftSaved";
-  const publicationLabel = record.kind === "ListingWithdrawn" ? "Listing withdrawal" : "Publication approval";
+  const publicationLabel =
+    record.kind === "ListingWithdrawn" ? "Listing withdrawal" : "Publication approval";
 
   return (
-    <section aria-label={publication ? "Historical publication" : "Historical listing"}>
+    <section
+      className={styles.tabContent}
+      aria-label={publication ? "Historical publication" : "Historical listing"}
+    >
       <LoadingProgress label="Loading historical listing record" active={read.busy} />
       {read.busy && !saved && (
         <AppointmentLoadingShell label="Loading saved record…" details={recordDetails} />
@@ -51,9 +55,7 @@ export function RetainedListingReview({
         <>
           <div className={styles.historicalHeading}>
             {publication ? (
-              <strong>
-                {publicationLabel} · Read only
-              </strong>
+              <strong>{publicationLabel} · Read only</strong>
             ) : (
               <>
                 <strong>Revision {revision.version} · Read only</strong>

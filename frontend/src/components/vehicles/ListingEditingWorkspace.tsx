@@ -1,9 +1,12 @@
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
+import { ViewSwitcher } from "@/components/ui/ViewSwitcher";
 import type { ListingDraft } from "@/lib/vehicles/listing-draft";
 import type { ListingWorkspace } from "@/lib/vehicles/listing-workspace";
 import { ListingCardPreview } from "./ListingCardPreview";
 import { ListingDetailPreview } from "./ListingDetailPreview";
+import workbench from "@/components/staff/StaffWorkspace.module.css";
 import styles from "./ListingEditor.module.css";
 
 export function ListingEditingWorkspace({
@@ -16,6 +19,7 @@ export function ListingEditingWorkspace({
   mode,
   onMode,
   signedReport = snapshot.currentSignedReport,
+  purchaseSummary,
 }: {
   snapshot: ListingWorkspace;
   draft: ListingDraft;
@@ -26,67 +30,74 @@ export function ListingEditingWorkspace({
   mode: "edit" | "preview";
   onMode: (mode: "edit" | "preview") => void;
   signedReport?: ListingWorkspace["currentSignedReport"];
+  purchaseSummary?: ReactNode;
 }) {
+  const fieldsId = useId();
+
   return (
-    <div>
-      <nav className={styles.modes} aria-label="Listing editor mode">
-        <Button
-          size="compact"
-          variant="secondary"
-          aria-pressed={mode === "edit"}
-          onClick={() => onMode("edit")}
-        >
-          Fields
-        </Button>
-        <Button
-          size="compact"
-          variant="secondary"
-          aria-pressed={mode === "preview"}
-          onClick={() => onMode("preview")}
-        >
-          Preview
-        </Button>
-      </nav>
+    <div className={styles.editingWorkspace} data-mode={mode}>
+      <div className={styles.narrowLayoutControl}>
+        <ViewSwitcher
+          label="Editor view"
+          className={styles.layoutSwitch}
+          value={mode}
+          options={[
+            { value: "edit", label: "Fields" },
+            { value: "preview", label: "Preview" },
+          ]}
+          onChange={onMode}
+        />
+      </div>
+      <div
+        className={`${workbench.stickySectionHeader} ${styles.previewToolbar}`}
+        role="group"
+        aria-label="Preview controls"
+      >
+        <ViewSwitcher
+          label="Preview representation"
+          className={styles.previewSwitch}
+          value={target}
+          options={[
+            { value: "listing", label: "Listing page" },
+            { value: "card", label: "Catalogue card" },
+          ]}
+          onChange={onTarget}
+        />
+      </div>
       <div className={styles.split} data-mode={mode}>
-        <section className={styles.formPane} aria-label="Listing fields">
+        <section id={fieldsId} className={styles.formPane} aria-label="Listing fields" tabIndex={0}>
+          <div className={`${workbench.sectionHeader} ${styles.fieldsHeading}`}>
+            <h2 className={workbench.sectionTitle}>Listing details</h2>
+          </div>
           {fields}
           <div className={styles.photoPicker}>{photos}</div>
         </section>
-        <section className={styles.previewPane} aria-label="Listing preview">
-          <nav className={styles.previewToolbar} aria-label="Preview controls">
-            <div className={styles.previewTargets} role="group" aria-label="Preview representation">
-              <Button
-                size="compact"
-                variant="secondary"
-                aria-pressed={target === "listing"}
-                onClick={() => onTarget("listing")}
-              >
-                Listing page
-              </Button>
-              <Button
-                size="compact"
-                variant="secondary"
-                aria-pressed={target === "card"}
-                onClick={() => onTarget("card")}
-              >
-                Catalogue card
-              </Button>
-            </div>
-            <Button
-              size="compact"
-              variant="ghost"
-              className={styles.expandPreview}
-              aria-pressed={mode === "preview"}
-              onClick={() => onMode(mode === "preview" ? "edit" : "preview")}
-            >
-              {mode === "preview" ? "Show fields" : "Expand preview"}
-            </Button>
-          </nav>
+        <div className={styles.paneToggleAnchor}>
+          <Button
+            type="button"
+            size="compact"
+            variant="secondary"
+            className={styles.collapseFields}
+            aria-label={mode === "preview" ? "Show listing fields" : "Hide listing fields"}
+            title={mode === "preview" ? "Show listing fields" : "Hide listing fields"}
+            aria-expanded={mode === "edit"}
+            aria-controls={fieldsId}
+            onClick={() => onMode(mode === "preview" ? "edit" : "preview")}
+          >
+            <Icon name={mode === "preview" ? "next" : "previous"} />
+          </Button>
+        </div>
+        <section className={styles.previewPane} aria-label="Listing preview" tabIndex={0}>
           <div className={styles.previewBody}>
             {target === "card" ? (
               <ListingCardPreview snapshot={snapshot} draft={draft} />
             ) : (
-              <ListingDetailPreview snapshot={snapshot} draft={draft} signedReport={signedReport} />
+              <ListingDetailPreview
+                snapshot={snapshot}
+                draft={draft}
+                signedReport={signedReport}
+                purchaseSummary={purchaseSummary}
+              />
             )}
           </div>
         </section>

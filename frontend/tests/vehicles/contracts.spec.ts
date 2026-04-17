@@ -308,6 +308,7 @@ test("manager listings validate private projections and independent staff paging
     filters: { search: "", pageSize: 25, branchId: "", sort: "", direction: "asc" },
     listingId: "",
     section: "listing",
+    record: null,
   });
   for (const role of [
     "Customer",

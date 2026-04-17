@@ -120,7 +120,7 @@ export function ListingDrawer({
         )}
         {snapshot && vehicle && (
           <ListingEditor
-            key={`${actorIdentity(actor)}:${vehicle.vehicleId}`}
+            key={`${actorIdentity(actor)}:${vehicle.vehicleId}:${vehicle.branchId}`}
             snapshot={snapshot}
             actor={actor}
             section={section}

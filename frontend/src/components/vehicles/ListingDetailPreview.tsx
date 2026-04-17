@@ -1,6 +1,6 @@
 "use client";
 
-import { useId } from "react";
+import { useId, type ReactNode } from "react";
 import { StaffLink } from "@/components/staff/StaffLink";
 import { formatCurrency } from "@/lib/currency-format";
 import { parseMyr } from "@/lib/currency-input";
@@ -16,10 +16,12 @@ export function ListingDetailPreview({
   snapshot,
   draft,
   signedReport = snapshot.currentSignedReport,
+  purchaseSummary,
 }: {
   snapshot: ListingWorkspace;
   draft: ListingDraft;
   signedReport?: ListingWorkspace["currentSignedReport"];
+  purchaseSummary?: ReactNode;
 }) {
   const previewId = useId();
   const vehicle = {
@@ -40,22 +42,24 @@ export function ListingDetailPreview({
       mileage={`${vehicle.mileageKilometres.toLocaleString("en-MY")} km`}
       transmission={vehicle.transmission}
       fuel={vehicle.fuel}
-      price={price === null ? "Price incomplete" : formatCurrency(price)}
+      price={price === null || price <= 0 ? "Price incomplete" : formatCurrency(price)}
       photos={draft.photoIds.map((id) => ({
         id,
         url: `/api/staff/listings/${vehicle.vehicleId}/photos/${id}`,
       }))}
       summary={
-        <VehiclePurchaseSummary
-          total={null}
-          breakdown={[
-            {
-              label: "Road tax",
-              amount: roadTax === null ? "Incomplete" : formatCurrency(roadTax),
-            },
-          ]}
-          notice="Draft total unavailable."
-        />
+        purchaseSummary ?? (
+          <VehiclePurchaseSummary
+            total={null}
+            breakdown={[
+              {
+                label: "Road tax",
+                amount: roadTax === null ? "Incomplete" : formatCurrency(roadTax),
+              },
+            ]}
+            notice="Historical fees were not recorded."
+          />
+        )
       }
     >
       <div>

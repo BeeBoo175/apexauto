@@ -64,6 +64,10 @@ test("manager listing drawer retains confirmed details and cancels superseded se
   const signedReport = saved.currentSignedReport;
   expect(signedReport).not.toBeNull();
   const reportPath = `/dashboard/inspection/${signedReport.inspectionId}/reports/${signedReport.revision}`;
+  const photoIds: string[] = saved.draft.photoIds;
+  expect(photoIds.length).toBeGreaterThan(1);
+  const photoPath = `${endpoint}/photos/${photoIds[0]}`;
+  await page.route(`**${photoPath}`, (route) => route.fulfill({ status: 503, body: "" }));
   const before = counts()[endpoint] ?? 0;
   const initial = await page.goto(
     `/dashboard/management?branchId=${branch}&pageSize=10&listing=${item.vehicleId}`,
@@ -72,6 +76,18 @@ test("manager listing drawer retains confirmed details and cancels superseded se
   expect(initialHtml).not.toContain(item.registrationPlate);
   expect(initialHtml).not.toContain(`href="${reportPath}"`);
   const dialog = page.getByRole("dialog", { name: item.registrationPlate, exact: true });
+  const listingTab = dialog
+    .getByRole("navigation", { name: "Listing workspace", exact: true })
+    .getByRole("button", { name: "Listing", exact: true });
+  const previewMode = dialog
+    .getByRole("group", { name: "Editor view", exact: true })
+    .getByRole("button", { name: "Preview", exact: true });
+  const fieldsMode = dialog
+    .getByRole("group", { name: "Editor view", exact: true })
+    .getByRole("button", { name: "Fields", exact: true });
+  if (info.project.name === "mobile") {
+    await previewMode.click();
+  }
   const reportLink = dialog.getByRole("link", {
     name: "Open signed inspection report (new tab)",
     exact: true,
@@ -79,13 +95,14 @@ test("manager listing drawer retains confirmed details and cancels superseded se
   await expect(reportLink).toHaveAttribute("href", reportPath);
   await expect(reportLink).toHaveAttribute("target", "_blank");
   await dialog.getByRole("button", { name: "Publication", exact: true }).click();
-  await expect(
-    dialog.getByRole("heading", { name: "Publication record", exact: true }),
-  ).toBeVisible();
+  await expect(dialog.getByRole("heading", { name: "Saved listing", exact: true })).toBeVisible();
   expect(counts()[endpoint] - before).toBe(1);
   const table = page.getByRole("table", { name: "Listings", exact: true });
   const rows = await table.locator("tbody").innerText();
-  const details = await dialog.locator("dl").innerText();
+  const publicationDetails = dialog
+    .getByRole("region", { name: "Saved draft for publication", exact: true })
+    .locator("dl");
+  const details = await publicationDetails.innerText();
   const confirmedUrl = page.url();
   await page.route(`**${endpoint}`, (route) =>
     route.fulfill({
@@ -98,18 +115,16 @@ test("manager listing drawer retains confirmed details and cancels superseded se
     page.getByRole("alert").filter({ hasText: "record could not be refreshed" }),
   ).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Refresh listing", exact: true })).toBeEnabled();
-  expect(await dialog.locator("dl").innerText()).toBe(details);
+  expect(await publicationDetails.innerText()).toBe(details);
   expect(page.url()).toBe(confirmedUrl);
   await page.unroute(`**${endpoint}`);
   await expect(
     page.getByRole("alert").filter({ hasText: "record could not be refreshed" }),
   ).toHaveCount(0);
-  const photoIds: string[] = saved.draft.photoIds;
-  expect(photoIds.length).toBeGreaterThan(1);
-  const photoPath = `${endpoint}/photos/${photoIds[0]}`;
-  await page.route(`**${photoPath}`, (route) => route.fulfill({ status: 503, body: "" }));
-  await dialog.getByRole("button", { name: "Listing page", exact: true }).click();
-  await expect(dialog.getByRole("heading", { name: "Description", exact: true })).toBeVisible();
+  await listingTab.click();
+  await expect(
+    dialog.getByRole("heading", { name: "About this vehicle", exact: true }),
+  ).toBeVisible();
   const popupOpened = page.waitForEvent("popup");
   await reportLink.click();
   const reportPage = await popupOpened;
@@ -122,8 +137,13 @@ test("manager listing drawer retains confirmed details and cancels superseded se
   );
   await reportPage.close();
   await expect(dialog).toBeVisible();
-  const gallery = dialog.getByRole("region", { name: "Selected listing photos", exact: true });
-  await expect(gallery.getByRole("status")).toHaveText("Photo 1 is unavailable.");
+  if (info.project.name === "mobile") {
+    await fieldsMode.click();
+  }
+  const gallery = dialog.getByRole("group", { name: "Selected listing photos", exact: true });
+  await expect(
+    gallery.getByRole("status").filter({ hasText: "Photo 1 is unavailable." }),
+  ).toBeVisible();
   const remaining = gallery.locator("img");
   for (const image of await remaining.all()) {
     await image.scrollIntoViewIfNeeded();
@@ -157,20 +177,22 @@ test("manager listing drawer retains confirmed details and cancels superseded se
       ),
   ).toEqual(photoIds.map((id) => `${endpoint}/photos/${id}`));
   expect(counts()[healthyPath]).toBe(healthyReads);
-  await expect(gallery.locator("figcaption").first()).toHaveText("Cover photo");
+  await expect(
+    gallery.getByRole("combobox", { name: "Photo 1 position", exact: true }),
+  ).toHaveValue("0");
   const mediaReads = photoIds.map((id) => counts()[`${endpoint}/photos/${id}`]);
   const refreshed = page.waitForResponse((response) => response.url().endsWith(endpoint));
   await dialog.getByRole("button", { name: "Refresh listing", exact: true }).click();
   expect((await refreshed).status()).toBe(200);
   await expect(dialog.getByRole("button", { name: "Refresh listing", exact: true })).toBeEnabled();
-  await expect(dialog.getByRole("button", { name: "Listing page", exact: true })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
+  await expect(listingTab).toHaveAttribute("aria-pressed", "true");
   await expect(
     page.getByRole("alert").filter({ hasText: "record could not be refreshed" }),
   ).toHaveCount(0);
   expect(photoIds.map((id) => counts()[`${endpoint}/photos/${id}`])).toEqual(mediaReads);
+  if (info.project.name === "mobile") {
+    await previewMode.click();
+  }
   await expect(reportLink).toHaveAttribute("href", reportPath);
   const confirmedListingUrl = page.url();
   await page.route(`**${endpoint}`, (route) =>
@@ -192,6 +214,9 @@ test("manager listing drawer retains confirmed details and cancels superseded se
   await page.unroute(`**${endpoint}`);
   await reportLink.scrollIntoViewIfNeeded();
   await page.screenshot({ path: path.join(evidence, "listing-report.png") });
+  if (info.project.name === "mobile") {
+    await fieldsMode.click();
+  }
   await gallery.scrollIntoViewIfNeeded();
   await page.screenshot({ path: path.join(evidence, "listing-drawer.png") });
   let releasePhoto = () => {};
@@ -206,24 +231,28 @@ test("manager listing drawer retains confirmed details and cancels superseded se
   const photoHandled = new Promise<void>((resolve) => {
     photoCompleted = resolve;
   });
-  await page.route(`**${photoPath}`, async (route) => {
+  await page.route(`**${photoPath}?closingProbe=1`, async (route) => {
     const response = await route.fetch();
     photoEntered();
     await photoGate;
     await route.fulfill({ response }).catch(() => {});
     photoCompleted();
   });
-  await dialog.getByRole("button", { name: "Publication", exact: true }).click();
-  await dialog.getByRole("button", { name: "Listing page", exact: true }).click();
+  await gallery
+    .locator("img")
+    .first()
+    .evaluate((image: HTMLImageElement) => {
+      image.src = `${image.src}?closingProbe=1`;
+    });
   await photoPending;
-  await dialog.getByRole("button", { name: "Back to listings", exact: true }).click();
+  await dialog.getByRole("button", { name: "Close dialog", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   releasePhoto();
   await photoHandled;
   await expect(
-    page.getByRole("region", { name: "Selected listing photos", exact: true }),
+    page.getByRole("group", { name: "Selected listing photos", exact: true }),
   ).toHaveCount(0);
-  await page.unroute(`**${photoPath}`);
+  await page.unroute(`**${photoPath}?closingProbe=1`);
   expect(await table.locator("tbody").innerText()).toBe(rows);
   await expect(page).not.toHaveURL(/listing=/);
 
@@ -280,13 +309,17 @@ test("manager listing drawer retains confirmed details and cancels superseded se
     page.getByRole("dialog", { name: opening.registrationPlate, exact: true }),
   ).toBeVisible();
   if (!opening.revisionId) {
-    await expect(
-      page.getByText("No photos are selected for this draft.", { exact: true }),
-    ).toBeVisible();
+    await expect(page.getByText("No photos yet.", { exact: true })).toBeVisible();
   }
   if (!openingWorkspace.currentSignedReport) {
+    if (info.project.name === "mobile") {
+      await page
+        .getByRole("group", { name: "Editor view", exact: true })
+        .getByRole("button", { name: "Preview", exact: true })
+        .click();
+    }
     await expect(
-      page.getByText("No current signed inspection is available.", { exact: true }),
+      page.getByText("No signed inspection report is linked.", { exact: true }),
     ).toBeVisible();
     await expect(
       page.getByRole("link", { name: "Open signed inspection report (new tab)", exact: true }),
@@ -342,7 +375,7 @@ test("manager listing drawer retains confirmed details and cancels superseded se
       scopedPrivateMedia: true,
       latePhotoDiscardedOnClose: true,
       exactSignedReportLink: reportPath,
-      serverRenderedReportLink: true,
+      browserRenderedReportLink: true,
       malformedRefreshRetainsReportLink: true,
       reportReceipt: saved.currentSignedRevisionId,
     }),

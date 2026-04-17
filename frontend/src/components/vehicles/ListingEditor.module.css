@@ -16,6 +16,8 @@
 
 .body {
   container: listing-editor / inline-size;
+  display: flex;
+  flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
@@ -23,14 +25,37 @@
   overscroll-behavior: contain;
 }
 
-.modes {
-  display: none;
+.tabContent:not([hidden]),
+.editingWorkspace {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.body[data-split="true"] > .tabContent:not([hidden]),
+.editingWorkspace {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.historyContent {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+}
+
+.editingWorkspace {
+  --listing-preview-toolbar-height: 54px;
 }
 
 .split {
   display: grid;
+  flex: 1 1 0;
   grid-template-columns: minmax(280px, 0.95fr) minmax(0, 1.6fr);
-  align-items: start;
+  grid-template-rows: minmax(0, 1fr);
+  align-items: stretch;
+  min-height: 0;
   min-width: 0;
 }
 
@@ -44,16 +69,46 @@
 
 .formPane,
 .previewPane {
+  min-height: 0;
   min-width: 0;
-  padding: 24px;
+  padding: 16px 24px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.formPane:focus-visible,
+.previewPane:focus-visible {
+  outline: 2px solid var(--color-interaction-border);
+  outline-offset: -2px;
 }
 
 .formPane {
-  border-right: 1px solid var(--color-line-soft);
+  grid-area: 1 / 1;
+  border-right: 1px solid var(--color-line);
+}
+
+.fieldsHeading {
+  margin-bottom: 16px;
+}
+
+.paneToggleAnchor {
+  position: relative;
+  z-index: 3;
+  grid-area: 1 / 2;
+  align-self: stretch;
+  width: 0;
+  pointer-events: none;
 }
 
 .previewPane {
-  background: var(--color-canvas);
+  grid-area: 1 / 2;
+  padding: 0;
+  background: var(--color-paper);
+}
+
+.split[data-mode="preview"] .paneToggleAnchor,
+.split[data-mode="preview"] .previewPane {
+  grid-column: 1;
 }
 
 .fieldSection h3 {
@@ -74,12 +129,12 @@
 
 .fields {
   display: grid;
-  gap: 28px;
+  gap: 20px;
 }
 
 .fieldSection {
   display: grid;
-  gap: 16px;
+  gap: 12px;
   min-width: 0;
 }
 
@@ -90,37 +145,52 @@
 }
 
 .photoPicker {
-  margin-top: 28px;
-  padding-top: 24px;
+  margin-top: 20px;
+  padding-top: 16px;
   border-top: 1px solid var(--color-line-soft);
 }
 
-.previewToolbar {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
+.editingWorkspace > .previewToolbar {
+  flex: 0 0 auto;
+  flex-direction: row;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 8px;
+  justify-content: flex-end;
   min-width: 0;
-  margin-bottom: 20px;
-  padding-block: 8px;
-  background: var(--color-canvas);
+  height: var(--listing-preview-toolbar-height);
+  padding: 8px 24px;
 }
 
-.previewTargets {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
+.collapseFields {
+  position: absolute;
+  top: 16px;
+  width: 24px;
+  height: 48px;
+  min-height: 48px;
+  padding: 4px;
+  border-left: 1px solid var(--color-paper);
+  border-radius: 0 6px 6px 0;
+  background: var(--color-paper);
+  transform: translateX(-1px);
+  pointer-events: auto;
 }
 
-.previewTargets button[aria-pressed="true"],
-.modes button[aria-pressed="true"] {
-  border-color: var(--color-interaction-border);
-  background: var(--color-selected-surface);
-  color: var(--color-graphite);
+.collapseFields::before {
+  position: absolute;
+  inset: -6px -10px;
+  content: "";
+}
+
+.previewToolbar .previewSwitch {
+  --view-size: 128px;
+}
+
+.narrowLayoutControl .layoutSwitch {
+  --view-size: 100px;
+}
+
+.narrowLayoutControl {
+  display: none;
 }
 
 .previewBody {
@@ -129,12 +199,11 @@
   --vehicle-photo-transition: none;
   --vehicle-photo-press-transform: none;
   min-width: 0;
-  padding: 20px;
-  background: var(--color-paper);
+  padding: 24px 24px 16px;
 }
 
 .previewSection {
-  padding-block: 32px;
+  padding-block: 24px;
 }
 
 .previewSection + .previewSection {
@@ -142,11 +211,12 @@
 }
 
 .publication {
-  padding: 24px;
+  padding: 16px 24px;
 }
 
 .historicalHeading {
   display: flex;
+  flex-shrink: 0;
   flex-wrap: wrap;
   gap: 8px 20px;
   padding: 16px 24px;
@@ -161,18 +231,38 @@
 }
 
 @container listing-editor (max-width: 740px) {
-  .expandPreview {
+  .body[data-split="true"] > .tabContent:not([hidden]),
+  .editingWorkspace,
+  .split {
+    flex: 1 0 auto;
+  }
+
+  .editingWorkspace[data-mode="edit"] > .previewToolbar {
     display: none;
   }
 
-  .modes {
-    display: flex;
-    gap: 8px;
-    padding: 16px 24px 0;
+  .paneToggleAnchor {
+    display: none;
   }
 
-  .split {
+  .narrowLayoutControl {
+    display: flex;
+    padding: 12px 24px 0;
+  }
+
+  .split,
+  .split[data-mode="preview"] {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+  }
+
+  .formPane,
+  .previewPane {
+    overflow-y: visible;
+  }
+
+  .previewPane {
+    grid-column: 1;
   }
 
   .formPane {
@@ -189,24 +279,36 @@
   }
 }
 
+@media (max-width: 820px) {
+  .editingWorkspace {
+    --listing-preview-toolbar-height: 66px;
+  }
+}
+
 @media (max-width: 600px) {
   .status {
     padding-inline: 16px;
   }
 
-  .formPane,
-  .previewPane,
-  .publication,
-  .historicalHeading {
-    padding: 20px 16px;
+  .formPane {
+    padding: 16px;
   }
 
-  .modes {
+  .editingWorkspace > .previewToolbar {
+    padding-inline: 16px;
+  }
+
+  .publication,
+  .historicalHeading {
+    padding: 16px;
+  }
+
+  .narrowLayoutControl {
     padding-inline: 16px;
   }
 
   .previewBody {
-    padding: 16px;
+    padding: 24px 16px 16px;
   }
 }
 
