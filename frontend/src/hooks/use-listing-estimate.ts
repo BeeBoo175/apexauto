@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { apiFetch } from "@/lib/api-browser";
+import { privateApiFetch } from "@/lib/api-browser";
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import { parseMyr } from "@/lib/currency-input";
 import type { ListingDraft } from "@/lib/vehicles/listing-draft";
@@ -48,7 +48,7 @@ export function useListingEstimate(
     async function load() {
       setEntry((current) => (current.key === key ? { ...current, phase: "loading" } : current));
       try {
-        const result = await apiFetch(
+        const result = await privateApiFetch(
           `/api/staff/listings/${vehicleId}/price-estimate`,
           parseListingEstimate,
           {
@@ -57,7 +57,7 @@ export function useListingEstimate(
             body: JSON.stringify({ expectedActor: identity, branchId, vehiclePrice, roadTax }),
             signal: cancellation.signal,
           },
-          { requireActor: true, maximumResponseBytes: 8192 },
+          { maximumResponseBytes: 8192 },
         );
         if (cancellation.signal.aborted) {
           return;

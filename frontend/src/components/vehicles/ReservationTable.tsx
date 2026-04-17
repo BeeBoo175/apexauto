@@ -17,7 +17,7 @@ import { useReservationTable } from "@/hooks/use-reservation-table";
 import { useRowSelection } from "@/hooks/use-row-selection";
 import { useCsvExport } from "@/hooks/use-csv-export";
 import { useStaffSelection } from "@/hooks/use-staff-selection";
-import { apiFetch } from "@/lib/api-browser";
+import { privateApiFetch } from "@/lib/api-browser";
 import {
   parseReservationDetailSnapshot,
   type ReservationDetail,
@@ -101,7 +101,7 @@ export function ReservationTable({
     path: (id) => `/api/staff/reservations/${id}`,
     parse: parseReservationDetailSnapshot,
     matches: (value, id) => value.reservation.id === id,
-    read: (path, parse, options) => apiFetch(path, parse, options, { requireActor: true }),
+    read: privateApiFetch,
     commitAfterRead: true,
   });
   const reservationColumns = columns.map((column) =>

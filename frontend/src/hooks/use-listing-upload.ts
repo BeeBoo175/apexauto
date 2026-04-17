@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
-import { apiFetch } from "@/lib/api-browser";
+import { privateApiFetch } from "@/lib/api-browser";
 import { PHOTO_MAX_BYTES } from "@/lib/intake/contracts";
 import { matchesListingUpload, parseListingPhotoReceipt } from "@/lib/vehicles/listing-photos";
 
@@ -50,7 +50,7 @@ export function useListingUpload(vehicleId: string, onConfirmed: (id: string) =>
     setBusy(true);
     const path = `/api/staff/listings/${vehicleId}/photos/${captured.id}`;
     try {
-      const result = await apiFetch(
+      const result = await privateApiFetch(
         reconcile ? `${path}/receipt` : path,
         parseListingPhotoReceipt,
         reconcile
@@ -61,7 +61,7 @@ export function useListingUpload(vehicleId: string, onConfirmed: (id: string) =>
               body: captured.file,
               signal: attempt.signal,
             },
-        { deadlineMs: reconcile ? 22_000 : 92_000, requireActor: true },
+        { deadlineMs: reconcile ? 22_000 : 92_000 },
       );
       if (attempt.signal.aborted) {
         return;

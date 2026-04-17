@@ -1,7 +1,7 @@
 import { paginationQuery } from "@/lib/pagination";
 import type { Metadata } from "next";
 import { readOwnAccount } from "@/lib/auth/server";
-import { apiRead } from "@/lib/server/http/api";
+import { requestApiJson } from "@/lib/server/http/api";
 import { parseBranch } from "@/lib/branches";
 import { parsePage } from "@/lib/api";
 import { parseTaxonomy } from "@/lib/intake/parse";
@@ -14,8 +14,8 @@ export const metadata: Metadata = {
 
 export default async function SellPage() {
   const [taxonomy, branches, access] = await Promise.all([
-    apiRead("/api/taxonomy", parseTaxonomy),
-    apiRead(`/api/branches?${paginationQuery()}`, (value) => parsePage(value, parseBranch)),
+    requestApiJson("/api/taxonomy", parseTaxonomy),
+    requestApiJson(`/api/branches?${paginationQuery()}`, (value) => parsePage(value, parseBranch)),
     readOwnAccount().catch(() => ({ status: 502, account: null })),
   ]);
   return (

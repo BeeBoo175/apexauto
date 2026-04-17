@@ -3,9 +3,9 @@ import { cookies } from "next/headers";
 import { SESSION_COOKIE } from "@/lib/auth/contracts";
 import { requestApi, type ApiRequestOptions } from "@/lib/server/http/upstream";
 import { HttpError, parseRetryAfterSeconds, readBoundedJson } from "@/lib/http";
-import { API_DEADLINE_MS, apiErrorMessages, parseApiErrorCode } from "@/lib/api";
+import { API_DEADLINE_MS } from "@/lib/api";
 import { isRecord } from "@/lib/auth/contracts";
-import type { ApiResult } from "@/lib/api";
+import type { ApiConflict, ApiResult } from "@/lib/api";
 
 const messages: Record<number, string> = {
   400: "Check the entered details and try again.",
@@ -19,12 +19,13 @@ const messages: Record<number, string> = {
   429: "Too many requests. Wait before trying again.",
 };
 
-export async function apiRead<T>(
+export async function requestApiJson<T>(
   path: string,
   parse: (value: unknown) => T | null,
   options: ApiRequestOptions = {},
   deadline = API_DEADLINE_MS,
   maximumResponseBytes = 256 * 1024,
+  parseConflict?: (code: unknown) => ApiConflict | undefined,
 ): Promise<ApiResult<T>> {
   try {
     const { response, signal } = await requestApi(path, deadline, options);
@@ -46,16 +47,16 @@ export async function apiRead<T>(
       };
     }
     if (response.status >= 500 || response.status === 408) {
-      throw new Error("Unconfirmed intake response");
+      throw new Error("Unconfirmed API response");
     }
     let data: T | null = null;
-    let code: ApiResult<T>["code"];
+    let conflict: ApiConflict | undefined;
     try {
       const value = await readBoundedJson(response.body, signal, maximumResponseBytes);
       if (response.ok) {
         data = parse(value);
       } else if (response.status === 409 && isRecord(value)) {
-        code = parseApiErrorCode(value.code);
+        conflict = parseConflict?.(value.code);
       }
     } catch (error) {
       if (response.ok) {
@@ -63,17 +64,16 @@ export async function apiRead<T>(
       }
     }
     if (response.ok && !data) {
-      throw new Error("Invalid intake response");
+      throw new Error("Invalid API response");
     }
-    const message = code
-      ? apiErrorMessages[code]
-      : (messages[response.status] ?? "The request was not accepted.");
+    const message =
+      conflict?.message ?? messages[response.status] ?? "The request was not accepted.";
     return {
       status: response.status,
       data,
       message: response.ok ? "" : message,
       uncertain: false,
-      ...(code ? { code } : {}),
+      ...(conflict ? { code: conflict.code } : {}),
     };
   } catch {
     return {
@@ -100,7 +100,7 @@ export async function privateApiRead<T>(
   if (!token) {
     return { status: 401, data: null, message: messages[401], uncertain: false };
   }
-  return apiRead(path, parse, { token, signal }, API_DEADLINE_MS, maximumResponseBytes);
+  return requestApiJson(path, parse, { token, signal }, API_DEADLINE_MS, maximumResponseBytes);
 }
 
 export function apiJson<T>(result: ApiResult<T>) {

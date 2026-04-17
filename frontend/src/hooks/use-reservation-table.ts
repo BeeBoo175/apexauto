@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { useInitialToast } from "./use-initial-toast";
-import { apiFetch } from "@/lib/api-browser";
+import { apiFetch, privateApiFetch } from "@/lib/api-browser";
 import { parsePage, type ApiResult, type Page } from "@/lib/api";
 import { parseBranch, type Branch } from "@/lib/branches";
 import {
@@ -65,11 +65,10 @@ export function useReservationTable(
     setBusy(true);
     setPendingView(nextFilters.isActive === active.filters.isActive ? null : nextFilters.isActive);
     try {
-      const result = await apiFetch(
+      const result = await privateApiFetch(
         `/api/staff/reservations?${reservationQuery(nextFilters, nextPage)}`,
         parseReservationSnapshot,
         { signal: attempt.signal },
-        { requireActor: true },
       );
       if (attempt.signal.aborted || controller.current !== attempt) {
         return;

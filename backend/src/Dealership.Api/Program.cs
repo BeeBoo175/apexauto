@@ -134,13 +134,13 @@ app.MapGet("/health/ready", async (DealershipDbContext db, CancellationToken can
         ? Results.Ok(new { status = "ready" })
         : Results.StatusCode(StatusCodes.Status503ServiceUnavailable)).DisableRateLimiting();
 
-app.MapVehicleEndpoints();
-app.MapListingEndpoints();
-app.MapReservationEndpoints();
-app.MapReservationReadEndpoints();
+app.MapTaxonomyValuationEndpoints();
+app.MapListingCommandEndpoints();
+app.MapReservationCommandEndpoints();
+app.MapReservationQueryEndpoints();
 app.MapPublicListingEndpoints();
 app.MapPromoEndpoints();
-app.MapListingReadEndpoints();
+app.MapListingQueryEndpoints();
 app.MapListingPhotoEndpoints();
 app.MapRegistrationEndpoints();
 app.MapAuthenticationEndpoints();

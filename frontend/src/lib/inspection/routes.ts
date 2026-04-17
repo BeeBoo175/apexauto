@@ -3,7 +3,7 @@ import { isRecord, isUuid } from "@/lib/auth/contracts";
 import { readCurrentActor } from "@/lib/auth/server";
 import { HttpError, readBoundedJson } from "@/lib/http";
 import { requireSameOrigin } from "@/lib/server/http/request";
-import { apiRead, sessionToken } from "@/lib/server/http/api";
+import { requestApiJson, sessionToken } from "@/lib/server/http/api";
 import { apiError, apiJson } from "@/lib/server/http/api";
 
 export function inspectionQuery(request: Request, history = false) {
@@ -52,7 +52,7 @@ export async function relayInspection<T>(
         throw new HttpError(400, "Provide an operation ID and valid inspection details.");
       }
     }
-    const result = await apiRead(
+    const result = await requestApiJson(
       `/api/staff/inspection/${path}`,
       parse,
       { token, signal, method, body },

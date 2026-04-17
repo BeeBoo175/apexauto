@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace Dealership.IntegrationTests;
 
-public sealed class StaffExportEndpointTests
+public sealed class StaffIntakeExportEndpointTests
 {
     [Fact]
     public async Task ExportValidatesQueryPropagatesScopeAndRefusesOversizeWithoutPartialFile()

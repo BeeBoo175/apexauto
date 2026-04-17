@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { VehicleCatalogue } from "@/components/vehicles/VehicleCatalogue";
 import { LoadingProgressProvider } from "@/components/ui/LoadingProgress";
-import { apiRead } from "@/lib/server/http/api";
+import { requestApiJson } from "@/lib/server/http/api";
 import { parseBranch } from "@/lib/branches";
 import { parsePage } from "@/lib/api";
 import type { SearchParams } from "@/lib/query";
@@ -27,8 +27,8 @@ export default async function VehiclesPage({
   const { filters, page } = catalogueParams(await searchParams);
   const query = catalogueQuery(filters, page);
   const [catalogue, branches] = await Promise.all([
-    apiRead(`/api/vehicles?${query}`, parseCatalogue),
-    apiRead("/api/branches?page=1&pageSize=25", (value) => parsePage(value, parseBranch)),
+    requestApiJson(`/api/vehicles?${query}`, parseCatalogue),
+    requestApiJson("/api/branches?page=1&pageSize=25", (value) => parsePage(value, parseBranch)),
   ]);
   return (
     <LoadingProgressProvider initialLabel="Loading vehicles">

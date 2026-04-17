@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api-browser";
+import { privateApiFetch } from "@/lib/api-browser";
 import { downloadCsv, selectedCsv, type CsvColumn } from "@/lib/csv";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { parseReservationSnapshot } from "./parse-reservations";
@@ -27,11 +27,10 @@ export async function exportReservations(filters: ReservationFilters, cancellati
   let total: number | null = null;
   let page = 1;
   while (total === null || rows.length < total) {
-    const result = await apiFetch(
+    const result = await privateApiFetch(
       `/api/staff/reservations?${reservationQuery({ ...filters, pageSize: 50 }, page)}`,
       parseReservationSnapshot,
       { signal },
-      { requireActor: true },
     );
     const snapshot = result.data;
     if (

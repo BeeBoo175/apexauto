@@ -2,13 +2,9 @@
 
 import { useEffect, useRef } from "react";
 import { useStaffHistory } from "./use-staff-history";
-import { apiFetch } from "@/lib/api-browser";
-import type { ApiRequest } from "@/lib/api";
+import { privateApiFetch } from "@/lib/api-browser";
 import type { ListingWorkspace } from "@/lib/vehicles/listing-workspace";
 import { appendListingHistory, parseListingHistory } from "@/lib/vehicles/listing-history";
-
-const read: ApiRequest = (path, parse, options) =>
-  apiFetch(path, parse, options, { requireActor: true });
 
 export function useListingHistory(snapshot: ListingWorkspace, active: boolean) {
   const { vehicleId, branchId } = snapshot.vehicle;
@@ -20,7 +16,7 @@ export function useListingHistory(snapshot: ListingWorkspace, active: boolean) {
       parse: parseListingHistory,
       matches: (value) => value.vehicleId === vehicleId && value.branchId === branchId,
       append: appendListingHistory,
-      read,
+      read: privateApiFetch,
     },
     "Listing history could not be refreshed. Revealed records and your draft remain shown.",
     { enabled: active, progressive: true },

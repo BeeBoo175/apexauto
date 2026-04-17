@@ -6,7 +6,7 @@ import { useInspectionLock } from "./use-inspection-lock";
 import { useListingUpload } from "./use-listing-upload";
 import { useListingPublication } from "./use-listing-publication";
 import { useToast } from "@/components/ui/Toast";
-import { apiFetch } from "@/lib/api-browser";
+import { privateApiFetch } from "@/lib/api-browser";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { ListingWorkspace } from "@/lib/vehicles/listing-workspace";
 import { MAX_LISTING_PHOTOS } from "@/lib/vehicles/listing-photos";
@@ -46,7 +46,7 @@ export function useListingEditor(
       receipt.branchId === snapshot.vehicle.branchId &&
       receipt.actorId === actor.userId &&
       matchesListingSave(receipt, body),
-    (path, parse, options) => apiFetch(path, parse, options, { requireActor: true }),
+    privateApiFetch,
   );
   const upload = useListingUpload(snapshot.vehicle.vehicleId, (id) => {
     if (value.photoIds.length >= MAX_LISTING_PHOTOS) {
@@ -64,7 +64,7 @@ export function useListingEditor(
       receipt.branchId === snapshot.vehicle.branchId &&
       receipt.actorId === actor.userId &&
       matchesListingWithdrawal(receipt, body),
-    (path, parse, options) => apiFetch(path, parse, options, { requireActor: true }),
+    privateApiFetch,
   );
   const stale = (snapshot.draft?.version ?? 0) > (base?.version ?? 0);
   const withdrawnPublicationId =

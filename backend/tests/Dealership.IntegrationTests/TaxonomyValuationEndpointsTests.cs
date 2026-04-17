@@ -7,7 +7,7 @@ using Dealership.Domain.Vehicles;
 
 namespace Dealership.IntegrationTests;
 
-public class VehicleEndpointTests(VehicleApiFactory factory) : IClassFixture<VehicleApiFactory>, IDisposable
+public class TaxonomyValuationEndpointsTests(VehicleApiFactory factory) : IClassFixture<VehicleApiFactory>, IDisposable
 {
     private readonly HttpClient _client = factory.CreateClient();
 

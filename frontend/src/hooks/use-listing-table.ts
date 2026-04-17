@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { useInitialToast } from "./use-initial-toast";
-import { apiFetch } from "@/lib/api-browser";
+import { apiFetch, privateApiFetch } from "@/lib/api-browser";
 import { parsePage, type ApiResult, type Page } from "@/lib/api";
 import { parseBranch, type Branch } from "@/lib/branches";
 import { listingQuery, type ListingFilters, type ListingItem } from "@/lib/vehicles/listings";
@@ -66,11 +66,10 @@ export function useListingTable(
     controller.current = attempt;
     setBusy(true);
     try {
-      const result = await apiFetch(
+      const result = await privateApiFetch(
         `/api/staff/listings?${listingQuery(nextFilters, nextPage)}`,
         parseListings,
         { signal: attempt.signal },
-        { requireActor: true },
       );
       if (attempt.signal.aborted) {
         return;

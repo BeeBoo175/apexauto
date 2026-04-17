@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace Dealership.IntegrationTests;
 
-public sealed class StaffBackgroundExportEndpointTests
+public sealed class StaffIntakeBackgroundExportEndpointTests
 {
     [Fact]
     public async Task BusyAndOversizedExportsReturnRetryableErrorsWithoutAFile()

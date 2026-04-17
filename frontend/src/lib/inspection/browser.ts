@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api-browser";
+import { privateApiFetch } from "@/lib/api-browser";
 
 export function inspectionFetch<T>(
   path: string,
@@ -6,9 +6,8 @@ export function inspectionFetch<T>(
   options: RequestInit = {},
   deadline = 22_000,
 ) {
-  return apiFetch(`/api/staff/inspection/${path}`, parse, options, {
+  return privateApiFetch(`/api/staff/inspection/${path}`, parse, options, {
     deadlineMs: deadline,
     maximumResponseBytes: 1200 * 1024,
-    requireActor: true,
   });
 }

@@ -4,7 +4,7 @@ import { readCurrentActor } from "@/lib/auth/server";
 import { requestApi } from "@/lib/server/http/upstream";
 import { HttpError, readBoundedBytes } from "@/lib/http";
 import { requireSameOrigin } from "@/lib/server/http/request";
-import { apiRead, sessionToken } from "@/lib/server/http/api";
+import { requestApiJson, sessionToken } from "@/lib/server/http/api";
 import { apiError, apiJson } from "@/lib/server/http/api";
 import { PHOTO_MAX_BYTES } from "@/lib/intake/contracts";
 import { parsePhoto } from "./parse-report";
@@ -45,7 +45,7 @@ export async function inspectionPhoto(request: Request, inspectionId: string, id
       }
       const bytes = await readBoundedBytes(request.body, signal, PHOTO_MAX_BYTES);
       const query = new URLSearchParams({ pointCode, assignmentVersion: String(version) });
-      const result = await apiRead(
+      const result = await requestApiJson(
         `${path}?${query}`,
         parsePhoto,
         { token, signal, bytes, contentType, method: "PUT" },

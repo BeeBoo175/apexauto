@@ -13,7 +13,7 @@ using static Dealership.IntegrationTests.ReservationTestData;
 
 namespace Dealership.IntegrationTests;
 
-public sealed class ReservationEndpointTests(IntakePhotoFixture fixture) : IClassFixture<IntakePhotoFixture>
+public sealed class ReservationEndpointsTests(IntakePhotoFixture fixture) : IClassFixture<IntakePhotoFixture>
 {
     [Fact]
     public async Task AuthenticatedCommandsReturnBoundedPrivateImmutableReceiptsAcrossReleaseAndReplay()

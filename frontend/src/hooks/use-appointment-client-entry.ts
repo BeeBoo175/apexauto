@@ -2,7 +2,7 @@
 
 import type { AppointmentWorkbench } from "@/components/staff/AppointmentWorkbench";
 import { useStaffClientEntry } from "./use-staff-client-entry";
-import { apiFetch } from "@/lib/api-browser";
+import { privateApiFetch } from "@/lib/api-browser";
 import type { ApiResult } from "@/lib/api";
 import type { AppointmentDetail } from "@/lib/staff/contracts";
 import { parseDetail } from "@/lib/staff/parse";
@@ -15,11 +15,10 @@ interface AppointmentEntry {
 export function useAppointmentClientEntry(id: string) {
   return useStaffClientEntry<AppointmentEntry>(async (signal) => {
     const [initial, { AppointmentWorkbench: Workbench }] = await Promise.all([
-      apiFetch(
+      privateApiFetch(
         `/api/staff/intake/appointments/${id}`,
         parseDetail,
         { signal },
-        { requireActor: true },
       ),
       import("@/components/staff/AppointmentWorkbench"),
     ]);

@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { useStaffClientEntry } from "./use-staff-client-entry";
-import { apiFetch } from "@/lib/api-browser";
+import { apiFetch, privateApiFetch } from "@/lib/api-browser";
 import { parsePage } from "@/lib/api";
 import type { CurrentActor } from "@/lib/auth/actor";
 import { isUuid } from "@/lib/auth/contracts";
@@ -31,23 +31,21 @@ export function useIntakeClientEntry(actor: CurrentActor, parameters: SearchPara
     const { filters, page } = staffParams(parameters);
     const calendarFilters = calendarParams(parameters);
     const selectedId = isUuid(parameters.appointment) ? parameters.appointment : "";
-    const privateRead = { requireActor: true };
 
     const [calendar, worklist, branches, selected, view] = await Promise.all([
       listView
         ? null
-        : apiFetch(
+        : privateApiFetch(
             `/api/staff/intake/calendar?${calendarQuery(calendarFilters)}`,
             (value) => parseCalendar(value, calendarReadRange(calendarFilters)),
             { signal },
-            { ...privateRead, maximumResponseBytes: 1024 * 1024 },
+            { maximumResponseBytes: 1024 * 1024 },
           ),
       listView
-        ? apiFetch(
+        ? privateApiFetch(
             `/api/staff/intake/appointments?${staffQuery(filters, page)}`,
             (value) => parsePage(value, parseWorklistItem),
             { signal },
-            privateRead,
           )
         : null,
       actor.role === "GeneralManager"
@@ -58,14 +56,13 @@ export function useIntakeClientEntry(actor: CurrentActor, parameters: SearchPara
           ).catch(() => null)
         : null,
       selectedId
-        ? apiFetch(
+        ? privateApiFetch(
             `/api/staff/intake/appointments/${selectedId}`,
             (value) => {
               const detail = parseDetail(value);
               return detail?.id === selectedId ? detail : null;
             },
             { signal },
-            privateRead,
           ).catch(() => null)
         : null,
       prepareView(listView),

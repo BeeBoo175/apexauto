@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { VehicleDetail } from "@/components/vehicles/VehicleDetail";
 import { LoadingProgressProvider } from "@/components/ui/LoadingProgress";
 import { isUuid } from "@/lib/auth/contracts";
-import { apiRead } from "@/lib/server/http/api";
+import { requestApiJson } from "@/lib/server/http/api";
 import { parsePublicDetail } from "@/lib/vehicles/public-detail";
 import { vehicleDetailSectionHref } from "@/lib/vehicles/query";
 import type { SearchParams } from "@/lib/query";
@@ -19,7 +19,7 @@ const readDetail = cache(async (id: string) => {
   if (!isUuid(id)) {
     return { status: 404, data: null, message: "Vehicle unavailable.", uncertain: false };
   }
-  return apiRead(`/api/vehicles/${id}`, (value) => parsePublicDetail(value, id));
+  return requestApiJson(`/api/vehicles/${id}`, (value) => parsePublicDetail(value, id));
 });
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

@@ -3,6 +3,7 @@ import { parseAccount, parseSession, safeReturnTo } from "@/lib/auth/contracts";
 import { trustedClientAddress } from "@/lib/server/http/client-address";
 import { HttpError, parseRetryAfterSeconds, readBoundedJson } from "@/lib/http";
 import { apiFetch } from "@/lib/api-browser";
+import { parseIntakeConflict } from "@/lib/intake/errors";
 
 test("return destinations stay inside the supported account route", () => {
   for (const destination of [
@@ -239,7 +240,14 @@ test("shared browser transport validates envelopes and preserves private actor r
           },
           { status: 409 },
         );
-      await expect(apiFetch("/api/staff/intake/appointments/check-in", parse)).resolves.toEqual({
+      await expect(
+        apiFetch(
+          "/api/staff/intake/appointments/check-in",
+          parse,
+          {},
+          { parseConflict: parseIntakeConflict },
+        ),
+      ).resolves.toEqual({
         status: 409,
         data: null,
         code,
@@ -253,7 +261,12 @@ test("shared browser transport validates envelopes and preserves private actor r
           { status: 409, data: null, code, message: "Generic conflict", uncertain: false },
           { status: 409 },
         );
-      const result = await apiFetch("/api/staff/intake/appointments/check-in", parse);
+      const result = await apiFetch(
+        "/api/staff/intake/appointments/check-in",
+        parse,
+        {},
+        { parseConflict: parseIntakeConflict },
+      );
       expect(result.code).toBeUndefined();
       expect(result.message).toBe("Generic conflict");
     }

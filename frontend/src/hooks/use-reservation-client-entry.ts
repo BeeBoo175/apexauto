@@ -2,7 +2,7 @@
 
 import type { ReservationTable } from "@/components/vehicles/ReservationTable";
 import { useStaffClientEntry } from "./use-staff-client-entry";
-import { apiFetch } from "@/lib/api-browser";
+import { apiFetch, privateApiFetch } from "@/lib/api-browser";
 import { parsePage, type ApiResult, type Page } from "@/lib/api";
 import { isUuid } from "@/lib/auth/contracts";
 import type { CurrentActor } from "@/lib/auth/actor";
@@ -34,11 +34,10 @@ export function useReservationClientEntry(actor: CurrentActor, parameters: Searc
     const reservationId = isUuid(parameters.reservation) ? parameters.reservation : "";
 
     const [initial, branches, selected, { ReservationTable: Table }] = await Promise.all([
-      apiFetch(
+      privateApiFetch(
         `/api/staff/reservations?${reservationQuery(filters, page)}`,
         parseReservationSnapshot,
         { signal },
-        { requireActor: true },
       ),
       actor.role === "GeneralManager"
         ? apiFetch("/api/intake/branches?page=1", (value) => parsePage(value, parseBranch), {
@@ -46,14 +45,13 @@ export function useReservationClientEntry(actor: CurrentActor, parameters: Searc
           }).catch(() => null)
         : null,
       reservationId
-        ? apiFetch(
+        ? privateApiFetch(
             `/api/staff/reservations/${reservationId}`,
             (value) => {
               const detail = parseReservationDetailSnapshot(value);
               return detail?.reservation.id === reservationId ? detail : null;
             },
             { signal },
-            { requireActor: true },
           ).catch(() => null)
         : null,
       import("@/components/vehicles/ReservationTable"),

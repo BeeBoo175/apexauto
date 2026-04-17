@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/Toast";
 import { useInitialToast } from "@/hooks/use-initial-toast";
 import { useApiCommand } from "@/hooks/use-api-command";
 import { apiFetch } from "@/lib/api-browser";
+import { parseIntakeConflict } from "@/lib/intake/errors";
 import type { ApiResult } from "@/lib/api";
 import type { CurrentActor } from "@/lib/auth/actor";
 import { emptyCheckIn, type AppointmentDetail, type CheckInDraft } from "@/lib/staff/contracts";
@@ -54,6 +55,7 @@ export function AppointmentWorkbench({
       (correcting
         ? correctionMatches(receipt, request)
         : receipt.correction === null && checkInMatches(receipt, request)),
+    (path, parse, options) => apiFetch(path, parse, options, { parseConflict: parseIntakeConflict }),
   );
   const value = draft ?? localDraft;
   const locked = command.busy || command.uncertain;

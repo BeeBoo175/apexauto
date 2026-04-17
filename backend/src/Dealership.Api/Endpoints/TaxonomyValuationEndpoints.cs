@@ -4,9 +4,9 @@ using Dealership.Domain.Common;
 
 namespace Dealership.Api.Endpoints;
 
-public static class VehicleEndpoints
+public static class TaxonomyValuationEndpoints
 {
-    public static void MapVehicleEndpoints(this WebApplication app)
+    public static void MapTaxonomyValuationEndpoints(this WebApplication app)
     {
         app.MapGet("/api/taxonomy", GetTaxonomy);
         app.MapPost("/api/valuations", CalculateValuation);

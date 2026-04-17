@@ -3,7 +3,7 @@ import { actorIdentity } from "@/lib/auth/actor";
 import { isRecord, isUuid } from "@/lib/auth/contracts";
 import { readCurrentActor } from "@/lib/auth/server";
 import { HttpError, readBoundedJson } from "@/lib/http";
-import { apiError, apiJson, apiRead, sessionToken } from "@/lib/server/http/api";
+import { apiError, apiJson, requestApiJson, sessionToken } from "@/lib/server/http/api";
 import { requireSameOrigin } from "@/lib/server/http/request";
 import {
   matchesListingEstimate,
@@ -54,7 +54,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       vehicleId: id,
       branchId: body.branchId,
     };
-    const result = await apiRead(
+    const result = await requestApiJson(
       `/api/staff/listings/${id}/price-estimate`,
       (value) => {
         const estimate = parseListingEstimate(value);

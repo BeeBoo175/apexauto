@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useApiCommand } from "./use-api-command";
-import { apiFetch } from "@/lib/api-browser";
+import { privateApiFetch } from "@/lib/api-browser";
 import type { CurrentActor } from "@/lib/auth/actor";
 import {
   listingDraft,
@@ -57,7 +57,7 @@ export function useListingPublication(
       receipt.branchId === branchId &&
       receipt.actorId === actor.userId &&
       matchesListingSave(receipt, body),
-    (path, parse, options) => apiFetch(path, parse, options, { requireActor: true }),
+    privateApiFetch,
   );
   const approval = useApiCommand(
     `/api/staff/listings/${vehicleId}/publications`,
@@ -67,7 +67,7 @@ export function useListingPublication(
       receipt.branchId === branchId &&
       receipt.actorId === actor.userId &&
       matchesListingPublication(receipt, body),
-    (path, parse, options) => apiFetch(path, parse, options, { requireActor: true }),
+    privateApiFetch,
   );
   useEffect(() => {
     const owner = { active: true };

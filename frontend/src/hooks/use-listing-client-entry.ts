@@ -2,7 +2,7 @@
 
 import type { ListingTable } from "@/components/vehicles/ListingTable";
 import { useStaffClientEntry } from "./use-staff-client-entry";
-import { apiFetch } from "@/lib/api-browser";
+import { apiFetch, privateApiFetch } from "@/lib/api-browser";
 import { parsePage, type ApiResult, type Page } from "@/lib/api";
 import type { CurrentActor } from "@/lib/auth/actor";
 import { parseBranch, type Branch } from "@/lib/branches";
@@ -24,11 +24,10 @@ export function useListingClientEntry(actor: CurrentActor, parameters: SearchPar
     const { filters, page, listingId } = query;
 
     const [initial, branches, selected, { ListingTable: Table }] = await Promise.all([
-      apiFetch(
+      privateApiFetch(
         `/api/staff/listings?${listingQuery(filters, page)}`,
         parseListings,
         { signal },
-        { requireActor: true },
       ),
       actor.role === "GeneralManager"
         ? apiFetch("/api/intake/branches?page=1", (value) => parsePage(value, parseBranch), {
@@ -36,14 +35,13 @@ export function useListingClientEntry(actor: CurrentActor, parameters: SearchPar
           }).catch(() => null)
         : null,
       listingId
-        ? apiFetch(
+        ? privateApiFetch(
             `/api/staff/listings/${listingId}`,
             (value) => {
               const workspace = parseListingWorkspace(value);
               return workspace?.vehicle.vehicleId === listingId ? workspace : null;
             },
             { signal },
-            { requireActor: true },
           ).catch(() => null)
         : null,
       import("@/components/vehicles/ListingTable"),

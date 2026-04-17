@@ -3,7 +3,7 @@ import { isRecord, isUuid } from "@/lib/auth/contracts";
 import { readCurrentActor } from "@/lib/auth/server";
 import { HttpError, readBoundedJson } from "@/lib/http";
 import { requireSameOrigin } from "@/lib/server/http/request";
-import { apiError, apiJson, apiRead, privateApiRead, sessionToken } from "@/lib/server/http/api";
+import { apiError, apiJson, requestApiJson, privateApiRead, sessionToken } from "@/lib/server/http/api";
 import { hasListingAccess } from "@/lib/vehicles/listings";
 
 export async function relayListingRead<T>(
@@ -80,7 +80,7 @@ export async function relayListingCommand<T>(
     if (!isRecord(body) || !isUuid(body.operationId)) {
       throw new HttpError(400, "Provide an operation ID and valid listing details.");
     }
-    const result = await apiRead(`/api/staff/listings/${id}/${action}`, parse, {
+    const result = await requestApiJson(`/api/staff/listings/${id}/${action}`, parse, {
       token,
       signal,
       method: "POST",

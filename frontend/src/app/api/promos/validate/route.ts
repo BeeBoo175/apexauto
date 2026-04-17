@@ -1,7 +1,7 @@
 import { API_DEADLINE_MS } from "@/lib/api";
 import { isRecord, isUuid } from "@/lib/auth/contracts";
 import { HttpError, readBoundedJson } from "@/lib/http";
-import { apiError, apiJson, apiRead } from "@/lib/server/http/api";
+import { apiError, apiJson, requestApiJson } from "@/lib/server/http/api";
 import { requireSameOrigin } from "@/lib/server/http/request";
 import { parsePurchaseQuote, promoCode } from "@/lib/vehicles/purchase-quote";
 
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
       throw new HttpError(400, "Provide a vehicle and one promo code.");
     }
     return apiJson(
-      await apiRead("/api/promos/validate", (value) => parsePurchaseQuote(value, code), {
+      await requestApiJson("/api/promos/validate", (value) => parsePurchaseQuote(value, code), {
         method: "POST",
         body: { vehicleId: body.vehicleId, code },
         signal,

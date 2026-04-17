@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api-browser";
+import { privateApiFetch } from "@/lib/api-browser";
 import { downloadCsv, selectedCsv, type CsvColumn } from "@/lib/csv";
 import {
   listingPublication,
@@ -28,11 +28,10 @@ export async function exportListings(filters: ListingFilters, cancellation: Abor
   let total: number | null = null;
   let page = 1;
   while (total === null || rows.length < total) {
-    const result = await apiFetch(
+    const result = await privateApiFetch(
       `/api/staff/listings?${listingQuery({ ...filters, pageSize: 50 }, page)}`,
       parseListings,
       { signal },
-      { requireActor: true },
     );
     const snapshot = result.data;
     if (

@@ -3,7 +3,7 @@
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import type { Page } from "@/lib/api";
-import { apiFetch } from "@/lib/api-browser";
+import { privateApiFetch } from "@/lib/api-browser";
 import { parseListingPhotos, type ListingPhotoItem } from "@/lib/vehicles/listing-photos";
 import type { ListingWorkspace } from "@/lib/vehicles/listing-workspace";
 
@@ -30,11 +30,10 @@ export function useListingPhotos(workspace: ListingWorkspace) {
       setBusy(true);
       setFailed(false);
       try {
-        const result = await apiFetch(
+        const result = await privateApiFetch(
           `/api/staff/listings/${vehicleId}/photos?page=${page}`,
           parseListingPhotos,
           { signal: attempt.signal },
-          { requireActor: true },
         );
         if (attempt.signal.aborted || controller.current !== attempt) {
           return;

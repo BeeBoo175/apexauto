@@ -3,7 +3,7 @@ import { isUuid } from "@/lib/auth/contracts";
 import { readCurrentActor } from "@/lib/auth/server";
 import { HttpError, readBoundedBytes } from "@/lib/http";
 import { PHOTO_MAX_BYTES } from "@/lib/intake/contracts";
-import { apiError, apiJson, apiRead, sessionToken } from "@/lib/server/http/api";
+import { apiError, apiJson, requestApiJson, sessionToken } from "@/lib/server/http/api";
 import { requireSameOrigin } from "@/lib/server/http/request";
 import { requestApi } from "@/lib/server/http/upstream";
 import { hasListingAccess } from "./listings";
@@ -50,7 +50,7 @@ export async function listingPhoto(
       return await downloadListingPhoto(path, token, signal);
     }
     if (mode === "receipt") {
-      const result = await apiRead(
+      const result = await requestApiJson(
         `${path}/receipt`,
         parseListingPhotoReceipt,
         { token, signal },
@@ -63,7 +63,7 @@ export async function listingPhoto(
       throw new HttpError(415, "Choose a JPEG, PNG or WebP photo.");
     }
     const bytes = await readBoundedBytes(request.body, signal, PHOTO_MAX_BYTES);
-    const result = await apiRead(
+    const result = await requestApiJson(
       path,
       parseListingPhotoReceipt,
       { token, signal, bytes, contentType, method: "PUT" },

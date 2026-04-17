@@ -4,9 +4,9 @@ using Dealership.Application.Vehicles;
 
 namespace Dealership.Api.Endpoints;
 
-public static class ReservationReadEndpoints
+public static class ReservationQueryEndpoints
 {
-    public static void MapReservationReadEndpoints(this WebApplication app)
+    public static void MapReservationQueryEndpoints(this WebApplication app)
     {
         var routes = app.MapGroup("/api").RequireAuthorization();
         routes.AddEndpointFilter(async (context, next) =>

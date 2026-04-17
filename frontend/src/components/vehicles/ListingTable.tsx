@@ -18,7 +18,7 @@ import { useListingTable } from "@/hooks/use-listing-table";
 import { useRowSelection } from "@/hooks/use-row-selection";
 import { useCsvExport } from "@/hooks/use-csv-export";
 import { useStaffSelection } from "@/hooks/use-staff-selection";
-import { apiFetch } from "@/lib/api-browser";
+import { privateApiFetch } from "@/lib/api-browser";
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import type { ApiResult, Page } from "@/lib/api";
 import type { Branch } from "@/lib/branches";
@@ -109,7 +109,7 @@ export function ListingTable({
     path: (id) => `/api/staff/listings/${id}`,
     parse: parseListingWorkspace,
     matches: (value, id) => value.vehicle.vehicleId === id,
-    read: (path, parse, options) => apiFetch(path, parse, options, { requireActor: true }),
+    read: privateApiFetch,
     commitAfterRead: true,
   });
   const listingColumns = columns.map((column) =>

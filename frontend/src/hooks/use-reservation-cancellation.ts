@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useApiCommand } from "./use-api-command";
 import { useInspectionLock } from "./use-inspection-lock";
 import { useToast } from "@/components/ui/Toast";
-import { apiFetch } from "@/lib/api-browser";
+import { privateApiFetch } from "@/lib/api-browser";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { ReservationDetail } from "@/lib/vehicles/reservation-detail";
 import {
@@ -35,7 +35,7 @@ export function useReservationCancellation(
           detail.deposit,
         ),
       ),
-    (path, parse, options) => apiFetch(path, parse, options, { requireActor: true }),
+    privateApiFetch,
   );
   const operating = command.busy || command.uncertain;
   const locked = Boolean(reason) || operating;

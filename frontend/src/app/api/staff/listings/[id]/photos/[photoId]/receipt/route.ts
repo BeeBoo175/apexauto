@@ -1,4 +1,4 @@
-import { listingPhoto } from "@/lib/vehicles/photo-routes";
+import { listingPhoto } from "@/lib/vehicles/listing-photo-routes";
 
 export async function GET(
   request: Request,

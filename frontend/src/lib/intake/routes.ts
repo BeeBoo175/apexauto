@@ -2,10 +2,11 @@ import "server-only";
 import { HttpError, readBoundedBytes, readBoundedJson } from "@/lib/http";
 import { requireSameOrigin } from "@/lib/server/http/request";
 import { isRecord, isUuid } from "@/lib/auth/contracts";
-import { apiRead, sessionToken, apiJson, apiError } from "@/lib/server/http/api";
+import { requestApiJson, sessionToken, apiJson, apiError } from "@/lib/server/http/api";
 import { API_DEADLINE_MS } from "@/lib/api";
 import { PHOTO_DEADLINE_MS, PHOTO_MAX_BYTES, angles } from "./contracts";
 import { readCurrentActor } from "@/lib/auth/server";
+import { parseIntakeConflict } from "./errors";
 
 export async function relayIntake<T>(
   request: Request,
@@ -49,7 +50,7 @@ export async function relayIntake<T>(
         throw new HttpError(400, "Provide valid request details.");
       }
     }
-    const result = await apiRead(
+    const result = await requestApiJson(
       path,
       parse,
       {
@@ -60,6 +61,7 @@ export async function relayIntake<T>(
       },
       API_DEADLINE_MS,
       maximumResponseBytes,
+      parseIntakeConflict,
     );
     return apiJson({ ...result, ...(actor ? { actor } : {}) });
   } catch (error) {
@@ -92,7 +94,7 @@ export async function relayPhoto(request: Request, id: string, parse: (value: un
       throw new HttpError(415, "Choose a JPEG, PNG or WebP photo.");
     }
     const bytes = await readBoundedBytes(request.body, signal, PHOTO_MAX_BYTES);
-    const result = await apiRead(
+    const result = await requestApiJson(
       `/api/intake/photos/${id}?angle=${angle}`,
       parse,
       { token, bytes, contentType, method: "PUT", signal },
