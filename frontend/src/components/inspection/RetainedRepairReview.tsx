@@ -53,7 +53,7 @@ export function RetainedRepairReview({
           />,
           actionsContainer,
         )}
-      <div className={`${workbench.toolbar} ${styles.repairHeading}`}>
+      <div className={`${workbench.sectionHeader} ${styles.repairHeading}`}>
         <h2 className={workbench.sectionTitle}>Retained repair request</h2>
         {review.result && <RepairRequestMetadata request={review.result.entry.request} />}
       </div>

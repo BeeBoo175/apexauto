@@ -127,7 +127,7 @@ export const Dialog: React.FC<DialogProps> = ({
         <div className={styles.actions}>
           {headerActions}
           <CloseButton
-            size={density === "compact" ? "compact" : "md"}
+            size={variant === "drawer" || density === "compact" ? "compact" : "md"}
             onClick={onClose}
             disabled={closeDisabled}
           />

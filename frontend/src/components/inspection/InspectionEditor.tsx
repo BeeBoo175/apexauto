@@ -7,6 +7,9 @@ import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { Dialog } from "@/components/ui/Dialog";
 import { useInspectionEditor } from "@/hooks/use-inspection-editor";
 import { useInspectionTimeline } from "@/hooks/use-inspection-timeline";
+import { useWorkspaceTabs } from "@/hooks/use-workspace-tabs";
+import { StaffWorkspaceTabs } from "@/components/staff/StaffWorkspaceTabs";
+import { canRequestRepair } from "@/lib/inspection/repair-availability";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { ApiResult, Page } from "@/lib/api";
 import type { Technician } from "@/lib/inspection/contracts";
@@ -24,12 +27,6 @@ import styles from "./Inspection.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 import workshop from "./Workshop.module.css";
 
-const sectionLabels: Record<WorkshopSection, string> = {
-  inspection: "Inspection",
-  repairs: "Repairs",
-  history: "History",
-};
-
 export function InspectionEditor({
   id,
   actor,
@@ -38,7 +35,7 @@ export function InspectionEditor({
   actionsContainer,
   refreshControl,
   scrollWithHost = false,
-  section,
+  section: requestedSection,
   onSection,
   onReview,
   onLocked,
@@ -68,6 +65,29 @@ export function InspectionEditor({
   const repairKey = `${editor.draftEpoch}:${snapshot?.draft.revision}:${snapshot?.draft.repairVersion}`;
   const [repairMode, setRepairMode] = useState({ key: repairKey, editing: false });
   const repairEditing = repairMode.key === repairKey && repairMode.editing;
+  const repairAvailable = Boolean(
+    !snapshot ||
+    selectedRequest ||
+    snapshot.currentRequest ||
+    repairEditing ||
+    (snapshot && canRequestRepair(snapshot, actor)),
+  );
+  const historyAvailable = Boolean(
+    !snapshot ||
+    snapshot.draft.isSigned ||
+    snapshot.draft.revision > 1 ||
+    (snapshot.revisions?.totalCount ?? 0) > 0,
+  );
+  const { section, tabs } = useWorkspaceTabs<WorkshopSection>(
+    requestedSection,
+    [
+      { value: "inspection", label: "Inspection", available: true },
+      { value: "repairs", label: "Repairs", available: repairAvailable },
+      { value: "history", label: "History", available: historyAvailable },
+    ],
+    "inspection",
+    onSection,
+  );
   const timeline = useInspectionTimeline(snapshot, section === "history");
   const previousSigned = useRef(snapshot?.draft.isSigned);
   useEffect(() => {
@@ -128,33 +148,14 @@ export function InspectionEditor({
         {snapshot && base && (
           <>
             <InspectionRecord id={id} editor={editor} />
-            <nav className={workshop.sections} aria-label="Workshop sections">
-              {(["inspection", "repairs", "history"] as const).map((value) => (
-                <Button
-                  key={value}
-                  size="compact"
-                  variant="ghost"
-                  className={workshop.sectionButton}
-                  aria-pressed={section === value}
-                  disabled={editor.operating}
-                  onClick={() => onSection(value)}
-                >
-                  {sectionLabels[value]}
-                </Button>
-              ))}
-            </nav>
+            <StaffWorkspaceTabs
+              label="Workshop sections"
+              tabs={tabs}
+              value={section}
+              disabled={editor.operating}
+              onChange={onSection}
+            />
             <div className={workshop.body} data-section={section}>
-              <ManagerActions
-                key={`manager:${editor.draftEpoch}:${snapshot.draft.revision}:${snapshot.draft.assignmentVersion}`}
-                actor={actor}
-                draft={snapshot.draft}
-                technicians={technicians}
-                disabled={disabled}
-                active={section === "inspection"}
-                onLock={editor.lockChild}
-                onConfirmed={editor.actionConfirmed}
-                onDraft={(dirty) => editor.markForm("manager", dirty)}
-              />
               <InspectionChecklist
                 draft={base}
                 report={snapshot.report}
@@ -165,6 +166,19 @@ export function InspectionEditor({
                 active={section === "inspection"}
                 onChange={editor.change}
                 onLock={editor.lockChild}
+                managerControls={
+                  <ManagerActions
+                    key={`manager:${editor.draftEpoch}:${snapshot.draft.revision}:${snapshot.draft.assignmentVersion}`}
+                    actor={actor}
+                    draft={snapshot.draft}
+                    technicians={technicians}
+                    disabled={disabled}
+                    active={section === "inspection"}
+                    onLock={editor.lockChild}
+                    onConfirmed={editor.actionConfirmed}
+                    onDraft={(dirty) => editor.markForm("manager", dirty)}
+                  />
+                }
               />
               {historical && section === "repairs" && (
                 <RetainedRepairReview

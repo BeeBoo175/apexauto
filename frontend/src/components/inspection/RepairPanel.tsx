@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { EditorSnapshot } from "@/lib/inspection/editor-snapshot";
+import { canRequestRepair } from "@/lib/inspection/repair-availability";
 import { RepairRequestDetails } from "./RepairRequestDetails";
 import { RepairRequestForm } from "./RepairRequestForm";
 import { RepairActions } from "./RepairActions";
@@ -41,11 +42,7 @@ export function RepairPanel({
       <p className={workbench.help}>Sign the inspection before requesting repair work.</p>
     ) : null;
   }
-  const canRequest =
-    actor.role === "WorkshopTechnician" &&
-    draft.technicianId === actor.userId &&
-    !report.assessment.isRejected &&
-    report.checklist.some((point) => point.kind === "Finding");
+  const canRequest = canRequestRepair(snapshot, actor);
 
   function changeMode(next: boolean) {
     onEditingChange(next);
@@ -56,7 +53,7 @@ export function RepairPanel({
     <>
       {active && (
         <section className={`${styles.section} ${workbench.stack}`}>
-          <div className={`${workbench.toolbar} ${styles.repairHeading}`}>
+          <div className={`${workbench.sectionHeader} ${styles.repairHeading}`}>
             <h2 ref={heading} tabIndex={-1} className={workbench.sectionTitle}>
               {editing ? "Edit repair work & budget" : "Current repair work"}
             </h2>

@@ -2,7 +2,7 @@
 
 import { Icon } from "@/components/ui/Icon";
 import { useStaffViewMemory } from "@/hooks/use-staff-view-memory";
-import styles from "./IntakeCalendar.module.css";
+import styles from "@/components/ui/ViewSwitcher.module.css";
 import type { IntakeView } from "@/lib/staff/view-memory";
 
 const views = [
@@ -50,13 +50,14 @@ export function IntakeViewNavigation({
     <nav
       aria-label="Appointment views"
       aria-busy={Boolean(pending)}
-      data-view={pending ?? active}
-      className={styles.viewSwitch}
+      data-second={(pending ?? active) === "list"}
+      className={styles.switch}
     >
-      <span className={styles.viewThumb} aria-hidden="true" />
+      <span className={styles.thumb} aria-hidden="true" />
       {views.map((view) => (
         <a
           key={view.id}
+          className={styles.option}
           href={links[view.id]}
           title={view.label}
           aria-label={view.label}

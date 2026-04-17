@@ -156,36 +156,23 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   await page.getByRole("button", { name: "Refresh workshop", exact: true }).click();
   await expect(page.getByLabel("EP-004 estimate (MYR)", { exact: true })).toHaveValue("250.10");
   await page.unroute(`**/api/staff/inspection/drafts/${id}/workspace`);
-  for (const section of ["Repairs", "History"]) {
-    await page
-      .getByRole("navigation", { name: "Workshop sections" })
-      .getByRole("button", { name: section, exact: true })
-      .click();
-    await expect(
-      page.locator("footer").getByText("Unsaved inspection changes", { exact: true }),
-    ).toBeVisible();
-    await expect(
-      page.locator("footer").getByRole("button", { name: "Save draft", exact: true }),
-    ).toBeEnabled();
-  }
+  await expect(page.getByRole("navigation", { name: "Workshop sections" })).toHaveCount(0);
+  await expect(
+    page.locator("footer").getByText("Unsaved inspection changes", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.locator("footer").getByRole("button", { name: "Save draft", exact: true }),
+  ).toBeEnabled();
   const bodies = await loseFirstReceipt(page, `**/api/staff/inspection/drafts/${id}/saves`);
   await page.getByRole("button", { name: "Save draft", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Reconcile draft save", exact: true }),
   ).toBeVisible();
-  await expect(
-    page
-      .getByRole("navigation", { name: "Workshop sections" })
-      .getByRole("button", { name: "History", exact: true }),
-  ).toBeDisabled();
+  await expect(page.getByRole("navigation", { name: "Workshop sections" })).toHaveCount(0);
   expect(page.url()).toContain(id);
   await page.getByRole("button", { name: "Reconcile draft save", exact: true }).click();
   expect(bodies).toHaveLength(2);
   expect(bodies[1]).toBe(bodies[0]);
-  await page
-    .getByRole("navigation", { name: "Workshop sections" })
-    .getByRole("button", { name: "Inspection", exact: true })
-    .click();
   await expect(page.getByRole("button", { name: "Sign inspection", exact: true })).toBeEnabled();
   expect(
     (await counts())[

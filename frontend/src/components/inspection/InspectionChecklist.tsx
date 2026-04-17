@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { SearchField } from "@/components/ui/SearchField";
@@ -24,6 +24,7 @@ export function InspectionChecklist({
   onLock,
   active = true,
   report,
+  managerControls,
 }: {
   draft: Draft;
   value: ChecklistDraft;
@@ -34,6 +35,7 @@ export function InspectionChecklist({
   onLock: (locked: boolean) => void;
   active?: boolean;
   report?: Report | null;
+  managerControls?: ReactNode;
 }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<ChecklistView>("all");
@@ -63,9 +65,6 @@ export function InspectionChecklist({
   const categories = [...new Set(draft.catalog.map((point) => point.category))];
   const fitted = draft.catalog.filter((point) => value.entries[point.code]?.kind !== "NotFitted");
   const allExamined = fitted.every((point) => value.examined.includes(point.code));
-  if (!active) {
-    return null;
-  }
   let jumpArrow = "↑";
   let jumpPrefix = "Jump to ";
   if (scrollDirection === "below") {
@@ -79,9 +78,10 @@ export function InspectionChecklist({
       ref={sectionRef}
       className={`${styles.section} ${styles.checklist}`}
       aria-label="Inspection checklist"
+      hidden={!active}
     >
-      <div ref={toolsRef} className={styles.checklistHeader}>
-        <div className={styles.checklistHeading}>
+      <div ref={toolsRef} className={workbench.stickySectionHeader}>
+        <div className={`${workbench.sectionHeader} ${styles.checklistHeading}`}>
           <h2 className={workbench.sectionTitle}>Inspection checklist</h2>
           <div
             className={styles.selectionAction}
@@ -154,66 +154,69 @@ export function InspectionChecklist({
           )}
         </div>
       </div>
-      <div className={workshop.split}>
-        <nav className={workshop.index} aria-label="Inspection points">
-          {categories.map((category) => {
-            const points = matches.filter((point) => point.category === category);
-            if (!points.length) {
-              return null;
-            }
-            return (
-              <details
-                className={workshop.indexGroup}
-                key={category}
-                open={
-                  search || filter !== "all" || selected?.category === category ? true : undefined
-                }
-              >
-                <summary>{label(category)}</summary>
-                {points.map((point) => (
-                  <Button
-                    key={point.code}
-                    ref={selected?.code === point.code ? selectedRef : undefined}
-                    size="compact"
-                    variant="ghost"
-                    className={workshop.indexItem}
-                    aria-pressed={selected?.code === point.code}
-                    disabled={photo.file !== null || photo.busy || photo.uncertain}
-                    onClick={() => setSelectedCode(point.code)}
-                  >
-                    <span className={workshop.pointCode}>{point.code}</span>
-                    <strong>{point.description}</strong>
-                    <InspectionPointStatus
-                      kind={value.entries[point.code]?.kind}
-                      severity={value.entries[point.code]?.severity}
-                      examined={value.examined.includes(point.code)}
-                      compact
-                    />
-                  </Button>
-                ))}
-              </details>
-            );
-          })}
-          {!matches.length && <p>No checklist points match your search.</p>}
-        </nav>
-        <div className={workshop.detail}>
-          <p className={styles.help}>
-            {draft.isSigned ? "Signed findings · read only" : "Current inspection draft"}
-          </p>
-          {selected && (
-            <ChecklistPoint
-              point={selected}
-              draft={draft}
-              value={value}
-              photo={photo}
-              editable={editable}
-              disabled={disabled}
-              onChange={onChange}
-              signedPoint={report?.checklist.find((point) => point.code === selected.code)}
-            />
-          )}
+      <div className={styles.managerControls}>{managerControls}</div>
+      {active && (
+        <div className={workshop.split}>
+          <nav className={workshop.index} aria-label="Inspection points">
+            {categories.map((category) => {
+              const points = matches.filter((point) => point.category === category);
+              if (!points.length) {
+                return null;
+              }
+              return (
+                <details
+                  className={workshop.indexGroup}
+                  key={category}
+                  open={
+                    search || filter !== "all" || selected?.category === category ? true : undefined
+                  }
+                >
+                  <summary>{label(category)}</summary>
+                  {points.map((point) => (
+                    <Button
+                      key={point.code}
+                      ref={selected?.code === point.code ? selectedRef : undefined}
+                      size="compact"
+                      variant="ghost"
+                      className={workshop.indexItem}
+                      aria-pressed={selected?.code === point.code}
+                      disabled={photo.file !== null || photo.busy || photo.uncertain}
+                      onClick={() => setSelectedCode(point.code)}
+                    >
+                      <span className={workshop.pointCode}>{point.code}</span>
+                      <strong>{point.description}</strong>
+                      <InspectionPointStatus
+                        kind={value.entries[point.code]?.kind}
+                        severity={value.entries[point.code]?.severity}
+                        examined={value.examined.includes(point.code)}
+                        compact
+                      />
+                    </Button>
+                  ))}
+                </details>
+              );
+            })}
+            {!matches.length && <p>No checklist points match your search.</p>}
+          </nav>
+          <div className={workshop.detail}>
+            <p className={styles.help}>
+              {draft.isSigned ? "Signed findings · read only" : "Current inspection draft"}
+            </p>
+            {selected && (
+              <ChecklistPoint
+                point={selected}
+                draft={draft}
+                value={value}
+                photo={photo}
+                editable={editable}
+                disabled={disabled}
+                onChange={onChange}
+                signedPoint={report?.checklist.find((point) => point.code === selected.code)}
+              />
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </section>
   );
 }

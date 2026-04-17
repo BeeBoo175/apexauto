@@ -129,16 +129,19 @@
   opacity: 0.75;
 }
 
+.sortActive {
+  color: var(--color-interaction-border, var(--color-graphite));
+}
+
 .sortActive > span,
 .sortInactive > span {
   width: 16px;
   height: 16px;
 }
 
-.header[aria-sort="ascending"] .headerContent,
-.header[aria-sort="descending"] .headerContent {
-  border-radius: var(--radius-sm, 4px);
-  background: var(--color-selected-surface, var(--color-canvas));
+.header[aria-sort="ascending"] .headerLabel,
+.header[aria-sort="descending"] .headerLabel {
+  font-weight: 700;
 }
 
 .resize {

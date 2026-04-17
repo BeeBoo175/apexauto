@@ -11,6 +11,7 @@ import type { RepairSelection } from "@/lib/inspection/query";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import styles from "@/components/staff/StaffHistory.module.css";
 import { StaffHistoryProgress } from "@/components/staff/StaffHistoryProgress";
+import workbench from "@/components/staff/StaffWorkspace.module.css";
 import { InspectionRepairLink } from "./InspectionHistory";
 
 export function InspectionTimeline({
@@ -54,7 +55,9 @@ export function InspectionTimeline({
       aria-label="Record history"
       aria-busy={revisions.busy || repairs.busy || previous.busy}
     >
-      <h2>Record history</h2>
+      <div className={workbench.sectionHeader}>
+        <h2 className={workbench.sectionTitle}>Record history</h2>
+      </div>
       {revisions.history?.totalCount === 0 && <p>No signed inspections yet.</p>}
       <ol ref={rail} className={styles.timeline}>
         {events.map((event) => {
@@ -116,11 +119,7 @@ export function InspectionTimeline({
                 </div>
               )}
               {signed && !current && expanded && (
-                <StaffHistoryProgress
-                  read={previous}
-                  label="Repair requests"
-                  disabled={disabled}
-                />
+                <StaffHistoryProgress read={previous} label="Repair requests" disabled={disabled} />
               )}
             </li>
           );
