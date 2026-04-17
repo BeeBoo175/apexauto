@@ -1,6 +1,8 @@
 "use client";
 
 import { createContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import type { CurrentActor } from "@/lib/auth/actor";
+import type { SearchParams } from "@/lib/query";
 
 export const StaffHistoryContext = createContext<{
   current: ((event: PopStateEvent) => void) | null;
@@ -23,6 +25,8 @@ export interface StaffEntryRequest<T> {
 }
 
 interface EntryRequests {
+  isMounted: () => boolean;
+  mount: () => () => void;
   open: <T>(id: string, read: (signal: AbortSignal) => Promise<T>) => StaffEntryRequest<T>;
   release: (id: string) => void;
   cancel: () => void;
@@ -30,8 +34,14 @@ interface EntryRequests {
 
 export const StaffEntryRequestsContext = createContext<EntryRequests | null>(null);
 export const StaffEntryIdentityContext = createContext<string | null>(null);
+export const StaffEntryPresentationContext = createContext<{
+  actor: CurrentActor;
+  path: string;
+  parameters: SearchParams;
+} | null>(null);
 
 function createRequests(): EntryRequests {
+  let mounted = false;
   let pending: { id: string; request: StaffEntryRequest<unknown> } | null = null;
 
   function cancel() {
@@ -40,6 +50,14 @@ function createRequests(): EntryRequests {
   }
 
   return {
+    isMounted: () => mounted,
+    mount() {
+      mounted = true;
+      return () => {
+        mounted = false;
+        cancel();
+      };
+    },
     open<T>(id: string, read: (signal: AbortSignal) => Promise<T>) {
       if (pending?.id === id) {
         // A server entry identity owns exactly one feature read, including suspended retries.
@@ -71,7 +89,7 @@ function createRequests(): EntryRequests {
 
 export function StaffClientEntryBoundary({ children }: { children: ReactNode }) {
   const [requests] = useState(createRequests);
-  useEffect(() => () => requests.cancel(), [requests]);
+  useEffect(() => requests.mount(), [requests]);
   return (
     <StaffEntryRequestsContext.Provider value={requests}>
       {children}

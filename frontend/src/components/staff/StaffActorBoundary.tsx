@@ -2,8 +2,12 @@
 
 import { createContext, useContext, useEffect, type ReactNode, type RefObject } from "react";
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
-import { LoadingProgress, LoadingProgressReady } from "@/components/ui/LoadingProgress";
-import { StaffEntryIdentityContext } from "./StaffClientEntryBoundary";
+import type { SearchParams } from "@/lib/query";
+import { LoadingProgress } from "@/components/ui/LoadingProgress";
+import {
+  StaffEntryIdentityContext,
+  StaffEntryPresentationContext,
+} from "./StaffClientEntryBoundary";
 
 export const StaffActorContext = createContext<CurrentActor | null>(null);
 export const StaffNavigationLockContext = createContext<{
@@ -21,11 +25,13 @@ export function StaffActorBoundary({
   actor,
   children,
   path,
+  parameters,
   snapshotId,
 }: {
   actor: CurrentActor;
   children: ReactNode;
   path: string;
+  parameters: SearchParams;
   snapshotId: string;
 }) {
   const navigation = useContext(StaffNavigationContext);
@@ -44,9 +50,10 @@ export function StaffActorBoundary({
   }
   return (
     <StaffPageEntranceContext.Provider value={navigation?.entryPath === path}>
-      <LoadingProgressReady />
       <StaffEntryIdentityContext.Provider value={snapshotId}>
-        {children}
+        <StaffEntryPresentationContext.Provider value={{ actor, path, parameters }}>
+          {children}
+        </StaffEntryPresentationContext.Provider>
       </StaffEntryIdentityContext.Provider>
     </StaffPageEntranceContext.Provider>
   );

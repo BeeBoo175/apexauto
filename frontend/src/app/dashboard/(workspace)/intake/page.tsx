@@ -12,6 +12,7 @@ export default async function IntakePage({
   return (
     <StaffEntry
       path="/dashboard/intake"
+      searchParams={searchParams}
       access={hasIntakeAccess}
       deniedTitle="Intake access unavailable"
       deniedDescription="This role cannot access intake appointments."

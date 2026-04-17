@@ -7,3 +7,17 @@
 .main {
   flex: 1;
 }
+
+.dashboard {
+  min-height: 100svh;
+}
+
+:global(html):has(.dashboardPending) {
+  --dashboard-entry-background: #333333;
+  background-color: var(--dashboard-entry-background);
+}
+
+:global(body):has(.dashboardPending),
+.dashboard:has(.dashboardPending) {
+  background-color: var(--dashboard-entry-background);
+}

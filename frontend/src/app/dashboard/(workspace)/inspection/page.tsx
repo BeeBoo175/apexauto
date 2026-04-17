@@ -11,6 +11,7 @@ export default async function InspectionPage({
   return (
     <StaffEntry
       path="/dashboard/inspection"
+      searchParams={searchParams}
       access={hasInspectionAccess}
       deniedTitle="Inspection access unavailable"
       deniedDescription="This role cannot access inspections or repair requests."

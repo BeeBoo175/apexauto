@@ -1,11 +1,12 @@
 "use client";
 
-import { startTransition, use, useContext, useEffect, useState, useSyncExternalStore } from "react";
+import { use, useContext, useEffect, useState, useSyncExternalStore, useTransition } from "react";
 import {
   StaffEntryIdentityContext,
   StaffEntryRequestsContext,
 } from "@/components/staff/StaffClientEntryBoundary";
 import { useToast } from "@/components/ui/Toast";
+import { useLoadingProgress, useLoadingProgressReady } from "@/components/ui/LoadingProgress";
 
 const subscribe = () => () => {};
 const clientSnapshot = () => true;
@@ -18,18 +19,24 @@ export function useStaffClientEntry<T>(
   const requests = useContext(StaffEntryRequestsContext);
   const id = useContext(StaffEntryIdentityContext);
   const { error } = useToast();
+  const [pending, startTransition] = useTransition();
   const hydrated = useSyncExternalStore(subscribe, clientSnapshot, serverSnapshot);
   if (!requests || !id) {
     throw new Error("Staff entry requires its authenticated frame");
   }
-  const [request, setRequest] = useState(() => (hydrated ? requests.open(id, read) : null));
+  // A new frame must commit before its request owner can survive suspension.
+  const [request, setRequest] = useState(() =>
+    hydrated && requests.isMounted() ? requests.open(id, read) : null,
+  );
   const entry = request ? use(request.promise) : null;
+  useLoadingProgress("Opening workspace", pending);
+  useLoadingProgressReady(request !== null);
 
   useEffect(() => {
-    if (!request) {
+    if (!request && !pending) {
       startTransition(() => setRequest(requests.open(id, read)));
     }
-  }, [request, requests, id, read]);
+  }, [request, requests, id, read, pending]);
 
   useEffect(() => {
     if (!request) {
@@ -43,7 +50,7 @@ export function useStaffClientEntry<T>(
   }, [requests, id, request, entry, error, failureMessage]);
 
   const retry = () => {
-    setRequest(requests.open(id, read));
+    startTransition(() => setRequest(requests.open(id, read)));
   };
 
   return { entry, failed: Boolean(request) && !entry, retry };

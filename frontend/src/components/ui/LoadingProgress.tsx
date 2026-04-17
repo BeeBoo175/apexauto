@@ -160,15 +160,21 @@ export function LoadingProgressProvider({
   );
 }
 
-export function LoadingProgressReady() {
+export function useLoadingProgressReady(active = true) {
   const ready = useContext(ProgressReadyContext);
   useEffect(() => {
-    ready?.();
-  }, [ready]);
+    if (active) {
+      ready?.();
+    }
+  }, [active, ready]);
+}
+
+export function LoadingProgressReady() {
+  useLoadingProgressReady();
   return null;
 }
 
-export function LoadingProgress({ label, active = true }: { label: string; active?: boolean }) {
+export function useLoadingProgress(label: string, active = true) {
   const register = useContext(ProgressContext);
   const id = useId();
   useEffect(() => {
@@ -176,5 +182,9 @@ export function LoadingProgress({ label, active = true }: { label: string; activ
       return register?.(id, label);
     }
   }, [register, id, label, active]);
+}
+
+export function LoadingProgress({ label, active = true }: { label: string; active?: boolean }) {
+  useLoadingProgress(label, active);
   return null;
 }

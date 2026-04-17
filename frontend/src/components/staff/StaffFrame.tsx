@@ -19,7 +19,7 @@ import {
   StaffNavigationContext,
 } from "./StaffActorBoundary";
 
-export function StaffFrame({ actor, children }: { actor?: CurrentActor; children: ReactNode }) {
+export function StaffFrame({ actor, children }: { actor: CurrentActor; children: ReactNode }) {
   const session = useIntakeActor(actor);
   if (!session.active) {
     return null;
@@ -38,7 +38,7 @@ function StaffFrameContent({
   children,
   ready,
 }: {
-  actor?: CurrentActor;
+  actor: CurrentActor;
   children: ReactNode;
   ready: boolean;
 }) {

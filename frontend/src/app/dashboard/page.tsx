@@ -24,7 +24,13 @@ export default async function DashboardPage() {
   }
   return (
     <StaffFrame actor={actor}>
-      <StaffActorBoundary actor={actor} path="/dashboard" snapshotId={crypto.randomUUID()}>
+      <StaffActorBoundary
+        actor={actor}
+        path="/dashboard"
+        parameters={{}}
+        snapshotId={crypto.randomUUID()}
+      >
+        <LoadingProgressReady />
         <StaffNotice title="Your staff workspace">
           <p className={styles.noticeDescription}>
             Administration tools arrive in a later slice. This role does not have intake access.

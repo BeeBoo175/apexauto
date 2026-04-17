@@ -1,10 +1,10 @@
 "use client";
 
 import { useContext, type ReactNode, type Ref } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
-import { StaffActorContext, StaffNavigationContext } from "./StaffActorBoundary";
+import { StaffNavigationContext } from "./StaffActorBoundary";
+import { StaffEntryPresentationContext } from "./StaffClientEntryBoundary";
 import { StaffLoadingShell, type StaffLoadingView } from "./StaffLoadingShell";
 import reportStyles from "@/components/inspection/SignedReport.module.css";
 import styles from "./Staff.module.css";
@@ -19,15 +19,17 @@ const titles: Record<string, string> = {
 };
 
 export function StaffLoading() {
-  const actor = useContext(StaffActorContext);
-  const pathname = usePathname();
-  const search = useSearchParams();
-  let workshopView: StaffLoadingView = "technician";
-  if (actor && actor.role !== "WorkshopTechnician") {
-    workshopView = "inspection";
+  const presentation = useContext(StaffEntryPresentationContext);
+
+  if (!presentation) {
+    throw new Error("Staff loading requires its authorized page presentation");
   }
+
+  const { actor, path: pathname, parameters } = presentation;
+  const workshopView: StaffLoadingView =
+    actor.role === "WorkshopTechnician" ? "technician" : "inspection";
   const views: Record<string, StaffLoadingView> = {
-    "/dashboard/intake": search.get("view") === "list" ? "intake" : "calendar",
+    "/dashboard/intake": parameters.view === "list" ? "intake" : "calendar",
     "/dashboard/inspection": workshopView,
     "/dashboard/inspection/repairs": "repairs",
     "/dashboard/reservations": "inspection",
@@ -46,9 +48,9 @@ export function StaffLoading() {
     <>
       <LoadingProgress label="Opening workspace" />
       <div className={view === "report" ? reportStyles.controls : undefined}>
-        <StaffCommandBar title={actor ? title : null} />
+        <StaffCommandBar title={title} />
       </div>
-      <StaffLoadingShell view={view} selected={Boolean(search.get("inspection"))} />
+      <StaffLoadingShell view={view} selected={Boolean(parameters.inspection)} />
     </>
   );
 }
