@@ -55,6 +55,16 @@ internal static class ListingReadAssertions
         Assert.Equal(signed.InspectionId, workspace.CurrentSignedReport!.InspectionId);
         Assert.Equal(signed.Revision, workspace.CurrentSignedReport.Revision);
         Assert.True(workspace.Vehicle.IsPublic);
+        var matched = (await store.ReadAsync(manager, new(Registration: workspace.Vehicle.RegistrationPlate,
+            Vehicle: $"{workspace.Vehicle.ManufactureYear} {workspace.Vehicle.Make}",
+            MinimumPublishedPrice: workspace.Vehicle.ApprovedVehiclePrice,
+            MaximumPublishedPrice: workspace.Vehicle.ApprovedVehiclePrice), CancellationToken.None)).Listings!;
+        Assert.Equal(1, matched.Total);
+        Assert.Equal(vehicleId, Assert.Single(matched.Items).VehicleId);
+        Assert.Empty((await store.ReadAsync(manager, new(Registration: "%"), CancellationToken.None)).Listings!.Items);
+        Assert.Empty((await store.ReadAsync(manager, new(Registration: workspace.Vehicle.RegistrationPlate,
+            MinimumPublishedPrice: workspace.Vehicle.ApprovedVehiclePrice + 1),
+            CancellationToken.None)).Listings!.Items);
         Assert.False(workspace.Vehicle.IsWithdrawn);
         Assert.Null(workspace.Withdrawal);
         await VerifyPhotosAsync(services, store, manager, vehicleId);

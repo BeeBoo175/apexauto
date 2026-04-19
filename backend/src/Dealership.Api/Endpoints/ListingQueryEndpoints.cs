@@ -23,16 +23,25 @@ public static class ListingQueryEndpoints
     }
 
     private static async Task<IResult> ReadAsync(Guid? branchId, int? page, int? pageSize, string? search,
-        string? sort, string? direction,
+        string? sort, string? direction, string? inspection, string? publication,
+        decimal? minimumPrice, decimal? maximumPrice, decimal? minimumPublishedPrice, decimal? maximumPublishedPrice,
+        string? from, string? to, string? registration, string? vehicle,
         HttpContext context, IListingReadStore store, CancellationToken cancellationToken)
     {
+        var dates = ListDateRange.Parse(from, to);
+        if (dates is null)
+        {
+            return Map(ListingStatus.Invalid, null);
+        }
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(20));
         try
         {
             var result = await store.ReadAsync(ActorId(context),
                 new(branchId, page ?? 1, pageSize ?? Pagination.DefaultPageSize, search?.Trim() ?? "",
-                    sort ?? "", direction ?? "asc"), deadline.Token);
+                    sort ?? "", direction ?? "asc", inspection ?? "", publication ?? "",
+                    minimumPrice, maximumPrice, minimumPublishedPrice, maximumPublishedPrice,
+                    dates.From, dates.Until, registration?.Trim() ?? "", vehicle?.Trim() ?? ""), deadline.Token);
             return Map(result.Status, result.Listings);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)

@@ -53,7 +53,7 @@ public sealed class ListingLifecycleTests(IntakePhotoFixture fixture) : IClassFi
         Assert.Equal(ListingStatus.Conflict,
             (await SaveAsync(data.Factory, manager, vehicleId, request with { VehiclePrice = 61000m })).Status);
         Assert.Equal(ListingStatus.Invalid,
-            (await SaveAsync(data.Factory, manager, vehicleId, request with { VehiclePrice = 60000.001m })).Status);
+            (await SaveAsync(data.Factory, manager, vehicleId, request with { OperationId = Guid.NewGuid(), VehiclePrice = 60000.001m })).Status);
         var publish = new ListingPublishRequest(Guid.NewGuid(), original.Id, Guid.NewGuid());
         Assert.Equal(ListingStatus.Conflict, (await PublishAsync(data.Factory, manager, vehicleId, publish)).Status);
 

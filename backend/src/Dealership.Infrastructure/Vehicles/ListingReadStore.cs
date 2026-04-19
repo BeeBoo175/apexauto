@@ -15,7 +15,11 @@ public sealed class ListingReadStore(DealershipDbContext database) : IListingRea
         row.Vehicle.MileageKilometres, row.Vehicle.Status, row.Draft == null ? null : row.Draft.Id,
         row.Draft == null ? 0 : row.Draft.Version, row.Draft == null ? null : row.Draft.VehiclePrice,
         row.Publication == null ? null : row.Publication.Id, row.Publication == null ? null : row.Publication.RevisionId,
-        row.IsWithdrawn, row.IsPublic);
+        row.IsWithdrawn, row.IsPublic, row.Approved == null ? null : row.Approved.VehiclePrice,
+        row.Draft == null ? null : row.Draft.RecordedAt,
+        row.Publication == null ? null : row.Publication.RecordedAt,
+        row.Withdrawal == null ? null : row.Withdrawal.RecordedAt,
+        row.IsReserved, row.HasCurrentPublicationInspection);
 
     public async Task<ListingManagerPageResult> ReadAsync(Guid actorId, ListingReadFilter filter,
         CancellationToken cancellationToken)
@@ -40,26 +44,65 @@ public sealed class ListingReadStore(DealershipDbContext database) : IListingRea
         }
 
         var rows = Rows(actor.BranchId ?? filter.BranchId);
+        if (filter.Registration.Length > 0)
+        {
+            var pattern = LiteralSearch.Pattern(filter.Registration);
+            rows = rows.Where(row => EF.Functions.ILike(row.Vehicle.RegistrationPlate, pattern, "!"));
+        }
+        if (filter.Vehicle.Length > 0)
+        {
+            var pattern = LiteralSearch.Pattern(filter.Vehicle);
+            rows = rows.Where(row => EF.Functions.ILike(row.Vehicle.ManufactureYear + " " + row.Vehicle.Make + " " +
+                row.Vehicle.Model + " " + row.Vehicle.Trim, pattern, "!"));
+        }
+        if (filter.ActivityFrom is not null)
+        {
+            rows = rows.Where(row => row.ActivityAt >= filter.ActivityFrom && row.ActivityAt < filter.ActivityUntil);
+        }
+        if (filter.MinimumPrice is not null)
+        {
+            rows = rows.Where(row => row.Draft != null && row.Draft.VehiclePrice >= filter.MinimumPrice);
+        }
+        if (filter.MaximumPrice is not null)
+        {
+            rows = rows.Where(row => row.Draft != null && row.Draft.VehiclePrice <= filter.MaximumPrice);
+        }
+        if (filter.MinimumPublishedPrice is not null)
+        {
+            rows = rows.Where(row => row.Approved != null && row.Approved.VehiclePrice >= filter.MinimumPublishedPrice);
+        }
+        if (filter.MaximumPublishedPrice is not null)
+        {
+            rows = rows.Where(row => row.Approved != null && row.Approved.VehiclePrice <= filter.MaximumPublishedPrice);
+        }
         if (filter.Search.Length > 0)
         {
             var pattern = LiteralSearch.Pattern(filter.Search.Trim());
             rows = rows.Where(row => EF.Functions.ILike(row.Vehicle.RegistrationPlate, pattern, "!") ||
                 EF.Functions.ILike(row.Vehicle.Make, pattern, "!") || EF.Functions.ILike(row.Vehicle.Model, pattern, "!") ||
-                EF.Functions.ILike(row.BranchName, pattern, "!"));
+                EF.Functions.ILike(row.Vehicle.Trim, pattern, "!") || EF.Functions.ILike(row.BranchName, pattern, "!"));
         }
 
-        // Publication order depends on availability across the complete filtered dataset.
-        if (filter.Sort == "publication" && !await ReservationReadSnapshot.ReconcileDueAsync(database,
+        if (filter.Inspection.Length > 0)
+        {
+            var status = Enum.Parse<VehicleStatus>(filter.Inspection);
+            rows = rows.Where(row => row.Vehicle.Status == status);
+        }
+
+        // Publication filtering and ordering both depend on current hold availability.
+        var publicationDependent = filter.Sort == "publication" || filter.Publication.Length > 0;
+        if (publicationDependent && !await ReservationReadSnapshot.ReconcileDueAsync(database,
             rows.Select(row => row.Vehicle.Id), filter.PageSize, cancellationToken))
         {
             return new(ListingStatus.Unavailable);
         }
 
+        rows = FilterPublication(rows, filter.Publication);
         var total = await rows.CountAsync(cancellationToken);
         var pageIds = await Order(rows, filter)
             .Select(row => row.Vehicle.Id)
             .ReadPageAsync(filter.Page, filter.PageSize, total, cancellationToken);
-        var vehicleIds = await database.Vehicles.Where(vehicle => filter.Sort != "publication" && pageIds.Contains(vehicle.Id) &&
+        var vehicleIds = await database.Vehicles.Where(vehicle => !publicationDependent && pageIds.Contains(vehicle.Id) &&
                 database.Reservations.Any(item => item.VehicleId == vehicle.Id && item.IsActive))
             .OrderBy(vehicle => vehicle.Id).Select(vehicle => vehicle.Id).ToArrayAsync(cancellationToken);
         // Other sort keys do not depend on hold state; retain bounded page catch-up.
@@ -83,11 +126,25 @@ public sealed class ListingReadStore(DealershipDbContext database) : IListingRea
             "branch" => OrderBy(rows, row => row.BranchName, filter.Direction),
             "inspection" => OrderBy(rows, row => row.Vehicle.Status, filter.Direction),
             "price" => OrderPrice(rows, filter.Direction),
+            "publishedPrice" => OrderApprovedPrice(rows, filter.Direction),
+            "activity" => OrderActivity(rows, filter.Direction),
             "publication" => OrderPublication(rows, filter.Direction),
             _ => rows.OrderBy(row => row.BranchName).ThenBy(row => row.Vehicle.RegistrationPlate)
         };
         return ordered.ThenBy(row => row.Vehicle.Id);
     }
+
+    private static IQueryable<Row> FilterPublication(IQueryable<Row> rows, string publication) => publication switch
+    {
+        "published" => rows.Where(row => row.IsPublic),
+        "changes" => rows.Where(row => row.IsPublic && row.Draft != null && row.Publication != null &&
+            row.Draft.Id != row.Publication.RevisionId),
+        "withdrawn" => rows.Where(row => !row.IsPublic && row.IsWithdrawn),
+        "unavailable" => rows.Where(row => !row.IsPublic && !row.IsWithdrawn && row.Publication != null),
+        "draft" => rows.Where(row => !row.IsPublic && !row.IsWithdrawn && row.Publication == null && row.Draft != null),
+        "unprepared" => rows.Where(row => !row.IsPublic && !row.IsWithdrawn && row.Publication == null && row.Draft == null),
+        _ => rows
+    };
 
     private static IOrderedQueryable<Row> OrderBy<TKey>(IQueryable<Row> rows,
         Expression<Func<Row, TKey>> key, string direction)
@@ -102,6 +159,22 @@ public sealed class ListingReadStore(DealershipDbContext database) : IListingRea
         return direction == "desc"
             ? ordered.ThenByDescending(row => row.Draft!.VehiclePrice)
             : ordered.ThenBy(row => row.Draft!.VehiclePrice);
+    }
+
+    private static IOrderedQueryable<Row> OrderApprovedPrice(IQueryable<Row> rows, string direction)
+    {
+        var ordered = rows.OrderBy(row => row.Approved == null);
+        return direction == "desc"
+            ? ordered.ThenByDescending(row => row.Approved!.VehiclePrice)
+            : ordered.ThenBy(row => row.Approved!.VehiclePrice);
+    }
+
+    private static IOrderedQueryable<Row> OrderActivity(IQueryable<Row> rows, string direction)
+    {
+        var ordered = rows.OrderBy(row => row.ActivityAt == null);
+        return direction == "desc"
+            ? ordered.ThenByDescending(row => row.ActivityAt)
+            : ordered.ThenBy(row => row.ActivityAt);
     }
 
     private static IOrderedQueryable<Row> OrderPublication(IQueryable<Row> rows, string direction)
@@ -212,20 +285,39 @@ public sealed class ListingReadStore(DealershipDbContext database) : IListingRea
                                database.ListingRevisions.Any(r => r.Id == later.RevisionId && r.Version > revision.Version))
                            select publication;
         var publicRows = PublicListingQuery.Read(database);
+        var eligiblePublications = PublicListingQuery.Published(database);
+        var activities = database.ListingRevisions.Select(item => new { item.VehicleId, item.RecordedAt })
+            .Concat(database.ListingPublications.Select(item => new { item.VehicleId, item.RecordedAt }))
+            .Concat(database.ListingWithdrawals.Select(item => new { item.VehicleId, item.RecordedAt }))
+            .GroupBy(item => item.VehicleId)
+            .Select(group => new { VehicleId = group.Key, RecordedAt = group.Max(item => item.RecordedAt) });
         return from vehicle in database.Vehicles.AsNoTracking()
                join branch in database.Branches.AsNoTracking() on vehicle.BranchId equals branch.Id
                join saved in latest on vehicle.Id equals saved.VehicleId into drafts
                from draft in drafts.DefaultIfEmpty()
                join approved in publications on vehicle.Id equals approved.VehicleId into approvals
                from publication in approvals.DefaultIfEmpty()
+               join revision in database.ListingRevisions on
+                   (publication == null ? (Guid?)null : publication.RevisionId) equals (Guid?)revision.Id into approvedRevisions
+               from approvedRevision in approvedRevisions.DefaultIfEmpty()
+               join removed in database.ListingWithdrawals on
+                   (publication == null ? (Guid?)null : publication.Id) equals (Guid?)removed.PublicationId into withdrawals
+               from withdrawal in withdrawals.DefaultIfEmpty()
+               join recorded in activities on vehicle.Id equals recorded.VehicleId into events
+               from activity in events.DefaultIfEmpty()
                where branch.IsActive && (branchId == null || vehicle.BranchId == branchId)
                select new Row
                {
                    Vehicle = vehicle,
                    Draft = draft,
                    Publication = publication,
+                   Approved = approvedRevision,
+                   Withdrawal = withdrawal,
+                   ActivityAt = activity == null ? null : activity.RecordedAt,
                    BranchName = branch.Name,
-                   IsWithdrawn = publication != null && database.ListingWithdrawals.Any(row => row.PublicationId == publication.Id),
+                   IsWithdrawn = withdrawal != null,
+                   IsReserved = database.Reservations.Any(item => item.VehicleId == vehicle.Id && item.IsActive),
+                   HasCurrentPublicationInspection = eligiblePublications.Any(row => row.Vehicle.Id == vehicle.Id),
                    IsPublic = publicRows.Any(row => row.Vehicle.Id == vehicle.Id)
                };
     }
@@ -235,8 +327,13 @@ public sealed class ListingReadStore(DealershipDbContext database) : IListingRea
         public required Vehicle Vehicle { get; init; }
         public required ListingRevision? Draft { get; init; }
         public required ListingPublication? Publication { get; init; }
+        public required ListingRevision? Approved { get; init; }
+        public required ListingWithdrawal? Withdrawal { get; init; }
+        public DateTimeOffset? ActivityAt { get; init; }
         public required string BranchName { get; init; }
         public bool IsWithdrawn { get; init; }
         public bool IsPublic { get; init; }
+        public bool IsReserved { get; init; }
+        public bool HasCurrentPublicationInspection { get; init; }
     }
 }
