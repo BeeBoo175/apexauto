@@ -1,6 +1,5 @@
-import { Button } from "@/components/ui/Button";
 import type { WorkspaceTab } from "@/hooks/use-workspace-tabs";
-import styles from "./StaffWorkspace.module.css";
+import { StaffQueueTabs } from "./StaffQueueTabs";
 
 export function StaffWorkspaceTabs<T extends string>({
   label,
@@ -15,25 +14,13 @@ export function StaffWorkspaceTabs<T extends string>({
   disabled?: boolean;
   onChange: (section: T) => void;
 }) {
-  if (tabs.length < 2) {
-    return null;
-  }
-
   return (
-    <nav className={styles.sections} aria-label={label}>
-      {tabs.map((tab) => (
-        <Button
-          key={tab.value}
-          size="compact"
-          variant="ghost"
-          className={styles.sectionButton}
-          aria-pressed={value === tab.value}
-          disabled={disabled}
-          onClick={() => onChange(tab.value)}
-        >
-          {tab.label}
-        </Button>
-      ))}
-    </nav>
+    <StaffQueueTabs
+      label={label}
+      tabs={tabs}
+      value={value}
+      disabled={disabled}
+      onChange={onChange}
+    />
   );
 }
