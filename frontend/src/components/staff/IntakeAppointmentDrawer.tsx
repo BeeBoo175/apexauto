@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLoadingProgress } from "@/components/ui/LoadingProgress";
 import { Dialog, DialogActionSlot } from "@/components/ui/Dialog";
 import { AppointmentWorkbench } from "./AppointmentWorkbench";
 import { AppointmentLoadingShell } from "./AppointmentLoadingShell";
@@ -15,6 +16,7 @@ export function IntakeAppointmentDrawer({
   onConfirmed: () => void;
 }) {
   const [headerActions, setHeaderActions] = useState<HTMLDivElement | null>(null);
+  useLoadingProgress("Loading intake appointment", drawer.busy);
 
   return (
     <Dialog

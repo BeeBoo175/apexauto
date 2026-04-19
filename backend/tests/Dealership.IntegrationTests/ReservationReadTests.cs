@@ -86,6 +86,7 @@ public sealed class ReservationReadTests(IntakePhotoFixture fixture) : IClassFix
             var response = await client.GetAsync($"/api/account/reservations?page={page}&pageSize=50&isActive=false&customerId={otherData.OwnerId}");
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.True(response.Headers.CacheControl?.NoStore);
+            Assert.DoesNotContain("registrationPlate", await response.Content.ReadAsStringAsync());
             var history = (await response.Content.ReadFromJsonAsync<ReservationHistoryPage>())!;
             Assert.Equal(51, history.Total);
             Assert.Equal(25, history.PageSize);
@@ -116,6 +117,17 @@ public sealed class ReservationReadTests(IntakePhotoFixture fixture) : IClassFix
         Assert.Equal(detail, await detailResponse.Content.ReadFromJsonAsync<ReservationDetailResult>());
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/staff/reservations/{outside.Id}")).StatusCode);
         await AssertFilteredPagesAsync(client, expected, active.Id);
+        var registration = Uri.EscapeDataString(detail.Item.RegistrationPlate!);
+        var columnHistory = await client.GetFromJsonAsync<ReservationHistoryPage>(
+            $"/api/staff/reservations?registration={registration}&vehicle=2020&buyer=Nur&status=CustomerCancelled&minimumTotal={active.Price.Total.ToString(System.Globalization.CultureInfo.InvariantCulture)}&pageSize=50");
+        Assert.Equal(50, columnHistory!.Total);
+        Assert.All(columnHistory.Items, item =>
+        {
+            Assert.Equal(detail.Item.RegistrationPlate, item.RegistrationPlate);
+            Assert.Equal("CustomerCancelled", item.Release!.Kind);
+        });
+        Assert.Empty((await client.GetFromJsonAsync<ReservationHistoryPage>(
+            "/api/staff/reservations?registration=%25"))!.Items);
         await ReservationSortingAssertions.VerifyHttpAsync(client, expected);
         await AssertManagerScopeAsync(client, database, manager, data.BranchId, otherData.BranchId);
         await AssertSnapshotAndRetryAsync(clock, data.OwnerId, active!, Array.IndexOf(expected, active!.Id) / 25 + 1);

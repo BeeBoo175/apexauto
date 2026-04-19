@@ -36,16 +36,27 @@ public static class ReservationQueryEndpoints
     }
 
     private static async Task<IResult> StaffAsync(Guid? branchId, int? page, int? pageSize, bool? isActive,
-        string? sort, string? direction, HttpContext context,
+        string? sort, string? direction, string? search, string? registration, string? vehicle, string? buyer, string? status,
+        decimal? minimumTotal, decimal? maximumTotal, string? createdFrom, string? createdTo,
+        string? expiresFrom, string? expiresTo, string? releasedFrom, string? releasedTo, HttpContext context,
         IReservationReadStore store, CancellationToken cancellationToken)
     {
+        var created = ListDateRange.Parse(createdFrom, createdTo);
+        var expires = ListDateRange.Parse(expiresFrom, expiresTo);
+        var released = ListDateRange.Parse(releasedFrom, releasedTo);
+        if (created is null || expires is null || released is null)
+        {
+            return Map(new ReservationHistoryResult(ReservationStatus.Invalid));
+        }
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(20));
         try
         {
             var result = await store.StaffAsync(ActorId(context),
                 new(branchId, page ?? 1, pageSize ?? Pagination.DefaultPageSize, isActive,
-                    sort ?? "", direction ?? "asc"), deadline.Token);
+                    sort ?? "", direction ?? "asc", search?.Trim() ?? "", registration?.Trim() ?? "",
+                    vehicle?.Trim() ?? "", buyer?.Trim() ?? "", status ?? "", minimumTotal, maximumTotal,
+                    created.From, created.Until, expires.From, expires.Until, released.From, released.Until), deadline.Token);
             return Map(result);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)

@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using Dealership.Application.Accounts;
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Vehicles;
@@ -54,8 +53,8 @@ public sealed class ReservationReadStore(DealershipDbContext database) : IReserv
             await ReservationReadSnapshot.ReconcileAsync(database, target.VehicleId, cancellationToken);
         }
 
-        var row = await Rows(reservations).SingleAsync(cancellationToken);
-        return new(ReservationStatus.Succeeded, actor, ToItem(row));
+        var row = await ReservationReadRows.CreateRows(database, reservations).SingleAsync(cancellationToken);
+        return new(ReservationStatus.Succeeded, actor, ReservationReadRows.ToItem(row, true));
     }
 
     private async Task<ReservationHistoryResult> ReadAsync(Guid actorId, ReservationReadFilter filter, bool staff,
@@ -91,7 +90,8 @@ public sealed class ReservationReadStore(DealershipDbContext database) : IReserv
             reservations = reservations.Where(item => branchId == null || item.BranchId == branchId);
         }
 
-        if (staff && (filter.IsActive is not null || filter.Sort == "status"))
+        if (staff && (filter.IsActive is not null || filter.Sort is "status" or "released" ||
+            filter.Status.Length > 0 || filter.ReleasedFrom is not null))
         {
             // Membership and status order depend on refunds across the authorized scope, including off-page holds.
             var caughtUp = await ReservationReadSnapshot.ReconcileDueAsync(database,
@@ -107,8 +107,9 @@ public sealed class ReservationReadStore(DealershipDbContext database) : IReserv
             reservations = reservations.Where(item => item.IsActive == filter.IsActive);
         }
 
-        var total = await reservations.CountAsync(cancellationToken);
-        var pageIds = await Order(Rows(reservations), filter)
+        var filtered = ReservationReadRows.Filter(ReservationReadRows.CreateRows(database, reservations), filter);
+        var total = await filtered.CountAsync(cancellationToken);
+        var pageIds = await ReservationReadRows.Order(filtered, filter)
             .Select(row => row.Reservation.Id).ReadPageAsync(filter.Page, filter.PageSize, total, cancellationToken);
         var activeVehicles = reservations.Where(item => item.IsActive &&
                 (!staff || filter.IsActive == null && filter.Sort != "status" && pageIds.Contains(item.Id)))
@@ -121,76 +122,18 @@ public sealed class ReservationReadStore(DealershipDbContext database) : IReserv
             await ReservationReadSnapshot.ReconcileAsync(database, vehicleId, cancellationToken);
         }
 
-        var rows = await Order(Rows(reservations.Where(item => pageIds.Contains(item.Id))), filter)
+        var rows = await ReservationReadRows.Order(filtered.Where(row => pageIds.Contains(row.Reservation.Id)), filter)
             .ToArrayAsync(cancellationToken);
-        var items = rows.Select(ToItem).ToArray();
+        var items = rows.Select(row => ReservationReadRows.ToItem(row, staff)).ToArray();
         ReservationHistoryItem? active = null;
         if (!staff)
         {
-            var activeRow = await Rows(reservations.Where(item => item.IsActive)).SingleOrDefaultAsync(cancellationToken);
-            active = activeRow is null ? null : ToItem(activeRow);
+            var activeRow = await ReservationReadRows.CreateRows(database, reservations.Where(item => item.IsActive)).SingleOrDefaultAsync(cancellationToken);
+            active = activeRow is null ? null : ReservationReadRows.ToItem(activeRow, false);
         }
 
         return new(ReservationStatus.Succeeded, new(actor, Array.AsReadOnly(items), total, filter.Page, filter.PageSize, active));
     }
-
-    private IQueryable<Row> Rows(IQueryable<Reservation> reservations)
-    {
-        return from reservation in reservations
-               join branch in database.Branches on reservation.BranchId equals branch.Id
-               join vehicle in database.Vehicles on reservation.VehicleId equals vehicle.Id
-               join refunded in database.ReservationReleases.AsNoTracking() on reservation.Id equals refunded.ReservationId into releases
-               from release in releases.DefaultIfEmpty()
-               select new Row
-               {
-                   Reservation = reservation,
-                   BranchName = branch.Name,
-                   Make = vehicle.Make,
-                   Model = vehicle.Model,
-                   Trim = vehicle.Trim,
-                   ManufactureYear = vehicle.ManufactureYear,
-                   Release = release
-               };
-    }
-
-    private static IOrderedQueryable<Row> Order(IQueryable<Row> rows, ReservationReadFilter filter)
-    {
-        if (filter.Sort.Length == 0)
-        {
-            return rows.OrderByDescending(row => row.Reservation.CreatedAt).ThenByDescending(row => row.Reservation.Id);
-        }
-
-        var ordered = filter.Sort switch
-        {
-            "reference" => OrderBy(rows, row => row.Reservation.Id, filter.Direction),
-            "vehicle" => OrderBy(rows, row => row.ManufactureYear + " " + row.Make + " " + row.Model + " " + row.Trim, filter.Direction),
-            "buyer" => OrderBy(rows, row => row.Reservation.Buyer.LegalName, filter.Direction),
-            "branch" => OrderBy(rows, row => row.BranchName, filter.Direction),
-            "created" => OrderBy(rows, row => row.Reservation.CreatedAt, filter.Direction),
-            "expires" => OrderBy(rows, row => row.Reservation.ExpiresAt, filter.Direction),
-            "total" => OrderBy(rows, row => row.Reservation.Price.Total, filter.Direction),
-            _ => OrderStatus(rows, filter.Direction)
-        };
-        return ordered.ThenBy(row => row.Reservation.Id);
-    }
-
-    private static IOrderedQueryable<Row> OrderBy<TKey>(IQueryable<Row> rows,
-        Expression<Func<Row, TKey>> key, string direction)
-    {
-        return direction == "desc" ? rows.OrderByDescending(key) : rows.OrderBy(key);
-    }
-
-    private static IOrderedQueryable<Row> OrderStatus(IQueryable<Row> rows, string direction)
-    {
-        // Active precedes the alphabetically persisted release kinds when ascending.
-        return direction == "desc"
-            ? rows.OrderByDescending(row => row.Release != null).ThenByDescending(row => row.Release!.Kind)
-            : rows.OrderBy(row => row.Release != null).ThenBy(row => row.Release!.Kind);
-    }
-
-    private static ReservationHistoryItem ToItem(Row row) => new(ReservationReceipt.From(row.Reservation), row.BranchName,
-        row.Make, row.Model, row.Trim, row.ManufactureYear, row.Reservation.IsActive,
-        row.Release is null ? null : ReservationRefundReceipt.From(row.Release));
 
     private async Task<CurrentActor?> ReadActorAsync(Guid actorId, Guid? selectedBranch, bool staff,
         CancellationToken cancellationToken)
@@ -217,14 +160,4 @@ public sealed class ReservationReadStore(DealershipDbContext database) : IReserv
         return actor;
     }
 
-    private sealed class Row
-    {
-        public required Reservation Reservation { get; init; }
-        public required string BranchName { get; init; }
-        public required string Make { get; init; }
-        public required string Model { get; init; }
-        public required string Trim { get; init; }
-        public int ManufactureYear { get; init; }
-        public required ReservationRelease? Release { get; init; }
-    }
 }

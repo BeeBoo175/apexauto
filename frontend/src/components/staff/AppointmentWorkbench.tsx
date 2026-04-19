@@ -2,6 +2,7 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/Button";
+import { useLoadingProgress } from "@/components/ui/LoadingProgress";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import { useToast } from "@/components/ui/Toast";
 import { useInitialToast } from "@/hooks/use-initial-toast";
@@ -57,6 +58,11 @@ export function AppointmentWorkbench({
         : receipt.correction === null && checkInMatches(receipt, request)),
     (path, parse, options) =>
       apiFetch(path, parse, options, { parseConflict: parseIntakeConflict }),
+  );
+  useLoadingProgress("Refreshing intake appointment", refreshing);
+  useLoadingProgress(
+    correcting ? "Recording attendance correction" : "Checking in vehicle",
+    command.busy,
   );
   const value = draft ?? localDraft;
   const locked = command.busy || command.uncertain;
