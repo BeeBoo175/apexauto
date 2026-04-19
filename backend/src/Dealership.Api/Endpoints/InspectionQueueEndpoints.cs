@@ -72,12 +72,27 @@ public static class InspectionQueueEndpoints
 
     private static async Task<IResult> WorkshopAsync(string? from, string? to, string? status, Guid? branchId,
         int? page, int? pageSize, string? search, string? sort, string? direction, HttpContext context, IWorkshopQueueStore store,
-        CancellationToken cancellationToken)
+        string? workStatus, string? technician, decimal? minimumBudget, decimal? maximumBudget,
+        string? registration, string? vehicle, CancellationToken cancellationToken)
     {
         var filter = InspectionQueueFilter.Parse(from, to, branchId, page ?? 1, pageSize ?? Pagination.DefaultPageSize,
             search, sort, direction);
         if (filter is null || !Enum.TryParse<WorkshopTask>(status ?? "Active", out var task) ||
             !Enum.IsDefined(task) || task.ToString() != (status ?? "Active"))
+        {
+            return Invalid();
+        }
+
+        filter = filter with
+        {
+            WorkStatus = workStatus ?? "",
+            Technician = technician?.Trim() ?? "",
+            MinimumBudget = minimumBudget,
+            MaximumBudget = maximumBudget,
+            Registration = registration?.Trim() ?? "",
+            Vehicle = vehicle?.Trim() ?? ""
+        };
+        if (!filter.IsValid)
         {
             return Invalid();
         }

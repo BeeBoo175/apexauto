@@ -22,12 +22,17 @@ public enum InspectionRepairQueueStatus
 
 public sealed record InspectionQueueFilter(DateTimeOffset? From = null, DateTimeOffset? Until = null,
     Guid? BranchId = null, int Page = 1, int PageSize = Pagination.DefaultPageSize, string Search = "",
-    string Sort = "since", string Direction = "desc")
+    string Sort = "since", string Direction = "desc", string WorkStatus = "", string Technician = "",
+    decimal? MinimumBudget = null, decimal? MaximumBudget = null,
+    string Registration = "", string Vehicle = "")
 {
     public bool IsValid => Pagination.IsValid(Page, PageSize) && BranchId != Guid.Empty &&
         ListSearch.IsValid(Search) && ListDateRange.IsValid(From, Until) &&
-        Sort is "since" or "registrationPlate" or "status" or "technicianIdentity" or "branchName" or "budget" &&
-        Direction is "asc" or "desc";
+        Sort is "since" or "registrationPlate" or "vehicle" or "status" or "technicianIdentity" or "branchName" or "budget" or "checkedInAt" or "requestedAt" &&
+        Direction is "asc" or "desc" && ListSearch.IsValid(Technician) &&
+        WorkStatus is "" or "AwaitingInspection" or "InspectionUnderway" or "RepairRequestRequired" or
+            "ApprovalRequired" or "RepairsToComplete" or "ReadyForSale" or "Rejected" &&
+        MoneyRange.IsValid(MinimumBudget, MaximumBudget) && ListSearch.IsValid(Registration) && ListSearch.IsValid(Vehicle);
 
     public static InspectionQueueFilter? Parse(string? from, string? to, Guid? branchId,
         int page = 1, int pageSize = Pagination.DefaultPageSize, string? search = null,

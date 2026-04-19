@@ -26,7 +26,9 @@ public enum WorkshopWorkStatus
 public sealed record WorkshopQueueItem(Guid VehicleId, Guid BranchId, string BranchName,
     string RegistrationPlate, string Make, string Model, string VehicleStatus,
     Guid? InspectionId, Guid? TechnicianId, string? TechnicianIdentity, long? Revision,
-    Guid? RequestId, decimal? Budget, DateTimeOffset Since, string DateSource, WorkshopWorkStatus Status);
+    Guid? RequestId, decimal? Budget, DateTimeOffset Since, string DateSource, WorkshopWorkStatus Status,
+    int ManufactureYear = 0, string Trim = "", DateTimeOffset CheckedInAt = default,
+    DateTimeOffset? RequestedAt = null);
 
 public sealed record WorkshopQueuePage(IReadOnlyList<WorkshopQueueItem> Items, int Total, int Page, int PageSize);
 

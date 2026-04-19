@@ -48,6 +48,16 @@ public sealed class InspectionQueueTests(IntakePhotoFixture fixture) : IClassFix
         }
 
         var queues = services.GetRequiredService<IInspectionQueueStore>();
+        var workshop = services.GetRequiredService<IWorkshopQueueStore>();
+        var columnFilter = new InspectionQueueFilter(Registration: "8823", Vehicle: "2020",
+            WorkStatus: "AwaitingInspection", Technician: "unassigned");
+        var filteredWork = (await workshop.ReadAsync(manager, columnFilter, WorkshopTask.Active, CancellationToken.None)).Queue!;
+        Assert.Equal(1, filteredWork.Total);
+        Assert.Equal(vehicles[2], Assert.Single(filteredWork.Items).VehicleId);
+        Assert.Empty((await workshop.ReadAsync(manager, columnFilter with { Registration = "%" },
+            WorkshopTask.Active, CancellationToken.None)).Queue!.Items);
+        Assert.Empty((await workshop.ReadAsync(technician, columnFilter with { Registration = "8822", WorkStatus = "" },
+            WorkshopTask.Active, CancellationToken.None)).Queue!.Items);
         var own = (await queues.InspectionsAsync(technician, new(), InspectionQueueStatus.All, CancellationToken.None)).Queue!;
         Assert.Equal(2, own.Total);
         var expected = await database.Vehicles.AsNoTracking().Where(item => item.Id != vehicles[1])
