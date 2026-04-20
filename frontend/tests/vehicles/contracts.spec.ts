@@ -267,13 +267,21 @@ test("manager listings validate private projections and independent staff paging
     publishedRevisionId: ids[2],
     isWithdrawn: false,
     isPublic: true,
+    approvedVehiclePrice: 45000,
+    savedAt: "2026-10-26T00:00:00Z",
+    approvedAt: "2026-10-26T00:00:00Z",
+    withdrawnAt: null,
+    isReserved: false,
+    hasCurrentPublicationInspection: true,
   };
   const page = { items: [row], total: 1, page: 1, pageSize: 10 };
   const parsed = parseListings(page)!.items[0];
   expect(parsed.vehicleStatus).toBe("Available");
   expect(listingPublication(parsed)).toBe("Published");
-  expect(listingPublication({ ...parsed, revisionId: ids[0] })).toBe("Published · draft changes");
-  expect(listingPublication({ ...parsed, isPublic: false })).toBe("Approved · unavailable");
+  expect(listingPublication({ ...parsed, revisionId: ids[0] })).toBe(
+    "Published · saved changes not live",
+  );
+  expect(listingPublication({ ...parsed, isPublic: false })).toBe("Hidden");
   for (const changed of [
     { vehicleId: "invalid" },
     { vehicleStatus: 3 },
@@ -305,7 +313,23 @@ test("manager listings validate private projections and independent staff paging
   });
   expect(listingParams({ page: "-1", pageSize: "8", branchId: "invalid" })).toEqual({
     page: 1,
-    filters: { search: "", pageSize: 25, branchId: "", sort: "", direction: "asc" },
+    filters: {
+      search: "",
+      pageSize: 25,
+      branchId: "",
+      sort: "",
+      direction: "asc",
+      registration: "",
+      vehicle: "",
+      inspection: "",
+      publication: "",
+      minimumPrice: "",
+      maximumPrice: "",
+      minimumPublishedPrice: "",
+      maximumPublishedPrice: "",
+      from: "",
+      to: "",
+    },
     listingId: "",
     section: "listing",
     record: null,
@@ -348,6 +372,12 @@ test("listing workspace validates revision and publication relationships before 
     publishedRevisionId: ids[2],
     isWithdrawn: false,
     isPublic: true,
+    approvedVehiclePrice: 45000,
+    savedAt: vehicle.publishedAt,
+    approvedAt: vehicle.publishedAt,
+    withdrawnAt: null,
+    isReserved: false,
+    hasCurrentPublicationInspection: true,
   };
   const revision = {
     id: ids[2],

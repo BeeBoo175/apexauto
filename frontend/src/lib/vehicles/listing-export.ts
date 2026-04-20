@@ -7,6 +7,8 @@ import {
   type ListingItem,
 } from "./listings";
 import { parseListings } from "./parse-listings";
+import { listingActivity, listingInspectionLabel, listingVisibilityNote } from "./listing-table";
+import { formatMalaysianDateTime } from "@/lib/date-format";
 
 export const listingExportColumns: readonly CsvColumn<ListingItem>[] = [
   { label: "Registration", value: (row) => row.registrationPlate },
@@ -16,9 +18,22 @@ export const listingExportColumns: readonly CsvColumn<ListingItem>[] = [
   { label: "Year", value: (row) => String(row.manufactureYear) },
   { label: "Mileage (km)", value: (row) => String(row.mileageKilometres) },
   { label: "Branch", value: (row) => row.branchName },
-  { label: "Inspection status", value: (row) => row.vehicleStatus },
+  { label: "Inspection", value: listingInspectionLabel },
+  {
+    label: "Approved vehicle price (MYR)",
+    value: (row) => row.approvedVehiclePrice?.toFixed(2) ?? "",
+  },
   { label: "Draft price (MYR)", value: (row) => row.vehiclePrice?.toFixed(2) ?? "" },
   { label: "Publication", value: listingPublication },
+  { label: "Visible on public site", value: (row) => (row.isPublic ? "Yes" : "No") },
+  { label: "Publication context", value: listingVisibilityNote },
+  {
+    label: "Listing activity",
+    value: (row) => {
+      const activity = listingActivity(row);
+      return activity ? `${activity.label} · ${formatMalaysianDateTime(activity.at)}` : "";
+    },
+  },
 ];
 
 export async function exportListings(filters: ListingFilters, cancellation: AbortSignal) {

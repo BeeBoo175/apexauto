@@ -96,13 +96,59 @@ export function useListingTable(
           (resetDraft || nextFilters.branchId !== active.filters.branchId)
             ? nextFilters.branchId
             : current.branchId,
+        inspection:
+          current.inspection === submitted.inspection ? nextFilters.inspection : current.inspection,
+        publication:
+          current.publication === submitted.publication
+            ? nextFilters.publication
+            : current.publication,
+        minimumPrice:
+          current.minimumPrice === submitted.minimumPrice
+            ? nextFilters.minimumPrice
+            : current.minimumPrice,
+        maximumPrice:
+          current.maximumPrice === submitted.maximumPrice
+            ? nextFilters.maximumPrice
+            : current.maximumPrice,
+        minimumPublishedPrice:
+          current.minimumPublishedPrice === submitted.minimumPublishedPrice
+            ? nextFilters.minimumPublishedPrice
+            : current.minimumPublishedPrice,
+        maximumPublishedPrice:
+          current.maximumPublishedPrice === submitted.maximumPublishedPrice
+            ? nextFilters.maximumPublishedPrice
+            : current.maximumPublishedPrice,
+        from: current.from === submitted.from ? nextFilters.from : current.from,
+        to: current.to === submitted.to ? nextFilters.to : current.to,
+        registration:
+          current.registration === submitted.registration
+            ? nextFilters.registration
+            : current.registration,
+        vehicle: current.vehicle === submitted.vehicle ? nextFilters.vehicle : current.vehicle,
         pageSize: nextFilters.pageSize,
         sort: nextFilters.sort,
         direction: nextFilters.direction,
       }));
       setRevision((value) => value + 1);
       const query = new URLSearchParams(window.location.search);
-      for (const key of ["page", "pageSize", "search", "branchId", "sort", "direction"]) {
+      for (const key of [
+        "page",
+        "pageSize",
+        "search",
+        "branchId",
+        "inspection",
+        "publication",
+        "sort",
+        "direction",
+        "minimumPrice",
+        "maximumPrice",
+        "minimumPublishedPrice",
+        "maximumPublishedPrice",
+        "from",
+        "to",
+        "registration",
+        "vehicle",
+      ]) {
         query.delete(key);
       }
       new URLSearchParams(listingQuery(nextFilters, nextPage)).forEach((value, key) =>

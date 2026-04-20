@@ -8,6 +8,9 @@ const text = (value: unknown): value is string =>
 const integer = (value: unknown): value is number =>
   Number.isSafeInteger(value) && Number(value) >= 0;
 const nullableId = (value: unknown) => value === null || isUuid(value);
+const nullableTimestamp = (value: unknown): value is string | null =>
+  value === null ||
+  (typeof value === "string" && /(?:Z|\+00:00)$/.test(value) && Number.isFinite(Date.parse(value)));
 
 export function parseListing(value: unknown): ListingItem | null {
   if (
@@ -26,7 +29,12 @@ export function parseListing(value: unknown): ListingItem | null {
     !nullableId(value.publicationId) ||
     !nullableId(value.publishedRevisionId) ||
     typeof value.isWithdrawn !== "boolean" ||
-    typeof value.isPublic !== "boolean"
+    typeof value.isPublic !== "boolean" ||
+    typeof value.isReserved !== "boolean" ||
+    typeof value.hasCurrentPublicationInspection !== "boolean" ||
+    !nullableTimestamp(value.savedAt) ||
+    !nullableTimestamp(value.approvedAt) ||
+    !nullableTimestamp(value.withdrawnAt)
   ) {
     return null;
   }
@@ -38,6 +46,10 @@ export function parseListing(value: unknown): ListingItem | null {
   }
   const price = value.vehiclePrice;
   if (price !== null && !isMyr(price)) {
+    return null;
+  }
+  const approvedPrice = value.approvedVehiclePrice;
+  if (approvedPrice !== null && !isMyr(approvedPrice)) {
     return null;
   }
   return {
@@ -58,6 +70,12 @@ export function parseListing(value: unknown): ListingItem | null {
     publishedRevisionId: value.publishedRevisionId as string | null,
     isWithdrawn: value.isWithdrawn,
     isPublic: value.isPublic,
+    approvedVehiclePrice: approvedPrice,
+    savedAt: value.savedAt,
+    approvedAt: value.approvedAt,
+    withdrawnAt: value.withdrawnAt,
+    isReserved: value.isReserved,
+    hasCurrentPublicationInspection: value.hasCurrentPublicationInspection,
   };
 }
 

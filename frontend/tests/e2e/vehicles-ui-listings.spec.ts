@@ -242,10 +242,8 @@ test("manager listing table preserves scoped server rows, drafts and complete fi
   await page.screenshot({ path: path.join(evidence, "listings.png"), fullPage: false });
 
   await page.getByLabel("Search listings", { exact: true }).fill("Unsubmitted reset");
-  await page.getByRole("button", { name: /^Filters/ }).click();
-  await page.getByRole("button", { name: "Clear all filters", exact: true }).click();
+  await page.getByRole("button", { name: "Reset filters", exact: true }).click();
   await expect(page.getByLabel("Search listings", { exact: true })).toHaveValue("");
-  await page.getByRole("button", { name: /^Filters/ }).click();
 
   let releaseOld = () => {};
   let oldEntered = () => {};
@@ -293,11 +291,11 @@ test("manager listing table preserves scoped server rows, drafts and complete fi
   await expect(page.getByRole("table", { name: "Listings", exact: true })).toBeVisible();
   await page.unroute("**/api/staff/listings?**");
 
-  await page.getByRole("button", { name: /^Filters/ }).click();
+  await page.getByRole("button", { name: "Filter Branch", exact: true }).click();
   await page
     .getByRole("combobox", { name: "Branch", exact: true })
     .selectOption("68f371ad-223a-43d6-b45b-b878eece79ae");
-  await page.getByRole("button", { name: "Apply filters", exact: true }).click();
+  await page.getByRole("button", { name: "Apply", exact: true }).click();
   await expect(page).toHaveURL(/branchId=68f371ad/);
   await expect(table.getByText("ApexAuto Petaling Jaya", { exact: true }).first()).toBeVisible();
 

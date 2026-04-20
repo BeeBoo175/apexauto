@@ -4,6 +4,7 @@ import { useContext } from "react";
 import { StaffPageEntranceContext } from "@/components/staff/StaffActorBoundary";
 import { StaffCommandBar } from "@/components/staff/StaffPage";
 import { AppliedWorklistFilters } from "@/components/staff/AppliedWorklistFilters";
+import { StaffQueueTabs } from "@/components/staff/StaffQueueTabs";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import { SearchField } from "@/components/ui/SearchField";
@@ -11,9 +12,7 @@ import { Button } from "@/components/ui/Button";
 import { RecordToolbar } from "@/components/ui/RecordToolbar";
 import { CsvExportActions } from "@/components/ui/CsvExportActions";
 import { DataTable } from "@/components/ui/data-table/DataTable";
-import { DataTablePagination } from "@/components/ui/data-table/DataTablePagination";
-import { DataTableWorkspace } from "@/components/ui/data-table/DataTableWorkspace";
-import type { DataColumn, TableSort } from "@/components/ui/data-table/types";
+import type { TableSort } from "@/components/ui/data-table/types";
 import { useListingTable } from "@/hooks/use-listing-table";
 import { useRowSelection } from "@/hooks/use-row-selection";
 import { useCsvExport } from "@/hooks/use-csv-export";
@@ -22,18 +21,17 @@ import { privateApiFetch } from "@/lib/api-browser";
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import type { ApiResult, Page } from "@/lib/api";
 import type { Branch } from "@/lib/branches";
-import { formatCurrency } from "@/lib/currency-format";
 import {
   listingQuery,
-  listingPublication,
+  listingPublicationOptions,
   type ListingItem,
   type ListingSection,
   type ListingFilters as Filters,
 } from "@/lib/vehicles/listings";
 import { exportListings, listingExportColumns } from "@/lib/vehicles/listing-export";
-import type { AppliedWorklistFilter } from "@/lib/staff/filter-summary";
-import { ListingFilters } from "./ListingFilters";
+import { listingTableFilters } from "./listing-table-filters";
 import { ListingDrawer } from "./ListingDrawer";
+import { listingColumns } from "./listing-columns";
 import { parseListingWorkspace, type ListingWorkspace } from "@/lib/vehicles/listing-workspace";
 import type { ListingRecordSelection } from "@/lib/vehicles/listing-history-selection";
 import layout from "@/components/staff/IntakeWorkspace.module.css";
@@ -41,46 +39,6 @@ import styles from "@/components/staff/IntakeWorklist.module.css";
 import workspace from "@/components/staff/StaffWorkspace.module.css";
 
 const rowId = (row: ListingItem) => row.vehicleId;
-const columns: DataColumn<ListingItem>[] = [
-  {
-    id: "registration",
-    label: "Registration",
-    sortable: true,
-    minWidth: 145,
-    cell: (row) => row.registrationPlate,
-  },
-  {
-    id: "vehicle",
-    label: "Vehicle",
-    sortable: true,
-    minWidth: 230,
-    cell: (row) => `${row.manufactureYear} ${row.make} ${row.model} ${row.trim}`,
-  },
-  { id: "branch", label: "Branch", sortable: true, minWidth: 160, cell: (row) => row.branchName },
-  {
-    id: "inspection",
-    label: "Inspection status",
-    sortable: true,
-    minWidth: 175,
-    cell: (row) =>
-      row.vehicleStatus === "PendingInspection" ? "Pending inspection" : row.vehicleStatus,
-  },
-  {
-    id: "price",
-    label: "Draft price",
-    sortable: true,
-    minWidth: 160,
-    align: "right",
-    cell: (row) => (row.vehiclePrice === null ? "Not set" : formatCurrency(row.vehiclePrice)),
-  },
-  {
-    id: "publication",
-    label: "Publication",
-    sortable: true,
-    minWidth: 230,
-    cell: listingPublication,
-  },
-];
 
 export function ListingTable({
   actor,
@@ -112,22 +70,7 @@ export function ListingTable({
     read: privateApiFetch,
     commitAfterRead: true,
   });
-  const listingColumns = columns.map((column) =>
-    column.id === "registration"
-      ? {
-          ...column,
-          cell: (row: ListingItem) => (
-            <Button
-              size="compact"
-              variant="ghost"
-              onClick={() => void drawer.choose(row.vehicleId)}
-            >
-              {row.registrationPlate}
-            </Button>
-          ),
-        }
-      : column,
-  );
+  const baseColumns = listingColumns(actor.role === "GeneralManager");
   const animateEntry = useContext(StaffPageEntranceContext);
   const { snapshot, active } = state;
   const selection = useRowSelection(
@@ -138,19 +81,29 @@ export function ListingTable({
   const csv = useCsvExport(listingExportColumns, "listings", (signal) =>
     exportListings(active.filters, signal),
   );
-  const applied: AppliedWorklistFilter<Filters>[] = active.filters.branchId
-    ? [
-        {
-          key: "branch",
-          label:
-            state.branches?.items.find((branch) => branch.id === active.filters.branchId)?.name ??
-            "Selected branch",
-          without: { ...active.filters, branchId: "" },
-        },
-      ]
-    : [];
-  const filtered = Boolean(active.filters.search || active.filters.branchId);
-  const filterControls = <ListingFilters state={state} group={actor.role === "GeneralManager"} />;
+  const { columns, applied } = listingTableFilters(state, baseColumns);
+  const refinements = applied.length > 0;
+  const filtered = Boolean(active.filters.search || active.filters.publication || refinements);
+
+  function resetFilters() {
+    void state.load(
+      {
+        ...active.filters,
+        branchId: "",
+        inspection: "",
+        minimumPrice: "",
+        maximumPrice: "",
+        minimumPublishedPrice: "",
+        maximumPublishedPrice: "",
+        from: "",
+        to: "",
+        registration: "",
+        vehicle: "",
+      },
+      1,
+      true,
+    );
+  }
 
   function changePage(nextPage: number, pageSize: number) {
     void state.load({ ...active.filters, pageSize }, nextPage);
@@ -184,95 +137,128 @@ export function ListingTable({
       >
         <div className={styles.body}>
           {snapshot ? (
-            <DataTableWorkspace label="Listings">
-              <RecordToolbar
-                filters={filterControls}
-                filterCount={applied.length}
-                disabled={false}
-                onFiltersOpenChange={(open) => {
-                  if (!open) {
-                    state.setDraft((draft) => ({ ...draft, branchId: active.filters.branchId }));
-                  }
-                }}
-                filterSummary={
-                  <AppliedWorklistFilters
-                    filters={applied}
+            <DataTable
+              toolbar={
+                <>
+                  <StaffQueueTabs
+                    label="Listing queues"
+                    tabs={listingPublicationOptions}
+                    value={active.filters.publication ?? ""}
                     disabled={state.busy}
-                    onRemove={(next) => void state.load(next, 1)}
-                  />
-                }
-                actions={
-                  <CsvExportActions
-                    selected={selection.selectedRows.length}
-                    disabled={state.busy || snapshot.total === 0}
-                    busy={csv.busy}
-                    onClear={selection.clear}
-                    onSelected={() => csv.exportSelected(selection.selectedRows)}
-                    onAll={() => void csv.exportAll()}
-                  />
-                }
-              >
-                <form
-                  className={styles.search}
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    void state.load({ ...active.filters, search: state.draft.search.trim() }, 1);
-                  }}
-                >
-                  <SearchField
-                    label="Search listings"
-                    placeholder="Search vehicle or registration"
-                    value={state.draft.search}
-                    disabled={false}
-                    busy={state.busy}
-                    onChange={(search) => state.setDraft({ ...state.draft, search })}
-                    onClear={
-                      active.filters.search
-                        ? () => void state.load({ ...active.filters, search: "" }, 1)
-                        : undefined
+                    onChange={(publication) =>
+                      void state.load({ ...active.filters, publication }, 1)
                     }
                   />
-                </form>
-              </RecordToolbar>
-              <DataTable
-                label="Listings"
-                rows={snapshot.items}
-                columns={listingColumns}
-                sorting={{
-                  value: active.filters.sort
-                    ? { column: active.filters.sort, direction: active.filters.direction }
-                    : null,
-                  onChange: sortListings,
-                }}
-                rowId={rowId}
-                selection={selection.selection}
-                page={snapshot}
-                onPage={changePage}
-                busy={state.busy}
-                disabled={false}
-                selectedRowId={drawer.id}
-                onRowClick={(row) => void drawer.choose(row.vehicleId)}
-                emptyState={{
-                  title: filtered ? "No listings match your criteria" : "No vehicles to list yet",
-                  description: filtered
-                    ? "Try another search or clear the filters."
-                    : "Checked-in vehicles will appear here for listing preparation.",
-                }}
-              />
-              <DataTablePagination
-                page={snapshot}
-                count={snapshot.items.length}
-                disabled={state.busy}
-                onPage={changePage}
-              />
-            </DataTableWorkspace>
+                  <RecordToolbar
+                    filters={null}
+                    filterCount={applied.length}
+                    disabled={false}
+                    filterSummary={
+                      <AppliedWorklistFilters
+                        filters={applied}
+                        disabled={state.busy}
+                        onRemove={(next) => void state.load(next, 1)}
+                      />
+                    }
+                    actions={
+                      <>
+                        {refinements && (
+                          <Button
+                            size="compact"
+                            variant="ghost"
+                            disabled={state.busy}
+                            onClick={resetFilters}
+                          >
+                            Reset filters
+                          </Button>
+                        )}
+                        <CsvExportActions
+                          selected={selection.selectedRows.length}
+                          disabled={state.busy || snapshot.total === 0}
+                          busy={csv.busy}
+                          onClear={selection.clear}
+                          onSelected={() => csv.exportSelected(selection.selectedRows)}
+                          onAll={() => void csv.exportAll()}
+                        />
+                      </>
+                    }
+                  >
+                    <form
+                      className={styles.search}
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        void state.load(
+                          { ...active.filters, search: state.draft.search.trim() },
+                          1,
+                        );
+                      }}
+                    >
+                      <SearchField
+                        label="Search listings"
+                        placeholder="Search vehicle or registration"
+                        value={state.draft.search}
+                        disabled={false}
+                        busy={state.busy}
+                        onChange={(search) => state.setDraft({ ...state.draft, search })}
+                        onClear={
+                          state.draft.search || active.filters.search
+                            ? () => {
+                                if (active.filters.search) {
+                                  void state.load({ ...active.filters, search: "" }, 1);
+                                  return;
+                                }
+                                state.setDraft((draft) => ({ ...draft, search: "" }));
+                              }
+                            : undefined
+                        }
+                      />
+                    </form>
+                  </RecordToolbar>
+                </>
+              }
+
+              label="Listings"
+              rows={snapshot.items}
+              columns={columns}
+              sorting={{
+                value: active.filters.sort
+                  ? { column: active.filters.sort, direction: active.filters.direction }
+                  : null,
+                onChange: sortListings,
+              }}
+              rowId={rowId}
+              selection={selection.selection}
+              page={snapshot}
+              onPage={changePage}
+              busy={state.busy}
+              disabled={false}
+              selectedRowId={drawer.pendingId || drawer.id}
+              onRowClick={(row) => void drawer.choose(row.vehicleId)}
+              emptyState={{
+                title: filtered ? "No listings match your criteria" : "No vehicles to list yet",
+                description: filtered
+                  ? "Try another search or clear the filters."
+                  : "Checked-in vehicles will appear here for listing preparation.",
+                ...((refinements || active.filters.search) && {
+                  action: {
+                    label: refinements ? "Reset filters" : "Clear search",
+                    onClick: () => {
+                      if (refinements) {
+                        resetFilters();
+                        return;
+                      }
+                      void state.load({ ...active.filters, search: "" }, 1, true);
+                    },
+                  },
+                }),
+              }}
+            />
           ) : (
             <div className={styles.unavailableFilters}>
               <p>Listings are unavailable. Retry when the service is available.</p>
               <Button size="compact" variant="secondary" onClick={() => void state.load()}>
                 Retry listings
               </Button>
-              {filterControls}
             </div>
           )}
         </div>
