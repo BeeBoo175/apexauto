@@ -1,8 +1,26 @@
 export interface ResizeColumn {
   id: string;
+  /** Preferred share of the available width; every data column stays responsive. */
+  width?: number;
   minWidth?: number;
 }
 type Widths = Record<string, number>;
+
+export function columnLayout(columns: readonly ResizeColumn[], widths: Widths, selection: boolean) {
+  const tracks = columns.map((column) => {
+    const minimum = column.minWidth ?? 100;
+    const weight = Math.max(minimum, widths[column.id] ?? column.width ?? 160);
+    return `minmax(${minimum}px, ${weight}fr)`;
+  });
+  const selectionWidth = selection ? 44 : 0;
+  if (selection) {
+    tracks.unshift(`${selectionWidth}px`);
+  }
+  return {
+    gridTemplateColumns: tracks.join(" "),
+    minWidth: columns.reduce((sum, column) => sum + (column.minWidth ?? 100), selectionWidth),
+  };
+}
 
 function availableWidth(column: ResizeColumn, widths: Widths) {
   return Math.max(0, widths[column.id] - (column.minWidth ?? 100));

@@ -5,10 +5,12 @@ import { resizeColumnWidths } from "@/lib/column-resize";
 import type { ResizeColumn } from "@/lib/column-resize";
 
 export function useColumnResize(columns: readonly ResizeColumn[]) {
-  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
+  const signature = JSON.stringify(columns.map(({ id, width, minWidth }) => [id, width, minWidth]));
+  const [snapshot, setSnapshot] = useState({ signature, widths: {} as Record<string, number> });
+  const columnWidths = snapshot.signature === signature ? snapshot.widths : {};
   const cleanup = useRef<(() => void) | null>(null);
 
-  useEffect(() => () => cleanup.current?.(), []);
+  useEffect(() => () => cleanup.current?.(), [signature]);
 
   function handleResizeStart(divider: number, event: ReactPointerEvent<HTMLDivElement>) {
     const headers = event.currentTarget
@@ -19,10 +21,12 @@ export function useColumnResize(columns: readonly ResizeColumn[]) {
     }
     event.preventDefault();
     cleanup.current?.();
+    const handle = event.currentTarget;
+    handle.dataset.resizing = "true";
     const initial = Object.fromEntries(
       columns.map((column, index) => [column.id, headers[index].getBoundingClientRect().width]),
     );
-    setColumnWidths(initial);
+    setSnapshot({ signature, widths: initial });
     let previousX = event.clientX;
     let currentWidths = initial;
     const pointerId = event.pointerId;
@@ -35,7 +39,7 @@ export function useColumnResize(columns: readonly ResizeColumn[]) {
       previousX = pointer.clientX;
       // Reversing direction starts from the current layout, including after a clamped move.
       currentWidths = resizeColumnWidths(columns, currentWidths, divider, delta);
-      setColumnWidths(currentWidths);
+      setSnapshot({ signature, widths: currentWidths });
     }
 
     function stop(pointer?: PointerEvent) {
@@ -45,13 +49,20 @@ export function useColumnResize(columns: readonly ResizeColumn[]) {
       document.removeEventListener("pointermove", move);
       document.removeEventListener("pointerup", stop);
       document.removeEventListener("pointercancel", stop);
+      window.removeEventListener("blur", cancel);
+      delete handle.dataset.resizing;
       cleanup.current = null;
+    }
+
+    function cancel() {
+      stop();
     }
 
     cleanup.current = stop;
     document.addEventListener("pointermove", move);
     document.addEventListener("pointerup", stop);
     document.addEventListener("pointercancel", stop);
+    window.addEventListener("blur", cancel);
   }
 
   return { columnWidths, handleResizeStart };

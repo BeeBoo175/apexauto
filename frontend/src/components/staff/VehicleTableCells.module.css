@@ -1,0 +1,32 @@
+.registration {
+  max-width: 100%;
+  color: var(--color-graphite);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.vehicle {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.identity {
+  overflow: hidden;
+  color: var(--color-graphite);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.specification {
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

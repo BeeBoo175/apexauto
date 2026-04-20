@@ -2,7 +2,9 @@ import { Button } from "@/components/ui/Button";
 import type { PointerEvent } from "react";
 import { Icon } from "@/components/ui/Icon";
 import type { DataColumn, TableSorting } from "./types";
-import styles from "./DataTable.module.css";
+import styles from "./DataTableHeader.module.css";
+import { DataTableColumnFilter } from "./DataTableColumnFilter";
+import iconStyles from "./TableIcons.module.css";
 
 export function DataTableHeader<Row>({
   column,
@@ -20,15 +22,13 @@ export function DataTableHeader<Row>({
   const sort = sorting?.value;
   const sortable = Boolean(column.sortable && sorting);
   const active = sort?.column === column.id;
-  const sortClassName = active ? styles.sortActive : styles.sortInactive;
   let direction: "ascending" | "descending" | "none" = "none";
   if (active) {
     direction = sort?.direction === "asc" ? "ascending" : "descending";
   }
   const sortIcons = {
-    none: "sort-neutral",
-    ascending: "sort-ascending",
-    descending: "sort-descending",
+    ascending: "table-sort-ascending",
+    descending: "table-sort-descending",
   } as const;
 
   function cycleSort() {
@@ -49,6 +49,7 @@ export function DataTableHeader<Row>({
     <th
       scope="col"
       data-column-id={column.id}
+      data-align={column.align ?? "left"}
       className={styles.header}
       aria-sort={sortable ? direction : undefined}
     >
@@ -57,17 +58,26 @@ export function DataTableHeader<Row>({
           <Button
             variant="ghost"
             size="row"
+            className={`${styles.sortButton} ${styles.action}`}
             disabled={disabled}
             onClick={cycleSort}
             aria-label={`Sort by ${column.label}`}
           >
             <span className={styles.headerLabel}>{column.label}</span>
-            <span aria-hidden="true" className={sortClassName}>
-              <Icon name={sortIcons[direction]} />
-            </span>
+            {active && (
+              <span aria-hidden="true" className={`${styles.sortIndicator} ${iconStyles.glyph}`}>
+                <Icon
+                  name={sortIcons[sort?.direction === "desc" ? "descending" : "ascending"]}
+                  grid={16}
+                />
+              </span>
+            )}
           </Button>
         ) : (
           <span className={styles.headerLabel}>{column.label}</span>
+        )}
+        {column.filter && (
+          <DataTableColumnFilter label={column.label} filter={column.filter} disabled={disabled} />
         )}
       </div>
       {resizable && (

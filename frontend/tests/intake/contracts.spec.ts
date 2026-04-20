@@ -16,7 +16,35 @@ import {
 } from "@/lib/calendar";
 import { calendarParams, calendarQuery, parseCalendar } from "@/lib/staff/calendar";
 
+import { resizeColumnWidths } from "@/lib/column-resize";
+
 const id = "c77708bf-1a31-42f5-9a69-0c8766697a52";
+
+test("table divider growth borrows nearest-first and preserves the right edge", () => {
+  const columns = [
+    { id: "registration", minWidth: 144 },
+    { id: "vehicle", minWidth: 176 },
+    { id: "status", minWidth: 128 },
+  ];
+  const initial = { registration: 160, vehicle: 200, status: 180 };
+  const grown = resizeColumnWidths(columns, initial, 0, 60);
+  expect(grown).toEqual({ registration: 220, vehicle: 176, status: 144 });
+  expect(Object.values(grown).reduce((sum, width) => sum + width, 0)).toBe(540);
+  expect(initial).toEqual({ registration: 160, vehicle: 200, status: 180 });
+
+  const clamped = resizeColumnWidths(columns, initial, 0, 1000);
+  expect(clamped).toEqual({ registration: 236, vehicle: 176, status: 128 });
+  expect(resizeColumnWidths(columns, clamped, 0, -1)).toEqual({
+    registration: 235,
+    vehicle: 177,
+    status: 128,
+  });
+  expect(resizeColumnWidths(columns, initial, 1, -30)).toEqual({
+    registration: 154,
+    vehicle: 176,
+    status: 210,
+  });
+});
 
 test("list queries and snapshots share 10/25/50 sizes and the default 25", () => {
   expect(DEFAULT_PAGE_SIZE).toBe(25);

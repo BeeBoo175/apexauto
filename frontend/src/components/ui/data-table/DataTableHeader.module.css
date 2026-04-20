@@ -1,0 +1,148 @@
+.header[scope="col"] {
+  position: relative;
+  padding: 4px 8px;
+  color: var(--color-graphite);
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: none;
+}
+
+.header .action {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  filter: none;
+  color: var(--header-action-color, var(--color-graphite));
+}
+
+.header .action:disabled {
+  opacity: 1;
+}
+
+.headerLabel {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: inherit;
+}
+
+.headerContent {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  gap: 4px;
+}
+
+.headerContent > .headerLabel {
+  flex: 1 1 auto;
+}
+
+.header .sortButton {
+  display: inline-flex;
+  justify-content: flex-start;
+  min-width: 0;
+  max-width: 100%;
+  font-weight: inherit;
+  font-size: inherit;
+  letter-spacing: normal;
+  text-transform: none;
+  flex: 1 1 auto;
+  position: relative;
+  width: 100%;
+  gap: 8px;
+  padding-inline: 0;
+  text-align: inherit;
+}
+
+.header .action:active:not(:disabled) {
+  background: transparent;
+  filter: none;
+  color: var(--color-signal);
+}
+
+.header .sortButton:active:not(:disabled) .sortIndicator {
+  color: inherit;
+}
+
+.header .action:focus-visible {
+  outline: 2px solid var(--color-interaction-border, var(--color-graphite));
+  outline-offset: 3px;
+}
+
+@media (hover: hover) {
+  .header .action:hover:not(:disabled):not(:active) {
+    background: transparent;
+    color: var(--color-interaction-border, var(--color-graphite));
+  }
+}
+
+.header[data-align="right"] .headerContent {
+  justify-content: flex-end;
+}
+
+.header[data-align="right"] .sortButton {
+  flex-direction: row-reverse;
+}
+
+.header[data-align="right"] {
+  text-align: right;
+}
+
+.sortIndicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--color-interaction-border, var(--color-graphite));
+}
+
+.sortIndicator > span {
+  width: 14px;
+  height: 14px;
+}
+
+.header[aria-sort="ascending"] .headerLabel,
+.header[aria-sort="descending"] .headerLabel {
+  font-weight: 700;
+}
+
+.resize {
+  position: absolute;
+  right: -6px;
+  top: 0;
+  z-index: 1;
+  width: 12px;
+  height: 100%;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.resize::after {
+  position: absolute;
+  left: 5px;
+  top: 0;
+  width: 2px;
+  height: 100%;
+  background: color-mix(in srgb, var(--color-line) 80%, var(--color-muted));
+  content: "";
+}
+
+.resize:hover::after {
+  background: var(--color-graphite);
+}
+
+.resize:active::after,
+.resize[data-resizing]::after {
+  background: var(--color-signal);
+}
+
+@media (max-width: 820px) {
+  .headerContent {
+    min-height: 44px;
+  }
+}

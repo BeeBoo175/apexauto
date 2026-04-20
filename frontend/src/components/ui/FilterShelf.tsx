@@ -7,6 +7,7 @@ export interface FilterShelfProps {
   anchor: string;
   defaultOpen?: boolean;
   onOpenChange: (open: boolean) => void;
+  title?: string;
 }
 
 export function FilterShelf({
@@ -15,6 +16,7 @@ export function FilterShelf({
   anchor,
   defaultOpen = false,
   onOpenChange,
+  title = "Filters",
 }: FilterShelfProps) {
   const panel = useRef<HTMLDivElement>(null);
 
@@ -31,11 +33,11 @@ export function FilterShelf({
       popover="auto"
       className={styles.shelf}
       role="region"
-      aria-label="Filters"
+      aria-label={title}
       style={{ positionAnchor: anchor }}
       onToggle={(event) => onOpenChange(event.newState === "open")}
     >
-      <p className={styles.title}>Filters</p>
+      <p className={styles.title}>{title}</p>
       {children}
     </div>
   );

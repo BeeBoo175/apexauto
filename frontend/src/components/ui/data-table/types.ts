@@ -10,9 +10,18 @@ export interface DataColumn<Row> {
   label: string;
   cell: (row: Row) => ReactNode;
   sortable?: boolean;
+  /** Preferred width in pixels, used proportionally as the container changes. */
   width?: number;
+  /** Smallest readable width; the table scrolls when these no longer fit. */
   minWidth?: number;
   align?: "left" | "right";
+  filter?: TableColumnFilter;
+}
+
+export interface TableColumnFilter {
+  active: boolean;
+  content: ReactNode;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export interface TablePage {
@@ -33,6 +42,8 @@ export interface TableSorting {
 
 export interface DataTableProps<Row> {
   label: string;
+  /** Feature-owned search, criteria, queue tabs and export actions. */
+  toolbar?: ReactNode;
   rows: readonly Row[];
   emptyState: {
     title: string;

@@ -35,39 +35,43 @@ export function RecordToolbar({
       <div className={styles.toolbarMain}>
         <div className={styles.queryActions}>
           <div className={styles.query}>{children}</div>
-          <Button
-            variant={expanded ? "secondary" : "ghost"}
-            size="compact"
-            disabled={disabled}
-            aria-expanded={expanded}
-            aria-controls={panelId}
-            popoverTarget={panelId}
-            style={{ anchorName: anchor }}
-            className={styles.filterButton}
-          >
-            <Icon name="filter" />
-            <span>Filters</span>
-            {filterCount > 0 && (
-              <span className={styles.filterCount} aria-label={`${filterCount} applied filters`}>
-                {filterCount}
-              </span>
-            )}
-          </Button>
+          {filters && (
+            <Button
+              variant={expanded ? "secondary" : "ghost"}
+              size="compact"
+              disabled={disabled}
+              aria-expanded={expanded}
+              aria-controls={panelId}
+              popoverTarget={panelId}
+              style={{ anchorName: anchor }}
+              className={styles.filterButton}
+            >
+              <Icon name="filter" />
+              <span>Filters</span>
+              {filterCount > 0 && (
+                <span className={styles.filterCount} aria-label={`${filterCount} applied filters`}>
+                  {filterCount}
+                </span>
+              )}
+            </Button>
+          )}
         </div>
         {actions}
       </div>
       {filterSummary}
-      <FilterShelf
-        id={panelId}
-        anchor={anchor}
-        defaultOpen={defaultFiltersExpanded}
-        onOpenChange={(open) => {
-          setExpanded(open);
-          onFiltersOpenChange?.(open);
-        }}
-      >
-        {filters}
-      </FilterShelf>
+      {filters && (
+        <FilterShelf
+          id={panelId}
+          anchor={anchor}
+          defaultOpen={defaultFiltersExpanded}
+          onOpenChange={(open) => {
+            setExpanded(open);
+            onFiltersOpenChange?.(open);
+          }}
+        >
+          {filters}
+        </FilterShelf>
+      )}
     </div>
   );
 }

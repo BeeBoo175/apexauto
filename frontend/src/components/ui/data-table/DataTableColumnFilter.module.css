@@ -1,0 +1,45 @@
+.trigger {
+  position: relative;
+  flex: 0 0 var(--table-filter-control-width, 28px);
+  width: var(--table-filter-control-width, 28px);
+  justify-content: flex-end;
+  padding-inline: 0;
+  --header-action-color: var(--color-muted);
+}
+
+.glyph {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 14px;
+  height: 14px;
+}
+
+.glyph > span:first-child {
+  width: 14px;
+  height: 14px;
+}
+
+.indicator {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--color-signal);
+}
+
+.trigger[data-filtered],
+.trigger[aria-expanded="true"] {
+  --header-action-color: var(--color-interaction-border, var(--color-graphite));
+}
+
+@media (max-width: 820px) {
+  .trigger {
+    flex-basis: 44px;
+    width: 44px;
+    min-height: 44px;
+  }
+}

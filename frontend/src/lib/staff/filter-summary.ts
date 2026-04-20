@@ -3,7 +3,25 @@ import { dateRangeLabel } from "@/lib/date-range-label";
 import type { StaffFilters } from "./contracts";
 
 export interface AppliedWorklistFilter<Filters = StaffFilters> {
-  key: "dates" | "status" | "branch";
+  key:
+    | "dates"
+    | "status"
+    | "branch"
+    | "inspection"
+    | "publication"
+    | "price"
+    | "publishedPrice"
+    | "budget"
+    | "technician"
+    | "workStatus"
+    | "registration"
+    | "vehicle"
+    | "customer"
+    | "buyer"
+    | "created"
+    | "expires"
+    | "released"
+    | "total";
   label: string;
   without: Filters;
 }

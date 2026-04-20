@@ -2,8 +2,9 @@
 
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { useColumnResize } from "@/hooks/use-column-resize";
-import { Table, TableCell } from "@/components/ui/Table";
+import { columnLayout } from "@/lib/column-resize";
 import { DataTableHeader } from "./DataTableHeader";
+import { DataTablePagination } from "./DataTablePagination";
 import { Button } from "@/components/ui/Button";
 import type { DataTableProps } from "./types";
 import styles from "./DataTable.module.css";
@@ -32,17 +33,7 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
     }
   }, [props.page]);
   const { columnWidths, handleResizeStart } = useColumnResize(columns);
-  const tracks = columns.map((column) => {
-    const minimum = `${column.minWidth ?? 100}px`;
-    const resized = columnWidths[column.id];
-    if (resized !== undefined) {
-      return `${resized}px`;
-    }
-    return `minmax(${minimum}, ${column.width ?? 160}fr)`;
-  });
-  if (selection) {
-    tracks.unshift("44px");
-  }
+  const layout = columnLayout(columns, columnWidths, Boolean(selection));
   const selectedCount = rows.filter((row) => selection?.ids.has(rowId(row))).length;
   const all = rows.length > 0 && selectedCount === rows.length;
   const emptyState =
@@ -77,18 +68,10 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
   }
 
   return (
-    <>
-      {rows.length > 0 ? (
-        <Table
-          ref={table}
-          density="compact"
-          framed={false}
-          className={styles.table}
-          containerClassName={styles.scroll}
-          style={{
-            gridTemplateColumns: tracks.join(" "),
-          }}
-        >
+    <section className={props.toolbar ? `${styles.workspace} ${styles.fillHeight}` : styles.fillHeight} aria-label={props.toolbar ? props.label : undefined}>
+      {props.toolbar}
+      <div className={`${styles.scroll} ${rows.length === 0 ? styles.emptyScroll : ""}`}>
+        <table ref={table} className={styles.table} style={layout}>
           <caption className="sr-only">{props.label}</caption>
           <thead>
             <tr>
@@ -122,8 +105,27 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
             {rows.map((row) => (
               <tr
                 key={rowId(row)}
-                className={props.onRowClick && !disabled ? styles.interactiveRow : undefined}
-                tabIndex={props.onRowClick ? -1 : undefined}
+                className={props.onRowClick ? styles.interactiveRow : undefined}
+                tabIndex={props.onRowClick && !disabled ? 0 : undefined}
+                onKeyDown={(event) => {
+                  if (
+                    !props.onRowClick ||
+                    disabled ||
+                    event.defaultPrevented ||
+                    event.repeat ||
+                    event.target !== event.currentTarget ||
+                    event.metaKey ||
+                    event.ctrlKey ||
+                    event.shiftKey ||
+                    event.altKey
+                  ) {
+                    return;
+                  }
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    props.onRowClick(row);
+                  }
+                }}
                 onClick={(event) => {
                   if (!props.onRowClick || disabled || event.defaultPrevented) {
                     return;
@@ -149,7 +151,7 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
                 data-active={props.selectedRowId === rowId(row) || undefined}
               >
                 {selection && (
-                  <TableCell className={styles.selectionCell}>
+                  <td className={styles.selectionCell}>
                     <label className={styles.selectionControl}>
                       <span className="sr-only">Select {rowId(row)}</span>
                       <input
@@ -159,18 +161,19 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
                         onChange={() => toggle(rowId(row))}
                       />
                     </label>
-                  </TableCell>
+                  </td>
                 )}
                 {columns.map((column) => (
-                  <TableCell key={column.id} data-align={column.align ?? "left"}>
+                  <td key={column.id} data-align={column.align ?? "left"}>
                     <div className={styles.cell}>{column.cell(row)}</div>
-                  </TableCell>
+                  </td>
                 ))}
               </tr>
             ))}
           </tbody>
-        </Table>
-      ) : (
+        </table>
+      </div>
+      {rows.length === 0 && (
         <div className={styles.empty} aria-busy={props.busy}>
           <div className={styles.emptyContent} role="status">
             <h3>{emptyState.title}</h3>
@@ -188,6 +191,12 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
           )}
         </div>
       )}
-    </>
+      {props.toolbar && <DataTablePagination
+        page={props.page}
+        count={rows.length}
+        disabled={disabled || props.busy}
+        onPage={props.onPage}
+      />}
+    </section>
   );
 }
