@@ -1,17 +1,3 @@
-.vehicle,
-.since {
-  display: flex;
-  align-items: flex-start;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.vehicle > span,
-.since > span:last-child {
-  color: var(--color-muted);
-  font-size: 12px;
-}
-
 .workspace {
   display: flex;
   flex: 1 1 auto;

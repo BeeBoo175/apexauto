@@ -2,7 +2,12 @@ import type { SearchParams } from "@/lib/query";
 import { isUuid } from "@/lib/auth/contracts";
 import { DEFAULT_PAGE_SIZE, isPageSize } from "@/lib/pagination";
 import { inspectionStatuses, repairStatuses, type QueueFilters, type QueueKind } from "./contracts";
-import { workshopTasks, workshopSorts, type TechnicianTask } from "./workshop-contracts";
+import {
+  workshopDate,
+  workshopTasks,
+  workshopSorts,
+  type TechnicianTask,
+} from "./workshop-contracts";
 
 export type WorkshopSection = "inspection" | "repairs" | "history";
 export type RepairSelection = { requestId: string; revision: number };
@@ -57,15 +62,31 @@ export function queueParams(params: SearchParams, kind: QueueKind) {
   const statuses = options[kind];
   const page = Number(get("page") || 1);
   const size = Number(get("pageSize") || DEFAULT_PAGE_SIZE);
+  const status =
+    statuses.find((value) => value === get("status")) ?? (kind === "workshop" ? "Active" : "All");
+  const defaultSort = kind === "workshop" ? workshopDate(status).column : "since";
+  const defaultDirection = kind === "workshop" ? "asc" : "desc";
+  const requestedDirection = get("direction");
+  const requestedSort = workshopSorts.find((value) => value === get("sort"));
+  const sort = kind === "workshop" && requestedSort === "since" ? defaultSort : requestedSort;
   const filters: QueueFilters = {
     search: get("search"),
-    status: statuses.find((s) => s === get("status")) ?? (kind === "workshop" ? "Active" : "All"),
+    registration: get("registration"),
+    vehicle: get("vehicle"),
+    workStatus: get("workStatus"),
+    technician: get("technician"),
+    minimumBudget: get("minimumBudget"),
+    maximumBudget: get("maximumBudget"),
+    status,
     branchId: isUuid(get("branchId")) ? get("branchId") : "",
     from: get("from"),
     to: get("to"),
     pageSize: isPageSize(size) ? size : DEFAULT_PAGE_SIZE,
-    sort: workshopSorts.find((value) => value === get("sort")) ?? "since",
-    direction: get("direction") === "asc" ? "asc" : "desc",
+    sort: sort ?? defaultSort,
+    direction:
+      requestedDirection === "asc" || requestedDirection === "desc"
+        ? requestedDirection
+        : defaultDirection,
   };
   return { filters, page: Number.isSafeInteger(page) && page > 0 ? page : 1 };
 }
@@ -78,7 +99,18 @@ export function queueQuery(filters: QueueFilters, page: number) {
     sort: filters.sort ?? "since",
     direction: filters.direction ?? "desc",
   });
-  for (const key of ["search", "branchId", "from", "to"] as const) {
+  for (const key of [
+    "search",
+    "branchId",
+    "from",
+    "to",
+    "workStatus",
+    "technician",
+    "minimumBudget",
+    "maximumBudget",
+    "registration",
+    "vehicle",
+  ] as const) {
     if (filters[key]) {
       query.set(key, filters[key]);
     }

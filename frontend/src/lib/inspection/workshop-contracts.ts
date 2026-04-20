@@ -5,11 +5,14 @@ export const technicianTasks = ["MyWork", "Waiting", "Claimable"] as const;
 export type TechnicianTask = (typeof technicianTasks)[number];
 export const workshopSorts = [
   "registrationPlate",
+  "vehicle",
   "status",
   "technicianIdentity",
   "branchName",
   "budget",
   "since",
+  "checkedInAt",
+  "requestedAt",
 ] as const;
 export const workshopStatuses = [
   "AwaitingInspection",
@@ -28,6 +31,10 @@ export type WorkshopRow = {
   registrationPlate: string;
   make: string;
   model: string;
+  manufactureYear: number;
+  trim: string;
+  checkedInAt: string;
+  requestedAt: string | null;
   vehicleStatus: string;
   inspectionId: string | null;
   technicianId: string | null;
@@ -57,17 +64,24 @@ const taskLabels: Record<string, string> = {
 };
 
 const statusLabels: Record<WorkshopRow["status"], string> = {
-  AwaitingInspection: "Awaiting inspection",
-  InspectionUnderway: "Inspection underway",
-  RepairRequestRequired: "Repair request needed",
-  ApprovalRequired: "Budget approval needed",
-  RepairsToComplete: "Repairs to complete",
+  AwaitingInspection: "Needs inspection",
+  InspectionUnderway: "Inspecting",
+  RepairRequestRequired: "Needs repair request",
+  ApprovalRequired: "Needs approval",
+  RepairsToComplete: "Repairs pending",
   ReadyForSale: "Ready for sale",
   Rejected: "Rejected",
 };
 
 export const workshopTaskLabel = (value: string) => taskLabels[value] ?? value;
 export const workshopStatusLabel = (value: WorkshopRow["status"]) => statusLabels[value];
+
+export function workshopDate(task: string) {
+  if (task === "Approval" || task === "Repairs") {
+    return { column: "requestedAt", label: "Repair requested" } as const;
+  }
+  return { column: "checkedInAt", label: "Checked in" } as const;
+}
 
 export function workshopRowSection(row: WorkshopRow): "inspection" | "repairs" {
   return [

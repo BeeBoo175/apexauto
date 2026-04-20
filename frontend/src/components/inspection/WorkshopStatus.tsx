@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/Badge";
 import { label, type Entry, type Severity } from "@/lib/inspection/contracts";
 import { workshopStatusLabel, type WorkshopRow } from "@/lib/inspection/workshop-contracts";
 import tones from "@/components/ui/StatusTone.module.css";
+import tableStyles from "@/components/staff/StaffTable.module.css";
 
 const statusTones = {
   AwaitingInspection: "neutral",
@@ -13,9 +14,17 @@ const statusTones = {
   Rejected: "danger",
 } as const;
 
-export function WorkshopStatus({ status }: { status: WorkshopRow["status"] }) {
+export function WorkshopStatus({
+  status,
+  table = false,
+}: {
+  status: WorkshopRow["status"];
+  table?: boolean;
+}) {
   return (
-    <Badge className={`${tones.badge} ${tones[statusTones[status]]}`}>
+    <Badge
+      className={`${tones.badge} ${tones[statusTones[status]]} ${table ? tableStyles.status : ""}`}
+    >
       {workshopStatusLabel(status)}
     </Badge>
   );

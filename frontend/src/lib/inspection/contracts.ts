@@ -105,6 +105,12 @@ export type RepairRow = {
 };
 export type QueueKind = "vehicles" | "repair-requests" | "workshop";
 export type QueueFilters = {
+  registration?: string;
+  vehicle?: string;
+  workStatus?: string;
+  technician?: string;
+  minimumBudget?: string;
+  maximumBudget?: string;
   search: string;
   status: string;
   branchId: string;

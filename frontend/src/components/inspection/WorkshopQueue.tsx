@@ -1,14 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/Button";
+import { VehicleDescription, VehicleRegistration } from "@/components/staff/VehicleTableCells";
 import { Dialog } from "@/components/ui/Dialog";
 import type { DataColumn } from "@/components/ui/data-table/types";
 import { useInspectionQueue } from "@/hooks/use-inspection-queue";
 import { useInspectionDrawer, type RepairSelection } from "@/hooks/use-inspection-drawer";
 import { parseWorkshopPage } from "@/lib/inspection/parse-workshop";
 import { workshopExportColumns } from "@/lib/inspection/workshop-export";
-import { workshopRowSection, type WorkshopRow } from "@/lib/inspection/workshop-contracts";
+import {
+  workshopDate,
+  workshopRowSection,
+  type WorkshopRow,
+} from "@/lib/inspection/workshop-contracts";
 import type { QueueFilters } from "@/lib/inspection/contracts";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { ApiResult, Page } from "@/lib/api";
@@ -18,11 +22,11 @@ import type { WorkshopSection } from "@/lib/inspection/query";
 import type { SelectedRepairReview } from "@/lib/inspection/repair-review";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { formatCurrency } from "@/lib/currency-format";
+import { staffColumnSizing } from "@/lib/staff/table-columns";
 import { QueueView } from "./QueueView";
 import { InspectionDrawer } from "./InspectionDrawer";
 import { WorkshopStatus } from "./WorkshopStatus";
-import styles from "@/components/staff/IntakeWorklist.module.css";
-import workshop from "./Workshop.module.css";
+import styles from "@/components/staff/StaffTable.module.css";
 
 export function WorkshopQueue({
   actor,
@@ -68,33 +72,24 @@ export function WorkshopQueue({
   const columns: DataColumn<WorkshopRow>[] = [
     {
       id: "registrationPlate",
+      label: "Registration",
+      sortable: true,
+      ...staffColumnSizing.registration,
+      cell: (row) => <VehicleRegistration registration={row.registrationPlate} />,
+    },
+    {
+      id: "vehicle",
       label: "Vehicle",
       sortable: true,
-      minWidth: 210,
-      cell: (row) => (
-        <div className={workshop.vehicle}>
-          <Button
-            className={styles.registration}
-            size="row"
-            variant="ghost"
-            aria-label={`Open ${row.registrationPlate}`}
-            aria-haspopup="dialog"
-            onClick={() => open(row)}
-          >
-            {row.registrationPlate}
-          </Button>
-          <span>
-            {row.make} {row.model}
-          </span>
-        </div>
-      ),
+      ...staffColumnSizing.vehicle,
+      cell: (row) => <VehicleDescription vehicle={row} />,
     },
     {
       id: "status",
       label: "Current work",
       sortable: true,
-      minWidth: 190,
-      cell: (row) => <WorkshopStatus status={row.status} />,
+      ...staffColumnSizing.status,
+      cell: (row) => <WorkshopStatus status={row.status} table />,
     },
   ];
   if (actor.role !== "WorkshopTechnician") {
@@ -102,41 +97,49 @@ export function WorkshopQueue({
       id: "technicianIdentity",
       label: "Assigned technician",
       sortable: true,
-      minWidth: 200,
-      cell: (row) => row.technicianIdentity ?? "Unassigned",
+      ...staffColumnSizing.person,
+      cell: (row) => row.technicianIdentity ?? <span className={styles.muted}>Unassigned</span>,
     });
   }
-  if (actor.role === "GeneralManager" && !state.active.filters.branchId) {
+  columns.push({
+    id: "budget",
+    label: "Requested budget",
+    sortable: true,
+    ...staffColumnSizing.money,
+    align: "right",
+    cell: (row) => (
+      <span className={row.budget === null ? styles.muted : styles.money}>
+        {row.budget === null ? "No request" : formatCurrency(row.budget)}
+      </span>
+    ),
+  });
+  const date = workshopDate(state.active.filters.status);
+  columns.push({
+    id: date.column,
+    label: date.label,
+    sortable: true,
+    ...staffColumnSizing.dateTime,
+    cell: (row) => {
+      const at = row[date.column];
+      if (!at) {
+        return <span className={styles.muted}>No request</span>;
+      }
+      return (
+        <time className={styles.date} dateTime={at}>
+          {formatMalaysianDateTime(at)}
+        </time>
+      );
+    },
+  });
+  if (actor.role === "GeneralManager") {
     columns.push({
       id: "branchName",
       label: "Branch",
       sortable: true,
-      minWidth: 150,
+      ...staffColumnSizing.branch,
       cell: (row) => row.branchName,
     });
   }
-  if (["Approval", "Repairs"].includes(state.active.filters.status)) {
-    columns.push({
-      id: "budget",
-      label: "Requested budget",
-      sortable: true,
-      minWidth: 150,
-      align: "right",
-      cell: (row) => (row.budget === null ? "No current request" : formatCurrency(row.budget)),
-    });
-  }
-  columns.push({
-    id: "since",
-    label: "Since",
-    sortable: true,
-    minWidth: 190,
-    cell: (row) => (
-      <div className={workshop.since}>
-        <span className={styles.timing}>{formatMalaysianDateTime(row.since)}</span>
-        <span>{row.dateSource === "Requested" ? "Repair requested" : "Vehicle checked in"}</span>
-      </div>
-    ),
-  });
 
   return (
     <QueueView
@@ -148,7 +151,10 @@ export function WorkshopQueue({
       parse={parseWorkshopPage}
       onOpen={open}
       selectedRowId={
-        state.snapshot?.items.find((row) => row.inspectionId === selection.id)?.vehicleId
+        unassigned?.vehicleId ??
+        state.snapshot?.items.find(
+          (row) => row.inspectionId === (selection.pendingId || selection.id),
+        )?.vehicleId
       }
       disabled={Boolean(unassigned) || Boolean(selection.id) || selection.busy}
     >

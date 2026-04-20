@@ -11,7 +11,23 @@ export function inspectionQuery(request: Request, history = false) {
   const query = new URLSearchParams();
   const fields = history
     ? ["page", "pageSize"]
-    : ["page", "pageSize", "search", "status", "from", "to", "branchId", "sort", "direction"];
+    : [
+        "page",
+        "pageSize",
+        "search",
+        "status",
+        "from",
+        "to",
+        "branchId",
+        "sort",
+        "direction",
+        "workStatus",
+        "technician",
+        "minimumBudget",
+        "maximumBudget",
+        "registration",
+        "vehicle",
+      ];
   for (const key of fields) {
     if (source.has(key)) {
       query.set(key, source.get(key)!);

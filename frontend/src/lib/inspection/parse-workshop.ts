@@ -9,9 +9,12 @@ function parseWorkshopRow(value: unknown): WorkshopRow | null {
     !isRecord(value) ||
     !isUuid(value.vehicleId) ||
     !isUuid(value.branchId) ||
-    !["branchName", "registrationPlate", "make", "model", "vehicleStatus"].every((key) =>
+    !["branchName", "registrationPlate", "make", "model", "trim", "vehicleStatus"].every((key) =>
       text(value[key]),
     ) ||
+    !positive(value.manufactureYear) ||
+    !timestamp(value.checkedInAt) ||
+    !(value.requestedAt === null || timestamp(value.requestedAt)) ||
     !nullableId(value.inspectionId) ||
     !nullableId(value.technicianId) ||
     !(value.technicianIdentity === null || text(value.technicianIdentity)) ||
@@ -27,7 +30,8 @@ function parseWorkshopRow(value: unknown): WorkshopRow | null {
   if (
     !status ||
     (value.requestId === null) !== (value.budget === null) ||
-    (value.requestId === null) !== (value.dateSource === "CheckedIn")
+    (value.requestId === null) !== (value.dateSource === "CheckedIn") ||
+    (value.requestId === null) !== (value.requestedAt === null)
   ) {
     return null;
   }
