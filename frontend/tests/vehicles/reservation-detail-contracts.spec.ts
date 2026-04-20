@@ -36,6 +36,7 @@ const receipt = {
 const item = {
   receipt,
   branchName: "Glenmarie",
+  registrationPlate: "VCA 5172",
   make: "Proton",
   model: "Saga",
   trim: "Standard",

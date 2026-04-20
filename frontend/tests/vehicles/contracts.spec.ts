@@ -116,6 +116,7 @@ test("reservation projections reject inconsistent receipts and keep private buye
   const item = {
     receipt,
     branchName: "Glenmarie",
+    registrationPlate: "VCA 6243",
     make: "Proton",
     model: "Saga",
     trim: "Standard",

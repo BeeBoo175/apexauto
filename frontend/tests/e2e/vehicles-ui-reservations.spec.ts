@@ -36,7 +36,10 @@ async function verifyDetails(page: Page, id: string) {
   const mountedTable = await page
     .getByRole("table", { name: "Reservations", exact: true })
     .elementHandle();
-  await page.getByRole("button", { name: id, exact: true }).click();
+  await page
+    .getByRole("row")
+    .filter({ has: page.getByLabel(`Select ${id}`, { exact: true }) })
+    .press("Enter");
   const dialog = page.getByRole("dialog", { name: "Reservation details", exact: true });
   await expect(dialog.getByRole("heading", { name: "Retained price", exact: true })).toBeVisible();
   expect(counts()[target] - before).toBe(1);
@@ -119,9 +122,9 @@ test("manager reservations retain scoped active/history snapshots, server order 
     });
     expect(denied.status()).toBe(403);
   } else {
-    await page.getByRole("button", { name: "Filters", exact: true }).click();
+    await page.getByRole("button", { name: "Filter Branch", exact: true }).click();
     await page.getByRole("combobox", { name: "Branch", exact: true }).selectOption(branch);
-    await page.getByRole("button", { name: "Apply filters", exact: true }).click();
+    await page.getByRole("button", { name: "Apply", exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`branchId=${branch}`));
     await expect(rows()).toHaveCount(1);
   }
@@ -139,7 +142,9 @@ test("manager reservations retain scoped active/history snapshots, server order 
   try {
     await page.getByRole("button", { name: "History", exact: true }).click();
     await expect(
-      page.getByRole("group", { name: "Reservation views", exact: true }),
+      page
+        .getByRole("navigation", { name: "Reservation views", exact: true })
+        .locator("xpath=ancestor::*[@aria-busy][1]"),
     ).toHaveAttribute("aria-busy", "true");
     await expect(page.getByRole("button", { name: "History", exact: true })).toHaveAttribute(
       "aria-pressed",
@@ -156,31 +161,36 @@ test("manager reservations retain scoped active/history snapshots, server order 
   const scope = mobile ? "" : `&branchId=${branch}`;
   const history = await read(
     context,
-    `isActive=false&pageSize=50${scope}&sort=reference&direction=desc`,
+    `isActive=false&pageSize=50${scope}&sort=registration&direction=desc`,
   );
   expect(history.total).toBe(51);
   expect(history.items.every((row) => row.status !== "Active")).toBe(true);
   expect(history.items.some((row) => active.items.some((held) => held.id === row.id))).toBe(false);
-  const sort = table.locator('th[data-column-id="reference"]');
-  const sortButton = page.getByRole("button", { name: "Sort by Reference", exact: true });
+  const sort = table.locator('th[data-column-id="registration"]');
+  const sortButton = page.getByRole("button", { name: "Sort by Registration", exact: true });
   await sortButton.click();
   await expect(sort).toHaveAttribute("aria-sort", "ascending");
   await sortButton.click();
   await expect(sort).toHaveAttribute("aria-sort", "descending");
-  await expect(page).toHaveURL(/sort=reference&direction=desc/);
-  // Read the full reference text through the shared single-line cells.
+  await expect(page).toHaveURL(/sort=registration&direction=desc/);
   const rowReferences = async () =>
     rows().evaluateAll((elements) =>
       elements.map((row) => row.querySelectorAll("td")[1].textContent),
     );
-  expect(await rowReferences()).toEqual(history.items.slice(0, 10).map((row) => row.id));
+  expect(await rowReferences()).toEqual(
+    history.items.slice(0, 10).map((row) => row.registrationPlate),
+  );
   await page.getByRole("button", { name: "Next records", exact: true }).click();
   await expect(page).toHaveURL(/page=2/);
-  expect(await rowReferences()).toEqual(history.items.slice(10, 20).map((row) => row.id));
+  expect(await rowReferences()).toEqual(
+    history.items.slice(10, 20).map((row) => row.registrationPlate),
+  );
   await page.reload();
   await expect(refresh).toBeEnabled();
   await expect(sort).toHaveAttribute("aria-sort", "descending");
-  expect(await rowReferences()).toEqual(history.items.slice(10, 20).map((row) => row.id));
+  expect(await rowReferences()).toEqual(
+    history.items.slice(10, 20).map((row) => row.registrationPlate),
+  );
   const confirmed = await rows().allTextContents();
   const confirmedUrl = page.url();
   const sameTable = await table.elementHandle();
@@ -216,21 +226,68 @@ test("manager reservations retain scoped active/history snapshots, server order 
     .slice(1);
   const last = await read(
     context,
-    `isActive=false&page=2&pageSize=50${scope}&sort=reference&direction=desc`,
+    `isActive=false&page=2&pageSize=50${scope}&sort=registration&direction=desc`,
   );
   expect(full.map((line) => line.split(",")[0])).toEqual(
+    [...history.items, ...last.items].map((row) => `"${row.registrationPlate}"`),
+  );
+  expect(full.map((line) => line.split(",").at(-1))).toEqual(
     [...history.items, ...last.items].map((row) => `"${row.id}"`),
   );
   await sortButton.click();
   await expect(sort).toHaveAttribute("aria-sort", "none");
   await expect(page).not.toHaveURL(/sort=/);
+  const target = history.items[20];
+  const releasedDay = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kuala_Lumpur" }).format(
+    new Date(target.releasedAt!),
+  );
+  const criteria = [
+    { column: "Registration", fields: { "Registration contains": target.registrationPlate } },
+    {
+      column: "Reserved total",
+      fields: { "Minimum (MYR)": String(target.total), "Maximum (MYR)": String(target.total) },
+    },
+    { column: "Released", fields: { From: releasedDay, To: releasedDay } },
+  ];
+  for (const criterion of criteria) {
+    await page.getByRole("button", { name: `Filter ${criterion.column}`, exact: true }).click();
+    for (const [label, value] of Object.entries(criterion.fields)) {
+      await page.getByLabel(label, { exact: true }).fill(value!);
+    }
+    await page.getByRole("button", { name: "Apply", exact: true }).click();
+    await expect(refresh).toBeEnabled();
+  }
+  const applied = new URL(page.url()).searchParams;
+  const matches = await read(context, applied.toString());
+  expect(matches.total).toBeGreaterThan(0);
+  expect(
+    matches.items.every(
+      (row) => row.registrationPlate === target.registrationPlate && row.total === target.total,
+    ),
+  ).toBe(true);
+  await expect(rows()).toHaveCount(matches.total);
+  const filteredDownload = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export full CSV", exact: true }).click();
+  const filteredCsv = readFileSync((await (await filteredDownload).path())!, "utf8");
+  expect(
+    filteredCsv
+      .trim()
+      .split("\r\n")
+      .slice(1)
+      .map((line) => line.split(",").at(-1)),
+  ).toEqual(matches.items.map((row) => `"${row.id}"`));
+  for (const key of ["registration", "total", "released"]) {
+    await page.getByRole("button", { name: new RegExp(`^Remove ${key} filter:`) }).click();
+    await expect(refresh).toBeEnabled();
+  }
   await page.goto(`/dashboard/reservations?isActive=false&page=99&pageSize=10${scope}`);
   await page.getByRole("button", { name: "Go to first page", exact: true }).click();
   await expect(page).toHaveURL(/page=1/);
   await expect(rows()).toHaveCount(10);
-  const releasedId = await rows().first().getByRole("button").first().textContent();
-  await verifyDetails(page, releasedId!.trim());
-  await page.getByRole("button", { name: releasedId!.trim(), exact: true }).click();
+  const releasedLabel = await rows().first().locator("td label").textContent();
+  const releasedReference = releasedLabel!.replace(/^Select /, "").trim();
+  await verifyDetails(page, releasedReference);
+  await rows().first().click();
   const details = page.getByRole("dialog", { name: "Reservation details", exact: true });
   await expect(
     details.getByRole("heading", { name: "Simulated refund", exact: true }),

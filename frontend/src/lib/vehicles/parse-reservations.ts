@@ -27,6 +27,7 @@ export function parseReservation(value: unknown): ReservationItem | null {
     !timestamp(receipt.expiresAt) ||
     Date.parse(receipt.expiresAt) <= Date.parse(receipt.createdAt) ||
     !text(value.branchName) ||
+    !text(value.registrationPlate) ||
     !text(value.make) ||
     !text(value.model) ||
     !text(value.trim) ||
@@ -44,6 +45,7 @@ export function parseReservation(value: unknown): ReservationItem | null {
       !isUuid(release.id) ||
       release.reservationId !== receipt.id ||
       !timestamp(release.recordedAt) ||
+      Date.parse(release.recordedAt) < Date.parse(receipt.createdAt) ||
       typeof release.kind !== "string" ||
       release.kind === "Active" ||
       !Object.hasOwn(reservationStatuses, release.kind)
@@ -60,6 +62,12 @@ export function parseReservation(value: unknown): ReservationItem | null {
     branchId: receipt.branchId,
     branchName: value.branchName,
     vehicle: `${value.manufactureYear} ${value.make} ${value.model} ${value.trim}`,
+    registrationPlate: value.registrationPlate,
+    make: value.make,
+    model: value.model,
+    trim: value.trim,
+    manufactureYear: Number(value.manufactureYear),
+    releasedAt: isRecord(release) ? String(release.recordedAt) : null,
     buyer: buyer.legalName,
     createdAt: receipt.createdAt,
     expiresAt: receipt.expiresAt,
@@ -84,6 +92,12 @@ export function parseReservationRow(value: unknown): ReservationItem | null {
     !isUuid(value.branchId) ||
     !text(value.branchName) ||
     !text(value.vehicle) ||
+    !text(value.registrationPlate) ||
+    !text(value.make) ||
+    !text(value.model) ||
+    !text(value.trim) ||
+    !Number.isSafeInteger(value.manufactureYear) ||
+    Number(value.manufactureYear) < 1 ||
     !text(value.buyer) ||
     !timestamp(value.createdAt) ||
     !timestamp(value.expiresAt) ||
@@ -94,12 +108,25 @@ export function parseReservationRow(value: unknown): ReservationItem | null {
   ) {
     return null;
   }
+  if (
+    (value.status === "Active" && value.releasedAt !== null) ||
+    (value.status !== "Active" &&
+      (!timestamp(value.releasedAt) || Date.parse(value.releasedAt) < Date.parse(value.createdAt)))
+  ) {
+    return null;
+  }
   return {
     id: value.id,
     vehicleId: value.vehicleId,
     branchId: value.branchId,
     branchName: value.branchName,
-    vehicle: value.vehicle,
+    vehicle: `${value.manufactureYear} ${value.make} ${value.model} ${value.trim}`,
+    registrationPlate: value.registrationPlate,
+    make: value.make,
+    model: value.model,
+    trim: value.trim,
+    manufactureYear: Number(value.manufactureYear),
+    releasedAt: value.releasedAt as string | null,
     buyer: value.buyer,
     createdAt: value.createdAt,
     expiresAt: value.expiresAt,

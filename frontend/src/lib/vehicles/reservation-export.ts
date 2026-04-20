@@ -10,14 +10,19 @@ import {
 } from "./reservations";
 
 export const reservationExportColumns: readonly CsvColumn<ReservationItem>[] = [
-  { label: "Reference", value: (row) => row.id },
+  { label: "Registration", value: (row) => row.registrationPlate },
   { label: "Vehicle", value: (row) => row.vehicle },
-  { label: "Buyer", value: (row) => row.buyer },
-  { label: "Branch", value: (row) => row.branchName },
-  { label: "Created (Malaysia)", value: (row) => formatMalaysianDateTime(row.createdAt) },
-  { label: "Expires (Malaysia)", value: (row) => formatMalaysianDateTime(row.expiresAt) },
-  { label: "Reserved total (MYR)", value: (row) => row.total.toFixed(2) },
   { label: "Status", value: (row) => reservationStatuses[row.status] },
+  { label: "Buyer", value: (row) => row.buyer },
+  { label: "Reserved total (MYR)", value: (row) => row.total.toFixed(2) },
+  { label: "Expires (Malaysia)", value: (row) => formatMalaysianDateTime(row.expiresAt) },
+  {
+    label: "Released (Malaysia)",
+    value: (row) => (row.releasedAt ? formatMalaysianDateTime(row.releasedAt) : ""),
+  },
+  { label: "Created (Malaysia)", value: (row) => formatMalaysianDateTime(row.createdAt) },
+  { label: "Branch", value: (row) => row.branchName },
+  { label: "Reference", value: (row) => row.id },
 ];
 
 export async function exportReservations(filters: ReservationFilters, cancellation: AbortSignal) {

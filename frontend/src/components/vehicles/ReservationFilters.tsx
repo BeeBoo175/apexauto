@@ -1,59 +1,102 @@
-import { Button } from "@/components/ui/Button";
-import { FilterSection } from "@/components/ui/FilterSection";
+import { useState } from "react";
+import {
+  ColumnFilterForm,
+  DateRangeFilter,
+  MoneyRangeFilter,
+  TextColumnFilter,
+} from "@/components/ui/data-table/ColumnFilterForm";
 import { BranchFilter } from "@/components/staff/BranchFilter";
+import { FilterChoices } from "@/components/ui/FilterChoices";
 import type { useReservationTable } from "@/hooks/use-reservation-table";
-import styles from "@/components/staff/WorklistFilters.module.css";
+import { reservationStatuses } from "@/lib/vehicles/reservations";
 
 export function ReservationFilters({
   state,
-  group,
+  column,
 }: {
   state: ReturnType<typeof useReservationTable>;
-  group: boolean;
+  column: string;
 }) {
+  const filters = state.active.filters;
+  const [draft, setDraft] = useState(filters);
+  const apply = (value: typeof filters) => state.load(value, 1);
+
+  if (column === "registration" || column === "vehicle" || column === "buyer") {
+    const labels = {
+      registration: "Registration contains",
+      vehicle: "Vehicle contains",
+      buyer: "Buyer contains",
+    };
+    return (
+      <TextColumnFilter
+        label={labels[column]}
+        value={filters[column] ?? ""}
+        busy={state.busy}
+        onApply={(value) => apply({ ...filters, [column]: value })}
+      />
+    );
+  }
+  if (column === "total") {
+    return (
+      <MoneyRangeFilter
+        minimum={filters.minimumTotal ?? ""}
+        maximum={filters.maximumTotal ?? ""}
+        busy={state.busy}
+        onApply={(minimumTotal, maximumTotal) => apply({ ...filters, minimumTotal, maximumTotal })}
+      />
+    );
+  }
+  if (column === "created" || column === "expires" || column === "released") {
+    const keys = {
+      created: { from: "createdFrom", to: "createdTo" },
+      expires: { from: "expiresFrom", to: "expiresTo" },
+      released: { from: "releasedFrom", to: "releasedTo" },
+    } as const;
+    const { from, to } = keys[column];
+    return (
+      <DateRangeFilter
+        from={filters[from] ?? ""}
+        to={filters[to] ?? ""}
+        busy={state.busy}
+        onApply={(first, last) => apply({ ...filters, [from]: first, [to]: last })}
+      />
+    );
+  }
+
+  const branch = column === "branch";
+  const key = branch ? "branchId" : "status";
   return (
-    <form
-      className={styles.filters}
-      aria-label="Reservation filters"
-      onSubmit={async (event) => {
-        event.preventDefault();
-        const form = event.currentTarget;
-        if (await state.load({ ...state.active.filters, branchId: state.draft.branchId }, 1)) {
-          form.closest<HTMLElement>("[popover]")?.hidePopover();
-        }
-      }}
+    <ColumnFilterForm
+      busy={state.busy}
+      onApply={() => apply({ ...filters, [key]: draft[key] })}
+      onClear={() => apply({ ...filters, [key]: "" })}
     >
-      {group ? (
-        <FilterSection title="Branch">
-          <BranchFilter
-            branches={state.branches}
-            branchId={state.draft.branchId}
-            disabled={state.busy}
-            labelHidden={false}
-            paginationClassName={styles.actions}
-            onChange={(branchId) => state.setDraft({ ...state.draft, branchId })}
-            onPage={(page) => void state.loadBranches(page)}
-          />
-        </FilterSection>
-      ) : (
-        <p className={styles.help}>Reservations are limited to your branch.</p>
-      )}
-      <div className={styles.footer}>
-        <Button
-          size="compact"
-          type="button"
-          variant="secondary"
+      {branch ? (
+        <BranchFilter
+          branches={state.branches}
+          branchId={draft.branchId}
+          selectedBranchName={
+            state.snapshot?.items.find((row) => row.branchId === draft.branchId)?.branchName
+          }
           disabled={state.busy}
-          onClick={() => void state.load({ ...state.active.filters, branchId: "" }, 1)}
-        >
-          Clear all filters
-        </Button>
-        {group && (
-          <Button size="compact" type="submit" disabled={state.busy}>
-            Apply filters
-          </Button>
-        )}
-      </div>
-    </form>
+          labelHidden={false}
+          onChange={(branchId) => setDraft({ ...draft, branchId })}
+          onPage={(page) => void state.loadBranches(page)}
+        />
+      ) : (
+        <FilterChoices
+          label="Status"
+          options={[
+            { value: "", label: "All in this view" },
+            ...Object.entries(reservationStatuses)
+              .filter(([value]) => (value === "Active") === filters.isActive)
+              .map(([value, label]) => ({ value, label })),
+          ]}
+          value={draft.status ?? ""}
+          disabled={state.busy}
+          onChange={(status) => setDraft({ ...draft, status })}
+        />
+      )}
+    </ColumnFilterForm>
   );
 }

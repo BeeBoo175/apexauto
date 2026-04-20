@@ -68,7 +68,7 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
   }
 
   return (
-    <section className={props.toolbar ? `${styles.workspace} ${styles.fillHeight}` : styles.fillHeight} aria-label={props.toolbar ? props.label : undefined}>
+    <section className={`${styles.workspace} ${styles.fillHeight}`} aria-label={props.label}>
       {props.toolbar}
       <div className={`${styles.scroll} ${rows.length === 0 ? styles.emptyScroll : ""}`}>
         <table ref={table} className={styles.table} style={layout}>
@@ -191,12 +191,12 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
           )}
         </div>
       )}
-      {props.toolbar && <DataTablePagination
+      <DataTablePagination
         page={props.page}
         count={rows.length}
         disabled={disabled || props.busy}
         onPage={props.onPage}
-      />}
+      />
     </section>
   );
 }

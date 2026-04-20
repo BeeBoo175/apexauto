@@ -4,15 +4,14 @@ import { useContext } from "react";
 import { StaffPageEntranceContext } from "@/components/staff/StaffActorBoundary";
 import { StaffCommandBar } from "@/components/staff/StaffPage";
 import { AppliedWorklistFilters } from "@/components/staff/AppliedWorklistFilters";
+import { SearchField } from "@/components/ui/SearchField";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import { Button } from "@/components/ui/Button";
 import { RecordToolbar } from "@/components/ui/RecordToolbar";
 import { CsvExportActions } from "@/components/ui/CsvExportActions";
 import { DataTable } from "@/components/ui/data-table/DataTable";
-import { DataTablePagination } from "@/components/ui/data-table/DataTablePagination";
-import { DataTableWorkspace } from "@/components/ui/data-table/DataTableWorkspace";
-import type { DataColumn, TableSort } from "@/components/ui/data-table/types";
+import type { TableSort } from "@/components/ui/data-table/types";
 import { useReservationTable } from "@/hooks/use-reservation-table";
 import { useRowSelection } from "@/hooks/use-row-selection";
 import { useCsvExport } from "@/hooks/use-csv-export";
@@ -25,58 +24,23 @@ import {
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import type { ApiResult, Page } from "@/lib/api";
 import type { Branch } from "@/lib/branches";
-import { formatCurrency } from "@/lib/currency-format";
-import { formatMalaysianDateTime } from "@/lib/date-format";
 import {
   reservationQuery,
-  reservationStatuses,
+  reservationFilterDefaults,
+  reservationViewFilters,
   type ReservationItem,
   type ReservationFilters as Filters,
 } from "@/lib/vehicles/reservations";
 import { exportReservations, reservationExportColumns } from "@/lib/vehicles/reservation-export";
-import type { AppliedWorklistFilter } from "@/lib/staff/filter-summary";
-import { ReservationFilters } from "./ReservationFilters";
+import { StaffQueueTabs } from "@/components/staff/StaffQueueTabs";
+import { reservationColumns } from "./reservation-columns";
+import { reservationTableFilters } from "./reservation-table-filters";
 import { ReservationDrawer } from "./ReservationDrawer";
 import layout from "@/components/staff/IntakeWorkspace.module.css";
 import styles from "@/components/staff/IntakeWorklist.module.css";
 import workspace from "@/components/staff/StaffWorkspace.module.css";
 
 const rowId = (row: ReservationItem) => row.id;
-const columns: DataColumn<ReservationItem>[] = [
-  { id: "reference", label: "Reference", sortable: true, minWidth: 190, cell: rowId },
-  { id: "vehicle", label: "Vehicle", sortable: true, minWidth: 230, cell: (row) => row.vehicle },
-  { id: "buyer", label: "Buyer", sortable: true, minWidth: 180, cell: (row) => row.buyer },
-  { id: "branch", label: "Branch", sortable: true, minWidth: 160, cell: (row) => row.branchName },
-  {
-    id: "created",
-    label: "Created",
-    sortable: true,
-    minWidth: 200,
-    cell: (row) => formatMalaysianDateTime(row.createdAt),
-  },
-  {
-    id: "expires",
-    label: "Expires",
-    sortable: true,
-    minWidth: 200,
-    cell: (row) => formatMalaysianDateTime(row.expiresAt),
-  },
-  {
-    id: "total",
-    label: "Reserved total",
-    sortable: true,
-    minWidth: 160,
-    align: "right",
-    cell: (row) => formatCurrency(row.total),
-  },
-  {
-    id: "status",
-    label: "Status",
-    sortable: true,
-    minWidth: 175,
-    cell: (row) => reservationStatuses[row.status],
-  },
-];
 
 export function ReservationTable({
   actor,
@@ -104,20 +68,12 @@ export function ReservationTable({
     read: privateApiFetch,
     commitAfterRead: true,
   });
-  const reservationColumns = columns.map((column) =>
-    column.id === "reference"
-      ? {
-          ...column,
-          cell: (row: ReservationItem) => (
-            <Button size="compact" variant="ghost" onClick={() => void drawer.choose(row.id)}>
-              {row.id}
-            </Button>
-          ),
-        }
-      : column,
-  );
   const animateEntry = useContext(StaffPageEntranceContext);
   const { snapshot, active } = state;
+  const { columns, applied } = reservationTableFilters(
+    state,
+    reservationColumns(actor.role === "GeneralManager", active.filters.isActive),
+  );
   const selectedView = state.pendingView ?? active.filters.isActive;
   const pendingLabel = state.pendingView ? "Opening active holds" : "Opening reservation history";
   const selection = useRowSelection(
@@ -128,20 +84,23 @@ export function ReservationTable({
   const csv = useCsvExport(reservationExportColumns, "reservations", (signal) =>
     exportReservations(active.filters, signal),
   );
-  const applied: AppliedWorklistFilter<Filters>[] = active.filters.branchId
-    ? [
-        {
-          key: "branch",
-          label:
-            state.branches?.items.find((branch) => branch.id === active.filters.branchId)?.name ??
-            "Selected branch",
-          without: { ...active.filters, branchId: "" },
-        },
-      ]
-    : [];
-  const filterControls = (
-    <ReservationFilters state={state} group={actor.role === "GeneralManager"} />
-  );
+  const filtered = applied.length > 0 || Boolean(active.filters.search);
+  let emptyTitle = active.filters.isActive ? "No active holds" : "No reservation history";
+  if (filtered) {
+    emptyTitle = "No reservations match your criteria";
+  }
+
+  function resetFilters(clearSearch = false) {
+    void state.load(
+      {
+        ...active.filters,
+        ...reservationFilterDefaults,
+        branchId: "",
+        search: clearSearch ? "" : active.filters.search,
+      },
+      1,
+    );
+  }
 
   function changePage(nextPage: number, pageSize: number) {
     void state.load({ ...active.filters, pageSize }, nextPage);
@@ -175,95 +134,122 @@ export function ReservationTable({
       >
         <div className={styles.body}>
           {snapshot ? (
-            <DataTableWorkspace label="Reservations">
-              <RecordToolbar
-                filters={filterControls}
-                filterCount={applied.length}
-                disabled={state.busy}
-                onFiltersOpenChange={(open) => {
-                  if (!open) {
-                    state.setDraft((draft) => ({ ...draft, branchId: active.filters.branchId }));
-                  }
-                }}
-                filterSummary={
-                  <AppliedWorklistFilters
-                    filters={applied}
-                    disabled={state.busy}
-                    onRemove={(next) => void state.load(next, 1)}
-                  />
-                }
-                actions={
-                  <CsvExportActions
-                    selected={selection.selectedRows.length}
-                    disabled={state.busy || snapshot.total === 0}
-                    busy={csv.busy}
-                    onClear={selection.clear}
-                    onSelected={() => csv.exportSelected(selection.selectedRows)}
-                    onAll={() => void csv.exportAll()}
-                  />
-                }
-              >
-                <div
-                  role="group"
-                  aria-label="Reservation views"
-                  aria-busy={state.pendingView !== null}
-                >
+            <DataTable
+              toolbar={
+                <>
                   <span className="sr-only" role="status">
                     {state.pendingView !== null && pendingLabel}
                   </span>
-                  {[true, false].map((isActive) => (
-                    <Button
-                      key={String(isActive)}
-                      size="compact"
-                      variant={selectedView === isActive ? "secondary" : "ghost"}
-                      aria-pressed={selectedView === isActive}
-                      disabled={state.busy}
-                      onClick={() => void state.load({ ...active.filters, isActive }, 1)}
+                  <StaffQueueTabs
+                    label="Reservation views"
+                    tabs={[
+                      { value: "active", label: "Active holds" },
+                      { value: "history", label: "History" },
+                    ]}
+                    value={selectedView ? "active" : "history"}
+                    disabled={state.busy}
+                    onChange={(view) =>
+                      void state.load(reservationViewFilters(active.filters, view === "active"), 1)
+                    }
+                  />
+                  <RecordToolbar
+                    filters={null}
+                    filterCount={applied.length}
+                    disabled={state.busy}
+                    filterSummary={
+                      <AppliedWorklistFilters
+                        filters={applied}
+                        disabled={state.busy}
+                        onRemove={(next) => void state.load(next, 1)}
+                      />
+                    }
+                    actions={
+                      <>
+                        {applied.length > 0 && (
+                          <Button
+                            size="compact"
+                            variant="ghost"
+                            disabled={state.busy}
+                            onClick={() => resetFilters()}
+                          >
+                            Reset filters
+                          </Button>
+                        )}
+                        <CsvExportActions
+                          selected={selection.selectedRows.length}
+                          disabled={state.busy || snapshot.total === 0}
+                          busy={csv.busy}
+                          onClear={selection.clear}
+                          onSelected={() => csv.exportSelected(selection.selectedRows)}
+                          onAll={() => void csv.exportAll()}
+                        />
+                      </>
+                    }
+                  >
+                    <form
+                      className={styles.search}
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        if (!state.busy) {
+                          void state.load(
+                            { ...active.filters, search: state.draft.search?.trim() ?? "" },
+                            1,
+                          );
+                        }
+                      }}
                     >
-                      {isActive ? "Active holds" : "History"}
-                    </Button>
-                  ))}
-                </div>
-              </RecordToolbar>
-              <DataTable
-                label="Reservations"
-                rows={snapshot.items}
-                columns={reservationColumns}
-                sorting={{
-                  value: active.filters.sort
-                    ? { column: active.filters.sort, direction: active.filters.direction }
-                    : null,
-                  onChange: sortReservations,
-                }}
-                rowId={rowId}
-                selection={selection.selection}
-                page={snapshot}
-                onPage={changePage}
-                busy={state.busy}
-                disabled={false}
-                selectedRowId={drawer.id}
-                onRowClick={(row) => void drawer.choose(row.id)}
-                emptyState={{
-                  title: active.filters.isActive ? "No active holds" : "No reservation history",
-                  description: active.filters.isActive
-                    ? "Confirmed active reservations will appear here."
-                    : "Released reservations will appear here.",
-                }}
-              />
-              <DataTablePagination
-                page={snapshot}
-                count={snapshot.items.length}
-                disabled={state.busy}
-                onPage={changePage}
-              />
-            </DataTableWorkspace>
+                      <SearchField
+                        label="Search reservations"
+                        placeholder="Search vehicle, buyer or reference"
+                        value={state.draft.search ?? ""}
+                        disabled={false}
+                        busy={state.busy}
+                        onChange={(search) => state.setDraft({ ...state.draft, search })}
+                        onClear={
+                          active.filters.search
+                            ? () => void state.load({ ...active.filters, search: "" }, 1)
+                            : undefined
+                        }
+                      />
+                    </form>
+                  </RecordToolbar>
+                </>
+              }
+
+              label="Reservations"
+              rows={snapshot.items}
+              columns={columns}
+              sorting={{
+                value: active.filters.sort
+                  ? { column: active.filters.sort, direction: active.filters.direction }
+                  : null,
+                onChange: sortReservations,
+              }}
+              rowId={rowId}
+              selection={selection.selection}
+              page={snapshot}
+              onPage={changePage}
+              busy={state.busy}
+              disabled={false}
+              selectedRowId={drawer.id}
+              onRowClick={(row) => void drawer.choose(row.id)}
+              emptyState={{
+                title: emptyTitle,
+                description: "Search a vehicle, buyer or reference, or adjust the column filters.",
+                ...(filtered && {
+                  action: {
+                    label: "Clear search and filters",
+                    onClick: () => resetFilters(true),
+                  },
+                }),
+              }}
+            />
           ) : (
             <div className={styles.unavailableFilters}>
               <p>Reservations are unavailable. Retry when the service is available.</p>
               <Button size="compact" variant="secondary" onClick={() => void state.load()}>
                 Retry reservations
               </Button>
-              {filterControls}
             </div>
           )}
         </div>

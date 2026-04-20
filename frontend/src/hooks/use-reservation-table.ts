@@ -87,6 +87,10 @@ export function useReservationTable(
       setDraft((current) => ({
         ...nextFilters,
         branchId: current.branchId === submitted.branchId ? nextFilters.branchId : current.branchId,
+        search:
+          current.search === submitted.search && nextFilters.search !== active.filters.search
+            ? nextFilters.search
+            : current.search,
       }));
       setRevision((value) => value + 1);
       const url = new URL(window.location.href);
