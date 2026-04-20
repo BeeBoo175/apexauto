@@ -38,13 +38,13 @@ public sealed class StaffIntakeExportEndpointTests
     {
         var item = new StaffWorklistItem(Guid.NewGuid(), Guid.NewGuid(), " \u0001@branch", " \t=SUM(1,2)",
             "VCA \"9701\"\nA", new DateTimeOffset(2026, 10, 20, 9, 0, 0, TimeSpan.FromHours(8)),
-            DateTimeOffset.UtcNow, "Booked");
+            DateTimeOffset.UtcNow, "Booked", "Proton", "Saga", "Standard", 2020);
         var store = new ExportStore(new StaffWorklistPage([.. Enumerable.Repeat(item, 10000)], 10000, 1, 10000));
         var context = Context(Guid.NewGuid());
         var result = Assert.IsType<Microsoft.AspNetCore.Http.HttpResults.FileContentHttpResult>(await StaffIntakeExportEndpoint.ExportAsync(
             context, store, CancellationToken.None), exactMatch: false);
         var csv = Encoding.UTF8.GetString(result.FileContents.Span);
-        Assert.StartsWith("\uFEFF\"Registration\",\"Customer\",\"Branch\",\"Inspection start (UTC)\",\"Status\",\"Appointment reference\"\r\n", csv);
+        Assert.StartsWith("\uFEFF\"Registration\",\"Vehicle\",\"Status\",\"Customer\",\"Inspection start (UTC)\",\"Branch\",\"Appointment reference\"\r\n", csv);
         Assert.Contains("\"' \t=SUM(1,2)\"", csv);
         Assert.Contains("\"' \u0001@branch\"", csv);
         Assert.Contains("\"VCA \"\"9701\"\"\nA\"", csv);

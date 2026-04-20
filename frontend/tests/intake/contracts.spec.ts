@@ -15,7 +15,6 @@ import {
   addCalendarMonths,
 } from "@/lib/calendar";
 import { calendarParams, calendarQuery, parseCalendar } from "@/lib/staff/calendar";
-
 import { resizeColumnWidths } from "@/lib/column-resize";
 
 const id = "c77708bf-1a31-42f5-9a69-0c8766697a52";
@@ -101,6 +100,10 @@ test("calendar snapshots refuse truncated, duplicate, out-of-range and oversized
     branchName: "ApexAuto Glenmarie",
     customerName: "Nur Aina Abdullah",
     registrationPlate: "VCA 9701",
+    make: "Proton",
+    model: "Saga",
+    trim: "Standard",
+    manufactureYear: 2020,
     startsAt: "2026-10-20T01:00:00Z",
     endsAt: "2026-10-20T02:30:00Z",
     status: "Booked",

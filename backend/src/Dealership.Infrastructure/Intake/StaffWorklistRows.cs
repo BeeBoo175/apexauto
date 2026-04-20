@@ -58,6 +58,10 @@ internal static class StaffWorklistRows
                     BranchName = row.BranchName,
                     CustomerName = customer.LegalName,
                     RegistrationPlate = row.Row.Appointment.RegistrationPlate,
+                    Make = row.Row.Appointment.Valuation.Make,
+                    Model = row.Row.Appointment.Valuation.Model,
+                    Trim = row.Row.Appointment.Valuation.Trim,
+                    ManufactureYear = row.Row.Appointment.Valuation.ManufactureYear,
                     StartsAt = row.Row.Appointment.StartsAt,
                     EndsAt = row.Row.Appointment.EndsAt,
                     CheckedIn = row.Row.CheckedIn,
@@ -69,7 +73,24 @@ internal static class StaffWorklistRows
             var pattern = LiteralSearch.Pattern(query.Search);
             records = records.Where(row => EF.Functions.ILike(row.RegistrationPlate, pattern, "!") ||
                 EF.Functions.ILike(row.CustomerName, pattern, "!") || EF.Functions.ILike(row.BranchName, pattern, "!") ||
+                EF.Functions.ILike(row.ManufactureYear + " " + row.Make + " " + row.Model + " " + row.Trim, pattern, "!") ||
                 EF.Functions.ILike(row.Id.ToString(), pattern, "!"));
+        }
+        if (query.Registration.Length > 0)
+        {
+            var pattern = LiteralSearch.Pattern(query.Registration);
+            records = records.Where(row => EF.Functions.ILike(row.RegistrationPlate, pattern, "!"));
+        }
+        if (query.Vehicle.Length > 0)
+        {
+            var pattern = LiteralSearch.Pattern(query.Vehicle);
+            records = records.Where(row => EF.Functions.ILike(
+                row.ManufactureYear + " " + row.Make + " " + row.Model + " " + row.Trim, pattern, "!"));
+        }
+        if (query.Customer.Length > 0)
+        {
+            var pattern = LiteralSearch.Pattern(query.Customer);
+            records = records.Where(row => EF.Functions.ILike(row.CustomerName, pattern, "!"));
         }
         return records;
     }
@@ -77,7 +98,8 @@ internal static class StaffWorklistRows
     public static StaffWorklistItem ToItem(WorklistRow row)
     {
         return new StaffWorklistItem(row.Id, row.BranchId, row.BranchName, row.CustomerName,
-            row.RegistrationPlate, row.StartsAt, row.EndsAt, Status(row.CheckedIn, row.Cancelled, row.NoShow));
+            row.RegistrationPlate, row.StartsAt, row.EndsAt, Status(row.CheckedIn, row.Cancelled, row.NoShow),
+            row.Make, row.Model, row.Trim, row.ManufactureYear);
     }
 
     public static IOrderedQueryable<WorklistRow> Order(IQueryable<WorklistRow> rows, StaffWorklistQuery query)
@@ -85,6 +107,7 @@ internal static class StaffWorklistRows
         return query.Sort switch
         {
             "registrationPlate" => OrderBy(rows, row => row.RegistrationPlate, query.Direction),
+            "vehicle" => OrderBy(rows, row => row.ManufactureYear + " " + row.Make + " " + row.Model + " " + row.Trim, query.Direction),
             "customerName" => OrderBy(rows, row => row.CustomerName, query.Direction),
             "branchName" => OrderBy(rows, row => row.BranchName, query.Direction),
             "status" => OrderStatus(rows, query.Direction),
@@ -128,6 +151,10 @@ internal static class StaffWorklistRows
         public required string BranchName { get; init; }
         public required string CustomerName { get; init; }
         public required string RegistrationPlate { get; init; }
+        public required string Make { get; init; }
+        public required string Model { get; init; }
+        public required string Trim { get; init; }
+        public int ManufactureYear { get; init; }
         public DateTimeOffset StartsAt { get; init; }
         public DateTimeOffset EndsAt { get; init; }
         public bool CheckedIn { get; init; }

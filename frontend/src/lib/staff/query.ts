@@ -15,6 +15,12 @@ export function staffQuery(filters: StaffFilters, page = 1) {
   if (filters.branchId) {
     query.set("branchId", filters.branchId);
   }
+  for (const key of ["registration", "vehicle", "customer"] as const) {
+    const value = filters[key]?.trim();
+    if (value) {
+      query.set(key, value);
+    }
+  }
   return query.toString();
 }
 
@@ -45,6 +51,9 @@ export function staffParams(params: SearchParams) {
       status: typeof params.status === "string" ? params.status : "All",
       branchId: typeof params.branchId === "string" ? params.branchId : "",
       search: typeof params.search === "string" ? params.search : "",
+      registration: typeof params.registration === "string" ? params.registration : "",
+      vehicle: typeof params.vehicle === "string" ? params.vehicle : "",
+      customer: typeof params.customer === "string" ? params.customer : "",
       sort: typeof params.sort === "string" ? params.sort : "startsAt",
       direction: params.direction === "desc" ? ("desc" as const) : ("asc" as const),
       pageSize: isPageSize(Number(params.pageSize)) ? Number(params.pageSize) : DEFAULT_PAGE_SIZE,

@@ -9,7 +9,15 @@ export function parseWorklistItem(value: unknown): WorklistItem | null {
   if (
     typeof value.branchName !== "string" ||
     typeof value.customerName !== "string" ||
-    typeof value.registrationPlate !== "string"
+    typeof value.registrationPlate !== "string" ||
+    typeof value.make !== "string" ||
+    !value.make.trim() ||
+    typeof value.model !== "string" ||
+    !value.model.trim() ||
+    typeof value.trim !== "string" ||
+    !value.trim.trim() ||
+    !Number.isSafeInteger(value.manufactureYear) ||
+    Number(value.manufactureYear) < 1
   ) {
     return null;
   }
@@ -25,6 +33,10 @@ export function parseWorklistItem(value: unknown): WorklistItem | null {
     branchName: value.branchName,
     customerName: value.customerName,
     registrationPlate: value.registrationPlate,
+    make: value.make,
+    model: value.model,
+    trim: value.trim,
+    manufactureYear: Number(value.manufactureYear),
     status: state,
     ...slot,
   };

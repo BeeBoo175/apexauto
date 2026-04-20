@@ -31,7 +31,7 @@ public sealed class StaffCalendarTests
         var startsAt = new DateTimeOffset(2026, 10, 20, 1, 0, 0, TimeSpan.Zero);
         var rows = Enumerable.Range(0, Math.Max(0, total)).Select(_ => new StaffWorklistItem(
             Guid.NewGuid(), Guid.NewGuid(), "ApexAuto Glenmarie", "Nur Aina Abdullah", "VCA 9701",
-            startsAt, startsAt.AddMinutes(90), "Booked")).ToArray();
+            startsAt, startsAt.AddMinutes(90), "Booked", "Perodua", "Myvi", "1.5 AV", 2019)).ToArray();
         var store = new CalendarStore(total < 0 ? null : new StaffWorklistPage(rows, total, 1, 1000));
         var service = new StaffCalendarService(store);
         var query = StaffCalendarService.Parse("2026-09-28", "2026-11-08", null, Guid.NewGuid())!;

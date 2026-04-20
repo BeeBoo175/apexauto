@@ -91,7 +91,15 @@ export function useStaffWorklist(
         sort = sameOrder ? active.sort : initialSort(nextFilters);
       }
       setActive({ filters: nextFilters, page: nextPage, sort });
-      setDraft((current) => (current === submittedDraft ? nextFilters : current));
+      setDraft((current) => {
+        const nextDraft = current === submittedDraft ? nextFilters : current;
+        const submittedSearch = nextFilters.search !== active.filters.search;
+        const unchangedSearch = current.search === submittedDraft.search;
+        return {
+          ...nextDraft,
+          search: submittedSearch && unchangedSearch ? nextFilters.search : current.search,
+        };
+      });
       const query = new URLSearchParams(staffViewQuery(nextFilters, nextPage));
       const selected = new URL(window.location.href).searchParams.get("appointment");
       if (selected) {

@@ -27,7 +27,17 @@ export interface AppliedWorklistFilter<Filters = StaffFilters> {
 }
 
 export function resetWorklistFilters(filters: StaffFilters): StaffFilters {
-  return { ...filters, from: "", to: "", status: "All", branchId: "", search: "" };
+  return {
+    ...filters,
+    from: "",
+    to: "",
+    status: "All",
+    branchId: "",
+    search: "",
+    registration: "",
+    vehicle: "",
+    customer: "",
+  };
 }
 
 export function appliedWorklistFilters<
@@ -59,5 +69,22 @@ export function appliedWorklistFilters<
     });
   }
 
+  return applied;
+}
+
+export function appliedIntakeFilters(filters: StaffFilters, branchName: string) {
+  const applied = appliedWorklistFilters(filters, branchName).filter(
+    (filter) => filter.key !== "status",
+  );
+  const labels = { registration: "Registration", vehicle: "Vehicle", customer: "Customer" };
+  for (const key of ["registration", "vehicle", "customer"] as const) {
+    if (filters[key]) {
+      applied.push({
+        key,
+        label: `${labels[key]}: ${filters[key]}`,
+        without: { ...filters, [key]: "" },
+      });
+    }
+  }
   return applied;
 }

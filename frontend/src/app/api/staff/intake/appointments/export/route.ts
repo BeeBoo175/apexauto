@@ -23,7 +23,18 @@ async function exportCsv(request: Request, background: boolean) {
     }
     const input = new URL(request.url).searchParams;
     const query = new URLSearchParams();
-    for (const key of ["from", "to", "status", "branchId", "search", "sort", "direction"]) {
+    for (const key of [
+      "from",
+      "to",
+      "status",
+      "branchId",
+      "search",
+      "registration",
+      "vehicle",
+      "customer",
+      "sort",
+      "direction",
+    ]) {
       if (input.has(key)) {
         query.set(key, input.get(key)!);
       }

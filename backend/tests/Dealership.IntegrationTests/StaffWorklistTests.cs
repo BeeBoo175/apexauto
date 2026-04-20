@@ -63,6 +63,21 @@ public sealed class StaffWorklistTests(IntakePhotoFixture fixture) : IClassFixtu
         Assert.Equal(1, beyondFirstPage.Total);
         Assert.Equal(booked[^1].Id, Assert.Single(beyondFirstPage.Items).Id);
         Assert.Equal(41, (await ListAsync(data, data.StaffId, query with { Search = "nUr AiNa" }))!.Total);
+        var vehicle = pages[0].Items[0];
+        var columnQuery = query with
+        {
+            Registration = "6242",
+            Vehicle = $"{vehicle.ManufactureYear} {vehicle.Make} {vehicle.Model}",
+            Customer = "nUr AiNa"
+        };
+        var columnPage = (await ListAsync(data, data.StaffId, columnQuery))!;
+        Assert.Equal(1, columnPage.Total);
+        Assert.Equal(booked[^1].Id, Assert.Single(columnPage.Items).Id);
+        var columnExport = (await services.GetRequiredService<IStaffWorklistStore>()
+            .ExportAsync(data.StaffId, columnQuery, CancellationToken.None))!;
+        Assert.Equal(columnPage.Items, columnExport.Items);
+        Assert.Equal(0, (await ListAsync(data, data.StaffId, columnQuery with { Customer = "%" }))!.Total);
+        Assert.Equal(0, (await ListAsync(data, data.StaffId, columnQuery with { Registration = "BPL" }))!.Total);
         Assert.Equal(0, (await ListAsync(data, data.StaffId, query with { Search = "BPL 2198" }))!.Total);
         Assert.Equal(0, (await ListAsync(data, data.StaffId, query with { Search = "%" }))!.Total);
         Assert.Equal(0, (await ListAsync(data, data.StaffId, query with { Search = "_" }))!.Total);

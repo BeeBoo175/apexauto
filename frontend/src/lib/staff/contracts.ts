@@ -8,6 +8,9 @@ export interface StaffFilters extends HistoryFilters {
   sort: string;
   direction: "asc" | "desc";
   pageSize: number;
+  registration?: string;
+  vehicle?: string;
+  customer?: string;
 }
 export interface WorklistItem {
   id: string;
@@ -15,6 +18,10 @@ export interface WorklistItem {
   branchName: string;
   customerName: string;
   registrationPlate: string;
+  make: string;
+  model: string;
+  trim: string;
+  manufactureYear: number;
   startsAt: string;
   endsAt: string;
   status: "Booked" | "CheckedIn" | "Cancelled" | "NoShow";
@@ -24,10 +31,6 @@ export interface AppointmentDetail extends WorklistItem {
   attendanceCorrectedAt: string | null;
   correctionReason: string | null;
   correctedBy: string | null;
-  make: string;
-  model: string;
-  trim: string;
-  manufactureYear: number;
   mileageKilometres: number;
 }
 export interface CheckInDraft {

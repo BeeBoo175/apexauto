@@ -14,6 +14,9 @@ export function GET(request: Request) {
     "page",
     "pageSize",
     "search",
+    "registration",
+    "vehicle",
+    "customer",
     "sort",
     "direction",
   ]) {

@@ -1,75 +1,61 @@
 import type { DataColumn } from "@/components/ui/data-table/types";
 import type { WorklistItem } from "@/lib/staff/contracts";
 import { formatMalaysianDateTime } from "@/lib/date-format";
+import { staffColumnSizing } from "@/lib/staff/table-columns";
 import { AppointmentStatus } from "./AppointmentStatus";
-import styles from "./IntakeWorklist.module.css";
+import { VehicleDescription, VehicleRegistration } from "./VehicleTableCells";
+import styles from "./StaffTable.module.css";
 
-export function intakeColumns(
-  query: string,
-  onOpen: (id: string) => void,
-): DataColumn<WorklistItem>[] {
-  return [
+export function intakeColumns(showBranch: boolean): DataColumn<WorklistItem>[] {
+  const columns: DataColumn<WorklistItem>[] = [
     {
       id: "registrationPlate",
       label: "Registration",
       sortable: true,
-      width: 170,
-      minWidth: 160,
-      cell: (row) => (
-        <a
-          className={styles.registration}
-          href={`/dashboard/intake/${row.id}?${query}`}
-          aria-label={`Open ${row.registrationPlate}`}
-          aria-haspopup="dialog"
-          onClick={(event) => {
-            if (
-              event.metaKey ||
-              event.ctrlKey ||
-              event.shiftKey ||
-              event.altKey ||
-              event.button !== 0
-            ) {
-              return;
-            }
-            event.preventDefault();
-            onOpen(row.id);
-          }}
-        >
-          {row.registrationPlate}
-        </a>
-      ),
+      ...staffColumnSizing.registration,
+      cell: (row) => <VehicleRegistration registration={row.registrationPlate} />,
     },
     {
-      id: "customerName",
-      label: "Customer",
+      id: "vehicle",
+      label: "Vehicle",
       sortable: true,
-      width: 210,
-      minWidth: 160,
-      cell: (row) => row.customerName,
-    },
-    {
-      id: "branchName",
-      label: "Branch",
-      sortable: true,
-      width: 210,
-      minWidth: 150,
-      cell: (row) => row.branchName,
-    },
-    {
-      id: "startsAt",
-      label: "Inspection time",
-      sortable: true,
-      width: 240,
-      minWidth: 200,
-      cell: (row) => <span className={styles.timing}>{formatMalaysianDateTime(row.startsAt)}</span>,
+      ...staffColumnSizing.vehicle,
+      cell: (row) => <VehicleDescription vehicle={row} />,
     },
     {
       id: "status",
       label: "Status",
       sortable: true,
-      width: 140,
-      minWidth: 120,
-      cell: (row) => <AppointmentStatus status={row.status} />,
+      ...staffColumnSizing.shortStatus,
+      cell: (row) => <AppointmentStatus status={row.status} table />,
+    },
+    {
+      id: "customerName",
+      label: "Customer",
+      sortable: true,
+      ...staffColumnSizing.person,
+      cell: (row) => row.customerName,
+    },
+    {
+      id: "startsAt",
+      label: "Inspection time",
+      sortable: true,
+      ...staffColumnSizing.dateTime,
+      cell: (row) => (
+        <time className={styles.date} dateTime={row.startsAt}>
+          {formatMalaysianDateTime(row.startsAt)}
+        </time>
+      ),
     },
   ];
+  if (showBranch) {
+    columns.push({
+      id: "branchName",
+      label: "Branch",
+      sortable: true,
+      ...staffColumnSizing.branch,
+      cell: (row) => row.branchName,
+    });
+  }
+  return columns;
 }

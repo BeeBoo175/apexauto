@@ -5,14 +5,15 @@ namespace Dealership.Application.Intake;
 public static class StaffIntakeCsv
 {
     public static readonly string Header = "\uFEFF" + string.Join(',',
-        new[] { "Registration", "Customer", "Branch", "Inspection start (UTC)", "Status", "Appointment reference" }
+        new[] { "Registration", "Vehicle", "Status", "Customer", "Inspection start (UTC)", "Branch", "Appointment reference" }
             .Select(Cell)) + "\r\n";
 
     public static string Row(StaffWorklistItem item)
     {
-        var values = new[] { item.RegistrationPlate, item.CustomerName, item.BranchName,
+        var vehicle = $"{item.ManufactureYear} {item.Make} {item.Model} {item.Trim}";
+        var values = new[] { item.RegistrationPlate, vehicle, item.Status, item.CustomerName,
             item.StartsAt.UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", CultureInfo.InvariantCulture),
-            item.Status, item.Id.ToString() };
+            item.BranchName, item.Id.ToString() };
         return string.Join(',', values.Select(Cell)) + "\r\n";
     }
 

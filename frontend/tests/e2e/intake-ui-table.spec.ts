@@ -25,23 +25,19 @@ test("server table searches all scoped rows, selects appointments and exports ap
   await setAppointmentDates(page, day(0), day(29));
   await expect(page.getByLabel("From", { exact: true })).toHaveValue(day(0));
 
-  await page.getByRole("button", { name: "Apply filters", exact: true }).click();
+  await page.getByRole("button", { name: "Apply", exact: true }).click();
   await expect(page.getByLabel("From", { exact: true })).toBeHidden();
   await expect(page.getByRole("row")).toHaveCount(26);
   await page.getByRole("button", { name: "Next records", exact: true }).click();
   await expectWorklistPage(page, 2);
-  const target = await page
-    .getByRole("link", { name: /^Open / })
-    .first()
-    .getAttribute("aria-label");
-  const plate = target!.replace(/^Open /, "");
+  const plate = (await page.locator("tbody tr td:nth-child(2)").first().textContent())!.trim();
   await page.getByRole("button", { name: "Previous records", exact: true }).click();
   await expectWorklistPage(page, 1);
-  await expect(page.getByRole("link", { name: target!, exact: true })).toHaveCount(0);
+  await expect(page.locator("tbody tr").filter({ hasText: plate })).toHaveCount(0);
   await page.getByLabel("Search appointments", { exact: true }).fill(plate.toLowerCase());
   await page.getByRole("button", { name: "Search", exact: true }).click();
   await expect(page.getByRole("row")).toHaveCount(2);
-  await expect(page.getByRole("link", { name: target!, exact: true })).toBeVisible();
+  await expect(page.locator("tbody tr").filter({ hasText: plate })).toBeVisible();
   await expect(page.getByRole("button", { name: "Export full CSV", exact: true })).toBeEnabled();
   await expect(page.getByRole("button", { name: "Export selected CSV", exact: true })).toHaveCount(
     0,

@@ -54,8 +54,9 @@ test("sales intake preserves scoped lists, drawer drafts and an exact lost check
   await expect(page.getByText(cross.registrationPlate, { exact: true })).toHaveCount(0);
   await page.goto("/dashboard/intake?view=list&status=Booked");
   const arrivalPlate = testInfo.project.name === "mobile" ? "VCA 9702" : "VCA 9701";
-  const link = page.getByRole("link", { name: `Open ${arrivalPlate}`, exact: true });
-  const detailHref = await link.getAttribute("href");
+  const link = page.locator("tbody tr").filter({ hasText: arrivalPlate });
+  const arrival = refs().find((item) => item.registrationPlate === arrivalPlate)!;
+  const detailHref = `/dashboard/intake/${arrival.id}`;
   await link.click();
   const dialog = page.getByRole("dialog", { name: "Intake appointment", exact: true });
   await expect(dialog.getByLabel("VIN", { exact: true })).toBeEditable();
@@ -168,7 +169,7 @@ test("sales intake preserves scoped lists, drawer drafts and an exact lost check
 
   await page.goto("/dashboard/intake?view=list");
   await setAppointmentDates(page, day(0), day(29));
-  await page.getByRole("button", { name: "Apply filters", exact: true }).click();
+  await page.getByRole("button", { name: "Apply", exact: true }).click();
   await expect(page.getByRole("row")).toHaveCount(26);
   await page.getByRole("button", { name: "Next records", exact: true }).click();
   await expectWorklistPage(page, 2);
@@ -239,13 +240,9 @@ for (const [role, email, destination] of [
     }
     await page.getByRole("link", { name: "Table", exact: true }).click();
     await setAppointmentDates(page, day(-10), day(29));
-    await page
-      .getByRole("radiogroup", { name: "Status", exact: true })
-      .getByRole("radio", { name: "All statuses", exact: true })
-      .check();
-    await page.getByRole("button", { name: "Apply filters", exact: true }).click();
+    await page.getByRole("button", { name: "Apply", exact: true }).click();
     await expect(page.getByRole("row")).toHaveCount(26);
-    const link = page.getByRole("link", { name: /^Open / }).first();
+    const link = page.locator("tbody tr").first();
     await link.click();
     const dialog = page.getByRole("dialog", { name: "Intake appointment", exact: true });
     await expect(
@@ -273,11 +270,11 @@ for (const [role, email, destination] of [
     }
     await dialog.getByRole("button", { name: "Close dialog", exact: true }).click();
     if (role === "General manager") {
-      await page.getByRole("button", { name: /^Filters/ }).click();
+      await page.getByRole("button", { name: "Filter Branch", exact: true }).click();
       await page
-        .getByLabel("Branch", { exact: true })
+        .getByRole("combobox", { name: "Branch", exact: true })
         .selectOption("68f371ad-223a-43d6-b45b-b878eece79ae");
-      await page.getByRole("button", { name: "Apply filters", exact: true }).click();
+      await page.getByRole("button", { name: "Apply", exact: true }).click();
       await expect(
         page.getByRole("cell", { name: "ApexAuto Petaling Jaya", exact: true }),
       ).toHaveCount(25);

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { calendarDate, addCalendarDays } from "@/lib/calendar";
+import { calendarDate, calendarRange, addCalendarDays, addCalendarMonths } from "@/lib/calendar";
 import { parsePage } from "@/lib/api";
 import { parseWorklistItem } from "@/lib/staff/parse";
 
@@ -28,7 +28,8 @@ test("applied appointment filters preserve confirmed results on failure and surv
   );
   await page.getByRole("button", { name: "Next month", exact: true }).click();
   const nextRequest = new URL((await calendarRead).url());
-  expect(nextRequest.searchParams.get("to")).toBe(to);
+  const visibleMonth = calendarRange(addCalendarMonths(from, 1));
+  expect(nextRequest.searchParams.get("to")).toBe(visibleMonth.to < to ? visibleMonth.to : to);
   await expect(page.getByRole("button", { name: "Refresh calendar" })).toBeEnabled();
   const tableLink = new URL(
     (await page.getByRole("link", { name: "Table", exact: true }).getAttribute("href"))!,
@@ -41,8 +42,8 @@ test("applied appointment filters preserve confirmed results on failure and surv
 
   await page.getByRole("link", { name: "Table", exact: true }).click();
   await expect(page.getByRole("button", { name: "Refresh worklist" })).toBeEnabled();
-  await page.getByRole("button", { name: /^Filters/ }).click();
-  const dates = page.getByRole("form", { name: "Appointment filters", exact: true });
+  await page.getByRole("button", { name: /^Filter Inspection time/ }).click();
+  const dates = page.getByRole("region", { name: "Inspection time", exact: true });
   const single = addCalendarDays(today, 1);
   await dates.getByLabel("From", { exact: true }).fill(single);
   await dates.getByLabel("To", { exact: true }).fill(single);
@@ -53,7 +54,7 @@ test("applied appointment filters preserve confirmed results on failure and surv
       json: { status: 502, data: null, message: "Controlled date failure" },
     }),
   );
-  await dates.getByRole("button", { name: "Apply filters", exact: true }).click();
+  await dates.getByRole("button", { name: "Apply", exact: true }).click();
   await expect(page.getByText(/The worklist could not be refreshed/).first()).toBeVisible();
   await expect(dates).toBeVisible();
   await expect(dates.getByLabel("From", { exact: true })).toHaveValue(single);
@@ -62,7 +63,7 @@ test("applied appointment filters preserve confirmed results on failure and surv
   const appliedRequest = page.waitForRequest((request) =>
     request.url().includes("/api/staff/intake/appointments?"),
   );
-  await dates.getByRole("button", { name: "Apply filters", exact: true }).click();
+  await dates.getByRole("button", { name: "Apply", exact: true }).click();
   const appliedUrl = new URL((await appliedRequest).url());
   expect(appliedUrl.searchParams.get("from")).toBe(single);
   expect(appliedUrl.searchParams.get("to")).toBe(single);
@@ -78,33 +79,37 @@ test("applied appointment filters preserve confirmed results on failure and surv
   expect(returned.searchParams.get("from")).toBe(single);
   expect(returned.searchParams.get("to")).toBe(single);
   expect(returned.searchParams.has("page")).toBe(false);
-  await expect(table.getByRole("link", { name: /^Open / })).toHaveCount(6);
+  await expect(table.locator("tbody tr td:nth-child(2)")).toHaveCount(6);
 
   await page.getByLabel("Search appointments", { exact: true }).fill("VCA 6200");
   await page.getByRole("button", { name: "Search", exact: true }).click();
   await expect(page.getByRole("button", { name: "Refresh worklist" })).toBeEnabled();
-  await page.getByRole("button", { name: /^Filters/ }).click();
-  const filters = page.getByRole("form", { name: "Appointment filters", exact: true });
   const clearedRead = page.waitForRequest((request) =>
     request.url().includes("/api/staff/intake/appointments?"),
   );
-  const clearedResponse = page.waitForResponse((response) =>
+  const resetResponse = page.waitForResponse((response) =>
     response.url().includes("/api/staff/intake/appointments?"),
   );
-  await filters.getByRole("button", { name: "Clear all filters", exact: true }).click();
+  await page.getByRole("button", { name: "Reset filters", exact: true }).click();
   const clearQuery = new URL((await clearedRead).url()).searchParams;
   expect(clearQuery.has("from")).toBe(false);
   expect(clearQuery.has("to")).toBe(false);
-  expect(clearQuery.has("search")).toBe(false);
-  await expect(filters).not.toBeVisible();
-  await expect(page.getByLabel("Search appointments", { exact: true })).toHaveValue("");
-  await expect(page.getByRole("button", { name: "Filters", exact: true })).toBeVisible();
+  expect(clearQuery.get("search")).toBe("VCA 6200");
+  await resetResponse;
+  await expect(page.getByRole("button", { name: "Refresh worklist" })).toBeEnabled();
+  await expect(page.getByLabel("Search appointments", { exact: true })).toHaveValue("VCA 6200");
+  await expect(page.getByRole("button", { name: /^Filter Inspection time/ })).toBeVisible();
   expect(new URL(page.url()).searchParams.has("from")).toBe(false);
-  await expect(table.getByRole("link", { name: /^Open / })).toHaveCount(10);
+  const clearedResponse = page.waitForResponse((response) =>
+    response.url().includes("/api/staff/intake/appointments?"),
+  );
+  await page.getByRole("button", { name: "Clear search", exact: true }).click();
+  await expect(page.getByLabel("Search appointments", { exact: true })).toHaveValue("");
+  await expect(table.locator("tbody tr td:nth-child(2)")).toHaveCount(10);
   const cleared = parsePage((await (await clearedResponse).json()).data, parseWorklistItem);
   expect(cleared).not.toBeNull();
   expect(cleared!.items.some((row) => calendarDate(new Date(row.startsAt)) < from)).toBe(true);
-  await expect(table.getByRole("link", { name: /^Open / })).toHaveText(
+  await expect(table.locator("tbody tr td:nth-child(2)")).toHaveText(
     cleared!.items.map((row) => row.registrationPlate),
   );
 });
