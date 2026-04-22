@@ -1,6 +1,7 @@
 "use client";
 import { useContext, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { Button } from "@/components/ui/Button";
 import { useLoadingProgress } from "@/components/ui/LoadingProgress";
 import { RefreshButton } from "@/components/ui/RefreshButton";
@@ -44,6 +45,7 @@ export function AppointmentWorkbench({
   const toast = useToast();
   const [snapshot, setSnapshot] = useState(initial);
   const [localDraft, setLocalDraft] = useState(emptyCheckIn);
+  const [confirming, setConfirming] = useState(false);
   const [ready, setReady] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const correcting = snapshot.data?.status === "NoShow" && actor.role === "BranchManager";
@@ -161,6 +163,24 @@ export function AppointmentWorkbench({
 
   return (
     <div className={styles.workbench}>
+      <ConfirmationDialog
+        open={confirming}
+        title={correcting ? "Correct this attendance record?" : "Check in this vehicle?"}
+        confirmLabel={correcting ? "Confirm attendance correction" : "Confirm check-in"}
+        busy={command.busy}
+        onClose={() => setConfirming(false)}
+        onConfirm={async () => {
+          await checkIn();
+          setConfirming(false);
+        }}
+      >
+        <p>
+          {correcting
+            ? "Replace the no-show status with the confirmed attendance and correction reason."
+            : "Record the physical arrival and create the vehicle's inspection record."}
+          {detail && ` Vehicle: ${detail.registrationPlate}.`}
+        </p>
+      </ConfirmationDialog>
       {actionsContainer && createPortal(refreshControl, actionsContainer)}
       {actionsContainer === undefined && (
         <div className={styles.toolbar}>
@@ -245,7 +265,11 @@ export function AppointmentWorkbench({
                 className={styles.protocol}
                 onSubmit={(event) => {
                   event.preventDefault();
-                  void checkIn();
+                  if (command.uncertain) {
+                    void checkIn();
+                    return;
+                  }
+                  setConfirming(true);
                 }}
               >
                 <h3>{correcting ? "Correct no-show attendance" : "Physical check-in"}</h3>

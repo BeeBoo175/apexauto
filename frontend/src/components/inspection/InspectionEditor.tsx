@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/Button";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
-import { Dialog } from "@/components/ui/Dialog";
+import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { useInspectionEditor } from "@/hooks/use-inspection-editor";
 import { useInspectionTimeline } from "@/hooks/use-inspection-timeline";
 import { useWorkspaceTabs } from "@/hooks/use-workspace-tabs";
@@ -23,7 +23,6 @@ import { RepairPanel } from "./RepairPanel";
 import { InspectionTimeline } from "./InspectionTimeline";
 import { RetainedRepairReview } from "./RetainedRepairReview";
 import type { RepairSelection, WorkshopSection } from "@/lib/inspection/query";
-import styles from "./Inspection.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 import workshop from "./Workshop.module.css";
 
@@ -229,43 +228,30 @@ export function InspectionEditor({
           </>
         )}
       </div>
-      <Dialog
+      <ConfirmationDialog
         open={Boolean(confirm)}
         title={confirm === "sign" ? "Sign this inspection revision" : "Discard local changes"}
-        closeDisabled={editor.sign.busy || editor.sign.uncertain}
+        busy={editor.sign.busy}
+        locked={editor.sign.uncertain}
+        danger={confirm === "discard"}
+        confirmLabel={confirm === "sign" ? "Confirm sign-off" : "Discard changes"}
         onClose={() => setConfirm(null)}
+        onConfirm={async () => {
+          if (confirm === "discard") {
+            editor.reset();
+            setConfirm(null);
+            return;
+          }
+          await editor.signDraft();
+          setConfirm(null);
+        }}
       >
         <p>
           {confirm === "sign"
             ? "Sign the complete attested saved checklist and selected private evidence. The original findings, estimates and assessment are retained in an immutable report."
             : "Replace your local edits with the latest confirmed saved checklist. Unsaved changes will be lost."}
         </p>
-        <div className={styles.actions}>
-          <Button
-            size="compact"
-            variant="secondary"
-            disabled={editor.sign.busy || editor.sign.uncertain}
-            onClick={() => setConfirm(null)}
-          >
-            Keep editing
-          </Button>
-          <Button
-            size="compact"
-            disabled={editor.sign.busy}
-            onClick={async () => {
-              if (confirm === "discard") {
-                editor.reset();
-                setConfirm(null);
-                return;
-              }
-              await editor.signDraft();
-              setConfirm(null);
-            }}
-          >
-            Confirm {confirm === "sign" ? "sign-off" : "discard"}
-          </Button>
-        </div>
-      </Dialog>
+      </ConfirmationDialog>
     </>
   );
 }

@@ -65,6 +65,7 @@ export function ChecklistPoint({
         {editable && (
           <label className={styles.checkbox}>
             <input
+              name={`examined-${point.code}`}
               type="checkbox"
               checked={examined}
               disabled={disabled || entry?.kind === "NotFitted"}
@@ -138,6 +139,7 @@ export function ChecklistPoint({
                   </Select>
                   <Input
                     label={`${point.code} estimate (MYR)`}
+                    placeholder="e.g. 250.00"
                     density="compact"
                     inputMode="decimal"
                     value={entry.estimate}
@@ -148,6 +150,7 @@ export function ChecklistPoint({
               )}
               <Textarea
                 label={`${point.code} ${notesLabel}`}
+                placeholder="Describe your observations for this inspection point"
                 maxLength={1000}
                 rows={2}
                 value={entry.notes}

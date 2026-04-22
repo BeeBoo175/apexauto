@@ -31,6 +31,7 @@ export function ListingDraftFields({
         <Input
           id={`${fieldsId}-price`}
           label="Vehicle price (MYR)"
+          placeholder="e.g. 68500.00"
           inputMode="decimal"
           density="compact"
           value={value.vehiclePrice}
@@ -43,6 +44,7 @@ export function ListingDraftFields({
         <Input
           id={`${fieldsId}-road-tax`}
           label="Road tax (MYR)"
+          placeholder="e.g. 90.00"
           density="compact"
           inputMode="decimal"
           value={value.roadTax}
@@ -95,6 +97,7 @@ export function ListingDraftFields({
       <section className={styles.fieldSection} aria-label="Listing description">
         <Textarea
           label="Public description"
+          placeholder="Describe the vehicle's condition, features and highlights for buyers"
           rows={7}
           maxLength={2000}
           value={value.description}

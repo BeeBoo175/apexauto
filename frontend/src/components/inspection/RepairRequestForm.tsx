@@ -1,6 +1,7 @@
 "use client";
 import { useId, useState } from "react";
 import { createPortal } from "react-dom";
+import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input, Textarea } from "@/components/ui/Input";
@@ -54,6 +55,7 @@ export function RepairRequestForm({
   const selected = findings.find((point) => point.code === selectedCode) ?? findings[0];
   const multipleFindings = findings.length > 1;
   const formId = useId();
+  const [confirming, setConfirming] = useState<"submit" | "discard" | null>(null);
   if (!active) {
     return null;
   }
@@ -65,6 +67,10 @@ export function RepairRequestForm({
         variant="secondary"
         disabled={disabled || locked || Boolean(command.receipt)}
         onClick={() => {
+          if (dirty) {
+            setConfirming("discard");
+            return;
+          }
           if (request.reset()) {
             onCancel();
           }
@@ -89,12 +95,48 @@ export function RepairRequestForm({
       className={styles.form}
       onSubmit={async (event) => {
         event.preventDefault();
-        const incomplete = await request.submit();
-        if (incomplete) {
-          setSelectedCode(incomplete);
+        if (command.uncertain) {
+          const incomplete = await request.submit();
+          if (incomplete) {
+            setSelectedCode(incomplete);
+          }
+          return;
         }
+        setConfirming("submit");
       }}
     >
+      <ConfirmationDialog
+        open={confirming !== null}
+        title={
+          confirming === "discard"
+            ? "Discard repair request changes?"
+            : "Submit this repair request?"
+        }
+        confirmLabel={confirming === "discard" ? "Discard changes" : "Submit request"}
+        danger={confirming === "discard"}
+        busy={command.busy}
+        onClose={() => setConfirming(null)}
+        onConfirm={async () => {
+          if (confirming === "discard") {
+            setConfirming(null);
+            if (request.reset()) {
+              onCancel();
+            }
+            return;
+          }
+          const incomplete = await request.submit();
+          if (incomplete) {
+            setSelectedCode(incomplete);
+          }
+          setConfirming(null);
+        }}
+      >
+        <p>
+          {confirming === "discard"
+            ? "Your unsaved repair work and budget changes will be lost."
+            : `Submit the selected repair work with a requested budget of MYR ${budget}. This removes listing availability until the work is completed; changed work or a higher budget requires fresh approval.`}
+        </p>
+      </ConfirmationDialog>
       <p className={workbench.help}>
         Cover every required finding before listing. Any new request removes availability until
         completed. Changed work or a higher budget requires fresh approval.
@@ -146,6 +188,7 @@ export function RepairRequestForm({
             />
             <label className={styles.checkbox}>
               <input
+                name={`include-repair-${selected.code}`}
                 type="checkbox"
                 checked={selected.code in work}
                 disabled={locked || (disabled && !command.uncertain)}
@@ -156,6 +199,7 @@ export function RepairRequestForm({
             {selected.code in work && (
               <Textarea
                 label={`${selected.code} repair work`}
+                placeholder="Describe the repair or replacement needed for this finding"
                 rows={2}
                 required
                 maxLength={1000}
@@ -171,6 +215,7 @@ export function RepairRequestForm({
         <Input
           id={`${formId}-budget`}
           label="Requested budget (MYR)"
+          placeholder="e.g. 1500.00"
           inputMode="decimal"
           required
           value={budget}

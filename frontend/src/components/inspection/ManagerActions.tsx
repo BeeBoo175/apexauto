@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Input";
+import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { Dialog } from "@/components/ui/Dialog";
 import { useInspectionManager } from "@/hooks/use-inspection-manager";
 import type { CurrentActor } from "@/lib/auth/actor";
@@ -30,6 +31,7 @@ export function ManagerActions({
   onDraft: (dirty: boolean) => void;
   active?: boolean;
 }) {
+  const [confirming, setConfirming] = useState(false);
   const [open, setOpen] = useState(false);
   const manager = useInspectionManager({
     actor,
@@ -82,7 +84,11 @@ export function ManagerActions({
             className={styles.form}
             onSubmit={async (e) => {
               e.preventDefault();
-              await manager.reopen();
+              if (command.uncertain) {
+                await manager.reopen();
+                return;
+              }
+              setConfirming(true);
             }}
           >
             <p>
@@ -91,6 +97,7 @@ export function ManagerActions({
             </p>
             <Textarea
               label="Reopening reason"
+              placeholder="Explain what needs reviewing in the signed inspection"
               required
               maxLength={1000}
               rows={3}
@@ -110,6 +117,23 @@ export function ManagerActions({
           </form>
         )}
       </Dialog>
+      <ConfirmationDialog
+        open={confirming}
+        title="Reopen this signed inspection?"
+        confirmLabel="Reopen inspection"
+        danger
+        busy={command.busy}
+        onClose={() => setConfirming(false)}
+        onConfirm={async () => {
+          await manager.reopen();
+          setConfirming(false);
+        }}
+      >
+        <p>
+          This removes listing availability and starts a new inspection revision. The signed report
+          and repair history remain retained.
+        </p>
+      </ConfirmationDialog>
     </section>
   );
 }

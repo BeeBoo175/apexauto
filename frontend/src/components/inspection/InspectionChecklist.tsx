@@ -139,6 +139,7 @@ export function InspectionChecklist({
           {editable && (
             <label className={styles.checkbox}>
               <input
+                name="all-fitted-points-examined"
                 type="checkbox"
                 checked={allExamined}
                 disabled={disabled}

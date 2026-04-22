@@ -24,6 +24,7 @@ export function NoShowCorrectionFields({
       />
       <Textarea
         label="Correction reason"
+        placeholder="Explain why the no-show record needs correcting"
         required
         rows={3}
         maxLength={1000}

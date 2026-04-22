@@ -28,6 +28,7 @@ export function CheckInFields({
         <Input
           density="compact"
           label="VIN"
+          placeholder="Enter the 17-character vehicle identification number"
           value={draft.vin}
           required
           minLength={17}
@@ -38,6 +39,7 @@ export function CheckInFields({
         <Input
           density="compact"
           label="Actual odometer (km)"
+          placeholder="e.g. 45000"
           type="number"
           min="0"
           step="1"
@@ -50,6 +52,7 @@ export function CheckInFields({
         {confirmations.map(([key, label], index) => (
           <label key={key} className={styles.confirmation}>
             <input
+              name={key}
               type="checkbox"
               required
               checked={draft[key]}
@@ -64,6 +67,7 @@ export function CheckInFields({
       </div>
       <Textarea
         label="Notes (optional)"
+        placeholder="Add any observations from the vehicle check-in"
         maxLength={1000}
         rows={3}
         value={draft.notes}

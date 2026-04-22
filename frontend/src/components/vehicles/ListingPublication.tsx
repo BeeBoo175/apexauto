@@ -103,6 +103,7 @@ export function ListingPublication({
           </p>
           <Textarea
             label="Withdrawal reason"
+            placeholder="Explain why this listing should be withdrawn from sale"
             required
             maxLength={1000}
             rows={3}
