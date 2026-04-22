@@ -127,6 +127,8 @@ export function QueueFilters({
             <Input
               id={`${id}-technician`}
               label="Search technician"
+              labelHidden
+              placeholder="Enter technician name or email…"
               density="compact"
               maxLength={160}
               value={draft.technician ?? ""}

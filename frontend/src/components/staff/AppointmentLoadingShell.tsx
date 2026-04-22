@@ -13,9 +13,11 @@ const appointmentDetails = [
 export function AppointmentLoadingShell({
   label = "Loading appointment…",
   details = appointmentDetails,
+  showForm = false,
 }: {
   label?: string;
   details?: readonly string[];
+  showForm?: boolean;
 }) {
   return (
     <div>
@@ -30,7 +32,9 @@ export function AppointmentLoadingShell({
         <dl className={workbench.details}>
           {details.map((label) => (
             <div key={label}>
-              <dt>{label}</dt>
+              <dt>
+                <span className={`${styles.placeholder} ${styles.label}`} />
+              </dt>
               <dd>
                 <span
                   className={`${styles.placeholder} ${label === "Reference" ? styles.reference : styles.value}`}
@@ -39,6 +43,16 @@ export function AppointmentLoadingShell({
             </div>
           ))}
         </dl>
+        {showForm && (
+          <div className={`${workbench.protocol} ${styles.protocol}`}>
+            <span className={`${styles.placeholder} ${styles.heading}`} />
+            <span className={`${styles.placeholder} ${styles.value}`} />
+            <span className={`${styles.placeholder} ${styles.field}`} />
+            <span className={`${styles.placeholder} ${styles.value}`} />
+            <span className={`${styles.placeholder} ${styles.value}`} />
+            <span className={`${styles.placeholder} ${styles.action}`} />
+          </div>
+        )}
       </div>
     </div>
   );

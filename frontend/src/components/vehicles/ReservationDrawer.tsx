@@ -1,11 +1,12 @@
 "use client";
 
+import { ConfirmationButton } from "@/components/ui/ConfirmationButton";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Input";
 import { Dialog } from "@/components/ui/Dialog";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
-import { WorkshopLoadingShell } from "@/components/inspection/WorkshopLoadingShell";
+import { ReservationLoadingShell } from "./ReservationLoadingShell";
 import type { useStaffSelection } from "@/hooks/use-staff-selection";
 import { useReservationCancellation } from "@/hooks/use-reservation-cancellation";
 import type { CurrentActor } from "@/lib/auth/actor";
@@ -16,6 +17,7 @@ import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import workshop from "@/components/inspection/Workshop.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
+import styles from "./ReservationDrawer.module.css";
 
 export function ReservationDrawer({
   selection,
@@ -59,6 +61,7 @@ export function ReservationDrawer({
         width="wide"
         layout="workspace"
         title="Reservation details"
+        headerLoading={selection.busy && !detail}
         description={reservation ? `${reservation.vehicle} · ${reservation.branchName}` : undefined}
         onClose={close}
         closeDisabled={cancellation.locked}
@@ -71,7 +74,7 @@ export function ReservationDrawer({
           />
         }
       >
-        {selection.busy && !detail && <WorkshopLoadingShell label="Loading reservation…" />}
+        {selection.busy && !detail && <ReservationLoadingShell />}
         {!selection.busy && !detail && (
           <div className={workbench.protocol}>
             <p>The reservation is unavailable. Your table remains unchanged.</p>
@@ -100,8 +103,8 @@ export function ReservationDrawer({
                 </div>
               </div>
             </div>
-            <div className={workshop.body}>
-              <section className={workbench.stack}>
+            <div className={`${workshop.body} ${styles.body}`}>
+              <section className={`${workbench.stack} ${styles.section}`}>
                 <h3>Confirmed reservation</h3>
                 <dl className={workbench.details}>
                   {facts.map(([label, value]) => (
@@ -111,6 +114,8 @@ export function ReservationDrawer({
                     </div>
                   ))}
                 </dl>
+              </section>
+              <section className={`${workbench.stack} ${styles.section}`}>
                 <h3>Retained price</h3>
                 <dl className={workbench.details}>
                   {[
@@ -131,69 +136,75 @@ export function ReservationDrawer({
                   These are the confirmed reservation terms. Later listing edits do not change this
                   price. Insurance and optional warranty are excluded.
                 </p>
-                {release && (
-                  <section className={workbench.stack}>
-                    <h3>Simulated refund</h3>
-                    <dl className={workbench.details}>
+              </section>
+              {release && (
+                <section className={`${workbench.stack} ${styles.section}`}>
+                  <h3>Simulated refund</h3>
+                  <dl className={workbench.details}>
+                    <div>
+                      <dt>Refund reference</dt>
+                      <dd>{release.id}</dd>
+                    </div>
+                    <div>
+                      <dt>Refunded deposit</dt>
+                      <dd>{formatCurrency(release.refund)}</dd>
+                    </div>
+                    <div>
+                      <dt>Recorded</dt>
+                      <dd>{formatMalaysianDateTime(release.recordedAt)}</dd>
+                    </div>
+                    {release.reason && (
                       <div>
-                        <dt>Refund reference</dt>
-                        <dd>{release.id}</dd>
+                        <dt>Reason</dt>
+                        <dd>{release.reason}</dd>
                       </div>
-                      <div>
-                        <dt>Refunded deposit</dt>
-                        <dd>{formatCurrency(release.refund)}</dd>
-                      </div>
-                      <div>
-                        <dt>Recorded</dt>
-                        <dd>{formatMalaysianDateTime(release.recordedAt)}</dd>
-                      </div>
-                      {release.reason && (
-                        <div>
-                          <dt>Reason</dt>
-                          <dd>{release.reason}</dd>
-                        </div>
-                      )}
-                    </dl>
-                  </section>
-                )}
-                {(cancellation.actionable || cancellation.locked) && (
-                  <section className={workbench.stack}>
+                    )}
+                  </dl>
+                </section>
+              )}
+              {(cancellation.actionable || cancellation.locked) && (
+                <section className={`${workbench.stack} ${styles.section} ${styles.cancellation}`}>
+                  <div className={styles.cancellationIntro}>
                     <h3>Cancel reservation</h3>
                     <p>
                       Cancellation releases this hold and records a full simulated deposit refund.
                     </p>
-                    <Textarea
-                      label="Cancellation reason"
-                      required
-                      maxLength={1000}
-                      rows={3}
-                      value={cancellation.reason}
-                      disabled={cancellation.operating || !cancellation.actionable}
-                      aria-invalid={
-                        cancellation.validationAttempted &&
-                        !reservationCancellationReason(cancellation.reason)
-                      }
-                      onChange={(event) => cancellation.changeReason(event.target.value)}
-                    />
-                    {cancellation.command.uncertain && (
-                      <p>
-                        The cancellation is unconfirmed. Reconcile the same request before leaving.
-                        Refreshed details do not confirm this operation.
-                      </p>
-                    )}
-                    {cancellation.reason && (
-                      <Button
-                        size="compact"
-                        variant="secondary"
-                        disabled={cancellation.operating}
-                        onClick={cancellation.discard}
-                      >
-                        Discard cancellation reason
-                      </Button>
-                    )}
-                  </section>
-                )}
-              </section>
+                  </div>
+                  <Textarea
+                    label="Cancellation reason"
+                    labelHidden
+                    placeholder="Explain why this reservation is being cancelled"
+                    required
+                    maxLength={1000}
+                    rows={3}
+                    value={cancellation.reason}
+                    disabled={cancellation.operating || !cancellation.actionable}
+                    aria-invalid={
+                      cancellation.validationAttempted &&
+                      !reservationCancellationReason(cancellation.reason)
+                    }
+                    onChange={(event) => cancellation.changeReason(event.target.value)}
+                  />
+                  {cancellation.command.uncertain && (
+                    <p>
+                      The cancellation is unconfirmed. Reconcile the same request before leaving.
+                      Refreshed details do not confirm this operation.
+                    </p>
+                  )}
+                  {cancellation.reason && (
+                    <ConfirmationButton
+                      confirmationTitle="Discard cancellation reason?"
+                      message="Your unsaved cancellation reason will be cleared. The reservation will remain unchanged."
+                      size="compact"
+                      variant="secondary"
+                      disabled={cancellation.operating}
+                      onConfirm={cancellation.discard}
+                    >
+                      Discard cancellation reason
+                    </ConfirmationButton>
+                  )}
+                </section>
+              )}
             </div>
             <footer className={workbench.footer}>
               <div className={workbench.footerContext}>
@@ -201,26 +212,22 @@ export function ReservationDrawer({
                 <span>No real payment or refund is processed.</span>
               </div>
               {(cancellation.actionable || cancellation.command.uncertain) && (
-                <Button
+                <ConfirmationButton
+                  confirmationTitle="Cancel this reservation?"
+                  className={styles.cancelAction}
+                  message={`Release the hold for ${reservation.vehicle} and record a full simulated deposit refund of ${formatCurrency(detail.deposit)}. This cannot be undone.`}
+                  skipConfirmation={cancellation.command.uncertain}
                   size="compact"
                   variant="danger"
                   disabled={cancellation.command.busy}
                   aria-busy={cancellation.command.busy}
-                  onClick={() => void cancellation.cancel()}
+                  onConfirm={() => cancellation.cancel()}
                 >
                   {cancellation.command.uncertain
                     ? "Reconcile reservation cancellation"
                     : "Cancel reservation"}
-                </Button>
+                </ConfirmationButton>
               )}
-              <Button
-                size="compact"
-                variant="secondary"
-                disabled={cancellation.locked}
-                onClick={close}
-              >
-                Close details
-              </Button>
             </footer>
           </div>
         )}

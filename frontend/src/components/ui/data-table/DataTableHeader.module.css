@@ -2,7 +2,7 @@
   position: relative;
   padding: 4px 8px;
   color: var(--color-graphite);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   text-transform: none;
 }
@@ -20,12 +20,39 @@
 }
 
 .headerLabel {
-  flex: 0 1 auto;
+  flex: 0 0 auto;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
   text-align: inherit;
+}
+
+.minimumProbe {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: max-content;
+  visibility: hidden;
+  pointer-events: none;
+  font-size: inherit;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.minimumSort {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.minimumSortIcon {
+  flex: 0 0 14px;
+  width: 14px;
+}
+
+.minimumFilter {
+  flex: 0 0 var(--table-filter-control-width, 28px);
+  width: var(--table-filter-control-width, 28px);
 }
 
 .headerContent {
@@ -37,7 +64,7 @@
 }
 
 .headerContent > .headerLabel {
-  flex: 1 1 auto;
+  flex: 1 0 auto;
 }
 
 .header .sortButton {
@@ -125,9 +152,9 @@
 .resize::after {
   position: absolute;
   left: 5px;
-  top: 0;
+  top: 8px;
+  bottom: 8px;
   width: 2px;
-  height: 100%;
   background: color-mix(in srgb, var(--color-line) 80%, var(--color-muted));
   content: "";
 }

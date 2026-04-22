@@ -1,0 +1,117 @@
+.shell {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.line,
+.heading,
+.field,
+.description,
+.photo {
+  composes: placeholder from "../staff/AppointmentLoadingShell.module.css";
+}
+
+.status,
+.tabs,
+.toolbar,
+.footer {
+  display: flex;
+  flex-shrink: 0;
+  gap: 24px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--color-line-soft);
+}
+
+.line {
+  width: 96px;
+  height: 14px;
+}
+
+.split {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(280px, 0.95fr) minmax(0, 1.6fr);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.split[data-card] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.split[data-card] .fields {
+  display: none;
+}
+
+.fields,
+.preview,
+.records {
+  display: grid;
+  align-content: start;
+  gap: 24px;
+  min-width: 0;
+  padding: 24px;
+}
+
+.fields {
+  border-right: 1px solid var(--color-line-soft);
+}
+
+.heading {
+  width: 60%;
+  height: 22px;
+}
+
+.field {
+  height: 40px;
+}
+
+.description {
+  height: 112px;
+}
+
+.photo {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+}
+
+.split[data-card] .preview {
+  max-width: 380px;
+}
+
+.footer {
+  margin-top: auto;
+  border-top: 1px solid var(--color-line-soft);
+  border-bottom: 0;
+}
+
+@media (max-width: 820px) {
+  .split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .preview {
+    display: none;
+  }
+
+  .split[data-card] .fields {
+    display: none;
+  }
+
+  .split[data-card] .preview {
+    display: grid;
+  }
+
+  .fields,
+  .preview,
+  .records,
+  .status,
+  .tabs,
+  .toolbar,
+  .footer {
+    padding: 16px;
+  }
+}

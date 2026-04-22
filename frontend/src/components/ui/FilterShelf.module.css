@@ -1,5 +1,8 @@
 .shelf {
-  width: min(360px, calc(100vw - 32px));
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  width: min(320px, calc(100vw - 24px));
   max-height: calc(100dvh - 32px);
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -9,9 +12,14 @@
   background: var(--color-paper);
   color: var(--color-graphite);
   font-size: 13px;
+  font-family: var(--font-sans);
   font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: normal;
+  text-transform: none;
   text-align: left;
   white-space: normal;
+  box-shadow: 0 6px 16px rgb(14 27 42 / 10%);
 }
 
 .shelf:popover-open {
@@ -20,16 +28,58 @@
 
 .title {
   margin: 0 0 12px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
 }
 
-@supports (position-area: bottom) {
-  .shelf {
-    inset: auto;
-    margin: 8px 0 0;
-    position-area: bottom span-right;
-    position-try-fallbacks: flip-inline, flip-block;
+.shelf label {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.shelf input:not([type="radio"]):not([type="checkbox"]),
+.shelf select {
+  min-width: 0;
+  width: 100%;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.shelf [role="radiogroup"] {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+}
+
+.shelf [role="radiogroup"] > label {
+  min-height: 32px;
+  padding: 6px 8px;
+  border-color: transparent;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.shelf [role="radiogroup"] > label:has(input:checked) {
+  background: var(--color-selected-surface, var(--color-canvas));
+  color: var(--color-graphite);
+  font-weight: 600;
+}
+
+.shelf [role="radiogroup"] > label:hover:not(:has(input:disabled)) {
+  border-color: transparent;
+  background: var(--color-canvas);
+}
+
+@media (max-width: 820px) {
+  .shelf input:not([type="radio"]):not([type="checkbox"]),
+  .shelf select {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .shelf [role="radiogroup"] > label {
+    min-height: 44px;
   }
 }
 

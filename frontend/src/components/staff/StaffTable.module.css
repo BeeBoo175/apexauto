@@ -34,7 +34,7 @@
 .status,
 .event {
   --status-padding: 1px 6px;
-  --status-radius: 4px;
+  --status-radius: 999px;
   --status-outline: color-mix(in srgb, var(--status-border) 45%, var(--status-background));
   --status-font-weight: 500;
   flex-shrink: 0;
@@ -42,7 +42,7 @@
 
 .status {
   --status-min-height: 22px;
-  --status-font-size: 13px;
+  --status-font-size: 12px;
   --status-line-height: 18px;
 }
 

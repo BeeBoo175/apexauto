@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
-import { WorkshopLoadingShell } from "@/components/inspection/WorkshopLoadingShell";
+import { ListingLoadingShell } from "./ListingLoadingShell";
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import type { useStaffSelection } from "@/hooks/use-staff-selection";
 import type { ListingWorkspace } from "@/lib/vehicles/listing-workspace";
@@ -91,6 +91,7 @@ export function ListingDrawer({
         width="wide"
         layout="workspace"
         title={vehicle?.registrationPlate ?? "Listing"}
+        headerLoading={selection.busy && !snapshot}
         description={
           vehicle ? `${vehicle.make} ${vehicle.model} · ${vehicle.branchName}` : undefined
         }
@@ -105,7 +106,7 @@ export function ListingDrawer({
           />
         }
       >
-        {selection.busy && !snapshot && <WorkshopLoadingShell label="Loading listing…" />}
+        {selection.busy && !snapshot && <ListingLoadingShell section={section} />}
         {!selection.busy && !snapshot && (
           <div className={workbench.protocol}>
             <p>The listing is unavailable. Your table remains unchanged.</p>

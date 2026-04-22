@@ -53,6 +53,13 @@ export function DataTableHeader<Row>({
       className={styles.header}
       aria-sort={sortable ? direction : undefined}
     >
+      <span className={styles.minimumProbe} data-header-minimum aria-hidden="true">
+        <span className={styles.minimumSort}>
+          <span>{column.label}</span>
+          {sortable && <span className={styles.minimumSortIcon} />}
+        </span>
+        {column.filter && <span className={styles.minimumFilter} />}
+      </span>
       <div className={styles.headerContent}>
         {sortable ? (
           <Button

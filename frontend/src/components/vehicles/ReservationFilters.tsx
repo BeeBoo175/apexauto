@@ -79,7 +79,7 @@ export function ReservationFilters({
             state.snapshot?.items.find((row) => row.branchId === draft.branchId)?.branchName
           }
           disabled={state.busy}
-          labelHidden={false}
+          labelHidden
           onChange={(branchId) => setDraft({ ...draft, branchId })}
           onPage={(page) => void state.loadBranches(page)}
         />

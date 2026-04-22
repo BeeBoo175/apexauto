@@ -33,6 +33,7 @@ export function InspectionDrawer({
         width="wide"
         layout="workspace"
         title={vehicle?.registrationPlate ?? "Workshop"}
+        headerLoading={selection.busy && !selection.result?.data}
         description={
           vehicle ? `${vehicle.make} ${vehicle.model} · ${vehicle.branchName}` : undefined
         }
@@ -40,7 +41,9 @@ export function InspectionDrawer({
         closeDisabled={selection.locked}
         onClose={selection.close}
       >
-        {selection.busy && !selection.result?.data && <WorkshopLoadingShell />}
+        {selection.busy && !selection.result?.data && (
+          <WorkshopLoadingShell section={selection.section} />
+        )}
         {selection.result?.data && (
           <InspectionEditor
             key={selection.id}

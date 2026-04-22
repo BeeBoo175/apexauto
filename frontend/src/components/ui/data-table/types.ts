@@ -12,7 +12,7 @@ export interface DataColumn<Row> {
   sortable?: boolean;
   /** Preferred width in pixels, used proportionally as the container changes. */
   width?: number;
-  /** Smallest readable width; the table scrolls when these no longer fit. */
+  /** Optional content floor; the full header and controls always set the default minimum. */
   minWidth?: number;
   align?: "left" | "right";
   filter?: TableColumnFilter;

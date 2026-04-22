@@ -97,6 +97,7 @@ export function MoneyRangeFilter({
         <Input
           id={`${id}-min`}
           label="Minimum (MYR)"
+          placeholder="No minimum"
           density="compact"
           inputMode="decimal"
           value={lower}
@@ -106,6 +107,7 @@ export function MoneyRangeFilter({
         <Input
           id={`${id}-max`}
           label="Maximum (MYR)"
+          placeholder="No maximum"
           density="compact"
           inputMode="decimal"
           value={upper}
@@ -167,7 +169,7 @@ export function DateRangeFilter({
           onChange={(event) => setLast(event.target.value)}
         />
       </div>
-      <p>Inclusive Malaysian dates, up to 366 days.</p>
+      <p className={styles.help}>Malaysia time · inclusive dates</p>
       {error && (
         <p role="alert" className={styles.error}>
           {error}
@@ -195,6 +197,8 @@ export function TextColumnFilter({
       <Input
         id={id}
         label={label}
+        labelHidden
+        placeholder={`Enter ${label.toLowerCase().replace(/ contains$/, "")}…`}
         density="compact"
         maxLength={160}
         value={draft}

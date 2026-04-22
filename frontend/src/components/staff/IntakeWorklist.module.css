@@ -3,6 +3,9 @@
   flex: 1;
   flex-direction: column;
   min-height: 0;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
 }
 
 .body {
@@ -12,6 +15,7 @@
   gap: 12px;
   min-height: 0;
   min-width: 0;
+  max-width: 100%;
   background: var(--color-paper);
 }
 

@@ -142,6 +142,7 @@ export function ListingTable({
                 <>
                   <StaffQueueTabs
                     label="Listing queues"
+                    mobilePresentation="select"
                     tabs={listingPublicationOptions}
                     value={active.filters.publication ?? ""}
                     disabled={state.busy}

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useEffect, useId, useLayoutEffect, useRef } from "react";
 import { useColumnResize } from "@/hooks/use-column-resize";
+import { useTableColumnSizing } from "@/hooks/use-table-column-sizing";
 import { columnLayout } from "@/lib/column-resize";
 import { DataTableHeader } from "./DataTableHeader";
 import { DataTablePagination } from "./DataTablePagination";
@@ -11,6 +12,7 @@ import styles from "./DataTable.module.css";
 
 export function DataTable<Row>(props: DataTableProps<Row>) {
   const { rows, rowId, columns, selection, disabled } = props;
+  const tableId = useId();
   const checkbox = useRef<HTMLInputElement>(null);
   const table = useRef<HTMLTableElement>(null);
   const confirmedPage = useRef(props.page);
@@ -32,8 +34,9 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
       scroller.scrollIntoView({ block: "start", inline: "nearest", behavior: "instant" });
     }
   }, [props.page]);
-  const { columnWidths, handleResizeStart } = useColumnResize(columns);
-  const layout = columnLayout(columns, columnWidths, Boolean(selection));
+  const sizing = useTableColumnSizing(table, columns, Boolean(props.sorting));
+  const { columnWidths, handleResizeStart } = useColumnResize(sizing);
+  const layout = columnLayout(sizing, columnWidths, Boolean(selection));
   const selectedCount = rows.filter((row) => selection?.ids.has(rowId(row))).length;
   const all = rows.length > 0 && selectedCount === rows.length;
   const emptyState =
@@ -70,7 +73,12 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
   return (
     <section className={`${styles.workspace} ${styles.fillHeight}`} aria-label={props.label}>
       {props.toolbar}
-      <div className={`${styles.scroll} ${rows.length === 0 ? styles.emptyScroll : ""}`}>
+      <div
+        className={`${styles.scroll} ${rows.length === 0 ? styles.emptyScroll : ""}`}
+        role="region"
+        aria-label={`${props.label} records`}
+        tabIndex={0}
+      >
         <table ref={table} className={styles.table} style={layout}>
           <caption className="sr-only">{props.label}</caption>
           <thead>
@@ -80,6 +88,7 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
                   <label className={styles.selectionControl}>
                     <span className="sr-only">Select all loaded rows</span>
                     <input
+                      id={`${tableId}-select-all`}
                       ref={checkbox}
                       type="checkbox"
                       disabled={disabled || rows.length === 0}
@@ -155,6 +164,7 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
                     <label className={styles.selectionControl}>
                       <span className="sr-only">Select {rowId(row)}</span>
                       <input
+                        id={`${tableId}-select-${rowId(row)}`}
                         type="checkbox"
                         checked={selection.ids.has(rowId(row))}
                         disabled={disabled}

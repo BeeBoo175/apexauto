@@ -1,6 +1,6 @@
 .form {
   display: grid;
-  gap: 16px;
+  gap: 12px;
   font-size: 13px;
   font-weight: 400;
   text-align: left;
@@ -11,6 +11,13 @@
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-line-soft);
+}
+
+.actions button {
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .range {
@@ -22,4 +29,16 @@
 .error {
   color: var(--color-signal);
   line-height: 1.5;
+}
+
+.help {
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+@media (max-width: 400px) {
+  .range {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

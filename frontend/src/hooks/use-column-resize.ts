@@ -5,12 +5,13 @@ import { resizeColumnWidths } from "@/lib/column-resize";
 import type { ResizeColumn } from "@/lib/column-resize";
 
 export function useColumnResize(columns: readonly ResizeColumn[]) {
-  const signature = JSON.stringify(columns.map(({ id, width, minWidth }) => [id, width, minWidth]));
+  const signature = JSON.stringify(columns.map(({ id, width }) => [id, width]));
+  const constraints = JSON.stringify(columns.map(({ id, minWidth }) => [id, minWidth]));
   const [snapshot, setSnapshot] = useState({ signature, widths: {} as Record<string, number> });
   const columnWidths = snapshot.signature === signature ? snapshot.widths : {};
   const cleanup = useRef<(() => void) | null>(null);
 
-  useEffect(() => () => cleanup.current?.(), [signature]);
+  useEffect(() => () => cleanup.current?.(), [signature, constraints]);
 
   function handleResizeStart(divider: number, event: ReactPointerEvent<HTMLDivElement>) {
     const headers = event.currentTarget

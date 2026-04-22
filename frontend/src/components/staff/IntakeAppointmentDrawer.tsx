@@ -24,11 +24,13 @@ export function IntakeAppointmentDrawer({
       variant="drawer"
       density="compact"
       title="Intake appointment"
+      headerLoading={drawer.busy}
+      descriptionPlaceholder={false}
       headerActions={<DialogActionSlot ref={setHeaderActions} />}
       onClose={drawer.close}
       closeDisabled={drawer.locked}
     >
-      {drawer.busy && <AppointmentLoadingShell />}
+      {drawer.busy && <AppointmentLoadingShell showForm={actor.role !== "GeneralManager"} />}
       {!drawer.busy && drawer.result && (
         <AppointmentWorkbench
           key={drawer.id}
