@@ -17,7 +17,7 @@ export function AccountWorkspace({
   page,
 }: {
   account: CustomerAccount;
-  history: ApiResult<Page<Appointment>>;
+  history: ApiResult<Page<Appointment>> | null;
   filters: HistoryFilters;
   page: number;
 }) {
@@ -37,7 +37,11 @@ export function AccountWorkspace({
             </a>
           </Card>
         </aside>
-        <AppointmentHistory initial={history} filters={filters} page={page} ready={actor.ready} />
+        {history ? (
+          <AppointmentHistory initial={history} filters={filters} page={page} ready={actor.ready} />
+        ) : (
+          <p>Verify your email to view your appointment history.</p>
+        )}
       </div>
     </section>
   );

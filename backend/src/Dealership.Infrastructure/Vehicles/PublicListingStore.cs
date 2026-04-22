@@ -78,6 +78,7 @@ public sealed class PublicListingStore(DealershipDbContext database) : IPublicLi
             row.Revision.RoadTax,
             row.Revision.Description,
             row.Revision.PhotoIds,
+            PublicationId = row.Publication.Id,
             row.Publication.SignedRevisionId
         }).SingleAsync(cancellationToken);
         var signed = await database.InspectionSignedRevisions.AsNoTracking()
@@ -91,7 +92,7 @@ public sealed class PublicListingStore(DealershipDbContext database) : IPublicLi
         var price = PurchasePricing.CalculatePrice(item.VehiclePrice, settings.ProcessingFee,
             details.RoadTax, settings.SstRate);
         return new(ListingStatus.Succeeded, new(item, details.RoadTax, details.Description,
-            Array.AsReadOnly(details.PhotoIds), checklist, price, settings.SstRate));
+            Array.AsReadOnly(details.PhotoIds), checklist, price, settings.SstRate, details.PublicationId));
     }
 
     private static IQueryable<PublicListingRow> Filter(IQueryable<PublicListingRow> rows, PublicListingFilter filter)

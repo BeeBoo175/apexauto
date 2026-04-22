@@ -81,6 +81,8 @@ export function safeReturnTo(value: unknown): string {
     destination.origin !== "https://local.invalid" ||
     !(
       ["/account", "/sell", "/dashboard", "/dashboard/intake"].includes(destination.pathname) ||
+      (destination.pathname.startsWith("/vehicles/") &&
+        isUuid(destination.pathname.slice("/vehicles/".length))) ||
       /^\/dashboard\/intake\/[0-9a-f-]{36}$/i.test(destination.pathname)
     )
   ) {

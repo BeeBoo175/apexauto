@@ -12,6 +12,8 @@ import type { ApiResult } from "@/lib/api";
 import { formatCurrency } from "@/lib/currency-format";
 import { label } from "@/lib/inspection/contracts";
 import type { PublicVehicleDetail } from "@/lib/vehicles/public-detail";
+import type { ReservationAccess } from "@/lib/vehicles/customer-reservation";
+import { VehicleReservation } from "./VehicleReservation";
 import { VehicleDetailView } from "./VehicleDetailView";
 import { VehicleDetailSections } from "./VehicleDetailSections";
 import { VehiclePurchaseSummary } from "./VehiclePurchaseSummary";
@@ -26,9 +28,11 @@ import layout from "./VehicleLayout.module.css";
 export function VehicleDetail({
   id,
   initial,
+  reservationAccess,
 }: {
   id: string;
   initial: ApiResult<PublicVehicleDetail>;
+  reservationAccess: ReservationAccess;
 }) {
   const snapshot = initial.data;
   const unavailable = initial.status === 404;
@@ -99,7 +103,17 @@ export function VehicleDetail({
                   : []),
               ]}
               financing={
-                <Button onClick={() => tabs.select("financing")}>Calculate financing</Button>
+                <VehicleReservation
+                  detail={snapshot}
+                  access={reservationAccess}
+                  promo={promo.accepted}
+                  promoBusy={promo.busy}
+                  financing={
+                    <Button variant="secondary" onClick={() => tabs.select("financing")}>
+                      Calculate financing
+                    </Button>
+                  }
+                />
               }
             />
           }

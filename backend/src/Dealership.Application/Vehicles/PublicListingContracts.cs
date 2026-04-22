@@ -39,7 +39,8 @@ public sealed record PublicChecklist(string CatalogVersion, InspectionGrade? Gra
     IReadOnlyList<PublicChecklistPoint> Points);
 
 public sealed record PublicListingDetail(PublicListingItem Listing, decimal RoadTax, string Description,
-    IReadOnlyList<Guid> PhotoIds, PublicChecklist Checklist, PurchasePrice Price, decimal SstRate);
+    IReadOnlyList<Guid> PhotoIds, PublicChecklist Checklist, PurchasePrice Price, decimal SstRate,
+    Guid PublicationId);
 
 public sealed record PublicListingPageResult(ListingStatus Status, PublicListingPage? Catalogue = null);
 

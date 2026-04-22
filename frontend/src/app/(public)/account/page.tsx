@@ -35,10 +35,11 @@ export default async function AccountPage({
   }
 
   const { filters, page } = historyParams(await searchParams);
-  const history = await privateApiRead(
-    `/api/intake/appointments?${historyQuery(filters, page)}`,
-    (value) => parsePage(value, parseAppointment),
-  );
+  const history = response.account.emailVerified
+    ? await privateApiRead(`/api/intake/appointments?${historyQuery(filters, page)}`, (value) =>
+        parsePage(value, parseAppointment),
+      )
+    : null;
   return (
     <AccountWorkspace
       key={response.account.userId}

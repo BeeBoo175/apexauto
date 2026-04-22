@@ -3,6 +3,12 @@ import { parsePublicDetail } from "@/lib/vehicles/public-detail";
 import { parseCatalogue } from "@/lib/vehicles/parse";
 import { parsePurchasePrice } from "@/lib/vehicles/purchase-quote";
 import { vehicleDetailSectionHref } from "@/lib/vehicles/query";
+import { safeReturnTo } from "@/lib/auth/contracts";
+import {
+  matchesCustomerReservation,
+  parseCustomerReservation,
+  parseCustomerReservationRequest,
+} from "@/lib/vehicles/customer-reservation";
 
 const id = "47cf2705-95cc-48b6-b907-64bf18dd87da";
 const photoId = "2f35e1b2-602b-43dc-8c5f-4085893b0ea8";
@@ -42,6 +48,7 @@ const price = {
   total: 45630,
 };
 const raw = {
+  publicationId: photoId,
   listing,
   roadTax: 90,
   description: "Approved showroom description",
@@ -71,6 +78,8 @@ test("public detail retains itemized approved terms while discarding private rep
 
 test("public detail rejects inconsistent price, photo identity and signed checklist projections", () => {
   for (const changed of [
+    { publicationId: undefined },
+    { publicationId: "invalid" },
     { price: { ...price, total: price.total + 1 } },
     { price: { ...price, vehiclePrice: price.vehiclePrice + 1, total: price.total + 1 } },
     { price: { ...price, roadTax: 91, total: price.total + 1 } },
@@ -91,6 +100,71 @@ test("public detail rejects inconsistent price, photo identity and signed checkl
     parsePublicDetail({ ...raw, checklist: { ...raw.checklist, points: [finding] } })?.checklist
       .points[0].severity,
   ).toBe("Advisory");
+});
+
+test("reservation confirmations bind exact operation, vehicle, publication, promo and buyer while omitting private identity fields", () => {
+  const body = { operationId: id, publicationId: photoId, promoId: null };
+  const receipt = {
+    id,
+    vehicleId: photoId,
+    branchId: id,
+    publicationId: photoId,
+    buyer: {
+      legalName: "Nur Aina",
+      email: "customer@example.invalid",
+      nric: "private",
+      mobile: "private",
+    },
+    promoId: null,
+    promoCode: null,
+    price,
+    deposit: 500,
+    createdAt: "2026-10-30T00:00:00Z",
+    expiresAt: "2026-11-01T00:00:00Z",
+  };
+  const parsed = parseCustomerReservation(receipt)!;
+  expect(parsed).not.toBeNull();
+  expect(JSON.stringify(parsed)).not.toMatch(/private|nric|mobile/);
+  expect(parseCustomerReservation(parsed)).toEqual(parsed);
+  expect(matchesCustomerReservation(parsed, body, photoId, id, receipt.buyer.email)).toBe(true);
+  for (const changed of [{ operationId: photoId }, { publicationId: id }, { promoId: id }]) {
+    expect(
+      matchesCustomerReservation(parsed, { ...body, ...changed }, photoId, id, receipt.buyer.email),
+    ).toBe(false);
+  }
+  expect(matchesCustomerReservation(parsed, body, id, id, receipt.buyer.email)).toBe(false);
+  expect(matchesCustomerReservation(parsed, body, photoId, photoId, receipt.buyer.email)).toBe(
+    false,
+  );
+  expect(matchesCustomerReservation(parsed, body, photoId, id, "other@example.invalid")).toBe(
+    false,
+  );
+  for (const changed of [
+    { deposit: 0 },
+    { expiresAt: "2026-11-01T00:00:01Z" },
+    { createdAt: "2026-10-30T00:00:00" },
+    { price: { ...price, total: price.total + 1 } },
+    { promoId: undefined },
+    { promoCode: "unexpected" },
+    { buyer: { legalName: "", email: receipt.buyer.email } },
+  ]) {
+    expect(parseCustomerReservation({ ...receipt, ...changed })).toBeNull();
+  }
+  expect(parseCustomerReservationRequest({ ...body, customerId: photoId })).toEqual(body);
+  expect(parseCustomerReservationRequest({ ...body, operationId: "invalid" })).toBeNull();
+});
+
+test("login returns accept implemented vehicle details and reject arbitrary routes or external destinations", () => {
+  expect(safeReturnTo(`/vehicles/${id}`)).toBe(`/vehicles/${id}`);
+  for (const destination of [
+    "//example.invalid",
+    "/vehicles/not-an-id",
+    `/vehicles/${id}/reservations`,
+    "/vehicles",
+    "https://example.invalid",
+  ]) {
+    expect(safeReturnTo(destination)).toBe("/account");
+  }
 });
 
 test("catalogue and purchase projections agree on exact MYR precision", () => {

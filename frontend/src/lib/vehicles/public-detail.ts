@@ -14,6 +14,7 @@ type ChecklistPoint = Point & {
 };
 
 export interface PublicVehicleDetail {
+  publicationId: string;
   listing: PublicVehicle;
   roadTax: number;
   description: string;
@@ -46,7 +47,12 @@ function parseChecklistPoint(value: unknown): ChecklistPoint | null {
 }
 
 export function parsePublicDetail(value: unknown, expectedId?: string): PublicVehicleDetail | null {
-  if (!isRecord(value) || !isRecord(value.price) || !isRecord(value.checklist)) {
+  if (
+    !isRecord(value) ||
+    !isUuid(value.publicationId) ||
+    !isRecord(value.price) ||
+    !isRecord(value.checklist)
+  ) {
     return null;
   }
   const listing = parsePublicVehicle(value.listing);
@@ -84,6 +90,7 @@ export function parsePublicDetail(value: unknown, expectedId?: string): PublicVe
     return null;
   }
   return {
+    publicationId: value.publicationId,
     listing,
     roadTax: value.roadTax,
     description: value.description,

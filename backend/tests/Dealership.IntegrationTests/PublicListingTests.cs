@@ -79,6 +79,8 @@ public sealed class PublicListingTests(IntakePhotoFixture fixture) : IClassFixtu
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.True(response.Headers.CacheControl!.NoStore);
         var detail = (await response.Content.ReadFromJsonAsync<PublicListingDetail>())!;
+        Assert.Equal(await database.ListingPublications.Where(row => row.VehicleId == first.VehicleId)
+            .Select(row => row.Id).SingleAsync(), detail.PublicationId);
         Assert.Equal(210, detail.Checklist.Points.Count);
         Assert.Equal(first.Draft.PhotoIds, detail.PhotoIds);
         Assert.Equal(first.Draft.PhotoIds[0], detail.Listing.CoverPhotoId);

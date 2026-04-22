@@ -1,0 +1,50 @@
+.reservation,
+.receipt {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.reservation p,
+.receipt p,
+.help {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+}
+
+.receipt h2 {
+  margin: 0;
+  font-size: 1.125rem;
+}
+
+.receipt dl {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.receipt dl > div {
+  display: grid;
+  gap: 4px;
+}
+
+.receipt dt {
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+.receipt dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}

@@ -53,6 +53,17 @@
     border-color: var(--color-line);
   }
 
+  .muted {
+    background: color-mix(in srgb, var(--color-graphite) 70%, var(--color-paper));
+    color: var(--color-paper);
+    border-color: transparent;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: normal;
+    text-transform: none;
+    text-decoration: none;
+  }
+
   .danger {
     background: var(--color-signal-dark);
     color: var(--color-paper);
@@ -195,6 +206,10 @@
     .secondary:hover,
     .ghost:hover {
       background: var(--color-canvas);
+    }
+
+    .muted:hover {
+      background: color-mix(in srgb, var(--color-graphite) 82%, var(--color-paper));
     }
 
     .danger:hover {

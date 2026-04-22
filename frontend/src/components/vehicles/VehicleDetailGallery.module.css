@@ -109,6 +109,19 @@
     align-content: stretch;
   }
 
+  .thumbnails {
+    /* Match the two 44px actions and 12px gap, preserving the focus-ring inset. */
+    height: 106px;
+    margin-block: -3px;
+    box-sizing: border-box;
+  }
+
+  .thumbnail {
+    max-width: none;
+    height: 100%;
+    aspect-ratio: auto;
+  }
+
   .selected {
     position: relative;
     min-height: 400px;
