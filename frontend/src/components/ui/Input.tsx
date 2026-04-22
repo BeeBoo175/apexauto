@@ -10,7 +10,8 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ label, labelHidden = false, density = "default", className = "", id, ...props }, ref) => {
-    const inputId = id || (label ? label.toLowerCase().replace(/\s+/g, "-") : undefined);
+    const generatedId = React.useId();
+    const inputId = id ?? generatedId;
 
     return (
       <div className={styles.field}>
@@ -101,14 +102,21 @@ export function Select({
 
 export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   label: string;
+  labelHidden?: boolean;
 }
 
-export function Textarea({ label, id, className = "", ...props }: TextareaProps) {
+export function Textarea({
+  label,
+  labelHidden = false,
+  id,
+  className = "",
+  ...props
+}: TextareaProps) {
   const generatedId = React.useId();
   const inputId = id ?? generatedId;
   return (
     <div className={styles.field}>
-      <label htmlFor={inputId} className={styles.label}>
+      <label htmlFor={inputId} className={labelHidden ? "sr-only" : styles.label}>
         {label}
       </label>
       <textarea

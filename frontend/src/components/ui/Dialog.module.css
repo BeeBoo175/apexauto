@@ -56,6 +56,19 @@
 
   .header > div:first-child {
     min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .descriptionSkeleton {
+    width: min(240px, 85%);
+    height: 14px;
+    margin-top: 6px;
+  }
+
+  .actionSkeleton {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
   }
 
   .title {
@@ -97,23 +110,23 @@
     padding: 0;
   }
 
-  .drawer .header {
+  .drawer > .header {
     flex-shrink: 0;
     margin: 0;
     padding: 20px 24px;
   }
 
-  .drawer .description {
+  .drawer > .header .description {
     margin-top: 4px;
     font-size: 12px;
     line-height: 18px;
   }
 
-  .drawer:not(.workspace) .content {
+  .drawer:not(.workspace) > .content {
     padding: 20px 24px;
   }
 
-  .workspace .content {
+  .workspace > .content {
     display: flex;
     flex: 1 1 auto;
     flex-direction: column;
@@ -121,9 +134,66 @@
   }
 
   @media (max-width: 600px) {
-    .drawer .header,
-    .drawer:not(.workspace) .content {
+    .drawer > .header,
+    .drawer:not(.workspace) > .content {
       padding: 16px;
     }
+  }
+
+  @media (max-width: 820px) {
+    .actionSkeleton {
+      width: 44px;
+      height: 44px;
+    }
+  }
+}
+
+.descriptionSkeleton {
+  composes: placeholder from "../staff/AppointmentLoadingShell.module.css";
+}
+
+.actionSkeleton {
+  composes: placeholder from "../staff/AppointmentLoadingShell.module.css";
+}
+
+/* Confirmation geometry must not inherit layered drawer or compact-dialog rules. */
+.dialog.compact.confirmation {
+  padding: 24px;
+  max-width: 460px;
+  border-radius: 8px;
+}
+
+.confirmation > .header {
+  display: block;
+  margin: 0 0 16px;
+  padding: 0;
+  border: 0;
+  text-align: left;
+}
+
+.confirmation > .header > div {
+  margin: 0;
+  padding: 0;
+}
+
+.confirmation > .header .title {
+  margin: 0;
+  padding: 0;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 28px;
+  letter-spacing: -0.02em;
+}
+
+.confirmation > .content {
+  display: block;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+
+@media (max-width: 600px) {
+  .dialog.compact.confirmation {
+    padding: 20px;
   }
 }

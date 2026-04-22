@@ -1,26 +1,15 @@
 import { Button, type ButtonProps } from "./Button";
+import { Icon } from "./Icon";
 
 export function CloseButton({
   label = "Close dialog",
-  size = "compact",
-  disabled = false,
-  onClick,
-}: {
+  ...props
+}: Omit<ButtonProps, "children" | "size"> & {
   label?: string;
-  size?: "compact" | "md";
-  disabled?: boolean;
-  onClick: ButtonProps["onClick"];
 }) {
   return (
-    <Button
-      type="button"
-      variant="ghost"
-      size={size}
-      aria-label={label}
-      disabled={disabled}
-      onClick={onClick}
-    >
-      Close
+    <Button type="button" variant="ghost" {...props} size="icon" aria-label={label} title={label}>
+      <Icon name="close" />
     </Button>
   );
 }

@@ -10,8 +10,12 @@ export interface DialogProps {
   title: string;
   description?: string;
   headerActions?: React.ReactNode;
+  headerLoading?: boolean;
+  descriptionPlaceholder?: boolean;
   children: React.ReactNode;
   closeDisabled?: boolean;
+  showCloseButton?: boolean;
+  appearance?: "default" | "confirmation";
   variant?: "dialog" | "drawer";
   density?: "default" | "compact";
   width?: "default" | "wide";
@@ -28,8 +32,12 @@ export const Dialog: React.FC<DialogProps> = ({
   title,
   description,
   headerActions,
+  headerLoading = false,
+  descriptionPlaceholder = true,
   children,
   closeDisabled = false,
+  showCloseButton = true,
+  appearance = "default",
   variant = "dialog",
   density = "default",
   width = "default",
@@ -84,7 +92,7 @@ export const Dialog: React.FC<DialogProps> = ({
     <dialog
       ref={element}
       aria-labelledby={titleId}
-      aria-describedby={description ? descriptionId : undefined}
+      aria-describedby={!headerLoading && description ? descriptionId : undefined}
       onCancel={(event) => {
         event.preventDefault();
         if (!closeDisabled) {
@@ -111,27 +119,38 @@ export const Dialog: React.FC<DialogProps> = ({
           last?.focus();
         }
       }}
-      className={`${styles.surface} ${styles[variant]} ${density === "compact" ? styles.compact : ""} ${width === "wide" ? styles.wide : ""} ${layout === "workspace" ? styles.workspace : ""}`}
+      className={`${styles.surface} ${styles[variant]} ${density === "compact" ? styles.compact : ""} ${width === "wide" ? styles.wide : ""} ${layout === "workspace" ? styles.workspace : ""} ${appearance === "confirmation" ? styles.confirmation : ""}`}
     >
       <div className={styles.header}>
         <div>
           <h2 id={titleId} className={styles.title}>
             {title}
           </h2>
-          {description && (
+          {headerLoading && descriptionPlaceholder && (
+            <span className={styles.descriptionSkeleton} aria-hidden="true" />
+          )}
+          {!headerLoading && description && (
             <p id={descriptionId} className={styles.description}>
               {description}
             </p>
           )}
         </div>
-        <div className={styles.actions}>
-          {headerActions}
-          <CloseButton
-            size={variant === "drawer" || density === "compact" ? "compact" : "md"}
-            onClick={onClose}
-            disabled={closeDisabled}
-          />
-        </div>
+        {(headerActions || headerLoading || showCloseButton) && (
+          <div className={styles.actions}>
+            {headerLoading ? (
+              <span className={styles.actionSkeleton} aria-hidden="true" />
+            ) : (
+              headerActions
+            )}
+            {showCloseButton && (
+              <CloseButton
+                label={variant === "drawer" ? "Close drawer" : "Close dialog"}
+                onClick={onClose}
+                disabled={closeDisabled}
+              />
+            )}
+          </div>
+        )}
       </div>
       <div className={styles.content}>{children}</div>
     </dialog>

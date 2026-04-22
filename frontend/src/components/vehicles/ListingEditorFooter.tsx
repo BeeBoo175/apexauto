@@ -1,3 +1,4 @@
+import { ConfirmationButton } from "@/components/ui/ConfirmationButton";
 import { Button } from "@/components/ui/Button";
 import { StaffWorkspaceFooter } from "@/components/staff/StaffWorkspaceFooter";
 import type { useListingEditor } from "@/hooks/use-listing-editor";
@@ -53,35 +54,43 @@ export function ListingEditorFooter({
             {editor.command.uncertain ? "Reconcile draft save" : "Save draft"}
           </Button>
           {(editor.dirty || editor.stale) && (
-            <Button
+            <ConfirmationButton
+              confirmationTitle="Discard listing changes?"
+              message="Your unsaved listing edits will be replaced with the latest saved draft."
               size="compact"
               variant="secondary"
               disabled={editor.operating}
-              onClick={editor.discard}
+              onConfirm={editor.discard}
             >
               Discard changes
-            </Button>
+            </ConfirmationButton>
           )}
         </>
       )}
       {approvalAction && (
-        <Button
+        <ConfirmationButton
+          confirmationTitle={republishing ? "Republish this listing?" : "Approve publication?"}
+          message="The saved listing details and approved price will become publicly available."
+          skipConfirmation={editor.approval.uncertain}
           size="compact"
           disabled={editor.approval.busy || (!editor.approval.uncertain && !editor.canApprove)}
-          onClick={() => void editor.approve()}
+          onConfirm={() => editor.approve()}
         >
           {approvalLabel}
-        </Button>
+        </ConfirmationButton>
       )}
       {withdrawalAction && (
-        <Button
+        <ConfirmationButton
+          confirmationTitle="Withdraw this listing?"
+          message="This immediately removes the listing. Any active unconverted hold will be cancelled with a full simulated deposit refund."
+          skipConfirmation={editor.withdrawal.uncertain}
           size="compact"
           variant="danger"
           disabled={editor.withdrawal.busy || (!editor.withdrawal.uncertain && !editor.canWithdraw)}
-          onClick={() => void editor.withdraw()}
+          onConfirm={() => editor.withdraw()}
         >
           {editor.withdrawal.uncertain ? "Reconcile listing withdrawal" : "Withdraw listing"}
-        </Button>
+        </ConfirmationButton>
       )}
       {historical && (
         <Button

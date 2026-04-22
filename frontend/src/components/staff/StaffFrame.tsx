@@ -7,6 +7,7 @@ import { useStaffNavigation } from "@/hooks/use-staff-navigation";
 import { useIntakeActor } from "@/hooks/use-intake-actor";
 import { useAuthMutation } from "@/hooks/use-auth-mutation";
 import { Button } from "@/components/ui/Button";
+import { CloseButton } from "@/components/ui/CloseButton";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { hasIntakeAccess, roleNames, type CurrentActor } from "@/lib/auth/actor";
 import { hasInspectionAccess } from "@/lib/inspection/contracts";
@@ -80,16 +81,27 @@ function StaffFrameContent({
               <span className={styles.brand}>
                 Apex<span>Auto</span>
               </span>
-              <Button
-                variant="shell"
-                size="compact"
-                aria-expanded={mobileOpen}
-                aria-controls="staff-navigation"
-                disabled={!actor}
-                onClick={() => setMobileOpen(!mobileOpen)}
-              >
-                {mobileOpen ? "Close workspaces" : "Workspaces"}
-              </Button>
+              {mobileOpen ? (
+                <CloseButton
+                  label="Close workspaces"
+                  variant="shell"
+                  aria-expanded
+                  aria-controls="staff-navigation"
+                  disabled={!actor}
+                  onClick={() => setMobileOpen(false)}
+                />
+              ) : (
+                <Button
+                  variant="shell"
+                  size="compact"
+                  aria-expanded={false}
+                  aria-controls="staff-navigation"
+                  disabled={!actor}
+                  onClick={() => setMobileOpen(true)}
+                >
+                  Workspaces
+                </Button>
+              )}
             </div>
             <aside
               id="staff-navigation"

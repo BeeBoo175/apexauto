@@ -1,7 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/Button";
-import { Dialog } from "@/components/ui/Dialog";
+import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { useApiCommand } from "@/hooks/use-api-command";
 import { parseCancellation } from "@/lib/intake/parse";
 import type { Appointment } from "@/lib/intake/contracts";
@@ -30,11 +29,16 @@ export function CancelAppointment({
     onClose();
   }
   return (
-    <Dialog
+    <ConfirmationDialog
       open
       title="Cancel this appointment?"
       onClose={onClose}
-      closeDisabled={command.busy || command.uncertain}
+      busy={command.busy}
+      locked={command.uncertain}
+      danger
+      cancelLabel="Keep appointment"
+      confirmLabel={command.uncertain ? "Retry same cancellation" : "Confirm cancellation"}
+      onConfirm={cancel}
     >
       <div className={styles.content}>
         <p>
@@ -44,10 +48,7 @@ export function CancelAppointment({
           Cancellation is available before the appointment starts and before check-in. Your history
           is retained. A new booking starts a new intake.
         </p>
-        <Button onClick={() => void cancel()} disabled={command.busy}>
-          {command.uncertain ? "Retry same cancellation" : "Confirm cancellation"}
-        </Button>
       </div>
-    </Dialog>
+    </ConfirmationDialog>
   );
 }
