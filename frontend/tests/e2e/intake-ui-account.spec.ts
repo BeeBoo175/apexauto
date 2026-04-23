@@ -26,7 +26,9 @@ test("owned history keeps scoped pages and confirmed content, then reconciles ca
   expect(
     (counts()["/api/intake/appointments"] ?? 0) - (before["/api/intake/appointments"] ?? 0),
   ).toBe(1);
-  const records = page.getByRole("heading", { level: 3 });
+  const records = page
+    .getByRole("region", { name: "Your appointments", exact: true })
+    .getByRole("heading", { level: 3 });
   const historySummary = page.getByText(/^\d+ appointments · Page 1/);
   const total = Number((await historySummary.innerText()).match(/^(\d+) appointments/)![1]);
   const pageSize = 25;

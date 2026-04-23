@@ -163,22 +163,6 @@ test("registration, unverified own account, bounded refresh and current-session 
   expect(scoped.account.legalName).toBe(other.legalName);
   expect(scoped.cacheControl).toContain("no-store");
 
-  const refreshBefore = counts()["/api/account"];
-  await page.getByRole("button", { name: "Refresh account" }).click();
-  await expect(page.getByRole("button", { name: "Refresh account" })).toBeEnabled();
-  expect(counts()["/api/account"] - refreshBefore).toBe(1);
-  fault("unavailable");
-  await page.getByRole("button", { name: "Refresh account" }).click();
-  await expect(page.getByText(/last confirmed details/)).toBeVisible();
-  await expect(page.getByText(owner.legalName, { exact: true })).toBeVisible();
-  await expect(page.getByRole("alert").filter({ hasText: "last confirmed details" })).toHaveCount(
-    1,
-  );
-
-  const retry = page.getByRole("button", { name: "Retry account refresh" });
-  fault("");
-  await retry.click();
-  await expect(page.getByRole("button", { name: "Refresh account" })).toBeEnabled();
   fault("unavailable");
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
   await expect(page.getByRole("button", { name: "Retry sign out" })).toBeVisible();

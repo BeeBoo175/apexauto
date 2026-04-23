@@ -1,14 +1,14 @@
 "use client";
 
 import { Button } from "@/components/ui/Button";
+import buttonStyles from "@/components/ui/Button.module.css";
 import { useAuthMutation } from "@/hooks/use-auth-mutation";
-import { useAccountRefresh } from "@/hooks/use-account-refresh";
 import { useEmailVerificationResend } from "@/hooks/use-email-verification-resend";
 import type { CustomerAccount } from "@/lib/auth/contracts";
 import styles from "./AccountPanel.module.css";
 
 export function AccountPanel({ initialAccount }: { initialAccount: CustomerAccount }) {
-  const { account, refreshing, refreshFailed, refresh } = useAccountRefresh(initialAccount);
+  const account = initialAccount;
   const logout = useAuthMutation("logout", "/login");
   const resend = useEmailVerificationResend(account);
 
@@ -22,48 +22,59 @@ export function AccountPanel({ initialAccount }: { initialAccount: CustomerAccou
     logoutLabel = "Signing out";
   }
 
-  if (!account) {
-    return null;
-  }
-
   return (
     <div className={styles.panel}>
-      <dl className={styles.facts}>
-        <div>
-          <dt className={styles.label}>Legal name</dt>
-          <dd>{account.legalName}</dd>
-        </div>
-        <div>
-          <dt className={styles.label}>Email</dt>
-          <dd>{account.email}</dd>
-        </div>
-        <div>
-          <dt className={styles.label}>Email verification</dt>
-          <dd>{account.emailVerified ? "Verified" : "Not verified"}</dd>
-        </div>
-      </dl>
-      {!account.emailVerified && (
-        <div className={styles.verification}>
+      <header className={styles.header}>
+        <h2 id="account-details-title">Account details</h2>
+        <div className={styles.actions}>
+          <a
+            href="/forgot-password"
+            className={`${buttonStyles.button} ${buttonStyles.secondary} ${buttonStyles.compact}`}
+          >
+            Password recovery
+          </a>
           <Button
             variant="secondary"
-            disabled={resend.busy || refreshing || logout.busy || logout.uncertain}
-            onClick={() => void resend.resend()}
+            size="compact"
+            disabled={logout.busy}
+            onClick={() => void logout.submit()}
           >
-            {resend.busy ? "Requesting email" : "Resend verification email"}
+            {logoutLabel}
           </Button>
         </div>
-      )}
-      <div className={styles.actions}>
-        <Button
-          variant="secondary"
-          disabled={refreshing || logout.busy || logout.uncertain}
-          onClick={refresh}
-        >
-          {refreshFailed ? "Retry account refresh" : "Refresh account"}
-        </Button>
-        <Button disabled={refreshing || logout.busy} onClick={() => void logout.submit()}>
-          {logoutLabel}
-        </Button>
+      </header>
+      <div className={styles.details}>
+        <dl className={styles.facts}>
+          <div>
+            <dt className={styles.label}>Legal name</dt>
+            <dd className={styles.name}>{account.legalName}</dd>
+          </div>
+        </dl>
+        <div className={styles.verification}>
+          <dl>
+            <div>
+              <dt className={styles.label}>Email</dt>
+              <dd className={styles.email}>{account.email}</dd>
+              <dd className={styles.verificationState} data-verified={account.emailVerified}>
+                {account.emailVerified ? "Verified" : "Not verified"}
+              </dd>
+            </div>
+          </dl>
+          <p className={styles.help}>
+            {account.emailVerified
+              ? "Your email is verified for reservations and inspection bookings."
+              : "Verify your email to reserve a car or book an inspection."}
+          </p>
+          {!account.emailVerified && (
+            <Button
+              variant="secondary"
+              disabled={resend.busy || logout.busy || logout.uncertain}
+              onClick={() => void resend.resend()}
+            >
+              {resend.busy ? "Requesting email" : "Resend verification email"}
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

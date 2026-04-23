@@ -95,7 +95,7 @@ if (process.env.BROWSER_RECOVERY_SCENARIO) {
     const unrelatedPage = await unrelated.newPage();
     await unrelatedPage.goto("/account");
     await expect(
-      unrelatedPage.getByRole("button", { name: "Refresh account", exact: true }),
+      unrelatedPage.getByRole("button", { name: "Sign out", exact: true }),
     ).toBeVisible();
 
     try {

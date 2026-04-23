@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Card } from "@/components/ui/Card";
 import { useAppointmentHistory } from "@/hooks/use-appointment-history";
 import type { ApiResult, Page } from "@/lib/api";
 import type { Appointment } from "@/lib/intake/contracts";
@@ -27,6 +27,7 @@ export function AppointmentHistory({
   const [cancelling, setCancelling] = useState<Appointment | null>(null);
   const { snapshot, active, draft } = history;
   const disabled = !ready || history.busy || Boolean(cancelling);
+  const empty = snapshot?.total === 0 && !active.filters.from && !active.filters.to;
   return (
     <section className={styles.history} aria-labelledby="appointment-history-title">
       <div className={styles.heading}>
@@ -35,36 +36,52 @@ export function AppointmentHistory({
           Refresh appointments
         </Button>
       </div>
-      <form
-        method="post"
-        className={styles.filters}
-        onSubmit={(event) => {
-          event.preventDefault();
-          void history.load(draft, 1);
-        }}
-      >
-        <Input
-          label="From (Malaysia)"
-          type="date"
-          value={draft.from}
-          disabled={disabled}
-          onChange={(event) => history.setDraft({ ...draft, from: event.target.value })}
-        />
-        <Input
-          label="To (Malaysia)"
-          type="date"
-          value={draft.to}
-          disabled={disabled}
-          onChange={(event) => history.setDraft({ ...draft, to: event.target.value })}
-        />
-        <Button variant="secondary" type="submit" disabled={disabled}>
-          Apply dates
-        </Button>
-      </form>
-      <p className={styles.help}>
-        Filter appointment dates in Malaysia. Leave both dates empty for all history.
-      </p>
-      {snapshot && (
+      {!empty && (
+        <form
+          method="post"
+          className={styles.filters}
+          onSubmit={(event) => {
+            event.preventDefault();
+            void history.load(draft, 1);
+          }}
+        >
+          <Input
+            label="From (Malaysia)"
+            type="date"
+            value={draft.from}
+            disabled={disabled}
+            onChange={(event) => history.setDraft({ ...draft, from: event.target.value })}
+          />
+          <Input
+            label="To (Malaysia)"
+            type="date"
+            value={draft.to}
+            disabled={disabled}
+            onChange={(event) => history.setDraft({ ...draft, to: event.target.value })}
+          />
+          <Button variant="secondary" type="submit" disabled={disabled}>
+            Apply dates
+          </Button>
+        </form>
+      )}
+      {!empty && (
+        <p className={styles.help}>
+          Filter appointment dates in Malaysia. Leave both dates empty for all history.
+        </p>
+      )}
+      {empty && (
+        <div className={styles.emptyAppointments}>
+          <p>No inspection appointments yet.</p>
+          <p className={styles.help}>
+            Planning to sell your car? Start with a valuation, then choose an inspection
+            appointment.
+          </p>
+          <Link href="/sell" prefetch={false}>
+            Value your car
+          </Link>
+        </div>
+      )}
+      {snapshot && !empty && (
         <>
           <p className={styles.help}>
             {snapshot.total} appointments · Page {active.page}
@@ -73,13 +90,13 @@ export function AppointmentHistory({
               : " · All dates"}
           </p>
           {snapshot.items.length === 0 && (
-            <Card>
+            <div>
               <p>No appointments match these filters.</p>
-            </Card>
+            </div>
           )}
           <div className={styles.records}>
             {snapshot.items.map((item) => (
-              <Card key={item.id} className={styles.appointment}>
+              <article key={item.id} className={styles.appointment}>
                 <div className={styles.heading}>
                   <h3>{item.branchName}</h3>
                   <span className={styles.state}>{historyStatus(item)}</span>
@@ -114,7 +131,7 @@ export function AppointmentHistory({
                     Request cancellation
                   </Button>
                 )}
-              </Card>
+              </article>
             ))}
           </div>
           <nav className={styles.paging} aria-label="Appointment history pages">

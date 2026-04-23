@@ -14,22 +14,86 @@
 }
 
 .page {
-  width: min(1200px, calc(100% - 48px));
-  margin: 36px auto 56px;
+  --radius-sm: 8px;
+  width: min(1200px, calc(100% - 64px));
+  margin: 52px auto 72px;
 }
 
 .page h1 {
-  margin-bottom: 28px;
-  font-size: 32px;
+  margin-bottom: 12px;
+  font-family: var(--font-display);
+  font-size: clamp(32px, 4vw, 48px);
   font-weight: 700;
   letter-spacing: -0.025em;
 }
 
-.workspace {
-  display: grid;
-  grid-template-columns: minmax(240px, 0.8fr) minmax(0, 2fr);
-  align-items: start;
-  gap: 28px;
+.pageHeader {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 24px;
+  padding-bottom: 32px;
+}
+
+.welcome {
+  color: var(--color-muted);
+  line-height: 1.6;
+}
+
+.sectionLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+}
+
+.sectionLinks a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 10px 4px;
+  border-bottom: 2px solid transparent;
+  color: var(--color-muted);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+.sectionLinks a:hover {
+  border-bottom-color: var(--color-signal);
+  color: var(--color-graphite);
+}
+
+.sectionLinks a:active {
+  border-bottom-color: var(--color-signal-dark);
+  color: var(--color-signal-dark);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sectionLinks a {
+    transition: none;
+  }
+}
+
+.accountDetails,
+.appointments {
+  padding-block: 36px;
+  margin-bottom: 28px;
+  scroll-margin-top: 100px;
+}
+
+.appointments {
+  border-top: 1px solid var(--color-line);
+}
+
+.accountDetails h2,
+.appointments h2 {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
 }
 
 .history,
@@ -49,7 +113,8 @@
 }
 
 .heading h2 {
-  font-size: 22px;
+  font-family: var(--font-display);
+  font-size: 26px;
   font-weight: 700;
 }
 
@@ -78,6 +143,8 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 16px;
+  padding-block: 24px;
+  border-top: 1px solid var(--color-line-soft);
 }
 
 .appointment .heading {
@@ -85,17 +152,15 @@
 }
 
 .plate {
-  padding: 8px 12px;
-  background: var(--color-graphite);
-  color: var(--color-paper);
-  font-size: 20px;
+  color: var(--color-graphite);
+  font-size: 22px;
   font-weight: 700;
   overflow-wrap: anywhere;
 }
 
 .state {
   color: var(--color-muted);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
 }
 
@@ -127,11 +192,22 @@
   gap: 12px;
 }
 
-.recovery {
+.emptyAppointments {
+  padding-block: 8px;
+  line-height: 1.6;
+}
+
+.emptyAppointments .help {
+  max-width: 60ch;
+  margin-block: 8px 16px;
+}
+
+.emptyAppointments a {
   display: inline-block;
-  margin-top: 24px;
+  padding-block: 10px;
   color: var(--color-signal);
-  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
 .page :focus-visible {
@@ -139,15 +215,15 @@
   outline-offset: 4px;
 }
 
-@media (max-width: 900px) {
-  .workspace {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
 @media (max-width: 540px) {
   .page {
     width: calc(100% - 32px);
+  }
+
+  .accountDetails,
+  .appointments {
+    padding-block: 28px;
+    margin-bottom: 20px;
   }
 
   .filters {

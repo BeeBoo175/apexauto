@@ -7,6 +7,8 @@ import { privateApiRead } from "@/lib/server/http/api";
 import { parseAppointment } from "@/lib/intake/parse";
 import { parsePage } from "@/lib/api";
 import { historyParams, historyQuery } from "@/lib/intake/list-query";
+import { accountReservationPage } from "@/lib/vehicles/account-reservations";
+import { readAccountReservations } from "@/lib/vehicles/account-reservations-server";
 
 export const metadata = {
   title: "Your account | ApexAuto",
@@ -34,12 +36,20 @@ export default async function AccountPage({
     throw new Error("Account service unavailable");
   }
 
-  const { filters, page } = historyParams(await searchParams);
-  const history = response.account.emailVerified
-    ? await privateApiRead(`/api/intake/appointments?${historyQuery(filters, page)}`, (value) =>
-        parsePage(value, parseAppointment),
-      )
-    : null;
+  const params = await searchParams;
+  const { filters, page } = historyParams(params);
+  const reservationPage = accountReservationPage(params);
+  const [history, reservations] = await Promise.all([
+    response.account.emailVerified
+      ? privateApiRead(`/api/intake/appointments?${historyQuery(filters, page)}`, (value) =>
+          parsePage(value, parseAppointment),
+        )
+      : Promise.resolve(null),
+    readAccountReservations(reservationPage),
+  ]);
+  if (reservations.data && reservations.data.actor.userId !== response.account.userId) {
+    throw new Error("Account identity could not be confirmed");
+  }
   return (
     <AccountWorkspace
       key={response.account.userId}
@@ -47,6 +57,8 @@ export default async function AccountPage({
       history={history}
       filters={filters}
       page={page}
+      reservations={reservations}
+      reservationPage={reservationPage}
     />
   );
 }
