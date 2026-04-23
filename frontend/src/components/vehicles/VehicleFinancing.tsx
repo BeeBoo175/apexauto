@@ -23,16 +23,11 @@ export function VehicleFinancing({
 
   return (
     <section aria-labelledby="vehicle-financing" className={styles.calculator}>
-      <header className={styles.sectionHeading}>
-        <h2 id="vehicle-financing">Financing estimate</h2>
-        <p>Adjust your cash contribution and term.</p>
-        <div className={styles.purchaseTotal}>
-          <span>Estimated purchase total</span>
-          <strong>{formatCurrency(total)}</strong>
-        </div>
-      </header>
       <div className={layout.columns}>
         <div className={styles.inputs}>
+          <header className={styles.sectionHeading}>
+            <h2 id="vehicle-financing">Financing estimate</h2>
+          </header>
           <div className={styles.fields}>
             <div className={styles.sliderField}>
               <Input
@@ -105,6 +100,10 @@ export function VehicleFinancing({
                 <p className={styles.monthly}>{formatCurrency(estimate.monthlyInstallment)}</p>
                 <p className={styles.resultNote}>{termYears}-year term · 3% annual flat interest</p>
                 <dl className={styles.summary}>
+                  <div>
+                    <dt>Estimated purchase total</dt>
+                    <dd>{formatCurrency(total)}</dd>
+                  </div>
                   {tradeInAllowance > 0 && (
                     <div className={styles.allowance}>
                       <dt>Trade-in allowance</dt>

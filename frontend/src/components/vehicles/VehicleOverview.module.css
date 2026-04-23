@@ -11,19 +11,22 @@
 .specifications {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0 32px;
+  gap: 16px;
   margin: 0;
 }
 
 .specifications div {
   min-width: 0;
-  padding: 24px 0 8px;
+  padding: 20px;
+  background: var(--color-paper);
+  border: 1px solid var(--color-line-soft);
+  border-radius: 8px;
 }
 
 .specifications dt {
   margin-bottom: 8px;
   color: var(--color-muted);
-  font-size: 0.75rem;
+  font-size: 0.875rem;
 }
 
 .specifications dd {
@@ -36,6 +39,6 @@
 @container (max-width: 760px) {
   .specifications {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0 20px;
+    gap: 12px;
   }
 }

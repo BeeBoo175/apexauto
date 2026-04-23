@@ -7,34 +7,8 @@
   margin-bottom: 32px;
 }
 
-.sectionHeading p {
-  margin: 0;
-  color: var(--color-muted);
-  font-size: 0.9375rem;
-  line-height: 1.65;
-}
-
 .inputs {
   min-width: 0;
-}
-
-.purchaseTotal {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: flex-start;
-  gap: 8px;
-  margin-top: 20px;
-  font-size: 0.875rem;
-}
-
-.purchaseTotal span {
-  color: var(--color-muted);
-}
-
-.purchaseTotal strong {
-  font-size: 1.25rem;
-  font-variant-numeric: tabular-nums;
 }
 
 .fields {
@@ -124,6 +98,10 @@
   align-items: flex-start;
   min-width: 0;
   font-variant-numeric: tabular-nums;
+  padding: 28px;
+  background: var(--color-paper);
+  border: 1px solid var(--color-line-soft);
+  border-radius: 8px;
 }
 
 .resultLabel {
@@ -134,7 +112,7 @@
 
 .monthly {
   margin: 0;
-  color: var(--color-signal-dark);
+  color: var(--color-graphite);
   font-size: clamp(2rem, 3vw, 2.5rem);
   font-weight: 700;
   line-height: 1.15;
@@ -157,7 +135,7 @@
 
 .summary div {
   display: grid;
-  grid-template-columns: minmax(140px, 180px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: baseline;
   gap: 4px 24px;
 }
@@ -170,7 +148,7 @@
   margin: 0;
   font-weight: 600;
   overflow-wrap: anywhere;
-  text-align: left;
+  text-align: right;
 }
 
 .breakdown {
@@ -223,6 +201,10 @@
 @media (max-width: 440px) {
   .summary div {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .summary dd {
+    text-align: left;
   }
 }
 
