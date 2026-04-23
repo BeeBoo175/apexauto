@@ -24,7 +24,8 @@ public sealed record ReservationReadFilter(Guid? BranchId = null, int Page = 1,
 
 public sealed record ReservationHistoryItem(ReservationReceipt Receipt, string BranchName,
     string Make, string Model, string Trim, int ManufactureYear, bool IsActive, ReservationRefundReceipt? Release,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? RegistrationPlate);
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? RegistrationPlate,
+    Guid? CoverPhotoId = null);
 
 public sealed record ReservationHistoryPage(CurrentActor Actor, IReadOnlyList<ReservationHistoryItem> Items,
     int Total, int Page, int PageSize, ReservationHistoryItem? Active);

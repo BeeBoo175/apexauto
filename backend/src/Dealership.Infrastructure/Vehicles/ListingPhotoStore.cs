@@ -103,6 +103,26 @@ public sealed class ListingPhotoStore(DealershipDbContext database) : IListingPh
         return await FindPhotoAsync(vehicleId, id, cancellationToken);
     }
 
+    public async Task<ListingPhotoPreparation> FindReservationAsync(Guid actorId, Guid reservationId, Guid id,
+        CancellationToken cancellationToken)
+    {
+        var actor = await database.Users.AsNoTracking().SingleOrDefaultAsync(user => user.Id == actorId, cancellationToken);
+        if (actor is not { IsActive: true, Role: AccountRoles.Customer })
+        {
+            return new(ListingPhotoStatus.Forbidden);
+        }
+
+        // The retained approved revision grants access, never the current draft or private evidence.
+        var vehicleId = await (from reservation in database.Reservations
+                               join publication in database.ListingPublications on reservation.PublicationId equals publication.Id
+                               join photo in database.ListingRevisionPhotos on publication.RevisionId equals photo.RevisionId
+                               where reservation.Id == reservationId && reservation.CustomerId == actorId && photo.PhotoId == id
+                               select (Guid?)reservation.VehicleId).SingleOrDefaultAsync(cancellationToken);
+        return vehicleId.HasValue
+            ? await FindPhotoAsync(vehicleId.Value, id, cancellationToken)
+            : new(ListingPhotoStatus.NotFound);
+    }
+
     private async Task<ListingPhotoPreparation> FindPublicAsync(Guid vehicleId, Guid id, CancellationToken cancellationToken)
     {
         await ReservationReadSnapshot.ReconcileAsync(database, vehicleId, cancellationToken);

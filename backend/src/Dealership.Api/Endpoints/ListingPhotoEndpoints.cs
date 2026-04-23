@@ -22,12 +22,19 @@ public static class ListingPhotoEndpoints
         routes.MapGet("/{id:guid}/receipt", ReceiptAsync);
         routes.MapGet("/{id:guid}", (Guid vehicleId, Guid id, HttpContext context,
             ListingPhotoService photos, CancellationToken token) =>
-                DownloadAsync(ActorId(context), vehicleId, id, context, photos, token))
+                DownloadAsync(context, (file, deadline) =>
+                    photos.DownloadAsync(ActorId(context), vehicleId, id, file, deadline), token))
             .RequireRateLimiting(ApiRateLimiting.PhotoTransferPolicy);
         app.MapGet("/api/vehicles/{vehicleId:guid}/photos/{id:guid}", (Guid vehicleId, Guid id, HttpContext context,
             ListingPhotoService photos, CancellationToken token) =>
-                DownloadAsync(null, vehicleId, id, context, photos, token))
+                DownloadAsync(context, (file, deadline) =>
+                    photos.DownloadAsync(null, vehicleId, id, file, deadline), token))
             .RequireRateLimiting(ApiRateLimiting.PhotoTransferPolicy);
+        app.MapGet("/api/account/reservations/{reservationId:guid}/photos/{id:guid}",
+            (Guid reservationId, Guid id, HttpContext context, ListingPhotoService photos, CancellationToken token) =>
+                DownloadAsync(context, (file, deadline) =>
+                    photos.DownloadReservationAsync(ActorId(context), reservationId, id, file, deadline), token))
+            .RequireAuthorization().RequireRateLimiting(ApiRateLimiting.PhotoTransferPolicy);
     }
 
     private static async Task<IResult> UploadAsync(Guid vehicleId, Guid id, HttpContext context, ListingPhotoService photos, CancellationToken cancellationToken)
@@ -98,8 +105,8 @@ public static class ListingPhotoEndpoints
         }
     }
 
-    private static async Task<IResult> DownloadAsync(Guid? actorId, Guid vehicleId, Guid id, HttpContext context,
-        ListingPhotoService photos, CancellationToken cancellationToken)
+    private static async Task<IResult> DownloadAsync(HttpContext context,
+        Func<Stream, CancellationToken, Task<ListingPhotoResult>> download, CancellationToken cancellationToken)
     {
         context.Response.Headers.CacheControl = "no-store";
         context.Response.Headers.XContentTypeOptions = "nosniff";
@@ -108,7 +115,7 @@ public static class ListingPhotoEndpoints
         deadline.CancelAfter(TimeSpan.FromSeconds(40));
         try
         {
-            var result = await photos.DownloadAsync(actorId, vehicleId, id, file, deadline.Token);
+            var result = await download(file, deadline.Token);
             if (result.Status != ListingPhotoStatus.Available)
             {
                 return Map(result);

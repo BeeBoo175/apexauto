@@ -31,4 +31,7 @@ public interface IListingPhotoStore
     Task<ListingPhotoPreparation> ConfirmAsync(Guid actorId, Guid vehicleId, Guid id, CancellationToken cancellationToken);
 
     Task<ListingPhotoPreparation> FindAsync(Guid? actorId, Guid vehicleId, Guid id, CancellationToken cancellationToken);
+
+    Task<ListingPhotoPreparation> FindReservationAsync(Guid actorId, Guid reservationId, Guid id,
+        CancellationToken cancellationToken);
 }

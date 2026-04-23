@@ -49,6 +49,14 @@ public sealed class ListingPhotoService(IListingPhotoStore photos, IPhotoImageVa
             found => found.Status == ListingPhotoStatus.Available ? found.Photo : null, cancellationToken));
     }
 
+    public async Task<ListingPhotoResult> DownloadReservationAsync(Guid actorId, Guid reservationId, Guid id,
+        Stream destination, CancellationToken cancellationToken)
+    {
+        return Result(await transfers.DownloadAsync(id, destination,
+            token => photos.FindReservationAsync(actorId, reservationId, id, token),
+            found => found.Status == ListingPhotoStatus.Available ? found.Photo : null, cancellationToken));
+    }
+
     private static ListingPhotoResult Result(ListingPhotoPreparation result)
     {
         var photo = result.Photo;

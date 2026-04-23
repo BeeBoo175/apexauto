@@ -84,7 +84,12 @@ internal static class ReservationReadRows
                    Model = vehicle.Model,
                    Trim = vehicle.Trim,
                    ManufactureYear = vehicle.ManufactureYear,
-                   Release = release
+                   Release = release,
+                   CoverPhotoId = (from publication in database.ListingPublications
+                                   join photo in database.ListingRevisionPhotos on publication.RevisionId equals photo.RevisionId
+                                   where publication.Id == reservation.PublicationId
+                                   orderby photo.Position
+                                   select (Guid?)photo.PhotoId).FirstOrDefault()
                };
     }
 
@@ -127,7 +132,8 @@ internal static class ReservationReadRows
 
     public static ReservationHistoryItem ToItem(Row row, bool staff) => new(ReservationReceipt.From(row.Reservation), row.BranchName,
         row.Make, row.Model, row.Trim, row.ManufactureYear, row.Reservation.IsActive,
-        row.Release is null ? null : ReservationRefundReceipt.From(row.Release), staff ? row.RegistrationPlate : null);
+        row.Release is null ? null : ReservationRefundReceipt.From(row.Release), staff ? row.RegistrationPlate : null,
+        row.CoverPhotoId);
 
     private static IOrderedQueryable<Row> OrderReleased(IQueryable<Row> rows, string direction)
     {
@@ -147,5 +153,6 @@ internal static class ReservationReadRows
         public required string Trim { get; init; }
         public int ManufactureYear { get; init; }
         public required ReservationRelease? Release { get; init; }
+        public Guid? CoverPhotoId { get; init; }
     }
 }
