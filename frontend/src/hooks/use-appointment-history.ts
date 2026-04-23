@@ -50,7 +50,13 @@ export function useAppointmentHistory(
       }
       setSnapshot(result.data);
       setActive({ filters: nextFilters, page: nextPage });
-      window.history.replaceState(null, "", `/account?${historyQuery(nextFilters, nextPage)}`);
+      const url = new URL(window.location.href);
+      const query = new URLSearchParams(historyQuery(nextFilters, nextPage));
+      for (const key of ["page", "pageSize", "from", "to"]) {
+        url.searchParams.delete(key);
+      }
+      query.forEach((value, key) => url.searchParams.set(key, value));
+      window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
     } catch {
       if (!attempt.signal.aborted) {
         const notice =
