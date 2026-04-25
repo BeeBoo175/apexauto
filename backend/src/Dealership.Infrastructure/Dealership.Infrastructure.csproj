@@ -3,6 +3,7 @@
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <EmbeddedResource Include="Development/Media/*.jpg" />
+    <EmbeddedResource Include="Development/Media/*.png" />
     <EmbeddedResource Include="Development/Media/attribution.json" />
   </ItemGroup>
 

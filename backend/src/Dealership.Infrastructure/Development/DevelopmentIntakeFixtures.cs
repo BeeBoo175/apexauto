@@ -117,7 +117,8 @@ public sealed class DevelopmentIntakeFixtures(DealershipDbContext database, Deve
             throw new InvalidOperationException("Snapshot appointments require an active branch.");
         }
 
-        var prepared = await photos.CreateAsync(ownerId, fixture.Id, moment.BookedAt, cancellationToken);
+        var details = DevelopmentVehicleCatalogue.For(fixture.Vehicle.Make!, fixture.Vehicle.Model!, fixture.Vehicle.Trim);
+        var prepared = await photos.CreateAsync(ownerId, fixture.Id, moment.BookedAt, cancellationToken, details);
         var candidates = prepared.Select(photo => new BookingPhotoCandidate(photo.Id, ownerId, photo.Angle,
             photo.AvailableAt, photo.ExpiresAt, false, false)).ToArray();
         if (!BookingPhotoSet.TryCreate(ownerId, candidates, moment.BookedAt, out var selected))

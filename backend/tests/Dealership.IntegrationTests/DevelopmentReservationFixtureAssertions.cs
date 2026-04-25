@@ -29,9 +29,9 @@ internal static class DevelopmentReservationFixtureAssertions
         await using var scope = provider.CreateAsyncScope();
         var services = scope.ServiceProvider;
         var database = services.GetRequiredService<DealershipDbContext>();
-        Assert.Equal(156, await database.Reservations.CountAsync());
-        Assert.Equal(153, await database.ReservationReleases.CountAsync());
-        Assert.Equal(156, await database.ReservationMailOutbox.CountAsync());
+        Assert.Equal(207, await database.Reservations.CountAsync());
+        Assert.Equal(204, await database.ReservationReleases.CountAsync());
+        Assert.Equal(207, await database.ReservationMailOutbox.CountAsync());
         Assert.Equal(3, await database.Reservations.CountAsync(item => item.IsActive));
         var retained = await database.Reservations.AsNoTracking().SingleAsync(item => item.Id == interrupted.Id);
         Assert.Equal(ReservationReceipt.From(interrupted), ReservationReceipt.From(retained));
@@ -41,6 +41,22 @@ internal static class DevelopmentReservationFixtureAssertions
             Assert.Equal(TimeSpan.FromHours(48), hold.ExpiresAt - hold.CreatedAt));
 
         var reads = services.GetRequiredService<IReservationReadStore>();
+        var buyerKey = DevelopmentFixtureManifest.Customers[0].Registration.RegistrationKey;
+        var buyerId = await database.CustomerProfiles.Where(item => item.RegistrationKey == buyerKey)
+            .Select(item => item.UserId).SingleAsync();
+        var buyerHistory = new List<Guid>();
+        for (var page = 1; page <= 3; page++)
+        {
+            var result = await reads.AccountAsync(buyerId, page, CancellationToken.None);
+            Assert.Equal(ReservationStatus.Succeeded, result.Status);
+            Assert.Equal(51, result.History!.Total);
+            Assert.Null(result.History.Active);
+            Assert.Equal(page == 3 ? 1 : 25, result.History.Items.Count);
+            buyerHistory.AddRange(result.History.Items.Select(item => item.Receipt.Id));
+        }
+        Assert.Equal(await database.Reservations.Where(item => item.CustomerId == buyerId)
+            .OrderByDescending(item => item.CreatedAt).ThenByDescending(item => item.Id).Select(item => item.Id).ToArrayAsync(), buyerHistory);
+
         foreach (var branch in DevelopmentFixtureManifest.Branches)
         {
             var scenario = DevelopmentReservationScenarios.All.Single(item =>
@@ -64,7 +80,9 @@ internal static class DevelopmentReservationFixtureAssertions
             Assert.Equal(expected, actual);
             var manager = DevelopmentFixtureManifest.Staff.Single(item =>
                 item.BranchId == branch.Id && item.Role == AccountRoles.BranchManager);
-            await VerifyStaffPagesAsync(reads, manager.Id, new(PageSize: 25), expected);
+            var branchIds = await database.Reservations.Where(item => item.BranchId == branch.Id)
+                .OrderByDescending(item => item.CreatedAt).ThenByDescending(item => item.Id).Select(item => item.Id).ToArrayAsync();
+            await VerifyStaffPagesAsync(reads, manager.Id, new(PageSize: 25), branchIds);
             var otherBranch = DevelopmentFixtureManifest.Branches.First(item => item.Id != branch.Id).Id;
             Assert.Equal(ReservationStatus.Forbidden, (await reads.StaffAsync(manager.Id,
                 new(BranchId: otherBranch), CancellationToken.None)).Status);
@@ -80,7 +98,7 @@ internal static class DevelopmentReservationFixtureAssertions
             .Select(item => item.Id).ToArrayAsync();
         await VerifyStaffPagesAsync(reads, general.Id, new(PageSize: 50), allIds);
         var all = new List<ReservationHistoryItem>();
-        for (var page = 1; page <= 4; page++)
+        for (var page = 1; page <= 5; page++)
         {
             all.AddRange((await reads.StaffAsync(general.Id, new(Page: page, PageSize: 50), CancellationToken.None)).History!.Items);
         }

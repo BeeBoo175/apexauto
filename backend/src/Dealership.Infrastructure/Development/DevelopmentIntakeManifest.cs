@@ -34,7 +34,7 @@ public static class DevelopmentIntakeManifest
 
     public static Guid PhotoId(Guid appointmentId, PhotoAngle angle)
     {
-        return Identity($"photo/{appointmentId:N}/{angle}");
+        return Identity($"photo/{DevelopmentFixturePhotos.MediaVersion}/{appointmentId:N}/{angle}");
     }
 
     private static IEnumerable<DevelopmentIntakeFixture> CreateBranch(int branchIndex)
@@ -48,7 +48,7 @@ public static class DevelopmentIntakeManifest
             var plate = $"{prefixes[branchIndex]} {6200 + index}";
             var catalogueIndex = index - BaselineTotalPerBranch - InspectionExamplesPerBranch;
             var vehicle = catalogueIndex >= 0
-                ? CatalogueVehicle(catalogueIndex)
+                ? CatalogueVehicle(catalogueIndex, branchIndex)
                 : new ValuationRequest("Perodua", "Myvi", "1.5 AV", 2019, 45000 + index * 1200);
             var status = index switch
             {
@@ -68,16 +68,27 @@ public static class DevelopmentIntakeManifest
         });
     }
 
+    private static ValuationRequest CatalogueVehicle(int index, int branchIndex)
+    {
+        var vehicle = CatalogueVehicle(index);
+        return vehicle with { MileageKilometres = vehicle.MileageKilometres + branchIndex * 3700 };
+    }
+
     private static ValuationRequest CatalogueVehicle(int index) => index switch
     {
-        0 or 1 => new("Perodua", "Ativa", "AV", 2022, 42000),
-        2 or 3 => new("Proton", "Saga", "Standard", 2021, 58000),
-        4 or 5 => new("Honda", "City", "V", 2022, 46000),
-        6 or 7 => new("Toyota", "Vios", "1.5 G", 2021, 62000),
-        8 or 9 => new("Mazda", "Mazda 3", "2.0 High", 2022, 38000),
-        10 or 11 => new("BYD", "Dolphin", "Dynamic Standard", 2024, 22000),
-        12 => new("Perodua", "Alza", "AV", 2023, 35000),
-        13 => new("Honda", "City", "V", 2022, 46000),
+        0 or 1 => new("Perodua", "Ativa", "H", 2021, 42000),
+        2 => new("Proton", "Saga", "Standard", 2019, 78000),
+        3 => new("Proton", "Saga", "Standard", 2020, 65000),
+        4 => new("Honda", "City", "S", 2022, 46000),
+        5 => new("Honda", "City", "S", 2023, 28500),
+        6 => new("Toyota", "Vios", "1.5 G", 2019, 82000),
+        7 => new("Toyota", "Vios", "1.5 G", 2020, 63500),
+        8 => new("Mazda", "Mazda 3", "2.0 High Plus", 2020, 58000),
+        9 => new("Mazda", "Mazda 3", "2.0 High Plus", 2021, 41500),
+        10 => new("BYD", "Dolphin", "Dynamic Standard", 2023, 32500),
+        11 => new("BYD", "Dolphin", "Premium Extended", 2024, 18000),
+        12 => new("Perodua", "Alza", "AV", 2022, 47500),
+        13 => new("Honda", "City", "S", 2022, 46000),
         _ => throw new InvalidOperationException("The configured catalogue example has no vehicle specification.")
     };
 

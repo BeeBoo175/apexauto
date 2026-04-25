@@ -48,13 +48,15 @@ public sealed class DevelopmentListingFixtures(DealershipDbContext database, Lis
             item.BranchId == vehicle.BranchId && item.Role == AccountRoles.BranchManager);
         var appointment = await database.IntakeAppointments.AsNoTracking()
             .SingleAsync(item => item.Id == scenario.Id, cancellationToken);
+        var details = DevelopmentVehicleCatalogue.For(vehicle.Make, vehicle.Model, vehicle.Trim);
         var request = new ListingDraftRequest(scenario.OperationId("listing-draft"), 0,
-            appointment.Valuation.Maximum, 90m, VehicleTransmission.Automatic,
-            vehicle.Make == "BYD" ? VehicleFuel.Electric : VehicleFuel.Petrol,
+            appointment.Valuation.Maximum, details.RoadTax, VehicleTransmission.Automatic, details.Fuel,
             $"{vehicle.ManufactureYear} {vehicle.Make} {vehicle.Model} {vehicle.Trim}. " +
+            details.Description + " " +
             "View the signed inspection checklist for the recorded vehicle condition.")
         {
-            PhotoIds = Enum.GetValues<PhotoAngle>().Select(angle => scenario.OperationId($"listing-photo-{angle}")).ToArray()
+            PhotoIds = new[] { PhotoAngle.Front, PhotoAngle.Rear, PhotoAngle.Driver, PhotoAngle.Passenger }.Select(angle =>
+                scenario.OperationId($"listing-photo-{DevelopmentFixturePhotos.MediaVersion}-{angle}")).ToArray()
         };
         var existing = await database.ListingRevisions.AsNoTracking()
             .Where(item => item.VehicleId == vehicle.Id).OrderByDescending(item => item.Version)
@@ -114,11 +116,14 @@ public sealed class DevelopmentListingFixtures(DealershipDbContext database, Lis
     private async Task<bool> PhotosAsync(bool seed, DevelopmentInspectionScenario scenario, Guid vehicleId,
         Guid managerId, CancellationToken cancellationToken)
     {
+        var vehicle = scenario.Intake.Vehicle;
+        var details = DevelopmentVehicleCatalogue.For(vehicle.Make!, vehicle.Model!, vehicle.Trim);
         foreach (var angle in Enum.GetValues<PhotoAngle>())
         {
-            var id = scenario.OperationId($"listing-photo-{angle}");
-            using var content = DevelopmentFixturePhotos.Open(angle);
-            var validated = await validator.ValidateAsync(content, "image/jpeg", cancellationToken)
+            var id = scenario.OperationId($"listing-photo-{DevelopmentFixturePhotos.MediaVersion}-{angle}");
+            var contentType = details.ContentType(angle);
+            using var content = DevelopmentFixturePhotos.Open(angle, details);
+            var validated = await validator.ValidateAsync(content, contentType, cancellationToken)
                 ?? throw new InvalidOperationException("The listing fixture photo must pass canonical image validation.");
             var existing = await database.ListingPhotos.AsNoTracking().SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
             if (existing is not null && !existing.Matches(vehicleId, managerId, validated))
@@ -137,7 +142,7 @@ public sealed class DevelopmentListingFixtures(DealershipDbContext database, Lis
             }
 
             content.Position = 0;
-            var result = await photos.UploadAsync(managerId, vehicleId, id, "image/jpeg", content, cancellationToken);
+            var result = await photos.UploadAsync(managerId, vehicleId, id, contentType, content, cancellationToken);
             if (result.Status != ListingPhotoStatus.Available)
             {
                 return false;

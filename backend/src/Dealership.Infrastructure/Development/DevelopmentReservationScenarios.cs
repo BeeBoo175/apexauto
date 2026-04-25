@@ -38,8 +38,13 @@ public static class DevelopmentReservationScenarios
             var listings = DevelopmentInspectionScenarios.All.Where(item =>
                 item.Intake.BranchId == branch.Id && item.PublishListing).ToArray();
             var registrationKey = DevelopmentFixtureManifest.Customers[branchIndex + 1].Registration.RegistrationKey;
-            return Enumerable.Range(0, ReleasedPerBranch + 1).Select(index =>
+            var sellerReservations = Enumerable.Range(0, ReleasedPerBranch + 1).Select(index =>
                 new DevelopmentReservationScenario(index == ReleasedPerBranch ? listings[^1] : listings[index % (listings.Length - 1)],
                     registrationKey, index, index == ReleasedPerBranch));
+            // Leave the primary demo buyer free to reserve while retaining two full history pages and a partial page.
+            var buyerReservations = Enumerable.Range(0, ReleasedPerBranch / 3).Select(index =>
+                new DevelopmentReservationScenario(listings[index % (listings.Length - 1)],
+                    DevelopmentFixtureManifest.Customers[0].Registration.RegistrationKey, ReleasedPerBranch + 1 + index, false));
+            return sellerReservations.Concat(buyerReservations);
         }).ToArray());
 }

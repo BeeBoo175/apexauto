@@ -36,6 +36,12 @@ internal static class DevelopmentIntakeFixtureAssertions
 
             var history = await client.GetFromJsonAsync<AppointmentHistoryPage>("/api/intake/appointments?page=3");
             Assert.NotNull(history);
+            if (customer == DevelopmentFixtureManifest.Customers[0])
+            {
+                Assert.Equal(0, history.Total);
+                Assert.Empty(history.Items);
+                return;
+            }
             Assert.Equal(DevelopmentIntakeManifest.TotalPerBranch, history.Total);
             Assert.Equal(25, history.Items.Count);
             var ownedIds = DevelopmentIntakeManifest.Appointments.Where(item =>
@@ -161,6 +167,15 @@ internal static class DevelopmentIntakeFixtureAssertions
             var actual = new List<Guid>();
             var expected = appointments.Where(item => item.OwnerId == owner.UserId)
                 .OrderByDescending(item => item.StartsAt).ThenByDescending(item => item.Id).Select(item => item.Id);
+
+            if (customer == DevelopmentFixtureManifest.Customers[0])
+            {
+                var empty = await history.ListAsync(owner.UserId, new AppointmentHistoryQuery(null, null, 1, 25), CancellationToken.None);
+                Assert.NotNull(empty);
+                Assert.Equal(0, empty.Total);
+                Assert.Empty(empty.Items);
+                continue;
+            }
 
             for (var page = 1; page <= PageSizes.Length; page++)
             {

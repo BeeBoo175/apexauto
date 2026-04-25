@@ -23,7 +23,7 @@ public static class DevelopmentFixtureManifest
     [
         new(new RegistrationRequest(Guid.Parse("af478aac-d87c-44f8-b95f-180565b08ebc"), "Nur Aisyah Rahman",
             "nur.aisyah@example.invalid", Password, "940215140865", "0123456789",
-            "18 Jalan Melati, Petaling Jaya, Selangor"), VerifyEmail: false),
+            "18 Jalan Melati, Petaling Jaya, Selangor"), VerifyEmail: true),
         new(new RegistrationRequest(Guid.Parse("bb0a5d5d-54e8-4bc6-bca9-e18e0e6ecccf"), "Ahmad Faizal Hassan",
             "ahmad.faizal@example.invalid", Password, "890612105137", "0132456789",
             "24 Jalan Anggerik, Shah Alam, Selangor"), VerifyEmail: true),
