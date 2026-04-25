@@ -13,10 +13,10 @@ public sealed record DevelopmentFixtureReport(string Fixture, string State, bool
 public sealed class DevelopmentFixtureRunner(DealershipDbContext database, DevelopmentCustomerFixtures customers,
     StaffProvisioningService staff, BranchProvisioningService branches, DevelopmentIntakeFixtures intake,
     DevelopmentInspectionFixtures inspections, DevelopmentListingFixtures listings, DevelopmentPurchaseFixtures purchases,
-    DevelopmentReservationFixtures reservations, IPasswordHasher<AccountUser> passwords)
+    DevelopmentReservationFixtures reservations, IPasswordHasher<AccountUser> passwords, DevelopmentFixtureMail mail)
 {
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> SeedAsync(DevelopmentFixtureTarget target,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, bool deliverMail = false)
     {
         target.EnsureMatches(database.Database.GetConnectionString());
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -32,32 +32,24 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
         try
         {
             await intake.EnsureLocalStorageAsync(token);
-
-            // A dedicated nonpooled connection owns the run lock; disposal releases it after failure or restart.
-            var reports = new List<DevelopmentFixtureReport>();
-            foreach (var branch in DevelopmentFixtureManifest.Branches)
+            if (!deliverMail)
             {
-                var provisioned = await branches.ProvisionBranchAsync(branch, token);
-                reports.Add(Report(branch.Name, provisioned.Created, provisioned.MatchesRequestedState));
+                await mail.CaptureAsync(token);
             }
 
-            foreach (var customer in DevelopmentFixtureManifest.Customers)
+            try
             {
-                reports.Add(await customers.SeedAsync(customer, token));
+                return await SeedFixturesAsync(target, token);
             }
-
-            foreach (var account in DevelopmentFixtureManifest.Staff)
+            finally
             {
-                var provisioned = await staff.ProvisionStaffAsync(account, token);
-                reports.Add(Report($"{account.Role} ({account.Email})", provisioned.Created, provisioned.MatchesRequestedState));
+                if (!deliverMail)
+                {
+                    // Committed fixture units survive interruption; suppress their mail even when a later unit fails.
+                    using var cleanup = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                    await mail.CompleteAsync(cleanup.Token);
+                }
             }
-
-            reports.AddRange(await purchases.RunAsync(true, token));
-            reports.AddRange(await intake.SeedAsync(target, token));
-            reports.AddRange(await inspections.RunAsync(true, token));
-            reports.AddRange(await listings.RunAsync(true, token));
-            reports.AddRange(await reservations.RunAsync(true, token));
-            return reports;
         }
         finally
         {
@@ -66,6 +58,36 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
                 await database.Database.CloseConnectionAsync();
             }
         }
+    }
+
+    private async Task<IReadOnlyList<DevelopmentFixtureReport>> SeedFixturesAsync(DevelopmentFixtureTarget target,
+        CancellationToken token)
+    {
+        // A dedicated nonpooled connection owns the run lock; disposal releases it after failure or restart.
+        var reports = new List<DevelopmentFixtureReport>();
+        foreach (var branch in DevelopmentFixtureManifest.Branches)
+        {
+            var provisioned = await branches.ProvisionBranchAsync(branch, token);
+            reports.Add(Report(branch.Name, provisioned.Created, provisioned.MatchesRequestedState));
+        }
+
+        foreach (var customer in DevelopmentFixtureManifest.Customers)
+        {
+            reports.Add(await customers.SeedAsync(customer, token));
+        }
+
+        foreach (var account in DevelopmentFixtureManifest.Staff)
+        {
+            var provisioned = await staff.ProvisionStaffAsync(account, token);
+            reports.Add(Report($"{account.Role} ({account.Email})", provisioned.Created, provisioned.MatchesRequestedState));
+        }
+
+        reports.AddRange(await purchases.RunAsync(true, token));
+        reports.AddRange(await intake.SeedAsync(target, token));
+        reports.AddRange(await inspections.RunAsync(true, token));
+        reports.AddRange(await listings.RunAsync(true, token));
+        reports.AddRange(await reservations.RunAsync(true, token));
+        return reports;
     }
 
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> ReviewAsync(DevelopmentFixtureTarget target,

@@ -9,9 +9,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 
-if (args.Length != 1 || args[0] is not ("seed" or "review" or "clear"))
+if (args.Length is < 1 or > 2 || args[0] is not ("seed" or "review" or "clear") ||
+    args.Length == 2 && (args[0] != "seed" || args[1] != "--deliver-mail"))
 {
-    Console.Error.WriteLine("Usage: DevelopmentFixtures seed|review|clear");
+    Console.Error.WriteLine("Usage: DevelopmentFixtures seed [--deliver-mail] | review | clear");
     return 1;
 }
 
@@ -63,12 +64,19 @@ try
 
     var runner = scope.ServiceProvider.GetRequiredService<DevelopmentFixtureRunner>();
     var reports = args[0] == "seed"
-        ? await runner.SeedAsync(target, deadline.Token)
+        ? await runner.SeedAsync(target, deadline.Token, deliverMail: args.Length == 2)
         : await runner.ReviewAsync(target, deadline.Token);
 
     foreach (var report in reports)
     {
         Console.WriteLine($"{report.Fixture}: {report.State}");
+    }
+
+    if (args[0] == "seed")
+    {
+        Console.WriteLine(args.Length == 2
+            ? "New fixture mail remains queued for delivery. Existing delivery state was preserved."
+            : "New fixture mail was marked delivered without sending. Existing pending mail was preserved.");
     }
 
     return reports.Any(report => report.RequiresAttention) ? 2 : 0;

@@ -102,7 +102,7 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         }
 
         fault.FailReservationCommitOnce = true;
-        await Assert.ThrowsAsync<IOException>(() => SeedAsync(provider, target));
+        await Assert.ThrowsAsync<IOException>(() => SeedAsync(provider, target, deliverMail: true));
         var interrupted = await DevelopmentReservationFixtureAssertions.InterruptedAsync(provider);
         await using var restarted = CreateProvider(connection, fault);
         var competing = await Task.WhenAll(SeedAsync(provider, target), SeedAsync(restarted, target));
@@ -110,6 +110,7 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
             $"{report.Fixture}: {report.State}"));
         Assert.Equal(definitions, await ReadGuardsAsync());
         await DevelopmentReservationFixtureAssertions.VerifyAsync(restarted, interrupted);
+        await AssertFixtureMailAsync(restarted, interrupted.Id);
         await AssertNormalAuthenticationAsync();
         await DevelopmentIntakeFixtureAssertions.VerifyAsync(provider);
         await InspectionQueueFixtureAssertions.VerifyAsync(provider);
@@ -129,6 +130,20 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         await DevelopmentInspectionScenarioAssertions.VerifyHumanEditPreservationAsync(provider, target);
         await DevelopmentListingFixtureAssertions.VerifyAsync(provider, target);
         await DevelopmentReservationFixtureAssertions.VerifyPreservationAsync(restarted, target, fixture.Database);
+    }
+
+    private static async Task AssertFixtureMailAsync(ServiceProvider provider, Guid optedInReservationId)
+    {
+        await using var scope = provider.CreateAsyncScope();
+        var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
+        Assert.False(await database.AppointmentMailOutbox.AnyAsync(item => item.DeliveredAt == null));
+        var optedIn = Assert.Single(await database.ReservationMailOutbox.AsNoTracking()
+            .Where(item => item.DeliveredAt == null).ToArrayAsync());
+        Assert.Equal(optedInReservationId, optedIn.ReservationId);
+        Assert.False(await database.ReservationMailOutbox.AnyAsync(item => item.DeliveryAttempts != 0));
+        // Both competing default reruns preserved this earlier opt-in intent; restore it for later snapshot assertions.
+        await database.ReservationMailOutbox.Where(item => item.Id == optedIn.Id)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.DeliveredAt, DateTimeOffset.UtcNow));
     }
 
     private static async Task AssertReviewPreservesDriftAsync(ServiceProvider provider, DevelopmentFixtureTarget target)
@@ -334,9 +349,10 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
     }
 
     private static async Task<IReadOnlyList<DevelopmentFixtureReport>> SeedAsync(ServiceProvider provider,
-        DevelopmentFixtureTarget target)
+        DevelopmentFixtureTarget target, bool deliverMail = false)
     {
         await using var scope = provider.CreateAsyncScope();
-        return await scope.ServiceProvider.GetRequiredService<DevelopmentFixtureRunner>().SeedAsync(target, CancellationToken.None);
+        return await scope.ServiceProvider.GetRequiredService<DevelopmentFixtureRunner>()
+            .SeedAsync(target, CancellationToken.None, deliverMail);
     }
 }
