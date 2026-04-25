@@ -14,10 +14,11 @@
 }
 
 .heading {
+  margin-top: 32px;
   margin-bottom: 24px;
 }
 
-.heading h2 {
+.heading h3 {
   font-family: var(--font-display);
   font-size: 26px;
   font-weight: 700;
@@ -182,12 +183,26 @@
   border-top: 1px solid var(--color-line);
 }
 
-.history h3,
-.noActive h3 {
-  margin-bottom: 12px;
+.historyHeading {
+  padding-block: 12px;
+  cursor: pointer;
+}
+
+.historyHeading h2 {
+  display: inline;
+  margin-left: 8px;
   font-family: var(--font-display);
-  font-size: 23px;
+  font-size: 26px;
   font-weight: 700;
+}
+
+.historyHeading > span {
+  display: block;
+  margin-top: 8px;
+}
+
+.currentReservation {
+  scroll-margin-top: 100px;
 }
 
 .historyItem {
@@ -217,7 +232,7 @@
   margin-top: 24px;
 }
 
-.empty {
+.welcomePanel {
   display: grid;
   grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
   align-items: center;
@@ -228,7 +243,7 @@
   color: var(--color-paper);
 }
 
-.empty h2 {
+.welcomePanel h2 {
   max-width: 14ch;
   font-family: var(--font-display);
   font-size: clamp(30px, 3.5vw, 44px);
@@ -237,23 +252,23 @@
   letter-spacing: -0.025em;
 }
 
-.empty p {
+.welcomePanel p {
   max-width: 42ch;
   margin-block: 16px 24px;
   line-height: 1.7;
 }
 
-.emptyAside {
+.welcomeAside {
   padding-left: 32px;
 }
 
-.emptyAside h3 {
+.welcomeAside h3 {
   font-family: var(--font-display);
   font-size: 23px;
   font-weight: 600;
 }
 
-.emptyAside p {
+.welcomeAside p {
   margin-bottom: 0;
 }
 
@@ -277,13 +292,13 @@
 }
 
 @media (max-width: 800px) {
-  .empty {
+  .welcomePanel {
     grid-template-columns: minmax(0, 1fr);
     gap: 28px;
     padding: 28px;
   }
 
-  .emptyAside {
+  .welcomeAside {
     padding-top: 24px;
     padding-left: 0;
   }

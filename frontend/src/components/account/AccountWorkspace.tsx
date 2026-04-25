@@ -39,8 +39,8 @@ export function AccountWorkspace({
         </div>
         <nav className={styles.sectionLinks} aria-label="Account sections">
           <a href="#reservations">Reservations</a>
-          <a href="#account-details">Account details</a>
           <a href="#appointments">Selling appointments</a>
+          <a href="#account-details">Account details</a>
         </nav>
       </header>
       <AccountReservations
@@ -48,7 +48,23 @@ export function AccountWorkspace({
         page={reservationPage}
         actorId={account.userId}
         ready={actor.ready}
-      />
+      >
+        <div id="appointments" className={styles.appointments}>
+          {history ? (
+            <AppointmentHistory
+              initial={history}
+              filters={filters}
+              page={page}
+              ready={actor.ready}
+            />
+          ) : (
+            <section aria-labelledby="appointments-title">
+              <h2 id="appointments-title">Your appointments</h2>
+              <p className={styles.help}>Verify your email to view your appointment history.</p>
+            </section>
+          )}
+        </div>
+      </AccountReservations>
       <section
         id="account-details"
         className={styles.accountDetails}
@@ -56,16 +72,6 @@ export function AccountWorkspace({
       >
         <AccountPanel initialAccount={account} />
       </section>
-      <div id="appointments" className={styles.appointments}>
-        {history ? (
-          <AppointmentHistory initial={history} filters={filters} page={page} ready={actor.ready} />
-        ) : (
-          <section aria-labelledby="appointments-title">
-            <h2 id="appointments-title">Your appointments</h2>
-            <p className={styles.help}>Verify your email to view your appointment history.</p>
-          </section>
-        )}
-      </div>
     </section>
   );
 }

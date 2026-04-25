@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import buttonStyles from "@/components/ui/Button.module.css";
 import { Button } from "@/components/ui/Button";
@@ -24,11 +24,13 @@ export function AccountReservations({
   page,
   actorId,
   ready,
+  children,
 }: {
   initial: ApiResult<ReservationSnapshot>;
   page: number;
   actorId: string;
   ready: boolean;
+  children: ReactNode;
 }) {
   const history = useAccountReservations(initial, page);
   const [cancelling, setCancelling] = useState<AccountReservation | null>(null);
@@ -36,35 +38,37 @@ export function AccountReservations({
   const featured = snapshot?.active ?? history.released;
   const disabled = !ready || history.busy || Boolean(cancelling);
   const records = snapshot?.items.filter((item) => !item.isActive) ?? [];
-  const empty = snapshot?.total === 0 && !featured;
 
   return (
-    <section id="reservations" aria-labelledby="reservations-title" className={styles.section}>
-      {empty ? (
-        <div className={styles.empty}>
-          <div>
-            <h2 id="reservations-title">Your next car starts here.</h2>
-            <p>When you reserve a car, your booking and its details will be right here.</p>
-            <Link
-              href="/vehicles"
-              className={`${buttonStyles.button} ${buttonStyles.primary} ${buttonStyles.md}`}
-            >
-              Browse cars
-            </Link>
-          </div>
-          <div className={styles.emptyAside}>
-            <h3>A little time to decide.</h3>
-            <p>Reserve your chosen car for 48 hours with a refundable MYR 500 simulated deposit.</p>
-          </div>
+    <section id="reservations" aria-label="Your reservations" className={styles.section}>
+      <div className={styles.welcomePanel}>
+        <div>
+          <h2 id="reservations-title">
+            {snapshot?.active ? "Your next car is reserved." : "Your next car starts here."}
+          </h2>
+          <p>
+            {snapshot?.active
+              ? "Your reserved car and booking details are right below."
+              : "Browse inspected cars and keep your reservations and booking details here."}
+          </p>
+          <Link
+            href={snapshot?.active ? "#reserved-car" : "/vehicles"}
+            className={`${buttonStyles.button} ${buttonStyles.primary} ${buttonStyles.md}`}
+          >
+            {snapshot?.active ? "View your reserved car" : "Browse cars"}
+          </Link>
         </div>
-      ) : (
-        <div className={styles.heading}>
-          <h2 id="reservations-title">Your reservations</h2>
-          <Button variant="ghost" disabled={disabled} onClick={() => void history.load()}>
-            {history.busy ? "Refreshing reservations" : "Refresh reservations"}
-          </Button>
+        <div className={styles.welcomeAside}>
+          <h3>A little time to decide.</h3>
+          <p>Reserve your chosen car for 48 hours with a refundable MYR 500 simulated deposit.</p>
         </div>
-      )}
+      </div>
+      <div className={styles.heading}>
+        <h3>Current reservation</h3>
+        <Button variant="ghost" disabled={disabled} onClick={() => void history.load()}>
+          {history.busy ? "Refreshing reservations" : "Refresh reservations"}
+        </Button>
+      </div>
       {history.failed && (
         <p className={styles.notice} role="status">
           Reservations could not be refreshed. Any last confirmed records remain below. Use Refresh
@@ -72,31 +76,29 @@ export function AccountReservations({
         </p>
       )}
       {featured && (
-        <ReservedCar
-          key={featured.receipt.id}
-          item={featured}
-          disabled={disabled}
-          onCancel={() => setCancelling(featured)}
-        />
-      )}
-      {snapshot && !featured && !empty && (
-        <div className={styles.noActive}>
-          <h3>No active reservation</h3>
-          <p>Find your next car and reserve it with a refundable simulated deposit.</p>
-          <Link
-            href="/vehicles"
-            className={`${buttonStyles.button} ${buttonStyles.secondary} ${buttonStyles.md}`}
-          >
-            Browse cars
-          </Link>
+        <div id="reserved-car" className={styles.currentReservation}>
+          <ReservedCar
+            key={featured.receipt.id}
+            item={featured}
+            disabled={disabled}
+            onCancel={() => setCancelling(featured)}
+          />
         </div>
       )}
+      {snapshot && !featured && (
+        <div className={styles.noActive}>
+          <p>You have no active reservation. Choose a car above when you are ready.</p>
+        </div>
+      )}
+      {children}
       {snapshot && snapshot.total > 0 && (
-        <div className={styles.history}>
-          <h3>Reservation history</h3>
-          <p className={styles.help}>
-            {snapshot.total} reservations · Page {history.page} · Newest first
-          </p>
+        <details className={styles.history} open={page > 1}>
+          <summary className={styles.historyHeading}>
+            <h2>Reservation history</h2>
+            <span className={styles.help}>
+              {snapshot.total} reservations · Page {history.page} · Newest first
+            </span>
+          </summary>
           {records.length === 0 && (
             <p className={styles.help}>No past reservations on this page.</p>
           )}
@@ -138,7 +140,7 @@ export function AccountReservations({
               Next reservations
             </Button>
           </nav>
-        </div>
+        </details>
       )}
       {cancelling && (
         <CancelReservation
