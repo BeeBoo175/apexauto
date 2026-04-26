@@ -889,9 +889,20 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.Property<int>("Id")
                         .HasColumnType("integer");
 
+                    b.Property<decimal>("MaxAgentDiscountAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(500m);
+
                     b.Property<decimal>("ProcessingFee")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("ReservationHoldHours")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(48);
 
                     b.Property<decimal>("SstRate")
                         .HasPrecision(29, 28)
@@ -913,7 +924,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.ToTable("PurchaseSettings", null, t =>
                         {
-                            t.HasCheckConstraint("CK_PurchaseSettings_Shape", "\"Id\" = 1 AND \"ProcessingFee\" >= 0 AND \"ProcessingFee\" <> 'NaN'::numeric AND \"SstRate\" BETWEEN 0 AND 1 AND \"Version\" > 0 AND isfinite(\"UpdatedAtUtc\") AND \"UpdatedById\" <> '00000000-0000-0000-0000-000000000000'::uuid");
+                            t.HasCheckConstraint("CK_PurchaseSettings_Shape", "\"Id\" = 1 AND \"ProcessingFee\" BETWEEN 0 AND 5000 AND \"SstRate\" BETWEEN 0 AND 0.20 AND \"MaxAgentDiscountAmount\" BETWEEN 0 AND 5000 AND \"ReservationHoldHours\" BETWEEN 1 AND 168 AND \"Version\" > 0 AND isfinite(\"UpdatedAtUtc\") AND \"UpdatedById\" <> '00000000-0000-0000-0000-000000000000'::uuid");
                         });
                 });
 
