@@ -1,4 +1,3 @@
-using Dealership.Application.Accounts;
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Persistence;
@@ -10,7 +9,7 @@ public sealed class PurchaseSettingsAdministrationStore(DealershipDbContext data
 {
     public async Task<PurchaseSettingsAdministrationResult> ReadAsync(Guid actorId, CancellationToken cancellationToken)
     {
-        if (!await IsAdministratorAsync(actorId, cancellationToken))
+        if (!await AdministratorScope.IsAdministratorAsync(database, actorId, cancellationToken))
         {
             return new(PurchaseSettingsAdministrationStatus.Forbidden);
         }
@@ -25,10 +24,7 @@ public sealed class PurchaseSettingsAdministrationStore(DealershipDbContext data
         PurchaseSettingsUpdateRequest request, DateTimeOffset now, CancellationToken cancellationToken)
     {
         await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
-        var actor = await database.Users.FromSqlInterpolated(
-            $"SELECT * FROM \"AspNetUsers\" WHERE \"Id\" = {actorId} FOR SHARE")
-            .AsNoTracking().SingleOrDefaultAsync(cancellationToken);
-        if (actor is not { IsActive: true, Role: AccountRoles.Administrator })
+        if (!await AdministratorScope.LockAdministratorAsync(database, actorId, cancellationToken))
         {
             return new(PurchaseSettingsAdministrationStatus.Forbidden);
         }
@@ -53,8 +49,4 @@ public sealed class PurchaseSettingsAdministrationStore(DealershipDbContext data
         await transaction.CommitAsync(cancellationToken);
         return new(PurchaseSettingsAdministrationStatus.Succeeded, PurchaseSettingsView.From(settings));
     }
-
-    private Task<bool> IsAdministratorAsync(Guid actorId, CancellationToken cancellationToken) =>
-        database.Users.AsNoTracking().AnyAsync(user => user.Id == actorId && user.IsActive &&
-            user.Role == AccountRoles.Administrator, cancellationToken);
 }

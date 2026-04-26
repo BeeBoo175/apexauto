@@ -141,6 +141,7 @@ app.MapReservationQueryEndpoints();
 app.MapPublicListingEndpoints();
 app.MapPromoEndpoints();
 app.MapSettingsEndpoints();
+app.MapPromoAdministrationEndpoints();
 app.MapListingQueryEndpoints();
 app.MapListingPhotoEndpoints();
 app.MapRegistrationEndpoints();

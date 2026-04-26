@@ -37,6 +37,31 @@ public sealed class PromoCodeTests
             new PromoCode(Guid.NewGuid(), "APEX500", discount, DateTimeOffset.UtcNow, true));
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(100000.01)]
+    public void PromoDiscountMustBePositiveAndWithinTheApprovedLimit(double discount)
+    {
+        Assert.False(PromoCode.ValidDiscount((decimal)discount));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new PromoCode(Guid.NewGuid(), "APEX500", (decimal)discount, DateTimeOffset.UtcNow, true));
+    }
+
+    [Fact]
+    public void UpdateChangesTermsKeepsTheCodeAndAdvancesTheVersion()
+    {
+        var expiry = DateTimeOffset.UtcNow.AddDays(1);
+        var promo = new PromoCode(Guid.NewGuid(), "APEX500", 500m, expiry, true);
+
+        promo.Update(100000m, expiry.AddDays(1), false);
+
+        Assert.Equal(("APEX500", 100000m, expiry.AddDays(1), false, 2L),
+            (promo.Code, promo.Discount, promo.ExpiresAtUtc, promo.IsActive, promo.Version));
+        Assert.Throws<ArgumentOutOfRangeException>(() => promo.Update(0m, expiry, true));
+        Assert.Throws<ArgumentException>(() => promo.Update(500m, expiry.ToOffset(TimeSpan.FromHours(8)), true));
+        Assert.Equal(2, promo.Version);
+    }
+
     [Fact]
     public void SettingsReuseCanonicalMoneyAndRateValidation()
     {

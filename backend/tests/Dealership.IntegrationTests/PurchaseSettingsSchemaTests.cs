@@ -41,7 +41,7 @@ public sealed class PurchaseSettingsSchemaTests(RegistrationDatabase database) :
             Assert.Equal(PostgresErrorCodes.CheckViolation, error.SqlState);
         }
 
-        foreach (var assignment in new[] { "\"Discount\" = -1", "\"Discount\" = 'NaN'", "\"ExpiresAtUtc\" = 'infinity'" })
+        foreach (var assignment in new[] { "\"Discount\" = -1", "\"Discount\" = 0", "\"Discount\" = 100000.01", "\"Version\" = 0, \"Discount\" = 1", "\"Discount\" = 'NaN'", "\"ExpiresAtUtc\" = 'infinity'" })
         {
             await RejectedAsync($"UPDATE \"PromoCodes\" SET {assignment}", PostgresErrorCodes.CheckViolation);
         }
