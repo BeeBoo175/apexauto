@@ -88,7 +88,27 @@ public sealed class WarrantyAdministrationTests(RegistrationDatabase database) :
             Names(await ListAsync(administrator, sort: "status", direction: "asc")));
         var scoped = (await ListAsync(administrator, 1, 10, "apexshield", "Active", "mileage", "asc")).Page!;
         Assert.Equal((2, "ApexShield Gold"), (scoped.Total, scoped.Items[0].Name));
+
+        Assert.Equal("ApexShield Gold", Names(await ListAsync(administrator, name: "GOLD")));
+        Assert.Equal("ApexShield Gold", Names(await ListAsync(administrator, minimumPrice: 2000m, maximumPrice: 3000m)));
+        Assert.Equal("ApexShield Silver,ApexShield Gold", Names(await ListAsync(administrator, grade: "B")));
+        Assert.Equal("ApexShield Platinum", Names(await ListAsync(administrator, grade: "A")));
+        Assert.Equal("", Names(await ListAsync(administrator, grade: "C")));
+        Assert.Equal(WarrantyAdministrationStatus.Invalid, (await ListAsync(administrator, grade: "D")).Status);
+        Assert.Equal(WarrantyAdministrationStatus.Invalid,
+            (await ListAsync(administrator, minimumPrice: 10m, maximumPrice: 5m)).Status);
+        Assert.Equal(WarrantyAdministrationStatus.Invalid, (await ListAsync(administrator, name: new string('x', 161))).Status);
+
+        var found = await GetAsync(administrator, first.Package.Id);
+        Assert.Equal((WarrantyAdministrationStatus.Succeeded, "ApexShield Silver", 2L),
+            (found.Status, found.Package!.Name, found.Package.Version));
+        Assert.Equal(WarrantyAdministrationStatus.NotFound, (await GetAsync(administrator, Guid.NewGuid())).Status);
+        Assert.Equal(WarrantyAdministrationStatus.Invalid, (await GetAsync(administrator, Guid.Empty)).Status);
+        Assert.Equal(WarrantyAdministrationStatus.Forbidden, (await GetAsync(manager, first.Package.Id)).Status);
     }
+
+    private Task<WarrantyAdministrationResult> GetAsync(Guid actor, Guid packageId) =>
+        ServiceAsync(service => service.GetAsync(actor, packageId, CancellationToken.None));
 
     private static string Names(WarrantyAdministrationResult result) =>
         string.Join(',', result.Page!.Items.Select(item => item.Name));
@@ -116,9 +136,10 @@ public sealed class WarrantyAdministrationTests(RegistrationDatabase database) :
     }
 
     private Task<WarrantyAdministrationResult> ListAsync(Guid actor, int page = 1, int pageSize = 25,
-        string? search = null, string? status = null, string? sort = null, string? direction = null) =>
-        ServiceAsync(service => service.ListAsync(actor, page, pageSize, search, status, sort, direction,
-            CancellationToken.None));
+        string? search = null, string? status = null, string? sort = null, string? direction = null,
+        string? name = null, decimal? minimumPrice = null, decimal? maximumPrice = null, string? grade = null) =>
+        ServiceAsync(service => service.ListAsync(actor, page, pageSize, search, status, sort, direction, name,
+            minimumPrice, maximumPrice, grade, CancellationToken.None));
 
     private Task<WarrantyAdministrationResult> CreateAsync(Guid actor, WarrantyCreateRequest request) =>
         ServiceAsync(service => service.CreateAsync(actor, request, CancellationToken.None));

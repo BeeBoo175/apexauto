@@ -39,6 +39,8 @@ public interface IWarrantyAdministrationStore
     Task<WarrantyAdministrationResult> ListAsync(Guid actorId, AdministrationListQuery query,
         CancellationToken cancellationToken);
 
+    Task<WarrantyAdministrationResult> GetAsync(Guid actorId, Guid packageId, CancellationToken cancellationToken);
+
     Task<WarrantyAdministrationResult> CreateAsync(Guid actorId, WarrantyPackage package,
         CancellationToken cancellationToken);
 

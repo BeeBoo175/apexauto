@@ -67,7 +67,7 @@ public sealed class PromoAdministrationTests(RegistrationDatabase database) : IC
         Assert.Equal(PromoAdministrationStatus.Invalid, (await ListAsync(administrator, sort: "version")).Status);
         Assert.Equal(PromoAdministrationStatus.Invalid, (await ListAsync(administrator, direction: "desc")).Status);
         Assert.Equal(PromoAdministrationStatus.Invalid, (await ListAsync(administrator, sort: "code", direction: "up")).Status);
-        Assert.Equal(PromoAdministrationStatus.Invalid, (await ListAsync(administrator, search: new string('x', 101))).Status);
+        Assert.Equal(PromoAdministrationStatus.Invalid, (await ListAsync(administrator, search: new string('x', 161))).Status);
         Assert.Equal("OLD_100", Codes(await ListAsync(administrator, status: "Expired")));
         Assert.Equal("APEX500,apex500", Codes(await ListAsync(administrator, status: "Inactive")));
         Assert.Equal("", Codes(await ListAsync(administrator, status: "Active")));
@@ -81,15 +81,38 @@ public sealed class PromoAdministrationTests(RegistrationDatabase database) : IC
         Assert.Equal("OLD_100,APEX500,apex500", Codes(await ListAsync(administrator, sort: "status", direction: "desc")));
         var scoped = (await ListAsync(administrator, 1, 10, "apex", "Inactive", "code", "asc")).Page!;
         Assert.Equal((2, 2), (scoped.Total, scoped.Items.Count));
+
+        Assert.Equal("APEX500,apex500", Codes(await ListAsync(administrator, code: "PEX")));
+        Assert.Equal("APEX500,apex500", Codes(await ListAsync(administrator, minimumDiscount: 60m, maximumDiscount: 800m)));
+        Assert.Equal("APEX500", Codes(await ListAsync(administrator, minimumDiscount: 200m)));
+        var onlyDay = DateOnly.FromDateTime(expiry.AddDays(1).ToOffset(TimeSpan.FromHours(8)).DateTime)
+            .ToString("yyyy-MM-dd");
+        Assert.Equal("apex500", Codes(await ListAsync(administrator, expiresFrom: onlyDay, expiresTo: onlyDay)));
+        Assert.Equal("", Codes(await ListAsync(administrator, code: "PEX", minimumDiscount: 900m)));
+        Assert.Equal(PromoAdministrationStatus.Invalid,
+            (await ListAsync(administrator, minimumDiscount: 10m, maximumDiscount: 5m)).Status);
+        Assert.Equal(PromoAdministrationStatus.Invalid, (await ListAsync(administrator, expiresFrom: onlyDay)).Status);
+        Assert.Equal(PromoAdministrationStatus.Invalid, (await ListAsync(administrator, code: new string('x', 161))).Status);
+
+        var found = await GetAsync(administrator, first.Promo.Id);
+        Assert.Equal((PromoAdministrationStatus.Succeeded, "APEX500", 2L), (found.Status, found.Promo!.Code, found.Promo.Version));
+        Assert.Equal(PromoAdministrationStatus.NotFound, (await GetAsync(administrator, Guid.NewGuid())).Status);
+        Assert.Equal(PromoAdministrationStatus.Invalid, (await GetAsync(administrator, Guid.Empty)).Status);
+        Assert.Equal(PromoAdministrationStatus.Forbidden, (await GetAsync(manager, first.Promo.Id)).Status);
     }
+
+    private Task<PromoAdministrationResult> GetAsync(Guid actor, Guid promoId) =>
+        ServiceAsync(service => service.GetAsync(actor, promoId, CancellationToken.None));
 
     private static string Codes(PromoAdministrationResult result) =>
         string.Join(',', result.Page!.Items.Select(item => item.Code));
 
     private Task<PromoAdministrationResult> ListAsync(Guid actor, int page = 1, int pageSize = 25, string? search = null,
-        string? status = null, string? sort = null, string? direction = null) =>
-        ServiceAsync(service => service.ListAsync(actor, page, pageSize, search, status, sort, direction,
-            CancellationToken.None));
+        string? status = null, string? sort = null, string? direction = null, string? code = null,
+        decimal? minimumDiscount = null, decimal? maximumDiscount = null, string? expiresFrom = null,
+        string? expiresTo = null) =>
+        ServiceAsync(service => service.ListAsync(actor, page, pageSize, search, status, sort, direction, code,
+            minimumDiscount, maximumDiscount, expiresFrom, expiresTo, CancellationToken.None));
 
     private Task<PromoAdministrationResult> CreateAsync(Guid actor, PromoCreateRequest request) =>
         ServiceAsync(service => service.CreateAsync(actor, request, CancellationToken.None));

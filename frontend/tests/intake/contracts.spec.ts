@@ -184,7 +184,7 @@ test("actor destinations require a validated persisted role and branch shape", (
     "/dashboard/intake",
   );
   expect(actorDestination({ userId: id, role: "Administrator", branchId: null })).toBe(
-    "/dashboard",
+    "/dashboard/settings",
   );
 });
 

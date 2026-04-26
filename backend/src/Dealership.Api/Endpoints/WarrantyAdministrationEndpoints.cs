@@ -15,25 +15,42 @@ public static class WarrantyAdministrationEndpoints
             return await next(context);
         });
         routes.MapGet("", ListAsync);
+        routes.MapGet("/{packageId:guid}", GetAsync);
         routes.MapPost("", CreateAsync);
         routes.MapPut("/{packageId:guid}", UpdateAsync);
     }
 
     private static async Task<IResult> ListAsync(int? page, int? pageSize, string? search, string? status, string? sort,
-        string? direction, HttpContext context, WarrantyAdministrationService warranties,
-        CancellationToken cancellationToken)
+        string? direction, string? name, decimal? minimumPrice, decimal? maximumPrice, string? grade,
+        HttpContext context, WarrantyAdministrationService warranties, CancellationToken cancellationToken)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(20));
         try
         {
             var result = await warranties.ListAsync(ActorId(context), page ?? 1,
-                pageSize ?? Pagination.DefaultPageSize, search, status, sort, direction, deadline.Token);
+                pageSize ?? Pagination.DefaultPageSize, search, status, sort, direction, name, minimumPrice,
+                maximumPrice, grade, deadline.Token);
             return Map(result);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
             return Results.Problem(statusCode: 503, title: "Warranty packages are temporarily unavailable.");
+        }
+    }
+
+    private static async Task<IResult> GetAsync(Guid packageId, HttpContext context,
+        WarrantyAdministrationService warranties, CancellationToken cancellationToken)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(20));
+        try
+        {
+            return Map(await warranties.GetAsync(ActorId(context), packageId, deadline.Token));
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return Results.Problem(statusCode: 503, title: "The warranty package is temporarily unavailable.");
         }
     }
 

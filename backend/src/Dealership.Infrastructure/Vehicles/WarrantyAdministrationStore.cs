@@ -25,6 +25,20 @@ public sealed class WarrantyAdministrationStore(DealershipDbContext database) : 
         return new(WarrantyAdministrationStatus.Succeeded, Page: result);
     }
 
+    public async Task<WarrantyAdministrationResult> GetAsync(Guid actorId, Guid packageId,
+        CancellationToken cancellationToken)
+    {
+        if (!await AdministratorScope.IsAdministratorAsync(database, actorId, cancellationToken))
+        {
+            return new(WarrantyAdministrationStatus.Forbidden);
+        }
+
+        var package = await database.WarrantyPackages.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.Id == packageId, cancellationToken);
+        return package is null ? new(WarrantyAdministrationStatus.NotFound)
+            : new(WarrantyAdministrationStatus.Succeeded, WarrantyView.From(package));
+    }
+
     public async Task<WarrantyAdministrationResult> CreateAsync(Guid actorId, WarrantyPackage package,
         CancellationToken cancellationToken)
     {
@@ -91,6 +105,28 @@ public sealed class WarrantyAdministrationStore(DealershipDbContext database) : 
         {
             packages = packages.Where(item =>
                 EF.Functions.ILike(item.Name, "%" + PromoAdministrationStore.EscapeLike(query.Search) + "%", "\\"));
+        }
+
+        if (query.Text is not null)
+        {
+            packages = packages.Where(item =>
+                EF.Functions.ILike(item.Name, "%" + PromoAdministrationStore.EscapeLike(query.Text) + "%", "\\"));
+        }
+
+        if (query.MinimumAmount is { } minimum)
+        {
+            packages = packages.Where(item => item.Price >= minimum);
+        }
+
+        if (query.MaximumAmount is { } maximum)
+        {
+            packages = packages.Where(item => item.Price <= maximum);
+        }
+
+        if (query.Grade is not null)
+        {
+            var grade = Enum.Parse<InspectionGrade>(query.Grade);
+            packages = packages.Where(item => item.MinimumGrade == grade);
         }
 
         return query.Status switch

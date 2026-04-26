@@ -12,17 +12,25 @@ public sealed class WarrantyAdministrationService(IWarrantyAdministrationStore s
         new HashSet<string> { "name", "term", "mileage", "price", "grade", "status" };
 
     public Task<WarrantyAdministrationResult> ListAsync(Guid actorId, int page, int pageSize, string? search,
-        string? status, string? sort, string? direction, CancellationToken cancellationToken)
+        string? status, string? sort, string? direction, string? name, decimal? minimumPrice, decimal? maximumPrice,
+        string? grade, CancellationToken cancellationToken)
     {
         if (actorId == Guid.Empty)
         {
             return Rejected(WarrantyAdministrationStatus.Forbidden);
         }
 
-        var query = AdministrationListQuery.Create(page, pageSize, search, status, sort, direction, Statuses, Sorts);
+        var query = AdministrationListQuery.Create(page, pageSize, search, status, sort, direction, Statuses, Sorts)
+            ?.WithColumns(name, minimumPrice, maximumPrice, null, null, grade);
         return query is null ? Rejected(WarrantyAdministrationStatus.Invalid)
             : store.ListAsync(actorId, query, cancellationToken);
     }
+
+    public Task<WarrantyAdministrationResult> GetAsync(Guid actorId, Guid packageId,
+        CancellationToken cancellationToken) =>
+        actorId == Guid.Empty ? Rejected(WarrantyAdministrationStatus.Forbidden)
+            : packageId == Guid.Empty ? Rejected(WarrantyAdministrationStatus.Invalid)
+            : store.GetAsync(actorId, packageId, cancellationToken);
 
     public Task<WarrantyAdministrationResult> CreateAsync(Guid actorId, WarrantyCreateRequest request,
         CancellationToken cancellationToken)

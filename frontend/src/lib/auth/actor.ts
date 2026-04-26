@@ -39,6 +39,9 @@ export function actorDestination(actor: CurrentActor, returnTo?: string) {
     if (actor.role === "WorkshopTechnician") {
       return "/dashboard/inspection";
     }
+    if (actor.role === "Administrator") {
+      return "/dashboard/settings";
+    }
     return hasIntakeAccess(actor) ? "/dashboard/intake" : "/dashboard";
   }
   const destination = safeReturnTo(returnTo);

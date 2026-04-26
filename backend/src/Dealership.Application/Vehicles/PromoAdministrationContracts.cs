@@ -35,6 +35,8 @@ public interface IPromoAdministrationStore
     Task<PromoAdministrationResult> ListAsync(Guid actorId, AdministrationListQuery query, DateTimeOffset now,
         CancellationToken cancellationToken);
 
+    Task<PromoAdministrationResult> GetAsync(Guid actorId, Guid promoId, CancellationToken cancellationToken);
+
     Task<PromoAdministrationResult> CreateAsync(Guid actorId, PromoCreateRequest request,
         CancellationToken cancellationToken);
 

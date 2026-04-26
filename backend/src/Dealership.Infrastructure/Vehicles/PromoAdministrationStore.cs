@@ -24,6 +24,20 @@ public sealed class PromoAdministrationStore(DealershipDbContext database) : IPr
         return new(PromoAdministrationStatus.Succeeded, Page: result);
     }
 
+    public async Task<PromoAdministrationResult> GetAsync(Guid actorId, Guid promoId,
+        CancellationToken cancellationToken)
+    {
+        if (!await AdministratorScope.IsAdministratorAsync(database, actorId, cancellationToken))
+        {
+            return new(PromoAdministrationStatus.Forbidden);
+        }
+
+        var promo = await database.PromoCodes.AsNoTracking().SingleOrDefaultAsync(item => item.Id == promoId,
+            cancellationToken);
+        return promo is null ? new(PromoAdministrationStatus.NotFound)
+            : new(PromoAdministrationStatus.Succeeded, PromoView.From(promo));
+    }
+
     public async Task<PromoAdministrationResult> CreateAsync(Guid actorId, PromoCreateRequest request,
         CancellationToken cancellationToken)
     {
@@ -87,6 +101,26 @@ public sealed class PromoAdministrationStore(DealershipDbContext database) : IPr
         if (query.Search is not null)
         {
             promos = promos.Where(item => EF.Functions.ILike(item.Code, "%" + EscapeLike(query.Search) + "%", "\\"));
+        }
+
+        if (query.Text is not null)
+        {
+            promos = promos.Where(item => EF.Functions.ILike(item.Code, "%" + EscapeLike(query.Text) + "%", "\\"));
+        }
+
+        if (query.MinimumAmount is { } minimum)
+        {
+            promos = promos.Where(item => item.Discount >= minimum);
+        }
+
+        if (query.MaximumAmount is { } maximum)
+        {
+            promos = promos.Where(item => item.Discount <= maximum);
+        }
+
+        if (query.Dates is { From: { } from, Until: { } until })
+        {
+            promos = promos.Where(item => item.ExpiresAtUtc >= from && item.ExpiresAtUtc < until);
         }
 
         return query.Status switch

@@ -11,17 +11,24 @@ public sealed class PromoAdministrationService(IPromoAdministrationStore store, 
         new HashSet<string> { "code", "discount", "expiresAt", "status" };
 
     public Task<PromoAdministrationResult> ListAsync(Guid actorId, int page, int pageSize, string? search,
-        string? status, string? sort, string? direction, CancellationToken cancellationToken)
+        string? status, string? sort, string? direction, string? code, decimal? minimumDiscount,
+        decimal? maximumDiscount, string? expiresFrom, string? expiresTo, CancellationToken cancellationToken)
     {
         if (actorId == Guid.Empty)
         {
             return Rejected(PromoAdministrationStatus.Forbidden);
         }
 
-        var query = AdministrationListQuery.Create(page, pageSize, search, status, sort, direction, Statuses, Sorts);
+        var query = AdministrationListQuery.Create(page, pageSize, search, status, sort, direction, Statuses, Sorts)
+            ?.WithColumns(code, minimumDiscount, maximumDiscount, expiresFrom, expiresTo, null);
         return query is null ? Rejected(PromoAdministrationStatus.Invalid)
             : store.ListAsync(actorId, query, clock.GetUtcNow(), cancellationToken);
     }
+
+    public Task<PromoAdministrationResult> GetAsync(Guid actorId, Guid promoId, CancellationToken cancellationToken) =>
+        actorId == Guid.Empty ? Rejected(PromoAdministrationStatus.Forbidden)
+            : promoId == Guid.Empty ? Rejected(PromoAdministrationStatus.Invalid)
+            : store.GetAsync(actorId, promoId, cancellationToken);
 
     public Task<PromoAdministrationResult> CreateAsync(Guid actorId, PromoCreateRequest request,
         CancellationToken cancellationToken)
