@@ -19,6 +19,8 @@ internal static class DevelopmentPurchaseFixtureAssertions
         Assert.Equal(0.08m, settings.SstRate);
         Assert.Equal(DevelopmentPurchaseFixtures.Settings.UpdatedById, settings.UpdatedById);
         Assert.Equal(2, await database.PromoCodes.CountAsync());
+        Assert.Equal("CBA", string.Concat((await database.WarrantyPackages.AsNoTracking().ToListAsync())
+            .OrderBy(item => item.Price).Select(item => item.MinimumGrade)));
         var vehicleId = await database.ListingPublications.Where(item =>
             !database.Reservations.Any(hold => hold.VehicleId == item.VehicleId && hold.IsActive))
             .Select(item => item.VehicleId).FirstAsync();
@@ -62,6 +64,7 @@ internal static class DevelopmentPurchaseFixtureAssertions
     private static async Task<string> SnapshotAsync(DealershipDbContext database) => JsonSerializer.Serialize(new
     {
         Settings = await database.PurchaseSettings.AsNoTracking().ToArrayAsync(),
-        Promos = await database.PromoCodes.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync()
+        Promos = await database.PromoCodes.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync(),
+        Warranties = await database.WarrantyPackages.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync()
     });
 }

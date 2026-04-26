@@ -18,4 +18,12 @@ public sealed class PurchaseConfigurationService(IPurchaseConfigurationStore sto
         var promo = new PromoCode(request.Id, request.Code, request.Discount, request.ExpiresAtUtc, request.IsActive);
         return store.ProvisionAsync(promo, cancellationToken);
     }
+
+    public Task<PurchaseConfigurationResult> ProvisionWarrantyAsync(WarrantyProvisioningRequest request,
+        CancellationToken cancellationToken)
+    {
+        var package = new WarrantyPackage(request.Id, request.Name, request.DurationMonths, request.MileageCapKm,
+            request.Price, request.MinimumGrade, request.IsActive);
+        return store.ProvisionAsync(package, cancellationToken);
+    }
 }

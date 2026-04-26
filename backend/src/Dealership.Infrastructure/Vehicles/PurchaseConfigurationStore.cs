@@ -42,6 +42,24 @@ public sealed class PurchaseConfigurationStore(DealershipDbContext database) : I
         return new(true, true);
     }
 
+    public async Task<PurchaseConfigurationResult> ProvisionAsync(WarrantyPackage package, CancellationToken cancellationToken)
+    {
+        await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
+        await database.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT pg_advisory_xact_lock(hashtextextended({"warranty-configuration"}, 0))", cancellationToken);
+        var existing = await database.WarrantyPackages.AsNoTracking()
+            .Where(item => item.Id == package.Id || item.Name == package.Name).ToArrayAsync(cancellationToken);
+        if (existing.Length > 0)
+        {
+            return new(false, existing.Length == 1 && WarrantyAdministrationStore.Matches(existing[0], package));
+        }
+
+        database.WarrantyPackages.Add(package);
+        await database.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return new(true, true);
+    }
+
     internal static bool Matches(PurchaseSettings existing, PurchaseSettingsRequest requested) =>
         existing.ProcessingFee == requested.ProcessingFee && existing.SstRate == requested.SstRate &&
         existing.UpdatedById == requested.UpdatedById;

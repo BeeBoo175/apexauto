@@ -22,6 +22,8 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
 
     public DbSet<PurchaseSettings> PurchaseSettings => Set<PurchaseSettings>();
 
+    public DbSet<WarrantyPackage> WarrantyPackages => Set<WarrantyPackage>();
+
     public DbSet<Reservation> Reservations => Set<Reservation>();
 
     public DbSet<ReservationRelease> ReservationReleases => Set<ReservationRelease>();
@@ -86,6 +88,7 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
         builder.ApplyConfiguration(new AccountUserConfiguration());
         builder.ApplyConfiguration(new BranchConfiguration());
         builder.ApplyConfiguration(new PromoCodeConfiguration());
+        builder.ApplyConfiguration(new WarrantyPackageConfiguration());
         builder.ApplyConfiguration(new PurchaseSettingsConfiguration());
         var reservations = new ReservationConfiguration();
         builder.ApplyConfiguration<Reservation>(reservations);

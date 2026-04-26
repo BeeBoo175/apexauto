@@ -14,4 +14,6 @@ public interface IPurchaseConfigurationStore
     Task<PurchaseConfigurationResult> ProvisionAsync(PurchaseSettings settings, CancellationToken cancellationToken);
 
     Task<PurchaseConfigurationResult> ProvisionAsync(PromoCode promo, CancellationToken cancellationToken);
+
+    Task<PurchaseConfigurationResult> ProvisionAsync(WarrantyPackage package, CancellationToken cancellationToken);
 }
