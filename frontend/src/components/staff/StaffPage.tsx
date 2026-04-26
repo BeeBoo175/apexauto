@@ -16,6 +16,7 @@ const titles: Record<string, string> = {
   "/dashboard/inspection/repairs": "Repair requests",
   "/dashboard/management": "Listings",
   "/dashboard/reservations": "Reservations",
+  "/dashboard/settings": "Settings",
 };
 
 export function StaffLoading() {
@@ -33,6 +34,7 @@ export function StaffLoading() {
     "/dashboard/inspection": workshopView,
     "/dashboard/inspection/repairs": "repairs",
     "/dashboard/reservations": "inspection",
+    "/dashboard/settings": "inspection",
   };
   let view = views[pathname] ?? "inspection";
   let title = titles[pathname] ?? "Your staff workspace";

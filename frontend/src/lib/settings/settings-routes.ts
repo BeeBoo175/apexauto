@@ -1,0 +1,214 @@
+import "server-only";
+import { isRecord, isUuid } from "@/lib/auth/contracts";
+import { readCurrentActor } from "@/lib/auth/server";
+import { isMyr } from "@/lib/currency-input";
+import { HttpError, readBoundedJson } from "@/lib/http";
+import { requireSameOrigin } from "@/lib/server/http/request";
+import {
+  apiError,
+  apiJson,
+  privateApiRead,
+  requestApiJson,
+  sessionToken,
+} from "@/lib/server/http/api";
+import { hasSettingsAccess, warrantyGrades } from "./settings";
+
+export type SettingsResource = "settings" | "promos" | "warranties";
+
+const upstream: Record<SettingsResource, string> = {
+  settings: "/api/staff/settings",
+  promos: "/api/staff/promos",
+  warranties: "/api/staff/warranties",
+};
+
+const listKeys = ["page", "pageSize", "search", "status", "sort", "direction"];
+// The browser uses one neutral column-filter vocabulary; each upstream resource names its own columns.
+const columnKeys: Record<Exclude<SettingsResource, "settings">, Record<string, string>> = {
+  promos: {
+    text: "code",
+    minimum: "minimumDiscount",
+    maximum: "maximumDiscount",
+    expiresFrom: "expiresFrom",
+    expiresTo: "expiresTo",
+  },
+  warranties: { text: "name", minimum: "minimumPrice", maximum: "maximumPrice", grade: "grade" },
+};
+type Body = Record<string, unknown>;
+
+async function settingsActor(signal: AbortSignal) {
+  const current = await readCurrentActor(signal);
+  if (!current.actor) {
+    throw new HttpError(current.status === 401 ? 401 : 502, "Your session could not be confirmed.");
+  }
+  const denied = !hasSettingsAccess(current.actor)
+    ? apiJson({
+        status: 403,
+        data: null,
+        message: "Settings access unavailable.",
+        uncertain: false,
+        actor: current.actor,
+      })
+    : null;
+  return { actor: current.actor, denied };
+}
+
+export async function relaySettingsRead<T>(
+  request: Request,
+  resource: SettingsResource,
+  parse: (value: unknown) => T | null,
+  id: string | null = null,
+) {
+  try {
+    if (id !== null && !isUuid(id)) {
+      throw new HttpError(400, "Choose a valid record ID.");
+    }
+    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(25_000)]);
+    const current = await settingsActor(signal);
+    if (current.denied) {
+      return current.denied;
+    }
+    const source = new URL(request.url).searchParams;
+    const allowed = new URLSearchParams();
+    if (id === null && resource !== "settings") {
+      for (const key of listKeys) {
+        if (source.has(key)) {
+          allowed.set(key, source.get(key)!);
+        }
+      }
+      for (const [key, upstreamKey] of Object.entries(columnKeys[resource])) {
+        if (source.has(key)) {
+          allowed.set(upstreamKey, source.get(key)!);
+        }
+      }
+    }
+    const query = allowed.size > 0 ? `?${allowed}` : "";
+    const path = id ? `${upstream[resource]}/${id}` : upstream[resource];
+    const result = await privateApiRead(`${path}${query}`, parse, signal);
+    return apiJson({ ...result, actor: current.actor });
+  } catch (error) {
+    return apiError(error);
+  }
+}
+
+export async function relaySettingsWrite<T>(
+  request: Request,
+  resource: SettingsResource,
+  method: "POST" | "PUT",
+  id: string | null,
+  shape: (body: Body) => Body | null,
+  parse: (value: unknown) => T | null,
+) {
+  try {
+    requireSameOrigin(request);
+    if (id !== null && !isUuid(id)) {
+      throw new HttpError(400, "Choose a valid record ID.");
+    }
+    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(25_000)]);
+    const token = await sessionToken();
+    if (!token) {
+      throw new HttpError(401, "Sign in to continue.");
+    }
+    const current = await settingsActor(signal);
+    if (current.denied) {
+      return current.denied;
+    }
+    if (request.headers.get("content-type")?.split(";")[0] !== "application/json") {
+      throw new HttpError(415, "Send application/json.");
+    }
+    const body = await readBoundedJson(request.body, signal, 8 * 1024);
+    const forwarded = isRecord(body) ? shape(body) : null;
+    if (!forwarded) {
+      throw new HttpError(400, "Provide valid details within the approved limits.");
+    }
+    const path = id ? `${upstream[resource]}/${id}` : upstream[resource];
+    const result = await requestApiJson(path, parse, { token, signal, method, body: forwarded });
+    return apiJson({ ...result, actor: current.actor });
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      return apiError(new HttpError(400, "Provide valid JSON details."));
+    }
+    return apiError(error);
+  }
+}
+
+const version = (value: unknown): value is number =>
+  Number.isSafeInteger(value) && Number(value) > 0;
+const integer = (value: unknown): value is number => version(value);
+const utc = (value: unknown): value is string =>
+  typeof value === "string" && /(?:Z|\+00:00)$/.test(value) && Number.isFinite(Date.parse(value));
+
+export function shapeSettings(body: Body) {
+  if (
+    !isMyr(body.processingFee) ||
+    typeof body.sstRate !== "number" ||
+    !Number.isFinite(body.sstRate) ||
+    !isMyr(body.maxAgentDiscountAmount) ||
+    !integer(body.reservationHoldHours) ||
+    !version(body.expectedVersion)
+  ) {
+    return null;
+  }
+  return {
+    processingFee: body.processingFee,
+    sstRate: body.sstRate,
+    maxAgentDiscountAmount: body.maxAgentDiscountAmount,
+    reservationHoldHours: body.reservationHoldHours,
+    expectedVersion: body.expectedVersion,
+  };
+}
+
+function promoTerms(body: Body) {
+  if (!isMyr(body.discount) || !utc(body.expiresAtUtc) || typeof body.isActive !== "boolean") {
+    return null;
+  }
+  return { discount: body.discount, expiresAtUtc: body.expiresAtUtc, isActive: body.isActive };
+}
+
+export function shapePromoCreate(body: Body) {
+  const terms = promoTerms(body);
+  if (!terms || !isUuid(body.id) || typeof body.code !== "string" || !body.code.trim()) {
+    return null;
+  }
+  return { id: body.id, code: body.code.trim(), ...terms };
+}
+
+export function shapePromoUpdate(body: Body) {
+  const terms = promoTerms(body);
+  return terms && version(body.expectedVersion)
+    ? { ...terms, expectedVersion: body.expectedVersion }
+    : null;
+}
+
+function warrantyTerms(body: Body) {
+  if (
+    typeof body.name !== "string" ||
+    !body.name.trim() ||
+    !integer(body.durationMonths) ||
+    !integer(body.mileageCapKm) ||
+    !isMyr(body.price) ||
+    !warrantyGrades.some((grade) => grade === body.minimumGrade) ||
+    typeof body.isActive !== "boolean"
+  ) {
+    return null;
+  }
+  return {
+    name: body.name.trim(),
+    durationMonths: body.durationMonths,
+    mileageCapKm: body.mileageCapKm,
+    price: body.price,
+    minimumGrade: body.minimumGrade,
+    isActive: body.isActive,
+  };
+}
+
+export function shapeWarrantyCreate(body: Body) {
+  const terms = warrantyTerms(body);
+  return terms && isUuid(body.id) ? { id: body.id, ...terms } : null;
+}
+
+export function shapeWarrantyUpdate(body: Body) {
+  const terms = warrantyTerms(body);
+  return terms && version(body.expectedVersion)
+    ? { ...terms, expectedVersion: body.expectedVersion }
+    : null;
+}

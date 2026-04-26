@@ -21,7 +21,11 @@ export interface AppliedWorklistFilter<Filters = StaffFilters> {
     | "created"
     | "expires"
     | "released"
-    | "total";
+    | "total"
+    | "code"
+    | "name"
+    | "discount"
+    | "grade";
   label: string;
   without: Filters;
 }

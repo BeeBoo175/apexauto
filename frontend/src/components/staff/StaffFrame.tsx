@@ -12,6 +12,7 @@ import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { hasIntakeAccess, roleNames, type CurrentActor } from "@/lib/auth/actor";
 import { hasInspectionAccess } from "@/lib/inspection/contracts";
 import { hasListingAccess } from "@/lib/vehicles/listings";
+import { hasSettingsAccess } from "@/lib/settings/settings";
 import { hasReservationAccess } from "@/lib/vehicles/reservations";
 import styles from "./StaffFrame.module.css";
 import {
@@ -50,6 +51,7 @@ function StaffFrameContent({
     "/dashboard/inspection/repairs",
     "/dashboard/management",
     "/dashboard/reservations",
+    "/dashboard/settings",
   ].includes(navigation.pathname);
   const logout = useAuthMutation("logout", "/login");
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -196,10 +198,29 @@ function StaffFrameContent({
                     Reservations
                   </StaffLink>
                 )}
+                {actor && hasSettingsAccess(actor) && (
+                  <StaffLink
+                    href="/dashboard/settings"
+                    prefetch={false}
+                    prefetchOnIntent={true}
+                    className={
+                      navigation.selectedPath === "/dashboard/settings"
+                        ? styles.activeLink
+                        : styles.navLink
+                    }
+                    aria-current={
+                      navigation.selectedPath === "/dashboard/settings" ? "page" : undefined
+                    }
+                    onNavigate={(event) => navigate(event, "/dashboard/settings")}
+                  >
+                    Settings
+                  </StaffLink>
+                )}
                 {actor &&
                   !hasIntakeAccess(actor) &&
                   !hasInspectionAccess(actor) &&
-                  !hasListingAccess(actor) && (
+                  !hasListingAccess(actor) &&
+                  !hasSettingsAccess(actor) && (
                     <StaffLink
                       href="/dashboard"
                       prefetch={false}
