@@ -1,0 +1,82 @@
+/* Field vocabulary shared with the listing editor: compact controls grouped under quiet section headings. */
+.fields {
+  display: grid;
+  gap: 20px;
+  padding-top: 20px;
+  max-width: 720px;
+}
+
+.section {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.section h3 {
+  margin: 0;
+  color: var(--color-graphite);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  min-width: 0;
+}
+
+.hint,
+.error {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.hint {
+  color: var(--color-muted);
+}
+
+.error {
+  color: var(--color-signal-dark);
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  font-size: 13px;
+  accent-color: var(--color-graphite);
+}
+
+.check input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+
+/* Plain bordered notice, as used by the staff protocol boxes. */
+.notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm, 4px);
+  background: var(--color-canvas);
+  font-size: 13px;
+}
+
+.notice p {
+  flex: 1 1 240px;
+  margin: 0;
+}
+
+@media (max-width: 600px) {
+  .pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
