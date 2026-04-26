@@ -32,7 +32,8 @@ public sealed record PromoAdministrationResult(PromoAdministrationStatus Status,
 
 public interface IPromoAdministrationStore
 {
-    Task<PromoAdministrationResult> ListAsync(Guid actorId, int page, int pageSize, CancellationToken cancellationToken);
+    Task<PromoAdministrationResult> ListAsync(Guid actorId, AdministrationListQuery query, DateTimeOffset now,
+        CancellationToken cancellationToken);
 
     Task<PromoAdministrationResult> CreateAsync(Guid actorId, PromoCreateRequest request,
         CancellationToken cancellationToken);

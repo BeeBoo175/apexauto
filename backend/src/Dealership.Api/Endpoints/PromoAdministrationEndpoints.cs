@@ -19,15 +19,15 @@ public static class PromoAdministrationEndpoints
         routes.MapPut("/{promoId:guid}", UpdateAsync);
     }
 
-    private static async Task<IResult> ListAsync(int? page, int? pageSize, HttpContext context,
-        PromoAdministrationService promos, CancellationToken cancellationToken)
+    private static async Task<IResult> ListAsync(int? page, int? pageSize, string? search, string? status, string? sort,
+        string? direction, HttpContext context, PromoAdministrationService promos, CancellationToken cancellationToken)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(20));
         try
         {
             var result = await promos.ListAsync(ActorId(context), page ?? 1, pageSize ?? Pagination.DefaultPageSize,
-                deadline.Token);
+                search, status, sort, direction, deadline.Token);
             return Map(result);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)

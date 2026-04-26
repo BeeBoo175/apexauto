@@ -1,4 +1,3 @@
-using Dealership.Application.Common;
 using Dealership.Domain.Inspections;
 using Dealership.Domain.Vehicles;
 
@@ -6,11 +5,24 @@ namespace Dealership.Application.Vehicles;
 
 public sealed class WarrantyAdministrationService(IWarrantyAdministrationStore store)
 {
-    public Task<WarrantyAdministrationResult> ListAsync(Guid actorId, int page, int pageSize,
-        CancellationToken cancellationToken) =>
-        actorId == Guid.Empty ? Rejected(WarrantyAdministrationStatus.Forbidden)
-            : !Pagination.IsValid(page, pageSize) ? Rejected(WarrantyAdministrationStatus.Invalid)
-            : store.ListAsync(actorId, page, pageSize, cancellationToken);
+    public static readonly IReadOnlySet<string> Statuses =
+        new HashSet<string> { AdministrationListQuery.AllStatuses, "Active", "Inactive" };
+
+    public static readonly IReadOnlySet<string> Sorts =
+        new HashSet<string> { "name", "term", "mileage", "price", "grade", "status" };
+
+    public Task<WarrantyAdministrationResult> ListAsync(Guid actorId, int page, int pageSize, string? search,
+        string? status, string? sort, string? direction, CancellationToken cancellationToken)
+    {
+        if (actorId == Guid.Empty)
+        {
+            return Rejected(WarrantyAdministrationStatus.Forbidden);
+        }
+
+        var query = AdministrationListQuery.Create(page, pageSize, search, status, sort, direction, Statuses, Sorts);
+        return query is null ? Rejected(WarrantyAdministrationStatus.Invalid)
+            : store.ListAsync(actorId, query, cancellationToken);
+    }
 
     public Task<WarrantyAdministrationResult> CreateAsync(Guid actorId, WarrantyCreateRequest request,
         CancellationToken cancellationToken)

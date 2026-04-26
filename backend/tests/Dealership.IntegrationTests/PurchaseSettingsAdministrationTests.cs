@@ -30,6 +30,9 @@ public sealed class PurchaseSettingsAdministrationTests(RegistrationDatabase dat
         Assert.Equal(PurchaseSettingsAdministrationStatus.Succeeded, current.Status);
         Assert.Equal((500m, 0.08m, 500m, 48, 1L), (current.Settings!.ProcessingFee, current.Settings.SstRate,
             current.Settings.MaxAgentDiscountAmount, current.Settings.ReservationHoldHours, current.Settings.Version));
+        var bounds = current.Settings.Bounds;
+        Assert.Equal((5000m, 0.20m, 5000m, 1, 168), (bounds.MaximumFee, bounds.MaximumSstRate, bounds.MaximumDiscount,
+            bounds.MinimumHoldHours, bounds.MaximumHoldHours));
         foreach (var actor in new[] { inactive, manager, Guid.NewGuid(), Guid.Empty })
         {
             Assert.Equal(PurchaseSettingsAdministrationStatus.Forbidden, (await ReadAsync(actor)).Status);

@@ -60,10 +60,36 @@ public sealed class PromoAdministrationTests(RegistrationDatabase database) : IC
         var stale = await UpdateAsync(administrator, first.Promo.Id, change with { Discount = 900m });
         Assert.Equal(PromoAdministrationStatus.Conflict, stale.Status);
         Assert.Equal(750m, stale.Promo!.Discount);
+
+        Assert.Equal(PromoAdministrationStatus.Succeeded,
+            (await CreateAsync(administrator, new(Guid.NewGuid(), "OLD_100", 50m, DateTimeOffset.UtcNow.AddDays(-1)))).Status);
+        Assert.Equal(PromoAdministrationStatus.Invalid, (await ListAsync(administrator, status: "Bogus")).Status);
+        Assert.Equal(PromoAdministrationStatus.Invalid, (await ListAsync(administrator, sort: "version")).Status);
+        Assert.Equal(PromoAdministrationStatus.Invalid, (await ListAsync(administrator, direction: "desc")).Status);
+        Assert.Equal(PromoAdministrationStatus.Invalid, (await ListAsync(administrator, sort: "code", direction: "up")).Status);
+        Assert.Equal(PromoAdministrationStatus.Invalid, (await ListAsync(administrator, search: new string('x', 101))).Status);
+        Assert.Equal("OLD_100", Codes(await ListAsync(administrator, status: "Expired")));
+        Assert.Equal("APEX500,apex500", Codes(await ListAsync(administrator, status: "Inactive")));
+        Assert.Equal("", Codes(await ListAsync(administrator, status: "Active")));
+        Assert.Equal("APEX500,apex500", Codes(await ListAsync(administrator, search: " apex ", sort: "code", direction: "asc")));
+        Assert.Equal("apex500,APEX500", Codes(await ListAsync(administrator, search: "APEX", sort: "code", direction: "desc")));
+        Assert.Equal("OLD_100", Codes(await ListAsync(administrator, search: "d_1")));
+        Assert.Equal("", Codes(await ListAsync(administrator, search: "%")));
+        Assert.Equal("", Codes(await ListAsync(administrator, search: "D.1")));
+        Assert.Equal("OLD_100,apex500,APEX500", Codes(await ListAsync(administrator, sort: "discount", direction: "asc")));
+        Assert.Equal("APEX500,apex500,OLD_100", Codes(await ListAsync(administrator, sort: "status", direction: "asc")));
+        Assert.Equal("OLD_100,APEX500,apex500", Codes(await ListAsync(administrator, sort: "status", direction: "desc")));
+        var scoped = (await ListAsync(administrator, 1, 10, "apex", "Inactive", "code", "asc")).Page!;
+        Assert.Equal((2, 2), (scoped.Total, scoped.Items.Count));
     }
 
-    private Task<PromoAdministrationResult> ListAsync(Guid actor, int page = 1, int pageSize = 25) =>
-        ServiceAsync(service => service.ListAsync(actor, page, pageSize, CancellationToken.None));
+    private static string Codes(PromoAdministrationResult result) =>
+        string.Join(',', result.Page!.Items.Select(item => item.Code));
+
+    private Task<PromoAdministrationResult> ListAsync(Guid actor, int page = 1, int pageSize = 25, string? search = null,
+        string? status = null, string? sort = null, string? direction = null) =>
+        ServiceAsync(service => service.ListAsync(actor, page, pageSize, search, status, sort, direction,
+            CancellationToken.None));
 
     private Task<PromoAdministrationResult> CreateAsync(Guid actor, PromoCreateRequest request) =>
         ServiceAsync(service => service.CreateAsync(actor, request, CancellationToken.None));
@@ -75,7 +101,7 @@ public sealed class PromoAdministrationTests(RegistrationDatabase database) : IC
         Func<PromoAdministrationService, Task<PromoAdministrationResult>> action)
     {
         await using var context = NewContext();
-        return await action(new(new PromoAdministrationStore(context)));
+        return await action(new(new PromoAdministrationStore(context), TimeProvider.System));
     }
 
     private async Task<Guid> AddUserAsync(string role, bool active)

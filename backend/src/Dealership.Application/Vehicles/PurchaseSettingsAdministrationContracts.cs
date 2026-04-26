@@ -14,9 +14,20 @@ public enum PurchaseSettingsAdministrationStatus
     Conflict
 }
 
+// The server owns the approved limits; the editor displays them rather than carrying copies.
+public sealed record PurchaseSettingsBounds(decimal MaximumFee, decimal MaximumSstRate, decimal MaximumDiscount,
+    int MinimumHoldHours, int MaximumHoldHours)
+{
+    public static PurchaseSettingsBounds Approved { get; } = new(PurchaseSettings.MaximumFee,
+        PurchaseSettings.MaximumSstRate, PurchaseSettings.MaximumFee, PurchaseSettings.MinimumReservationHoldHours,
+        PurchaseSettings.MaximumReservationHoldHours);
+}
+
 public sealed record PurchaseSettingsView(decimal ProcessingFee, decimal SstRate, decimal MaxAgentDiscountAmount,
     int ReservationHoldHours, DateTimeOffset UpdatedAtUtc, long Version)
 {
+    public PurchaseSettingsBounds Bounds { get; } = PurchaseSettingsBounds.Approved;
+
     public static PurchaseSettingsView From(PurchaseSettings settings) => new(settings.ProcessingFee,
         settings.SstRate, settings.MaxAgentDiscountAmount, settings.ReservationHoldHours, settings.UpdatedAtUtc,
         settings.Version);

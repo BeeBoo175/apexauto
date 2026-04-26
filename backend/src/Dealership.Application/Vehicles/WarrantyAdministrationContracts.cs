@@ -36,7 +36,7 @@ public sealed record WarrantyProvisioningRequest(Guid Id, string Name, int Durat
 
 public interface IWarrantyAdministrationStore
 {
-    Task<WarrantyAdministrationResult> ListAsync(Guid actorId, int page, int pageSize,
+    Task<WarrantyAdministrationResult> ListAsync(Guid actorId, AdministrationListQuery query,
         CancellationToken cancellationToken);
 
     Task<WarrantyAdministrationResult> CreateAsync(Guid actorId, WarrantyPackage package,

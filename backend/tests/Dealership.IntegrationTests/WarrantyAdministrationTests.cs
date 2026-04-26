@@ -67,7 +67,31 @@ public sealed class WarrantyAdministrationTests(RegistrationDatabase database) :
         var stale = await UpdateAsync(administrator, first.Package.Id, change with { Price = 1800m });
         Assert.Equal(WarrantyAdministrationStatus.Conflict, stale.Status);
         Assert.Equal(1500m, stale.Package!.Price);
+
+        // Silver is now inactive grade B at RM 1,500; Gold is active grade B at RM 2,400.
+        Assert.Equal(WarrantyAdministrationStatus.Succeeded,
+            (await CreateAsync(administrator, new(Guid.NewGuid(), "ApexShield Platinum", 36, 75000, 3600m, "A"))).Status);
+        Assert.Equal(WarrantyAdministrationStatus.Invalid, (await ListAsync(administrator, status: "Expired")).Status);
+        Assert.Equal(WarrantyAdministrationStatus.Invalid, (await ListAsync(administrator, sort: "version")).Status);
+        Assert.Equal(WarrantyAdministrationStatus.Invalid, (await ListAsync(administrator, direction: "asc")).Status);
+        Assert.Equal("ApexShield Silver", Names(await ListAsync(administrator, status: "Inactive")));
+        Assert.Equal("ApexShield Gold,ApexShield Platinum", Names(await ListAsync(administrator, status: "Active", sort: "name")));
+        Assert.Equal("ApexShield Platinum", Names(await ListAsync(administrator, search: "PLAT")));
+        Assert.Equal("", Names(await ListAsync(administrator, search: "%")));
+        Assert.Equal("ApexShield Platinum,ApexShield Gold,ApexShield Silver",
+            Names(await ListAsync(administrator, sort: "price", direction: "desc")));
+        Assert.Equal("ApexShield Platinum,ApexShield Gold,ApexShield Silver",
+            Names(await ListAsync(administrator, sort: "term", direction: "desc")));
+        Assert.Equal("ApexShield Platinum,ApexShield Gold,ApexShield Silver",
+            Names(await ListAsync(administrator, sort: "grade", direction: "asc")));
+        Assert.Equal("ApexShield Silver,ApexShield Gold,ApexShield Platinum",
+            Names(await ListAsync(administrator, sort: "status", direction: "asc")));
+        var scoped = (await ListAsync(administrator, 1, 10, "apexshield", "Active", "mileage", "asc")).Page!;
+        Assert.Equal((2, "ApexShield Gold"), (scoped.Total, scoped.Items[0].Name));
     }
+
+    private static string Names(WarrantyAdministrationResult result) =>
+        string.Join(',', result.Page!.Items.Select(item => item.Name));
 
     [Fact]
     public async Task RestrictedSqlEnforcesPackageShapeAndRetention()
@@ -91,8 +115,10 @@ public sealed class WarrantyAdministrationTests(RegistrationDatabase database) :
             PostgresErrorCodes.InsufficientPrivilege);
     }
 
-    private Task<WarrantyAdministrationResult> ListAsync(Guid actor, int page = 1, int pageSize = 25) =>
-        ServiceAsync(service => service.ListAsync(actor, page, pageSize, CancellationToken.None));
+    private Task<WarrantyAdministrationResult> ListAsync(Guid actor, int page = 1, int pageSize = 25,
+        string? search = null, string? status = null, string? sort = null, string? direction = null) =>
+        ServiceAsync(service => service.ListAsync(actor, page, pageSize, search, status, sort, direction,
+            CancellationToken.None));
 
     private Task<WarrantyAdministrationResult> CreateAsync(Guid actor, WarrantyCreateRequest request) =>
         ServiceAsync(service => service.CreateAsync(actor, request, CancellationToken.None));

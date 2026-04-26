@@ -19,15 +19,16 @@ public static class WarrantyAdministrationEndpoints
         routes.MapPut("/{packageId:guid}", UpdateAsync);
     }
 
-    private static async Task<IResult> ListAsync(int? page, int? pageSize, HttpContext context,
-        WarrantyAdministrationService warranties, CancellationToken cancellationToken)
+    private static async Task<IResult> ListAsync(int? page, int? pageSize, string? search, string? status, string? sort,
+        string? direction, HttpContext context, WarrantyAdministrationService warranties,
+        CancellationToken cancellationToken)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(20));
         try
         {
             var result = await warranties.ListAsync(ActorId(context), page ?? 1,
-                pageSize ?? Pagination.DefaultPageSize, deadline.Token);
+                pageSize ?? Pagination.DefaultPageSize, search, status, sort, direction, deadline.Token);
             return Map(result);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)

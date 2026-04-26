@@ -7,20 +7,20 @@ namespace Dealership.Infrastructure.Vehicles;
 
 public sealed class PromoAdministrationStore(DealershipDbContext database) : IPromoAdministrationStore
 {
-    public async Task<PromoAdministrationResult> ListAsync(Guid actorId, int page, int pageSize,
-        CancellationToken cancellationToken)
+    public async Task<PromoAdministrationResult> ListAsync(Guid actorId, AdministrationListQuery query,
+        DateTimeOffset now, CancellationToken cancellationToken)
     {
         if (!await AdministratorScope.IsAdministratorAsync(database, actorId, cancellationToken))
         {
             return new(PromoAdministrationStatus.Forbidden);
         }
 
-        var promos = database.PromoCodes.AsNoTracking();
+        var promos = Filter(database.PromoCodes.AsNoTracking(), query, now);
         var total = await promos.CountAsync(cancellationToken);
-        // Code is unique, so the ordering is total and paging never repeats or skips a promo.
-        var items = await promos.OrderByDescending(item => item.ExpiresAtUtc).ThenBy(item => item.Code)
-            .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
-        var result = new PromoPage(items.Select(PromoView.From).ToList(), total, page, pageSize);
+        // Code is unique, so every ordering ends in a total tie-breaker and paging never repeats or skips a promo.
+        var items = await Order(promos, query, now).Skip((query.Page - 1) * query.PageSize).Take(query.PageSize)
+            .ToListAsync(cancellationToken);
+        var result = new PromoPage(items.Select(PromoView.From).ToList(), total, query.Page, query.PageSize);
         return new(PromoAdministrationStatus.Succeeded, Page: result);
     }
 
@@ -79,6 +79,43 @@ public sealed class PromoAdministrationStore(DealershipDbContext database) : IPr
         await transaction.CommitAsync(cancellationToken);
         return new(PromoAdministrationStatus.Succeeded, PromoView.From(promo));
     }
+
+    // Expired takes precedence over the active flag so the three states stay mutually exclusive.
+    private static IQueryable<PromoCode> Filter(IQueryable<PromoCode> promos, AdministrationListQuery query,
+        DateTimeOffset now)
+    {
+        if (query.Search is not null)
+        {
+            promos = promos.Where(item => EF.Functions.ILike(item.Code, "%" + EscapeLike(query.Search) + "%", "\\"));
+        }
+
+        return query.Status switch
+        {
+            "Active" => promos.Where(item => item.IsActive && item.ExpiresAtUtc > now),
+            "Inactive" => promos.Where(item => !item.IsActive && item.ExpiresAtUtc > now),
+            "Expired" => promos.Where(item => item.ExpiresAtUtc <= now),
+            _ => promos
+        };
+    }
+
+    private static IOrderedQueryable<PromoCode> Order(IQueryable<PromoCode> promos, AdministrationListQuery query,
+        DateTimeOffset now)
+    {
+        var descending = query.Descending;
+        return query.Sort switch
+        {
+            "code" => descending ? promos.OrderByDescending(item => item.Code) : promos.OrderBy(item => item.Code),
+            "discount" => (descending ? promos.OrderByDescending(item => item.Discount) : promos.OrderBy(item => item.Discount))
+                .ThenBy(item => item.Code),
+            "expiresAt" => (descending ? promos.OrderByDescending(item => item.ExpiresAtUtc) : promos.OrderBy(item => item.ExpiresAtUtc))
+                .ThenBy(item => item.Code),
+            "status" => (descending ? promos.OrderByDescending(item => item.ExpiresAtUtc <= now ? 2 : item.IsActive ? 0 : 1)
+                : promos.OrderBy(item => item.ExpiresAtUtc <= now ? 2 : item.IsActive ? 0 : 1)).ThenBy(item => item.Code),
+            _ => promos.OrderByDescending(item => item.ExpiresAtUtc).ThenBy(item => item.Code)
+        };
+    }
+
+    internal static string EscapeLike(string value) => value.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
 
     // PostgreSQL stores microseconds, so a replayed expiry is compared at the stored precision.
     private static bool Matches(PromoCode existing, PromoCreateRequest requested) =>

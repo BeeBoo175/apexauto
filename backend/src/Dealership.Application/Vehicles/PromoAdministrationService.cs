@@ -1,15 +1,27 @@
-using Dealership.Application.Common;
 using Dealership.Domain.Vehicles;
 
 namespace Dealership.Application.Vehicles;
 
-public sealed class PromoAdministrationService(IPromoAdministrationStore store)
+public sealed class PromoAdministrationService(IPromoAdministrationStore store, TimeProvider clock)
 {
-    public Task<PromoAdministrationResult> ListAsync(Guid actorId, int page, int pageSize,
-        CancellationToken cancellationToken) =>
-        actorId == Guid.Empty ? Rejected(PromoAdministrationStatus.Forbidden)
-            : !Pagination.IsValid(page, pageSize) ? Rejected(PromoAdministrationStatus.Invalid)
-            : store.ListAsync(actorId, page, pageSize, cancellationToken);
+    public static readonly IReadOnlySet<string> Statuses =
+        new HashSet<string> { AdministrationListQuery.AllStatuses, "Active", "Inactive", "Expired" };
+
+    public static readonly IReadOnlySet<string> Sorts =
+        new HashSet<string> { "code", "discount", "expiresAt", "status" };
+
+    public Task<PromoAdministrationResult> ListAsync(Guid actorId, int page, int pageSize, string? search,
+        string? status, string? sort, string? direction, CancellationToken cancellationToken)
+    {
+        if (actorId == Guid.Empty)
+        {
+            return Rejected(PromoAdministrationStatus.Forbidden);
+        }
+
+        var query = AdministrationListQuery.Create(page, pageSize, search, status, sort, direction, Statuses, Sorts);
+        return query is null ? Rejected(PromoAdministrationStatus.Invalid)
+            : store.ListAsync(actorId, query, clock.GetUtcNow(), cancellationToken);
+    }
 
     public Task<PromoAdministrationResult> CreateAsync(Guid actorId, PromoCreateRequest request,
         CancellationToken cancellationToken)

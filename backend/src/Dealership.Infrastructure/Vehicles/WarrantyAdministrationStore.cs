@@ -8,7 +8,7 @@ namespace Dealership.Infrastructure.Vehicles;
 
 public sealed class WarrantyAdministrationStore(DealershipDbContext database) : IWarrantyAdministrationStore
 {
-    public async Task<WarrantyAdministrationResult> ListAsync(Guid actorId, int page, int pageSize,
+    public async Task<WarrantyAdministrationResult> ListAsync(Guid actorId, AdministrationListQuery query,
         CancellationToken cancellationToken)
     {
         if (!await AdministratorScope.IsAdministratorAsync(database, actorId, cancellationToken))
@@ -16,12 +16,12 @@ public sealed class WarrantyAdministrationStore(DealershipDbContext database) : 
             return new(WarrantyAdministrationStatus.Forbidden);
         }
 
-        var packages = database.WarrantyPackages.AsNoTracking();
+        var packages = Filter(database.WarrantyPackages.AsNoTracking(), query);
         var total = await packages.CountAsync(cancellationToken);
-        // Name is unique, so the ordering is total and paging never repeats or skips a package.
-        var items = await packages.OrderBy(item => item.Price).ThenBy(item => item.Name)
-            .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
-        var result = new WarrantyPage(items.Select(WarrantyView.From).ToList(), total, page, pageSize);
+        // Name is unique, so every ordering ends in a total tie-breaker and paging never repeats or skips a package.
+        var items = await Order(packages, query).Skip((query.Page - 1) * query.PageSize).Take(query.PageSize)
+            .ToListAsync(cancellationToken);
+        var result = new WarrantyPage(items.Select(WarrantyView.From).ToList(), total, query.Page, query.PageSize);
         return new(WarrantyAdministrationStatus.Succeeded, Page: result);
     }
 
@@ -83,6 +83,43 @@ public sealed class WarrantyAdministrationStore(DealershipDbContext database) : 
         await database.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return new(WarrantyAdministrationStatus.Succeeded, WarrantyView.From(package));
+    }
+
+    private static IQueryable<WarrantyPackage> Filter(IQueryable<WarrantyPackage> packages, AdministrationListQuery query)
+    {
+        if (query.Search is not null)
+        {
+            packages = packages.Where(item =>
+                EF.Functions.ILike(item.Name, "%" + PromoAdministrationStore.EscapeLike(query.Search) + "%", "\\"));
+        }
+
+        return query.Status switch
+        {
+            "Active" => packages.Where(item => item.IsActive),
+            "Inactive" => packages.Where(item => !item.IsActive),
+            _ => packages
+        };
+    }
+
+    private static IOrderedQueryable<WarrantyPackage> Order(IQueryable<WarrantyPackage> packages,
+        AdministrationListQuery query)
+    {
+        var descending = query.Descending;
+        return query.Sort switch
+        {
+            "name" => descending ? packages.OrderByDescending(item => item.Name) : packages.OrderBy(item => item.Name),
+            "term" => (descending ? packages.OrderByDescending(item => item.DurationMonths) : packages.OrderBy(item => item.DurationMonths))
+                .ThenBy(item => item.Name),
+            "mileage" => (descending ? packages.OrderByDescending(item => item.MileageCapKm) : packages.OrderBy(item => item.MileageCapKm))
+                .ThenBy(item => item.Name),
+            "price" => (descending ? packages.OrderByDescending(item => item.Price) : packages.OrderBy(item => item.Price))
+                .ThenBy(item => item.Name),
+            "grade" => (descending ? packages.OrderByDescending(item => item.MinimumGrade) : packages.OrderBy(item => item.MinimumGrade))
+                .ThenBy(item => item.Name),
+            "status" => (descending ? packages.OrderByDescending(item => item.IsActive) : packages.OrderBy(item => item.IsActive))
+                .ThenBy(item => item.Name),
+            _ => packages.OrderBy(item => item.Price).ThenBy(item => item.Name)
+        };
     }
 
     internal static bool Matches(WarrantyPackage existing, WarrantyPackage requested) =>
