@@ -3,6 +3,7 @@ using Dealership.Domain.Customers;
 using Dealership.Domain.Intake;
 using Dealership.Domain.Vehicles;
 using Dealership.Domain.Inspections;
+using Dealership.Domain.Sales;
 using Dealership.Infrastructure.Identity;
 using Dealership.Infrastructure.Intake;
 using Dealership.Infrastructure.Inspections;
@@ -25,6 +26,12 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
     public DbSet<WarrantyPackage> WarrantyPackages => Set<WarrantyPackage>();
 
     public DbSet<Reservation> Reservations => Set<Reservation>();
+
+    public DbSet<SalesOrder> SalesOrders => Set<SalesOrder>();
+
+    public DbSet<SalesOrderEvent> SalesOrderEvents => Set<SalesOrderEvent>();
+
+    public DbSet<DealNumberCounter> DealNumberCounters => Set<DealNumberCounter>();
 
     public DbSet<ReservationRelease> ReservationReleases => Set<ReservationRelease>();
 
@@ -89,6 +96,10 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
         builder.ApplyConfiguration(new BranchConfiguration());
         builder.ApplyConfiguration(new PromoCodeConfiguration());
         builder.ApplyConfiguration(new WarrantyPackageConfiguration());
+        var sales = new SalesOrderConfiguration();
+        builder.ApplyConfiguration<SalesOrder>(sales);
+        builder.ApplyConfiguration<SalesOrderEvent>(sales);
+        builder.ApplyConfiguration<DealNumberCounter>(sales);
         builder.ApplyConfiguration(new PurchaseSettingsConfiguration());
         var reservations = new ReservationConfiguration();
         builder.ApplyConfiguration<Reservation>(reservations);
