@@ -44,10 +44,10 @@ public sealed class PromoCodeTests
         var now = DateTimeOffset.UtcNow;
         Assert.Throws<ArgumentOutOfRangeException>(() => new PurchaseSettings(0.001m, 0.08m, actor, now));
         Assert.Throws<ArgumentOutOfRangeException>(() => new PurchaseSettings(-1m, 0.08m, actor, now));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PurchaseSettings(500m, 1.01m, actor, now));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PurchaseSettings(500m, 0.21m, actor, now));
         Assert.Throws<ArgumentOutOfRangeException>(() => new PurchaseSettings(500m, -0.01m, actor, now));
         Assert.Throws<ArgumentException>(() => new PurchaseSettings(500m, 0.08m, Guid.Empty, now));
-        var settings = new PurchaseSettings(0m, 1m, actor, now);
+        var settings = new PurchaseSettings(0m, 0.20m, actor, now);
         Assert.Equal(PurchaseSettings.SingletonId, settings.Id);
         Assert.Equal(1, settings.Version);
     }

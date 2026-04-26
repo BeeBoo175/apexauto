@@ -6,7 +6,6 @@ public sealed record ReservationBuyer(string LegalName, string Email, string Mob
 
 public sealed class Reservation
 {
-    public const int HoldHours = 48;
     public const decimal DepositAmount = 500m;
 
     private Reservation()
@@ -23,7 +22,7 @@ public sealed class Reservation
         if (id == Guid.Empty || publication.RevisionId != listing.Id ||
             publication.VehicleId != listing.VehicleId || publication.BranchId != listing.BranchId ||
             now.Offset != TimeSpan.Zero || now <= DateTimeOffset.MinValue ||
-            now > DateTimeOffset.MaxValue.AddHours(-HoldHours) || now < publication.RecordedAt ||
+            now > DateTimeOffset.MaxValue.AddHours(-settings.ReservationHoldHours) || now < publication.RecordedAt ||
             now < settings.UpdatedAtUtc || string.IsNullOrWhiteSpace(email) ||
             email.Length > 256 || email.Any(char.IsControl))
         {
@@ -47,7 +46,7 @@ public sealed class Reservation
         Price = PurchasePricing.CalculatePrice(listing.VehiclePrice, settings.ProcessingFee,
             listing.RoadTax, settings.SstRate, promo?.Discount ?? 0m);
         CreatedAt = now;
-        ExpiresAt = now.AddHours(HoldHours);
+        ExpiresAt = now.AddHours(settings.ReservationHoldHours);
     }
 
     public Guid Id { get; private set; }

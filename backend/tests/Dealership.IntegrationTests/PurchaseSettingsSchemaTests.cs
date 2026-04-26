@@ -47,7 +47,9 @@ public sealed class PurchaseSettingsSchemaTests(RegistrationDatabase database) :
         }
 
         foreach (var assignment in new[] { "\"Id\" = 2", "\"ProcessingFee\" = -1", "\"ProcessingFee\" = 'NaN'",
-            "\"SstRate\" = -0.01", "\"SstRate\" = 1.01", "\"Version\" = 0", "\"UpdatedAtUtc\" = 'infinity'" })
+            "\"ProcessingFee\" = 5000.01", "\"SstRate\" = -0.01", "\"SstRate\" = 0.21", "\"SstRate\" = 1.01",
+            "\"MaxAgentDiscountAmount\" = -1", "\"MaxAgentDiscountAmount\" = 5000.01", "\"MaxAgentDiscountAmount\" = 'NaN'",
+            "\"ReservationHoldHours\" = 0", "\"ReservationHoldHours\" = 169", "\"Version\" = 0", "\"UpdatedAtUtc\" = 'infinity'" })
         {
             await RejectedAsync($"UPDATE \"PurchaseSettings\" SET {assignment}", PostgresErrorCodes.CheckViolation);
         }
