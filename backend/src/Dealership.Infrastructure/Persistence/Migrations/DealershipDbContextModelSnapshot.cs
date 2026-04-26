@@ -1192,6 +1192,50 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Dealership.Domain.Vehicles.WarrantyPackage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("DurationMonths")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("MileageCapKm")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("MinimumGrade")
+                        .IsRequired()
+                        .HasMaxLength(1)
+                        .HasColumnType("character varying(1)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .UseCollation("C");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("WarrantyPackages", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_WarrantyPackages_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND length(btrim(\"Name\")) > 0 AND \"Name\" = btrim(\"Name\") AND \"DurationMonths\" BETWEEN 1 AND 120 AND \"MileageCapKm\" BETWEEN 1 AND 500000 AND \"Price\" BETWEEN 0 AND 20000 AND \"MinimumGrade\" IN ('A', 'B', 'C') AND \"Version\" > 0");
+                        });
+                });
+
             modelBuilder.Entity("Dealership.Infrastructure.Identity.AccountSession", b =>
                 {
                     b.Property<Guid>("Id")
