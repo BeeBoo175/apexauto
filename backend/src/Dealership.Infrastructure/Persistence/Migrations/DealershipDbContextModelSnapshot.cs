@@ -871,6 +871,12 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(1L);
+
                     b.HasKey("Id");
 
                     b.HasIndex("Code")
@@ -878,7 +884,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.ToTable("PromoCodes", null, t =>
                         {
-                            t.HasCheckConstraint("CK_PromoCodes_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND length(\"Code\") > 0 AND \"Discount\" >= 0 AND \"Discount\" <> 'NaN'::numeric AND isfinite(\"ExpiresAtUtc\")");
+                            t.HasCheckConstraint("CK_PromoCodes_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND length(\"Code\") > 0 AND \"Discount\" > 0 AND \"Discount\" <= 100000 AND \"Version\" > 0 AND isfinite(\"ExpiresAtUtc\")");
 
                             t.HasCheckConstraint("CK_PromoCodes_TrimmedCode", "\"Code\" = btrim(\"Code\", U&'\\0009\\000A\\000B\\000C\\000D\\0020\\0085\\00A0\\1680\\2000\\2001\\2002\\2003\\2004\\2005\\2006\\2007\\2008\\2009\\200A\\2028\\2029\\202F\\205F\\3000')");
                         });
