@@ -143,6 +143,7 @@ app.MapPromoEndpoints();
 app.MapSettingsEndpoints();
 app.MapPromoAdministrationEndpoints();
 app.MapWarrantyAdministrationEndpoints();
+app.MapDealEndpoints();
 app.MapListingQueryEndpoints();
 app.MapListingPhotoEndpoints();
 app.MapRegistrationEndpoints();

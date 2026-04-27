@@ -23,6 +23,7 @@ public static class DependencyInjection
         services.AddScoped<PurchaseSettingsAdministrationService>();
         services.AddScoped<PromoAdministrationService>();
         services.AddScoped<WarrantyAdministrationService>();
+        services.AddScoped<Sales.DealService>();
         services.AddScoped<RegistrationService>();
         services.AddScoped<AuthenticationService>();
         services.AddScoped<StaffProvisioningService>();
