@@ -12,6 +12,7 @@ import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { hasIntakeAccess, roleNames, type CurrentActor } from "@/lib/auth/actor";
 import { hasInspectionAccess } from "@/lib/inspection/contracts";
 import { hasListingAccess } from "@/lib/vehicles/listings";
+import { hasDealAccess } from "@/lib/deals/deals";
 import { hasSettingsAccess } from "@/lib/settings/settings";
 import { hasReservationAccess } from "@/lib/vehicles/reservations";
 import styles from "./StaffFrame.module.css";
@@ -52,6 +53,7 @@ function StaffFrameContent({
     "/dashboard/management",
     "/dashboard/reservations",
     "/dashboard/settings",
+    "/dashboard/deals",
   ].includes(navigation.pathname);
   const logout = useAuthMutation("logout", "/login");
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -196,6 +198,24 @@ function StaffFrameContent({
                     onNavigate={(event) => navigate(event, "/dashboard/reservations")}
                   >
                     Reservations
+                  </StaffLink>
+                )}
+                {actor && hasDealAccess(actor) && (
+                  <StaffLink
+                    href="/dashboard/deals"
+                    prefetch={false}
+                    prefetchOnIntent={true}
+                    className={
+                      navigation.selectedPath === "/dashboard/deals"
+                        ? styles.activeLink
+                        : styles.navLink
+                    }
+                    aria-current={
+                      navigation.selectedPath === "/dashboard/deals" ? "page" : undefined
+                    }
+                    onNavigate={(event) => navigate(event, "/dashboard/deals")}
+                  >
+                    Deals
                   </StaffLink>
                 )}
                 {actor && hasSettingsAccess(actor) && (

@@ -145,7 +145,46 @@ export interface DealFilters {
   number: string;
   vehicle: string;
   customer: string;
+  search: string;
+  agent: string;
+  branch: string;
+  nextStep: string;
+  minimumBalance: string;
+  maximumBalance: string;
+  minimumDiscount: string;
+  maximumDiscount: string;
+  submittedFrom: string;
+  submittedTo: string;
+  updatedFrom: string;
+  updatedTo: string;
 }
+
+// Every column filter key beyond status, in the order they are sent upstream.
+export const dealTextKeys = [
+  "number",
+  "vehicle",
+  "customer",
+  "search",
+  "agent",
+  "branch",
+  "nextStep",
+  "minimumBalance",
+  "maximumBalance",
+  "minimumDiscount",
+  "maximumDiscount",
+  "submittedFrom",
+  "submittedTo",
+  "updatedFrom",
+  "updatedTo",
+] as const;
+
+export const dealNextSteps = [
+  "Add terms and submit",
+  "Edit and resubmit",
+  "Awaiting manager approval",
+  "Approved",
+  "Cancelled",
+] as const;
 
 export function hasDealAccess(actor: CurrentActor) {
   return (
@@ -165,6 +204,18 @@ export function defaultDealFilters(role: CurrentActor["role"]): DealFilters {
     number: "",
     vehicle: "",
     customer: "",
+    search: "",
+    agent: "",
+    branch: "",
+    nextStep: "",
+    minimumBalance: "",
+    maximumBalance: "",
+    minimumDiscount: "",
+    maximumDiscount: "",
+    submittedFrom: "",
+    submittedTo: "",
+    updatedFrom: "",
+    updatedTo: "",
   };
 }
 
@@ -341,10 +392,16 @@ export function dealParams(params: SearchParams, role: CurrentActor["role"]) {
       params.direction === "asc" || params.direction === "desc"
         ? params.direction
         : defaults.direction,
-    number: typeof params.number === "string" ? params.number : "",
-    vehicle: typeof params.vehicle === "string" ? params.vehicle : "",
-    customer: typeof params.customer === "string" ? params.customer : "",
   };
+  for (const key of dealTextKeys) {
+    const value = params[key];
+    if (typeof value === "string") {
+      filters[key] = value;
+    }
+  }
+  if (!dealNextSteps.some((step) => step === filters.nextStep)) {
+    filters.nextStep = "";
+  }
   return { filters, page: Number.isSafeInteger(page) && page > 0 ? page : 1 };
 }
 
@@ -355,7 +412,7 @@ export function dealQuery(filters: DealFilters, page = 1) {
     query.set("sort", filters.sort);
     query.set("direction", filters.direction);
   }
-  for (const key of ["status", "number", "vehicle", "customer"] as const) {
+  for (const key of ["status", ...dealTextKeys] as const) {
     const value = filters[key].trim();
     if (value) {
       query.set(key, value);

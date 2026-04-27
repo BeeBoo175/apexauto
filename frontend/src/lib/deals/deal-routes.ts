@@ -26,6 +26,18 @@ const listKeys = [
   "number",
   "vehicle",
   "customer",
+  "search",
+  "agent",
+  "branch",
+  "nextStep",
+  "minimumBalance",
+  "maximumBalance",
+  "minimumDiscount",
+  "maximumDiscount",
+  "submittedFrom",
+  "submittedTo",
+  "updatedFrom",
+  "updatedTo",
 ];
 
 // Deal actions the browser may request, each mapped to its upstream route and whether it needs a reason.
