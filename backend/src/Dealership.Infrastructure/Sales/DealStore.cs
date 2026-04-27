@@ -361,8 +361,68 @@ public sealed class DealStore(DealershipDbContext database) : IDealStore
                 EF.Functions.ILike(row.Make + " " + row.Model, Contains(query.Vehicle), "\\"));
         }
 
-        return query.Customer is null ? rows
-            : rows.Where(row => EF.Functions.ILike(row.Customer, Contains(query.Customer), "\\"));
+        if (query.Customer is not null)
+        {
+            rows = rows.Where(row => EF.Functions.ILike(row.Customer, Contains(query.Customer), "\\"));
+        }
+
+        if (query.Agent is not null)
+        {
+            rows = rows.Where(row => row.Agent != null && EF.Functions.ILike(row.Agent, Contains(query.Agent), "\\"));
+        }
+
+        if (query.Branch is not null)
+        {
+            rows = rows.Where(row => EF.Functions.ILike(row.Branch, Contains(query.Branch), "\\"));
+        }
+
+        if (query.MinimumBalance is { } minimumBalance)
+        {
+            rows = rows.Where(row => row.Balance >= minimumBalance);
+        }
+
+        if (query.MaximumBalance is { } maximumBalance)
+        {
+            rows = rows.Where(row => row.Balance <= maximumBalance);
+        }
+
+        if (query.MinimumDiscount is { } minimumDiscount)
+        {
+            rows = rows.Where(row => row.Negotiated >= minimumDiscount);
+        }
+
+        if (query.MaximumDiscount is { } maximumDiscount)
+        {
+            rows = rows.Where(row => row.Negotiated <= maximumDiscount);
+        }
+
+        if (query.Submitted is { From: { } submittedFrom, Until: { } submittedUntil })
+        {
+            rows = rows.Where(row => row.Submitted >= submittedFrom && row.Submitted < submittedUntil);
+        }
+
+        if (query.Updated is { From: { } updatedFrom, Until: { } updatedUntil })
+        {
+            rows = rows.Where(row => row.Updated >= updatedFrom && row.Updated < updatedUntil);
+        }
+
+        rows = query.NextStep switch
+        {
+            "Add terms and submit" => rows.Where(row => row.Status == SalesOrderStatus.Draft && row.OrderNumber == null),
+            "Edit and resubmit" => rows.Where(row => row.Status == SalesOrderStatus.Draft && row.OrderNumber != null),
+            "Awaiting manager approval" => rows.Where(row => row.Status == SalesOrderStatus.PendingManagerApproval),
+            "Approved" => rows.Where(row => row.Status == SalesOrderStatus.Approved),
+            "Cancelled" => rows.Where(row => row.Status == SalesOrderStatus.Cancelled),
+            _ => rows
+        };
+
+        // One box for the common lookup: deal number, registration, vehicle or customer.
+        return query.Search is null ? rows
+            : rows.Where(row =>
+                row.OrderNumber != null && EF.Functions.ILike(row.OrderNumber, Contains(query.Search), "\\") ||
+                EF.Functions.ILike(row.Plate, Contains(query.Search), "\\") ||
+                EF.Functions.ILike(row.Make + " " + row.Model, Contains(query.Search), "\\") ||
+                EF.Functions.ILike(row.Customer, Contains(query.Search), "\\"));
     }
 
     private static string Contains(string value) => "%" + PromoAdministrationStore.EscapeLike(value) + "%";

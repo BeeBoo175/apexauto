@@ -128,6 +128,32 @@ public sealed class DealStoreTests(IntakePhotoFixture fixture) : IClassFixture<I
         Assert.Equal(0, (await ListAsync(deals, manager, vehicle: "zzzz")).Page!.Total);
         Assert.Equal(2, (await ListAsync(deals, manager, customer: "HAFIZ")).Page!.Total);
         Assert.Equal(0, (await ListAsync(deals, manager, customer: "%")).Page!.Total);
+        Assert.Equal(1, (await ListAsync(deals, manager, search: "000002")).Page!.Total);
+        Assert.Equal(2, (await ListAsync(deals, manager, search: newest.Registration[1..^1])).Page!.Total);
+        Assert.Equal(2, (await ListAsync(deals, manager, search: " HAFIZ ")).Page!.Total);
+        Assert.Equal(1, (await ListAsync(deals, manager, search: "hafiz", view: "History")).Page!.Total);
+        Assert.Equal(0, (await ListAsync(deals, manager, search: "%")).Page!.Total);
+        Assert.Equal(0, (await ListAsync(deals, manager, search: "zzzz")).Page!.Total);
+        Assert.Equal(DealStatus.Invalid, (await ListAsync(deals, manager, search: new string('x', 161))).Status);
+        DealColumnFilters Columns(string? agent = null, string? branch = null, string? nextStep = null,
+            decimal? minBalance = null, decimal? maxBalance = null, decimal? minDiscount = null,
+            decimal? maxDiscount = null, string? updatedFrom = null, string? updatedTo = null) =>
+            new(agent, branch, nextStep, minBalance, maxBalance, minDiscount, maxDiscount, null, null, updatedFrom,
+                updatedTo);
+        Assert.Equal(1, (await ListAsync(deals, manager, columns: Columns(agent: $"staff.{agent:N}"))).Page!.Total);
+        Assert.Equal(2, (await ListAsync(deals, manager, columns: Columns(branch: newest.Branch[..3]))).Page!.Total);
+        Assert.Equal(0, (await ListAsync(deals, manager, columns: Columns(branch: "zzzz"))).Page!.Total);
+        Assert.Equal(1, (await ListAsync(deals, manager, columns: Columns(nextStep: "Approved"))).Page!.Total);
+        Assert.Equal(1, (await ListAsync(deals, manager, columns: Columns(nextStep: "Cancelled"))).Page!.Total);
+        Assert.Equal(0, (await ListAsync(deals, manager, columns: Columns(nextStep: "Edit and resubmit"))).Page!.Total);
+        Assert.Contains(newest.Id, (await ListAsync(deals, manager,
+            columns: Columns(minBalance: newest.BalancePayable, maxBalance: newest.BalancePayable))).Page!.Items.Select(item => item.Id));
+        Assert.Equal(1, (await ListAsync(deals, manager, columns: Columns(minDiscount: 700m))).Page!.Total);
+        Assert.Equal(1, (await ListAsync(deals, manager, columns: Columns(maxDiscount: 100m))).Page!.Total);
+        Assert.Equal(0, (await ListAsync(deals, manager, columns: Columns(updatedFrom: "2000-01-01", updatedTo: "2000-01-02"))).Page!.Total);
+        Assert.Equal(DealStatus.Invalid, (await ListAsync(deals, manager, columns: Columns(nextStep: "Bogus"))).Status);
+        Assert.Equal(DealStatus.Invalid, (await ListAsync(deals, manager, columns: Columns(minBalance: 10m, maxBalance: 5m))).Status);
+        Assert.Equal(DealStatus.Invalid, (await ListAsync(deals, manager, columns: Columns(updatedFrom: "2026-01-01"))).Status);
         Assert.Equal(DealStatus.Invalid, (await ListAsync(deals, manager, status: "Bogus")).Status);
         Assert.Equal(DealStatus.Invalid, (await ListAsync(deals, manager, view: "Everything")).Status);
         Assert.Equal(DealStatus.Invalid, (await ListAsync(deals, manager, sort: "bogus")).Status);
@@ -149,8 +175,9 @@ public sealed class DealStoreTests(IntakePhotoFixture fixture) : IClassFixture<I
 
     private static Task<DealResult> ListAsync(DealService deals, Guid actor, string? view = null, string? status = null,
         string? sort = null, string? direction = null, string? number = null, string? vehicle = null,
-        string? customer = null, int page = 1, int size = 25) =>
-        deals.ListAsync(actor, page, size, view, status, sort, direction, number, vehicle, customer, default);
+        string? customer = null, int page = 1, int size = 25, string? search = null, DealColumnFilters? columns = null) =>
+        deals.ListAsync(actor, page, size, view, status, sort, direction, number, vehicle, customer, search,
+            columns ?? new DealColumnFilters(null, null, null, null, null, null, null, null, null, null, null), default);
 
     private static async Task<Reservation> HoldAsync(CheckInTestData data, ListingPublication publication)
     {

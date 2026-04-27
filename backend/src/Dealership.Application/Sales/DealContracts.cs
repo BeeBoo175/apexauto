@@ -1,3 +1,4 @@
+using Dealership.Application.Common;
 using Dealership.Domain.Sales;
 
 namespace Dealership.Application.Sales;
@@ -81,7 +82,32 @@ public sealed record DealResult(DealStatus Status, DealView? Deal = null, DealPa
     IReadOnlyList<EligibleVehicle>? Vehicles = null, DealOptions? Options = null);
 
 public sealed record DealListQuery(int Page, int PageSize, string View, string? Status, string? Sort, bool Descending,
-    string? Number, string? Vehicle, string? Customer);
+    string? Number, string? Vehicle, string? Customer, string? Search)
+{
+    // Column filters beyond the identifying text columns.
+    public string? Agent { get; init; }
+
+    public string? Branch { get; init; }
+
+    public string? NextStep { get; init; }
+
+    public decimal? MinimumBalance { get; init; }
+
+    public decimal? MaximumBalance { get; init; }
+
+    public decimal? MinimumDiscount { get; init; }
+
+    public decimal? MaximumDiscount { get; init; }
+
+    public ListDateRange? Submitted { get; init; }
+
+    public ListDateRange? Updated { get; init; }
+}
+
+// The extra column filters as they arrive from the request, before validation.
+public sealed record DealColumnFilters(string? Agent, string? Branch, string? NextStep, decimal? MinimumBalance,
+    decimal? MaximumBalance, decimal? MinimumDiscount, decimal? MaximumDiscount, string? SubmittedFrom,
+    string? SubmittedTo, string? UpdatedFrom, string? UpdatedTo);
 
 public interface IDealStore
 {

@@ -30,12 +30,19 @@ public static class DealEndpoints
             CancellationToken token) => TransitionAsync(dealId, DealAction.Cancel, context, deals, token));
     }
 
-    private static Task<IResult> ListAsync(int? page, int? pageSize, string? view, string? status, string? sort,
-        string? direction, string? number, string? vehicle, string? customer, HttpContext context, DealService deals,
-        CancellationToken cancellationToken) =>
+    internal sealed record DealListParameters(int? Page, int? PageSize, string? View, string? Status, string? Sort,
+        string? Direction, string? Number, string? Vehicle, string? Customer, string? Search, string? Agent,
+        string? Branch, string? NextStep, decimal? MinimumBalance, decimal? MaximumBalance, decimal? MinimumDiscount,
+        decimal? MaximumDiscount, string? SubmittedFrom, string? SubmittedTo, string? UpdatedFrom, string? UpdatedTo);
+
+    private static Task<IResult> ListAsync([AsParameters] DealListParameters query, HttpContext context,
+        DealService deals, CancellationToken cancellationToken) =>
         RunAsync(cancellationToken, "Deals are temporarily unavailable.", token => deals.ListAsync(ActorId(context),
-            page ?? 1, pageSize ?? Pagination.DefaultPageSize, view, status, sort, direction, number, vehicle, customer,
-            token));
+            query.Page ?? 1, query.PageSize ?? Pagination.DefaultPageSize, query.View, query.Status, query.Sort,
+            query.Direction, query.Number, query.Vehicle, query.Customer, query.Search,
+            new DealColumnFilters(query.Agent, query.Branch, query.NextStep, query.MinimumBalance,
+                query.MaximumBalance, query.MinimumDiscount, query.MaximumDiscount, query.SubmittedFrom,
+                query.SubmittedTo, query.UpdatedFrom, query.UpdatedTo), token));
 
     private static Task<IResult> VehiclesAsync(string? search, HttpContext context, DealService deals,
         CancellationToken cancellationToken) =>

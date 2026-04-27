@@ -81,27 +81,51 @@ public sealed class DealService(IDealStore store, TimeProvider clock)
         "number", "vehicle", "customer", "agent", "status", "balance", "discount", "submitted", "updated"
     };
 
+    public static readonly IReadOnlySet<string> NextSteps = new HashSet<string>
+    {
+        "Add terms and submit", "Edit and resubmit", "Awaiting manager approval", "Approved", "Cancelled"
+    };
+
     public Task<DealResult> ListAsync(Guid actorId, int page, int pageSize, string? view, string? status, string? sort,
-        string? direction, string? number, string? vehicle, string? customer, CancellationToken cancellationToken)
+        string? direction, string? number, string? vehicle, string? customer, string? search,
+        DealColumnFilters columns, CancellationToken cancellationToken)
     {
         if (actorId == Guid.Empty)
         {
             return Rejected(DealStatus.Forbidden);
         }
 
-        var texts = new[] { number, vehicle, customer }.Select(item => item?.Trim()).ToArray();
+        var texts = new[] { number, vehicle, customer, search, columns.Agent, columns.Branch }
+            .Select(item => item?.Trim()).ToArray();
         var state = view ?? "All";
+        var submitted = ListDateRange.Parse(columns.SubmittedFrom, columns.SubmittedTo);
+        var updated = ListDateRange.Parse(columns.UpdatedFrom, columns.UpdatedTo);
         if (!Pagination.IsValid(page, pageSize) || !Views.Contains(state) ||
             status is not null && !Statuses.Contains(status) || sort is not null && !Sorts.Contains(sort) ||
             direction is not (null or "asc" or "desc") || direction is not null && sort is null ||
-            texts.Any(item => item is { Length: > 160 } || item?.Any(char.IsControl) == true))
+            columns.NextStep is not null && !NextSteps.Contains(columns.NextStep) ||
+            !MoneyRange.IsValid(columns.MinimumBalance, columns.MaximumBalance) ||
+            !MoneyRange.IsValid(columns.MinimumDiscount, columns.MaximumDiscount) || submitted is null ||
+            updated is null || texts.Any(item => item is { Length: > 160 } || item?.Any(char.IsControl) == true))
         {
             return Rejected(DealStatus.Invalid);
         }
 
         static string? Clean(string? value) => string.IsNullOrEmpty(value) ? null : value;
-        return store.ListAsync(actorId, new DealListQuery(page, pageSize, state, status, sort, direction == "desc",
-            Clean(texts[0]), Clean(texts[1]), Clean(texts[2])), cancellationToken);
+        var query = new DealListQuery(page, pageSize, state, status, sort, direction == "desc", Clean(texts[0]),
+            Clean(texts[1]), Clean(texts[2]), Clean(texts[3]))
+        {
+            Agent = Clean(texts[4]),
+            Branch = Clean(texts[5]),
+            NextStep = columns.NextStep,
+            MinimumBalance = columns.MinimumBalance,
+            MaximumBalance = columns.MaximumBalance,
+            MinimumDiscount = columns.MinimumDiscount,
+            MaximumDiscount = columns.MaximumDiscount,
+            Submitted = submitted.From is null ? null : submitted,
+            Updated = updated.From is null ? null : updated
+        };
+        return store.ListAsync(actorId, query, cancellationToken);
     }
 
     public Task<DealResult> VehiclesAsync(Guid actorId, string? search, CancellationToken cancellationToken)
