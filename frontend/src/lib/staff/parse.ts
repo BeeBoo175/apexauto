@@ -1,6 +1,16 @@
+import { parseCountedPage } from "@/lib/api";
 import { isRecord, isUuid } from "@/lib/auth/contracts";
 import { parseSlot, parseVehicle } from "@/lib/intake/parse";
-import type { AppointmentDetail, CheckInReceipt, WorklistItem } from "./contracts";
+import {
+  intakeCountKeys,
+  type AppointmentDetail,
+  type CheckInReceipt,
+  type WorklistItem,
+} from "./contracts";
+
+export function parseWorklistPage(value: unknown) {
+  return parseCountedPage(value, parseWorklistItem, intakeCountKeys);
+}
 
 export function parseWorklistItem(value: unknown): WorklistItem | null {
   if (!isRecord(value) || !isUuid(value.id) || !isUuid(value.branchId)) {

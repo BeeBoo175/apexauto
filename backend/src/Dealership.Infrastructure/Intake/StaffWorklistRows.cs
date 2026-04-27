@@ -11,6 +11,48 @@ internal static class StaffWorklistRows
     public static async Task<IQueryable<WorklistRow>?> CreateAsync(DealershipDbContext database,
         Guid staffId, StaffWorklistQuery query, CancellationToken cancellationToken)
     {
+        var rows = await FlagsAsync(database, staffId, query, cancellationToken);
+        if (rows is null)
+        {
+            return null;
+        }
+
+        rows = query.Status switch
+        {
+            StaffWorklistStatus.Booked => rows.Where(Booked),
+            StaffWorklistStatus.CheckedIn => rows.Where(row => row.CheckedIn),
+            StaffWorklistStatus.Cancelled => rows.Where(row => row.Cancelled),
+            StaffWorklistStatus.NoShow => rows.Where(row => row.NoShow),
+            _ => rows
+        };
+        return Records(database, rows, query);
+    }
+
+    // Tab totals for the actor's branch scope, ignoring status, dates, search and column filters.
+    public static async Task<StaffWorklistCounts?> CountsAsync(DealershipDbContext database,
+        Guid staffId, StaffWorklistQuery query, CancellationToken cancellationToken)
+    {
+        var rows = await FlagsAsync(database, staffId, query with { From = null, Until = null },
+            cancellationToken);
+        if (rows is null)
+        {
+            return null;
+        }
+
+        return new StaffWorklistCounts(
+            await rows.CountAsync(Booked, cancellationToken),
+            await rows.CountAsync(row => row.CheckedIn, cancellationToken),
+            await rows.CountAsync(row => row.Cancelled, cancellationToken),
+            await rows.CountAsync(row => row.NoShow, cancellationToken),
+            await rows.CountAsync(cancellationToken));
+    }
+
+    private static readonly Expression<Func<AppointmentFlags, bool>> Booked =
+        row => !row.CheckedIn && !row.Cancelled && !row.NoShow;
+
+    private static async Task<IQueryable<AppointmentFlags>?> FlagsAsync(DealershipDbContext database,
+        Guid staffId, StaffWorklistQuery query, CancellationToken cancellationToken)
+    {
         var scope = await StaffIntakeReadScope.ResolveAsync(database, staffId, cancellationToken);
 
         if (scope is null ||
@@ -30,8 +72,8 @@ internal static class StaffWorklistRows
         {
             appointments = appointments.Where(item => item.StartsAt >= query.From && item.StartsAt < query.Until);
         }
-        var rows = appointments
-            .Select(item => new
+        return appointments
+            .Select(item => new AppointmentFlags
             {
                 Appointment = item,
                 CheckedIn = database.AppointmentCheckIns.Any(checkIn => checkIn.AppointmentId == item.Id),
@@ -40,14 +82,11 @@ internal static class StaffWorklistRows
                     item.CancelledAt == null &&
                     !database.AppointmentCheckIns.Any(checkIn => checkIn.AppointmentId == item.Id)
             });
-        rows = query.Status switch
-        {
-            StaffWorklistStatus.Booked => rows.Where(row => !row.CheckedIn && !row.Cancelled && !row.NoShow),
-            StaffWorklistStatus.CheckedIn => rows.Where(row => row.CheckedIn),
-            StaffWorklistStatus.Cancelled => rows.Where(row => row.Cancelled),
-            StaffWorklistStatus.NoShow => rows.Where(row => row.NoShow),
-            _ => rows
-        };
+    }
+
+    private static IQueryable<WorklistRow> Records(DealershipDbContext database,
+        IQueryable<AppointmentFlags> rows, StaffWorklistQuery query)
+    {
         var records = rows.Join(database.Branches, row => row.Appointment.BranchId, branch => branch.Id,
                 (row, branch) => new { Row = row, BranchName = branch.Name })
             .Join(database.CustomerProfiles, row => row.Row.Appointment.OwnerId, customer => customer.UserId,
@@ -142,6 +181,14 @@ internal static class StaffWorklistRows
         Expression<Func<WorklistRow, TKey>> key, string direction)
     {
         return direction == "desc" ? rows.OrderByDescending(key) : rows.OrderBy(key);
+    }
+
+    private sealed class AppointmentFlags
+    {
+        public required IntakeAppointment Appointment { get; init; }
+        public bool CheckedIn { get; init; }
+        public bool Cancelled { get; init; }
+        public bool NoShow { get; init; }
     }
 
     public sealed class WorklistRow

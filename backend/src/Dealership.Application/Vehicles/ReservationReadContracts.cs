@@ -27,8 +27,11 @@ public sealed record ReservationHistoryItem(ReservationReceipt Receipt, string B
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? RegistrationPlate,
     Guid? CoverPhotoId = null);
 
+// Staff view tab totals for the authorized scope, independent of search and column filters.
+public sealed record ReservationCounts(int Active, int History);
+
 public sealed record ReservationHistoryPage(CurrentActor Actor, IReadOnlyList<ReservationHistoryItem> Items,
-    int Total, int Page, int PageSize, ReservationHistoryItem? Active);
+    int Total, int Page, int PageSize, ReservationHistoryItem? Active, ReservationCounts? Counts = null);
 
 public sealed record ReservationHistoryResult(ReservationStatus Status, ReservationHistoryPage? History = null);
 

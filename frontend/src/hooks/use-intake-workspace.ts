@@ -18,12 +18,12 @@ import { tableViewHref, calendarViewHref } from "@/lib/staff/view-navigation";
 import type { IntakeView } from "@/lib/staff/view-memory";
 import type { ApiResult, Page } from "@/lib/api";
 import type { Branch } from "@/lib/branches";
-import type { AppointmentDetail, StaffFilters, WorklistItem } from "@/lib/staff/contracts";
+import type { AppointmentDetail, StaffFilters, WorklistPage } from "@/lib/staff/contracts";
 
 export interface IntakeWorkspaceSnapshot {
   view: IntakeView;
   calendar: ApiResult<CalendarSnapshot> | null;
-  worklist: ApiResult<Page<WorklistItem>> | null;
+  worklist: ApiResult<WorklistPage> | null;
   calendarFilters: CalendarFilters;
   filters: StaffFilters;
   page: number;

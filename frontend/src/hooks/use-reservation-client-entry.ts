@@ -11,7 +11,7 @@ import type { SearchParams } from "@/lib/query";
 import {
   reservationParams,
   reservationQuery,
-  type ReservationItem,
+  type ReservationPage,
 } from "@/lib/vehicles/reservations";
 import { parseReservationSnapshot } from "@/lib/vehicles/parse-reservations";
 import {
@@ -21,7 +21,7 @@ import {
 
 interface ReservationEntry extends ReturnType<typeof reservationParams> {
   Table: typeof ReservationTable;
-  initial: ApiResult<Page<ReservationItem>>;
+  initial: ApiResult<ReservationPage>;
   branches: Page<Branch> | null;
   selected: ApiResult<ReservationDetail> | null;
   reservationId: string;

@@ -1,5 +1,5 @@
 import { isRecord, isUuid } from "@/lib/auth/contracts";
-import { parseItems, parsePage } from "@/lib/api";
+import { parseCountedPage, parseItems } from "@/lib/api";
 import { isPageSize } from "@/lib/pagination";
 import { enumValue, money, nullableId, positive, text, timestamp } from "./parse";
 import { workshopStatuses, type WorkshopJobs, type WorkshopRow } from "./workshop-contracts";
@@ -44,7 +44,10 @@ function parseWorkshopRow(value: unknown): WorkshopRow | null {
   return { ...value, status } as WorkshopRow;
 }
 
-export const parseWorkshopPage = (value: unknown) => parsePage(value, parseWorkshopRow);
+const workshopCountKeys = ["active", "inspection", "approval", "repairs", "all"] as const;
+
+export const parseWorkshopPage = (value: unknown) =>
+  parseCountedPage(value, parseWorkshopRow, workshopCountKeys);
 
 const cursor = (value: unknown) =>
   value === null || (typeof value === "string" && value.length > 0 && value.length <= 2048);

@@ -14,6 +14,8 @@ export interface Page<T> {
   total: number;
   page: number;
   pageSize: number;
+  // Tab totals some staff tables return beside the page.
+  counts?: Record<string, number>;
 }
 
 export interface ApiResult<T> {
@@ -70,4 +72,27 @@ export function parsePage<T>(
     return null;
   }
   return { items, total: value.total, page: value.page, pageSize: value.pageSize };
+}
+
+export type CountedPage<T, K extends string> = Page<T> & { counts?: Record<K, number> };
+
+// Tab totals ride beside the page; a response without them still parses and shows no badges.
+export function parseCountedPage<T, K extends string>(
+  value: unknown,
+  parseItem: (item: unknown) => T | null,
+  keys: readonly K[],
+): CountedPage<T, K> | null {
+  const page = parsePage(value, parseItem);
+  if (!page || !isRecord(value)) {
+    return null;
+  }
+  const raw = value.counts;
+  if (raw === undefined || raw === null) {
+    return page;
+  }
+  if (!isRecord(raw) || !keys.every((key) => integer(raw[key]))) {
+    return null;
+  }
+  const counts = Object.fromEntries(keys.map((key) => [key, raw[key]])) as Record<K, number>;
+  return { ...page, counts };
 }

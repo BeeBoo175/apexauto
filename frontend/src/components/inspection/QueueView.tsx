@@ -184,9 +184,11 @@ export function QueueView<T>({
                 <>
                   <StaffQueueTabs
                     label="Workshop queues"
+                    countNoun="vehicles"
                     tabs={workshopTasks.map((value) => ({
                       value,
                       label: workshopTaskLabel(value),
+                      count: snapshot.counts?.[value.toLowerCase()],
                     }))}
                     value={active.filters.status}
                     disabled={disabled || state.busy}

@@ -143,7 +143,11 @@ export function ListingTable({
                   <StaffQueueTabs
                     label="Listing queues"
                     mobilePresentation="select"
-                    tabs={listingPublicationOptions}
+                    countNoun="listings"
+                    tabs={listingPublicationOptions.map((option) => ({
+                      ...option,
+                      count: snapshot.counts?.[option.value || "all"],
+                    }))}
                     value={active.filters.publication ?? ""}
                     disabled={state.busy}
                     onChange={(publication) =>

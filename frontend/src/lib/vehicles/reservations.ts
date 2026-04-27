@@ -1,4 +1,5 @@
 import type { CurrentActor } from "@/lib/auth/actor";
+import type { CountedPage } from "@/lib/api";
 import { isUuid } from "@/lib/auth/contracts";
 import { DEFAULT_PAGE_SIZE, isPageSize, paginationQuery } from "@/lib/pagination";
 import type { SearchParams } from "@/lib/query";
@@ -43,6 +44,9 @@ export interface ReservationItem {
   total: number;
   status: keyof typeof reservationStatuses;
 }
+
+export const reservationCountKeys = ["active", "history"] as const;
+export type ReservationPage = CountedPage<ReservationItem, (typeof reservationCountKeys)[number]>;
 
 export interface ReservationFilters {
   branchId: string;

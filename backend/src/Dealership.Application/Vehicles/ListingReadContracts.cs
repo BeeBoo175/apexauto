@@ -26,7 +26,12 @@ public sealed record ListingManagerItem(Guid VehicleId, Guid BranchId, string Br
     DateTimeOffset? SavedAt = null, DateTimeOffset? ApprovedAt = null, DateTimeOffset? WithdrawnAt = null,
     bool IsReserved = false, bool HasCurrentPublicationInspection = false);
 
-public sealed record ListingManagerPage(IReadOnlyList<ListingManagerItem> Items, int Total, int Page, int PageSize);
+// Publication tab totals for the manager's branch scope, independent of search and column filters.
+public sealed record ListingCounts(int All, int Unprepared, int Draft, int Published, int Changes, int Unavailable,
+    int Withdrawn);
+
+public sealed record ListingManagerPage(IReadOnlyList<ListingManagerItem> Items, int Total, int Page, int PageSize,
+    ListingCounts? Counts = null);
 
 public sealed record ListingSignedReport(Guid InspectionId, long Revision);
 

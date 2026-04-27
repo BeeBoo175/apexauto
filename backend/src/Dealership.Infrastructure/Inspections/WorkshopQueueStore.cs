@@ -40,8 +40,17 @@ public sealed class WorkshopQueueStore(DealershipDbContext database) : IWorkshop
         var page = await ordered
             .ReadPageAsync(filter.Page, filter.PageSize, total, cancellationToken);
         var items = Items(page);
+        var counts = task is WorkshopTask.MyWork or WorkshopTask.Waiting or WorkshopTask.Claimable
+            ? null
+            : new WorkshopQueueCounts(
+                await TaskRows(actor, filter.BranchId, WorkshopTask.Active).CountAsync(cancellationToken),
+                await TaskRows(actor, filter.BranchId, WorkshopTask.Inspection).CountAsync(cancellationToken),
+                await TaskRows(actor, filter.BranchId, WorkshopTask.Approval).CountAsync(cancellationToken),
+                await TaskRows(actor, filter.BranchId, WorkshopTask.Repairs).CountAsync(cancellationToken),
+                await TaskRows(actor, filter.BranchId, WorkshopTask.All).CountAsync(cancellationToken));
         await transaction.CommitAsync(cancellationToken);
-        return new(InspectionAssignmentStatus.Succeeded, new(Array.AsReadOnly(items), total, filter.Page, filter.PageSize));
+        return new(InspectionAssignmentStatus.Succeeded,
+            new(Array.AsReadOnly(items), total, filter.Page, filter.PageSize, counts));
     }
 
     public async Task<WorkshopJobsResult> ReadJobsAsync(Guid actorId, InspectionQueueFilter filter,
@@ -94,25 +103,7 @@ public sealed class WorkshopQueueStore(DealershipDbContext database) : IWorkshop
 
     private IQueryable<WorkshopRow> Filter(AccountUser actor, InspectionQueueFilter filter, WorkshopTask task)
     {
-        var work = Rows(actor, filter.BranchId);
-        work = task switch
-        {
-            WorkshopTask.Active => work.Where(row => row.VehicleStatus == VehicleStatus.PendingInspection),
-            WorkshopTask.Inspection => work.Where(row => row.VehicleStatus == VehicleStatus.PendingInspection && !row.IsSigned),
-            WorkshopTask.Approval => work.Where(row => row.VehicleStatus == VehicleStatus.PendingInspection &&
-                row.IsSigned && row.RequestId != null && !row.Completed && row.Budget > 0 && !row.Approved),
-            WorkshopTask.Repairs => work.Where(row => row.VehicleStatus == VehicleStatus.PendingInspection &&
-                row.IsSigned && (row.RequestId == null || row.Completed || row.Budget == 0 || row.Approved)),
-            WorkshopTask.MyWork => work.Where(row => row.TechnicianId == actor.Id &&
-                row.VehicleStatus == VehicleStatus.PendingInspection &&
-                (!row.IsSigned || row.RequestId == null || row.Completed || row.Budget == 0 || row.Approved)),
-            WorkshopTask.Waiting => work.Where(row => row.TechnicianId == actor.Id &&
-                row.VehicleStatus == VehicleStatus.PendingInspection && row.IsSigned &&
-                row.RequestId != null && !row.Completed && row.Budget > 0 && !row.Approved),
-            WorkshopTask.Claimable => work.Where(row => row.InspectionId == null &&
-                row.VehicleStatus == VehicleStatus.PendingInspection),
-            _ => work
-        };
+        var work = TaskRows(actor, filter.BranchId, task);
         if (filter.From is not null)
         {
             work = task is WorkshopTask.Approval or WorkshopTask.Repairs
@@ -130,6 +121,29 @@ public sealed class WorkshopQueueStore(DealershipDbContext database) : IWorkshop
         }
 
         return work;
+    }
+
+    private IQueryable<WorkshopRow> TaskRows(AccountUser actor, Guid? selectedBranch, WorkshopTask task)
+    {
+        var work = Rows(actor, selectedBranch);
+        return task switch
+        {
+            WorkshopTask.Active => work.Where(row => row.VehicleStatus == VehicleStatus.PendingInspection),
+            WorkshopTask.Inspection => work.Where(row => row.VehicleStatus == VehicleStatus.PendingInspection && !row.IsSigned),
+            WorkshopTask.Approval => work.Where(row => row.VehicleStatus == VehicleStatus.PendingInspection &&
+                row.IsSigned && row.RequestId != null && !row.Completed && row.Budget > 0 && !row.Approved),
+            WorkshopTask.Repairs => work.Where(row => row.VehicleStatus == VehicleStatus.PendingInspection &&
+                row.IsSigned && (row.RequestId == null || row.Completed || row.Budget == 0 || row.Approved)),
+            WorkshopTask.MyWork => work.Where(row => row.TechnicianId == actor.Id &&
+                row.VehicleStatus == VehicleStatus.PendingInspection &&
+                (!row.IsSigned || row.RequestId == null || row.Completed || row.Budget == 0 || row.Approved)),
+            WorkshopTask.Waiting => work.Where(row => row.TechnicianId == actor.Id &&
+                row.VehicleStatus == VehicleStatus.PendingInspection && row.IsSigned &&
+                row.RequestId != null && !row.Completed && row.Budget > 0 && !row.Approved),
+            WorkshopTask.Claimable => work.Where(row => row.InspectionId == null &&
+                row.VehicleStatus == VehicleStatus.PendingInspection),
+            _ => work
+        };
     }
 
     private static WorkshopQueueItem[] Items(IEnumerable<WorkshopRow> page)

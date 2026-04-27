@@ -9,12 +9,12 @@ import { parseBranch, type Branch } from "@/lib/branches";
 import {
   reservationQuery,
   type ReservationFilters,
-  type ReservationItem,
+  type ReservationPage,
 } from "@/lib/vehicles/reservations";
 import { parseReservationSnapshot } from "@/lib/vehicles/parse-reservations";
 
 export function useReservationTable(
-  initial: ApiResult<Page<ReservationItem>>,
+  initial: ApiResult<ReservationPage>,
   filters: ReservationFilters,
   page: number,
   initialBranches: Page<Branch> | null,

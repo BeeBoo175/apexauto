@@ -1,7 +1,7 @@
-import { parsePage } from "@/lib/api";
+import { parseCountedPage } from "@/lib/api";
 import { isRecord, isUuid } from "@/lib/auth/contracts";
 import { isMyr } from "@/lib/currency-input";
-import { reservationStatuses, type ReservationItem } from "./reservations";
+import { reservationCountKeys, reservationStatuses, type ReservationItem } from "./reservations";
 
 const text = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0;
@@ -77,7 +77,7 @@ export function parseReservation(value: unknown): ReservationItem | null {
 }
 
 export function parseReservations(value: unknown) {
-  const page = parsePage(value, parseReservation);
+  const page = parseCountedPage(value, parseReservation, reservationCountKeys);
   if (!page || new Set(page.items.map((row) => row.id)).size !== page.items.length) {
     return null;
   }
@@ -136,7 +136,7 @@ export function parseReservationRow(value: unknown): ReservationItem | null {
 }
 
 export function parseReservationSnapshot(value: unknown) {
-  const page = parsePage(value, parseReservationRow);
+  const page = parseCountedPage(value, parseReservationRow, reservationCountKeys);
   if (!page || new Set(page.items.map((row) => row.id)).size !== page.items.length) {
     return null;
   }

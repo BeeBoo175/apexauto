@@ -4,11 +4,11 @@ import { apiFetch } from "@/lib/api-browser";
 import { parsePage } from "@/lib/api";
 import { parseBranch } from "@/lib/branches";
 import { dateRangeError } from "@/lib/intake/list-query";
-import { parseWorklistItem } from "@/lib/staff/parse";
+import { parseWorklistPage } from "@/lib/staff/parse";
 import { staffQuery, staffViewQuery } from "@/lib/staff/query";
 import type { ApiResult, Page } from "@/lib/api";
 import type { Branch } from "@/lib/branches";
-import type { StaffFilters, WorklistItem } from "@/lib/staff/contracts";
+import type { StaffFilters, WorklistPage } from "@/lib/staff/contracts";
 import { useToast } from "@/components/ui/Toast";
 import { useInitialToast } from "./use-initial-toast";
 
@@ -25,7 +25,7 @@ function initialSort(filters: StaffFilters): WorklistSort | null {
 }
 
 export function useStaffWorklist(
-  initial: ApiResult<Page<WorklistItem>>,
+  initial: ApiResult<WorklistPage>,
   filters: StaffFilters,
   page: number,
   initialBranches: Page<Branch> | null,
@@ -72,7 +72,7 @@ export function useStaffWorklist(
     try {
       const result = await apiFetch(
         `/api/staff/intake/appointments?${staffQuery(nextFilters, nextPage)}`,
-        (value) => parsePage(value, parseWorklistItem),
+        parseWorklistPage,
         { signal: attempt.signal },
       );
       if (attempt.signal.aborted) {

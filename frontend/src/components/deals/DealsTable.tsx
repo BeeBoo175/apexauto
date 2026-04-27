@@ -93,10 +93,7 @@ export function DealsTable({
           ? "needsApproval"
           : (view.value.toLowerCase() as "active" | "history")
       ];
-    return {
-      value: view.value,
-      label: total === undefined ? view.label : `${view.label} (${total})`,
-    };
+    return { value: view.value, label: view.label, count: total };
   });
 
   function changeView(view: DealView) {
@@ -155,6 +152,7 @@ export function DealsTable({
                 <>
                   <StaffQueueTabs
                     label="Deal views"
+                    countNoun="deals"
                     tabs={tabs}
                     value={active.filters.view}
                     disabled={state.busy}

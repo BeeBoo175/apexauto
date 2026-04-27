@@ -15,7 +15,7 @@ import {
   calendarReadRange,
   parseCalendar,
 } from "@/lib/staff/calendar";
-import { parseDetail, parseWorklistItem } from "@/lib/staff/parse";
+import { parseDetail, parseWorklistPage } from "@/lib/staff/parse";
 import { staffParams, staffQuery } from "@/lib/staff/query";
 import type { IntakeViewComponent, IntakeWorkspaceSnapshot } from "./use-intake-workspace";
 
@@ -44,7 +44,7 @@ export function useIntakeClientEntry(actor: CurrentActor, parameters: SearchPara
       listView
         ? privateApiFetch(
             `/api/staff/intake/appointments?${staffQuery(filters, page)}`,
-            (value) => parsePage(value, parseWorklistItem),
+            parseWorklistPage,
             { signal },
           )
         : null,

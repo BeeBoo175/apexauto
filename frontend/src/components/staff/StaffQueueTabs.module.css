@@ -23,6 +23,7 @@
   min-height: 48px;
   height: auto;
   flex-shrink: 0;
+  gap: 6px;
   white-space: nowrap;
   padding-inline: 8px;
   border-radius: 0;

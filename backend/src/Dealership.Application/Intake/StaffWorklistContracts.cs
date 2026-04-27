@@ -59,7 +59,11 @@ public sealed record StaffWorklistItem(Guid Id, Guid BranchId, string BranchName
     string RegistrationPlate, DateTimeOffset StartsAt, DateTimeOffset EndsAt, string Status,
     string Make, string Model, string Trim, int ManufactureYear);
 
-public sealed record StaffWorklistPage(IReadOnlyList<StaffWorklistItem> Items, int Total, int Page, int PageSize);
+// Section totals for the actor's branch scope, independent of dates, search and column filters.
+public sealed record StaffWorklistCounts(int Booked, int CheckedIn, int Cancelled, int NoShow, int All);
+
+public sealed record StaffWorklistPage(IReadOnlyList<StaffWorklistItem> Items, int Total, int Page, int PageSize,
+    StaffWorklistCounts? Counts = null);
 
 public interface IStaffWorklistStore
 {

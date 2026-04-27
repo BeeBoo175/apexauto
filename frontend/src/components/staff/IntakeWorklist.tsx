@@ -30,12 +30,12 @@ interface IntakeWorklistProps {
 }
 
 const intakeSections = [
-  { value: "All", label: "All appointments" },
-  { value: "Booked", label: "Booked" },
-  { value: "CheckedIn", label: "Checked in" },
-  { value: "NoShow", label: "No shows" },
-  { value: "Cancelled", label: "Cancelled" },
-];
+  { value: "All", label: "All appointments", count: "all" },
+  { value: "Booked", label: "Booked", count: "booked" },
+  { value: "CheckedIn", label: "Checked in", count: "checkedIn" },
+  { value: "NoShow", label: "No shows", count: "noShow" },
+  { value: "Cancelled", label: "Cancelled", count: "cancelled" },
+] as const;
 
 export function IntakeWorklist({ actor, worklist, drawer }: IntakeWorklistProps) {
   const toast = useToast();
@@ -98,7 +98,12 @@ export function IntakeWorklist({ actor, worklist, drawer }: IntakeWorklistProps)
               <>
                 <StaffQueueTabs
                   label="Intake sections"
-                  tabs={intakeSections}
+                  countNoun="appointments"
+                  tabs={intakeSections.map((section) => ({
+                    value: section.value,
+                    label: section.label,
+                    count: snapshot.counts?.[section.count],
+                  }))}
                   value={active.filters.status}
                   disabled={disabled || worklist.busy}
                   onChange={(status) => void worklist.load({ ...active.filters, status }, 1)}

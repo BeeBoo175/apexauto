@@ -113,7 +113,28 @@ public sealed class ListingReadStore(DealershipDbContext database) : IListingRea
 
         var items = await Order(rows.Where(row => pageIds.Contains(row.Vehicle.Id)), filter)
             .Select(Item).ToArrayAsync(cancellationToken);
-        return new(ListingStatus.Succeeded, new(Array.AsReadOnly(items), total, filter.Page, filter.PageSize));
+        var counts = await CountsAsync(actor.BranchId ?? filter.BranchId, filter.PageSize, cancellationToken);
+        return new(ListingStatus.Succeeded, new(Array.AsReadOnly(items), total, filter.Page, filter.PageSize, counts));
+    }
+
+    // Public state depends on holds, so due holds are reconciled first; without that the badges are left off.
+    private async Task<ListingCounts?> CountsAsync(Guid? branchId, int batch, CancellationToken cancellationToken)
+    {
+        var scope = Rows(branchId);
+        if (!await ReservationReadSnapshot.ReconcileDueAsync(database,
+            scope.Select(row => row.Vehicle.Id), batch, cancellationToken))
+        {
+            return null;
+        }
+
+        return new ListingCounts(
+            await scope.CountAsync(cancellationToken),
+            await FilterPublication(scope, "unprepared").CountAsync(cancellationToken),
+            await FilterPublication(scope, "draft").CountAsync(cancellationToken),
+            await FilterPublication(scope, "published").CountAsync(cancellationToken),
+            await FilterPublication(scope, "changes").CountAsync(cancellationToken),
+            await FilterPublication(scope, "unavailable").CountAsync(cancellationToken),
+            await FilterPublication(scope, "withdrawn").CountAsync(cancellationToken));
     }
 
     private static IOrderedQueryable<Row> Order(IQueryable<Row> rows, ListingReadFilter filter)

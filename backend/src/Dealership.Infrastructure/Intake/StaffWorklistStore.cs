@@ -77,7 +77,11 @@ public sealed class StaffWorklistStore(DealershipDbContext database) : IStaffWor
             .ReadPageAsync(query.Page, query.PageSize, total, cancellationToken);
         var items = page.Select(StaffWorklistRows.ToItem).ToArray();
 
+        var counts = maximumRows == 0
+            ? await StaffWorklistRows.CountsAsync(database, staffId, query, cancellationToken)
+            : null;
+
         await transaction.CommitAsync(cancellationToken);
-        return new StaffWorklistPage(items, total, query.Page, query.PageSize);
+        return new StaffWorklistPage(items, total, query.Page, query.PageSize, counts);
     }
 }

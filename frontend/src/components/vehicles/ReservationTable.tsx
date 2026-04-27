@@ -29,6 +29,7 @@ import {
   reservationFilterDefaults,
   reservationViewFilters,
   type ReservationItem,
+  type ReservationPage,
   type ReservationFilters as Filters,
 } from "@/lib/vehicles/reservations";
 import { exportReservations, reservationExportColumns } from "@/lib/vehicles/reservation-export";
@@ -52,7 +53,7 @@ export function ReservationTable({
   selected,
 }: {
   actor: CurrentActor;
-  initial: ApiResult<Page<ReservationItem>>;
+  initial: ApiResult<ReservationPage>;
   filters: Filters;
   page: number;
   branches: Page<Branch> | null;
@@ -142,9 +143,10 @@ export function ReservationTable({
                   </span>
                   <StaffQueueTabs
                     label="Reservation views"
+                    countNoun="reservations"
                     tabs={[
-                      { value: "active", label: "Active holds" },
-                      { value: "history", label: "History" },
+                      { value: "active", label: "Active holds", count: snapshot.counts?.active },
+                      { value: "history", label: "History", count: snapshot.counts?.history },
                     ]}
                     value={selectedView ? "active" : "history"}
                     disabled={state.busy}

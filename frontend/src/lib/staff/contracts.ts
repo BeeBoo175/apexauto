@@ -1,3 +1,4 @@
+import type { CountedPage } from "@/lib/api";
 import type { HistoryFilters } from "@/lib/intake/list-query";
 
 export const worklistStatuses = ["Booked", "CheckedIn", "Cancelled", "NoShow", "All"] as const;
@@ -26,6 +27,9 @@ export interface WorklistItem {
   endsAt: string;
   status: "Booked" | "CheckedIn" | "Cancelled" | "NoShow";
 }
+export const intakeCountKeys = ["booked", "checkedIn", "cancelled", "noShow", "all"] as const;
+export type WorklistPage = CountedPage<WorklistItem, (typeof intakeCountKeys)[number]>;
+
 export interface AppointmentDetail extends WorklistItem {
   noShowAt: string | null;
   attendanceCorrectedAt: string | null;

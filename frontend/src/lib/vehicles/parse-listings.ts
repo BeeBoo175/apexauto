@@ -1,7 +1,7 @@
-import { parsePage } from "@/lib/api";
+import { parseCountedPage } from "@/lib/api";
 import { isRecord, isUuid } from "@/lib/auth/contracts";
 import { isMyr } from "@/lib/currency-input";
-import { vehicleStatuses, type ListingItem } from "./listings";
+import { listingCountKeys, vehicleStatuses, type ListingItem } from "./listings";
 
 const text = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0;
@@ -80,7 +80,7 @@ export function parseListing(value: unknown): ListingItem | null {
 }
 
 export function parseListings(value: unknown) {
-  const page = parsePage(value, parseListing);
+  const page = parseCountedPage(value, parseListing, listingCountKeys);
   if (!page || new Set(page.items.map((item) => item.vehicleId)).size !== page.items.length) {
     return null;
   }

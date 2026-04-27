@@ -102,8 +102,13 @@ public sealed class ReservationReadStore(DealershipDbContext database) : IReserv
             }
         }
 
+        ReservationCounts? counts = null;
         if (staff && filter.IsActive is not null)
         {
+            // The due holds above are already reconciled, so both tab totals are current.
+            counts = new ReservationCounts(
+                await reservations.CountAsync(item => item.IsActive, cancellationToken),
+                await reservations.CountAsync(item => !item.IsActive, cancellationToken));
             reservations = reservations.Where(item => item.IsActive == filter.IsActive);
         }
 
@@ -132,7 +137,7 @@ public sealed class ReservationReadStore(DealershipDbContext database) : IReserv
             active = activeRow is null ? null : ReservationReadRows.ToItem(activeRow, false);
         }
 
-        return new(ReservationStatus.Succeeded, new(actor, Array.AsReadOnly(items), total, filter.Page, filter.PageSize, active));
+        return new(ReservationStatus.Succeeded, new(actor, Array.AsReadOnly(items), total, filter.Page, filter.PageSize, active, counts));
     }
 
     private async Task<CurrentActor?> ReadActorAsync(Guid actorId, Guid? selectedBranch, bool staff,

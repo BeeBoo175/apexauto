@@ -30,7 +30,11 @@ public sealed record WorkshopQueueItem(Guid VehicleId, Guid BranchId, string Bra
     int ManufactureYear = 0, string Trim = "", DateTimeOffset CheckedInAt = default,
     DateTimeOffset? RequestedAt = null);
 
-public sealed record WorkshopQueuePage(IReadOnlyList<WorkshopQueueItem> Items, int Total, int Page, int PageSize);
+// Managerial task totals for the actor's branch scope, independent of dates, search and column filters.
+public sealed record WorkshopQueueCounts(int Active, int Inspection, int Approval, int Repairs, int All);
+
+public sealed record WorkshopQueuePage(IReadOnlyList<WorkshopQueueItem> Items, int Total, int Page, int PageSize,
+    WorkshopQueueCounts? Counts = null);
 
 public sealed record WorkshopQueueResult(InspectionAssignmentStatus Status, WorkshopQueuePage? Queue = null);
 

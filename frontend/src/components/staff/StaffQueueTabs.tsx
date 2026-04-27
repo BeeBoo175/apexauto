@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Input";
 import styles from "./StaffQueueTabs.module.css";
@@ -27,13 +28,15 @@ export function StaffQueueTabs<T extends string>({
   value,
   disabled = false,
   mobilePresentation = "tabs",
+  countNoun = "records",
   onChange,
 }: {
   label: string;
-  tabs: readonly { value: T; label: string }[];
+  tabs: readonly { value: T; label: string; count?: number }[];
   value: T;
   disabled?: boolean;
   mobilePresentation?: "tabs" | "select";
+  countNoun?: string;
   onChange: (value: T) => void;
 }) {
   const selectedTab = useRef<HTMLButtonElement>(null);
@@ -74,7 +77,7 @@ export function StaffQueueTabs<T extends string>({
           >
             {tabs.map((tab) => (
               <option key={tab.value} value={tab.value}>
-                {tab.label}
+                {tab.count === undefined ? tab.label : `${tab.label} (${tab.count})`}
               </option>
             ))}
           </Select>
@@ -93,7 +96,13 @@ export function StaffQueueTabs<T extends string>({
             onClick={() => onChange(tab.value)}
             onFocus={(event) => revealTab(event.currentTarget)}
           >
-            {tab.label}
+            <span>{tab.label}</span>
+            {tab.count !== undefined && (
+              <Badge variant="count" data-selected={value === tab.value}>
+                {tab.count}
+                <span className="sr-only"> {countNoun}</span>
+              </Badge>
+            )}
           </Button>
         ))}
       </div>

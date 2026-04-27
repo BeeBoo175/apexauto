@@ -20,6 +20,15 @@ export const listingPublicationOptions = [
   { value: "unavailable", label: "Hidden" },
   { value: "withdrawn", label: "Withdrawn" },
 ];
+export const listingCountKeys = [
+  "all",
+  "unprepared",
+  "draft",
+  "published",
+  "changes",
+  "unavailable",
+  "withdrawn",
+] as const;
 export const listingSections = ["listing", "card", "publication", "history"] as const;
 export type ListingSection = (typeof listingSections)[number];
 export const listingSorts = [
