@@ -110,7 +110,8 @@ public sealed partial class SalesOrder
             UpdatedAtUtc = now
         };
         order.Reprice(settings);
-        created = new SalesOrderEvent(id, SalesOrderEventKind.Created, null, SalesOrderStatus.Draft, agentId, null, now);
+        created = new SalesOrderEvent(id, order.Version, SalesOrderEventKind.Created, null, SalesOrderStatus.Draft,
+            agentId, null, now);
         return order;
     }
 
@@ -238,7 +239,7 @@ public sealed partial class SalesOrder
         Status = to;
         UpdatedAtUtc = now;
         Version++;
-        return new SalesOrderEvent(Id, kind, from, to, actorId, reason, now);
+        return new SalesOrderEvent(Id, Version, kind, from, to, actorId, reason, now);
     }
 
     [GeneratedRegex(@"^VPO-[0-9]{4}-[0-9]{6}$")]

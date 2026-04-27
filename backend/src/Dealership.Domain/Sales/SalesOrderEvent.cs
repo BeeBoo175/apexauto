@@ -27,11 +27,12 @@ public sealed class SalesOrderEvent
     {
     }
 
-    internal SalesOrderEvent(Guid salesOrderId, SalesOrderEventKind kind, SalesOrderStatus? from, SalesOrderStatus to,
-        Guid actorId, string? reason, DateTimeOffset recordedAtUtc)
+    internal SalesOrderEvent(Guid salesOrderId, long sequence, SalesOrderEventKind kind, SalesOrderStatus? from,
+        SalesOrderStatus to, Guid actorId, string? reason, DateTimeOffset recordedAtUtc)
     {
         Id = Guid.NewGuid();
         SalesOrderId = salesOrderId;
+        Sequence = sequence;
         Kind = kind;
         FromStatus = from;
         ToStatus = to;
@@ -43,6 +44,9 @@ public sealed class SalesOrderEvent
     public Guid Id { get; private set; }
 
     public Guid SalesOrderId { get; private set; }
+
+    // The deal's version after this action, so history order never depends on timestamps.
+    public long Sequence { get; private set; }
 
     public SalesOrderEventKind Kind { get; private set; }
 

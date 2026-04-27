@@ -90,7 +90,7 @@ public sealed class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrde
         {
             table.HasCheckConstraint("CK_SalesOrderEvents_Shape",
                 "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND isfinite(\"RecordedAtUtc\") AND " +
-                "\"Kind\" IN ('Created', 'Revised', 'Submitted', 'Approved', 'Rejected', 'Cancelled') AND " +
+                "\"Sequence\" > 0 AND \"Kind\" IN ('Created', 'Revised', 'Submitted', 'Approved', 'Rejected', 'Cancelled') AND " +
                 "\"ToStatus\" IN ('Draft', 'PendingManagerApproval', 'Approved', 'Cancelled') AND " +
                 "(\"FromStatus\" IS NULL OR \"FromStatus\" IN ('Draft', 'PendingManagerApproval', 'Approved', 'Cancelled')) AND " +
                 "((\"Kind\" IN ('Rejected', 'Cancelled') AND \"Reason\" IS NOT NULL AND \"Reason\" = btrim(\"Reason\") AND " +
@@ -99,7 +99,7 @@ public sealed class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrde
         });
         builder.HasKey(item => item.Id);
         builder.Property(item => item.Id).ValueGeneratedNever();
-        builder.HasIndex(item => new { item.SalesOrderId, item.RecordedAtUtc, item.Id });
+        builder.HasIndex(item => new { item.SalesOrderId, item.Sequence }).IsUnique();
         builder.Property(item => item.Kind).HasConversion<string>().HasMaxLength(32);
         builder.Property(item => item.FromStatus).HasConversion<string>().HasMaxLength(32);
         builder.Property(item => item.ToStatus).HasConversion<string>().HasMaxLength(32);
