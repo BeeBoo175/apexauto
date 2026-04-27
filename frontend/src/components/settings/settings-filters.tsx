@@ -1,14 +1,13 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import {
-  ColumnFilterForm,
   DateRangeFilter,
   MoneyRangeFilter,
   TextColumnFilter,
 } from "@/components/ui/data-table/ColumnFilterForm";
+import { ChoiceColumnFilter } from "@/components/ui/data-table/ChoiceColumnFilter";
 import type { DataColumn } from "@/components/ui/data-table/types";
-import { FilterChoices } from "@/components/ui/FilterChoices";
 import { dateRangeLabel } from "@/lib/date-range-label";
 import {
   warrantyGrades,
@@ -21,35 +20,6 @@ import { promoColumns, warrantyColumns } from "./settings-columns";
 
 export type LoadList = (filters: ListFilters, page: number) => Promise<boolean>;
 
-function ChoiceFilter({
-  label,
-  options,
-  value,
-  empty,
-  busy,
-  onApply,
-}: {
-  label: string;
-  options: { value: string; label: string }[];
-  value: string;
-  empty: string;
-  busy: boolean;
-  onApply: (value: string) => Promise<boolean>;
-}) {
-  const [draft, setDraft] = useState(value);
-  return (
-    <ColumnFilterForm busy={busy} onApply={() => onApply(draft)} onClear={() => onApply(empty)}>
-      <FilterChoices
-        label={label}
-        options={options}
-        value={draft}
-        disabled={busy}
-        onChange={setDraft}
-      />
-    </ColumnFilterForm>
-  );
-}
-
 const money = (filters: ListFilters) => `MYR ${filters.minimum || "0"}–${filters.maximum || "any"}`;
 
 function statusFilter(
@@ -59,7 +29,7 @@ function statusFilter(
   apply: (next: Partial<ListFilters>) => Promise<boolean>,
 ) {
   return (
-    <ChoiceFilter
+    <ChoiceColumnFilter
       label="Status"
       options={statuses.map((value) => ({
         value,
@@ -208,7 +178,7 @@ export function warrantyTableFilters(
         />
       ),
       grade: (
-        <ChoiceFilter
+        <ChoiceColumnFilter
           label="Minimum grade"
           options={[
             { value: "", label: "Any grade" },
