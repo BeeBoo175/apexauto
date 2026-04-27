@@ -104,12 +104,39 @@ public sealed class DealStoreTests(IntakePhotoFixture fixture) : IClassFixture<I
         var nextSubmitted = await deals.TransitionAsync(otherAgent, next.Deal!.Id, DealAction.Submit, new(1, null), default);
         Assert.Equal($"VPO-{year}-000002", nextSubmitted.Deal!.OrderNumber);
 
-        Assert.Equal(1, (await deals.ListAsync(agent, 1, 25, null, null, default)).Page!.Total);
-        Assert.Equal(1, (await deals.ListAsync(otherAgent, 1, 25, null, null, default)).Page!.Total);
-        Assert.Equal(2, (await deals.ListAsync(manager, 1, 25, null, null, default)).Page!.Total);
-        Assert.Equal(1, (await deals.ListAsync(generalManager, 1, 25, "Cancelled", null, default)).Page!.Total);
-        Assert.Equal(1, (await deals.ListAsync(generalManager, 1, 25, null, "000002", default)).Page!.Total);
-        Assert.Equal(DealStatus.Invalid, (await deals.ListAsync(manager, 1, 25, "Bogus", null, default)).Status);
+        Assert.Equal(1, (await ListAsync(deals, agent)).Page!.Total);
+        Assert.Equal(1, (await ListAsync(deals, otherAgent)).Page!.Total);
+        var managerList = (await ListAsync(deals, manager)).Page!;
+        Assert.Equal((2, 1, 0, 1), (managerList.Total, managerList.Counts.Active, managerList.Counts.NeedsApproval,
+            managerList.Counts.History));
+        Assert.Equal(1, (await ListAsync(deals, generalManager, status: "Cancelled")).Page!.Total);
+        Assert.Equal(1, (await ListAsync(deals, generalManager, number: "000002")).Page!.Total);
+        Assert.Equal(1, (await ListAsync(deals, manager, view: "Active")).Page!.Total);
+        Assert.Equal(1, (await ListAsync(deals, manager, view: "History")).Page!.Total);
+        Assert.Equal(0, (await ListAsync(deals, manager, view: "NeedsApproval")).Page!.Total);
+        // The test clock can repeat an instant, so rows are found by identity rather than by position.
+        var newest = managerList.Items.Single(item => item.Id == next.Deal!.Id);
+        Assert.Equal((next.Deal!.Id, "Approved", "Approved", "Hafiz Rahman"), (newest.Id, newest.Status,
+            newest.NextStep, newest.Customer));
+        Assert.False(string.IsNullOrWhiteSpace(newest.Registration) || string.IsNullOrWhiteSpace(newest.Agent));
+        Assert.Equal("Cancelled", managerList.Items.Single(item => item.Id == deal.Id).NextStep);
+        Assert.Equal(new[] { $"VPO-{year}-000001", $"VPO-{year}-000002" },
+            (await ListAsync(deals, manager, sort: "number", direction: "asc")).Page!.Items.Select(item => item.OrderNumber));
+        Assert.Equal(new[] { $"VPO-{year}-000002", $"VPO-{year}-000001" },
+            (await ListAsync(deals, manager, sort: "number", direction: "desc")).Page!.Items.Select(item => item.OrderNumber));
+        Assert.Equal(2, (await ListAsync(deals, manager, vehicle: newest.Registration[1..^1])).Page!.Total);
+        Assert.Equal(0, (await ListAsync(deals, manager, vehicle: "zzzz")).Page!.Total);
+        Assert.Equal(2, (await ListAsync(deals, manager, customer: "HAFIZ")).Page!.Total);
+        Assert.Equal(0, (await ListAsync(deals, manager, customer: "%")).Page!.Total);
+        Assert.Equal(DealStatus.Invalid, (await ListAsync(deals, manager, status: "Bogus")).Status);
+        Assert.Equal(DealStatus.Invalid, (await ListAsync(deals, manager, view: "Everything")).Status);
+        Assert.Equal(DealStatus.Invalid, (await ListAsync(deals, manager, sort: "bogus")).Status);
+        Assert.Equal(DealStatus.Invalid, (await ListAsync(deals, manager, direction: "desc")).Status);
+        Assert.Equal(DealStatus.Invalid, (await ListAsync(deals, manager, size: 7)).Status);
+        Assert.Empty((await deals.VehiclesAsync(agent, null, default)).Vehicles!);
+        Assert.Equal(DealStatus.Forbidden, (await deals.VehiclesAsync(manager, null, default)).Status);
+        Assert.Equal(DealStatus.Forbidden, (await deals.OptionsAsync(technician, deal.Id, default)).Status);
+        Assert.Equal(DealStatus.NotFound, (await deals.OptionsAsync(agent, next.Deal.Id, default)).Status);
         Assert.Equal(DealStatus.NotFound, (await deals.GetAsync(agent, next.Deal.Id, default)).Status);
         Assert.Equal(DealStatus.Forbidden, (await deals.GetAsync(technician, deal.Id, default)).Status);
 
@@ -119,6 +146,11 @@ public sealed class DealStoreTests(IntakePhotoFixture fixture) : IClassFixture<I
         await RejectedAsync("UPDATE \"SalesOrders\" SET \"Status\" = 'Draft', \"DecidedById\" = NULL, \"DiscountLimitAtSubmit\" = NULL WHERE \"Status\" = 'Cancelled'",
             PostgresErrorCodes.UniqueViolation);
     }
+
+    private static Task<DealResult> ListAsync(DealService deals, Guid actor, string? view = null, string? status = null,
+        string? sort = null, string? direction = null, string? number = null, string? vehicle = null,
+        string? customer = null, int page = 1, int size = 25) =>
+        deals.ListAsync(actor, page, size, view, status, sort, direction, number, vehicle, customer, default);
 
     private static async Task<Reservation> HoldAsync(CheckInTestData data, ListingPublication publication)
     {

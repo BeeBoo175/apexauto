@@ -74,25 +74,52 @@ public sealed class DealService(IDealStore store, TimeProvider clock)
             : dealId == Guid.Empty ? Rejected(DealStatus.Invalid)
             : store.GetAsync(actorId, dealId, cancellationToken);
 
-    public Task<DealResult> ListAsync(Guid actorId, int page, int pageSize, string? status, string? number,
-        CancellationToken cancellationToken)
+    public static readonly IReadOnlySet<string> Views = new HashSet<string> { "All", "Active", "NeedsApproval", "History" };
+
+    public static readonly IReadOnlySet<string> Sorts = new HashSet<string>
     {
-        var term = number?.Trim();
+        "number", "vehicle", "customer", "agent", "status", "balance", "discount", "submitted", "updated"
+    };
+
+    public Task<DealResult> ListAsync(Guid actorId, int page, int pageSize, string? view, string? status, string? sort,
+        string? direction, string? number, string? vehicle, string? customer, CancellationToken cancellationToken)
+    {
         if (actorId == Guid.Empty)
         {
             return Rejected(DealStatus.Forbidden);
         }
 
-        if (!Pagination.IsValid(page, pageSize) || status is not null && !Statuses.Contains(status) ||
-            term is { Length: > 30 } || term?.Any(char.IsControl) == true)
+        var texts = new[] { number, vehicle, customer }.Select(item => item?.Trim()).ToArray();
+        var state = view ?? "All";
+        if (!Pagination.IsValid(page, pageSize) || !Views.Contains(state) ||
+            status is not null && !Statuses.Contains(status) || sort is not null && !Sorts.Contains(sort) ||
+            direction is not (null or "asc" or "desc") || direction is not null && sort is null ||
+            texts.Any(item => item is { Length: > 160 } || item?.Any(char.IsControl) == true))
         {
             return Rejected(DealStatus.Invalid);
         }
 
-        return store.ListAsync(actorId, page, pageSize, status, string.IsNullOrEmpty(term) ? null : term,
-            cancellationToken);
+        static string? Clean(string? value) => string.IsNullOrEmpty(value) ? null : value;
+        return store.ListAsync(actorId, new DealListQuery(page, pageSize, state, status, sort, direction == "desc",
+            Clean(texts[0]), Clean(texts[1]), Clean(texts[2])), cancellationToken);
     }
 
+    public Task<DealResult> VehiclesAsync(Guid actorId, string? search, CancellationToken cancellationToken)
+    {
+        var term = search?.Trim();
+        if (actorId == Guid.Empty)
+        {
+            return Rejected(DealStatus.Forbidden);
+        }
+
+        return term is { Length: > 160 } || term?.Any(char.IsControl) == true ? Rejected(DealStatus.Invalid)
+            : store.VehiclesAsync(actorId, string.IsNullOrEmpty(term) ? null : term, clock.GetUtcNow(), cancellationToken);
+    }
+
+    public Task<DealResult> OptionsAsync(Guid actorId, Guid dealId, CancellationToken cancellationToken) =>
+        actorId == Guid.Empty ? Rejected(DealStatus.Forbidden)
+            : dealId == Guid.Empty ? Rejected(DealStatus.Invalid)
+            : store.OptionsAsync(actorId, dealId, cancellationToken);
     private static bool ValidAmount(decimal amount) => amount is >= 0m and <= PurchaseSettings.MaximumFee * 100 &&
         decimal.Round(amount, 2) == amount;
 

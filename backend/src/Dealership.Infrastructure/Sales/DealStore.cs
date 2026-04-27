@@ -162,8 +162,32 @@ public sealed class DealStore(DealershipDbContext database) : IDealStore
             : new(DealStatus.Succeeded, await ViewAsync(order, cancellationToken));
     }
 
-    public async Task<DealResult> ListAsync(Guid actorId, int page, int pageSize, string? status, string? number,
-        CancellationToken cancellationToken)
+    // Member-initialised so list filters and orderings translate to SQL.
+    private sealed class Row
+    {
+        public Guid Id { get; init; }
+        public string? OrderNumber { get; init; }
+        public SalesOrderStatus Status { get; init; }
+        public Guid VehicleId { get; init; }
+        public string Plate { get; init; } = string.Empty;
+        public string Make { get; init; } = string.Empty;
+        public string Model { get; init; } = string.Empty;
+        public int Year { get; init; }
+        public Guid CustomerId { get; init; }
+        public string Customer { get; init; } = string.Empty;
+        public Guid AgentId { get; init; }
+        public string? Agent { get; init; }
+        public Guid BranchId { get; init; }
+        public string Branch { get; init; } = string.Empty;
+        public decimal Balance { get; init; }
+        public decimal Negotiated { get; init; }
+        public decimal? Limit { get; init; }
+        public long Version { get; init; }
+        public DateTimeOffset? Submitted { get; init; }
+        public DateTimeOffset Updated { get; init; }
+    }
+
+    public async Task<DealResult> ListAsync(Guid actorId, DealListQuery query, CancellationToken cancellationToken)
     {
         var actor = await ReadActorAsync(actorId, cancellationToken);
         if (actor is null)
@@ -171,33 +195,205 @@ public sealed class DealStore(DealershipDbContext database) : IDealStore
             return new(DealStatus.Forbidden);
         }
 
-        var orders = database.SalesOrders.AsNoTracking().AsQueryable();
-        orders = actor.Role switch
-        {
-            AccountRoles.SalesAgent => orders.Where(item => item.SalesAgentId == actor.Id),
-            AccountRoles.BranchManager => orders.Where(item => item.BranchId == actor.BranchId),
-            _ => orders
-        };
-        if (status is not null)
-        {
-            var wanted = Enum.Parse<SalesOrderStatus>(status);
-            orders = orders.Where(item => item.Status == wanted);
-        }
-
-        if (number is not null)
-        {
-            orders = orders.Where(item => item.OrderNumber != null &&
-                EF.Functions.ILike(item.OrderNumber, "%" + PromoAdministrationStore.EscapeLike(number) + "%", "\\"));
-        }
-
-        var total = await orders.CountAsync(cancellationToken);
-        var items = await orders.OrderByDescending(item => item.UpdatedAtUtc).ThenBy(item => item.Id)
-            .Skip((page - 1) * pageSize).Take(pageSize).Select(item => new DealSummary(item.Id, item.OrderNumber,
-                item.Status.ToString(), item.VehicleId, item.CustomerId, item.SalesAgentId, item.BranchId,
-                item.BalancePayable, item.Version, item.UpdatedAtUtc)).ToListAsync(cancellationToken);
-        return new(DealStatus.Succeeded, Page: new DealPage(items, total, page, pageSize));
+        var scoped = Scope(actor, database.SalesOrders.AsNoTracking());
+        var counts = new DealCounts(
+            await scoped.CountAsync(item => Open.Contains(item.Status), cancellationToken),
+            await scoped.CountAsync(item => item.Status == SalesOrderStatus.PendingManagerApproval, cancellationToken),
+            await scoped.CountAsync(item => item.Status == SalesOrderStatus.Cancelled, cancellationToken));
+        var rows = Filter(Project(scoped), query);
+        var total = await rows.CountAsync(cancellationToken);
+        var items = await Order(rows, query).Skip((query.Page - 1) * query.PageSize).Take(query.PageSize)
+            .ToListAsync(cancellationToken);
+        var summaries = items.Select(row => new DealSummary(row.Id, row.OrderNumber, row.Status.ToString(),
+            DealNextStep.For(row.Status, row.OrderNumber is not null), row.VehicleId, row.Plate,
+            $"{row.Year} {row.Make} {row.Model}", row.CustomerId, row.Customer, row.AgentId, row.Agent ?? string.Empty,
+            row.BranchId, row.Branch, row.Balance, row.Negotiated, row.Limit, row.Version, row.Submitted, row.Updated))
+            .ToList();
+        return new(DealStatus.Succeeded, Page: new DealPage(summaries, total, query.Page, query.PageSize, counts));
     }
 
+    // Eligible vehicles for a new deal: published in the agent's branch with no open deal, with any active hold.
+    public async Task<DealResult> VehiclesAsync(Guid actorId, string? search, DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        var actor = await ReadActorAsync(actorId, cancellationToken);
+        if (actor is not { Role: AccountRoles.SalesAgent, BranchId: not null })
+        {
+            return new(DealStatus.Forbidden);
+        }
+
+        var rows = PublicListingQuery.Published(database).Where(row => row.Vehicle.BranchId == actor.BranchId &&
+            !database.SalesOrders.Any(order => order.VehicleId == row.Vehicle.Id && Open.Contains(order.Status)));
+        if (search is not null)
+        {
+            rows = rows.Where(row => EF.Functions.ILike(row.Vehicle.RegistrationPlate,
+                "%" + PromoAdministrationStore.EscapeLike(search) + "%", "\\"));
+        }
+
+        var found = await rows.OrderBy(row => row.Vehicle.RegistrationPlate).Take(25).Select(row => new
+        {
+            row.Vehicle.Id,
+            row.Vehicle.RegistrationPlate,
+            row.Vehicle.ManufactureYear,
+            row.Vehicle.Make,
+            row.Vehicle.Model,
+            row.Revision.VehiclePrice
+        }).ToListAsync(cancellationToken);
+        var ids = found.Select(item => item.Id).ToArray();
+        var holds = await database.Reservations.AsNoTracking()
+            .Where(item => ids.Contains(item.VehicleId) && item.IsActive && item.ExpiresAt > now)
+            .Select(item => new { item.Id, item.VehicleId, item.CustomerId }).ToListAsync(cancellationToken);
+        var holderIds = holds.Select(item => item.CustomerId).ToArray();
+        var names = await database.CustomerProfiles.AsNoTracking().Where(item => holderIds.Contains(item.UserId))
+            .ToDictionaryAsync(item => item.UserId, item => item.LegalName, cancellationToken);
+        var vehicles = found.Select(item =>
+        {
+            var hold = holds.FirstOrDefault(candidate => candidate.VehicleId == item.Id);
+            return new EligibleVehicle(item.Id, item.RegistrationPlate,
+                $"{item.ManufactureYear} {item.Make} {item.Model}", item.VehiclePrice, hold is not null, hold?.Id,
+                hold is null ? null : names.GetValueOrDefault(hold.CustomerId));
+        }).ToList();
+        return new(DealStatus.Succeeded, Vehicles: vehicles);
+    }
+
+    // What the editor may offer: warranties the vehicle's grade qualifies for and the customer's own trade-ins.
+    public async Task<DealResult> OptionsAsync(Guid actorId, Guid dealId, CancellationToken cancellationToken)
+    {
+        var actor = await ReadActorAsync(actorId, cancellationToken);
+        if (actor is null)
+        {
+            return new(DealStatus.Forbidden);
+        }
+
+        var order = await database.SalesOrders.AsNoTracking().SingleOrDefaultAsync(item => item.Id == dealId,
+            cancellationToken);
+        if (order is null || !CanSee(actor, order))
+        {
+            return new(DealStatus.NotFound);
+        }
+
+        var listing = await PublicListingQuery.Published(database)
+            .SingleOrDefaultAsync(row => row.Vehicle.Id == order.VehicleId, cancellationToken);
+        if (listing is null)
+        {
+            return new(DealStatus.Conflict);
+        }
+
+        var signed = await database.InspectionSignedRevisions.AsNoTracking()
+            .SingleAsync(item => item.Id == listing.Publication.SignedRevisionId, cancellationToken);
+        InspectionGrade? grade = signed.Report().Assessment.Grade;
+        var packages = await database.WarrantyPackages.AsNoTracking().Where(item => item.IsActive)
+            .OrderBy(item => item.Price).ThenBy(item => item.Name).ToListAsync(cancellationToken);
+        var warranties = packages.Where(item => item.IsEligibleFor(grade)).Select(item => new WarrantyOption(item.Id,
+            item.Name, item.DurationMonths, item.MileageCapKm, item.Price, item.MinimumGrade.ToString())).ToList();
+        var taken = database.SalesOrders.Where(item => item.Id != order.Id && Open.Contains(item.Status) &&
+            item.TradeInAppointmentId != null).Select(item => item.TradeInAppointmentId);
+        var appointments = await database.IntakeAppointments.AsNoTracking().Where(item =>
+            item.OwnerId == order.CustomerId && item.CancelledAt == null && !taken.Contains(item.Id))
+            .OrderBy(item => item.StartsAt).ToListAsync(cancellationToken);
+        var tradeIns = appointments.Select(item => new TradeInOption(item.Id,
+            $"{item.RegistrationPlate} · {item.Valuation.ManufactureYear} {item.Valuation.Make} {item.Valuation.Model}",
+            item.Valuation.Minimum, item.Valuation.Maximum)).ToList();
+        return new(DealStatus.Succeeded, Options: new DealOptions(warranties, tradeIns));
+    }
+
+    private static IQueryable<SalesOrder> Scope(Actor actor, IQueryable<SalesOrder> orders) => actor.Role switch
+    {
+        AccountRoles.SalesAgent => orders.Where(item => item.SalesAgentId == actor.Id),
+        AccountRoles.BranchManager => orders.Where(item => item.BranchId == actor.BranchId),
+        _ => orders
+    };
+
+    private IQueryable<Row> Project(IQueryable<SalesOrder> orders) =>
+        from order in orders
+        join vehicle in database.Vehicles.AsNoTracking() on order.VehicleId equals vehicle.Id
+        join profile in database.CustomerProfiles.AsNoTracking() on order.CustomerId equals profile.UserId
+        join agent in database.Users.AsNoTracking() on order.SalesAgentId equals agent.Id
+        join branch in database.Branches.AsNoTracking() on order.BranchId equals branch.Id
+        select new Row
+        {
+            Id = order.Id,
+            OrderNumber = order.OrderNumber,
+            Status = order.Status,
+            VehicleId = vehicle.Id,
+            Plate = vehicle.RegistrationPlate,
+            Make = vehicle.Make,
+            Model = vehicle.Model,
+            Year = vehicle.ManufactureYear,
+            CustomerId = order.CustomerId,
+            Customer = profile.LegalName,
+            AgentId = order.SalesAgentId,
+            Agent = agent.Email,
+            BranchId = order.BranchId,
+            Branch = branch.Name,
+            Balance = order.BalancePayable,
+            Negotiated = order.NegotiatedDiscount,
+            Limit = order.DiscountLimitAtSubmit,
+            Version = order.Version,
+            Submitted = order.SubmittedAtUtc,
+            Updated = order.UpdatedAtUtc
+        };
+
+    private static IQueryable<Row> Filter(IQueryable<Row> rows, DealListQuery query)
+    {
+        rows = query.View switch
+        {
+            "Active" => rows.Where(row => Open.Contains(row.Status)),
+            "NeedsApproval" => rows.Where(row => row.Status == SalesOrderStatus.PendingManagerApproval),
+            "History" => rows.Where(row => row.Status == SalesOrderStatus.Cancelled),
+            _ => rows
+        };
+        if (query.Status is not null)
+        {
+            var status = Enum.Parse<SalesOrderStatus>(query.Status);
+            rows = rows.Where(row => row.Status == status);
+        }
+
+        if (query.Number is not null)
+        {
+            rows = rows.Where(row => row.OrderNumber != null &&
+                EF.Functions.ILike(row.OrderNumber, Contains(query.Number), "\\"));
+        }
+
+        if (query.Vehicle is not null)
+        {
+            rows = rows.Where(row => EF.Functions.ILike(row.Plate, Contains(query.Vehicle), "\\") ||
+                EF.Functions.ILike(row.Make + " " + row.Model, Contains(query.Vehicle), "\\"));
+        }
+
+        return query.Customer is null ? rows
+            : rows.Where(row => EF.Functions.ILike(row.Customer, Contains(query.Customer), "\\"));
+    }
+
+    private static string Contains(string value) => "%" + PromoAdministrationStore.EscapeLike(value) + "%";
+
+    // Every ordering ends in the deal ID, so paging never repeats or skips a deal.
+    private static IOrderedQueryable<Row> Order(IQueryable<Row> rows, DealListQuery query)
+    {
+        var down = query.Descending;
+        return query.Sort switch
+        {
+            "number" => (down ? rows.OrderByDescending(row => row.OrderNumber) : rows.OrderBy(row => row.OrderNumber))
+                .ThenBy(row => row.Id),
+            "vehicle" => (down ? rows.OrderByDescending(row => row.Plate) : rows.OrderBy(row => row.Plate))
+                .ThenBy(row => row.Id),
+            "customer" => (down ? rows.OrderByDescending(row => row.Customer) : rows.OrderBy(row => row.Customer))
+                .ThenBy(row => row.Id),
+            "agent" => (down ? rows.OrderByDescending(row => row.Agent) : rows.OrderBy(row => row.Agent))
+                .ThenBy(row => row.Id),
+            "status" => (down ? rows.OrderByDescending(row => row.Status) : rows.OrderBy(row => row.Status))
+                .ThenBy(row => row.Id),
+            "balance" => (down ? rows.OrderByDescending(row => row.Balance) : rows.OrderBy(row => row.Balance))
+                .ThenBy(row => row.Id),
+            "discount" => (down ? rows.OrderByDescending(row => row.Negotiated) : rows.OrderBy(row => row.Negotiated))
+                .ThenBy(row => row.Id),
+            "submitted" => (down ? rows.OrderByDescending(row => row.Submitted) : rows.OrderBy(row => row.Submitted))
+                .ThenBy(row => row.Id),
+            "updated" => (down ? rows.OrderByDescending(row => row.Updated) : rows.OrderBy(row => row.Updated))
+                .ThenBy(row => row.Id),
+            _ => rows.OrderByDescending(row => row.Updated).ThenBy(row => row.Id)
+        };
+    }
     // Scoping: agents see their own deals, branch managers their branch, general managers every deal.
     private static bool CanSee(Actor actor, SalesOrder order) => actor.Role switch
     {

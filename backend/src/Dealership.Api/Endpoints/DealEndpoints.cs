@@ -15,7 +15,9 @@ public static class DealEndpoints
             return await next(context);
         });
         routes.MapGet("", ListAsync);
+        routes.MapGet("/vehicles", VehiclesAsync);
         routes.MapGet("/{dealId:guid}", GetAsync);
+        routes.MapGet("/{dealId:guid}/options", OptionsAsync);
         routes.MapPost("", CreateAsync);
         routes.MapPut("/{dealId:guid}", ReviseAsync);
         routes.MapPost("/{dealId:guid}/submissions", (Guid dealId, HttpContext context, DealService deals,
@@ -28,13 +30,22 @@ public static class DealEndpoints
             CancellationToken token) => TransitionAsync(dealId, DealAction.Cancel, context, deals, token));
     }
 
-    private static async Task<IResult> ListAsync(int? page, int? pageSize, string? status, string? number,
-        HttpContext context, DealService deals, CancellationToken cancellationToken)
-    {
-        return await RunAsync(cancellationToken, "Deals are temporarily unavailable.", token => deals.ListAsync(
-            ActorId(context), page ?? 1, pageSize ?? Pagination.DefaultPageSize, status, number, token));
-    }
+    private static Task<IResult> ListAsync(int? page, int? pageSize, string? view, string? status, string? sort,
+        string? direction, string? number, string? vehicle, string? customer, HttpContext context, DealService deals,
+        CancellationToken cancellationToken) =>
+        RunAsync(cancellationToken, "Deals are temporarily unavailable.", token => deals.ListAsync(ActorId(context),
+            page ?? 1, pageSize ?? Pagination.DefaultPageSize, view, status, sort, direction, number, vehicle, customer,
+            token));
 
+    private static Task<IResult> VehiclesAsync(string? search, HttpContext context, DealService deals,
+        CancellationToken cancellationToken) =>
+        RunAsync(cancellationToken, "Eligible vehicles are temporarily unavailable.",
+            token => deals.VehiclesAsync(ActorId(context), search, token));
+
+    private static Task<IResult> OptionsAsync(Guid dealId, HttpContext context, DealService deals,
+        CancellationToken cancellationToken) =>
+        RunAsync(cancellationToken, "Deal options are temporarily unavailable.",
+            token => deals.OptionsAsync(ActorId(context), dealId, token));
     private static Task<IResult> GetAsync(Guid dealId, HttpContext context, DealService deals,
         CancellationToken cancellationToken) =>
         RunAsync(cancellationToken, "The deal is temporarily unavailable.",
@@ -90,7 +101,7 @@ public static class DealEndpoints
 
     private static IResult Map(DealResult result) => result.Status switch
     {
-        DealStatus.Succeeded => Results.Ok((object?)result.Page ?? result.Deal),
+        DealStatus.Succeeded => Results.Ok(result.Page ?? result.Deal ?? result.Vehicles ?? (object?)result.Options),
         DealStatus.Invalid => Results.Problem(statusCode: 400, title: "Provide valid deal details within the approved limits."),
         DealStatus.Forbidden => Results.Forbid(),
         DealStatus.NotFound => Results.NotFound(),

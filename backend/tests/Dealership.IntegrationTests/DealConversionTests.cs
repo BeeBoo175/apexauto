@@ -32,6 +32,10 @@ public sealed class DealConversionTests(IntakePhotoFixture fixture) : IClassFixt
         var vehicleId = listing.Publication.VehicleId;
         var deals = services.GetRequiredService<DealService>();
         var held = await HoldAsync(data, listing.Publication);
+        var lookup = (await deals.VehiclesAsync(agent, "8800", default)).Vehicles!.Single();
+        Assert.Equal((vehicleId, true, held.Id), (lookup.VehicleId, lookup.HasHold, lookup.ReservationId));
+        Assert.NotNull(lookup.HoldCustomer);
+        Assert.Empty((await deals.VehiclesAsync(agent, "no-such-plate", default)).Vehicles!);
 
         // Another customer's active hold keeps the vehicle out of a deal; the holder's own hold is carried in.
         Assert.Equal(DealStatus.Conflict,
@@ -64,6 +68,12 @@ public sealed class DealConversionTests(IntakePhotoFixture fixture) : IClassFixt
         var withTradeIn = await deals.ReviseAsync(agent, deal.Id, tradeIn with { TradeInAllowance = Math.Min(maximum, 1000m) }, default);
         Assert.Equal((DealStatus.Succeeded, appointment.Id), (withTradeIn.Status, withTradeIn.Deal!.TradeInAppointmentId));
         Assert.True(withTradeIn.Deal.BalancePayable >= 0m);
+
+        var options = (await deals.OptionsAsync(agent, deal.Id, default)).Options!;
+        Assert.Contains(silver.Id, options.Warranties.Select(item => item.Id));
+        Assert.DoesNotContain(retired.Id, options.Warranties.Select(item => item.Id));
+        Assert.Equal(maximum, options.TradeIns.Single(item => item.AppointmentId == appointment.Id).Maximum);
+        Assert.Empty((await deals.VehiclesAsync(agent, "8800", default)).Vehicles!);
 
         var submitted = await deals.TransitionAsync(agent, deal.Id, DealAction.Submit, new(3, null), default);
         Assert.Equal("Approved", submitted.Deal!.Status);
