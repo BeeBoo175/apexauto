@@ -6,6 +6,14 @@
   max-width: 720px;
 }
 
+/* Spacing for drawer bodies that stack their own sections under a summary strip. */
+.stackTop {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding-top: 20px;
+}
+
 .section {
   display: grid;
   gap: 12px;

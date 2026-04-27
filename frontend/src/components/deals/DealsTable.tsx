@@ -16,17 +16,24 @@ import { SearchField } from "@/components/ui/SearchField";
 import { useCsvExport } from "@/hooks/use-csv-export";
 import { useDealsTable, type DealPageData } from "@/hooks/use-deals-table";
 import { useRowSelection } from "@/hooks/use-row-selection";
+import { useStaffSelection } from "@/hooks/use-staff-selection";
+import { privateApiFetch } from "@/lib/api-browser";
 import type { ApiResult } from "@/lib/api";
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import { exportDeals, dealExportColumns } from "@/lib/deals/deal-export";
 import {
+  dealPath,
   dealQuery,
   dealViews,
+  parseDeal,
+  type Deal,
   defaultDealFilters,
   type DealFilters,
   type DealSummary,
   type DealView,
 } from "@/lib/deals/deals";
+import { DealDrawer } from "./DealDrawer";
+import { NewDealDrawer } from "./NewDealDrawer";
 import { dealColumns } from "./deal-columns";
 import { dealTableFilters } from "./deal-filters";
 import layout from "@/components/staff/IntakeWorkspace.module.css";
@@ -40,13 +47,26 @@ export function DealsTable({
   initial,
   filters,
   page,
+  dealId,
+  selected,
 }: {
   actor: CurrentActor;
   initial: ApiResult<DealPageData>;
   filters: DealFilters;
   page: number;
+  dealId: string;
+  selected: ApiResult<Deal> | null;
 }) {
   const state = useDealsTable(initial, filters, page);
+  const drawer = useStaffSelection(dealId, selected, {
+    parameter: "deal",
+    path: dealPath,
+    parse: parseDeal,
+    matches: (value, id) => value.id === id,
+    read: privateApiFetch,
+    commitAfterRead: true,
+  });
+  const [creating, setCreating] = useState(false);
   const animateEntry = useContext(StaffPageEntranceContext);
   const { snapshot, active } = state;
   const { columns, applied } = dealTableFilters(
@@ -163,6 +183,15 @@ export function DealsTable({
                             Reset filters
                           </Button>
                         )}
+                        {actor.role === "SalesAgent" && (
+                          <Button
+                            size="compact"
+                            disabled={state.busy}
+                            onClick={() => setCreating(true)}
+                          >
+                            New deal
+                          </Button>
+                        )}
                         <CsvExportActions
                           selected={selection.selectedRows.length}
                           disabled={state.busy || snapshot.total === 0}
@@ -220,6 +249,8 @@ export function DealsTable({
               }
               busy={state.busy}
               disabled={false}
+              selectedRowId={drawer.id}
+              onRowClick={(row) => void drawer.choose(row.id)}
               emptyState={{
                 title: filtered ? "No deals match your criteria" : "No deals in this view",
                 description: "Use the column filters, or switch view.",
@@ -236,6 +267,22 @@ export function DealsTable({
           )}
         </div>
       </div>
+      <DealDrawer
+        key={`${actorIdentity(actor)}:${drawer.id}`}
+        selection={drawer}
+        actor={actor}
+        onChanged={() => void state.load()}
+      />
+      {creating && (
+        <NewDealDrawer
+          onClose={() => setCreating(false)}
+          onCreated={(id) => {
+            setCreating(false);
+            void state.load();
+            void drawer.choose(id);
+          }}
+        />
+      )}
     </div>
   );
 }
