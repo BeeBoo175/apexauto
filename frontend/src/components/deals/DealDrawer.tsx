@@ -18,43 +18,13 @@ import { formatMalaysianDateTime } from "@/lib/date-format";
 import { dealAbilities, dealEventLabels, validDealReason } from "@/lib/deals/deal-rules";
 import { dealPath, dealStatusLabels, parseDeal, type Deal } from "@/lib/deals/deals";
 import { DealFacts } from "./DealFacts";
+import { DealLines } from "./DealLines";
 import { DealTermsForm } from "./DealTermsForm";
 import workshop from "@/components/inspection/Workshop.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 import forms from "@/components/settings/SettingsForms.module.css";
 
 type Action = "submissions" | "approvals" | "rejections" | "cancellations";
-
-function Lines({ deal }: { deal: Deal }) {
-  const lines: [string, string][] = [
-    ["Vehicle price", formatCurrency(deal.basePrice)],
-    [
-      deal.promoCode ? `Promo ${deal.promoCode}` : "Promo discount",
-      `− ${formatCurrency(deal.promoDiscount)}`,
-    ],
-    ["Negotiated discount", `− ${formatCurrency(deal.negotiatedDiscount)}`],
-    ["Processing fee", formatCurrency(deal.processingFee)],
-    ["Road tax", formatCurrency(deal.roadTax)],
-    [
-      `Service tax (${Number((deal.sstRate * 100).toFixed(2))}% of fee)`,
-      formatCurrency(deal.serviceTax),
-    ],
-    [deal.warrantyName ?? "Warranty", formatCurrency(deal.warrantyPrice)],
-    ["Deposit credit", `− ${formatCurrency(deal.depositCredit)}`],
-    ["Trade-in allowance", `− ${formatCurrency(deal.tradeInAllowance)}`],
-    ["Balance payable", formatCurrency(deal.balancePayable)],
-  ];
-  return (
-    <dl className={workbench.details}>
-      {lines.map(([label, value]) => (
-        <div key={label}>
-          <dt>{label}</dt>
-          <dd>{value}</dd>
-        </div>
-      ))}
-    </dl>
-  );
-}
 
 export function DealDrawer({
   selection,
@@ -173,7 +143,7 @@ export function DealDrawer({
               <div className={forms.stackTop}>
                 <section className={workbench.stack}>
                   <h3>Price</h3>
-                  <Lines deal={latest} />
+                  <DealLines deal={latest} />
                   {latest.discountLimitAtSubmit !== null && (
                     <p className={workbench.help}>
                       Agent discount limit when submitted:{" "}

@@ -12,7 +12,8 @@ import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { hasIntakeAccess, roleNames, type CurrentActor } from "@/lib/auth/actor";
 import { hasInspectionAccess } from "@/lib/inspection/contracts";
 import { hasListingAccess } from "@/lib/vehicles/listings";
-import { hasDealAccess } from "@/lib/deals/deals";
+import { hasDealTableAccess } from "@/lib/deals/deals";
+import { hasSalesAccess } from "@/lib/sales/sales";
 import { hasSettingsAccess } from "@/lib/settings/settings";
 import { hasReservationAccess } from "@/lib/vehicles/reservations";
 import styles from "./StaffFrame.module.css";
@@ -54,6 +55,7 @@ function StaffFrameContent({
     "/dashboard/reservations",
     "/dashboard/settings",
     "/dashboard/deals",
+    "/dashboard/sales",
   ].includes(navigation.pathname);
   const logout = useAuthMutation("logout", "/login");
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -200,7 +202,25 @@ function StaffFrameContent({
                     Reservations
                   </StaffLink>
                 )}
-                {actor && hasDealAccess(actor) && (
+                {actor && hasSalesAccess(actor) && (
+                  <StaffLink
+                    href="/dashboard/sales"
+                    prefetch={false}
+                    prefetchOnIntent={true}
+                    className={
+                      navigation.selectedPath === "/dashboard/sales"
+                        ? styles.activeLink
+                        : styles.navLink
+                    }
+                    aria-current={
+                      navigation.selectedPath === "/dashboard/sales" ? "page" : undefined
+                    }
+                    onNavigate={(event) => navigate(event, "/dashboard/sales")}
+                  >
+                    Sales
+                  </StaffLink>
+                )}
+                {actor && hasDealTableAccess(actor) && (
                   <StaffLink
                     href="/dashboard/deals"
                     prefetch={false}
