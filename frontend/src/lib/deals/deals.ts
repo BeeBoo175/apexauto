@@ -73,6 +73,27 @@ export interface DealEvent {
   recordedAtUtc: string;
 }
 
+// Names and contact the server resolves beside the ids; staff are identified by email.
+export interface DealContext {
+  registration: string;
+  vehicle: string;
+  vin: string;
+  mileageKilometres: number;
+  customer: string;
+  customerMobile: string;
+  customerEmail: string;
+  agent: string;
+  branch: string;
+  tradeIn: string | null;
+  tradeInMinimum: number | null;
+  tradeInMaximum: number | null;
+  warrantyMonths: number | null;
+  warrantyMileageCapKm: number | null;
+  holdCreatedAtUtc: string | null;
+  holdExpiresAtUtc: string | null;
+  staff: Record<string, string>;
+}
+
 export interface Deal {
   id: string;
   orderNumber: string | null;
@@ -103,6 +124,7 @@ export interface Deal {
   createdAtUtc: string;
   updatedAtUtc: string;
   events: DealEvent[];
+  context: DealContext;
 }
 
 export interface EligibleVehicle {
@@ -330,7 +352,37 @@ export function parseDeal(value: unknown): Deal | null {
     return null;
   }
   const events = value.events.map(parseEvent);
-  return events.every((event) => event !== null) ? ({ ...value, events } as unknown as Deal) : null;
+  const context = parseContext(value.context);
+  return events.every((event) => event !== null) && context
+    ? ({ ...value, events, context } as unknown as Deal)
+    : null;
+}
+
+function parseContext(value: unknown): DealContext | null {
+  if (
+    !isRecord(value) ||
+    !text(value.registration) ||
+    !text(value.vehicle) ||
+    !text(value.vin) ||
+    !count(value.mileageKilometres) ||
+    !text(value.customer) ||
+    typeof value.customerMobile !== "string" ||
+    typeof value.customerEmail !== "string" ||
+    typeof value.agent !== "string" ||
+    !text(value.branch) ||
+    !nullableText(value.tradeIn) ||
+    !nullableMyr(value.tradeInMinimum) ||
+    !nullableMyr(value.tradeInMaximum) ||
+    !(value.warrantyMonths === null || positive(value.warrantyMonths)) ||
+    !(value.warrantyMileageCapKm === null || positive(value.warrantyMileageCapKm)) ||
+    !nullableUtc(value.holdCreatedAtUtc) ||
+    !nullableUtc(value.holdExpiresAtUtc) ||
+    !isRecord(value.staff) ||
+    !Object.values(value.staff).every((email) => typeof email === "string")
+  ) {
+    return null;
+  }
+  return value as unknown as DealContext;
 }
 
 export function parseEligibleVehicles(value: unknown): EligibleVehicle[] | null {

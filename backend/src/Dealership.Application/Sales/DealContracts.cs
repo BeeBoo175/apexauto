@@ -27,6 +27,14 @@ public sealed record DealEventView(Guid Id, string Kind, string? FromStatus, str
         item.FromStatus?.ToString(), item.ToStatus.ToString(), item.ActorId, item.Reason, item.RecordedAtUtc);
 }
 
+// Names and contact the drawer needs beside the ids; staff identify people by email.
+public sealed record DealContext(string Registration, string Vehicle, string Vin, int MileageKilometres,
+    string Customer, string CustomerMobile, string CustomerEmail, string Agent, string Branch,
+    string? TradeIn, decimal? TradeInMinimum, decimal? TradeInMaximum,
+    int? WarrantyMonths, int? WarrantyMileageCapKm,
+    DateTimeOffset? HoldCreatedAtUtc, DateTimeOffset? HoldExpiresAtUtc,
+    IReadOnlyDictionary<Guid, string> Staff);
+
 public sealed record DealView(Guid Id, string? OrderNumber, string Status, Guid VehicleId, Guid CustomerId,
     Guid SalesAgentId, Guid BranchId, Guid? ReservationId, string? PromoCode, decimal BasePrice, decimal PromoDiscount,
     decimal NegotiatedDiscount, decimal ProcessingFee, decimal RoadTax, decimal SstRate, decimal ServiceTax,
@@ -35,6 +43,8 @@ public sealed record DealView(Guid Id, string? OrderNumber, string Status, Guid 
     Guid? DecidedById, long Version, DateTimeOffset CreatedAtUtc, DateTimeOffset UpdatedAtUtc,
     IReadOnlyList<DealEventView> Events)
 {
+    public DealContext? Context { get; init; }
+
     public static DealView From(SalesOrder order, IEnumerable<SalesOrderEvent> events) => new(order.Id,
         order.OrderNumber, order.Status.ToString(), order.VehicleId, order.CustomerId, order.SalesAgentId,
         order.BranchId, order.ReservationId, order.PromoCode, order.BasePrice, order.PromoDiscount,

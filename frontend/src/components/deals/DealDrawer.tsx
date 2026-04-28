@@ -17,6 +17,7 @@ import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { dealAbilities, dealEventLabels, validDealReason } from "@/lib/deals/deal-rules";
 import { dealPath, dealStatusLabels, parseDeal, type Deal } from "@/lib/deals/deals";
+import { DealFacts } from "./DealFacts";
 import { DealTermsForm } from "./DealTermsForm";
 import workshop from "@/components/inspection/Workshop.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
@@ -184,6 +185,7 @@ export function DealDrawer({
                     </p>
                   )}
                 </section>
+                <DealFacts deal={latest} />
                 {newer && (
                   <div className={workbench.protocol} role="status">
                     <p>A newer version was loaded. Your edits are kept until you use it.</p>
@@ -242,6 +244,8 @@ export function DealDrawer({
                         <strong>{dealEventLabels[event.kind] ?? event.kind}</strong>{" "}
                         <span className={workbench.help}>
                           {formatMalaysianDateTime(event.recordedAtUtc)}
+                          {latest.context.staff[event.actorId] &&
+                            ` · ${latest.context.staff[event.actorId]}`}
                         </span>
                         {event.reason && <div className={workbench.help}>{event.reason}</div>}
                       </li>

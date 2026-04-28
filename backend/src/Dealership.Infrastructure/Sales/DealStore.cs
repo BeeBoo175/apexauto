@@ -571,7 +571,53 @@ public sealed class DealStore(DealershipDbContext database) : IDealStore
     {
         var events = await database.SalesOrderEvents.AsNoTracking().Where(item => item.SalesOrderId == order.Id)
             .ToListAsync(cancellationToken);
-        return DealView.From(order, events);
+        return DealView.From(order, events) with { Context = await ContextAsync(order, events, cancellationToken) };
+    }
+
+    private async Task<DealContext> ContextAsync(SalesOrder order, IReadOnlyList<SalesOrderEvent> events,
+        CancellationToken cancellationToken)
+    {
+        var vehicle = await database.Vehicles.AsNoTracking().SingleAsync(item => item.Id == order.VehicleId,
+            cancellationToken);
+        var profile = await database.CustomerProfiles.AsNoTracking()
+            .SingleAsync(item => item.UserId == order.CustomerId, cancellationToken);
+        var branch = await database.Branches.AsNoTracking().SingleAsync(item => item.Id == order.BranchId,
+            cancellationToken);
+        var staffIds = events.Select(item => item.ActorId).Append(order.SalesAgentId).ToList();
+        if (order.DecidedById is { } decidedBy)
+        {
+            staffIds.Add(decidedBy);
+        }
+
+        var ids = staffIds.Append(order.CustomerId).Distinct().ToArray();
+        var emails = await database.Users.AsNoTracking().Where(item => ids.Contains(item.Id))
+            .ToDictionaryAsync(item => item.Id, item => item.Email ?? string.Empty, cancellationToken);
+        var staff = staffIds.Distinct().ToDictionary(id => id, id => emails.GetValueOrDefault(id, string.Empty));
+
+        string? tradeIn = null;
+        decimal? tradeInMinimum = null;
+        decimal? tradeInMaximum = null;
+        if (order.TradeInAppointmentId is { } appointmentId)
+        {
+            var appointment = await database.IntakeAppointments.AsNoTracking()
+                .SingleAsync(item => item.Id == appointmentId, cancellationToken);
+            tradeIn = $"{appointment.RegistrationPlate} · {appointment.Valuation.ManufactureYear} " +
+                $"{appointment.Valuation.Make} {appointment.Valuation.Model}";
+            tradeInMinimum = appointment.Valuation.Minimum;
+            tradeInMaximum = appointment.Valuation.Maximum;
+        }
+
+        var warranty = order.WarrantyPackageId is { } packageId
+            ? await database.WarrantyPackages.AsNoTracking().SingleAsync(item => item.Id == packageId, cancellationToken)
+            : null;
+        var hold = order.ReservationId is { } reservationId
+            ? await database.Reservations.AsNoTracking().SingleAsync(item => item.Id == reservationId, cancellationToken)
+            : null;
+        return new DealContext(vehicle.RegistrationPlate,
+            $"{vehicle.ManufactureYear} {vehicle.Make} {vehicle.Model} {vehicle.Trim}".Trim(), vehicle.Vin,
+            vehicle.MileageKilometres, profile.LegalName, profile.Mobile, emails.GetValueOrDefault(order.CustomerId, string.Empty),
+            emails.GetValueOrDefault(order.SalesAgentId, string.Empty), branch.Name, tradeIn, tradeInMinimum,
+            tradeInMaximum, warranty?.DurationMonths, warranty?.MileageCapKm, hold?.CreatedAt, hold?.ExpiresAt, staff);
     }
 
     private Task<PurchaseSettings?> ReadSettingsAsync(CancellationToken cancellationToken) =>
