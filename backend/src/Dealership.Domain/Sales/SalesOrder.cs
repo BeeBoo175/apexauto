@@ -128,6 +128,7 @@ public sealed partial class SalesOrder
         // Price the new terms first so a rejected edit leaves the deal unchanged.
         DealPricing.Calculate(new DealTerms(BasePrice, RoadTax, settings.ProcessingFee, settings.SstRate,
             PromoDiscount, negotiatedDiscount, warranty?.Price ?? 0m, DepositCredit, tradeIn?.Allowance ?? 0m));
+        var changes = Differences(warranty, negotiatedDiscount, tradeIn);
         NegotiatedDiscount = negotiatedDiscount;
         WarrantyPackageId = warranty?.Id;
         WarrantyName = warranty?.Name;
@@ -138,8 +139,32 @@ public sealed partial class SalesOrder
         var from = Status;
         DecidedById = null;
         DiscountLimitAtSubmit = null;
-        return Move(SalesOrderEventKind.Revised, from, SalesOrderStatus.Draft, actorId, null, now);
+        return Move(SalesOrderEventKind.Revised, from, SalesOrderStatus.Draft, actorId, null, now, changes);
     }
+
+    private List<DealChange> Differences(DealWarranty? warranty, decimal negotiatedDiscount, DealTradeIn? tradeIn)
+    {
+        var changes = new List<DealChange>();
+        if (negotiatedDiscount != NegotiatedDiscount)
+        {
+            changes.Add(new(DealChange.NegotiatedDiscount, Amount(NegotiatedDiscount), Amount(negotiatedDiscount)));
+        }
+
+        if (warranty?.Id != WarrantyPackageId)
+        {
+            changes.Add(new(DealChange.Warranty, WarrantyName, warranty?.Name));
+        }
+
+        var allowance = tradeIn?.Allowance ?? 0m;
+        if (allowance != TradeInAllowance)
+        {
+            changes.Add(new(DealChange.TradeInAllowance, Amount(TradeInAllowance), Amount(allowance)));
+        }
+
+        return changes;
+    }
+
+    private static string Amount(decimal value) => value.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
 
     // Captures the effective settings. A negotiated discount within the limit is approved at once.
     public SalesOrderEvent Submit(PurchaseSettings settings, string number, Guid actorId, DateTimeOffset now)
@@ -246,7 +271,7 @@ public sealed partial class SalesOrder
     }
 
     private SalesOrderEvent Move(SalesOrderEventKind kind, SalesOrderStatus from, SalesOrderStatus to, Guid actorId,
-        string? reason, DateTimeOffset now)
+        string? reason, DateTimeOffset now, IReadOnlyList<DealChange>? changes = null)
     {
         if (actorId == Guid.Empty || now.Offset != TimeSpan.Zero || now < UpdatedAtUtc)
         {
@@ -256,7 +281,7 @@ public sealed partial class SalesOrder
         Status = to;
         UpdatedAtUtc = now;
         Version++;
-        return new SalesOrderEvent(Id, Version, kind, from, to, actorId, reason, now);
+        return new SalesOrderEvent(Id, Version, kind, from, to, actorId, reason, now, changes);
     }
 
     [GeneratedRegex(@"^VPO-[0-9]{4}-[0-9]{6}$")]

@@ -20,6 +20,14 @@ public enum SalesOrderEventKind
     Reassigned
 }
 
+// One term that a revision changed, with the values either side as plain invariant text.
+public sealed record DealChange(string Field, string? Before, string? After)
+{
+    public const string NegotiatedDiscount = nameof(NegotiatedDiscount);
+    public const string Warranty = nameof(Warranty);
+    public const string TradeInAllowance = nameof(TradeInAllowance);
+}
+
 // Append-only record of every deal action, including who acted, when and why.
 public sealed class SalesOrderEvent
 {
@@ -30,7 +38,8 @@ public sealed class SalesOrderEvent
     }
 
     internal SalesOrderEvent(Guid salesOrderId, long sequence, SalesOrderEventKind kind, SalesOrderStatus? from,
-        SalesOrderStatus to, Guid actorId, string? reason, DateTimeOffset recordedAtUtc)
+        SalesOrderStatus to, Guid actorId, string? reason, DateTimeOffset recordedAtUtc,
+        IReadOnlyList<DealChange>? changes = null)
     {
         Id = Guid.NewGuid();
         SalesOrderId = salesOrderId;
@@ -41,6 +50,7 @@ public sealed class SalesOrderEvent
         ActorId = actorId;
         Reason = reason;
         RecordedAtUtc = recordedAtUtc;
+        Changes = changes is { Count: > 0 } ? changes : null;
     }
 
     public Guid Id { get; private set; }
@@ -61,4 +71,7 @@ public sealed class SalesOrderEvent
     public string? Reason { get; private set; }
 
     public DateTimeOffset RecordedAtUtc { get; private set; }
+
+    // What a revision changed, so history can say "from X to Y" instead of only "terms changed".
+    public IReadOnlyList<DealChange>? Changes { get; private set; }
 }

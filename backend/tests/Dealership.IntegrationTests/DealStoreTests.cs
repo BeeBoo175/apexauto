@@ -61,6 +61,15 @@ public sealed class DealStoreTests(IntakePhotoFixture fixture) : IClassFixture<I
         Assert.Equal(DealStatus.Invalid, (await deals.ReviseAsync(agent, deal.Id, revise with { NegotiatedDiscount = 999999999m }, default)).Status);
         var revised = await deals.ReviseAsync(agent, deal.Id, revise, default);
         Assert.Equal((DealStatus.Succeeded, 2L, 300m), (revised.Status, revised.Deal!.Version, revised.Deal.NegotiatedDiscount));
+        var recorded = (await deals.DealHistoryAsync(manager, deal.Id, 1, 25, default)).History!;
+        // The deal's receipts use the application clock and the hold's the database clock, so order is not asserted here.
+        Assert.Equal(new[] { "Claimed", "Revised" }, recorded.Items.Select(item => item.Kind).Order());
+        var revision = recorded.Items.Single(item => item.Kind == "Revised");
+        Assert.Equal(("Deal", $"staff.{agent:N}@example.invalid"), (revision.Source, revision.Actor));
+        Assert.Equal(new[] { new DealChange(DealChange.NegotiatedDiscount, "0.00", "300.00") }, revision.Changes);
+        Assert.Empty(recorded.Items.Single(item => item.Kind == "Claimed").Changes);
+        Assert.Equal(DealStatus.NotFound, (await deals.DealHistoryAsync(otherAgent, deal.Id, 1, 25, default)).Status);
+        Assert.Equal(DealStatus.Invalid, (await deals.DealHistoryAsync(manager, deal.Id, 1, 7, default)).Status);
         var stale = await deals.ReviseAsync(agent, deal.Id, revise, default);
         Assert.Equal((DealStatus.Conflict, 2L), (stale.Status, stale.Deal!.Version));
 

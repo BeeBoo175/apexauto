@@ -146,6 +146,19 @@ public sealed class DealService(IDealStore store, TimeProvider clock)
         return store.ListAsync(actorId, query, cancellationToken);
     }
 
+    public Task<DealResult> DealHistoryAsync(Guid actorId, Guid dealId, int page, int pageSize,
+        CancellationToken cancellationToken) => HistoryAsync(actorId, dealId, true, page, pageSize, cancellationToken);
+
+    public Task<DealResult> ReservationHistoryAsync(Guid actorId, Guid reservationId, int page, int pageSize,
+        CancellationToken cancellationToken) =>
+        HistoryAsync(actorId, reservationId, false, page, pageSize, cancellationToken);
+
+    private Task<DealResult> HistoryAsync(Guid actorId, Guid id, bool ofDeal, int page, int pageSize,
+        CancellationToken cancellationToken) =>
+        actorId == Guid.Empty ? Rejected(DealStatus.Forbidden)
+            : id == Guid.Empty || !Pagination.IsValid(page, pageSize) ? Rejected(DealStatus.Invalid)
+            : store.HistoryAsync(actorId, id, ofDeal, page, pageSize, cancellationToken);
+
     public Task<DealResult> OptionsAsync(Guid actorId, Guid dealId, CancellationToken cancellationToken) =>
         actorId == Guid.Empty ? Rejected(DealStatus.Forbidden)
             : dealId == Guid.Empty ? Rejected(DealStatus.Invalid)

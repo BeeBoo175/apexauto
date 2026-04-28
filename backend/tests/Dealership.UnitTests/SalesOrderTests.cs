@@ -151,6 +151,25 @@ public sealed class SalesOrderTests
     }
 
     [Fact]
+    public void RevisionsRecordOnlyTheTermsThatChangedWithTheirBeforeAndAfterValues()
+    {
+        var order = Draft();
+        var warranty = new DealWarranty(Guid.NewGuid(), "Silver", 1200m);
+
+        var first = order.Revise(warranty, 300m, null, Settings(), Agent, Start.AddMinutes(1));
+        var second = order.Revise(warranty, 300m, new DealTradeIn(Guid.NewGuid(), 5000m), Settings(), Agent, Start.AddMinutes(2));
+        var unchanged = order.Revise(warranty, 300m, new DealTradeIn(Guid.NewGuid(), 5000m), Settings(), Agent, Start.AddMinutes(3));
+
+        Assert.Equal(new[]
+        {
+            new DealChange(DealChange.NegotiatedDiscount, "0.00", "300.00"),
+            new DealChange(DealChange.Warranty, null, "Silver")
+        }, first.Changes);
+        Assert.Equal(new[] { new DealChange(DealChange.TradeInAllowance, "0.00", "5000.00") }, second.Changes);
+        Assert.Null(unchanged.Changes);
+    }
+
+    [Fact]
     public void ReassignmentMovesTheDealToAnotherAgentWithoutChangingItsStatus()
     {
         var order = Draft();

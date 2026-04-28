@@ -95,7 +95,8 @@ public sealed class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrde
                 "(\"FromStatus\" IS NULL OR \"FromStatus\" IN ('Draft', 'PendingManagerApproval', 'Approved', 'Cancelled')) AND " +
                 "((\"Kind\" IN ('Rejected', 'Cancelled') AND \"Reason\" IS NOT NULL AND \"Reason\" = btrim(\"Reason\") AND " +
                 "length(\"Reason\") BETWEEN 1 AND 1000 AND \"Reason\" !~ '[[:cntrl:]]') OR " +
-                "(\"Kind\" NOT IN ('Rejected', 'Cancelled') AND \"Reason\" IS NULL))");
+                "(\"Kind\" NOT IN ('Rejected', 'Cancelled') AND \"Reason\" IS NULL)) AND " +
+                "(\"Changes\" IS NULL OR (\"Kind\" = 'Revised' AND jsonb_typeof(\"Changes\") = 'array'))");
         });
         builder.HasKey(item => item.Id);
         builder.Property(item => item.Id).ValueGeneratedNever();
@@ -104,6 +105,11 @@ public sealed class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrde
         builder.Property(item => item.FromStatus).HasConversion<string>().HasMaxLength(32);
         builder.Property(item => item.ToStatus).HasConversion<string>().HasMaxLength(32);
         builder.Property(item => item.Reason).HasMaxLength(SalesOrderEvent.ReasonMaximumLength);
+        builder.Property(item => item.Changes).HasColumnType("jsonb").HasConversion(
+            changes => changes == null ? null : System.Text.Json.JsonSerializer.Serialize(changes, (System.Text.Json.JsonSerializerOptions?)null),
+            json => json == null ? null : System.Text.Json.JsonSerializer.Deserialize<List<DealChange>>(json, (System.Text.Json.JsonSerializerOptions?)null),
+            new Microsoft.EntityFrameworkCore.ChangeTracking.ValueComparer<IReadOnlyList<DealChange>?>(
+                (left, right) => ReferenceEquals(left, right), value => value == null ? 0 : value.Count, value => value));
         builder.HasOne<SalesOrder>().WithMany().HasForeignKey(item => item.SalesOrderId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<AccountUser>().WithMany().HasForeignKey(item => item.ActorId).OnDelete(DeleteBehavior.Restrict);
     }

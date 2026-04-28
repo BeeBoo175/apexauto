@@ -110,6 +110,26 @@ public sealed class ReservationClaimTests(IntakePhotoFixture fixture) : IClassFi
         Assert.Equal((ReservationReleaseKind.DealCancelled, agent, 500m), (refund.Kind, refund.ActorId, refund.Refund));
         Assert.False((await after.Reservations.AsNoTracking().SingleAsync(item => item.Id == held.Id)).IsActive);
         Assert.Equal(DealStatus.Conflict, (await deals.ClaimAsync(agent, held.Id, new(Guid.NewGuid()), default)).Status);
+
+        // One history serves the hold and its deal: every receipt, newest first, with who acted and for whom.
+        var history = (await deals.ReservationHistoryAsync(manager, held.Id, 1, 10, default)).History!;
+        Assert.Equal(7, history.Total);
+        Assert.Equal(new[] { "Claimed", "Reassigned", "Released", "Assigned", "DealCancelled" }.Order(),
+            history.Items.Where(item => item.Source != "Deal").Select(item => item.Kind).Order());
+        Assert.Equal(new[] { "Cancelled", "Cancelled" }, history.Items.Where(item => item.Source == "Deal").Select(item => item.Kind));
+        Assert.Equal(history.Items.OrderByDescending(item => item.RecordedAtUtc).Select(item => item.Id),
+            history.Items.Select(item => item.Id));
+        var reassigned = history.Items.Single(item => item.Kind == "Reassigned");
+        Assert.Equal(("Hold", $"staff.{colleague:N}@example.invalid", $"staff.{agent:N}@example.invalid"),
+            (reassigned.Source, reassigned.Agent, reassigned.PreviousAgent));
+        Assert.Contains(history.Items, item => item.Reason == "Claim released");
+        Assert.All(history.Items, item => Assert.NotEqual(Guid.Empty, item.Id));
+        Assert.Empty((await deals.ReservationHistoryAsync(manager, held.Id, 2, 10, default)).History!.Items);
+        Assert.Equal(history.Total, (await deals.DealHistoryAsync(agent, assigned.Deal.Id, 1, 50, default)).History!.Total);
+        Assert.Equal(DealStatus.Succeeded, (await deals.ReservationHistoryAsync(colleague, held.Id, 1, 25, default)).Status);
+        Assert.Equal(DealStatus.NotFound, (await deals.ReservationHistoryAsync(otherBranchAgent, held.Id, 1, 25, default)).Status);
+        Assert.Equal(DealStatus.Forbidden, (await deals.ReservationHistoryAsync(technician, held.Id, 1, 25, default)).Status);
+        Assert.Equal(DealStatus.Invalid, (await deals.ReservationHistoryAsync(manager, held.Id, 0, 25, default)).Status);
     }
 
     private async Task<Guid> AnotherBranchAsync(DealershipDbContext database)

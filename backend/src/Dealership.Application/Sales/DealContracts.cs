@@ -91,8 +91,15 @@ public sealed record TradeInOption(Guid AppointmentId, string Label, decimal Min
 public sealed record DealOptions(IReadOnlyList<WarrantyOption> Warranties, IReadOnlyList<TradeInOption> TradeIns);
 
 // Conflict carries the current deal when it is known so a stale editor can reload.
+// One retained receipt in a hold's or deal's history; staff are identified by email and the system by no actor.
+public sealed record HoldHistoryItem(Guid Id, string Source, string Kind, DateTimeOffset RecordedAtUtc, Guid? ActorId,
+    string Actor, string? Agent, string? PreviousAgent, string? Reason, string? FromStatus, string? ToStatus,
+    IReadOnlyList<DealChange> Changes);
+
+public sealed record HoldHistoryPage(IReadOnlyList<HoldHistoryItem> Items, int Total, int Page, int PageSize);
+
 public sealed record DealResult(DealStatus Status, DealView? Deal = null, DealPage? Page = null,
-    DealOptions? Options = null);
+    DealOptions? Options = null, HoldHistoryPage? History = null);
 
 public sealed record DealListQuery(int Page, int PageSize, string View, string? Status, string? Sort, bool Descending,
     string? Number, string? Vehicle, string? Customer, string? Search)
@@ -146,6 +153,10 @@ public interface IDealStore
     Task<DealResult> ListAsync(Guid actorId, DealListQuery query, CancellationToken cancellationToken);
 
     Task<DealResult> OptionsAsync(Guid actorId, Guid dealId, CancellationToken cancellationToken);
+
+    // One history for a hold and the deal built on it, read from either side.
+    Task<DealResult> HistoryAsync(Guid actorId, Guid id, bool ofDeal, int page, int pageSize,
+        CancellationToken cancellationToken);
 }
 
 public enum DealAction

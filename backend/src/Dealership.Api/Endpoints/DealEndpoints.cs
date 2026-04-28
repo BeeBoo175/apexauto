@@ -17,6 +17,7 @@ public static class DealEndpoints
         routes.MapGet("", ListAsync);
         routes.MapGet("/{dealId:guid}", GetAsync);
         routes.MapGet("/{dealId:guid}/options", OptionsAsync);
+        routes.MapGet("/{dealId:guid}/history", DealHistoryAsync);
         routes.MapPut("/{dealId:guid}", ReviseAsync);
         routes.MapPost("/{dealId:guid}/submissions", (Guid dealId, HttpContext context, DealService deals,
             CancellationToken token) => TransitionAsync(dealId, DealAction.Submit, context, deals, token));
@@ -37,6 +38,7 @@ public static class DealEndpoints
         holds.MapPost("/claims", ClaimAsync);
         holds.MapPost("/assignments", AssignAsync);
         holds.MapPost("/releases", ReleaseAsync);
+        holds.MapGet("/history", ReservationHistoryAsync);
     }
 
     internal sealed record DealListParameters(int? Page, int? PageSize, string? View, string? Status, string? Sort,
@@ -62,6 +64,18 @@ public static class DealEndpoints
         CancellationToken cancellationToken) =>
         RunAsync(cancellationToken, "The deal is temporarily unavailable.",
             token => deals.GetAsync(ActorId(context), dealId, token));
+
+    internal sealed record HistoryParameters(int? Page, int? PageSize);
+
+    private static Task<IResult> DealHistoryAsync(Guid dealId, [AsParameters] HistoryParameters query, HttpContext context,
+        DealService deals, CancellationToken cancellationToken) =>
+        RunAsync(cancellationToken, "The history is temporarily unavailable.", token => deals.DealHistoryAsync(
+            ActorId(context), dealId, query.Page ?? 1, query.PageSize ?? Pagination.DefaultPageSize, token));
+
+    private static Task<IResult> ReservationHistoryAsync(Guid reservationId, [AsParameters] HistoryParameters query,
+        HttpContext context, DealService deals, CancellationToken cancellationToken) =>
+        RunAsync(cancellationToken, "The history is temporarily unavailable.", token => deals.ReservationHistoryAsync(
+            ActorId(context), reservationId, query.Page ?? 1, query.PageSize ?? Pagination.DefaultPageSize, token));
 
     private static Task<IResult> ClaimAsync(Guid reservationId, HttpContext context, DealService deals,
         CancellationToken cancellationToken) =>
@@ -124,7 +138,7 @@ public static class DealEndpoints
 
     private static IResult Map(DealResult result) => result.Status switch
     {
-        DealStatus.Succeeded => Results.Ok(result.Page ?? result.Deal ?? (object?)result.Options),
+        DealStatus.Succeeded => Results.Ok(result.Page ?? result.Deal ?? result.History ?? (object?)result.Options),
         DealStatus.Invalid => Results.Problem(statusCode: 400, title: "Provide valid deal details within the approved limits."),
         DealStatus.Forbidden => Results.Forbid(),
         DealStatus.NotFound => Results.NotFound(),
