@@ -15,7 +15,6 @@ public static class DealEndpoints
             return await next(context);
         });
         routes.MapGet("", ListAsync);
-        routes.MapGet("/vehicles", VehiclesAsync);
         routes.MapGet("/{dealId:guid}", GetAsync);
         routes.MapGet("/{dealId:guid}/options", OptionsAsync);
         routes.MapPost("", CreateAsync);
@@ -44,11 +43,6 @@ public static class DealEndpoints
             new DealColumnFilters(query.Agent, query.Branch, query.NextStep, query.MinimumBalance,
                 query.MaximumBalance, query.MinimumDiscount, query.MaximumDiscount, query.SubmittedFrom,
                 query.SubmittedTo, query.UpdatedFrom, query.UpdatedTo, query.Registration), token));
-
-    private static Task<IResult> VehiclesAsync(string? search, HttpContext context, DealService deals,
-        CancellationToken cancellationToken) =>
-        RunAsync(cancellationToken, "Eligible vehicles are temporarily unavailable.",
-            token => deals.VehiclesAsync(ActorId(context), search, token));
 
     private static Task<IResult> OptionsAsync(Guid dealId, HttpContext context, DealService deals,
         CancellationToken cancellationToken) =>
@@ -109,7 +103,7 @@ public static class DealEndpoints
 
     private static IResult Map(DealResult result) => result.Status switch
     {
-        DealStatus.Succeeded => Results.Ok(result.Page ?? result.Deal ?? result.Vehicles ?? (object?)result.Options),
+        DealStatus.Succeeded => Results.Ok(result.Page ?? result.Deal ?? (object?)result.Options),
         DealStatus.Invalid => Results.Problem(statusCode: 400, title: "Provide valid deal details within the approved limits."),
         DealStatus.Forbidden => Results.Forbid(),
         DealStatus.NotFound => Results.NotFound(),

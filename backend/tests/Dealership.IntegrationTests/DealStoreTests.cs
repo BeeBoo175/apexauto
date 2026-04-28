@@ -30,33 +30,31 @@ public sealed class DealStoreTests(IntakePhotoFixture fixture) : IClassFixture<I
         database.PurchaseSettings.Add(new(500m, 0.08m, manager, DateTimeOffset.UtcNow));
         await database.SaveChangesAsync();
         var customer = await RegisterCustomerAsync(services, database);
-        var email = (await database.Users.AsNoTracking().SingleAsync(item => item.Id == customer)).Email!;
         var vehicleId = listing.Publication.VehicleId;
         var deals = services.GetRequiredService<DealService>();
-        var walkIn = new DealCreateRequest(Guid.NewGuid(), vehicleId, null, $"  {email}  ");
+        var held = await HoldAsync(data, customer, listing.Publication);
+        var request = new DealCreateRequest(Guid.NewGuid(), vehicleId, held.Id);
 
         foreach (var actor in new[] { manager, technician, generalManager, customer, Guid.NewGuid() })
         {
-            Assert.Equal(DealStatus.Forbidden, (await deals.CreateAsync(actor, walkIn, default)).Status);
+            Assert.Equal(DealStatus.Forbidden, (await deals.CreateAsync(actor, request, default)).Status);
         }
 
-        Assert.Equal(DealStatus.Invalid, (await deals.CreateAsync(agent, walkIn with { CustomerEmail = null }, default)).Status);
-        Assert.Equal(DealStatus.Invalid,
-            (await deals.CreateAsync(agent, walkIn with { ReservationId = Guid.NewGuid() }, default)).Status);
-        Assert.Equal(DealStatus.NotFound,
-            (await deals.CreateAsync(agent, walkIn with { CustomerEmail = "nobody@example.invalid" }, default)).Status);
-        Assert.Equal(DealStatus.NotFound, (await deals.CreateAsync(agent, walkIn with { VehicleId = Guid.NewGuid() }, default)).Status);
+        Assert.Equal(DealStatus.Invalid, (await deals.CreateAsync(agent, request with { ReservationId = Guid.Empty }, default)).Status);
+        Assert.Equal(DealStatus.Conflict,
+            (await deals.CreateAsync(agent, request with { ReservationId = Guid.NewGuid() }, default)).Status);
+        Assert.Equal(DealStatus.NotFound, (await deals.CreateAsync(agent, request with { VehicleId = Guid.NewGuid() }, default)).Status);
 
-        var created = await deals.CreateAsync(agent, walkIn, default);
+        var created = await deals.CreateAsync(agent, request, default);
         Assert.Equal(DealStatus.Succeeded, created.Status);
         var deal = created.Deal!;
         Assert.Equal(("Draft", customer, agent, 1L, null), (deal.Status, deal.CustomerId, deal.SalesAgentId, deal.Version,
             deal.OrderNumber));
         Assert.Equal(new[] { "Created" }, deal.Events.Select(item => item.Kind));
-        Assert.Equal(deal.Id, (await deals.CreateAsync(agent, walkIn, default)).Deal!.Id);
-        Assert.Equal(DealStatus.Conflict, (await deals.CreateAsync(otherAgent, walkIn, default)).Status);
+        Assert.Equal(deal.Id, (await deals.CreateAsync(agent, request, default)).Deal!.Id);
+        Assert.Equal(DealStatus.Conflict, (await deals.CreateAsync(otherAgent, request, default)).Status);
         Assert.Equal(DealStatus.Conflict,
-            (await deals.CreateAsync(agent, walkIn with { Id = Guid.NewGuid() }, default)).Status);
+            (await deals.CreateAsync(agent, request with { Id = Guid.NewGuid() }, default)).Status);
 
         var revise = new DealReviseRequest(1, null, 300m, null, 0m);
         Assert.Equal(DealStatus.NotFound, (await deals.ReviseAsync(otherAgent, deal.Id, revise, default)).Status);
@@ -99,7 +97,7 @@ public sealed class DealStoreTests(IntakePhotoFixture fixture) : IClassFixture<I
         Assert.Equal(DealStatus.Conflict, (await deals.TransitionAsync(agent, deal.Id, DealAction.Cancel, new(9, "Again"), default)).Status);
 
         // Cancelling frees the vehicle for a new deal, which receives the next number once submitted.
-        var next = await deals.CreateAsync(otherAgent, new(Guid.NewGuid(), vehicleId, null, email), default);
+        var next = await deals.CreateAsync(otherAgent, new(Guid.NewGuid(), vehicleId, held.Id), default);
         Assert.Equal(DealStatus.Succeeded, next.Status);
         var nextSubmitted = await deals.TransitionAsync(otherAgent, next.Deal!.Id, DealAction.Submit, new(1, null), default);
         Assert.Equal($"VPO-{year}-000002", nextSubmitted.Deal!.OrderNumber);
@@ -162,8 +160,6 @@ public sealed class DealStoreTests(IntakePhotoFixture fixture) : IClassFixture<I
         Assert.Equal(DealStatus.Invalid, (await ListAsync(deals, manager, sort: "bogus")).Status);
         Assert.Equal(DealStatus.Invalid, (await ListAsync(deals, manager, direction: "desc")).Status);
         Assert.Equal(DealStatus.Invalid, (await ListAsync(deals, manager, size: 7)).Status);
-        Assert.Empty((await deals.VehiclesAsync(agent, null, default)).Vehicles!);
-        Assert.Equal(DealStatus.Forbidden, (await deals.VehiclesAsync(manager, null, default)).Status);
         Assert.Equal(DealStatus.Forbidden, (await deals.OptionsAsync(technician, deal.Id, default)).Status);
         Assert.Equal(DealStatus.NotFound, (await deals.OptionsAsync(agent, next.Deal.Id, default)).Status);
         Assert.Equal(DealStatus.NotFound, (await deals.GetAsync(agent, next.Deal.Id, default)).Status);
@@ -182,10 +178,10 @@ public sealed class DealStoreTests(IntakePhotoFixture fixture) : IClassFixture<I
         deals.ListAsync(actor, page, size, view, status, sort, direction, number, vehicle, customer, search,
             columns ?? new DealColumnFilters(null, null, null, null, null, null, null, null, null, null, null), default);
 
-    private static async Task<Reservation> HoldAsync(CheckInTestData data, ListingPublication publication)
+    private static async Task<Reservation> HoldAsync(CheckInTestData data, Guid customerId, ListingPublication publication)
     {
         using var scope = data.Factory.Services.CreateScope();
-        var result = await scope.ServiceProvider.GetRequiredService<ReservationService>().ReserveAsync(data.OwnerId,
+        var result = await scope.ServiceProvider.GetRequiredService<ReservationService>().ReserveAsync(customerId,
             publication.VehicleId, new(Guid.NewGuid(), publication.Id, null), CancellationToken.None);
         Assert.Equal(ReservationStatus.Succeeded, result.Status);
         return result.Reservation!;

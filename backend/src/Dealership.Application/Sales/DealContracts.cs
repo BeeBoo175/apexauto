@@ -3,7 +3,7 @@ using Dealership.Domain.Sales;
 
 namespace Dealership.Application.Sales;
 
-public sealed record DealCreateRequest(Guid Id, Guid VehicleId, Guid? ReservationId, string? CustomerEmail);
+public sealed record DealCreateRequest(Guid Id, Guid VehicleId, Guid ReservationId);
 
 public sealed record DealReviseRequest(long ExpectedVersion, Guid? WarrantyPackageId, decimal NegotiatedDiscount,
     Guid? TradeInAppointmentId, decimal TradeInAllowance);
@@ -77,9 +77,6 @@ public sealed record DealCounts(int Active, int NeedsApproval, int History);
 
 public sealed record DealPage(IReadOnlyList<DealSummary> Items, int Total, int Page, int PageSize, DealCounts Counts);
 
-public sealed record EligibleVehicle(Guid VehicleId, string Registration, string Label, decimal Price, bool HasHold,
-    Guid? ReservationId, string? HoldCustomer);
-
 public sealed record WarrantyOption(Guid Id, string Name, int DurationMonths, int MileageCapKm, decimal Price,
     string MinimumGrade);
 
@@ -89,7 +86,7 @@ public sealed record DealOptions(IReadOnlyList<WarrantyOption> Warranties, IRead
 
 // Conflict carries the current deal when it is known so a stale editor can reload.
 public sealed record DealResult(DealStatus Status, DealView? Deal = null, DealPage? Page = null,
-    IReadOnlyList<EligibleVehicle>? Vehicles = null, DealOptions? Options = null);
+    DealOptions? Options = null);
 
 public sealed record DealListQuery(int Page, int PageSize, string View, string? Status, string? Sort, bool Descending,
     string? Number, string? Vehicle, string? Customer, string? Search)
@@ -135,8 +132,6 @@ public interface IDealStore
     Task<DealResult> GetAsync(Guid actorId, Guid dealId, CancellationToken cancellationToken);
 
     Task<DealResult> ListAsync(Guid actorId, DealListQuery query, CancellationToken cancellationToken);
-
-    Task<DealResult> VehiclesAsync(Guid actorId, string? search, DateTimeOffset now, CancellationToken cancellationToken);
 
     Task<DealResult> OptionsAsync(Guid actorId, Guid dealId, CancellationToken cancellationToken);
 }

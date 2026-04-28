@@ -131,16 +131,6 @@ export interface Deal {
   context: DealContext;
 }
 
-export interface EligibleVehicle {
-  vehicleId: string;
-  registration: string;
-  label: string;
-  price: number;
-  hasHold: boolean;
-  reservationId: string | null;
-  holdCustomer: string | null;
-}
-
 export interface WarrantyOption {
   id: string;
   name: string;
@@ -393,25 +383,6 @@ function parseContext(value: unknown): DealContext | null {
     return null;
   }
   return value as unknown as DealContext;
-}
-
-export function parseEligibleVehicles(value: unknown): EligibleVehicle[] | null {
-  if (!Array.isArray(value)) {
-    return null;
-  }
-  const vehicles = value.map((item) =>
-    isRecord(item) &&
-    isUuid(item.vehicleId) &&
-    text(item.registration) &&
-    text(item.label) &&
-    isMyr(item.price) &&
-    typeof item.hasHold === "boolean" &&
-    nullableId(item.reservationId) &&
-    nullableText(item.holdCustomer)
-      ? (item as unknown as EligibleVehicle)
-      : null,
-  );
-  return vehicles.every((item) => item !== null) ? (vehicles as EligibleVehicle[]) : null;
 }
 
 export function parseDealOptions(value: unknown): DealOptions | null {

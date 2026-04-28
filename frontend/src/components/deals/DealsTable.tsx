@@ -33,7 +33,6 @@ import {
   type DealView,
 } from "@/lib/deals/deals";
 import { DealDrawer } from "./DealDrawer";
-import { NewDealDrawer } from "./NewDealDrawer";
 import { dealColumns } from "./deal-columns";
 import { dealTableFilters } from "./deal-filters";
 import layout from "@/components/staff/IntakeWorkspace.module.css";
@@ -66,7 +65,6 @@ export function DealsTable({
     read: privateApiFetch,
     commitAfterRead: true,
   });
-  const [creating, setCreating] = useState(false);
   const animateEntry = useContext(StaffPageEntranceContext);
   const { snapshot, active } = state;
   const { columns, applied } = dealTableFilters(
@@ -181,15 +179,6 @@ export function DealsTable({
                             Reset filters
                           </Button>
                         )}
-                        {actor.role === "SalesAgent" && (
-                          <Button
-                            size="compact"
-                            disabled={state.busy}
-                            onClick={() => setCreating(true)}
-                          >
-                            New deal
-                          </Button>
-                        )}
                         <CsvExportActions
                           selected={selection.selectedRows.length}
                           disabled={state.busy || snapshot.total === 0}
@@ -271,16 +260,6 @@ export function DealsTable({
         actor={actor}
         onChanged={() => void state.load()}
       />
-      {creating && (
-        <NewDealDrawer
-          onClose={() => setCreating(false)}
-          onCreated={(id) => {
-            setCreating(false);
-            void state.load();
-            void drawer.choose(id);
-          }}
-        />
-      )}
     </div>
   );
 }

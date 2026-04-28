@@ -27,22 +27,14 @@ public sealed class DealConversionTests(IntakePhotoFixture fixture) : IClassFixt
         await using var database = NewContext();
         database.PurchaseSettings.Add(new(500m, 0.08m, manager, DateTimeOffset.UtcNow));
         await database.SaveChangesAsync();
-        var other = await RegisterCustomerAsync(services, database);
-        var otherEmail = (await database.Users.AsNoTracking().SingleAsync(item => item.Id == other)).Email!;
         var vehicleId = listing.Publication.VehicleId;
         var deals = services.GetRequiredService<DealService>();
         var held = await HoldAsync(data, listing.Publication);
-        var lookup = (await deals.VehiclesAsync(agent, "8800", default)).Vehicles!.Single();
-        Assert.Equal((vehicleId, true, held.Id), (lookup.VehicleId, lookup.HasHold, lookup.ReservationId));
-        Assert.NotNull(lookup.HoldCustomer);
-        Assert.Empty((await deals.VehiclesAsync(agent, "no-such-plate", default)).Vehicles!);
 
-        // Another customer's active hold keeps the vehicle out of a deal; the holder's own hold is carried in.
+        // Only the vehicle's active hold can start a deal, and the holder's terms are carried in.
         Assert.Equal(DealStatus.Conflict,
-            (await deals.CreateAsync(agent, new(Guid.NewGuid(), vehicleId, null, otherEmail), default)).Status);
-        Assert.Equal(DealStatus.Conflict,
-            (await deals.CreateAsync(agent, new(Guid.NewGuid(), vehicleId, Guid.NewGuid(), null), default)).Status);
-        var created = await deals.CreateAsync(agent, new(Guid.NewGuid(), vehicleId, held.Id, null), default);
+            (await deals.CreateAsync(agent, new(Guid.NewGuid(), vehicleId, Guid.NewGuid()), default)).Status);
+        var created = await deals.CreateAsync(agent, new(Guid.NewGuid(), vehicleId, held.Id), default);
         Assert.Equal(DealStatus.Succeeded, created.Status);
         var deal = created.Deal!;
         Assert.Equal((data.OwnerId, held.Id, 500m), (deal.CustomerId, deal.ReservationId, deal.DepositCredit));
@@ -73,7 +65,6 @@ public sealed class DealConversionTests(IntakePhotoFixture fixture) : IClassFixt
         Assert.Contains(silver.Id, options.Warranties.Select(item => item.Id));
         Assert.DoesNotContain(retired.Id, options.Warranties.Select(item => item.Id));
         Assert.Equal(maximum, options.TradeIns.Single(item => item.AppointmentId == appointment.Id).Maximum);
-        Assert.Empty((await deals.VehiclesAsync(agent, "8800", default)).Vehicles!);
 
         var submitted = await deals.TransitionAsync(agent, deal.Id, DealAction.Submit, new(3, null), default);
         Assert.Equal("Approved", submitted.Deal!.Status);

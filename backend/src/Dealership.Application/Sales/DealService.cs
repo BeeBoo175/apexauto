@@ -15,18 +15,12 @@ public sealed class DealService(IDealStore store, TimeProvider clock)
             return Rejected(DealStatus.Forbidden);
         }
 
-        var email = request.CustomerEmail?.Trim();
-        var byEmail = !string.IsNullOrEmpty(email);
-        var byReservation = request.ReservationId is not null;
-        // The customer comes from exactly one source: the reservation or an exact account email.
-        if (request.Id == Guid.Empty || request.VehicleId == Guid.Empty || request.ReservationId == Guid.Empty ||
-            byEmail == byReservation || byEmail && (email!.Length > 256 || email.Any(char.IsControl)))
+        if (request.Id == Guid.Empty || request.VehicleId == Guid.Empty || request.ReservationId == Guid.Empty)
         {
             return Rejected(DealStatus.Invalid);
         }
 
-        return store.CreateAsync(actorId, request with { CustomerEmail = byEmail ? email : null }, clock.GetUtcNow(),
-            cancellationToken);
+        return store.CreateAsync(actorId, request, clock.GetUtcNow(), cancellationToken);
     }
 
     public Task<DealResult> ReviseAsync(Guid actorId, Guid dealId, DealReviseRequest request,
@@ -127,18 +121,6 @@ public sealed class DealService(IDealStore store, TimeProvider clock)
             Updated = updated.From is null ? null : updated
         };
         return store.ListAsync(actorId, query, cancellationToken);
-    }
-
-    public Task<DealResult> VehiclesAsync(Guid actorId, string? search, CancellationToken cancellationToken)
-    {
-        var term = search?.Trim();
-        if (actorId == Guid.Empty)
-        {
-            return Rejected(DealStatus.Forbidden);
-        }
-
-        return term is { Length: > 160 } || term?.Any(char.IsControl) == true ? Rejected(DealStatus.Invalid)
-            : store.VehiclesAsync(actorId, string.IsNullOrEmpty(term) ? null : term, clock.GetUtcNow(), cancellationToken);
     }
 
     public Task<DealResult> OptionsAsync(Guid actorId, Guid dealId, CancellationToken cancellationToken) =>

@@ -73,7 +73,7 @@ export async function relayDealRead<T>(
   keys: string[] = [],
 ) {
   try {
-    if (resource && !/^(?:\/vehicles|\/[0-9a-f-]{36}(?:\/options)?)$/i.test(resource)) {
+    if (resource && !/^\/[0-9a-f-]{36}(?:\/options)?$/i.test(resource)) {
       throw new HttpError(400, "Choose a valid deal resource.");
     }
     const signal = AbortSignal.any([request.signal, AbortSignal.timeout(25_000)]);
@@ -143,27 +143,6 @@ export async function relayDealWrite<T>(
 const version = (value: unknown): value is number =>
   Number.isSafeInteger(value) && Number(value) > 0;
 const nullableId = (value: unknown): value is string | null => value === null || isUuid(value);
-
-export function shapeDealCreate(body: Body) {
-  const email = typeof body.customerEmail === "string" ? body.customerEmail.trim() : null;
-  const reservation = body.reservationId ?? null;
-  // The customer comes from exactly one source: the reservation or an exact account email.
-  if (
-    !isUuid(body.id) ||
-    !isUuid(body.vehicleId) ||
-    !nullableId(reservation) ||
-    Boolean(email) === (reservation !== null) ||
-    (email !== null && (email.length === 0 || email.length > 256))
-  ) {
-    return null;
-  }
-  return {
-    id: body.id,
-    vehicleId: body.vehicleId,
-    reservationId: reservation,
-    customerEmail: email,
-  };
-}
 
 export function shapeDealRevise(body: Body) {
   const warranty = body.warrantyPackageId ?? null;

@@ -59,22 +59,16 @@ public sealed class DealStore(DealershipDbContext database) : IDealStore
 
         var hold = await database.Reservations.AsNoTracking()
             .SingleOrDefaultAsync(item => item.VehicleId == request.VehicleId && item.IsActive, cancellationToken);
-        var customerId = await ResolveCustomerAsync(request, hold, cancellationToken);
-        if (customerId is null || request.ReservationId is not null && hold?.Id != request.ReservationId)
-        {
-            return new(request.ReservationId is null ? DealStatus.NotFound : DealStatus.Conflict);
-        }
-
-        // Another customer's hold keeps the vehicle out of any deal; the holder's own hold is carried in.
-        if (hold is not null && hold.CustomerId != customerId)
+        // The deal is the holder's: the customer, promo and deposit are carried in from the active hold.
+        if (hold is null || hold.Id != request.ReservationId)
         {
             return new(DealStatus.Conflict);
         }
 
-        var order = SalesOrder.CreateDraft(request.Id, request.VehicleId, customerId.Value, actorId, actor.BranchId.Value,
+        var order = SalesOrder.CreateDraft(request.Id, request.VehicleId, hold.CustomerId, actorId, actor.BranchId.Value,
             listing.Revision.VehiclePrice, listing.Revision.RoadTax, settings,
-            hold is null ? null : new DealReservation(hold.Id, hold.PromoId, hold.PromoCode, hold.Price.PromoDiscount,
-                hold.Deposit), now, out var created);
+            new DealReservation(hold.Id, hold.PromoId, hold.PromoCode, hold.Price.PromoDiscount, hold.Deposit), now,
+            out var created);
         database.SalesOrders.Add(order);
         database.SalesOrderEvents.Add(created);
         return await SaveAsync(order, transaction, cancellationToken);
@@ -211,50 +205,6 @@ public sealed class DealStore(DealershipDbContext database) : IDealStore
             row.BranchId, row.Branch, row.Balance, row.Negotiated, row.Limit, row.Version, row.Submitted, row.Updated))
             .ToList();
         return new(DealStatus.Succeeded, Page: new DealPage(summaries, total, query.Page, query.PageSize, counts));
-    }
-
-    // Eligible vehicles for a new deal: published in the agent's branch with no open deal, with any active hold.
-    public async Task<DealResult> VehiclesAsync(Guid actorId, string? search, DateTimeOffset now,
-        CancellationToken cancellationToken)
-    {
-        var actor = await ReadActorAsync(actorId, cancellationToken);
-        if (actor is not { Role: AccountRoles.SalesAgent, BranchId: not null })
-        {
-            return new(DealStatus.Forbidden);
-        }
-
-        var rows = PublicListingQuery.Published(database).Where(row => row.Vehicle.BranchId == actor.BranchId &&
-            !database.SalesOrders.Any(order => order.VehicleId == row.Vehicle.Id && Open.Contains(order.Status)));
-        if (search is not null)
-        {
-            rows = rows.Where(row => EF.Functions.ILike(row.Vehicle.RegistrationPlate,
-                "%" + PromoAdministrationStore.EscapeLike(search) + "%", "\\"));
-        }
-
-        var found = await rows.OrderBy(row => row.Vehicle.RegistrationPlate).Take(25).Select(row => new
-        {
-            row.Vehicle.Id,
-            row.Vehicle.RegistrationPlate,
-            row.Vehicle.ManufactureYear,
-            row.Vehicle.Make,
-            row.Vehicle.Model,
-            row.Revision.VehiclePrice
-        }).ToListAsync(cancellationToken);
-        var ids = found.Select(item => item.Id).ToArray();
-        var holds = await database.Reservations.AsNoTracking()
-            .Where(item => ids.Contains(item.VehicleId) && item.IsActive && item.ExpiresAt > now)
-            .Select(item => new { item.Id, item.VehicleId, item.CustomerId }).ToListAsync(cancellationToken);
-        var holderIds = holds.Select(item => item.CustomerId).ToArray();
-        var names = await database.CustomerProfiles.AsNoTracking().Where(item => holderIds.Contains(item.UserId))
-            .ToDictionaryAsync(item => item.UserId, item => item.LegalName, cancellationToken);
-        var vehicles = found.Select(item =>
-        {
-            var hold = holds.FirstOrDefault(candidate => candidate.VehicleId == item.Id);
-            return new EligibleVehicle(item.Id, item.RegistrationPlate,
-                $"{item.ManufactureYear} {item.Make} {item.Model}", item.VehiclePrice, hold is not null, hold?.Id,
-                hold is null ? null : names.GetValueOrDefault(hold.CustomerId));
-        }).ToList();
-        return new(DealStatus.Succeeded, Vehicles: vehicles);
     }
 
     // What the editor may offer: warranties the vehicle's grade qualifies for and the customer's own trade-ins.
@@ -635,20 +585,6 @@ public sealed class DealStore(DealershipDbContext database) : IDealStore
     private Task<PurchaseSettings?> ReadSettingsAsync(CancellationToken cancellationToken) =>
         database.PurchaseSettings.FromSqlInterpolated($"SELECT * FROM \"PurchaseSettings\" WHERE \"Id\" = 1 FOR SHARE")
             .AsNoTracking().SingleOrDefaultAsync(cancellationToken)!;
-
-    private async Task<Guid?> ResolveCustomerAsync(DealCreateRequest request, Reservation? hold,
-        CancellationToken cancellationToken)
-    {
-        if (request.ReservationId is not null)
-        {
-            return hold?.CustomerId;
-        }
-
-        var normalized = request.CustomerEmail!.ToUpperInvariant();
-        var user = await database.Users.AsNoTracking().SingleOrDefaultAsync(item => item.NormalizedEmail == normalized &&
-            item.Role == AccountRoles.Customer && item.IsActive && item.EmailConfirmed, cancellationToken);
-        return user?.Id;
-    }
 
     private async Task<(DealWarranty?, DealStatus?)> ResolveWarrantyAsync(Guid? packageId, Guid signedRevisionId,
         CancellationToken cancellationToken)
