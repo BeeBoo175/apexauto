@@ -32,9 +32,8 @@ public sealed class DealConversionTests(IntakePhotoFixture fixture) : IClassFixt
         var held = await HoldAsync(data, listing.Publication);
 
         // Only the vehicle's active hold can start a deal, and the holder's terms are carried in.
-        Assert.Equal(DealStatus.Conflict,
-            (await deals.CreateAsync(agent, new(Guid.NewGuid(), vehicleId, Guid.NewGuid()), default)).Status);
-        var created = await deals.CreateAsync(agent, new(Guid.NewGuid(), vehicleId, held.Id), default);
+        Assert.Equal(DealStatus.NotFound, (await deals.ClaimAsync(agent, Guid.NewGuid(), new(Guid.NewGuid()), default)).Status);
+        var created = await deals.ClaimAsync(agent, held.Id, new(Guid.NewGuid()), default);
         Assert.Equal(DealStatus.Succeeded, created.Status);
         var deal = created.Deal!;
         Assert.Equal((data.OwnerId, held.Id, 500m), (deal.CustomerId, deal.ReservationId, deal.DepositCredit));

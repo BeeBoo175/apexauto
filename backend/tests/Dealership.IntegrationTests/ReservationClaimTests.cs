@@ -1,0 +1,135 @@
+using Dealership.Application.Accounts;
+using Dealership.Application.Sales;
+using Dealership.Application.Vehicles;
+using Dealership.Domain.Sales;
+using Dealership.Domain.Vehicles;
+using Dealership.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using static Dealership.IntegrationTests.ReservationTestData;
+
+namespace Dealership.IntegrationTests;
+
+public sealed class ReservationClaimTests(IntakePhotoFixture fixture) : IClassFixture<IntakePhotoFixture>
+{
+    [Fact]
+    public async Task ClaimingFreezesTheHoldAndManagersMoveOrReleaseItWithRetainedHistory()
+    {
+        using var data = await CheckInTestData.CreateAsync(fixture);
+        using var scope = data.Factory.Services.CreateScope();
+        var services = scope.ServiceProvider;
+        var manager = await ProvisionAsync(services, data.BranchId, AccountRoles.BranchManager);
+        var technician = await ProvisionAsync(services, data.BranchId, AccountRoles.WorkshopTechnician);
+        var agent = await ProvisionAsync(services, data.BranchId, AccountRoles.SalesAgent);
+        var colleague = await ProvisionAsync(services, data.BranchId, AccountRoles.SalesAgent);
+        var generalManager = await ProvisionAsync(services, null, AccountRoles.GeneralManager);
+        var listing = await CreateListingAsync(data, services, manager, technician, 0);
+        await using var database = NewContext();
+        database.PurchaseSettings.Add(new(500m, 0.08m, manager, DateTimeOffset.UtcNow));
+        await database.SaveChangesAsync();
+        var customer = await RegisterCustomerAsync(services, database);
+        var held = await HoldAsync(data, customer, listing.Publication);
+        var deals = services.GetRequiredService<DealService>();
+
+        // Only the sales agent claims for themselves; managers assign; nobody outside the hold's branch acts.
+        Assert.Equal(DealStatus.Forbidden, (await deals.ClaimAsync(manager, held.Id, new(Guid.NewGuid()), default)).Status);
+        Assert.Equal(DealStatus.Forbidden,
+            (await deals.AssignAsync(agent, held.Id, new(Guid.NewGuid(), colleague), default)).Status);
+        Assert.Equal(DealStatus.Forbidden,
+            (await deals.AssignAsync(technician, held.Id, new(Guid.NewGuid(), agent), default)).Status);
+        var otherBranchAgent = await ProvisionAsync(services, await AnotherBranchAsync(database), AccountRoles.SalesAgent);
+        Assert.Equal(DealStatus.NotFound, (await deals.ClaimAsync(otherBranchAgent, held.Id, new(Guid.NewGuid()), default)).Status);
+        Assert.Equal(DealStatus.Invalid,
+            (await deals.AssignAsync(manager, held.Id, new(Guid.NewGuid(), otherBranchAgent), default)).Status);
+
+        var claim = new DealClaimRequest(Guid.NewGuid());
+        var claimed = await deals.ClaimAsync(agent, held.Id, claim, default);
+        Assert.Equal(DealStatus.Succeeded, claimed.Status);
+        Assert.Equal((agent, "Draft", held.Id), (claimed.Deal!.SalesAgentId, claimed.Deal.Status, claimed.Deal.ReservationId));
+        Assert.Null(claimed.Deal.Context!.HoldExpiresAtUtc);
+        Assert.Equal(claimed.Deal.Id, (await deals.ClaimAsync(agent, held.Id, claim, default)).Deal!.Id);
+        Assert.Equal(DealStatus.Conflict, (await deals.ClaimAsync(colleague, held.Id, new(Guid.NewGuid()), default)).Status);
+
+        await using (var frozen = NewContext())
+        {
+            var hold = await frozen.Reservations.AsNoTracking().SingleAsync(item => item.Id == held.Id);
+            Assert.Equal((agent, true), (hold.ClaimedById, hold.FrozenRemaining > TimeSpan.Zero));
+            Assert.Equal(hold.ExpiresAt, hold.CreatedAt.AddHours(48));
+            Assert.False(hold.HasExpired(hold.ExpiresAt.AddDays(30)));
+        }
+
+        // A claimed hold has a deal in progress, so it cannot be cancelled as a bare hold.
+        var cancellations = services.GetRequiredService<ReservationCancellationService>();
+        Assert.Equal(ReservationStatus.Conflict,
+            (await cancellations.CancelAsync(manager, held.Id, new(Guid.NewGuid(), "Customer asked"), default)).Status);
+
+        // Managers move the claim; an agent cannot release someone else's, and a repeat changes nothing.
+        var move = new DealAssignRequest(Guid.NewGuid(), colleague);
+        var moved = await deals.AssignAsync(manager, held.Id, move, default);
+        Assert.Equal((DealStatus.Succeeded, colleague, 2L), (moved.Status, moved.Deal!.SalesAgentId, moved.Deal.Version));
+        Assert.Equal(new[] { "Created", "Reassigned" }, moved.Deal.Events.Select(item => item.Kind));
+        Assert.Equal(2L, (await deals.AssignAsync(manager, held.Id, move with { Id = Guid.NewGuid() }, default)).Deal!.Version);
+        Assert.Equal(DealStatus.NotFound, (await deals.GetAsync(agent, moved.Deal.Id, default)).Status);
+        Assert.Equal(DealStatus.Forbidden, (await deals.ReleaseAsync(agent, held.Id, default)).Status);
+        Assert.Equal(DealStatus.Forbidden, (await deals.ReleaseAsync(technician, held.Id, default)).Status);
+
+        var released = await deals.ReleaseAsync(colleague, held.Id, default);
+        Assert.Equal((DealStatus.Succeeded, "Cancelled"), (released.Status, released.Deal!.Status));
+        Assert.Equal("Claim released", released.Deal.Events[^1].Reason);
+        Assert.Equal(DealStatus.Conflict, (await deals.ReleaseAsync(colleague, held.Id, default)).Status);
+
+        await using (var resumed = NewContext())
+        {
+            var hold = await resumed.Reservations.AsNoTracking().SingleAsync(item => item.Id == held.Id);
+            Assert.True(hold.IsActive);
+            Assert.Null(hold.ClaimedById);
+            // The hold resumes with the time it had left, so it never gets a fresh 48 hours.
+            Assert.True(hold.ExpiresAt >= hold.CreatedAt.AddHours(48));
+            Assert.True(hold.ExpiresAt < DateTimeOffset.UtcNow.AddHours(48));
+            var events = await resumed.ReservationEvents.AsNoTracking().Where(item => item.ReservationId == held.Id)
+                .OrderBy(item => item.Sequence).ToListAsync();
+            Assert.Equal(new[] { ReservationEventKind.Claimed, ReservationEventKind.Reassigned, ReservationEventKind.Released },
+                events.Select(item => item.Kind));
+            Assert.Equal(new Guid?[] { agent, colleague, null }, events.Select(item => item.AgentId));
+            Assert.Equal(new[] { 1, 2, 3 }, events.Select(item => item.Sequence));
+        }
+
+        // An open hold is assigned by a manager, who starts the deal for the chosen agent.
+        var assigned = await deals.AssignAsync(generalManager, held.Id, new(Guid.NewGuid(), agent), default);
+        Assert.Equal((DealStatus.Succeeded, agent), (assigned.Status, assigned.Deal!.SalesAgentId));
+
+        // Cancelling that deal releases the hold with the full simulated refund.
+        var cancelled = await deals.TransitionAsync(colleague, assigned.Deal.Id, DealAction.Cancel,
+            new(assigned.Deal.Version, "Customer withdrew"), default);
+        Assert.Equal(DealStatus.NotFound, cancelled.Status);
+        cancelled = await deals.TransitionAsync(agent, assigned.Deal.Id, DealAction.Cancel,
+            new(assigned.Deal.Version, "Customer withdrew"), default);
+        Assert.Equal(DealStatus.Succeeded, cancelled.Status);
+        await using var after = NewContext();
+        var refund = await after.ReservationReleases.AsNoTracking().SingleAsync(item => item.ReservationId == held.Id);
+        Assert.Equal((ReservationReleaseKind.DealCancelled, agent, 500m), (refund.Kind, refund.ActorId, refund.Refund));
+        Assert.False((await after.Reservations.AsNoTracking().SingleAsync(item => item.Id == held.Id)).IsActive);
+        Assert.Equal(DealStatus.Conflict, (await deals.ClaimAsync(agent, held.Id, new(Guid.NewGuid()), default)).Status);
+    }
+
+    private async Task<Guid> AnotherBranchAsync(DealershipDbContext database)
+    {
+        var other = new Dealership.Domain.Branches.Branch(Guid.NewGuid(), "ApexAuto Setia Alam",
+            "5 Jalan Setia Prima, Setia Alam", "Shah Alam", "Selangor", "0333441122", DateTimeOffset.UtcNow);
+        database.Branches.Add(other);
+        await database.SaveChangesAsync();
+        return other.Id;
+    }
+
+    private static async Task<Reservation> HoldAsync(CheckInTestData data, Guid customerId, ListingPublication publication)
+    {
+        using var scope = data.Factory.Services.CreateScope();
+        var result = await scope.ServiceProvider.GetRequiredService<ReservationService>().ReserveAsync(customerId,
+            publication.VehicleId, new(Guid.NewGuid(), publication.Id, null), CancellationToken.None);
+        Assert.Equal(ReservationStatus.Succeeded, result.Status);
+        return result.Reservation!;
+    }
+
+    private DealershipDbContext NewContext() => new(new DbContextOptionsBuilder<DealershipDbContext>()
+        .UseNpgsql(fixture.Database.RuntimeConnectionString).Options);
+}

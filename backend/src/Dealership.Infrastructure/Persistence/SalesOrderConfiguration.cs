@@ -90,7 +90,7 @@ public sealed class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrde
         {
             table.HasCheckConstraint("CK_SalesOrderEvents_Shape",
                 "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND isfinite(\"RecordedAtUtc\") AND " +
-                "\"Sequence\" > 0 AND \"Kind\" IN ('Created', 'Revised', 'Submitted', 'Approved', 'Rejected', 'Cancelled') AND " +
+                "\"Sequence\" > 0 AND \"Kind\" IN ('Created', 'Revised', 'Submitted', 'Approved', 'Rejected', 'Cancelled', 'Reassigned') AND " +
                 "\"ToStatus\" IN ('Draft', 'PendingManagerApproval', 'Approved', 'Cancelled') AND " +
                 "(\"FromStatus\" IS NULL OR \"FromStatus\" IN ('Draft', 'PendingManagerApproval', 'Approved', 'Cancelled')) AND " +
                 "((\"Kind\" IN ('Rejected', 'Cancelled') AND \"Reason\" IS NOT NULL AND \"Reason\" = btrim(\"Reason\") AND " +

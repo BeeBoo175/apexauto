@@ -151,6 +151,35 @@ public sealed class SalesOrderTests
     }
 
     [Fact]
+    public void ReassignmentMovesTheDealToAnotherAgentWithoutChangingItsStatus()
+    {
+        var order = Draft();
+        var other = Guid.NewGuid();
+
+        var moved = order.Reassign(other, Manager, Start.AddMinutes(1));
+
+        Assert.Equal((other, SalesOrderStatus.Draft, 2L), (order.SalesAgentId, order.Status, order.Version));
+        Assert.Equal((SalesOrderEventKind.Reassigned, SalesOrderStatus.Draft, SalesOrderStatus.Draft, Manager),
+            (moved.Kind, moved.FromStatus, moved.ToStatus, moved.ActorId));
+        Assert.Throws<InvalidOperationException>(() => order.Reassign(other, Manager, Start.AddMinutes(2)));
+        Assert.Throws<InvalidOperationException>(() => order.Reassign(Guid.Empty, Manager, Start.AddMinutes(2)));
+    }
+
+    [Fact]
+    public void AnApprovedDealCannotMoveToItsApproverOrAfterCancellation()
+    {
+        var order = Draft();
+        order.Submit(Settings(), "VPO-2026-000007", Agent, Start.AddMinutes(1));
+        order.Revise(null, 800m, null, Settings(), Agent, Start.AddMinutes(2));
+        order.Submit(Settings(), "VPO-2026-000007", Agent, Start.AddMinutes(3));
+        order.Approve(Manager, Start.AddMinutes(4));
+
+        Assert.Throws<InvalidOperationException>(() => order.Reassign(Manager, Manager, Start.AddMinutes(5)));
+        order.Cancel(Manager, "Customer withdrew", Start.AddMinutes(6));
+        Assert.Throws<InvalidOperationException>(() => order.Reassign(Guid.NewGuid(), Manager, Start.AddMinutes(7)));
+    }
+
+    [Fact]
     public void ActionsCannotGoBackwardsInTime()
     {
         var order = Draft();

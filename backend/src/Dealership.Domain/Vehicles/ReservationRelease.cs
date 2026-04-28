@@ -6,7 +6,9 @@ public enum ReservationReleaseKind
     StaffCancelled,
     Expired,
     Withdrawn,
-    Reinspection
+    Reinspection,
+    // The deal built on the hold was cancelled, so the deposit is refunded and the vehicle freed.
+    DealCancelled
 }
 
 public sealed class ReservationRelease
@@ -61,7 +63,7 @@ public sealed class ReservationRelease
             return;
         }
 
-        if (kind == ReservationReleaseKind.StaffCancelled)
+        if (kind is ReservationReleaseKind.StaffCancelled or ReservationReleaseKind.DealCancelled)
         {
             if (actorId is null || actorId == Guid.Empty || string.IsNullOrWhiteSpace(reason) ||
                 reason.Trim().Length > 1000 || reason.Any(char.IsControl))

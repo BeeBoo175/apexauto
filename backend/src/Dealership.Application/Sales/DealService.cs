@@ -8,19 +8,42 @@ public sealed class DealService(IDealStore store, TimeProvider clock)
 {
     public static readonly IReadOnlySet<string> Statuses = new HashSet<string>(Enum.GetNames<SalesOrderStatus>());
 
-    public Task<DealResult> CreateAsync(Guid actorId, DealCreateRequest request, CancellationToken cancellationToken)
+    public Task<DealResult> ClaimAsync(Guid actorId, Guid reservationId, DealClaimRequest request,
+        CancellationToken cancellationToken)
     {
         if (actorId == Guid.Empty)
         {
             return Rejected(DealStatus.Forbidden);
         }
 
-        if (request.Id == Guid.Empty || request.VehicleId == Guid.Empty || request.ReservationId == Guid.Empty)
+        return reservationId == Guid.Empty || request.Id == Guid.Empty
+            ? Rejected(DealStatus.Invalid)
+            : store.ClaimAsync(actorId, reservationId, request, clock.GetUtcNow(), cancellationToken);
+    }
+
+    public Task<DealResult> AssignAsync(Guid actorId, Guid reservationId, DealAssignRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (actorId == Guid.Empty)
         {
-            return Rejected(DealStatus.Invalid);
+            return Rejected(DealStatus.Forbidden);
         }
 
-        return store.CreateAsync(actorId, request, clock.GetUtcNow(), cancellationToken);
+        return reservationId == Guid.Empty || request.Id == Guid.Empty || request.AgentId == Guid.Empty
+            ? Rejected(DealStatus.Invalid)
+            : store.AssignAsync(actorId, reservationId, request, clock.GetUtcNow(), cancellationToken);
+    }
+
+    public Task<DealResult> ReleaseAsync(Guid actorId, Guid reservationId, CancellationToken cancellationToken)
+    {
+        if (actorId == Guid.Empty)
+        {
+            return Rejected(DealStatus.Forbidden);
+        }
+
+        return reservationId == Guid.Empty
+            ? Rejected(DealStatus.Invalid)
+            : store.ReleaseAsync(actorId, reservationId, clock.GetUtcNow(), cancellationToken);
     }
 
     public Task<DealResult> ReviseAsync(Guid actorId, Guid dealId, DealReviseRequest request,

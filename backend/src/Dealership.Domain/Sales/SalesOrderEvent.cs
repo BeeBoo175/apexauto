@@ -15,7 +15,9 @@ public enum SalesOrderEventKind
     Submitted,
     Approved,
     Rejected,
-    Cancelled
+    Cancelled,
+    // The deal moved to another agent; its status is unchanged.
+    Reassigned
 }
 
 // Append-only record of every deal action, including who acted, when and why.

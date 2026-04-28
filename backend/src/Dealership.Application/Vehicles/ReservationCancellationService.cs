@@ -59,6 +59,13 @@ public sealed class ReservationCancellationService(IReservationCancellationStore
             return new(ReservationStatus.Conflict);
         }
 
+        // A claimed hold has a deal in progress; its agent or a manager cancels that deal, which refunds the deposit.
+        if (reservation.IsClaimed)
+        {
+            await transaction.CommitAsync(null, cancellationToken);
+            return new(ReservationStatus.Conflict);
+        }
+
         if (reservation.HasExpired(context.Now))
         {
             var expired = new ReservationRelease(Guid.NewGuid(), reservation, ReservationReleaseKind.Expired,

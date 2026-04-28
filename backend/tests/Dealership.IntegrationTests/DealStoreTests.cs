@@ -33,28 +33,26 @@ public sealed class DealStoreTests(IntakePhotoFixture fixture) : IClassFixture<I
         var vehicleId = listing.Publication.VehicleId;
         var deals = services.GetRequiredService<DealService>();
         var held = await HoldAsync(data, customer, listing.Publication);
-        var request = new DealCreateRequest(Guid.NewGuid(), vehicleId, held.Id);
+        var claim = new DealClaimRequest(Guid.NewGuid());
 
         foreach (var actor in new[] { manager, technician, generalManager, customer, Guid.NewGuid() })
         {
-            Assert.Equal(DealStatus.Forbidden, (await deals.CreateAsync(actor, request, default)).Status);
+            Assert.Equal(DealStatus.Forbidden, (await deals.ClaimAsync(actor, held.Id, claim, default)).Status);
         }
 
-        Assert.Equal(DealStatus.Invalid, (await deals.CreateAsync(agent, request with { ReservationId = Guid.Empty }, default)).Status);
-        Assert.Equal(DealStatus.Conflict,
-            (await deals.CreateAsync(agent, request with { ReservationId = Guid.NewGuid() }, default)).Status);
-        Assert.Equal(DealStatus.NotFound, (await deals.CreateAsync(agent, request with { VehicleId = Guid.NewGuid() }, default)).Status);
+        Assert.Equal(DealStatus.Invalid, (await deals.ClaimAsync(agent, Guid.Empty, claim, default)).Status);
+        Assert.Equal(DealStatus.NotFound, (await deals.ClaimAsync(agent, Guid.NewGuid(), claim, default)).Status);
 
-        var created = await deals.CreateAsync(agent, request, default);
+        var created = await deals.ClaimAsync(agent, held.Id, claim, default);
         Assert.Equal(DealStatus.Succeeded, created.Status);
         var deal = created.Deal!;
         Assert.Equal(("Draft", customer, agent, 1L, null), (deal.Status, deal.CustomerId, deal.SalesAgentId, deal.Version,
             deal.OrderNumber));
         Assert.Equal(new[] { "Created" }, deal.Events.Select(item => item.Kind));
-        Assert.Equal(deal.Id, (await deals.CreateAsync(agent, request, default)).Deal!.Id);
-        Assert.Equal(DealStatus.Conflict, (await deals.CreateAsync(otherAgent, request, default)).Status);
+        Assert.Equal(deal.Id, (await deals.ClaimAsync(agent, held.Id, claim, default)).Deal!.Id);
+        Assert.Equal(DealStatus.Conflict, (await deals.ClaimAsync(otherAgent, held.Id, claim, default)).Status);
         Assert.Equal(DealStatus.Conflict,
-            (await deals.CreateAsync(agent, request with { Id = Guid.NewGuid() }, default)).Status);
+            (await deals.ClaimAsync(agent, held.Id, new(Guid.NewGuid()), default)).Status);
 
         var revise = new DealReviseRequest(1, null, 300m, null, 0m);
         Assert.Equal(DealStatus.NotFound, (await deals.ReviseAsync(otherAgent, deal.Id, revise, default)).Status);
@@ -96,8 +94,16 @@ public sealed class DealStoreTests(IntakePhotoFixture fixture) : IClassFixture<I
         Assert.Equal("Cancelled", cancelled.Deal!.Status);
         Assert.Equal(DealStatus.Conflict, (await deals.TransitionAsync(agent, deal.Id, DealAction.Cancel, new(9, "Again"), default)).Status);
 
-        // Cancelling frees the vehicle for a new deal, which receives the next number once submitted.
-        var next = await deals.CreateAsync(otherAgent, new(Guid.NewGuid(), vehicleId, held.Id), default);
+        // Cancelling refunds the hold and frees the vehicle; a new hold starts a new deal with the next number.
+        await using (var refunds = NewContext())
+        {
+            var release = await refunds.ReservationReleases.AsNoTracking().SingleAsync(item => item.ReservationId == held.Id);
+            Assert.Equal((ReservationReleaseKind.DealCancelled, agent, "Customer withdrew", 500m),
+                (release.Kind, release.ActorId, release.Reason, release.Refund));
+        }
+
+        var heldAgain = await HoldAsync(data, customer, listing.Publication);
+        var next = await deals.ClaimAsync(otherAgent, heldAgain.Id, new(Guid.NewGuid()), default);
         Assert.Equal(DealStatus.Succeeded, next.Status);
         var nextSubmitted = await deals.TransitionAsync(otherAgent, next.Deal!.Id, DealAction.Submit, new(1, null), default);
         Assert.Equal($"VPO-{year}-000002", nextSubmitted.Deal!.OrderNumber);

@@ -3,7 +3,13 @@ using Dealership.Domain.Sales;
 
 namespace Dealership.Application.Sales;
 
-public sealed record DealCreateRequest(Guid Id, Guid VehicleId, Guid ReservationId);
+// The deal identity doubles as the operation identity, so a lost response can be replayed without a second deal.
+public sealed record DealClaimRequest(Guid Id);
+
+// A manager gives a hold to an agent: the first assignment starts the deal, later ones move it to another agent.
+public sealed record DealAssignRequest(Guid Id, Guid AgentId);
+
+public sealed record DealReleaseRequest();
 
 public sealed record DealReviseRequest(long ExpectedVersion, Guid? WarrantyPackageId, decimal NegotiatedDiscount,
     Guid? TradeInAppointmentId, decimal TradeInAllowance);
@@ -120,7 +126,13 @@ public sealed record DealColumnFilters(string? Agent, string? Branch, string? Ne
 
 public interface IDealStore
 {
-    Task<DealResult> CreateAsync(Guid actorId, DealCreateRequest request, DateTimeOffset now,
+    Task<DealResult> ClaimAsync(Guid actorId, Guid reservationId, DealClaimRequest request, DateTimeOffset now,
+        CancellationToken cancellationToken);
+
+    Task<DealResult> AssignAsync(Guid actorId, Guid reservationId, DealAssignRequest request, DateTimeOffset now,
+        CancellationToken cancellationToken);
+
+    Task<DealResult> ReleaseAsync(Guid actorId, Guid reservationId, DateTimeOffset now,
         CancellationToken cancellationToken);
 
     Task<DealResult> ReviseAsync(Guid actorId, Guid dealId, DealReviseRequest request, DateTimeOffset now,

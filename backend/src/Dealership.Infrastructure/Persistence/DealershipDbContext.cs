@@ -34,6 +34,7 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
     public DbSet<DealNumberCounter> DealNumberCounters => Set<DealNumberCounter>();
 
     public DbSet<ReservationRelease> ReservationReleases => Set<ReservationRelease>();
+    public DbSet<ReservationEvent> ReservationEvents => Set<ReservationEvent>();
 
     public DbSet<ReservationMail> ReservationMailOutbox => Set<ReservationMail>();
 
@@ -104,6 +105,7 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
         var reservations = new ReservationConfiguration();
         builder.ApplyConfiguration<Reservation>(reservations);
         builder.ApplyConfiguration<ReservationRelease>(reservations);
+        builder.ApplyConfiguration<ReservationEvent>(reservations);
         builder.ApplyConfiguration(new ReservationMailConfiguration());
         builder.ApplyConfiguration(new IntakePhotoConfiguration());
         builder.ApplyConfiguration(new PhotoRemovalConfiguration());

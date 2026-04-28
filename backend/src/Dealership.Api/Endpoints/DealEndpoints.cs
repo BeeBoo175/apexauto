@@ -17,7 +17,6 @@ public static class DealEndpoints
         routes.MapGet("", ListAsync);
         routes.MapGet("/{dealId:guid}", GetAsync);
         routes.MapGet("/{dealId:guid}/options", OptionsAsync);
-        routes.MapPost("", CreateAsync);
         routes.MapPut("/{dealId:guid}", ReviseAsync);
         routes.MapPost("/{dealId:guid}/submissions", (Guid dealId, HttpContext context, DealService deals,
             CancellationToken token) => TransitionAsync(dealId, DealAction.Submit, context, deals, token));
@@ -27,6 +26,17 @@ public static class DealEndpoints
             CancellationToken token) => TransitionAsync(dealId, DealAction.Reject, context, deals, token));
         routes.MapPost("/{dealId:guid}/cancellations", (Guid dealId, HttpContext context, DealService deals,
             CancellationToken token) => TransitionAsync(dealId, DealAction.Cancel, context, deals, token));
+
+        // Handling a hold is a command on the reservation; its result is the deal it created or changed.
+        var holds = app.MapGroup("/api/staff/reservations/{reservationId:guid}").RequireAuthorization();
+        holds.AddEndpointFilter(async (context, next) =>
+        {
+            context.HttpContext.Response.Headers.CacheControl = "no-store";
+            return await next(context);
+        });
+        holds.MapPost("/claims", ClaimAsync);
+        holds.MapPost("/assignments", AssignAsync);
+        holds.MapPost("/releases", ReleaseAsync);
     }
 
     internal sealed record DealListParameters(int? Page, int? PageSize, string? View, string? Status, string? Sort,
@@ -53,9 +63,20 @@ public static class DealEndpoints
         RunAsync(cancellationToken, "The deal is temporarily unavailable.",
             token => deals.GetAsync(ActorId(context), dealId, token));
 
-    private static Task<IResult> CreateAsync(HttpContext context, DealService deals, CancellationToken cancellationToken) =>
-        BodyAsync<DealCreateRequest>(context, cancellationToken,
-            (request, token) => deals.CreateAsync(ActorId(context), request, token));
+    private static Task<IResult> ClaimAsync(Guid reservationId, HttpContext context, DealService deals,
+        CancellationToken cancellationToken) =>
+        BodyAsync<DealClaimRequest>(context, cancellationToken,
+            (request, token) => deals.ClaimAsync(ActorId(context), reservationId, request, token));
+
+    private static Task<IResult> AssignAsync(Guid reservationId, HttpContext context, DealService deals,
+        CancellationToken cancellationToken) =>
+        BodyAsync<DealAssignRequest>(context, cancellationToken,
+            (request, token) => deals.AssignAsync(ActorId(context), reservationId, request, token));
+
+    private static Task<IResult> ReleaseAsync(Guid reservationId, HttpContext context, DealService deals,
+        CancellationToken cancellationToken) =>
+        BodyAsync<DealReleaseRequest>(context, cancellationToken,
+            (_, token) => deals.ReleaseAsync(ActorId(context), reservationId, token));
 
     private static Task<IResult> ReviseAsync(Guid dealId, HttpContext context, DealService deals,
         CancellationToken cancellationToken) =>

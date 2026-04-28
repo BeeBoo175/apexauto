@@ -211,6 +211,23 @@ public sealed partial class SalesOrder
             RequiredReason(reason), now);
     }
 
+    // A manager moves the deal to another agent; the previous agent keeps no access and the decider cannot take it.
+    public SalesOrderEvent Reassign(Guid agentId, Guid actorId, DateTimeOffset now)
+    {
+        if (Status == SalesOrderStatus.Cancelled)
+        {
+            throw new InvalidOperationException("A cancelled deal is final.");
+        }
+
+        if (agentId == Guid.Empty || agentId == SalesAgentId || agentId == DecidedById)
+        {
+            throw new InvalidOperationException("The deal needs a different agent who did not approve it.");
+        }
+
+        SalesAgentId = agentId;
+        return Move(SalesOrderEventKind.Reassigned, Status, Status, actorId, null, now);
+    }
+
     public static bool ValidReason(string? reason) => reason is not null && reason == reason.Trim() &&
         reason.Length is >= 1 and <= SalesOrderEvent.ReasonMaximumLength && !reason.Any(char.IsControl);
 

@@ -10,69 +10,12 @@ using Npgsql;
 
 namespace Dealership.Infrastructure.Sales;
 
-public sealed class DealStore(DealershipDbContext database) : IDealStore
+public sealed partial class DealStore(DealershipDbContext database) : IDealStore
 {
     private static readonly SalesOrderStatus[] Open =
         [SalesOrderStatus.Draft, SalesOrderStatus.PendingManagerApproval, SalesOrderStatus.Approved];
 
     private sealed record Actor(Guid Id, string Role, Guid? BranchId);
-
-    public async Task<DealResult> CreateAsync(Guid actorId, DealCreateRequest request, DateTimeOffset now,
-        CancellationToken cancellationToken)
-    {
-        await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
-        // Serialize replays of one operation so they see a single outcome.
-        await database.Database.ExecuteSqlInterpolatedAsync(
-            $"SELECT pg_advisory_xact_lock(hashtextextended({"deal:" + request.Id}, 0))", cancellationToken);
-        var actor = await LockActorAsync(actorId, cancellationToken);
-        if (actor is not { Role: AccountRoles.SalesAgent, BranchId: not null })
-        {
-            return new(DealStatus.Forbidden);
-        }
-
-        var existing = await database.SalesOrders.AsNoTracking().SingleOrDefaultAsync(item => item.Id == request.Id,
-            cancellationToken);
-        if (existing is not null)
-        {
-            // An identical replay reconciles a lost receipt; the same identity for other contents is a conflict.
-            return existing.SalesAgentId == actorId && existing.VehicleId == request.VehicleId
-                ? new(DealStatus.Succeeded, await ViewAsync(existing, cancellationToken))
-                : new(DealStatus.Conflict);
-        }
-
-        await database.Database.ExecuteSqlInterpolatedAsync(
-            $"SELECT 1 FROM \"Vehicles\" WHERE \"Id\" = {request.VehicleId} FOR UPDATE", cancellationToken);
-        await database.Database.ExecuteSqlInterpolatedAsync(
-            $"SELECT release_unavailable_reservation({request.VehicleId})", cancellationToken);
-        var listing = await PublicListingQuery.Published(database).SingleOrDefaultAsync(row =>
-            row.Vehicle.Id == request.VehicleId && row.Vehicle.BranchId == actor.BranchId, cancellationToken);
-        var settings = await ReadSettingsAsync(cancellationToken);
-        if (listing is null)
-        {
-            return new(DealStatus.NotFound);
-        }
-
-        if (settings is null)
-        {
-            return new(DealStatus.Unavailable);
-        }
-
-        var hold = await database.Reservations.AsNoTracking()
-            .SingleOrDefaultAsync(item => item.VehicleId == request.VehicleId && item.IsActive, cancellationToken);
-        // The deal is the holder's: the customer, promo and deposit are carried in from the active hold.
-        if (hold is null || hold.Id != request.ReservationId)
-        {
-            return new(DealStatus.Conflict);
-        }
-
-        var order = SalesOrder.CreateDraft(request.Id, request.VehicleId, hold.CustomerId, actorId, actor.BranchId.Value,
-            listing.Revision.VehiclePrice, listing.Revision.RoadTax, settings,
-            new DealReservation(hold.Id, hold.PromoId, hold.PromoCode, hold.Price.PromoDiscount, hold.Deposit), now,
-            out var created);
-        database.SalesOrders.Add(order);
-        database.SalesOrderEvents.Add(created);
-        return await SaveAsync(order, transaction, cancellationToken);
-    }
 
     public async Task<DealResult> ReviseAsync(Guid actorId, Guid dealId, DealReviseRequest request, DateTimeOffset now,
         CancellationToken cancellationToken)
@@ -137,8 +80,7 @@ public sealed class DealStore(DealershipDbContext database) : IDealStore
                 return await ApplyAsync(order, transaction, () => order.Reject(actor!.Id, request.Reason!, at),
                     cancellationToken);
             default:
-                return await ApplyAsync(order, transaction, () => order.Cancel(actor!.Id, request.Reason!, at),
-                    cancellationToken);
+                return await CancelAsync(order, actor!, request.Reason!, at, transaction, cancellationToken);
         }
     }
 
@@ -518,9 +460,9 @@ public sealed class DealStore(DealershipDbContext database) : IDealStore
         {
             await database.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateException error) when (error.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+        catch (DbUpdateException error) when (IsRejectedByGuard(error))
         {
-            // One open deal per vehicle, and unique deal numbers, are enforced by the database.
+            // One open deal per vehicle, unique deal numbers and the hold's claim history are enforced by the database.
             database.ChangeTracker.Clear();
             return new(DealStatus.Conflict);
         }
@@ -528,6 +470,11 @@ public sealed class DealStore(DealershipDbContext database) : IDealStore
         await transaction.CommitAsync(cancellationToken);
         return new(DealStatus.Succeeded, await ViewAsync(order, cancellationToken));
     }
+
+    private static bool IsRejectedByGuard(DbUpdateException error) =>
+        error.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } ||
+        error.InnerException is PostgresException { SqlState: PostgresErrorCodes.CheckViolation, ConstraintName: { } name } &&
+            name.StartsWith("CK_Reservation", StringComparison.Ordinal);
 
     private async Task<DealView> ViewAsync(SalesOrder order, CancellationToken cancellationToken)
     {
@@ -579,7 +526,7 @@ public sealed class DealStore(DealershipDbContext database) : IDealStore
             $"{vehicle.ManufactureYear} {vehicle.Make} {vehicle.Model} {vehicle.Trim}".Trim(), vehicle.Vin,
             vehicle.MileageKilometres, profile.LegalName, profile.Mobile, emails.GetValueOrDefault(order.CustomerId, string.Empty),
             emails.GetValueOrDefault(order.SalesAgentId, string.Empty), branch.Name, tradeIn, tradeInMinimum,
-            tradeInMaximum, warranty?.DurationMonths, warranty?.MileageCapKm, hold?.CreatedAt, hold?.ExpiresAt, staff);
+            tradeInMaximum, warranty?.DurationMonths, warranty?.MileageCapKm, hold?.CreatedAt, hold is { IsClaimed: false } ? hold.ExpiresAt : null, staff);
     }
 
     private Task<PurchaseSettings?> ReadSettingsAsync(CancellationToken cancellationToken) =>
