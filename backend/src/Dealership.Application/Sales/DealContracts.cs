@@ -39,7 +39,13 @@ public sealed record DealContext(string Registration, string Vehicle, string Vin
     string? TradeIn, decimal? TradeInMinimum, decimal? TradeInMaximum,
     int? WarrantyMonths, int? WarrantyMileageCapKm,
     DateTimeOffset? HoldCreatedAtUtc, DateTimeOffset? HoldExpiresAtUtc,
-    IReadOnlyDictionary<Guid, string> Staff);
+    IReadOnlyDictionary<Guid, string> Staff)
+{
+    // The hold's claim: when it was taken and the time that stood still when it was, while an agent handles it.
+    public DateTimeOffset? HoldClaimedAtUtc { get; init; }
+
+    public long? HoldFrozenRemainingSeconds { get; init; }
+}
 
 public sealed record DealView(Guid Id, string? OrderNumber, string Status, Guid VehicleId, Guid CustomerId,
     Guid SalesAgentId, Guid BranchId, Guid? ReservationId, string? PromoCode, decimal BasePrice, decimal PromoDiscount,
@@ -96,10 +102,22 @@ public sealed record HoldHistoryItem(Guid Id, string Source, string Kind, DateTi
     string Actor, string? Agent, string? PreviousAgent, string? Reason, string? FromStatus, string? ToStatus,
     IReadOnlyList<DealChange> Changes);
 
-public sealed record HoldHistoryPage(IReadOnlyList<HoldHistoryItem> Items, int Total, int Page, int PageSize);
+public sealed record HoldHistoryPage(IReadOnlyList<HoldHistoryItem> Items, int TotalCount, int Page, int PageSize);
+
+// One hold in an agent's sales queue: open to claim, or being handled through its deal. The wheel is drawn from
+// ExpiresAtUtc while the hold is open and from the frozen remaining time once an agent has claimed it.
+public sealed record SalesQueueItem(Guid ReservationId, Guid? DealId, string Registration, string Vehicle,
+    string Customer, DateTimeOffset HoldCreatedAtUtc, DateTimeOffset? ExpiresAtUtc, long? FrozenRemainingSeconds,
+    DateTimeOffset? ClaimedAtUtc, string? DealStatus, string? NextStep, decimal? BalancePayable, long? DealVersion);
+
+// Tab totals for the agent, independent of the tab being read.
+public sealed record SalesQueueCounts(int ToClaim, int Handling, int Waiting);
+
+public sealed record SalesQueuePage(IReadOnlyList<SalesQueueItem> Items, int Total, int Page, int PageSize,
+    SalesQueueCounts Counts);
 
 public sealed record DealResult(DealStatus Status, DealView? Deal = null, DealPage? Page = null,
-    DealOptions? Options = null, HoldHistoryPage? History = null);
+    DealOptions? Options = null, HoldHistoryPage? History = null, SalesQueuePage? Queue = null);
 
 public sealed record DealListQuery(int Page, int PageSize, string View, string? Status, string? Sort, bool Descending,
     string? Number, string? Vehicle, string? Customer, string? Search)
@@ -153,6 +171,8 @@ public interface IDealStore
     Task<DealResult> ListAsync(Guid actorId, DealListQuery query, CancellationToken cancellationToken);
 
     Task<DealResult> OptionsAsync(Guid actorId, Guid dealId, CancellationToken cancellationToken);
+
+    Task<DealResult> QueueAsync(Guid actorId, string view, int page, int pageSize, CancellationToken cancellationToken);
 
     // One history for a hold and the deal built on it, read from either side.
     Task<DealResult> HistoryAsync(Guid actorId, Guid id, bool ofDeal, int page, int pageSize,

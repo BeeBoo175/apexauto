@@ -526,7 +526,13 @@ public sealed partial class DealStore(DealershipDbContext database) : IDealStore
             $"{vehicle.ManufactureYear} {vehicle.Make} {vehicle.Model} {vehicle.Trim}".Trim(), vehicle.Vin,
             vehicle.MileageKilometres, profile.LegalName, profile.Mobile, emails.GetValueOrDefault(order.CustomerId, string.Empty),
             emails.GetValueOrDefault(order.SalesAgentId, string.Empty), branch.Name, tradeIn, tradeInMinimum,
-            tradeInMaximum, warranty?.DurationMonths, warranty?.MileageCapKm, hold?.CreatedAt, hold is { IsClaimed: false } ? hold.ExpiresAt : null, staff);
+            tradeInMaximum, warranty?.DurationMonths, warranty?.MileageCapKm, hold?.CreatedAt, hold is { IsClaimed: false } ? hold.ExpiresAt : null, staff)
+        {
+            HoldClaimedAtUtc = hold is { IsActive: true } ? hold.ClaimedAt : null,
+            HoldFrozenRemainingSeconds = hold is { IsActive: true, FrozenRemaining: { } frozen }
+                ? (long)frozen.TotalSeconds
+                : null
+        };
     }
 
     private Task<PurchaseSettings?> ReadSettingsAsync(CancellationToken cancellationToken) =>

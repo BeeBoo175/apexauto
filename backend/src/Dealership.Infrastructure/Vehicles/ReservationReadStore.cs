@@ -108,8 +108,14 @@ public sealed class ReservationReadStore(DealershipDbContext database) : IReserv
             // The due holds above are already reconciled, so both tab totals are current.
             counts = new ReservationCounts(
                 await reservations.CountAsync(item => item.IsActive, cancellationToken),
-                await reservations.CountAsync(item => !item.IsActive, cancellationToken));
+                await reservations.CountAsync(item => !item.IsActive, cancellationToken),
+                await reservations.CountAsync(item => item.IsActive && item.ClaimedById == null, cancellationToken),
+                await reservations.CountAsync(item => item.IsActive && item.ClaimedById != null, cancellationToken));
             reservations = reservations.Where(item => item.IsActive == filter.IsActive);
+            if (filter.Claimed is { } claimed)
+            {
+                reservations = reservations.Where(item => (item.ClaimedById != null) == claimed);
+            }
         }
 
         var filtered = ReservationReadRows.Filter(ReservationReadRows.CreateRows(database, reservations), filter);

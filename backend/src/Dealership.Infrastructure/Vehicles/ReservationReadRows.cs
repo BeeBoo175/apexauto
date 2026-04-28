@@ -75,6 +75,8 @@ internal static class ReservationReadRows
                join vehicle in database.Vehicles on reservation.VehicleId equals vehicle.Id
                join refunded in database.ReservationReleases.AsNoTracking() on reservation.Id equals refunded.ReservationId into releases
                from release in releases.DefaultIfEmpty()
+               join agent in database.Users.AsNoTracking() on reservation.ClaimedById equals agent.Id into agents
+               from claimant in agents.DefaultIfEmpty()
                select new Row
                {
                    Reservation = reservation,
@@ -85,6 +87,7 @@ internal static class ReservationReadRows
                    Trim = vehicle.Trim,
                    ManufactureYear = vehicle.ManufactureYear,
                    Release = release,
+                   ClaimedBy = claimant.Email,
                    CoverPhotoId = (from publication in database.ListingPublications
                                    join photo in database.ListingRevisionPhotos on publication.RevisionId equals photo.RevisionId
                                    where publication.Id == reservation.PublicationId
@@ -133,7 +136,12 @@ internal static class ReservationReadRows
     public static ReservationHistoryItem ToItem(Row row, bool staff) => new(ReservationReceipt.From(row.Reservation), row.BranchName,
         row.Make, row.Model, row.Trim, row.ManufactureYear, row.Reservation.IsActive,
         row.Release is null ? null : ReservationRefundReceipt.From(row.Release), staff ? row.RegistrationPlate : null,
-        row.CoverPhotoId);
+        row.CoverPhotoId, staff ? ClaimOf(row) : null);
+
+    private static ReservationClaimView? ClaimOf(Row row) => row.Reservation is
+    {
+        IsActive: true, ClaimedAt: { } claimedAt, FrozenRemaining: { } remaining
+    } ? new ReservationClaimView(row.ClaimedBy ?? string.Empty, claimedAt, (long)remaining.TotalSeconds) : null;
 
     private static IOrderedQueryable<Row> OrderReleased(IQueryable<Row> rows, string direction)
     {
@@ -153,6 +161,7 @@ internal static class ReservationReadRows
         public required string Trim { get; init; }
         public int ManufactureYear { get; init; }
         public required ReservationRelease? Release { get; init; }
+        public string? ClaimedBy { get; init; }
         public Guid? CoverPhotoId { get; init; }
     }
 }

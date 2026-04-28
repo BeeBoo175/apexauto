@@ -146,6 +146,15 @@ public sealed class DealService(IDealStore store, TimeProvider clock)
         return store.ListAsync(actorId, query, cancellationToken);
     }
 
+    public static readonly IReadOnlySet<string> QueueViews = new HashSet<string> { "ToClaim", "Handling", "Waiting" };
+
+    public Task<DealResult> QueueAsync(Guid actorId, string? view, int page, int pageSize,
+        CancellationToken cancellationToken) =>
+        actorId == Guid.Empty ? Rejected(DealStatus.Forbidden)
+            : !Pagination.IsValid(page, pageSize) || view is not null && !QueueViews.Contains(view)
+                ? Rejected(DealStatus.Invalid)
+                : store.QueueAsync(actorId, view ?? "ToClaim", page, pageSize, cancellationToken);
+
     public Task<DealResult> DealHistoryAsync(Guid actorId, Guid dealId, int page, int pageSize,
         CancellationToken cancellationToken) => HistoryAsync(actorId, dealId, true, page, pageSize, cancellationToken);
 

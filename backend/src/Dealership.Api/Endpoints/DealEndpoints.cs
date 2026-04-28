@@ -35,6 +35,14 @@ public static class DealEndpoints
             context.HttpContext.Response.Headers.CacheControl = "no-store";
             return await next(context);
         });
+        var sales = app.MapGroup("/api/staff/sales").RequireAuthorization();
+        sales.AddEndpointFilter(async (context, next) =>
+        {
+            context.HttpContext.Response.Headers.CacheControl = "no-store";
+            return await next(context);
+        });
+        sales.MapGet("/queue", QueueAsync);
+
         holds.MapPost("/claims", ClaimAsync);
         holds.MapPost("/assignments", AssignAsync);
         holds.MapPost("/releases", ReleaseAsync);
@@ -66,6 +74,13 @@ public static class DealEndpoints
             token => deals.GetAsync(ActorId(context), dealId, token));
 
     internal sealed record HistoryParameters(int? Page, int? PageSize);
+
+    internal sealed record QueueParameters(string? View, int? Page, int? PageSize);
+
+    private static Task<IResult> QueueAsync([AsParameters] QueueParameters query, HttpContext context, DealService deals,
+        CancellationToken cancellationToken) =>
+        RunAsync(cancellationToken, "The sales queue is temporarily unavailable.", token => deals.QueueAsync(
+            ActorId(context), query.View, query.Page ?? 1, query.PageSize ?? Pagination.DefaultPageSize, token));
 
     private static Task<IResult> DealHistoryAsync(Guid dealId, [AsParameters] HistoryParameters query, HttpContext context,
         DealService deals, CancellationToken cancellationToken) =>
@@ -138,7 +153,7 @@ public static class DealEndpoints
 
     private static IResult Map(DealResult result) => result.Status switch
     {
-        DealStatus.Succeeded => Results.Ok(result.Page ?? result.Deal ?? result.History ?? (object?)result.Options),
+        DealStatus.Succeeded => Results.Ok(result.Page ?? result.Deal ?? result.History ?? result.Queue ?? (object?)result.Options),
         DealStatus.Invalid => Results.Problem(statusCode: 400, title: "Provide valid deal details within the approved limits."),
         DealStatus.Forbidden => Results.Forbid(),
         DealStatus.NotFound => Results.NotFound(),

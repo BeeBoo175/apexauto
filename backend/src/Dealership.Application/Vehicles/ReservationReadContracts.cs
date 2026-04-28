@@ -10,7 +10,7 @@ public sealed record ReservationReadFilter(Guid? BranchId = null, int Page = 1,
     decimal? MinimumTotal = null, decimal? MaximumTotal = null,
     DateTimeOffset? CreatedFrom = null, DateTimeOffset? CreatedUntil = null,
     DateTimeOffset? ExpiresFrom = null, DateTimeOffset? ExpiresUntil = null,
-    DateTimeOffset? ReleasedFrom = null, DateTimeOffset? ReleasedUntil = null)
+    DateTimeOffset? ReleasedFrom = null, DateTimeOffset? ReleasedUntil = null, bool? Claimed = null)
 {
     public bool IsValid => BranchId != Guid.Empty && Pagination.IsValid(Page, PageSize) &&
         Sort is "" or "reference" or "registration" or "vehicle" or "buyer" or "branch" or "created" or "expires" or "released" or "total" or "status" &&
@@ -22,13 +22,17 @@ public sealed record ReservationReadFilter(Guid? BranchId = null, int Page = 1,
         ListDateRange.IsValid(ReleasedFrom, ReleasedUntil);
 }
 
+// Who is handling a claimed hold and since when; the timer stands still at the remaining time.
+public sealed record ReservationClaimView(string Agent, DateTimeOffset ClaimedAtUtc, long FrozenRemainingSeconds);
+
 public sealed record ReservationHistoryItem(ReservationReceipt Receipt, string BranchName,
     string Make, string Model, string Trim, int ManufactureYear, bool IsActive, ReservationRefundReceipt? Release,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? RegistrationPlate,
-    Guid? CoverPhotoId = null);
+    Guid? CoverPhotoId = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] ReservationClaimView? Claim = null);
 
 // Staff view tab totals for the authorized scope, independent of search and column filters.
-public sealed record ReservationCounts(int Active, int History);
+public sealed record ReservationCounts(int Active, int History, int Open = 0, int Handled = 0);
 
 public sealed record ReservationHistoryPage(CurrentActor Actor, IReadOnlyList<ReservationHistoryItem> Items,
     int Total, int Page, int PageSize, ReservationHistoryItem? Active, ReservationCounts? Counts = null);

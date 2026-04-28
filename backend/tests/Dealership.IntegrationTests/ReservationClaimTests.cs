@@ -113,7 +113,7 @@ public sealed class ReservationClaimTests(IntakePhotoFixture fixture) : IClassFi
 
         // One history serves the hold and its deal: every receipt, newest first, with who acted and for whom.
         var history = (await deals.ReservationHistoryAsync(manager, held.Id, 1, 10, default)).History!;
-        Assert.Equal(7, history.Total);
+        Assert.Equal(7, history.TotalCount);
         Assert.Equal(new[] { "Claimed", "Reassigned", "Released", "Assigned", "DealCancelled" }.Order(),
             history.Items.Where(item => item.Source != "Deal").Select(item => item.Kind).Order());
         Assert.Equal(new[] { "Cancelled", "Cancelled" }, history.Items.Where(item => item.Source == "Deal").Select(item => item.Kind));
@@ -125,7 +125,7 @@ public sealed class ReservationClaimTests(IntakePhotoFixture fixture) : IClassFi
         Assert.Contains(history.Items, item => item.Reason == "Claim released");
         Assert.All(history.Items, item => Assert.NotEqual(Guid.Empty, item.Id));
         Assert.Empty((await deals.ReservationHistoryAsync(manager, held.Id, 2, 10, default)).History!.Items);
-        Assert.Equal(history.Total, (await deals.DealHistoryAsync(agent, assigned.Deal.Id, 1, 50, default)).History!.Total);
+        Assert.Equal(history.TotalCount, (await deals.DealHistoryAsync(agent, assigned.Deal.Id, 1, 50, default)).History!.Total);
         Assert.Equal(DealStatus.Succeeded, (await deals.ReservationHistoryAsync(colleague, held.Id, 1, 25, default)).Status);
         Assert.Equal(DealStatus.NotFound, (await deals.ReservationHistoryAsync(otherBranchAgent, held.Id, 1, 25, default)).Status);
         Assert.Equal(DealStatus.Forbidden, (await deals.ReservationHistoryAsync(technician, held.Id, 1, 25, default)).Status);
