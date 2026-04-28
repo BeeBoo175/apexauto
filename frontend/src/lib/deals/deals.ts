@@ -95,6 +95,9 @@ export interface DealContext {
   warrantyMileageCapKm: number | null;
   holdCreatedAtUtc: string | null;
   holdExpiresAtUtc: string | null;
+  // Set while an agent handles the hold: when it was taken and the time that stood still.
+  holdClaimedAtUtc: string | null;
+  holdFrozenRemainingSeconds: number | null;
   staff: Record<string, string>;
 }
 
@@ -204,10 +207,15 @@ export const dealNextSteps = [
   "Cancelled",
 ] as const;
 
+// Agents and managers read and change deals; only managers get the table, agents work from the sales workspace.
 export function hasDealAccess(actor: CurrentActor) {
   return (
     actor.role === "SalesAgent" || actor.role === "BranchManager" || actor.role === "GeneralManager"
   );
+}
+
+export function hasDealTableAccess(actor: CurrentActor) {
+  return actor.role === "BranchManager" || actor.role === "GeneralManager";
 }
 
 // Same table for every role; the starting view and ordering follow what each role does first.
@@ -377,6 +385,8 @@ function parseContext(value: unknown): DealContext | null {
     !(value.warrantyMileageCapKm === null || positive(value.warrantyMileageCapKm)) ||
     !nullableUtc(value.holdCreatedAtUtc) ||
     !nullableUtc(value.holdExpiresAtUtc) ||
+    !nullableUtc(value.holdClaimedAtUtc) ||
+    !(value.holdFrozenRemainingSeconds === null || positive(value.holdFrozenRemainingSeconds)) ||
     !isRecord(value.staff) ||
     !Object.values(value.staff).every((email) => typeof email === "string")
   ) {

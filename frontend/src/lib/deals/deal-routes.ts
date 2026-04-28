@@ -11,11 +11,25 @@ import {
   requestApiJson,
   sessionToken,
 } from "@/lib/server/http/api";
+import type { CurrentActor } from "@/lib/auth/actor";
 import { hasDealAccess } from "./deals";
 
 type Body = Record<string, unknown>;
 
-const upstream = "/api/staff/deals";
+// Which upstream a relay forwards to, who may use it and which resources it will name.
+export interface StaffRelay {
+  upstream: string;
+  access: (actor: CurrentActor) => boolean;
+  reads: RegExp;
+  writes?: RegExp;
+}
+
+const dealRelay: StaffRelay = {
+  upstream: "/api/staff/deals",
+  access: hasDealAccess,
+  reads: /^\/[0-9a-f-]{36}(?:\/options)?$/i,
+};
+
 const listKeys = [
   "page",
   "pageSize",
@@ -49,16 +63,16 @@ export const dealActions = {
   cancellations: { reason: true },
 } as const;
 
-async function dealActor(signal: AbortSignal) {
+async function relayActor(relay: StaffRelay, signal: AbortSignal) {
   const current = await readCurrentActor(signal);
   if (!current.actor) {
     throw new HttpError(current.status === 401 ? 401 : 502, "Your session could not be confirmed.");
   }
-  const denied = !hasDealAccess(current.actor)
+  const denied = !relay.access(current.actor)
     ? apiJson({
         status: 403,
         data: null,
-        message: "Deal access unavailable.",
+        message: "Access unavailable.",
         uncertain: false,
         actor: current.actor,
       })
@@ -66,18 +80,19 @@ async function dealActor(signal: AbortSignal) {
   return { actor: current.actor, denied };
 }
 
-export async function relayDealRead<T>(
+export async function relayStaffRead<T>(
+  relay: StaffRelay,
   request: Request,
   resource: string,
   parse: (value: unknown) => T | null,
   keys: string[] = [],
 ) {
   try {
-    if (resource && !/^\/[0-9a-f-]{36}(?:\/options)?$/i.test(resource)) {
-      throw new HttpError(400, "Choose a valid deal resource.");
+    if (resource && !relay.reads.test(resource)) {
+      throw new HttpError(400, "Choose a valid resource.");
     }
     const signal = AbortSignal.any([request.signal, AbortSignal.timeout(25_000)]);
-    const current = await dealActor(signal);
+    const current = await relayActor(relay, signal);
     if (current.denied) {
       return current.denied;
     }
@@ -89,17 +104,25 @@ export async function relayDealRead<T>(
       }
     }
     const query = allowed.size > 0 ? `?${allowed}` : "";
-    const result = await privateApiRead(`${upstream}${resource}${query}`, parse, signal);
+    const result = await privateApiRead(`${relay.upstream}${resource}${query}`, parse, signal);
     return apiJson({ ...result, actor: current.actor });
   } catch (error) {
     return apiError(error);
   }
 }
 
+export const relayDealRead = <T>(
+  request: Request,
+  resource: string,
+  parse: (value: unknown) => T | null,
+  keys: string[] = [],
+) => relayStaffRead(dealRelay, request, resource, parse, keys);
+
 export const relayDealList = <T>(request: Request, parse: (value: unknown) => T | null) =>
   relayDealRead(request, "", parse, listKeys);
 
-export async function relayDealWrite<T>(
+export async function relayStaffWrite<T>(
+  relay: StaffRelay,
   request: Request,
   resource: string,
   method: "POST" | "PUT",
@@ -113,7 +136,10 @@ export async function relayDealWrite<T>(
     if (!token) {
       throw new HttpError(401, "Sign in to continue.");
     }
-    const current = await dealActor(signal);
+    if (relay.writes && !relay.writes.test(resource)) {
+      throw new HttpError(400, "Choose a valid resource.");
+    }
+    const current = await relayActor(relay, signal);
     if (current.denied) {
       return current.denied;
     }
@@ -125,7 +151,7 @@ export async function relayDealWrite<T>(
     if (!forwarded) {
       throw new HttpError(400, "Provide valid deal details within the approved limits.");
     }
-    const result = await requestApiJson(`${upstream}${resource}`, parse, {
+    const result = await requestApiJson(`${relay.upstream}${resource}`, parse, {
       token,
       signal,
       method,
@@ -139,6 +165,14 @@ export async function relayDealWrite<T>(
     return apiError(error);
   }
 }
+
+export const relayDealWrite = <T>(
+  request: Request,
+  resource: string,
+  method: "POST" | "PUT",
+  shape: (body: Body) => Body | null,
+  parse: (value: unknown) => T | null,
+) => relayStaffWrite(dealRelay, request, resource, method, shape, parse);
 
 const version = (value: unknown): value is number =>
   Number.isSafeInteger(value) && Number(value) > 0;
