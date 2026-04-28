@@ -68,7 +68,7 @@ public static class DealNextStep
 }
 
 public sealed record DealSummary(Guid Id, string? OrderNumber, string Status, string NextStep, Guid VehicleId,
-    string Registration, string Vehicle, Guid CustomerId, string Customer, Guid SalesAgentId, string Agent,
+    string Registration, int ManufactureYear, string Make, string Model, string Trim, Guid CustomerId, string Customer, Guid SalesAgentId, string Agent,
     Guid BranchId, string Branch, decimal BalancePayable, decimal NegotiatedDiscount, decimal? DiscountLimitAtSubmit,
     long Version, DateTimeOffset? SubmittedAtUtc, DateTimeOffset UpdatedAtUtc);
 
@@ -99,6 +99,8 @@ public sealed record DealListQuery(int Page, int PageSize, string View, string? 
 
     public string? Branch { get; init; }
 
+    public string? Registration { get; init; }
+
     public string? NextStep { get; init; }
 
     public decimal? MinimumBalance { get; init; }
@@ -117,7 +119,7 @@ public sealed record DealListQuery(int Page, int PageSize, string View, string? 
 // The extra column filters as they arrive from the request, before validation.
 public sealed record DealColumnFilters(string? Agent, string? Branch, string? NextStep, decimal? MinimumBalance,
     decimal? MaximumBalance, decimal? MinimumDiscount, decimal? MaximumDiscount, string? SubmittedFrom,
-    string? SubmittedTo, string? UpdatedFrom, string? UpdatedTo);
+    string? SubmittedTo, string? UpdatedFrom, string? UpdatedTo, string? Registration = null);
 
 public interface IDealStore
 {

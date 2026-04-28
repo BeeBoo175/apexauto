@@ -33,7 +33,8 @@ public static class DealEndpoints
     internal sealed record DealListParameters(int? Page, int? PageSize, string? View, string? Status, string? Sort,
         string? Direction, string? Number, string? Vehicle, string? Customer, string? Search, string? Agent,
         string? Branch, string? NextStep, decimal? MinimumBalance, decimal? MaximumBalance, decimal? MinimumDiscount,
-        decimal? MaximumDiscount, string? SubmittedFrom, string? SubmittedTo, string? UpdatedFrom, string? UpdatedTo);
+        decimal? MaximumDiscount, string? SubmittedFrom, string? SubmittedTo, string? UpdatedFrom, string? UpdatedTo,
+        string? Registration);
 
     private static Task<IResult> ListAsync([AsParameters] DealListParameters query, HttpContext context,
         DealService deals, CancellationToken cancellationToken) =>
@@ -42,7 +43,7 @@ public static class DealEndpoints
             query.Direction, query.Number, query.Vehicle, query.Customer, query.Search,
             new DealColumnFilters(query.Agent, query.Branch, query.NextStep, query.MinimumBalance,
                 query.MaximumBalance, query.MinimumDiscount, query.MaximumDiscount, query.SubmittedFrom,
-                query.SubmittedTo, query.UpdatedFrom, query.UpdatedTo), token));
+                query.SubmittedTo, query.UpdatedFrom, query.UpdatedTo, query.Registration), token));
 
     private static Task<IResult> VehiclesAsync(string? search, HttpContext context, DealService deals,
         CancellationToken cancellationToken) =>

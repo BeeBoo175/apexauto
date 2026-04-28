@@ -172,6 +172,7 @@ public sealed class DealStore(DealershipDbContext database) : IDealStore
         public string Plate { get; init; } = string.Empty;
         public string Make { get; init; } = string.Empty;
         public string Model { get; init; } = string.Empty;
+        public string Trim { get; init; } = string.Empty;
         public int Year { get; init; }
         public Guid CustomerId { get; init; }
         public string Customer { get; init; } = string.Empty;
@@ -206,7 +207,7 @@ public sealed class DealStore(DealershipDbContext database) : IDealStore
             .ToListAsync(cancellationToken);
         var summaries = items.Select(row => new DealSummary(row.Id, row.OrderNumber, row.Status.ToString(),
             DealNextStep.For(row.Status, row.OrderNumber is not null), row.VehicleId, row.Plate,
-            $"{row.Year} {row.Make} {row.Model}", row.CustomerId, row.Customer, row.AgentId, row.Agent ?? string.Empty,
+            row.Year, row.Make, row.Model, row.Trim, row.CustomerId, row.Customer, row.AgentId, row.Agent ?? string.Empty,
             row.BranchId, row.Branch, row.Balance, row.Negotiated, row.Limit, row.Version, row.Submitted, row.Updated))
             .ToList();
         return new(DealStatus.Succeeded, Page: new DealPage(summaries, total, query.Page, query.PageSize, counts));
@@ -319,6 +320,7 @@ public sealed class DealStore(DealershipDbContext database) : IDealStore
             Plate = vehicle.RegistrationPlate,
             Make = vehicle.Make,
             Model = vehicle.Model,
+            Trim = vehicle.Trim,
             Year = vehicle.ManufactureYear,
             CustomerId = order.CustomerId,
             Customer = profile.LegalName,
@@ -355,10 +357,15 @@ public sealed class DealStore(DealershipDbContext database) : IDealStore
                 EF.Functions.ILike(row.OrderNumber, Contains(query.Number), "\\"));
         }
 
+        if (query.Registration is not null)
+        {
+            rows = rows.Where(row => EF.Functions.ILike(row.Plate, Contains(query.Registration), "\\"));
+        }
+
         if (query.Vehicle is not null)
         {
-            rows = rows.Where(row => EF.Functions.ILike(row.Plate, Contains(query.Vehicle), "\\") ||
-                EF.Functions.ILike(row.Make + " " + row.Model, Contains(query.Vehicle), "\\"));
+            rows = rows.Where(row => EF.Functions.ILike(
+                row.Year + " " + row.Make + " " + row.Model + " " + row.Trim, Contains(query.Vehicle), "\\"));
         }
 
         if (query.Customer is not null)
@@ -421,7 +428,8 @@ public sealed class DealStore(DealershipDbContext database) : IDealStore
             : rows.Where(row =>
                 row.OrderNumber != null && EF.Functions.ILike(row.OrderNumber, Contains(query.Search), "\\") ||
                 EF.Functions.ILike(row.Plate, Contains(query.Search), "\\") ||
-                EF.Functions.ILike(row.Make + " " + row.Model, Contains(query.Search), "\\") ||
+                EF.Functions.ILike(row.Year + " " + row.Make + " " + row.Model + " " + row.Trim,
+                    Contains(query.Search), "\\") ||
                 EF.Functions.ILike(row.Customer, Contains(query.Search), "\\"));
     }
 
@@ -435,7 +443,11 @@ public sealed class DealStore(DealershipDbContext database) : IDealStore
         {
             "number" => (down ? rows.OrderByDescending(row => row.OrderNumber) : rows.OrderBy(row => row.OrderNumber))
                 .ThenBy(row => row.Id),
-            "vehicle" => (down ? rows.OrderByDescending(row => row.Plate) : rows.OrderBy(row => row.Plate))
+            "registration" => (down ? rows.OrderByDescending(row => row.Plate) : rows.OrderBy(row => row.Plate))
+                .ThenBy(row => row.Id),
+            "vehicle" => (down
+                    ? rows.OrderByDescending(row => row.Year + " " + row.Make + " " + row.Model + " " + row.Trim)
+                    : rows.OrderBy(row => row.Year + " " + row.Make + " " + row.Model + " " + row.Trim))
                 .ThenBy(row => row.Id),
             "customer" => (down ? rows.OrderByDescending(row => row.Customer) : rows.OrderBy(row => row.Customer))
                 .ThenBy(row => row.Id),

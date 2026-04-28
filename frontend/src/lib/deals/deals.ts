@@ -25,6 +25,7 @@ export const dealStatusLabels: Record<DealStatus, string> = {
 
 export const dealSorts = [
   "number",
+  "registration",
   "vehicle",
   "customer",
   "agent",
@@ -42,7 +43,10 @@ export interface DealSummary {
   nextStep: string;
   vehicleId: string;
   registration: string;
-  vehicle: string;
+  manufactureYear: number;
+  make: string;
+  model: string;
+  trim: string;
   customerId: string;
   customer: string;
   salesAgentId: string;
@@ -165,6 +169,7 @@ export interface DealFilters {
   sort: string;
   direction: "asc" | "desc";
   number: string;
+  registration: string;
   vehicle: string;
   customer: string;
   search: string;
@@ -184,6 +189,7 @@ export interface DealFilters {
 // Every column filter key beyond status, in the order they are sent upstream.
 export const dealTextKeys = [
   "number",
+  "registration",
   "vehicle",
   "customer",
   "search",
@@ -224,6 +230,7 @@ export function defaultDealFilters(role: CurrentActor["role"]): DealFilters {
     sort: manager ? "submitted" : "updated",
     direction: manager ? "asc" : "desc",
     number: "",
+    registration: "",
     vehicle: "",
     customer: "",
     search: "",
@@ -262,7 +269,10 @@ export function parseDealSummary(value: unknown): DealSummary | null {
     !text(value.nextStep) ||
     !isUuid(value.vehicleId) ||
     !text(value.registration) ||
-    !text(value.vehicle) ||
+    !count(value.manufactureYear) ||
+    !text(value.make) ||
+    !text(value.model) ||
+    typeof value.trim !== "string" ||
     !isUuid(value.customerId) ||
     !text(value.customer) ||
     !isUuid(value.salesAgentId) ||

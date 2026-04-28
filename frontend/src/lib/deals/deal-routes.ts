@@ -24,6 +24,7 @@ const listKeys = [
   "sort",
   "direction",
   "number",
+  "registration",
   "vehicle",
   "customer",
   "search",

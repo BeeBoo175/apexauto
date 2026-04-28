@@ -10,7 +10,6 @@ import {
 import type { DataColumn } from "@/components/ui/data-table/types";
 import { dateRangeLabel } from "@/lib/date-range-label";
 import {
-  dealNextSteps,
   dealStatusLabels,
   dealStatuses,
   type DealFilters,
@@ -22,7 +21,8 @@ export type LoadDeals = (filters: DealFilters, page: number) => Promise<boolean>
 
 const money = (minimum: string, maximum: string) => `MYR ${minimum || "0"}–${maximum || "any"}`;
 
-// Every column carries a filter, so the toolbar search and the headers cover the same data.
+// Every shown column carries a filter. Next step and submitted date moved to the drawer; filters already in
+// the address still show as removable chips below.
 export function dealTableFilters(
   filters: DealFilters,
   busy: boolean,
@@ -33,6 +33,7 @@ export function dealTableFilters(
   const applied: AppliedWorklistFilter<DealFilters>[] = [];
   const texts = [
     { key: "number", label: "Deal", title: "Deal" },
+    { key: "registration", label: "Registration", title: "Registration" },
     { key: "vehicle", label: "Vehicle", title: "Vehicle" },
     { key: "customer", label: "Customer", title: "Customer" },
     { key: "agent", label: "Agent", title: "Agent" },
@@ -104,19 +105,6 @@ export function dealTableFilters(
         onApply={(status) => apply({ status })}
       />
     ),
-    nextStep: (
-      <ChoiceColumnFilter
-        label="Next step"
-        options={[
-          { value: "", label: "Any next step" },
-          ...dealNextSteps.map((value) => ({ value, label: value })),
-        ]}
-        value={filters.nextStep}
-        empty=""
-        busy={busy}
-        onApply={(nextStep) => apply({ nextStep })}
-      />
-    ),
     balance: (
       <MoneyRangeFilter
         minimum={filters.minimumBalance}
@@ -131,14 +119,6 @@ export function dealTableFilters(
         maximum={filters.maximumDiscount}
         busy={busy}
         onApply={(minimumDiscount, maximumDiscount) => apply({ minimumDiscount, maximumDiscount })}
-      />
-    ),
-    submitted: (
-      <DateRangeFilter
-        from={filters.submittedFrom}
-        to={filters.submittedTo}
-        busy={busy}
-        onApply={(submittedFrom, submittedTo) => apply({ submittedFrom, submittedTo })}
       />
     ),
     updated: (
@@ -162,15 +142,14 @@ export function dealTableFilters(
   }
   const active: Record<string, boolean> = {
     number: Boolean(filters.number),
+    registration: Boolean(filters.registration),
     vehicle: Boolean(filters.vehicle),
     customer: Boolean(filters.customer),
     agent: Boolean(filters.agent),
     branch: Boolean(filters.branch),
     status: Boolean(filters.status),
-    nextStep: Boolean(filters.nextStep),
     balance: Boolean(filters.minimumBalance || filters.maximumBalance),
     discount: Boolean(filters.minimumDiscount || filters.maximumDiscount),
-    submitted: Boolean(filters.submittedFrom || filters.submittedTo),
     updated: Boolean(filters.updatedFrom || filters.updatedTo),
   };
   return {

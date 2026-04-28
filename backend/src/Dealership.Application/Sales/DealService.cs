@@ -78,7 +78,7 @@ public sealed class DealService(IDealStore store, TimeProvider clock)
 
     public static readonly IReadOnlySet<string> Sorts = new HashSet<string>
     {
-        "number", "vehicle", "customer", "agent", "status", "balance", "discount", "submitted", "updated"
+        "number", "registration", "vehicle", "customer", "agent", "status", "balance", "discount", "submitted", "updated"
     };
 
     public static readonly IReadOnlySet<string> NextSteps = new HashSet<string>
@@ -95,7 +95,7 @@ public sealed class DealService(IDealStore store, TimeProvider clock)
             return Rejected(DealStatus.Forbidden);
         }
 
-        var texts = new[] { number, vehicle, customer, search, columns.Agent, columns.Branch }
+        var texts = new[] { number, vehicle, customer, search, columns.Agent, columns.Branch, columns.Registration }
             .Select(item => item?.Trim()).ToArray();
         var state = view ?? "All";
         var submitted = ListDateRange.Parse(columns.SubmittedFrom, columns.SubmittedTo);
@@ -117,6 +117,7 @@ public sealed class DealService(IDealStore store, TimeProvider clock)
         {
             Agent = Clean(texts[4]),
             Branch = Clean(texts[5]),
+            Registration = Clean(texts[6]),
             NextStep = columns.NextStep,
             MinimumBalance = columns.MinimumBalance,
             MaximumBalance = columns.MaximumBalance,

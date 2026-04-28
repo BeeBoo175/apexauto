@@ -12,7 +12,10 @@ import {
 export const dealExportColumns: readonly CsvColumn<DealSummary>[] = [
   { label: "Deal number", value: (row) => row.orderNumber ?? "" },
   { label: "Registration", value: (row) => row.registration },
-  { label: "Vehicle", value: (row) => row.vehicle },
+  {
+    label: "Vehicle",
+    value: (row) => `${row.manufactureYear} ${row.make} ${row.model} ${row.trim}`.trim(),
+  },
   { label: "Customer", value: (row) => row.customer },
   { label: "Status", value: (row) => dealStatusLabels[row.status] },
   { label: "Next step", value: (row) => row.nextStep },

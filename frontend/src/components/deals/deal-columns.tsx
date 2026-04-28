@@ -1,3 +1,4 @@
+import { VehicleDescription, VehicleRegistration } from "@/components/staff/VehicleTableCells";
 import { Badge } from "@/components/ui/Badge";
 import type { DataColumn } from "@/components/ui/data-table/types";
 import type { CurrentActor } from "@/lib/auth/actor";
@@ -15,14 +16,28 @@ const statusTones: Record<DealStatus, string> = {
   Cancelled: tones.neutral,
 };
 
-function When({ value }: { value: string | null }) {
-  if (!value) {
-    return <span className={styles.muted}>Not submitted</span>;
-  }
+function When({ value }: { value: string }) {
   return (
     <time className={styles.date} dateTime={value}>
       {formatMalaysianDateTime(value)}
     </time>
+  );
+}
+
+// Only open deals have something left to do, so only they carry the next step beside the status.
+function StatusCell({ row }: { row: DealSummary }) {
+  const open = row.status === "Draft" || row.status === "PendingManagerApproval";
+  return (
+    <div className={styles.inline}>
+      <Badge className={`${tones.badge} ${statusTones[row.status]} ${styles.status}`}>
+        {dealStatusLabels[row.status]}
+      </Badge>
+      {open && (
+        <span className={`${styles.muted} ${styles.context}`} title={row.nextStep}>
+          {row.nextStep}
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -60,15 +75,18 @@ export function dealColumns(role: CurrentActor["role"]): DataColumn<DealSummary>
         ),
     },
     {
+      id: "registration",
+      label: "Registration",
+      sortable: true,
+      ...staffColumnSizing.registration,
+      cell: (row) => <VehicleRegistration registration={row.registration} />,
+    },
+    {
       id: "vehicle",
       label: "Vehicle",
       sortable: true,
       ...staffColumnSizing.vehicle,
-      cell: (row) => (
-        <>
-          <strong>{row.registration}</strong> <span className={styles.muted}>{row.vehicle}</span>
-        </>
-      ),
+      cell: (row) => <VehicleDescription vehicle={row} />,
     },
     {
       id: "customer",
@@ -82,14 +100,8 @@ export function dealColumns(role: CurrentActor["role"]): DataColumn<DealSummary>
       label: "Status",
       sortable: true,
       ...staffColumnSizing.statusWithContext,
-      cell: (row) => (
-        <Badge className={`${tones.badge} ${statusTones[row.status]} ${styles.status}`}>
-          {dealStatusLabels[row.status]}
-        </Badge>
-      ),
+      cell: (row) => <StatusCell row={row} />,
     },
-    { id: "nextStep", label: "Next step", width: 208, cell: (row) => row.nextStep },
-    // Filterable by next step; ordering follows status, which determines it.
     {
       id: "balance",
       label: "Balance payable",
@@ -115,13 +127,6 @@ export function dealColumns(role: CurrentActor["role"]): DataColumn<DealSummary>
         sortable: true,
         ...staffColumnSizing.person,
         cell: (row) => row.agent,
-      },
-      {
-        id: "submitted",
-        label: "Submitted",
-        sortable: true,
-        ...staffColumnSizing.dateTime,
-        cell: (row) => <When value={row.submittedAtUtc} />,
       },
     );
   }

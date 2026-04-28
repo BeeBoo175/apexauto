@@ -124,7 +124,6 @@ public sealed class DealStoreTests(IntakePhotoFixture fixture) : IClassFixture<I
             (await ListAsync(deals, manager, sort: "number", direction: "asc")).Page!.Items.Select(item => item.OrderNumber));
         Assert.Equal(new[] { $"VPO-{year}-000002", $"VPO-{year}-000001" },
             (await ListAsync(deals, manager, sort: "number", direction: "desc")).Page!.Items.Select(item => item.OrderNumber));
-        Assert.Equal(2, (await ListAsync(deals, manager, vehicle: newest.Registration[1..^1])).Page!.Total);
         Assert.Equal(0, (await ListAsync(deals, manager, vehicle: "zzzz")).Page!.Total);
         Assert.Equal(2, (await ListAsync(deals, manager, customer: "HAFIZ")).Page!.Total);
         Assert.Equal(0, (await ListAsync(deals, manager, customer: "%")).Page!.Total);
@@ -137,9 +136,13 @@ public sealed class DealStoreTests(IntakePhotoFixture fixture) : IClassFixture<I
         Assert.Equal(DealStatus.Invalid, (await ListAsync(deals, manager, search: new string('x', 161))).Status);
         DealColumnFilters Columns(string? agent = null, string? branch = null, string? nextStep = null,
             decimal? minBalance = null, decimal? maxBalance = null, decimal? minDiscount = null,
-            decimal? maxDiscount = null, string? updatedFrom = null, string? updatedTo = null) =>
+            decimal? maxDiscount = null, string? updatedFrom = null, string? updatedTo = null,
+            string? registration = null) =>
             new(agent, branch, nextStep, minBalance, maxBalance, minDiscount, maxDiscount, null, null, updatedFrom,
-                updatedTo);
+                updatedTo, registration);
+        Assert.Equal(2, (await ListAsync(deals, manager,
+            columns: Columns(registration: newest.Registration[1..^1]))).Page!.Total);
+        Assert.Equal(0, (await ListAsync(deals, manager, columns: Columns(registration: "zzzz"))).Page!.Total);
         Assert.Equal(1, (await ListAsync(deals, manager, columns: Columns(agent: $"staff.{agent:N}"))).Page!.Total);
         Assert.Equal(2, (await ListAsync(deals, manager, columns: Columns(branch: newest.Branch[..3]))).Page!.Total);
         Assert.Equal(0, (await ListAsync(deals, manager, columns: Columns(branch: "zzzz"))).Page!.Total);
