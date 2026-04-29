@@ -58,6 +58,7 @@ export type Draft = {
   vehicleId: string;
   branchId: string;
   technicianId: string;
+  technicianIdentity: string;
   assignmentVersion: number;
   createdAt: string;
   latestSave: Save | null;

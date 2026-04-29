@@ -37,7 +37,7 @@ public sealed class ReservationPersistenceTests(IntakePhotoFixture fixture) : IC
         var profile = await database.CustomerProfiles.SingleAsync(item => item.UserId == data.OwnerId);
         var reservation = new Reservation(Guid.NewGuid(), profile, data.CustomerEmail, first.Publication,
             first.Revision, settings, promo, await NowAsync(database));
-        database.Reservations.Add(reservation);
+        database.Reservations.Add(Numbered(reservation));
         await database.SaveChangesAsync();
 
         await database.Database.ExecuteSqlInterpolatedAsync($"""
@@ -108,7 +108,7 @@ public sealed class ReservationPersistenceTests(IntakePhotoFixture fixture) : IC
         await VerifyRacesAsync(data, services, first, second, currentSettings);
         var next = new Reservation(Guid.NewGuid(), profile, data.CustomerEmail, second.Publication,
             second.Revision, currentSettings, null, await NowAsync(database));
-        database.Reservations.Add(next);
+        database.Reservations.Add(Numbered(next));
         await database.SaveChangesAsync();
         var reopened = await services.GetRequiredService<InspectionReopeningService>().ReopenAsync(manager, second.InspectionId,
             new(Guid.NewGuid(), 1, 1, "Reinspect before confirming sale"), CancellationToken.None);
@@ -117,7 +117,7 @@ public sealed class ReservationPersistenceTests(IntakePhotoFixture fixture) : IC
 
         var third = new Reservation(Guid.NewGuid(), profile, data.CustomerEmail, first.Publication,
             first.Revision, currentSettings, null, await NowAsync(database));
-        database.Reservations.Add(third);
+        database.Reservations.Add(Numbered(third));
         await database.SaveChangesAsync();
         var withdrawn = await services.GetRequiredService<ListingService>().WithdrawAsync(manager, first.Revision.VehicleId,
             new(Guid.NewGuid(), first.Publication.Id, "Correct public description"), CancellationToken.None);
@@ -170,7 +170,7 @@ public sealed class ReservationPersistenceTests(IntakePhotoFixture fixture) : IC
         var preciseSettings = await database.PurchaseSettings.AsNoTracking().SingleAsync();
         var precise = new Reservation(Guid.NewGuid(), profile, data.CustomerEmail, first.Publication, first.Revision,
             preciseSettings, null, await NowAsync(database));
-        database.Reservations.Add(precise);
+        database.Reservations.Add(Numbered(precise));
         await database.SaveChangesAsync();
         Assert.Equal(0m, (await database.Reservations.AsNoTracking().SingleAsync(item => item.Id == precise.Id)).Price.ServiceTax);
         await CancelAsync(precise);
@@ -178,10 +178,23 @@ public sealed class ReservationPersistenceTests(IntakePhotoFixture fixture) : IC
             .SetProperty(item => item.ProcessingFee, settings.ProcessingFee).SetProperty(item => item.SstRate, settings.SstRate));
     }
 
+    // These tests build holds directly, so each takes the next free reference the service would have assigned.
+    private static int numbers;
+
+    private static Reservation Numbered(Reservation reservation)
+    {
+        if (reservation.Number.Length == 0)
+        {
+            reservation.AssignNumber($"VRS-2026-{Interlocked.Increment(ref numbers):D6}");
+        }
+
+        return reservation;
+    }
+
     private async Task<bool> TryInsertAsync(Reservation reservation)
     {
         await using var database = NewContext();
-        database.Reservations.Add(reservation);
+        database.Reservations.Add(Numbered(reservation));
         try
         {
             await database.SaveChangesAsync();

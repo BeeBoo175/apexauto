@@ -119,7 +119,7 @@ export function AccountReservations({
                 </div>
               </div>
               <details className={styles.disclosure}>
-                <summary>View reservation {item.receipt.id}</summary>
+                <summary>View reservation {item.receipt.number}</summary>
                 <ReservationTerms item={item} />
               </details>
             </article>

@@ -43,9 +43,40 @@ export function ListingPublication({
             <div>
               <dt>Current signed inspection</dt>
               <dd>
-                {snapshot.currentSignedRevisionId
-                  ? "Signed inspection recorded"
-                  : "No current signed inspection"}
+                {snapshot.currentSignedReport ? (
+                  <a
+                    href={`/dashboard/inspection/${snapshot.currentSignedReport.inspectionId}/reports/${snapshot.currentSignedReport.revision}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Open signed report
+                  </a>
+                ) : (
+                  "No current signed inspection"
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt>Vehicle</dt>
+              <dd>
+                {snapshot.vehicle.manufactureYear} {snapshot.vehicle.make} {snapshot.vehicle.model}{" "}
+                {snapshot.vehicle.trim}
+              </dd>
+            </div>
+            <div>
+              <dt>Mileage</dt>
+              <dd>{snapshot.vehicle.mileageKilometres.toLocaleString("en-MY")} km</dd>
+            </div>
+            <div>
+              <dt>VIN</dt>
+              <dd>{snapshot.vin}</dd>
+            </div>
+            <div>
+              <dt>Held by</dt>
+              <dd>
+                {snapshot.hold
+                  ? `${snapshot.hold.buyer}${snapshot.hold.agent ? ` · handled by ${snapshot.hold.agent}` : ""}`
+                  : "Not on hold"}
               </dd>
             </div>
           </dl>

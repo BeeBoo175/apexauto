@@ -71,6 +71,7 @@ internal static class ReservationReadRows
     // What staff look a hold up by: vehicle, buyer and contact, promo and handler. Branch is only a choice for the group scope, and no identifier is matched.
     private static IQueryable<Row> Search(IQueryable<Row> rows, string pattern, bool searchBranch) =>
         rows.Where(row => EF.Functions.ILike(row.RegistrationPlate, pattern, "!") ||
+            EF.Functions.ILike(row.Reservation.Number, pattern, "!") ||
             EF.Functions.ILike(row.Vin, pattern, "!") ||
             EF.Functions.ILike(row.ManufactureYear + " " + row.Make + " " + row.Model + " " + row.Trim, pattern, "!") ||
             EF.Functions.ILike(row.Reservation.Buyer.LegalName, pattern, "!") ||

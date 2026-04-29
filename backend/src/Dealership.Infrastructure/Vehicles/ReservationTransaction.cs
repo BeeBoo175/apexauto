@@ -18,6 +18,8 @@ internal sealed class ReservationTransaction(DealershipDbContext database, IDbCo
         await transaction.CreateSavepointAsync("reservation_confirmation", cancellationToken);
         if (reservation is not null)
         {
+            // Inside the savepoint, so a rejected confirmation gives its number back.
+            reservation.AssignNumber(await NextNumberAsync(reservation.CreatedAt.Year, cancellationToken));
             database.Reservations.Add(reservation);
             database.ReservationMailOutbox.Add(new ReservationMail(reservation));
         }
@@ -45,6 +47,18 @@ internal sealed class ReservationTransaction(DealershipDbContext database, IDbCo
         {
             return await RejectConfirmationAsync(cancellationToken);
         }
+    }
+
+    private async Task<string> NextNumberAsync(int year, CancellationToken cancellationToken)
+    {
+        await database.Database.ExecuteSqlInterpolatedAsync(
+            $"INSERT INTO \"ReservationNumberCounters\" (\"Year\", \"LastValue\") VALUES ({year}, 0) ON CONFLICT (\"Year\") DO NOTHING",
+            cancellationToken);
+        var counter = await database.ReservationNumberCounters.FromSqlInterpolated(
+            $"SELECT * FROM \"ReservationNumberCounters\" WHERE \"Year\" = {year} FOR UPDATE").SingleAsync(cancellationToken);
+        var number = counter.Next();
+        await database.SaveChangesAsync(cancellationToken);
+        return number;
     }
 
     private async Task<ReservationStatus> RejectConfirmationAsync(CancellationToken cancellationToken)

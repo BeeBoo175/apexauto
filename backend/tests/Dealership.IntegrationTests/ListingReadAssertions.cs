@@ -46,6 +46,15 @@ internal static class ListingReadAssertions
         Assert.Equal(ListingStatus.Invalid, (await store.ReadAsync(manager, new(PageSize: 8), CancellationToken.None)).Status);
         Assert.Empty((await store.ReadAsync(manager, new(Search: "%"), CancellationToken.None)).Listings!.Items);
         Assert.Single((await store.ReadAsync(manager, new(Search: "WYY 8800"), CancellationToken.None)).Listings!.Items);
+        // The table shows the year, so search finds it; the VIN is searchable and the branch name is for the group scope only.
+        var searched = (await store.ReadAsync(manager, new(Search: "WYY 8800"), CancellationToken.None)).Listings!.Items[0];
+        Assert.Contains(searched.VehicleId, (await store.ReadAsync(manager, new(Search: $"{searched.ManufactureYear} {searched.Make}"),
+            CancellationToken.None)).Listings!.Items.Select(item => item.VehicleId));
+        var searchedVin = await database.Vehicles.Where(vehicle => vehicle.Id == searched.VehicleId).Select(vehicle => vehicle.Vin).SingleAsync();
+        Assert.Contains(searched.VehicleId, (await store.ReadAsync(manager, new(Search: searchedVin), CancellationToken.None))
+            .Listings!.Items.Select(item => item.VehicleId));
+        Assert.Empty((await store.ReadAsync(manager, new(Search: searched.BranchName), CancellationToken.None)).Listings!.Items);
+        Assert.NotEmpty((await store.ReadAsync(group, new(Search: searched.BranchName), CancellationToken.None)).Listings!.Items);
         Assert.Empty((await store.ReadAsync(manager, new(Page: int.MaxValue), CancellationToken.None)).Listings!.Items);
         var workspace = (await store.WorkspaceAsync(manager, vehicleId, CancellationToken.None)).Workspace!;
         Assert.Equal(workspace.Draft!.Id, workspace.ApprovedRevision!.Id);
@@ -55,6 +64,8 @@ internal static class ListingReadAssertions
         Assert.Equal(signed.InspectionId, workspace.CurrentSignedReport!.InspectionId);
         Assert.Equal(signed.Revision, workspace.CurrentSignedReport.Revision);
         Assert.True(workspace.Vehicle.IsPublic);
+        Assert.False(string.IsNullOrEmpty(workspace.Vin));
+        Assert.Null(workspace.Hold);
         var matched = (await store.ReadAsync(manager, new(Registration: workspace.Vehicle.RegistrationPlate,
             Vehicle: $"{workspace.Vehicle.ManufactureYear} {workspace.Vehicle.Make}",
             MinimumPublishedPrice: workspace.Vehicle.ApprovedVehiclePrice,

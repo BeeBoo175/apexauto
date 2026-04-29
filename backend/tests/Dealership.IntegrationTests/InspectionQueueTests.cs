@@ -54,6 +54,19 @@ public sealed class InspectionQueueTests(IntakePhotoFixture fixture) : IClassFix
         var filteredWork = (await workshop.ReadAsync(manager, columnFilter, WorkshopTask.Active, CancellationToken.None)).Queue!;
         Assert.Equal(1, filteredWork.Total);
         Assert.Equal(vehicles[2], Assert.Single(filteredWork.Items).VehicleId);
+
+        // The workshop search finds a vehicle by year and make, VIN and technician, never by identifier, and only the group scope searches branches.
+        var searched = await database.Vehicles.AsNoTracking().SingleAsync(item => item.Id == vehicles[2]);
+        async Task<int> SearchAsync(Guid actor, string term) => (await workshop.ReadAsync(actor,
+            new InspectionQueueFilter(Search: term), WorkshopTask.Active, CancellationToken.None)).Queue!.Items
+            .Count(item => item.VehicleId == vehicles[2]);
+        Assert.Equal(1, await SearchAsync(manager, $"{searched.ManufactureYear} {searched.Make}"));
+        Assert.Equal(1, await SearchAsync(manager, searched.Vin));
+        Assert.Equal(0, await SearchAsync(manager, vehicles[2].ToString()));
+        Assert.Equal(0, await SearchAsync(manager, searched.BranchId.ToString()));
+        var branchName = await database.Branches.AsNoTracking().Where(item => item.Id == searched.BranchId).Select(item => item.Name).SingleAsync();
+        Assert.Equal(0, await SearchAsync(manager, branchName));
+        Assert.Equal(1, await SearchAsync(group, branchName));
         Assert.Empty((await workshop.ReadAsync(manager, columnFilter with { Registration = "%" },
             WorkshopTask.Active, CancellationToken.None)).Queue!.Items);
         Assert.Empty((await workshop.ReadAsync(technician, columnFilter with { Registration = "8822", WorkStatus = "" },
@@ -82,8 +95,9 @@ public sealed class InspectionQueueTests(IntakePhotoFixture fixture) : IClassFix
         }
         Assert.Equal(vehicles[0], Assert.Single((await queues.InspectionsAsync(manager,
             new(Search: "wyy 8821"), InspectionQueueStatus.All, CancellationToken.None)).Queue!.Items).VehicleId);
-        Assert.Equal(vehicles[0], Assert.Single((await queues.InspectionsAsync(manager,
-            new(Search: vehicles[0].ToString()), InspectionQueueStatus.All, CancellationToken.None)).Queue!.Items).VehicleId);
+        // Identifiers are never matched.
+        Assert.Empty((await queues.InspectionsAsync(manager,
+            new(Search: vehicles[0].ToString()), InspectionQueueStatus.All, CancellationToken.None)).Queue!.Items);
 
         var save = new InspectionDraftSaveRequest(Guid.NewGuid(), 1, 0,
             [new("EP-004", InspectionEntryKind.Finding, InspectionSeverity.MinorDefect, 250m, "Shallow bumper scratch")])
@@ -109,8 +123,8 @@ public sealed class InspectionQueueTests(IntakePhotoFixture fixture) : IClassFix
         {
             Assert.Empty((await queues.RepairsAsync(manager, new(Search: term), InspectionRepairQueueStatus.All, CancellationToken.None)).Queue!.Items);
         }
-        Assert.Equal(receipt.OperationId, Assert.Single((await queues.RepairsAsync(manager, new(Search: inspection.ToString()),
-            InspectionRepairQueueStatus.All, CancellationToken.None)).Queue!.Items).RequestId);
+        Assert.Empty((await queues.RepairsAsync(manager, new(Search: inspection.ToString()),
+            InspectionRepairQueueStatus.All, CancellationToken.None)).Queue!.Items);
 
         var interceptor = new ApprovalAfterCount(async () =>
         {

@@ -8,6 +8,8 @@ public sealed record InspectionAssignmentRequest(Guid OperationId, Guid Technici
 public sealed record InspectionDraftSnapshot(Guid Id, Guid VehicleId, Guid BranchId, Guid TechnicianId,
     long AssignmentVersion, DateTimeOffset CreatedAt, InspectionDraftSaveReceipt? LatestSave)
 {
+    // Staff identify the assigned technician by email, not by id.
+    public string TechnicianIdentity { get; init; } = string.Empty;
     public long Revision { get; init; } = 1;
     public bool IsSigned { get; init; }
     public long ReopenedAfterSaveVersion { get; init; }

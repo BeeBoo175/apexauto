@@ -27,7 +27,7 @@ export const reservationExportColumns: readonly CsvColumn<ReservationItem>[] = [
   },
   { label: "Created (Malaysia)", value: (row) => formatMalaysianDateTime(row.createdAt) },
   { label: "Branch", value: (row) => row.branchName },
-  { label: "Reference", value: (row) => row.id },
+  { label: "Reference", value: (row) => row.number },
 ];
 
 export async function exportReservations(filters: ReservationFilters, cancellation: AbortSignal) {

@@ -6,12 +6,12 @@ namespace Dealership.Application.Vehicles;
 
 public sealed record ReservationReceipt(Guid Id, Guid VehicleId, Guid BranchId, Guid PublicationId,
     ReservationBuyer Buyer, Guid? PromoId, string? PromoCode, decimal SstRate, PurchasePrice Price,
-    decimal Deposit, DateTimeOffset CreatedAt, DateTimeOffset ExpiresAt)
+    decimal Deposit, DateTimeOffset CreatedAt, DateTimeOffset ExpiresAt, string Number = "")
 {
     public static ReservationReceipt From(Reservation reservation) => new(reservation.Id, reservation.VehicleId,
         reservation.BranchId, reservation.PublicationId, reservation.Buyer, reservation.PromoId,
         reservation.PromoCode, EncodeDecimal(reservation.SstRate), EncodePrice(reservation.Price), EncodeDecimal(reservation.Deposit),
-        reservation.CreatedAt, reservation.ExpiresAt);
+        reservation.CreatedAt, reservation.ExpiresAt, reservation.Number);
 }
 
 public sealed record ReservationRefundReceipt(Guid Id, Guid ReservationId, string Kind, Guid? ActorId,

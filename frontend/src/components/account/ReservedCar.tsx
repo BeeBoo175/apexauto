@@ -72,7 +72,7 @@ export function ReservedCar({
         </div>
       </div>
       <div className={styles.reservationActions}>
-        <p className={styles.reference}>Reservation {item.receipt.id}</p>
+        <p className={styles.reference}>Reservation {item.receipt.number}</p>
         {item.isActive && (
           <Button variant="ghost" disabled={disabled} onClick={onCancel}>
             Cancel reservation

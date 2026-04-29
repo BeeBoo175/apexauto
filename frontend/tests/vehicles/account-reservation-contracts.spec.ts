@@ -13,6 +13,7 @@ const id = "2f35e1b2-602b-43dc-8c5f-4085893b0ea8";
 const other = "e26136c6-6e1b-46c2-9bb5-c28e2f01dd8c";
 const receipt = {
   id,
+  number: "VRS-2026-000001",
   vehicleId: other,
   branchId: other,
   publicationId: other,

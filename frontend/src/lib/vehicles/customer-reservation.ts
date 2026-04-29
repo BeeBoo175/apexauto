@@ -15,8 +15,13 @@ export interface CustomerReservationRequest {
   promoId: string | null;
 }
 
+// The reference customers and staff quote, VRS-YYYY-NNNNNN.
+export const reservationNumber = (value: unknown): value is string =>
+  typeof value === "string" && /^VRS-[0-9]{4}-[0-9]{6}$/.test(value);
+
 export interface CustomerReservationReceipt {
   id: string;
+  number: string;
   vehicleId: string;
   branchId: string;
   publicationId: string;
@@ -49,6 +54,7 @@ export function parseCustomerReservation(value: unknown): CustomerReservationRec
   if (
     !isRecord(value) ||
     !isUuid(value.id) ||
+    !reservationNumber(value.number) ||
     !isUuid(value.vehicleId) ||
     !isUuid(value.branchId) ||
     !isUuid(value.publicationId) ||
@@ -73,6 +79,7 @@ export function parseCustomerReservation(value: unknown): CustomerReservationRec
   }
   return {
     id: value.id,
+    number: value.number,
     vehicleId: value.vehicleId,
     branchId: value.branchId,
     publicationId: value.publicationId,

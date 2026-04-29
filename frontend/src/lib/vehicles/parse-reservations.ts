@@ -1,6 +1,7 @@
 import { parseCountedPage } from "@/lib/api";
 import { isRecord, isUuid } from "@/lib/auth/contracts";
 import { isMyr } from "@/lib/currency-input";
+import { reservationNumber } from "./customer-reservation";
 import {
   reservationCountKeys,
   reservationStatuses,
@@ -43,6 +44,7 @@ export function parseReservation(value: unknown): ReservationItem | null {
   const price = receipt.price;
   if (
     !isUuid(receipt.id) ||
+    !reservationNumber(receipt.number) ||
     !isUuid(receipt.vehicleId) ||
     !isUuid(receipt.branchId) ||
     !isRecord(buyer) ||
@@ -88,6 +90,7 @@ export function parseReservation(value: unknown): ReservationItem | null {
   }
   return {
     id: receipt.id,
+    number: receipt.number,
     vehicleId: receipt.vehicleId,
     branchId: receipt.branchId,
     branchName: value.branchName,
@@ -119,6 +122,7 @@ export function parseReservationRow(value: unknown): ReservationItem | null {
   if (
     !isRecord(value) ||
     !isUuid(value.id) ||
+    !reservationNumber(value.number) ||
     !isUuid(value.vehicleId) ||
     !isUuid(value.branchId) ||
     !text(value.branchName) ||
@@ -152,6 +156,7 @@ export function parseReservationRow(value: unknown): ReservationItem | null {
   }
   return {
     id: value.id,
+    number: value.number,
     vehicleId: value.vehicleId,
     branchId: value.branchId,
     branchName: value.branchName,

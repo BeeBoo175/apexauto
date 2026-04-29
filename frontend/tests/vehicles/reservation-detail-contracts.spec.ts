@@ -16,6 +16,7 @@ const ids = [
 ];
 const receipt = {
   id: ids[0],
+  number: "VRS-2026-000001",
   vehicleId: ids[1],
   branchId: ids[2],
   publicationId: ids[1],

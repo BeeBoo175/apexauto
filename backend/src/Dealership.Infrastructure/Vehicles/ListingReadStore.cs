@@ -78,9 +78,13 @@ public sealed class ListingReadStore(DealershipDbContext database) : IListingRea
         if (filter.Search.Length > 0)
         {
             var pattern = LiteralSearch.Pattern(filter.Search.Trim());
+            // Registration, VIN and the vehicle as the table shows it (year included); branch names only for the group scope.
+            var searchBranch = actor.BranchId is null;
             rows = rows.Where(row => EF.Functions.ILike(row.Vehicle.RegistrationPlate, pattern, "!") ||
-                EF.Functions.ILike(row.Vehicle.Make, pattern, "!") || EF.Functions.ILike(row.Vehicle.Model, pattern, "!") ||
-                EF.Functions.ILike(row.Vehicle.Trim, pattern, "!") || EF.Functions.ILike(row.BranchName, pattern, "!"));
+                EF.Functions.ILike(row.Vehicle.Vin, pattern, "!") ||
+                EF.Functions.ILike(row.Vehicle.ManufactureYear + " " + row.Vehicle.Make + " " + row.Vehicle.Model + " " +
+                    row.Vehicle.Trim, pattern, "!") ||
+                searchBranch && EF.Functions.ILike(row.BranchName, pattern, "!"));
         }
 
         if (filter.Inspection.Length > 0)
@@ -255,7 +259,14 @@ public sealed class ListingReadStore(DealershipDbContext database) : IListingRea
                                    where inspection.VehicleId == vehicleId && inspection.IsSigned && inspection.Revision == signed.Revision
                                    select new { signed.Id, signed.InspectionId, signed.Revision }).SingleOrDefaultAsync(cancellationToken);
         var report = currentSigned is null ? null : new ListingSignedReport(currentSigned.InspectionId, currentSigned.Revision);
-        return new(ListingStatus.Succeeded, new(vehicle, draft, approved, publication, withdrawal, currentSigned?.Id, report));
+        var vin = await database.Vehicles.AsNoTracking().Where(item => item.Id == vehicleId).Select(item => item.Vin)
+            .SingleAsync(cancellationToken);
+        var hold = await (from reservation in database.Reservations.AsNoTracking()
+                          where reservation.VehicleId == vehicleId && reservation.IsActive
+                          select new ListingHold(reservation.Buyer.LegalName,
+                              database.Users.Where(user => user.Id == reservation.ClaimedById).Select(user => user.Email).FirstOrDefault(),
+                              reservation.ExpiresAt)).SingleOrDefaultAsync(cancellationToken);
+        return new(ListingStatus.Succeeded, new(vehicle, draft, approved, publication, withdrawal, currentSigned?.Id, report, vin, hold));
     }
 
     public async Task<ListingPhotoPageResult> PhotosAsync(Guid actorId, Guid vehicleId, int page, int pageSize,

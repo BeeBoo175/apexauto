@@ -122,6 +122,7 @@ test("reservation queries explicitly scope membership and carry each server sort
 test("reservation projections reject inconsistent receipts and keep private buyer fields off the table snapshot", () => {
   const receipt = {
     id: ids[0],
+    number: "VRS-2026-000001",
     vehicleId: ids[2],
     branchId: ids[1],
     buyer: {
@@ -149,6 +150,7 @@ test("reservation projections reject inconsistent receipts and keep private buye
   const parsed = parseReservations(raw)!;
   expect(parsed.items[0]).toMatchObject({
     id: ids[0],
+    number: "VRS-2026-000001",
     buyer: "Nur Aina",
     vehicle: "2020 Proton Saga Standard",
     total: 60540,
@@ -457,7 +459,13 @@ test("listing workspace validates revision and publication relationships before 
     withdrawal: null,
     currentSignedRevisionId: ids[2],
     currentSignedReport: { inspectionId: ids[0], revision: 2, privateNotes: "omitted" },
+    vin: "MHKA1BA1JGK123456",
+    hold: { buyer: "Nur Aina", agent: null, expiresAtUtc: "2026-10-28T00:00:00Z" },
   };
+  expect(parseListingWorkspace(workspace)?.vin).toBe("MHKA1BA1JGK123456");
+  expect(parseListingWorkspace({ ...workspace, hold: undefined })?.hold).toBeNull();
+  expect(parseListingWorkspace({ ...workspace, hold: { buyer: "" } })).toBeNull();
+  expect(parseListingWorkspace({ ...workspace, vin: "" })).toBeNull();
   expect(parseListingWorkspace(workspace)?.draft?.transmission).toBe("Automatic");
   expect(parseListingWorkspace(parseListingWorkspace(workspace))).toEqual(
     parseListingWorkspace(workspace),
@@ -523,6 +531,8 @@ test("listing workspace validates revision and publication relationships before 
       publication: null,
       currentSignedRevisionId: null,
       currentSignedReport: null,
+      vin: "MHKA1BA1JGK123456",
+      hold: null,
     })?.draft,
   ).toBeNull();
   expect(listingParams({ listing: ids[0], section: "publication" })).toMatchObject({

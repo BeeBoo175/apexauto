@@ -62,7 +62,7 @@ public sealed class InspectionQueueStore(DealershipDbContext database) : IInspec
             var pattern = LiteralSearch.Pattern(filter.Search);
             work = work.Where(row => EF.Functions.ILike(row.Vehicle.RegistrationPlate, pattern, "!") ||
                 EF.Functions.ILike(row.Vehicle.Make, pattern, "!") || EF.Functions.ILike(row.Vehicle.Model, pattern, "!") ||
-                EF.Functions.ILike(row.BranchName, pattern, "!") || EF.Functions.ILike(row.Vehicle.Id.ToString(), pattern, "!"));
+                EF.Functions.ILike(row.BranchName, pattern, "!"));
         }
 
         var total = await work.CountAsync(cancellationToken);
@@ -109,8 +109,7 @@ public sealed class InspectionQueueStore(DealershipDbContext database) : IInspec
         {
             var pattern = LiteralSearch.Pattern(filter.Search);
             work = work.Where(row => EF.Functions.ILike(row.Vehicle.RegistrationPlate, pattern, "!") ||
-                EF.Functions.ILike(row.BranchName, pattern, "!") || EF.Functions.ILike(row.Request.Id.ToString(), pattern, "!") ||
-                EF.Functions.ILike(row.Request.InspectionId.ToString(), pattern, "!"));
+                EF.Functions.ILike(row.BranchName, pattern, "!"));
         }
 
         var total = await work.CountAsync(cancellationToken);

@@ -35,7 +35,15 @@ internal static class InspectionDraftProjection
                 .OrderBy(photo => photo.PhotoId)
                 .Select(photo => new InspectionPhotoReference(photo.PhotoId, photo.PointCode))
                 .ToArrayAsync(cancellationToken);
-            draft = draft with { LatestSave = latest?.Receipt(), Vehicle = vehicle, PhotoReferences = photos };
+            var technician = await database.Users.AsNoTracking().Where(user => user.Id == draft.TechnicianId)
+                .Select(user => user.UserName).FirstOrDefaultAsync(cancellationToken);
+            draft = draft with
+            {
+                LatestSave = latest?.Receipt(),
+                Vehicle = vehicle,
+                PhotoReferences = photos,
+                TechnicianIdentity = technician ?? string.Empty
+            };
         }
         return draft;
     }

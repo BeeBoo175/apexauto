@@ -39,6 +39,8 @@ export interface ListingWorkspace {
   } | null;
   currentSignedRevisionId: string | null;
   currentSignedReport: { inspectionId: string; revision: number } | null;
+  vin: string;
+  hold: { buyer: string; agent: string | null; expiresAtUtc: string } | null;
 }
 
 const date = (value: unknown): value is string =>
@@ -182,6 +184,23 @@ export function parseListingWorkspace(value: unknown): ListingWorkspace | null {
     }
     currentSignedReport = { inspectionId: report.inspectionId, revision: Number(report.revision) };
   }
+  let hold: ListingWorkspace["hold"] = null;
+  if (value.hold !== null && value.hold !== undefined) {
+    const held = value.hold;
+    if (
+      !isRecord(held) ||
+      typeof held.buyer !== "string" ||
+      !held.buyer ||
+      (held.agent !== null && held.agent !== undefined && typeof held.agent !== "string") ||
+      !date(held.expiresAtUtc)
+    ) {
+      return null;
+    }
+    hold = { buyer: held.buyer, agent: held.agent ?? null, expiresAtUtc: held.expiresAtUtc };
+  }
+  if (typeof value.vin !== "string" || !value.vin) {
+    return null;
+  }
   if (
     Boolean(withdrawal) !== vehicle.isWithdrawn ||
     (value.currentSignedRevisionId !== null && !isUuid(value.currentSignedRevisionId)) ||
@@ -197,5 +216,7 @@ export function parseListingWorkspace(value: unknown): ListingWorkspace | null {
     withdrawal,
     currentSignedRevisionId: value.currentSignedRevisionId as string | null,
     currentSignedReport,
+    vin: value.vin,
+    hold,
   };
 }

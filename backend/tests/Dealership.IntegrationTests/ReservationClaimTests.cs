@@ -93,6 +93,14 @@ public sealed class ReservationClaimTests(IntakePhotoFixture fixture) : IClassFi
             new(IsActive: true, Claimed: true, Agent: $"staff.{colleague:N}"), default)).History!.Items);
         Assert.Contains(held.Id, (await reads.StaffAsync(manager,
             new(IsActive: true, Search: agentEmail), default)).History!.Items.Select(item => item.Receipt.Id));
+        // Every hold carries its own reference, which staff can search and which the receipt returns.
+        Assert.Matches("^VRS-[0-9]{4}-[0-9]{6}$", held.Number);
+        Assert.Equal(held.Number, ReservationReceipt.From(held).Number);
+        Assert.Contains(held.Id, (await reads.StaffAsync(manager, new(Search: held.Number), default))
+            .History!.Items.Select(item => item.Receipt.Id));
+        Assert.Equal(held.Number, (await reads.StaffAsync(manager, new(Search: held.Number), default))
+            .History!.Items.Single(item => item.Receipt.Id == held.Id).Receipt.Number);
+
         // Staff search matches vehicle, VIN and the buyer's contact but never an identifier, and only the group scope searches by branch.
         var identity = (await reads.StaffAsync(manager, new(IsActive: true, Claimed: true), default)).History!.Items.Single();
         var vin = identity.Vin;

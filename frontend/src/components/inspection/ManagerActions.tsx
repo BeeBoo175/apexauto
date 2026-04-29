@@ -60,7 +60,8 @@ export function ManagerActions({
         </Button>
       </div>
       <p className={styles.help}>
-        Assigned technician: {draft.technicianId}. Assignment version {draft.assignmentVersion}.
+        Assigned technician: {draft.technicianIdentity}. Assignment version{" "}
+        {draft.assignmentVersion}.
       </p>
       <Dialog
         open={open}

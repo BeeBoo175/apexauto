@@ -50,6 +50,10 @@ public sealed class Reservation
     }
 
     public Guid Id { get; private set; }
+
+    // The reference the customer and staff quote; the confirmation assigns it once.
+    public string Number { get; private set; } = string.Empty;
+
     public Guid CustomerId { get; private set; }
     public Guid VehicleId { get; private set; }
     public Guid BranchId { get; private set; }
@@ -76,6 +80,16 @@ public sealed class Reservation
     public bool IsActive { get; private set; } = true;
 
     public bool IsClaimed => ClaimedById is not null;
+
+    public void AssignNumber(string number)
+    {
+        if (Number.Length > 0 || !System.Text.RegularExpressions.Regex.IsMatch(number, "^VRS-[0-9]{4}-[0-9]{6}$"))
+        {
+            throw new InvalidOperationException("A reservation takes one well-formed number.");
+        }
+
+        Number = number;
+    }
 
     public bool HasExpired(DateTimeOffset now) => !IsClaimed && now >= ExpiresAt;
 

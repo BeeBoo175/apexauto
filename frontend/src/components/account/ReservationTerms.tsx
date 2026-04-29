@@ -20,7 +20,7 @@ export function ReservationTerms({ item }: { item: AccountReservation }) {
         <dl className={styles.facts}>
           <div>
             <dt>Reference</dt>
-            <dd>{receipt.id}</dd>
+            <dd>{receipt.number}</dd>
           </div>
           <div>
             <dt>Reserved by</dt>
@@ -63,10 +63,6 @@ export function ReservationTerms({ item }: { item: AccountReservation }) {
         <div>
           <h4>Simulated refund recorded</h4>
           <dl className={styles.facts}>
-            <div>
-              <dt>Refund reference</dt>
-              <dd>{release.id}</dd>
-            </div>
             <div>
               <dt>Amount</dt>
               <dd>{formatCurrency(release.refund)}</dd>

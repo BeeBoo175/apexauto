@@ -113,11 +113,13 @@ public sealed class WorkshopQueueStore(DealershipDbContext database) : IWorkshop
         if (filter.Search.Length > 0)
         {
             var pattern = LiteralSearch.Pattern(filter.Search);
+            // Vehicle as the table shows it (year included), VIN and technician; branch names only for the group scope.
+            var searchBranch = actor.Role == AccountRoles.GeneralManager;
             work = work.Where(row => EF.Functions.ILike(row.RegistrationPlate, pattern, "!") ||
-                EF.Functions.ILike(row.Make, pattern, "!") || EF.Functions.ILike(row.Model, pattern, "!") ||
-                EF.Functions.ILike(row.Trim, pattern, "!") ||
-                EF.Functions.ILike(row.BranchName, pattern, "!") ||
-                row.TechnicianIdentity != null && EF.Functions.ILike(row.TechnicianIdentity, pattern, "!"));
+                EF.Functions.ILike(row.Vin, pattern, "!") ||
+                EF.Functions.ILike(row.ManufactureYear + " " + row.Make + " " + row.Model + " " + row.Trim, pattern, "!") ||
+                row.TechnicianIdentity != null && EF.Functions.ILike(row.TechnicianIdentity, pattern, "!") ||
+                searchBranch && EF.Functions.ILike(row.BranchName, pattern, "!"));
         }
 
         return work;
@@ -279,6 +281,7 @@ public sealed class WorkshopQueueStore(DealershipDbContext database) : IWorkshop
                    BranchId = vehicle.BranchId,
                    BranchName = branch.Name,
                    RegistrationPlate = vehicle.RegistrationPlate,
+                   Vin = vehicle.Vin,
                    Make = vehicle.Make,
                    Model = vehicle.Model,
                    ManufactureYear = vehicle.ManufactureYear,
@@ -336,6 +339,7 @@ public sealed class WorkshopQueueStore(DealershipDbContext database) : IWorkshop
         public Guid BranchId { get; init; }
         public string BranchName { get; init; } = string.Empty;
         public string RegistrationPlate { get; init; } = string.Empty;
+        public string Vin { get; init; } = string.Empty;
         public string Make { get; init; } = string.Empty;
         public string Model { get; init; } = string.Empty;
         public int ManufactureYear { get; init; }

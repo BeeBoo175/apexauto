@@ -7,12 +7,22 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace Dealership.Infrastructure.Persistence;
 
 public sealed class ReservationConfiguration : IEntityTypeConfiguration<Reservation>,
-    IEntityTypeConfiguration<ReservationRelease>, IEntityTypeConfiguration<ReservationEvent>
+    IEntityTypeConfiguration<ReservationRelease>, IEntityTypeConfiguration<ReservationEvent>,
+    IEntityTypeConfiguration<ReservationNumberCounter>
 {
+    public void Configure(EntityTypeBuilder<ReservationNumberCounter> builder)
+    {
+        builder.ToTable("ReservationNumberCounters", table => table.HasCheckConstraint("CK_ReservationNumberCounters_Shape",
+            "\"Year\" BETWEEN 2000 AND 9999 AND \"LastValue\" BETWEEN 0 AND 999999"));
+        builder.HasKey(item => item.Year);
+        builder.Property(item => item.Year).ValueGeneratedNever();
+    }
+
     public void Configure(EntityTypeBuilder<Reservation> builder)
     {
         builder.ToTable("Reservations", table =>
         {
+            table.HasCheckConstraint("CK_Reservations_Number", "\"Number\" ~ '^VRS-[0-9]{4}-[0-9]{6}$'");
             table.HasCheckConstraint("CK_Reservations_Shape",
                 "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND " +
                 "isfinite(\"CreatedAt\") AND isfinite(\"ExpiresAt\") AND " +
@@ -45,6 +55,8 @@ public sealed class ReservationConfiguration : IEntityTypeConfiguration<Reservat
         builder.HasOne<PromoCode>().WithMany().HasForeignKey(item => item.PromoId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<AccountUser>().WithMany().HasForeignKey(item => item.ClaimedById).OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(item => new { item.ClaimedById, item.ClaimedAt }).HasFilter("\"ClaimedById\" IS NOT NULL");
+        builder.Property(item => item.Number).HasMaxLength(15).UseCollation("C");
+        builder.HasIndex(item => item.Number).IsUnique();
         builder.HasIndex(item => item.CustomerId).IsUnique().HasFilter("\"IsActive\"");
         builder.HasIndex(item => item.VehicleId).IsUnique().HasFilter("\"IsActive\"");
         builder.HasIndex(item => new { item.CustomerId, item.CreatedAt, item.Id });

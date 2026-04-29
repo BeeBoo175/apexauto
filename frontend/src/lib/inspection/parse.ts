@@ -113,6 +113,7 @@ export function parseDraft(v: unknown): Draft | null {
   if (
     !isRecord(v) ||
     !ids(v, ["id", "vehicleId", "branchId", "technicianId"]) ||
+    !text(v.technicianIdentity) ||
     !versions(v, ["assignmentVersion", "revision"]) ||
     !integer(v.repairVersion) ||
     !integer(v.reopenedAfterSaveVersion) ||

@@ -37,6 +37,7 @@ export interface ReservationClaim {
 
 export interface ReservationItem {
   id: string;
+  number: string;
   vehicleId: string;
   branchId: string;
   branchName: string;

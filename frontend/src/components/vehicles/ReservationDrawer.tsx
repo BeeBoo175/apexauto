@@ -48,6 +48,7 @@ export function ReservationDrawer({
   const facts =
     detail && reservation
       ? [
+          ["Reference", reservation.number],
           ["Created", formatMalaysianDateTime(reservation.createdAt)],
           ["Expires", formatMalaysianDateTime(reservation.expiresAt)],
           ["Simulated deposit", formatCurrency(detail.deposit)],

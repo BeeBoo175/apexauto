@@ -122,7 +122,7 @@ function CustomerReservation({
         <dl>
           <div>
             <dt>Reference</dt>
-            <dd>{receipt.id}</dd>
+            <dd>{receipt.number}</dd>
           </div>
           <div>
             <dt>Buyer</dt>

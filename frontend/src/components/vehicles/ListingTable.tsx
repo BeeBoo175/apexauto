@@ -200,7 +200,7 @@ export function ListingTable({
                     >
                       <SearchField
                         label="Search listings"
-                        placeholder="Search vehicle or registration"
+                        placeholder="Search vehicle, year, VIN or registration"
                         value={state.draft.search}
                         disabled={false}
                         busy={state.busy}

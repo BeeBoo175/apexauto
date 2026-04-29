@@ -14,8 +14,7 @@ public static class ReservationMailComposer
         var expiresAt = TimeZoneInfo.ConvertTime(reservation.ExpiresAt, Malaysia);
         var body = FormattableString.Invariant($"""
             Your ApexAuto reservation receipt
-            Reference: {reservation.Id:D}
-            Vehicle: {reservation.VehicleId:D}
+            Reference: {reservation.Number}
             Confirmed: {confirmedAt:yyyy-MM-dd HH:mm} (Asia/Kuala_Lumpur)
             Hold deadline: {expiresAt:yyyy-MM-dd HH:mm} (Asia/Kuala_Lumpur)
             Agreed total: RM {reservation.Price.Total:F2}

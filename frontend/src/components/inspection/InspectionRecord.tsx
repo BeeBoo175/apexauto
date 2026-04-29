@@ -117,7 +117,7 @@ export function InspectionDetails({ editor }: { editor: ReturnType<typeof useIns
           </div>
           <div>
             <dt>Assigned technician</dt>
-            <dd>{snapshot.report?.technicianIdentity ?? snapshot.draft.technicianId}</dd>
+            <dd>{snapshot.report?.technicianIdentity ?? snapshot.draft.technicianIdentity}</dd>
           </div>
           <div>
             <dt>Saved assessment</dt>

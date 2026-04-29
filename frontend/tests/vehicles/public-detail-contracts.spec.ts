@@ -106,6 +106,7 @@ test("reservation confirmations bind exact operation, vehicle, publication, prom
   const body = { operationId: id, publicationId: photoId, promoId: null };
   const receipt = {
     id,
+    number: "VRS-2026-000001",
     vehicleId: photoId,
     branchId: id,
     publicationId: photoId,
