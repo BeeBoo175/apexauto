@@ -6,6 +6,9 @@ import type { ReservationItem } from "./reservations";
 export interface ReservationDetail {
   reservation: ReservationItem;
   publicationId: string;
+  vin: string;
+  // The buyer is reached by phone or email outside the site, so staff see how.
+  contact: { mobile: string; email: string };
   price: {
     vehiclePrice: number;
     processingFee: number;
@@ -19,12 +22,19 @@ export interface ReservationDetail {
   release: { id: string; reason: string | null; recordedAt: string; refund: number } | null;
 }
 
+const filled = (value: unknown): value is string =>
+  typeof value === "string" && value.trim().length > 0;
+
 function terms(value: unknown, reservation: ReservationItem | null): ReservationDetail | null {
-  if (!isRecord(value) || !reservation || !isRecord(value.price)) {
+  if (!isRecord(value) || !reservation || !isRecord(value.price) || !isRecord(value.contact)) {
     return null;
   }
   const price = value.price;
+  const contact = value.contact;
   if (
+    !filled(value.vin) ||
+    !filled(contact.mobile) ||
+    !filled(contact.email) ||
     !isUuid(value.publicationId) ||
     !isMyr(value.deposit) ||
     value.deposit !== 500 ||
@@ -75,6 +85,8 @@ function terms(value: unknown, reservation: ReservationItem | null): Reservation
   return {
     reservation,
     publicationId: value.publicationId,
+    vin: value.vin,
+    contact: { mobile: contact.mobile, email: contact.email },
     price: {
       vehiclePrice: price.vehiclePrice,
       processingFee: price.processingFee,
@@ -98,8 +110,14 @@ export function parseReservationDetail(value: unknown): ReservationDetail | null
   ) {
     return null;
   }
+  const buyer = value.item.receipt.buyer;
   return terms(
-    { ...value.item.receipt, release: value.item.release },
+    {
+      ...value.item.receipt,
+      release: value.item.release,
+      vin: value.item.vin,
+      contact: isRecord(buyer) ? { mobile: buyer.mobile, email: buyer.email } : null,
+    },
     parseReservation(value.item),
   );
 }

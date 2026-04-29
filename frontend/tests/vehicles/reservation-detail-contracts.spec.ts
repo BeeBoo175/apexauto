@@ -19,7 +19,12 @@ const receipt = {
   vehicleId: ids[1],
   branchId: ids[2],
   publicationId: ids[1],
-  buyer: { legalName: "Nur Aina", email: "private@example.invalid", nric: "private" },
+  buyer: {
+    legalName: "Nur Aina",
+    email: "aina@example.invalid",
+    mobile: "012-345 6789",
+    nric: "private",
+  },
   price: {
     vehiclePrice: 60000,
     processingFee: 500,
@@ -37,6 +42,7 @@ const item = {
   receipt,
   branchName: "Glenmarie",
   registrationPlate: "VCA 5172",
+  vin: "MHKA1BA1JGK123456",
   make: "Proton",
   model: "Saga",
   trim: "Standard",
@@ -54,11 +60,16 @@ const release = {
   refund: 500,
 };
 
-test("detail projection preserves exact retained prices and refunds while omitting buyer contact and nric", () => {
+test("detail projection preserves exact retained prices and refunds, carries contact and vin and omits nric", () => {
   const parsed = parseReservationDetail(raw)!;
-  expect(parsed).toMatchObject({ reservation: { id: ids[0], buyer: "Nur Aina" }, deposit: 500 });
+  expect(parsed).toMatchObject({
+    reservation: { id: ids[0], buyer: "Nur Aina" },
+    deposit: 500,
+    vin: "MHKA1BA1JGK123456",
+    contact: { mobile: "012-345 6789", email: "aina@example.invalid" },
+  });
   expect(parsed.price).toEqual(receipt.price);
-  expect(JSON.stringify(parsed)).not.toMatch(/private|email|nric/);
+  expect(JSON.stringify(parsed)).not.toMatch(/private|nric/);
   expect(parseReservationDetailSnapshot(parsed)).toEqual(parsed);
   const refunded = parseReservationDetail({ ...raw, item: { ...item, isActive: false, release } })!;
   expect(refunded.release).toMatchObject({ id: release.id, reason: release.reason, refund: 500 });
@@ -69,6 +80,9 @@ test("detail projection preserves exact retained prices and refunds while omitti
     { item: { ...item, release } },
     { item: { ...item, receipt: { ...receipt, publicationId: "bad" } } },
     { item: { ...item, receipt: { ...receipt, deposit: 499 } } },
+    { item: { ...item, vin: " " } },
+    { item: { ...item, receipt: { ...receipt, buyer: { ...receipt.buyer, mobile: "" } } } },
+    { item: { ...item, receipt: { ...receipt, buyer: { ...receipt.buyer, email: undefined } } } },
     { item: { ...item, receipt: { ...receipt, price: { ...receipt.price, total: 59631 } } } },
     { item: { ...item, receipt: { ...receipt, price: { ...receipt.price, roadTax: 90.001 } } } },
   ]) {

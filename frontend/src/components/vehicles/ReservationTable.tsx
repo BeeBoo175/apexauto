@@ -210,7 +210,7 @@ export function ReservationTable({
                     >
                       <SearchField
                         label="Search reservations"
-                        placeholder="Search vehicle, buyer, agent or reference"
+                        placeholder="Search vehicle, VIN, buyer, contact, promo or agent"
                         value={state.draft.search ?? ""}
                         disabled={false}
                         busy={state.busy}
@@ -246,7 +246,7 @@ export function ReservationTable({
               emptyState={{
                 title: emptyTitle,
                 description:
-                  "Search a vehicle, buyer, agent or reference, or adjust the column filters.",
+                  "Search a vehicle, buyer, contact, promo or agent, or adjust the column filters.",
                 ...(filtered && {
                   action: {
                     label: "Clear search and filters",

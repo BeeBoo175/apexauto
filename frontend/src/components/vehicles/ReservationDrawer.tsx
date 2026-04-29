@@ -8,6 +8,7 @@ import { RefreshButton } from "@/components/ui/RefreshButton";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { ReservationLoadingShell } from "./ReservationLoadingShell";
 import { ReservationHandling } from "./ReservationHandling";
+import { PersonIdentityFacts, VehicleIdentityFacts } from "@/components/staff/IdentityFacts";
 import { SalesHistory } from "@/components/sales/SalesHistory";
 import type { useStaffSelection } from "@/hooks/use-staff-selection";
 import { useReservationCancellation } from "@/hooks/use-reservation-cancellation";
@@ -47,8 +48,6 @@ export function ReservationDrawer({
   const facts =
     detail && reservation
       ? [
-          ["Reference", reservation.id],
-          ["Buyer", reservation.buyer],
           ["Created", formatMalaysianDateTime(reservation.createdAt)],
           ["Expires", formatMalaysianDateTime(reservation.expiresAt)],
           ["Simulated deposit", formatCurrency(detail.deposit)],
@@ -113,6 +112,17 @@ export function ReservationDrawer({
               <section className={`${workbench.stack} ${styles.section}`}>
                 <h3>Confirmed reservation</h3>
                 <dl className={workbench.details}>
+                  <VehicleIdentityFacts
+                    registration={reservation.registrationPlate}
+                    vehicle={reservation.vehicle}
+                    vin={detail.vin}
+                  />
+                  <PersonIdentityFacts
+                    role="Buyer"
+                    name={reservation.buyer}
+                    mobile={detail.contact.mobile}
+                    email={detail.contact.email}
+                  />
                   {facts.map(([label, value]) => (
                     <div key={label}>
                       <dt>{label}</dt>
@@ -150,10 +160,6 @@ export function ReservationDrawer({
                 <section className={`${workbench.stack} ${styles.section}`}>
                   <h3>Simulated refund</h3>
                   <dl className={workbench.details}>
-                    <div>
-                      <dt>Refund reference</dt>
-                      <dd>{release.id}</dd>
-                    </div>
                     <div>
                       <dt>Refunded deposit</dt>
                       <dd>{formatCurrency(release.refund)}</dd>
