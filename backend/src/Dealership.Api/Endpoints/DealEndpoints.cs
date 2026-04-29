@@ -47,6 +47,7 @@ public static class DealEndpoints
         holds.MapPost("/assignments", AssignAsync);
         holds.MapPost("/releases", ReleaseAsync);
         holds.MapGet("/history", ReservationHistoryAsync);
+        holds.MapGet("/agents", AgentsAsync);
     }
 
     internal sealed record DealListParameters(int? Page, int? PageSize, string? View, string? Status, string? Sort,
@@ -91,6 +92,11 @@ public static class DealEndpoints
         HttpContext context, DealService deals, CancellationToken cancellationToken) =>
         RunAsync(cancellationToken, "The history is temporarily unavailable.", token => deals.ReservationHistoryAsync(
             ActorId(context), reservationId, query.Page ?? 1, query.PageSize ?? Pagination.DefaultPageSize, token));
+
+    private static Task<IResult> AgentsAsync(Guid reservationId, HttpContext context, DealService deals,
+        CancellationToken cancellationToken) =>
+        RunAsync(cancellationToken, "The branch agents are temporarily unavailable.",
+            token => deals.AgentsAsync(ActorId(context), reservationId, token));
 
     private static Task<IResult> ClaimAsync(Guid reservationId, HttpContext context, DealService deals,
         CancellationToken cancellationToken) =>
@@ -153,7 +159,8 @@ public static class DealEndpoints
 
     private static IResult Map(DealResult result) => result.Status switch
     {
-        DealStatus.Succeeded => Results.Ok(result.Page ?? result.Deal ?? result.History ?? result.Queue ?? (object?)result.Options),
+        DealStatus.Succeeded => Results.Ok(result.Page ?? result.Deal ?? result.History ?? result.Queue ??
+            result.Agents ?? (object?)result.Options),
         DealStatus.Invalid => Results.Problem(statusCode: 400, title: "Provide valid deal details within the approved limits."),
         DealStatus.Forbidden => Results.Forbid(),
         DealStatus.NotFound => Results.NotFound(),

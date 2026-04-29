@@ -10,12 +10,13 @@ public sealed record ReservationReadFilter(Guid? BranchId = null, int Page = 1,
     decimal? MinimumTotal = null, decimal? MaximumTotal = null,
     DateTimeOffset? CreatedFrom = null, DateTimeOffset? CreatedUntil = null,
     DateTimeOffset? ExpiresFrom = null, DateTimeOffset? ExpiresUntil = null,
-    DateTimeOffset? ReleasedFrom = null, DateTimeOffset? ReleasedUntil = null, bool? Claimed = null)
+    DateTimeOffset? ReleasedFrom = null, DateTimeOffset? ReleasedUntil = null, bool? Claimed = null, string Agent = "")
 {
     public bool IsValid => BranchId != Guid.Empty && Pagination.IsValid(Page, PageSize) &&
-        Sort is "" or "reference" or "registration" or "vehicle" or "buyer" or "branch" or "created" or "expires" or "released" or "total" or "status" &&
+        Sort is "" or "reference" or "registration" or "vehicle" or "buyer" or "branch" or "created" or "expires" or "released" or "total" or "status" or "agent" or "claimed" &&
         Direction is "asc" or "desc" &&
         ListSearch.IsValid(Search) && ListSearch.IsValid(Registration) && ListSearch.IsValid(Vehicle) && ListSearch.IsValid(Buyer) &&
+        ListSearch.IsValid(Agent) &&
         Status is "" or "Active" or "CustomerCancelled" or "StaffCancelled" or "Expired" or "Withdrawn" or "Reinspection" &&
         MoneyRange.IsValid(MinimumTotal, MaximumTotal) &&
         ListDateRange.IsValid(CreatedFrom, CreatedUntil) && ListDateRange.IsValid(ExpiresFrom, ExpiresUntil) &&

@@ -46,6 +46,11 @@ public sealed class DealService(IDealStore store, TimeProvider clock)
             : store.ReleaseAsync(actorId, reservationId, clock.GetUtcNow(), cancellationToken);
     }
 
+    public Task<DealResult> AgentsAsync(Guid actorId, Guid reservationId, CancellationToken cancellationToken) =>
+        actorId == Guid.Empty ? Rejected(DealStatus.Forbidden)
+            : reservationId == Guid.Empty ? Rejected(DealStatus.Invalid)
+            : store.AgentsAsync(actorId, reservationId, cancellationToken);
+
     public Task<DealResult> ReviseAsync(Guid actorId, Guid dealId, DealReviseRequest request,
         CancellationToken cancellationToken)
     {

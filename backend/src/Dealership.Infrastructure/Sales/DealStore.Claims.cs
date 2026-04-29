@@ -191,6 +191,29 @@ public sealed partial class DealStore
         return await SaveAsync(order, transaction, cancellationToken);
     }
 
+    // Managers pick the assignee from the active agents of the hold's own branch; agents never list colleagues.
+    public async Task<DealResult> AgentsAsync(Guid actorId, Guid reservationId, CancellationToken cancellationToken)
+    {
+        var actor = await ReadActorAsync(actorId, cancellationToken);
+        if (actor is null or { Role: AccountRoles.SalesAgent })
+        {
+            return new(DealStatus.Forbidden);
+        }
+
+        var hold = await database.Reservations.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.Id == reservationId, cancellationToken);
+        if (hold is null || !InBranchScope(actor, hold.BranchId))
+        {
+            return new(DealStatus.NotFound);
+        }
+
+        var agents = await database.Users.AsNoTracking().Where(item =>
+                item.Role == AccountRoles.SalesAgent && item.BranchId == hold.BranchId && item.IsActive)
+            .OrderBy(item => item.Email).ThenBy(item => item.Id)
+            .Select(item => new HoldAgent(item.Id, item.Email ?? string.Empty)).ToListAsync(cancellationToken);
+        return new(DealStatus.Succeeded, Agents: agents);
+    }
+
     // Cancelling a deal frees its vehicle and refunds the deposit held for it.
     private async Task<DealResult> CancelAsync(SalesOrder order, Actor actor, string reason, DateTimeOffset at,
         IDbContextTransaction transaction, CancellationToken cancellationToken)

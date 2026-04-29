@@ -17,7 +17,13 @@ internal static class ReservationReadRows
                 EF.Functions.ILike(row.ManufactureYear + " " + row.Make + " " + row.Model + " " + row.Trim, pattern, "!") ||
                 EF.Functions.ILike(row.Reservation.Buyer.LegalName, pattern, "!") ||
                 EF.Functions.ILike(row.BranchName, pattern, "!") ||
+                EF.Functions.ILike(row.ClaimedBy ?? string.Empty, pattern, "!") ||
                 EF.Functions.ILike(row.Reservation.Id.ToString(), pattern, "!"));
+        }
+        if (filter.Agent.Length > 0)
+        {
+            var pattern = LiteralSearch.Pattern(filter.Agent);
+            rows = rows.Where(row => EF.Functions.ILike(row.ClaimedBy ?? string.Empty, pattern, "!"));
         }
         if (filter.Registration.Length > 0)
         {
@@ -100,7 +106,13 @@ internal static class ReservationReadRows
     {
         if (filter.Sort.Length == 0)
         {
-            return rows.OrderByDescending(row => row.Reservation.CreatedAt).ThenByDescending(row => row.Reservation.Id);
+            // Queue order: open holds by soonest expiry, handled holds by the longest-standing claim.
+            return (filter.IsActive, filter.Claimed) switch
+            {
+                (true, true) => rows.OrderBy(row => row.Reservation.ClaimedAt).ThenBy(row => row.Reservation.Id),
+                (true, false) => rows.OrderBy(row => row.Reservation.ExpiresAt).ThenBy(row => row.Reservation.Id),
+                _ => rows.OrderByDescending(row => row.Reservation.CreatedAt).ThenByDescending(row => row.Reservation.Id)
+            };
         }
 
         var ordered = filter.Sort switch
@@ -113,6 +125,8 @@ internal static class ReservationReadRows
             "branch" => OrderBy(rows, row => row.BranchName, filter.Direction),
             "created" => OrderBy(rows, row => row.Reservation.CreatedAt, filter.Direction),
             "expires" => OrderBy(rows, row => row.Reservation.ExpiresAt, filter.Direction),
+            "agent" => OrderBy(rows, row => row.ClaimedBy, filter.Direction),
+            "claimed" => OrderBy(rows, row => row.Reservation.ClaimedAt, filter.Direction),
             "total" => OrderBy(rows, row => row.Reservation.Price.Total, filter.Direction),
             _ => OrderStatus(rows, filter.Direction)
         };

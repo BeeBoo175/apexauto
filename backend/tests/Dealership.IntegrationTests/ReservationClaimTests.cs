@@ -37,7 +37,30 @@ public sealed class ReservationClaimTests(IntakePhotoFixture fixture) : IClassFi
             (await deals.AssignAsync(agent, held.Id, new(Guid.NewGuid(), colleague), default)).Status);
         Assert.Equal(DealStatus.Forbidden,
             (await deals.AssignAsync(technician, held.Id, new(Guid.NewGuid(), agent), default)).Status);
-        var otherBranchAgent = await ProvisionAsync(services, await AnotherBranchAsync(database), AccountRoles.SalesAgent);
+        var otherBranch = await AnotherBranchAsync(database);
+        var otherBranchAgent = await ProvisionAsync(services, otherBranch, AccountRoles.SalesAgent);
+        var otherBranchManager = await ProvisionAsync(services, otherBranch, AccountRoles.BranchManager);
+
+        // Managers choose the assignee from the hold's own branch; agents and other branches cannot list them.
+        foreach (var lister in new[] { manager, generalManager })
+        {
+            var listed = await deals.AgentsAsync(lister, held.Id, default);
+            Assert.Equal(DealStatus.Succeeded, listed.Status);
+            var listedIds = listed.Agents!.Select(item => item.Id).ToList();
+            Assert.Contains(agent, listedIds);
+            Assert.Contains(colleague, listedIds);
+            Assert.DoesNotContain(otherBranchAgent, listedIds);
+            Assert.DoesNotContain(technician, listedIds);
+            Assert.DoesNotContain(manager, listedIds);
+            Assert.Equal(listed.Agents!.Select(item => item.Email).Order(StringComparer.Ordinal),
+                listed.Agents!.Select(item => item.Email));
+        }
+
+        Assert.Equal(DealStatus.Forbidden, (await deals.AgentsAsync(agent, held.Id, default)).Status);
+        Assert.Equal(DealStatus.Forbidden, (await deals.AgentsAsync(technician, held.Id, default)).Status);
+        Assert.Equal(DealStatus.NotFound, (await deals.AgentsAsync(otherBranchManager, held.Id, default)).Status);
+        Assert.Equal(DealStatus.NotFound, (await deals.AgentsAsync(manager, Guid.NewGuid(), default)).Status);
+        Assert.Equal(DealStatus.Invalid, (await deals.AgentsAsync(manager, Guid.Empty, default)).Status);
         Assert.Equal(DealStatus.NotFound, (await deals.ClaimAsync(otherBranchAgent, held.Id, new(Guid.NewGuid()), default)).Status);
         Assert.Equal(DealStatus.Invalid,
             (await deals.AssignAsync(manager, held.Id, new(Guid.NewGuid(), otherBranchAgent), default)).Status);
@@ -56,6 +79,34 @@ public sealed class ReservationClaimTests(IntakePhotoFixture fixture) : IClassFi
             Assert.Equal((agent, true), (hold.ClaimedById, hold.FrozenRemaining > TimeSpan.Zero));
             Assert.Equal(hold.ExpiresAt, hold.CreatedAt.AddHours(48));
             Assert.False(hold.HasExpired(hold.ExpiresAt.AddDays(30)));
+        }
+
+        // Managers find a claimed hold by who handles it and order the handled tab by agent or claim time.
+        var reads = services.GetRequiredService<IReservationReadStore>();
+        var agentEmail = $"staff.{agent:N}@example.invalid";
+        var handled = (await reads.StaffAsync(manager,
+            new(IsActive: true, Claimed: true, Agent: agentEmail), default)).History!;
+        Assert.Equal(held.Id, Assert.Single(handled.Items).Receipt.Id);
+        Assert.Equal(agentEmail, handled.Items[0].Claim!.Agent);
+        Assert.True(handled.Counts!.Handled >= 1);
+        Assert.Empty((await reads.StaffAsync(manager,
+            new(IsActive: true, Claimed: true, Agent: $"staff.{colleague:N}"), default)).History!.Items);
+        Assert.Contains(held.Id, (await reads.StaffAsync(manager,
+            new(IsActive: true, Search: agentEmail), default)).History!.Items.Select(item => item.Receipt.Id));
+        foreach (var claimedTab in new[] { true, false })
+        {
+            // Without a chosen sort the open and handled tabs keep their queue order.
+            var queue = await reads.StaffAsync(manager, new(IsActive: true, Claimed: claimedTab), default);
+            Assert.Equal(ReservationStatus.Succeeded, queue.Status);
+            Assert.Equal(claimedTab, queue.History!.Items.Any(item => item.Receipt.Id == held.Id));
+        }
+
+        foreach (var sort in new[] { "agent", "claimed" })
+        {
+            var ordered = await reads.StaffAsync(manager,
+                new(IsActive: true, Claimed: true, Sort: sort, Direction: "desc"), default);
+            Assert.Equal(ReservationStatus.Succeeded, ordered.Status);
+            Assert.Contains(held.Id, ordered.History!.Items.Select(item => item.Receipt.Id));
         }
 
         // A claimed hold has a deal in progress, so it cannot be cancelled as a bare hold.
@@ -125,7 +176,7 @@ public sealed class ReservationClaimTests(IntakePhotoFixture fixture) : IClassFi
         Assert.Contains(history.Items, item => item.Reason == "Claim released");
         Assert.All(history.Items, item => Assert.NotEqual(Guid.Empty, item.Id));
         Assert.Empty((await deals.ReservationHistoryAsync(manager, held.Id, 2, 10, default)).History!.Items);
-        Assert.Equal(history.TotalCount, (await deals.DealHistoryAsync(agent, assigned.Deal.Id, 1, 50, default)).History!.Total);
+        Assert.Equal(history.TotalCount, (await deals.DealHistoryAsync(agent, assigned.Deal.Id, 1, 50, default)).History!.TotalCount);
         Assert.Equal(DealStatus.Succeeded, (await deals.ReservationHistoryAsync(colleague, held.Id, 1, 25, default)).Status);
         Assert.Equal(DealStatus.NotFound, (await deals.ReservationHistoryAsync(otherBranchAgent, held.Id, 1, 25, default)).Status);
         Assert.Equal(DealStatus.Forbidden, (await deals.ReservationHistoryAsync(technician, held.Id, 1, 25, default)).Status);

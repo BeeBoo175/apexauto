@@ -116,8 +116,12 @@ public sealed record SalesQueueCounts(int ToClaim, int Handling, int Waiting);
 public sealed record SalesQueuePage(IReadOnlyList<SalesQueueItem> Items, int Total, int Page, int PageSize,
     SalesQueueCounts Counts);
 
+// A sales agent a manager can give a hold to; staff are identified by email.
+public sealed record HoldAgent(Guid Id, string Email);
+
 public sealed record DealResult(DealStatus Status, DealView? Deal = null, DealPage? Page = null,
-    DealOptions? Options = null, HoldHistoryPage? History = null, SalesQueuePage? Queue = null);
+    DealOptions? Options = null, HoldHistoryPage? History = null, SalesQueuePage? Queue = null,
+    IReadOnlyList<HoldAgent>? Agents = null);
 
 public sealed record DealListQuery(int Page, int PageSize, string View, string? Status, string? Sort, bool Descending,
     string? Number, string? Vehicle, string? Customer, string? Search)
@@ -159,6 +163,9 @@ public interface IDealStore
 
     Task<DealResult> ReleaseAsync(Guid actorId, Guid reservationId, DateTimeOffset now,
         CancellationToken cancellationToken);
+
+    // The agents of the hold's branch that a manager may assign it to.
+    Task<DealResult> AgentsAsync(Guid actorId, Guid reservationId, CancellationToken cancellationToken);
 
     Task<DealResult> ReviseAsync(Guid actorId, Guid dealId, DealReviseRequest request, DateTimeOffset now,
         CancellationToken cancellationToken);
