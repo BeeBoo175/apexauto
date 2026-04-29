@@ -25,13 +25,15 @@ public sealed class StaffAppointmentDetailStore(DealershipDbContext database) : 
             .Join(database.Branches, item => item.BranchId, branch => branch.Id,
                 (item, branch) => new { Appointment = item, BranchName = branch.Name })
             .Join(database.CustomerProfiles, row => row.Appointment.OwnerId, customer => customer.UserId,
-                (row, customer) => new { row.Appointment, row.BranchName, CustomerName = customer.LegalName })
+                (row, customer) => new { row.Appointment, row.BranchName, CustomerName = customer.LegalName, customer.Mobile })
             .Select(row => new
             {
                 row.Appointment.Id,
                 row.Appointment.BranchId,
                 row.BranchName,
                 row.CustomerName,
+                row.Mobile,
+                CustomerEmail = database.Users.Where(user => user.Id == row.Appointment.OwnerId).Select(user => user.Email).FirstOrDefault(),
                 row.Appointment.RegistrationPlate,
                 row.Appointment.StartsAt,
                 row.Appointment.EndsAt,
@@ -72,10 +74,14 @@ public sealed class StaffAppointmentDetailStore(DealershipDbContext database) : 
             status = nameof(StaffWorklistStatus.CheckedIn);
         }
 
+        var correctorId = row.CheckIn?.CorrectionRecordedAt is null ? (Guid?)null : row.CheckIn.StaffId;
+        var correctorEmail = correctorId is null ? null
+            : await database.Users.AsNoTracking().Where(user => user.Id == correctorId).Select(user => user.Email)
+                .FirstOrDefaultAsync(cancellationToken);
         var detail = new StaffAppointmentDetail(row.Id, row.BranchId, row.BranchName, row.CustomerName,
             row.RegistrationPlate, row.StartsAt, row.EndsAt, status, row.Make, row.Model, row.Trim,
             row.ManufactureYear, row.MileageKilometres, wasNoShow ? noShowAt : null, row.CheckIn?.CorrectionRecordedAt, row.CheckIn?.CorrectionReason,
-            row.CheckIn?.CorrectionRecordedAt is null ? null : row.CheckIn.StaffId);
+            correctorId, row.Mobile, row.CustomerEmail ?? string.Empty, correctorEmail);
         await transaction.CommitAsync(cancellationToken);
         return new StaffAppointmentDetailResult(StaffAppointmentDetailStatus.Succeeded, detail);
     }

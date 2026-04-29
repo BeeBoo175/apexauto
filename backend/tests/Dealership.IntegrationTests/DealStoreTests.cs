@@ -127,6 +127,14 @@ public sealed class DealStoreTests(IntakePhotoFixture fixture) : IClassFixture<I
         Assert.Equal(1, (await ListAsync(deals, manager, view: "Active")).Page!.Total);
         Assert.Equal(1, (await ListAsync(deals, manager, view: "History")).Page!.Total);
         Assert.Equal(0, (await ListAsync(deals, manager, view: "NeedsApproval")).Page!.Total);
+
+        // One search box covers the customer's contact and the agent, and only the group scope searches by branch.
+        var mobile = (await database.CustomerProfiles.AsNoTracking().SingleAsync(item => item.UserId == customer)).Mobile;
+        Assert.Equal(2, (await ListAsync(deals, manager, search: mobile)).Page!.Total);
+        Assert.Equal(1, (await ListAsync(deals, manager, search: $"staff.{otherAgent:N}")).Page!.Total);
+        var branchName = managerList.Items[0].Branch;
+        Assert.Equal(0, (await ListAsync(deals, manager, search: branchName)).Page!.Total);
+        Assert.Equal(2, (await ListAsync(deals, generalManager, search: branchName)).Page!.Total);
         // The test clock can repeat an instant, so rows are found by identity rather than by position.
         var newest = managerList.Items.Single(item => item.Id == next.Deal!.Id);
         Assert.Equal((next.Deal!.Id, "Approved", "Approved", "Hafiz Rahman"), (newest.Id, newest.Status,

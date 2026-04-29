@@ -81,8 +81,9 @@ public sealed class StaffWorklistTests(IntakePhotoFixture fixture) : IClassFixtu
         Assert.Equal(0, (await ListAsync(data, data.StaffId, query with { Search = "BPL 2198" }))!.Total);
         Assert.Equal(0, (await ListAsync(data, data.StaffId, query with { Search = "%" }))!.Total);
         Assert.Equal(0, (await ListAsync(data, data.StaffId, query with { Search = "_" }))!.Total);
-        Assert.Equal(booked[^1].Id, Assert.Single((await ListAsync(data, data.StaffId,
-            query with { Search = booked[^1].Id.ToString() }))!.Items).Id);
+        // Identifiers are never matched, while the customer's email and mobile are.
+        Assert.Equal(0, (await ListAsync(data, data.StaffId, query with { Search = booked[^1].Id.ToString() }))!.Total);
+        Assert.Equal(41, (await ListAsync(data, data.StaffId, query with { Search = data.CustomerEmail }))!.Total);
         var descending = (await ListAsync(data, data.StaffId,
             query with { Sort = "registrationPlate", Direction = "desc" }))!;
         Assert.Equal("VCA 6242", descending.Items[0].RegistrationPlate);

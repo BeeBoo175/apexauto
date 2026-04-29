@@ -62,7 +62,10 @@ export function parseDetail(value: unknown): AppointmentDetail | null {
     (value.noShowAt !== null && !utcTimestamp(value.noShowAt)) ||
     (value.attendanceCorrectedAt !== null && !utcTimestamp(value.attendanceCorrectedAt)) ||
     (value.correctionReason !== null && typeof value.correctionReason !== "string") ||
-    (value.correctedBy !== null && !isUuid(value.correctedBy))
+    (value.correctedByEmail !== null &&
+      !(typeof value.correctedByEmail === "string" && value.correctedByEmail)) ||
+    typeof value.customerMobile !== "string" ||
+    typeof value.customerEmail !== "string"
   ) {
     return null;
   }
@@ -72,7 +75,9 @@ export function parseDetail(value: unknown): AppointmentDetail | null {
     noShowAt: value.noShowAt,
     attendanceCorrectedAt: value.attendanceCorrectedAt,
     correctionReason: value.correctionReason,
-    correctedBy: value.correctedBy,
+    correctedByEmail: value.correctedByEmail,
+    customerMobile: value.customerMobile,
+    customerEmail: value.customerEmail,
   };
 }
 

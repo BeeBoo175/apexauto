@@ -30,7 +30,9 @@ test("no-show snapshots retain status and validate correction evidence", () => {
     noShowAt: "2026-10-20T16:00:00Z",
     attendanceCorrectedAt: null,
     correctionReason: null,
-    correctedBy: null,
+    correctedByEmail: null,
+    customerMobile: "0123456789",
+    customerEmail: "nur.aina@example.invalid",
   };
   expect(parseDetail(detail)?.status).toBe("NoShow");
   expect(parseDetail({ ...detail, noShowAt: "invalid" })).toBeNull();

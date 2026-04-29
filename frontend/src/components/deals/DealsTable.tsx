@@ -201,7 +201,7 @@ export function DealsTable({
                     >
                       <SearchField
                         label="Search deals"
-                        placeholder="Search deal, vehicle or customer"
+                        placeholder="Search deal, vehicle, VIN, customer, contact, promo or agent"
                         value={search}
                         disabled={false}
                         busy={state.busy}

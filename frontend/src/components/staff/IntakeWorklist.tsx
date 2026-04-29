@@ -166,7 +166,7 @@ export function IntakeWorklist({ actor, worklist, drawer }: IntakeWorklistProps)
                   >
                     <SearchField
                       label="Search appointments"
-                      placeholder="Search vehicle, customer or reference"
+                      placeholder="Search vehicle, customer or contact"
                       value={worklist.draft.search}
                       disabled={disabled}
                       busy={worklist.busy}

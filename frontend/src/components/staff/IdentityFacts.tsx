@@ -8,7 +8,7 @@ export function VehicleIdentityFacts({
 }: {
   registration: string;
   vehicle: string;
-  vin: string;
+  vin?: string;
 }) {
   return (
     <>
@@ -20,10 +20,12 @@ export function VehicleIdentityFacts({
         <dt>Vehicle</dt>
         <dd>{vehicle}</dd>
       </div>
-      <div>
-        <dt>VIN</dt>
-        <dd className={styles.code}>{vin}</dd>
-      </div>
+      {vin && (
+        <div>
+          <dt>VIN</dt>
+          <dd className={styles.code}>{vin}</dd>
+        </div>
+      )}
     </>
   );
 }
@@ -48,17 +50,25 @@ export function PersonIdentityFacts({
       <div>
         <dt>Mobile</dt>
         <dd>
-          <a className={styles.link} href={`tel:${mobile.replace(/[^\d+]/g, "")}`}>
-            {mobile}
-          </a>
+          {mobile ? (
+            <a className={styles.link} href={`tel:${mobile.replace(/[^\d+]/g, "")}`}>
+              {mobile}
+            </a>
+          ) : (
+            "Not on file"
+          )}
         </dd>
       </div>
       <div>
         <dt>Email</dt>
         <dd>
-          <a className={styles.link} href={`mailto:${email}`}>
-            {email}
-          </a>
+          {email ? (
+            <a className={styles.link} href={`mailto:${email}`}>
+              {email}
+            </a>
+          ) : (
+            "Not on file"
+          )}
         </dd>
       </div>
     </>

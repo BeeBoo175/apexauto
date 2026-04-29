@@ -25,7 +25,9 @@ internal static class StaffWorklistRows
             StaffWorklistStatus.NoShow => rows.Where(row => row.NoShow),
             _ => rows
         };
-        return Records(database, rows, query);
+        // Only the group scope, which has no branch of its own, chooses branches by name.
+        var scope = await StaffIntakeReadScope.ResolveAsync(database, staffId, cancellationToken);
+        return Records(database, rows, query, scope?.BranchId is null);
     }
 
     // Tab totals for the actor's branch scope, ignoring status, dates, search and column filters.
@@ -85,7 +87,7 @@ internal static class StaffWorklistRows
     }
 
     private static IQueryable<WorklistRow> Records(DealershipDbContext database,
-        IQueryable<AppointmentFlags> rows, StaffWorklistQuery query)
+        IQueryable<AppointmentFlags> rows, StaffWorklistQuery query, bool searchBranch)
     {
         var records = rows.Join(database.Branches, row => row.Appointment.BranchId, branch => branch.Id,
                 (row, branch) => new { Row = row, BranchName = branch.Name })
@@ -96,6 +98,8 @@ internal static class StaffWorklistRows
                     BranchId = row.Row.Appointment.BranchId,
                     BranchName = row.BranchName,
                     CustomerName = customer.LegalName,
+                    OwnerId = row.Row.Appointment.OwnerId,
+                    Mobile = customer.Mobile,
                     RegistrationPlate = row.Row.Appointment.RegistrationPlate,
                     Make = row.Row.Appointment.Valuation.Make,
                     Model = row.Row.Appointment.Valuation.Model,
@@ -110,10 +114,13 @@ internal static class StaffWorklistRows
         if (query.Search.Length > 0)
         {
             var pattern = LiteralSearch.Pattern(query.Search);
+            // Vehicle, customer and contact; no identifier is matched.
             records = records.Where(row => EF.Functions.ILike(row.RegistrationPlate, pattern, "!") ||
-                EF.Functions.ILike(row.CustomerName, pattern, "!") || EF.Functions.ILike(row.BranchName, pattern, "!") ||
+                EF.Functions.ILike(row.CustomerName, pattern, "!") ||
+                EF.Functions.ILike(row.Mobile, pattern, "!") ||
+                database.Users.Any(user => user.Id == row.OwnerId && EF.Functions.ILike(user.Email!, pattern, "!")) ||
                 EF.Functions.ILike(row.ManufactureYear + " " + row.Make + " " + row.Model + " " + row.Trim, pattern, "!") ||
-                EF.Functions.ILike(row.Id.ToString(), pattern, "!"));
+                searchBranch && EF.Functions.ILike(row.BranchName, pattern, "!"));
         }
         if (query.Registration.Length > 0)
         {
@@ -197,6 +204,8 @@ internal static class StaffWorklistRows
         public Guid BranchId { get; init; }
         public required string BranchName { get; init; }
         public required string CustomerName { get; init; }
+        public Guid OwnerId { get; init; }
+        public string Mobile { get; init; } = string.Empty;
         public required string RegistrationPlate { get; init; }
         public required string Make { get; init; }
         public required string Model { get; init; }

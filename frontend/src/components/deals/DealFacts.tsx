@@ -1,6 +1,7 @@
 import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDate, formatMalaysianDateTime } from "@/lib/date-format";
 import type { Deal } from "@/lib/deals/deals";
+import { PersonIdentityFacts, VehicleIdentityFacts } from "@/components/staff/IdentityFacts";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 
 type Fact = [label: string, value: React.ReactNode];
@@ -19,10 +20,6 @@ function FactList({ title, facts }: { title: string; facts: Fact[] }) {
       </dl>
     </section>
   );
-}
-
-function contactLink(scheme: "tel" | "mailto", value: string) {
-  return value ? <a href={`${scheme}:${value}`}>{value}</a> : "Not on file";
 }
 
 // The people, vehicle and arrangements behind the price lines, from the server-resolved context.
@@ -61,23 +58,31 @@ export function DealFacts({ deal }: { deal: Deal }) {
 
   return (
     <>
-      <FactList
-        title="Vehicle"
-        facts={[
-          ["Registration", context.registration],
-          ["Vehicle", context.vehicle],
-          ["VIN", context.vin],
-          ["Mileage", `${context.mileageKilometres.toLocaleString("en-MY")} km`],
-        ]}
-      />
-      <FactList
-        title="Customer"
-        facts={[
-          ["Name", context.customer],
-          ["Mobile", contactLink("tel", context.customerMobile)],
-          ["Email", contactLink("mailto", context.customerEmail)],
-        ]}
-      />
+      <section className={workbench.stack}>
+        <h3>Vehicle</h3>
+        <dl className={workbench.details}>
+          <VehicleIdentityFacts
+            registration={context.registration}
+            vehicle={context.vehicle}
+            vin={context.vin}
+          />
+          <div>
+            <dt>Mileage</dt>
+            <dd>{context.mileageKilometres.toLocaleString("en-MY")} km</dd>
+          </div>
+        </dl>
+      </section>
+      <section className={workbench.stack}>
+        <h3>Customer</h3>
+        <dl className={workbench.details}>
+          <PersonIdentityFacts
+            role="Name"
+            name={context.customer}
+            mobile={context.customerMobile}
+            email={context.customerEmail}
+          />
+        </dl>
+      </section>
       <FactList title="Deal" facts={dealFacts} />
     </>
   );

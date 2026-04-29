@@ -19,6 +19,7 @@ import { formatMalaysianDate, formatMalaysianDateTime } from "@/lib/date-format"
 import { CheckInFields } from "./CheckInFields";
 import { NoShowCorrectionFields } from "./NoShowCorrectionFields";
 import { AppointmentStatus } from "./AppointmentStatus";
+import { PersonIdentityFacts, VehicleIdentityFacts } from "./IdentityFacts";
 import styles from "./StaffWorkspace.module.css";
 import { StaffNavigationLockContext } from "./StaffActorBoundary";
 
@@ -137,7 +138,6 @@ export function AppointmentWorkbench({
       return;
     }
     const receipt = result.data;
-    const correctionAuthor = receipt.correction ? receipt.staffId : null;
     setSnapshot((current) => ({
       ...current,
       data: current.data
@@ -146,7 +146,7 @@ export function AppointmentWorkbench({
             status: "CheckedIn",
             attendanceCorrectedAt: receipt.correction?.recordedAt ?? null,
             correctionReason: receipt.correction?.reason ?? null,
-            correctedBy: correctionAuthor,
+            correctedByEmail: null,
           }
         : null,
     }));
@@ -199,27 +199,23 @@ export function AppointmentWorkbench({
               <dt>Branch</dt>
               <dd>{detail.branchName}</dd>
             </div>
-            <div>
-              <dt>Customer</dt>
-              <dd>{detail.customerName}</dd>
-            </div>
+            <PersonIdentityFacts
+              role="Customer"
+              name={detail.customerName}
+              mobile={detail.customerMobile}
+              email={detail.customerEmail}
+            />
             <div>
               <dt>Inspection</dt>
               <dd>{formatMalaysianDateTime(detail.startsAt)}</dd>
             </div>
-            <div>
-              <dt>Booked vehicle</dt>
-              <dd>
-                {detail.make} {detail.model} {detail.trim} · {detail.manufactureYear}
-              </dd>
-            </div>
+            <VehicleIdentityFacts
+              registration={detail.registrationPlate}
+              vehicle={`${detail.manufactureYear} ${detail.make} ${detail.model} ${detail.trim}`}
+            />
             <div>
               <dt>Declared mileage</dt>
               <dd>{detail.mileageKilometres.toLocaleString("en-MY")} km</dd>
-            </div>
-            <div>
-              <dt>Reference</dt>
-              <dd className={styles.reference}>{detail.id}</dd>
             </div>
           </dl>
           {detail.noShowAt && (
@@ -231,17 +227,13 @@ export function AppointmentWorkbench({
             <div className={styles.stack}>
               <p>Attendance corrected {formatMalaysianDateTime(detail.attendanceCorrectedAt)}.</p>
               <p>{detail.correctionReason}</p>
-              <p className={styles.reference}>Manager reference: {detail.correctedBy}</p>
+              {detail.correctedByEmail && <p>Corrected by {detail.correctedByEmail}.</p>}
             </div>
           )}
           {command.receipt && (
             <div className={styles.stack}>
               <h3>Check-in confirmed</h3>
               <p>{formatMalaysianDateTime(command.receipt.checkedInAt)}</p>
-              <p>
-                Vehicle reference:{" "}
-                <span className={styles.reference}>{command.receipt.vehicleId}</span>
-              </p>
               <p className={styles.help}>
                 The vehicle is pending inspection. The booked vehicle details and declared mileage
                 are retained.

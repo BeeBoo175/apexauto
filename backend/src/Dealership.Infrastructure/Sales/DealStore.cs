@@ -112,6 +112,10 @@ public sealed partial class DealStore(DealershipDbContext database) : IDealStore
         public int Year { get; init; }
         public Guid CustomerId { get; init; }
         public string Customer { get; init; } = string.Empty;
+        public string Mobile { get; init; } = string.Empty;
+        public string? Email { get; init; }
+        public string Vin { get; init; } = string.Empty;
+        public string? Promo { get; init; }
         public Guid AgentId { get; init; }
         public string? Agent { get; init; }
         public Guid BranchId { get; init; }
@@ -137,7 +141,7 @@ public sealed partial class DealStore(DealershipDbContext database) : IDealStore
             await scoped.CountAsync(item => Open.Contains(item.Status), cancellationToken),
             await scoped.CountAsync(item => item.Status == SalesOrderStatus.PendingManagerApproval, cancellationToken),
             await scoped.CountAsync(item => item.Status == SalesOrderStatus.Cancelled, cancellationToken));
-        var rows = Filter(Project(scoped), query);
+        var rows = Filter(Project(scoped), query, actor.Role == AccountRoles.GeneralManager);
         var total = await rows.CountAsync(cancellationToken);
         var items = await Order(rows, query).Skip((query.Page - 1) * query.PageSize).Take(query.PageSize)
             .ToListAsync(cancellationToken);
@@ -202,6 +206,7 @@ public sealed partial class DealStore(DealershipDbContext database) : IDealStore
         join vehicle in database.Vehicles.AsNoTracking() on order.VehicleId equals vehicle.Id
         join profile in database.CustomerProfiles.AsNoTracking() on order.CustomerId equals profile.UserId
         join agent in database.Users.AsNoTracking() on order.SalesAgentId equals agent.Id
+        join buyer in database.Users.AsNoTracking() on order.CustomerId equals buyer.Id
         join branch in database.Branches.AsNoTracking() on order.BranchId equals branch.Id
         select new Row
         {
@@ -216,6 +221,10 @@ public sealed partial class DealStore(DealershipDbContext database) : IDealStore
             Year = vehicle.ManufactureYear,
             CustomerId = order.CustomerId,
             Customer = profile.LegalName,
+            Mobile = profile.Mobile,
+            Email = buyer.Email,
+            Vin = vehicle.Vin,
+            Promo = order.PromoCode,
             AgentId = order.SalesAgentId,
             Agent = agent.Email,
             BranchId = order.BranchId,
@@ -228,7 +237,7 @@ public sealed partial class DealStore(DealershipDbContext database) : IDealStore
             Updated = order.UpdatedAtUtc
         };
 
-    private static IQueryable<Row> Filter(IQueryable<Row> rows, DealListQuery query)
+    private static IQueryable<Row> Filter(IQueryable<Row> rows, DealListQuery query, bool searchBranch)
     {
         rows = query.View switch
         {
@@ -315,15 +324,22 @@ public sealed partial class DealStore(DealershipDbContext database) : IDealStore
             _ => rows
         };
 
-        // One box for the common lookup: deal number, registration, vehicle or customer.
-        return query.Search is null ? rows
-            : rows.Where(row =>
-                row.OrderNumber != null && EF.Functions.ILike(row.OrderNumber, Contains(query.Search), "\\") ||
-                EF.Functions.ILike(row.Plate, Contains(query.Search), "\\") ||
-                EF.Functions.ILike(row.Year + " " + row.Make + " " + row.Model + " " + row.Trim,
-                    Contains(query.Search), "\\") ||
-                EF.Functions.ILike(row.Customer, Contains(query.Search), "\\"));
+        return query.Search is null ? rows : Search(rows, Contains(query.Search), searchBranch);
     }
+
+    // One box for the common lookup: deal number, vehicle and VIN, customer and contact, promo and agent; branch only for the group scope.
+    private static IQueryable<Row> Search(IQueryable<Row> rows, string pattern, bool searchBranch) =>
+        rows.Where(row =>
+            row.OrderNumber != null && EF.Functions.ILike(row.OrderNumber, pattern, "\\") ||
+            EF.Functions.ILike(row.Plate, pattern, "\\") ||
+            EF.Functions.ILike(row.Vin, pattern, "\\") ||
+            EF.Functions.ILike(row.Year + " " + row.Make + " " + row.Model + " " + row.Trim, pattern, "\\") ||
+            EF.Functions.ILike(row.Customer, pattern, "\\") ||
+            EF.Functions.ILike(row.Mobile, pattern, "\\") ||
+            EF.Functions.ILike(row.Email ?? string.Empty, pattern, "\\") ||
+            EF.Functions.ILike(row.Promo ?? string.Empty, pattern, "\\") ||
+            row.Agent != null && EF.Functions.ILike(row.Agent, pattern, "\\") ||
+            searchBranch && EF.Functions.ILike(row.Branch, pattern, "\\"));
 
     private static string Contains(string value) => "%" + PromoAdministrationStore.EscapeLike(value) + "%";
 

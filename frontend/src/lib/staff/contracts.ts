@@ -34,7 +34,9 @@ export interface AppointmentDetail extends WorklistItem {
   noShowAt: string | null;
   attendanceCorrectedAt: string | null;
   correctionReason: string | null;
-  correctedBy: string | null;
+  correctedByEmail: string | null;
+  customerMobile: string;
+  customerEmail: string;
   mileageKilometres: number;
 }
 export interface CheckInDraft {
