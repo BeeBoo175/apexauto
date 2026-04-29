@@ -15,6 +15,8 @@ export const reservationSorts = [
   "expires",
   "total",
   "status",
+  "agent",
+  "claimed",
 ] as const;
 
 export const reservationStatuses = {
@@ -25,6 +27,13 @@ export const reservationStatuses = {
   Withdrawn: "Listing withdrawn",
   Reinspection: "Reinspection",
 } as const;
+
+// The agent who took the hold and how much of its time stood still when they did.
+export interface ReservationClaim {
+  agent: string;
+  claimedAtUtc: string;
+  frozenRemainingSeconds: number;
+}
 
 export interface ReservationItem {
   id: string;
@@ -43,14 +52,16 @@ export interface ReservationItem {
   expiresAt: string;
   total: number;
   status: keyof typeof reservationStatuses;
+  claim: ReservationClaim | null;
 }
 
-export const reservationCountKeys = ["active", "history"] as const;
+export const reservationCountKeys = ["active", "history", "open", "handled"] as const;
 export type ReservationPage = CountedPage<ReservationItem, (typeof reservationCountKeys)[number]>;
 
 export interface ReservationFilters {
   branchId: string;
   isActive: boolean;
+  claimed: boolean;
   pageSize: number;
   sort: string;
   direction: "asc" | "desc";
@@ -58,6 +69,7 @@ export interface ReservationFilters {
   registration?: string;
   vehicle?: string;
   buyer?: string;
+  agent?: string;
   status?: string;
   minimumTotal?: string;
   maximumTotal?: string;
@@ -74,6 +86,7 @@ export const reservationFilterDefaults = {
   registration: "",
   vehicle: "",
   buyer: "",
+  agent: "",
   status: "",
   minimumTotal: "",
   maximumTotal: "",
@@ -100,6 +113,7 @@ export function reservationParams(params: SearchParams) {
     ...reservationFilterDefaults,
     branchId: isUuid(params.branchId) ? params.branchId : "",
     isActive: params.isActive !== "false",
+    claimed: params.isActive !== "false" && params.claimed === "true",
     pageSize: isPageSize(size) ? size : DEFAULT_PAGE_SIZE,
     sort: reservationSorts.find((sort) => sort === params.sort) ?? "",
     direction: params.direction === "desc" ? "desc" : "asc",
@@ -116,6 +130,9 @@ export function reservationParams(params: SearchParams) {
 export function reservationQuery(filters: ReservationFilters, page = 1) {
   const query = paginationQuery(page, filters.pageSize);
   query.set("isActive", String(filters.isActive));
+  if (filters.isActive) {
+    query.set("claimed", String(filters.claimed));
+  }
   if (filters.branchId) {
     query.set("branchId", filters.branchId);
   }
@@ -132,21 +149,45 @@ export function reservationQuery(filters: ReservationFilters, page = 1) {
   return query.toString();
 }
 
+export type ReservationView = "open" | "handled" | "history";
+
+export function reservationView(filters: ReservationFilters): ReservationView {
+  if (!filters.isActive) {
+    return "history";
+  }
+  return filters.claimed ? "handled" : "open";
+}
+
+// Rows belong to the view that asked for them, so a mismatched response is never shown as that view.
+export function reservationRowsFit(filters: ReservationFilters, items: ReservationItem[]) {
+  const view = reservationView(filters);
+  return items.every((row) => {
+    if (view === "history") {
+      return row.status !== "Active";
+    }
+    return row.status === "Active" && (row.claim !== null) === (view === "handled");
+  });
+}
+
 export function reservationViewFilters(
   filters: ReservationFilters,
-  isActive: boolean,
+  view: ReservationView,
 ): ReservationFilters {
-  if (filters.isActive === isActive) {
+  if (reservationView(filters) === view) {
     return filters;
   }
   let sort = filters.sort;
   if (sort === "expires" || sort === "released") {
-    sort = isActive ? "expires" : "released";
+    sort = { open: "expires", handled: "", history: "released" }[view];
+  } else if ((sort === "agent" || sort === "claimed") && view !== "handled") {
+    sort = "";
   }
   return {
     ...filters,
-    isActive,
+    isActive: view !== "history",
+    claimed: view === "handled",
     sort,
+    agent: "",
     status: "",
     expiresFrom: "",
     expiresTo: "",

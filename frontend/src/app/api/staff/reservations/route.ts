@@ -9,6 +9,7 @@ export function GET(request: Request) {
     "page",
     "pageSize",
     "branchId",
+    "claimed",
     "sort",
     "direction",
     ...reservationFilterKeys,

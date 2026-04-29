@@ -27,6 +27,7 @@ import type { Branch } from "@/lib/branches";
 import {
   reservationQuery,
   reservationFilterDefaults,
+  reservationView,
   reservationViewFilters,
   type ReservationItem,
   type ReservationPage,
@@ -42,6 +43,12 @@ import styles from "@/components/staff/IntakeWorklist.module.css";
 import workspace from "@/components/staff/StaffWorkspace.module.css";
 
 const rowId = (row: ReservationItem) => row.id;
+
+const viewLabels = {
+  open: "open holds",
+  handled: "holds being handled",
+  history: "reservation history",
+};
 
 export function ReservationTable({
   actor,
@@ -71,12 +78,12 @@ export function ReservationTable({
   });
   const animateEntry = useContext(StaffPageEntranceContext);
   const { snapshot, active } = state;
+  const view = reservationView(active.filters);
   const { columns, applied } = reservationTableFilters(
     state,
-    reservationColumns(actor.role === "GeneralManager", active.filters.isActive),
+    reservationColumns(actor.role === "GeneralManager", view, state.fetchedAt),
   );
-  const selectedView = state.pendingView ?? active.filters.isActive;
-  const pendingLabel = state.pendingView ? "Opening active holds" : "Opening reservation history";
+  const selectedView = state.pendingView ?? view;
   const selection = useRowSelection(
     snapshot?.items ?? [],
     rowId,
@@ -86,7 +93,7 @@ export function ReservationTable({
     exportReservations(active.filters, signal),
   );
   const filtered = applied.length > 0 || Boolean(active.filters.search);
-  let emptyTitle = active.filters.isActive ? "No active holds" : "No reservation history";
+  let emptyTitle = `No ${viewLabels[view]}`;
   if (filtered) {
     emptyTitle = "No reservations match your criteria";
   }
@@ -139,19 +146,20 @@ export function ReservationTable({
               toolbar={
                 <>
                   <span className="sr-only" role="status">
-                    {state.pendingView !== null && pendingLabel}
+                    {state.pendingView !== null && `Opening ${viewLabels[state.pendingView]}`}
                   </span>
                   <StaffQueueTabs
                     label="Reservation views"
                     countNoun="reservations"
                     tabs={[
-                      { value: "active", label: "Active holds", count: snapshot.counts?.active },
+                      { value: "open", label: "Open", count: snapshot.counts?.open },
+                      { value: "handled", label: "Being handled", count: snapshot.counts?.handled },
                       { value: "history", label: "History", count: snapshot.counts?.history },
                     ]}
-                    value={selectedView ? "active" : "history"}
+                    value={selectedView}
                     disabled={state.busy}
-                    onChange={(view) =>
-                      void state.load(reservationViewFilters(active.filters, view === "active"), 1)
+                    onChange={(next) =>
+                      void state.load(reservationViewFilters(active.filters, next), 1)
                     }
                   />
                   <RecordToolbar
@@ -202,7 +210,7 @@ export function ReservationTable({
                     >
                       <SearchField
                         label="Search reservations"
-                        placeholder="Search vehicle, buyer or reference"
+                        placeholder="Search vehicle, buyer, agent or reference"
                         value={state.draft.search ?? ""}
                         disabled={false}
                         busy={state.busy}
@@ -237,7 +245,8 @@ export function ReservationTable({
               onRowClick={(row) => void drawer.choose(row.id)}
               emptyState={{
                 title: emptyTitle,
-                description: "Search a vehicle, buyer or reference, or adjust the column filters.",
+                description:
+                  "Search a vehicle, buyer, agent or reference, or adjust the column filters.",
                 ...(filtered && {
                   action: {
                     label: "Clear search and filters",

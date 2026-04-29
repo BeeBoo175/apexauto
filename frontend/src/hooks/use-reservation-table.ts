@@ -8,8 +8,11 @@ import { parsePage, type ApiResult, type Page } from "@/lib/api";
 import { parseBranch, type Branch } from "@/lib/branches";
 import {
   reservationQuery,
+  reservationRowsFit,
+  reservationView,
   type ReservationFilters,
   type ReservationPage,
+  type ReservationView,
 } from "@/lib/vehicles/reservations";
 import { parseReservationSnapshot } from "@/lib/vehicles/parse-reservations";
 
@@ -24,7 +27,8 @@ export function useReservationTable(
   const [draft, setDraft] = useState(filters);
   const [branches, setBranches] = useState(initialBranches);
   const [busy, setBusy] = useState(false);
-  const [pendingView, setPendingView] = useState<boolean | null>(null);
+  const [pendingView, setPendingView] = useState<ReservationView | null>(null);
+  const [fetchedAt, setFetchedAt] = useState(() => Date.now());
   const [ready, setReady] = useState(false);
   const [revision, setRevision] = useState(0);
   const [entry, setEntry] = useState(initial);
@@ -63,7 +67,8 @@ export function useReservationTable(
     const submitted = draft;
     controller.current = attempt;
     setBusy(true);
-    setPendingView(nextFilters.isActive === active.filters.isActive ? null : nextFilters.isActive);
+    const nextView = reservationView(nextFilters);
+    setPendingView(nextView === reservationView(active.filters) ? null : nextView);
     try {
       const result = await privateApiFetch(
         `/api/staff/reservations?${reservationQuery(nextFilters, nextPage)}`,
@@ -78,11 +83,12 @@ export function useReservationTable(
         !result.data ||
         result.data.page !== nextPage ||
         result.data.pageSize !== nextFilters.pageSize ||
-        result.data.items.some((row) => (row.status === "Active") !== nextFilters.isActive)
+        !reservationRowsFit(nextFilters, result.data.items)
       ) {
         throw new Error("Reservations unavailable");
       }
       setSnapshot(result.data);
+      setFetchedAt(Date.now());
       setActive({ filters: nextFilters, page: nextPage });
       setDraft((current) => ({
         ...nextFilters,
@@ -159,6 +165,7 @@ export function useReservationTable(
     branches,
     busy,
     pendingView,
+    fetchedAt,
     ready,
     revision,
     load,

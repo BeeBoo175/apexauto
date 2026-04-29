@@ -26,6 +26,7 @@ export function reservationTableFilters(
     { key: "registration", label: "Registration" },
     { key: "vehicle", label: "Vehicle" },
     { key: "buyer", label: "Buyer" },
+    { key: "agent", label: "Agent" },
   ] as const) {
     if (filters[entry.key]) {
       applied.push({
@@ -70,6 +71,7 @@ export function reservationTableFilters(
     registration: Boolean(filters.registration),
     vehicle: Boolean(filters.vehicle),
     buyer: Boolean(filters.buyer),
+    agent: Boolean(filters.agent),
     status: Boolean(filters.status),
     branch: Boolean(filters.branchId),
     total: Boolean(filters.minimumTotal || filters.maximumTotal),
@@ -77,12 +79,17 @@ export function reservationTableFilters(
     expires: Boolean(filters.expiresFrom || filters.expiresTo),
     released: Boolean(filters.releasedFrom || filters.releasedTo),
   };
-  const filteredColumns = columns.map((column) => ({
-    ...column,
-    filter: {
-      active: indicators[column.id],
-      content: <ReservationFilters state={state} column={column.id} />,
-    },
-  }));
+  // The claim time has no query to filter by, so its column offers sorting only.
+  const filteredColumns = columns.map((column) =>
+    column.id in indicators
+      ? {
+          ...column,
+          filter: {
+            active: indicators[column.id],
+            content: <ReservationFilters state={state} column={column.id} />,
+          },
+        }
+      : column,
+  );
   return { columns: filteredColumns, applied };
 }

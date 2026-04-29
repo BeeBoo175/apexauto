@@ -1,12 +1,38 @@
 import { parseCountedPage } from "@/lib/api";
 import { isRecord, isUuid } from "@/lib/auth/contracts";
 import { isMyr } from "@/lib/currency-input";
-import { reservationCountKeys, reservationStatuses, type ReservationItem } from "./reservations";
+import {
+  reservationCountKeys,
+  reservationStatuses,
+  type ReservationClaim,
+  type ReservationItem,
+} from "./reservations";
 
 const text = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0;
 const timestamp = (value: unknown): value is string =>
   text(value) && /(?:Z|\+00:00)$/.test(value) && Number.isFinite(Date.parse(value));
+
+// A claim is absent on open and released holds; undefined means the claim is malformed.
+function parseClaim(value: unknown): ReservationClaim | null | undefined {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  if (
+    !isRecord(value) ||
+    !text(value.agent) ||
+    !timestamp(value.claimedAtUtc) ||
+    !Number.isSafeInteger(value.frozenRemainingSeconds) ||
+    Number(value.frozenRemainingSeconds) < 0
+  ) {
+    return undefined;
+  }
+  return {
+    agent: value.agent,
+    claimedAtUtc: value.claimedAtUtc,
+    frozenRemainingSeconds: Number(value.frozenRemainingSeconds),
+  };
+}
 
 export function parseReservation(value: unknown): ReservationItem | null {
   if (!isRecord(value) || !isRecord(value.receipt)) {
@@ -35,6 +61,10 @@ export function parseReservation(value: unknown): ReservationItem | null {
     Number(value.manufactureYear) < 1 ||
     typeof value.isActive !== "boolean"
   ) {
+    return null;
+  }
+  const claim = parseClaim(value.claim);
+  if (claim === undefined || (claim !== null && !value.isActive)) {
     return null;
   }
   const release = value.release;
@@ -73,6 +103,7 @@ export function parseReservation(value: unknown): ReservationItem | null {
     expiresAt: receipt.expiresAt,
     total: price.total,
     status,
+    claim,
   };
 }
 
@@ -115,6 +146,10 @@ export function parseReservationRow(value: unknown): ReservationItem | null {
   ) {
     return null;
   }
+  const claim = parseClaim(value.claim);
+  if (claim === undefined || (claim !== null && value.status !== "Active")) {
+    return null;
+  }
   return {
     id: value.id,
     vehicleId: value.vehicleId,
@@ -132,6 +167,7 @@ export function parseReservationRow(value: unknown): ReservationItem | null {
     expiresAt: value.expiresAt,
     total: value.total,
     status: value.status as ReservationItem["status"],
+    claim,
   };
 }
 

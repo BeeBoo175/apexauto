@@ -21,11 +21,17 @@ export function ReservationFilters({
   const [draft, setDraft] = useState(filters);
   const apply = (value: typeof filters) => state.load(value, 1);
 
-  if (column === "registration" || column === "vehicle" || column === "buyer") {
+  if (
+    column === "registration" ||
+    column === "vehicle" ||
+    column === "buyer" ||
+    column === "agent"
+  ) {
     const labels = {
       registration: "Registration contains",
       vehicle: "Vehicle contains",
       buyer: "Buyer contains",
+      agent: "Agent contains",
     };
     return (
       <TextColumnFilter
@@ -89,7 +95,7 @@ export function ReservationFilters({
           options={[
             { value: "", label: "All in this view" },
             ...Object.entries(reservationStatuses)
-              .filter(([value]) => (value === "Active") === filters.isActive)
+              .filter(([value]) => value !== "Active")
               .map(([value, label]) => ({ value, label })),
           ]}
           value={draft.status ?? ""}

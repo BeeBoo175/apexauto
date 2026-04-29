@@ -8,6 +8,8 @@ import {
   reservationParams,
   reservationQuery,
   reservationSorts,
+  reservationView,
+  reservationViewFilters,
 } from "@/lib/vehicles/reservations";
 import {
   listingDraft,
@@ -54,7 +56,26 @@ const vehicle = {
 test("reservation queries explicitly scope membership and carry each server sort through paging", () => {
   const initial = reservationParams({});
   expect(initial.filters.isActive).toBe(true);
+  expect(reservationView(initial.filters)).toBe("open");
   expect(new URLSearchParams(reservationQuery(initial.filters)).get("isActive")).toBe("true");
+  const handled = reservationParams({ claimed: "true", sort: "claimed" });
+  expect(reservationView(handled.filters)).toBe("handled");
+  expect(Object.fromEntries(new URLSearchParams(reservationQuery(handled.filters)))).toMatchObject({
+    isActive: "true",
+    claimed: "true",
+    sort: "claimed",
+  });
+  // A claimed address on the history view is ignored, and switching views drops view-only criteria.
+  expect(reservationParams({ isActive: "false", claimed: "true" }).filters.claimed).toBe(false);
+  const switched = reservationViewFilters(
+    { ...handled.filters, agent: "pat", status: "x" },
+    "open",
+  );
+  expect(reservationView(switched)).toBe("open");
+  expect(switched).toMatchObject({ agent: "", sort: "", claimed: false });
+  expect(reservationViewFilters({ ...initial.filters, sort: "expires" }, "history").sort).toBe(
+    "released",
+  );
   const history = reservationParams({
     isActive: "false",
     page: "2",
@@ -168,6 +189,32 @@ test("reservation projections reject inconsistent receipts and keep private buye
   }
   expect(
     parseReservationSnapshot({ ...parsed, items: [{ ...parsed.items[0], status: "Unknown" }] }),
+  ).toBeNull();
+  const claim = {
+    agent: "agent@example.invalid",
+    claimedAtUtc: "2026-10-27T00:00:00Z",
+    frozenRemainingSeconds: 3600,
+  };
+  const claimed = parseReservations({ ...raw, items: [{ ...item, claim }] })!;
+  expect(claimed.items[0].claim).toEqual(claim);
+  expect(parseReservationSnapshot(claimed)).toEqual(claimed);
+  for (const changed of [
+    { ...claim, agent: " " },
+    { ...claim, claimedAtUtc: "yesterday" },
+    { ...claim, frozenRemainingSeconds: -1 },
+    { ...claim, frozenRemainingSeconds: 1.5 },
+  ]) {
+    expect(parseReservations({ ...raw, items: [{ ...item, claim: changed }] })).toBeNull();
+  }
+  // Only a live hold can be claimed.
+  expect(
+    parseReservations({ ...raw, items: [{ ...item, isActive: false, release, claim }] }),
+  ).toBeNull();
+  expect(
+    parseReservationSnapshot({
+      ...parsed,
+      items: [{ ...parsed.items[0], status: "Expired", releasedAt: receipt.expiresAt, claim }],
+    }),
   ).toBeNull();
 });
 

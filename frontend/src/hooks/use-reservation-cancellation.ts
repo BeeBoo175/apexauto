@@ -40,7 +40,9 @@ export function useReservationCancellation(
   const operating = command.busy || command.uncertain;
   const locked = Boolean(reason) || operating;
   const lockNavigation = useInspectionLock(locked);
-  const actionable = detail?.reservation.status === "Active" && !command.receipt;
+  // A claimed hold has a deal in progress, so its deal is cancelled instead of the bare hold.
+  const actionable =
+    detail?.reservation.status === "Active" && !detail.reservation.claim && !command.receipt;
 
   function changeReason(value: string) {
     if (operating) {

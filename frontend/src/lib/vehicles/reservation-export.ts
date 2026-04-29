@@ -14,6 +14,11 @@ export const reservationExportColumns: readonly CsvColumn<ReservationItem>[] = [
   { label: "Vehicle", value: (row) => row.vehicle },
   { label: "Status", value: (row) => reservationStatuses[row.status] },
   { label: "Buyer", value: (row) => row.buyer },
+  { label: "Handled by", value: (row) => row.claim?.agent ?? "" },
+  {
+    label: "Claimed (Malaysia)",
+    value: (row) => (row.claim ? formatMalaysianDateTime(row.claim.claimedAtUtc) : ""),
+  },
   { label: "Reserved total (MYR)", value: (row) => row.total.toFixed(2) },
   { label: "Expires (Malaysia)", value: (row) => formatMalaysianDateTime(row.expiresAt) },
   {

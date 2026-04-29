@@ -111,7 +111,7 @@ test("manager reservations retain scoped active/history snapshots, server order 
   expect(counts()["/api/staff/reservations"] - before).toBe(1);
   const table = page.getByRole("table", { name: "Reservations", exact: true });
   const rows = () => table.locator("tbody tr");
-  const active = await read(context, "isActive=true&pageSize=10");
+  const active = await read(context, "isActive=true&claimed=false&pageSize=10");
   expect(active.total).toBe(mobile ? 1 : 3);
   await expect(rows()).toHaveCount(active.total);
   expect(active.items.every((row) => row.status === "Active")).toBe(true);
@@ -196,7 +196,7 @@ test("manager reservations retain scoped active/history snapshots, server order 
   const sameTable = await table.elementHandle();
   writeFileSync(path.join(evidence, "fault.txt"), "unavailable");
   try {
-    await page.getByRole("button", { name: "Active holds", exact: true }).click();
+    await page.getByRole("button", { name: "Open", exact: true }).click();
     await expect(page.getByRole("alert").filter({ hasText: "last confirmed rows" })).toBeVisible();
     expect(page.url()).toBe(confirmedUrl);
     expect(await rows().allTextContents()).toEqual(confirmed);

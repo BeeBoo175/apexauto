@@ -11,6 +11,7 @@ import type { SearchParams } from "@/lib/query";
 import {
   reservationParams,
   reservationQuery,
+  reservationRowsFit,
   type ReservationPage,
 } from "@/lib/vehicles/reservations";
 import { parseReservationSnapshot } from "@/lib/vehicles/parse-reservations";
@@ -60,7 +61,7 @@ export function useReservationClientEntry(actor: CurrentActor, parameters: Searc
       initial.data &&
       (initial.data.page !== page ||
         initial.data.pageSize !== filters.pageSize ||
-        initial.data.items.some((row) => (row.status === "Active") !== filters.isActive))
+        !reservationRowsFit(filters, initial.data.items))
     ) {
       throw new Error("Reservations unavailable");
     }
