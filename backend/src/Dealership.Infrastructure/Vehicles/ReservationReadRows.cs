@@ -8,17 +8,11 @@ namespace Dealership.Infrastructure.Vehicles;
 
 internal static class ReservationReadRows
 {
-    public static IQueryable<Row> Filter(IQueryable<Row> rows, ReservationReadFilter filter)
+    public static IQueryable<Row> Filter(IQueryable<Row> rows, ReservationReadFilter filter, bool searchBranch = false)
     {
         if (filter.Search.Length > 0)
         {
-            var pattern = LiteralSearch.Pattern(filter.Search);
-            rows = rows.Where(row => EF.Functions.ILike(row.RegistrationPlate, pattern, "!") ||
-                EF.Functions.ILike(row.ManufactureYear + " " + row.Make + " " + row.Model + " " + row.Trim, pattern, "!") ||
-                EF.Functions.ILike(row.Reservation.Buyer.LegalName, pattern, "!") ||
-                EF.Functions.ILike(row.BranchName, pattern, "!") ||
-                EF.Functions.ILike(row.ClaimedBy ?? string.Empty, pattern, "!") ||
-                EF.Functions.ILike(row.Reservation.Id.ToString(), pattern, "!"));
+            rows = Search(rows, LiteralSearch.Pattern(filter.Search), searchBranch);
         }
         if (filter.Agent.Length > 0)
         {
@@ -74,6 +68,18 @@ internal static class ReservationReadRows
         return rows;
     }
 
+    // What staff look a hold up by: vehicle, buyer and contact, promo and handler. Branch is only a choice for the group scope, and no identifier is matched.
+    private static IQueryable<Row> Search(IQueryable<Row> rows, string pattern, bool searchBranch) =>
+        rows.Where(row => EF.Functions.ILike(row.RegistrationPlate, pattern, "!") ||
+            EF.Functions.ILike(row.Vin, pattern, "!") ||
+            EF.Functions.ILike(row.ManufactureYear + " " + row.Make + " " + row.Model + " " + row.Trim, pattern, "!") ||
+            EF.Functions.ILike(row.Reservation.Buyer.LegalName, pattern, "!") ||
+            EF.Functions.ILike(row.Reservation.Buyer.Mobile, pattern, "!") ||
+            EF.Functions.ILike(row.Reservation.Buyer.Email, pattern, "!") ||
+            EF.Functions.ILike(row.Reservation.PromoCode ?? string.Empty, pattern, "!") ||
+            EF.Functions.ILike(row.ClaimedBy ?? string.Empty, pattern, "!") ||
+            searchBranch && EF.Functions.ILike(row.BranchName, pattern, "!"));
+
     public static IQueryable<Row> CreateRows(DealershipDbContext database, IQueryable<Reservation> reservations)
     {
         return from reservation in reservations
@@ -88,6 +94,7 @@ internal static class ReservationReadRows
                    Reservation = reservation,
                    BranchName = branch.Name,
                    RegistrationPlate = vehicle.RegistrationPlate,
+                   Vin = vehicle.Vin,
                    Make = vehicle.Make,
                    Model = vehicle.Model,
                    Trim = vehicle.Trim,
@@ -150,7 +157,7 @@ internal static class ReservationReadRows
     public static ReservationHistoryItem ToItem(Row row, bool staff) => new(ReservationReceipt.From(row.Reservation), row.BranchName,
         row.Make, row.Model, row.Trim, row.ManufactureYear, row.Reservation.IsActive,
         row.Release is null ? null : ReservationRefundReceipt.From(row.Release), staff ? row.RegistrationPlate : null,
-        row.CoverPhotoId, staff ? ClaimOf(row) : null);
+        row.CoverPhotoId, staff ? ClaimOf(row) : null, staff ? row.Vin : null);
 
     private static ReservationClaimView? ClaimOf(Row row) => row.Reservation is
     {
@@ -170,6 +177,7 @@ internal static class ReservationReadRows
         public required Reservation Reservation { get; init; }
         public required string BranchName { get; init; }
         public required string RegistrationPlate { get; init; }
+        public required string Vin { get; init; }
         public required string Make { get; init; }
         public required string Model { get; init; }
         public required string Trim { get; init; }

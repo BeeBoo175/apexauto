@@ -19,7 +19,7 @@ type Body = Record<string, unknown>;
 // Which upstream a relay forwards to, who may use it and which resources it will name.
 export interface StaffRelay {
   upstream: string;
-  access: (actor: CurrentActor) => boolean;
+  access: (actor: CurrentActor, resource: string) => boolean;
   reads: RegExp;
   writes?: RegExp;
 }
@@ -63,12 +63,12 @@ export const dealActions = {
   cancellations: { reason: true },
 } as const;
 
-async function relayActor(relay: StaffRelay, signal: AbortSignal) {
+async function relayActor(relay: StaffRelay, signal: AbortSignal, resource: string) {
   const current = await readCurrentActor(signal);
   if (!current.actor) {
     throw new HttpError(current.status === 401 ? 401 : 502, "Your session could not be confirmed.");
   }
-  const denied = !relay.access(current.actor)
+  const denied = !relay.access(current.actor, resource)
     ? apiJson({
         status: 403,
         data: null,
@@ -92,7 +92,7 @@ export async function relayStaffRead<T>(
       throw new HttpError(400, "Choose a valid resource.");
     }
     const signal = AbortSignal.any([request.signal, AbortSignal.timeout(25_000)]);
-    const current = await relayActor(relay, signal);
+    const current = await relayActor(relay, signal, resource);
     if (current.denied) {
       return current.denied;
     }
@@ -139,7 +139,7 @@ export async function relayStaffWrite<T>(
     if (relay.writes && !relay.writes.test(resource)) {
       throw new HttpError(400, "Choose a valid resource.");
     }
-    const current = await relayActor(relay, signal);
+    const current = await relayActor(relay, signal, resource);
     if (current.denied) {
       return current.denied;
     }

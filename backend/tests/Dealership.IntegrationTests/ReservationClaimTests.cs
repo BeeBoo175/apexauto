@@ -93,6 +93,23 @@ public sealed class ReservationClaimTests(IntakePhotoFixture fixture) : IClassFi
             new(IsActive: true, Claimed: true, Agent: $"staff.{colleague:N}"), default)).History!.Items);
         Assert.Contains(held.Id, (await reads.StaffAsync(manager,
             new(IsActive: true, Search: agentEmail), default)).History!.Items.Select(item => item.Receipt.Id));
+        // Staff search matches vehicle, VIN and the buyer's contact but never an identifier, and only the group scope searches by branch.
+        var identity = (await reads.StaffAsync(manager, new(IsActive: true, Claimed: true), default)).History!.Items.Single();
+        var vin = identity.Vin;
+        Assert.False(string.IsNullOrEmpty(vin));
+        foreach (var term in new[] { held.Buyer.Mobile, held.Buyer.Email, vin! })
+        {
+            Assert.Contains(held.Id, (await reads.StaffAsync(manager, new(Search: term), default))
+                .History!.Items.Select(item => item.Receipt.Id));
+        }
+
+        Assert.DoesNotContain(held.Id, (await reads.StaffAsync(manager, new(Search: held.Id.ToString()[..8]), default))
+            .History!.Items.Select(item => item.Receipt.Id));
+        Assert.DoesNotContain(held.Id, (await reads.StaffAsync(manager, new(Search: identity.BranchName), default))
+            .History!.Items.Select(item => item.Receipt.Id));
+        Assert.Contains(held.Id, (await reads.StaffAsync(generalManager, new(Search: identity.BranchName), default))
+            .History!.Items.Select(item => item.Receipt.Id));
+
         foreach (var claimedTab in new[] { true, false })
         {
             // Without a chosen sort the open and handled tabs keep their queue order.

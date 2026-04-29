@@ -7,6 +7,8 @@ import { Dialog } from "@/components/ui/Dialog";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { ReservationLoadingShell } from "./ReservationLoadingShell";
+import { ReservationHandling } from "./ReservationHandling";
+import { SalesHistory } from "@/components/sales/SalesHistory";
 import type { useStaffSelection } from "@/hooks/use-staff-selection";
 import { useReservationCancellation } from "@/hooks/use-reservation-cancellation";
 import type { CurrentActor } from "@/lib/auth/actor";
@@ -22,10 +24,12 @@ import styles from "./ReservationDrawer.module.css";
 export function ReservationDrawer({
   selection,
   actor,
+  now,
   onConfirmed,
 }: {
   selection: ReturnType<typeof useStaffSelection<ReservationDetail>>;
   actor: CurrentActor;
+  now: number;
   onConfirmed: () => void;
 }) {
   const detail = selection.result?.data;
@@ -33,6 +37,8 @@ export function ReservationDrawer({
   const cancellation = useReservationCancellation(detail ?? null, actor, onConfirmed);
   const release = cancellation.command.receipt ?? detail?.release;
   const status = cancellation.command.receipt ? "StaffCancelled" : reservation?.status;
+  const statusLabel = reservation?.claim ? "Being handled" : status && reservationStatuses[status];
+  const handleable = status === "Active" && !cancellation.command.receipt;
   const close = () => {
     if (!cancellation.locked) {
       selection.close();
@@ -98,7 +104,7 @@ export function ReservationDrawer({
                   </strong>
                 </div>
                 <div className={workshop.summaryContext}>
-                  <strong>{status && reservationStatuses[status]}</strong>
+                  <strong>{statusLabel}</strong>
                   <span>{reservation.branchName}</span>
                 </div>
               </div>
@@ -115,6 +121,9 @@ export function ReservationDrawer({
                   ))}
                 </dl>
               </section>
+              {handleable && (
+                <ReservationHandling detail={detail} now={now} onChanged={onConfirmed} />
+              )}
               <section className={`${workbench.stack} ${styles.section}`}>
                 <h3>Retained price</h3>
                 <dl className={workbench.details}>
@@ -162,6 +171,10 @@ export function ReservationDrawer({
                   </dl>
                 </section>
               )}
+              <SalesHistory
+                key={`${reservation.id}:${status}:${reservation.claim?.agent ?? ""}`}
+                reservationId={reservation.id}
+              />
               {(cancellation.actionable || cancellation.locked) && (
                 <section className={`${workbench.stack} ${styles.section} ${styles.cancellation}`}>
                   <div className={styles.cancellationIntro}>

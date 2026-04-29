@@ -30,7 +30,8 @@ public sealed record ReservationHistoryItem(ReservationReceipt Receipt, string B
     string Make, string Model, string Trim, int ManufactureYear, bool IsActive, ReservationRefundReceipt? Release,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? RegistrationPlate,
     Guid? CoverPhotoId = null,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] ReservationClaimView? Claim = null);
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] ReservationClaimView? Claim = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Vin = null);
 
 // Staff view tab totals for the authorized scope, independent of search and column filters.
 public sealed record ReservationCounts(int Active, int History, int Open = 0, int Handled = 0);

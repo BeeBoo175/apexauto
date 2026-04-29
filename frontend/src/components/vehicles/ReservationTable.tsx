@@ -268,6 +268,7 @@ export function ReservationTable({
       <ReservationDrawer
         key={`${actorIdentity(actor)}:${drawer.id}`}
         actor={actor}
+        now={state.fetchedAt}
         selection={drawer}
         onConfirmed={() => {
           void state.refresh();

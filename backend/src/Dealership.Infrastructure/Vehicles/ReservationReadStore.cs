@@ -118,7 +118,8 @@ public sealed class ReservationReadStore(DealershipDbContext database) : IReserv
             }
         }
 
-        var filtered = ReservationReadRows.Filter(ReservationReadRows.CreateRows(database, reservations), filter);
+        var filtered = ReservationReadRows.Filter(ReservationReadRows.CreateRows(database, reservations), filter,
+            searchBranch: staff && actor.Role == AccountRoles.GeneralManager);
         var total = await filtered.CountAsync(cancellationToken);
         var pageIds = await ReservationReadRows.Order(filtered, filter)
             .Select(row => row.Reservation.Id).ReadPageAsync(filter.Page, filter.PageSize, total, cancellationToken);
