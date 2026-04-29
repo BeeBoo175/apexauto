@@ -1184,6 +1184,12 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(15)
+                        .HasColumnType("character varying(15)")
+                        .UseCollation("C");
+
                     b.Property<string>("PromoCode")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
@@ -1275,6 +1281,9 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.HasIndex("ExpiresAt")
                         .HasFilter("\"IsActive\"");
 
+                    b.HasIndex("Number")
+                        .IsUnique();
+
                     b.HasIndex("PromoId");
 
                     b.HasIndex("VehicleId")
@@ -1295,6 +1304,8 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                             t.HasCheckConstraint("CK_Reservations_Buyer", "\"BuyerName\" ~ '[^[:space:]]' AND \"BuyerEmail\" ~ '[^[:space:]]' AND \"BuyerMobile\" ~ '[^[:space:]]' AND \"BuyerNric\" ~ '^[0-9]{12}$'");
 
                             t.HasCheckConstraint("CK_Reservations_Claim", "(\"ClaimedById\" IS NULL AND \"ClaimedAt\" IS NULL AND \"FrozenRemaining\" IS NULL) OR (\"ClaimedById\" IS NOT NULL AND \"ClaimedAt\" IS NOT NULL AND \"ClaimedAt\" >= \"CreatedAt\" AND \"FrozenRemaining\" > interval '0' AND \"FrozenRemaining\" <= interval '48 hours')");
+
+                            t.HasCheckConstraint("CK_Reservations_Number", "\"Number\" ~ '^VRS-[0-9]{4}-[0-9]{6}$'");
 
                             t.HasCheckConstraint("CK_Reservations_Price", "\"VehiclePrice\" > 0 AND \"VehiclePrice\" <> 'NaN'::numeric AND \"ProcessingFee\" >= 0 AND \"ProcessingFee\" <> 'NaN'::numeric AND \"RoadTax\" >= 0 AND \"RoadTax\" <> 'NaN'::numeric AND \"SstRate\" BETWEEN 0 AND 1 AND \"ServiceTax\" = round(\"ProcessingFee\" * \"SstRate\", 2) AND \"PromoDiscount\" BETWEEN 0 AND \"VehiclePrice\" AND \"Total\" = \"VehiclePrice\" + \"ProcessingFee\" + \"RoadTax\" + \"ServiceTax\" - \"PromoDiscount\"");
 
@@ -1346,6 +1357,22 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.ToTable("ReservationEvents", null, t =>
                         {
                             t.HasCheckConstraint("CK_ReservationEvents_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND isfinite(\"RecordedAtUtc\") AND \"Sequence\" > 0 AND \"Kind\" IN ('Claimed', 'Assigned', 'Reassigned', 'Released') AND ((\"Kind\" = 'Claimed' AND \"AgentId\" = \"ActorId\" AND \"PreviousAgentId\" IS NULL) OR (\"Kind\" = 'Assigned' AND \"AgentId\" IS NOT NULL AND \"PreviousAgentId\" IS NULL) OR (\"Kind\" = 'Reassigned' AND \"AgentId\" IS NOT NULL AND \"PreviousAgentId\" IS NOT NULL AND \"AgentId\" <> \"PreviousAgentId\") OR (\"Kind\" = 'Released' AND \"AgentId\" IS NULL AND \"PreviousAgentId\" IS NOT NULL))");
+                        });
+                });
+
+            modelBuilder.Entity("Dealership.Domain.Vehicles.ReservationNumberCounter", b =>
+                {
+                    b.Property<int>("Year")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("LastValue")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Year");
+
+                    b.ToTable("ReservationNumberCounters", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ReservationNumberCounters_Shape", "\"Year\" BETWEEN 2000 AND 9999 AND \"LastValue\" BETWEEN 0 AND 999999");
                         });
                 });
 
