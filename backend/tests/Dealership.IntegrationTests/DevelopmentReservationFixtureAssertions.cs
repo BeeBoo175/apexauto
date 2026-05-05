@@ -1,3 +1,5 @@
+using Dealership.Application.Sales;
+using Dealership.Infrastructure.Sales;
 using System.Text.Json;
 using Dealership.Application.Accounts;
 using Dealership.Application.Vehicles;
@@ -149,7 +151,8 @@ internal static class DevelopmentReservationFixtureAssertions
         var expiry = services.GetRequiredService<ReservationExpirySignal>();
         var reservations = new ReservationService(new ReservationStore(database, mail, expiry));
         var cancellations = new ReservationCancellationService(new ReservationCancellationStore(database));
-        var fixtures = new DevelopmentReservationFixtures(database, reservations, cancellations);
+        var sales = new SaleTermsService(new SaleCommandStore(database));
+        var fixtures = new DevelopmentReservationFixtures(database, reservations, cancellations, sales);
         var before = await SnapshotAsync(database);
         foreach (var seed in new[] { false, true })
         {

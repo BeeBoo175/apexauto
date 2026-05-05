@@ -65,4 +65,21 @@ internal static class ReservationTestData
     }
 
     internal sealed record ListingRecord(Guid InspectionId, ListingRevision Revision, ListingPublication Publication);
+
+    // Records a refund the way the services do: the receipt first, then the sale it closes, in one transaction.
+    internal static async Task<ReservationRelease> ReleaseAsync(DealershipDbContext database, Reservation reservation,
+        ReservationReleaseKind kind, Guid actorId, string? reason, DateTimeOffset now)
+    {
+        await using var transaction = await database.Database.BeginTransactionAsync();
+        var sale = await database.SalesOrders.SingleAsync(item => item.Id == reservation.Id);
+        var release = new ReservationRelease(Guid.NewGuid(), reservation, sale.DueAt, kind, actorId, reason, now);
+        database.ReservationReleases.Add(release);
+        await database.SaveChangesAsync();
+        database.SalesOrderEvents.Add(kind == ReservationReleaseKind.CustomerCancelled
+            ? sale.CancelByCustomer(Guid.NewGuid(), actorId, release.Id, now)
+            : sale.Cancel(Guid.NewGuid(), actorId, reason!, release.Id, now));
+        await database.SaveChangesAsync();
+        await transaction.CommitAsync();
+        return release;
+    }
 }

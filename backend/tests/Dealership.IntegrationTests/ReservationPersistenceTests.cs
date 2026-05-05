@@ -1,3 +1,4 @@
+using Dealership.Domain.Sales;
 using static Dealership.IntegrationTests.ReservationTestData;
 using System.Text.Json;
 using Dealership.Application.Accounts;
@@ -37,7 +38,7 @@ public sealed class ReservationPersistenceTests(IntakePhotoFixture fixture) : IC
         var profile = await database.CustomerProfiles.SingleAsync(item => item.UserId == data.OwnerId);
         var reservation = new Reservation(Guid.NewGuid(), profile, data.CustomerEmail, first.Publication,
             first.Revision, settings, promo, await NowAsync(database));
-        database.Reservations.Add(Numbered(reservation));
+        AddConfirmed(database, Numbered(reservation));
         await database.SaveChangesAsync();
 
         await database.Database.ExecuteSqlInterpolatedAsync($"""
@@ -94,10 +95,8 @@ public sealed class ReservationPersistenceTests(IntakePhotoFixture fixture) : IC
         await RejectReleaseAsync(reservation.Id, "Reinspection", null, null);
         await RejectReleaseAsync(reservation.Id, "CustomerCancelled", data.OwnerId, null, refund: 1m);
 
-        var release = new ReservationRelease(Guid.NewGuid(), retained, ReservationReleaseKind.CustomerCancelled,
+        var release = await ReleaseAsync(database, retained, ReservationReleaseKind.CustomerCancelled,
             data.OwnerId, null, await NowAsync(database));
-        database.ReservationReleases.Add(release);
-        await database.SaveChangesAsync();
         Assert.False(await database.Reservations.Where(item => item.Id == retained.Id).Select(item => item.IsActive).SingleAsync());
         await RejectReleaseAsync(retained.Id, "CustomerCancelled", data.OwnerId, null, state: PostgresErrorCodes.UniqueViolation);
         await RejectAsync($"UPDATE \"ReservationReleases\" SET \"Refund\" = 1 WHERE \"Id\" = '{release.Id}'", PostgresErrorCodes.CheckViolation);
@@ -108,7 +107,7 @@ public sealed class ReservationPersistenceTests(IntakePhotoFixture fixture) : IC
         await VerifyRacesAsync(data, services, first, second, currentSettings);
         var next = new Reservation(Guid.NewGuid(), profile, data.CustomerEmail, second.Publication,
             second.Revision, currentSettings, null, await NowAsync(database));
-        database.Reservations.Add(Numbered(next));
+        AddConfirmed(database, Numbered(next));
         await database.SaveChangesAsync();
         var reopened = await services.GetRequiredService<InspectionReopeningService>().ReopenAsync(manager, second.InspectionId,
             new(Guid.NewGuid(), 1, 1, "Reinspect before confirming sale"), CancellationToken.None);
@@ -117,7 +116,7 @@ public sealed class ReservationPersistenceTests(IntakePhotoFixture fixture) : IC
 
         var third = new Reservation(Guid.NewGuid(), profile, data.CustomerEmail, first.Publication,
             first.Revision, currentSettings, null, await NowAsync(database));
-        database.Reservations.Add(Numbered(third));
+        AddConfirmed(database, Numbered(third));
         await database.SaveChangesAsync();
         var withdrawn = await services.GetRequiredService<ListingService>().WithdrawAsync(manager, first.Revision.VehicleId,
             new(Guid.NewGuid(), first.Publication.Id, "Correct public description"), CancellationToken.None);
@@ -170,7 +169,7 @@ public sealed class ReservationPersistenceTests(IntakePhotoFixture fixture) : IC
         var preciseSettings = await database.PurchaseSettings.AsNoTracking().SingleAsync();
         var precise = new Reservation(Guid.NewGuid(), profile, data.CustomerEmail, first.Publication, first.Revision,
             preciseSettings, null, await NowAsync(database));
-        database.Reservations.Add(Numbered(precise));
+        AddConfirmed(database, Numbered(precise));
         await database.SaveChangesAsync();
         Assert.Equal(0m, (await database.Reservations.AsNoTracking().SingleAsync(item => item.Id == precise.Id)).Price.ServiceTax);
         await CancelAsync(precise);
@@ -194,7 +193,7 @@ public sealed class ReservationPersistenceTests(IntakePhotoFixture fixture) : IC
     private async Task<bool> TryInsertAsync(Reservation reservation)
     {
         await using var database = NewContext();
-        database.Reservations.Add(Numbered(reservation));
+        AddConfirmed(database, Numbered(reservation));
         try
         {
             await database.SaveChangesAsync();
@@ -212,9 +211,8 @@ public sealed class ReservationPersistenceTests(IntakePhotoFixture fixture) : IC
         await using var database = NewContext();
         var kind = manager is null ? ReservationReleaseKind.CustomerCancelled : ReservationReleaseKind.StaffCancelled;
         var reason = manager is null ? null : "Customer requested cancellation";
-        database.ReservationReleases.Add(new(Guid.NewGuid(), reservation, kind,
-            manager ?? reservation.CustomerId, reason, await NowAsync(database)));
-        await database.SaveChangesAsync();
+        await ReleaseAsync(database, reservation, kind, manager ?? reservation.CustomerId, reason,
+            await NowAsync(database));
     }
 
     private async Task VerifyAutomaticReleaseAsync(Reservation reservation, ReservationReleaseKind kind, VehicleStatus status)
@@ -241,7 +239,7 @@ public sealed class ReservationPersistenceTests(IntakePhotoFixture fixture) : IC
             SELECT count(*) FROM pg_constraint WHERE contype = 'f' AND
                 conrelid IN ('"Reservations"'::regclass, '"ReservationReleases"'::regclass) AND confdeltype = 'r'
             """, connection);
-        Assert.Equal(6L, await command.ExecuteScalarAsync());
+        Assert.Equal(5L, await command.ExecuteScalarAsync());
         command.CommandText = """
             SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conrelid = '"Reservations"'::regclass
                 AND confrelid = '"ListingPublications"'::regclass
@@ -261,6 +259,15 @@ public sealed class ReservationPersistenceTests(IntakePhotoFixture fixture) : IC
         command.Parameters.AddWithValue("patch", JsonSerializer.Serialize(patch));
         var error = await Assert.ThrowsAsync<PostgresException>(() => command.ExecuteNonQueryAsync());
         Assert.Equal(state, error.SqlState);
+    }
+
+    // Confirms the way the reservation service does: the hold and its open sale in one save.
+    private static void AddConfirmed(DealershipDbContext database, Reservation reservation)
+    {
+        database.Reservations.Add(reservation);
+        var sale = SalesOrder.Open(reservation, Guid.NewGuid(), out var created);
+        database.SalesOrders.Add(sale);
+        database.SalesOrderEvents.Add(created);
     }
 
     private async Task RejectReleaseAsync(Guid reservationId, string kind, Guid? actor, string? reason,

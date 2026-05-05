@@ -178,9 +178,8 @@ public sealed class ReservationServiceTests(IntakePhotoFixture fixture) : IClass
     {
         await using var database = NewContext();
         var now = await database.Database.SqlQuery<DateTimeOffset>($"SELECT clock_timestamp() AS \"Value\"").SingleAsync();
-        database.ReservationReleases.Add(new(Guid.NewGuid(), reservation, ReservationReleaseKind.CustomerCancelled,
-            reservation.CustomerId, null, now));
-        await database.SaveChangesAsync();
+        await ReservationTestData.ReleaseAsync(database, reservation, ReservationReleaseKind.CustomerCancelled,
+            reservation.CustomerId, null, now);
     }
 
     private DealershipDbContext NewContext() => new(new DbContextOptionsBuilder<DealershipDbContext>()

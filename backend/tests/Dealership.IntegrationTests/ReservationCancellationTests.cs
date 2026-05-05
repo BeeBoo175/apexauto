@@ -1,3 +1,4 @@
+using Dealership.Application.Sales;
 using Dealership.Application.Accounts;
 using Dealership.Application.Branches;
 using Dealership.Application.Vehicles;
@@ -39,9 +40,11 @@ public sealed class ReservationCancellationTests(IntakePhotoFixture fixture) : I
         Assert.Equal(ReservationStatus.NotFound, (await CancelAsync(data, other, held.Id, own)).Status);
         Assert.Equal(ReservationStatus.Forbidden, (await CancelAsync(data, data.StaffId, held.Id, staff)).Status);
         Assert.Equal(ReservationStatus.Forbidden, (await CancelAsync(data, administrator, held.Id, staff)).Status);
-        Assert.Equal(ReservationStatus.NotFound, (await CancelAsync(data, outside, held.Id, staff)).Status);
-        Assert.Equal(ReservationStatus.Invalid, (await CancelAsync(data, manager, held.Id, own)).Status);
-        Assert.Equal(ReservationStatus.Invalid, (await CancelAsync(data, manager, held.Id, staff with { Reason = " reason " })).Status);
+        // Staff cancel through the hold's sale; the customer route refuses them.
+        Assert.Equal(ReservationStatus.Forbidden, (await CancelAsync(data, outside, held.Id, staff)).Status);
+        Assert.Equal(ReservationStatus.Forbidden, (await CancelAsync(data, manager, held.Id, own)).Status);
+        Assert.Equal(SaleStatus.NotFound, (await CancelSaleAsync(data, outside, held.Id, staff)).Status);
+        Assert.Equal(SaleStatus.Invalid, (await CancelSaleAsync(data, manager, held.Id, staff with { Reason = " reason " })).Status);
         Assert.Equal(ReservationStatus.Invalid, (await CancelAsync(data, data.OwnerId, held.Id, staff)).Status);
         Assert.False(await database.ReservationReleases.AnyAsync());
         await database.Users.Where(item => item.Id == data.OwnerId)
@@ -61,25 +64,27 @@ public sealed class ReservationCancellationTests(IntakePhotoFixture fixture) : I
             own with { OperationId = next.Id })).Status);
         await database.Users.Where(item => item.Id == manager)
             .ExecuteUpdateAsync(update => update.SetProperty(item => item.IsActive, false));
-        Assert.Equal(ReservationStatus.Forbidden, (await CancelAsync(data, manager, next.Id, staff)).Status);
+        Assert.Equal(SaleStatus.Forbidden, (await CancelSaleAsync(data, manager, next.Id, staff)).Status);
         await database.Users.Where(item => item.Id == manager)
             .ExecuteUpdateAsync(update => update.SetProperty(item => item.IsActive, true));
-        var cancelled = await CancelAsync(data, manager, next.Id, staff);
-        Assert.Equal(ReservationStatus.Succeeded, cancelled.Status);
-        var replay = await CancelAsync(data, manager, next.Id, staff);
-        Assert.Equal(cancelled.Release!.RecordedAt, replay.Release!.RecordedAt);
-        Assert.Equal(cancelled.Release.Id, replay.Release.Id);
-        Assert.Equal(ReservationStatus.Conflict, (await CancelAsync(data, manager, next.Id,
+        var cancelled = await CancelSaleAsync(data, manager, next.Id, staff);
+        Assert.Equal(SaleStatus.Succeeded, cancelled.Status);
+        var replay = await CancelSaleAsync(data, manager, next.Id, staff);
+        Assert.Equal(cancelled.Receipt, replay.Receipt);
+        Assert.Equal(ReservationReleaseKind.StaffCancelled, (await database.ReservationReleases
+            .SingleAsync(item => item.ReservationId == next.Id)).Kind);
+        Assert.Equal(SaleStatus.Conflict, (await CancelSaleAsync(data, manager, next.Id,
             staff with { Reason = "Different reason" })).Status);
-        Assert.Equal(ReservationStatus.Conflict, (await CancelAsync(data, generalManager, next.Id, staff)).Status);
+        Assert.Equal(SaleStatus.Conflict, (await CancelSaleAsync(data, generalManager, next.Id, staff)).Status);
 
         var third = await HoldAsync(data, listing.Publication);
         await database.Branches.Where(item => item.Id == data.BranchId)
             .ExecuteUpdateAsync(update => update.SetProperty(item => item.IsActive, false));
-        Assert.Equal(ReservationStatus.Forbidden, (await CancelAsync(data, manager, third.Id, staff)).Status);
-        var groupCancelled = await CancelAsync(data, generalManager, third.Id, staff with { OperationId = Guid.NewGuid() });
-        Assert.Equal(ReservationStatus.Succeeded, groupCancelled.Status);
-        Assert.Equal(ReservationReleaseKind.StaffCancelled, groupCancelled.Release!.Kind);
+        Assert.Equal(SaleStatus.Forbidden, (await CancelSaleAsync(data, manager, third.Id, staff)).Status);
+        var groupCancelled = await CancelSaleAsync(data, generalManager, third.Id, staff with { OperationId = Guid.NewGuid() });
+        Assert.Equal(SaleStatus.Succeeded, groupCancelled.Status);
+        Assert.Equal(ReservationReleaseKind.StaffCancelled, (await database.ReservationReleases
+            .SingleAsync(item => item.ReservationId == third.Id)).Kind);
         await database.Branches.Where(item => item.Id == data.BranchId)
             .ExecuteUpdateAsync(update => update.SetProperty(item => item.IsActive, true));
         var due = await HoldAsync(data, listing.Publication);
@@ -91,10 +96,10 @@ public sealed class ReservationCancellationTests(IntakePhotoFixture fixture) : I
         await using (var transaction = await new ReservationCancellationStore(restarted)
             .LockAsync(data.OwnerId, due.Id, expiredRequest.OperationId, CancellationToken.None))
         {
-            var attempted = new ReservationRelease(expiredRequest.OperationId, due, ReservationReleaseKind.CustomerCancelled,
-                data.OwnerId, null, transaction.Context.Now);
+            var attempted = new ReservationRelease(expiredRequest.OperationId, due, due.ExpiresAt,
+                ReservationReleaseKind.CustomerCancelled, data.OwnerId, null, transaction.Context.Now);
             await clock.AdvanceAsync(due.ExpiresAt);
-            Assert.Equal(ReservationStatus.Conflict, await transaction.CommitAsync(attempted, CancellationToken.None));
+            Assert.Equal(ReservationStatus.Conflict, await transaction.CommitAsync(attempted, null, CancellationToken.None));
         }
 
         var expired = await restarted.ReservationReleases.SingleAsync(item => item.ReservationId == due.Id);
@@ -127,6 +132,14 @@ public sealed class ReservationCancellationTests(IntakePhotoFixture fixture) : I
         using var scope = data.Factory.Services.CreateScope();
         return await scope.ServiceProvider.GetRequiredService<ReservationCancellationService>()
             .CancelAsync(actorId, reservationId, request, CancellationToken.None);
+    }
+
+    private static async Task<SaleCommandResult> CancelSaleAsync(CheckInTestData data, Guid actorId,
+        Guid reservationId, ReservationCancellationRequest request)
+    {
+        using var scope = data.Factory.Services.CreateScope();
+        return await scope.ServiceProvider.GetRequiredService<SaleTermsService>().CancelAsync(actorId, reservationId,
+            new(request.OperationId, 1, request.Reason), CancellationToken.None);
     }
 
     private DealershipDbContext NewContext() => new(new DbContextOptionsBuilder<DealershipDbContext>()
