@@ -13,8 +13,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Dealership.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(DealershipDbContext))]
-    [Migration("20261030134842_SalesOrderEventChanges")]
-    partial class SalesOrderEventChanges
+    [Migration("20261031083836_ReservationNumbers")]
+    partial class ReservationNumbers
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -619,223 +619,6 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Dealership.Domain.Sales.DealNumberCounter", b =>
-                {
-                    b.Property<int>("Year")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("LastValue")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Year");
-
-                    b.ToTable("DealNumberCounters", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_DealNumberCounters_Shape", "\"Year\" BETWEEN 2000 AND 9999 AND \"LastValue\" BETWEEN 0 AND 999999");
-                        });
-                });
-
-            modelBuilder.Entity("Dealership.Domain.Sales.SalesOrder", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("BalancePayable")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("BasePrice")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid>("BranchId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CustomerId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("DecidedById")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("DepositCredit")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal?>("DiscountLimitAtSubmit")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("NegotiatedDiscount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<string>("OrderNumber")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .UseCollation("C");
-
-                    b.Property<decimal>("ProcessingFee")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<string>("PromoCode")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .UseCollation("C");
-
-                    b.Property<decimal>("PromoDiscount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid?>("PromoId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("ReservationId")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("RoadTax")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid>("SalesAgentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("ServiceTax")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("SstRate")
-                        .HasPrecision(29, 28)
-                        .HasColumnType("numeric(29,28)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
-
-                    b.Property<DateTimeOffset?>("SubmittedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<decimal>("TradeInAllowance")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid?>("TradeInAppointmentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("UpdatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("VehicleId")
-                        .HasColumnType("uuid");
-
-                    b.Property<long>("Version")
-                        .IsConcurrencyToken()
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("WarrantyName")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<Guid?>("WarrantyPackageId")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("WarrantyPrice")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DecidedById");
-
-                    b.HasIndex("OrderNumber")
-                        .IsUnique()
-                        .HasFilter("\"OrderNumber\" IS NOT NULL");
-
-                    b.HasIndex("PromoId");
-
-                    b.HasIndex("ReservationId");
-
-                    b.HasIndex("TradeInAppointmentId");
-
-                    b.HasIndex("VehicleId")
-                        .IsUnique()
-                        .HasFilter("\"Status\" IN ('Draft', 'PendingManagerApproval', 'Approved')");
-
-                    b.HasIndex("WarrantyPackageId");
-
-                    b.HasIndex("BranchId", "CreatedAtUtc", "Id");
-
-                    b.HasIndex("CustomerId", "CreatedAtUtc", "Id");
-
-                    b.HasIndex("SalesAgentId", "CreatedAtUtc", "Id");
-
-                    b.ToTable("SalesOrders", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_SalesOrders_Approval", "(\"Status\" = 'Draft' AND \"DecidedById\" IS NULL AND \"DiscountLimitAtSubmit\" IS NULL) OR (\"Status\" = 'PendingManagerApproval' AND \"DecidedById\" IS NULL AND \"DiscountLimitAtSubmit\" IS NOT NULL AND \"NegotiatedDiscount\" > \"DiscountLimitAtSubmit\") OR (\"Status\" = 'Approved' AND \"DiscountLimitAtSubmit\" IS NOT NULL AND (\"DecidedById\" IS NOT NULL OR \"NegotiatedDiscount\" <= \"DiscountLimitAtSubmit\") AND \"DecidedById\" IS DISTINCT FROM \"SalesAgentId\") OR \"Status\" = 'Cancelled'");
-
-                            t.HasCheckConstraint("CK_SalesOrders_Price", "\"BasePrice\" > 0 AND \"RoadTax\" >= 0 AND \"ProcessingFee\" >= 0 AND \"SstRate\" BETWEEN 0 AND 1 AND \"PromoDiscount\" >= 0 AND \"NegotiatedDiscount\" >= 0 AND \"WarrantyPrice\" >= 0 AND \"DepositCredit\" >= 0 AND \"TradeInAllowance\" >= 0 AND \"PromoDiscount\" + \"NegotiatedDiscount\" <= \"BasePrice\" AND \"ServiceTax\" = round(\"ProcessingFee\" * \"SstRate\", 2) AND \"BalancePayable\" >= 0 AND \"BalancePayable\" = \"BasePrice\" - \"PromoDiscount\" - \"NegotiatedDiscount\" + \"ProcessingFee\" + \"RoadTax\" + \"ServiceTax\" + \"WarrantyPrice\" - \"DepositCredit\" - \"TradeInAllowance\"");
-
-                            t.HasCheckConstraint("CK_SalesOrders_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"Version\" > 0 AND \"Status\" IN ('Draft', 'PendingManagerApproval', 'Approved', 'Cancelled') AND isfinite(\"CreatedAtUtc\") AND isfinite(\"UpdatedAtUtc\") AND \"UpdatedAtUtc\" >= \"CreatedAtUtc\" AND ((\"OrderNumber\" IS NULL AND \"SubmittedAtUtc\" IS NULL) OR (\"OrderNumber\" ~ '^VPO-[0-9]{4}-[0-9]{6}$' AND \"SubmittedAtUtc\" IS NOT NULL))");
-
-                            t.HasCheckConstraint("CK_SalesOrders_Terms", "((\"PromoId\" IS NULL AND \"PromoCode\" IS NULL AND \"PromoDiscount\" = 0) OR (\"PromoId\" IS NOT NULL AND \"PromoCode\" IS NOT NULL)) AND ((\"WarrantyPackageId\" IS NULL AND \"WarrantyName\" IS NULL AND \"WarrantyPrice\" = 0) OR (\"WarrantyPackageId\" IS NOT NULL AND \"WarrantyName\" IS NOT NULL)) AND ((\"TradeInAppointmentId\" IS NULL AND \"TradeInAllowance\" = 0) OR \"TradeInAppointmentId\" IS NOT NULL) AND (\"ReservationId\" IS NOT NULL OR \"DepositCredit\" = 0)");
-                        });
-                });
-
-            modelBuilder.Entity("Dealership.Domain.Sales.SalesOrderEvent", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("ActorId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Changes")
-                        .HasColumnType("jsonb");
-
-                    b.Property<string>("FromStatus")
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
-
-                    b.Property<string>("Kind")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
-
-                    b.Property<string>("Reason")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<DateTimeOffset>("RecordedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("SalesOrderId")
-                        .HasColumnType("uuid");
-
-                    b.Property<long>("Sequence")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("ToStatus")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ActorId");
-
-                    b.HasIndex("SalesOrderId", "Sequence")
-                        .IsUnique();
-
-                    b.ToTable("SalesOrderEvents", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_SalesOrderEvents_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND isfinite(\"RecordedAtUtc\") AND \"Sequence\" > 0 AND \"Kind\" IN ('Created', 'Revised', 'Submitted', 'Approved', 'Rejected', 'Cancelled', 'Reassigned') AND \"ToStatus\" IN ('Draft', 'PendingManagerApproval', 'Approved', 'Cancelled') AND (\"FromStatus\" IS NULL OR \"FromStatus\" IN ('Draft', 'PendingManagerApproval', 'Approved', 'Cancelled')) AND ((\"Kind\" IN ('Rejected', 'Cancelled') AND \"Reason\" IS NOT NULL AND \"Reason\" = btrim(\"Reason\") AND length(\"Reason\") BETWEEN 1 AND 1000 AND \"Reason\" !~ '[[:cntrl:]]') OR (\"Kind\" NOT IN ('Rejected', 'Cancelled') AND \"Reason\" IS NULL)) AND (\"Changes\" IS NULL OR (\"Kind\" = 'Revised' AND jsonb_typeof(\"Changes\") = 'array'))");
-                        });
-                });
-
             modelBuilder.Entity("Dealership.Domain.Vehicles.ListingPhoto", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1162,12 +945,6 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("BranchId")
                         .HasColumnType("uuid");
 
-                    b.Property<DateTimeOffset?>("ClaimedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("ClaimedById")
-                        .HasColumnType("uuid");
-
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1181,11 +958,14 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("ExpiresAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<TimeSpan?>("FrozenRemaining")
-                        .HasColumnType("interval");
-
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(15)
+                        .HasColumnType("character varying(15)")
+                        .UseCollation("C");
 
                     b.Property<string>("PromoCode")
                         .HasMaxLength(50)
@@ -1278,14 +1058,14 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.HasIndex("ExpiresAt")
                         .HasFilter("\"IsActive\"");
 
+                    b.HasIndex("Number")
+                        .IsUnique();
+
                     b.HasIndex("PromoId");
 
                     b.HasIndex("VehicleId")
                         .IsUnique()
                         .HasFilter("\"IsActive\"");
-
-                    b.HasIndex("ClaimedById", "ClaimedAt")
-                        .HasFilter("\"ClaimedById\" IS NOT NULL");
 
                     b.HasIndex("BranchId", "CreatedAt", "Id");
 
@@ -1297,58 +1077,29 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         {
                             t.HasCheckConstraint("CK_Reservations_Buyer", "\"BuyerName\" ~ '[^[:space:]]' AND \"BuyerEmail\" ~ '[^[:space:]]' AND \"BuyerMobile\" ~ '[^[:space:]]' AND \"BuyerNric\" ~ '^[0-9]{12}$'");
 
-                            t.HasCheckConstraint("CK_Reservations_Claim", "(\"ClaimedById\" IS NULL AND \"ClaimedAt\" IS NULL AND \"FrozenRemaining\" IS NULL) OR (\"ClaimedById\" IS NOT NULL AND \"ClaimedAt\" IS NOT NULL AND \"ClaimedAt\" >= \"CreatedAt\" AND \"FrozenRemaining\" > interval '0' AND \"FrozenRemaining\" <= interval '48 hours')");
+                            t.HasCheckConstraint("CK_Reservations_Number", "\"Number\" ~ '^VRS-[0-9]{4}-[0-9]{6}$'");
 
                             t.HasCheckConstraint("CK_Reservations_Price", "\"VehiclePrice\" > 0 AND \"VehiclePrice\" <> 'NaN'::numeric AND \"ProcessingFee\" >= 0 AND \"ProcessingFee\" <> 'NaN'::numeric AND \"RoadTax\" >= 0 AND \"RoadTax\" <> 'NaN'::numeric AND \"SstRate\" BETWEEN 0 AND 1 AND \"ServiceTax\" = round(\"ProcessingFee\" * \"SstRate\", 2) AND \"PromoDiscount\" BETWEEN 0 AND \"VehiclePrice\" AND \"Total\" = \"VehiclePrice\" + \"ProcessingFee\" + \"RoadTax\" + \"ServiceTax\" - \"PromoDiscount\"");
 
                             t.HasCheckConstraint("CK_Reservations_Promo", "(\"PromoId\" IS NULL AND \"PromoCode\" IS NULL AND \"PromoDiscount\" = 0) OR (\"PromoId\" IS NOT NULL AND \"PromoCode\" IS NOT NULL AND length(\"PromoCode\") BETWEEN 1 AND 50)");
 
-                            t.HasCheckConstraint("CK_Reservations_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND isfinite(\"CreatedAt\") AND isfinite(\"ExpiresAt\") AND \"ExpiresAt\" >= \"CreatedAt\" + interval '48 hours' AND \"Deposit\" = 500");
+                            t.HasCheckConstraint("CK_Reservations_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND isfinite(\"CreatedAt\") AND isfinite(\"ExpiresAt\") AND \"ExpiresAt\" = \"CreatedAt\" + interval '48 hours' AND \"Deposit\" = 500");
                         });
                 });
 
-            modelBuilder.Entity("Dealership.Domain.Vehicles.ReservationEvent", b =>
+            modelBuilder.Entity("Dealership.Domain.Vehicles.ReservationNumberCounter", b =>
                 {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("ActorId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("AgentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Kind")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
-
-                    b.Property<Guid?>("PreviousAgentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("RecordedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("ReservationId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("Sequence")
+                    b.Property<int>("Year")
                         .HasColumnType("integer");
 
-                    b.HasKey("Id");
+                    b.Property<int>("LastValue")
+                        .HasColumnType("integer");
 
-                    b.HasIndex("ActorId");
+                    b.HasKey("Year");
 
-                    b.HasIndex("AgentId");
-
-                    b.HasIndex("PreviousAgentId");
-
-                    b.HasIndex("ReservationId", "Sequence")
-                        .IsUnique();
-
-                    b.ToTable("ReservationEvents", null, t =>
+                    b.ToTable("ReservationNumberCounters", null, t =>
                         {
-                            t.HasCheckConstraint("CK_ReservationEvents_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND isfinite(\"RecordedAtUtc\") AND \"Sequence\" > 0 AND \"Kind\" IN ('Claimed', 'Assigned', 'Reassigned', 'Released') AND ((\"Kind\" = 'Claimed' AND \"AgentId\" = \"ActorId\" AND \"PreviousAgentId\" IS NULL) OR (\"Kind\" = 'Assigned' AND \"AgentId\" IS NOT NULL AND \"PreviousAgentId\" IS NULL) OR (\"Kind\" = 'Reassigned' AND \"AgentId\" IS NOT NULL AND \"PreviousAgentId\" IS NOT NULL AND \"AgentId\" <> \"PreviousAgentId\") OR (\"Kind\" = 'Released' AND \"AgentId\" IS NULL AND \"PreviousAgentId\" IS NOT NULL))");
+                            t.HasCheckConstraint("CK_ReservationNumberCounters_Shape", "\"Year\" BETWEEN 2000 AND 9999 AND \"LastValue\" BETWEEN 0 AND 999999");
                         });
                 });
 
@@ -1388,9 +1139,9 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.ToTable("ReservationReleases", null, t =>
                         {
-                            t.HasCheckConstraint("CK_ReservationReleases_Actor", "(\"Kind\" = 'CustomerCancelled' AND \"ActorId\" IS NOT NULL AND \"Reason\" IS NULL) OR (\"Kind\" IN ('StaffCancelled', 'DealCancelled') AND \"ActorId\" IS NOT NULL AND \"Reason\" IS NOT NULL AND length(btrim(\"Reason\")) BETWEEN 1 AND 1000 AND \"Reason\" = btrim(\"Reason\") AND \"Reason\" !~ '[[:cntrl:]]') OR (\"Kind\" IN ('Expired', 'Withdrawn', 'Reinspection') AND \"ActorId\" IS NULL AND \"Reason\" IS NULL)");
+                            t.HasCheckConstraint("CK_ReservationReleases_Actor", "(\"Kind\" = 'CustomerCancelled' AND \"ActorId\" IS NOT NULL AND \"Reason\" IS NULL) OR (\"Kind\" = 'StaffCancelled' AND \"ActorId\" IS NOT NULL AND \"Reason\" IS NOT NULL AND length(btrim(\"Reason\")) BETWEEN 1 AND 1000 AND \"Reason\" = btrim(\"Reason\") AND \"Reason\" !~ '[[:cntrl:]]') OR (\"Kind\" IN ('Expired', 'Withdrawn', 'Reinspection') AND \"ActorId\" IS NULL AND \"Reason\" IS NULL)");
 
-                            t.HasCheckConstraint("CK_ReservationReleases_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND isfinite(\"RecordedAt\") AND \"Refund\" = 500 AND \"Kind\" IN ('CustomerCancelled', 'StaffCancelled', 'Expired', 'Withdrawn', 'Reinspection', 'DealCancelled')");
+                            t.HasCheckConstraint("CK_ReservationReleases_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND isfinite(\"RecordedAt\") AND \"Refund\" = 500 AND \"Kind\" IN ('CustomerCancelled', 'StaffCancelled', 'Expired', 'Withdrawn', 'Reinspection')");
                         });
                 });
 
@@ -2470,73 +2221,6 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Dealership.Domain.Sales.SalesOrder", b =>
-                {
-                    b.HasOne("Dealership.Domain.Branches.Branch", null)
-                        .WithMany()
-                        .HasForeignKey("BranchId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
-                        .WithMany()
-                        .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
-                        .WithMany()
-                        .HasForeignKey("DecidedById")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("Dealership.Domain.Vehicles.PromoCode", null)
-                        .WithMany()
-                        .HasForeignKey("PromoId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("Dealership.Domain.Vehicles.Reservation", null)
-                        .WithMany()
-                        .HasForeignKey("ReservationId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
-                        .WithMany()
-                        .HasForeignKey("SalesAgentId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Dealership.Domain.Intake.IntakeAppointment", null)
-                        .WithMany()
-                        .HasForeignKey("TradeInAppointmentId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("Dealership.Domain.Vehicles.Vehicle", null)
-                        .WithMany()
-                        .HasForeignKey("VehicleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Dealership.Domain.Vehicles.WarrantyPackage", null)
-                        .WithMany()
-                        .HasForeignKey("WarrantyPackageId")
-                        .OnDelete(DeleteBehavior.Restrict);
-                });
-
-            modelBuilder.Entity("Dealership.Domain.Sales.SalesOrderEvent", b =>
-                {
-                    b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
-                        .WithMany()
-                        .HasForeignKey("ActorId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Dealership.Domain.Sales.SalesOrder", null)
-                        .WithMany()
-                        .HasForeignKey("SalesOrderId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("Dealership.Domain.Vehicles.ListingPhoto", b =>
                 {
                     b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
@@ -2636,11 +2320,6 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Dealership.Domain.Vehicles.Reservation", b =>
                 {
-                    b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
-                        .WithMany()
-                        .HasForeignKey("ClaimedById")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("Dealership.Domain.Customers.CustomerProfile", null)
                         .WithMany()
                         .HasForeignKey("CustomerId")
@@ -2656,31 +2335,6 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("PublicationId", "VehicleId", "BranchId")
                         .HasPrincipalKey("Id", "VehicleId", "BranchId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Dealership.Domain.Vehicles.ReservationEvent", b =>
-                {
-                    b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
-                        .WithMany()
-                        .HasForeignKey("ActorId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
-                        .WithMany()
-                        .HasForeignKey("AgentId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
-                        .WithMany()
-                        .HasForeignKey("PreviousAgentId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("Dealership.Domain.Vehicles.Reservation", null)
-                        .WithMany()
-                        .HasForeignKey("ReservationId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
