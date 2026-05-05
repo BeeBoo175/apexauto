@@ -1,50 +1,45 @@
 using Dealership.Application.Accounts;
+using Dealership.Domain.Sales;
 using Dealership.Domain.Vehicles;
 
 namespace Dealership.Application.Vehicles;
 
+// A customer cancels their own hold online while nobody handles its sale; staff cancel through the sale instead.
 public sealed class ReservationCancellationService(IReservationCancellationStore cancellations)
 {
     public async Task<ReservationCancellationResult> CancelAsync(Guid actorId, Guid reservationId,
         ReservationCancellationRequest request, CancellationToken cancellationToken)
     {
-        if (actorId == Guid.Empty || reservationId == Guid.Empty || request.OperationId == Guid.Empty ||
-            request.Reason is not null && (string.IsNullOrWhiteSpace(request.Reason) ||
-                request.Reason != request.Reason.Trim() || request.Reason.Length > 1000 || request.Reason.Any(char.IsControl)))
+        if (actorId == Guid.Empty || reservationId == Guid.Empty || request.OperationId == Guid.Empty)
         {
             return new(ReservationStatus.Invalid);
         }
 
         await using var transaction = await cancellations.LockAsync(actorId, reservationId, request.OperationId, cancellationToken);
         var context = transaction.Context;
-        var actor = context.Actor;
-        if (actor is not { IsActive: true } ||
-            actor.Role is not (AccountRoles.Customer or AccountRoles.BranchManager or AccountRoles.GeneralManager) ||
-            actor.Role == AccountRoles.BranchManager && (actor.BranchId is null || !context.BranchActive))
+        if (context.Actor is not { IsActive: true, Role: AccountRoles.Customer })
         {
             return new(ReservationStatus.Forbidden);
         }
 
-        var reservation = context.Reservation;
-        if (reservation is null || actor.Role == AccountRoles.Customer && reservation.CustomerId != actorId ||
-            actor.Role == AccountRoles.BranchManager && reservation.BranchId != actor.BranchId)
-        {
-            return new(ReservationStatus.NotFound);
-        }
-
-        var customerCancellation = actor.Role == AccountRoles.Customer;
-        if (customerCancellation != (request.Reason is null))
+        // Customers give no reason; a staff reason belongs to cancelling the sale.
+        if (request.Reason is not null)
         {
             return new(ReservationStatus.Invalid);
         }
 
-        var kind = customerCancellation ? ReservationReleaseKind.CustomerCancelled : ReservationReleaseKind.StaffCancelled;
+        var reservation = context.Reservation;
+        if (reservation is null || reservation.CustomerId != actorId)
+        {
+            return new(ReservationStatus.NotFound);
+        }
+
         var existing = context.Existing;
         if (existing is not null)
         {
             var matches = existing.ReservationId == reservationId && existing.ActorId == actorId &&
-                existing.Kind == kind && existing.Reason == request.Reason;
-            var committed = await transaction.CommitAsync(null, cancellationToken);
+                existing.Kind == ReservationReleaseKind.CustomerCancelled;
+            var committed = await transaction.CommitAsync(null, null, cancellationToken);
             if (committed != ReservationStatus.Succeeded)
             {
                 return new(committed);
@@ -53,29 +48,19 @@ public sealed class ReservationCancellationService(IReservationCancellationStore
             return matches ? new(ReservationStatus.Succeeded, existing) : new(ReservationStatus.Conflict);
         }
 
-        if (context.IsHoldOperation || context.Release is not null || !reservation.IsActive)
+        // Once an agent handles the sale the customer agrees changes with them, so it is not cancelled online.
+        var sale = context.Sale;
+        if (context.IsHoldOperation || context.Release is not null || !reservation.IsActive ||
+            sale is not { Status: SalesOrderStatus.Open })
         {
-            await transaction.CommitAsync(null, cancellationToken);
+            await transaction.CommitAsync(null, null, cancellationToken);
             return new(ReservationStatus.Conflict);
         }
 
-        // A claimed hold has a deal in progress; its agent or a manager cancels that deal, which refunds the deposit.
-        if (reservation.IsClaimed)
-        {
-            await transaction.CommitAsync(null, cancellationToken);
-            return new(ReservationStatus.Conflict);
-        }
-
-        if (reservation.HasExpired(context.Now))
-        {
-            var expired = new ReservationRelease(Guid.NewGuid(), reservation, ReservationReleaseKind.Expired,
-                null, null, context.Now);
-            await transaction.CommitAsync(expired, cancellationToken);
-            return new(ReservationStatus.Conflict);
-        }
-
-        var release = new ReservationRelease(request.OperationId, reservation, kind, actorId, request.Reason, context.Now);
-        var status = await transaction.CommitAsync(release, cancellationToken);
+        var release = new ReservationRelease(request.OperationId, reservation, sale.DueAt,
+            ReservationReleaseKind.CustomerCancelled, actorId, null, context.Now);
+        var status = await transaction.CommitAsync(release,
+            () => sale.CancelByCustomer(Guid.NewGuid(), actorId, release.Id, context.Now), cancellationToken);
         return new(status, status == ReservationStatus.Succeeded ? release : null);
     }
 }

@@ -1,0 +1,104 @@
+using Dealership.Application.Common;
+using Dealership.Domain.Sales;
+
+namespace Dealership.Application.Sales;
+
+// The vehicle, customer and reservation facts a sale is about; staff are identified by email.
+public sealed record SaleContext(string ReservationNumber, string Registration, string Vehicle, string Vin,
+    int MileageKilometres, string Customer, string CustomerMobile, string CustomerEmail, string Branch,
+    DateTimeOffset ReservedAt, int? WarrantyMonths, int? WarrantyMileageCapKm, decimal? TradeInMinimum,
+    decimal? TradeInMaximum);
+
+// What the reading actor may do next, decided once on the server so every surface offers the same actions.
+public sealed record SaleActions(bool Claim, bool Assign, bool Release, bool SaveTerms, bool Submit, bool Decide,
+    bool Cancel);
+
+public sealed record SaleView(Guid Id, DealSnapshot Sale, string? Agent, string? DecidedBy, DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt, SaleContext Context, SaleActions Actions);
+
+// One row in an agent's queue or a manager's table.
+public sealed record SaleSummary(Guid Id, string ReservationNumber, string? OrderNumber, string Status,
+    string Registration, int ManufactureYear, string Make, string Model, string Trim, string Customer, string? Agent, string Branch, DateTimeOffset? DueAt,
+    long? PausedSeconds, DateTimeOffset? ClaimedAt, decimal NegotiatedDiscount, decimal? DiscountLimitAtSubmit,
+    decimal BalancePayable, DateTimeOffset? SubmittedAt, DateTimeOffset? DecidedAt, DateTimeOffset? ClosedAt,
+    string? Outcome, long Version);
+
+public sealed record SaleQueueCounts(int ToClaim, int Handling, int Waiting, int Approved);
+
+public sealed record SaleQueuePage(IReadOnlyList<SaleSummary> Items, int Total, int Page, int PageSize,
+    SaleQueueCounts Counts);
+
+public sealed record SaleTableCounts(int NeedsApproval, int Open, int BeingHandled, int Approved, int History);
+
+// View names the tab actually read, which the server chooses when the request leaves it open.
+public sealed record SaleTablePage(IReadOnlyList<SaleSummary> Items, int Total, int Page, int PageSize,
+    SaleTableCounts Counts, string View);
+
+// A null view opens the first tab with work, in the order the tabs are shown.
+public sealed record SaleTableQuery(int Page, int PageSize, string? View, string? Search, string? Sort, bool Descending)
+{
+    public string? Agent { get; init; }
+
+    public string? Branch { get; init; }
+
+    public string? Outcome { get; init; }
+
+    public decimal? MinimumDiscount { get; init; }
+
+    public decimal? MaximumDiscount { get; init; }
+
+    public decimal? MinimumBalance { get; init; }
+
+    public decimal? MaximumBalance { get; init; }
+
+    public ListDateRange? Submitted { get; init; }
+
+    public ListDateRange? Closed { get; init; }
+}
+
+// One retained history entry; changed terms carry invariant before and after text.
+public sealed record SaleHistoryItem(Guid Id, long Version, string Kind, DateTimeOffset RecordedAt, string Actor,
+    string? Agent, string? PreviousAgent, string? FromStatus, string ToStatus, string? Reason,
+    IReadOnlyList<DealChange> Changes, decimal? Refund);
+
+public sealed record SaleHistoryPage(IReadOnlyList<SaleHistoryItem> Items, int TotalCount, int Page, int PageSize);
+
+// The sale as it stood after one action, with the snapshot before it so changed fields can be shown.
+public sealed record SaleVersionView(Guid SaleId, long Version, string Kind, DateTimeOffset RecordedAt, string Actor,
+    string? Agent, string? Reason, DealSnapshot Snapshot, DealSnapshot? Previous);
+
+public sealed record WarrantyOption(Guid Id, string Name, int DurationMonths, int MileageCapKm, decimal Price,
+    string MinimumGrade);
+
+public sealed record TradeInOption(Guid AppointmentId, string Label, decimal Minimum, decimal Maximum);
+
+public sealed record SaleOptions(IReadOnlyList<WarrantyOption> Warranties, IReadOnlyList<TradeInOption> TradeIns);
+
+public sealed record SaleAgent(Guid Id, string Email);
+
+public sealed record SaleReadResult<T>(SaleStatus Status, T? Value = default);
+
+public interface ISaleReadStore
+{
+    Task<SaleReadResult<SaleView>> GetAsync(Guid actorId, Guid saleId, CancellationToken cancellationToken);
+
+    Task<SaleReadResult<SaleOptions>> OptionsAsync(Guid actorId, Guid saleId, CancellationToken cancellationToken);
+
+    Task<SaleReadResult<IReadOnlyList<SaleAgent>>> AgentsAsync(Guid actorId, Guid saleId,
+        CancellationToken cancellationToken);
+
+    Task<SaleReadResult<SaleHistoryPage>> HistoryAsync(Guid actorId, Guid saleId, int page, int pageSize,
+        CancellationToken cancellationToken);
+
+    Task<SaleReadResult<SaleVersionView>> VersionAsync(Guid actorId, Guid saleId, long version,
+        CancellationToken cancellationToken);
+}
+
+public interface ISaleListStore
+{
+    Task<SaleReadResult<SaleQueuePage>> QueueAsync(Guid actorId, string view, string? search, int page, int pageSize,
+        CancellationToken cancellationToken);
+
+    Task<SaleReadResult<SaleTablePage>> TableAsync(Guid actorId, SaleTableQuery query,
+        CancellationToken cancellationToken);
+}

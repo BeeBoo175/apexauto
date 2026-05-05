@@ -3,33 +3,46 @@ using Dealership.Domain.Vehicles;
 
 namespace Dealership.Domain.Sales;
 
-public sealed record DealReservation(Guid Id, Guid? PromoId, string? PromoCode, decimal PromoDiscount, decimal Deposit);
-
 public sealed record DealWarranty(Guid Id, string Name, decimal Price);
 
-public sealed record DealTradeIn(Guid AppointmentId, decimal Allowance);
+// The label names the trade-in car (plate, year, make and model) as it was when the terms were saved.
+public sealed record DealTradeIn(Guid AppointmentId, string Label, decimal Allowance);
 
-// A commercial deal from draft through manager approval. Settlement and handover extend this in later slices.
+// The negotiated part of a sale; the base price, road tax, promo and deposit always come from the reservation.
+public sealed record DealTermsInput(DealWarranty? Warranty, decimal NegotiatedDiscount, DealTradeIn? TradeIn);
+
+// One sale per reservation, from the moment the hold is confirmed until it is approved, expires or is cancelled.
+// Every action returns the history entry that records it; the entry carries the sale as it stood afterwards.
 public sealed partial class SalesOrder
 {
+    private static readonly SalesOrderStatus[] Handled =
+        [SalesOrderStatus.Handling, SalesOrderStatus.PendingApproval, SalesOrderStatus.Approved];
+
     private SalesOrder()
     {
     }
 
+    // Shares the reservation's identity, so a hold and its sale are always the same record to staff.
     public Guid Id { get; private set; }
-
-    // Assigned once, at first submission, and kept across resubmissions.
-    public string? OrderNumber { get; private set; }
 
     public Guid VehicleId { get; private set; }
 
-    public Guid CustomerId { get; private set; }
-
-    public Guid SalesAgentId { get; private set; }
-
     public Guid BranchId { get; private set; }
 
-    public Guid? ReservationId { get; private set; }
+    public Guid CustomerId { get; private set; }
+
+    public SalesOrderStatus Status { get; private set; }
+
+    public Guid? AgentId { get; private set; }
+
+    public DateTimeOffset? ClaimedAt { get; private set; }
+
+    // The running deadline while the sale is open; a handled sale has none and keeps its time in PausedSeconds.
+    public DateTimeOffset? DueAt { get; private set; }
+
+    public long? PausedSeconds { get; private set; }
+
+    public string? OrderNumber { get; private set; }
 
     public Guid? PromoId { get; private set; }
 
@@ -59,103 +72,294 @@ public sealed partial class SalesOrder
 
     public Guid? TradeInAppointmentId { get; private set; }
 
+    public string? TradeInLabel { get; private set; }
+
     public decimal TradeInAllowance { get; private set; }
 
     public decimal BalancePayable { get; private set; }
 
-    // The agent discount limit in force when the deal was submitted; approval is bound to it.
+    public DateTimeOffset? SubmittedAt { get; private set; }
+
+    // The agent discount limit captured by the latest submission; an approval is bound to it.
     public decimal? DiscountLimitAtSubmit { get; private set; }
 
     public Guid? DecidedById { get; private set; }
 
-    public SalesOrderStatus Status { get; private set; }
+    public DateTimeOffset? DecidedAt { get; private set; }
 
-    public long Version { get; private set; } = 1;
+    public DateTimeOffset? ClosedAt { get; private set; }
 
-    public DateTimeOffset CreatedAtUtc { get; private set; }
+    public DateTimeOffset CreatedAt { get; private set; }
 
-    public DateTimeOffset UpdatedAtUtc { get; private set; }
+    public DateTimeOffset UpdatedAt { get; private set; }
 
-    public DateTimeOffset? SubmittedAtUtc { get; private set; }
+    public long Version { get; private set; }
+
+    public bool IsHandled => Handled.Contains(Status);
+
+    public bool IsClosed => Status is SalesOrderStatus.Expired or SalesOrderStatus.Cancelled;
 
     public static bool ValidNumber(string? number) => number is not null && NumberPattern().IsMatch(number);
 
-    public static SalesOrder CreateDraft(Guid id, Guid vehicleId, Guid customerId, Guid agentId, Guid branchId,
-        decimal basePrice, decimal roadTax, PurchaseSettings settings, DealReservation? reservation,
-        DateTimeOffset now, out SalesOrderEvent created)
+    // Opens the sale for a reservation as it is confirmed, carrying its agreed price, promo, deposit and deadline.
+    public static SalesOrder Open(Reservation reservation, Guid operationId, out SalesOrderEvent created)
     {
-        ArgumentNullException.ThrowIfNull(settings);
-        if (id == Guid.Empty || vehicleId == Guid.Empty || customerId == Guid.Empty || agentId == Guid.Empty ||
-            branchId == Guid.Empty || now.Offset != TimeSpan.Zero)
+        ArgumentNullException.ThrowIfNull(reservation);
+        if (reservation.Id == Guid.Empty || operationId == Guid.Empty || reservation.CreatedAt.Offset != TimeSpan.Zero)
         {
-            throw new ArgumentException("A deal requires its vehicle, customer, agent, branch and a UTC time.");
+            throw new ArgumentException("A sale opens from a confirmed reservation and an operation identity.");
         }
 
         var order = new SalesOrder
         {
-            Id = id,
-            VehicleId = vehicleId,
-            CustomerId = customerId,
-            SalesAgentId = agentId,
-            BranchId = branchId,
-            BasePrice = basePrice,
-            RoadTax = roadTax,
-            ReservationId = reservation?.Id,
-            PromoId = reservation?.PromoId,
-            PromoCode = reservation?.PromoCode,
-            PromoDiscount = reservation?.PromoDiscount ?? 0m,
-            DepositCredit = reservation?.Deposit ?? 0m,
-            Status = SalesOrderStatus.Draft,
-            CreatedAtUtc = now,
-            UpdatedAtUtc = now
+            Id = reservation.Id,
+            VehicleId = reservation.VehicleId,
+            BranchId = reservation.BranchId,
+            CustomerId = reservation.CustomerId,
+            Status = SalesOrderStatus.Open,
+            DueAt = reservation.ExpiresAt,
+            PromoId = reservation.PromoId,
+            PromoCode = reservation.PromoCode,
+            BasePrice = reservation.Price.VehiclePrice,
+            RoadTax = reservation.Price.RoadTax,
+            ProcessingFee = reservation.Price.ProcessingFee,
+            SstRate = reservation.SstRate,
+            PromoDiscount = reservation.Price.PromoDiscount,
+            DepositCredit = reservation.Deposit,
+            CreatedAt = reservation.CreatedAt,
+            UpdatedAt = reservation.CreatedAt
         };
-        order.Reprice(settings);
-        created = new SalesOrderEvent(id, order.Version, SalesOrderEventKind.Created, null, SalesOrderStatus.Draft,
-            agentId, null, now);
+        order.Reprice(order.ProcessingFee, order.SstRate);
+        order.Version = 1;
+        created = new SalesOrderEvent(operationId, order, SalesOrderEventKind.Created, null, reservation.CustomerId,
+            null, null, null, reservation.CreatedAt);
         return order;
     }
 
-    // An approved deal that is edited loses its approval and returns to Draft; a pending one cannot be edited.
-    public SalesOrderEvent Revise(DealWarranty? warranty, decimal negotiatedDiscount, DealTradeIn? tradeIn,
-        PurchaseSettings settings, Guid actorId, DateTimeOffset now)
-    {
-        ArgumentNullException.ThrowIfNull(settings);
-        if (Status is not (SalesOrderStatus.Draft or SalesOrderStatus.Approved))
-        {
-            throw new InvalidOperationException("Only a draft or approved deal can be edited.");
-        }
+    public bool HasExpired(DateTimeOffset now) => Status == SalesOrderStatus.Open && now >= DueAt;
 
-        // Price the new terms first so a rejected edit leaves the deal unchanged.
-        DealPricing.Calculate(new DealTerms(BasePrice, RoadTax, settings.ProcessingFee, settings.SstRate,
-            PromoDiscount, negotiatedDiscount, warranty?.Price ?? 0m, DepositCredit, tradeIn?.Allowance ?? 0m));
-        var changes = Differences(warranty, negotiatedDiscount, tradeIn);
-        NegotiatedDiscount = negotiatedDiscount;
-        WarrantyPackageId = warranty?.Id;
-        WarrantyName = warranty?.Name;
-        WarrantyPrice = warranty?.Price ?? 0m;
-        TradeInAppointmentId = tradeIn?.AppointmentId;
-        TradeInAllowance = tradeIn?.Allowance ?? 0m;
-        Reprice(settings);
-        var from = Status;
-        DecidedById = null;
-        DiscountLimitAtSubmit = null;
-        return Move(SalesOrderEventKind.Revised, from, SalesOrderStatus.Draft, actorId, null, now, changes);
+    // An agent claims an open sale for themselves, or a manager assigns it; either way the timer pauses.
+    public SalesOrderEvent Claim(Guid operationId, Guid agentId, Guid actorId, DateTimeOffset now)
+    {
+        RequireCommand(operationId, actorId, now);
+        RequireAgent(agentId);
+        Require(Status == SalesOrderStatus.Open, "Only an open sale can be claimed.");
+        Require(!HasExpired(now), "An expired sale cannot be claimed.");
+        var paused = (long)Math.Floor((DueAt!.Value - now).TotalSeconds);
+        Require(paused >= 1, "An expired sale cannot be claimed.");
+        AgentId = agentId;
+        ClaimedAt = now;
+        PausedSeconds = paused;
+        DueAt = null;
+        var kind = agentId == actorId ? SalesOrderEventKind.Claimed : SalesOrderEventKind.Assigned;
+        return Record(operationId, kind, SalesOrderStatus.Handling, actorId, now, null, null);
     }
 
-    private List<DealChange> Differences(DealWarranty? warranty, decimal negotiatedDiscount, DealTradeIn? tradeIn)
+    // A manager moves a handled sale to another agent; its terms and status stay as they are.
+    public SalesOrderEvent Reassign(Guid operationId, Guid agentId, Guid actorId, DateTimeOffset now)
+    {
+        RequireCommand(operationId, actorId, now);
+        RequireAgent(agentId);
+        Require(IsHandled, "Only a sale being handled can be reassigned.");
+        Require(agentId != AgentId, "The sale is already with that agent.");
+        Require(agentId != DecidedById, "The manager who approved the sale cannot be its agent.");
+        var previous = AgentId;
+        AgentId = agentId;
+        ClaimedAt = now;
+        return Record(operationId, SalesOrderEventKind.Reassigned, Status, actorId, now, null, null, previous);
+    }
+
+    // Gives the sale back with the time it had left and the reservation's own terms; earlier terms stay in history.
+    public SalesOrderEvent Release(Guid operationId, Guid actorId, DateTimeOffset now)
+    {
+        RequireCommand(operationId, actorId, now);
+        Require(Status == SalesOrderStatus.Handling, "Only a sale in handling can be released.");
+        var changes = Differences(new DealTermsInput(null, 0m, null));
+        var previous = AgentId;
+        ApplyTerms(new DealTermsInput(null, 0m, null));
+        Reprice(ProcessingFee, SstRate);
+        DueAt = now.AddSeconds(PausedSeconds!.Value);
+        AgentId = null;
+        ClaimedAt = null;
+        PausedSeconds = null;
+        DiscountLimitAtSubmit = null;
+        DecidedById = null;
+        DecidedAt = null;
+        return Record(operationId, SalesOrderEventKind.Released, SalesOrderStatus.Open, actorId, now, null, changes,
+            previous);
+    }
+
+    // Saving terms prices them with the current fee and tax; saving an approved sale withdraws its approval.
+    public SalesOrderEvent SaveTerms(Guid operationId, DealTermsInput terms, PurchaseSettings settings, Guid actorId,
+        DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(terms);
+        ArgumentNullException.ThrowIfNull(settings);
+        RequireCommand(operationId, actorId, now);
+        Require(Status is SalesOrderStatus.Handling or SalesOrderStatus.Approved,
+            "Terms can be saved only while the sale is handled or approved.");
+        // Price first so rejected terms leave the sale unchanged.
+        Price(terms, settings.ProcessingFee, settings.SstRate);
+        var changes = Differences(terms);
+        Require(changes.Count > 0, "The terms are unchanged.");
+        ApplyTerms(terms);
+        Reprice(settings.ProcessingFee, settings.SstRate);
+        DiscountLimitAtSubmit = null;
+        DecidedById = null;
+        DecidedAt = null;
+        return Record(operationId, SalesOrderEventKind.TermsSaved, SalesOrderStatus.Handling, actorId, now, null,
+            changes);
+    }
+
+    // Captures the current fee, tax and discount limit. A discount within the limit is approved as it is submitted.
+    public SalesOrderEvent Submit(Guid operationId, PurchaseSettings settings, string number, Guid actorId,
+        DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        RequireCommand(operationId, actorId, now);
+        Require(Status == SalesOrderStatus.Handling, "Only a sale in handling can be submitted.");
+        Require(actorId == AgentId, "Only the handling agent submits the sale.");
+        if (OrderNumber is null && !ValidNumber(number) || OrderNumber is not null && number != OrderNumber)
+        {
+            throw new ArgumentException("A sale keeps the number it was first given.");
+        }
+
+        Reprice(settings.ProcessingFee, settings.SstRate);
+        var within = NegotiatedDiscount <= settings.MaxAgentDiscountAmount;
+        OrderNumber = number;
+        SubmittedAt = now;
+        DiscountLimitAtSubmit = settings.MaxAgentDiscountAmount;
+        var next = within ? SalesOrderStatus.Approved : SalesOrderStatus.PendingApproval;
+        if (within)
+        {
+            DecidedAt = now;
+        }
+
+        return Record(operationId, SalesOrderEventKind.Submitted, next, actorId, now, null, null);
+    }
+
+    public SalesOrderEvent Approve(Guid operationId, Guid managerId, DateTimeOffset now)
+    {
+        RequireCommand(operationId, managerId, now);
+        Require(Status == SalesOrderStatus.PendingApproval, "Only a sale awaiting approval can be approved.");
+        Require(managerId != AgentId, "An agent cannot approve their own excess discount.");
+        DecidedById = managerId;
+        DecidedAt = now;
+        return Record(operationId, SalesOrderEventKind.Approved, SalesOrderStatus.Approved, managerId, now, null, null);
+    }
+
+    // A rejected sale returns to its agent with its terms, to be revised and submitted again.
+    public SalesOrderEvent Reject(Guid operationId, Guid managerId, string reason, DateTimeOffset now)
+    {
+        RequireCommand(operationId, managerId, now);
+        Require(Status == SalesOrderStatus.PendingApproval, "Only a sale awaiting approval can be rejected.");
+        Require(managerId != AgentId, "An agent cannot decide their own excess discount.");
+        DiscountLimitAtSubmit = null;
+        return Record(operationId, SalesOrderEventKind.Rejected, SalesOrderStatus.Handling, managerId, now,
+            RequiredReason(reason), null);
+    }
+
+    // Staff cancel with a reason; the caller records the reservation's refund receipt in the same transaction.
+    public SalesOrderEvent Cancel(Guid operationId, Guid actorId, string reason, Guid releaseId, DateTimeOffset now)
+    {
+        RequireCommand(operationId, actorId, now);
+        Require(!IsClosed, "A closed sale cannot be cancelled.");
+        return Close(operationId, SalesOrderEventKind.Cancelled, SalesOrderStatus.Cancelled, actorId,
+            RequiredReason(reason), releaseId, now);
+    }
+
+    // The customer may cancel online only while nobody handles the sale.
+    public SalesOrderEvent CancelByCustomer(Guid operationId, Guid customerId, Guid releaseId, DateTimeOffset now)
+    {
+        RequireCommand(operationId, customerId, now);
+        Require(Status == SalesOrderStatus.Open && !HasExpired(now), "Only an open sale can be cancelled online.");
+        Require(customerId == CustomerId, "Only the reserving customer can cancel online.");
+        return Close(operationId, SalesOrderEventKind.CustomerCancelled, SalesOrderStatus.Cancelled, customerId, null,
+            releaseId, now);
+    }
+
+    public static bool ValidReason(string? reason) => reason is not null && reason == reason.Trim() &&
+        reason.Length is >= 1 and <= SalesOrderEvent.ReasonMaximumLength && !reason.Any(char.IsControl);
+
+    private SalesOrderEvent Close(Guid operationId, SalesOrderEventKind kind, SalesOrderStatus status, Guid actorId,
+        string? reason, Guid releaseId, DateTimeOffset now)
+    {
+        if (releaseId == Guid.Empty)
+        {
+            throw new ArgumentException("A closed sale records the refund receipt it released.");
+        }
+
+        var previous = AgentId;
+        ClosedAt = now;
+        AgentId = null;
+        ClaimedAt = null;
+        PausedSeconds = null;
+        return Record(operationId, kind, status, actorId, now, reason, null, previous, releaseId);
+    }
+
+    private SalesOrderEvent Record(Guid operationId, SalesOrderEventKind kind, SalesOrderStatus next, Guid actorId,
+        DateTimeOffset now, string? reason, IReadOnlyList<DealChange>? changes, Guid? previousAgentId = null,
+        Guid? releaseId = null)
+    {
+        RequireCommand(operationId, actorId, now);
+        var from = Status;
+        Status = next;
+        UpdatedAt = now;
+        Version++;
+        return new SalesOrderEvent(operationId, this, kind, from, actorId, previousAgentId, reason, changes, now)
+        {
+            ReleaseId = releaseId
+        };
+    }
+
+    private DealPrice Price(DealTermsInput terms, decimal processingFee, decimal sstRate) =>
+        DealPricing.Calculate(new DealTerms(BasePrice, RoadTax, processingFee, sstRate, PromoDiscount,
+            terms.NegotiatedDiscount, terms.Warranty?.Price ?? 0m, DepositCredit, terms.TradeIn?.Allowance ?? 0m));
+
+    private void Reprice(decimal processingFee, decimal sstRate)
+    {
+        var price = Price(new DealTermsInput(
+            WarrantyPackageId is { } warrantyId ? new DealWarranty(warrantyId, WarrantyName!, WarrantyPrice) : null,
+            NegotiatedDiscount,
+            TradeInAppointmentId is { } appointmentId ? new DealTradeIn(appointmentId, TradeInLabel!, TradeInAllowance) : null),
+            processingFee, sstRate);
+        ProcessingFee = processingFee;
+        SstRate = sstRate;
+        ServiceTax = price.ServiceTax;
+        BalancePayable = price.BalancePayable;
+    }
+
+    private void ApplyTerms(DealTermsInput terms)
+    {
+        NegotiatedDiscount = terms.NegotiatedDiscount;
+        WarrantyPackageId = terms.Warranty?.Id;
+        WarrantyName = terms.Warranty?.Name;
+        WarrantyPrice = terms.Warranty?.Price ?? 0m;
+        TradeInAppointmentId = terms.TradeIn?.AppointmentId;
+        TradeInLabel = terms.TradeIn?.Label;
+        TradeInAllowance = terms.TradeIn?.Allowance ?? 0m;
+    }
+
+    // The terms a change touches, with invariant before and after text, so history can say "from X to Y".
+    private List<DealChange> Differences(DealTermsInput terms)
     {
         var changes = new List<DealChange>();
-        if (negotiatedDiscount != NegotiatedDiscount)
+        if (terms.NegotiatedDiscount != NegotiatedDiscount)
         {
-            changes.Add(new(DealChange.NegotiatedDiscount, Amount(NegotiatedDiscount), Amount(negotiatedDiscount)));
+            changes.Add(new(DealChange.NegotiatedDiscount, Amount(NegotiatedDiscount), Amount(terms.NegotiatedDiscount)));
         }
 
-        if (warranty?.Id != WarrantyPackageId)
+        if (terms.Warranty?.Id != WarrantyPackageId)
         {
-            changes.Add(new(DealChange.Warranty, WarrantyName, warranty?.Name));
+            changes.Add(new(DealChange.Warranty, WarrantyName, terms.Warranty?.Name));
         }
 
-        var allowance = tradeIn?.Allowance ?? 0m;
+        if (terms.TradeIn?.AppointmentId != TradeInAppointmentId)
+        {
+            changes.Add(new(DealChange.TradeIn, TradeInLabel, terms.TradeIn?.Label));
+        }
+
+        var allowance = terms.TradeIn?.Allowance ?? 0m;
         if (allowance != TradeInAllowance)
         {
             changes.Add(new(DealChange.TradeInAllowance, Amount(TradeInAllowance), Amount(allowance)));
@@ -164,125 +368,37 @@ public sealed partial class SalesOrder
         return changes;
     }
 
-    private static string Amount(decimal value) => value.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
+    private static string Amount(decimal value) =>
+        value.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
 
-    // Captures the effective settings. A negotiated discount within the limit is approved at once.
-    public SalesOrderEvent Submit(PurchaseSettings settings, string number, Guid actorId, DateTimeOffset now)
+    // Checked before any change, so an invalid command leaves the sale exactly as it was.
+    private void RequireCommand(Guid operationId, Guid actorId, DateTimeOffset now)
     {
-        ArgumentNullException.ThrowIfNull(settings);
-        if (Status != SalesOrderStatus.Draft)
+        if (operationId == Guid.Empty || actorId == Guid.Empty || now.Offset != TimeSpan.Zero || now < UpdatedAt)
         {
-            throw new InvalidOperationException("Only a draft deal can be submitted.");
+            throw new ArgumentException("A sale action needs an operation, an actor and a UTC time that does not go back.");
         }
-
-        if (OrderNumber is null && !ValidNumber(number) || OrderNumber is not null && number != OrderNumber)
-        {
-            throw new ArgumentException("A deal keeps the number it was first given.");
-        }
-
-        Reprice(settings);
-        var within = NegotiatedDiscount <= settings.MaxAgentDiscountAmount;
-        var submitted = Move(SalesOrderEventKind.Submitted, SalesOrderStatus.Draft,
-            within ? SalesOrderStatus.Approved : SalesOrderStatus.PendingManagerApproval, actorId, null, now);
-        OrderNumber = number;
-        DiscountLimitAtSubmit = settings.MaxAgentDiscountAmount;
-        SubmittedAtUtc = now;
-        return submitted;
     }
 
-    public SalesOrderEvent Approve(Guid managerId, DateTimeOffset now)
+    private static void RequireAgent(Guid agentId)
     {
-        if (Status != SalesOrderStatus.PendingManagerApproval)
+        if (agentId == Guid.Empty)
         {
-            throw new InvalidOperationException("Only a pending deal can be approved.");
+            throw new ArgumentException("A sale is handled by a named agent.");
         }
-
-        if (managerId == Guid.Empty || managerId == SalesAgentId)
-        {
-            throw new InvalidOperationException("An agent cannot approve their own excess discount.");
-        }
-
-        DecidedById = managerId;
-        return Move(SalesOrderEventKind.Approved, SalesOrderStatus.PendingManagerApproval, SalesOrderStatus.Approved,
-            managerId, null, now);
     }
 
-    public SalesOrderEvent Reject(Guid managerId, string reason, DateTimeOffset now)
+    private static void Require(bool condition, string message)
     {
-        if (Status != SalesOrderStatus.PendingManagerApproval)
+        if (!condition)
         {
-            throw new InvalidOperationException("Only a pending deal can be rejected.");
+            throw new InvalidOperationException(message);
         }
-
-        if (managerId == Guid.Empty || managerId == SalesAgentId)
-        {
-            throw new InvalidOperationException("An agent cannot decide their own excess discount.");
-        }
-
-        DecidedById = null;
-        DiscountLimitAtSubmit = null;
-        return Move(SalesOrderEventKind.Rejected, SalesOrderStatus.PendingManagerApproval, SalesOrderStatus.Draft,
-            managerId, RequiredReason(reason), now);
     }
-
-    public SalesOrderEvent Cancel(Guid actorId, string reason, DateTimeOffset now)
-    {
-        if (Status == SalesOrderStatus.Cancelled)
-        {
-            throw new InvalidOperationException("A cancelled deal is final.");
-        }
-
-        return Move(SalesOrderEventKind.Cancelled, Status, SalesOrderStatus.Cancelled, actorId,
-            RequiredReason(reason), now);
-    }
-
-    // A manager moves the deal to another agent; the previous agent keeps no access and the decider cannot take it.
-    public SalesOrderEvent Reassign(Guid agentId, Guid actorId, DateTimeOffset now)
-    {
-        if (Status == SalesOrderStatus.Cancelled)
-        {
-            throw new InvalidOperationException("A cancelled deal is final.");
-        }
-
-        if (agentId == Guid.Empty || agentId == SalesAgentId || agentId == DecidedById)
-        {
-            throw new InvalidOperationException("The deal needs a different agent who did not approve it.");
-        }
-
-        SalesAgentId = agentId;
-        return Move(SalesOrderEventKind.Reassigned, Status, Status, actorId, null, now);
-    }
-
-    public static bool ValidReason(string? reason) => reason is not null && reason == reason.Trim() &&
-        reason.Length is >= 1 and <= SalesOrderEvent.ReasonMaximumLength && !reason.Any(char.IsControl);
 
     private static string RequiredReason(string reason) => ValidReason(reason)
         ? reason
         : throw new ArgumentException("A reason of 1 to 1000 trimmed characters is required.");
-
-    private void Reprice(PurchaseSettings settings)
-    {
-        var price = DealPricing.Calculate(new DealTerms(BasePrice, RoadTax, settings.ProcessingFee, settings.SstRate,
-            PromoDiscount, NegotiatedDiscount, WarrantyPrice, DepositCredit, TradeInAllowance));
-        ProcessingFee = settings.ProcessingFee;
-        SstRate = settings.SstRate;
-        ServiceTax = price.ServiceTax;
-        BalancePayable = price.BalancePayable;
-    }
-
-    private SalesOrderEvent Move(SalesOrderEventKind kind, SalesOrderStatus from, SalesOrderStatus to, Guid actorId,
-        string? reason, DateTimeOffset now, IReadOnlyList<DealChange>? changes = null)
-    {
-        if (actorId == Guid.Empty || now.Offset != TimeSpan.Zero || now < UpdatedAtUtc)
-        {
-            throw new ArgumentException("A deal action requires an actor and a UTC time that does not go backwards.");
-        }
-
-        Status = to;
-        UpdatedAtUtc = now;
-        Version++;
-        return new SalesOrderEvent(Id, Version, kind, from, to, actorId, reason, now, changes);
-    }
 
     [GeneratedRegex(@"^VPO-[0-9]{4}-[0-9]{6}$")]
     private static partial Regex NumberPattern();

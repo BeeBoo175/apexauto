@@ -17,7 +17,8 @@ public sealed class ReservationRelease
     {
     }
 
-    public ReservationRelease(Guid id, Reservation reservation, ReservationReleaseKind kind,
+    // The deadline is the sale's running deadline, or null while an agent handles the sale and its timer is paused.
+    public ReservationRelease(Guid id, Reservation reservation, DateTimeOffset? deadline, ReservationReleaseKind kind,
         Guid? actorId, string? reason, DateTimeOffset recordedAt)
     {
         ArgumentNullException.ThrowIfNull(reservation);
@@ -28,7 +29,7 @@ public sealed class ReservationRelease
             throw new ArgumentException("Release requires an active reservation and finite current UTC timestamp.");
         }
 
-        if (kind == ReservationReleaseKind.Expired != reservation.HasExpired(recordedAt))
+        if (kind == ReservationReleaseKind.Expired != recordedAt >= deadline)
         {
             throw new ArgumentException("Expiry is authoritative at the exact reservation deadline.");
         }
