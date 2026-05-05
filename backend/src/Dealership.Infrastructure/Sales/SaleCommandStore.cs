@@ -1,0 +1,61 @@
+using Dealership.Application.Sales;
+using Dealership.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+
+namespace Dealership.Infrastructure.Sales;
+
+public sealed class SaleCommandStore(DealershipDbContext database) : ISaleCommandStore
+{
+    public async Task<ISaleCommandTransaction> LockAsync(Guid actorId, Guid saleId, Guid operationId,
+        CancellationToken cancellationToken)
+    {
+        var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            // Replays of one operation are serialized so they all see a single outcome.
+            await database.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT pg_advisory_xact_lock(hashtextextended({"sale:" + operationId}, 0))", cancellationToken);
+            var actor = await SaleStaffLocks.LockAsync(database, actorId, cancellationToken);
+            var branchActive = actor?.BranchId is not { } branchId || await database.Branches.FromSqlInterpolated(
+                $"SELECT * FROM \"Branches\" WHERE \"Id\" = {branchId} FOR SHARE")
+                .AnyAsync(branch => branch.IsActive, cancellationToken);
+            var located = await database.SalesOrders.AsNoTracking()
+                .Where(item => item.Id == saleId).Select(item => new { item.VehicleId })
+                .SingleOrDefaultAsync(cancellationToken);
+            var existing = await database.SalesOrderEvents.AsNoTracking()
+                .SingleOrDefaultAsync(item => item.Id == operationId, cancellationToken);
+            if (located is null)
+            {
+                return new SaleCommandTransaction(database, transaction,
+                    new(actor, branchActive, null, existing, default));
+            }
+
+            // The vehicle is locked before its hold and sale, as every reservation command does; an expired or
+            // no longer sellable hold is released first so the decision below sees the authoritative state.
+            await database.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT 1 FROM \"Vehicles\" WHERE \"Id\" = {located.VehicleId} FOR UPDATE", cancellationToken);
+            await database.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT release_unavailable_reservation({located.VehicleId})", cancellationToken);
+            var sale = await database.SalesOrders.FromSqlInterpolated(
+                $"SELECT * FROM \"SalesOrders\" WHERE \"Id\" = {saleId} FOR UPDATE").SingleAsync(cancellationToken);
+            var now = await database.Database.SqlQuery<DateTimeOffset>($"SELECT clock_timestamp() AS \"Value\"")
+                .SingleAsync(cancellationToken);
+            // The database clock can trail a sale stamped by another session by a few microseconds.
+            now = now < sale.UpdatedAt ? sale.UpdatedAt : now;
+            return new SaleCommandTransaction(database, transaction, new(actor, branchActive, sale, existing, now));
+        }
+        catch
+        {
+            try
+            {
+                await transaction.DisposeAsync();
+            }
+            finally
+            {
+                database.ChangeTracker.Clear();
+            }
+
+            throw;
+        }
+    }
+}

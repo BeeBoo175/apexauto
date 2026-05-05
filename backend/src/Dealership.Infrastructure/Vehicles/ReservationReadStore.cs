@@ -1,3 +1,4 @@
+using Dealership.Domain.Sales;
 using Dealership.Application.Accounts;
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Vehicles;
@@ -109,12 +110,15 @@ public sealed class ReservationReadStore(DealershipDbContext database) : IReserv
             counts = new ReservationCounts(
                 await reservations.CountAsync(item => item.IsActive, cancellationToken),
                 await reservations.CountAsync(item => !item.IsActive, cancellationToken),
-                await reservations.CountAsync(item => item.IsActive && item.ClaimedById == null, cancellationToken),
-                await reservations.CountAsync(item => item.IsActive && item.ClaimedById != null, cancellationToken));
+                await reservations.CountAsync(item => item.IsActive && database.SalesOrders.Any(sale =>
+                    sale.Id == item.Id && sale.Status == SalesOrderStatus.Open), cancellationToken),
+                await reservations.CountAsync(item => item.IsActive && database.SalesOrders.Any(sale =>
+                    sale.Id == item.Id && sale.AgentId != null), cancellationToken));
             reservations = reservations.Where(item => item.IsActive == filter.IsActive);
             if (filter.Claimed is { } claimed)
             {
-                reservations = reservations.Where(item => (item.ClaimedById != null) == claimed);
+                reservations = reservations.Where(item => database.SalesOrders.Any(sale => sale.Id == item.Id &&
+                    (sale.AgentId != null) == claimed));
             }
         }
 

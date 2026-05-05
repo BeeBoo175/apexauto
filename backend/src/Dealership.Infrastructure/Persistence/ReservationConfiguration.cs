@@ -7,8 +7,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace Dealership.Infrastructure.Persistence;
 
 public sealed class ReservationConfiguration : IEntityTypeConfiguration<Reservation>,
-    IEntityTypeConfiguration<ReservationRelease>, IEntityTypeConfiguration<ReservationEvent>,
-    IEntityTypeConfiguration<ReservationNumberCounter>
+    IEntityTypeConfiguration<ReservationRelease>, IEntityTypeConfiguration<ReservationNumberCounter>
 {
     public void Configure(EntityTypeBuilder<ReservationNumberCounter> builder)
     {
@@ -26,12 +25,7 @@ public sealed class ReservationConfiguration : IEntityTypeConfiguration<Reservat
             table.HasCheckConstraint("CK_Reservations_Shape",
                 "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND " +
                 "isfinite(\"CreatedAt\") AND isfinite(\"ExpiresAt\") AND " +
-                "\"ExpiresAt\" >= \"CreatedAt\" + interval '48 hours' AND \"Deposit\" = 500");
-            // A claim freezes the timer, so the three claim facts exist together and a hold never claims more than its period.
-            table.HasCheckConstraint("CK_Reservations_Claim",
-                "(\"ClaimedById\" IS NULL AND \"ClaimedAt\" IS NULL AND \"FrozenRemaining\" IS NULL) OR " +
-                "(\"ClaimedById\" IS NOT NULL AND \"ClaimedAt\" IS NOT NULL AND \"ClaimedAt\" >= \"CreatedAt\" AND " +
-                "\"FrozenRemaining\" > interval '0' AND \"FrozenRemaining\" <= interval '48 hours')");
+                "\"ExpiresAt\" = \"CreatedAt\" + interval '48 hours' AND \"Deposit\" = 500");
             table.HasCheckConstraint("CK_Reservations_Price",
                 "\"VehiclePrice\" > 0 AND \"VehiclePrice\" <> 'NaN'::numeric AND " +
                 "\"ProcessingFee\" >= 0 AND \"ProcessingFee\" <> 'NaN'::numeric AND " +
@@ -53,8 +47,6 @@ public sealed class ReservationConfiguration : IEntityTypeConfiguration<Reservat
             .HasForeignKey(item => new { item.PublicationId, item.VehicleId, item.BranchId })
             .HasPrincipalKey(item => new { item.Id, item.VehicleId, item.BranchId }).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<PromoCode>().WithMany().HasForeignKey(item => item.PromoId).OnDelete(DeleteBehavior.Restrict);
-        builder.HasOne<AccountUser>().WithMany().HasForeignKey(item => item.ClaimedById).OnDelete(DeleteBehavior.Restrict);
-        builder.HasIndex(item => new { item.ClaimedById, item.ClaimedAt }).HasFilter("\"ClaimedById\" IS NOT NULL");
         builder.Property(item => item.Number).HasMaxLength(15).UseCollation("C");
         builder.HasIndex(item => item.Number).IsUnique();
         builder.HasIndex(item => item.CustomerId).IsUnique().HasFilter("\"IsActive\"");
@@ -107,28 +99,5 @@ public sealed class ReservationConfiguration : IEntityTypeConfiguration<Reservat
         builder.Property(item => item.Kind).HasConversion<string>().HasMaxLength(32);
         builder.Property(item => item.Reason).HasMaxLength(1000);
         builder.Property(item => item.Refund).HasPrecision(18, 2);
-    }
-
-    public void Configure(EntityTypeBuilder<ReservationEvent> builder)
-    {
-        builder.ToTable("ReservationEvents", table =>
-        {
-            table.HasCheckConstraint("CK_ReservationEvents_Shape",
-                "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND isfinite(\"RecordedAtUtc\") AND " +
-                "\"Sequence\" > 0 AND \"Kind\" IN ('Claimed', 'Assigned', 'Reassigned', 'Released') AND " +
-                "((\"Kind\" = 'Claimed' AND \"AgentId\" = \"ActorId\" AND \"PreviousAgentId\" IS NULL) OR " +
-                "(\"Kind\" = 'Assigned' AND \"AgentId\" IS NOT NULL AND \"PreviousAgentId\" IS NULL) OR " +
-                "(\"Kind\" = 'Reassigned' AND \"AgentId\" IS NOT NULL AND \"PreviousAgentId\" IS NOT NULL AND " +
-                "\"AgentId\" <> \"PreviousAgentId\") OR " +
-                "(\"Kind\" = 'Released' AND \"AgentId\" IS NULL AND \"PreviousAgentId\" IS NOT NULL))");
-        });
-        builder.HasKey(item => item.Id);
-        builder.Property(item => item.Id).ValueGeneratedNever();
-        builder.HasIndex(item => new { item.ReservationId, item.Sequence }).IsUnique();
-        builder.Property(item => item.Kind).HasConversion<string>().HasMaxLength(32);
-        builder.HasOne<Reservation>().WithMany().HasForeignKey(item => item.ReservationId).OnDelete(DeleteBehavior.Restrict);
-        builder.HasOne<AccountUser>().WithMany().HasForeignKey(item => item.ActorId).OnDelete(DeleteBehavior.Restrict);
-        builder.HasOne<AccountUser>().WithMany().HasForeignKey(item => item.AgentId).OnDelete(DeleteBehavior.Restrict);
-        builder.HasOne<AccountUser>().WithMany().HasForeignKey(item => item.PreviousAgentId).OnDelete(DeleteBehavior.Restrict);
     }
 }

@@ -262,10 +262,11 @@ public sealed class ListingReadStore(DealershipDbContext database) : IListingRea
         var vin = await database.Vehicles.AsNoTracking().Where(item => item.Id == vehicleId).Select(item => item.Vin)
             .SingleAsync(cancellationToken);
         var hold = await (from reservation in database.Reservations.AsNoTracking()
+                          join sale in database.SalesOrders.AsNoTracking() on reservation.Id equals sale.Id
                           where reservation.VehicleId == vehicleId && reservation.IsActive
                           select new ListingHold(reservation.Buyer.LegalName,
-                              database.Users.Where(user => user.Id == reservation.ClaimedById).Select(user => user.Email).FirstOrDefault(),
-                              reservation.ExpiresAt)).SingleOrDefaultAsync(cancellationToken);
+                              database.Users.Where(user => user.Id == sale.AgentId).Select(user => user.Email).FirstOrDefault(),
+                              sale.DueAt)).SingleOrDefaultAsync(cancellationToken);
         return new(ListingStatus.Succeeded, new(vehicle, draft, approved, publication, withdrawal, currentSigned?.Id, report, vin, hold));
     }
 

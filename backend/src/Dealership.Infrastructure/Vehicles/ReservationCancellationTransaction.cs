@@ -1,4 +1,5 @@
 using Dealership.Application.Vehicles;
+using Dealership.Domain.Sales;
 using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -12,7 +13,8 @@ internal sealed class ReservationCancellationTransaction(DealershipDbContext dat
 {
     public ReservationCancellationContext Context => context;
 
-    public async Task<ReservationStatus> CommitAsync(ReservationRelease? release, CancellationToken cancellationToken)
+    public async Task<ReservationStatus> CommitAsync(ReservationRelease? release, Func<SalesOrderEvent>? close,
+        CancellationToken cancellationToken)
     {
         await transaction.CreateSavepointAsync("reservation_cancellation", cancellationToken);
         if (release is not null)
@@ -23,6 +25,12 @@ internal sealed class ReservationCancellationTransaction(DealershipDbContext dat
         try
         {
             await database.SaveChangesAsync(cancellationToken);
+            if (close is not null)
+            {
+                database.SalesOrderEvents.Add(close());
+                await database.SaveChangesAsync(cancellationToken);
+            }
+
             await transaction.CommitAsync(cancellationToken);
             return ReservationStatus.Succeeded;
         }

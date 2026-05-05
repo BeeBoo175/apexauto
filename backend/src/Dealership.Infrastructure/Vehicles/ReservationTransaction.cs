@@ -1,4 +1,5 @@
 using Dealership.Application.Vehicles;
+using Dealership.Domain.Sales;
 using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Persistence;
 using Dealership.Infrastructure.Mail;
@@ -21,6 +22,10 @@ internal sealed class ReservationTransaction(DealershipDbContext database, IDbCo
             // Inside the savepoint, so a rejected confirmation gives its number back.
             reservation.AssignNumber(await NextNumberAsync(reservation.CreatedAt.Year, cancellationToken));
             database.Reservations.Add(reservation);
+            // Every confirmed hold is a sale from the start, so staff work one record from the first minute.
+            var sale = SalesOrder.Open(reservation, Guid.NewGuid(), out var created);
+            database.SalesOrders.Add(sale);
+            database.SalesOrderEvents.Add(created);
             database.ReservationMailOutbox.Add(new ReservationMail(reservation));
         }
 

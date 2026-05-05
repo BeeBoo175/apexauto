@@ -61,7 +61,9 @@ public static class DependencyInjection
         services.AddScoped<IPurchaseSettingsAdministrationStore, PurchaseSettingsAdministrationStore>();
         services.AddScoped<IPromoAdministrationStore, PromoAdministrationStore>();
         services.AddScoped<IWarrantyAdministrationStore, WarrantyAdministrationStore>();
-        services.AddScoped<Application.Sales.IDealStore, Sales.DealStore>();
+        services.AddScoped<Application.Sales.ISaleCommandStore, Sales.SaleCommandStore>();
+        services.AddScoped<Application.Sales.ISaleReadStore, Sales.SaleReadStore>();
+        services.AddScoped<Application.Sales.ISaleListStore, Sales.SaleListStore>();
         services.AddScoped<IListingReadStore, ListingReadStore>();
         services.AddScoped<IListingHistoryStore, ListingHistoryStore>();
         services.AddScoped<IListingEstimateStore, ListingEstimateStore>();

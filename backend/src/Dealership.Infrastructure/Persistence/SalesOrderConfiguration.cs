@@ -1,9 +1,11 @@
+using System.Text.Json;
 using Dealership.Domain.Branches;
 using Dealership.Domain.Intake;
 using Dealership.Domain.Sales;
 using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Dealership.Infrastructure.Persistence;
@@ -11,18 +13,30 @@ namespace Dealership.Infrastructure.Persistence;
 public sealed class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrder>,
     IEntityTypeConfiguration<SalesOrderEvent>, IEntityTypeConfiguration<DealNumberCounter>
 {
-    public const string OpenStatuses = "'Draft', 'PendingManagerApproval', 'Approved'";
+    public const string HandledStatuses = "'Handling', 'PendingApproval', 'Approved'";
+
+    private const string Statuses = "'Open', 'Handling', 'PendingApproval', 'Approved', 'Expired', 'Cancelled'";
+
+    // Snapshots keep the sale's own member names, which are also its column names, so SQL can record the same shape.
+    private static readonly JsonSerializerOptions SnapshotJson = new();
 
     public void Configure(EntityTypeBuilder<SalesOrder> builder)
     {
         builder.ToTable("SalesOrders", table =>
         {
             table.HasCheckConstraint("CK_SalesOrders_Shape",
-                "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"Version\" > 0 AND " +
-                "\"Status\" IN ('Draft', 'PendingManagerApproval', 'Approved', 'Cancelled') AND " +
-                "isfinite(\"CreatedAtUtc\") AND isfinite(\"UpdatedAtUtc\") AND \"UpdatedAtUtc\" >= \"CreatedAtUtc\" AND " +
-                "((\"OrderNumber\" IS NULL AND \"SubmittedAtUtc\" IS NULL) OR " +
-                "(\"OrderNumber\" ~ '^VPO-[0-9]{4}-[0-9]{6}$' AND \"SubmittedAtUtc\" IS NOT NULL))");
+                $"\"Version\" > 0 AND \"Status\" IN ({Statuses}) AND isfinite(\"CreatedAt\") AND " +
+                "isfinite(\"UpdatedAt\") AND \"UpdatedAt\" >= \"CreatedAt\" AND " +
+                "((\"OrderNumber\" IS NULL AND \"SubmittedAt\" IS NULL) OR " +
+                "(\"OrderNumber\" ~ '^VPO-[0-9]{4}-[0-9]{6}$' AND \"SubmittedAt\" IS NOT NULL))");
+            // An open sale runs against its deadline; a handled one has an agent and paused time; a closed one is dated.
+            table.HasCheckConstraint("CK_SalesOrders_Handling",
+                "(\"Status\" = 'Open' AND \"DueAt\" IS NOT NULL AND \"AgentId\" IS NULL AND \"ClaimedAt\" IS NULL AND " +
+                "\"PausedSeconds\" IS NULL AND \"ClosedAt\" IS NULL) OR " +
+                $"(\"Status\" IN ({HandledStatuses}) AND \"DueAt\" IS NULL AND \"AgentId\" IS NOT NULL AND " +
+                "\"ClaimedAt\" IS NOT NULL AND \"PausedSeconds\" BETWEEN 1 AND 172800 AND \"ClosedAt\" IS NULL) OR " +
+                "(\"Status\" IN ('Expired', 'Cancelled') AND \"AgentId\" IS NULL AND \"ClaimedAt\" IS NULL AND " +
+                "\"PausedSeconds\" IS NULL AND \"ClosedAt\" IS NOT NULL)");
             table.HasCheckConstraint("CK_SalesOrders_Price",
                 "\"BasePrice\" > 0 AND \"RoadTax\" >= 0 AND \"ProcessingFee\" >= 0 AND \"SstRate\" BETWEEN 0 AND 1 AND " +
                 "\"PromoDiscount\" >= 0 AND \"NegotiatedDiscount\" >= 0 AND \"WarrantyPrice\" >= 0 AND " +
@@ -36,28 +50,36 @@ public sealed class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrde
                 "(\"PromoId\" IS NOT NULL AND \"PromoCode\" IS NOT NULL)) AND " +
                 "((\"WarrantyPackageId\" IS NULL AND \"WarrantyName\" IS NULL AND \"WarrantyPrice\" = 0) OR " +
                 "(\"WarrantyPackageId\" IS NOT NULL AND \"WarrantyName\" IS NOT NULL)) AND " +
-                "((\"TradeInAppointmentId\" IS NULL AND \"TradeInAllowance\" = 0) OR \"TradeInAppointmentId\" IS NOT NULL) AND " +
-                "(\"ReservationId\" IS NOT NULL OR \"DepositCredit\" = 0)");
+                "((\"TradeInAppointmentId\" IS NULL AND \"TradeInLabel\" IS NULL AND \"TradeInAllowance\" = 0) OR " +
+                "(\"TradeInAppointmentId\" IS NOT NULL AND \"TradeInLabel\" IS NOT NULL AND \"TradeInAllowance\" > 0))");
             table.HasCheckConstraint("CK_SalesOrders_Approval",
-                "(\"Status\" = 'Draft' AND \"DecidedById\" IS NULL AND \"DiscountLimitAtSubmit\" IS NULL) OR " +
-                "(\"Status\" = 'PendingManagerApproval' AND \"DecidedById\" IS NULL AND " +
-                "\"DiscountLimitAtSubmit\" IS NOT NULL AND \"NegotiatedDiscount\" > \"DiscountLimitAtSubmit\") OR " +
-                "(\"Status\" = 'Approved' AND \"DiscountLimitAtSubmit\" IS NOT NULL AND " +
+                "(\"Status\" = 'PendingApproval' AND \"DiscountLimitAtSubmit\" IS NOT NULL AND \"DecidedById\" IS NULL AND " +
+                "\"NegotiatedDiscount\" > \"DiscountLimitAtSubmit\") OR " +
+                "(\"Status\" = 'Approved' AND \"DiscountLimitAtSubmit\" IS NOT NULL AND \"DecidedAt\" IS NOT NULL AND " +
                 "(\"DecidedById\" IS NOT NULL OR \"NegotiatedDiscount\" <= \"DiscountLimitAtSubmit\") AND " +
-                "\"DecidedById\" IS DISTINCT FROM \"SalesAgentId\") OR \"Status\" = 'Cancelled'");
+                "\"DecidedById\" IS DISTINCT FROM \"AgentId\") OR " +
+                "(\"Status\" IN ('Open', 'Handling') AND \"DiscountLimitAtSubmit\" IS NULL AND \"DecidedById\" IS NULL) OR " +
+                "\"Status\" IN ('Expired', 'Cancelled')");
         });
         builder.HasKey(item => item.Id);
         builder.Property(item => item.Id).ValueGeneratedNever();
+        // The sale shares the reservation's key and must agree with its vehicle, branch and customer.
+        builder.HasOne<Reservation>().WithOne()
+            .HasForeignKey<SalesOrder>(item => new { item.Id, item.VehicleId, item.BranchId, item.CustomerId })
+            .HasPrincipalKey<Reservation>(item => new { item.Id, item.VehicleId, item.BranchId, item.CustomerId })
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.Property(item => item.Status).HasConversion<string>().HasMaxLength(32);
         builder.Property(item => item.OrderNumber).HasMaxLength(20).UseCollation("C");
         builder.HasIndex(item => item.OrderNumber).IsUnique().HasFilter("\"OrderNumber\" IS NOT NULL");
-        // One open deal per vehicle; cancelled deals no longer hold it.
-        builder.HasIndex(item => item.VehicleId).IsUnique().HasFilter($"\"Status\" IN ({OpenStatuses})");
-        builder.HasIndex(item => new { item.BranchId, item.CreatedAtUtc, item.Id });
-        builder.HasIndex(item => new { item.SalesAgentId, item.CreatedAtUtc, item.Id });
-        builder.HasIndex(item => new { item.CustomerId, item.CreatedAtUtc, item.Id });
-        builder.Property(item => item.Status).HasConversion<string>().HasMaxLength(32);
+        builder.HasIndex(item => new { item.BranchId, item.Status, item.DueAt });
+        builder.HasIndex(item => new { item.BranchId, item.Status, item.UpdatedAt });
+        builder.HasIndex(item => new { item.AgentId, item.Status, item.UpdatedAt });
+        // One open sale per trade-in car.
+        builder.HasIndex(item => item.TradeInAppointmentId).IsUnique()
+            .HasFilter($"\"TradeInAppointmentId\" IS NOT NULL AND \"Status\" IN ('Open', {HandledStatuses})");
         builder.Property(item => item.PromoCode).HasMaxLength(PromoCode.CodeMaximumLength).UseCollation("C");
         builder.Property(item => item.WarrantyName).HasMaxLength(WarrantyPackage.NameMaximumLength);
+        builder.Property(item => item.TradeInLabel).HasMaxLength(200);
         builder.Property(item => item.SstRate).HasPrecision(29, 28);
         foreach (var money in new[]
         {
@@ -74,14 +96,15 @@ public sealed class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrde
         builder.HasOne<Vehicle>().WithMany().HasForeignKey(item => item.VehicleId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Branch>().WithMany().HasForeignKey(item => item.BranchId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<AccountUser>().WithMany().HasForeignKey(item => item.CustomerId).OnDelete(DeleteBehavior.Restrict);
-        builder.HasOne<AccountUser>().WithMany().HasForeignKey(item => item.SalesAgentId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<AccountUser>().WithMany().HasForeignKey(item => item.AgentId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<AccountUser>().WithMany().HasForeignKey(item => item.DecidedById).OnDelete(DeleteBehavior.Restrict);
-        builder.HasOne<Reservation>().WithMany().HasForeignKey(item => item.ReservationId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<PromoCode>().WithMany().HasForeignKey(item => item.PromoId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<WarrantyPackage>().WithMany().HasForeignKey(item => item.WarrantyPackageId)
             .OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<IntakeAppointment>().WithMany().HasForeignKey(item => item.TradeInAppointmentId)
             .OnDelete(DeleteBehavior.Restrict);
+        builder.Ignore(item => item.IsHandled);
+        builder.Ignore(item => item.IsClosed);
     }
 
     public void Configure(EntityTypeBuilder<SalesOrderEvent> builder)
@@ -89,29 +112,45 @@ public sealed class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrde
         builder.ToTable("SalesOrderEvents", table =>
         {
             table.HasCheckConstraint("CK_SalesOrderEvents_Shape",
-                "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND isfinite(\"RecordedAtUtc\") AND " +
-                "\"Sequence\" > 0 AND \"Kind\" IN ('Created', 'Revised', 'Submitted', 'Approved', 'Rejected', 'Cancelled', 'Reassigned') AND " +
-                "\"ToStatus\" IN ('Draft', 'PendingManagerApproval', 'Approved', 'Cancelled') AND " +
-                "(\"FromStatus\" IS NULL OR \"FromStatus\" IN ('Draft', 'PendingManagerApproval', 'Approved', 'Cancelled')) AND " +
-                "((\"Kind\" IN ('Rejected', 'Cancelled') AND \"Reason\" IS NOT NULL AND \"Reason\" = btrim(\"Reason\") AND " +
-                "length(\"Reason\") BETWEEN 1 AND 1000 AND \"Reason\" !~ '[[:cntrl:]]') OR " +
-                "(\"Kind\" NOT IN ('Rejected', 'Cancelled') AND \"Reason\" IS NULL)) AND " +
-                "(\"Changes\" IS NULL OR (\"Kind\" = 'Revised' AND jsonb_typeof(\"Changes\") = 'array'))");
+                "isfinite(\"RecordedAt\") AND \"Sequence\" > 0 AND " +
+                "\"Kind\" IN ('Created', 'Claimed', 'Assigned', 'Reassigned', 'Released', 'TermsSaved', 'Submitted', " +
+                "'Approved', 'Rejected', 'Cancelled', 'CustomerCancelled', 'Expired', 'Withdrawn') AND " +
+                $"\"ToStatus\" IN ({Statuses}) AND (\"FromStatus\" IS NULL OR \"FromStatus\" IN ({Statuses})) AND " +
+                "(\"FromStatus\" IS NULL) = (\"Kind\" = 'Created') AND " +
+                "(\"ActorId\" IS NULL) = (\"Kind\" IN ('Expired', 'Withdrawn')) AND " +
+                "((\"Kind\" IN ('Rejected', 'Cancelled', 'Withdrawn') AND \"Reason\" IS NOT NULL AND " +
+                "\"Reason\" = btrim(\"Reason\") AND length(\"Reason\") BETWEEN 1 AND 1000 AND \"Reason\" !~ '[[:cntrl:]]') OR " +
+                "(\"Kind\" NOT IN ('Rejected', 'Cancelled', 'Withdrawn') AND \"Reason\" IS NULL)) AND " +
+                "(\"ReleaseId\" IS NOT NULL) = (\"Kind\" IN ('Cancelled', 'CustomerCancelled', 'Expired', 'Withdrawn')) AND " +
+                "(\"Changes\" IS NULL OR (\"Kind\" IN ('TermsSaved', 'Released') AND jsonb_typeof(\"Changes\") = 'array')) AND " +
+                "jsonb_typeof(\"Snapshot\") = 'object' AND \"Snapshot\" ->> 'Status' = \"ToStatus\" AND " +
+                "(\"Snapshot\" ->> 'Version')::bigint = \"Sequence\"");
         });
         builder.HasKey(item => item.Id);
         builder.Property(item => item.Id).ValueGeneratedNever();
         builder.HasIndex(item => new { item.SalesOrderId, item.Sequence }).IsUnique();
+        builder.HasIndex(item => item.ReleaseId).IsUnique().HasFilter("\"ReleaseId\" IS NOT NULL");
         builder.Property(item => item.Kind).HasConversion<string>().HasMaxLength(32);
         builder.Property(item => item.FromStatus).HasConversion<string>().HasMaxLength(32);
         builder.Property(item => item.ToStatus).HasConversion<string>().HasMaxLength(32);
         builder.Property(item => item.Reason).HasMaxLength(SalesOrderEvent.ReasonMaximumLength);
         builder.Property(item => item.Changes).HasColumnType("jsonb").HasConversion(
-            changes => changes == null ? null : System.Text.Json.JsonSerializer.Serialize(changes, (System.Text.Json.JsonSerializerOptions?)null),
-            json => json == null ? null : System.Text.Json.JsonSerializer.Deserialize<List<DealChange>>(json, (System.Text.Json.JsonSerializerOptions?)null),
-            new Microsoft.EntityFrameworkCore.ChangeTracking.ValueComparer<IReadOnlyList<DealChange>?>(
-                (left, right) => ReferenceEquals(left, right), value => value == null ? 0 : value.Count, value => value));
+            changes => changes == null ? null : JsonSerializer.Serialize(changes, SnapshotJson),
+            json => json == null ? null : JsonSerializer.Deserialize<List<DealChange>>(json, SnapshotJson),
+            new ValueComparer<IReadOnlyList<DealChange>?>((left, right) => ReferenceEquals(left, right),
+                value => value == null ? 0 : value.Count, value => value));
+        builder.Property(item => item.Snapshot).HasColumnType("jsonb").IsRequired().HasConversion(
+            snapshot => JsonSerializer.Serialize(snapshot, SnapshotJson),
+            json => JsonSerializer.Deserialize<DealSnapshot>(json, SnapshotJson)!,
+            new ValueComparer<DealSnapshot>((left, right) => ReferenceEquals(left, right),
+                value => value.GetHashCode(), value => value));
         builder.HasOne<SalesOrder>().WithMany().HasForeignKey(item => item.SalesOrderId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<AccountUser>().WithMany().HasForeignKey(item => item.ActorId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<AccountUser>().WithMany().HasForeignKey(item => item.AgentId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<AccountUser>().WithMany().HasForeignKey(item => item.PreviousAgentId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<ReservationRelease>().WithOne().HasForeignKey<SalesOrderEvent>(item => item.ReleaseId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 
     public void Configure(EntityTypeBuilder<DealNumberCounter> builder)

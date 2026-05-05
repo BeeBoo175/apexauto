@@ -1,4 +1,6 @@
+using Dealership.Application.Sales;
 using Dealership.Application.Vehicles;
+using Dealership.Domain.Sales;
 using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -6,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Dealership.Infrastructure.Development;
 
 public sealed class DevelopmentReservationFixtures(DealershipDbContext database, ReservationService reservations,
-    ReservationCancellationService cancellations)
+    ReservationCancellationService cancellations, SaleTermsService sales)
 {
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> RunAsync(bool seed, CancellationToken cancellationToken)
     {
@@ -73,23 +75,29 @@ public sealed class DevelopmentReservationFixtures(DealershipDbContext database,
                 return new(label, "released; preserved", true);
             }
 
-            var expired = existing.HasExpired(now);
+            var expired = await database.SalesOrders.AnyAsync(item => item.Id == existing.Id &&
+                item.Status == SalesOrderStatus.Open && item.DueAt <= now, cancellationToken);
             return new(label, expired ? "expired; preserved" : state, expired);
         }
 
         if (release is null && seed)
         {
-            var result = await cancellations.CancelAsync(scenario.CancellationActor(customerId.Value), existing.Id,
-                new(scenario.ReleaseId, scenario.Reason), cancellationToken);
-            if (result.Status != ReservationStatus.Succeeded)
+            // Customers cancel online; staff cancel the hold's sale, which records the same refund.
+            var cancelled = scenario.Reason is null
+                ? (await cancellations.CancelAsync(customerId.Value, existing.Id, new(scenario.ReleaseId, null),
+                    cancellationToken)).Status == ReservationStatus.Succeeded
+                : (await sales.CancelAsync(scenario.CancellationActor(customerId.Value), existing.Id,
+                    new(scenario.ReleaseId, 1, scenario.Reason), cancellationToken)).Status == SaleStatus.Succeeded;
+            if (!cancelled)
             {
                 return new(label, "cancellation unavailable; preserved", true);
             }
 
-            release = result.Release;
+            release = await database.ReservationReleases.AsNoTracking()
+                .SingleOrDefaultAsync(item => item.ReservationId == existing.Id, cancellationToken);
         }
 
-        var matches = release is not null && release.Id == scenario.ReleaseId &&
+        var matches = release is not null &&
             release.ActorId == scenario.CancellationActor(customerId.Value) && release.Reason == scenario.Reason &&
             release.Kind == (scenario.Reason is null ? ReservationReleaseKind.CustomerCancelled : ReservationReleaseKind.StaffCancelled);
         return new(label, matches ? state : "release missing/changed; preserved", !matches);

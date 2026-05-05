@@ -1,3 +1,4 @@
+using Dealership.Domain.Sales;
 using System.Data;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -48,7 +49,8 @@ internal static class ReservationReadSnapshot
     {
         var now = await database.Database.SqlQuery<DateTimeOffset>($"SELECT clock_timestamp() AS \"Value\"")
             .SingleAsync(cancellationToken);
-        var due = database.Reservations.Where(item => item.IsActive && item.ClaimedById == null && item.ExpiresAt <= now &&
+        // Only an open sale runs against a deadline; a handled one keeps its paused time however long it takes.
+        var due = database.SalesOrders.Where(item => item.Status == SalesOrderStatus.Open && item.DueAt <= now &&
             vehicleIds.Contains(item.VehicleId));
         // Bound each transaction and retain PostgreSQL UUID lock order across all callers.
         var candidates = await due.OrderBy(item => item.VehicleId).Select(item => item.VehicleId)

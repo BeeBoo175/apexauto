@@ -1,3 +1,4 @@
+using Dealership.Domain.Sales;
 using System.Linq.Expressions;
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Vehicles;
@@ -88,7 +89,8 @@ internal static class ReservationReadRows
                join vehicle in database.Vehicles on reservation.VehicleId equals vehicle.Id
                join refunded in database.ReservationReleases.AsNoTracking() on reservation.Id equals refunded.ReservationId into releases
                from release in releases.DefaultIfEmpty()
-               join agent in database.Users.AsNoTracking() on reservation.ClaimedById equals agent.Id into agents
+               join sold in database.SalesOrders.AsNoTracking() on reservation.Id equals sold.Id
+               join agent in database.Users.AsNoTracking() on sold.AgentId equals agent.Id into agents
                from claimant in agents.DefaultIfEmpty()
                select new Row
                {
@@ -101,6 +103,7 @@ internal static class ReservationReadRows
                    Trim = vehicle.Trim,
                    ManufactureYear = vehicle.ManufactureYear,
                    Release = release,
+                   Sale = sold,
                    ClaimedBy = claimant.Email,
                    CoverPhotoId = (from publication in database.ListingPublications
                                    join photo in database.ListingRevisionPhotos on publication.RevisionId equals photo.RevisionId
@@ -117,8 +120,8 @@ internal static class ReservationReadRows
             // Queue order: open holds by soonest expiry, handled holds by the longest-standing claim.
             return (filter.IsActive, filter.Claimed) switch
             {
-                (true, true) => rows.OrderBy(row => row.Reservation.ClaimedAt).ThenBy(row => row.Reservation.Id),
-                (true, false) => rows.OrderBy(row => row.Reservation.ExpiresAt).ThenBy(row => row.Reservation.Id),
+                (true, true) => rows.OrderBy(row => row.Sale.ClaimedAt).ThenBy(row => row.Reservation.Id),
+                (true, false) => rows.OrderBy(row => row.Sale.DueAt).ThenBy(row => row.Reservation.Id),
                 _ => rows.OrderByDescending(row => row.Reservation.CreatedAt).ThenByDescending(row => row.Reservation.Id)
             };
         }
@@ -134,7 +137,7 @@ internal static class ReservationReadRows
             "created" => OrderBy(rows, row => row.Reservation.CreatedAt, filter.Direction),
             "expires" => OrderBy(rows, row => row.Reservation.ExpiresAt, filter.Direction),
             "agent" => OrderBy(rows, row => row.ClaimedBy, filter.Direction),
-            "claimed" => OrderBy(rows, row => row.Reservation.ClaimedAt, filter.Direction),
+            "claimed" => OrderBy(rows, row => row.Sale.ClaimedAt, filter.Direction),
             "total" => OrderBy(rows, row => row.Reservation.Price.Total, filter.Direction),
             _ => OrderStatus(rows, filter.Direction)
         };
@@ -160,10 +163,10 @@ internal static class ReservationReadRows
         row.Release is null ? null : ReservationRefundReceipt.From(row.Release), staff ? row.RegistrationPlate : null,
         row.CoverPhotoId, staff ? ClaimOf(row) : null, staff ? row.Vin : null);
 
-    private static ReservationClaimView? ClaimOf(Row row) => row.Reservation is
+    private static ReservationClaimView? ClaimOf(Row row) => row.Sale is
     {
-        IsActive: true, ClaimedAt: { } claimedAt, FrozenRemaining: { } remaining
-    } ? new ReservationClaimView(row.ClaimedBy ?? string.Empty, claimedAt, (long)remaining.TotalSeconds) : null;
+        ClaimedAt: { } claimedAt, PausedSeconds: { } remaining
+    } ? new ReservationClaimView(row.ClaimedBy ?? string.Empty, claimedAt, remaining) : null;
 
     private static IOrderedQueryable<Row> OrderReleased(IQueryable<Row> rows, string direction)
     {
@@ -184,6 +187,7 @@ internal static class ReservationReadRows
         public required string Trim { get; init; }
         public int ManufactureYear { get; init; }
         public required ReservationRelease? Release { get; init; }
+        public required SalesOrder Sale { get; init; }
         public string? ClaimedBy { get; init; }
         public Guid? CoverPhotoId { get; init; }
     }

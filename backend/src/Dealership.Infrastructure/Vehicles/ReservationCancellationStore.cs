@@ -19,20 +19,16 @@ public sealed class ReservationCancellationStore(DealershipDbContext database) :
                 $"SELECT * FROM \"AspNetUsers\" WHERE \"Id\" = {actorId} FOR SHARE")
                 .AsNoTracking().SingleOrDefaultAsync(cancellationToken);
             var actor = user is null ? null : new ReservationActor(user.IsActive, user.Role, user.BranchId);
-            if (user is not { IsActive: true } ||
-                user.Role is not (AccountRoles.Customer or AccountRoles.BranchManager or AccountRoles.GeneralManager))
+            if (user is not { IsActive: true, Role: AccountRoles.Customer })
             {
                 return new ReservationCancellationTransaction(database, transaction,
                     new(actor, false, null, null, null, false, default));
             }
 
-            var branchActive = user.Role != AccountRoles.BranchManager || await database.Branches.FromSqlInterpolated(
-                $"SELECT * FROM \"Branches\" WHERE \"Id\" = {user.BranchId} FOR SHARE")
-                .AnyAsync(branch => branch.IsActive, cancellationToken);
+            const bool branchActive = true;
             var reservation = await database.Reservations.AsNoTracking().SingleOrDefaultAsync(item => item.Id == reservationId &&
-                (user.Role != AccountRoles.Customer || item.CustomerId == actorId) &&
-                (user.Role != AccountRoles.BranchManager || item.BranchId == user.BranchId), cancellationToken);
-            if (reservation is null || !branchActive)
+                item.CustomerId == actorId, cancellationToken);
+            if (reservation is null)
             {
                 return new ReservationCancellationTransaction(database, transaction,
                     new(actor, branchActive, null, null, null, false, default));
@@ -50,8 +46,11 @@ public sealed class ReservationCancellationStore(DealershipDbContext database) :
             var isHold = await database.Reservations.AnyAsync(item => item.Id == operationId, cancellationToken);
             var now = await database.Database.SqlQuery<DateTimeOffset>($"SELECT clock_timestamp() AS \"Value\"")
                 .SingleAsync(cancellationToken);
+            var sale = await database.SalesOrders.FromSqlInterpolated(
+                $"SELECT * FROM \"SalesOrders\" WHERE \"Id\" = {reservationId} FOR UPDATE").SingleOrDefaultAsync(cancellationToken);
+            now = sale is not null && now < sale.UpdatedAt ? sale.UpdatedAt : now;
             return new ReservationCancellationTransaction(database, transaction,
-                new(actor, branchActive, reservation, release, existing, isHold, now));
+                new(actor, branchActive, reservation, release, existing, isHold, now) { Sale = sale });
         }
         catch
         {
