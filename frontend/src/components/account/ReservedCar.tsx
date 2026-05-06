@@ -13,6 +13,14 @@ import {
 import { ReservationTerms } from "./ReservationTerms";
 import styles from "./Reservations.module.css";
 
+// What the customer reads first: how the hold ended, or whether our team is already handling it.
+function stateLabel(item: AccountReservation) {
+  if (item.release) {
+    return customerReservationStates[item.release.kind];
+  }
+  return item.isHandled ? "Being handled by our sales team" : "Reserved for you";
+}
+
 export function ReservedCar({
   item,
   disabled,
@@ -43,9 +51,7 @@ export function ReservedCar({
           )}
         </div>
         <div className={styles.summary}>
-          <p className={styles.state}>
-            {item.release ? customerReservationStates[item.release.kind] : "Reserved for you"}
-          </p>
+          <p className={styles.state}>{stateLabel(item)}</p>
           <h3>
             {item.manufactureYear} {item.make} {item.model}
           </h3>
@@ -56,12 +62,16 @@ export function ReservedCar({
             <span>Your reserved total</span>
             <strong>{formatCurrency(item.receipt.price.total)}</strong>
           </div>
-          {item.isActive ? (
+          {item.isActive && item.isHandled && (
+            <p className={styles.help}>Expect a call or email from us to agree your final terms.</p>
+          )}
+          {item.isActive && !item.isHandled && (
             <div className={styles.deadline}>
               <span>Held until (Malaysia)</span>
-              <strong>{formatMalaysianDateTime(item.receipt.expiresAt)}</strong>
+              <strong>{formatMalaysianDateTime(item.dueAt ?? item.receipt.expiresAt)}</strong>
             </div>
-          ) : (
+          )}
+          {!item.isActive && (
             <p className={styles.refund}>
               {formatCurrency(item.release!.refund)} simulated refund recorded
             </p>
@@ -73,7 +83,8 @@ export function ReservedCar({
       </div>
       <div className={styles.reservationActions}>
         <p className={styles.reference}>Reservation {item.receipt.number}</p>
-        {item.isActive && (
+        {/* Once our team handles the sale, changes are agreed with them rather than cancelled online. */}
+        {item.isActive && !item.isHandled && (
           <Button variant="ghost" disabled={disabled} onClick={onCancel}>
             Cancel reservation
           </Button>

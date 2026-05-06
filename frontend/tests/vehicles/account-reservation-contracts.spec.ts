@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import {
   accountReservationPage,
+  parseAccountReservation,
   parseAccountReservations,
 } from "@/lib/vehicles/account-reservations";
 import {
@@ -46,6 +47,8 @@ const item = {
   manufactureYear: 2022,
   coverPhotoId: other,
   isActive: true,
+  isHandled: false,
+  dueAt: null,
   release: null,
 };
 const snapshot = {
@@ -75,6 +78,9 @@ test("customer history accepts no registration and keeps an independent active h
     id,
   );
   const released = { ...item, isActive: false, release: cancellation };
+  // A hold an agent handles stays active; a handled closed hold is a contradiction.
+  expect(parseAccountReservation({ ...item, isHandled: true })?.isHandled).toBe(true);
+  expect(parseAccountReservation({ ...released, isHandled: true })).toBeNull();
   expect(
     parseAccountReservations({ ...snapshot, items: [released], active: null })?.items[0].release
       ?.refund,

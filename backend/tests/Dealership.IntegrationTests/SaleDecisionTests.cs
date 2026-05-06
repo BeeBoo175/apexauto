@@ -59,6 +59,11 @@ public sealed class SaleDecisionTests(IntakePhotoFixture fixture) : IClassFixtur
         var handled = await world.HoldAsync();
         await world.Handling.ClaimAsync(world.Agent, handled.Id, new(Guid.NewGuid(), 1), default);
 
+        // The customer sees that an agent has the hold instead of a countdown.
+        var account = (await world.Services.GetRequiredService<IReservationReadStore>().AccountAsync(handled.CustomerId, 1,
+            default)).History!.Items.Single(item => item.Receipt.Id == handled.Id);
+        Assert.Equal((true, null), (account.IsHandled, account.DueAt));
+
         var cancellations = world.Services.GetRequiredService<ReservationCancellationService>();
         Assert.Equal(ReservationStatus.Conflict, (await cancellations.CancelAsync(handled.CustomerId, handled.Id,
             new(Guid.NewGuid(), null), default)).Status);

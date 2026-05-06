@@ -37,12 +37,12 @@ export default defineConfig({
         "vehicles/photo-contracts.spec.ts",
         "vehicles/publication-contracts.spec.ts",
         "vehicles/withdrawal-contracts.spec.ts",
-        "vehicles/reservation-detail-contracts.spec.ts",
         "vehicles/account-reservation-contracts.spec.ts",
         "vehicles/public-detail-contracts.spec.ts",
         "vehicles/financing-contracts.spec.ts",
         "vehicles/promo-contracts.spec.ts",
         "vehicles/trade-in-contracts.spec.ts",
+        "sales/contracts.spec.ts",
       ],
     },
     ...(browserJourneys

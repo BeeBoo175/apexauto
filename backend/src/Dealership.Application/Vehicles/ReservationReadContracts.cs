@@ -31,7 +31,14 @@ public sealed record ReservationHistoryItem(ReservationReceipt Receipt, string B
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? RegistrationPlate,
     Guid? CoverPhotoId = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] ReservationClaimView? Claim = null,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Vin = null);
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Vin = null)
+{
+    // An agent is handling the hold's sale: the customer is told to expect contact instead of seeing a countdown.
+    public bool IsHandled { get; init; }
+
+    // The sale's running deadline, which a released claim resumes; empty while an agent handles the sale.
+    public DateTimeOffset? DueAt { get; init; }
+}
 
 // Staff view tab totals for the authorized scope, independent of search and column filters.
 public sealed record ReservationCounts(int Active, int History, int Open = 0, int Handled = 0);

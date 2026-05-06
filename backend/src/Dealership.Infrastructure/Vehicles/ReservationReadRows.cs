@@ -161,7 +161,11 @@ internal static class ReservationReadRows
     public static ReservationHistoryItem ToItem(Row row, bool staff) => new(ReservationReceipt.From(row.Reservation), row.BranchName,
         row.Make, row.Model, row.Trim, row.ManufactureYear, row.Reservation.IsActive,
         row.Release is null ? null : ReservationRefundReceipt.From(row.Release), staff ? row.RegistrationPlate : null,
-        row.CoverPhotoId, staff ? ClaimOf(row) : null, staff ? row.Vin : null);
+        row.CoverPhotoId, staff ? ClaimOf(row) : null, staff ? row.Vin : null)
+    {
+        IsHandled = row.Reservation.IsActive && row.Sale.IsHandled,
+        DueAt = row.Reservation.IsActive ? row.Sale.DueAt : null
+    };
 
     private static ReservationClaimView? ClaimOf(Row row) => row.Sale is
     {

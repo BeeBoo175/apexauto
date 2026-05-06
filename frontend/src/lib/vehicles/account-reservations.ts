@@ -32,6 +32,10 @@ export interface AccountReservation {
   coverPhotoId: string | null;
   isActive: boolean;
   release: CustomerReservationRelease | null;
+  // Our sales team is handling the hold, so it shows no countdown and is not cancelled online.
+  isHandled: boolean;
+  // The running deadline, which a released claim resumes; empty while the sale is handled.
+  dueAt: string | null;
 }
 
 export interface AccountReservations extends Page<AccountReservation> {
@@ -78,6 +82,9 @@ export function parseAccountReservation(value: unknown): AccountReservation | nu
     Number(value.manufactureYear) < 1 ||
     (value.coverPhotoId !== null && !isUuid(value.coverPhotoId)) ||
     typeof value.isActive !== "boolean" ||
+    typeof value.isHandled !== "boolean" ||
+    (value.isHandled && !value.isActive) ||
+    (value.dueAt !== null && !timestamp(value.dueAt)) ||
     (value.isActive && value.release !== null) ||
     (!value.isActive && (!release || release.reservationId !== receipt.id)) ||
     (release && Date.parse(release.recordedAt) < Date.parse(receipt.createdAt))
@@ -94,6 +101,8 @@ export function parseAccountReservation(value: unknown): AccountReservation | nu
     coverPhotoId: value.coverPhotoId,
     isActive: value.isActive,
     release,
+    isHandled: value.isHandled,
+    dueAt: value.dueAt,
   };
 }
 
