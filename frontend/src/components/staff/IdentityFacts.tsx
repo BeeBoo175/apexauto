@@ -35,11 +35,14 @@ export function PersonIdentityFacts({
   name,
   mobile,
   email,
+  linked = true,
 }: {
   role: string;
   name: string;
   mobile: string;
   email: string;
+  // Contact opens the phone or mail app; off where the record is read rather than acted on.
+  linked?: boolean;
 }) {
   return (
     <>
@@ -50,24 +53,24 @@ export function PersonIdentityFacts({
       <div>
         <dt>Mobile</dt>
         <dd>
-          {mobile ? (
+          {mobile && linked ? (
             <a className={styles.link} href={`tel:${mobile.replace(/[^\d+]/g, "")}`}>
               {mobile}
             </a>
           ) : (
-            "Not on file"
+            mobile || "Not on file"
           )}
         </dd>
       </div>
       <div>
         <dt>Email</dt>
         <dd>
-          {email ? (
+          {email && linked ? (
             <a className={styles.link} href={`mailto:${email}`}>
               {email}
             </a>
           ) : (
-            "Not on file"
+            email || "Not on file"
           )}
         </dd>
       </div>

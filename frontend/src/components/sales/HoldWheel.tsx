@@ -25,18 +25,18 @@ const wheelNotes: Record<WheelState, string> = {
 
 // The hold's time as a ring and always as text: green, amber under 24 hours, red under 6, teal while an agent has it.
 export function HoldWheel({
-  expiresAtUtc,
-  frozenRemainingSeconds,
+  dueAt,
+  pausedSeconds,
   now,
 }: {
-  expiresAtUtc: string | null;
-  frozenRemainingSeconds: number | null;
+  dueAt: string | null;
+  pausedSeconds: number | null;
   now: number;
 }) {
-  const frozen = frozenRemainingSeconds !== null;
+  const frozen = pausedSeconds !== null;
   const remaining = frozen
-    ? frozenRemainingSeconds
-    : Math.max(0, Math.floor((Date.parse(expiresAtUtc ?? "") - now) / 1000) || 0);
+    ? pausedSeconds
+    : Math.max(0, Math.floor((Date.parse(dueAt ?? "") - now) / 1000) || 0);
   const state = wheelState(frozen, remaining);
   const hours = Math.floor(remaining / 3600);
   const minutes = Math.floor((remaining % 3600) / 60);

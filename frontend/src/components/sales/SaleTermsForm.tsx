@@ -3,34 +3,26 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Input";
-import { useToast } from "@/components/ui/Toast";
-import type { useSettingsSave } from "@/hooks/use-settings-save";
+import type { useSaleEditor } from "@/hooks/use-sale-editor";
 import { privateApiFetch } from "@/lib/api-browser";
 import { formatCurrency } from "@/lib/currency-format";
 import { parseMyr } from "@/lib/currency-input";
-import { dealPath, parseDealOptions, type Deal, type DealOptions } from "@/lib/deals/deals";
-import { SettingsNotice } from "@/components/settings/SettingsNotice";
+import { parseSaleOptions, salePath, type SaleOptions } from "@/lib/sales/sale";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 import forms from "@/components/settings/SettingsForms.module.css";
 
-// Edits the agent controls: negotiated discount, one eligible warranty and one of the customer's trade-ins.
-export function DealTermsForm({
-  base,
-  saver,
+// The terms the handling agent controls: negotiated discount, one eligible warranty and one of the customer's
+// trade-ins. The form starts from the editor's base version and keeps its entries until they are saved.
+export function SaleTermsForm({
+  editor,
   disabled,
-  onSaved,
-  onReload,
-  onDirty,
 }: {
-  base: Deal;
-  saver: ReturnType<typeof useSettingsSave<Deal>>;
+  editor: ReturnType<typeof useSaleEditor>;
   disabled: boolean;
-  onSaved: () => void;
-  onReload: () => void;
-  onDirty: (dirty: boolean) => void;
 }) {
-  const toast = useToast();
-  const [options, setOptions] = useState<DealOptions | null>(null);
+  const base = editor.base.sale;
+  const id = editor.base.id;
+  const [options, setOptions] = useState<SaleOptions | null>(null);
   const [failed, setFailed] = useState(false);
   const [discount, setDiscount] = useState(base.negotiatedDiscount.toFixed(2));
   const [warranty, setWarranty] = useState(base.warrantyPackageId ?? "");
@@ -41,7 +33,7 @@ export function DealTermsForm({
 
   useEffect(() => {
     const attempt = new AbortController();
-    privateApiFetch(`${dealPath(base.id)}/options`, parseDealOptions, { signal: attempt.signal })
+    privateApiFetch(`${salePath(id)}/options`, parseSaleOptions, { signal: attempt.signal })
       .then((result) => {
         if (result.status === 200 && result.data) {
           setOptions(result.data);
@@ -55,7 +47,7 @@ export function DealTermsForm({
         }
       });
     return () => attempt.abort();
-  }, [base.id]);
+  }, [id]);
 
   const negotiated = parseMyr(discount.trim());
   const credit = tradeIn ? parseMyr(allowance.trim()) : 0;
@@ -69,23 +61,19 @@ export function DealTermsForm({
     (warranty || null) !== base.warrantyPackageId ||
     (tradeIn || null) !== base.tradeInAppointmentId ||
     (credit ?? 0) !== base.tradeInAllowance;
-  useEffect(() => onDirty(changed), [changed, onDirty]);
+  const { markDirty } = editor;
+  useEffect(() => markDirty(changed), [changed, markDirty]);
 
-  async function submit() {
+  function submit() {
     if (!valid || negotiated === null || credit === null) {
       return;
     }
-    const saved = await saver.save(dealPath(base.id), "PUT", {
-      expectedVersion: base.version,
+    void editor.run("terms", {
       warrantyPackageId: warranty || null,
       negotiatedDiscount: negotiated,
       tradeInAppointmentId: tradeIn || null,
       tradeInAllowance: tradeIn ? credit : 0,
     });
-    if (saved) {
-      toast.success("Deal terms saved.");
-      onSaved();
-    }
   }
 
   return (
@@ -94,13 +82,15 @@ export function DealTermsForm({
       noValidate
       onSubmit={(event) => {
         event.preventDefault();
-        void submit();
+        submit();
       }}
     >
-      <h3>Edit terms</h3>
+      <div className={workbench.sectionHeader}>
+        <h2 className={workbench.sectionTitle}>Agreed terms</h2>
+      </div>
       {base.status === "Approved" && (
         <p className={workbench.help}>
-          Saving changes sends this approved deal back to draft; it must be submitted again.
+          Saving changes withdraws the approval; the sale must be submitted again.
         </p>
       )}
       <Input
@@ -114,7 +104,7 @@ export function DealTermsForm({
       <p className={negotiated === null ? forms.error : forms.hint}>
         {negotiated === null
           ? "Enter an amount with up to two decimals."
-          : "Above the agent limit, the deal needs a manager's approval."}
+          : "Above the agent limit, the sale needs a manager's approval."}
       </p>
       <Select
         label="Warranty package"
@@ -152,7 +142,7 @@ export function DealTermsForm({
           </option>
         ))}
         {tradeIn && !options?.tradeIns.some((item) => item.appointmentId === tradeIn) && (
-          <option value={tradeIn}>Current trade-in</option>
+          <option value={tradeIn}>{base.tradeInLabel ?? "Current trade-in"}</option>
         )}
       </Select>
       {tradeIn && (
@@ -183,21 +173,13 @@ export function DealTermsForm({
           Warranty and trade-in choices could not be loaded. Reopen to retry.
         </p>
       )}
-      {saver.notice && (
-        <SettingsNotice
-          notice={saver.notice}
-          busy={disabled}
-          conflictMessage="This deal changed elsewhere. Reload it to compare; your entries are kept."
-          reloadLabel="Reload deal"
-          onReload={() => {
-            saver.clearNotice();
-            onReload();
-          }}
-        />
-      )}
       <div>
-        <Button type="submit" size="compact" disabled={disabled || !valid || !changed}>
-          Save terms
+        <Button
+          type="submit"
+          size="compact"
+          disabled={disabled || !valid || (!changed && editor.uncertain !== "terms")}
+        >
+          {editor.uncertain === "terms" ? "Reconcile saved terms" : "Save terms"}
         </Button>
       </div>
     </form>

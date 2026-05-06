@@ -6,17 +6,27 @@ import { Button } from "@/components/ui/Button";
 import type { useSalesQueue } from "@/hooks/use-sales-queue";
 import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDateTime } from "@/lib/date-format";
-import { claimAge, type SalesQueueItem, type SalesView } from "@/lib/sales/sales";
+import {
+  claimAge,
+  queueViewOf,
+  queueViewTabs,
+  saleReference,
+  type QueueView,
+  type SaleSummary,
+} from "@/lib/sales/sales";
 import { HoldWheel } from "./HoldWheel";
 import styles from "@/components/inspection/TechnicianWorkspace.module.css";
 
-const emptyMessages: Record<SalesView, string> = {
-  Handling: "You are not handling any deals. Claim a hold to start one.",
-  Waiting: "No deals are waiting for a manager's approval.",
+const emptyMessages: Record<QueueView | "Search", string> = {
+  Handling: "You are not handling any sales. Claim a hold to start one.",
+  Waiting: "No sales are waiting for a manager's approval.",
+  Approved: "None of your sales are approved yet.",
   ToClaim: "No holds are waiting to be claimed.",
+  Search: "No sales match this search.",
 };
 
-// One tab of the sales queue: the same list the technician workspace uses, with a wheel for open holds.
+// One tab of the agent's queue, or search results across all tabs: the technician workspace's list, with the
+// hold's time on each row and, for search results, the tab the sale sits in.
 export function SalesQueueList({
   view,
   title,
@@ -27,18 +37,17 @@ export function SalesQueueList({
   pendingId = "",
   selectionLocked = false,
 }: {
-  view: SalesView;
+  view: QueueView | "Search";
   title: string;
   state: ReturnType<typeof useSalesQueue>;
   now: number;
-  onOpen: (item: SalesQueueItem) => void;
+  onOpen: (item: SaleSummary) => void;
   selectedId?: string;
   pendingId?: string;
   selectionLocked?: boolean;
 }) {
   const continuation = useRef<HTMLDivElement | null>(null);
   const { snapshot, loadMore, busy, failed } = state;
-  const claim = view === "ToClaim";
   const activeId = pendingId || selectedId;
   const more = Boolean(snapshot && snapshot.items.length < snapshot.total);
   useEffect(() => {
@@ -72,57 +81,51 @@ export function SalesQueueList({
       )}
       {snapshot?.items.length === 0 && <p className={styles.empty}>{emptyMessages[view]}</p>}
       <ul className={styles.jobs}>
-        {snapshot?.items.map((item) => (
-          <li key={item.reservationId}>
-            <Button
-              variant="ghost"
-              size="row"
-              className={styles.job}
-              onClick={() => onOpen(item)}
-              aria-pressed={!claim && item.dealId === activeId}
-              aria-busy={(!claim && item.dealId === pendingId) || undefined}
-              disabled={selectionLocked && (claim || item.dealId !== selectedId)}
-              aria-label={`${claim ? "Claim hold" : "Open deal"} · ${item.registration}`}
-            >
-              <span className={styles.jobHeading}>
-                <span className={styles.identity}>
-                  <strong>{item.registration}</strong>
-                  <span>{item.vehicle}</span>
-                  <span>{item.customer}</span>
+        {snapshot?.items.map((item) => {
+          const open = item.status === "Open";
+          const tab = queueViewOf[item.status];
+          return (
+            <li key={item.id}>
+              <Button
+                variant="ghost"
+                size="row"
+                className={styles.job}
+                onClick={() => onOpen(item)}
+                aria-pressed={!open && item.id === activeId}
+                aria-busy={(!open && item.id === pendingId) || undefined}
+                disabled={selectionLocked && (open || item.id !== selectedId)}
+                aria-label={`${open ? "Claim hold" : "Open sale"} · ${item.registration}`}
+              >
+                <span className={styles.jobHeading}>
+                  <span className={styles.identity}>
+                    <strong>{item.registration}</strong>
+                    <span>
+                      {item.manufactureYear} {item.make} {item.model}
+                    </span>
+                    <span>{item.customer}</span>
+                  </span>
                 </span>
-              </span>
-              <span className={styles.jobState}>
-                {!claim && item.nextStep && (
-                  <Badge variant={view === "Waiting" ? "warning" : "info"}>{item.nextStep}</Badge>
-                )}
-                {claim && (
-                  <HoldWheel
-                    expiresAtUtc={item.expiresAtUtc}
-                    frozenRemainingSeconds={item.frozenRemainingSeconds}
-                    now={now}
-                  />
-                )}
-                {!claim && item.claimedAtUtc && (
-                  <HoldWheel
-                    expiresAtUtc={item.expiresAtUtc}
-                    frozenRemainingSeconds={item.frozenRemainingSeconds}
-                    now={now}
-                  />
-                )}
-                <span className={styles.jobMeta}>
-                  {claim
-                    ? `Reserved ${formatMalaysianDateTime(item.holdCreatedAtUtc)}`
-                    : `Claimed ${claimAge(item.claimedAtUtc, now)}`}
-                  {item.balancePayable !== null && ` · ${formatCurrency(item.balancePayable)}`}
+                <span className={styles.jobState}>
+                  {view === "Search" && tab && <Badge variant="info">{queueViewTabs[tab]}</Badge>}
+                  {(open || item.pausedSeconds !== null) && (
+                    <HoldWheel dueAt={item.dueAt} pausedSeconds={item.pausedSeconds} now={now} />
+                  )}
+                  <span className={styles.jobMeta}>
+                    {saleReference(item)}
+                    {open
+                      ? ` · Expires ${formatMalaysianDateTime(item.dueAt ?? "")}`
+                      : ` · Claimed ${claimAge(item.claimedAt, now)}`}
+                    {!open && ` · ${formatCurrency(item.balancePayable)}`}
+                  </span>
                 </span>
-              </span>
-            </Button>
-          </li>
-        ))}
+              </Button>
+            </li>
+          );
+        })}
       </ul>
       {(failed || more) && (
         <div className={styles.continuation} ref={continuation}>
-          {failed && <p>The queue could not be loaded. Confirmed holds remain shown.</p>}
+          {failed && <p>The queue could not be loaded. Confirmed sales remain shown.</p>}
           <Button
             size="compact"
             variant="secondary"

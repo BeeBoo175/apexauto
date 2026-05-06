@@ -22,7 +22,7 @@ import { ListingEstimateSummary } from "./ListingEstimateSummary";
 import { ListingEditorFooter } from "./ListingEditorFooter";
 import { ListingHistory } from "./ListingHistory";
 import { RetainedListingReview } from "./RetainedListingReview";
-import workshop from "@/components/inspection/Workshop.module.css";
+import workbench from "@/components/staff/StaffWorkspace.module.css";
 import styles from "./ListingEditor.module.css";
 
 type PreviewTarget = "listing" | "card";
@@ -108,7 +108,7 @@ export function ListingEditor({
   }
 
   return (
-    <div className={workshop.workspace}>
+    <div className={workbench.workspace}>
       <LoadingProgress label="Uploading listing photo" active={editor.upload.busy} />
       <LoadingProgress label="Approving publication" active={editor.approval.busy} />
       <LoadingProgress label="Withdrawing publication" active={editor.withdrawal.busy} />

@@ -7,22 +7,22 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { RefreshButton } from "@/components/ui/RefreshButton";
+import { SearchField } from "@/components/ui/SearchField";
 import { useToast } from "@/components/ui/Toast";
+import { useSaleSelection } from "@/hooks/use-sale-selection";
 import { useSalesQueue } from "@/hooks/use-sales-queue";
-import { useStaffSelection } from "@/hooks/use-staff-selection";
-import { privateApiFetch } from "@/lib/api-browser";
 import type { ApiResult } from "@/lib/api";
-import type { CurrentActor } from "@/lib/auth/actor";
-import { dealPath, parseDeal, type Deal } from "@/lib/deals/deals";
+import type { Sale } from "@/lib/sales/sale";
+import type { SaleSection } from "@/lib/sales/sale-sections";
 import {
-  salesViewLabels,
-  salesViewQueries,
-  salesViewTabs,
-  salesViews,
+  queueCountOf,
+  queueViewLabels,
+  queueViewQueries,
+  queueViewTabs,
+  queueViews,
+  type QueueView,
+  type SaleSummary,
   type SalesQueue,
-  type SalesQueueItem,
-  type SalesSection,
-  type SalesView,
 } from "@/lib/sales/sales";
 import { SalesClaim } from "./SalesClaim";
 import { SalesContent } from "./SalesContent";
@@ -30,78 +30,77 @@ import { SalesQueueList } from "./SalesQueueList";
 import styles from "@/components/inspection/TechnicianWorkspace.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 
-const countKeys = { Handling: "handling", Waiting: "waiting", ToClaim: "toClaim" } as const;
-
 export interface SalesWorkspaceProps {
-  actor: CurrentActor;
-  queues: Record<SalesView, ApiResult<SalesQueue>>;
-  initialView: SalesView;
-  selectedDealId: string;
-  selectedDeal: ApiResult<Deal> | null;
-  selectedSection: SalesSection;
+  queues: Record<QueueView, ApiResult<SalesQueue>>;
+  initialView: QueueView;
+  selectedSaleId: string;
+  selectedSale: ApiResult<Sale> | null;
+  selectedSection: SaleSection;
+  selectedVersion: number | null;
 }
 
-// The agent's workspace, laid out as the technician's: queues with counts on the left, the selected deal on the right.
+// The agent's workspace, laid out as the technician's: queues with counts on the left, the selected sale on the right.
 export function SalesWorkspace({
-  actor,
   queues,
   initialView,
-  selectedDealId,
-  selectedDeal,
+  selectedSaleId,
+  selectedSale,
   selectedSection,
+  selectedVersion,
 }: SalesWorkspaceProps) {
   const animateEntry = useContext(StaffPageEntranceContext);
   const toast = useToast();
   const [view, setView] = useState(initialView);
-  const [section, setSection] = useState(selectedSection);
-  const [queueExpanded, setQueueExpanded] = useState(!selectedDealId);
+  const [queueExpanded, setQueueExpanded] = useState(!selectedSaleId);
+  const [headerActions, setHeaderActions] = useState<HTMLDivElement | null>(null);
+  const [draft, setDraft] = useState("");
   // Hold timers are read against this moment, which moves forward each time the queues are refreshed.
   const [now, setNow] = useState(() => Date.now());
   const handling = useSalesQueue("Handling", queues.Handling);
   const waiting = useSalesQueue("Waiting", queues.Waiting);
+  const approved = useSalesQueue("Approved", queues.Approved);
   const claimable = useSalesQueue("ToClaim", queues.ToClaim);
-  const worklists = { Handling: handling, Waiting: waiting, ToClaim: claimable };
-  const selection = useStaffSelection<Deal>(selectedDealId, selectedDeal, {
-    parameter: "deal",
-    path: dealPath,
-    parse: parseDeal,
-    matches: (value, id) => value.id === id,
-    read: privateApiFetch,
-    commitAfterRead: true,
-  });
-  const busy = handling.busy || waiting.busy || claimable.busy;
-  const interactive = handling.ready && waiting.ready && claimable.ready;
+  const found = useSalesQueue("ToClaim", null);
+  const worklists = {
+    Handling: handling,
+    Waiting: waiting,
+    Approved: approved,
+    ToClaim: claimable,
+  };
+  const selection = useSaleSelection(
+    selectedSaleId,
+    selectedSale,
+    selectedSection,
+    selectedVersion,
+  );
+  const busy = queueViews.some((item) => worklists[item].busy) || found.busy;
+  const interactive = queueViews.every((item) => worklists[item].ready);
   const chosen = Boolean(selection.id || selection.pendingId);
+  const searching = Boolean(found.search);
 
   async function refresh() {
     setNow(Date.now());
-    const results = await Promise.all(salesViews.map((item) => worklists[item].refresh(false)));
-    if (results.some((result) => result === false)) {
+    const reads = queueViews.map((item) => worklists[item].refresh(false));
+    if (found.search) {
+      reads.push(found.refresh(false));
+    }
+    if ((await Promise.all(reads)).some((result) => result === false)) {
       toast.error(
         "The sales queues could not all be refreshed. The last confirmed queues remain shown.",
       );
     }
   }
 
-  function showView(value: SalesView) {
+  function showView(value: QueueView) {
     setView(value);
     const url = new URL(window.location.href);
-    url.searchParams.set("view", salesViewQueries[value]);
+    url.searchParams.set("view", queueViewQueries[value]);
     window.history.replaceState(null, "", url);
   }
 
-  function changeSection(next: SalesSection) {
-    setSection(next);
-    const url = new URL(window.location.href);
-    url.searchParams.set("section", next);
-    window.history.replaceState(null, "", url);
-  }
-
-  function open(item: SalesQueueItem) {
-    if (item.dealId) {
-      setQueueExpanded(false);
-      void selection.choose(item.dealId, (url) => url.searchParams.set("section", section));
-    }
+  function open(item: SaleSummary) {
+    setQueueExpanded(false);
+    void selection.choose(item.id);
   }
 
   return (
@@ -109,13 +108,16 @@ export function SalesWorkspace({
       <LoadingProgress label="Loading sales queues" active={busy || selection.busy} />
       <StaffCommandBar
         title="Sales"
+        actionsRef={setHeaderActions}
         actions={
-          <RefreshButton
-            label="Refresh sales"
-            busy={busy}
-            disabled={!interactive || selection.busy}
-            onClick={() => void refresh()}
-          />
+          !selection.result?.data && (
+            <RefreshButton
+              label="Refresh sales"
+              busy={busy}
+              disabled={!interactive || selection.busy}
+              onClick={() => void refresh()}
+            />
+          )
         }
       />
       <div
@@ -126,7 +128,7 @@ export function SalesWorkspace({
         <aside className={styles.queue} aria-label="Sales queues" data-expanded={queueExpanded}>
           {chosen && (
             <div className={styles.mobileQueueBar}>
-              <strong>{salesViewLabels[view]}</strong>
+              <strong>{searching ? "Search results" : queueViewLabels[view]}</strong>
               <Button
                 size="compact"
                 variant="secondary"
@@ -139,73 +141,103 @@ export function SalesWorkspace({
             </div>
           )}
           <div className={styles.queueBody} id="sales-queue-content">
-            <nav className={styles.queueNavigation} aria-label="Sales queue tabs">
-              {salesViews.map((item) => (
+            <form
+              className={styles.search}
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (draft.trim()) {
+                  void found.find(draft);
+                }
+              }}
+            >
+              <SearchField
+                label="Search my sales"
+                placeholder="Search reference, plate, customer, phone or email"
+                value={draft}
+                disabled={false}
+                busy={found.busy}
+                onChange={setDraft}
+                onClear={
+                  searching
+                    ? () => {
+                        setDraft("");
+                        void found.find("");
+                      }
+                    : undefined
+                }
+              />
+            </form>
+            <nav
+              className={styles.queueNavigation}
+              aria-label="Sales queue tabs"
+              hidden={searching}
+            >
+              {queueViews.map((item) => (
                 <Button
                   key={item}
                   size="compact"
                   variant="ghost"
                   className={styles.queueView}
                   aria-pressed={view === item}
-                  title={salesViewLabels[item]}
+                  title={queueViewLabels[item]}
                   onClick={() => showView(item)}
                 >
-                  <span>{salesViewTabs[item]}</span>
+                  <span>{queueViewTabs[item]}</span>
                   {worklists[item].snapshot && (
                     <Badge variant="count" data-selected={view === item}>
-                      {worklists[item].snapshot.counts[countKeys[item]]}
-                      <span className="sr-only"> holds</span>
+                      {worklists[item].snapshot.counts[queueCountOf[item]]}
+                      <span className="sr-only"> sales</span>
                     </Badge>
                   )}
                 </Button>
               ))}
             </nav>
-            {view === "ToClaim" ? (
+            {searching && (
+              <SalesQueueList
+                view="Search"
+                title="Search results"
+                state={found}
+                now={now}
+                onOpen={open}
+                selectedId={selection.id}
+                pendingId={selection.pendingId}
+                selectionLocked={selection.locked}
+              />
+            )}
+            {!searching && view === "ToClaim" && (
               <SalesClaim
                 state={claimable}
                 now={now}
-                selectionLocked={false}
+                selectionLocked={selection.locked}
                 onConflict={() => void refresh()}
-                onClaimed={(deal) => {
+                onClaimed={(saleId) => {
                   setQueueExpanded(false);
                   showView("Handling");
-                  changeSection("customer");
                   void refresh();
-                  void selection.choose(deal.id, (url) =>
-                    url.searchParams.set("section", "customer"),
-                  );
+                  void selection.choose(saleId);
                 }}
               />
-            ) : (
+            )}
+            {!searching && view !== "ToClaim" && (
               <SalesQueueList
                 key={view}
                 view={view}
-                title={salesViewLabels[view]}
+                title={queueViewLabels[view]}
                 state={worklists[view]}
                 now={now}
                 onOpen={open}
                 selectedId={selection.id}
                 pendingId={selection.pendingId}
+                selectionLocked={selection.locked}
               />
             )}
           </div>
         </aside>
         <SalesContent
-          actor={actor}
           selection={selection}
-          section={section}
           now={now}
-          onSection={changeSection}
-          onChanged={async () => {
-            await selection.choose(selection.id);
-            await refresh();
-          }}
-          onReleased={() => {
-            selection.close();
-            showView("ToClaim");
-            setQueueExpanded(true);
-            void refresh();
-          }}
+          actionsContainer={headerActions}
+          onChanged={() => void refresh()}
         />
       </div>
     </div>

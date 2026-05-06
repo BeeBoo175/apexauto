@@ -2,16 +2,19 @@
 
 import { useState } from "react";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
+import { useApiCommand } from "@/hooks/use-api-command";
 import type { useSalesQueue } from "@/hooks/use-sales-queue";
-import { useSettingsSave } from "@/hooks/use-settings-save";
-import { parseDeal, type Deal } from "@/lib/deals/deals";
+import { privateApiFetch } from "@/lib/api-browser";
+import { isRecord } from "@/lib/auth/contracts";
 import { formatMalaysianDateTime } from "@/lib/date-format";
-import { holdsPath, type SalesQueueItem } from "@/lib/sales/sales";
+import { parseSaleReceipt, salePath } from "@/lib/sales/sale";
+import type { SaleSummary } from "@/lib/sales/sales";
 import { HoldWheel } from "./HoldWheel";
 import { SalesQueueList } from "./SalesQueueList";
 import styles from "@/components/inspection/TechnicianWorkspace.module.css";
 
-// Open holds to claim: choosing one asks for confirmation, because claiming starts the deal and pauses the hold's timer.
+// Open holds to claim: choosing one asks for confirmation, because claiming makes the agent its handler and pauses
+// the hold's timer. A lost response replays the same operation rather than claiming twice.
 export function SalesClaim({
   state,
   now,
@@ -22,17 +25,26 @@ export function SalesClaim({
   state: ReturnType<typeof useSalesQueue>;
   now: number;
   selectionLocked: boolean;
-  onClaimed: (deal: Deal) => void;
+  onClaimed: (saleId: string) => void;
   onConflict: () => void;
 }) {
-  const [hold, setHold] = useState<SalesQueueItem | null>(null);
-  // One identity per confirmation lets a lost response be retried without a second deal.
-  const [operation, setOperation] = useState("");
-  const claim = useSettingsSave(parseDeal);
+  const [hold, setHold] = useState<SaleSummary | null>(null);
+  const [notice, setNotice] = useState("");
+  const claim = useApiCommand(
+    hold ? `${salePath(hold.id)}/claims` : "",
+    parseSaleReceipt,
+    (receipt, request) =>
+      isRecord(request) &&
+      receipt.operationId === request.operationId &&
+      receipt.saleId === hold?.id,
+    privateApiFetch,
+  );
 
-  function choose(item: SalesQueueItem) {
-    claim.clearNotice();
-    setOperation(crypto.randomUUID());
+  function choose(item: SaleSummary) {
+    if (claim.uncertain) {
+      return;
+    }
+    setNotice("");
     setHold(item);
   }
 
@@ -40,13 +52,19 @@ export function SalesClaim({
     if (!hold) {
       return;
     }
-    const deal = await claim.save(`${holdsPath(hold.reservationId)}/claims`, "POST", {
-      id: operation,
+    const result = await claim.submit({
+      operationId: crypto.randomUUID(),
+      expectedVersion: hold.version,
     });
-    if (deal) {
+    if (result?.status === 200 && result.data) {
       setHold(null);
-      onClaimed(deal);
-    } else if (claim.notice?.status === 409 || claim.notice?.status === 404) {
+      onClaimed(result.data.saleId);
+      return;
+    }
+    if (result?.status === 409 || result?.status === 404) {
+      setNotice(
+        "Another agent may have claimed this hold, or it is no longer open. The queue was refreshed.",
+      );
       onConflict();
     }
   }
@@ -66,25 +84,23 @@ export function SalesClaim({
       <ConfirmationDialog
         open={Boolean(hold)}
         title={`Claim hold · ${hold?.registration ?? ""}`}
-        confirmLabel="Claim hold"
+        confirmLabel={claim.uncertain ? "Reconcile claim" : "Claim hold"}
         cancelLabel="Not now"
         busy={claim.busy}
+        locked={claim.uncertain}
         onClose={() => setHold(null)}
         onConfirm={confirm}
         facts={
           hold
             ? [
-                { label: "Vehicle", value: hold.vehicle },
+                { label: "Vehicle", value: `${hold.manufactureYear} ${hold.make} ${hold.model}` },
                 { label: "Customer", value: hold.customer },
-                { label: "Reserved", value: formatMalaysianDateTime(hold.holdCreatedAtUtc) },
+                { label: "Reservation", value: hold.reservationNumber },
+                { label: "Expires", value: formatMalaysianDateTime(hold.dueAt ?? "") },
                 {
                   label: "Time left",
                   value: (
-                    <HoldWheel
-                      expiresAtUtc={hold.expiresAtUtc}
-                      frozenRemainingSeconds={hold.frozenRemainingSeconds}
-                      now={now}
-                    />
+                    <HoldWheel dueAt={hold.dueAt} pausedSeconds={hold.pausedSeconds} now={now} />
                   ),
                 },
               ]
@@ -92,16 +108,13 @@ export function SalesClaim({
         }
       >
         <p>
-          Claiming creates a draft deal for this customer and pauses the hold&apos;s timer. You then
+          Claiming makes you the agent for this sale and pauses the hold&apos;s timer. You then
           contact the customer and agree the terms.
         </p>
-        {claim.notice && (
-          <p role="alert">
-            {claim.notice.status === 409 || claim.notice.status === 404
-              ? "Another agent may have claimed this hold, or it is no longer open. The queue was refreshed."
-              : claim.notice.message}
-          </p>
+        {claim.uncertain && (
+          <p role="alert">The claim is unconfirmed. Confirm again to reconcile it.</p>
         )}
+        {notice && <p role="alert">{notice}</p>}
       </ConfirmationDialog>
     </>
   );

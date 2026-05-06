@@ -8,8 +8,8 @@ import type { useInspectionTimeline } from "@/hooks/use-inspection-timeline";
 import { inspectionTimeline } from "@/lib/inspection/timeline";
 import type { EditorSnapshot } from "@/lib/inspection/editor-snapshot";
 import type { RepairSelection } from "@/lib/inspection/query";
-import { formatMalaysianDateTime } from "@/lib/date-format";
 import styles from "@/components/staff/StaffHistory.module.css";
+import { StaffTimeline, StaffTimelineEvent } from "@/components/staff/StaffTimeline";
 import { StaffHistoryProgress } from "@/components/staff/StaffHistoryProgress";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 import { InspectionRepairLink } from "./InspectionHistory";
@@ -59,24 +59,22 @@ export function InspectionTimeline({
         <h2 className={workbench.sectionTitle}>Record history</h2>
       </div>
       {revisions.history?.totalCount === 0 && <p>No signed inspections yet.</p>}
-      <ol ref={rail} className={styles.timeline}>
+      <StaffTimeline listRef={rail}>
         {events.map((event) => {
           const signed = event.kind === "inspection";
           const current = event.revision === snapshot.draft.revision;
           const expanded = previousRevision === event.revision;
           return (
-            <li
+            <StaffTimelineEvent
               key={`${event.kind}:${event.id}`}
+              title={event.title}
+              at={event.at}
+              context={event.context}
               data-repair-revision={
                 signed || event.kind === "reopening" ? undefined : event.revision
               }
               tabIndex={-1}
             >
-              <div className={styles.eventHeading}>
-                <h3>{event.title}</h3>
-                <time dateTime={event.at}>{formatMalaysianDateTime(event.at)}</time>
-              </div>
-              <span className={styles.context}>{event.context}</span>
               {event.detail && (
                 <p className={event.kind === "request" ? styles.workSummary : undefined}>
                   {event.detail}
@@ -121,10 +119,10 @@ export function InspectionTimeline({
               {signed && !current && expanded && (
                 <StaffHistoryProgress read={previous} label="Repair requests" disabled={disabled} />
               )}
-            </li>
+            </StaffTimelineEvent>
           );
         })}
-      </ol>
+      </StaffTimeline>
       <StaffHistoryProgress read={revisions} label="Signed inspections" disabled={disabled} />
       {snapshot.draft.isSigned && (
         <StaffHistoryProgress read={repairs} label="Repair requests" disabled={disabled} />

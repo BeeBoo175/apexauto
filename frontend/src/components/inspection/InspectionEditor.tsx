@@ -125,7 +125,7 @@ export function InspectionEditor({
         !(historical && section === "repairs") &&
         createPortal(<RefreshButton {...refresh} />, actionsContainer)}
       <div
-        className={workshop.workspace}
+        className={workbench.workspace}
         data-scroll-with-host={scrollWithHost || undefined}
         inert={!editor.ready}
       >
@@ -154,7 +154,7 @@ export function InspectionEditor({
               disabled={editor.operating}
               onChange={onSection}
             />
-            <div className={workshop.body} data-section={section}>
+            <div className={`${workbench.body} ${workshop.sectionBody}`} data-section={section}>
               <InspectionChecklist
                 draft={base}
                 report={snapshot.report}
