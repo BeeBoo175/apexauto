@@ -1,3 +1,4 @@
+using Dealership.Domain.Sales;
 using Dealership.Application.Sales;
 using Dealership.Infrastructure.Sales;
 using System.Text.Json;
@@ -35,6 +36,12 @@ internal static class DevelopmentReservationFixtureAssertions
         Assert.Equal(204, await database.ReservationReleases.CountAsync());
         Assert.Equal(207, await database.ReservationMailOutbox.CountAsync());
         Assert.Equal(3, await database.Reservations.CountAsync(item => item.IsActive));
+        // The demo sales work the branches' open holds, which stay active while they are handled.
+        foreach (var sale in DevelopmentSaleScenarios.All)
+        {
+            Assert.Equal(sale.Target, await database.SalesOrders.Where(item => item.Id == sale.ReservationId)
+                .Select(item => item.Status).SingleAsync());
+        }
         var retained = await database.Reservations.AsNoTracking().SingleAsync(item => item.Id == interrupted.Id);
         Assert.Equal(ReservationReceipt.From(interrupted), ReservationReceipt.From(retained));
         Assert.False(retained.IsActive);
@@ -120,7 +127,9 @@ internal static class DevelopmentReservationFixtureAssertions
         await using var scope = provider.CreateAsyncScope();
         var services = scope.ServiceProvider;
         var database = services.GetRequiredService<DealershipDbContext>();
-        var active = await database.Reservations.AsNoTracking().FirstAsync(item => item.IsActive);
+        // Customers cancel online only while nobody handles the sale, so an open hold is chosen.
+        var active = await database.Reservations.AsNoTracking().FirstAsync(item => item.IsActive &&
+            database.SalesOrders.Any(sale => sale.Id == item.Id && sale.Status == SalesOrderStatus.Open));
         var request = new ReservationCancellationRequest(Guid.NewGuid(), null);
         var cancelled = await services.GetRequiredService<ReservationCancellationService>()
             .CancelAsync(active.CustomerId, active.Id, request, CancellationToken.None);
@@ -146,6 +155,8 @@ internal static class DevelopmentReservationFixtureAssertions
         await using var clock = new ReservationTestClock(fixture);
         var expiresAt = await clock.Maintenance.Reservations.Where(item => item.IsActive).MaxAsync(item => item.ExpiresAt);
         await clock.InitializeAsync(expiresAt);
+        // Holds an agent handles keep their paused time, so only the open ones expire at the original deadline.
+        var open = await clock.Maintenance.SalesOrders.CountAsync(item => item.Status == SalesOrderStatus.Open);
         await using var database = clock.CreateContext();
         var mail = services.GetRequiredService<MailDeliverySignal>();
         var expiry = services.GetRequiredService<ReservationExpirySignal>();
@@ -157,7 +168,7 @@ internal static class DevelopmentReservationFixtureAssertions
         foreach (var seed in new[] { false, true })
         {
             var reports = await fixtures.RunAsync(seed, CancellationToken.None);
-            Assert.Equal(2, reports.Count(item => item.State == "expired; preserved" && item.RequiresAttention));
+            Assert.Equal(open, reports.Count(item => item.State == "expired; preserved" && item.RequiresAttention));
             Assert.Equal(before, await SnapshotAsync(database));
         }
     }

@@ -46,6 +46,10 @@ function footerNote(sale: Sale, dirty: boolean) {
   if (sale.actions.decide) {
     return "Approve the submitted terms, or return them to the agent with a reason.";
   }
+  // Someone other than the handling agent reads the sale: say who has it rather than what to key.
+  if (sale.sale.status === "Handling" && !sale.actions.saveTerms) {
+    return `Being handled by ${sale.agent ?? "an agent"}.`;
+  }
   const notes: Record<Sale["sale"]["status"], string> = {
     Open: "Reserved online and waiting for an agent.",
     Handling: "Key the terms agreed with the customer, then submit.",
