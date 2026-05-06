@@ -1,6 +1,6 @@
-import { relaySalesRead } from "@/lib/sales/sales-routes";
+import { queueKeys, relaySaleRead } from "@/lib/sales/sale-routes";
 import { parseSalesQueue } from "@/lib/sales/sales";
 
 export function GET(request: Request) {
-  return relaySalesRead(request, "/sales/queue", parseSalesQueue, ["view", "page", "pageSize"]);
+  return relaySaleRead(request, "/queue", parseSalesQueue, queueKeys);
 }

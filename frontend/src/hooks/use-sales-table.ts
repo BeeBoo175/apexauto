@@ -4,17 +4,26 @@ import { useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { privateApiFetch } from "@/lib/api-browser";
 import type { ApiResult } from "@/lib/api";
-import { dealQuery, parseDealPage, type DealFilters } from "@/lib/deals/deals";
+import {
+  parseSalesTable,
+  salesTablePath,
+  tableQuery,
+  type SalesTableFilters,
+  type SalesTablePage,
+} from "@/lib/sales/sales";
 
-export type DealPageData = NonNullable<ReturnType<typeof parseDealPage>>;
-
-export function useDealsTable(
-  initial: ApiResult<DealPageData>,
-  filters: DealFilters,
+// The managers' Sales table: one bounded read per view, filter, sort or page, keeping the last confirmed rows.
+export function useSalesTable(
+  initial: ApiResult<SalesTablePage>,
+  filters: SalesTableFilters,
   page: number,
 ) {
   const [snapshot, setSnapshot] = useState(initial.data);
-  const [active, setActive] = useState({ filters, page });
+  // The server names the view it chose when the address left it open, so later reads stay on that tab.
+  const [active, setActive] = useState({
+    filters: { ...filters, view: initial.data?.view ?? filters.view },
+    page,
+  });
   const [busy, setBusy] = useState(false);
   const [ready, setReady] = useState(false);
   const [revision, setRevision] = useState(0);
@@ -29,7 +38,6 @@ export function useDealsTable(
     };
   }, []);
 
-  // A failed read keeps the last confirmed rows, filters and sort on screen.
   async function load(nextFilters = active.filters, nextPage = active.page) {
     if (controller.current) {
       return false;
@@ -39,8 +47,8 @@ export function useDealsTable(
     setBusy(true);
     try {
       const result = await privateApiFetch(
-        `/api/staff/deals?${dealQuery(nextFilters, nextPage)}`,
-        parseDealPage,
+        `${salesTablePath}?${tableQuery(nextFilters, nextPage)}`,
+        parseSalesTable,
         { signal: attempt.signal },
       );
       if (attempt.signal.aborted || controller.current !== attempt) {
@@ -53,23 +61,28 @@ export function useDealsTable(
         data.page !== nextPage ||
         data.pageSize !== nextFilters.pageSize
       ) {
-        throw new Error("Deals unavailable");
+        throw new Error("Sales unavailable");
       }
+      const confirmed = { ...nextFilters, view: data.view };
       setSnapshot(data);
-      setActive({ filters: nextFilters, page: nextPage });
+      setActive({ filters: confirmed, page: nextPage });
       setRevision((value) => value + 1);
       const url = new URL(window.location.href);
-      const selected = url.searchParams.get("deal");
-      url.search = dealQuery(nextFilters, nextPage);
-      if (selected) {
-        url.searchParams.set("deal", selected);
+      const kept = ["sale", "section", "version"].map(
+        (name) => [name, url.searchParams.get(name)] as const,
+      );
+      url.search = tableQuery(confirmed, nextPage);
+      for (const [name, value] of kept) {
+        if (value) {
+          url.searchParams.set(name, value);
+        }
       }
       window.history.replaceState(null, "", url);
       return true;
     } catch {
       if (!attempt.signal.aborted) {
         toast.error(
-          "Deals could not be refreshed. The last confirmed rows and filters remain shown.",
+          "Sales could not be refreshed. The last confirmed rows and filters remain shown.",
         );
       }
       return false;
