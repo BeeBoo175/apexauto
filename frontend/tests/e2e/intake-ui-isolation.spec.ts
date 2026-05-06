@@ -157,7 +157,7 @@ for (const navigation of [false, true]) {
       for (const endpoint of [
         "/api/staff/intake/appointments",
         "/api/staff/listings",
-        "/api/staff/reservations",
+        "/api/staff/sales",
         "/api/staff/inspection/workshop",
       ]) {
         const denied = await context.request.get(endpoint);

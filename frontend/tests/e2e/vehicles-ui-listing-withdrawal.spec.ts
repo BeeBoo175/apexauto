@@ -341,18 +341,19 @@ test("manager withdraws an exact publication with retained drafts, receipts, ref
 
   const cookie = (await context.cookies()).find((entry) => entry.name === "apexauto_token")!;
   const backendHeaders = { Authorization: `Bearer ${cookie.value}` };
-  const historyPath = `${process.env.API_BASE_URL}/api/staff/reservations?branchId=${branch}`;
-  const holds = await (
-    await context.request.get(`${historyPath}&isActive=true`, { headers: backendHeaders })
+  const listingsPath = `${process.env.API_BASE_URL}/api/staff/listings?branchId=${branch}&pageSize=50`;
+  const listings = await (
+    await context.request.get(listingsPath, { headers: backendHeaders })
   ).json();
-  const hold = holds.items[0];
-  expect(hold.isActive).toBe(true);
-  const heldEndpoint = `/api/staff/listings/${hold.receipt.vehicleId}`;
+  const hold = (listings.items as { vehicleId: string; isReserved: boolean }[]).find(
+    (item) => item.isReserved,
+  )!;
+  const heldEndpoint = `/api/staff/listings/${hold.vehicleId}`;
   const held = (
     await (await context.request.get(heldEndpoint, { headers: await headers(context) })).json()
   ).data;
   await page.goto(
-    `/dashboard/management?branchId=${branch}&listing=${hold.receipt.vehicleId}&section=publication`,
+    `/dashboard/management?branchId=${branch}&listing=${hold.vehicleId}&section=publication`,
   );
   const heldDialog = page.getByRole("dialog", {
     name: held.vehicle.registrationPlate,
@@ -373,16 +374,17 @@ test("manager withdraws an exact publication with retained drafts, receipts, ref
   await expect(
     heldDialog.getByRole("button", { name: "Reconcile listing withdrawal", exact: true }),
   ).toBeEnabled();
-  const released = await (
-    await context.request.get(`${historyPath}&isActive=false`, { headers: backendHeaders })
+  // Withdrawing a held car cancels its sale, which moves to the managers' sales history.
+  const registration = encodeURIComponent(held.vehicle.registrationPlate);
+  const closed = await (
+    await context.request.get(
+      `${process.env.API_BASE_URL}/api/staff/sales?view=History&search=${registration}&pageSize=50`,
+      { headers: backendHeaders },
+    )
   ).json();
-  const refund = released.items.find(
-    (row: { receipt: { id: string } }) => row.receipt.id === hold.receipt.id,
+  expect(closed.items).toContainEqual(
+    expect.objectContaining({ registration: held.vehicle.registrationPlate, status: "Cancelled" }),
   );
-  expect(refund).toMatchObject({
-    isActive: false,
-    release: { refund: 500, kind: "Withdrawn" },
-  });
   const sales = await browser.newContext({
     ...info.project.use,
     baseURL: process.env.APP_BASE_URL,
@@ -412,7 +414,7 @@ test("manager withdraws an exact publication with retained drafts, receipts, ref
       publication: target.publication.id,
       withdrawal: persisted.withdrawal,
       republicationAttempts,
-      refund: refund.release,
+      cancelledSale: held.vehicle.registrationPlate,
       role: mobile ? "BranchManager" : "GeneralManager",
     }),
   );

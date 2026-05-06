@@ -24,14 +24,12 @@ export function SalePastVersion({
   version,
   section,
   context,
-  now,
   onBack,
 }: {
   saleId: string;
   version: number;
   section: SaleSection;
   context: SaleContext;
-  now: number;
   onBack: () => void;
 }) {
   const review = useSaleVersion(saleId, version);
@@ -63,13 +61,14 @@ export function SalePastVersion({
           </Button>
         </div>
       )}
+      {/* Hold time and claim age are read as they stood when this version was recorded. */}
       {result && section === "customer" && (
         <SaleFacts
           sale={result.snapshot}
           context={context}
           agent={result.agent}
           decidedBy={null}
-          now={now}
+          now={Date.parse(result.recordedAt)}
           previous={result.previous}
         />
       )}

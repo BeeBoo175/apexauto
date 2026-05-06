@@ -131,7 +131,6 @@ public sealed class ReservationListingTests(IntakePhotoFixture fixture) : IClass
         await using var final = clock.CreateContext();
         Assert.All(await final.Vehicles.ToArrayAsync(), vehicle => Assert.Equal(VehicleStatus.Available, vehicle.Status));
         await ReservationExpiryAssertions.RunAsync(clock, services, data.OwnerId, records);
-        await ReservationStaffReadAssertions.VerifyAsync(clock, manager, outsider, records);
     }
 
     private async Task AssertUnavailableAsync(ReservationTestClock clock, Guid manager, Guid vehicleId)

@@ -146,7 +146,6 @@ export function SaleEditor({
               version={selection.version}
               section={section}
               context={snapshot.context}
-              now={now}
               onBack={() => selection.openVersion(null)}
             />
           )}

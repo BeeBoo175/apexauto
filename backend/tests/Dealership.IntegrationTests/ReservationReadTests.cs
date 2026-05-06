@@ -29,10 +29,6 @@ public sealed class ReservationReadTests(IntakePhotoFixture fixture) : IClassFix
         await using var database = NewContext();
         await database.Branches.Where(item => item.Id == data.BranchId)
             .ExecuteUpdateAsync(update => update.SetProperty(item => item.Name, "ApexAuto Petaling Jaya"));
-        using var otherData = await CheckInTestData.CreateAsync(fixture);
-        var otherManager = await ProvisionAsync(services, otherData.BranchId, AccountRoles.BranchManager);
-        var otherTechnician = await ProvisionAsync(services, otherData.BranchId, AccountRoles.WorkshopTechnician);
-        var otherListing = await CreateListingAsync(otherData, services, otherManager, otherTechnician, 1);
         database.PurchaseSettings.Add(new(500m, 0.08m, manager, DateTimeOffset.UtcNow));
         await database.SaveChangesAsync();
         var outsider = await RegisterCustomerAsync(services, database);
@@ -51,23 +47,11 @@ public sealed class ReservationReadTests(IntakePhotoFixture fixture) : IClassFix
             }
         }
 
-        var outside = await HoldAsync(clock, otherData.OwnerId, otherListing.Publication);
-        var details = new ReservationReadStore(database);
-        var detail = await details.DetailAsync(manager, active!.Id, CancellationToken.None);
-        Assert.Equal(ReservationStatus.Succeeded, detail.Status);
-        Assert.Equal(ReservationReceipt.From(active), detail.Item!.Receipt);
-        Assert.Null(detail.Item.Release);
-        Assert.Equal(new CurrentActor(manager, AccountRoles.BranchManager, data.BranchId), detail.Actor);
-        Assert.Equal(ReservationStatus.NotFound,
-            (await details.DetailAsync(manager, outside.Id, CancellationToken.None)).Status);
-        Assert.Equal(ReservationStatus.NotFound,
-            (await details.DetailAsync(manager, Guid.NewGuid(), CancellationToken.None)).Status);
-        Assert.Equal(ReservationStatus.Invalid,
-            (await details.DetailAsync(manager, Guid.Empty, CancellationToken.None)).Status);
-        foreach (var denied in new[] { data.OwnerId, data.StaffId, technician, Guid.NewGuid() })
+        var reads = new ReservationReadStore(database);
+        foreach (var denied in new[] { manager, data.StaffId, technician, Guid.NewGuid() })
         {
             Assert.Equal(ReservationStatus.Forbidden,
-                (await details.DetailAsync(denied, active.Id, CancellationToken.None)).Status);
+                (await reads.AccountAsync(denied, 1, CancellationToken.None)).Status);
         }
         var expected = await database.Reservations.Where(item => item.CustomerId == data.OwnerId)
             .OrderByDescending(item => item.CreatedAt).ThenByDescending(item => item.Id).Select(item => item.Id).ToArrayAsync();
@@ -78,12 +62,12 @@ public sealed class ReservationReadTests(IntakePhotoFixture fixture) : IClassFix
         using var factory = fixture.CreateFactory();
         using var client = factory.CreateClient();
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/account/reservations")).StatusCode);
-        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync($"/api/staff/reservations/{active.Id}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/api/staff/reservations")).StatusCode);
         await LoginAsync(client, data.CustomerEmail);
         var actual = new List<Guid>();
         for (var page = 1; page <= 3; page++)
         {
-            var response = await client.GetAsync($"/api/account/reservations?page={page}&pageSize=50&isActive=false&customerId={otherData.OwnerId}");
+            var response = await client.GetAsync($"/api/account/reservations?page={page}&pageSize=50&isActive=false&customerId={outsider}");
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.True(response.Headers.CacheControl?.NoStore);
             Assert.DoesNotContain("registrationPlate", await response.Content.ReadAsStringAsync());
@@ -104,32 +88,10 @@ public sealed class ReservationReadTests(IntakePhotoFixture fixture) : IClassFix
         Assert.Empty(beyond.Items);
         Assert.Equal(active!.Id, beyond.Active!.Receipt.Id);
         Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/api/account/reservations?page=0")).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/staff/reservations")).StatusCode);
         await LoginAsync(client, (await database.Users.Where(item => item.Id == outsider).Select(item => item.Email).SingleAsync())!);
         Assert.Equal(0, (await client.GetFromJsonAsync<ReservationHistoryPage>("/api/account/reservations"))!.Total);
         await LoginAsync(client, data.StaffEmail);
         Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/account/reservations")).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/staff/reservations")).StatusCode);
-        await LoginAsync(client, (await database.Users.Where(item => item.Id == manager).Select(item => item.Email).SingleAsync())!);
-        using var detailResponse = await client.GetAsync($"/api/staff/reservations/{active.Id}");
-        Assert.Equal(HttpStatusCode.OK, detailResponse.StatusCode);
-        Assert.True(detailResponse.Headers.CacheControl?.NoStore);
-        Assert.Equal(detail, await detailResponse.Content.ReadFromJsonAsync<ReservationDetailResult>());
-        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/staff/reservations/{outside.Id}")).StatusCode);
-        await AssertFilteredPagesAsync(client, expected, active.Id);
-        var registration = Uri.EscapeDataString(detail.Item.RegistrationPlate!);
-        var columnHistory = await client.GetFromJsonAsync<ReservationHistoryPage>(
-            $"/api/staff/reservations?registration={registration}&vehicle=2020&buyer=Nur&status=CustomerCancelled&minimumTotal={active.Price.Total.ToString(System.Globalization.CultureInfo.InvariantCulture)}&pageSize=50");
-        Assert.Equal(50, columnHistory!.Total);
-        Assert.All(columnHistory.Items, item =>
-        {
-            Assert.Equal(detail.Item.RegistrationPlate, item.RegistrationPlate);
-            Assert.Equal("CustomerCancelled", item.Release!.Kind);
-        });
-        Assert.Empty((await client.GetFromJsonAsync<ReservationHistoryPage>(
-            "/api/staff/reservations?registration=%25"))!.Items);
-        await ReservationSortingAssertions.VerifyHttpAsync(client, expected);
-        await AssertManagerScopeAsync(client, database, manager, data.BranchId, otherData.BranchId);
         await AssertSnapshotAndRetryAsync(clock, data.OwnerId, active!, Array.IndexOf(expected, active!.Id) / 25 + 1);
 
         await clock.AdvanceAsync(now.AddSeconds(1));
@@ -142,29 +104,13 @@ public sealed class ReservationReadTests(IntakePhotoFixture fixture) : IClassFix
             Assert.False(await before.ReservationReleases.AnyAsync(item => item.ReservationId == final.Id));
         }
 
+        // Concurrent reads at the deadline reconcile the hold once, and a restarted read sees the same refund.
         await clock.AdvanceAsync(final.ExpiresAt);
-        await using (var exactRead = clock.CreateContext())
-        {
-            Assert.Equal(ReservationStatus.NotFound,
-                (await new ReservationReadStore(exactRead).DetailAsync(otherManager, final.Id, CancellationToken.None)).Status);
-            Assert.False(await exactRead.ReservationReleases.AnyAsync(item => item.ReservationId == final.Id));
-        }
         await using var firstRead = clock.CreateContext();
         await using var secondRead = clock.CreateContext();
-        await using var detailRead = clock.CreateContext();
-        var concurrentRead = Task.WhenAll(
+        var concurrent = await Task.WhenAll(
             new ReservationReadStore(firstRead).AccountAsync(data.OwnerId, 1, CancellationToken.None),
-            new ReservationReadStore(secondRead).StaffAsync(manager, new(), CancellationToken.None));
-        var exactTask = new ReservationReadStore(detailRead).DetailAsync(manager, final.Id, CancellationToken.None);
-        var concurrent = await concurrentRead;
-        var exact = await exactTask;
-        Assert.Equal(ReservationStatus.Succeeded, exact.Status);
-        Assert.False(exact.Item!.IsActive);
-        Assert.Equal("Expired", exact.Item.Release!.Kind);
-        Assert.Equal(500m, exact.Item.Release.Refund);
-        Assert.Equal(final.ExpiresAt, exact.Item.Release.RecordedAt);
-        Assert.Equal(ReservationReceipt.From(final), exact.Item.Receipt);
-        Assert.Equal(exact, await new ReservationReadStore(detailRead).DetailAsync(manager, final.Id, CancellationToken.None));
+            new ReservationReadStore(secondRead).AccountAsync(data.OwnerId, 1, CancellationToken.None));
         Assert.All(concurrent, result => Assert.Equal(ReservationStatus.Succeeded, result.Status));
         var expired = Assert.Single(concurrent[0].History!.Items, item => item.Receipt.Id == final.Id);
         Assert.False(expired.IsActive);
@@ -172,116 +118,13 @@ public sealed class ReservationReadTests(IntakePhotoFixture fixture) : IClassFix
         Assert.Equal(500m, expired.Release.Refund);
         Assert.Equal(final.ExpiresAt, expired.Release.RecordedAt);
         Assert.Equal(ReservationReceipt.From(final), expired.Receipt);
+        Assert.Equal(expired, Assert.Single(concurrent[1].History!.Items, item => item.Receipt.Id == final.Id));
         Assert.Equal(1, await database.ReservationReleases.CountAsync(item => item.ReservationId == final.Id));
-        await using var outsideRead = clock.CreateContext();
-        var outsideHistory = (await new ReservationReadStore(outsideRead).StaffAsync(manager,
-            new(otherData.BranchId), CancellationToken.None)).History!;
-        Assert.False(Assert.Single(outsideHistory.Items).IsActive);
-        Assert.Equal(1, await database.ReservationReleases.CountAsync(item => item.ReservationId == outside.Id));
         Assert.Null(concurrent[0].History!.Active);
         await using var restarted = clock.CreateContext();
         var again = (await new ReservationReadStore(restarted).AccountAsync(data.OwnerId, 1, CancellationToken.None)).History!;
         Assert.Equal(expired, Assert.Single(again.Items, item => item.Receipt.Id == final.Id));
         Assert.All(await database.Vehicles.ToArrayAsync(), vehicle => Assert.Equal(VehicleStatus.Available, vehicle.Status));
-
-        var filteredHold = await HoldAsync(clock, data.OwnerId, listing.Publication);
-        await clock.AdvanceAsync(filteredHold.ExpiresAt);
-        await using (var filtered = clock.CreateContext())
-        {
-            var otherScope = await new ReservationReadStore(filtered).StaffAsync(manager,
-                new(otherData.BranchId, IsActive: false), CancellationToken.None);
-            Assert.Equal(ReservationStatus.Succeeded, otherScope.Status);
-            Assert.Single(otherScope.History!.Items);
-            Assert.False(await filtered.ReservationReleases.AnyAsync(item => item.ReservationId == filteredHold.Id));
-            // Even an empty requested page must reconcile the complete selected scope first.
-            var history = await new ReservationReadStore(filtered).StaffAsync(manager,
-                new(data.BranchId, Page: int.MaxValue, IsActive: false), CancellationToken.None);
-            Assert.Equal(53, history.History!.Total);
-            Assert.Empty(history.History.Items);
-            var holds = await new ReservationReadStore(filtered).StaffAsync(manager,
-                new(data.BranchId, IsActive: true), CancellationToken.None);
-            Assert.Equal(0, holds.History!.Total);
-            Assert.Empty(holds.History.Items);
-        }
-    }
-
-    private static async Task AssertFilteredPagesAsync(HttpClient client, Guid[] expected, Guid activeId)
-    {
-        var active = (await client.GetFromJsonAsync<ReservationHistoryPage>("/api/staff/reservations?isActive=true"))!;
-        Assert.Equal(1, active.Total);
-        Assert.Equal(activeId, Assert.Single(active.Items).Receipt.Id);
-        Assert.Null(active.Active);
-        var actual = new List<Guid>();
-        for (var page = 1; page <= 2; page++)
-        {
-            var response = await client.GetAsync($"/api/staff/reservations?isActive=false&page={page}");
-            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            Assert.True(response.Headers.CacheControl?.NoStore);
-            var history = (await response.Content.ReadFromJsonAsync<ReservationHistoryPage>())!;
-            Assert.Equal(50, history.Total);
-            Assert.Equal(25, history.Items.Count);
-            Assert.All(history.Items, item =>
-            {
-                Assert.False(item.IsActive);
-                Assert.Equal(500m, item.Release!.Refund);
-            });
-            actual.AddRange(history.Items.Select(item => item.Receipt.Id));
-        }
-
-        Assert.Equal(expected.Where(id => id != activeId), actual);
-        Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/api/staff/reservations?isActive=unknown")).StatusCode);
-    }
-
-    private static async Task AssertManagerScopeAsync(HttpClient client, DealershipDbContext database, Guid manager,
-        Guid branchId, Guid outsideBranchId)
-    {
-        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/account/reservations")).StatusCode);
-        int[] sizes = [10, 25, 50];
-        foreach (var size in sizes)
-        {
-            var history = (await client.GetFromJsonAsync<ReservationHistoryPage>($"/api/staff/reservations?pageSize={size}"))!;
-            Assert.Equal(51, history.Total);
-            Assert.Equal(size, history.Items.Count);
-            Assert.All(history.Items, item => Assert.Equal(branchId, item.Receipt.BranchId));
-        }
-
-        Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/api/staff/reservations?pageSize=51")).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"/api/staff/reservations?branchId={outsideBranchId}")).StatusCode);
-        await database.Users.Where(item => item.Id == manager)
-            .ExecuteUpdateAsync(update => update.SetProperty(item => item.BranchId, outsideBranchId));
-        var reassigned = (await client.GetFromJsonAsync<ReservationHistoryPage>("/api/staff/reservations"))!;
-        Assert.Equal(1, reassigned.Total);
-        Assert.Equal(outsideBranchId, reassigned.Actor.BranchId);
-        await database.Users.Where(item => item.Id == manager)
-            .ExecuteUpdateAsync(update => update.SetProperty(item => item.BranchId, branchId));
-        await database.Branches.Where(item => item.Id == branchId)
-            .ExecuteUpdateAsync(update => update.SetProperty(item => item.IsActive, false));
-        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/staff/reservations")).StatusCode);
-        Assert.Equal(ReservationStatus.Forbidden,
-            (await new ReservationReadStore(database).StaffAsync(manager, new(), CancellationToken.None)).Status);
-        await database.Users.Where(item => item.Id == manager).ExecuteUpdateAsync(update =>
-            update.SetProperty(item => item.Role, AccountRoles.GeneralManager).SetProperty(item => item.BranchId, (Guid?)null));
-        var group = (await client.GetFromJsonAsync<ReservationHistoryPage>("/api/staff/reservations"))!;
-        Assert.Equal(52, group.Total);
-        Assert.Equal(AccountRoles.GeneralManager, group.Actor.Role);
-        Assert.Equal(1, (await client.GetFromJsonAsync<ReservationHistoryPage>(
-            $"/api/staff/reservations?branchId={outsideBranchId}"))!.Total);
-        await database.Users.Where(item => item.Id == manager)
-            .ExecuteUpdateAsync(update => update.SetProperty(item => item.Role, AccountRoles.Administrator));
-        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/staff/reservations")).StatusCode);
-        await database.Users.Where(item => item.Id == manager)
-            .ExecuteUpdateAsync(update => update.SetProperty(item => item.Role, AccountRoles.GeneralManager).SetProperty(item => item.IsActive, false));
-        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/staff/reservations")).StatusCode);
-        await database.Users.Where(item => item.Id == manager).ExecuteUpdateAsync(update => update.SetProperty(item => item.IsActive, true));
-        await database.Branches.Where(item => item.Id == branchId).ExecuteUpdateAsync(update => update.SetProperty(item => item.IsActive, true));
-        var noLocks = new RejectReconciliation();
-        await using var emptyPage = new DealershipDbContext(new DbContextOptionsBuilder<DealershipDbContext>()
-            .UseNpgsql(database.Database.GetConnectionString()).AddInterceptors(noLocks).Options);
-        var beyond = (await new ReservationReadStore(emptyPage).StaffAsync(manager,
-            new(Page: int.MaxValue), CancellationToken.None)).History!;
-        Assert.Equal(52, beyond.Total);
-        Assert.Empty(beyond.Items);
-        Assert.Null(beyond.Active);
     }
 
     private async Task AssertSnapshotAndRetryAsync(ReservationTestClock clock, Guid customerId, Reservation active, int activePage)
@@ -369,17 +212,6 @@ public sealed class ReservationReadTests(IntakePhotoFixture fixture) : IClassFix
             }
 
             return result;
-        }
-    }
-
-    private sealed class RejectReconciliation : DbCommandInterceptor
-    {
-        public override ValueTask<InterceptionResult<int>> NonQueryExecutingAsync(DbCommand command,
-            CommandEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken = default)
-        {
-            Assert.DoesNotContain("FOR UPDATE", command.CommandText, StringComparison.Ordinal);
-            Assert.DoesNotContain("release_unavailable_reservation", command.CommandText, StringComparison.Ordinal);
-            return ValueTask.FromResult(result);
         }
     }
 }

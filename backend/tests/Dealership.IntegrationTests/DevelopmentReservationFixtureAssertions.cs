@@ -87,14 +87,6 @@ internal static class DevelopmentReservationFixtureAssertions
             }
 
             Assert.Equal(expected, actual);
-            var manager = DevelopmentFixtureManifest.Staff.Single(item =>
-                item.BranchId == branch.Id && item.Role == AccountRoles.BranchManager);
-            var branchIds = await database.Reservations.Where(item => item.BranchId == branch.Id)
-                .OrderByDescending(item => item.CreatedAt).ThenByDescending(item => item.Id).Select(item => item.Id).ToArrayAsync();
-            await VerifyStaffPagesAsync(reads, manager.Id, new(PageSize: 25), branchIds);
-            var otherBranch = DevelopmentFixtureManifest.Branches.First(item => item.Id != branch.Id).Id;
-            Assert.Equal(ReservationStatus.Forbidden, (await reads.StaffAsync(manager.Id,
-                new(BranchId: otherBranch), CancellationToken.None)).Status);
             var publicRead = services.GetRequiredService<IPublicListingStore>();
             var held = await publicRead.DetailAsync(retained.VehicleId, CancellationToken.None);
             Assert.Equal(ListingStatus.Succeeded, held.Status);
@@ -102,19 +94,6 @@ internal static class DevelopmentReservationFixtureAssertions
             Assert.Equal(ListingStatus.NotFound, (await publicRead.DetailAsync(active.VehicleId, CancellationToken.None)).Status);
         }
 
-        var general = DevelopmentFixtureManifest.Staff.Single(item => item.Role == AccountRoles.GeneralManager);
-        var allIds = await database.Reservations.OrderByDescending(item => item.CreatedAt).ThenByDescending(item => item.Id)
-            .Select(item => item.Id).ToArrayAsync();
-        await VerifyStaffPagesAsync(reads, general.Id, new(PageSize: 50), allIds);
-        var all = new List<ReservationHistoryItem>();
-        for (var page = 1; page <= 5; page++)
-        {
-            all.AddRange((await reads.StaffAsync(general.Id, new(Page: page, PageSize: 50), CancellationToken.None)).History!.Items);
-        }
-
-        await ReservationSortingAssertions.VerifyAsync(reads, general.Id, all);
-        var sales = DevelopmentFixtureManifest.Staff.First(item => item.Role == AccountRoles.SalesAgent);
-        Assert.Equal(ReservationStatus.Forbidden, (await reads.StaffAsync(sales.Id, new(), CancellationToken.None)).Status);
         var before = await SnapshotAsync(database);
         Assert.All(await services.GetRequiredService<DevelopmentReservationFixtures>().RunAsync(false, CancellationToken.None),
             report => Assert.False(report.RequiresAttention));
@@ -171,23 +150,6 @@ internal static class DevelopmentReservationFixtureAssertions
             Assert.Equal(open, reports.Count(item => item.State == "expired; preserved" && item.RequiresAttention));
             Assert.Equal(before, await SnapshotAsync(database));
         }
-    }
-
-    private static async Task VerifyStaffPagesAsync(IReservationReadStore reads, Guid actorId,
-        ReservationReadFilter filter, Guid[] expected)
-    {
-        var actual = new List<Guid>();
-        for (var page = 1; actual.Count < expected.Length; page++)
-        {
-            var result = await reads.StaffAsync(actorId, filter with { Page = page }, CancellationToken.None);
-            Assert.Equal(ReservationStatus.Succeeded, result.Status);
-            Assert.Equal(expected.Length, result.History!.Total);
-            Assert.Equal(Math.Min(filter.PageSize, expected.Length - actual.Count), result.History.Items.Count);
-            actual.AddRange(result.History.Items.Select(item => item.Receipt.Id));
-        }
-
-        Assert.Equal(expected, actual);
-        Assert.Empty((await reads.StaffAsync(actorId, filter with { Page = int.MaxValue }, CancellationToken.None)).History!.Items);
     }
 
     private static async Task<string> SnapshotAsync(DealershipDbContext database) => JsonSerializer.Serialize(new

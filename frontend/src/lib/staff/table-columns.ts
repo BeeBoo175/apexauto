@@ -12,6 +12,8 @@ export const staffColumnSizing = {
   },
   status: {
     width: 184,
+    // A two-word badge such as "Needs approval" is wider than its header, so the column must not shrink below it.
+    minWidth: 128,
   },
   shortStatus: {
     width: 152,

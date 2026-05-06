@@ -20,6 +20,14 @@ async function requestHeaders(context: BrowserContext) {
   return { Cookie: `apexauto_token=${cookie.value}`, Origin: origin };
 }
 
+async function branchSales(context: BrowserContext, view: string) {
+  const response = await context.request.get(`/api/staff/sales?view=${view}&pageSize=50`, {
+    headers: await requestHeaders(context),
+  });
+  expect(response.status()).toBe(200);
+  return (await response.json()).data.items as { id: string; version: number }[];
+}
+
 test("customer reserves from vehicle detail and reconciles a committed hold after losing its receipt", async ({
   page,
   context,
@@ -28,23 +36,19 @@ test("customer reserves from vehicle detail and reconciles a committed hold afte
   test.setTimeout(120_000);
   const manager = await browser.newContext({ ...info.project.use, baseURL: origin });
   await login(manager, "siti.aminah@example.invalid");
-  const active = await manager.request.get("/api/staff/reservations?isActive=true", {
-    headers: await requestHeaders(manager),
-  });
-  expect(active.status()).toBe(200);
-  const holds = (await active.json()).data.items as { id: string }[];
-  for (const hold of holds) {
-    const cancelled = await manager.request.post(
-      `/api/staff/reservations/${hold.id}/cancellations`,
-      {
+  // Managers may cancel a sale in any open status, which releases its hold.
+  for (const view of ["NeedsApproval", "Open", "BeingHandled", "Approved"]) {
+    for (const sale of await branchSales(manager, view)) {
+      const cancelled = await manager.request.post(`/api/staff/sales/${sale.id}/cancellations`, {
         headers: await requestHeaders(manager),
         data: {
           operationId: crypto.randomUUID(),
+          expectedVersion: sale.version,
           reason: "Release fixture hold for customer purchase acceptance",
         },
-      },
-    );
-    expect(cancelled.status()).toBe(200);
+      });
+      expect(cancelled.status()).toBe(200);
+    }
   }
 
   await page.goto(`/vehicles?branchId=${branch}`);
@@ -161,16 +165,9 @@ test("customer reserves from vehicle detail and reconciles a committed hold afte
   expect(Date.parse(saved!.expiresAt) - Date.parse(saved!.createdAt)).toBe(48 * 60 * 60 * 1000);
   expect(JSON.stringify(saved)).not.toMatch(/nric|mobile/);
 
-  const persisted = (
-    await (
-      await manager.request.get("/api/staff/reservations?isActive=true", {
-        headers: await requestHeaders(manager),
-      })
-    ).json()
-  ).data.items as { id: string; vehicleId: string }[];
-  expect(
-    persisted.filter((item) => item.id === saved!.id && item.vehicleId === vehicleId),
-  ).toHaveLength(1);
+  // The confirmed hold opens its sale under the reservation's id, waiting for an agent.
+  const persisted = await branchSales(manager, "Open");
+  expect(persisted.filter((item) => item.id === saved!.id)).toHaveLength(1);
   expect((await context.request.get(`/api${destination}`)).status()).toBe(404);
   const catalogue = (await (await context.request.get(`/api/vehicles?branchId=${branch}`)).json())
     .data.items as { id: string }[];

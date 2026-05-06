@@ -144,12 +144,13 @@ test("public detail serves its primary snapshot and recovers browser reloads wit
   ).toBeVisible();
   await expect(page.locator("dl")).toHaveCount(0);
   expect((await request.get(firstPhoto)).status()).toBe(404);
-  const holds = await request.get(
-    `${process.env.API_BASE_URL}/api/staff/reservations?isActive=true&page=1&pageSize=10`,
-    { headers },
-  );
-  expect(holds.status()).toBe(200);
-  const heldId = (await holds.json()).items[0].receipt.vehicleId;
+  const listings = await request.get(`${process.env.API_BASE_URL}/api/staff/listings?pageSize=50`, {
+    headers,
+  });
+  expect(listings.status()).toBe(200);
+  const heldId = (
+    (await listings.json()).items as { vehicleId: string; isReserved: boolean }[]
+  ).find((item) => item.isReserved)!.vehicleId;
   const heldResponse = await page.goto(`/vehicles/${heldId}`);
   const heldHtml = await heldResponse!.text();
   expect(heldHtml).toContain('content="noindex, nofollow"');
