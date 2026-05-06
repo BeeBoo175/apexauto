@@ -33,13 +33,13 @@ export function InspectionRecord({
     (entry) => entry.kind === "Finding",
   ).length;
   return (
-    <section className={workshop.summary} aria-label="Vehicle and confirmed assessment">
-      <div className={workshop.summaryMain}>
+    <section className={workbench.summary} aria-label="Vehicle and confirmed assessment">
+      <div className={workbench.summaryMain}>
         <div>
-          <span className={workshop.summaryLabel}>{summaryLabel}</span>
-          <strong className={workshop.summaryValue}>{summaryValue}</strong>
+          <span className={workbench.summaryLabel}>{summaryLabel}</span>
+          <strong className={workbench.summaryValue}>{summaryValue}</strong>
         </div>
-        <div className={workshop.summaryContext}>
+        <div className={workbench.summaryContext}>
           <WorkshopStatus status={status} />
           <span>
             {`Revision ${snapshot.draft.revision} · ${snapshot.draft.isSigned ? "Signed" : "Draft"}`}

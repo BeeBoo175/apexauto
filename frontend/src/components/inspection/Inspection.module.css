@@ -216,7 +216,7 @@
   max-width: 320px;
 }
 
-@container workshop-content (max-width: 640px) {
+@container staff-record-content (max-width: 640px) {
   .checklist > div:last-child {
     flex: 0 0 auto;
   }

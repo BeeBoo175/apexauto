@@ -10,7 +10,7 @@ export default async function SalesPage({ searchParams }: { searchParams: Promis
       searchParams={searchParams}
       access={hasSalesAccess}
       deniedTitle="Sales access unavailable"
-      deniedDescription="Only Sales Agents work holds and deals from the sales workspace."
+      deniedDescription="Only sales agents and managers work with sales."
     >
       {async (actor) => {
         return (

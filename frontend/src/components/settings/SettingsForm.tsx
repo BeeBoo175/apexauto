@@ -10,7 +10,7 @@ import { formatMalaysianDateTime } from "@/lib/date-format";
 import { parseSettings, type PurchaseSettings } from "@/lib/settings/settings";
 import { draftFrom, readDraft, unchanged, type SettingsDraft } from "@/lib/settings/settings-draft";
 import { SettingsNotice } from "./SettingsNotice";
-import workshop from "@/components/inspection/Workshop.module.css";
+import workbench from "@/components/staff/StaffWorkspace.module.css";
 import styles from "./SettingsForms.module.css";
 
 function SettingsField({
@@ -92,7 +92,7 @@ export function SettingsForm({
 
   return (
     <form
-      className={workshop.workspace}
+      className={workbench.workspace}
       noValidate
       aria-busy={saver.busy}
       onSubmit={(event) => {
@@ -101,7 +101,7 @@ export function SettingsForm({
       }}
     >
       <LoadingProgress label="Saving settings" active={saver.busy} />
-      <div className={workshop.body}>
+      <div className={workbench.body}>
         <div className={styles.fields}>
           <section className={styles.section} aria-label="Pricing">
             <h3>Pricing</h3>

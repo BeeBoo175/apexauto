@@ -1,49 +1,35 @@
 "use client";
 
-import { DealFacts } from "@/components/deals/DealFacts";
 import { WorkshopLoadingShell } from "@/components/inspection/WorkshopLoadingShell";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import type { useStaffSelection } from "@/hooks/use-staff-selection";
-import type { CurrentActor } from "@/lib/auth/actor";
-import { dealStatusLabels, type Deal } from "@/lib/deals/deals";
-import { salesSectionLabels, salesSections, type SalesSection } from "@/lib/sales/sales";
-import { HoldWheel } from "./HoldWheel";
-import { SalesDealSection } from "./SalesDealSection";
-import { SalesHistory } from "./SalesHistory";
+import type { useSaleSelection } from "@/hooks/use-sale-selection";
+import { SaleEditor } from "./SaleEditor";
 import styles from "@/components/inspection/TechnicianWorkspace.module.css";
-import sales from "./Sales.module.css";
 
-// The selected deal beside the queue: header, then Customer & car, Deal and History as separate sections.
+// The selected sale beside the agent's queue: the same editor the managers' drawer hosts.
 export function SalesContent({
-  actor,
   selection,
-  section,
   now,
-  onSection,
+  actionsContainer,
   onChanged,
-  onReleased,
 }: {
-  actor: CurrentActor;
-  selection: ReturnType<typeof useStaffSelection<Deal>>;
-  section: SalesSection;
+  selection: ReturnType<typeof useSaleSelection>;
   now: number;
-  onSection: (section: SalesSection) => void;
-  onChanged: () => Promise<void>;
-  onReleased: () => void;
+  actionsContainer: HTMLElement | null;
+  onChanged: () => void;
 }) {
-  const deal = selection.result?.data ?? null;
+  const sale = selection.result?.data ?? null;
   if (!selection.id && !selection.pendingId) {
     return (
-      <section className={styles.placeholder} aria-label="Deal content">
-        <h2>Select a hold</h2>
-        <p>Choose a deal you are handling, or claim an open hold to start one.</p>
+      <section className={styles.placeholder} aria-label="Sale content">
+        <h2>Select a sale</h2>
+        <p>Choose a sale you are handling, or claim an open hold to start one.</p>
       </section>
     );
   }
-  if (selection.busy && !deal) {
+  if (selection.busy && !sale) {
     return (
-      <section className={styles.content} aria-label="Deal content" aria-busy="true">
+      <section className={styles.content} aria-label="Sale content" aria-busy="true">
         <WorkshopLoadingShell />
       </section>
     );
@@ -51,86 +37,43 @@ export function SalesContent({
   return (
     <section
       className={styles.content}
-      aria-label="Selected deal"
+      aria-label="Selected sale"
       aria-busy={selection.busy}
       inert={selection.busy}
     >
       <header className={styles.contentHeader}>
         <div>
-          <h2>{deal?.context.registration ?? "Deal"}</h2>
-          {deal && (
+          <h2>{sale?.context.registration ?? "Sale"}</h2>
+          {sale && (
             <p>
-              {deal.context.vehicle} · {deal.context.customer}
+              {sale.context.vehicle} · {sale.context.customer}
             </p>
           )}
         </div>
-        {deal && (
-          <Badge variant={deal.status === "Cancelled" ? "neutral" : "info"}>
-            {dealStatusLabels[deal.status]}
-          </Badge>
-        )}
       </header>
-      {deal && (
-        <>
-          <nav className={styles.queueNavigation} aria-label="Deal sections">
-            {salesSections.map((item) => (
-              <Button
-                key={item}
-                size="compact"
-                variant="ghost"
-                className={styles.queueView}
-                aria-pressed={section === item}
-                onClick={() => onSection(item)}
-              >
-                {salesSectionLabels[item]}
-              </Button>
-            ))}
-          </nav>
-          {section === "customer" && (
-            <div className={sales.body}>
-              {deal.status !== "Cancelled" && deal.context.holdCreatedAtUtc && (
-                <div className={sales.holdSummary}>
-                  <strong>Hold</strong>
-                  <HoldWheel
-                    expiresAtUtc={deal.context.holdExpiresAtUtc}
-                    frozenRemainingSeconds={deal.context.holdFrozenRemainingSeconds}
-                    now={now}
-                  />
-                </div>
-              )}
-              <DealFacts deal={deal} />
-            </div>
-          )}
-          {section === "deal" && (
-            <SalesDealSection
-              key={deal.id}
-              deal={deal}
-              actor={actor}
-              onChanged={onChanged}
-              onReleased={onReleased}
-              onReload={() => void selection.choose(selection.id)}
-            />
-          )}
-          {section === "history" && (
-            <div className={sales.body}>
-              {deal.reservationId ? (
-                <SalesHistory reservationId={deal.reservationId} />
-              ) : (
-                <p>This deal was not started from a hold, so it has no hold history.</p>
-              )}
-            </div>
-          )}
-        </>
+      {sale && (
+        <div className={styles.editor}>
+          <SaleEditor
+            key={sale.id}
+            sale={sale}
+            selection={selection}
+            now={now}
+            actionsContainer={actionsContainer}
+            scrollWithHost
+            onChanged={onChanged}
+            onLocked={selection.lock}
+          />
+        </div>
       )}
-      {!selection.busy && !deal && (
+      {!selection.busy && !sale && (
         <div className={styles.empty}>
-          <p>This deal is unavailable. Your queues remain retained.</p>
+          <p>This sale is unavailable. Your queues remain retained.</p>
           <Button
             size="compact"
             variant="secondary"
             onClick={() => void selection.choose(selection.id)}
           >
-            Retry deal
+            Retry sale
           </Button>
         </div>
       )}

@@ -15,7 +15,7 @@ import {
   type WarrantyGrade,
 } from "@/lib/settings/settings";
 import { SettingsNotice } from "./SettingsNotice";
-import workshop from "@/components/inspection/Workshop.module.css";
+import workbench from "@/components/staff/StaffWorkspace.module.css";
 import styles from "./SettingsForms.module.css";
 
 const whole = (value: string) => (/^\d+$/.test(value.trim()) ? Number(value.trim()) : null);
@@ -95,7 +95,7 @@ export function WarrantyForm({
 
   return (
     <form
-      className={workshop.workspace}
+      className={workbench.workspace}
       noValidate
       onSubmit={(event) => {
         event.preventDefault();
@@ -103,13 +103,13 @@ export function WarrantyForm({
       }}
     >
       {base && (
-        <div className={workshop.summary}>
-          <div className={workshop.summaryMain}>
+        <div className={workbench.summary}>
+          <div className={workbench.summaryMain}>
             <div>
-              <span className={workshop.summaryLabel}>Price</span>
-              <strong className={workshop.summaryValue}>{formatCurrency(base.price)}</strong>
+              <span className={workbench.summaryLabel}>Price</span>
+              <strong className={workbench.summaryValue}>{formatCurrency(base.price)}</strong>
             </div>
-            <div className={workshop.summaryContext}>
+            <div className={workbench.summaryContext}>
               <strong>{base.isActive ? "Active" : "Inactive"}</strong>
               <span>
                 Grade {base.minimumGrade} or better · {base.durationMonths} months
@@ -118,7 +118,7 @@ export function WarrantyForm({
           </div>
         </div>
       )}
-      <div className={workshop.body}>
+      <div className={workbench.body}>
         <div className={styles.fields}>
           {newer && (
             <div className={styles.notice} role="status">

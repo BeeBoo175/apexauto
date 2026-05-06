@@ -12,10 +12,8 @@ import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { hasIntakeAccess, roleNames, type CurrentActor } from "@/lib/auth/actor";
 import { hasInspectionAccess } from "@/lib/inspection/contracts";
 import { hasListingAccess } from "@/lib/vehicles/listings";
-import { hasDealTableAccess } from "@/lib/deals/deals";
 import { hasSalesAccess } from "@/lib/sales/sales";
 import { hasSettingsAccess } from "@/lib/settings/settings";
-import { hasReservationAccess } from "@/lib/vehicles/reservations";
 import styles from "./StaffFrame.module.css";
 import {
   StaffActorContext,
@@ -52,9 +50,7 @@ function StaffFrameContent({
     "/dashboard/inspection",
     "/dashboard/inspection/repairs",
     "/dashboard/management",
-    "/dashboard/reservations",
     "/dashboard/settings",
-    "/dashboard/deals",
     "/dashboard/sales",
   ].includes(navigation.pathname);
   const logout = useAuthMutation("logout", "/login");
@@ -184,24 +180,6 @@ function StaffFrameContent({
                     Listings
                   </StaffLink>
                 )}
-                {actor && hasReservationAccess(actor) && (
-                  <StaffLink
-                    href="/dashboard/reservations"
-                    prefetch={false}
-                    prefetchOnIntent={true}
-                    className={
-                      navigation.selectedPath === "/dashboard/reservations"
-                        ? styles.activeLink
-                        : styles.navLink
-                    }
-                    aria-current={
-                      navigation.selectedPath === "/dashboard/reservations" ? "page" : undefined
-                    }
-                    onNavigate={(event) => navigate(event, "/dashboard/reservations")}
-                  >
-                    Reservations
-                  </StaffLink>
-                )}
                 {actor && hasSalesAccess(actor) && (
                   <StaffLink
                     href="/dashboard/sales"
@@ -218,24 +196,6 @@ function StaffFrameContent({
                     onNavigate={(event) => navigate(event, "/dashboard/sales")}
                   >
                     Sales
-                  </StaffLink>
-                )}
-                {actor && hasDealTableAccess(actor) && (
-                  <StaffLink
-                    href="/dashboard/deals"
-                    prefetch={false}
-                    prefetchOnIntent={true}
-                    className={
-                      navigation.selectedPath === "/dashboard/deals"
-                        ? styles.activeLink
-                        : styles.navLink
-                    }
-                    aria-current={
-                      navigation.selectedPath === "/dashboard/deals" ? "page" : undefined
-                    }
-                    onNavigate={(event) => navigate(event, "/dashboard/deals")}
-                  >
-                    Deals
                   </StaffLink>
                 )}
                 {actor && hasSettingsAccess(actor) && (

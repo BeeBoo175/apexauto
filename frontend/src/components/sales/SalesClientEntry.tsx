@@ -13,7 +13,7 @@ export function SalesClientEntry({
   actor: CurrentActor;
   parameters: SearchParams;
 }) {
-  const { entry, failed, retry } = useSalesClientEntry(parameters);
+  const { entry, failed, retry } = useSalesClientEntry(actor, parameters);
   if (failed) {
     return (
       <StaffNotice title="Sales">
@@ -26,6 +26,30 @@ export function SalesClientEntry({
   if (!entry) {
     return <StaffLoading />;
   }
-  const { Workspace, ...snapshot } = entry;
-  return <Workspace actor={actor} {...snapshot} />;
+  if (entry.kind === "manager") {
+    const { Table } = entry;
+    return (
+      <Table
+        actor={actor}
+        initial={entry.initial}
+        filters={entry.filters}
+        page={entry.page}
+        saleId={entry.saleId}
+        section={entry.section}
+        version={entry.version}
+        selected={entry.selected}
+      />
+    );
+  }
+  const { Workspace, saleId, section, version, selected, queues, initialView } = entry;
+  return (
+    <Workspace
+      queues={queues}
+      initialView={initialView}
+      selectedSaleId={saleId}
+      selectedSale={selected}
+      selectedSection={section}
+      selectedVersion={version}
+    />
+  );
 }

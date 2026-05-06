@@ -13,7 +13,7 @@ import { recordPath, type Promo } from "@/lib/settings/settings";
 import { malaysiaInput, utcFromMalaysiaInput } from "@/lib/settings/settings-draft";
 import { SettingsNotice } from "./SettingsNotice";
 import { promoState } from "./settings-columns";
-import workshop from "@/components/inspection/Workshop.module.css";
+import workbench from "@/components/staff/StaffWorkspace.module.css";
 import styles from "./SettingsForms.module.css";
 
 // The draft is based on the record as it was opened; a newer read never replaces it silently.
@@ -79,7 +79,7 @@ export function PromoForm({
 
   return (
     <form
-      className={workshop.workspace}
+      className={workbench.workspace}
       noValidate
       onSubmit={(event) => {
         event.preventDefault();
@@ -87,20 +87,20 @@ export function PromoForm({
       }}
     >
       {base && (
-        <div className={workshop.summary}>
-          <div className={workshop.summaryMain}>
+        <div className={workbench.summary}>
+          <div className={workbench.summaryMain}>
             <div>
-              <span className={workshop.summaryLabel}>Discount</span>
-              <strong className={workshop.summaryValue}>{formatCurrency(base.discount)}</strong>
+              <span className={workbench.summaryLabel}>Discount</span>
+              <strong className={workbench.summaryValue}>{formatCurrency(base.discount)}</strong>
             </div>
-            <div className={workshop.summaryContext}>
+            <div className={workbench.summaryContext}>
               <strong>{promoState(base)}</strong>
               <span>Expires {formatMalaysianDateTime(base.expiresAtUtc)}</span>
             </div>
           </div>
         </div>
       )}
-      <div className={workshop.body}>
+      <div className={workbench.body}>
         <div className={styles.fields}>
           {newer && (
             <div className={styles.notice} role="status">
