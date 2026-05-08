@@ -13,6 +13,12 @@ import {
 } from "./sale";
 import type { SaleSection } from "./sale-sections";
 
+// Marks fields a past version changed against the version before it; with no earlier version nothing is marked.
+export const snapshotChanged =
+  (sale: SaleSnapshot, previous: SaleSnapshot | null) =>
+  (...fields: (keyof SaleSnapshot)[]) =>
+    previous !== null && fields.some((field) => previous[field] !== sale[field]);
+
 export interface SaleChange {
   field: string;
   before: string | null;

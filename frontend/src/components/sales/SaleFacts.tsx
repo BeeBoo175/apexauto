@@ -3,6 +3,7 @@ import { StaffLedger } from "@/components/staff/StaffLedger";
 import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { saleStatusLabels, type SaleContext, type SaleSnapshot } from "@/lib/sales/sale";
+import { snapshotChanged } from "@/lib/sales/sale-history";
 import { claimAge } from "@/lib/sales/sales";
 import { HoldWheel } from "./HoldWheel";
 import styles from "./Sales.module.css";
@@ -25,8 +26,7 @@ export function SaleFacts({
   now: number;
   previous?: SaleSnapshot | null;
 }) {
-  const changed = (...fields: (keyof SaleSnapshot)[]) =>
-    previous !== null && fields.some((field) => previous[field] !== sale[field]);
+  const changed = snapshotChanged(sale, previous);
   const running = sale.status === "Open" || sale.pausedSeconds !== null;
   const handling: Fact[] = [
     ["Status", saleStatusLabels[sale.status], changed("status")],

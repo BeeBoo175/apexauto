@@ -72,7 +72,8 @@ export function saleColumns(
     {
       id: "status",
       label: "Status",
-      sortable: true,
+      // Only History mixes statuses; every other tab holds one.
+      sortable: view === "History",
       ...staffColumnSizing.status,
       cell: (row) => <SaleStatus status={row.status} table />,
     },

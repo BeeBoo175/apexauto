@@ -1,5 +1,5 @@
 import { privateApiFetch } from "@/lib/api-browser";
-import { downloadCsv, selectedCsv, type CsvColumn } from "@/lib/csv";
+import { exportPagedCsv, type CsvColumn } from "@/lib/csv";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { saleStatusLabels } from "./sale";
 import {
@@ -35,47 +35,22 @@ export const saleExportColumns: readonly CsvColumn<SaleSummary>[] = [
   { label: "Closed (Malaysia)", value: (row) => when(row.closedAt) },
 ];
 
-export async function exportSales(filters: SalesTableFilters, cancellation: AbortSignal) {
-  const signal = AbortSignal.any([cancellation, AbortSignal.timeout(120_000)]);
-  const rows: SaleSummary[] = [];
-  const ids = new Set<string>();
-  let total: number | null = null;
-  let page = 1;
-  while (total === null || rows.length < total) {
-    const result = await privateApiFetch(
-      `${salesTablePath}?${tableQuery({ ...filters, pageSize: 50 }, page)}`,
-      parseSalesTable,
-      { signal },
-    );
-    const snapshot = result.data;
-    if (
-      result.status !== 200 ||
-      !snapshot ||
-      snapshot.page !== page ||
-      snapshot.pageSize !== 50 ||
-      snapshot.total > 10_000
-    ) {
-      throw new Error(
+export function exportSales(filters: SalesTableFilters, cancellation: AbortSignal) {
+  return exportPagedCsv(
+    {
+      read: (page, pageSize, signal) =>
+        privateApiFetch(
+          `${salesTablePath}?${tableQuery({ ...filters, pageSize }, page)}`,
+          parseSalesTable,
+          { signal },
+        ),
+      id: (row) => row.id,
+      columns: saleExportColumns,
+      filename: "sales-full.csv",
+      unavailable:
         "Sales export could not be confirmed or exceeds 10,000 rows. Narrow the filters and retry.",
-      );
-    }
-    if (
-      (total !== null && total !== snapshot.total) ||
-      snapshot.items.length !== Math.min(50, snapshot.total - rows.length) ||
-      snapshot.items.some((row) => ids.has(row.id))
-    ) {
-      throw new Error("Sales changed during export. Retry to download the current results.");
-    }
-    for (const row of snapshot.items) {
-      ids.add(row.id);
-      rows.push(row);
-    }
-    total = snapshot.total;
-    page += 1;
-  }
-  signal.throwIfAborted();
-  downloadCsv(
-    new Blob([selectedCsv(rows, saleExportColumns)], { type: "text/csv;charset=utf-8" }),
-    "sales-full.csv",
+      changed: "Sales changed during export. Retry to download the current results.",
+    },
+    cancellation,
   );
 }

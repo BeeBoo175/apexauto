@@ -12,8 +12,8 @@ import { RefreshButton } from "@/components/ui/RefreshButton";
 import { useSaleEditor } from "@/hooks/use-sale-editor";
 import type { useSaleSelection } from "@/hooks/use-sale-selection";
 import { formatCurrency } from "@/lib/currency-format";
-import type { Sale } from "@/lib/sales/sale";
-import { saleSectionLabels, saleSections, validSaleReason } from "@/lib/sales/sale-sections";
+import { isSaleReason, type Sale } from "@/lib/sales/sale";
+import { saleSectionLabels, saleSections } from "@/lib/sales/sale-sections";
 import { SaleAssignDialog } from "./SaleAssignDialog";
 import { SaleFacts } from "./SaleFacts";
 import { SaleLines } from "./SaleLines";
@@ -88,7 +88,7 @@ export function SaleEditor({
   const showsCurrent = selection.version === null;
   const { reason, setReason } = editor;
   const locked = editor.dirty || editor.operating;
-  const reasonOk = validSaleReason(reason);
+  const reasonOk = isSaleReason(reason);
   const noteNeeded = actions.decide || actions.cancel;
   const disabled = editor.operating || editor.refreshing;
   // An unconfirmed command keeps only its own control, which replays the same operation without asking again.

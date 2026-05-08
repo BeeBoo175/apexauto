@@ -1,10 +1,9 @@
 import { StaffLedger } from "@/components/staff/StaffLedger";
 import { formatCurrency } from "@/lib/currency-format";
 import type { SaleSnapshot } from "@/lib/sales/sale";
+import { snapshotChanged } from "@/lib/sales/sale-history";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 import styles from "./Sales.module.css";
-
-type Field = keyof SaleSnapshot;
 
 // The itemized price a sale carries, live or as it stood, down to the balance payable. Fields a past version
 // changed are marked against the version before it.
@@ -15,8 +14,7 @@ export function SaleLines({
   sale: SaleSnapshot;
   previous?: SaleSnapshot | null;
 }) {
-  const changed = (...fields: Field[]) =>
-    previous !== null && fields.some((field) => previous[field] !== sale[field]);
+  const changed = snapshotChanged(sale, previous);
   const lines: [string, string, boolean][] = [
     ["Vehicle price", formatCurrency(sale.basePrice), false],
     [

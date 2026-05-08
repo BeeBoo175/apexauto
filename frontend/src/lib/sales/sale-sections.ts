@@ -18,6 +18,3 @@ export function saleVersionNumber(value: unknown): number | null {
   const parsed = typeof value === "string" && /^[1-9]\d{0,9}$/.test(value) ? Number(value) : null;
   return parsed !== null && Number.isSafeInteger(parsed) ? parsed : null;
 }
-
-export const validSaleReason = (reason: string) =>
-  reason === reason.trim() && reason.length >= 1 && reason.length <= 1000;

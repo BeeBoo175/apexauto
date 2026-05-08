@@ -1,5 +1,4 @@
 using Dealership.Domain.Inspections;
-using Dealership.Domain.Intake;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,14 +19,4 @@ internal static class SaleGrades
             .SingleAsync(item => item.Id == signedRevisionId, cancellationToken);
         return signed.Report().Assessment.Grade;
     }
-}
-
-internal static class SaleLabels
-{
-    public static string TradeIn(IntakeAppointment appointment) =>
-        $"{appointment.RegistrationPlate} · {appointment.Valuation.ManufactureYear} {appointment.Valuation.Make} " +
-        appointment.Valuation.Model;
-
-    public static string Vehicle(int year, string make, string model, string trim) =>
-        $"{year} {make} {model} {trim}".Trim();
 }

@@ -115,9 +115,13 @@ internal static class SaleRows
         "customer" => By(rows, row => row.Customer, down),
         "agent" => By(rows, row => row.Agent, down),
         "branch" => By(rows, row => row.Branch, down),
+        // Status sorts in lifecycle order, which is the order SalesOrderStatus declares.
         "status" => By(rows, row => row.Status, down),
         "discount" => By(rows, row => row.NegotiatedDiscount, down),
-        "overLimit" => By(rows, row => row.NegotiatedDiscount - (row.DiscountLimitAtSubmit ?? 0m), down),
+        // As the column shows it: the excess over the submitted limit, or nothing without a limit or an excess.
+        "overLimit" => By(rows, row => row.DiscountLimitAtSubmit != null && row.NegotiatedDiscount > row.DiscountLimitAtSubmit
+            ? row.NegotiatedDiscount - row.DiscountLimitAtSubmit.Value
+            : 0m, down),
         "submitted" => By(rows, row => row.SubmittedAt, down),
         "due" => By(rows, row => row.DueAt, down),
         "claimed" => By(rows, row => row.ClaimedAt, down),

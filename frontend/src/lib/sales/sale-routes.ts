@@ -11,6 +11,7 @@ import {
   requestApiJson,
   sessionToken,
 } from "@/lib/server/http/api";
+import { isSaleReason } from "./sale";
 import { hasSalesAccess, tableTextKeys } from "./sales";
 
 type Body = Record<string, unknown>;
@@ -134,8 +135,6 @@ export async function relaySaleCommand<T>(
 const version = (value: unknown): value is number =>
   Number.isSafeInteger(value) && Number(value) > 0;
 const nullableId = (value: unknown): value is string | null => value === null || isUuid(value);
-const validReason = (value: unknown): value is string =>
-  typeof value === "string" && value === value.trim() && value.length >= 1 && value.length <= 1000;
 
 // Every command names its operation and the version it was based on, so a lost response can be replayed.
 export function shapeSaleCommand(command: SaleCommand) {
@@ -149,7 +148,7 @@ export function shapeSaleCommand(command: SaleCommand) {
         return isUuid(body.agentId) ? { ...common, agentId: body.agentId } : null;
       case "rejections":
       case "cancellations":
-        return validReason(body.reason) ? { ...common, reason: body.reason } : null;
+        return isSaleReason(body.reason) ? { ...common, reason: body.reason } : null;
       case "terms": {
         const warranty = body.warrantyPackageId ?? null;
         const tradeIn = body.tradeInAppointmentId ?? null;

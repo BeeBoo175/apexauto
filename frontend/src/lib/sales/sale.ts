@@ -140,6 +140,10 @@ const version = (value: unknown): value is number =>
   Number.isSafeInteger(value) && Number(value) >= 1;
 const rate = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1;
+// A return or cancellation reason as the backend accepts it: trimmed, between 1 and 1000 characters.
+export const isSaleReason = (value: unknown): value is string =>
+  typeof value === "string" && value === value.trim() && value.length >= 1 && value.length <= 1000;
+
 export const isSaleStatus = (value: unknown): value is SaleStatus =>
   saleStatuses.some((status) => status === value);
 
