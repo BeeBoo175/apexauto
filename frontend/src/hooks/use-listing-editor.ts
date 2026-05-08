@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useApiCommand } from "./use-api-command";
-import { useInspectionLock } from "./use-inspection-lock";
+import { useStaffNavigationLock } from "./use-staff-navigation-lock";
 import { useListingUpload } from "./use-listing-upload";
 import { useListingPublication } from "./use-listing-publication";
 import { useToast } from "@/components/ui/Toast";
@@ -96,7 +96,7 @@ export function useListingEditor(
   const withdrawing = withdrawal.busy || withdrawal.uncertain;
   const operating = command.busy || command.uncertain || uploading || approving || withdrawing;
   const locked = dirty || Boolean(withdrawalReason) || operating;
-  const lockNavigation = useInspectionLock(locked);
+  const lockNavigation = useStaffNavigationLock(locked);
   useEffect(() => {
     onLock(locked);
     return () => onLock(false);

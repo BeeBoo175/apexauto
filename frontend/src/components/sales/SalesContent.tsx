@@ -1,10 +1,10 @@
 "use client";
 
-import { WorkshopLoadingShell } from "@/components/inspection/WorkshopLoadingShell";
+import { StaffDrawerLoadingShell } from "@/components/staff/StaffDrawerLoadingShell";
 import { Button } from "@/components/ui/Button";
 import type { useSaleSelection } from "@/hooks/use-sale-selection";
 import { SaleEditor } from "./SaleEditor";
-import styles from "@/components/inspection/TechnicianWorkspace.module.css";
+import styles from "@/components/staff/StaffQueueWorkspace.module.css";
 
 // The selected sale beside the agent's queue: the same editor the managers' drawer hosts.
 export function SalesContent({
@@ -30,7 +30,7 @@ export function SalesContent({
   if (selection.busy && !sale) {
     return (
       <section className={styles.content} aria-label="Sale content" aria-busy="true">
-        <WorkshopLoadingShell />
+        <StaffDrawerLoadingShell label="Loading sale…" />
       </section>
     );
   }

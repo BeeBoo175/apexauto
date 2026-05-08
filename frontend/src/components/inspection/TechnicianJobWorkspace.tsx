@@ -6,8 +6,8 @@ import type { useInspectionDrawer } from "@/hooks/use-inspection-drawer";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { SelectedRepairReview } from "@/lib/inspection/repair-review";
 import { InspectionEditor } from "./InspectionEditor";
-import { WorkshopLoadingShell } from "./WorkshopLoadingShell";
-import styles from "./TechnicianWorkspace.module.css";
+import { StaffDrawerLoadingShell } from "@/components/staff/StaffDrawerLoadingShell";
+import styles from "@/components/staff/StaffQueueWorkspace.module.css";
 
 export function TechnicianJobWorkspace({
   actor,
@@ -36,7 +36,7 @@ export function TechnicianJobWorkspace({
   if (selection.busy && !selection.result?.data) {
     return (
       <section className={styles.content} aria-label="Job content" aria-busy="true">
-        <WorkshopLoadingShell />
+        <StaffDrawerLoadingShell label="Loading workshop record…" />
       </section>
     );
   }

@@ -34,8 +34,7 @@ import { ListingDrawer } from "./ListingDrawer";
 import { listingColumns } from "./listing-columns";
 import { parseListingWorkspace, type ListingWorkspace } from "@/lib/vehicles/listing-workspace";
 import type { ListingRecordSelection } from "@/lib/vehicles/listing-history-selection";
-import layout from "@/components/staff/IntakeWorkspace.module.css";
-import styles from "@/components/staff/IntakeWorklist.module.css";
+import styles from "@/components/staff/StaffWorklist.module.css";
 import workspace from "@/components/staff/StaffWorkspace.module.css";
 
 const rowId = (row: ListingItem) => row.vehicleId;
@@ -117,7 +116,7 @@ export function ListingTable({
   }
 
   return (
-    <div className={layout.workspace}>
+    <div className={styles.workspace}>
       <LoadingProgress label="Loading listings" active={state.busy} />
       <StaffCommandBar
         title="Listings"

@@ -30,8 +30,7 @@ import {
 } from "@/lib/inspection/workshop-contracts";
 import type { useInspectionQueue } from "@/hooks/use-inspection-queue";
 import { workshopColumnFilters } from "./workshop-column-filters";
-import layout from "@/components/staff/IntakeWorkspace.module.css";
-import styles from "@/components/staff/IntakeWorklist.module.css";
+import styles from "@/components/staff/StaffWorklist.module.css";
 import workspace from "@/components/staff/StaffWorkspace.module.css";
 
 export function QueueView<T>({
@@ -159,7 +158,7 @@ export function QueueView<T>({
     );
   }
   return (
-    <div className={layout.workspace}>
+    <div className={styles.workspace}>
       <LoadingProgress label={`Loading ${title.toLowerCase()}`} active={state.busy} />
       <StaffCommandBar
         title={title}

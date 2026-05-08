@@ -21,7 +21,7 @@ import type { WorkshopQueue } from "./WorkshopQueue";
 import { TechnicianJobList } from "./TechnicianJobList";
 import { TechnicianClaim } from "./TechnicianClaim";
 import { TechnicianJobWorkspace } from "./TechnicianJobWorkspace";
-import styles from "./TechnicianWorkspace.module.css";
+import styles from "@/components/staff/StaffQueueWorkspace.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 
 const viewLabels: Record<TechnicianTask, string> = {

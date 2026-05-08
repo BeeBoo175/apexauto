@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useApiCommand } from "@/hooks/use-api-command";
-import { useInspectionLock } from "./use-inspection-lock";
+import { useStaffNavigationLock } from "./use-staff-navigation-lock";
 import { useInitialToast } from "./use-initial-toast";
 import { useToast } from "@/components/ui/Toast";
 import { inspectionFetch } from "@/lib/inspection/browser";
@@ -66,7 +66,7 @@ export function useInspectionEditor(
   );
   const operating = save.busy || save.uncertain || sign.busy || sign.uncertain || childLocked;
   const formsDirty = Object.values(formDrafts).some(Boolean);
-  const lockNavigation = useInspectionLock(dirty || formsDirty || operating);
+  const lockNavigation = useStaffNavigationLock(dirty || formsDirty || operating);
   if (entry !== initial) {
     setEntry(initial);
     if (initial.data) {

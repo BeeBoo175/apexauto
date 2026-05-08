@@ -2,7 +2,7 @@
 import { useContext, useEffect } from "react";
 import { StaffNavigationLockContext } from "@/components/staff/StaffActorBoundary";
 
-export function useInspectionLock(locked: boolean) {
+export function useStaffNavigationLock(locked: boolean) {
   const operationLock = useContext(StaffNavigationLockContext);
   useEffect(() => {
     operationLock?.setLocked(locked);

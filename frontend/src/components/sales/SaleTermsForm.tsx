@@ -9,7 +9,7 @@ import { formatCurrency } from "@/lib/currency-format";
 import { parseMyr } from "@/lib/currency-input";
 import { parseSaleOptions, salePath, type SaleOptions } from "@/lib/sales/sale";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
-import forms from "@/components/settings/SettingsForms.module.css";
+import forms from "@/components/staff/StaffForms.module.css";
 
 // The terms the handling agent controls: negotiated discount, one eligible warranty and one of the customer's
 // trade-ins. The form starts from the editor's base version and keeps its entries until they are saved.

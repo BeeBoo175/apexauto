@@ -1,3 +1,19 @@
+.workspace,
+.content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
+.workspace > header {
+  position: static;
+  flex-shrink: 0;
+}
+
 .page {
   display: flex;
   flex: 1;

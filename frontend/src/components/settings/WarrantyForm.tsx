@@ -16,7 +16,7 @@ import {
 } from "@/lib/settings/settings";
 import { SettingsNotice } from "./SettingsNotice";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
-import styles from "./SettingsForms.module.css";
+import styles from "@/components/staff/StaffForms.module.css";
 
 const whole = (value: string) => (/^\d+$/.test(value.trim()) ? Number(value.trim()) : null);
 

@@ -15,7 +15,7 @@ import {
   type SaleSummary,
 } from "@/lib/sales/sales";
 import { HoldWheel } from "./HoldWheel";
-import styles from "@/components/inspection/TechnicianWorkspace.module.css";
+import styles from "@/components/staff/StaffQueueWorkspace.module.css";
 
 const emptyMessages: Record<QueueView | "Search", string> = {
   Handling: "You are not handling any sales. Claim a hold to start one.",

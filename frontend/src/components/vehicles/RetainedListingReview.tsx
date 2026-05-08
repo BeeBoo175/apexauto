@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
-import { AppointmentLoadingShell } from "@/components/staff/AppointmentLoadingShell";
+import { StaffRecordLoadingShell } from "@/components/staff/StaffRecordLoadingShell";
 import { useListingRevision } from "@/hooks/use-listing-revision";
 import { listingDraft } from "@/lib/vehicles/listing-draft";
 import type { ListingRecordSelection } from "@/lib/vehicles/listing-history-selection";
@@ -41,7 +41,7 @@ export function RetainedListingReview({
     >
       <LoadingProgress label="Loading historical listing record" active={read.busy} />
       {read.busy && !saved && (
-        <AppointmentLoadingShell label="Loading saved record…" details={recordDetails} />
+        <StaffRecordLoadingShell label="Loading saved record…" details={recordDetails} />
       )}
       {!read.busy && !saved && (
         <div className={styles.publication}>

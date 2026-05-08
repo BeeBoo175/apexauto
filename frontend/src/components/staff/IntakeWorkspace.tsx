@@ -14,8 +14,8 @@ import { IntakeViewNavigation } from "./IntakeViewNavigation";
 import { IntakeAppointmentDrawer } from "./IntakeAppointmentDrawer";
 import { StaffCommandBar } from "./StaffPage";
 import { StaffPageEntranceContext } from "./StaffActorBoundary";
-import styles from "./IntakeWorkspace.module.css";
 import layout from "./StaffWorkspace.module.css";
+import styles from "./StaffWorklist.module.css";
 
 interface Props {
   actor: CurrentActor;

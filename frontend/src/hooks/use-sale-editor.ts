@@ -12,7 +12,7 @@ import {
   type SaleReceipt,
 } from "@/lib/sales/sale";
 import { useApiCommand } from "./use-api-command";
-import { useInspectionLock } from "./use-inspection-lock";
+import { useStaffNavigationLock } from "./use-staff-navigation-lock";
 
 export type SaleCommandName =
   | "claims"
@@ -58,7 +58,7 @@ export function useSaleEditor(initial: Sale, onChanged: () => void) {
     (name) => commands[name].uncertain,
   );
   const operating = busy || uncertain !== undefined;
-  useInspectionLock(formDirty || operating);
+  useStaffNavigationLock(formDirty || operating);
 
   // A fresh read from the host replaces the confirmed record; the form keeps its base until it is clean.
   if (entry !== initial) {

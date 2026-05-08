@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Dialog, DialogActionSlot } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
-import { WorkshopLoadingShell } from "./WorkshopLoadingShell";
+import { StaffDrawerLoadingShell } from "@/components/staff/StaffDrawerLoadingShell";
 import type { useInspectionDrawer } from "@/hooks/use-inspection-drawer";
 import type { CurrentActor } from "@/lib/auth/actor";
 import { InspectionEditor } from "./InspectionEditor";
@@ -42,7 +42,7 @@ export function InspectionDrawer({
         onClose={selection.close}
       >
         {selection.busy && !selection.result?.data && (
-          <WorkshopLoadingShell section={selection.section} />
+          <StaffDrawerLoadingShell label="Loading workshop record…" section={selection.section} />
         )}
         {selection.result?.data && (
           <InspectionEditor

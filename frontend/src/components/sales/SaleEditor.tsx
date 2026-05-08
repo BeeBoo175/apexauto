@@ -22,7 +22,7 @@ import { SaleRecord } from "./SaleRecord";
 import { SaleTermsForm } from "./SaleTermsForm";
 import { SaleTimeline } from "./SaleTimeline";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
-import forms from "@/components/settings/SettingsForms.module.css";
+import forms from "@/components/staff/StaffForms.module.css";
 
 const tabs = saleSections.map((value) => ({
   value,

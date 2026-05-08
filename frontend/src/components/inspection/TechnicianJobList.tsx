@@ -8,7 +8,7 @@ import type { WorkshopRow } from "@/lib/inspection/workshop-contracts";
 import { WorkshopStatus } from "./WorkshopStatus";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { formatCurrency } from "@/lib/currency-format";
-import styles from "./TechnicianWorkspace.module.css";
+import styles from "@/components/staff/StaffQueueWorkspace.module.css";
 
 export function TechnicianJobList({
   title,

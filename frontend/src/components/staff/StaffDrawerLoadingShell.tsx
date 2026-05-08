@@ -1,12 +1,11 @@
-import styles from "./WorkshopLoadingShell.module.css";
-import type { WorkshopSection } from "@/lib/inspection/query";
+import styles from "./StaffDrawerLoadingShell.module.css";
 
-export function WorkshopLoadingShell({
-  label = "Loading workshop record…",
-  section = "inspection",
+export function StaffDrawerLoadingShell({
+  label = "Loading record…",
+  section,
 }: {
   label?: string;
-  section?: WorkshopSection;
+  section?: string;
 }) {
   return (
     <>

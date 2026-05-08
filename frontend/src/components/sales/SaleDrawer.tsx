@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { WorkshopLoadingShell } from "@/components/inspection/WorkshopLoadingShell";
+import { StaffDrawerLoadingShell } from "@/components/staff/StaffDrawerLoadingShell";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActionSlot } from "@/components/ui/Dialog";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
@@ -43,7 +43,7 @@ export function SaleDrawer({
         closeDisabled={selection.locked}
         onClose={selection.close}
       >
-        {loading && <WorkshopLoadingShell label="Loading sale…" />}
+        {loading && <StaffDrawerLoadingShell label="Loading sale…" />}
         {!selection.busy && !sale && selection.id && (
           <div className={workbench.protocol}>
             <p>The sale is unavailable. Your table remains unchanged.</p>

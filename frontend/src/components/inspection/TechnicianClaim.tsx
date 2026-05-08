@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import { Dialog } from "@/components/ui/Dialog";
-import { useInspectionLock } from "@/hooks/use-inspection-lock";
+import { useStaffNavigationLock } from "@/hooks/use-staff-navigation-lock";
 import type { useTechnicianQueue } from "@/hooks/use-technician-queue";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { WorkshopRow } from "@/lib/inspection/workshop-contracts";
 import { AssignmentForm } from "./AssignmentForm";
 import { TechnicianJobList } from "./TechnicianJobList";
-import styles from "./TechnicianWorkspace.module.css";
+import styles from "@/components/staff/StaffQueueWorkspace.module.css";
 
 export function TechnicianClaim({
   actor,
@@ -23,7 +23,7 @@ export function TechnicianClaim({
 }) {
   const [vehicle, setVehicle] = useState<WorkshopRow | null>(null);
   const [locked, setLocked] = useState(false);
-  const lockNavigation = useInspectionLock(locked);
+  const lockNavigation = useStaffNavigationLock(locked);
   return (
     <>
       <div className={styles.queueList} inert={Boolean(vehicle)}>

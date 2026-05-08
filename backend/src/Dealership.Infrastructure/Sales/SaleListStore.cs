@@ -124,11 +124,30 @@ public sealed class SaleListStore(DealershipDbContext database) : ISaleListStore
     };
 
     // The manager table opens on the first tab with work, in the order the tabs are shown.
-    private static string FirstWithWork(SaleTableCounts counts) =>
-        counts.NeedsApproval > 0 ? "NeedsApproval"
-            : counts.Open > 0 ? "Open"
-            : counts.BeingHandled > 0 ? "BeingHandled"
-            : "NeedsApproval";
+    private static string FirstWithWork(SaleTableCounts counts)
+    {
+        if (counts.NeedsApproval > 0)
+        {
+            return "NeedsApproval";
+        }
+
+        if (counts.Open > 0)
+        {
+            return "Open";
+        }
+
+        if (counts.BeingHandled > 0)
+        {
+            return "BeingHandled";
+        }
+
+        if (counts.Approved > 0)
+        {
+            return "Approved";
+        }
+
+        return "NeedsApproval";
+    }
 
     private static IQueryable<SalesOrder> InView(IQueryable<SalesOrder> sales, string view) => view switch
     {

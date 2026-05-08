@@ -1,5 +1,5 @@
-import { WorkshopLoadingShell } from "./WorkshopLoadingShell";
-import workspace from "./TechnicianWorkspace.module.css";
+import { StaffDrawerLoadingShell } from "@/components/staff/StaffDrawerLoadingShell";
+import workspace from "@/components/staff/StaffQueueWorkspace.module.css";
 import styles from "./TechnicianLoadingShell.module.css";
 import loading from "@/components/staff/StaffLoadingShell.module.css";
 
@@ -38,7 +38,7 @@ export function TechnicianLoadingShell({ selected }: { selected: boolean }) {
               </div>
             </div>
             <div className={workspace.editor}>
-              <WorkshopLoadingShell />
+              <StaffDrawerLoadingShell label="Loading workshop record…" />
             </div>
           </div>
         ) : (

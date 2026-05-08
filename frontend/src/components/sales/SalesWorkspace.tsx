@@ -27,7 +27,7 @@ import {
 import { SalesClaim } from "./SalesClaim";
 import { SalesContent } from "./SalesContent";
 import { SalesQueueList } from "./SalesQueueList";
-import styles from "@/components/inspection/TechnicianWorkspace.module.css";
+import styles from "@/components/staff/StaffQueueWorkspace.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 
 export interface SalesWorkspaceProps {

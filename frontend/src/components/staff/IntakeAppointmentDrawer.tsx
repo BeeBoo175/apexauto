@@ -2,9 +2,18 @@ import { useState } from "react";
 import { useLoadingProgress } from "@/components/ui/LoadingProgress";
 import { Dialog, DialogActionSlot } from "@/components/ui/Dialog";
 import { AppointmentWorkbench } from "./AppointmentWorkbench";
-import { AppointmentLoadingShell } from "./AppointmentLoadingShell";
+import { StaffRecordLoadingShell } from "./StaffRecordLoadingShell";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { useStaffAppointmentDrawer } from "@/hooks/use-staff-appointment-drawer";
+
+const appointmentDetails = [
+  "Branch",
+  "Customer",
+  "Inspection",
+  "Booked vehicle",
+  "Declared mileage",
+  "Reference",
+];
 
 export function IntakeAppointmentDrawer({
   actor,
@@ -30,7 +39,13 @@ export function IntakeAppointmentDrawer({
       onClose={drawer.close}
       closeDisabled={drawer.locked}
     >
-      {drawer.busy && <AppointmentLoadingShell showForm={actor.role !== "GeneralManager"} />}
+      {drawer.busy && (
+        <StaffRecordLoadingShell
+          label="Loading appointment…"
+          details={appointmentDetails}
+          showForm={actor.role !== "GeneralManager"}
+        />
+      )}
       {!drawer.busy && drawer.result && (
         <AppointmentWorkbench
           key={drawer.id}

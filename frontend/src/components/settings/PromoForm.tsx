@@ -14,7 +14,7 @@ import { malaysiaInput, utcFromMalaysiaInput } from "@/lib/settings/settings-dra
 import { SettingsNotice } from "./SettingsNotice";
 import { promoState } from "./settings-columns";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
-import styles from "./SettingsForms.module.css";
+import styles from "@/components/staff/StaffForms.module.css";
 
 // The draft is based on the record as it was opened; a newer read never replaces it silently.
 export function PromoForm({

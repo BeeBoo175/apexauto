@@ -11,7 +11,7 @@ import type { ListSnapshot } from "@/hooks/use-settings-workspace";
 import { emptyListFilters, type ListFilters } from "@/lib/settings/settings";
 import type { AppliedWorklistFilter } from "@/lib/staff/filter-summary";
 import type { LoadList } from "./settings-filters";
-import styles from "@/components/staff/IntakeWorklist.module.css";
+import styles from "@/components/staff/StaffWorklist.module.css";
 
 // Administrator-only master data has no bulk action, so unlike operational tables it omits selection and CSV export.
 export function MasterDataTable<Row extends { id: string }>({

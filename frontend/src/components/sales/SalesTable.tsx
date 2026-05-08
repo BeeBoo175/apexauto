@@ -34,8 +34,7 @@ import {
 import { SaleDrawer } from "./SaleDrawer";
 import { saleColumns } from "./sale-columns";
 import { saleTableFilters } from "./sale-filters";
-import layout from "@/components/staff/IntakeWorkspace.module.css";
-import styles from "@/components/staff/IntakeWorklist.module.css";
+import styles from "@/components/staff/StaffWorklist.module.css";
 import workspace from "@/components/staff/StaffWorkspace.module.css";
 
 const rowId = (row: SaleSummary) => row.id;
@@ -102,7 +101,8 @@ export function SalesTable({
     return state.load(next, nextPage);
   }
 
-  // Switching tab restarts from that tab's own ordering; filters that only belong to another tab are dropped.
+  // Switching tab restarts from that tab's own ordering. Agent and Branch columns show on every tab, so
+  // only the filters that belong to one tab are dropped.
   function changeView(next: TableView) {
     const defaults = defaultTableFilters();
     void load({
@@ -110,6 +110,8 @@ export function SalesTable({
       view: next,
       pageSize: active.filters.pageSize,
       search: active.filters.search,
+      agent: active.filters.agent,
+      branch: active.filters.branch,
     });
   }
 
@@ -123,7 +125,7 @@ export function SalesTable({
   }
 
   return (
-    <div className={layout.workspace}>
+    <div className={styles.workspace}>
       <LoadingProgress label="Loading sales" active={state.busy} />
       <StaffCommandBar
         title="Sales"

@@ -11,7 +11,7 @@ import {
   requestApiJson,
   sessionToken,
 } from "@/lib/server/http/api";
-import { hasSalesAccess } from "./sales";
+import { hasSalesAccess, tableTextKeys } from "./sales";
 
 type Body = Record<string, unknown>;
 
@@ -36,25 +36,8 @@ export const saleCommands = [
 
 export type SaleCommand = (typeof saleCommands)[number];
 
-export const tableKeys = [
-  "page",
-  "pageSize",
-  "view",
-  "sort",
-  "direction",
-  "search",
-  "agent",
-  "branch",
-  "outcome",
-  "minimumDiscount",
-  "maximumDiscount",
-  "minimumBalance",
-  "maximumBalance",
-  "submittedFrom",
-  "submittedTo",
-  "closedFrom",
-  "closedTo",
-];
+// Built from the table's filter keys so a new filter reaches the backend without a second list to update.
+export const tableKeys = ["page", "pageSize", "view", "sort", "direction", ...tableTextKeys];
 
 export const queueKeys = ["view", "search", "page", "pageSize"];
 

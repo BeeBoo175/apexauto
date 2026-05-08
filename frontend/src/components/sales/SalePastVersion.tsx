@@ -1,6 +1,6 @@
 "use client";
 
-import { AppointmentLoadingShell } from "@/components/staff/AppointmentLoadingShell";
+import { StaffRecordLoadingShell } from "@/components/staff/StaffRecordLoadingShell";
 import { StaffLedger } from "@/components/staff/StaffLedger";
 import { Button } from "@/components/ui/Button";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
@@ -51,7 +51,7 @@ export function SalePastVersion({
         </Button>
       </div>
       {review.busy && (
-        <AppointmentLoadingShell label="Loading the sale as it stood…" details={loadingDetails} />
+        <StaffRecordLoadingShell label="Loading the sale as it stood…" details={loadingDetails} />
       )}
       {review.failed && (
         <div className={workbench.protocol} role="alert">

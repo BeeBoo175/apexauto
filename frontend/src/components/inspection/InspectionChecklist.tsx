@@ -73,6 +73,7 @@ export function InspectionChecklist({
     jumpArrow = "↗";
     jumpPrefix = "Expand ";
   }
+  // The checklist stays mounted while hidden so a pending or uncertain point photo upload survives a tab change.
   return (
     <section
       ref={sectionRef}

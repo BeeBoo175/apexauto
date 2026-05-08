@@ -21,7 +21,7 @@ import { AppliedWorklistFilters } from "./AppliedWorklistFilters";
 import { WorklistFilters } from "./WorklistFilters";
 import { intakeColumnFilters } from "./intake-column-filters";
 import { intakeColumns } from "./intake-columns";
-import styles from "./IntakeWorklist.module.css";
+import styles from "./StaffWorklist.module.css";
 
 interface IntakeWorklistProps {
   actor: CurrentActor;

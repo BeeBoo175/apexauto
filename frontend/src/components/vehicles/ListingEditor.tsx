@@ -130,6 +130,7 @@ export function ListingEditor({
         }}
       />
       <div className={styles.body} data-split={editing || undefined}>
+        {/* Editing stays mounted while hidden so an in-flight or uncertain photo upload keeps its recovery state across tabs. */}
         <div className={styles.tabContent} hidden={!editing || historical}>
           <ListingEditingWorkspace
             snapshot={snapshot}

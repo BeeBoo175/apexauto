@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/Button";
 import type { StaffHistoryPage } from "@/hooks/use-staff-history";
-import placeholders from "./AppointmentLoadingShell.module.css";
+import placeholders from "./StaffRecordLoadingShell.module.css";
 import timeline from "./StaffHistory.module.css";
 
 interface HistoryRead {

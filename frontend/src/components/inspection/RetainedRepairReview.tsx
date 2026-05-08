@@ -11,7 +11,7 @@ import { formatMalaysianDateTime } from "@/lib/date-format";
 import { RepairRequestDetails, RepairRequestMetadata } from "./RepairRequestDetails";
 import styles from "./Inspection.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
-import { AppointmentLoadingShell } from "@/components/staff/AppointmentLoadingShell";
+import { StaffRecordLoadingShell } from "@/components/staff/StaffRecordLoadingShell";
 import type { ApiResult } from "@/lib/api";
 import type { RepairReview } from "@/lib/inspection/repair-review";
 
@@ -58,7 +58,7 @@ export function RetainedRepairReview({
         {review.result && <RepairRequestMetadata request={review.result.entry.request} />}
       </div>
       {review.busy && !review.result && (
-        <AppointmentLoadingShell
+        <StaffRecordLoadingShell
           label="Loading selected work and signed findings…"
           details={requestDetails}
         />

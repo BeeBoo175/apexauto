@@ -25,8 +25,7 @@ import { PromoDrawer } from "./PromoDrawer";
 import { SettingsForm } from "./SettingsForm";
 import { WarrantyDrawer } from "./WarrantyDrawer";
 import { promoTableFilters, warrantyTableFilters, type LoadList } from "./settings-filters";
-import layout from "@/components/staff/IntakeWorkspace.module.css";
-import styles from "@/components/staff/IntakeWorklist.module.css";
+import styles from "@/components/staff/StaffWorklist.module.css";
 import workspace from "@/components/staff/StaffWorkspace.module.css";
 
 export function SettingsWorkspace({ entry }: { entry: SettingsEntry }) {
@@ -156,7 +155,7 @@ export function SettingsWorkspace({ entry }: { entry: SettingsEntry }) {
   }
 
   return (
-    <div className={layout.workspace}>
+    <div className={styles.workspace}>
       <LoadingProgress label="Loading settings" active={busy} />
       <StaffCommandBar
         title="Settings"

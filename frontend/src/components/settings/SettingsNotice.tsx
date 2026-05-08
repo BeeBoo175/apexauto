@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/Button";
 import type { SaveNotice } from "@/hooks/use-settings-save";
-import styles from "./SettingsForms.module.css";
+import styles from "@/components/staff/StaffForms.module.css";
 
 // A stale write never overwrites silently: the administrator chooses to load the latest record.
 export function SettingsNotice({

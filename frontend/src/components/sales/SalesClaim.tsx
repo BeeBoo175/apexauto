@@ -11,7 +11,7 @@ import { parseSaleReceipt, salePath } from "@/lib/sales/sale";
 import type { SaleSummary } from "@/lib/sales/sales";
 import { HoldWheel } from "./HoldWheel";
 import { SalesQueueList } from "./SalesQueueList";
-import styles from "@/components/inspection/TechnicianWorkspace.module.css";
+import styles from "@/components/staff/StaffQueueWorkspace.module.css";
 
 // Open holds to claim: choosing one asks for confirmation, because claiming makes the agent its handler and pauses
 // the hold's timer. A lost response replays the same operation rather than claiming twice.

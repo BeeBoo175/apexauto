@@ -11,7 +11,7 @@ import { parseSettings, type PurchaseSettings } from "@/lib/settings/settings";
 import { draftFrom, readDraft, unchanged, type SettingsDraft } from "@/lib/settings/settings-draft";
 import { SettingsNotice } from "./SettingsNotice";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
-import styles from "./SettingsForms.module.css";
+import styles from "@/components/staff/StaffForms.module.css";
 
 function SettingsField({
   label,

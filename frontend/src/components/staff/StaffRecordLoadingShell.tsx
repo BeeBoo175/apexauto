@@ -1,22 +1,13 @@
 import workbench from "./StaffWorkspace.module.css";
-import styles from "./AppointmentLoadingShell.module.css";
+import styles from "./StaffRecordLoadingShell.module.css";
 
-const appointmentDetails = [
-  "Branch",
-  "Customer",
-  "Inspection",
-  "Booked vehicle",
-  "Declared mileage",
-  "Reference",
-];
-
-export function AppointmentLoadingShell({
-  label = "Loading appointment…",
-  details = appointmentDetails,
+export function StaffRecordLoadingShell({
+  label,
+  details,
   showForm = false,
 }: {
-  label?: string;
-  details?: readonly string[];
+  label: string;
+  details: readonly string[];
   showForm?: boolean;
 }) {
   return (
