@@ -43,17 +43,17 @@ public sealed class SaleListStore(DealershipDbContext database) : ISaleListStore
         await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead,
             cancellationToken);
         var sales = database.SalesOrders.AsNoTracking();
-        var views = new Dictionary<string, IQueryable<SaleRow>>
+        var tabs = new Dictionary<string, IQueryable<SalesOrder>>
         {
-            ["ToClaim"] = Rows(sales.Where(item => item.BranchId == branchId && item.Status == SalesOrderStatus.Open),
-                search),
-            ["Handling"] = Rows(Own(sales, actorId, SalesOrderStatus.Handling), search),
-            ["Waiting"] = Rows(Own(sales, actorId, SalesOrderStatus.PendingApproval), search),
-            ["Approved"] = Rows(Own(sales, actorId, SalesOrderStatus.Approved), search)
+            ["ToClaim"] = sales.Where(item => item.BranchId == branchId && item.Status == SalesOrderStatus.Open),
+            ["Handling"] = Own(sales, actorId, SalesOrderStatus.Handling),
+            ["Waiting"] = Own(sales, actorId, SalesOrderStatus.PendingApproval),
+            ["Approved"] = Own(sales, actorId, SalesOrderStatus.Approved)
         };
-        var counts = new SaleQueueCounts(await views["ToClaim"].CountAsync(cancellationToken),
-            await views["Handling"].CountAsync(cancellationToken), await views["Waiting"].CountAsync(cancellationToken),
-            await views["Approved"].CountAsync(cancellationToken));
+        var views = tabs.ToDictionary(item => item.Key, item => Rows(item.Value, search));
+        // Without a search the counts need no customer, car or agent details, so they run on the sales alone.
+        var counts = new SaleQueueCounts(await CountAsync("ToClaim"), await CountAsync("Handling"),
+            await CountAsync("Waiting"), await CountAsync("Approved"));
         // A search spans every tab; each match carries its status so the queue can show where it sits.
         var rows = search is null ? views[view] : views.Values.Aggregate((all, next) => all.Concat(next));
         var total = search is null ? CountOf(counts, view) : counts.ToClaim + counts.Handling + counts.Waiting +
@@ -64,6 +64,10 @@ public sealed class SaleListStore(DealershipDbContext database) : ISaleListStore
         await transaction.CommitAsync(cancellationToken);
         return new(SaleStatus.Succeeded,
             new SaleQueuePage(items.Select(SaleRows.Summary).ToList(), total, page, pageSize, counts));
+
+        Task<int> CountAsync(string tab) => search is null
+            ? tabs[tab].CountAsync(cancellationToken)
+            : views[tab].CountAsync(cancellationToken);
     }
 
     public async Task<SaleReadResult<SaleTablePage>> TableAsync(Guid actorId, SaleTableQuery query,

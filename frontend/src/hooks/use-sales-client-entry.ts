@@ -16,7 +16,6 @@ import {
   parseSalesTable,
   queueParams,
   queueQuery,
-  queueViews,
   saleSelection,
   salesQueuePath,
   salesTablePath,
@@ -85,20 +84,25 @@ export function useSalesClientEntry(actor: CurrentActor, parameters: SearchParam
         selected,
       };
     }
-    const [queues, selected, { SalesWorkspace: Workspace }] = await Promise.all([
-      Promise.all(queueViews.map((view) => readQueue(view, signal))),
+    // One read carries every tab's count and the opening tab's first screen; other tabs load when shown.
+    const requested = queueParams(parameters);
+    const first = requested ?? "Handling";
+    const [opening, selected, { SalesWorkspace: Workspace }] = await Promise.all([
+      readQueue(first, signal),
       readSelected(selection.saleId, signal),
       import("@/components/sales/SalesWorkspace"),
     ]);
-    const byView = Object.fromEntries(
-      queueViews.map((view, index) => [view, queues[index]]),
-    ) as Record<QueueView, ApiResult<SalesQueue>>;
+    // Sales in progress come first; with none, the agent is taken to the holds waiting to be claimed.
+    const initialView = firstQueueView(requested, opening.data?.counts);
+    const queues: Partial<Record<QueueView, ApiResult<SalesQueue>>> = { [first]: opening };
+    if (initialView !== first) {
+      queues[initialView] = await readQueue(initialView, signal);
+    }
     return {
       kind: "agent" as const,
       Workspace: Workspace as typeof SalesWorkspace,
-      queues: byView,
-      // Sales in progress come first; with none, the agent is taken to the holds waiting to be claimed.
-      initialView: firstQueueView(queueParams(parameters), byView.Handling.data?.counts),
+      queues,
+      initialView,
       ...common,
       selected,
     };

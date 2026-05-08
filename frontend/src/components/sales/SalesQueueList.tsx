@@ -16,6 +16,7 @@ import {
 } from "@/lib/sales/sales";
 import { HoldWheel } from "./HoldWheel";
 import styles from "@/components/staff/StaffQueueWorkspace.module.css";
+import sales from "./Sales.module.css";
 
 const emptyMessages: Record<QueueView | "Search", string> = {
   Handling: "You are not handling any sales. Claim a hold to start one.",
@@ -104,6 +105,12 @@ export function SalesQueueList({
                     </span>
                     <span>{item.customer}</span>
                   </span>
+                  {!open && (
+                    <span className={sales.queueBalance}>
+                      <span className="sr-only">Balance payable </span>
+                      {formatCurrency(item.balancePayable)}
+                    </span>
+                  )}
                 </span>
                 <span className={styles.jobState}>
                   {view === "Search" && tab && <Badge variant="info">{queueViewTabs[tab]}</Badge>}
@@ -115,7 +122,6 @@ export function SalesQueueList({
                     {open
                       ? ` · Expires ${formatMalaysianDateTime(item.dueAt ?? "")}`
                       : ` · Claimed ${claimAge(item.claimedAt, now)}`}
-                    {!open && ` · ${formatCurrency(item.balancePayable)}`}
                   </span>
                 </span>
               </Button>

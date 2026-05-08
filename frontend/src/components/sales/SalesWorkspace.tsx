@@ -10,6 +10,7 @@ import { RefreshButton } from "@/components/ui/RefreshButton";
 import { SearchField } from "@/components/ui/SearchField";
 import { useToast } from "@/components/ui/Toast";
 import { useSaleSelection } from "@/hooks/use-sale-selection";
+import { useMinuteClock } from "@/hooks/use-minute-clock";
 import { useSalesQueue } from "@/hooks/use-sales-queue";
 import type { ApiResult } from "@/lib/api";
 import type { Sale } from "@/lib/sales/sale";
@@ -31,13 +32,17 @@ import styles from "@/components/staff/StaffQueueWorkspace.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 
 export interface SalesWorkspaceProps {
-  queues: Record<QueueView, ApiResult<SalesQueue>>;
+  // The opening tab is read on entry; the others are read the first time they are shown.
+  queues: Partial<Record<QueueView, ApiResult<SalesQueue>>>;
   initialView: QueueView;
   selectedSaleId: string;
   selectedSale: ApiResult<Sale> | null;
   selectedSection: SaleSection;
   selectedVersion: number | null;
 }
+
+// Read in event handlers only; render reads the moment kept in state.
+const clockNow = () => Date.now();
 
 // The agent's workspace, laid out as the technician's: queues with counts on the left, the selected sale on the right.
 export function SalesWorkspace({
@@ -55,11 +60,11 @@ export function SalesWorkspace({
   const [headerActions, setHeaderActions] = useState<HTMLDivElement | null>(null);
   const [draft, setDraft] = useState("");
   // Hold timers are read against this moment, which moves forward each time the queues are refreshed.
-  const [now, setNow] = useState(() => Date.now());
-  const handling = useSalesQueue("Handling", queues.Handling);
-  const waiting = useSalesQueue("Waiting", queues.Waiting);
-  const approved = useSalesQueue("Approved", queues.Approved);
-  const claimable = useSalesQueue("ToClaim", queues.ToClaim);
+  const [now, setNow] = useMinuteClock();
+  const handling = useSalesQueue("Handling", queues.Handling ?? null);
+  const waiting = useSalesQueue("Waiting", queues.Waiting ?? null);
+  const approved = useSalesQueue("Approved", queues.Approved ?? null);
+  const claimable = useSalesQueue("ToClaim", queues.ToClaim ?? null);
   const found = useSalesQueue("ToClaim", null);
   const worklists = {
     Handling: handling,
@@ -77,10 +82,15 @@ export function SalesWorkspace({
   const interactive = queueViews.every((item) => worklists[item].ready);
   const chosen = Boolean(selection.id || selection.pendingId);
   const searching = Boolean(found.search);
+  // Every read returns all tab counts, so the badges follow the open tab or, before it loads, any loaded tab.
+  const counts = [view, ...queueViews]
+    .map((item) => worklists[item].snapshot)
+    .find(Boolean)?.counts;
 
   async function refresh() {
-    setNow(Date.now());
-    const reads = queueViews.map((item) => worklists[item].refresh(false));
+    setNow(clockNow());
+    const loaded = queueViews.filter((item) => item === view || worklists[item].snapshot);
+    const reads = loaded.map((item) => worklists[item].refresh(false));
     if (found.search) {
       reads.push(found.refresh(false));
     }
@@ -93,6 +103,9 @@ export function SalesWorkspace({
 
   function showView(value: QueueView) {
     setView(value);
+    if (!worklists[value].snapshot) {
+      void worklists[value].refresh();
+    }
     const url = new URL(window.location.href);
     url.searchParams.set("view", queueViewQueries[value]);
     window.history.replaceState(null, "", url);
@@ -183,9 +196,9 @@ export function SalesWorkspace({
                   onClick={() => showView(item)}
                 >
                   <span>{queueViewTabs[item]}</span>
-                  {worklists[item].snapshot && (
+                  {counts && (
                     <Badge variant="count" data-selected={view === item}>
-                      {worklists[item].snapshot.counts[queueCountOf[item]]}
+                      {counts[queueCountOf[item]]}
                       <span className="sr-only"> sales</span>
                     </Badge>
                   )}

@@ -14,6 +14,7 @@ import { RecordToolbar } from "@/components/ui/RecordToolbar";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import { SearchField } from "@/components/ui/SearchField";
 import { useCsvExport } from "@/hooks/use-csv-export";
+import { useMinuteClock } from "@/hooks/use-minute-clock";
 import { useRowSelection } from "@/hooks/use-row-selection";
 import { useSaleSelection } from "@/hooks/use-sale-selection";
 import { useSalesTable } from "@/hooks/use-sales-table";
@@ -71,7 +72,7 @@ export function SalesTable({
   const drawer = useSaleSelection(saleId, selected, section, version);
   const animateEntry = useContext(StaffPageEntranceContext);
   // Hold timers are read against this moment, which moves forward with each confirmed read.
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useMinuteClock();
   const { snapshot, active } = state;
   const view = (active.filters.view || snapshot?.view || "NeedsApproval") as TableView;
   const { columns, applied } = saleTableFilters(

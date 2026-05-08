@@ -57,7 +57,7 @@ public sealed class SaleReadStore(DealershipDbContext database) : ISaleReadStore
             Email(emails, sale.DecidedById), sale.CreatedAt, sale.UpdatedAt, context, SaleAccess.Actions(actor!, sale)));
     }
 
-    // What the editor may offer: warranties the signed grade qualifies for and the customer's own trade-in cars.
+    // What the editor may offer: warranties the signed grade qualifies for and the customer's eligible trade-ins.
     public async Task<SaleReadResult<SaleOptions>> OptionsAsync(Guid actorId, Guid saleId,
         CancellationToken cancellationToken)
     {
@@ -72,12 +72,10 @@ public sealed class SaleReadStore(DealershipDbContext database) : ISaleReadStore
             .OrderBy(item => item.Price).ThenBy(item => item.Name).ToListAsync(cancellationToken);
         var warranties = packages.Where(item => item.IsEligibleFor(grade)).Select(item => new WarrantyOption(item.Id,
             item.Name, item.DurationMonths, item.MileageCapKm, item.Price, item.MinimumGrade.ToString())).ToList();
-        var taken = database.SalesOrders.Where(item => item.Id != saleId && item.TradeInAppointmentId != null &&
-                item.Status != SalesOrderStatus.Expired && item.Status != SalesOrderStatus.Cancelled)
-            .Select(item => item.TradeInAppointmentId);
-        var appointments = await database.IntakeAppointments.AsNoTracking().Where(item =>
-                item.OwnerId == sale.CustomerId && item.CancelledAt == null && !taken.Contains(item.Id))
-            .OrderByDescending(item => item.StartsAt).ThenBy(item => item.Id).ToListAsync(cancellationToken);
+        var taken = SaleTradeIns.TakenByOtherSales(database, saleId);
+        var appointments = await SaleTradeIns.Eligible(database, sale).Where(item => !taken.Contains(item.Id))
+            .OrderByDescending(item => item.StartsAt).ThenBy(item => item.Id).Take(SaleTradeIns.OptionLimit)
+            .ToListAsync(cancellationToken);
         var tradeIns = appointments.Select(item => new TradeInOption(item.Id, SaleLabels.TradeIn(item),
             item.Valuation.Minimum, item.Valuation.Maximum)).ToList();
         return new(SaleStatus.Succeeded, new SaleOptions(warranties, tradeIns));

@@ -42,15 +42,16 @@ internal sealed class SaleCommandTransaction(DealershipDbContext database, IDbCo
         var appointment = await database.IntakeAppointments.FromSqlInterpolated(
             $"SELECT * FROM \"IntakeAppointments\" WHERE \"Id\" = {appointmentId} FOR SHARE").AsNoTracking()
             .SingleOrDefaultAsync(cancellationToken);
-        if (appointment is null || appointment.OwnerId != Sale.CustomerId || appointment.CancelledAt is not null)
+        var eligible = appointment is not null &&
+            await SaleTradeIns.Eligible(database, Sale).AnyAsync(item => item.Id == appointmentId, cancellationToken);
+        if (!eligible)
         {
             return null;
         }
 
-        var taken = await database.SalesOrders.AnyAsync(item => item.Id != Sale.Id &&
-            item.TradeInAppointmentId == appointmentId &&
-            item.Status != SalesOrderStatus.Expired && item.Status != SalesOrderStatus.Cancelled, cancellationToken);
-        return new SaleTradeInChoice(appointment.Id, SaleLabels.TradeIn(appointment), appointment.Valuation.Maximum,
+        var taken = await SaleTradeIns.TakenByOtherSales(database, Sale.Id)
+            .AnyAsync(item => item == appointmentId, cancellationToken);
+        return new SaleTradeInChoice(appointment!.Id, SaleLabels.TradeIn(appointment), appointment.Valuation.Maximum,
             taken);
     }
 

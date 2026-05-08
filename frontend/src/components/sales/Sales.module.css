@@ -39,7 +39,7 @@
 }
 
 .wheelFrozen .wheelArc {
-  stroke: #0b7285;
+  stroke: var(--color-muted);
 }
 
 .wheelText {
@@ -47,6 +47,7 @@
   flex-direction: column;
   gap: 2px;
   color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
   font-size: 12px;
   line-height: 1.4;
 }
@@ -66,7 +67,8 @@
 /* A field a past version changed, against the version before it. */
 .changed {
   border-radius: 4px;
-  background: #fff4e5;
+  background: var(--color-canvas);
+  box-shadow: inset 0 0 0 1px var(--color-line);
 }
 
 .versionBar {
@@ -80,4 +82,14 @@
   border-radius: 8px;
   background: var(--color-canvas);
   font-size: 13px;
+}
+
+/* The balance payable as the queue row's own figure, aligned with the registration. */
+.queueBalance {
+  color: var(--color-graphite);
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
 }
