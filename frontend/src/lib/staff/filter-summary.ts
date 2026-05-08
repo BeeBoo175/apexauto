@@ -33,7 +33,10 @@ export interface AppliedWorklistFilter<Filters = StaffFilters> {
     | "grade"
     | "outcome"
     | "balance"
-    | "closed";
+    | "closed"
+    | "reference"
+    | "overLimit"
+    | "decided";
   label: string;
   without: Filters;
 }

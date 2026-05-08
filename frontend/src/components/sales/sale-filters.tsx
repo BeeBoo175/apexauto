@@ -30,8 +30,17 @@ export function saleTableFilters(
     label: string,
     without: Partial<SalesTableFilters>,
   ) => applied.push({ key, label, without: { ...filters, ...without } });
-  if (filters.agent) {
-    add("agent", `Agent: ${filters.agent}`, { agent: "" });
+  const texts = [
+    ["reference", "Reference"],
+    ["registration", "Registration"],
+    ["vehicle", "Vehicle"],
+    ["customer", "Customer"],
+    ["agent", "Agent"],
+  ] as const;
+  for (const [key, label] of texts) {
+    if (filters[key]) {
+      add(key, `${label}: ${filters[key]}`, { [key]: "" });
+    }
   }
   if (filters.branch) {
     add("branch", `Branch: ${filters.branch}`, { branch: "" });
@@ -43,6 +52,12 @@ export function saleTableFilters(
     add("discount", `Discount: ${money(filters.minimumDiscount, filters.maximumDiscount)}`, {
       minimumDiscount: "",
       maximumDiscount: "",
+    });
+  }
+  if (filters.minimumOverLimit || filters.maximumOverLimit) {
+    add("overLimit", `Over limit: ${money(filters.minimumOverLimit, filters.maximumOverLimit)}`, {
+      minimumOverLimit: "",
+      maximumOverLimit: "",
     });
   }
   if (filters.minimumBalance || filters.maximumBalance) {
@@ -57,6 +72,12 @@ export function saleTableFilters(
       submittedTo: "",
     });
   }
+  if (filters.decidedFrom || filters.decidedTo) {
+    add("decided", `Approved: ${dateRangeLabel(filters.decidedFrom, filters.decidedTo)}`, {
+      decidedFrom: "",
+      decidedTo: "",
+    });
+  }
   if (filters.closedFrom || filters.closedTo) {
     add("closed", `Closed: ${dateRangeLabel(filters.closedFrom, filters.closedTo)}`, {
       closedFrom: "",
@@ -65,17 +86,22 @@ export function saleTableFilters(
   }
 
   const content: Record<string, { active: boolean; content: ReactNode }> = {
-    agent: {
-      active: Boolean(filters.agent),
-      content: (
-        <TextColumnFilter
-          label="Agent contains"
-          value={filters.agent}
-          busy={busy}
-          onApply={(agent) => apply({ agent })}
-        />
-      ),
-    },
+    ...Object.fromEntries(
+      texts.map(([key, label]) => [
+        key,
+        {
+          active: Boolean(filters[key]),
+          content: (
+            <TextColumnFilter
+              label={`${label} contains`}
+              value={filters[key]}
+              busy={busy}
+              onApply={(value) => apply({ [key]: value })}
+            />
+          ),
+        },
+      ]),
+    ),
     branch: {
       active: Boolean(filters.branch),
       content: (
@@ -114,6 +140,30 @@ export function saleTableFilters(
           onApply={(minimumDiscount, maximumDiscount) =>
             apply({ minimumDiscount, maximumDiscount })
           }
+        />
+      ),
+    },
+    overLimit: {
+      active: Boolean(filters.minimumOverLimit || filters.maximumOverLimit),
+      content: (
+        <MoneyRangeFilter
+          minimum={filters.minimumOverLimit}
+          maximum={filters.maximumOverLimit}
+          busy={busy}
+          onApply={(minimumOverLimit, maximumOverLimit) =>
+            apply({ minimumOverLimit, maximumOverLimit })
+          }
+        />
+      ),
+    },
+    decided: {
+      active: Boolean(filters.decidedFrom || filters.decidedTo),
+      content: (
+        <DateRangeFilter
+          from={filters.decidedFrom}
+          to={filters.decidedTo}
+          busy={busy}
+          onApply={(decidedFrom, decidedTo) => apply({ decidedFrom, decidedTo })}
         />
       ),
     },

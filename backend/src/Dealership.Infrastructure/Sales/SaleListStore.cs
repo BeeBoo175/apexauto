@@ -179,6 +179,32 @@ public sealed class SaleListStore(DealershipDbContext database) : ISaleListStore
             rows = rows.Where(row => row.Status == status);
         }
 
+        if (query.Registration is { } registration)
+        {
+            var pattern = LiteralSearch.Pattern(registration);
+            rows = rows.Where(row => EF.Functions.ILike(row.Plate, pattern, "!"));
+        }
+
+        if (query.Vehicle is { } vehicle)
+        {
+            var pattern = LiteralSearch.Pattern(vehicle);
+            rows = rows.Where(row =>
+                EF.Functions.ILike(row.Year + " " + row.Make + " " + row.Model + " " + row.Trim, pattern, "!"));
+        }
+
+        if (query.Customer is { } customer)
+        {
+            var pattern = LiteralSearch.Pattern(customer);
+            rows = rows.Where(row => EF.Functions.ILike(row.Customer, pattern, "!"));
+        }
+
+        // The reference is the order number once submitted, the reservation number before.
+        if (query.Reference is { } reference)
+        {
+            var pattern = LiteralSearch.Pattern(reference);
+            rows = rows.Where(row => EF.Functions.ILike(row.OrderNumber ?? row.ReservationNumber, pattern, "!"));
+        }
+
         if (query.MinimumDiscount is { } minimumDiscount)
         {
             rows = rows.Where(row => row.NegotiatedDiscount >= minimumDiscount);
@@ -197,6 +223,13 @@ public sealed class SaleListStore(DealershipDbContext database) : ISaleListStore
         if (query.MaximumBalance is { } maximumBalance)
         {
             rows = rows.Where(row => row.BalancePayable <= maximumBalance);
+        }
+
+        rows = SaleRows.OverLimitBetween(rows, query.MinimumOverLimit, query.MaximumOverLimit);
+
+        if (query.Decided is { From: { } decidedFrom, Until: { } decidedUntil })
+        {
+            rows = rows.Where(row => row.DecidedAt >= decidedFrom && row.DecidedAt < decidedUntil);
         }
 
         if (query.Submitted is { From: { } submittedFrom, Until: { } submittedUntil })

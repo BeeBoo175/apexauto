@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Dealership.Application.Sales;
 using Dealership.Domain.Sales;
 using Dealership.Infrastructure.Persistence;
@@ -106,6 +107,31 @@ internal static class SaleRows
         row.Status is SalesOrderStatus.Expired or SalesOrderStatus.Cancelled ? row.Status.ToString() : null,
         row.Version);
 
+    // As the over-limit column shows it: the excess over the submitted limit, or nothing without a limit or an
+    // excess. Sorting and filtering both use it so they agree with the display.
+    private static readonly Expression<Func<SaleRow, decimal>> OverLimit = row =>
+        row.DiscountLimitAtSubmit != null && row.NegotiatedDiscount > row.DiscountLimitAtSubmit
+            ? row.NegotiatedDiscount - row.DiscountLimitAtSubmit.Value
+            : 0m;
+
+    public static IQueryable<SaleRow> OverLimitBetween(IQueryable<SaleRow> rows, decimal? minimum, decimal? maximum)
+    {
+        var row = OverLimit.Parameters[0];
+        if (minimum is { } least)
+        {
+            var atLeast = Expression.GreaterThanOrEqual(OverLimit.Body, Expression.Constant(least));
+            rows = rows.Where(Expression.Lambda<Func<SaleRow, bool>>(atLeast, row));
+        }
+
+        if (maximum is { } most)
+        {
+            var atMost = Expression.LessThanOrEqual(OverLimit.Body, Expression.Constant(most));
+            rows = rows.Where(Expression.Lambda<Func<SaleRow, bool>>(atMost, row));
+        }
+
+        return rows;
+    }
+
     // Every ordering ends in the sale identity, so paging never repeats or skips a sale.
     public static IOrderedQueryable<SaleRow> Order(IQueryable<SaleRow> rows, string sort, bool down) => sort switch
     {
@@ -118,10 +144,7 @@ internal static class SaleRows
         // Status sorts in lifecycle order, which is the order SalesOrderStatus declares.
         "status" => By(rows, row => row.Status, down),
         "discount" => By(rows, row => row.NegotiatedDiscount, down),
-        // As the column shows it: the excess over the submitted limit, or nothing without a limit or an excess.
-        "overLimit" => By(rows, row => row.DiscountLimitAtSubmit != null && row.NegotiatedDiscount > row.DiscountLimitAtSubmit
-            ? row.NegotiatedDiscount - row.DiscountLimitAtSubmit.Value
-            : 0m, down),
+        "overLimit" => By(rows, OverLimit, down),
         "submitted" => By(rows, row => row.SubmittedAt, down),
         "due" => By(rows, row => row.DueAt, down),
         "claimed" => By(rows, row => row.ClaimedAt, down),
@@ -131,6 +154,6 @@ internal static class SaleRows
     };
 
     private static IOrderedQueryable<SaleRow> By<TKey>(IQueryable<SaleRow> rows,
-        System.Linq.Expressions.Expression<Func<SaleRow, TKey>> key, bool down) =>
+        Expression<Func<SaleRow, TKey>> key, bool down) =>
         (down ? rows.OrderByDescending(key) : rows.OrderBy(key)).ThenBy(row => row.Id);
 }

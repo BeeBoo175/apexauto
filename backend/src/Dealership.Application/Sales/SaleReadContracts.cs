@@ -43,6 +43,20 @@ public sealed record SaleTableQuery(int Page, int PageSize, string? View, string
 
     public string? Outcome { get; init; }
 
+    public string? Registration { get; init; }
+
+    public string? Vehicle { get; init; }
+
+    public string? Customer { get; init; }
+
+    public string? Reference { get; init; }
+
+    public decimal? MinimumOverLimit { get; init; }
+
+    public decimal? MaximumOverLimit { get; init; }
+
+    public ListDateRange? Decided { get; init; }
+
     public decimal? MinimumDiscount { get; init; }
 
     public decimal? MaximumDiscount { get; init; }

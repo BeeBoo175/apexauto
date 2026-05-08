@@ -26,16 +26,21 @@ public static class SaleQueries
     public static SaleTableQuery? Table(int page, int pageSize, string? view, string? search, string? sort,
         string? direction, string? agent, string? branch, string? outcome, decimal? minimumDiscount,
         decimal? maximumDiscount, decimal? minimumBalance, decimal? maximumBalance, string? submittedFrom,
-        string? submittedTo, string? closedFrom, string? closedTo)
+        string? submittedTo, string? closedFrom, string? closedTo, string? registration, string? vehicle,
+        string? customer, string? reference, decimal? minimumOverLimit, decimal? maximumOverLimit,
+        string? decidedFrom, string? decidedTo)
     {
-        var texts = new[] { search, agent, branch }.Select(item => item?.Trim()).ToArray();
+        var texts = new[] { search, agent, branch, registration, vehicle, customer, reference }
+            .Select(item => item?.Trim()).ToArray();
         var submitted = ListDateRange.Parse(submittedFrom, submittedTo);
         var closed = ListDateRange.Parse(closedFrom, closedTo);
+        var decided = ListDateRange.Parse(decidedFrom, decidedTo);
         if (!Pagination.IsValid(page, pageSize) || view is not null && !TableViews.Contains(view) ||
             sort is not null && !Sorts.Contains(sort) || direction is not (null or "asc" or "desc") ||
             direction is not null && sort is null || outcome is not null && !Outcomes.Contains(outcome) ||
             !MoneyRange.IsValid(minimumDiscount, maximumDiscount) || !MoneyRange.IsValid(minimumBalance, maximumBalance) ||
-            submitted is null || closed is null || texts.Any(item => item is not null && !ListSearch.IsValid(item)))
+            !MoneyRange.IsValid(minimumOverLimit, maximumOverLimit) ||
+            submitted is null || closed is null || decided is null || texts.Any(item => item is not null && !ListSearch.IsValid(item)))
         {
             return null;
         }
@@ -45,12 +50,19 @@ public static class SaleQueries
             Agent = Clean(texts[1]),
             Branch = Clean(texts[2]),
             Outcome = outcome,
+            Registration = Clean(texts[3]),
+            Vehicle = Clean(texts[4]),
+            Customer = Clean(texts[5]),
+            Reference = Clean(texts[6]),
+            MinimumOverLimit = minimumOverLimit,
+            MaximumOverLimit = maximumOverLimit,
             MinimumDiscount = minimumDiscount,
             MaximumDiscount = maximumDiscount,
             MinimumBalance = minimumBalance,
             MaximumBalance = maximumBalance,
             Submitted = submitted.From is null ? null : submitted,
-            Closed = closed.From is null ? null : closed
+            Closed = closed.From is null ? null : closed,
+            Decided = decided.From is null ? null : decided
         };
     }
 

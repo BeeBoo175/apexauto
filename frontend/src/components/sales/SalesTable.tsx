@@ -101,7 +101,7 @@ export function SalesTable({
     return state.load(next, nextPage);
   }
 
-  // Switching tab restarts from that tab's own ordering. Agent and Branch columns show on every tab, so
+  // Switching tab restarts from that tab's own ordering. Filters on the columns every tab shows are kept;
   // only the filters that belong to one tab are dropped.
   function changeView(next: TableView) {
     const defaults = defaultTableFilters();
@@ -110,6 +110,10 @@ export function SalesTable({
       view: next,
       pageSize: active.filters.pageSize,
       search: active.filters.search,
+      reference: active.filters.reference,
+      registration: active.filters.registration,
+      vehicle: active.filters.vehicle,
+      customer: active.filters.customer,
       agent: active.filters.agent,
       branch: active.filters.branch,
     });

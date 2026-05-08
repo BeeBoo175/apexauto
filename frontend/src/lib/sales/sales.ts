@@ -236,6 +236,14 @@ export const tableTextKeys = [
   "submittedTo",
   "closedFrom",
   "closedTo",
+  "registration",
+  "vehicle",
+  "customer",
+  "reference",
+  "minimumOverLimit",
+  "maximumOverLimit",
+  "decidedFrom",
+  "decidedTo",
 ] as const;
 
 export interface SalesTableFilters extends Record<(typeof tableTextKeys)[number], string> {
