@@ -23,9 +23,39 @@ public static class SaleAccess
         actor.Role is AccountRoles.SalesAgent or AccountRoles.BranchManager or AccountRoles.GeneralManager &&
         (actor.Role == AccountRoles.GeneralManager || actor.BranchId is not null && branchActive);
 
-    // A replay is the same operation by the same actor, of the same kind, from the same base version.
-    public static bool IsReplay(SalesOrderEvent existing, Guid saleId, Guid actorId, long expectedVersion,
-        params SalesOrderEventKind[] kinds) =>
-        existing.SalesOrderId == saleId && existing.ActorId == actorId && kinds.Contains(existing.Kind) &&
-        existing.Sequence == expectedVersion + 1;
+    // Who may run each command, whatever the sale's state; the commands answer Forbidden when these fail and
+    // Conflict when only the state is wrong. Actions combines both for the editor, so the two cannot drift.
+    public static bool MayClaim(SaleStaff actor, SalesOrder sale) => IsAgent(actor, sale.BranchId);
+
+    public static bool MayAssign(SaleStaff actor, SalesOrder sale) => IsManager(actor, sale.BranchId);
+
+    public static bool MayRelease(SaleStaff actor, SalesOrder sale) =>
+        IsManager(actor, sale.BranchId) || IsHandlingAgent(actor, sale);
+
+    public static bool MayKeyTerms(SaleStaff actor, SalesOrder sale) => IsHandlingAgent(actor, sale);
+
+    public static bool MayDecide(SaleStaff actor, SalesOrder sale) => IsManager(actor, sale.BranchId);
+
+    // Agents cancel only a sale they are still keying; managers cancel any sale.
+    public static bool MayCancel(SaleStaff actor, SalesOrder sale)
+    {
+        var keying = IsHandlingAgent(actor, sale) && sale.Status == SalesOrderStatus.Handling;
+        return IsManager(actor, sale.BranchId) || keying;
+    }
+
+    public static SaleActions Actions(SaleStaff actor, SalesOrder sale)
+    {
+        var handling = sale.Status == SalesOrderStatus.Handling;
+        return new SaleActions(
+            Claim: MayClaim(actor, sale) && sale.Status == SalesOrderStatus.Open,
+            Assign: MayAssign(actor, sale) && !sale.IsClosed,
+            Release: MayRelease(actor, sale) && handling,
+            SaveTerms: MayKeyTerms(actor, sale) && sale.Status is SalesOrderStatus.Handling or SalesOrderStatus.Approved,
+            Submit: MayKeyTerms(actor, sale) && handling,
+            Decide: MayDecide(actor, sale) && sale.Status == SalesOrderStatus.PendingApproval,
+            Cancel: MayCancel(actor, sale) && !sale.IsClosed);
+    }
+
+    private static bool IsHandlingAgent(SaleStaff actor, SalesOrder sale) =>
+        IsAgent(actor, sale.BranchId) && sale.AgentId == actor.Id;
 }

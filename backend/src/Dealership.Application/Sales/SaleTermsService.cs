@@ -1,6 +1,5 @@
 using Dealership.Domain.Sales;
 using Dealership.Domain.Vehicles;
-using static Dealership.Application.Sales.SaleHandlingService;
 
 namespace Dealership.Application.Sales;
 
@@ -15,7 +14,8 @@ public sealed class SaleTermsService(ISaleCommandStore sales)
         var tradeInPaired = request.TradeInAppointmentId is null
             ? request.TradeInAllowance == 0m
             : request.TradeInAllowance > 0m;
-        if (!Valid(actorId, saleId, request.OperationId, request.ExpectedVersion) || !tradeInPaired ||
+        var validRequest = SaleCommandSteps.Valid(actorId, saleId, request.OperationId, request.ExpectedVersion);
+        if (!validRequest || !tradeInPaired ||
             request.WarrantyPackageId == Guid.Empty || request.TradeInAppointmentId == Guid.Empty ||
             !ValidAmount(request.NegotiatedDiscount) || !ValidAmount(request.TradeInAllowance))
         {
@@ -23,7 +23,7 @@ public sealed class SaleTermsService(ISaleCommandStore sales)
         }
 
         await using var transaction = await sales.LockAsync(actorId, saleId, request.OperationId, cancellationToken);
-        var (actor, sale, failure) = Scope(transaction.Context);
+        var (actor, sale, failure) = SaleCommandSteps.Scope(transaction.Context);
         if (failure is not null)
         {
             return new(failure.Value);
@@ -36,17 +36,21 @@ public sealed class SaleTermsService(ISaleCommandStore sales)
                 snapshot.NegotiatedDiscount == request.NegotiatedDiscount &&
                 snapshot.TradeInAppointmentId == request.TradeInAppointmentId &&
                 snapshot.TradeInAllowance == request.TradeInAllowance;
-            return matches
-                ? Replayed(existing, saleId, actorId, request.ExpectedVersion, SalesOrderEventKind.TermsSaved)
-                : new(SaleStatus.Conflict);
+            if (!matches)
+            {
+                return new(SaleStatus.Conflict);
+            }
+
+            return SaleCommandSteps.Replayed(existing, saleId, actorId, request.ExpectedVersion,
+                SalesOrderEventKind.TermsSaved);
         }
 
-        if (sale!.AgentId != actorId || !SaleAccess.IsAgent(actor!, sale.BranchId))
+        if (!SaleAccess.MayKeyTerms(actor!, sale!))
         {
             return new(SaleStatus.Forbidden);
         }
 
-        if (sale.Version != request.ExpectedVersion)
+        if (sale!.Version != request.ExpectedVersion)
         {
             return new(SaleStatus.Conflict);
         }
@@ -86,20 +90,21 @@ public sealed class SaleTermsService(ISaleCommandStore sales)
         }
 
         var terms = new DealTermsInput(warranty, request.NegotiatedDiscount, tradeIn);
-        return await ApplyAsync(transaction, () => sale.SaveTerms(request.OperationId, terms, settings, actorId,
-            transaction.Context.Now), cancellationToken);
+        return await SaleCommandSteps.ApplyAsync(transaction,
+            () => sale.SaveTerms(request.OperationId, terms, settings, actorId, transaction.Context.Now),
+            cancellationToken);
     }
 
     public async Task<SaleCommandResult> SubmitAsync(Guid actorId, Guid saleId, SaleCommandRequest request,
         CancellationToken cancellationToken)
     {
-        if (!Valid(actorId, saleId, request.OperationId, request.ExpectedVersion))
+        if (!SaleCommandSteps.Valid(actorId, saleId, request.OperationId, request.ExpectedVersion))
         {
             return new(SaleStatus.Invalid);
         }
 
         await using var transaction = await sales.LockAsync(actorId, saleId, request.OperationId, cancellationToken);
-        var (actor, sale, failure) = Scope(transaction.Context);
+        var (actor, sale, failure) = SaleCommandSteps.Scope(transaction.Context);
         if (failure is not null)
         {
             return new(failure.Value);
@@ -107,15 +112,16 @@ public sealed class SaleTermsService(ISaleCommandStore sales)
 
         if (transaction.Context.Existing is { } existing)
         {
-            return Replayed(existing, saleId, actorId, request.ExpectedVersion, SalesOrderEventKind.Submitted);
+            return SaleCommandSteps.Replayed(existing, saleId, actorId, request.ExpectedVersion,
+                SalesOrderEventKind.Submitted);
         }
 
-        if (sale!.AgentId != actorId || !SaleAccess.IsAgent(actor!, sale.BranchId))
+        if (!SaleAccess.MayKeyTerms(actor!, sale!))
         {
             return new(SaleStatus.Forbidden);
         }
 
-        if (sale.Version != request.ExpectedVersion || sale.Status != SalesOrderStatus.Handling)
+        if (sale!.Version != request.ExpectedVersion || sale.Status != SalesOrderStatus.Handling)
         {
             return new(SaleStatus.Conflict);
         }
@@ -128,8 +134,8 @@ public sealed class SaleTermsService(ISaleCommandStore sales)
 
         var now = transaction.Context.Now;
         var number = sale.OrderNumber ?? await transaction.NextOrderNumberAsync(now.Year, cancellationToken);
-        return await ApplyAsync(transaction, () => sale.Submit(request.OperationId, settings, number, actorId, now),
-            cancellationToken);
+        return await SaleCommandSteps.ApplyAsync(transaction,
+            () => sale.Submit(request.OperationId, settings, number, actorId, now), cancellationToken);
     }
 
     public async Task<SaleCommandResult> ApproveAsync(Guid actorId, Guid saleId, SaleCommandRequest request,
@@ -142,23 +148,25 @@ public sealed class SaleTermsService(ISaleCommandStore sales)
     public async Task<SaleCommandResult> RejectAsync(Guid actorId, Guid saleId, SaleReasonRequest request,
         CancellationToken cancellationToken)
     {
-        return SalesOrder.ValidReason(request.Reason)
-            ? await DecideAsync(actorId, saleId, request, approve: false, cancellationToken)
-            : new(SaleStatus.Invalid);
+        if (!SalesOrder.ValidReason(request.Reason))
+        {
+            return new(SaleStatus.Invalid);
+        }
+
+        return await DecideAsync(actorId, saleId, request, approve: false, cancellationToken);
     }
 
-    // Agents cancel only a sale they are still keying; managers cancel any sale that is not closed.
     public async Task<SaleCommandResult> CancelAsync(Guid actorId, Guid saleId, SaleReasonRequest request,
         CancellationToken cancellationToken)
     {
-        if (!Valid(actorId, saleId, request.OperationId, request.ExpectedVersion) ||
+        if (!SaleCommandSteps.Valid(actorId, saleId, request.OperationId, request.ExpectedVersion) ||
             !SalesOrder.ValidReason(request.Reason))
         {
             return new(SaleStatus.Invalid);
         }
 
         await using var transaction = await sales.LockAsync(actorId, saleId, request.OperationId, cancellationToken);
-        var (actor, sale, failure) = Scope(transaction.Context);
+        var (actor, sale, failure) = SaleCommandSteps.Scope(transaction.Context);
         if (failure is not null)
         {
             return new(failure.Value);
@@ -166,20 +174,21 @@ public sealed class SaleTermsService(ISaleCommandStore sales)
 
         if (transaction.Context.Existing is { } existing)
         {
-            return existing.Reason == request.Reason
-                ? Replayed(existing, saleId, actorId, request.ExpectedVersion, SalesOrderEventKind.Cancelled)
-                : new(SaleStatus.Conflict);
+            if (existing.Reason != request.Reason)
+            {
+                return new(SaleStatus.Conflict);
+            }
+
+            return SaleCommandSteps.Replayed(existing, saleId, actorId, request.ExpectedVersion,
+                SalesOrderEventKind.Cancelled);
         }
 
-        var manager = SaleAccess.IsManager(actor!, sale!.BranchId);
-        var ownHandling = SaleAccess.IsAgent(actor!, sale.BranchId) && sale.AgentId == actorId &&
-            sale.Status == SalesOrderStatus.Handling;
-        if (!manager && !ownHandling)
+        if (!SaleAccess.MayCancel(actor!, sale!))
         {
             return new(SaleStatus.Forbidden);
         }
 
-        if (sale.Version != request.ExpectedVersion || sale.IsClosed)
+        if (sale!.Version != request.ExpectedVersion || sale.IsClosed)
         {
             return new(SaleStatus.Conflict);
         }
@@ -193,20 +202,21 @@ public sealed class SaleTermsService(ISaleCommandStore sales)
             return new(SaleStatus.Conflict);
         }
 
-        return await ApplyAsync(transaction, () => sale.Cancel(request.OperationId, actorId, request.Reason!,
-            releaseId.Value, transaction.Context.Now), cancellationToken);
+        return await SaleCommandSteps.ApplyAsync(transaction,
+            () => sale.Cancel(request.OperationId, actorId, request.Reason!, releaseId.Value, transaction.Context.Now),
+            cancellationToken);
     }
 
     private async Task<SaleCommandResult> DecideAsync(Guid actorId, Guid saleId, SaleReasonRequest request,
         bool approve, CancellationToken cancellationToken)
     {
-        if (!Valid(actorId, saleId, request.OperationId, request.ExpectedVersion))
+        if (!SaleCommandSteps.Valid(actorId, saleId, request.OperationId, request.ExpectedVersion))
         {
             return new(SaleStatus.Invalid);
         }
 
         await using var transaction = await sales.LockAsync(actorId, saleId, request.OperationId, cancellationToken);
-        var (actor, sale, failure) = Scope(transaction.Context);
+        var (actor, sale, failure) = SaleCommandSteps.Scope(transaction.Context);
         if (failure is not null)
         {
             return new(failure.Value);
@@ -215,26 +225,33 @@ public sealed class SaleTermsService(ISaleCommandStore sales)
         var kind = approve ? SalesOrderEventKind.Approved : SalesOrderEventKind.Rejected;
         if (transaction.Context.Existing is { } existing)
         {
-            return existing.Reason == request.Reason
-                ? Replayed(existing, saleId, actorId, request.ExpectedVersion, kind)
-                : new(SaleStatus.Conflict);
+            if (existing.Reason != request.Reason)
+            {
+                return new(SaleStatus.Conflict);
+            }
+
+            return SaleCommandSteps.Replayed(existing, saleId, actorId, request.ExpectedVersion, kind);
         }
 
-        if (!SaleAccess.IsManager(actor!, sale!.BranchId))
+        if (!SaleAccess.MayDecide(actor!, sale!))
         {
             return new(SaleStatus.Forbidden);
         }
 
-        if (sale.Version != request.ExpectedVersion)
+        if (sale!.Version != request.ExpectedVersion)
         {
             return new(SaleStatus.Conflict);
         }
 
         var now = transaction.Context.Now;
-        return approve
-            ? await ApplyAsync(transaction, () => sale.Approve(request.OperationId, actorId, now), cancellationToken)
-            : await ApplyAsync(transaction, () => sale.Reject(request.OperationId, actorId, request.Reason!, now),
-                cancellationToken);
+        if (approve)
+        {
+            return await SaleCommandSteps.ApplyAsync(transaction,
+                () => sale.Approve(request.OperationId, actorId, now), cancellationToken);
+        }
+
+        return await SaleCommandSteps.ApplyAsync(transaction,
+            () => sale.Reject(request.OperationId, actorId, request.Reason!, now), cancellationToken);
     }
 
     private static bool ValidAmount(decimal amount) => amount is >= 0m and <= PurchaseSettings.MaximumFee * 100 &&

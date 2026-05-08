@@ -6,11 +6,14 @@ import { privateApiFetch } from "@/lib/api-browser";
 import { isRecord } from "@/lib/auth/contracts";
 import {
   parseSale,
+  parseSaleOptions,
   parseSaleReceipt,
   salePath,
   type Sale,
+  type SaleOptions,
   type SaleReceipt,
 } from "@/lib/sales/sale";
+import { saleTermsChanged, saleTermsDraft, type SaleTermsDraft } from "@/lib/sales/sale-terms";
 import { useApiCommand } from "./use-api-command";
 import { useStaffNavigationLock } from "./use-staff-navigation-lock";
 
@@ -24,6 +27,27 @@ export type SaleCommandName =
   | "rejections"
   | "cancellations";
 
+type NoFields = Record<string, never>;
+
+export interface SaleTermsFields {
+  warrantyPackageId: string | null;
+  negotiatedDiscount: number;
+  tradeInAppointmentId: string | null;
+  tradeInAllowance: number;
+}
+
+// What each command sends besides its operation and base version.
+export interface SaleCommandFields {
+  claims: NoFields;
+  assignments: { agentId: string };
+  releases: NoFields;
+  terms: SaleTermsFields;
+  submissions: NoFields;
+  approvals: NoFields;
+  rejections: { reason: string };
+  cancellations: { reason: string };
+}
+
 // A receipt belongs to the captured command only if it names the same operation and sale.
 const receiptMatches = (saleId: string) => (receipt: SaleReceipt, request: unknown) =>
   isRecord(request) && receipt.operationId === request.operationId && receipt.saleId === saleId;
@@ -36,7 +60,14 @@ export function useSaleEditor(initial: Sale, onChanged: () => void) {
   const [snapshot, setSnapshot] = useState(initial);
   // The version the open terms form started from; a newer confirmed version is offered, never forced on it.
   const [base, setBase] = useState(initial);
-  const [formDirty, setFormDirty] = useState(false);
+  // The terms and decision note being typed live here, so leaving a section never loses them.
+  const [terms, setTerms] = useState(() => saleTermsDraft(initial.sale));
+  const [termsBase, setTermsBase] = useState(initial);
+  // The draft a save sent stays clean until the confirmed version it produced becomes the base.
+  const [savedTerms, setSavedTerms] = useState<SaleTermsDraft | null>(null);
+  const [reason, setReason] = useState("");
+  const [options, setOptions] = useState<SaleOptions | null>(null);
+  const [optionsFailed, setOptionsFailed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const controller = useRef<AbortController | null>(null);
@@ -58,6 +89,8 @@ export function useSaleEditor(initial: Sale, onChanged: () => void) {
     (name) => commands[name].uncertain,
   );
   const operating = busy || uncertain !== undefined;
+  const keysTerms = snapshot.actions.saveTerms;
+  const formDirty = keysTerms && terms !== savedTerms && saleTermsChanged(terms, base.sale);
   useStaffNavigationLock(formDirty || operating);
 
   // A fresh read from the host replaces the confirmed record; the form keeps its base until it is clean.
@@ -69,7 +102,37 @@ export function useSaleEditor(initial: Sale, onChanged: () => void) {
     }
   }
 
+  // A new base restarts the draft from its terms.
+  if (termsBase !== base) {
+    setTermsBase(base);
+    setTerms(saleTermsDraft(base.sale));
+    setSavedTerms(null);
+  }
+
   useEffect(() => () => controller.current?.abort(), []);
+
+  // The warranty and trade-in choices are read once per sale, when its agent may key terms.
+  useEffect(() => {
+    if (!keysTerms) {
+      return;
+    }
+    const attempt = new AbortController();
+    privateApiFetch(`${salePath(id)}/options`, parseSaleOptions, { signal: attempt.signal })
+      .then((result) => {
+        if (result.status === 200 && result.data) {
+          setOptions(result.data);
+          setOptionsFailed(false);
+        } else {
+          setOptionsFailed(true);
+        }
+      })
+      .catch(() => {
+        if (!attempt.signal.aborted) {
+          setOptionsFailed(true);
+        }
+      });
+    return () => attempt.abort();
+  }, [id, keysTerms]);
 
   async function refresh(afterCommand = false) {
     if (controller.current || (operating && !afterCommand)) {
@@ -108,7 +171,7 @@ export function useSaleEditor(initial: Sale, onChanged: () => void) {
   }
 
   // Each command names a fresh operation and the confirmed version; an unconfirmed one replays exactly.
-  async function run(name: SaleCommandName, fields: Record<string, unknown> = {}) {
+  async function run<Name extends SaleCommandName>(name: Name, fields: SaleCommandFields[Name]) {
     const command = commands[name];
     if (busy || (uncertain && uncertain !== name)) {
       return false;
@@ -125,7 +188,10 @@ export function useSaleEditor(initial: Sale, onChanged: () => void) {
       return false;
     }
     if (name === "terms") {
-      setFormDirty(false);
+      setSavedTerms(terms);
+    }
+    if (name === "rejections" || name === "cancellations") {
+      setReason("");
     }
     onChanged();
     const read = await refresh(true);
@@ -139,7 +205,12 @@ export function useSaleEditor(initial: Sale, onChanged: () => void) {
     // The open form started from an older version than the one now confirmed.
     stale: formDirty && base.sale.version !== snapshot.sale.version,
     dirty: formDirty,
-    markDirty: setFormDirty,
+    terms,
+    changeTerms: (patch: Partial<SaleTermsDraft>) => setTerms((draft) => ({ ...draft, ...patch })),
+    reason,
+    setReason,
+    options,
+    optionsFailed,
     useLatest: () => setBase(snapshot),
     refreshing,
     confirmed,

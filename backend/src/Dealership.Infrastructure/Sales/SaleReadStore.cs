@@ -54,7 +54,7 @@ public sealed class SaleReadStore(DealershipDbContext database) : ISaleReadStore
             facts.CreatedAt, warranty?.DurationMonths, warranty?.MileageCapKm, tradeIn?.Valuation.Minimum,
             tradeIn?.Valuation.Maximum);
         return new(SaleStatus.Succeeded, new SaleView(sale.Id, DealSnapshot.Of(sale), Email(emails, sale.AgentId),
-            Email(emails, sale.DecidedById), sale.CreatedAt, sale.UpdatedAt, context, Actions(actor!, sale)));
+            Email(emails, sale.DecidedById), sale.CreatedAt, sale.UpdatedAt, context, SaleAccess.Actions(actor!, sale)));
     }
 
     // What the editor may offer: warranties the signed grade qualifies for and the customer's own trade-in cars.
@@ -172,22 +172,6 @@ public sealed class SaleReadStore(DealershipDbContext database) : ISaleReadStore
             entry.RecordedAt, Email(emails, entry.ActorId) ?? "System", Email(emails, entry.AgentId), entry.Reason,
             entry.Snapshot, previous?.Snapshot));
     }
-
-    internal static SaleActions Actions(SaleStaff actor, SalesOrder sale)
-    {
-        var manager = SaleAccess.IsManager(actor, sale.BranchId);
-        var own = SaleAccess.IsAgent(actor, sale.BranchId) && sale.AgentId == actor.Id;
-        var handling = sale.Status == SalesOrderStatus.Handling;
-        return new SaleActions(
-            Claim: SaleAccess.IsAgent(actor, sale.BranchId) && sale.Status == SalesOrderStatus.Open,
-            Assign: manager && !sale.IsClosed,
-            Release: handling && (manager || own),
-            SaveTerms: own && sale.Status is SalesOrderStatus.Handling or SalesOrderStatus.Approved,
-            Submit: own && handling,
-            Decide: manager && sale.Status == SalesOrderStatus.PendingApproval,
-            Cancel: manager && !sale.IsClosed || own && handling);
-    }
-
     private async Task<(SaleStatus Status, SaleStaff? Actor, SalesOrder? Sale)> ScopeAsync(Guid actorId, Guid saleId,
         CancellationToken cancellationToken)
     {

@@ -30,13 +30,8 @@ const tabs = saleSections.map((value) => ({
   available: true,
 }));
 
-// Inactive sections stay mounted, hidden, so terms and the decision note survive a tab change.
-function SalePanel({ active, children }: { active: boolean; children: ReactNode }) {
-  return (
-    <div hidden={!active}>
-      <div className={forms.stackTop}>{children}</div>
-    </div>
-  );
+function SalePanel({ children }: { children: ReactNode }) {
+  return <div className={forms.stackTop}>{children}</div>;
 }
 
 function footerNote(sale: Sale, dirty: boolean) {
@@ -85,11 +80,13 @@ export function SaleEditor({
   const editor = useSaleEditor(sale, onChanged);
   const { snapshot } = editor;
   const actions = snapshot.actions;
-  const [reason, setReason] = useState("");
   const [assigning, setAssigning] = useState(false);
   // History is read only once its section has been opened.
   const [historyOpened, setHistoryOpened] = useState(selection.section === "history");
   const section = selection.section;
+  // A past version replaces the current record on its section; History keeps its own list.
+  const showsCurrent = selection.version === null;
+  const { reason, setReason } = editor;
   const locked = editor.dirty || editor.operating;
   const reasonOk = validSaleReason(reason);
   const noteNeeded = actions.decide || actions.cancel;
@@ -106,10 +103,12 @@ export function SaleEditor({
     return () => onLocked?.(false);
   }, [locked, onLocked]);
 
-  async function act(name: Parameters<typeof editor.run>[0], withReason = false) {
-    if (await editor.run(name, withReason ? { reason } : {})) {
-      setReason("");
-    }
+  async function act(name: "claims" | "submissions" | "approvals" | "releases") {
+    await editor.run(name, {});
+  }
+
+  async function actWithReason(name: "rejections" | "cancellations") {
+    await editor.run(name, { reason });
   }
 
   const refresh = {
@@ -149,8 +148,8 @@ export function SaleEditor({
               onBack={() => selection.openVersion(null)}
             />
           )}
-          <div hidden={selection.version !== null && section !== "history"}>
-            <SalePanel active={section === "customer"}>
+          {showsCurrent && section === "customer" && (
+            <SalePanel>
               <SaleFacts
                 sale={snapshot.sale}
                 context={snapshot.context}
@@ -159,7 +158,9 @@ export function SaleEditor({
                 now={now}
               />
             </SalePanel>
-            <SalePanel active={section === "deal"}>
+          )}
+          {showsCurrent && section === "deal" && (
+            <SalePanel>
               <SaleLines sale={snapshot.sale} />
               {snapshot.sale.discountLimitAtSubmit !== null && (
                 <p className={workbench.help}>
@@ -175,13 +176,7 @@ export function SaleEditor({
                   </Button>
                 </div>
               )}
-              {actions.saveTerms && (
-                <SaleTermsForm
-                  key={`${editor.base.id}:${editor.base.sale.version}`}
-                  editor={editor}
-                  disabled={blocked("terms")}
-                />
-              )}
+              {actions.saveTerms && <SaleTermsForm editor={editor} disabled={blocked("terms")} />}
               {noteNeeded && (
                 <section className={workbench.stack}>
                   <div className={workbench.sectionHeader}>
@@ -200,7 +195,7 @@ export function SaleEditor({
                 </section>
               )}
             </SalePanel>
-          </div>
+          )}
           {historyOpened && (
             <div hidden={section !== "history"}>
               <SaleTimeline
@@ -258,7 +253,7 @@ export function SaleEditor({
                 variant="secondary"
                 disabled={blocked("rejections") || !reasonOk}
                 skipConfirmation={replay("rejections")}
-                onConfirm={() => act("rejections", true)}
+                onConfirm={() => actWithReason("rejections")}
               >
                 Return to agent
               </ConfirmationButton>
@@ -295,7 +290,7 @@ export function SaleEditor({
               variant="danger"
               disabled={blocked("cancellations") || !reasonOk}
               skipConfirmation={replay("cancellations")}
-              onConfirm={() => act("cancellations", true)}
+              onConfirm={() => actWithReason("cancellations")}
             >
               Cancel sale
             </ConfirmationButton>
