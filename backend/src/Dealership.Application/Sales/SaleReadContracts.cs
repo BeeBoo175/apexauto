@@ -13,7 +13,7 @@ public sealed record SaleContext(string ReservationNumber, string Registration, 
 public sealed record SaleActions(bool Claim, bool Assign, bool Release, bool SaveTerms, bool Submit, bool Decide,
     bool Cancel);
 
-public sealed record SaleView(Guid Id, DealSnapshot Sale, string? Agent, string? DecidedBy, DateTimeOffset CreatedAt,
+public sealed record SaleView(Guid Id, SaleSnapshot Sale, string? Agent, string? DecidedBy, DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt, SaleContext Context, SaleActions Actions);
 
 // One row in an agent's queue or a manager's table.
@@ -73,13 +73,13 @@ public sealed record SaleTableQuery(int Page, int PageSize, string? View, string
 // One retained history entry; changed terms carry invariant before and after text.
 public sealed record SaleHistoryItem(Guid Id, long Version, string Kind, DateTimeOffset RecordedAt, string Actor,
     string? Agent, string? PreviousAgent, string? FromStatus, string ToStatus, string? Reason,
-    IReadOnlyList<DealChange> Changes, decimal? Refund);
+    IReadOnlyList<SaleChange> Changes, decimal? Refund);
 
 public sealed record SaleHistoryPage(IReadOnlyList<SaleHistoryItem> Items, int TotalCount, int Page, int PageSize);
 
 // The sale as it stood after one action, with the snapshot before it so changed fields can be shown.
 public sealed record SaleVersionView(Guid SaleId, long Version, string Kind, DateTimeOffset RecordedAt, string Actor,
-    string? Agent, string? Reason, DealSnapshot Snapshot, DealSnapshot? Previous);
+    string? Agent, string? Reason, SaleSnapshot Snapshot, SaleSnapshot? Previous);
 
 public sealed record WarrantyOption(Guid Id, string Name, int DurationMonths, int MileageCapKm, decimal Price,
     string MinimumGrade);

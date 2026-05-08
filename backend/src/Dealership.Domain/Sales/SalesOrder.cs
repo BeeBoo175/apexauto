@@ -3,13 +3,13 @@ using Dealership.Domain.Vehicles;
 
 namespace Dealership.Domain.Sales;
 
-public sealed record DealWarranty(Guid Id, string Name, decimal Price);
+public sealed record SaleWarranty(Guid Id, string Name, decimal Price);
 
 // The label names the trade-in car (plate, year, make and model) as it was when the terms were saved.
-public sealed record DealTradeIn(Guid AppointmentId, string Label, decimal Allowance);
+public sealed record SaleTradeIn(Guid AppointmentId, string Label, decimal Allowance);
 
 // The negotiated part of a sale; the base price, road tax, promo and deposit always come from the reservation.
-public sealed record DealTermsInput(DealWarranty? Warranty, decimal NegotiatedDiscount, DealTradeIn? TradeIn);
+public sealed record SaleTermsInput(SaleWarranty? Warranty, decimal NegotiatedDiscount, SaleTradeIn? TradeIn);
 
 // One sale per reservation, from the moment the hold is confirmed until it is approved, expires or is cancelled.
 // Every action returns the history entry that records it; the entry carries the sale as it stood afterwards.
@@ -174,9 +174,9 @@ public sealed partial class SalesOrder
     {
         RequireCommand(operationId, actorId, now);
         Require(Status == SalesOrderStatus.Handling, "Only a sale in handling can be released.");
-        var changes = Differences(new DealTermsInput(null, 0m, null));
+        var changes = Differences(new SaleTermsInput(null, 0m, null));
         var previous = AgentId;
-        ApplyTerms(new DealTermsInput(null, 0m, null));
+        ApplyTerms(new SaleTermsInput(null, 0m, null));
         Reprice(ProcessingFee, SstRate);
         DueAt = now.AddSeconds(PausedSeconds!.Value);
         AgentId = null;
@@ -190,7 +190,7 @@ public sealed partial class SalesOrder
     }
 
     // Saving terms prices them with the current fee and tax; saving an approved sale withdraws its approval.
-    public SalesOrderEvent SaveTerms(Guid operationId, DealTermsInput terms, PurchaseSettings settings, Guid actorId,
+    public SalesOrderEvent SaveTerms(Guid operationId, SaleTermsInput terms, PurchaseSettings settings, Guid actorId,
         DateTimeOffset now)
     {
         ArgumentNullException.ThrowIfNull(terms);
@@ -298,7 +298,7 @@ public sealed partial class SalesOrder
     }
 
     private SalesOrderEvent Record(Guid operationId, SalesOrderEventKind kind, SalesOrderStatus next, Guid actorId,
-        DateTimeOffset now, string? reason, IReadOnlyList<DealChange>? changes, Guid? previousAgentId = null,
+        DateTimeOffset now, string? reason, IReadOnlyList<SaleChange>? changes, Guid? previousAgentId = null,
         Guid? releaseId = null)
     {
         RequireCommand(operationId, actorId, now);
@@ -312,16 +312,16 @@ public sealed partial class SalesOrder
         };
     }
 
-    private DealPrice Price(DealTermsInput terms, decimal processingFee, decimal sstRate) =>
-        DealPricing.Calculate(new DealTerms(BasePrice, RoadTax, processingFee, sstRate, PromoDiscount,
+    private SalePrice Price(SaleTermsInput terms, decimal processingFee, decimal sstRate) =>
+        SalePricing.Calculate(new SaleTerms(BasePrice, RoadTax, processingFee, sstRate, PromoDiscount,
             terms.NegotiatedDiscount, terms.Warranty?.Price ?? 0m, DepositCredit, terms.TradeIn?.Allowance ?? 0m));
 
     private void Reprice(decimal processingFee, decimal sstRate)
     {
-        var price = Price(new DealTermsInput(
-            WarrantyPackageId is { } warrantyId ? new DealWarranty(warrantyId, WarrantyName!, WarrantyPrice) : null,
+        var price = Price(new SaleTermsInput(
+            WarrantyPackageId is { } warrantyId ? new SaleWarranty(warrantyId, WarrantyName!, WarrantyPrice) : null,
             NegotiatedDiscount,
-            TradeInAppointmentId is { } appointmentId ? new DealTradeIn(appointmentId, TradeInLabel!, TradeInAllowance) : null),
+            TradeInAppointmentId is { } appointmentId ? new SaleTradeIn(appointmentId, TradeInLabel!, TradeInAllowance) : null),
             processingFee, sstRate);
         ProcessingFee = processingFee;
         SstRate = sstRate;
@@ -329,7 +329,7 @@ public sealed partial class SalesOrder
         BalancePayable = price.BalancePayable;
     }
 
-    private void ApplyTerms(DealTermsInput terms)
+    private void ApplyTerms(SaleTermsInput terms)
     {
         NegotiatedDiscount = terms.NegotiatedDiscount;
         WarrantyPackageId = terms.Warranty?.Id;
@@ -341,28 +341,28 @@ public sealed partial class SalesOrder
     }
 
     // The terms a change touches, with invariant before and after text, so history can say "from X to Y".
-    private List<DealChange> Differences(DealTermsInput terms)
+    private List<SaleChange> Differences(SaleTermsInput terms)
     {
-        var changes = new List<DealChange>();
+        var changes = new List<SaleChange>();
         if (terms.NegotiatedDiscount != NegotiatedDiscount)
         {
-            changes.Add(new(DealChange.NegotiatedDiscount, Amount(NegotiatedDiscount), Amount(terms.NegotiatedDiscount)));
+            changes.Add(new(SaleChange.NegotiatedDiscount, Amount(NegotiatedDiscount), Amount(terms.NegotiatedDiscount)));
         }
 
         if (terms.Warranty?.Id != WarrantyPackageId)
         {
-            changes.Add(new(DealChange.Warranty, WarrantyName, terms.Warranty?.Name));
+            changes.Add(new(SaleChange.Warranty, WarrantyName, terms.Warranty?.Name));
         }
 
         if (terms.TradeIn?.AppointmentId != TradeInAppointmentId)
         {
-            changes.Add(new(DealChange.TradeIn, TradeInLabel, terms.TradeIn?.Label));
+            changes.Add(new(SaleChange.TradeIn, TradeInLabel, terms.TradeIn?.Label));
         }
 
         var allowance = terms.TradeIn?.Allowance ?? 0m;
         if (allowance != TradeInAllowance)
         {
-            changes.Add(new(DealChange.TradeInAllowance, Amount(TradeInAllowance), Amount(allowance)));
+            changes.Add(new(SaleChange.TradeInAllowance, Amount(TradeInAllowance), Amount(allowance)));
         }
 
         return changes;

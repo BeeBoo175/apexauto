@@ -4,7 +4,7 @@ namespace Dealership.Domain.Sales;
 
 // The sale exactly as it stood after one action. Its member names match the sale's columns, so the database can
 // record the same shape for the actions it takes on its own; the history table's append-only guard keeps it fixed.
-public sealed record DealSnapshot(
+public sealed record SaleSnapshot(
     [property: JsonConverter(typeof(JsonStringEnumConverter))] SalesOrderStatus Status,
     Guid? AgentId, DateTimeOffset? ClaimedAt, DateTimeOffset? DueAt, long? PausedSeconds, string? OrderNumber,
     string? PromoCode, decimal BasePrice, decimal RoadTax, decimal ProcessingFee, decimal SstRate, decimal ServiceTax,
@@ -13,7 +13,7 @@ public sealed record DealSnapshot(
     decimal TradeInAllowance, decimal BalancePayable, DateTimeOffset? SubmittedAt, decimal? DiscountLimitAtSubmit,
     Guid? DecidedById, DateTimeOffset? DecidedAt, DateTimeOffset? ClosedAt, long Version)
 {
-    public static DealSnapshot Of(SalesOrder order)
+    public static SaleSnapshot Of(SalesOrder order)
     {
         ArgumentNullException.ThrowIfNull(order);
         return new(order.Status, order.AgentId, order.ClaimedAt, order.DueAt, order.PausedSeconds, order.OrderNumber,

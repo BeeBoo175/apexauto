@@ -30,7 +30,7 @@ public enum SalesOrderEventKind
 }
 
 // One term that an action changed, with the values either side as plain invariant text.
-public sealed record DealChange(string Field, string? Before, string? After)
+public sealed record SaleChange(string Field, string? Before, string? After)
 {
     public const string NegotiatedDiscount = nameof(NegotiatedDiscount);
     public const string Warranty = nameof(Warranty);
@@ -49,7 +49,7 @@ public sealed class SalesOrderEvent
     }
 
     internal SalesOrderEvent(Guid operationId, SalesOrder order, SalesOrderEventKind kind, SalesOrderStatus? from,
-        Guid? actorId, Guid? previousAgentId, string? reason, IReadOnlyList<DealChange>? changes,
+        Guid? actorId, Guid? previousAgentId, string? reason, IReadOnlyList<SaleChange>? changes,
         DateTimeOffset recordedAt)
     {
         Id = operationId;
@@ -63,7 +63,7 @@ public sealed class SalesOrderEvent
         PreviousAgentId = previousAgentId;
         Reason = reason;
         Changes = changes is { Count: > 0 } ? changes : null;
-        Snapshot = DealSnapshot.Of(order);
+        Snapshot = SaleSnapshot.Of(order);
         RecordedAt = recordedAt;
     }
 
@@ -91,9 +91,9 @@ public sealed class SalesOrderEvent
 
     public string? Reason { get; private set; }
 
-    public IReadOnlyList<DealChange>? Changes { get; private set; }
+    public IReadOnlyList<SaleChange>? Changes { get; private set; }
 
-    public DealSnapshot Snapshot { get; private set; } = null!;
+    public SaleSnapshot Snapshot { get; private set; } = null!;
 
     // The refund receipt released by an expiry or cancellation.
     public Guid? ReleaseId { get; init; }

@@ -61,7 +61,7 @@ public sealed class SaleTermsService(ISaleCommandStore sales)
             return new(SaleStatus.Unavailable);
         }
 
-        DealWarranty? warranty = null;
+        SaleWarranty? warranty = null;
         if (request.WarrantyPackageId is { } packageId)
         {
             warranty = await transaction.ResolveWarrantyAsync(packageId, cancellationToken);
@@ -71,7 +71,7 @@ public sealed class SaleTermsService(ISaleCommandStore sales)
             }
         }
 
-        DealTradeIn? tradeIn = null;
+        SaleTradeIn? tradeIn = null;
         if (request.TradeInAppointmentId is { } appointmentId)
         {
             var choice = await transaction.ResolveTradeInAsync(appointmentId, cancellationToken);
@@ -86,10 +86,10 @@ public sealed class SaleTermsService(ISaleCommandStore sales)
                 return new(SaleStatus.Conflict);
             }
 
-            tradeIn = new DealTradeIn(appointmentId, choice.Label, request.TradeInAllowance);
+            tradeIn = new SaleTradeIn(appointmentId, choice.Label, request.TradeInAllowance);
         }
 
-        var terms = new DealTermsInput(warranty, request.NegotiatedDiscount, tradeIn);
+        var terms = new SaleTermsInput(warranty, request.NegotiatedDiscount, tradeIn);
         return await SaleCommandSteps.ApplyAsync(transaction,
             () => sale.SaveTerms(request.OperationId, terms, settings, actorId, transaction.Context.Now),
             cancellationToken);

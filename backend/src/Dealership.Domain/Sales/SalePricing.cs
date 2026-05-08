@@ -2,17 +2,17 @@ using Dealership.Domain.Common;
 
 namespace Dealership.Domain.Sales;
 
-public sealed record DealTerms(decimal BasePrice, decimal RoadTax, decimal ProcessingFee, decimal SstRate,
+public sealed record SaleTerms(decimal BasePrice, decimal RoadTax, decimal ProcessingFee, decimal SstRate,
     decimal PromoDiscount, decimal NegotiatedDiscount, decimal WarrantyPrice, decimal DepositCredit,
     decimal TradeInAllowance);
 
-public sealed record DealPrice(decimal ServiceTax, decimal Subtotal, decimal BalancePayable);
+public sealed record SalePrice(decimal ServiceTax, decimal Subtotal, decimal BalancePayable);
 
 // Itemization: base - promo - negotiated + processing fee + road tax + SST (on the processing fee only)
 // + warranty = subtotal; balance = subtotal - deposit credit - trade-in allowance.
-public static class DealPricing
+public static class SalePricing
 {
-    public static DealPrice Calculate(DealTerms terms)
+    public static SalePrice Calculate(SaleTerms terms)
     {
         foreach (var amount in new[]
         {
@@ -41,7 +41,7 @@ public static class DealPricing
             throw new ArgumentOutOfRangeException(nameof(terms), "Deposit and trade-in credit cannot exceed the deal total.");
         }
 
-        return new DealPrice(serviceTax, subtotal, balance);
+        return new SalePrice(serviceTax, subtotal, balance);
     }
 
     private static void Ensure(decimal amount)

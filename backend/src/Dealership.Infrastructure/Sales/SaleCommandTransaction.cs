@@ -23,7 +23,7 @@ internal sealed class SaleCommandTransaction(DealershipDbContext database, IDbCo
             .AsNoTracking().SingleOrDefaultAsync(cancellationToken);
 
     // Only an active package the grade signed for this reservation's listing qualifies for can be sold.
-    public async Task<DealWarranty?> ResolveWarrantyAsync(Guid packageId, CancellationToken cancellationToken)
+    public async Task<SaleWarranty?> ResolveWarrantyAsync(Guid packageId, CancellationToken cancellationToken)
     {
         var package = await database.WarrantyPackages.FromSqlInterpolated(
             $"SELECT * FROM \"WarrantyPackages\" WHERE \"Id\" = {packageId} FOR SHARE").AsNoTracking()
@@ -34,7 +34,7 @@ internal sealed class SaleCommandTransaction(DealershipDbContext database, IDbCo
         }
 
         var grade = await SaleGrades.SignedGradeAsync(database, Sale.Id, cancellationToken);
-        return package.IsEligibleFor(grade) ? new DealWarranty(package.Id, package.Name, package.Price) : null;
+        return package.IsEligibleFor(grade) ? new SaleWarranty(package.Id, package.Name, package.Price) : null;
     }
 
     public async Task<SaleTradeInChoice?> ResolveTradeInAsync(Guid appointmentId, CancellationToken cancellationToken)

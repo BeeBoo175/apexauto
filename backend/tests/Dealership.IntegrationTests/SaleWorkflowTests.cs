@@ -66,7 +66,7 @@ public sealed class SaleWorkflowTests(IntakePhotoFixture fixture) : IClassFixtur
         var history = (await world.Reads.HistoryAsync(world.Manager, held.Id, 1, 10, default)).Value!;
         Assert.Equal(["Assigned", "Released", "TermsSaved", "Claimed", "Created"], history.Items.Select(item => item.Kind));
         Assert.Contains(history.Items[1].Changes,
-            change => change is { Field: DealChange.NegotiatedDiscount, Before: "300.00" });
+            change => change is { Field: SaleChange.NegotiatedDiscount, Before: "300.00" });
         for (var version = 1; version <= 5; version++)
         {
             var past = (await world.Reads.VersionAsync(world.Manager, held.Id, version, default)).Value!;

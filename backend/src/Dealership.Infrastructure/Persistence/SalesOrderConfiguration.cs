@@ -136,13 +136,13 @@ public sealed class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrde
         builder.Property(item => item.Reason).HasMaxLength(SalesOrderEvent.ReasonMaximumLength);
         builder.Property(item => item.Changes).HasColumnType("jsonb").HasConversion(
             changes => changes == null ? null : JsonSerializer.Serialize(changes, SnapshotJson),
-            json => json == null ? null : JsonSerializer.Deserialize<List<DealChange>>(json, SnapshotJson),
-            new ValueComparer<IReadOnlyList<DealChange>?>((left, right) => ReferenceEquals(left, right),
+            json => json == null ? null : JsonSerializer.Deserialize<List<SaleChange>>(json, SnapshotJson),
+            new ValueComparer<IReadOnlyList<SaleChange>?>((left, right) => ReferenceEquals(left, right),
                 value => value == null ? 0 : value.Count, value => value));
         builder.Property(item => item.Snapshot).HasColumnType("jsonb").IsRequired().HasConversion(
             snapshot => JsonSerializer.Serialize(snapshot, SnapshotJson),
-            json => JsonSerializer.Deserialize<DealSnapshot>(json, SnapshotJson)!,
-            new ValueComparer<DealSnapshot>((left, right) => ReferenceEquals(left, right),
+            json => JsonSerializer.Deserialize<SaleSnapshot>(json, SnapshotJson)!,
+            new ValueComparer<SaleSnapshot>((left, right) => ReferenceEquals(left, right),
                 value => value.GetHashCode(), value => value));
         builder.HasOne<SalesOrder>().WithMany().HasForeignKey(item => item.SalesOrderId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<AccountUser>().WithMany().HasForeignKey(item => item.ActorId).OnDelete(DeleteBehavior.Restrict);

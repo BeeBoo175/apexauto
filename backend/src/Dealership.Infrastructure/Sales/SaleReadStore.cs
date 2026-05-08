@@ -53,7 +53,7 @@ public sealed class SaleReadStore(DealershipDbContext database) : ISaleReadStore
             facts.MileageKilometres, facts.LegalName, facts.Mobile, facts.Email ?? string.Empty, facts.Branch,
             facts.CreatedAt, warranty?.DurationMonths, warranty?.MileageCapKm, tradeIn?.Valuation.Minimum,
             tradeIn?.Valuation.Maximum);
-        return new(SaleStatus.Succeeded, new SaleView(sale.Id, DealSnapshot.Of(sale), Email(emails, sale.AgentId),
+        return new(SaleStatus.Succeeded, new SaleView(sale.Id, SaleSnapshot.Of(sale), Email(emails, sale.AgentId),
             Email(emails, sale.DecidedById), sale.CreatedAt, sale.UpdatedAt, context, SaleAccess.Actions(actor!, sale)));
     }
 

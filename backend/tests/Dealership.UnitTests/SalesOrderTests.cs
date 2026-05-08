@@ -26,13 +26,13 @@ public sealed class SalesOrderTests
         return order;
     }
 
-    private static DealTermsInput Terms(decimal discount, DealWarranty? warranty = null, DealTradeIn? tradeIn = null) =>
+    private static SaleTermsInput Terms(decimal discount, SaleWarranty? warranty = null, SaleTradeIn? tradeIn = null) =>
         new(warranty, discount, tradeIn);
 
     [Fact]
     public void BalanceFollowsTheAgreedItemizationWithSstOnTheProcessingFeeOnly()
     {
-        var price = DealPricing.Calculate(new DealTerms(50000m, 90m, 500m, 0.08m, 500m, 300m, 2400m, 500m, 1000m));
+        var price = SalePricing.Calculate(new SaleTerms(50000m, 90m, 500m, 0.08m, 500m, 300m, 2400m, 500m, 1000m));
 
         Assert.Equal(40m, price.ServiceTax);
         Assert.Equal(52230m, price.Subtotal);
@@ -42,9 +42,9 @@ public sealed class SalesOrderTests
     [Fact]
     public void ZeroBalanceIsAllowedAndNegativeBalanceIsRejected()
     {
-        Assert.Equal(0m, DealPricing.Calculate(new DealTerms(1000m, 0m, 0m, 0m, 0m, 0m, 0m, 400m, 600m)).BalancePayable);
+        Assert.Equal(0m, SalePricing.Calculate(new SaleTerms(1000m, 0m, 0m, 0m, 0m, 0m, 0m, 400m, 600m)).BalancePayable);
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            DealPricing.Calculate(new DealTerms(1000m, 0m, 0m, 0m, 0m, 0m, 0m, 400m, 600.01m)));
+            SalePricing.Calculate(new SaleTerms(1000m, 0m, 0m, 0m, 0m, 0m, 0m, 400m, 600.01m)));
     }
 
     [Fact]
@@ -83,7 +83,7 @@ public sealed class SalesOrderTests
         Assert.Equal((SalesOrderStatus.Open, releasedAt.AddHours(18), null), (order.Status, order.DueAt, order.AgentId));
         Assert.Equal((SalesOrderEventKind.Released, Agent, 0m), (released.Kind, released.PreviousAgentId,
             order.NegotiatedDiscount));
-        Assert.Contains(released.Changes!, change => change is { Field: DealChange.NegotiatedDiscount, Before: "300.00" });
+        Assert.Contains(released.Changes!, change => change is { Field: SaleChange.NegotiatedDiscount, Before: "300.00" });
         Assert.Equal(reservation.Price.Total - reservation.Deposit, order.BalancePayable);
         Assert.True(order.HasExpired(releasedAt.AddHours(18)));
     }
@@ -187,18 +187,18 @@ public sealed class SalesOrderTests
     public void TermChangesRecordReadableBeforeAndAfterValues()
     {
         var order = Claimed();
-        var warranty = new DealWarranty(Guid.NewGuid(), "ApexShield Gold", 2400m);
-        var tradeIn = new DealTradeIn(Guid.NewGuid(), "WXY 1234 · 2018 Perodua Myvi", 15000m);
+        var warranty = new SaleWarranty(Guid.NewGuid(), "ApexShield Gold", 2400m);
+        var tradeIn = new SaleTradeIn(Guid.NewGuid(), "WXY 1234 · 2018 Perodua Myvi", 15000m);
 
         var saved = order.SaveTerms(Guid.NewGuid(), Terms(300m, warranty, tradeIn), Settings(), Agent,
             Reserved.AddHours(2));
 
         Assert.Equal(
         [
-            new DealChange(DealChange.NegotiatedDiscount, "0.00", "300.00"),
-            new DealChange(DealChange.Warranty, null, "ApexShield Gold"),
-            new DealChange(DealChange.TradeIn, null, "WXY 1234 · 2018 Perodua Myvi"),
-            new DealChange(DealChange.TradeInAllowance, "0.00", "15000.00")
+            new SaleChange(SaleChange.NegotiatedDiscount, "0.00", "300.00"),
+            new SaleChange(SaleChange.Warranty, null, "ApexShield Gold"),
+            new SaleChange(SaleChange.TradeIn, null, "WXY 1234 · 2018 Perodua Myvi"),
+            new SaleChange(SaleChange.TradeInAllowance, "0.00", "15000.00")
         ], saved.Changes);
         Assert.Equal((3L, 300m, "ApexShield Gold"), (saved.Snapshot.Version, saved.Snapshot.NegotiatedDiscount,
             saved.Snapshot.WarrantyName));

@@ -52,7 +52,7 @@ public interface ISaleCommandTransaction : IAsyncDisposable
     Task<PurchaseSettings?> LockSettingsAsync(CancellationToken cancellationToken);
 
     // An active package the vehicle's signed grade qualifies for, or null.
-    Task<DealWarranty?> ResolveWarrantyAsync(Guid packageId, CancellationToken cancellationToken);
+    Task<SaleWarranty?> ResolveWarrantyAsync(Guid packageId, CancellationToken cancellationToken);
 
     Task<SaleTradeInChoice?> ResolveTradeInAsync(Guid appointmentId, CancellationToken cancellationToken);
 
