@@ -32,7 +32,7 @@ public sealed class SaleHandlingService(ISaleCommandStore sales)
             return new(SaleStatus.Forbidden);
         }
 
-        if (sale.Version != request.ExpectedVersion || sale.Status != SalesOrderStatus.Open)
+        if (sale!.Version != request.ExpectedVersion || sale.Status != SalesOrderStatus.Open)
         {
             return new(SaleStatus.Conflict);
         }
@@ -73,7 +73,7 @@ public sealed class SaleHandlingService(ISaleCommandStore sales)
             return new(SaleStatus.Forbidden);
         }
 
-        if (sale.Version != request.ExpectedVersion)
+        if (sale!.Version != request.ExpectedVersion)
         {
             return new(SaleStatus.Conflict);
         }
@@ -121,7 +121,7 @@ public sealed class SaleHandlingService(ISaleCommandStore sales)
             return new(SaleStatus.Forbidden);
         }
 
-        if (sale.Version != request.ExpectedVersion)
+        if (sale!.Version != request.ExpectedVersion)
         {
             return new(SaleStatus.Conflict);
         }

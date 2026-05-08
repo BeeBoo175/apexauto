@@ -12,7 +12,7 @@ import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { hasIntakeAccess, roleNames, type CurrentActor } from "@/lib/auth/actor";
 import { hasInspectionAccess } from "@/lib/inspection/contracts";
 import { hasListingAccess } from "@/lib/vehicles/listings";
-import { hasSalesAccess } from "@/lib/sales/sales";
+import { hasSalesAccess } from "@/lib/sales/contracts";
 import { hasSettingsAccess } from "@/lib/settings/settings";
 import styles from "./StaffFrame.module.css";
 import {

@@ -20,18 +20,17 @@ import { useSaleSelection } from "@/hooks/use-sale-selection";
 import { useSalesTable } from "@/hooks/use-sales-table";
 import type { ApiResult } from "@/lib/api";
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
-import type { Sale } from "@/lib/sales/sale";
-import { exportSales, saleExportColumns } from "@/lib/sales/sale-export";
-import type { SaleSection } from "@/lib/sales/sale-sections";
 import {
-  defaultTableFilters,
-  tableQuery,
+  type Sale,
   tableViews,
   type SaleSummary,
   type SalesTableFilters,
   type SalesTablePage,
   type TableView,
-} from "@/lib/sales/sales";
+} from "@/lib/sales/contracts";
+import { defaultTableFilters, tableQuery } from "@/lib/sales/query";
+import { exportSales, saleExportColumns } from "@/lib/sales/sale-export";
+import type { SaleSection } from "@/lib/sales/sale-sections";
 import { SaleDrawer } from "./SaleDrawer";
 import { saleColumns } from "./sale-columns";
 import { saleTableFilters } from "./sale-filters";

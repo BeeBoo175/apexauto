@@ -2,7 +2,7 @@
 .job,
 .title,
 .context {
-  composes: placeholder from "../staff/AppointmentLoadingShell.module.css";
+  composes: placeholder from "../staff/StaffRecordLoadingShell.module.css";
 }
 
 .navigation {

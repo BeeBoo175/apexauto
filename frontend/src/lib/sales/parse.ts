@@ -1,146 +1,46 @@
 import { isRecord, isUuid } from "@/lib/auth/contracts";
 import { isMyr } from "@/lib/currency-input";
-
-export const saleStatuses = [
-  "Open",
-  "Handling",
-  "PendingApproval",
-  "Approved",
-  "Expired",
-  "Cancelled",
-] as const;
-
-export type SaleStatus = (typeof saleStatuses)[number];
-
-export const saleStatusLabels: Record<SaleStatus, string> = {
-  Open: "Open",
-  Handling: "Being handled",
-  PendingApproval: "Needs approval",
-  Approved: "Approved",
-  Expired: "Expired",
-  Cancelled: "Cancelled",
-};
-
-// The sale as it stands, or as it stood after one action: the same shape for the live record and its history.
-export interface SaleSnapshot {
-  status: SaleStatus;
-  agentId: string | null;
-  claimedAt: string | null;
-  dueAt: string | null;
-  pausedSeconds: number | null;
-  orderNumber: string | null;
-  promoCode: string | null;
-  basePrice: number;
-  roadTax: number;
-  processingFee: number;
-  sstRate: number;
-  serviceTax: number;
-  promoDiscount: number;
-  negotiatedDiscount: number;
-  warrantyPackageId: string | null;
-  warrantyName: string | null;
-  warrantyPrice: number;
-  depositCredit: number;
-  tradeInAppointmentId: string | null;
-  tradeInLabel: string | null;
-  tradeInAllowance: number;
-  balancePayable: number;
-  submittedAt: string | null;
-  discountLimitAtSubmit: number | null;
-  decidedById: string | null;
-  decidedAt: string | null;
-  closedAt: string | null;
-  version: number;
-}
-
-export interface SaleContext {
-  reservationNumber: string;
-  registration: string;
-  vehicle: string;
-  vin: string;
-  mileageKilometres: number;
-  customer: string;
-  customerMobile: string;
-  customerEmail: string;
-  branch: string;
-  reservedAt: string;
-  warrantyMonths: number | null;
-  warrantyMileageCapKm: number | null;
-  tradeInMinimum: number | null;
-  tradeInMaximum: number | null;
-}
-
-// What the reading account may do next; the server decides it so every surface offers the same actions.
-export interface SaleActions {
-  claim: boolean;
-  assign: boolean;
-  release: boolean;
-  saveTerms: boolean;
-  submit: boolean;
-  decide: boolean;
-  cancel: boolean;
-}
-
-export interface Sale {
-  id: string;
-  sale: SaleSnapshot;
-  agent: string | null;
-  decidedBy: string | null;
-  createdAt: string;
-  updatedAt: string;
-  context: SaleContext;
-  actions: SaleActions;
-}
-
-export interface SaleReceipt {
-  operationId: string;
-  saleId: string;
-  kind: string;
-  version: number;
-  status: SaleStatus;
-  recordedAt: string;
-}
-
-export interface WarrantyOption {
-  id: string;
-  name: string;
-  durationMonths: number;
-  mileageCapKm: number;
-  price: number;
-  minimumGrade: string;
-}
-
-export interface TradeInOption {
-  appointmentId: string;
-  label: string;
-  minimum: number;
-  maximum: number;
-}
-
-export interface SaleOptions {
-  warranties: WarrantyOption[];
-  tradeIns: TradeInOption[];
-}
-
-export interface SaleAgent {
-  id: string;
-  email: string;
-}
+import { parseCountedPage } from "@/lib/api";
+import {
+  saleStatuses,
+  type SaleStatus,
+  type SaleSnapshot,
+  type SaleContext,
+  type Sale,
+  type SaleReceipt,
+  type WarrantyOption,
+  type TradeInOption,
+  type SaleOptions,
+  type SaleAgent,
+  type SaleSummary,
+  queueCountKeys,
+  type SalesQueue,
+  tableViews,
+  tableCountKeys,
+  type TableCounts,
+  type SalesTablePage,
+} from "./contracts";
 
 export const text = (value: unknown): value is string => typeof value === "string" && value !== "";
+
 export const utc = (value: unknown): value is string =>
   typeof value === "string" && /(?:Z|\+00:00)$/.test(value) && Number.isFinite(Date.parse(value));
+
 export const nullable =
   <T>(check: (value: unknown) => value is T) =>
   (value: unknown): value is T | null =>
     value === null || check(value);
+
 const count = (value: unknown): value is number =>
   Number.isSafeInteger(value) && Number(value) >= 0;
+
 const version = (value: unknown): value is number =>
   Number.isSafeInteger(value) && Number(value) >= 1;
+
 const rate = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1;
 // A return or cancellation reason as the backend accepts it: trimmed, between 1 and 1000 characters.
+
 export const isSaleReason = (value: unknown): value is string =>
   typeof value === "string" && value === value.trim() && value.length >= 1 && value.length <= 1000;
 
@@ -295,4 +195,56 @@ export function parseSaleAgents(value: unknown): SaleAgent[] | null {
   return agents.every((item) => item !== null) ? (agents as SaleAgent[]) : null;
 }
 
-export const salePath = (id: string) => `/api/staff/sales/${id}`;
+const positive = (value: unknown): value is number =>
+  Number.isSafeInteger(value) && Number(value) > 0;
+
+export function parseSaleSummary(value: unknown): SaleSummary | null {
+  if (
+    !isRecord(value) ||
+    !isUuid(value.id) ||
+    !text(value.reservationNumber) ||
+    !nullable(text)(value.orderNumber) ||
+    !isSaleStatus(value.status) ||
+    !text(value.registration) ||
+    !positive(value.manufactureYear) ||
+    !text(value.make) ||
+    !text(value.model) ||
+    typeof value.trim !== "string" ||
+    !text(value.customer) ||
+    !nullable(text)(value.agent) ||
+    !text(value.branch) ||
+    !nullable(utc)(value.dueAt) ||
+    !nullable(positive)(value.pausedSeconds) ||
+    !nullable(utc)(value.claimedAt) ||
+    !isMyr(value.negotiatedDiscount) ||
+    !nullable(isMyr)(value.discountLimitAtSubmit) ||
+    !isMyr(value.balancePayable) ||
+    !nullable(utc)(value.submittedAt) ||
+    !nullable(utc)(value.decidedAt) ||
+    !nullable(utc)(value.closedAt) ||
+    !nullable(text)(value.outcome) ||
+    !positive(value.version)
+  ) {
+    return null;
+  }
+  return value as unknown as SaleSummary;
+}
+
+function uniquePage<T extends { items: SaleSummary[] }>(page: T | null) {
+  return page && new Set(page.items.map((item) => item.id)).size === page.items.length
+    ? page
+    : null;
+}
+
+export function parseSalesQueue(value: unknown): SalesQueue | null {
+  const page = uniquePage(parseCountedPage(value, parseSaleSummary, queueCountKeys));
+  return page?.counts ? { ...page, counts: page.counts } : null;
+}
+
+export function parseSalesTable(value: unknown): SalesTablePage | null {
+  const page = uniquePage(parseCountedPage(value, parseSaleSummary, tableCountKeys));
+  const view = isRecord(value)
+    ? tableViews.find((item) => item.value === value.view)?.value
+    : undefined;
+  return page?.counts && view ? { ...page, counts: page.counts as TableCounts, view } : null;
+}

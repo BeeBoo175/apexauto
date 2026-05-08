@@ -1,6 +1,6 @@
 import { StaffEntry } from "@/components/staff/StaffEntry";
 import { SalesClientEntry } from "@/components/sales/SalesClientEntry";
-import { hasSalesAccess } from "@/lib/sales/sales";
+import { hasSalesAccess } from "@/lib/sales/contracts";
 import type { SearchParams } from "@/lib/query";
 
 export default async function SalesPage({ searchParams }: { searchParams: Promise<SearchParams> }) {

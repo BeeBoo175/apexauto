@@ -6,7 +6,9 @@ import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { Select } from "@/components/ui/Input";
 import type { useSaleEditor } from "@/hooks/use-sale-editor";
 import { privateApiFetch } from "@/lib/api-browser";
-import { parseSaleAgents, salePath, type SaleAgent } from "@/lib/sales/sale";
+import { parseSaleAgents } from "@/lib/sales/parse";
+import { salePath } from "@/lib/sales/query";
+import type { SaleAgent } from "@/lib/sales/contracts";
 
 // A manager gives an open sale to an agent of its branch, or moves a handled one to another agent.
 export function SaleAssignDialog({

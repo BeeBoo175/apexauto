@@ -19,7 +19,7 @@
 .tableHeading,
 .block,
 .grade {
-  composes: placeholder from "./AppointmentLoadingShell.module.css";
+  composes: placeholder from "./StaffRecordLoadingShell.module.css";
 }
 
 .control {

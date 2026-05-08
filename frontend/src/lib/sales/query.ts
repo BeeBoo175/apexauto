@@ -1,0 +1,106 @@
+import { isUuid } from "@/lib/auth/contracts";
+import { DEFAULT_PAGE_SIZE, isPageSize, paginationQuery } from "@/lib/pagination";
+import type { SearchParams } from "@/lib/query";
+import { saleSection, saleVersionNumber } from "./sale-sections";
+import {
+  type QueueView,
+  queueViews,
+  queueViewQueries,
+  type QueueCounts,
+  tableViews,
+  tableSorts,
+  tableTextKeys,
+  type SalesTableFilters,
+} from "./contracts";
+
+export const salePath = (id: string) => `/api/staff/sales/${id}`;
+
+export function queueQuery(view: QueueView, search = "", page = 1) {
+  const query = new URLSearchParams({
+    view,
+    page: String(page),
+    pageSize: String(DEFAULT_PAGE_SIZE),
+  });
+  if (search.trim()) {
+    query.set("search", search.trim());
+  }
+  return query.toString();
+}
+
+export function queueParams(parameters: SearchParams): QueueView | null {
+  return queueViews.find((view) => queueViewQueries[view] === parameters.view) ?? null;
+}
+
+// The agent's queue opens on their sales in progress; with none, on the holds waiting to be claimed.
+export function firstQueueView(
+  requested: QueueView | null,
+  counts: QueueCounts | undefined,
+): QueueView {
+  if (requested) {
+    return requested;
+  }
+  return counts && counts.handling === 0 ? "ToClaim" : "Handling";
+}
+
+export function defaultTableFilters(): SalesTableFilters {
+  return {
+    view: "",
+    pageSize: DEFAULT_PAGE_SIZE,
+    sort: "",
+    direction: "asc",
+    ...(Object.fromEntries(tableTextKeys.map((key) => [key, ""])) as Record<
+      (typeof tableTextKeys)[number],
+      string
+    >),
+  };
+}
+
+export function tableParams(params: SearchParams) {
+  const defaults = defaultTableFilters();
+  const page = Number(params.page);
+  const size = Number(params.pageSize);
+  const filters: SalesTableFilters = {
+    ...defaults,
+    view: tableViews.find((view) => view.value === params.view)?.value ?? "",
+    pageSize: isPageSize(size) ? size : defaults.pageSize,
+    sort: tableSorts.find((sort) => sort === params.sort) ?? "",
+    direction: params.direction === "desc" ? "desc" : "asc",
+  };
+  for (const key of tableTextKeys) {
+    const value = params[key];
+    if (typeof value === "string") {
+      filters[key] = value;
+    }
+  }
+  return { filters, page: Number.isSafeInteger(page) && page > 0 ? page : 1 };
+}
+
+export function tableQuery(filters: SalesTableFilters, page = 1) {
+  const query = paginationQuery(page, filters.pageSize);
+  if (filters.view) {
+    query.set("view", filters.view);
+  }
+  if (filters.sort) {
+    query.set("sort", filters.sort);
+    query.set("direction", filters.direction);
+  }
+  for (const key of tableTextKeys) {
+    const value = filters[key].trim();
+    if (value) {
+      query.set(key, value);
+    }
+  }
+  return query.toString();
+}
+
+export function saleSelection(parameters: SearchParams) {
+  return {
+    saleId: isUuid(parameters.sale) ? parameters.sale : "",
+    section: saleSection(parameters.section),
+    version: saleVersionNumber(parameters.version),
+  };
+}
+
+export const salesTablePath = "/api/staff/sales";
+
+export const salesQueuePath = "/api/staff/sales/queue";

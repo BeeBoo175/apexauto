@@ -1,5 +1,5 @@
 import { parseMyr } from "@/lib/currency-input";
-import type { Sale, SaleOptions } from "./sale";
+import type { Sale, SaleOptions } from "./contracts";
 
 // The terms the handling agent keys, as typed: amounts stay text until they are saved.
 export interface SaleTermsDraft {

@@ -2,15 +2,8 @@ import { parsePage } from "@/lib/api";
 import { isRecord, isUuid } from "@/lib/auth/contracts";
 import { formatCurrency } from "@/lib/currency-format";
 import { isMyr } from "@/lib/currency-input";
-import {
-  isSaleStatus,
-  nullable,
-  parseSaleSnapshot,
-  text,
-  utc,
-  type SaleSnapshot,
-  type SaleStatus,
-} from "./sale";
+import { isSaleStatus, nullable, parseSaleSnapshot, text, utc } from "./parse";
+import type { SaleSnapshot, SaleStatus } from "./contracts";
 import type { SaleSection } from "./sale-sections";
 
 // Marks fields a past version changed against the version before it; with no earlier version nothing is marked.

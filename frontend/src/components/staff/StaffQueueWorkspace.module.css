@@ -64,6 +64,14 @@
   white-space: nowrap;
 }
 
+/* Four tabs do not fit label and count side by side in the queue column, so each count sits under its label. */
+.queueNavigation:has(> :nth-child(4)) .queueView {
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  text-align: center;
+}
+
 .queueView[aria-pressed="true"] {
   border-bottom-color: var(--color-interaction-border);
   background: var(--color-selected-surface);

@@ -29,7 +29,9 @@ async function readHistoryPages<T extends StaffHistoryPage>(
   const { path, read, parse, matches, append } = resource;
   const { page, pageSize, through } = paging;
   for (let currentPage = page; currentPage <= through; currentPage += 1) {
-    const result = await read(`${path}?page=${currentPage}&pageSize=${pageSize}`, parse, { signal });
+    const result = await read(`${path}?page=${currentPage}&pageSize=${pageSize}`, parse, {
+      signal,
+    });
     signal.throwIfAborted();
     if (
       result.status !== 200 ||

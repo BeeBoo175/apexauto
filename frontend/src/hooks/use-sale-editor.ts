@@ -4,15 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { privateApiFetch } from "@/lib/api-browser";
 import { isRecord } from "@/lib/auth/contracts";
-import {
-  parseSale,
-  parseSaleOptions,
-  parseSaleReceipt,
-  salePath,
-  type Sale,
-  type SaleOptions,
-  type SaleReceipt,
-} from "@/lib/sales/sale";
+import { parseSale, parseSaleOptions, parseSaleReceipt } from "@/lib/sales/parse";
+import { salePath } from "@/lib/sales/query";
+import type { Sale, SaleOptions, SaleReceipt } from "@/lib/sales/contracts";
 import { saleTermsChanged, saleTermsDraft, type SaleTermsDraft } from "@/lib/sales/sale-terms";
 import { useApiCommand } from "./use-api-command";
 import { useStaffNavigationLock } from "./use-staff-navigation-lock";

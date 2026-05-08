@@ -11,8 +11,8 @@ import {
   requestApiJson,
   sessionToken,
 } from "@/lib/server/http/api";
-import { isSaleReason } from "./sale";
-import { hasSalesAccess, tableTextKeys } from "./sales";
+import { isSaleReason } from "./parse";
+import { hasSalesAccess, tableTextKeys } from "./contracts";
 
 type Body = Record<string, unknown>;
 

@@ -4,13 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { privateApiFetch } from "@/lib/api-browser";
 import type { ApiResult } from "@/lib/api";
-import {
-  parseSalesTable,
-  salesTablePath,
-  tableQuery,
-  type SalesTableFilters,
-  type SalesTablePage,
-} from "@/lib/sales/sales";
+import { parseSalesTable } from "@/lib/sales/parse";
+import { salesTablePath, tableQuery } from "@/lib/sales/query";
+import type { SalesTableFilters, SalesTablePage } from "@/lib/sales/contracts";
 
 // The managers' Sales table: one bounded read per view, filter, sort or page, keeping the last confirmed rows.
 export function useSalesTable(

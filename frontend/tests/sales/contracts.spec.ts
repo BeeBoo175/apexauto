@@ -1,13 +1,8 @@
 import { expect, test } from "@playwright/test";
-import { parseSale, parseSaleReceipt } from "@/lib/sales/sale";
+import { parseSale, parseSaleReceipt, parseSalesQueue, parseSalesTable } from "@/lib/sales/parse";
+import { saleReference } from "@/lib/sales/contracts";
+import { tableParams, tableQuery } from "@/lib/sales/query";
 import { historyChange, parseSaleHistory, versionSection } from "@/lib/sales/sale-history";
-import {
-  parseSalesQueue,
-  parseSalesTable,
-  saleReference,
-  tableParams,
-  tableQuery,
-} from "@/lib/sales/sales";
 
 const id = "8a3b0c1e-2f44-4f3b-9c55-2a7d1e0f9b11";
 const agent = "4f1d2c3b-5a6e-4b7c-8d9e-0f1a2b3c4d5e";

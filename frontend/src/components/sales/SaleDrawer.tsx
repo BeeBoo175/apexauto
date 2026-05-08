@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActionSlot } from "@/components/ui/Dialog";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import type { useSaleSelection } from "@/hooks/use-sale-selection";
-import { saleStatusLabels } from "@/lib/sales/sale";
+import { saleStatusLabels } from "@/lib/sales/contracts";
 import { SaleEditor } from "./SaleEditor";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 

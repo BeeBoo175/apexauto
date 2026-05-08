@@ -1,5 +1,5 @@
 import { parseSaleVersion } from "@/lib/sales/sale-history";
-import { relaySaleRead } from "@/lib/sales/sale-routes";
+import { relaySaleRead } from "@/lib/sales/routes";
 
 export async function GET(
   request: Request,

@@ -1,6 +1,6 @@
 import { StaffLedger } from "@/components/staff/StaffLedger";
 import { formatCurrency } from "@/lib/currency-format";
-import type { SaleSnapshot } from "@/lib/sales/sale";
+import type { SaleSnapshot } from "@/lib/sales/contracts";
 import { snapshotChanged } from "@/lib/sales/sale-history";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 import styles from "./Sales.module.css";

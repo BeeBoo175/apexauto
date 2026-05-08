@@ -13,7 +13,7 @@ import {
   saleReference,
   type QueueView,
   type SaleSummary,
-} from "@/lib/sales/sales";
+} from "@/lib/sales/contracts";
 import { HoldWheel } from "./HoldWheel";
 import styles from "@/components/staff/StaffQueueWorkspace.module.css";
 import sales from "./Sales.module.css";

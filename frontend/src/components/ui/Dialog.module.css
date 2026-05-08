@@ -149,11 +149,11 @@
 }
 
 .descriptionSkeleton {
-  composes: placeholder from "../staff/AppointmentLoadingShell.module.css";
+  composes: placeholder from "../staff/StaffRecordLoadingShell.module.css";
 }
 
 .actionSkeleton {
-  composes: placeholder from "../staff/AppointmentLoadingShell.module.css";
+  composes: placeholder from "../staff/StaffRecordLoadingShell.module.css";
 }
 
 /* Confirmation geometry must not inherit layered drawer or compact-dialog rules. */

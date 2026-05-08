@@ -1,5 +1,5 @@
-import { parseSaleOptions } from "@/lib/sales/sale";
-import { relaySaleRead } from "@/lib/sales/sale-routes";
+import { parseSaleOptions } from "@/lib/sales/parse";
+import { relaySaleRead } from "@/lib/sales/routes";
 
 export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;

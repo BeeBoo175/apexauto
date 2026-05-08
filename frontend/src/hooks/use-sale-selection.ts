@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { privateApiFetch } from "@/lib/api-browser";
 import type { ApiResult } from "@/lib/api";
-import { parseSale, salePath, type Sale } from "@/lib/sales/sale";
+import { parseSale } from "@/lib/sales/parse";
+import { salePath } from "@/lib/sales/query";
+import type { Sale } from "@/lib/sales/contracts";
 import type { SaleSection } from "@/lib/sales/sale-sections";
 import { useStaffSelection } from "./use-staff-selection";
 

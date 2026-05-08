@@ -1,5 +1,7 @@
 @layer components {
+  /* Anchors a visually hidden label here, so it cannot escape a clipped scrolling ancestor and stretch the page. */
   .field {
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: 4px;

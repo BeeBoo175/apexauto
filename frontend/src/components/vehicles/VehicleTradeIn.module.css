@@ -232,7 +232,7 @@
 }
 
 .optionPlaceholder {
-  composes: placeholder from "../staff/AppointmentLoadingShell.module.css";
+  composes: placeholder from "../staff/StaffRecordLoadingShell.module.css";
   height: 64px;
   border-radius: 8px;
 }

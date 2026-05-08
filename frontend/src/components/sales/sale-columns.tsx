@@ -3,7 +3,7 @@ import type { DataColumn } from "@/components/ui/data-table/types";
 import type { CurrentActor } from "@/lib/auth/actor";
 import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDateTime } from "@/lib/date-format";
-import { claimAge, saleReference, type SaleSummary, type TableView } from "@/lib/sales/sales";
+import { claimAge, saleReference, type SaleSummary, type TableView } from "@/lib/sales/contracts";
 import { staffColumnSizing } from "@/lib/staff/table-columns";
 import { HoldWheel } from "./HoldWheel";
 import { SaleStatus } from "./SaleStatus";

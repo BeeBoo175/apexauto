@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/data-table/ColumnFilterForm";
 import type { DataColumn } from "@/components/ui/data-table/types";
 import { dateRangeLabel } from "@/lib/date-range-label";
-import type { SaleSummary, SalesTableFilters } from "@/lib/sales/sales";
+import type { SaleSummary, SalesTableFilters } from "@/lib/sales/contracts";
 import type { AppliedWorklistFilter } from "@/lib/staff/filter-summary";
 
 export type LoadSales = (filters: SalesTableFilters, page: number) => Promise<boolean>;

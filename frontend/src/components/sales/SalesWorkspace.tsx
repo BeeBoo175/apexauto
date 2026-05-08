@@ -13,9 +13,8 @@ import { useSaleSelection } from "@/hooks/use-sale-selection";
 import { useMinuteClock } from "@/hooks/use-minute-clock";
 import { useSalesQueue } from "@/hooks/use-sales-queue";
 import type { ApiResult } from "@/lib/api";
-import type { Sale } from "@/lib/sales/sale";
-import type { SaleSection } from "@/lib/sales/sale-sections";
 import {
+  type Sale,
   queueCountOf,
   queueViewLabels,
   queueViewQueries,
@@ -24,7 +23,8 @@ import {
   type QueueView,
   type SaleSummary,
   type SalesQueue,
-} from "@/lib/sales/sales";
+} from "@/lib/sales/contracts";
+import type { SaleSection } from "@/lib/sales/sale-sections";
 import { SalesClaim } from "./SalesClaim";
 import { SalesContent } from "./SalesContent";
 import { SalesQueueList } from "./SalesQueueList";

@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/Badge";
-import { saleStatusLabels, type SaleStatus as Status } from "@/lib/sales/sale";
+import { saleStatusLabels, type SaleStatus as Status } from "@/lib/sales/contracts";
 import tones from "@/components/ui/StatusTone.module.css";
 import tableStyles from "@/components/staff/StaffTable.module.css";
 

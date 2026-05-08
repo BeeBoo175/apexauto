@@ -5,13 +5,9 @@ import { useToast } from "@/components/ui/Toast";
 import { privateApiFetch } from "@/lib/api-browser";
 import type { ApiResult } from "@/lib/api";
 import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
-import {
-  parseSalesQueue,
-  queueQuery,
-  salesQueuePath,
-  type QueueView,
-  type SalesQueue,
-} from "@/lib/sales/sales";
+import { parseSalesQueue } from "@/lib/sales/parse";
+import { queueQuery, salesQueuePath } from "@/lib/sales/query";
+import type { QueueView, SalesQueue } from "@/lib/sales/contracts";
 import { useInitialToast } from "./use-initial-toast";
 
 // One tab of the agent's queue, or a search across all of them: its first screen, more on demand, and a refresh

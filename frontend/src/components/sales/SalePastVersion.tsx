@@ -7,7 +7,7 @@ import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { useSaleVersion } from "@/hooks/use-sale-version";
 import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDateTime } from "@/lib/date-format";
-import type { SaleContext } from "@/lib/sales/sale";
+import type { SaleContext } from "@/lib/sales/contracts";
 import { historyTitle } from "@/lib/sales/sale-history";
 import type { SaleSection } from "@/lib/sales/sale-sections";
 import { SaleFacts } from "./SaleFacts";

@@ -8,12 +8,10 @@ import type { ApiResult } from "@/lib/api";
 import type { CurrentActor } from "@/lib/auth/actor";
 import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 import type { SearchParams } from "@/lib/query";
-import { parseSale, salePath, type Sale } from "@/lib/sales/sale";
+import { parseSale, parseSalesQueue, parseSalesTable } from "@/lib/sales/parse";
 import {
+  salePath,
   firstQueueView,
-  isSalesManager,
-  parseSalesQueue,
-  parseSalesTable,
   queueParams,
   queueQuery,
   saleSelection,
@@ -21,9 +19,8 @@ import {
   salesTablePath,
   tableParams,
   tableQuery,
-  type QueueView,
-  type SalesQueue,
-} from "@/lib/sales/sales";
+} from "@/lib/sales/query";
+import { type Sale, isSalesManager, type QueueView, type SalesQueue } from "@/lib/sales/contracts";
 
 const unavailable: ApiResult<Sale> = { status: 502, data: null, message: "", uncertain: false };
 

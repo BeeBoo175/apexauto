@@ -9,7 +9,7 @@
 .label,
 .control,
 .action {
-  composes: placeholder from "../staff/AppointmentLoadingShell.module.css";
+  composes: placeholder from "../staff/StaffRecordLoadingShell.module.css";
 }
 
 .body {
