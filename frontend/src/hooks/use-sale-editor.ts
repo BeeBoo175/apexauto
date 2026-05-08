@@ -15,7 +15,7 @@ export type SaleCommandName =
   | "claims"
   | "assignments"
   | "releases"
-  | "terms"
+  | "term-revisions"
   | "submissions"
   | "approvals"
   | "rejections"
@@ -35,7 +35,7 @@ export interface SaleCommandFields {
   claims: NoFields;
   assignments: { agentId: string };
   releases: NoFields;
-  terms: SaleTermsFields;
+  "term-revisions": SaleTermsFields;
   submissions: NoFields;
   approvals: NoFields;
   rejections: { reason: string };
@@ -71,7 +71,12 @@ export function useSaleEditor(initial: Sale, onChanged: () => void) {
     claims: useApiCommand(path("claims"), parseSaleReceipt, matches, privateApiFetch),
     assignments: useApiCommand(path("assignments"), parseSaleReceipt, matches, privateApiFetch),
     releases: useApiCommand(path("releases"), parseSaleReceipt, matches, privateApiFetch),
-    terms: useApiCommand(path("terms"), parseSaleReceipt, matches, privateApiFetch),
+    "term-revisions": useApiCommand(
+      path("term-revisions"),
+      parseSaleReceipt,
+      matches,
+      privateApiFetch,
+    ),
     submissions: useApiCommand(path("submissions"), parseSaleReceipt, matches, privateApiFetch),
     approvals: useApiCommand(path("approvals"), parseSaleReceipt, matches, privateApiFetch),
     rejections: useApiCommand(path("rejections"), parseSaleReceipt, matches, privateApiFetch),
@@ -181,7 +186,7 @@ export function useSaleEditor(initial: Sale, onChanged: () => void) {
       }
       return false;
     }
-    if (name === "terms") {
+    if (name === "term-revisions") {
       setSavedTerms(terms);
     }
     if (name === "rejections" || name === "cancellations") {

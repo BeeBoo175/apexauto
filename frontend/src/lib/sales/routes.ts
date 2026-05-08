@@ -22,13 +22,13 @@ const upstream = "/api/staff/sales";
 const saleReads =
   /^(?:|\/queue|\/[0-9a-f-]{36}(?:\/(?:options|agents|history|versions\/[1-9]\d{0,9}))?)$/i;
 const saleWrites =
-  /^\/[0-9a-f-]{36}\/(?:claims|assignments|releases|terms|submissions|approvals|rejections|cancellations)$/i;
+  /^\/[0-9a-f-]{36}\/(?:claims|assignments|releases|term-revisions|submissions|approvals|rejections|cancellations)$/i;
 
 export const saleCommands = [
   "claims",
   "assignments",
   "releases",
-  "terms",
+  "term-revisions",
   "submissions",
   "approvals",
   "rejections",
@@ -149,7 +149,7 @@ export function shapeSaleCommand(command: SaleCommand) {
       case "rejections":
       case "cancellations":
         return isSaleReason(body.reason) ? { ...common, reason: body.reason } : null;
-      case "terms": {
+      case "term-revisions": {
         const warranty = body.warrantyPackageId ?? null;
         const tradeIn = body.tradeInAppointmentId ?? null;
         if (

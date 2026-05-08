@@ -25,7 +25,7 @@ export function SaleTermsForm({
     if (!valid || negotiated === null || credit === null) {
       return;
     }
-    void editor.run("terms", {
+    void editor.run("term-revisions", {
       warrantyPackageId: terms.warranty || null,
       negotiatedDiscount: negotiated,
       tradeInAppointmentId: terms.tradeIn || null,
@@ -127,9 +127,9 @@ export function SaleTermsForm({
         <Button
           type="submit"
           size="compact"
-          disabled={disabled || !valid || (!editor.dirty && editor.uncertain !== "terms")}
+          disabled={disabled || !valid || (!editor.dirty && editor.uncertain !== "term-revisions")}
         >
-          {editor.uncertain === "terms" ? "Reconcile saved terms" : "Save terms"}
+          {editor.uncertain === "term-revisions" ? "Reconcile saved terms" : "Save terms"}
         </Button>
       </div>
     </form>

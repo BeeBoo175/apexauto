@@ -11,7 +11,6 @@ import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import { useSaleEditor } from "@/hooks/use-sale-editor";
 import type { useSaleSelection } from "@/hooks/use-sale-selection";
-import { formatCurrency } from "@/lib/currency-format";
 import { isSaleReason } from "@/lib/sales/parse";
 import type { Sale } from "@/lib/sales/contracts";
 import { saleSectionLabels, saleSections } from "@/lib/sales/sale-sections";
@@ -163,12 +162,6 @@ export function SaleEditor({
           {showsCurrent && section === "deal" && (
             <SalePanel>
               <SaleLines sale={snapshot.sale} />
-              {snapshot.sale.discountLimitAtSubmit !== null && (
-                <p className={workbench.help}>
-                  Agent discount limit when submitted:{" "}
-                  {formatCurrency(snapshot.sale.discountLimitAtSubmit)}.
-                </p>
-              )}
               {editor.stale && (
                 <div className={workbench.protocol} role="status">
                   <p>A newer version was loaded. Your entries are kept until you use it.</p>
@@ -177,7 +170,9 @@ export function SaleEditor({
                   </Button>
                 </div>
               )}
-              {actions.saveTerms && <SaleTermsForm editor={editor} disabled={blocked("terms")} />}
+              {actions.saveTerms && (
+                <SaleTermsForm editor={editor} disabled={blocked("term-revisions")} />
+              )}
               {noteNeeded && (
                 <section className={workbench.stack}>
                   <div className={workbench.sectionHeader}>

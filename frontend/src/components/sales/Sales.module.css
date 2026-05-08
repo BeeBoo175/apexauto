@@ -93,3 +93,149 @@
   text-align: right;
   white-space: nowrap;
 }
+
+/* Customer & car: four groups placed by proximity, each led by the value that names it. */
+.factGroups {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 32px 40px;
+  padding-top: 8px;
+}
+
+@container staff-record-content (max-width: 560px) {
+  .factGroups {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+  }
+}
+
+.factGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+
+.factGroup > h2 {
+  margin-bottom: 8px;
+}
+
+.factLead {
+  margin: 0;
+  color: var(--color-graphite);
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.factLine {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.factGroup > div:not(.factPairs) {
+  margin-top: 10px;
+}
+
+.factPairs {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 6px 16px;
+  margin: 12px 0 0;
+  font-size: 13px;
+}
+
+.factPairs > div {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+}
+
+.factPairs dt {
+  color: var(--color-muted);
+}
+
+.factPairs dd {
+  margin: 0;
+  color: var(--color-graphite);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+/* Deal: the price in three short groups, separated by space rather than a rule on every line. */
+.price {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding-top: 8px;
+}
+
+.priceGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.priceLines {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+}
+
+.priceLines > div,
+.priceTotal {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.priceLines dt {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--color-graphite);
+  font-size: 14px;
+}
+
+.priceLines dd,
+.priceTotal dd {
+  margin: 0;
+  color: var(--color-graphite);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.priceNote {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.priceNote[data-over] {
+  color: var(--color-warning);
+  font-weight: 600;
+}
+
+.priceTotal {
+  margin: 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-line);
+}
+
+.priceTotal dt {
+  color: var(--color-graphite);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.priceTotal dd {
+  font-size: 18px;
+  font-weight: 700;
+}

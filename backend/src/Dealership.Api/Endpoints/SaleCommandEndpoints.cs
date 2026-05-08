@@ -22,7 +22,7 @@ public static class SaleCommandEndpoints
         routes.MapPost("/releases", (Guid id, HttpContext context, SaleHandlingService sales, CancellationToken token) =>
             RunAsync<SaleCommandRequest>(context, token, (actor, request, deadline) =>
                 sales.ReleaseAsync(actor, id, request, deadline)));
-        routes.MapPost("/terms", (Guid id, HttpContext context, SaleTermsService sales, CancellationToken token) =>
+        routes.MapPost("/term-revisions", (Guid id, HttpContext context, SaleTermsService sales, CancellationToken token) =>
             RunAsync<SaleTermsRequest>(context, token, (actor, request, deadline) =>
                 sales.SaveTermsAsync(actor, id, request, deadline)));
         routes.MapPost("/submissions", (Guid id, HttpContext context, SaleTermsService sales, CancellationToken token) =>
