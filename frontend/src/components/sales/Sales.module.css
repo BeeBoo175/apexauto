@@ -57,31 +57,80 @@
   font-size: 13px;
 }
 
-.holdSummary {
-  display: flex;
-  align-items: center;
-  padding-top: 12px;
-  border-top: 1px solid var(--color-line-soft);
+.wheel[data-compact="true"] .wheelRing {
+  width: 24px;
+  height: 24px;
 }
 
-/* A field a past version changed, against the version before it. */
-.changed {
+.summaryLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 16px;
+}
+
+.summaryMain {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-height: 44px;
+  min-width: 0;
+}
+
+.summaryStatus {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  min-width: 110px;
+  min-height: 24px;
+}
+
+.summaryClock {
+  min-height: 24px;
+}
+
+.statusPlaceholder,
+.clockPlaceholder {
+  display: block;
   border-radius: 4px;
-  background: var(--color-canvas);
-  box-shadow: inset 0 0 0 1px var(--color-line);
+  background: var(--color-line-soft);
 }
 
-.versionBar {
+.statusPlaceholder {
+  width: 90px;
+  height: 22px;
+}
+
+.clockPlaceholder {
+  width: 120px;
+  height: 24px;
+}
+
+.summaryAgent {
   display: flex;
+  align-items: baseline;
   flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px 16px;
-  padding: 10px 12px;
-  border: 1px solid var(--color-line-soft);
-  border-radius: 8px;
-  background: var(--color-canvas);
+  gap: 2px 6px;
+  min-width: 0;
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.summaryAgent span:last-child {
+  color: var(--color-graphite);
   font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.summaryAgent[data-empty="true"] {
+  visibility: hidden;
 }
 
 /* The balance payable as the queue row's own figure, aligned with the registration. */
@@ -94,153 +143,173 @@
   white-space: nowrap;
 }
 
-/* Customer & car: four groups placed by proximity, each led by the value that names it. */
-.factGroups {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 32px 40px;
-  padding-top: 8px;
-}
-
-@container staff-record-content (max-width: 560px) {
-  .factGroups {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 28px;
-  }
-}
-
-.factGroup {
+.section,
+.deal {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
+  gap: 16px;
   min-width: 0;
 }
 
-.factGroup > h2 {
-  margin-bottom: 8px;
+.section {
+  padding-top: 16px;
 }
 
-.factLead {
-  margin: 0;
-  color: var(--color-graphite);
-  font-size: 17px;
-  font-weight: 700;
-  line-height: 1.35;
-  overflow-wrap: anywhere;
+.deal {
+  gap: 24px;
 }
 
-.factLine {
+.customer {
+  display: grid;
+  gap: 24px;
+}
+
+.customerSection {
+  display: grid;
+  gap: 20px;
+}
+
+.contactFacts,
+.vehicleFacts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 32px;
   margin: 0;
+}
+
+.contactFacts {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px 32px;
+}
+
+.vehicleFacts {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+.contactFacts > div,
+.vehicleFacts > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.contactFacts dt,
+.vehicleFacts dt {
   color: var(--color-muted);
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.5;
-  overflow-wrap: anywhere;
 }
 
-.factGroup > div:not(.factPairs) {
-  margin-top: 10px;
-}
-
-.factPairs {
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  gap: 6px 16px;
-  margin: 12px 0 0;
-  font-size: 13px;
-}
-
-.factPairs > div {
-  display: grid;
-  grid-column: 1 / -1;
-  grid-template-columns: subgrid;
-}
-
-.factPairs dt {
-  color: var(--color-muted);
-}
-
-.factPairs dd {
+.contactFacts dd,
+.vehicleFacts dd {
   margin: 0;
   color: var(--color-graphite);
-  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  line-height: 1.6;
   overflow-wrap: anywhere;
 }
 
-/* Deal: the price in three short groups, separated by space rather than a rule on every line. */
+.contactMethod dd {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.contactValue {
+  user-select: text;
+}
+
+.dealColumns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+  align-items: start;
+  gap: 40px;
+}
+
+.terms {
+  min-width: 0;
+}
+
+.termsForm {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
 .price {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding-top: 8px;
+  gap: 20px;
+  min-width: 0;
 }
 
-.priceGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.priceLines {
-  display: flex;
-  flex-direction: column;
+.priceLines,
+.priceTotal {
+  display: grid;
   gap: 8px;
   margin: 0;
 }
 
 .priceLines > div,
-.priceTotal {
-  display: flex;
+.priceTotal > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: baseline;
-  justify-content: space-between;
-  gap: 16px;
+  gap: 4px 16px;
 }
 
 .priceLines dt {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  display: grid;
+  gap: 4px;
   color: var(--color-graphite);
-  font-size: 14px;
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 .priceLines dd,
 .priceTotal dd {
   margin: 0;
   color: var(--color-graphite);
-  font-size: 14px;
+  font-size: 13px;
+  line-height: 1.6;
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+  text-align: right;
 }
 
 .priceNote {
   color: var(--color-muted);
   font-size: 12px;
+  line-height: 1.5;
 }
 
 .priceNote[data-over] {
   color: var(--color-warning);
-  font-weight: 600;
 }
 
 .priceTotal {
-  margin: 0;
   padding-top: 16px;
   border-top: 1px solid var(--color-line);
 }
 
-.priceTotal dt {
-  color: var(--color-graphite);
-  font-size: 15px;
-  font-weight: 700;
-}
-
+.priceTotal dt,
 .priceTotal dd {
-  font-size: 18px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
 }
 
-.wheel[data-compact="true"] .wheelRing {
-  width: 24px;
-  height: 24px;
+@container staff-record-content (max-width: 640px) {
+  .dealColumns {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+}
+
+@container staff-record-content (max-width: 640px) {
+  .contactFacts {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
