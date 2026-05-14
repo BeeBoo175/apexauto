@@ -47,6 +47,7 @@ export default defineConfig({
         "vehicles/promo-contracts.spec.ts",
         "vehicles/trade-in-contracts.spec.ts",
         "sales/contracts.spec.ts",
+        "sales/history-contracts.spec.ts",
         "sales/table-contracts.spec.ts",
       ],
     },

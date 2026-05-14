@@ -10,6 +10,8 @@ export function VehicleDetailView({
   transmission,
   fuel,
   price,
+  priceLabel = "Vehicle price",
+  layout = "purchase",
   photos,
   summary,
   children,
@@ -21,12 +23,14 @@ export function VehicleDetailView({
   transmission: string;
   fuel: string;
   price: string;
+  priceLabel?: string;
+  layout?: "purchase" | "reference";
   photos: VehicleDetailPhoto[];
   summary: ReactNode;
   children: ReactNode;
 }) {
   return (
-    <div className={styles.view}>
+    <div className={styles.view} data-layout={layout}>
       <div className={styles.hero}>
         <VehicleDetailGallery vehicleId={vehicleId} name={name} photos={photos} />
         <div className={styles.purchase}>
@@ -49,7 +53,7 @@ export function VehicleDetailView({
             </dl>
           </header>
           <div className={styles.price}>
-            <span>Vehicle price</span>
+            <span>{priceLabel}</span>
             <strong>{price}</strong>
           </div>
           {summary}

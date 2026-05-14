@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActionSlot } from "@/components/ui/Dialog";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import type { useSaleSelection } from "@/hooks/use-sale-selection";
-import { saleStatusLabels } from "@/lib/sales/contracts";
 import { SaleEditor } from "./SaleEditor";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 
@@ -34,13 +33,8 @@ export function SaleDrawer({
         layout="workspace"
         title={sale ? (sale.sale.orderNumber ?? sale.context.reservationNumber) : "Sale"}
         headerLoading={loading}
-        description={
-          sale
-            ? `${sale.context.registration} · ${sale.context.vehicle} · ${saleStatusLabels[sale.sale.status]}`
-            : undefined
-        }
+        description={sale ? `${sale.context.registration} · ${sale.context.vehicle}` : undefined}
         headerActions={<DialogActionSlot ref={setHeaderActions} />}
-        closeDisabled={selection.locked}
         onClose={selection.close}
       >
         {loading && <StaffDrawerLoadingShell label="Loading sale…" />}

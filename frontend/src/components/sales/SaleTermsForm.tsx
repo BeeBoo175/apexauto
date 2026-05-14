@@ -1,31 +1,43 @@
 "use client";
 
+import { useId, useState } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/Button";
+import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { Input, Select } from "@/components/ui/Input";
 import type { useSaleEditor } from "@/hooks/use-sale-editor";
 import { formatCurrency } from "@/lib/currency-format";
 import { readSaleTerms } from "@/lib/sales/sale-terms";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 import forms from "@/components/staff/StaffForms.module.css";
+import record from "@/components/staff/StaffRecordContent.module.css";
+import styles from "./Sales.module.css";
 
 // The terms the handling agent controls: negotiated discount, one eligible warranty and one of the customer's
 // trade-ins. The editor keeps the draft from its base version until it is saved.
 export function SaleTermsForm({
   editor,
   disabled,
+  actionsContainer,
 }: {
   editor: ReturnType<typeof useSaleEditor>;
   disabled: boolean;
+  actionsContainer: HTMLElement | null;
 }) {
+  const formId = useId();
+  const [discarding, setDiscarding] = useState(false);
   const base = editor.base.sale;
   const { terms, options, changeTerms } = editor;
   const { negotiated, credit, chosen, overValuation, valid } = readSaleTerms(terms, options);
 
-  function submit() {
+  async function submit() {
+    if (!editor.dirty && editor.uncertain !== "term-revisions") {
+      return;
+    }
     if (!valid || negotiated === null || credit === null) {
       return;
     }
-    void editor.run("term-revisions", {
+    await editor.run("term-revisions", {
       warrantyPackageId: terms.warranty || null,
       negotiatedDiscount: negotiated,
       tradeInAppointmentId: terms.tradeIn || null,
@@ -33,18 +45,51 @@ export function SaleTermsForm({
     });
   }
 
+  const actions = editor.editingTerms ? (
+    <>
+      <Button
+        size="compact"
+        variant="secondary"
+        disabled={disabled || editor.operating}
+        onClick={() => setDiscarding(true)}
+      >
+        Discard changes
+      </Button>
+      <Button
+        type="submit"
+        form={formId}
+        size="compact"
+        disabled={disabled || !valid || (!editor.dirty && editor.uncertain !== "term-revisions")}
+      >
+        {editor.uncertain === "term-revisions" ? "Reconcile saved terms" : "Save terms"}
+      </Button>
+    </>
+  ) : null;
+
   return (
     <form
-      className={workbench.stack}
+      id={formId}
+      className={styles.termsForm}
       noValidate
       onSubmit={(event) => {
         event.preventDefault();
-        submit();
+        void submit();
       }}
     >
-      <div className={workbench.sectionHeader}>
-        <h2 className={workbench.sectionTitle}>Agreed terms</h2>
-      </div>
+      <h4 className={record.label}>Agreed terms</h4>
+      <ConfirmationDialog
+        open={discarding}
+        title="Discard deal term changes?"
+        confirmLabel="Discard changes"
+        danger
+        onClose={() => setDiscarding(false)}
+        onConfirm={() => {
+          editor.discardTerms();
+          setDiscarding(false);
+        }}
+      >
+        <p>Your unsaved terms will be replaced with the confirmed deal values.</p>
+      </ConfirmationDialog>
       {base.status === "Approved" && (
         <p className={workbench.help}>
           Saving changes withdraws the approval; the sale must be submitted again.
@@ -123,15 +168,11 @@ export function SaleTermsForm({
           Warranty and trade-in choices could not be loaded. Reopen to retry.
         </p>
       )}
-      <div>
-        <Button
-          type="submit"
-          size="compact"
-          disabled={disabled || !valid || (!editor.dirty && editor.uncertain !== "term-revisions")}
-        >
-          {editor.uncertain === "term-revisions" ? "Reconcile saved terms" : "Save terms"}
-        </Button>
-      </div>
+      {actionsContainer ? (
+        createPortal(actions, actionsContainer)
+      ) : (
+        <div className={workbench.footerActions}>{actions}</div>
+      )}
     </form>
   );
 }

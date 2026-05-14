@@ -1,56 +1,77 @@
 "use client";
 
+import type { ComponentProps } from "react";
+import { createPortal } from "react-dom";
 import { StaffRecordLoadingShell } from "@/components/staff/StaffRecordLoadingShell";
-import { StaffLedger } from "@/components/staff/StaffLedger";
 import { Button } from "@/components/ui/Button";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
-import { useSaleVersion } from "@/hooks/use-sale-version";
-import { formatCurrency } from "@/lib/currency-format";
-import { formatMalaysianDateTime } from "@/lib/date-format";
+import { RefreshButton } from "@/components/ui/RefreshButton";
+import type { useSaleVersion } from "@/hooks/use-sale-version";
 import type { SaleContext } from "@/lib/sales/contracts";
-import { historyTitle } from "@/lib/sales/sale-history";
 import type { SaleSection } from "@/lib/sales/sale-sections";
+import { historyVersionTitle } from "@/lib/sales/sale-history";
+import { formatMalaysianDateTime } from "@/lib/date-format";
 import { SaleFacts } from "./SaleFacts";
-import { SaleLines } from "./SaleLines";
+import { SaleDeal } from "./SaleDeal";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
+import record from "@/components/staff/StaffRecordContent.module.css";
 import styles from "./Sales.module.css";
 
 const loadingDetails = ["Status", "Price", "Handling"];
 
-// One past version of the sale, read only, in the section its action belongs to; changed fields are marked
-// against the version before it. Back to current returns to the live section without touching any draft.
+// The retained record shares the live section's composition without changing any local draft.
 export function SalePastVersion({
-  saleId,
-  version,
+  review,
   section,
   context,
-  onBack,
+  actionsContainer,
+  refreshControl,
 }: {
-  saleId: string;
-  version: number;
+  review: ReturnType<typeof useSaleVersion>;
   section: SaleSection;
   context: SaleContext;
-  onBack: () => void;
+  actionsContainer?: HTMLElement | null;
+  refreshControl?: ComponentProps<typeof RefreshButton>;
 }) {
-  const review = useSaleVersion(saleId, version);
   const { result } = review;
-  const title = result
-    ? historyTitle({ kind: result.kind, toStatus: result.snapshot.status, agent: result.agent })
-    : "";
+  let title = "Retained deal";
+  if (section === "customer") {
+    title = "Customer reference";
+  } else if (result) {
+    title = historyVersionTitle({ kind: result.kind, toStatus: result.snapshot.status });
+  }
   return (
-    <section className={workbench.stack} aria-label="Past version" aria-busy={review.busy}>
+    <section className={styles.section} aria-label="Past version" aria-busy={review.busy}>
       <LoadingProgress label="Loading the past version" active={review.busy} />
-      <div className={styles.versionBar} role="status">
-        <span>
-          {result
-            ? `Viewing version ${version} · ${title} by ${result.actor}, ${formatMalaysianDateTime(result.recordedAt)}`
-            : `Viewing version ${version}`}
-        </span>
-        <Button size="compact" variant="secondary" onClick={onBack}>
-          Back to current
-        </Button>
+      {actionsContainer &&
+        createPortal(
+          <RefreshButton
+            label="Refresh sale version"
+            busy={review.busy || Boolean(refreshControl?.busy)}
+            disabled={Boolean(refreshControl?.disabled)}
+            onClick={() => {
+              review.retry();
+              refreshControl?.onClick();
+            }}
+          />,
+          actionsContainer,
+        )}
+      <div className={workbench.sectionHeader}>
+        <h2 className={workbench.sectionTitle}>
+          {title}
+          {result && ` · version ${result.version}`}
+        </h2>
       </div>
-      {review.busy && (
+      {result && (
+        <p className={workbench.help}>Recorded {formatMalaysianDateTime(result.recordedAt)}</p>
+      )}
+      {result && section === "customer" && (
+        <p className={workbench.help}>
+          Contact details reflect the current customer record. The sale summary reflects version{" "}
+          {result.version}.
+        </p>
+      )}
+      {review.busy && !result && (
         <StaffRecordLoadingShell label="Loading the sale as it stood…" details={loadingDetails} />
       )}
       {review.failed && (
@@ -61,38 +82,16 @@ export function SalePastVersion({
           </Button>
         </div>
       )}
-      {/* Hold time and claim age are read as they stood when this version was recorded. */}
-      {result && section === "customer" && (
-        <SaleFacts
-          sale={result.snapshot}
-          context={context}
-          agent={result.agent}
-          decidedBy={null}
-          now={Date.parse(result.recordedAt)}
-          previous={result.previous}
-        />
-      )}
+      {result && section === "customer" && <SaleFacts context={context} />}
       {result && section !== "customer" && (
         <>
-          <SaleLines sale={result.snapshot} previous={result.previous} />
-          <StaffLedger title="Terms">
-            <div>
-              <dt>Purchase order</dt>
-              <dd>{result.snapshot.orderNumber ?? "Not yet submitted"}</dd>
-            </div>
-            {result.snapshot.discountLimitAtSubmit !== null && (
-              <div>
-                <dt>Agent discount limit when submitted</dt>
-                <dd>{formatCurrency(result.snapshot.discountLimitAtSubmit)}</dd>
-              </div>
-            )}
-            {result.reason && (
-              <div>
-                <dt>Reason</dt>
-                <dd>{result.reason}</dd>
-              </div>
-            )}
-          </StaffLedger>
+          <SaleDeal sale={result.snapshot} context={context} />
+          {result.reason && (
+            <section className={record.group}>
+              <h4>Reason</h4>
+              <p>{result.reason}</p>
+            </section>
+          )}
         </>
       )}
     </section>

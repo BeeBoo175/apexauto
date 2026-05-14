@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { useApiCommand } from "@/hooks/use-api-command";
+import { useEditGuard } from "@/hooks/use-edit-guard";
 import type { useSalesQueue } from "@/hooks/use-sales-queue";
 import { privateApiFetch } from "@/lib/api-browser";
 import { isRecord } from "@/lib/auth/contracts";
@@ -40,6 +41,7 @@ export function SalesClaim({
       receipt.saleId === hold?.id,
     privateApiFetch,
   );
+  useEditGuard({ pending: claim.busy, uncertain: claim.uncertain, label: "Sale claim" });
 
   function choose(item: SaleSummary) {
     if (claim.uncertain) {

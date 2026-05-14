@@ -10,6 +10,7 @@ import { RefreshButton } from "@/components/ui/RefreshButton";
 import { SearchField } from "@/components/ui/SearchField";
 import { useToast } from "@/components/ui/Toast";
 import { useSaleSelection } from "@/hooks/use-sale-selection";
+import { useGuardedAction } from "@/hooks/use-guarded-action";
 import { useMinuteClock } from "@/hooks/use-minute-clock";
 import { useSalesQueue } from "@/hooks/use-sales-queue";
 import type { ApiResult } from "@/lib/api";
@@ -54,6 +55,7 @@ export function SalesWorkspace({
   selectedVersion,
 }: SalesWorkspaceProps) {
   const animateEntry = useContext(StaffPageEntranceContext);
+  const interaction = useGuardedAction();
   const toast = useToast();
   const [view, setView] = useState(initialView);
   const [queueExpanded, setQueueExpanded] = useState(!selectedSaleId);
@@ -102,6 +104,9 @@ export function SalesWorkspace({
   }
 
   function showView(value: QueueView) {
+    if (interaction.blocked) {
+      return;
+    }
     setView(value);
     if (!worklists[value].snapshot) {
       void worklists[value].refresh();
@@ -158,7 +163,7 @@ export function SalesWorkspace({
               className={styles.search}
               onSubmit={(event) => {
                 event.preventDefault();
-                if (draft.trim()) {
+                if (!interaction.blocked && draft.trim()) {
                   void found.find(draft);
                 }
               }}
@@ -167,7 +172,8 @@ export function SalesWorkspace({
                 label="Search my sales"
                 placeholder="Search reference, plate, customer, phone or email"
                 value={draft}
-                disabled={false}
+                disabled={interaction.blocked}
+                disabledReason={interaction.message}
                 busy={found.busy}
                 onChange={setDraft}
                 onClear={
@@ -193,6 +199,7 @@ export function SalesWorkspace({
                   className={styles.queueView}
                   aria-pressed={view === item}
                   title={queueViewLabels[item]}
+                  disabled={interaction.blocked}
                   onClick={() => showView(item)}
                 >
                   <span>{queueViewTabs[item]}</span>
@@ -214,7 +221,7 @@ export function SalesWorkspace({
                 onOpen={open}
                 selectedId={selection.id}
                 pendingId={selection.pendingId}
-                selectionLocked={selection.locked}
+                selectionLocked={interaction.blocked}
               />
             )}
             {!searching && view === "ToClaim" && (
@@ -241,7 +248,7 @@ export function SalesWorkspace({
                 onOpen={open}
                 selectedId={selection.id}
                 pendingId={selection.pendingId}
-                selectionLocked={selection.locked}
+                selectionLocked={interaction.blocked}
               />
             )}
           </div>
