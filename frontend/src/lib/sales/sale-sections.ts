@@ -1,12 +1,17 @@
-export const saleSections = ["customer", "deal", "history"] as const;
+export const saleSections = ["customer", "car", "deal", "history"] as const;
 
 export type SaleSection = (typeof saleSections)[number];
 
 export const saleSectionLabels: Record<SaleSection, string> = {
-  customer: "Customer & car",
+  customer: "Customer",
+  car: "Car",
   deal: "Deal",
   history: "History",
 };
+
+export function isSaleVersionSection(section: SaleSection): section is "customer" | "deal" {
+  return section === "customer" || section === "deal";
+}
 
 // An unknown or missing address value opens the Deal section, where the terms and actions are.
 export function saleSection(value: unknown): SaleSection {

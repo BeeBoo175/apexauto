@@ -4,12 +4,17 @@ import { useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { privateApiFetch } from "@/lib/api-browser";
 import { isRecord } from "@/lib/auth/contracts";
-import { parseSale, parseSaleOptions, parseSaleReceipt } from "@/lib/sales/parse";
+import {
+  normalizeSaleReason,
+  parseSale,
+  parseSaleOptions,
+  parseSaleReceipt,
+} from "@/lib/sales/parse";
 import { salePath } from "@/lib/sales/query";
 import type { Sale, SaleOptions, SaleReceipt } from "@/lib/sales/contracts";
 import { saleTermsChanged, saleTermsDraft, type SaleTermsDraft } from "@/lib/sales/sale-terms";
 import { useApiCommand } from "./use-api-command";
-import { useStaffNavigationLock } from "./use-staff-navigation-lock";
+import { useEditGuard } from "./use-edit-guard";
 
 export type SaleCommandName =
   | "claims"
@@ -60,6 +65,7 @@ export function useSaleEditor(initial: Sale, onChanged: () => void) {
   // The draft a save sent stays clean until the confirmed version it produced becomes the base.
   const [savedTerms, setSavedTerms] = useState<SaleTermsDraft | null>(null);
   const [reason, setReason] = useState("");
+  const [cancellationReason, setCancellationReason] = useState("");
   const [options, setOptions] = useState<SaleOptions | null>(null);
   const [optionsFailed, setOptionsFailed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -90,7 +96,20 @@ export function useSaleEditor(initial: Sale, onChanged: () => void) {
   const operating = busy || uncertain !== undefined;
   const keysTerms = snapshot.actions.saveTerms;
   const formDirty = keysTerms && terms !== savedTerms && saleTermsChanged(terms, base.sale);
-  useStaffNavigationLock(formDirty || operating);
+  const notesDirty = Boolean(reason.trim() || cancellationReason.trim());
+  const editingTerms = formDirty || uncertain === "term-revisions";
+  useEditGuard({
+    dirty: formDirty || notesDirty,
+    pending: busy,
+    uncertain: uncertain !== undefined,
+    label: "Sale changes",
+    discard: () => {
+      setTerms(saleTermsDraft(base.sale));
+      setSavedTerms(null);
+      setReason("");
+      setCancellationReason("");
+    },
+  });
 
   // A fresh read from the host replaces the confirmed record; the form keeps its base until it is clean.
   if (entry !== initial) {
@@ -175,10 +194,16 @@ export function useSaleEditor(initial: Sale, onChanged: () => void) {
     if (busy || (uncertain && uncertain !== name)) {
       return false;
     }
+    const normalized = "reason" in fields ? normalizeSaleReason(fields.reason) : null;
+    if ("reason" in fields && !normalized && !command.uncertain) {
+      toast.error("Enter a reason of 1 to 1000 characters without control characters.");
+      return false;
+    }
     const result = await command.submit({
       operationId: crypto.randomUUID(),
       expectedVersion: snapshot.sale.version,
       ...fields,
+      ...("reason" in fields ? { reason: normalized } : {}),
     });
     if (result?.status !== 200 || !result.data) {
       if (result?.status === 409) {
@@ -189,8 +214,11 @@ export function useSaleEditor(initial: Sale, onChanged: () => void) {
     if (name === "term-revisions") {
       setSavedTerms(terms);
     }
-    if (name === "rejections" || name === "cancellations") {
+    if (name === "rejections") {
       setReason("");
+    }
+    if (name === "cancellations") {
+      setCancellationReason("");
     }
     onChanged();
     const read = await refresh(true);
@@ -204,10 +232,23 @@ export function useSaleEditor(initial: Sale, onChanged: () => void) {
     // The open form started from an older version than the one now confirmed.
     stale: formDirty && base.sale.version !== snapshot.sale.version,
     dirty: formDirty,
+    notesDirty,
+    locked: formDirty || notesDirty || operating,
     terms,
     changeTerms: (patch: Partial<SaleTermsDraft>) => setTerms((draft) => ({ ...draft, ...patch })),
     reason,
     setReason,
+    cancellationReason,
+    setCancellationReason,
+    discardNotes: () => {
+      setReason("");
+      setCancellationReason("");
+    },
+    editingTerms,
+    discardTerms: () => {
+      setTerms(saleTermsDraft(base.sale));
+      setSavedTerms(null);
+    },
     options,
     optionsFailed,
     useLatest: () => setBase(snapshot),

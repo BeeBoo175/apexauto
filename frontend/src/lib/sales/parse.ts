@@ -42,7 +42,19 @@ const rate = (value: unknown): value is number =>
 // A return or cancellation reason as the backend accepts it: trimmed, between 1 and 1000 characters.
 
 export const isSaleReason = (value: unknown): value is string =>
-  typeof value === "string" && value === value.trim() && value.length >= 1 && value.length <= 1000;
+  typeof value === "string" &&
+  value === value.trim() &&
+  value.length >= 1 &&
+  value.length <= 1000 &&
+  !/\p{Cc}/u.test(value);
+
+export function normalizeSaleReason(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const reason = value.trim();
+  return isSaleReason(reason) ? reason : null;
+}
 
 export const isSaleStatus = (value: unknown): value is SaleStatus =>
   saleStatuses.some((status) => status === value);

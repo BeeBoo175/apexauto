@@ -4,13 +4,6 @@ import { formatCurrency } from "@/lib/currency-format";
 import { isMyr } from "@/lib/currency-input";
 import { isSaleStatus, nullable, parseSaleSnapshot, text, utc } from "./parse";
 import type { SaleSnapshot, SaleStatus } from "./contracts";
-import type { SaleSection } from "./sale-sections";
-
-// Marks fields a past version changed against the version before it; with no earlier version nothing is marked.
-export const snapshotChanged =
-  (sale: SaleSnapshot, previous: SaleSnapshot | null) =>
-  (...fields: (keyof SaleSnapshot)[]) =>
-    previous !== null && fields.some((field) => previous[field] !== sale[field]);
 
 export interface SaleChange {
   field: string;
@@ -127,11 +120,53 @@ export function parseSaleVersion(value: unknown): SaleVersion | null {
   return { ...value, snapshot, previous } as unknown as SaleVersion;
 }
 
-// Handling actions are read on Customer & car, where the agent and timer show; everything else on Deal.
-export function versionSection(kind: string): SaleSection {
-  return ["Claimed", "Assigned", "Reassigned", "Released", "Expired"].includes(kind)
-    ? "customer"
-    : "deal";
+export function historyVersionTitle(item: Pick<SaleHistoryItem, "kind" | "toStatus">) {
+  if (item.kind === "Submitted") {
+    return item.toStatus === "Approved" ? "Approved deal" : "Submitted deal";
+  }
+  const labels: Record<string, string> = {
+    Created: "Original pricing",
+    TermsSaved: "Saved terms",
+    Released: "Reset terms",
+    Approved: "Approved deal",
+  };
+  return labels[item.kind] ?? "Retained deal";
+}
+
+// Link financial milestones; handling, decisions and closure are explained by the event itself.
+export function historyLink(
+  item: Pick<SaleHistoryItem, "kind" | "toStatus" | "changes" | "version">,
+) {
+  const milestone = ["Created", "TermsSaved", "Submitted"].includes(item.kind);
+  const reset = item.kind === "Released" && item.changes.length > 0;
+  if (!milestone && !reset) {
+    return null;
+  }
+  return `View ${historyVersionTitle(item).toLowerCase()} · v${item.version}`;
+}
+
+export function historySummary(
+  item: Pick<SaleHistoryItem, "kind" | "fromStatus" | "agent" | "previousAgent">,
+) {
+  switch (item.kind) {
+    case "Claimed":
+    case "Assigned":
+      return "The hold timer paused while the sale is handled.";
+    case "Released":
+      return item.previousAgent
+        ? `${item.previousAgent} released the sale. Reservation terms restored; the hold timer resumed.`
+        : "Reservation terms restored; the hold timer resumed.";
+    case "TermsSaved":
+      return item.fromStatus === "Approved"
+        ? "Previous approval withdrawn. Submit the revised terms again."
+        : null;
+    case "Approved":
+      return "The submitted terms were approved without changes.";
+    case "Rejected":
+      return "The submitted terms were kept for the agent to revise.";
+    default:
+      return null;
+  }
 }
 
 const titles: Record<string, string> = {

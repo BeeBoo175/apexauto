@@ -1,7 +1,7 @@
 import { isUuid } from "@/lib/auth/contracts";
 import { DEFAULT_PAGE_SIZE, isPageSize, paginationQuery } from "@/lib/pagination";
 import type { SearchParams } from "@/lib/query";
-import { saleSection, saleVersionNumber } from "./sale-sections";
+import { isSaleVersionSection, saleSection, saleVersionNumber } from "./sale-sections";
 import {
   type QueueView,
   queueViews,
@@ -104,10 +104,11 @@ export function tableQuery(filters: SalesTableFilters, page = 1) {
 }
 
 export function saleSelection(parameters: SearchParams) {
+  const section = saleSection(parameters.section);
   return {
     saleId: isUuid(parameters.sale) ? parameters.sale : "",
-    section: saleSection(parameters.section),
-    version: saleVersionNumber(parameters.version),
+    section,
+    version: isSaleVersionSection(section) ? saleVersionNumber(parameters.version) : null,
   };
 }
 

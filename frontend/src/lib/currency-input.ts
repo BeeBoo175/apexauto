@@ -1,8 +1,9 @@
 export function parseMyr(value: string): number | null {
-  if (!/^\d+(?:\.\d{1,2})?$/.test(value)) {
+  const input = value.trim();
+  if (!/^\d+(?:\.\d{1,2})?$/.test(input)) {
     return null;
   }
-  const [whole, cents = ""] = value.split(".");
+  const [whole, cents = ""] = input.split(".");
   const normalized = `${BigInt(whole)}.${cents.padEnd(2, "0")}`;
   const number = Number(normalized);
   if (
