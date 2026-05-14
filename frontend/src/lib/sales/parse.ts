@@ -223,6 +223,7 @@ export function parseSaleSummary(value: unknown): SaleSummary | null {
     !nullable(utc)(value.decidedAt) ||
     !nullable(utc)(value.closedAt) ||
     !nullable(text)(value.outcome) ||
+    !utc(value.updatedAt) ||
     !positive(value.version)
   ) {
     return null;

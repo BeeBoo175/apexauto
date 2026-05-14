@@ -1,6 +1,7 @@
 import { useId, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { useToast } from "@/components/ui/Toast";
 import { parseMyr } from "@/lib/currency-input";
 import { dateRangeError } from "@/lib/intake/list-query";
 import styles from "./ColumnFilterForm.module.css";
@@ -120,6 +121,74 @@ export function MoneyRangeFilter({
           {error}
         </p>
       )}
+    </ColumnFilterForm>
+  );
+}
+
+export function HoursRangeFilter({
+  minimum,
+  maximum,
+  maximumHours,
+  busy,
+  onApply,
+}: {
+  minimum: string;
+  maximum: string;
+  maximumHours: number;
+  busy: boolean;
+  onApply: (minimum: string, maximum: string) => Promise<boolean | undefined>;
+}) {
+  const id = useId();
+  const [lower, setLower] = useState(minimum);
+  const [upper, setUpper] = useState(maximum);
+  const [invalid, setInvalid] = useState(false);
+  const { error } = useToast();
+
+  async function apply() {
+    const first = lower.trim();
+    const last = upper.trim();
+    const values = [first, last].filter(Boolean);
+    const invalidValue = values.some(
+      (value) =>
+        !/^\d+(\.\d+)?$/.test(value) ||
+        !Number.isFinite(Number(value)) ||
+        Number(value) > maximumHours,
+    );
+    const invalidRange = invalidValue || Boolean(first && last && Number(first) > Number(last));
+    setInvalid(invalidRange);
+    if (invalidRange) {
+      error(`Enter hours from 0 to ${maximumHours} with the minimum no greater than the maximum.`);
+      return false;
+    }
+    return onApply(first, last);
+  }
+
+  return (
+    <ColumnFilterForm busy={busy} onApply={apply} onClear={() => onApply("", "")}>
+      <div className={styles.range}>
+        <Input
+          id={`${id}-min`}
+          label="Minimum (hours)"
+          aria-invalid={invalid || undefined}
+          placeholder="No minimum"
+          density="compact"
+          inputMode="decimal"
+          value={lower}
+          disabled={busy}
+          onChange={(event) => setLower(event.target.value)}
+        />
+        <Input
+          id={`${id}-max`}
+          label="Maximum (hours)"
+          aria-invalid={invalid || undefined}
+          placeholder="No maximum"
+          density="compact"
+          inputMode="decimal"
+          value={upper}
+          disabled={busy}
+          onChange={(event) => setUpper(event.target.value)}
+        />
+      </div>
     </ColumnFilterForm>
   );
 }

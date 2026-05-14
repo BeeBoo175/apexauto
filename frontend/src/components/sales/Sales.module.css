@@ -239,3 +239,8 @@
   font-size: 18px;
   font-weight: 700;
 }
+
+.wheel[data-compact="true"] .wheelRing {
+  width: 24px;
+  height: 24px;
+}

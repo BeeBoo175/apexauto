@@ -11,6 +11,7 @@ import {
   tableSorts,
   tableTextKeys,
   type SalesTableFilters,
+  type TableView,
 } from "./contracts";
 
 export const salePath = (id: string) => `/api/staff/sales/${id}`;
@@ -73,6 +74,15 @@ export function tableParams(params: SearchParams) {
     }
   }
   return { filters, page: Number.isSafeInteger(page) && page > 0 ? page : 1 };
+}
+
+// Tabs change only the status scope; all columns, refinements and ordering stay consistent.
+export function tableViewFilters(filters: SalesTableFilters, view: TableView): SalesTableFilters {
+  return {
+    ...filters,
+    view,
+    outcome: "",
+  };
 }
 
 export function tableQuery(filters: SalesTableFilters, page = 1) {

@@ -12,7 +12,7 @@ namespace Dealership.Infrastructure.Sales;
 public sealed class SaleListStore(DealershipDbContext database) : ISaleListStore
 {
     // Each view's own order: what needs attention soonest, or what has waited longest, comes first.
-    private static readonly IReadOnlyDictionary<string, (string Sort, bool Descending)> DefaultOrders =
+    private static readonly Dictionary<string, (string Sort, bool Descending)> DefaultOrders =
         new Dictionary<string, (string, bool)>
         {
             ["ToClaim"] = ("due", false),
@@ -63,7 +63,7 @@ public sealed class SaleListStore(DealershipDbContext database) : ISaleListStore
             .ReadPageAsync(page, pageSize, total, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return new(SaleStatus.Succeeded,
-            new SaleQueuePage(items.Select(SaleRows.Summary).ToList(), total, page, pageSize, counts));
+            new SaleQueuePage([.. items.Select(SaleRows.Summary)], total, page, pageSize, counts));
 
         Task<int> CountAsync(string tab) => search is null
             ? tabs[tab].CountAsync(cancellationToken)
@@ -100,13 +100,19 @@ public sealed class SaleListStore(DealershipDbContext database) : ISaleListStore
             await sales.CountAsync(item => item.Status == SalesOrderStatus.Expired ||
                 item.Status == SalesOrderStatus.Cancelled, cancellationToken));
         var view = query.View ?? FirstWithWork(counts);
+        var now = DateTimeOffset.UtcNow;
         var rows = Filter(SaleRows.Project(database, InView(sales, view)), query, group);
+        rows = SaleRows.TimeLeftBetween(rows, query.MinimumHoursLeft, query.MaximumHoursLeft, now);
         var total = await rows.CountAsync(cancellationToken);
         var (sort, descending) = query.Sort is null ? DefaultOrders[view] : (query.Sort, query.Descending);
+        if (sort == "timeLeft")
+        {
+            sort = view == "Open" ? "due" : "paused";
+        }
         var items = await SaleRows.Order(rows, sort, descending).ReadPageAsync(query.Page, query.PageSize, total,
             cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-        return new(SaleStatus.Succeeded, new SaleTablePage(items.Select(SaleRows.Summary).ToList(), total, query.Page,
+        return new(SaleStatus.Succeeded, new SaleTablePage([.. items.Select(SaleRows.Summary)], total, query.Page,
             query.PageSize, counts, view));
     }
 
@@ -229,21 +235,9 @@ public sealed class SaleListStore(DealershipDbContext database) : ISaleListStore
             rows = rows.Where(row => row.BalancePayable <= maximumBalance);
         }
 
-        rows = SaleRows.OverLimitBetween(rows, query.MinimumOverLimit, query.MaximumOverLimit);
-
-        if (query.Decided is { From: { } decidedFrom, Until: { } decidedUntil })
+        if (query.Updated is { From: { } updatedFrom, Until: { } updatedUntil })
         {
-            rows = rows.Where(row => row.DecidedAt >= decidedFrom && row.DecidedAt < decidedUntil);
-        }
-
-        if (query.Submitted is { From: { } submittedFrom, Until: { } submittedUntil })
-        {
-            rows = rows.Where(row => row.SubmittedAt >= submittedFrom && row.SubmittedAt < submittedUntil);
-        }
-
-        if (query.Closed is { From: { } closedFrom, Until: { } closedUntil })
-        {
-            rows = rows.Where(row => row.ClosedAt >= closedFrom && row.ClosedAt < closedUntil);
+            rows = rows.Where(row => row.UpdatedAt >= updatedFrom && row.UpdatedAt < updatedUntil);
         }
 
         return query.Search is null ? rows : SaleRows.Search(rows, query.Search, group);

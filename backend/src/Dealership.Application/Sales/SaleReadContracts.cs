@@ -22,7 +22,7 @@ public sealed record SaleSummary(Guid Id, string ReservationNumber, string? Orde
     string Registration, int ManufactureYear, string Make, string Model, string Trim, string Customer, string? Agent, string Branch, DateTimeOffset? DueAt,
     long? PausedSeconds, DateTimeOffset? ClaimedAt, decimal NegotiatedDiscount, decimal? DiscountLimitAtSubmit,
     decimal BalancePayable, DateTimeOffset? SubmittedAt, DateTimeOffset? DecidedAt, DateTimeOffset? ClosedAt,
-    string? Outcome, long Version);
+    string? Outcome, long Version, DateTimeOffset UpdatedAt);
 
 public sealed record SaleQueueCounts(int ToClaim, int Handling, int Waiting, int Approved);
 
@@ -52,12 +52,6 @@ public sealed record SaleTableQuery(int Page, int PageSize, string? View, string
 
     public string? Reference { get; init; }
 
-    public decimal? MinimumOverLimit { get; init; }
-
-    public decimal? MaximumOverLimit { get; init; }
-
-    public ListDateRange? Decided { get; init; }
-
     public decimal? MinimumDiscount { get; init; }
 
     public decimal? MaximumDiscount { get; init; }
@@ -66,9 +60,11 @@ public sealed record SaleTableQuery(int Page, int PageSize, string? View, string
 
     public decimal? MaximumBalance { get; init; }
 
-    public ListDateRange? Submitted { get; init; }
+    public ListDateRange? Updated { get; init; }
 
-    public ListDateRange? Closed { get; init; }
+    public decimal? MinimumHoursLeft { get; init; }
+
+    public decimal? MaximumHoursLeft { get; init; }
 }
 
 // One retained history entry; changed terms carry invariant before and after text.

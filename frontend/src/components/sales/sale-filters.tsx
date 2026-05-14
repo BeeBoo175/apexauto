@@ -3,20 +3,24 @@
 import type { ReactNode } from "react";
 import { ChoiceColumnFilter } from "@/components/ui/data-table/ChoiceColumnFilter";
 import {
-  DateRangeFilter,
+  HoursRangeFilter,
   MoneyRangeFilter,
   TextColumnFilter,
 } from "@/components/ui/data-table/ColumnFilterForm";
 import type { DataColumn } from "@/components/ui/data-table/types";
-import { dateRangeLabel } from "@/lib/date-range-label";
-import type { SaleSummary, SalesTableFilters } from "@/lib/sales/contracts";
+import {
+  tableViews,
+  type SaleSummary,
+  type SalesTableFilters,
+  type TableView,
+} from "@/lib/sales/contracts";
+import { tableViewFilters } from "@/lib/sales/query";
 import type { AppliedWorklistFilter } from "@/lib/staff/filter-summary";
 
 export type LoadSales = (filters: SalesTableFilters, page: number) => Promise<boolean>;
 
 const money = (minimum: string, maximum: string) => `MYR ${minimum || "0"}–${maximum || "any"}`;
 
-// Filters for the columns that carry them; applied filters also show as removable chips.
 export function saleTableFilters(
   filters: SalesTableFilters,
   busy: boolean,
@@ -36,14 +40,12 @@ export function saleTableFilters(
     ["vehicle", "Vehicle"],
     ["customer", "Customer"],
     ["agent", "Agent"],
+    ["branch", "Branch"],
   ] as const;
   for (const [key, label] of texts) {
     if (filters[key]) {
       add(key, `${label}: ${filters[key]}`, { [key]: "" });
     }
-  }
-  if (filters.branch) {
-    add("branch", `Branch: ${filters.branch}`, { branch: "" });
   }
   if (filters.outcome) {
     add("outcome", `Outcome: ${filters.outcome}`, { outcome: "" });
@@ -54,35 +56,21 @@ export function saleTableFilters(
       maximumDiscount: "",
     });
   }
-  if (filters.minimumOverLimit || filters.maximumOverLimit) {
-    add("overLimit", `Over limit: ${money(filters.minimumOverLimit, filters.maximumOverLimit)}`, {
-      minimumOverLimit: "",
-      maximumOverLimit: "",
-    });
-  }
   if (filters.minimumBalance || filters.maximumBalance) {
     add("balance", `Balance: ${money(filters.minimumBalance, filters.maximumBalance)}`, {
       minimumBalance: "",
       maximumBalance: "",
     });
   }
-  if (filters.submittedFrom || filters.submittedTo) {
-    add("submitted", `Submitted: ${dateRangeLabel(filters.submittedFrom, filters.submittedTo)}`, {
-      submittedFrom: "",
-      submittedTo: "",
-    });
-  }
-  if (filters.decidedFrom || filters.decidedTo) {
-    add("decided", `Approved: ${dateRangeLabel(filters.decidedFrom, filters.decidedTo)}`, {
-      decidedFrom: "",
-      decidedTo: "",
-    });
-  }
-  if (filters.closedFrom || filters.closedTo) {
-    add("closed", `Closed: ${dateRangeLabel(filters.closedFrom, filters.closedTo)}`, {
-      closedFrom: "",
-      closedTo: "",
-    });
+  if (filters.minimumHoursLeft || filters.maximumHoursLeft) {
+    add(
+      "timeLeft",
+      `Time left: ${filters.minimumHoursLeft || "0"}–${filters.maximumHoursLeft || "any"} hours`,
+      {
+        minimumHoursLeft: "",
+        maximumHoursLeft: "",
+      },
+    );
   }
 
   const content: Record<string, { active: boolean; content: ReactNode }> = {
@@ -102,31 +90,24 @@ export function saleTableFilters(
         },
       ]),
     ),
-    branch: {
-      active: Boolean(filters.branch),
-      content: (
-        <TextColumnFilter
-          label="Branch contains"
-          value={filters.branch}
-          busy={busy}
-          onApply={(branch) => apply({ branch })}
-        />
-      ),
-    },
     status: {
       active: Boolean(filters.outcome),
       content: (
         <ChoiceColumnFilter
-          label="Outcome"
+          label="Status"
           options={[
-            { value: "", label: "All outcomes" },
+            ...tableViews.map((view) => ({ value: view.value, label: view.label })),
             { value: "Expired", label: "Expired" },
             { value: "Cancelled", label: "Cancelled" },
           ]}
-          value={filters.outcome}
-          empty=""
+          value={filters.outcome || filters.view}
+          empty={filters.view}
           busy={busy}
-          onApply={(outcome) => apply({ outcome })}
+          onApply={(value) => {
+            const outcome = value === "Expired" || value === "Cancelled" ? value : "";
+            const view = outcome ? "History" : (value as TableView);
+            return load({ ...tableViewFilters(filters, view), outcome }, 1);
+          }}
         />
       ),
     },
@@ -143,30 +124,6 @@ export function saleTableFilters(
         />
       ),
     },
-    overLimit: {
-      active: Boolean(filters.minimumOverLimit || filters.maximumOverLimit),
-      content: (
-        <MoneyRangeFilter
-          minimum={filters.minimumOverLimit}
-          maximum={filters.maximumOverLimit}
-          busy={busy}
-          onApply={(minimumOverLimit, maximumOverLimit) =>
-            apply({ minimumOverLimit, maximumOverLimit })
-          }
-        />
-      ),
-    },
-    decided: {
-      active: Boolean(filters.decidedFrom || filters.decidedTo),
-      content: (
-        <DateRangeFilter
-          from={filters.decidedFrom}
-          to={filters.decidedTo}
-          busy={busy}
-          onApply={(decidedFrom, decidedTo) => apply({ decidedFrom, decidedTo })}
-        />
-      ),
-    },
     balance: {
       active: Boolean(filters.minimumBalance || filters.maximumBalance),
       content: (
@@ -178,36 +135,23 @@ export function saleTableFilters(
         />
       ),
     },
-    submitted: {
-      active: Boolean(filters.submittedFrom || filters.submittedTo),
+    timeLeft: {
+      active: Boolean(filters.minimumHoursLeft || filters.maximumHoursLeft),
       content: (
-        <DateRangeFilter
-          from={filters.submittedFrom}
-          to={filters.submittedTo}
+        <HoursRangeFilter
+          minimum={filters.minimumHoursLeft}
+          maximum={filters.maximumHoursLeft}
+          maximumHours={168}
           busy={busy}
-          onApply={(submittedFrom, submittedTo) => apply({ submittedFrom, submittedTo })}
-        />
-      ),
-    },
-    closed: {
-      active: Boolean(filters.closedFrom || filters.closedTo),
-      content: (
-        <DateRangeFilter
-          from={filters.closedFrom}
-          to={filters.closedTo}
-          busy={busy}
-          onApply={(closedFrom, closedTo) => apply({ closedFrom, closedTo })}
+          onApply={(minimumHoursLeft, maximumHoursLeft) =>
+            apply({ minimumHoursLeft, maximumHoursLeft })
+          }
         />
       ),
     },
   };
   return {
     applied,
-    columns: columns.map((column) => {
-      // Outcome only means something on History, where every row has ended.
-      const filter =
-        column.id === "status" && filters.view !== "History" ? undefined : content[column.id];
-      return filter ? { ...column, filter } : column;
-    }),
+    columns: columns.map((column) => ({ ...column, filter: content[column.id] })),
   };
 }

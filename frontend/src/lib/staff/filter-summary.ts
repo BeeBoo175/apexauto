@@ -20,6 +20,7 @@ export interface AppliedWorklistFilter<Filters = StaffFilters> {
     | "buyer"
     | "created"
     | "expires"
+    | "timeLeft"
     | "released"
     | "total"
     | "number"
@@ -34,9 +35,7 @@ export interface AppliedWorklistFilter<Filters = StaffFilters> {
     | "outcome"
     | "balance"
     | "closed"
-    | "reference"
-    | "overLimit"
-    | "decided";
+    | "reference";
   label: string;
   without: Filters;
 }

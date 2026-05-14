@@ -1,4 +1,5 @@
 using Dealership.Application.Common;
+using Dealership.Domain.Vehicles;
 
 namespace Dealership.Application.Sales;
 
@@ -13,8 +14,8 @@ public static class SaleQueries
 
     public static readonly IReadOnlySet<string> Sorts = new HashSet<string>
     {
-        "reference", "registration", "vehicle", "customer", "agent", "branch", "status", "discount", "overLimit",
-        "submitted", "due", "claimed", "balance", "decided", "closed"
+        "reference", "registration", "vehicle", "customer", "agent", "branch", "status", "discount",
+        "timeLeft", "balance", "updated"
     };
 
     public static readonly IReadOnlySet<string> Outcomes = new HashSet<string> { "Expired", "Cancelled" };
@@ -25,22 +26,19 @@ public static class SaleQueries
 
     public static SaleTableQuery? Table(int page, int pageSize, string? view, string? search, string? sort,
         string? direction, string? agent, string? branch, string? outcome, decimal? minimumDiscount,
-        decimal? maximumDiscount, decimal? minimumBalance, decimal? maximumBalance, string? submittedFrom,
-        string? submittedTo, string? closedFrom, string? closedTo, string? registration, string? vehicle,
-        string? customer, string? reference, decimal? minimumOverLimit, decimal? maximumOverLimit,
-        string? decidedFrom, string? decidedTo)
+        decimal? maximumDiscount, decimal? minimumBalance, decimal? maximumBalance, string? registration,
+        string? vehicle, string? customer, string? reference, decimal? minimumHoursLeft,
+        decimal? maximumHoursLeft, string? updatedFrom, string? updatedTo)
     {
         var texts = new[] { search, agent, branch, registration, vehicle, customer, reference }
             .Select(item => item?.Trim()).ToArray();
-        var submitted = ListDateRange.Parse(submittedFrom, submittedTo);
-        var closed = ListDateRange.Parse(closedFrom, closedTo);
-        var decided = ListDateRange.Parse(decidedFrom, decidedTo);
+        var updated = ListDateRange.Parse(updatedFrom, updatedTo);
         if (!Pagination.IsValid(page, pageSize) || view is not null && !TableViews.Contains(view) ||
             sort is not null && !Sorts.Contains(sort) || direction is not (null or "asc" or "desc") ||
             direction is not null && sort is null || outcome is not null && !Outcomes.Contains(outcome) ||
             !MoneyRange.IsValid(minimumDiscount, maximumDiscount) || !MoneyRange.IsValid(minimumBalance, maximumBalance) ||
-            !MoneyRange.IsValid(minimumOverLimit, maximumOverLimit) ||
-            submitted is null || closed is null || decided is null || texts.Any(item => item is not null && !ListSearch.IsValid(item)))
+            !ValidHours(minimumHoursLeft, maximumHoursLeft) ||
+            updated is null || texts.Any(item => item is not null && !ListSearch.IsValid(item)))
         {
             return null;
         }
@@ -54,17 +52,21 @@ public static class SaleQueries
             Vehicle = Clean(texts[4]),
             Customer = Clean(texts[5]),
             Reference = Clean(texts[6]),
-            MinimumOverLimit = minimumOverLimit,
-            MaximumOverLimit = maximumOverLimit,
             MinimumDiscount = minimumDiscount,
             MaximumDiscount = maximumDiscount,
             MinimumBalance = minimumBalance,
             MaximumBalance = maximumBalance,
-            Submitted = submitted.From is null ? null : submitted,
-            Closed = closed.From is null ? null : closed,
-            Decided = decided.From is null ? null : decided
+            MinimumHoursLeft = minimumHoursLeft,
+            MaximumHoursLeft = maximumHoursLeft,
+            Updated = updated.From is null ? null : updated
         };
     }
 
     private static string? Clean(string? value) => string.IsNullOrEmpty(value) ? null : value;
+
+    private static bool ValidHours(decimal? minimum, decimal? maximum) =>
+        minimum is not < 0 && maximum is not < 0 &&
+        minimum is not > PurchaseSettings.MaximumReservationHoldHours &&
+        maximum is not > PurchaseSettings.MaximumReservationHoldHours &&
+        (minimum is null || maximum is null || minimum <= maximum);
 }

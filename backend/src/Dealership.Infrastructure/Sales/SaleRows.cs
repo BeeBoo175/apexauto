@@ -36,6 +36,7 @@ internal sealed class SaleRow
     public DateTimeOffset? SubmittedAt { get; init; }
     public DateTimeOffset? DecidedAt { get; init; }
     public DateTimeOffset? ClosedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; init; }
     public long Version { get; init; }
 }
 
@@ -69,7 +70,8 @@ internal static class SaleRows
             Email = customer.Email,
             Promo = sale.PromoCode,
             AgentId = sale.AgentId,
-            Agent = agent == null ? null : agent.Email,
+            // The SQL left join returns a null email when no agent is assigned.
+            Agent = agent.Email,
             DueAt = sale.DueAt,
             PausedSeconds = sale.PausedSeconds,
             ClaimedAt = sale.ClaimedAt,
@@ -79,6 +81,7 @@ internal static class SaleRows
             SubmittedAt = sale.SubmittedAt,
             DecidedAt = sale.DecidedAt,
             ClosedAt = sale.ClosedAt,
+            UpdatedAt = sale.UpdatedAt,
             Version = sale.Version
         };
 
@@ -105,28 +108,33 @@ internal static class SaleRows
         row.Agent, row.Branch, row.DueAt, row.PausedSeconds, row.ClaimedAt, row.NegotiatedDiscount,
         row.DiscountLimitAtSubmit, row.BalancePayable, row.SubmittedAt, row.DecidedAt, row.ClosedAt,
         row.Status is SalesOrderStatus.Expired or SalesOrderStatus.Cancelled ? row.Status.ToString() : null,
-        row.Version);
+        row.Version, row.UpdatedAt);
 
-    // As the over-limit column shows it: the excess over the submitted limit, or nothing without a limit or an
-    // excess. Sorting and filtering both use it so they agree with the display.
-    private static readonly Expression<Func<SaleRow, decimal>> OverLimit = row =>
-        row.DiscountLimitAtSubmit != null && row.NegotiatedDiscount > row.DiscountLimitAtSubmit
-            ? row.NegotiatedDiscount - row.DiscountLimitAtSubmit.Value
-            : 0m;
-
-    public static IQueryable<SaleRow> OverLimitBetween(IQueryable<SaleRow> rows, decimal? minimum, decimal? maximum)
+    // Compare remaining time before counting and paging, using one instant for both bounds.
+    public static IQueryable<SaleRow> TimeLeftBetween(IQueryable<SaleRow> rows, decimal? minimum,
+        decimal? maximum, DateTimeOffset now)
     {
-        var row = OverLimit.Parameters[0];
+        if (minimum is not null || maximum is not null)
+        {
+            rows = rows.Where(row => row.ClosedAt == null);
+        }
+
         if (minimum is { } least)
         {
-            var atLeast = Expression.GreaterThanOrEqual(OverLimit.Body, Expression.Constant(least));
-            rows = rows.Where(Expression.Lambda<Func<SaleRow, bool>>(atLeast, row));
+            var due = now.AddHours((double)least);
+            var seconds = least * 3600;
+            rows = rows.Where(row => row.PausedSeconds != null
+                ? row.PausedSeconds >= seconds
+                : row.DueAt >= due);
         }
 
         if (maximum is { } most)
         {
-            var atMost = Expression.LessThanOrEqual(OverLimit.Body, Expression.Constant(most));
-            rows = rows.Where(Expression.Lambda<Func<SaleRow, bool>>(atMost, row));
+            var due = now.AddHours((double)most);
+            var seconds = most * 3600;
+            rows = rows.Where(row => row.PausedSeconds != null
+                ? row.PausedSeconds <= seconds
+                : row.DueAt <= due);
         }
 
         return rows;
@@ -144,12 +152,13 @@ internal static class SaleRows
         // Status sorts in lifecycle order, which is the order SalesOrderStatus declares.
         "status" => By(rows, row => row.Status, down),
         "discount" => By(rows, row => row.NegotiatedDiscount, down),
-        "overLimit" => By(rows, OverLimit, down),
         "submitted" => By(rows, row => row.SubmittedAt, down),
         "due" => By(rows, row => row.DueAt, down),
         "claimed" => By(rows, row => row.ClaimedAt, down),
+        "paused" => By(rows, row => row.PausedSeconds, down),
         "balance" => By(rows, row => row.BalancePayable, down),
         "decided" => By(rows, row => row.DecidedAt, down),
+        "updated" => By(rows, row => row.UpdatedAt, down),
         _ => By(rows, row => row.ClosedAt, down)
     };
 

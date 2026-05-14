@@ -1,3 +1,4 @@
+import { remainingHoldSeconds } from "@/lib/sales/contracts";
 import styles from "./Sales.module.css";
 
 const HOLD_SECONDS = 48 * 3600;
@@ -23,25 +24,31 @@ const wheelNotes: Record<WheelState, string> = {
   Open: "Until the hold expires",
 };
 
-// The hold's time as a ring and always as text: green, amber under 24 hours, red under 6, teal while an agent has it.
+// Paused holds retain their stored time; running holds count down locally between reads.
 export function HoldWheel({
   dueAt,
   pausedSeconds,
   now,
+  compact = false,
 }: {
   dueAt: string | null;
   pausedSeconds: number | null;
   now: number;
+  compact?: boolean;
 }) {
   const frozen = pausedSeconds !== null;
-  const remaining = frozen
-    ? pausedSeconds
-    : Math.max(0, Math.floor((Date.parse(dueAt ?? "") - now) / 1000) || 0);
+  const remaining = remainingHoldSeconds({ dueAt, pausedSeconds }, now);
   const state = wheelState(frozen, remaining);
   const hours = Math.floor(remaining / 3600);
   const minutes = Math.floor((remaining % 3600) / 60);
+  const suffix = compact && frozen ? "" : " left";
+  const note = compact ? "Paused" : wheelNotes[state];
   return (
-    <span className={`${styles.wheel} ${styles[`wheel${state}`]}`}>
+    <span
+      className={`${styles.wheel} ${styles[`wheel${state}`]}`}
+      data-compact={compact || undefined}
+      title={wheelNotes[state]}
+    >
       <svg className={styles.wheelRing} viewBox="0 0 36 36" aria-hidden="true">
         <circle className={styles.wheelTrack} cx="18" cy="18" r="16" />
         <circle
@@ -55,9 +62,9 @@ export function HoldWheel({
       </svg>
       <span className={styles.wheelText}>
         <strong>
-          {hours}h {minutes}m left
+          {hours}h {minutes}m{suffix}
         </strong>
-        <span>{wheelNotes[state]}</span>
+        {(!compact || frozen) && <span>{note}</span>}
       </span>
     </span>
   );

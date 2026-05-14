@@ -28,7 +28,7 @@ import {
   type SalesTablePage,
   type TableView,
 } from "@/lib/sales/contracts";
-import { defaultTableFilters, tableQuery } from "@/lib/sales/query";
+import { defaultTableFilters, tableQuery, tableViewFilters } from "@/lib/sales/query";
 import { exportSales, saleExportColumns } from "@/lib/sales/sale-export";
 import type { SaleSection } from "@/lib/sales/sale-sections";
 import { SaleDrawer } from "./SaleDrawer";
@@ -75,9 +75,9 @@ export function SalesTable({
   const { snapshot, active } = state;
   const view = (active.filters.view || snapshot?.view || "NeedsApproval") as TableView;
   const { columns, applied } = saleTableFilters(
-    active.filters,
+    { ...active.filters, view },
     state.busy,
-    saleColumns(actor.role, view, now),
+    saleColumns(actor.role, now),
     state.load,
   );
   const selection = useRowSelection(
@@ -85,8 +85,9 @@ export function SalesTable({
     rowId,
     `${actorIdentity(actor)}:${tableQuery(active.filters, active.page)}:${state.revision}`,
   );
-  const csv = useCsvExport(saleExportColumns, "sales", (signal) =>
-    exportSales(active.filters, signal),
+  const showBranch = actor.role === "GeneralManager";
+  const csv = useCsvExport(saleExportColumns(showBranch, now), "sales", (signal) =>
+    exportSales(active.filters, signal, showBranch),
   );
   const [search, setSearch] = useState(active.filters.search);
   const filtered = applied.length > 0 || Boolean(active.filters.search);
@@ -101,22 +102,8 @@ export function SalesTable({
     return state.load(next, nextPage);
   }
 
-  // Switching tab restarts from that tab's own ordering. Filters on the columns every tab shows are kept;
-  // only the filters that belong to one tab are dropped.
   function changeView(next: TableView) {
-    const defaults = defaultTableFilters();
-    void load({
-      ...defaults,
-      view: next,
-      pageSize: active.filters.pageSize,
-      search: active.filters.search,
-      reference: active.filters.reference,
-      registration: active.filters.registration,
-      vehicle: active.filters.vehicle,
-      customer: active.filters.customer,
-      agent: active.filters.agent,
-      branch: active.filters.branch,
-    });
+    void load(tableViewFilters({ ...active.filters, view }, next));
   }
 
   function reset() {

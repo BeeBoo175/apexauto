@@ -1,40 +1,56 @@
 import { privateApiFetch } from "@/lib/api-browser";
 import { exportPagedCsv, type CsvColumn } from "@/lib/csv";
-import { formatMalaysianDateTime } from "@/lib/date-format";
 import {
   saleStatusLabels,
   saleReference,
+  remainingHoldSeconds,
+  saleDiscountOverLimit,
   type SaleSummary,
   type SalesTableFilters,
 } from "./contracts";
 import { parseSalesTable } from "./parse";
 import { salesTablePath, tableQuery } from "./query";
 
-const when = (value: string | null) => (value ? formatMalaysianDateTime(value) : "");
+export function saleExportColumns(showBranch: boolean, now: number): CsvColumn<SaleSummary>[] {
+  const columns: CsvColumn<SaleSummary>[] = [
+    { label: "Reference", value: (row) => saleReference(row) },
+    { label: "Registration", value: (row) => row.registration },
+    {
+      label: "Vehicle",
+      value: (row) => `${row.manufactureYear} ${row.make} ${row.model} ${row.trim}`.trim(),
+    },
+    { label: "Customer", value: (row) => row.customer },
+    { label: "Agent", value: (row) => row.agent ?? "" },
+    { label: "Status", value: (row) => saleStatusLabels[row.status] },
+    { label: "Negotiated discount (MYR)", value: (row) => row.negotiatedDiscount.toFixed(2) },
+    { label: "Discount over limit", value: (row) => (saleDiscountOverLimit(row) ? "Yes" : "No") },
+    { label: "Balance payable (MYR)", value: (row) => row.balancePayable.toFixed(2) },
+    {
+      label: "Time left (hours)",
+      value: (row) =>
+        row.closedAt === null ? (remainingHoldSeconds(row, now) / 3600).toFixed(2) : "",
+    },
+    {
+      label: "Hold timer",
+      value: (row) => {
+        if (row.closedAt !== null) {
+          return "";
+        }
+        return row.pausedSeconds === null ? "Running" : "Paused";
+      },
+    },
+  ];
+  if (showBranch) {
+    columns.push({ label: "Branch", value: (row) => row.branch });
+  }
+  return columns;
+}
 
-// The table's shared columns plus every view-specific value, so one file serves any tab.
-export const saleExportColumns: readonly CsvColumn<SaleSummary>[] = [
-  { label: "Reference", value: (row) => saleReference(row) },
-  { label: "Reservation", value: (row) => row.reservationNumber },
-  { label: "Registration", value: (row) => row.registration },
-  {
-    label: "Vehicle",
-    value: (row) => `${row.manufactureYear} ${row.make} ${row.model} ${row.trim}`.trim(),
-  },
-  { label: "Customer", value: (row) => row.customer },
-  { label: "Agent", value: (row) => row.agent ?? "" },
-  { label: "Branch", value: (row) => row.branch },
-  { label: "Status", value: (row) => saleStatusLabels[row.status] },
-  { label: "Negotiated discount (MYR)", value: (row) => row.negotiatedDiscount.toFixed(2) },
-  { label: "Balance payable (MYR)", value: (row) => row.balancePayable.toFixed(2) },
-  { label: "Expires (Malaysia)", value: (row) => when(row.dueAt) },
-  { label: "Claimed (Malaysia)", value: (row) => when(row.claimedAt) },
-  { label: "Submitted (Malaysia)", value: (row) => when(row.submittedAt) },
-  { label: "Approved (Malaysia)", value: (row) => when(row.decidedAt) },
-  { label: "Closed (Malaysia)", value: (row) => when(row.closedAt) },
-];
-
-export function exportSales(filters: SalesTableFilters, cancellation: AbortSignal) {
+export function exportSales(
+  filters: SalesTableFilters,
+  cancellation: AbortSignal,
+  showBranch: boolean,
+) {
   return exportPagedCsv(
     {
       read: (page, pageSize, signal) =>
@@ -44,7 +60,7 @@ export function exportSales(filters: SalesTableFilters, cancellation: AbortSigna
           { signal },
         ),
       id: (row) => row.id,
-      columns: saleExportColumns,
+      columns: saleExportColumns(showBranch, Date.now()),
       filename: "sales-full.csv",
       unavailable:
         "Sales export could not be confirmed or exceeds 10,000 rows. Narrow the filters and retry.",

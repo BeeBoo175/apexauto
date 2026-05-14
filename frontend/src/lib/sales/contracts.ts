@@ -161,11 +161,25 @@ export interface SaleSummary {
   closedAt: string | null;
   outcome: string | null;
   version: number;
+  updatedAt: string;
 }
 
 // The sale's own reference: its purchase order once submitted, before that its reservation number.
 export const saleReference = (row: Pick<SaleSummary, "orderNumber" | "reservationNumber">) =>
   row.orderNumber ?? row.reservationNumber;
+
+export function remainingHoldSeconds(
+  row: Pick<SaleSummary, "dueAt" | "pausedSeconds">,
+  now: number,
+) {
+  return (
+    row.pausedSeconds ?? Math.max(0, Math.floor((Date.parse(row.dueAt ?? "") - now) / 1000) || 0)
+  );
+}
+
+export const saleDiscountOverLimit = (
+  row: Pick<SaleSummary, "discountLimitAtSubmit" | "negotiatedDiscount">,
+) => row.discountLimitAtSubmit !== null && row.negotiatedDiscount > row.discountLimitAtSubmit;
 
 export type QueueView = "ToClaim" | "Handling" | "Waiting" | "Approved";
 
@@ -252,13 +266,8 @@ export const tableSorts = [
   "branch",
   "status",
   "discount",
-  "overLimit",
-  "submitted",
-  "due",
-  "claimed",
+  "timeLeft",
   "balance",
-  "decided",
-  "closed",
 ] as const;
 
 export const tableTextKeys = [
@@ -270,18 +279,12 @@ export const tableTextKeys = [
   "maximumDiscount",
   "minimumBalance",
   "maximumBalance",
-  "submittedFrom",
-  "submittedTo",
-  "closedFrom",
-  "closedTo",
   "registration",
   "vehicle",
   "customer",
   "reference",
-  "minimumOverLimit",
-  "maximumOverLimit",
-  "decidedFrom",
-  "decidedTo",
+  "minimumHoursLeft",
+  "maximumHoursLeft",
 ] as const;
 
 export interface SalesTableFilters extends Record<(typeof tableTextKeys)[number], string> {

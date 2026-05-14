@@ -62,6 +62,7 @@ const summary = {
   closedAt: null,
   outcome: null,
   version: 3,
+  updatedAt: "2026-10-31T03:00:00+00:00",
 };
 
 test("a sale carries its snapshot, context and server-decided actions or is refused", () => {

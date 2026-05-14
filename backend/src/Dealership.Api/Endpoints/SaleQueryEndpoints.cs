@@ -17,25 +17,25 @@ public static class SaleQueryEndpoints
         routes.MapGet("", TableAsync);
         routes.MapGet("/queue", QueueAsync);
         routes.MapGet("/{id:guid}/vehicle", (Guid id, HttpContext context, ISaleReadStore sales,
-            CancellationToken token) => ReadAsync(token, deadline => sales.VehicleAsync(ActorId(context), id, deadline)));
+            CancellationToken token) => ReadAsync(deadline => sales.VehicleAsync(ActorId(context), id, deadline), token));
         routes.MapGet("/{id:guid}", (Guid id, HttpContext context, ISaleReadStore sales, CancellationToken token) =>
-            ReadAsync(token, deadline => sales.GetAsync(ActorId(context), id, deadline)));
+            ReadAsync(deadline => sales.GetAsync(ActorId(context), id, deadline), token));
         routes.MapGet("/{id:guid}/options", (Guid id, HttpContext context, ISaleReadStore sales,
-            CancellationToken token) => ReadAsync(token, deadline => sales.OptionsAsync(ActorId(context), id, deadline)));
+            CancellationToken token) => ReadAsync(deadline => sales.OptionsAsync(ActorId(context), id, deadline), token));
         routes.MapGet("/{id:guid}/agents", (Guid id, HttpContext context, ISaleReadStore sales,
-            CancellationToken token) => ReadAsync(token, deadline => sales.AgentsAsync(ActorId(context), id, deadline)));
+            CancellationToken token) => ReadAsync(deadline => sales.AgentsAsync(ActorId(context), id, deadline), token));
         routes.MapGet("/{id:guid}/history", (Guid id, int? page, int? pageSize, HttpContext context,
             ISaleReadStore sales, CancellationToken token) =>
         {
             var (number, size) = (page ?? 1, pageSize ?? Pagination.DefaultPageSize);
             return Pagination.IsValid(number, size)
-                ? ReadAsync(token, deadline => sales.HistoryAsync(ActorId(context), id, number, size, deadline))
+                ? ReadAsync(deadline => sales.HistoryAsync(ActorId(context), id, number, size, deadline), token)
                 : Task.FromResult(Invalid());
         });
         routes.MapGet("/{id:guid}/versions/{version:long}", (Guid id, long version, HttpContext context,
             ISaleReadStore sales, CancellationToken token) => version < 1
             ? Task.FromResult(Invalid())
-            : ReadAsync(token, deadline => sales.VersionAsync(ActorId(context), id, version, deadline)));
+            : ReadAsync(deadline => sales.VersionAsync(ActorId(context), id, version, deadline), token));
     }
 
     private static Task<IResult> QueueAsync(string? view, string? search, int? page, int? pageSize,
@@ -44,30 +44,29 @@ public static class SaleQueryEndpoints
         var (number, size, text) = (page ?? 1, pageSize ?? Pagination.DefaultPageSize, search?.Trim());
         text = string.IsNullOrEmpty(text) ? null : text;
         return SaleQueries.ValidQueue(view, text, number, size)
-            ? ReadAsync(cancellationToken, deadline => sales.QueueAsync(ActorId(context), view ?? "ToClaim", text,
-                number, size, deadline))
+            ? ReadAsync(deadline => sales.QueueAsync(ActorId(context), view ?? "ToClaim", text,
+                number, size, deadline), cancellationToken)
             : Task.FromResult(Invalid());
     }
 
     private static Task<IResult> TableAsync(int? page, int? pageSize, string? view, string? search, string? sort,
         string? direction, string? agent, string? branch, string? outcome, decimal? minimumDiscount,
-        decimal? maximumDiscount, decimal? minimumBalance, decimal? maximumBalance, string? submittedFrom,
-        string? submittedTo, string? closedFrom, string? closedTo, string? registration, string? vehicle,
-        string? customer, string? reference, decimal? minimumOverLimit, decimal? maximumOverLimit,
-        string? decidedFrom, string? decidedTo, HttpContext context, ISaleListStore sales,
+        decimal? maximumDiscount, decimal? minimumBalance, decimal? maximumBalance, string? registration,
+        string? vehicle, string? customer, string? reference, decimal? minimumHoursLeft, decimal? maximumHoursLeft,
+        string? updatedFrom, string? updatedTo,
+        HttpContext context, ISaleListStore sales,
         CancellationToken cancellationToken)
     {
         var query = SaleQueries.Table(page ?? 1, pageSize ?? Pagination.DefaultPageSize, view, search, sort,
             direction, agent, branch, outcome, minimumDiscount, maximumDiscount, minimumBalance, maximumBalance,
-            submittedFrom, submittedTo, closedFrom, closedTo, registration, vehicle, customer, reference,
-            minimumOverLimit, maximumOverLimit, decidedFrom, decidedTo);
+            registration, vehicle, customer, reference, minimumHoursLeft, maximumHoursLeft, updatedFrom, updatedTo);
         return query is null
             ? Task.FromResult(Invalid())
-            : ReadAsync(cancellationToken, deadline => sales.TableAsync(ActorId(context), query, deadline));
+            : ReadAsync(deadline => sales.TableAsync(ActorId(context), query, deadline), cancellationToken);
     }
 
-    private static async Task<IResult> ReadAsync<T>(CancellationToken cancellationToken,
-        Func<CancellationToken, Task<SaleReadResult<T>>> read)
+    private static async Task<IResult> ReadAsync<T>(Func<CancellationToken, Task<SaleReadResult<T>>> read,
+        CancellationToken cancellationToken)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(20));
