@@ -23,9 +23,9 @@ public sealed class InspectionChecklistTests
             new("EP-004", InspectionEntryKind.Finding, InspectionSeverity.MinorDefect, 250, "Bumper scratch")
         ];
         var fitted = AllPoints.Where(code => code != "IE-040").ToArray();
-        Assert.Equal(fitted.Order(StringComparer.Ordinal), InspectionChecklist.Attest(entries, fitted.Reverse().ToArray()));
+        Assert.Equal(fitted.Order(StringComparer.Ordinal), InspectionChecklist.Attest(entries, [.. fitted.Reverse()]));
         Assert.Throws<ArgumentException>(() => InspectionChecklist.Attest(entries, AllPoints));
-        Assert.Throws<ArgumentException>(() => InspectionChecklist.Attest(entries, fitted.Where(code => code != "EP-004").ToArray()));
+        Assert.Throws<ArgumentException>(() => InspectionChecklist.Attest(entries, [.. fitted.Where(code => code != "EP-004")]));
     }
 
     [Theory]

@@ -37,7 +37,7 @@ public sealed record DevelopmentInspectionScenario(DevelopmentIntakeFixture Inta
 
     public InspectionDraftSaveRequest Save(bool reinspection = false)
     {
-        var entries = reinspection ? Entries.Where(entry => entry.Kind == InspectionEntryKind.NotFitted).ToArray() : Entries;
+        var entries = reinspection ? [.. Entries.Where(entry => entry.Kind == InspectionEntryKind.NotFitted)] : Entries;
         return new(OperationId(reinspection ? "save-2" : "save-1"), 1, reinspection ? 1 : 0, entries)
         {
             ExaminedPointCodes = Stage == DevelopmentInspectionStage.Draft ? null : InspectionCatalog.Points

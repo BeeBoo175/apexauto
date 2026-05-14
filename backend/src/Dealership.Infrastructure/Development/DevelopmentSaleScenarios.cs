@@ -1,5 +1,6 @@
 using Dealership.Application.Accounts;
 using Dealership.Domain.Sales;
+using System.Collections.ObjectModel;
 
 namespace Dealership.Infrastructure.Development;
 
@@ -25,7 +26,7 @@ public static class DevelopmentSaleScenarios
     // of an excess discount, and the third stays open to be claimed.
     public static IReadOnlyList<DevelopmentSaleScenario> All { get; } = Create();
 
-    private static IReadOnlyList<DevelopmentSaleScenario> Create()
+    private static ReadOnlyCollection<DevelopmentSaleScenario> Create()
     {
         var holds = DevelopmentReservationScenarios.All.Where(item => item.KeepActive).ToArray();
         DevelopmentReservationScenario Hold(int branch) => holds.Single(item =>

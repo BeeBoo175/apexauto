@@ -31,8 +31,8 @@ public sealed record InspectionReport(Guid OperationId, Guid InspectionId, long 
             throw new ArgumentException("Signing requires the current assigned technician's complete attested save and matching vehicle.");
         }
 
-        InspectionChecklist.Attest(save.Entries.ToArray(), save.ExaminedPointCodes.ToArray());
-        var assessment = InspectionGrading.Calculate(save.Entries.ToArray());
+        InspectionChecklist.Attest([.. save.Entries], [.. save.ExaminedPointCodes]);
+        var assessment = InspectionGrading.Calculate([.. save.Entries]);
         if (save.Assessment != new InspectionDraftAssessment(assessment.EstimatedRepairCost, assessment.Grade, assessment.IsRejected))
         {
             throw new ArgumentException("The original assessment must match the selected save.");

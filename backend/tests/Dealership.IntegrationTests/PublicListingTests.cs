@@ -159,7 +159,7 @@ public sealed class PublicListingTests(IntakePhotoFixture fixture) : IClassFixtu
         Assert.Equal(ListingStatus.Forbidden, (await management.ReadAsync(outsideManager, new(), CancellationToken.None)).Status);
         Assert.Equal(15, (await store.ReadAsync(new(), CancellationToken.None)).Catalogue!.Total);
         await ReservationCatalogueAssertions.VerifyAsync(fixture, services, data.BranchId,
-            records.Skip(2).Take(PublicListingFilter.PageSize + 1).Select(item => item.VehicleId).ToArray());
+            [.. records.Skip(2).Take(PublicListingFilter.PageSize + 1).Select(item => item.VehicleId)]);
     }
 
     private static async Task VerifyFiltersAsync(IPublicListingStore store, PublicListingFilter filter, PublicListingItem sample)

@@ -150,11 +150,11 @@ public sealed class WorkshopQueueStore(DealershipDbContext database) : IWorkshop
 
     private static WorkshopQueueItem[] Items(IEnumerable<WorkshopRow> page)
     {
-        return page.Select(row => new WorkshopQueueItem(row.VehicleId, row.BranchId, row.BranchName,
+        return [.. page.Select(row => new WorkshopQueueItem(row.VehicleId, row.BranchId, row.BranchName,
             row.RegistrationPlate, row.Make, row.Model, row.VehicleStatus.ToString(), row.InspectionId,
             row.TechnicianId, row.TechnicianIdentity, row.Revision, row.RequestId, row.Budget,
             row.Since, row.RequestId is null ? "CheckedIn" : "Requested", Status(row),
-            row.ManufactureYear, row.Trim, row.CheckedInAt, row.RequestedAt)).ToArray();
+            row.ManufactureYear, row.Trim, row.CheckedInAt, row.RequestedAt))];
     }
 
     private static IQueryable<WorkshopRow> FilterColumns(IQueryable<WorkshopRow> rows, InspectionQueueFilter filter)

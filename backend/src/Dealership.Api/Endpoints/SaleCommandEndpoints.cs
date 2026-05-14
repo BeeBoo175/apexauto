@@ -14,33 +14,34 @@ public static class SaleCommandEndpoints
             return await next(context);
         });
         routes.MapPost("/claims", (Guid id, HttpContext context, SaleHandlingService sales, CancellationToken token) =>
-            RunAsync<SaleCommandRequest>(context, token, (actor, request, deadline) =>
-                sales.ClaimAsync(actor, id, request, deadline)));
+            RunAsync<SaleCommandRequest>(context, (actor, request, deadline) =>
+                sales.ClaimAsync(actor, id, request, deadline), token));
         routes.MapPost("/assignments", (Guid id, HttpContext context, SaleHandlingService sales, CancellationToken token) =>
-            RunAsync<SaleAssignmentRequest>(context, token, (actor, request, deadline) =>
-                sales.AssignAsync(actor, id, request, deadline)));
+            RunAsync<SaleAssignmentRequest>(context, (actor, request, deadline) =>
+                sales.AssignAsync(actor, id, request, deadline), token));
         routes.MapPost("/releases", (Guid id, HttpContext context, SaleHandlingService sales, CancellationToken token) =>
-            RunAsync<SaleCommandRequest>(context, token, (actor, request, deadline) =>
-                sales.ReleaseAsync(actor, id, request, deadline)));
+            RunAsync<SaleCommandRequest>(context, (actor, request, deadline) =>
+                sales.ReleaseAsync(actor, id, request, deadline), token));
         routes.MapPost("/term-revisions", (Guid id, HttpContext context, SaleTermsService sales, CancellationToken token) =>
-            RunAsync<SaleTermsRequest>(context, token, (actor, request, deadline) =>
-                sales.SaveTermsAsync(actor, id, request, deadline)));
+            RunAsync<SaleTermsRequest>(context, (actor, request, deadline) =>
+                sales.SaveTermsAsync(actor, id, request, deadline), token));
         routes.MapPost("/submissions", (Guid id, HttpContext context, SaleTermsService sales, CancellationToken token) =>
-            RunAsync<SaleCommandRequest>(context, token, (actor, request, deadline) =>
-                sales.SubmitAsync(actor, id, request, deadline)));
+            RunAsync<SaleCommandRequest>(context, (actor, request, deadline) =>
+                sales.SubmitAsync(actor, id, request, deadline), token));
         routes.MapPost("/approvals", (Guid id, HttpContext context, SaleTermsService sales, CancellationToken token) =>
-            RunAsync<SaleCommandRequest>(context, token, (actor, request, deadline) =>
-                sales.ApproveAsync(actor, id, request, deadline)));
+            RunAsync<SaleCommandRequest>(context, (actor, request, deadline) =>
+                sales.ApproveAsync(actor, id, request, deadline), token));
         routes.MapPost("/rejections", (Guid id, HttpContext context, SaleTermsService sales, CancellationToken token) =>
-            RunAsync<SaleReasonRequest>(context, token, (actor, request, deadline) =>
-                sales.RejectAsync(actor, id, request, deadline)));
+            RunAsync<SaleReasonRequest>(context, (actor, request, deadline) =>
+                sales.RejectAsync(actor, id, request, deadline), token));
         routes.MapPost("/cancellations", (Guid id, HttpContext context, SaleTermsService sales, CancellationToken token) =>
-            RunAsync<SaleReasonRequest>(context, token, (actor, request, deadline) =>
-                sales.CancelAsync(actor, id, request, deadline)));
+            RunAsync<SaleReasonRequest>(context, (actor, request, deadline) =>
+                sales.CancelAsync(actor, id, request, deadline), token));
     }
 
-    private static async Task<IResult> RunAsync<TRequest>(HttpContext context, CancellationToken cancellationToken,
-        Func<Guid, TRequest, CancellationToken, Task<SaleCommandResult>> command) where TRequest : class
+    private static async Task<IResult> RunAsync<TRequest>(HttpContext context,
+        Func<Guid, TRequest, CancellationToken, Task<SaleCommandResult>> command,
+        CancellationToken cancellationToken) where TRequest : class
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(20));

@@ -53,11 +53,11 @@ public sealed class InspectionLifecycleTests(IntakePhotoFixture fixture) : IClas
         };
         long revision = 0;
         long repairVersion = 0;
-        foreach (var example in cases)
+        foreach (var (severity, estimate, status) in cases)
         {
             revision++;
-            IReadOnlyList<InspectionDraftEntryInput> entries = example.Severity is null ? [] :
-                [new("EP-004", InspectionEntryKind.Finding, example.Severity, example.Estimate, "Front bumper finding")];
+            IReadOnlyList<InspectionDraftEntryInput> entries = severity is null ? [] :
+                [new("EP-004", InspectionEntryKind.Finding, severity, estimate, "Front bumper finding")];
             var saved = await saves.SaveAsync(technician, inspection, new(Guid.NewGuid(), 1, revision - 1, entries)
             {
                 ExaminedPointCodes = [.. InspectionCatalog.Points.Select(point => point.Code)]
@@ -66,12 +66,12 @@ public sealed class InspectionLifecycleTests(IntakePhotoFixture fixture) : IClas
             var sign = new InspectionSignRequest(Guid.NewGuid(), 1, revision, revision);
             var signed = (await signoffs.SignAsync(technician, inspection, sign, CancellationToken.None)).Report!;
             Assert.NotNull(signed);
-            await AssertStatusAsync(database, vehicle, example.Status);
+            await AssertStatusAsync(database, vehicle, status);
             Assert.Equal(JsonSerializer.Serialize(signed), JsonSerializer.Serialize((await signoffs
                 .SignAsync(technician, inspection, sign, CancellationToken.None)).Report));
 
-            if (example.Status == VehicleStatus.PendingInspection ||
-                example.Severity == InspectionSeverity.Advisory && example.Estimate == 0)
+            if (status == VehicleStatus.PendingInspection ||
+                severity == InspectionSeverity.Advisory && estimate == 0)
             {
                 var request = (await requests.RequestAsync(technician, inspection,
                     new(Guid.NewGuid(), 1, revision, repairVersion, [new("EP-004", "Rectify and reinspect bumper")], 0),
@@ -89,7 +89,7 @@ public sealed class InspectionLifecycleTests(IntakePhotoFixture fixture) : IClas
                     .ReadAsync(manager, inspection, revision, CancellationToken.None)).Report));
             }
 
-            if (example.Status == VehicleStatus.Rejected)
+            if (status == VehicleStatus.Rejected)
             {
                 await AssertForgedStatusAsync(vehicle, VehicleStatus.Available);
                 Assert.Equal(InspectionAssignmentStatus.Conflict, (await requests.RequestAsync(technician, inspection,

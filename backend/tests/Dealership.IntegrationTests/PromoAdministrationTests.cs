@@ -4,11 +4,14 @@ using Dealership.Infrastructure.Identity;
 using Dealership.Infrastructure.Persistence;
 using Dealership.Infrastructure.Vehicles;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 
 namespace Dealership.IntegrationTests;
 
 public sealed class PromoAdministrationTests(RegistrationDatabase database) : IClassFixture<RegistrationDatabase>
 {
+    private static readonly string[] ExpectedCodes = ["apex500", "APEX500"];
+
     [Fact]
     public async Task OnlyActiveAdministratorsManagePromosWithReplayConflictAndStaleProtection()
     {
@@ -45,7 +48,7 @@ public sealed class PromoAdministrationTests(RegistrationDatabase database) : IC
 
         var page = (await ListAsync(administrator)).Page!;
         Assert.Equal(2, page.Total);
-        Assert.Equal(new[] { "apex500", "APEX500" }, page.Items.Select(item => item.Code));
+        Assert.Equal(ExpectedCodes, page.Items.Select(item => item.Code));
         var beyond = (await ListAsync(administrator, 2, 10)).Page!;
         Assert.Equal((2, 0), (beyond.Total, beyond.Items.Count));
 
@@ -86,7 +89,7 @@ public sealed class PromoAdministrationTests(RegistrationDatabase database) : IC
         Assert.Equal("APEX500,apex500", Codes(await ListAsync(administrator, minimumDiscount: 60m, maximumDiscount: 800m)));
         Assert.Equal("APEX500", Codes(await ListAsync(administrator, minimumDiscount: 200m)));
         var onlyDay = DateOnly.FromDateTime(expiry.AddDays(1).ToOffset(TimeSpan.FromHours(8)).DateTime)
-            .ToString("yyyy-MM-dd");
+            .ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         Assert.Equal("apex500", Codes(await ListAsync(administrator, expiresFrom: onlyDay, expiresTo: onlyDay)));
         Assert.Equal("", Codes(await ListAsync(administrator, code: "PEX", minimumDiscount: 900m)));
         Assert.Equal(PromoAdministrationStatus.Invalid,

@@ -54,7 +54,7 @@ public sealed class ReservationPersistenceTests(IntakePhotoFixture fixture) : IC
         await RejectCloneAsync(reservation.Id, new
         {
             Id = Guid.NewGuid(),
-            VehicleId = second.Revision.VehicleId,
+            second.Revision.VehicleId,
             PublicationId = second.Publication.Id
         }, PostgresErrorCodes.UniqueViolation);
         await RejectCloneAsync(reservation.Id, new { Id = Guid.NewGuid(), BranchId = Guid.NewGuid() }, PostgresErrorCodes.CheckViolation);

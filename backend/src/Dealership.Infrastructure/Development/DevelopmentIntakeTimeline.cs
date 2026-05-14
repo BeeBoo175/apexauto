@@ -29,13 +29,13 @@ public static class DevelopmentIntakeTimeline
             var checkedIn = DevelopmentIntakeManifest.InspectionExamplesPerBranch + 1;
             var example = 1;
             var catalogueIndex = DevelopmentIntakeManifest.InspectionCheckedInPerBranch + 2;
-            var noShow = historical[DevelopmentIntakeManifest.InspectionCheckedInPerBranch + 1];
+            var (noShowSlot, noShowBookedAt) = historical[DevelopmentIntakeManifest.InspectionCheckedInPerBranch + 1];
             return branch.Select(fixture => fixture.Status switch
             {
                 StaffWorklistStatus.Cancelled => new DevelopmentIntakeMoment(fixture, historical[0].Slot,
                     historical[0].BookedAt, historical[0].Slot.StartsAt.AddMinutes(-1)),
-                StaffWorklistStatus.NoShow => new DevelopmentIntakeMoment(fixture, noShow.Slot,
-                    noShow.BookedAt, AppointmentDay.EndsAt(noShow.Slot.StartsAt)),
+                StaffWorklistStatus.NoShow => new DevelopmentIntakeMoment(fixture, noShowSlot,
+                    noShowBookedAt, AppointmentDay.EndsAt(noShowSlot.StartsAt)),
                 StaffWorklistStatus.CheckedIn when catalogue.Contains(fixture.Id) => CheckedIn(fixture, historical[catalogueIndex++]),
                 StaffWorklistStatus.CheckedIn => CheckedIn(fixture, historical[examples.Contains(fixture.Id) ? example++ : checkedIn++]),
                 _ => new DevelopmentIntakeMoment(fixture, future[next++], anchor, null)

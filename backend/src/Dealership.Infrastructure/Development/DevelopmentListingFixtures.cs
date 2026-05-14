@@ -55,8 +55,8 @@ public sealed class DevelopmentListingFixtures(DealershipDbContext database, Lis
             details.Description + " " +
             "View the signed inspection checklist for the recorded vehicle condition.")
         {
-            PhotoIds = new[] { PhotoAngle.Front, PhotoAngle.Rear, PhotoAngle.Driver, PhotoAngle.Passenger }.Select(angle =>
-                scenario.OperationId($"listing-photo-{DevelopmentFixturePhotos.MediaVersion}-{angle}")).ToArray()
+            PhotoIds = [.. new[] { PhotoAngle.Front, PhotoAngle.Rear, PhotoAngle.Driver, PhotoAngle.Passenger }.Select(angle =>
+                scenario.OperationId($"listing-photo-{DevelopmentFixturePhotos.MediaVersion}-{angle}"))]
         };
         var existing = await database.ListingRevisions.AsNoTracking()
             .Where(item => item.VehicleId == vehicle.Id).OrderByDescending(item => item.Version)

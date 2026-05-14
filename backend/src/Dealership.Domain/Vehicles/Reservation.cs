@@ -1,10 +1,11 @@
 using Dealership.Domain.Customers;
+using System.Text.RegularExpressions;
 
 namespace Dealership.Domain.Vehicles;
 
 public sealed record ReservationBuyer(string LegalName, string Email, string Mobile, string Nric);
 
-public sealed class Reservation
+public sealed partial class Reservation
 {
     public const decimal DepositAmount = 500m;
 
@@ -74,11 +75,14 @@ public sealed class Reservation
 
     public void AssignNumber(string number)
     {
-        if (Number.Length > 0 || !System.Text.RegularExpressions.Regex.IsMatch(number, "^VRS-[0-9]{4}-[0-9]{6}$"))
+        if (Number.Length > 0 || !NumberPattern().IsMatch(number))
         {
             throw new InvalidOperationException("A reservation takes one well-formed number.");
         }
 
         Number = number;
     }
+
+    [GeneratedRegex("^VRS-[0-9]{4}-[0-9]{6}$")]
+    private static partial Regex NumberPattern();
 }

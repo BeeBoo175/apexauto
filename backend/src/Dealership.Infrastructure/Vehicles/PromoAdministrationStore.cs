@@ -20,7 +20,7 @@ public sealed class PromoAdministrationStore(DealershipDbContext database) : IPr
         // Code is unique, so every ordering ends in a total tie-breaker and paging never repeats or skips a promo.
         var items = await Order(promos, query, now).Skip((query.Page - 1) * query.PageSize).Take(query.PageSize)
             .ToListAsync(cancellationToken);
-        var result = new PromoPage(items.Select(PromoView.From).ToList(), total, query.Page, query.PageSize);
+        var result = new PromoPage([.. items.Select(PromoView.From)], total, query.Page, query.PageSize);
         return new(PromoAdministrationStatus.Succeeded, Page: result);
     }
 

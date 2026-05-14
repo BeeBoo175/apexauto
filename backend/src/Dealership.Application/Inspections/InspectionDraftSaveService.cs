@@ -92,7 +92,7 @@ public sealed class InspectionDraftSaveService(IInspectionDraftSaveStore saves)
             InspectionCatalog.Version, entries,
             new(assessment.EstimatedRepairCost, assessment.Grade, assessment.IsRejected), now)
         {
-            PhotoIds = request.PhotoIds.Order().ToArray(),
+            PhotoIds = [.. request.PhotoIds.Order()],
             ExaminedPointCodes = examinedPointCodes
         };
         var status = await transaction.CommitAsync(receipt, photos, cancellationToken);

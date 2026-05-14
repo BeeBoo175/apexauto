@@ -10,6 +10,8 @@ namespace Dealership.IntegrationTests;
 
 public sealed class WarrantyAdministrationTests(RegistrationDatabase database) : IClassFixture<RegistrationDatabase>
 {
+    private static readonly string[] ExpectedNames = ["ApexShield Silver", "ApexShield Gold"];
+
     [Fact]
     public async Task OnlyActiveAdministratorsManagePackagesWithReplayConflictAndStaleProtection()
     {
@@ -49,7 +51,7 @@ public sealed class WarrantyAdministrationTests(RegistrationDatabase database) :
 
         var page = (await ListAsync(administrator)).Page!;
         Assert.Equal(2, page.Total);
-        Assert.Equal(new[] { "ApexShield Silver", "ApexShield Gold" }, page.Items.Select(item => item.Name));
+        Assert.Equal(ExpectedNames, page.Items.Select(item => item.Name));
         var beyond = (await ListAsync(administrator, 2, 10)).Page!;
         Assert.Equal((2, 0), (beyond.Total, beyond.Items.Count));
 

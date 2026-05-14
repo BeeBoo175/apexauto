@@ -63,7 +63,7 @@ public sealed class InspectionDraftSaveTests(IntakePhotoFixture fixture) : IClas
             request with { Entries = [], ExaminedPointCodes = null })).Status);
         Assert.Equal(InspectionAssignmentStatus.Conflict, (await SaveAsync(restarted, technicianId, inspectionId,
             request with { ExaminedPointCodes = null })).Status);
-        foreach (var codes in new IReadOnlyList<string>[] { [], request.ExaminedPointCodes!.SkipLast(1).ToArray(),
+        foreach (var codes in new IReadOnlyList<string>[] { [], [.. request.ExaminedPointCodes!.SkipLast(1)],
             [.. request.ExaminedPointCodes, "IE-040"], [.. request.ExaminedPointCodes.Skip(1), request.ExaminedPointCodes[1]] })
         {
             Assert.Equal(InspectionAssignmentStatus.Invalid, (await SaveAsync(restarted, technicianId, inspectionId,

@@ -21,7 +21,7 @@ public sealed class WarrantyAdministrationStore(DealershipDbContext database) : 
         // Name is unique, so every ordering ends in a total tie-breaker and paging never repeats or skips a package.
         var items = await Order(packages, query).Skip((query.Page - 1) * query.PageSize).Take(query.PageSize)
             .ToListAsync(cancellationToken);
-        var result = new WarrantyPage(items.Select(WarrantyView.From).ToList(), total, query.Page, query.PageSize);
+        var result = new WarrantyPage([.. items.Select(WarrantyView.From)], total, query.Page, query.PageSize);
         return new(WarrantyAdministrationStatus.Succeeded, Page: result);
     }
 

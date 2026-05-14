@@ -5,6 +5,9 @@ namespace Dealership.UnitTests;
 
 public sealed class WarrantyPackageTests
 {
+    private static readonly bool[] GoldEligibility = [true, true, false];
+    private static readonly bool[] PlatinumEligibility = [true, false, false];
+
     [Fact]
     public void NewPackageTrimsTheNameAndStartsAtVersionOne()
     {
@@ -25,9 +28,9 @@ public sealed class WarrantyPackageTests
 
         Assert.All(new InspectionGrade?[] { InspectionGrade.A, InspectionGrade.B, InspectionGrade.C },
             grade => Assert.True(silver.IsEligibleFor(grade)));
-        Assert.Equal(new[] { true, true, false }, new[] { InspectionGrade.A, InspectionGrade.B, InspectionGrade.C }
+        Assert.Equal(GoldEligibility, new[] { InspectionGrade.A, InspectionGrade.B, InspectionGrade.C }
             .Select(grade => gold.IsEligibleFor(grade)));
-        Assert.Equal(new[] { true, false, false }, new[] { InspectionGrade.A, InspectionGrade.B, InspectionGrade.C }
+        Assert.Equal(PlatinumEligibility, new[] { InspectionGrade.A, InspectionGrade.B, InspectionGrade.C }
             .Select(grade => platinum.IsEligibleFor(grade)));
         Assert.All(new InspectionGrade?[] { null, InspectionGrade.A }, grade =>
         {

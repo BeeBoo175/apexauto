@@ -97,7 +97,7 @@ public sealed class InspectionReportTests
         var rejected = save with
         {
             Entries = [new("EP-004", InspectionEntryKind.Finding, InspectionSeverity.CriticalDisqualifier, 0, "Flood evidence")],
-            ExaminedPointCodes = InspectionCatalog.Points.Select(point => point.Code).ToArray(),
+            ExaminedPointCodes = [.. InspectionCatalog.Points.Select(point => point.Code)],
             Assessment = new(0, null, true)
         };
         var report = InspectionReport.Sign(Guid.NewGuid(), 1, draft, vehicle, "azlan@apexauto.test",
@@ -126,7 +126,7 @@ public sealed class InspectionReportTests
             new(500m, InspectionGrade.B, false), At.AddMinutes(2))
         {
             PhotoIds = [photo.Id],
-            ExaminedPointCodes = InspectionCatalog.Points.Where(point => point.Code != "IE-040").Select(point => point.Code).ToArray()
+            ExaminedPointCodes = [.. InspectionCatalog.Points.Where(point => point.Code != "IE-040").Select(point => point.Code)]
         };
         return (draft, vehicle, save, [photo]);
     }

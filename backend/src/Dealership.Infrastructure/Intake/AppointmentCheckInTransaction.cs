@@ -29,7 +29,7 @@ internal sealed class AppointmentCheckInTransaction(DealershipDbContext database
         var photoIds = photos.Select(photo => photo.Id).ToArray();
         var removals = await database.PhotoRemovals.Where(item => photoIds.Contains(item.PhotoId))
             .Select(item => item.PhotoId).ToArrayAsync(cancellationToken);
-        return photos.Select(photo => new CheckInPhotoCandidate(photo.Id, photo.AvailableAt, removals.Contains(photo.Id))).ToArray();
+        return [.. photos.Select(photo => new CheckInPhotoCandidate(photo.Id, photo.AvailableAt, removals.Contains(photo.Id)))];
     }
 
     public async Task<CheckInStatus> CommitAsync(Vehicle vehicle, AppointmentCheckIn checkIn, DateTimeOffset recordedAt,
