@@ -16,7 +16,7 @@ namespace Dealership.IntegrationTests;
 internal sealed class SaleWorld
 {
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<IntakePhotoFixture, Task<SaleWorld>>
-        Worlds = new();
+        Worlds = [];
 
     private readonly CheckInTestData data;
     private readonly IServiceScope scope;
@@ -81,13 +81,13 @@ internal sealed class SaleWorld
     }
 
     // A fresh verified customer reserves a freshly published car of the test branch.
-    public async Task<Reservation> HoldAsync()
+    public async Task<Reservation> HoldAsync(bool withPhoto = false)
     {
         var index = Interlocked.Increment(ref nextCar);
         await using var database = new DealershipDbContext(new DbContextOptionsBuilder<DealershipDbContext>()
             .UseNpgsql(connection).Options);
         var customer = await RegisterCustomerAsync(Services, database);
-        var listing = await CreateListingAsync(data, Services, Manager, technician, index);
+        var listing = await CreateListingAsync(data, Services, Manager, technician, index, withPhoto);
         var result = await Services.GetRequiredService<ReservationService>().ReserveAsync(customer,
             listing.Publication.VehicleId, new(Guid.NewGuid(), listing.Publication.Id, null), default);
         Assert.Equal(ReservationStatus.Succeeded, result.Status);

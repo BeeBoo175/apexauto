@@ -23,6 +23,9 @@ public sealed record ListingPhotoPreparation(ListingPhotoStatus Status, ListingP
 
 public interface IListingPhotoStore
 {
+    Task<ListingPhotoPreparation> FindSaleAsync(Guid actorId, Guid saleId, Guid id,
+        CancellationToken cancellationToken);
+
     Task<ListingPhotoStatus> CheckUploadAsync(Guid actorId, Guid vehicleId, CancellationToken cancellationToken);
 
     Task<ListingPhotoPreparation> PrepareAsync(Guid actorId, Guid vehicleId, Guid id,

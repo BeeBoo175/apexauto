@@ -37,7 +37,7 @@ internal static class ReservationTestData
     }
 
     internal static async Task<ListingRecord> CreateListingAsync(CheckInTestData data, IServiceProvider services,
-        Guid manager, Guid technician, int index)
+        Guid manager, Guid technician, int index, bool withPhoto = false)
     {
         var appointment = await data.BookAsync(index, $"WYY {8800 + index}");
         var checkIn = await services.GetRequiredService<AppointmentCheckInService>().CheckInAsync(data.StaffId,
@@ -55,8 +55,22 @@ internal static class ReservationTestData
             new(Guid.NewGuid(), 1, 1, 1), CancellationToken.None);
         Assert.Equal(InspectionAssignmentStatus.Succeeded, signed.Status);
         var listings = services.GetRequiredService<ListingService>();
+        var photoIds = new List<Guid>();
+        if (withPhoto)
+        {
+            var photoId = Guid.NewGuid();
+            using var image = new MemoryStream(IntakePhotoFixture.Image());
+            var upload = await services.GetRequiredService<ListingPhotoService>().UploadAsync(manager, vehicleId,
+                photoId, "image/jpeg", image, CancellationToken.None);
+            Assert.Equal(ListingPhotoStatus.Available, upload.Status);
+            photoIds.Add(photoId);
+        }
+
         var draft = await listings.SaveAsync(manager, vehicleId, new(Guid.NewGuid(), 0, 60000m, 90m,
-            VehicleTransmission.Automatic, VehicleFuel.Petrol, "Inspected Malaysian vehicle"), CancellationToken.None);
+            VehicleTransmission.Automatic, VehicleFuel.Petrol, "Inspected Malaysian vehicle")
+        {
+            PhotoIds = photoIds
+        }, CancellationToken.None);
         Assert.Equal(ListingStatus.Succeeded, draft.Status);
         var published = await listings.PublishAsync(manager, vehicleId,
             new(Guid.NewGuid(), draft.Draft!.Id, signed.Report!.OperationId), CancellationToken.None);

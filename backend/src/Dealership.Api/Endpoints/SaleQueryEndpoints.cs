@@ -16,6 +16,8 @@ public static class SaleQueryEndpoints
         });
         routes.MapGet("", TableAsync);
         routes.MapGet("/queue", QueueAsync);
+        routes.MapGet("/{id:guid}/vehicle", (Guid id, HttpContext context, ISaleReadStore sales,
+            CancellationToken token) => ReadAsync(token, deadline => sales.VehicleAsync(ActorId(context), id, deadline)));
         routes.MapGet("/{id:guid}", (Guid id, HttpContext context, ISaleReadStore sales, CancellationToken token) =>
             ReadAsync(token, deadline => sales.GetAsync(ActorId(context), id, deadline)));
         routes.MapGet("/{id:guid}/options", (Guid id, HttpContext context, ISaleReadStore sales,

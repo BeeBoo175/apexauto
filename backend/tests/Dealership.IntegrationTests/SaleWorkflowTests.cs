@@ -1,13 +1,112 @@
+using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using Dealership.Application.Accounts;
 using Dealership.Application.Sales;
+using Dealership.Application.Vehicles;
 using Dealership.Domain.Sales;
+using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 
 namespace Dealership.IntegrationTests;
 
 public sealed class SaleWorkflowTests(IntakePhotoFixture fixture) : IClassFixture<IntakePhotoFixture>
 {
+    [Fact]
+    public async Task VehicleReferencesAndPhotosFollowCurrentSaleAccessAndRetainTheReservedPublication()
+    {
+        var world = await SaleWorld.SharedAsync(fixture);
+        var held = await world.HoldAsync(withPhoto: true);
+        var photos = world.Services.GetRequiredService<ListingPhotoService>();
+        var listings = world.Services.GetRequiredService<ListingService>();
+        var reference = await world.Reads.VehicleAsync(world.Agent, held.Id, default);
+        Assert.Equal(SaleStatus.Succeeded, reference.Status);
+        var photoId = Assert.Single(reference.Value!.Listing.PhotoIds);
+        using var content = new MemoryStream();
+        Assert.Equal(ListingPhotoStatus.Available,
+            (await photos.DownloadSaleAsync(world.Agent, held.Id, photoId, content, default)).Status);
+        Assert.Equal(IntakePhotoFixture.Image(), content.ToArray());
+        using var factory = fixture.CreateFactory();
+        using var client = factory.CreateClient();
+        var path = $"/api/staff/sales/{held.Id}/vehicle";
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync(path)).StatusCode);
+        await using (var accounts = NewContext())
+        {
+            var email = await accounts.Users.Where(item => item.Id == world.Agent).Select(item => item.Email).SingleAsync();
+            var login = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest(Guid.NewGuid(), email!, "Password123!"));
+            var session = (await login.Content.ReadFromJsonAsync<LoginSession>())!;
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
+        }
+        var detail = await client.GetAsync(path);
+        Assert.Equal(HttpStatusCode.OK, detail.StatusCode);
+        Assert.True(detail.Headers.CacheControl!.NoStore);
+        Assert.Equal(held.Id, (await detail.Content.ReadFromJsonAsync<SaleVehicleReference>())!.SaleId);
+        var delivered = await client.GetAsync($"{path}/photos/{photoId}");
+        Assert.Equal(HttpStatusCode.OK, delivered.StatusCode);
+        Assert.True(delivered.Headers.CacheControl!.NoStore);
+        Assert.Equal(IntakePhotoFixture.Image(), await delivered.Content.ReadAsByteArrayAsync());
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"/api/staff/listings/{held.VehicleId}")).StatusCode);
+        Assert.Equal(ListingStatus.NotFound, (await world.Services.GetRequiredService<IPublicListingStore>()
+            .DetailAsync(held.VehicleId, default)).Status);
+        Assert.Equal(ListingPhotoStatus.NotFound,
+            (await photos.DownloadAsync(null, held.VehicleId, photoId, content, default)).Status);
+
+        foreach (var actor in new[] { world.OtherBranchAgent, held.CustomerId })
+        {
+            Assert.NotEqual(SaleStatus.Succeeded, (await world.Reads.VehicleAsync(actor, held.Id, default)).Status);
+            Assert.NotEqual(ListingPhotoStatus.Available,
+                (await photos.DownloadSaleAsync(actor, held.Id, photoId, content, default)).Status);
+        }
+
+        // A later private draft and its photo cannot replace the customer's reserved publication.
+        var privatePhoto = Guid.NewGuid();
+        using var image = new MemoryStream(IntakePhotoFixture.Image());
+        Assert.Equal(ListingPhotoStatus.Available, (await photos.UploadAsync(world.Manager, held.VehicleId,
+            privatePhoto, "image/jpeg", image, default)).Status);
+        Assert.Equal(ListingStatus.Succeeded, (await listings.SaveAsync(world.Manager, held.VehicleId,
+            new(Guid.NewGuid(), 1, 62000m, 100m, VehicleTransmission.Manual, VehicleFuel.Hybrid, "Updated private draft")
+            {
+                PhotoIds = [privatePhoto]
+            }, default)).Status);
+        var retained = (await world.Reads.VehicleAsync(world.Manager, held.Id, default)).Value!;
+        Assert.Equal(60000m, retained.Listing.VehiclePrice);
+        Assert.Equal("Inspected Malaysian vehicle", retained.Listing.Description);
+        Assert.Equal([photoId], retained.Listing.PhotoIds);
+        Assert.Equal(ListingPhotoStatus.NotFound,
+            (await photos.DownloadSaleAsync(world.Agent, held.Id, privatePhoto, content, default)).Status);
+
+        await world.Handling.ClaimAsync(world.Agent, held.Id, new(Guid.NewGuid(), 1), default);
+        Assert.Equal(SaleStatus.NotFound,
+            (await world.Reads.VehicleAsync(world.Colleague, held.Id, default)).Status);
+        Assert.Equal(ListingPhotoStatus.NotFound,
+            (await photos.DownloadSaleAsync(world.Colleague, held.Id, photoId, content, default)).Status);
+        await world.Handling.AssignAsync(world.Manager, held.Id, new(Guid.NewGuid(), 2, world.Colleague), default);
+        Assert.Equal(SaleStatus.NotFound, (await world.Reads.VehicleAsync(world.Agent, held.Id, default)).Status);
+        Assert.Equal(ListingPhotoStatus.NotFound,
+            (await photos.DownloadSaleAsync(world.Agent, held.Id, photoId, content, default)).Status);
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync(path)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"{path}/photos/{photoId}")).StatusCode);
+        Assert.Equal(SaleStatus.Succeeded, (await world.Reads.VehicleAsync(world.Colleague, held.Id, default)).Status);
+
+        await using var database = NewContext();
+        await database.Users.Where(item => item.Id == world.Colleague)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.IsActive, false));
+        try
+        {
+            Assert.Equal(SaleStatus.Forbidden, (await world.Reads.VehicleAsync(world.Colleague, held.Id, default)).Status);
+            Assert.Equal(ListingPhotoStatus.Forbidden,
+                (await photos.DownloadSaleAsync(world.Colleague, held.Id, photoId, content, default)).Status);
+        }
+        finally
+        {
+            await database.Users.Where(item => item.Id == world.Colleague)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.IsActive, true));
+        }
+    }
+
     [Fact]
     public async Task OneSaleCarriesAHoldFromConfirmationThroughClaimReleaseAndReclaim()
     {

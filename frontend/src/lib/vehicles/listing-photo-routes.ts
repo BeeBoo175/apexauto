@@ -75,7 +75,7 @@ export async function listingPhoto(
   }
 }
 
-async function downloadListingPhoto(path: string, token: string, signal: AbortSignal) {
+export async function downloadListingPhoto(path: string, token: string, signal: AbortSignal) {
   const { response, signal: bodySignal } = await requestApi(path, 40_000, { token, signal });
   if (!response.ok) {
     await response.body?.cancel();

@@ -5,6 +5,14 @@ namespace Dealership.Application.Vehicles;
 
 public sealed class ListingPhotoService(IListingPhotoStore photos, IPhotoImageValidator validator, PhotoTransferService transfers)
 {
+    public async Task<ListingPhotoResult> DownloadSaleAsync(Guid actorId, Guid saleId, Guid id,
+        Stream destination, CancellationToken cancellationToken)
+    {
+        return Result(await transfers.DownloadAsync(id, destination,
+            token => photos.FindSaleAsync(actorId, saleId, id, token),
+            found => found.Status == ListingPhotoStatus.Available ? found.Photo : null, cancellationToken));
+    }
+
     public Task<ListingPhotoStatus> CheckUploadAsync(Guid actorId, Guid vehicleId, CancellationToken cancellationToken)
     {
         return photos.CheckUploadAsync(actorId, vehicleId, cancellationToken);

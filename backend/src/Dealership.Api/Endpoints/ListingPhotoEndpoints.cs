@@ -11,6 +11,11 @@ public static class ListingPhotoEndpoints
 {
     public static void MapListingPhotoEndpoints(this WebApplication app)
     {
+        app.MapGet("/api/staff/sales/{saleId:guid}/vehicle/photos/{id:guid}",
+            (Guid saleId, Guid id, HttpContext context, ListingPhotoService photos, CancellationToken token) =>
+                DownloadAsync(context, (file, deadline) =>
+                    photos.DownloadSaleAsync(ActorId(context), saleId, id, file, deadline), token))
+            .RequireAuthorization().RequireRateLimiting(ApiRateLimiting.PhotoTransferPolicy);
         var routes = app.MapGroup("/api/staff/listings/{vehicleId:guid}/photos").RequireAuthorization();
         routes.AddEndpointFilter(async (context, next) =>
         {

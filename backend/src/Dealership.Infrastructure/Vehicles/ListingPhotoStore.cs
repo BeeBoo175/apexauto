@@ -1,14 +1,35 @@
 using Dealership.Application.Accounts;
+using Dealership.Application.Sales;
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Photos;
 using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Persistence;
+using Dealership.Infrastructure.Sales;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dealership.Infrastructure.Vehicles;
 
 public sealed class ListingPhotoStore(DealershipDbContext database) : IListingPhotoStore
 {
+    public async Task<ListingPhotoPreparation> FindSaleAsync(Guid actorId, Guid saleId, Guid id,
+        CancellationToken cancellationToken)
+    {
+        var (status, _, sale) = await SaleReadScope.ReadAsync(database, actorId, saleId, cancellationToken);
+        if (sale is null)
+        {
+            return new(status == SaleStatus.Forbidden ? ListingPhotoStatus.Forbidden : ListingPhotoStatus.NotFound);
+        }
+
+        var vehicleId = await (from reservation in database.Reservations
+                               join publication in database.ListingPublications on reservation.PublicationId equals publication.Id
+                               join photo in database.ListingRevisionPhotos on publication.RevisionId equals photo.RevisionId
+                               where reservation.Id == saleId && photo.PhotoId == id
+                               select (Guid?)reservation.VehicleId).SingleOrDefaultAsync(cancellationToken);
+        return vehicleId.HasValue
+            ? await FindPhotoAsync(vehicleId.Value, id, cancellationToken)
+            : new(ListingPhotoStatus.NotFound);
+    }
+
     public async Task<ListingPhotoStatus> CheckUploadAsync(Guid actorId, Guid vehicleId, CancellationToken cancellationToken)
     {
         await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);

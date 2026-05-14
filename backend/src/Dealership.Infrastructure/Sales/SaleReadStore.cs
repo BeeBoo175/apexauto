@@ -9,9 +9,34 @@ namespace Dealership.Infrastructure.Sales;
 
 public sealed class SaleReadStore(DealershipDbContext database) : ISaleReadStore
 {
+    public async Task<SaleReadResult<SaleVehicleReference>> VehicleAsync(Guid actorId, Guid saleId,
+        CancellationToken cancellationToken)
+    {
+        var (status, _, sale) = await SaleReadScope.ReadAsync(database, actorId, saleId, cancellationToken);
+        if (sale is null)
+        {
+            return new(status);
+        }
+
+        var reference = await (from reservation in database.Reservations.AsNoTracking()
+                               join publication in database.ListingPublications.AsNoTracking()
+                                   on reservation.PublicationId equals publication.Id
+                               join revision in database.ListingRevisions.AsNoTracking()
+                                   on publication.RevisionId equals revision.Id
+                               join vehicle in database.Vehicles.AsNoTracking() on reservation.VehicleId equals vehicle.Id
+                               join branch in database.Branches.AsNoTracking() on reservation.BranchId equals branch.Id
+                               where reservation.Id == saleId
+                               select new SaleVehicleReference(saleId, vehicle.Make, vehicle.Model, vehicle.Trim,
+                                   vehicle.ManufactureYear, vehicle.MileageKilometres, branch.Name,
+                                   publication.RecordedAt, new SaleVehicleListing(vehicle.Id, revision.VehiclePrice,
+                                       revision.RoadTax, revision.Transmission, revision.Fuel, revision.Description,
+                                       revision.PhotoIds))).SingleAsync(cancellationToken);
+        return new(SaleStatus.Succeeded, reference);
+    }
+
     public async Task<SaleReadResult<SaleView>> GetAsync(Guid actorId, Guid saleId, CancellationToken cancellationToken)
     {
-        var (status, actor, sale) = await ScopeAsync(actorId, saleId, cancellationToken);
+        var (status, actor, sale) = await SaleReadScope.ReadAsync(database, actorId, saleId, cancellationToken);
         if (sale is null)
         {
             return new(status);
@@ -61,7 +86,7 @@ public sealed class SaleReadStore(DealershipDbContext database) : ISaleReadStore
     public async Task<SaleReadResult<SaleOptions>> OptionsAsync(Guid actorId, Guid saleId,
         CancellationToken cancellationToken)
     {
-        var (status, _, sale) = await ScopeAsync(actorId, saleId, cancellationToken);
+        var (status, _, sale) = await SaleReadScope.ReadAsync(database, actorId, saleId, cancellationToken);
         if (sale is null)
         {
             return new(status);
@@ -85,7 +110,7 @@ public sealed class SaleReadStore(DealershipDbContext database) : ISaleReadStore
     public async Task<SaleReadResult<IReadOnlyList<SaleAgent>>> AgentsAsync(Guid actorId, Guid saleId,
         CancellationToken cancellationToken)
     {
-        var (status, actor, sale) = await ScopeAsync(actorId, saleId, cancellationToken);
+        var (status, actor, sale) = await SaleReadScope.ReadAsync(database, actorId, saleId, cancellationToken);
         if (sale is null)
         {
             return new(status);
@@ -109,7 +134,7 @@ public sealed class SaleReadStore(DealershipDbContext database) : ISaleReadStore
     {
         await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead,
             cancellationToken);
-        var (status, _, sale) = await ScopeAsync(actorId, saleId, cancellationToken);
+        var (status, _, sale) = await SaleReadScope.ReadAsync(database, actorId, saleId, cancellationToken);
         if (sale is null)
         {
             return new(status);
@@ -149,7 +174,7 @@ public sealed class SaleReadStore(DealershipDbContext database) : ISaleReadStore
     public async Task<SaleReadResult<SaleVersionView>> VersionAsync(Guid actorId, Guid saleId, long version,
         CancellationToken cancellationToken)
     {
-        var (status, _, sale) = await ScopeAsync(actorId, saleId, cancellationToken);
+        var (status, _, sale) = await SaleReadScope.ReadAsync(database, actorId, saleId, cancellationToken);
         if (sale is null)
         {
             return new(status);
@@ -169,23 +194,6 @@ public sealed class SaleReadStore(DealershipDbContext database) : ISaleReadStore
         return new(SaleStatus.Succeeded, new SaleVersionView(saleId, entry.Sequence, entry.Kind.ToString(),
             entry.RecordedAt, Email(emails, entry.ActorId) ?? "System", Email(emails, entry.AgentId), entry.Reason,
             entry.Snapshot, previous?.Snapshot));
-    }
-    private async Task<(SaleStatus Status, SaleStaff? Actor, SalesOrder? Sale)> ScopeAsync(Guid actorId, Guid saleId,
-        CancellationToken cancellationToken)
-    {
-        var actor = await SaleStaffLocks.ReadAsync(database, actorId, cancellationToken);
-        var branchActive = actor?.BranchId is not { } branchId ||
-            await database.Branches.AnyAsync(branch => branch.Id == branchId && branch.IsActive, cancellationToken);
-        if (!SaleAccess.IsEligibleStaff(actor, branchActive))
-        {
-            return (SaleStatus.Forbidden, null, null);
-        }
-
-        var sale = await database.SalesOrders.AsNoTracking().SingleOrDefaultAsync(item => item.Id == saleId,
-            cancellationToken);
-        return sale is null || !SaleAccess.CanSee(actor!, sale)
-            ? (SaleStatus.NotFound, null, null)
-            : (SaleStatus.Succeeded, actor, sale);
     }
 
     private async Task<Dictionary<Guid, string>> EmailsAsync(IEnumerable<Guid?> ids, CancellationToken cancellationToken)

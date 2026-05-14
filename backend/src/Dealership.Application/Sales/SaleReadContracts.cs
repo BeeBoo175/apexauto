@@ -1,5 +1,6 @@
 using Dealership.Application.Common;
 using Dealership.Domain.Sales;
+using Dealership.Domain.Vehicles;
 
 namespace Dealership.Application.Sales;
 
@@ -90,10 +91,20 @@ public sealed record SaleOptions(IReadOnlyList<WarrantyOption> Warranties, IRead
 
 public sealed record SaleAgent(Guid Id, string Email);
 
+// Listing content is retained by the reservation; vehicle identity and mileage are current record facts.
+public sealed record SaleVehicleReference(Guid SaleId, string Make, string Model, string Trim, int ManufactureYear,
+    int MileageKilometres, string BranchName, DateTimeOffset PublishedAt, SaleVehicleListing Listing);
+
+public sealed record SaleVehicleListing(Guid VehicleId, decimal VehiclePrice, decimal RoadTax,
+    VehicleTransmission Transmission, VehicleFuel Fuel, string Description, IReadOnlyList<Guid> PhotoIds);
+
 public sealed record SaleReadResult<T>(SaleStatus Status, T? Value = default);
 
 public interface ISaleReadStore
 {
+    Task<SaleReadResult<SaleVehicleReference>> VehicleAsync(Guid actorId, Guid saleId,
+        CancellationToken cancellationToken);
+
     Task<SaleReadResult<SaleView>> GetAsync(Guid actorId, Guid saleId, CancellationToken cancellationToken);
 
     Task<SaleReadResult<SaleOptions>> OptionsAsync(Guid actorId, Guid saleId, CancellationToken cancellationToken);

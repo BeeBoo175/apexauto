@@ -13,6 +13,7 @@ import {
 } from "@/lib/server/http/api";
 import { isSaleReason } from "./parse";
 import { hasSalesAccess, tableTextKeys } from "./contracts";
+import { downloadListingPhoto } from "@/lib/vehicles/listing-photo-routes";
 
 type Body = Record<string, unknown>;
 
@@ -20,7 +21,7 @@ const upstream = "/api/staff/sales";
 
 // The sale reads and commands the browser may name; the backend scopes each to the actor's role, branch and sale.
 const saleReads =
-  /^(?:|\/queue|\/[0-9a-f-]{36}(?:\/(?:options|agents|history|versions\/[1-9]\d{0,9}))?)$/i;
+  /^(?:|\/queue|\/[0-9a-f-]{36}(?:\/(?:vehicle|options|agents|history|versions\/[1-9]\d{0,9}))?)$/i;
 const saleWrites =
   /^\/[0-9a-f-]{36}\/(?:claims|assignments|releases|term-revisions|submissions|approvals|rejections|cancellations)$/i;
 
@@ -57,6 +58,30 @@ async function relayActor(signal: AbortSignal) {
       })
     : null;
   return { actor: current.actor, denied };
+}
+
+export async function relaySaleVehiclePhoto(request: Request, saleId: string, photoId: string) {
+  try {
+    if (!isUuid(saleId) || !isUuid(photoId)) {
+      throw new HttpError(400, "Choose a valid sale and photo.");
+    }
+    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(40_000)]);
+    const current = await relayActor(signal);
+    if (current.denied) {
+      return current.denied;
+    }
+    const token = await sessionToken();
+    if (!token) {
+      throw new HttpError(401, "Sign in to continue.");
+    }
+    return await downloadListingPhoto(
+      `${upstream}/${saleId}/vehicle/photos/${photoId}`,
+      token,
+      signal,
+    );
+  } catch (error) {
+    return apiError(error);
+  }
 }
 
 export async function relaySaleRead<T>(
