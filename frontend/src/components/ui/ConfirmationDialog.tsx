@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Button } from "./Button";
+import { ConfirmationActions } from "./ConfirmationActions";
 import { Dialog } from "./Dialog";
 import styles from "./ConfirmationDialog.module.css";
 
@@ -51,28 +51,15 @@ export function ConfirmationDialog({
         </dl>
       )}
       <div className={styles.message}>{children}</div>
-      <div className={styles.actions}>
-        <Button
-          type="button"
-          size="compact"
-          variant="ghost"
-          autoFocus
-          disabled={busy || locked}
-          onClick={onClose}
-        >
-          {cancelLabel}
-        </Button>
-        <Button
-          type="button"
-          size="compact"
-          variant={danger ? "danger" : "primary"}
-          disabled={busy}
-          aria-busy={busy}
-          onClick={() => void onConfirm()}
-        >
-          {busy ? "Working…" : confirmLabel}
-        </Button>
-      </div>
+      <ConfirmationActions
+        confirmLabel={confirmLabel}
+        cancelLabel={cancelLabel}
+        busy={busy}
+        locked={locked}
+        danger={danger}
+        onClose={onClose}
+        onConfirm={onConfirm}
+      />
     </Dialog>
   );
 }

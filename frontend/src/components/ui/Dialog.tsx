@@ -1,7 +1,18 @@
 "use client";
 
-import React, { useEffect, useId, useRef } from "react";
+import React, {
+  useEffect,
+  useEffectEvent,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import { createInteractionGuard } from "@/lib/interaction-guard";
+import { DialogEditGuardContext } from "./DialogEditGuardContext";
 import { CloseButton } from "./CloseButton";
+import { EditGuardFeedback } from "./EditGuardFeedback";
 import styles from "./Dialog.module.css";
 
 export interface DialogProps {
@@ -44,6 +55,49 @@ export const Dialog: React.FC<DialogProps> = ({
   layout = "flow",
 }) => {
   const element = useRef<HTMLDialogElement>(null);
+  const [guard] = useState(createInteractionGuard);
+  const guardState = useSyncExternalStore(guard.subscribe, guard.getSnapshot, guard.getSnapshot);
+  const explicitOwner = useRef(Symbol("dialog operation"));
+  useLayoutEffect(() => {
+    const owner = explicitOwner.current;
+    guard.setLocked(owner, closeDisabled);
+    return () => guard.setLocked(owner, false);
+  }, [guard, closeDisabled]);
+  const dismissalLocked = closeDisabled || guardState.blocked;
+  const dismiss = () => {
+    guard.request(onClose, "Discard and close");
+  };
+  const cancel = useEffectEvent((event: Event) => {
+    if (event.target !== element.current) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    dismiss();
+  });
+  const escape = useEffectEvent((event: KeyboardEvent) => {
+    if (
+      event.key !== "Escape" ||
+      !(event.target instanceof Element) ||
+      event.target.closest("dialog") !== element.current
+    ) {
+      return;
+    }
+    event.preventDefault();
+    dismiss();
+  });
+  const closed = useEffectEvent(() => {
+    // Strict Mode may reopen the dialog before a cleanup's queued close event arrives.
+    if (element.current?.open) {
+      return;
+    }
+    if (closeDisabled || guard.isLocked()) {
+      element.current?.showModal();
+      dismiss();
+      return;
+    }
+    onClose();
+  });
   const titleId = useId();
   const descriptionId = useId();
   useEffect(() => {
@@ -54,22 +108,21 @@ export const Dialog: React.FC<DialogProps> = ({
     const dialog = element.current;
     const overflow = document.body.style.overflow;
     const stopPointer = (event: MouseEvent) => event.stopPropagation();
-    const stopEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.stopPropagation();
-      }
-    };
     // Native listeners run before document-level background disclosure dismissal.
     dialog.addEventListener("mousedown", stopPointer);
-    dialog.addEventListener("keydown", stopEscape);
+    dialog.addEventListener("keydown", escape);
+    dialog.addEventListener("cancel", cancel);
+    dialog.addEventListener("close", closed);
     dialog.showModal();
     document.dispatchEvent(new Event("apexauto-dialog-change"));
     document.body.style.overflow = "hidden";
     return () => {
+      dialog.removeEventListener("mousedown", stopPointer);
+      dialog.removeEventListener("keydown", escape);
+      dialog.removeEventListener("cancel", cancel);
+      dialog.removeEventListener("close", closed);
       dialog.close();
       document.dispatchEvent(new Event("apexauto-dialog-change"));
-      dialog.removeEventListener("mousedown", stopPointer);
-      dialog.removeEventListener("keydown", stopEscape);
       document.body.style.overflow = overflow;
       if (
         previous instanceof HTMLElement &&
@@ -93,13 +146,11 @@ export const Dialog: React.FC<DialogProps> = ({
       ref={element}
       aria-labelledby={titleId}
       aria-describedby={!headerLoading && description ? descriptionId : undefined}
-      onCancel={(event) => {
-        event.preventDefault();
-        if (!closeDisabled) {
-          onClose();
-        }
-      }}
       onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          event.stopPropagation();
+          return;
+        }
         if (event.key !== "Tab") {
           return;
         }
@@ -145,14 +196,18 @@ export const Dialog: React.FC<DialogProps> = ({
             {showCloseButton && (
               <CloseButton
                 label={variant === "drawer" ? "Close drawer" : "Close dialog"}
-                onClick={onClose}
-                disabled={closeDisabled}
+                onClick={dismiss}
+                disabled={dismissalLocked}
+                title={guardState.message || undefined}
               />
             )}
           </div>
         )}
       </div>
-      <div className={styles.content}>{children}</div>
+      <DialogEditGuardContext.Provider value={guard}>
+        <div className={styles.content}>{children}</div>
+        <EditGuardFeedback guard={guard} surface={Dialog} />
+      </DialogEditGuardContext.Provider>
     </dialog>
   );
 };

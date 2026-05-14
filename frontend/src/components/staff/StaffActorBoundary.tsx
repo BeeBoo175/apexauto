@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, type ReactNode, type RefObject } from "react";
+import { createContext, useContext, useEffect, type ReactNode } from "react";
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import type { SearchParams } from "@/lib/query";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
@@ -10,10 +10,6 @@ import {
 } from "./StaffClientEntryBoundary";
 
 export const StaffActorContext = createContext<CurrentActor | null>(null);
-export const StaffNavigationLockContext = createContext<{
-  lockedRef: RefObject<boolean>;
-  setLocked: (locked: boolean) => void;
-} | null>(null);
 export const StaffPageEntranceContext = createContext(false);
 export const StaffNavigationContext = createContext<{
   pendingPath: string | null;

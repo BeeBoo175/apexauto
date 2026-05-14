@@ -2,6 +2,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { apiFetch } from "@/lib/api-browser";
+import { useGuardedAction } from "./use-guarded-action";
 import type { ApiResult, ApiRequest } from "@/lib/api";
 
 interface SelectionResource<T> {
@@ -18,6 +19,7 @@ export function useStaffSelection<T>(
   initial: ApiResult<T> | null,
   resource: SelectionResource<T>,
 ) {
+  const interaction = useGuardedAction();
   const toast = useToast();
   const [id, setId] = useState(initialId);
   const [result, setResult] = useState(initial);
@@ -40,6 +42,14 @@ export function useStaffSelection<T>(
   }, [initialId, initial]);
 
   async function choose(nextId: string, onConfirmed?: (url: URL) => void) {
+    if (nextId !== id) {
+      interaction.request(() => void readSelection(nextId, onConfirmed));
+      return;
+    }
+    await readSelection(nextId, onConfirmed);
+  }
+
+  async function readSelection(nextId: string, onConfirmed?: (url: URL) => void) {
     controller.current?.abort();
     const attempt = new AbortController();
     controller.current = attempt;

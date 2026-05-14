@@ -1,7 +1,9 @@
 "use client";
-import { useContext, useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
+import { ConfirmationButton } from "@/components/ui/ConfirmationButton";
+import { useEditGuard } from "@/hooks/use-edit-guard";
 import { Button } from "@/components/ui/Button";
 import { useLoadingProgress } from "@/components/ui/LoadingProgress";
 import { RefreshButton } from "@/components/ui/RefreshButton";
@@ -21,7 +23,6 @@ import { NoShowCorrectionFields } from "./NoShowCorrectionFields";
 import { AppointmentStatus } from "./AppointmentStatus";
 import { PersonIdentityFacts, VehicleIdentityFacts } from "./IdentityFacts";
 import styles from "./StaffWorkspace.module.css";
-import { StaffNavigationLockContext } from "./StaffActorBoundary";
 
 export function AppointmentWorkbench({
   id,
@@ -69,16 +70,19 @@ export function AppointmentWorkbench({
   );
   const value = draft ?? localDraft;
   const locked = command.busy || command.uncertain;
-  const operationLock = useContext(StaffNavigationLockContext);
-  useEffect(() => {
-    if (!operationLock) {
-      return;
-    }
-    operationLock.setLocked(locked);
-    return () => {
-      operationLock.setLocked(false);
-    };
-  }, [locked, operationLock]);
+  const dirty = !command.receipt && JSON.stringify(value) !== JSON.stringify(emptyCheckIn);
+  const guarded = dirty || locked;
+  const guard = useEditGuard({
+    dirty,
+    pending: command.busy,
+    uncertain: command.uncertain,
+    label: correcting ? "Attendance correction" : "Physical check-in",
+    discard: () => (onDraft ?? setLocalDraft)(emptyCheckIn),
+  });
+  useLayoutEffect(() => {
+    onLock?.(guarded);
+    return () => onLock?.(false);
+  }, [guarded, onLock]);
   useEffect(() => {
     queueMicrotask(() => setReady(true));
     return () => controller.current?.abort();
@@ -119,8 +123,7 @@ export function AppointmentWorkbench({
     }
   }
   async function checkIn() {
-    operationLock?.setLocked(true);
-    onLock?.(true);
+    guard(true);
     const result = await command.submit({
       ...value,
       mileageKilometres: Number(value.mileageKilometres),
@@ -131,9 +134,6 @@ export function AppointmentWorkbench({
           }
         : {}),
     });
-    if (result) {
-      onLock?.(false);
-    }
     if (result?.status !== 200 || !result.data) {
       return;
     }
@@ -289,6 +289,18 @@ export function AppointmentWorkbench({
                   <p className={styles.help}>
                     Record the physical arrival. Booked facts remain unchanged.
                   </p>
+                  {dirty && (
+                    <ConfirmationButton
+                      size="compact"
+                      variant="secondary"
+                      disabled={locked}
+                      confirmationTitle="Discard check-in entries?"
+                      message="Your unsaved physical check-in and attendance entries will be cleared."
+                      onConfirm={() => (onDraft ?? setLocalDraft)(emptyCheckIn)}
+                    >
+                      Discard changes
+                    </ConfirmationButton>
+                  )}
                   <Button
                     size="compact"
                     type="submit"

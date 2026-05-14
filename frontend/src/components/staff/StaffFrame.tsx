@@ -8,6 +8,8 @@ import { useIntakeActor } from "@/hooks/use-intake-actor";
 import { useAuthMutation } from "@/hooks/use-auth-mutation";
 import { Button } from "@/components/ui/Button";
 import { CloseButton } from "@/components/ui/CloseButton";
+import { EditGuardFeedback } from "@/components/ui/EditGuardFeedback";
+import { Dialog } from "@/components/ui/Dialog";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { hasIntakeAccess, roleNames, type CurrentActor } from "@/lib/auth/actor";
 import { hasInspectionAccess } from "@/lib/inspection/contracts";
@@ -15,11 +17,8 @@ import { hasListingAccess } from "@/lib/vehicles/listings";
 import { hasSalesAccess } from "@/lib/sales/contracts";
 import { hasSettingsAccess } from "@/lib/settings/settings";
 import styles from "./StaffFrame.module.css";
-import {
-  StaffActorContext,
-  StaffNavigationLockContext,
-  StaffNavigationContext,
-} from "./StaffActorBoundary";
+import { StaffActorContext, StaffNavigationContext } from "./StaffActorBoundary";
+import { StaffNavigationLockContext } from "./StaffNavigationLockContext";
 
 export function StaffFrame({ actor, children }: { actor: CurrentActor; children: ReactNode }) {
   const session = useIntakeActor(actor);
@@ -71,6 +70,7 @@ function StaffFrameContent({
     >
       <StaffActorContext.Provider value={actor ?? null}>
         <StaffNavigationLockContext.Provider value={navigation.operationLock}>
+          <EditGuardFeedback guard={navigation.operationLock.guard} surface={Dialog} />
           <section
             className={`${styles.page} ${fitViewport ? styles.viewport : ""}`}
             inert={Boolean(actor) && !ready}
@@ -238,16 +238,13 @@ function StaffFrameContent({
                   <Button
                     variant="shell"
                     size="compact"
-                    disabled={logout.busy}
-                    onPointerDown={(event) => {
-                      if (navigation.lockedRef.current) {
-                        event.preventDefault();
-                      }
-                    }}
+                    disabled={logout.busy || navigation.guardState.blocked}
+                    title={navigation.guardState.message || undefined}
                     onClick={() => {
-                      if (!navigation.lockedRef.current) {
-                        void logout.submit();
-                      }
+                      navigation.operationLock.guard.request(
+                        () => void logout.submit(),
+                        "Discard and sign out",
+                      );
                     }}
                   >
                     {logout.uncertain ? "Retry sign out" : "Sign out"}

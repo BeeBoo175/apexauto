@@ -9,9 +9,11 @@ import {
   useOptimistic,
   useRef,
   useState,
+  useSyncExternalStore,
   useTransition,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { createInteractionGuard, type InteractionBlock } from "@/lib/interaction-guard";
 import {
   StaffEntryRequestsContext,
   StaffHistoryContext,
@@ -23,6 +25,9 @@ export function useStaffNavigation() {
   const entries = useContext(StaffEntryRequestsContext);
   const historyRef = useContext(StaffHistoryContext);
   const lockedRef = useRef(false);
+  const [guard] = useState(createInteractionGuard);
+  const guardState = useSyncExternalStore(guard.subscribe, guard.getSnapshot, guard.getSnapshot);
+  const defaultOwner = useRef(Symbol("navigation"));
   const confirmed = useRef<{ href: string; state: unknown } | null>(null);
   const previousPath = useRef(pathname);
   const [entryPath, setEntryPath] = useState<string | null>(null);
@@ -30,19 +35,21 @@ export function useStaffNavigation() {
   const [selectedPath, selectPath] = useOptimistic(pathname);
 
   const captureHistory = useCallback(() => {
-    if (lockedRef.current) {
-      return;
-    }
     confirmed.current = { href: window.location.href, state: window.history.state };
   }, []);
 
-  const setLocked = useCallback((locked: boolean) => {
-    if (locked && !lockedRef.current) {
-      confirmed.current = { href: window.location.href, state: window.history.state };
-    }
-    lockedRef.current = locked;
-  }, []);
-  const operationLock = useMemo(() => ({ lockedRef, setLocked }), [setLocked]);
+  const setLocked = useCallback(
+    (locked: boolean | InteractionBlock | null, owner = defaultOwner.current) => {
+      const before = guard.isLocked();
+      guard.setLocked(owner, locked);
+      if (guard.isLocked() && !before) {
+        confirmed.current = { href: window.location.href, state: window.history.state };
+      }
+      lockedRef.current = guard.isLocked();
+    },
+    [guard],
+  );
+  const operationLock = useMemo(() => ({ lockedRef, setLocked, guard }), [setLocked, guard]);
 
   const recordNavigation = useCallback(
     (href: string) => {
@@ -60,7 +67,18 @@ export function useStaffNavigation() {
     }
     if (lockedRef.current) {
       event.stopImmediatePropagation();
+      const href = window.location.href;
       window.history.pushState(confirmed.current.state, "", confirmed.current.href);
+      guard.request(() => {
+        entries?.cancel();
+        startTransition(() => {
+          const destination = new URL(href).pathname;
+          selectPath(destination);
+          setEntryPath(destination === pathname ? null : destination);
+          previousPath.current = destination;
+          router.replace(href, { scroll: false });
+        });
+      });
       return;
     }
     if (previousPath.current !== window.location.pathname) {
@@ -90,16 +108,15 @@ export function useStaffNavigation() {
 
   function navigate(event: { preventDefault: () => void }, href: string) {
     event.preventDefault();
-    if (lockedRef.current) {
-      return;
-    }
-    startTransition(() => {
-      selectPath(href);
-      if (pathname === href && window.location.pathname === href) {
-        router.refresh();
-        return;
-      }
-      router.push(href);
+    guard.request(() => {
+      startTransition(() => {
+        selectPath(href);
+        if (pathname === href && window.location.pathname === href) {
+          router.refresh();
+          return;
+        }
+        router.push(href);
+      });
     });
   }
 
@@ -109,6 +126,7 @@ export function useStaffNavigation() {
     pending,
     lockedRef,
     operationLock,
+    guardState,
     navigate,
     captureHistory,
     recordNavigation,

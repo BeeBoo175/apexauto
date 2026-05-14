@@ -2,8 +2,11 @@
 
 import { useContext, useState, type ComponentProps } from "react";
 import Link, { useLinkStatus } from "next/link";
+import { useRouter } from "next/navigation";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
-import { StaffNavigationContext, StaffNavigationLockContext } from "./StaffActorBoundary";
+import { StaffNavigationContext } from "./StaffActorBoundary";
+import { StaffNavigationLockContext } from "./StaffNavigationLockContext";
+import { useGuardedAction } from "@/hooks/use-guarded-action";
 import styles from "./StaffLink.module.css";
 
 export function StaffLink({
@@ -11,6 +14,8 @@ export function StaffLink({
   ...props
 }: ComponentProps<typeof Link> & { prefetchOnIntent?: boolean }) {
   const operationLock = useContext(StaffNavigationLockContext);
+  const router = useRouter();
+  const { blocked, message } = useGuardedAction();
   const navigation = useContext(StaffNavigationContext);
   const [intent, setIntent] = useState(false);
   let prefetch = props.prefetch;
@@ -29,6 +34,8 @@ export function StaffLink({
       {...props}
       className={`${styles.link} ${props.className ?? ""}`}
       prefetch={prefetch}
+      aria-disabled={blocked || props["aria-disabled"]}
+      title={blocked ? message : props.title}
       onPointerEnter={(event) => {
         props.onPointerEnter?.(event);
         prepare();
@@ -54,6 +61,22 @@ export function StaffLink({
       onNavigate={(event) => {
         if (operationLock?.lockedRef.current) {
           event.preventDefault();
+          operationLock.guard.request(() => {
+            const href = typeof props.href === "string" ? props.href : props.href.pathname;
+            if (!href) {
+              return;
+            }
+            navigation?.recordNavigation(href);
+            let prevented = false;
+            props.onNavigate?.({
+              preventDefault: () => {
+                prevented = true;
+              },
+            });
+            if (!prevented) {
+              router[props.replace ? "replace" : "push"](href, { scroll: props.scroll });
+            }
+          });
           return;
         }
         const href = typeof props.href === "string" ? props.href : props.href.pathname;
