@@ -5,6 +5,35 @@ export type ListingPublicationReceipt = NonNullable<ListingWorkspace["publicatio
   actorId: string;
 };
 
+// Recovery keeps the captured operation available even outside the current Publication tab.
+export function listingPublicationAction({
+  current,
+  canApprove,
+  withdrawalReason,
+  approval,
+  withdrawal,
+}: {
+  current: boolean;
+  canApprove: boolean;
+  withdrawalReason: string;
+  approval: { busy: boolean; uncertain: boolean };
+  withdrawal: { busy: boolean; uncertain: boolean };
+}): "approve" | "withdraw" | null {
+  if (approval.busy || approval.uncertain) {
+    return "approve";
+  }
+  if (withdrawal.busy || withdrawal.uncertain) {
+    return "withdraw";
+  }
+  if (!current) {
+    return null;
+  }
+  if (withdrawalReason) {
+    return "withdraw";
+  }
+  return canApprove ? "approve" : null;
+}
+
 export function parseListingPublicationReceipt(value: unknown): ListingPublicationReceipt | null {
   if (
     !isRecord(value) ||

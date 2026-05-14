@@ -6,6 +6,7 @@ import {
 } from "@/lib/vehicles/listing-estimate";
 import {
   matchesListingPublication,
+  listingPublicationAction,
   parseListingPublication,
   parseListingPublicationReceipt,
 } from "@/lib/vehicles/listing-publication";
@@ -40,6 +41,47 @@ test("publication receipts validate immutable identities, UTC time and canonical
     expect(parseListingPublication({ status, publication: receipt })).toBeNull();
   }
   expect(parseListingPublication({ status: 0, publication: null })).toBeNull();
+});
+
+test("publication offers one contextual action and preserves captured-operation recovery", () => {
+  const idle = { busy: false, uncertain: false };
+  const state = {
+    current: true,
+    canApprove: true,
+    withdrawalReason: "",
+    approval: idle,
+    withdrawal: idle,
+  };
+  expect(listingPublicationAction(state)).toBe("approve");
+  expect(listingPublicationAction({ ...state, canApprove: false })).toBeNull();
+  expect(listingPublicationAction({ ...state, withdrawalReason: "Stock review" })).toBe("withdraw");
+  expect(listingPublicationAction({ ...state, withdrawalReason: " " })).toBe("withdraw");
+  expect(listingPublicationAction({ ...state, current: false })).toBeNull();
+  expect(
+    listingPublicationAction({ ...state, current: false, withdrawalReason: "Stock review" }),
+  ).toBeNull();
+  for (const operation of [
+    { busy: true, uncertain: false },
+    { busy: false, uncertain: true },
+  ]) {
+    expect(
+      listingPublicationAction({
+        ...state,
+        current: false,
+        canApprove: false,
+        withdrawalReason: "Stock review",
+        approval: operation,
+      }),
+    ).toBe("approve");
+    expect(
+      listingPublicationAction({
+        ...state,
+        current: false,
+        canApprove: false,
+        withdrawal: operation,
+      }),
+    ).toBe("withdraw");
+  }
 });
 
 test("approval confirmation binds the exact operation, saved revision and signed inspection", () => {

@@ -4,6 +4,8 @@ import { StaffWorkspaceFooter } from "@/components/staff/StaffWorkspaceFooter";
 import type { useListingEditor } from "@/hooks/use-listing-editor";
 import type { ListingSection } from "@/lib/vehicles/listings";
 import { MAX_LISTING_PHOTOS } from "@/lib/vehicles/listing-photos";
+import { listingPublicationAction } from "@/lib/vehicles/listing-publication";
+import { listingWithdrawalReason } from "@/lib/vehicles/listing-withdrawal";
 
 export function ListingEditorFooter({
   editor,
@@ -20,11 +22,13 @@ export function ListingEditorFooter({
   const publication = section === "publication" && !historical;
   const draftActions =
     (!historical && (section === "listing" || section === "card")) || editor.command.uncertain;
-  const approvalAction = publication || editor.approval.busy || editor.approval.uncertain;
-  const withdrawalAction =
-    (publication && editor.hasActivePublication) ||
-    editor.withdrawal.busy ||
-    editor.withdrawal.uncertain;
+  const publicationAction = listingPublicationAction({
+    current: publication,
+    canApprove: editor.canApprove,
+    withdrawalReason: editor.withdrawalReason,
+    approval: editor.approval,
+    withdrawal: editor.withdrawal,
+  });
   const republishing = editor.isWithdrawn || editor.approval.republishing;
   let approvalLabel = republishing ? "Republish listing" : "Approve publication";
   if (editor.approval.busy) {
@@ -32,6 +36,13 @@ export function ListingEditorFooter({
   }
   if (editor.approval.uncertain) {
     approvalLabel = republishing ? "Reconcile republication" : "Reconcile publication approval";
+  }
+  let withdrawalLabel = "Withdraw listing";
+  if (editor.withdrawal.busy) {
+    withdrawalLabel = "Withdrawing listing…";
+  }
+  if (editor.withdrawal.uncertain) {
+    withdrawalLabel = "Reconcile listing withdrawal";
   }
 
   return (
@@ -67,7 +78,7 @@ export function ListingEditorFooter({
           )}
         </>
       )}
-      {approvalAction && (
+      {publicationAction === "approve" && (
         <ConfirmationButton
           confirmationTitle={republishing ? "Republish this listing?" : "Approve publication?"}
           message="The saved listing details and approved price will become publicly available."
@@ -79,17 +90,21 @@ export function ListingEditorFooter({
           {approvalLabel}
         </ConfirmationButton>
       )}
-      {withdrawalAction && (
+      {publicationAction === "withdraw" && (
         <ConfirmationButton
           confirmationTitle="Withdraw this listing?"
           message="This immediately removes the listing. Any active unconverted hold will be cancelled with a full simulated deposit refund."
           skipConfirmation={editor.withdrawal.uncertain}
           size="compact"
           variant="danger"
-          disabled={editor.withdrawal.busy || (!editor.withdrawal.uncertain && !editor.canWithdraw)}
+          disabled={
+            editor.withdrawal.busy ||
+            (!editor.withdrawal.uncertain &&
+              (!editor.canWithdraw || !listingWithdrawalReason(editor.withdrawalReason)))
+          }
           onConfirm={() => editor.withdraw()}
         >
-          {editor.withdrawal.uncertain ? "Reconcile listing withdrawal" : "Withdraw listing"}
+          {withdrawalLabel}
         </ConfirmationButton>
       )}
       {historical && (
@@ -123,6 +138,14 @@ function footerContext(
         section === "publication"
           ? "Approval and withdrawal records are read only. Your current draft is retained."
           : "Saved fields are read only; identity and mileage reflect the current vehicle record.",
+    };
+  }
+  if (editor.withdrawalReason) {
+    return {
+      title: "Withdraw listing",
+      description: editor.withdrawalTargetChanged
+        ? "The publication changed. Clear the reason before withdrawing the current publication."
+        : "Withdrawal requires a valid reason and confirmation. Clear the reason to return to publication review.",
     };
   }
   if (editor.value.photoIds.length > MAX_LISTING_PHOTOS) {
@@ -169,9 +192,17 @@ function footerContext(
           "Republish listing approves these saved details and puts the listing back online.",
       };
     }
+    if (editor.hasActivePublication && !editor.canApprove) {
+      return {
+        title: "Listing published",
+        description:
+          "Enter a withdrawal reason to remove the listing. Save changed details in Listing before approving an update.",
+      };
+    }
     return {
       title: "Publication review",
-      description: "Approve the saved draft to publish it. Withdrawal removes it immediately.",
+      description:
+        "Approve the saved draft to publish it. Enter a withdrawal reason to switch to withdrawal.",
     };
   }
   return {

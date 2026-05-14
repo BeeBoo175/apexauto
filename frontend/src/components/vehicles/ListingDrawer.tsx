@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useGuardedAction } from "@/hooks/use-guarded-action";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
 import { RefreshButton } from "@/components/ui/RefreshButton";
@@ -35,6 +36,7 @@ export function ListingDrawer({
   initialRecord?: ListingRecordSelection | null;
 }) {
   const [locked, setLocked] = useState(false);
+  const interaction = useGuardedAction();
   const [section, setSection] = useState(initialSection);
   const [record, setRecord] = useState(initialRecord);
   const [entry, setEntry] = useState(initial);
@@ -54,9 +56,10 @@ export function ListingDrawer({
   }
 
   function close() {
-    if (locked) {
-      return;
-    }
+    interaction.request(closeConfirmed, "Discard and close");
+  }
+
+  function closeConfirmed() {
     selection.close();
     setSection("listing");
     setRecord(null);
@@ -96,12 +99,11 @@ export function ListingDrawer({
           vehicle ? `${vehicle.make} ${vehicle.model} · ${vehicle.branchName}` : undefined
         }
         onClose={close}
-        closeDisabled={locked}
         headerActions={
           <RefreshButton
             label="Refresh listing"
             busy={selection.busy}
-            disabled={!selection.id}
+            disabled={!selection.id || locked}
             onClick={() => void selection.choose(selection.id)}
           />
         }

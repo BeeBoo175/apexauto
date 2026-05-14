@@ -141,11 +141,18 @@ export function ListingPublication({
             value={editor.withdrawalReason}
             disabled={editor.operating}
             aria-invalid={
-              editor.withdrawalValidationAttempted &&
+              (editor.withdrawalValidationAttempted || Boolean(editor.withdrawalReason)) &&
               !listingWithdrawalReason(editor.withdrawalReason)
             }
             onChange={(event) => editor.changeWithdrawalReason(event.target.value)}
           />
+          {Boolean(editor.withdrawalReason) &&
+            !listingWithdrawalReason(editor.withdrawalReason) && (
+              <p className={styles.help} role="status">
+                Enter a reason of at most 1,000 characters without line breaks or control
+                characters.
+              </p>
+            )}
           {editor.withdrawalTargetChanged && (
             <p className={styles.help}>
               The publication changed. Clear this reason before withdrawing the current publication.

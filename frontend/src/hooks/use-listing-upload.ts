@@ -5,6 +5,7 @@ import { useToast } from "@/components/ui/Toast";
 import { privateApiFetch } from "@/lib/api-browser";
 import { PHOTO_MAX_BYTES } from "@/lib/intake/contracts";
 import { matchesListingUpload, parseListingPhotoReceipt } from "@/lib/vehicles/listing-photos";
+import { useEditGuard } from "./use-edit-guard";
 
 export function useListingUpload(vehicleId: string, onConfirmed: (id: string) => boolean) {
   const [file, setFile] = useState<File | null>(null);
@@ -13,6 +14,7 @@ export function useListingUpload(vehicleId: string, onConfirmed: (id: string) =>
   const operation = useRef<{ id: string; file: File } | null>(null);
   const controller = useRef<AbortController | null>(null);
   const toast = useToast();
+  useEditGuard({ dirty: Boolean(file), pending: busy, uncertain, label: "Listing photo", discard });
   useEffect(() => () => controller.current?.abort(), []);
 
   function select(selected: File | null) {

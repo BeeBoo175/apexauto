@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useApiCommand } from "./use-api-command";
-import { useStaffNavigationLock } from "./use-staff-navigation-lock";
+import { useEditGuard } from "./use-edit-guard";
 import { useListingUpload } from "./use-listing-upload";
 import { useListingPublication } from "./use-listing-publication";
 import { useToast } from "@/components/ui/Toast";
@@ -96,7 +96,22 @@ export function useListingEditor(
   const withdrawing = withdrawal.busy || withdrawal.uncertain;
   const operating = command.busy || command.uncertain || uploading || approving || withdrawing;
   const locked = dirty || Boolean(withdrawalReason) || operating;
-  const lockNavigation = useStaffNavigationLock(locked);
+  const lockNavigation = useEditGuard({
+    dirty: dirty || Boolean(withdrawalReason),
+    pending: command.busy || approval.busy || withdrawal.busy,
+    uncertain: command.uncertain || approval.uncertain || withdrawal.uncertain,
+    label: "Listing changes",
+    discard: () => {
+      const current = stale ? snapshot.draft : base;
+      setBase(current);
+      setValue(listingDraft(current));
+      setDirty(false);
+      setValidationAttempted(false);
+      setWithdrawalReason("");
+      setWithdrawalTarget(null);
+      setWithdrawalValidationAttempted(false);
+    },
+  });
   useEffect(() => {
     onLock(locked);
     return () => onLock(false);
