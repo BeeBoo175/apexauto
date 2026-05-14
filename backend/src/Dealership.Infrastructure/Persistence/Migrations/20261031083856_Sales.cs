@@ -8,6 +8,12 @@ namespace Dealership.Infrastructure.Persistence.Migrations
     /// <inheritdoc />
     public partial class Sales : Migration
     {
+        private static readonly string[] ReservationIdentityColumns = ["Id", "VehicleId", "BranchId", "CustomerId"];
+        private static readonly string[] SaleSequenceColumns = ["SalesOrderId", "Sequence"];
+        private static readonly string[] AgentStatusUpdatedColumns = ["AgentId", "Status", "UpdatedAt"];
+        private static readonly string[] BranchStatusDueColumns = ["BranchId", "Status", "DueAt"];
+        private static readonly string[] BranchStatusUpdatedColumns = ["BranchId", "Status", "UpdatedAt"];
+
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -22,7 +28,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
             migrationBuilder.AddUniqueConstraint(
                 name: "AK_Reservations_Id_VehicleId_BranchId_CustomerId",
                 table: "Reservations",
-                columns: new[] { "Id", "VehicleId", "BranchId", "CustomerId" });
+                columns: ReservationIdentityColumns);
 
             migrationBuilder.CreateTable(
                 name: "DealNumberCounters",
@@ -125,7 +131,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         name: "FK_SalesOrders_Reservations_Id_VehicleId_BranchId_CustomerId",
                         columns: x => new { x.Id, x.VehicleId, x.BranchId, x.CustomerId },
                         principalTable: "Reservations",
-                        principalColumns: new[] { "Id", "VehicleId", "BranchId", "CustomerId" },
+                        principalColumns: ReservationIdentityColumns,
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_SalesOrders_Vehicles_VehicleId",
@@ -231,23 +237,23 @@ namespace Dealership.Infrastructure.Persistence.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_SalesOrderEvents_SalesOrderId_Sequence",
                 table: "SalesOrderEvents",
-                columns: new[] { "SalesOrderId", "Sequence" },
+                columns: SaleSequenceColumns,
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_SalesOrders_AgentId_Status_UpdatedAt",
                 table: "SalesOrders",
-                columns: new[] { "AgentId", "Status", "UpdatedAt" });
+                columns: AgentStatusUpdatedColumns);
 
             migrationBuilder.CreateIndex(
                 name: "IX_SalesOrders_BranchId_Status_DueAt",
                 table: "SalesOrders",
-                columns: new[] { "BranchId", "Status", "DueAt" });
+                columns: BranchStatusDueColumns);
 
             migrationBuilder.CreateIndex(
                 name: "IX_SalesOrders_BranchId_Status_UpdatedAt",
                 table: "SalesOrders",
-                columns: new[] { "BranchId", "Status", "UpdatedAt" });
+                columns: BranchStatusUpdatedColumns);
 
             migrationBuilder.CreateIndex(
                 name: "IX_SalesOrders_CustomerId",
@@ -262,7 +268,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_SalesOrders_Id_VehicleId_BranchId_CustomerId",
                 table: "SalesOrders",
-                columns: new[] { "Id", "VehicleId", "BranchId", "CustomerId" },
+                columns: ReservationIdentityColumns,
                 unique: true);
 
             migrationBuilder.CreateIndex(
