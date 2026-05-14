@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useEditGuard } from "@/hooks/use-edit-guard";
+import { ConfirmationButton } from "@/components/ui/ConfirmationButton";
 import { StaffWorkspaceFooter } from "@/components/staff/StaffWorkspaceFooter";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -25,6 +27,7 @@ export function PromoForm({
   onSaved,
   onReload,
   onUseLatest,
+  onCancel,
 }: {
   base: Promo | null;
   latest: Promo | null;
@@ -33,6 +36,7 @@ export function PromoForm({
   onSaved: () => void;
   onReload: () => void;
   onUseLatest: () => void;
+  onCancel: () => void;
 }) {
   const toast = useToast();
   // One identity per open create drawer lets a lost response be retried without a duplicate.
@@ -44,7 +48,8 @@ export function PromoForm({
   const amount = parseMyr(discount.trim());
   const expiresAtUtc = utcFromMalaysiaInput(expiry);
   const valid = Boolean(code.trim()) && amount !== null && amount > 0 && expiresAtUtc !== null;
-  const disabled = busy || saver.busy;
+  const uncertain = Boolean(saver.notice?.uncertain);
+  const disabled = busy || saver.busy || uncertain;
   const newer = base && latest && latest.version !== base.version;
   // Like the other editors, an existing record can be saved only once something differs from it.
   const changed =
@@ -52,6 +57,18 @@ export function PromoForm({
     amount !== base.discount ||
     expiresAtUtc !== new Date(base.expiresAtUtc).toISOString() ||
     isActive !== base.isActive;
+  const dirty = base ? changed : Boolean(code || discount || expiry || !isActive);
+  useEditGuard({
+    dirty,
+    pending: saver.busy,
+    uncertain: Boolean(saver.notice?.uncertain),
+    label: "Promo",
+    discard: onCancel,
+  });
+  let submitLabel = base ? "Save promo" : "Create promo";
+  if (uncertain) {
+    submitLabel = "Retry same save";
+  }
 
   async function submit() {
     if (!valid || amount === null || expiresAtUtc === null) {
@@ -105,7 +122,13 @@ export function PromoForm({
           {newer && (
             <div className={styles.notice} role="status">
               <p>A newer version was loaded. Your entries are kept until you use it.</p>
-              <Button type="button" size="compact" variant="secondary" onClick={onUseLatest}>
+              <Button
+                type="button"
+                size="compact"
+                variant="secondary"
+                disabled={disabled}
+                onClick={onUseLatest}
+              >
                 Use latest values
               </Button>
             </div>
@@ -166,17 +189,29 @@ export function PromoForm({
           {saver.notice && (
             <SettingsNotice
               notice={saver.notice}
-              busy={disabled}
-              reloadable={Boolean(base)}
+              busy={busy || saver.busy}
+              reloadable={Boolean(base) || uncertain}
               conflictMessage={
                 base
                   ? "This promo changed elsewhere. Reload it to compare; your entries are kept."
                   : "A promo with this code already exists, or the details differ from an earlier attempt."
               }
-              reloadLabel="Reload promo"
-              onReload={() => {
-                saver.clearNotice();
-                onReload();
+              reloadLabel={base ? "Reload promo" : "Check saved promo"}
+              onReload={async () => {
+                const latest = await saver.reload(recordPath("promos", id));
+                if (latest.status === "loaded") {
+                  if (base) {
+                    onReload();
+                  } else {
+                    onSaved();
+                  }
+                } else if (latest.status === "missing") {
+                  toast.info("This promo was not created. Review your entries or discard them.");
+                } else {
+                  toast.error(
+                    "The promo could not be checked. Your entries and recovery state are kept.",
+                  );
+                }
               }}
             />
           )}
@@ -190,8 +225,19 @@ export function PromoForm({
             : "Codes are case-sensitive and can be reused across separate reservations."
         }
       >
-        <Button type="submit" size="compact" disabled={disabled || !valid || !changed}>
-          {base ? "Save promo" : "Create promo"}
+        <ConfirmationButton
+          size="compact"
+          variant="secondary"
+          confirmationTitle="Discard promo changes?"
+          message="Your unsaved promo entries will be discarded."
+          skipConfirmation={!dirty}
+          disabled={saver.busy || Boolean(saver.notice?.uncertain)}
+          onConfirm={onCancel}
+        >
+          {dirty ? "Discard changes" : "Cancel"}
+        </ConfirmationButton>
+        <Button type="submit" size="compact" disabled={busy || saver.busy || !valid || !changed}>
+          {submitLabel}
         </Button>
       </StaffWorkspaceFooter>
     </form>

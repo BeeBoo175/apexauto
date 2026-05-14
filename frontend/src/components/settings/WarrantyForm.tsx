@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useEditGuard } from "@/hooks/use-edit-guard";
+import { ConfirmationButton } from "@/components/ui/ConfirmationButton";
 import { StaffWorkspaceFooter } from "@/components/staff/StaffWorkspaceFooter";
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Input";
@@ -29,6 +31,7 @@ export function WarrantyForm({
   onSaved,
   onReload,
   onUseLatest,
+  onCancel,
 }: {
   base: Warranty | null;
   latest: Warranty | null;
@@ -37,6 +40,7 @@ export function WarrantyForm({
   onSaved: () => void;
   onReload: () => void;
   onUseLatest: () => void;
+  onCancel: () => void;
 }) {
   const toast = useToast();
   // One identity per open create drawer lets a lost response be retried without a duplicate.
@@ -57,7 +61,8 @@ export function WarrantyForm({
     mileageCapKm !== null &&
     mileageCapKm > 0 &&
     amount !== null;
-  const disabled = busy || saver.busy;
+  const uncertain = Boolean(saver.notice?.uncertain);
+  const disabled = busy || saver.busy || uncertain;
   const newer = base && latest && latest.version !== base.version;
   // Like the other editors, an existing record can be saved only once something differs from it.
   const changed =
@@ -68,6 +73,20 @@ export function WarrantyForm({
     amount !== base.price ||
     grade !== base.minimumGrade ||
     isActive !== base.isActive;
+  const dirty = base
+    ? changed
+    : Boolean(name || months || kilometres || price || grade !== "C" || !isActive);
+  useEditGuard({
+    dirty,
+    pending: saver.busy,
+    uncertain: Boolean(saver.notice?.uncertain),
+    label: "Warranty package",
+    discard: onCancel,
+  });
+  let submitLabel = base ? "Save package" : "Create package";
+  if (uncertain) {
+    submitLabel = "Retry same save";
+  }
 
   async function submit() {
     if (!valid || durationMonths === null || mileageCapKm === null || amount === null) {
@@ -123,7 +142,13 @@ export function WarrantyForm({
           {newer && (
             <div className={styles.notice} role="status">
               <p>A newer version was loaded. Your entries are kept until you use it.</p>
-              <Button type="button" size="compact" variant="secondary" onClick={onUseLatest}>
+              <Button
+                type="button"
+                size="compact"
+                variant="secondary"
+                disabled={disabled}
+                onClick={onUseLatest}
+              >
                 Use latest values
               </Button>
             </div>
@@ -205,17 +230,29 @@ export function WarrantyForm({
           {saver.notice && (
             <SettingsNotice
               notice={saver.notice}
-              busy={disabled}
-              reloadable={Boolean(base)}
+              busy={busy || saver.busy}
+              reloadable={Boolean(base) || uncertain}
               conflictMessage={
                 base
                   ? "This package changed elsewhere, or another package uses this name. Reload it to compare; your entries are kept."
                   : "A package with this name already exists, or the details differ from an earlier attempt."
               }
-              reloadLabel="Reload package"
-              onReload={() => {
-                saver.clearNotice();
-                onReload();
+              reloadLabel={base ? "Reload package" : "Check saved package"}
+              onReload={async () => {
+                const latest = await saver.reload(recordPath("warranties", id));
+                if (latest.status === "loaded") {
+                  if (base) {
+                    onReload();
+                  } else {
+                    onSaved();
+                  }
+                } else if (latest.status === "missing") {
+                  toast.info("This package was not created. Review your entries or discard them.");
+                } else {
+                  toast.error(
+                    "The package could not be checked. Your entries and recovery state are kept.",
+                  );
+                }
               }}
             />
           )}
@@ -225,8 +262,19 @@ export function WarrantyForm({
         title={base ? "Package terms" : "New warranty package"}
         description="Existing deals and certificates keep the terms they were sold with."
       >
-        <Button type="submit" size="compact" disabled={disabled || !valid || !changed}>
-          {base ? "Save package" : "Create package"}
+        <ConfirmationButton
+          size="compact"
+          variant="secondary"
+          confirmationTitle="Discard package changes?"
+          message="Your unsaved warranty package entries will be discarded."
+          skipConfirmation={!dirty}
+          disabled={saver.busy || Boolean(saver.notice?.uncertain)}
+          onConfirm={onCancel}
+        >
+          {dirty ? "Discard changes" : "Cancel"}
+        </ConfirmationButton>
+        <Button type="submit" size="compact" disabled={busy || saver.busy || !valid || !changed}>
+          {submitLabel}
         </Button>
       </StaffWorkspaceFooter>
     </form>

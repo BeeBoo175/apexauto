@@ -27,6 +27,10 @@ export default defineConfig({
   use: { trace: "off" },
   projects: [
     {
+      name: "edit-guards",
+      testMatch: "ui/edit-guards.spec.ts",
+    },
+    {
       name: "contracts",
       testMatch: [
         "auth/contracts.spec.ts",

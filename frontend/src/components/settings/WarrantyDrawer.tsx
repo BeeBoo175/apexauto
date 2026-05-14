@@ -105,6 +105,7 @@ export function WarrantyDrawer({
               setOpened(latest);
               setRevision((value) => value + 1);
             }}
+            onCancel={dismiss}
           />
         )}
       </Dialog>

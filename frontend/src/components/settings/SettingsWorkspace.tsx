@@ -10,6 +10,7 @@ import { RefreshButton } from "@/components/ui/RefreshButton";
 import { useSettingsWorkspace } from "@/hooks/use-settings-workspace";
 import type { SettingsEntry } from "@/hooks/use-settings-client-entry";
 import { useStaffSelection } from "@/hooks/use-staff-selection";
+import { useGuardedAction } from "@/hooks/use-guarded-action";
 import { privateApiFetch } from "@/lib/api-browser";
 import {
   parsePromo,
@@ -30,8 +31,10 @@ import workspace from "@/components/staff/StaffWorkspace.module.css";
 
 export function SettingsWorkspace({ entry }: { entry: SettingsEntry }) {
   const state = useSettingsWorkspace(entry);
+  const interaction = useGuardedAction();
   const animateEntry = useContext(StaffPageEntranceContext);
   const [draft, setDraft] = useState<SettingsDraft | null>(null);
+  const [editingLocked, setEditingLocked] = useState(false);
   const [creating, setCreating] = useState<"promo" | "warranty" | null>(null);
   const promoDrawer = useStaffSelection(entry.promoId, entry.selectedPromo, {
     parameter: "promo",
@@ -60,8 +63,10 @@ export function SettingsWorkspace({ entry }: { entry: SettingsEntry }) {
       label="Settings sections"
       tabs={settingsSections}
       value={section}
-      disabled={busy}
-      onChange={(next) => void state.open(next)}
+      disabled={busy || interaction.blocked}
+      onChange={(next) => {
+        interaction.request(() => void state.open(next));
+      }}
     />
   );
 
@@ -90,7 +95,7 @@ export function SettingsWorkspace({ entry }: { entry: SettingsEntry }) {
           busy={busy}
           onDraft={setDraft}
           onSaved={state.setSettings}
-          onReload={() => void state.open("settings")}
+          onLocked={setEditingLocked}
         />
       </>
     ) : (
@@ -163,7 +168,7 @@ export function SettingsWorkspace({ entry }: { entry: SettingsEntry }) {
           <RefreshButton
             label="Refresh settings"
             busy={busy}
-            disabled={!state.ready}
+            disabled={!state.ready || editingLocked}
             onClick={() => void state.open()}
           />
         }
