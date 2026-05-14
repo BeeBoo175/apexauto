@@ -37,7 +37,6 @@ export function IntakeAppointmentDrawer({
       descriptionPlaceholder={false}
       headerActions={<DialogActionSlot ref={setHeaderActions} />}
       onClose={drawer.close}
-      closeDisabled={drawer.locked}
     >
       {drawer.busy && (
         <StaffRecordLoadingShell

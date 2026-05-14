@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useEditGuard } from "./use-edit-guard";
 import { useApiCommand } from "./use-api-command";
 import { inspectionFetch } from "@/lib/inspection/browser";
 import { parseApproval, parseCompletion } from "@/lib/inspection/parse-report";
@@ -47,6 +48,13 @@ export function useInspectionRepairAction({
     ? state.status === "PendingApproval"
     : actor.role === "WorkshopTechnician" &&
       ["Approved", "ApprovalNotRequired"].includes(state.status);
+  useEditGuard({
+    dirty: actionable && Boolean(notes),
+    pending: command.busy,
+    uncertain: command.uncertain,
+    label: "Repair decision",
+    discard: () => changeNotes(""),
+  });
 
   function changeNotes(value: string) {
     setNotes(value);
@@ -67,6 +75,7 @@ export function useInspectionRepairAction({
       onLock(false);
     }
     if (result?.status === 200 && result.data) {
+      setNotes("");
       onDraft(false);
       await onConfirmed();
     }

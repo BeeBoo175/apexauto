@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { Dialog } from "@/components/ui/Dialog";
+import { StaffDetailsDialog, type StaffDetail } from "@/components/staff/StaffDetailsDialog";
 import { StaffLink } from "@/components/staff/StaffLink";
 import { WorkshopStatus } from "./WorkshopStatus";
 import type { useInspectionEditor } from "@/hooks/use-inspection-editor";
@@ -93,64 +92,43 @@ export function InspectionRecord({
 }
 
 export function InspectionDetails({ editor }: { editor: ReturnType<typeof useInspectionEditor> }) {
-  const [open, setOpen] = useState(false);
   const { snapshot } = editor;
   if (!snapshot) {
     return null;
   }
   const request = snapshot.currentRequest;
   const title = request ? "Vehicle & request details" : "Vehicle & inspection details";
-  return (
-    <div className={workshop.metadata}>
-      <button type="button" className={workshop.metadataTrigger} onClick={() => setOpen(true)}>
-        {title}
-      </button>
-      <Dialog open={open} title={title} onClose={() => setOpen(false)}>
-        <dl className={workshop.facts}>
-          <div>
-            <dt>VIN</dt>
-            <dd className={workbench.reference}>{snapshot.draft.vehicle.vin}</dd>
-          </div>
-          <div>
-            <dt>Mileage</dt>
-            <dd>{snapshot.draft.vehicle.mileageKilometres.toLocaleString("en-MY")} km</dd>
-          </div>
-          <div>
-            <dt>Assigned technician</dt>
-            <dd>{snapshot.report?.technicianIdentity ?? snapshot.draft.technicianIdentity}</dd>
-          </div>
-          <div>
-            <dt>Saved assessment</dt>
-            <dd>
-              {snapshot.draft.latestSave
-                ? assessmentLabel(snapshot.draft.latestSave.assessment)
-                : "No saved assessment"}
-            </dd>
-          </div>
-          <div>
-            <dt>Saved estimate</dt>
-            <dd>
-              {snapshot.draft.latestSave
-                ? formatCurrency(snapshot.draft.latestSave.assessment.estimatedRepairCost)
-                : "No saved assessment"}
-            </dd>
-          </div>
-          {request && (
-            <>
-              <div>
-                <dt>Requested</dt>
-                <dd>{formatMalaysianDateTime(request.requestedAt)}</dd>
-              </div>
-              <div>
-                <dt>Work version</dt>
-                <dd>
-                  {request.version} · Signed revision {request.revision}
-                </dd>
-              </div>
-            </>
-          )}
-        </dl>
-      </Dialog>
-    </div>
-  );
+  const details: StaffDetail[] = [
+    {
+      label: "VIN",
+      value: <span className={workbench.reference}>{snapshot.draft.vehicle.vin}</span>,
+    },
+    {
+      label: "Mileage",
+      value: `${snapshot.draft.vehicle.mileageKilometres.toLocaleString("en-MY")} km`,
+    },
+    {
+      label: "Assigned technician",
+      value: snapshot.report?.technicianIdentity ?? snapshot.draft.technicianIdentity,
+    },
+    {
+      label: "Saved assessment",
+      value: snapshot.draft.latestSave
+        ? assessmentLabel(snapshot.draft.latestSave.assessment)
+        : "No saved assessment",
+    },
+    {
+      label: "Saved estimate",
+      value: snapshot.draft.latestSave
+        ? formatCurrency(snapshot.draft.latestSave.assessment.estimatedRepairCost)
+        : "No saved assessment",
+    },
+  ];
+  if (request) {
+    details.push(
+      { label: "Requested", value: formatMalaysianDateTime(request.requestedAt) },
+      { label: "Work version", value: `${request.version} · Signed revision ${request.revision}` },
+    );
+  }
+  return <StaffDetailsDialog title={title} details={details} />;
 }

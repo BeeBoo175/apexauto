@@ -5,6 +5,7 @@ import { parsePhoto } from "@/lib/inspection/parse-report";
 import { PHOTO_MAX_BYTES } from "@/lib/intake/contracts";
 import type { PhotoReceipt } from "@/lib/inspection/report-contracts";
 import { useToast } from "@/components/ui/Toast";
+import { useEditGuard } from "./use-edit-guard";
 
 export function useInspectionPhoto(
   inspectionId: string,
@@ -20,6 +21,13 @@ export function useInspectionPhoto(
   const operation = useRef<{ id: string; file: File } | null>(null);
   const controller = useRef<AbortController | null>(null);
   const toast = useToast();
+  useEditGuard({
+    dirty: Boolean(file),
+    pending: busy,
+    uncertain,
+    label: "Inspection photo",
+    discard,
+  });
   useEffect(() => () => controller.current?.abort(), []);
 
   function select(file: File | null) {

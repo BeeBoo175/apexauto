@@ -135,6 +135,11 @@ export function AssignmentForm({
           Assignment is unconfirmed. Keep this window open and reconcile the captured request.
         </p>
       )}
+      {assignment.dirty && (
+        <Button size="compact" variant="secondary" disabled={locked} onClick={assignment.discard}>
+          Discard changes
+        </Button>
+      )}
       <Button size="compact" type="submit" disabled={command.busy || reading}>
         {command.uncertain ? "Reconcile assignment" : "Confirm assignment"}
       </Button>

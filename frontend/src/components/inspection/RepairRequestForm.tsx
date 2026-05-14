@@ -1,4 +1,5 @@
 "use client";
+
 import { useId, useState } from "react";
 import { createPortal } from "react-dom";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
@@ -15,6 +16,7 @@ import workbench from "@/components/staff/StaffWorkspace.module.css";
 import { SignedFinding } from "./SignedFinding";
 import { InspectionPointStatus } from "./WorkshopStatus";
 import tones from "@/components/ui/StatusTone.module.css";
+import record from "@/components/staff/StaffRecordContent.module.css";
 
 export function RepairRequestForm({
   actor,
@@ -167,13 +169,13 @@ export function RepairRequestForm({
         )}
         {selected && (
           <section className={workshop.detail} aria-label="Edit selected repair work">
-            <div className={workshop.detailHeading}>
+            <div className={record.heading}>
               <div>
-                <span className={workshop.pointContext}>
+                <span className={record.context}>
                   <span className={workshop.pointCode}>{selected.code}</span> ·{" "}
                   {label(selected.category)}
                 </span>
-                <h3>{selected.description}</h3>
+                <h3 className={record.title}>{selected.description}</h3>
                 {selected.severity && (
                   <div>
                     <InspectionPointStatus kind="Finding" severity={selected.severity} />

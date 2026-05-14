@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useEditGuard } from "./use-edit-guard";
 import { useToast } from "@/components/ui/Toast";
 import { useApiCommand } from "./use-api-command";
 import { inspectionFetch } from "@/lib/inspection/browser";
@@ -49,6 +50,14 @@ export function useInspectionAssignment({
     inspectionFetch,
   );
   const locked = command.busy || command.uncertain;
+  const dirty = actor.role === "BranchManager" && Boolean(technicianId || reason);
+  useEditGuard({
+    dirty,
+    pending: command.busy,
+    uncertain: command.uncertain,
+    label: "Inspection assignment",
+    discard,
+  });
   useEffect(() => () => controller.current?.abort(), []);
 
   async function load(page: number) {
@@ -81,12 +90,21 @@ export function useInspectionAssignment({
 
   function changeTechnician(value: string) {
     setTechnicianId(value);
-    onDraft?.(true);
+    onDraft?.(Boolean(value || reason));
   }
 
   function changeReason(value: string) {
     setReason(value);
-    onDraft?.(true);
+    onDraft?.(Boolean(technicianId || value));
+  }
+
+  function discard() {
+    if (locked) {
+      return;
+    }
+    setTechnicianId(actor.role === "WorkshopTechnician" ? actor.userId : "");
+    setReason("");
+    onDraft?.(false);
   }
 
   async function submit() {
@@ -101,11 +119,16 @@ export function useInspectionAssignment({
       onLocked(false);
     }
     if (result?.data && result.status === 200) {
+      setTechnicianId(actor.role === "WorkshopTechnician" ? actor.userId : "");
+      setReason("");
+      onDraft?.(false);
       onConfirmed(result.data.inspectionId);
     }
   }
 
   return {
+    dirty,
+    discard,
     choices,
     technicianId,
     reason,

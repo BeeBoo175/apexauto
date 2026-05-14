@@ -8,6 +8,7 @@ import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { useInspectionEditor } from "@/hooks/use-inspection-editor";
 import { useInspectionTimeline } from "@/hooks/use-inspection-timeline";
 import { useWorkspaceTabs } from "@/hooks/use-workspace-tabs";
+import { useEditGuard } from "@/hooks/use-edit-guard";
 import { StaffWorkspaceTabs } from "@/components/staff/StaffWorkspaceTabs";
 import { canRequestRepair } from "@/lib/inspection/repair-availability";
 import type { CurrentActor } from "@/lib/auth/actor";
@@ -97,7 +98,8 @@ export function InspectionEditor({
     previousSigned.current = signed;
   }, [snapshot?.draft.isSigned, actor.role, onReview]);
   const disabled = !editor.ready || editor.operating || editor.refreshing || editor.confirmed;
-  const locked = editor.dirty || editor.operating || editor.refreshing;
+  const locked = repairEditing || editor.dirty || editor.operating || editor.refreshing;
+  useEditGuard({ pending: editor.refreshing, label: "Refreshing inspection" });
   const historical =
     selectedRequest &&
     (selectedRequest.requestId !== snapshot?.repairState?.requestId ||

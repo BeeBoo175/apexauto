@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useApiCommand } from "@/hooks/use-api-command";
-import { useStaffNavigationLock } from "./use-staff-navigation-lock";
+import { useEditGuard } from "./use-edit-guard";
 import { useInitialToast } from "./use-initial-toast";
 import { useToast } from "@/components/ui/Toast";
 import { inspectionFetch } from "@/lib/inspection/browser";
@@ -66,7 +66,13 @@ export function useInspectionEditor(
   );
   const operating = save.busy || save.uncertain || sign.busy || sign.uncertain || childLocked;
   const formsDirty = Object.values(formDrafts).some(Boolean);
-  const lockNavigation = useStaffNavigationLock(dirty || formsDirty || operating);
+  const lockNavigation = useEditGuard({
+    dirty,
+    pending: save.busy || sign.busy,
+    uncertain: save.uncertain || sign.uncertain,
+    label: "Inspection checklist",
+    discard: () => reset(true),
+  });
   if (entry !== initial) {
     setEntry(initial);
     if (initial.data) {
@@ -138,9 +144,16 @@ export function useInspectionEditor(
     setValue(next);
   }
 
-  function reset() {
+  function reset(leaving = false) {
     const current = pendingSnapshot ?? snapshot;
-    if (!current || operating) {
+    if (
+      !current ||
+      save.busy ||
+      save.uncertain ||
+      sign.busy ||
+      sign.uncertain ||
+      (!leaving && childLocked)
+    ) {
       return;
     }
     setSnapshot(current);
@@ -197,14 +210,12 @@ export function useInspectionEditor(
   }
 
   function lockChild(locked: boolean) {
-    lockNavigation(locked || dirty || Object.values(formDraftsRef.current).some(Boolean));
     setChildLocked(locked);
   }
   function markForm(name: string, dirty: boolean) {
     const next = { ...formDraftsRef.current, [name]: dirty };
     formDraftsRef.current = next;
     setFormDrafts(next);
-    lockNavigation(dirty || Object.values(next).some(Boolean) || operating);
   }
   async function actionConfirmed() {
     onChanged?.();

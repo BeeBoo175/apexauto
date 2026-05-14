@@ -5,6 +5,7 @@ import { inspectionFetch } from "@/lib/inspection/browser";
 import { parseEditor, type EditorSnapshot } from "@/lib/inspection/editor-snapshot";
 import type { ApiResult } from "@/lib/api";
 import { useStaffSelection } from "./use-staff-selection";
+import { useGuardedAction } from "./use-guarded-action";
 import type { RepairSelection, WorkshopSection } from "@/lib/inspection/query";
 export type { RepairSelection } from "@/lib/inspection/query";
 
@@ -15,6 +16,7 @@ export function useInspectionDrawer(
   initialRequest: RepairSelection | null = null,
   initialSection: WorkshopSection = "inspection",
 ) {
+  const interaction = useGuardedAction();
   const selection = useStaffSelection(id, initial, {
     parameter: "inspection",
     path: (id) => `drafts/${id}/workspace`,
@@ -34,9 +36,6 @@ export function useInspectionDrawer(
     request: RepairSelection | null = null,
     section: WorkshopSection = request ? "repairs" : "inspection",
   ) {
-    if (locked) {
-      return;
-    }
     void selection.choose(id, (url) => {
       setRequest(request);
       setSection(section);
@@ -71,9 +70,10 @@ export function useInspectionDrawer(
   }
 
   function close() {
-    if (locked) {
-      return;
-    }
+    interaction.request(closeConfirmed, "Discard and close");
+  }
+
+  function closeConfirmed() {
     selection.close();
     const url = new URL(window.location.href);
     url.searchParams.delete("request");

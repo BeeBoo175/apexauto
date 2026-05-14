@@ -53,7 +53,7 @@ export function RepairActions({
   return (
     <form
       id={formId}
-      className={workbench.protocol}
+      className={manager ? workbench.protocol : workbench.stack}
       onSubmit={async (event) => {
         event.preventDefault();
         if (command.uncertain) {
@@ -97,6 +97,18 @@ export function RepairActions({
           value={notes}
           onChange={(e) => repair.changeNotes(e.target.value)}
         />
+      )}
+      {!manager && notes && (
+        <div>
+          <Button
+            size="compact"
+            variant="secondary"
+            disabled={command.busy || command.uncertain || disabled}
+            onClick={() => repair.changeNotes("")}
+          >
+            Discard notes
+          </Button>
+        </div>
       )}
       {command.uncertain && (
         <p role="alert">

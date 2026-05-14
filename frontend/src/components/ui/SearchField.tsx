@@ -11,6 +11,7 @@ export function SearchField({
   onClear,
   placeholder,
   busy = false,
+  disabledReason,
 }: {
   label: string;
   value: string;
@@ -19,6 +20,7 @@ export function SearchField({
   onClear?: () => void;
   placeholder: string;
   busy?: boolean;
+  disabledReason?: string;
 }) {
   return (
     <div className={styles.field}>
@@ -31,6 +33,7 @@ export function SearchField({
         placeholder={placeholder}
         value={value}
         disabled={disabled}
+        title={disabledReason}
         onChange={(event) => onChange(event.target.value)}
       />
       {onClear && (
@@ -39,7 +42,7 @@ export function SearchField({
           size="icon"
           variant="ghost"
           aria-label="Clear search"
-          title="Clear search"
+          title={disabledReason ?? "Clear search"}
           disabled={disabled || busy}
           onClick={onClear}
         >
@@ -51,7 +54,7 @@ export function SearchField({
         size="icon"
         variant="ghost"
         aria-label="Search"
-        title="Search"
+        title={disabledReason ?? "Search"}
         disabled={disabled || busy}
       >
         <span className={styles.searchIcon}>

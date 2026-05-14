@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { StaffDetailsDialog } from "@/components/staff/StaffDetailsDialog";
 import { Button } from "@/components/ui/Button";
 import type { RepairRequest, Report } from "@/lib/inspection/report-contracts";
 import { formatCurrency } from "@/lib/currency-format";
@@ -10,6 +11,7 @@ import { SignedFinding } from "./SignedFinding";
 import { InspectionPointStatus } from "./WorkshopStatus";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 import workshop from "./Workshop.module.css";
+import record from "@/components/staff/StaffRecordContent.module.css";
 
 export function RepairRequestDetails({
   request,
@@ -53,13 +55,13 @@ export function RepairRequestDetails({
         )}
         {selected && (
           <section className={workshop.detail} aria-label="Selected repair work">
-            <div className={workshop.detailHeading}>
+            <div className={record.heading}>
               <div>
-                <span className={workshop.pointContext}>
+                <span className={record.context}>
                   <span className={workshop.pointCode}>{selected.pointCode}</span> ·{" "}
                   {finding ? label(finding.category) : "Repair work"}
                 </span>
-                <h3>{finding?.description ?? selected.pointCode}</h3>
+                <h3 className={record.title}>{finding?.description ?? selected.pointCode}</h3>
                 {finding?.severity && (
                   <div>
                     <InspectionPointStatus kind="Finding" severity={finding.severity} />
@@ -67,7 +69,7 @@ export function RepairRequestDetails({
                 )}
               </div>
             </div>
-            <div className={workshop.detailSection}>
+            <div className={record.group}>
               <h4>Requested work</h4>
               <p>{selected.work}</p>
             </div>
@@ -105,26 +107,14 @@ export function RepairRequestDetails({
 
 export function RepairRequestMetadata({ request }: { request: RepairRequest }) {
   return (
-    <details className={workshop.metadata}>
-      <summary>Request details</summary>
-      <dl className={workshop.facts}>
-        <div>
-          <dt>Requested budget</dt>
-          <dd>{formatCurrency(request.budget)}</dd>
-        </div>
-        <div>
-          <dt>Requested</dt>
-          <dd>{formatMalaysianDateTime(request.requestedAt)}</dd>
-        </div>
-        <div>
-          <dt>Signed revision</dt>
-          <dd>{request.revision}</dd>
-        </div>
-        <div>
-          <dt>Work version</dt>
-          <dd>{request.version}</dd>
-        </div>
-      </dl>
-    </details>
+    <StaffDetailsDialog
+      title="Request details"
+      details={[
+        { label: "Requested budget", value: formatCurrency(request.budget) },
+        { label: "Requested", value: formatMalaysianDateTime(request.requestedAt) },
+        { label: "Signed revision", value: request.revision },
+        { label: "Work version", value: request.version },
+      ]}
+    />
   );
 }

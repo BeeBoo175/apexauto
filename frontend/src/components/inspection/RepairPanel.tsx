@@ -53,7 +53,7 @@ export function RepairPanel({
     <>
       {active && (
         <section className={`${styles.section} ${workbench.stack}`}>
-          <div className={`${workbench.sectionHeader} ${styles.repairHeading}`}>
+          <div className={workbench.sectionHeader}>
             <h2 ref={heading} tabIndex={-1} className={workbench.sectionTitle}>
               {editing ? "Edit repair work & budget" : "Current repair work"}
             </h2>

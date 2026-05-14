@@ -38,7 +38,6 @@ export function InspectionDrawer({
           vehicle ? `${vehicle.make} ${vehicle.model} · ${vehicle.branchName}` : undefined
         }
         headerActions={<DialogActionSlot ref={setHeaderActions} />}
-        closeDisabled={selection.locked}
         onClose={selection.close}
       >
         {selection.busy && !selection.result?.data && (

@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { useStaffSelection } from "./use-staff-selection";
+import { useGuardedAction } from "./use-guarded-action";
 import type { ApiResult } from "@/lib/api";
 import { emptyCheckIn, type AppointmentDetail, type CheckInDraft } from "@/lib/staff/contracts";
 import { parseDetail } from "@/lib/staff/parse";
@@ -10,6 +11,7 @@ export function useStaffAppointmentDrawer(
   selectedId: string,
   selected: ApiResult<AppointmentDetail> | null,
 ) {
+  const interaction = useGuardedAction();
   const selection = useStaffSelection(selectedId, selected, {
     parameter: "appointment",
     path: (id) => `/api/staff/intake/appointments/${id}`,
@@ -27,9 +29,10 @@ export function useStaffAppointmentDrawer(
     setDraft: (draft: CheckInDraft) =>
       setDrafts((current) => ({ ...current, [selection.id]: draft })),
     open: (id: string) => {
-      if (!locked) {
-        void selection.choose(id);
-      }
+      void selection.choose(id);
+    },
+    close: () => {
+      interaction.request(selection.close, "Discard and close");
     },
   };
 }

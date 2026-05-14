@@ -8,6 +8,7 @@ import { SignedFinding } from "./SignedFinding";
 import { InspectionPointStatus } from "./WorkshopStatus";
 import styles from "./Inspection.module.css";
 import workshop from "./Workshop.module.css";
+import record from "@/components/staff/StaffRecordContent.module.css";
 
 export function ChecklistPoint({
   point,
@@ -48,12 +49,12 @@ export function ChecklistPoint({
 
   return (
     <div className={styles.point}>
-      <div className={workshop.detailHeading}>
+      <div className={record.heading}>
         <div>
-          <span className={workshop.pointContext}>
+          <span className={record.context}>
             <span className={workshop.pointCode}>{point.code}</span> · {label(point.category)}
           </span>
-          <h3>{point.description}</h3>
+          <h3 className={record.title}>{point.description}</h3>
           <div>
             <InspectionPointStatus
               kind={entry?.kind}

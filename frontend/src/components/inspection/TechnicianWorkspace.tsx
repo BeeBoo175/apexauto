@@ -10,6 +10,7 @@ import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { useToast } from "@/components/ui/Toast";
 import { useTechnicianQueue } from "@/hooks/use-technician-queue";
 import { useInspectionDrawer } from "@/hooks/use-inspection-drawer";
+import { useGuardedAction } from "@/hooks/use-guarded-action";
 import {
   workshopRowSection,
   type TechnicianTask,
@@ -71,6 +72,7 @@ export function TechnicianWorkspace({
   selectedReview = null,
 }: Props) {
   const animateEntry = useContext(StaffPageEntranceContext);
+  const interaction = useGuardedAction();
   const [view, setView] = useState(initialView);
   const [queueExpanded, setQueueExpanded] = useState(initialView !== "MyWork");
   const [headerActions, setHeaderActions] = useState<HTMLDivElement | null>(null);
@@ -169,6 +171,7 @@ export function TechnicianWorkspace({
                   className={styles.queueView}
                   aria-pressed={view === task}
                   title={viewLabels[task]}
+                  disabled={interaction.blocked}
                   onClick={() => showView(task)}
                 >
                   <span>{viewTabs[task]}</span>
@@ -203,7 +206,7 @@ export function TechnicianWorkspace({
                 onOpen={open}
                 selectedId={selection.id}
                 pendingId={selection.pendingId}
-                selectionLocked={selection.locked}
+                selectionLocked={interaction.blocked}
               />
             )}
           </div>

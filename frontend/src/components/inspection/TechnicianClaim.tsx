@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Dialog } from "@/components/ui/Dialog";
-import { useStaffNavigationLock } from "@/hooks/use-staff-navigation-lock";
+import { useEditGuard } from "@/hooks/use-edit-guard";
 import type { useTechnicianQueue } from "@/hooks/use-technician-queue";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { WorkshopRow } from "@/lib/inspection/workshop-contracts";
@@ -23,7 +23,7 @@ export function TechnicianClaim({
 }) {
   const [vehicle, setVehicle] = useState<WorkshopRow | null>(null);
   const [locked, setLocked] = useState(false);
-  const lockNavigation = useStaffNavigationLock(locked);
+  const lockNavigation = useEditGuard(locked);
   return (
     <>
       <div className={styles.queueList} inert={Boolean(vehicle)}>

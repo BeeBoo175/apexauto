@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useEditGuard } from "./use-edit-guard";
 import { useToast } from "@/components/ui/Toast";
 import { useApiCommand } from "./use-api-command";
 import { inspectionFetch } from "@/lib/inspection/browser";
@@ -46,6 +47,13 @@ export function useInspectionRepairRequest({
     inspectionFetch,
   );
   const locked = command.busy || command.uncertain;
+  useEditGuard({
+    dirty,
+    pending: command.busy,
+    uncertain: command.uncertain,
+    label: "Repair request",
+    discard: reset,
+  });
 
   function selectFinding(pointCode: string, selected: boolean) {
     const next = { ...work };
@@ -88,7 +96,7 @@ export function useInspectionRepairRequest({
       toast.error(`Describe the repair work for ${incomplete[0]} or remove it from the request.`);
       return incomplete[0];
     }
-    const amount = parseMyr(budget);
+    const amount = parseMyr(budget.trim());
     const items = Object.entries(work).map(([pointCode, value]) => ({
       pointCode,
       work: value.trim(),

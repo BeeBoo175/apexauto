@@ -1,69 +1,8 @@
-.metadata a {
-  color: var(--color-graphite);
-  font-size: 12px;
-  text-decoration: underline;
-  text-underline-offset: 4px;
-}
-
-.metadata a:hover {
-  color: var(--color-interaction-border);
-}
-
 .summaryLinks {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-}
-
-.metadata {
-  margin-left: auto;
-}
-
-.metadataTrigger {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--color-graphite);
-  font: inherit;
-  font-size: 12px;
-  text-decoration: underline;
-  text-underline-offset: 4px;
-  cursor: pointer;
-}
-
-.metadataTrigger:hover {
-  color: var(--color-interaction-border);
-}
-
-.metadataTrigger:focus-visible {
-  outline: 2px solid var(--color-interaction-border);
-  outline-offset: 2px;
-}
-
-.metadata summary {
-  display: inline-block;
-  color: var(--color-graphite);
-  font-size: 12px;
-  text-decoration: underline;
-  text-underline-offset: 4px;
-  cursor: pointer;
-}
-
-.metadata summary:hover {
-  color: var(--color-interaction-border);
-}
-
-.metadata summary:focus-visible {
-  outline: 2px solid var(--color-interaction-border);
-  outline-offset: 2px;
-}
-
-.facts {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-  padding-top: 12px;
 }
 
 .sectionBody[data-section="repairs"] {
@@ -79,18 +18,6 @@
 .sectionBody[data-section="repairs"] .detail {
   max-height: none;
   overflow-y: visible;
-}
-
-.facts dt {
-  margin-bottom: 4px;
-  color: var(--color-muted);
-  font-size: 12px;
-}
-
-.facts dd {
-  margin: 0;
-  font-size: 13px;
-  overflow-wrap: anywhere;
 }
 
 .split {
@@ -189,48 +116,6 @@
   padding-left: 24px;
   overflow-y: auto;
   overscroll-behavior: contain;
-}
-
-.detailHeading {
-  display: grid;
-  gap: 8px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--color-line);
-}
-
-.detail .detailHeading h3 {
-  color: var(--color-graphite);
-  font-size: 18px;
-  font-weight: 600;
-  line-height: 1.4;
-  text-transform: none;
-  letter-spacing: normal;
-}
-
-.detailHeading > div {
-  display: grid;
-  gap: 8px;
-}
-
-.pointContext {
-  color: var(--color-muted);
-  font-size: 12px;
-}
-
-.detailSection {
-  display: grid;
-  gap: 8px;
-}
-
-.detailSection h4 {
-  color: var(--color-muted);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.detailSection p {
-  font-size: 13px;
-  line-height: 1.6;
 }
 
 .detailPagination {

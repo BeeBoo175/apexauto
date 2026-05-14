@@ -5,8 +5,8 @@ import { Dialog } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
 import type { ReportPoint, ReportPhoto } from "@/lib/inspection/report-contracts";
 import { formatCurrency } from "@/lib/currency-format";
-import styles from "./Workshop.module.css";
 import evidence from "./SignedFinding.module.css";
+import record from "@/components/staff/StaffRecordContent.module.css";
 
 export function SignedFinding({
   point,
@@ -25,7 +25,7 @@ export function SignedFinding({
   }
   return (
     <>
-      <div className={styles.detailSection}>
+      <div className={record.group}>
         <h4>{`Original signed finding · revision ${revision}`}</h4>
         <p>{point.notes || "No finding recorded for this inspection point."}</p>
       </div>

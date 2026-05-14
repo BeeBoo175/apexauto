@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useEditGuard } from "./use-edit-guard";
 import { useApiCommand } from "./use-api-command";
 import { inspectionFetch } from "@/lib/inspection/browser";
 import { parseReopening } from "@/lib/inspection/parse-report";
@@ -37,6 +38,11 @@ export function useInspectionManager({
       r.expectedRevision === body.revision,
     inspectionFetch,
   );
+  useEditGuard({
+    pending: command.busy,
+    uncertain: command.uncertain,
+    label: "Inspection reopening",
+  });
 
   function lock(value: boolean) {
     setLocked(value);
@@ -67,6 +73,7 @@ export function useInspectionManager({
       lock(false);
     }
     if (result?.status === 200 && result.data) {
+      setReason("");
       onDraft(false);
       onClose();
       await onConfirmed();
