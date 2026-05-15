@@ -50,7 +50,7 @@ public static class SaleQueryEndpoints
         var (number, size, text) = (page ?? 1, pageSize ?? Pagination.DefaultPageSize, search?.Trim());
         text = string.IsNullOrEmpty(text) ? null : text;
         return SaleQueries.ValidQueue(view, text, number, size)
-            ? ReadAsync(deadline => sales.QueueAsync(ActorId(context), view ?? "ToClaim", text,
+            ? ReadAsync(deadline => sales.QueueAsync(ActorId(context), view ?? SaleViews.ToClaim, text,
                 number, size, deadline), cancellationToken)
             : Task.FromResult(Invalid());
     }
@@ -75,10 +75,10 @@ public static class SaleQueryEndpoints
             var result = await read(deadline.Token);
             return result.Status switch
             {
-                SaleStatus.Succeeded => Results.Ok(result.Value),
-                SaleStatus.Invalid => Invalid(),
-                SaleStatus.Forbidden => Results.Forbid(),
-                SaleStatus.NotFound => Results.NotFound(),
+                SaleResultStatus.Succeeded => Results.Ok(result.Value),
+                SaleResultStatus.Invalid => Invalid(),
+                SaleResultStatus.Forbidden => Results.Forbid(),
+                SaleResultStatus.NotFound => Results.NotFound(),
                 _ => Unavailable()
             };
         }

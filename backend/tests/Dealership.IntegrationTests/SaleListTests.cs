@@ -28,7 +28,7 @@ public sealed class SaleListTests(IntakePhotoFixture fixture) : IClassFixture<In
         // A search spans every tab and says where each match sits.
         var search = (await world.Lists.QueueAsync(world.Agent, "ToClaim", mine.Number, 1, 25, default)).Value!;
         Assert.Equal(("Handling", mine.Id), (Assert.Single(search.Items).Status, search.Items[0].Id));
-        Assert.Equal(SaleStatus.Forbidden, (await world.Lists.QueueAsync(world.Manager, "ToClaim", null, 1, 25,
+        Assert.Equal(SaleResultStatus.Forbidden, (await world.Lists.QueueAsync(world.Manager, "ToClaim", null, 1, 25,
             default)).Status);
 
         // With nothing awaiting approval the table opens on Open, and tab totals ignore the search.
@@ -36,7 +36,7 @@ public sealed class SaleListTests(IntakePhotoFixture fixture) : IClassFixture<In
             new SaleTableQuery(1, 25, null, mine.Buyer.Mobile, null, false), default)).Value!;
         Assert.Equal("Open", table.View);
         Assert.Equal((1, 1), (table.Counts.Open, table.Counts.BeingHandled));
-        Assert.Equal(SaleStatus.Forbidden, (await world.Lists.TableAsync(world.Agent,
+        Assert.Equal(SaleResultStatus.Forbidden, (await world.Lists.TableAsync(world.Agent,
             new SaleTableQuery(1, 25, null, null, null, false), default)).Status);
     }
 
@@ -64,7 +64,7 @@ public sealed class SaleListTests(IntakePhotoFixture fixture) : IClassFixture<In
         }, default)).Value!;
         Assert.Empty(discount.Items);
         // Close the sale so the shared branch's tab counts stay as the other tests expect.
-        Assert.Equal(SaleStatus.Succeeded, (await world.Terms.CancelAsync(world.Manager, held.Id,
+        Assert.Equal(SaleResultStatus.Succeeded, (await world.Terms.CancelAsync(world.Manager, held.Id,
             new(Guid.NewGuid(), 2, "Filter test finished"), default)).Status);
 
         Assert.Null(SaleQueries.Table(new() { MinimumDiscount = 10m, MaximumDiscount = 5m }));
@@ -113,7 +113,7 @@ public sealed class SaleListTests(IntakePhotoFixture fixture) : IClassFixture<In
 
             foreach (var held in holds)
             {
-                Assert.Equal(SaleStatus.Succeeded, (await world.Handling.ClaimAsync(world.Agent, held.Id,
+                Assert.Equal(SaleResultStatus.Succeeded, (await world.Handling.ClaimAsync(world.Agent, held.Id,
                     new(Guid.NewGuid(), 1), default)).Status);
             }
             var pausedQuery = query with { View = "BeingHandled", MinimumHoursLeft = 6m, MaximumHoursLeft = 24m };
@@ -153,7 +153,7 @@ public sealed class SaleListTests(IntakePhotoFixture fixture) : IClassFixture<In
             foreach (var held in holds)
             {
                 var sale = (await world.Reads.GetAsync(world.Manager, held.Id, default)).Value!;
-                Assert.Equal(SaleStatus.Succeeded, (await world.Terms.CancelAsync(world.Manager, held.Id,
+                Assert.Equal(SaleResultStatus.Succeeded, (await world.Terms.CancelAsync(world.Manager, held.Id,
                     new(Guid.NewGuid(), sale.Sale.Version, "Filter verification finished"), default)).Status);
             }
         }

@@ -71,7 +71,12 @@ export function ListingPhotoUpload({
                 Check receipt
               </Button>
             ) : (
-              <Button size="compact" variant="ghost" disabled={upload.busy} onClick={upload.discard}>
+              <Button
+                size="compact"
+                variant="ghost"
+                disabled={upload.busy}
+                onClick={upload.discard}
+              >
                 Discard
               </Button>
             )}

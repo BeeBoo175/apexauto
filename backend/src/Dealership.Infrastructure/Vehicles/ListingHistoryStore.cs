@@ -28,16 +28,28 @@ public sealed class ListingHistoryStore(DealershipDbContext database) : IListing
                      where revision.VehicleId == vehicleId
                      select new
                      {
-                         revision.Id, Kind = "DraftSaved", RevisionId = revision.Id, revision.Version,
-                         revision.ActorId, revision.RecordedAt, Reason = (string?)null, Order = 0
+                         revision.Id,
+                         Kind = "DraftSaved",
+                         RevisionId = revision.Id,
+                         revision.Version,
+                         revision.ActorId,
+                         revision.RecordedAt,
+                         Reason = (string?)null,
+                         Order = 0
                      };
         var publications = from publication in database.ListingPublications.AsNoTracking()
                            join revision in database.ListingRevisions on publication.RevisionId equals revision.Id
                            where publication.VehicleId == vehicleId
                            select new
                            {
-                               publication.Id, Kind = "PublicationApproved", publication.RevisionId, revision.Version,
-                               publication.ActorId, publication.RecordedAt, Reason = (string?)null, Order = 1
+                               publication.Id,
+                               Kind = "PublicationApproved",
+                               publication.RevisionId,
+                               revision.Version,
+                               publication.ActorId,
+                               publication.RecordedAt,
+                               Reason = (string?)null,
+                               Order = 1
                            };
         var withdrawals = from withdrawal in database.ListingWithdrawals.AsNoTracking()
                           join publication in database.ListingPublications on withdrawal.PublicationId equals publication.Id
@@ -45,8 +57,14 @@ public sealed class ListingHistoryStore(DealershipDbContext database) : IListing
                           where withdrawal.VehicleId == vehicleId
                           select new
                           {
-                              withdrawal.Id, Kind = "ListingWithdrawn", publication.RevisionId, revision.Version,
-                              withdrawal.ActorId, withdrawal.RecordedAt, Reason = (string?)withdrawal.Reason, Order = 2
+                              withdrawal.Id,
+                              Kind = "ListingWithdrawn",
+                              publication.RevisionId,
+                              revision.Version,
+                              withdrawal.ActorId,
+                              withdrawal.RecordedAt,
+                              Reason = (string?)withdrawal.Reason,
+                              Order = 2
                           };
         var events = drafts.Concat(publications).Concat(withdrawals);
         var total = await events.CountAsync(cancellationToken);

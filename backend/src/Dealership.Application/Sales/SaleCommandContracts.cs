@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace Dealership.Application.Sales;
 
-public enum SaleStatus
+public enum SaleResultStatus
 {
     Succeeded,
     Invalid,
@@ -33,7 +33,7 @@ public sealed record SaleReceipt(Guid OperationId, Guid SaleId, string Kind, lon
         entry.Sequence, entry.ToStatus.ToString(), entry.RecordedAt);
 }
 
-public sealed record SaleCommandResult(SaleStatus Status, SaleReceipt? Receipt = null);
+public sealed record SaleCommandResult(SaleResultStatus Status, SaleReceipt? Receipt = null);
 
 public sealed record SaleStaff(Guid Id, bool IsActive, string Role, Guid? BranchId);
 
@@ -63,7 +63,7 @@ public interface ISaleCommandTransaction : IAsyncDisposable
     Task<Guid?> ReleaseReservationAsync(ReservationReleaseKind kind, Guid actorId, string reason,
         CancellationToken cancellationToken);
 
-    Task<SaleStatus> CommitAsync(SalesOrderEvent entry, CancellationToken cancellationToken);
+    Task<SaleResultStatus> CommitAsync(SalesOrderEvent entry, CancellationToken cancellationToken);
 }
 
 public interface ISaleCommandStore

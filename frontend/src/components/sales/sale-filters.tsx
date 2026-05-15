@@ -15,7 +15,7 @@ import {
   type TableView,
 } from "@/lib/sales/contracts";
 import { tableViewFilters } from "@/lib/sales/query";
-import type { AppliedWorklistFilter } from "@/lib/staff/filter-summary";
+import type { AppliedFilter } from "@/lib/staff/filter-summary";
 import { hoursRangeLabel, moneyRangeLabel } from "@/lib/range-label";
 
 export type LoadSales = (filters: SalesTableFilters, page: number) => Promise<boolean>;
@@ -27,9 +27,9 @@ export function saleTableFilters(
   load: LoadSales,
 ) {
   const apply = (next: Partial<SalesTableFilters>) => load({ ...filters, ...next }, 1);
-  const applied: AppliedWorklistFilter<SalesTableFilters>[] = [];
+  const applied: AppliedFilter<SalesTableFilters>[] = [];
   const add = (
-    key: AppliedWorklistFilter<SalesTableFilters>["key"],
+    key: AppliedFilter<SalesTableFilters>["key"],
     label: string,
     without: Partial<SalesTableFilters>,
   ) => applied.push({ key, label, without: { ...filters, ...without } });

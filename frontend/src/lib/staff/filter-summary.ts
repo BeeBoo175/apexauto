@@ -2,7 +2,7 @@ import { appointmentStatusLabel } from "@/lib/staff/status";
 import { dateRangeLabel } from "@/lib/date-range-label";
 import type { StaffFilters } from "./contracts";
 
-export interface AppliedWorklistFilter<Filters = StaffFilters> {
+export interface AppliedFilter<Filters = StaffFilters> {
   key:
     | "dates"
     | "status"
@@ -57,7 +57,7 @@ export function resetWorklistFilters(filters: StaffFilters): StaffFilters {
 export function appliedWorklistFilters<
   Filters extends { from: string; to: string; status: string; branchId: string },
 >(filters: Filters, branchName: string, statusLabel = appointmentStatusLabel) {
-  const applied: AppliedWorklistFilter<Filters>[] = [];
+  const applied: AppliedFilter<Filters>[] = [];
 
   if (filters.from || filters.to) {
     applied.push({

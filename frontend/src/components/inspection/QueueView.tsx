@@ -15,7 +15,7 @@ import { StaffCommandBar } from "@/components/staff/StaffPage";
 import { StaffPageEntranceContext } from "@/components/staff/StaffActorBoundary";
 import { AppliedWorklistFilters } from "@/components/staff/AppliedWorklistFilters";
 import { StaffQueueTabs } from "@/components/staff/StaffQueueTabs";
-import { appliedWorklistFilters, type AppliedWorklistFilter } from "@/lib/staff/filter-summary";
+import { appliedWorklistFilters, type AppliedFilter } from "@/lib/staff/filter-summary";
 import type { QueueFilters as Filters } from "@/lib/inspection/contracts";
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import type { Page } from "@/lib/api";
@@ -72,7 +72,7 @@ export function QueueView<T>({
   const branchName =
     state.branches?.items.find((branch) => branch.id === active.filters.branchId)?.name ??
     "Selected branch";
-  const applied: AppliedWorklistFilter<Filters>[] = appliedWorklistFilters(
+  const applied: AppliedFilter<Filters>[] = appliedWorklistFilters(
     active.filters,
     branchName,
     workshopTaskLabel,

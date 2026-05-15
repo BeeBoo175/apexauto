@@ -21,9 +21,9 @@ public sealed class SaleDecisionTests(IntakePhotoFixture fixture) : IClassFixtur
 
         var submitted = await world.Terms.SubmitAsync(world.Agent, held.Id, new(Guid.NewGuid(), 3), default);
         Assert.Equal("PendingApproval", submitted.Receipt!.Status);
-        Assert.Equal(SaleStatus.Forbidden, (await world.Terms.ApproveAsync(world.Agent, held.Id,
+        Assert.Equal(SaleResultStatus.Forbidden, (await world.Terms.ApproveAsync(world.Agent, held.Id,
             new(Guid.NewGuid(), 4), default)).Status);
-        Assert.Equal(SaleStatus.Invalid, (await world.Terms.RejectAsync(world.Manager, held.Id,
+        Assert.Equal(SaleResultStatus.Invalid, (await world.Terms.RejectAsync(world.Manager, held.Id,
             new(Guid.NewGuid(), 4, " "), default)).Status);
         var rejected = await world.Terms.RejectAsync(world.Manager, held.Id,
             new(Guid.NewGuid(), 4, "Margin too thin"), default);
@@ -36,11 +36,11 @@ public sealed class SaleDecisionTests(IntakePhotoFixture fixture) : IClassFixtur
         Assert.Matches("^VPO-[0-9]{4}-[0-9]{6}$", number);
 
         // An agent cannot cancel an approved sale; a manager can, which refunds the deposit and frees the car.
-        Assert.Equal(SaleStatus.Forbidden, (await world.Terms.CancelAsync(world.Agent, held.Id,
+        Assert.Equal(SaleResultStatus.Forbidden, (await world.Terms.CancelAsync(world.Agent, held.Id,
             new(Guid.NewGuid(), 7, "Customer withdrew"), default)).Status);
         var cancel = new SaleReasonRequest(Guid.NewGuid(), 7, "Customer withdrew");
-        Assert.Equal(SaleStatus.Succeeded, (await world.Terms.CancelAsync(world.Manager, held.Id, cancel, default)).Status);
-        Assert.Equal(SaleStatus.Succeeded, (await world.Terms.CancelAsync(world.Manager, held.Id, cancel, default)).Status);
+        Assert.Equal(SaleResultStatus.Succeeded, (await world.Terms.CancelAsync(world.Manager, held.Id, cancel, default)).Status);
+        Assert.Equal(SaleResultStatus.Succeeded, (await world.Terms.CancelAsync(world.Manager, held.Id, cancel, default)).Status);
 
         await using var database = NewContext();
         var release = await database.ReservationReleases.AsNoTracking().SingleAsync(item => item.ReservationId == held.Id);

@@ -3,6 +3,7 @@ import { isMyr } from "@/lib/currency-input";
 import { fuels, transmissions } from "./contracts";
 import { parseListing } from "./parse-listings";
 import type { ListingItem } from "./listings";
+import { LISTING_DESCRIPTION_MAX_LENGTH } from "@/lib/vehicles/listing-limits";
 
 export interface ListingRevision {
   id: string;
@@ -55,7 +56,7 @@ export function parseRevision(value: unknown): ListingRevision | null {
     !isMyr(value.roadTax) ||
     typeof value.description !== "string" ||
     !value.description.trim() ||
-    value.description.length > 2000 ||
+    value.description.length > LISTING_DESCRIPTION_MAX_LENGTH ||
     !isUtcInstant(value.recordedAt) ||
     !Array.isArray(value.photoIds) ||
     !value.photoIds.every(isUuid) ||

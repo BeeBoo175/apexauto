@@ -21,39 +21,45 @@ export function SortableListingPhotos({
   disabled: boolean;
   onChange: (ids: string[]) => void;
 }) {
-  const sort = useListingPhotoSort(ids, disabled, onChange);
+  const { grid, visible, active, announcement, start, move, stop, cancel } = useListingPhotoSort(
+    ids,
+    disabled,
+    onChange,
+  );
   if (ids.length === 0) {
     return <p className={styles.help}>No photos yet.</p>;
   }
 
   return (
     <div
-      ref={sort.grid}
+      ref={grid}
       className={styles.sortablePhotos}
       role="group"
       aria-label="Selected listing photos"
-      onPointerMove={sort.move}
+      onPointerMove={move}
       onPointerUp={(event) => {
-        sort.move(event);
-        sort.stop(event, true);
+        move(event);
+        stop(event, true);
       }}
-      onPointerCancel={(event) => sort.stop(event, false)}
-      onLostPointerCapture={(event) => sort.stop(event, false)}
+      onPointerCancel={(event) => stop(event, false)}
+      onLostPointerCapture={(event) => stop(event, false)}
       onKeyDown={(event) => {
-        if (event.key === "Escape" && sort.active) {
+        if (event.key === "Escape" && active) {
           event.preventDefault();
           event.stopPropagation();
-          sort.cancel();
+          cancel();
         }
       }}
     >
-      <span className="sr-only" role="status">{sort.announcement}</span>
-      {sort.visible.map((id, index) => (
+      <span className="sr-only" role="status">
+        {announcement}
+      </span>
+      {visible.map((id, index) => (
         <div
           key={id}
           className={styles.sortablePhoto}
           data-listing-photo-id={id}
-          data-dragging={sort.active?.id === id || undefined}
+          data-dragging={active?.id === id || undefined}
           data-disabled={disabled || ids.length < 2 || undefined}
         >
           <div
@@ -64,7 +70,7 @@ export function SortableListingPhotos({
               if (event.target instanceof Element && event.target.closest("button")) {
                 return;
               }
-              sort.start(event, id);
+              start(event, id);
             }}
             onDragStart={(event) => event.preventDefault()}
           >
@@ -82,8 +88,10 @@ export function SortableListingPhotos({
               labelHidden
               density="compact"
               value={index}
-              disabled={disabled || ids.length < 2 || Boolean(sort.active)}
-              onChange={(event) => onChange(reorderListingPhoto(ids, id, Number(event.target.value)))}
+              disabled={disabled || ids.length < 2 || Boolean(active)}
+              onChange={(event) =>
+                onChange(reorderListingPhoto(ids, id, Number(event.target.value)))
+              }
             >
               {ids.map((_, position) => (
                 <option key={position} value={position}>
@@ -97,7 +105,7 @@ export function SortableListingPhotos({
               variant="ghost"
               aria-label={`Remove photo ${index + 1}`}
               title="Remove photo"
-              disabled={disabled || Boolean(sort.active)}
+              disabled={disabled || Boolean(active)}
               onClick={() => onChange(ids.filter((selected) => selected !== id))}
             >
               <Icon name="close" />

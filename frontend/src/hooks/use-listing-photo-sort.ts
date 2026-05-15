@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type PointerEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
 import {
   listingPhotoDropIndex,
   reorderListingPhoto,
@@ -25,34 +25,46 @@ export function useListingPhotoSort(
   disabled: boolean,
   onChange: (ids: string[]) => void,
 ) {
-  const grid = useRef<HTMLDivElement>(null);
+  const container = useRef<HTMLDivElement | null>(null);
+  const grid = useCallback((node: HTMLDivElement | null) => {
+    container.current = node;
+  }, []);
   const gesture = useRef<PhotoDrag | null>(null);
-  const [drag, setDrag] = useState<{ id: string; position: number; sourceKey: string } | null>(null);
+  const [drag, setDrag] = useState<{ id: string; position: number; sourceKey: string } | null>(
+    null,
+  );
   const [announcement, setAnnouncement] = useState("");
   const sourceKey = ids.join(":");
   const active = !disabled && drag?.sourceKey === sourceKey ? drag : null;
   const visible = active ? reorderListingPhoto(ids, active.id, active.position) : ids;
 
-  useEffect(() => () => {
-    const current = gesture.current;
-    gesture.current = null;
-    if (current?.capture.hasPointerCapture(current.pointerId)) {
-      current.capture.releasePointerCapture(current.pointerId);
-    }
-  }, []);
+  useEffect(
+    () => () => {
+      const current = gesture.current;
+      gesture.current = null;
+      if (current?.capture.hasPointerCapture(current.pointerId)) {
+        current.capture.releasePointerCapture(current.pointerId);
+      }
+    },
+    [],
+  );
 
   function start(event: PointerEvent<HTMLDivElement>, id: string) {
-    const container = grid.current;
+    const element = container.current;
     if (
-      disabled || ids.length < 2 || gesture.current || !container ||
-      event.button !== 0 || !event.isPrimary
+      disabled ||
+      ids.length < 2 ||
+      gesture.current ||
+      !element ||
+      event.button !== 0 ||
+      !event.isPrimary
     ) {
       return;
     }
     event.preventDefault();
-    const slots = Array.from(
-      container.querySelectorAll<HTMLElement>("[data-listing-photo-id]"),
-    ).map((element) => element.getBoundingClientRect());
+    const slots = Array.from(element.querySelectorAll<HTMLElement>("[data-listing-photo-id]")).map(
+      (element) => element.getBoundingClientRect(),
+    );
     gesture.current = {
       id,
       pointerId: event.pointerId,
@@ -60,17 +72,22 @@ export function useListingPhotoSort(
       x: event.clientX,
       y: event.clientY,
       slots,
-      bounds: container.getBoundingClientRect(),
-      capture: container,
+      bounds: element.getBoundingClientRect(),
+      capture: element,
       active: false,
       position: ids.indexOf(id),
     };
-    container.setPointerCapture(event.pointerId);
+    element.setPointerCapture(event.pointerId);
   }
 
   function move(event: PointerEvent<HTMLDivElement>) {
     const current = gesture.current;
-    if (!current || current.pointerId !== event.pointerId || disabled || current.sourceKey !== sourceKey) {
+    if (
+      !current ||
+      current.pointerId !== event.pointerId ||
+      disabled ||
+      current.sourceKey !== sourceKey
+    ) {
       return;
     }
     if (!current.active && Math.hypot(event.clientX - current.x, event.clientY - current.y) < 6) {
@@ -79,9 +96,13 @@ export function useListingPhotoSort(
     current.active = true;
     const { left, right, top, bottom } = current.bounds;
     const inside =
-      event.clientX >= left && event.clientX <= right &&
-      event.clientY >= top && event.clientY <= bottom;
-    current.position = inside ? listingPhotoDropIndex(current.slots, event.clientX, event.clientY) : -1;
+      event.clientX >= left &&
+      event.clientX <= right &&
+      event.clientY >= top &&
+      event.clientY <= bottom;
+    current.position = inside
+      ? listingPhotoDropIndex(current.slots, event.clientX, event.clientY)
+      : -1;
     setDrag({ id: current.id, position: current.position, sourceKey });
   }
 

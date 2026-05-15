@@ -7,10 +7,10 @@ namespace Dealership.Application.Sales;
 public static class SaleQueries
 {
     public static readonly IReadOnlySet<string> QueueViews =
-        new HashSet<string> { "ToClaim", "Handling", "Waiting", "Approved" };
+        new HashSet<string> { SaleViews.ToClaim, SaleViews.Handling, SaleViews.Waiting, SaleViews.Approved };
 
     public static readonly IReadOnlySet<string> TableViews =
-        new HashSet<string> { "NeedsApproval", "Open", "BeingHandled", "Approved", "History" };
+        new HashSet<string> { SaleViews.NeedsApproval, SaleViews.Open, SaleViews.BeingHandled, SaleViews.Approved, SaleViews.History };
 
     public static readonly IReadOnlySet<string> Sorts = new HashSet<string>
     {

@@ -31,12 +31,13 @@ export function ListingPhotoPicker({
   const { snapshot, busy, failed, load, retry } = photos;
   const ids = value.photoIds;
   const atLimit = ids.length >= MAX_LISTING_PHOTOS;
-  const available = snapshot?.items
-    .map((photo, index) => ({
-      photo,
-      position: (snapshot.page - 1) * snapshot.pageSize + index + 1,
-    }))
-    .filter(({ photo }) => !ids.includes(photo.id)) ?? [];
+  const available =
+    snapshot?.items
+      .map((photo, index) => ({
+        photo,
+        position: (snapshot.page - 1) * snapshot.pageSize + index + 1,
+      }))
+      .filter(({ photo }) => !ids.includes(photo.id)) ?? [];
 
   if (atLimit && libraryOpen) {
     setLibraryOpen(false);
@@ -66,7 +67,10 @@ export function ListingPhotoPicker({
     <section className={styles.gallery} aria-label="Listing photos">
       <header className={styles.photoHeading}>
         <h3 ref={heading} tabIndex={-1}>
-          Photos <span>({ids.length}/{MAX_LISTING_PHOTOS})</span>
+          Photos{" "}
+          <span>
+            ({ids.length}/{MAX_LISTING_PHOTOS})
+          </span>
         </h3>
         {ids.length > 1 && <span className={styles.help}>Drag to reorder</span>}
       </header>
@@ -106,7 +110,11 @@ export function ListingPhotoPicker({
               <Icon name="close" />
             </Button>
           </div>
-          {busy && !snapshot && <p className={styles.help} role="status">Loading photos…</p>}
+          {busy && !snapshot && (
+            <p className={styles.help} role="status">
+              Loading photos…
+            </p>
+          )}
           {failed && (
             <Button size="compact" variant="secondary" disabled={busy} onClick={() => void retry()}>
               Retry photos
@@ -145,7 +153,9 @@ export function ListingPhotoPicker({
           </div>
           {snapshot && snapshot.total > snapshot.pageSize && (
             <nav className={styles.photoActions} aria-label="Uploaded photo pages">
-              <span className={styles.help}>{snapshot.page} / {Math.ceil(snapshot.total / snapshot.pageSize)}</span>
+              <span className={styles.help}>
+                {snapshot.page} / {Math.ceil(snapshot.total / snapshot.pageSize)}
+              </span>
               <Button
                 size="compact"
                 variant="secondary"

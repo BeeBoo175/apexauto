@@ -43,8 +43,8 @@ public sealed class ReservationCancellationTests(IntakePhotoFixture fixture) : I
         // Staff cancel through the hold's sale; the customer route refuses them.
         Assert.Equal(ReservationStatus.Forbidden, (await CancelAsync(data, outside, held.Id, staff)).Status);
         Assert.Equal(ReservationStatus.Forbidden, (await CancelAsync(data, manager, held.Id, own)).Status);
-        Assert.Equal(SaleStatus.NotFound, (await CancelSaleAsync(data, outside, held.Id, staff)).Status);
-        Assert.Equal(SaleStatus.Invalid, (await CancelSaleAsync(data, manager, held.Id, staff with { Reason = " reason " })).Status);
+        Assert.Equal(SaleResultStatus.NotFound, (await CancelSaleAsync(data, outside, held.Id, staff)).Status);
+        Assert.Equal(SaleResultStatus.Invalid, (await CancelSaleAsync(data, manager, held.Id, staff with { Reason = " reason " })).Status);
         Assert.Equal(ReservationStatus.Invalid, (await CancelAsync(data, data.OwnerId, held.Id, staff)).Status);
         Assert.False(await database.ReservationReleases.AnyAsync());
         await database.Users.Where(item => item.Id == data.OwnerId)
@@ -64,25 +64,25 @@ public sealed class ReservationCancellationTests(IntakePhotoFixture fixture) : I
             own with { OperationId = next.Id })).Status);
         await database.Users.Where(item => item.Id == manager)
             .ExecuteUpdateAsync(update => update.SetProperty(item => item.IsActive, false));
-        Assert.Equal(SaleStatus.Forbidden, (await CancelSaleAsync(data, manager, next.Id, staff)).Status);
+        Assert.Equal(SaleResultStatus.Forbidden, (await CancelSaleAsync(data, manager, next.Id, staff)).Status);
         await database.Users.Where(item => item.Id == manager)
             .ExecuteUpdateAsync(update => update.SetProperty(item => item.IsActive, true));
         var cancelled = await CancelSaleAsync(data, manager, next.Id, staff);
-        Assert.Equal(SaleStatus.Succeeded, cancelled.Status);
+        Assert.Equal(SaleResultStatus.Succeeded, cancelled.Status);
         var replay = await CancelSaleAsync(data, manager, next.Id, staff);
         Assert.Equal(cancelled.Receipt, replay.Receipt);
         Assert.Equal(ReservationReleaseKind.StaffCancelled, (await database.ReservationReleases
             .SingleAsync(item => item.ReservationId == next.Id)).Kind);
-        Assert.Equal(SaleStatus.Conflict, (await CancelSaleAsync(data, manager, next.Id,
+        Assert.Equal(SaleResultStatus.Conflict, (await CancelSaleAsync(data, manager, next.Id,
             staff with { Reason = "Different reason" })).Status);
-        Assert.Equal(SaleStatus.Conflict, (await CancelSaleAsync(data, generalManager, next.Id, staff)).Status);
+        Assert.Equal(SaleResultStatus.Conflict, (await CancelSaleAsync(data, generalManager, next.Id, staff)).Status);
 
         var third = await HoldAsync(data, listing.Publication);
         await database.Branches.Where(item => item.Id == data.BranchId)
             .ExecuteUpdateAsync(update => update.SetProperty(item => item.IsActive, false));
-        Assert.Equal(SaleStatus.Forbidden, (await CancelSaleAsync(data, manager, third.Id, staff)).Status);
+        Assert.Equal(SaleResultStatus.Forbidden, (await CancelSaleAsync(data, manager, third.Id, staff)).Status);
         var groupCancelled = await CancelSaleAsync(data, generalManager, third.Id, staff with { OperationId = Guid.NewGuid() });
-        Assert.Equal(SaleStatus.Succeeded, groupCancelled.Status);
+        Assert.Equal(SaleResultStatus.Succeeded, groupCancelled.Status);
         Assert.Equal(ReservationReleaseKind.StaffCancelled, (await database.ReservationReleases
             .SingleAsync(item => item.ReservationId == third.Id)).Kind);
         await database.Branches.Where(item => item.Id == data.BranchId)

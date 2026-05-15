@@ -1,7 +1,11 @@
 import { isUuid } from "@/lib/auth/contracts";
 import type { SearchParams } from "@/lib/query";
 
-export const listingHistoryKinds = ["DraftSaved", "PublicationApproved", "ListingWithdrawn"] as const;
+export const listingHistoryKinds = [
+  "DraftSaved",
+  "PublicationApproved",
+  "ListingWithdrawn",
+] as const;
 
 export interface ListingRecordSelection {
   kind: (typeof listingHistoryKinds)[number];

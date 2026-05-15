@@ -31,7 +31,7 @@ public sealed class SaleReadStore(DealershipDbContext database) : ISaleReadStore
                                    publication.RecordedAt, new SaleVehicleListing(vehicle.Id, revision.VehiclePrice,
                                        revision.RoadTax, revision.Transmission, revision.Fuel, revision.Description,
                                        revision.PhotoIds))).SingleAsync(cancellationToken);
-        return new(SaleStatus.Succeeded, reference);
+        return new(SaleResultStatus.Succeeded, reference);
     }
 
     public async Task<SaleReadResult<SaleView>> GetAsync(Guid actorId, Guid saleId, CancellationToken cancellationToken)
@@ -78,7 +78,7 @@ public sealed class SaleReadStore(DealershipDbContext database) : ISaleReadStore
             facts.MileageKilometres, facts.LegalName, facts.Mobile, facts.Email ?? string.Empty, facts.Branch,
             facts.CreatedAt, warranty?.DurationMonths, warranty?.MileageCapKm, tradeIn?.Valuation.Minimum,
             tradeIn?.Valuation.Maximum);
-        return new(SaleStatus.Succeeded, new SaleView(sale.Id, SaleSnapshot.Of(sale), Email(emails, sale.AgentId),
+        return new(SaleResultStatus.Succeeded, new SaleView(sale.Id, SaleSnapshot.Of(sale), Email(emails, sale.AgentId),
             Email(emails, sale.DecidedById), sale.CreatedAt, sale.UpdatedAt, context, SaleAccess.Actions(actor!, sale)));
     }
 
@@ -103,7 +103,7 @@ public sealed class SaleReadStore(DealershipDbContext database) : ISaleReadStore
             .ToListAsync(cancellationToken);
         var tradeIns = appointments.Select(item => new TradeInOption(item.Id, SaleLabels.TradeIn(item),
             item.Valuation.Minimum, item.Valuation.Maximum)).ToList();
-        return new(SaleStatus.Succeeded, new SaleOptions(warranties, tradeIns));
+        return new(SaleResultStatus.Succeeded, new SaleOptions(warranties, tradeIns));
     }
 
     // Managers choose an assignee from the active agents of the sale's own branch; agents never list colleagues.
@@ -118,14 +118,14 @@ public sealed class SaleReadStore(DealershipDbContext database) : ISaleReadStore
 
         if (!SaleAccess.IsManager(actor!, sale.BranchId))
         {
-            return new(SaleStatus.Forbidden);
+            return new(SaleResultStatus.Forbidden);
         }
 
         var agents = await database.Users.AsNoTracking().Where(item =>
                 item.Role == AccountRoles.SalesAgent && item.BranchId == sale.BranchId && item.IsActive)
             .OrderBy(item => item.Email).ThenBy(item => item.Id)
             .Select(item => new SaleAgent(item.Id, item.Email ?? string.Empty)).ToListAsync(cancellationToken);
-        return new(SaleStatus.Succeeded, agents);
+        return new(SaleResultStatus.Succeeded, agents);
     }
 
     // Newest first, paged in SQL; the total and the rows come from one snapshot.
@@ -168,7 +168,7 @@ public sealed class SaleReadStore(DealershipDbContext database) : ISaleReadStore
             Email(emails, row.ActorId) ?? "System", Email(emails, row.AgentId), Email(emails, row.PreviousAgentId),
             row.FromStatus?.ToString(), row.ToStatus.ToString(), row.Reason, row.Changes ?? [], row.Refund)).ToList();
         await transaction.CommitAsync(cancellationToken);
-        return new(SaleStatus.Succeeded, new SaleHistoryPage(items, total, page, pageSize));
+        return new(SaleResultStatus.Succeeded, new SaleHistoryPage(items, total, page, pageSize));
     }
 
     public async Task<SaleReadResult<SaleVersionView>> VersionAsync(Guid actorId, Guid saleId, long version,
@@ -186,12 +186,12 @@ public sealed class SaleReadStore(DealershipDbContext database) : ISaleReadStore
         var entry = entries.SingleOrDefault(item => item.Sequence == version);
         if (entry is null)
         {
-            return new(SaleStatus.NotFound);
+            return new(SaleResultStatus.NotFound);
         }
 
         var previous = entries.SingleOrDefault(item => item.Sequence == version - 1);
         var emails = await EmailsAsync([entry.ActorId, entry.AgentId], cancellationToken);
-        return new(SaleStatus.Succeeded, new SaleVersionView(saleId, entry.Sequence, entry.Kind.ToString(),
+        return new(SaleResultStatus.Succeeded, new SaleVersionView(saleId, entry.Sequence, entry.Kind.ToString(),
             entry.RecordedAt, Email(emails, entry.ActorId) ?? "System", Email(emails, entry.AgentId), entry.Reason,
             entry.Snapshot, previous?.Snapshot));
     }

@@ -73,7 +73,7 @@ public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHa
 
         foreach (var step in steps)
         {
-            if ((await step()).Status != SaleStatus.Succeeded)
+            if ((await step()).Status != SaleResultStatus.Succeeded)
             {
                 return false;
             }

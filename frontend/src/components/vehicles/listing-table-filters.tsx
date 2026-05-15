@@ -1,6 +1,6 @@
 import type { DataColumn } from "@/components/ui/data-table/types";
 import type { useListingTable } from "@/hooks/use-listing-table";
-import type { AppliedWorklistFilter } from "@/lib/staff/filter-summary";
+import type { AppliedFilter } from "@/lib/staff/filter-summary";
 import {
   listingInspectionOptions,
   type ListingFilters as Filters,
@@ -15,7 +15,7 @@ export function listingTableFilters(
   columns: DataColumn<ListingItem>[],
 ) {
   const filters = state.active.filters;
-  const applied: AppliedWorklistFilter<Filters>[] = filters.branchId
+  const applied: AppliedFilter<Filters>[] = filters.branchId
     ? [
         {
           key: "branch",

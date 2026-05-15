@@ -9,251 +9,158 @@ public sealed class SaleTermsService(ISaleCommandStore sales)
 {
     private const decimal MaximumTermAmount = 500000m;
 
-    public async Task<SaleCommandResult> SaveTermsAsync(Guid actorId, Guid saleId, SaleTermsRequest request,
+    public Task<SaleCommandResult> SaveTermsAsync(Guid actorId, Guid saleId, SaleTermsRequest request,
         CancellationToken cancellationToken)
     {
         // A trade-in car and a positive allowance come together or not at all.
         var tradeInPaired = request.TradeInAppointmentId is null
             ? request.TradeInAllowance == 0m
             : request.TradeInAllowance > 0m;
-        var validRequest = SaleCommandSteps.Valid(actorId, saleId, request.OperationId, request.ExpectedVersion);
-        if (!validRequest || !tradeInPaired ||
+        if (!tradeInPaired ||
             request.WarrantyPackageId == Guid.Empty || request.TradeInAppointmentId == Guid.Empty ||
             !ValidAmount(request.NegotiatedDiscount) || !ValidAmount(request.TradeInAllowance))
         {
-            return new(SaleStatus.Invalid);
+            return Task.FromResult(new SaleCommandResult(SaleResultStatus.Invalid));
         }
 
-        await using var transaction = await sales.LockAsync(actorId, saleId, request.OperationId, cancellationToken);
-        var (actor, sale, failure) = SaleCommandSteps.Scope(transaction.Context);
-        if (failure is not null)
-        {
-            return new(failure.Value);
-        }
-
-        if (transaction.Context.Existing is { } existing)
-        {
-            var snapshot = existing.Snapshot;
-            var matches = snapshot.WarrantyPackageId == request.WarrantyPackageId &&
-                snapshot.NegotiatedDiscount == request.NegotiatedDiscount &&
-                snapshot.TradeInAppointmentId == request.TradeInAppointmentId &&
-                snapshot.TradeInAllowance == request.TradeInAllowance;
-            if (!matches)
+        return SaleCommandSteps.RunAsync(sales, new(actorId, saleId, request.OperationId, request.ExpectedVersion),
+            [SalesOrderEventKind.TermsSaved], SaleAccess.MayKeyTerms,
+            async (transaction, actor, sale) =>
             {
-                return new(SaleStatus.Conflict);
-            }
+                var settings = await transaction.LockSettingsAsync(cancellationToken);
+                if (settings is null)
+                {
+                    return new SaleCommandResult(SaleResultStatus.Unavailable);
+                }
 
-            return SaleCommandSteps.Replayed(existing, saleId, actorId, request.ExpectedVersion,
-                SalesOrderEventKind.TermsSaved);
-        }
+                SaleWarranty? warranty = null;
+                if (request.WarrantyPackageId is { } packageId)
+                {
+                    warranty = await transaction.ResolveWarrantyAsync(packageId, cancellationToken);
+                    if (warranty is null)
+                    {
+                        return new SaleCommandResult(SaleResultStatus.Invalid);
+                    }
+                }
 
-        if (!SaleAccess.MayKeyTerms(actor!, sale!))
-        {
-            return new(SaleStatus.Forbidden);
-        }
+                SaleTradeIn? tradeIn = null;
+                if (request.TradeInAppointmentId is { } appointmentId)
+                {
+                    var choice = await transaction.ResolveTradeInAsync(appointmentId, cancellationToken);
+                    // The allowance can never exceed the customer's own confirmed valuation.
+                    if (choice is null || request.TradeInAllowance > choice.Maximum)
+                    {
+                        return new SaleCommandResult(SaleResultStatus.Invalid);
+                    }
 
-        if (sale!.Version != request.ExpectedVersion)
-        {
-            return new(SaleStatus.Conflict);
-        }
+                    if (choice.TakenByAnotherSale)
+                    {
+                        return new SaleCommandResult(SaleResultStatus.Conflict);
+                    }
 
-        var settings = await transaction.LockSettingsAsync(cancellationToken);
-        if (settings is null)
-        {
-            return new(SaleStatus.Unavailable);
-        }
+                    tradeIn = new SaleTradeIn(appointmentId, choice.Label, request.TradeInAllowance);
+                }
 
-        SaleWarranty? warranty = null;
-        if (request.WarrantyPackageId is { } packageId)
-        {
-            warranty = await transaction.ResolveWarrantyAsync(packageId, cancellationToken);
-            if (warranty is null)
+                var input = new SaleTermsInput(warranty, request.NegotiatedDiscount, tradeIn);
+                return await SaleCommandSteps.ApplyAsync(transaction,
+                    () => sale.SaveTerms(request.OperationId, input, settings, actorId, transaction.Context.Now),
+                    cancellationToken);
+            },
+            cancellationToken, replayMatches: existing =>
             {
-                return new(SaleStatus.Invalid);
-            }
-        }
-
-        SaleTradeIn? tradeIn = null;
-        if (request.TradeInAppointmentId is { } appointmentId)
-        {
-            var choice = await transaction.ResolveTradeInAsync(appointmentId, cancellationToken);
-            // The allowance can never exceed the customer's own confirmed valuation.
-            if (choice is null || request.TradeInAllowance > choice.Maximum)
-            {
-                return new(SaleStatus.Invalid);
-            }
-
-            if (choice.TakenByAnotherSale)
-            {
-                return new(SaleStatus.Conflict);
-            }
-
-            tradeIn = new SaleTradeIn(appointmentId, choice.Label, request.TradeInAllowance);
-        }
-
-        var terms = new SaleTermsInput(warranty, request.NegotiatedDiscount, tradeIn);
-        return await SaleCommandSteps.ApplyAsync(transaction,
-            () => sale.SaveTerms(request.OperationId, terms, settings, actorId, transaction.Context.Now),
-            cancellationToken);
+                var snapshot = existing.Snapshot;
+                return snapshot.WarrantyPackageId == request.WarrantyPackageId &&
+                    snapshot.NegotiatedDiscount == request.NegotiatedDiscount &&
+                    snapshot.TradeInAppointmentId == request.TradeInAppointmentId &&
+                    snapshot.TradeInAllowance == request.TradeInAllowance;
+            });
     }
 
-    public async Task<SaleCommandResult> SubmitAsync(Guid actorId, Guid saleId, SaleCommandRequest request,
+    public Task<SaleCommandResult> SubmitAsync(Guid actorId, Guid saleId, SaleCommandRequest request,
         CancellationToken cancellationToken)
     {
-        if (!SaleCommandSteps.Valid(actorId, saleId, request.OperationId, request.ExpectedVersion))
-        {
-            return new(SaleStatus.Invalid);
-        }
+        return SaleCommandSteps.RunAsync(sales, new(actorId, saleId, request.OperationId, request.ExpectedVersion),
+            [SalesOrderEventKind.Submitted], SaleAccess.MayKeyTerms,
+            async (transaction, actor, sale) =>
+            {
+                var settings = await transaction.LockSettingsAsync(cancellationToken);
+                if (settings is null)
+                {
+                    return new SaleCommandResult(SaleResultStatus.Unavailable);
+                }
 
-        await using var transaction = await sales.LockAsync(actorId, saleId, request.OperationId, cancellationToken);
-        var (actor, sale, failure) = SaleCommandSteps.Scope(transaction.Context);
-        if (failure is not null)
-        {
-            return new(failure.Value);
-        }
-
-        if (transaction.Context.Existing is { } existing)
-        {
-            return SaleCommandSteps.Replayed(existing, saleId, actorId, request.ExpectedVersion,
-                SalesOrderEventKind.Submitted);
-        }
-
-        if (!SaleAccess.MayKeyTerms(actor!, sale!))
-        {
-            return new(SaleStatus.Forbidden);
-        }
-
-        if (sale!.Version != request.ExpectedVersion || sale.Status != SalesOrderStatus.Handling)
-        {
-            return new(SaleStatus.Conflict);
-        }
-
-        var settings = await transaction.LockSettingsAsync(cancellationToken);
-        if (settings is null)
-        {
-            return new(SaleStatus.Unavailable);
-        }
-
-        var now = transaction.Context.Now;
-        var number = sale.OrderNumber ?? await transaction.NextOrderNumberAsync(now.Year, cancellationToken);
-        return await SaleCommandSteps.ApplyAsync(transaction,
-            () => sale.Submit(request.OperationId, settings, number, actorId, now), cancellationToken);
+                var now = transaction.Context.Now;
+                var number = sale.OrderNumber ?? await transaction.NextOrderNumberAsync(now.Year, cancellationToken);
+                return await SaleCommandSteps.ApplyAsync(transaction,
+                    () => sale.Submit(request.OperationId, settings, number, actorId, now), cancellationToken);
+            },
+            cancellationToken, staleState: sale => sale.Status != SalesOrderStatus.Handling);
     }
 
-    public async Task<SaleCommandResult> ApproveAsync(Guid actorId, Guid saleId, SaleCommandRequest request,
+    public Task<SaleCommandResult> ApproveAsync(Guid actorId, Guid saleId, SaleCommandRequest request,
         CancellationToken cancellationToken)
     {
-        return await DecideAsync(actorId, saleId, new SaleReasonRequest(request.OperationId, request.ExpectedVersion,
+        return DecideAsync(actorId, saleId, new SaleReasonRequest(request.OperationId, request.ExpectedVersion,
             null), approve: true, cancellationToken);
     }
 
-    public async Task<SaleCommandResult> RejectAsync(Guid actorId, Guid saleId, SaleReasonRequest request,
+    public Task<SaleCommandResult> RejectAsync(Guid actorId, Guid saleId, SaleReasonRequest request,
         CancellationToken cancellationToken)
     {
         if (!SalesOrder.ValidReason(request.Reason))
         {
-            return new(SaleStatus.Invalid);
+            return Task.FromResult(new SaleCommandResult(SaleResultStatus.Invalid));
         }
 
-        return await DecideAsync(actorId, saleId, request, approve: false, cancellationToken);
+        return DecideAsync(actorId, saleId, request, approve: false, cancellationToken);
     }
 
-    public async Task<SaleCommandResult> CancelAsync(Guid actorId, Guid saleId, SaleReasonRequest request,
+    public Task<SaleCommandResult> CancelAsync(Guid actorId, Guid saleId, SaleReasonRequest request,
         CancellationToken cancellationToken)
     {
-        if (!SaleCommandSteps.Valid(actorId, saleId, request.OperationId, request.ExpectedVersion) ||
-            !SalesOrder.ValidReason(request.Reason))
+        if (!SalesOrder.ValidReason(request.Reason))
         {
-            return new(SaleStatus.Invalid);
+            return Task.FromResult(new SaleCommandResult(SaleResultStatus.Invalid));
         }
 
-        await using var transaction = await sales.LockAsync(actorId, saleId, request.OperationId, cancellationToken);
-        var (actor, sale, failure) = SaleCommandSteps.Scope(transaction.Context);
-        if (failure is not null)
-        {
-            return new(failure.Value);
-        }
-
-        if (transaction.Context.Existing is { } existing)
-        {
-            if (existing.Reason != request.Reason)
+        return SaleCommandSteps.RunAsync(sales, new(actorId, saleId, request.OperationId, request.ExpectedVersion),
+            [SalesOrderEventKind.Cancelled], SaleAccess.MayCancel,
+            async (transaction, actor, sale) =>
             {
-                return new(SaleStatus.Conflict);
-            }
+                var kind = sale.Status == SalesOrderStatus.Open
+                    ? ReservationReleaseKind.StaffCancelled
+                    : ReservationReleaseKind.DealCancelled;
+                var releaseId = await transaction.ReleaseReservationAsync(kind, actorId, request.Reason!,
+                    cancellationToken);
+                if (releaseId is null)
+                {
+                    return new SaleCommandResult(SaleResultStatus.Conflict);
+                }
 
-            return SaleCommandSteps.Replayed(existing, saleId, actorId, request.ExpectedVersion,
-                SalesOrderEventKind.Cancelled);
-        }
-
-        if (!SaleAccess.MayCancel(actor!, sale!))
-        {
-            return new(SaleStatus.Forbidden);
-        }
-
-        if (sale!.Version != request.ExpectedVersion || sale.IsClosed)
-        {
-            return new(SaleStatus.Conflict);
-        }
-
-        var kind = sale.Status == SalesOrderStatus.Open
-            ? ReservationReleaseKind.StaffCancelled
-            : ReservationReleaseKind.DealCancelled;
-        var releaseId = await transaction.ReleaseReservationAsync(kind, actorId, request.Reason!, cancellationToken);
-        if (releaseId is null)
-        {
-            return new(SaleStatus.Conflict);
-        }
-
-        return await SaleCommandSteps.ApplyAsync(transaction,
-            () => sale.Cancel(request.OperationId, actorId, request.Reason!, releaseId.Value, transaction.Context.Now),
-            cancellationToken);
+                return await SaleCommandSteps.ApplyAsync(transaction,
+                    () => sale.Cancel(request.OperationId, actorId, request.Reason!, releaseId.Value,
+                        transaction.Context.Now), cancellationToken);
+            },
+            cancellationToken, replayMatches: existing => existing.Reason == request.Reason,
+            staleState: sale => sale.IsClosed);
     }
 
-    private async Task<SaleCommandResult> DecideAsync(Guid actorId, Guid saleId, SaleReasonRequest request,
+    private Task<SaleCommandResult> DecideAsync(Guid actorId, Guid saleId, SaleReasonRequest request,
         bool approve, CancellationToken cancellationToken)
     {
-        if (!SaleCommandSteps.Valid(actorId, saleId, request.OperationId, request.ExpectedVersion))
-        {
-            return new(SaleStatus.Invalid);
-        }
-
-        await using var transaction = await sales.LockAsync(actorId, saleId, request.OperationId, cancellationToken);
-        var (actor, sale, failure) = SaleCommandSteps.Scope(transaction.Context);
-        if (failure is not null)
-        {
-            return new(failure.Value);
-        }
-
         var kind = approve ? SalesOrderEventKind.Approved : SalesOrderEventKind.Rejected;
-        if (transaction.Context.Existing is { } existing)
-        {
-            if (existing.Reason != request.Reason)
+        return SaleCommandSteps.RunAsync(sales, new(actorId, saleId, request.OperationId, request.ExpectedVersion),
+            [kind], SaleAccess.MayDecide,
+            (transaction, actor, sale) =>
             {
-                return new(SaleStatus.Conflict);
-            }
-
-            return SaleCommandSteps.Replayed(existing, saleId, actorId, request.ExpectedVersion, kind);
-        }
-
-        if (!SaleAccess.MayDecide(actor!, sale!))
-        {
-            return new(SaleStatus.Forbidden);
-        }
-
-        if (sale!.Version != request.ExpectedVersion)
-        {
-            return new(SaleStatus.Conflict);
-        }
-
-        var now = transaction.Context.Now;
-        if (approve)
-        {
-            return await SaleCommandSteps.ApplyAsync(transaction,
-                () => sale.Approve(request.OperationId, actorId, now), cancellationToken);
-        }
-
-        return await SaleCommandSteps.ApplyAsync(transaction,
-            () => sale.Reject(request.OperationId, actorId, request.Reason!, now), cancellationToken);
+                var now = transaction.Context.Now;
+                return approve
+                    ? SaleCommandSteps.ApplyAsync(transaction,
+                        () => sale.Approve(request.OperationId, actorId, now), cancellationToken)
+                    : SaleCommandSteps.ApplyAsync(transaction,
+                        () => sale.Reject(request.OperationId, actorId, request.Reason!, now), cancellationToken);
+            },
+            cancellationToken, replayMatches: existing => existing.Reason == request.Reason);
     }
 
     private static bool ValidAmount(decimal amount) => amount is >= 0m and <= MaximumTermAmount &&

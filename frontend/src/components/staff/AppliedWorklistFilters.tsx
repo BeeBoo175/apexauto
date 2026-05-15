@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
-import type { AppliedWorklistFilter } from "@/lib/staff/filter-summary";
+import type { AppliedFilter } from "@/lib/staff/filter-summary";
 import styles from "./WorklistFilters.module.css";
 
 export function AppliedWorklistFilters<Filters>({
@@ -8,7 +8,7 @@ export function AppliedWorklistFilters<Filters>({
   disabled,
   onRemove,
 }: {
-  filters: AppliedWorklistFilter<Filters>[];
+  filters: AppliedFilter<Filters>[];
   disabled: boolean;
   onRemove: (filters: Filters) => void;
 }) {

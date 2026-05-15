@@ -6,6 +6,7 @@ import type { ListingDraft } from "@/lib/vehicles/listing-draft";
 import { fuels, transmissions } from "@/lib/vehicles/contracts";
 import { parseMyr } from "@/lib/currency-input";
 import styles from "./ListingEditor.module.css";
+import { LISTING_DESCRIPTION_MAX_LENGTH } from "@/lib/vehicles/listing-limits";
 
 export function ListingDraftFields({
   value,
@@ -99,13 +100,13 @@ export function ListingDraftFields({
           label="Public description"
           placeholder="Describe the vehicle's condition, features and highlights for buyers"
           rows={7}
-          maxLength={2000}
+          maxLength={LISTING_DESCRIPTION_MAX_LENGTH}
           value={value.description}
           required
           aria-invalid={
             validationAttempted &&
             (!value.description.trim() ||
-              value.description.trim().length > 2000 ||
+              value.description.trim().length > LISTING_DESCRIPTION_MAX_LENGTH ||
               value.description.includes("\0"))
           }
           disabled={disabled}

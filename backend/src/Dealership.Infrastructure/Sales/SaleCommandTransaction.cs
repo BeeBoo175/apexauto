@@ -82,14 +82,14 @@ internal sealed class SaleCommandTransaction(DealershipDbContext database, IDbCo
         }
     }
 
-    public async Task<SaleStatus> CommitAsync(SalesOrderEvent entry, CancellationToken cancellationToken)
+    public async Task<SaleResultStatus> CommitAsync(SalesOrderEvent entry, CancellationToken cancellationToken)
     {
         database.SalesOrderEvents.Add(entry);
         try
         {
             await database.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
-            return SaleStatus.Succeeded;
+            return SaleResultStatus.Succeeded;
         }
         catch (DbUpdateException exception) when (exception.InnerException is PostgresException
         {
@@ -97,7 +97,7 @@ internal sealed class SaleCommandTransaction(DealershipDbContext database, IDbCo
         })
         {
             // One open sale per trade-in, unique numbers and the database guards decide races the locks cannot.
-            return SaleStatus.Conflict;
+            return SaleResultStatus.Conflict;
         }
     }
 

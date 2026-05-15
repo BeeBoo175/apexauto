@@ -3,6 +3,7 @@ import { parseMyr } from "@/lib/currency-input";
 import { fuels, transmissions } from "./contracts";
 import { parseRevision, type ListingRevision } from "./listing-workspace";
 import { MAX_LISTING_PHOTOS } from "./listing-photos";
+import { LISTING_DESCRIPTION_MAX_LENGTH } from "@/lib/vehicles/listing-limits";
 
 export interface ListingDraft {
   vehiclePrice: string;
@@ -40,7 +41,7 @@ export function listingDraftContents(value: ListingDraft) {
     !transmission ||
     !fuel ||
     !description ||
-    description.length > 2000 ||
+    description.length > LISTING_DESCRIPTION_MAX_LENGTH ||
     description.includes("\0") ||
     !Array.isArray(value.photoIds) ||
     value.photoIds.length > MAX_LISTING_PHOTOS ||

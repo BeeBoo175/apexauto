@@ -21,12 +21,13 @@ export default function Home() {
           contract closing.
         </p>
         <div className={styles.actions}>
-          <a
+          <Link
             href="/vehicles"
+            prefetch={false}
             className={`${buttonStyles.button} ${buttonStyles.primary} ${buttonStyles.lg}`}
           >
             Browse vehicles
-          </a>
+          </Link>
           <Link
             href="/sell"
             prefetch={false}

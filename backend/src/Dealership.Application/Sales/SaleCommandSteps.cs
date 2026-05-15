@@ -9,20 +9,64 @@ internal static class SaleCommandSteps
         actorId != Guid.Empty && saleId != Guid.Empty && operationId != Guid.Empty && expectedVersion is >= 1 and < long.MaxValue;
 
     // The actor must be current staff in an active branch and able to see the sale; others learn nothing about it.
-    public static (SaleStaff? Actor, SalesOrder? Sale, SaleStatus? Failure) Scope(SaleCommandContext context)
+    public static (SaleStaff? Actor, SalesOrder? Sale, SaleResultStatus? Failure) Scope(SaleCommandContext context)
     {
         if (!SaleAccess.IsEligibleStaff(context.Actor, context.BranchActive))
         {
-            return (null, null, SaleStatus.Forbidden);
+            return (null, null, SaleResultStatus.Forbidden);
         }
 
         var hidden = context.Sale is not null && !SaleAccess.CanSee(context.Actor!, context.Sale);
         if (context.Sale is null || hidden && context.Existing is null)
         {
-            return (null, null, SaleStatus.NotFound);
+            return (null, null, SaleResultStatus.NotFound);
         }
 
         return (context.Actor, context.Sale, null);
+    }
+
+    // Every sale command runs the same sequence: request shape, lock, actor scope, replay, permission, base
+    // version and state, then one domain change. A command supplies only what differs.
+    public static async Task<SaleCommandResult> RunAsync(ISaleCommandStore sales, SaleCommandIdentity identity,
+        SalesOrderEventKind[] kinds, Func<SaleStaff, SalesOrder, bool> may,
+        Func<ISaleCommandTransaction, SaleStaff, SalesOrder, Task<SaleCommandResult>> act,
+        CancellationToken cancellationToken, Func<SalesOrderEvent, bool>? replayMatches = null,
+        Func<SalesOrder, bool>? staleState = null)
+    {
+        if (!Valid(identity.ActorId, identity.SaleId, identity.OperationId, identity.ExpectedVersion))
+        {
+            return new(SaleResultStatus.Invalid);
+        }
+
+        await using var transaction = await sales.LockAsync(identity.ActorId, identity.SaleId, identity.OperationId,
+            cancellationToken);
+        var (actor, sale, failure) = Scope(transaction.Context);
+        if (failure is not null || actor is null || sale is null)
+        {
+            return new(failure ?? SaleResultStatus.NotFound);
+        }
+
+        if (transaction.Context.Existing is { } existing)
+        {
+            if (replayMatches is not null && !replayMatches(existing))
+            {
+                return new(SaleResultStatus.Conflict);
+            }
+
+            return Replayed(existing, identity.SaleId, identity.ActorId, identity.ExpectedVersion, kinds);
+        }
+
+        if (!may(actor, sale))
+        {
+            return new(SaleResultStatus.Forbidden);
+        }
+
+        if (sale.Version != identity.ExpectedVersion || staleState?.Invoke(sale) == true)
+        {
+            return new(SaleResultStatus.Conflict);
+        }
+
+        return await act(transaction, actor, sale);
     }
 
     public static SaleCommandResult Replayed(SalesOrderEvent existing, Guid saleId, Guid actorId,
@@ -30,10 +74,10 @@ internal static class SaleCommandSteps
     {
         if (!IsReplay(existing, saleId, actorId, expectedVersion, kinds))
         {
-            return new(SaleStatus.Conflict);
+            return new(SaleResultStatus.Conflict);
         }
 
-        return new(SaleStatus.Succeeded, SaleReceipt.From(existing));
+        return new(SaleResultStatus.Succeeded, SaleReceipt.From(existing));
     }
 
     // Domain refusals become conflicts (wrong state) or invalid requests (bad values) and nothing is written.
@@ -47,15 +91,15 @@ internal static class SaleCommandSteps
         }
         catch (InvalidOperationException)
         {
-            return new(SaleStatus.Conflict);
+            return new(SaleResultStatus.Conflict);
         }
         catch (ArgumentException)
         {
-            return new(SaleStatus.Invalid);
+            return new(SaleResultStatus.Invalid);
         }
 
         var status = await transaction.CommitAsync(entry, cancellationToken);
-        if (status != SaleStatus.Succeeded)
+        if (status != SaleResultStatus.Succeeded)
         {
             return new(status);
         }
@@ -70,3 +114,6 @@ internal static class SaleCommandSteps
         existing.SalesOrderId == saleId && existing.ActorId == actorId && kinds.Contains(existing.Kind) &&
         existing.Sequence == expectedVersion + 1;
 }
+
+// Who is doing what to which sale, from which base version; the operation ID makes a lost response replayable.
+internal readonly record struct SaleCommandIdentity(Guid ActorId, Guid SaleId, Guid OperationId, long ExpectedVersion);

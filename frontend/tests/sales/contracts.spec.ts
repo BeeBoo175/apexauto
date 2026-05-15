@@ -171,13 +171,14 @@ test("vehicle references validate retained listing content without manager works
       vehicleId: agent,
       vehiclePrice: 60000,
       roadTax: 90,
-      transmission: 0,
-      fuel: 0,
+      transmission: "Automatic",
+      fuel: "Petrol",
       description: "Inspected Malaysian vehicle",
       photoIds: [agent],
     },
   };
   expect(parseSaleVehicle(reference)?.listing.transmission).toBe("Automatic");
+  expect(parseSaleVehicle({ ...reference, listing: { ...reference.listing, fuel: 0 } })).toBeNull();
   expect(parseSaleVehicle({ ...reference, saleId: "invalid" })).toBeNull();
   expect(parseSaleVehicle({ ...reference, mileageKilometres: -1 })).toBeNull();
   expect(parseSaleVehicle({ ...reference, publishedAt: "yesterday" })).toBeNull();

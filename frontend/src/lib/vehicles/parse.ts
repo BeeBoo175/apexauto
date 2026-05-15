@@ -3,6 +3,7 @@ import { isNonNegativeInteger, isRecord, isUuid } from "@/lib/auth/contracts";
 import { isMyr } from "@/lib/currency-input";
 import { CATALOGUE_PAGE_SIZE, fuels, transmissions } from "./contracts";
 import type { CataloguePage, PublicVehicle } from "./contracts";
+import { MINIMUM_MANUFACTURE_YEAR } from "@/lib/vehicles/listing-limits";
 
 const text = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0;
@@ -21,7 +22,7 @@ export function parsePublicVehicle(value: unknown): PublicVehicle | null {
     !text(value.model) ||
     !text(value.trim) ||
     !isNonNegativeInteger(value.manufactureYear) ||
-    value.manufactureYear < 1886 ||
+    value.manufactureYear < MINIMUM_MANUFACTURE_YEAR ||
     value.manufactureYear > 9999 ||
     !isNonNegativeInteger(value.mileageKilometres) ||
     !isMyr(value.vehiclePrice) ||

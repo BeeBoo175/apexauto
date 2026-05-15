@@ -24,7 +24,7 @@ public sealed class SaleWorkflowTests(IntakePhotoFixture fixture) : IClassFixtur
         var salePhotos = world.Services.GetRequiredService<SaleVehiclePhotoService>();
         var listings = world.Services.GetRequiredService<ListingService>();
         var reference = await world.Reads.VehicleAsync(world.Agent, held.Id, default);
-        Assert.Equal(SaleStatus.Succeeded, reference.Status);
+        Assert.Equal(SaleResultStatus.Succeeded, reference.Status);
         var photoId = Assert.Single(reference.Value!.Listing.PhotoIds);
         using var content = new MemoryStream();
         Assert.Equal(ListingPhotoStatus.Available,
@@ -57,7 +57,7 @@ public sealed class SaleWorkflowTests(IntakePhotoFixture fixture) : IClassFixtur
 
         foreach (var actor in new[] { world.OtherBranchAgent, held.CustomerId })
         {
-            Assert.NotEqual(SaleStatus.Succeeded, (await world.Reads.VehicleAsync(actor, held.Id, default)).Status);
+            Assert.NotEqual(SaleResultStatus.Succeeded, (await world.Reads.VehicleAsync(actor, held.Id, default)).Status);
             Assert.NotEqual(ListingPhotoStatus.Available,
                 (await salePhotos.DownloadAsync(actor, held.Id, photoId, content, default)).Status);
         }
@@ -80,24 +80,24 @@ public sealed class SaleWorkflowTests(IntakePhotoFixture fixture) : IClassFixtur
             (await salePhotos.DownloadAsync(world.Agent, held.Id, privatePhoto, content, default)).Status);
 
         await world.Handling.ClaimAsync(world.Agent, held.Id, new(Guid.NewGuid(), 1), default);
-        Assert.Equal(SaleStatus.NotFound,
+        Assert.Equal(SaleResultStatus.NotFound,
             (await world.Reads.VehicleAsync(world.Colleague, held.Id, default)).Status);
         Assert.Equal(ListingPhotoStatus.NotFound,
             (await salePhotos.DownloadAsync(world.Colleague, held.Id, photoId, content, default)).Status);
         await world.Handling.AssignAsync(world.Manager, held.Id, new(Guid.NewGuid(), 2, world.Colleague), default);
-        Assert.Equal(SaleStatus.NotFound, (await world.Reads.VehicleAsync(world.Agent, held.Id, default)).Status);
+        Assert.Equal(SaleResultStatus.NotFound, (await world.Reads.VehicleAsync(world.Agent, held.Id, default)).Status);
         Assert.Equal(ListingPhotoStatus.NotFound,
             (await salePhotos.DownloadAsync(world.Agent, held.Id, photoId, content, default)).Status);
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync(path)).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"{path}/photos/{photoId}")).StatusCode);
-        Assert.Equal(SaleStatus.Succeeded, (await world.Reads.VehicleAsync(world.Colleague, held.Id, default)).Status);
+        Assert.Equal(SaleResultStatus.Succeeded, (await world.Reads.VehicleAsync(world.Colleague, held.Id, default)).Status);
 
         await using var database = NewContext();
         await database.Users.Where(item => item.Id == world.Colleague)
             .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.IsActive, false));
         try
         {
-            Assert.Equal(SaleStatus.Forbidden, (await world.Reads.VehicleAsync(world.Colleague, held.Id, default)).Status);
+            Assert.Equal(SaleResultStatus.Forbidden, (await world.Reads.VehicleAsync(world.Colleague, held.Id, default)).Status);
             Assert.Equal(ListingPhotoStatus.Forbidden,
                 (await salePhotos.DownloadAsync(world.Colleague, held.Id, photoId, content, default)).Status);
         }
@@ -123,18 +123,18 @@ public sealed class SaleWorkflowTests(IntakePhotoFixture fixture) : IClassFixtur
         }
 
         // Only an agent of the sale's branch claims; a replay returns the same receipt and a second claim conflicts.
-        Assert.Equal(SaleStatus.Forbidden, (await world.Handling.ClaimAsync(world.Manager, held.Id,
+        Assert.Equal(SaleResultStatus.Forbidden, (await world.Handling.ClaimAsync(world.Manager, held.Id,
             new(Guid.NewGuid(), 1), default)).Status);
-        Assert.Equal(SaleStatus.NotFound, (await world.Handling.ClaimAsync(world.OtherBranchAgent, held.Id,
+        Assert.Equal(SaleResultStatus.NotFound, (await world.Handling.ClaimAsync(world.OtherBranchAgent, held.Id,
             new(Guid.NewGuid(), 1), default)).Status);
         var claim = new SaleCommandRequest(Guid.NewGuid(), 1);
         var claimed = await world.Handling.ClaimAsync(world.Agent, held.Id, claim, default);
-        Assert.Equal(SaleStatus.Succeeded, claimed.Status);
+        Assert.Equal(SaleResultStatus.Succeeded, claimed.Status);
         Assert.Equal(claimed.Receipt, (await world.Handling.ClaimAsync(world.Agent, held.Id, claim, default)).Receipt);
         // Once handled, the sale is invisible to other agents, so a late claim learns nothing about it.
-        Assert.Equal(SaleStatus.NotFound, (await world.Handling.ClaimAsync(world.Colleague, held.Id,
+        Assert.Equal(SaleResultStatus.NotFound, (await world.Handling.ClaimAsync(world.Colleague, held.Id,
             new(Guid.NewGuid(), 1), default)).Status);
-        Assert.Equal(SaleStatus.Conflict, (await world.Handling.ClaimAsync(world.Agent, held.Id,
+        Assert.Equal(SaleResultStatus.Conflict, (await world.Handling.ClaimAsync(world.Agent, held.Id,
             new(claim.OperationId, 2), default)).Status);
 
         // The handling agent now reads the customer's contact; the colleague no longer sees the sale at all.
@@ -142,14 +142,14 @@ public sealed class SaleWorkflowTests(IntakePhotoFixture fixture) : IClassFixtur
         Assert.Equal((SalesOrderStatus.Handling, null, held.Buyer.Mobile), (view.Sale.Status, view.Sale.DueAt,
             view.Context.CustomerMobile));
         Assert.True(view.Actions.SaveTerms && view.Actions.Submit && view.Actions.Release && !view.Actions.Decide);
-        Assert.Equal(SaleStatus.NotFound, (await world.Reads.GetAsync(world.Colleague, held.Id, default)).Status);
+        Assert.Equal(SaleResultStatus.NotFound, (await world.Reads.GetAsync(world.Colleague, held.Id, default)).Status);
 
         var terms = await world.Terms.SaveTermsAsync(world.Agent, held.Id,
             new(Guid.NewGuid(), 2, null, 300m, null, 0m), default);
-        Assert.Equal((SaleStatus.Succeeded, 3L), (terms.Status, terms.Receipt!.Version));
+        Assert.Equal((SaleResultStatus.Succeeded, 3L), (terms.Status, terms.Receipt!.Version));
 
         var released = await world.Handling.ReleaseAsync(world.Agent, held.Id, new(Guid.NewGuid(), 3), default);
-        Assert.Equal(SaleStatus.Succeeded, released.Status);
+        Assert.Equal(SaleResultStatus.Succeeded, released.Status);
         var reclaimed = await world.Handling.AssignAsync(world.Manager, held.Id,
             new(Guid.NewGuid(), 4, world.Colleague), default);
         Assert.Equal(("Assigned", 5L), (reclaimed.Receipt!.Kind, reclaimed.Receipt.Version));
@@ -176,7 +176,7 @@ public sealed class SaleWorkflowTests(IntakePhotoFixture fixture) : IClassFixtur
 
         Assert.Equal(300m,
             (await world.Reads.VersionAsync(world.Manager, held.Id, 3, default)).Value!.Snapshot.NegotiatedDiscount);
-        Assert.Equal(SaleStatus.NotFound, (await world.Reads.HistoryAsync(world.Agent, held.Id, 1, 10, default)).Status);
+        Assert.Equal(SaleResultStatus.NotFound, (await world.Reads.HistoryAsync(world.Agent, held.Id, 1, 10, default)).Status);
     }
 
     [Fact]
@@ -199,8 +199,8 @@ public sealed class SaleWorkflowTests(IntakePhotoFixture fixture) : IClassFixtur
 
         // A change without its history entry is refused at commit.
         await using var transaction = await database.Database.BeginTransactionAsync();
-        await database.Database.ExecuteSqlRawAsync(
-            $"UPDATE \"SalesOrders\" SET \"Version\" = 2, \"UpdatedAt\" = clock_timestamp() WHERE \"Id\" = '{held.Id}'");
+        await database.Database.ExecuteSqlAsync(
+            $"UPDATE \"SalesOrders\" SET \"Version\" = 2, \"UpdatedAt\" = clock_timestamp() WHERE \"Id\" = {held.Id}");
         await Assert.ThrowsAnyAsync<PostgresException>(() => transaction.CommitAsync());
     }
 

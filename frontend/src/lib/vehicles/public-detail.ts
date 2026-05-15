@@ -6,6 +6,7 @@ import { enumValue, parsePoint } from "@/lib/inspection/parse";
 import { parsePublicVehicle } from "./parse";
 import type { PublicVehicle } from "./contracts";
 import { parsePurchasePrice, type PurchasePrice } from "./purchase-quote";
+import { LISTING_DESCRIPTION_MAX_LENGTH } from "@/lib/vehicles/listing-limits";
 
 type ChecklistPoint = Point & {
   kind: "Finding" | "NotFitted" | null;
@@ -76,7 +77,7 @@ export function parsePublicDetail(value: unknown, expectedId?: string): PublicVe
     (checklist.grade !== null && !grade) ||
     typeof value.description !== "string" ||
     !value.description.trim() ||
-    value.description.length > 2000 ||
+    value.description.length > LISTING_DESCRIPTION_MAX_LENGTH ||
     !isMyr(value.roadTax) ||
     typeof value.sstRate !== "number" ||
     !Number.isFinite(value.sstRate) ||

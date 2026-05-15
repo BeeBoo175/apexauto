@@ -2,6 +2,7 @@ import type { SearchParams } from "@/lib/query";
 import { isUuid } from "@/lib/auth/contracts";
 import { parseMyr } from "@/lib/currency-input";
 import { fuels, isVehicleDetailSection, transmissions, type CatalogueFilters } from "./contracts";
+import { MINIMUM_MANUFACTURE_YEAR } from "@/lib/vehicles/listing-limits";
 
 export const catalogueDefaults: CatalogueFilters = {
   make: "",
@@ -61,8 +62,12 @@ export function catalogueFilterError(filters: CatalogueFilters): string | null {
     return "Keep make and model to 100 characters each.";
   }
   const years = [filters.minimumYear, filters.maximumYear];
-  if (years.some((value) => value && (!/^\d{4}$/.test(value) || Number(value) < 1886))) {
-    return "Enter years between 1886 and 9999.";
+  if (
+    years.some(
+      (value) => value && (!/^\d{4}$/.test(value) || Number(value) < MINIMUM_MANUFACTURE_YEAR),
+    )
+  ) {
+    return `Enter years between ${MINIMUM_MANUFACTURE_YEAR} and 9999.`;
   }
   if (years.every(Boolean) && Number(years[0]) > Number(years[1])) {
     return "Minimum year must not exceed maximum year.";

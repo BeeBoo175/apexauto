@@ -16,7 +16,8 @@ internal static class SaleStaffLocks
         return user is null ? null : new SaleStaff(user.Id, user.IsActive, user.Role, user.BranchId);
     }
 
-    public static async Task<SaleStaff?> ReadAsync(DealershipDbContext database, Guid staffId,
+    // Reads the staff row without locking it; commands that rely on the row use LockAsync.
+    public static async Task<SaleStaff?> FindAsync(DealershipDbContext database, Guid staffId,
         CancellationToken cancellationToken)
     {
         var user = await database.Users.AsNoTracking().SingleOrDefaultAsync(item => item.Id == staffId,

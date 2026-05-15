@@ -14,7 +14,7 @@ public sealed class SaleVehiclePhotoStore(DealershipDbContext database) : ISaleV
         var (status, _, sale) = await SaleReadScope.ReadAsync(database, actorId, saleId, cancellationToken);
         if (sale is null)
         {
-            return new(status == SaleStatus.Forbidden ? ListingPhotoStatus.Forbidden : ListingPhotoStatus.NotFound);
+            return new(status == SaleResultStatus.Forbidden ? ListingPhotoStatus.Forbidden : ListingPhotoStatus.NotFound);
         }
 
         // The retained reserved publication grants access, never the current draft or private evidence.

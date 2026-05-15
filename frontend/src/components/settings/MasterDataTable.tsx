@@ -9,7 +9,7 @@ import { RecordToolbar } from "@/components/ui/RecordToolbar";
 import { SearchField } from "@/components/ui/SearchField";
 import type { ListSnapshot } from "@/hooks/use-settings-workspace";
 import { emptyListFilters, type ListFilters } from "@/lib/settings/settings";
-import type { AppliedWorklistFilter } from "@/lib/staff/filter-summary";
+import type { AppliedFilter } from "@/lib/staff/filter-summary";
 import type { LoadList } from "./settings-filters";
 import styles from "@/components/staff/StaffWorklist.module.css";
 
@@ -32,7 +32,7 @@ export function MasterDataTable<Row extends { id: string }>({
   tabs: ReactNode;
   snapshot: ListSnapshot<Row>;
   columns: readonly DataColumn<Row>[];
-  applied: AppliedWorklistFilter<ListFilters>[];
+  applied: AppliedFilter<ListFilters>[];
   busy: boolean;
   selectedId: string;
   onLoad: LoadList;

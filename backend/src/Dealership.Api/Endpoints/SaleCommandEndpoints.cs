@@ -56,13 +56,13 @@ public static class SaleCommandEndpoints
             var result = await command(ActorId(context), request!, deadline.Token);
             return result.Status switch
             {
-                SaleStatus.Succeeded => Results.Ok(result.Receipt),
-                SaleStatus.Invalid => Results.Problem(statusCode: 400, title: "Provide a valid sale command."),
-                SaleStatus.Forbidden => Results.Forbid(),
-                SaleStatus.NotFound => Results.NotFound(),
-                SaleStatus.Conflict => Results.Problem(statusCode: 409,
+                SaleResultStatus.Succeeded => Results.Ok(result.Receipt),
+                SaleResultStatus.Invalid => Results.Problem(statusCode: 400, title: "Provide a valid sale command."),
+                SaleResultStatus.Forbidden => Results.Forbid(),
+                SaleResultStatus.NotFound => Results.NotFound(),
+                SaleResultStatus.Conflict => Results.Problem(statusCode: 409,
                     title: "The sale changed or this operation was already used for different contents."),
-                SaleStatus.Unavailable => Results.Problem(statusCode: 503, title: "Sale terms are temporarily unavailable."),
+                SaleResultStatus.Unavailable => Results.Problem(statusCode: 503, title: "Sale terms are temporarily unavailable."),
                 _ => Results.Problem(statusCode: 500)
             };
         }

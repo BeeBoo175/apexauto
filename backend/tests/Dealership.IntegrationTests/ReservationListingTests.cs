@@ -77,7 +77,6 @@ public sealed class ReservationListingTests(IntakePhotoFixture fixture) : IClass
                 CancellationToken.None)).Status);
             Assert.Empty((await reads.ReadAsync(manager, new(Page: int.MaxValue), CancellationToken.None)).Listings!.Items);
             Assert.Empty((await reads.ReadAsync(manager, new(Search: "Unknown make"), CancellationToken.None)).Listings!.Items);
-            Assert.False(await denied.ReservationReleases.AnyAsync());
         }
 
         await using (var firstReader = clock.CreateContext())
@@ -92,7 +91,8 @@ public sealed class ReservationListingTests(IntakePhotoFixture fixture) : IClass
             Assert.Equal(pages[0].Listings!.Items.Select(item => item.VehicleId),
                 pages[1].Listings!.Items.Select(item => item.VehicleId));
             await AssertRefundAsync(firstReader, held);
-            Assert.False(await firstReader.ReservationReleases.AnyAsync(item => item.ReservationId == laterPage.Id));
+            // The counts reconcile every due hold in the scope, one page-sized batch at a time.
+            await AssertRefundAsync(firstReader, laterPage);
             var second = (await new ListingReadStore(firstReader).ReadAsync(manager,
                 new(Page: 2, PageSize: 10), CancellationToken.None)).Listings!;
             Assert.Equal(last.Publication.VehicleId, Assert.Single(second.Items).VehicleId);
@@ -151,8 +151,7 @@ public sealed class ReservationListingTests(IntakePhotoFixture fixture) : IClass
         var session = (await login.Content.ReadFromJsonAsync<LoginSession>())!;
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
         foreach (var path in new[] { "/api/staff/listings", $"/api/staff/listings/{vehicleId}",
-            $"/api/staff/listings/{vehicleId}/photos", "/api/staff/reservations?isActive=true",
-            "/api/staff/reservations?isActive=false" })
+            $"/api/staff/listings/{vehicleId}/photos" })
         {
             var attempts = failures.Attempts;
             using var response = await client.GetAsync(path);

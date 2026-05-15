@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Dealership.Application.Common;
 using Dealership.Domain.Sales;
 using Dealership.Domain.Vehicles;
@@ -137,9 +138,11 @@ public sealed record SaleVehicleReference(Guid SaleId, string Make, string Model
     int MileageKilometres, string BranchName, DateTimeOffset PublishedAt, SaleVehicleListing Listing);
 
 public sealed record SaleVehicleListing(Guid VehicleId, decimal VehiclePrice, decimal RoadTax,
-    VehicleTransmission Transmission, VehicleFuel Fuel, string Description, IReadOnlyList<Guid> PhotoIds);
+    [property: JsonConverter(typeof(JsonStringEnumConverter))] VehicleTransmission Transmission,
+    [property: JsonConverter(typeof(JsonStringEnumConverter))] VehicleFuel Fuel, string Description,
+    IReadOnlyList<Guid> PhotoIds);
 
-public sealed record SaleReadResult<T>(SaleStatus Status, T? Value = default);
+public sealed record SaleReadResult<T>(SaleResultStatus Status, T? Value = default);
 
 public interface ISaleReadStore
 {

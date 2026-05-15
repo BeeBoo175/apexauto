@@ -6,10 +6,7 @@ import {
   parseListingPublicationReceipt,
   type ListingPublicationReceipt,
 } from "./listing-publication";
-import {
-  parseListingWithdrawalReceipt,
-  type ListingWithdrawalReceipt,
-} from "./listing-withdrawal";
+import { parseListingWithdrawalReceipt, type ListingWithdrawalReceipt } from "./listing-withdrawal";
 
 export interface ListingHistoryEntry {
   id: string;

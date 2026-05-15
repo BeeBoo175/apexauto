@@ -15,7 +15,7 @@ import {
   type Promo,
   type Warranty,
 } from "@/lib/settings/settings";
-import type { AppliedWorklistFilter } from "@/lib/staff/filter-summary";
+import type { AppliedFilter } from "@/lib/staff/filter-summary";
 import { promoColumns, warrantyColumns } from "./settings-columns";
 import { moneyRangeLabel } from "@/lib/range-label";
 
@@ -61,7 +61,7 @@ export function promoTableFilters(
   load: LoadList,
 ) {
   const apply = (next: Partial<ListFilters>) => load({ ...filters, ...next }, 1);
-  const applied: AppliedWorklistFilter<ListFilters>[] = [];
+  const applied: AppliedFilter<ListFilters>[] = [];
   if (filters.text) {
     applied.push({
       key: "code",
@@ -132,7 +132,7 @@ export function warrantyTableFilters(
   load: LoadList,
 ) {
   const apply = (next: Partial<ListFilters>) => load({ ...filters, ...next }, 1);
-  const applied: AppliedWorklistFilter<ListFilters>[] = [];
+  const applied: AppliedFilter<ListFilters>[] = [];
   if (filters.text) {
     applied.push({
       key: "name",

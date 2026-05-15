@@ -86,7 +86,7 @@ public sealed class DevelopmentReservationFixtures(DealershipDbContext database,
                 ? (await cancellations.CancelAsync(customerId.Value, existing.Id, new(scenario.ReleaseId, null),
                     cancellationToken)).Status == ReservationStatus.Succeeded
                 : (await sales.CancelAsync(scenario.CancellationActor(customerId.Value), existing.Id,
-                    new(scenario.ReleaseId, 1, scenario.Reason), cancellationToken)).Status == SaleStatus.Succeeded;
+                    new(scenario.ReleaseId, 1, scenario.Reason), cancellationToken)).Status == SaleResultStatus.Succeeded;
             if (!cancelled)
             {
                 return new(label, "cancellation unavailable; preserved", true);

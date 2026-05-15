@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Data;
 using Dealership.Application.Accounts;
 using Dealership.Application.Sales;
@@ -12,32 +13,32 @@ namespace Dealership.Infrastructure.Sales;
 public sealed class SaleListStore(DealershipDbContext database) : ISaleListStore
 {
     // Each view's own order: what needs attention soonest, or what has waited longest, comes first.
-    private static readonly Dictionary<string, (string Sort, bool Descending)> DefaultOrders =
-        new Dictionary<string, (string, bool)>
+    private static readonly FrozenDictionary<string, (string Sort, bool Descending)> DefaultOrders =
+        new Dictionary<string, (string Sort, bool Descending)>
         {
-            ["ToClaim"] = ("due", false),
-            ["Open"] = ("due", false),
-            ["Handling"] = ("claimed", false),
-            ["BeingHandled"] = ("claimed", false),
-            ["Waiting"] = ("submitted", false),
-            ["NeedsApproval"] = ("submitted", false),
-            ["Approved"] = ("decided", false),
-            ["History"] = ("closed", true)
-        };
+            [SaleViews.ToClaim] = ("due", false),
+            [SaleViews.Open] = ("due", false),
+            [SaleViews.Handling] = ("claimed", false),
+            [SaleViews.BeingHandled] = ("claimed", false),
+            [SaleViews.Waiting] = ("submitted", false),
+            [SaleViews.NeedsApproval] = ("submitted", false),
+            [SaleViews.Approved] = ("decided", false),
+            [SaleViews.History] = ("closed", true)
+        }.ToFrozenDictionary();
 
     public async Task<SaleReadResult<SaleQueuePage>> QueueAsync(Guid actorId, string view, string? search, int page,
         int pageSize, CancellationToken cancellationToken)
     {
-        var actor = await SaleStaffLocks.ReadAsync(database, actorId, cancellationToken);
+        var actor = await SaleStaffLocks.FindAsync(database, actorId, cancellationToken);
         if (actor is not { IsActive: true, Role: AccountRoles.SalesAgent, BranchId: { } branchId } ||
             !await SaleStaffLocks.BranchActiveAsync(database, actor, cancellationToken))
         {
-            return new(SaleStatus.Forbidden);
+            return new(SaleResultStatus.Forbidden);
         }
 
         if (!await ReconcileAsync(database.SalesOrders.Where(item => item.BranchId == branchId), cancellationToken))
         {
-            return new(SaleStatus.Unavailable);
+            return new(SaleResultStatus.Unavailable);
         }
 
         await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead,
@@ -45,15 +46,15 @@ public sealed class SaleListStore(DealershipDbContext database) : ISaleListStore
         var sales = database.SalesOrders.AsNoTracking();
         var tabs = new Dictionary<string, IQueryable<SalesOrder>>
         {
-            ["ToClaim"] = sales.Where(item => item.BranchId == branchId && item.Status == SalesOrderStatus.Open),
-            ["Handling"] = Own(sales, actorId, SalesOrderStatus.Handling),
-            ["Waiting"] = Own(sales, actorId, SalesOrderStatus.PendingApproval),
-            ["Approved"] = Own(sales, actorId, SalesOrderStatus.Approved)
+            [SaleViews.ToClaim] = sales.Where(item => item.BranchId == branchId && item.Status == SalesOrderStatus.Open),
+            [SaleViews.Handling] = Own(sales, actorId, SalesOrderStatus.Handling),
+            [SaleViews.Waiting] = Own(sales, actorId, SalesOrderStatus.PendingApproval),
+            [SaleViews.Approved] = Own(sales, actorId, SalesOrderStatus.Approved)
         };
         var views = tabs.ToDictionary(item => item.Key, item => Rows(item.Value, search));
         // Without a search the counts need no customer, car or agent details, so they run on the sales alone.
-        var counts = new SaleQueueCounts(await CountAsync("ToClaim"), await CountAsync("Handling"),
-            await CountAsync("Waiting"), await CountAsync("Approved"));
+        var counts = new SaleQueueCounts(await CountAsync(SaleViews.ToClaim), await CountAsync(SaleViews.Handling),
+            await CountAsync(SaleViews.Waiting), await CountAsync(SaleViews.Approved));
         // A search spans every tab; each match carries its status so the queue can show where it sits.
         var rows = search is null ? views[view] : views.Values.Aggregate((all, next) => all.Concat(next));
         var total = search is null ? CountOf(counts, view) : counts.ToClaim + counts.Handling + counts.Waiting +
@@ -62,7 +63,7 @@ public sealed class SaleListStore(DealershipDbContext database) : ISaleListStore
         var items = await SaleRows.Order(rows, search is null ? sort : "due", descending)
             .ReadPageAsync(page, pageSize, total, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-        return new(SaleStatus.Succeeded,
+        return new(SaleResultStatus.Succeeded,
             new SaleQueuePage([.. items.Select(SaleRows.Summary)], total, page, pageSize, counts));
 
         Task<int> CountAsync(string tab) => search is null
@@ -73,19 +74,19 @@ public sealed class SaleListStore(DealershipDbContext database) : ISaleListStore
     public async Task<SaleReadResult<SaleTablePage>> TableAsync(Guid actorId, SaleTableQuery query,
         CancellationToken cancellationToken)
     {
-        var actor = await SaleStaffLocks.ReadAsync(database, actorId, cancellationToken);
+        var actor = await SaleStaffLocks.FindAsync(database, actorId, cancellationToken);
         var group = actor is { IsActive: true, Role: AccountRoles.GeneralManager };
         var branch = actor is { IsActive: true, Role: AccountRoles.BranchManager, BranchId: not null } &&
             await SaleStaffLocks.BranchActiveAsync(database, actor, cancellationToken);
         if (!group && !branch)
         {
-            return new(SaleStatus.Forbidden);
+            return new(SaleResultStatus.Forbidden);
         }
 
         var scoped = group ? database.SalesOrders : database.SalesOrders.Where(item => item.BranchId == actor!.BranchId);
         if (!await ReconcileAsync(scoped, cancellationToken))
         {
-            return new(SaleStatus.Unavailable);
+            return new(SaleResultStatus.Unavailable);
         }
 
         await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead,
@@ -107,12 +108,12 @@ public sealed class SaleListStore(DealershipDbContext database) : ISaleListStore
         var (sort, descending) = query.Sort is null ? DefaultOrders[view] : (query.Sort, query.Descending);
         if (sort == "timeLeft")
         {
-            sort = view == "Open" ? "due" : "paused";
+            sort = view == SaleViews.Open ? "due" : "paused";
         }
         var items = await SaleRows.Order(rows, sort, descending).ReadPageAsync(query.Page, query.PageSize, total,
             cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-        return new(SaleStatus.Succeeded, new SaleTablePage([.. items.Select(SaleRows.Summary)], total, query.Page,
+        return new(SaleResultStatus.Succeeded, new SaleTablePage([.. items.Select(SaleRows.Summary)], total, query.Page,
             query.PageSize, counts, view));
     }
 
@@ -127,9 +128,9 @@ public sealed class SaleListStore(DealershipDbContext database) : ISaleListStore
 
     private static int CountOf(SaleQueueCounts counts, string view) => view switch
     {
-        "Handling" => counts.Handling,
-        "Waiting" => counts.Waiting,
-        "Approved" => counts.Approved,
+        SaleViews.Handling => counts.Handling,
+        SaleViews.Waiting => counts.Waiting,
+        SaleViews.Approved => counts.Approved,
         _ => counts.ToClaim
     };
 
@@ -138,33 +139,33 @@ public sealed class SaleListStore(DealershipDbContext database) : ISaleListStore
     {
         if (counts.NeedsApproval > 0)
         {
-            return "NeedsApproval";
+            return SaleViews.NeedsApproval;
         }
 
         if (counts.Open > 0)
         {
-            return "Open";
+            return SaleViews.Open;
         }
 
         if (counts.BeingHandled > 0)
         {
-            return "BeingHandled";
+            return SaleViews.BeingHandled;
         }
 
         if (counts.Approved > 0)
         {
-            return "Approved";
+            return SaleViews.Approved;
         }
 
-        return "NeedsApproval";
+        return SaleViews.NeedsApproval;
     }
 
     private static IQueryable<SalesOrder> InView(IQueryable<SalesOrder> sales, string view) => view switch
     {
-        "Open" => sales.Where(item => item.Status == SalesOrderStatus.Open),
-        "BeingHandled" => sales.Where(item => item.Status == SalesOrderStatus.Handling),
-        "Approved" => sales.Where(item => item.Status == SalesOrderStatus.Approved),
-        "History" => sales.Where(item => item.Status == SalesOrderStatus.Expired ||
+        SaleViews.Open => sales.Where(item => item.Status == SalesOrderStatus.Open),
+        SaleViews.BeingHandled => sales.Where(item => item.Status == SalesOrderStatus.Handling),
+        SaleViews.Approved => sales.Where(item => item.Status == SalesOrderStatus.Approved),
+        SaleViews.History => sales.Where(item => item.Status == SalesOrderStatus.Expired ||
             item.Status == SalesOrderStatus.Cancelled),
         _ => sales.Where(item => item.Status == SalesOrderStatus.PendingApproval)
     };
