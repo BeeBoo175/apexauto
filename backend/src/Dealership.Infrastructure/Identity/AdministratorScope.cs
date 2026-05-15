@@ -2,7 +2,7 @@ using Dealership.Application.Accounts;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-namespace Dealership.Infrastructure.Vehicles;
+namespace Dealership.Infrastructure.Identity;
 
 // Administration is system-wide and unbranched; commercial approvals do not flow through this scope.
 internal static class AdministratorScope

@@ -31,9 +31,6 @@ public sealed record WarrantyPage(IReadOnlyList<WarrantyView> Items, int Total, 
 public sealed record WarrantyAdministrationResult(WarrantyAdministrationStatus Status, WarrantyView? Package = null,
     WarrantyPage? Page = null);
 
-public sealed record WarrantyProvisioningRequest(Guid Id, string Name, int DurationMonths, int MileageCapKm,
-    decimal Price, InspectionGrade MinimumGrade, bool IsActive = true);
-
 public interface IWarrantyAdministrationStore
 {
     Task<WarrantyAdministrationResult> ListAsync(Guid actorId, AdministrationListQuery query,

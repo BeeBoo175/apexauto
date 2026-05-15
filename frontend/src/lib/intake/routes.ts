@@ -5,8 +5,11 @@ import { isRecord, isUuid } from "@/lib/auth/contracts";
 import { requestApiJson, sessionToken, apiJson, apiError } from "@/lib/server/http/api";
 import { API_DEADLINE_MS } from "@/lib/api";
 import { PHOTO_DEADLINE_MS, PHOTO_MAX_BYTES, angles } from "./contracts";
-import { readCurrentActor } from "@/lib/auth/server";
+import { confirmedActor } from "@/lib/server/http/staff-relay";
 import { parseIntakeConflict } from "./errors";
+
+const sessionUnconfirmed =
+  "Your session could not be confirmed. Retry when the service is available.";
 
 export async function relayIntake<T>(
   request: Request,
@@ -25,14 +28,7 @@ export async function relayIntake<T>(
     if (authenticated && !token) {
       throw new HttpError(401, "Sign in to continue.");
     }
-    const current = authenticated ? await readCurrentActor(signal) : null;
-    const actor = current?.actor;
-    if (current && current.status !== 200) {
-      throw new HttpError(
-        current.status === 401 ? 401 : 502,
-        "Your session could not be confirmed. Retry when the service is available.",
-      );
-    }
+    const actor = authenticated ? await confirmedActor(signal, sessionUnconfirmed) : null;
     let body: unknown;
     if (method !== "GET") {
       if (request.headers.get("content-type")?.split(";")[0] !== "application/json") {
@@ -77,14 +73,7 @@ export async function relayPhoto(request: Request, id: string, parse: (value: un
       throw new HttpError(401, "Sign in to continue.");
     }
     const signal = AbortSignal.any([request.signal, AbortSignal.timeout(PHOTO_DEADLINE_MS)]);
-    const current = await readCurrentActor(signal);
-    const actor = current.actor;
-    if (!actor) {
-      throw new HttpError(
-        current.status === 401 ? 401 : 502,
-        "Your session could not be confirmed. Retry when the service is available.",
-      );
-    }
+    const actor = await confirmedActor(signal, sessionUnconfirmed);
     const angle = new URL(request.url).searchParams.get("angle");
     const contentType = request.headers.get("content-type")?.split(";")[0];
     if (!isUuid(id) || !angles.some((item) => item === angle)) {

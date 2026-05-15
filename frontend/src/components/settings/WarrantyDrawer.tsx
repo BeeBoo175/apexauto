@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import type { useStaffSelection } from "@/hooks/use-staff-selection";
-import { useSettingsSave } from "@/hooks/use-settings-save";
+import { useSettingsDrawer } from "@/hooks/use-settings-drawer";
 import { parseWarranty, type Warranty } from "@/lib/settings/settings";
 import { SettingsDrawerLoadingShell } from "./SettingsDrawerLoadingShell";
 import { WarrantyForm } from "./WarrantyForm";
@@ -25,31 +24,14 @@ export function WarrantyDrawer({
   onCloseCreate: () => void;
   onSaved: () => void;
 }) {
-  const saver = useSettingsSave(parseWarranty);
-  const [opened, setOpened] = useState<Warranty | null>(null);
-  const [revision, setRevision] = useState(0);
-  const latest = selection.result?.data ?? null;
-  // The draft stays based on the first record read for this selection until newer values are chosen.
-  if (!creating && latest && opened?.id !== latest.id) {
-    setOpened(latest);
-  }
-  const base = creating || opened?.id !== latest?.id ? null : opened;
-  const loading = !creating && selection.busy && !latest;
-
-  function dismiss() {
-    setOpened(null);
-    if (creating) {
-      onCloseCreate();
-    } else {
-      selection.close();
-    }
-  }
-
-  function close() {
-    if (!saver.busy) {
-      dismiss();
-    }
-  }
+  const { saver, latest, base, loading, revision, dismiss, close, adoptLatest } = useSettingsDrawer(
+    {
+      selection,
+      creating,
+      parse: parseWarranty,
+      onCloseCreate,
+    },
+  );
 
   return (
     <>
@@ -101,10 +83,7 @@ export function WarrantyDrawer({
               dismiss();
             }}
             onReload={() => void selection.choose(selection.id)}
-            onUseLatest={() => {
-              setOpened(latest);
-              setRevision((value) => value + 1);
-            }}
+            onUseLatest={adoptLatest}
             onCancel={dismiss}
           />
         )}

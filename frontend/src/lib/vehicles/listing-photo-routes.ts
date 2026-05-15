@@ -1,10 +1,10 @@
 import "server-only";
 import { isUuid } from "@/lib/auth/contracts";
-import { readCurrentActor } from "@/lib/auth/server";
 import { HttpError, readBoundedBytes } from "@/lib/http";
 import { PHOTO_MAX_BYTES } from "@/lib/intake/contracts";
 import { apiError, apiJson, requestApiJson, sessionToken } from "@/lib/server/http/api";
 import { requireSameOrigin } from "@/lib/server/http/request";
+import { accessDenied, confirmedActor } from "@/lib/server/http/staff-relay";
 import { requestApi } from "@/lib/server/http/upstream";
 import { hasListingAccess } from "./listings";
 import { parseListingPhotoReceipt } from "./listing-photos";
@@ -29,21 +29,9 @@ export async function listingPhoto(
     if (!token) {
       throw new HttpError(401, "Sign in to continue.");
     }
-    const current = await readCurrentActor(signal);
-    if (!current.actor) {
-      throw new HttpError(
-        current.status === 401 ? 401 : 502,
-        "Your session could not be confirmed.",
-      );
-    }
-    if (!hasListingAccess(current.actor)) {
-      return apiJson({
-        status: 403,
-        data: null,
-        message: "Listing access unavailable.",
-        uncertain: false,
-        actor: current.actor,
-      });
+    const actor = await confirmedActor(signal);
+    if (!hasListingAccess(actor)) {
+      return accessDenied(actor, "Listing access unavailable.");
     }
     const path = `/api/staff/listings/${vehicleId}/photos/${photoId}`;
     if (mode === "download") {
@@ -56,7 +44,7 @@ export async function listingPhoto(
         { token, signal },
         deadline,
       );
-      return apiJson({ ...result, actor: current.actor });
+      return apiJson({ ...result, actor });
     }
     const contentType = request.headers.get("content-type")?.split(";")[0] ?? "";
     if (!["image/jpeg", "image/png", "image/webp"].includes(contentType)) {
@@ -69,7 +57,7 @@ export async function listingPhoto(
       { token, signal, bytes, contentType, method: "PUT" },
       deadline,
     );
-    return apiJson({ ...result, actor: current.actor });
+    return apiJson({ ...result, actor });
   } catch (error) {
     return apiError(error);
   }

@@ -1,28 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import { useEditGuard } from "@/hooks/use-edit-guard";
 import { ConfirmationButton } from "@/components/ui/ConfirmationButton";
 import { StaffWorkspaceFooter } from "@/components/staff/StaffWorkspaceFooter";
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Input";
-import { useToast } from "@/components/ui/Toast";
 import type { useSettingsSave } from "@/hooks/use-settings-save";
-import { parseMyr } from "@/lib/currency-input";
+import { useWarrantyForm } from "@/hooks/use-warranty-form";
 import { formatCurrency } from "@/lib/currency-format";
-import {
-  recordPath,
-  warrantyGrades,
-  type Warranty,
-  type WarrantyGrade,
-} from "@/lib/settings/settings";
+import { warrantyGrades, type Warranty, type WarrantyGrade } from "@/lib/settings/settings";
 import { SettingsNotice } from "./SettingsNotice";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 import styles from "@/components/staff/StaffForms.module.css";
 
-const whole = (value: string) => (/^\d+$/.test(value.trim()) ? Number(value.trim()) : null);
-
-// The draft is based on the record as it was opened; a newer read never replaces it silently.
 export function WarrantyForm({
   base,
   latest,
@@ -42,74 +31,32 @@ export function WarrantyForm({
   onUseLatest: () => void;
   onCancel: () => void;
 }) {
-  const toast = useToast();
-  // One identity per open create drawer lets a lost response be retried without a duplicate.
-  const [id] = useState(() => base?.id ?? crypto.randomUUID());
-  const [name, setName] = useState(base?.name ?? "");
-  const [months, setMonths] = useState(base ? String(base.durationMonths) : "");
-  const [kilometres, setKilometres] = useState(base ? String(base.mileageCapKm) : "");
-  const [price, setPrice] = useState(base ? base.price.toFixed(2) : "");
-  const [grade, setGrade] = useState<WarrantyGrade>(base?.minimumGrade ?? "C");
-  const [isActive, setIsActive] = useState(base?.isActive ?? true);
-  const durationMonths = whole(months);
-  const mileageCapKm = whole(kilometres);
-  const amount = parseMyr(price.trim());
-  const valid =
-    Boolean(name.trim()) &&
-    durationMonths !== null &&
-    durationMonths > 0 &&
-    mileageCapKm !== null &&
-    mileageCapKm > 0 &&
-    amount !== null;
-  const uncertain = Boolean(saver.notice?.uncertain);
-  const disabled = busy || saver.busy || uncertain;
-  const newer = base && latest && latest.version !== base.version;
-  // Like the other editors, an existing record can be saved only once something differs from it.
-  const changed =
-    !base ||
-    name.trim() !== base.name ||
-    durationMonths !== base.durationMonths ||
-    mileageCapKm !== base.mileageCapKm ||
-    amount !== base.price ||
-    grade !== base.minimumGrade ||
-    isActive !== base.isActive;
-  const dirty = base
-    ? changed
-    : Boolean(name || months || kilometres || price || grade !== "C" || !isActive);
-  useEditGuard({
+  const {
+    name,
+    months,
+    kilometres,
+    price,
+    grade,
+    isActive,
+    amount,
+    valid,
+    uncertain,
+    newer,
+    changed,
     dirty,
-    pending: saver.busy,
-    uncertain: Boolean(saver.notice?.uncertain),
-    label: "Warranty package",
-    discard: onCancel,
-  });
+    setName,
+    setMonths,
+    setKilometres,
+    setPrice,
+    setGrade,
+    setIsActive,
+    submit,
+    reload,
+  } = useWarrantyForm({ base, latest, saver, onSaved, onReload, onCancel });
+  const disabled = busy || saver.busy || uncertain;
   let submitLabel = base ? "Save package" : "Create package";
   if (uncertain) {
     submitLabel = "Retry same save";
-  }
-
-  async function submit() {
-    if (!valid || durationMonths === null || mileageCapKm === null || amount === null) {
-      return;
-    }
-    const terms = {
-      name: name.trim(),
-      durationMonths,
-      mileageCapKm,
-      price: amount,
-      minimumGrade: grade,
-      isActive,
-    };
-    const saved = base
-      ? await saver.save(recordPath("warranties", base.id), "PUT", {
-          ...terms,
-          expectedVersion: base.version,
-        })
-      : await saver.save("/api/staff/settings/warranties", "POST", { id, ...terms });
-    if (saved) {
-      toast.success(base ? "Warranty package saved." : "Warranty package created.");
-      onSaved();
-    }
   }
 
   return (
@@ -238,22 +185,7 @@ export function WarrantyForm({
                   : "A package with this name already exists, or the details differ from an earlier attempt."
               }
               reloadLabel={base ? "Reload package" : "Check saved package"}
-              onReload={async () => {
-                const latest = await saver.reload(recordPath("warranties", id));
-                if (latest.status === "loaded") {
-                  if (base) {
-                    onReload();
-                  } else {
-                    onSaved();
-                  }
-                } else if (latest.status === "missing") {
-                  toast.info("This package was not created. Review your entries or discard them.");
-                } else {
-                  toast.error(
-                    "The package could not be checked. Your entries and recovery state are kept.",
-                  );
-                }
-              }}
+              onReload={reload}
             />
           )}
         </div>

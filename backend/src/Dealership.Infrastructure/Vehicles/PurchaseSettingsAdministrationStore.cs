@@ -1,5 +1,6 @@
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Vehicles;
+using Dealership.Infrastructure.Identity;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 

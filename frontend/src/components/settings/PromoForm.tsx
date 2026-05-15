@@ -1,22 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { useEditGuard } from "@/hooks/use-edit-guard";
 import { ConfirmationButton } from "@/components/ui/ConfirmationButton";
 import { StaffWorkspaceFooter } from "@/components/staff/StaffWorkspaceFooter";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { useToast } from "@/components/ui/Toast";
+import { usePromoForm } from "@/hooks/use-promo-form";
 import type { useSettingsSave } from "@/hooks/use-settings-save";
-import { parseMyr } from "@/lib/currency-input";
 import { formatCurrency } from "@/lib/currency-format";
-import { formatMalaysianDateTime, malaysiaInput, utcFromMalaysiaInput } from "@/lib/date-format";
-import { promoState, recordPath, type Promo } from "@/lib/settings/settings";
+import { formatMalaysianDateTime } from "@/lib/date-format";
+import { promoState, type Promo } from "@/lib/settings/settings";
 import { SettingsNotice } from "./SettingsNotice";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 import styles from "@/components/staff/StaffForms.module.css";
 
-// The draft is based on the record as it was opened; a newer read never replaces it silently.
 export function PromoForm({
   base,
   latest,
@@ -36,60 +32,28 @@ export function PromoForm({
   onUseLatest: () => void;
   onCancel: () => void;
 }) {
-  const toast = useToast();
-  // One identity per open create drawer lets a lost response be retried without a duplicate.
-  const [id] = useState(() => base?.id ?? crypto.randomUUID());
-  const [code, setCode] = useState(base?.code ?? "");
-  const [discount, setDiscount] = useState(base ? base.discount.toFixed(2) : "");
-  const [expiry, setExpiry] = useState(base ? malaysiaInput(base.expiresAtUtc) : "");
-  const [isActive, setIsActive] = useState(base?.isActive ?? true);
-  const amount = parseMyr(discount.trim());
-  const expiresAtUtc = utcFromMalaysiaInput(expiry);
-  const valid = Boolean(code.trim()) && amount !== null && amount > 0 && expiresAtUtc !== null;
-  const uncertain = Boolean(saver.notice?.uncertain);
-  const disabled = busy || saver.busy || uncertain;
-  const newer = base && latest && latest.version !== base.version;
-  // Like the other editors, an existing record can be saved only once something differs from it.
-  const changed =
-    !base ||
-    amount !== base.discount ||
-    expiresAtUtc !== new Date(base.expiresAtUtc).toISOString() ||
-    isActive !== base.isActive;
-  const dirty = base ? changed : Boolean(code || discount || expiry || !isActive);
-  useEditGuard({
+  const {
+    code,
+    discount,
+    expiry,
+    isActive,
+    amount,
+    valid,
+    uncertain,
+    newer,
+    changed,
     dirty,
-    pending: saver.busy,
-    uncertain: Boolean(saver.notice?.uncertain),
-    label: "Promo",
-    discard: onCancel,
-  });
+    setCode,
+    setDiscount,
+    setExpiry,
+    setIsActive,
+    submit,
+    reload,
+  } = usePromoForm({ base, latest, saver, onSaved, onReload, onCancel });
+  const disabled = busy || saver.busy || uncertain;
   let submitLabel = base ? "Save promo" : "Create promo";
   if (uncertain) {
     submitLabel = "Retry same save";
-  }
-
-  async function submit() {
-    if (!valid || amount === null || expiresAtUtc === null) {
-      return;
-    }
-    const saved = base
-      ? await saver.save(recordPath("promos", base.id), "PUT", {
-          discount: amount,
-          expiresAtUtc,
-          isActive,
-          expectedVersion: base.version,
-        })
-      : await saver.save("/api/staff/settings/promos", "POST", {
-          id,
-          code: code.trim(),
-          discount: amount,
-          expiresAtUtc,
-          isActive,
-        });
-    if (saved) {
-      toast.success(base ? "Promo saved." : "Promo created.");
-      onSaved();
-    }
   }
 
   return (
@@ -195,22 +159,7 @@ export function PromoForm({
                   : "A promo with this code already exists, or the details differ from an earlier attempt."
               }
               reloadLabel={base ? "Reload promo" : "Check saved promo"}
-              onReload={async () => {
-                const latest = await saver.reload(recordPath("promos", id));
-                if (latest.status === "loaded") {
-                  if (base) {
-                    onReload();
-                  } else {
-                    onSaved();
-                  }
-                } else if (latest.status === "missing") {
-                  toast.info("This promo was not created. Review your entries or discard them.");
-                } else {
-                  toast.error(
-                    "The promo could not be checked. Your entries and recovery state are kept.",
-                  );
-                }
-              }}
+              onReload={reload}
             />
           )}
         </div>

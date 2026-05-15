@@ -4,13 +4,10 @@ import { StaffWorkspaceFooter } from "@/components/staff/StaffWorkspaceFooter";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
-import { useToast } from "@/components/ui/Toast";
-import { useEditGuard } from "@/hooks/use-edit-guard";
-import { useLayoutEffect } from "react";
-import { useSettingsSave } from "@/hooks/use-settings-save";
+import { usePurchaseSettingsForm } from "@/hooks/use-purchase-settings-form";
 import { formatMalaysianDateTime } from "@/lib/date-format";
-import { parseSettings, type PurchaseSettings } from "@/lib/settings/settings";
-import { draftFrom, readDraft, unchanged, type SettingsDraft } from "@/lib/settings/settings-draft";
+import type { PurchaseSettings } from "@/lib/settings/settings";
+import type { SettingsDraft } from "@/lib/settings/settings-draft";
 import { SettingsNotice } from "./SettingsNotice";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 import styles from "@/components/staff/StaffForms.module.css";
@@ -63,51 +60,10 @@ export function SettingsForm({
   onSaved: (settings: PurchaseSettings) => void;
   onLocked: (locked: boolean) => void;
 }) {
-  const toast = useToast();
-  const saver = useSettingsSave(parseSettings);
-  const current = draft ?? draftFrom(settings);
-  const { values, errors } = readDraft(current, settings.bounds);
-  const changed = values !== null && !unchanged(values, settings);
+  const { saver, current, errors, changed, uncertain, disabled, field, discard, submit, reload } =
+    usePurchaseSettingsForm({ settings, draft, busy, onDraft, onSaved, onLocked });
   const { bounds } = settings;
-  const uncertain = Boolean(saver.notice?.uncertain);
-  const disabled = busy || saver.busy || uncertain;
-  const dirty = Boolean(draft) && (!values || changed);
-  const locked = dirty || saver.busy || Boolean(saver.notice?.uncertain);
-  useEditGuard({
-    dirty,
-    pending: saver.busy,
-    uncertain: Boolean(saver.notice?.uncertain),
-    label: "Purchase settings",
-    discard: () => {
-      saver.clearNotice();
-      onDraft(null);
-    },
-  });
-  useLayoutEffect(() => {
-    onLocked(locked);
-    return () => onLocked(false);
-  }, [locked, onLocked]);
   const maximumPercent = Number((bounds.maximumSstRate * 100).toFixed(2));
-
-  function field(key: keyof SettingsDraft, value: string) {
-    saver.clearNotice();
-    onDraft({ ...current, [key]: value });
-  }
-
-  async function submit() {
-    if (!values || !changed) {
-      return;
-    }
-    const saved = await saver.save("/api/staff/settings", "PUT", {
-      ...values,
-      expectedVersion: settings.version,
-    });
-    if (saved) {
-      onDraft(null);
-      onSaved(saved);
-      toast.success("Settings saved.");
-    }
-  }
 
   return (
     <form
@@ -174,17 +130,7 @@ export function SettingsForm({
               busy={busy || saver.busy}
               conflictMessage="These settings changed elsewhere. Your entries are kept until you load the latest values."
               reloadLabel="Load latest settings"
-              onReload={async () => {
-                const latest = await saver.reload("/api/staff/settings");
-                if (latest.status === "loaded") {
-                  onDraft(null);
-                  onSaved(latest.data);
-                } else {
-                  toast.error(
-                    "Settings could not be checked. Your entries and recovery state are kept.",
-                  );
-                }
-              }}
+              onReload={reload}
             />
           )}
         </div>
@@ -199,10 +145,7 @@ export function SettingsForm({
             size="compact"
             variant="secondary"
             disabled={disabled}
-            onClick={() => {
-              saver.clearNotice();
-              onDraft(null);
-            }}
+            onClick={discard}
           >
             Discard changes
           </Button>

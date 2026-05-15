@@ -1,6 +1,5 @@
 import "server-only";
 import { isRecord, isUuid } from "@/lib/auth/contracts";
-import { readCurrentActor } from "@/lib/auth/server";
 import { isMyr } from "@/lib/currency-input";
 import { HttpError, readBoundedJson } from "@/lib/http";
 import { requireSameOrigin } from "@/lib/server/http/request";
@@ -11,6 +10,12 @@ import {
   requestApiJson,
   sessionToken,
 } from "@/lib/server/http/api";
+import {
+  accessDenied,
+  allowedQuery,
+  confirmedActor,
+  requireJsonRequest,
+} from "@/lib/server/http/staff-relay";
 import { hasSettingsAccess, warrantyGrades } from "./settings";
 
 export type SettingsResource = "settings" | "promos" | "warranties";
@@ -36,20 +41,11 @@ const columnKeys: Record<Exclude<SettingsResource, "settings">, Record<string, s
 type Body = Record<string, unknown>;
 
 async function settingsActor(signal: AbortSignal) {
-  const current = await readCurrentActor(signal);
-  if (!current.actor) {
-    throw new HttpError(current.status === 401 ? 401 : 502, "Your session could not be confirmed.");
-  }
-  const denied = !hasSettingsAccess(current.actor)
-    ? apiJson({
-        status: 403,
-        data: null,
-        message: "Settings access unavailable.",
-        uncertain: false,
-        actor: current.actor,
-      })
+  const actor = await confirmedActor(signal);
+  const denied = !hasSettingsAccess(actor)
+    ? accessDenied(actor, "Settings access unavailable.")
     : null;
-  return { actor: current.actor, denied };
+  return { actor, denied };
 }
 
 export async function relaySettingsRead<T>(
@@ -70,11 +66,8 @@ export async function relaySettingsRead<T>(
     const source = new URL(request.url).searchParams;
     const allowed = new URLSearchParams();
     if (id === null && resource !== "settings") {
-      for (const key of listKeys) {
-        if (source.has(key)) {
-          allowed.set(key, source.get(key)!);
-        }
-      }
+      const listed = allowedQuery(source, listKeys);
+      listed.forEach((value, key) => allowed.set(key, value));
       for (const [key, upstreamKey] of Object.entries(columnKeys[resource])) {
         if (source.has(key)) {
           allowed.set(upstreamKey, source.get(key)!);
@@ -112,9 +105,7 @@ export async function relaySettingsWrite<T>(
     if (current.denied) {
       return current.denied;
     }
-    if (request.headers.get("content-type")?.split(";")[0] !== "application/json") {
-      throw new HttpError(415, "Send application/json.");
-    }
+    requireJsonRequest(request);
     const body = await readBoundedJson(request.body, signal, 8 * 1024);
     const forwarded = isRecord(body) ? shape(body) : null;
     if (!forwarded) {

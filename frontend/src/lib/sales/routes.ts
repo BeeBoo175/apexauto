@@ -1,6 +1,5 @@
 import "server-only";
 import { isRecord, isUuid } from "@/lib/auth/contracts";
-import { readCurrentActor } from "@/lib/auth/server";
 import { isMyr } from "@/lib/currency-input";
 import { HttpError, readBoundedJson } from "@/lib/http";
 import { requireSameOrigin } from "@/lib/server/http/request";
@@ -11,6 +10,12 @@ import {
   requestApiJson,
   sessionToken,
 } from "@/lib/server/http/api";
+import {
+  accessDenied,
+  allowedQuery,
+  confirmedActor,
+  requireJsonRequest,
+} from "@/lib/server/http/staff-relay";
 import { isSaleReason } from "./parse";
 import { hasSalesAccess, tableTextKeys } from "./contracts";
 import { downloadListingPhoto } from "@/lib/vehicles/listing-photo-routes";
@@ -44,20 +49,9 @@ export const tableKeys = ["page", "pageSize", "view", "sort", "direction", ...ta
 export const queueKeys = ["view", "search", "page", "pageSize"];
 
 async function relayActor(signal: AbortSignal) {
-  const current = await readCurrentActor(signal);
-  if (!current.actor) {
-    throw new HttpError(current.status === 401 ? 401 : 502, "Your session could not be confirmed.");
-  }
-  const denied = !hasSalesAccess(current.actor)
-    ? apiJson({
-        status: 403,
-        data: null,
-        message: "Access unavailable.",
-        uncertain: false,
-        actor: current.actor,
-      })
-    : null;
-  return { actor: current.actor, denied };
+  const actor = await confirmedActor(signal);
+  const denied = !hasSalesAccess(actor) ? accessDenied(actor, "Access unavailable.") : null;
+  return { actor, denied };
 }
 
 export async function relaySaleVehiclePhoto(request: Request, saleId: string, photoId: string) {
@@ -99,13 +93,7 @@ export async function relaySaleRead<T>(
     if (current.denied) {
       return current.denied;
     }
-    const source = new URL(request.url).searchParams;
-    const allowed = new URLSearchParams();
-    for (const key of keys) {
-      if (source.has(key)) {
-        allowed.set(key, source.get(key)!);
-      }
-    }
+    const allowed = allowedQuery(new URL(request.url).searchParams, keys);
     const query = allowed.size > 0 ? `?${allowed}` : "";
     const result = await privateApiRead(`${upstream}${resource}${query}`, parse, signal);
     return apiJson({ ...result, actor: current.actor });
@@ -134,9 +122,7 @@ export async function relaySaleCommand<T>(
     if (current.denied) {
       return current.denied;
     }
-    if (request.headers.get("content-type")?.split(";")[0] !== "application/json") {
-      throw new HttpError(415, "Send application/json.");
-    }
+    requireJsonRequest(request);
     const body = await readBoundedJson(request.body, signal, 8 * 1024);
     const forwarded = isRecord(body) ? shape(body) : null;
     if (!forwarded) {

@@ -1,9 +1,9 @@
 import "server-only";
 import { isUuid } from "@/lib/auth/contracts";
-import { readCurrentActor } from "@/lib/auth/server";
 import { requestApi } from "@/lib/server/http/upstream";
 import { HttpError, readBoundedBytes } from "@/lib/http";
 import { requireSameOrigin } from "@/lib/server/http/request";
+import { confirmedActor } from "@/lib/server/http/staff-relay";
 import { requestApiJson, sessionToken } from "@/lib/server/http/api";
 import { apiError, apiJson } from "@/lib/server/http/api";
 import { PHOTO_MAX_BYTES } from "@/lib/intake/contracts";
@@ -24,13 +24,7 @@ export async function inspectionPhoto(request: Request, inspectionId: string, id
     if (!token) {
       throw new HttpError(401, "Sign in to continue.");
     }
-    const current = await readCurrentActor(signal);
-    if (!current.actor) {
-      throw new HttpError(
-        current.status === 401 ? 401 : 502,
-        "Your session could not be confirmed.",
-      );
-    }
+    const actor = await confirmedActor(signal);
     const path = `/api/staff/inspection/drafts/${inspectionId}/photos/${id}`;
     if (upload) {
       const source = new URL(request.url).searchParams;
@@ -51,7 +45,7 @@ export async function inspectionPhoto(request: Request, inspectionId: string, id
         { token, signal, bytes, contentType, method: "PUT" },
         deadline,
       );
-      return apiJson({ ...result, actor: current.actor });
+      return apiJson({ ...result, actor });
     }
     const { response, signal: bodySignal } = await requestApi(path, deadline, { token, signal });
     if (!response.ok) {
