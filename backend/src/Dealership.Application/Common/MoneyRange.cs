@@ -1,3 +1,5 @@
+using Dealership.Domain.Common;
+
 namespace Dealership.Application.Common;
 
 public static class MoneyRange
@@ -10,7 +12,7 @@ public static class MoneyRange
 
     private static bool IsAmount(decimal? amount)
     {
-        return amount is null || amount >= 0 && amount <= 9999999999999999.99m &&
+        return amount is null || amount >= 0 && amount <= MoneyStorage.MaximumAmount &&
             decimal.Round(amount.Value, 2) == amount;
     }
 }

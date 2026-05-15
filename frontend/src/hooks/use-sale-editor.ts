@@ -257,6 +257,8 @@ export function useSaleEditor(initial: Sale, onChanged: () => void) {
     busy,
     uncertain,
     operating,
+    commandBlocked: (name: SaleCommandName) =>
+      busy || refreshing || confirmed || (uncertain !== undefined && uncertain !== name),
     refresh,
     run,
   };

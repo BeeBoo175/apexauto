@@ -48,6 +48,62 @@ public sealed class SalesOrderTests
     }
 
     [Fact]
+    public void SaleTaxRoundsTheExactProductBeforeAddingWarrantyAndCredits()
+    {
+        const decimal rate = 0.1666666666666666666666666666m;
+        var terms = new SaleTerms(1m, 0m, 0.03m, rate, 0.20m, 0.30m, 2m, 0.40m, 0.50m);
+
+        Assert.Equal(new SalePrice(0m, 2.53m, 1.63m), SalePricing.Calculate(terms));
+        Assert.Equal(new SalePrice(0.01m, 2.54m, 1.64m), SalePricing.Calculate(terms with
+        {
+            SstRate = rate + 0.0000000000000000000000000001m
+        }));
+    }
+
+    [Theory]
+    [InlineData("-0.01")]
+    [InlineData("0.001")]
+    [InlineData("10000000000000000")]
+    public void EverySaleAmountRetainsItsStorageAndExactSenBounds(string value)
+    {
+        var amount = decimal.Parse(value, System.Globalization.CultureInfo.InvariantCulture);
+        var terms = new SaleTerms(1000m, 0m, 0m, 0m, 0m, 0m, 0m, 0m, 0m);
+        var invalid = new[]
+        {
+            terms with { BasePrice = amount },
+            terms with { RoadTax = amount },
+            terms with { ProcessingFee = amount },
+            terms with { PromoDiscount = amount },
+            terms with { NegotiatedDiscount = amount },
+            terms with { WarrantyPrice = amount },
+            terms with { DepositCredit = amount },
+            terms with { TradeInAllowance = amount }
+        };
+
+        foreach (var input in invalid)
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => SalePricing.Calculate(input));
+        }
+    }
+
+    [Fact]
+    public void SaleBoundsAllowTheStorageMaximumAndCombinedDiscountEquality()
+    {
+        const decimal maximum = 9999999999999999.99m;
+        var terms = new SaleTerms(maximum, maximum, maximum, 1m, maximum - 1m, 1m, maximum,
+            maximum, maximum);
+
+        Assert.Equal(new SalePrice(maximum, maximum * 4m, maximum * 2m), SalePricing.Calculate(terms));
+        Assert.Throws<ArgumentOutOfRangeException>(() => SalePricing.Calculate(terms with
+        {
+            NegotiatedDiscount = 1.01m
+        }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => SalePricing.Calculate(terms with { BasePrice = 0m }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => SalePricing.Calculate(terms with { SstRate = -0.01m }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => SalePricing.Calculate(terms with { SstRate = 1.01m }));
+    }
+
+    [Fact]
     public void OpeningCarriesTheReservationTermsDeadlineAndIdentity()
     {
         var reservation = ReservationTests.Create();

@@ -24,45 +24,54 @@ public static class SaleQueries
         Pagination.IsValid(page, pageSize) && (view is null || QueueViews.Contains(view)) &&
         (search is null || ListSearch.IsValid(search));
 
-    public static SaleTableQuery? Table(int page, int pageSize, string? view, string? search, string? sort,
-        string? direction, string? agent, string? branch, string? outcome, decimal? minimumDiscount,
-        decimal? maximumDiscount, decimal? minimumBalance, decimal? maximumBalance, string? registration,
-        string? vehicle, string? customer, string? reference, decimal? minimumHoursLeft,
-        decimal? maximumHoursLeft, string? updatedFrom, string? updatedTo)
+    public static SaleTableQuery? Table(SaleTableInput input)
     {
-        var texts = new[] { search, agent, branch, registration, vehicle, customer, reference }
-            .Select(item => item?.Trim()).ToArray();
-        var updated = ListDateRange.Parse(updatedFrom, updatedTo);
-        if (!Pagination.IsValid(page, pageSize) || view is not null && !TableViews.Contains(view) ||
-            sort is not null && !Sorts.Contains(sort) || direction is not (null or "asc" or "desc") ||
-            direction is not null && sort is null || outcome is not null && !Outcomes.Contains(outcome) ||
-            !MoneyRange.IsValid(minimumDiscount, maximumDiscount) || !MoneyRange.IsValid(minimumBalance, maximumBalance) ||
-            !ValidHours(minimumHoursLeft, maximumHoursLeft) ||
+        var page = input.Page ?? 1;
+        var pageSize = input.PageSize ?? Pagination.DefaultPageSize;
+        var normalized = input with
+        {
+            Search = Clean(input.Search),
+            Agent = Clean(input.Agent),
+            Branch = Clean(input.Branch),
+            Registration = Clean(input.Registration),
+            Vehicle = Clean(input.Vehicle),
+            Customer = Clean(input.Customer),
+            Reference = Clean(input.Reference)
+        };
+        var updated = ListDateRange.Parse(input.UpdatedFrom, input.UpdatedTo);
+        var texts = new[] { normalized.Search, normalized.Agent, normalized.Branch, normalized.Registration,
+            normalized.Vehicle, normalized.Customer, normalized.Reference };
+        if (!Pagination.IsValid(page, pageSize) || input.View is not null && !TableViews.Contains(input.View) ||
+            input.Sort is not null && !Sorts.Contains(input.Sort) || input.Direction is not (null or "asc" or "desc") ||
+            input.Direction is not null && input.Sort is null || input.Outcome is not null && !Outcomes.Contains(input.Outcome) ||
+            !MoneyRange.IsValid(input.MinimumDiscount, input.MaximumDiscount) ||
+            !MoneyRange.IsValid(input.MinimumBalance, input.MaximumBalance) ||
+            !ValidHours(input.MinimumHoursLeft, input.MaximumHoursLeft) ||
             updated is null || texts.Any(item => item is not null && !ListSearch.IsValid(item)))
         {
             return null;
         }
 
-        return new SaleTableQuery(page, pageSize, view, Clean(texts[0]), sort, direction == "desc")
+        return new SaleTableQuery(page, pageSize, input.View, normalized.Search, input.Sort, input.Direction == "desc")
         {
-            Agent = Clean(texts[1]),
-            Branch = Clean(texts[2]),
-            Outcome = outcome,
-            Registration = Clean(texts[3]),
-            Vehicle = Clean(texts[4]),
-            Customer = Clean(texts[5]),
-            Reference = Clean(texts[6]),
-            MinimumDiscount = minimumDiscount,
-            MaximumDiscount = maximumDiscount,
-            MinimumBalance = minimumBalance,
-            MaximumBalance = maximumBalance,
-            MinimumHoursLeft = minimumHoursLeft,
-            MaximumHoursLeft = maximumHoursLeft,
+            Agent = normalized.Agent,
+            Branch = normalized.Branch,
+            Outcome = input.Outcome,
+            Registration = normalized.Registration,
+            Vehicle = normalized.Vehicle,
+            Customer = normalized.Customer,
+            Reference = normalized.Reference,
+            MinimumDiscount = input.MinimumDiscount,
+            MaximumDiscount = input.MaximumDiscount,
+            MinimumBalance = input.MinimumBalance,
+            MaximumBalance = input.MaximumBalance,
+            MinimumHoursLeft = input.MinimumHoursLeft,
+            MaximumHoursLeft = input.MaximumHoursLeft,
             Updated = updated.From is null ? null : updated
         };
     }
 
-    private static string? Clean(string? value) => string.IsNullOrEmpty(value) ? null : value;
+    private static string? Clean(string? value) => value?.Trim() is { Length: > 0 } text ? text : null;
 
     private static bool ValidHours(decimal? minimum, decimal? maximum) =>
         minimum is not < 0 && maximum is not < 0 &&

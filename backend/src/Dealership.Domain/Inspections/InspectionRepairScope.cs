@@ -1,3 +1,5 @@
+using Dealership.Domain.Common;
+
 namespace Dealership.Domain.Inspections;
 
 public sealed record InspectionRepairItem(string PointCode, string Work);
@@ -13,7 +15,7 @@ public sealed class InspectionRepairScope
             throw new ArgumentException("Repair scope requires one work description per selected finding.");
         }
 
-        if (budget < 0 || budget > 9999999999999999.99m || decimal.Round(budget, 2) != budget)
+        if (budget < 0 || budget > MoneyStorage.MaximumAmount || decimal.Round(budget, 2) != budget)
         {
             throw new ArgumentOutOfRangeException(nameof(budget), "Repair budget requires exact nonnegative MYR minor units.");
         }

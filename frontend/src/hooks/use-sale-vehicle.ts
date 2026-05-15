@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { privateApiFetch } from "@/lib/api-browser";
+import { salePath } from "@/lib/sales/query";
 import { parseSaleVehicle, type SaleVehicleReference } from "@/lib/sales/vehicle-reference";
 
 export function useSaleVehicle(saleId: string, active: boolean) {
@@ -25,11 +26,9 @@ export function useSaleVehicle(saleId: string, active: boolean) {
     async function load() {
       let denied = false;
       try {
-        const response = await privateApiFetch(
-          `/api/staff/sales/${saleId}/vehicle`,
-          parseSaleVehicle,
-          { signal },
-        );
+        const response = await privateApiFetch(`${salePath(saleId)}/vehicle`, parseSaleVehicle, {
+          signal,
+        });
         if (cancellation.signal.aborted) {
           return;
         }

@@ -18,20 +18,6 @@ export interface SettingsValues {
 }
 
 const money = (value: number) => value.toFixed(2);
-const malaysiaOffsetMs = 8 * 60 * 60 * 1000;
-
-// Expiry is entered as Malaysia local time (UTC+8, no daylight saving) and stored as UTC.
-export function malaysiaInput(utc: string) {
-  return new Date(Date.parse(utc) + malaysiaOffsetMs).toISOString().slice(0, 16);
-}
-
-export function utcFromMalaysiaInput(value: string) {
-  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) {
-    return null;
-  }
-  const time = Date.parse(`${value}:00+08:00`);
-  return Number.isFinite(time) ? new Date(time).toISOString() : null;
-}
 
 export function draftFrom(settings: PurchaseSettings): SettingsDraft {
   return {

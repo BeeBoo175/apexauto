@@ -6,32 +6,9 @@ import { ConfirmationButton } from "@/components/ui/ConfirmationButton";
 import type { useSaleEditor } from "@/hooks/use-sale-editor";
 import type { useSaleSelection } from "@/hooks/use-sale-selection";
 import { normalizeSaleReason } from "@/lib/sales/parse";
-import type { Sale } from "@/lib/sales/contracts";
+import { saleFooterPresentation } from "@/lib/sales/sale-footer";
 import { isSaleVersionSection, saleSectionLabels } from "@/lib/sales/sale-sections";
 import workspace from "@/components/staff/StaffWorkspace.module.css";
-
-function footerNote(sale: Sale, dirty: boolean) {
-  if (dirty) {
-    return "Save your term changes before submitting.";
-  }
-  if (sale.actions.decide) {
-    return "Approve the submitted terms, or return them to the agent with a reason.";
-  }
-  if (sale.sale.status === "Handling" && !sale.actions.saveTerms) {
-    return "Review the agreed terms or manage this sale’s assignment.";
-  }
-  const notes: Record<Sale["sale"]["status"], string> = {
-    Open: sale.actions.claim
-      ? "Claim this sale to start agreeing terms."
-      : "Assign an agent to start agreeing terms.",
-    Handling: "Key the terms agreed with the customer, then submit.",
-    PendingApproval: "Waiting for a manager to approve the discount.",
-    Approved: "Settlement and handover follow.",
-    Expired: "This hold expired and its deposit was refunded.",
-    Cancelled: "This sale is cancelled and its deposit refunded.",
-  };
-  return notes[sale.sale.status];
-}
 
 export function SaleFooter({
   editor,
@@ -54,48 +31,18 @@ export function SaleFooter({
   const editing = editor.editingTerms;
   const editingHere = selection.section === "deal" && !viewingPast && editing;
   const deal = selection.section === "deal";
-  let title = "Next step";
-  if (editing) {
-    title = editor.dirty ? "Unsaved deal terms" : "Edit deal terms";
-  }
-  if (viewingPast) {
-    title = `Historical ${pastLabel} · version ${selection.version}`;
-  }
-  if (selection.section === "history") {
-    title = "Record history";
-  }
-  let description = footerNote(snapshot, editor.dirty);
-  if (!deal && selection.section !== "history" && snapshot.sale.status !== "Open") {
-    description = "Review the current deal and agreed terms.";
-  }
-  if (editing) {
-    description = "Save the agreed terms, or discard changes to restore the confirmed deal.";
-  }
-  if (viewingPast || selection.section === "history") {
-    description = "Retained sale versions are read only.";
-  }
-  if (editing && !editingHere) {
-    title = editor.dirty ? "Unsaved deal terms" : "Edit deal terms";
-    description = "Your terms are kept. Return to Deal to save or discard changes.";
-  }
-  if (editor.notesDirty) {
-    title = cancelling ? "Cancel sale" : "Return to agent";
-    description = "Complete this action, or discard changes to continue reviewing the sale.";
-    if (!deal || viewingPast) {
-      description =
-        "Your reason is kept. Return to Deal to complete the action, or discard changes.";
-    }
-  }
-  const blocked = (name: Parameters<typeof editor.run>[0]) =>
-    editor.busy ||
-    editor.refreshing ||
-    editor.confirmed ||
-    (editor.uncertain !== undefined && editor.uncertain !== name);
+  const { title, description } = saleFooterPresentation({
+    status: snapshot.sale.status,
+    actions,
+    section: selection.section,
+    version: selection.version,
+    editing,
+    dirty: editor.dirty,
+    notesDirty: editor.notesDirty,
+    cancelling,
+  });
+  const blocked = editor.commandBlocked;
   const replay = (name: Parameters<typeof editor.run>[0]) => editor.uncertain === name;
-
-  async function act(name: "claims" | "submissions" | "approvals") {
-    await editor.run(name, {});
-  }
 
   return (
     <StaffWorkspaceFooter title={title} description={description}>
@@ -176,7 +123,7 @@ export function SaleFooter({
               size="compact"
               disabled={blocked("claims")}
               skipConfirmation={replay("claims")}
-              onConfirm={() => act("claims")}
+              onConfirm={() => editor.run("claims", {})}
             >
               {replay("claims") ? "Reconcile claim" : "Claim"}
             </ConfirmationButton>
@@ -197,7 +144,7 @@ export function SaleFooter({
               size="compact"
               disabled={blocked("submissions") || editor.dirty}
               skipConfirmation={replay("submissions")}
-              onConfirm={() => act("submissions")}
+              onConfirm={() => editor.run("submissions", {})}
             >
               {replay("submissions") ? "Reconcile submission" : "Submit deal"}
             </ConfirmationButton>
@@ -222,7 +169,7 @@ export function SaleFooter({
                   size="compact"
                   disabled={blocked("approvals")}
                   skipConfirmation={replay("approvals")}
-                  onConfirm={() => act("approvals")}
+                  onConfirm={() => editor.run("approvals", {})}
                 >
                   {replay("approvals") ? "Reconcile approval" : "Approve deal"}
                 </ConfirmationButton>

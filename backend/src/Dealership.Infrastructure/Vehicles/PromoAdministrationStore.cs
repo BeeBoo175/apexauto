@@ -100,12 +100,14 @@ public sealed class PromoAdministrationStore(DealershipDbContext database) : IPr
     {
         if (query.Search is not null)
         {
-            promos = promos.Where(item => EF.Functions.ILike(item.Code, "%" + EscapeLike(query.Search) + "%", "\\"));
+            var pattern = LiteralSearch.Pattern(query.Search);
+            promos = promos.Where(item => EF.Functions.ILike(item.Code, pattern, "!"));
         }
 
         if (query.Text is not null)
         {
-            promos = promos.Where(item => EF.Functions.ILike(item.Code, "%" + EscapeLike(query.Text) + "%", "\\"));
+            var pattern = LiteralSearch.Pattern(query.Text);
+            promos = promos.Where(item => EF.Functions.ILike(item.Code, pattern, "!"));
         }
 
         if (query.MinimumAmount is { } minimum)
@@ -148,8 +150,6 @@ public sealed class PromoAdministrationStore(DealershipDbContext database) : IPr
             _ => promos.OrderByDescending(item => item.ExpiresAtUtc).ThenBy(item => item.Code)
         };
     }
-
-    internal static string EscapeLike(string value) => value.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
 
     // PostgreSQL stores microseconds, so a replayed expiry is compared at the stored precision.
     private static bool Matches(PromoCode existing, PromoCreateRequest requested) =>

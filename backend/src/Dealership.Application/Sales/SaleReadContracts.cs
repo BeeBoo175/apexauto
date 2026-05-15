@@ -35,6 +35,51 @@ public sealed record SaleTableCounts(int NeedsApproval, int Open, int BeingHandl
 public sealed record SaleTablePage(IReadOnlyList<SaleSummary> Items, int Total, int Page, int PageSize,
     SaleTableCounts Counts, string View);
 
+public sealed record SaleTableInput
+{
+    public int? Page { get; init; }
+
+    public int? PageSize { get; init; }
+
+    public string? View { get; init; }
+
+    public string? Search { get; init; }
+
+    public string? Sort { get; init; }
+
+    public string? Direction { get; init; }
+
+    public string? Agent { get; init; }
+
+    public string? Branch { get; init; }
+
+    public string? Outcome { get; init; }
+
+    public decimal? MinimumDiscount { get; init; }
+
+    public decimal? MaximumDiscount { get; init; }
+
+    public decimal? MinimumBalance { get; init; }
+
+    public decimal? MaximumBalance { get; init; }
+
+    public string? Registration { get; init; }
+
+    public string? Vehicle { get; init; }
+
+    public string? Customer { get; init; }
+
+    public string? Reference { get; init; }
+
+    public decimal? MinimumHoursLeft { get; init; }
+
+    public decimal? MaximumHoursLeft { get; init; }
+
+    public string? UpdatedFrom { get; init; }
+
+    public string? UpdatedTo { get; init; }
+}
+
 // A null view opens the first tab with work, in the order the tabs are shown.
 public sealed record SaleTableQuery(int Page, int PageSize, string? View, string? Search, string? Sort, bool Descending)
 {

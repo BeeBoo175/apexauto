@@ -103,14 +103,14 @@ public sealed class WarrantyAdministrationStore(DealershipDbContext database) : 
     {
         if (query.Search is not null)
         {
-            packages = packages.Where(item =>
-                EF.Functions.ILike(item.Name, "%" + PromoAdministrationStore.EscapeLike(query.Search) + "%", "\\"));
+            var pattern = LiteralSearch.Pattern(query.Search);
+            packages = packages.Where(item => EF.Functions.ILike(item.Name, pattern, "!"));
         }
 
         if (query.Text is not null)
         {
-            packages = packages.Where(item =>
-                EF.Functions.ILike(item.Name, "%" + PromoAdministrationStore.EscapeLike(query.Text) + "%", "\\"));
+            var pattern = LiteralSearch.Pattern(query.Text);
+            packages = packages.Where(item => EF.Functions.ILike(item.Name, pattern, "!"));
         }
 
         if (query.MinimumAmount is { } minimum)

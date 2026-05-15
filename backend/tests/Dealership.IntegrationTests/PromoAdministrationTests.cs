@@ -102,6 +102,16 @@ public sealed class PromoAdministrationTests(RegistrationDatabase database) : IC
         Assert.Equal(PromoAdministrationStatus.NotFound, (await GetAsync(administrator, Guid.NewGuid())).Status);
         Assert.Equal(PromoAdministrationStatus.Invalid, (await GetAsync(administrator, Guid.Empty)).Status);
         Assert.Equal(PromoAdministrationStatus.Forbidden, (await GetAsync(manager, first.Promo.Id)).Status);
+
+        const string literalCode = "LITERAL%_!\\500";
+        Assert.Equal(PromoAdministrationStatus.Succeeded,
+            (await CreateAsync(administrator, new(Guid.NewGuid(), literalCode, 50m, expiry))).Status);
+        foreach (var literal in new[] { "%", "_", "!", "\\", "%_!\\" })
+        {
+            var expected = literal == "_" ? $"{literalCode},OLD_100" : literalCode;
+            Assert.Equal(expected, Codes(await ListAsync(administrator, search: literal, sort: "code")));
+            Assert.Equal(expected, Codes(await ListAsync(administrator, code: literal, sort: "code")));
+        }
     }
 
     private Task<PromoAdministrationResult> GetAsync(Guid actor, Guid promoId) =>

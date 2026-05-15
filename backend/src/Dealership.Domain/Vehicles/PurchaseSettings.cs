@@ -4,6 +4,7 @@ public sealed class PurchaseSettings
 {
     public const int SingletonId = 1;
     public const decimal MaximumFee = 5000m;
+    public const decimal MaximumAgentDiscountAmount = 5000m;
     public const decimal MaximumSstRate = 0.20m;
     public const int DefaultReservationHoldHours = 48;
     public const int MinimumReservationHoldHours = 1;
@@ -68,7 +69,7 @@ public sealed class PurchaseSettings
         int reservationHoldHours) =>
         processingFee is >= 0m and <= MaximumFee && decimal.Round(processingFee, 2) == processingFee &&
         sstRate is >= 0m and <= MaximumSstRate &&
-        maxAgentDiscountAmount is >= 0m and <= MaximumFee &&
+        maxAgentDiscountAmount is >= 0m and <= MaximumAgentDiscountAmount &&
         decimal.Round(maxAgentDiscountAmount, 2) == maxAgentDiscountAmount &&
         reservationHoldHours is >= MinimumReservationHoldHours and <= MaximumReservationHoldHours;
 

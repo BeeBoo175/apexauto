@@ -3,16 +3,9 @@ import type { DataColumn } from "@/components/ui/data-table/types";
 import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { staffColumnSizing } from "@/lib/staff/table-columns";
-import type { Promo, Warranty } from "@/lib/settings/settings";
+import { promoState, type Promo, type Warranty } from "@/lib/settings/settings";
 import tones from "@/components/ui/StatusTone.module.css";
 import styles from "@/components/staff/StaffTable.module.css";
-
-export function promoState(promo: Promo, now = Date.now()) {
-  if (Date.parse(promo.expiresAtUtc) <= now) {
-    return "Expired";
-  }
-  return promo.isActive ? "Active" : "Inactive";
-}
 
 function StateBadge({ state }: { state: string }) {
   const tone = state === "Active" ? tones.success : tones.neutral;

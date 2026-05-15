@@ -1,3 +1,5 @@
+using Dealership.Domain.Common;
+
 namespace Dealership.Domain.Vehicles;
 
 public enum VehicleTransmission
@@ -45,8 +47,8 @@ public sealed class ListingRevision
             throw new ArgumentException("A listing supports up to four distinct nonempty photo identities.");
         }
 
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(vehiclePrice, 9999999999999999.99m);
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(roadTax, 9999999999999999.99m);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(vehiclePrice, MoneyStorage.MaximumAmount);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(roadTax, MoneyStorage.MaximumAmount);
         Id = id;
         VehicleId = vehicleId;
         BranchId = branchId;

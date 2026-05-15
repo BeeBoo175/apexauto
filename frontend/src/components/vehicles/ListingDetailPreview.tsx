@@ -4,7 +4,7 @@ import { useId, type ReactNode } from "react";
 import { StaffLink } from "@/components/staff/StaffLink";
 import { formatCurrency } from "@/lib/currency-format";
 import { parseMyr } from "@/lib/currency-input";
-import { label } from "@/lib/inspection/contracts";
+import { fuelLabel } from "@/lib/vehicles/contracts";
 import type { ListingDraft } from "@/lib/vehicles/listing-draft";
 import type { ListingWorkspace } from "@/lib/vehicles/listing-workspace";
 import { VehicleDetailView } from "./VehicleDetailView";
@@ -27,7 +27,7 @@ export function ListingDetailPreview({
   const vehicle = {
     ...snapshot.vehicle,
     transmission: draft.transmission || "Not set",
-    fuel: draft.fuel ? label(draft.fuel) : "Not set",
+    fuel: draft.fuel ? fuelLabel(draft.fuel) : "Not set",
   };
   const price = parseMyr(draft.vehiclePrice);
   const roadTax = parseMyr(draft.roadTax);

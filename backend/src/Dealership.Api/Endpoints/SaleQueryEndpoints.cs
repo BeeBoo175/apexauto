@@ -49,17 +49,11 @@ public static class SaleQueryEndpoints
             : Task.FromResult(Invalid());
     }
 
-    private static Task<IResult> TableAsync(int? page, int? pageSize, string? view, string? search, string? sort,
-        string? direction, string? agent, string? branch, string? outcome, decimal? minimumDiscount,
-        decimal? maximumDiscount, decimal? minimumBalance, decimal? maximumBalance, string? registration,
-        string? vehicle, string? customer, string? reference, decimal? minimumHoursLeft, decimal? maximumHoursLeft,
-        string? updatedFrom, string? updatedTo,
+    private static Task<IResult> TableAsync([AsParameters] SaleTableInput input,
         HttpContext context, ISaleListStore sales,
         CancellationToken cancellationToken)
     {
-        var query = SaleQueries.Table(page ?? 1, pageSize ?? Pagination.DefaultPageSize, view, search, sort,
-            direction, agent, branch, outcome, minimumDiscount, maximumDiscount, minimumBalance, maximumBalance,
-            registration, vehicle, customer, reference, minimumHoursLeft, maximumHoursLeft, updatedFrom, updatedTo);
+        var query = SaleQueries.Table(input);
         return query is null
             ? Task.FromResult(Invalid())
             : ReadAsync(deadline => sales.TableAsync(ActorId(context), query, deadline), cancellationToken);

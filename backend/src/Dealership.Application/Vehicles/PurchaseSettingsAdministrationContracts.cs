@@ -19,7 +19,7 @@ public sealed record PurchaseSettingsBounds(decimal MaximumFee, decimal MaximumS
     int MinimumHoldHours, int MaximumHoldHours)
 {
     public static PurchaseSettingsBounds Approved { get; } = new(PurchaseSettings.MaximumFee,
-        PurchaseSettings.MaximumSstRate, PurchaseSettings.MaximumFee, PurchaseSettings.MinimumReservationHoldHours,
+        PurchaseSettings.MaximumSstRate, PurchaseSettings.MaximumAgentDiscountAmount, PurchaseSettings.MinimumReservationHoldHours,
         PurchaseSettings.MaximumReservationHoldHours);
 }
 

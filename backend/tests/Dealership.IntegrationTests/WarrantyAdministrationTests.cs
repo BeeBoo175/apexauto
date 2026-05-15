@@ -107,6 +107,15 @@ public sealed class WarrantyAdministrationTests(RegistrationDatabase database) :
         Assert.Equal(WarrantyAdministrationStatus.NotFound, (await GetAsync(administrator, Guid.NewGuid())).Status);
         Assert.Equal(WarrantyAdministrationStatus.Invalid, (await GetAsync(administrator, Guid.Empty)).Status);
         Assert.Equal(WarrantyAdministrationStatus.Forbidden, (await GetAsync(manager, first.Package.Id)).Status);
+
+        const string literalName = "ApexShield%_!\\ Literal";
+        Assert.Equal(WarrantyAdministrationStatus.Succeeded,
+            (await CreateAsync(administrator, new(Guid.NewGuid(), literalName, 12, 25000, 1200m, "C"))).Status);
+        foreach (var literal in new[] { "%", "_", "!", "\\", "%_!\\" })
+        {
+            Assert.Equal(literalName, Names(await ListAsync(administrator, search: literal)));
+            Assert.Equal(literalName, Names(await ListAsync(administrator, name: literal)));
+        }
     }
 
     private Task<WarrantyAdministrationResult> GetAsync(Guid actor, Guid packageId) =>

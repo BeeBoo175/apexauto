@@ -10,11 +10,9 @@ import { useToast } from "@/components/ui/Toast";
 import type { useSettingsSave } from "@/hooks/use-settings-save";
 import { parseMyr } from "@/lib/currency-input";
 import { formatCurrency } from "@/lib/currency-format";
-import { formatMalaysianDateTime } from "@/lib/date-format";
-import { recordPath, type Promo } from "@/lib/settings/settings";
-import { malaysiaInput, utcFromMalaysiaInput } from "@/lib/settings/settings-draft";
+import { formatMalaysianDateTime, malaysiaInput, utcFromMalaysiaInput } from "@/lib/date-format";
+import { promoState, recordPath, type Promo } from "@/lib/settings/settings";
 import { SettingsNotice } from "./SettingsNotice";
-import { promoState } from "./settings-columns";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 import styles from "@/components/staff/StaffForms.module.css";
 

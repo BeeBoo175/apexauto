@@ -48,6 +48,13 @@ export interface Promo {
   version: number;
 }
 
+export function promoState(promo: Promo, now = Date.now()) {
+  if (Date.parse(promo.expiresAtUtc) <= now) {
+    return "Expired";
+  }
+  return promo.isActive ? "Active" : "Inactive";
+}
+
 export interface Warranty {
   id: string;
   name: string;

@@ -67,10 +67,8 @@ public sealed class SaleListTests(IntakePhotoFixture fixture) : IClassFixture<In
         Assert.Equal(SaleStatus.Succeeded, (await world.Terms.CancelAsync(world.Manager, held.Id,
             new(Guid.NewGuid(), 2, "Filter test finished"), default)).Status);
 
-        Assert.Null(SaleQueries.Table(1, 25, null, null, null, null, null, null, null, 10m, 5m, null, null,
-            null, null, null, null, null, null, null, null));
-        Assert.Null(SaleQueries.Table(1, 25, null, null, null, null, null, null, null, null, null, null, null,
-            null, null, null, null, null, null, "2026-11-02", "2026-11-01"));
+        Assert.Null(SaleQueries.Table(new() { MinimumDiscount = 10m, MaximumDiscount = 5m }));
+        Assert.Null(SaleQueries.Table(new() { UpdatedFrom = "2026-11-02", UpdatedTo = "2026-11-01" }));
     }
 
     [Fact]
@@ -180,9 +178,39 @@ public sealed class SaleListTests(IntakePhotoFixture fixture) : IClassFixture<In
         var result = await client.GetAsync($"{path}&minimumHoursLeft=6&maximumHoursLeft=24&sort=updated&direction=desc" +
             $"&updatedFrom={updatedDay}&updatedTo={updatedDay}");
         Assert.Equal(HttpStatusCode.OK, result.StatusCode);
-        Assert.Equal(held.Id, Assert.Single((await result.Content.ReadFromJsonAsync<SaleTablePage>())!.Items).Id);
+        var row = Assert.Single((await result.Content.ReadFromJsonAsync<SaleTablePage>())!.Items);
+        Assert.Equal(held.Id, row.Id);
+        var filters = new Dictionary<string, string>
+        {
+            ["page"] = "1",
+            ["pageSize"] = "10",
+            ["view"] = "BeingHandled",
+            ["search"] = $"  {held.Number}  ",
+            ["sort"] = "balance",
+            ["direction"] = "asc",
+            ["agent"] = $"  {row.Agent}  ",
+            ["branch"] = $"  {row.Branch}  ",
+            ["registration"] = $"  {row.Registration}  ",
+            ["vehicle"] = $"  {row.ManufactureYear} {row.Make} {row.Model} {row.Trim}  ",
+            ["customer"] = $"  {row.Customer}  ",
+            ["reference"] = $"  {held.Number}  ",
+            ["minimumDiscount"] = "0",
+            ["maximumDiscount"] = "1.01",
+            ["minimumBalance"] = row.BalancePayable.ToString(CultureInfo.InvariantCulture),
+            ["maximumBalance"] = (row.BalancePayable + 1.01m).ToString(CultureInfo.InvariantCulture),
+            ["minimumHoursLeft"] = "6",
+            ["maximumHoursLeft"] = "24",
+            ["updatedFrom"] = updatedDay,
+            ["updatedTo"] = updatedDay
+        };
+        var query = string.Join("&", filters.Select(item => $"{item.Key}={Uri.EscapeDataString(item.Value)}"));
+        var bound = await client.GetFromJsonAsync<SaleTablePage>($"/api/staff/sales?{query}");
+        Assert.Equal((1, 10, held.Id), (bound!.Page, bound.PageSize, Assert.Single(bound.Items).Id));
+        var defaults = await client.GetFromJsonAsync<SaleTablePage>($"{path}&search=%20%20&agent=");
+        Assert.Equal((1, Pagination.DefaultPageSize), (defaults!.Page, defaults.PageSize));
         foreach (var invalid in new[] { "minimumHoursLeft=-1", "maximumHoursLeft=169",
-            "minimumHoursLeft=24&maximumHoursLeft=6", "sort=claimed", "updatedFrom=2026-11-02&updatedTo=2026-11-01" })
+            "minimumHoursLeft=24&maximumHoursLeft=6", "sort=claimed", "updatedFrom=2026-11-02&updatedTo=2026-11-01",
+            "page=invalid", "pageSize=invalid", "minimumBalance=invalid", "outcome=Open", "outcome=" })
         {
             Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync($"{path}&{invalid}")).StatusCode);
         }

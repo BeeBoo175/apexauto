@@ -7,6 +7,10 @@ export const vehicleDetailSections = ["overview", "inspection", "financing", "tr
 
 export type VehicleDetailSection = (typeof vehicleDetailSections)[number];
 
+export function fuelLabel(value: string) {
+  return value.replace(/([a-z])([A-Z])/g, "$1 $2");
+}
+
 export function isVehicleDetailSection(value: unknown): value is VehicleDetailSection {
   return vehicleDetailSections.some((section) => section === value);
 }

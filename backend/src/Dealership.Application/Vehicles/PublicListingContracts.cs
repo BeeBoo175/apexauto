@@ -1,3 +1,4 @@
+using Dealership.Domain.Common;
 using Dealership.Domain.Inspections;
 using Dealership.Domain.Vehicles;
 
@@ -23,7 +24,7 @@ public sealed record PublicListingFilter(int Page = 1, string? Make = null, stri
         !string.IsNullOrWhiteSpace(value) && value.Length <= 100 && !value.Contains('\0');
 
     private static bool ValidPrice(decimal? value) => value is null ||
-        value >= 0 && value <= 9999999999999999.99m && decimal.Round(value.Value, 2) == value;
+        value >= 0 && value <= MoneyStorage.MaximumAmount && decimal.Round(value.Value, 2) == value;
 }
 
 public sealed record PublicListingItem(Guid Id, Guid BranchId, string BranchName, string Make, string Model,

@@ -72,12 +72,7 @@ export function SaleEditor({
   useEditGuard({ pending: editor.refreshing, label: "Refreshing sale" });
   const noteNeeded = actions.decide;
   const disabled = editor.operating || editor.refreshing || editor.confirmed;
-  const termsBlocked =
-    editor.notesDirty ||
-    editor.busy ||
-    editor.refreshing ||
-    editor.confirmed ||
-    (editor.uncertain !== undefined && editor.uncertain !== "term-revisions");
+  const termsBlocked = editor.notesDirty || editor.commandBlocked("term-revisions");
 
   useEffect(() => {
     onLocked?.(locked);

@@ -7,8 +7,9 @@ import { VehicleDetailView } from "@/components/vehicles/VehicleDetailView";
 import { VehicleOverview } from "@/components/vehicles/VehicleOverview";
 import type { useSaleVehicle } from "@/hooks/use-sale-vehicle";
 import type { SaleContext } from "@/lib/sales/contracts";
+import { salePath } from "@/lib/sales/query";
 import { formatCurrency } from "@/lib/currency-format";
-import { label } from "@/lib/inspection/contracts";
+import { fuelLabel } from "@/lib/vehicles/contracts";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 import styles from "./SaleVehicle.module.css";
 import sales from "./Sales.module.css";
@@ -46,7 +47,11 @@ export function SaleVehicle({
     );
   }
   const { listing } = reference;
-  const vehicle = { ...reference, transmission: listing.transmission, fuel: label(listing.fuel) };
+  const vehicle = {
+    ...reference,
+    transmission: listing.transmission,
+    fuel: fuelLabel(listing.fuel),
+  };
   const name = `${vehicle.manufactureYear} ${vehicle.make} ${vehicle.model} ${vehicle.trim}`;
   return (
     <section className={`${sales.section} ${styles.content}`} aria-busy={read.busy}>
@@ -67,7 +72,7 @@ export function SaleVehicle({
         priceLabel="Listed price at reservation"
         photos={listing.photoIds.map((id) => ({
           id,
-          url: `/api/staff/sales/${saleId}/vehicle/photos/${id}`,
+          url: `${salePath(saleId)}/vehicle/photos/${id}`,
         }))}
         summary={
           <dl className={sales.vehicleFacts}>

@@ -1,4 +1,5 @@
 using Dealership.Domain.Common;
+using Dealership.Domain.Vehicles;
 
 namespace Dealership.Domain.Sales;
 
@@ -32,22 +33,22 @@ public static class SalePricing
             throw new ArgumentOutOfRangeException(nameof(terms), "Discounts cannot exceed the base price.");
         }
 
-        var serviceTax = Money.FromProduct(terms.ProcessingFee, terms.SstRate).Amount;
-        var subtotal = terms.BasePrice - terms.PromoDiscount - terms.NegotiatedDiscount + terms.ProcessingFee +
-            terms.RoadTax + serviceTax + terms.WarrantyPrice;
+        var purchase = PurchasePricing.CalculatePrice(terms.BasePrice, terms.ProcessingFee, terms.RoadTax,
+            terms.SstRate, terms.PromoDiscount);
+        var subtotal = purchase.Total - terms.NegotiatedDiscount + terms.WarrantyPrice;
         var balance = subtotal - terms.DepositCredit - terms.TradeInAllowance;
         if (balance < 0m)
         {
             throw new ArgumentOutOfRangeException(nameof(terms), "Deposit and trade-in credit cannot exceed the deal total.");
         }
 
-        return new SalePrice(serviceTax, subtotal, balance);
+        return new SalePrice(purchase.ServiceTax, subtotal, balance);
     }
 
     private static void Ensure(decimal amount)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(amount);
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(amount, 9999999999999999.99m);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(amount, MoneyStorage.MaximumAmount);
         if (decimal.Round(amount, 2) != amount)
         {
             throw new ArgumentOutOfRangeException(nameof(amount), "Amounts must be exact sen values.");

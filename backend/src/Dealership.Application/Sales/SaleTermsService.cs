@@ -7,6 +7,8 @@ namespace Dealership.Application.Sales;
 // rejects an excess discount, and staff cancel with a reason, which refunds the deposit.
 public sealed class SaleTermsService(ISaleCommandStore sales)
 {
+    private const decimal MaximumTermAmount = 500000m;
+
     public async Task<SaleCommandResult> SaveTermsAsync(Guid actorId, Guid saleId, SaleTermsRequest request,
         CancellationToken cancellationToken)
     {
@@ -254,6 +256,6 @@ public sealed class SaleTermsService(ISaleCommandStore sales)
             () => sale.Reject(request.OperationId, actorId, request.Reason!, now), cancellationToken);
     }
 
-    private static bool ValidAmount(decimal amount) => amount is >= 0m and <= PurchaseSettings.MaximumFee * 100 &&
+    private static bool ValidAmount(decimal amount) => amount is >= 0m and <= MaximumTermAmount &&
         decimal.Round(amount, 2) == amount;
 }

@@ -10,7 +10,7 @@ import { useVehicleTradeIn } from "@/hooks/use-vehicle-trade-in";
 import { useVehicleDetailSections } from "@/hooks/use-vehicle-detail-sections";
 import type { ApiResult } from "@/lib/api";
 import { formatCurrency } from "@/lib/currency-format";
-import { label } from "@/lib/inspection/contracts";
+import { fuelLabel } from "@/lib/vehicles/contracts";
 import type { PublicVehicleDetail } from "@/lib/vehicles/public-detail";
 import type { ReservationAccess } from "@/lib/vehicles/customer-reservation";
 import { VehicleReservation } from "./VehicleReservation";
@@ -75,7 +75,7 @@ export function VehicleDetail({
           branch={listing.branchName}
           mileage={`${listing.mileageKilometres.toLocaleString("en-MY")} km`}
           transmission={listing.transmission}
-          fuel={label(listing.fuel)}
+          fuel={fuelLabel(listing.fuel)}
           price={formatCurrency(price.vehiclePrice)}
           photos={snapshot.photoIds.map((photoId) => ({
             id: photoId,
@@ -123,7 +123,7 @@ export function VehicleDetail({
             select={tabs.select}
             overview={
               <VehicleOverview
-                vehicle={{ ...listing, fuel: label(listing.fuel) }}
+                vehicle={{ ...listing, fuel: fuelLabel(listing.fuel) }}
                 description={snapshot.description}
               />
             }
