@@ -176,7 +176,6 @@ public sealed class InspectionPhotoStore(DealershipDbContext database, IInspecti
 
     private Task<DateTimeOffset> DatabaseTimeAsync(CancellationToken cancellationToken)
     {
-        return database.Database.SqlQuery<DateTimeOffset>($"SELECT clock_timestamp() AS \"Value\"")
-            .SingleAsync(cancellationToken);
+        return database.DatabaseNowAsync(cancellationToken);
     }
 }

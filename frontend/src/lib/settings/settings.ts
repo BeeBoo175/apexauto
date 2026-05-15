@@ -1,6 +1,6 @@
 import { parsePage } from "@/lib/api";
 import type { CurrentActor } from "@/lib/auth/actor";
-import { isRecord, isUuid } from "@/lib/auth/contracts";
+import { isPositiveInteger, isRecord, isUtcInstant, isUuid } from "@/lib/auth/contracts";
 import { isMyr } from "@/lib/currency-input";
 import { DEFAULT_PAGE_SIZE, isPageSize, paginationQuery } from "@/lib/pagination";
 import type { SearchParams } from "@/lib/query";
@@ -94,12 +94,8 @@ export function hasSettingsAccess(actor: CurrentActor) {
   return actor.role === "Administrator";
 }
 
-const positiveInteger = (value: unknown): value is number =>
-  Number.isSafeInteger(value) && Number(value) > 0;
 const finite = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value);
-const utc = (value: unknown): value is string =>
-  typeof value === "string" && /(?:Z|\+00:00)$/.test(value) && Number.isFinite(Date.parse(value));
 
 function parseBounds(value: unknown): SettingsBounds | null {
   if (
@@ -107,8 +103,8 @@ function parseBounds(value: unknown): SettingsBounds | null {
     !isMyr(value.maximumFee) ||
     !finite(value.maximumSstRate) ||
     !isMyr(value.maximumDiscount) ||
-    !positiveInteger(value.minimumHoldHours) ||
-    !positiveInteger(value.maximumHoldHours) ||
+    !isPositiveInteger(value.minimumHoldHours) ||
+    !isPositiveInteger(value.maximumHoldHours) ||
     value.maximumHoldHours < value.minimumHoldHours
   ) {
     return null;
@@ -132,9 +128,9 @@ export function parseSettings(value: unknown): PurchaseSettings | null {
     value.sstRate < 0 ||
     value.sstRate > bounds.maximumSstRate ||
     !isMyr(value.maxAgentDiscountAmount) ||
-    !positiveInteger(value.reservationHoldHours) ||
-    !utc(value.updatedAtUtc) ||
-    !positiveInteger(value.version)
+    !isPositiveInteger(value.reservationHoldHours) ||
+    !isUtcInstant(value.updatedAtUtc) ||
+    !isPositiveInteger(value.version)
   ) {
     return null;
   }
@@ -157,9 +153,9 @@ export function parsePromo(value: unknown): Promo | null {
     value.code.length === 0 ||
     !isMyr(value.discount) ||
     value.discount <= 0 ||
-    !utc(value.expiresAtUtc) ||
+    !isUtcInstant(value.expiresAtUtc) ||
     typeof value.isActive !== "boolean" ||
-    !positiveInteger(value.version)
+    !isPositiveInteger(value.version)
   ) {
     return null;
   }
@@ -179,12 +175,12 @@ export function parseWarranty(value: unknown): Warranty | null {
     !isUuid(value.id) ||
     typeof value.name !== "string" ||
     value.name.length === 0 ||
-    !positiveInteger(value.durationMonths) ||
-    !positiveInteger(value.mileageCapKm) ||
+    !isPositiveInteger(value.durationMonths) ||
+    !isPositiveInteger(value.mileageCapKm) ||
     !isMyr(value.price) ||
     !warrantyGrades.some((grade) => grade === value.minimumGrade) ||
     typeof value.isActive !== "boolean" ||
-    !positiveInteger(value.version)
+    !isPositiveInteger(value.version)
   ) {
     return null;
   }

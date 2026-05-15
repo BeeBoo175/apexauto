@@ -11,8 +11,7 @@ internal static class SaleReadScope
         DealershipDbContext database, Guid actorId, Guid saleId, CancellationToken cancellationToken)
     {
         var actor = await SaleStaffLocks.ReadAsync(database, actorId, cancellationToken);
-        var branchActive = actor?.BranchId is not { } branchId ||
-            await database.Branches.AnyAsync(branch => branch.Id == branchId && branch.IsActive, cancellationToken);
+        var branchActive = await SaleStaffLocks.BranchActiveAsync(database, actor, cancellationToken);
         if (!SaleAccess.IsEligibleStaff(actor, branchActive))
         {
             return (SaleStatus.Forbidden, null, null);

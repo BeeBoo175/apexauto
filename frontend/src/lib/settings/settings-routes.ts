@@ -1,5 +1,5 @@
 import "server-only";
-import { isRecord, isUuid } from "@/lib/auth/contracts";
+import { isPositiveInteger, isRecord, isUtcInstant, isUuid } from "@/lib/auth/contracts";
 import { isMyr } from "@/lib/currency-input";
 import { HttpError, readBoundedJson } from "@/lib/http";
 import { requireSameOrigin } from "@/lib/server/http/request";
@@ -122,20 +122,14 @@ export async function relaySettingsWrite<T>(
   }
 }
 
-const version = (value: unknown): value is number =>
-  Number.isSafeInteger(value) && Number(value) > 0;
-const integer = (value: unknown): value is number => version(value);
-const utc = (value: unknown): value is string =>
-  typeof value === "string" && /(?:Z|\+00:00)$/.test(value) && Number.isFinite(Date.parse(value));
-
 export function shapeSettings(body: Body) {
   if (
     !isMyr(body.processingFee) ||
     typeof body.sstRate !== "number" ||
     !Number.isFinite(body.sstRate) ||
     !isMyr(body.maxAgentDiscountAmount) ||
-    !integer(body.reservationHoldHours) ||
-    !version(body.expectedVersion)
+    !isPositiveInteger(body.reservationHoldHours) ||
+    !isPositiveInteger(body.expectedVersion)
   ) {
     return null;
   }
@@ -149,7 +143,11 @@ export function shapeSettings(body: Body) {
 }
 
 function promoTerms(body: Body) {
-  if (!isMyr(body.discount) || !utc(body.expiresAtUtc) || typeof body.isActive !== "boolean") {
+  if (
+    !isMyr(body.discount) ||
+    !isUtcInstant(body.expiresAtUtc) ||
+    typeof body.isActive !== "boolean"
+  ) {
     return null;
   }
   return { discount: body.discount, expiresAtUtc: body.expiresAtUtc, isActive: body.isActive };
@@ -165,7 +163,7 @@ export function shapePromoCreate(body: Body) {
 
 export function shapePromoUpdate(body: Body) {
   const terms = promoTerms(body);
-  return terms && version(body.expectedVersion)
+  return terms && isPositiveInteger(body.expectedVersion)
     ? { ...terms, expectedVersion: body.expectedVersion }
     : null;
 }
@@ -174,8 +172,8 @@ function warrantyTerms(body: Body) {
   if (
     typeof body.name !== "string" ||
     !body.name.trim() ||
-    !integer(body.durationMonths) ||
-    !integer(body.mileageCapKm) ||
+    !isPositiveInteger(body.durationMonths) ||
+    !isPositiveInteger(body.mileageCapKm) ||
     !isMyr(body.price) ||
     !warrantyGrades.some((grade) => grade === body.minimumGrade) ||
     typeof body.isActive !== "boolean"
@@ -199,7 +197,7 @@ export function shapeWarrantyCreate(body: Body) {
 
 export function shapeWarrantyUpdate(body: Body) {
   const terms = warrantyTerms(body);
-  return terms && version(body.expectedVersion)
+  return terms && isPositiveInteger(body.expectedVersion)
     ? { ...terms, expectedVersion: body.expectedVersion }
     : null;
 }

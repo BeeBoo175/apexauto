@@ -8,6 +8,7 @@ import {
 } from "@/lib/vehicles/listings";
 import { ListingFilters } from "./ListingFilters";
 import { dateRangeLabel } from "@/lib/date-range-label";
+import { moneyRangeLabel } from "@/lib/range-label";
 
 export function listingTableFilters(
   state: ReturnType<typeof useListingTable>,
@@ -65,7 +66,7 @@ export function listingTableFilters(
     if (lower || upper) {
       applied.push({
         key: range.key,
-        label: `${range.label}: MYR ${lower || "0"}–${upper || "any"}`,
+        label: `${range.label}: ${moneyRangeLabel(lower, upper)}`,
         without: { ...filters, [range.minimum]: "", [range.maximum]: "" },
       });
     }

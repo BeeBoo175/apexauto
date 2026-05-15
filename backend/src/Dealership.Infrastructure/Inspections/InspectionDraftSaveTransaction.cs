@@ -17,8 +17,7 @@ internal sealed class InspectionDraftSaveTransaction(DealershipDbContext databas
         var photos = await database.InspectionPhotos.FromSqlInterpolated($"""
             SELECT * FROM "InspectionPhotos" WHERE "Id" = ANY({ids}) ORDER BY "Id" FOR UPDATE
             """).AsNoTracking().ToArrayAsync(cancellationToken);
-        var now = await database.Database.SqlQuery<DateTimeOffset>($"SELECT clock_timestamp() AS \"Value\"")
-            .SingleAsync(cancellationToken);
+        var now = await database.DatabaseNowAsync(cancellationToken);
         var retained = await database.InspectionDraftPhotos.Where(link => ids.Contains(link.PhotoId))
             .Select(link => link.PhotoId).Distinct().ToArrayAsync(cancellationToken);
         var removals = await database.InspectionPhotoRemovals.Where(removal => ids.Contains(removal.PhotoId))

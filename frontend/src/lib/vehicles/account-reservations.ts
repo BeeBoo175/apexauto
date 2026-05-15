@@ -1,7 +1,6 @@
 import { parsePage, type Page } from "@/lib/api";
 import { parseActor, type CurrentActor } from "@/lib/auth/actor";
-import { isRecord, isUuid } from "@/lib/auth/contracts";
-import { timestamp } from "@/lib/inspection/parse";
+import { isRecord, isUtcInstant, isUuid } from "@/lib/auth/contracts";
 import type { SearchParams } from "@/lib/query";
 import { parseCustomerReservation, type CustomerReservationReceipt } from "./customer-reservation";
 
@@ -50,7 +49,7 @@ function parseRelease(value: unknown): CustomerReservationRelease | null {
     !isUuid(value.reservationId) ||
     typeof value.kind !== "string" ||
     !Object.hasOwn(customerReservationStates, value.kind) ||
-    !timestamp(value.recordedAt) ||
+    !isUtcInstant(value.recordedAt) ||
     value.refund !== 500 ||
     (value.kind === "CustomerCancelled" && value.reason !== null) ||
     (value.kind === "StaffCancelled" && !value.reason) ||
@@ -84,7 +83,7 @@ export function parseAccountReservation(value: unknown): AccountReservation | nu
     typeof value.isActive !== "boolean" ||
     typeof value.isHandled !== "boolean" ||
     (value.isHandled && !value.isActive) ||
-    (value.dueAt !== null && !timestamp(value.dueAt)) ||
+    (value.dueAt !== null && !isUtcInstant(value.dueAt)) ||
     (value.isActive && value.release !== null) ||
     (!value.isActive && (!release || release.reservationId !== receipt.id)) ||
     (release && Date.parse(release.recordedAt) < Date.parse(receipt.createdAt))

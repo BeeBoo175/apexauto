@@ -21,6 +21,21 @@ export function isUuid(value: unknown): value is string {
   );
 }
 
+export function isNonNegativeInteger(value: unknown): value is number {
+  return Number.isSafeInteger(value) && Number(value) >= 0;
+}
+
+export function isPositiveInteger(value: unknown): value is number {
+  return Number.isSafeInteger(value) && Number(value) > 0;
+}
+
+// A UTC instant as the backend serializes it; offsets other than UTC are rejected.
+export function isUtcInstant(value: unknown): value is string {
+  return (
+    typeof value === "string" && /(?:Z|\+00:00)$/.test(value) && Number.isFinite(Date.parse(value))
+  );
+}
+
 export function parseAccount(value: unknown): CustomerAccount | null {
   if (
     !isRecord(value) ||

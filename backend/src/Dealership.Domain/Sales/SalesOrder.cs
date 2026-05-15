@@ -97,7 +97,10 @@ public sealed partial class SalesOrder
 
     public bool IsHandled => Handled.Contains(Status);
 
-    public bool IsClosed => Status is SalesOrderStatus.Expired or SalesOrderStatus.Cancelled;
+    public bool IsClosed => IsClosedStatus(Status);
+
+    // Expired and cancelled sales take no further commands; queries mirror this where EF must translate it.
+    public static bool IsClosedStatus(SalesOrderStatus status) => status is SalesOrderStatus.Expired or SalesOrderStatus.Cancelled;
 
     public static bool ValidNumber(string? number) => number is not null && NumberPattern().IsMatch(number);
 

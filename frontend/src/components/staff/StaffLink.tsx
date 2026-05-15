@@ -24,7 +24,7 @@ export function StaffLink({
   }
 
   function prepare() {
-    if (prefetchOnIntent && !operationLock?.lockedRef.current && !props["aria-current"]) {
+    if (prefetchOnIntent && !operationLock?.guard.isLocked() && !props["aria-current"]) {
       setIntent(true);
     }
   }
@@ -59,7 +59,7 @@ export function StaffLink({
         }
       }}
       onNavigate={(event) => {
-        if (operationLock?.lockedRef.current) {
+        if (operationLock?.guard.isLocked()) {
           event.preventDefault();
           operationLock.guard.request(() => {
             const href = typeof props.href === "string" ? props.href : props.href.pathname;

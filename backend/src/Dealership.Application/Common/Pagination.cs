@@ -4,8 +4,13 @@ public static class Pagination
 {
     public const int DefaultPageSize = 25;
 
+    private static readonly int[] PageSizes = [10, 25, 50];
+
+    // The accepted sizes as shown to callers, so messages cannot drift from the rule.
+    public static string PageSizeChoices { get; } = $"{string.Join(", ", PageSizes[..^1])} or {PageSizes[^1]}";
+
     public static bool IsValid(int page, int pageSize)
     {
-        return page >= 1 && pageSize is 10 or 25 or 50;
+        return page >= 1 && PageSizes.Contains(pageSize);
     }
 }

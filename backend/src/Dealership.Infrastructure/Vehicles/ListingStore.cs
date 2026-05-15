@@ -55,8 +55,7 @@ public sealed class ListingStore(DealershipDbContext database) : IListingStore
                                   join signed in database.InspectionSignedRevisions on draft.Id equals signed.InspectionId
                                   where draft.VehicleId == vehicleId && draft.IsSigned && signed.Revision == draft.Revision
                                   select (Guid?)signed.Id).SingleOrDefaultAsync(cancellationToken);
-            var now = await database.Database.SqlQuery<DateTimeOffset>($"SELECT clock_timestamp() AS \"Value\"")
-                .SingleAsync(cancellationToken);
+            var now = await database.DatabaseNowAsync(cancellationToken);
             var existingDraft = await database.ListingRevisions.AsNoTracking()
                 .SingleOrDefaultAsync(item => item.Id == operationId, cancellationToken);
             var existingPublication = await database.ListingPublications.AsNoTracking()

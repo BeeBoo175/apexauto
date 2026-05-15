@@ -11,11 +11,6 @@ public static class ListingPhotoEndpoints
 {
     public static void MapListingPhotoEndpoints(this WebApplication app)
     {
-        app.MapGet("/api/staff/sales/{saleId:guid}/vehicle/photos/{id:guid}",
-            (Guid saleId, Guid id, HttpContext context, ListingPhotoService photos, CancellationToken token) =>
-                DownloadAsync(context, (file, deadline) =>
-                    photos.DownloadSaleAsync(ActorId(context), saleId, id, file, deadline), token))
-            .RequireAuthorization().RequireRateLimiting(ApiRateLimiting.PhotoTransferPolicy);
         var routes = app.MapGroup("/api/staff/listings/{vehicleId:guid}/photos").RequireAuthorization();
         routes.AddEndpointFilter(async (context, next) =>
         {
@@ -110,7 +105,7 @@ public static class ListingPhotoEndpoints
         }
     }
 
-    private static async Task<IResult> DownloadAsync(HttpContext context,
+    internal static async Task<IResult> DownloadAsync(HttpContext context,
         Func<Stream, CancellationToken, Task<ListingPhotoResult>> download, CancellationToken cancellationToken)
     {
         context.Response.Headers.CacheControl = "no-store";

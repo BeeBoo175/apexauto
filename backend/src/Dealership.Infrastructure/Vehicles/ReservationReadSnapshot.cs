@@ -47,8 +47,7 @@ internal static class ReservationReadSnapshot
     public static async Task<bool> ReconcileDueAsync(DealershipDbContext database, IQueryable<Guid> vehicleIds,
         int batchSize, CancellationToken cancellationToken)
     {
-        var now = await database.Database.SqlQuery<DateTimeOffset>($"SELECT clock_timestamp() AS \"Value\"")
-            .SingleAsync(cancellationToken);
+        var now = await database.DatabaseNowAsync(cancellationToken);
         // Only an open sale runs against a deadline; a handled one keeps its paused time however long it takes.
         var due = database.SalesOrders.Where(item => item.Status == SalesOrderStatus.Open && item.DueAt <= now &&
             vehicleIds.Contains(item.VehicleId));

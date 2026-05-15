@@ -16,8 +16,7 @@ internal sealed class AppointmentCheckInTransaction(DealershipDbContext database
 
     public async Task<DateTimeOffset> ReadDatabaseTimeAsync(CancellationToken cancellationToken)
     {
-        return await database.Database.SqlQuery<DateTimeOffset>($"SELECT clock_timestamp() AS \"Value\"")
-            .SingleAsync(cancellationToken);
+        return await database.DatabaseNowAsync(cancellationToken);
     }
 
     public async Task<IReadOnlyList<CheckInPhotoCandidate>> LockPhotosAsync(CancellationToken cancellationToken)

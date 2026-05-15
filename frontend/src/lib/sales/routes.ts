@@ -1,5 +1,5 @@
 import "server-only";
-import { isRecord, isUuid } from "@/lib/auth/contracts";
+import { isPositiveInteger, isRecord, isUuid } from "@/lib/auth/contracts";
 import { isMyr } from "@/lib/currency-input";
 import { HttpError, readBoundedJson } from "@/lib/http";
 import { requireSameOrigin } from "@/lib/server/http/request";
@@ -17,7 +17,7 @@ import {
   requireJsonRequest,
 } from "@/lib/server/http/staff-relay";
 import { isSaleReason } from "./parse";
-import { hasSalesAccess, tableTextKeys } from "./contracts";
+import { hasSalesAccess, saleCommands, tableTextKeys, type SaleCommand } from "./contracts";
 import { downloadListingPhoto } from "@/lib/vehicles/listing-photo-routes";
 
 type Body = Record<string, unknown>;
@@ -27,21 +27,7 @@ const upstream = "/api/staff/sales";
 // The sale reads and commands the browser may name; the backend scopes each to the actor's role, branch and sale.
 const saleReads =
   /^(?:|\/queue|\/[0-9a-f-]{36}(?:\/(?:vehicle|options|agents|history|versions\/[1-9]\d{0,9}))?)$/i;
-const saleWrites =
-  /^\/[0-9a-f-]{36}\/(?:claims|assignments|releases|term-revisions|submissions|approvals|rejections|cancellations)$/i;
-
-export const saleCommands = [
-  "claims",
-  "assignments",
-  "releases",
-  "term-revisions",
-  "submissions",
-  "approvals",
-  "rejections",
-  "cancellations",
-] as const;
-
-export type SaleCommand = (typeof saleCommands)[number];
+const saleWrites = new RegExp(`^/[0-9a-f-]{36}/(?:${saleCommands.join("|")})$`, "i");
 
 // Built from the table's filter keys so a new filter reaches the backend without a second list to update.
 export const tableKeys = ["page", "pageSize", "view", "sort", "direction", ...tableTextKeys];
@@ -143,14 +129,12 @@ export async function relaySaleCommand<T>(
   }
 }
 
-const version = (value: unknown): value is number =>
-  Number.isSafeInteger(value) && Number(value) > 0;
 const nullableId = (value: unknown): value is string | null => value === null || isUuid(value);
 
-// Every command names its operation and the version it was based on, so a lost response can be replayed.
+// Every command names its operation and the isPositiveInteger it was based on, so a lost response can be replayed.
 export function shapeSaleCommand(command: SaleCommand) {
   return (body: Body): Body | null => {
-    if (!isUuid(body.operationId) || !version(body.expectedVersion)) {
+    if (!isUuid(body.operationId) || !isPositiveInteger(body.expectedVersion)) {
       return null;
     }
     const common = { operationId: body.operationId, expectedVersion: body.expectedVersion };

@@ -1,8 +1,8 @@
 import { parsePage } from "@/lib/api";
-import { isRecord, isUuid } from "@/lib/auth/contracts";
+import { isRecord, isUtcInstant, isUuid } from "@/lib/auth/contracts";
 import { formatCurrency } from "@/lib/currency-format";
 import { isMyr } from "@/lib/currency-input";
-import { isSaleStatus, nullable, parseSaleSnapshot, text, utc } from "./parse";
+import { isSaleStatus, nullable, parseSaleSnapshot, text } from "./parse";
 import type { SaleSnapshot, SaleStatus } from "./contracts";
 
 export interface SaleChange {
@@ -63,7 +63,7 @@ function parseItem(value: unknown): SaleHistoryItem | null {
     !isUuid(value.id) ||
     !Number.isSafeInteger(value.version) ||
     !text(value.kind) ||
-    !utc(value.recordedAt) ||
+    !isUtcInstant(value.recordedAt) ||
     !text(value.actor) ||
     !nullable(text)(value.agent) ||
     !nullable(text)(value.previousAgent) ||
@@ -105,7 +105,7 @@ export function parseSaleVersion(value: unknown): SaleVersion | null {
     !Number.isSafeInteger(value.version) ||
     Number(value.version) < 1 ||
     !text(value.kind) ||
-    !utc(value.recordedAt) ||
+    !isUtcInstant(value.recordedAt) ||
     !text(value.actor) ||
     !nullable(text)(value.agent) ||
     !nullable(text)(value.reason)

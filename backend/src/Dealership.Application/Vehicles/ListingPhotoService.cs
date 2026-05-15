@@ -5,14 +5,6 @@ namespace Dealership.Application.Vehicles;
 
 public sealed class ListingPhotoService(IListingPhotoStore photos, IPhotoImageValidator validator, PhotoTransferService transfers)
 {
-    public async Task<ListingPhotoResult> DownloadSaleAsync(Guid actorId, Guid saleId, Guid id,
-        Stream destination, CancellationToken cancellationToken)
-    {
-        return Result(await transfers.DownloadAsync(id, destination,
-            token => photos.FindSaleAsync(actorId, saleId, id, token),
-            found => found.Status == ListingPhotoStatus.Available ? found.Photo : null, cancellationToken));
-    }
-
     public Task<ListingPhotoStatus> CheckUploadAsync(Guid actorId, Guid vehicleId, CancellationToken cancellationToken)
     {
         return photos.CheckUploadAsync(actorId, vehicleId, cancellationToken);
@@ -38,7 +30,7 @@ public sealed class ListingPhotoService(IListingPhotoStore photos, IPhotoImageVa
             return new(ListingPhotoStatus.Invalid);
         }
 
-        return Result(await transfers.UploadAsync(id, content,
+        return ListingPhotoResult.From(await transfers.UploadAsync(id, content,
             token => photos.PrepareAsync(actorId, vehicleId, id, validated, token),
             prepared => prepared.Status == ListingPhotoStatus.Pending ? prepared.Photo : null,
             token => photos.ConfirmAsync(actorId, vehicleId, id, token), cancellationToken));
@@ -46,13 +38,13 @@ public sealed class ListingPhotoService(IListingPhotoStore photos, IPhotoImageVa
 
     public async Task<ListingPhotoResult> ReceiptAsync(Guid actorId, Guid vehicleId, Guid id, CancellationToken cancellationToken)
     {
-        return Result(await photos.FindAsync(actorId, vehicleId, id, cancellationToken));
+        return ListingPhotoResult.From(await photos.FindAsync(actorId, vehicleId, id, cancellationToken));
     }
 
     public async Task<ListingPhotoResult> DownloadAsync(Guid? actorId, Guid vehicleId, Guid id,
         Stream destination, CancellationToken cancellationToken)
     {
-        return Result(await transfers.DownloadAsync(id, destination,
+        return ListingPhotoResult.From(await transfers.DownloadAsync(id, destination,
             token => photos.FindAsync(actorId, vehicleId, id, token),
             found => found.Status == ListingPhotoStatus.Available ? found.Photo : null, cancellationToken));
     }
@@ -60,15 +52,8 @@ public sealed class ListingPhotoService(IListingPhotoStore photos, IPhotoImageVa
     public async Task<ListingPhotoResult> DownloadReservationAsync(Guid actorId, Guid reservationId, Guid id,
         Stream destination, CancellationToken cancellationToken)
     {
-        return Result(await transfers.DownloadAsync(id, destination,
+        return ListingPhotoResult.From(await transfers.DownloadAsync(id, destination,
             token => photos.FindReservationAsync(actorId, reservationId, id, token),
             found => found.Status == ListingPhotoStatus.Available ? found.Photo : null, cancellationToken));
-    }
-
-    private static ListingPhotoResult Result(ListingPhotoPreparation result)
-    {
-        var photo = result.Photo;
-        return new(result.Status, photo is null ? null : new(photo.Id, photo.VehicleId, photo.ContentType,
-            photo.Bytes, photo.Width, photo.Height, photo.CreatedAt, photo.AvailableAt));
     }
 }

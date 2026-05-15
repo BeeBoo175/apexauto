@@ -35,7 +35,7 @@ public sealed class PhotoCleanupStore(DealershipDbContext database, TimeProvider
             return null;
         }
 
-        var now = await ReadDatabaseTimeAsync(cancellationToken);
+        var now = await database.DatabaseNowAsync(cancellationToken);
         var eligibility = await GetEligibilityAsync(photo, cancellationToken);
 
         if (eligibility is null || now < eligibility.Value.At)
@@ -74,14 +74,9 @@ public sealed class PhotoCleanupStore(DealershipDbContext database, TimeProvider
 
     public async Task MarkDeletedAsync(Guid photoId, Guid claimId, CancellationToken cancellationToken)
     {
-        var now = await ReadDatabaseTimeAsync(cancellationToken);
+        var now = await database.DatabaseNowAsync(cancellationToken);
         await database.PhotoRemovals.Where(item => item.PhotoId == photoId && item.ClaimId == claimId && item.DeletedAt == null)
             .ExecuteUpdateAsync(update => update.SetProperty(item => item.DeletedAt, now), cancellationToken);
-    }
-
-    private Task<DateTimeOffset> ReadDatabaseTimeAsync(CancellationToken cancellationToken)
-    {
-        return database.Database.SqlQuery<DateTimeOffset>($"SELECT clock_timestamp() AS \"Value\"").SingleAsync(cancellationToken);
     }
 
     private async Task<(PhotoRemovalReason Reason, DateTimeOffset At)?> GetEligibilityAsync(IntakePhoto photo,

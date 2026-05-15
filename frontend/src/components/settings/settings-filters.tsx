@@ -17,10 +17,9 @@ import {
 } from "@/lib/settings/settings";
 import type { AppliedWorklistFilter } from "@/lib/staff/filter-summary";
 import { promoColumns, warrantyColumns } from "./settings-columns";
+import { moneyRangeLabel } from "@/lib/range-label";
 
 export type LoadList = (filters: ListFilters, page: number) => Promise<boolean>;
-
-const money = (filters: ListFilters) => `MYR ${filters.minimum || "0"}–${filters.maximum || "any"}`;
 
 function statusFilter(
   filters: ListFilters,
@@ -73,7 +72,7 @@ export function promoTableFilters(
   if (filters.minimum || filters.maximum) {
     applied.push({
       key: "discount",
-      label: `Discount: ${money(filters)}`,
+      label: `Discount: ${moneyRangeLabel(filters.minimum, filters.maximum)}`,
       without: { ...filters, minimum: "", maximum: "" },
     });
   }
@@ -144,7 +143,7 @@ export function warrantyTableFilters(
   if (filters.minimum || filters.maximum) {
     applied.push({
       key: "price",
-      label: `Price: ${money(filters)}`,
+      label: `Price: ${moneyRangeLabel(filters.minimum, filters.maximum)}`,
       without: { ...filters, minimum: "", maximum: "" },
     });
   }

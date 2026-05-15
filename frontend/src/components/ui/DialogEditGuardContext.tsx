@@ -1,8 +1,6 @@
 "use client";
 
 import { createContext } from "react";
-import type { createInteractionGuard } from "@/lib/interaction-guard";
+import type { InteractionGuard } from "@/lib/interaction-guard";
 
-export const DialogEditGuardContext = createContext<ReturnType<
-  typeof createInteractionGuard
-> | null>(null);
+export const DialogEditGuardContext = createContext<InteractionGuard | null>(null);

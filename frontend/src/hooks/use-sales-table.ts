@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { privateApiFetch } from "@/lib/api-browser";
 import type { ApiResult } from "@/lib/api";
 import { parseSalesTable } from "@/lib/sales/parse";
 import { salesTablePath, tableQuery } from "@/lib/sales/query";
 import type { SalesTableFilters, SalesTablePage } from "@/lib/sales/contracts";
+import { useBoundedRead } from "./use-bounded-read";
 
 // The managers' Sales table: one bounded read per view, filter, sort or page, keeping the last confirmed rows.
 export function useSalesTable(
@@ -20,34 +21,22 @@ export function useSalesTable(
     filters: { ...filters, view: initial.data?.view ?? filters.view },
     page,
   });
-  const [busy, setBusy] = useState(false);
-  const [ready, setReady] = useState(false);
   const [revision, setRevision] = useState(0);
-  const controller = useRef<AbortController | null>(null);
+  const { busy, ready, begin, isCurrent, end } = useBoundedRead();
   const toast = useToast();
 
-  useEffect(() => {
-    queueMicrotask(() => setReady(true));
-    return () => {
-      controller.current?.abort();
-      controller.current = null;
-    };
-  }, []);
-
   async function load(nextFilters = active.filters, nextPage = active.page) {
-    if (controller.current) {
+    const attempt = begin();
+    if (!attempt) {
       return false;
     }
-    const attempt = new AbortController();
-    controller.current = attempt;
-    setBusy(true);
     try {
       const result = await privateApiFetch(
         `${salesTablePath}?${tableQuery(nextFilters, nextPage)}`,
         parseSalesTable,
         { signal: attempt.signal },
       );
-      if (attempt.signal.aborted || controller.current !== attempt) {
+      if (!isCurrent(attempt)) {
         return false;
       }
       const data = result.data;
@@ -83,10 +72,7 @@ export function useSalesTable(
       }
       return false;
     } finally {
-      if (controller.current === attempt) {
-        controller.current = null;
-        setBusy(false);
-      }
+      end(attempt);
     }
   }
 

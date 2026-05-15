@@ -1,4 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
+using Dealership.Api.Configuration;
 using Dealership.Application.Common;
 using Dealership.Application.Sales;
 
@@ -18,6 +19,11 @@ public static class SaleQueryEndpoints
         routes.MapGet("/queue", QueueAsync);
         routes.MapGet("/{id:guid}/vehicle", (Guid id, HttpContext context, ISaleReadStore sales,
             CancellationToken token) => ReadAsync(deadline => sales.VehicleAsync(ActorId(context), id, deadline), token));
+        routes.MapGet("/{saleId:guid}/vehicle/photos/{id:guid}", (Guid saleId, Guid id, HttpContext context,
+            SaleVehiclePhotoService photos, CancellationToken token) =>
+                ListingPhotoEndpoints.DownloadAsync(context, (file, deadline) =>
+                    photos.DownloadAsync(ActorId(context), saleId, id, file, deadline), token))
+            .RequireRateLimiting(ApiRateLimiting.PhotoTransferPolicy);
         routes.MapGet("/{id:guid}", (Guid id, HttpContext context, ISaleReadStore sales, CancellationToken token) =>
             ReadAsync(deadline => sales.GetAsync(ActorId(context), id, deadline), token));
         routes.MapGet("/{id:guid}/options", (Guid id, HttpContext context, ISaleReadStore sales,
@@ -83,7 +89,7 @@ public static class SaleQueryEndpoints
     }
 
     private static IResult Invalid() =>
-        Results.Problem(statusCode: 400, title: "Provide valid sale filters and a page size of 10, 25 or 50.");
+        Results.Problem(statusCode: 400, title: $"Provide valid sale filters and a page size of {Pagination.PageSizeChoices}.");
 
     private static IResult Unavailable() =>
         Results.Problem(statusCode: 503, title: "Sales are temporarily unavailable.");

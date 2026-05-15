@@ -59,8 +59,7 @@ public sealed class StaffAppointmentDetailStore(DealershipDbContext database) : 
             status = nameof(StaffWorklistStatus.Cancelled);
         }
 
-        var databaseNow = await database.Database.SqlQuery<DateTimeOffset>($"SELECT clock_timestamp() AS \"Value\"")
-            .SingleAsync(cancellationToken);
+        var databaseNow = await database.DatabaseNowAsync(cancellationToken);
         var noShowAt = AppointmentDay.EndsAt(row.StartsAt);
         var wasNoShow = row.CheckIn?.CorrectionRecordedAt is not null ||
             (!row.CheckedIn && !row.Cancelled && databaseNow >= noShowAt);

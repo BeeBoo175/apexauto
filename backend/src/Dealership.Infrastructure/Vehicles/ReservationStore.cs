@@ -1,5 +1,6 @@
 using Dealership.Application.Accounts;
 using Dealership.Application.Vehicles;
+using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Persistence;
 using Dealership.Infrastructure.Mail;
 using Microsoft.EntityFrameworkCore;
@@ -52,15 +53,14 @@ public sealed class ReservationStore(DealershipDbContext database, MailDeliveryS
             var isRelease = await database.ReservationReleases.AnyAsync(item => item.Id == request.OperationId, cancellationToken);
             var listing = await PublicListingQuery.Read(database).SingleOrDefaultAsync(row => row.Vehicle.Id == vehicleId, cancellationToken);
             var settings = await database.PurchaseSettings.FromSqlInterpolated(
-                $"SELECT * FROM \"PurchaseSettings\" WHERE \"Id\" = 1 FOR SHARE")
+                $"SELECT * FROM \"PurchaseSettings\" WHERE \"Id\" = {PurchaseSettings.SingletonId} FOR SHARE")
                 .AsNoTracking().SingleOrDefaultAsync(cancellationToken);
             var promo = await database.PromoCodes.FromSqlInterpolated(
                 $"SELECT * FROM \"PromoCodes\" WHERE \"Id\" = {request.PromoId} FOR SHARE")
                 .AsNoTracking().SingleOrDefaultAsync(cancellationToken);
             var customerHasHold = await database.Reservations.AnyAsync(item => item.CustomerId == customerId && item.IsActive, cancellationToken);
             var vehicleHasHold = await database.Reservations.AnyAsync(item => item.VehicleId == vehicleId && item.IsActive, cancellationToken);
-            var now = await database.Database.SqlQuery<DateTimeOffset>($"SELECT clock_timestamp() AS \"Value\"")
-                .SingleAsync(cancellationToken);
+            var now = await database.DatabaseNowAsync(cancellationToken);
             return new ReservationTransaction(database, transaction, mail, expiry, new(customer, profile, listing?.Publication,
                 listing?.Revision, settings, promo, customerHasHold, vehicleHasHold, now, existing, isRelease));
         }

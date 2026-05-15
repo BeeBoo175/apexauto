@@ -23,4 +23,10 @@ internal static class SaleStaffLocks
             cancellationToken);
         return user is null ? null : new SaleStaff(user.Id, user.IsActive, user.Role, user.BranchId);
     }
+
+    // Sales staff without a branch (administrators) have no branch to deactivate; the rest need an active one.
+    public static async Task<bool> BranchActiveAsync(DealershipDbContext database, SaleStaff? actor,
+        CancellationToken cancellationToken) =>
+        actor?.BranchId is not { } branchId ||
+        await database.Branches.AnyAsync(branch => branch.Id == branchId && branch.IsActive, cancellationToken);
 }

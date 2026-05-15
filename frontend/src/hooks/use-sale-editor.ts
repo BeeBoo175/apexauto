@@ -11,20 +11,10 @@ import {
   parseSaleReceipt,
 } from "@/lib/sales/parse";
 import { salePath } from "@/lib/sales/query";
-import type { Sale, SaleOptions, SaleReceipt } from "@/lib/sales/contracts";
+import type { Sale, SaleCommand, SaleOptions, SaleReceipt } from "@/lib/sales/contracts";
 import { saleTermsChanged, saleTermsDraft, type SaleTermsDraft } from "@/lib/sales/sale-terms";
 import { useApiCommand } from "./use-api-command";
 import { useEditGuard } from "./use-edit-guard";
-
-export type SaleCommandName =
-  | "claims"
-  | "assignments"
-  | "releases"
-  | "term-revisions"
-  | "submissions"
-  | "approvals"
-  | "rejections"
-  | "cancellations";
 
 type NoFields = Record<string, never>;
 
@@ -72,7 +62,7 @@ export function useSaleEditor(initial: Sale, onChanged: () => void) {
   const [confirmed, setConfirmed] = useState(false);
   const controller = useRef<AbortController | null>(null);
   const matches = receiptMatches(id);
-  const path = (command: SaleCommandName) => `${salePath(id)}/${command}`;
+  const path = (command: SaleCommand) => `${salePath(id)}/${command}`;
   const commands = {
     claims: useApiCommand(path("claims"), parseSaleReceipt, matches, privateApiFetch),
     assignments: useApiCommand(path("assignments"), parseSaleReceipt, matches, privateApiFetch),
@@ -90,7 +80,7 @@ export function useSaleEditor(initial: Sale, onChanged: () => void) {
   };
   const all = Object.values(commands);
   const busy = all.some((command) => command.busy);
-  const uncertain = (Object.keys(commands) as SaleCommandName[]).find(
+  const uncertain = (Object.keys(commands) as SaleCommand[]).find(
     (name) => commands[name].uncertain,
   );
   const operating = busy || uncertain !== undefined;
@@ -189,7 +179,7 @@ export function useSaleEditor(initial: Sale, onChanged: () => void) {
   }
 
   // Each command names a fresh operation and the confirmed version; an unconfirmed one replays exactly.
-  async function run<Name extends SaleCommandName>(name: Name, fields: SaleCommandFields[Name]) {
+  async function run<Name extends SaleCommand>(name: Name, fields: SaleCommandFields[Name]) {
     const command = commands[name];
     if (busy || (uncertain && uncertain !== name)) {
       return false;
@@ -257,7 +247,7 @@ export function useSaleEditor(initial: Sale, onChanged: () => void) {
     busy,
     uncertain,
     operating,
-    commandBlocked: (name: SaleCommandName) =>
+    commandBlocked: (name: SaleCommand) =>
       busy || refreshing || confirmed || (uncertain !== undefined && uncertain !== name),
     refresh,
     run,

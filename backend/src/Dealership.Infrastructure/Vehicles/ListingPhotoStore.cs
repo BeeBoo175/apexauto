@@ -1,35 +1,14 @@
 using Dealership.Application.Accounts;
-using Dealership.Application.Sales;
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Photos;
 using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Persistence;
-using Dealership.Infrastructure.Sales;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dealership.Infrastructure.Vehicles;
 
 public sealed class ListingPhotoStore(DealershipDbContext database) : IListingPhotoStore
 {
-    public async Task<ListingPhotoPreparation> FindSaleAsync(Guid actorId, Guid saleId, Guid id,
-        CancellationToken cancellationToken)
-    {
-        var (status, _, sale) = await SaleReadScope.ReadAsync(database, actorId, saleId, cancellationToken);
-        if (sale is null)
-        {
-            return new(status == SaleStatus.Forbidden ? ListingPhotoStatus.Forbidden : ListingPhotoStatus.NotFound);
-        }
-
-        var vehicleId = await (from reservation in database.Reservations
-                               join publication in database.ListingPublications on reservation.PublicationId equals publication.Id
-                               join photo in database.ListingRevisionPhotos on publication.RevisionId equals photo.RevisionId
-                               where reservation.Id == saleId && photo.PhotoId == id
-                               select (Guid?)reservation.VehicleId).SingleOrDefaultAsync(cancellationToken);
-        return vehicleId.HasValue
-            ? await FindPhotoAsync(vehicleId.Value, id, cancellationToken)
-            : new(ListingPhotoStatus.NotFound);
-    }
-
     public async Task<ListingPhotoStatus> CheckUploadAsync(Guid actorId, Guid vehicleId, CancellationToken cancellationToken)
     {
         await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
@@ -57,7 +36,7 @@ public sealed class ListingPhotoStore(DealershipDbContext database) : IListingPh
             }
 
             var branchId = await database.Vehicles.Where(item => item.Id == vehicleId).Select(item => item.BranchId).SingleAsync(cancellationToken);
-            var now = await DatabaseTimeAsync(cancellationToken);
+            var now = await database.DatabaseNowAsync(cancellationToken);
             var photo = new ListingPhoto(id, vehicleId, branchId, actorId, content, now);
             database.ListingPhotos.Add(photo);
             await database.SaveChangesAsync(cancellationToken);
@@ -94,7 +73,7 @@ public sealed class ListingPhotoStore(DealershipDbContext database) : IListingPh
                 return new(ListingPhotoStatus.Conflict);
             }
 
-            photo.ConfirmAvailable(await DatabaseTimeAsync(cancellationToken));
+            photo.ConfirmAvailable(await database.DatabaseNowAsync(cancellationToken));
             await database.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
             return Classify(photo);
@@ -181,9 +160,4 @@ public sealed class ListingPhotoStore(DealershipDbContext database) : IListingPh
 
     private static ListingPhotoPreparation Classify(ListingPhoto photo) =>
         new(photo.AvailableAt is null ? ListingPhotoStatus.Pending : ListingPhotoStatus.Available, photo);
-
-    private Task<DateTimeOffset> DatabaseTimeAsync(CancellationToken cancellationToken)
-    {
-        return database.Database.SqlQuery<DateTimeOffset>($"SELECT clock_timestamp() AS \"Value\"").SingleAsync(cancellationToken);
-    }
 }

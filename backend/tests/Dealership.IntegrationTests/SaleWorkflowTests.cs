@@ -21,13 +21,14 @@ public sealed class SaleWorkflowTests(IntakePhotoFixture fixture) : IClassFixtur
         var world = await SaleWorld.SharedAsync(fixture);
         var held = await world.HoldAsync(withPhoto: true);
         var photos = world.Services.GetRequiredService<ListingPhotoService>();
+        var salePhotos = world.Services.GetRequiredService<SaleVehiclePhotoService>();
         var listings = world.Services.GetRequiredService<ListingService>();
         var reference = await world.Reads.VehicleAsync(world.Agent, held.Id, default);
         Assert.Equal(SaleStatus.Succeeded, reference.Status);
         var photoId = Assert.Single(reference.Value!.Listing.PhotoIds);
         using var content = new MemoryStream();
         Assert.Equal(ListingPhotoStatus.Available,
-            (await photos.DownloadSaleAsync(world.Agent, held.Id, photoId, content, default)).Status);
+            (await salePhotos.DownloadAsync(world.Agent, held.Id, photoId, content, default)).Status);
         Assert.Equal(IntakePhotoFixture.Image(), content.ToArray());
         using var factory = fixture.CreateFactory();
         using var client = factory.CreateClient();
@@ -58,7 +59,7 @@ public sealed class SaleWorkflowTests(IntakePhotoFixture fixture) : IClassFixtur
         {
             Assert.NotEqual(SaleStatus.Succeeded, (await world.Reads.VehicleAsync(actor, held.Id, default)).Status);
             Assert.NotEqual(ListingPhotoStatus.Available,
-                (await photos.DownloadSaleAsync(actor, held.Id, photoId, content, default)).Status);
+                (await salePhotos.DownloadAsync(actor, held.Id, photoId, content, default)).Status);
         }
 
         // A later private draft and its photo cannot replace the customer's reserved publication.
@@ -76,17 +77,17 @@ public sealed class SaleWorkflowTests(IntakePhotoFixture fixture) : IClassFixtur
         Assert.Equal("Inspected Malaysian vehicle", retained.Listing.Description);
         Assert.Equal([photoId], retained.Listing.PhotoIds);
         Assert.Equal(ListingPhotoStatus.NotFound,
-            (await photos.DownloadSaleAsync(world.Agent, held.Id, privatePhoto, content, default)).Status);
+            (await salePhotos.DownloadAsync(world.Agent, held.Id, privatePhoto, content, default)).Status);
 
         await world.Handling.ClaimAsync(world.Agent, held.Id, new(Guid.NewGuid(), 1), default);
         Assert.Equal(SaleStatus.NotFound,
             (await world.Reads.VehicleAsync(world.Colleague, held.Id, default)).Status);
         Assert.Equal(ListingPhotoStatus.NotFound,
-            (await photos.DownloadSaleAsync(world.Colleague, held.Id, photoId, content, default)).Status);
+            (await salePhotos.DownloadAsync(world.Colleague, held.Id, photoId, content, default)).Status);
         await world.Handling.AssignAsync(world.Manager, held.Id, new(Guid.NewGuid(), 2, world.Colleague), default);
         Assert.Equal(SaleStatus.NotFound, (await world.Reads.VehicleAsync(world.Agent, held.Id, default)).Status);
         Assert.Equal(ListingPhotoStatus.NotFound,
-            (await photos.DownloadSaleAsync(world.Agent, held.Id, photoId, content, default)).Status);
+            (await salePhotos.DownloadAsync(world.Agent, held.Id, photoId, content, default)).Status);
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync(path)).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"{path}/photos/{photoId}")).StatusCode);
         Assert.Equal(SaleStatus.Succeeded, (await world.Reads.VehicleAsync(world.Colleague, held.Id, default)).Status);
@@ -98,7 +99,7 @@ public sealed class SaleWorkflowTests(IntakePhotoFixture fixture) : IClassFixtur
         {
             Assert.Equal(SaleStatus.Forbidden, (await world.Reads.VehicleAsync(world.Colleague, held.Id, default)).Status);
             Assert.Equal(ListingPhotoStatus.Forbidden,
-                (await photos.DownloadSaleAsync(world.Colleague, held.Id, photoId, content, default)).Status);
+                (await salePhotos.DownloadAsync(world.Colleague, held.Id, photoId, content, default)).Status);
         }
         finally
         {

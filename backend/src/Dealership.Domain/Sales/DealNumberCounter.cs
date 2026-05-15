@@ -1,27 +1,17 @@
+using Dealership.Domain.Common;
+
 namespace Dealership.Domain.Sales;
 
-// One row per calendar year; the store increments it under a row lock so numbers never repeat or skip.
-public sealed class DealNumberCounter
+// Numbers deals per year as VPO-YYYY-NNNNNN.
+public sealed class DealNumberCounter : YearlyNumberCounter
 {
     private DealNumberCounter()
     {
     }
 
-    public DealNumberCounter(int year)
+    public DealNumberCounter(int year) : base(year)
     {
-        ArgumentOutOfRangeException.ThrowIfLessThan(year, 2000);
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(year, 9999);
-        Year = year;
     }
 
-    public int Year { get; private set; }
-
-    public int LastValue { get; private set; }
-
-    public string Next()
-    {
-        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(LastValue, 999999);
-        LastValue++;
-        return $"VPO-{Year:D4}-{LastValue:D6}";
-    }
+    protected override string Prefix => "VPO";
 }

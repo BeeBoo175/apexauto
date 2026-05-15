@@ -306,3 +306,17 @@ export function claimAge(claimedAt: string | null, now: number) {
   }
   return days === 1 ? "1 day ago" : `${days} days ago`;
 }
+
+// The commands a sale accepts; the browser names them in paths and the relay allows exactly these.
+export const saleCommands = [
+  "claims",
+  "assignments",
+  "releases",
+  "term-revisions",
+  "submissions",
+  "approvals",
+  "rejections",
+  "cancellations",
+] as const;
+
+export type SaleCommand = (typeof saleCommands)[number];

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { privateApiFetch } from "@/lib/api-browser";
 import type { Page } from "@/lib/api";
@@ -17,6 +17,7 @@ import {
   type SettingsSection,
   type Warranty,
 } from "@/lib/settings/settings";
+import { useBoundedRead } from "./use-bounded-read";
 import type { SettingsEntry } from "./use-settings-client-entry";
 
 export interface ListSnapshot<T> {
@@ -53,18 +54,8 @@ export function useSettingsWorkspace(entry: SettingsEntry) {
   const [settings, setSettings] = useState<PurchaseSettings | null>(entry.settings?.data ?? null);
   const [promos, setPromos] = useState(snapshot(entry, entry.promos?.data));
   const [warranties, setWarranties] = useState(snapshot(entry, entry.warranties?.data));
-  const [busy, setBusy] = useState(false);
-  const [ready, setReady] = useState(false);
-  const controller = useRef<AbortController | null>(null);
+  const { busy, ready, begin, isCurrent, end } = useBoundedRead();
   const toast = useToast();
-
-  useEffect(() => {
-    queueMicrotask(() => setReady(true));
-    return () => {
-      controller.current?.abort();
-      controller.current = null;
-    };
-  }, []);
 
   // Reads one section; every failure keeps the last confirmed content and filters on screen.
   async function open(
@@ -72,9 +63,6 @@ export function useSettingsWorkspace(entry: SettingsEntry) {
     filters: ListFilters | null = null,
     page: number | null = null,
   ) {
-    if (controller.current) {
-      return false;
-    }
     let current: ListSnapshot<Promo | Warranty> | null = null;
     if (next === "promos") {
       current = promos;
@@ -83,15 +71,16 @@ export function useSettingsWorkspace(entry: SettingsEntry) {
     }
     const nextFilters = filters ?? current?.filters ?? emptyListFilters;
     const nextPage = page ?? current?.page ?? 1;
-    const attempt = new AbortController();
-    controller.current = attempt;
-    setBusy(true);
+    const attempt = begin();
+    if (!attempt) {
+      return false;
+    }
     try {
       const path = sectionPath(next, nextFilters, nextPage);
       const options = { signal: attempt.signal };
       if (next === "settings") {
         const result = await privateApiFetch(path, parseSettings, options);
-        if (attempt.signal.aborted || controller.current !== attempt) {
+        if (!isCurrent(attempt)) {
           return false;
         }
         if (result.status !== 200 || !result.data) {
@@ -103,7 +92,7 @@ export function useSettingsWorkspace(entry: SettingsEntry) {
           next === "promos"
             ? await privateApiFetch(path, parsePromos, options)
             : await privateApiFetch(path, parseWarranties, options);
-        if (attempt.signal.aborted || controller.current !== attempt) {
+        if (!isCurrent(attempt)) {
           return false;
         }
         const data = result.data;
@@ -133,10 +122,7 @@ export function useSettingsWorkspace(entry: SettingsEntry) {
       }
       return false;
     } finally {
-      if (controller.current === attempt) {
-        controller.current = null;
-        setBusy(false);
-      }
+      end(attempt);
     }
   }
 

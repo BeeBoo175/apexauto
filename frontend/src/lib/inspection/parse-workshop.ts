@@ -1,7 +1,7 @@
-import { isRecord, isUuid } from "@/lib/auth/contracts";
+import { isPositiveInteger, isRecord, isUtcInstant, isUuid } from "@/lib/auth/contracts";
 import { parseCountedPage, parseItems } from "@/lib/api";
 import { isPageSize } from "@/lib/pagination";
-import { enumValue, money, nullableId, positive, text, timestamp } from "./parse";
+import { enumValue, money, nullableId, text } from "./parse";
 import { workshopStatuses, type WorkshopJobs, type WorkshopRow } from "./workshop-contracts";
 
 function parseWorkshopRow(value: unknown): WorkshopRow | null {
@@ -12,16 +12,16 @@ function parseWorkshopRow(value: unknown): WorkshopRow | null {
     !["branchName", "registrationPlate", "make", "model", "trim", "vehicleStatus"].every((key) =>
       text(value[key]),
     ) ||
-    !positive(value.manufactureYear) ||
-    !timestamp(value.checkedInAt) ||
-    !(value.requestedAt === null || timestamp(value.requestedAt)) ||
+    !isPositiveInteger(value.manufactureYear) ||
+    !isUtcInstant(value.checkedInAt) ||
+    !(value.requestedAt === null || isUtcInstant(value.requestedAt)) ||
     !nullableId(value.inspectionId) ||
     !nullableId(value.technicianId) ||
     !(value.technicianIdentity === null || text(value.technicianIdentity)) ||
-    !(value.revision === null || positive(value.revision)) ||
+    !(value.revision === null || isPositiveInteger(value.revision)) ||
     !nullableId(value.requestId) ||
     !(value.budget === null || money(value.budget)) ||
-    !timestamp(value.since) ||
+    !isUtcInstant(value.since) ||
     (value.dateSource !== "CheckedIn" && value.dateSource !== "Requested")
   ) {
     return null;

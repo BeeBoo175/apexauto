@@ -23,7 +23,7 @@ export function TechnicianClaim({
 }) {
   const [vehicle, setVehicle] = useState<WorkshopRow | null>(null);
   const [locked, setLocked] = useState(false);
-  const lockNavigation = useEditGuard(locked);
+  const lockNavigation = useEditGuard({ pending: locked, label: "Current action" });
   return (
     <>
       <div className={styles.queueList} inert={Boolean(vehicle)}>

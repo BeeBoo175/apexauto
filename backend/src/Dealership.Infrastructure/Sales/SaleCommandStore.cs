@@ -38,8 +38,7 @@ public sealed class SaleCommandStore(DealershipDbContext database) : ISaleComman
                 $"SELECT release_unavailable_reservation({located.VehicleId})", cancellationToken);
             var sale = await database.SalesOrders.FromSqlInterpolated(
                 $"SELECT * FROM \"SalesOrders\" WHERE \"Id\" = {saleId} FOR UPDATE").SingleAsync(cancellationToken);
-            var now = await database.Database.SqlQuery<DateTimeOffset>($"SELECT clock_timestamp() AS \"Value\"")
-                .SingleAsync(cancellationToken);
+            var now = await database.DatabaseNowAsync(cancellationToken);
             // The database clock can trail a sale stamped by another session by a few microseconds.
             now = now < sale.UpdatedAt ? sale.UpdatedAt : now;
             return new SaleCommandTransaction(database, transaction, new(actor, branchActive, sale, existing, now));

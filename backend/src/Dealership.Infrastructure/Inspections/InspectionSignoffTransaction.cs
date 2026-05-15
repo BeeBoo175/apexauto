@@ -25,8 +25,7 @@ internal sealed class InspectionSignoffTransaction(DealershipDbContext database,
                 .AsNoTracking().ToArrayAsync(cancellationToken);
         }
 
-        var now = await database.Database.SqlQuery<DateTimeOffset>($"SELECT clock_timestamp() AS \"Value\"")
-            .SingleAsync(cancellationToken);
+        var now = await database.DatabaseNowAsync(cancellationToken);
         return new(save?.Receipt(), photos, now);
     }
 

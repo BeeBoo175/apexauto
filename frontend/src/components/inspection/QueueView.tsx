@@ -32,6 +32,7 @@ import type { useInspectionQueue } from "@/hooks/use-inspection-queue";
 import { workshopColumnFilters } from "./workshop-column-filters";
 import styles from "@/components/staff/StaffWorklist.module.css";
 import workspace from "@/components/staff/StaffWorkspace.module.css";
+import { moneyRangeLabel } from "@/lib/range-label";
 
 export function QueueView<T>({
   actor,
@@ -106,7 +107,7 @@ export function QueueView<T>({
   if (active.filters.minimumBudget || active.filters.maximumBudget) {
     applied.push({
       key: "budget",
-      label: `Budget: MYR ${active.filters.minimumBudget || "0"}–${active.filters.maximumBudget || "any"}`,
+      label: `Budget: ${moneyRangeLabel(active.filters.minimumBudget, active.filters.maximumBudget)}`,
       without: { ...active.filters, minimumBudget: "", maximumBudget: "" },
     });
   }

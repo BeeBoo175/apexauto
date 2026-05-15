@@ -1,4 +1,4 @@
-import { isRecord, isUuid } from "@/lib/auth/contracts";
+import { isRecord, isUtcInstant, isUuid } from "@/lib/auth/contracts";
 import { isMyr } from "@/lib/currency-input";
 import { fuels, transmissions } from "./contracts";
 import { parseListing } from "./parse-listings";
@@ -43,9 +43,6 @@ export interface ListingWorkspace {
   hold: { buyer: string; agent: string | null; expiresAtUtc: string } | null;
 }
 
-const date = (value: unknown): value is string =>
-  typeof value === "string" && /(?:Z|\+00:00)$/.test(value) && Number.isFinite(Date.parse(value));
-
 export function parseRevision(value: unknown): ListingRevision | null {
   if (
     !isRecord(value) ||
@@ -59,7 +56,7 @@ export function parseRevision(value: unknown): ListingRevision | null {
     typeof value.description !== "string" ||
     !value.description.trim() ||
     value.description.length > 2000 ||
-    !date(value.recordedAt) ||
+    !isUtcInstant(value.recordedAt) ||
     !Array.isArray(value.photoIds) ||
     !value.photoIds.every(isUuid) ||
     new Set(value.photoIds).size !== value.photoIds.length
@@ -129,7 +126,7 @@ export function parseListingWorkspace(value: unknown): ListingWorkspace | null {
       published.branchId !== vehicle.branchId ||
       published.revisionId !== approvedRevision?.id ||
       published.id !== vehicle.publicationId ||
-      !date(published.recordedAt)
+      !isUtcInstant(published.recordedAt)
     ) {
       return null;
     }
@@ -159,7 +156,7 @@ export function parseListingWorkspace(value: unknown): ListingWorkspace | null {
       withdrawn.branchId !== vehicle.branchId ||
       typeof withdrawn.reason !== "string" ||
       !withdrawn.reason.trim() ||
-      !date(withdrawn.recordedAt)
+      !isUtcInstant(withdrawn.recordedAt)
     ) {
       return null;
     }
@@ -192,7 +189,7 @@ export function parseListingWorkspace(value: unknown): ListingWorkspace | null {
       typeof held.buyer !== "string" ||
       !held.buyer ||
       (held.agent !== null && held.agent !== undefined && typeof held.agent !== "string") ||
-      !date(held.expiresAtUtc)
+      !isUtcInstant(held.expiresAtUtc)
     ) {
       return null;
     }

@@ -1,4 +1,10 @@
-import { isRecord, isUuid } from "@/lib/auth/contracts";
+import {
+  isNonNegativeInteger,
+  isPositiveInteger,
+  isRecord,
+  isUtcInstant,
+  isUuid,
+} from "@/lib/auth/contracts";
 import { isMyr } from "@/lib/currency-input";
 import { parseCountedPage } from "@/lib/api";
 import {
@@ -23,19 +29,10 @@ import {
 
 export const text = (value: unknown): value is string => typeof value === "string" && value !== "";
 
-export const utc = (value: unknown): value is string =>
-  typeof value === "string" && /(?:Z|\+00:00)$/.test(value) && Number.isFinite(Date.parse(value));
-
 export const nullable =
   <T>(check: (value: unknown) => value is T) =>
   (value: unknown): value is T | null =>
     value === null || check(value);
-
-const count = (value: unknown): value is number =>
-  Number.isSafeInteger(value) && Number(value) >= 0;
-
-const version = (value: unknown): value is number =>
-  Number.isSafeInteger(value) && Number(value) >= 1;
 
 const rate = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1;
@@ -77,9 +74,9 @@ export function parseSaleSnapshot(value: unknown): SaleSnapshot | null {
     !isRecord(value) ||
     !isSaleStatus(value.status) ||
     !nullable(isUuid)(value.agentId) ||
-    !nullable(utc)(value.claimedAt) ||
-    !nullable(utc)(value.dueAt) ||
-    !nullable(version)(value.pausedSeconds) ||
+    !nullable(isUtcInstant)(value.claimedAt) ||
+    !nullable(isUtcInstant)(value.dueAt) ||
+    !nullable(isPositiveInteger)(value.pausedSeconds) ||
     !nullable(text)(value.orderNumber) ||
     !nullable(text)(value.promoCode) ||
     !rate(value.sstRate) ||
@@ -88,12 +85,12 @@ export function parseSaleSnapshot(value: unknown): SaleSnapshot | null {
     !nullable(text)(value.warrantyName) ||
     !nullable(isUuid)(value.tradeInAppointmentId) ||
     !nullable(text)(value.tradeInLabel) ||
-    !nullable(utc)(value.submittedAt) ||
+    !nullable(isUtcInstant)(value.submittedAt) ||
     !nullable(isMyr)(value.discountLimitAtSubmit) ||
     !nullable(isUuid)(value.decidedById) ||
-    !nullable(utc)(value.decidedAt) ||
-    !nullable(utc)(value.closedAt) ||
-    !version(value.version)
+    !nullable(isUtcInstant)(value.decidedAt) ||
+    !nullable(isUtcInstant)(value.closedAt) ||
+    !isPositiveInteger(value.version)
   ) {
     return null;
   }
@@ -107,14 +104,14 @@ function parseContext(value: unknown): SaleContext | null {
     !text(value.registration) ||
     !text(value.vehicle) ||
     typeof value.vin !== "string" ||
-    !count(value.mileageKilometres) ||
+    !isNonNegativeInteger(value.mileageKilometres) ||
     !text(value.customer) ||
     typeof value.customerMobile !== "string" ||
     typeof value.customerEmail !== "string" ||
     !text(value.branch) ||
-    !utc(value.reservedAt) ||
-    !nullable(count)(value.warrantyMonths) ||
-    !nullable(count)(value.warrantyMileageCapKm) ||
+    !isUtcInstant(value.reservedAt) ||
+    !nullable(isNonNegativeInteger)(value.warrantyMonths) ||
+    !nullable(isNonNegativeInteger)(value.warrantyMileageCapKm) ||
     !nullable(isMyr)(value.tradeInMinimum) ||
     !nullable(isMyr)(value.tradeInMaximum)
   ) {
@@ -139,8 +136,8 @@ export function parseSale(value: unknown): Sale | null {
     !isUuid(value.id) ||
     !nullable(text)(value.agent) ||
     !nullable(text)(value.decidedBy) ||
-    !utc(value.createdAt) ||
-    !utc(value.updatedAt) ||
+    !isUtcInstant(value.createdAt) ||
+    !isUtcInstant(value.updatedAt) ||
     !isRecord(value.actions) ||
     !actionKeys.every((key) => typeof (value.actions as Record<string, unknown>)[key] === "boolean")
   ) {
@@ -156,9 +153,9 @@ export function parseSaleReceipt(value: unknown): SaleReceipt | null {
     isUuid(value.operationId) &&
     isUuid(value.saleId) &&
     text(value.kind) &&
-    version(value.version) &&
+    isPositiveInteger(value.version) &&
     isSaleStatus(value.status) &&
-    utc(value.recordedAt)
+    isUtcInstant(value.recordedAt)
     ? (value as unknown as SaleReceipt)
     : null;
 }
@@ -167,8 +164,8 @@ function parseWarranty(value: unknown): WarrantyOption | null {
   return isRecord(value) &&
     isUuid(value.id) &&
     text(value.name) &&
-    count(value.durationMonths) &&
-    count(value.mileageCapKm) &&
+    isNonNegativeInteger(value.durationMonths) &&
+    isNonNegativeInteger(value.mileageCapKm) &&
     isMyr(value.price) &&
     text(value.minimumGrade)
     ? (value as unknown as WarrantyOption)
@@ -207,9 +204,6 @@ export function parseSaleAgents(value: unknown): SaleAgent[] | null {
   return agents.every((item) => item !== null) ? (agents as SaleAgent[]) : null;
 }
 
-const positive = (value: unknown): value is number =>
-  Number.isSafeInteger(value) && Number(value) > 0;
-
 export function parseSaleSummary(value: unknown): SaleSummary | null {
   if (
     !isRecord(value) ||
@@ -218,25 +212,25 @@ export function parseSaleSummary(value: unknown): SaleSummary | null {
     !nullable(text)(value.orderNumber) ||
     !isSaleStatus(value.status) ||
     !text(value.registration) ||
-    !positive(value.manufactureYear) ||
+    !isPositiveInteger(value.manufactureYear) ||
     !text(value.make) ||
     !text(value.model) ||
     typeof value.trim !== "string" ||
     !text(value.customer) ||
     !nullable(text)(value.agent) ||
     !text(value.branch) ||
-    !nullable(utc)(value.dueAt) ||
-    !nullable(positive)(value.pausedSeconds) ||
-    !nullable(utc)(value.claimedAt) ||
+    !nullable(isUtcInstant)(value.dueAt) ||
+    !nullable(isPositiveInteger)(value.pausedSeconds) ||
+    !nullable(isUtcInstant)(value.claimedAt) ||
     !isMyr(value.negotiatedDiscount) ||
     !nullable(isMyr)(value.discountLimitAtSubmit) ||
     !isMyr(value.balancePayable) ||
-    !nullable(utc)(value.submittedAt) ||
-    !nullable(utc)(value.decidedAt) ||
-    !nullable(utc)(value.closedAt) ||
+    !nullable(isUtcInstant)(value.submittedAt) ||
+    !nullable(isUtcInstant)(value.decidedAt) ||
+    !nullable(isUtcInstant)(value.closedAt) ||
     !nullable(text)(value.outcome) ||
-    !utc(value.updatedAt) ||
-    !positive(value.version)
+    !isUtcInstant(value.updatedAt) ||
+    !isPositiveInteger(value.version)
   ) {
     return null;
   }

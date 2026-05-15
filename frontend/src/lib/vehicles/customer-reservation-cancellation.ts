@@ -1,5 +1,4 @@
-import { isRecord, isUuid } from "@/lib/auth/contracts";
-import { timestamp } from "@/lib/inspection/parse";
+import { isRecord, isUtcInstant, isUuid } from "@/lib/auth/contracts";
 
 export interface CustomerReservationCancellation {
   id: string;
@@ -19,7 +18,7 @@ export function parseCustomerCancellation(value: unknown): CustomerReservationCa
     value.kind !== "CustomerCancelled" ||
     !isUuid(value.actorId) ||
     value.reason !== null ||
-    !timestamp(value.recordedAt) ||
+    !isUtcInstant(value.recordedAt) ||
     value.refund !== 500
   ) {
     return null;

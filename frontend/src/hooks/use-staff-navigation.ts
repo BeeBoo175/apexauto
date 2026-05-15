@@ -24,10 +24,8 @@ export function useStaffNavigation() {
   const router = useRouter();
   const entries = useContext(StaffEntryRequestsContext);
   const historyRef = useContext(StaffHistoryContext);
-  const lockedRef = useRef(false);
   const [guard] = useState(createInteractionGuard);
   const guardState = useSyncExternalStore(guard.subscribe, guard.getSnapshot, guard.getSnapshot);
-  const defaultOwner = useRef(Symbol("navigation"));
   const confirmed = useRef<{ href: string; state: unknown } | null>(null);
   const previousPath = useRef(pathname);
   const [entryPath, setEntryPath] = useState<string | null>(null);
@@ -39,17 +37,16 @@ export function useStaffNavigation() {
   }, []);
 
   const setLocked = useCallback(
-    (locked: boolean | InteractionBlock | null, owner = defaultOwner.current) => {
+    (owner: symbol, locked: boolean | InteractionBlock | null) => {
       const before = guard.isLocked();
       guard.setLocked(owner, locked);
       if (guard.isLocked() && !before) {
         confirmed.current = { href: window.location.href, state: window.history.state };
       }
-      lockedRef.current = guard.isLocked();
     },
     [guard],
   );
-  const operationLock = useMemo(() => ({ lockedRef, setLocked, guard }), [setLocked, guard]);
+  const operationLock = useMemo(() => ({ setLocked, guard }), [setLocked, guard]);
 
   const recordNavigation = useCallback(
     (href: string) => {
@@ -65,7 +62,7 @@ export function useStaffNavigation() {
     if (!confirmed.current) {
       return;
     }
-    if (lockedRef.current) {
+    if (guard.isLocked()) {
       event.stopImmediatePropagation();
       const href = window.location.href;
       window.history.pushState(confirmed.current.state, "", confirmed.current.href);
@@ -124,7 +121,6 @@ export function useStaffNavigation() {
     pathname,
     selectedPath,
     pending,
-    lockedRef,
     operationLock,
     guardState,
     navigate,

@@ -19,8 +19,7 @@ internal sealed class InspectionReopeningTransaction(DealershipDbContext databas
             .Select(item => item.Id).SingleAsync(cancellationToken);
         var latestVersion = await database.InspectionDraftSaves.Where(item => item.InspectionId == draft.Id)
             .MaxAsync(item => item.Version, cancellationToken);
-        var now = await database.Database.SqlQuery<DateTimeOffset>($"SELECT clock_timestamp() AS \"Value\"")
-            .SingleAsync(cancellationToken);
+        var now = await database.DatabaseNowAsync(cancellationToken);
         return new(signedId, latestVersion, now);
     }
 

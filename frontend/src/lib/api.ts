@@ -1,5 +1,5 @@
 import type { CurrentActor } from "@/lib/auth/actor";
-import { isRecord } from "@/lib/auth/contracts";
+import { isNonNegativeInteger, isRecord } from "@/lib/auth/contracts";
 import { isPageSize } from "@/lib/pagination";
 
 export const API_DEADLINE_MS = 25_000;
@@ -34,9 +34,6 @@ export type ApiRequest = <T>(
   options?: RequestInit,
 ) => Promise<ApiResult<T>>;
 
-const integer = (value: unknown): value is number =>
-  Number.isSafeInteger(value) && Number(value) >= 0;
-
 export function parseItems<T>(value: unknown, parse: (item: unknown) => T | null): T[] | null {
   if (!Array.isArray(value)) {
     return null;
@@ -59,8 +56,8 @@ export function parsePage<T>(
   if (
     !isRecord(value) ||
     !Array.isArray(value.items) ||
-    !integer(value.total) ||
-    !integer(value.page) ||
+    !isNonNegativeInteger(value.total) ||
+    !isNonNegativeInteger(value.page) ||
     value.page < 1 ||
     !isPageSize(value.pageSize) ||
     value.items.length > value.pageSize
@@ -90,7 +87,7 @@ export function parseCountedPage<T, K extends string>(
   if (raw === undefined || raw === null) {
     return page;
   }
-  if (!isRecord(raw) || !keys.every((key) => integer(raw[key]))) {
+  if (!isRecord(raw) || !keys.every((key) => isNonNegativeInteger(raw[key]))) {
     return null;
   }
   const counts = Object.fromEntries(keys.map((key) => [key, raw[key]])) as Record<K, number>;

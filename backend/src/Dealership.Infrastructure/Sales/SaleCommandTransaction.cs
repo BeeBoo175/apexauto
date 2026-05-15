@@ -19,7 +19,7 @@ internal sealed class SaleCommandTransaction(DealershipDbContext database, IDbCo
         SaleStaffLocks.LockAsync(database, staffId, cancellationToken);
 
     public Task<PurchaseSettings?> LockSettingsAsync(CancellationToken cancellationToken) =>
-        database.PurchaseSettings.FromSqlInterpolated($"SELECT * FROM \"PurchaseSettings\" WHERE \"Id\" = 1 FOR SHARE")
+        database.PurchaseSettings.FromSqlInterpolated($"SELECT * FROM \"PurchaseSettings\" WHERE \"Id\" = {PurchaseSettings.SingletonId} FOR SHARE")
             .AsNoTracking().SingleOrDefaultAsync(cancellationToken);
 
     // Only an active package the grade signed for this reservation's listing qualifies for can be sold.
@@ -55,15 +55,8 @@ internal sealed class SaleCommandTransaction(DealershipDbContext database, IDbCo
             taken);
     }
 
-    public async Task<string> NextOrderNumberAsync(int year, CancellationToken cancellationToken)
-    {
-        await database.Database.ExecuteSqlInterpolatedAsync(
-            $"INSERT INTO \"DealNumberCounters\" (\"Year\", \"LastValue\") VALUES ({year}, 0) ON CONFLICT (\"Year\") DO NOTHING",
-            cancellationToken);
-        var counter = await database.DealNumberCounters.FromSqlInterpolated(
-            $"SELECT * FROM \"DealNumberCounters\" WHERE \"Year\" = {year} FOR UPDATE").SingleAsync(cancellationToken);
-        return counter.Next();
-    }
+    public Task<string> NextOrderNumberAsync(int year, CancellationToken cancellationToken) =>
+        YearlyNumberAllocator.NextAsync<DealNumberCounter>(database, year, cancellationToken);
 
     // Saved inside the open transaction before the sale changes, because its guard judges the sale as it stands;
     // the refund and the cancellation still commit or roll back together.

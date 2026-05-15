@@ -16,10 +16,9 @@ import {
 } from "@/lib/sales/contracts";
 import { tableViewFilters } from "@/lib/sales/query";
 import type { AppliedWorklistFilter } from "@/lib/staff/filter-summary";
+import { hoursRangeLabel, moneyRangeLabel } from "@/lib/range-label";
 
 export type LoadSales = (filters: SalesTableFilters, page: number) => Promise<boolean>;
-
-const money = (minimum: string, maximum: string) => `MYR ${minimum || "0"}–${maximum || "any"}`;
 
 export function saleTableFilters(
   filters: SalesTableFilters,
@@ -51,13 +50,17 @@ export function saleTableFilters(
     add("outcome", `Outcome: ${filters.outcome}`, { outcome: "" });
   }
   if (filters.minimumDiscount || filters.maximumDiscount) {
-    add("discount", `Discount: ${money(filters.minimumDiscount, filters.maximumDiscount)}`, {
-      minimumDiscount: "",
-      maximumDiscount: "",
-    });
+    add(
+      "discount",
+      `Discount: ${moneyRangeLabel(filters.minimumDiscount, filters.maximumDiscount)}`,
+      {
+        minimumDiscount: "",
+        maximumDiscount: "",
+      },
+    );
   }
   if (filters.minimumBalance || filters.maximumBalance) {
-    add("balance", `Balance: ${money(filters.minimumBalance, filters.maximumBalance)}`, {
+    add("balance", `Balance: ${moneyRangeLabel(filters.minimumBalance, filters.maximumBalance)}`, {
       minimumBalance: "",
       maximumBalance: "",
     });
@@ -65,7 +68,7 @@ export function saleTableFilters(
   if (filters.minimumHoursLeft || filters.maximumHoursLeft) {
     add(
       "timeLeft",
-      `Time left: ${filters.minimumHoursLeft || "0"}–${filters.maximumHoursLeft || "any"} hours`,
+      `Time left: ${hoursRangeLabel(filters.minimumHoursLeft, filters.maximumHoursLeft)}`,
       {
         minimumHoursLeft: "",
         maximumHoursLeft: "",

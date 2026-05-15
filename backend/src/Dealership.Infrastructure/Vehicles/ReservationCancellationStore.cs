@@ -44,8 +44,7 @@ public sealed class ReservationCancellationStore(DealershipDbContext database) :
             var existing = await database.ReservationReleases.AsNoTracking()
                 .SingleOrDefaultAsync(item => item.Id == operationId, cancellationToken);
             var isHold = await database.Reservations.AnyAsync(item => item.Id == operationId, cancellationToken);
-            var now = await database.Database.SqlQuery<DateTimeOffset>($"SELECT clock_timestamp() AS \"Value\"")
-                .SingleAsync(cancellationToken);
+            var now = await database.DatabaseNowAsync(cancellationToken);
             var sale = await database.SalesOrders.FromSqlInterpolated(
                 $"SELECT * FROM \"SalesOrders\" WHERE \"Id\" = {reservationId} FOR UPDATE").SingleOrDefaultAsync(cancellationToken);
             now = sale is not null && now < sale.UpdatedAt ? sale.UpdatedAt : now;

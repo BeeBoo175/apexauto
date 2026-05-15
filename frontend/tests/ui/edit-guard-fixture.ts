@@ -95,18 +95,13 @@ export function fixtureScript(mode: "dialog" | "settings" | "promo" = "dialog") 
     const { parsePromo } = load(${settingsPolicy});
     const h = React.createElement;
     const navigationGuard = createInteractionGuard();
-    const lockedRef = { current: false };
     const navigation = {
-      lockedRef,
       guard: navigationGuard,
-      setLocked: (locked, owner) => {
-        navigationGuard.setLocked(owner, locked);
-        lockedRef.current = navigationGuard.isLocked();
-      },
+      setLocked: (owner, locked) => navigationGuard.setLocked(owner, locked),
     };
-    window.navigationLocked = () => lockedRef.current;
+    window.navigationLocked = () => navigationGuard.isLocked();
     const operationOwner = Symbol("background save");
-    window.operationState = (kind) => navigation.setLocked(kind ? { kind, label: "Saving terms" } : false, operationOwner);
+    window.operationState = (kind) => navigation.setLocked(operationOwner, kind ? { kind, label: "Saving terms" } : false);
 
     function BlockingReason() {
       const { message } = useGuardedAction();

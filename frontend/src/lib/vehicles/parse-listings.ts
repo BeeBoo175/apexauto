@@ -1,12 +1,10 @@
 import { parseCountedPage } from "@/lib/api";
-import { isRecord, isUuid } from "@/lib/auth/contracts";
+import { isNonNegativeInteger, isRecord, isUuid } from "@/lib/auth/contracts";
 import { isMyr } from "@/lib/currency-input";
 import { listingCountKeys, vehicleStatuses, type ListingItem } from "./listings";
 
 const text = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0;
-const integer = (value: unknown): value is number =>
-  Number.isSafeInteger(value) && Number(value) >= 0;
 const nullableId = (value: unknown) => value === null || isUuid(value);
 const nullableTimestamp = (value: unknown): value is string | null =>
   value === null ||
@@ -22,9 +20,9 @@ export function parseListing(value: unknown): ListingItem | null {
     !text(value.make) ||
     !text(value.model) ||
     !text(value.trim) ||
-    !integer(value.manufactureYear) ||
-    !integer(value.mileageKilometres) ||
-    !integer(value.version) ||
+    !isNonNegativeInteger(value.manufactureYear) ||
+    !isNonNegativeInteger(value.mileageKilometres) ||
+    !isNonNegativeInteger(value.version) ||
     !nullableId(value.revisionId) ||
     !nullableId(value.publicationId) ||
     !nullableId(value.publishedRevisionId) ||

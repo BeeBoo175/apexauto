@@ -107,7 +107,7 @@ internal static class SaleRows
         row.Status.ToString(), row.Plate, row.Year, row.Make, row.Model, row.Trim, row.Customer,
         row.Agent, row.Branch, row.DueAt, row.PausedSeconds, row.ClaimedAt, row.NegotiatedDiscount,
         row.DiscountLimitAtSubmit, row.BalancePayable, row.SubmittedAt, row.DecidedAt, row.ClosedAt,
-        row.Status is SalesOrderStatus.Expired or SalesOrderStatus.Cancelled ? row.Status.ToString() : null,
+        SalesOrder.IsClosedStatus(row.Status) ? row.Status.ToString() : null,
         row.Version, row.UpdatedAt);
 
     // Compare remaining time before counting and paging, using one instant for both bounds.

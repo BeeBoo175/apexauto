@@ -22,8 +22,7 @@ internal sealed class InspectionRepairApprovalTransaction(DealershipDbContext da
 
     public async Task<DateTimeOffset> ReadDatabaseTimeAsync(CancellationToken cancellationToken)
     {
-        return await database.Database.SqlQuery<DateTimeOffset>($"SELECT clock_timestamp() AS \"Value\"")
-            .SingleAsync(cancellationToken);
+        return await database.DatabaseNowAsync(cancellationToken);
     }
 
     public async Task<InspectionAssignmentStatus> CommitAsync(InspectionRepairApprovalReceipt receipt, CancellationToken cancellationToken)

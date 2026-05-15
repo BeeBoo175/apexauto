@@ -1,6 +1,5 @@
-import { isRecord, isUuid, type CustomerAccount } from "@/lib/auth/contracts";
+import { isRecord, isUtcInstant, isUuid, type CustomerAccount } from "@/lib/auth/contracts";
 import type { CurrentActor } from "@/lib/auth/actor";
-import { timestamp } from "@/lib/inspection/parse";
 import { parsePurchasePrice, type PurchasePrice } from "./purchase-quote";
 
 export interface ReservationAccess {
@@ -67,8 +66,8 @@ export function parseCustomerReservation(value: unknown): CustomerReservationRec
     (value.promoId === null && value.promoCode !== null) ||
     (value.promoId !== null && (typeof value.promoCode !== "string" || !value.promoCode.trim())) ||
     value.deposit !== 500 ||
-    !timestamp(value.createdAt) ||
-    !timestamp(value.expiresAt) ||
+    !isUtcInstant(value.createdAt) ||
+    !isUtcInstant(value.expiresAt) ||
     Date.parse(value.expiresAt) - Date.parse(value.createdAt) !== 48 * 60 * 60 * 1000
   ) {
     return null;

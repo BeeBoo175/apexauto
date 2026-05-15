@@ -56,12 +56,7 @@ internal sealed class ReservationTransaction(DealershipDbContext database, IDbCo
 
     private async Task<string> NextNumberAsync(int year, CancellationToken cancellationToken)
     {
-        await database.Database.ExecuteSqlInterpolatedAsync(
-            $"INSERT INTO \"ReservationNumberCounters\" (\"Year\", \"LastValue\") VALUES ({year}, 0) ON CONFLICT (\"Year\") DO NOTHING",
-            cancellationToken);
-        var counter = await database.ReservationNumberCounters.FromSqlInterpolated(
-            $"SELECT * FROM \"ReservationNumberCounters\" WHERE \"Year\" = {year} FOR UPDATE").SingleAsync(cancellationToken);
-        var number = counter.Next();
+        var number = await YearlyNumberAllocator.NextAsync<ReservationNumberCounter>(database, year, cancellationToken);
         await database.SaveChangesAsync(cancellationToken);
         return number;
     }

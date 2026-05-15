@@ -1,8 +1,8 @@
 import { parseItems } from "@/lib/api";
-import { isRecord, isUuid } from "@/lib/auth/contracts";
+import { isRecord, isUtcInstant, isUuid } from "@/lib/auth/contracts";
 import { isMyr } from "@/lib/currency-input";
 import { severities, type Point, type Severity } from "@/lib/inspection/contracts";
-import { enumValue, parsePoint, timestamp } from "@/lib/inspection/parse";
+import { enumValue, parsePoint } from "@/lib/inspection/parse";
 import { parsePublicVehicle } from "./parse";
 import type { PublicVehicle } from "./contracts";
 import { parsePurchasePrice, type PurchasePrice } from "./purchase-quote";
@@ -72,7 +72,7 @@ export function parsePublicDetail(value: unknown, expectedId?: string): PublicVe
     new Set(points.map((point) => point.code)).size !== points.length ||
     typeof checklist.catalogVersion !== "string" ||
     !checklist.catalogVersion.trim() ||
-    !timestamp(checklist.signedAt) ||
+    !isUtcInstant(checklist.signedAt) ||
     (checklist.grade !== null && !grade) ||
     typeof value.description !== "string" ||
     !value.description.trim() ||

@@ -1,4 +1,10 @@
-import { isRecord, isUuid } from "@/lib/auth/contracts";
+import {
+  isNonNegativeInteger,
+  isPositiveInteger,
+  isRecord,
+  isUtcInstant,
+  isUuid,
+} from "@/lib/auth/contracts";
 import { parseItems } from "@/lib/api";
 import {
   parseAssessment,
@@ -6,11 +12,8 @@ import {
   parsePoint,
   ids,
   versions,
-  integer,
-  positive,
   money,
   text,
-  timestamp,
   nullableId,
   nullableTime,
 } from "./parse";
@@ -73,7 +76,7 @@ export function parseReport(v: unknown): Report | null {
     !versions(v, ["revision", "saveVersion", "assignmentVersion"]) ||
     !text(v.technicianIdentity) ||
     !text(v.catalogVersion) ||
-    !timestamp(v.signedAt)
+    !isUtcInstant(v.signedAt)
   ) {
     return null;
   }
@@ -88,9 +91,9 @@ export function parseReport(v: unknown): Report | null {
     !ids(vehicle, ["id", "intakeAppointmentId", "intakeOwnerId"]) ||
     !["vin", "registrationPlate", "make", "model"].every((key) => text(vehicle[key])) ||
     typeof vehicle.trim !== "string" ||
-    !positive(vehicle.manufactureYear) ||
-    !integer(vehicle.mileageKilometres) ||
-    !timestamp(vehicle.checkedInAt)
+    !isPositiveInteger(vehicle.manufactureYear) ||
+    !isNonNegativeInteger(vehicle.mileageKilometres) ||
+    !isUtcInstant(vehicle.checkedInAt)
   ) {
     return null;
   }
@@ -102,10 +105,10 @@ export function parseAssignment(v: unknown): Assignment | null {
     !isRecord(v) ||
     !ids(v, ["operationId", "inspectionId", "vehicleId", "branchId", "actorId", "technicianId"]) ||
     !nullableId(v.previousTechnicianId) ||
-    !integer(v.expectedVersion) ||
-    !positive(v.version) ||
+    !isNonNegativeInteger(v.expectedVersion) ||
+    !isPositiveInteger(v.version) ||
     !(v.reason === null || text(v.reason)) ||
-    !timestamp(v.recordedAt)
+    !isUtcInstant(v.recordedAt)
   ) {
     return null;
   }
@@ -117,9 +120,9 @@ export function parseReopening(v: unknown): Reopening | null {
     !isRecord(v) ||
     !ids(v, ["operationId", "inspectionId", "branchId", "actorId", "signedRevisionId"]) ||
     !versions(v, ["assignmentVersion", "expectedRevision", "revision"]) ||
-    !integer(v.afterSaveVersion) ||
+    !isNonNegativeInteger(v.afterSaveVersion) ||
     !text(v.reason) ||
-    !timestamp(v.recordedAt)
+    !isUtcInstant(v.recordedAt)
   ) {
     return null;
   }
@@ -131,9 +134,9 @@ export function parseRepairRequest(v: unknown): RepairRequest | null {
     !isRecord(v) ||
     !ids(v, ["operationId", "inspectionId", "branchId", "actorId", "signedRevisionId"]) ||
     !versions(v, ["assignmentVersion", "revision", "version"]) ||
-    !integer(v.expectedVersion) ||
+    !isNonNegativeInteger(v.expectedVersion) ||
     !money(v.budget) ||
-    !timestamp(v.requestedAt)
+    !isUtcInstant(v.requestedAt)
   ) {
     return null;
   }
@@ -154,7 +157,7 @@ function repairReceipt(v: Record<string, unknown>) {
 }
 
 export function parseApproval(v: unknown): Approval | null {
-  if (!isRecord(v) || !repairReceipt(v) || !timestamp(v.approvedAt)) {
+  if (!isRecord(v) || !repairReceipt(v) || !isUtcInstant(v.approvedAt)) {
     return null;
   }
   return { ...v } as Approval;
@@ -166,7 +169,7 @@ export function parseCompletion(v: unknown): Completion | null {
     !repairReceipt(v) ||
     !nullableId(v.approvalId) ||
     !text(v.notes) ||
-    !timestamp(v.completedAt)
+    !isUtcInstant(v.completedAt)
   ) {
     return null;
   }
@@ -180,8 +183,8 @@ export function parsePhoto(v: unknown): PhotoReceipt | null {
     !versions(v, ["assignmentVersion", "bytes", "width", "height"]) ||
     !text(v.pointCode) ||
     !["image/jpeg", "image/png", "image/webp"].includes(String(v.contentType)) ||
-    !timestamp(v.createdAt) ||
-    !timestamp(v.expiresAt) ||
+    !isUtcInstant(v.createdAt) ||
+    !isUtcInstant(v.expiresAt) ||
     !nullableTime(v.availableAt) ||
     !nullableTime(v.removalRequestedAt) ||
     !nullableTime(v.deletedAt)
@@ -199,7 +202,7 @@ function parseRevision(v: unknown): RevisionSummary | null {
     !versions(v, ["revision", "saveVersion", "assignmentVersion"]) ||
     !text(v.technicianIdentity) ||
     !text(v.catalogVersion) ||
-    !timestamp(v.signedAt)
+    !isUtcInstant(v.signedAt)
   ) {
     return null;
   }
@@ -214,8 +217,8 @@ function parseRevision(v: unknown): RevisionSummary | null {
 function historyPage(v: Record<string, unknown>) {
   return (
     isUuid(v.inspectionId) &&
-    integer(v.totalCount) &&
-    positive(v.page) &&
+    isNonNegativeInteger(v.totalCount) &&
+    isPositiveInteger(v.page) &&
     [10, 25, 50].includes(Number(v.pageSize))
   );
 }
@@ -224,7 +227,7 @@ export function parseRevisions(v: unknown): RevisionHistory | null {
   if (
     !isRecord(v) ||
     !historyPage(v) ||
-    !positive(v.currentRevision) ||
+    !isPositiveInteger(v.currentRevision) ||
     typeof v.isSigned !== "boolean"
   ) {
     return null;
@@ -247,7 +250,7 @@ function parseRepairHistoryEntry(v: unknown): RepairHistoryEntry | null {
 }
 
 export function parseRepairs(v: unknown): RepairHistory | null {
-  if (!isRecord(v) || !historyPage(v) || !positive(v.revision)) {
+  if (!isRecord(v) || !historyPage(v) || !isPositiveInteger(v.revision)) {
     return null;
   }
   const items = parseItems(v.items, parseRepairHistoryEntry);

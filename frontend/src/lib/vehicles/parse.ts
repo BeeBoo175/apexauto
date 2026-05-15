@@ -1,13 +1,11 @@
 import { parseItems } from "@/lib/api";
-import { isRecord, isUuid } from "@/lib/auth/contracts";
+import { isNonNegativeInteger, isRecord, isUuid } from "@/lib/auth/contracts";
 import { isMyr } from "@/lib/currency-input";
 import { CATALOGUE_PAGE_SIZE, fuels, transmissions } from "./contracts";
 import type { CataloguePage, PublicVehicle } from "./contracts";
 
 const text = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0;
-const integer = (value: unknown): value is number =>
-  Number.isSafeInteger(value) && Number(value) >= 0;
 
 function enumValue<T extends string>(values: readonly T[], value: unknown): T | null {
   return values.find((name, index) => name === value || index === value) ?? null;
@@ -22,12 +20,12 @@ export function parsePublicVehicle(value: unknown): PublicVehicle | null {
     !text(value.make) ||
     !text(value.model) ||
     !text(value.trim) ||
-    !integer(value.manufactureYear) ||
+    !isNonNegativeInteger(value.manufactureYear) ||
     value.manufactureYear < 1886 ||
     value.manufactureYear > 9999 ||
-    !integer(value.mileageKilometres) ||
+    !isNonNegativeInteger(value.mileageKilometres) ||
     !isMyr(value.vehiclePrice) ||
-    !integer(value.photoCount) ||
+    !isNonNegativeInteger(value.photoCount) ||
     (value.coverPhotoId !== null && !isUuid(value.coverPhotoId)) ||
     (value.photoCount === 0) !== (value.coverPhotoId === null) ||
     !text(value.publishedAt) ||
@@ -62,8 +60,8 @@ export function parsePublicVehicle(value: unknown): PublicVehicle | null {
 export function parseCatalogue(value: unknown): CataloguePage | null {
   if (
     !isRecord(value) ||
-    !integer(value.total) ||
-    !integer(value.page) ||
+    !isNonNegativeInteger(value.total) ||
+    !isNonNegativeInteger(value.page) ||
     value.page < 1 ||
     value.pageSize !== CATALOGUE_PAGE_SIZE
   ) {

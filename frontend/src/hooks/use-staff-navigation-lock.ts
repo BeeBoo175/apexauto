@@ -8,7 +8,7 @@ export function useStaffNavigationLock(locked: boolean | InteractionBlock | null
   const owner = useRef(Symbol("navigation editor"));
   const setLocked = useCallback(
     (value: boolean | InteractionBlock | null) => {
-      operationLock?.setLocked(value, owner.current);
+      operationLock?.setLocked(owner.current, value);
     },
     [operationLock],
   );

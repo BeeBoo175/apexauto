@@ -1,5 +1,5 @@
 import { parsePage } from "@/lib/api";
-import { isRecord, isUuid } from "@/lib/auth/contracts";
+import { isPositiveInteger, isRecord, isUtcInstant, isUuid } from "@/lib/auth/contracts";
 
 export const MAX_LISTING_PHOTOS = 4;
 
@@ -13,23 +13,18 @@ export interface ListingPhotoItem {
   availableAt: string | null;
 }
 
-const positiveInteger = (value: unknown): value is number =>
-  Number.isSafeInteger(value) && Number(value) > 0;
-const utcDate = (value: unknown): value is string =>
-  typeof value === "string" && /(?:Z|\+00:00)$/.test(value) && Number.isFinite(Date.parse(value));
-
 function parsePhoto(value: unknown): ListingPhotoItem | null {
   if (
     !isRecord(value) ||
     !isUuid(value.id) ||
     typeof value.contentType !== "string" ||
     !["image/jpeg", "image/png", "image/webp"].includes(value.contentType) ||
-    !positiveInteger(value.bytes) ||
+    !isPositiveInteger(value.bytes) ||
     value.bytes > 10 * 1024 * 1024 ||
-    !positiveInteger(value.width) ||
-    !positiveInteger(value.height) ||
-    !utcDate(value.createdAt) ||
-    (value.availableAt !== null && !utcDate(value.availableAt))
+    !isPositiveInteger(value.width) ||
+    !isPositiveInteger(value.height) ||
+    !isUtcInstant(value.createdAt) ||
+    (value.availableAt !== null && !isUtcInstant(value.availableAt))
   ) {
     return null;
   }
@@ -82,8 +77,11 @@ export function moveListingPhoto(ids: string[], id: string, offset: -1 | 1) {
 export function reorderListingPhoto(ids: string[], id: string, position: number) {
   const from = ids.indexOf(id);
   if (
-    from < 0 || !Number.isInteger(position) || position < 0 ||
-    position >= ids.length || from === position
+    from < 0 ||
+    !Number.isInteger(position) ||
+    position < 0 ||
+    position >= ids.length ||
+    from === position
   ) {
     return ids;
   }
@@ -104,9 +102,7 @@ export function listingPhotoDropIndex(slots: ListingPhotoSlot[], x: number, y: n
   let index = -1;
   let distance = Infinity;
   slots.forEach((slot, position) => {
-    const next =
-      (x - (slot.left + slot.right) / 2) ** 2 +
-      (y - (slot.top + slot.bottom) / 2) ** 2;
+    const next = (x - (slot.left + slot.right) / 2) ** 2 + (y - (slot.top + slot.bottom) / 2) ** 2;
     if (next < distance) {
       index = position;
       distance = next;

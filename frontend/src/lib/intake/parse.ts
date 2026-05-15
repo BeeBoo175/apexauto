@@ -1,5 +1,5 @@
 import { parseItems } from "@/lib/api";
-import { isRecord, isUuid } from "@/lib/auth/contracts";
+import { isNonNegativeInteger, isRecord, isUtcInstant, isUuid } from "@/lib/auth/contracts";
 import { angles } from "./contracts";
 import type {
   Appointment,
@@ -13,10 +13,6 @@ import type {
 } from "./contracts";
 
 const text = (value: unknown): value is string => typeof value === "string" && value.length > 0;
-const integer = (value: unknown): value is number =>
-  Number.isSafeInteger(value) && Number(value) >= 0;
-const timestamp = (value: unknown): value is string =>
-  text(value) && /(?:Z|\+00:00)$/.test(value) && Number.isFinite(Date.parse(value));
 const date = (value: unknown): value is string =>
   text(value) &&
   /^\d{4}-\d{2}-\d{2}$/.test(value) &&
@@ -71,7 +67,7 @@ export function parseQuote(value: unknown): Quote | null {
     !Number.isFinite(value.maxValuation) ||
     value.maxValuation < value.minValuation ||
     !text(value.currency) ||
-    !integer(value.valuationYear)
+    !isNonNegativeInteger(value.valuationYear)
   ) {
     return null;
   }
@@ -89,8 +85,8 @@ export function parseVehicle(value: unknown): VehicleInput | null {
     !text(value.make) ||
     !text(value.model) ||
     !text(value.trim) ||
-    !integer(value.manufactureYear) ||
-    !integer(value.mileageKilometres)
+    !isNonNegativeInteger(value.manufactureYear) ||
+    !isNonNegativeInteger(value.mileageKilometres)
   ) {
     return null;
   }
@@ -106,8 +102,8 @@ export function parseVehicle(value: unknown): VehicleInput | null {
 export function parseSlot(value: unknown): Slot | null {
   if (
     !isRecord(value) ||
-    !timestamp(value.startsAt) ||
-    !timestamp(value.endsAt) ||
+    !isUtcInstant(value.startsAt) ||
+    !isUtcInstant(value.endsAt) ||
     Date.parse(value.endsAt) <= Date.parse(value.startsAt)
   ) {
     return null;
@@ -144,11 +140,11 @@ export function parsePhoto(value: unknown): PhotoReceipt | null {
   if (
     !isRecord(value) ||
     !isUuid(value.id) ||
-    !timestamp(value.expiresAt) ||
+    !isUtcInstant(value.expiresAt) ||
     !text(value.contentType) ||
-    !integer(value.bytes) ||
-    !integer(value.width) ||
-    !integer(value.height)
+    !isNonNegativeInteger(value.bytes) ||
+    !isNonNegativeInteger(value.width) ||
+    !isNonNegativeInteger(value.height)
   ) {
     return null;
   }
@@ -176,7 +172,7 @@ export function parseBooking(value: unknown): BookingReceipt | null {
     !isUuid(value.id) ||
     !isUuid(value.branchId) ||
     !text(value.registrationPlate) ||
-    !timestamp(value.createdAt) ||
+    !isUtcInstant(value.createdAt) ||
     !parseSlot(value.slot) ||
     !parseVehicle(value.vehicle) ||
     !parseQuote(value.quote) ||
@@ -226,10 +222,10 @@ export function parseAppointment(value: unknown): Appointment | null {
     !text(value.branchName) ||
     !text(value.registrationPlate) ||
     !parseSlot(value) ||
-    !timestamp(value.createdAt) ||
-    (value.cancelledAt !== null && !timestamp(value.cancelledAt)) ||
-    (value.noShowAt !== null && !timestamp(value.noShowAt)) ||
-    (value.checkedInAt !== null && !timestamp(value.checkedInAt))
+    !isUtcInstant(value.createdAt) ||
+    (value.cancelledAt !== null && !isUtcInstant(value.cancelledAt)) ||
+    (value.noShowAt !== null && !isUtcInstant(value.noShowAt)) ||
+    (value.checkedInAt !== null && !isUtcInstant(value.checkedInAt))
   ) {
     return null;
   }
@@ -251,7 +247,7 @@ export function parseAppointment(value: unknown): Appointment | null {
 }
 
 export function parseCancellation(value: unknown) {
-  if (!isRecord(value) || !isUuid(value.appointmentId) || !timestamp(value.cancelledAt)) {
+  if (!isRecord(value) || !isUuid(value.appointmentId) || !isUtcInstant(value.cancelledAt)) {
     return null;
   }
   return { appointmentId: value.appointmentId, cancelledAt: value.cancelledAt };

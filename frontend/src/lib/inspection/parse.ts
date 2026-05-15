@@ -1,4 +1,10 @@
-import { isRecord, isUuid } from "@/lib/auth/contracts";
+import {
+  isNonNegativeInteger,
+  isPositiveInteger,
+  isRecord,
+  isUtcInstant,
+  isUuid,
+} from "@/lib/auth/contracts";
 import { parseItems, parsePage } from "@/lib/api";
 import { inspectionStatuses, repairStatuses, severities } from "./contracts";
 import type {
@@ -14,21 +20,17 @@ import type {
 } from "./contracts";
 
 export const text = (v: unknown): v is string => typeof v === "string" && v.length > 0;
-export const integer = (v: unknown): v is number => Number.isSafeInteger(v) && Number(v) >= 0;
-export const positive = (v: unknown): v is number => integer(v) && v > 0;
 export const money = (v: unknown): v is number =>
   typeof v === "number" &&
   Number.isFinite(v) &&
   v >= 0 &&
   Number.isSafeInteger(Math.round(v * 100));
-export const timestamp = (v: unknown): v is string =>
-  text(v) && /(?:Z|\+00:00)$/.test(v) && Number.isFinite(Date.parse(v));
 export const nullableId = (v: unknown) => v === null || isUuid(v);
-export const nullableTime = (v: unknown) => v === null || timestamp(v);
+export const nullableTime = (v: unknown) => v === null || isUtcInstant(v);
 export const ids = (v: Record<string, unknown>, keys: string[]) =>
   keys.every((key) => isUuid(v[key]));
 export const versions = (v: Record<string, unknown>, keys: string[]) =>
-  keys.every((key) => positive(v[key]));
+  keys.every((key) => isPositiveInteger(v[key]));
 export function enumValue<T extends string>(values: readonly T[], value: unknown): T | null {
   return values.find((name, index) => name === value || index === value) ?? null;
 }
@@ -90,9 +92,9 @@ export function parseSave(v: unknown): Save | null {
     !isRecord(v) ||
     !ids(v, ["operationId", "inspectionId", "actorId"]) ||
     !versions(v, ["assignmentVersion", "version"]) ||
-    !integer(v.expectedVersion) ||
+    !isNonNegativeInteger(v.expectedVersion) ||
     !text(v.catalogVersion) ||
-    !timestamp(v.recordedAt)
+    !isUtcInstant(v.recordedAt)
   ) {
     return null;
   }
@@ -115,10 +117,10 @@ export function parseDraft(v: unknown): Draft | null {
     !ids(v, ["id", "vehicleId", "branchId", "technicianId"]) ||
     !text(v.technicianIdentity) ||
     !versions(v, ["assignmentVersion", "revision"]) ||
-    !integer(v.repairVersion) ||
-    !integer(v.reopenedAfterSaveVersion) ||
+    !isNonNegativeInteger(v.repairVersion) ||
+    !isNonNegativeInteger(v.reopenedAfterSaveVersion) ||
     typeof v.isSigned !== "boolean" ||
-    !timestamp(v.createdAt) ||
+    !isUtcInstant(v.createdAt) ||
     !text(v.catalogVersion)
   ) {
     return null;
@@ -145,7 +147,7 @@ export function parseDraft(v: unknown): Draft | null {
     !["registrationPlate", "make", "model", "vin", "status", "branchName"].every((key) =>
       text(vehicle[key]),
     ) ||
-    !integer(vehicle.mileageKilometres)
+    !isNonNegativeInteger(vehicle.mileageKilometres)
   ) {
     return null;
   }
@@ -166,11 +168,11 @@ function parseInspectionRow(v: unknown): InspectionRow | null {
     !["branchName", "registrationPlate", "make", "model", "vehicleStatus"].every((key) =>
       text(v[key]),
     ) ||
-    !timestamp(v.checkedInAt) ||
+    !isUtcInstant(v.checkedInAt) ||
     !nullableId(v.inspectionId) ||
     !nullableId(v.technicianId) ||
-    !(v.assignmentVersion === null || positive(v.assignmentVersion)) ||
-    !(v.revision === null || positive(v.revision)) ||
+    !(v.assignmentVersion === null || isPositiveInteger(v.assignmentVersion)) ||
+    !(v.revision === null || isPositiveInteger(v.revision)) ||
     !enumValue(inspectionStatuses, v.status)
   ) {
     return null;
@@ -186,7 +188,7 @@ function parseRepairRow(v: unknown): RepairRow | null {
     !text(v.branchName) ||
     !text(v.registrationPlate) ||
     !money(v.budget) ||
-    !timestamp(v.requestedAt) ||
+    !isUtcInstant(v.requestedAt) ||
     !nullableId(v.approvalId) ||
     !nullableId(v.coveringApprovalId) ||
     !nullableId(v.completionId) ||

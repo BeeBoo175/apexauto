@@ -30,7 +30,7 @@ public sealed class SaleListStore(DealershipDbContext database) : ISaleListStore
     {
         var actor = await SaleStaffLocks.ReadAsync(database, actorId, cancellationToken);
         if (actor is not { IsActive: true, Role: AccountRoles.SalesAgent, BranchId: { } branchId } ||
-            !await database.Branches.AnyAsync(branch => branch.Id == branchId && branch.IsActive, cancellationToken))
+            !await SaleStaffLocks.BranchActiveAsync(database, actor, cancellationToken))
         {
             return new(SaleStatus.Forbidden);
         }
@@ -75,8 +75,8 @@ public sealed class SaleListStore(DealershipDbContext database) : ISaleListStore
     {
         var actor = await SaleStaffLocks.ReadAsync(database, actorId, cancellationToken);
         var group = actor is { IsActive: true, Role: AccountRoles.GeneralManager };
-        var branch = actor is { IsActive: true, Role: AccountRoles.BranchManager, BranchId: { } branchId } &&
-            await database.Branches.AnyAsync(item => item.Id == branchId && item.IsActive, cancellationToken);
+        var branch = actor is { IsActive: true, Role: AccountRoles.BranchManager, BranchId: not null } &&
+            await SaleStaffLocks.BranchActiveAsync(database, actor, cancellationToken);
         if (!group && !branch)
         {
             return new(SaleStatus.Forbidden);
@@ -100,7 +100,7 @@ public sealed class SaleListStore(DealershipDbContext database) : ISaleListStore
             await sales.CountAsync(item => item.Status == SalesOrderStatus.Expired ||
                 item.Status == SalesOrderStatus.Cancelled, cancellationToken));
         var view = query.View ?? FirstWithWork(counts);
-        var now = DateTimeOffset.UtcNow;
+        var now = await database.DatabaseNowAsync(cancellationToken);
         var rows = Filter(SaleRows.Project(database, InView(sales, view)), query, group);
         rows = SaleRows.TimeLeftBetween(rows, query.MinimumHoursLeft, query.MaximumHoursLeft, now);
         var total = await rows.CountAsync(cancellationToken);

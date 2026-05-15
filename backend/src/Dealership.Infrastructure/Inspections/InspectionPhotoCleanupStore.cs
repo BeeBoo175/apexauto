@@ -8,7 +8,7 @@ public sealed class InspectionPhotoCleanupStore(DealershipDbContext database) : 
 {
     public async Task<IReadOnlyList<Guid>> GetCandidatesAsync(CancellationToken cancellationToken)
     {
-        var now = await DatabaseTimeAsync(cancellationToken);
+        var now = await database.DatabaseNowAsync(cancellationToken);
         var eligible = database.InspectionPhotos.Where(photo => photo.ExpiresAt <= now &&
             !database.InspectionDraftPhotos.Any(link => link.PhotoId == photo.Id) &&
             !database.InspectionPhotoRemovals.Any(removal => removal.PhotoId == photo.Id)).Select(photo => photo.Id);
@@ -26,7 +26,7 @@ public sealed class InspectionPhotoCleanupStore(DealershipDbContext database) : 
             var photo = await database.InspectionPhotos.FromSqlInterpolated(
                 $"SELECT * FROM \"InspectionPhotos\" WHERE \"Id\" = {id} FOR UPDATE")
                 .SingleOrDefaultAsync(cancellationToken);
-            var now = await DatabaseTimeAsync(cancellationToken);
+            var now = await database.DatabaseNowAsync(cancellationToken);
             if (photo is null || photo.ExpiresAt > now ||
                 await database.InspectionDraftPhotos.AnyAsync(link => link.PhotoId == id, cancellationToken))
             {
@@ -61,14 +61,9 @@ public sealed class InspectionPhotoCleanupStore(DealershipDbContext database) : 
 
     public async Task MarkDeletedAsync(Guid photoId, Guid claimId, CancellationToken cancellationToken)
     {
-        var now = await DatabaseTimeAsync(cancellationToken);
+        var now = await database.DatabaseNowAsync(cancellationToken);
         await database.InspectionPhotoRemovals.Where(item => item.PhotoId == photoId && item.ClaimId == claimId &&
                 item.ClaimExpiresAt > now && item.DeletedAt == null)
             .ExecuteUpdateAsync(update => update.SetProperty(item => item.DeletedAt, now), cancellationToken);
-    }
-
-    private Task<DateTimeOffset> DatabaseTimeAsync(CancellationToken cancellationToken)
-    {
-        return database.Database.SqlQuery<DateTimeOffset>($"SELECT clock_timestamp() AS \"Value\"").SingleAsync(cancellationToken);
     }
 }

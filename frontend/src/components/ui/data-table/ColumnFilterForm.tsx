@@ -1,7 +1,6 @@
 import { useId, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { useToast } from "@/components/ui/Toast";
 import { parseMyr } from "@/lib/currency-input";
 import { dateRangeError } from "@/lib/intake/list-query";
 import styles from "./ColumnFilterForm.module.css";
@@ -62,16 +61,25 @@ export function ColumnFilterForm({
   );
 }
 
-export function MoneyRangeFilter({
-  minimum,
-  maximum,
-  busy,
-  onApply,
-}: {
+interface RangeFilterProps {
   minimum: string;
   maximum: string;
   busy: boolean;
   onApply: (minimum: string, maximum: string) => Promise<boolean | undefined>;
+}
+
+// One numeric range frame: the caller supplies the unit label and a validator that returns the values to apply
+// or the message to show inline, so every range filter reports a bad entry the same way.
+function NumericRangeFilter({
+  minimum,
+  maximum,
+  busy,
+  unit,
+  validate,
+  onApply,
+}: RangeFilterProps & {
+  unit: string;
+  validate: (lower: string, upper: string) => { error: string } | { lower: string; upper: string };
 }) {
   const id = useId();
   const [lower, setLower] = useState(minimum);
@@ -79,17 +87,13 @@ export function MoneyRangeFilter({
   const [error, setError] = useState("");
 
   async function apply() {
-    const low = lower ? parseMyr(lower) : null;
-    const high = upper ? parseMyr(upper) : null;
-    const invalidMinimum = Boolean(lower) && low === null;
-    const invalidMaximum = Boolean(upper) && high === null;
-    const invalidOrder = low !== null && high !== null && low > high;
-    if (invalidMinimum || invalidMaximum || invalidOrder) {
-      setError("Enter valid MYR amounts with the minimum no greater than the maximum.");
+    const checked = validate(lower, upper);
+    if ("error" in checked) {
+      setError(checked.error);
       return false;
     }
     setError("");
-    return onApply(lower, upper);
+    return onApply(checked.lower, checked.upper);
   }
 
   return (
@@ -97,7 +101,8 @@ export function MoneyRangeFilter({
       <div className={styles.range}>
         <Input
           id={`${id}-min`}
-          label="Minimum (MYR)"
+          label={`Minimum (${unit})`}
+          aria-invalid={error ? true : undefined}
           placeholder="No minimum"
           density="compact"
           inputMode="decimal"
@@ -107,7 +112,8 @@ export function MoneyRangeFilter({
         />
         <Input
           id={`${id}-max`}
-          label="Maximum (MYR)"
+          label={`Maximum (${unit})`}
+          aria-invalid={error ? true : undefined}
           placeholder="No maximum"
           density="compact"
           inputMode="decimal"
@@ -125,72 +131,46 @@ export function MoneyRangeFilter({
   );
 }
 
-export function HoursRangeFilter({
-  minimum,
-  maximum,
-  maximumHours,
-  busy,
-  onApply,
-}: {
-  minimum: string;
-  maximum: string;
-  maximumHours: number;
-  busy: boolean;
-  onApply: (minimum: string, maximum: string) => Promise<boolean | undefined>;
-}) {
-  const id = useId();
-  const [lower, setLower] = useState(minimum);
-  const [upper, setUpper] = useState(maximum);
-  const [invalid, setInvalid] = useState(false);
-  const { error } = useToast();
+function validateMoneyRange(lower: string, upper: string) {
+  const low = lower ? parseMyr(lower) : null;
+  const high = upper ? parseMyr(upper) : null;
+  const invalidMinimum = Boolean(lower) && low === null;
+  const invalidMaximum = Boolean(upper) && high === null;
+  const invalidOrder = low !== null && high !== null && low > high;
+  if (invalidMinimum || invalidMaximum || invalidOrder) {
+    return { error: "Enter valid MYR amounts with the minimum no greater than the maximum." };
+  }
+  return { lower, upper };
+}
 
-  async function apply() {
+export function MoneyRangeFilter(props: RangeFilterProps) {
+  return <NumericRangeFilter {...props} unit="MYR" validate={validateMoneyRange} />;
+}
+
+export function HoursRangeFilter({
+  maximumHours,
+  ...props
+}: RangeFilterProps & { maximumHours: number }) {
+  function validate(lower: string, upper: string) {
     const first = lower.trim();
     const last = upper.trim();
-    const values = [first, last].filter(Boolean);
-    const invalidValue = values.some(
-      (value) =>
-        !/^\d+(\.\d+)?$/.test(value) ||
-        !Number.isFinite(Number(value)) ||
-        Number(value) > maximumHours,
-    );
-    const invalidRange = invalidValue || Boolean(first && last && Number(first) > Number(last));
-    setInvalid(invalidRange);
-    if (invalidRange) {
-      error(`Enter hours from 0 to ${maximumHours} with the minimum no greater than the maximum.`);
-      return false;
+    const invalidValue = [first, last]
+      .filter(Boolean)
+      .some(
+        (value) =>
+          !/^\d+(\.\d+)?$/.test(value) ||
+          !Number.isFinite(Number(value)) ||
+          Number(value) > maximumHours,
+      );
+    if (invalidValue || Boolean(first && last && Number(first) > Number(last))) {
+      return {
+        error: `Enter hours from 0 to ${maximumHours} with the minimum no greater than the maximum.`,
+      };
     }
-    return onApply(first, last);
+    return { lower: first, upper: last };
   }
 
-  return (
-    <ColumnFilterForm busy={busy} onApply={apply} onClear={() => onApply("", "")}>
-      <div className={styles.range}>
-        <Input
-          id={`${id}-min`}
-          label="Minimum (hours)"
-          aria-invalid={invalid || undefined}
-          placeholder="No minimum"
-          density="compact"
-          inputMode="decimal"
-          value={lower}
-          disabled={busy}
-          onChange={(event) => setLower(event.target.value)}
-        />
-        <Input
-          id={`${id}-max`}
-          label="Maximum (hours)"
-          aria-invalid={invalid || undefined}
-          placeholder="No maximum"
-          density="compact"
-          inputMode="decimal"
-          value={upper}
-          disabled={busy}
-          onChange={(event) => setUpper(event.target.value)}
-        />
-      </div>
-    </ColumnFilterForm>
-  );
+  return <NumericRangeFilter {...props} unit="hours" validate={validate} />;
 }
 
 export function DateRangeFilter({

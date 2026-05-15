@@ -12,8 +12,7 @@ public sealed class DevelopmentReservationFixtures(DealershipDbContext database,
 {
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> RunAsync(bool seed, CancellationToken cancellationToken)
     {
-        var now = await database.Database.SqlQuery<DateTimeOffset>($"SELECT clock_timestamp() AS \"Value\"")
-            .SingleAsync(cancellationToken);
+        var now = await database.DatabaseNowAsync(cancellationToken);
         var reports = new List<DevelopmentFixtureReport>();
         foreach (var scenario in DevelopmentReservationScenarios.All)
         {

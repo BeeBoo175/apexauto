@@ -19,8 +19,7 @@ public sealed class AppointmentHistoryStore(DealershipDbContext database) : IApp
             return null;
         }
 
-        var databaseNow = await database.Database.SqlQuery<DateTimeOffset>($"SELECT clock_timestamp() AS \"Value\"")
-            .SingleAsync(cancellationToken);
+        var databaseNow = await database.DatabaseNowAsync(cancellationToken);
         var today = AppointmentDay.StartUtc(databaseNow);
         var appointments = database.IntakeAppointments.AsNoTracking().Where(item => item.OwnerId == ownerId);
 

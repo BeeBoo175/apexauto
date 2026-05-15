@@ -22,8 +22,7 @@ public sealed class PurchaseQuoteStore(DealershipDbContext database) : IPurchase
         var settings = await database.PurchaseSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
         var promo = code is null ? null : await database.PromoCodes.AsNoTracking()
             .SingleOrDefaultAsync(item => item.Code == code, cancellationToken);
-        var now = await database.Database.SqlQuery<DateTimeOffset>($"SELECT clock_timestamp() AS \"Value\"")
-            .SingleAsync(cancellationToken);
+        var now = await database.DatabaseNowAsync(cancellationToken);
         return new(listing, settings, promo, now);
     }
 }

@@ -63,8 +63,7 @@ internal static class StaffWorklistRows
             return null;
         }
 
-        var databaseNow = await database.Database.SqlQuery<DateTimeOffset>($"SELECT clock_timestamp() AS \"Value\"")
-            .SingleAsync(cancellationToken);
+        var databaseNow = await database.DatabaseNowAsync(cancellationToken);
         var today = AppointmentDay.StartUtc(databaseNow);
         var branchId = scope.BranchId ?? query.BranchId;
 

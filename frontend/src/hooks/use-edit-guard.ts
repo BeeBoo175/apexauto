@@ -14,18 +14,18 @@ interface EditState {
 }
 
 // Leaf editors own their draft reset and captured-operation recovery.
-export function useEditGuard(state: boolean | EditState) {
+export function useEditGuard(state: EditState) {
   const dialog = useContext(DialogEditGuardContext);
   const owner = useRef(Symbol("editor"));
   const latestDiscard = useRef<(() => void) | undefined>(undefined);
   const release = useRef<(() => void) | undefined>(undefined);
-  const dirty = typeof state !== "boolean" && Boolean(state.dirty);
-  const pending = typeof state === "boolean" ? state : Boolean(state.pending);
-  const uncertain = typeof state !== "boolean" && Boolean(state.uncertain);
-  const label = typeof state === "boolean" ? "Current action" : state.label;
-  const canDiscard = typeof state !== "boolean" && Boolean(state.discard);
+  const dirty = Boolean(state.dirty);
+  const pending = Boolean(state.pending);
+  const uncertain = Boolean(state.uncertain);
+  const label = state.label;
+  const canDiscard = Boolean(state.discard);
   useLayoutEffect(() => {
-    latestDiscard.current = typeof state === "boolean" ? undefined : state.discard;
+    latestDiscard.current = state.discard;
   });
   const discard = useCallback(() => {
     latestDiscard.current?.();
