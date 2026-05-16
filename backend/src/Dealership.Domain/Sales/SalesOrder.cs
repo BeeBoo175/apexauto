@@ -141,6 +141,15 @@ public sealed partial class SalesOrder
 
     public bool HasExpired(DateTimeOffset now) => Status == SalesOrderStatus.Open && now >= DueAt;
 
+    // Review uses the approved balance rather than repricing from settings or applying its credits again.
+    public SalePaymentEvidence ReviewSettlement(SalePaymentEvidence evidence, Guid agentId)
+    {
+        ArgumentNullException.ThrowIfNull(evidence);
+        Require(Status == SalesOrderStatus.Approved, "Only an approved sale can be settled.");
+        Require(agentId != Guid.Empty && agentId == AgentId, "Only the handling agent confirms settlement.");
+        return evidence.Normalize(BalancePayable);
+    }
+
     // An agent claims an open sale for themselves, or a manager assigns it; either way the timer pauses.
     public SalesOrderEvent Claim(Guid operationId, Guid agentId, Guid actorId, DateTimeOffset now)
     {

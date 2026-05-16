@@ -21,10 +21,10 @@ public static class SalePricing
             terms.DepositCredit, terms.TradeInAllowance
         })
         {
-            Ensure(amount);
+            EnsureAmount(amount);
         }
 
-        Ensure(terms.BasePrice);
+        EnsureAmount(terms.BasePrice);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(terms.BasePrice);
         ArgumentOutOfRangeException.ThrowIfNegative(terms.SstRate);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(terms.SstRate, 1m);
@@ -45,7 +45,7 @@ public static class SalePricing
         return new SalePrice(purchase.ServiceTax, subtotal, balance);
     }
 
-    private static void Ensure(decimal amount)
+    internal static void EnsureAmount(decimal amount)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(amount);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(amount, MoneyStorage.MaximumAmount);
