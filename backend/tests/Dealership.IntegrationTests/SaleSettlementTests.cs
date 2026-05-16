@@ -1,7 +1,15 @@
+using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Text;
+using System.Text.Json;
+using Dealership.Application.Accounts;
+
 using Dealership.Application.Sales;
 using Dealership.Domain.Sales;
 using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Persistence;
+using Dealership.Infrastructure.Sales;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
@@ -16,7 +24,7 @@ public sealed class SaleSettlementTests(IntakePhotoFixture fixture) : IClassFixt
         var world = await SaleWorld.SharedAsync(fixture);
         var held = await ApprovedAsync(world);
         var sale = await ReadAsync(held.Id);
-        var request = Request(sale);
+        var request = await RequestAsync(sale);
         Assert.Equal(SaleResultStatus.Forbidden, (await world.Settlement.SettleAsync(world.Manager, held.Id, request,
             default)).Status);
         Assert.Equal(SaleResultStatus.NotFound, (await world.Settlement.SettleAsync(world.Colleague, held.Id, request,
@@ -48,7 +56,26 @@ public sealed class SaleSettlementTests(IntakePhotoFixture fixture) : IClassFixt
             Assert.False(await database.ReservationReleases.AnyAsync(item => item.ReservationId == held.Id));
             var entry = await database.SalesOrderEvents.SingleAsync(item => item.Id == request.OperationId);
             Assert.Equal(request.Payment, entry.Snapshot.PaymentEvidence);
+            Assert.Equal(request.Review, entry.SettlementReview);
+            var documents = await database.SaleDocuments.Where(item => item.SalesOrderId == held.Id).ToListAsync();
+            Assert.Equal(2, documents.Count);
+            Assert.Equal(sale.OrderNumber, documents.Single(item => item.Kind == SaleDocumentKind.PurchaseOrder).Number);
+            Assert.StartsWith("VRC-", documents.Single(item => item.Kind == SaleDocumentKind.PaymentReceipt).Number);
+            Assert.All(documents, document =>
+            {
+                Assert.Equal(request.OperationId, document.SettlementOperationId);
+                Assert.Equal(request.Review, document.Contents().Review);
+                Assert.Equal(entry.Snapshot, document.Contents().Sale);
+                Assert.Equal(entry.RecordedAt, document.IssuedAt);
+            });
         }
+
+        Assert.Equal(SaleResultStatus.Conflict, (await world.Settlement.SettleAsync(world.Agent, held.Id,
+            request with { Review = request.Review with { BuyerAddress = "24 Jalan Melati" } }, default)).Status);
+        await RejectSqlAsync("UPDATE \"SaleDocuments\" SET \"ContentsJson\" = '{}'::jsonb WHERE \"SalesOrderId\" = @id",
+            held.Id, "CK_SaleDocuments_Immutable");
+        await RejectSqlAsync("UPDATE \"SalesOrderEvents\" SET \"SettlementReview\" = '{}'::jsonb WHERE \"Id\" = @id",
+            request.OperationId, "CK_SalesOrderEvents_Immutable");
 
         Assert.Equal(SaleResultStatus.Conflict, (await world.Terms.CancelAsync(world.Manager, held.Id,
             new(Guid.NewGuid(), 4, "Buyer changed their mind"), default)).Status);
@@ -79,7 +106,7 @@ public sealed class SaleSettlementTests(IntakePhotoFixture fixture) : IClassFixt
     {
         var world = await SaleWorld.SharedAsync(fixture);
         var held = await ApprovedAsync(world);
-        var request = Request(await ReadAsync(held.Id));
+        var request = await RequestAsync(await ReadAsync(held.Id));
         using var first = world.Services.CreateScope();
         using var second = world.Services.CreateScope();
         var results = await Task.WhenAll(
@@ -88,9 +115,13 @@ public sealed class SaleSettlementTests(IntakePhotoFixture fixture) : IClassFixt
                 request with { OperationId = Guid.NewGuid() }, default));
         Assert.Single(results, item => item.Status == SaleResultStatus.Succeeded);
         Assert.Single(results, item => item.Status == SaleResultStatus.Conflict);
+        await using (var issued = NewContext())
+        {
+            Assert.Equal(2, await issued.SaleDocuments.CountAsync(item => item.SalesOrderId == held.Id));
+        }
 
         var competing = await ApprovedAsync(world);
-        var competingRequest = Request(await ReadAsync(competing.Id));
+        var competingRequest = await RequestAsync(await ReadAsync(competing.Id));
         var race = await Task.WhenAll(
             first.ServiceProvider.GetRequiredService<SaleSettlementService>().SettleAsync(world.Agent, competing.Id,
                 competingRequest, default),
@@ -110,7 +141,7 @@ public sealed class SaleSettlementTests(IntakePhotoFixture fixture) : IClassFixt
         await using (var transaction = await database.Database.BeginTransactionAsync())
         {
             var sale = await database.SalesOrders.SingleAsync(item => item.Id == rollback.Id);
-            sale.Settle(Guid.NewGuid(), Request(sale).Payment, null, world.Agent, DateTimeOffset.UtcNow);
+            sale.Settle(Guid.NewGuid(), (await RequestAsync(sale)).Payment, null, world.Agent, DateTimeOffset.UtcNow);
             await database.SaveChangesAsync();
             var failure = await Assert.ThrowsAsync<PostgresException>(() => transaction.CommitAsync());
             Assert.Equal(PostgresErrorCodes.CheckViolation, failure.SqlState);
@@ -121,7 +152,141 @@ public sealed class SaleSettlementTests(IntakePhotoFixture fixture) : IClassFixt
         Assert.True((await database.Reservations.SingleAsync(item => item.Id == rollback.Id)).IsActive);
         Assert.Equal(VehicleStatus.Available, (await database.Vehicles.SingleAsync(item => item.Id == rollback.VehicleId)).Status);
         Assert.Equal(SaleResultStatus.Succeeded, (await world.Settlement.SettleAsync(world.Agent, rollback.Id,
-            Request(await ReadAsync(rollback.Id)), default)).Status);
+            await RequestAsync(await ReadAsync(rollback.Id)), default)).Status);
+    }
+
+    [Fact]
+    public async Task ReviewPreventsIdentitySubstitutionAndMissingDocumentsRollBackSettlement()
+    {
+        var world = await SaleWorld.SharedAsync(fixture);
+        var held = await ApprovedAsync(world);
+        var request = await RequestAsync(await ReadAsync(held.Id));
+        var reviews = new[]
+        {
+            request.Review with { BuyerNric = "990101101234" },
+            request.Review with { Vehicle = request.Review.Vehicle with { Vin = "MNB12345678901234" } },
+            request.Review with { Vehicle = request.Review.Vehicle with { MileageKilometres = 1 } }
+        };
+        foreach (var review in reviews)
+        {
+            Assert.Equal(SaleResultStatus.Conflict, (await world.Settlement.SettleAsync(world.Agent, held.Id,
+                request with { Review = review }, default)).Status);
+        }
+
+        Assert.Equal(SaleResultStatus.Invalid, (await world.Settlement.SettleAsync(world.Agent, held.Id,
+            request with { Review = request.Review with { BuyerName = " " } }, default)).Status);
+        await using var database = NewContext();
+        await using (var transaction = await database.Database.BeginTransactionAsync())
+        {
+            var sale = await database.SalesOrders.SingleAsync(item => item.Id == held.Id);
+            var entry = sale.Settle(request.OperationId, request.Payment, null, world.Agent, DateTimeOffset.UtcNow);
+            entry.CaptureSettlementReview(request.Review);
+            database.SalesOrderEvents.Add(entry);
+            var branch = await database.Branches.SingleAsync(item => item.Id == sale.BranchId);
+            database.SaleDocuments.Add(new SaleDocument(sale.Id, entry.Id, SaleDocumentKind.PurchaseOrder,
+                sale.OrderNumber!, entry.RecordedAt, new SaleDocumentContents(sale.CustomerId, sale.BranchId,
+                    branch.Name, branch.Address, held.Number, request.Review, entry.Snapshot)));
+            await database.SaveChangesAsync();
+            var failure = await Assert.ThrowsAsync<PostgresException>(() => transaction.CommitAsync());
+            Assert.Equal("CK_SalesOrders_Documents", failure.ConstraintName);
+        }
+
+        database.ChangeTracker.Clear();
+        Assert.Empty(await database.SaleDocuments.Where(item => item.SalesOrderId == held.Id).ToListAsync());
+        Assert.False(await database.SalesOrderEvents.AnyAsync(item => item.Id == request.OperationId));
+        Assert.Equal(SalesOrderStatus.Approved, (await ReadAsync(held.Id)).Status);
+        Assert.True((await database.Reservations.SingleAsync(item => item.Id == held.Id)).IsActive);
+        Assert.Equal(SaleResultStatus.Succeeded, (await world.Settlement.SettleAsync(world.Agent, held.Id, request, default)).Status);
+    }
+
+    [Fact]
+    public async Task SettlementHttpUsesExactMoneyAndDocumentsFollowCurrentOwnership()
+    {
+        var world = await SaleWorld.SharedAsync(fixture);
+        var held = await ApprovedAsync(world);
+        var request = await RequestAsync(await ReadAsync(held.Id));
+        using var factory = fixture.CreateFactory();
+        using var client = factory.CreateClient();
+        var commandPath = $"/api/staff/sales/{held.Id}/settlements";
+        var documentsPath = $"/api/sales/{held.Id}/documents";
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync(documentsPath)).StatusCode);
+        await LoginAsync(client, world.Agent);
+        var reviewed = await client.GetFromJsonAsync<SaleSettlementReview>($"/api/staff/sales/{held.Id}/settlement-review");
+        Assert.Equal(request.Review, reviewed);
+        var input = new SaleSettlementInput(request.OperationId, request.ExpectedVersion,
+            new(request.Payment.Method, request.Payment.ReceivedAmount, request.Payment.PaymentReference,
+                request.Payment.PaymentDate, null, 0m, null, false, false), request.Review);
+        var json = JsonSerializer.Serialize(input, JsonSerializerOptions.Web)
+            .Replace("\"financingAmount\":0", "\"financingAmount\":0.001", StringComparison.Ordinal);
+        using var invalid = new StringContent(json, Encoding.UTF8, "application/json");
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsync(commandPath, invalid)).StatusCode);
+        var response = await client.PostAsJsonAsync(commandPath, input);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.True(response.Headers.CacheControl!.NoStore);
+        Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync(commandPath, input)).StatusCode);
+        var documents = await client.GetFromJsonAsync<List<SaleIssuedDocument>>(documentsPath);
+        Assert.Equal(2, documents!.Count);
+        Assert.All(documents, document => Assert.Equal(request.Review, document.Contents.Review));
+
+        await LoginAsync(client, held.CustomerId);
+        var customerRead = await client.GetAsync(documentsPath);
+        Assert.Equal(HttpStatusCode.OK, customerRead.StatusCode);
+        Assert.True(customerRead.Headers.CacheControl!.NoStore);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"/api/staff/sales/{held.Id}/settlement-review")).StatusCode);
+        await LoginAsync(client, world.OtherBranchAgent);
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync(documentsPath)).StatusCode);
+        var unrelated = await world.HoldAsync();
+        await using (var connection = new NpgsqlConnection(fixture.Database.RuntimeConnectionString))
+        {
+            await connection.OpenAsync();
+            await using var command = new NpgsqlCommand("""
+                INSERT INTO "SaleDocuments" ("Id", "SalesOrderId", "SettlementOperationId", "Kind", "Number", "IssuedAt", "ContentsJson")
+                VALUES (gen_random_uuid(), @sale, @operation, 'PaymentReceipt', 'VRC-9999-999999', clock_timestamp(), '{}'::jsonb)
+                """, connection);
+            command.Parameters.AddWithValue("sale", unrelated.Id);
+            command.Parameters.AddWithValue("operation", request.OperationId);
+            var failure = await Assert.ThrowsAsync<PostgresException>(() => command.ExecuteNonQueryAsync());
+            Assert.Equal(PostgresErrorCodes.ForeignKeyViolation, failure.SqlState);
+            Assert.Contains("SalesOrderEvents", failure.ConstraintName!);
+        }
+
+        var reads = world.Services.GetRequiredService<ISaleDocumentStore>();
+        Assert.Equal(SaleResultStatus.NotFound, (await reads.ReviewAsync(world.Agent, unrelated.Id, default)).Status);
+        Assert.Equal(SaleResultStatus.Succeeded, (await reads.ReadAsync(world.Manager, held.Id, default)).Status);
+        await LoginAsync(client, unrelated.CustomerId);
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync(documentsPath)).StatusCode);
+
+        await world.Handling.AssignAsync(world.Manager, held.Id, new(Guid.NewGuid(), 4, world.Colleague), default);
+        Assert.Equal(SaleResultStatus.NotFound, (await reads.ReadAsync(world.Agent, held.Id, default)).Status);
+        Assert.Equal(SaleResultStatus.Succeeded, (await reads.ReadAsync(world.Colleague, held.Id, default)).Status);
+        await using var database = NewContext();
+        await database.CustomerProfiles.Where(item => item.UserId == held.CustomerId)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.LegalName, "Hafiz bin Rahman")
+                .SetProperty(item => item.ResidentialAddress, "30 Jalan Mawar, Shah Alam"));
+        await database.Users.Where(item => item.Id == world.Colleague)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.IsActive, false));
+        try
+        {
+            Assert.Equal(SaleResultStatus.Forbidden, (await reads.ReadAsync(world.Colleague, held.Id, default)).Status);
+        }
+        finally
+        {
+            await database.Users.Where(item => item.Id == world.Colleague)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.IsActive, true));
+        }
+
+        await LoginAsync(client, held.CustomerId);
+        var retained = await client.GetFromJsonAsync<List<SaleIssuedDocument>>(documentsPath);
+        Assert.Equal(documents.Select(item => item.Contents), retained!.Select(item => item.Contents));
+    }
+
+    private async Task LoginAsync(HttpClient client, Guid actorId)
+    {
+        await using var database = NewContext();
+        var email = await database.Users.Where(item => item.Id == actorId).Select(item => item.Email).SingleAsync();
+        var response = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest(Guid.NewGuid(), email!, "Password123!"));
+        var session = (await response.Content.ReadFromJsonAsync<LoginSession>())!;
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
     }
 
     [Theory]
@@ -157,7 +322,7 @@ public sealed class SaleSettlementTests(IntakePhotoFixture fixture) : IClassFixt
                 new(Guid.NewGuid(), 4), default)).Status);
         }
 
-        var request = Request(await ReadAsync(held.Id));
+        var request = await RequestAsync(await ReadAsync(held.Id));
         var payment = inspectionSigned
             ? new SalePaymentEvidence(SalePaymentMethod.HirePurchase, 5000m, null, null, "Maybank",
                 request.Payment.ReceivedAmount - 5000m, "LOU 42873", true, false)
@@ -183,10 +348,16 @@ public sealed class SaleSettlementTests(IntakePhotoFixture fixture) : IClassFixt
         return held;
     }
 
-    private static SaleSettlementRequest Request(SalesOrder sale) => new(Guid.NewGuid(), sale.Version,
-        new(SalePaymentMethod.BankTransfer, sale.BalancePayable, "MBB 021126 43789", new DateOnly(2026, 11, 2),
-            null, 0m, null, false, false));
-
+    private async Task<SaleSettlementRequest> RequestAsync(SalesOrder sale)
+    {
+        await using var database = NewContext();
+        var profile = await database.CustomerProfiles.AsNoTracking().SingleAsync(item => item.UserId == sale.CustomerId);
+        var vehicle = await database.Vehicles.AsNoTracking().SingleAsync(item => item.Id == sale.VehicleId);
+        return new(Guid.NewGuid(), sale.Version,
+            new(SalePaymentMethod.BankTransfer, sale.BalancePayable, "MBB 021126 43789", new DateOnly(2026, 11, 2),
+                null, 0m, null, false, false),
+            new(profile.LegalName, profile.Nric, profile.ResidentialAddress, SaleReviewedVehicle.Of(vehicle)));
+    }
     private async Task<SalesOrder> ReadAsync(Guid id)
     {
         await using var database = NewContext();

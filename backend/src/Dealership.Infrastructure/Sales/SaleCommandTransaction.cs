@@ -59,6 +59,9 @@ internal sealed class SaleCommandTransaction(DealershipDbContext database, IDbCo
     public Task<string> NextOrderNumberAsync(int year, CancellationToken cancellationToken) =>
         YearlyNumberAllocator.NextAsync<DealNumberCounter>(database, year, cancellationToken);
 
+    public Task<bool> ReviewSettlementAsync(SaleSettlementReview review, CancellationToken cancellationToken) =>
+        SaleSettlementDocuments.ReviewAsync(database, Sale, review, cancellationToken);
+
     public async Task<Guid?> LockTradeInVehicleAsync(CancellationToken cancellationToken)
     {
         if (Sale.TradeInAppointmentId is not { } appointmentId)
@@ -108,6 +111,11 @@ internal sealed class SaleCommandTransaction(DealershipDbContext database, IDbCo
         database.SalesOrderEvents.Add(entry);
         try
         {
+            if (entry.Kind == SalesOrderEventKind.Settled)
+            {
+                await SaleSettlementDocuments.IssueAsync(database, Sale, entry, cancellationToken);
+            }
+
             await database.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
             return SaleResultStatus.Succeeded;
@@ -118,6 +126,11 @@ internal sealed class SaleCommandTransaction(DealershipDbContext database, IDbCo
         })
         {
             // One open sale per trade-in, unique numbers and the database guards decide races the locks cannot.
+            return SaleResultStatus.Conflict;
+        }
+        catch (PostgresException exception) when (exception.SqlState is
+            PostgresErrorCodes.UniqueViolation or PostgresErrorCodes.CheckViolation)
+        {
             return SaleResultStatus.Conflict;
         }
     }

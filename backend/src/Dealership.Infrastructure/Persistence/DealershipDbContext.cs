@@ -8,6 +8,7 @@ using Dealership.Infrastructure.Identity;
 using Dealership.Infrastructure.Intake;
 using Dealership.Infrastructure.Inspections;
 using Dealership.Infrastructure.Vehicles;
+using Dealership.Infrastructure.Sales;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -30,6 +31,8 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
     public DbSet<SalesOrder> SalesOrders => Set<SalesOrder>();
 
     public DbSet<SalesOrderEvent> SalesOrderEvents => Set<SalesOrderEvent>();
+
+    public DbSet<SaleDocument> SaleDocuments => Set<SaleDocument>();
 
     public DbSet<DealNumberCounter> DealNumberCounters => Set<DealNumberCounter>();
     public DbSet<ReservationNumberCounter> ReservationNumberCounters => Set<ReservationNumberCounter>();
@@ -101,6 +104,9 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
         builder.ApplyConfiguration<SalesOrder>(sales);
         builder.ApplyConfiguration<SalesOrderEvent>(sales);
         builder.ApplyConfiguration<DealNumberCounter>(sales);
+        var documents = new SaleDocumentConfiguration();
+        builder.ApplyConfiguration<SaleDocument>(documents);
+        builder.ApplyConfiguration<ReceiptNumberCounter>(documents);
         builder.ApplyConfiguration(new PurchaseSettingsConfiguration());
         var reservations = new ReservationConfiguration();
         builder.ApplyConfiguration<Reservation>(reservations);

@@ -63,6 +63,7 @@ public static class DependencyInjection
         services.AddScoped<IWarrantyAdministrationStore, WarrantyAdministrationStore>();
         services.AddScoped<Application.Sales.ISaleCommandStore, Sales.SaleCommandStore>();
         services.AddScoped<Application.Sales.ISaleReadStore, Sales.SaleReadStore>();
+        services.AddScoped<Application.Sales.ISaleDocumentStore, Sales.SaleDocumentStore>();
         services.AddScoped<Application.Sales.ISaleListStore, Sales.SaleListStore>();
         services.AddScoped<Application.Sales.ISaleVehiclePhotoStore, Sales.SaleVehiclePhotoStore>();
         services.AddScoped<IListingReadStore, ListingReadStore>();

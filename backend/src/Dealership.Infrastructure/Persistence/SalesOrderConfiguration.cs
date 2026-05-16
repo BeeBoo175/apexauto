@@ -160,6 +160,11 @@ public sealed class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrde
             json => JsonSerializer.Deserialize<SaleSnapshot>(json, SnapshotJson)!,
             new ValueComparer<SaleSnapshot>((left, right) => ReferenceEquals(left, right),
                 value => value.GetHashCode(), value => value));
+        builder.Property(item => item.SettlementReview).HasColumnType("jsonb").HasConversion(
+            value => value == null ? null : JsonSerializer.Serialize(value, SnapshotJson),
+            json => json == null ? null : JsonSerializer.Deserialize<SaleSettlementReview>(json, SnapshotJson),
+            new ValueComparer<SaleSettlementReview?>((left, right) => left == right,
+                value => value == null ? 0 : value.GetHashCode(), value => value));
         builder.HasOne<SalesOrder>().WithMany().HasForeignKey(item => item.SalesOrderId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<AccountUser>().WithMany().HasForeignKey(item => item.ActorId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<AccountUser>().WithMany().HasForeignKey(item => item.AgentId).OnDelete(DeleteBehavior.Restrict);

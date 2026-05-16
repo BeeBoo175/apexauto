@@ -97,6 +97,18 @@ public sealed class SalesOrderEvent
 
     public SaleSnapshot Snapshot { get; private set; } = null!;
 
+    public SaleSettlementReview? SettlementReview { get; private set; }
+
+    public void CaptureSettlementReview(SaleSettlementReview review)
+    {
+        if (Kind != SalesOrderEventKind.Settled || SettlementReview is not null)
+        {
+            throw new InvalidOperationException("Only a new settlement receipt captures reviewed details.");
+        }
+
+        SettlementReview = review.Normalize();
+    }
+
     // The refund receipt released by an expiry or cancellation.
     public Guid? ReleaseId { get; init; }
 

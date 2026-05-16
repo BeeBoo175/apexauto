@@ -41,6 +41,13 @@ public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHa
 
         var status = await database.SalesOrders.Where(item => item.Id == scenario.ReservationId)
             .Select(item => item.Status).SingleAsync(cancellationToken);
+        if (status == SalesOrderStatus.Settled &&
+            await database.SaleDocuments.CountAsync(item => item.SalesOrderId == scenario.ReservationId,
+                cancellationToken) != 2)
+        {
+            return new(label, "settlement documents missing; preserved", true);
+        }
+
         return status == scenario.Target
             ? new(label, sale.Status == scenario.Target ? "matches" : "created", false)
             : new(label, $"{status}; preserved", true);
@@ -88,10 +95,16 @@ public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHa
         if (scenario.Target == SalesOrderStatus.Settled)
         {
             var sale = await database.SalesOrders.AsNoTracking().SingleAsync(item => item.Id == id, cancellationToken);
+            var profile = await database.CustomerProfiles.AsNoTracking()
+                .SingleAsync(item => item.UserId == sale.CustomerId, cancellationToken);
+            var vehicle = await database.Vehicles.AsNoTracking()
+                .SingleAsync(item => item.Id == sale.VehicleId, cancellationToken);
+            var review = new SaleSettlementReview(profile.LegalName, profile.Nric, profile.ResidentialAddress,
+                SaleReviewedVehicle.Of(vehicle));
             var payment = new SalePaymentEvidence(SalePaymentMethod.BankTransfer, sale.BalancePayable,
                 $"Transfer {scenario.Hold.Listing.Intake.RegistrationPlate}", DateOnly.FromDateTime(sale.CreatedAt.UtcDateTime),
                 null, 0m, null, false, false);
-            return (await settlement.SettleAsync(agent, id, new(scenario.OperationId("settle"), 5, payment),
+            return (await settlement.SettleAsync(agent, id, new(scenario.OperationId("settle"), 5, payment, review),
                 cancellationToken)).Status == SaleResultStatus.Succeeded;
         }
 

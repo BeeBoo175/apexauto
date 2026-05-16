@@ -37,6 +37,10 @@ public static class SaleCommandEndpoints
         routes.MapPost("/cancellations", (Guid id, HttpContext context, SaleTermsService sales, CancellationToken token) =>
             RunAsync<SaleReasonRequest>(context, (actor, request, deadline) =>
                 sales.CancelAsync(actor, id, request, deadline), token));
+        routes.MapPost("/settlements", (Guid id, HttpContext context, SaleSettlementService sales, CancellationToken token) =>
+            RunAsync<SaleSettlementInput>(context, (actor, input, deadline) => input.Command() is { } request
+                ? sales.SettleAsync(actor, id, request, deadline)
+                : Task.FromResult(new SaleCommandResult(SaleResultStatus.Invalid)), token));
     }
 
     private static async Task<IResult> RunAsync<TRequest>(HttpContext context,

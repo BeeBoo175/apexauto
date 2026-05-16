@@ -8,7 +8,7 @@ public sealed class SaleSettlementService(ISaleCommandStore sales)
     public Task<SaleCommandResult> SettleAsync(Guid actorId, Guid saleId, SaleSettlementRequest request,
         CancellationToken cancellationToken)
     {
-        if (request.Payment is null)
+        if (request.Payment is null || request.Review is null)
         {
             return Task.FromResult(new SaleCommandResult(SaleResultStatus.Invalid));
         }
@@ -17,6 +17,21 @@ public sealed class SaleSettlementService(ISaleCommandStore sales)
             [SalesOrderEventKind.Settled], SaleAccess.MayKeyTerms,
             async (transaction, actor, sale) =>
             {
+                SaleSettlementReview review;
+                try
+                {
+                    review = request.Review.Normalize();
+                }
+                catch (ArgumentException)
+                {
+                    return new SaleCommandResult(SaleResultStatus.Invalid);
+                }
+
+                if (!await transaction.ReviewSettlementAsync(review, cancellationToken))
+                {
+                    return new SaleCommandResult(SaleResultStatus.Conflict);
+                }
+
                 var acquiredVehicleId = await transaction.LockTradeInVehicleAsync(cancellationToken);
                 if (sale.TradeInAppointmentId is not null && acquiredVehicleId is null)
                 {
@@ -24,18 +39,24 @@ public sealed class SaleSettlementService(ISaleCommandStore sales)
                 }
 
                 return await SaleCommandSteps.ApplyAsync(transaction,
-                    () => sale.Settle(request.OperationId, request.Payment, acquiredVehicleId, actor.Id,
-                        transaction.Context.Now), cancellationToken);
+                    () =>
+                    {
+                        var entry = sale.Settle(request.OperationId, request.Payment, acquiredVehicleId, actor.Id,
+                            transaction.Context.Now);
+                        entry.CaptureSettlementReview(review);
+                        return entry;
+                    }, cancellationToken);
             },
-            cancellationToken, replayMatches: existing => Matches(existing, request.Payment),
+            cancellationToken, replayMatches: existing => Matches(existing, request),
             staleState: sale => sale.Status != SalesOrderStatus.Approved);
     }
 
-    private static bool Matches(SalesOrderEvent existing, SalePaymentEvidence payment)
+    private static bool Matches(SalesOrderEvent existing, SaleSettlementRequest request)
     {
         try
         {
-            return existing.Snapshot.PaymentEvidence == payment.Normalize(existing.Snapshot.BalancePayable);
+            return existing.Snapshot.PaymentEvidence == request.Payment.Normalize(existing.Snapshot.BalancePayable) &&
+                existing.SettlementReview == request.Review.Normalize();
         }
         catch (ArgumentException)
         {
