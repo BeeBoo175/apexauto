@@ -632,6 +632,22 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Dealership.Domain.Sales.ReceiptNumberCounter", b =>
+                {
+                    b.Property<int>("Year")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("LastValue")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Year");
+
+                    b.ToTable("ReceiptNumberCounters", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ReceiptNumberCounters_Shape", "\"Year\" BETWEEN 2000 AND 9999 AND \"LastValue\" BETWEEN 0 AND 999999");
+                        });
+                });
+
             modelBuilder.Entity("Dealership.Domain.Sales.SalesOrder", b =>
                 {
                     b.Property<Guid>("Id")
@@ -859,6 +875,9 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.Property<long>("Sequence")
                         .HasColumnType("bigint");
+
+                    b.Property<string>("SettlementReview")
+                        .HasColumnType("jsonb");
 
                     b.Property<string>("Snapshot")
                         .IsRequired()
@@ -2251,6 +2270,51 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Dealership.Infrastructure.Sales.SaleDocument", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ContentsJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTimeOffset>("IssuedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(15)
+                        .HasColumnType("character varying(15)")
+                        .UseCollation("C");
+
+                    b.Property<Guid>("SalesOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SettlementOperationId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Number")
+                        .IsUnique();
+
+                    b.HasIndex("SalesOrderId", "Kind")
+                        .IsUnique();
+
+                    b.HasIndex("SettlementOperationId", "SalesOrderId");
+
+                    b.ToTable("SaleDocuments", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_SaleDocuments_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND isfinite(\"IssuedAt\") AND ((\"Kind\" = 'PurchaseOrder' AND \"Number\" ~ '^VPO-[0-9]{4}-[0-9]{6}$') OR (\"Kind\" = 'PaymentReceipt' AND \"Number\" ~ '^VRC-[0-9]{4}-[0-9]{6}$')) AND jsonb_typeof(\"ContentsJson\") = 'object' AND octet_length(\"ContentsJson\"::text) <= 65536");
+                        });
+                });
+
             modelBuilder.Entity("Dealership.Infrastructure.Vehicles.ReservationMail", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2926,6 +2990,22 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("CheckInAppointmentId")
                         .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("Dealership.Infrastructure.Sales.SaleDocument", b =>
+                {
+                    b.HasOne("Dealership.Domain.Sales.SalesOrder", null)
+                        .WithMany()
+                        .HasForeignKey("SalesOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Dealership.Domain.Sales.SalesOrderEvent", null)
+                        .WithMany()
+                        .HasForeignKey("SettlementOperationId", "SalesOrderId")
+                        .HasPrincipalKey("Id", "SalesOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Dealership.Infrastructure.Vehicles.ReservationMail", b =>
