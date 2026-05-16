@@ -26,6 +26,8 @@ public sealed record SaleTermsRequest(Guid OperationId, long ExpectedVersion, Gu
 
 public sealed record SaleReasonRequest(Guid OperationId, long ExpectedVersion, string? Reason);
 
+public sealed record SaleSettlementRequest(Guid OperationId, long ExpectedVersion, SalePaymentEvidence Payment);
+
 public sealed record SaleReceipt(Guid OperationId, Guid SaleId, string Kind, long Version, string Status,
     DateTimeOffset RecordedAt)
 {
@@ -57,6 +59,8 @@ public interface ISaleCommandTransaction : IAsyncDisposable
     Task<SaleTradeInChoice?> ResolveTradeInAsync(Guid appointmentId, CancellationToken cancellationToken);
 
     Task<string> NextOrderNumberAsync(int year, CancellationToken cancellationToken);
+
+    Task<Guid?> LockTradeInVehicleAsync(CancellationToken cancellationToken);
 
     // Records the reservation's full simulated refund before the sale changes, returning its receipt identity, or
     // null when the database refuses it because the hold was released meanwhile.

@@ -35,7 +35,7 @@ internal static class DevelopmentReservationFixtureAssertions
         Assert.Equal(207, await database.Reservations.CountAsync());
         Assert.Equal(204, await database.ReservationReleases.CountAsync());
         Assert.Equal(207, await database.ReservationMailOutbox.CountAsync());
-        Assert.Equal(3, await database.Reservations.CountAsync(item => item.IsActive));
+        Assert.Equal(2, await database.Reservations.CountAsync(item => item.IsActive));
         // The demo sales work the branches' open holds, which stay active while they are handled.
         foreach (var sale in DevelopmentSaleScenarios.All)
         {
@@ -82,7 +82,16 @@ internal static class DevelopmentReservationFixtureAssertions
                 Assert.Equal(ReservationStatus.Succeeded, result.Status);
                 Assert.Equal(52, result.History!.Total);
                 Assert.Equal(page == 3 ? 2 : 25, result.History.Items.Count);
-                Assert.Equal(scenario.Id, result.History.Active!.Receipt.Id);
+                var settled = DevelopmentSaleScenarios.All.Any(item => item.ReservationId == scenario.Id &&
+                    item.Target == SalesOrderStatus.Settled);
+                if (settled)
+                {
+                    Assert.Null(result.History.Active);
+                }
+                else
+                {
+                    Assert.Equal(scenario.Id, result.History.Active!.Receipt.Id);
+                }
                 actual.AddRange(result.History.Items.Select(item => item.Receipt.Id));
             }
 

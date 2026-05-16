@@ -68,7 +68,9 @@ public sealed class DevelopmentReservationFixtures(DealershipDbContext database,
         if (scenario.KeepActive)
         {
             // Never replay an old confirmation to renew its deadline or replace a later release.
-            var active = existing.IsActive && release is null;
+            var settled = await database.SalesOrders.AnyAsync(item => item.Id == existing.Id &&
+                item.Status == SalesOrderStatus.Settled, cancellationToken);
+            var active = release is null && (existing.IsActive || settled);
             if (!active)
             {
                 return new(label, "released; preserved", true);

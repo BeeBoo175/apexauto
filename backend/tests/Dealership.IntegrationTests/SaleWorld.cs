@@ -37,6 +37,8 @@ internal sealed class SaleWorld
 
     public SaleTermsService Terms => Services.GetRequiredService<SaleTermsService>();
 
+    public SaleSettlementService Settlement => Services.GetRequiredService<SaleSettlementService>();
+
     public ISaleReadStore Reads => Services.GetRequiredService<ISaleReadStore>();
 
     public ISaleListStore Lists => Services.GetRequiredService<ISaleListStore>();
@@ -54,7 +56,9 @@ internal sealed class SaleWorld
 
     private static async Task<SaleWorld> CreateAsync(IntakePhotoFixture fixture)
     {
-        var data = await CheckInTestData.CreateAsync(fixture);
+        var data = await CheckInTestData.CreateAsync(fixture,
+            new Dealership.Domain.Intake.InspectionSchedule(new TimeOnly(9, 0), new TimeOnly(18, 0),
+                30, 30, 0, Enum.GetValues<DayOfWeek>()));
         var scope = data.Factory.Services.CreateScope();
         var services = scope.ServiceProvider;
         var manager = await ProvisionAsync(services, data.BranchId, AccountRoles.BranchManager);
@@ -81,12 +85,19 @@ internal sealed class SaleWorld
     }
 
     // A fresh verified customer reserves a freshly published car of the test branch.
-    public async Task<Reservation> HoldAsync(bool withPhoto = false)
+    public async Task<Guid> TradeInAsync()
+    {
+        var index = Interlocked.Increment(ref nextCar);
+        var listing = await CreateListingAsync(data, Services, Manager, technician, index);
+        return listing.Publication.VehicleId;
+    }
+
+    public async Task<Reservation> HoldAsync(bool withPhoto = false, bool intakeOwner = false)
     {
         var index = Interlocked.Increment(ref nextCar);
         await using var database = new DealershipDbContext(new DbContextOptionsBuilder<DealershipDbContext>()
             .UseNpgsql(connection).Options);
-        var customer = await RegisterCustomerAsync(Services, database);
+        var customer = intakeOwner ? data.OwnerId : await RegisterCustomerAsync(Services, database);
         var listing = await CreateListingAsync(data, Services, Manager, technician, index, withPhoto);
         var result = await Services.GetRequiredService<ReservationService>().ReserveAsync(customer,
             listing.Publication.VehicleId, new(Guid.NewGuid(), listing.Publication.Id, null), default);

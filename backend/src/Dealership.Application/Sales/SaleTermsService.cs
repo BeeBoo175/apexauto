@@ -142,7 +142,7 @@ public sealed class SaleTermsService(ISaleCommandStore sales)
                         transaction.Context.Now), cancellationToken);
             },
             cancellationToken, replayMatches: existing => existing.Reason == request.Reason,
-            staleState: sale => sale.IsClosed);
+            staleState: sale => sale.IsClosed || sale.Status == SalesOrderStatus.Settled);
     }
 
     private Task<SaleCommandResult> DecideAsync(Guid actorId, Guid saleId, SaleReasonRequest request,

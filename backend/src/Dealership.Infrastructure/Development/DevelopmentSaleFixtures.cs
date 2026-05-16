@@ -8,7 +8,7 @@ namespace Dealership.Infrastructure.Development;
 // Drives each demo sale through the same commands staff use. Every step has a fixed operation and base version,
 // so a rerun replays completed steps instead of repeating them, and a sale changed by hand is reported, not reset.
 public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHandlingService handling,
-    SaleTermsService terms)
+    SaleTermsService terms, SaleSettlementService settlement)
 {
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> RunAsync(bool seed, CancellationToken cancellationToken)
     {
@@ -66,9 +66,15 @@ public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHa
                 new(scenario.OperationId("terms-again"), 5, null, scenario.Discount, null, 0m), cancellationToken));
         }
 
-        if (scenario.Target is SalesOrderStatus.PendingApproval or SalesOrderStatus.Approved)
+        if (scenario.Target is SalesOrderStatus.PendingApproval or SalesOrderStatus.Approved or SalesOrderStatus.Settled)
         {
             steps.Add(() => terms.SubmitAsync(agent, id, new(scenario.OperationId("submit"), 3), cancellationToken));
+        }
+
+        if (scenario.Target == SalesOrderStatus.Settled)
+        {
+            steps.Add(() => terms.ApproveAsync(scenario.ManagerId, id,
+                new(scenario.OperationId("approve"), 4), cancellationToken));
         }
 
         foreach (var step in steps)
@@ -77,6 +83,16 @@ public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHa
             {
                 return false;
             }
+        }
+
+        if (scenario.Target == SalesOrderStatus.Settled)
+        {
+            var sale = await database.SalesOrders.AsNoTracking().SingleAsync(item => item.Id == id, cancellationToken);
+            var payment = new SalePaymentEvidence(SalePaymentMethod.BankTransfer, sale.BalancePayable,
+                $"Transfer {scenario.Hold.Listing.Intake.RegistrationPlate}", DateOnly.FromDateTime(sale.CreatedAt.UtcDateTime),
+                null, 0m, null, false, false);
+            return (await settlement.SettleAsync(agent, id, new(scenario.OperationId("settle"), 5, payment),
+                cancellationToken)).Status == SaleResultStatus.Succeeded;
         }
 
         return true;

@@ -53,7 +53,7 @@ public static class SaleAccess
             SaveTerms: MayKeyTerms(actor, sale) && sale.Status is SalesOrderStatus.Handling or SalesOrderStatus.Approved,
             Submit: MayKeyTerms(actor, sale) && handling,
             Decide: MayDecide(actor, sale) && sale.Status == SalesOrderStatus.PendingApproval,
-            Cancel: MayCancel(actor, sale) && !sale.IsClosed);
+            Cancel: MayCancel(actor, sale) && !sale.IsClosed && sale.Status != SalesOrderStatus.Settled);
     }
 
     private static bool IsHandlingAgent(SaleStaff actor, SalesOrder sale) =>

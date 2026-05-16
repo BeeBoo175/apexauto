@@ -2,6 +2,7 @@ using Dealership.Application.Accounts;
 using Dealership.Application.Photos;
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Intake;
+using Dealership.Domain.Sales;
 using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -34,10 +35,12 @@ public sealed class DevelopmentListingFixtures(DealershipDbContext database, Lis
         }
 
         var expectedSign = scenario.Sign(scenario.Stage == DevelopmentInspectionStage.Reinspected);
+        var settled = vehicle.Status == VehicleStatus.Sold && await database.SalesOrders.AnyAsync(item =>
+            item.VehicleId == vehicle.Id && item.Status == SalesOrderStatus.Settled, cancellationToken);
         var currentInspection = await database.InspectionDrafts.AnyAsync(item => item.Id == scenario.Id &&
             item.VehicleId == vehicle.Id && item.IsSigned && item.Revision == expectedSign.Revision &&
             item.AssignmentVersion == 1, cancellationToken);
-        if (!currentInspection || vehicle.Status != VehicleStatus.Available ||
+        if (!currentInspection || vehicle.Status != VehicleStatus.Available && !settled ||
             !await database.InspectionSignedRevisions.AnyAsync(item => item.Id == expectedSign.OperationId &&
                 item.InspectionId == scenario.Id && item.Revision == expectedSign.Revision, cancellationToken))
         {
@@ -99,7 +102,8 @@ public sealed class DevelopmentListingFixtures(DealershipDbContext database, Lis
         {
             var withdrawn = await database.ListingWithdrawals.AnyAsync(item => item.PublicationId == published.Id, cancellationToken);
             var matches = published.Id == publicationId && published.ActorId == manager.Id &&
-                published.SignedRevisionId == signedId && !withdrawn && vehicle.Status == VehicleStatus.Available;
+                published.SignedRevisionId == signedId && !withdrawn &&
+                (vehicle.Status == VehicleStatus.Available || settled);
             return new(label, matches ? "matches" : "publication drift; preserved", !matches);
         }
 

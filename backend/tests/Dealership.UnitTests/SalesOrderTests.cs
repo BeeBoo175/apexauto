@@ -289,4 +289,34 @@ public sealed class SalesOrderTests
         Assert.Throws<InvalidOperationException>(() => order.Claim(Guid.NewGuid(), Agent, Agent,
             reservation.ExpiresAt.AddMilliseconds(-500)));
     }
+
+    [Fact]
+    public void SettlementRetainsApprovedMoneyAndAllowsOnlyReassignmentAfterwards()
+    {
+        var sale = Claimed();
+        sale.Submit(Guid.NewGuid(), Settings(), "VPO-2026-000006", Agent, Reserved.AddHours(2));
+        var payment = new SalePaymentEvidence(SalePaymentMethod.Cash, sale.BalancePayable, "  CASH 89374  ",
+            new DateOnly(2026, 10, 26), null, 0m, null, false, false);
+        var before = SaleSnapshot.Of(sale);
+        Assert.Throws<InvalidOperationException>(() => sale.Settle(Guid.NewGuid(), payment, null, OtherAgent,
+            Reserved.AddHours(3)));
+        Assert.Throws<InvalidOperationException>(() => sale.Settle(Guid.NewGuid(), payment, Guid.NewGuid(), Agent,
+            Reserved.AddHours(3)));
+        Assert.Equal(before, SaleSnapshot.Of(sale));
+
+        var entry = sale.Settle(Guid.NewGuid(), payment, null, Agent, Reserved.AddHours(3));
+        Assert.Equal((SalesOrderStatus.Settled, before.BalancePayable, null, Agent),
+            (sale.Status, sale.BalancePayable, sale.PausedSeconds, sale.AgentId));
+        Assert.Equal("CASH 89374", entry.Snapshot.PaymentEvidence!.PaymentReference);
+        Assert.Equal(Reserved.AddHours(3), entry.Snapshot.SettledAt);
+        Assert.Throws<InvalidOperationException>(() => sale.SaveTerms(Guid.NewGuid(), Terms(100m), Settings(), Agent,
+            Reserved.AddHours(4)));
+        Assert.Throws<InvalidOperationException>(() => sale.Cancel(Guid.NewGuid(), Manager, "Buyer withdrew",
+            Guid.NewGuid(), Reserved.AddHours(4)));
+        Assert.Throws<InvalidOperationException>(() => sale.Settle(Guid.NewGuid(), payment, null, Agent,
+            Reserved.AddHours(4)));
+        sale.Reassign(Guid.NewGuid(), OtherAgent, Manager, Reserved.AddHours(4));
+        Assert.Equal((SalesOrderStatus.Settled, OtherAgent, entry.Snapshot.PaymentEvidence),
+            (sale.Status, sale.AgentId, sale.PaymentEvidence));
+    }
 }

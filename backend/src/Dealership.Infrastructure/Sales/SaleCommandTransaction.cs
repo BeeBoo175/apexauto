@@ -39,9 +39,10 @@ internal sealed class SaleCommandTransaction(DealershipDbContext database, IDbCo
 
     public async Task<SaleTradeInChoice?> ResolveTradeInAsync(Guid appointmentId, CancellationToken cancellationToken)
     {
-        var appointment = await database.IntakeAppointments.FromSqlInterpolated(
-            $"SELECT * FROM \"IntakeAppointments\" WHERE \"Id\" = {appointmentId} FOR SHARE").AsNoTracking()
-            .SingleOrDefaultAsync(cancellationToken);
+        await database.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT 1 FROM \"IntakeAppointments\" WHERE \"Id\" = {appointmentId} FOR SHARE", cancellationToken);
+        var appointment = await database.IntakeAppointments.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.Id == appointmentId, cancellationToken);
         var eligible = appointment is not null &&
             await SaleTradeIns.Eligible(database, Sale).AnyAsync(item => item.Id == appointmentId, cancellationToken);
         if (!eligible)
@@ -57,6 +58,26 @@ internal sealed class SaleCommandTransaction(DealershipDbContext database, IDbCo
 
     public Task<string> NextOrderNumberAsync(int year, CancellationToken cancellationToken) =>
         YearlyNumberAllocator.NextAsync<DealNumberCounter>(database, year, cancellationToken);
+
+    public async Task<Guid?> LockTradeInVehicleAsync(CancellationToken cancellationToken)
+    {
+        if (Sale.TradeInAppointmentId is not { } appointmentId)
+        {
+            return null;
+        }
+
+        var vehicle = await database.Vehicles.FromSqlInterpolated(
+            $"SELECT * FROM \"Vehicles\" WHERE \"IntakeAppointmentId\" = {appointmentId} FOR UPDATE")
+            .AsNoTracking().SingleOrDefaultAsync(cancellationToken);
+        if (vehicle is null || vehicle.IntakeOwnerId != Sale.CustomerId || vehicle.Id == Sale.VehicleId)
+        {
+            return null;
+        }
+
+        var acquired = await database.SalesOrders.AnyAsync(item => item.AcquiredVehicleId == vehicle.Id,
+            cancellationToken);
+        return acquired ? null : vehicle.Id;
+    }
 
     // Saved inside the open transaction before the sale changes, because its guard judges the sale as it stands;
     // the refund and the cancellation still commit or roll back together.

@@ -7,7 +7,8 @@ public enum SalesOrderStatus
     PendingApproval,
     Approved,
     Expired,
-    Cancelled
+    Cancelled,
+    Settled
 }
 
 public enum SalesOrderEventKind
@@ -26,7 +27,8 @@ public enum SalesOrderEventKind
     // Recorded by the database when an open sale passes its deadline.
     Expired,
     // Recorded by the database when the listing is withdrawn or the vehicle goes back for inspection.
-    Withdrawn
+    Withdrawn,
+    Settled
 }
 
 // One term that an action changed, with the values either side as plain invariant text.

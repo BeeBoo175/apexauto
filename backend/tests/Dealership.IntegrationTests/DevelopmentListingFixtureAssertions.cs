@@ -24,7 +24,9 @@ internal static class DevelopmentListingFixtureAssertions
         Assert.Equal(expected * 4, await database.ListingRevisionPhotos.CountAsync());
         Assert.All(await database.ListingRevisions.ToArrayAsync(), revision => Assert.Equal(4, revision.PhotoIds.Length));
         Assert.Empty(await database.ListingWithdrawals.ToListAsync());
-        var original = await database.ListingRevisions.AsNoTracking().OrderBy(item => item.Id).FirstAsync();
+        var original = await database.ListingRevisions.AsNoTracking().Where(item => database.Vehicles.Any(vehicle =>
+            vehicle.Id == item.VehicleId && vehicle.Status == VehicleStatus.Available))
+            .OrderBy(item => item.Id).FirstAsync();
         var manager = DevelopmentFixtureManifest.Staff.Single(item =>
             item.BranchId == original.BranchId && item.Role == AccountRoles.BranchManager);
         var edit = new ListingDraftRequest(Guid.NewGuid(), original.Version,
@@ -50,6 +52,8 @@ internal static class DevelopmentListingFixtureAssertions
         foreach (var branch in DevelopmentFixtureManifest.Branches)
         {
             var expected = await database.ListingRevisions.Where(item => item.BranchId == branch.Id)
+                .Where(item => database.Vehicles.Any(vehicle => vehicle.Id == item.VehicleId &&
+                    vehicle.Status == VehicleStatus.Available))
                 .Where(item => !database.Reservations.Any(hold => hold.VehicleId == item.VehicleId && hold.IsActive))
                 .OrderBy(item => item.VehiclePrice).ThenBy(item => item.VehicleId).ToArrayAsync();
             Assert.Equal(17, expected.Length);

@@ -3,15 +3,7 @@ using Dealership.Domain.Vehicles;
 
 namespace Dealership.Domain.Sales;
 
-public sealed record SaleWarranty(Guid Id, string Name, decimal Price);
-
-// The label names the trade-in car (plate, year, make and model) as it was when the terms were saved.
-public sealed record SaleTradeIn(Guid AppointmentId, string Label, decimal Allowance);
-
-// The negotiated part of a sale; the base price, road tax, promo and deposit always come from the reservation.
-public sealed record SaleTermsInput(SaleWarranty? Warranty, decimal NegotiatedDiscount, SaleTradeIn? TradeIn);
-
-// One sale per reservation, from the moment the hold is confirmed until it is approved, expires or is cancelled.
+// One sale per reservation, retaining its commercial lifecycle and approved settlement evidence.
 // Every action returns the history entry that records it; the entry carries the sale as it stood afterwards.
 public sealed partial class SalesOrder
 {
@@ -95,6 +87,12 @@ public sealed partial class SalesOrder
 
     public long Version { get; private set; }
 
+    public SalePaymentEvidence? PaymentEvidence { get; private set; }
+
+    public DateTimeOffset? SettledAt { get; private set; }
+
+    public Guid? AcquiredVehicleId { get; private set; }
+
     public bool IsHandled => Handled.Contains(Status);
 
     public bool IsClosed => IsClosedStatus(Status);
@@ -150,6 +148,21 @@ public sealed partial class SalesOrder
         return evidence.Normalize(BalancePayable);
     }
 
+    public SalesOrderEvent Settle(Guid operationId, SalePaymentEvidence evidence, Guid? acquiredVehicleId,
+        Guid agentId, DateTimeOffset now)
+    {
+        RequireCommand(operationId, agentId, now);
+        var payment = ReviewSettlement(evidence, agentId);
+        Require((TradeInAppointmentId is null) == (acquiredVehicleId is null) &&
+            acquiredVehicleId != Guid.Empty && acquiredVehicleId != VehicleId,
+            "Settlement acquires exactly the linked trade-in vehicle.");
+        PaymentEvidence = payment;
+        SettledAt = now;
+        AcquiredVehicleId = acquiredVehicleId;
+        PausedSeconds = null;
+        return Record(operationId, SalesOrderEventKind.Settled, SalesOrderStatus.Settled, agentId, now, null, null);
+    }
+
     // An agent claims an open sale for themselves, or a manager assigns it; either way the timer pauses.
     public SalesOrderEvent Claim(Guid operationId, Guid agentId, Guid actorId, DateTimeOffset now)
     {
@@ -172,7 +185,7 @@ public sealed partial class SalesOrder
     {
         RequireCommand(operationId, actorId, now);
         RequireAgent(agentId);
-        Require(IsHandled, "Only a sale being handled can be reassigned.");
+        Require(IsHandled || Status == SalesOrderStatus.Settled, "Only a sale awaiting completion can be reassigned.");
         Require(agentId != AgentId, "The sale is already with that agent.");
         Require(agentId != DecidedById, "The manager who approved the sale cannot be its agent.");
         var previous = AgentId;
@@ -186,7 +199,7 @@ public sealed partial class SalesOrder
     {
         RequireCommand(operationId, actorId, now);
         Require(Status == SalesOrderStatus.Handling, "Only a sale in handling can be released.");
-        var changes = Differences(new SaleTermsInput(null, 0m, null));
+        var changes = SaleTermsChanges.Between(this, new SaleTermsInput(null, 0m, null));
         var previous = AgentId;
         ApplyTerms(new SaleTermsInput(null, 0m, null));
         Reprice(ProcessingFee, SstRate);
@@ -212,7 +225,7 @@ public sealed partial class SalesOrder
             "Terms can be saved only while the sale is handled or approved.");
         // Price first so rejected terms leave the sale unchanged.
         Price(terms, settings.ProcessingFee, settings.SstRate);
-        var changes = Differences(terms);
+        var changes = SaleTermsChanges.Between(this, terms);
         Require(changes.Count > 0, "The terms are unchanged.");
         ApplyTerms(terms);
         Reprice(settings.ProcessingFee, settings.SstRate);
@@ -275,7 +288,7 @@ public sealed partial class SalesOrder
     public SalesOrderEvent Cancel(Guid operationId, Guid actorId, string reason, Guid releaseId, DateTimeOffset now)
     {
         RequireCommand(operationId, actorId, now);
-        Require(!IsClosed, "A closed sale cannot be cancelled.");
+        Require(!IsClosed && Status != SalesOrderStatus.Settled, "A settled or closed sale cannot be cancelled.");
         return Close(operationId, SalesOrderEventKind.Cancelled, SalesOrderStatus.Cancelled, actorId,
             RequiredReason(reason), releaseId, now);
     }
@@ -351,37 +364,6 @@ public sealed partial class SalesOrder
         TradeInLabel = terms.TradeIn?.Label;
         TradeInAllowance = terms.TradeIn?.Allowance ?? 0m;
     }
-
-    // The terms a change touches, with invariant before and after text, so history can say "from X to Y".
-    private List<SaleChange> Differences(SaleTermsInput terms)
-    {
-        var changes = new List<SaleChange>();
-        if (terms.NegotiatedDiscount != NegotiatedDiscount)
-        {
-            changes.Add(new(SaleChange.NegotiatedDiscount, Amount(NegotiatedDiscount), Amount(terms.NegotiatedDiscount)));
-        }
-
-        if (terms.Warranty?.Id != WarrantyPackageId)
-        {
-            changes.Add(new(SaleChange.Warranty, WarrantyName, terms.Warranty?.Name));
-        }
-
-        if (terms.TradeIn?.AppointmentId != TradeInAppointmentId)
-        {
-            changes.Add(new(SaleChange.TradeIn, TradeInLabel, terms.TradeIn?.Label));
-        }
-
-        var allowance = terms.TradeIn?.Allowance ?? 0m;
-        if (allowance != TradeInAllowance)
-        {
-            changes.Add(new(SaleChange.TradeInAllowance, Amount(TradeInAllowance), Amount(allowance)));
-        }
-
-        return changes;
-    }
-
-    private static string Amount(decimal value) =>
-        value.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
 
     // Checked before any change, so an invalid command leaves the sale exactly as it was.
     private void RequireCommand(Guid operationId, Guid actorId, DateTimeOffset now)

@@ -6,7 +6,8 @@ public enum VehicleStatus
 {
     PendingInspection,
     Rejected,
-    Available
+    Available,
+    Sold
 }
 
 public sealed class Vehicle

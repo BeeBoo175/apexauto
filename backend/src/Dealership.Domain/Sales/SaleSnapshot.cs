@@ -11,7 +11,8 @@ public sealed record SaleSnapshot(
     decimal PromoDiscount, decimal NegotiatedDiscount, Guid? WarrantyPackageId, string? WarrantyName,
     decimal WarrantyPrice, decimal DepositCredit, Guid? TradeInAppointmentId, string? TradeInLabel,
     decimal TradeInAllowance, decimal BalancePayable, DateTimeOffset? SubmittedAt, decimal? DiscountLimitAtSubmit,
-    Guid? DecidedById, DateTimeOffset? DecidedAt, DateTimeOffset? ClosedAt, long Version)
+    Guid? DecidedById, DateTimeOffset? DecidedAt, DateTimeOffset? ClosedAt, long Version,
+    SalePaymentEvidence? PaymentEvidence = null, DateTimeOffset? SettledAt = null, Guid? AcquiredVehicleId = null)
 {
     public static SaleSnapshot Of(SalesOrder order)
     {
@@ -21,6 +22,7 @@ public sealed record SaleSnapshot(
             order.PromoDiscount, order.NegotiatedDiscount, order.WarrantyPackageId, order.WarrantyName,
             order.WarrantyPrice, order.DepositCredit, order.TradeInAppointmentId, order.TradeInLabel,
             order.TradeInAllowance, order.BalancePayable, order.SubmittedAt, order.DiscountLimitAtSubmit,
-            order.DecidedById, order.DecidedAt, order.ClosedAt, order.Version);
+            order.DecidedById, order.DecidedAt, order.ClosedAt, order.Version,
+            order.PaymentEvidence, order.SettledAt, order.AcquiredVehicleId);
     }
 }

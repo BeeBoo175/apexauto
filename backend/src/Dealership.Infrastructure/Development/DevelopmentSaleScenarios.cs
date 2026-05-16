@@ -22,8 +22,8 @@ public sealed record DevelopmentSaleScenario(DevelopmentReservationScenario Hold
 
 public static class DevelopmentSaleScenarios
 {
-    // The first branch's sale was released once and given back to its agent, the second awaits a manager's approval
-    // of an excess discount, and the third stays open to be claimed.
+    // The first branch's sale was released and reassigned, the second is settled after manager approval of its
+    // excess discount, and the third stays open to be claimed.
     public static IReadOnlyList<DevelopmentSaleScenario> All { get; } = Create();
 
     private static ReadOnlyCollection<DevelopmentSaleScenario> Create()
@@ -34,7 +34,7 @@ public static class DevelopmentSaleScenarios
         return Array.AsReadOnly<DevelopmentSaleScenario>(
         [
             new(Hold(0), SalesOrderStatus.Handling, true, 300m),
-            new(Hold(1), SalesOrderStatus.PendingApproval, false, 1500m)
+            new(Hold(1), SalesOrderStatus.Settled, false, 1500m)
         ]);
     }
 }
