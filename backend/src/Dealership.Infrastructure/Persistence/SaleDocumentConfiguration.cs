@@ -6,14 +6,15 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace Dealership.Infrastructure.Persistence;
 
 public sealed class SaleDocumentConfiguration : IEntityTypeConfiguration<SaleDocument>,
-    IEntityTypeConfiguration<ReceiptNumberCounter>
+    IEntityTypeConfiguration<ReceiptNumberCounter>, IEntityTypeConfiguration<HandoverNumberCounter>
 {
     public void Configure(EntityTypeBuilder<SaleDocument> builder)
     {
         builder.ToTable("SaleDocuments", table => table.HasCheckConstraint("CK_SaleDocuments_Shape",
             "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND isfinite(\"IssuedAt\") AND " +
             "((\"Kind\" = 'PurchaseOrder' AND \"Number\" ~ '^VPO-[0-9]{4}-[0-9]{6}$') OR " +
-            "(\"Kind\" = 'PaymentReceipt' AND \"Number\" ~ '^VRC-[0-9]{4}-[0-9]{6}$')) AND " +
+            "(\"Kind\" = 'PaymentReceipt' AND \"Number\" ~ '^VRC-[0-9]{4}-[0-9]{6}$') OR " +
+            "(\"Kind\" = 'HandoverNote' AND \"Number\" ~ '^VHN-[0-9]{4}-[0-9]{6}$')) AND " +
             "jsonb_typeof(\"ContentsJson\") = 'object' AND octet_length(\"ContentsJson\"::text) <= 65536"));
         builder.HasKey(item => item.Id);
         builder.Property(item => item.Id).ValueGeneratedNever();
@@ -25,13 +26,21 @@ public sealed class SaleDocumentConfiguration : IEntityTypeConfiguration<SaleDoc
         builder.HasOne<SalesOrder>().WithMany().HasForeignKey(item => item.SalesOrderId)
             .OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<SalesOrderEvent>().WithMany()
-            .HasForeignKey(item => new { item.SettlementOperationId, item.SalesOrderId })
+            .HasForeignKey(item => new { item.IssuingOperationId, item.SalesOrderId })
             .HasPrincipalKey(item => new { item.Id, item.SalesOrderId }).OnDelete(DeleteBehavior.Restrict);
     }
 
     public void Configure(EntityTypeBuilder<ReceiptNumberCounter> builder)
     {
         builder.ToTable("ReceiptNumberCounters", table => table.HasCheckConstraint("CK_ReceiptNumberCounters_Shape",
+            "\"Year\" BETWEEN 2000 AND 9999 AND \"LastValue\" BETWEEN 0 AND 999999"));
+        builder.HasKey(item => item.Year);
+        builder.Property(item => item.Year).ValueGeneratedNever();
+    }
+
+    public void Configure(EntityTypeBuilder<HandoverNumberCounter> builder)
+    {
+        builder.ToTable("HandoverNumberCounters", table => table.HasCheckConstraint("CK_HandoverNumberCounters_Shape",
             "\"Year\" BETWEEN 2000 AND 9999 AND \"LastValue\" BETWEEN 0 AND 999999"));
         builder.HasKey(item => item.Year);
         builder.Property(item => item.Year).ValueGeneratedNever();

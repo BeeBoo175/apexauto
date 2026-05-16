@@ -15,7 +15,7 @@ public sealed class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrde
 {
     public const string HandledStatuses = "'Handling', 'PendingApproval', 'Approved'";
 
-    private const string Statuses = "'Open', 'Handling', 'PendingApproval', 'Approved', 'Expired', 'Cancelled', 'Settled'";
+    private const string Statuses = "'Open', 'Handling', 'PendingApproval', 'Approved', 'Expired', 'Cancelled', 'Settled', 'Delivered'";
 
     // Snapshots keep the sale's own member names, which are also its column names, so SQL can record the same shape.
     private static readonly JsonSerializerOptions SnapshotJson = new();
@@ -38,7 +38,9 @@ public sealed class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrde
                 "(\"Status\" IN ('Expired', 'Cancelled') AND \"AgentId\" IS NULL AND \"ClaimedAt\" IS NULL AND " +
                 "\"PausedSeconds\" IS NULL AND \"ClosedAt\" IS NOT NULL) OR " +
                 "(\"Status\" = 'Settled' AND \"DueAt\" IS NULL AND \"AgentId\" IS NOT NULL AND " +
-                "\"ClaimedAt\" IS NOT NULL AND \"PausedSeconds\" IS NULL AND \"ClosedAt\" IS NULL)");
+                "\"ClaimedAt\" IS NOT NULL AND \"PausedSeconds\" IS NULL AND \"ClosedAt\" IS NULL) OR " +
+                "(\"Status\" = 'Delivered' AND \"DueAt\" IS NULL AND \"AgentId\" IS NOT NULL AND " +
+                "\"ClaimedAt\" IS NOT NULL AND \"PausedSeconds\" IS NULL AND \"ClosedAt\" = \"DeliveredAt\")");
             table.HasCheckConstraint("CK_SalesOrders_Price",
                 "\"BasePrice\" > 0 AND \"RoadTax\" >= 0 AND \"ProcessingFee\" >= 0 AND \"SstRate\" BETWEEN 0 AND 1 AND " +
                 "\"PromoDiscount\" >= 0 AND \"NegotiatedDiscount\" >= 0 AND \"WarrantyPrice\" >= 0 AND " +
@@ -57,17 +59,21 @@ public sealed class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrde
             table.HasCheckConstraint("CK_SalesOrders_Approval",
                 "(\"Status\" = 'PendingApproval' AND \"DiscountLimitAtSubmit\" IS NOT NULL AND \"DecidedById\" IS NULL AND " +
                 "\"NegotiatedDiscount\" > \"DiscountLimitAtSubmit\") OR " +
-                "(\"Status\" IN ('Approved', 'Settled') AND \"DiscountLimitAtSubmit\" IS NOT NULL AND \"DecidedAt\" IS NOT NULL AND " +
+                "(\"Status\" IN ('Approved', 'Settled', 'Delivered') AND \"DiscountLimitAtSubmit\" IS NOT NULL AND \"DecidedAt\" IS NOT NULL AND " +
                 "(\"DecidedById\" IS NOT NULL OR \"NegotiatedDiscount\" <= \"DiscountLimitAtSubmit\") AND " +
                 "\"DecidedById\" IS DISTINCT FROM \"AgentId\") OR " +
                 "(\"Status\" IN ('Open', 'Handling') AND \"DiscountLimitAtSubmit\" IS NULL AND \"DecidedById\" IS NULL) OR " +
                 "\"Status\" IN ('Expired', 'Cancelled')");
             table.HasCheckConstraint("CK_SalesOrders_Settlement",
-                "(\"Status\" = 'Settled' AND \"PaymentEvidence\" IS NOT NULL AND \"SettledAt\" IS NOT NULL AND " +
+                "(\"Status\" IN ('Settled', 'Delivered') AND \"PaymentEvidence\" IS NOT NULL AND \"SettledAt\" IS NOT NULL AND " +
                 "isfinite(\"SettledAt\") AND \"SettledAt\" >= \"DecidedAt\" AND \"SettledAt\" <= \"UpdatedAt\" AND " +
                 "(\"TradeInAppointmentId\" IS NULL) = (\"AcquiredVehicleId\" IS NULL) AND " +
                 "\"AcquiredVehicleId\" IS DISTINCT FROM \"VehicleId\") OR " +
-                "(\"Status\" <> 'Settled' AND \"PaymentEvidence\" IS NULL AND \"SettledAt\" IS NULL AND \"AcquiredVehicleId\" IS NULL)");
+                "(\"Status\" NOT IN ('Settled', 'Delivered') AND \"PaymentEvidence\" IS NULL AND \"SettledAt\" IS NULL AND \"AcquiredVehicleId\" IS NULL)");
+            table.HasCheckConstraint("CK_SalesOrders_Delivery",
+                "(\"Status\" = 'Delivered' AND \"HandoverEvidence\" IS NOT NULL AND \"DeliveredAt\" IS NOT NULL AND " +
+                "isfinite(\"DeliveredAt\") AND \"DeliveredAt\" >= \"SettledAt\" AND \"DeliveredAt\" = \"UpdatedAt\") OR " +
+                "(\"Status\" <> 'Delivered' AND \"HandoverEvidence\" IS NULL AND \"DeliveredAt\" IS NULL)");
         });
         builder.HasKey(item => item.Id);
         builder.Property(item => item.Id).ValueGeneratedNever();
@@ -84,7 +90,7 @@ public sealed class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrde
         builder.HasIndex(item => new { item.AgentId, item.Status, item.UpdatedAt });
         // One open sale per trade-in car.
         builder.HasIndex(item => item.TradeInAppointmentId).IsUnique()
-            .HasFilter($"\"TradeInAppointmentId\" IS NOT NULL AND \"Status\" IN ('Open', {HandledStatuses}, 'Settled')");
+            .HasFilter($"\"TradeInAppointmentId\" IS NOT NULL AND \"Status\" IN ('Open', {HandledStatuses}, 'Settled', 'Delivered')");
         builder.HasIndex(item => item.AcquiredVehicleId).IsUnique().HasFilter("\"AcquiredVehicleId\" IS NOT NULL");
         builder.HasOne<Vehicle>().WithOne().HasForeignKey<SalesOrder>(item => item.AcquiredVehicleId)
             .OnDelete(DeleteBehavior.Restrict);
@@ -92,6 +98,11 @@ public sealed class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrde
             value => value == null ? null : JsonSerializer.Serialize(value, SnapshotJson),
             json => json == null ? null : JsonSerializer.Deserialize<SalePaymentEvidence>(json, SnapshotJson),
             new ValueComparer<SalePaymentEvidence?>((left, right) => left == right,
+                value => value == null ? 0 : value.GetHashCode(), value => value));
+        builder.Property(item => item.HandoverEvidence).HasColumnType("jsonb").HasConversion(
+            value => value == null ? null : JsonSerializer.Serialize(value, SnapshotJson),
+            json => json == null ? null : JsonSerializer.Deserialize<SaleHandoverEvidence>(json, SnapshotJson),
+            new ValueComparer<SaleHandoverEvidence?>((left, right) => left == right,
                 value => value == null ? 0 : value.GetHashCode(), value => value));
         builder.Property(item => item.PromoCode).HasMaxLength(PromoCode.CodeMaximumLength).UseCollation("C");
         builder.Property(item => item.WarrantyName).HasMaxLength(WarrantyPackage.NameMaximumLength);
@@ -130,7 +141,7 @@ public sealed class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrde
             table.HasCheckConstraint("CK_SalesOrderEvents_Shape",
                 "isfinite(\"RecordedAt\") AND \"Sequence\" > 0 AND " +
                 "\"Kind\" IN ('Created', 'Claimed', 'Assigned', 'Reassigned', 'Released', 'TermsSaved', 'Submitted', " +
-                "'Approved', 'Rejected', 'Cancelled', 'CustomerCancelled', 'Expired', 'Withdrawn', 'Settled') AND " +
+                "'Approved', 'Rejected', 'Cancelled', 'CustomerCancelled', 'Expired', 'Withdrawn', 'Settled', 'Delivered') AND " +
                 $"\"ToStatus\" IN ({Statuses}) AND (\"FromStatus\" IS NULL OR \"FromStatus\" IN ({Statuses})) AND " +
                 "(\"FromStatus\" IS NULL) = (\"Kind\" = 'Created') AND " +
                 "(\"ActorId\" IS NULL) = (\"Kind\" IN ('Expired', 'Withdrawn')) AND " +

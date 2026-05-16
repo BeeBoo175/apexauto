@@ -9,7 +9,8 @@ public sealed record SaleDocumentContents(Guid CustomerId, Guid BranchId, string
 public enum SaleDocumentKind
 {
     PurchaseOrder,
-    PaymentReceipt
+    PaymentReceipt,
+    HandoverNote
 }
 
 public sealed record SaleIssuedDocument(Guid Id, string Kind, string Number, DateTimeOffset IssuedAt,

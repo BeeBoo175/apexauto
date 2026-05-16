@@ -9,10 +9,12 @@ public sealed class DevelopmentFixtureMail(DealershipDbContext database)
 {
     private Guid[] _existingAppointments = [];
     private Guid[] _existingReservations = [];
+    private Guid[] _existingDeliveries = [];
 
     public async Task CaptureAsync(CancellationToken cancellationToken)
     {
         _existingAppointments = await database.AppointmentMailOutbox.Select(item => item.Id).ToArrayAsync(cancellationToken);
+        _existingDeliveries = await database.SaleDeliveryMailOutbox.Select(item => item.Id).ToArrayAsync(cancellationToken);
         _existingReservations = await database.ReservationMailOutbox.Select(item => item.Id).ToArrayAsync(cancellationToken);
     }
 
@@ -34,6 +36,10 @@ public sealed class DevelopmentFixtureMail(DealershipDbContext database)
             .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.DeliveredAt, now), cancellationToken);
         await database.ReservationMailOutbox.Where(item => reservations.Contains(item.ReservationId) &&
             !_existingReservations.Contains(item.Id) && item.DeliveredAt == null && item.DeliveryClaimId == null)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.DeliveredAt, now), cancellationToken);
+        var deliveries = DevelopmentSaleScenarios.All.Select(item => item.ReservationId).ToArray();
+        await database.SaleDeliveryMailOutbox.Where(item => deliveries.Contains(item.SalesOrderId) &&
+            !_existingDeliveries.Contains(item.Id) && item.DeliveredAt == null && item.DeliveryClaimId == null)
             .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.DeliveredAt, now), cancellationToken);
     }
 }

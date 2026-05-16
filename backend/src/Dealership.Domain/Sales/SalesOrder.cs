@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Dealership.Domain.Vehicles;
+using static Dealership.Domain.Sales.SaleCommandRules;
 
 namespace Dealership.Domain.Sales;
 
@@ -93,12 +94,16 @@ public sealed partial class SalesOrder
 
     public Guid? AcquiredVehicleId { get; private set; }
 
+    public SaleHandoverEvidence? HandoverEvidence { get; private set; }
+
+    public DateTimeOffset? DeliveredAt { get; private set; }
+
     public bool IsHandled => Handled.Contains(Status);
 
     public bool IsClosed => IsClosedStatus(Status);
 
-    // Expired and cancelled sales take no further commands; queries mirror this where EF must translate it.
-    public static bool IsClosedStatus(SalesOrderStatus status) => status is SalesOrderStatus.Expired or SalesOrderStatus.Cancelled;
+    // Closed sales take no further lifecycle commands; queries mirror this where EF must translate it.
+    public static bool IsClosedStatus(SalesOrderStatus status) => status is SalesOrderStatus.Expired or SalesOrderStatus.Cancelled or SalesOrderStatus.Delivered;
 
     public static bool ValidNumber(string? number) => number is not null && NumberPattern().IsMatch(number);
 
@@ -151,7 +156,7 @@ public sealed partial class SalesOrder
     public SalesOrderEvent Settle(Guid operationId, SalePaymentEvidence evidence, Guid? acquiredVehicleId,
         Guid agentId, DateTimeOffset now)
     {
-        RequireCommand(operationId, agentId, now);
+        RequireCommand(operationId, agentId, now, UpdatedAt);
         var payment = ReviewSettlement(evidence, agentId);
         Require((TradeInAppointmentId is null) == (acquiredVehicleId is null) &&
             acquiredVehicleId != Guid.Empty && acquiredVehicleId != VehicleId,
@@ -163,10 +168,23 @@ public sealed partial class SalesOrder
         return Record(operationId, SalesOrderEventKind.Settled, SalesOrderStatus.Settled, agentId, now, null, null);
     }
 
+    public SalesOrderEvent Deliver(Guid operationId, SaleHandoverEvidence evidence, int recordedMileage,
+        Guid agentId, DateTimeOffset now)
+    {
+        RequireCommand(operationId, agentId, now, UpdatedAt);
+        ArgumentNullException.ThrowIfNull(evidence);
+        Require(Status == SalesOrderStatus.Settled, "Only a settled sale can be delivered.");
+        Require(agentId != Guid.Empty && agentId == AgentId, "Only the handling agent completes handover.");
+        HandoverEvidence = evidence.Validate(recordedMileage);
+        DeliveredAt = now;
+        ClosedAt = now;
+        return Record(operationId, SalesOrderEventKind.Delivered, SalesOrderStatus.Delivered, agentId, now, null, null);
+    }
+
     // An agent claims an open sale for themselves, or a manager assigns it; either way the timer pauses.
     public SalesOrderEvent Claim(Guid operationId, Guid agentId, Guid actorId, DateTimeOffset now)
     {
-        RequireCommand(operationId, actorId, now);
+        RequireCommand(operationId, actorId, now, UpdatedAt);
         RequireAgent(agentId);
         Require(Status == SalesOrderStatus.Open, "Only an open sale can be claimed.");
         Require(!HasExpired(now), "An expired sale cannot be claimed.");
@@ -183,7 +201,7 @@ public sealed partial class SalesOrder
     // A manager moves a handled sale to another agent; its terms and status stay as they are.
     public SalesOrderEvent Reassign(Guid operationId, Guid agentId, Guid actorId, DateTimeOffset now)
     {
-        RequireCommand(operationId, actorId, now);
+        RequireCommand(operationId, actorId, now, UpdatedAt);
         RequireAgent(agentId);
         Require(IsHandled || Status == SalesOrderStatus.Settled, "Only a sale awaiting completion can be reassigned.");
         Require(agentId != AgentId, "The sale is already with that agent.");
@@ -197,7 +215,7 @@ public sealed partial class SalesOrder
     // Gives the sale back with the time it had left and the reservation's own terms; earlier terms stay in history.
     public SalesOrderEvent Release(Guid operationId, Guid actorId, DateTimeOffset now)
     {
-        RequireCommand(operationId, actorId, now);
+        RequireCommand(operationId, actorId, now, UpdatedAt);
         Require(Status == SalesOrderStatus.Handling, "Only a sale in handling can be released.");
         var changes = SaleTermsChanges.Between(this, new SaleTermsInput(null, 0m, null));
         var previous = AgentId;
@@ -220,7 +238,7 @@ public sealed partial class SalesOrder
     {
         ArgumentNullException.ThrowIfNull(terms);
         ArgumentNullException.ThrowIfNull(settings);
-        RequireCommand(operationId, actorId, now);
+        RequireCommand(operationId, actorId, now, UpdatedAt);
         Require(Status is SalesOrderStatus.Handling or SalesOrderStatus.Approved,
             "Terms can be saved only while the sale is handled or approved.");
         // Price first so rejected terms leave the sale unchanged.
@@ -241,7 +259,7 @@ public sealed partial class SalesOrder
         DateTimeOffset now)
     {
         ArgumentNullException.ThrowIfNull(settings);
-        RequireCommand(operationId, actorId, now);
+        RequireCommand(operationId, actorId, now, UpdatedAt);
         Require(Status == SalesOrderStatus.Handling, "Only a sale in handling can be submitted.");
         Require(actorId == AgentId, "Only the handling agent submits the sale.");
         if (OrderNumber is null && !ValidNumber(number) || OrderNumber is not null && number != OrderNumber)
@@ -265,7 +283,7 @@ public sealed partial class SalesOrder
 
     public SalesOrderEvent Approve(Guid operationId, Guid managerId, DateTimeOffset now)
     {
-        RequireCommand(operationId, managerId, now);
+        RequireCommand(operationId, managerId, now, UpdatedAt);
         Require(Status == SalesOrderStatus.PendingApproval, "Only a sale awaiting approval can be approved.");
         Require(managerId != AgentId, "An agent cannot approve their own excess discount.");
         DecidedById = managerId;
@@ -276,7 +294,7 @@ public sealed partial class SalesOrder
     // A rejected sale returns to its agent with its terms, to be revised and submitted again.
     public SalesOrderEvent Reject(Guid operationId, Guid managerId, string reason, DateTimeOffset now)
     {
-        RequireCommand(operationId, managerId, now);
+        RequireCommand(operationId, managerId, now, UpdatedAt);
         Require(Status == SalesOrderStatus.PendingApproval, "Only a sale awaiting approval can be rejected.");
         Require(managerId != AgentId, "An agent cannot decide their own excess discount.");
         DiscountLimitAtSubmit = null;
@@ -287,7 +305,7 @@ public sealed partial class SalesOrder
     // Staff cancel with a reason; the caller records the reservation's refund receipt in the same transaction.
     public SalesOrderEvent Cancel(Guid operationId, Guid actorId, string reason, Guid releaseId, DateTimeOffset now)
     {
-        RequireCommand(operationId, actorId, now);
+        RequireCommand(operationId, actorId, now, UpdatedAt);
         Require(!IsClosed && Status != SalesOrderStatus.Settled, "A settled or closed sale cannot be cancelled.");
         return Close(operationId, SalesOrderEventKind.Cancelled, SalesOrderStatus.Cancelled, actorId,
             RequiredReason(reason), releaseId, now);
@@ -296,7 +314,7 @@ public sealed partial class SalesOrder
     // The customer may cancel online only while nobody handles the sale.
     public SalesOrderEvent CancelByCustomer(Guid operationId, Guid customerId, Guid releaseId, DateTimeOffset now)
     {
-        RequireCommand(operationId, customerId, now);
+        RequireCommand(operationId, customerId, now, UpdatedAt);
         Require(Status == SalesOrderStatus.Open && !HasExpired(now), "Only an open sale can be cancelled online.");
         Require(customerId == CustomerId, "Only the reserving customer can cancel online.");
         return Close(operationId, SalesOrderEventKind.CustomerCancelled, SalesOrderStatus.Cancelled, customerId, null,
@@ -326,7 +344,7 @@ public sealed partial class SalesOrder
         DateTimeOffset now, string? reason, IReadOnlyList<SaleChange>? changes, Guid? previousAgentId = null,
         Guid? releaseId = null)
     {
-        RequireCommand(operationId, actorId, now);
+        RequireCommand(operationId, actorId, now, UpdatedAt);
         var from = Status;
         Status = next;
         UpdatedAt = now;
@@ -364,35 +382,6 @@ public sealed partial class SalesOrder
         TradeInLabel = terms.TradeIn?.Label;
         TradeInAllowance = terms.TradeIn?.Allowance ?? 0m;
     }
-
-    // Checked before any change, so an invalid command leaves the sale exactly as it was.
-    private void RequireCommand(Guid operationId, Guid actorId, DateTimeOffset now)
-    {
-        if (operationId == Guid.Empty || actorId == Guid.Empty || now.Offset != TimeSpan.Zero || now < UpdatedAt)
-        {
-            throw new ArgumentException("A sale action needs an operation, an actor and a UTC time that does not go back.");
-        }
-    }
-
-    private static void RequireAgent(Guid agentId)
-    {
-        if (agentId == Guid.Empty)
-        {
-            throw new ArgumentException("A sale is handled by a named agent.");
-        }
-    }
-
-    private static void Require(bool condition, string message)
-    {
-        if (!condition)
-        {
-            throw new InvalidOperationException(message);
-        }
-    }
-
-    private static string RequiredReason(string reason) => ValidReason(reason)
-        ? reason
-        : throw new ArgumentException("A reason of 1 to 1000 trimmed characters is required.");
 
     [GeneratedRegex(@"^VPO-[0-9]{4}-[0-9]{6}$")]
     private static partial Regex NumberPattern();

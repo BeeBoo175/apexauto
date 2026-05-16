@@ -83,7 +83,7 @@ internal static class DevelopmentReservationFixtureAssertions
                 Assert.Equal(52, result.History!.Total);
                 Assert.Equal(page == 3 ? 2 : 25, result.History.Items.Count);
                 var settled = DevelopmentSaleScenarios.All.Any(item => item.ReservationId == scenario.Id &&
-                    item.Target == SalesOrderStatus.Settled);
+                    item.Target is SalesOrderStatus.Settled or SalesOrderStatus.Delivered);
                 if (settled)
                 {
                     Assert.Null(result.History.Active);
@@ -150,7 +150,7 @@ internal static class DevelopmentReservationFixtureAssertions
         var expiry = services.GetRequiredService<ReservationExpirySignal>();
         var reservations = new ReservationService(new ReservationStore(database, mail, expiry));
         var cancellations = new ReservationCancellationService(new ReservationCancellationStore(database));
-        var sales = new SaleTermsService(new SaleCommandStore(database));
+        var sales = new SaleTermsService(new SaleCommandStore(database, new Dealership.Infrastructure.Mail.MailDeliverySignal()));
         var fixtures = new DevelopmentReservationFixtures(database, reservations, cancellations, sales);
         var before = await SnapshotAsync(database);
         foreach (var seed in new[] { false, true })

@@ -35,8 +35,8 @@ public sealed class DevelopmentListingFixtures(DealershipDbContext database, Lis
         }
 
         var expectedSign = scenario.Sign(scenario.Stage == DevelopmentInspectionStage.Reinspected);
-        var settled = vehicle.Status == VehicleStatus.Sold && await database.SalesOrders.AnyAsync(item =>
-            item.VehicleId == vehicle.Id && item.Status == SalesOrderStatus.Settled, cancellationToken);
+        var settled = (vehicle.Status == VehicleStatus.Sold || vehicle.Status == VehicleStatus.Delivered) && await database.SalesOrders.AnyAsync(item =>
+            item.VehicleId == vehicle.Id && (item.Status == SalesOrderStatus.Settled || item.Status == SalesOrderStatus.Delivered), cancellationToken);
         var currentInspection = await database.InspectionDrafts.AnyAsync(item => item.Id == scenario.Id &&
             item.VehicleId == vehicle.Id && item.IsSigned && item.Revision == expectedSign.Revision &&
             item.AssignmentVersion == 1, cancellationToken);

@@ -141,6 +141,9 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
             .Where(item => item.DeliveredAt == null).ToArrayAsync());
         Assert.Equal(optedInReservationId, optedIn.ReservationId);
         Assert.False(await database.ReservationMailOutbox.AnyAsync(item => item.DeliveryAttempts != 0));
+        var delivery = Assert.Single(await database.SaleDeliveryMailOutbox.AsNoTracking().ToArrayAsync());
+        Assert.NotNull(delivery.DeliveredAt);
+        Assert.Equal(0, delivery.DeliveryAttempts);
         // Both competing default reruns preserved this earlier opt-in intent; restore it for later snapshot assertions.
         await database.ReservationMailOutbox.Where(item => item.Id == optedIn.Id)
             .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.DeliveredAt, DateTimeOffset.UtcNow));

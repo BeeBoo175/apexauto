@@ -63,7 +63,7 @@ public sealed class SaleSettlementTests(IntakePhotoFixture fixture) : IClassFixt
             Assert.StartsWith("VRC-", documents.Single(item => item.Kind == SaleDocumentKind.PaymentReceipt).Number);
             Assert.All(documents, document =>
             {
-                Assert.Equal(request.OperationId, document.SettlementOperationId);
+                Assert.Equal(request.OperationId, document.IssuingOperationId);
                 Assert.Equal(request.Review, document.Contents().Review);
                 Assert.Equal(entry.Snapshot, document.Contents().Sale);
                 Assert.Equal(entry.RecordedAt, document.IssuedAt);
@@ -240,7 +240,7 @@ public sealed class SaleSettlementTests(IntakePhotoFixture fixture) : IClassFixt
         {
             await connection.OpenAsync();
             await using var command = new NpgsqlCommand("""
-                INSERT INTO "SaleDocuments" ("Id", "SalesOrderId", "SettlementOperationId", "Kind", "Number", "IssuedAt", "ContentsJson")
+                INSERT INTO "SaleDocuments" ("Id", "SalesOrderId", "IssuingOperationId", "Kind", "Number", "IssuedAt", "ContentsJson")
                 VALUES (gen_random_uuid(), @sale, @operation, 'PaymentReceipt', 'VRC-9999-999999', clock_timestamp(), '{}'::jsonb)
                 """, connection);
             command.Parameters.AddWithValue("sale", unrelated.Id);
@@ -336,6 +336,18 @@ public sealed class SaleSettlementTests(IntakePhotoFixture fixture) : IClassFixt
         Assert.Equal(vehicleBefore.Status, (await database.Vehicles.AsNoTracking().SingleAsync(item => item.Id == candidate.Id)).Status);
         Assert.Equal(candidate.Id, (await ReadAsync(held.Id)).AcquiredVehicleId);
         Assert.Equal(1, await database.SalesOrders.CountAsync(item => item.AcquiredVehicleId == candidate.Id));
+        var handover = world.Services.GetRequiredService<SaleHandoverService>();
+        var delivery = new SaleHandoverRequest(Guid.NewGuid(), request.ExpectedVersion + 1,
+            new(request.Review.Vehicle.MileageKilometres, 2, true, true, true));
+        Assert.Equal(SaleResultStatus.Succeeded,
+            (await handover.DeliverAsync(world.Agent, held.Id, delivery, default)).Status);
+        Assert.Equal(SaleResultStatus.Succeeded,
+            (await handover.DeliverAsync(world.Agent, held.Id, delivery, default)).Status);
+        Assert.Equal(candidate.Id, (await ReadAsync(held.Id)).AcquiredVehicleId);
+        Assert.Equal(1, await database.SalesOrders.CountAsync(item => item.AcquiredVehicleId == candidate.Id));
+        var retained = await database.InspectionDrafts.AsNoTracking().SingleAsync(item => item.Id == inspection.Id);
+        Assert.Equal((before.Id, before.IsSigned, before.Revision, before.AssignmentVersion),
+            (retained.Id, retained.IsSigned, retained.Revision, retained.AssignmentVersion));
     }
 
     private static async Task<Reservation> ApprovedAsync(SaleWorld world)

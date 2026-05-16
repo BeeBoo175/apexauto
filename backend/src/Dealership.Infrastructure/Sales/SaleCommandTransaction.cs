@@ -1,4 +1,5 @@
 using Dealership.Application.Sales;
+using Dealership.Infrastructure.Mail;
 using Dealership.Domain.Sales;
 using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Persistence;
@@ -9,7 +10,7 @@ using Npgsql;
 namespace Dealership.Infrastructure.Sales;
 
 internal sealed class SaleCommandTransaction(DealershipDbContext database, IDbContextTransaction transaction,
-    SaleCommandContext context) : ISaleCommandTransaction
+    SaleCommandContext context, MailDeliverySignal mail) : ISaleCommandTransaction
 {
     public SaleCommandContext Context => context;
 
@@ -58,6 +59,10 @@ internal sealed class SaleCommandTransaction(DealershipDbContext database, IDbCo
 
     public Task<string> NextOrderNumberAsync(int year, CancellationToken cancellationToken) =>
         YearlyNumberAllocator.NextAsync<DealNumberCounter>(database, year, cancellationToken);
+
+    public Task<int> ReadVehicleMileageAsync(CancellationToken cancellationToken) =>
+        database.Vehicles.AsNoTracking().Where(item => item.Id == Sale.VehicleId)
+            .Select(item => item.MileageKilometres).SingleAsync(cancellationToken);
 
     public Task<bool> ReviewSettlementAsync(SaleSettlementReview review, CancellationToken cancellationToken) =>
         SaleSettlementDocuments.ReviewAsync(database, Sale, review, cancellationToken);
@@ -116,8 +121,18 @@ internal sealed class SaleCommandTransaction(DealershipDbContext database, IDbCo
                 await SaleSettlementDocuments.IssueAsync(database, Sale, entry, cancellationToken);
             }
 
+            if (entry.Kind == SalesOrderEventKind.Delivered)
+            {
+                await SaleHandoverDocuments.IssueAsync(database, Sale, entry, cancellationToken);
+            }
+
             await database.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
+            if (entry.Kind == SalesOrderEventKind.Delivered)
+            {
+                mail.Request();
+            }
+
             return SaleResultStatus.Succeeded;
         }
         catch (DbUpdateException exception) when (exception.InnerException is PostgresException

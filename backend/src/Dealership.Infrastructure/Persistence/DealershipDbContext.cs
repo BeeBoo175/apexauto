@@ -32,6 +32,8 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
 
     public DbSet<SalesOrderEvent> SalesOrderEvents => Set<SalesOrderEvent>();
 
+    public DbSet<SaleDeliveryMail> SaleDeliveryMailOutbox => Set<SaleDeliveryMail>();
+
     public DbSet<SaleDocument> SaleDocuments => Set<SaleDocument>();
 
     public DbSet<DealNumberCounter> DealNumberCounters => Set<DealNumberCounter>();
@@ -107,6 +109,8 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
         var documents = new SaleDocumentConfiguration();
         builder.ApplyConfiguration<SaleDocument>(documents);
         builder.ApplyConfiguration<ReceiptNumberCounter>(documents);
+        builder.ApplyConfiguration<HandoverNumberCounter>(documents);
+        builder.ApplyConfiguration(new SaleDeliveryMailConfiguration());
         builder.ApplyConfiguration(new PurchaseSettingsConfiguration());
         var reservations = new ReservationConfiguration();
         builder.ApplyConfiguration<Reservation>(reservations);

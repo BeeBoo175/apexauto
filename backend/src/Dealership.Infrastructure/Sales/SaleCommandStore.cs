@@ -1,10 +1,11 @@
 using Dealership.Application.Sales;
+using Dealership.Infrastructure.Mail;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dealership.Infrastructure.Sales;
 
-public sealed class SaleCommandStore(DealershipDbContext database) : ISaleCommandStore
+public sealed class SaleCommandStore(DealershipDbContext database, MailDeliverySignal mail) : ISaleCommandStore
 {
     public async Task<ISaleCommandTransaction> LockAsync(Guid actorId, Guid saleId, Guid operationId,
         CancellationToken cancellationToken)
@@ -27,7 +28,7 @@ public sealed class SaleCommandStore(DealershipDbContext database) : ISaleComman
             if (located is null)
             {
                 return new SaleCommandTransaction(database, transaction,
-                    new(actor, branchActive, null, existing, default));
+                    new(actor, branchActive, null, existing, default), mail);
             }
 
             // The vehicle is locked before its hold and sale, as every reservation command does; an expired or
@@ -41,7 +42,7 @@ public sealed class SaleCommandStore(DealershipDbContext database) : ISaleComman
             var now = await database.DatabaseNowAsync(cancellationToken);
             // The database clock can trail a sale stamped by another session by a few microseconds.
             now = now < sale.UpdatedAt ? sale.UpdatedAt : now;
-            return new SaleCommandTransaction(database, transaction, new(actor, branchActive, sale, existing, now));
+            return new SaleCommandTransaction(database, transaction, new(actor, branchActive, sale, existing, now), mail);
         }
         catch
         {

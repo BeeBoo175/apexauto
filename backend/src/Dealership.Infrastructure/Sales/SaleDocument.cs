@@ -14,7 +14,7 @@ public sealed class SaleDocument
     {
         Id = Guid.NewGuid();
         SalesOrderId = saleId;
-        SettlementOperationId = operationId;
+        IssuingOperationId = operationId;
         Kind = kind;
         Number = number;
         IssuedAt = issuedAt;
@@ -25,7 +25,7 @@ public sealed class SaleDocument
 
     public Guid SalesOrderId { get; private set; }
 
-    public Guid SettlementOperationId { get; private set; }
+    public Guid IssuingOperationId { get; private set; }
 
     public SaleDocumentKind Kind { get; private set; }
 

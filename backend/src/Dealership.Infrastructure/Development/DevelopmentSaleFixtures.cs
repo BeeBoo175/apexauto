@@ -8,7 +8,7 @@ namespace Dealership.Infrastructure.Development;
 // Drives each demo sale through the same commands staff use. Every step has a fixed operation and base version,
 // so a rerun replays completed steps instead of repeating them, and a sale changed by hand is reported, not reset.
 public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHandlingService handling,
-    SaleTermsService terms, SaleSettlementService settlement)
+    SaleTermsService terms, SaleSettlementService settlement, SaleHandoverService handover)
 {
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> RunAsync(bool seed, CancellationToken cancellationToken)
     {
@@ -41,17 +41,28 @@ public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHa
 
         var status = await database.SalesOrders.Where(item => item.Id == scenario.ReservationId)
             .Select(item => item.Status).SingleAsync(cancellationToken);
-        if (status == SalesOrderStatus.Settled &&
+        if (status is SalesOrderStatus.Settled or SalesOrderStatus.Delivered &&
             await database.SaleDocuments.CountAsync(item => item.SalesOrderId == scenario.ReservationId,
-                cancellationToken) != 2)
+                cancellationToken) != (status == SalesOrderStatus.Delivered ? 3 : 2))
         {
             return new(label, "settlement documents missing; preserved", true);
         }
 
-        return status == scenario.Target
-            ? new(label, sale.Status == scenario.Target ? "matches" : "created", false)
-            : new(label, $"{status}; preserved", true);
+        if (status == SalesOrderStatus.Delivered &&
+            !await database.SaleDeliveryMailOutbox.AnyAsync(item => item.SalesOrderId == scenario.ReservationId &&
+                item.DeliveryOperationId == scenario.OperationId("handover"), cancellationToken))
+        {
+            return new(label, "delivery mail missing; preserved", true);
+        }
+
+        if (status != scenario.Target)
+        {
+            return new(label, $"{status}; preserved", true);
+        }
+
+        return new(label, sale.Status == scenario.Target ? "matches" : "created", false);
     }
+
     // Each step names the version it starts from; a replayed step succeeds with its original receipt.
     private async Task<bool> DriveAsync(DevelopmentSaleScenario scenario, CancellationToken cancellationToken)
     {
@@ -73,12 +84,12 @@ public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHa
                 new(scenario.OperationId("terms-again"), 5, null, scenario.Discount, null, 0m), cancellationToken));
         }
 
-        if (scenario.Target is SalesOrderStatus.PendingApproval or SalesOrderStatus.Approved or SalesOrderStatus.Settled)
+        if (scenario.Target is SalesOrderStatus.PendingApproval or SalesOrderStatus.Approved or SalesOrderStatus.Settled or SalesOrderStatus.Delivered)
         {
             steps.Add(() => terms.SubmitAsync(agent, id, new(scenario.OperationId("submit"), 3), cancellationToken));
         }
 
-        if (scenario.Target == SalesOrderStatus.Settled)
+        if (scenario.Target is SalesOrderStatus.Settled or SalesOrderStatus.Delivered)
         {
             steps.Add(() => terms.ApproveAsync(scenario.ManagerId, id,
                 new(scenario.OperationId("approve"), 4), cancellationToken));
@@ -92,7 +103,7 @@ public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHa
             }
         }
 
-        if (scenario.Target == SalesOrderStatus.Settled)
+        if (scenario.Target is SalesOrderStatus.Settled or SalesOrderStatus.Delivered)
         {
             var sale = await database.SalesOrders.AsNoTracking().SingleAsync(item => item.Id == id, cancellationToken);
             var profile = await database.CustomerProfiles.AsNoTracking()
@@ -104,8 +115,18 @@ public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHa
             var payment = new SalePaymentEvidence(SalePaymentMethod.BankTransfer, sale.BalancePayable,
                 $"Transfer {scenario.Hold.Listing.Intake.RegistrationPlate}", DateOnly.FromDateTime(sale.CreatedAt.UtcDateTime),
                 null, 0m, null, false, false);
-            return (await settlement.SettleAsync(agent, id, new(scenario.OperationId("settle"), 5, payment, review),
-                cancellationToken)).Status == SaleResultStatus.Succeeded;
+            if ((await settlement.SettleAsync(agent, id, new(scenario.OperationId("settle"), 5, payment, review),
+                cancellationToken)).Status != SaleResultStatus.Succeeded)
+            {
+                return false;
+            }
+
+            if (scenario.Target == SalesOrderStatus.Delivered)
+            {
+                return (await handover.DeliverAsync(agent, id, new(scenario.OperationId("handover"), 6,
+                    new(review.Vehicle.MileageKilometres, 2, true, true, true)), cancellationToken)).Status ==
+                    SaleResultStatus.Succeeded;
+            }
         }
 
         return true;

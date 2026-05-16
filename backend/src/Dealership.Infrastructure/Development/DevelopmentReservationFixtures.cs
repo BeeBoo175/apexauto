@@ -69,7 +69,7 @@ public sealed class DevelopmentReservationFixtures(DealershipDbContext database,
         {
             // Never replay an old confirmation to renew its deadline or replace a later release.
             var settled = await database.SalesOrders.AnyAsync(item => item.Id == existing.Id &&
-                item.Status == SalesOrderStatus.Settled, cancellationToken);
+                (item.Status == SalesOrderStatus.Settled || item.Status == SalesOrderStatus.Delivered), cancellationToken);
             var active = release is null && (existing.IsActive || settled);
             if (!active)
             {

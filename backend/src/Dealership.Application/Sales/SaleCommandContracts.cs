@@ -29,6 +29,8 @@ public sealed record SaleReasonRequest(Guid OperationId, long ExpectedVersion, s
 public sealed record SaleSettlementRequest(Guid OperationId, long ExpectedVersion, SalePaymentEvidence Payment,
     SaleSettlementReview Review);
 
+public sealed record SaleHandoverRequest(Guid OperationId, long ExpectedVersion, SaleHandoverEvidence Evidence);
+
 public sealed record SaleReceipt(Guid OperationId, Guid SaleId, string Kind, long Version, string Status,
     DateTimeOffset RecordedAt)
 {
@@ -60,6 +62,8 @@ public interface ISaleCommandTransaction : IAsyncDisposable
     Task<SaleTradeInChoice?> ResolveTradeInAsync(Guid appointmentId, CancellationToken cancellationToken);
 
     Task<string> NextOrderNumberAsync(int year, CancellationToken cancellationToken);
+
+    Task<int> ReadVehicleMileageAsync(CancellationToken cancellationToken);
 
     Task<Guid?> LockTradeInVehicleAsync(CancellationToken cancellationToken);
 

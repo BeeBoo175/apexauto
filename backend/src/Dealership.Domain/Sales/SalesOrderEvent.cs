@@ -8,7 +8,8 @@ public enum SalesOrderStatus
     Approved,
     Expired,
     Cancelled,
-    Settled
+    Settled,
+    Delivered
 }
 
 public enum SalesOrderEventKind
@@ -28,7 +29,8 @@ public enum SalesOrderEventKind
     Expired,
     // Recorded by the database when the listing is withdrawn or the vehicle goes back for inspection.
     Withdrawn,
-    Settled
+    Settled,
+    Delivered
 }
 
 // One term that an action changed, with the values either side as plain invariant text.
