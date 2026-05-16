@@ -12,7 +12,8 @@ internal static class SaleHandoverDocuments
     {
         // Delivery retains the reviewed settlement identity, never today's mutable buyer or branch profile.
         var original = await database.SaleDocuments.AsNoTracking().SingleAsync(item =>
-            item.SalesOrderId == sale.Id && item.Kind == SaleDocumentKind.PurchaseOrder, cancellationToken);
+            item.SalesOrderId == sale.Id && item.Kind == SaleDocumentKind.PurchaseOrder &&
+            item.CorrectionOperationId == null, cancellationToken);
         var contents = original.Contents() with { Sale = entry.Snapshot };
         var year = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(entry.RecordedAt, "Asia/Kuala_Lumpur").Year;
         var number = await YearlyNumberAllocator.NextAsync<HandoverNumberCounter>(database, year, cancellationToken);

@@ -10,7 +10,7 @@ public sealed class SaleDocument
     }
 
     public SaleDocument(Guid saleId, Guid operationId, SaleDocumentKind kind, string number,
-        DateTimeOffset issuedAt, SaleDocumentContents contents)
+        DateTimeOffset issuedAt, SaleDocumentContents contents, Guid? correctionOperationId = null)
     {
         Id = Guid.NewGuid();
         SalesOrderId = saleId;
@@ -19,6 +19,7 @@ public sealed class SaleDocument
         Number = number;
         IssuedAt = issuedAt;
         ContentsJson = JsonSerializer.Serialize(contents);
+        CorrectionOperationId = correctionOperationId;
     }
 
     public Guid Id { get; private set; }
@@ -26,6 +27,8 @@ public sealed class SaleDocument
     public Guid SalesOrderId { get; private set; }
 
     public Guid IssuingOperationId { get; private set; }
+
+    public Guid? CorrectionOperationId { get; private set; }
 
     public SaleDocumentKind Kind { get; private set; }
 

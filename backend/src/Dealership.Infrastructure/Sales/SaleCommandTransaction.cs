@@ -67,6 +67,36 @@ internal sealed class SaleCommandTransaction(DealershipDbContext database, IDbCo
     public Task<bool> ReviewSettlementAsync(SaleSettlementReview review, CancellationToken cancellationToken) =>
         SaleSettlementDocuments.ReviewAsync(database, Sale, review, cancellationToken);
 
+    public Task<SaleDocumentCorrectionRecord?> ReadCorrectionAsync(Guid operationId, CancellationToken cancellationToken) =>
+        SaleDocumentCorrections.ReadAsync(database, operationId, cancellationToken);
+
+    public Task<SaleCorrectionDocument?> ReadCorrectionDocumentAsync(Guid documentId, CancellationToken cancellationToken) =>
+        SaleDocumentCorrections.ReadDocumentAsync(database, Sale.Id, documentId, cancellationToken);
+
+    public async Task<SaleDocumentCorrectionResult> CommitCorrectionAsync(Guid actorId,
+        SaleDocumentCorrectionRequest request, SaleDocumentContents contents, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await SaleDocumentCorrections.AddAsync(database, Sale.Id, actorId, request, contents,
+                context.Now, cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return result;
+        }
+        catch (DbUpdateException exception) when (exception.InnerException is PostgresException
+        {
+            SqlState: PostgresErrorCodes.UniqueViolation or PostgresErrorCodes.CheckViolation
+        })
+        {
+            return new(SaleResultStatus.Conflict);
+        }
+        catch (PostgresException exception) when (exception.SqlState is
+            PostgresErrorCodes.UniqueViolation or PostgresErrorCodes.CheckViolation)
+        {
+            return new(SaleResultStatus.Conflict);
+        }
+    }
+
     public async Task<Guid?> LockTradeInVehicleAsync(CancellationToken cancellationToken)
     {
         if (Sale.TradeInAppointmentId is not { } appointmentId)
@@ -113,6 +143,11 @@ internal sealed class SaleCommandTransaction(DealershipDbContext database, IDbCo
 
     public async Task<SaleResultStatus> CommitAsync(SalesOrderEvent entry, CancellationToken cancellationToken)
     {
+        if (await database.SaleDocumentCorrections.AnyAsync(item => item.Id == entry.Id, cancellationToken))
+        {
+            return SaleResultStatus.Conflict;
+        }
+
         database.SalesOrderEvents.Add(entry);
         try
         {

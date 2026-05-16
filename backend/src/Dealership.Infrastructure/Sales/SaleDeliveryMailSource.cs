@@ -29,7 +29,8 @@ public sealed class SaleDeliveryMailSource(DealershipDbContext database, TimePro
     private async Task<OutboundMail> ComposeAsync(SaleDeliveryMail message, CancellationToken cancellationToken)
     {
         var document = await database.SaleDocuments.AsNoTracking().SingleAsync(item =>
-            item.SalesOrderId == message.SalesOrderId && item.Kind == SaleDocumentKind.HandoverNote, cancellationToken);
+            item.SalesOrderId == message.SalesOrderId && item.Kind == SaleDocumentKind.HandoverNote &&
+            item.CorrectionOperationId == null, cancellationToken);
         return composer.Confirmation(message, document);
     }
 }

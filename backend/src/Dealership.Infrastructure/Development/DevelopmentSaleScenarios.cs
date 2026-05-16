@@ -7,7 +7,7 @@ namespace Dealership.Infrastructure.Development;
 // A demo sale driven to one state through the canonical services, so the staff tabs have real examples. It works
 // the open hold each branch already keeps, so the seeded catalogue keeps its accepted volume.
 public sealed record DevelopmentSaleScenario(DevelopmentReservationScenario Hold, SalesOrderStatus Target,
-    bool ReleasedFirst, decimal Discount)
+    bool ReleasedFirst, decimal Discount, string? CorrectedBuyerAddress = null)
 {
     public Guid ReservationId => Hold.Id;
 
@@ -34,7 +34,7 @@ public static class DevelopmentSaleScenarios
         return Array.AsReadOnly<DevelopmentSaleScenario>(
         [
             new(Hold(0), SalesOrderStatus.Handling, true, 300m),
-            new(Hold(1), SalesOrderStatus.Delivered, false, 1500m)
+            new(Hold(1), SalesOrderStatus.Delivered, false, 1500m, "27 Jalan Meranti, Petaling Jaya, Selangor")
         ]);
     }
 }

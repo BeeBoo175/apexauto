@@ -8,7 +8,8 @@ namespace Dealership.Infrastructure.Development;
 // Drives each demo sale through the same commands staff use. Every step has a fixed operation and base version,
 // so a rerun replays completed steps instead of repeating them, and a sale changed by hand is reported, not reset.
 public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHandlingService handling,
-    SaleTermsService terms, SaleSettlementService settlement, SaleHandoverService handover)
+    SaleTermsService terms, SaleSettlementService settlement, SaleHandoverService handover,
+    SaleDocumentCorrectionService corrections)
 {
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> RunAsync(bool seed, CancellationToken cancellationToken)
     {
@@ -41,8 +42,15 @@ public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHa
 
         var status = await database.SalesOrders.Where(item => item.Id == scenario.ReservationId)
             .Select(item => item.Status).SingleAsync(cancellationToken);
+        if (scenario.CorrectedBuyerAddress is not null && status == scenario.Target &&
+            !await CorrectDocumentAsync(seed, scenario, cancellationToken))
+        {
+            return new(label, "document correction missing or changed elsewhere; preserved", true);
+        }
+
         if (status is SalesOrderStatus.Settled or SalesOrderStatus.Delivered &&
-            await database.SaleDocuments.CountAsync(item => item.SalesOrderId == scenario.ReservationId,
+            await database.SaleDocuments.CountAsync(item => item.SalesOrderId == scenario.ReservationId &&
+                item.CorrectionOperationId == null,
                 cancellationToken) != (status == SalesOrderStatus.Delivered ? 3 : 2))
         {
             return new(label, "settlement documents missing; preserved", true);
@@ -61,6 +69,34 @@ public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHa
         }
 
         return new(label, sale.Status == scenario.Target ? "matches" : "created", false);
+    }
+
+    private async Task<bool> CorrectDocumentAsync(bool seed, DevelopmentSaleScenario scenario,
+        CancellationToken cancellationToken)
+    {
+        var original = await database.SaleDocuments.AsNoTracking().SingleOrDefaultAsync(item =>
+            item.SalesOrderId == scenario.ReservationId && item.Kind == SaleDocumentKind.PurchaseOrder &&
+            item.CorrectionOperationId == null, cancellationToken);
+        if (original is null)
+        {
+            return false;
+        }
+
+        var request = new SaleDocumentCorrectionRequest(scenario.OperationId("correct-address"), 7, original.Id,
+            new(original.Contents().Review.BuyerName, scenario.CorrectedBuyerAddress!, "Correct the buyer address spelling"));
+        if (seed)
+        {
+            return (await corrections.ReissueAsync(scenario.ManagerId, scenario.ReservationId, request,
+                cancellationToken)).Status == SaleResultStatus.Succeeded;
+        }
+
+        var existing = await database.SaleDocumentCorrections.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.Id == request.OperationId, cancellationToken);
+        return existing is not null && existing.ActorId == scenario.ManagerId &&
+            existing.OriginalDocumentId == original.Id && existing.ExpectedVersion == request.ExpectedVersion &&
+            existing.BuyerName == request.Correction.BuyerName && existing.BuyerAddress == request.Correction.BuyerAddress &&
+            existing.Reason == request.Correction.Reason && await database.SaleDocuments.AnyAsync(item =>
+                item.CorrectionOperationId == request.OperationId, cancellationToken);
     }
 
     // Each step names the version it starts from; a replayed step succeeds with its original receipt.

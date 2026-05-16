@@ -14,7 +14,14 @@ public enum SaleDocumentKind
 }
 
 public sealed record SaleIssuedDocument(Guid Id, string Kind, string Number, DateTimeOffset IssuedAt,
-    SaleDocumentContents Contents);
+    SaleDocumentContents Contents)
+{
+    public Guid? ReplacesDocumentId { get; init; }
+
+    public Guid? ReplacementDocumentId { get; init; }
+
+    public SaleDocumentCorrectionReceipt? Correction { get; init; }
+}
 
 public interface ISaleDocumentStore
 {
@@ -22,5 +29,8 @@ public interface ISaleDocumentStore
         CancellationToken cancellationToken);
 
     Task<SaleReadResult<IReadOnlyList<SaleIssuedDocument>>> ReadAsync(Guid actorId, Guid saleId,
+        CancellationToken cancellationToken);
+
+    Task<SaleReadResult<SaleIssuedDocument>> ReadOneAsync(Guid actorId, Guid saleId, Guid documentId,
         CancellationToken cancellationToken);
 }

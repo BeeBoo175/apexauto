@@ -7,6 +7,7 @@ public static class SaleCommandEndpoints
 {
     public static void MapSaleCommandEndpoints(this WebApplication app)
     {
+        app.MapSaleDocumentCorrectionEndpoints();
         var routes = app.MapGroup("/api/staff/sales/{id:guid}").RequireAuthorization();
         routes.AddEndpointFilter(async (context, next) =>
         {

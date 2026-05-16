@@ -22,7 +22,13 @@ public sealed class SaleDocumentConfiguration : IEntityTypeConfiguration<SaleDoc
         builder.Property(item => item.Number).HasMaxLength(15).UseCollation("C");
         builder.Property(item => item.ContentsJson).HasColumnType("jsonb");
         builder.HasIndex(item => item.Number).IsUnique();
-        builder.HasIndex(item => new { item.SalesOrderId, item.Kind }).IsUnique();
+        builder.HasIndex(item => new { item.SalesOrderId, item.Kind }).IsUnique()
+            .HasFilter("\"CorrectionOperationId\" IS NULL");
+        builder.HasIndex(item => item.CorrectionOperationId).IsUnique()
+            .HasFilter("\"CorrectionOperationId\" IS NOT NULL");
+        builder.HasOne<SaleDocumentCorrection>().WithMany()
+            .HasForeignKey(item => new { item.CorrectionOperationId, item.SalesOrderId })
+            .HasPrincipalKey(item => new { item.Id, item.SalesOrderId }).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<SalesOrder>().WithMany().HasForeignKey(item => item.SalesOrderId)
             .OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<SalesOrderEvent>().WithMany()

@@ -69,6 +69,13 @@ public interface ISaleCommandTransaction : IAsyncDisposable
 
     Task<bool> ReviewSettlementAsync(SaleSettlementReview review, CancellationToken cancellationToken);
 
+    Task<SaleDocumentCorrectionRecord?> ReadCorrectionAsync(Guid operationId, CancellationToken cancellationToken);
+
+    Task<SaleCorrectionDocument?> ReadCorrectionDocumentAsync(Guid documentId, CancellationToken cancellationToken);
+
+    Task<SaleDocumentCorrectionResult> CommitCorrectionAsync(Guid actorId, SaleDocumentCorrectionRequest request,
+        SaleDocumentContents contents, CancellationToken cancellationToken);
+
     // Records the reservation's full simulated refund before the sale changes, returning its receipt identity, or
     // null when the database refuses it because the hold was released meanwhile.
     Task<Guid?> ReleaseReservationAsync(ReservationReleaseKind kind, Guid actorId, string reason,
