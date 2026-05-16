@@ -637,6 +637,9 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("AcquiredVehicleId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid?>("AgentId")
                         .HasColumnType("uuid");
 
@@ -692,6 +695,9 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.Property<long?>("PausedSeconds")
                         .HasColumnType("bigint");
 
+                    b.Property<string>("PaymentEvidence")
+                        .HasColumnType("jsonb");
+
                     b.Property<decimal>("ProcessingFee")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
@@ -715,6 +721,9 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("ServiceTax")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTimeOffset?>("SettledAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<decimal>("SstRate")
                         .HasPrecision(29, 28)
@@ -762,6 +771,10 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("AcquiredVehicleId")
+                        .IsUnique()
+                        .HasFilter("\"AcquiredVehicleId\" IS NOT NULL");
+
                     b.HasIndex("CustomerId");
 
                     b.HasIndex("DecidedById");
@@ -774,7 +787,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("TradeInAppointmentId")
                         .IsUnique()
-                        .HasFilter("\"TradeInAppointmentId\" IS NOT NULL AND \"Status\" IN ('Open', 'Handling', 'PendingApproval', 'Approved')");
+                        .HasFilter("\"TradeInAppointmentId\" IS NOT NULL AND \"Status\" IN ('Open', 'Handling', 'PendingApproval', 'Approved', 'Settled')");
 
                     b.HasIndex("VehicleId");
 
@@ -791,13 +804,15 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.ToTable("SalesOrders", null, t =>
                         {
-                            t.HasCheckConstraint("CK_SalesOrders_Approval", "(\"Status\" = 'PendingApproval' AND \"DiscountLimitAtSubmit\" IS NOT NULL AND \"DecidedById\" IS NULL AND \"NegotiatedDiscount\" > \"DiscountLimitAtSubmit\") OR (\"Status\" = 'Approved' AND \"DiscountLimitAtSubmit\" IS NOT NULL AND \"DecidedAt\" IS NOT NULL AND (\"DecidedById\" IS NOT NULL OR \"NegotiatedDiscount\" <= \"DiscountLimitAtSubmit\") AND \"DecidedById\" IS DISTINCT FROM \"AgentId\") OR (\"Status\" IN ('Open', 'Handling') AND \"DiscountLimitAtSubmit\" IS NULL AND \"DecidedById\" IS NULL) OR \"Status\" IN ('Expired', 'Cancelled')");
+                            t.HasCheckConstraint("CK_SalesOrders_Approval", "(\"Status\" = 'PendingApproval' AND \"DiscountLimitAtSubmit\" IS NOT NULL AND \"DecidedById\" IS NULL AND \"NegotiatedDiscount\" > \"DiscountLimitAtSubmit\") OR (\"Status\" IN ('Approved', 'Settled') AND \"DiscountLimitAtSubmit\" IS NOT NULL AND \"DecidedAt\" IS NOT NULL AND (\"DecidedById\" IS NOT NULL OR \"NegotiatedDiscount\" <= \"DiscountLimitAtSubmit\") AND \"DecidedById\" IS DISTINCT FROM \"AgentId\") OR (\"Status\" IN ('Open', 'Handling') AND \"DiscountLimitAtSubmit\" IS NULL AND \"DecidedById\" IS NULL) OR \"Status\" IN ('Expired', 'Cancelled')");
 
-                            t.HasCheckConstraint("CK_SalesOrders_Handling", "(\"Status\" = 'Open' AND \"DueAt\" IS NOT NULL AND \"AgentId\" IS NULL AND \"ClaimedAt\" IS NULL AND \"PausedSeconds\" IS NULL AND \"ClosedAt\" IS NULL) OR (\"Status\" IN ('Handling', 'PendingApproval', 'Approved') AND \"DueAt\" IS NULL AND \"AgentId\" IS NOT NULL AND \"ClaimedAt\" IS NOT NULL AND \"PausedSeconds\" BETWEEN 1 AND 172800 AND \"ClosedAt\" IS NULL) OR (\"Status\" IN ('Expired', 'Cancelled') AND \"AgentId\" IS NULL AND \"ClaimedAt\" IS NULL AND \"PausedSeconds\" IS NULL AND \"ClosedAt\" IS NOT NULL)");
+                            t.HasCheckConstraint("CK_SalesOrders_Handling", "(\"Status\" = 'Open' AND \"DueAt\" IS NOT NULL AND \"AgentId\" IS NULL AND \"ClaimedAt\" IS NULL AND \"PausedSeconds\" IS NULL AND \"ClosedAt\" IS NULL) OR (\"Status\" IN ('Handling', 'PendingApproval', 'Approved') AND \"DueAt\" IS NULL AND \"AgentId\" IS NOT NULL AND \"ClaimedAt\" IS NOT NULL AND \"PausedSeconds\" BETWEEN 1 AND 172800 AND \"ClosedAt\" IS NULL) OR (\"Status\" IN ('Expired', 'Cancelled') AND \"AgentId\" IS NULL AND \"ClaimedAt\" IS NULL AND \"PausedSeconds\" IS NULL AND \"ClosedAt\" IS NOT NULL) OR (\"Status\" = 'Settled' AND \"DueAt\" IS NULL AND \"AgentId\" IS NOT NULL AND \"ClaimedAt\" IS NOT NULL AND \"PausedSeconds\" IS NULL AND \"ClosedAt\" IS NULL)");
 
                             t.HasCheckConstraint("CK_SalesOrders_Price", "\"BasePrice\" > 0 AND \"RoadTax\" >= 0 AND \"ProcessingFee\" >= 0 AND \"SstRate\" BETWEEN 0 AND 1 AND \"PromoDiscount\" >= 0 AND \"NegotiatedDiscount\" >= 0 AND \"WarrantyPrice\" >= 0 AND \"DepositCredit\" >= 0 AND \"TradeInAllowance\" >= 0 AND \"PromoDiscount\" + \"NegotiatedDiscount\" <= \"BasePrice\" AND \"ServiceTax\" = round(\"ProcessingFee\" * \"SstRate\", 2) AND \"BalancePayable\" >= 0 AND \"BalancePayable\" = \"BasePrice\" - \"PromoDiscount\" - \"NegotiatedDiscount\" + \"ProcessingFee\" + \"RoadTax\" + \"ServiceTax\" + \"WarrantyPrice\" - \"DepositCredit\" - \"TradeInAllowance\"");
 
-                            t.HasCheckConstraint("CK_SalesOrders_Shape", "\"Version\" > 0 AND \"Status\" IN ('Open', 'Handling', 'PendingApproval', 'Approved', 'Expired', 'Cancelled') AND isfinite(\"CreatedAt\") AND isfinite(\"UpdatedAt\") AND \"UpdatedAt\" >= \"CreatedAt\" AND ((\"OrderNumber\" IS NULL AND \"SubmittedAt\" IS NULL) OR (\"OrderNumber\" ~ '^VPO-[0-9]{4}-[0-9]{6}$' AND \"SubmittedAt\" IS NOT NULL))");
+                            t.HasCheckConstraint("CK_SalesOrders_Settlement", "(\"Status\" = 'Settled' AND \"PaymentEvidence\" IS NOT NULL AND \"SettledAt\" IS NOT NULL AND isfinite(\"SettledAt\") AND \"SettledAt\" >= \"DecidedAt\" AND \"SettledAt\" <= \"UpdatedAt\" AND (\"TradeInAppointmentId\" IS NULL) = (\"AcquiredVehicleId\" IS NULL) AND \"AcquiredVehicleId\" IS DISTINCT FROM \"VehicleId\") OR (\"Status\" <> 'Settled' AND \"PaymentEvidence\" IS NULL AND \"SettledAt\" IS NULL AND \"AcquiredVehicleId\" IS NULL)");
+
+                            t.HasCheckConstraint("CK_SalesOrders_Shape", "\"Version\" > 0 AND \"Status\" IN ('Open', 'Handling', 'PendingApproval', 'Approved', 'Expired', 'Cancelled', 'Settled') AND isfinite(\"CreatedAt\") AND isfinite(\"UpdatedAt\") AND \"UpdatedAt\" >= \"CreatedAt\" AND ((\"OrderNumber\" IS NULL AND \"SubmittedAt\" IS NULL) OR (\"OrderNumber\" ~ '^VPO-[0-9]{4}-[0-9]{6}$' AND \"SubmittedAt\" IS NOT NULL))");
 
                             t.HasCheckConstraint("CK_SalesOrders_Terms", "((\"PromoId\" IS NULL AND \"PromoCode\" IS NULL AND \"PromoDiscount\" = 0) OR (\"PromoId\" IS NOT NULL AND \"PromoCode\" IS NOT NULL)) AND ((\"WarrantyPackageId\" IS NULL AND \"WarrantyName\" IS NULL AND \"WarrantyPrice\" = 0) OR (\"WarrantyPackageId\" IS NOT NULL AND \"WarrantyName\" IS NOT NULL)) AND ((\"TradeInAppointmentId\" IS NULL AND \"TradeInLabel\" IS NULL AND \"TradeInAllowance\" = 0) OR (\"TradeInAppointmentId\" IS NOT NULL AND \"TradeInLabel\" IS NOT NULL AND \"TradeInAllowance\" > 0))");
                         });
@@ -871,7 +886,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.ToTable("SalesOrderEvents", null, t =>
                         {
-                            t.HasCheckConstraint("CK_SalesOrderEvents_Shape", "isfinite(\"RecordedAt\") AND \"Sequence\" > 0 AND \"Kind\" IN ('Created', 'Claimed', 'Assigned', 'Reassigned', 'Released', 'TermsSaved', 'Submitted', 'Approved', 'Rejected', 'Cancelled', 'CustomerCancelled', 'Expired', 'Withdrawn') AND \"ToStatus\" IN ('Open', 'Handling', 'PendingApproval', 'Approved', 'Expired', 'Cancelled') AND (\"FromStatus\" IS NULL OR \"FromStatus\" IN ('Open', 'Handling', 'PendingApproval', 'Approved', 'Expired', 'Cancelled')) AND (\"FromStatus\" IS NULL) = (\"Kind\" = 'Created') AND (\"ActorId\" IS NULL) = (\"Kind\" IN ('Expired', 'Withdrawn')) AND ((\"Kind\" IN ('Rejected', 'Cancelled', 'Withdrawn') AND \"Reason\" IS NOT NULL AND \"Reason\" = btrim(\"Reason\") AND length(\"Reason\") BETWEEN 1 AND 1000 AND \"Reason\" !~ '[[:cntrl:]]') OR (\"Kind\" NOT IN ('Rejected', 'Cancelled', 'Withdrawn') AND \"Reason\" IS NULL)) AND (\"ReleaseId\" IS NOT NULL) = (\"Kind\" IN ('Cancelled', 'CustomerCancelled', 'Expired', 'Withdrawn')) AND (\"Changes\" IS NULL OR (\"Kind\" IN ('TermsSaved', 'Released') AND jsonb_typeof(\"Changes\") = 'array')) AND jsonb_typeof(\"Snapshot\") = 'object' AND \"Snapshot\" ->> 'Status' = \"ToStatus\" AND (\"Snapshot\" ->> 'Version')::bigint = \"Sequence\"");
+                            t.HasCheckConstraint("CK_SalesOrderEvents_Shape", "isfinite(\"RecordedAt\") AND \"Sequence\" > 0 AND \"Kind\" IN ('Created', 'Claimed', 'Assigned', 'Reassigned', 'Released', 'TermsSaved', 'Submitted', 'Approved', 'Rejected', 'Cancelled', 'CustomerCancelled', 'Expired', 'Withdrawn', 'Settled') AND \"ToStatus\" IN ('Open', 'Handling', 'PendingApproval', 'Approved', 'Expired', 'Cancelled', 'Settled') AND (\"FromStatus\" IS NULL OR \"FromStatus\" IN ('Open', 'Handling', 'PendingApproval', 'Approved', 'Expired', 'Cancelled', 'Settled')) AND (\"FromStatus\" IS NULL) = (\"Kind\" = 'Created') AND (\"ActorId\" IS NULL) = (\"Kind\" IN ('Expired', 'Withdrawn')) AND ((\"Kind\" IN ('Rejected', 'Cancelled', 'Withdrawn') AND \"Reason\" IS NOT NULL AND \"Reason\" = btrim(\"Reason\") AND length(\"Reason\") BETWEEN 1 AND 1000 AND \"Reason\" !~ '[[:cntrl:]]') OR (\"Kind\" NOT IN ('Rejected', 'Cancelled', 'Withdrawn') AND \"Reason\" IS NULL)) AND (\"ReleaseId\" IS NOT NULL) = (\"Kind\" IN ('Cancelled', 'CustomerCancelled', 'Expired', 'Withdrawn')) AND (\"Changes\" IS NULL OR (\"Kind\" IN ('TermsSaved', 'Released') AND jsonb_typeof(\"Changes\") = 'array')) AND jsonb_typeof(\"Snapshot\") = 'object' AND \"Snapshot\" ->> 'Status' = \"ToStatus\" AND (\"Snapshot\" ->> 'Version')::bigint = \"Sequence\"");
                         });
                 });
 
@@ -1474,7 +1489,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         {
                             t.HasCheckConstraint("CK_Vehicles_Identity", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"Vin\" ~ '^[A-HJ-NPR-Z0-9]{17}$' AND \"RegistrationIdentity\" ~ '[^[:space:]]'");
 
-                            t.HasCheckConstraint("CK_Vehicles_State", "\"MileageKilometres\" >= 0 AND \"Status\" IN ('PendingInspection', 'Rejected', 'Available') AND \"ManufactureYear\" > 0");
+                            t.HasCheckConstraint("CK_Vehicles_State", "\"MileageKilometres\" >= 0 AND \"Status\" IN ('PendingInspection', 'Rejected', 'Available', 'Sold') AND \"ManufactureYear\" > 0");
                         });
                 });
 
@@ -2479,6 +2494,11 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Dealership.Domain.Sales.SalesOrder", b =>
                 {
+                    b.HasOne("Dealership.Domain.Vehicles.Vehicle", null)
+                        .WithOne()
+                        .HasForeignKey("Dealership.Domain.Sales.SalesOrder", "AcquiredVehicleId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
                         .WithMany()
                         .HasForeignKey("AgentId")
