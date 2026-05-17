@@ -1,5 +1,4 @@
 import { Card } from "@/components/ui/Card";
-import { SignedReportLoadingShell } from "@/components/inspection/SignedReportLoadingShell";
 import { TechnicianLoadingShell } from "@/components/inspection/TechnicianLoadingShell";
 import { IntakeCalendarLoadingShell } from "./IntakeCalendarLoadingShell";
 import { StaffTableLoadingShell } from "./StaffTableLoadingShell";
@@ -7,7 +6,7 @@ import layout from "./Staff.module.css";
 import styles from "./StaffLoadingShell.module.css";
 
 export type StaffLoadingView =
-  "calendar" | "intake" | "inspection" | "technician" | "repairs" | "appointment" | "report";
+  "calendar" | "intake" | "inspection" | "technician" | "repairs" | "appointment";
 
 type LoadingShellProps = { view: StaffLoadingView; selected?: boolean };
 
@@ -40,9 +39,6 @@ function LoadingContent({ view, selected = false }: LoadingShellProps) {
         </Card>
       </div>
     );
-  }
-  if (view === "report") {
-    return <SignedReportLoadingShell />;
   }
   return <StaffTableLoadingShell />;
 }

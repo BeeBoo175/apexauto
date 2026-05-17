@@ -151,7 +151,7 @@ public sealed class InspectionSignoffTests(IntakePhotoFixture fixture) : IClassF
     {
         using var client = factory.CreateClient();
         var signPath = $"/api/staff/inspection/drafts/{inspection}/sign-offs";
-        var reportPath = $"/api/staff/inspection/reports/{inspection}/revisions/1";
+        var reportPath = $"/api/staff/inspection/reports/{inspection}/revisions/1/document";
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync(reportPath)).StatusCode);
         var login = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest(Guid.NewGuid(), email, "Password123!"));
         var session = (await login.Content.ReadFromJsonAsync<LoginSession>())!;
@@ -163,9 +163,10 @@ public sealed class InspectionSignoffTests(IntakePhotoFixture fixture) : IClassF
         var read = await client.GetAsync(reportPath);
         Assert.Equal(HttpStatusCode.OK, read.StatusCode);
         Assert.True(read.Headers.CacheControl?.NoStore);
+        Assert.Equal("application/pdf", read.Content.Headers.ContentType?.MediaType);
         Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync(signPath, request with { SaveVersion = 0 })).StatusCode);
         Assert.Equal(HttpStatusCode.Conflict, (await client.PostAsJsonAsync(signPath, request with { Revision = 2 })).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync(reportPath.Replace("/1", "/2", StringComparison.Ordinal))).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync(reportPath.Replace("/1/", "/2/", StringComparison.Ordinal))).StatusCode);
     }
 
     private static async Task<(Guid Id, string Email)> ProvisionAsync(IServiceProvider services, Guid? branch, string role)

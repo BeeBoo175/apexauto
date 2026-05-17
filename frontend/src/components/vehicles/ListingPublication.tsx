@@ -1,3 +1,4 @@
+import { reportDocumentHref } from "@/lib/inspection/contracts";
 import type { useListingEditor } from "@/hooks/use-listing-editor";
 import { Textarea } from "@/components/ui/Input";
 import { listingWithdrawalReason } from "@/lib/vehicles/listing-withdrawal";
@@ -45,7 +46,10 @@ export function ListingPublication({
               <dd>
                 {snapshot.currentSignedReport ? (
                   <a
-                    href={`/dashboard/inspection/${snapshot.currentSignedReport.inspectionId}/reports/${snapshot.currentSignedReport.revision}`}
+                    href={reportDocumentHref(
+                      snapshot.currentSignedReport.inspectionId,
+                      snapshot.currentSignedReport.revision,
+                    )}
                     target="_blank"
                     rel="noreferrer"
                   >

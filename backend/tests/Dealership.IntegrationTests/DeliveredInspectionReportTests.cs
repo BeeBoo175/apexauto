@@ -77,7 +77,7 @@ public sealed class DeliveredInspectionReportTests(IntakePhotoFixture fixture) :
         }
 
         using var client = restarted.CreateClient();
-        var reportPath = $"/api/staff/inspection/reports/{draft.Id}/revisions/1";
+        var reportPath = $"/api/staff/inspection/reports/{draft.Id}/revisions/1/document";
         var photoPath = $"/api/staff/inspection/drafts/{draft.Id}/photos/{evidence}";
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync(reportPath)).StatusCode);
         var email = await database.Users.Where(item => item.Id == hold.CustomerId).Select(item => item.Email).SingleAsync();
@@ -87,7 +87,8 @@ public sealed class DeliveredInspectionReportTests(IntakePhotoFixture fixture) :
         var response = await client.GetAsync(reportPath);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.True(response.Headers.CacheControl!.NoStore);
-        Assert.Equal(JsonSerializer.Serialize(report), JsonSerializer.Serialize(await response.Content.ReadFromJsonAsync<InspectionReport>()));
+        Assert.Equal("application/pdf", response.Content.Headers.ContentType?.MediaType);
+        Assert.StartsWith("%PDF", System.Text.Encoding.ASCII.GetString((await response.Content.ReadAsByteArrayAsync())[..4]), StringComparison.Ordinal);
         var downloaded = await client.GetAsync(photoPath);
         Assert.Equal(HttpStatusCode.OK, downloaded.StatusCode);
         Assert.True(downloaded.Headers.CacheControl!.NoStore);

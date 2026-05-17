@@ -9,6 +9,7 @@ import { formatMalaysianDateTime } from "@/lib/date-format";
 import styles from "./Inspection.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 import type { RepairSelection } from "@/lib/inspection/query";
+import { reportDocumentHref } from "@/lib/inspection/contracts";
 
 export function InspectionRepairLink({
   inspectionId,
@@ -82,7 +83,7 @@ export function RevisionHistoryView({
             prefetch={false}
             target="_blank"
             rel="noopener"
-            href={`/dashboard/inspection/${history.inspectionId}/reports/${item.revision}`}
+            href={reportDocumentHref(history.inspectionId, item.revision)}
           >
             Revision {item.revision} ·{" "}
             {item.assessment.isRejected ? "Rejected" : `Grade ${item.assessment.grade}`}

@@ -4,7 +4,7 @@ import { StaffDetailsDialog, type StaffDetail } from "@/components/staff/StaffDe
 import { StaffLink } from "@/components/staff/StaffLink";
 import { WorkshopStatus } from "./WorkshopStatus";
 import type { useInspectionEditor } from "@/hooks/use-inspection-editor";
-import { assessmentLabel } from "@/lib/inspection/contracts";
+import { assessmentLabel, reportDocumentHref } from "@/lib/inspection/contracts";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { formatCurrency } from "@/lib/currency-format";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
@@ -54,7 +54,7 @@ export function InspectionRecord({
             prefetch={false}
             target="_blank"
             rel="noopener"
-            href={`/dashboard/inspection/${id}/reports/${snapshot.report.revision}`}
+            href={reportDocumentHref(id, snapshot.report.revision)}
           >
             Open signed report · revision {snapshot.report.revision}
           </StaffLink>

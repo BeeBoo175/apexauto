@@ -6,7 +6,6 @@ import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { StaffNavigationContext } from "./StaffActorBoundary";
 import { StaffEntryPresentationContext } from "./StaffClientEntryBoundary";
 import { StaffLoadingShell, type StaffLoadingView } from "./StaffLoadingShell";
-import reportStyles from "@/components/inspection/SignedReport.module.css";
 import styles from "./Staff.module.css";
 import loading from "./StaffLoadingShell.module.css";
 
@@ -43,16 +42,10 @@ export function StaffLoading() {
     view = "appointment";
     title = "Intake appointment";
   }
-  if (pathname.includes("/reports/")) {
-    view = "report";
-    title = "Signed report";
-  }
   return (
     <>
       <LoadingProgress label="Opening workspace" />
-      <div className={view === "report" ? reportStyles.controls : undefined}>
-        <StaffCommandBar title={title} />
-      </div>
+      <StaffCommandBar title={title} />
       <StaffLoadingShell view={view} selected={Boolean(parameters.inspection || parameters.sale)} />
     </>
   );

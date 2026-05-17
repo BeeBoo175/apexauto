@@ -1,3 +1,4 @@
+import { reportDocumentHref } from "@/lib/inspection/contracts";
 import { StaffLink } from "@/components/staff/StaffLink";
 import type { ListingRevision, ListingWorkspace } from "@/lib/vehicles/listing-workspace";
 import { formatCurrency } from "@/lib/currency-format";
@@ -54,7 +55,7 @@ export function ListingPublicationRecord({
           target="_blank"
           rel="noopener"
           className={styles.reportLink}
-          href={`/dashboard/inspection/${signedReport.inspectionId}/reports/${signedReport.revision}`}
+          href={reportDocumentHref(signedReport.inspectionId, signedReport.revision)}
         >
           Open approved signed inspection report (new tab)
         </StaffLink>

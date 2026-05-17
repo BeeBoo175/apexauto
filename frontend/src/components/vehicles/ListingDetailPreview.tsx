@@ -1,5 +1,6 @@
 "use client";
 
+import { reportDocumentHref } from "@/lib/inspection/contracts";
 import { useId, type ReactNode } from "react";
 import { StaffLink } from "@/components/staff/StaffLink";
 import { formatCurrency } from "@/lib/currency-format";
@@ -77,7 +78,7 @@ export function ListingDetailPreview({
               prefetch={false}
               target="_blank"
               rel="noopener"
-              href={`/dashboard/inspection/${report.inspectionId}/reports/${report.revision}`}
+              href={reportDocumentHref(report.inspectionId, report.revision)}
             >
               Open signed inspection report (new tab)
             </StaffLink>

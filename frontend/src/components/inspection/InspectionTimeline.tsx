@@ -1,5 +1,6 @@
 "use client";
 
+import { reportDocumentHref } from "@/lib/inspection/contracts";
 import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
@@ -94,7 +95,7 @@ export function InspectionTimeline({
                     prefetch={false}
                     target="_blank"
                     rel="noopener"
-                    href={`/dashboard/inspection/${id}/reports/${event.revision}`}
+                    href={reportDocumentHref(id, event.revision)}
                   >
                     View inspection report
                   </StaffLink>
