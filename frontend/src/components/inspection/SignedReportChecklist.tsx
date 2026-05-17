@@ -1,81 +1,38 @@
 import type { Report } from "@/lib/inspection/report-contracts";
-import { formatCurrency } from "@/lib/currency-format";
 import { label } from "@/lib/inspection/contracts";
-import styles from "./SignedReport.module.css";
+import styles from "./SignedReportChecklist.module.css";
 
 export function SignedReportChecklist({ report }: { report: Report }) {
   const categories = [...new Set(report.checklist.map((point) => point.category))];
   return (
-    <>
-      <nav className={styles.categories} aria-label="Signed checklist categories">
-        {categories.map((category, index) => (
-          <a key={category} href={`#report-category-${index}`}>
-            {label(category)}
-          </a>
-        ))}
-      </nav>
-      {categories.map((category, index) => (
-        <section className={styles.category} key={category} id={`report-category-${index}`}>
-          <header className={styles.categoryHeading}>
-            <h2>{label(category)}</h2>
-            <span>
-              {report.checklist.filter((point) => point.category === category).length} points
-            </span>
-          </header>
-          <div className={styles.checklistScroll}>
-            <table>
-              <caption className="sr-only">{label(category)} signed checklist</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Point</th>
-                  <th scope="col">Disposition & notes</th>
-                  <th scope="col">Original estimate</th>
-                </tr>
-              </thead>
-              <tbody>
-                {report.checklist
-                  .filter((point) => point.category === category)
-                  .map((point) => (
-                    <tr key={point.code}>
-                      <th scope="row">
-                        <span>{point.code}</span>
-                        {point.description}
-                      </th>
-                      <td>
-                        <strong>{point.kind === null ? "Passed" : label(point.kind)}</strong>
-                        {point.severity && <span> · {label(point.severity)}</span>}
-                        {point.notes && <p>{point.notes}</p>}
-                        {point.photos.length > 0 && (
-                          <div className={styles.photos}>
-                            {point.photos.map((photo, photoIndex) => (
-                              <figure key={photo.id}>
-                                {/* Private evidence bypasses the shared image optimizer/cache. */}
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                  src={`/api/staff/inspection/drafts/${report.inspectionId}/photos/${photo.id}`}
-                                  alt={`${point.code} signed evidence ${photoIndex + 1}`}
-                                  loading="lazy"
-                                  width={photo.width}
-                                  height={photo.height}
-                                />
-                                <figcaption>
-                                  {point.code} · Photo {photoIndex + 1}
-                                </figcaption>
-                              </figure>
-                            ))}
-                          </div>
-                        )}
-                      </td>
-                      <td>
-                        {point.kind === "Finding" ? formatCurrency(point.estimatedRepairCost) : "—"}
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      ))}
-    </>
+    <section className={styles.checklist}>
+      <h2>Remaining checklist</h2>
+      <p>Points examined without a finding. Findings are listed above.</p>
+      {categories.map((category) => {
+        const points = report.checklist.filter(
+          (point) => point.category === category && point.kind !== "Finding",
+        );
+        if (points.length === 0) {
+          return null;
+        }
+        return (
+          <section className={styles.category} key={category}>
+            <header>
+              <h3>{label(category)}</h3>
+              <span>{points.length} points</span>
+            </header>
+            <ul>
+              {points.map((point) => (
+                <li key={point.code}>
+                  <span className={styles.code}>{point.code}</span>
+                  {point.description}
+                  {point.kind === "NotFitted" && <em> · Not fitted</em>}
+                </li>
+              ))}
+            </ul>
+          </section>
+        );
+      })}
+    </section>
   );
 }
