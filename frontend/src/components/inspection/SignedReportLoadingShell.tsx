@@ -8,7 +8,8 @@ export function SignedReportLoadingShell() {
         <span className={loading.monthTitle} />
         <span className={loading.grade} />
       </header>
-      <div className={styles.assessment}>
+      <div className={styles.identity}>
+        <span className={loading.value} />
         <span className={loading.value} />
         <span className={loading.value} />
         <span className={loading.value} />

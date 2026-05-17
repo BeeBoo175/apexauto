@@ -5,6 +5,7 @@
 }
 
 .report {
+  width: 100%;
   max-width: 210mm;
   margin: 20px auto;
   padding: 14mm;
@@ -45,122 +46,118 @@
   display: flex;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 20px;
-  align-items: flex-start;
-  padding-bottom: 16px;
+  gap: 16px;
+  align-items: baseline;
+  padding-bottom: 12px;
   border-bottom: 2px solid var(--color-graphite);
 }
 
 .heading h1 {
-  margin: 0 0 6px;
-  font-size: 22px;
+  margin: 0;
+  font-size: 24px;
   font-weight: 700;
+  line-height: 1.2;
 }
 
 .heading p {
+  margin-top: 4px;
   color: var(--color-muted);
   font-size: 14px;
 }
 
-.heading p strong {
+.heading .grade,
+.heading .rejected {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.heading .grade {
   color: var(--color-graphite);
 }
 
-.assessment {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
-  margin-block: 16px 24px;
-  padding: 14px 16px;
-  border: 1px solid var(--color-line);
-  background: var(--color-canvas);
+.heading .rejected {
+  color: var(--color-signal-dark);
 }
 
-.assessment dt,
-.metadata dt,
-.record dt {
+.identity {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px 24px;
+  margin-block: 16px 0;
+}
+
+.identity dt,
+.signoff dt {
   color: var(--color-muted);
   font-size: 12px;
 }
 
-.assessment dd {
-  margin: 4px 0 0;
-  font-size: 14px;
-  font-weight: 600;
+.identity dd,
+.signoff dd {
+  margin: 2px 0 0;
+  overflow-wrap: break-word;
   font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
 }
 
-.section {
-  margin-block: 24px;
+.identity div:first-child dd {
+  font-weight: 700;
 }
 
-.metadata {
+.summary {
+  margin-block: 20px 28px;
+  padding-block: 12px;
+  border-block: 1px solid var(--color-line);
+  font-size: 14px;
+}
+
+.signoff {
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 2px solid var(--color-graphite);
+}
+
+.signoff > dl {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 2.2fr 1.6fr 0.6fr 1.2fr;
   gap: 12px 24px;
 }
 
-.metadata dd {
-  margin: 2px 0 0;
-  overflow-wrap: anywhere;
-  font-variant-numeric: tabular-nums;
-}
-
-.record {
-  margin-block: 28px 0;
-  padding-top: 16px;
-  border-top: 1px solid var(--color-line);
-}
-
-.record h2 {
+.signoff > p {
+  margin-block: 16px;
   color: var(--color-muted);
   font-size: 12px;
-  font-weight: 600;
 }
 
-.record dl {
-  display: grid;
+.signoff .record {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px 24px;
+  gap: 6px 24px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-line-soft);
+}
+
+.record dt {
+  font-size: 11px;
 }
 
 .record dd {
-  margin: 0;
-  color: var(--color-muted);
   font-family: var(--font-mono);
   font-size: 11px;
-  overflow-wrap: anywhere;
-}
-
-.footer {
-  margin-top: 20px;
-  padding-top: 12px;
-  border-top: 1px solid var(--color-line);
-  overflow-wrap: anywhere;
-}
-
-.footer p:last-child {
-  margin-top: 4px;
-  color: var(--color-muted);
-  font-size: 12px;
 }
 
 @media screen and (max-width: 820px) {
   .report {
-    margin: 16px;
+    margin: 16px 0;
     padding: 16px;
   }
 
-  .assessment {
+  .identity,
+  .signoff > dl {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .metadata {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .record dl {
+  .signoff .record {
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -215,19 +212,10 @@
   }
 
   .heading,
-  .assessment,
-  .section,
-  .record,
-  .footer {
+  .identity,
+  .summary,
+  .signoff {
     break-inside: avoid;
-  }
-
-  .assessment {
-    margin-block: 12px 18px;
-  }
-
-  .section {
-    margin-block: 18px;
   }
 
   .report button,

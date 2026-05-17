@@ -2,16 +2,20 @@ import type { Report } from "@/lib/inspection/report-contracts";
 import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { StaffLink } from "@/components/staff/StaffLink";
-import { Badge } from "@/components/ui/Badge";
 import { ReportPrintControls } from "./ReportPrintControls";
 import { SignedReportChecklist } from "./SignedReportChecklist";
 import { SignedReportFindings } from "./SignedReportFindings";
 import styles from "./SignedReport.module.css";
-import tones from "@/components/ui/StatusTone.module.css";
+
+function plural(count: number, noun: string) {
+  return `${count} ${noun}${count === 1 ? "" : "s"}`;
+}
 
 export function SignedReport({ report }: { report: Report }) {
-  const { vehicle } = report;
+  const { vehicle, assessment } = report;
   const findings = report.checklist.filter((point) => point.kind === "Finding");
+  const notFitted = report.checklist.filter((point) => point.kind === "NotFitted");
+  const passed = report.checklist.length - findings.length - notFitted.length;
   return (
     <div data-inspection-report>
       <div className={styles.controls}>
@@ -27,68 +31,64 @@ export function SignedReport({ report }: { report: Report }) {
           <div>
             <h1>Inspection report</h1>
             <p>
-              <strong>{vehicle.registrationPlate}</strong> · {vehicle.manufactureYear}{" "}
-              {vehicle.make} {vehicle.model} {vehicle.trim}
+              {vehicle.manufactureYear} {vehicle.make} {vehicle.model} {vehicle.trim}
             </p>
           </div>
-          <Badge
-            className={`${tones.badge} ${report.assessment.isRejected ? tones.danger : tones.info}`}
-          >
-            {report.assessment.isRejected ? "Rejected" : `Grade ${report.assessment.grade}`}
-          </Badge>
+          <p className={assessment.isRejected ? styles.rejected : styles.grade}>
+            {assessment.isRejected ? "Rejected" : `Grade ${assessment.grade}`}
+          </p>
         </header>
-        <dl className={styles.assessment}>
+        <dl className={styles.identity}>
           <div>
-            <dt>Original repair estimate</dt>
-            <dd>{formatCurrency(report.assessment.estimatedRepairCost)}</dd>
+            <dt>Registration</dt>
+            <dd>{vehicle.registrationPlate}</dd>
           </div>
           <div>
-            <dt>Findings</dt>
-            <dd>{findings.length}</dd>
+            <dt>VIN</dt>
+            <dd>{vehicle.vin}</dd>
           </div>
           <div>
-            <dt>Points checked</dt>
-            <dd>{report.checklist.length}</dd>
+            <dt>Recorded mileage</dt>
+            <dd>{vehicle.mileageKilometres.toLocaleString("en-MY")} km</dd>
           </div>
           <div>
-            <dt>Signed revision</dt>
-            <dd>{report.revision}</dd>
+            <dt>Checked in</dt>
+            <dd>{formatMalaysianDateTime(vehicle.checkedInAt)}</dd>
           </div>
         </dl>
-        <section className={styles.section}>
-          <h2>Vehicle and examination</h2>
-          <dl className={styles.metadata}>
+        <p className={styles.summary}>
+          {plural(findings.length, "finding")} recorded with an original repair estimate of{" "}
+          <strong>{formatCurrency(assessment.estimatedRepairCost)}</strong>. Of{" "}
+          {report.checklist.length} checklist points, {passed} passed and {notFitted.length}{" "}
+          {notFitted.length === 1 ? "is" : "are"} not fitted.
+        </p>
+        <SignedReportFindings inspectionId={report.inspectionId} findings={findings} />
+        <SignedReportChecklist report={report} />
+        <section className={styles.signoff}>
+          <h2>Sign-off</h2>
+          <dl>
             <div>
-              <dt>VIN</dt>
-              <dd>{vehicle.vin}</dd>
-            </div>
-            <div>
-              <dt>Recorded mileage</dt>
-              <dd>{vehicle.mileageKilometres.toLocaleString("en-MY")} km</dd>
-            </div>
-            <div>
-              <dt>Checked in (Malaysia)</dt>
-              <dd>{formatMalaysianDateTime(vehicle.checkedInAt)}</dd>
-            </div>
-            <div>
-              <dt>Technician</dt>
+              <dt>Signed by</dt>
               <dd>{report.technicianIdentity}</dd>
             </div>
             <div>
-              <dt>Catalog</dt>
-              <dd>{report.catalogVersion}</dd>
-            </div>
-            <div>
-              <dt>Signed (Malaysia)</dt>
+              <dt>Signed</dt>
               <dd>{formatMalaysianDateTime(report.signedAt)}</dd>
             </div>
+            <div>
+              <dt>Revision</dt>
+              <dd>{report.revision}</dd>
+            </div>
+            <div>
+              <dt>Checklist catalog</dt>
+              <dd>{report.catalogVersion}</dd>
+            </div>
           </dl>
-        </section>
-        <SignedReportFindings inspectionId={report.inspectionId} findings={findings} />
-        <SignedReportChecklist report={report} />
-        <section className={styles.record}>
-          <h2>Record details</h2>
-          <dl>
+          <p>
+            This is the retained signed revision. Linked repair work does not change its original
+            findings, estimates or grade.
+          </p>
+          <dl className={styles.record}>
             <div>
               <dt>Inspection</dt>
               <dd>{report.inspectionId}</dd>
@@ -98,26 +98,17 @@ export function SignedReport({ report }: { report: Report }) {
               <dd>{report.operationId}</dd>
             </div>
             <div>
+              <dt>Intake appointment</dt>
+              <dd>{vehicle.intakeAppointmentId}</dd>
+            </div>
+            <div>
               <dt>Saved / assignment versions</dt>
               <dd>
                 {report.saveVersion} / {report.assignmentVersion}
               </dd>
             </div>
-            <div>
-              <dt>Intake appointment</dt>
-              <dd>{vehicle.intakeAppointmentId}</dd>
-            </div>
           </dl>
         </section>
-        <footer className={styles.footer}>
-          <p>
-            Signed by {report.technicianIdentity} · {formatMalaysianDateTime(report.signedAt)}
-          </p>
-          <p>
-            This is the retained signed revision. Linked repair work does not change its original
-            findings, estimates or grade.
-          </p>
-        </footer>
       </article>
     </div>
   );

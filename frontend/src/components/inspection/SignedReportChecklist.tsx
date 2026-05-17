@@ -6,8 +6,10 @@ export function SignedReportChecklist({ report }: { report: Report }) {
   const categories = [...new Set(report.checklist.map((point) => point.category))];
   return (
     <section className={styles.checklist}>
-      <h2>Remaining checklist</h2>
-      <p>Points examined without a finding. Findings are listed above.</p>
+      <h2>Other checklist points</h2>
+      <p>
+        Examined with no finding recorded. Points marked not fitted do not apply to this vehicle.
+      </p>
       {categories.map((category) => {
         const points = report.checklist.filter(
           (point) => point.category === category && point.kind !== "Finding",
@@ -17,10 +19,9 @@ export function SignedReportChecklist({ report }: { report: Report }) {
         }
         return (
           <section className={styles.category} key={category}>
-            <header>
-              <h3>{label(category)}</h3>
-              <span>{points.length} points</span>
-            </header>
+            <h3>
+              {label(category)} <span>{points.length} points</span>
+            </h3>
             <ul>
               {points.map((point) => (
                 <li key={point.code}>
