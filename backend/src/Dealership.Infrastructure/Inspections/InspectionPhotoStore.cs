@@ -9,7 +9,7 @@ using Dealership.Infrastructure.Photos;
 
 namespace Dealership.Infrastructure.Inspections;
 
-public sealed class InspectionPhotoStore(DealershipDbContext database, IInspectionAssignmentStore assignments, PhotoCleanupSignal cleanup)
+public sealed class InspectionPhotoStore(DealershipDbContext database, PhotoCleanupSignal cleanup)
     : IInspectionPhotoStore
 {
     public async Task<InspectionPhotoStatus> CheckUploadAsync(Guid actorId, Guid inspectionId, long assignmentVersion,
@@ -103,11 +103,25 @@ public sealed class InspectionPhotoStore(DealershipDbContext database, IInspecti
     public async Task<InspectionPhotoPreparation> FindAsync(Guid actorId, Guid inspectionId, Guid id,
         CancellationToken cancellationToken)
     {
-        var access = await assignments.ReadAsync(actorId, inspectionId, cancellationToken);
-        if (access.Status != InspectionAssignmentStatus.Succeeded)
+        await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
+        var actor = await InspectionReadScope.LockActorAsync(database, actorId, cancellationToken, allowCustomer: true);
+        if (actor is null)
         {
-            return new(access.Status == InspectionAssignmentStatus.Forbidden
-                ? InspectionPhotoStatus.Forbidden : InspectionPhotoStatus.NotFound);
+            return new(InspectionPhotoStatus.Forbidden);
+        }
+
+        if (!await InspectionReadScope.ReportDrafts(database, actor)
+            .AnyAsync(draft => draft.Id == inspectionId, cancellationToken))
+        {
+            return new(InspectionPhotoStatus.NotFound);
+        }
+
+        if (actor.Role == AccountRoles.Customer &&
+            !await database.InspectionDraftPhotos.AnyAsync(link => link.InspectionId == inspectionId &&
+                link.PhotoId == id && database.InspectionSignedRevisions.Any(signed =>
+                    signed.InspectionId == inspectionId && signed.SaveId == link.SaveId), cancellationToken))
+        {
+            return new(InspectionPhotoStatus.NotFound);
         }
 
         var photo = await database.InspectionPhotos.AsNoTracking()

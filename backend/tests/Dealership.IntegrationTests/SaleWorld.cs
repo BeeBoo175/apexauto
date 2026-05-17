@@ -92,13 +92,14 @@ internal sealed class SaleWorld
         return listing.Publication.VehicleId;
     }
 
-    public async Task<Reservation> HoldAsync(bool withPhoto = false, bool intakeOwner = false)
+    public async Task<Reservation> HoldAsync(bool withPhoto = false, bool intakeOwner = false,
+        bool withInspectionEvidence = false)
     {
         var index = Interlocked.Increment(ref nextCar);
         await using var database = new DealershipDbContext(new DbContextOptionsBuilder<DealershipDbContext>()
             .UseNpgsql(connection).Options);
         var customer = intakeOwner ? data.OwnerId : await RegisterCustomerAsync(Services, database);
-        var listing = await CreateListingAsync(data, Services, Manager, technician, index, withPhoto);
+        var listing = await CreateListingAsync(data, Services, Manager, technician, index, withPhoto, withInspectionEvidence);
         var result = await Services.GetRequiredService<ReservationService>().ReserveAsync(customer,
             listing.Publication.VehicleId, new(Guid.NewGuid(), listing.Publication.Id, null), default);
         Assert.Equal(ReservationStatus.Succeeded, result.Status);

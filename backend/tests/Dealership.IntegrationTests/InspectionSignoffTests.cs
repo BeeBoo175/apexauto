@@ -120,7 +120,7 @@ public sealed class InspectionSignoffTests(IntakePhotoFixture fixture) : IClassF
             (await restored.GetRequiredService<IInspectionReportStore>().ReadAsync(otherTechnician, inspection, 1, CancellationToken.None)).Status);
         Assert.Equal(InspectionAssignmentStatus.NotFound,
             (await restored.GetRequiredService<IInspectionReportStore>().ReadAsync(outsideManager, inspection, 1, CancellationToken.None)).Status);
-        Assert.Equal(InspectionAssignmentStatus.Forbidden,
+        Assert.Equal(InspectionAssignmentStatus.NotFound,
             (await restored.GetRequiredService<IInspectionReportStore>().ReadAsync(data.OwnerId, inspection, 1, CancellationToken.None)).Status);
         Assert.Equal(InspectionAssignmentStatus.Conflict, (await restored.GetRequiredService<InspectionDraftSaveService>()
             .SaveAsync(technician, inspection, saveRequest with { OperationId = Guid.NewGuid(), ExpectedVersion = 2 }, CancellationToken.None)).Status);

@@ -1,4 +1,3 @@
-using Dealership.Application.Accounts;
 using Dealership.Application.Inspections;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -16,21 +15,13 @@ public sealed class InspectionReportStore(DealershipDbContext database) : IInspe
         }
 
         await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
-        var actor = await InspectionReadScope.LockActorAsync(database, actorId, cancellationToken);
+        var actor = await InspectionReadScope.LockActorAsync(database, actorId, cancellationToken, allowCustomer: true);
         if (actor is null)
         {
             return new(InspectionAssignmentStatus.Forbidden);
         }
 
-        var drafts = database.InspectionDrafts.AsNoTracking();
-        if (actor.Role != AccountRoles.GeneralManager)
-        {
-            drafts = drafts.Where(draft => draft.BranchId == actor.BranchId);
-        }
-        if (actor.Role == AccountRoles.WorkshopTechnician)
-        {
-            drafts = drafts.Where(draft => draft.TechnicianId == actorId);
-        }
+        var drafts = InspectionReadScope.ReportDrafts(database, actor);
 
         var signed = await database.InspectionSignedRevisions.AsNoTracking()
             .Where(item => item.InspectionId == inspectionId && item.Revision == revision)

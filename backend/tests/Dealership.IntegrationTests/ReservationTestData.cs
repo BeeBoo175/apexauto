@@ -37,7 +37,7 @@ internal static class ReservationTestData
     }
 
     internal static async Task<ListingRecord> CreateListingAsync(CheckInTestData data, IServiceProvider services,
-        Guid manager, Guid technician, int index, bool withPhoto = false)
+        Guid manager, Guid technician, int index, bool withPhoto = false, bool withInspectionEvidence = false)
     {
         var appointment = await data.BookAsync(index, $"WYY {8800 + index}");
         var checkIn = await services.GetRequiredService<AppointmentCheckInService>().CheckInAsync(data.StaffId,
@@ -47,13 +47,35 @@ internal static class ReservationTestData
         var assignment = await services.GetRequiredService<InspectionAssignmentService>().AssignAsync(technician,
             vehicleId, new(Guid.NewGuid(), technician, 0, null), CancellationToken.None);
         var inspectionId = assignment.Receipt!.InspectionId;
+        var evidence = withInspectionEvidence
+            ? await InspectionEvidenceAsync(services, technician, inspectionId)
+            : Array.Empty<Guid>();
+        var saveVersion = withInspectionEvidence ? 2 : 1;
         var saved = await services.GetRequiredService<InspectionDraftSaveService>().SaveAsync(technician, inspectionId,
-            new(Guid.NewGuid(), 1, 0, []) { ExaminedPointCodes = [.. InspectionCatalog.Points.Select(point => point.Code)] },
+            new(Guid.NewGuid(), 1, saveVersion - 1, withInspectionEvidence
+                ? [new("EP-005", InspectionEntryKind.Finding, InspectionSeverity.Advisory, 0m, "Surface mark")]
+                : [])
+            {
+                PhotoIds = evidence,
+                ExaminedPointCodes = [.. InspectionCatalog.Points.Select(point => point.Code)]
+            },
             CancellationToken.None);
         Assert.Equal(InspectionAssignmentStatus.Succeeded, saved.Status);
         var signed = await services.GetRequiredService<InspectionSignoffService>().SignAsync(technician, inspectionId,
-            new(Guid.NewGuid(), 1, 1, 1), CancellationToken.None);
+            new(Guid.NewGuid(), 1, saveVersion, 1), CancellationToken.None);
         Assert.Equal(InspectionAssignmentStatus.Succeeded, signed.Status);
+        if (withInspectionEvidence)
+        {
+            Assert.Equal(InspectionAssignmentStatus.Succeeded, (await services.GetRequiredService<InspectionReopeningService>()
+                .ReopenAsync(manager, inspectionId, new(Guid.NewGuid(), 1, 1, "Review surface condition"), default)).Status);
+            Assert.Equal(InspectionAssignmentStatus.Succeeded, (await services.GetRequiredService<InspectionDraftSaveService>()
+                .SaveAsync(technician, inspectionId, new(Guid.NewGuid(), 1, saveVersion, [])
+                { ExaminedPointCodes = [.. InspectionCatalog.Points.Select(point => point.Code)] }, default)).Status);
+            signed = await services.GetRequiredService<InspectionSignoffService>().SignAsync(technician, inspectionId,
+                new(Guid.NewGuid(), 1, saveVersion + 1, 2), default);
+            Assert.Equal(InspectionAssignmentStatus.Succeeded, signed.Status);
+        }
+
         var listings = services.GetRequiredService<ListingService>();
         var photoIds = new List<Guid>();
         if (withPhoto)
@@ -79,6 +101,28 @@ internal static class ReservationTestData
     }
 
     internal sealed record ListingRecord(Guid InspectionId, ListingRevision Revision, ListingPublication Publication);
+
+    private static async Task<Guid[]> InspectionEvidenceAsync(IServiceProvider services, Guid technician, Guid inspection)
+    {
+        var photos = new List<Guid>();
+        foreach (var point in new[] { "EP-004", "EP-005", "EP-006" })
+        {
+            var id = Guid.NewGuid();
+            using var image = new MemoryStream(IntakePhotoFixture.Image());
+            var upload = await services.GetRequiredService<InspectionPhotoService>().UploadAsync(technician,
+                inspection, id, 1, point, "image/jpeg", image, default);
+            Assert.Equal(InspectionPhotoStatus.Available, upload.Status);
+            photos.Add(id);
+        }
+
+        // A retained unsigned save and an unattached upload must not become customer report evidence.
+        var saved = await services.GetRequiredService<InspectionDraftSaveService>().SaveAsync(technician, inspection,
+            new(Guid.NewGuid(), 1, 0,
+                [new("EP-004", InspectionEntryKind.Finding, InspectionSeverity.Advisory, 0m, "Earlier observation")])
+            { PhotoIds = [photos[0]] }, default);
+        Assert.Equal(InspectionAssignmentStatus.Succeeded, saved.Status);
+        return [photos[1]];
+    }
 
     // Records a refund the way the services do: the receipt first, then the sale it closes, in one transaction.
     internal static async Task<ReservationRelease> ReleaseAsync(DealershipDbContext database, Reservation reservation,

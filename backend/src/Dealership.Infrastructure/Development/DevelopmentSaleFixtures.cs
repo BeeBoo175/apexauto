@@ -1,4 +1,5 @@
 using Dealership.Application.Sales;
+using Dealership.Application.Inspections;
 using Dealership.Domain.Sales;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -9,7 +10,7 @@ namespace Dealership.Infrastructure.Development;
 // so a rerun replays completed steps instead of repeating them, and a sale changed by hand is reported, not reset.
 public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHandlingService handling,
     SaleTermsService terms, SaleSettlementService settlement, SaleHandoverService handover,
-    SaleDocumentCorrectionService corrections)
+    SaleDocumentCorrectionService corrections, IInspectionReportStore inspectionReports)
 {
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> RunAsync(bool seed, CancellationToken cancellationToken)
     {
@@ -66,6 +67,23 @@ public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHa
         if (status != scenario.Target)
         {
             return new(label, $"{status}; preserved", true);
+        }
+
+        var purchased = await database.SalesOrders.AsNoTracking()
+            .Where(item => item.Id == scenario.ReservationId)
+            .Select(item => new { item.VehicleId, item.CustomerId }).SingleAsync(cancellationToken);
+        var inspection = await database.InspectionDrafts.AsNoTracking()
+            .SingleAsync(item => item.VehicleId == purchased.VehicleId, cancellationToken);
+        var signed = await database.InspectionSignedRevisions.AsNoTracking()
+            .Where(item => item.InspectionId == inspection.Id).OrderByDescending(item => item.Revision)
+            .FirstAsync(cancellationToken);
+        var report = await inspectionReports.ReadAsync(purchased.CustomerId, inspection.Id, signed.Revision,
+            cancellationToken);
+        var expected = status == SalesOrderStatus.Delivered
+            ? InspectionAssignmentStatus.Succeeded : InspectionAssignmentStatus.NotFound;
+        if (report.Status != expected)
+        {
+            return new(label, "purchased inspection report scope changed; preserved", true);
         }
 
         return new(label, sale.Status == scenario.Target ? "matches" : "created", false);
