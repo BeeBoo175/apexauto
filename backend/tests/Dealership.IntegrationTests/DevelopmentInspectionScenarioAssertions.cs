@@ -168,6 +168,14 @@ internal static class DevelopmentInspectionScenarioAssertions
         var vehicleId = await database.Vehicles.Where(item => item.IntakeAppointmentId == scenario.Id).Select(item => item.Id).SingleAsync();
         Assert.Equal(InspectionAssignmentStatus.Succeeded, (await services.GetRequiredService<InspectionAssignmentService>()
             .AssignAsync(technician, vehicleId, new(scenario.Id, technician, 0, null), CancellationToken.None)).Status);
+        foreach (var photo in scenario.Photos)
+        {
+            using var content = DevelopmentFixturePhotos.Open(photo.Angle);
+            Assert.Equal(InspectionPhotoStatus.Available, (await services.GetRequiredService<InspectionPhotoService>()
+                .UploadAsync(technician, scenario.Id, scenario.PhotoId(photo), 1, photo.PointCode, "image/jpeg", content,
+                    CancellationToken.None)).Status);
+        }
+
         Assert.Equal(InspectionAssignmentStatus.Succeeded, (await services.GetRequiredService<InspectionDraftSaveService>()
             .SaveAsync(technician, scenario.Id, scenario.Save(), CancellationToken.None)).Status);
         Assert.Equal(InspectionAssignmentStatus.Succeeded, (await services.GetRequiredService<InspectionSignoffService>()
@@ -198,6 +206,10 @@ internal static class DevelopmentInspectionScenarioAssertions
         Assert.NotNull(partial.CompletionId);
         var work = await services.GetRequiredService<IInspectionHistoryStore>().RepairsAsync(technician, changed.Id, 1, new(), CancellationToken.None);
         Assert.Equal(2, Assert.Single(work.History!.Items, item => item.Request.Version == 2).Request.Items.Count);
+
+        var signed = await services.GetRequiredService<IInspectionReportStore>().ReadAsync(technician, changed.Id, 1, CancellationToken.None);
+        Assert.Equal(2, Assert.Single(signed.Report!.Checklist, point => point.Code == "EP-004").Photos.Count);
+        Assert.Empty(Assert.Single(signed.Report.Checklist, point => point.Code == "EP-003").Photos);
 
         var reuse = await queues.RepairsAsync(technician, new(Search: retained.Intake.RegistrationPlate),
             InspectionRepairQueueStatus.All, CancellationToken.None);

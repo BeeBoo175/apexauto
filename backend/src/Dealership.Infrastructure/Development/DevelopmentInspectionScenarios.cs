@@ -1,5 +1,6 @@
 using Dealership.Application.Inspections;
 using Dealership.Domain.Inspections;
+using Dealership.Domain.Intake;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -18,6 +19,8 @@ public enum DevelopmentInspectionStage
     Reinspected
 }
 
+public sealed record DevelopmentInspectionPhoto(string PointCode, PhotoAngle Angle);
+
 public sealed record DevelopmentInspectionScenario(DevelopmentIntakeFixture Intake, string Name,
     IReadOnlyList<InspectionDraftEntryInput> Entries, DevelopmentInspectionStage Stage, decimal Budget = 0m)
 {
@@ -25,7 +28,11 @@ public sealed record DevelopmentInspectionScenario(DevelopmentIntakeFixture Inta
 
     public bool PublishListing { get; init; }
 
+    public IReadOnlyList<DevelopmentInspectionPhoto> Photos { get; init; } = [];
+
     public Guid OperationId(string purpose) => DevelopmentInspectionScenarios.OperationId(Id, purpose);
+
+    public Guid PhotoId(DevelopmentInspectionPhoto photo) => OperationId($"photo-{photo.PointCode}-{photo.Angle}");
 
     public bool ReplacesRepair => Stage is DevelopmentInspectionStage.RepairSuperseded or
         DevelopmentInspectionStage.RepairScopeChanged or DevelopmentInspectionStage.RepairApprovalRetained;
@@ -40,6 +47,7 @@ public sealed record DevelopmentInspectionScenario(DevelopmentIntakeFixture Inta
         var entries = reinspection ? [.. Entries.Where(entry => entry.Kind == InspectionEntryKind.NotFitted)] : Entries;
         return new(OperationId(reinspection ? "save-2" : "save-1"), 1, reinspection ? 1 : 0, entries)
         {
+            PhotoIds = reinspection ? [] : [.. Photos.Select(PhotoId)],
             ExaminedPointCodes = Stage == DevelopmentInspectionStage.Draft ? null : InspectionCatalog.Points
                 .Where(point => !entries.Any(entry => entry.PointCode == point.Code && entry.Kind == InspectionEntryKind.NotFitted))
                 .Select(point => point.Code).Order(StringComparer.Ordinal).ToArray()
@@ -131,7 +139,10 @@ public static class DevelopmentInspectionScenarios
             [.. Finding("EP-004", InspectionSeverity.MinorDefect, 750m, "Bumper finish requires repainting."),
                 new("EP-003", InspectionEntryKind.Finding, InspectionSeverity.MinorDefect, 0m,
                     "Bonnet catch requires adjustment using existing workshop materials.")],
-            DevelopmentInspectionStage.RepairScopeChanged, 750m),
+            DevelopmentInspectionStage.RepairScopeChanged, 750m)
+        {
+            Photos = [new("EP-004", PhotoAngle.Front), new("EP-004", PhotoAngle.Driver)]
+        },
         13 => new(intake, "Retained approval with lower budget", Finding("EP-004", InspectionSeverity.MinorDefect, 750m,
             "Bumper refinish work is unchanged; the revised supplier estimate reduces the requested budget."),
             DevelopmentInspectionStage.RepairApprovalRetained, 750m),

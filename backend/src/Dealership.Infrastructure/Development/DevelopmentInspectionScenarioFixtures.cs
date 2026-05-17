@@ -1,5 +1,6 @@
 using Dealership.Application.Accounts;
 using Dealership.Application.Inspections;
+using Dealership.Application.Photos;
 using Dealership.Domain.Inspections;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -9,7 +10,8 @@ namespace Dealership.Infrastructure.Development;
 public sealed class DevelopmentInspectionScenarioFixtures(DealershipDbContext database,
     InspectionAssignmentService assignments, InspectionDraftSaveService saves, InspectionSignoffService signoffs,
     InspectionReopeningService reopenings, InspectionRepairRequestService repairs,
-    InspectionRepairApprovalService approvals, InspectionRepairCompletionService completions)
+    InspectionRepairApprovalService approvals, InspectionRepairCompletionService completions,
+    InspectionPhotoService photos, IPhotoImageValidator photoValidator)
 {
     public async Task<DevelopmentFixtureReport> RunAsync(bool seed, DevelopmentInspectionScenario scenario,
         Guid vehicleId, Guid technicianId, CancellationToken cancellationToken)
@@ -20,9 +22,10 @@ public sealed class DevelopmentInspectionScenarioFixtures(DealershipDbContext da
         }
 
         if (!await AssignAsync(seed, scenario, vehicleId, technicianId, cancellationToken) ||
+            !await PhotosAsync(seed, scenario, technicianId, cancellationToken) ||
             !await SaveAsync(seed, scenario.Id, technicianId, scenario.Save(), cancellationToken))
         {
-            return Report(scenario, "assignment or draft missing/changed; preserved", true);
+            return Report(scenario, "assignment, photos or draft missing/changed; preserved", true);
         }
 
         if (scenario.Stage == DevelopmentInspectionStage.Draft)
@@ -87,6 +90,7 @@ public sealed class DevelopmentInspectionScenarioFixtures(DealershipDbContext da
             return false;
         }
 
+        var photoIds = scenario.Photos.Select(scenario.PhotoId).ToArray();
         var ids = new List<Guid> { scenario.Id, scenario.Save().OperationId };
         if (scenario.Stage != DevelopmentInspectionStage.Draft)
         {
@@ -120,7 +124,7 @@ public sealed class DevelopmentInspectionScenarioFixtures(DealershipDbContext da
             !await database.InspectionRepairRequests.AnyAsync(item => item.InspectionId == scenario.Id && !ids.Contains(item.Id), cancellationToken) &&
             !await database.InspectionRepairApprovals.AnyAsync(item => item.InspectionId == scenario.Id && !ids.Contains(item.Id), cancellationToken) &&
             !await database.InspectionRepairCompletions.AnyAsync(item => item.InspectionId == scenario.Id && !ids.Contains(item.Id), cancellationToken) &&
-            !await database.InspectionPhotos.AnyAsync(item => item.InspectionId == scenario.Id, cancellationToken);
+            !await database.InspectionPhotos.AnyAsync(item => item.InspectionId == scenario.Id && !photoIds.Contains(item.Id), cancellationToken);
     }
 
     private async Task<bool> AssignAsync(bool seed, DevelopmentInspectionScenario scenario, Guid vehicleId,
@@ -134,6 +138,43 @@ public sealed class DevelopmentInspectionScenarioFixtures(DealershipDbContext da
 
         return seed && (await assignments.AssignAsync(technicianId, vehicleId,
             new(scenario.Id, technicianId, 0, null), cancellationToken)).Status == InspectionAssignmentStatus.Succeeded;
+    }
+
+    private async Task<bool> PhotosAsync(bool seed, DevelopmentInspectionScenario scenario, Guid technicianId,
+        CancellationToken cancellationToken)
+    {
+        foreach (var photo in scenario.Photos)
+        {
+            if (!await PhotoAsync(seed, scenario, photo, technicianId, cancellationToken))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private async Task<bool> PhotoAsync(bool seed, DevelopmentInspectionScenario scenario, DevelopmentInspectionPhoto photo,
+        Guid technicianId, CancellationToken cancellationToken)
+    {
+        var id = scenario.PhotoId(photo);
+        using var content = DevelopmentFixturePhotos.Open(photo.Angle);
+        var validated = await photoValidator.ValidateAsync(content, "image/jpeg", cancellationToken)
+            ?? throw new InvalidOperationException("The inspection fixture photo must pass canonical source validation.");
+        var existing = await database.InspectionPhotos.AsNoTracking().SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
+        if (existing is not null && (!existing.Matches(scenario.Id, technicianId, 1, photo.PointCode, validated) || existing.AvailableAt is not null))
+        {
+            return existing.Matches(scenario.Id, technicianId, 1, photo.PointCode, validated);
+        }
+
+        if (!seed)
+        {
+            return false;
+        }
+
+        content.Position = 0;
+        var result = await photos.UploadAsync(technicianId, scenario.Id, id, 1, photo.PointCode, "image/jpeg", content, cancellationToken);
+        return result.Status == InspectionPhotoStatus.Available;
     }
 
     private async Task<bool> SaveAsync(bool seed, Guid id, Guid technicianId, InspectionDraftSaveRequest request,
