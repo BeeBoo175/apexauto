@@ -1,6 +1,8 @@
+using Dealership.Api.Configuration;
 using Dealership.Application.Common;
 using System.IdentityModel.Tokens.Jwt;
 using Dealership.Application.Inspections;
+using Dealership.Application.Photos;
 
 namespace Dealership.Api.Endpoints;
 
@@ -21,7 +23,8 @@ public static class InspectionDraftEndpoints
         routes.MapPost("/drafts/{id:guid}/saves", SaveAsync);
         routes.MapPost("/drafts/{id:guid}/sign-offs", SignAsync);
         routes.MapPost("/drafts/{id:guid}/reopenings", ReopenAsync);
-        routes.MapGet("/reports/{id:guid}/revisions/{revision:long}", ReportAsync);
+        routes.MapGet("/reports/{id:guid}/revisions/{revision:long}/document", ReportDocumentAsync)
+            .RequireRateLimiting(ApiRateLimiting.PhotoTransferPolicy);
         routes.MapGet("/reports/{id:guid}/revisions", HistoryAsync);
     }
 
@@ -102,15 +105,26 @@ public static class InspectionDraftEndpoints
         }
     }
 
-    private static async Task<IResult> ReportAsync(Guid id, long revision, HttpContext context,
-        IInspectionReportStore reports, CancellationToken cancellationToken)
+    private static async Task<IResult> ReportDocumentAsync(Guid id, long revision, HttpContext context,
+        InspectionReportDocumentService documents, CancellationToken cancellationToken)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(TimeSpan.FromSeconds(20));
+        deadline.CancelAfter(TimeSpan.FromSeconds(60));
         try
         {
-            var result = await reports.ReadAsync(ActorId(context), id, revision, deadline.Token);
-            return Map(result.Status, result.Report);
+            var result = await documents.ReadAsync(ActorId(context), id, revision, deadline.Token);
+            if (result.Status != InspectionAssignmentStatus.Succeeded)
+            {
+                return Map(result.Status, null);
+            }
+
+            context.Response.Headers.XContentTypeOptions = "nosniff";
+            context.Response.Headers.ContentDisposition = $"inline; filename=\"inspection-report-{id:N}-revision-{revision}.pdf\"";
+            return Results.Bytes(result.Content!, "application/pdf");
+        }
+        catch (PhotoStorageException)
+        {
+            return Results.Problem(statusCode: 503, title: "Signed evidence is temporarily unavailable.");
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {

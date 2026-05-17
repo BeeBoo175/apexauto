@@ -125,6 +125,9 @@ export type Technician = { id: string; identity: string };
 export function hasInspectionAccess(actor: CurrentActor) {
   return ["WorkshopTechnician", "BranchManager", "GeneralManager"].includes(actor.role);
 }
+export function reportDocumentHref(inspectionId: string, revision: number) {
+  return `/api/staff/inspection/reports/${inspectionId}/revisions/${revision}/document`;
+}
 export function label(value: string) {
   return value.replace(/([a-z])([A-Z])/g, "$1 $2");
 }
