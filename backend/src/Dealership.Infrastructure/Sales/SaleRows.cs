@@ -35,6 +35,7 @@ internal sealed class SaleRow
     public decimal BalancePayable { get; init; }
     public DateTimeOffset? SubmittedAt { get; init; }
     public DateTimeOffset? DecidedAt { get; init; }
+    public DateTimeOffset? SettledAt { get; init; }
     public DateTimeOffset? ClosedAt { get; init; }
     public DateTimeOffset UpdatedAt { get; init; }
     public long Version { get; init; }
@@ -80,6 +81,7 @@ internal static class SaleRows
             BalancePayable = sale.BalancePayable,
             SubmittedAt = sale.SubmittedAt,
             DecidedAt = sale.DecidedAt,
+            SettledAt = sale.SettledAt,
             ClosedAt = sale.ClosedAt,
             UpdatedAt = sale.UpdatedAt,
             Version = sale.Version
@@ -158,6 +160,7 @@ internal static class SaleRows
         "paused" => By(rows, row => row.PausedSeconds, down),
         "balance" => By(rows, row => row.BalancePayable, down),
         "decided" => By(rows, row => row.DecidedAt, down),
+        "settled" => By(rows, row => row.SettledAt, down),
         "updated" => By(rows, row => row.UpdatedAt, down),
         _ => By(rows, row => row.ClosedAt, down)
     };

@@ -58,7 +58,7 @@ internal sealed class SaleWorld
     {
         var data = await CheckInTestData.CreateAsync(fixture,
             new Dealership.Domain.Intake.InspectionSchedule(new TimeOnly(9, 0), new TimeOnly(18, 0),
-                30, 30, 0, Enum.GetValues<DayOfWeek>()));
+                15, 30, 0, Enum.GetValues<DayOfWeek>()));
         var scope = data.Factory.Services.CreateScope();
         var services = scope.ServiceProvider;
         var manager = await ProvisionAsync(services, data.BranchId, AccountRoles.BranchManager);

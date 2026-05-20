@@ -25,12 +25,13 @@ public sealed record SaleSummary(Guid Id, string ReservationNumber, string? Orde
     decimal BalancePayable, DateTimeOffset? SubmittedAt, DateTimeOffset? DecidedAt, DateTimeOffset? ClosedAt,
     string? Outcome, long Version, DateTimeOffset UpdatedAt);
 
-public sealed record SaleQueueCounts(int ToClaim, int Handling, int Waiting, int Approved);
+public sealed record SaleQueueCounts(int ToClaim, int Handling, int Waiting, int Settling, int Completed);
 
 public sealed record SaleQueuePage(IReadOnlyList<SaleSummary> Items, int Total, int Page, int PageSize,
     SaleQueueCounts Counts);
 
-public sealed record SaleTableCounts(int NeedsApproval, int Open, int BeingHandled, int Approved, int History);
+public sealed record SaleTableCounts(int NeedsApproval, int Open, int BeingHandled, int Approved, int AwaitingHandover,
+    int Delivered, int History);
 
 // View names the tab actually read, which the server chooses when the request leaves it open.
 public sealed record SaleTablePage(IReadOnlyList<SaleSummary> Items, int Total, int Page, int PageSize,

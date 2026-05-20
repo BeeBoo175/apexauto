@@ -23,6 +23,10 @@ public sealed class SaleListStore(DealershipDbContext database) : ISaleListStore
             [SaleViews.Waiting] = ("submitted", false),
             [SaleViews.NeedsApproval] = ("submitted", false),
             [SaleViews.Approved] = ("decided", false),
+            [SaleViews.Settling] = ("decided", false),
+            [SaleViews.AwaitingHandover] = ("settled", false),
+            [SaleViews.Completed] = ("closed", true),
+            [SaleViews.Delivered] = ("closed", true),
             [SaleViews.History] = ("closed", true)
         }.ToFrozenDictionary();
 
@@ -43,22 +47,24 @@ public sealed class SaleListStore(DealershipDbContext database) : ISaleListStore
 
         await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead,
             cancellationToken);
-        var sales = database.SalesOrders.AsNoTracking();
+        var sales = database.SalesOrders.AsNoTracking().Where(item => item.BranchId == branchId);
         var tabs = new Dictionary<string, IQueryable<SalesOrder>>
         {
-            [SaleViews.ToClaim] = sales.Where(item => item.BranchId == branchId && item.Status == SalesOrderStatus.Open),
+            [SaleViews.ToClaim] = sales.Where(item => item.Status == SalesOrderStatus.Open),
             [SaleViews.Handling] = Own(sales, actorId, SalesOrderStatus.Handling),
             [SaleViews.Waiting] = Own(sales, actorId, SalesOrderStatus.PendingApproval),
-            [SaleViews.Approved] = Own(sales, actorId, SalesOrderStatus.Approved)
+            [SaleViews.Settling] = sales.Where(item => item.AgentId == actorId &&
+                (item.Status == SalesOrderStatus.Approved || item.Status == SalesOrderStatus.Settled)),
+            [SaleViews.Completed] = Own(sales, actorId, SalesOrderStatus.Delivered)
         };
         var views = tabs.ToDictionary(item => item.Key, item => Rows(item.Value, search));
         // Without a search the counts need no customer, car or agent details, so they run on the sales alone.
         var counts = new SaleQueueCounts(await CountAsync(SaleViews.ToClaim), await CountAsync(SaleViews.Handling),
-            await CountAsync(SaleViews.Waiting), await CountAsync(SaleViews.Approved));
+            await CountAsync(SaleViews.Waiting), await CountAsync(SaleViews.Settling), await CountAsync(SaleViews.Completed));
         // A search spans every tab; each match carries its status so the queue can show where it sits.
         var rows = search is null ? views[view] : views.Values.Aggregate((all, next) => all.Concat(next));
         var total = search is null ? CountOf(counts, view) : counts.ToClaim + counts.Handling + counts.Waiting +
-            counts.Approved;
+            counts.Settling + counts.Completed;
         var (sort, descending) = DefaultOrders[view];
         var items = await SaleRows.Order(rows, search is null ? sort : "due", descending)
             .ReadPageAsync(page, pageSize, total, cancellationToken);
@@ -98,6 +104,8 @@ public sealed class SaleListStore(DealershipDbContext database) : ISaleListStore
             await sales.CountAsync(item => item.Status == SalesOrderStatus.Open, cancellationToken),
             await sales.CountAsync(item => item.Status == SalesOrderStatus.Handling, cancellationToken),
             await sales.CountAsync(item => item.Status == SalesOrderStatus.Approved, cancellationToken),
+            await sales.CountAsync(item => item.Status == SalesOrderStatus.Settled, cancellationToken),
+            await sales.CountAsync(item => item.Status == SalesOrderStatus.Delivered, cancellationToken),
             await sales.CountAsync(item => item.Status == SalesOrderStatus.Expired ||
                 item.Status == SalesOrderStatus.Cancelled, cancellationToken));
         var view = query.View ?? FirstWithWork(counts);
@@ -130,7 +138,8 @@ public sealed class SaleListStore(DealershipDbContext database) : ISaleListStore
     {
         SaleViews.Handling => counts.Handling,
         SaleViews.Waiting => counts.Waiting,
-        SaleViews.Approved => counts.Approved,
+        SaleViews.Settling => counts.Settling,
+        SaleViews.Completed => counts.Completed,
         _ => counts.ToClaim
     };
 
@@ -157,6 +166,16 @@ public sealed class SaleListStore(DealershipDbContext database) : ISaleListStore
             return SaleViews.Approved;
         }
 
+        if (counts.AwaitingHandover > 0)
+        {
+            return SaleViews.AwaitingHandover;
+        }
+
+        if (counts.Delivered > 0)
+        {
+            return SaleViews.Delivered;
+        }
+
         return SaleViews.NeedsApproval;
     }
 
@@ -165,6 +184,8 @@ public sealed class SaleListStore(DealershipDbContext database) : ISaleListStore
         SaleViews.Open => sales.Where(item => item.Status == SalesOrderStatus.Open),
         SaleViews.BeingHandled => sales.Where(item => item.Status == SalesOrderStatus.Handling),
         SaleViews.Approved => sales.Where(item => item.Status == SalesOrderStatus.Approved),
+        SaleViews.AwaitingHandover => sales.Where(item => item.Status == SalesOrderStatus.Settled),
+        SaleViews.Delivered => sales.Where(item => item.Status == SalesOrderStatus.Delivered),
         SaleViews.History => sales.Where(item => item.Status == SalesOrderStatus.Expired ||
             item.Status == SalesOrderStatus.Cancelled),
         _ => sales.Where(item => item.Status == SalesOrderStatus.PendingApproval)

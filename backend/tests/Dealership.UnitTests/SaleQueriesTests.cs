@@ -6,6 +6,27 @@ namespace Dealership.UnitTests;
 public sealed class SaleQueriesTests
 {
     [Fact]
+    public void QueueAndManagerStagesHaveDistinctValidatedViews()
+    {
+        foreach (var view in new[] { SaleViews.Settling, SaleViews.Completed })
+        {
+            Assert.True(SaleQueries.ValidQueue(view, null, 1, 10));
+            Assert.Null(SaleQueries.Table(new() { View = view }));
+        }
+
+        foreach (var view in new[] { SaleViews.Approved, SaleViews.AwaitingHandover, SaleViews.Delivered })
+        {
+            Assert.NotNull(SaleQueries.Table(new() { View = view }));
+            Assert.False(SaleQueries.ValidQueue(view, null, 1, 10));
+        }
+
+        Assert.False(SaleQueries.ValidQueue(SaleViews.Completed, null, 0, 10));
+        Assert.False(SaleQueries.ValidQueue(SaleViews.Settling, null, 1, 20));
+        Assert.False(SaleQueries.ValidQueue("Settled", null, 1, 10));
+        Assert.Null(SaleQueries.Table(new() { View = "Settled" }));
+    }
+
+    [Fact]
     public void NamedFiltersKeepTheirValuesAndNormalizeOnlySearchText()
     {
         var query = SaleQueries.Table(new()
