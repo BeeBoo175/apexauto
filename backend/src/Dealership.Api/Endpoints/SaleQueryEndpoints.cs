@@ -23,6 +23,13 @@ public static class SaleQueryEndpoints
             context.Response.Headers.CacheControl = "no-store";
             return ReadAsync(deadline => documents.InspectionReportAsync(ActorId(context), id, deadline), token);
         }).RequireAuthorization();
+        app.MapGet("/api/sales/{id:guid}/documents/{documentId:guid}/pdf", (Guid id, Guid documentId,
+            HttpContext context, SaleDocumentService documents, CancellationToken token) =>
+        {
+            context.Response.Headers.CacheControl = "no-store";
+            return ReadAsync(deadline => documents.ReadAsync(ActorId(context), id, documentId, deadline), token,
+                content => Pdf(context, documentId, content));
+        }).RequireAuthorization().RequireRateLimiting(ApiRateLimiting.PhotoTransferPolicy);
         routes.MapGet("/{id:guid}/settlement-review", (Guid id, HttpContext context, ISaleDocumentStore documents,
             CancellationToken token) => ReadAsync(deadline => documents.ReviewAsync(ActorId(context), id, deadline), token));
         app.MapGet("/api/sales/{id:guid}/documents", (Guid id, HttpContext context, ISaleDocumentStore documents,
@@ -86,7 +93,7 @@ public static class SaleQueryEndpoints
     }
 
     private static async Task<IResult> ReadAsync<T>(Func<CancellationToken, Task<SaleReadResult<T>>> read,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, Func<T, IResult>? success = null)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(20));
@@ -95,7 +102,7 @@ public static class SaleQueryEndpoints
             var result = await read(deadline.Token);
             return result.Status switch
             {
-                SaleResultStatus.Succeeded => Results.Ok(result.Value),
+                SaleResultStatus.Succeeded => success is null ? Results.Ok(result.Value) : success(result.Value!),
                 SaleResultStatus.Invalid => Invalid(),
                 SaleResultStatus.Forbidden => Results.Forbid(),
                 SaleResultStatus.NotFound => Results.NotFound(),
@@ -106,6 +113,13 @@ public static class SaleQueryEndpoints
         {
             return Unavailable();
         }
+    }
+
+    private static IResult Pdf(HttpContext context, Guid documentId, byte[] content)
+    {
+        context.Response.Headers.XContentTypeOptions = "nosniff";
+        context.Response.Headers.ContentDisposition = $"inline; filename=\"sale-document-{documentId:N}.pdf\"";
+        return Results.Bytes(content, "application/pdf");
     }
 
     private static IResult Invalid() =>

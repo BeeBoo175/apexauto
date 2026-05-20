@@ -132,6 +132,8 @@ public sealed class SaleDocumentCorrectionTests(IntakePhotoFixture fixture) : IC
             request with { OperationId = Guid.NewGuid(), DocumentId = paymentReceipt.Id }, default);
         Assert.Equal(SaleResultStatus.Succeeded, receiptCorrection.Status);
         Assert.StartsWith("VRC-", receiptCorrection.Receipt!.ReplacementNumber);
+        await SaleDocumentPdfChecks.VerifyAsync(world, saleId, original.Id, replacement.Id, factory, restarted,
+            fixture.Database.RuntimeConnectionString);
         await RejectSqlAsync("UPDATE \"SaleDocuments\" SET \"Number\" = 'VPO-2099-999998' WHERE \"Id\" = @id", original.Id);
         await RejectSqlAsync("UPDATE \"SaleDocumentCorrections\" SET \"Reason\" = 'Changed reason' WHERE \"Id\" = @id", request.OperationId);
     }

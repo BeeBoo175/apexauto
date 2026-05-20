@@ -15,6 +15,11 @@ public enum SaleDocumentKind
 
 public sealed record SaleInspectionReport(Guid InspectionId, long Revision);
 
+public interface ISaleDocumentRenderer
+{
+    byte[] Render(SaleIssuedDocument document);
+}
+
 public sealed record SaleIssuedDocument(Guid Id, string Kind, string Number, DateTimeOffset IssuedAt,
     SaleDocumentContents Contents)
 {

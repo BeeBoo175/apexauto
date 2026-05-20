@@ -1,107 +1,33 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
-using Dealership.Domain.Common;
 using Dealership.Application.Inspections;
 using Dealership.Domain.Inspections;
 using QuestPDF.Fluent;
-using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using static Dealership.Infrastructure.PdfDocumentLayout;
 
 namespace Dealership.Infrastructure.Inspections;
 
 // Layout system: one left edge, a four-column grid, a five-step spacing scale and a six-step type scale.
 public sealed partial class InspectionReportDocumentRenderer : IInspectionReportDocumentRenderer
 {
-    private const string Graphite = "#0e1b2a";
-    private const string Muted = "#485766";
-    private const string Line = "#becbd8";
-    private const string SoftLine = "#dce3eb";
-    private const string Warning = "#8a4a00";
-    private const string Signal = "#b81c10";
-    private const string BrandRed = "#d92518";
-
-    private const float PageMargin = 14;
-    private const float Tight = 4;
-    private const float Related = 8;
-    private const float Group = 12;
-    private const float Block = 20;
-
-    private const float Micro = 7.5f;
-    private const float Small = 8.5f;
-    private const float Body = 9.5f;
-    private const float Strong = 11;
-    private const float Title = 15;
-    private const float Display = 22;
-
-    private const float Hairline = 0.75f;
-    private const float Heavy = 1.5f;
     private const int PhotoColumns = 4;
     private const float PhotoHeight = 88;
 
-    private static readonly TimeZoneInfo Malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
-    private static readonly Color WatermarkApex = Color.FromARGB(26, 14, 27, 42);
-    private static readonly Color WatermarkAuto = Color.FromARGB(34, 217, 37, 24);
-
-    static InspectionReportDocumentRenderer()
-    {
-        QuestPDF.Settings.License = LicenseType.Community;
-    }
-
     public byte[] Render(InspectionReport report, IReadOnlyDictionary<Guid, byte[]> evidence)
     {
-        return Document.Create(document => document.Page(page =>
+        return RenderPage(page =>
         {
-            page.Size(PageSizes.A4);
-            page.MarginHorizontal(0);
-            page.MarginTop(0);
-            page.MarginBottom(PageMargin, Unit.Millimetre);
-            page.DefaultTextStyle(style => style.FontSize(Body).FontColor(Graphite));
-            page.Background().AlignCenter().AlignMiddle().Rotate(-40).Text(text =>
-            {
-                text.DefaultTextStyle(style => style.FontSize(120).Bold());
-                text.Span("Apex").FontColor(WatermarkApex);
-                text.Span("Auto").FontColor(WatermarkAuto);
-            });
-            page.Header().Element(container => Masthead(container, report));
-            page.Content().PaddingHorizontal(PageMargin, Unit.Millimetre).PaddingTop(Group).Column(column =>
+            Configure(page, $"Vehicle Inspection & Condition Report · Revision {report.Revision}");
+            page.Header().Element(container => Masthead(container, "Vehicle Inspection & Condition Report",
+                $"{report.Vehicle.RegistrationPlate} · Revision {report.Revision}"));
+            page.Content().PaddingHorizontal(PageMargin, Unit.Millimetre).PaddingTop(SectionGap).Column(column =>
             {
                 column.Spacing(Block);
                 column.Item().Element(container => Overview(container, report));
                 column.Item().Element(container => Findings(container, report, evidence));
                 column.Item().Element(container => SignOff(container, report));
                 column.Item().Element(container => OtherPoints(container, report));
-            });
-            page.Footer().PaddingHorizontal(PageMargin, Unit.Millimetre).PaddingTop(Related).Row(row =>
-            {
-                row.RelativeItem().Text($"ApexAuto · Vehicle Inspection & Condition Report · Revision {report.Revision}")
-                    .FontSize(Small).FontColor(Muted);
-                row.AutoItem().Text(text =>
-                {
-                    text.DefaultTextStyle(style => style.FontSize(Small).FontColor(Muted));
-                    text.Span("Page ");
-                    text.CurrentPageNumber();
-                    text.Span(" of ");
-                    text.TotalPages();
-                });
-            });
-        })).GeneratePdf();
-    }
-
-    private static void Masthead(IContainer container, InspectionReport report)
-    {
-        container.Background(Graphite).PaddingHorizontal(PageMargin, Unit.Millimetre).PaddingVertical(Group).Row(row =>
-        {
-            row.RelativeItem().AlignMiddle().Text(text =>
-            {
-                text.Span("Apex").FontSize(Title).Bold().FontColor(Colors.White);
-                text.Span("Auto").FontSize(Title).Bold().FontColor(BrandRed);
-            });
-            row.AutoItem().Column(column =>
-            {
-                column.Item().AlignRight().Text("Vehicle Inspection & Condition Report")
-                    .FontSize(Body).SemiBold().FontColor(Colors.White);
-                column.Item().AlignRight().Text($"{report.Vehicle.RegistrationPlate} · Revision {report.Revision}")
-                    .FontSize(Small).FontColor(Line);
             });
         });
     }
@@ -113,9 +39,9 @@ public sealed partial class InspectionReportDocumentRenderer : IInspectionReport
         var notFitted = report.Checklist.Count(point => point.Kind == InspectionEntryKind.NotFitted);
         var passed = report.Checklist.Count - findings - notFitted;
         var rejected = report.Assessment.IsRejected;
-        container.BorderBottom(Hairline).BorderColor(Line).PaddingBottom(Group).Column(column =>
+        container.BorderBottom(Hairline).BorderColor(Line).PaddingBottom(SectionGap).Column(column =>
         {
-            column.Spacing(Group);
+            column.Spacing(SectionGap);
             column.Item().Row(row =>
             {
                 row.RelativeItem().AlignBottom().Text($"{vehicle.ManufactureYear} {vehicle.Make} {vehicle.Model} {vehicle.Trim}")
@@ -143,12 +69,6 @@ public sealed partial class InspectionReportDocumentRenderer : IInspectionReport
         });
     }
 
-    private static void SectionTitle(IContainer container, string title)
-    {
-        container.BorderBottom(Heavy).BorderColor(Graphite).PaddingBottom(Tight)
-            .Text(title.ToUpperInvariant()).FontSize(Body).Bold().LetterSpacing(0.08f);
-    }
-
     private static void Findings(IContainer container, InspectionReport report, IReadOnlyDictionary<Guid, byte[]> evidence)
     {
         var findings = report.Checklist.Where(point => point.Kind == InspectionEntryKind.Finding)
@@ -158,7 +78,7 @@ public sealed partial class InspectionReportDocumentRenderer : IInspectionReport
             column.Item().Element(title => SectionTitle(title, "Findings"));
             if (findings.Length == 0)
             {
-                column.Item().PaddingTop(Group).Text("No findings were recorded. Every examined point passed.").FontColor(Muted);
+                column.Item().PaddingTop(SectionGap).Text("No findings were recorded. Every examined point passed.").FontColor(Muted);
             }
 
             for (var index = 0; index < findings.Length; index++)
@@ -170,7 +90,7 @@ public sealed partial class InspectionReportDocumentRenderer : IInspectionReport
                     entry = entry.BorderTop(Hairline).BorderColor(Line);
                 }
 
-                entry.PaddingTop(Group).PaddingBottom(index == findings.Length - 1 ? 0 : Group)
+                entry.PaddingTop(SectionGap).PaddingBottom(index == findings.Length - 1 ? 0 : SectionGap)
                     .Element(item => Finding(item, point, evidence));
             }
         });
@@ -202,11 +122,11 @@ public sealed partial class InspectionReportDocumentRenderer : IInspectionReport
                 return;
             }
 
-            column.Item().PaddingTop(Group).Row(row =>
+            column.Item().PaddingTop(SectionGap).Row(row =>
             {
                 for (var slot = 0; slot < PhotoColumns; slot++)
                 {
-                    var cell = row.RelativeItem().PaddingRight(slot == PhotoColumns - 1 ? 0 : Group);
+                    var cell = row.RelativeItem().PaddingRight(slot == PhotoColumns - 1 ? 0 : SectionGap);
                     if (slot < point.Photos.Count)
                     {
                         cell.Element(item => Photo(item, point.Photos[slot], slot + 1, evidence));
@@ -240,7 +160,7 @@ public sealed partial class InspectionReportDocumentRenderer : IInspectionReport
         container.Column(column =>
         {
             column.Item().Element(title => SectionTitle(title, "Other checklist points"));
-            column.Item().PaddingTop(Group).Text("Examined with no finding recorded. Points marked not fitted do not apply to this vehicle.")
+            column.Item().PaddingTop(SectionGap).Text("Examined with no finding recorded. Points marked not fitted do not apply to this vehicle.")
                 .FontColor(Muted);
             foreach (var category in report.Checklist.Select(point => point.Category).Distinct())
             {
@@ -248,7 +168,7 @@ public sealed partial class InspectionReportDocumentRenderer : IInspectionReport
                     point.Kind != InspectionEntryKind.Finding).ToArray();
                 if (points.Length > 0)
                 {
-                    column.Item().PaddingTop(Group).Element(item => Category(item, category, points));
+                    column.Item().PaddingTop(SectionGap).Element(item => Category(item, category, points));
                 }
             }
         });
@@ -315,15 +235,15 @@ public sealed partial class InspectionReportDocumentRenderer : IInspectionReport
         container.ShowEntire().Column(column =>
         {
             column.Item().Element(title => SectionTitle(title, "Sign-off"));
-            column.Item().PaddingTop(Group).Row(row =>
+            column.Item().PaddingTop(SectionGap).Row(row =>
             {
                 Fact(row, "Signed by", report.TechnicianIdentity, span: 2);
                 Fact(row, "Signed", Moment(report.SignedAt));
                 Fact(row, "Revision", report.Revision.ToString(CultureInfo.InvariantCulture));
             });
-            column.Item().PaddingTop(Group).Text("This is the retained signed revision. Linked repair work does not change its original findings, estimates or grade.")
+            column.Item().PaddingTop(SectionGap).Text("This is the retained signed revision. Linked repair work does not change its original findings, estimates or grade.")
                 .FontSize(Small).FontColor(Muted);
-            column.Item().PaddingTop(Block).BorderTop(Hairline).BorderColor(Line).PaddingTop(Group).Row(row =>
+            column.Item().PaddingTop(Block).BorderTop(Hairline).BorderColor(Line).PaddingTop(SectionGap).Row(row =>
             {
                 Fact(row, "Inspection", report.InspectionId.ToString(), span: 2, record: true);
                 Fact(row, "Revision receipt", report.OperationId.ToString(), span: 2, record: true);
@@ -337,36 +257,12 @@ public sealed partial class InspectionReportDocumentRenderer : IInspectionReport
         });
     }
 
-    // Every fact row sits on the same four equal columns; span widens a cell without moving its left edge.
-    private static void Fact(RowDescriptor row, string label, string value, float span = 1, bool bold = false,
-        bool emphasis = false, bool record = false, string color = Graphite)
-    {
-        row.RelativeItem(span).PaddingRight(Group).Column(column =>
-        {
-            column.Item().Text(label).FontSize(record ? Micro : Small).FontColor(Muted);
-            var text = column.Item().PaddingTop(Tight / 2).Text(value)
-                .FontSize(record ? Micro : emphasis ? Strong : Body).FontColor(color);
-            if (bold || emphasis)
-            {
-                text.SemiBold();
-            }
-        });
-    }
-
     private static string SeverityColor(InspectionSeverity? severity) => severity switch
     {
         InspectionSeverity.MinorDefect => Warning,
         InspectionSeverity.MajorDefect or InspectionSeverity.CriticalDisqualifier => Signal,
         _ => Muted
     };
-
-    private static string Money(decimal amount) => $"MYR {amount.ToString("N2", CultureInfo.InvariantCulture)}";
-
-    private static string Moment(DateTimeOffset value)
-    {
-        var local = TimeZoneInfo.ConvertTime(value, Malaysia);
-        return $"{local.ToString("d MMM yyyy, h:mm", CultureInfo.InvariantCulture)} {(local.Hour < 12 ? "am" : "pm")}";
-    }
 
     private static string Label(string value) => WordBoundary().Replace(value, "$1 $2");
 
