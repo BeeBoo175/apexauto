@@ -17,6 +17,12 @@ public static class SaleQueryEndpoints
         });
         routes.MapGet("", TableAsync);
         routes.MapGet("/queue", QueueAsync);
+        app.MapGet("/api/sales/{id:guid}/inspection-report", (Guid id, HttpContext context, ISaleDocumentStore documents,
+            CancellationToken token) =>
+        {
+            context.Response.Headers.CacheControl = "no-store";
+            return ReadAsync(deadline => documents.InspectionReportAsync(ActorId(context), id, deadline), token);
+        }).RequireAuthorization();
         routes.MapGet("/{id:guid}/settlement-review", (Guid id, HttpContext context, ISaleDocumentStore documents,
             CancellationToken token) => ReadAsync(deadline => documents.ReviewAsync(ActorId(context), id, deadline), token));
         app.MapGet("/api/sales/{id:guid}/documents", (Guid id, HttpContext context, ISaleDocumentStore documents,

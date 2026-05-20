@@ -13,6 +13,8 @@ public enum SaleDocumentKind
     HandoverNote
 }
 
+public sealed record SaleInspectionReport(Guid InspectionId, long Revision);
+
 public sealed record SaleIssuedDocument(Guid Id, string Kind, string Number, DateTimeOffset IssuedAt,
     SaleDocumentContents Contents)
 {
@@ -25,6 +27,9 @@ public sealed record SaleIssuedDocument(Guid Id, string Kind, string Number, Dat
 
 public interface ISaleDocumentStore
 {
+    Task<SaleReadResult<SaleInspectionReport>> InspectionReportAsync(Guid actorId, Guid saleId,
+        CancellationToken cancellationToken);
+
     Task<SaleReadResult<SaleSettlementReview>> ReviewAsync(Guid actorId, Guid saleId,
         CancellationToken cancellationToken);
 

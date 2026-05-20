@@ -1,3 +1,4 @@
+using Dealership.Application.Accounts;
 using Dealership.Application.Sales;
 using Dealership.Domain.Sales;
 using Dealership.Infrastructure.Persistence;
@@ -7,6 +8,38 @@ namespace Dealership.Infrastructure.Sales;
 
 public sealed class SaleDocumentStore(DealershipDbContext database) : ISaleDocumentStore
 {
+    public async Task<SaleReadResult<SaleInspectionReport>> InspectionReportAsync(Guid actorId, Guid saleId,
+        CancellationToken cancellationToken)
+    {
+        var (status, actor, sale) = await SaleReadScope.ReadAsync(database, actorId, saleId, cancellationToken,
+            allowCustomer: true);
+        if (sale is null)
+        {
+            return new(status);
+        }
+
+        if (actor!.Role != AccountRoles.Customer)
+        {
+            return new(SaleResultStatus.Forbidden);
+        }
+
+        if (sale.Status != SalesOrderStatus.Delivered)
+        {
+            return new(SaleResultStatus.NotFound);
+        }
+
+        // Discovery selects the reserved publication's signed evidence, never today's inspection revision.
+        var report = await (from reservation in database.Reservations
+                            join publication in database.ListingPublications on reservation.PublicationId equals publication.Id
+                            join signed in database.InspectionSignedRevisions on publication.SignedRevisionId equals signed.Id
+                            where reservation.Id == saleId
+                            select new SaleInspectionReport(signed.InspectionId, signed.Revision))
+            .SingleOrDefaultAsync(cancellationToken);
+        return report is null
+            ? new(SaleResultStatus.NotFound)
+            : new(SaleResultStatus.Succeeded, report);
+    }
+
     public async Task<SaleReadResult<SaleSettlementReview>> ReviewAsync(Guid actorId, Guid saleId,
         CancellationToken cancellationToken)
     {

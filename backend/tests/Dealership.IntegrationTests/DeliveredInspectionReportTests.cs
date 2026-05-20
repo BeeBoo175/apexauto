@@ -30,6 +30,9 @@ public sealed class DeliveredInspectionReportTests(IntakePhotoFixture fixture) :
         Assert.Equal(2, privatePhotos.Length);
         var reports = world.Services.GetRequiredService<IInspectionReportStore>();
         var photos = world.Services.GetRequiredService<IInspectionPhotoStore>();
+        var documents = world.Services.GetRequiredService<ISaleDocumentStore>();
+        Assert.Equal(SaleResultStatus.NotFound,
+            (await documents.InspectionReportAsync(hold.CustomerId, hold.Id, default)).Status);
         Assert.Equal(InspectionAssignmentStatus.NotFound,
             (await reports.ReadAsync(hold.CustomerId, draft.Id, 1, default)).Status);
         Assert.Equal(InspectionPhotoStatus.NotFound,
@@ -49,6 +52,8 @@ public sealed class DeliveredInspectionReportTests(IntakePhotoFixture fixture) :
             new(Guid.NewGuid(), 3, payment, review), default)).Status);
         Assert.Equal(InspectionAssignmentStatus.NotFound,
             (await reports.ReadAsync(hold.CustomerId, draft.Id, 1, default)).Status);
+        Assert.Equal(SaleResultStatus.NotFound,
+            (await documents.InspectionReportAsync(hold.CustomerId, hold.Id, default)).Status);
         Assert.Equal(SaleResultStatus.Succeeded, (await world.Services.GetRequiredService<SaleHandoverService>()
             .DeliverAsync(world.Agent, hold.Id, new(Guid.NewGuid(), 4,
                 new(vehicle.MileageKilometres + 100, 2, true, true, true)), default)).Status);
@@ -58,6 +63,22 @@ public sealed class DeliveredInspectionReportTests(IntakePhotoFixture fixture) :
         var restored = scope.ServiceProvider;
         reports = restored.GetRequiredService<IInspectionReportStore>();
         photos = restored.GetRequiredService<IInspectionPhotoStore>();
+        documents = restored.GetRequiredService<ISaleDocumentStore>();
+        var publication = await database.ListingPublications.AsNoTracking().SingleAsync(item => item.Id == hold.PublicationId);
+        var retained = await database.InspectionSignedRevisions.AsNoTracking()
+            .SingleAsync(item => item.Id == publication.SignedRevisionId);
+        var expectedReference = new SaleInspectionReport(draft.Id, retained.Revision);
+        Assert.Equal(2, retained.Revision);
+        Assert.Equal(expectedReference,
+            (await documents.InspectionReportAsync(hold.CustomerId, hold.Id, default)).Value);
+        Assert.Equal(SaleResultStatus.NotFound,
+            (await documents.InspectionReportAsync(report.Vehicle.IntakeOwnerId, hold.Id, default)).Status);
+        Assert.Equal(SaleResultStatus.NotFound,
+            (await documents.InspectionReportAsync(hold.CustomerId, Guid.NewGuid(), default)).Status);
+        Assert.Equal(SaleResultStatus.Forbidden,
+            (await documents.InspectionReportAsync(world.Manager, hold.Id, default)).Status);
+        Assert.Equal(SaleResultStatus.Forbidden,
+            (await documents.InspectionReportAsync(world.Agent, hold.Id, default)).Status);
         Assert.Equal(JsonSerializer.Serialize(report), JsonSerializer.Serialize(
             (await reports.ReadAsync(hold.CustomerId, draft.Id, 1, default)).Report));
         Assert.Equal(InspectionAssignmentStatus.Succeeded,
@@ -79,11 +100,19 @@ public sealed class DeliveredInspectionReportTests(IntakePhotoFixture fixture) :
         using var client = restarted.CreateClient();
         var reportPath = $"/api/staff/inspection/reports/{draft.Id}/revisions/1/document";
         var photoPath = $"/api/staff/inspection/drafts/{draft.Id}/photos/{evidence}";
+        var discoveryPath = $"/api/sales/{hold.Id}/inspection-report";
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync(discoveryPath)).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync(reportPath)).StatusCode);
         var email = await database.Users.Where(item => item.Id == hold.CustomerId).Select(item => item.Email).SingleAsync();
         var login = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest(Guid.NewGuid(), email!, "Password123!"));
         var session = (await login.Content.ReadFromJsonAsync<LoginSession>())!;
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
+        var discovery = await client.GetAsync(discoveryPath);
+        Assert.Equal(HttpStatusCode.OK, discovery.StatusCode);
+        Assert.True(discovery.Headers.CacheControl!.NoStore);
+        Assert.Equal(expectedReference, await discovery.Content.ReadFromJsonAsync<SaleInspectionReport>());
+        var discoveredPath = $"/api/staff/inspection/reports/{expectedReference.InspectionId}/revisions/{expectedReference.Revision}/document";
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync(discoveredPath)).StatusCode);
         var response = await client.GetAsync(reportPath);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.True(response.Headers.CacheControl!.NoStore);
@@ -113,6 +142,8 @@ public sealed class DeliveredInspectionReportTests(IntakePhotoFixture fixture) :
             .ExecuteUpdateAsync(update => update.SetProperty(item => item.EmailConfirmed, false));
         Assert.Equal(InspectionAssignmentStatus.Succeeded,
             (await reports.ReadAsync(hold.CustomerId, draft.Id, 1, default)).Status);
+        Assert.Equal(expectedReference,
+            (await documents.InspectionReportAsync(hold.CustomerId, hold.Id, default)).Value);
         using var changedFactory = fixture.CreateFactory(observeDownload: _ =>
         {
             using var changed = NewContext();
@@ -128,6 +159,8 @@ public sealed class DeliveredInspectionReportTests(IntakePhotoFixture fixture) :
             (await reports.ReadAsync(hold.CustomerId, draft.Id, 1, default)).Status);
         Assert.Equal(InspectionPhotoStatus.Forbidden,
             (await photos.FindAsync(hold.CustomerId, draft.Id, evidence, default)).Status);
+        Assert.Equal(SaleResultStatus.Forbidden,
+            (await documents.InspectionReportAsync(hold.CustomerId, hold.Id, default)).Status);
     }
 
     private DealershipDbContext NewContext() => new(new DbContextOptionsBuilder<DealershipDbContext>()
