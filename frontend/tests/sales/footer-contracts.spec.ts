@@ -85,6 +85,8 @@ test("normal guidance preserves status, permission and dirty-term precedence", (
     Handling: "Key the terms agreed with the customer, then submit.",
     PendingApproval: "Waiting for a manager to approve the discount.",
     Approved: "Settlement and handover follow.",
+    Settled: "Settlement is confirmed. Complete handover after the vehicle is ready.",
+    Delivered: "This sale has been delivered. Retained records are read only.",
     Expired: "This hold expired and its deposit was refunded.",
     Cancelled: "This sale is cancelled and its deposit refunded.",
   };

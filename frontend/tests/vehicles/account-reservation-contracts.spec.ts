@@ -78,6 +78,12 @@ test("customer history accepts no registration and keeps an independent active h
     id,
   );
   const released = { ...item, isActive: false, release: cancellation };
+  const purchased = { ...item, isActive: false, release: null };
+  expect(parseAccountReservation(purchased)?.release).toBeNull();
+  expect(
+    parseAccountReservations({ ...snapshot, items: [purchased], active: null })?.items[0].receipt
+      .id,
+  ).toBe(id);
   // A hold an agent handles stays active; a handled closed hold is a contradiction.
   expect(parseAccountReservation({ ...item, isHandled: true })?.isHandled).toBe(true);
   expect(parseAccountReservation({ ...released, isHandled: true })).toBeNull();

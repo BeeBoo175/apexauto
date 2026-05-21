@@ -44,6 +44,8 @@ const emptyTitles: Record<TableView, string> = {
   Open: "No open holds",
   BeingHandled: "No sales are being handled",
   Approved: "No approved sales",
+  AwaitingHandover: "No sales await handover",
+  Delivered: "No delivered sales",
   History: "No closed sales",
 };
 

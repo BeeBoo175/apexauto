@@ -8,6 +8,8 @@ const statusTones: Record<Status, string> = {
   Handling: tones.info,
   PendingApproval: tones.warning,
   Approved: tones.success,
+  Settled: tones.success,
+  Delivered: tones.success,
   Expired: tones.neutral,
   Cancelled: tones.neutral,
 };

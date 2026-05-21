@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/Badge";
 import type { useSaleEditor } from "@/hooks/use-sale-editor";
 import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDateTime } from "@/lib/date-format";
-import type { SaleSnapshot } from "@/lib/sales/contracts";
+import { saleHasHoldTimer, type SaleSnapshot } from "@/lib/sales/contracts";
 import { historyTitle, type SaleVersion } from "@/lib/sales/sale-history";
 import { HoldWheel } from "./HoldWheel";
 import { SaleStatus } from "./SaleStatus";
@@ -85,7 +85,7 @@ export function SaleRecord({
   const at = retained ? Date.parse(retained.recordedAt) : now;
   const overLimit =
     sale.discountLimitAtSubmit !== null && sale.negotiatedDiscount > sale.discountLimitAtSubmit;
-  const running = sale.status === "Open" || sale.pausedSeconds !== null;
+  const running = saleHasHoldTimer(sale.status);
   let balance = formatCurrency(sale.balancePayable);
   if (loadingVersion) {
     balance = versionFailed ? "Unavailable" : "Loading…";

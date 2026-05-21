@@ -9,8 +9,8 @@ import {
 } from "@/lib/sales/parse";
 import { createInteractionGuard } from "@/lib/interaction-guard";
 import { parseMyr } from "@/lib/currency-input";
-import { saleReference } from "@/lib/sales/contracts";
-import { saleSelection } from "@/lib/sales/query";
+import { queueCountOf, queueViewOf, saleReference } from "@/lib/sales/contracts";
+import { queueParams, queueQuery, saleSelection } from "@/lib/sales/query";
 import { isSaleVersionSection, saleSections, saleSectionLabels } from "@/lib/sales/sale-sections";
 import { parseSaleVehicle } from "@/lib/sales/vehicle-reference";
 
@@ -223,6 +223,11 @@ const snapshot = {
   decidedAt: null,
   closedAt: null,
   version: 3,
+  paymentEvidence: null,
+  settledAt: null,
+  acquiredVehicleId: null,
+  handoverEvidence: null,
+  deliveredAt: null,
 };
 
 const summary = {
@@ -307,13 +312,21 @@ test("queues and tables parse their counts and the table names the view it chose
     total: 1,
     page: 1,
     pageSize: 25,
-    counts: { toClaim: 2, handling: 1, waiting: 0, approved: 0 },
+    counts: { toClaim: 2, handling: 1, waiting: 0, settling: 3, completed: 4 },
   };
   expect(parseSalesQueue(queue)?.counts.toClaim).toBe(2);
   expect(parseSalesQueue({ ...queue, items: [summary, summary], total: 2 })).toBeNull();
   const table = {
     ...queue,
-    counts: { needsApproval: 0, open: 2, beingHandled: 1, approved: 0, history: 4 },
+    counts: {
+      needsApproval: 0,
+      open: 2,
+      beingHandled: 1,
+      approved: 0,
+      awaitingHandover: 3,
+      delivered: 4,
+      history: 4,
+    },
     view: "Open",
   };
   expect(parseSalesTable(table)?.view).toBe("Open");
@@ -321,4 +334,23 @@ test("queues and tables parse their counts and the table names the view it chose
   expect(parseSalesTable({ ...table, items: [{ ...summary, updatedAt: "invalid" }] })).toBeNull();
   expect(saleReference(summary)).toBe("VRS-2026-000001");
   expect(saleReference({ ...summary, orderNumber: "VPO-2026-000001" })).toBe("VPO-2026-000001");
+  for (const status of ["Approved", "Settled", "Delivered"] as const) {
+    const view = queueViewOf[status]!;
+    expect(view).toBe(status === "Delivered" ? "Completed" : "Settling");
+    const parsed = parseSalesQueue({ ...queue, items: [{ ...summary, status }] });
+    expect(parsed?.counts[queueCountOf[view]]).toBe(status === "Delivered" ? 4 : 3);
+    expect(new URLSearchParams(queueQuery(view)).get("view")).toBe(view);
+  }
+  expect(queueParams({ view: "settling" })).toBe("Settling");
+  expect(queueParams({ view: "completed" })).toBe("Completed");
+  expect(queueParams({ view: "approved" })).toBeNull();
+  expect(
+    parseSalesQueue({ ...queue, counts: { toClaim: 2, handling: 1, waiting: 0, approved: 0 } }),
+  ).toBeNull();
+  for (const view of ["AwaitingHandover", "Delivered"] as const) {
+    expect(parseSalesTable({ ...table, view })?.view).toBe(view);
+    expect(
+      parseSalesTable({ ...table, view, counts: { ...table.counts, delivered: -1 } }),
+    ).toBeNull();
+  }
 });

@@ -15,11 +15,17 @@ export function SaleFooter({
   selection,
   onAssign,
   onActionsContainer,
+  completionActive = false,
+  completionLoading = false,
+  externalOperating = false,
 }: {
   editor: ReturnType<typeof useSaleEditor>;
   selection: ReturnType<typeof useSaleSelection>;
   onAssign: () => void;
   onActionsContainer: (container: HTMLDivElement | null) => void;
+  completionActive?: boolean;
+  completionLoading?: boolean;
+  externalOperating?: boolean;
 }) {
   const { snapshot, reason } = editor;
   const actions = snapshot.actions;
@@ -43,6 +49,26 @@ export function SaleFooter({
   });
   const blocked = editor.commandBlocked;
   const replay = (name: Parameters<typeof editor.run>[0]) => editor.uncertain === name;
+
+  if (completionActive || completionLoading) {
+    return (
+      <StaffWorkspaceFooter
+        title={completionActive ? "Review sale changes" : "Loading buyer details"}
+        description="Review the captured facts before confirming. Reference sections keep your entries."
+      >
+        <div ref={onActionsContainer} className={workspace.footerActions} />
+        {(!deal || viewingPast) && (
+          <Button
+            size="compact"
+            disabled={editor.operating || completionLoading || externalOperating}
+            onClick={() => selection.openVersion(null, "deal")}
+          >
+            Return to editing
+          </Button>
+        )}
+      </StaffWorkspaceFooter>
+    );
+  }
 
   return (
     <StaffWorkspaceFooter title={title} description={description}>

@@ -10,6 +10,9 @@ import { RefreshButton } from "@/components/ui/RefreshButton";
 import { useSaleEditor } from "@/hooks/use-sale-editor";
 import { useSaleVersion } from "@/hooks/use-sale-version";
 import { useSaleVehicle } from "@/hooks/use-sale-vehicle";
+import { useSaleDocuments } from "@/hooks/use-sale-documents";
+import { useSaleCompletion } from "@/hooks/use-sale-completion";
+import { useSaleDocumentCorrection } from "@/hooks/use-sale-document-correction";
 import { useEditGuard } from "@/hooks/use-edit-guard";
 import type { useSaleSelection } from "@/hooks/use-sale-selection";
 import type { Sale } from "@/lib/sales/contracts";
@@ -20,6 +23,9 @@ import { SaleFacts } from "./SaleFacts";
 import { SaleVehicle } from "./SaleVehicle";
 import { SaleFooter } from "./SaleFooter";
 import { SaleDeal } from "./SaleDeal";
+import { SaleDocuments } from "./SaleDocuments";
+import { SaleCompletionForm } from "./SaleCompletionForm";
+import { SaleDocumentCorrection } from "./SaleDocumentCorrection";
 import { SalePastVersion } from "./SalePastVersion";
 import { SaleRecord } from "./SaleRecord";
 import { SaleTermsForm } from "./SaleTermsForm";
@@ -55,6 +61,7 @@ export function SaleEditor({
   onLocked?: (locked: boolean) => void;
 }) {
   const editor = useSaleEditor(sale, onChanged);
+  const completion = useSaleCompletion(editor);
   const { snapshot } = editor;
   const actions = snapshot.actions;
   const [assigning, setAssigning] = useState(false);
@@ -67,12 +74,33 @@ export function SaleEditor({
   const viewingPast = !showsCurrent && isSaleVersionSection(section);
   const review = useSaleVersion(snapshot.id, viewingPast ? selection.version : null);
   const vehicle = useSaleVehicle(snapshot.id, section === "car");
+  const hasDocuments = ["Settled", "Delivered"].includes(snapshot.sale.status);
+  const documents = useSaleDocuments(
+    snapshot.id,
+    snapshot.sale.version,
+    hasDocuments && section === "deal" && showsCurrent,
+  );
+  const correction = useSaleDocumentCorrection(snapshot, () => {
+    documents.retry();
+    onChanged();
+  });
   const { reason, setReason } = editor;
-  const locked = assigning || editor.locked || editor.refreshing;
+  const locked =
+    assigning ||
+    editor.locked ||
+    editor.refreshing ||
+    completion.dirty ||
+    completion.loading ||
+    correction.draft !== null ||
+    correction.operating;
   useEditGuard({ pending: editor.refreshing, label: "Refreshing sale" });
   const noteNeeded = actions.decide;
   const disabled = editor.operating || editor.refreshing || editor.confirmed;
-  const termsBlocked = editor.notesDirty || editor.commandBlocked("term-revisions");
+  const termsBlocked =
+    completion.dirty ||
+    completion.loading ||
+    editor.notesDirty ||
+    editor.commandBlocked("term-revisions");
 
   useEffect(() => {
     onLocked?.(locked);
@@ -82,19 +110,29 @@ export function SaleEditor({
   const refresh = {
     label: refreshControl?.label ?? "Refresh sale",
     busy: editor.refreshing || (section === "car" && vehicle.busy) || Boolean(refreshControl?.busy),
-    disabled: editor.operating || Boolean(refreshControl?.disabled),
+    disabled:
+      editor.operating ||
+      completion.loading ||
+      correction.operating ||
+      Boolean(refreshControl?.disabled),
     onClick: () => {
       if (section === "car") {
         vehicle.retry();
       }
       void editor.refresh();
+      if (hasDocuments && section === "deal") {
+        documents.retry();
+      }
       refreshControl?.onClick();
     },
   };
 
   return (
     <>
-      <LoadingProgress label="Updating sale" active={editor.busy || editor.refreshing} />
+      <LoadingProgress
+        label="Updating sale"
+        active={editor.busy || editor.refreshing || completion.loading || correction.busy}
+      />
       {actionsContainer &&
         !viewingPast &&
         section !== "history" &&
@@ -111,7 +149,7 @@ export function SaleEditor({
           label="Sale sections"
           tabs={tabs}
           value={section}
-          disabled={editor.operating}
+          disabled={editor.operating || correction.operating || completion.loading}
           onChange={(next) => {
             selection.changeSection(next);
             setHistoryOpened((opened) => opened || next === "history");
@@ -154,15 +192,51 @@ export function SaleEditor({
                   </Button>
                 </div>
               )}
-              <SaleDeal sale={snapshot.sale} context={snapshot.context}>
-                {actions.saveTerms ? (
-                  <SaleTermsForm
-                    editor={editor}
-                    disabled={termsBlocked}
-                    actionsContainer={footerActions}
-                  />
-                ) : undefined}
-              </SaleDeal>
+              {!completion.stage && (
+                <SaleDeal sale={snapshot.sale} context={snapshot.context}>
+                  {actions.saveTerms ? (
+                    <SaleTermsForm
+                      editor={editor}
+                      disabled={termsBlocked}
+                      actionsContainer={footerActions}
+                    />
+                  ) : undefined}
+                </SaleDeal>
+              )}
+              {completion.stage && (
+                <SaleCompletionForm
+                  workflow={completion}
+                  balance={snapshot.sale.balancePayable}
+                  actionsContainer={footerActions}
+                  active
+                />
+              )}
+              {completion.eligible && !completion.stage && (
+                <Button
+                  size="compact"
+                  disabled={
+                    editor.locked || editor.refreshing || completion.loading || editor.confirmed
+                  }
+                  onClick={() => void completion.start()}
+                >
+                  {snapshot.sale.status === "Approved" ? "Review settlement" : "Prepare handover"}
+                </Button>
+              )}
+              {hasDocuments && !correction.draft && (
+                <SaleDocuments
+                  saleId={snapshot.id}
+                  read={documents}
+                  onCorrect={correction.allowed ? correction.start : undefined}
+                  disabled={editor.operating || editor.refreshing || completion.dirty}
+                />
+              )}
+              {correction.draft && (
+                <SaleDocumentCorrection
+                  correction={correction}
+                  actionsContainer={footerActions}
+                  blocked={editor.operating || editor.refreshing}
+                />
+              )}
               {noteNeeded && !editor.editingTerms && (
                 <section className={workbench.stack}>
                   <Textarea
@@ -221,6 +295,9 @@ export function SaleEditor({
           selection={selection}
           onAssign={() => setAssigning(true)}
           onActionsContainer={setFooterActions}
+          completionActive={completion.dirty || correction.draft !== null}
+          completionLoading={completion.loading}
+          externalOperating={correction.operating}
         />
       </div>
       {actions.assign && (

@@ -1,5 +1,9 @@
 import { expect, test } from "@playwright/test";
-import { remainingHoldSeconds, saleDiscountOverLimit } from "@/lib/sales/contracts";
+import {
+  remainingHoldSeconds,
+  saleDiscountOverLimit,
+  saleHasHoldTimer,
+} from "@/lib/sales/contracts";
 import { tableParams, tableQuery, tableViewFilters } from "@/lib/sales/query";
 
 test("table filters round-trip through the address and leave an unset view to the server", () => {
@@ -31,7 +35,15 @@ test("queue changes preserve the fixed columns' filters and sort while clearing 
     sort: "timeLeft",
     direction: "desc",
   });
-  for (const view of ["Open", "BeingHandled", "NeedsApproval", "Approved", "History"] as const) {
+  for (const view of [
+    "Open",
+    "BeingHandled",
+    "NeedsApproval",
+    "Approved",
+    "AwaitingHandover",
+    "Delivered",
+    "History",
+  ] as const) {
     const next = tableViewFilters(filters, view);
     expect(next).toEqual({ ...filters, view, outcome: "" });
     const parameters = Object.fromEntries(new URLSearchParams(tableQuery(next)));
@@ -71,4 +83,10 @@ test("hold time uses the stored paused duration and never counts below zero", ()
   expect(saleDiscountOverLimit({ negotiatedDiscount: 900, discountLimitAtSubmit: null })).toBe(
     false,
   );
+  for (const status of ["Open", "Handling", "PendingApproval", "Approved"] as const) {
+    expect(saleHasHoldTimer(status)).toBe(true);
+  }
+  for (const status of ["Settled", "Delivered", "Expired", "Cancelled"] as const) {
+    expect(saleHasHoldTimer(status)).toBe(false);
+  }
 });

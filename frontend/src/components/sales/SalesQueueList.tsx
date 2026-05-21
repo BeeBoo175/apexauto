@@ -11,17 +11,20 @@ import {
   queueViewOf,
   queueViewTabs,
   saleReference,
+  saleHasHoldTimer,
   type QueueView,
   type SaleSummary,
 } from "@/lib/sales/contracts";
 import { HoldWheel } from "./HoldWheel";
+import { SaleStatus } from "./SaleStatus";
 import styles from "@/components/staff/StaffQueueWorkspace.module.css";
 import sales from "./Sales.module.css";
 
 const emptyMessages: Record<QueueView | "Search", string> = {
   Handling: "You are not handling any sales. Claim a hold to start one.",
   Waiting: "No sales are waiting for a manager's approval.",
-  Approved: "None of your sales are approved yet.",
+  Settling: "No sales are awaiting settlement or handover.",
+  Completed: "You have no delivered sales.",
   ToClaim: "No holds are waiting to be claimed.",
   Search: "No sales match this search.",
 };
@@ -114,14 +117,21 @@ export function SalesQueueList({
                 </span>
                 <span className={styles.jobState}>
                   {view === "Search" && tab && <Badge variant="info">{queueViewTabs[tab]}</Badge>}
-                  {(open || item.pausedSeconds !== null) && (
+                  {(item.status === "Approved" ||
+                    item.status === "Settled" ||
+                    item.status === "Delivered") && <SaleStatus status={item.status} />}
+                  {saleHasHoldTimer(item.status) && (
                     <HoldWheel dueAt={item.dueAt} pausedSeconds={item.pausedSeconds} now={now} />
                   )}
                   <span className={styles.jobMeta}>
                     {saleReference(item)}
-                    {open
-                      ? ` · Expires ${formatMalaysianDateTime(item.dueAt ?? "")}`
-                      : ` · Claimed ${claimAge(item.claimedAt, now)}`}
+                    {item.status === "Delivered" &&
+                      item.closedAt &&
+                      ` · Delivered ${formatMalaysianDateTime(item.closedAt)}`}
+                    {open && ` · Expires ${formatMalaysianDateTime(item.dueAt ?? "")}`}
+                    {!open &&
+                      item.status !== "Delivered" &&
+                      ` · Claimed ${claimAge(item.claimedAt, now)}`}
                   </span>
                 </span>
               </Button>

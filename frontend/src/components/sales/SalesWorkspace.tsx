@@ -65,13 +65,15 @@ export function SalesWorkspace({
   const [now, setNow] = useMinuteClock();
   const handling = useSalesQueue("Handling", queues.Handling ?? null);
   const waiting = useSalesQueue("Waiting", queues.Waiting ?? null);
-  const approved = useSalesQueue("Approved", queues.Approved ?? null);
+  const settling = useSalesQueue("Settling", queues.Settling ?? null);
+  const completed = useSalesQueue("Completed", queues.Completed ?? null);
   const claimable = useSalesQueue("ToClaim", queues.ToClaim ?? null);
   const found = useSalesQueue("ToClaim", null);
   const worklists = {
     Handling: handling,
     Waiting: waiting,
-    Approved: approved,
+    Settling: settling,
+    Completed: completed,
     ToClaim: claimable,
   };
   const selection = useSaleSelection(

@@ -112,10 +112,21 @@ export function AccountReservations({
                   </p>
                 </div>
                 <div className={styles.historyState}>
-                  <p>{customerReservationStates[item.release!.kind]}</p>
-                  <p className={styles.refund}>
-                    {formatCurrency(item.release!.refund)} simulated refund recorded
-                  </p>
+                  {item.release ? (
+                    <>
+                      <p>{customerReservationStates[item.release.kind]}</p>
+                      <p className={styles.refund}>
+                        {formatCurrency(item.release.refund)} simulated refund recorded
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p>Sale confirmed</p>
+                      <Link href={`/account/sales/${item.receipt.id}/documents`}>
+                        View sale documents
+                      </Link>
+                    </>
+                  )}
                 </div>
               </div>
               <details className={styles.disclosure}>

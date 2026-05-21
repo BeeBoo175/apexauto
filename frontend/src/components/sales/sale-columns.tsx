@@ -3,7 +3,12 @@ import { Badge } from "@/components/ui/Badge";
 import type { DataColumn } from "@/components/ui/data-table/types";
 import type { CurrentActor } from "@/lib/auth/actor";
 import { formatCurrency } from "@/lib/currency-format";
-import { saleDiscountOverLimit, saleReference, type SaleSummary } from "@/lib/sales/contracts";
+import {
+  saleDiscountOverLimit,
+  saleHasHoldTimer,
+  saleReference,
+  type SaleSummary,
+} from "@/lib/sales/contracts";
 import { staffColumnSizing } from "@/lib/staff/table-columns";
 import { HoldWheel } from "./HoldWheel";
 import { SaleStatus } from "./SaleStatus";
@@ -88,7 +93,7 @@ export function saleColumns(role: CurrentActor["role"], now: number): DataColumn
       sortable: true,
       ...staffColumnSizing.shortStatus,
       cell: (row) =>
-        row.status === "Expired" || row.status === "Cancelled" ? (
+        !saleHasHoldTimer(row.status) ? (
           <span className={styles.muted}>—</span>
         ) : (
           <HoldWheel dueAt={row.dueAt} pausedSeconds={row.pausedSeconds} now={now} compact />
