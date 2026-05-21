@@ -75,6 +75,12 @@ public static class ReservationCommandEndpoints
         ReservationStatus.Forbidden => Results.Forbid(),
         ReservationStatus.NotFound => Results.NotFound(),
         ReservationStatus.Conflict => Results.Problem(statusCode: 409, title: "The reservation or operation has changed or is unavailable."),
+        ReservationStatus.CustomerHasReservation => Results.Problem(statusCode: 409,
+            title: "You already have an active reservation.",
+            extensions: new Dictionary<string, object?> { ["code"] = "customer-has-reservation" }),
+        ReservationStatus.VehicleReserved => Results.Problem(statusCode: 409,
+            title: "This car is reserved by another customer.",
+            extensions: new Dictionary<string, object?> { ["code"] = "vehicle-reserved" }),
         ReservationStatus.PromoUnavailable => Results.Problem(statusCode: 409, title: "The accepted promo is unavailable."),
         ReservationStatus.Unavailable => Results.Problem(statusCode: 503, title: "Reservation terms are temporarily unavailable."),
         _ => Results.Problem(statusCode: 500)

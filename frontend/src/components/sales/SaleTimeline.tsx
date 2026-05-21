@@ -83,13 +83,9 @@ export function SaleTimeline({
             >
               {summary && <p>{summary}</p>}
               {item.reason && <p>{item.reason}</p>}
-              {item.changes.length > 0 && (
-                <ul className={timeline.changes}>
-                  {item.changes.map((change) => (
-                    <li key={change.field}>{historyChange(change)}</li>
-                  ))}
-                </ul>
-              )}
+              {item.changes.map((change) => (
+                <p key={change.field}>{historyChange(change)}</p>
+              ))}
               {item.refund !== null && <p>Deposit refunded: {formatCurrency(item.refund)}</p>}
               {link && (
                 <div className={timeline.eventActions}>

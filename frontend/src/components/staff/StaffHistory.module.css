@@ -90,14 +90,6 @@
   overflow-wrap: anywhere;
 }
 
-.timeline ul.changes {
-  margin: 0;
-  padding-left: 18px;
-  color: var(--color-muted);
-  font-size: 12px;
-  line-height: 1.5;
-}
-
 .repairs > li {
   display: grid;
   gap: 8px;

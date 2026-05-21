@@ -12,6 +12,8 @@ public enum ReservationStatus
     Forbidden,
     NotFound,
     Conflict,
+    CustomerHasReservation,
+    VehicleReserved,
     PromoUnavailable,
     Unavailable
 }

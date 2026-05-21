@@ -31,9 +31,19 @@ public sealed class ReservationService(IReservationStore reservations)
                 matches ? existing : null, cancellationToken);
         }
 
-        if (context.IsReleaseOperation || context.CustomerHasHold || context.VehicleHasHold)
+        if (context.IsReleaseOperation)
         {
             return await CompleteAsync(transaction, ReservationStatus.Conflict, null, cancellationToken);
+        }
+
+        if (context.CustomerHasHold)
+        {
+            return await CompleteAsync(transaction, ReservationStatus.CustomerHasReservation, null, cancellationToken);
+        }
+
+        if (context.VehicleHasHold)
+        {
+            return await CompleteAsync(transaction, ReservationStatus.VehicleReserved, null, cancellationToken);
         }
 
         if (context.Publication is null || context.Listing is null)

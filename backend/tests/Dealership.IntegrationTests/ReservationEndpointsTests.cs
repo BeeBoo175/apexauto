@@ -72,6 +72,11 @@ public sealed class ReservationEndpointsTests(IntakePhotoFixture fixture) : ICla
         var receipt = JsonSerializer.Deserialize<ReservationReceipt>(originalJson, JsonSerializerOptions.Web)!;
         Assert.Equal(TimeSpan.FromHours(48), receipt.ExpiresAt - receipt.CreatedAt);
         Assert.Equal(1, await database.ReservationMailOutbox.CountAsync(item => item.ReservationId == receipt.Id));
+        var freshRequest = request with { OperationId = Guid.NewGuid() };
+        var ownConflict = await client.PostAsJsonAsync(path, freshRequest);
+        Assert.Equal(HttpStatusCode.Conflict, ownConflict.StatusCode);
+        using var ownProblem = JsonDocument.Parse(await ownConflict.Content.ReadAsStringAsync());
+        Assert.Equal("customer-has-reservation", ownProblem.RootElement.GetProperty("code").GetString());
         await AssertHeldVisibilityAsync(client, services, manager, vehicleId, publicPhotoPath, data.CustomerEmail);
 
         var cancellationPath = $"/api/reservations/{receipt.Id}/cancellations";
@@ -80,6 +85,10 @@ public sealed class ReservationEndpointsTests(IntakePhotoFixture fixture) : ICla
         var denied = await client.PostAsJsonAsync(path, request);
         Assert.Equal(HttpStatusCode.Conflict, denied.StatusCode);
         Assert.DoesNotContain(data.CustomerEmail, await denied.Content.ReadAsStringAsync());
+        var heldConflict = await client.PostAsJsonAsync(path, freshRequest);
+        Assert.Equal(HttpStatusCode.Conflict, heldConflict.StatusCode);
+        using var heldProblem = JsonDocument.Parse(await heldConflict.Content.ReadAsStringAsync());
+        Assert.Equal("vehicle-reserved", heldProblem.RootElement.GetProperty("code").GetString());
         Assert.Equal(HttpStatusCode.NotFound, (await client.PostAsJsonAsync(cancellationPath, cancellation)).StatusCode);
         await LoginAsync(client, data.StaffEmail);
         Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync(path, request)).StatusCode);

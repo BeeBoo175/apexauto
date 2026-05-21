@@ -59,6 +59,10 @@ public sealed class ReservationServiceTests(IntakePhotoFixture fixture) : IClass
         Assert.Equal(ReservationStatus.Conflict, (await ReserveAsync(data, data.OwnerId, vehicleId,
             request with { PromoId = null })).Status);
         Assert.Equal(ReservationStatus.Conflict, (await ReserveAsync(data, data.OwnerId, second.Revision.VehicleId, request)).Status);
+        var other = await RegisterCustomerAsync(services, database);
+        var fresh = request with { OperationId = Guid.NewGuid(), PublicationId = second.Publication.Id };
+        Assert.Equal(ReservationStatus.CustomerHasReservation, (await ReserveAsync(data, data.OwnerId, second.Revision.VehicleId, fresh)).Status);
+        Assert.Equal(ReservationStatus.VehicleReserved, (await ReserveAsync(data, other, vehicleId, fresh)).Status);
 
         await database.PromoCodes.Where(item => item.Id == promo.Id)
             .ExecuteUpdateAsync(update => update.SetProperty(item => item.IsActive, false).SetProperty(item => item.Discount, 2000m));
@@ -73,14 +77,13 @@ public sealed class ReservationServiceTests(IntakePhotoFixture fixture) : IClass
         await ReleaseAsync(retained);
         await AssertReplayAsync(data, request, retained);
 
-        var other = await RegisterCustomerAsync(services, database);
         Assert.Equal(ReservationStatus.Conflict, (await ReserveAsync(data, other, vehicleId, request)).Status);
         var one = new ReservationRequest(Guid.NewGuid(), second.Publication.Id, null);
         var two = one with { OperationId = Guid.NewGuid() };
         var sameVehicle = await Task.WhenAll(ReserveAsync(data, data.OwnerId, second.Revision.VehicleId, one),
             ReserveAsync(data, other, second.Revision.VehicleId, two));
         Assert.Single(sameVehicle, result => result.Status == ReservationStatus.Succeeded);
-        Assert.Single(sameVehicle, result => result.Status == ReservationStatus.Conflict);
+        Assert.Single(sameVehicle, result => result.Status is ReservationStatus.Conflict or ReservationStatus.VehicleReserved);
         await ReleaseAsync(sameVehicle.Single(result => result.Status == ReservationStatus.Succeeded).Reservation!);
 
         var currentPublication = await database.ListingPublications.Where(item => item.RevisionId == draft.Draft.Id).SingleAsync();
@@ -88,7 +91,7 @@ public sealed class ReservationServiceTests(IntakePhotoFixture fixture) : IClass
             new(Guid.NewGuid(), currentPublication.Id, null)), ReserveAsync(data, data.OwnerId, second.Revision.VehicleId,
             new(Guid.NewGuid(), second.Publication.Id, null)));
         Assert.Single(sameCustomer, result => result.Status == ReservationStatus.Succeeded);
-        Assert.Single(sameCustomer, result => result.Status == ReservationStatus.Conflict);
+        Assert.Single(sameCustomer, result => result.Status is ReservationStatus.Conflict or ReservationStatus.CustomerHasReservation);
         var winner = sameCustomer.Single(result => result.Status == ReservationStatus.Succeeded).Reservation!;
         await ReleaseAsync(winner);
         var releaseId = await database.ReservationReleases.Where(item => item.ReservationId == winner.Id).Select(item => item.Id).SingleAsync();

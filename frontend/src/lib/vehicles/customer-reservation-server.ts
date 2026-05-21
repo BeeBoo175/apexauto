@@ -2,6 +2,7 @@ import "server-only";
 
 import { readCurrentActor, readOwnAccount } from "@/lib/auth/server";
 import { isUuid } from "@/lib/auth/contracts";
+import { API_DEADLINE_MS } from "@/lib/api";
 import { HttpError, readBoundedJson } from "@/lib/http";
 import { requireSameOrigin } from "@/lib/server/http/request";
 import { apiError, apiJson, requestApiJson, sessionToken } from "@/lib/server/http/api";
@@ -10,6 +11,7 @@ import {
   parseCustomerReservationRequest,
   type ReservationAccess,
 } from "./customer-reservation";
+import { parseReservationConflict } from "./reservation-errors";
 
 export async function readReservationAccess(signal?: AbortSignal): Promise<ReservationAccess> {
   try {
@@ -60,6 +62,9 @@ export async function relayCustomerReservation(request: Request, vehicleId: stri
       `/api/vehicles/${vehicleId}/reservations`,
       parseCustomerReservation,
       { token, signal, method: "POST", body },
+      API_DEADLINE_MS,
+      undefined,
+      parseReservationConflict,
     );
     // Even a readable success must belong to this exact customer's captured operation.
     if (
