@@ -15,16 +15,10 @@
 
 .page {
   --radius-sm: 8px;
-  width: min(1200px, calc(100% - 64px));
-  margin: 52px auto 72px;
-}
-
-.page h1 {
-  margin-bottom: 12px;
-  font-family: var(--font-display);
-  font-size: clamp(32px, 4vw, 48px);
-  font-weight: 700;
-  letter-spacing: -0.025em;
+  width: 100%;
+  max-width: 1360px;
+  margin: 40px auto 72px;
+  padding-inline: 32px;
 }
 
 .pageHeader {
@@ -33,67 +27,112 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 24px;
-  padding-bottom: 32px;
+  padding-bottom: 24px;
+}
+
+.tabs {
+  position: sticky;
+  top: var(--site-header-height);
+  z-index: 10;
+  display: flex;
+  justify-content: flex-start;
+  min-height: 64px;
+  border-bottom: 1px solid var(--color-line);
+  background: var(--color-canvas);
+}
+
+.tabs a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 64px;
+  padding: 16px 28px;
+  color: var(--color-muted);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  transition:
+    background-color 180ms ease,
+    color 180ms ease;
+}
+
+.tabs a[aria-current="location"] {
+  box-shadow: inset 0 -2px var(--color-signal);
+  color: var(--color-signal-dark);
+}
+
+.tabs a:hover:not([aria-current]) {
+  background: var(--color-canvas);
+  color: var(--color-graphite);
+}
+
+.tabs a:active {
+  background: color-mix(in srgb, var(--color-signal) 12%, var(--color-paper));
+  color: var(--color-signal-dark);
+}
+
+.tabs a:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: -4px;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.page h1 {
+  margin-bottom: 8px;
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 2.7vw, 2.25rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
 }
 
 .welcome {
   color: var(--color-muted);
+  font-size: 0.9375rem;
   line-height: 1.6;
 }
 
-.sectionLinks {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 24px;
+.panel {
+  padding-block: 40px;
+  scroll-margin-top: 100px;
 }
 
-.sectionLinks a {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 10px 4px;
-  border-bottom: 2px solid transparent;
-  color: var(--color-muted);
-  font-size: 14px;
-  font-weight: 600;
-  text-decoration: none;
-  transition:
-    border-color 150ms ease,
-    color 150ms ease;
-}
+@media (max-width: 640px) {
+  .tabs a {
+    flex: 1;
+    min-width: 0;
+    padding-inline: 8px;
+    font-size: 0.875rem;
+  }
 
-.sectionLinks a:hover {
-  border-bottom-color: var(--color-signal);
-  color: var(--color-graphite);
-}
+  .page {
+    margin-top: 24px;
+    padding-inline: 16px;
+  }
 
-.sectionLinks a:active {
-  border-bottom-color: var(--color-signal-dark);
-  color: var(--color-signal-dark);
+  .panel {
+    padding-block: 32px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sectionLinks a {
+  .tabs a {
     transition: none;
   }
 }
 
-.accountDetails,
-.appointments {
-  padding-block: 36px;
-  margin-bottom: 28px;
-  scroll-margin-top: 100px;
-}
-
-.appointments {
-  border-top: 1px solid var(--color-line);
-}
-
-.accountDetails h2,
-.appointments h2 {
+.panel h2 {
   font-family: var(--font-display);
-  font-size: 26px;
+  font-size: 20px;
   font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
 }
 
 .history,
@@ -114,21 +153,16 @@
 
 .heading h2 {
   font-family: var(--font-display);
-  font-size: 26px;
+  font-size: 20px;
   font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
 }
 
 .heading h3 {
   font-family: var(--font-display);
   font-size: 17px;
   font-weight: 600;
-}
-
-.filters {
-  display: grid;
-  grid-template-columns: 1fr 1fr auto;
-  align-items: end;
-  gap: 12px;
 }
 
 .help,
@@ -143,8 +177,7 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 16px;
-  padding-block: 24px;
-  border-top: 1px solid var(--color-line-soft);
+  padding-block: 20px;
 }
 
 .appointment .heading {
@@ -154,7 +187,7 @@
 .plate {
   color: var(--color-graphite);
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 600;
   overflow-wrap: anywhere;
 }
 
@@ -192,44 +225,12 @@
   gap: 12px;
 }
 
-.emptyAppointments {
-  padding-block: 8px;
-  line-height: 1.6;
-}
-
-.emptyAppointments .help {
-  max-width: 60ch;
-  margin-block: 8px 16px;
-}
-
-.emptyAppointments a {
-  display: inline-block;
-  padding-block: 10px;
-  color: var(--color-signal);
-  text-decoration: underline;
-  text-underline-offset: 4px;
-}
-
 .page :focus-visible {
   outline: 2px solid var(--color-graphite);
   outline-offset: 4px;
 }
 
 @media (max-width: 540px) {
-  .page {
-    width: calc(100% - 32px);
-  }
-
-  .accountDetails,
-  .appointments {
-    padding-block: 28px;
-    margin-bottom: 20px;
-  }
-
-  .filters {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   .details div {
     grid-template-columns: minmax(0, 1fr);
     gap: 2px;
