@@ -1,13 +1,13 @@
 import type { SearchParams } from "@/lib/query";
-import { paginationQuery } from "@/lib/pagination";
+import { DEFAULT_PAGE_SIZE, paginationQuery } from "@/lib/pagination";
 
 export interface HistoryFilters {
   from: string;
   to: string;
 }
 
-export function historyQuery(filters: HistoryFilters, page = 1) {
-  const query = paginationQuery(page);
+export function historyQuery(filters: HistoryFilters, page = 1, pageSize = DEFAULT_PAGE_SIZE) {
+  const query = paginationQuery(page, pageSize);
   if (filters.from) {
     query.set("from", filters.from);
   }

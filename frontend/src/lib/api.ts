@@ -52,6 +52,7 @@ export function parseItems<T>(value: unknown, parse: (item: unknown) => T | null
 export function parsePage<T>(
   value: unknown,
   parseItem: (item: unknown) => T | null,
+  pageSize?: number,
 ): Page<T> | null {
   if (
     !isRecord(value) ||
@@ -59,7 +60,8 @@ export function parsePage<T>(
     !isNonNegativeInteger(value.total) ||
     !isNonNegativeInteger(value.page) ||
     value.page < 1 ||
-    !isPageSize(value.pageSize) ||
+    typeof value.pageSize !== "number" ||
+    (pageSize === undefined ? !isPageSize(value.pageSize) : value.pageSize !== pageSize) ||
     value.items.length > value.pageSize
   ) {
     return null;

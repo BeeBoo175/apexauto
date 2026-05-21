@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { apiFetch } from "@/lib/api-browser";
+import { privateApiFetch } from "@/lib/api-browser";
 import { parseAppointment } from "@/lib/intake/parse";
 import { parsePage } from "@/lib/api";
+import { ACCOUNT_PAGE_SIZE } from "@/lib/pagination";
 import { dateRangeError, historyQuery, type HistoryFilters } from "@/lib/intake/list-query";
 import type { ApiResult, Page } from "@/lib/api";
 import type { Appointment } from "@/lib/intake/contracts";
@@ -37,9 +38,9 @@ export function useAppointmentHistory(
     controller.current = attempt;
     setBusy(true);
     try {
-      const result = await apiFetch(
-        `/api/intake/appointments?${historyQuery(nextFilters, nextPage)}`,
-        (value) => parsePage(value, parseAppointment),
+      const result = await privateApiFetch(
+        `/api/intake/appointments?${historyQuery(nextFilters, nextPage, ACCOUNT_PAGE_SIZE)}`,
+        (value) => parsePage(value, parseAppointment, ACCOUNT_PAGE_SIZE),
         { signal: attempt.signal },
       );
       if (attempt.signal.aborted) {
@@ -51,7 +52,7 @@ export function useAppointmentHistory(
       setSnapshot(result.data);
       setActive({ filters: nextFilters, page: nextPage });
       const url = new URL(window.location.href);
-      const query = new URLSearchParams(historyQuery(nextFilters, nextPage));
+      const query = new URLSearchParams(historyQuery(nextFilters, nextPage, ACCOUNT_PAGE_SIZE));
       for (const key of ["page", "pageSize", "from", "to"]) {
         url.searchParams.delete(key);
       }

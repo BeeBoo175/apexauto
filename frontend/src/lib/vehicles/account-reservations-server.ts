@@ -11,15 +11,24 @@ import {
   requestApiJson,
   sessionToken,
 } from "@/lib/server/http/api";
-import { parseAccountReservations } from "./account-reservations";
+import { dateRangeError } from "@/lib/intake/list-query";
+import {
+  accountReservationQuery,
+  parseAccountReservations,
+  type ReservationFilters,
+} from "./account-reservations";
 import {
   matchesCustomerCancellation,
   parseCustomerCancellation,
 } from "./customer-reservation-cancellation";
 
-export async function readAccountReservations(page: number, signal?: AbortSignal) {
+export async function readAccountReservations(
+  page: number,
+  filters: ReservationFilters,
+  signal?: AbortSignal,
+) {
   return privateApiRead(
-    `/api/account/reservations?page=${page}`,
+    `/api/account/reservations?${accountReservationQuery(page, filters)}`,
     (value) => {
       const snapshot = parseAccountReservations(value);
       return snapshot?.page === page ? snapshot : null;
@@ -30,9 +39,21 @@ export async function readAccountReservations(page: number, signal?: AbortSignal
 
 export async function relayAccountReservations(request: Request) {
   try {
-    const page = Number(new URL(request.url).searchParams.get("page") ?? 1);
+    const query = new URL(request.url).searchParams;
+    const page = Number(query.get("page") ?? 1);
     if (!Number.isSafeInteger(page) || page < 1 || page > 2147483647) {
       throw new HttpError(400, "Choose a valid reservation page.");
+    }
+    const filters = {
+      from: query.get("from") ?? "",
+      to: query.get("to") ?? "",
+      search: query.get("search") ?? "",
+    };
+    if (filters.search.length > 160) {
+      throw new HttpError(400, "Search with at most 160 characters.");
+    }
+    if (dateRangeError(filters)) {
+      throw new HttpError(400, dateRangeError(filters));
     }
     const signal = AbortSignal.any([request.signal, AbortSignal.timeout(25_000)]);
     const current = await readCurrentActor(signal);
@@ -42,7 +63,7 @@ export async function relayAccountReservations(request: Request) {
         "Your session could not be confirmed.",
       );
     }
-    const result = await readAccountReservations(page, signal);
+    const result = await readAccountReservations(page, filters, signal);
     if (result.data && result.data.actor.userId !== current.actor.userId) {
       throw new HttpError(502, "Your account response could not be confirmed.");
     }

@@ -1,4 +1,5 @@
 using Dealership.Application.Accounts;
+using Dealership.Application.Common;
 
 namespace Dealership.Application.Vehicles;
 
@@ -14,6 +15,12 @@ public sealed record ReservationHistoryItem(ReservationReceipt Receipt, string B
     public DateTimeOffset? DueAt { get; init; }
 }
 
+// A customer holds one car at a time, so a short page shows their whole recent history at a glance.
+public static class ReservationHistory
+{
+    public const int PageSize = Pagination.AccountPageSize;
+}
+
 public sealed record ReservationHistoryPage(CurrentActor Actor, IReadOnlyList<ReservationHistoryItem> Items,
     int Total, int Page, int PageSize, ReservationHistoryItem? Active);
 
@@ -21,5 +28,7 @@ public sealed record ReservationHistoryResult(ReservationStatus Status, Reservat
 
 public interface IReservationReadStore
 {
-    Task<ReservationHistoryResult> AccountAsync(Guid customerId, int page, CancellationToken cancellationToken);
+    // Dates and search narrow the history only; the customer's active hold is always returned.
+    Task<ReservationHistoryResult> AccountAsync(Guid customerId, int page, CancellationToken cancellationToken,
+        ListDateRange? dates = null, string? search = null);
 }

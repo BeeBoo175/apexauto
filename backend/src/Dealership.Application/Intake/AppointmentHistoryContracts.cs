@@ -7,7 +7,7 @@ public sealed record AppointmentHistoryQuery(DateTimeOffset? From, DateTimeOffse
     public static AppointmentHistoryQuery? Parse(string? from, string? to, int page, int pageSize)
     {
         var dates = ListDateRange.Parse(from, to);
-        if (!Pagination.IsValid(page, pageSize) || dates is null)
+        if (!(Pagination.IsValid(page, pageSize) || Pagination.IsValidAccount(page, pageSize)) || dates is null)
         {
             return null;
         }

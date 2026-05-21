@@ -1,4 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
+using Dealership.Application.Common;
 using Dealership.Application.Vehicles;
 
 namespace Dealership.Api.Endpoints;
@@ -16,14 +17,20 @@ public static class ReservationQueryEndpoints
         routes.MapGet("/account/reservations", AccountAsync);
     }
 
-    private static async Task<IResult> AccountAsync(int? page, HttpContext context, IReservationReadStore store,
+    private static async Task<IResult> AccountAsync(int? page, string? from, string? to, string? search, HttpContext context, IReservationReadStore store,
         CancellationToken cancellationToken)
     {
+        var dates = ListDateRange.Parse(from, to);
+        if (dates is null || !ListSearch.IsValid(search ?? ""))
+        {
+            return Results.Problem(statusCode: 400, title: "Provide a valid paired date range of at most 366 days and a short search.");
+        }
+
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(20));
         try
         {
-            var result = await store.AccountAsync(ActorId(context), page ?? 1, deadline.Token);
+            var result = await store.AccountAsync(ActorId(context), page ?? 1, deadline.Token, dates, search);
             return Map(result);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)

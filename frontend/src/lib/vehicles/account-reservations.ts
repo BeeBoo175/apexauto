@@ -1,7 +1,9 @@
 import { parsePage, type Page } from "@/lib/api";
 import { parseActor, type CurrentActor } from "@/lib/auth/actor";
 import { isRecord, isUtcInstant, isUuid } from "@/lib/auth/contracts";
+import { ACCOUNT_PAGE_SIZE } from "@/lib/pagination";
 import type { SearchParams } from "@/lib/query";
+import type { HistoryFilters } from "@/lib/intake/list-query";
 import { parseCustomerReservation, type CustomerReservationReceipt } from "./customer-reservation";
 
 export const customerReservationStates = {
@@ -111,12 +113,12 @@ export function parseAccountReservations(value: unknown): AccountReservations | 
   if (!isRecord(value)) {
     return null;
   }
-  const page = parsePage(value, parseAccountReservation);
+  const page = parsePage(value, parseAccountReservation, ACCOUNT_PAGE_SIZE);
   const actor = parseActor(value.actor);
   const active = value.active === null ? null : parseAccountReservation(value.active);
   if (
     !page ||
-    page.pageSize !== 25 ||
+    page.pageSize !== ACCOUNT_PAGE_SIZE ||
     !actor ||
     actor.role !== "Customer" ||
     (value.active !== null && !active?.isActive) ||
@@ -125,11 +127,42 @@ export function parseAccountReservations(value: unknown): AccountReservations | 
   ) {
     return null;
   }
-  const expectedCount = Math.max(0, Math.min(25, page.total - (page.page - 1) * 25));
+  const expectedCount = Math.max(
+    0,
+    Math.min(ACCOUNT_PAGE_SIZE, page.total - (page.page - 1) * ACCOUNT_PAGE_SIZE),
+  );
   if (page.items.length !== expectedCount) {
     return null;
   }
   return { ...page, actor, active };
+}
+
+export interface ReservationFilters extends HistoryFilters {
+  search: string;
+}
+
+// Reservation filters travel as reservationFrom/reservationTo/reservationSearch so they never collide with the appointment dates.
+export function accountReservationFilters(params: SearchParams): ReservationFilters {
+  return {
+    from: typeof params.reservationFrom === "string" ? params.reservationFrom : "",
+    to: typeof params.reservationTo === "string" ? params.reservationTo : "",
+    search:
+      typeof params.reservationSearch === "string" ? params.reservationSearch.slice(0, 160) : "",
+  };
+}
+
+export function accountReservationQuery(page: number, filters: ReservationFilters) {
+  const query = new URLSearchParams({ page: String(page) });
+  if (filters.from) {
+    query.set("from", filters.from);
+  }
+  if (filters.to) {
+    query.set("to", filters.to);
+  }
+  if (filters.search.trim()) {
+    query.set("search", filters.search.trim());
+  }
+  return query.toString();
 }
 
 export function accountReservationPage(params: SearchParams) {
