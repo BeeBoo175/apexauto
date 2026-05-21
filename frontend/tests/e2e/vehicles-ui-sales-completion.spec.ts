@@ -298,7 +298,12 @@ test("sales settlement, handover, corrections and own customer PDFs retain exact
       404,
     );
     await customerPage.goto("/account");
-    await customerPage.getByText("Reservation history", { exact: true }).click();
+    await customerPage
+      .locator("details")
+      .filter({ hasText: "Sale confirmed" })
+      .first()
+      .locator("summary")
+      .click();
     await expect(
       customerPage.getByRole("link", { name: "View sale documents", exact: true }).first(),
     ).toBeVisible();

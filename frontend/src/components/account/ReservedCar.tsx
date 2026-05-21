@@ -71,9 +71,9 @@ export function ReservedCar({
               <strong>{formatMalaysianDateTime(item.dueAt ?? item.receipt.expiresAt)}</strong>
             </div>
           )}
-          {!item.isActive && (
+          {item.release && (
             <p className={styles.refund}>
-              {formatCurrency(item.release!.refund)} simulated refund recorded
+              {formatCurrency(item.release.refund)} simulated refund recorded
             </p>
           )}
           <p className={styles.help}>
@@ -81,6 +81,13 @@ export function ReservedCar({
           </p>
         </div>
       </div>
+      {item.isActive && (
+        <ol className={styles.steps} aria-label="Reservation progress">
+          <li data-state="done">Reserved</li>
+          <li data-state={item.isHandled ? "current" : "next"}>With our sales team</li>
+          <li data-state="next">Final terms agreed</li>
+        </ol>
+      )}
       <div className={styles.reservationActions}>
         <p className={styles.reference}>Reservation {item.receipt.number}</p>
         {/* Once our team handles the sale, changes are agreed with them rather than cancelled online. */}

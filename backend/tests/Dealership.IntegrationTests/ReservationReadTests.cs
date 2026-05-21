@@ -1,10 +1,13 @@
 using System.Data.Common;
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Dealership.Application.Accounts;
+using Dealership.Application.Common;
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Vehicles;
+using Dealership.Domain.Common;
 using Dealership.Infrastructure.Mail;
 using Dealership.Infrastructure.Persistence;
 using Dealership.Infrastructure.Vehicles;
@@ -65,7 +68,9 @@ public sealed class ReservationReadTests(IntakePhotoFixture fixture) : IClassFix
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/api/staff/reservations")).StatusCode);
         await LoginAsync(client, data.CustomerEmail);
         var actual = new List<Guid>();
-        for (var page = 1; page <= 3; page++)
+        var pageSize = ReservationHistory.PageSize;
+        var pages = (51 + pageSize - 1) / pageSize;
+        for (var page = 1; page <= pages; page++)
         {
             var response = await client.GetAsync($"/api/account/reservations?page={page}&pageSize=50&isActive=false&customerId={outsider}");
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -73,8 +78,8 @@ public sealed class ReservationReadTests(IntakePhotoFixture fixture) : IClassFix
             Assert.DoesNotContain("registrationPlate", await response.Content.ReadAsStringAsync());
             var history = (await response.Content.ReadFromJsonAsync<ReservationHistoryPage>())!;
             Assert.Equal(51, history.Total);
-            Assert.Equal(25, history.PageSize);
-            Assert.Equal(page == 3 ? 1 : 25, history.Items.Count);
+            Assert.Equal(pageSize, history.PageSize);
+            Assert.Equal(page == pages ? 51 - pageSize * (pages - 1) : pageSize, history.Items.Count);
             Assert.Equal(new CurrentActor(data.OwnerId, AccountRoles.Customer, null), history.Actor);
             Assert.Equal(active!.Id, history.Active!.Receipt.Id);
             Assert.True(history.Active.IsActive);
@@ -83,6 +88,15 @@ public sealed class ReservationReadTests(IntakePhotoFixture fixture) : IClassFix
         }
 
         Assert.Equal(expected, actual);
+        var filtered = (await client.GetFromJsonAsync<ReservationHistoryPage>(
+            "/api/account/reservations?from=2000-01-01&to=2000-01-02&search=no-match"))!;
+        Assert.Empty(filtered.Items);
+        Assert.Equal(0, filtered.Total);
+        Assert.Equal(active!.Id, filtered.Active!.Receipt.Id);
+        Assert.Equal(HttpStatusCode.BadRequest,
+            (await client.GetAsync("/api/account/reservations?from=2000-01-01")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest,
+            (await client.GetAsync($"/api/account/reservations?search={new string('x', 161)}")).StatusCode);
         var beyond = (await client.GetFromJsonAsync<ReservationHistoryPage>("/api/account/reservations?page=2147483647"))!;
         Assert.Equal(51, beyond.Total);
         Assert.Empty(beyond.Items);
@@ -92,7 +106,7 @@ public sealed class ReservationReadTests(IntakePhotoFixture fixture) : IClassFix
         Assert.Equal(0, (await client.GetFromJsonAsync<ReservationHistoryPage>("/api/account/reservations"))!.Total);
         await LoginAsync(client, data.StaffEmail);
         Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/account/reservations")).StatusCode);
-        await AssertSnapshotAndRetryAsync(clock, data.OwnerId, active!, Array.IndexOf(expected, active!.Id) / 25 + 1);
+        await AssertSnapshotAndRetryAsync(clock, data.OwnerId, active!, Array.IndexOf(expected, active!.Id) / ReservationHistory.PageSize + 1);
 
         await clock.AdvanceAsync(now.AddSeconds(1));
         var final = await HoldAsync(clock, data.OwnerId, listing.Publication);
@@ -124,6 +138,22 @@ public sealed class ReservationReadTests(IntakePhotoFixture fixture) : IClassFix
         await using var restarted = clock.CreateContext();
         var again = (await new ReservationReadStore(restarted).AccountAsync(data.OwnerId, 1, CancellationToken.None)).History!;
         Assert.Equal(expired, Assert.Single(again.Items, item => item.Receipt.Id == final.Id));
+        var malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
+        var finalDay = TimeZoneInfo.ConvertTime(final.CreatedAt, malaysia).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        var inRange = (await new ReservationReadStore(restarted).AccountAsync(data.OwnerId, 1, CancellationToken.None,
+            ListDateRange.Parse(finalDay, finalDay))).History!;
+        Assert.Contains(inRange.Items, item => item.Receipt.Id == final.Id);
+        Assert.All(inRange.Items, item => Assert.Equal(finalDay,
+            TimeZoneInfo.ConvertTime(item.Receipt.CreatedAt, malaysia).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)));
+        var outOfRange = (await new ReservationReadStore(restarted).AccountAsync(data.OwnerId, 1, CancellationToken.None,
+            ListDateRange.Parse("2000-01-01", "2000-01-02"))).History!;
+        Assert.Equal(0, outOfRange.Total);
+        var byNumber = (await new ReservationReadStore(restarted).AccountAsync(data.OwnerId, 1, CancellationToken.None,
+            search: final.Number.ToLowerInvariant())).History!;
+        Assert.Equal(final.Id, Assert.Single(byNumber.Items).Receipt.Id);
+        Assert.Equal(0, (await new ReservationReadStore(restarted).AccountAsync(data.OwnerId, 1, CancellationToken.None,
+            search: "no such reservation")).History!.Total);
+        Assert.Empty(outOfRange.Items);
         Assert.All(await database.Vehicles.ToArrayAsync(), vehicle => Assert.Equal(VehicleStatus.Available, vehicle.Status));
     }
 
@@ -152,7 +182,7 @@ public sealed class ReservationReadTests(IntakePhotoFixture fixture) : IClassFix
             Assert.True(changedActor.Invoked);
             Assert.Equal(ReservationStatus.Succeeded, snapshot.Status);
             Assert.Equal(51, snapshot.History!.Total);
-            Assert.Equal(25, snapshot.History.Items.Count);
+            Assert.Equal(ReservationHistory.PageSize, snapshot.History.Items.Count);
             Assert.Equal(ReservationStatus.Forbidden,
                 (await new ReservationReadStore(database).AccountAsync(customerId, 1, CancellationToken.None)).Status);
         }

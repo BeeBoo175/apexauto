@@ -12,6 +12,7 @@ export function SearchField({
   placeholder,
   busy = false,
   disabledReason,
+  density = "compact",
 }: {
   label: string;
   value: string;
@@ -21,13 +22,14 @@ export function SearchField({
   placeholder: string;
   busy?: boolean;
   disabledReason?: string;
+  density?: "default" | "compact";
 }) {
   return (
     <div className={styles.field}>
       <Input
         label={label}
         labelHidden
-        density="compact"
+        density={density}
         type="search"
         maxLength={160}
         placeholder={placeholder}

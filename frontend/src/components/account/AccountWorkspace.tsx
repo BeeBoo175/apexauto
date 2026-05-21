@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { AccountPanel } from "@/components/auth/AccountPanel";
 import { useIntakeActor } from "@/hooks/use-intake-actor";
 import type { CustomerAccount } from "@/lib/auth/contracts";
@@ -8,8 +9,23 @@ import type { Appointment } from "@/lib/intake/contracts";
 import type { HistoryFilters } from "@/lib/intake/list-query";
 import { AppointmentHistory } from "./AppointmentHistory";
 import { AccountReservations } from "./AccountReservations";
-import type { AccountReservations as ReservationSnapshot } from "@/lib/vehicles/account-reservations";
+import type {
+  AccountReservations as ReservationSnapshot,
+  ReservationFilters,
+} from "@/lib/vehicles/account-reservations";
 import styles from "./Account.module.css";
+
+const sections = [
+  { id: "reservations", label: "Reservations" },
+  { id: "appointments", label: "Selling appointments" },
+  { id: "account-details", label: "Account details" },
+] as const;
+
+type AccountSection = (typeof sections)[number]["id"];
+
+function sectionFromHash(hash: string) {
+  return sections.find(({ id }) => `#${id}` === hash)?.id;
+}
 
 export function AccountWorkspace({
   account,
@@ -18,6 +34,7 @@ export function AccountWorkspace({
   page,
   reservations,
   reservationPage,
+  reservationFilters,
 }: {
   account: CustomerAccount;
   history: ApiResult<Page<Appointment>> | null;
@@ -25,8 +42,21 @@ export function AccountWorkspace({
   page: number;
   reservations: ApiResult<ReservationSnapshot>;
   reservationPage: number;
+  reservationFilters: ReservationFilters;
 }) {
   const actor = useIntakeActor({ userId: account.userId, role: "Customer", branchId: null });
+  const [section, setSection] = useState<AccountSection>("reservations");
+  useEffect(() => {
+    function sync() {
+      const next = sectionFromHash(window.location.hash);
+      if (next) {
+        setSection(next);
+      }
+    }
+    queueMicrotask(sync);
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
+  }, []);
   if (!actor.active) {
     return null;
   }
@@ -37,19 +67,36 @@ export function AccountWorkspace({
           <h1 tabIndex={-1}>Your account</h1>
           <p className={styles.welcome}>Welcome back, {account.legalName}.</p>
         </div>
-        <nav className={styles.sectionLinks} aria-label="Account sections">
-          <a href="#reservations">Reservations</a>
-          <a href="#appointments">Selling appointments</a>
-          <a href="#account-details">Account details</a>
-        </nav>
       </header>
-      <AccountReservations
-        initial={reservations}
-        page={reservationPage}
-        actorId={account.userId}
-        ready={actor.ready}
-      >
-        <div id="appointments" className={styles.appointments}>
+      <nav className={styles.tabs} aria-label="Account sections">
+        {sections.map(({ id, label }) => (
+          <a
+            key={id}
+            href={`#${id}`}
+            aria-current={section === id ? "location" : undefined}
+            onClick={(event) => {
+              if (event.button === 0 && !(event.metaKey || event.ctrlKey || event.shiftKey)) {
+                event.preventDefault();
+                setSection(id);
+                window.history.replaceState(null, "", `#${id}`);
+              }
+            }}
+          >
+            {label}
+          </a>
+        ))}
+      </nav>
+      <div className={styles.content}>
+        <div hidden={section !== "reservations"}>
+          <AccountReservations
+            initial={reservations}
+            page={reservationPage}
+            filters={reservationFilters}
+            actorId={account.userId}
+            ready={actor.ready}
+          />
+        </div>
+        <div id="appointments" className={styles.panel} hidden={section !== "appointments"}>
           {history ? (
             <AppointmentHistory
               initial={history}
@@ -64,14 +111,15 @@ export function AccountWorkspace({
             </section>
           )}
         </div>
-      </AccountReservations>
-      <section
-        id="account-details"
-        className={styles.accountDetails}
-        aria-labelledby="account-details-title"
-      >
-        <AccountPanel initialAccount={account} />
-      </section>
+        <section
+          id="account-details"
+          className={styles.panel}
+          aria-labelledby="account-details-title"
+          hidden={section !== "account-details"}
+        >
+          <AccountPanel initialAccount={account} />
+        </section>
+      </div>
     </section>
   );
 }

@@ -19,38 +19,35 @@ test("owned history keeps scoped pages and confirmed content, then reconciles ca
 
   const initial = await page.goto("/account");
   expect(await initial!.text()).toContain("Your appointments");
+  await page.getByRole("link", { name: "Selling appointments", exact: true }).click();
 
-  await expect(
-    page.getByRole("button", { name: "Refresh appointments", exact: true }),
-  ).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Apply dates", exact: true })).toBeEnabled();
   expect(
     (counts()["/api/intake/appointments"] ?? 0) - (before["/api/intake/appointments"] ?? 0),
   ).toBe(1);
-  const records = page
-    .getByRole("region", { name: "Your appointments", exact: true })
-    .getByRole("heading", { level: 3 });
+  const appointments = page.getByRole("region", { name: "Your appointments", exact: true });
+  const records = appointments.getByRole("heading", { level: 3 });
   const historySummary = page.getByText(/^\d+ appointments · Page 1/);
   const total = Number((await historySummary.innerText()).match(/^(\d+) appointments/)![1]);
-  const pageSize = 25;
+  const pageSize = 5;
   const finalPage = Math.ceil(total / pageSize);
   expect(finalPage).toBeGreaterThan(1);
   expect(total % pageSize).toBeGreaterThan(0);
-  await expect(records).toHaveCount(25);
-  for (let current = 2; current <= finalPage; current++) {
-    await page.getByRole("button", { name: "Next appointments", exact: true }).click();
-    await expect(
-      page.getByText(`${total} appointments · Page ${current} · All dates`, { exact: true }),
-    ).toBeVisible();
-    await expect(records).toHaveCount(Math.min(pageSize, total - (current - 1) * pageSize));
-  }
+  await expect(records).toHaveCount(pageSize);
+  await page.getByRole("button", { name: "Next appointments", exact: true }).click();
+  await expect(
+    page.getByText(`${total} appointments · Page 2 · All dates`, { exact: true }),
+  ).toBeVisible();
+  await expect(records).toHaveCount(Math.min(pageSize, total - pageSize));
+  await page.goto(`/account?page=${finalPage}#appointments`);
+  await expect(records).toHaveCount(total - (finalPage - 1) * pageSize);
   await expect(page.getByRole("button", { name: "Next appointments", exact: true })).toBeDisabled();
-  for (let current = finalPage - 1; current >= 1; current--) {
-    await page.getByRole("button", { name: "Previous appointments", exact: true }).click();
-    await expect(
-      page.getByText(`${total} appointments · Page ${current} · All dates`, { exact: true }),
-    ).toBeVisible();
-    await expect(records).toHaveCount(pageSize);
-  }
+  await page.getByRole("button", { name: "Previous appointments", exact: true }).click();
+  await expect(
+    page.getByText(`${total} appointments · Page ${finalPage - 1} · All dates`, { exact: true }),
+  ).toBeVisible();
+  await page.goto("/account#appointments");
+  await expect(records).toHaveCount(pageSize);
   await expect(
     page.getByRole("button", { name: "Previous appointments", exact: true }),
   ).toBeDisabled();
@@ -66,28 +63,28 @@ test("owned history keeps scoped pages and confirmed content, then reconciles ca
       },
     }),
   );
-  await page.getByRole("button", { name: "Refresh appointments", exact: true }).click();
+  await page.getByRole("button", { name: "Apply dates", exact: true }).click();
   await expect(
     page.getByRole("alert").filter({
       hasText:
         "Appointment history could not be refreshed. The last confirmed records and filters remain shown.",
     }),
   ).toBeVisible();
-  await expect(records).toHaveCount(25);
+  await expect(records).toHaveCount(pageSize);
   await page.unroute("**/api/intake/appointments?**");
-  await page.getByLabel("From (Malaysia)", { exact: true }).fill("2026-01-01");
+  await appointments.getByLabel("From (Malaysia)", { exact: true }).fill("2026-01-01");
   await page.getByRole("button", { name: "Apply dates", exact: true }).click();
   await expect(
     page.getByText("Choose both From and To dates, or leave both empty.", { exact: true }).first(),
   ).toBeVisible();
-  await expect(records).toHaveCount(25);
-  await page.getByLabel("To (Malaysia)", { exact: true }).fill("2026-01-01");
+  await expect(records).toHaveCount(pageSize);
+  await appointments.getByLabel("To (Malaysia)", { exact: true }).fill("2026-01-01");
   await page.getByRole("button", { name: "Apply dates", exact: true }).click();
   await expect(page.getByText("No appointments match these filters.")).toBeVisible();
-  await page.getByLabel("From (Malaysia)", { exact: true }).fill("");
-  await page.getByLabel("To (Malaysia)", { exact: true }).fill("");
+  await appointments.getByLabel("From (Malaysia)", { exact: true }).fill("");
+  await appointments.getByLabel("To (Malaysia)", { exact: true }).fill("");
   await page.getByRole("button", { name: "Apply dates", exact: true }).click();
-  await expect(records).toHaveCount(25);
+  await expect(records).toHaveCount(pageSize);
   let loseReceipt = true;
   const requests: string[] = [];
   await page.route("**/api/intake/appointments/*/cancellations", async (route) => {
@@ -112,7 +109,9 @@ test("owned history keeps scoped pages and confirmed content, then reconciles ca
   await page.getByRole("button", { name: "Request cancellation", exact: true }).first().click();
   const dialog = page.getByRole("dialog", { name: "Cancel this appointment?" });
   await dialog.getByRole("button", { name: "Confirm cancellation", exact: true }).click();
-  await expect(dialog.getByRole("button", { name: "Close dialog", exact: true })).toBeDisabled();
+  await expect(
+    dialog.getByRole("button", { name: "Keep appointment", exact: true }),
+  ).toBeDisabled();
   await page.keyboard.press("Escape");
   await expect(dialog).toBeVisible();
   await dialog.getByRole("button", { name: "Retry same cancellation", exact: true }).click();
@@ -120,9 +119,8 @@ test("owned history keeps scoped pages and confirmed content, then reconciles ca
   expect(requests).toHaveLength(2);
   expect(requests[0]).toBe(requests[1]);
   await expect(page.getByText("Cancelled", { exact: true }).first()).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Refresh appointments", exact: true }),
-  ).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Apply dates", exact: true })).toBeEnabled();
 
-  await expect(page.getByText("Request confirmed.", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Request confirmed.", { exact: true })).toBeVisible();
+  await page.screenshot({ path: path.join(evidence, "account-appointments.png") });
 });

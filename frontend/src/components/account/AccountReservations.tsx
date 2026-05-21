@@ -1,158 +1,167 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
-import Link from "next/link";
-import buttonStyles from "@/components/ui/Button.module.css";
+import { useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
 import { useAccountReservations } from "@/hooks/use-account-reservations";
 import type { ApiResult } from "@/lib/api";
-import { formatCurrency } from "@/lib/currency-format";
-import { formatMalaysianDateTime } from "@/lib/date-format";
 import {
-  customerReservationStates,
-  reservationVehicleName,
+  type ReservationFilters,
   type AccountReservation,
   type AccountReservations as ReservationSnapshot,
 } from "@/lib/vehicles/account-reservations";
+import { EmptyState } from "./EmptyState";
+import { HistoryFilterForm } from "./HistoryFilterForm";
 import { ReservedCar } from "./ReservedCar";
-import { ReservationTerms } from "./ReservationTerms";
+import { ReservationHistoryRow } from "./ReservationHistoryRow";
 import { CancelReservation } from "./CancelReservation";
 import styles from "./Reservations.module.css";
+import historyStyles from "./ReservationHistory.module.css";
 
 export function AccountReservations({
   initial,
   page,
+  filters,
   actorId,
   ready,
-  children,
 }: {
   initial: ApiResult<ReservationSnapshot>;
   page: number;
+  filters: ReservationFilters;
   actorId: string;
   ready: boolean;
-  children: ReactNode;
 }) {
-  const history = useAccountReservations(initial, page);
+  const history = useAccountReservations(initial, page, filters);
   const [cancelling, setCancelling] = useState<AccountReservation | null>(null);
   const { snapshot } = history;
-  const featured = snapshot?.active ?? history.released;
+  const featured = snapshot?.active;
   const disabled = !ready || history.busy || Boolean(cancelling);
+  const filtered = Boolean(
+    history.filters.from || history.filters.to || history.filters.search.trim(),
+  );
   const records = snapshot?.items.filter((item) => !item.isActive) ?? [];
+  const pages = snapshot ? Math.max(1, Math.ceil(snapshot.total / snapshot.pageSize)) : 1;
+  const first = snapshot?.items.length ? (history.page - 1) * snapshot.pageSize + 1 : 0;
+  const last = first && snapshot ? first + snapshot.items.length - 1 : 0;
 
   return (
     <section id="reservations" aria-label="Your reservations" className={styles.section}>
-      <div className={styles.welcomePanel}>
-        <div>
-          <h2 id="reservations-title">
-            {snapshot?.active ? "Your next car is reserved." : "Your next car starts here."}
-          </h2>
-          <p>
-            {snapshot?.active
-              ? "Your reserved car and booking details are right below."
-              : "Browse inspected cars and keep your reservations and booking details here."}
-          </p>
-          <Link
-            href={snapshot?.active ? "#reserved-car" : "/vehicles"}
-            className={`${buttonStyles.button} ${buttonStyles.primary} ${buttonStyles.md}`}
-          >
-            {snapshot?.active ? "View your reserved car" : "Browse cars"}
-          </Link>
-        </div>
-        <div className={styles.welcomeAside}>
-          <h3>A little time to decide.</h3>
-          <p>Reserve your chosen car for 48 hours with a refundable MYR 500 simulated deposit.</p>
-        </div>
-      </div>
       <div className={styles.heading}>
-        <h3>Current reservation</h3>
-        <Button variant="ghost" disabled={disabled} onClick={() => void history.load()}>
-          {history.busy ? "Refreshing reservations" : "Refresh reservations"}
-        </Button>
-      </div>
-      {history.failed && (
-        <p className={styles.notice} role="status">
-          Reservations could not be refreshed. Any last confirmed records remain below. Use Refresh
-          reservations to try again.
+        <h2 id="reservations-title">Your reservation</h2>
+        <p className={styles.help}>
+          Reserve a car for 48 hours with a refundable MYR 500 simulated deposit.
         </p>
-      )}
-      {featured && (
-        <div id="reserved-car" className={styles.currentReservation}>
-          <ReservedCar
-            key={featured.receipt.id}
-            item={featured}
-            disabled={disabled}
-            onCancel={() => setCancelling(featured)}
+      </div>
+      <div className={styles.body}>
+        {!snapshot && (
+          <Button variant="secondary" disabled={disabled} onClick={() => void history.load()}>
+            {history.busy ? "Loading reservations" : "Try loading reservations again"}
+          </Button>
+        )}
+        {featured && (
+          <div id="reserved-car" className={styles.currentReservation}>
+            <ReservedCar
+              key={featured.receipt.id}
+              item={featured}
+              disabled={disabled}
+              onCancel={() => setCancelling(featured)}
+            />
+          </div>
+        )}
+        {snapshot && !featured && (
+          <EmptyState
+            title="No active reservation"
+            description="When you reserve a car, it and its booking details appear here."
+            href="/vehicles"
+            action="Browse cars"
           />
-        </div>
-      )}
-      {snapshot && !featured && (
-        <div className={styles.noActive}>
-          <p>You have no active reservation. Choose a car above when you are ready.</p>
-        </div>
-      )}
-      {children}
-      {snapshot && snapshot.total > 0 && (
-        <details className={styles.history} open={page > 1}>
-          <summary className={styles.historyHeading}>
-            <h2>Reservation history</h2>
-            <span className={styles.help}>
-              {snapshot.total} reservations · Page {history.page} · Newest first
-            </span>
-          </summary>
-          {records.length === 0 && (
-            <p className={styles.help}>No past reservations on this page.</p>
-          )}
-          {records.map((item) => (
-            <article key={item.receipt.id} className={styles.historyItem}>
-              <div className={styles.historySummary}>
-                <div>
-                  <h4>{reservationVehicleName(item)}</h4>
-                  <p className={styles.help}>
-                    {formatMalaysianDateTime(item.receipt.createdAt)} · {item.branchName}
-                  </p>
-                </div>
-                <div className={styles.historyState}>
-                  {item.release ? (
-                    <>
-                      <p>{customerReservationStates[item.release.kind]}</p>
-                      <p className={styles.refund}>
-                        {formatCurrency(item.release.refund)} simulated refund recorded
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <p>Sale confirmed</p>
-                      <Link href={`/account/sales/${item.receipt.id}/documents`}>
-                        View sale documents
-                      </Link>
-                    </>
-                  )}
-                </div>
+        )}
+        {snapshot && (snapshot.total > 0 || filtered) && (
+          <section className={historyStyles.history} aria-labelledby="reservation-history-title">
+            <div className={historyStyles.historyHead}>
+              <h3 id="reservation-history-title">Reservation history</h3>
+              <p className={styles.help}>
+                {snapshot.total} {snapshot.total === 1 ? "reservation" : "reservations"} · Page{" "}
+                {history.page} · Newest first
+              </p>
+            </div>
+            <HistoryFilterForm
+              draft={history.draft}
+              disabled={disabled}
+              busy={history.busy}
+              searchLabel="Search reservations"
+              searchPlaceholder="Search reservation number, vehicle or branch"
+              onDraft={history.setDraft}
+              onApply={() => void history.load(1, history.draft)}
+              onClearSearch={() => {
+                const next = { ...history.draft, search: "" };
+                history.setDraft(next);
+                void history.load(1, next);
+              }}
+            />
+            {records.length === 0 && (
+              <div className={historyStyles.noMatches}>
+                <p className={styles.help}>
+                  {filtered
+                    ? "No reservations match your search."
+                    : "No past reservations on this page."}
+                </p>
+                {filtered && (
+                  <Button
+                    variant="ghost"
+                    size="compact"
+                    disabled={disabled}
+                    onClick={() => {
+                      const cleared = { from: "", to: "", search: "" };
+                      history.setDraft(cleared);
+                      void history.load(1, cleared);
+                    }}
+                  >
+                    Clear filters
+                  </Button>
+                )}
               </div>
-              <details className={styles.disclosure}>
-                <summary>View reservation {item.receipt.number}</summary>
-                <ReservationTerms item={item} />
-              </details>
-            </article>
-          ))}
-          <nav aria-label="Reservation history pages" className={styles.paging}>
-            <Button
-              variant="secondary"
-              disabled={disabled || history.page <= 1}
-              onClick={() => void history.load(history.page - 1)}
-            >
-              Previous reservations
-            </Button>
-            <Button
-              variant="secondary"
-              disabled={disabled || history.page * snapshot.pageSize >= snapshot.total}
-              onClick={() => void history.load(history.page + 1)}
-            >
-              Next reservations
-            </Button>
-          </nav>
-        </details>
-      )}
+            )}
+            <ul className={historyStyles.historyList}>
+              {records.map((item) => (
+                <ReservationHistoryRow key={item.receipt.id} item={item} />
+              ))}
+            </ul>
+            {snapshot.total > 0 && (
+              <nav aria-label="Reservation history pages" className={historyStyles.pager}>
+                <span className={historyStyles.pagerMeta} aria-live="polite">
+                  {first}–{last} of {snapshot.total}
+                </span>
+                <div className={historyStyles.pagerControls}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    disabled={disabled || history.page <= 1}
+                    onClick={() => void history.load(history.page - 1)}
+                    aria-label="Previous reservations"
+                    title="Previous page"
+                  >
+                    <Icon name="previous" />
+                  </Button>
+                  <span>
+                    Page {history.page} of {pages}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    disabled={disabled || history.page >= pages}
+                    onClick={() => void history.load(history.page + 1)}
+                    aria-label="Next reservations"
+                    title="Next page"
+                  >
+                    <Icon name="next" />
+                  </Button>
+                </div>
+              </nav>
+            )}
+          </section>
+        )}
+      </div>
       {cancelling && (
         <CancelReservation
           item={cancelling}

@@ -1,15 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
 import { useAppointmentHistory } from "@/hooks/use-appointment-history";
 import type { ApiResult, Page } from "@/lib/api";
 import type { Appointment } from "@/lib/intake/contracts";
 import type { HistoryFilters } from "@/lib/intake/list-query";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { CancelAppointment } from "./CancelAppointment";
+import { EmptyState } from "./EmptyState";
+import { HistoryFilterForm } from "./HistoryFilterForm";
 import styles from "./Account.module.css";
 
 export function AppointmentHistory({
@@ -31,38 +31,21 @@ export function AppointmentHistory({
   return (
     <section className={styles.history} aria-labelledby="appointment-history-title">
       <div className={styles.heading}>
-        <h2 id="appointment-history-title">Your appointments</h2>
-        <Button variant="secondary" disabled={disabled} onClick={() => void history.load()}>
-          Refresh appointments
-        </Button>
+        <div>
+          <h2 id="appointment-history-title">Your appointments</h2>
+          <p className={styles.help}>
+            Inspection appointments for the cars you are selling, with their dates and status.
+          </p>
+        </div>
       </div>
       {!empty && (
-        <form
-          method="post"
-          className={styles.filters}
-          onSubmit={(event) => {
-            event.preventDefault();
-            void history.load(draft, 1);
-          }}
-        >
-          <Input
-            label="From (Malaysia)"
-            type="date"
-            value={draft.from}
-            disabled={disabled}
-            onChange={(event) => history.setDraft({ ...draft, from: event.target.value })}
-          />
-          <Input
-            label="To (Malaysia)"
-            type="date"
-            value={draft.to}
-            disabled={disabled}
-            onChange={(event) => history.setDraft({ ...draft, to: event.target.value })}
-          />
-          <Button variant="secondary" type="submit" disabled={disabled}>
-            Apply dates
-          </Button>
-        </form>
+        <HistoryFilterForm
+          draft={draft}
+          disabled={disabled}
+          busy={history.busy}
+          onDraft={history.setDraft}
+          onApply={() => void history.load(draft, 1)}
+        />
       )}
       {!empty && (
         <p className={styles.help}>
@@ -70,16 +53,13 @@ export function AppointmentHistory({
         </p>
       )}
       {empty && (
-        <div className={styles.emptyAppointments}>
-          <p>No inspection appointments yet.</p>
-          <p className={styles.help}>
-            Planning to sell your car? Start with a valuation, then choose an inspection
-            appointment.
-          </p>
-          <Link href="/sell" prefetch={false}>
-            Value your car
-          </Link>
-        </div>
+        <EmptyState
+          title="No inspection appointments yet"
+          description="Planning to sell your car? Start with a valuation, then choose an inspection appointment."
+          href="/sell"
+          action="Value your car"
+          prefetch={false}
+        />
       )}
       {snapshot && !empty && (
         <>

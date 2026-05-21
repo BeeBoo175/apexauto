@@ -51,6 +51,25 @@ test("customer account retains all controls, independent scoped history and exac
       })
     ).json()
   ).data as AccountReservations;
+  if (initialHistory.active?.isHandled) {
+    const agent = await browser.newContext({ ...info.project.use, baseURL: origin });
+    try {
+      await login(agent, "aina.sofia@example.invalid");
+      const id = initialHistory.active.receipt.id;
+      const saleResponse = await agent.request.get(`/api/staff/sales/${id}`, {
+        headers: await requestHeaders(agent),
+      });
+      expect(saleResponse.status()).toBe(200);
+      const sale = (await saleResponse.json()).data;
+      const released = await agent.request.post(`/api/staff/sales/${id}/releases`, {
+        headers: await requestHeaders(agent),
+        data: { operationId: crypto.randomUUID(), expectedVersion: sale.sale.version },
+      });
+      expect(released.status()).toBe(200);
+    } finally {
+      await agent.close();
+    }
+  }
   if (!initialHistory.active) {
     // Desktop and mobile share fixtures; the preceding project deliberately released its hold.
     const vehicles = (await (await context.request.get("/api/vehicles")).json()).data.items as {
@@ -75,10 +94,14 @@ test("customer account retains all controls, independent scoped history and exac
   expect(html).toContain("Account details");
   expect(html).toContain("Your appointments");
   const reservations = page.getByRole("region", { name: "Your reservations", exact: true });
-  const active = page.getByRole("article", { name: "Your reserved car", exact: true });
+  const active = page.getByRole("article", {
+    name: "Your reserved car",
+    exact: true,
+    includeHidden: true,
+  });
   await expect(active).toBeVisible();
   await expect(
-    reservations.getByRole("button", { name: "Refresh reservations", exact: true }),
+    reservations.getByRole("button", { name: "Next reservations", exact: true }),
   ).toBeEnabled();
   expect(
     (counts()["/api/account/reservations"] ?? 0) - (before["/api/account/reservations"] ?? 0),
@@ -90,7 +113,7 @@ test("customer account retains all controls, independent scoped history and exac
   expect(response.headers()["cache-control"]).toContain("no-store");
   const snapshot = (await response.json()).data as AccountReservations;
   const held = snapshot.active!;
-  expect(snapshot.pageSize).toBe(25);
+  expect(snapshot.pageSize).toBe(5);
   expect(snapshot.total).toBeGreaterThan(50);
   expect(html).toContain(held.receipt.id);
   expect(held.coverPhotoId).not.toBeNull();
@@ -101,6 +124,7 @@ test("customer account retains all controls, independent scoped history and exac
   ).toBe(true);
   await page.screenshot({ path: path.join(evidence, "account-overview.png") });
 
+  await page.getByRole("link", { name: "Account details", exact: true }).click();
   const details = page.getByRole("region", { name: "Account details", exact: true });
   await expect(details.getByRole("button", { name: "Refresh account", exact: true })).toHaveCount(
     0,
@@ -109,6 +133,7 @@ test("customer account retains all controls, independent scoped history and exac
   await expect(details.getByRole("link", { name: "Password recovery", exact: true })).toBeVisible();
   await details.scrollIntoViewIfNeeded();
   await page.screenshot({ path: path.join(evidence, "account-existing-features.png") });
+  await page.getByRole("link", { name: "Reservations", exact: true }).click();
   await reservations.getByRole("button", { name: "Next reservations", exact: true }).click();
   await expect(page).toHaveURL(/reservationPage=3&page=2/);
   await expect(
@@ -116,14 +141,16 @@ test("customer account retains all controls, independent scoped history and exac
       exact: true,
     }),
   ).toBeVisible();
-  await expect(active).toContainText(held.receipt.id);
+  await expect(active).toContainText(held.receipt.number);
+  await page.getByRole("link", { name: "Selling appointments", exact: true }).click();
   const appointments = page.getByRole("region", { name: "Your appointments", exact: true });
   await appointments.getByRole("button", { name: "Next appointments", exact: true }).click();
   await expect(page).toHaveURL(/reservationPage=3&page=3/);
-  await expect(active).toContainText(held.receipt.id);
+  await expect(active).toContainText(held.receipt.number);
 
+  await page.getByRole("link", { name: "Reservations", exact: true }).click();
   await active.locator("summary").click();
-  await expect(active.getByText("Confirmed reservation", { exact: true })).toBeVisible();
+  await expect(active.getByRole("heading", { name: "Reservation", exact: true })).toBeVisible();
   const confirmed = await reservations.innerText();
   await page.route("**/api/account/reservations?**", (route) =>
     route.fulfill({
@@ -136,28 +163,48 @@ test("customer account retains all controls, independent scoped history and exac
       },
     }),
   );
-  await reservations.getByRole("button", { name: "Refresh reservations", exact: true }).click();
-  await expect(reservations.getByRole("status")).toContainText("last confirmed records remain");
-  await expect(active.getByText("Confirmed reservation", { exact: true })).toBeVisible();
-  expect(await reservations.innerText()).toContain(held.receipt.id);
-  expect(confirmed).toContain(held.receipt.id);
+  await page.getByRole("link", { name: "Reservations", exact: true }).click();
+  await reservations.getByRole("button", { name: "Next reservations", exact: true }).click();
+  await expect(
+    page.getByRole("alert").filter({ hasText: "Your last confirmed records remain shown." }),
+  ).toBeVisible();
+  await expect(active.getByRole("heading", { name: "Reservation", exact: true })).toBeVisible();
+  expect(await reservations.innerText()).toContain(held.receipt.number);
+  expect(confirmed).toContain(held.receipt.number);
   await page.unroute("**/api/account/reservations?**");
 
   const outsider = await browser.newContext({ ...info.project.use, baseURL: origin });
-  await login(outsider, "nur.aisyah@example.invalid");
+  const outsiderEmail = `nur.hanani.${crypto.randomUUID()}@example.invalid`;
+  const registration = await outsider.request.post("/api/auth/register", {
+    headers: { Origin: origin },
+    data: {
+      registrationKey: crypto.randomUUID(),
+      legalName: "Nur Hanani Abdullah",
+      email: outsiderEmail,
+      password: "Password123!",
+      nric: `900415${Math.floor(100000 + Math.random() * 900000)}`,
+      mobile: "+60123456789",
+      residentialAddress: "18 Jalan SS 2/24, 47300 Petaling Jaya, Selangor",
+    },
+  });
+  expect(registration.status()).toBe(200);
+  await login(outsider, outsiderEmail);
   const outsiderPage = await outsider.newPage();
   await outsiderPage.goto("/account");
+  await outsiderPage.getByRole("link", { name: "Account details", exact: true }).click();
   await expect(
     outsiderPage.getByRole("button", { name: "Resend verification email", exact: true }),
   ).toBeVisible();
+  await outsiderPage.getByRole("link", { name: "Selling appointments", exact: true }).click();
   await expect(
     outsiderPage.getByText("Verify your email to view your appointment history.", { exact: true }),
   ).toBeVisible();
   await expect(
     outsiderPage.getByText("This account cannot perform this action.", { exact: true }),
   ).toHaveCount(0);
+  await outsiderPage.getByRole("link", { name: "Reservations", exact: true }).click();
   const emptyReservations = outsiderPage.getByRole("region", {
-    name: "Your next car starts here.",
+    name: "Your reservations",
     exact: true,
   });
   await expect(
@@ -220,10 +267,8 @@ test("customer account retains all controls, independent scoped history and exac
   await expect(dialog).toBeVisible();
   await dialog.getByRole("button", { name: "Reconcile cancellation", exact: true }).click();
   await expect(dialog).not.toBeVisible();
-  await expect(active.getByText("Cancelled by you", { exact: true })).toBeVisible();
-  await expect(
-    active.getByText("MYR 500.00 simulated refund recorded", { exact: true }),
-  ).toBeVisible();
+  await expect(active).toHaveCount(0);
+  await expect(page.getByText("No active reservation")).toBeVisible();
   expect(requests).toHaveLength(2);
   expect(requests[0]).toBe(requests[1]);
   const refunded = (
@@ -245,14 +290,14 @@ test("customer account retains all controls, independent scoped history and exac
     true,
   );
   await page.goto("/account");
-  await expect(page.getByText("No active reservation", { exact: true })).toBeVisible();
+  await expect(page.getByText("No active reservation")).toBeVisible();
   const retained = page.getByRole("region", { name: "Your reservations", exact: true });
   await expect(retained.getByText("Cancelled by you", { exact: true }).first()).toBeVisible();
 
   const manager = await browser.newContext({ ...info.project.use, baseURL: origin });
   await login(manager, "siti.aminah@example.invalid");
   await context.addCookies(await manager.cookies());
-  await retained.getByRole("button", { name: "Refresh reservations", exact: true }).click();
+  await retained.getByRole("button", { name: "Next reservations", exact: true }).click();
   await expect(page.getByRole("region", { name: "Account details", exact: true })).toHaveCount(0);
   await expect(page).toHaveURL(/\/dashboard\//);
   await manager.close();

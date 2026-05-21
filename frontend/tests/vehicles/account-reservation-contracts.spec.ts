@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 import {
   accountReservationPage,
+  accountReservationFilters,
+  accountReservationQuery,
   parseAccountReservation,
   parseAccountReservations,
 } from "@/lib/vehicles/account-reservations";
@@ -8,6 +10,7 @@ import {
   matchesCustomerCancellation,
   parseCustomerCancellation,
 } from "@/lib/vehicles/customer-reservation-cancellation";
+import { parseReservationConflict } from "@/lib/vehicles/reservation-errors";
 
 const owner = "47cf2705-95cc-48b6-b907-64bf18dd87da";
 const id = "2f35e1b2-602b-43dc-8c5f-4085893b0ea8";
@@ -56,7 +59,7 @@ const snapshot = {
   items: [item],
   active: item,
   page: 1,
-  pageSize: 25,
+  pageSize: 5,
   total: 1,
 };
 const cancellation = {
@@ -132,4 +135,26 @@ test("customer cancellation requires the exact operation, target and actor witho
   ]) {
     expect(parseCustomerCancellation({ ...cancellation, ...change })).toBeNull();
   }
+});
+
+test("reservation filters stay independent from appointments and recognized conflicts use safe guidance", () => {
+  const filters = accountReservationFilters({
+    from: "2026-01-01",
+    reservationFrom: "2026-10-30",
+    reservationTo: "2026-10-31",
+    reservationSearch: "  Petaling Jaya  ",
+  });
+  expect(Object.fromEntries(new URLSearchParams(accountReservationQuery(2, filters)))).toEqual({
+    page: "2",
+    from: "2026-10-30",
+    to: "2026-10-31",
+    search: "Petaling Jaya",
+  });
+  expect(accountReservationFilters({ reservationSearch: "x".repeat(161) }).search).toHaveLength(
+    160,
+  );
+  expect(parseReservationConflict("customer-has-reservation")?.message).toContain("sales team");
+  expect(parseReservationConflict("vehicle-reserved")?.message).toContain("another customer");
+  expect(parseReservationConflict("private backend error")).toBeUndefined();
+  expect(parseReservationConflict({ code: "vehicle-reserved" })).toBeUndefined();
 });
