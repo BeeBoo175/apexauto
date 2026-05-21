@@ -7,6 +7,7 @@ import {
 } from "@/lib/auth/contracts";
 import { isMyr } from "@/lib/currency-input";
 import { parseCountedPage } from "@/lib/api";
+import { parsePaymentEvidence, parseHandoverEvidence } from "./completion-evidence";
 import {
   saleStatuses,
   type SaleStatus,
@@ -94,7 +95,29 @@ export function parseSaleSnapshot(value: unknown): SaleSnapshot | null {
   ) {
     return null;
   }
-  return value as unknown as SaleSnapshot;
+  if (
+    !nullable(isUtcInstant)(value.settledAt) ||
+    !nullable(isUuid)(value.acquiredVehicleId) ||
+    !nullable(isUtcInstant)(value.deliveredAt) ||
+    (value.paymentEvidence !== null && !parsePaymentEvidence(value.paymentEvidence)) ||
+    (value.handoverEvidence !== null && !parseHandoverEvidence(value.handoverEvidence))
+  ) {
+    return null;
+  }
+  if (
+    (["Settled", "Delivered"].includes(value.status) &&
+      (!value.paymentEvidence || !value.settledAt)) ||
+    (value.status === "Delivered" && (!value.handoverEvidence || !value.deliveredAt))
+  ) {
+    return null;
+  }
+  return {
+    ...value,
+    paymentEvidence:
+      value.paymentEvidence === null ? null : parsePaymentEvidence(value.paymentEvidence),
+    handoverEvidence:
+      value.handoverEvidence === null ? null : parseHandoverEvidence(value.handoverEvidence),
+  } as SaleSnapshot;
 }
 
 function parseContext(value: unknown): SaleContext | null {

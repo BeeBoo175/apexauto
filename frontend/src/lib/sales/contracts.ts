@@ -1,10 +1,13 @@
 import type { CurrentActor } from "@/lib/auth/actor";
+import type { SalePaymentEvidence, SaleHandoverEvidence } from "./completion-evidence";
 
 export const saleStatuses = [
   "Open",
   "Handling",
   "PendingApproval",
   "Approved",
+  "Settled",
+  "Delivered",
   "Expired",
   "Cancelled",
 ] as const;
@@ -16,6 +19,8 @@ export const saleStatusLabels: Record<SaleStatus, string> = {
   Handling: "Being handled",
   PendingApproval: "Needs approval",
   Approved: "Approved",
+  Settled: "Settled",
+  Delivered: "Delivered",
   Expired: "Expired",
   Cancelled: "Cancelled",
 };
@@ -50,6 +55,11 @@ export interface SaleSnapshot {
   decidedAt: string | null;
   closedAt: string | null;
   version: number;
+  paymentEvidence: SalePaymentEvidence | null;
+  settledAt: string | null;
+  acquiredVehicleId: string | null;
+  handoverEvidence: SaleHandoverEvidence | null;
+  deliveredAt: string | null;
 }
 
 export interface SaleContext {
@@ -177,25 +187,37 @@ export function remainingHoldSeconds(
   );
 }
 
+export function saleHasHoldTimer(status: SaleStatus) {
+  return ["Open", "Handling", "PendingApproval", "Approved"].includes(status);
+}
+
 export const saleDiscountOverLimit = (
   row: Pick<SaleSummary, "discountLimitAtSubmit" | "negotiatedDiscount">,
 ) => row.discountLimitAtSubmit !== null && row.negotiatedDiscount > row.discountLimitAtSubmit;
 
-export type QueueView = "ToClaim" | "Handling" | "Waiting" | "Approved";
+export type QueueView = "ToClaim" | "Handling" | "Waiting" | "Settling" | "Completed";
 
-export const queueViews: readonly QueueView[] = ["Handling", "Waiting", "Approved", "ToClaim"];
+export const queueViews: readonly QueueView[] = [
+  "Handling",
+  "Waiting",
+  "Settling",
+  "Completed",
+  "ToClaim",
+];
 
 export const queueViewLabels: Record<QueueView, string> = {
   Handling: "Sales in progress",
   Waiting: "Awaiting approval",
-  Approved: "Approved sales",
+  Settling: "Sales awaiting settlement or handover",
+  Completed: "Delivered sales",
   ToClaim: "Holds to claim",
 };
 
 export const queueViewTabs: Record<QueueView, string> = {
   Handling: "Handling",
   Waiting: "Waiting",
-  Approved: "Approved",
+  Settling: "Settling",
+  Completed: "Completed",
   ToClaim: "To claim",
 };
 
@@ -203,11 +225,12 @@ export const queueViewTabs: Record<QueueView, string> = {
 export const queueViewQueries: Record<QueueView, string> = {
   Handling: "handling",
   Waiting: "waiting",
-  Approved: "approved",
+  Settling: "settling",
+  Completed: "completed",
   ToClaim: "claim",
 };
 
-export const queueCountKeys = ["toClaim", "handling", "waiting", "approved"] as const;
+export const queueCountKeys = ["toClaim", "handling", "waiting", "settling", "completed"] as const;
 
 export type QueueCounts = Record<(typeof queueCountKeys)[number], number>;
 
@@ -215,7 +238,8 @@ export const queueCountOf: Record<QueueView, keyof QueueCounts> = {
   ToClaim: "toClaim",
   Handling: "handling",
   Waiting: "waiting",
-  Approved: "approved",
+  Settling: "settling",
+  Completed: "completed",
 };
 
 // The tab a sale sits in for its agent, which a search result shows beside it.
@@ -223,7 +247,9 @@ export const queueViewOf: Partial<Record<SaleStatus, QueueView>> = {
   Open: "ToClaim",
   Handling: "Handling",
   PendingApproval: "Waiting",
-  Approved: "Approved",
+  Approved: "Settling",
+  Settled: "Settling",
+  Delivered: "Completed",
 };
 
 export interface SalesQueue {
@@ -239,6 +265,8 @@ export const tableViews = [
   { value: "Open", label: "Open", count: "open" },
   { value: "BeingHandled", label: "Being handled", count: "beingHandled" },
   { value: "Approved", label: "Approved", count: "approved" },
+  { value: "AwaitingHandover", label: "Awaiting handover", count: "awaitingHandover" },
+  { value: "Delivered", label: "Delivered", count: "delivered" },
   { value: "History", label: "History", count: "history" },
 ] as const;
 
@@ -317,6 +345,8 @@ export const saleCommands = [
   "approvals",
   "rejections",
   "cancellations",
+  "settlements",
+  "handovers",
 ] as const;
 
 export type SaleCommand = (typeof saleCommands)[number];

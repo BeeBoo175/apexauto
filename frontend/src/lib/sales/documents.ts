@@ -1,0 +1,156 @@
+import { isPositiveInteger, isRecord, isUtcInstant, isUuid } from "@/lib/auth/contracts";
+import { parseSaleSnapshot, nullable, text } from "./parse";
+import type { SaleSnapshot } from "./contracts";
+
+export interface SaleReviewedVehicle {
+  id: string;
+  registrationPlate: string;
+  vin: string;
+  make: string;
+  model: string;
+  trim: string;
+  manufactureYear: number;
+  mileageKilometres: number;
+}
+
+export interface SaleSettlementReview {
+  buyerName: string;
+  buyerNric: string;
+  buyerAddress: string;
+  vehicle: SaleReviewedVehicle;
+}
+
+export const documentLabels = {
+  PurchaseOrder: "Purchase order",
+  PaymentReceipt: "Payment receipt",
+  HandoverNote: "Handover note",
+} as const;
+
+export interface SaleDocumentCorrectionReceipt {
+  operationId: string;
+  saleId: string;
+  originalDocumentId: string;
+  replacementDocumentId: string;
+  replacementNumber: string;
+  actorId: string;
+  recordedAt: string;
+  reason: string;
+}
+
+export interface SaleDocument {
+  id: string;
+  kind: keyof typeof documentLabels;
+  number: string;
+  issuedAt: string;
+  contents: {
+    customerId: string;
+    branchId: string;
+    branchName: string;
+    branchAddress: string;
+    reservationNumber: string;
+    review: SaleSettlementReview;
+    sale: SaleSnapshot;
+  };
+  replacesDocumentId: string | null;
+  replacementDocumentId: string | null;
+  correction: SaleDocumentCorrectionReceipt | null;
+}
+
+export function parseSettlementReview(value: unknown): SaleSettlementReview | null {
+  if (!isRecord(value) || !isRecord(value.vehicle)) {
+    return null;
+  }
+  const vehicle = value.vehicle;
+  if (
+    !text(value.buyerName) ||
+    typeof value.buyerNric !== "string" ||
+    !/^\d{12}$/.test(value.buyerNric) ||
+    !text(value.buyerAddress) ||
+    !isUuid(vehicle.id) ||
+    ![vehicle.registrationPlate, vehicle.vin, vehicle.make, vehicle.model].every(text) ||
+    typeof vehicle.trim !== "string" ||
+    !isPositiveInteger(vehicle.manufactureYear) ||
+    !Number.isSafeInteger(vehicle.mileageKilometres) ||
+    Number(vehicle.mileageKilometres) < 0
+  ) {
+    return null;
+  }
+  return value as unknown as SaleSettlementReview;
+}
+
+export function parseDocumentCorrection(value: unknown): SaleDocumentCorrectionReceipt | null {
+  if (
+    !isRecord(value) ||
+    ![
+      value.operationId,
+      value.saleId,
+      value.originalDocumentId,
+      value.replacementDocumentId,
+      value.actorId,
+    ].every(isUuid) ||
+    !text(value.replacementNumber) ||
+    !isUtcInstant(value.recordedAt) ||
+    !text(value.reason) ||
+    value.originalDocumentId === value.replacementDocumentId
+  ) {
+    return null;
+  }
+  return value as unknown as SaleDocumentCorrectionReceipt;
+}
+
+export function parseSaleDocument(value: unknown): SaleDocument | null {
+  if (!isRecord(value) || !isRecord(value.contents)) {
+    return null;
+  }
+  const contents = value.contents;
+  const review = parseSettlementReview(contents.review);
+  const sale = parseSaleSnapshot(contents.sale);
+  const correction = value.correction === null ? null : parseDocumentCorrection(value.correction);
+  if (
+    !isUuid(value.id) ||
+    typeof value.kind !== "string" ||
+    !Object.hasOwn(documentLabels, value.kind) ||
+    !text(value.number) ||
+    !isUtcInstant(value.issuedAt) ||
+    !isUuid(contents.customerId) ||
+    !isUuid(contents.branchId) ||
+    ![contents.branchName, contents.branchAddress, contents.reservationNumber].every(text) ||
+    !review ||
+    !sale ||
+    !["Settled", "Delivered"].includes(sale.status) ||
+    !nullable(isUuid)(value.replacesDocumentId) ||
+    !nullable(isUuid)(value.replacementDocumentId) ||
+    value.id === value.replacesDocumentId ||
+    value.id === value.replacementDocumentId ||
+    (value.correction !== null &&
+      (!correction ||
+        !(
+          (correction.replacementDocumentId === value.id &&
+            correction.originalDocumentId === value.replacesDocumentId) ||
+          (correction.originalDocumentId === value.id &&
+            correction.replacementDocumentId === value.replacementDocumentId)
+        )))
+  ) {
+    return null;
+  }
+  return { ...value, contents: { ...contents, review, sale }, correction } as SaleDocument;
+}
+
+export function parseSaleDocuments(value: unknown): SaleDocument[] | null {
+  if (!Array.isArray(value) || value.length > 3) {
+    return null;
+  }
+  const documents = value.map(parseSaleDocument);
+  if (documents.some((document) => !document || document.replacementDocumentId !== null)) {
+    return null;
+  }
+  const parsed = documents as SaleDocument[];
+  return new Set(parsed.map((document) => document.kind)).size === parsed.length &&
+    new Set(parsed.map((document) => document.id)).size === parsed.length
+    ? parsed
+    : null;
+}
+
+export const saleDocumentsPath = (saleId: string) => `/api/sales/${saleId}/documents`;
+export const saleDocumentPdf = (saleId: string, documentId: string) =>
+  `${saleDocumentsPath(saleId)}/${documentId}/pdf`;

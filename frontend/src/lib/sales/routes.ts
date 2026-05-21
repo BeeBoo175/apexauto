@@ -19,6 +19,8 @@ import {
 import { isSaleReason } from "./parse";
 import { hasSalesAccess, saleCommands, tableTextKeys, type SaleCommand } from "./contracts";
 import { downloadListingPhoto } from "@/lib/vehicles/listing-photo-routes";
+import { shapeSettlement, shapeHandover } from "./completion-input";
+import { paymentMethods } from "./completion-evidence";
 
 type Body = Record<string, unknown>;
 
@@ -26,8 +28,11 @@ const upstream = "/api/staff/sales";
 
 // The sale reads and commands the browser may name; the backend scopes each to the actor's role, branch and sale.
 const saleReads =
-  /^(?:|\/queue|\/[0-9a-f-]{36}(?:\/(?:vehicle|options|agents|history|versions\/[1-9]\d{0,9}))?)$/i;
-const saleWrites = new RegExp(`^/[0-9a-f-]{36}/(?:${saleCommands.join("|")})$`, "i");
+  /^(?:|\/queue|\/[0-9a-f-]{36}(?:\/(?:vehicle|options|agents|history|settlement-review|versions\/[1-9]\d{0,9}))?)$/i;
+const saleWrites = new RegExp(
+  `^/[0-9a-f-]{36}/(?:${saleCommands.join("|")}|document-corrections)$`,
+  "i",
+);
 
 // Built from the table's filter keys so a new filter reaches the backend without a second list to update.
 export const tableKeys = ["page", "pageSize", "view", "sort", "direction", ...tableTextKeys];
@@ -141,6 +146,20 @@ export function shapeSaleCommand(command: SaleCommand) {
     switch (command) {
       case "assignments":
         return isUuid(body.agentId) ? { ...common, agentId: body.agentId } : null;
+      case "settlements": {
+        const fields = shapeSettlement(body);
+        return fields
+          ? {
+              ...common,
+              ...fields,
+              payment: { ...fields.payment, method: paymentMethods.indexOf(fields.payment.method) },
+            }
+          : null;
+      }
+      case "handovers": {
+        const fields = shapeHandover(body);
+        return fields ? { ...common, ...fields } : null;
+      }
       case "rejections":
       case "cancellations":
         return isSaleReason(body.reason) ? { ...common, reason: body.reason } : null;

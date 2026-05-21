@@ -5,6 +5,7 @@ import {
   saleReference,
   remainingHoldSeconds,
   saleDiscountOverLimit,
+  saleHasHoldTimer,
   type SaleSummary,
   type SalesTableFilters,
 } from "./contracts";
@@ -28,12 +29,12 @@ export function saleExportColumns(showBranch: boolean, now: number): CsvColumn<S
     {
       label: "Time left (hours)",
       value: (row) =>
-        row.closedAt === null ? (remainingHoldSeconds(row, now) / 3600).toFixed(2) : "",
+        saleHasHoldTimer(row.status) ? (remainingHoldSeconds(row, now) / 3600).toFixed(2) : "",
     },
     {
       label: "Hold timer",
       value: (row) => {
-        if (row.closedAt !== null) {
+        if (!saleHasHoldTimer(row.status)) {
           return "";
         }
         return row.pausedSeconds === null ? "Running" : "Paused";

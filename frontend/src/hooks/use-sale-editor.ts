@@ -15,6 +15,8 @@ import type { Sale, SaleCommand, SaleOptions, SaleReceipt } from "@/lib/sales/co
 import { saleTermsChanged, saleTermsDraft, type SaleTermsDraft } from "@/lib/sales/sale-terms";
 import { useApiCommand } from "./use-api-command";
 import { useEditGuard } from "./use-edit-guard";
+import type { SalePaymentEvidence, SaleHandoverEvidence } from "@/lib/sales/completion-evidence";
+import type { SaleSettlementReview } from "@/lib/sales/documents";
 
 type NoFields = Record<string, never>;
 
@@ -35,6 +37,8 @@ export interface SaleCommandFields {
   approvals: NoFields;
   rejections: { reason: string };
   cancellations: { reason: string };
+  settlements: { payment: SalePaymentEvidence; review: SaleSettlementReview };
+  handovers: { evidence: SaleHandoverEvidence };
 }
 
 // A receipt belongs to the captured command only if it names the same operation and sale.
@@ -77,6 +81,8 @@ export function useSaleEditor(initial: Sale, onChanged: () => void) {
     approvals: useApiCommand(path("approvals"), parseSaleReceipt, matches, privateApiFetch),
     rejections: useApiCommand(path("rejections"), parseSaleReceipt, matches, privateApiFetch),
     cancellations: useApiCommand(path("cancellations"), parseSaleReceipt, matches, privateApiFetch),
+    settlements: useApiCommand(path("settlements"), parseSaleReceipt, matches, privateApiFetch),
+    handovers: useApiCommand(path("handovers"), parseSaleReceipt, matches, privateApiFetch),
   };
   const all = Object.values(commands);
   const busy = all.some((command) => command.busy);
@@ -179,7 +185,11 @@ export function useSaleEditor(initial: Sale, onChanged: () => void) {
   }
 
   // Each command names a fresh operation and the confirmed version; an unconfirmed one replays exactly.
-  async function run<Name extends SaleCommand>(name: Name, fields: SaleCommandFields[Name]) {
+  async function run<Name extends SaleCommand>(
+    name: Name,
+    fields: SaleCommandFields[Name],
+    expectedVersion = snapshot.sale.version,
+  ) {
     const command = commands[name];
     if (busy || (uncertain && uncertain !== name)) {
       return false;
@@ -191,7 +201,7 @@ export function useSaleEditor(initial: Sale, onChanged: () => void) {
     }
     const result = await command.submit({
       operationId: crypto.randomUUID(),
-      expectedVersion: snapshot.sale.version,
+      expectedVersion,
       ...fields,
       ...("reason" in fields ? { reason: normalized } : {}),
     });

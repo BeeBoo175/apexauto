@@ -85,7 +85,9 @@ export function parseAccountReservation(value: unknown): AccountReservation | nu
     (value.isHandled && !value.isActive) ||
     (value.dueAt !== null && !isUtcInstant(value.dueAt)) ||
     (value.isActive && value.release !== null) ||
-    (!value.isActive && (!release || release.reservationId !== receipt.id)) ||
+    (!value.isActive &&
+      value.release !== null &&
+      (!release || release.reservationId !== receipt.id)) ||
     (release && Date.parse(release.recordedAt) < Date.parse(receipt.createdAt))
   ) {
     return null;
