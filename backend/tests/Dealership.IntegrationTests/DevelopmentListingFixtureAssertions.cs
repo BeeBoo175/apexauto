@@ -51,21 +51,22 @@ internal static class DevelopmentListingFixtureAssertions
         var managers = services.GetRequiredService<IListingReadStore>();
         foreach (var branch in DevelopmentFixtureManifest.Branches)
         {
+            var available = branch == DevelopmentFixtureManifest.Branches[2] ? 16 : 15;
             var expected = await database.ListingRevisions.Where(item => item.BranchId == branch.Id)
                 .Where(item => database.Vehicles.Any(vehicle => vehicle.Id == item.VehicleId &&
                     vehicle.Status == VehicleStatus.Available))
                 .Where(item => !database.Reservations.Any(hold => hold.VehicleId == item.VehicleId && hold.IsActive))
                 .OrderBy(item => item.VehiclePrice).ThenBy(item => item.VehicleId).ToArrayAsync();
-            Assert.Equal(17, expected.Length);
+            Assert.Equal(available, expected.Length);
             Assert.Contains(expected.GroupBy(item => item.VehiclePrice), group => group.Count() > 1);
             var actual = new List<PublicListingItem>();
             var filter = new PublicListingFilter(BranchId: branch.Id, Sort: "price", Direction: "asc");
-            for (var page = 1; page <= 3; page++)
+            for (var page = 1; page <= 2; page++)
             {
                 var result = await store.ReadAsync(filter with { Page = page }, CancellationToken.None);
                 Assert.Equal(ListingStatus.Succeeded, result.Status);
-                Assert.Equal(17, result.Catalogue!.Total);
-                Assert.Equal(page == 3 ? 1 : 8, result.Catalogue.Items.Count);
+                Assert.Equal(available, result.Catalogue!.Total);
+                Assert.Equal(Math.Min(8, available - (page - 1) * 8), result.Catalogue.Items.Count);
                 Assert.All(result.Catalogue.Items, item => Assert.Equal(branch.Id, item.BranchId));
                 actual.AddRange(result.Catalogue.Items);
             }
@@ -74,7 +75,7 @@ internal static class DevelopmentListingFixtureAssertions
             Assert.Equal(6, actual.Select(item => item.Make).Distinct().Count());
             Assert.Equal(actual.Take(8).Select(item => item.Id),
                 (await store.ReadAsync(filter, CancellationToken.None)).Catalogue!.Items.Select(item => item.Id));
-            Assert.Empty((await store.ReadAsync(filter with { Page = 4 }, CancellationToken.None)).Catalogue!.Items);
+            Assert.Empty((await store.ReadAsync(filter with { Page = 3 }, CancellationToken.None)).Catalogue!.Items);
             var electric = await store.ReadAsync(filter with { Fuel = VehicleFuel.Electric }, CancellationToken.None);
             Assert.Equal(2, electric.Catalogue!.Total);
             Assert.All(electric.Catalogue.Items, item => Assert.Equal("BYD", item.Make));
@@ -88,10 +89,10 @@ internal static class DevelopmentListingFixtureAssertions
             var workspace = await managers.ReadAsync(manager.Id, new(PageSize: 50), CancellationToken.None);
             Assert.Equal(33, workspace.Listings!.Total);
             var second = await managers.ReadAsync(manager.Id, new(Page: 2, PageSize: 50), CancellationToken.None);
-            Assert.Equal(17, workspace.Listings.Items.Concat(second.Listings!.Items).Count(item => item.IsPublic));
+            Assert.Equal(available, workspace.Listings.Items.Concat(second.Listings!.Items).Count(item => item.IsPublic));
         }
 
-        Assert.Equal(51, (await store.ReadAsync(new(), CancellationToken.None)).Catalogue!.Total);
+        Assert.Equal(46, (await store.ReadAsync(new(), CancellationToken.None)).Catalogue!.Total);
     }
 
     private static async Task<string> SnapshotAsync(DealershipDbContext database)

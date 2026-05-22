@@ -88,7 +88,6 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
         reports.AddRange(await inspections.RunAsync(true, token));
         reports.AddRange(await listings.RunAsync(true, token));
         reports.AddRange(await reservations.RunAsync(true, token));
-        reports.AddRange(await sales.RunAsync(true, token));
         return reports;
     }
 

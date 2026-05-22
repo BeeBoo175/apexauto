@@ -32,15 +32,36 @@ internal static class DevelopmentReservationFixtureAssertions
         await using var scope = provider.CreateAsyncScope();
         var services = scope.ServiceProvider;
         var database = services.GetRequiredService<DealershipDbContext>();
-        Assert.Equal(51, await database.Reservations.CountAsync());
+        Assert.Equal(56, await database.Reservations.CountAsync());
         Assert.Equal(48, await database.ReservationReleases.CountAsync());
-        Assert.Equal(51, await database.ReservationMailOutbox.CountAsync());
-        Assert.Equal(2, await database.Reservations.CountAsync(item => item.IsActive));
+        Assert.Equal(56, await database.ReservationMailOutbox.CountAsync());
+        Assert.Equal(4, await database.Reservations.CountAsync(item => item.IsActive));
         // The demo sales work the branches' open holds, which stay active while they are handled.
         foreach (var sale in DevelopmentSaleScenarios.All)
         {
-            Assert.Equal(sale.Target, await database.SalesOrders.Where(item => item.Id == sale.ReservationId)
-                .Select(item => item.Status).SingleAsync());
+            var persisted = await database.SalesOrders.AsNoTracking().SingleAsync(item => item.Id == sale.ReservationId);
+            Assert.Equal(sale.Target, persisted.Status);
+            Assert.Equal(sale.FinalVersion, persisted.Version);
+            if (sale.Target is SalesOrderStatus.Settled or SalesOrderStatus.Delivered)
+            {
+                Assert.NotNull(persisted.PaymentEvidence);
+                Assert.Equal(sale.PaymentMethod, persisted.PaymentEvidence.Method);
+                Assert.Equal(persisted.PaymentEvidence, persisted.PaymentEvidence.Normalize(persisted.BalancePayable));
+                Assert.Equal(sale.TradeInAppointmentId, persisted.TradeInAppointmentId);
+                Assert.Equal(sale.TradeInAppointmentId is not null, persisted.AcquiredVehicleId is not null);
+                if (sale.TradeInAppointmentId is { } appointmentId)
+                {
+                    var checkIn = await database.AppointmentCheckIns.SingleAsync(item => item.AppointmentId == appointmentId);
+                    Assert.Equal(checkIn.VehicleId, persisted.AcquiredVehicleId);
+                    var appointment = await database.IntakeAppointments.SingleAsync(item => item.Id == appointmentId);
+                    Assert.Equal(persisted.CustomerId, appointment.OwnerId);
+                    Assert.InRange(persisted.TradeInAllowance, 0.01m, appointment.Valuation.Maximum);
+                    Assert.Equal(0m, persisted.BalancePayable);
+                    Assert.False((await database.InspectionDrafts.SingleAsync(item => item.VehicleId == checkIn.VehicleId)).IsSigned);
+                    Assert.Equal(VehicleStatus.PendingInspection,
+                        (await database.Vehicles.SingleAsync(item => item.Id == checkIn.VehicleId)).Status);
+                }
+            }
         }
         var retained = await database.Reservations.AsNoTracking().SingleAsync(item => item.Id == interrupted.Id);
         Assert.Equal(ReservationReceipt.From(interrupted), ReservationReceipt.From(retained));
@@ -54,14 +75,14 @@ internal static class DevelopmentReservationFixtureAssertions
         var buyerId = await database.CustomerProfiles.Where(item => item.RegistrationKey == buyerKey)
             .Select(item => item.UserId).SingleAsync();
         var buyerHistory = new List<Guid>();
-        for (var page = 1; buyerHistory.Count < 12; page++)
+        for (var page = 1; buyerHistory.Count < 14; page++)
         {
             var result = await reads.AccountAsync(buyerId, page, CancellationToken.None);
             Assert.Equal(ReservationStatus.Succeeded, result.Status);
-            Assert.Equal(12, result.History!.Total);
+            Assert.Equal(14, result.History!.Total);
             Assert.Null(result.History.Active);
             Assert.Equal(ReservationHistory.PageSize, result.History.PageSize);
-            Assert.Equal(Math.Min(ReservationHistory.PageSize, 12 - buyerHistory.Count), result.History.Items.Count);
+            Assert.Equal(Math.Min(ReservationHistory.PageSize, 14 - buyerHistory.Count), result.History.Items.Count);
             buyerHistory.AddRange(result.History.Items.Select(item => item.Receipt.Id));
         }
         Assert.Equal(await database.Reservations.Where(item => item.CustomerId == buyerId)
@@ -70,18 +91,18 @@ internal static class DevelopmentReservationFixtureAssertions
         foreach (var branch in DevelopmentFixtureManifest.Branches)
         {
             var scenario = DevelopmentReservationScenarios.All.Single(item =>
-                item.KeepActive && item.Listing.Intake.BranchId == branch.Id);
+                item.Index == 51 && item.Listing.Intake.BranchId == branch.Id);
             var customerId = await database.CustomerProfiles.Where(item => item.RegistrationKey == scenario.RegistrationKey)
                 .Select(item => item.UserId).SingleAsync();
             var expected = await database.Reservations.Where(item => item.CustomerId == customerId)
                 .OrderByDescending(item => item.CreatedAt).ThenByDescending(item => item.Id).Select(item => item.Id).ToArrayAsync();
-            Assert.Equal(13, expected.Length);
+            Assert.Equal(branch == DevelopmentFixtureManifest.Branches[1] ? 14 : 13, expected.Length);
             var actual = new List<Guid>();
             for (var page = 1; actual.Count < expected.Length; page++)
             {
                 var result = await reads.AccountAsync(customerId, page, CancellationToken.None);
                 Assert.Equal(ReservationStatus.Succeeded, result.Status);
-                Assert.Equal(13, result.History!.Total);
+                Assert.Equal(expected.Length, result.History!.Total);
                 Assert.Equal(ReservationHistory.PageSize, result.History.PageSize);
                 Assert.Equal(Math.Min(ReservationHistory.PageSize, expected.Length - actual.Count), result.History.Items.Count);
                 var settled = DevelopmentSaleScenarios.All.Any(item => item.ReservationId == scenario.Id &&
@@ -137,7 +158,28 @@ internal static class DevelopmentReservationFixtureAssertions
         Assert.Equal(ReservationStatus.Succeeded, replay.Status);
         Assert.Equal(ReservationReceipt.From(active), ReservationReceipt.From(replay.Reservation!));
         Assert.Equal(before, await SnapshotAsync(database));
+        await VerifySalePreservationAsync(services, database, runner, target);
         await VerifyExpiredReportAsync(services, fixture);
+    }
+
+    private static async Task VerifySalePreservationAsync(IServiceProvider services, DealershipDbContext database,
+        DevelopmentFixtureRunner runner, DevelopmentFixtureTarget target)
+    {
+        var scenario = DevelopmentSaleScenarios.All.Single(item => item.Target == SalesOrderStatus.Handling);
+        var saved = await services.GetRequiredService<SaleTermsService>().SaveTermsAsync(scenario.AgentId,
+            scenario.ReservationId, new(Guid.NewGuid(), scenario.FinalVersion, null, scenario.Discount + 1m, null, 0m),
+            CancellationToken.None);
+        Assert.Equal(SaleResultStatus.Succeeded, saved.Status);
+        var before = await SnapshotAsync(database);
+        foreach (var seed in new[] { false, true })
+        {
+            var reports = seed
+                ? await runner.SeedAsync(target, CancellationToken.None)
+                : await runner.ReviewAsync(target, CancellationToken.None);
+            Assert.Contains(reports, report => report.Fixture.StartsWith("Sale (", StringComparison.Ordinal) &&
+                report.State == "sale version changed elsewhere; preserved" && report.RequiresAttention);
+            Assert.Equal(before, await SnapshotAsync(database));
+        }
     }
 
     private static async Task VerifyExpiredReportAsync(IServiceProvider services, RegistrationDatabase fixture)
@@ -153,7 +195,8 @@ internal static class DevelopmentReservationFixtureAssertions
         var reservations = new ReservationService(new ReservationStore(database, mail, expiry));
         var cancellations = new ReservationCancellationService(new ReservationCancellationStore(database));
         var sales = new SaleTermsService(new SaleCommandStore(database, new Dealership.Infrastructure.Mail.MailDeliverySignal()));
-        var fixtures = new DevelopmentReservationFixtures(database, reservations, cancellations, sales);
+        var fixtures = new DevelopmentReservationFixtures(database, reservations, cancellations, sales,
+            services.GetRequiredService<DevelopmentSaleFixtures>());
         var before = await SnapshotAsync(database);
         foreach (var seed in new[] { false, true })
         {
@@ -167,6 +210,11 @@ internal static class DevelopmentReservationFixtureAssertions
     {
         Holds = await database.Reservations.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync(),
         Releases = await database.ReservationReleases.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync(),
-        Mail = await database.ReservationMailOutbox.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync()
+        Mail = await database.ReservationMailOutbox.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync(),
+        Sales = await database.SalesOrders.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync(),
+        Events = await database.SalesOrderEvents.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync(),
+        Documents = await database.SaleDocuments.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync(),
+        Corrections = await database.SaleDocumentCorrections.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync(),
+        Deliveries = await database.SaleDeliveryMailOutbox.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync()
     });
 }

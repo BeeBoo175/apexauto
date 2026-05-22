@@ -49,5 +49,21 @@ public static class DevelopmentReservationScenarios
                 new DevelopmentReservationScenario(listings[index % (listings.Length - 1)],
                     DevelopmentFixtureManifest.Customers[0].Registration.RegistrationKey, FirstBuyerIndex + index, false));
             return sellerReservations.Concat(buyerReservations);
-        }).ToArray());
+        }).Concat(SaleHolds()).ToArray());
+
+    private static IEnumerable<DevelopmentReservationScenario> SaleHolds()
+    {
+        DevelopmentReservationScenario Hold(int branch, int listing, int customer, int index) => new(
+            DevelopmentInspectionScenarios.All.Where(item => item.PublishListing &&
+                item.Intake.BranchId == DevelopmentFixtureManifest.Branches[branch].Id).ElementAt(listing),
+            DevelopmentFixtureManifest.Customers[customer].Registration.RegistrationKey, index, true);
+
+        // Completed purchases release the customer's active slot before the next purchase is confirmed.
+        // Catalogue choices retain the distinct inspection examples, all makes and equal-price listings.
+        yield return Hold(0, 6, 0, 70);
+        yield return Hold(1, 6, 0, 71);
+        yield return Hold(2, 6, 2, 72);
+        yield return Hold(0, 8, 4, 73);
+        yield return Hold(1, 8, 5, 74);
+    }
 }

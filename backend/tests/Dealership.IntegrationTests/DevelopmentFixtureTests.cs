@@ -79,7 +79,7 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
             var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
             Assert.Equal(0, await database.IntakeAppointments.CountAsync());
             Assert.Equal(0, await database.IntakePhotos.CountAsync());
-            Assert.Equal(18, await database.Users.CountAsync());
+            Assert.Equal(20, await database.Users.CountAsync());
         }
 
         Assert.Equal(definitions, await ReadGuardsAsync());
@@ -141,9 +141,13 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
             .Where(item => item.DeliveredAt == null).ToArrayAsync());
         Assert.Equal(optedInReservationId, optedIn.ReservationId);
         Assert.False(await database.ReservationMailOutbox.AnyAsync(item => item.DeliveryAttempts != 0));
-        var delivery = Assert.Single(await database.SaleDeliveryMailOutbox.AsNoTracking().ToArrayAsync());
-        Assert.NotNull(delivery.DeliveredAt);
-        Assert.Equal(0, delivery.DeliveryAttempts);
+        var deliveries = await database.SaleDeliveryMailOutbox.AsNoTracking().ToArrayAsync();
+        Assert.Equal(2, deliveries.Length);
+        Assert.All(deliveries, delivery =>
+        {
+            Assert.NotNull(delivery.DeliveredAt);
+            Assert.Equal(0, delivery.DeliveryAttempts);
+        });
         // Both competing default reruns preserved this earlier opt-in intent; restore it for later snapshot assertions.
         await database.ReservationMailOutbox.Where(item => item.Id == optedIn.Id)
             .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.DeliveredAt, DateTimeOffset.UtcNow));
@@ -292,11 +296,14 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
     private async Task AssertNormalAuthenticationAsync()
     {
         // Separate hosts keep each normal process-local login budget below its limit.
-        using var customerFactory = fixture.CreateFactory();
-        using var customerClient = customerFactory.CreateClient();
-        foreach (var customer in DevelopmentFixtureManifest.Customers)
+        foreach (var customers in DevelopmentFixtureManifest.Customers.Chunk(5))
         {
-            await AssertLoginAsync(customerClient, customer.Registration.Email!, HttpStatusCode.OK);
+            using var customerFactory = fixture.CreateFactory();
+            using var customerClient = customerFactory.CreateClient();
+            foreach (var customer in customers)
+            {
+                await AssertLoginAsync(customerClient, customer.Registration.Email!, HttpStatusCode.OK);
+            }
         }
 
         foreach (var accounts in DevelopmentFixtureManifest.Staff.Chunk(5))

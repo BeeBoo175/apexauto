@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Dealership.Infrastructure.Development;
 
 public sealed class DevelopmentReservationFixtures(DealershipDbContext database, ReservationService reservations,
-    ReservationCancellationService cancellations, SaleTermsService sales)
+    ReservationCancellationService cancellations, SaleTermsService sales, DevelopmentSaleFixtures saleFixtures)
 {
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> RunAsync(bool seed, CancellationToken cancellationToken)
     {
@@ -16,7 +16,13 @@ public sealed class DevelopmentReservationFixtures(DealershipDbContext database,
         var reports = new List<DevelopmentFixtureReport>();
         foreach (var scenario in DevelopmentReservationScenarios.All)
         {
-            reports.Add(await RunOneAsync(seed, scenario, now, cancellationToken));
+            var report = await RunOneAsync(seed, scenario, now, cancellationToken);
+            reports.Add(report);
+            var sale = DevelopmentSaleScenarios.All.SingleOrDefault(item => item.ReservationId == scenario.Id);
+            if (seed && !report.RequiresAttention && sale is not null)
+            {
+                reports.Add(await saleFixtures.RunOneAsync(true, sale, cancellationToken));
+            }
         }
 
         return reports;

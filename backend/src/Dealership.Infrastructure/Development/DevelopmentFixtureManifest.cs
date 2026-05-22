@@ -32,7 +32,13 @@ public static class DevelopmentFixtureManifest
             "16 Jalan SS 2/44, Petaling Jaya, Selangor"), VerifyEmail: true),
         new(new RegistrationRequest(Guid.Parse("304a1554-2604-46f6-b0ef-572801ca0902"), "Kavitha Rajan",
             "kavitha.rajan@example.invalid", Password, "910507075486", "0173456789",
-            "32 Persiaran Mahsuri, Bayan Lepas, Pulau Pinang"), VerifyEmail: true)
+            "32 Persiaran Mahsuri, Bayan Lepas, Pulau Pinang"), VerifyEmail: true),
+        new(new RegistrationRequest(Guid.Parse("60a30b41-f522-4b66-a4b9-9861032405d2"), "Muhammad Irfan Abdullah",
+            "irfan.abdullah@example.invalid", Password, "900316105531", "0192846137",
+            "9 Jalan Pelangi U5/3, Shah Alam, Selangor"), VerifyEmail: true),
+        new(new RegistrationRequest(Guid.Parse("e735944a-9c3d-4482-853f-651be22c837a"), "Chong Wei Ling",
+            "chong.wei.ling@example.invalid", Password, "930712145284", "0128473956",
+            "41 Jalan SS 3/18, Petaling Jaya, Selangor"), VerifyEmail: true)
     ]);
 
     public static IReadOnlyList<StaffProvisioningRequest> ReliefTechnicians { get; } = Array.AsReadOnly<StaffProvisioningRequest>(

@@ -4,10 +4,10 @@ using System.Collections.ObjectModel;
 
 namespace Dealership.Infrastructure.Development;
 
-// A demo sale driven to one state through the canonical services, so the staff tabs have real examples. It works
-// the open hold each branch already keeps, so the seeded catalogue keeps its accepted volume.
+// Finite sale paths use canonical commands and retain the reservation's stable operation identities.
 public sealed record DevelopmentSaleScenario(DevelopmentReservationScenario Hold, SalesOrderStatus Target,
-    bool ReleasedFirst, decimal Discount, string? CorrectedBuyerAddress = null, bool ManagerApproval = false)
+    bool ReleasedFirst, decimal Discount, string? CorrectedBuyerAddress = null, bool ManagerApproval = false,
+    SalePaymentMethod PaymentMethod = SalePaymentMethod.BankTransfer, Guid? TradeInAppointmentId = null)
 {
     public Guid ReservationId => Hold.Id;
 
@@ -41,20 +41,29 @@ public sealed record DevelopmentSaleScenario(DevelopmentReservationScenario Hold
 
 public static class DevelopmentSaleScenarios
 {
-    // The first branch's sale was released and reassigned, the second is delivered after settlement and manager approval of its
-    // excess discount, and the third stays open to be claimed.
     public static IReadOnlyList<DevelopmentSaleScenario> All { get; } = Create();
 
     private static ReadOnlyCollection<DevelopmentSaleScenario> Create()
     {
         var holds = DevelopmentReservationScenarios.All.Where(item => item.KeepActive).ToArray();
         DevelopmentReservationScenario Hold(int branch) => holds.Single(item =>
-            item.Listing.Intake.BranchId == DevelopmentFixtureManifest.Branches[branch].Id);
+            item.Index == 51 && item.Listing.Intake.BranchId == DevelopmentFixtureManifest.Branches[branch].Id);
+        DevelopmentReservationScenario Extra(int index) => holds.Single(item => item.Index == index);
+        var tradeIn = DevelopmentInspectionScenarios.All.First(item =>
+            item.Stage == DevelopmentInspectionStage.Draft &&
+            item.Intake.RegistrationKey == Extra(72).RegistrationKey);
         return Array.AsReadOnly<DevelopmentSaleScenario>(
         [
             new(Hold(0), SalesOrderStatus.Handling, true, 300m),
             new(Hold(1), SalesOrderStatus.Delivered, false, 1500m,
-                "27 Jalan Meranti, Petaling Jaya, Selangor", ManagerApproval: true)
+                "27 Jalan Meranti, Petaling Jaya, Selangor", ManagerApproval: true),
+            new(Hold(2), SalesOrderStatus.Open, false, 0m),
+            new(Extra(70), SalesOrderStatus.Settled, false, 300m, PaymentMethod: SalePaymentMethod.Cash),
+            new(Extra(71), SalesOrderStatus.Delivered, false, 500m, PaymentMethod: SalePaymentMethod.HirePurchase),
+            new(Extra(72), SalesOrderStatus.Settled, false, 0m, ManagerApproval: true,
+                PaymentMethod: SalePaymentMethod.ZeroBalance, TradeInAppointmentId: tradeIn.Id),
+            new(Extra(73), SalesOrderStatus.PendingApproval, false, 1500m),
+            new(Extra(74), SalesOrderStatus.Approved, false, 500m)
         ]);
     }
 }

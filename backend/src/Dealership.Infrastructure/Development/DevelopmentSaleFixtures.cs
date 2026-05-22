@@ -23,7 +23,7 @@ public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHa
         return reports;
     }
 
-    private async Task<DevelopmentFixtureReport> RunOneAsync(bool seed, DevelopmentSaleScenario scenario,
+    public async Task<DevelopmentFixtureReport> RunOneAsync(bool seed, DevelopmentSaleScenario scenario,
         CancellationToken cancellationToken)
     {
         var label = $"Sale ({scenario.Hold.Listing.Intake.RegistrationPlate}; {scenario.Target})";
@@ -41,8 +41,21 @@ public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHa
             return new(label, "sale changed elsewhere; preserved", true);
         }
 
-        var status = await database.SalesOrders.Where(item => item.Id == scenario.ReservationId)
-            .Select(item => item.Status).SingleAsync(cancellationToken);
+        var current = await database.SalesOrders.AsNoTracking()
+            .SingleAsync(item => item.Id == scenario.ReservationId, cancellationToken);
+        var status = current.Status;
+        if (status == scenario.Target && current.Version != scenario.FinalVersion)
+        {
+            return new(label, "sale version changed elsewhere; preserved", true);
+        }
+
+        if (status is SalesOrderStatus.Settled or SalesOrderStatus.Delivered &&
+            (current.PaymentEvidence?.Method != scenario.PaymentMethod ||
+             current.TradeInAppointmentId != scenario.TradeInAppointmentId))
+        {
+            return new(label, "settlement evidence changed elsewhere; preserved", true);
+        }
+
         if (scenario.CorrectedBuyerAddress is not null && status == scenario.Target &&
             !await CorrectDocumentAsync(seed, scenario, cancellationToken))
         {
@@ -69,15 +82,12 @@ public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHa
             return new(label, $"{status}; preserved", true);
         }
 
-        var purchased = await database.SalesOrders.AsNoTracking()
-            .Where(item => item.Id == scenario.ReservationId)
-            .Select(item => new { item.VehicleId, item.CustomerId }).SingleAsync(cancellationToken);
         var inspection = await database.InspectionDrafts.AsNoTracking()
-            .SingleAsync(item => item.VehicleId == purchased.VehicleId, cancellationToken);
+            .SingleAsync(item => item.VehicleId == current.VehicleId, cancellationToken);
         var signed = await database.InspectionSignedRevisions.AsNoTracking()
             .Where(item => item.InspectionId == inspection.Id).OrderByDescending(item => item.Revision)
             .FirstAsync(cancellationToken);
-        var report = await inspectionReports.ReadAsync(purchased.CustomerId, inspection.Id, signed.Revision,
+        var report = await inspectionReports.ReadAsync(current.CustomerId, inspection.Id, signed.Revision,
             cancellationToken);
         var expected = status == SalesOrderStatus.Delivered
             ? InspectionAssignmentStatus.Succeeded : InspectionAssignmentStatus.NotFound;
@@ -127,11 +137,12 @@ public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHa
 
         var id = scenario.ReservationId;
         var agent = scenario.AgentId;
+        var request = await TermsAsync(scenario, cancellationToken);
         var steps = new List<Func<Task<SaleCommandResult>>>
         {
             () => handling.ClaimAsync(agent, id, new(scenario.OperationId("claim"), 1), cancellationToken),
             () => terms.SaveTermsAsync(agent, id,
-                new(scenario.OperationId("terms"), 2, null, scenario.Discount, null, 0m), cancellationToken)
+                request, cancellationToken)
         };
         if (scenario.ReleasedFirst)
         {
@@ -140,7 +151,7 @@ public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHa
             steps.Add(() => handling.AssignAsync(scenario.ManagerId, id,
                 new(scenario.OperationId("assign"), 4, agent), cancellationToken));
             steps.Add(() => terms.SaveTermsAsync(agent, id,
-                new(scenario.OperationId("terms-again"), 5, null, scenario.Discount, null, 0m), cancellationToken));
+                request with { OperationId = scenario.OperationId("terms-again"), ExpectedVersion = 5 }, cancellationToken));
         }
 
         if (scenario.Target is SalesOrderStatus.PendingApproval or SalesOrderStatus.Approved or SalesOrderStatus.Settled or SalesOrderStatus.Delivered)
@@ -173,9 +184,7 @@ public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHa
                 .SingleAsync(item => item.Id == sale.VehicleId, cancellationToken);
             var review = new SaleSettlementReview(profile.LegalName, profile.Nric, profile.ResidentialAddress,
                 SaleReviewedVehicle.Of(vehicle));
-            var payment = new SalePaymentEvidence(SalePaymentMethod.BankTransfer, sale.BalancePayable,
-                $"Transfer {scenario.Hold.Listing.Intake.RegistrationPlate}", DateOnly.FromDateTime(sale.CreatedAt.UtcDateTime),
-                null, 0m, null, false, false);
+            var payment = Payment(scenario, sale.BalancePayable, sale.CreatedAt);
             if ((await settlement.SettleAsync(agent, id,
                 new(scenario.OperationId("settle"), scenario.ApprovedVersion, payment, review),
                 cancellationToken)).Status != SaleResultStatus.Succeeded)
@@ -192,5 +201,37 @@ public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHa
         }
 
         return true;
+    }
+
+    private async Task<SaleTermsRequest> TermsAsync(DevelopmentSaleScenario scenario, CancellationToken cancellationToken)
+    {
+        if (scenario.PaymentMethod != SalePaymentMethod.ZeroBalance)
+        {
+            return new(scenario.OperationId("terms"), 2, null, scenario.Discount, scenario.TradeInAppointmentId, 0m);
+        }
+
+        var hold = await database.Reservations.AsNoTracking()
+            .SingleAsync(item => item.Id == scenario.ReservationId, cancellationToken);
+        var settings = await database.PurchaseSettings.AsNoTracking().SingleAsync(cancellationToken);
+        var discount = hold.Price.VehiclePrice - hold.Price.PromoDiscount;
+        var price = SalePricing.Calculate(new(hold.Price.VehiclePrice, hold.Price.RoadTax,
+            settings.ProcessingFee, settings.SstRate, hold.Price.PromoDiscount, discount, 0m, hold.Deposit, 0m));
+        return new(scenario.OperationId("terms"), 2, null, discount, scenario.TradeInAppointmentId, price.BalancePayable);
+    }
+
+    private static SalePaymentEvidence Payment(DevelopmentSaleScenario scenario, decimal balance, DateTimeOffset createdAt)
+    {
+        var reference = scenario.Hold.Listing.Intake.RegistrationPlate;
+        return scenario.PaymentMethod switch
+        {
+            SalePaymentMethod.ZeroBalance => new(SalePaymentMethod.ZeroBalance, 0m, null, null,
+                null, 0m, null, false, true),
+            SalePaymentMethod.HirePurchase => new(SalePaymentMethod.HirePurchase, 500m, null, null,
+                "Maybank", balance - 500m, $"LOU {reference}", true, false),
+            SalePaymentMethod.BankTransfer => new(SalePaymentMethod.BankTransfer, balance, $"Transfer {reference}",
+                DateOnly.FromDateTime(createdAt.UtcDateTime), null, 0m, null, false, false),
+            _ => new(scenario.PaymentMethod, balance, $"Receipt {reference}", DateOnly.FromDateTime(createdAt.UtcDateTime),
+                null, 0m, null, false, false)
+        };
     }
 }

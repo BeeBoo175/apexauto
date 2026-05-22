@@ -28,7 +28,7 @@ test("catalogue retains failed filter reads and uses browser reload for fresh av
   expect((counts()["/api/vehicles"] ?? 0) - before).toBe(1);
   await expect(page.getByRole("button", { name: "Refresh vehicles", exact: true })).toHaveCount(0);
   await expect(
-    page.getByText("17 available vehicles · Page 1 of 3", { exact: true }),
+    page.getByText("15 available vehicles · Page 1 of 2", { exact: true }),
   ).toBeVisible();
   const cards = page.getByRole("article");
   const visibleIds = () =>
@@ -75,24 +75,15 @@ test("catalogue retains failed filter reads and uses browser reload for fresh av
 
   await page.getByRole("button", { name: "Next vehicles", exact: true }).click();
   await expect(
-    page.getByText("17 available vehicles · Page 2 of 3", { exact: true }),
+    page.getByText("15 available vehicles · Page 2 of 2", { exact: true }),
   ).toBeVisible();
-  await expect(cards).toHaveCount(8);
+  await expect(cards).toHaveCount(7);
   const secondIds = await visibleIds();
-  await page.getByRole("button", { name: "Next vehicles", exact: true }).click();
-  await expect(
-    page.getByText("17 available vehicles · Page 3 of 3", { exact: true }),
-  ).toBeVisible();
-  await expect(cards).toHaveCount(1);
-  expect(new Set([...firstIds, ...secondIds, ...(await visibleIds())]).size).toBe(17);
+  expect(new Set([...firstIds, ...secondIds]).size).toBe(15);
   await expect(page.getByRole("button", { name: "Next vehicles", exact: true })).toBeDisabled();
   await page.getByRole("button", { name: "Previous vehicles", exact: true }).click();
   await expect(
-    page.getByText("17 available vehicles · Page 2 of 3", { exact: true }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "Previous vehicles", exact: true }).click();
-  await expect(
-    page.getByText("17 available vehicles · Page 1 of 3", { exact: true }),
+    page.getByText("15 available vehicles · Page 1 of 2", { exact: true }),
   ).toBeVisible();
   expect(await visibleIds()).toEqual(firstIds);
 
@@ -176,7 +167,7 @@ test("catalogue retains failed filter reads and uses browser reload for fresh av
   expect(await visibleIds()).toContain(vehicleId);
   await page.reload();
   await expect(
-    page.getByText("16 available vehicles · Page 1 of 2", { exact: true }),
+    page.getByText("14 available vehicles · Page 1 of 2", { exact: true }),
   ).toBeVisible();
   expect(await visibleIds()).not.toContain(vehicleId);
   const removedPhoto = await request.get(
@@ -192,7 +183,7 @@ test("catalogue retains failed filter reads and uses browser reload for fresh av
   );
   const response = await request.get(`/api/vehicles?${query}`);
   const data = (await response.json()).data;
-  expect(data.total).toBe(16);
+  expect(data.total).toBe(14);
   const metrics = await page.evaluate(() => ({
     navigation: performance.getEntriesByType("navigation").map((entry) => ({
       duration: entry.duration,

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Dealership.Application.Vehicles;
+using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Development;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -22,11 +23,16 @@ internal static class DevelopmentPurchaseFixtureAssertions
         Assert.Equal("CBA", string.Concat((await database.WarrantyPackages.AsNoTracking().ToListAsync())
             .OrderBy(item => item.Price).Select(item => item.MinimumGrade)));
         var vehicleId = await database.ListingPublications.Where(item =>
-            !database.Reservations.Any(hold => hold.VehicleId == item.VehicleId && hold.IsActive))
+            !database.Reservations.Any(hold => hold.VehicleId == item.VehicleId && hold.IsActive) &&
+            database.Vehicles.Any(vehicle => vehicle.Id == item.VehicleId && vehicle.Status == VehicleStatus.Available))
             .Select(item => item.VehicleId).FirstAsync();
         var quotes = services.GetRequiredService<PurchaseQuoteService>();
-        Assert.Equal(500m, (await quotes.QuoteAsync(vehicleId, "APEX500", CancellationToken.None)).Quote!.Price.PromoDiscount);
-        Assert.Equal(1000m, (await quotes.QuoteAsync(vehicleId, "RAYA1000", CancellationToken.None)).Quote!.Price.PromoDiscount);
+        var apex = await quotes.QuoteAsync(vehicleId, "APEX500", CancellationToken.None);
+        var raya = await quotes.QuoteAsync(vehicleId, "RAYA1000", CancellationToken.None);
+        Assert.Equal(PurchaseQuoteStatus.Succeeded, apex.Status);
+        Assert.Equal(PurchaseQuoteStatus.Succeeded, raya.Status);
+        Assert.Equal(500m, apex.Quote!.Price.PromoDiscount);
+        Assert.Equal(1000m, raya.Quote!.Price.PromoDiscount);
 
         var before = await SnapshotAsync(database);
         Assert.All(await services.GetRequiredService<DevelopmentPurchaseFixtures>().RunAsync(true, CancellationToken.None),
