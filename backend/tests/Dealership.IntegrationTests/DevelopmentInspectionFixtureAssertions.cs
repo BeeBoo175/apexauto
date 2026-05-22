@@ -18,15 +18,15 @@ internal static class DevelopmentInspectionFixtureAssertions
         var allDrafts = await database.InspectionDrafts.AsNoTracking().ToArrayAsync();
         var baselineIds = DevelopmentInspectionManifest.Baselines.Select(item => item.Id).ToHashSet();
         var drafts = allDrafts.Where(item => baselineIds.Contains(item.Id)).ToArray();
-        Assert.Equal(240, allDrafts.Length);
+        Assert.Equal(96, allDrafts.Length);
         Assert.Equal(3, drafts.Length);
-        Assert.Equal(240, await database.InspectionAssignments.CountAsync());
-        Assert.Equal(243, await database.InspectionDraftSaves.CountAsync());
+        Assert.Equal(96, await database.InspectionAssignments.CountAsync());
+        Assert.Equal(99, await database.InspectionDraftSaves.CountAsync());
         Assert.Equal(9, await database.InspectionPhotos.CountAsync());
         Assert.Equal(9, await database.InspectionDraftPhotos.CountAsync());
-        Assert.Equal(239, await database.InspectionSignedRevisions.CountAsync());
+        Assert.Equal(95, await database.InspectionSignedRevisions.CountAsync());
         Assert.Equal(4, await database.InspectionReopenings.CountAsync());
-        Assert.Equal(187, await database.InspectionRepairRequests.CountAsync());
+        Assert.Equal(43, await database.InspectionRepairRequests.CountAsync());
         Assert.Equal(13, await database.InspectionRepairApprovals.CountAsync());
         Assert.Equal(7, await database.InspectionRepairCompletions.CountAsync());
         foreach (var draft in drafts)

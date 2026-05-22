@@ -41,7 +41,7 @@ test("month calendar retains its snapshot, supports overflow and refreshes the s
       calendarDate(new Date(row.startsAt)) <= range.to,
   );
   expect(value.data.total).toBe(own.length);
-  expect(value.data.total).toBeGreaterThan(20);
+  expect(value.data.total).toBeGreaterThanOrEqual(12);
   expect(value.data.items.map((item: { id: string }) => item.id).sort()).toEqual(
     own.map((row) => row.id).sort(),
   );
@@ -88,7 +88,7 @@ test("month calendar retains its snapshot, supports overflow and refreshes the s
   const dialog = page.getByRole("dialog", { name: "Intake appointment", exact: true });
   const vin = `PL1BT65R84B${Date.now().toString().slice(-6)}`;
   await dialog.getByLabel("VIN", { exact: true }).fill(vin);
-  await dialog.getByRole("button", { name: "Close dialog", exact: true }).click();
+  await dialog.getByRole("button", { name: "Close drawer", exact: true }).click();
 
   await appointment.press("Enter");
   await expect(dialog.getByLabel("VIN", { exact: true })).toHaveValue(vin);
@@ -96,16 +96,19 @@ test("month calendar retains its snapshot, supports overflow and refreshes the s
   for (const checkbox of await dialog.getByRole("checkbox").all()) {
     await checkbox.check();
   }
+  await dialog.getByRole("button", { name: "Confirm check-in", exact: true }).click();
+  const confirmation = page.getByRole("dialog", { name: "Check in this vehicle?", exact: true });
+  await expect(confirmation).toBeVisible();
   const receipt = page.waitForResponse(
     (result) => result.url().includes("/check-ins") && result.request().method() === "POST",
   );
-  await dialog.getByRole("button", { name: "Confirm check-in", exact: true }).click();
+  await confirmation.getByRole("button", { name: "Confirm check-in", exact: true }).click();
   const saved = await (await receipt).json();
   await expect(
     dialog.getByRole("heading", { name: "Check-in confirmed", exact: true }),
   ).toBeVisible();
   writeFileSync(path.join(evidence, "check-in.json"), JSON.stringify(saved.data));
-  await dialog.getByRole("button", { name: "Close dialog", exact: true }).click();
+  await dialog.getByRole("button", { name: "Close drawer", exact: true }).click();
   await expect(region.getByRole("button", { name: appointmentName!, exact: true })).toHaveCount(0);
 
   const dense = value.data.items.reduce(
@@ -133,7 +136,7 @@ test("month calendar retains its snapshot, supports overflow and refreshes the s
     await expect(
       dialog.getByRole("button", { name: "Refresh appointment", exact: true }),
     ).toBeEnabled();
-    await dialog.getByRole("button", { name: "Close dialog", exact: true }).click();
+    await dialog.getByRole("button", { name: "Close drawer", exact: true }).click();
 
     await overflow.getByRole("button", { name: /Close/ }).click();
   }

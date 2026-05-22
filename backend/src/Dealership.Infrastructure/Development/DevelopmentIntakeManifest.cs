@@ -11,8 +11,8 @@ public sealed record DevelopmentIntakeFixture(Guid Id, Guid BranchId, Guid Regis
 
 public static class DevelopmentIntakeManifest
 {
-    public const int AppointmentsPerBranch = 41;
-    public const int RepairRequestsPerBranch = 51;
+    public const int AppointmentsPerBranch = 12;
+    public const int RepairRequestsPerBranch = 3;
     public const int InspectionExamplesPerBranch = 14;
     public const int CatalogueExamplesPerBranch = 14;
     public const int BaselineTotalPerBranch = AppointmentsPerBranch + RepairRequestsPerBranch + 4;
@@ -43,13 +43,14 @@ public static class DevelopmentIntakeManifest
         string[] prefixes = ["VCA", "BPL", "PQA"];
         return Enumerable.Range(0, TotalPerBranch).Select(index =>
         {
-            var customerIndex = (index + branchIndex) % 3 + 1;
+            var identityIndex = IdentityIndex(index);
+            var customerIndex = (identityIndex + branchIndex) % 3 + 1;
             var registrationKey = DevelopmentFixtureManifest.Customers[customerIndex].Registration.RegistrationKey;
-            var plate = $"{prefixes[branchIndex]} {6200 + index}";
+            var plate = $"{prefixes[branchIndex]} {6200 + identityIndex}";
             var catalogueIndex = index - BaselineTotalPerBranch - InspectionExamplesPerBranch;
             var vehicle = catalogueIndex >= 0
                 ? CatalogueVehicle(catalogueIndex, branchIndex)
-                : new ValuationRequest("Perodua", "Myvi", "1.5 AV", 2019, 45000 + index * 1200);
+                : new ValuationRequest("Perodua", "Myvi", "1.5 AV", 2019, 45000 + identityIndex * 1200);
             var status = index switch
             {
                 AppointmentsPerBranch => StaffWorklistStatus.Cancelled,
@@ -60,12 +61,28 @@ public static class DevelopmentIntakeManifest
             };
             var mileage = catalogueIndex >= 0 ? vehicle.MileageKilometres!.Value : 96000;
             var evidence = status == StaffWorklistStatus.CheckedIn
-                ? new CheckInEvidence($"PM2M800{branchIndex + 1}0KC00{6200 + index}", mileage, true, true, true, true,
+                ? new CheckInEvidence($"PM2M800{branchIndex + 1}0KC00{6200 + identityIndex}", mileage, true, true, true, true,
                     "Customer attended with vehicle and ownership documents.")
                 : null;
-            return new DevelopmentIntakeFixture(Identity($"appointment/{branch.Id:N}/{index}"), branch.Id,
+            return new DevelopmentIntakeFixture(Identity($"appointment/{branch.Id:N}/{identityIndex}"), branch.Id,
                 registrationKey, plate, vehicle, status, evidence);
         });
+    }
+
+    private static int IdentityIndex(int index)
+    {
+        // Retain historical receipt, vehicle and sale identities independently of the smaller sample counts.
+        if (index < AppointmentsPerBranch)
+        {
+            return index;
+        }
+
+        if (index < BaselineTotalPerBranch - 1)
+        {
+            return 41 + index - AppointmentsPerBranch;
+        }
+
+        return 95 + index - (BaselineTotalPerBranch - 1);
     }
 
     private static ValuationRequest CatalogueVehicle(int index, int branchIndex)

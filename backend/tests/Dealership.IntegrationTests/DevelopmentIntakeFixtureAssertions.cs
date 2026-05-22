@@ -17,7 +17,7 @@ namespace Dealership.IntegrationTests;
 
 internal static class DevelopmentIntakeFixtureAssertions
 {
-    private static readonly int[] PageSizes = [25, 25, 25, 25, 24];
+    private static readonly int[] PageSizes = [25, 22];
 
     public static async Task VerifyAuthenticatedAsync(HttpClient client, string email)
     {
@@ -34,7 +34,7 @@ internal static class DevelopmentIntakeFixtureAssertions
                 return;
             }
 
-            var history = await client.GetFromJsonAsync<AppointmentHistoryPage>("/api/intake/appointments?page=3");
+            var history = await client.GetFromJsonAsync<AppointmentHistoryPage>("/api/intake/appointments?page=2");
             Assert.NotNull(history);
             if (customer == DevelopmentFixtureManifest.Customers[0])
             {
@@ -43,7 +43,7 @@ internal static class DevelopmentIntakeFixtureAssertions
                 return;
             }
             Assert.Equal(DevelopmentIntakeManifest.TotalPerBranch, history.Total);
-            Assert.Equal(25, history.Items.Count);
+            Assert.Equal(22, history.Items.Count);
             var ownedIds = DevelopmentIntakeManifest.Appointments.Where(item =>
                 item.RegistrationKey == customer.Registration.RegistrationKey).Select(item => item.Id).ToHashSet();
             Assert.All(history.Items, item => Assert.Contains(item.Id, ownedIds));

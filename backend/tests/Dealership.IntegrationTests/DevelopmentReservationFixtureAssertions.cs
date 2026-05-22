@@ -32,9 +32,9 @@ internal static class DevelopmentReservationFixtureAssertions
         await using var scope = provider.CreateAsyncScope();
         var services = scope.ServiceProvider;
         var database = services.GetRequiredService<DealershipDbContext>();
-        Assert.Equal(207, await database.Reservations.CountAsync());
-        Assert.Equal(204, await database.ReservationReleases.CountAsync());
-        Assert.Equal(207, await database.ReservationMailOutbox.CountAsync());
+        Assert.Equal(51, await database.Reservations.CountAsync());
+        Assert.Equal(48, await database.ReservationReleases.CountAsync());
+        Assert.Equal(51, await database.ReservationMailOutbox.CountAsync());
         Assert.Equal(2, await database.Reservations.CountAsync(item => item.IsActive));
         // The demo sales work the branches' open holds, which stay active while they are handled.
         foreach (var sale in DevelopmentSaleScenarios.All)
@@ -54,13 +54,14 @@ internal static class DevelopmentReservationFixtureAssertions
         var buyerId = await database.CustomerProfiles.Where(item => item.RegistrationKey == buyerKey)
             .Select(item => item.UserId).SingleAsync();
         var buyerHistory = new List<Guid>();
-        for (var page = 1; page <= 3; page++)
+        for (var page = 1; buyerHistory.Count < 12; page++)
         {
             var result = await reads.AccountAsync(buyerId, page, CancellationToken.None);
             Assert.Equal(ReservationStatus.Succeeded, result.Status);
-            Assert.Equal(51, result.History!.Total);
+            Assert.Equal(12, result.History!.Total);
             Assert.Null(result.History.Active);
-            Assert.Equal(page == 3 ? 1 : 25, result.History.Items.Count);
+            Assert.Equal(ReservationHistory.PageSize, result.History.PageSize);
+            Assert.Equal(Math.Min(ReservationHistory.PageSize, 12 - buyerHistory.Count), result.History.Items.Count);
             buyerHistory.AddRange(result.History.Items.Select(item => item.Receipt.Id));
         }
         Assert.Equal(await database.Reservations.Where(item => item.CustomerId == buyerId)
@@ -74,14 +75,15 @@ internal static class DevelopmentReservationFixtureAssertions
                 .Select(item => item.UserId).SingleAsync();
             var expected = await database.Reservations.Where(item => item.CustomerId == customerId)
                 .OrderByDescending(item => item.CreatedAt).ThenByDescending(item => item.Id).Select(item => item.Id).ToArrayAsync();
-            Assert.Equal(52, expected.Length);
+            Assert.Equal(13, expected.Length);
             var actual = new List<Guid>();
-            for (var page = 1; page <= 3; page++)
+            for (var page = 1; actual.Count < expected.Length; page++)
             {
                 var result = await reads.AccountAsync(customerId, page, CancellationToken.None);
                 Assert.Equal(ReservationStatus.Succeeded, result.Status);
-                Assert.Equal(52, result.History!.Total);
-                Assert.Equal(page == 3 ? 2 : 25, result.History.Items.Count);
+                Assert.Equal(13, result.History!.Total);
+                Assert.Equal(ReservationHistory.PageSize, result.History.PageSize);
+                Assert.Equal(Math.Min(ReservationHistory.PageSize, expected.Length - actual.Count), result.History.Items.Count);
                 var settled = DevelopmentSaleScenarios.All.Any(item => item.ReservationId == scenario.Id &&
                     item.Target is SalesOrderStatus.Settled or SalesOrderStatus.Delivered);
                 if (settled)

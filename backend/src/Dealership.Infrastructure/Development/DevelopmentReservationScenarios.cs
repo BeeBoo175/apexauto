@@ -30,7 +30,9 @@ public sealed record DevelopmentReservationScenario(DevelopmentInspectionScenari
 
 public static class DevelopmentReservationScenarios
 {
-    public const int ReleasedPerBranch = 51;
+    public const int ReleasedPerBranch = 12;
+    private const int ActiveHoldIndex = 51;
+    private const int FirstBuyerIndex = 52;
 
     public static IReadOnlyList<DevelopmentReservationScenario> All { get; } = Array.AsReadOnly(
         DevelopmentFixtureManifest.Branches.SelectMany((branch, branchIndex) =>
@@ -40,11 +42,12 @@ public static class DevelopmentReservationScenarios
             var registrationKey = DevelopmentFixtureManifest.Customers[branchIndex + 1].Registration.RegistrationKey;
             var sellerReservations = Enumerable.Range(0, ReleasedPerBranch + 1).Select(index =>
                 new DevelopmentReservationScenario(index == ReleasedPerBranch ? listings[^1] : listings[index % (listings.Length - 1)],
-                    registrationKey, index, index == ReleasedPerBranch));
-            // Leave the primary demo buyer free to reserve while retaining two full history pages and a partial page.
+                    registrationKey, index == ReleasedPerBranch ? ActiveHoldIndex : index, index == ReleasedPerBranch));
+            // Keep cancellation roles and promo variations visible without repeating whole worklists.
+            // Retained receipt identities do not depend on the sample count.
             var buyerReservations = Enumerable.Range(0, ReleasedPerBranch / 3).Select(index =>
                 new DevelopmentReservationScenario(listings[index % (listings.Length - 1)],
-                    DevelopmentFixtureManifest.Customers[0].Registration.RegistrationKey, ReleasedPerBranch + 1 + index, false));
+                    DevelopmentFixtureManifest.Customers[0].Registration.RegistrationKey, FirstBuyerIndex + index, false));
             return sellerReservations.Concat(buyerReservations);
         }).ToArray());
 }

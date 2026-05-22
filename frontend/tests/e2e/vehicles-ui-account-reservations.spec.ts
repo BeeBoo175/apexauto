@@ -114,7 +114,7 @@ test("customer account retains all controls, independent scoped history and exac
   const snapshot = (await response.json()).data as AccountReservations;
   const held = snapshot.active!;
   expect(snapshot.pageSize).toBe(5);
-  expect(snapshot.total).toBeGreaterThan(50);
+  expect(snapshot.total).toBeGreaterThan(snapshot.pageSize * 2);
   expect(html).toContain(held.receipt.id);
   expect(held.coverPhotoId).not.toBeNull();
   expect(
@@ -164,7 +164,7 @@ test("customer account retains all controls, independent scoped history and exac
     }),
   );
   await page.getByRole("link", { name: "Reservations", exact: true }).click();
-  await reservations.getByRole("button", { name: "Next reservations", exact: true }).click();
+  await reservations.getByRole("button", { name: "Previous reservations", exact: true }).click();
   await expect(
     page.getByRole("alert").filter({ hasText: "Your last confirmed records remain shown." }),
   ).toBeVisible();

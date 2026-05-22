@@ -100,7 +100,7 @@ public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHa
             return false;
         }
 
-        var request = new SaleDocumentCorrectionRequest(scenario.OperationId("correct-address"), 7, original.Id,
+        var request = new SaleDocumentCorrectionRequest(scenario.OperationId("correct-address"), scenario.FinalVersion, original.Id,
             new(original.Contents().Review.BuyerName, scenario.CorrectedBuyerAddress!, "Correct the buyer address spelling"));
         if (seed)
         {
@@ -120,6 +120,11 @@ public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHa
     // Each step names the version it starts from; a replayed step succeeds with its original receipt.
     private async Task<bool> DriveAsync(DevelopmentSaleScenario scenario, CancellationToken cancellationToken)
     {
+        if (scenario.Target == SalesOrderStatus.Open)
+        {
+            return true;
+        }
+
         var id = scenario.ReservationId;
         var agent = scenario.AgentId;
         var steps = new List<Func<Task<SaleCommandResult>>>
@@ -140,13 +145,15 @@ public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHa
 
         if (scenario.Target is SalesOrderStatus.PendingApproval or SalesOrderStatus.Approved or SalesOrderStatus.Settled or SalesOrderStatus.Delivered)
         {
-            steps.Add(() => terms.SubmitAsync(agent, id, new(scenario.OperationId("submit"), 3), cancellationToken));
+            steps.Add(() => terms.SubmitAsync(agent, id,
+                new(scenario.OperationId("submit"), scenario.TermsVersion), cancellationToken));
         }
 
-        if (scenario.Target is SalesOrderStatus.Settled or SalesOrderStatus.Delivered)
+        if (scenario.ManagerApproval && scenario.Target is
+            SalesOrderStatus.Approved or SalesOrderStatus.Settled or SalesOrderStatus.Delivered)
         {
             steps.Add(() => terms.ApproveAsync(scenario.ManagerId, id,
-                new(scenario.OperationId("approve"), 4), cancellationToken));
+                new(scenario.OperationId("approve"), scenario.SubmittedVersion), cancellationToken));
         }
 
         foreach (var step in steps)
@@ -169,7 +176,8 @@ public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHa
             var payment = new SalePaymentEvidence(SalePaymentMethod.BankTransfer, sale.BalancePayable,
                 $"Transfer {scenario.Hold.Listing.Intake.RegistrationPlate}", DateOnly.FromDateTime(sale.CreatedAt.UtcDateTime),
                 null, 0m, null, false, false);
-            if ((await settlement.SettleAsync(agent, id, new(scenario.OperationId("settle"), 5, payment, review),
+            if ((await settlement.SettleAsync(agent, id,
+                new(scenario.OperationId("settle"), scenario.ApprovedVersion, payment, review),
                 cancellationToken)).Status != SaleResultStatus.Succeeded)
             {
                 return false;
@@ -177,7 +185,7 @@ public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHa
 
             if (scenario.Target == SalesOrderStatus.Delivered)
             {
-                return (await handover.DeliverAsync(agent, id, new(scenario.OperationId("handover"), 6,
+                return (await handover.DeliverAsync(agent, id, new(scenario.OperationId("handover"), scenario.SettledVersion,
                     new(review.Vehicle.MileageKilometres, 2, true, true, true)), cancellationToken)).Status ==
                     SaleResultStatus.Succeeded;
             }
