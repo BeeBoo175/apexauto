@@ -6,11 +6,19 @@ namespace Dealership.Infrastructure.Development;
 
 public static class DevelopmentFixtureRegistration
 {
-    public static IServiceCollection AddDevelopmentFixtures(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddDevelopmentAccounts(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddSingleton(InspectionScheduleConfiguration.Read(configuration));
         services.AddSingleton<DevelopmentFixtureClock>();
         services.AddSingleton<TimeProvider>(provider => provider.GetRequiredService<DevelopmentFixtureClock>());
+        services.AddScoped<DevelopmentAccountFixtures>();
+        services.AddScoped<DevelopmentCustomerFixtures>();
+        return services;
+    }
+
+    public static IServiceCollection AddDevelopmentFixtures(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddDevelopmentAccounts(configuration);
         services.AddScoped<DevelopmentFixtureRunner>();
         services.AddScoped<DevelopmentFixtureMail>();
         services.AddScoped<DevelopmentInspectionFixtures>();
@@ -19,7 +27,6 @@ public static class DevelopmentFixtureRegistration
         services.AddScoped<DevelopmentReservationFixtures>();
         services.AddScoped<DevelopmentSaleFixtures>();
         services.AddScoped<DevelopmentInspectionScenarioFixtures>();
-        services.AddScoped<DevelopmentCustomerFixtures>();
         services.AddScoped<DevelopmentIntakeFixtures>();
         services.AddScoped<DevelopmentFixturePhotos>();
         return services;

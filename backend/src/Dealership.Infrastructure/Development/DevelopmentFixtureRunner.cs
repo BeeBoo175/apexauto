@@ -1,19 +1,14 @@
-using Dealership.Application.Accounts;
-using Dealership.Application.Branches;
-using Dealership.Infrastructure.Branches;
-using Dealership.Infrastructure.Identity;
 using Dealership.Infrastructure.Persistence;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dealership.Infrastructure.Development;
 
 public sealed record DevelopmentFixtureReport(string Fixture, string State, bool RequiresAttention);
 
-public sealed class DevelopmentFixtureRunner(DealershipDbContext database, DevelopmentCustomerFixtures customers,
-    StaffProvisioningService staff, BranchProvisioningService branches, DevelopmentIntakeFixtures intake,
+public sealed class DevelopmentFixtureRunner(DealershipDbContext database, DevelopmentAccountFixtures accounts,
+    DevelopmentIntakeFixtures intake,
     DevelopmentInspectionFixtures inspections, DevelopmentListingFixtures listings, DevelopmentPurchaseFixtures purchases,
-    DevelopmentReservationFixtures reservations, DevelopmentSaleFixtures sales, IPasswordHasher<AccountUser> passwords,
+    DevelopmentReservationFixtures reservations, DevelopmentSaleFixtures sales,
     DevelopmentFixtureMail mail)
 {
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> SeedAsync(DevelopmentFixtureTarget target,
@@ -65,23 +60,7 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
         CancellationToken token)
     {
         // A dedicated nonpooled connection owns the run lock; disposal releases it after failure or restart.
-        var reports = new List<DevelopmentFixtureReport>();
-        foreach (var branch in DevelopmentFixtureManifest.Branches)
-        {
-            var provisioned = await branches.ProvisionBranchAsync(branch, token);
-            reports.Add(Report(branch.Name, provisioned.Created, provisioned.MatchesRequestedState));
-        }
-
-        foreach (var customer in DevelopmentFixtureManifest.Customers)
-        {
-            reports.Add(await customers.SeedAsync(customer, token));
-        }
-
-        foreach (var account in DevelopmentFixtureManifest.Staff)
-        {
-            var provisioned = await staff.ProvisionStaffAsync(account, token);
-            reports.Add(Report($"{account.Role} ({account.Email})", provisioned.Created, provisioned.MatchesRequestedState));
-        }
+        var reports = new List<DevelopmentFixtureReport>(await accounts.RunAsync(true, token));
 
         reports.AddRange(await purchases.RunAsync(true, token));
         reports.AddRange(await intake.SeedAsync(target, token));
@@ -103,25 +82,7 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
         }
         try
         {
-            var reports = new List<DevelopmentFixtureReport>();
-            foreach (var requested in DevelopmentFixtureManifest.Branches)
-            {
-                var branch = await database.Branches.AsNoTracking().SingleOrDefaultAsync(
-                    candidate => candidate.Id == requested.Id, cancellationToken);
-                var matches = branch is not null && BranchProvisioningStore.Matches(branch, requested);
-                var state = branch is null ? "missing" : "drift; preserved";
-                reports.Add(new DevelopmentFixtureReport(requested.Name, matches ? "matches" : state, !matches));
-            }
-
-            foreach (var customer in DevelopmentFixtureManifest.Customers)
-            {
-                reports.Add(await customers.ReviewAsync(customer, cancellationToken));
-            }
-
-            foreach (var account in DevelopmentFixtureManifest.Staff)
-            {
-                reports.Add(await ReviewAccountAsync(account, cancellationToken));
-            }
+            var reports = new List<DevelopmentFixtureReport>(await accounts.RunAsync(false, cancellationToken));
 
             reports.AddRange(await purchases.RunAsync(false, cancellationToken));
             reports.AddRange(await intake.ReviewAsync(cancellationToken));
@@ -140,25 +101,4 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
         }
     }
 
-    private async Task<DevelopmentFixtureReport> ReviewAccountAsync(StaffProvisioningRequest requested,
-        CancellationToken cancellationToken)
-    {
-        var account = await database.Users.AsNoTracking().SingleOrDefaultAsync(
-            candidate => candidate.Id == requested.Id, cancellationToken);
-        var staff = new ValidatedStaffProvisioning(requested.Id, requested.Email, requested.Password,
-            requested.Role, requested.BranchId);
-        var matches = account is not null && StaffProvisioningStore.Matches(account, staff, passwords);
-        var state = account is null ? "missing" : "drift; preserved";
-        return new DevelopmentFixtureReport($"{requested.Role} ({requested.Email})", matches ? "matches" : state, !matches);
-    }
-
-    private static DevelopmentFixtureReport Report(string fixture, bool created, bool matches)
-    {
-        if (created)
-        {
-            return new DevelopmentFixtureReport(fixture, "created", false);
-        }
-
-        return new DevelopmentFixtureReport(fixture, matches ? "matches" : "drift; preserved", !matches);
-    }
 }

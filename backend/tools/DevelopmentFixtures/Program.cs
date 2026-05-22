@@ -9,10 +9,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 
-if (args.Length is < 1 or > 2 || args[0] is not ("seed" or "review" or "clear") ||
+if (args.Length is < 1 or > 2 || args[0] is not ("seed" or "review" or "clear" or "seed-accounts" or "review-accounts") ||
     args.Length == 2 && (args[0] != "seed" || args[1] != "--deliver-mail"))
 {
-    Console.Error.WriteLine("Usage: DevelopmentFixtures seed [--deliver-mail] | review | clear");
+    Console.Error.WriteLine("Usage: DevelopmentFixtures seed [--deliver-mail] | review | seed-accounts | review-accounts | clear");
     return 1;
 }
 
@@ -36,13 +36,21 @@ try
     var services = new ServiceCollection();
     services.AddLogging();
     services.AddApplication();
-    services.AddIntakeApplication();
-    services.AddPhotoApplication();
     services.AddInfrastructure(configuration);
-    services.AddDevelopmentFixtures(configuration);
-    services.AddS3Storage(configuration);
-    services.AddPhotos(configuration);
-    services.AddScoped<DevelopmentDatabaseRebuilder>();
+    var accountsOnly = args[0] is "seed-accounts" or "review-accounts";
+    if (accountsOnly)
+    {
+        services.AddDevelopmentAccounts(configuration);
+    }
+    else
+    {
+        services.AddIntakeApplication();
+        services.AddPhotoApplication();
+        services.AddDevelopmentFixtures(configuration);
+        services.AddS3Storage(configuration);
+        services.AddPhotos(configuration);
+        services.AddScoped<DevelopmentDatabaseRebuilder>();
+    }
     await using var provider = services.BuildServiceProvider(new ServiceProviderOptions
     {
         ValidateScopes = true,
@@ -62,17 +70,32 @@ try
         return 0;
     }
 
-    var runner = scope.ServiceProvider.GetRequiredService<DevelopmentFixtureRunner>();
-    var reports = args[0] == "seed"
-        ? await runner.SeedAsync(target, deadline.Token, deliverMail: args.Length == 2)
-        : await runner.ReviewAsync(target, deadline.Token);
+    IReadOnlyList<DevelopmentFixtureReport> reports;
+    if (accountsOnly)
+    {
+        var accounts = scope.ServiceProvider.GetRequiredService<DevelopmentAccountFixtures>();
+        reports = args[0] == "seed-accounts"
+            ? await accounts.SeedAsync(target, deadline.Token)
+            : await accounts.ReviewAsync(target, deadline.Token);
+    }
+    else
+    {
+        var runner = scope.ServiceProvider.GetRequiredService<DevelopmentFixtureRunner>();
+        reports = args[0] == "seed"
+            ? await runner.SeedAsync(target, deadline.Token, deliverMail: args.Length == 2)
+            : await runner.ReviewAsync(target, deadline.Token);
+    }
 
     foreach (var report in reports)
     {
         Console.WriteLine($"{report.Fixture}: {report.State}");
     }
 
-    if (args[0] == "seed")
+    if (args[0] == "seed-accounts")
+    {
+        Console.WriteLine("Accounts and required staff branches only. Existing business records were preserved; no media or business fixtures were created.");
+    }
+    else if (args[0] == "seed")
     {
         Console.WriteLine(args.Length == 2
             ? "New fixture mail remains queued for delivery. Existing delivery state was preserved."
@@ -84,9 +107,12 @@ try
 catch (Exception exception)
 {
     // Provider errors can contain connection details; disclose only the failure category.
-    var recovery = args[0] == "clear"
-        ? "The database may already have been deleted. Inspect its state before retrying the rebuild."
-        : "Intake initialization rolls back on failure. Review the target; deliberately clear then seed to rebuild a populated snapshot. Initialization requires maintenance credentials.";
+    var recovery = args[0] switch
+    {
+        "clear" => "The database may already have been deleted. Inspect its state before retrying the rebuild.",
+        "seed-accounts" or "review-accounts" => "Committed accounts are preserved. Use review-accounts to inspect missing or edited records before retrying.",
+        _ => "Intake initialization rolls back on failure. Review the target; deliberately clear then seed to rebuild a populated snapshot. Initialization requires maintenance credentials."
+    };
     Console.Error.WriteLine($"Fixture operation failed ({exception.GetType().Name}). Check local configuration and applied migrations. {recovery}");
     return 1;
 }
