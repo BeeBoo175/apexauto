@@ -28,6 +28,7 @@ test("history validates entries and shows readable changes", () => {
         reason: null,
         changes: [],
         refund: null,
+        documents: [],
       },
     ],
     totalCount: 1,
@@ -35,6 +36,20 @@ test("history validates entries and shows readable changes", () => {
     pageSize: 25,
   };
   expect(parseSaleHistory(history)?.totalCount).toBe(1);
+  const issued = { id: agent, kind: "PaymentReceipt", number: "VRC-2026-000001" };
+  const withDocuments = (documents: unknown) => ({
+    ...history,
+    items: [{ ...history.items[0], documents }],
+  });
+  expect(parseSaleHistory(withDocuments([issued]))?.items[0].documents).toEqual([issued]);
+  for (const documents of [
+    undefined,
+    [issued, issued],
+    [{ ...issued, kind: "Unknown" }],
+    [{ ...issued, id: "invalid" }],
+  ]) {
+    expect(parseSaleHistory(withDocuments(documents))).toBeNull();
+  }
   expect(
     parseSaleHistory({ ...history, items: [{ ...history.items[0], toStatus: "Draft" }] }),
   ).toBeNull();

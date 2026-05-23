@@ -43,6 +43,9 @@ export function SaleFooter({
   const editing = editor.editingTerms;
   const editingHere = selection.section === "deal" && !viewingPast && editing;
   const deal = selection.section === "deal";
+  const delivery = selection.section === "delivery";
+  const handoverAssignment = snapshot.sale.status === "Settled";
+  const showsAssignment = handoverAssignment ? delivery : deal;
   const { title, description } = saleFooterPresentation({
     status: snapshot.sale.status,
     actions,
@@ -71,17 +74,15 @@ export function SaleFooter({
       <StaffWorkspaceFooter
         title={completionLoading ? "Loading buyer details" : taskTitle}
         description={
-          deal && !viewingPast
-            ? taskDescription
-            : "Your entries are kept. Return to Deal to continue."
+          delivery ? taskDescription : "Your entries are kept. Return to Delivery to continue."
         }
       >
         <div ref={onActionsContainer} className={workspace.footerActions} />
-        {(!deal || viewingPast) && (
+        {!delivery && (
           <Button
             size="compact"
             disabled={editor.operating || completionLoading || externalOperating}
-            onClick={() => selection.openVersion(null, "deal")}
+            onClick={() => selection.changeSection("delivery")}
           >
             Return to editing
           </Button>
@@ -126,16 +127,19 @@ export function SaleFooter({
       )}
       {!viewingPast && !editing && selection.section !== "history" && (
         <>
-          {deal && actions.assign && snapshot.sale.status !== "Open" && !editor.notesDirty && (
-            <Button
-              size="compact"
-              variant="secondary"
-              disabled={blocked("assignments") || editor.notesDirty}
-              onClick={onAssign}
-            >
-              Reassign
-            </Button>
-          )}
+          {showsAssignment &&
+            actions.assign &&
+            snapshot.sale.status !== "Open" &&
+            !editor.notesDirty && (
+              <Button
+                size="compact"
+                variant="secondary"
+                disabled={blocked("assignments") || editor.notesDirty}
+                onClick={onAssign}
+              >
+                {handoverAssignment ? "Change handover agent" : "Reassign"}
+              </Button>
+            )}
           {deal && actions.release && !editor.notesDirty && (
             <ConfirmationButton
               size="compact"
@@ -177,6 +181,7 @@ export function SaleFooter({
           {!deal && !actions.claim && snapshot.sale.status !== "Open" && !editor.notesDirty && (
             <Button
               size="compact"
+              variant="secondary"
               onClick={() => selection.openVersion(null, "deal")}
               disabled={editor.operating}
             >
@@ -232,13 +237,16 @@ export function SaleFooter({
               Assign agent
             </Button>
           )}
-          {deal && onPrepareCompletion && !editor.notesDirty && (
+          {(deal || delivery) && onPrepareCompletion && !editor.notesDirty && (
             <Button
               size="compact"
+              variant={delivery ? "primary" : "secondary"}
               disabled={editor.locked || editor.refreshing || editor.confirmed}
-              onClick={onPrepareCompletion}
+              onClick={delivery ? onPrepareCompletion : () => selection.changeSection("delivery")}
             >
-              {snapshot.sale.status === "Approved" ? "Review settlement" : "Prepare handover"}
+              {!delivery && "Open delivery"}
+              {delivery &&
+                (snapshot.sale.status === "Approved" ? "Review settlement" : "Prepare handover")}
             </Button>
           )}
         </>
@@ -256,7 +264,7 @@ export function SaleFooter({
       {viewingPast && !editing && !editor.notesDirty && (
         <Button
           size="compact"
-          variant="primary"
+          variant="secondary"
           disabled={editor.busy || editor.refreshing}
           onClick={() => selection.openVersion(null)}
         >

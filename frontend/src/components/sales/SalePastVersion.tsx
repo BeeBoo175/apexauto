@@ -13,6 +13,7 @@ import { historyVersionTitle } from "@/lib/sales/sale-history";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { SaleFacts } from "./SaleFacts";
 import { SaleDeal } from "./SaleDeal";
+import { SaleCompletionEvidence } from "./SaleCompletionEvidence";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 import record from "@/components/staff/StaffRecordContent.module.css";
 import styles from "./Sales.module.css";
@@ -86,6 +87,7 @@ export function SalePastVersion({
       {result && section !== "customer" && (
         <>
           <SaleDeal sale={result.snapshot} context={context} />
+          <SaleCompletionEvidence sale={result.snapshot} />
           {result.reason && (
             <section className={record.group}>
               <h4>Reason</h4>

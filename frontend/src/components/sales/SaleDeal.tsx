@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import { formatCurrency } from "@/lib/currency-format";
 import type { SaleContext, SaleSnapshot } from "@/lib/sales/contracts";
 import { SaleLines } from "./SaleLines";
-import { SaleCompletionEvidence } from "./SaleCompletionEvidence";
 import record from "@/components/staff/StaffRecordContent.module.css";
 import styles from "./Sales.module.css";
 
@@ -50,7 +49,6 @@ export function SaleDeal({
         </div>
         <SaleLines sale={sale} />
       </div>
-      <SaleCompletionEvidence sale={sale} />
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { StaffDetailsDialog, type StaffDetail } from "@/components/staff/StaffDetailsDialog";
 import { StaffLink } from "@/components/staff/StaffLink";
+import { StaffStatusGroup } from "@/components/staff/StaffStatusGroup";
 import { WorkshopStatus } from "./WorkshopStatus";
 import type { useInspectionEditor } from "@/hooks/use-inspection-editor";
 import { assessmentLabel, reportDocumentHref } from "@/lib/inspection/contracts";
@@ -39,7 +40,9 @@ export function InspectionRecord({
           <strong className={workbench.summaryValue}>{summaryValue}</strong>
         </div>
         <div className={workbench.summaryContext}>
-          <WorkshopStatus status={status} />
+          <StaffStatusGroup label="Workshop status">
+            <WorkshopStatus status={status} />
+          </StaffStatusGroup>
           <span>
             {`Revision ${snapshot.draft.revision} · ${snapshot.draft.isSigned ? "Signed" : "Draft"}`}
           </span>

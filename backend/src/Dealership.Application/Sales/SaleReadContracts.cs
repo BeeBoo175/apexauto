@@ -117,7 +117,12 @@ public sealed record SaleTableQuery(int Page, int PageSize, string? View, string
 // One retained history entry; changed terms carry invariant before and after text.
 public sealed record SaleHistoryItem(Guid Id, long Version, string Kind, DateTimeOffset RecordedAt, string Actor,
     string? Agent, string? PreviousAgent, string? FromStatus, string ToStatus, string? Reason,
-    IReadOnlyList<SaleChange> Changes, decimal? Refund);
+    IReadOnlyList<SaleChange> Changes, decimal? Refund)
+{
+    public IReadOnlyList<SaleHistoryDocument> Documents { get; init; } = [];
+}
+
+public sealed record SaleHistoryDocument(Guid Id, string Kind, string Number);
 
 public sealed record SaleHistoryPage(IReadOnlyList<SaleHistoryItem> Items, int TotalCount, int Page, int PageSize);
 

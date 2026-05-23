@@ -164,9 +164,19 @@ public sealed class SaleReadStore(DealershipDbContext database) : ISaleReadStore
                           }).ReadPageAsync(page, pageSize, total, cancellationToken);
         var emails = await EmailsAsync(rows.SelectMany(row => new[] { row.ActorId, row.AgentId, row.PreviousAgentId }),
             cancellationToken);
+        var operationIds = rows.Select(row => row.Id).ToArray();
+        var documents = await database.SaleDocuments.AsNoTracking()
+            .Where(item => item.SalesOrderId == saleId && operationIds.Contains(item.IssuingOperationId) &&
+                item.CorrectionOperationId == null)
+            .Select(item => new { item.Id, item.IssuingOperationId, item.Kind, item.Number })
+            .ToListAsync(cancellationToken);
         var items = rows.Select(row => new SaleHistoryItem(row.Id, row.Sequence, row.Kind.ToString(), row.RecordedAt,
             Email(emails, row.ActorId) ?? "System", Email(emails, row.AgentId), Email(emails, row.PreviousAgentId),
-            row.FromStatus?.ToString(), row.ToStatus.ToString(), row.Reason, row.Changes ?? [], row.Refund)).ToList();
+            row.FromStatus?.ToString(), row.ToStatus.ToString(), row.Reason, row.Changes ?? [], row.Refund)
+        {
+            Documents = documents.Where(item => item.IssuingOperationId == row.Id).OrderBy(item => item.Kind)
+                .Select(item => new SaleHistoryDocument(item.Id, item.Kind.ToString(), item.Number)).ToList()
+        }).ToList();
         await transaction.CommitAsync(cancellationToken);
         return new(SaleResultStatus.Succeeded, new SaleHistoryPage(items, total, page, pageSize));
     }

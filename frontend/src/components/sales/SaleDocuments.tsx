@@ -5,6 +5,7 @@ import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import type { useSaleDocuments } from "@/hooks/use-sale-documents";
 import type { SaleDocument } from "@/lib/sales/documents";
 import { SaleDocumentLinks } from "./SaleDocumentLinks";
+import { SaleDocumentsLoadingShell } from "./SaleDocumentsLoadingShell";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 import styles from "./SaleDocuments.module.css";
 
@@ -25,20 +26,18 @@ export function SaleDocuments({
         <h3 className={workbench.sectionTitle}>Issued documents</h3>
       </div>
       <LoadingProgress label="Loading sales documents" active={read.busy} />
+      {read.busy && !read.documents && <SaleDocumentsLoadingShell />}
       {read.documents?.map((document) => (
-        <div className={styles.document} key={document.id}>
-          <SaleDocumentLinks saleId={saleId} initial={document} className={styles.details} />
-          {onCorrect && (
-            <Button
-              size="compact"
-              variant="secondary"
-              disabled={disabled || read.busy || read.failed}
-              onClick={() => onCorrect(document)}
-            >
-              Correct buyer details
-            </Button>
-          )}
-        </div>
+        <article className={styles.document} key={document.id}>
+          <SaleDocumentLinks
+            saleId={saleId}
+            initial={document}
+            className={styles.details}
+            compact
+            onCorrect={onCorrect}
+            disabled={disabled || read.busy || read.failed}
+          />
+        </article>
       ))}
       {read.failed && (
         <Button size="compact" variant="secondary" disabled={read.busy} onClick={read.retry}>

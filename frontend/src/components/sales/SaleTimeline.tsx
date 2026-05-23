@@ -10,6 +10,7 @@ import { useStaffHistory } from "@/hooks/use-staff-history";
 import { privateApiFetch } from "@/lib/api-browser";
 import { formatCurrency } from "@/lib/currency-format";
 import type { SaleSection } from "@/lib/sales/sale-sections";
+import { documentLabels, saleDocumentPdf } from "@/lib/sales/documents";
 import {
   appendSaleHistory,
   historyChange,
@@ -21,6 +22,7 @@ import {
 } from "@/lib/sales/sale-history";
 import timeline from "@/components/staff/StaffHistory.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
+import links from "./SaleDocumentLinks.module.css";
 
 // Every action remains in history; financial milestones open their retained Deal snapshot.
 export function SaleTimeline({
@@ -87,6 +89,21 @@ export function SaleTimeline({
                 <p key={change.field}>{historyChange(change)}</p>
               ))}
               {item.refund !== null && <p>Deposit refunded: {formatCurrency(item.refund)}</p>}
+              {item.documents.length > 0 && (
+                <div className={timeline.eventActions}>
+                  {item.documents.map((document) => (
+                    <a
+                      key={document.id}
+                      className={links.pdf}
+                      href={saleDocumentPdf(saleId, document.id)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {documentLabels[document.kind]} · {document.number} (PDF)
+                    </a>
+                  ))}
+                </div>
+              )}
               {link && (
                 <div className={timeline.eventActions}>
                   <StaffLink

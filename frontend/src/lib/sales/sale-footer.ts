@@ -68,6 +68,12 @@ export function saleFooterPresentation(state: SaleFooterState) {
   if (section === "history") {
     return { title: "Record history", description: "Retained sale versions are read only." };
   }
+  if (section === "delivery") {
+    return {
+      title: status === "Delivered" ? "Delivery complete" : "Next step",
+      description: nextStepNote(status, actions, dirty),
+    };
+  }
   if (section !== "deal" && status !== "Open") {
     return { title: "Next step", description: "Review the current deal and agreed terms." };
   }

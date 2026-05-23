@@ -21,6 +21,7 @@ import { formatMalaysianDate, formatMalaysianDateTime } from "@/lib/date-format"
 import { CheckInFields } from "./CheckInFields";
 import { NoShowCorrectionFields } from "./NoShowCorrectionFields";
 import { AppointmentStatus } from "./AppointmentStatus";
+import { StaffStatusGroup } from "./StaffStatusGroup";
 import { PersonIdentityFacts, VehicleIdentityFacts } from "./IdentityFacts";
 import styles from "./StaffWorkspace.module.css";
 
@@ -192,7 +193,9 @@ export function AppointmentWorkbench({
         <>
           <div className={styles.recordHeading}>
             <strong>{detail.registrationPlate}</strong>
-            <AppointmentStatus status={detail.status} />
+            <StaffStatusGroup label="Appointment status">
+              <AppointmentStatus status={detail.status} />
+            </StaffStatusGroup>
           </div>
           <dl className={styles.details}>
             <div>

@@ -13,6 +13,7 @@ import { useSaleVehicle } from "@/hooks/use-sale-vehicle";
 import { useSaleDocuments } from "@/hooks/use-sale-documents";
 import { useSaleCompletion } from "@/hooks/use-sale-completion";
 import { useSaleDocumentCorrection } from "@/hooks/use-sale-document-correction";
+import { useWorkspaceTabs } from "@/hooks/use-workspace-tabs";
 import { useEditGuard } from "@/hooks/use-edit-guard";
 import type { useSaleSelection } from "@/hooks/use-sale-selection";
 import type { Sale } from "@/lib/sales/contracts";
@@ -23,21 +24,13 @@ import { SaleFacts } from "./SaleFacts";
 import { SaleVehicle } from "./SaleVehicle";
 import { SaleFooter } from "./SaleFooter";
 import { SaleDeal } from "./SaleDeal";
-import { SaleDocuments } from "./SaleDocuments";
-import { SaleCompletionForm } from "./SaleCompletionForm";
-import { SaleDocumentCorrection } from "./SaleDocumentCorrection";
+import { SaleDelivery } from "./SaleDelivery";
 import { SalePastVersion } from "./SalePastVersion";
 import { SaleRecord } from "./SaleRecord";
 import { SaleTermsForm } from "./SaleTermsForm";
 import { SaleTimeline } from "./SaleTimeline";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 import styles from "./Sales.module.css";
-
-const tabs = saleSections.map((value) => ({
-  value,
-  label: saleSectionLabels[value],
-  available: true,
-}));
 
 // The sale's record, terms, history and actions, hosted by the agent's Sales pane and the managers' drawer alike.
 export function SaleEditor({
@@ -68,7 +61,18 @@ export function SaleEditor({
   const [footerActions, setFooterActions] = useState<HTMLDivElement | null>(null);
   // History is read only once its section has been opened.
   const [historyOpened, setHistoryOpened] = useState(selection.section === "history");
-  const section = selection.section;
+  const deliveryAvailable =
+    ["Approved", "Settled", "Delivered"].includes(snapshot.sale.status) || completion.dirty;
+  const { tabs, section } = useWorkspaceTabs(
+    selection.section,
+    saleSections.map((value) => ({
+      value,
+      label: saleSectionLabels[value],
+      available: value !== "delivery" || deliveryAvailable,
+    })),
+    "deal",
+    selection.changeSection,
+  );
   // A past version replaces the current record on its section; History keeps its own list.
   const showsCurrent = selection.version === null;
   const viewingPast = !showsCurrent && isSaleVersionSection(section);
@@ -78,7 +82,7 @@ export function SaleEditor({
   const documents = useSaleDocuments(
     snapshot.id,
     snapshot.sale.version,
-    hasDocuments && section === "deal" && showsCurrent,
+    hasDocuments && section === "delivery" && showsCurrent,
   );
   const correction = useSaleDocumentCorrection(snapshot, () => {
     documents.retry();
@@ -101,13 +105,7 @@ export function SaleEditor({
     completion.loading ||
     editor.notesDirty ||
     editor.commandBlocked("term-revisions");
-  let dealTitle = actions.saveTerms ? "Agree deal terms" : "Current deal";
-  if (completion.stage === "settlement") {
-    dealTitle = "Review settlement";
-  }
-  if (completion.stage === "handover") {
-    dealTitle = "Prepare handover";
-  }
+  const dealTitle = actions.saveTerms ? "Agree deal terms" : "Current deal";
 
   useEffect(() => {
     onLocked?.(locked);
@@ -127,7 +125,7 @@ export function SaleEditor({
         vehicle.retry();
       }
       void editor.refresh();
-      if (hasDocuments && section === "deal") {
+      if (hasDocuments && section === "delivery") {
         documents.retry();
       }
       refreshControl?.onClick();
@@ -197,40 +195,15 @@ export function SaleEditor({
                   </Button>
                 </div>
               )}
-              {!completion.stage && (
-                <SaleDeal sale={snapshot.sale} context={snapshot.context}>
-                  {actions.saveTerms ? (
-                    <SaleTermsForm
-                      editor={editor}
-                      disabled={termsBlocked}
-                      actionsContainer={footerActions}
-                    />
-                  ) : undefined}
-                </SaleDeal>
-              )}
-              {completion.stage && (
-                <SaleCompletionForm
-                  workflow={completion}
-                  balance={snapshot.sale.balancePayable}
-                  actionsContainer={footerActions}
-                  active
-                />
-              )}
-              {hasDocuments && !correction.draft && (
-                <SaleDocuments
-                  saleId={snapshot.id}
-                  read={documents}
-                  onCorrect={correction.allowed ? correction.start : undefined}
-                  disabled={editor.operating || editor.refreshing || completion.dirty}
-                />
-              )}
-              {correction.draft && (
-                <SaleDocumentCorrection
-                  correction={correction}
-                  actionsContainer={footerActions}
-                  blocked={editor.operating || editor.refreshing}
-                />
-              )}
+              <SaleDeal sale={snapshot.sale} context={snapshot.context}>
+                {actions.saveTerms ? (
+                  <SaleTermsForm
+                    editor={editor}
+                    disabled={termsBlocked}
+                    actionsContainer={footerActions}
+                  />
+                ) : undefined}
+              </SaleDeal>
               {noteNeeded && !editor.editingTerms && (
                 <section className={workbench.stack}>
                   <Textarea
@@ -267,6 +240,15 @@ export function SaleEditor({
                 </section>
               )}
             </section>
+          )}
+          {section === "delivery" && (
+            <SaleDelivery
+              editor={editor}
+              completion={completion}
+              documents={documents}
+              correction={correction}
+              actionsContainer={footerActions}
+            />
           )}
           {historyOpened && (
             <div hidden={section !== "history"}>

@@ -1,4 +1,4 @@
-export const saleSections = ["customer", "car", "deal", "history"] as const;
+export const saleSections = ["customer", "car", "deal", "delivery", "history"] as const;
 
 export type SaleSection = (typeof saleSections)[number];
 
@@ -6,6 +6,7 @@ export const saleSectionLabels: Record<SaleSection, string> = {
   customer: "Customer",
   car: "Car",
   deal: "Deal",
+  delivery: "Delivery",
   history: "History",
 };
 

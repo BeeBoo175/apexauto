@@ -144,6 +144,7 @@ test("Customer and Car are separate sections and only Customer and Deal open sal
     "Customer",
     "Car",
     "Deal",
+    "Delivery",
     "History",
   ]);
   expect(saleSelection({ sale: id, section: "car", version: "3" })).toEqual({
@@ -154,6 +155,11 @@ test("Customer and Car are separate sections and only Customer and Deal open sal
   expect(saleSelection({ sale: id, section: "customer", version: "3" }).version).toBe(3);
   expect(saleSelection({ sale: id, section: "deal", version: "4" }).version).toBe(4);
   expect(saleSelection({ sale: id, section: "history", version: "3" }).version).toBeNull();
+  expect(saleSelection({ sale: id, section: "delivery", version: "3" })).toEqual({
+    saleId: id,
+    section: "delivery",
+    version: null,
+  });
   expect(saleSections.filter(isSaleVersionSection)).toEqual(["customer", "deal"]);
 });
 

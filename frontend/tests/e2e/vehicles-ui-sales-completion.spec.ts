@@ -61,6 +61,7 @@ test("sales settlement, handover, corrections and own customer PDFs retain exact
   const customer = await browser.newContext({ ...info.project.use, baseURL: origin });
   const manager = await browser.newContext({ ...info.project.use, baseURL: origin });
   const outsider = await browser.newContext({ ...info.project.use, baseURL: origin });
+  const firstRequestAt = Date.now();
   try {
     await login(context, "aina.sofia@example.invalid");
     await login(customer, "ahmad.faizal@example.invalid");
@@ -100,10 +101,18 @@ test("sales settlement, handover, corrections and own customer PDFs retain exact
     expect(sale.sale.status).toBe("Approved");
     await page.goto(`/dashboard/sales?view=settling&sale=${id}&section=deal`);
     const selected = page.getByRole("region", { name: "Selected sale", exact: true });
+    await selected.getByRole("button", { name: "Open delivery", exact: true }).click();
     await selected.getByRole("button", { name: "Review settlement", exact: true }).click();
     await selected
       .getByLabel("Buyer address", { exact: true })
       .fill("24 Jalan Anggerik, Shah Alam, Selangor");
+    await selected
+      .getByRole("navigation", { name: "Sale sections" })
+      .getByRole("button", { name: "Deal", exact: true })
+      .click();
+    await expect(
+      selected.getByRole("heading", { name: "Agree deal terms", exact: true }),
+    ).toBeVisible();
     await selected
       .getByRole("navigation", { name: "Sale sections" })
       .getByRole("button", { name: "Customer", exact: true })
@@ -195,7 +204,7 @@ test("sales settlement, handover, corrections and own customer PDFs retain exact
     await page.screenshot({ path: path.join(evidence, "delivered-sale.png"), fullPage: true });
 
     const managerPage = await manager.newPage();
-    await managerPage.goto(`/dashboard/sales?view=Delivered&sale=${id}&section=deal`);
+    await managerPage.goto(`/dashboard/sales?view=Delivered&sale=${id}&section=delivery`);
     const drawer = managerPage.getByRole("dialog").filter({
       has: managerPage.getByRole("heading", { name: delivered.sale.orderNumber!, exact: true }),
     });
@@ -203,6 +212,11 @@ test("sales settlement, handover, corrections and own customer PDFs retain exact
     await expect(
       drawer.getByRole("button", { name: "Review settlement", exact: true }),
     ).toHaveCount(0);
+    await drawer
+      .locator("article")
+      .filter({ hasText: "Payment receipt" })
+      .locator("summary")
+      .click();
     await drawer
       .getByRole("button", { name: "Correct buyer details", exact: true })
       .first()
@@ -233,11 +247,31 @@ test("sales settlement, handover, corrections and own customer PDFs retain exact
     await drawer.getByRole("button", { name: "Reconcile correction", exact: true }).click();
     expect(correctionRequests).toHaveLength(2);
     expect(correctionRequests[0]).toBe(correctionRequests[1]);
+    await expect(drawer.getByText("Corrected", { exact: true })).toBeVisible();
+    await drawer
+      .locator("article")
+      .filter({ hasText: "Payment receipt" })
+      .locator("summary")
+      .click();
     await expect(
       drawer.getByRole("button", { name: "View previous document", exact: true }),
     ).toBeVisible();
     await managerPage.unroute(`**/api/staff/sales/${id}/document-corrections`);
     expect((await readSale(context, id)).sale.version).toBe(delivered.sale.version);
+    await drawer
+      .getByRole("navigation", { name: "Sale sections" })
+      .getByRole("button", { name: "History", exact: true })
+      .click();
+    const history = drawer.getByRole("region", { name: "Sale history", exact: true });
+    for (const document of documentsBefore) {
+      await expect(
+        history.getByRole("link", { name: new RegExp(document.number) }),
+      ).toHaveAttribute("href", `/api/sales/${id}/documents/${document.id}/pdf`);
+    }
+    await managerPage.screenshot({
+      path: path.join(evidence, "history-documents.png"),
+      fullPage: true,
+    });
     await managerPage.keyboard.press("Escape");
     await expect(drawer).not.toBeVisible();
     await managerPage.screenshot({
@@ -245,6 +279,38 @@ test("sales settlement, handover, corrections and own customer PDFs retain exact
       fullPage: true,
     });
 
+    await login(manager, "farah.aziz@example.invalid");
+    const awaiting = await read(
+      manager,
+      "/api/staff/sales?view=AwaitingHandover&registration=PQA%206312",
+    );
+    expect(awaiting.status()).toBe(200);
+    const tradeIn = (await awaiting.json()).data.items.find(
+      (item: { registration: string }) => item.registration === "PQA 6312",
+    );
+    expect(tradeIn).toBeTruthy();
+    const covered = await readSale(manager, tradeIn.id);
+    expect(covered.sale.negotiatedDiscount).toBe(0);
+    expect(covered.sale.balancePayable).toBe(0);
+    expect(covered.sale.tradeInAllowance).toBeGreaterThan(covered.sale.depositCredit);
+    await managerPage.goto(
+      `/dashboard/sales?view=AwaitingHandover&sale=${tradeIn.id}&section=delivery`,
+    );
+    const coveredDrawer = managerPage.getByRole("dialog").filter({
+      has: managerPage.getByRole("heading", { name: covered.sale.orderNumber!, exact: true }),
+    });
+    await expect(
+      coveredDrawer.getByText("No additional payment required", { exact: true }),
+    ).toBeVisible();
+    await expect(coveredDrawer.getByText("Discount over limit", { exact: true })).toHaveCount(0);
+    await managerPage.screenshot({
+      path: path.join(evidence, "trade-in-settlement.png"),
+      fullPage: true,
+    });
+
+    // Staff and customer contexts share the harness's loopback IP and its real admission window.
+    const remainingWindow = Math.max(0, 61_000 - (Date.now() - firstRequestAt));
+    await new Promise((resolve) => setTimeout(resolve, remainingWindow));
     const customerPage = await customer.newPage();
     const counts = () =>
       JSON.parse(readFileSync(path.join(evidence, "counts.json"), "utf8")) as Record<
@@ -297,13 +363,16 @@ test("sales settlement, handover, corrections and own customer PDFs retain exact
     expect((await read(outsider, `/api/sales/${id}/documents/${issued[0].id}/pdf`)).status()).toBe(
       404,
     );
-    await customerPage.goto("/account");
-    await customerPage
-      .locator("details")
-      .filter({ hasText: "Sale confirmed" })
-      .first()
-      .locator("summary")
-      .click();
+    await customerPage.goto(
+      `/account?reservationSearch=${encodeURIComponent(sale.context.reservationNumber)}`,
+      {
+        waitUntil: "domcontentloaded",
+        timeout: 30_000,
+      },
+    );
+    const purchased = customerPage.locator("details").filter({ hasText: "Sale confirmed" }).first();
+    await expect(purchased).toBeVisible();
+    await purchased.locator("summary").click({ timeout: 15_000 });
     await expect(
       customerPage.getByRole("link", { name: "View sale documents", exact: true }).first(),
     ).toBeVisible();
@@ -320,8 +389,6 @@ test("sales settlement, handover, corrections and own customer PDFs retain exact
       }),
     );
   } finally {
-    await customer.close();
-    await manager.close();
-    await outsider.close();
+    await Promise.allSettled([customer.close(), manager.close(), outsider.close()]);
   }
 });

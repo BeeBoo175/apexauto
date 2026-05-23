@@ -4,6 +4,13 @@ import { formatCurrency } from "@/lib/currency-format";
 import { isMyr } from "@/lib/currency-input";
 import { isSaleStatus, nullable, parseSaleSnapshot, text } from "./parse";
 import type { SaleSnapshot, SaleStatus } from "./contracts";
+import { documentLabels, type SaleDocument } from "./documents";
+
+export interface SaleHistoryDocument {
+  id: string;
+  kind: SaleDocument["kind"];
+  number: string;
+}
 
 export interface SaleChange {
   field: string;
@@ -25,6 +32,7 @@ export interface SaleHistoryItem {
   reason: string | null;
   changes: SaleChange[];
   refund: number | null;
+  documents: SaleHistoryDocument[];
 }
 
 // Shaped for the shared staff history reader, which pages by `totalCount`.
@@ -71,14 +79,32 @@ function parseItem(value: unknown): SaleHistoryItem | null {
     !isSaleStatus(value.toStatus) ||
     !nullable(text)(value.reason) ||
     !nullable(isMyr)(value.refund) ||
-    !Array.isArray(value.changes)
+    !Array.isArray(value.changes) ||
+    !Array.isArray(value.documents) ||
+    value.documents.length > 3
   ) {
     return null;
   }
   const changes = value.changes.map(parseChange);
-  return changes.every((change) => change !== null)
-    ? ({ ...value, changes } as unknown as SaleHistoryItem)
+  const documents = value.documents.map(parseHistoryDocument);
+  return changes.every((change) => change !== null) &&
+    documents.every((document) => document !== null) &&
+    new Set(documents.map((document) => document.id)).size === documents.length
+    ? ({ ...value, changes, documents } as unknown as SaleHistoryItem)
     : null;
+}
+
+function parseHistoryDocument(value: unknown): SaleHistoryDocument | null {
+  if (
+    !isRecord(value) ||
+    !isUuid(value.id) ||
+    !text(value.number) ||
+    typeof value.kind !== "string" ||
+    !Object.hasOwn(documentLabels, value.kind)
+  ) {
+    return null;
+  }
+  return value as unknown as SaleHistoryDocument;
 }
 
 export function parseSaleHistory(value: unknown): SaleHistory | null {

@@ -72,6 +72,17 @@ public sealed class SaleDocumentCorrectionTests(IntakePhotoFixture fixture) : IC
         using var restarted = fixture.CreateFactory();
         using var scope = restarted.Services.CreateScope();
         var replay = scope.ServiceProvider.GetRequiredService<SaleDocumentCorrectionService>();
+        var history = (await scope.ServiceProvider.GetRequiredService<ISaleReadStore>()
+            .HistoryAsync(world.Manager, saleId, 1, 10, default)).Value!;
+        var originals = await database.SaleDocuments.AsNoTracking()
+            .Where(item => item.SalesOrderId == saleId && item.CorrectionOperationId == null).ToListAsync();
+        Assert.Equal(3, history.Items.SelectMany(item => item.Documents).Count());
+        Assert.DoesNotContain(history.Items.SelectMany(item => item.Documents), item => item.Id == replacement.Id);
+        foreach (var document in originals)
+        {
+            var issued = Assert.Single(history.Items, item => item.Id == document.IssuingOperationId);
+            Assert.Contains(new SaleHistoryDocument(document.Id, document.Kind.ToString(), document.Number), issued.Documents);
+        }
         Assert.Equal(receipt, (await replay.ReissueAsync(world.Manager, saleId, request, default)).Receipt);
         Assert.Equal(SaleResultStatus.Conflict, (await replay.ReissueAsync(world.Manager, saleId,
             request with { Correction = request.Correction with { Reason = "Different reason" } }, default)).Status);

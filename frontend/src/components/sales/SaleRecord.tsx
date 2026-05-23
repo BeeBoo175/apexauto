@@ -1,5 +1,6 @@
 import { StaffDetailsDialog, type StaffDetail } from "@/components/staff/StaffDetailsDialog";
 import { Badge } from "@/components/ui/Badge";
+import { StaffStatusGroup } from "@/components/staff/StaffStatusGroup";
 import type { useSaleEditor } from "@/hooks/use-sale-editor";
 import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDateTime } from "@/lib/date-format";
@@ -116,12 +117,16 @@ export function SaleRecord({
           {loadingVersion ? (
             <span className={styles.statusPlaceholder} aria-hidden="true" />
           ) : (
-            <>
+            <StaffStatusGroup
+              label="Sale status"
+              attention={
+                overLimit && (
+                  <Badge className={`${tones.badge} ${tones.warning}`}>Discount over limit</Badge>
+                )
+              }
+            >
               <SaleStatus status={sale.status} />
-              {overLimit && (
-                <Badge className={`${tones.badge} ${tones.warning}`}>Discount over limit</Badge>
-              )}
-            </>
+            </StaffStatusGroup>
           )}
           <div className={styles.summaryClock}>
             {loadingVersion && <span className={styles.clockPlaceholder} aria-hidden="true" />}

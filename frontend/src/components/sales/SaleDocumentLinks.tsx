@@ -4,15 +4,23 @@ import { Button } from "@/components/ui/Button";
 import { useSaleDocumentVersion } from "@/hooks/use-sale-document-version";
 import { documentLabels, saleDocumentPdf, type SaleDocument } from "@/lib/sales/documents";
 import { formatMalaysianDateTime } from "@/lib/date-format";
+import styles from "./SaleCompletion.module.css";
+import links from "./SaleDocumentLinks.module.css";
 
 export function SaleDocumentLinks({
   saleId,
   initial,
   className,
+  compact = false,
+  onCorrect,
+  disabled = false,
 }: {
   saleId: string;
   initial: SaleDocument;
   className: string;
+  compact?: boolean;
+  onCorrect?: (document: SaleDocument) => void;
+  disabled?: boolean;
 }) {
   const version = useSaleDocumentVersion(saleId, initial);
   const { document } = version;
@@ -28,11 +36,8 @@ export function SaleDocumentLinks({
       </Button>
     );
   }
-  return (
-    <div className={className} aria-busy={version.busy}>
-      <a href={saleDocumentPdf(saleId, document.id)} target="_blank" rel="noopener noreferrer">
-        {documentLabels[document.kind]} · {document.number} (PDF)
-      </a>
+  const details = (
+    <>
       <p>
         Issued {formatMalaysianDateTime(document.issuedAt)}
         {document.replacementDocumentId ? " · Superseded" : ""}
@@ -57,6 +62,40 @@ export function SaleDocumentLinks({
         >
           View replacement document
         </Button>
+      )}
+      {onCorrect && !document.replacementDocumentId && (
+        <Button
+          size="compact"
+          variant="secondary"
+          disabled={disabled || version.busy}
+          onClick={() => onCorrect(document)}
+        >
+          Correct buyer details
+        </Button>
+      )}
+    </>
+  );
+  return (
+    <div className={className} aria-busy={version.busy}>
+      <a
+        className={links.pdf}
+        href={saleDocumentPdf(saleId, document.id)}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {documentLabels[document.kind]} · {document.number} (PDF)
+      </a>
+      {compact ? (
+        <details className={styles.disclosure}>
+          <summary>
+            Document details
+            {document.correction && <span>Corrected</span>}
+            {document.replacementDocumentId && <span>Superseded</span>}
+          </summary>
+          <div className={styles.disclosureContent}>{details}</div>
+        </details>
+      ) : (
+        details
       )}
     </div>
   );

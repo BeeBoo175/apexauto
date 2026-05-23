@@ -62,6 +62,18 @@ export function SaleAssignDialog({
 }) {
   const { snapshot } = editor;
   const handled = snapshot.sale.agentId !== null;
+  const handover = snapshot.sale.status === "Settled";
+  let title = handled ? "Reassign this sale" : "Assign this sale";
+  let confirmLabel = handled ? "Reassign sale" : "Assign sale";
+  let description = handled
+    ? "The sale moves to the chosen agent with its terms and status. The previous agent loses access."
+    : "The chosen agent starts handling the sale and its timer pauses.";
+  if (handover) {
+    title = "Change handover agent";
+    confirmLabel = "Change handover agent";
+    description =
+      "The chosen agent will complete handover. Settled terms and payment evidence stay unchanged. The previous agent loses access.";
+  }
   const [agents, setAgents] = useState<SaleAgent[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [agentId, setAgentId] = useState("");
@@ -101,8 +113,8 @@ export function SaleAssignDialog({
   return (
     <ConfirmationDialog
       open={open}
-      title={handled ? "Reassign this sale" : "Assign this sale"}
-      confirmLabel={handled ? "Reassign sale" : "Assign sale"}
+      title={title}
+      confirmLabel={confirmLabel}
       cancelLabel={agentId ? "Discard selection" : "Not now"}
       busy={editor.busy}
       locked={editor.uncertain === "assignments"}
@@ -116,11 +128,7 @@ export function SaleAssignDialog({
         { label: "Customer", value: snapshot.context.customer },
       ]}
     >
-      <p>
-        {handled
-          ? "The sale moves to the chosen agent with its terms and status. The previous agent loses access."
-          : "The chosen agent starts handling the sale and its timer pauses."}
-      </p>
+      <p>{description}</p>
       <AgentSelection
         value={agentId}
         agents={agents}
