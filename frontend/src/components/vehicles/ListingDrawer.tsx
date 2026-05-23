@@ -92,7 +92,6 @@ export function ListingDrawer({
         variant="drawer"
         density="compact"
         width="wide"
-        layout="workspace"
         title={vehicle?.registrationPlate ?? "Listing"}
         headerLoading={selection.busy && !snapshot}
         description={

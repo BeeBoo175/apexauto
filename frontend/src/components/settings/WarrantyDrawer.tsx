@@ -41,7 +41,6 @@ export function WarrantyDrawer({
         open={creating || Boolean(selection.id || selection.pendingId)}
         variant="drawer"
         density="compact"
-        layout="workspace"
         title={creating ? "New warranty package" : (latest?.name ?? "Warranty package")}
         headerLoading={loading}
         description={creating ? undefined : "Review and change this package's terms."}

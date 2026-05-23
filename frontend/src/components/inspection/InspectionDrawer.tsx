@@ -31,7 +31,6 @@ export function InspectionDrawer({
         variant="drawer"
         density="compact"
         width="wide"
-        layout="workspace"
         title={vehicle?.registrationPlate ?? "Workshop"}
         headerLoading={selection.busy && !selection.result?.data}
         description={

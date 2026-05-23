@@ -30,7 +30,6 @@ export interface DialogProps {
   variant?: "dialog" | "drawer";
   density?: "default" | "compact";
   width?: "default" | "wide";
-  layout?: "flow" | "workspace";
 }
 
 export function DialogActionSlot({ ref }: { ref: React.Ref<HTMLDivElement> }) {
@@ -52,7 +51,6 @@ export const Dialog: React.FC<DialogProps> = ({
   variant = "dialog",
   density = "default",
   width = "default",
-  layout = "flow",
 }) => {
   const element = useRef<HTMLDialogElement>(null);
   const [guard] = useState(createInteractionGuard);
@@ -170,7 +168,7 @@ export const Dialog: React.FC<DialogProps> = ({
           last?.focus();
         }
       }}
-      className={`${styles.surface} ${styles[variant]} ${density === "compact" ? styles.compact : ""} ${width === "wide" ? styles.wide : ""} ${layout === "workspace" ? styles.workspace : ""} ${appearance === "confirmation" ? styles.confirmation : ""}`}
+      className={`${styles.surface} ${styles[variant]} ${density === "compact" ? styles.compact : ""} ${width === "wide" ? styles.wide : ""} ${appearance === "confirmation" ? styles.confirmation : ""}`}
     >
       <div className={styles.header}>
         <div>

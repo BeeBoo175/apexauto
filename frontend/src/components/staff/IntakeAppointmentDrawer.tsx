@@ -5,6 +5,7 @@ import { AppointmentWorkbench } from "./AppointmentWorkbench";
 import { StaffRecordLoadingShell } from "./StaffRecordLoadingShell";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { useStaffAppointmentDrawer } from "@/hooks/use-staff-appointment-drawer";
+import workspace from "./StaffWorkspace.module.css";
 
 const appointmentDetails = [
   "Branch",
@@ -38,26 +39,28 @@ export function IntakeAppointmentDrawer({
       headerActions={<DialogActionSlot ref={setHeaderActions} />}
       onClose={drawer.close}
     >
-      {drawer.busy && (
-        <StaffRecordLoadingShell
-          label="Loading appointment…"
-          details={appointmentDetails}
-          showForm={actor.role !== "GeneralManager"}
-        />
-      )}
-      {!drawer.busy && drawer.result && (
-        <AppointmentWorkbench
-          key={drawer.id}
-          id={drawer.id}
-          actor={actor}
-          initial={drawer.result}
-          actionsContainer={headerActions}
-          draft={drawer.draft}
-          onDraft={drawer.setDraft}
-          onLock={drawer.lock}
-          onConfirmed={onConfirmed}
-        />
-      )}
+      <div className={workspace.drawerBody}>
+        {drawer.busy && (
+          <StaffRecordLoadingShell
+            label="Loading appointment…"
+            details={appointmentDetails}
+            showForm={actor.role !== "GeneralManager"}
+          />
+        )}
+        {!drawer.busy && drawer.result && (
+          <AppointmentWorkbench
+            key={drawer.id}
+            id={drawer.id}
+            actor={actor}
+            initial={drawer.result}
+            actionsContainer={headerActions}
+            draft={drawer.draft}
+            onDraft={drawer.setDraft}
+            onLock={drawer.lock}
+            onConfirmed={onConfirmed}
+          />
+        )}
+      </div>
     </Dialog>
   );
 }

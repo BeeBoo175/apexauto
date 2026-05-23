@@ -30,7 +30,6 @@ export function SaleDrawer({
         variant="drawer"
         density="compact"
         width="wide"
-        layout="workspace"
         title={sale ? (sale.sale.orderNumber ?? sale.context.reservationNumber) : "Sale"}
         headerLoading={loading}
         description={sale ? `${sale.context.registration} · ${sale.context.vehicle}` : undefined}

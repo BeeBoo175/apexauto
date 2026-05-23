@@ -41,7 +41,6 @@ export function PromoDrawer({
         open={creating || Boolean(selection.id || selection.pendingId)}
         variant="drawer"
         density="compact"
-        layout="workspace"
         title={creating ? "New promo" : (latest?.code ?? "Promo")}
         headerLoading={loading}
         description={creating ? undefined : "Review and change this promo's terms."}
