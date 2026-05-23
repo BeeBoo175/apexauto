@@ -57,6 +57,8 @@ internal static class DevelopmentReservationFixtureAssertions
                     Assert.Equal(persisted.CustomerId, appointment.OwnerId);
                     Assert.InRange(persisted.TradeInAllowance, 0.01m, appointment.Valuation.Maximum);
                     Assert.Equal(0m, persisted.BalancePayable);
+                    Assert.Equal(0m, persisted.NegotiatedDiscount);
+                    Assert.True(persisted.TradeInAllowance > persisted.DepositCredit);
                     Assert.False((await database.InspectionDrafts.SingleAsync(item => item.VehicleId == checkIn.VehicleId)).IsSigned);
                     Assert.Equal(VehicleStatus.PendingInspection,
                         (await database.Vehicles.SingleAsync(item => item.Id == checkIn.VehicleId)).Status);

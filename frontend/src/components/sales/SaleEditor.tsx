@@ -101,6 +101,13 @@ export function SaleEditor({
     completion.loading ||
     editor.notesDirty ||
     editor.commandBlocked("term-revisions");
+  let dealTitle = actions.saveTerms ? "Agree deal terms" : "Current deal";
+  if (completion.stage === "settlement") {
+    dealTitle = "Review settlement";
+  }
+  if (completion.stage === "handover") {
+    dealTitle = "Prepare handover";
+  }
 
   useEffect(() => {
     onLocked?.(locked);
@@ -180,9 +187,7 @@ export function SaleEditor({
           {showsCurrent && section === "deal" && (
             <section className={styles.section}>
               <div className={workbench.sectionHeader}>
-                <h2 className={workbench.sectionTitle}>
-                  {actions.saveTerms ? "Agree deal terms" : "Current deal"}
-                </h2>
+                <h2 className={workbench.sectionTitle}>{dealTitle}</h2>
               </div>
               {editor.stale && (
                 <div className={workbench.protocol} role="status">
@@ -210,17 +215,6 @@ export function SaleEditor({
                   actionsContainer={footerActions}
                   active
                 />
-              )}
-              {completion.eligible && !completion.stage && (
-                <Button
-                  size="compact"
-                  disabled={
-                    editor.locked || editor.refreshing || completion.loading || editor.confirmed
-                  }
-                  onClick={() => void completion.start()}
-                >
-                  {snapshot.sale.status === "Approved" ? "Review settlement" : "Prepare handover"}
-                </Button>
               )}
               {hasDocuments && !correction.draft && (
                 <SaleDocuments
@@ -297,6 +291,11 @@ export function SaleEditor({
           onActionsContainer={setFooterActions}
           completionActive={completion.dirty || correction.draft !== null}
           completionLoading={completion.loading}
+          completionStage={completion.stage}
+          correctingDocument={correction.draft !== null}
+          onPrepareCompletion={
+            completion.eligible && !completion.stage ? () => void completion.start() : undefined
+          }
           externalOperating={correction.operating}
         />
       </div>

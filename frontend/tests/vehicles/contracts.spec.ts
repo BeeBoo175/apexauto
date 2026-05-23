@@ -151,6 +151,17 @@ test("manager listings validate private projections and independent staff paging
   const page = { items: [row], total: 1, page: 1, pageSize: 10 };
   const parsed = parseListings(page)!.items[0];
   expect(parsed.vehicleStatus).toBe("Available");
+  for (const [code, status] of [
+    [3, "Sold"],
+    [4, "Delivered"],
+  ] as const) {
+    for (const vehicleStatus of [code, status]) {
+      expect(
+        parseListings({ ...page, items: [{ ...row, vehicleStatus, isPublic: false }] })?.items[0]
+          .vehicleStatus,
+      ).toBe(status);
+    }
+  }
   expect(listingPublication(parsed)).toBe("Published");
   expect(listingPublication({ ...parsed, revisionId: ids[0] })).toBe(
     "Published · saved changes not live",
@@ -158,7 +169,7 @@ test("manager listings validate private projections and independent staff paging
   expect(listingPublication({ ...parsed, isPublic: false })).toBe("Hidden");
   for (const changed of [
     { vehicleId: "invalid" },
-    { vehicleStatus: 3 },
+    { vehicleStatus: 5 },
     { vehiclePrice: -1 },
     { version: 1.5 },
     { publicationId: "invalid" },

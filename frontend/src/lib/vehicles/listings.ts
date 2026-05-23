@@ -4,7 +4,13 @@ import { isUuid } from "@/lib/auth/contracts";
 import { DEFAULT_PAGE_SIZE, isPageSize, paginationQuery } from "@/lib/pagination";
 import { parseListingRecord } from "./listing-history-selection";
 
-export const vehicleStatuses = ["PendingInspection", "Rejected", "Available"] as const;
+export const vehicleStatuses = [
+  "PendingInspection",
+  "Rejected",
+  "Available",
+  "Sold",
+  "Delivered",
+] as const;
 export const listingInspectionOptions = [
   { value: "", label: "All" },
   { value: "PendingInspection", label: "Not cleared" },

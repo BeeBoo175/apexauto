@@ -60,7 +60,7 @@ public static class DevelopmentSaleScenarios
             new(Hold(2), SalesOrderStatus.Open, false, 0m),
             new(Extra(70), SalesOrderStatus.Settled, false, 300m, PaymentMethod: SalePaymentMethod.Cash),
             new(Extra(71), SalesOrderStatus.Delivered, false, 500m, PaymentMethod: SalePaymentMethod.HirePurchase),
-            new(Extra(72), SalesOrderStatus.Settled, false, 0m, ManagerApproval: true,
+            new(Extra(72), SalesOrderStatus.Settled, false, 0m,
                 PaymentMethod: SalePaymentMethod.ZeroBalance, TradeInAppointmentId: tradeIn.Id),
             new(Extra(73), SalesOrderStatus.PendingApproval, false, 1500m),
             new(Extra(74), SalesOrderStatus.Approved, false, 500m)

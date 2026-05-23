@@ -12,6 +12,7 @@ import { formatCurrency } from "@/lib/currency-format";
 import forms from "@/components/staff/StaffForms.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 import record from "@/components/staff/StaffRecordContent.module.css";
+import styles from "./SaleCompletion.module.css";
 
 export function SaleCompletionForm({
   workflow,
@@ -203,24 +204,27 @@ export function SaleCompletionForm({
   ) : (
     <section className={forms.section}>
       <h3>Physical handover</h3>
-      <Input
-        label="Final odometer (km)"
-        density="compact"
-        inputMode="numeric"
-        required
-        value={handover.odometer}
-        disabled={disabled}
-        onChange={(event) => workflow.changeHandover({ odometer: event.target.value })}
-      />
-      <Input
-        label="Keys delivered"
-        density="compact"
-        inputMode="numeric"
-        required
-        value={handover.keys}
-        disabled={disabled}
-        onChange={(event) => workflow.changeHandover({ keys: event.target.value })}
-      />
+      <div className={forms.pair}>
+        <Input
+          label="Final odometer (km)"
+          density="compact"
+          inputMode="numeric"
+          required
+          value={handover.odometer}
+          disabled={disabled}
+          onChange={(event) => workflow.changeHandover({ odometer: event.target.value })}
+        />
+        <Input
+          label="Keys delivered"
+          density="compact"
+          inputMode="numeric"
+          required
+          value={handover.keys}
+          disabled={disabled}
+          onChange={(event) => workflow.changeHandover({ keys: event.target.value })}
+        />
+      </div>
+      <h3>Delivery confirmations</h3>
       <label className={forms.check}>
         <input
           type="checkbox"
@@ -275,7 +279,7 @@ export function SaleCompletionForm({
   return (
     <form
       id={formId}
-      className={workbench.stack}
+      className={styles.form}
       onSubmit={(event) => {
         event.preventDefault();
         if (workflow.blocked || (!workflow.uncertain && (!workflow.valid || workflow.stale))) {
@@ -288,7 +292,7 @@ export function SaleCompletionForm({
         }
       }}
     >
-      {fields}
+      <div className={settlement ? styles.columns : forms.section}>{fields}</div>
       {workflow.stale && (
         <p className={forms.hint}>
           The sale changed after this review. Discard these entries and start a fresh review before

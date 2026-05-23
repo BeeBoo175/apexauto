@@ -213,10 +213,10 @@ public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHa
         var hold = await database.Reservations.AsNoTracking()
             .SingleAsync(item => item.Id == scenario.ReservationId, cancellationToken);
         var settings = await database.PurchaseSettings.AsNoTracking().SingleAsync(cancellationToken);
-        var discount = hold.Price.VehiclePrice - hold.Price.PromoDiscount;
         var price = SalePricing.Calculate(new(hold.Price.VehiclePrice, hold.Price.RoadTax,
-            settings.ProcessingFee, settings.SstRate, hold.Price.PromoDiscount, discount, 0m, hold.Deposit, 0m));
-        return new(scenario.OperationId("terms"), 2, null, discount, scenario.TradeInAppointmentId, price.BalancePayable);
+            settings.ProcessingFee, settings.SstRate, hold.Price.PromoDiscount, scenario.Discount, 0m, hold.Deposit, 0m));
+        return new(scenario.OperationId("terms"), 2, null, scenario.Discount, scenario.TradeInAppointmentId,
+            price.BalancePayable);
     }
 
     private static SalePaymentEvidence Payment(DevelopmentSaleScenario scenario, decimal balance, DateTimeOffset createdAt)

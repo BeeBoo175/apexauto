@@ -70,6 +70,8 @@ function InspectionCell({ item }: { item: ListingItem }) {
     Available: "success",
     PendingInspection: "warning",
     Rejected: "danger",
+    Sold: "neutral",
+    Delivered: "neutral",
   } as const;
   return (
     <Badge className={`${tones.badge} ${tones[statusTones[item.vehicleStatus]]} ${styles.status}`}>

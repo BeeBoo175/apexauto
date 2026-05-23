@@ -17,6 +17,9 @@ export function SaleFooter({
   onActionsContainer,
   completionActive = false,
   completionLoading = false,
+  completionStage = null,
+  correctingDocument = false,
+  onPrepareCompletion,
   externalOperating = false,
 }: {
   editor: ReturnType<typeof useSaleEditor>;
@@ -25,6 +28,9 @@ export function SaleFooter({
   onActionsContainer: (container: HTMLDivElement | null) => void;
   completionActive?: boolean;
   completionLoading?: boolean;
+  completionStage?: "settlement" | "handover" | null;
+  correctingDocument?: boolean;
+  onPrepareCompletion?: () => void;
   externalOperating?: boolean;
 }) {
   const { snapshot, reason } = editor;
@@ -51,10 +57,24 @@ export function SaleFooter({
   const replay = (name: Parameters<typeof editor.run>[0]) => editor.uncertain === name;
 
   if (completionActive || completionLoading) {
+    let taskTitle = "Review settlement";
+    let taskDescription = "Confirm buyer details and payment before issuing documents.";
+    if (completionStage === "handover") {
+      taskTitle = "Complete handover";
+      taskDescription = "Record the odometer, keys and delivery confirmations.";
+    }
+    if (correctingDocument) {
+      taskTitle = "Correct buyer details";
+      taskDescription = "The original document remains available after reissue.";
+    }
     return (
       <StaffWorkspaceFooter
-        title={completionActive ? "Review sale changes" : "Loading buyer details"}
-        description="Review the captured facts before confirming. Reference sections keep your entries."
+        title={completionLoading ? "Loading buyer details" : taskTitle}
+        description={
+          deal && !viewingPast
+            ? taskDescription
+            : "Your entries are kept. Return to Deal to continue."
+        }
       >
         <div ref={onActionsContainer} className={workspace.footerActions} />
         {(!deal || viewingPast) && (
@@ -210,6 +230,15 @@ export function SaleFooter({
               onClick={onAssign}
             >
               Assign agent
+            </Button>
+          )}
+          {deal && onPrepareCompletion && !editor.notesDirty && (
+            <Button
+              size="compact"
+              disabled={editor.locked || editor.refreshing || editor.confirmed}
+              onClick={onPrepareCompletion}
+            >
+              {snapshot.sale.status === "Approved" ? "Review settlement" : "Prepare handover"}
             </Button>
           )}
         </>

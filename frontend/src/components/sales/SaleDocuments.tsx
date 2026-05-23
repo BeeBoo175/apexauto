@@ -6,7 +6,7 @@ import type { useSaleDocuments } from "@/hooks/use-sale-documents";
 import type { SaleDocument } from "@/lib/sales/documents";
 import { SaleDocumentLinks } from "./SaleDocumentLinks";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
-import record from "@/components/staff/StaffRecordContent.module.css";
+import styles from "./SaleDocuments.module.css";
 
 export function SaleDocuments({
   saleId,
@@ -20,14 +20,14 @@ export function SaleDocuments({
   disabled?: boolean;
 }) {
   return (
-    <section className={workbench.stack} aria-label="Issued documents" aria-busy={read.busy}>
+    <section className={styles.documents} aria-label="Issued documents" aria-busy={read.busy}>
       <div className={workbench.sectionHeader}>
         <h3 className={workbench.sectionTitle}>Issued documents</h3>
       </div>
       <LoadingProgress label="Loading sales documents" active={read.busy} />
       {read.documents?.map((document) => (
-        <div className={record.group} key={document.id}>
-          <SaleDocumentLinks saleId={saleId} initial={document} className={record.group} />
+        <div className={styles.document} key={document.id}>
+          <SaleDocumentLinks saleId={saleId} initial={document} className={styles.details} />
           {onCorrect && (
             <Button
               size="compact"

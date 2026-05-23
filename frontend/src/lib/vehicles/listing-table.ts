@@ -1,6 +1,9 @@
 import type { ListingItem } from "./listings";
 
 export function listingInspectionLabel(item: ListingItem) {
+  if (item.vehicleStatus === "Sold" || item.vehicleStatus === "Delivered") {
+    return item.vehicleStatus;
+  }
   if (item.vehicleStatus === "Available") {
     return "Cleared";
   }

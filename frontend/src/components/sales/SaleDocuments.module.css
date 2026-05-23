@@ -1,0 +1,42 @@
+.documents {
+  display: grid;
+  gap: 0;
+  min-width: 0;
+}
+
+.document {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--color-line-soft);
+}
+
+.document:last-child {
+  border-bottom: 0;
+}
+
+.details {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.details > a {
+  color: var(--color-graphite);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.6;
+  text-underline-offset: 3px;
+}
+
+.details > p {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
