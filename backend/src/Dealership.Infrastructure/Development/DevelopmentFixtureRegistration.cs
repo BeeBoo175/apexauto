@@ -28,6 +28,7 @@ public static class DevelopmentFixtureRegistration
         services.AddScoped<DevelopmentSaleFixtures>();
         services.AddScoped<DevelopmentInspectionScenarioFixtures>();
         services.AddScoped<DevelopmentIntakeFixtures>();
+        services.AddScoped<DevelopmentIntakeOwnershipFixtures>();
         services.AddScoped<DevelopmentFixturePhotos>();
         return services;
     }

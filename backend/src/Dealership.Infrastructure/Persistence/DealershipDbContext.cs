@@ -51,6 +51,8 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
 
     public DbSet<IntakeAppointment> IntakeAppointments => Set<IntakeAppointment>();
 
+    public DbSet<AppointmentAssignment> AppointmentAssignments => Set<AppointmentAssignment>();
+
     public DbSet<AppointmentPhoto> AppointmentPhotos => Set<AppointmentPhoto>();
 
     public DbSet<AppointmentMail> AppointmentMailOutbox => Set<AppointmentMail>();
@@ -124,6 +126,7 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
         builder.ApplyConfiguration(new PhotoRemovalConfiguration());
         var booking = new IntakeBookingConfiguration();
         builder.ApplyConfiguration<IntakeAppointment>(booking);
+        builder.ApplyConfiguration(new AppointmentAssignmentConfiguration());
         builder.ApplyConfiguration<AppointmentPhoto>(booking);
         builder.ApplyConfiguration(new AppointmentMailConfiguration());
         builder.ApplyConfiguration(new VehicleConfiguration());

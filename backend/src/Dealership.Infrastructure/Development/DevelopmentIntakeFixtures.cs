@@ -17,7 +17,7 @@ namespace Dealership.Infrastructure.Development;
 
 public sealed class DevelopmentIntakeFixtures(DealershipDbContext database, DevelopmentFixturePhotos photos,
     InspectionSchedule schedule, PhotoStorageSettings storage, DevelopmentFixtureClock clock,
-    IOptions<IntakePhotoSettings> photoSettings, IAmazonS3 objects)
+    IOptions<IntakePhotoSettings> photoSettings, IAmazonS3 objects, DevelopmentIntakeOwnershipFixtures ownership)
 {
     public async Task EnsureLocalStorageAsync(CancellationToken cancellationToken)
     {
@@ -52,21 +52,32 @@ public sealed class DevelopmentIntakeFixtures(DealershipDbContext database, Deve
     {
         if (await database.IntakeAppointments.AnyAsync(cancellationToken))
         {
-            return await ReviewAsync(cancellationToken);
+            return [.. await ReviewAppointmentsAsync(cancellationToken),
+                .. await ownership.RunAsync(true, cancellationToken)];
         }
 
         var timeline = clock.Timeline;
-        await using var initialization = await DevelopmentSnapshotInitialization.BeginAsync(database, target, cancellationToken);
-        foreach (var moment in timeline)
+        await using (var initialization = await DevelopmentSnapshotInitialization.BeginAsync(database, target, cancellationToken))
         {
-            await CreateAppointmentAsync(moment, cancellationToken);
+            foreach (var moment in timeline)
+            {
+                await CreateAppointmentAsync(moment, cancellationToken);
+            }
+
+            await initialization.CommitAsync(cancellationToken);
         }
 
-        await initialization.CommitAsync(cancellationToken);
-        return [.. DevelopmentIntakeManifest.Appointments.Select(fixture => Report(fixture, "created", false))];
+        return [.. DevelopmentIntakeManifest.Appointments.Select(fixture => Report(fixture, "created", false)),
+            .. await ownership.RunAsync(true, cancellationToken)];
     }
 
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> ReviewAsync(CancellationToken cancellationToken)
+    {
+        return [.. await ReviewAppointmentsAsync(cancellationToken),
+            .. await ownership.RunAsync(false, cancellationToken)];
+    }
+
+    private async Task<IReadOnlyList<DevelopmentFixtureReport>> ReviewAppointmentsAsync(CancellationToken cancellationToken)
     {
         var now = await database.DatabaseNowAsync(cancellationToken);
         var ids = DevelopmentIntakeManifest.Appointments.Select(item => item.Id).ToArray();

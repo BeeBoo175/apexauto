@@ -37,6 +37,7 @@ public static class DependencyInjection
         services.AddScoped<EmailVerificationService>();
         services.AddScoped<PasswordRecoveryService>();
         services.AddScoped<AppointmentCheckInService>();
+        services.AddScoped<AppointmentAssignmentService>();
         services.AddScoped<AppointmentCancellationService>();
         services.AddScoped<InspectionAssignmentService>();
         services.AddScoped<InspectionDraftSaveService>();
