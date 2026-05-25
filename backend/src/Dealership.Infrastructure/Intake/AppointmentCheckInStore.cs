@@ -35,10 +35,13 @@ public sealed class AppointmentCheckInStore(DealershipDbContext database, MailDe
 
             var existing = await database.AppointmentCheckIns.AsNoTracking()
                 .SingleOrDefaultAsync(item => item.AppointmentId == appointmentId, cancellationToken);
+            var handlerId = await database.AppointmentAssignments.AsNoTracking()
+                .Where(item => item.AppointmentId == appointmentId).OrderByDescending(item => item.Version)
+                .Select(item => item.HandlerId).FirstOrDefaultAsync(cancellationToken);
             var context = new CheckInContext(appointment,
                 staff is null ? null : new CheckInStaff(staff.IsActive, staff.Role, staff.BranchId),
                 customer is null ? null : new CheckInCustomer(customer.IsActive, customer.EmailConfirmed, customer.Role),
-                branchActive, existing);
+                branchActive, existing, handlerId);
             return new AppointmentCheckInTransaction(database, transaction, context, appointmentId, customer?.Email, mail);
         }
         catch

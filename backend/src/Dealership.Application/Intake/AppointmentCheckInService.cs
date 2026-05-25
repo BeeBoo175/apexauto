@@ -73,6 +73,11 @@ public sealed class AppointmentCheckInService(IAppointmentCheckInStore checkIns,
             return new CheckInResult(CheckInStatus.Unavailable);
         }
 
+        if (correction is null && context.HandlerId != staffId)
+        {
+            return new CheckInResult(CheckInStatus.Forbidden);
+        }
+
         var now = correction is null ? clock.GetUtcNow() : await transaction.ReadDatabaseTimeAsync(cancellationToken);
         now = TruncateToMicroseconds(now);
         AppointmentCheckIn checkIn;

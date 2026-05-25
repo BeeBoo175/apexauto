@@ -28,7 +28,7 @@ public sealed record CheckInStaff(bool IsActive, string Role, Guid? BranchId);
 public sealed record CheckInCustomer(bool IsActive, bool EmailConfirmed, string Role);
 
 public sealed record CheckInContext(IntakeAppointment? Appointment, CheckInStaff? Staff,
-    CheckInCustomer? Customer, bool BranchActive, AppointmentCheckIn? Existing);
+    CheckInCustomer? Customer, bool BranchActive, AppointmentCheckIn? Existing, Guid? HandlerId);
 
 public sealed record CheckInPhotoCandidate(Guid Id, DateTimeOffset? AvailableAt, bool RemovalPending);
 

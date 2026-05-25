@@ -70,6 +70,69 @@ public sealed class AppointmentAssignmentTests(IntakePhotoFixture fixture) : ICl
         await AssertSqlGuardsAsync(claimed, manager, replacement);
         await AssertTerminalAndIneligibleAsync(data, manager);
         await AssertHttpCommandsAsync(data, manager);
+        await AssertCheckInOwnershipAsync(data, manager);
+    }
+
+    private static async Task AssertCheckInOwnershipAsync(CheckInTestData data, Guid manager)
+    {
+        var appointment = await data.BookAsync(plate: "BPS 4187");
+        Assert.Equal(CheckInStatus.Forbidden, (await CheckInAsync(data, data.StaffId, appointment.Id)).Status);
+        Assert.Equal(CheckInStatus.Forbidden, (await CheckInAsync(data, manager, appointment.Id)).Status);
+        await data.ClaimAsync(appointment.Id);
+        Assert.Equal(CheckInStatus.Forbidden, (await CheckInAsync(data, manager, appointment.Id)).Status);
+        Assert.Equal(AppointmentAssignmentStatus.Succeeded, (await ExecuteAsync(data.Factory, manager, appointment.Id,
+            AppointmentAssignmentKind.Assigned, new(Guid.NewGuid(), 1, manager, "Handle customer arrival"))).Status);
+        Assert.Equal(CheckInStatus.Forbidden, (await CheckInAsync(data, data.StaffId, appointment.Id)).Status);
+        Assert.Equal(AppointmentAssignmentStatus.Succeeded, (await ExecuteAsync(data.Factory, manager, appointment.Id,
+            AppointmentAssignmentKind.Released, new(Guid.NewGuid(), 2))).Status);
+        Assert.Equal(CheckInStatus.Forbidden, (await CheckInAsync(data, manager, appointment.Id)).Status);
+
+        using var scope = data.Factory.Services.CreateScope();
+        var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
+        Assert.False(await database.Vehicles.AnyAsync(item => item.IntakeAppointmentId == appointment.Id));
+        Assert.False(await database.AppointmentCheckIns.AnyAsync(item => item.AppointmentId == appointment.Id));
+        Assert.False(await database.AppointmentMailOutbox.AnyAsync(item =>
+            item.AppointmentId == appointment.Id && item.Kind == Dealership.Infrastructure.Intake.AppointmentMailKind.CheckIn));
+        Assert.Equal(AppointmentAssignmentStatus.Succeeded, (await ExecuteAsync(data.Factory, manager, appointment.Id,
+            AppointmentAssignmentKind.Claimed, new(Guid.NewGuid(), 3))).Status);
+        var checkedIn = await CheckInAsync(data, manager, appointment.Id);
+        Assert.Equal(CheckInStatus.Succeeded, checkedIn.Status);
+        Assert.Equal(manager, checkedIn.Receipt!.StaffId);
+        Assert.Equal(checkedIn.Receipt, (await CheckInAsync(data, data.StaffId, appointment.Id)).Receipt);
+        Assert.Equal(AppointmentAssignmentStatus.Unavailable, (await ExecuteAsync(data.Factory, manager, appointment.Id,
+            AppointmentAssignmentKind.Released, new(Guid.NewGuid(), 4))).Status);
+        await AssertCheckInHandoffRaceAsync(data, manager);
+    }
+
+    private static async Task AssertCheckInHandoffRaceAsync(CheckInTestData data, Guid manager)
+    {
+        var appointment = await data.BookAsync(1, "BPS 4188");
+        await data.ClaimAsync(appointment.Id);
+        var evidence = CheckInTestData.Evidence with { Vin = "PL1BT65R84B123457" };
+        var arrival = CheckInAsync(data, data.StaffId, appointment.Id, evidence);
+        var handoff = ExecuteAsync(data.Factory, manager, appointment.Id, AppointmentAssignmentKind.Assigned,
+            new(Guid.NewGuid(), 1, manager, "Cover customer arrival"));
+        await Task.WhenAll(arrival, handoff);
+        if (arrival.Result.Status == CheckInStatus.Succeeded)
+        {
+            Assert.Equal(AppointmentAssignmentStatus.Unavailable, handoff.Result.Status);
+            Assert.Equal(data.StaffId, arrival.Result.Receipt!.StaffId);
+            return;
+        }
+
+        Assert.Equal(CheckInStatus.Forbidden, arrival.Result.Status);
+        Assert.Equal(AppointmentAssignmentStatus.Succeeded, handoff.Result.Status);
+        var confirmed = await CheckInAsync(data, manager, appointment.Id, evidence);
+        Assert.Equal(CheckInStatus.Succeeded, confirmed.Status);
+        Assert.Equal(manager, confirmed.Receipt!.StaffId);
+    }
+
+    private static async Task<CheckInResult> CheckInAsync(CheckInTestData data, Guid actorId, Guid appointmentId,
+        CheckInEvidence? evidence = null)
+    {
+        using var scope = data.Factory.Services.CreateScope();
+        return await scope.ServiceProvider.GetRequiredService<AppointmentCheckInService>()
+            .CheckInAsync(actorId, appointmentId, evidence ?? CheckInTestData.Evidence, CancellationToken.None);
     }
 
     private async Task AssertHttpCommandsAsync(CheckInTestData data, Guid manager)

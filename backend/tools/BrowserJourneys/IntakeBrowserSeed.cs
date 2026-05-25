@@ -75,10 +75,18 @@ internal static class IntakeBrowserSeed
             {
                 throw new InvalidOperationException("Same-day browser arrival booking was not confirmed.");
             }
+            var staff = DevelopmentFixtureManifest.Staff.Single(item => item.BranchId == branch.Id &&
+                item.Role == AccountRoles.SalesAgent);
+            var claimed = await services.GetRequiredService<AppointmentAssignmentService>()
+                .ExecuteAsync(staff.Id, result.Receipt!.Id, AppointmentAssignmentKind.Claimed,
+                    new(Guid.NewGuid(), 0), CancellationToken.None);
+            if (claimed.Status != AppointmentAssignmentStatus.Succeeded || claimed.Current?.HandlerId != staff.Id)
+            {
+                throw new InvalidOperationException("Same-day browser arrival ownership was not confirmed.");
+            }
+
             if (workshop)
             {
-                var staff = DevelopmentFixtureManifest.Staff.Single(item => item.BranchId == branch.Id &&
-                    item.Role == AccountRoles.SalesAgent);
                 var checkedIn = await services.GetRequiredService<AppointmentCheckInService>()
                     .CheckInAsync(staff.Id, result.Receipt!.Id,
                         new CheckInEvidence($"PL1BT65R84B9{branchIndex}{slot:D4}", 92000, true, true, true, true,
