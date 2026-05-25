@@ -40,6 +40,7 @@ internal static class ReservationTestData
         Guid manager, Guid technician, int index, bool withPhoto = false, bool withInspectionEvidence = false)
     {
         var appointment = await data.BookAsync(index, $"WYY {8800 + index}");
+        await data.ClaimAsync(appointment.Id);
         var checkIn = await services.GetRequiredService<AppointmentCheckInService>().CheckInAsync(data.StaffId,
             appointment.Id, CheckInTestData.Evidence with { Vin = $"PL1BT{index:D12}" }, CancellationToken.None);
         Assert.Equal(CheckInStatus.Succeeded, checkIn.Status);

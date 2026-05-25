@@ -16,6 +16,7 @@ public sealed class AppointmentCheckInMailTests(IntakePhotoFixture fixture) : IC
     {
         using var data = await CheckInTestData.CreateAsync(fixture);
         var appointment = await data.BookAsync();
+        await data.ClaimAsync(appointment.Id);
         var signal = data.Factory.Services.GetRequiredService<MailDeliverySignal>();
         await signal.WaitAsync(CancellationToken.None).AsTask().WaitAsync(TimeSpan.FromSeconds(5));
         using (var scope = data.Factory.Services.CreateScope())

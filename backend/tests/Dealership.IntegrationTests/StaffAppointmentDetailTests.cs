@@ -36,6 +36,7 @@ public sealed class StaffAppointmentDetailTests(IntakePhotoFixture fixture) : IC
         await services.GetRequiredService<BranchProvisioningService>().ProvisionBranchAsync(
             DevelopmentFixtureManifest.Branches[0] with { Id = otherBranch, Name = "ApexAuto Petaling Jaya" }, CancellationToken.None);
         var booked = await data.BookAsync();
+        await data.ClaimAsync(booked.Id);
         var cancellable = await data.BookAsync(0, "BPL 2198", dateOffset: 1);
         var other = await data.BookAsync(0, "VCA 6201", branchId: otherBranch);
         AuthenticationHeaderValue authorization;

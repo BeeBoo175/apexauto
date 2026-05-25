@@ -30,10 +30,13 @@ public sealed class StaffIntakeRaceTests(IntakePhotoFixture fixture) : IClassFix
         var slot = dateOffset == 0 ? target.Hour * 60 + target.Minute : 10;
         var checkInFirst = await data.BookAsync(slot, "VCA 6271", dateOffset);
         var cancelFirst = await data.BookAsync(slot + 1, "VCA 6272", dateOffset);
+        await data.ClaimAsync(checkInFirst.Id);
+        await data.ClaimAsync(cancelFirst.Id);
         await AssertOrderedRaceAsync(factory, data, checkInFirst.Id, checkInFirst: true, sameDay: dateOffset == 0);
         await AssertOrderedRaceAsync(factory, data, cancelFirst.Id, checkInFirst: false, sameDay: dateOffset == 0);
 
         var retained = await data.BookAsync(1, "VCA 6273");
+        await data.ClaimAsync(retained.Id);
         await AssertCancelledWaiterAsync(factory, data, retained.Id);
         var evidence = CheckInTestData.Evidence with { Vin = "PL1BT65R84B123458" };
         using var scope = factory.Services.CreateScope();

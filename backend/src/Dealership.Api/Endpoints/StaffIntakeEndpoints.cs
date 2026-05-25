@@ -21,6 +21,9 @@ public static class StaffIntakeEndpoints
         routes.MapGet("/export", StaffIntakeExportEndpoint.ExportAsync);
         routes.MapPost("/export/background", StaffIntakeBackgroundExportEndpoint.ExportAsync);
         routes.MapGet("/{id:guid}", DetailAsync);
+        routes.MapPost("/{id:guid}/claims", StaffIntakeAssignmentEndpoint.ClaimAsync);
+        routes.MapPost("/{id:guid}/assignments", StaffIntakeAssignmentEndpoint.AssignAsync);
+        routes.MapPost("/{id:guid}/releases", StaffIntakeAssignmentEndpoint.ReleaseAsync);
         routes.MapPost("/{id:guid}/check-ins", CheckInAsync);
         routes.MapPost("/{id:guid}/no-show-corrections", CorrectNoShowAsync);
     }

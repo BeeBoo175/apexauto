@@ -19,6 +19,7 @@ public sealed class AppointmentCheckInTests(IntakePhotoFixture fixture) : IClass
     {
         using var data = await CheckInTestData.CreateAsync(fixture);
         var appointment = await data.BookAsync();
+        await data.ClaimAsync(appointment.Id);
         var evidence = CheckInTestData.Evidence with { Vin = " pl1bt65r84b123456 ", Notes = " Owner present " };
         var concurrent = await Task.WhenAll(CheckInAsync(data.Factory, data.StaffId, appointment.Id, evidence),
             CheckInAsync(data.Factory, data.StaffId, appointment.Id, evidence));
@@ -46,9 +47,11 @@ public sealed class AppointmentCheckInTests(IntakePhotoFixture fixture) : IClass
                 .CancelAsync(data.OwnerId, appointment.Id, CancellationToken.None)).Status);
 
         var duplicateVin = await data.BookAsync(1, "BPP 1234");
+        await data.ClaimAsync(duplicateVin.Id);
         Assert.Equal(CheckInStatus.VehicleConflict,
             (await CheckInAsync(data.Factory, data.StaffId, duplicateVin.Id, evidence)).Status);
         var duplicatePlate = await data.BookAsync(2, "WYY8821");
+        await data.ClaimAsync(duplicatePlate.Id);
         Assert.Equal(CheckInStatus.VehicleConflict,
             (await CheckInAsync(data.Factory, data.StaffId, duplicatePlate.Id,
                 evidence with { Vin = "PL1BT65R84B123457" })).Status);
@@ -109,6 +112,7 @@ public sealed class AppointmentCheckInTests(IntakePhotoFixture fixture) : IClass
     private async Task AssertUnavailableLeavesNoBundleAsync(CheckInTestData data)
     {
         var appointment = await data.BookAsync(3, "VCA 6271");
+        await data.ClaimAsync(appointment.Id);
         var evidence = CheckInTestData.Evidence with { Vin = "PL1BT65R84B123458" };
         Assert.Equal(CheckInStatus.Invalid, (await CheckInAsync(data.Factory, data.StaffId, appointment.Id,
             evidence with { CustomerPresent = false })).Status);
@@ -124,6 +128,7 @@ public sealed class AppointmentCheckInTests(IntakePhotoFixture fixture) : IClass
         await database.Users.Where(user => user.Id == data.OwnerId)
             .ExecuteUpdateAsync(update => update.SetProperty(user => user.IsActive, true));
         var cancellable = await data.BookAsync(0, "VCA 6272", dateOffset: 1);
+        await data.ClaimAsync(cancellable.Id);
         Assert.Equal(CancellationStatus.Succeeded,
             (await scope.ServiceProvider.GetRequiredService<AppointmentCancellationService>()
                 .CancelAsync(data.OwnerId, cancellable.Id, CancellationToken.None)).Status);

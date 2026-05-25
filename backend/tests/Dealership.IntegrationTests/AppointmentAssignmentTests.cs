@@ -1,3 +1,8 @@
+using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Text;
+using System.Text.Json.Nodes;
 using Dealership.Application.Accounts;
 using Dealership.Application.Intake;
 using Dealership.Domain.Intake;
@@ -5,6 +10,7 @@ using Dealership.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Npgsql;
 
 namespace Dealership.IntegrationTests;
@@ -63,6 +69,112 @@ public sealed class AppointmentAssignmentTests(IntakePhotoFixture fixture) : ICl
         await database.Users.Where(user => user.Id == manager).ExecuteUpdateAsync(update => update.SetProperty(user => user.IsActive, true));
         await AssertSqlGuardsAsync(claimed, manager, replacement);
         await AssertTerminalAndIneligibleAsync(data, manager);
+        await AssertHttpCommandsAsync(data, manager);
+    }
+
+    private async Task AssertHttpCommandsAsync(CheckInTestData data, Guid manager)
+    {
+        var appointment = await data.BookAsync(slot: 2, plate: "BPS 4186", dateOffset: 1);
+        var path = $"/api/staff/intake/appointments/{appointment.Id}";
+        var request = new AppointmentAssignmentRequest(Guid.NewGuid(), 0);
+        using var factory = fixture.CreateFactory();
+        using var client = factory.CreateClient();
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync($"{path}/claims", request)).StatusCode);
+        await LoginAsync(client, data.StaffEmail);
+        Assert.Equal(HttpStatusCode.BadRequest,
+            (await client.PostAsJsonAsync($"{path}/claims", new { request.OperationId })).StatusCode);
+        using var malformed = new StringContent("{", Encoding.UTF8, "application/json");
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsync($"{path}/claims", malformed)).StatusCode);
+        using var oversized = new StringContent(new string(' ', 17000), Encoding.UTF8, "application/json");
+        Assert.Equal(HttpStatusCode.RequestEntityTooLarge, (await client.PostAsync($"{path}/claims", oversized)).StatusCode);
+        using var wrongType = new StringContent("{}");
+        Assert.Equal(HttpStatusCode.UnsupportedMediaType, (await client.PostAsync($"{path}/claims", wrongType)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await client.PostAsJsonAsync(
+            $"/api/staff/intake/appointments/{Guid.NewGuid()}/claims", request)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync($"{path}/assignments",
+            request with { HandlerId = manager })).StatusCode);
+        var claim = await client.PostAsJsonAsync($"{path}/claims", request);
+        Assert.Equal(HttpStatusCode.OK, claim.StatusCode);
+        Assert.True(claim.Headers.CacheControl?.NoStore);
+        var claimed = (await claim.Content.ReadFromJsonAsync<JsonObject>())!;
+        Assert.Equal(data.StaffId, claimed["receipt"]!["handlerId"]!.GetValue<Guid>());
+        var stale = await client.PostAsJsonAsync($"{path}/claims", request with { OperationId = Guid.NewGuid() });
+        Assert.Equal(HttpStatusCode.Conflict, stale.StatusCode);
+        Assert.True(stale.Headers.CacheControl?.NoStore);
+        var conflict = (await stale.Content.ReadFromJsonAsync<JsonObject>())!;
+        Assert.Equal("intake-ownership-conflict", conflict["code"]!.GetValue<string>());
+        Assert.Equal(data.StaffId, conflict["current"]!["handlerId"]!.GetValue<Guid>());
+
+        using var scope = data.Factory.Services.CreateScope();
+        var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
+        var managerEmail = await database.Users.Where(user => user.Id == manager).Select(user => user.Email).SingleAsync();
+        using var managerClient = factory.CreateClient();
+        await LoginAsync(managerClient, managerEmail!);
+        var assignment = new AppointmentAssignmentRequest(Guid.NewGuid(), 1, manager, "Cover arrival");
+        Assert.Equal(HttpStatusCode.OK, (await managerClient.PostAsJsonAsync($"{path}/assignments", assignment)).StatusCode);
+        var replay = await client.PostAsJsonAsync($"{path}/claims", request);
+        Assert.Equal(HttpStatusCode.OK, replay.StatusCode);
+        var reconciled = (await replay.Content.ReadFromJsonAsync<JsonObject>())!;
+        Assert.Equal(claimed["receipt"]!.ToJsonString(), reconciled["receipt"]!.ToJsonString());
+        Assert.Equal(manager, reconciled["current"]!["handlerId"]!.GetValue<Guid>());
+        using var lostReceipt = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+        {
+            services.RemoveAll<IAppointmentAssignmentStore>();
+            services.AddScoped<IAppointmentAssignmentStore>(provider => new LostReceiptStore(
+                new Dealership.Infrastructure.Intake.AppointmentAssignmentStore(provider.GetRequiredService<DealershipDbContext>())));
+        }));
+        using var uncertainClient = lostReceipt.CreateClient();
+        uncertainClient.DefaultRequestHeaders.Authorization = managerClient.DefaultRequestHeaders.Authorization;
+        var release = new AppointmentAssignmentRequest(Guid.NewGuid(), 2);
+        var uncertain = await uncertainClient.PostAsJsonAsync($"{path}/releases", release);
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, uncertain.StatusCode);
+        Assert.True(uncertain.Headers.CacheControl?.NoStore);
+        Assert.Contains("unconfirmed", await uncertain.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        Assert.Equal(HttpStatusCode.OK, (await managerClient.PostAsJsonAsync($"{path}/releases", release)).StatusCode);
+        using var customer = factory.CreateClient();
+        await LoginAsync(customer, data.CustomerEmail);
+        Assert.Equal(HttpStatusCode.Forbidden, (await customer.PostAsJsonAsync($"{path}/claims", request)).StatusCode);
+    }
+
+    private static async Task LoginAsync(HttpClient client, string email)
+    {
+        var response = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest(Guid.NewGuid(), email, "Password123!"));
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var session = (await response.Content.ReadFromJsonAsync<LoginSession>())!;
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
+    }
+
+    private sealed class LostReceiptStore(IAppointmentAssignmentStore inner) : IAppointmentAssignmentStore
+    {
+        public async Task<IAppointmentAssignmentTransaction> LockAsync(Guid actorId, Guid appointmentId,
+            AppointmentAssignmentRequest request, CancellationToken cancellationToken)
+        {
+            return new LostReceiptTransaction(await inner.LockAsync(actorId, appointmentId, request, cancellationToken));
+        }
+    }
+
+    private sealed class LostReceiptTransaction(IAppointmentAssignmentTransaction inner) : IAppointmentAssignmentTransaction
+    {
+        public AppointmentAssignmentContext Context => inner.Context;
+
+        public Task<DateTimeOffset> ReadDatabaseTimeAsync(CancellationToken cancellationToken)
+        {
+            return inner.ReadDatabaseTimeAsync(cancellationToken);
+        }
+
+        public Task<bool> HasOverlapAsync(Guid handlerId, CancellationToken cancellationToken)
+        {
+            return inner.HasOverlapAsync(handlerId, cancellationToken);
+        }
+
+        public async Task CommitAsync(AppointmentAssignment assignment, CancellationToken cancellationToken)
+        {
+            Assert.True(cancellationToken.CanBeCanceled);
+            await inner.CommitAsync(assignment, cancellationToken);
+            throw new OperationCanceledException("The committed response was lost.");
+        }
+
+        public ValueTask DisposeAsync() => inner.DisposeAsync();
     }
 
     private static async Task AssertTerminalAndIneligibleAsync(CheckInTestData data, Guid manager)

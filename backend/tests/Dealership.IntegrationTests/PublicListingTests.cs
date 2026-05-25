@@ -194,6 +194,7 @@ public sealed class PublicListingTests(IntakePhotoFixture fixture) : IClassFixtu
         Guid manager, Guid technician, int index, Guid? branchId = null, Guid? salesId = null)
     {
         var appointment = await data.BookAsync(index, $"WYY {8800 + index}", branchId: branchId);
+        await data.ClaimAsync(appointment.Id, salesId);
         var checkIn = await services.GetRequiredService<AppointmentCheckInService>().CheckInAsync(salesId ?? data.StaffId,
             appointment.Id, CheckInTestData.Evidence with { Vin = $"PL1BT{index:D12}" }, CancellationToken.None);
         Assert.Equal(CheckInStatus.Succeeded, checkIn.Status);

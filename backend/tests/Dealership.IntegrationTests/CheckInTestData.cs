@@ -118,8 +118,19 @@ internal sealed class CheckInTestData : IDisposable
         return result.Receipt!;
     }
 
+    public async Task ClaimAsync(Guid appointmentId, Guid? staffId = null)
+    {
+        using var scope = Factory.Services.CreateScope();
+        var result = await scope.ServiceProvider.GetRequiredService<AppointmentAssignmentService>()
+            .ExecuteAsync(staffId ?? StaffId, appointmentId, AppointmentAssignmentKind.Claimed,
+                new(Guid.NewGuid(), 0, null, null), CancellationToken.None);
+        Assert.Equal(AppointmentAssignmentStatus.Succeeded, result.Status);
+        Assert.Equal(staffId ?? StaffId, result.Current!.HandlerId);
+    }
+
     public async Task<AppointmentCheckIn> SaveBundleAsync(Guid appointmentId, CheckInEvidence? evidence = null)
     {
+        await ClaimAsync(appointmentId);
         using var scope = Factory.Services.CreateScope();
         var result = await scope.ServiceProvider.GetRequiredService<AppointmentCheckInService>()
             .CheckInAsync(StaffId, appointmentId, evidence ?? Evidence, CancellationToken.None);

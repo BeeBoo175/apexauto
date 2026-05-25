@@ -29,6 +29,9 @@ public sealed class StaffIntakeApiTests(IntakePhotoFixture fixture) : IClassFixt
         var appointment = await data.BookAsync();
         var duplicateVin = await data.BookAsync(1, "BPP 1234");
         var duplicatePlate = await data.BookAsync(2, "WYY8821");
+        await data.ClaimAsync(appointment.Id);
+        await data.ClaimAsync(duplicateVin.Id);
+        await data.ClaimAsync(duplicatePlate.Id);
         using var factory = fixture.CreateFactory();
         using var client = factory.CreateClient();
         var path = $"{Route}/{appointment.Id}/check-ins";

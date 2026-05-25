@@ -21,6 +21,7 @@ public sealed class InspectionDraftSaveTests(IntakePhotoFixture fixture) : IClas
     {
         using var data = await CheckInTestData.CreateAsync(fixture);
         var appointment = await data.BookAsync();
+        await data.ClaimAsync(appointment.Id);
         using var scope = data.Factory.Services.CreateScope();
         var services = scope.ServiceProvider;
         var checkIn = await services.GetRequiredService<AppointmentCheckInService>()

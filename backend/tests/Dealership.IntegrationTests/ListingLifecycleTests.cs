@@ -26,6 +26,7 @@ public sealed class ListingLifecycleTests(IntakePhotoFixture fixture) : IClassFi
     {
         using var data = await CheckInTestData.CreateAsync(fixture);
         var appointment = await data.BookAsync();
+        await data.ClaimAsync(appointment.Id);
         using var scope = data.Factory.Services.CreateScope();
         var services = scope.ServiceProvider;
         var checkedIn = await services.GetRequiredService<AppointmentCheckInService>()

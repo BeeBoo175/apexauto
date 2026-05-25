@@ -119,6 +119,7 @@ internal static class ListingReadAssertions
         await database.Users.Where(user => user.Id == group).ExecuteUpdateAsync(update => update.SetProperty(user => user.Role, AccountRoles.GeneralManager));
 
         var appointment = await data.BookAsync(19, "WYY 8819");
+        await data.ClaimAsync(appointment.Id);
         var checkIn = await services.GetRequiredService<AppointmentCheckInService>().CheckInAsync(data.StaffId, appointment.Id,
             CheckInTestData.Evidence with { Vin = "PL1BT000000000019" }, CancellationToken.None);
         Assert.Equal(CheckInStatus.Succeeded, checkIn.Status);

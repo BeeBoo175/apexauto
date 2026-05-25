@@ -202,6 +202,7 @@ public sealed class InspectionHistoryTests(IntakePhotoFixture fixture) : IClassF
     private static async Task<Guid> ClaimAsync(CheckInTestData data, Guid technician, int slot, string plate, string vin)
     {
         var appointment = await data.BookAsync(slot, plate);
+        await data.ClaimAsync(appointment.Id);
         using var scope = data.Factory.Services.CreateScope();
         var checkIn = await scope.ServiceProvider.GetRequiredService<AppointmentCheckInService>()
             .CheckInAsync(data.StaffId, appointment.Id, CheckInTestData.Evidence with { Vin = vin }, CancellationToken.None);
