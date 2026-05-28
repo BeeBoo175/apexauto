@@ -263,11 +263,24 @@
     max-height: 30svh;
   }
 
+  .columns[data-selected="true"] .queue[data-expanded="true"] {
+    max-height: 60svh;
+  }
+
+  .columns[data-selected="true"] .queue[data-expanded="true"] .queueBody {
+    overflow-y: auto;
+  }
+
+  .columns[data-selected="true"] .queue[data-expanded="true"] .list {
+    min-height: 88px;
+  }
+
   .mobileQueueBar {
     position: sticky;
     top: 0;
     z-index: 1;
     display: flex;
+    flex-shrink: 0;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
