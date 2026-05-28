@@ -22,6 +22,7 @@ import { CheckInFields } from "./CheckInFields";
 import { NoShowCorrectionFields } from "./NoShowCorrectionFields";
 import { AppointmentStatus } from "./AppointmentStatus";
 import { StaffStatusGroup } from "./StaffStatusGroup";
+import { IntakeOwnership } from "./IntakeOwnership";
 import { PersonIdentityFacts, VehicleIdentityFacts } from "./IdentityFacts";
 import styles from "./StaffWorkspace.module.css";
 
@@ -51,6 +52,7 @@ export function AppointmentWorkbench({
   const [confirming, setConfirming] = useState(false);
   const [ready, setReady] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [ownershipGuarded, setOwnershipGuarded] = useState(false);
   const correcting = snapshot.data?.status === "NoShow" && actor.role === "BranchManager";
   const controller = useRef<AbortController | null>(null);
   const command = useApiCommand(
@@ -72,7 +74,7 @@ export function AppointmentWorkbench({
   const value = draft ?? localDraft;
   const locked = command.busy || command.uncertain;
   const dirty = !command.receipt && JSON.stringify(value) !== JSON.stringify(emptyCheckIn);
-  const guarded = dirty || locked;
+  const guarded = dirty || locked || ownershipGuarded;
   const guard = useEditGuard({
     dirty,
     pending: command.busy,
@@ -89,6 +91,12 @@ export function AppointmentWorkbench({
     return () => controller.current?.abort();
   }, []);
   const detail = snapshot.data;
+  const mayCheckIn = Boolean(
+    detail?.status === "Booked" &&
+      detail.ownership?.handlerId === actor.userId &&
+      detail.ownership.handlerEligible,
+  );
+  const mayRecordAttendance = mayCheckIn || correcting;
 
   async function refresh() {
     if (controller.current || locked) {
@@ -124,6 +132,9 @@ export function AppointmentWorkbench({
     }
   }
   async function checkIn() {
+    if (!command.uncertain && !mayRecordAttendance) {
+      return;
+    }
     guard(true);
     const result = await command.submit({
       ...value,
@@ -157,7 +168,7 @@ export function AppointmentWorkbench({
     <RefreshButton
       label="Refresh appointment"
       busy={refreshing}
-      disabled={!ready || locked}
+      disabled={!ready || locked || ownershipGuarded}
       onClick={() => void refresh()}
     />
   );
@@ -221,6 +232,16 @@ export function AppointmentWorkbench({
               <dd>{detail.mileageKilometres.toLocaleString("en-MY")} km</dd>
             </div>
           </dl>
+          <IntakeOwnership
+            actor={actor}
+            detail={detail}
+            disabled={!ready || locked || dirty || refreshing}
+            onGuarded={setOwnershipGuarded}
+            onChanged={async () => {
+              await refresh();
+              onConfirmed?.();
+            }}
+          />
           {detail.noShowAt && (
             <p className={styles.help}>
               Recorded no-show effective {formatMalaysianDateTime(detail.noShowAt)}.
@@ -253,7 +274,7 @@ export function AppointmentWorkbench({
             </p>
           )}
           {actor.role !== "GeneralManager" &&
-            (detail.status === "Booked" || correcting) &&
+            (mayRecordAttendance || dirty || command.uncertain) &&
             !command.receipt && (
               <form
                 method="post"
@@ -268,6 +289,12 @@ export function AppointmentWorkbench({
                 }}
               >
                 <h3>{correcting ? "Correct no-show attendance" : "Physical check-in"}</h3>
+                {!mayRecordAttendance && !command.uncertain && (
+                  <p className={styles.help}>
+                    Your entries are retained. Current ownership or appointment status prevents a
+                    fresh check-in. Discard these entries before changing ownership.
+                  </p>
+                )}
                 <p className={styles.help}>
                   {correcting
                     ? "Record attendance that occurred on"
@@ -279,13 +306,17 @@ export function AppointmentWorkbench({
                   <NoShowCorrectionFields
                     draft={value}
                     onChange={onDraft ?? setLocalDraft}
-                    disabled={!ready || locked || refreshing}
+                    disabled={
+                      !ready || locked || ownershipGuarded || refreshing || !mayRecordAttendance
+                    }
                   />
                 )}
                 <CheckInFields
                   draft={value}
                   onChange={onDraft ?? setLocalDraft}
-                  disabled={!ready || locked || refreshing}
+                  disabled={
+                    !ready || locked || ownershipGuarded || refreshing || !mayRecordAttendance
+                  }
                   retrospective={correcting}
                 />
                 <div className={styles.actionFooter}>
@@ -307,7 +338,13 @@ export function AppointmentWorkbench({
                   <Button
                     size="compact"
                     type="submit"
-                    disabled={!ready || command.busy || refreshing}
+                    disabled={
+                      !ready ||
+                      command.busy ||
+                      ownershipGuarded ||
+                      refreshing ||
+                      (!mayRecordAttendance && !command.uncertain)
+                    }
                   >
                     {commandLabel(correcting, command.uncertain)}
                   </Button>
