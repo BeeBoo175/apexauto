@@ -65,13 +65,16 @@ export async function reviewAgentQueue(page: Page, area: "sales" | "inspection")
 
 export async function exerciseOwnership(page: Page) {
   const content = page.getByRole("region", { name: "Selected appointment", exact: true });
-  await content.getByRole("button", { name: "Release appointment", exact: true }).click();
+  await content
+    .locator("footer")
+    .getByRole("button", { name: "Release appointment", exact: true })
+    .click();
   await page
     .getByRole("dialog", { name: "Release this appointment?", exact: true })
     .getByRole("button", { name: "Release appointment", exact: true })
     .click();
   await expect(
-    content.getByRole("button", { name: "Claim appointment", exact: true }),
+    content.locator("footer").getByRole("button", { name: "Claim appointment", exact: true }),
   ).toBeEnabled();
   await expect(content.getByLabel("VIN", { exact: true })).toHaveCount(0);
   const bodies: string[] = [];
@@ -93,17 +96,23 @@ export async function exerciseOwnership(page: Page) {
     }
     await route.fulfill({ response });
   });
-  await content.getByRole("button", { name: "Claim appointment", exact: true }).click();
+  await content
+    .locator("footer")
+    .getByRole("button", { name: "Claim appointment", exact: true })
+    .click();
   await page
     .getByRole("dialog", { name: "Claim this appointment?", exact: true })
     .getByRole("button", { name: "Claim appointment", exact: true })
     .click();
   await expect(
-    content.getByRole("button", { name: "Reconcile ownership", exact: true }),
+    content.locator("footer").getByRole("button", { name: "Reconcile ownership", exact: true }),
   ).toBeVisible();
   await page.getByRole("link", { name: "Calendar", exact: true }).click();
   await expect(content).toBeVisible();
-  await content.getByRole("button", { name: "Reconcile ownership", exact: true }).click();
+  await content
+    .locator("footer")
+    .getByRole("button", { name: "Reconcile ownership", exact: true })
+    .click();
   await expect(content.getByLabel("VIN", { exact: true })).toBeEditable();
   expect(bodies).toHaveLength(2);
   expect(bodies[1]).toBe(bodies[0]);

@@ -101,6 +101,16 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
   await link.click();
   const dialog = page.getByRole("region", { name: "Selected appointment", exact: true });
   await expect(dialog.getByLabel("VIN", { exact: true })).toBeEditable();
+  await expect(
+    dialog.getByRole("region", { name: "Appointment time and status", exact: true }),
+  ).toBeVisible();
+  await dialog
+    .locator("footer")
+    .getByRole("button", { name: "Confirm check-in", exact: true })
+    .click();
+  await expect(
+    page.getByRole("dialog", { name: "Check in this vehicle?", exact: true }),
+  ).toHaveCount(0);
   await context.grantPermissions(["clipboard-read", "clipboard-write"], {
     origin: new URL(page.url()).origin,
   });
@@ -228,7 +238,10 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
     }
     await route.fulfill({ response });
   });
-  await dialog.getByRole("button", { name: "Confirm check-in", exact: true }).click();
+  await dialog
+    .locator("footer")
+    .getByRole("button", { name: "Confirm check-in", exact: true })
+    .click();
   const confirmation = page.getByRole("dialog", { name: "Check in this vehicle?", exact: true });
   await confirmation.getByRole("button", { name: "Confirm check-in", exact: true }).click();
   await expect(confirmation).toBeHidden();
@@ -249,7 +262,7 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
   ).toBeVisible();
   await dialog.getByRole("button", { name: "Retry same check-in", exact: true }).click();
   await expect(
-    dialog.getByRole("heading", { name: "Check-in confirmed", exact: true }),
+    dialog.locator("footer").getByText("Check-in confirmed", { exact: true }),
   ).toBeVisible();
   expect(bodies).toHaveLength(2);
   expect(bodies[0]).toBe(bodies[1]);
@@ -258,7 +271,16 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
   await captureIntake(page, "agent-check-in");
   await page.goto(detailHref!);
   await expect(page.getByText("Checked in", { exact: true })).toBeVisible();
-  await expect(page.getByText("90,000 km", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Appointment details", exact: true }).click();
+  await expect(
+    page
+      .getByRole("dialog", { name: "Appointment details", exact: true })
+      .getByText("90,000 km", { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("dialog", { name: "Appointment details", exact: true })
+    .getByRole("button", { name: "Close dialog", exact: true })
+    .click();
   await expect(page.getByLabel("VIN", { exact: true })).toHaveCount(0);
 
   await page.goto("/dashboard/intake?view=queue&queue=History&pageSize=10");

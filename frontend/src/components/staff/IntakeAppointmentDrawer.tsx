@@ -5,7 +5,6 @@ import { AppointmentWorkbench } from "./AppointmentWorkbench";
 import { StaffRecordLoadingShell } from "./StaffRecordLoadingShell";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { useStaffAppointmentDrawer } from "@/hooks/use-staff-appointment-drawer";
-import workspace from "./StaffWorkspace.module.css";
 
 const appointmentDetails = [
   "Branch",
@@ -36,31 +35,34 @@ export function IntakeAppointmentDrawer({
       title="Intake appointment"
       headerLoading={drawer.busy}
       descriptionPlaceholder={false}
+      description={
+        drawer.result?.data
+          ? `${drawer.result.data.registrationPlate} · ${drawer.result.data.manufactureYear} ${drawer.result.data.make} ${drawer.result.data.model} ${drawer.result.data.trim} · ${drawer.result.data.branchName}`
+          : undefined
+      }
       headerActions={<DialogActionSlot ref={setHeaderActions} />}
       onClose={drawer.close}
     >
-      <div className={workspace.drawerBody}>
-        {drawer.busy && (
-          <StaffRecordLoadingShell
-            label="Loading appointment…"
-            details={appointmentDetails}
-            showForm={actor.role !== "GeneralManager"}
-          />
-        )}
-        {!drawer.busy && drawer.result && (
-          <AppointmentWorkbench
-            key={drawer.id}
-            id={drawer.id}
-            actor={actor}
-            initial={drawer.result}
-            actionsContainer={headerActions}
-            draft={drawer.draft}
-            onDraft={drawer.setDraft}
-            onLock={drawer.lock}
-            onConfirmed={onConfirmed}
-          />
-        )}
-      </div>
+      {drawer.busy && (
+        <StaffRecordLoadingShell
+          label="Loading appointment…"
+          details={appointmentDetails}
+          showForm={actor.role !== "GeneralManager"}
+        />
+      )}
+      {!drawer.busy && drawer.result && (
+        <AppointmentWorkbench
+          key={drawer.id}
+          id={drawer.id}
+          actor={actor}
+          initial={drawer.result}
+          actionsContainer={headerActions}
+          draft={drawer.draft}
+          onDraft={drawer.setDraft}
+          onLock={drawer.lock}
+          onConfirmed={onConfirmed}
+        />
+      )}
     </Dialog>
   );
 }

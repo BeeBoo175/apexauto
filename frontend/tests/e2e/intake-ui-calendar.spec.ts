@@ -105,7 +105,7 @@ test("month calendar retains its snapshot, supports overflow and refreshes the s
   await confirmation.getByRole("button", { name: "Confirm check-in", exact: true }).click();
   const saved = await (await receipt).json();
   await expect(
-    dialog.getByRole("heading", { name: "Check-in confirmed", exact: true }),
+    dialog.locator("footer").getByText("Check-in confirmed", { exact: true }),
   ).toBeVisible();
   writeFileSync(path.join(evidence, "check-in.json"), JSON.stringify(saved.data));
   await dialog.getByRole("button", { name: "Close drawer", exact: true }).click();

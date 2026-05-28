@@ -1,16 +1,16 @@
-.workbench {
-  container: intake-record / inline-size;
+.body {
+  padding-top: 24px;
   gap: 24px;
   background: var(--color-paper);
 }
 
-.workbench > section,
-.workbench > form {
+.body > section + section,
+.body > form {
   padding-top: 24px;
   border-top: 1px solid var(--color-line-soft);
 }
 
-.workbench > form {
+.body > form {
   padding-inline: 0;
   padding-bottom: 0;
   border-right: 0;
@@ -20,7 +20,7 @@
   background: transparent;
 }
 
-.workbench h3 {
+.body h3 {
   margin: 0;
   color: var(--color-graphite);
   font-size: 18px;
@@ -36,7 +36,7 @@
   gap: 20px 32px;
 }
 
-@container intake-record (max-width: 640px) {
+@container staff-record-content (max-width: 640px) {
   .contacts {
     grid-template-columns: minmax(0, 1fr);
   }

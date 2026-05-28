@@ -6,7 +6,6 @@ import type { CurrentActor } from "@/lib/auth/actor";
 import { AppointmentWorkbench } from "./AppointmentWorkbench";
 import { StaffRecordLoadingShell } from "./StaffRecordLoadingShell";
 import styles from "./StaffQueueWorkspace.module.css";
-import workbench from "./StaffWorkspace.module.css";
 
 export function IntakeAgentContent({
   actor,
@@ -38,7 +37,8 @@ export function IntakeAgentContent({
           <h2>{selection.result?.data?.registrationPlate ?? "Intake appointment"}</h2>
           {selection.result?.data && (
             <p>
-              {selection.result.data.make} {selection.result.data.model} ·{" "}
+              {selection.result.data.manufactureYear} {selection.result.data.make}{" "}
+              {selection.result.data.model} {selection.result.data.trim} ·{" "}
               {selection.result.data.branchName}
             </p>
           )}
@@ -52,7 +52,7 @@ export function IntakeAgentContent({
         />
       )}
       {selection.result?.data && (
-        <div className={workbench.drawerBody} inert={selection.busy}>
+        <div className={styles.editor} inert={selection.busy}>
           <AppointmentWorkbench
             key={selection.id}
             id={selection.id}
@@ -63,6 +63,7 @@ export function IntakeAgentContent({
             onDraft={selection.setDraft}
             onLock={selection.lock}
             onConfirmed={onConfirmed}
+            scrollWithHost
           />
         </div>
       )}

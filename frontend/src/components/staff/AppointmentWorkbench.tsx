@@ -2,9 +2,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
-import { ConfirmationButton } from "@/components/ui/ConfirmationButton";
 import { useEditGuard } from "@/hooks/use-edit-guard";
-import { Button } from "@/components/ui/Button";
 import { useLoadingProgress } from "@/components/ui/LoadingProgress";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import { useToast } from "@/components/ui/Toast";
@@ -17,13 +15,12 @@ import type { CurrentActor } from "@/lib/auth/actor";
 import { emptyCheckIn, type AppointmentDetail, type CheckInDraft } from "@/lib/staff/contracts";
 import { checkInMatches, correctionMatches, parseCheckIn, parseDetail } from "@/lib/staff/parse";
 import { calendarDate } from "@/lib/calendar";
-import { formatMalaysianDate, formatMalaysianDateTime } from "@/lib/date-format";
+import { formatMalaysianDate } from "@/lib/date-format";
 import { CheckInFields } from "./CheckInFields";
 import { NoShowCorrectionFields } from "./NoShowCorrectionFields";
-import { AppointmentStatus } from "./AppointmentStatus";
-import { StaffStatusGroup } from "./StaffStatusGroup";
+import { IntakeRecord } from "./IntakeRecord";
+import { IntakeFooter } from "./IntakeFooter";
 import { IntakeOwnership } from "./IntakeOwnership";
-import { VehicleIdentityFacts } from "./IdentityFacts";
 import { StaffContact } from "./StaffContact";
 import record from "./StaffRecordContent.module.css";
 import appointment from "./AppointmentWorkbench.module.css";
@@ -38,6 +35,7 @@ export function AppointmentWorkbench({
   onDraft,
   onLock,
   onConfirmed,
+  scrollWithHost = false,
 }: {
   id: string;
   actor: CurrentActor;
@@ -47,6 +45,7 @@ export function AppointmentWorkbench({
   onDraft?: (draft: CheckInDraft) => void;
   onLock?: (locked: boolean) => void;
   onConfirmed?: () => void;
+  scrollWithHost?: boolean;
 }) {
   useInitialToast(initial.message);
   const toast = useToast();
@@ -56,6 +55,8 @@ export function AppointmentWorkbench({
   const [ready, setReady] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [ownershipGuarded, setOwnershipGuarded] = useState(false);
+  const [ownershipActions, setOwnershipActions] = useState<HTMLDivElement | null>(null);
+  const formId = `intake-attendance-${id}`;
   const correcting = snapshot.data?.status === "NoShow" && actor.role === "BranchManager";
   const controller = useRef<AbortController | null>(null);
   const command = useApiCommand(
@@ -100,6 +101,10 @@ export function AppointmentWorkbench({
     detail.ownership.handlerEligible,
   );
   const mayRecordAttendance = mayCheckIn || correcting;
+  const showForm =
+    actor.role !== "GeneralManager" &&
+    (mayRecordAttendance || dirty || command.uncertain) &&
+    !command.receipt;
 
   async function refresh() {
     if (controller.current || locked) {
@@ -177,7 +182,7 @@ export function AppointmentWorkbench({
   );
 
   return (
-    <div className={`${styles.workbench} ${appointment.workbench}`}>
+    <div className={styles.workspace} data-scroll-with-host={scrollWithHost || undefined}>
       <ConfirmationDialog
         open={confirming}
         title={correcting ? "Correct this attendance record?" : "Check in this vehicle?"}
@@ -205,85 +210,35 @@ export function AppointmentWorkbench({
       )}
       {detail && (
         <>
-          <div className={styles.recordHeading}>
-            <strong>{detail.registrationPlate}</strong>
-            <StaffStatusGroup label="Appointment status">
-              <AppointmentStatus status={detail.status} />
-            </StaffStatusGroup>
-          </div>
-          <section className={record.group} aria-label="Appointment details">
-            <h3 className={record.title}>Appointment details</h3>
-            <dl className={record.facts}>
-              <div>
-                <dt>Branch</dt>
-                <dd>{detail.branchName}</dd>
-              </div>
-              <div>
-                <dt>Inspection</dt>
-                <dd>{formatMalaysianDateTime(detail.startsAt)}</dd>
-              </div>
-              <VehicleIdentityFacts
-                registration={detail.registrationPlate}
-                vehicle={`${detail.manufactureYear} ${detail.make} ${detail.model} ${detail.trim}`}
-              />
-              <div>
-                <dt>Declared mileage</dt>
-                <dd>{detail.mileageKilometres.toLocaleString("en-MY")} km</dd>
-              </div>
-            </dl>
-          </section>
-          <section className={record.group} aria-label="Customer">
-            <h3 className={record.title}>{detail.customerName}</h3>
-            <dl className={appointment.contacts}>
-              <StaffContact method="phone" value={detail.customerMobile} />
-              <StaffContact method="email" value={detail.customerEmail} />
-            </dl>
-          </section>
-          <IntakeOwnership
-            actor={actor}
-            detail={detail}
-            disabled={!ready || locked || dirty || refreshing}
-            onGuarded={setOwnershipGuarded}
-            onChanged={async () => {
-              await refresh();
-              onConfirmed?.();
-            }}
-          />
-          {detail.noShowAt && (
-            <p className={styles.help}>
-              Recorded no-show effective {formatMalaysianDateTime(detail.noShowAt)}.
-            </p>
-          )}
-          {detail.attendanceCorrectedAt && (
-            <div className={styles.stack}>
-              <p>Attendance corrected {formatMalaysianDateTime(detail.attendanceCorrectedAt)}.</p>
-              <p>{detail.correctionReason}</p>
-              {detail.correctedByEmail && <p>Corrected by {detail.correctedByEmail}.</p>}
-            </div>
-          )}
-          {command.receipt && (
-            <div className={styles.stack}>
-              <h3>Check-in confirmed</h3>
-              <p>{formatMalaysianDateTime(command.receipt.checkedInAt)}</p>
+          <IntakeRecord detail={detail} checkedInAt={command.receipt?.checkedInAt} />
+          <div className={`${styles.body} ${appointment.body}`}>
+            <section className={record.group} aria-label="Customer">
+              <h3 className={record.title}>{detail.customerName}</h3>
+              <dl className={appointment.contacts}>
+                <StaffContact method="phone" value={detail.customerMobile} />
+                <StaffContact method="email" value={detail.customerEmail} />
+              </dl>
+            </section>
+            <IntakeOwnership
+              actor={actor}
+              detail={detail}
+              actionsContainer={ownershipActions}
+              disabled={!ready || locked || dirty || refreshing}
+              onGuarded={setOwnershipGuarded}
+              onChanged={async () => {
+                await refresh();
+                onConfirmed?.();
+              }}
+            />
+            {detail.status === "NoShow" && actor.role !== "BranchManager" && (
               <p className={styles.help}>
-                The vehicle is pending inspection. The booked vehicle details and declared mileage
-                are retained.
+                Only the same-branch BranchManager can correct attendance. Later-date arrivals need
+                a new booking.
               </p>
-            </div>
-          )}
-          {actor.role === "GeneralManager" && (
-            <p className={styles.help}>Your role has read-only intake access.</p>
-          )}
-          {detail.status === "NoShow" && actor.role !== "BranchManager" && (
-            <p className={styles.help}>
-              Only the same-branch BranchManager can correct attendance. Later-date arrivals need a
-              new booking.
-            </p>
-          )}
-          {actor.role !== "GeneralManager" &&
-            (mayRecordAttendance || dirty || command.uncertain) &&
-            !command.receipt && (
+            )}
+            {showForm && (
               <form
+                id={formId}
                 method="post"
                 className={styles.protocol}
                 onSubmit={(event) => {
@@ -326,47 +281,31 @@ export function AppointmentWorkbench({
                   }
                   retrospective={correcting}
                 />
-                <div className={styles.actionFooter}>
-                  <p className={styles.help}>
-                    Record the physical arrival. Booked facts remain unchanged.
-                  </p>
-                  {dirty && (
-                    <ConfirmationButton
-                      size="compact"
-                      variant="secondary"
-                      disabled={locked}
-                      confirmationTitle="Discard check-in entries?"
-                      message="Your unsaved physical check-in and attendance entries will be cleared."
-                      onConfirm={() => (onDraft ?? setLocalDraft)(emptyCheckIn)}
-                    >
-                      Discard changes
-                    </ConfirmationButton>
-                  )}
-                  <Button
-                    size="compact"
-                    type="submit"
-                    disabled={
-                      !ready ||
-                      command.busy ||
-                      ownershipGuarded ||
-                      refreshing ||
-                      (!mayRecordAttendance && !command.uncertain)
-                    }
-                  >
-                    {commandLabel(correcting, command.uncertain)}
-                  </Button>
-                </div>
               </form>
             )}
+          </div>
+          <IntakeFooter
+            formId={formId}
+            physical={showForm}
+            dirty={dirty}
+            locked={locked}
+            disabled={
+              !ready ||
+              command.busy ||
+              ownershipGuarded ||
+              refreshing ||
+              (!mayRecordAttendance && !command.uncertain)
+            }
+            uncertain={command.uncertain}
+            correcting={correcting}
+            confirmed={Boolean(command.receipt)}
+            readOnly={actor.role === "GeneralManager"}
+            terminal={detail.status !== "Booked" && !correcting}
+            onDiscard={() => (onDraft ?? setLocalDraft)(emptyCheckIn)}
+            onOwnershipContainer={setOwnershipActions}
+          />
         </>
       )}
     </div>
   );
-}
-
-function commandLabel(correcting: boolean, uncertain: boolean) {
-  if (uncertain) {
-    return correcting ? "Retry same correction" : "Retry same check-in";
-  }
-  return correcting ? "Confirm attendance correction" : "Confirm check-in";
 }
