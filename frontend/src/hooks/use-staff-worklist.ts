@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { apiFetch } from "@/lib/api-browser";
+import { apiFetch, privateApiFetch } from "@/lib/api-browser";
 import { parsePage } from "@/lib/api";
 import { parseBranch } from "@/lib/branches";
 import { dateRangeError } from "@/lib/intake/list-query";
@@ -70,7 +70,7 @@ export function useStaffWorklist(
     controller.current = attempt;
     setBusy(true);
     try {
-      const result = await apiFetch(
+      const result = await privateApiFetch(
         `/api/staff/intake/appointments?${staffQuery(nextFilters, nextPage)}`,
         parseWorklistPage,
         { signal: attempt.signal },
@@ -78,7 +78,12 @@ export function useStaffWorklist(
       if (attempt.signal.aborted) {
         return;
       }
-      if (result.status !== 200 || !result.data || result.data.page !== nextPage) {
+      if (
+        result.status !== 200 ||
+        !result.data ||
+        result.data.page !== nextPage ||
+        result.data.pageSize !== nextFilters.pageSize
+      ) {
         throw new Error("Worklist unavailable");
       }
       setSnapshot(result.data);

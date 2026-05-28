@@ -1,12 +1,21 @@
 import { isRecord } from "@/lib/auth/contracts";
 import { isCalendarDate } from "@/lib/calendar";
 import { calendarHref, calendarParams } from "./calendar";
-import { staffParams, staffViewQuery } from "./query";
+import { intakeQueueParams, staffParams, staffViewQuery } from "./query";
 
-export type IntakeView = "calendar" | "list";
+export type IntakeView = "calendar" | "list" | "queue";
+
+export function intakeView(value: unknown, agent: boolean): IntakeView {
+  if (value === "calendar") {
+    return "calendar";
+  }
+  return agent ? "queue" : "list";
+}
+
 export interface ViewMemory {
   calendar?: string;
   list?: string;
+  queue?: string;
 }
 
 export const viewMemoryKey = "apexauto:intake-views:v1";
@@ -23,6 +32,7 @@ export function parseViewMemory(value: string | null, actor: string): ViewMemory
     return {
       calendar: storedQuery(parsed.calendar),
       list: storedQuery(parsed.list),
+      queue: storedQuery(parsed.queue),
     };
   } catch {
     return {};
@@ -43,6 +53,13 @@ export function restoreViewHref(view: IntakeView, href: string, remembered?: str
   }
   const requested = Object.fromEntries(new URLSearchParams(viewQuery(href)));
   const saved = Object.fromEntries(new URLSearchParams(remembered));
+  if (view === "queue") {
+    const { filters, page } = intakeQueueParams(saved);
+    if (!validSearch(filters.search)) {
+      filters.search = "";
+    }
+    return `/dashboard/intake?${staffViewQuery(filters, page)}`;
+  }
   if (view === "calendar") {
     const date = isCalendarDate(saved.date) ? saved.date : requested.date;
     return calendarHref(calendarParams({ ...requested, date }));
@@ -54,6 +71,7 @@ export function restoreViewHref(view: IntakeView, href: string, remembered?: str
   const sorts = ["startsAt", "registrationPlate", "customerName", "branchName", "status"];
   const filters = {
     ...previous.filters,
+    queue: "" as const,
     from: shared.from,
     to: shared.to,
     status: shared.status,

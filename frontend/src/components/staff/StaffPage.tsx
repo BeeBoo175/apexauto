@@ -8,6 +8,7 @@ import { StaffEntryPresentationContext } from "./StaffClientEntryBoundary";
 import { StaffLoadingShell, type StaffLoadingView } from "./StaffLoadingShell";
 import styles from "./Staff.module.css";
 import loading from "./StaffLoadingShell.module.css";
+import { intakeView } from "@/lib/staff/view-memory";
 
 const titles: Record<string, string> = {
   "/dashboard/intake": "Intake appointments",
@@ -29,7 +30,7 @@ export function StaffLoading() {
   const workshopView: StaffLoadingView =
     actor.role === "WorkshopTechnician" ? "technician" : "inspection";
   const views: Record<string, StaffLoadingView> = {
-    "/dashboard/intake": parameters.view === "list" ? "intake" : "calendar",
+    "/dashboard/intake": "intake",
     "/dashboard/inspection": workshopView,
     "/dashboard/inspection/repairs": "repairs",
     "/dashboard/settings": "inspection",
@@ -38,6 +39,15 @@ export function StaffLoading() {
   };
   let view = views[pathname] ?? "inspection";
   let title = titles[pathname] ?? "Your staff workspace";
+  if (pathname === "/dashboard/intake") {
+    const requested = intakeView(parameters.view, actor.role === "SalesAgent");
+    const intakeShells: Record<typeof requested, StaffLoadingView> = {
+      calendar: "calendar",
+      list: "intake",
+      queue: "technician",
+    };
+    view = intakeShells[requested];
+  }
   if (pathname.startsWith("/dashboard/intake/")) {
     view = "appointment";
     title = "Intake appointment";
@@ -46,7 +56,10 @@ export function StaffLoading() {
     <>
       <LoadingProgress label="Opening workspace" />
       <StaffCommandBar title={title} />
-      <StaffLoadingShell view={view} selected={Boolean(parameters.inspection || parameters.sale)} />
+      <StaffLoadingShell
+        view={view}
+        selected={Boolean(parameters.inspection || parameters.sale || parameters.appointment)}
+      />
     </>
   );
 }

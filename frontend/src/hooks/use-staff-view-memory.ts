@@ -13,8 +13,9 @@ export function useStaffViewMemory(
   actor: string,
   active: IntakeView,
   destinations: Record<IntakeView, string>,
+  workView: "list" | "queue" = "list",
 ) {
-  const inactive = active === "calendar" ? "list" : "calendar";
+  const inactive = active === "calendar" ? workView : "calendar";
   const currentHref = destinations[active];
   const fallbackHref = destinations[inactive];
   const [restored, setRestored] = useState({ currentHref: "", actor: "", href: "" });

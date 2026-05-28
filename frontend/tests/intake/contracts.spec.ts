@@ -3,10 +3,10 @@ import { parseActor, actorDestination } from "@/lib/auth/actor";
 import { parseBooking, parseSlots, parseTaxonomy } from "@/lib/intake/parse";
 import { bookingMatchesRequest } from "@/lib/intake/receipt";
 import { csvCell, selectedCsv } from "@/lib/csv";
-import { staffParams, staffQuery } from "@/lib/staff/query";
+import { intakeQueueParams, staffParams, staffQuery, staffViewQuery } from "@/lib/staff/query";
 import { DEFAULT_PAGE_SIZE, PAGE_SIZES, paginationQuery } from "@/lib/pagination";
 import { parsePage } from "@/lib/api";
-import { parseViewMemory, restoreViewHref } from "@/lib/staff/view-memory";
+import { intakeView, parseViewMemory, restoreViewHref } from "@/lib/staff/view-memory";
 import {
   addCalendarDays,
   calendarDate,
@@ -60,7 +60,11 @@ test("list queries and snapshots share 10/25/50 sizes and the default 25", () =>
 
 test("view memory ignores corrupt, oversized and other-actor state and bounds restored settings", () => {
   const saved = JSON.stringify({ actor: "staff:branch", list: "page=3", calendar: 123 });
-  expect(parseViewMemory(saved, "staff:branch")).toEqual({ list: "page=3", calendar: undefined });
+  expect(parseViewMemory(saved, "staff:branch")).toEqual({
+    list: "page=3",
+    calendar: undefined,
+    queue: undefined,
+  });
   expect(parseViewMemory(saved, "staff:other-branch")).toEqual({});
   expect(parseViewMemory("{broken", "staff:branch")).toEqual({});
   expect(parseViewMemory(" ".repeat(16385), "staff:branch")).toEqual({});
@@ -70,6 +74,41 @@ test("view memory ignores corrupt, oversized and other-actor state and bounds re
     "page=-1&pageSize=500&sort=evil&search=%00",
   );
   expect(restored).toBe("/dashboard/intake?view=list");
+});
+
+test("agent queues discard hidden table and calendar criteria and restore only queue context", () => {
+  const input = {
+    view: "queue",
+    queue: "History",
+    page: "3",
+    pageSize: "10",
+    search: "VCA",
+    status: "Booked",
+    handlerId: id,
+    branchId: id,
+    from: "2026-10-20",
+    to: "2026-10-21",
+    registration: "other plate",
+    sort: "customerName",
+    direction: "desc",
+  };
+  const { filters, page } = intakeQueueParams(input);
+  expect(Object.fromEntries(new URLSearchParams(staffViewQuery(filters, page)))).toEqual({
+    view: "queue",
+    queue: "History",
+    page: "3",
+    pageSize: "10",
+    search: "VCA",
+  });
+  expect(intakeQueueParams({ queue: "unknown" }).filters.queue).toBe("ToClaim");
+  expect(intakeView(undefined, true)).toBe("queue");
+  expect(intakeView("list", true)).toBe("queue");
+  expect(intakeView(undefined, false)).toBe("list");
+  expect(intakeView("queue", false)).toBe("list");
+  expect(intakeView("calendar", true)).toBe("calendar");
+  expect(
+    restoreViewHref("queue", "/dashboard/intake?view=queue", new URLSearchParams(input).toString()),
+  ).toBe(`/dashboard/intake?${staffViewQuery(filters, page)}`);
 });
 
 test("appointment dates use Malaysian midnight and retain year/leap boundaries", () => {

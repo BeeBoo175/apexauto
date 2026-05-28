@@ -16,7 +16,8 @@ import {
   parseCalendar,
 } from "@/lib/staff/calendar";
 import { parseDetail, parseWorklistPage } from "@/lib/staff/parse";
-import { staffParams, staffQuery } from "@/lib/staff/query";
+import { intakeQueueParams, staffParams, staffQuery } from "@/lib/staff/query";
+import { intakeView } from "@/lib/staff/view-memory";
 import type { IntakeViewComponent, IntakeWorkspaceSnapshot } from "./use-intake-workspace";
 
 interface IntakeEntry {
@@ -27,8 +28,12 @@ interface IntakeEntry {
 export function useIntakeClientEntry(actor: CurrentActor, parameters: SearchParams) {
   const { error } = useToast();
   const result = useStaffClientEntry<IntakeEntry>(async (signal) => {
-    const listView = parameters.view === "list";
-    const { filters, page } = staffParams(parameters);
+    const requestedView = intakeView(parameters.view, actor.role === "SalesAgent");
+    const listView = requestedView !== "calendar";
+    const { filters, page } =
+      requestedView === "queue"
+        ? intakeQueueParams(parameters)
+        : staffParams({ ...parameters, queue: "" });
     const calendarFilters = calendarParams(parameters);
     const selectedId = isUuid(parameters.appointment) ? parameters.appointment : "";
 
@@ -65,7 +70,7 @@ export function useIntakeClientEntry(actor: CurrentActor, parameters: SearchPara
             { signal },
           ).catch(() => null)
         : null,
-      prepareView(listView),
+      prepareView(requestedView),
     ]);
     const initial = listView ? worklist : calendar;
     if (
@@ -79,7 +84,7 @@ export function useIntakeClientEntry(actor: CurrentActor, parameters: SearchPara
     return {
       view,
       snapshot: {
-        view: listView ? "list" : "calendar",
+        view: requestedView,
         calendar:
           calendar?.status === 422
             ? {
@@ -109,8 +114,12 @@ export function useIntakeClientEntry(actor: CurrentActor, parameters: SearchPara
   return result;
 }
 
-async function prepareView(listView: boolean): Promise<IntakeViewComponent> {
-  if (listView) {
+async function prepareView(view: IntakeWorkspaceSnapshot["view"]): Promise<IntakeViewComponent> {
+  if (view === "queue") {
+    const { IntakeAgentQueue } = await import("@/components/staff/IntakeAgentQueue");
+    return { view: "queue", Component: IntakeAgentQueue };
+  }
+  if (view === "list") {
     const { IntakeWorklist } = await import("@/components/staff/IntakeWorklist");
     return { view: "list", Component: IntakeWorklist };
   }

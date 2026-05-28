@@ -6,10 +6,12 @@ import { useGuardedAction } from "./use-guarded-action";
 import type { ApiResult } from "@/lib/api";
 import { emptyCheckIn, type AppointmentDetail, type CheckInDraft } from "@/lib/staff/contracts";
 import { parseDetail } from "@/lib/staff/parse";
+import { privateApiFetch } from "@/lib/api-browser";
 
 export function useStaffAppointmentDrawer(
   selectedId: string,
   selected: ApiResult<AppointmentDetail> | null,
+  commitAfterRead = false,
 ) {
   const interaction = useGuardedAction();
   const selection = useStaffSelection(selectedId, selected, {
@@ -17,6 +19,8 @@ export function useStaffAppointmentDrawer(
     path: (id) => `/api/staff/intake/appointments/${id}`,
     parse: parseDetail,
     matches: (value, id) => value.id === id,
+    read: privateApiFetch,
+    commitAfterRead,
   });
   const [drafts, setDrafts] = useState<Record<string, CheckInDraft>>({});
   const [locked, setLocked] = useState(false);

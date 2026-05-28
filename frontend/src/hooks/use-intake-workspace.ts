@@ -7,15 +7,16 @@ import { useStaffAppointmentDrawer } from "./use-staff-appointment-drawer";
 import { useToast } from "@/components/ui/Toast";
 import type { IntakeCalendar } from "@/components/staff/IntakeCalendar";
 import type { IntakeWorklist } from "@/components/staff/IntakeWorklist";
+import type { IntakeAgentQueue } from "@/components/staff/IntakeAgentQueue";
 import {
   calendarHref,
   calendarParams,
   type CalendarFilters,
   type CalendarSnapshot,
 } from "@/lib/staff/calendar";
-import { staffParams, staffViewQuery } from "@/lib/staff/query";
-import { tableViewHref, calendarViewHref } from "@/lib/staff/view-navigation";
-import type { IntakeView } from "@/lib/staff/view-memory";
+import { intakeQueueParams, staffParams, staffViewQuery } from "@/lib/staff/query";
+import { tableViewHref, calendarViewHref, queueViewHref } from "@/lib/staff/view-navigation";
+import { intakeView, type IntakeView } from "@/lib/staff/view-memory";
 import type { ApiResult, Page } from "@/lib/api";
 import type { Branch } from "@/lib/branches";
 import type { AppointmentDetail, StaffFilters, WorklistPage } from "@/lib/staff/contracts";
@@ -36,11 +37,13 @@ const unloaded = { status: 200, data: null, message: "", uncertain: false };
 
 export type IntakeViewComponent =
   | { view: "calendar"; Component: typeof IntakeCalendar }
-  | { view: "list"; Component: typeof IntakeWorklist };
+  | { view: "list"; Component: typeof IntakeWorklist }
+  | { view: "queue"; Component: typeof IntakeAgentQueue };
 
 export function useIntakeWorkspace(
   initial: IntakeWorkspaceSnapshot,
   initialView: IntakeViewComponent,
+  agent: boolean,
 ) {
   const calendar = useStaffCalendar(
     initial.calendar ?? unloaded,
@@ -53,7 +56,7 @@ export function useIntakeWorkspace(
     initial.page,
     initial.branches,
   );
-  const drawer = useStaffAppointmentDrawer(initial.selectedId, initial.selected);
+  const drawer = useStaffAppointmentDrawer(initial.selectedId, initial.selected, agent);
   const [content, setContent] = useState(initialView);
   const view = content.view;
   const [pending, setPending] = useState<IntakeView | null>(null);
@@ -61,13 +64,15 @@ export function useIntakeWorkspace(
   const confirmedHref = useRef("");
   const toast = useToast();
   const busy = calendar.busy || worklist.busy;
-  const destinations =
-    view === "calendar"
-      ? { calendar: calendarHref(calendar.active), list: tableViewHref(calendar.active) }
-      : {
-          calendar: calendarViewHref(worklist.active.filters),
-          list: `/dashboard/intake?${staffViewQuery(worklist.active.filters, worklist.active.page)}`,
-        };
+  const worklistHref = `/dashboard/intake?${staffViewQuery(worklist.active.filters, worklist.active.page)}`;
+  const destinations = {
+    queue: view === "queue" ? worklistHref : queueViewHref(),
+    calendar:
+      view === "calendar"
+        ? calendarHref(calendar.active)
+        : calendarViewHref(worklist.active.filters),
+    list: view === "list" ? worklistHref : tableViewHref(calendar.active),
+  };
   const href = destinations[view];
 
   useEffect(() => {
@@ -92,6 +97,10 @@ export function useIntakeWorkspace(
     if (nextView === "calendar") {
       const { IntakeCalendar } = await import("@/components/staff/IntakeCalendar");
       return { view: "calendar", Component: IntakeCalendar };
+    }
+    if (nextView === "queue") {
+      const { IntakeAgentQueue } = await import("@/components/staff/IntakeAgentQueue");
+      return { view: "queue", Component: IntakeAgentQueue };
     }
     const { IntakeWorklist } = await import("@/components/staff/IntakeWorklist");
     return { view: "list", Component: IntakeWorklist };
@@ -118,10 +127,13 @@ export function useIntakeWorkspace(
     attempt.current = currentAttempt;
     const url = new URL(destination, window.location.origin);
     const params = Object.fromEntries(url.searchParams);
-    const nextView = params.view === "list" ? "list" : "calendar";
+    const nextView = intakeView(params.view, agent);
     setPending(nextView);
     const nextCalendar = calendarParams(params);
-    const nextWorklist = staffParams(params);
+    const nextWorklist =
+      nextView === "queue"
+        ? intakeQueueParams(params)
+        : staffParams({ ...params, queue: "" });
     try {
       const [success, prepared] = await Promise.all([
         nextView === "calendar"

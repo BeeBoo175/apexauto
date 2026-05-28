@@ -16,6 +16,8 @@ import { StaffCommandBar } from "./StaffPage";
 import { StaffPageEntranceContext } from "./StaffActorBoundary";
 import layout from "./StaffWorkspace.module.css";
 import styles from "./StaffWorklist.module.css";
+import queueStyles from "./StaffQueueWorkspace.module.css";
+import { IntakeAgentContent } from "./IntakeAgentContent";
 
 interface Props {
   actor: CurrentActor;
@@ -34,7 +36,8 @@ export function IntakeWorkspace(props: Props) {
 
 function Workspace({ actor, today, initial, initialView }: Props) {
   const animateEntry = useContext(StaffPageEntranceContext);
-  const workspace = useIntakeWorkspace(initial, initialView);
+  const [headerActions, setHeaderActions] = useState<HTMLDivElement | null>(null);
+  const workspace = useIntakeWorkspace(initial, initialView, actor.role === "SalesAgent");
   const { view, content, pending, busy, calendar, worklist, drawer, destinations } = workspace;
   useInitialToast(
     actor.role === "GeneralManager" && !initial.branches
@@ -52,9 +55,13 @@ function Workspace({ actor, today, initial, initialView }: Props) {
 
   return (
     <div className={styles.workspace}>
-      <LoadingProgress label="Loading appointments" active={busy || Boolean(pending)} />
+      <LoadingProgress
+        label="Loading appointments"
+        active={busy || Boolean(pending) || drawer.busy}
+      />
       <StaffCommandBar
         title="Intake appointments"
+        actionsRef={setHeaderActions}
         actions={
           <>
             <RefreshButton
@@ -67,6 +74,7 @@ function Workspace({ actor, today, initial, initialView }: Props) {
             />
             <IntakeViewNavigation
               actor={actorIdentity(actor)}
+              agent={actor.role === "SalesAgent"}
               active={view}
               pending={pending}
               destinations={destinations}
@@ -80,21 +88,36 @@ function Workspace({ actor, today, initial, initialView }: Props) {
       />
       {pending && (
         <p className="sr-only" role="status">
-          Loading {pending === "calendar" ? "calendar" : "table"}…
+          Loading appointments…
         </p>
       )}
       <div
-        className={`${styles.content} ${animateEntry ? layout.reveal : ""}`}
+        className={`${view === "queue" ? queueStyles.columns : styles.content} ${animateEntry ? layout.reveal : ""}`}
+        data-selected={Boolean(drawer.id || drawer.pendingId)}
         inert={Boolean(pending)}
         aria-busy={Boolean(pending)}
       >
-        {content.view === "calendar" ? (
+        {content.view === "calendar" && (
           <content.Component actor={actor} today={today} calendar={calendar} drawer={drawer} />
-        ) : (
+        )}
+        {content.view === "list" && (
           <content.Component actor={actor} worklist={worklist} drawer={drawer} />
         )}
+        {content.view === "queue" && (
+          <>
+            <content.Component worklist={worklist} drawer={drawer} />
+            <IntakeAgentContent
+              actor={actor}
+              selection={drawer}
+              actionsContainer={headerActions}
+              onConfirmed={() => void refresh()}
+            />
+          </>
+        )}
       </div>
-      <IntakeAppointmentDrawer actor={actor} drawer={drawer} onConfirmed={() => void refresh()} />
+      {view !== "queue" && (
+        <IntakeAppointmentDrawer actor={actor} drawer={drawer} onConfirmed={() => void refresh()} />
+      )}
     </div>
   );
 }

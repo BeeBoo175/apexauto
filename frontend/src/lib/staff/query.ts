@@ -3,6 +3,16 @@ import { DEFAULT_PAGE_SIZE, isPageSize } from "@/lib/pagination";
 import { historyParams, historyQuery } from "@/lib/intake/list-query";
 import { intakeQueues, type StaffFilters } from "./contracts";
 
+export function intakeQueueParams(params: SearchParams): { page: number; filters: StaffFilters } {
+  const { filters, page } = staffParams({
+    queue: params.queue,
+    search: params.search,
+    page: params.page,
+    pageSize: params.pageSize,
+  });
+  return { page, filters: { ...filters, queue: filters.queue || "ToClaim" } };
+}
+
 export function staffQuery(filters: StaffFilters, page = 1) {
   const query = new URLSearchParams(historyQuery(filters, page));
   query.set("status", filters.status);
@@ -32,7 +42,7 @@ export function staffQuery(filters: StaffFilters, page = 1) {
 
 export function staffViewQuery(filters: StaffFilters, page = 1) {
   const query = new URLSearchParams(staffQuery(filters, page));
-  query.set("view", "list");
+  query.set("view", filters.queue ? "queue" : "list");
   const defaults = {
     page: "1",
     pageSize: String(DEFAULT_PAGE_SIZE),

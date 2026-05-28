@@ -20,6 +20,7 @@ const views = [
 
 export function IntakeViewNavigation({
   actor,
+  agent,
   active,
   destinations,
   pending,
@@ -29,15 +30,24 @@ export function IntakeViewNavigation({
   onCancel,
 }: {
   actor: string;
-  active: "calendar" | "list";
-  destinations: Record<"calendar" | "list", string>;
+  agent: boolean;
+  active: IntakeView;
+  destinations: Record<IntakeView, string>;
   pending: IntakeView | null;
   disabled: boolean;
   onNavigate: (href: string) => void;
   onPrepare: (view: IntakeView) => void;
   onCancel: () => void;
 }) {
-  const links = useStaffViewMemory(actor, active, destinations);
+  const workView = agent ? "queue" : "list";
+  const links = useStaffViewMemory(actor, active, destinations, workView);
+  const visibleViews: { id: IntakeView; label: string; icon: "calendar" | "table" }[] =
+    views.map((view) => {
+      if (view.id === "calendar") {
+        return view;
+      }
+      return { ...view, id: workView, label: agent ? "Work queues" : "Table" };
+    });
   const selected = pending ?? active;
 
   function prepare(view: IntakeView) {
@@ -50,11 +60,11 @@ export function IntakeViewNavigation({
     <nav
       aria-label="Appointment views"
       aria-busy={Boolean(pending)}
-      data-second={(pending ?? active) === "list"}
+      data-second={(pending ?? active) !== "calendar"}
       className={styles.switch}
     >
       <span className={styles.thumb} aria-hidden="true" />
-      {views.map((view) => (
+      {visibleViews.map((view) => (
         <a
           key={view.id}
           className={styles.option}

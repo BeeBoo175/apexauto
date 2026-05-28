@@ -1,7 +1,11 @@
 import { calendarDate } from "@/lib/calendar";
 import { calendarHref, type CalendarFilters } from "./calendar";
 import type { StaffFilters } from "./contracts";
-import { staffParams, staffViewQuery } from "./query";
+import { intakeQueueParams, staffParams, staffViewQuery } from "./query";
+
+export function queueViewHref() {
+  return `/dashboard/intake?${staffViewQuery(intakeQueueParams({}).filters)}`;
+}
 
 export function tableViewHref(filters: CalendarFilters) {
   const table = staffParams({
