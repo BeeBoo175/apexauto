@@ -12,7 +12,7 @@ internal static class CancellationMigrationAssertions
         var original = await ReadAsync(fixture.RuntimeConnectionString, embedded: true);
         var options = new DbContextOptionsBuilder<DealershipDbContext>().UseNpgsql(fixture.ConnectionString).Options;
         await using var database = new DealershipDbContext(options);
-        await ConsolidationMigrationRange.DowngradeAsync(database, "20261021190743_EmbedAppointmentValuation");
+        var checkInGuard = await ConsolidationMigrationRange.DowngradeAsync(database, "20261021190743_EmbedAppointmentValuation");
         Assert.Equal(original, await ReadAsync(fixture.RuntimeConnectionString, embedded: false));
 
         await using (var connection = new NpgsqlConnection(fixture.RuntimeConnectionString))
@@ -25,7 +25,7 @@ internal static class CancellationMigrationAssertions
             Assert.Equal("CK_IntakeAppointments_Immutable", error.ConstraintName);
         }
 
-        await ConsolidationMigrationRange.RestoreAsync(database, "20261021190743_EmbedAppointmentValuation");
+        await ConsolidationMigrationRange.RestoreAsync(database, "20261021190743_EmbedAppointmentValuation", checkInGuard);
         Assert.Equal(original, await ReadAsync(fixture.RuntimeConnectionString, embedded: true));
         var appointments = await database.IntakeAppointments.AsNoTracking().ToArrayAsync();
         Assert.Equal(DevelopmentIntakeManifest.Appointments.Count, appointments.Length);

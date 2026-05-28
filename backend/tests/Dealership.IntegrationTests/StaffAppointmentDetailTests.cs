@@ -21,7 +21,7 @@ public sealed class StaffAppointmentDetailTests(IntakePhotoFixture fixture) : IC
     private static readonly string[] DetailProperties =
     [
         "attendanceCorrectedAt", "branchId", "branchName", "correctedBy", "correctedByEmail", "correctionReason",
-        "customerEmail", "customerMobile", "customerName", "endsAt", "id", "make", "manufactureYear", "mileageKilometres", "model", "noShowAt", "registrationPlate",
+        "customerEmail", "customerMobile", "customerName", "endsAt", "id", "make", "manufactureYear", "mileageKilometres", "model", "noShowAt", "ownership", "registrationPlate",
         "startsAt", "status", "trim"
     ];
 
@@ -48,6 +48,8 @@ public sealed class StaffAppointmentDetailTests(IntakePhotoFixture fixture) : IC
             await LoginAsync(client, data.StaffEmail);
             authorization = client.DefaultRequestHeaders.Authorization!;
             await AssertDetailAsync(client, booked, "Booked", DevelopmentFixtureManifest.Branches[0].Name);
+            await AssertOwnershipAsync(client, booked.Id, data.StaffId, data.StaffEmail, true);
+            await AssertOwnershipAsync(client, cancellable.Id, null, null, false);
             await AssertStatusAsync(client, Guid.NewGuid(), HttpStatusCode.NotFound);
             await AssertStatusAsync(client, other.Id, HttpStatusCode.NotFound);
             await AssertCancellationSnapshotAsync(data, cancellable);
@@ -124,6 +126,7 @@ public sealed class StaffAppointmentDetailTests(IntakePhotoFixture fixture) : IC
         }
 
         await SetStaffScopeAsync(database, data.StaffId, AccountRoles.GeneralManager, null);
+        await AssertOwnershipAsync(client, booked.Id, data.StaffId, data.StaffEmail, false);
         await AssertDetailAsync(client, other, "Booked", "ApexAuto Petaling Jaya");
         await database.Branches.Where(branch => branch.Id == data.BranchId)
             .ExecuteUpdateAsync(update => update.SetProperty(branch => branch.IsActive, false));
@@ -136,6 +139,7 @@ public sealed class StaffAppointmentDetailTests(IntakePhotoFixture fixture) : IC
         await AssertDetailAsync(client, other, "Booked", "ApexAuto Petaling Jaya");
         await AssertStatusAsync(client, booked.Id, HttpStatusCode.NotFound);
         await SetStaffScopeAsync(database, data.StaffId, AccountRoles.SalesAgent, data.BranchId);
+        await AssertOwnershipAsync(client, booked.Id, data.StaffId, data.StaffEmail, true);
         await AssertDetailAsync(client, booked, "CheckedIn", DevelopmentFixtureManifest.Branches[0].Name);
         await database.Branches.Where(branch => branch.Id == data.BranchId)
             .ExecuteUpdateAsync(update => update.SetProperty(branch => branch.IsActive, false));
@@ -184,6 +188,25 @@ public sealed class StaffAppointmentDetailTests(IntakePhotoFixture fixture) : IC
         using var response = await client.GetAsync($"{Route}/{appointmentId}");
         Assert.Equal(expected, response.StatusCode);
         Assert.True(response.Headers.CacheControl?.NoStore);
+    }
+
+    private static async Task AssertOwnershipAsync(HttpClient client, Guid appointmentId, Guid? handlerId,
+        string? handlerEmail, bool eligible)
+    {
+        using var response = await client.GetAsync($"{Route}/{appointmentId}");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var detail = await response.Content.ReadFromJsonAsync<StaffAppointmentDetail>();
+        if (handlerId is null)
+        {
+            Assert.Null(detail!.Ownership);
+            return;
+        }
+
+        Assert.NotNull(detail!.Ownership);
+        Assert.Equal(1, detail.Ownership.Version);
+        Assert.Equal(handlerId, detail.Ownership.HandlerId);
+        Assert.Equal(handlerEmail, detail.Ownership.HandlerEmail);
+        Assert.Equal(eligible, detail.Ownership.HandlerEligible);
     }
 
     private static async Task LoginAsync(HttpClient client, string email)

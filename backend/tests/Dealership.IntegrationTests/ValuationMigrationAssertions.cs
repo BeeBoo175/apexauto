@@ -13,10 +13,10 @@ internal static class ValuationMigrationAssertions
         var options = new DbContextOptionsBuilder<DealershipDbContext>().UseNpgsql(fixture.ConnectionString).Options;
         await using var database = new DealershipDbContext(options);
 
-        await ConsolidationMigrationRange.DowngradeAsync(database, "20261021184456_ConsolidateAppointmentMail");
+        var checkInGuard = await ConsolidationMigrationRange.DowngradeAsync(database, "20261021184456_ConsolidateAppointmentMail");
         Assert.Equal(original, await ReadAsync(fixture.RuntimeConnectionString, embedded: false));
         await AssertLegacyGuardsAsync(fixture.RuntimeConnectionString);
-        await ConsolidationMigrationRange.RestoreAsync(database, "20261021184456_ConsolidateAppointmentMail");
+        await ConsolidationMigrationRange.RestoreAsync(database, "20261021184456_ConsolidateAppointmentMail", checkInGuard);
         Assert.Equal(original, await ReadAsync(fixture.RuntimeConnectionString, embedded: true));
 
         var appointments = await database.IntakeAppointments.AsNoTracking().ToArrayAsync();

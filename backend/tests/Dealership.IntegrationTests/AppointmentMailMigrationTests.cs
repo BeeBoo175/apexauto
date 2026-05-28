@@ -33,17 +33,17 @@ public sealed class AppointmentMailMigrationTests(IntakePhotoFixture fixture) : 
             .UseNpgsql(fixture.Database.ConnectionString).Options;
         await using var maintenance = new DealershipDbContext(maintenanceOptions);
 
-        await ConsolidationMigrationRange.DowngradeAsync(maintenance, "20261020201746_NoShowAttendanceCorrection");
+        var checkInGuard = await ConsolidationMigrationRange.DowngradeAsync(maintenance, "20261020201746_NoShowAttendanceCorrection");
         Assert.Equal(original, await ReadStateAsync(legacy: true));
         await AssertLegacyGuardAsync(checkedIn.Id);
-        await ConsolidationMigrationRange.RestoreAsync(maintenance, "20261020201746_NoShowAttendanceCorrection");
+        await ConsolidationMigrationRange.RestoreAsync(maintenance, "20261020201746_NoShowAttendanceCorrection", checkInGuard);
         Assert.Equal(original, await ReadStateAsync(legacy: false));
         await AssertQueueGuardsAsync(pending.Id, checkedIn.Id);
 
         // A second round proves newly consolidated rows remain reversible without resetting claim receipts.
-        await ConsolidationMigrationRange.DowngradeAsync(maintenance, "20261020201746_NoShowAttendanceCorrection");
+        checkInGuard = await ConsolidationMigrationRange.DowngradeAsync(maintenance, "20261020201746_NoShowAttendanceCorrection");
         Assert.Equal(original, await ReadStateAsync(legacy: true));
-        await ConsolidationMigrationRange.RestoreAsync(maintenance, "20261020201746_NoShowAttendanceCorrection");
+        await ConsolidationMigrationRange.RestoreAsync(maintenance, "20261020201746_NoShowAttendanceCorrection", checkInGuard);
         Assert.Equal(original, await ReadStateAsync(legacy: false));
     }
 

@@ -79,6 +79,7 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
             var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
             Assert.Equal(0, await database.IntakeAppointments.CountAsync());
             Assert.Equal(0, await database.IntakePhotos.CountAsync());
+            Assert.Equal(0, await database.AppointmentAssignments.CountAsync());
             Assert.Equal(20, await database.Users.CountAsync());
         }
 
@@ -118,7 +119,9 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         await DevelopmentPurchaseFixtureAssertions.VerifyAsync(provider, target);
         var snapshot = await DevelopmentIntakeFixtureAssertions.SnapshotAsync(provider);
         await ValuationMigrationAssertions.VerifyAsync(fixture.Database);
+        Assert.Equal(definitions, await ReadGuardsAsync());
         await CancellationMigrationAssertions.VerifyAsync(fixture.Database);
+        Assert.Equal(definitions, await ReadGuardsAsync());
         Assert.Equal(snapshot, await DevelopmentIntakeFixtureAssertions.SnapshotAsync(provider));
         Assert.All(await SeedAsync(restarted, target), report => Assert.False(report.RequiresAttention));
         Assert.Equal(snapshot, await DevelopmentIntakeFixtureAssertions.SnapshotAsync(restarted));
@@ -241,7 +244,8 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         await connection.OpenAsync();
         await using var command = new NpgsqlCommand("""
             SELECT pg_get_functiondef(oid) FROM pg_proc WHERE pronamespace = 'public'::regnamespace
-                AND proname IN ('require_available_appointment_photo', 'validate_appointment_cancellation', 'validate_appointment_checkin')
+                AND proname IN ('require_available_appointment_photo', 'validate_appointment_cancellation',
+                    'validate_appointment_checkin', 'guard_appointment_assignment')
                 ORDER BY proname
             """, connection);
         await using var reader = await command.ExecuteReaderAsync();
@@ -251,7 +255,7 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
             definitions.Add(reader.GetString(0));
         }
 
-        Assert.Equal(3, definitions.Count);
+        Assert.Equal(4, definitions.Count);
         return [.. definitions];
     }
 
@@ -287,8 +291,20 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         var photo = await Assert.ThrowsAsync<PostgresException>(() => command.ExecuteNonQueryAsync());
         Assert.Equal("CK_AppointmentPhotos_Available", photo.ConstraintName);
         command.CommandText = """
+            INSERT INTO "AppointmentAssignments" ("Id", "AppointmentId", "BranchId", "ActorId", "Kind", "HandlerId",
+                "ExpectedVersion", "Version", "RecordedAt")
+            SELECT gen_random_uuid(), a."Id", a."BranchId", u."Id", 'Claimed', u."Id", 0, 1, a."StartsAt"
+            FROM "IntakeAppointments" a JOIN "AspNetUsers" u ON u."BranchId" = a."BranchId" AND u."Role" = 'SalesAgent'
+            WHERE a."CancelledAt" IS NULL AND a."StartsAt" < clock_timestamp() - interval '1 day'
+                AND NOT EXISTS (SELECT 1 FROM "AppointmentCheckIns" c WHERE c."AppointmentId" = a."Id")
+            ORDER BY a."StartsAt" LIMIT 1
+            """;
+        var assignment = await Assert.ThrowsAsync<PostgresException>(() => command.ExecuteNonQueryAsync());
+        Assert.Equal("CK_AppointmentAssignments_Availability", assignment.ConstraintName);
+        command.CommandText = """
             SELECT count(*) FROM pg_trigger WHERE tgrelid IN ('public."IntakeAppointments"'::regclass,
-                'public."AppointmentPhotos"'::regclass, 'public."AppointmentCheckIns"'::regclass) AND tgenabled <> 'O'
+                'public."AppointmentPhotos"'::regclass, 'public."AppointmentCheckIns"'::regclass,
+                'public."AppointmentAssignments"'::regclass) AND tgenabled <> 'O'
             """;
         Assert.Equal(0L, await command.ExecuteScalarAsync());
     }

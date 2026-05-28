@@ -2,6 +2,7 @@ import { setAppointmentDates, expectWorklistPage } from "./intake-ui-controls";
 import { expect, test, type Page, type BrowserContext } from "@playwright/test";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { calendarDate } from "@/lib/calendar";
 
 const evidence = process.env.BROWSER_EVIDENCE_DIR!;
 const refs = () =>
@@ -13,8 +14,12 @@ const refs = () =>
   }[];
 const counts = () =>
   JSON.parse(readFileSync(path.join(evidence, "counts.json"), "utf8")) as Record<string, number>;
-const day = (offset: number) =>
-  new Date(Date.now() + (offset * 24 + 8) * 3600000).toISOString().slice(0, 10);
+function appointmentRange() {
+  const dates = refs()
+    .map((item) => calendarDate(new Date(item.startsAt)))
+    .sort();
+  return { from: dates[0], to: dates[dates.length - 1] };
+}
 
 async function privateHeaders(context: BrowserContext) {
   const cookie = (await context.cookies()).find((entry) => entry.name === "apexauto_token")!;
@@ -66,7 +71,7 @@ test("sales intake preserves scoped lists, drawer drafts and an exact lost check
   expect(await reopened!.text()).not.toContain("Declared mileage");
   await expect(dialog.getByLabel("VIN", { exact: true })).toBeEditable();
   expect(counts()[detailPath] - detailReads).toBe(1);
-  await dialog.getByRole("button", { name: "Close dialog", exact: true }).click();
+  await dialog.getByRole("button", { name: "Close drawer", exact: true }).click();
   await page.evaluate(() => {
     window.history.pushState(window.history.state, "", window.location.href);
   });
@@ -138,8 +143,11 @@ test("sales intake preserves scoped lists, drawer drafts and an exact lost check
     await route.fulfill({ response });
   });
   await dialog.getByRole("button", { name: "Confirm check-in", exact: true }).click();
+  const confirmation = page.getByRole("dialog", { name: "Check in this vehicle?", exact: true });
+  await confirmation.getByRole("button", { name: "Confirm check-in", exact: true }).click();
+  await expect(confirmation).toBeHidden();
   await expect(dialog.getByLabel("VIN", { exact: true })).toBeDisabled();
-  await expect(dialog.getByRole("button", { name: "Close dialog", exact: true })).toBeDisabled();
+  await expect(dialog.getByRole("button", { name: "Close drawer", exact: true })).toBeDisabled();
   await page.keyboard.press("Escape");
   await expect(dialog).toBeVisible();
   await expect(
@@ -160,7 +168,7 @@ test("sales intake preserves scoped lists, drawer drafts and an exact lost check
   expect(bodies).toHaveLength(2);
   expect(bodies[0]).toBe(bodies[1]);
   writeFileSync(path.join(evidence, "check-in.json"), JSON.stringify(receipt, null, 2));
-  await dialog.getByRole("button", { name: "Close dialog", exact: true }).click();
+  await dialog.getByRole("button", { name: "Close drawer", exact: true }).click();
 
   await page.goto(detailHref!);
   await expect(page.getByText("Checked in", { exact: true })).toBeVisible();
@@ -168,7 +176,8 @@ test("sales intake preserves scoped lists, drawer drafts and an exact lost check
   await expect(page.getByLabel("VIN", { exact: true })).toHaveCount(0);
 
   await page.goto("/dashboard/intake?view=list");
-  await setAppointmentDates(page, day(0), day(29));
+  const range = appointmentRange();
+  await setAppointmentDates(page, range.from, range.to);
   await page.getByRole("button", { name: "Apply", exact: true }).click();
   await expect(page.getByRole("row")).toHaveCount(26);
   await page.getByRole("button", { name: "Next records", exact: true }).click();
@@ -211,7 +220,7 @@ for (const [role, email, destination] of [
   ["Branch manager", "siti.aminah@example.invalid", "/dashboard/intake"],
   ["General manager", "farah.aziz@example.invalid", "/dashboard/intake"],
   ["Workshop technician", "azlan.rahim@example.invalid", "/dashboard/inspection"],
-  ["Administrator", "muhammad.hafiz@example.invalid", "/dashboard"],
+  ["Administrator", "muhammad.hafiz@example.invalid", "/dashboard/settings"],
 ]) {
   test(`${role} receives its verified destination and current intake permission`, async ({
     page,
@@ -223,7 +232,7 @@ for (const [role, email, destination] of [
       await expect(page).toHaveURL(new RegExp(`${destination}$`));
     }
     if (role === "Workshop technician" || role === "Administrator") {
-      const heading = role === "Workshop technician" ? "Workshop" : "Your staff workspace";
+      const heading = role === "Workshop technician" ? "Workshop" : "Settings";
       await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
       await page.goto("/dashboard/intake?view=list");
       await expect(
@@ -239,7 +248,8 @@ for (const [role, email, destination] of [
       return;
     }
     await page.getByRole("link", { name: "Table", exact: true }).click();
-    await setAppointmentDates(page, day(-10), day(29));
+    const range = appointmentRange();
+    await setAppointmentDates(page, range.from, range.to);
     await page.getByRole("button", { name: "Apply", exact: true }).click();
     await expect(page.getByRole("row")).toHaveCount(26);
     const link = page.locator("tbody tr").first();
@@ -268,7 +278,7 @@ for (const [role, email, destination] of [
       });
       expect(denial.status()).toBe(403);
     }
-    await dialog.getByRole("button", { name: "Close dialog", exact: true }).click();
+    await dialog.getByRole("button", { name: "Close drawer", exact: true }).click();
     if (role === "General manager") {
       await page.getByRole("button", { name: "Filter Branch", exact: true }).click();
       await page
@@ -277,7 +287,12 @@ for (const [role, email, destination] of [
       await page.getByRole("button", { name: "Apply", exact: true }).click();
       await expect(
         page.getByRole("cell", { name: "ApexAuto Petaling Jaya", exact: true }),
-      ).toHaveCount(25);
+      ).toHaveCount(
+        Math.min(
+          25,
+          refs().filter((item) => item.branchId === "68f371ad-223a-43d6-b45b-b878eece79ae").length,
+        ),
+      );
     }
   });
 }

@@ -152,12 +152,13 @@ public sealed class DevelopmentIntakeFixtures(DealershipDbContext database, Deve
         database.AppointmentMailOutbox.Add(new AppointmentMail(fixture.Id, AppointmentMailKind.Confirmation,
             owner.Email!, moment.BookedAt));
         await database.SaveChangesAsync(cancellationToken);
-        AddTransition(moment, appointment, owner.Email!);
+        await AddTransitionAsync(moment, appointment, owner.Email!, cancellationToken);
         await database.SaveChangesAsync(cancellationToken);
         database.ChangeTracker.Clear();
     }
 
-    private void AddTransition(DevelopmentIntakeMoment moment, IntakeAppointment appointment, string email)
+    private async Task AddTransitionAsync(DevelopmentIntakeMoment moment, IntakeAppointment appointment, string email,
+        CancellationToken cancellationToken)
     {
         if (moment.Fixture.Status == StaffWorklistStatus.Cancelled)
         {
@@ -175,6 +176,10 @@ public sealed class DevelopmentIntakeFixtures(DealershipDbContext database, Deve
 
         var staffId = DevelopmentFixtureManifest.Staff.Single(item =>
             item.BranchId == appointment.BranchId && item.Role == AccountRoles.SalesAgent).Id;
+        database.AppointmentAssignments.Add(new AppointmentAssignment(Guid.NewGuid(), appointment, staffId,
+            AppointmentAssignmentKind.Claimed, staffId, null, null, moment.TransitionAt!.Value));
+        // Admission must observe the claim before the terminal check-in, even within this snapshot transaction.
+        await database.SaveChangesAsync(cancellationToken);
         var checkIn = new AppointmentCheckIn(Guid.NewGuid(), appointment, staffId,
             moment.Fixture.CheckIn!, moment.TransitionAt!.Value);
         database.Vehicles.Add(new Vehicle(appointment, checkIn));

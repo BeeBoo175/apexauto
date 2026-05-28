@@ -1,4 +1,5 @@
 using System.Data;
+using Dealership.Application.Accounts;
 using Dealership.Application.Intake;
 using Dealership.Domain.Intake;
 using Dealership.Infrastructure.Persistence;
@@ -77,10 +78,23 @@ public sealed class StaffAppointmentDetailStore(DealershipDbContext database) : 
         var correctorEmail = correctorId is null ? null
             : await database.Users.AsNoTracking().Where(user => user.Id == correctorId).Select(user => user.Email)
                 .FirstOrDefaultAsync(cancellationToken);
+        var assignment = await database.AppointmentAssignments.AsNoTracking()
+            .Where(item => item.AppointmentId == appointmentId).OrderByDescending(item => item.Version)
+            .FirstOrDefaultAsync(cancellationToken);
+        var handler = assignment?.HandlerId is not { } handlerId ? null
+            : await database.Users.AsNoTracking().Where(user => user.Id == handlerId)
+                .Select(user => new { user.Email, user.IsActive, user.Role, user.BranchId })
+                .SingleOrDefaultAsync(cancellationToken);
+        var handlerEligible = handler is { IsActive: true } && handler.BranchId == row.BranchId &&
+            handler.Role is AccountRoles.SalesAgent or AccountRoles.BranchManager &&
+            await database.Branches.AnyAsync(branch => branch.Id == row.BranchId && branch.IsActive, cancellationToken);
+        var ownership = assignment is null ? null
+            : new AppointmentOwnership(assignment.Version, assignment.HandlerId, handler?.Email, handlerEligible,
+                assignment.ActorId, assignment.Kind, assignment.RecordedAt, assignment.Reason);
         var detail = new StaffAppointmentDetail(row.Id, row.BranchId, row.BranchName, row.CustomerName,
             row.RegistrationPlate, row.StartsAt, row.EndsAt, status, row.Make, row.Model, row.Trim,
             row.ManufactureYear, row.MileageKilometres, wasNoShow ? noShowAt : null, row.CheckIn?.CorrectionRecordedAt, row.CheckIn?.CorrectionReason,
-            correctorId, row.Mobile, row.CustomerEmail ?? string.Empty, correctorEmail);
+            correctorId, row.Mobile, row.CustomerEmail ?? string.Empty, correctorEmail, ownership);
         await transaction.CommitAsync(cancellationToken);
         return new StaffAppointmentDetailResult(StaffAppointmentDetailStatus.Succeeded, detail);
     }

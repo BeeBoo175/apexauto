@@ -1,9 +1,13 @@
 using Dealership.Infrastructure.Intake;
+using Dealership.Application.Accounts;
 using Dealership.Application.Intake;
 using Dealership.Application.Branches;
+using Dealership.Domain.Intake;
 using Dealership.Infrastructure.Development;
 using Dealership.Infrastructure.Persistence;
+using Dealership.Infrastructure.Persistence.Migrations;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Migrations.Operations;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 
@@ -34,12 +38,23 @@ public sealed class IntakeCheckInSchemaTests(IntakePhotoFixture fixture) : IClas
     [Fact]
     public async Task RestrictedSqlRequiresScopedEligibleImmutableCheckInAndOneMatchingDurableBundle()
     {
+        await VerifyHandlerMigrationAsync();
         using var data = await CheckInTestData.CreateAsync(fixture);
         var appointment = await data.BookAsync();
+        await RejectAsync(data, appointment.Id, InsertCheckIn + InsertMail,
+            "CK_AppointmentCheckIns_Handler", "unclaimed appointment");
+        await RejectAsync(data, appointment.Id,
+            "UPDATE \"AspNetUsers\" SET \"Role\" = 'BranchManager' WHERE \"Id\" = @staff;" + InsertCheckIn + InsertMail,
+            "CK_AppointmentCheckIns_Handler", "unclaimed manager");
+        await data.ClaimAsync(appointment.Id);
+        var managerId = Guid.NewGuid();
         using (var branchScope = data.Factory.Services.CreateScope())
         {
             await branchScope.ServiceProvider.GetRequiredService<BranchProvisioningService>().ProvisionBranchAsync(
                 DevelopmentFixtureManifest.Branches[0] with { Id = Guid.NewGuid(), Name = "ApexAuto Petaling Jaya" }, CancellationToken.None);
+            await branchScope.ServiceProvider.GetRequiredService<StaffProvisioningService>().ProvisionStaffAsync(
+                new(managerId, $"farid.{managerId:N}@example.invalid", "Password123!", AccountRoles.BranchManager, data.BranchId),
+                CancellationToken.None);
         }
 
         var attacks = new[]
@@ -72,9 +87,23 @@ public sealed class IntakeCheckInSchemaTests(IntakePhotoFixture fixture) : IClas
             InsertVehicle.Replace("a.\"ValuationModel\"", "'Different model'", StringComparison.Ordinal),
             "CK_Vehicles_Provenance", "vehicle differs from booked valuation", insertVehicle: false);
 
-        var receipt = await data.SaveBundleAsync(appointment.Id);
         using var scope = data.Factory.Services.CreateScope();
+        var assignments = scope.ServiceProvider.GetRequiredService<AppointmentAssignmentService>();
+        Assert.Equal(AppointmentAssignmentStatus.Succeeded, (await assignments.ExecuteAsync(managerId, appointment.Id,
+            AppointmentAssignmentKind.Assigned, new(Guid.NewGuid(), 1, managerId, "Manager takes over arrival"), CancellationToken.None)).Status);
+        await RejectAsync(data, appointment.Id, InsertCheckIn + InsertMail,
+            "CK_AppointmentCheckIns_Handler", "former handler after reassignment");
+        Assert.Equal(AppointmentAssignmentStatus.Succeeded, (await assignments.ExecuteAsync(managerId, appointment.Id,
+            AppointmentAssignmentKind.Released, new(Guid.NewGuid(), 2), CancellationToken.None)).Status);
+        await RejectAsync(data, appointment.Id, InsertCheckIn + InsertMail,
+            "CK_AppointmentCheckIns_Handler", "released assignment retains earlier claim history");
+        Assert.Equal(AppointmentAssignmentStatus.Succeeded, (await assignments.ExecuteAsync(data.StaffId, appointment.Id,
+            AppointmentAssignmentKind.Claimed, new(Guid.NewGuid(), 3), CancellationToken.None)).Status);
+        var result = await scope.ServiceProvider.GetRequiredService<AppointmentCheckInService>()
+            .CheckInAsync(data.StaffId, appointment.Id, CheckInTestData.Evidence, CancellationToken.None);
+        Assert.Equal(CheckInStatus.Succeeded, result.Status);
         var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
+        var receipt = await database.AppointmentCheckIns.SingleAsync();
         Assert.Single(await database.Vehicles.ToArrayAsync());
         Assert.Single(await database.AppointmentCheckIns.ToArrayAsync());
         Assert.Single(await database.AppointmentMailOutbox.Where(item => item.Kind == AppointmentMailKind.CheckIn).ToArrayAsync());
@@ -109,6 +138,22 @@ public sealed class IntakeCheckInSchemaTests(IntakePhotoFixture fixture) : IClas
         var sameRegistration = await data.BookAsync(slot: 2, plate: "WYY8821");
         await RejectAsync(data, sameRegistration.Id, "", "IX_Vehicles_RegistrationIdentity", "duplicate registration",
             vin: "PL1BT65R84B123457");
+    }
+
+    private async Task VerifyHandlerMigrationAsync()
+    {
+        var options = new DbContextOptionsBuilder<DealershipDbContext>().UseNpgsql(fixture.Database.ConnectionString).Options;
+        await using var database = new DealershipDbContext(options);
+        const string definition = "SELECT pg_get_functiondef('public.validate_appointment_checkin()'::regprocedure) AS \"Value\"";
+        var original = await database.Database.SqlQueryRaw<string>(definition).SingleAsync();
+        var migration = new RequireCheckInHandler();
+        var down = Assert.IsType<SqlOperation>(Assert.Single(migration.DownOperations));
+        var up = Assert.IsType<SqlOperation>(Assert.Single(migration.UpOperations));
+        await database.Database.ExecuteSqlRawAsync(down.Sql);
+        var previous = await database.Database.SqlQueryRaw<string>(definition).SingleAsync();
+        Assert.DoesNotContain("CK_AppointmentCheckIns_Handler", previous, StringComparison.Ordinal);
+        await database.Database.ExecuteSqlRawAsync(up.Sql);
+        Assert.Equal(original, await database.Database.SqlQueryRaw<string>(definition).SingleAsync());
     }
 
     private async Task RejectAsync(CheckInTestData data, Guid appointmentId, string sql, string constraint,

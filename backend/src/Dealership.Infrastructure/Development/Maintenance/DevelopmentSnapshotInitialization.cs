@@ -26,7 +26,7 @@ internal sealed class DevelopmentSnapshotInitialization : IAsyncDisposable
         {
             await database.Database.ExecuteSqlRawAsync("""
                 LOCK TABLE public."IntakeAppointments", public."IntakePhotos", public."AppointmentPhotos",
-                    public."AppointmentCheckIns", public."Vehicles",
+                    public."AppointmentAssignments", public."AppointmentCheckIns", public."Vehicles",
                     public."AppointmentMailOutbox", public."PhotoRemovals" IN ACCESS EXCLUSIVE MODE;
                 """, cancellationToken);
             if (await database.IntakeAppointments.AnyAsync(cancellationToken) ||
@@ -40,6 +40,7 @@ internal sealed class DevelopmentSnapshotInitialization : IAsyncDisposable
                 "(SELECT a.\"CreatedAt\" FROM public.\"IntakeAppointments\" a WHERE a.\"Id\" = NEW.\"AppointmentId\")", 2, cancellationToken);
             await initialization.UseEventTimeAsync("validate_appointment_cancellation", "NEW.\"CancelledAt\"", 1, cancellationToken);
             await initialization.UseEventTimeAsync("validate_appointment_checkin", "NEW.\"CheckedInAt\"", 3, cancellationToken);
+            await initialization.UseEventTimeAsync("guard_appointment_assignment", "NEW.\"RecordedAt\"", 2, cancellationToken);
             return initialization;
         }
         catch

@@ -9,14 +9,19 @@ internal static class ConsolidationMigrationRange
 {
     private const string Consolidated = "20261021192806_EmbedAppointmentCancellation";
 
-    public static Task<int> DowngradeAsync(DealershipDbContext database, string target)
+    public static async Task<string> DowngradeAsync(DealershipDbContext database, string target)
     {
-        return ApplyAsync(database, Consolidated, target);
+        var guard = await database.Database.SqlQueryRaw<string>(
+            "SELECT pg_get_functiondef('public.validate_appointment_checkin()'::regprocedure) AS \"Value\"").SingleAsync();
+        await ApplyAsync(database, Consolidated, target);
+        return guard;
     }
 
-    public static Task<int> RestoreAsync(DealershipDbContext database, string source)
+    public static async Task RestoreAsync(DealershipDbContext database, string source, string checkInGuard)
     {
-        return ApplyAsync(database, source, Consolidated);
+        await ApplyAsync(database, source, Consolidated);
+        // Historical migrations replace this function; retain the live guard from before the probe.
+        await database.Database.ExecuteSqlRawAsync(checkInGuard);
     }
 
     private static Task<int> ApplyAsync(DealershipDbContext database, string source, string target)

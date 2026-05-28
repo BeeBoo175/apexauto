@@ -206,6 +206,12 @@ internal static class DevelopmentIntakeFixtureAssertions
             Assert.True(checkIn.Matches(fixture.CheckIn!));
             Assert.Equal(DevelopmentFixtureManifest.Staff.Single(item =>
                 item.BranchId == fixture.BranchId && item.Role == AccountRoles.SalesAgent).Id, checkIn.StaffId);
+            var claim = await database.AppointmentAssignments.SingleAsync(item => item.AppointmentId == fixture.Id);
+            Assert.Equal(AppointmentAssignmentKind.Claimed, claim.Kind);
+            Assert.Equal(checkIn.StaffId, claim.ActorId);
+            Assert.Equal(checkIn.StaffId, claim.HandlerId);
+            Assert.Equal(checkIn.CheckedInAt, claim.RecordedAt);
+            Assert.Equal(1, claim.Version);
             var vehicle = await database.Vehicles.SingleAsync(item => item.Id == checkIn.VehicleId);
             var completedBaseline = fixture.Id == DevelopmentInspectionManifest.Baselines[1].Id;
             var scenario = DevelopmentInspectionScenarios.All.SingleOrDefault(item => item.Id == fixture.Id);
@@ -262,6 +268,7 @@ internal static class DevelopmentIntakeFixtureAssertions
             Attachments = await database.AppointmentPhotos.AsNoTracking().OrderBy(item => item.AppointmentId).ThenBy(item => item.PhotoId).ToArrayAsync(),
             Mail = await database.AppointmentMailOutbox.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync(),
             CheckIns = await database.AppointmentCheckIns.AsNoTracking().OrderBy(item => item.AppointmentId).ToArrayAsync(),
+            IntakeAssignments = await database.AppointmentAssignments.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync(),
             Vehicles = await database.Vehicles.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync(),
             InspectionDrafts = await database.InspectionDrafts.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync(),
             InspectionAssignments = await database.InspectionAssignments.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync(),
