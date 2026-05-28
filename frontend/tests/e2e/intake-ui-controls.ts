@@ -77,6 +77,19 @@ export async function exerciseOwnership(page: Page) {
     content.locator("footer").getByRole("button", { name: "Claim appointment", exact: true }),
   ).toBeEnabled();
   await expect(content.getByLabel("VIN", { exact: true })).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: /^To claim\b/, includeHidden: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  const unassigned = new URL(page.url());
+  unassigned.searchParams.delete("queue");
+  await page.goto(unassigned.toString());
+  await expect(
+    content.locator("footer").getByRole("button", { name: "Claim appointment", exact: true }),
+  ).toBeEnabled();
+  await expect(
+    page.getByRole("button", { name: /^To claim\b/, includeHidden: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await captureIntake(page, "agent-unassigned");
   const bodies: string[] = [];
   await page.route("**/api/staff/intake/appointments/*/claims", async (route) => {
     bodies.push(route.request().postData()!);
@@ -114,9 +127,15 @@ export async function exerciseOwnership(page: Page) {
     .getByRole("button", { name: "Reconcile ownership", exact: true })
     .click();
   await expect(content.getByLabel("VIN", { exact: true })).toBeEditable();
+  await expect(
+    page.getByRole("button", { name: /^My work\b/, includeHidden: true }),
+  ).toHaveAttribute("aria-pressed", "true");
   expect(bodies).toHaveLength(2);
   expect(bodies[1]).toBe(bodies[0]);
   await page.unroute("**/api/staff/intake/appointments/*/claims");
+  await page.evaluate(() => {
+    window.history.pushState(window.history.state, "", window.location.href);
+  });
 }
 
 export async function exerciseManagerHandler(page: Page) {

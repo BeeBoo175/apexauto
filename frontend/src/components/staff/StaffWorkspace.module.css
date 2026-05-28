@@ -300,7 +300,8 @@
   gap: 24px;
   min-height: 0;
   min-width: 0;
-  padding: 0 24px 24px;
+  padding-inline: 24px;
+  padding-bottom: 24px;
   overflow-y: auto;
   overscroll-behavior: contain;
 }

@@ -44,7 +44,7 @@ export function AppointmentWorkbench({
   draft?: CheckInDraft;
   onDraft?: (draft: CheckInDraft) => void;
   onLock?: (locked: boolean) => void;
-  onConfirmed?: () => void;
+  onConfirmed?: (detail: AppointmentDetail) => void;
   scrollWithHost?: boolean;
 }) {
   useInitialToast(initial.message);
@@ -124,6 +124,7 @@ export function AppointmentWorkbench({
         throw new Error("Detail unavailable");
       }
       setSnapshot(result);
+      return result.data;
     } catch {
       if (!attempt.signal.aborted) {
         toast.error(
@@ -170,7 +171,9 @@ export function AppointmentWorkbench({
           }
         : null,
     }));
-    onConfirmed?.();
+    if (snapshot.data) {
+      onConfirmed?.({ ...snapshot.data, status: "CheckedIn" });
+    }
   }
   const refreshControl = (
     <RefreshButton
@@ -226,8 +229,10 @@ export function AppointmentWorkbench({
               disabled={!ready || locked || dirty || refreshing}
               onGuarded={setOwnershipGuarded}
               onChanged={async () => {
-                await refresh();
-                onConfirmed?.();
+                const confirmed = await refresh();
+                if (confirmed) {
+                  onConfirmed?.(confirmed);
+                }
               }}
             />
             {detail.status === "NoShow" && actor.role !== "BranchManager" && (

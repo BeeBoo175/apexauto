@@ -16,7 +16,6 @@ import { StaffCommandBar } from "./StaffPage";
 import { StaffPageEntranceContext } from "./StaffActorBoundary";
 import layout from "./StaffWorkspace.module.css";
 import styles from "./StaffWorklist.module.css";
-import queueStyles from "./StaffQueueWorkspace.module.css";
 import { IntakeAgentContent } from "./IntakeAgentContent";
 
 interface Props {
@@ -64,14 +63,16 @@ function Workspace({ actor, today, initial, initialView }: Props) {
         actionsRef={setHeaderActions}
         actions={
           <>
-            <RefreshButton
-              label={view === "calendar" ? "Refresh calendar" : "Refresh worklist"}
-              busy={busy && !pending}
-              disabled={
-                Boolean(drawer.id) || Boolean(pending) || !calendar.ready || !worklist.ready
-              }
-              onClick={() => void refresh()}
-            />
+            {(view !== "queue" || (!drawer.id && !drawer.pendingId)) && (
+              <RefreshButton
+                label={view === "calendar" ? "Refresh calendar" : "Refresh worklist"}
+                busy={busy && !pending}
+                disabled={
+                  Boolean(drawer.id) || Boolean(pending) || !calendar.ready || !worklist.ready
+                }
+                onClick={() => void refresh()}
+              />
+            )}
             <IntakeViewNavigation
               actor={actorIdentity(actor)}
               agent={actor.role === "SalesAgent"}
@@ -95,30 +96,34 @@ function Workspace({ actor, today, initial, initialView }: Props) {
           Loading appointments…
         </p>
       )}
-      <div
-        className={`${view === "queue" ? queueStyles.columns : styles.content} ${animateEntry ? layout.reveal : ""}`}
-        data-selected={Boolean(drawer.id || drawer.pendingId)}
-        inert={Boolean(pending)}
-        aria-busy={Boolean(pending)}
-      >
-        {content.view === "calendar" && (
-          <content.Component actor={actor} today={today} calendar={calendar} drawer={drawer} />
-        )}
-        {content.view === "list" && (
-          <content.Component actor={actor} worklist={worklist} drawer={drawer} />
-        )}
-        {content.view === "queue" && (
-          <>
-            <content.Component worklist={worklist} drawer={drawer} />
-            <IntakeAgentContent
-              actor={actor}
-              selection={drawer}
-              actionsContainer={headerActions}
-              onConfirmed={() => void refresh()}
-            />
-          </>
-        )}
-      </div>
+      {content.view === "queue" ? (
+        <content.Component
+          worklist={worklist}
+          drawer={drawer}
+          className={animateEntry ? layout.reveal : ""}
+          inert={Boolean(pending)}
+        >
+          <IntakeAgentContent
+            actor={actor}
+            selection={drawer}
+            actionsContainer={headerActions}
+            onConfirmed={workspace.onConfirmed}
+          />
+        </content.Component>
+      ) : (
+        <div
+          className={`${styles.content} ${animateEntry ? layout.reveal : ""}`}
+          inert={Boolean(pending)}
+          aria-busy={Boolean(pending)}
+        >
+          {content.view === "calendar" && (
+            <content.Component actor={actor} today={today} calendar={calendar} drawer={drawer} />
+          )}
+          {content.view === "list" && (
+            <content.Component actor={actor} worklist={worklist} drawer={drawer} />
+          )}
+        </div>
+      )}
       {view !== "queue" && (
         <IntakeAppointmentDrawer actor={actor} drawer={drawer} onConfirmed={() => void refresh()} />
       )}

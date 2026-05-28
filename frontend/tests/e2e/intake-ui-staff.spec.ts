@@ -53,6 +53,10 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
     page.getByRole("heading", { name: "Select an appointment", exact: true }),
   ).toBeVisible();
   await expect(page.getByRole("button", { name: "Refresh worklist", exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: /^My work\b/ })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
   const cross = refs().find((item) => item.branchId !== "c77708bf-1a31-42f5-9a69-0c8766697a52")!;
   expect(
     (
@@ -126,6 +130,7 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
   expect(await reopened!.text()).not.toContain("Declared mileage");
   await expect(dialog.getByLabel("VIN", { exact: true })).toBeEditable();
   expect(counts()[detailPath] - detailReads).toBe(1);
+  await captureIntake(page, "agent-attendance");
   expect(requests.length).toBeGreaterThan(0);
   for (const url of requests) {
     expect(url.searchParams.get("status")).toBe("All");
@@ -267,8 +272,24 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
   expect(bodies).toHaveLength(2);
   expect(bodies[0]).toBe(bodies[1]);
   writeFileSync(path.join(evidence, "check-in.json"), JSON.stringify(receipt, null, 2));
-  await expect(link).toHaveCount(0);
+  await showIntakeQueue(page);
+  await expect(queue.getByRole("button", { name: /^History\b/ })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(dialog.getByRole("heading", { name: arrivalPlate, exact: true })).toHaveCount(1);
+  await expect(dialog.getByText("Checked in", { exact: true })).toBeVisible();
+  await expect(
+    dialog.locator("footer").getByText("Check-in confirmed", { exact: true }),
+  ).toBeVisible();
   await captureIntake(page, "agent-check-in");
+  const completedReads = counts()[detailPath];
+  await page.goto(`/dashboard/intake?appointment=${arrival.id}`);
+  await expect(dialog.getByText("Checked in", { exact: true })).toBeVisible();
+  await expect(
+    queue.getByRole("button", { name: /^History\b/, includeHidden: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  expect(counts()[detailPath] - completedReads).toBe(1);
   await page.goto(detailHref!);
   await expect(page.getByText("Checked in", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Appointment details", exact: true }).click();
@@ -409,6 +430,10 @@ for (const [role, email, destination] of [
       });
       expect(denial.status()).toBe(403);
     }
+    await captureIntake(
+      page,
+      role === "General manager" ? "manager-read-only-drawer" : "manager-appointment-drawer",
+    );
     await dialog.getByRole("button", { name: "Close drawer", exact: true }).click();
     if (role === "General manager") {
       await page.getByRole("button", { name: "Filter Branch", exact: true }).click();

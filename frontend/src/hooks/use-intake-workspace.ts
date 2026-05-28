@@ -15,7 +15,12 @@ import {
   type CalendarFilters,
   type CalendarSnapshot,
 } from "@/lib/staff/calendar";
-import { intakeQueueParams, staffParams, staffViewQuery } from "@/lib/staff/query";
+import {
+  appointmentQueue,
+  intakeQueueParams,
+  staffParams,
+  staffViewQuery,
+} from "@/lib/staff/query";
 import { tableViewHref, calendarViewHref, queueViewHref } from "@/lib/staff/view-navigation";
 import { intakeView, type IntakeView } from "@/lib/staff/view-memory";
 import type { ApiResult, Page } from "@/lib/api";
@@ -119,6 +124,19 @@ export function useIntakeWorkspace(
     setPending(null);
   }
 
+  function onConfirmed(detail: AppointmentDetail) {
+    if (view === "calendar") {
+      calendar.cancel();
+      void calendar.load();
+      return;
+    }
+    worklist.cancel();
+    const filters = worklist.active.filters;
+    const nextFilters =
+      view === "queue" ? { ...filters, queue: appointmentQueue(detail) } : filters;
+    void worklist.load(nextFilters, view === "queue" ? 1 : worklist.active.page);
+  }
+
   async function navigate(destination: string, history: "push" | "replace" = "push") {
     if (drawer.id && !agent) {
       return;
@@ -208,5 +226,6 @@ export function useIntakeWorkspace(
     navigate,
     prefetchView,
     cancelNavigation,
+    onConfirmed,
   };
 }

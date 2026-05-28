@@ -1,7 +1,19 @@
 import type { SearchParams } from "@/lib/query";
 import { DEFAULT_PAGE_SIZE, isPageSize } from "@/lib/pagination";
 import { historyParams, historyQuery } from "@/lib/intake/list-query";
-import { intakeQueues, type StaffFilters } from "./contracts";
+import {
+  intakeQueues,
+  type AppointmentDetail,
+  type IntakeQueue,
+  type StaffFilters,
+} from "./contracts";
+
+export function appointmentQueue(detail: AppointmentDetail): IntakeQueue {
+  if (detail.status !== "Booked") {
+    return "History";
+  }
+  return detail.ownership?.handlerId ? "MyWork" : "ToClaim";
+}
 
 export function intakeQueueParams(params: SearchParams): { page: number; filters: StaffFilters } {
   const { filters, page } = staffParams({
@@ -10,7 +22,7 @@ export function intakeQueueParams(params: SearchParams): { page: number; filters
     page: "1",
     pageSize: params.pageSize,
   });
-  return { page, filters: { ...filters, queue: filters.queue || "ToClaim" } };
+  return { page, filters: { ...filters, queue: filters.queue || "MyWork" } };
 }
 
 export function staffQuery(filters: StaffFilters, page = 1) {

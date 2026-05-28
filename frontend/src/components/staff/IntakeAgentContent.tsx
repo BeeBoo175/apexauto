@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/Button";
 import type { useStaffAppointmentDrawer } from "@/hooks/use-staff-appointment-drawer";
 import type { CurrentActor } from "@/lib/auth/actor";
+import type { AppointmentDetail } from "@/lib/staff/contracts";
 import { AppointmentWorkbench } from "./AppointmentWorkbench";
 import { StaffRecordLoadingShell } from "./StaffRecordLoadingShell";
 import styles from "./StaffQueueWorkspace.module.css";
@@ -16,7 +17,7 @@ export function IntakeAgentContent({
   actor: CurrentActor;
   selection: ReturnType<typeof useStaffAppointmentDrawer>;
   actionsContainer: HTMLElement | null;
-  onConfirmed: () => void;
+  onConfirmed: (detail: AppointmentDetail) => void;
 }) {
   if (!selection.id && !selection.pendingId) {
     return (

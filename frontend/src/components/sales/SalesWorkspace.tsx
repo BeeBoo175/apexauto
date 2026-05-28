@@ -4,7 +4,7 @@ import { useContext, useState } from "react";
 import { StaffCommandBar } from "@/components/staff/StaffPage";
 import { StaffPageEntranceContext } from "@/components/staff/StaffActorBoundary";
 import { StaffQueueTabs } from "@/components/staff/StaffQueueTabs";
-import { Button } from "@/components/ui/Button";
+import { StaffQueueLayout } from "@/components/staff/StaffQueueLayout";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import { SearchField } from "@/components/ui/SearchField";
@@ -140,70 +140,63 @@ export function SalesWorkspace({
           )
         }
       />
-      <div
-        className={`${styles.columns} ${animateEntry ? workbench.reveal : ""}`}
-        data-selected={chosen}
+      <StaffQueueLayout
+        id="sales-queue-content"
+        label="Sales queues"
+        title={searching ? "Search results" : queueViewLabels[view]}
+        selected={chosen}
+        expanded={queueExpanded}
+        onExpandedChange={setQueueExpanded}
+        className={animateEntry ? workbench.reveal : ""}
         inert={!interactive}
-      >
-        <aside className={styles.queue} aria-label="Sales queues" data-expanded={queueExpanded}>
-          {chosen && (
-            <div className={styles.mobileQueueBar}>
-              <strong>{searching ? "Search results" : queueViewLabels[view]}</strong>
-              <Button
-                size="compact"
-                variant="secondary"
-                aria-expanded={queueExpanded}
-                aria-controls="sales-queue-content"
-                onClick={() => setQueueExpanded(!queueExpanded)}
-              >
-                {queueExpanded ? "Hide queue" : "Show queue"}
-              </Button>
-            </div>
-          )}
-          <div className={styles.queueBody} id="sales-queue-content">
-            <div hidden={searching}>
-              <StaffQueueTabs
-                label="Sales queue tabs"
-                layout="queue"
-                countNoun="sales"
-                tabs={queueViews.map((item) => ({
-                  value: item,
-                  label: queueViewTabs[item],
-                  count: counts?.[queueCountOf[item]],
-                }))}
-                value={view}
-                disabled={interaction.blocked}
-                onChange={showView}
-              />
-            </div>
-            <form
-              className={styles.search}
-              onSubmit={(event) => {
-                event.preventDefault();
-                if (!interaction.blocked && draft.trim()) {
-                  void found.find(draft);
-                }
-              }}
-            >
-              <SearchField
-                label="Search my sales"
-                placeholder="Search reference, plate, customer, phone or email"
-                value={draft}
-                disabled={interaction.blocked}
-                disabledReason={interaction.message}
-                busy={found.busy}
-                onChange={setDraft}
-                onClear={
-                  searching
-                    ? () => {
-                        setDraft("");
-                        void found.find("");
-                      }
-                    : undefined
-                }
-              />
-            </form>
-
+        tabs={
+          <div hidden={searching}>
+            <StaffQueueTabs
+              label="Sales queue tabs"
+              layout="queue"
+              countNoun="sales"
+              tabs={queueViews.map((item) => ({
+                value: item,
+                label: queueViewTabs[item],
+                count: counts?.[queueCountOf[item]],
+              }))}
+              value={view}
+              disabled={interaction.blocked}
+              onChange={showView}
+            />
+          </div>
+        }
+        search={
+          <form
+            className={styles.search}
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (!interaction.blocked && draft.trim()) {
+                void found.find(draft);
+              }
+            }}
+          >
+            <SearchField
+              label="Search my sales"
+              placeholder="Search reference, plate, customer, phone or email"
+              value={draft}
+              disabled={interaction.blocked}
+              disabledReason={interaction.message}
+              busy={found.busy}
+              onChange={setDraft}
+              onClear={
+                searching
+                  ? () => {
+                      setDraft("");
+                      void found.find("");
+                    }
+                  : undefined
+              }
+            />
+          </form>
+        }
+        queue={
+          <>
             {searching && (
               <SalesQueueList
                 view="Search"
@@ -243,15 +236,16 @@ export function SalesWorkspace({
                 selectionLocked={interaction.blocked}
               />
             )}
-          </div>
-        </aside>
+          </>
+        }
+      >
         <SalesContent
           selection={selection}
           now={now}
           actionsContainer={headerActions}
           onChanged={() => void refresh()}
         />
-      </div>
+      </StaffQueueLayout>
     </div>
   );
 }

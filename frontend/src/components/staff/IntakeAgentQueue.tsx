@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 import { SearchField } from "@/components/ui/SearchField";
+import { StaffQueueLayout } from "./StaffQueueLayout";
 import { StaffQueueTabs } from "./StaffQueueTabs";
 import { StaffQueueContinuation } from "./StaffQueueContinuation";
 import type { useStaffWorklist } from "@/hooks/use-staff-worklist";
@@ -22,16 +23,22 @@ const countKeys = { ToClaim: "toClaim", MyWork: "myWork", History: "history" } a
 export function IntakeAgentQueue({
   worklist,
   drawer,
+  children,
+  className,
+  inert,
 }: {
   worklist: ReturnType<typeof useStaffWorklist>;
   drawer: ReturnType<typeof useStaffAppointmentDrawer>;
+  children: ReactNode;
+  className?: string;
+  inert?: boolean;
 }) {
   const [expanded, setExpanded] = useState(!drawer.id);
   const list = useRef<HTMLDivElement | null>(null);
   const [failedSnapshot, setFailedSnapshot] = useState(worklist.snapshot);
   const [failedMore, setFailedMore] = useState(false);
   const { active, snapshot, busy, ready, draft, setDraft } = worklist;
-  const queue = active.filters.queue || "ToClaim";
+  const queue = active.filters.queue || "MyWork";
   const selected = Boolean(drawer.id || drawer.pendingId);
 
   async function load(nextQueue = queue, page = 1, pageSize = active.filters.pageSize) {
@@ -51,22 +58,16 @@ export function IntakeAgentQueue({
   }
 
   return (
-    <aside className={styles.queue} aria-label="Intake queues" data-expanded={expanded}>
-      {selected && (
-        <div className={styles.mobileQueueBar}>
-          <strong>{labels[queue]}</strong>
-          <Button
-            size="compact"
-            variant="secondary"
-            aria-expanded={expanded}
-            aria-controls="intake-queue-content"
-            onClick={() => setExpanded(!expanded)}
-          >
-            {expanded ? "Hide queue" : "Show queue"}
-          </Button>
-        </div>
-      )}
-      <div className={styles.queueBody} id="intake-queue-content">
+    <StaffQueueLayout
+      id="intake-queue-content"
+      label="Intake queues"
+      title={labels[queue]}
+      selected={selected}
+      expanded={expanded}
+      onExpandedChange={setExpanded}
+      className={className}
+      inert={inert}
+      tabs={
         <StaffQueueTabs
           label="Intake queue tabs"
           layout="queue"
@@ -80,6 +81,8 @@ export function IntakeAgentQueue({
           disabled={!ready || busy}
           onChange={(item) => void load(item)}
         />
+      }
+      search={
         <form
           className={styles.search}
           onSubmit={(event) => {
@@ -103,6 +106,8 @@ export function IntakeAgentQueue({
             }
           />
         </form>
+      }
+      queue={
         <div className={styles.list} ref={list} aria-busy={busy}>
           {!snapshot && (
             <div className={styles.empty}>
@@ -162,7 +167,9 @@ export function IntakeAgentQueue({
             />
           )}
         </div>
-      </div>
-    </aside>
+      }
+    >
+      {children}
+    </StaffQueueLayout>
   );
 }

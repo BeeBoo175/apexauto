@@ -9,6 +9,7 @@ import {
 import { parseAppointment } from "@/lib/intake/parse";
 import { ownershipMatches, parseOwnershipResult } from "@/lib/staff/ownership";
 import { parseIntakeConflict } from "@/lib/intake/errors";
+import { appointmentQueue } from "@/lib/staff/query";
 
 const id = "c77708bf-1a31-42f5-9a69-0c8766697a52";
 
@@ -109,6 +110,10 @@ test("no-show snapshots retain status and validate correction evidence", () => {
     ownership: null,
   };
   expect(parseDetail(detail)?.status).toBe("NoShow");
+  expect(appointmentQueue(parseDetail(detail)!)).toBe("History");
+  expect(appointmentQueue(parseDetail({ ...detail, status: "Booked", noShowAt: null })!)).toBe(
+    "ToClaim",
+  );
   const ownership = {
     version: 2,
     handlerId: id,
@@ -120,6 +125,9 @@ test("no-show snapshots retain status and validate correction evidence", () => {
     reason: "Branch handoff",
   };
   expect(parseDetail({ ...detail, ownership })?.ownership).toEqual(ownership);
+  expect(
+    appointmentQueue(parseDetail({ ...detail, status: "Booked", noShowAt: null, ownership })!),
+  ).toBe("MyWork");
   expect(parseDetail({ ...detail, ownership: { ...ownership, version: 0 } })).toBeNull();
   expect(parseDetail({ ...detail, ownership: { ...ownership, kind: "Released" } })).toBeNull();
   const released = {

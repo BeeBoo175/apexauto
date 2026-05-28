@@ -101,7 +101,8 @@ test("agent queues discard hidden table and calendar criteria and restore only q
     pageSize: "10",
     search: "VCA",
   });
-  expect(intakeQueueParams({ queue: "unknown" }).filters.queue).toBe("ToClaim");
+  expect(intakeQueueParams({ queue: "unknown" }).filters.queue).toBe("MyWork");
+  expect(intakeQueueParams({}).filters.queue).toBe("MyWork");
   expect(intakeView(undefined, true)).toBe("queue");
   expect(intakeView("list", true)).toBe("queue");
   expect(intakeView(undefined, false)).toBe("list");

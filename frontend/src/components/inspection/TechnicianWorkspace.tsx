@@ -3,7 +3,8 @@
 import { useContext, useState, type ComponentProps } from "react";
 import { StaffCommandBar } from "@/components/staff/StaffPage";
 import { StaffPageEntranceContext } from "@/components/staff/StaffActorBoundary";
-import { Button } from "@/components/ui/Button";
+import { StaffQueueLayout } from "@/components/staff/StaffQueueLayout";
+import { SearchField } from "@/components/ui/SearchField";
 import { StaffQueueTabs } from "@/components/staff/StaffQueueTabs";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
@@ -137,69 +138,79 @@ export function TechnicianWorkspace({
         actionsRef={setHeaderActions}
         actions={!selection.result?.data && <RefreshButton {...refreshControl} />}
       />
-      <div
-        className={`${styles.columns} ${animateEntry ? workbench.reveal : ""}`}
-        data-selected={Boolean(selection.id || selection.pendingId)}
+      <StaffQueueLayout
+        id="technician-worklist-content"
+        label="Technician worklists"
+        title={viewLabels[view]}
+        selected={Boolean(selection.id || selection.pendingId)}
+        expanded={queueExpanded}
+        onExpandedChange={setQueueExpanded}
+        className={animateEntry ? workbench.reveal : ""}
         inert={!interactive}
-      >
-        <aside
-          className={styles.queue}
-          aria-label="Technician worklists"
-          data-expanded={queueExpanded}
-        >
-          {(selection.id || selection.pendingId) && (
-            <div className={styles.mobileQueueBar}>
-              <strong>{viewLabels[view]}</strong>
-              <Button
-                size="compact"
-                variant="secondary"
-                aria-expanded={queueExpanded}
-                aria-controls="technician-worklist-content"
-                onClick={() => setQueueExpanded(!queueExpanded)}
-              >
-                {queueExpanded ? "Hide jobs" : "Show jobs"}
-              </Button>
-            </div>
-          )}
-          <div className={styles.queueBody} id="technician-worklist-content">
-            <StaffQueueTabs
-              label="Workshop worklists"
-              layout="queue"
-              countNoun="jobs"
-              tabs={(["MyWork", "Waiting", "Claimable"] as const).map((task) => ({
-                value: task,
-                label: viewTabs[task],
-                count: worklists[task].snapshot?.total,
-              }))}
-              value={view}
-              disabled={interaction.blocked}
-              onChange={showView}
+        tabs={
+          <StaffQueueTabs
+            label="Workshop worklists"
+            layout="queue"
+            countNoun="jobs"
+            tabs={(["MyWork", "Waiting", "Claimable"] as const).map((task) => ({
+              value: task,
+              label: viewTabs[task],
+              count: worklists[task].snapshot?.total,
+            }))}
+            value={view}
+            disabled={interaction.blocked}
+            onChange={showView}
+          />
+        }
+        search={
+          <form
+            className={styles.search}
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (!worklists[view].busy) {
+                void worklists[view].submit();
+              }
+            }}
+          >
+            <SearchField
+              label={`Search ${viewLabels[view].toLowerCase()}`}
+              placeholder="Search vehicle or registration"
+              value={worklists[view].draft}
+              disabled={!worklists[view].ready || interaction.blocked}
+              busy={worklists[view].busy}
+              onChange={worklists[view].setDraft}
+              onClear={
+                worklists[view].search && !busy ? () => void worklists[view].clear() : undefined
+              }
             />
-            {view === "Claimable" ? (
-              <TechnicianClaim
-                actor={actor}
-                state={claimable}
-                selectionLocked={selection.locked}
-                onClaimed={(id) => {
-                  setQueueExpanded(false);
-                  showView("MyWork");
-                  void refresh();
-                  selection.open(id);
-                }}
-              />
-            ) : (
-              <TechnicianJobList
-                key={view}
-                title={viewLabels[view]}
-                state={worklists[view]}
-                onOpen={open}
-                selectedId={selection.id}
-                pendingId={selection.pendingId}
-                selectionLocked={interaction.blocked}
-              />
-            )}
-          </div>
-        </aside>
+          </form>
+        }
+        queue={
+          view === "Claimable" ? (
+            <TechnicianClaim
+              actor={actor}
+              state={claimable}
+              selectionLocked={selection.locked}
+              onClaimed={(id) => {
+                setQueueExpanded(false);
+                showView("MyWork");
+                void refresh();
+                selection.open(id);
+              }}
+            />
+          ) : (
+            <TechnicianJobList
+              key={view}
+              title={viewLabels[view]}
+              state={worklists[view]}
+              onOpen={open}
+              selectedId={selection.id}
+              pendingId={selection.pendingId}
+              selectionLocked={interaction.blocked}
+            />
+          )
+        }
+      >
         <TechnicianJobWorkspace
           actor={actor}
           selection={selection}
@@ -208,7 +219,7 @@ export function TechnicianWorkspace({
           refreshControl={refreshControl}
           onChanged={() => void refresh(false)}
         />
-      </div>
+      </StaffQueueLayout>
     </div>
   );
 }

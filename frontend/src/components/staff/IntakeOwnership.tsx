@@ -118,7 +118,7 @@ export function IntakeOwnership({
                   Claim appointment
                 </ConfirmationButton>
               )}
-              {available && manager && (
+              {available && manager && dirty && (
                 <ConfirmationButton
                   size="compact"
                   disabled={

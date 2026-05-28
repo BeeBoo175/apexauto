@@ -16,7 +16,8 @@ import {
   parseCalendar,
 } from "@/lib/staff/calendar";
 import { parseDetail, parseWorklistPage } from "@/lib/staff/parse";
-import { intakeQueueParams, staffParams, staffQuery } from "@/lib/staff/query";
+import { appointmentQueue, intakeQueueParams, staffParams, staffQuery } from "@/lib/staff/query";
+import { intakeQueues } from "@/lib/staff/contracts";
 import { intakeView } from "@/lib/staff/view-memory";
 import type { IntakeViewComponent, IntakeWorkspaceSnapshot } from "./use-intake-workspace";
 
@@ -36,6 +37,23 @@ export function useIntakeClientEntry(actor: CurrentActor, parameters: SearchPara
         : staffParams({ ...parameters, queue: "" });
     const calendarFilters = calendarParams(parameters);
     const selectedId = isUuid(parameters.appointment) ? parameters.appointment : "";
+    const selectedRead = selectedId
+      ? privateApiFetch(
+          `/api/staff/intake/appointments/${selectedId}`,
+          (value) => {
+            const detail = parseDetail(value);
+            return detail?.id === selectedId ? detail : null;
+          },
+          { signal },
+        ).catch(() => null)
+      : Promise.resolve(null);
+    const explicitQueue = intakeQueues.some((queue) => queue === parameters.queue);
+    if (requestedView === "queue" && selectedId && !explicitQueue) {
+      const selected = await selectedRead;
+      if (selected?.data) {
+        filters.queue = appointmentQueue(selected.data);
+      }
+    }
 
     const [calendar, worklist, branches, selected, view] = await Promise.all([
       listView
@@ -60,16 +78,7 @@ export function useIntakeClientEntry(actor: CurrentActor, parameters: SearchPara
             { signal },
           ).catch(() => null)
         : null,
-      selectedId
-        ? privateApiFetch(
-            `/api/staff/intake/appointments/${selectedId}`,
-            (value) => {
-              const detail = parseDetail(value);
-              return detail?.id === selectedId ? detail : null;
-            },
-            { signal },
-          ).catch(() => null)
-        : null,
+      selectedRead,
       prepareView(requestedView),
     ]);
     const initial = listView ? worklist : calendar;
