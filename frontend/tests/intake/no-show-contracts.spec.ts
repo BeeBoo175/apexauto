@@ -7,8 +7,61 @@ import {
   parseWorklistItem,
 } from "@/lib/staff/parse";
 import { parseAppointment } from "@/lib/intake/parse";
+import { ownershipMatches, parseOwnershipResult } from "@/lib/staff/ownership";
+import { parseIntakeConflict } from "@/lib/intake/errors";
 
 const id = "c77708bf-1a31-42f5-9a69-0c8766697a52";
+
+test("ownership receipts validate transitions and reconcile the original operation after handoff", () => {
+  const nextId = "563681ca-021e-4982-bd3d-b27b6bc457c1";
+  const receipt = {
+    id,
+    appointmentId: id,
+    branchId: id,
+    actorId: id,
+    kind: "Claimed",
+    handlerId: id,
+    previousHandlerId: null,
+    expectedVersion: 0,
+    version: 1,
+    reason: null,
+    recordedAt: "2026-11-03T01:00:00Z",
+  };
+  const current = {
+    ...receipt,
+    id: nextId,
+    kind: "Released",
+    handlerId: null,
+    previousHandlerId: id,
+    expectedVersion: 1,
+    version: 2,
+  };
+  const result = parseOwnershipResult({ receipt, current })!;
+  expect(result).toEqual({ receipt, current });
+  const request = { operationId: id, expectedVersion: 0, reason: null };
+  expect(ownershipMatches(result, request, id, id, "claims")).toBe(true);
+  expect(ownershipMatches(result, { ...request, operationId: nextId }, id, id, "claims")).toBe(false);
+  expect(ownershipMatches(result, { ...request, expectedVersion: 1 }, id, id, "claims")).toBe(false);
+  expect(ownershipMatches(result, request, nextId, id, "claims")).toBe(false);
+  expect(ownershipMatches(result, request, id, nextId, "claims")).toBe(false);
+  expect(ownershipMatches(result, request, id, id, "releases")).toBe(false);
+  for (const invalid of [
+    { ...receipt, version: 3 },
+    { ...receipt, recordedAt: "2026-11-03T09:00:00+08:00" },
+    { ...receipt, handlerId: nextId },
+    { ...receipt, kind: "Released" },
+    { ...receipt, kind: "Assigned", previousHandlerId: nextId },
+  ]) {
+    expect(parseOwnershipResult({ receipt: invalid, current })).toBeNull();
+  }
+  expect(parseOwnershipResult({ receipt, current: { ...current, appointmentId: nextId } })).toBeNull();
+  expect(parseOwnershipResult({ receipt: current, current: receipt })).toBeNull();
+  expect(parseOwnershipResult({ receipt, current: { ...receipt, id: nextId } })).toBeNull();
+  for (const code of ["intake-ownership-conflict", "intake-ownership-unavailable", "intake-schedule-conflict"]) {
+    expect(parseIntakeConflict(code)?.code).toBe(code);
+  }
+  expect(parseIntakeConflict("unknown-ownership-code")).toBeUndefined();
+});
 const row = {
   id,
   branchId: id,
