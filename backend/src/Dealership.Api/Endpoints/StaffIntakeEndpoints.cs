@@ -21,6 +21,7 @@ public static class StaffIntakeEndpoints
         routes.MapGet("/export", StaffIntakeExportEndpoint.ExportAsync);
         routes.MapPost("/export/background", StaffIntakeBackgroundExportEndpoint.ExportAsync);
         routes.MapGet("/{id:guid}", DetailAsync);
+        routes.MapGet("/{id:guid}/handlers", HandlersAsync);
         routes.MapPost("/{id:guid}/claims", StaffIntakeAssignmentEndpoint.ClaimAsync);
         routes.MapPost("/{id:guid}/assignments", StaffIntakeAssignmentEndpoint.AssignAsync);
         routes.MapPost("/{id:guid}/releases", StaffIntakeAssignmentEndpoint.ReleaseAsync);
@@ -32,9 +33,10 @@ public static class StaffIntakeEndpoints
         CancellationToken cancellationToken, string? from = null, string? to = null,
         string? status = null, Guid? branchId = null, int page = 1, int pageSize = Pagination.DefaultPageSize,
         string? search = null, string? sort = null, string? direction = null,
-        string? registration = null, string? vehicle = null, string? customer = null)
+        string? registration = null, string? vehicle = null, string? customer = null,
+        string? queue = null, Guid? handlerId = null)
     {
-        var query = StaffWorklistQuery.Parse(from, to, status, branchId, page, pageSize, search, sort, direction, registration, vehicle, customer);
+        var query = StaffWorklistQuery.Parse(from, to, status, branchId, page, pageSize, search, sort, direction, registration, vehicle, customer, queue, handlerId);
 
         if (query is null)
         {
@@ -75,6 +77,27 @@ public static class StaffIntakeEndpoints
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
             return Results.Problem(statusCode: 503, title: "The staff appointment is temporarily unavailable.");
+        }
+    }
+
+    private static async Task<IResult> HandlersAsync(Guid id, HttpContext context, IStaffAppointmentDetailStore appointments,
+        CancellationToken cancellationToken)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(20));
+        try
+        {
+            var result = await appointments.HandlersAsync(StaffId(context), id, deadline.Token);
+            return result.Status switch
+            {
+                StaffAppointmentDetailStatus.Succeeded => Results.Ok(result.Handlers),
+                StaffAppointmentDetailStatus.Forbidden => Results.Forbid(),
+                _ => Results.NotFound()
+            };
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return Results.Problem(statusCode: 503, title: "Appointment handlers are temporarily unavailable.");
         }
     }
 

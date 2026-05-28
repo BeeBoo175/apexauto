@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using Dealership.Application.Accounts;
 using Dealership.Application.Intake;
 using Dealership.Domain.Intake;
 using Dealership.Infrastructure.Persistence;
@@ -25,6 +26,13 @@ internal static class StaffWorklistRows
             StaffWorklistStatus.NoShow => rows.Where(row => row.NoShow),
             _ => rows
         };
+        rows = query.Queue switch
+        {
+            "ToClaim" => rows.Where(row => !row.CheckedIn && !row.Cancelled && !row.NoShow && row.HandlerId == null),
+            "MyWork" => rows.Where(row => !row.CheckedIn && !row.Cancelled && !row.NoShow && row.HandlerId == staffId),
+            "History" => rows.Where(row => (row.CheckedIn || row.Cancelled || row.NoShow) && row.HandlerId == staffId),
+            _ => rows
+        };
         // Only the group scope, which has no branch of its own, chooses branches by name.
         var scope = await StaffIntakeReadScope.ResolveAsync(database, staffId, cancellationToken);
         return Records(database, rows, query, scope?.BranchId is null);
@@ -46,7 +54,10 @@ internal static class StaffWorklistRows
             await rows.CountAsync(row => row.CheckedIn, cancellationToken),
             await rows.CountAsync(row => row.Cancelled, cancellationToken),
             await rows.CountAsync(row => row.NoShow, cancellationToken),
-            await rows.CountAsync(cancellationToken));
+            await rows.CountAsync(cancellationToken),
+            await rows.CountAsync(row => !row.CheckedIn && !row.Cancelled && !row.NoShow && row.HandlerId == null, cancellationToken),
+            await rows.CountAsync(row => !row.CheckedIn && !row.Cancelled && !row.NoShow && row.HandlerId == staffId, cancellationToken),
+            await rows.CountAsync(row => (row.CheckedIn || row.Cancelled || row.NoShow) && row.HandlerId == staffId, cancellationToken));
     }
 
     private static readonly Expression<Func<AppointmentFlags, bool>> Booked =
@@ -58,6 +69,7 @@ internal static class StaffWorklistRows
         var scope = await StaffIntakeReadScope.ResolveAsync(database, staffId, cancellationToken);
 
         if (scope is null ||
+            (query.Queue.Length > 0 && scope.Role != AccountRoles.SalesAgent) ||
             (scope.BranchId is not null && query.BranchId is not null && query.BranchId != scope.BranchId))
         {
             return null;
@@ -81,8 +93,12 @@ internal static class StaffWorklistRows
                 Cancelled = item.CancelledAt != null,
                 NoShow = item.StartsAt < today &&
                     item.CancelledAt == null &&
-                    !database.AppointmentCheckIns.Any(checkIn => checkIn.AppointmentId == item.Id)
-            });
+                    !database.AppointmentCheckIns.Any(checkIn => checkIn.AppointmentId == item.Id),
+                HandlerId = database.AppointmentAssignments.Where(assignment => assignment.AppointmentId == item.Id)
+                    .OrderByDescending(assignment => assignment.Version).Select(assignment => assignment.HandlerId).FirstOrDefault(),
+                OwnershipVersion = database.AppointmentAssignments.Where(assignment => assignment.AppointmentId == item.Id)
+                    .OrderByDescending(assignment => assignment.Version).Select(assignment => (long?)assignment.Version).FirstOrDefault() ?? 0
+            }).Where(row => query.HandlerId == null || row.HandlerId == query.HandlerId);
     }
 
     private static IQueryable<WorklistRow> Records(DealershipDbContext database,
@@ -108,7 +124,14 @@ internal static class StaffWorklistRows
                     EndsAt = row.Row.Appointment.EndsAt,
                     CheckedIn = row.Row.CheckedIn,
                     Cancelled = row.Row.Cancelled,
-                    NoShow = row.Row.NoShow
+                    NoShow = row.Row.NoShow,
+                    HandlerId = row.Row.HandlerId,
+                    OwnershipVersion = row.Row.OwnershipVersion,
+                    HandlerEmail = database.Users.Where(user => user.Id == row.Row.HandlerId).Select(user => user.Email).FirstOrDefault(),
+                    HandlerEligible = database.Users.Any(user => user.Id == row.Row.HandlerId && user.IsActive &&
+                        user.BranchId == row.Row.Appointment.BranchId &&
+                        (user.Role == AccountRoles.SalesAgent || user.Role == AccountRoles.BranchManager)) &&
+                        database.Branches.Any(branch => branch.Id == row.Row.Appointment.BranchId && branch.IsActive)
                 });
         if (query.Search.Length > 0)
         {
@@ -144,7 +167,8 @@ internal static class StaffWorklistRows
     {
         return new StaffWorklistItem(row.Id, row.BranchId, row.BranchName, row.CustomerName,
             row.RegistrationPlate, row.StartsAt, row.EndsAt, Status(row.CheckedIn, row.Cancelled, row.NoShow),
-            row.Make, row.Model, row.Trim, row.ManufactureYear);
+            row.Make, row.Model, row.Trim, row.ManufactureYear,
+            row.HandlerId, row.HandlerEmail, row.HandlerEligible, row.OwnershipVersion);
     }
 
     public static IOrderedQueryable<WorklistRow> Order(IQueryable<WorklistRow> rows, StaffWorklistQuery query)
@@ -195,6 +219,8 @@ internal static class StaffWorklistRows
         public bool CheckedIn { get; init; }
         public bool Cancelled { get; init; }
         public bool NoShow { get; init; }
+        public Guid? HandlerId { get; init; }
+        public long OwnershipVersion { get; init; }
     }
 
     public sealed class WorklistRow
@@ -215,5 +241,9 @@ internal static class StaffWorklistRows
         public bool CheckedIn { get; init; }
         public bool Cancelled { get; init; }
         public bool NoShow { get; init; }
+        public Guid? HandlerId { get; init; }
+        public string? HandlerEmail { get; init; }
+        public bool HandlerEligible { get; init; }
+        public long OwnershipVersion { get; init; }
     }
 }

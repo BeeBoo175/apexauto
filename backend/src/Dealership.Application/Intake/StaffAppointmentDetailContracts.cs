@@ -10,6 +10,11 @@ public sealed record StaffAppointmentDetail(Guid Id, Guid BranchId, string Branc
 public sealed record AppointmentOwnership(long Version, Guid? HandlerId, string? HandlerEmail,
     bool HandlerEligible, Guid ActorId, string Kind, DateTimeOffset RecordedAt, string? Reason);
 
+public sealed record AppointmentHandler(Guid Id, string Email);
+
+public sealed record AppointmentHandlersResult(StaffAppointmentDetailStatus Status,
+    IReadOnlyList<AppointmentHandler>? Handlers = null);
+
 public enum StaffAppointmentDetailStatus
 {
     Succeeded,
@@ -22,4 +27,6 @@ public sealed record StaffAppointmentDetailResult(StaffAppointmentDetailStatus S
 public interface IStaffAppointmentDetailStore
 {
     Task<StaffAppointmentDetailResult> GetAsync(Guid staffId, Guid appointmentId, CancellationToken cancellationToken);
+
+    Task<AppointmentHandlersResult> HandlersAsync(Guid staffId, Guid appointmentId, CancellationToken cancellationToken);
 }

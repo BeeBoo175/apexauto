@@ -13,14 +13,16 @@ public enum StaffWorklistStatus
 
 public sealed record StaffWorklistQuery(DateTimeOffset? From, DateTimeOffset? Until, StaffWorklistStatus Status,
     Guid? BranchId, int Page, int PageSize, string Search = "", string Sort = "startsAt", string Direction = "asc",
-    string Registration = "", string Vehicle = "", string Customer = "")
+    string Registration = "", string Vehicle = "", string Customer = "", string Queue = "", Guid? HandlerId = null)
 {
     public static StaffWorklistQuery? Parse(string? from, string? to, string? status, Guid? branchId,
         int page, int pageSize, string? search = null, string? sort = null, string? direction = null,
-        string? registration = null, string? vehicle = null, string? customer = null)
+        string? registration = null, string? vehicle = null, string? customer = null,
+        string? queue = null, Guid? handlerId = null)
     {
         var dates = ListDateRange.Parse(from, to);
-        if (!Pagination.IsValid(page, pageSize) || branchId == Guid.Empty || dates is null)
+        if (!Pagination.IsValid(page, pageSize) || branchId == Guid.Empty || handlerId == Guid.Empty || dates is null ||
+            queue is not (null or "" or "ToClaim" or "MyWork" or "History"))
         {
             return null;
         }
@@ -51,16 +53,18 @@ public sealed record StaffWorklistQuery(DateTimeOffset? From, DateTimeOffset? Un
         }
 
         return new StaffWorklistQuery(dates.From, dates.Until, state.Value, branchId, page, pageSize, term, order, orderDirection,
-            registration?.Trim() ?? "", vehicle?.Trim() ?? "", customer?.Trim() ?? "");
+            registration?.Trim() ?? "", vehicle?.Trim() ?? "", customer?.Trim() ?? "", queue ?? "", handlerId);
     }
 }
 
 public sealed record StaffWorklistItem(Guid Id, Guid BranchId, string BranchName, string CustomerName,
     string RegistrationPlate, DateTimeOffset StartsAt, DateTimeOffset EndsAt, string Status,
-    string Make, string Model, string Trim, int ManufactureYear);
+    string Make, string Model, string Trim, int ManufactureYear,
+    Guid? HandlerId = null, string? HandlerEmail = null, bool HandlerEligible = false, long OwnershipVersion = 0);
 
 // Section totals for the actor's branch scope, independent of dates, search and column filters.
-public sealed record StaffWorklistCounts(int Booked, int CheckedIn, int Cancelled, int NoShow, int All);
+public sealed record StaffWorklistCounts(int Booked, int CheckedIn, int Cancelled, int NoShow, int All,
+    int ToClaim = 0, int MyWork = 0, int History = 0);
 
 public sealed record StaffWorklistPage(IReadOnlyList<StaffWorklistItem> Items, int Total, int Page, int PageSize,
     StaffWorklistCounts? Counts = null);

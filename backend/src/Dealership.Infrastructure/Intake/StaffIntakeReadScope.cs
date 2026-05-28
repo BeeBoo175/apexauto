@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Dealership.Infrastructure.Intake;
 
-internal sealed record StaffIntakeReadScope(Guid? BranchId)
+internal sealed record StaffIntakeReadScope(Guid? BranchId, string Role)
 {
     public static async Task<StaffIntakeReadScope?> ResolveAsync(DealershipDbContext database, Guid staffId,
         CancellationToken cancellationToken)
@@ -20,7 +20,7 @@ internal sealed record StaffIntakeReadScope(Guid? BranchId)
 
         if (staff.Role == AccountRoles.GeneralManager)
         {
-            return new StaffIntakeReadScope(BranchId: null);
+            return new StaffIntakeReadScope(BranchId: null, staff.Role);
         }
 
         if (staff.BranchId is null ||
@@ -29,6 +29,6 @@ internal sealed record StaffIntakeReadScope(Guid? BranchId)
             return null;
         }
 
-        return new StaffIntakeReadScope(staff.BranchId);
+        return new StaffIntakeReadScope(staff.BranchId, staff.Role);
     }
 }

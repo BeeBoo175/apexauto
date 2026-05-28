@@ -9,6 +9,32 @@ namespace Dealership.Infrastructure.Intake;
 
 public sealed class StaffAppointmentDetailStore(DealershipDbContext database) : IStaffAppointmentDetailStore
 {
+    public async Task<AppointmentHandlersResult> HandlersAsync(Guid staffId, Guid appointmentId,
+        CancellationToken cancellationToken)
+    {
+        await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead, cancellationToken);
+        var scope = await StaffIntakeReadScope.ResolveAsync(database, staffId, cancellationToken);
+        if (scope?.Role != AccountRoles.BranchManager)
+        {
+            return new(StaffAppointmentDetailStatus.Forbidden);
+        }
+
+        var branchId = await database.IntakeAppointments.AsNoTracking()
+            .Where(item => item.Id == appointmentId && item.BranchId == scope.BranchId)
+            .Select(item => (Guid?)item.BranchId).SingleOrDefaultAsync(cancellationToken);
+        if (branchId is null)
+        {
+            return new(StaffAppointmentDetailStatus.NotFound);
+        }
+
+        var handlers = await database.Users.AsNoTracking().Where(user => user.IsActive && user.BranchId == branchId &&
+                (user.Role == AccountRoles.SalesAgent || user.Role == AccountRoles.BranchManager))
+            .OrderBy(user => user.Email).ThenBy(user => user.Id)
+            .Select(user => new AppointmentHandler(user.Id, user.Email ?? string.Empty)).ToArrayAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return new(StaffAppointmentDetailStatus.Succeeded, handlers);
+    }
+
     public async Task<StaffAppointmentDetailResult> GetAsync(Guid staffId, Guid appointmentId,
         CancellationToken cancellationToken)
     {
