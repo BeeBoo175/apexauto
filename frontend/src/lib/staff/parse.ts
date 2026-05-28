@@ -1,9 +1,12 @@
-import { parseCountedPage } from "@/lib/api";
-import { isRecord, isUuid } from "@/lib/auth/contracts";
+import { parseCountedPage, parseItems } from "@/lib/api";
+import { isNonNegativeInteger, isPositiveInteger, isRecord, isUuid } from "@/lib/auth/contracts";
 import { parseSlot, parseVehicle } from "@/lib/intake/parse";
 import {
   intakeCountKeys,
   type AppointmentDetail,
+  type AppointmentHandler,
+  type AppointmentOwnership,
+  type AppointmentSummary,
   type CheckInReceipt,
   type WorklistItem,
 } from "./contracts";
@@ -13,6 +16,26 @@ export function parseWorklistPage(value: unknown) {
 }
 
 export function parseWorklistItem(value: unknown): WorklistItem | null {
+  const row = parseAppointmentSummary(value);
+  if (
+    !row ||
+    !isRecord(value) ||
+    !validHandler(value) ||
+    !isNonNegativeInteger(value.ownershipVersion) ||
+    (value.ownershipVersion === 0 && value.handlerId !== null)
+  ) {
+    return null;
+  }
+  return {
+    ...row,
+    handlerId: value.handlerId,
+    handlerEmail: value.handlerEmail,
+    handlerEligible: value.handlerEligible,
+    ownershipVersion: value.ownershipVersion,
+  };
+}
+
+function parseAppointmentSummary(value: unknown): AppointmentSummary | null {
   if (!isRecord(value) || !isUuid(value.id) || !isUuid(value.branchId)) {
     return null;
   }
@@ -53,12 +76,14 @@ export function parseWorklistItem(value: unknown): WorklistItem | null {
 }
 
 export function parseDetail(value: unknown): AppointmentDetail | null {
-  const row = parseWorklistItem(value);
+  const row = parseAppointmentSummary(value);
   const vehicle = parseVehicle(value);
   if (!row || !vehicle || !isRecord(value)) {
     return null;
   }
+  const ownership = value.ownership === null ? null : parseOwnership(value.ownership);
   if (
+    (value.ownership !== null && !ownership) ||
     (value.noShowAt !== null && !utcTimestamp(value.noShowAt)) ||
     (value.attendanceCorrectedAt !== null && !utcTimestamp(value.attendanceCorrectedAt)) ||
     (value.correctionReason !== null && typeof value.correctionReason !== "string") ||
@@ -72,6 +97,7 @@ export function parseDetail(value: unknown): AppointmentDetail | null {
   return {
     ...row,
     ...vehicle,
+    ownership,
     noShowAt: value.noShowAt,
     attendanceCorrectedAt: value.attendanceCorrectedAt,
     correctionReason: value.correctionReason,
@@ -79,6 +105,59 @@ export function parseDetail(value: unknown): AppointmentDetail | null {
     customerMobile: value.customerMobile,
     customerEmail: value.customerEmail,
   };
+}
+
+function validHandler(value: Record<string, unknown>): value is Record<string, unknown> & {
+  handlerId: string | null;
+  handlerEmail: string | null;
+  handlerEligible: boolean;
+} {
+  return (
+    (value.handlerId === null || isUuid(value.handlerId)) &&
+    (value.handlerEmail === null ||
+      (typeof value.handlerEmail === "string" && !!value.handlerEmail.trim())) &&
+    typeof value.handlerEligible === "boolean" &&
+    (value.handlerId !== null || (value.handlerEmail === null && !value.handlerEligible))
+  );
+}
+
+function parseOwnership(value: unknown): AppointmentOwnership | null {
+  if (
+    !isRecord(value) ||
+    !validHandler(value) ||
+    !isPositiveInteger(value.version) ||
+    !isUuid(value.actorId) ||
+    !utcTimestamp(value.recordedAt) ||
+    (value.reason !== null && !(typeof value.reason === "string" && !!value.reason.trim()))
+  ) {
+    return null;
+  }
+  const kind = (["Claimed", "Assigned", "Released"] as const).find((item) => item === value.kind);
+  if (!kind || (kind === "Released") !== (value.handlerId === null)) {
+    return null;
+  }
+  return {
+    version: value.version,
+    handlerId: value.handlerId,
+    handlerEmail: value.handlerEmail,
+    handlerEligible: value.handlerEligible,
+    actorId: value.actorId,
+    kind,
+    recordedAt: value.recordedAt,
+    reason: value.reason,
+  };
+}
+
+export function parseAppointmentHandlers(value: unknown): AppointmentHandler[] | null {
+  const handlers = parseItems(value, (item): AppointmentHandler | null => {
+    if (!isRecord(item) || !isUuid(item.id) || typeof item.email !== "string" || !item.email.trim()) {
+      return null;
+    }
+    return { id: item.id, email: item.email };
+  });
+  return handlers && new Set(handlers.map((item) => item.id)).size === handlers.length
+    ? handlers
+    : null;
 }
 
 export function parseCheckIn(value: unknown): CheckInReceipt | null {

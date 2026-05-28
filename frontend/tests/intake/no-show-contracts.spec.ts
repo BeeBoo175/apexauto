@@ -1,5 +1,11 @@
 import { expect, test } from "@playwright/test";
-import { correctionMatches, parseCheckIn, parseDetail, parseWorklistItem } from "@/lib/staff/parse";
+import {
+  correctionMatches,
+  parseAppointmentHandlers,
+  parseCheckIn,
+  parseDetail,
+  parseWorklistItem,
+} from "@/lib/staff/parse";
 import { parseAppointment } from "@/lib/intake/parse";
 
 const id = "c77708bf-1a31-42f5-9a69-0c8766697a52";
@@ -16,6 +22,10 @@ const row = {
   startsAt: "2026-10-20T01:00:00Z",
   endsAt: "2026-10-20T02:30:00Z",
   status: "NoShow",
+  handlerId: null,
+  handlerEmail: null,
+  handlerEligible: false,
+  ownershipVersion: 0,
 };
 
 test("no-show snapshots retain status and validate correction evidence", () => {
@@ -33,8 +43,42 @@ test("no-show snapshots retain status and validate correction evidence", () => {
     correctedByEmail: null,
     customerMobile: "0123456789",
     customerEmail: "nur.aina@example.invalid",
+    ownership: null,
   };
   expect(parseDetail(detail)?.status).toBe("NoShow");
+  const ownership = {
+    version: 2,
+    handlerId: id,
+    handlerEmail: "agent@example.invalid",
+    handlerEligible: false,
+    actorId: id,
+    kind: "Assigned",
+    recordedAt: row.startsAt,
+    reason: "Branch handoff",
+  };
+  expect(parseDetail({ ...detail, ownership })?.ownership).toEqual(ownership);
+  expect(parseDetail({ ...detail, ownership: { ...ownership, version: 0 } })).toBeNull();
+  expect(
+    parseDetail({ ...detail, ownership: { ...ownership, kind: "Released" } }),
+  ).toBeNull();
+  const released = {
+    ...ownership,
+    kind: "Released",
+    handlerId: null,
+    handlerEmail: null,
+  };
+  expect(parseDetail({ ...detail, ownership: released })?.ownership).toEqual(released);
+  expect(parseWorklistItem({ ...row, handlerId: id })).toBeNull();
+  expect(parseAppointmentHandlers([{ id, email: ownership.handlerEmail }])).toEqual([
+    { id, email: ownership.handlerEmail },
+  ]);
+  expect(parseAppointmentHandlers([{ id, email: "" }])).toBeNull();
+  expect(
+    parseAppointmentHandlers([
+      { id, email: ownership.handlerEmail },
+      { id, email: ownership.handlerEmail },
+    ]),
+  ).toBeNull();
   expect(parseDetail({ ...detail, noShowAt: "invalid" })).toBeNull();
   const history = {
     ...row,

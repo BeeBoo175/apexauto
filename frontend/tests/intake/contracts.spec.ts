@@ -107,6 +107,10 @@ test("calendar snapshots refuse truncated, duplicate, out-of-range and oversized
     startsAt: "2026-10-20T01:00:00Z",
     endsAt: "2026-10-20T02:30:00Z",
     status: "Booked",
+    handlerId: null,
+    handlerEmail: null,
+    handlerEligible: false,
+    ownershipVersion: 0,
   };
   const range = calendarRange("2026-10-20");
   const snapshot = { ...range, items: [row], total: 1 };
@@ -160,6 +164,8 @@ test("staff queries preserve applied search, sorting, branch and page size throu
     direction: "desc",
     pageSize: "50",
     page: "3",
+    queue: "MyWork",
+    handlerId: id,
   };
   const { filters, page } = staffParams(input);
   expect(page).toBe(3);

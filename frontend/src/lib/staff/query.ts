@@ -1,7 +1,7 @@
 import type { SearchParams } from "@/lib/query";
 import { DEFAULT_PAGE_SIZE, isPageSize } from "@/lib/pagination";
 import { historyParams, historyQuery } from "@/lib/intake/list-query";
-import type { StaffFilters } from "./contracts";
+import { intakeQueues, type StaffFilters } from "./contracts";
 
 export function staffQuery(filters: StaffFilters, page = 1) {
   const query = new URLSearchParams(historyQuery(filters, page));
@@ -14,6 +14,12 @@ export function staffQuery(filters: StaffFilters, page = 1) {
   }
   if (filters.branchId) {
     query.set("branchId", filters.branchId);
+  }
+  if (filters.queue) {
+    query.set("queue", filters.queue);
+  }
+  if (filters.handlerId) {
+    query.set("handlerId", filters.handlerId);
   }
   for (const key of ["registration", "vehicle", "customer"] as const) {
     const value = filters[key]?.trim();
@@ -42,7 +48,7 @@ export function staffViewQuery(filters: StaffFilters, page = 1) {
   return query.toString();
 }
 
-export function staffParams(params: SearchParams) {
+export function staffParams(params: SearchParams): { page: number; filters: StaffFilters } {
   const { filters, page } = historyParams(params);
   return {
     page,
@@ -54,6 +60,8 @@ export function staffParams(params: SearchParams) {
       registration: typeof params.registration === "string" ? params.registration : "",
       vehicle: typeof params.vehicle === "string" ? params.vehicle : "",
       customer: typeof params.customer === "string" ? params.customer : "",
+      queue: intakeQueues.find((queue) => queue === params.queue) ?? "",
+      handlerId: typeof params.handlerId === "string" ? params.handlerId : "",
       sort: typeof params.sort === "string" ? params.sort : "startsAt",
       direction: params.direction === "desc" ? ("desc" as const) : ("asc" as const),
       pageSize: isPageSize(Number(params.pageSize)) ? Number(params.pageSize) : DEFAULT_PAGE_SIZE,

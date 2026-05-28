@@ -2,6 +2,8 @@ import type { CountedPage } from "@/lib/api";
 import type { HistoryFilters } from "@/lib/intake/list-query";
 
 export const worklistStatuses = ["Booked", "CheckedIn", "Cancelled", "NoShow", "All"] as const;
+export const intakeQueues = ["ToClaim", "MyWork", "History"] as const;
+export type IntakeQueue = (typeof intakeQueues)[number];
 export interface StaffFilters extends HistoryFilters {
   status: string;
   branchId: string;
@@ -12,8 +14,10 @@ export interface StaffFilters extends HistoryFilters {
   registration?: string;
   vehicle?: string;
   customer?: string;
+  queue?: IntakeQueue | "";
+  handlerId?: string;
 }
-export interface WorklistItem {
+export interface AppointmentSummary {
   id: string;
   branchId: string;
   branchName: string;
@@ -27,10 +31,40 @@ export interface WorklistItem {
   endsAt: string;
   status: "Booked" | "CheckedIn" | "Cancelled" | "NoShow";
 }
-export const intakeCountKeys = ["booked", "checkedIn", "cancelled", "noShow", "all"] as const;
+export interface WorklistItem extends AppointmentSummary {
+  handlerId: string | null;
+  handlerEmail: string | null;
+  handlerEligible: boolean;
+  ownershipVersion: number;
+}
+export const intakeCountKeys = [
+  "booked",
+  "checkedIn",
+  "cancelled",
+  "noShow",
+  "all",
+  "toClaim",
+  "myWork",
+  "history",
+] as const;
 export type WorklistPage = CountedPage<WorklistItem, (typeof intakeCountKeys)[number]>;
 
-export interface AppointmentDetail extends WorklistItem {
+export interface AppointmentOwnership {
+  version: number;
+  handlerId: string | null;
+  handlerEmail: string | null;
+  handlerEligible: boolean;
+  actorId: string;
+  kind: "Claimed" | "Assigned" | "Released";
+  recordedAt: string;
+  reason: string | null;
+}
+export interface AppointmentHandler {
+  id: string;
+  email: string;
+}
+export interface AppointmentDetail extends AppointmentSummary {
+  ownership: AppointmentOwnership | null;
   noShowAt: string | null;
   attendanceCorrectedAt: string | null;
   correctionReason: string | null;

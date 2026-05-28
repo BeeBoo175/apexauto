@@ -16,6 +16,8 @@ export function GET(request: Request) {
     "registration",
     "vehicle",
     "customer",
+    "queue",
+    "handlerId",
     "sort",
     "direction",
   ]) {
