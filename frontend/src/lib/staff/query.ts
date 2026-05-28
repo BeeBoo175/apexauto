@@ -31,7 +31,7 @@ export function staffQuery(filters: StaffFilters, page = 1) {
   if (filters.handlerId) {
     query.set("handlerId", filters.handlerId);
   }
-  for (const key of ["registration", "vehicle", "customer"] as const) {
+  for (const key of ["registration", "vehicle", "customer", "handler"] as const) {
     const value = filters[key]?.trim();
     if (value) {
       query.set(key, value);
@@ -72,6 +72,7 @@ export function staffParams(params: SearchParams): { page: number; filters: Staf
       customer: typeof params.customer === "string" ? params.customer : "",
       queue: intakeQueues.find((queue) => queue === params.queue) ?? "",
       handlerId: typeof params.handlerId === "string" ? params.handlerId : "",
+      handler: typeof params.handler === "string" ? params.handler : "",
       sort: typeof params.sort === "string" ? params.sort : "startsAt",
       direction: params.direction === "desc" ? ("desc" as const) : ("asc" as const),
       pageSize: isPageSize(Number(params.pageSize)) ? Number(params.pageSize) : DEFAULT_PAGE_SIZE,

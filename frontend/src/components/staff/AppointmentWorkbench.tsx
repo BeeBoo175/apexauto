@@ -93,8 +93,8 @@ export function AppointmentWorkbench({
   const detail = snapshot.data;
   const mayCheckIn = Boolean(
     detail?.status === "Booked" &&
-      detail.ownership?.handlerId === actor.userId &&
-      detail.ownership.handlerEligible,
+    detail.ownership?.handlerId === actor.userId &&
+    detail.ownership.handlerEligible,
   );
   const mayRecordAttendance = mayCheckIn || correcting;
 

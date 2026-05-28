@@ -13,12 +13,13 @@ public enum StaffWorklistStatus
 
 public sealed record StaffWorklistQuery(DateTimeOffset? From, DateTimeOffset? Until, StaffWorklistStatus Status,
     Guid? BranchId, int Page, int PageSize, string Search = "", string Sort = "startsAt", string Direction = "asc",
-    string Registration = "", string Vehicle = "", string Customer = "", string Queue = "", Guid? HandlerId = null)
+    string Registration = "", string Vehicle = "", string Customer = "", string Queue = "", Guid? HandlerId = null,
+    string Handler = "")
 {
     public static StaffWorklistQuery? Parse(string? from, string? to, string? status, Guid? branchId,
         int page, int pageSize, string? search = null, string? sort = null, string? direction = null,
         string? registration = null, string? vehicle = null, string? customer = null,
-        string? queue = null, Guid? handlerId = null)
+        string? queue = null, Guid? handlerId = null, string? handler = null)
     {
         var dates = ListDateRange.Parse(from, to);
         if (!Pagination.IsValid(page, pageSize) || branchId == Guid.Empty || handlerId == Guid.Empty || dates is null ||
@@ -31,9 +32,10 @@ public sealed record StaffWorklistQuery(DateTimeOffset? From, DateTimeOffset? Un
         var order = sort ?? "startsAt";
         var orderDirection = direction ?? "asc";
         if (!ListSearch.IsValid(term) ||
-            order is not ("startsAt" or "registrationPlate" or "vehicle" or "customerName" or "branchName" or "status") ||
+            order is not ("startsAt" or "registrationPlate" or "vehicle" or "customerName" or "branchName" or "status" or "handlerEmail") ||
             orderDirection is not ("asc" or "desc") ||
-            !ListSearch.IsValid(registration ?? "") || !ListSearch.IsValid(vehicle ?? "") || !ListSearch.IsValid(customer ?? ""))
+            !ListSearch.IsValid(registration ?? "") || !ListSearch.IsValid(vehicle ?? "") || !ListSearch.IsValid(customer ?? "") ||
+            !ListSearch.IsValid(handler ?? ""))
         {
             return null;
         }
@@ -53,7 +55,7 @@ public sealed record StaffWorklistQuery(DateTimeOffset? From, DateTimeOffset? Un
         }
 
         return new StaffWorklistQuery(dates.From, dates.Until, state.Value, branchId, page, pageSize, term, order, orderDirection,
-            registration?.Trim() ?? "", vehicle?.Trim() ?? "", customer?.Trim() ?? "", queue ?? "", handlerId);
+            registration?.Trim() ?? "", vehicle?.Trim() ?? "", customer?.Trim() ?? "", queue ?? "", handlerId, handler?.Trim() ?? "");
     }
 }
 

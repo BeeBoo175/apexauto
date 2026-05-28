@@ -18,6 +18,7 @@ export function GET(request: Request) {
     "customer",
     "queue",
     "handlerId",
+    "handler",
     "sort",
     "direction",
   ]) {

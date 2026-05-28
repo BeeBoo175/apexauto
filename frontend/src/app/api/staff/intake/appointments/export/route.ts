@@ -34,6 +34,7 @@ async function exportCsv(request: Request, background: boolean) {
       "customer",
       "queue",
       "handlerId",
+      "handler",
       "sort",
       "direction",
     ]) {

@@ -37,6 +37,23 @@ export function intakeColumns(showBranch: boolean): DataColumn<WorklistItem>[] {
       cell: (row) => row.customerName,
     },
     {
+      id: "handlerEmail",
+      label: "Handler",
+      sortable: true,
+      ...staffColumnSizing.person,
+      cell: (row) => {
+        if (!row.handlerId) {
+          return <span className={styles.muted}>Unassigned</span>;
+        }
+        return (
+          <span>
+            {row.handlerEmail}
+            {!row.handlerEligible && <span className={styles.muted}> (Ineligible)</span>}
+          </span>
+        );
+      },
+    },
+    {
       id: "startsAt",
       label: "Inspection time",
       sortable: true,

@@ -150,6 +150,33 @@ public sealed class StaffWorklistTests(IntakePhotoFixture fixture) : IClassFixtu
         Assert.Equal(booked[6].Id, Assert.Single((await ListAsync(data, data.StaffId,
             query with { Status = StaffWorklistStatus.Cancelled }))!.Items).Id);
         var unrestricted = StaffWorklistQuery.Parse(null, null, "All", null, 1, 25)!;
+        var secondHandler = Guid.NewGuid();
+        var secondEmail = $"zulaikha.hassan.{Guid.NewGuid():N}@example.invalid";
+        await services.GetRequiredService<StaffProvisioningService>().ProvisionStaffAsync(new StaffProvisioningRequest(
+            secondHandler, secondEmail, "Password123!", AccountRoles.SalesAgent, data.BranchId), CancellationToken.None);
+        await data.ClaimAsync(booked[^1].Id, secondHandler);
+        var handlerOrder = unrestricted with { Handler = "@example.invalid", Sort = "handlerEmail", Direction = "desc" };
+        var sortedHandlers = (await ListAsync(data, manager, handlerOrder))!;
+        Assert.Equal(new[] { secondEmail, data.StaffEmail }, sortedHandlers.Items.Select(item => item.HandlerEmail));
+        Assert.Equal(new[] { data.StaffEmail, secondEmail }, (await ListAsync(data, manager,
+            handlerOrder with { Direction = "asc" }))!.Items.Select(item => item.HandlerEmail));
+        var handlerQuery = unrestricted with { Handler = data.StaffEmail.ToUpperInvariant(), Sort = "handlerEmail" };
+        var handled = (await ListAsync(data, manager, handlerQuery))!;
+        Assert.Equal(booked[0].Id, Assert.Single(handled.Items).Id);
+        Assert.Equal(1, handled.Total);
+        Assert.Equal(data.StaffEmail, handled.Items[0].HandlerEmail);
+        var handledExport = (await services.GetRequiredService<IStaffWorklistStore>()
+            .ExportAsync(manager, handlerQuery, CancellationToken.None))!;
+        Assert.Equal(handled.Items, handledExport.Items);
+        Assert.Equal(0, (await ListAsync(data, manager, handlerQuery with { Handler = "%" }))!.Total);
+        await using (var handlerCsv = new MemoryStream())
+        {
+            var groupActor = new CurrentActor(manager, AccountRoles.GeneralManager, null);
+            Assert.True(await services.GetRequiredService<IStaffExportWriter>()
+                .WriteAsync(groupActor, handlerQuery, handlerCsv, CancellationToken.None));
+            Assert.Equal(StaffIntakeCsv.Header + StaffIntakeCsv.Row(handled.Items[0]),
+                System.Text.Encoding.UTF8.GetString(handlerCsv.ToArray()));
+        }
         Assert.Equal(43, (await ListAsync(data, data.StaffId, unrestricted))!.Total);
         Assert.Equal(44, (await ListAsync(data, manager, unrestricted))!.Total);
         Assert.Equal(43, (await services.GetRequiredService<IStaffWorklistStore>()
@@ -193,6 +220,9 @@ public sealed class StaffWorklistTests(IntakePhotoFixture fixture) : IClassFixtu
 
         await database.Users.Where(user => user.Id == data.StaffId).ExecuteUpdateAsync(update => update
             .SetProperty(user => user.Role, AccountRoles.BranchManager).SetProperty(user => user.BranchId, otherBranch));
+        var historicalHandler = Assert.Single((await ListAsync(data, manager, handlerQuery))!.Items);
+        Assert.Equal(data.StaffEmail, historicalHandler.HandlerEmail);
+        Assert.False(historicalHandler.HandlerEligible);
         Assert.Equal(other.Id, Assert.Single((await ListAsync(data, data.StaffId, query))!.Items).Id);
         await database.Branches.Where(branch => branch.Id == otherBranch)
             .ExecuteUpdateAsync(update => update.SetProperty(branch => branch.IsActive, false));

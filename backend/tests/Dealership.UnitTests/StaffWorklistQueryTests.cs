@@ -68,5 +68,11 @@ public sealed class StaffWorklistQueryTests
         Assert.Null(StaffWorklistQuery.Parse(null, null, null, null, 1, 25, "a\nb"));
         Assert.Null(StaffWorklistQuery.Parse(null, null, null, null, 1, 25, sort: "arbitrary"));
         Assert.Null(StaffWorklistQuery.Parse(null, null, null, null, 1, 25, direction: "DESC"));
+        var handler = StaffWorklistQuery.Parse(null, null, "All", null, 1, 25,
+            sort: "handlerEmail", handler: "  aina.sofia  ")!;
+        Assert.Equal("aina.sofia", handler.Handler);
+        Assert.Equal("handlerEmail", handler.Sort);
+        Assert.Null(StaffWorklistQuery.Parse(null, null, null, null, 1, 25, handler: new string('a', 161)));
+        Assert.Null(StaffWorklistQuery.Parse(null, null, null, null, 1, 25, handler: "a\nb"));
     }
 }

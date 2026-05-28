@@ -8,7 +8,11 @@ import type { CurrentActor } from "@/lib/auth/actor";
 import { parseIntakeConflict } from "@/lib/intake/errors";
 import type { AppointmentDetail, AppointmentHandler } from "@/lib/staff/contracts";
 import { parseAppointmentHandlers } from "@/lib/staff/parse";
-import { ownershipMatches, parseOwnershipResult, type OwnershipAction } from "@/lib/staff/ownership";
+import {
+  ownershipMatches,
+  parseOwnershipResult,
+  type OwnershipAction,
+} from "@/lib/staff/ownership";
 import { useApiCommand } from "./use-api-command";
 import { useEditGuard } from "./use-edit-guard";
 

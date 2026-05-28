@@ -7,6 +7,7 @@ import { intakeQueueParams, staffParams, staffQuery, staffViewQuery } from "@/li
 import { DEFAULT_PAGE_SIZE, PAGE_SIZES, paginationQuery } from "@/lib/pagination";
 import { parsePage } from "@/lib/api";
 import { intakeView, parseViewMemory, restoreViewHref } from "@/lib/staff/view-memory";
+import { appliedIntakeFilters, resetWorklistFilters } from "@/lib/staff/filter-summary";
 import {
   addCalendarDays,
   calendarDate,
@@ -85,6 +86,7 @@ test("agent queues discard hidden table and calendar criteria and restore only q
     search: "VCA",
     status: "Booked",
     handlerId: id,
+    handler: "hidden handler",
     branchId: id,
     from: "2026-10-20",
     to: "2026-10-21",
@@ -205,6 +207,7 @@ test("staff queries preserve applied search, sorting, branch and page size throu
     page: "3",
     queue: "MyWork",
     handlerId: id,
+    handler: "aina.sofia",
   };
   const { filters, page } = staffParams(input);
   expect(page).toBe(3);
@@ -216,6 +219,35 @@ test("staff queries preserve applied search, sorting, branch and page size throu
     pageSize: 25,
     status: "All",
   });
+});
+
+test("manager handler criteria remain visible, removable and reset without losing table order", () => {
+  const { filters } = staffParams({
+    handler: "aina.sofia",
+    handlerId: id,
+    sort: "handlerEmail",
+    direction: "desc",
+  });
+  const applied = appliedIntakeFilters(filters, "Selected branch");
+  expect(applied.map((filter) => filter.key)).toEqual(["handler", "handlerId"]);
+  expect(applied[0].without.handler).toBe("");
+  expect(applied[0].without.handlerId).toBe(id);
+  expect(applied[1].without.handlerId).toBe("");
+  expect(resetWorklistFilters(filters)).toMatchObject({
+    handler: "",
+    handlerId: "",
+    sort: "handlerEmail",
+    direction: "desc",
+  });
+  for (const sort of ["handlerEmail", "vehicle"]) {
+    const restored = restoreViewHref(
+      "list",
+      "/dashboard/intake?view=list",
+      `handler=aina.sofia&sort=${sort}&direction=desc`,
+    );
+    expect(new URLSearchParams(restored.split("?")[1]).get("sort")).toBe(sort);
+    expect(new URLSearchParams(restored.split("?")[1]).get("handler")).toBe("aina.sofia");
+  }
 });
 
 test("actor destinations require a validated persisted role and branch shape", () => {

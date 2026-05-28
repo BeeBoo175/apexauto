@@ -17,6 +17,8 @@ export interface AppliedFilter<Filters = StaffFilters> {
     | "registration"
     | "vehicle"
     | "customer"
+    | "handler"
+    | "handlerId"
     | "buyer"
     | "created"
     | "expires"
@@ -51,6 +53,8 @@ export function resetWorklistFilters(filters: StaffFilters): StaffFilters {
     registration: "",
     vehicle: "",
     customer: "",
+    handler: "",
+    handlerId: "",
   };
 }
 
@@ -90,8 +94,13 @@ export function appliedIntakeFilters(filters: StaffFilters, branchName: string) 
   const applied = appliedWorklistFilters(filters, branchName).filter(
     (filter) => filter.key !== "status",
   );
-  const labels = { registration: "Registration", vehicle: "Vehicle", customer: "Customer" };
-  for (const key of ["registration", "vehicle", "customer"] as const) {
+  const labels = {
+    registration: "Registration",
+    vehicle: "Vehicle",
+    customer: "Customer",
+    handler: "Handler",
+  };
+  for (const key of ["registration", "vehicle", "customer", "handler"] as const) {
     if (filters[key]) {
       applied.push({
         key,
@@ -99,6 +108,13 @@ export function appliedIntakeFilters(filters: StaffFilters, branchName: string) 
         without: { ...filters, [key]: "" },
       });
     }
+  }
+  if (filters.handlerId) {
+    applied.push({
+      key: "handlerId",
+      label: `Handler ID: ${filters.handlerId}`,
+      without: { ...filters, handlerId: "" },
+    });
   }
   return applied;
 }

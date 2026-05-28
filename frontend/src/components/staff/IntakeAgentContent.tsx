@@ -28,7 +28,11 @@ export function IntakeAgentContent({
     );
   }
   return (
-    <section className={styles.content} aria-label="Selected appointment" aria-busy={selection.busy}>
+    <section
+      className={styles.content}
+      aria-label="Selected appointment"
+      aria-busy={selection.busy}
+    >
       <header className={styles.contentHeader}>
         <h2>Intake appointment</h2>
         <Button size="compact" variant="secondary" onClick={selection.close}>

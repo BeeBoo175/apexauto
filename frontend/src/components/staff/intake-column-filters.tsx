@@ -25,11 +25,17 @@ function IntakeColumnFilter({
   const busy = disabled || worklist.busy;
   const apply = (next: StaffFilters) => worklist.load(next, 1);
 
-  if (column === "registrationPlate" || column === "vehicle" || column === "customerName") {
+  if (
+    column === "registrationPlate" ||
+    column === "vehicle" ||
+    column === "customerName" ||
+    column === "handlerEmail"
+  ) {
     const keys = {
       registrationPlate: { key: "registration", label: "Registration contains" },
       vehicle: { key: "vehicle", label: "Vehicle contains" },
       customerName: { key: "customer", label: "Customer contains" },
+      handlerEmail: { key: "handler", label: "Handler email contains" },
     } as const;
     const { key, label } = keys[column];
     return (
@@ -102,6 +108,7 @@ export function intakeColumnFilters(
     registrationPlate: Boolean(filters.registration),
     vehicle: Boolean(filters.vehicle),
     customerName: Boolean(filters.customer),
+    handlerEmail: Boolean(filters.handler || filters.handlerId),
   };
   if (group) {
     indicators.branchName = Boolean(filters.branchId);

@@ -41,13 +41,14 @@ export function IntakeViewNavigation({
 }) {
   const workView = agent ? "queue" : "list";
   const links = useStaffViewMemory(actor, active, destinations, workView);
-  const visibleViews: { id: IntakeView; label: string; icon: "calendar" | "table" }[] =
-    views.map((view) => {
+  const visibleViews: { id: IntakeView; label: string; icon: "calendar" | "table" }[] = views.map(
+    (view) => {
       if (view.id === "calendar") {
         return view;
       }
       return { ...view, id: workView, label: agent ? "Work queues" : "Table" };
-    });
+    },
+  );
   const selected = pending ?? active;
 
   function prepare(view: IntakeView) {

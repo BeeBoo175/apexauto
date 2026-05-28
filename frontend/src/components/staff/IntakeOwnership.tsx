@@ -54,7 +54,8 @@ export function IntakeOwnership({
       </dl>
       {assigned && !current?.handlerEligible && (
         <p className={styles.help}>
-          The recorded handler is no longer eligible. A branch manager must reassign this appointment.
+          The recorded handler is no longer eligible. A branch manager must reassign this
+          appointment.
         </p>
       )}
       {current?.reason && <p className={styles.help}>Handoff reason: {current.reason}</p>}

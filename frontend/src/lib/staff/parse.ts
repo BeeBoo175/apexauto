@@ -150,7 +150,12 @@ function parseOwnership(value: unknown): AppointmentOwnership | null {
 
 export function parseAppointmentHandlers(value: unknown): AppointmentHandler[] | null {
   const handlers = parseItems(value, (item): AppointmentHandler | null => {
-    if (!isRecord(item) || !isUuid(item.id) || typeof item.email !== "string" || !item.email.trim()) {
+    if (
+      !isRecord(item) ||
+      !isUuid(item.id) ||
+      typeof item.email !== "string" ||
+      !item.email.trim()
+    ) {
       return null;
     }
     return { id: item.id, email: item.email };

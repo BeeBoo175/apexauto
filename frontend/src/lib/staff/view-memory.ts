@@ -68,7 +68,15 @@ export function restoreViewHref(view: IntakeView, href: string, remembered?: str
   const previous = staffParams(saved);
   const sharedKeys = ["from", "to", "status", "branchId"] as const;
   const sameScope = sharedKeys.every((key) => shared[key] === previous.filters[key]);
-  const sorts = ["startsAt", "registrationPlate", "customerName", "branchName", "status"];
+  const sorts = [
+    "startsAt",
+    "registrationPlate",
+    "vehicle",
+    "customerName",
+    "handlerEmail",
+    "branchName",
+    "status",
+  ];
   const filters = {
     ...previous.filters,
     queue: "" as const,

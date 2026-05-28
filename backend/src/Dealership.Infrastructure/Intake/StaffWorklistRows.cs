@@ -160,6 +160,11 @@ internal static class StaffWorklistRows
             var pattern = LiteralSearch.Pattern(query.Customer);
             records = records.Where(row => EF.Functions.ILike(row.CustomerName, pattern, "!"));
         }
+        if (query.Handler.Length > 0)
+        {
+            var pattern = LiteralSearch.Pattern(query.Handler);
+            records = records.Where(row => row.HandlerEmail != null && EF.Functions.ILike(row.HandlerEmail, pattern, "!"));
+        }
         return records;
     }
 
@@ -178,6 +183,7 @@ internal static class StaffWorklistRows
             "registrationPlate" => OrderBy(rows, row => row.RegistrationPlate, query.Direction),
             "vehicle" => OrderBy(rows, row => row.ManufactureYear + " " + row.Make + " " + row.Model + " " + row.Trim, query.Direction),
             "customerName" => OrderBy(rows, row => row.CustomerName, query.Direction),
+            "handlerEmail" => OrderBy(rows, row => row.HandlerEmail, query.Direction),
             "branchName" => OrderBy(rows, row => row.BranchName, query.Direction),
             "status" => OrderStatus(rows, query.Direction),
             _ => OrderBy(rows, row => row.StartsAt, query.Direction)

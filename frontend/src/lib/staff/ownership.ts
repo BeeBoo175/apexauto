@@ -44,9 +44,7 @@ export function parseOwnershipReceipt(value: unknown): OwnershipReceipt | null {
   ) {
     return null;
   }
-  const kind = (["Claimed", "Assigned", "Released"] as const).find(
-    (item) => item === value.kind,
-  );
+  const kind = (["Claimed", "Assigned", "Released"] as const).find((item) => item === value.kind);
   if (!kind || !validTransition(value, kind)) {
     return null;
   }
@@ -77,9 +75,7 @@ function validReason(value: unknown): value is string {
 function validTransition(value: Record<string, unknown>, kind: OwnershipReceipt["kind"]) {
   if (kind === "Claimed") {
     return (
-      value.handlerId === value.actorId &&
-      value.previousHandlerId === null &&
-      value.reason === null
+      value.handlerId === value.actorId && value.previousHandlerId === null && value.reason === null
     );
   }
   if (kind === "Released") {

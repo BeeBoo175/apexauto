@@ -34,9 +34,9 @@ public static class StaffIntakeEndpoints
         string? status = null, Guid? branchId = null, int page = 1, int pageSize = Pagination.DefaultPageSize,
         string? search = null, string? sort = null, string? direction = null,
         string? registration = null, string? vehicle = null, string? customer = null,
-        string? queue = null, Guid? handlerId = null)
+        string? queue = null, Guid? handlerId = null, string? handler = null)
     {
-        var query = StaffWorklistQuery.Parse(from, to, status, branchId, page, pageSize, search, sort, direction, registration, vehicle, customer, queue, handlerId);
+        var query = StaffWorklistQuery.Parse(from, to, status, branchId, page, pageSize, search, sort, direction, registration, vehicle, customer, queue, handlerId, handler);
 
         if (query is null)
         {

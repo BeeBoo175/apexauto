@@ -131,9 +131,7 @@ export function useIntakeWorkspace(
     setPending(nextView);
     const nextCalendar = calendarParams(params);
     const nextWorklist =
-      nextView === "queue"
-        ? intakeQueueParams(params)
-        : staffParams({ ...params, queue: "" });
+      nextView === "queue" ? intakeQueueParams(params) : staffParams({ ...params, queue: "" });
     try {
       const [success, prepared] = await Promise.all([
         nextView === "calendar"

@@ -16,6 +16,7 @@ export interface StaffFilters extends HistoryFilters {
   customer?: string;
   queue?: IntakeQueue | "";
   handlerId?: string;
+  handler?: string;
 }
 export interface AppointmentSummary {
   id: string;
