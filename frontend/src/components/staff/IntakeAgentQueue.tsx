@@ -1,10 +1,10 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { SearchField } from "@/components/ui/SearchField";
-import { DataTablePagination } from "@/components/ui/data-table/DataTablePagination";
+import { StaffQueueTabs } from "./StaffQueueTabs";
+import { StaffQueueContinuation } from "./StaffQueueContinuation";
 import type { useStaffWorklist } from "@/hooks/use-staff-worklist";
 import type { useStaffAppointmentDrawer } from "@/hooks/use-staff-appointment-drawer";
 import { formatMalaysianDateTime } from "@/lib/date-format";
@@ -28,6 +28,8 @@ export function IntakeAgentQueue({
 }) {
   const [expanded, setExpanded] = useState(!drawer.id);
   const list = useRef<HTMLDivElement | null>(null);
+  const [failedSnapshot, setFailedSnapshot] = useState(worklist.snapshot);
+  const [failedMore, setFailedMore] = useState(false);
   const { active, snapshot, busy, ready, draft, setDraft } = worklist;
   const queue = active.filters.queue || "ToClaim";
   const selected = Boolean(drawer.id || drawer.pendingId);
@@ -37,8 +39,15 @@ export function IntakeAgentQueue({
       nextQueue !== queue || page !== active.page || pageSize !== active.filters.pageSize;
     const success = await worklist.load({ ...active.filters, queue: nextQueue, pageSize }, page);
     if (success && changedPage) {
+      setFailedMore(false);
       list.current?.scrollTo({ top: 0 });
     }
+  }
+
+  async function loadMore() {
+    const success = await worklist.load(active.filters, active.page + 1, true, undefined, true);
+    setFailedMore(!success);
+    setFailedSnapshot(snapshot);
   }
 
   return (
@@ -58,27 +67,19 @@ export function IntakeAgentQueue({
         </div>
       )}
       <div className={styles.queueBody} id="intake-queue-content">
-        <nav className={styles.queueNavigation} aria-label="Intake queue tabs">
-          {intakeQueues.map((item) => (
-            <Button
-              key={item}
-              size="compact"
-              variant="ghost"
-              className={styles.queueView}
-              aria-pressed={queue === item}
-              disabled={!ready || busy}
-              onClick={() => void load(item)}
-            >
-              <span>{labels[item]}</span>
-              {snapshot?.counts && (
-                <Badge variant="count" data-selected={queue === item}>
-                  {snapshot.counts[countKeys[item]]}
-                  <span className="sr-only"> appointments</span>
-                </Badge>
-              )}
-            </Button>
-          ))}
-        </nav>
+        <StaffQueueTabs
+          label="Intake queue tabs"
+          layout="queue"
+          countNoun="appointments"
+          tabs={intakeQueues.map((item) => ({
+            value: item,
+            label: labels[item],
+            count: snapshot?.counts?.[countKeys[item]],
+          }))}
+          value={queue}
+          disabled={!ready || busy}
+          onChange={(item) => void load(item)}
+        />
         <form
           className={styles.search}
           onSubmit={(event) => {
@@ -148,15 +149,19 @@ export function IntakeAgentQueue({
               </li>
             ))}
           </ul>
+          {snapshot && (
+            <StaffQueueContinuation
+              loaded={snapshot.items.length}
+              total={snapshot.total}
+              more={snapshot.items.length < snapshot.total}
+              busy={busy}
+              failed={failedMore && failedSnapshot === snapshot}
+              disabled={!ready}
+              onMore={() => void loadMore()}
+              onRetry={() => void loadMore()}
+            />
+          )}
         </div>
-        {snapshot && (
-          <DataTablePagination
-            page={snapshot}
-            count={snapshot.items.length}
-            disabled={!ready || busy}
-            onPage={(page, pageSize) => void load(queue, page, pageSize)}
-          />
-        )}
       </div>
     </aside>
   );

@@ -23,7 +23,10 @@ import { NoShowCorrectionFields } from "./NoShowCorrectionFields";
 import { AppointmentStatus } from "./AppointmentStatus";
 import { StaffStatusGroup } from "./StaffStatusGroup";
 import { IntakeOwnership } from "./IntakeOwnership";
-import { PersonIdentityFacts, VehicleIdentityFacts } from "./IdentityFacts";
+import { VehicleIdentityFacts } from "./IdentityFacts";
+import { StaffContact } from "./StaffContact";
+import record from "./StaffRecordContent.module.css";
+import appointment from "./AppointmentWorkbench.module.css";
 import styles from "./StaffWorkspace.module.css";
 
 export function AppointmentWorkbench({
@@ -174,7 +177,7 @@ export function AppointmentWorkbench({
   );
 
   return (
-    <div className={styles.workbench}>
+    <div className={`${styles.workbench} ${appointment.workbench}`}>
       <ConfirmationDialog
         open={confirming}
         title={correcting ? "Correct this attendance record?" : "Check in this vehicle?"}
@@ -208,30 +211,34 @@ export function AppointmentWorkbench({
               <AppointmentStatus status={detail.status} />
             </StaffStatusGroup>
           </div>
-          <dl className={styles.details}>
-            <div>
-              <dt>Branch</dt>
-              <dd>{detail.branchName}</dd>
-            </div>
-            <PersonIdentityFacts
-              role="Customer"
-              name={detail.customerName}
-              mobile={detail.customerMobile}
-              email={detail.customerEmail}
-            />
-            <div>
-              <dt>Inspection</dt>
-              <dd>{formatMalaysianDateTime(detail.startsAt)}</dd>
-            </div>
-            <VehicleIdentityFacts
-              registration={detail.registrationPlate}
-              vehicle={`${detail.manufactureYear} ${detail.make} ${detail.model} ${detail.trim}`}
-            />
-            <div>
-              <dt>Declared mileage</dt>
-              <dd>{detail.mileageKilometres.toLocaleString("en-MY")} km</dd>
-            </div>
-          </dl>
+          <section className={record.group} aria-label="Appointment details">
+            <h3 className={record.title}>Appointment details</h3>
+            <dl className={record.facts}>
+              <div>
+                <dt>Branch</dt>
+                <dd>{detail.branchName}</dd>
+              </div>
+              <div>
+                <dt>Inspection</dt>
+                <dd>{formatMalaysianDateTime(detail.startsAt)}</dd>
+              </div>
+              <VehicleIdentityFacts
+                registration={detail.registrationPlate}
+                vehicle={`${detail.manufactureYear} ${detail.make} ${detail.model} ${detail.trim}`}
+              />
+              <div>
+                <dt>Declared mileage</dt>
+                <dd>{detail.mileageKilometres.toLocaleString("en-MY")} km</dd>
+              </div>
+            </dl>
+          </section>
+          <section className={record.group} aria-label="Customer">
+            <h3 className={record.title}>{detail.customerName}</h3>
+            <dl className={appointment.contacts}>
+              <StaffContact method="phone" value={detail.customerMobile} />
+              <StaffContact method="email" value={detail.customerEmail} />
+            </dl>
+          </section>
           <IntakeOwnership
             actor={actor}
             detail={detail}

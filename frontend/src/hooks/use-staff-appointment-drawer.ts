@@ -27,6 +27,7 @@ export function useStaffAppointmentDrawer(
   const lock = useCallback((value: boolean) => setLocked(value), []);
   return {
     ...selection,
+    clearSelection: selection.close,
     locked,
     lock,
     draft: drafts[selection.id] ?? emptyCheckIn,

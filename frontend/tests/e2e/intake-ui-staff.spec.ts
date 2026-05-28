@@ -1,10 +1,10 @@
 import {
   setAppointmentDates,
-  expectWorklistPage,
   showIntakeQueue,
   exerciseOwnership,
   exerciseManagerHandler,
   captureIntake,
+  reviewAgentQueue,
 } from "./intake-ui-controls";
 import { expect, test, type Page, type BrowserContext } from "@playwright/test";
 import { readFileSync, writeFileSync } from "node:fs";
@@ -101,6 +101,15 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
   await link.click();
   const dialog = page.getByRole("region", { name: "Selected appointment", exact: true });
   await expect(dialog.getByLabel("VIN", { exact: true })).toBeEditable();
+  await context.grantPermissions(["clipboard-read", "clipboard-write"], {
+    origin: new URL(page.url()).origin,
+  });
+  await expect(dialog.locator('a[href^="tel:"], a[href^="mailto:"]')).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "Close appointment", exact: true })).toHaveCount(
+    0,
+  );
+  await dialog.getByRole("button", { name: "Copy email", exact: true }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Email address copied." })).toBeVisible();
   const detailPath = `/api/staff/intake/appointments/${new URL(page.url()).searchParams.get("appointment")}`;
   const detailReads = counts()[detailPath];
   const reopened = await page.reload();
@@ -113,7 +122,8 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
     expect(url.searchParams.has("handler")).toBe(false);
     expect(url.searchParams.get("sort")).toBe("startsAt");
   }
-  await dialog.getByRole("button", { name: "Close appointment", exact: true }).click();
+  await page.goto("/dashboard/intake?view=queue&queue=MyWork");
+  await expect(page.getByRole("button", { name: "Refresh worklist", exact: true })).toBeEnabled();
   await page.evaluate(() => {
     window.history.pushState(window.history.state, "", window.location.href);
   });
@@ -141,7 +151,7 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
   await showIntakeQueue(page);
   await queue.getByRole("button", { name: /^History\b/ }).click();
   await expect(dialog.getByLabel("VIN", { exact: true })).toHaveValue(vin);
-  await dialog.getByRole("button", { name: "Close appointment", exact: true }).click();
+  await page.getByRole("link", { name: "Calendar", exact: true }).click();
   const guard = page.getByRole("dialog", { name: "Discard unsaved changes?", exact: true });
   await guard.getByRole("button", { name: "Keep editing", exact: true }).click();
   await expect(dialog.getByLabel("VIN", { exact: true })).toHaveValue(vin);
@@ -223,7 +233,7 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
   await confirmation.getByRole("button", { name: "Confirm check-in", exact: true }).click();
   await expect(confirmation).toBeHidden();
   await expect(dialog.getByLabel("VIN", { exact: true })).toBeDisabled();
-  await dialog.getByRole("button", { name: "Close appointment", exact: true }).click();
+  await page.getByRole("link", { name: "Calendar", exact: true }).click();
   await page.keyboard.press("Escape");
   await expect(dialog).toBeVisible();
   await expect(
@@ -246,8 +256,6 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
   writeFileSync(path.join(evidence, "check-in.json"), JSON.stringify(receipt, null, 2));
   await expect(link).toHaveCount(0);
   await captureIntake(page, "agent-check-in");
-  await dialog.getByRole("button", { name: "Close appointment", exact: true }).click();
-
   await page.goto(detailHref!);
   await expect(page.getByText("Checked in", { exact: true })).toBeVisible();
   await expect(page.getByText("90,000 km", { exact: true })).toBeVisible();
@@ -257,10 +265,25 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
   await expect(queue.locator("li")).toHaveCount(10);
   const oldJobs = await queue.locator("li").allTextContents();
   expect(oldJobs).toHaveLength(10);
-  await page.getByRole("button", { name: "Next records", exact: true }).click();
-  await expectWorklistPage(page, 2);
+  await page.route("**/api/staff/intake/appointments?**", (route) =>
+    route.fulfill({
+      status: 502,
+      json: {
+        status: 502,
+        data: null,
+        uncertain: true,
+        message: "Controlled continuation failure",
+      },
+    }),
+  );
+  await queue.getByRole("button", { name: "Load more", exact: true }).click();
+  await expect(queue.getByRole("button", { name: "Retry queue", exact: true })).toBeVisible();
+  expect(await queue.locator("li").allTextContents()).toEqual(oldJobs);
+  await page.unroute("**/api/staff/intake/appointments?**");
+  await queue.getByRole("button", { name: "Retry queue", exact: true }).click();
+  await expect(queue.locator("li")).toHaveCount(20);
   expect(await queue.locator("li").count()).toBeGreaterThan(0);
-  expect(await queue.locator("li").count()).toBeLessThanOrEqual(10);
+  expect(await queue.locator("li").count()).toBe(20);
   await page.route("**/api/staff/intake/appointments?**", (route) =>
     route.fulfill({
       status: 502,
@@ -281,10 +304,11 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
   ).toBeVisible();
   expect(await queue.locator("li").allTextContents()).toEqual(oldRows);
   await page.unroute("**/api/staff/intake/appointments?**");
-  await page.getByRole("button", { name: "Previous records", exact: true }).click();
-  await expectWorklistPage(page, 1);
+  await page.getByRole("button", { name: "Refresh worklist", exact: true }).click();
+  await expect(queue.locator("li")).toHaveCount(10);
   expect(await queue.locator("li").allTextContents()).toEqual(oldJobs);
   await captureIntake(page, "agent-history");
+  await reviewAgentQueue(page, "sales");
 
   await expect(
     page.getByText(
@@ -313,6 +337,9 @@ for (const [role, email, destination] of [
     if (role === "Workshop technician" || role === "Administrator") {
       const heading = role === "Workshop technician" ? "Workshop" : "Settings";
       await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
+      if (role === "Workshop technician") {
+        await reviewAgentQueue(page, "inspection");
+      }
       await page.goto("/dashboard/intake?view=list");
       await expect(
         page.getByRole("heading", { name: "Intake access unavailable", exact: true }),

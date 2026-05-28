@@ -212,17 +212,6 @@
   overflow-wrap: anywhere;
 }
 
-.contactMethod dd {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 12px;
-}
-
-.contactValue {
-  user-select: text;
-}
-
 .dealColumns {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);

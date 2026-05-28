@@ -4,7 +4,7 @@ import { useContext, useState, type ComponentProps } from "react";
 import { StaffCommandBar } from "@/components/staff/StaffPage";
 import { StaffPageEntranceContext } from "@/components/staff/StaffActorBoundary";
 import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
+import { StaffQueueTabs } from "@/components/staff/StaffQueueTabs";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { useToast } from "@/components/ui/Toast";
@@ -162,30 +162,19 @@ export function TechnicianWorkspace({
             </div>
           )}
           <div className={styles.queueBody} id="technician-worklist-content">
-            <nav className={styles.queueNavigation} aria-label="Workshop worklists">
-              {(["MyWork", "Waiting", "Claimable"] as const).map((task) => (
-                <Button
-                  key={task}
-                  size="compact"
-                  variant="ghost"
-                  className={styles.queueView}
-                  aria-pressed={view === task}
-                  title={viewLabels[task]}
-                  disabled={interaction.blocked}
-                  onClick={() => showView(task)}
-                >
-                  <span>{viewTabs[task]}</span>
-                  {worklists[task].snapshot && (
-                    <Badge variant="count" data-selected={view === task}>
-                      {worklists[task].snapshot.total}
-                      <span className="sr-only">
-                        {worklists[task].search ? " matching jobs" : " jobs"}
-                      </span>
-                    </Badge>
-                  )}
-                </Button>
-              ))}
-            </nav>
+            <StaffQueueTabs
+              label="Workshop worklists"
+              layout="queue"
+              countNoun="jobs"
+              tabs={(["MyWork", "Waiting", "Claimable"] as const).map((task) => ({
+                value: task,
+                label: viewTabs[task],
+                count: worklists[task].snapshot?.total,
+              }))}
+              value={view}
+              disabled={interaction.blocked}
+              onChange={showView}
+            />
             {view === "Claimable" ? (
               <TechnicianClaim
                 actor={actor}

@@ -23,6 +23,16 @@ export async function showIntakeQueue(page: Page) {
 }
 
 export async function captureIntake(page: Page, name: string) {
+  await expect(page.locator('[aria-label="Notifications"] > *')).toHaveCount(0);
+  const hide = page.getByRole("button", { name: "Hide queue", exact: true });
+  if (await hide.isVisible()) {
+    await hide.click();
+  }
+  await page
+    .getByRole("region", { name: "Selected appointment", exact: true })
+    .evaluateAll((items) => {
+      items.forEach((item) => item.scrollTo({ top: 0 }));
+    });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,
   );
@@ -30,6 +40,27 @@ export async function captureIntake(page: Page, name: string) {
     path: path.join(process.env.BROWSER_EVIDENCE_DIR!, `${name}.png`),
     fullPage: false,
   });
+}
+
+export async function reviewAgentQueue(page: Page, area: "sales" | "inspection") {
+  await page.goto(`/dashboard/${area}`);
+  const label = area === "sales" ? "Sales queue tabs" : "Workshop worklists";
+  await expect(page.getByRole("navigation", { name: label, exact: true })).toBeVisible();
+  const tab = page.getByRole("button", { name: area === "sales" ? /^Handling\b/ : /^To claim\b/ });
+  await tab.click();
+  await expect(tab).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("searchbox")).toBeVisible();
+  const jobs = page.locator("ul li button");
+  await expect(jobs.first()).toBeVisible();
+  const loaded = await jobs.count();
+  const more = page.getByRole("button", { name: "Load more", exact: true });
+  if (await more.isVisible()) {
+    await more.scrollIntoViewIfNeeded();
+    expect(await jobs.count()).toBe(loaded);
+    await more.click();
+    await expect.poll(() => jobs.count()).toBeGreaterThan(loaded);
+  }
+  await captureIntake(page, `${area}-queue`);
 }
 
 export async function exerciseOwnership(page: Page) {
@@ -70,7 +101,7 @@ export async function exerciseOwnership(page: Page) {
   await expect(
     content.getByRole("button", { name: "Reconcile ownership", exact: true }),
   ).toBeVisible();
-  await content.getByRole("button", { name: "Close appointment", exact: true }).click();
+  await page.getByRole("link", { name: "Calendar", exact: true }).click();
   await expect(content).toBeVisible();
   await content.getByRole("button", { name: "Reconcile ownership", exact: true }).click();
   await expect(content.getByLabel("VIN", { exact: true })).toBeEditable();

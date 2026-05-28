@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
-import styles from "./Sales.module.css";
+import styles from "./StaffRecordContent.module.css";
 
 const methods = {
   phone: {
@@ -17,7 +17,7 @@ const methods = {
   },
 };
 
-export function SaleContact({ method, value }: { method: keyof typeof methods; value: string }) {
+export function StaffContact({ method, value }: { method: keyof typeof methods; value: string }) {
   const toast = useToast();
   const labels = methods[method];
 
@@ -34,11 +34,12 @@ export function SaleContact({ method, value }: { method: keyof typeof methods; v
     <div className={styles.contactMethod}>
       <dt>{labels.label}</dt>
       <dd>
-        <span className={styles.contactValue}>{value}</span>
+        <span className={styles.contactValue}>{value || "Not on file"}</span>
         <Button
           size="compact"
           variant="secondary"
           aria-label={labels.copy}
+          disabled={!value}
           onClick={() => void copy()}
         >
           Copy

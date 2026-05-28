@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { StaffQueueContinuation } from "@/components/staff/StaffQueueContinuation";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import type { useSalesQueue } from "@/hooks/use-sales-queue";
@@ -50,23 +50,9 @@ export function SalesQueueList({
   pendingId?: string;
   selectionLocked?: boolean;
 }) {
-  const continuation = useRef<HTMLDivElement | null>(null);
   const { snapshot, loadMore, busy, failed } = state;
   const activeId = pendingId || selectedId;
   const more = Boolean(snapshot && snapshot.items.length < snapshot.total);
-  useEffect(() => {
-    const target = continuation.current;
-    if (!target || busy || failed || !more || typeof IntersectionObserver === "undefined") {
-      return;
-    }
-    const observer = new IntersectionObserver((entries) => {
-      if (entries.some((entry) => entry.isIntersecting)) {
-        void loadMore();
-      }
-    });
-    observer.observe(target);
-    return () => observer.disconnect();
-  }, [busy, failed, more, loadMore]);
 
   return (
     <section className={styles.list} aria-label={title} aria-busy={busy}>
@@ -139,22 +125,15 @@ export function SalesQueueList({
           );
         })}
       </ul>
-      {(failed || more) && (
-        <div className={styles.continuation} ref={continuation}>
-          {failed && <p>The queue could not be loaded. Confirmed sales remain shown.</p>}
-          <Button
-            size="compact"
-            variant="secondary"
-            disabled={busy}
-            onClick={() => void (failed ? state.retry() : loadMore())}
-          >
-            {failed ? "Retry queue" : "Load more"}
-          </Button>
-          <span role="status" aria-live="polite">
-            {busy ? "Loading…" : `${snapshot?.items.length ?? 0} loaded`}
-          </span>
-        </div>
-      )}
+      <StaffQueueContinuation
+        loaded={snapshot?.items.length ?? 0}
+        total={snapshot?.total}
+        more={more}
+        busy={busy}
+        failed={failed}
+        onMore={() => void loadMore()}
+        onRetry={() => void state.retry()}
+      />
     </section>
   );
 }

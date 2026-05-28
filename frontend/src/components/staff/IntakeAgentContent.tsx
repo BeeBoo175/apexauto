@@ -34,10 +34,15 @@ export function IntakeAgentContent({
       aria-busy={selection.busy}
     >
       <header className={styles.contentHeader}>
-        <h2>Intake appointment</h2>
-        <Button size="compact" variant="secondary" onClick={selection.close}>
-          Close appointment
-        </Button>
+        <div>
+          <h2>{selection.result?.data?.registrationPlate ?? "Intake appointment"}</h2>
+          {selection.result?.data && (
+            <p>
+              {selection.result.data.make} {selection.result.data.model} ·{" "}
+              {selection.result.data.branchName}
+            </p>
+          )}
+        </div>
       </header>
       {selection.busy && !selection.result?.data && (
         <StaffRecordLoadingShell

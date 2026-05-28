@@ -9,6 +9,7 @@ import type { CurrentActor } from "@/lib/auth/actor";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import type { AppointmentDetail } from "@/lib/staff/contracts";
 import styles from "./StaffWorkspace.module.css";
+import record from "./StaffRecordContent.module.css";
 
 export function IntakeOwnership({
   actor,
@@ -40,7 +41,8 @@ export function IntakeOwnership({
 
   return (
     <section className={styles.stack} aria-label="Intake ownership">
-      <dl className={styles.details}>
+      <h3 className={record.title}>Handling agent</h3>
+      <dl className={record.facts}>
         <div>
           <dt>Handling agent</dt>
           <dd>{current?.handlerEmail ?? "Unassigned"}</dd>

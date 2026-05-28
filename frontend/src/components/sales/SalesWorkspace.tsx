@@ -3,7 +3,7 @@
 import { useContext, useState } from "react";
 import { StaffCommandBar } from "@/components/staff/StaffPage";
 import { StaffPageEntranceContext } from "@/components/staff/StaffActorBoundary";
-import { Badge } from "@/components/ui/Badge";
+import { StaffQueueTabs } from "@/components/staff/StaffQueueTabs";
 import { Button } from "@/components/ui/Button";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { RefreshButton } from "@/components/ui/RefreshButton";
@@ -161,6 +161,21 @@ export function SalesWorkspace({
             </div>
           )}
           <div className={styles.queueBody} id="sales-queue-content">
+            <div hidden={searching}>
+              <StaffQueueTabs
+                label="Sales queue tabs"
+                layout="queue"
+                countNoun="sales"
+                tabs={queueViews.map((item) => ({
+                  value: item,
+                  label: queueViewTabs[item],
+                  count: counts?.[queueCountOf[item]],
+                }))}
+                value={view}
+                disabled={interaction.blocked}
+                onChange={showView}
+              />
+            </div>
             <form
               className={styles.search}
               onSubmit={(event) => {
@@ -188,32 +203,7 @@ export function SalesWorkspace({
                 }
               />
             </form>
-            <nav
-              className={styles.queueNavigation}
-              aria-label="Sales queue tabs"
-              hidden={searching}
-            >
-              {queueViews.map((item) => (
-                <Button
-                  key={item}
-                  size="compact"
-                  variant="ghost"
-                  className={styles.queueView}
-                  aria-pressed={view === item}
-                  title={queueViewLabels[item]}
-                  disabled={interaction.blocked}
-                  onClick={() => showView(item)}
-                >
-                  <span>{queueViewTabs[item]}</span>
-                  {counts && (
-                    <Badge variant="count" data-selected={view === item}>
-                      {counts[queueCountOf[item]]}
-                      <span className="sr-only"> sales</span>
-                    </Badge>
-                  )}
-                </Button>
-              ))}
-            </nav>
+
             {searching && (
               <SalesQueueList
                 view="Search"

@@ -2,6 +2,27 @@
   min-width: 0;
   flex-shrink: 0;
   border-bottom: 1px solid var(--color-line);
+  background: var(--color-paper);
+}
+
+.sections[data-layout="queue"] .tabStrip {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 0;
+  padding-inline: 8px;
+}
+
+.sections[data-layout="queue"] .sectionButton {
+  justify-content: center;
+  min-width: 0;
+  padding: 8px 4px;
+  font-size: 13px;
+}
+
+.sections[data-layout="queue"] .tabStrip:has(> :nth-child(4)) .sectionButton {
+  flex-direction: column;
+  gap: 2px;
 }
 
 .tabStrip {

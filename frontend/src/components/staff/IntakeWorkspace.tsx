@@ -50,7 +50,7 @@ function Workspace({ actor, today, initial, initialView }: Props) {
       return calendar.load();
     }
     worklist.cancel();
-    return worklist.load();
+    return worklist.load(worklist.active.filters, view === "queue" ? 1 : worklist.active.page);
   }
 
   return (
@@ -78,7 +78,11 @@ function Workspace({ actor, today, initial, initialView }: Props) {
               active={view}
               pending={pending}
               destinations={destinations}
-              disabled={Boolean(drawer.id) || !calendar.ready || !worklist.ready}
+              disabled={
+                (actor.role !== "SalesAgent" && Boolean(drawer.id)) ||
+                !calendar.ready ||
+                !worklist.ready
+              }
               onNavigate={(href) => void workspace.navigate(href)}
               onPrepare={workspace.prefetchView}
               onCancel={workspace.cancelNavigation}

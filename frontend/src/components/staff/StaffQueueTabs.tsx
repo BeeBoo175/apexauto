@@ -29,6 +29,7 @@ export function StaffQueueTabs<T extends string>({
   disabled = false,
   mobilePresentation = "tabs",
   countNoun = "records",
+  layout = "scroll",
   onChange,
 }: {
   label: string;
@@ -37,6 +38,7 @@ export function StaffQueueTabs<T extends string>({
   disabled?: boolean;
   mobilePresentation?: "tabs" | "select";
   countNoun?: string;
+  layout?: "scroll" | "queue";
   onChange: (value: T) => void;
 }) {
   const selectedTab = useRef<HTMLButtonElement>(null);
@@ -60,6 +62,7 @@ export function StaffQueueTabs<T extends string>({
       className={styles.sections}
       aria-label={label}
       data-mobile-presentation={mobilePresentation}
+      data-layout={layout}
     >
       {mobilePresentation === "select" && (
         <div className={styles.mobileSelect}>

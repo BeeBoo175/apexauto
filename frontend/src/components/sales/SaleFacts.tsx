@@ -1,5 +1,5 @@
 import type { SaleContext } from "@/lib/sales/contracts";
-import { SaleContact } from "./SaleContact";
+import { StaffContact } from "@/components/staff/StaffContact";
 import record from "@/components/staff/StaffRecordContent.module.css";
 import styles from "./Sales.module.css";
 
@@ -12,8 +12,8 @@ export function SaleFacts({ context }: { context: SaleContext }) {
           <p>Copy the contact details to arrange a call or email.</p>
         </div>
         <dl className={styles.contactFacts}>
-          {context.customerMobile && <SaleContact method="phone" value={context.customerMobile} />}
-          {context.customerEmail && <SaleContact method="email" value={context.customerEmail} />}
+          {context.customerMobile && <StaffContact method="phone" value={context.customerMobile} />}
+          {context.customerEmail && <StaffContact method="email" value={context.customerEmail} />}
         </dl>
       </section>
     </div>

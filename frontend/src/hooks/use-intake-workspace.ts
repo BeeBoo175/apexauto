@@ -5,6 +5,7 @@ import { useStaffCalendar } from "./use-staff-calendar";
 import { useStaffWorklist } from "./use-staff-worklist";
 import { useStaffAppointmentDrawer } from "./use-staff-appointment-drawer";
 import { useToast } from "@/components/ui/Toast";
+import { useGuardedAction } from "./use-guarded-action";
 import type { IntakeCalendar } from "@/components/staff/IntakeCalendar";
 import type { IntakeWorklist } from "@/components/staff/IntakeWorklist";
 import type { IntakeAgentQueue } from "@/components/staff/IntakeAgentQueue";
@@ -63,6 +64,7 @@ export function useIntakeWorkspace(
   const attempt = useRef<symbol | null>(null);
   const confirmedHref = useRef("");
   const toast = useToast();
+  const interaction = useGuardedAction();
   const busy = calendar.busy || worklist.busy;
   const worklistHref = `/dashboard/intake?${staffViewQuery(worklist.active.filters, worklist.active.page)}`;
   const destinations = {
@@ -118,9 +120,15 @@ export function useIntakeWorkspace(
   }
 
   async function navigate(destination: string, history: "push" | "replace" = "push") {
-    if (drawer.id) {
+    if (drawer.id && !agent) {
       return;
     }
+    interaction.request(() => {
+      void navigateConfirmed(destination, history);
+    });
+  }
+
+  async function navigateConfirmed(destination: string, history: "push" | "replace") {
     calendar.cancel();
     worklist.cancel();
     const currentAttempt = Symbol();
@@ -142,6 +150,7 @@ export function useIntakeWorkspace(
       if (attempt.current !== currentAttempt || !success) {
         return;
       }
+      drawer.clearSelection();
       const nextHref =
         nextView === "calendar"
           ? calendarHref(nextCalendar)

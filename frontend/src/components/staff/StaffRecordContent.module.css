@@ -82,3 +82,32 @@
   line-height: 1.6;
   overflow-wrap: anywhere;
 }
+
+.contactMethod {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.contactMethod dt {
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.contactMethod dd {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  color: var(--color-graphite);
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.contactValue {
+  user-select: text;
+}

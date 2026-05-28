@@ -1,3 +1,47 @@
+.workbench {
+  container: intake-record / inline-size;
+  gap: 24px;
+  background: var(--color-paper);
+}
+
+.workbench > section,
+.workbench > form {
+  padding-top: 24px;
+  border-top: 1px solid var(--color-line-soft);
+}
+
+.workbench > form {
+  padding-inline: 0;
+  padding-bottom: 0;
+  border-right: 0;
+  border-bottom: 0;
+  border-left: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.workbench h3 {
+  margin: 0;
+  color: var(--color-graphite);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.contacts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px 32px;
+}
+
+@container intake-record (max-width: 640px) {
+  .contacts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .fields {
   margin: 0;
   padding: 0;

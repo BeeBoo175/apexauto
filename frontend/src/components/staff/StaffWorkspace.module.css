@@ -25,6 +25,7 @@
   min-height: 0;
   overflow-y: auto;
   padding: 20px 24px;
+  background: var(--color-paper);
 }
 
 @media (max-width: 600px) {
