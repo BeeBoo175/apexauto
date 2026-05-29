@@ -994,6 +994,48 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Dealership.Domain.TestDrives.TestDriveBooking", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("EndsAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("PublicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("StartsAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("VehicleId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId", "StartsAt", "Id");
+
+                    b.HasIndex("CustomerId", "StartsAt", "Id");
+
+                    b.HasIndex("PublicationId", "VehicleId", "BranchId");
+
+                    b.HasIndex("VehicleId", "StartsAt", "Id");
+
+                    b.ToTable("TestDriveBookings", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_TestDriveBookings_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND isfinite(\"CreatedAt\") AND isfinite(\"StartsAt\") AND isfinite(\"EndsAt\") AND \"StartsAt\" > \"CreatedAt\" AND \"EndsAt\" = \"StartsAt\" + interval '30 minutes'");
+                        });
+                });
+
             modelBuilder.Entity("Dealership.Domain.Vehicles.ListingPhoto", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2508,6 +2550,47 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Dealership.Infrastructure.TestDrives.TestDriveMail", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BookingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeliveredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DeliveryAttempts")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("DeliveryClaimExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeliveryClaimId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("NextDeliveryAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RecipientEmail")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingId")
+                        .IsUnique();
+
+                    b.HasIndex("NextDeliveryAt", "Id");
+
+                    b.ToTable("TestDriveMailOutbox", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_TestDriveMailOutbox_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"RecipientEmail\" ~ '[^[:space:]]' AND \"DeliveryAttempts\" >= 0 AND isfinite(\"NextDeliveryAt\") AND ((\"DeliveryClaimId\" IS NULL) = (\"DeliveryClaimExpiresAt\" IS NULL))");
+                        });
+                });
+
             modelBuilder.Entity("Dealership.Infrastructure.Vehicles.ReservationMail", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2858,6 +2941,22 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.HasOne("Dealership.Domain.Sales.SalesOrder", null)
                         .WithMany()
                         .HasForeignKey("SalesOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Dealership.Domain.TestDrives.TestDriveBooking", b =>
+                {
+                    b.HasOne("Dealership.Domain.Customers.CustomerProfile", null)
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Dealership.Domain.Vehicles.ListingPublication", null)
+                        .WithMany()
+                        .HasForeignKey("PublicationId", "VehicleId", "BranchId")
+                        .HasPrincipalKey("Id", "VehicleId", "BranchId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
@@ -3267,6 +3366,15 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("OriginalDocumentId", "SalesOrderId")
                         .HasPrincipalKey("Id", "SalesOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Dealership.Infrastructure.TestDrives.TestDriveMail", b =>
+                {
+                    b.HasOne("Dealership.Domain.TestDrives.TestDriveBooking", null)
+                        .WithOne()
+                        .HasForeignKey("Dealership.Infrastructure.TestDrives.TestDriveMail", "BookingId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
