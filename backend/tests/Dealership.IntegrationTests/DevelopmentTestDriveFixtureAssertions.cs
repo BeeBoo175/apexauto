@@ -14,8 +14,10 @@ internal static class DevelopmentTestDriveFixtureAssertions
         var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
         var bookings = await database.TestDriveBookings.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync();
         var mail = await database.TestDriveMailOutbox.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync();
+        var cancellations = await database.TestDriveCancellations.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync();
         Assert.Equal(DevelopmentTestDriveFixtures.Scenarios.Count, bookings.Length);
-        Assert.Equal(bookings.Length, mail.Length);
+        Assert.Single(cancellations);
+        Assert.Equal(bookings.Length + cancellations.Length, mail.Length);
         Assert.Equal(bookings.Length, bookings.Select(item => item.CustomerId).Distinct().Count());
         Assert.All(mail, message =>
         {
@@ -23,6 +25,6 @@ internal static class DevelopmentTestDriveFixtureAssertions
             Assert.NotNull(message.DeliveredAt);
             Assert.Equal(0, message.DeliveryAttempts);
         });
-        return JsonSerializer.Serialize(new { Bookings = bookings, Mail = mail });
+        return JsonSerializer.Serialize(new { Bookings = bookings, Cancellations = cancellations, Mail = mail });
     }
 }

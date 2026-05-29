@@ -107,6 +107,8 @@ public sealed class TestDriveBookingTests(IntakePhotoFixture fixture) : IClassFi
         Assert.Equal(TestDriveBookingStatus.Succeeded, replay.Status);
         Assert.Equal(JsonSerializer.Serialize(receipt), JsonSerializer.Serialize(replay.Booking));
 
+        await TestDriveCancellationAssertions.VerifyAsync(data.Factory, fixture, database, receipt, request, other, manager);
+
         async Task<TestDriveBookingResult> BookAsync(Guid customer, TestDriveBookingRequest command)
         {
             using var commandScope = data.Factory.Services.CreateScope();

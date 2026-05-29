@@ -33,15 +33,22 @@ public sealed class TestDriveBookingConfiguration : IEntityTypeConfiguration<Tes
     {
         builder.ToTable("TestDriveMailOutbox", table =>
         {
+            table.HasCheckConstraint("CK_TestDriveMailOutbox_Kind", "\"Kind\" IN ('Confirmation', 'Cancellation')");
             table.HasCheckConstraint("CK_TestDriveMailOutbox_Shape",
                 "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"RecipientEmail\" ~ '[^[:space:]]' AND \"DeliveryAttempts\" >= 0 AND isfinite(\"NextDeliveryAt\") AND ((\"DeliveryClaimId\" IS NULL) = (\"DeliveryClaimExpiresAt\" IS NULL))");
         });
         builder.HasKey(item => item.Id);
         builder.Property(item => item.Id).ValueGeneratedNever();
         builder.Property(item => item.RecipientEmail).HasMaxLength(256).IsRequired();
-        builder.HasIndex(item => item.BookingId).IsUnique();
+        builder.Property(item => item.Kind).HasConversion<string>().HasMaxLength(16).IsRequired();
+        builder.Property(item => item.CancellationBookingId)
+            .HasComputedColumnSql("CASE WHEN \"Kind\" = 'Cancellation' THEN \"BookingId\" END", stored: true);
+        builder.HasIndex(item => new { item.BookingId, item.Kind }).IsUnique();
         builder.HasIndex(item => new { item.NextDeliveryAt, item.Id });
-        builder.HasOne<TestDriveBooking>().WithOne().HasForeignKey<TestDriveMail>(item => item.BookingId)
+        builder.HasOne<TestDriveBooking>().WithMany().HasForeignKey(item => item.BookingId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<TestDriveCancellation>().WithMany().HasForeignKey(item => item.CancellationBookingId)
+            .HasPrincipalKey(item => item.BookingId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

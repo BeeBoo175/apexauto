@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Dealership.Infrastructure.Development;
 
 public sealed class DevelopmentTestDriveFixtures(DealershipDbContext database, TestDriveBookingService bookings,
-    InspectionSchedule schedule)
+    TestDriveCancellationService cancellations, InspectionSchedule schedule)
 {
     public static IReadOnlyList<DevelopmentInspectionScenario> Scenarios { get; } = Array.AsReadOnly(
         DevelopmentFixtureManifest.Branches.Select(branch => DevelopmentInspectionScenarios.All.First(item =>
@@ -47,7 +47,12 @@ public sealed class DevelopmentTestDriveFixtures(DealershipDbContext database, T
         {
             var matches = existing.CustomerId == customerId && existing.VehicleId == vehicleId &&
                 existing.PublicationId == publicationId && existing.BranchId == scenario.Intake.BranchId;
-            return new(label, matches ? "matches; booked time preserved" : "booking drift; preserved", !matches);
+            if (!matches)
+            {
+                return new(label, "booking drift; preserved", true);
+            }
+
+            return await ReviewCancellationAsync(seed, index, scenario, existing, label, cancellationToken);
         }
 
         if (!seed)
@@ -68,6 +73,38 @@ public sealed class DevelopmentTestDriveFixtures(DealershipDbContext database, T
         var result = await bookings.BookAsync(customerId.Value, vehicleId.Value,
             new(id, publicationId, slot.StartsAt), cancellationToken);
         var succeeded = result.Status == TestDriveBookingStatus.Succeeded;
-        return new(label, succeeded ? "created" : "booking unavailable; preserved", !succeeded);
+        if (!succeeded)
+        {
+            return new(label, "booking unavailable; preserved", true);
+        }
+
+        return await ReviewCancellationAsync(seed, index, scenario, result.Booking!, label, cancellationToken);
+    }
+
+    private async Task<DevelopmentFixtureReport> ReviewCancellationAsync(bool seed, int index,
+        DevelopmentInspectionScenario scenario, TestDriveBooking booking, string label, CancellationToken cancellationToken)
+    {
+        if (index != 0)
+        {
+            return new(label, "matches; booked time preserved", false);
+        }
+
+        var operationId = scenario.OperationId("test-drive-cancellation");
+        var existing = await database.TestDriveCancellations.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.BookingId == booking.Id, cancellationToken);
+        if (existing is not null)
+        {
+            var matches = existing.Id == operationId && existing.CustomerId == booking.CustomerId;
+            return new(label, matches ? "cancelled; receipt preserved" : "cancellation drift; preserved", !matches);
+        }
+
+        if (!seed)
+        {
+            return new(label, "cancellation missing", true);
+        }
+
+        var result = await cancellations.CancelAsync(booking.CustomerId, booking.Id, operationId, cancellationToken);
+        var succeeded = result.Status == TestDriveCancellationStatus.Succeeded;
+        return new(label, succeeded ? "cancelled" : "cancellation unavailable; preserved", !succeeded);
     }
 }

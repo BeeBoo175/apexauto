@@ -13,10 +13,12 @@ public sealed class TestDriveMailSource(DealershipDbContext database, TimeProvid
     {
         var now = clock.GetUtcNow();
         var candidates = database.TestDriveMailOutbox.FromSqlInterpolated($"""
-            SELECT * FROM "TestDriveMailOutbox"
-            WHERE "DeliveredAt" IS NULL AND "NextDeliveryAt" <= {now}
-              AND ("DeliveryClaimExpiresAt" IS NULL OR "DeliveryClaimExpiresAt" <= {now})
-            ORDER BY "NextDeliveryAt", "Id" LIMIT 1 FOR UPDATE SKIP LOCKED
+            SELECT m.* FROM "TestDriveMailOutbox" m
+            WHERE m."DeliveredAt" IS NULL AND m."NextDeliveryAt" <= {now}
+              AND (m."DeliveryClaimExpiresAt" IS NULL OR m."DeliveryClaimExpiresAt" <= {now})
+              AND (m."Kind" <> 'Confirmation' OR NOT EXISTS (
+                  SELECT 1 FROM "TestDriveCancellations" c WHERE c."BookingId" = m."BookingId"))
+            ORDER BY m."NextDeliveryAt", m."Id" LIMIT 1 FOR UPDATE OF m SKIP LOCKED
             """);
         return MailDeliveryBookkeeping.ClaimNextAsync(database, candidates, now, ComposeAsync, cancellationToken);
     }
@@ -36,7 +38,8 @@ public sealed class TestDriveMailSource(DealershipDbContext database, TimeProvid
         var vehicle = await database.Vehicles.AsNoTracking()
             .SingleAsync(item => item.Id == booking.VehicleId, cancellationToken);
         var startsAt = TimeZoneInfo.ConvertTime(booking.StartsAt, Malaysia);
-        var body = FormattableString.Invariant($"Your ApexAuto test drive is confirmed.\nReference: {booking.Id:D}\nBranch: {branch.Name}\nVehicle: {vehicle.ManufactureYear} {vehicle.Make} {vehicle.Model} ({vehicle.RegistrationPlate})\nStarts: {startsAt:yyyy-MM-dd HH:mm} (Asia/Kuala_Lumpur)");
-        return new(message.RecipientEmail, "ApexAuto test drive confirmed", body);
+        var state = message.Kind == TestDriveMailKind.Cancellation ? "cancelled" : "confirmed";
+        var body = FormattableString.Invariant($"Your ApexAuto test drive is {state}.\nReference: {booking.Id:D}\nBranch: {branch.Name}\nVehicle: {vehicle.ManufactureYear} {vehicle.Make} {vehicle.Model} ({vehicle.RegistrationPlate})\nStarts: {startsAt:yyyy-MM-dd HH:mm} (Asia/Kuala_Lumpur)");
+        return new(message.RecipientEmail, $"ApexAuto test drive {state}", body);
     }
 }
