@@ -1036,6 +1036,33 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Dealership.Domain.TestDrives.TestDriveCancellation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BookingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("RecordedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("BookingId", "CustomerId")
+                        .IsUnique();
+
+                    b.ToTable("TestDriveCancellations", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_TestDriveCancellations_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND isfinite(\"RecordedAt\")");
+                        });
+                });
+
             modelBuilder.Entity("Dealership.Domain.Vehicles.ListingPhoto", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2558,6 +2585,11 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("BookingId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("CancellationBookingId")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("uuid")
+                        .HasComputedColumnSql("CASE WHEN \"Kind\" = 'Cancellation' THEN \"BookingId\" END", true);
+
                     b.Property<DateTimeOffset?>("DeliveredAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -2570,6 +2602,11 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("DeliveryClaimId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
                     b.Property<DateTimeOffset>("NextDeliveryAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -2580,13 +2617,17 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BookingId")
+                    b.HasIndex("CancellationBookingId");
+
+                    b.HasIndex("BookingId", "Kind")
                         .IsUnique();
 
                     b.HasIndex("NextDeliveryAt", "Id");
 
                     b.ToTable("TestDriveMailOutbox", null, t =>
                         {
+                            t.HasCheckConstraint("CK_TestDriveMailOutbox_Kind", "\"Kind\" IN ('Confirmation', 'Cancellation')");
+
                             t.HasCheckConstraint("CK_TestDriveMailOutbox_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"RecipientEmail\" ~ '[^[:space:]]' AND \"DeliveryAttempts\" >= 0 AND isfinite(\"NextDeliveryAt\") AND ((\"DeliveryClaimId\" IS NULL) = (\"DeliveryClaimExpiresAt\" IS NULL))");
                         });
                 });
@@ -2957,6 +2998,22 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("PublicationId", "VehicleId", "BranchId")
                         .HasPrincipalKey("Id", "VehicleId", "BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Dealership.Domain.TestDrives.TestDriveCancellation", b =>
+                {
+                    b.HasOne("Dealership.Domain.Customers.CustomerProfile", null)
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Dealership.Domain.TestDrives.TestDriveBooking", null)
+                        .WithOne()
+                        .HasForeignKey("Dealership.Domain.TestDrives.TestDriveCancellation", "BookingId", "CustomerId")
+                        .HasPrincipalKey("Dealership.Domain.TestDrives.TestDriveBooking", "Id", "CustomerId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
@@ -3373,10 +3430,16 @@ namespace Dealership.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Dealership.Infrastructure.TestDrives.TestDriveMail", b =>
                 {
                     b.HasOne("Dealership.Domain.TestDrives.TestDriveBooking", null)
-                        .WithOne()
-                        .HasForeignKey("Dealership.Infrastructure.TestDrives.TestDriveMail", "BookingId")
+                        .WithMany()
+                        .HasForeignKey("BookingId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("Dealership.Domain.TestDrives.TestDriveCancellation", null)
+                        .WithMany()
+                        .HasForeignKey("CancellationBookingId")
+                        .HasPrincipalKey("BookingId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("Dealership.Infrastructure.Vehicles.ReservationMail", b =>
