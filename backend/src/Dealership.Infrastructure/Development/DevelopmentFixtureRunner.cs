@@ -9,7 +9,7 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
     DevelopmentIntakeFixtures intake,
     DevelopmentInspectionFixtures inspections, DevelopmentListingFixtures listings, DevelopmentPurchaseFixtures purchases,
     DevelopmentReservationFixtures reservations, DevelopmentSaleFixtures sales,
-    DevelopmentFixtureMail mail)
+    DevelopmentFixtureMail mail, DevelopmentTestDriveFixtures testDrives)
 {
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> SeedAsync(DevelopmentFixtureTarget target,
         CancellationToken cancellationToken, bool deliverMail = false)
@@ -67,6 +67,7 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
         reports.AddRange(await inspections.RunAsync(true, token));
         reports.AddRange(await listings.RunAsync(true, token));
         reports.AddRange(await reservations.RunAsync(true, token));
+        reports.AddRange(await testDrives.RunAsync(true, token));
         return reports;
     }
 
@@ -90,6 +91,7 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
             reports.AddRange(await listings.RunAsync(false, cancellationToken));
             reports.AddRange(await reservations.RunAsync(false, cancellationToken));
             reports.AddRange(await sales.RunAsync(false, cancellationToken));
+            reports.AddRange(await testDrives.RunAsync(false, cancellationToken));
             return reports;
         }
         finally

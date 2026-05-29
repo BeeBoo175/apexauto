@@ -82,6 +82,7 @@ public static class DependencyInjection
         services.AddScoped<IIntakePhotoStore, IntakePhotoStore>();
         services.AddScoped<IPhotoTransferLock, PhotoTransferLock>();
         services.AddScoped<IIntakeBookingStore, IntakeBookingStore>();
+        services.AddScoped<Application.TestDrives.ITestDriveBookingStore, TestDrives.TestDriveBookingStore>();
         services.AddScoped<IAppointmentHistoryStore, AppointmentHistoryStore>();
         services.AddScoped<IAppointmentCancellationStore, AppointmentCancellationStore>();
         services.AddScoped<IAppointmentCheckInStore, AppointmentCheckInStore>();

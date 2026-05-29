@@ -111,6 +111,7 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
             $"{report.Fixture}: {report.State}"));
         Assert.Equal(definitions, await ReadGuardsAsync());
         await DevelopmentReservationFixtureAssertions.VerifyAsync(restarted, interrupted);
+        var testDriveSnapshot = await DevelopmentTestDriveFixtureAssertions.SnapshotAsync(restarted);
         await AssertFixtureMailAsync(restarted, interrupted.Id);
         await AssertNormalAuthenticationAsync();
         await DevelopmentIntakeFixtureAssertions.VerifyAsync(provider);
@@ -124,6 +125,7 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         Assert.Equal(definitions, await ReadGuardsAsync());
         Assert.Equal(snapshot, await DevelopmentIntakeFixtureAssertions.SnapshotAsync(provider));
         Assert.All(await SeedAsync(restarted, target), report => Assert.False(report.RequiresAttention));
+        Assert.Equal(testDriveSnapshot, await DevelopmentTestDriveFixtureAssertions.SnapshotAsync(restarted));
         Assert.Equal(snapshot, await DevelopmentIntakeFixtureAssertions.SnapshotAsync(restarted));
         await AssertReviewPreservesDriftAsync(provider, target);
         await AssertRuntimeGuardsAsync();
