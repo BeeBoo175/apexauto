@@ -44,12 +44,28 @@ public sealed class InspectionSchedule
 
     public InspectionSlot? FindSlot(DateTimeOffset startsAt, DateTimeOffset now)
     {
+        return FindSlot(startsAt, now, _duration);
+    }
+
+    public InspectionSlot? FindSlot(DateTimeOffset startsAt, DateTimeOffset now, TimeSpan duration)
+    {
         var date = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(startsAt, Malaysia).DateTime);
-        return GetSlots(date, now).SingleOrDefault(slot => slot.StartsAt == startsAt);
+        return GetSlots(date, now, duration).SingleOrDefault(slot => slot.StartsAt == startsAt);
     }
 
     public IReadOnlyList<InspectionSlot> GetSlots(DateOnly date, DateTimeOffset now)
     {
+        return GetSlots(date, now, _duration);
+    }
+
+    public IReadOnlyList<InspectionSlot> GetSlots(DateOnly date, DateTimeOffset now, TimeSpan duration)
+    {
+        if (duration <= TimeSpan.Zero || duration > _closesAt - _opensAt ||
+            duration.Ticks % TimeSpan.TicksPerMinute != 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(duration), "Slots require whole minutes within the same-day opening window.");
+        }
+
         var window = GetDateWindow(now);
 
         if (date < window.FirstDate || date > window.LastDate || !_openDays.Contains(date.DayOfWeek))
@@ -62,13 +78,13 @@ public sealed class InspectionSchedule
         var earliest = now + _notice;
         var slots = new List<InspectionSlot>();
 
-        for (var start = localStart; start + _duration <= localClose; start += _duration)
+        for (var start = localStart; start + duration <= localClose; start += duration)
         {
             var startsAt = new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(start, Malaysia));
 
             if (startsAt >= earliest)
             {
-                slots.Add(new InspectionSlot(startsAt, startsAt + _duration));
+                slots.Add(new InspectionSlot(startsAt, startsAt + duration));
             }
         }
 

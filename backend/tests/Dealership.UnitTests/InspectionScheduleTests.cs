@@ -68,6 +68,71 @@ public sealed class InspectionScheduleTests
             duration, horizon, notice, WorkingDays));
     }
 
+    [Fact]
+    public void WorkflowDurationReusesOpeningNoticeAndClosingWithoutChangingIntakeSlots()
+    {
+        var schedule = DefaultSchedule();
+        var date = new DateOnly(2026, 10, 15);
+        var now = new DateTimeOffset(2026, 10, 14, 23, 0, 0, TimeSpan.Zero);
+        var duration = TimeSpan.FromMinutes(30);
+        var slots = schedule.GetSlots(date, now, duration);
+
+        Assert.Equal(18, slots.Count);
+        Assert.Equal(new DateTimeOffset(2026, 10, 15, 1, 0, 0, TimeSpan.Zero), slots[0].StartsAt);
+        Assert.Equal(new DateTimeOffset(2026, 10, 15, 10, 0, 0, TimeSpan.Zero), slots[^1].EndsAt);
+        Assert.All(slots, slot => Assert.Equal(duration, slot.EndsAt - slot.StartsAt));
+        Assert.Equal(6, schedule.GetSlots(date, now).Count);
+        Assert.Equal(slots[1], schedule.FindSlot(slots[1].StartsAt, now, duration));
+        Assert.Null(schedule.FindSlot(slots[1].StartsAt, now));
+
+        var cutoff = slots[^1].StartsAt.AddHours(-2);
+        Assert.Equal(slots[^1], Assert.Single(schedule.GetSlots(date, cutoff, duration)));
+        Assert.Empty(schedule.GetSlots(date, cutoff.AddTicks(1), duration));
+    }
+
+    [Fact]
+    public void WorkflowDurationRetainsConfiguredDaysAndMalaysianHorizon()
+    {
+        var schedule = new InspectionSchedule(new TimeOnly(10, 0), new TimeOnly(11, 10), 60, 7, 0,
+            [DayOfWeek.Thursday]);
+        var now = new DateTimeOffset(2026, 10, 14, 16, 0, 0, TimeSpan.Zero);
+        var duration = TimeSpan.FromMinutes(30);
+        var date = new DateOnly(2026, 10, 15);
+        var slots = schedule.GetSlots(date, now, duration);
+
+        Assert.Equal(2, slots.Count);
+        Assert.Equal(new DateTimeOffset(2026, 10, 15, 2, 0, 0, TimeSpan.Zero), slots[0].StartsAt);
+        Assert.Equal(new DateTimeOffset(2026, 10, 15, 3, 0, 0, TimeSpan.Zero), slots[^1].EndsAt);
+        Assert.Empty(schedule.GetSlots(date.AddDays(1), now, duration));
+        Assert.Empty(schedule.GetSlots(date.AddDays(7), now, duration));
+        Assert.Empty(schedule.GetSlots(date.AddDays(-1), now, duration));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-30)]
+    [InlineData(541)]
+    public void InvalidWorkflowDurationIsRejected(int minutes)
+    {
+        var schedule = DefaultSchedule();
+        var now = new DateTimeOffset(2026, 10, 14, 23, 0, 0, TimeSpan.Zero);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => schedule.GetSlots(new DateOnly(2026, 10, 15),
+            now, TimeSpan.FromMinutes(minutes)));
+    }
+
+    [Fact]
+    public void SubminuteWorkflowDurationCannotCreateAnUnboundedSlotList()
+    {
+        var schedule = DefaultSchedule();
+        var now = new DateTimeOffset(2026, 10, 14, 23, 0, 0, TimeSpan.Zero);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => schedule.GetSlots(new DateOnly(2026, 10, 15),
+            now, TimeSpan.FromTicks(1)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => schedule.FindSlot(now.AddHours(2), now,
+            TimeSpan.FromSeconds(90)));
+    }
+
     private static InspectionSchedule DefaultSchedule()
     {
         return new InspectionSchedule(new TimeOnly(9, 0), new TimeOnly(18, 0), 90, 30, 120, WorkingDays);
