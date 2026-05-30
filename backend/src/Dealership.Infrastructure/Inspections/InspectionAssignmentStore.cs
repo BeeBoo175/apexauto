@@ -54,7 +54,7 @@ public sealed class InspectionAssignmentStore(DealershipDbContext database) : II
             if (actor?.BranchId is not null)
             {
                 branchActive = await database.Branches.FromSqlInterpolated(
-                    $"SELECT * FROM \"Branches\" WHERE \"Id\" = {actor.BranchId} FOR SHARE")
+                    $"SELECT * FROM \"Branches\" WHERE \"Id\" = {actor.BranchId} FOR UPDATE")
                     .AnyAsync(item => item.IsActive, cancellationToken);
             }
 

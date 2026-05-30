@@ -117,6 +117,8 @@ public sealed class TestDriveBookingTests(IntakePhotoFixture fixture) : IClassFi
                     .MaxAsync(item => item.Version)), default);
         Assert.Equal(TestDriveAssignmentStatus.Unavailable, terminal.Status);
 
+        await TestDriveWriterLockAssertions.VerifyAsync(data, fixture, listing, manager, technician);
+
         async Task<TestDriveBookingResult> BookAsync(Guid customer, TestDriveBookingRequest command)
         {
             using var commandScope = data.Factory.Services.CreateScope();

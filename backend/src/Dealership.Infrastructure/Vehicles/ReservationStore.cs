@@ -34,7 +34,7 @@ public sealed class ReservationStore(DealershipDbContext database, MailDeliveryS
             var branchId = await database.Vehicles.Where(item => item.Id == vehicleId)
                 .Select(item => (Guid?)item.BranchId).SingleOrDefaultAsync(cancellationToken);
             await database.Database.ExecuteSqlInterpolatedAsync(
-                $"SELECT 1 FROM \"Branches\" WHERE \"Id\" = {branchId} FOR SHARE", cancellationToken);
+                $"SELECT 1 FROM \"Branches\" WHERE \"Id\" = {branchId} FOR UPDATE", cancellationToken);
             var vehicleIds = await database.Reservations.Where(item => item.CustomerId == customerId && item.IsActive)
                 .Select(item => item.VehicleId).ToListAsync(cancellationToken);
             vehicleIds.Add(vehicleId);

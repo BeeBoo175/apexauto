@@ -17,12 +17,16 @@ public sealed class SaleCommandStore(DealershipDbContext database, MailDeliveryS
             await database.Database.ExecuteSqlInterpolatedAsync(
                 $"SELECT pg_advisory_xact_lock(hashtextextended({"sale:" + operationId}, 0))", cancellationToken);
             var actor = await SaleStaffLocks.LockAsync(database, actorId, cancellationToken);
-            var branchActive = actor?.BranchId is not { } branchId || await database.Branches.FromSqlInterpolated(
-                $"SELECT * FROM \"Branches\" WHERE \"Id\" = {branchId} FOR SHARE")
-                .AnyAsync(branch => branch.IsActive, cancellationToken);
             var located = await database.SalesOrders.AsNoTracking()
-                .Where(item => item.Id == saleId).Select(item => new { item.VehicleId })
+                .Where(item => item.Id == saleId).Select(item => new { item.VehicleId, item.BranchId })
                 .SingleOrDefaultAsync(cancellationToken);
+            // Group actors have no assigned branch; serialize the sale's branch before its vehicle too.
+            var branches = await database.Branches.FromSqlInterpolated($"""
+                SELECT * FROM "Branches" WHERE "Id" IN ({actor?.BranchId}, {located?.BranchId})
+                ORDER BY "Id" FOR UPDATE
+                """).AsNoTracking().ToArrayAsync(cancellationToken);
+            var branchActive = actor?.BranchId is not { } branchId ||
+                branches.Any(branch => branch.Id == branchId && branch.IsActive);
             var existing = await database.SalesOrderEvents.AsNoTracking()
                 .SingleOrDefaultAsync(item => item.Id == operationId, cancellationToken);
             if (located is null)

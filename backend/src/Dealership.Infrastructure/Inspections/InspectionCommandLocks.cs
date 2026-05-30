@@ -20,7 +20,7 @@ internal static class InspectionCommandLocks
         if (actor?.BranchId is not null)
         {
             branchActive = await database.Branches.FromSqlInterpolated(
-                $"SELECT * FROM \"Branches\" WHERE \"Id\" = {actor.BranchId} FOR SHARE")
+                $"SELECT * FROM \"Branches\" WHERE \"Id\" = {actor.BranchId} FOR UPDATE")
                 .AnyAsync(branch => branch.IsActive, cancellationToken);
         }
 

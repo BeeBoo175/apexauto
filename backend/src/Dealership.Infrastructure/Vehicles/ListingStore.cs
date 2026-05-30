@@ -30,7 +30,7 @@ public sealed class ListingStore(DealershipDbContext database) : IListingStore
             var branchId = await database.Vehicles.Where(item => item.Id == vehicleId)
                 .Select(item => (Guid?)item.BranchId).SingleOrDefaultAsync(cancellationToken);
             var branchActive = await database.Branches.FromSqlInterpolated(
-                $"SELECT * FROM \"Branches\" WHERE \"Id\" = {branchId} FOR SHARE")
+                $"SELECT * FROM \"Branches\" WHERE \"Id\" = {branchId} FOR UPDATE")
                 .AnyAsync(branch => branch.IsActive, cancellationToken);
             var vehicle = await database.Vehicles.FromSqlInterpolated(
                 $"SELECT * FROM \"Vehicles\" WHERE \"Id\" = {vehicleId} FOR UPDATE")
