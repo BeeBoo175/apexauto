@@ -1,6 +1,7 @@
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Persistence;
+using Dealership.Infrastructure.Mail;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Npgsql;
@@ -8,7 +9,7 @@ using Npgsql;
 namespace Dealership.Infrastructure.Vehicles;
 
 internal sealed class ListingTransaction(DealershipDbContext database, IDbContextTransaction transaction,
-    ListingContext context) : IListingTransaction
+    MailDeliverySignal mail, ListingContext context) : IListingTransaction
 {
     public ListingContext Context => context;
 
@@ -43,6 +44,11 @@ internal sealed class ListingTransaction(DealershipDbContext database, IDbContex
         {
             await database.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
+            if (operation is ListingWithdrawal)
+            {
+                mail.Request();
+            }
+
             return ListingStatus.Succeeded;
         }
         catch (DbUpdateException exception) when (exception.InnerException is PostgresException

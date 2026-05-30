@@ -103,6 +103,7 @@ internal static class TestDriveReservationCancellationAssertions
         var rollback = await Assert.ThrowsAsync<PostgresException>(() => maintenance.GetService<IMigrator>()
             .MigrateAsync("20261103102951_TestDriveStaffCancellations"));
         Assert.Contains("Retained reservation cancellations", rollback.MessageText);
+        await maintenance.GetService<IMigrator>().MigrateAsync();
         return results[0];
 
         async Task<ReservationResult> ReserveAsync()

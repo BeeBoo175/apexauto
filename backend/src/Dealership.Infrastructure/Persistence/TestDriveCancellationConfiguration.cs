@@ -16,12 +16,14 @@ public sealed class TestDriveCancellationConfiguration : IEntityTypeConfiguratio
             table.HasCheckConstraint("CK_TestDriveCancellations_Shape",
                 "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND isfinite(\"RecordedAt\")");
             table.HasCheckConstraint("CK_TestDriveCancellations_Actor",
-                "(\"Kind\" = 'CustomerCancelled' AND \"StaffId\" IS NULL AND \"Reason\" IS NULL AND \"ReservationId\" IS NULL) OR " +
-                "(\"Kind\" = 'StaffCancelled' AND \"StaffId\" IS NOT NULL AND \"ReservationId\" IS NULL AND \"Reason\" IS NOT NULL AND " +
+                "(\"Kind\" = 'CustomerCancelled' AND \"StaffId\" IS NULL AND \"Reason\" IS NULL AND \"ReservationId\" IS NULL AND \"ListingWithdrawalId\" IS NULL) OR " +
+                "(\"Kind\" = 'StaffCancelled' AND \"StaffId\" IS NOT NULL AND \"ReservationId\" IS NULL AND \"ListingWithdrawalId\" IS NULL AND \"Reason\" IS NOT NULL AND " +
                 "length(\"Reason\") BETWEEN 1 AND 1000 AND \"Reason\" = btrim(\"Reason\") AND " +
                 "\"Reason\" ~ '[^[:space:]]' AND \"Reason\" !~ '[[:cntrl:]]') OR " +
-                "(\"Kind\" = 'VehicleReserved' AND \"StaffId\" IS NULL AND \"ReservationId\" IS NOT NULL AND " +
-                "\"Reason\" IS NOT NULL AND \"Reason\" = 'Vehicle reserved')");
+                "(\"Kind\" = 'VehicleReserved' AND \"StaffId\" IS NULL AND \"ReservationId\" IS NOT NULL AND \"ListingWithdrawalId\" IS NULL AND " +
+                "\"Reason\" IS NOT NULL AND \"Reason\" = 'Vehicle reserved') OR " +
+                "(\"Kind\" = 'ListingWithdrawn' AND \"StaffId\" IS NULL AND \"ReservationId\" IS NULL AND \"ListingWithdrawalId\" IS NOT NULL AND " +
+                "\"Reason\" IS NOT NULL AND \"Reason\" = 'Listing withdrawn')");
         });
         builder.HasKey(item => item.Id);
         builder.Property(item => item.Id).ValueGeneratedNever();
@@ -36,6 +38,8 @@ public sealed class TestDriveCancellationConfiguration : IEntityTypeConfiguratio
         builder.HasOne<AccountUser>().WithMany().HasForeignKey(item => item.StaffId)
             .OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Reservation>().WithMany().HasForeignKey(item => item.ReservationId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<ListingWithdrawal>().WithMany().HasForeignKey(item => item.ListingWithdrawalId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

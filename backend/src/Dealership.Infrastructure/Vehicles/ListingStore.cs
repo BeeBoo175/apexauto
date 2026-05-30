@@ -1,11 +1,12 @@
 using Dealership.Application.Accounts;
 using Dealership.Application.Vehicles;
 using Dealership.Infrastructure.Persistence;
+using Dealership.Infrastructure.Mail;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dealership.Infrastructure.Vehicles;
 
-public sealed class ListingStore(DealershipDbContext database) : IListingStore
+public sealed class ListingStore(DealershipDbContext database, MailDeliverySignal mail) : IListingStore
 {
     public async Task<IListingTransaction> LockAsync(Guid actorId, Guid vehicleId, Guid operationId,
         CancellationToken cancellationToken, IReadOnlyList<Guid>? photoIds = null)
@@ -23,7 +24,7 @@ public sealed class ListingStore(DealershipDbContext database) : IListingStore
                 actor.Role is not (AccountRoles.BranchManager or AccountRoles.GeneralManager) ||
                 actor.Role == AccountRoles.BranchManager && actor.BranchId is null)
             {
-                return new ListingTransaction(database, transaction,
+                return new ListingTransaction(database, transaction, mail,
                     new(manager, false, null, null, null, false, null, default, null, null, null, []));
             }
 
@@ -66,7 +67,7 @@ public sealed class ListingStore(DealershipDbContext database) : IListingStore
             var availablePhotoIds = await database.ListingPhotos
                 .Where(item => item.VehicleId == vehicleId && item.AvailableAt != null && requestedPhotos.Contains(item.Id))
                 .Select(item => item.Id).ToArrayAsync(cancellationToken);
-            return new ListingTransaction(database, transaction, new(manager, branchActive, vehicle,
+            return new ListingTransaction(database, transaction, mail, new(manager, branchActive, vehicle,
                 latestRevision, latestPublication, isWithdrawn, signedId, now,
                 existingDraft, existingPublication, existingWithdrawal, availablePhotoIds));
         }

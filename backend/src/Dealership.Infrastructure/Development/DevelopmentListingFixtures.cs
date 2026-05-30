@@ -100,9 +100,13 @@ public sealed class DevelopmentListingFixtures(DealershipDbContext database, Lis
             .SingleOrDefaultAsync(item => item.RevisionId == existing.Id, cancellationToken);
         if (published is not null)
         {
-            var withdrawn = await database.ListingWithdrawals.AnyAsync(item => item.PublicationId == published.Id, cancellationToken);
+            var withdrawal = await database.ListingWithdrawals.AsNoTracking()
+                .SingleOrDefaultAsync(item => item.PublicationId == published.Id, cancellationToken);
+            var expectedWithdrawal = withdrawal is not null && scenario.Id == DevelopmentTestDriveWithdrawalFixtures.Scenario.Id &&
+                withdrawal.Id == DevelopmentTestDriveWithdrawalFixtures.WithdrawalId && withdrawal.ActorId == manager.Id &&
+                withdrawal.Reason == DevelopmentTestDriveWithdrawalFixtures.Reason;
             var matches = published.Id == publicationId && published.ActorId == manager.Id &&
-                published.SignedRevisionId == signedId && !withdrawn &&
+                published.SignedRevisionId == signedId && (withdrawal is null || expectedWithdrawal) &&
                 (vehicle.Status == VehicleStatus.Available || settled);
             return new(label, matches ? "matches" : "publication drift; preserved", !matches);
         }

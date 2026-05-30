@@ -72,7 +72,7 @@ public sealed class ReservationListingTests(IntakePhotoFixture fixture) : IClass
                 (await reads.WorkspaceAsync(outsider, first.Publication.VehicleId, CancellationToken.None)).Status);
             Assert.Equal(ListingStatus.NotFound,
                 (await reads.PhotosAsync(outsider, first.Publication.VehicleId, 1, 10, CancellationToken.None)).Status);
-            Assert.Equal(ListingStatus.NotFound, (await new ListingService(new ListingStore(denied)).PublishAsync(outsider,
+            Assert.Equal(ListingStatus.NotFound, (await new ListingService(new ListingStore(denied, new MailDeliverySignal())).PublishAsync(outsider,
                 first.Publication.VehicleId, new(Guid.NewGuid(), first.Revision.Id, first.Publication.SignedRevisionId),
                 CancellationToken.None)).Status);
             Assert.Empty((await reads.ReadAsync(manager, new(Page: int.MaxValue), CancellationToken.None)).Listings!.Items);
@@ -179,7 +179,7 @@ public sealed class ReservationListingTests(IntakePhotoFixture fixture) : IClass
             return;
         }
 
-        var service = new ListingService(new ListingStore(database));
+        var service = new ListingService(new ListingStore(database, new MailDeliverySignal()));
         var revision = listing.Revision;
         var draft = new ListingDraftRequest(revision.Id, revision.Version - 1, revision.VehiclePrice, revision.RoadTax,
             revision.Transmission, revision.Fuel, revision.Description);
@@ -236,7 +236,7 @@ public sealed class ReservationListingTests(IntakePhotoFixture fixture) : IClass
         await using var source = clock.CreateContext();
         await using var writer = new DealershipDbContext(new DbContextOptionsBuilder<DealershipDbContext>()
             .UseNpgsql(source.Database.GetConnectionString()).AddInterceptors(new RejectListingWrite()).Options);
-        var result = await new ListingService(new ListingStore(writer)).SaveAsync(manager, listing.Publication.VehicleId,
+        var result = await new ListingService(new ListingStore(writer, new MailDeliverySignal())).SaveAsync(manager, listing.Publication.VehicleId,
             new(Guid.NewGuid(), 1, 61000m, 90m, VehicleTransmission.Automatic, VehicleFuel.Petrol, "Updated approved vehicle"),
             CancellationToken.None);
         Assert.Equal(ListingStatus.Conflict, result.Status);

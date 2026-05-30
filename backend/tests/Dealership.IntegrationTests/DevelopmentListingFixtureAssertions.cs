@@ -23,7 +23,8 @@ internal static class DevelopmentListingFixtureAssertions
         Assert.Equal(expected * 4, await database.ListingPhotos.CountAsync(item => item.AvailableAt != null));
         Assert.Equal(expected * 4, await database.ListingRevisionPhotos.CountAsync());
         Assert.All(await database.ListingRevisions.ToArrayAsync(), revision => Assert.Equal(4, revision.PhotoIds.Length));
-        Assert.Empty(await database.ListingWithdrawals.ToListAsync());
+        Assert.Equal(DevelopmentTestDriveWithdrawalFixtures.WithdrawalId,
+            (await database.ListingWithdrawals.SingleAsync()).Id);
         var original = await database.ListingRevisions.AsNoTracking().Where(item => database.Vehicles.Any(vehicle =>
             vehicle.Id == item.VehicleId && vehicle.Status == VehicleStatus.Available))
             .OrderBy(item => item.Id).FirstAsync();
@@ -51,11 +52,12 @@ internal static class DevelopmentListingFixtureAssertions
         var managers = services.GetRequiredService<IListingReadStore>();
         foreach (var branch in DevelopmentFixtureManifest.Branches)
         {
-            var available = branch == DevelopmentFixtureManifest.Branches[2] ? 16 : 15;
+            const int available = 15;
             var expected = await database.ListingRevisions.Where(item => item.BranchId == branch.Id)
                 .Where(item => database.Vehicles.Any(vehicle => vehicle.Id == item.VehicleId &&
                     vehicle.Status == VehicleStatus.Available))
                 .Where(item => !database.Reservations.Any(hold => hold.VehicleId == item.VehicleId && hold.IsActive))
+                .Where(item => !database.ListingWithdrawals.Any(withdrawal => withdrawal.VehicleId == item.VehicleId))
                 .OrderBy(item => item.VehiclePrice).ThenBy(item => item.VehicleId).ToArrayAsync();
             Assert.Equal(available, expected.Length);
             Assert.Contains(expected.GroupBy(item => item.VehiclePrice), group => group.Count() > 1);
@@ -92,7 +94,7 @@ internal static class DevelopmentListingFixtureAssertions
             Assert.Equal(available, workspace.Listings.Items.Concat(second.Listings!.Items).Count(item => item.IsPublic));
         }
 
-        Assert.Equal(46, (await store.ReadAsync(new(), CancellationToken.None)).Catalogue!.Total);
+        Assert.Equal(45, (await store.ReadAsync(new(), CancellationToken.None)).Catalogue!.Total);
     }
 
     private static async Task<string> SnapshotAsync(DealershipDbContext database)

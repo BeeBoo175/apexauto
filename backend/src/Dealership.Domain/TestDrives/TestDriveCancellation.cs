@@ -5,6 +5,7 @@ public static class TestDriveCancellationKind
     public const string CustomerCancelled = "CustomerCancelled";
     public const string StaffCancelled = "StaffCancelled";
     public const string VehicleReserved = "VehicleReserved";
+    public const string ListingWithdrawn = "ListingWithdrawn";
 }
 
 public sealed class TestDriveCancellation
@@ -58,6 +59,7 @@ public sealed class TestDriveCancellation
     public string Kind { get; private set; } = string.Empty;
     public Guid? StaffId { get; private set; }
     public Guid? ReservationId { get; private set; }
+    public Guid? ListingWithdrawalId { get; private set; }
     public string? Reason { get; private set; }
     public DateTimeOffset RecordedAt { get; private set; }
 
