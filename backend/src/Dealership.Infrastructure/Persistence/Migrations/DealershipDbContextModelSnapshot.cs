@@ -994,6 +994,67 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Dealership.Domain.TestDrives.TestDriveAssignment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BookingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("ExpectedVersion")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid?>("HandlerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<Guid?>("PreviousHandlerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTimeOffset>("RecordedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("Version")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorId");
+
+                    b.HasIndex("PreviousHandlerId");
+
+                    b.HasIndex("BookingId", "BranchId");
+
+                    b.HasIndex("BookingId", "Version")
+                        .IsUnique();
+
+                    b.HasIndex("HandlerId", "BookingId");
+
+                    b.ToTable("TestDriveAssignments", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_TestDriveAssignments_Reason", "\"Reason\" IS NULL OR (length(\"Reason\") BETWEEN 1 AND 1000 AND \"Reason\" = btrim(\"Reason\") AND \"Reason\" ~ '[^[:space:]]' AND \"Reason\" !~ '[[:cntrl:]]')");
+
+                            t.HasCheckConstraint("CK_TestDriveAssignments_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"ExpectedVersion\" >= 0 AND \"Version\" > 0 AND \"Version\" - 1 = \"ExpectedVersion\" AND isfinite(\"RecordedAt\")");
+
+                            t.HasCheckConstraint("CK_TestDriveAssignments_Transition", "(\"Kind\" = 'Claimed' AND \"HandlerId\" = \"ActorId\" AND \"HandlerId\" IS NOT NULL AND \"PreviousHandlerId\" IS NULL AND \"Reason\" IS NULL) OR (\"Kind\" = 'Assigned' AND \"HandlerId\" IS NOT NULL AND \"HandlerId\" IS DISTINCT FROM \"PreviousHandlerId\" AND (\"PreviousHandlerId\" IS NULL OR \"Reason\" IS NOT NULL)) OR (\"Kind\" = 'Released' AND \"HandlerId\" IS NULL AND \"PreviousHandlerId\" IS NOT NULL)");
+                        });
+                });
+
             modelBuilder.Entity("Dealership.Domain.TestDrives.TestDriveBooking", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2982,6 +3043,32 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.HasOne("Dealership.Domain.Sales.SalesOrder", null)
                         .WithMany()
                         .HasForeignKey("SalesOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Dealership.Domain.TestDrives.TestDriveAssignment", b =>
+                {
+                    b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
+                        .WithMany()
+                        .HasForeignKey("HandlerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
+                        .WithMany()
+                        .HasForeignKey("PreviousHandlerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Dealership.Domain.TestDrives.TestDriveBooking", null)
+                        .WithMany()
+                        .HasForeignKey("BookingId", "BranchId")
+                        .HasPrincipalKey("Id", "BranchId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
