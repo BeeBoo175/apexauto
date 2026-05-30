@@ -1,4 +1,7 @@
 using System.Text.Json;
+using Dealership.Application.Accounts;
+using Dealership.Application.Sales;
+using Dealership.Application.TestDrives;
 using Dealership.Application.Vehicles;
 using Dealership.Domain.TestDrives;
 using Dealership.Domain.Vehicles;
@@ -17,6 +20,79 @@ namespace Dealership.IntegrationTests;
 
 internal static class TestDriveReservationCancellationAssertions
 {
+    internal static async Task VerifySaleAsync(CheckInTestData data, IntakePhotoFixture fixture,
+        Guid reservationId)
+    {
+        await using var database = new DealershipDbContext(new DbContextOptionsBuilder<DealershipDbContext>()
+            .UseNpgsql(fixture.Database.RuntimeConnectionString).Options);
+        var sale = await database.SalesOrders.AsNoTracking().SingleAsync(item => item.Id == reservationId);
+        var reservation = await database.Reservations.AsNoTracking().SingleAsync(item => item.Id == reservationId);
+        Assert.Equal(reservation.VehicleId, sale.VehicleId);
+        Assert.Equal(reservation.BranchId, sale.BranchId);
+        Assert.Equal(reservation.CustomerId, sale.CustomerId);
+        var cancellation = await database.TestDriveCancellations.AsNoTracking()
+            .FirstAsync(item => item.ReservationId == reservationId);
+        var booking = await database.TestDriveBookings.AsNoTracking()
+            .SingleAsync(item => item.Id == cancellation.BookingId);
+        var receipts = JsonSerializer.Serialize(await database.TestDriveCancellations.AsNoTracking()
+            .OrderBy(item => item.Id).ToArrayAsync());
+        var intents = JsonSerializer.Serialize(await database.TestDriveMailOutbox.AsNoTracking()
+            .OrderBy(item => item.Id).ToArrayAsync());
+
+        var independentSale = await Assert.ThrowsAsync<PostgresException>(() => database.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO "SalesOrders"
+            SELECT (jsonb_populate_record(NULL::"SalesOrders",
+                to_jsonb(s) || jsonb_build_object('Id', {Guid.NewGuid()}))).*
+            FROM "SalesOrders" s WHERE s."Id" = {reservationId}
+            """));
+        Assert.Equal("CK_SalesOrders_Origin", independentSale.ConstraintName);
+
+        var agent = await database.Users.Where(item => item.IsActive && item.Role == AccountRoles.SalesAgent &&
+            item.BranchId == sale.BranchId).Select(item => item.Id).FirstAsync();
+        using var scope = data.Factory.Services.CreateScope();
+        var handling = scope.ServiceProvider.GetRequiredService<SaleHandlingService>();
+        await AssertUnavailableAsync();
+        var claim = new SaleCommandRequest(Guid.NewGuid(), sale.Version);
+        var claimed = await handling.ClaimAsync(agent, sale.Id, claim, default);
+        Assert.Equal(SaleResultStatus.Succeeded, claimed.Status);
+        Assert.Equal("Handling", claimed.Receipt!.Status);
+        Assert.Equal(claimed.Receipt, (await handling.ClaimAsync(agent, sale.Id, claim, default)).Receipt);
+        await AssertUnavailableAsync();
+        var released = await handling.ReleaseAsync(agent, sale.Id,
+            new(Guid.NewGuid(), claimed.Receipt.Version), default);
+        Assert.Equal(SaleResultStatus.Succeeded, released.Status);
+        Assert.Equal("Open", released.Receipt!.Status);
+        await AssertUnavailableAsync();
+
+        // Sale handling pauses/resumes the same purchase hold without replacing its cancellation evidence.
+        Assert.True(await database.Reservations.Where(item => item.Id == reservationId)
+            .Select(item => item.IsActive).SingleAsync());
+        Assert.Equal(receipts, JsonSerializer.Serialize(await database.TestDriveCancellations.AsNoTracking()
+            .OrderBy(item => item.Id).ToArrayAsync()));
+        Assert.Equal(intents, JsonSerializer.Serialize(await database.TestDriveMailOutbox.AsNoTracking()
+            .OrderBy(item => item.Id).ToArrayAsync()));
+
+        async Task AssertUnavailableAsync()
+        {
+            using var bookingScope = data.Factory.Services.CreateScope();
+            var bookings = bookingScope.ServiceProvider.GetRequiredService<TestDriveBookingService>();
+            var fresh = new TestDriveBookingRequest(Guid.NewGuid(), booking.PublicationId, booking.StartsAt);
+            Assert.Equal(TestDriveBookingStatus.VehicleUnavailable,
+                (await bookings.BookAsync(booking.CustomerId, booking.VehicleId, fresh, default)).Status);
+            var denied = await Assert.ThrowsAsync<PostgresException>(() => database.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO "TestDriveBookings"
+                    ("Id", "CustomerId", "VehicleId", "BranchId", "PublicationId", "StartsAt", "EndsAt", "CreatedAt")
+                VALUES ({fresh.OperationId}, {booking.CustomerId}, {booking.VehicleId}, {booking.BranchId},
+                    {booking.PublicationId}, {booking.StartsAt}, {booking.EndsAt}, clock_timestamp())
+                """));
+            Assert.Equal("CK_TestDriveBookings_Eligibility", denied.ConstraintName);
+            var replay = await bookings.BookAsync(booking.CustomerId, booking.VehicleId,
+                fresh with { OperationId = booking.Id }, default);
+            Assert.Equal(TestDriveBookingStatus.Succeeded, replay.Status);
+            Assert.Equal(JsonSerializer.Serialize(booking), JsonSerializer.Serialize(replay.Booking));
+        }
+    }
+
     internal static async Task<ReservationResult> VerifyAsync(CheckInTestData data, IntakePhotoFixture fixture,
         ListingRecord listing, ReservationRequest request, MailDeliverySignal mail, ReservationExpirySignal expiry)
     {

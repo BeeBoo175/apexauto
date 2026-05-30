@@ -46,6 +46,7 @@ internal static class TestDriveWriterLockAssertions
                 .LockAsync(actor, reserved.Reservation!.Id, Guid.NewGuid(), token));
         }
 
+        await TestDriveReservationCancellationAssertions.VerifySaleAsync(data, fixture, reserved.Reservation!.Id);
         await TestDriveListingWithdrawalAssertions.VerifyAsync(data, fixture, listing, manager, technician, reserved.Reservation!.Id);
 
         async Task VerifyWriterAsync(Func<DealershipDbContext, CancellationToken, Task<IAsyncDisposable>> acquire)
