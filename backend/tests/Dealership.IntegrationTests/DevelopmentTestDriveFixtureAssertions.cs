@@ -15,8 +15,11 @@ internal static class DevelopmentTestDriveFixtureAssertions
         var bookings = await database.TestDriveBookings.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync();
         var mail = await database.TestDriveMailOutbox.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync();
         var cancellations = await database.TestDriveCancellations.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync();
+        var assignments = await database.TestDriveAssignments.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync();
         Assert.Equal(DevelopmentTestDriveFixtures.Scenarios.Count, bookings.Length);
         Assert.Single(cancellations);
+        var assignment = Assert.Single(assignments);
+        Assert.Contains(bookings, booking => booking.Id == assignment.BookingId && booking.BranchId == assignment.BranchId);
         Assert.Equal(bookings.Length + cancellations.Length, mail.Length);
         Assert.Equal(bookings.Length, bookings.Select(item => item.CustomerId).Distinct().Count());
         Assert.All(mail, message =>
@@ -25,6 +28,6 @@ internal static class DevelopmentTestDriveFixtureAssertions
             Assert.NotNull(message.DeliveredAt);
             Assert.Equal(0, message.DeliveryAttempts);
         });
-        return JsonSerializer.Serialize(new { Bookings = bookings, Cancellations = cancellations, Mail = mail });
+        return JsonSerializer.Serialize(new { Bookings = bookings, Cancellations = cancellations, Assignments = assignments, Mail = mail });
     }
 }

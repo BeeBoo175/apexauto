@@ -16,15 +16,11 @@ internal sealed class AppointmentAssignmentTransaction(DealershipDbContext datab
         return database.DatabaseNowAsync(cancellationToken);
     }
 
-    public async Task<bool> HasOverlapAsync(Guid handlerId, CancellationToken cancellationToken)
+    public Task<bool> HasOverlapAsync(Guid handlerId, CancellationToken cancellationToken)
     {
         var appointment = context.Appointment!;
-        return await database.IntakeAppointments.AnyAsync(item => item.Id != appointment.Id &&
-            item.StartsAt < appointment.EndsAt && appointment.StartsAt < item.EndsAt && item.CancelledAt == null &&
-            !database.AppointmentCheckIns.Any(checkIn => checkIn.AppointmentId == item.Id) &&
-            database.AppointmentAssignments.Where(assignment => assignment.AppointmentId == item.Id)
-                .OrderByDescending(assignment => assignment.Version).Select(assignment => assignment.HandlerId)
-                .FirstOrDefault() == handlerId, cancellationToken);
+        return StaffScheduleConflicts.HasOverlapAsync(database, handlerId, appointment.StartsAt, appointment.EndsAt,
+            appointment.Id, null, cancellationToken);
     }
 
     public async Task CommitAsync(AppointmentAssignment assignment, CancellationToken cancellationToken)

@@ -18,6 +18,8 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
 {
     public DbSet<Domain.TestDrives.TestDriveBooking> TestDriveBookings => Set<Domain.TestDrives.TestDriveBooking>();
 
+    public DbSet<Domain.TestDrives.TestDriveAssignment> TestDriveAssignments => Set<Domain.TestDrives.TestDriveAssignment>();
+
     public DbSet<Domain.TestDrives.TestDriveCancellation> TestDriveCancellations => Set<Domain.TestDrives.TestDriveCancellation>();
 
     public DbSet<TestDrives.TestDriveMail> TestDriveMailOutbox => Set<TestDrives.TestDriveMail>();
@@ -112,6 +114,7 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
         builder.ApplyConfiguration<Domain.TestDrives.TestDriveBooking>(testDrives);
         builder.ApplyConfiguration<TestDrives.TestDriveMail>(testDrives);
         builder.ApplyConfiguration(new TestDriveCancellationConfiguration());
+        builder.ApplyConfiguration(new TestDriveAssignmentConfiguration());
         builder.ApplyConfiguration(new AccountUserConfiguration());
         builder.ApplyConfiguration(new BranchConfiguration());
         builder.ApplyConfiguration(new PromoCodeConfiguration());

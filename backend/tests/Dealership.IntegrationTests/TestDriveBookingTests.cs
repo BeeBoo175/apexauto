@@ -17,6 +17,7 @@ public sealed class TestDriveBookingTests(IntakePhotoFixture fixture) : IClassFi
     [Fact]
     public async Task AdmissionSerializesCapacityAndCustomerLimitAndRetainsExactReceiptAndMail()
     {
+        await TestDriveAssignmentAssertions.VerifyEmptyMigrationAsync(fixture);
         using var data = await CheckInTestData.CreateAsync(fixture);
         using var scope = data.Factory.Services.CreateScope();
         var services = scope.ServiceProvider;
@@ -107,7 +108,14 @@ public sealed class TestDriveBookingTests(IntakePhotoFixture fixture) : IClassFi
         Assert.Equal(TestDriveBookingStatus.Succeeded, replay.Status);
         Assert.Equal(JsonSerializer.Serialize(receipt), JsonSerializer.Serialize(replay.Booking));
 
+        await TestDriveAssignmentAssertions.VerifyAsync(data, fixture, database, receipt, manager, technician);
         await TestDriveCancellationAssertions.VerifyAsync(data.Factory, fixture, database, receipt, request, other, manager);
+        using var terminalScope = data.Factory.Services.CreateScope();
+        var terminal = await terminalScope.ServiceProvider.GetRequiredService<TestDriveAssignmentService>()
+            .ExecuteAsync(manager, receipt.Id, TestDriveAssignmentKind.Released,
+                new(Guid.NewGuid(), await database.TestDriveAssignments.Where(item => item.BookingId == receipt.Id)
+                    .MaxAsync(item => item.Version)), default);
+        Assert.Equal(TestDriveAssignmentStatus.Unavailable, terminal.Status);
 
         async Task<TestDriveBookingResult> BookAsync(Guid customer, TestDriveBookingRequest command)
         {

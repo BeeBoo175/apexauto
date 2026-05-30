@@ -1,14 +1,16 @@
 using Dealership.Application.TestDrives;
+using Dealership.Application.Accounts;
 using Dealership.Domain.Common;
 using Dealership.Domain.Intake;
 using Dealership.Domain.TestDrives;
 using Dealership.Infrastructure.Persistence;
+using Dealership.Infrastructure.Intake;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dealership.Infrastructure.Development;
 
 public sealed class DevelopmentTestDriveFixtures(DealershipDbContext database, TestDriveBookingService bookings,
-    TestDriveCancellationService cancellations, InspectionSchedule schedule)
+    TestDriveCancellationService cancellations, TestDriveAssignmentService assignments, InspectionSchedule schedule)
 {
     public static IReadOnlyList<DevelopmentInspectionScenario> Scenarios { get; } = Array.AsReadOnly(
         DevelopmentFixtureManifest.Branches.Select(branch => DevelopmentInspectionScenarios.All.First(item =>
@@ -63,8 +65,7 @@ public sealed class DevelopmentTestDriveFixtures(DealershipDbContext database, T
         var now = await database.DatabaseNowAsync(cancellationToken);
         var malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
         var date = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(now, malaysia).DateTime);
-        var slot = Enumerable.Range(0, 30).SelectMany(day =>
-            schedule.GetSlots(date.AddDays(day), now, TestDriveBooking.Duration)).FirstOrDefault();
+        var slot = await FindSlotAsync(index, scenario.Intake.BranchId, date, now, cancellationToken);
         if (slot is null)
         {
             return new(label, "schedule unavailable; preserved", true);
@@ -84,6 +85,11 @@ public sealed class DevelopmentTestDriveFixtures(DealershipDbContext database, T
     private async Task<DevelopmentFixtureReport> ReviewCancellationAsync(bool seed, int index,
         DevelopmentInspectionScenario scenario, TestDriveBooking booking, string label, CancellationToken cancellationToken)
     {
+        if (index == 1)
+        {
+            return await ReviewOwnershipAsync(seed, scenario, booking, label, cancellationToken);
+        }
+
         if (index != 0)
         {
             return new(label, "matches; booked time preserved", false);
@@ -106,5 +112,51 @@ public sealed class DevelopmentTestDriveFixtures(DealershipDbContext database, T
         var result = await cancellations.CancelAsync(booking.CustomerId, booking.Id, operationId, cancellationToken);
         var succeeded = result.Status == TestDriveCancellationStatus.Succeeded;
         return new(label, succeeded ? "cancelled" : "cancellation unavailable; preserved", !succeeded);
+    }
+
+    private async Task<DevelopmentFixtureReport> ReviewOwnershipAsync(bool seed,
+        DevelopmentInspectionScenario scenario, TestDriveBooking booking, string label, CancellationToken cancellationToken)
+    {
+        var handlerId = DevelopmentFixtureManifest.Staff.Single(item =>
+            item.BranchId == booking.BranchId && item.Role == AccountRoles.BranchManager).Id;
+        var operationId = scenario.OperationId("test-drive-claim");
+        var current = await database.TestDriveAssignments.AsNoTracking()
+            .Where(item => item.BookingId == booking.Id).OrderByDescending(item => item.Version)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (current is not null)
+        {
+            var matches = current.Id == operationId && current.HandlerId == handlerId &&
+                current.ActorId == handlerId && current.Kind == TestDriveAssignmentKind.Claimed && current.Version == 1;
+            return new(label, matches ? "claimed; receipt preserved" : "ownership drift; preserved", !matches);
+        }
+
+        if (!seed)
+        {
+            return new(label, "ownership missing", true);
+        }
+
+        var result = await assignments.ExecuteAsync(handlerId, booking.Id, TestDriveAssignmentKind.Claimed,
+            new(operationId, 0), cancellationToken);
+        var succeeded = result.Status == TestDriveAssignmentStatus.Succeeded;
+        return new(label, succeeded ? "claimed" : "claim unavailable; preserved", !succeeded);
+    }
+
+    private async Task<InspectionSlot?> FindSlotAsync(int index, Guid branchId, DateOnly date,
+        DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        var handlerId = DevelopmentFixtureManifest.Staff.Single(item =>
+            item.BranchId == branchId && item.Role == AccountRoles.BranchManager).Id;
+        var slots = Enumerable.Range(0, 30).SelectMany(day =>
+            schedule.GetSlots(date.AddDays(day), now, TestDriveBooking.Duration));
+        foreach (var slot in slots)
+        {
+            if (index != 1 || !await StaffScheduleConflicts.HasOverlapAsync(database, handlerId,
+                slot.StartsAt, slot.EndsAt, null, null, cancellationToken))
+            {
+                return slot;
+            }
+        }
+
+        return null;
     }
 }

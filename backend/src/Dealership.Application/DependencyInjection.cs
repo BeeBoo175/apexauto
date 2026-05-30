@@ -40,6 +40,7 @@ public static class DependencyInjection
         services.AddScoped<AppointmentAssignmentService>();
         services.AddScoped<AppointmentCancellationService>();
         services.AddScoped<TestDrives.TestDriveCancellationService>();
+        services.AddScoped<TestDrives.TestDriveAssignmentService>();
         services.AddScoped<InspectionAssignmentService>();
         services.AddScoped<InspectionDraftSaveService>();
         services.AddScoped<InspectionSignoffService>();
