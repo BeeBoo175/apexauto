@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Dealership.Domain.TestDrives;
 using Dealership.Infrastructure.Development;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -17,7 +18,10 @@ internal static class DevelopmentTestDriveFixtureAssertions
         var cancellations = await database.TestDriveCancellations.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync();
         var assignments = await database.TestDriveAssignments.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync();
         Assert.Equal(DevelopmentTestDriveFixtures.Scenarios.Count, bookings.Length);
-        Assert.Single(cancellations);
+        Assert.Single(cancellations, item => item.Kind == TestDriveCancellationKind.CustomerCancelled);
+        var staffCancellation = Assert.Single(cancellations, item => item.Kind == TestDriveCancellationKind.StaffCancelled);
+        Assert.NotNull(staffCancellation.StaffId);
+        Assert.NotNull(staffCancellation.Reason);
         var assignment = Assert.Single(assignments);
         Assert.Contains(bookings, booking => booking.Id == assignment.BookingId && booking.BranchId == assignment.BranchId);
         Assert.Equal(bookings.Length + cancellations.Length, mail.Length);

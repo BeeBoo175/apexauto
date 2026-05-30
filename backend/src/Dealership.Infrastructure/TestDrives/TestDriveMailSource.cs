@@ -40,6 +40,16 @@ public sealed class TestDriveMailSource(DealershipDbContext database, TimeProvid
         var startsAt = TimeZoneInfo.ConvertTime(booking.StartsAt, Malaysia);
         var state = message.Kind == TestDriveMailKind.Cancellation ? "cancelled" : "confirmed";
         var body = FormattableString.Invariant($"Your ApexAuto test drive is {state}.\nReference: {booking.Id:D}\nBranch: {branch.Name}\nVehicle: {vehicle.ManufactureYear} {vehicle.Make} {vehicle.Model} ({vehicle.RegistrationPlate})\nStarts: {startsAt:yyyy-MM-dd HH:mm} (Asia/Kuala_Lumpur)");
+        if (message.Kind == TestDriveMailKind.Cancellation)
+        {
+            var reason = await database.TestDriveCancellations.Where(item => item.BookingId == booking.Id)
+                .Select(item => item.Reason).SingleAsync(cancellationToken);
+            if (reason is not null)
+            {
+                body += $"\nReason: {reason}";
+            }
+        }
+
         return new(message.RecipientEmail, $"ApexAuto test drive {state}", body);
     }
 }

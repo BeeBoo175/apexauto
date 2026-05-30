@@ -16,7 +16,8 @@ public enum TestDriveCancellationStatus
 public sealed record TestDriveCancellationResult(TestDriveCancellationStatus Status, TestDriveCancellation? Cancellation = null);
 
 public sealed record TestDriveCancellationContext(TestDriveCancellationStatus Status, DateTimeOffset Now,
-    TestDriveBooking? Booking = null, TestDriveCancellation? Existing = null, bool Cancelled = false);
+    TestDriveBooking? Booking = null, TestDriveCancellation? Existing = null, bool Cancelled = false,
+    TestDriveStaff? Actor = null, bool BranchActive = false, TestDriveAssignment? Current = null);
 
 public interface ITestDriveCancellationTransaction : IAsyncDisposable
 {
@@ -27,6 +28,6 @@ public interface ITestDriveCancellationTransaction : IAsyncDisposable
 
 public interface ITestDriveCancellationStore
 {
-    Task<ITestDriveCancellationTransaction> LockAsync(Guid customerId, Guid bookingId, Guid operationId,
+    Task<ITestDriveCancellationTransaction> LockAsync(Guid actorId, Guid bookingId, Guid operationId,
         CancellationToken cancellationToken);
 }

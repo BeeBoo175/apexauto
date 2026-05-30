@@ -26,11 +26,16 @@ internal static class TestDriveAssignmentAssertions
         await migrator.MigrateAsync("20261103070027_TestDriveCustomerCancellations");
         var original = await maintenance.Database.SqlQueryRaw<string>(
             "SELECT pg_get_functiondef('public.guard_appointment_assignment()'::regprocedure) AS \"Value\"").SingleAsync();
+        var originalCancellation = await maintenance.Database.SqlQueryRaw<string>(
+            "SELECT pg_get_functiondef('public.guard_test_drive_cancellation()'::regprocedure) AS \"Value\"").SingleAsync();
         await migrator.MigrateAsync();
         await migrator.MigrateAsync("20261103070027_TestDriveCustomerCancellations");
         var restored = await maintenance.Database.SqlQueryRaw<string>(
             "SELECT pg_get_functiondef('public.guard_appointment_assignment()'::regprocedure) AS \"Value\"").SingleAsync();
         Assert.Equal(original, restored);
+        var restoredCancellation = await maintenance.Database.SqlQueryRaw<string>(
+            "SELECT pg_get_functiondef('public.guard_test_drive_cancellation()'::regprocedure) AS \"Value\"").SingleAsync();
+        Assert.Equal(originalCancellation, restoredCancellation);
         await migrator.MigrateAsync();
         var role = new NpgsqlConnectionStringBuilder(fixture.Database.RuntimeConnectionString).Username!;
         Assert.Matches("^aa02_runtime_[0-9a-f]{32}$", role);

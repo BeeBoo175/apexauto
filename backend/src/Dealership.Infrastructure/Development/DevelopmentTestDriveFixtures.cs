@@ -90,17 +90,18 @@ public sealed class DevelopmentTestDriveFixtures(DealershipDbContext database, T
             return await ReviewOwnershipAsync(seed, scenario, booking, label, cancellationToken);
         }
 
-        if (index != 0)
-        {
-            return new(label, "matches; booked time preserved", false);
-        }
-
         var operationId = scenario.OperationId("test-drive-cancellation");
+        var staffId = DevelopmentFixtureManifest.Staff.Single(item =>
+            item.BranchId == booking.BranchId && item.Role == AccountRoles.BranchManager).Id;
+        const string reason = "Customer requested cancellation through the branch";
         var existing = await database.TestDriveCancellations.AsNoTracking()
             .SingleOrDefaultAsync(item => item.BookingId == booking.Id, cancellationToken);
         if (existing is not null)
         {
-            var matches = existing.Id == operationId && existing.CustomerId == booking.CustomerId;
+            var matches = existing.Id == operationId && existing.CustomerId == booking.CustomerId &&
+                (index == 0
+                    ? existing.Kind == TestDriveCancellationKind.CustomerCancelled
+                    : existing.Kind == TestDriveCancellationKind.StaffCancelled && existing.StaffId == staffId && existing.Reason == reason);
             return new(label, matches ? "cancelled; receipt preserved" : "cancellation drift; preserved", !matches);
         }
 
@@ -109,7 +110,9 @@ public sealed class DevelopmentTestDriveFixtures(DealershipDbContext database, T
             return new(label, "cancellation missing", true);
         }
 
-        var result = await cancellations.CancelAsync(booking.CustomerId, booking.Id, operationId, cancellationToken);
+        var result = index == 0
+            ? await cancellations.CancelAsync(booking.CustomerId, booking.Id, operationId, cancellationToken)
+            : await cancellations.CancelByStaffAsync(staffId, booking.Id, operationId, reason, cancellationToken);
         var succeeded = result.Status == TestDriveCancellationStatus.Succeeded;
         return new(label, succeeded ? "cancelled" : "cancellation unavailable; preserved", !succeeded);
     }

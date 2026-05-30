@@ -97,6 +97,11 @@ internal static class TestDriveCancellationAssertions
         await source.MarkDeliveredAsync(cancellationOnly.Id, cancellationOnly.ClaimId, default);
         Assert.Null(await source.ClaimNextAsync(default));
 
+        var staffBooking = await bookingScope.ServiceProvider.GetRequiredService<TestDriveBookingService>()
+            .BookAsync(booking.CustomerId, booking.VehicleId, request with { OperationId = Guid.NewGuid() }, default);
+        Assert.Equal(TestDriveBookingStatus.Succeeded, staffBooking.Status);
+        await TestDriveStaffCancellationAssertions.VerifyAsync(factory, fixture, database, staffBooking.Booking!, staff);
+
         async Task<TestDriveCancellationResult> CancelAsync(Guid customer, Guid target, Guid operation)
         {
             using var scope = factory.Services.CreateScope();
@@ -107,8 +112,8 @@ internal static class TestDriveCancellationAssertions
         Task<int> InsertAsync(Guid operation, Guid customer, DateTimeOffset recordedAt)
         {
             return database.Database.ExecuteSqlInterpolatedAsync($"""
-                INSERT INTO "TestDriveCancellations" ("Id", "BookingId", "CustomerId", "RecordedAt")
-                VALUES ({operation}, {booking.Id}, {customer}, {recordedAt})
+                INSERT INTO "TestDriveCancellations" ("Id", "BookingId", "CustomerId", "Kind", "RecordedAt")
+                VALUES ({operation}, {booking.Id}, {customer}, 'CustomerCancelled', {recordedAt})
                 """);
         }
     }
