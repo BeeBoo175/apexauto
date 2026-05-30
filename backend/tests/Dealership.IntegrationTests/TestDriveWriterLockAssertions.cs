@@ -36,8 +36,8 @@ internal static class TestDriveWriterLockAssertions
         await using var setup = NewContext();
         setup.PurchaseSettings.Add(new(500m, 0.08m, manager, DateTimeOffset.UtcNow));
         await setup.SaveChangesAsync();
-        var reserved = await services.GetRequiredService<ReservationService>()
-            .ReserveAsync(data.OwnerId, vehicleId, reservationRequest, default);
+        var reserved = await TestDriveReservationCancellationAssertions.VerifyAsync(data, fixture, listing,
+            reservationRequest, mail, expiry);
         Assert.Equal(ReservationStatus.Succeeded, reserved.Status);
         var group = await ProvisionAsync(services, null, AccountRoles.GeneralManager);
         foreach (var actor in new[] { manager, group })

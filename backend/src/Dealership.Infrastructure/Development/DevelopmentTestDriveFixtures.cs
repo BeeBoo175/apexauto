@@ -1,5 +1,6 @@
 using Dealership.Application.TestDrives;
 using Dealership.Application.Accounts;
+using Dealership.Application.Vehicles;
 using Dealership.Domain.Common;
 using Dealership.Domain.Intake;
 using Dealership.Domain.TestDrives;
@@ -10,11 +11,15 @@ using Microsoft.EntityFrameworkCore;
 namespace Dealership.Infrastructure.Development;
 
 public sealed class DevelopmentTestDriveFixtures(DealershipDbContext database, TestDriveBookingService bookings,
-    TestDriveCancellationService cancellations, TestDriveAssignmentService assignments, InspectionSchedule schedule)
+    TestDriveCancellationService cancellations, TestDriveAssignmentService assignments, InspectionSchedule schedule,
+    ReservationService reservations, ReservationCancellationService releases)
 {
     public static IReadOnlyList<DevelopmentInspectionScenario> Scenarios { get; } = Array.AsReadOnly(
         DevelopmentFixtureManifest.Branches.Select(branch => DevelopmentInspectionScenarios.All.First(item =>
             item.PublishListing && item.Intake.BranchId == branch.Id)).ToArray());
+
+    public static Guid ReservationCancellationBookingId => Scenarios[2].OperationId("test-drive-reservation-booking");
+    public static Guid CancellationReservationId => Scenarios[2].OperationId("test-drive-reservation");
 
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> RunAsync(bool seed, CancellationToken cancellationToken)
     {
@@ -24,7 +29,83 @@ public sealed class DevelopmentTestDriveFixtures(DealershipDbContext database, T
             reports.Add(await RunOneAsync(seed, Scenarios[index], index, cancellationToken));
         }
 
+        reports.Add(await RunReservationCancellationAsync(seed, cancellationToken));
         return reports;
+    }
+
+    private async Task<DevelopmentFixtureReport> RunReservationCancellationAsync(bool seed,
+        CancellationToken cancellationToken)
+    {
+        const string label = "Reservation-cancelled test drive";
+        var scenario = Scenarios[2];
+        var source = await database.TestDriveBookings.AsNoTracking().SingleOrDefaultAsync(item =>
+            item.Id == scenario.OperationId("test-drive-booking"), cancellationToken);
+        if (source is null)
+        {
+            return new(label, "source booking missing; preserved", true);
+        }
+
+        var bookingId = ReservationCancellationBookingId;
+        var reservationId = CancellationReservationId;
+        var buyerKey = DevelopmentFixtureManifest.Customers[0].Registration.RegistrationKey;
+        var buyerId = await database.CustomerProfiles.Where(item => item.RegistrationKey == buyerKey)
+            .Select(item => item.UserId).SingleAsync(cancellationToken);
+        var booking = await database.TestDriveBookings.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.Id == bookingId, cancellationToken);
+        if (booking is null && seed)
+        {
+            var now = await database.DatabaseNowAsync(cancellationToken);
+            var malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
+            var date = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(now, malaysia).DateTime);
+            var slot = await FindSlotAsync(2, source.BranchId, date, now, cancellationToken);
+            if (slot is null)
+            {
+                return new(label, "schedule unavailable; preserved", true);
+            }
+
+            var booked = await bookings.BookAsync(source.CustomerId, source.VehicleId,
+                new(bookingId, source.PublicationId, slot.StartsAt), cancellationToken);
+            booking = booked.Booking;
+        }
+
+        if (booking is null || booking.CustomerId != source.CustomerId || booking.VehicleId != source.VehicleId ||
+            booking.PublicationId != source.PublicationId || booking.BranchId != source.BranchId)
+        {
+            return new(label, "booking missing/drift; preserved", true);
+        }
+
+        var reserved = await database.Reservations.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.Id == reservationId, cancellationToken);
+        if (reserved is null && seed)
+        {
+            reserved = (await reservations.ReserveAsync(buyerId, source.VehicleId,
+                new(reservationId, source.PublicationId, null), cancellationToken)).Reservation;
+        }
+
+        if (reserved is null || reserved.CustomerId != buyerId || reserved.VehicleId != source.VehicleId ||
+            reserved.PublicationId != source.PublicationId || reserved.PromoId is not null)
+        {
+            return new(label, "reservation missing/drift; preserved", true);
+        }
+
+        var release = await database.ReservationReleases.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.ReservationId == reservationId, cancellationToken);
+        if (release is null && seed)
+        {
+            await releases.CancelAsync(buyerId, reservationId,
+                new(scenario.OperationId("test-drive-reservation-release"), null), cancellationToken);
+            release = await database.ReservationReleases.AsNoTracking()
+                .SingleOrDefaultAsync(item => item.ReservationId == reservationId, cancellationToken);
+        }
+
+        var cancellation = await database.TestDriveCancellations.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.BookingId == bookingId, cancellationToken);
+        var matches = release is not null && release.Id == scenario.OperationId("test-drive-reservation-release") &&
+            release.ActorId == buyerId && release.Kind == Domain.Vehicles.ReservationReleaseKind.CustomerCancelled &&
+            cancellation is not null && cancellation.CustomerId == source.CustomerId &&
+            cancellation.Kind == TestDriveCancellationKind.VehicleReserved && cancellation.StaffId is null &&
+            cancellation.ReservationId == reservationId && cancellation.Reason == "Vehicle reserved";
+        return new(label, matches ? "system receipt preserved after release" : "system cancellation missing/drift; preserved", !matches);
     }
 
     private async Task<DevelopmentFixtureReport> RunOneAsync(bool seed, DevelopmentInspectionScenario scenario,

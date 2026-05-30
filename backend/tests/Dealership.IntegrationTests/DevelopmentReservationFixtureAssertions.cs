@@ -32,9 +32,9 @@ internal static class DevelopmentReservationFixtureAssertions
         await using var scope = provider.CreateAsyncScope();
         var services = scope.ServiceProvider;
         var database = services.GetRequiredService<DealershipDbContext>();
-        Assert.Equal(56, await database.Reservations.CountAsync());
-        Assert.Equal(48, await database.ReservationReleases.CountAsync());
-        Assert.Equal(56, await database.ReservationMailOutbox.CountAsync());
+        Assert.Equal(57, await database.Reservations.CountAsync());
+        Assert.Equal(49, await database.ReservationReleases.CountAsync());
+        Assert.Equal(57, await database.ReservationMailOutbox.CountAsync());
         Assert.Equal(4, await database.Reservations.CountAsync(item => item.IsActive));
         // The demo sales work the branches' open holds, which stay active while they are handled.
         foreach (var sale in DevelopmentSaleScenarios.All)
@@ -77,14 +77,14 @@ internal static class DevelopmentReservationFixtureAssertions
         var buyerId = await database.CustomerProfiles.Where(item => item.RegistrationKey == buyerKey)
             .Select(item => item.UserId).SingleAsync();
         var buyerHistory = new List<Guid>();
-        for (var page = 1; buyerHistory.Count < 14; page++)
+        for (var page = 1; buyerHistory.Count < 15; page++)
         {
             var result = await reads.AccountAsync(buyerId, page, CancellationToken.None);
             Assert.Equal(ReservationStatus.Succeeded, result.Status);
-            Assert.Equal(14, result.History!.Total);
+            Assert.Equal(15, result.History!.Total);
             Assert.Null(result.History.Active);
             Assert.Equal(ReservationHistory.PageSize, result.History.PageSize);
-            Assert.Equal(Math.Min(ReservationHistory.PageSize, 14 - buyerHistory.Count), result.History.Items.Count);
+            Assert.Equal(Math.Min(ReservationHistory.PageSize, 15 - buyerHistory.Count), result.History.Items.Count);
             buyerHistory.AddRange(result.History.Items.Select(item => item.Receipt.Id));
         }
         Assert.Equal(await database.Reservations.Where(item => item.CustomerId == buyerId)

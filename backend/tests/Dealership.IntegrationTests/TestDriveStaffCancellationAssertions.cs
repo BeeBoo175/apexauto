@@ -128,6 +128,7 @@ internal static class TestDriveStaffCancellationAssertions
         var retained = await Assert.ThrowsAsync<PostgresException>(() => maintenance.GetService<IMigrator>()
             .MigrateAsync("20261103095832_TestDriveAssignments"));
         Assert.Contains("Retained staff cancellations", retained.MessageText);
+        await maintenance.GetService<IMigrator>().MigrateAsync();
 
         async Task<TestDriveCancellationResult> CancelAsync(Guid actor, Guid operation, string reason, Guid? targetId = null)
         {
