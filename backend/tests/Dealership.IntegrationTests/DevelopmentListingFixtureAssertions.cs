@@ -52,7 +52,7 @@ internal static class DevelopmentListingFixtureAssertions
         var managers = services.GetRequiredService<IListingReadStore>();
         foreach (var branch in DevelopmentFixtureManifest.Branches)
         {
-            const int available = 15;
+            var available = branch.Id == DevelopmentTestDriveReopeningFixtures.Scenario.Intake.BranchId ? 14 : 15;
             var expected = await database.ListingRevisions.Where(item => item.BranchId == branch.Id)
                 .Where(item => database.Vehicles.Any(vehicle => vehicle.Id == item.VehicleId &&
                     vehicle.Status == VehicleStatus.Available))
@@ -94,7 +94,7 @@ internal static class DevelopmentListingFixtureAssertions
             Assert.Equal(available, workspace.Listings.Items.Concat(second.Listings!.Items).Count(item => item.IsPublic));
         }
 
-        Assert.Equal(45, (await store.ReadAsync(new(), CancellationToken.None)).Catalogue!.Total);
+        Assert.Equal(44, (await store.ReadAsync(new(), CancellationToken.None)).Catalogue!.Total);
     }
 
     private static async Task<string> SnapshotAsync(DealershipDbContext database)

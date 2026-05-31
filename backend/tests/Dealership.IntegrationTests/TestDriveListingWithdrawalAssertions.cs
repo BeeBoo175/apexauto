@@ -122,6 +122,7 @@ internal static class TestDriveListingWithdrawalAssertions
         var rollback = await Assert.ThrowsAsync<PostgresException>(() => maintenance.GetService<IMigrator>()
             .MigrateAsync("20261103110638_TestDriveReservationCancellations"));
         Assert.Contains("Retained listing withdrawal cancellations", rollback.MessageText);
+        await maintenance.GetService<IMigrator>().MigrateAsync();
 
         var listingService = services.GetRequiredService<ListingService>();
         var revision = listing.Revision;

@@ -1,10 +1,11 @@
 using Dealership.Application.Inspections;
+using Dealership.Infrastructure.Mail;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dealership.Infrastructure.Inspections;
 
-public sealed class InspectionReopeningStore(DealershipDbContext database) : IInspectionReopeningStore
+public sealed class InspectionReopeningStore(DealershipDbContext database, MailDeliverySignal mail) : IInspectionReopeningStore
 {
     public async Task<IInspectionReopeningTransaction> LockAsync(Guid actorId, Guid inspectionId, Guid operationId,
         CancellationToken cancellationToken)
@@ -20,7 +21,7 @@ public sealed class InspectionReopeningStore(DealershipDbContext database) : IIn
             var context = new InspectionReopeningContext(
                 rows.Actor,
                 rows.BranchActive, rows.Vehicle, rows.Draft, existing?.Receipt());
-            return new InspectionReopeningTransaction(database, transaction, context);
+            return new InspectionReopeningTransaction(database, transaction, mail, context);
         }
         catch
         {

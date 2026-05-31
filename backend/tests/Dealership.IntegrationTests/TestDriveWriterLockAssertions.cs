@@ -30,7 +30,7 @@ internal static class TestDriveWriterLockAssertions
             .LockAsync(manager, vehicleId, Guid.NewGuid(), token));
         await VerifyWriterAsync(async (database, token) => await new InspectionAssignmentStore(database)
             .LockAsync(technician, vehicleId, new(Guid.NewGuid(), technician, 0, null), token));
-        await VerifyWriterAsync(async (database, token) => await new InspectionReopeningStore(database)
+        await VerifyWriterAsync(async (database, token) => await new InspectionReopeningStore(database, mail)
             .LockAsync(manager, listing.InspectionId, Guid.NewGuid(), token));
 
         await using var setup = NewContext();
@@ -48,6 +48,7 @@ internal static class TestDriveWriterLockAssertions
 
         await TestDriveReservationCancellationAssertions.VerifySaleAsync(data, fixture, reserved.Reservation!.Id);
         await TestDriveListingWithdrawalAssertions.VerifyAsync(data, fixture, listing, manager, technician, reserved.Reservation!.Id);
+        await TestDriveInspectionReopeningAssertions.VerifyAsync(data, fixture, listing, manager, technician);
 
         async Task VerifyWriterAsync(Func<DealershipDbContext, CancellationToken, Task<IAsyncDisposable>> acquire)
         {

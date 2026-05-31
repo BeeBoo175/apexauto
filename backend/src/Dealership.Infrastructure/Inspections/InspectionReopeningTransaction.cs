@@ -1,4 +1,5 @@
 using Dealership.Application.Inspections;
+using Dealership.Infrastructure.Mail;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -7,7 +8,7 @@ using Npgsql;
 namespace Dealership.Infrastructure.Inspections;
 
 internal sealed class InspectionReopeningTransaction(DealershipDbContext database, IDbContextTransaction transaction,
-    InspectionReopeningContext context) : IInspectionReopeningTransaction
+    MailDeliverySignal mail, InspectionReopeningContext context) : IInspectionReopeningTransaction
 {
     public InspectionReopeningContext Context => context;
 
@@ -31,6 +32,7 @@ internal sealed class InspectionReopeningTransaction(DealershipDbContext databas
             // SQL advances the header and captures the last save; old attestation cannot cross revisions.
             await database.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
+            mail.Request();
             return InspectionAssignmentStatus.Succeeded;
         }
         catch (DbUpdateException exception) when (exception.InnerException is PostgresException

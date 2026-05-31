@@ -2,6 +2,7 @@ using Dealership.Domain.TestDrives;
 using Dealership.Domain.Customers;
 using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Identity;
+using Dealership.Infrastructure.Inspections;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -16,14 +17,16 @@ public sealed class TestDriveCancellationConfiguration : IEntityTypeConfiguratio
             table.HasCheckConstraint("CK_TestDriveCancellations_Shape",
                 "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND isfinite(\"RecordedAt\")");
             table.HasCheckConstraint("CK_TestDriveCancellations_Actor",
-                "(\"Kind\" = 'CustomerCancelled' AND \"StaffId\" IS NULL AND \"Reason\" IS NULL AND \"ReservationId\" IS NULL AND \"ListingWithdrawalId\" IS NULL) OR " +
+                "(\"Kind\" = 'CustomerCancelled' AND \"StaffId\" IS NULL AND \"Reason\" IS NULL AND \"ReservationId\" IS NULL AND \"ListingWithdrawalId\" IS NULL AND \"InspectionReopeningId\" IS NULL) OR " +
                 "(\"Kind\" = 'StaffCancelled' AND \"StaffId\" IS NOT NULL AND \"ReservationId\" IS NULL AND \"ListingWithdrawalId\" IS NULL AND \"Reason\" IS NOT NULL AND " +
-                "length(\"Reason\") BETWEEN 1 AND 1000 AND \"Reason\" = btrim(\"Reason\") AND " +
+                "\"InspectionReopeningId\" IS NULL AND length(\"Reason\") BETWEEN 1 AND 1000 AND \"Reason\" = btrim(\"Reason\") AND " +
                 "\"Reason\" ~ '[^[:space:]]' AND \"Reason\" !~ '[[:cntrl:]]') OR " +
                 "(\"Kind\" = 'VehicleReserved' AND \"StaffId\" IS NULL AND \"ReservationId\" IS NOT NULL AND \"ListingWithdrawalId\" IS NULL AND " +
-                "\"Reason\" IS NOT NULL AND \"Reason\" = 'Vehicle reserved') OR " +
+                "\"InspectionReopeningId\" IS NULL AND \"Reason\" IS NOT NULL AND \"Reason\" = 'Vehicle reserved') OR " +
                 "(\"Kind\" = 'ListingWithdrawn' AND \"StaffId\" IS NULL AND \"ReservationId\" IS NULL AND \"ListingWithdrawalId\" IS NOT NULL AND " +
-                "\"Reason\" IS NOT NULL AND \"Reason\" = 'Listing withdrawn')");
+                "\"InspectionReopeningId\" IS NULL AND \"Reason\" IS NOT NULL AND \"Reason\" = 'Listing withdrawn') OR " +
+                "(\"Kind\" = 'InspectionReopened' AND \"StaffId\" IS NULL AND \"ReservationId\" IS NULL AND \"ListingWithdrawalId\" IS NULL AND " +
+                "\"InspectionReopeningId\" IS NOT NULL AND \"Reason\" IS NOT NULL AND \"Reason\" = 'Vehicle requires reinspection')");
         });
         builder.HasKey(item => item.Id);
         builder.Property(item => item.Id).ValueGeneratedNever();
@@ -40,6 +43,8 @@ public sealed class TestDriveCancellationConfiguration : IEntityTypeConfiguratio
         builder.HasOne<Reservation>().WithMany().HasForeignKey(item => item.ReservationId)
             .OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<ListingWithdrawal>().WithMany().HasForeignKey(item => item.ListingWithdrawalId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<InspectionReopening>().WithMany().HasForeignKey(item => item.InspectionReopeningId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

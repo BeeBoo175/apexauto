@@ -40,7 +40,8 @@ public sealed class DevelopmentListingFixtures(DealershipDbContext database, Lis
         var currentInspection = await database.InspectionDrafts.AnyAsync(item => item.Id == scenario.Id &&
             item.VehicleId == vehicle.Id && item.IsSigned && item.Revision == expectedSign.Revision &&
             item.AssignmentVersion == 1, cancellationToken);
-        if (!currentInspection || vehicle.Status != VehicleStatus.Available && !settled ||
+        var reopened = await DevelopmentTestDriveReopeningFixtures.MatchesReopeningAsync(database, scenario.Id, cancellationToken);
+        if (!currentInspection && !reopened || vehicle.Status != VehicleStatus.Available && !settled && !reopened ||
             !await database.InspectionSignedRevisions.AnyAsync(item => item.Id == expectedSign.OperationId &&
                 item.InspectionId == scenario.Id && item.Revision == expectedSign.Revision, cancellationToken))
         {
@@ -107,7 +108,7 @@ public sealed class DevelopmentListingFixtures(DealershipDbContext database, Lis
                 withdrawal.Reason == DevelopmentTestDriveWithdrawalFixtures.Reason;
             var matches = published.Id == publicationId && published.ActorId == manager.Id &&
                 published.SignedRevisionId == signedId && (withdrawal is null || expectedWithdrawal) &&
-                (vehicle.Status == VehicleStatus.Available || settled);
+                (vehicle.Status == VehicleStatus.Available || settled || reopened);
             return new(label, matches ? "matches" : "publication drift; preserved", !matches);
         }
 

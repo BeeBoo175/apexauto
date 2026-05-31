@@ -17,7 +17,7 @@ internal static class DevelopmentTestDriveFixtureAssertions
         var mail = await database.TestDriveMailOutbox.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync();
         var cancellations = await database.TestDriveCancellations.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync();
         var assignments = await database.TestDriveAssignments.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync();
-        Assert.Equal(DevelopmentTestDriveFixtures.Scenarios.Count + 2, bookings.Length);
+        Assert.Equal(DevelopmentTestDriveFixtures.Scenarios.Count + 3, bookings.Length);
         Assert.Single(cancellations, item => item.Kind == TestDriveCancellationKind.CustomerCancelled);
         var staffCancellation = Assert.Single(cancellations, item => item.Kind == TestDriveCancellationKind.StaffCancelled);
         Assert.NotNull(staffCancellation.StaffId);
@@ -31,6 +31,12 @@ internal static class DevelopmentTestDriveFixtureAssertions
         Assert.Null(withdrawal.ReservationId);
         Assert.Equal(DevelopmentTestDriveWithdrawalFixtures.WithdrawalId, withdrawal.ListingWithdrawalId);
         Assert.Equal("Listing withdrawn", withdrawal.Reason);
+        var reopening = Assert.Single(cancellations, item => item.Kind == TestDriveCancellationKind.InspectionReopened);
+        Assert.Equal(DevelopmentTestDriveReopeningFixtures.ReopeningId, reopening.InspectionReopeningId);
+        Assert.Null(reopening.StaffId);
+        Assert.Null(reopening.ReservationId);
+        Assert.Null(reopening.ListingWithdrawalId);
+        Assert.Equal("Vehicle requires reinspection", reopening.Reason);
         var assignment = Assert.Single(assignments);
         Assert.Contains(bookings, booking => booking.Id == assignment.BookingId && booking.BranchId == assignment.BranchId);
         Assert.Equal(bookings.Length + cancellations.Length, mail.Length);

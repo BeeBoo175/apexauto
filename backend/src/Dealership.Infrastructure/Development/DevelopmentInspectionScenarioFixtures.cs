@@ -50,7 +50,8 @@ public sealed class DevelopmentInspectionScenarioFixtures(DealershipDbContext da
 
         if (scenario.Stage == DevelopmentInspectionStage.Sealed)
         {
-            return Report(scenario, "signed", false);
+            var reopened = await DevelopmentTestDriveReopeningFixtures.MatchesReopeningAsync(database, scenario.Id, cancellationToken);
+            return Report(scenario, reopened ? "reopened after test-drive booking; original signed report retained" : "signed", false);
         }
 
         if (!await RepairAsync(seed, scenario.Id, technicianId, scenario.Repair(), cancellationToken))
@@ -92,6 +93,11 @@ public sealed class DevelopmentInspectionScenarioFixtures(DealershipDbContext da
 
         var photoIds = scenario.Photos.Select(scenario.PhotoId).ToArray();
         var ids = new List<Guid> { scenario.Id, scenario.Save().OperationId };
+        if (await DevelopmentTestDriveReopeningFixtures.MatchesReopeningAsync(database, scenario.Id, cancellationToken))
+        {
+            ids.Add(DevelopmentTestDriveReopeningFixtures.ReopeningId);
+        }
+
         if (scenario.Stage != DevelopmentInspectionStage.Draft)
         {
             ids.Add(scenario.Sign().OperationId);

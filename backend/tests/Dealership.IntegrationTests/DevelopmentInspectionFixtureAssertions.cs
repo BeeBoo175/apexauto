@@ -25,7 +25,7 @@ internal static class DevelopmentInspectionFixtureAssertions
         Assert.Equal(9, await database.InspectionPhotos.CountAsync());
         Assert.Equal(9, await database.InspectionDraftPhotos.CountAsync());
         Assert.Equal(95, await database.InspectionSignedRevisions.CountAsync());
-        Assert.Equal(4, await database.InspectionReopenings.CountAsync());
+        Assert.Equal(5, await database.InspectionReopenings.CountAsync());
         Assert.Equal(43, await database.InspectionRepairRequests.CountAsync());
         Assert.Equal(13, await database.InspectionRepairApprovals.CountAsync());
         Assert.Equal(7, await database.InspectionRepairCompletions.CountAsync());
