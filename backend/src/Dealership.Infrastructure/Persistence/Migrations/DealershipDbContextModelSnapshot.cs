@@ -1108,6 +1108,9 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("CustomerId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("InspectionReopeningId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Kind")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -1133,6 +1136,8 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CustomerId");
 
+                    b.HasIndex("InspectionReopeningId");
+
                     b.HasIndex("ListingWithdrawalId");
 
                     b.HasIndex("ReservationId");
@@ -1144,7 +1149,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.ToTable("TestDriveCancellations", null, t =>
                         {
-                            t.HasCheckConstraint("CK_TestDriveCancellations_Actor", "(\"Kind\" = 'CustomerCancelled' AND \"StaffId\" IS NULL AND \"Reason\" IS NULL AND \"ReservationId\" IS NULL AND \"ListingWithdrawalId\" IS NULL) OR (\"Kind\" = 'StaffCancelled' AND \"StaffId\" IS NOT NULL AND \"ReservationId\" IS NULL AND \"ListingWithdrawalId\" IS NULL AND \"Reason\" IS NOT NULL AND length(\"Reason\") BETWEEN 1 AND 1000 AND \"Reason\" = btrim(\"Reason\") AND \"Reason\" ~ '[^[:space:]]' AND \"Reason\" !~ '[[:cntrl:]]') OR (\"Kind\" = 'VehicleReserved' AND \"StaffId\" IS NULL AND \"ReservationId\" IS NOT NULL AND \"ListingWithdrawalId\" IS NULL AND \"Reason\" IS NOT NULL AND \"Reason\" = 'Vehicle reserved') OR (\"Kind\" = 'ListingWithdrawn' AND \"StaffId\" IS NULL AND \"ReservationId\" IS NULL AND \"ListingWithdrawalId\" IS NOT NULL AND \"Reason\" IS NOT NULL AND \"Reason\" = 'Listing withdrawn')");
+                            t.HasCheckConstraint("CK_TestDriveCancellations_Actor", "(\"Kind\" = 'CustomerCancelled' AND \"StaffId\" IS NULL AND \"Reason\" IS NULL AND \"ReservationId\" IS NULL AND \"ListingWithdrawalId\" IS NULL AND \"InspectionReopeningId\" IS NULL) OR (\"Kind\" = 'StaffCancelled' AND \"StaffId\" IS NOT NULL AND \"ReservationId\" IS NULL AND \"ListingWithdrawalId\" IS NULL AND \"Reason\" IS NOT NULL AND \"InspectionReopeningId\" IS NULL AND length(\"Reason\") BETWEEN 1 AND 1000 AND \"Reason\" = btrim(\"Reason\") AND \"Reason\" ~ '[^[:space:]]' AND \"Reason\" !~ '[[:cntrl:]]') OR (\"Kind\" = 'VehicleReserved' AND \"StaffId\" IS NULL AND \"ReservationId\" IS NOT NULL AND \"ListingWithdrawalId\" IS NULL AND \"InspectionReopeningId\" IS NULL AND \"Reason\" IS NOT NULL AND \"Reason\" = 'Vehicle reserved') OR (\"Kind\" = 'ListingWithdrawn' AND \"StaffId\" IS NULL AND \"ReservationId\" IS NULL AND \"ListingWithdrawalId\" IS NOT NULL AND \"InspectionReopeningId\" IS NULL AND \"Reason\" IS NOT NULL AND \"Reason\" = 'Listing withdrawn') OR (\"Kind\" = 'InspectionReopened' AND \"StaffId\" IS NULL AND \"ReservationId\" IS NULL AND \"ListingWithdrawalId\" IS NULL AND \"InspectionReopeningId\" IS NOT NULL AND \"Reason\" IS NOT NULL AND \"Reason\" = 'Vehicle requires reinspection')");
 
                             t.HasCheckConstraint("CK_TestDriveCancellations_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND isfinite(\"RecordedAt\")");
                         });
@@ -3122,6 +3127,11 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("Dealership.Infrastructure.Inspections.InspectionReopening", null)
+                        .WithMany()
+                        .HasForeignKey("InspectionReopeningId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Dealership.Domain.Vehicles.ListingWithdrawal", null)
                         .WithMany()
