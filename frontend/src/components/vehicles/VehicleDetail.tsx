@@ -14,6 +14,7 @@ import { fuelLabel } from "@/lib/vehicles/contracts";
 import type { PublicVehicleDetail } from "@/lib/vehicles/public-detail";
 import type { ReservationAccess } from "@/lib/vehicles/customer-reservation";
 import { VehicleReservation } from "./VehicleReservation";
+import { VehicleTestDrive } from "./VehicleTestDrive";
 import { VehicleDetailView } from "./VehicleDetailView";
 import { VehicleDetailSections } from "./VehicleDetailSections";
 import { VehiclePurchaseSummary } from "./VehiclePurchaseSummary";
@@ -109,9 +110,12 @@ export function VehicleDetail({
                   promo={promo.accepted}
                   promoBusy={promo.busy}
                   financing={
-                    <Button variant="secondary" onClick={() => tabs.select("financing")}>
-                      Calculate financing
-                    </Button>
+                    <>
+                      <VehicleTestDrive detail={snapshot} access={reservationAccess} />
+                      <Button variant="secondary" onClick={() => tabs.select("financing")}>
+                        Calculate financing
+                      </Button>
+                    </>
                   }
                 />
               }

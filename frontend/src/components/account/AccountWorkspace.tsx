@@ -9,6 +9,8 @@ import type { Appointment } from "@/lib/intake/contracts";
 import type { HistoryFilters } from "@/lib/intake/list-query";
 import { AppointmentHistory } from "./AppointmentHistory";
 import { AccountReservations } from "./AccountReservations";
+import { AccountTestDrives } from "./AccountTestDrives";
+import type { TestDriveHistory } from "@/lib/test-drives/account";
 import type {
   AccountReservations as ReservationSnapshot,
   ReservationFilters,
@@ -18,6 +20,7 @@ import styles from "./Account.module.css";
 const sections = [
   { id: "reservations", label: "Reservations" },
   { id: "appointments", label: "Selling appointments" },
+  { id: "test-drives", label: "Test drives" },
   { id: "account-details", label: "Account details" },
 ] as const;
 
@@ -35,6 +38,8 @@ export function AccountWorkspace({
   reservations,
   reservationPage,
   reservationFilters,
+  testDrives,
+  testDriveQuery,
 }: {
   account: CustomerAccount;
   history: ApiResult<Page<Appointment>> | null;
@@ -43,6 +48,8 @@ export function AccountWorkspace({
   reservations: ApiResult<ReservationSnapshot>;
   reservationPage: number;
   reservationFilters: ReservationFilters;
+  testDrives: ApiResult<TestDriveHistory>;
+  testDriveQuery: { page: number; filters: HistoryFilters };
 }) {
   const actor = useIntakeActor({ userId: account.userId, role: "Customer", branchId: null });
   const [section, setSection] = useState<AccountSection>("reservations");
@@ -110,6 +117,15 @@ export function AccountWorkspace({
               <p className={styles.help}>Verify your email to view your appointment history.</p>
             </section>
           )}
+        </div>
+        <div id="test-drives" className={styles.panel} hidden={section !== "test-drives"}>
+          <AccountTestDrives
+            initial={testDrives}
+            page={testDriveQuery.page}
+            filters={testDriveQuery.filters}
+            actorId={account.userId}
+            ready={actor.ready}
+          />
         </div>
         <section
           id="account-details"

@@ -13,6 +13,8 @@ import {
   accountReservationPage,
 } from "@/lib/vehicles/account-reservations";
 import { readAccountReservations } from "@/lib/vehicles/account-reservations-server";
+import { readTestDriveHistory } from "@/lib/test-drives/customer-server";
+import { accountTestDriveParams } from "@/lib/test-drives/account";
 
 export const metadata = {
   title: "Your account | ApexAuto",
@@ -44,7 +46,8 @@ export default async function AccountPage({
   const { filters, page } = historyParams(params);
   const reservationPage = accountReservationPage(params);
   const reservationFilters = accountReservationFilters(params);
-  const [history, reservations] = await Promise.all([
+  const testDriveQuery = accountTestDriveParams(params);
+  const [history, reservations, testDrives] = await Promise.all([
     response.account.emailVerified
       ? privateApiRead(
           `/api/intake/appointments?${historyQuery(filters, page, ACCOUNT_PAGE_SIZE)}`,
@@ -52,8 +55,12 @@ export default async function AccountPage({
         )
       : Promise.resolve(null),
     readAccountReservations(reservationPage, reservationFilters),
+    readTestDriveHistory(testDriveQuery.page, testDriveQuery.filters),
   ]);
   if (reservations.data && reservations.data.actor.userId !== response.account.userId) {
+    throw new Error("Account identity could not be confirmed");
+  }
+  if (testDrives.data && testDrives.data.actor.userId !== response.account.userId) {
     throw new Error("Account identity could not be confirmed");
   }
   return (
@@ -66,6 +73,8 @@ export default async function AccountPage({
       reservations={reservations}
       reservationPage={reservationPage}
       reservationFilters={reservationFilters}
+      testDrives={testDrives}
+      testDriveQuery={testDriveQuery}
     />
   );
 }
