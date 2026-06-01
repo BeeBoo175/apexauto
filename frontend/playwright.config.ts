@@ -51,6 +51,7 @@ export default defineConfig({
         "sales/footer-contracts.spec.ts",
         "sales/history-contracts.spec.ts",
         "sales/table-contracts.spec.ts",
+        "test-drives/contracts.spec.ts",
       ],
     },
     ...(browserJourneys

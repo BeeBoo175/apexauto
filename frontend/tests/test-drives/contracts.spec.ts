@@ -1,0 +1,279 @@
+import { expect, test } from "@playwright/test";
+import {
+  matchesTestDriveBooking,
+  parseTestDriveBooking,
+  parseTestDriveCancellation,
+  parseTestDriveHistory,
+  parseTestDriveSlots,
+} from "@/lib/test-drives/customer";
+import {
+  parseStaffTestDriveDetail,
+  parseStaffTestDrivePage,
+  parseTestDriveHandlers,
+} from "@/lib/test-drives/staff";
+import {
+  parseTestDriveStaffReceipt,
+  shapeTestDriveStaffCommand,
+} from "@/lib/test-drives/staff-commands";
+
+const id = "47cf2705-95cc-48b6-b907-64bf18dd87da";
+const customerId = "2f35e1b2-602b-43dc-8c5f-4085893b0ea8";
+const vehicleId = "e26136c6-6e1b-46c2-9bb5-c28e2f01dd8c";
+const receipt = {
+  id,
+  customerId,
+  vehicleId,
+  branchId: id,
+  publicationId: vehicleId,
+  startsAt: "2026-11-05T01:00:00Z",
+  endsAt: "2026-11-05T01:30:00Z",
+  createdAt: "2026-11-04T00:00:00Z",
+};
+
+test("booking receipts bind the captured operation, customer, vehicle, publication and booked instant", () => {
+  const parsed = parseTestDriveBooking(receipt)!;
+  const request = { operationId: id, publicationId: vehicleId, startsAt: receipt.startsAt };
+  expect(matchesTestDriveBooking(parsed, request, vehicleId, customerId)).toBe(true);
+  for (const change of [
+    { id: customerId },
+    { customerId: id },
+    { vehicleId: id },
+    { publicationId: id },
+    { startsAt: "2026-11-05T02:00:00Z" },
+  ]) {
+    expect(matchesTestDriveBooking({ ...parsed, ...change }, request, vehicleId, customerId)).toBe(
+      false,
+    );
+  }
+  expect(parseTestDriveBooking({ ...receipt, endsAt: "2026-11-05T02:30:00Z" })).toBeNull();
+  const offer = {
+    vehicleId,
+    publicationId: id,
+    branchId: id,
+    date: "2026-11-05",
+    dateWindow: { firstDate: "2026-11-04", lastDate: "2026-12-03" },
+    slots: [receipt],
+  };
+  expect(parseTestDriveSlots(offer)?.slots).toHaveLength(1);
+  expect(parseTestDriveSlots({ ...offer, vehicleId: "" })).toBeNull();
+  expect(parseTestDriveSlots({ ...offer, slots: [receipt, receipt] })).toBeNull();
+  expect(parseTestDriveSlots({ ...offer, date: "2026-11-06" })).toBeNull();
+});
+
+test("customer history retains indefinite active work and rejects malformed lifecycle or private payload fields", () => {
+  const item = {
+    ...receipt,
+    branchName: "Glenmarie",
+    make: "Proton",
+    model: "Saga",
+    trim: "Premium",
+    manufactureYear: 2022,
+    status: "InProgress",
+    startedAt: "2026-11-05T01:01:00Z",
+    endedAt: null,
+    cancelledAt: null,
+    cancellationReason: null,
+    outcomeReason: null,
+    licenceNumber: "private",
+  };
+  const snapshot = {
+    actor: { userId: customerId, role: "Customer", branchId: null },
+    items: [item],
+    total: 1,
+    page: 1,
+    pageSize: 5,
+  };
+  const parsed = parseTestDriveHistory(snapshot);
+  expect(parsed?.items[0].status).toBe("InProgress");
+  expect(JSON.stringify(parsed)).not.toContain("licenceNumber");
+  expect(parseTestDriveHistory({ ...snapshot, pageSize: 25 })).toBeNull();
+  expect(
+    parseTestDriveHistory({ ...snapshot, actor: { ...snapshot.actor, role: "GeneralManager" } }),
+  ).toBeNull();
+  for (const change of [
+    { status: "Completed" },
+    { status: "Booked" },
+    { status: "NoShow" },
+    { cancelledAt: "2026-11-05T01:10:00Z" },
+    { startedAt: null },
+  ]) {
+    expect(parseTestDriveHistory({ ...snapshot, items: [{ ...item, ...change }] })).toBeNull();
+  }
+  const cancellation = {
+    id,
+    bookingId: vehicleId,
+    customerId,
+    kind: "CustomerCancelled",
+    staffId: null,
+    reason: null,
+    recordedAt: "2026-11-04T02:00:00Z",
+  };
+  expect(parseTestDriveCancellation(cancellation)?.customerId).toBe(customerId);
+  expect(parseTestDriveCancellation({ ...cancellation, staffId: id })).toBeNull();
+  expect(parseTestDriveCancellation({ ...cancellation, kind: "StaffCancelled" })).toBeNull();
+});
+
+test("staff snapshots preserve released ownership and bind handling evidence to the selected booking", () => {
+  const actor = { userId: customerId, role: "BranchManager", branchId: id };
+  const booking = {
+    ...receipt,
+    branchName: "Glenmarie",
+    registrationPlate: "WYY 8821",
+    customerName: "Nur Aina Abdullah",
+    make: "Proton",
+    model: "Saga",
+    trim: "Premium",
+    manufactureYear: 2022,
+    status: "Booked",
+    assignmentId: vehicleId,
+    ownershipVersion: 2,
+    handlerId: null,
+    handlerEmail: null,
+    handlerEligible: false,
+  };
+  const ownership = {
+    id: vehicleId,
+    bookingId: id,
+    version: 2,
+    handlerId: null,
+    actorId: customerId,
+    kind: "Released",
+    recordedAt: "2026-11-04T02:00:00Z",
+    reason: null,
+  };
+  const detail = {
+    actor,
+    booking,
+    ownership,
+    cancellation: null,
+    start: null,
+    outcome: null,
+    createdAt: receipt.createdAt,
+    customerMobile: "0123456789",
+    customerEmail: "aina@example.invalid",
+    startedByEmail: null,
+    completedByEmail: null,
+  };
+  expect(parseStaffTestDriveDetail(detail)?.ownership?.version).toBe(2);
+  expect(
+    parseStaffTestDriveDetail({ ...detail, ownership: { ...ownership, bookingId: vehicleId } }),
+  ).toBeNull();
+  expect(
+    parseStaffTestDriveDetail({ ...detail, ownership: { ...ownership, version: 1 } }),
+  ).toBeNull();
+  expect(
+    parseStaffTestDriveDetail({ ...detail, booking: { ...booking, status: "InProgress" } }),
+  ).toBeNull();
+  const page = {
+    actor,
+    items: [booking],
+    total: 1,
+    page: 1,
+    pageSize: 25,
+    counts: {
+      all: 1,
+      booked: 1,
+      inProgress: 0,
+      completed: 0,
+      notCompleted: 0,
+      noShow: 0,
+      cancelled: 0,
+      toClaim: 1,
+      myWork: 0,
+      history: 0,
+    },
+  };
+  expect(parseStaffTestDrivePage(page)?.items[0].assignmentId).toBe(vehicleId);
+  expect(parseStaffTestDrivePage({ ...page, counts: null })).toBeNull();
+  expect(
+    parseStaffTestDrivePage({ ...page, actor: { ...actor, role: "WorkshopTechnician" } }),
+  ).toBeNull();
+  const handlers = { actor, items: [{ id: customerId, email: "siti@example.invalid" }] };
+  expect(parseTestDriveHandlers(handlers)?.items).toHaveLength(1);
+  expect(
+    parseTestDriveHandlers({
+      ...handlers,
+      actor: { ...actor, role: "GeneralManager", branchId: null },
+    }),
+  ).toBeNull();
+});
+
+test("staff commands preserve exact ownership replay while rejecting other actors and incomplete attendance", () => {
+  const actor = { userId: customerId, role: "SalesAgent" as const, branchId: id };
+  const body = shapeTestDriveStaffCommand("claims", {
+    operationId: vehicleId,
+    expectedVersion: 0,
+  })!;
+  const ownership = {
+    id: vehicleId,
+    bookingId: id,
+    version: 1,
+    actorId: customerId,
+    handlerId: customerId,
+    kind: "Claimed",
+    recordedAt: "2026-11-04T02:00:00Z",
+    reason: null,
+  };
+  const current = {
+    ...ownership,
+    id,
+    version: 2,
+    handlerId: id,
+    kind: "Assigned",
+    reason: "Cover arrival",
+  };
+  expect(
+    parseTestDriveStaffReceipt("claims", { receipt: ownership, current }, body, id, actor),
+  ).not.toBeNull();
+  for (const change of [{ id }, { actorId: id }, { bookingId: customerId }, { version: 2 }]) {
+    expect(
+      parseTestDriveStaffReceipt(
+        "claims",
+        { receipt: { ...ownership, ...change }, current },
+        body,
+        id,
+        actor,
+      ),
+    ).toBeNull();
+  }
+  expect(shapeTestDriveStaffCommand("claims", { ...body, expectedVersion: -1 })).toBeNull();
+  const startBody = {
+    operationId: vehicleId,
+    assignmentId: id,
+    customerPresent: true,
+    drivingLicenceChecked: true,
+  };
+  expect(shapeTestDriveStaffCommand("starts", startBody)).toEqual(startBody);
+  expect(
+    shapeTestDriveStaffCommand("starts", { ...startBody, drivingLicenceChecked: false }),
+  ).toBeNull();
+  const start = {
+    id: vehicleId,
+    bookingId: id,
+    assignmentId: id,
+    staffId: customerId,
+    customerPresent: true,
+    drivingLicenceChecked: true,
+    startedAt: "2026-11-05T01:00:00Z",
+  };
+  expect(
+    parseTestDriveStaffReceipt("starts", { start, outcome: null }, startBody, id, actor),
+  ).not.toBeNull();
+  expect(
+    parseTestDriveStaffReceipt(
+      "starts",
+      { start: { ...start, assignmentId: customerId }, outcome: null },
+      startBody,
+      id,
+      actor,
+    ),
+  ).toBeNull();
+  expect(shapeTestDriveStaffCommand("outcomes", { ...startBody, kind: "NotCompleted" })).toBeNull();
+  expect(
+    shapeTestDriveStaffCommand("outcomes", {
+      ...startBody,
+      kind: "Completed",
+      notes: "Returned safely",
+    })?.notes,
+  ).toBe("Returned safely");
+});
