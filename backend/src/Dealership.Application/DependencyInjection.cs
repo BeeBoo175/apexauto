@@ -56,6 +56,7 @@ public static class DependencyInjection
     public static IServiceCollection AddIntakeApplication(this IServiceCollection services)
     {
         services.AddScoped<TestDrives.TestDriveBookingService>();
+        services.AddScoped<TestDrives.TestDriveDiscoveryService>();
         services.AddScoped<IntakeDiscoveryService>();
         services.AddScoped<IntakeBookingService>();
         services.AddScoped<StaffCalendarService>();

@@ -142,6 +142,8 @@ app.MapTaxonomyValuationEndpoints();
 app.MapListingCommandEndpoints();
 app.MapReservationCommandEndpoints();
 app.MapReservationQueryEndpoints();
+app.MapTestDriveCommandEndpoints();
+app.MapTestDriveQueryEndpoints();
 app.MapPublicListingEndpoints();
 app.MapPromoEndpoints();
 app.MapSettingsEndpoints();
