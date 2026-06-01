@@ -61,6 +61,7 @@ public sealed class TestDriveReadStore(DealershipDbContext database) : ITestDriv
         var rows = from booking in bookings
                    join vehicle in database.Vehicles on booking.VehicleId equals vehicle.Id
                    join branch in database.Branches on booking.BranchId equals branch.Id
+                   join state in TestDriveStatusRows.Create(database, today) on booking.Id equals state.Id
                    join cancellation in database.TestDriveCancellations on booking.Id equals cancellation.BookingId into cancellations
                    from cancellation in cancellations.DefaultIfEmpty()
                    join start in database.TestDriveStarts on booking.Id equals start.BookingId into starts
@@ -71,33 +72,12 @@ public sealed class TestDriveReadStore(DealershipDbContext database) : ITestDriv
                    select new TestDriveHistoryItem(booking.Id, booking.VehicleId, booking.BranchId, branch.Name,
                        vehicle.Make, vehicle.Model, vehicle.Trim, vehicle.ManufactureYear, booking.StartsAt,
                        booking.EndsAt, booking.CreatedAt,
-                       outcome == null ? "Booked" : outcome.Kind,
+                       state.Status,
                        start == null ? null : start.StartedAt, outcome == null ? null : outcome.EndedAt,
                        cancellation == null ? null : cancellation.RecordedAt,
                        cancellation == null ? null : cancellation.Reason, outcome == null ? null : outcome.Reason);
         var items = await rows.ReadPageAsync(page, Pagination.AccountPageSize, total, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-        var history = items.Select(item => item with { Status = Status(item, today) }).ToArray();
-        return new(TestDriveReadStatus.Succeeded, new(actor, history, total, page, Pagination.AccountPageSize));
-    }
-
-    private static string Status(TestDriveHistoryItem item, DateTimeOffset today)
-    {
-        if (item.CancelledAt is not null)
-        {
-            return "Cancelled";
-        }
-
-        if (item.EndedAt is not null)
-        {
-            return item.Status;
-        }
-
-        if (item.StartedAt is not null)
-        {
-            return "InProgress";
-        }
-
-        return item.StartsAt < today ? "NoShow" : "Booked";
+        return new(TestDriveReadStatus.Succeeded, new(actor, items, total, page, Pagination.AccountPageSize));
     }
 }

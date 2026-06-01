@@ -144,6 +144,7 @@ app.MapReservationCommandEndpoints();
 app.MapReservationQueryEndpoints();
 app.MapTestDriveCommandEndpoints();
 app.MapTestDriveQueryEndpoints();
+app.MapStaffTestDriveQueryEndpoints();
 app.MapPublicListingEndpoints();
 app.MapPromoEndpoints();
 app.MapSettingsEndpoints();

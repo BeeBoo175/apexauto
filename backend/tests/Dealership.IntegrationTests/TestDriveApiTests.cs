@@ -82,12 +82,28 @@ public sealed class TestDriveApiTests(IntakePhotoFixture fixture) : IClassFixtur
         var occupied = (await customer.GetFromJsonAsync<TestDriveSlotOffer>(offersPath))!;
         Assert.DoesNotContain(occupied.Slots, slot => slot.StartsAt == request.StartsAt);
         var bookingPath = $"/api/staff/test-drives/{request.OperationId}";
+        Assert.Equal(HttpStatusCode.Forbidden, (await customer.GetAsync(bookingPath)).StatusCode);
+        var open = (await agent.GetFromJsonAsync<StaffTestDrivePage>("/api/staff/test-drives?queue=ToClaim"))!;
+        Assert.Equal(data.StaffId, open.Actor.UserId);
+        Assert.Contains(open.Items, item => item.Id == request.OperationId && item.AssignmentId == null);
+        Assert.Equal(HttpStatusCode.Forbidden, (await agent.GetAsync("/api/staff/test-drives")).StatusCode);
+        var initialDetail = (await agent.GetFromJsonAsync<StaffTestDriveDetail>(bookingPath))!;
+        Assert.Equal("Booked", initialDetail.Booking.Status);
+        Assert.Equal(data.CustomerEmail, initialDetail.CustomerEmail);
+        Assert.Null(initialDetail.Start);
+        var handlers = (await branchManager.GetFromJsonAsync<TestDriveHandlers>($"{bookingPath}/handlers"))!;
+        Assert.Contains(handlers.Items, item => item.Id == manager);
+        Assert.Contains(handlers.Items, item => item.Id == data.StaffId);
+        Assert.DoesNotContain(handlers.Items, item => item.Id == technician);
+        Assert.Equal(HttpStatusCode.Forbidden, (await groupManager.GetAsync($"{bookingPath}/handlers")).StatusCode);
         var claim = new TestDriveAssignmentRequest(Guid.NewGuid(), 0);
         Assert.Equal(HttpStatusCode.Forbidden, (await customer.PostAsJsonAsync($"{bookingPath}/claims", claim)).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await groupManager.PostAsJsonAsync($"{bookingPath}/claims", claim)).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await agent.PostAsJsonAsync($"{bookingPath}/claims", new { claim.OperationId })).StatusCode);
         var claimed = await agent.PostAsJsonAsync($"{bookingPath}/claims", claim);
         Assert.Equal(HttpStatusCode.OK, claimed.StatusCode);
+        var myWork = (await agent.GetFromJsonAsync<StaffTestDrivePage>("/api/staff/test-drives?queue=MyWork"))!;
+        Assert.Contains(myWork.Items, item => item.Id == request.OperationId && item.HandlerId == data.StaffId && item.HandlerEligible);
         var assignment = (await claimed.Content.ReadFromJsonAsync<JsonObject>())!["receipt"]!.AsObject();
         var stale = await agent.PostAsJsonAsync($"{bookingPath}/claims", claim with { OperationId = Guid.NewGuid() });
         Assert.Equal(HttpStatusCode.Conflict, stale.StatusCode);
@@ -95,6 +111,11 @@ public sealed class TestDriveApiTests(IntakePhotoFixture fixture) : IClassFixtur
         var assign = new TestDriveAssignmentRequest(Guid.NewGuid(), 1, manager, "Cover customer arrival");
         Assert.Equal(HttpStatusCode.Forbidden, (await agent.PostAsJsonAsync($"{bookingPath}/assignments", assign)).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await branchManager.PostAsJsonAsync($"{bookingPath}/assignments", assign)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await agent.GetAsync(bookingPath)).StatusCode);
+        var assigned = (await groupManager.GetFromJsonAsync<StaffTestDriveDetail>(bookingPath))!;
+        Assert.Equal(manager, assigned.Booking.HandlerId);
+        Assert.Equal(assign.OperationId, assigned.Booking.AssignmentId);
+        Assert.Equal(2, assigned.Booking.OwnershipVersion);
         var replay = (await (await agent.PostAsJsonAsync($"{bookingPath}/claims", claim)).Content.ReadFromJsonAsync<JsonObject>())!;
         Assert.Equal(assignment.ToJsonString(), replay["receipt"]!.ToJsonString());
         Assert.Equal(manager, replay["current"]!["handlerId"]!.GetValue<Guid>());
@@ -124,6 +145,35 @@ public sealed class TestDriveApiTests(IntakePhotoFixture fixture) : IClassFixtur
         }
 
         await AssertHistoryAsync(customer, unrelated, agent, date);
+        await AssertStaffReadsAsync(branchManager, groupManager, agent, date, request.OperationId, data.BranchId);
+        var reads = services.GetRequiredService<IStaffTestDriveReadStore>();
+        Assert.Equal(TestDriveReadStatus.Forbidden, (await reads.GetAsync(technician, request.OperationId, default)).Status);
+        await database.Users.Where(user => user.Id == manager).ExecuteUpdateAsync(update => update.SetProperty(user => user.IsActive, false));
+        Assert.Equal(TestDriveReadStatus.Forbidden, (await reads.GetAsync(manager, request.OperationId, default)).Status);
+    }
+
+    private static async Task AssertStaffReadsAsync(HttpClient manager, HttpClient group, HttpClient agent,
+        string date, Guid bookingId, Guid branchId)
+    {
+        var path = $"/api/staff/test-drives?from={date}&to={date}&pageSize=10&sort=startsAt&direction=desc";
+        var response = await manager.GetAsync(path);
+        Assert.True(response.Headers.CacheControl?.NoStore);
+        var page = (await response.Content.ReadFromJsonAsync<StaffTestDrivePage>())!;
+        Assert.Equal(7, page.Total);
+        Assert.Equal(7, page.Counts.Cancelled);
+        Assert.All(page.Items, item => Assert.Equal("Cancelled", item.Status));
+        Assert.Equal(page.Items.OrderByDescending(item => item.StartsAt).ThenBy(item => item.Id).Select(item => item.Id),
+            page.Items.Select(item => item.Id));
+        Assert.Empty((await manager.GetFromJsonAsync<StaffTestDrivePage>($"{path}&page={int.MaxValue}"))!.Items);
+        var searched = (await manager.GetFromJsonAsync<StaffTestDrivePage>($"{path}&search={bookingId}"))!;
+        Assert.Equal(bookingId, Assert.Single(searched.Items).Id);
+        Assert.Equal(page.Total, searched.Counts.All);
+        Assert.Equal(page.Total, (await group.GetFromJsonAsync<StaffTestDrivePage>($"{path}&branchId={branchId}"))!.Total);
+        Assert.Equal(HttpStatusCode.Forbidden, (await manager.GetAsync($"{path}&branchId={Guid.NewGuid()}")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await manager.GetAsync($"/api/staff/test-drives?from={date}")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await manager.GetAsync("/api/staff/test-drives?pageSize=5")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await manager.GetAsync("/api/staff/test-drives?sort=unknown")).StatusCode);
+        Assert.Equal(0, (await agent.GetFromJsonAsync<StaffTestDrivePage>("/api/staff/test-drives?queue=History"))!.Total);
     }
 
     private static async Task AssertHandlingBindingAsync(HttpClient handler, HttpClient denied, string path, Guid assignmentId)
