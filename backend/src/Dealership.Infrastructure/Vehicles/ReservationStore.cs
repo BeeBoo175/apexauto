@@ -51,7 +51,9 @@ public sealed class ReservationStore(DealershipDbContext database, MailDeliveryS
             var existing = await database.Reservations.AsNoTracking()
                 .SingleOrDefaultAsync(item => item.Id == request.OperationId, cancellationToken);
             var isRelease = await database.ReservationReleases.AnyAsync(item => item.Id == request.OperationId, cancellationToken);
-            var listing = await PublicListingQuery.Read(database).SingleOrDefaultAsync(row => row.Vehicle.Id == vehicleId, cancellationToken);
+            var listing = await PublicListingQuery.Read(database).Where(row => row.Vehicle.Id == vehicleId &&
+                !database.TestDriveOccupations.Any(occupation => occupation.VehicleId == row.Vehicle.Id && occupation.OutcomeId == null))
+                .SingleOrDefaultAsync(cancellationToken);
             var settings = await database.PurchaseSettings.FromSqlInterpolated(
                 $"SELECT * FROM \"PurchaseSettings\" WHERE \"Id\" = {PurchaseSettings.SingletonId} FOR SHARE")
                 .AsNoTracking().SingleOrDefaultAsync(cancellationToken);

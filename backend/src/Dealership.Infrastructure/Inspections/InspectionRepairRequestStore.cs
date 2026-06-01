@@ -21,7 +21,7 @@ public sealed class InspectionRepairRequestStore(DealershipDbContext database, M
                 .SingleOrDefaultAsync(item => item.Id == operationId, cancellationToken);
             var context = new InspectionRepairRequestContext(
                 rows.Actor,
-                rows.BranchActive, rows.Vehicle, rows.Draft, existing?.Receipt());
+                rows.BranchActive, rows.Vehicle, rows.Draft, existing?.Receipt(), rows.VehicleOccupied);
             return new InspectionRepairRequestTransaction(database, transaction, mail, context);
         }
         catch

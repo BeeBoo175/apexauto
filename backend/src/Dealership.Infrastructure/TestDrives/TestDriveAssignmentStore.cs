@@ -42,10 +42,12 @@ public sealed class TestDriveAssignmentStore(DealershipDbContext database) : ITe
                 .Where(item => item.BookingId == bookingId).OrderByDescending(item => item.Version)
                 .FirstOrDefaultAsync(cancellationToken);
             var cancelled = await database.TestDriveCancellations.AnyAsync(item => item.BookingId == bookingId, cancellationToken);
+            var started = await database.TestDriveStarts.AnyAsync(item => item.BookingId == bookingId, cancellationToken);
+            var completed = await database.TestDriveOutcomes.AnyAsync(item => item.BookingId == bookingId, cancellationToken);
             var context = new TestDriveAssignmentContext(booking,
                 actor is null ? null : new TestDriveStaff(actor.IsActive, actor.Role, actor.BranchId),
                 handler is null ? null : new TestDriveStaff(handler.IsActive, handler.Role, handler.BranchId),
-                branchActive, cancelled, existing, current);
+                branchActive, cancelled, existing, current, started, completed);
             return new TestDriveAssignmentTransaction(database, transaction, context);
         }
         catch

@@ -73,8 +73,11 @@ public sealed class TestDriveCancellationStore(DealershipDbContext database, Mai
             var recipient = await database.Users.Where(item => item.Id == booking.CustomerId)
                 .Select(item => item.Email!).SingleAsync(cancellationToken);
             var now = await database.DatabaseNowAsync(cancellationToken);
+            var started = await database.TestDriveStarts.AnyAsync(item => item.BookingId == bookingId, cancellationToken);
+            var completed = await database.TestDriveOutcomes.AnyAsync(item => item.BookingId == bookingId, cancellationToken);
             return new TestDriveCancellationTransaction(database, transaction, mail,
-                new(TestDriveCancellationStatus.Ready, now, booking, existing, cancelled, staff, branchActive, current), recipient);
+                new(TestDriveCancellationStatus.Ready, now, booking, existing, cancelled, staff, branchActive, current,
+                    started, completed), recipient);
         }
         catch
         {

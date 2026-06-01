@@ -66,6 +66,11 @@ internal static class SaleCommandSteps
             return new(SaleResultStatus.Conflict);
         }
 
+        if (transaction.Context.VehicleOccupied)
+        {
+            return new(SaleResultStatus.Unavailable);
+        }
+
         return await act(transaction, actor, sale);
     }
 

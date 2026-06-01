@@ -46,7 +46,7 @@ public sealed record SaleStaff(Guid Id, bool IsActive, string Role, Guid? Branch
 public sealed record SaleTradeInChoice(Guid AppointmentId, string Label, decimal Maximum, bool TakenByAnotherSale);
 
 public sealed record SaleCommandContext(SaleStaff? Actor, bool BranchActive, SalesOrder? Sale,
-    SalesOrderEvent? Existing, DateTimeOffset Now);
+    SalesOrderEvent? Existing, DateTimeOffset Now, bool VehicleOccupied = false);
 
 public interface ISaleCommandTransaction : IAsyncDisposable
 {

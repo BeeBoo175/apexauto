@@ -39,7 +39,7 @@ public sealed class TestDriveCancellationService(ITestDriveCancellationStore can
             return new(TestDriveCancellationStatus.NotFound);
         }
 
-        if (context.Cancelled)
+        if (context.Cancelled || context.Started || context.Completed)
         {
             return new(TestDriveCancellationStatus.Conflict);
         }
@@ -106,7 +106,7 @@ public sealed class TestDriveCancellationService(ITestDriveCancellationStore can
             return new(TestDriveCancellationStatus.Forbidden);
         }
 
-        if (context.Cancelled)
+        if (context.Cancelled || context.Started || context.Completed)
         {
             return new(TestDriveCancellationStatus.Conflict);
         }

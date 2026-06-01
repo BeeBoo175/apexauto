@@ -46,7 +46,9 @@ public sealed class SaleCommandStore(DealershipDbContext database, MailDeliveryS
             var now = await database.DatabaseNowAsync(cancellationToken);
             // The database clock can trail a sale stamped by another session by a few microseconds.
             now = now < sale.UpdatedAt ? sale.UpdatedAt : now;
-            return new SaleCommandTransaction(database, transaction, new(actor, branchActive, sale, existing, now), mail);
+            var occupied = await database.TestDriveOccupations.AnyAsync(item => item.VehicleId == sale.VehicleId &&
+                item.OutcomeId == null, cancellationToken);
+            return new SaleCommandTransaction(database, transaction, new(actor, branchActive, sale, existing, now, occupied), mail);
         }
         catch
         {

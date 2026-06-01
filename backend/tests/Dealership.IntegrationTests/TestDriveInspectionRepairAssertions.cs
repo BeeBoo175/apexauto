@@ -134,6 +134,7 @@ internal static class TestDriveInspectionRepairAssertions
         var rollback = await Assert.ThrowsAsync<PostgresException>(() => maintenance.GetService<IMigrator>()
             .MigrateAsync("20261103122300_TestDriveInspectionReopeningCancellations"));
         Assert.Contains("Retained inspection repair-request cancellations", rollback.MessageText);
+        await maintenance.Database.MigrateAsync();
         var completed = await services.GetRequiredService<InspectionRepairCompletionService>().CompleteAsync(technician,
             draft.Id, new(Guid.NewGuid(), request.OperationId, draft.AssignmentVersion, draft.Revision,
                 draft.RepairVersion + 1, "Bumper surface polished and checked"), default);

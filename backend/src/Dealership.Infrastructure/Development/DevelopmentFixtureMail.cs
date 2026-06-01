@@ -34,7 +34,9 @@ public sealed class DevelopmentFixtureMail(DealershipDbContext database)
             .Append(DevelopmentTestDriveFixtures.ReservationCancellationBookingId)
             .Append(DevelopmentTestDriveWithdrawalFixtures.BookingId)
             .Append(DevelopmentTestDriveReopeningFixtures.BookingId)
-            .Append(DevelopmentTestDriveRepairFixtures.BookingId).ToArray();
+            .Append(DevelopmentTestDriveRepairFixtures.BookingId)
+            .Concat(DevelopmentTestDriveHandlingFixtures.Kinds.Select(kind =>
+                DevelopmentTestDriveHandlingFixtures.OperationId(kind, "booking"))).ToArray();
         await database.TestDriveMailOutbox.Where(item => testDrives.Contains(item.BookingId) &&
             !_existingTestDrives.Contains(item.Id) && item.DeliveredAt == null && item.DeliveryClaimId == null)
             .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.DeliveredAt, now), cancellationToken);

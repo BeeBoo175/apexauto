@@ -47,7 +47,7 @@ public sealed class InspectionRepairRequestService(IInspectionRepairRequestStore
                 ? new(InspectionAssignmentStatus.Succeeded, existing) : new(InspectionAssignmentStatus.Conflict);
         }
 
-        if (!draft.IsSigned || draft.Revision != request.Revision || draft.AssignmentVersion != request.AssignmentVersion ||
+        if (context.VehicleOccupied || !draft.IsSigned || draft.Revision != request.Revision || draft.AssignmentVersion != request.AssignmentVersion ||
             draft.RepairVersion != request.ExpectedVersion ||
             vehicle.Status is not (VehicleStatus.PendingInspection or VehicleStatus.Available))
         {

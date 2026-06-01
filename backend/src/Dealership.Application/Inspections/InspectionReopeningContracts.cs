@@ -17,7 +17,7 @@ public sealed record InspectionReopenReceipt(Guid OperationId, Guid InspectionId
 public sealed record InspectionReopenResult(InspectionAssignmentStatus Status, InspectionReopenReceipt? Receipt = null);
 
 public sealed record InspectionReopeningContext(InspectionStaff? Actor, bool BranchActive, Vehicle? Vehicle,
-    InspectionDraft? Draft, InspectionReopenReceipt? Existing);
+    InspectionDraft? Draft, InspectionReopenReceipt? Existing, bool VehicleOccupied = false);
 
 public sealed record InspectionReopeningEvidence(Guid SignedRevisionId, long LatestSaveVersion, DateTimeOffset RecordedAt);
 

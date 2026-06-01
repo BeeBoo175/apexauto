@@ -20,7 +20,7 @@ public sealed class InspectionReopeningStore(DealershipDbContext database, MailD
                 .SingleOrDefaultAsync(item => item.Id == operationId, cancellationToken);
             var context = new InspectionReopeningContext(
                 rows.Actor,
-                rows.BranchActive, rows.Vehicle, rows.Draft, existing?.Receipt());
+                rows.BranchActive, rows.Vehicle, rows.Draft, existing?.Receipt(), rows.VehicleOccupied);
             return new InspectionReopeningTransaction(database, transaction, mail, context);
         }
         catch

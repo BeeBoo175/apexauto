@@ -51,7 +51,7 @@ public sealed class InspectionReopeningService(IInspectionReopeningStore reopeni
                 ? new(InspectionAssignmentStatus.Succeeded, existing) : new(InspectionAssignmentStatus.Conflict);
         }
 
-        if (!draft.IsSigned || draft.Revision != request.Revision || draft.AssignmentVersion != request.AssignmentVersion ||
+        if (context.VehicleOccupied || !draft.IsSigned || draft.Revision != request.Revision || draft.AssignmentVersion != request.AssignmentVersion ||
             vehicle.Status is not (VehicleStatus.PendingInspection or VehicleStatus.Rejected or VehicleStatus.Available))
         {
             return new(InspectionAssignmentStatus.Conflict);

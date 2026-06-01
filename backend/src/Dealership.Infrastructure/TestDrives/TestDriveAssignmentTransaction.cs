@@ -16,10 +16,12 @@ internal sealed class TestDriveAssignmentTransaction(DealershipDbContext databas
         return database.DatabaseNowAsync(cancellationToken);
     }
 
-    public Task<bool> HasOverlapAsync(Guid handlerId, CancellationToken cancellationToken)
+    public async Task<bool> HasOverlapAsync(Guid handlerId, CancellationToken cancellationToken)
     {
         var booking = context.Booking!;
-        return StaffScheduleConflicts.HasOverlapAsync(database, handlerId, booking.StartsAt, booking.EndsAt,
+        var startsAt = context.Started ? await database.DatabaseNowAsync(cancellationToken) : booking.StartsAt;
+        var endsAt = context.Started ? startsAt + TestDriveBooking.Duration : booking.EndsAt;
+        return await StaffScheduleConflicts.HasOverlapAsync(database, handlerId, startsAt, endsAt,
             null, booking.Id, cancellationToken);
     }
 

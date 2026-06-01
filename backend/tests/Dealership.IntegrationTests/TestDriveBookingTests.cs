@@ -118,6 +118,7 @@ public sealed class TestDriveBookingTests(IntakePhotoFixture fixture) : IClassFi
         Assert.Equal(TestDriveAssignmentStatus.Unavailable, terminal.Status);
 
         await TestDriveWriterLockAssertions.VerifyAsync(data, fixture, listing, manager, technician);
+        await TestDriveHandlingAssertions.VerifyAsync(data, fixture, listing, manager, technician);
 
         async Task<TestDriveBookingResult> BookAsync(Guid customer, TestDriveBookingRequest command)
         {

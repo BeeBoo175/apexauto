@@ -17,7 +17,12 @@ internal static class DevelopmentTestDriveFixtureAssertions
         var mail = await database.TestDriveMailOutbox.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync();
         var cancellations = await database.TestDriveCancellations.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync();
         var assignments = await database.TestDriveAssignments.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync();
-        Assert.Equal(DevelopmentTestDriveFixtures.Scenarios.Count + 4, bookings.Length);
+        var starts = await database.TestDriveStarts.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync();
+        var outcomes = await database.TestDriveOutcomes.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync();
+        var occupations = await database.TestDriveOccupations.AsNoTracking().OrderBy(item => item.StartId).ToArrayAsync();
+        var attendance = bookings.Where(item => DevelopmentTestDriveHandlingFixtures.Kinds.Any(kind =>
+            item.Id == DevelopmentTestDriveHandlingFixtures.OperationId(kind, "booking"))).ToArray();
+        Assert.Equal(DevelopmentTestDriveFixtures.Scenarios.Count + 4 + attendance.Length, bookings.Length);
         Assert.Single(cancellations, item => item.Kind == TestDriveCancellationKind.CustomerCancelled);
         var staffCancellation = Assert.Single(cancellations, item => item.Kind == TestDriveCancellationKind.StaffCancelled);
         Assert.NotNull(staffCancellation.StaffId);
@@ -44,16 +49,34 @@ internal static class DevelopmentTestDriveFixtureAssertions
         Assert.Null(repair.ListingWithdrawalId);
         Assert.Null(repair.InspectionReopeningId);
         Assert.Equal("Vehicle requires repairs", repair.Reason);
-        var assignment = Assert.Single(assignments);
-        Assert.Contains(bookings, booking => booking.Id == assignment.BookingId && booking.BranchId == assignment.BranchId);
+        Assert.Equal(1 + attendance.Length, assignments.Length);
+        Assert.All(assignments, assignment => Assert.Contains(bookings,
+            booking => booking.Id == assignment.BookingId && booking.BranchId == assignment.BranchId));
+        if (attendance.Length == DevelopmentTestDriveHandlingFixtures.Kinds.Count)
+        {
+            Assert.Equal(2, starts.Length);
+            Assert.Equal(2, outcomes.Length);
+            Assert.Equal(2, occupations.Length);
+            Assert.Single(occupations, occupation => occupation.OutcomeId == null);
+        }
         Assert.Equal(bookings.Length + cancellations.Length, mail.Length);
-        Assert.Equal(DevelopmentTestDriveFixtures.Scenarios.Count, bookings.Select(item => item.CustomerId).Distinct().Count());
+        var expectedCustomers = DevelopmentTestDriveFixtures.Scenarios.Count + (attendance.Length == 0 ? 0 : 1);
+        Assert.Equal(expectedCustomers, bookings.Select(item => item.CustomerId).Distinct().Count());
         Assert.All(mail, message =>
         {
             Assert.Contains(bookings, booking => booking.Id == message.BookingId);
             Assert.NotNull(message.DeliveredAt);
             Assert.Equal(0, message.DeliveryAttempts);
         });
-        return JsonSerializer.Serialize(new { Bookings = bookings, Cancellations = cancellations, Assignments = assignments, Mail = mail });
+        return JsonSerializer.Serialize(new
+        {
+            Bookings = bookings,
+            Cancellations = cancellations,
+            Assignments = assignments,
+            Starts = starts,
+            Outcomes = outcomes,
+            Occupations = occupations,
+            Mail = mail
+        });
     }
 }

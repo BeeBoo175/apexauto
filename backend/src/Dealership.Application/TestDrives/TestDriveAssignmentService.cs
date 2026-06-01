@@ -73,7 +73,13 @@ public sealed class TestDriveAssignmentService(ITestDriveAssignmentStore assignm
         }
 
         var now = await transaction.ReadDatabaseTimeAsync(cancellationToken);
-        if (context.Cancelled || now >= AppointmentDay.EndsAt(booking.StartsAt))
+        if (context.Cancelled || context.Completed || !context.Started && now >= AppointmentDay.EndsAt(booking.StartsAt))
+        {
+            return new(TestDriveAssignmentStatus.Unavailable, Current: current);
+        }
+
+        if (context.Started && (kind != TestDriveAssignmentKind.Assigned ||
+            actor.Role != AccountRoles.BranchManager || request.Reason is null))
         {
             return new(TestDriveAssignmentStatus.Unavailable, Current: current);
         }

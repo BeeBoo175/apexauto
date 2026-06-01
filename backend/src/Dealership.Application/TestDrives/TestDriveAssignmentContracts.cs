@@ -23,7 +23,7 @@ public sealed record TestDriveAssignmentResult(TestDriveAssignmentStatus Status,
 
 public sealed record TestDriveAssignmentContext(TestDriveBooking? Booking, TestDriveStaff? Actor,
     TestDriveStaff? Handler, bool BranchActive, bool Cancelled, TestDriveAssignment? Existing,
-    TestDriveAssignment? Current);
+    TestDriveAssignment? Current, bool Started = false, bool Completed = false);
 
 public interface ITestDriveAssignmentStore
 {

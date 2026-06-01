@@ -22,7 +22,7 @@ public sealed record InspectionRepairReceipt(Guid OperationId, Guid InspectionId
 public sealed record InspectionRepairResult(InspectionAssignmentStatus Status, InspectionRepairReceipt? Receipt = null);
 
 public sealed record InspectionRepairRequestContext(InspectionStaff? Actor, bool BranchActive, Vehicle? Vehicle,
-    InspectionDraft? Draft, InspectionRepairReceipt? Existing);
+    InspectionDraft? Draft, InspectionRepairReceipt? Existing, bool VehicleOccupied = false);
 
 public interface IInspectionRepairRequestTransaction : IAsyncDisposable
 {

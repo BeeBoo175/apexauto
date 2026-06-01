@@ -33,10 +33,12 @@ internal static class InspectionCommandLocks
             $"SELECT * FROM \"InspectionDrafts\" WHERE \"Id\" = {inspectionId} FOR UPDATE")
             .AsNoTracking().SingleOrDefaultAsync(cancellationToken);
 
+        var occupied = await database.TestDriveOccupations.AnyAsync(item => item.VehicleId == vehicleId &&
+            item.OutcomeId == null, cancellationToken);
         return new(actor is null ? null : new InspectionStaff(actor.IsActive, actor.Role, actor.BranchId),
-            branchActive, actor?.UserName, vehicle, draft);
+            branchActive, actor?.UserName, vehicle, draft, occupied);
     }
 
     internal sealed record LockedRows(InspectionStaff? Actor, bool BranchActive, string? TechnicianIdentity,
-        Vehicle? Vehicle, InspectionDraft? Draft);
+        Vehicle? Vehicle, InspectionDraft? Draft, bool VehicleOccupied);
 }
