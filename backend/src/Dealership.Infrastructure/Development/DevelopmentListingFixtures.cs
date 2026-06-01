@@ -41,7 +41,8 @@ public sealed class DevelopmentListingFixtures(DealershipDbContext database, Lis
             item.VehicleId == vehicle.Id && item.IsSigned && item.Revision == expectedSign.Revision &&
             item.AssignmentVersion == 1, cancellationToken);
         var reopened = await DevelopmentTestDriveReopeningFixtures.MatchesReopeningAsync(database, scenario.Id, cancellationToken);
-        if (!currentInspection && !reopened || vehicle.Status != VehicleStatus.Available && !settled && !reopened ||
+        var repairing = await DevelopmentTestDriveRepairFixtures.MatchesProgressAsync(database, scenario.Id, cancellationToken);
+        if (!currentInspection && !reopened || vehicle.Status != VehicleStatus.Available && !settled && !reopened && !repairing ||
             !await database.InspectionSignedRevisions.AnyAsync(item => item.Id == expectedSign.OperationId &&
                 item.InspectionId == scenario.Id && item.Revision == expectedSign.Revision, cancellationToken))
         {
@@ -108,7 +109,7 @@ public sealed class DevelopmentListingFixtures(DealershipDbContext database, Lis
                 withdrawal.Reason == DevelopmentTestDriveWithdrawalFixtures.Reason;
             var matches = published.Id == publicationId && published.ActorId == manager.Id &&
                 published.SignedRevisionId == signedId && (withdrawal is null || expectedWithdrawal) &&
-                (vehicle.Status == VehicleStatus.Available || settled || reopened);
+                (vehicle.Status == VehicleStatus.Available || settled || reopened || repairing);
             return new(label, matches ? "matches" : "publication drift; preserved", !matches);
         }
 

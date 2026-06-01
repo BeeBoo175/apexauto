@@ -13,7 +13,7 @@ namespace Dealership.Infrastructure.Development;
 public sealed class DevelopmentTestDriveFixtures(DealershipDbContext database, TestDriveBookingService bookings,
     TestDriveCancellationService cancellations, TestDriveAssignmentService assignments, InspectionSchedule schedule,
     ReservationService reservations, ReservationCancellationService releases, DevelopmentTestDriveWithdrawalFixtures withdrawals,
-    DevelopmentTestDriveReopeningFixtures reopenings)
+    DevelopmentTestDriveReopeningFixtures reopenings, DevelopmentTestDriveRepairFixtures repairs)
 {
     public static IReadOnlyList<DevelopmentInspectionScenario> Scenarios { get; } = Array.AsReadOnly(
         DevelopmentFixtureManifest.Branches.Select(branch => DevelopmentInspectionScenarios.All.First(item =>
@@ -33,6 +33,7 @@ public sealed class DevelopmentTestDriveFixtures(DealershipDbContext database, T
         reports.Add(await RunReservationCancellationAsync(seed, cancellationToken));
         reports.Add(await withdrawals.RunAsync(seed, cancellationToken));
         reports.Add(await reopenings.RunAsync(seed, cancellationToken));
+        reports.Add(await repairs.RunAsync(seed, cancellationToken));
         return reports;
     }
 

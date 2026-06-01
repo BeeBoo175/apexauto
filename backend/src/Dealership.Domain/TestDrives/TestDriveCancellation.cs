@@ -7,6 +7,7 @@ public static class TestDriveCancellationKind
     public const string VehicleReserved = "VehicleReserved";
     public const string ListingWithdrawn = "ListingWithdrawn";
     public const string InspectionReopened = "InspectionReopened";
+    public const string InspectionRepairRequested = "InspectionRepairRequested";
 }
 
 public sealed class TestDriveCancellation
@@ -62,6 +63,7 @@ public sealed class TestDriveCancellation
     public Guid? ReservationId { get; private set; }
     public Guid? ListingWithdrawalId { get; private set; }
     public Guid? InspectionReopeningId { get; private set; }
+    public Guid? InspectionRepairRequestId { get; private set; }
     public string? Reason { get; private set; }
     public DateTimeOffset RecordedAt { get; private set; }
 

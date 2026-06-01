@@ -98,6 +98,11 @@ public sealed class DevelopmentInspectionScenarioFixtures(DealershipDbContext da
             ids.Add(DevelopmentTestDriveReopeningFixtures.ReopeningId);
         }
 
+        if (await DevelopmentTestDriveRepairFixtures.MatchesProgressAsync(database, scenario.Id, cancellationToken))
+        {
+            ids.AddRange([DevelopmentTestDriveRepairFixtures.RequestId, DevelopmentTestDriveRepairFixtures.CompletionId]);
+        }
+
         if (scenario.Stage != DevelopmentInspectionStage.Draft)
         {
             ids.Add(scenario.Sign().OperationId);

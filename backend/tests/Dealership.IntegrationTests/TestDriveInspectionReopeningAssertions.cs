@@ -132,6 +132,7 @@ internal static class TestDriveInspectionReopeningAssertions
         var rollback = await Assert.ThrowsAsync<PostgresException>(() => maintenance.GetService<IMigrator>()
             .MigrateAsync("20261103113429_TestDriveListingWithdrawalCancellations"));
         Assert.Contains("Retained inspection reopening cancellations", rollback.MessageText);
+        await maintenance.Database.MigrateAsync();
 
         var saved = await services.GetRequiredService<InspectionDraftSaveService>().SaveAsync(technician, draft.Id,
             new(Guid.NewGuid(), draft.AssignmentVersion, saveVersion, [])

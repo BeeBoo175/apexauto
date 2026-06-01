@@ -1,4 +1,5 @@
 using Dealership.Application.Inspections;
+using Dealership.Infrastructure.Mail;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -7,7 +8,7 @@ using Npgsql;
 namespace Dealership.Infrastructure.Inspections;
 
 internal sealed class InspectionRepairRequestTransaction(DealershipDbContext database, IDbContextTransaction transaction,
-    InspectionRepairRequestContext context) : IInspectionRepairRequestTransaction
+    MailDeliverySignal mail, InspectionRepairRequestContext context) : IInspectionRepairRequestTransaction
 {
     public InspectionRepairRequestContext Context => context;
 
@@ -32,6 +33,7 @@ internal sealed class InspectionRepairRequestTransaction(DealershipDbContext dat
             // SQL advances the actual draft; older approval/completion snapshots must serialize.
             await database.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
+            mail.Request();
             return InspectionAssignmentStatus.Succeeded;
         }
         catch (DbUpdateException exception) when (exception.InnerException is PostgresException

@@ -26,9 +26,9 @@ internal static class DevelopmentInspectionFixtureAssertions
         Assert.Equal(9, await database.InspectionDraftPhotos.CountAsync());
         Assert.Equal(95, await database.InspectionSignedRevisions.CountAsync());
         Assert.Equal(5, await database.InspectionReopenings.CountAsync());
-        Assert.Equal(43, await database.InspectionRepairRequests.CountAsync());
+        Assert.Equal(44, await database.InspectionRepairRequests.CountAsync());
         Assert.Equal(13, await database.InspectionRepairApprovals.CountAsync());
-        Assert.Equal(7, await database.InspectionRepairCompletions.CountAsync());
+        Assert.Equal(8, await database.InspectionRepairCompletions.CountAsync());
         foreach (var draft in drafts)
         {
             var technician = DevelopmentFixtureManifest.PrimaryTechnician(draft.BranchId);
