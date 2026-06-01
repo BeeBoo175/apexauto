@@ -1160,6 +1160,112 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Dealership.Domain.TestDrives.TestDriveOutcome", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AssignmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BookingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("CustomerPresent")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset>("EndedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("StaffId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("StartId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingId")
+                        .IsUnique();
+
+                    b.HasIndex("StaffId");
+
+                    b.HasIndex("BookingId", "BranchId");
+
+                    b.HasIndex("AssignmentId", "BookingId", "BranchId");
+
+                    b.HasIndex("StartId", "BookingId", "BranchId");
+
+                    b.ToTable("TestDriveOutcomes", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_TestDriveOutcomes_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"CustomerPresent\" AND isfinite(\"EndedAt\") AND ((\"Kind\" = 'Completed' AND \"StartId\" IS NOT NULL AND \"Reason\" IS NULL) OR (\"Kind\" = 'NotCompleted' AND \"Reason\" IS NOT NULL))");
+
+                            t.HasCheckConstraint("CK_TestDriveOutcomes_Text", "(\"Reason\" IS NULL OR (length(\"Reason\") BETWEEN 1 AND 1000 AND \"Reason\" = btrim(\"Reason\") AND \"Reason\" ~ '[^[:space:]]' AND \"Reason\" !~ '[[:cntrl:]]')) AND (\"Notes\" IS NULL OR (length(\"Notes\") BETWEEN 1 AND 1000 AND \"Notes\" = btrim(\"Notes\") AND \"Notes\" ~ '[^[:space:]]' AND \"Notes\" !~ '[[:cntrl:]]'))");
+                        });
+                });
+
+            modelBuilder.Entity("Dealership.Domain.TestDrives.TestDriveStart", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AssignmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BookingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("CustomerPresent")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("DrivingLicenceChecked")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("StaffId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("VehicleId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingId")
+                        .IsUnique();
+
+                    b.HasIndex("StaffId");
+
+                    b.HasIndex("AssignmentId", "BookingId", "BranchId");
+
+                    b.HasIndex("BookingId", "VehicleId", "BranchId");
+
+                    b.ToTable("TestDriveStarts", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_TestDriveStarts_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"CustomerPresent\" AND \"DrivingLicenceChecked\" AND isfinite(\"StartedAt\")");
+                        });
+                });
+
             modelBuilder.Entity("Dealership.Domain.Vehicles.ListingPhoto", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2729,6 +2835,37 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Dealership.Infrastructure.TestDrives.TestDriveOccupation", b =>
+                {
+                    b.Property<Guid>("StartId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BookingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("OutcomeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("VehicleId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("StartId");
+
+                    b.HasIndex("VehicleId")
+                        .IsUnique()
+                        .HasFilter("\"OutcomeId\" IS NULL");
+
+                    b.HasIndex("OutcomeId", "BookingId", "BranchId");
+
+                    b.HasIndex("StartId", "BookingId", "VehicleId", "BranchId")
+                        .IsUnique();
+
+                    b.ToTable("TestDriveOccupations", (string)null);
+                });
+
             modelBuilder.Entity("Dealership.Infrastructure.Vehicles.ReservationMail", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3166,6 +3303,58 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Dealership.Domain.TestDrives.TestDriveOutcome", b =>
+                {
+                    b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
+                        .WithMany()
+                        .HasForeignKey("StaffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Dealership.Domain.TestDrives.TestDriveBooking", null)
+                        .WithMany()
+                        .HasForeignKey("BookingId", "BranchId")
+                        .HasPrincipalKey("Id", "BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Dealership.Domain.TestDrives.TestDriveAssignment", null)
+                        .WithMany()
+                        .HasForeignKey("AssignmentId", "BookingId", "BranchId")
+                        .HasPrincipalKey("Id", "BookingId", "BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Dealership.Domain.TestDrives.TestDriveStart", null)
+                        .WithMany()
+                        .HasForeignKey("StartId", "BookingId", "BranchId")
+                        .HasPrincipalKey("Id", "BookingId", "BranchId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("Dealership.Domain.TestDrives.TestDriveStart", b =>
+                {
+                    b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
+                        .WithMany()
+                        .HasForeignKey("StaffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Dealership.Domain.TestDrives.TestDriveAssignment", null)
+                        .WithMany()
+                        .HasForeignKey("AssignmentId", "BookingId", "BranchId")
+                        .HasPrincipalKey("Id", "BookingId", "BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Dealership.Domain.TestDrives.TestDriveBooking", null)
+                        .WithMany()
+                        .HasForeignKey("BookingId", "VehicleId", "BranchId")
+                        .HasPrincipalKey("Id", "VehicleId", "BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Dealership.Domain.Vehicles.ListingPhoto", b =>
                 {
                     b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
@@ -3588,6 +3777,22 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .HasForeignKey("CancellationBookingId")
                         .HasPrincipalKey("BookingId")
                         .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("Dealership.Infrastructure.TestDrives.TestDriveOccupation", b =>
+                {
+                    b.HasOne("Dealership.Domain.TestDrives.TestDriveOutcome", null)
+                        .WithMany()
+                        .HasForeignKey("OutcomeId", "BookingId", "BranchId")
+                        .HasPrincipalKey("Id", "BookingId", "BranchId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Dealership.Domain.TestDrives.TestDriveStart", null)
+                        .WithOne()
+                        .HasForeignKey("Dealership.Infrastructure.TestDrives.TestDriveOccupation", "StartId", "BookingId", "VehicleId", "BranchId")
+                        .HasPrincipalKey("Dealership.Domain.TestDrives.TestDriveStart", "Id", "BookingId", "VehicleId", "BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Dealership.Infrastructure.Vehicles.ReservationMail", b =>
