@@ -162,6 +162,7 @@ app.MapIntakeDiscoveryEndpoints();
 app.MapIntakePhotoEndpoints();
 app.MapIntakeBookingEndpoints();
 app.MapStaffIntakeEndpoints();
+app.MapWorkCalendarQueryEndpoints();
 app.MapInspectionDraftEndpoints();
 app.MapInspectionPhotoEndpoints();
 app.MapInspectionRepairEndpoints();

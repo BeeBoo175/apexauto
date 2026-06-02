@@ -6,6 +6,7 @@ using System.Text.Json;
 using Dealership.Application.Accounts;
 using Dealership.Application.Inspections;
 using Dealership.Application.Intake;
+using Dealership.Application.WorkCalendar;
 using Dealership.Domain.Inspections;
 using Dealership.Infrastructure.Inspections;
 using Dealership.Infrastructure.Persistence;
@@ -50,6 +51,27 @@ public sealed class InspectionQueueTests(IntakePhotoFixture fixture) : IClassFix
 
         var queues = services.GetRequiredService<IInspectionQueueStore>();
         var workshop = services.GetRequiredService<IWorkshopQueueStore>();
+        var calendar = services.GetRequiredService<IWorkCalendarStore>();
+        var workQuery = UnscheduledWorkQuery.Parse(null, null, 1, 10)!;
+        var assignedWork = (await calendar.UnscheduledAsync(technician, workQuery, default)).Value!;
+        Assert.Equal(vehicles[0], Assert.Single(assignedWork.Items).Id);
+        Assert.Equal("InspectionUnderway", assignedWork.Items[0].Status);
+        var branchWork = (await calendar.UnscheduledAsync(manager, workQuery, default)).Value!;
+        Assert.Equal(2, branchWork.Total);
+        Assert.DoesNotContain(branchWork.Items, item => item.Id == vehicles[2]);
+        Assert.Equal(WorkCalendarReadStatus.BranchRequired,
+            (await calendar.UnscheduledAsync(group, workQuery, default)).Status);
+        foreach (var denied in new[] { data.OwnerId, admin })
+        {
+            Assert.Equal(WorkCalendarReadStatus.Forbidden,
+                (await calendar.UnscheduledAsync(denied, workQuery, default)).Status);
+        }
+        var day = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(8)).ToString("yyyy-MM-dd",
+            System.Globalization.CultureInfo.InvariantCulture);
+        var appointments = (await calendar.ScheduledAsync(data.StaffId,
+            WorkCalendarQuery.Parse(day, day, null, null)!, default)).Value!;
+        Assert.Equal(3, appointments.Total);
+        Assert.All(appointments.Items, item => Assert.Equal(("Intake", "CheckedIn"), (item.Kind, item.Status)));
         var columnFilter = new InspectionQueueFilter(Registration: "8823", Vehicle: "2020",
             WorkStatus: "AwaitingInspection", Technician: "unassigned");
         var filteredWork = (await workshop.ReadAsync(manager, columnFilter, WorkshopTask.Active, CancellationToken.None)).Queue!;

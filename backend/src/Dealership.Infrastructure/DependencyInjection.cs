@@ -107,6 +107,7 @@ public static class DependencyInjection
         services.AddScoped<IWorkshopQueueStore, WorkshopQueueStore>();
         services.AddScoped<IInspectionPhotoStore, InspectionPhotoStore>();
         services.AddScoped<IStaffWorklistStore, StaffWorklistStore>();
+        services.AddScoped<Application.WorkCalendar.IWorkCalendarStore, WorkCalendar.WorkCalendarStore>();
         services.AddScoped<IStaffExportWriter, StaffWorklistStore>();
         services.AddScoped<IStaffAppointmentDetailStore, StaffAppointmentDetailStore>();
         services.AddSingleton<MissingAccountPasswordHash>(provider =>

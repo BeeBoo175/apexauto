@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.Json.Nodes;
 using Dealership.Application.Accounts;
 using Dealership.Application.TestDrives;
+using Dealership.Application.WorkCalendar;
 using Dealership.Domain.Intake;
 using Dealership.Domain.TestDrives;
 using Dealership.Infrastructure.Persistence;
@@ -97,11 +98,16 @@ public sealed class TestDriveApiTests(IntakePhotoFixture fixture) : IClassFixtur
         Assert.DoesNotContain(handlers.Items, item => item.Id == technician);
         Assert.Equal(HttpStatusCode.Forbidden, (await groupManager.GetAsync($"{bookingPath}/handlers")).StatusCode);
         var claim = new TestDriveAssignmentRequest(Guid.NewGuid(), 0);
+        var calendarPath = $"/api/staff/work-calendar?from={date}&to={date}";
+        Assert.Empty((await agent.GetFromJsonAsync<WorkCalendarSnapshot>(calendarPath))!.Items);
+        Assert.Equal(request.OperationId, Assert.Single((await branchManager.GetFromJsonAsync<WorkCalendarSnapshot>(
+            $"{calendarPath}&employee=unassigned"))!.Items).Id);
         Assert.Equal(HttpStatusCode.Forbidden, (await customer.PostAsJsonAsync($"{bookingPath}/claims", claim)).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await groupManager.PostAsJsonAsync($"{bookingPath}/claims", claim)).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await agent.PostAsJsonAsync($"{bookingPath}/claims", new { claim.OperationId })).StatusCode);
         var claimed = await agent.PostAsJsonAsync($"{bookingPath}/claims", claim);
         Assert.Equal(HttpStatusCode.OK, claimed.StatusCode);
+        await AssertCalendarAsync(agent, branchManager, customer, date, request.OperationId, data, services, manager, generalManager, technician);
         var myWork = (await agent.GetFromJsonAsync<StaffTestDrivePage>("/api/staff/test-drives?queue=MyWork"))!;
         Assert.Contains(myWork.Items, item => item.Id == request.OperationId && item.HandlerId == data.StaffId && item.HandlerEligible);
         var handlerPath = $"/api/staff/test-drives?handler={Uri.EscapeDataString(data.StaffEmail.ToUpperInvariant())}&pageSize=10";
@@ -119,6 +125,7 @@ public sealed class TestDriveApiTests(IntakePhotoFixture fixture) : IClassFixtur
         Assert.Equal(HttpStatusCode.Forbidden, (await agent.PostAsJsonAsync($"{bookingPath}/assignments", assign)).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await branchManager.PostAsJsonAsync($"{bookingPath}/assignments", assign)).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await agent.GetAsync(bookingPath)).StatusCode);
+        Assert.Empty((await agent.GetFromJsonAsync<WorkCalendarSnapshot>(calendarPath))!.Items);
         var assigned = (await groupManager.GetFromJsonAsync<StaffTestDriveDetail>(bookingPath))!;
         Assert.Equal(manager, assigned.Booking.HandlerId);
         Assert.Equal(assign.OperationId, assigned.Booking.AssignmentId);
@@ -159,6 +166,43 @@ public sealed class TestDriveApiTests(IntakePhotoFixture fixture) : IClassFixtur
         Assert.Equal(TestDriveReadStatus.Forbidden, (await reads.GetAsync(manager, request.OperationId, default)).Status);
     }
 
+    private static async Task AssertCalendarAsync(HttpClient agent, HttpClient manager, HttpClient customer,
+        string date, Guid bookingId, CheckInTestData data, IServiceProvider services, Guid managerId, Guid groupId,
+        Guid technicianId)
+    {
+        var path = $"/api/staff/work-calendar?from={date}&to={date}";
+        var response = await agent.GetAsync(path);
+        Assert.True(response.Headers.CacheControl?.NoStore);
+        var own = (await response.Content.ReadFromJsonAsync<WorkCalendarSnapshot>())!;
+        Assert.Equal(data.StaffId, own.Actor.UserId);
+        var drive = Assert.Single(own.Items, item => item.Kind == "TestDrive");
+        Assert.Equal(bookingId, drive.Id);
+        Assert.Equal(data.StaffId, drive.HandlerId);
+        Assert.Equal(data.BranchId, own.BranchId);
+        Assert.All(own.Items, item => Assert.Equal(data.StaffId, item.HandlerId));
+        var reads = services.GetRequiredService<IWorkCalendarStore>();
+        var query = WorkCalendarQuery.Parse(date, date, null, null)!;
+        var refined = (await reads.ScheduledAsync(managerId, query with
+        {
+            Scope = new(null, data.StaffEmail.ToUpperInvariant())
+        }, default)).Value!;
+        Assert.Equal(own.Items.Select(item => item.Id), refined.Items.Select(item => item.Id));
+        Assert.Empty((await reads.ScheduledAsync(managerId, query with { Scope = new(null, "unassigned") }, default)).Value!.Items);
+        Assert.Empty((await reads.ScheduledAsync(managerId, query with { Scope = new(null, "%") }, default)).Value!.Items);
+        Assert.Equal(WorkCalendarReadStatus.BranchRequired, (await reads.ScheduledAsync(groupId, query, default)).Status);
+        Assert.Equal(bookingId, Assert.Single((await reads.ScheduledAsync(groupId,
+            query with { Scope = new(data.BranchId) }, default)).Value!.Items).Id);
+        Assert.Empty((await reads.ScheduledAsync(technicianId, query, default)).Value!.Items);
+        Assert.Equal(WorkCalendarReadStatus.Forbidden, (await reads.ScheduledAsync(data.StaffId,
+            query with { Scope = new(null, "unassigned") }, default)).Status);
+        Assert.Equal(WorkCalendarReadStatus.Forbidden, (await reads.ScheduledAsync(managerId,
+            query with { Scope = new(Guid.NewGuid()) }, default)).Status);
+        Assert.Equal(HttpStatusCode.Forbidden, (await customer.GetAsync(path)).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await manager.GetAsync("/api/staff/work-calendar?from=2026-11-01&to=2026-12-13")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await manager.GetAsync($"{path}&employee={new string('x', 161)}")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await manager.GetAsync("/api/staff/work-calendar/unscheduled?pageSize=5")).StatusCode);
+        Assert.Empty((await agent.GetFromJsonAsync<UnscheduledWorkPage>("/api/staff/work-calendar/unscheduled"))!.Items);
+    }
     private static async Task AssertStaffReadsAsync(HttpClient manager, HttpClient group, HttpClient agent,
         string date, Guid bookingId, Guid branchId)
     {

@@ -1,8 +1,10 @@
 using Dealership.Application.Sales;
 using Dealership.Application.Accounts;
 using Dealership.Application.Common;
+using Dealership.Application.WorkCalendar;
 using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Persistence;
+using Dealership.Infrastructure.WorkCalendar;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using System.Globalization;
@@ -38,6 +40,27 @@ public sealed class SaleListTests(IntakePhotoFixture fixture) : IClassFixture<In
         Assert.Equal((1, 1), (table.Counts.Open, table.Counts.BeingHandled));
         Assert.Equal(SaleResultStatus.Forbidden, (await world.Lists.TableAsync(world.Agent,
             new SaleTableQuery(1, 25, null, null, null, false), default)).Status);
+        await using var database = new DealershipDbContext(new DbContextOptionsBuilder<DealershipDbContext>()
+            .UseNpgsql(fixture.Database.RuntimeConnectionString).Options);
+        var calendar = new WorkCalendarStore(database);
+        var query = UnscheduledWorkQuery.Parse(null, null, 1, 10)!;
+        var work = (await calendar.UnscheduledAsync(world.Agent, query, default)).Value!;
+        Assert.Equal(mine.Id, Assert.Single(work.Items).Id);
+        Assert.Equal("Sale", work.Items[0].Kind);
+        Assert.Equal("Handling", work.Items[0].Status);
+        Assert.Equal(world.Agent, work.Items[0].HandlerId);
+        Assert.DoesNotContain(work.Items, item => item.Id == open.Id);
+        var colleague = (await calendar.UnscheduledAsync(world.Colleague, query, default)).Value!;
+        Assert.Empty(colleague.Items);
+        var otherBranch = (await calendar.UnscheduledAsync(world.OtherBranchAgent, query, default)).Value!;
+        Assert.Empty(otherBranch.Items);
+        Assert.Equal(WorkCalendarReadStatus.Forbidden, (await calendar.UnscheduledAsync(world.Agent,
+            query with { Scope = new(null, "unassigned") }, default)).Status);
+        var beyond = (await calendar.UnscheduledAsync(world.Agent, query with { Page = int.MaxValue }, default)).Value!;
+        Assert.Equal(work.Total, beyond.Total);
+        Assert.Empty(beyond.Items);
+        var unassigned = query with { Scope = new(null, "unassigned") };
+        Assert.Empty((await calendar.UnscheduledAsync(world.Manager, unassigned, default)).Value!.Items);
     }
 
     [Fact]
