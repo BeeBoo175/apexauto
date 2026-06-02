@@ -13,8 +13,14 @@ import {
 } from "@/lib/test-drives/staff";
 import {
   parseTestDriveStaffReceipt,
+  parseTestDriveStaffResponse,
   shapeTestDriveStaffCommand,
 } from "@/lib/test-drives/staff-commands";
+import {
+  staffTestDriveParams,
+  staffTestDriveQuery,
+  testDriveDateError,
+} from "@/lib/test-drives/staff-query";
 
 const id = "47cf2705-95cc-48b6-b907-64bf18dd87da";
 const customerId = "2f35e1b2-602b-43dc-8c5f-4085893b0ea8";
@@ -114,6 +120,49 @@ test("customer history retains indefinite active work and rejects malformed life
 });
 
 test("staff snapshots preserve released ownership and bind handling evidence to the selected booking", () => {
+  expect(staffTestDriveParams({ status: "toString" }, false).filters.status).toBe("All");
+  expect(testDriveDateError({ from: "2026-02-30", to: "2026-03-03" })).not.toBe("");
+  expect(testDriveDateError({ from: "2026-1-1", to: "2026-1-2" })).not.toBe("");
+  expect(testDriveDateError({ from: "", to: "" })).toBe("");
+  const hidden = {
+    from: "2026-11-01",
+    to: "2026-11-02",
+    status: "Cancelled",
+    branchId: id,
+    handlerId: id,
+    handler: "siti",
+    sort: "handlerEmail",
+    direction: "desc",
+    queue: "ToClaim",
+    search: "Saga",
+  };
+  const agentQuery = staffTestDriveParams(hidden, true);
+  expect(agentQuery.filters).toMatchObject({
+    from: "",
+    to: "",
+    status: "All",
+    branchId: "",
+    handlerId: "",
+    handler: "",
+    sort: "",
+    direction: "asc",
+    queue: "ToClaim",
+    search: "Saga",
+  });
+  const managerQuery = staffTestDriveParams(hidden, false);
+  expect(managerQuery.filters).toMatchObject({
+    handler: "siti",
+    handlerId: id,
+    queue: "",
+    sort: "handlerEmail",
+    direction: "desc",
+  });
+  expect(new URLSearchParams(staffTestDriveQuery(managerQuery.filters)).get("handler")).toBe(
+    "siti",
+  );
+  expect(
+    new URLSearchParams(staffTestDriveQuery(staffTestDriveParams({}, false).filters)).has("sort"),
+  ).toBe(false);
   const actor = { userId: customerId, role: "BranchManager", branchId: id };
   const booking = {
     ...receipt,
@@ -276,4 +325,41 @@ test("staff commands preserve exact ownership replay while rejecting other actor
       notes: "Returned safely",
     })?.notes,
   ).toBe("Returned safely");
+
+  const cancellationBody = { operationId: vehicleId, reason: "Customer cannot attend" };
+  const cancellation = {
+    id: vehicleId,
+    bookingId: id,
+    customerId,
+    staffId: customerId,
+    kind: "StaffCancelled",
+    reason: cancellationBody.reason,
+    recordedAt: "2026-11-04T02:00:00Z",
+  };
+  const relayData = parseTestDriveStaffReceipt(
+    "cancellations",
+    cancellation,
+    cancellationBody,
+    id,
+    actor,
+  );
+  expect(
+    parseTestDriveStaffResponse("cancellations", relayData, cancellationBody, id, actor),
+  ).toEqual(relayData);
+  for (const change of [
+    { id },
+    { bookingId: customerId },
+    { staffId: id },
+    { reason: "Another reason" },
+  ]) {
+    expect(
+      parseTestDriveStaffResponse(
+        "cancellations",
+        { cancellation: { ...cancellation, ...change } },
+        cancellationBody,
+        id,
+        actor,
+      ),
+    ).toBeNull();
+  }
 });

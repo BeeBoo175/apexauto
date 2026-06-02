@@ -17,6 +17,7 @@ const titles: Record<string, string> = {
   "/dashboard/management": "Listings",
   "/dashboard/settings": "Settings",
   "/dashboard/sales": "Sales",
+  "/dashboard/test-drives": "Test drives",
 };
 
 export function StaffLoading() {
@@ -36,6 +37,7 @@ export function StaffLoading() {
     "/dashboard/settings": "inspection",
     // Agents get the queue workspace and managers the Sales table, so the shell follows the role.
     "/dashboard/sales": actor.role === "SalesAgent" ? "technician" : "inspection",
+    "/dashboard/test-drives": actor.role === "SalesAgent" ? "technician" : "inspection",
   };
   let view = views[pathname] ?? "inspection";
   let title = titles[pathname] ?? "Your staff workspace";
@@ -58,7 +60,9 @@ export function StaffLoading() {
       <StaffCommandBar title={title} />
       <StaffLoadingShell
         view={view}
-        selected={Boolean(parameters.inspection || parameters.sale || parameters.appointment)}
+        selected={Boolean(
+          parameters.inspection || parameters.sale || parameters.appointment || parameters.booking,
+        )}
       />
     </>
   );

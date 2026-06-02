@@ -104,6 +104,13 @@ public sealed class TestDriveApiTests(IntakePhotoFixture fixture) : IClassFixtur
         Assert.Equal(HttpStatusCode.OK, claimed.StatusCode);
         var myWork = (await agent.GetFromJsonAsync<StaffTestDrivePage>("/api/staff/test-drives?queue=MyWork"))!;
         Assert.Contains(myWork.Items, item => item.Id == request.OperationId && item.HandlerId == data.StaffId && item.HandlerEligible);
+        var handlerPath = $"/api/staff/test-drives?handler={Uri.EscapeDataString(data.StaffEmail.ToUpperInvariant())}&pageSize=10";
+        var filtered = (await branchManager.GetFromJsonAsync<StaffTestDrivePage>(handlerPath))!;
+        Assert.Equal(request.OperationId, Assert.Single(filtered.Items).Id);
+        Assert.Equal(myWork.Counts.All, filtered.Counts.All);
+        Assert.Equal(filtered.Total, (await groupManager.GetFromJsonAsync<StaffTestDrivePage>($"{handlerPath}&branchId={data.BranchId}"))!.Total);
+        Assert.Empty((await branchManager.GetFromJsonAsync<StaffTestDrivePage>("/api/staff/test-drives?handler=%25"))!.Items);
+        Assert.Equal(HttpStatusCode.BadRequest, (await branchManager.GetAsync($"/api/staff/test-drives?handler={new string('x', 161)}")).StatusCode);
         var assignment = (await claimed.Content.ReadFromJsonAsync<JsonObject>())!["receipt"]!.AsObject();
         var stale = await agent.PostAsJsonAsync($"{bookingPath}/claims", claim with { OperationId = Guid.NewGuid() });
         Assert.Equal(HttpStatusCode.Conflict, stale.StatusCode);

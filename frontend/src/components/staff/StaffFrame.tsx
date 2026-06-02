@@ -16,6 +16,7 @@ import { hasInspectionAccess } from "@/lib/inspection/contracts";
 import { hasListingAccess } from "@/lib/vehicles/listings";
 import { hasSalesAccess } from "@/lib/sales/contracts";
 import { hasSettingsAccess } from "@/lib/settings/settings";
+import { hasTestDriveAccess } from "@/lib/test-drives/staff";
 import styles from "./StaffFrame.module.css";
 import { StaffActorContext, StaffNavigationContext } from "./StaffActorBoundary";
 import { StaffNavigationLockContext } from "./StaffNavigationLockContext";
@@ -51,6 +52,7 @@ function StaffFrameContent({
     "/dashboard/management",
     "/dashboard/settings",
     "/dashboard/sales",
+    "/dashboard/test-drives",
   ].includes(navigation.pathname);
   const logout = useAuthMutation("logout", "/login");
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -196,6 +198,24 @@ function StaffFrameContent({
                     onNavigate={(event) => navigate(event, "/dashboard/sales")}
                   >
                     Sales
+                  </StaffLink>
+                )}
+                {actor && hasTestDriveAccess(actor.role) && (
+                  <StaffLink
+                    href="/dashboard/test-drives"
+                    prefetch={false}
+                    prefetchOnIntent={true}
+                    className={
+                      navigation.selectedPath === "/dashboard/test-drives"
+                        ? styles.activeLink
+                        : styles.navLink
+                    }
+                    aria-current={
+                      navigation.selectedPath === "/dashboard/test-drives" ? "page" : undefined
+                    }
+                    onNavigate={(event) => navigate(event, "/dashboard/test-drives")}
+                  >
+                    Test drives
                   </StaffLink>
                 )}
                 {actor && hasSettingsAccess(actor) && (
