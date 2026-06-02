@@ -4,15 +4,15 @@ using Dealership.Application.Common;
 namespace Dealership.Application.TestDrives;
 
 public sealed record StaffTestDriveQuery(ListDateRange Dates, int Page, int PageSize, string Queue,
-    string Status, Guid? BranchId, Guid? HandlerId, string Search, string Sort, string Direction)
+    string Status, Guid? BranchId, Guid? HandlerId, string Search, string Sort, string Direction, string Handler = "")
 {
     public static StaffTestDriveQuery? Parse(string? from, string? to, int page, int pageSize,
         string? queue = null, string? status = null, Guid? branchId = null, Guid? handlerId = null,
-        string? search = null, string? sort = null, string? direction = null)
+        string? search = null, string? sort = null, string? direction = null, string? handler = null)
     {
         var dates = ListDateRange.Parse(from, to);
         var text = search?.Trim() ?? string.Empty;
-        if (dates is null || !Pagination.IsValid(page, pageSize) || !ListSearch.IsValid(text) ||
+        if (dates is null || !Pagination.IsValid(page, pageSize) || !ListSearch.IsValid(text) || !ListSearch.IsValid(handler ?? "") ||
             branchId == Guid.Empty || handlerId == Guid.Empty ||
             queue is not (null or "" or "ToClaim" or "MyWork" or "History") ||
             status is not (null or "All" or "Booked" or "InProgress" or "Completed" or "NotCompleted" or "NoShow" or "Cancelled") ||
@@ -23,7 +23,7 @@ public sealed record StaffTestDriveQuery(ListDateRange Dates, int Page, int Page
         }
 
         return new(dates, page, pageSize, queue ?? string.Empty, status ?? "All", branchId, handlerId,
-            text, sort ?? "startsAt", direction ?? "asc");
+            text, sort ?? "startsAt", direction ?? "asc", handler?.Trim() ?? "");
     }
 }
 

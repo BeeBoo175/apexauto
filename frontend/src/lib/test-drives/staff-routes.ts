@@ -22,6 +22,7 @@ const listKeys = [
   "status",
   "branchId",
   "handlerId",
+  "handler",
   "search",
   "sort",
   "direction",

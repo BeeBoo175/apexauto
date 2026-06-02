@@ -94,6 +94,12 @@ internal static class StaffTestDriveRows
                 EF.Functions.ILike(row.ManufactureYear + " " + row.Make + " " + row.Model + " " + row.Trim, pattern, "!"));
         }
 
+        if (query.Handler.Length > 0)
+        {
+            var pattern = LiteralSearch.Pattern(query.Handler);
+            rows = rows.Where(row => row.HandlerEmail != null && EF.Functions.ILike(row.HandlerEmail, pattern, "!"));
+        }
+
         return rows;
     }
 

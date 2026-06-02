@@ -1,0 +1,104 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { useToast } from "@/components/ui/Toast";
+import { actorIdentity } from "@/lib/auth/actor";
+import { privateApiFetch } from "@/lib/api-browser";
+import { parseStaffTestDrivePage } from "@/lib/test-drives/staff";
+import {
+  staffTestDriveQuery,
+  staffTestDriveUrl,
+  testDriveDateError,
+  type StaffTestDrivePage,
+  type TestDriveFilters,
+} from "@/lib/test-drives/staff-query";
+
+export function useStaffTestDriveList(
+  initial: StaffTestDrivePage,
+  filters: TestDriveFilters,
+  page: number,
+) {
+  const [snapshot, setSnapshot] = useState(initial);
+  const [active, setActive] = useState({ filters, page });
+  const [draft, setDraft] = useState(filters);
+  const [busy, setBusy] = useState(false);
+  const [failedMore, setFailedMore] = useState(false);
+  const [revision, setRevision] = useState(0);
+  const controller = useRef<AbortController | null>(null);
+  const toast = useToast();
+  useEffect(() => () => controller.current?.abort(), []);
+
+  async function load(
+    next = active.filters,
+    nextPage = 1,
+    append = false,
+    supersede = false,
+    history = true,
+  ) {
+    if (controller.current && !supersede) {
+      return false;
+    }
+    const invalid = testDriveDateError(next);
+    if (invalid) {
+      toast.error(invalid);
+      return false;
+    }
+    controller.current?.abort();
+    const attempt = new AbortController();
+    const submitted = draft;
+    controller.current = attempt;
+    setBusy(true);
+    try {
+      const result = await privateApiFetch(
+        `/api/staff/test-drives?${staffTestDriveQuery(next, nextPage)}`,
+        parseStaffTestDrivePage,
+        { signal: attempt.signal },
+      );
+      if (attempt.signal.aborted) {
+        return false;
+      }
+      const confirmed = result.data;
+      if (
+        result.status !== 200 ||
+        !confirmed ||
+        confirmed.page !== nextPage ||
+        confirmed.pageSize !== next.pageSize ||
+        actorIdentity(confirmed.actor) !== actorIdentity(initial.actor)
+      ) {
+        throw new Error("Test drives unavailable");
+      }
+      setSnapshot((current) => {
+        if (!append) {
+          return confirmed;
+        }
+        const items = new Map(current.items.map((item) => [item.id, item]));
+        confirmed.items.forEach((item) => items.set(item.id, item));
+        return { ...confirmed, items: [...items.values()] };
+      });
+      setActive({ filters: next, page: nextPage });
+      setDraft((current) => (current === submitted ? next : current));
+      setFailedMore(false);
+      setRevision((current) => current + 1);
+      if (history) {
+        const selected = new URL(window.location.href).searchParams.get("booking") ?? "";
+        window.history.replaceState(null, "", staffTestDriveUrl(next, nextPage, selected));
+      }
+      return true;
+    } catch {
+      if (!attempt.signal.aborted) {
+        setFailedMore(append);
+        toast.error(
+          "Test drives could not be refreshed. Confirmed rows, filters and drafts remain shown.",
+        );
+      }
+      return false;
+    } finally {
+      if (controller.current === attempt) {
+        controller.current = null;
+        setBusy(false);
+      }
+    }
+  }
+
+  return { snapshot, active, draft, setDraft, busy, failedMore, revision, load };
+}

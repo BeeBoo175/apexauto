@@ -131,6 +131,17 @@ export function parseTestDriveStaffReceipt(
   return { receipt, current };
 }
 
+export function parseTestDriveStaffResponse(
+  command: TestDriveStaffCommand,
+  value: unknown,
+  body: Record<string, unknown>,
+  bookingId: string,
+  actor: CurrentActor,
+) {
+  const receipt = command === "cancellations" && isRecord(value) ? value.cancellation : value;
+  return parseTestDriveStaffReceipt(command, receipt, body, bookingId, actor);
+}
+
 function parseHandlingReceipt(
   command: "starts" | "outcomes",
   value: Record<string, unknown>,
