@@ -11,7 +11,7 @@ test("workspace navigation retains ready content through delayed reads, history 
   await page.getByLabel("Password", { exact: true }).fill("Password123!");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page).toHaveURL(/\/dashboard\/intake$/);
-  for (const destination of ["Reservations", "Listings"]) {
+  for (const destination of ["Sales", "Listings"]) {
     if (new URL(page.url()).pathname !== "/dashboard/intake") {
       const intake = page.getByRole("link", { name: "Intake appointments", exact: true });
       if (!(await intake.isVisible())) {
@@ -35,8 +35,8 @@ test("workspace navigation retains ready content through delayed reads, history 
 });
 
 async function expectReadyNavigation(page: Page, destination: string) {
-  const calendar = page.getByRole("table", { name: "Scoped intake appointments", exact: true });
-  await expect(calendar).toBeVisible();
+  const intakeTable = page.getByRole("table", { name: "Scoped intake appointments", exact: true });
+  await expect(intakeTable).toBeVisible();
   let release = () => {};
   let observed = () => {};
   const gate = new Promise<void>((resolve) => {
@@ -58,13 +58,13 @@ async function expectReadyNavigation(page: Page, destination: string) {
     }
     await listings.click();
     await requested;
-    await expect(calendar).toBeVisible();
+    await expect(intakeTable).toBeVisible();
     await expect(page.getByRole("heading", { name: "Listings", exact: true })).toBeVisible();
   } finally {
     release();
   }
   await expect(page.getByRole("button", { name: "Refresh listings", exact: true })).toBeEnabled();
-  await expect(calendar).toHaveCount(0);
+  await expect(intakeTable).toHaveCount(0);
 
   let releaseHistory = () => {};
   let observedHistory = () => {};
@@ -87,14 +87,14 @@ async function expectReadyNavigation(page: Page, destination: string) {
     await expect(
       page.getByRole("status", { name: "Loading workspace content", exact: true }),
     ).toHaveCount(0);
-    const reservations = page.getByRole("link", { name: destination, exact: true });
-    if (!(await reservations.isVisible())) {
+    const destinationLink = page.getByRole("link", { name: destination, exact: true });
+    if (!(await destinationLink.isVisible())) {
       await page.getByRole("button", { name: "Workspaces", exact: true }).click();
     }
     const aborted = page.waitForEvent("requestfailed", (request) =>
       request.url().includes("/api/staff/intake/appointments?"),
     );
-    await reservations.click();
+    await destinationLink.click();
     await aborted;
     await expect(
       page.getByRole("button", { name: `Refresh ${destination.toLowerCase()}`, exact: true }),
@@ -104,5 +104,5 @@ async function expectReadyNavigation(page: Page, destination: string) {
   }
   await expect(page.getByRole("heading", { name: destination, exact: true })).toBeVisible();
   await expect(page.getByRole("progressbar")).toBeHidden();
-  await expect(calendar).toHaveCount(0);
+  await expect(intakeTable).toHaveCount(0);
 }

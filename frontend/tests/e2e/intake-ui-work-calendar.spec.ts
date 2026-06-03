@@ -162,3 +162,29 @@ test("group calendar requires a branch before reads and filters full-dataset emp
   await page.getByLabel("Branch", { exact: true }).selectOption("");
   await expect(page.getByRole("region", { name: "Work calendar", exact: true })).toHaveCount(0);
 });
+
+test("technician unscheduled work opens its authorized existing Workshop inspection", async ({
+  page,
+}) => {
+  await login(page, "azlan.rahim@example.invalid");
+  const read = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === "/api/staff/work-calendar/unscheduled" &&
+      response.status() === 200,
+  );
+  await page.goto("/dashboard/work-calendar");
+  const work = (await (await read).json()).data;
+  expect(work.items.length).toBeGreaterThan(0);
+  expect(work.items.every((item: { kind: string }) => item.kind === "Workshop")).toBe(true);
+  const item = work.items[0];
+  expect(item.inspectionId).not.toBe(item.id);
+  const href = `/dashboard/inspection?inspection=${item.inspectionId}`;
+  const unscheduled = page.getByRole("region", { name: "Unscheduled work", exact: true });
+  await unscheduled.locator(`a[href="${href}"]`).click();
+  await expect(page).toHaveURL(href);
+  const selected = page.getByRole("region", { name: "Selected workshop job", exact: true });
+  await expect(
+    selected.getByRole("heading", { name: item.registrationPlate, exact: true }),
+  ).toBeVisible();
+  await expect(selected.getByText("This job is unavailable.", { exact: true })).toHaveCount(0);
+});

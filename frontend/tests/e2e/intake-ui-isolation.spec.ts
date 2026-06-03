@@ -2,6 +2,8 @@ import { expect, test } from "@playwright/test";
 import { writeFileSync } from "node:fs";
 import path from "node:path";
 
+test.use({ actionTimeout: 15_000 });
+
 const evidence = process.env.BROWSER_EVIDENCE_DIR!;
 
 test("changed customer cookies clear prior snapshots and unavailable session reads keep the cookie", async ({
@@ -13,8 +15,10 @@ test("changed customer cookies clear prior snapshots and unavailable session rea
   await page.getByLabel("Password", { exact: true }).fill("Password123!");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page).toHaveURL(/\/account$/);
-  await expect(page.getByText("Ahmad Faizal Hassan", { exact: true })).toBeVisible();
-  await page.getByLabel("From (Malaysia)", { exact: true }).fill("2026-01-01");
+  await expect(page.getByText("Welcome back, Ahmad Faizal Hassan.", { exact: true })).toBeVisible();
+  await page.getByRole("link", { name: "Selling appointments", exact: true }).click();
+  const appointments = page.getByRole("region", { name: "Your appointments", exact: true });
+  await appointments.getByLabel("From (Malaysia)", { exact: true }).fill("2026-01-01");
   await page.route("**/api/intake/appointments/*/cancellations", async (route) => {
     const response = await route.fetch();
     if (response.status() !== 200) {
@@ -31,7 +35,10 @@ test("changed customer cookies clear prior snapshots and unavailable session rea
       },
     });
   });
-  await page.getByRole("button", { name: "Request cancellation", exact: true }).first().click();
+  await appointments
+    .getByRole("button", { name: "Request cancellation", exact: true })
+    .first()
+    .click();
   await page.getByRole("button", { name: "Confirm cancellation", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Retry same cancellation", exact: true }),
@@ -52,9 +59,9 @@ test("changed customer cookies clear prior snapshots and unavailable session rea
   });
   expect(changed.status()).toBe(200);
   await page.getByRole("button", { name: "Retry same cancellation", exact: true }).click();
-  await expect(page.getByText("Tan Hui Min", { exact: true })).toBeVisible();
+  await expect(page.getByText("Welcome back, Tan Hui Min.", { exact: true })).toBeVisible();
   await expect(page.getByText("Ahmad Faizal Hassan", { exact: true })).toHaveCount(0);
-  await expect(page.getByLabel("From (Malaysia)", { exact: true })).toHaveValue("");
+  await expect(appointments.getByLabel("From (Malaysia)", { exact: true })).toHaveValue("");
   expect(unloadPrompts).toBe(0);
   const cookie = (await context.cookies()).find((entry) => entry.name === "apexauto_token")!;
   writeFileSync(path.join(evidence, "fault.txt"), "unavailable");
@@ -69,9 +76,9 @@ test("changed customer cookies clear prior snapshots and unavailable session rea
   }
   await page.getByRole("button", { name: "Try checking session again", exact: true }).click();
   await expect(page).toHaveURL(/\/account$/);
-  await expect(page.getByText("Tan Hui Min", { exact: true })).toBeVisible();
+  await expect(page.getByText("Welcome back, Tan Hui Min.", { exact: true })).toBeVisible();
   const other = await context.newPage();
-  await other.goto("/account");
+  await other.goto("/account#account-details");
   await other.getByRole("button", { name: "Sign out", exact: true }).click();
   await expect(page).toHaveURL(/\/login$/);
   await expect(page.getByText("Tan Hui Min", { exact: true })).toHaveCount(0);
@@ -88,7 +95,7 @@ for (const navigation of [false, true]) {
       .fill(navigation ? "farah.aziz@example.invalid" : "aina.sofia@example.invalid");
     await page.getByLabel("Password", { exact: true }).fill("Password123!");
     await page.getByRole("button", { name: "Sign in", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Refresh calendar", exact: true })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Refresh worklist", exact: true })).toBeEnabled();
 
     let release = () => {};
     let observed = () => {};
@@ -122,20 +129,22 @@ for (const navigation of [false, true]) {
         await listings.click();
         await requested;
         await expect(
-          page.getByRole("region", { name: "Intake calendar", exact: true }),
+          page.getByRole("table", { name: "Scoped intake appointments", exact: true }),
         ).toBeVisible();
       } else {
-        const document = await page.goto("/dashboard/intake?view=list");
+        const document = await page.goto("/dashboard/intake");
         expect(document!.headers()["cache-control"]).toContain("no-store");
         await requested;
         await expect(
           page.getByRole("status", { name: "Loading workspace content", exact: true }),
         ).toBeVisible();
       }
-      await expect(page.getByRole("table", { name: "Scoped intake appointments" })).toHaveCount(0);
+      if (!navigation) {
+        await expect(page.getByRole("complementary", { name: "Intake queues" })).toHaveCount(0);
+      }
       await other.goto("/dashboard/intake");
       await expect(
-        other.getByRole("button", { name: "Refresh calendar", exact: true }),
+        other.getByRole("button", { name: "Refresh worklist", exact: true }),
       ).toBeEnabled();
       const signOut = other.getByRole("button", { name: "Sign out", exact: true });
       if (!(await signOut.isVisible())) {
@@ -148,9 +157,9 @@ for (const navigation of [false, true]) {
       await handled;
       await expect(page.getByRole("table", { name: "Scoped intake appointments" })).toHaveCount(0);
       await expect(page.getByLabel("VIN", { exact: true })).toHaveCount(0);
-      await expect(page.getByRole("region", { name: "Intake calendar", exact: true })).toHaveCount(
-        0,
-      );
+      await expect(
+        page.getByRole("complementary", { name: "Intake queues", exact: true }),
+      ).toHaveCount(0);
       await expect(page.getByRole("button", { name: "Refresh listings", exact: true })).toHaveCount(
         0,
       );

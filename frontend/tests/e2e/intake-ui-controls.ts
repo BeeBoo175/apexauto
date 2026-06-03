@@ -22,12 +22,37 @@ export async function showIntakeQueue(page: Page) {
   }
 }
 
-export async function captureIntake(page: Page, name: string) {
-  await expect(page.locator('[aria-label="Notifications"] > *')).toHaveCount(0);
+export async function openStaffWorkspace(page: Page, name: string, blocked = false) {
+  const link = page.getByRole("link", { name, exact: true });
+  if (!(await link.isVisible())) {
+    await page.getByRole("button", { name: "Workspaces", exact: true }).click();
+  }
+  if (blocked) {
+    await expect(link).toHaveAttribute("aria-disabled", "true");
+  }
+  await link.click({ force: blocked });
+  if (blocked) {
+    await closeStaffWorkspaces(page);
+  }
+}
+
+export async function closeStaffWorkspaces(page: Page) {
+  const close = page.getByRole("button", { name: "Close workspaces", exact: true });
+  if (await close.isVisible()) {
+    await close.click();
+  }
+}
+
+export async function hideIntakeQueue(page: Page) {
   const hide = page.getByRole("button", { name: "Hide queue", exact: true });
   if (await hide.isVisible()) {
     await hide.click();
   }
+}
+
+export async function captureIntake(page: Page, name: string) {
+  await expect(page.locator('[aria-label="Notifications"] > *')).toHaveCount(0);
+  await hideIntakeQueue(page);
   await page
     .getByRole("region", { name: "Selected appointment", exact: true })
     .evaluateAll((items) => {
@@ -120,7 +145,7 @@ export async function exerciseOwnership(page: Page) {
   await expect(
     content.locator("footer").getByRole("button", { name: "Reconcile ownership", exact: true }),
   ).toBeVisible();
-  await page.getByRole("link", { name: "Calendar", exact: true }).click();
+  await openStaffWorkspace(page, "Work calendar", true);
   await expect(content).toBeVisible();
   await content
     .locator("footer")

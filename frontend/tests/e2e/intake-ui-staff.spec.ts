@@ -5,6 +5,9 @@ import {
   exerciseManagerHandler,
   captureIntake,
   reviewAgentQueue,
+  openStaffWorkspace,
+  closeStaffWorkspaces,
+  hideIntakeQueue,
 } from "./intake-ui-controls";
 import { expect, test, type Page, type BrowserContext } from "@playwright/test";
 import { readFileSync, writeFileSync } from "node:fs";
@@ -166,9 +169,10 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
   await showIntakeQueue(page);
   await queue.getByRole("button", { name: /^History\b/ }).click();
   await expect(dialog.getByLabel("VIN", { exact: true })).toHaveValue(vin);
-  await page.getByRole("link", { name: "Calendar", exact: true }).click();
+  await openStaffWorkspace(page, "Work calendar");
   const guard = page.getByRole("dialog", { name: "Discard unsaved changes?", exact: true });
   await guard.getByRole("button", { name: "Keep editing", exact: true }).click();
+  await closeStaffWorkspaces(page);
   await expect(dialog.getByLabel("VIN", { exact: true })).toHaveValue(vin);
   await queue.getByRole("button", { name: /^My work\b/ }).click();
   await page.route("**/api/staff/intake/appointments/*", (route) =>
@@ -213,6 +217,7 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
         "The appointment could not be refreshed. Existing details and your draft remain shown.",
     }),
   ).toHaveCount(0);
+  await hideIntakeQueue(page);
   await dialog.getByLabel("Actual odometer (km)", { exact: true }).fill("92000");
   for (const checkbox of await dialog.getByRole("checkbox").all()) {
     await checkbox.check();
@@ -251,7 +256,7 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
   await confirmation.getByRole("button", { name: "Confirm check-in", exact: true }).click();
   await expect(confirmation).toBeHidden();
   await expect(dialog.getByLabel("VIN", { exact: true })).toBeDisabled();
-  await page.getByRole("link", { name: "Calendar", exact: true }).click();
+  await openStaffWorkspace(page, "Work calendar", true);
   await page.keyboard.press("Escape");
   await expect(dialog).toBeVisible();
   await expect(
@@ -440,15 +445,24 @@ for (const [role, email, destination] of [
       await page
         .getByRole("combobox", { name: "Branch", exact: true })
         .selectOption("68f371ad-223a-43d6-b45b-b878eece79ae");
+      const branchRead = page.waitForResponse(
+        (response) =>
+          new URL(response.url()).pathname === "/api/staff/intake/appointments" &&
+          new URL(response.url()).searchParams.get("branchId") ===
+            "68f371ad-223a-43d6-b45b-b878eece79ae" &&
+          response.status() === 200,
+      );
       await page.getByRole("button", { name: "Apply", exact: true }).click();
+      const branchRows = (await (await branchRead).json()).data.items;
+      expect(branchRows.length).toBeGreaterThan(0);
+      expect(
+        branchRows.every(
+          (row: { branchId: string }) => row.branchId === "68f371ad-223a-43d6-b45b-b878eece79ae",
+        ),
+      ).toBe(true);
       await expect(
         page.getByRole("cell", { name: "ApexAuto Petaling Jaya", exact: true }),
-      ).toHaveCount(
-        Math.min(
-          25,
-          refs().filter((item) => item.branchId === "68f371ad-223a-43d6-b45b-b878eece79ae").length,
-        ),
-      );
+      ).toHaveCount(branchRows.length);
     }
   });
 }
