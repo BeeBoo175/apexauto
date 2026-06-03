@@ -19,7 +19,7 @@ test("workspace navigation retains ready content through delayed reads, history 
       }
       await intake.click();
       await expect(
-        page.getByRole("button", { name: "Refresh calendar", exact: true }),
+        page.getByRole("button", { name: "Refresh worklist", exact: true }),
       ).toBeEnabled();
       const publicSite = page.getByRole("link", { name: "View public site", exact: true });
       if (!(await publicSite.isVisible())) {
@@ -35,7 +35,7 @@ test("workspace navigation retains ready content through delayed reads, history 
 });
 
 async function expectReadyNavigation(page: Page, destination: string) {
-  const calendar = page.getByRole("region", { name: "Intake calendar", exact: true });
+  const calendar = page.getByRole("table", { name: "Scoped intake appointments", exact: true });
   await expect(calendar).toBeVisible();
   let release = () => {};
   let observed = () => {};
@@ -74,7 +74,7 @@ async function expectReadyNavigation(page: Page, destination: string) {
   const historyRequested = new Promise<void>((resolve) => {
     observedHistory = resolve;
   });
-  await page.route("**/api/staff/intake/calendar?**", async (route) => {
+  await page.route("**/api/staff/intake/appointments?**", async (route) => {
     const response = await route.fetch();
     observedHistory();
     await historyGate;
@@ -92,7 +92,7 @@ async function expectReadyNavigation(page: Page, destination: string) {
       await page.getByRole("button", { name: "Workspaces", exact: true }).click();
     }
     const aborted = page.waitForEvent("requestfailed", (request) =>
-      request.url().includes("/api/staff/intake/calendar?"),
+      request.url().includes("/api/staff/intake/appointments?"),
     );
     await reservations.click();
     await aborted;

@@ -35,6 +35,7 @@ export default defineConfig({
       testMatch: [
         "auth/contracts.spec.ts",
         "intake/contracts.spec.ts",
+        "intake/work-calendar-contracts.spec.ts",
         "intake/no-show-contracts.spec.ts",
         "inspection/contracts.spec.ts",
         "vehicles/contracts.spec.ts",

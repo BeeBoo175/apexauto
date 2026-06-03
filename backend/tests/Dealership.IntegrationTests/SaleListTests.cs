@@ -49,6 +49,7 @@ public sealed class SaleListTests(IntakePhotoFixture fixture) : IClassFixture<In
         Assert.Equal("Sale", work.Items[0].Kind);
         Assert.Equal("Handling", work.Items[0].Status);
         Assert.Equal(world.Agent, work.Items[0].HandlerId);
+        Assert.Null(work.Items[0].InspectionId);
         Assert.DoesNotContain(work.Items, item => item.Id == open.Id);
         var colleague = (await calendar.UnscheduledAsync(world.Colleague, query, default)).Value!;
         Assert.Empty(colleague.Items);

@@ -44,7 +44,7 @@ public sealed class StaffIntakeExportEndpointTests
         var result = Assert.IsType<Microsoft.AspNetCore.Http.HttpResults.FileContentHttpResult>(await StaffIntakeExportEndpoint.ExportAsync(
             context, store, CancellationToken.None), exactMatch: false);
         var csv = Encoding.UTF8.GetString(result.FileContents.Span);
-        Assert.StartsWith("\uFEFF\"Registration\",\"Vehicle\",\"Status\",\"Customer\",\"Inspection start (UTC)\",\"Branch\",\"Appointment reference\"\r\n", csv);
+        Assert.StartsWith("\uFEFF\"Registration\",\"Vehicle\",\"Status\",\"Customer\",\"Handler\",\"Handler eligible\",\"Inspection start (UTC)\",\"Branch\",\"Appointment reference\"\r\n", csv);
         Assert.Contains("\"' \t=SUM(1,2)\"", csv);
         Assert.Contains("\"' \u0001@branch\"", csv);
         Assert.Contains("\"VCA \"\"9701\"\"\nA\"", csv);
@@ -79,9 +79,6 @@ public sealed class StaffIntakeExportEndpointTests
 
         public Task<StaffWorklistPage?> ListAsync(Guid staffId, StaffWorklistQuery query, CancellationToken cancellationToken)
             => throw new InvalidOperationException("Export must not page the list port.");
-
-        public Task<StaffWorklistPage?> CalendarAsync(Guid staffId, StaffWorklistQuery query, CancellationToken cancellationToken)
-            => throw new InvalidOperationException("Export must not use the calendar port.");
 
         public async Task<StaffWorklistPage?> ExportAsync(Guid staffId, StaffWorklistQuery query, CancellationToken cancellationToken)
         {

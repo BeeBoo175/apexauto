@@ -17,6 +17,7 @@ import { hasListingAccess } from "@/lib/vehicles/listings";
 import { hasSalesAccess } from "@/lib/sales/contracts";
 import { hasSettingsAccess } from "@/lib/settings/settings";
 import { hasTestDriveAccess } from "@/lib/test-drives/staff";
+import { hasWorkCalendarAccess } from "@/lib/staff/work-calendar";
 import styles from "./StaffFrame.module.css";
 import { StaffActorContext, StaffNavigationContext } from "./StaffActorBoundary";
 import { StaffNavigationLockContext } from "./StaffNavigationLockContext";
@@ -53,6 +54,7 @@ function StaffFrameContent({
     "/dashboard/settings",
     "/dashboard/sales",
     "/dashboard/test-drives",
+    "/dashboard/work-calendar",
   ].includes(navigation.pathname);
   const logout = useAuthMutation("logout", "/login");
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -126,6 +128,24 @@ function StaffFrameContent({
                 </StaffLink>
               </div>
               <nav className={styles.navigation} aria-label="Staff navigation">
+                {hasWorkCalendarAccess(actor.role) && (
+                  <StaffLink
+                    href="/dashboard/work-calendar"
+                    prefetch={false}
+                    prefetchOnIntent={true}
+                    className={
+                      navigation.selectedPath === "/dashboard/work-calendar"
+                        ? styles.activeLink
+                        : styles.navLink
+                    }
+                    aria-current={
+                      navigation.selectedPath === "/dashboard/work-calendar" ? "page" : undefined
+                    }
+                    onNavigate={(event) => navigate(event, "/dashboard/work-calendar")}
+                  >
+                    Work calendar
+                  </StaffLink>
+                )}
                 {actor && hasIntakeAccess(actor) && (
                   <StaffLink
                     href="/dashboard/intake"

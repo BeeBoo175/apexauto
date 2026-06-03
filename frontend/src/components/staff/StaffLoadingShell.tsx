@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/Card";
 import { TechnicianLoadingShell } from "@/components/inspection/TechnicianLoadingShell";
-import { IntakeCalendarLoadingShell } from "./IntakeCalendarLoadingShell";
+import { WorkCalendarLoadingShell } from "./WorkCalendarLoadingShell";
 import { StaffTableLoadingShell } from "./StaffTableLoadingShell";
 import layout from "./Staff.module.css";
 import styles from "./StaffLoadingShell.module.css";
@@ -24,7 +24,7 @@ function LoadingContent({ view, selected = false }: LoadingShellProps) {
     return <TechnicianLoadingShell selected={selected} />;
   }
   if (view === "calendar") {
-    return <IntakeCalendarLoadingShell />;
+    return <WorkCalendarLoadingShell />;
   }
   if (view === "appointment") {
     return (

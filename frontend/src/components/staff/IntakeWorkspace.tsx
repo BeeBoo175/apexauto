@@ -7,10 +7,9 @@ import {
   type IntakeViewComponent,
 } from "@/hooks/use-intake-workspace";
 import { useInitialToast } from "@/hooks/use-initial-toast";
-import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
+import type { CurrentActor } from "@/lib/auth/actor";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
-import { IntakeViewNavigation } from "./IntakeViewNavigation";
 import { IntakeAppointmentDrawer } from "./IntakeAppointmentDrawer";
 import { StaffCommandBar } from "./StaffPage";
 import { StaffPageEntranceContext } from "./StaffActorBoundary";
@@ -20,7 +19,6 @@ import { IntakeAgentContent } from "./IntakeAgentContent";
 
 interface Props {
   actor: CurrentActor;
-  today: string;
   initial: IntakeWorkspaceSnapshot;
   initialView: IntakeViewComponent;
 }
@@ -33,31 +31,26 @@ export function IntakeWorkspace(props: Props) {
   return <Workspace key={entry.revision} {...props} />;
 }
 
-function Workspace({ actor, today, initial, initialView }: Props) {
+function Workspace({ actor, initial, initialView: content }: Props) {
   const animateEntry = useContext(StaffPageEntranceContext);
   const [headerActions, setHeaderActions] = useState<HTMLDivElement | null>(null);
-  const workspace = useIntakeWorkspace(initial, initialView, actor.role === "SalesAgent");
-  const { view, content, pending, busy, calendar, worklist, drawer, destinations } = workspace;
+  const workspace = useIntakeWorkspace(initial, actor.role === "SalesAgent");
+  const { worklist, drawer } = workspace;
+  const view = content.view;
+  const busy = worklist.busy;
   useInitialToast(
     actor.role === "GeneralManager" && !initial.branches
       ? "Branch choices are unavailable. All-branch access remains available."
       : null,
   );
   function refresh() {
-    if (view === "calendar") {
-      calendar.cancel();
-      return calendar.load();
-    }
     worklist.cancel();
     return worklist.load(worklist.active.filters, view === "queue" ? 1 : worklist.active.page);
   }
 
   return (
     <div className={styles.workspace}>
-      <LoadingProgress
-        label="Loading appointments"
-        active={busy || Boolean(pending) || drawer.busy}
-      />
+      <LoadingProgress label="Loading appointments" active={busy || drawer.busy} />
       <StaffCommandBar
         title="Intake appointments"
         actionsRef={setHeaderActions}
@@ -65,43 +58,20 @@ function Workspace({ actor, today, initial, initialView }: Props) {
           <>
             {(view !== "queue" || (!drawer.id && !drawer.pendingId)) && (
               <RefreshButton
-                label={view === "calendar" ? "Refresh calendar" : "Refresh worklist"}
-                busy={busy && !pending}
-                disabled={
-                  Boolean(drawer.id) || Boolean(pending) || !calendar.ready || !worklist.ready
-                }
+                label="Refresh worklist"
+                busy={busy}
+                disabled={Boolean(drawer.id) || !worklist.ready}
                 onClick={() => void refresh()}
               />
             )}
-            <IntakeViewNavigation
-              actor={actorIdentity(actor)}
-              agent={actor.role === "SalesAgent"}
-              active={view}
-              pending={pending}
-              destinations={destinations}
-              disabled={
-                (actor.role !== "SalesAgent" && Boolean(drawer.id)) ||
-                !calendar.ready ||
-                !worklist.ready
-              }
-              onNavigate={(href) => void workspace.navigate(href)}
-              onPrepare={workspace.prefetchView}
-              onCancel={workspace.cancelNavigation}
-            />
           </>
         }
       />
-      {pending && (
-        <p className="sr-only" role="status">
-          Loading appointments…
-        </p>
-      )}
       {content.view === "queue" ? (
         <content.Component
           worklist={worklist}
           drawer={drawer}
           className={animateEntry ? layout.reveal : ""}
-          inert={Boolean(pending)}
         >
           <IntakeAgentContent
             actor={actor}
@@ -111,14 +81,7 @@ function Workspace({ actor, today, initial, initialView }: Props) {
           />
         </content.Component>
       ) : (
-        <div
-          className={`${styles.content} ${animateEntry ? layout.reveal : ""}`}
-          inert={Boolean(pending)}
-          aria-busy={Boolean(pending)}
-        >
-          {content.view === "calendar" && (
-            <content.Component actor={actor} today={today} calendar={calendar} drawer={drawer} />
-          )}
+        <div className={`${styles.content} ${animateEntry ? layout.reveal : ""}`}>
           {content.view === "list" && (
             <content.Component actor={actor} worklist={worklist} drawer={drawer} />
           )}

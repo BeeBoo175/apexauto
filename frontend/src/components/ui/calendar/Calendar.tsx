@@ -121,10 +121,12 @@ export function Calendar<Data>(props: CalendarProps<Data>) {
       />
       <section className={styles.datePanel} aria-label="Selected date events">
         <h3>{calendarDayLabel(selectedDate, props.locale)}</h3>
-        <p className={styles.count} role="status">
-          {selectedEvents.length} {selectedEvents.length === 1 ? "event" : "events"}
-        </p>
-        {selectedEvents.length === 0 && <p>No events on this date.</p>}
+        {props.confirmed !== false && (
+          <p className={styles.count} role="status">
+            {selectedEvents.length} {selectedEvents.length === 1 ? "event" : "events"}
+          </p>
+        )}
+        {props.confirmed !== false && selectedEvents.length === 0 && <p>No events on this date.</p>}
         <div className={styles.eventList}>
           {selectedEvents.map((event) => (
             <CalendarEventButton key={event.id} {...props} event={event} />

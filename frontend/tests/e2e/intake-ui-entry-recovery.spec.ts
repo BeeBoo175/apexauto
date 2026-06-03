@@ -15,7 +15,7 @@ test("failed dashboard entry retains recovery and progress until a deliberate re
 });
 
 async function expectEntryRecovery(page: Page) {
-  const calendarRoute = "**/api/staff/intake/calendar?**";
+  const calendarRoute = "**/api/staff/intake/appointments?**";
   await page.route(calendarRoute, (route) => route.abort("failed"));
   await page.goto("/dashboard/intake");
   const retry = page.getByRole("button", { name: "Retry appointments", exact: true });
@@ -48,7 +48,9 @@ async function expectEntryRecovery(page: Page) {
   } finally {
     release();
   }
-  await expect(page.getByRole("region", { name: "Intake calendar", exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("table", { name: "Scoped intake appointments", exact: true }),
+  ).toBeVisible();
   await expect(page.getByRole("progressbar")).toBeHidden();
   await page.unroute(calendarRoute);
 }

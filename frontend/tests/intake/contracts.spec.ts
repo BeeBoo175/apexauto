@@ -6,7 +6,7 @@ import { csvCell, selectedCsv } from "@/lib/csv";
 import { intakeQueueParams, staffParams, staffQuery, staffViewQuery } from "@/lib/staff/query";
 import { DEFAULT_PAGE_SIZE, PAGE_SIZES, paginationQuery } from "@/lib/pagination";
 import { parsePage } from "@/lib/api";
-import { intakeView, parseViewMemory, restoreViewHref } from "@/lib/staff/view-memory";
+
 import { appliedIntakeFilters, resetWorklistFilters } from "@/lib/staff/filter-summary";
 import {
   addCalendarDays,
@@ -15,7 +15,7 @@ import {
   calendarTime,
   addCalendarMonths,
 } from "@/lib/calendar";
-import { calendarParams, calendarQuery, parseCalendar } from "@/lib/staff/calendar";
+
 import { resizeColumnWidths } from "@/lib/column-resize";
 
 const id = "c77708bf-1a31-42f5-9a69-0c8766697a52";
@@ -59,24 +59,6 @@ test("list queries and snapshots share 10/25/50 sizes and the default 25", () =>
   }
 });
 
-test("view memory ignores corrupt, oversized and other-actor state and bounds restored settings", () => {
-  const saved = JSON.stringify({ actor: "staff:branch", list: "page=3", calendar: 123 });
-  expect(parseViewMemory(saved, "staff:branch")).toEqual({
-    list: "page=3",
-    calendar: undefined,
-    queue: undefined,
-  });
-  expect(parseViewMemory(saved, "staff:other-branch")).toEqual({});
-  expect(parseViewMemory("{broken", "staff:branch")).toEqual({});
-  expect(parseViewMemory(" ".repeat(16385), "staff:branch")).toEqual({});
-  const restored = restoreViewHref(
-    "list",
-    "/dashboard/intake?view=list",
-    "page=-1&pageSize=500&sort=evil&search=%00",
-  );
-  expect(restored).toBe("/dashboard/intake?view=list");
-});
-
 test("agent queues discard hidden table and calendar criteria and restore only queue context", () => {
   const input = {
     view: "queue",
@@ -103,14 +85,6 @@ test("agent queues discard hidden table and calendar criteria and restore only q
   });
   expect(intakeQueueParams({ queue: "unknown" }).filters.queue).toBe("MyWork");
   expect(intakeQueueParams({}).filters.queue).toBe("MyWork");
-  expect(intakeView(undefined, true)).toBe("queue");
-  expect(intakeView("list", true)).toBe("queue");
-  expect(intakeView(undefined, false)).toBe("list");
-  expect(intakeView("queue", false)).toBe("list");
-  expect(intakeView("calendar", true)).toBe("calendar");
-  expect(
-    restoreViewHref("queue", "/dashboard/intake?view=queue", new URLSearchParams(input).toString()),
-  ).toBe(`/dashboard/intake?${staffViewQuery(filters, page)}`);
 });
 
 test("appointment dates use Malaysian midnight and retain year/leap boundaries", () => {
@@ -123,52 +97,8 @@ test("appointment dates use Malaysian midnight and retain year/leap boundaries",
   expect(addCalendarMonths("2027-01-31", -1)).toBe("2026-12-01");
   expect(addCalendarMonths("2028-01-31", 1)).toBe("2028-02-01");
   expect(calendarTime("2026-10-20T01:00:00Z", "Asia/Kuala_Lumpur")).toContain("09:00");
-  const filters = calendarParams({ date: "2027-01-01", branchId: id });
-  expect(Object.fromEntries(new URLSearchParams(calendarQuery(filters)))).toEqual({
-    from: "2026-12-28",
-    to: "2027-02-07",
-    status: "All",
-    branchId: id,
-  });
-  expect(calendarParams({}).status).toBe("All");
-  expect(calendarParams({}).branchId).toBe("");
 });
 
-test("calendar snapshots refuse truncated, duplicate, out-of-range and oversized results", () => {
-  const row = {
-    id,
-    branchId: id,
-    branchName: "ApexAuto Glenmarie",
-    customerName: "Nur Aina Abdullah",
-    registrationPlate: "VCA 9701",
-    make: "Proton",
-    model: "Saga",
-    trim: "Standard",
-    manufactureYear: 2020,
-    startsAt: "2026-10-20T01:00:00Z",
-    endsAt: "2026-10-20T02:30:00Z",
-    status: "Booked",
-    handlerId: null,
-    handlerEmail: null,
-    handlerEligible: false,
-    ownershipVersion: 0,
-  };
-  const range = calendarRange("2026-10-20");
-  const snapshot = { ...range, items: [row], total: 1 };
-  expect(parseCalendar(snapshot, range)?.items).toEqual([row]);
-  expect(parseCalendar({ ...snapshot, total: 2 })).toBeNull();
-  expect(parseCalendar({ ...snapshot, to: "2026-10-20" }, range)).toBeNull();
-  expect(parseCalendar({ ...snapshot, to: addCalendarDays(range.to, 1) })).toBeNull();
-  expect(parseCalendar({ ...snapshot, from: snapshot.to })).toBeNull();
-  expect(parseCalendar({ ...snapshot, items: [row, row], total: 2 })).toBeNull();
-  expect(
-    parseCalendar({ ...snapshot, items: [{ ...row, startsAt: "2026-11-09T00:00:00Z" }] }),
-  ).toBeNull();
-  const rows = Array.from({ length: 1000 }, () => ({ ...row, id: crypto.randomUUID() }));
-  expect(parseCalendar({ ...snapshot, items: rows, total: 1000 })?.items).toHaveLength(1000);
-  expect(parseCalendar({ ...snapshot, items: [...rows, row], total: 1001 })).toBeNull();
-  expect(parseCalendar({ ...range, items: [], total: 0 })?.total).toBe(0);
-});
 test("CSV quotes multiline cells and neutralizes formula and control prefixes", () => {
   for (const value of [
     "=SUM(1,2)",
@@ -239,15 +169,6 @@ test("manager handler criteria remain visible, removable and reset without losin
     sort: "handlerEmail",
     direction: "desc",
   });
-  for (const sort of ["handlerEmail", "vehicle"]) {
-    const restored = restoreViewHref(
-      "list",
-      "/dashboard/intake?view=list",
-      `handler=aina.sofia&sort=${sort}&direction=desc`,
-    );
-    expect(new URLSearchParams(restored.split("?")[1]).get("sort")).toBe(sort);
-    expect(new URLSearchParams(restored.split("?")[1]).get("handler")).toBe("aina.sofia");
-  }
 });
 
 test("actor destinations require a validated persisted role and branch shape", () => {

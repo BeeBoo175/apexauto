@@ -2,7 +2,6 @@ import { StaffEntry } from "@/components/staff/StaffEntry";
 import { hasIntakeAccess } from "@/lib/auth/actor";
 import { IntakeClientEntry } from "@/components/staff/IntakeClientEntry";
 import type { SearchParams } from "@/lib/query";
-import { calendarDate } from "@/lib/calendar";
 
 export default async function IntakePage({
   searchParams,
@@ -22,7 +21,6 @@ export default async function IntakePage({
           <IntakeClientEntry
             key={crypto.randomUUID()}
             actor={actor}
-            today={calendarDate()}
             parameters={await searchParams}
           />
         );

@@ -8,7 +8,6 @@ import { StaffEntryPresentationContext } from "./StaffClientEntryBoundary";
 import { StaffLoadingShell, type StaffLoadingView } from "./StaffLoadingShell";
 import styles from "./Staff.module.css";
 import loading from "./StaffLoadingShell.module.css";
-import { intakeView } from "@/lib/staff/view-memory";
 
 const titles: Record<string, string> = {
   "/dashboard/intake": "Intake appointments",
@@ -18,6 +17,7 @@ const titles: Record<string, string> = {
   "/dashboard/settings": "Settings",
   "/dashboard/sales": "Sales",
   "/dashboard/test-drives": "Test drives",
+  "/dashboard/work-calendar": "Work calendar",
 };
 
 export function StaffLoading() {
@@ -38,17 +38,12 @@ export function StaffLoading() {
     // Agents get the queue workspace and managers the Sales table, so the shell follows the role.
     "/dashboard/sales": actor.role === "SalesAgent" ? "technician" : "inspection",
     "/dashboard/test-drives": actor.role === "SalesAgent" ? "technician" : "inspection",
+    "/dashboard/work-calendar": "calendar",
   };
   let view = views[pathname] ?? "inspection";
   let title = titles[pathname] ?? "Your staff workspace";
   if (pathname === "/dashboard/intake") {
-    const requested = intakeView(parameters.view, actor.role === "SalesAgent");
-    const intakeShells: Record<typeof requested, StaffLoadingView> = {
-      calendar: "calendar",
-      list: "intake",
-      queue: "technician",
-    };
-    view = intakeShells[requested];
+    view = actor.role === "SalesAgent" ? "technician" : "intake";
   }
   if (pathname.startsWith("/dashboard/intake/")) {
     view = "appointment";

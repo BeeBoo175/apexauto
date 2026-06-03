@@ -56,6 +56,7 @@ public sealed class InspectionQueueTests(IntakePhotoFixture fixture) : IClassFix
         var assignedWork = (await calendar.UnscheduledAsync(technician, workQuery, default)).Value!;
         Assert.Equal(vehicles[0], Assert.Single(assignedWork.Items).Id);
         Assert.Equal("InspectionUnderway", assignedWork.Items[0].Status);
+        Assert.Equal(inspection, assignedWork.Items[0].InspectionId);
         var branchWork = (await calendar.UnscheduledAsync(manager, workQuery, default)).Value!;
         Assert.Equal(2, branchWork.Total);
         Assert.DoesNotContain(branchWork.Items, item => item.Id == vehicles[2]);

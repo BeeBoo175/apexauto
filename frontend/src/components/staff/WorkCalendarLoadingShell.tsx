@@ -4,7 +4,7 @@ import styles from "./StaffLoadingShell.module.css";
 
 const weekdays = Array.from({ length: 7 }, (_, index) => index);
 
-export function IntakeCalendarLoadingShell() {
+export function WorkCalendarLoadingShell() {
   return (
     <div className={calendar.calendar} data-fit="true" aria-hidden="true">
       <div className={calendar.toolbar}>

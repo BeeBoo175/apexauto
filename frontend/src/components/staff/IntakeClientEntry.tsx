@@ -10,11 +10,9 @@ import { StaffLoading, StaffNotice } from "./StaffPage";
 export function IntakeClientEntry({
   actor,
   parameters,
-  today,
 }: {
   actor: CurrentActor;
   parameters: SearchParams;
-  today: string;
 }) {
   const { entry, failed, retry } = useIntakeClientEntry(actor, parameters);
   if (failed) {
@@ -29,12 +27,5 @@ export function IntakeClientEntry({
   if (!entry) {
     return <StaffLoading />;
   }
-  return (
-    <IntakeWorkspace
-      actor={actor}
-      today={today}
-      initial={entry.snapshot}
-      initialView={entry.view}
-    />
-  );
+  return <IntakeWorkspace actor={actor} initial={entry.snapshot} initialView={entry.view} />;
 }

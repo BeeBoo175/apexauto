@@ -15,6 +15,7 @@ interface Props {
   showTitle?: boolean;
   paginationClassName?: string;
   density?: "default" | "compact";
+  emptyLabel?: string;
 }
 
 export function BranchFilter({
@@ -29,10 +30,11 @@ export function BranchFilter({
   showTitle = false,
   paginationClassName,
   density = "compact",
+  emptyLabel = "All branches",
 }: Props) {
   const selectedBranch = branches?.items.find((branch) => branch.id === branchId);
   const branchName = selectedBranch?.name ?? selectedBranchName ?? "Selected branch";
-  const title = branchId ? branchName : "All branches";
+  const title = branchId ? branchName : emptyLabel;
   const buttonSize = density === "compact" ? "compact" : "md";
   const pagination = branches && branches.total > branches.pageSize && (
     <>
@@ -69,7 +71,7 @@ export function BranchFilter({
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
       >
-        <option value="">All branches</option>
+        <option value="">{emptyLabel}</option>
         {branchId && !selectedBranch && <option value={branchId}>{branchName}</option>}
         {branches?.items.map((branch) => (
           <option key={branch.id} value={branch.id}>

@@ -21,6 +21,7 @@ export interface CalendarProps<Data = unknown> {
   timeZone: string;
   disabled?: boolean;
   busy?: boolean;
+  confirmed?: boolean;
   fit?: boolean;
   toolbar?: ReactNode;
   onMonthChange: (date: string) => void;

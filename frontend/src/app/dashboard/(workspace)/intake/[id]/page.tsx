@@ -5,7 +5,6 @@ import { isUuid } from "@/lib/auth/contracts";
 import { hasIntakeAccess } from "@/lib/auth/actor";
 import type { SearchParams } from "@/lib/query";
 import { staffParams, staffViewQuery } from "@/lib/staff/query";
-import { calendarHref, calendarParams } from "@/lib/staff/calendar";
 
 export default async function IntakeDetailPage({
   params,
@@ -28,10 +27,7 @@ export default async function IntakeDetailPage({
       {async (actor) => {
         const navigation = await searchParams;
         const { filters, page } = staffParams(navigation);
-        const returnTo =
-          navigation.view === "list"
-            ? `/dashboard/intake?${staffViewQuery(filters, page)}`
-            : calendarHref(calendarParams(navigation));
+        const returnTo = `/dashboard/intake?${staffViewQuery(filters, page)}`;
         return (
           <AppointmentClientEntry
             key={crypto.randomUUID()}
