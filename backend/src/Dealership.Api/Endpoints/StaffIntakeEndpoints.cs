@@ -15,7 +15,6 @@ public static class StaffIntakeEndpoints
             context.HttpContext.Response.Headers.CacheControl = "no-store";
             return await next(context);
         });
-        staff.MapGet("/calendar", StaffIntakeCalendarEndpoint.ReadAsync);
         var routes = staff.MapGroup("/appointments");
         routes.MapGet("", ListAsync);
         routes.MapGet("/export", StaffIntakeExportEndpoint.ExportAsync);

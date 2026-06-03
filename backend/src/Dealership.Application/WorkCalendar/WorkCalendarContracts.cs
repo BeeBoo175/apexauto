@@ -44,7 +44,8 @@ public sealed record WorkCalendarSnapshot(CurrentActor Actor, IReadOnlyList<Work
     int Total, DateOnly From, DateOnly To, Guid BranchId, string Employee);
 
 public sealed record UnscheduledWorkItem(Guid Id, string Kind, Guid BranchId, string BranchName,
-    string RegistrationPlate, string Vehicle, string Status, Guid HandlerId, string HandlerEmail);
+    string RegistrationPlate, string Vehicle, string Status, Guid HandlerId, string HandlerEmail,
+    Guid? InspectionId);
 
 public sealed record UnscheduledWorkPage(CurrentActor Actor, IReadOnlyList<UnscheduledWorkItem> Items,
     int Total, int Page, int PageSize, Guid BranchId, string Employee);

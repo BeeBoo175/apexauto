@@ -9,16 +9,9 @@ import type { CurrentActor } from "@/lib/auth/actor";
 import { isUuid } from "@/lib/auth/contracts";
 import { parseBranch } from "@/lib/branches";
 import type { SearchParams } from "@/lib/query";
-import {
-  calendarParams,
-  calendarQuery,
-  calendarReadRange,
-  parseCalendar,
-} from "@/lib/staff/calendar";
 import { parseDetail, parseWorklistPage } from "@/lib/staff/parse";
 import { appointmentQueue, intakeQueueParams, staffParams, staffQuery } from "@/lib/staff/query";
 import { intakeQueues } from "@/lib/staff/contracts";
-import { intakeView } from "@/lib/staff/view-memory";
 import type { IntakeViewComponent, IntakeWorkspaceSnapshot } from "./use-intake-workspace";
 
 interface IntakeEntry {
@@ -28,14 +21,11 @@ interface IntakeEntry {
 
 export function useIntakeClientEntry(actor: CurrentActor, parameters: SearchParams) {
   const { error } = useToast();
+  const agent = actor.role === "SalesAgent";
   const result = useStaffClientEntry<IntakeEntry>(async (signal) => {
-    const requestedView = intakeView(parameters.view, actor.role === "SalesAgent");
-    const listView = requestedView !== "calendar";
-    const { filters, page } =
-      requestedView === "queue"
-        ? intakeQueueParams(parameters)
-        : staffParams({ ...parameters, queue: "" });
-    const calendarFilters = calendarParams(parameters);
+    const { filters, page } = agent
+      ? intakeQueueParams(parameters)
+      : staffParams({ ...parameters, queue: "" });
     const selectedId = isUuid(parameters.appointment) ? parameters.appointment : "";
     const selectedRead = selectedId
       ? privateApiFetch(
@@ -48,29 +38,18 @@ export function useIntakeClientEntry(actor: CurrentActor, parameters: SearchPara
         ).catch(() => null)
       : Promise.resolve(null);
     const explicitQueue = intakeQueues.some((queue) => queue === parameters.queue);
-    if (requestedView === "queue" && selectedId && !explicitQueue) {
+    if (agent && selectedId && !explicitQueue) {
       const selected = await selectedRead;
       if (selected?.data) {
         filters.queue = appointmentQueue(selected.data);
       }
     }
-
-    const [calendar, worklist, branches, selected, view] = await Promise.all([
-      listView
-        ? null
-        : privateApiFetch(
-            `/api/staff/intake/calendar?${calendarQuery(calendarFilters)}`,
-            (value) => parseCalendar(value, calendarReadRange(calendarFilters)),
-            { signal },
-            { maximumResponseBytes: 1024 * 1024 },
-          ),
-      listView
-        ? privateApiFetch(
-            `/api/staff/intake/appointments?${staffQuery(filters, page)}`,
-            parseWorklistPage,
-            { signal },
-          )
-        : null,
+    const [worklist, branches, selected, view] = await Promise.all([
+      privateApiFetch(
+        `/api/staff/intake/appointments?${staffQuery(filters, page)}`,
+        parseWorklistPage,
+        { signal },
+      ),
       actor.role === "GeneralManager"
         ? apiFetch(
             "/api/intake/branches?page=1&pageSize=25",
@@ -79,31 +58,18 @@ export function useIntakeClientEntry(actor: CurrentActor, parameters: SearchPara
           ).catch(() => null)
         : null,
       selectedRead,
-      prepareView(requestedView),
+      prepareView(agent),
     ]);
-    const initial = listView ? worklist : calendar;
     if (
-      !initial ||
-      (listView &&
-        worklist?.data &&
-        (worklist.data.page !== page || worklist.data.pageSize !== filters.pageSize))
+      worklist.data &&
+      (worklist.data.page !== page || worklist.data.pageSize !== filters.pageSize)
     ) {
       throw new Error("Appointments unavailable");
     }
     return {
       view,
       snapshot: {
-        view: requestedView,
-        calendar:
-          calendar?.status === 422
-            ? {
-                ...calendar,
-                message:
-                  "More than 1,000 appointments match. Filter by branch or status, or switch to Table.",
-              }
-            : calendar,
         worklist,
-        calendarFilters,
         filters,
         page,
         branches: branches?.data ?? null,
@@ -123,15 +89,11 @@ export function useIntakeClientEntry(actor: CurrentActor, parameters: SearchPara
   return result;
 }
 
-async function prepareView(view: IntakeWorkspaceSnapshot["view"]): Promise<IntakeViewComponent> {
-  if (view === "queue") {
+async function prepareView(agent: boolean): Promise<IntakeViewComponent> {
+  if (agent) {
     const { IntakeAgentQueue } = await import("@/components/staff/IntakeAgentQueue");
     return { view: "queue", Component: IntakeAgentQueue };
   }
-  if (view === "list") {
-    const { IntakeWorklist } = await import("@/components/staff/IntakeWorklist");
-    return { view: "list", Component: IntakeWorklist };
-  }
-  const { IntakeCalendar } = await import("@/components/staff/IntakeCalendar");
-  return { view: "calendar", Component: IntakeCalendar };
+  const { IntakeWorklist } = await import("@/components/staff/IntakeWorklist");
+  return { view: "list", Component: IntakeWorklist };
 }

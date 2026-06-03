@@ -59,7 +59,6 @@ public static class DependencyInjection
         services.AddScoped<TestDrives.TestDriveDiscoveryService>();
         services.AddScoped<IntakeDiscoveryService>();
         services.AddScoped<IntakeBookingService>();
-        services.AddScoped<StaffCalendarService>();
         return services;
     }
 

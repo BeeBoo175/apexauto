@@ -20,12 +20,6 @@ public sealed class StaffWorklistStore(DealershipDbContext database) : IStaffWor
         return ReadAsync(staffId, query with { Page = 1, PageSize = maximum }, maximum, cancellationToken);
     }
 
-    public Task<StaffWorklistPage?> CalendarAsync(Guid staffId, StaffWorklistQuery query, CancellationToken cancellationToken)
-    {
-        const int maximum = StaffCalendarService.MaximumAppointments;
-        return ReadAsync(staffId, query with { Page = 1, PageSize = maximum }, maximum, cancellationToken);
-    }
-
     public async Task<bool> WriteAsync(CurrentActor actor, StaffWorklistQuery query, Stream destination,
         CancellationToken cancellationToken)
     {
