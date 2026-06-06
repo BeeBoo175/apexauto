@@ -72,8 +72,8 @@ test("customer booking and cancellation reconcile exact receipts before manager 
   const vehicleId = destination!.split("/").at(-1)!;
   const slotPath = `/api/vehicles/${vehicleId}/test-drive-slots`;
   const beforeSlots = counts()[slotPath] ?? 0;
-  const document = await page.goto(destination!);
-  expect(await document!.text()).toContain("Book a test drive");
+  const documentResponse = await page.goto(destination!);
+  expect(await documentResponse!.text()).toContain("Book a test drive");
   expect(counts()[slotPath] ?? 0).toBe(beforeSlots);
   const bookingBodies: string[] = [];
   let firstBooking = "";

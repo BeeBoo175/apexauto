@@ -108,6 +108,10 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     "**/api/staff/inspection/vehicles/*/assignments",
   );
   await page.getByRole("button", { name: "Confirm assignment", exact: true }).click();
+  await page
+    .getByRole("dialog", { name: "Claim this inspection?", exact: true })
+    .getByRole("button", { name: "Confirm assignment", exact: true })
+    .click();
   await expect(
     page.getByRole("button", { name: "Reconcile assignment", exact: true }),
   ).toBeVisible();

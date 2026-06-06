@@ -51,7 +51,7 @@ export function useInspectionAssignment({
   );
   const locked = command.busy || command.uncertain;
   const dirty = actor.role === "BranchManager" && Boolean(technicianId || reason);
-  useEditGuard({
+  const lockNavigation = useEditGuard({
     dirty,
     pending: command.busy,
     uncertain: command.uncertain,
@@ -122,6 +122,7 @@ export function useInspectionAssignment({
       setTechnicianId(actor.role === "WorkshopTechnician" ? actor.userId : "");
       setReason("");
       onDraft?.(false);
+      lockNavigation(false);
       onConfirmed(result.data.inspectionId);
     }
   }
