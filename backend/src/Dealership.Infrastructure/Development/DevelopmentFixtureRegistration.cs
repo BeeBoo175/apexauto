@@ -32,6 +32,7 @@ public static class DevelopmentFixtureRegistration
         services.AddScoped<DevelopmentTestDriveRepairFixtures>();
         services.AddScoped<DevelopmentTestDriveHandlingFixtures>();
         services.AddScoped<DevelopmentSaleFixtures>();
+        services.AddScoped<DevelopmentSaleVolumeFixtures>();
         services.AddScoped<DevelopmentInspectionScenarioFixtures>();
         services.AddScoped<DevelopmentIntakeFixtures>();
         services.AddScoped<DevelopmentIntakeOwnershipFixtures>();

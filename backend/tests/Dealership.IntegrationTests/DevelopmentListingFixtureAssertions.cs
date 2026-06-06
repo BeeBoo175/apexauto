@@ -17,7 +17,7 @@ internal static class DevelopmentListingFixtureAssertions
         var services = scope.ServiceProvider;
         var database = services.GetRequiredService<DealershipDbContext>();
         var expected = DevelopmentInspectionScenarios.All.Count(item => item.PublishListing);
-        Assert.Equal(54, expected);
+        Assert.Equal(54 + DevelopmentIntakeManifest.SalesExamples.Count, expected);
         Assert.Equal(expected, await database.ListingRevisions.CountAsync());
         Assert.Equal(expected, await database.ListingPublications.CountAsync());
         Assert.Equal(expected * 4, await database.ListingPhotos.CountAsync(item => item.AvailableAt != null));
@@ -90,8 +90,14 @@ internal static class DevelopmentListingFixtureAssertions
                 item.BranchId == branch.Id && item.Role == AccountRoles.BranchManager);
             var workspace = await managers.ReadAsync(manager.Id, new(PageSize: 50), CancellationToken.None);
             Assert.Equal(DevelopmentIntakeManifest.CheckedInPerBranch, workspace.Listings!.Total);
-            var second = await managers.ReadAsync(manager.Id, new(Page: 2, PageSize: 50), CancellationToken.None);
-            Assert.Equal(available, workspace.Listings.Items.Concat(second.Listings!.Items).Count(item => item.IsPublic));
+            var publicCount = workspace.Listings.Items.Count(item => item.IsPublic);
+            for (var page = 2; (page - 1) * 50 < workspace.Listings.Total; page++)
+            {
+                var next = await managers.ReadAsync(manager.Id, new(Page: page, PageSize: 50), CancellationToken.None);
+                publicCount += next.Listings!.Items.Count(item => item.IsPublic);
+            }
+
+            Assert.Equal(available, publicCount);
         }
 
         Assert.Equal(44, (await store.ReadAsync(new(), CancellationToken.None)).Catalogue!.Total);

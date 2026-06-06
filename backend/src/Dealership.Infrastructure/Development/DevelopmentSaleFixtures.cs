@@ -35,8 +35,9 @@ public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHa
             return new(label, "hold missing; preserved", true);
         }
 
-        // An open hold is only worked from its first version; one moved on by hand is reported, not reset.
-        if (seed && sale.Status != scenario.Target && !await DriveAsync(scenario, cancellationToken))
+        // Replay canonical steps if a claim committed before its terms save; foreign changes still conflict.
+        if (seed && (sale.Status != scenario.Target || sale.Version < scenario.FinalVersion) &&
+            !await DriveAsync(scenario, cancellationToken))
         {
             return new(label, "sale changed elsewhere; preserved", true);
         }

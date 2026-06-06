@@ -28,6 +28,7 @@ public sealed class DevelopmentFixtureMail(DealershipDbContext database)
         var checkIns = DevelopmentIntakeManifest.Appointments.Where(item => item.Status == StaffWorklistStatus.CheckedIn)
             .Select(item => item.Id).ToArray();
         var reservations = DevelopmentReservationScenarios.All.Select(item => item.Id)
+            .Concat(DevelopmentSaleVolumeManifest.All.Select(item => item.ReservationId))
             .Append(DevelopmentTestDriveFixtures.CancellationReservationId).ToArray();
         var now = DateTimeOffset.UtcNow;
         var testDrives = DevelopmentTestDriveFixtures.Scenarios.Select(item => item.OperationId("test-drive-booking"))

@@ -38,7 +38,8 @@ public static class DevelopmentReservationScenarios
         DevelopmentFixtureManifest.Branches.SelectMany((branch, branchIndex) =>
         {
             var listings = DevelopmentInspectionScenarios.All.Where(item =>
-                item.Intake.BranchId == branch.Id && item.PublishListing).ToArray();
+                item.Intake.BranchId == branch.Id && item.PublishListing &&
+                !DevelopmentIntakeManifest.SalesExamples.Contains(item.Intake)).ToArray();
             var registrationKey = DevelopmentFixtureManifest.Customers[branchIndex + 1].Registration.RegistrationKey;
             var sellerReservations = Enumerable.Range(0, ReleasedPerBranch + 1).Select(index =>
                 new DevelopmentReservationScenario(index == ReleasedPerBranch ? listings[^1] : listings[index % (listings.Length - 1)],

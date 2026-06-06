@@ -16,9 +16,11 @@ public static class DevelopmentIntakeManifest
     public const int InspectionExamplesPerBranch = 14;
     public const int CatalogueExamplesPerBranch = 14;
     public const int WorkshopExamplesPerBranch = 51;
+    public const int SalesExamplesPerBranch = 51;
     public const int BaselineTotalPerBranch = AppointmentsPerBranch + RepairRequestsPerBranch + 4;
     public const int InspectionCheckedInPerBranch = RepairRequestsPerBranch + 2 + InspectionExamplesPerBranch;
-    public const int CheckedInPerBranch = InspectionCheckedInPerBranch + CatalogueExamplesPerBranch + WorkshopExamplesPerBranch;
+    public const int CheckedInPerBranch = InspectionCheckedInPerBranch + CatalogueExamplesPerBranch +
+        WorkshopExamplesPerBranch + SalesExamplesPerBranch;
     public const int TotalPerBranch = AppointmentsPerBranch + CheckedInPerBranch + 2;
 
     public static IReadOnlyList<DevelopmentIntakeFixture> Appointments { get; } =
@@ -35,7 +37,13 @@ public static class DevelopmentIntakeManifest
 
     public static IReadOnlyList<DevelopmentIntakeFixture> WorkshopExamples { get; } = Array.AsReadOnly(
         Appointments.GroupBy(item => item.BranchId).SelectMany(branch => branch
-            .Skip(BaselineTotalPerBranch + InspectionExamplesPerBranch + CatalogueExamplesPerBranch)).ToArray());
+            .Skip(BaselineTotalPerBranch + InspectionExamplesPerBranch + CatalogueExamplesPerBranch)
+            .Take(WorkshopExamplesPerBranch)).ToArray());
+
+    public static IReadOnlyList<DevelopmentIntakeFixture> SalesExamples { get; } = Array.AsReadOnly(
+        Appointments.GroupBy(item => item.BranchId).SelectMany(branch => branch
+            .Skip(BaselineTotalPerBranch + InspectionExamplesPerBranch + CatalogueExamplesPerBranch + WorkshopExamplesPerBranch)
+            .Take(SalesExamplesPerBranch)).ToArray());
 
     public static Guid PhotoId(Guid appointmentId, PhotoAngle angle)
     {

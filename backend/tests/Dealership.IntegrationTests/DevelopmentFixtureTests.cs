@@ -105,6 +105,10 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         fault.FailReservationCommitOnce = true;
         await Assert.ThrowsAsync<IOException>(() => SeedAsync(provider, target, deliverMail: true));
         var interrupted = await DevelopmentReservationFixtureAssertions.InterruptedAsync(provider);
+        await using (var salesScope = provider.CreateAsyncScope())
+        {
+            await DevelopmentUnscheduledVolumeAssertions.SeedInterruptedSaleAsync(salesScope.ServiceProvider);
+        }
         await using var restarted = CreateProvider(connection, fault);
         var competing = await Task.WhenAll(SeedAsync(provider, target), SeedAsync(restarted, target));
         Assert.All(competing.SelectMany(reports => reports), report => Assert.False(report.RequiresAttention,
@@ -113,6 +117,7 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         await DevelopmentReservationFixtureAssertions.VerifyAsync(restarted, interrupted);
         await using (var volumeScope = restarted.CreateAsyncScope())
         {
+            await volumeScope.ServiceProvider.GetRequiredService<DealershipDbContext>().Database.OpenConnectionAsync();
             await DevelopmentTestDriveVolumeAssertions.VerifyAsync(volumeScope.ServiceProvider);
             await DevelopmentUnscheduledVolumeAssertions.VerifyAsync(volumeScope.ServiceProvider);
         }

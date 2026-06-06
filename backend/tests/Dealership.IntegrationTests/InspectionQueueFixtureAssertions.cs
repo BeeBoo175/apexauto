@@ -14,6 +14,7 @@ internal static class InspectionQueueFixtureAssertions
         using var scope = provider.CreateScope();
         var services = scope.ServiceProvider;
         var database = services.GetRequiredService<DealershipDbContext>();
+        await database.Database.OpenConnectionAsync();
         var queues = services.GetRequiredService<IInspectionQueueStore>();
         var vehicles = await database.Vehicles.AsNoTracking().ToArrayAsync();
         var drafts = await database.InspectionDrafts.AsNoTracking().ToArrayAsync();

@@ -92,6 +92,8 @@ public static class DevelopmentInspectionScenarios
                 Create(intake, 1) with { Name = "Catalogue examination" }))
             .Concat(DevelopmentIntakeManifest.WorkshopExamples.Select(intake =>
                 new DevelopmentInspectionScenario(intake, "Examination in progress", [], DevelopmentInspectionStage.Draft)))
+            .Concat(DevelopmentIntakeManifest.SalesExamples.Select(intake =>
+                Create(intake, 1) with { Name = "Purchase examination" }))
             .ToArray());
 
     public static Guid OperationId(Guid inspectionId, string purpose)

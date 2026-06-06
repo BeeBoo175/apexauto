@@ -28,7 +28,7 @@ public sealed class DevelopmentReservationFixtures(DealershipDbContext database,
         return reports;
     }
 
-    private async Task<DevelopmentFixtureReport> RunOneAsync(bool seed, DevelopmentReservationScenario scenario,
+    public async Task<DevelopmentFixtureReport> RunOneAsync(bool seed, DevelopmentReservationScenario scenario,
         DateTimeOffset now, CancellationToken cancellationToken)
     {
         var label = $"Reservation ({scenario.Listing.Intake.RegistrationPlate}; {scenario.Index + 1})";

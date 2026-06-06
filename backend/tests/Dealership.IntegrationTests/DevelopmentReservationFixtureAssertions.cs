@@ -32,10 +32,10 @@ internal static class DevelopmentReservationFixtureAssertions
         await using var scope = provider.CreateAsyncScope();
         var services = scope.ServiceProvider;
         var database = services.GetRequiredService<DealershipDbContext>();
-        Assert.Equal(57, await database.Reservations.CountAsync());
+        Assert.Equal(57 + DevelopmentSaleVolumeManifest.All.Count, await database.Reservations.CountAsync());
         Assert.Equal(49, await database.ReservationReleases.CountAsync());
-        Assert.Equal(57, await database.ReservationMailOutbox.CountAsync());
-        Assert.Equal(4, await database.Reservations.CountAsync(item => item.IsActive));
+        Assert.Equal(57 + DevelopmentSaleVolumeManifest.All.Count, await database.ReservationMailOutbox.CountAsync());
+        Assert.Equal(4 + DevelopmentSaleVolumeManifest.All.Count, await database.Reservations.CountAsync(item => item.IsActive));
         // The demo sales work the branches' open holds, which stay active while they are handled.
         foreach (var sale in DevelopmentSaleScenarios.All)
         {

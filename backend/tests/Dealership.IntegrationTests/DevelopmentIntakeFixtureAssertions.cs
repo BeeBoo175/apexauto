@@ -91,6 +91,7 @@ internal static class DevelopmentIntakeFixtureAssertions
         await using var scope = provider.CreateAsyncScope();
         var services = scope.ServiceProvider;
         var database = services.GetRequiredService<DealershipDbContext>();
+        await database.Database.OpenConnectionAsync();
         var appointments = await database.IntakeAppointments.AsNoTracking().ToArrayAsync();
         Assert.Equal(DevelopmentIntakeManifest.Appointments.Count, appointments.Length);
         Assert.Equal(DevelopmentIntakeManifest.Appointments.Count * 4, await database.IntakePhotos.CountAsync());

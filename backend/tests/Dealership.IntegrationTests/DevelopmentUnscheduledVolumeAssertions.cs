@@ -1,5 +1,8 @@
 using Dealership.Application.Accounts;
+using Dealership.Application.Sales;
 using Dealership.Application.WorkCalendar;
+using Dealership.Domain.Sales;
+using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Development;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -9,6 +12,29 @@ namespace Dealership.IntegrationTests;
 
 internal static class DevelopmentUnscheduledVolumeAssertions
 {
+    internal static async Task SeedInterruptedSaleAsync(IServiceProvider services)
+    {
+        var mail = services.GetRequiredService<DevelopmentFixtureMail>();
+        await mail.CaptureAsync(CancellationToken.None);
+        var scenario = DevelopmentSaleVolumeManifest.All[0];
+        var customer = DevelopmentTestDriveVolumeManifest.All.First(item => item.Queue == "MyWork" &&
+            item.Customer.Registration.RegistrationKey == scenario.Hold.RegistrationKey).Customer;
+        var provisioned = await services.GetRequiredService<DevelopmentCustomerFixtures>()
+            .SeedAsync(customer, CancellationToken.None);
+        Assert.False(provisioned.RequiresAttention);
+        var hold = await services.GetRequiredService<DevelopmentReservationFixtures>()
+            .RunOneAsync(true, scenario.Hold, DateTimeOffset.UtcNow, CancellationToken.None);
+        Assert.False(hold.RequiresAttention);
+        var claim = await services.GetRequiredService<SaleHandlingService>().ClaimAsync(scenario.AgentId,
+            scenario.ReservationId, new(scenario.OperationId("claim"), 1), CancellationToken.None);
+        Assert.Equal(SaleResultStatus.Succeeded, claim.Status);
+        var database = services.GetRequiredService<DealershipDbContext>();
+        var partial = await database.SalesOrders.AsNoTracking().SingleAsync(item => item.Id == scenario.ReservationId);
+        Assert.Equal(SalesOrderStatus.Handling, partial.Status);
+        Assert.Equal(2, partial.Version);
+        await mail.CompleteAsync(CancellationToken.None);
+    }
+
     internal static async Task VerifyAsync(IServiceProvider services)
     {
         var database = services.GetRequiredService<DealershipDbContext>();
@@ -39,6 +65,88 @@ internal static class DevelopmentUnscheduledVolumeAssertions
             Assert.Empty(unassigned.Value!.Items);
             Assert.Equal(0, unassigned.Value.Total);
         }
+
+        await VerifySalesAndMixedPagesAsync(database, calendar, generalManager.Id);
+    }
+
+    private static async Task VerifySalesAndMixedPagesAsync(DealershipDbContext database,
+        IWorkCalendarStore calendar, Guid generalManagerId)
+    {
+        var scenarios = DevelopmentSaleScenarios.All.Concat(DevelopmentSaleVolumeManifest.All).ToArray();
+        foreach (var branch in DevelopmentFixtureManifest.Branches)
+        {
+            var agent = DevelopmentFixtureManifest.Staff.Single(item => item.Role == AccountRoles.SalesAgent &&
+                item.BranchId == branch.Id);
+            var manager = DevelopmentFixtureManifest.Staff.Single(item => item.Role == AccountRoles.BranchManager &&
+                item.BranchId == branch.Id);
+            var actionable = scenarios.Where(item => item.Hold.Listing.Intake.BranchId == branch.Id &&
+                item.Target is SalesOrderStatus.Handling or SalesOrderStatus.Approved or SalesOrderStatus.Settled)
+                .Select(item => new ExpectedWork(item.ReservationId, "Sale", item.Hold.Listing.Intake.RegistrationPlate))
+                .OrderBy(item => item.Registration, StringComparer.Ordinal).ToArray();
+            Assert.True(actionable.Length > 50 && actionable.Length < 75);
+            var query = new UnscheduledWorkQuery(new(branch.Id), 1, 25);
+            await AssertMixedPagesAsync(calendar, agent.Id, query, actionable, agent.Id);
+            await AssertMixedPagesAsync(calendar, manager.Id,
+                query with { Scope = query.Scope with { Employee = agent.Email.ToUpperInvariant() } },
+                scenarios.Where(item => item.Hold.Listing.Intake.BranchId == branch.Id &&
+                    item.Target is SalesOrderStatus.Handling or SalesOrderStatus.PendingApproval or
+                        SalesOrderStatus.Approved or SalesOrderStatus.Settled)
+                    .Select(item => new ExpectedWork(item.ReservationId, "Sale", item.Hold.Listing.Intake.RegistrationPlate))
+                    .OrderBy(item => item.Registration, StringComparer.Ordinal).ToArray(), agent.Id);
+
+            var vehicles = await database.Vehicles.AsNoTracking().Where(item => item.BranchId == branch.Id &&
+                item.Status == VehicleStatus.PendingInspection).ToArrayAsync();
+            var vehicleIds = vehicles.Select(item => item.Id).ToArray();
+            var assigned = await database.InspectionDrafts.AsNoTracking().Where(item =>
+                vehicleIds.Contains(item.VehicleId)).Select(item => item.VehicleId).ToArrayAsync();
+            var workshop = vehicles.Where(item => assigned.Contains(item.Id))
+                .Select(item => new ExpectedWork(item.Id, "Workshop", item.RegistrationPlate));
+            var sales = scenarios.Where(item => item.Hold.Listing.Intake.BranchId == branch.Id &&
+                item.Target is SalesOrderStatus.Handling or SalesOrderStatus.PendingApproval or
+                    SalesOrderStatus.Approved or SalesOrderStatus.Settled)
+                .Select(item => new ExpectedWork(item.ReservationId, "Sale", item.Hold.Listing.Intake.RegistrationPlate));
+            var mixed = workshop.Concat(sales).OrderBy(item => item.Registration, StringComparer.Ordinal)
+                .ThenBy(item => item.Kind, StringComparer.Ordinal).ThenBy(item => item.Id).ToArray();
+            Assert.Contains(mixed, item => item.Kind == "Workshop");
+            Assert.Contains(mixed, item => item.Kind == "Sale");
+            await AssertMixedPagesAsync(calendar, manager.Id, query, mixed);
+            await AssertMixedPagesAsync(calendar, generalManagerId, query, mixed);
+        }
+    }
+
+    private sealed record ExpectedWork(Guid Id, string Kind, string Registration);
+
+    private static async Task AssertMixedPagesAsync(IWorkCalendarStore calendar, Guid actorId,
+        UnscheduledWorkQuery query, ExpectedWork[] expected, Guid? handlerId = null)
+    {
+        var actual = new List<Guid>();
+        for (var page = 1; page <= (expected.Length + 24) / 25 + 1; page++)
+        {
+            var result = await calendar.UnscheduledAsync(actorId, query with { Page = page }, CancellationToken.None);
+            Assert.Equal(WorkCalendarReadStatus.Succeeded, result.Status);
+            var snapshot = Assert.IsType<UnscheduledWorkPage>(result.Value);
+            Assert.Equal(expected.Length, snapshot.Total);
+            var slice = expected.Skip((page - 1) * 25).Take(25).ToArray();
+            Assert.Equal(slice.Select(item => item.Id), snapshot.Items.Select(item => item.Id));
+            Assert.Equal(slice.Select(item => item.Kind), snapshot.Items.Select(item => item.Kind));
+            Assert.All(snapshot.Items, item =>
+            {
+                Assert.Equal(query.Scope.BranchId, item.BranchId);
+                if (handlerId.HasValue)
+                {
+                    Assert.Equal(handlerId.Value, item.HandlerId);
+                    Assert.Equal("Sale", item.Kind);
+                }
+            });
+            actual.AddRange(snapshot.Items.Select(item => item.Id));
+        }
+
+        Assert.Equal(expected.Select(item => item.Id), actual);
+        var refreshed = await calendar.UnscheduledAsync(actorId, query, CancellationToken.None);
+        Assert.Equal(expected.Take(25).Select(item => item.Id), refreshed.Value!.Items.Select(item => item.Id));
+        var empty = await calendar.UnscheduledAsync(actorId, query with { Page = int.MaxValue }, CancellationToken.None);
+        Assert.Equal(expected.Length, empty.Value!.Total);
+        Assert.Empty(empty.Value.Items);
     }
 
     private static async Task AssertPagesAsync(IWorkCalendarStore calendar, Guid actorId, UnscheduledWorkQuery query,
