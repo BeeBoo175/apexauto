@@ -16,7 +16,11 @@ internal static class DevelopmentFixtureLock
         {
             await connection.OpenAsync(cancellationToken);
             await using var acquire = new NpgsqlCommand(
-                "SELECT pg_advisory_lock(hashtextextended(@key, 0))", connection);
+                "SELECT pg_advisory_lock(hashtextextended(@key, 0))", connection)
+            {
+                // Competing canonical snapshots share the caller's bounded maintenance deadline.
+                CommandTimeout = 120
+            };
             acquire.Parameters.AddWithValue("key", key);
             await acquire.ExecuteNonQueryAsync(cancellationToken);
             return connection;

@@ -16,7 +16,7 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
     {
         target.EnsureMatches(database.Database.GetConnectionString());
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(TimeSpan.FromMinutes(2));
+        deadline.CancelAfter(TimeSpan.FromMinutes(5));
         var token = deadline.Token;
         await using var lockConnection = await DevelopmentFixtureLock.AcquireAsync(target, token);
         // One bounded session avoids reopening unpooled connections for every canonical command/read.

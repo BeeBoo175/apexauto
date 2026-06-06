@@ -89,7 +89,10 @@ public static class DevelopmentInspectionScenarios
         DevelopmentIntakeManifest.InspectionExamples.GroupBy(item => item.BranchId)
             .SelectMany(branch => branch.Select(Create))
             .Concat(DevelopmentIntakeManifest.CatalogueExamples.Select(intake =>
-                Create(intake, 1) with { Name = "Catalogue examination" })).ToArray());
+                Create(intake, 1) with { Name = "Catalogue examination" }))
+            .Concat(DevelopmentIntakeManifest.WorkshopExamples.Select(intake =>
+                new DevelopmentInspectionScenario(intake, "Examination in progress", [], DevelopmentInspectionStage.Draft)))
+            .ToArray());
 
     public static Guid OperationId(Guid inspectionId, string purpose)
     {

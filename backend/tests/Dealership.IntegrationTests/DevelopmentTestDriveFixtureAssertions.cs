@@ -20,6 +20,21 @@ internal static class DevelopmentTestDriveFixtureAssertions
         var starts = await database.TestDriveStarts.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync();
         var outcomes = await database.TestDriveOutcomes.AsNoTracking().OrderBy(item => item.Id).ToArrayAsync();
         var occupations = await database.TestDriveOccupations.AsNoTracking().OrderBy(item => item.StartId).ToArrayAsync();
+        var snapshot = JsonSerializer.Serialize(new
+        {
+            Bookings = bookings,
+            Cancellations = cancellations,
+            Assignments = assignments,
+            Starts = starts,
+            Outcomes = outcomes,
+            Occupations = occupations,
+            Mail = mail
+        });
+        var volumeIds = DevelopmentTestDriveVolumeManifest.All.Select(item => item.OperationId("booking")).ToHashSet();
+        bookings = bookings.Where(item => !volumeIds.Contains(item.Id)).ToArray();
+        cancellations = cancellations.Where(item => !volumeIds.Contains(item.BookingId)).ToArray();
+        assignments = assignments.Where(item => !volumeIds.Contains(item.BookingId)).ToArray();
+        mail = mail.Where(item => !volumeIds.Contains(item.BookingId)).ToArray();
         var attendance = bookings.Where(item => DevelopmentTestDriveHandlingFixtures.Kinds.Any(kind =>
             item.Id == DevelopmentTestDriveHandlingFixtures.OperationId(kind, "booking"))).ToArray();
         Assert.Equal(DevelopmentTestDriveFixtures.Scenarios.Count + 4 + attendance.Length, bookings.Length);
@@ -68,15 +83,6 @@ internal static class DevelopmentTestDriveFixtureAssertions
             Assert.NotNull(message.DeliveredAt);
             Assert.Equal(0, message.DeliveryAttempts);
         });
-        return JsonSerializer.Serialize(new
-        {
-            Bookings = bookings,
-            Cancellations = cancellations,
-            Assignments = assignments,
-            Starts = starts,
-            Outcomes = outcomes,
-            Occupations = occupations,
-            Mail = mail
-        });
+        return snapshot;
     }
 }

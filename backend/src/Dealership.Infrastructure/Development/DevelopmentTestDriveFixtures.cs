@@ -14,7 +14,7 @@ public sealed class DevelopmentTestDriveFixtures(DealershipDbContext database, T
     TestDriveCancellationService cancellations, TestDriveAssignmentService assignments, InspectionSchedule schedule,
     ReservationService reservations, ReservationCancellationService releases, DevelopmentTestDriveWithdrawalFixtures withdrawals,
     DevelopmentTestDriveReopeningFixtures reopenings, DevelopmentTestDriveRepairFixtures repairs,
-    DevelopmentTestDriveHandlingFixtures handling)
+    DevelopmentTestDriveHandlingFixtures handling, DevelopmentTestDriveVolumeFixtures volume)
 {
     public static IReadOnlyList<DevelopmentInspectionScenario> Scenarios { get; } = Array.AsReadOnly(
         DevelopmentFixtureManifest.Branches.Select(branch => DevelopmentInspectionScenarios.All.First(item =>
@@ -36,6 +36,7 @@ public sealed class DevelopmentTestDriveFixtures(DealershipDbContext database, T
         reports.Add(await reopenings.RunAsync(seed, cancellationToken));
         reports.Add(await repairs.RunAsync(seed, cancellationToken));
         reports.AddRange(await handling.RunAsync(seed, cancellationToken));
+        reports.AddRange(await volume.RunAsync(seed, cancellationToken));
         return reports;
     }
 

@@ -36,7 +36,8 @@ public sealed class DevelopmentFixtureMail(DealershipDbContext database)
             .Append(DevelopmentTestDriveReopeningFixtures.BookingId)
             .Append(DevelopmentTestDriveRepairFixtures.BookingId)
             .Concat(DevelopmentTestDriveHandlingFixtures.Kinds.Select(kind =>
-                DevelopmentTestDriveHandlingFixtures.OperationId(kind, "booking"))).ToArray();
+                DevelopmentTestDriveHandlingFixtures.OperationId(kind, "booking")))
+            .Concat(DevelopmentTestDriveVolumeManifest.All.Select(item => item.OperationId("booking"))).ToArray();
         await database.TestDriveMailOutbox.Where(item => testDrives.Contains(item.BookingId) &&
             !_existingTestDrives.Contains(item.Id) && item.DeliveredAt == null && item.DeliveryClaimId == null)
             .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.DeliveredAt, now), cancellationToken);

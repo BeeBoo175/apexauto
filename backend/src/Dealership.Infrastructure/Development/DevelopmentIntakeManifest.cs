@@ -15,9 +15,10 @@ public static class DevelopmentIntakeManifest
     public const int RepairRequestsPerBranch = 3;
     public const int InspectionExamplesPerBranch = 14;
     public const int CatalogueExamplesPerBranch = 14;
+    public const int WorkshopExamplesPerBranch = 51;
     public const int BaselineTotalPerBranch = AppointmentsPerBranch + RepairRequestsPerBranch + 4;
     public const int InspectionCheckedInPerBranch = RepairRequestsPerBranch + 2 + InspectionExamplesPerBranch;
-    public const int CheckedInPerBranch = InspectionCheckedInPerBranch + CatalogueExamplesPerBranch;
+    public const int CheckedInPerBranch = InspectionCheckedInPerBranch + CatalogueExamplesPerBranch + WorkshopExamplesPerBranch;
     public const int TotalPerBranch = AppointmentsPerBranch + CheckedInPerBranch + 2;
 
     public static IReadOnlyList<DevelopmentIntakeFixture> Appointments { get; } =
@@ -30,7 +31,11 @@ public static class DevelopmentIntakeManifest
 
     public static IReadOnlyList<DevelopmentIntakeFixture> CatalogueExamples { get; } = Array.AsReadOnly(
         Appointments.GroupBy(item => item.BranchId).SelectMany(branch => branch
-            .Skip(BaselineTotalPerBranch + InspectionExamplesPerBranch)).ToArray());
+            .Skip(BaselineTotalPerBranch + InspectionExamplesPerBranch).Take(CatalogueExamplesPerBranch)).ToArray());
+
+    public static IReadOnlyList<DevelopmentIntakeFixture> WorkshopExamples { get; } = Array.AsReadOnly(
+        Appointments.GroupBy(item => item.BranchId).SelectMany(branch => branch
+            .Skip(BaselineTotalPerBranch + InspectionExamplesPerBranch + CatalogueExamplesPerBranch)).ToArray());
 
     public static Guid PhotoId(Guid appointmentId, PhotoAngle angle)
     {
@@ -48,7 +53,8 @@ public static class DevelopmentIntakeManifest
             var registrationKey = DevelopmentFixtureManifest.Customers[customerIndex].Registration.RegistrationKey;
             var plate = $"{prefixes[branchIndex]} {6200 + identityIndex}";
             var catalogueIndex = index - BaselineTotalPerBranch - InspectionExamplesPerBranch;
-            var vehicle = catalogueIndex >= 0
+            var catalogue = catalogueIndex >= 0 && catalogueIndex < CatalogueExamplesPerBranch;
+            var vehicle = catalogue
                 ? CatalogueVehicle(catalogueIndex, branchIndex)
                 : new ValuationRequest("Perodua", "Myvi", "1.5 AV", 2019, 45000 + identityIndex * 1200);
             var status = index switch
@@ -59,7 +65,7 @@ public static class DevelopmentIntakeManifest
                 < AppointmentsPerBranch => StaffWorklistStatus.Booked,
                 _ => StaffWorklistStatus.CheckedIn
             };
-            var mileage = catalogueIndex >= 0 ? vehicle.MileageKilometres!.Value : 96000;
+            var mileage = catalogue ? vehicle.MileageKilometres!.Value : 96000;
             var evidence = status == StaffWorklistStatus.CheckedIn
                 ? new CheckInEvidence($"PM2M800{branchIndex + 1}0KC00{6200 + identityIndex}", mileage, true, true, true, true,
                     "Customer attended with vehicle and ownership documents.")

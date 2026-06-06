@@ -111,6 +111,11 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
             $"{report.Fixture}: {report.State}"));
         Assert.Equal(definitions, await ReadGuardsAsync());
         await DevelopmentReservationFixtureAssertions.VerifyAsync(restarted, interrupted);
+        await using (var volumeScope = restarted.CreateAsyncScope())
+        {
+            await DevelopmentTestDriveVolumeAssertions.VerifyAsync(volumeScope.ServiceProvider);
+            await DevelopmentUnscheduledVolumeAssertions.VerifyAsync(volumeScope.ServiceProvider);
+        }
         var testDriveSnapshot = await DevelopmentTestDriveFixtureAssertions.SnapshotAsync(restarted);
         await AssertFixtureMailAsync(restarted, interrupted.Id);
         await AssertNormalAuthenticationAsync();

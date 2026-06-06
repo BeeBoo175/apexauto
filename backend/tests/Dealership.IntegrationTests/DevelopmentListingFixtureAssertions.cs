@@ -89,7 +89,7 @@ internal static class DevelopmentListingFixtureAssertions
             var manager = DevelopmentFixtureManifest.Staff.Single(item =>
                 item.BranchId == branch.Id && item.Role == AccountRoles.BranchManager);
             var workspace = await managers.ReadAsync(manager.Id, new(PageSize: 50), CancellationToken.None);
-            Assert.Equal(33, workspace.Listings!.Total);
+            Assert.Equal(DevelopmentIntakeManifest.CheckedInPerBranch, workspace.Listings!.Total);
             var second = await managers.ReadAsync(manager.Id, new(Page: 2, PageSize: 50), CancellationToken.None);
             Assert.Equal(available, workspace.Listings.Items.Concat(second.Listings!.Items).Count(item => item.IsPublic));
         }

@@ -17,7 +17,9 @@ namespace Dealership.IntegrationTests;
 
 internal static class DevelopmentIntakeFixtureAssertions
 {
-    private static readonly int[] PageSizes = [25, 22];
+    private static readonly int[] PageSizes = Enumerable.Range(0,
+        (DevelopmentIntakeManifest.TotalPerBranch + 24) / 25)
+        .Select(page => Math.Min(25, DevelopmentIntakeManifest.TotalPerBranch - page * 25)).ToArray();
 
     public static async Task VerifyAuthenticatedAsync(HttpClient client, string email)
     {
@@ -44,7 +46,7 @@ internal static class DevelopmentIntakeFixtureAssertions
                 return;
             }
             Assert.Equal(DevelopmentIntakeManifest.TotalPerBranch, history.Total);
-            Assert.Equal(22, history.Items.Count);
+            Assert.Equal(PageSizes[1], history.Items.Count);
             var ownedIds = DevelopmentIntakeManifest.Appointments.Where(item =>
                 item.RegistrationKey == customer.Registration.RegistrationKey).Select(item => item.Id).ToHashSet();
             Assert.All(history.Items, item => Assert.Contains(item.Id, ownedIds));
