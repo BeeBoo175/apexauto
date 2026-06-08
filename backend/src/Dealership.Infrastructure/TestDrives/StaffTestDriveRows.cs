@@ -1,3 +1,4 @@
+using Dealership.Domain.TestDrives;
 using Dealership.Application.Accounts;
 using Dealership.Application.TestDrives;
 using Dealership.Infrastructure.Persistence;
@@ -61,9 +62,9 @@ internal static class StaffTestDriveRows
     {
         return queue switch
         {
-            "ToClaim" => rows.Where(row => row.Status == "Booked" && row.HandlerId == null),
-            "MyWork" => rows.Where(row => (row.Status == "Booked" || row.Status == "InProgress") && row.HandlerId == staffId),
-            "History" => rows.Where(row => row.Status != "Booked" && row.Status != "InProgress" && row.HandlerId == staffId),
+            "ToClaim" => rows.Where(row => row.Status == TestDriveStatus.Booked && row.HandlerId == null),
+            "MyWork" => rows.Where(row => (row.Status == TestDriveStatus.Booked || row.Status == TestDriveStatus.InProgress) && row.HandlerId == staffId),
+            "History" => rows.Where(row => row.Status != TestDriveStatus.Booked && row.Status != TestDriveStatus.InProgress && row.HandlerId == staffId),
             _ => rows
         };
     }

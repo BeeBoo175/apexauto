@@ -1,3 +1,4 @@
+using Dealership.Infrastructure.TestDrives;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dealership.Infrastructure.Persistence;
@@ -21,7 +22,7 @@ internal static class StaffScheduleConflicts
 
         return await database.TestDriveBookings.AnyAsync(item => item.Id != bookingId &&
             (item.StartsAt < endsAt && startsAt < item.EndsAt ||
-                database.TestDriveOccupations.Any(occupation => occupation.BookingId == item.Id && occupation.OutcomeId == null)) &&
+                TestDriveOccupationRows.Active(database).Any(occupation => occupation.BookingId == item.Id)) &&
             !database.TestDriveCancellations.Any(cancellation => cancellation.BookingId == item.Id) &&
             !database.TestDriveOutcomes.Any(outcome => outcome.BookingId == item.Id) &&
             database.TestDriveAssignments.Where(assignment => assignment.BookingId == item.Id)

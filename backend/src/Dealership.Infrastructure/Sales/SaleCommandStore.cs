@@ -1,3 +1,4 @@
+using Dealership.Infrastructure.TestDrives;
 using Dealership.Application.Sales;
 using Dealership.Infrastructure.Mail;
 using Dealership.Infrastructure.Persistence;
@@ -46,8 +47,8 @@ public sealed class SaleCommandStore(DealershipDbContext database, MailDeliveryS
             var now = await database.DatabaseNowAsync(cancellationToken);
             // The database clock can trail a sale stamped by another session by a few microseconds.
             now = now < sale.UpdatedAt ? sale.UpdatedAt : now;
-            var occupied = await database.TestDriveOccupations.AnyAsync(item => item.VehicleId == sale.VehicleId &&
-                item.OutcomeId == null, cancellationToken);
+            var occupied = await TestDriveOccupationRows.Active(database)
+                .AnyAsync(item => item.VehicleId == sale.VehicleId, cancellationToken);
             return new SaleCommandTransaction(database, transaction, new(actor, branchActive, sale, existing, now, occupied), mail);
         }
         catch

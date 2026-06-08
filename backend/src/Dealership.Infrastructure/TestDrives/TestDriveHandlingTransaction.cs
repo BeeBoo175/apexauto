@@ -27,8 +27,7 @@ internal sealed class TestDriveHandlingTransaction(DealershipDbContext database,
         CancellationToken cancellationToken)
     {
         var booking = context.Booking!;
-        if (await database.TestDriveOccupations.AnyAsync(item => item.VehicleId == booking.VehicleId &&
-            item.OutcomeId == null, cancellationToken))
+        if (await TestDriveOccupationRows.Active(database).AnyAsync(item => item.VehicleId == booking.VehicleId, cancellationToken))
         {
             return true;
         }

@@ -1,3 +1,4 @@
+using Dealership.Domain.TestDrives;
 using Dealership.Application.Accounts;
 using Dealership.Application.Common;
 
@@ -15,7 +16,7 @@ public sealed record StaffTestDriveQuery(ListDateRange Dates, int Page, int Page
         if (dates is null || !Pagination.IsValid(page, pageSize) || !ListSearch.IsValid(text) || !ListSearch.IsValid(handler ?? "") ||
             branchId == Guid.Empty || handlerId == Guid.Empty ||
             queue is not (null or "" or "ToClaim" or "MyWork" or "History") ||
-            status is not (null or "All" or "Booked" or "InProgress" or "Completed" or "NotCompleted" or "NoShow" or "Cancelled") ||
+            status is not (null or "All" or TestDriveStatus.Booked or TestDriveStatus.InProgress or TestDriveStatus.Completed or TestDriveStatus.NotCompleted or TestDriveStatus.NoShow or TestDriveStatus.Cancelled) ||
             sort is not (null or "startsAt" or "registrationPlate" or "vehicle" or "customerName" or "branchName" or "status" or "handlerEmail") ||
             direction is not (null or "asc" or "desc"))
         {

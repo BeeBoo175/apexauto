@@ -1,3 +1,4 @@
+using Dealership.Infrastructure.TestDrives;
 using Dealership.Application.Inspections;
 using Dealership.Domain.Inspections;
 using Dealership.Domain.Vehicles;
@@ -33,8 +34,7 @@ internal static class InspectionCommandLocks
             $"SELECT * FROM \"InspectionDrafts\" WHERE \"Id\" = {inspectionId} FOR UPDATE")
             .AsNoTracking().SingleOrDefaultAsync(cancellationToken);
 
-        var occupied = await database.TestDriveOccupations.AnyAsync(item => item.VehicleId == vehicleId &&
-            item.OutcomeId == null, cancellationToken);
+        var occupied = await TestDriveOccupationRows.Active(database).AnyAsync(item => item.VehicleId == vehicleId, cancellationToken);
         return new(actor is null ? null : new InspectionStaff(actor.IsActive, actor.Role, actor.BranchId),
             branchActive, actor?.UserName, vehicle, draft, occupied);
     }

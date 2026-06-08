@@ -1,3 +1,4 @@
+using Dealership.Domain.TestDrives;
 using Dealership.Domain.Common;
 using System.Data;
 using Dealership.Application.Accounts;
@@ -30,15 +31,15 @@ public sealed class StaffTestDriveReadStore(DealershipDbContext database) : ISta
         var totals = await scope.GroupBy(row => 1).Select(group => new
         {
             All = group.Count(),
-            Booked = group.Count(row => row.Status == "Booked"),
-            InProgress = group.Count(row => row.Status == "InProgress"),
-            Completed = group.Count(row => row.Status == "Completed"),
-            NotCompleted = group.Count(row => row.Status == "NotCompleted"),
-            NoShow = group.Count(row => row.Status == "NoShow"),
-            Cancelled = group.Count(row => row.Status == "Cancelled"),
-            ToClaim = group.Count(row => row.Status == "Booked" && row.HandlerId == null),
-            MyWork = group.Count(row => (row.Status == "Booked" || row.Status == "InProgress") && row.HandlerId == staffId),
-            History = group.Count(row => row.Status != "Booked" && row.Status != "InProgress" && row.HandlerId == staffId)
+            Booked = group.Count(row => row.Status == TestDriveStatus.Booked),
+            InProgress = group.Count(row => row.Status == TestDriveStatus.InProgress),
+            Completed = group.Count(row => row.Status == TestDriveStatus.Completed),
+            NotCompleted = group.Count(row => row.Status == TestDriveStatus.NotCompleted),
+            NoShow = group.Count(row => row.Status == TestDriveStatus.NoShow),
+            Cancelled = group.Count(row => row.Status == TestDriveStatus.Cancelled),
+            ToClaim = group.Count(row => row.Status == TestDriveStatus.Booked && row.HandlerId == null),
+            MyWork = group.Count(row => (row.Status == TestDriveStatus.Booked || row.Status == TestDriveStatus.InProgress) && row.HandlerId == staffId),
+            History = group.Count(row => row.Status != TestDriveStatus.Booked && row.Status != TestDriveStatus.InProgress && row.HandlerId == staffId)
         }).SingleOrDefaultAsync(cancellationToken);
         var counts = totals is null ? new StaffTestDriveCounts(0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
             : new(totals.All, totals.Booked, totals.InProgress, totals.Completed, totals.NotCompleted,
@@ -62,7 +63,7 @@ public sealed class StaffTestDriveReadStore(DealershipDbContext database) : ISta
         var rows = StaffTestDriveRows.Create(database, actor.BranchId, AppointmentDay.StartUtc(now));
         if (actor.Role == AccountRoles.SalesAgent)
         {
-            rows = rows.Where(row => row.HandlerId == staffId || row.Status == "Booked" && row.HandlerId == null);
+            rows = rows.Where(row => row.HandlerId == staffId || row.Status == TestDriveStatus.Booked && row.HandlerId == null);
         }
 
         var row = await rows.SingleOrDefaultAsync(item => item.Id == bookingId, cancellationToken);

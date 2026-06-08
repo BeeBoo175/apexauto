@@ -51,8 +51,8 @@ public sealed class TestDriveBookingStore(DealershipDbContext database, MailDeli
             var now = await database.DatabaseNowAsync(cancellationToken);
             var today = AppointmentDay.StartUtc(now);
             var hasBooking = await database.TestDriveBookings.AnyAsync(item => item.CustomerId == customerId &&
-                (item.StartsAt >= today || database.TestDriveOccupations.Any(occupation =>
-                    occupation.BookingId == item.Id && occupation.OutcomeId == null)) &&
+                (item.StartsAt >= today || TestDriveOccupationRows.Active(database).Any(occupation =>
+                    occupation.BookingId == item.Id)) &&
                 !database.TestDriveOutcomes.Any(outcome => outcome.BookingId == item.Id) &&
                 !database.TestDriveCancellations.Any(cancellation => cancellation.BookingId == item.Id), cancellationToken);
             var endsAt = request.StartsAt + TestDriveBooking.Duration;

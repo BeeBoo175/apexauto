@@ -1,3 +1,4 @@
+using Dealership.Domain.TestDrives;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,8 +17,8 @@ internal static class TestDriveStatusRows
                select new TestDriveStatusRow
                {
                    Id = booking.Id,
-                   Status = (cancelled ? "Cancelled" : null) ?? outcome ??
-                       (started ? "InProgress" : null) ?? (booking.StartsAt < today ? "NoShow" : "Booked")
+                   Status = (cancelled ? TestDriveStatus.Cancelled : null) ?? outcome ??
+                       (started ? TestDriveStatus.InProgress : null) ?? (booking.StartsAt < today ? TestDriveStatus.NoShow : TestDriveStatus.Booked)
                };
     }
 }

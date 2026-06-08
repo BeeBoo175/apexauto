@@ -1,3 +1,4 @@
+using Dealership.Infrastructure.TestDrives;
 using Dealership.Application.Accounts;
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Vehicles;
@@ -52,7 +53,7 @@ public sealed class ReservationStore(DealershipDbContext database, MailDeliveryS
                 .SingleOrDefaultAsync(item => item.Id == request.OperationId, cancellationToken);
             var isRelease = await database.ReservationReleases.AnyAsync(item => item.Id == request.OperationId, cancellationToken);
             var listing = await PublicListingQuery.Read(database).Where(row => row.Vehicle.Id == vehicleId &&
-                !database.TestDriveOccupations.Any(occupation => occupation.VehicleId == row.Vehicle.Id && occupation.OutcomeId == null))
+                !TestDriveOccupationRows.Active(database).Any(occupation => occupation.VehicleId == row.Vehicle.Id))
                 .SingleOrDefaultAsync(cancellationToken);
             var settings = await database.PurchaseSettings.FromSqlInterpolated(
                 $"SELECT * FROM \"PurchaseSettings\" WHERE \"Id\" = {PurchaseSettings.SingletonId} FOR SHARE")
