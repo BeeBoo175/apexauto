@@ -51,7 +51,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                 onDelete: ReferentialAction.Restrict);
 
             migrationBuilder.Sql("ALTER TABLE \"TestDriveCancellations\" ALTER COLUMN \"Kind\" DROP DEFAULT;");
-            UpdateGuard(migrationBuilder, restoring: false);
+            InstallCancellationGuard(migrationBuilder);
         }
 
         /// <inheritdoc />
@@ -64,7 +64,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     END IF;
                 END $$;
                 """);
-            UpdateGuard(migrationBuilder, restoring: true);
+            RestoreCancellationGuard(migrationBuilder);
 
             migrationBuilder.DropForeignKey(
                 name: "FK_TestDriveCancellations_AspNetUsers_StaffId",
@@ -91,28 +91,37 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                 table: "TestDriveCancellations");
         }
 
-        private static void UpdateGuard(MigrationBuilder migrationBuilder, bool restoring)
+        private static void InstallCancellationGuard(MigrationBuilder migrationBuilder)
         {
-            ReplaceGuard(migrationBuilder,
-                "SELECT * INTO customer FROM \"AspNetUsers\" WHERE \"Id\" = NEW.\"CustomerId\" FOR UPDATE;",
-                "SELECT * INTO customer FROM \"AspNetUsers\" WHERE \"Id\" = CASE WHEN NEW.\"Kind\" = 'StaffCancelled' THEN NEW.\"StaffId\" ELSE NEW.\"CustomerId\" END FOR UPDATE;",
-                restoring);
-            ReplaceGuard(migrationBuilder,
-                "PERFORM 1 FROM \"CustomerProfiles\" WHERE \"UserId\" = NEW.\"CustomerId\" FOR SHARE;",
-                """
-                IF NEW."Kind" = 'CustomerCancelled' THEN
-                    PERFORM 1 FROM "CustomerProfiles" WHERE "UserId" = NEW."CustomerId" FOR SHARE;
-                ELSE
-                    PERFORM 1 WHERE NEW."Kind" = 'StaffCancelled';
-                END IF;
-                """, restoring);
-            ReplaceGuard(migrationBuilder, "customer.\"Role\" <> 'Customer'",
-                "NOT ((NEW.\"Kind\" = 'CustomerCancelled' AND customer.\"Role\" = 'Customer') OR (NEW.\"Kind\" = 'StaffCancelled' AND customer.\"Role\" IN ('SalesAgent', 'BranchManager')))",
-                restoring);
-            ReplaceGuard(migrationBuilder,
-                "UPDATE \"Vehicles\" SET \"Status\" = \"Status\" WHERE \"Id\" = booking.\"VehicleId\";",
-                """
-                UPDATE "Vehicles" SET "Status" = "Status" WHERE "Id" = booking."VehicleId";
+            migrationBuilder.Sql("""
+                CREATE OR REPLACE FUNCTION guard_test_drive_cancellation() RETURNS trigger LANGUAGE plpgsql AS $$
+                DECLARE
+                    booking "TestDriveBookings"%ROWTYPE;
+                    customer "AspNetUsers"%ROWTYPE;
+                BEGIN
+                    IF TG_OP <> 'INSERT' THEN
+                        RAISE EXCEPTION 'Test-drive cancellation receipts are retained and immutable'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_TestDriveCancellations_Immutable';
+                    END IF;
+                    PERFORM pg_advisory_xact_lock(hashtextextended('test-drive-cancellation:' || NEW."Id"::text, 0));
+                    SELECT * INTO customer FROM "AspNetUsers" WHERE "Id" = CASE WHEN NEW."Kind" = 'StaffCancelled' THEN NEW."StaffId" ELSE NEW."CustomerId" END FOR UPDATE;
+                    IF NEW."Kind" = 'CustomerCancelled' THEN
+                        PERFORM 1 FROM "CustomerProfiles" WHERE "UserId" = NEW."CustomerId" FOR SHARE;
+                    ELSE
+                        PERFORM 1 WHERE NEW."Kind" = 'StaffCancelled';
+                    END IF;
+                    IF NOT FOUND OR customer."Id" IS NULL OR NOT customer."IsActive" OR NOT ((NEW."Kind" = 'CustomerCancelled' AND customer."Role" = 'Customer') OR (NEW."Kind" = 'StaffCancelled' AND customer."Role" IN ('SalesAgent', 'BranchManager'))) THEN
+                        RAISE EXCEPTION 'Cancellation requires a current customer'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_TestDriveCancellations_Customer';
+                    END IF;
+                    SELECT * INTO booking FROM "TestDriveBookings" WHERE "Id" = NEW."BookingId";
+                    IF booking."Id" IS NULL OR booking."CustomerId" <> NEW."CustomerId" THEN
+                        RAISE EXCEPTION 'Cancellation belongs to the booking customer'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_TestDriveCancellations_Owner';
+                    END IF;
+                    -- Availability writers acquire the vehicle before any dependent drive evidence.
+                    UPDATE "Branches" SET "Name" = "Name" WHERE "Id" = booking."BranchId";
+                    UPDATE "Vehicles" SET "Status" = "Status" WHERE "Id" = booking."VehicleId";
                     IF NEW."Kind" = 'StaffCancelled' AND (
                         customer."BranchId" IS DISTINCT FROM booking."BranchId" OR
                         NOT EXISTS (SELECT 1 FROM "Branches" WHERE "Id" = booking."BranchId" AND "IsActive") OR
@@ -122,32 +131,56 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         RAISE EXCEPTION 'Staff cancellation requires the current handler or branch manager'
                             USING ERRCODE = '23514', CONSTRAINT = 'CK_TestDriveCancellations_Staff';
                     END IF;
-                """, restoring);
-            ReplaceGuard(migrationBuilder,
-                "NEW.\"RecordedAt\" >= booking.\"StartsAt\" OR clock_timestamp() >= booking.\"StartsAt\"",
-                """
-                (NEW."Kind" = 'CustomerCancelled' AND (NEW."RecordedAt" >= booking."StartsAt" OR clock_timestamp() >= booking."StartsAt")) OR
+                    IF NEW."RecordedAt" < booking."CreatedAt" OR NEW."RecordedAt" > clock_timestamp() OR
+                       (NEW."Kind" = 'CustomerCancelled' AND (NEW."RecordedAt" >= booking."StartsAt" OR clock_timestamp() >= booking."StartsAt")) OR
                        (NEW."Kind" = 'StaffCancelled' AND (
                            NEW."RecordedAt" >= ((booking."StartsAt" AT TIME ZONE 'Asia/Kuala_Lumpur')::date + 1)::timestamp AT TIME ZONE 'Asia/Kuala_Lumpur' OR
                            clock_timestamp() >= ((booking."StartsAt" AT TIME ZONE 'Asia/Kuala_Lumpur')::date + 1)::timestamp AT TIME ZONE 'Asia/Kuala_Lumpur')) OR
-                       EXISTS (SELECT 1 FROM "TestDriveAssignments" WHERE "BookingId" = booking."Id" AND "RecordedAt" > NEW."RecordedAt")
-                """, restoring);
+                       EXISTS (SELECT 1 FROM "TestDriveAssignments" WHERE "BookingId" = booking."Id" AND "RecordedAt" > NEW."RecordedAt") THEN
+                        RAISE EXCEPTION 'Customer cancellation must precede booked start'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_TestDriveCancellations_Time';
+                    END IF;
+                    UPDATE "AspNetUsers" SET "ConcurrencyStamp" = "ConcurrencyStamp" WHERE "Id" = customer."Id";
+                    RETURN NEW;
+                END $$;
+                """);
         }
 
-        private static void ReplaceGuard(MigrationBuilder migrationBuilder, string original, string replacement, bool restoring)
+        private static void RestoreCancellationGuard(MigrationBuilder migrationBuilder)
         {
-            var before = restoring ? replacement : original;
-            var after = restoring ? original : replacement;
-            migrationBuilder.Sql($"""
-                DO $migration$
-                DECLARE definition text := pg_get_functiondef('guard_test_drive_cancellation()'::regprocedure);
+            migrationBuilder.Sql("""
+                CREATE OR REPLACE FUNCTION guard_test_drive_cancellation() RETURNS trigger LANGUAGE plpgsql AS $$
+                DECLARE
+                    booking "TestDriveBookings"%ROWTYPE;
+                    customer "AspNetUsers"%ROWTYPE;
                 BEGIN
-                    IF (length(definition) - length(replace(definition, '{before.Replace("'", "''")}', ''))) /
-                        length('{before.Replace("'", "''")}') <> 1 THEN
-                        RAISE EXCEPTION 'Unexpected test-drive cancellation definition';
+                    IF TG_OP <> 'INSERT' THEN
+                        RAISE EXCEPTION 'Test-drive cancellation receipts are retained and immutable'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_TestDriveCancellations_Immutable';
                     END IF;
-                    EXECUTE replace(definition, '{before.Replace("'", "''")}', '{after.Replace("'", "''")}');
-                END $migration$;
+                    PERFORM pg_advisory_xact_lock(hashtextextended('test-drive-cancellation:' || NEW."Id"::text, 0));
+                    SELECT * INTO customer FROM "AspNetUsers" WHERE "Id" = NEW."CustomerId" FOR UPDATE;
+                    PERFORM 1 FROM "CustomerProfiles" WHERE "UserId" = NEW."CustomerId" FOR SHARE;
+                    IF NOT FOUND OR customer."Id" IS NULL OR NOT customer."IsActive" OR customer."Role" <> 'Customer' THEN
+                        RAISE EXCEPTION 'Cancellation requires a current customer'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_TestDriveCancellations_Customer';
+                    END IF;
+                    SELECT * INTO booking FROM "TestDriveBookings" WHERE "Id" = NEW."BookingId";
+                    IF booking."Id" IS NULL OR booking."CustomerId" <> NEW."CustomerId" THEN
+                        RAISE EXCEPTION 'Cancellation belongs to the booking customer'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_TestDriveCancellations_Owner';
+                    END IF;
+                    -- Availability writers acquire the vehicle before any dependent drive evidence.
+                    UPDATE "Branches" SET "Name" = "Name" WHERE "Id" = booking."BranchId";
+                    UPDATE "Vehicles" SET "Status" = "Status" WHERE "Id" = booking."VehicleId";
+                    IF NEW."RecordedAt" < booking."CreatedAt" OR NEW."RecordedAt" > clock_timestamp() OR
+                       NEW."RecordedAt" >= booking."StartsAt" OR clock_timestamp() >= booking."StartsAt" THEN
+                        RAISE EXCEPTION 'Customer cancellation must precede booked start'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_TestDriveCancellations_Time';
+                    END IF;
+                    UPDATE "AspNetUsers" SET "ConcurrencyStamp" = "ConcurrencyStamp" WHERE "Id" = customer."Id";
+                    RETURN NEW;
+                END $$;
                 """);
         }
     }

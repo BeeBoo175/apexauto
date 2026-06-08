@@ -212,7 +212,9 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                 table: "TestDriveStarts",
                 column: "StaffId");
             CreateHandlingGuards(migrationBuilder);
-            UpdateExistingGuards(migrationBuilder, restoring: false);
+            InstallBookingAdmission(migrationBuilder);
+            InstallAutomaticCancellations(migrationBuilder);
+            InstallAssignmentGuards(migrationBuilder);
             migrationBuilder.Sql("""
                 DO $$ DECLARE permission record; target text;
                 BEGIN
@@ -238,7 +240,9 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     END IF;
                 END $$;
                 """);
-            UpdateExistingGuards(migrationBuilder, restoring: true);
+            RestoreBookingAdmission(migrationBuilder);
+            RestoreAutomaticCancellations(migrationBuilder);
+            RestoreAssignmentGuards(migrationBuilder);
             migrationBuilder.Sql("""
                 DROP TRIGGER test_drive_terminal_cancellation_guard ON "TestDriveCancellations";
                 DROP TRIGGER test_drive_start_occupation ON "TestDriveStarts";
@@ -479,61 +483,528 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                 """);
         }
 
-        private static void UpdateExistingGuards(MigrationBuilder migrationBuilder, bool restoring)
+        private static void InstallBookingAdmission(MigrationBuilder migrationBuilder)
         {
-            const string customer = "WHERE \"CustomerId\" = NEW.\"CustomerId\" AND \"StartsAt\" >= today AND NOT EXISTS (SELECT 1 FROM \"TestDriveCancellations\" c WHERE c.\"BookingId\" = \"TestDriveBookings\".\"Id\")";
-            const string unfinished = " AND NOT EXISTS (SELECT 1 FROM \"TestDriveOutcomes\" o WHERE o.\"BookingId\" = \"TestDriveBookings\".\"Id\")";
-            var activeCustomer = customer.Replace("\"StartsAt\" >= today",
-                "(\"StartsAt\" >= today OR EXISTS (SELECT 1 FROM \"TestDriveOccupations\" occupation WHERE occupation.\"BookingId\" = \"TestDriveBookings\".\"Id\" AND occupation.\"OutcomeId\" IS NULL))") + unfinished;
-            ReplaceFunction(migrationBuilder, "guard_test_drive_booking()", customer, activeCustomer, restoring);
-            const string slot = "\"StartsAt\" < NEW.\"EndsAt\" AND \"EndsAt\" > NEW.\"StartsAt\" AND NOT EXISTS (SELECT 1 FROM \"TestDriveCancellations\" c WHERE c.\"BookingId\" = \"TestDriveBookings\".\"Id\")";
-            ReplaceFunction(migrationBuilder, "guard_test_drive_booking()", slot, slot + unfinished, restoring);
-
-            const string selector = "NOT EXISTS (SELECT 1 FROM \"TestDriveCancellations\" c WHERE c.\"BookingId\" = b.\"Id\")";
-            const string unstarted = " AND NOT EXISTS (SELECT 1 FROM \"TestDriveStarts\" s WHERE s.\"BookingId\" = b.\"Id\") AND NOT EXISTS (SELECT 1 FROM \"TestDriveOutcomes\" o WHERE o.\"BookingId\" = b.\"Id\")";
-            foreach (var function in new[] { "cancel_reserved_vehicle_test_drives()", "cancel_withdrawn_listing_test_drives()",
-                "cancel_reopened_inspection_test_drives()", "cancel_inspection_repair_test_drives()" })
-            {
-                ReplaceFunction(migrationBuilder, function, selector, selector + unstarted, restoring);
-            }
-
-            const string overlap = "b.\"StartsAt\" < ends_at AND starts_at < b.\"EndsAt\"";
-            const string activeOverlap = "(b.\"StartsAt\" < ends_at AND starts_at < b.\"EndsAt\" OR EXISTS (SELECT 1 FROM public.\"TestDriveOccupations\" occupation WHERE occupation.\"BookingId\" = b.\"Id\" AND occupation.\"OutcomeId\" IS NULL)) AND NOT EXISTS (SELECT 1 FROM public.\"TestDriveOutcomes\" o WHERE o.\"BookingId\" = b.\"Id\")";
-            ReplaceFunction(migrationBuilder, "public.staff_schedule_overlaps(uuid,timestamptz,timestamptz,uuid,uuid)", overlap, activeOverlap, restoring);
-
-            const string cancelled = "EXISTS (SELECT 1 FROM public.\"TestDriveCancellations\" WHERE \"BookingId\" = booking.\"Id\")";
-            ReplaceFunction(migrationBuilder, "public.guard_test_drive_assignment()", cancelled,
-                cancelled + " OR EXISTS (SELECT 1 FROM public.\"TestDriveOutcomes\" WHERE \"BookingId\" = booking.\"Id\")", restoring);
-            ReplaceFunction(migrationBuilder, "public.guard_test_drive_assignment()", "clock_timestamp() >=",
-                "NOT EXISTS (SELECT 1 FROM public.\"TestDriveStarts\" WHERE \"BookingId\" = booking.\"Id\") AND clock_timestamp() >=", restoring);
-            const string release = "IF NEW.\"Kind\" = 'Released' AND actor.\"Role\" = 'SalesAgent' AND";
-            const string activeHandoff = """
-                IF EXISTS (SELECT 1 FROM public."TestDriveStarts" WHERE "BookingId" = booking."Id") AND
-                    (NEW."Kind" <> 'Assigned' OR actor."Role" <> 'BranchManager' OR NEW."Reason" IS NULL) THEN
-                    RAISE EXCEPTION 'Active drives require a reasoned manager handoff'
-                        USING ERRCODE = '23514', CONSTRAINT = 'CK_TestDriveAssignments_Active';
-                END IF;
-                """;
-            ReplaceFunction(migrationBuilder, "public.guard_test_drive_assignment()", release, activeHandoff + "\n" + release, restoring);
-            const string bookedInterval = "booking.\"StartsAt\", booking.\"EndsAt\"";
-            const string activeInterval = "CASE WHEN EXISTS (SELECT 1 FROM public.\"TestDriveStarts\" WHERE \"BookingId\" = booking.\"Id\") THEN clock_timestamp() ELSE booking.\"StartsAt\" END, CASE WHEN EXISTS (SELECT 1 FROM public.\"TestDriveStarts\" WHERE \"BookingId\" = booking.\"Id\") THEN clock_timestamp() + interval '30 minutes' ELSE booking.\"EndsAt\" END";
-            ReplaceFunction(migrationBuilder, "public.guard_test_drive_assignment()", bookedInterval, activeInterval, restoring);
+            migrationBuilder.Sql("""
+                CREATE OR REPLACE FUNCTION guard_test_drive_booking() RETURNS trigger LANGUAGE plpgsql AS $$
+                DECLARE
+                    customer "AspNetUsers"%ROWTYPE;
+                    vehicle "Vehicles"%ROWTYPE;
+                    publication "ListingPublications"%ROWTYPE;
+                    revision "ListingRevisions"%ROWTYPE;
+                    today timestamptz;
+                BEGIN
+                    IF TG_OP <> 'INSERT' THEN
+                        RAISE EXCEPTION 'Test-drive booking receipts are retained and immutable'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_TestDriveBookings_Immutable';
+                    END IF;
+                    PERFORM pg_advisory_xact_lock(hashtextextended('test-drive-booking:' || NEW."Id"::text, 0));
+                    SELECT * INTO customer FROM "AspNetUsers" WHERE "Id" = NEW."CustomerId" FOR UPDATE;
+                    PERFORM 1 FROM "CustomerProfiles" WHERE "UserId" = NEW."CustomerId" FOR SHARE;
+                    IF NOT FOUND OR customer."Id" IS NULL OR NOT customer."IsActive" OR
+                       NOT customer."EmailConfirmed" OR customer."Role" <> 'Customer' THEN
+                        RAISE EXCEPTION 'A test drive requires a current verified customer'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_TestDriveBookings_Customer';
+                    END IF;
+                    UPDATE "Branches" SET "Name" = "Name" WHERE "Id" = NEW."BranchId" AND "IsActive";
+                    IF NOT FOUND THEN
+                        RAISE EXCEPTION 'Test-drive branch is unavailable'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_TestDriveBookings_Eligibility';
+                    END IF;
+                    SELECT * INTO vehicle FROM "Vehicles" WHERE "Id" = NEW."VehicleId" AND "BranchId" = NEW."BranchId" FOR UPDATE;
+                    SELECT * INTO publication FROM "ListingPublications" WHERE "Id" = NEW."PublicationId";
+                    SELECT * INTO revision FROM "ListingRevisions" WHERE "Id" = publication."RevisionId";
+                    IF vehicle."Id" IS NULL OR vehicle."Status" <> 'Available' OR publication."Id" IS NULL OR
+                       publication."VehicleId" <> NEW."VehicleId" OR publication."BranchId" <> NEW."BranchId" OR
+                       NEW."CreatedAt" < publication."RecordedAt" OR NEW."CreatedAt" > clock_timestamp() OR
+                       NEW."StartsAt" <= clock_timestamp() OR
+                       EXISTS (SELECT 1 FROM "Reservations" WHERE "VehicleId" = vehicle."Id" AND "IsActive") OR
+                       EXISTS (SELECT 1 FROM "ListingWithdrawals" WHERE "PublicationId" = publication."Id") OR
+                       EXISTS (SELECT 1 FROM "ListingPublications" p JOIN "ListingRevisions" r ON r."Id" = p."RevisionId"
+                           WHERE p."VehicleId" = vehicle."Id" AND r."Version" > revision."Version") OR
+                       NOT EXISTS (SELECT 1 FROM "InspectionSignedRevisions" s JOIN "InspectionDrafts" d ON d."Id" = s."InspectionId"
+                           WHERE s."Id" = publication."SignedRevisionId" AND d."VehicleId" = vehicle."Id" AND
+                               d."IsSigned" AND d."Revision" = s."Revision") THEN
+                        RAISE EXCEPTION 'Test drive requires the current available publication'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_TestDriveBookings_Eligibility';
+                    END IF;
+                    today := date_trunc('day', clock_timestamp() AT TIME ZONE 'Asia/Kuala_Lumpur') AT TIME ZONE 'Asia/Kuala_Lumpur';
+                    IF EXISTS (SELECT 1 FROM "TestDriveBookings" WHERE "CustomerId" = NEW."CustomerId" AND ("StartsAt" >= today OR EXISTS (SELECT 1 FROM "TestDriveOccupations" occupation WHERE occupation."BookingId" = "TestDriveBookings"."Id" AND occupation."OutcomeId" IS NULL)) AND NOT EXISTS (SELECT 1 FROM "TestDriveCancellations" c WHERE c."BookingId" = "TestDriveBookings"."Id") AND NOT EXISTS (SELECT 1 FROM "TestDriveOutcomes" o WHERE o."BookingId" = "TestDriveBookings"."Id")) THEN
+                        RAISE EXCEPTION 'Customer already has an outstanding test drive'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_TestDriveBookings_CustomerLimit';
+                    END IF;
+                    IF EXISTS (SELECT 1 FROM "TestDriveBookings" WHERE "BranchId" = NEW."BranchId" AND
+                        "StartsAt" < NEW."EndsAt" AND "EndsAt" > NEW."StartsAt" AND NOT EXISTS (SELECT 1 FROM "TestDriveCancellations" c WHERE c."BookingId" = "TestDriveBookings"."Id") AND NOT EXISTS (SELECT 1 FROM "TestDriveOutcomes" o WHERE o."BookingId" = "TestDriveBookings"."Id")) THEN
+                        RAISE EXCEPTION 'Test-drive branch interval is occupied'
+                            USING ERRCODE = '23P01', CONSTRAINT = 'EX_TestDriveBookings_Slot';
+                    END IF;
+                    -- Fence stale snapshots for both customer limits and competing vehicle availability writers.
+                    UPDATE "AspNetUsers" SET "ConcurrencyStamp" = "ConcurrencyStamp" WHERE "Id" = customer."Id";
+                    UPDATE "Vehicles" SET "Status" = "Status" WHERE "Id" = vehicle."Id";
+                    RETURN NEW;
+                END $$;
+                """);
         }
 
-        private static void ReplaceFunction(MigrationBuilder migrationBuilder, string function, string original,
-            string replacement, bool restoring)
+        private static void RestoreBookingAdmission(MigrationBuilder migrationBuilder)
         {
-            var before = (restoring ? replacement : original).Replace("'", "''");
-            var after = (restoring ? original : replacement).Replace("'", "''");
-            migrationBuilder.Sql($"""
-                DO $migration$
-                DECLARE definition text := pg_get_functiondef('{function}'::regprocedure);
+            migrationBuilder.Sql("""
+                CREATE OR REPLACE FUNCTION guard_test_drive_booking() RETURNS trigger LANGUAGE plpgsql AS $$
+                DECLARE
+                    customer "AspNetUsers"%ROWTYPE;
+                    vehicle "Vehicles"%ROWTYPE;
+                    publication "ListingPublications"%ROWTYPE;
+                    revision "ListingRevisions"%ROWTYPE;
+                    today timestamptz;
                 BEGIN
-                    IF (length(definition) - length(replace(definition, '{before}', ''))) / length('{before}') <> 1 THEN
-                        RAISE EXCEPTION 'Unexpected function definition for {function}';
+                    IF TG_OP <> 'INSERT' THEN
+                        RAISE EXCEPTION 'Test-drive booking receipts are retained and immutable'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_TestDriveBookings_Immutable';
                     END IF;
-                    EXECUTE replace(definition, '{before}', '{after}');
-                END $migration$;
+                    PERFORM pg_advisory_xact_lock(hashtextextended('test-drive-booking:' || NEW."Id"::text, 0));
+                    SELECT * INTO customer FROM "AspNetUsers" WHERE "Id" = NEW."CustomerId" FOR UPDATE;
+                    PERFORM 1 FROM "CustomerProfiles" WHERE "UserId" = NEW."CustomerId" FOR SHARE;
+                    IF NOT FOUND OR customer."Id" IS NULL OR NOT customer."IsActive" OR
+                       NOT customer."EmailConfirmed" OR customer."Role" <> 'Customer' THEN
+                        RAISE EXCEPTION 'A test drive requires a current verified customer'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_TestDriveBookings_Customer';
+                    END IF;
+                    UPDATE "Branches" SET "Name" = "Name" WHERE "Id" = NEW."BranchId" AND "IsActive";
+                    IF NOT FOUND THEN
+                        RAISE EXCEPTION 'Test-drive branch is unavailable'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_TestDriveBookings_Eligibility';
+                    END IF;
+                    SELECT * INTO vehicle FROM "Vehicles" WHERE "Id" = NEW."VehicleId" AND "BranchId" = NEW."BranchId" FOR UPDATE;
+                    SELECT * INTO publication FROM "ListingPublications" WHERE "Id" = NEW."PublicationId";
+                    SELECT * INTO revision FROM "ListingRevisions" WHERE "Id" = publication."RevisionId";
+                    IF vehicle."Id" IS NULL OR vehicle."Status" <> 'Available' OR publication."Id" IS NULL OR
+                       publication."VehicleId" <> NEW."VehicleId" OR publication."BranchId" <> NEW."BranchId" OR
+                       NEW."CreatedAt" < publication."RecordedAt" OR NEW."CreatedAt" > clock_timestamp() OR
+                       NEW."StartsAt" <= clock_timestamp() OR
+                       EXISTS (SELECT 1 FROM "Reservations" WHERE "VehicleId" = vehicle."Id" AND "IsActive") OR
+                       EXISTS (SELECT 1 FROM "ListingWithdrawals" WHERE "PublicationId" = publication."Id") OR
+                       EXISTS (SELECT 1 FROM "ListingPublications" p JOIN "ListingRevisions" r ON r."Id" = p."RevisionId"
+                           WHERE p."VehicleId" = vehicle."Id" AND r."Version" > revision."Version") OR
+                       NOT EXISTS (SELECT 1 FROM "InspectionSignedRevisions" s JOIN "InspectionDrafts" d ON d."Id" = s."InspectionId"
+                           WHERE s."Id" = publication."SignedRevisionId" AND d."VehicleId" = vehicle."Id" AND
+                               d."IsSigned" AND d."Revision" = s."Revision") THEN
+                        RAISE EXCEPTION 'Test drive requires the current available publication'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_TestDriveBookings_Eligibility';
+                    END IF;
+                    today := date_trunc('day', clock_timestamp() AT TIME ZONE 'Asia/Kuala_Lumpur') AT TIME ZONE 'Asia/Kuala_Lumpur';
+                    IF EXISTS (SELECT 1 FROM "TestDriveBookings" WHERE "CustomerId" = NEW."CustomerId" AND "StartsAt" >= today AND NOT EXISTS (SELECT 1 FROM "TestDriveCancellations" c WHERE c."BookingId" = "TestDriveBookings"."Id")) THEN
+                        RAISE EXCEPTION 'Customer already has an outstanding test drive'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_TestDriveBookings_CustomerLimit';
+                    END IF;
+                    IF EXISTS (SELECT 1 FROM "TestDriveBookings" WHERE "BranchId" = NEW."BranchId" AND
+                        "StartsAt" < NEW."EndsAt" AND "EndsAt" > NEW."StartsAt" AND NOT EXISTS (SELECT 1 FROM "TestDriveCancellations" c WHERE c."BookingId" = "TestDriveBookings"."Id")) THEN
+                        RAISE EXCEPTION 'Test-drive branch interval is occupied'
+                            USING ERRCODE = '23P01', CONSTRAINT = 'EX_TestDriveBookings_Slot';
+                    END IF;
+                    -- Fence stale snapshots for both customer limits and competing vehicle availability writers.
+                    UPDATE "AspNetUsers" SET "ConcurrencyStamp" = "ConcurrencyStamp" WHERE "Id" = customer."Id";
+                    UPDATE "Vehicles" SET "Status" = "Status" WHERE "Id" = vehicle."Id";
+                    RETURN NEW;
+                END $$;
+                """);
+        }
+
+        private static void InstallAutomaticCancellations(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.Sql("""
+                CREATE OR REPLACE FUNCTION cancel_reserved_vehicle_test_drives() RETURNS trigger LANGUAGE plpgsql AS $$
+                DECLARE recorded_at timestamptz := clock_timestamp();
+                BEGIN
+                    -- Reservation admission already owns the vehicle; never upgrade a branch lock here.
+                    WITH cancelled AS (
+                        INSERT INTO "TestDriveCancellations"
+                            ("Id", "BookingId", "CustomerId", "Kind", "ReservationId", "Reason", "RecordedAt")
+                        SELECT gen_random_uuid(), b."Id", b."CustomerId", 'VehicleReserved', NEW."Id",
+                            'Vehicle reserved', recorded_at
+                        FROM "TestDriveBookings" b
+                        WHERE b."VehicleId" = NEW."VehicleId" AND
+                            recorded_at < ((b."StartsAt" AT TIME ZONE 'Asia/Kuala_Lumpur')::date + 1)::timestamp
+                                AT TIME ZONE 'Asia/Kuala_Lumpur' AND
+                            NOT EXISTS (SELECT 1 FROM "TestDriveCancellations" c WHERE c."BookingId" = b."Id") AND NOT EXISTS (SELECT 1 FROM "TestDriveStarts" s WHERE s."BookingId" = b."Id") AND NOT EXISTS (SELECT 1 FROM "TestDriveOutcomes" o WHERE o."BookingId" = b."Id")
+                        ORDER BY b."Id"
+                        RETURNING "BookingId")
+                    INSERT INTO "TestDriveMailOutbox"
+                        ("Id", "BookingId", "Kind", "RecipientEmail", "DeliveryAttempts", "NextDeliveryAt")
+                    SELECT gen_random_uuid(), c."BookingId", 'Cancellation', m."RecipientEmail", 0, recorded_at
+                    FROM cancelled c JOIN "TestDriveMailOutbox" m ON m."BookingId" = c."BookingId"
+                        AND m."Kind" = 'Confirmation';
+                    RETURN NULL;
+                END $$;
+
+                CREATE OR REPLACE FUNCTION cancel_withdrawn_listing_test_drives() RETURNS trigger LANGUAGE plpgsql AS $$
+                DECLARE recorded_at timestamptz := clock_timestamp();
+                BEGIN
+                    -- Withdrawal admission owns the vehicle; cancellation must not acquire a later branch lock.
+                    WITH cancelled AS (
+                        INSERT INTO "TestDriveCancellations"
+                            ("Id", "BookingId", "CustomerId", "Kind", "ListingWithdrawalId", "Reason", "RecordedAt")
+                        SELECT gen_random_uuid(), b."Id", b."CustomerId", 'ListingWithdrawn', NEW."Id",
+                            'Listing withdrawn', recorded_at
+                        FROM "TestDriveBookings" b
+                        WHERE b."VehicleId" = NEW."VehicleId" AND
+                            recorded_at < ((b."StartsAt" AT TIME ZONE 'Asia/Kuala_Lumpur')::date + 1)::timestamp
+                                AT TIME ZONE 'Asia/Kuala_Lumpur' AND
+                            NOT EXISTS (SELECT 1 FROM "TestDriveCancellations" c WHERE c."BookingId" = b."Id") AND NOT EXISTS (SELECT 1 FROM "TestDriveStarts" s WHERE s."BookingId" = b."Id") AND NOT EXISTS (SELECT 1 FROM "TestDriveOutcomes" o WHERE o."BookingId" = b."Id")
+                        ORDER BY b."Id"
+                        RETURNING "BookingId")
+                    INSERT INTO "TestDriveMailOutbox"
+                        ("Id", "BookingId", "Kind", "RecipientEmail", "DeliveryAttempts", "NextDeliveryAt")
+                    SELECT gen_random_uuid(), c."BookingId", 'Cancellation', m."RecipientEmail", 0, recorded_at
+                    FROM cancelled c JOIN "TestDriveMailOutbox" m ON m."BookingId" = c."BookingId"
+                        AND m."Kind" = 'Confirmation';
+                    RETURN NULL;
+                END $$;
+
+                CREATE OR REPLACE FUNCTION cancel_reopened_inspection_test_drives() RETURNS trigger LANGUAGE plpgsql AS $$
+                DECLARE
+                    recorded_at timestamptz := clock_timestamp();
+                    vehicle_id uuid;
+                BEGIN
+                    -- Reopening admission owns the vehicle; do not take a later branch or customer lock.
+                    SELECT "VehicleId" INTO vehicle_id FROM "InspectionDrafts" WHERE "Id" = NEW."InspectionId";
+                    WITH cancelled AS (
+                        INSERT INTO "TestDriveCancellations"
+                            ("Id", "BookingId", "CustomerId", "Kind", "InspectionReopeningId", "Reason", "RecordedAt")
+                        SELECT gen_random_uuid(), b."Id", b."CustomerId", 'InspectionReopened', NEW."Id",
+                            'Vehicle requires reinspection', recorded_at
+                        FROM "TestDriveBookings" b
+                        WHERE b."VehicleId" = vehicle_id AND
+                            recorded_at < ((b."StartsAt" AT TIME ZONE 'Asia/Kuala_Lumpur')::date + 1)::timestamp
+                                AT TIME ZONE 'Asia/Kuala_Lumpur' AND
+                            NOT EXISTS (SELECT 1 FROM "TestDriveCancellations" c WHERE c."BookingId" = b."Id") AND NOT EXISTS (SELECT 1 FROM "TestDriveStarts" s WHERE s."BookingId" = b."Id") AND NOT EXISTS (SELECT 1 FROM "TestDriveOutcomes" o WHERE o."BookingId" = b."Id")
+                        ORDER BY b."Id"
+                        RETURNING "BookingId")
+                    INSERT INTO "TestDriveMailOutbox"
+                        ("Id", "BookingId", "Kind", "RecipientEmail", "DeliveryAttempts", "NextDeliveryAt")
+                    SELECT gen_random_uuid(), c."BookingId", 'Cancellation', m."RecipientEmail", 0, recorded_at
+                    FROM cancelled c JOIN "TestDriveMailOutbox" m ON m."BookingId" = c."BookingId"
+                        AND m."Kind" = 'Confirmation';
+                    RETURN NULL;
+                END $$;
+
+                CREATE OR REPLACE FUNCTION cancel_inspection_repair_test_drives() RETURNS trigger LANGUAGE plpgsql AS $$
+                DECLARE
+                    recorded_at timestamptz := clock_timestamp();
+                    vehicle_id uuid;
+                BEGIN
+                    -- Repair-request admission owns the vehicle; do not take a later branch or customer lock.
+                    SELECT "VehicleId" INTO vehicle_id FROM "InspectionDrafts" WHERE "Id" = NEW."InspectionId";
+                    WITH cancelled AS (
+                        INSERT INTO "TestDriveCancellations"
+                            ("Id", "BookingId", "CustomerId", "Kind", "InspectionRepairRequestId", "Reason", "RecordedAt")
+                        SELECT gen_random_uuid(), b."Id", b."CustomerId", 'InspectionRepairRequested', NEW."Id",
+                            'Vehicle requires repairs', recorded_at
+                        FROM "TestDriveBookings" b
+                        WHERE b."VehicleId" = vehicle_id AND
+                            recorded_at < ((b."StartsAt" AT TIME ZONE 'Asia/Kuala_Lumpur')::date + 1)::timestamp
+                                AT TIME ZONE 'Asia/Kuala_Lumpur' AND
+                            NOT EXISTS (SELECT 1 FROM "TestDriveCancellations" c WHERE c."BookingId" = b."Id") AND NOT EXISTS (SELECT 1 FROM "TestDriveStarts" s WHERE s."BookingId" = b."Id") AND NOT EXISTS (SELECT 1 FROM "TestDriveOutcomes" o WHERE o."BookingId" = b."Id")
+                        ORDER BY b."Id"
+                        RETURNING "BookingId")
+                    INSERT INTO "TestDriveMailOutbox"
+                        ("Id", "BookingId", "Kind", "RecipientEmail", "DeliveryAttempts", "NextDeliveryAt")
+                    SELECT gen_random_uuid(), c."BookingId", 'Cancellation', m."RecipientEmail", 0, recorded_at
+                    FROM cancelled c JOIN "TestDriveMailOutbox" m ON m."BookingId" = c."BookingId"
+                        AND m."Kind" = 'Confirmation';
+                    RETURN NULL;
+                END $$;
+                """);
+        }
+
+        private static void RestoreAutomaticCancellations(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.Sql("""
+                CREATE OR REPLACE FUNCTION cancel_reserved_vehicle_test_drives() RETURNS trigger LANGUAGE plpgsql AS $$
+                DECLARE recorded_at timestamptz := clock_timestamp();
+                BEGIN
+                    -- Reservation admission already owns the vehicle; never upgrade a branch lock here.
+                    WITH cancelled AS (
+                        INSERT INTO "TestDriveCancellations"
+                            ("Id", "BookingId", "CustomerId", "Kind", "ReservationId", "Reason", "RecordedAt")
+                        SELECT gen_random_uuid(), b."Id", b."CustomerId", 'VehicleReserved', NEW."Id",
+                            'Vehicle reserved', recorded_at
+                        FROM "TestDriveBookings" b
+                        WHERE b."VehicleId" = NEW."VehicleId" AND
+                            recorded_at < ((b."StartsAt" AT TIME ZONE 'Asia/Kuala_Lumpur')::date + 1)::timestamp
+                                AT TIME ZONE 'Asia/Kuala_Lumpur' AND
+                            NOT EXISTS (SELECT 1 FROM "TestDriveCancellations" c WHERE c."BookingId" = b."Id")
+                        ORDER BY b."Id"
+                        RETURNING "BookingId")
+                    INSERT INTO "TestDriveMailOutbox"
+                        ("Id", "BookingId", "Kind", "RecipientEmail", "DeliveryAttempts", "NextDeliveryAt")
+                    SELECT gen_random_uuid(), c."BookingId", 'Cancellation', m."RecipientEmail", 0, recorded_at
+                    FROM cancelled c JOIN "TestDriveMailOutbox" m ON m."BookingId" = c."BookingId"
+                        AND m."Kind" = 'Confirmation';
+                    RETURN NULL;
+                END $$;
+
+                CREATE OR REPLACE FUNCTION cancel_withdrawn_listing_test_drives() RETURNS trigger LANGUAGE plpgsql AS $$
+                DECLARE recorded_at timestamptz := clock_timestamp();
+                BEGIN
+                    -- Withdrawal admission owns the vehicle; cancellation must not acquire a later branch lock.
+                    WITH cancelled AS (
+                        INSERT INTO "TestDriveCancellations"
+                            ("Id", "BookingId", "CustomerId", "Kind", "ListingWithdrawalId", "Reason", "RecordedAt")
+                        SELECT gen_random_uuid(), b."Id", b."CustomerId", 'ListingWithdrawn', NEW."Id",
+                            'Listing withdrawn', recorded_at
+                        FROM "TestDriveBookings" b
+                        WHERE b."VehicleId" = NEW."VehicleId" AND
+                            recorded_at < ((b."StartsAt" AT TIME ZONE 'Asia/Kuala_Lumpur')::date + 1)::timestamp
+                                AT TIME ZONE 'Asia/Kuala_Lumpur' AND
+                            NOT EXISTS (SELECT 1 FROM "TestDriveCancellations" c WHERE c."BookingId" = b."Id")
+                        ORDER BY b."Id"
+                        RETURNING "BookingId")
+                    INSERT INTO "TestDriveMailOutbox"
+                        ("Id", "BookingId", "Kind", "RecipientEmail", "DeliveryAttempts", "NextDeliveryAt")
+                    SELECT gen_random_uuid(), c."BookingId", 'Cancellation', m."RecipientEmail", 0, recorded_at
+                    FROM cancelled c JOIN "TestDriveMailOutbox" m ON m."BookingId" = c."BookingId"
+                        AND m."Kind" = 'Confirmation';
+                    RETURN NULL;
+                END $$;
+
+                CREATE OR REPLACE FUNCTION cancel_reopened_inspection_test_drives() RETURNS trigger LANGUAGE plpgsql AS $$
+                DECLARE
+                    recorded_at timestamptz := clock_timestamp();
+                    vehicle_id uuid;
+                BEGIN
+                    -- Reopening admission owns the vehicle; do not take a later branch or customer lock.
+                    SELECT "VehicleId" INTO vehicle_id FROM "InspectionDrafts" WHERE "Id" = NEW."InspectionId";
+                    WITH cancelled AS (
+                        INSERT INTO "TestDriveCancellations"
+                            ("Id", "BookingId", "CustomerId", "Kind", "InspectionReopeningId", "Reason", "RecordedAt")
+                        SELECT gen_random_uuid(), b."Id", b."CustomerId", 'InspectionReopened', NEW."Id",
+                            'Vehicle requires reinspection', recorded_at
+                        FROM "TestDriveBookings" b
+                        WHERE b."VehicleId" = vehicle_id AND
+                            recorded_at < ((b."StartsAt" AT TIME ZONE 'Asia/Kuala_Lumpur')::date + 1)::timestamp
+                                AT TIME ZONE 'Asia/Kuala_Lumpur' AND
+                            NOT EXISTS (SELECT 1 FROM "TestDriveCancellations" c WHERE c."BookingId" = b."Id")
+                        ORDER BY b."Id"
+                        RETURNING "BookingId")
+                    INSERT INTO "TestDriveMailOutbox"
+                        ("Id", "BookingId", "Kind", "RecipientEmail", "DeliveryAttempts", "NextDeliveryAt")
+                    SELECT gen_random_uuid(), c."BookingId", 'Cancellation', m."RecipientEmail", 0, recorded_at
+                    FROM cancelled c JOIN "TestDriveMailOutbox" m ON m."BookingId" = c."BookingId"
+                        AND m."Kind" = 'Confirmation';
+                    RETURN NULL;
+                END $$;
+
+                CREATE OR REPLACE FUNCTION cancel_inspection_repair_test_drives() RETURNS trigger LANGUAGE plpgsql AS $$
+                DECLARE
+                    recorded_at timestamptz := clock_timestamp();
+                    vehicle_id uuid;
+                BEGIN
+                    -- Repair-request admission owns the vehicle; do not take a later branch or customer lock.
+                    SELECT "VehicleId" INTO vehicle_id FROM "InspectionDrafts" WHERE "Id" = NEW."InspectionId";
+                    WITH cancelled AS (
+                        INSERT INTO "TestDriveCancellations"
+                            ("Id", "BookingId", "CustomerId", "Kind", "InspectionRepairRequestId", "Reason", "RecordedAt")
+                        SELECT gen_random_uuid(), b."Id", b."CustomerId", 'InspectionRepairRequested', NEW."Id",
+                            'Vehicle requires repairs', recorded_at
+                        FROM "TestDriveBookings" b
+                        WHERE b."VehicleId" = vehicle_id AND
+                            recorded_at < ((b."StartsAt" AT TIME ZONE 'Asia/Kuala_Lumpur')::date + 1)::timestamp
+                                AT TIME ZONE 'Asia/Kuala_Lumpur' AND
+                            NOT EXISTS (SELECT 1 FROM "TestDriveCancellations" c WHERE c."BookingId" = b."Id")
+                        ORDER BY b."Id"
+                        RETURNING "BookingId")
+                    INSERT INTO "TestDriveMailOutbox"
+                        ("Id", "BookingId", "Kind", "RecipientEmail", "DeliveryAttempts", "NextDeliveryAt")
+                    SELECT gen_random_uuid(), c."BookingId", 'Cancellation', m."RecipientEmail", 0, recorded_at
+                    FROM cancelled c JOIN "TestDriveMailOutbox" m ON m."BookingId" = c."BookingId"
+                        AND m."Kind" = 'Confirmation';
+                    RETURN NULL;
+                END $$;
+                """);
+        }
+
+        private static void InstallAssignmentGuards(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.Sql("""
+                CREATE OR REPLACE FUNCTION public.staff_schedule_overlaps(handler uuid, starts_at timestamptz,
+                    ends_at timestamptz, excluded_appointment uuid, excluded_booking uuid) RETURNS boolean
+                LANGUAGE sql STABLE SET search_path = pg_catalog AS $$
+                    SELECT EXISTS (
+                        SELECT 1 FROM public."IntakeAppointments" a
+                        JOIN LATERAL (SELECT h."HandlerId" FROM public."AppointmentAssignments" h
+                            WHERE h."AppointmentId" = a."Id" ORDER BY h."Version" DESC LIMIT 1) current ON true
+                        WHERE a."Id" IS DISTINCT FROM excluded_appointment AND current."HandlerId" = handler AND
+                            a."CancelledAt" IS NULL AND a."StartsAt" < ends_at AND starts_at < a."EndsAt" AND
+                            NOT EXISTS (SELECT 1 FROM public."AppointmentCheckIns" c WHERE c."AppointmentId" = a."Id")
+                    ) OR EXISTS (
+                        SELECT 1 FROM public."TestDriveBookings" b
+                        JOIN LATERAL (SELECT h."HandlerId" FROM public."TestDriveAssignments" h
+                            WHERE h."BookingId" = b."Id" ORDER BY h."Version" DESC LIMIT 1) current ON true
+                        WHERE b."Id" IS DISTINCT FROM excluded_booking AND current."HandlerId" = handler AND
+                            (b."StartsAt" < ends_at AND starts_at < b."EndsAt" OR EXISTS (
+                                SELECT 1 FROM public."TestDriveOccupations" occupation
+                                WHERE occupation."BookingId" = b."Id" AND occupation."OutcomeId" IS NULL)) AND
+                            NOT EXISTS (SELECT 1 FROM public."TestDriveOutcomes" o WHERE o."BookingId" = b."Id") AND
+                            NOT EXISTS (
+                                SELECT 1 FROM public."TestDriveCancellations" c WHERE c."BookingId" = b."Id")
+                    );
+                $$;
+
+                CREATE OR REPLACE FUNCTION public.guard_test_drive_assignment() RETURNS trigger
+                LANGUAGE plpgsql SET search_path = pg_catalog AS $$
+                DECLARE
+                    booking public."TestDriveBookings"%ROWTYPE;
+                    previous public."TestDriveAssignments"%ROWTYPE;
+                    actor public."AspNetUsers"%ROWTYPE;
+                BEGIN
+                    IF TG_OP <> 'INSERT' THEN
+                        RAISE EXCEPTION 'Test-drive ownership history is immutable'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_TestDriveAssignments_Immutable';
+                    END IF;
+                    PERFORM pg_advisory_xact_lock(hashtextextended('test-drive-assignment:' || NEW."Id"::text, 0));
+                    PERFORM 1 FROM public."AspNetUsers" WHERE "Id" IN (NEW."ActorId", NEW."HandlerId")
+                        ORDER BY "Id" FOR SHARE;
+                    SELECT * INTO actor FROM public."AspNetUsers" WHERE "Id" = NEW."ActorId";
+                    -- Shared branch writes fence stale assignment, cancellation and check-in snapshots.
+                    UPDATE public."Branches" SET "IsActive" = "IsActive" WHERE "Id" = NEW."BranchId";
+                    IF NOT EXISTS (SELECT 1 FROM public."Branches" WHERE "Id" = NEW."BranchId" AND "IsActive") OR
+                        actor."Id" IS NULL OR NOT actor."IsActive" OR
+                        actor."BranchId" IS DISTINCT FROM NEW."BranchId" OR
+                        actor."Role" NOT IN ('SalesAgent', 'BranchManager') OR
+                        (NEW."Kind" = 'Assigned' AND actor."Role" <> 'BranchManager') OR
+                        (NEW."HandlerId" IS NOT NULL AND NOT EXISTS (
+                            SELECT 1 FROM public."AspNetUsers" WHERE "Id" = NEW."HandlerId" AND "IsActive" AND
+                                "BranchId" = NEW."BranchId" AND "Role" IN ('SalesAgent', 'BranchManager'))) THEN
+                        RAISE EXCEPTION 'Ownership requires current eligible branch staff'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_TestDriveAssignments_Eligibility';
+                    END IF;
+                    SELECT * INTO booking FROM public."TestDriveBookings" WHERE "Id" = NEW."BookingId";
+                    IF booking."Id" IS NULL OR booking."BranchId" <> NEW."BranchId" OR
+                        EXISTS (SELECT 1 FROM public."TestDriveCancellations" WHERE "BookingId" = booking."Id") OR
+                        EXISTS (SELECT 1 FROM public."TestDriveOutcomes" WHERE "BookingId" = booking."Id") OR
+                        NEW."RecordedAt" < booking."CreatedAt" OR
+                        NEW."RecordedAt" > clock_timestamp() OR
+                        NOT EXISTS (SELECT 1 FROM public."TestDriveStarts" WHERE "BookingId" = booking."Id") AND
+                        clock_timestamp() >= ((booking."StartsAt" AT TIME ZONE 'Asia/Kuala_Lumpur')::date + 1)::timestamp
+                            AT TIME ZONE 'Asia/Kuala_Lumpur' THEN
+                        RAISE EXCEPTION 'Only unfinished test drives accept ownership changes'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_TestDriveAssignments_Availability';
+                    END IF;
+                    UPDATE public."Vehicles" SET "Status" = "Status" WHERE "Id" = booking."VehicleId";
+                    SELECT * INTO previous FROM public."TestDriveAssignments" WHERE "BookingId" = NEW."BookingId"
+                        ORDER BY "Version" DESC LIMIT 1;
+                    IF NEW."ExpectedVersion" <> coalesce(previous."Version", 0) OR
+                        NEW."PreviousHandlerId" IS DISTINCT FROM previous."HandlerId" OR
+                        NEW."RecordedAt" < previous."RecordedAt" THEN
+                        RAISE EXCEPTION 'Ownership must extend the exact current history'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_TestDriveAssignments_Chain';
+                    END IF;
+                    IF EXISTS (SELECT 1 FROM public."TestDriveStarts" WHERE "BookingId" = booking."Id") AND
+                        (NEW."Kind" <> 'Assigned' OR actor."Role" <> 'BranchManager' OR NEW."Reason" IS NULL) THEN
+                        RAISE EXCEPTION 'Active drives require a reasoned manager handoff'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_TestDriveAssignments_Active';
+                    END IF;
+                    IF NEW."Kind" = 'Released' AND actor."Role" = 'SalesAgent' AND
+                        NEW."PreviousHandlerId" IS DISTINCT FROM NEW."ActorId" THEN
+                        RAISE EXCEPTION 'Agents release only their own unfinished work'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_TestDriveAssignments_Eligibility';
+                    END IF;
+                    IF NEW."HandlerId" IS NOT NULL AND public.staff_schedule_overlaps(
+                        NEW."HandlerId",
+                        CASE WHEN EXISTS (SELECT 1 FROM public."TestDriveStarts" WHERE "BookingId" = booking."Id")
+                            THEN clock_timestamp() ELSE booking."StartsAt" END,
+                        CASE WHEN EXISTS (SELECT 1 FROM public."TestDriveStarts" WHERE "BookingId" = booking."Id")
+                            THEN clock_timestamp() + interval '30 minutes' ELSE booking."EndsAt" END,
+                        NULL, booking."Id") THEN
+                        RAISE EXCEPTION 'Handler already has overlapping booked work'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_TestDriveAssignments_Overlap';
+                    END IF;
+                    RETURN NEW;
+                END $$;
+                """);
+        }
+
+        private static void RestoreAssignmentGuards(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.Sql("""
+                CREATE OR REPLACE FUNCTION public.staff_schedule_overlaps(handler uuid, starts_at timestamptz,
+                    ends_at timestamptz, excluded_appointment uuid, excluded_booking uuid) RETURNS boolean
+                LANGUAGE sql STABLE SET search_path = pg_catalog AS $$
+                    SELECT EXISTS (
+                        SELECT 1 FROM public."IntakeAppointments" a
+                        JOIN LATERAL (SELECT h."HandlerId" FROM public."AppointmentAssignments" h
+                            WHERE h."AppointmentId" = a."Id" ORDER BY h."Version" DESC LIMIT 1) current ON true
+                        WHERE a."Id" IS DISTINCT FROM excluded_appointment AND current."HandlerId" = handler AND
+                            a."CancelledAt" IS NULL AND a."StartsAt" < ends_at AND starts_at < a."EndsAt" AND
+                            NOT EXISTS (SELECT 1 FROM public."AppointmentCheckIns" c WHERE c."AppointmentId" = a."Id")
+                    ) OR EXISTS (
+                        SELECT 1 FROM public."TestDriveBookings" b
+                        JOIN LATERAL (SELECT h."HandlerId" FROM public."TestDriveAssignments" h
+                            WHERE h."BookingId" = b."Id" ORDER BY h."Version" DESC LIMIT 1) current ON true
+                        WHERE b."Id" IS DISTINCT FROM excluded_booking AND current."HandlerId" = handler AND
+                            b."StartsAt" < ends_at AND starts_at < b."EndsAt" AND NOT EXISTS (
+                                SELECT 1 FROM public."TestDriveCancellations" c WHERE c."BookingId" = b."Id")
+                    );
+                $$;
+
+                CREATE OR REPLACE FUNCTION public.guard_test_drive_assignment() RETURNS trigger
+                LANGUAGE plpgsql SET search_path = pg_catalog AS $$
+                DECLARE
+                    booking public."TestDriveBookings"%ROWTYPE;
+                    previous public."TestDriveAssignments"%ROWTYPE;
+                    actor public."AspNetUsers"%ROWTYPE;
+                BEGIN
+                    IF TG_OP <> 'INSERT' THEN
+                        RAISE EXCEPTION 'Test-drive ownership history is immutable'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_TestDriveAssignments_Immutable';
+                    END IF;
+                    PERFORM pg_advisory_xact_lock(hashtextextended('test-drive-assignment:' || NEW."Id"::text, 0));
+                    PERFORM 1 FROM public."AspNetUsers" WHERE "Id" IN (NEW."ActorId", NEW."HandlerId")
+                        ORDER BY "Id" FOR SHARE;
+                    SELECT * INTO actor FROM public."AspNetUsers" WHERE "Id" = NEW."ActorId";
+                    -- Shared branch writes fence stale assignment, cancellation and check-in snapshots.
+                    UPDATE public."Branches" SET "IsActive" = "IsActive" WHERE "Id" = NEW."BranchId";
+                    IF NOT EXISTS (SELECT 1 FROM public."Branches" WHERE "Id" = NEW."BranchId" AND "IsActive") OR
+                        actor."Id" IS NULL OR NOT actor."IsActive" OR
+                        actor."BranchId" IS DISTINCT FROM NEW."BranchId" OR
+                        actor."Role" NOT IN ('SalesAgent', 'BranchManager') OR
+                        (NEW."Kind" = 'Assigned' AND actor."Role" <> 'BranchManager') OR
+                        (NEW."HandlerId" IS NOT NULL AND NOT EXISTS (
+                            SELECT 1 FROM public."AspNetUsers" WHERE "Id" = NEW."HandlerId" AND "IsActive" AND
+                                "BranchId" = NEW."BranchId" AND "Role" IN ('SalesAgent', 'BranchManager'))) THEN
+                        RAISE EXCEPTION 'Ownership requires current eligible branch staff'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_TestDriveAssignments_Eligibility';
+                    END IF;
+                    SELECT * INTO booking FROM public."TestDriveBookings" WHERE "Id" = NEW."BookingId";
+                    IF booking."Id" IS NULL OR booking."BranchId" <> NEW."BranchId" OR
+                        EXISTS (SELECT 1 FROM public."TestDriveCancellations" WHERE "BookingId" = booking."Id") OR NEW."RecordedAt" < booking."CreatedAt" OR
+                        NEW."RecordedAt" > clock_timestamp() OR
+                        clock_timestamp() >= ((booking."StartsAt" AT TIME ZONE 'Asia/Kuala_Lumpur')::date + 1)::timestamp
+                            AT TIME ZONE 'Asia/Kuala_Lumpur' THEN
+                        RAISE EXCEPTION 'Only unfinished test drives accept ownership changes'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_TestDriveAssignments_Availability';
+                    END IF;
+                    UPDATE public."Vehicles" SET "Status" = "Status" WHERE "Id" = booking."VehicleId";
+                    SELECT * INTO previous FROM public."TestDriveAssignments" WHERE "BookingId" = NEW."BookingId"
+                        ORDER BY "Version" DESC LIMIT 1;
+                    IF NEW."ExpectedVersion" <> coalesce(previous."Version", 0) OR
+                        NEW."PreviousHandlerId" IS DISTINCT FROM previous."HandlerId" OR
+                        NEW."RecordedAt" < previous."RecordedAt" THEN
+                        RAISE EXCEPTION 'Ownership must extend the exact current history'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_TestDriveAssignments_Chain';
+                    END IF;
+                    IF NEW."Kind" = 'Released' AND actor."Role" = 'SalesAgent' AND
+                        NEW."PreviousHandlerId" IS DISTINCT FROM NEW."ActorId" THEN
+                        RAISE EXCEPTION 'Agents release only their own unfinished work'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_TestDriveAssignments_Eligibility';
+                    END IF;
+                    IF NEW."HandlerId" IS NOT NULL AND public.staff_schedule_overlaps(
+                        NEW."HandlerId", booking."StartsAt", booking."EndsAt", NULL, booking."Id") THEN
+                        RAISE EXCEPTION 'Handler already has overlapping booked work'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_TestDriveAssignments_Overlap';
+                    END IF;
+                    RETURN NEW;
+                END $$;
                 """);
         }
     }

@@ -170,7 +170,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                 CREATE TRIGGER test_drive_assignment_guard BEFORE INSERT OR UPDATE OR DELETE ON public."TestDriveAssignments"
                     FOR EACH ROW EXECUTE FUNCTION public.guard_test_drive_assignment();
                 """);
-            UpdateIntakeOverlap(migrationBuilder, restoring: false);
+            InstallIntakeAdmission(migrationBuilder);
         }
 
         /// <inheritdoc />
@@ -185,7 +185,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                 DROP TRIGGER test_drive_assignment_guard ON "TestDriveAssignments";
                 DROP FUNCTION public.guard_test_drive_assignment();
                 """);
-            UpdateIntakeOverlap(migrationBuilder, restoring: true);
+            RestoreIntakeAdmission(migrationBuilder);
             migrationBuilder.Sql("DROP FUNCTION public.staff_schedule_overlaps(uuid, timestamptz, timestamptz, uuid, uuid);");
             migrationBuilder.DropTable(
                 name: "TestDriveAssignments");
@@ -195,10 +195,122 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                 table: "TestDriveBookings");
         }
 
-        private static void UpdateIntakeOverlap(MigrationBuilder migrationBuilder, bool restoring)
+        private static void InstallIntakeAdmission(MigrationBuilder migrationBuilder)
         {
-            var original = """
-                IF NEW."HandlerId" IS NOT NULL AND EXISTS (
+            migrationBuilder.Sql("""
+                CREATE OR REPLACE FUNCTION public.guard_appointment_assignment() RETURNS trigger
+                LANGUAGE plpgsql SET search_path = pg_catalog AS $$
+                DECLARE
+                    appointment public."IntakeAppointments"%ROWTYPE;
+                    previous public."AppointmentAssignments"%ROWTYPE;
+                    actor public."AspNetUsers"%ROWTYPE;
+                BEGIN
+                    IF TG_OP <> 'INSERT' THEN
+                        RAISE EXCEPTION 'Intake ownership history is immutable'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_AppointmentAssignments_Immutable';
+                    END IF;
+                    PERFORM 1 FROM public."AspNetUsers" WHERE "Id" IN (NEW."ActorId", NEW."HandlerId")
+                        ORDER BY "Id" FOR SHARE;
+                    SELECT * INTO actor FROM public."AspNetUsers" WHERE "Id" = NEW."ActorId";
+                    -- Shared branch writes fence stale assignment, cancellation and check-in snapshots.
+                    UPDATE public."Branches" SET "IsActive" = "IsActive" WHERE "Id" = NEW."BranchId";
+                    IF NOT EXISTS (SELECT 1 FROM public."Branches" WHERE "Id" = NEW."BranchId" AND "IsActive") OR
+                        actor."Id" IS NULL OR NOT actor."IsActive" OR
+                        actor."BranchId" IS DISTINCT FROM NEW."BranchId" OR
+                        actor."Role" NOT IN ('SalesAgent', 'BranchManager') OR
+                        (NEW."Kind" = 'Assigned' AND actor."Role" <> 'BranchManager') OR
+                        (NEW."HandlerId" IS NOT NULL AND NOT EXISTS (
+                            SELECT 1 FROM public."AspNetUsers" WHERE "Id" = NEW."HandlerId" AND "IsActive" AND
+                                "BranchId" = NEW."BranchId" AND "Role" IN ('SalesAgent', 'BranchManager'))) THEN
+                        RAISE EXCEPTION 'Ownership requires current eligible branch staff'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_AppointmentAssignments_Eligibility';
+                    END IF;
+                    SELECT * INTO appointment FROM public."IntakeAppointments" WHERE "Id" = NEW."AppointmentId";
+                    IF appointment."Id" IS NULL OR appointment."BranchId" <> NEW."BranchId" OR
+                        appointment."CancelledAt" IS NOT NULL OR NEW."RecordedAt" < appointment."CreatedAt" OR
+                        NEW."RecordedAt" > clock_timestamp() OR
+                        clock_timestamp() >= ((appointment."StartsAt" AT TIME ZONE 'Asia/Kuala_Lumpur')::date + 1)::timestamp
+                            AT TIME ZONE 'Asia/Kuala_Lumpur' OR
+                        EXISTS (SELECT 1 FROM public."AppointmentCheckIns" WHERE "AppointmentId" = NEW."AppointmentId") THEN
+                        RAISE EXCEPTION 'Only unfinished booked appointments accept ownership changes'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_AppointmentAssignments_Availability';
+                    END IF;
+                    SELECT * INTO previous FROM public."AppointmentAssignments" WHERE "AppointmentId" = NEW."AppointmentId"
+                        ORDER BY "Version" DESC LIMIT 1;
+                    IF NEW."ExpectedVersion" <> coalesce(previous."Version", 0) OR
+                        NEW."PreviousHandlerId" IS DISTINCT FROM previous."HandlerId" OR
+                        NEW."RecordedAt" < previous."RecordedAt" THEN
+                        RAISE EXCEPTION 'Ownership must extend the exact current history'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_AppointmentAssignments_Chain';
+                    END IF;
+                    IF NEW."Kind" = 'Released' AND actor."Role" = 'SalesAgent' AND
+                        NEW."PreviousHandlerId" IS DISTINCT FROM NEW."ActorId" THEN
+                        RAISE EXCEPTION 'Agents release only their own unfinished work'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_AppointmentAssignments_Eligibility';
+                    END IF;
+                    IF NEW."HandlerId" IS NOT NULL AND public.staff_schedule_overlaps(NEW."HandlerId", appointment."StartsAt", appointment."EndsAt", appointment."Id", NULL) THEN
+                        RAISE EXCEPTION 'Handler already has overlapping booked work'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_AppointmentAssignments_Overlap';
+                    END IF;
+                    RETURN NEW;
+                END $$;
+                """);
+        }
+
+        private static void RestoreIntakeAdmission(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.Sql("""
+                CREATE OR REPLACE FUNCTION public.guard_appointment_assignment() RETURNS trigger
+                LANGUAGE plpgsql SET search_path = pg_catalog AS $$
+                DECLARE
+                    appointment public."IntakeAppointments"%ROWTYPE;
+                    previous public."AppointmentAssignments"%ROWTYPE;
+                    actor public."AspNetUsers"%ROWTYPE;
+                BEGIN
+                    IF TG_OP <> 'INSERT' THEN
+                        RAISE EXCEPTION 'Intake ownership history is immutable'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_AppointmentAssignments_Immutable';
+                    END IF;
+                    PERFORM 1 FROM public."AspNetUsers" WHERE "Id" IN (NEW."ActorId", NEW."HandlerId")
+                        ORDER BY "Id" FOR SHARE;
+                    SELECT * INTO actor FROM public."AspNetUsers" WHERE "Id" = NEW."ActorId";
+                    -- Shared branch writes fence stale assignment, cancellation and check-in snapshots.
+                    UPDATE public."Branches" SET "IsActive" = "IsActive" WHERE "Id" = NEW."BranchId";
+                    IF NOT EXISTS (SELECT 1 FROM public."Branches" WHERE "Id" = NEW."BranchId" AND "IsActive") OR
+                        actor."Id" IS NULL OR NOT actor."IsActive" OR
+                        actor."BranchId" IS DISTINCT FROM NEW."BranchId" OR
+                        actor."Role" NOT IN ('SalesAgent', 'BranchManager') OR
+                        (NEW."Kind" = 'Assigned' AND actor."Role" <> 'BranchManager') OR
+                        (NEW."HandlerId" IS NOT NULL AND NOT EXISTS (
+                            SELECT 1 FROM public."AspNetUsers" WHERE "Id" = NEW."HandlerId" AND "IsActive" AND
+                                "BranchId" = NEW."BranchId" AND "Role" IN ('SalesAgent', 'BranchManager'))) THEN
+                        RAISE EXCEPTION 'Ownership requires current eligible branch staff'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_AppointmentAssignments_Eligibility';
+                    END IF;
+                    SELECT * INTO appointment FROM public."IntakeAppointments" WHERE "Id" = NEW."AppointmentId";
+                    IF appointment."Id" IS NULL OR appointment."BranchId" <> NEW."BranchId" OR
+                        appointment."CancelledAt" IS NOT NULL OR NEW."RecordedAt" < appointment."CreatedAt" OR
+                        NEW."RecordedAt" > clock_timestamp() OR
+                        clock_timestamp() >= ((appointment."StartsAt" AT TIME ZONE 'Asia/Kuala_Lumpur')::date + 1)::timestamp
+                            AT TIME ZONE 'Asia/Kuala_Lumpur' OR
+                        EXISTS (SELECT 1 FROM public."AppointmentCheckIns" WHERE "AppointmentId" = NEW."AppointmentId") THEN
+                        RAISE EXCEPTION 'Only unfinished booked appointments accept ownership changes'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_AppointmentAssignments_Availability';
+                    END IF;
+                    SELECT * INTO previous FROM public."AppointmentAssignments" WHERE "AppointmentId" = NEW."AppointmentId"
+                        ORDER BY "Version" DESC LIMIT 1;
+                    IF NEW."ExpectedVersion" <> coalesce(previous."Version", 0) OR
+                        NEW."PreviousHandlerId" IS DISTINCT FROM previous."HandlerId" OR
+                        NEW."RecordedAt" < previous."RecordedAt" THEN
+                        RAISE EXCEPTION 'Ownership must extend the exact current history'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_AppointmentAssignments_Chain';
+                    END IF;
+                    IF NEW."Kind" = 'Released' AND actor."Role" = 'SalesAgent' AND
+                        NEW."PreviousHandlerId" IS DISTINCT FROM NEW."ActorId" THEN
+                        RAISE EXCEPTION 'Agents release only their own unfinished work'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_AppointmentAssignments_Eligibility';
+                    END IF;
+                    IF NEW."HandlerId" IS NOT NULL AND EXISTS (
                         SELECT 1 FROM public."IntakeAppointments" a
                         JOIN LATERAL (SELECT h."HandlerId" FROM public."AppointmentAssignments" h
                             WHERE h."AppointmentId" = a."Id" ORDER BY h."Version" DESC LIMIT 1) current ON true
@@ -206,21 +318,11 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                             a."CancelledAt" IS NULL AND a."StartsAt" < appointment."EndsAt" AND
                             appointment."StartsAt" < a."EndsAt" AND NOT EXISTS (
                                 SELECT 1 FROM public."AppointmentCheckIns" c WHERE c."AppointmentId" = a."Id")) THEN
-                """;
-            var replacement = "IF NEW.\"HandlerId\" IS NOT NULL AND public.staff_schedule_overlaps(" +
-                "NEW.\"HandlerId\", appointment.\"StartsAt\", appointment.\"EndsAt\", appointment.\"Id\", NULL) THEN";
-            var before = restoring ? replacement : original;
-            var after = restoring ? original : replacement;
-            migrationBuilder.Sql($"""
-                DO $migration$
-                DECLARE definition text := pg_get_functiondef('public.guard_appointment_assignment()'::regprocedure);
-                BEGIN
-                    IF (length(definition) - length(replace(definition, '{before.Replace("'", "''")}', ''))) /
-                        length('{before.Replace("'", "''")}') <> 1 THEN
-                        RAISE EXCEPTION 'Unexpected Intake ownership admission definition';
+                        RAISE EXCEPTION 'Handler already has overlapping booked work'
+                            USING ERRCODE = '23514', CONSTRAINT = 'CK_AppointmentAssignments_Overlap';
                     END IF;
-                    EXECUTE replace(definition, '{before.Replace("'", "''")}', '{after.Replace("'", "''")}');
-                END $migration$;
+                    RETURN NEW;
+                END $$;
                 """);
         }
     }
