@@ -7,7 +7,6 @@ namespace Dealership.Infrastructure.TestDrives;
 
 public sealed class TestDriveMailSource(DealershipDbContext database, TimeProvider clock) : IMailDeliverySource
 {
-    private static readonly TimeZoneInfo Malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
 
     public Task<ClaimedMail?> ClaimNextAsync(CancellationToken cancellationToken)
     {
@@ -37,7 +36,7 @@ public sealed class TestDriveMailSource(DealershipDbContext database, TimeProvid
             .SingleAsync(item => item.Id == booking.BranchId, cancellationToken);
         var vehicle = await database.Vehicles.AsNoTracking()
             .SingleAsync(item => item.Id == booking.VehicleId, cancellationToken);
-        var startsAt = TimeZoneInfo.ConvertTime(booking.StartsAt, Malaysia);
+        var startsAt = TimeZoneInfo.ConvertTime(booking.StartsAt, DealershipLocale.Malaysia);
         var state = message.Kind == TestDriveMailKind.Cancellation ? "cancelled" : "confirmed";
         var body = FormattableString.Invariant($"Your ApexAuto test drive is {state}.\nReference: {booking.Id:D}\nBranch: {branch.Name}\nVehicle: {vehicle.ManufactureYear} {vehicle.Make} {vehicle.Model} ({vehicle.RegistrationPlate})\nStarts: {startsAt:yyyy-MM-dd HH:mm} (Asia/Kuala_Lumpur)");
         if (message.Kind == TestDriveMailKind.Cancellation)

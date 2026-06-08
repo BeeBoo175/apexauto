@@ -1,4 +1,5 @@
 using Dealership.Application.Accounts;
+using Dealership.Domain.Common;
 
 namespace Dealership.Application.Intake;
 
@@ -36,8 +37,7 @@ public sealed class AppointmentCancellationService(IAppointmentCancellationStore
             return new CancellationResult(CancellationStatus.CheckedIn);
         }
 
-        var now = clock.GetUtcNow();
-        now = new DateTimeOffset(now.UtcTicks - now.UtcTicks % 10, TimeSpan.Zero);
+        var now = UtcTime.TruncateToMicroseconds(clock.GetUtcNow());
 
         if (now < appointment.CreatedAt || now >= appointment.StartsAt)
         {

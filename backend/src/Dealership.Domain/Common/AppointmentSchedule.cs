@@ -1,14 +1,11 @@
-using Dealership.Domain.Common;
+namespace Dealership.Domain.Common;
 
-namespace Dealership.Domain.Intake;
+public sealed record AppointmentSlot(DateTimeOffset StartsAt, DateTimeOffset EndsAt);
 
-public sealed record InspectionSlot(DateTimeOffset StartsAt, DateTimeOffset EndsAt);
+public sealed record AppointmentDateWindow(DateOnly FirstDate, DateOnly LastDate);
 
-public sealed record InspectionDateWindow(DateOnly FirstDate, DateOnly LastDate);
-
-public sealed class InspectionSchedule
+public sealed class AppointmentSchedule
 {
-    private static readonly TimeZoneInfo Malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
     private readonly TimeOnly _opensAt;
     private readonly TimeOnly _closesAt;
     private readonly TimeSpan _duration;
@@ -16,7 +13,7 @@ public sealed class InspectionSchedule
     private readonly int _horizonDays;
     private readonly HashSet<DayOfWeek> _openDays;
 
-    public InspectionSchedule(TimeOnly opensAt, TimeOnly closesAt, int slotMinutes, int horizonDays,
+    public AppointmentSchedule(TimeOnly opensAt, TimeOnly closesAt, int slotMinutes, int horizonDays,
         int noticeMinutes, IReadOnlyCollection<DayOfWeek> openDays)
     {
         ArgumentNullException.ThrowIfNull(openDays);
@@ -36,29 +33,29 @@ public sealed class InspectionSchedule
         _openDays = [.. openDays];
     }
 
-    public InspectionDateWindow GetDateWindow(DateTimeOffset now)
+    public AppointmentDateWindow GetDateWindow(DateTimeOffset now)
     {
-        var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(now, Malaysia).DateTime);
-        return new InspectionDateWindow(today, today.AddDays(_horizonDays - 1));
+        var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(now, DealershipLocale.Malaysia).DateTime);
+        return new AppointmentDateWindow(today, today.AddDays(_horizonDays - 1));
     }
 
-    public InspectionSlot? FindSlot(DateTimeOffset startsAt, DateTimeOffset now)
+    public AppointmentSlot? FindSlot(DateTimeOffset startsAt, DateTimeOffset now)
     {
         return FindSlot(startsAt, now, _duration);
     }
 
-    public InspectionSlot? FindSlot(DateTimeOffset startsAt, DateTimeOffset now, TimeSpan duration)
+    public AppointmentSlot? FindSlot(DateTimeOffset startsAt, DateTimeOffset now, TimeSpan duration)
     {
-        var date = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(startsAt, Malaysia).DateTime);
+        var date = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(startsAt, DealershipLocale.Malaysia).DateTime);
         return GetSlots(date, now, duration).SingleOrDefault(slot => slot.StartsAt == startsAt);
     }
 
-    public IReadOnlyList<InspectionSlot> GetSlots(DateOnly date, DateTimeOffset now)
+    public IReadOnlyList<AppointmentSlot> GetSlots(DateOnly date, DateTimeOffset now)
     {
         return GetSlots(date, now, _duration);
     }
 
-    public IReadOnlyList<InspectionSlot> GetSlots(DateOnly date, DateTimeOffset now, TimeSpan duration)
+    public IReadOnlyList<AppointmentSlot> GetSlots(DateOnly date, DateTimeOffset now, TimeSpan duration)
     {
         if (duration <= TimeSpan.Zero || duration > _closesAt - _opensAt ||
             duration.Ticks % TimeSpan.TicksPerMinute != 0)
@@ -76,15 +73,15 @@ public sealed class InspectionSchedule
         var localStart = date.ToDateTime(_opensAt, DateTimeKind.Unspecified);
         var localClose = date.ToDateTime(_closesAt, DateTimeKind.Unspecified);
         var earliest = now + _notice;
-        var slots = new List<InspectionSlot>();
+        var slots = new List<AppointmentSlot>();
 
         for (var start = localStart; start + duration <= localClose; start += duration)
         {
-            var startsAt = new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(start, Malaysia));
+            var startsAt = new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(start, DealershipLocale.Malaysia));
 
             if (startsAt >= earliest)
             {
-                slots.Add(new InspectionSlot(startsAt, startsAt + duration));
+                slots.Add(new AppointmentSlot(startsAt, startsAt + duration));
             }
         }
 

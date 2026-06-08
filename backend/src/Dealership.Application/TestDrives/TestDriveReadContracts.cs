@@ -1,14 +1,14 @@
+using Dealership.Domain.Common;
 using Dealership.Application.Accounts;
 using Dealership.Application.Common;
-using Dealership.Domain.Intake;
 
 namespace Dealership.Application.TestDrives;
 
 public sealed record TestDriveSlotSnapshot(DateTimeOffset Now, Guid BranchId, Guid PublicationId,
-    IReadOnlyList<InspectionSlot> Occupied);
+    IReadOnlyList<AppointmentSlot> Occupied);
 
 public sealed record TestDriveSlotOffer(Guid VehicleId, Guid BranchId, Guid PublicationId, DateOnly Date,
-    InspectionDateWindow DateWindow, IReadOnlyList<InspectionSlot> Slots);
+    AppointmentDateWindow DateWindow, IReadOnlyList<AppointmentSlot> Slots);
 
 public enum TestDriveReadStatus
 {

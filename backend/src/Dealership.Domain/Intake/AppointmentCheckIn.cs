@@ -4,7 +4,6 @@ namespace Dealership.Domain.Intake;
 
 public sealed class AppointmentCheckIn
 {
-    private static readonly TimeZoneInfo Malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
 
     private AppointmentCheckIn()
     {
@@ -14,8 +13,8 @@ public sealed class AppointmentCheckIn
         CheckInEvidence evidence, DateTimeOffset now, DateTimeOffset? correctionRecordedAt = null,
         string? correctionReason = null)
     {
-        var sameDate = TimeZoneInfo.ConvertTime(now, Malaysia).Date ==
-            TimeZoneInfo.ConvertTime(appointment.StartsAt, Malaysia).Date;
+        var sameDate = TimeZoneInfo.ConvertTime(now, DealershipLocale.Malaysia).Date ==
+            TimeZoneInfo.ConvertTime(appointment.StartsAt, DealershipLocale.Malaysia).Date;
 
         if (vehicleId == Guid.Empty || staffId == Guid.Empty || now < appointment.CreatedAt || !sameDate)
         {

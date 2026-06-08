@@ -1,3 +1,4 @@
+using Dealership.Domain.Common;
 using System.Net;
 using System.Net.Http.Json;
 using Dealership.Application.Accounts;
@@ -26,7 +27,7 @@ internal static class BookingTestData
         var model = make.Models[0];
         var vehicle = new ValuationRequest(make.Name, model.Name, model.Trims[0].Name, 2020, 90000);
         var quote = await (await client.PostAsJsonAsync("/api/valuations", vehicle)).Content.ReadFromJsonAsync<ValuationResponse>();
-        var schedule = scope.ServiceProvider.GetRequiredService<InspectionSchedule>();
+        var schedule = scope.ServiceProvider.GetRequiredService<AppointmentSchedule>();
         var now = DateTimeOffset.UtcNow;
         var date = schedule.GetDateWindow(now).FirstDate.AddDays(1);
         var slots = schedule.GetSlots(date, now);

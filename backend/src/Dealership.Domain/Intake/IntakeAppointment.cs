@@ -1,3 +1,4 @@
+using Dealership.Domain.Common;
 namespace Dealership.Domain.Intake;
 
 public sealed class IntakeAppointment
@@ -7,7 +8,7 @@ public sealed class IntakeAppointment
     }
 
     public IntakeAppointment(Guid id, Guid ownerId, Guid branchId, string registrationPlate,
-        InspectionSlot slot, DateTimeOffset createdAt, SellerValuation valuation)
+        AppointmentSlot slot, DateTimeOffset createdAt, SellerValuation valuation)
     {
         ArgumentNullException.ThrowIfNull(valuation);
 

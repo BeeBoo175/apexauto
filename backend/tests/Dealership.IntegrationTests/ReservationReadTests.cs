@@ -138,7 +138,7 @@ public sealed class ReservationReadTests(IntakePhotoFixture fixture) : IClassFix
         await using var restarted = clock.CreateContext();
         var again = (await new ReservationReadStore(restarted).AccountAsync(data.OwnerId, 1, CancellationToken.None)).History!;
         Assert.Equal(expired, Assert.Single(again.Items, item => item.Receipt.Id == final.Id));
-        var malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
+        var malaysia = DealershipLocale.Malaysia;
         var finalDay = TimeZoneInfo.ConvertTime(final.CreatedAt, malaysia).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         var inRange = (await new ReservationReadStore(restarted).AccountAsync(data.OwnerId, 1, CancellationToken.None,
             ListDateRange.Parse(finalDay, finalDay))).History!;

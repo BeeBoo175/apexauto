@@ -1,6 +1,5 @@
 using Dealership.Application.TestDrives;
 using Dealership.Domain.TestDrives;
-using Dealership.Infrastructure.Intake;
 using Dealership.Infrastructure.Persistence;
 using Dealership.Infrastructure.Vehicles;
 using Microsoft.EntityFrameworkCore;

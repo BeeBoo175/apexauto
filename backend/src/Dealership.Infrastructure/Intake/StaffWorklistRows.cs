@@ -1,3 +1,4 @@
+using Dealership.Domain.Common;
 using System.Linq.Expressions;
 using Dealership.Application.Accounts;
 using Dealership.Application.Intake;

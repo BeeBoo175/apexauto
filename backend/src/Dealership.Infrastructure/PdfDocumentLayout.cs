@@ -32,7 +32,6 @@ internal static class PdfDocumentLayout
     public const float Hairline = 0.75f;
     public const float Heavy = 1.5f;
 
-    private static readonly TimeZoneInfo Malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
     private static readonly Color WatermarkApex = Color.FromARGB(26, 14, 27, 42);
     private static readonly Color WatermarkAuto = Color.FromARGB(34, 217, 37, 24);
 
@@ -127,7 +126,7 @@ internal static class PdfDocumentLayout
 
     public static string Moment(DateTimeOffset value)
     {
-        var local = TimeZoneInfo.ConvertTime(value, Malaysia);
+        var local = TimeZoneInfo.ConvertTime(value, DealershipLocale.Malaysia);
         return $"{local.ToString("d MMM yyyy, h:mm", CultureInfo.InvariantCulture)} {(local.Hour < 12 ? "am" : "pm")}";
     }
 

@@ -1,3 +1,4 @@
+using Dealership.Domain.Common;
 using System.Text.Json;
 using Dealership.Application.Inspections;
 using Dealership.Domain.Inspections;
@@ -111,7 +112,7 @@ public sealed class InspectionReportTests
     {
         var valuation = new SellerValuation("Proton", "Saga", "Standard", 2020, 90000, 18000, 23000, "MYR", 2026);
         var appointment = new IntakeAppointment(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "WYY 8821",
-            new InspectionSlot(At, At.AddMinutes(90)), At.AddDays(-1), valuation);
+            new AppointmentSlot(At, At.AddMinutes(90)), At.AddDays(-1), valuation);
         var checkIn = new AppointmentCheckIn(Guid.NewGuid(), appointment, Guid.NewGuid(),
             new("PL1BT65R84B123456", 92000, true, true, true, true, null), At);
         var vehicle = new Vehicle(appointment, checkIn);

@@ -1,3 +1,4 @@
+using Dealership.Domain.Common;
 using Dealership.Domain.Inspections;
 using Dealership.Domain.Intake;
 using Dealership.Domain.Vehicles;
@@ -47,7 +48,7 @@ public sealed class InspectionAssignmentTests
     {
         var valuation = new SellerValuation("Proton", "Saga", "Standard", 2020, 90000, 18000, 23000, "MYR", 2026);
         var appointment = new IntakeAppointment(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "WYY 8821",
-            new InspectionSlot(at, at.AddMinutes(90)), at.AddDays(-1), valuation);
+            new AppointmentSlot(at, at.AddMinutes(90)), at.AddDays(-1), valuation);
         var evidence = new CheckInEvidence("PL1BT65R84B123456", 92000, true, true, true, true, null);
         var checkIn = new AppointmentCheckIn(Guid.NewGuid(), appointment, Guid.NewGuid(), evidence, at);
         return new InspectionDraft(Guid.NewGuid(), new Vehicle(appointment, checkIn), technician, at);

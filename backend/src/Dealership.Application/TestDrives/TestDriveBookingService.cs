@@ -1,9 +1,9 @@
-using Dealership.Domain.Intake;
+using Dealership.Domain.Common;
 using Dealership.Domain.TestDrives;
 
 namespace Dealership.Application.TestDrives;
 
-public sealed class TestDriveBookingService(ITestDriveBookingStore bookings, InspectionSchedule schedule)
+public sealed class TestDriveBookingService(ITestDriveBookingStore bookings, AppointmentSchedule schedule)
 {
     public async Task<TestDriveBookingResult> BookAsync(Guid customerId, Guid vehicleId,
         TestDriveBookingRequest request, CancellationToken cancellationToken)

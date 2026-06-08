@@ -1,3 +1,4 @@
+using Dealership.Domain.Common;
 using Dealership.Domain.Intake;
 
 namespace Dealership.Application.Intake;
@@ -9,7 +10,7 @@ public enum SlotDiscoveryStatus
     BranchUnavailable
 }
 
-public sealed record InspectionSlotOffer(Guid BranchId, DateOnly Date, InspectionDateWindow DateWindow,
-    IReadOnlyList<InspectionSlot> Slots);
+public sealed record InspectionSlotOffer(Guid BranchId, DateOnly Date, AppointmentDateWindow DateWindow,
+    IReadOnlyList<AppointmentSlot> Slots);
 
 public sealed record SlotDiscoveryResult(SlotDiscoveryStatus Status, InspectionSlotOffer? Offer = null);

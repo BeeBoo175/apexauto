@@ -1,7 +1,6 @@
-using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-namespace Dealership.Infrastructure.Intake;
+namespace Dealership.Infrastructure.Persistence;
 
 internal static class StaffScheduleConflicts
 {

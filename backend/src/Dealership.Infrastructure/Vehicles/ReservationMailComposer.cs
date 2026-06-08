@@ -6,12 +6,11 @@ namespace Dealership.Infrastructure.Vehicles;
 
 public static class ReservationMailComposer
 {
-    private static readonly TimeZoneInfo Malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
 
     public static OutboundMail Confirmation(Reservation reservation)
     {
-        var confirmedAt = TimeZoneInfo.ConvertTime(reservation.CreatedAt, Malaysia);
-        var expiresAt = TimeZoneInfo.ConvertTime(reservation.ExpiresAt, Malaysia);
+        var confirmedAt = TimeZoneInfo.ConvertTime(reservation.CreatedAt, DealershipLocale.Malaysia);
+        var expiresAt = TimeZoneInfo.ConvertTime(reservation.ExpiresAt, DealershipLocale.Malaysia);
         var body = FormattableString.Invariant($"""
             Your ApexAuto reservation receipt
             Reference: {reservation.Number}

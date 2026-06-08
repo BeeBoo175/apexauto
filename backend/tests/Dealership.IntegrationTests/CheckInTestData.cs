@@ -19,20 +19,19 @@ namespace Dealership.IntegrationTests;
 internal sealed class CheckInTestData : IDisposable
 {
     public static CheckInEvidence Evidence { get; } = new("PL1BT65R84B123456", 92000, true, true, true, true, "Owner present");
-    private static readonly TimeZoneInfo Malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
     private readonly DateOnly _date;
     private readonly TimeProvider _clock;
 
-    private CheckInTestData(IntakePhotoFixture fixture, InspectionSchedule? schedule, double? unsubmittedLifetimeHours)
+    private CheckInTestData(IntakePhotoFixture fixture, AppointmentSchedule? schedule, double? unsubmittedLifetimeHours)
     {
-        _date = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, Malaysia).DateTime);
-        _clock = new FixedClock(TimeZoneInfo.ConvertTimeToUtc(_date.ToDateTime(TimeOnly.MinValue), Malaysia));
+        _date = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, DealershipLocale.Malaysia).DateTime);
+        _clock = new FixedClock(TimeZoneInfo.ConvertTimeToUtc(_date.ToDateTime(TimeOnly.MinValue), DealershipLocale.Malaysia));
         Factory = fixture.CreateFactory(clock: _clock, unsubmittedLifetimeHours: unsubmittedLifetimeHours)
             .WithWebHostBuilder(builder => builder.ConfigureServices(services =>
         {
             // Canonical bookings need a deterministic same-day slot on any test weekday, even after closing.
-            services.RemoveAll<InspectionSchedule>();
-            services.AddSingleton(schedule ?? new InspectionSchedule(new TimeOnly(9, 0), new TimeOnly(18, 0),
+            services.RemoveAll<AppointmentSchedule>();
+            services.AddSingleton(schedule ?? new AppointmentSchedule(new TimeOnly(9, 0), new TimeOnly(18, 0),
                 90, 30, 0, Enum.GetValues<DayOfWeek>()));
         }));
     }
@@ -44,7 +43,7 @@ internal sealed class CheckInTestData : IDisposable
     public string CustomerEmail { get; private set; } = string.Empty;
     public string StaffEmail { get; private set; } = string.Empty;
 
-    public static async Task<CheckInTestData> CreateAsync(IntakePhotoFixture fixture, InspectionSchedule? schedule = null,
+    public static async Task<CheckInTestData> CreateAsync(IntakePhotoFixture fixture, AppointmentSchedule? schedule = null,
         double? unsubmittedLifetimeHours = null)
     {
         var data = new CheckInTestData(fixture, schedule, unsubmittedLifetimeHours);
@@ -110,7 +109,7 @@ internal sealed class CheckInTestData : IDisposable
         var model = make.Models[0];
         var vehicle = new ValuationRequest(make.Name, model.Name, model.Trims[0].Name, 2020, 90000);
         var quote = services.GetRequiredService<ValuationService>().Calculate(vehicle).Quote!;
-        var startsAt = services.GetRequiredService<InspectionSchedule>()
+        var startsAt = services.GetRequiredService<AppointmentSchedule>()
             .GetSlots(_date.AddDays(dateOffset), _clock.GetUtcNow())[slot].StartsAt;
         var request = new BookingRequest(Guid.NewGuid(), branchId ?? BranchId, startsAt, plate, vehicle, quote, photoIds);
         var result = await services.GetRequiredService<IntakeBookingService>().BookAsync(OwnerId, request, CancellationToken.None);

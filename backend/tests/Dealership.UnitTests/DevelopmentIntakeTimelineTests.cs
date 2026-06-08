@@ -8,8 +8,7 @@ namespace Dealership.UnitTests;
 
 public sealed class DevelopmentIntakeTimelineTests
 {
-    private static readonly TimeZoneInfo Malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
-    private static readonly InspectionSchedule Schedule = new(new TimeOnly(9, 0), new TimeOnly(18, 0),
+    private static readonly AppointmentSchedule Schedule = new(new TimeOnly(9, 0), new TimeOnly(18, 0),
         90, 30, 120, [DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday,
             DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday]);
 
@@ -79,7 +78,7 @@ public sealed class DevelopmentIntakeTimelineTests
         foreach (var moment in timeline)
         {
             Assert.Equal(moment.Slot, Schedule.FindSlot(moment.Slot.StartsAt, moment.BookedAt));
-            Assert.NotEqual(DayOfWeek.Sunday, TimeZoneInfo.ConvertTime(moment.Slot.StartsAt, Malaysia).DayOfWeek);
+            Assert.NotEqual(DayOfWeek.Sunday, TimeZoneInfo.ConvertTime(moment.Slot.StartsAt, DealershipLocale.Malaysia).DayOfWeek);
             if (moment.Fixture.Status == StaffWorklistStatus.Booked)
             {
                 Assert.True(moment.Slot.StartsAt > anchor);
@@ -103,15 +102,15 @@ public sealed class DevelopmentIntakeTimelineTests
                 continue;
             }
 
-            Assert.Equal(TimeZoneInfo.ConvertTime(moment.Slot.StartsAt, Malaysia).Date,
-                TimeZoneInfo.ConvertTime(moment.TransitionAt!.Value, Malaysia).Date);
+            Assert.Equal(TimeZoneInfo.ConvertTime(moment.Slot.StartsAt, DealershipLocale.Malaysia).Date,
+                TimeZoneInfo.ConvertTime(moment.TransitionAt!.Value, DealershipLocale.Malaysia).Date);
         }
     }
 
     [Fact]
     public void InsufficientConfiguredCapacityFailsBeforeInitialization()
     {
-        var schedule = new InspectionSchedule(new TimeOnly(9, 0), new TimeOnly(18, 0),
+        var schedule = new AppointmentSchedule(new TimeOnly(9, 0), new TimeOnly(18, 0),
             90, 1, 10, [DayOfWeek.Monday]);
         Assert.Throws<InvalidOperationException>(() => DevelopmentIntakeTimeline.Create(schedule,
             DateTimeOffset.Parse("2026-10-18T12:00:00+08:00", CultureInfo.InvariantCulture)));

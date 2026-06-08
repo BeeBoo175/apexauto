@@ -1,13 +1,11 @@
 using System.Globalization;
 using Dealership.Domain.Common;
-using Dealership.Domain.Intake;
 using Dealership.Domain.TestDrives;
 
 namespace Dealership.Application.TestDrives;
 
-public sealed class TestDriveDiscoveryService(ITestDriveReadStore reads, InspectionSchedule schedule)
+public sealed class TestDriveDiscoveryService(ITestDriveReadStore reads, AppointmentSchedule schedule)
 {
-    private static readonly TimeZoneInfo Malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
 
     public async Task<TestDriveSlotResult> GetSlotsAsync(Guid vehicleId, string? date,
         CancellationToken cancellationToken)
@@ -19,7 +17,7 @@ public sealed class TestDriveDiscoveryService(ITestDriveReadStore reads, Inspect
         }
 
         var from = new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(
-            requestedDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified), Malaysia));
+            requestedDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified), DealershipLocale.Malaysia));
         var snapshot = await reads.SlotsAsync(vehicleId, from, from.AddDays(1), cancellationToken);
         if (snapshot is null)
         {

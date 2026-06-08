@@ -1,8 +1,9 @@
+using Dealership.Domain.Common;
 using Dealership.Domain.Intake;
 
 namespace Dealership.UnitTests;
 
-public sealed class InspectionScheduleTests
+public sealed class AppointmentScheduleTests
 {
     private static readonly DayOfWeek[] WorkingDays =
     [
@@ -47,7 +48,7 @@ public sealed class InspectionScheduleTests
     [Fact]
     public void ConfigurationChangesDurationAndNeverCreatesPartialClosingSlot()
     {
-        var schedule = new InspectionSchedule(new TimeOnly(9, 0), new TimeOnly(18, 0), 100, 7, 0, WorkingDays);
+        var schedule = new AppointmentSchedule(new TimeOnly(9, 0), new TimeOnly(18, 0), 100, 7, 0, WorkingDays);
         var now = new DateTimeOffset(2026, 10, 14, 23, 0, 0, TimeSpan.Zero);
         var slots = schedule.GetSlots(new DateOnly(2026, 10, 15), now);
 
@@ -64,7 +65,7 @@ public sealed class InspectionScheduleTests
     [InlineData(90, 30, -1)]
     public void InvalidPolicyFailsBeforeUse(int duration, int horizon, int notice)
     {
-        Assert.Throws<ArgumentException>(() => new InspectionSchedule(new TimeOnly(9, 0), new TimeOnly(18, 0),
+        Assert.Throws<ArgumentException>(() => new AppointmentSchedule(new TimeOnly(9, 0), new TimeOnly(18, 0),
             duration, horizon, notice, WorkingDays));
     }
 
@@ -93,7 +94,7 @@ public sealed class InspectionScheduleTests
     [Fact]
     public void WorkflowDurationRetainsConfiguredDaysAndMalaysianHorizon()
     {
-        var schedule = new InspectionSchedule(new TimeOnly(10, 0), new TimeOnly(11, 10), 60, 7, 0,
+        var schedule = new AppointmentSchedule(new TimeOnly(10, 0), new TimeOnly(11, 10), 60, 7, 0,
             [DayOfWeek.Thursday]);
         var now = new DateTimeOffset(2026, 10, 14, 16, 0, 0, TimeSpan.Zero);
         var duration = TimeSpan.FromMinutes(30);
@@ -133,8 +134,8 @@ public sealed class InspectionScheduleTests
             TimeSpan.FromSeconds(90)));
     }
 
-    private static InspectionSchedule DefaultSchedule()
+    private static AppointmentSchedule DefaultSchedule()
     {
-        return new InspectionSchedule(new TimeOnly(9, 0), new TimeOnly(18, 0), 90, 30, 120, WorkingDays);
+        return new AppointmentSchedule(new TimeOnly(9, 0), new TimeOnly(18, 0), 90, 30, 120, WorkingDays);
     }
 }

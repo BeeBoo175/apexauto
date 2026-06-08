@@ -1,3 +1,4 @@
+using Dealership.Domain.Common;
 using Dealership.Application.Accounts;
 using Dealership.Application.TestDrives;
 using Dealership.Domain.Intake;
@@ -10,7 +11,7 @@ namespace Dealership.Infrastructure.Development;
 
 public sealed class DevelopmentTestDriveVolumeFixtures(DealershipDbContext database,
     DevelopmentCustomerFixtures customers, TestDriveBookingService bookings,
-    TestDriveAssignmentService assignments, TestDriveCancellationService cancellations, InspectionSchedule schedule)
+    TestDriveAssignmentService assignments, TestDriveCancellationService cancellations, AppointmentSchedule schedule)
 {
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> RunAsync(bool seed, CancellationToken cancellationToken)
     {
@@ -117,7 +118,7 @@ public sealed class DevelopmentTestDriveVolumeFixtures(DealershipDbContext datab
         return new(label, terminalMatches && !handled ? "matches" : "lifecycle drift; preserved", !terminalMatches || handled);
     }
 
-    private async Task<InspectionSlot?> FindSlotAsync(Guid branchId, Guid handlerId, CancellationToken cancellationToken)
+    private async Task<AppointmentSlot?> FindSlotAsync(Guid branchId, Guid handlerId, CancellationToken cancellationToken)
     {
         var now = await database.DatabaseNowAsync(cancellationToken);
         var window = schedule.GetDateWindow(now);

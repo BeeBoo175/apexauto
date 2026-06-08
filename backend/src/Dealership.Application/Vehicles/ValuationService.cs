@@ -6,11 +6,10 @@ namespace Dealership.Application.Vehicles;
 
 public sealed class ValuationService(TimeProvider timeProvider)
 {
-    private static readonly TimeZoneInfo MalaysiaTimeZone = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
 
     public ValuationResult Calculate(ValuationRequest request)
     {
-        var currentYear = TimeZoneInfo.ConvertTime(timeProvider.GetUtcNow(), MalaysiaTimeZone).Year;
+        var currentYear = TimeZoneInfo.ConvertTime(timeProvider.GetUtcNow(), DealershipLocale.Malaysia).Year;
         var errors = new Dictionary<string, string[]>();
         var make = VehicleTaxonomy.Makes.FirstOrDefault(item => item.Name == request.Make);
         var model = make?.Models.FirstOrDefault(item => item.Name == request.Model);

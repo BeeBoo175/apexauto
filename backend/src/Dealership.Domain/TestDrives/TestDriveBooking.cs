@@ -1,4 +1,4 @@
-using Dealership.Domain.Intake;
+using Dealership.Domain.Common;
 
 namespace Dealership.Domain.TestDrives;
 
@@ -11,7 +11,7 @@ public sealed class TestDriveBooking
     }
 
     public TestDriveBooking(Guid id, Guid customerId, Guid vehicleId, Guid branchId, Guid publicationId,
-        InspectionSlot slot, DateTimeOffset createdAt)
+        AppointmentSlot slot, DateTimeOffset createdAt)
     {
         if (id == Guid.Empty || customerId == Guid.Empty || vehicleId == Guid.Empty ||
             branchId == Guid.Empty || publicationId == Guid.Empty || slot.StartsAt <= createdAt ||

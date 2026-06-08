@@ -1,3 +1,4 @@
+using Dealership.Domain.Common;
 using Dealership.Application.Accounts;
 using Dealership.Domain.Intake;
 using Dealership.Domain.Vehicles;
@@ -34,7 +35,7 @@ public sealed class AppointmentCheckInService(IAppointmentCheckInStore checkIns,
                 correction = correction with
                 {
                     Reason = AppointmentCheckIn.NormalizeCorrectionReason(correction.Reason),
-                    AttendedAt = TruncateToMicroseconds(correction.AttendedAt)
+                    AttendedAt = UtcTime.TruncateToMicroseconds(correction.AttendedAt)
                 };
             }
         }
@@ -79,7 +80,7 @@ public sealed class AppointmentCheckInService(IAppointmentCheckInStore checkIns,
         }
 
         var now = correction is null ? clock.GetUtcNow() : await transaction.ReadDatabaseTimeAsync(cancellationToken);
-        now = TruncateToMicroseconds(now);
+        now = UtcTime.TruncateToMicroseconds(now);
         AppointmentCheckIn checkIn;
 
         try
@@ -116,11 +117,6 @@ public sealed class AppointmentCheckInService(IAppointmentCheckInStore checkIns,
 
         return existing.Matches(evidence) && existing.CorrectionRecordedAt is not null &&
             existing.CheckedInAt == correction.AttendedAt && existing.CorrectionReason == correction.Reason;
-    }
-
-    private static DateTimeOffset TruncateToMicroseconds(DateTimeOffset value)
-    {
-        return new DateTimeOffset(value.UtcTicks - value.UtcTicks % 10, TimeSpan.Zero);
     }
 
     private static CheckInReceipt Receipt(AppointmentCheckIn checkIn)

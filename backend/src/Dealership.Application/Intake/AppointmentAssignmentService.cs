@@ -1,3 +1,4 @@
+using Dealership.Domain.Common;
 using Dealership.Application.Accounts;
 using Dealership.Domain.Intake;
 

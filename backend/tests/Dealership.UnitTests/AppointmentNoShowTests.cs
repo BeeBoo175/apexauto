@@ -1,3 +1,4 @@
+using Dealership.Domain.Common;
 using System.Globalization;
 using Dealership.Domain.Intake;
 
@@ -23,7 +24,7 @@ public sealed class AppointmentNoShowTests
     {
         var start = Parse("2026-10-21T01:00:00Z");
         var appointment = new IntakeAppointment(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "VCA 6521",
-            new InspectionSlot(start, start.AddMinutes(90)), start.AddDays(-1),
+            new AppointmentSlot(start, start.AddMinutes(90)), start.AddDays(-1),
             new SellerValuation("Proton", "Saga", "Standard", 2020, 90000, 18000, 23000, "MYR", 2026));
         var evidence = new CheckInEvidence("PL1BT65R84B123456", 90000, true, true, true, true, null);
         var midnight = AppointmentDay.EndsAt(start);

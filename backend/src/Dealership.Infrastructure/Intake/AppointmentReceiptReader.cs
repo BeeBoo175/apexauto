@@ -1,3 +1,4 @@
+using Dealership.Domain.Common;
 using Dealership.Application.Intake;
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Intake;
@@ -24,7 +25,7 @@ internal static class AppointmentReceiptReader
             .Select(item => new BookingPhotoSelection(item.PhotoId, item.Angle))
             .ToArrayAsync(cancellationToken);
         return new AppointmentReceipt(id, appointment.BranchId, appointment.RegistrationPlate,
-            new InspectionSlot(appointment.StartsAt, appointment.EndsAt), appointment.CreatedAt,
+            new AppointmentSlot(appointment.StartsAt, appointment.EndsAt), appointment.CreatedAt,
             new ValuationRequest(valuation.Make, valuation.Model, valuation.Trim, valuation.ManufactureYear, valuation.MileageKilometres),
             new ValuationResponse(valuation.Minimum, valuation.Maximum, valuation.Currency, valuation.ValuationYear),
             [.. photos.OrderBy(photo => photo.Angle)]);

@@ -1,3 +1,4 @@
+using Dealership.Domain.Common;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -24,7 +25,7 @@ public sealed class PublicListingTests(IntakePhotoFixture fixture) : IClassFixtu
     [Fact]
     public async Task CatalogueAndRedactedDetailFollowApprovedEligibilityWithStableScopedPaging()
     {
-        var schedule = new InspectionSchedule(new(9, 0), new(18, 0), 15, 30, 0, Enum.GetValues<DayOfWeek>());
+        var schedule = new AppointmentSchedule(new(9, 0), new(18, 0), 15, 30, 0, Enum.GetValues<DayOfWeek>());
         using var data = await CheckInTestData.CreateAsync(fixture, schedule);
         using var scope = data.Factory.Services.CreateScope();
         var services = scope.ServiceProvider;

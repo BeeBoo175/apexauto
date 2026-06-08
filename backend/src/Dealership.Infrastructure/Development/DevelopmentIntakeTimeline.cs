@@ -4,14 +4,13 @@ using Dealership.Domain.Intake;
 
 namespace Dealership.Infrastructure.Development;
 
-public sealed record DevelopmentIntakeMoment(DevelopmentIntakeFixture Fixture, InspectionSlot Slot,
+public sealed record DevelopmentIntakeMoment(DevelopmentIntakeFixture Fixture, AppointmentSlot Slot,
     DateTimeOffset BookedAt, DateTimeOffset? TransitionAt);
 
 public static class DevelopmentIntakeTimeline
 {
-    private static readonly TimeZoneInfo Malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
 
-    public static IReadOnlyList<DevelopmentIntakeMoment> Create(InspectionSchedule schedule, DateTimeOffset anchor)
+    public static IReadOnlyList<DevelopmentIntakeMoment> Create(AppointmentSchedule schedule, DateTimeOffset anchor)
     {
         var future = Slots(schedule, anchor).Where(slot => slot.StartsAt > anchor)
             .Take(DevelopmentIntakeManifest.AppointmentsPerBranch).ToArray();
@@ -49,17 +48,17 @@ public static class DevelopmentIntakeTimeline
         }).OrderBy(moment => moment.Slot.StartsAt).ThenBy(moment => moment.Fixture.Id)];
     }
 
-    private static (InspectionSlot Slot, DateTimeOffset BookedAt)[] HistoricalSlots(InspectionSchedule schedule,
+    private static (AppointmentSlot Slot, DateTimeOffset BookedAt)[] HistoricalSlots(AppointmentSchedule schedule,
         DateTimeOffset anchor)
     {
-        var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(anchor, Malaysia).DateTime);
-        var result = new List<(InspectionSlot, DateTimeOffset)>();
+        var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(anchor, DealershipLocale.Malaysia).DateTime);
+        var result = new List<(AppointmentSlot, DateTimeOffset)>();
         var required = DevelopmentIntakeManifest.CheckedInPerBranch + 2;
         for (var days = 1; days <= 366 && result.Count < required; days++)
         {
             var date = today.AddDays(-days);
             var localMidnight = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified);
-            var bookedAt = new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(localMidnight, Malaysia));
+            var bookedAt = new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(localMidnight, DealershipLocale.Malaysia));
             var slots = schedule.GetSlots(date, bookedAt);
             if (slots.Count > 0)
             {
@@ -76,10 +75,10 @@ public static class DevelopmentIntakeTimeline
     }
 
     private static DevelopmentIntakeMoment CheckedIn(DevelopmentIntakeFixture fixture,
-        (InspectionSlot Slot, DateTimeOffset BookedAt) moment) =>
+        (AppointmentSlot Slot, DateTimeOffset BookedAt) moment) =>
         new(fixture, moment.Slot, moment.BookedAt, moment.Slot.StartsAt);
 
-    private static IEnumerable<InspectionSlot> Slots(InspectionSchedule schedule, DateTimeOffset now)
+    private static IEnumerable<AppointmentSlot> Slots(AppointmentSchedule schedule, DateTimeOffset now)
     {
         var window = schedule.GetDateWindow(now);
         for (var date = window.FirstDate; date <= window.LastDate; date = date.AddDays(1))

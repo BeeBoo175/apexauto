@@ -5,7 +5,6 @@ namespace Dealership.Application.Common;
 
 public sealed record ListDateRange(DateTimeOffset? From, DateTimeOffset? Until)
 {
-    private static readonly TimeZoneInfo Malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
 
     public static bool IsValid(DateTimeOffset? from, DateTimeOffset? until)
     {
@@ -27,7 +26,7 @@ public sealed record ListDateRange(DateTimeOffset? From, DateTimeOffset? Until)
             return null;
         }
 
-        return new(TimeZoneInfo.ConvertTimeToUtc(first.ToDateTime(TimeOnly.MinValue), Malaysia),
-            TimeZoneInfo.ConvertTimeToUtc(last.AddDays(1).ToDateTime(TimeOnly.MinValue), Malaysia));
+        return new(TimeZoneInfo.ConvertTimeToUtc(first.ToDateTime(TimeOnly.MinValue), DealershipLocale.Malaysia),
+            TimeZoneInfo.ConvertTimeToUtc(last.AddDays(1).ToDateTime(TimeOnly.MinValue), DealershipLocale.Malaysia));
     }
 }

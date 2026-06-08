@@ -1,3 +1,4 @@
+using Dealership.Domain.Common;
 using System.Net;
 using Amazon.S3;
 using Amazon.S3.Model;
@@ -16,7 +17,7 @@ using Microsoft.Extensions.Options;
 namespace Dealership.Infrastructure.Development;
 
 public sealed class DevelopmentIntakeFixtures(DealershipDbContext database, DevelopmentFixturePhotos photos,
-    InspectionSchedule schedule, PhotoStorageSettings storage, DevelopmentFixtureClock clock,
+    AppointmentSchedule schedule, PhotoStorageSettings storage, DevelopmentFixtureClock clock,
     IOptions<IntakePhotoSettings> photoSettings, IAmazonS3 objects, DevelopmentIntakeOwnershipFixtures ownership)
 {
     public async Task EnsureLocalStorageAsync(CancellationToken cancellationToken)

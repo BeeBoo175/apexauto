@@ -1,3 +1,4 @@
+using Dealership.Domain.Common;
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
@@ -47,7 +48,7 @@ public sealed class TestDriveApiTests(IntakePhotoFixture fixture) : IClassFixtur
         await LoginAsync(groupManager, (await database.Users.Where(user => user.Id == generalManager).Select(user => user.Email).SingleAsync())!);
         var now = DateTimeOffset.UtcNow;
         var tomorrow = DateOnly.FromDateTime(now.AddHours(8).DateTime).AddDays(1);
-        var schedule = factory.Services.GetRequiredService<InspectionSchedule>();
+        var schedule = factory.Services.GetRequiredService<AppointmentSchedule>();
         var slots = Enumerable.Range(0, 7).SelectMany(day => schedule.GetSlots(tomorrow.AddDays(day), now,
             TestDriveBooking.Duration)).Take(7).ToArray();
         Assert.Equal(7, slots.Length);

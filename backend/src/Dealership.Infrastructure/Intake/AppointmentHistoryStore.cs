@@ -1,3 +1,4 @@
+using Dealership.Domain.Common;
 using System.Data;
 using Dealership.Application.Intake;
 using Dealership.Domain.Intake;

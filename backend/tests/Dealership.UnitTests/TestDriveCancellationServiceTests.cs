@@ -1,3 +1,4 @@
+using Dealership.Domain.Common;
 using Dealership.Application.Accounts;
 using Dealership.Application.TestDrives;
 using Dealership.Domain.Intake;
@@ -84,7 +85,7 @@ public sealed class TestDriveCancellationServiceTests
     {
         var startsAt = new DateTimeOffset(2026, 11, 3, 1, 0, 0, TimeSpan.Zero);
         return new(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
-            new InspectionSlot(startsAt, startsAt + TestDriveBooking.Duration), startsAt.AddHours(-3));
+            new AppointmentSlot(startsAt, startsAt + TestDriveBooking.Duration), startsAt.AddHours(-3));
     }
 
     private sealed class CancellationStore(RecordingTransaction transaction) : ITestDriveCancellationStore

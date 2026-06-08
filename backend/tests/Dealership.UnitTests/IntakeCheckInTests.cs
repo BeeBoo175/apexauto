@@ -1,3 +1,4 @@
+using Dealership.Domain.Common;
 using System.Globalization;
 using Dealership.Domain.Intake;
 using Dealership.Domain.Vehicles;
@@ -97,7 +98,7 @@ public sealed class IntakeCheckInTests
     private static IntakeAppointment Appointment()
     {
         return new IntakeAppointment(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "WYY 8821",
-            new InspectionSlot(StartsAt, StartsAt.AddMinutes(90)), StartsAt.AddDays(-1),
+            new AppointmentSlot(StartsAt, StartsAt.AddMinutes(90)), StartsAt.AddDays(-1),
             new SellerValuation("Proton", "Saga", "Standard", 2020, 90000, 18000, 23000, "MYR", 2026));
     }
 }

@@ -1,3 +1,4 @@
+using Dealership.Domain.Common;
 using System.Text.Json;
 using Dealership.Application.Accounts;
 using Dealership.Application.TestDrives;
@@ -29,7 +30,7 @@ public sealed class TestDriveBookingTests(IntakePhotoFixture fixture) : IClassFi
         var third = await RegisterCustomerAsync(services, database);
         var now = DateTimeOffset.UtcNow;
         var tomorrow = DateOnly.FromDateTime(now.AddHours(8).DateTime).AddDays(1);
-        var schedule = services.GetRequiredService<InspectionSchedule>();
+        var schedule = services.GetRequiredService<AppointmentSchedule>();
         var slots = Enumerable.Range(0, 7).SelectMany(day => schedule.GetSlots(tomorrow.AddDays(day), now,
             TestDriveBooking.Duration)).ToArray();
         var vehicleId = listing.Revision.VehicleId;
@@ -127,7 +128,7 @@ public sealed class TestDriveBookingTests(IntakePhotoFixture fixture) : IClassFi
                 .BookAsync(customer, vehicleId, command, default);
         }
 
-        Task<int> InsertWithoutMailAsync(Guid customer, InspectionSlot slot)
+        Task<int> InsertWithoutMailAsync(Guid customer, AppointmentSlot slot)
         {
             return database.Database.ExecuteSqlInterpolatedAsync($"""
                 INSERT INTO "TestDriveBookings" ("Id", "CustomerId", "VehicleId", "BranchId", "PublicationId", "StartsAt", "EndsAt", "CreatedAt")

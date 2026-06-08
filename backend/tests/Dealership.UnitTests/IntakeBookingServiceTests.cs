@@ -1,3 +1,4 @@
+using Dealership.Domain.Common;
 using Dealership.Application.Intake;
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Vehicles;
@@ -31,7 +32,7 @@ public sealed class IntakeBookingServiceTests
             angle, clock.GetUtcNow().AddMinutes(-1), clock.GetUtcNow().AddHours(24), false, false)).ToArray();
         var transaction = new RecordingTransaction(candidates);
         var service = new IntakeBookingService(new BookingStore(transaction), valuations,
-            new InspectionSchedule(new TimeOnly(9, 0), new TimeOnly(18, 0), 90, 30, 120, [DayOfWeek.Saturday]), clock);
+            new AppointmentSchedule(new TimeOnly(9, 0), new TimeOnly(18, 0), 90, 30, 120, [DayOfWeek.Saturday]), clock);
         var request = new BookingRequest(Guid.NewGuid(), Guid.NewGuid(), clock.GetUtcNow().AddDays(1).AddHours(1),
             "WYY 8821", vehicle, accepted, [.. candidates.Select(photo => photo.Id)]);
         var result = await service.BookAsync(owner, request, CancellationToken.None);
@@ -53,7 +54,7 @@ public sealed class IntakeBookingServiceTests
         }
 
         public Task<BookingResult> FindAsync(Guid ownerId, Guid id, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public Task<IReadOnlyList<InspectionSlot>> GetOccupiedSlotsAsync(Guid branchId, DateTimeOffset first,
+        public Task<IReadOnlyList<AppointmentSlot>> GetOccupiedSlotsAsync(Guid branchId, DateTimeOffset first,
             DateTimeOffset last, CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 

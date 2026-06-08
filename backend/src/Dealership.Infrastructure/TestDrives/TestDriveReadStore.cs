@@ -1,8 +1,8 @@
+using Dealership.Domain.Common;
 using System.Data;
 using Dealership.Application.Accounts;
 using Dealership.Application.Common;
 using Dealership.Application.TestDrives;
-using Dealership.Domain.Intake;
 using Dealership.Infrastructure.Persistence;
 using Dealership.Infrastructure.Vehicles;
 using Microsoft.EntityFrameworkCore;
@@ -27,7 +27,7 @@ public sealed class TestDriveReadStore(DealershipDbContext database) : ITestDriv
             .Where(item => item.BranchId == publication.BranchId && item.StartsAt < until && item.EndsAt > from &&
                 !database.TestDriveCancellations.Any(cancel => cancel.BookingId == item.Id) &&
                 !database.TestDriveOutcomes.Any(outcome => outcome.BookingId == item.Id))
-            .Select(item => new InspectionSlot(item.StartsAt, item.EndsAt)).ToArrayAsync(cancellationToken);
+            .Select(item => new AppointmentSlot(item.StartsAt, item.EndsAt)).ToArrayAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return new(now, publication.BranchId, publication.Id, occupied);
     }

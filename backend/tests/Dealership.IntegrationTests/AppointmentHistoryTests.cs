@@ -1,3 +1,4 @@
+using Dealership.Domain.Common;
 using System.Net;
 using System.Net.Http.Json;
 using Dealership.Application.Branches;
@@ -23,7 +24,7 @@ public sealed class AppointmentHistoryTests(IntakePhotoFixture fixture) : IClass
         var appointments = new List<AppointmentReceipt>();
         using (var scope = factory.Services.CreateScope())
         {
-            var schedule = scope.ServiceProvider.GetRequiredService<InspectionSchedule>();
+            var schedule = scope.ServiceProvider.GetRequiredService<AppointmentSchedule>();
             var slots = Enumerable.Range(1, 20).SelectMany(day => schedule.GetSlots(
                 schedule.GetDateWindow(DateTimeOffset.UtcNow).FirstDate.AddDays(day), DateTimeOffset.UtcNow)).Take(41);
 

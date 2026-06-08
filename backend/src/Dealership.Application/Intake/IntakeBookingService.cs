@@ -1,10 +1,11 @@
+using Dealership.Domain.Common;
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Intake;
 
 namespace Dealership.Application.Intake;
 
 public sealed class IntakeBookingService(IIntakeBookingStore bookings, ValuationService valuations,
-    InspectionSchedule schedule, TimeProvider clock)
+    AppointmentSchedule schedule, TimeProvider clock)
 {
     public async Task<BookingResult> BookAsync(Guid ownerId, BookingRequest request, CancellationToken cancellationToken)
     {

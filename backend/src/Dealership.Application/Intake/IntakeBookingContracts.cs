@@ -1,3 +1,4 @@
+using Dealership.Domain.Common;
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Intake;
 
@@ -6,7 +7,7 @@ namespace Dealership.Application.Intake;
 public sealed record BookingRequest(Guid Id, Guid BranchId, DateTimeOffset StartsAt, string? RegistrationPlate,
     ValuationRequest? Vehicle, ValuationResponse? AcceptedQuote, IReadOnlyList<Guid>? PhotoIds);
 
-public sealed record AppointmentReceipt(Guid Id, Guid BranchId, string RegistrationPlate, InspectionSlot Slot,
+public sealed record AppointmentReceipt(Guid Id, Guid BranchId, string RegistrationPlate, AppointmentSlot Slot,
     DateTimeOffset CreatedAt, ValuationRequest Vehicle, ValuationResponse Quote, IReadOnlyList<BookingPhotoSelection> Photos);
 
 public enum BookingStatus
@@ -41,6 +42,6 @@ public interface IIntakeBookingStore
 
     Task<BookingResult> FindAsync(Guid ownerId, Guid id, CancellationToken cancellationToken);
 
-    Task<IReadOnlyList<InspectionSlot>> GetOccupiedSlotsAsync(Guid branchId, DateTimeOffset first,
+    Task<IReadOnlyList<AppointmentSlot>> GetOccupiedSlotsAsync(Guid branchId, DateTimeOffset first,
         DateTimeOffset last, CancellationToken cancellationToken);
 }

@@ -8,7 +8,6 @@ namespace Dealership.Infrastructure.WorkCalendar;
 
 public sealed class WorkCalendarStore(DealershipDbContext database) : IWorkCalendarStore
 {
-    private static readonly TimeZoneInfo Malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
 
     public async Task<WorkCalendarReadResult<WorkCalendarSnapshot>> ScheduledAsync(Guid actorId,
         WorkCalendarQuery query, CancellationToken cancellationToken)
@@ -31,8 +30,8 @@ public sealed class WorkCalendarStore(DealershipDbContext database) : IWorkCalen
             return new(WorkCalendarReadStatus.TooMany);
         }
 
-        var from = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(query.Dates.From!.Value, Malaysia).DateTime);
-        var to = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(query.Dates.Until!.Value, Malaysia).DateTime).AddDays(-1);
+        var from = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(query.Dates.From!.Value, DealershipLocale.Malaysia).DateTime);
+        var to = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(query.Dates.Until!.Value, DealershipLocale.Malaysia).DateTime).AddDays(-1);
         await transaction.CommitAsync(cancellationToken);
         return new(WorkCalendarReadStatus.Succeeded,
             new(scope.CurrentActor, items, items.Length, from, to, scope.BranchId, scope.Employee));

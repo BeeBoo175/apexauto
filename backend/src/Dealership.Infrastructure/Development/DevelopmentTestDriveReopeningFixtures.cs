@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Dealership.Infrastructure.Development;
 
 public sealed class DevelopmentTestDriveReopeningFixtures(DealershipDbContext database,
-    TestDriveBookingService bookings, InspectionReopeningService reopenings, InspectionSchedule schedule)
+    TestDriveBookingService bookings, InspectionReopeningService reopenings, AppointmentSchedule schedule)
 {
     public static DevelopmentInspectionScenario Scenario => DevelopmentInspectionScenarios.All.Where(item =>
         item.PublishListing && item.Intake.BranchId == DevelopmentFixtureManifest.Branches[0].Id).ElementAt(4);
@@ -40,7 +40,7 @@ public sealed class DevelopmentTestDriveReopeningFixtures(DealershipDbContext da
         if (booking is null && seed)
         {
             var now = await database.DatabaseNowAsync(cancellationToken);
-            var malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
+            var malaysia = DealershipLocale.Malaysia;
             var date = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(now, malaysia).DateTime);
             var occupied = await database.TestDriveBookings.Where(item => item.BranchId == scenario.Intake.BranchId &&
                 !database.TestDriveCancellations.Any(cancellation => cancellation.BookingId == item.Id))

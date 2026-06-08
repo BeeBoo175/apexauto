@@ -1,3 +1,4 @@
+using Dealership.Domain.Common;
 using Dealership.Domain.Intake;
 using Dealership.Domain.TestDrives;
 
@@ -171,7 +172,7 @@ public sealed class TestDriveHandlingTests
     {
         var startsAt = new DateTimeOffset(2026, 11, 3, 1, 0, 0, TimeSpan.Zero);
         return new(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
-            new InspectionSlot(startsAt, startsAt + TestDriveBooking.Duration), startsAt.AddDays(-2));
+            new AppointmentSlot(startsAt, startsAt + TestDriveBooking.Duration), startsAt.AddDays(-2));
     }
 
     private static TestDriveAssignment Claim(TestDriveBooking booking)

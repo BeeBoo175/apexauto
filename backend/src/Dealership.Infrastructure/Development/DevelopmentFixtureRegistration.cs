@@ -8,7 +8,7 @@ public static class DevelopmentFixtureRegistration
 {
     public static IServiceCollection AddDevelopmentAccounts(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddSingleton(InspectionScheduleConfiguration.Read(configuration));
+        services.AddSingleton(AppointmentScheduleConfiguration.Read(configuration));
         services.AddSingleton<DevelopmentFixtureClock>();
         services.AddSingleton<TimeProvider>(provider => provider.GetRequiredService<DevelopmentFixtureClock>());
         services.AddScoped<DevelopmentAccountFixtures>();

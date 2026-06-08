@@ -1,3 +1,4 @@
+using Dealership.Domain.Common;
 using System.Text.Json;
 using Dealership.Application.Accounts;
 using Dealership.Application.Inspections;
@@ -39,7 +40,7 @@ internal static class TestDriveHandlingAssertions
             .Where(item => item.VehicleId == listing.Revision.VehicleId).OrderByDescending(item => item.RecordedAt).FirstAsync();
         var now = DateTimeOffset.UtcNow;
         var today = DateOnly.FromDateTime(now.AddHours(8).DateTime);
-        var slots = services.GetRequiredService<InspectionSchedule>().GetSlots(today, now, TestDriveBooking.Duration).ToArray();
+        var slots = services.GetRequiredService<AppointmentSchedule>().GetSlots(today, now, TestDriveBooking.Duration).ToArray();
         Assert.True(slots.Length >= 2, "Persisted attendance acceptance requires two remaining same-day booking slots");
         var booked = await services.GetRequiredService<TestDriveBookingService>().BookAsync(customer,
             listing.Revision.VehicleId, new(Guid.NewGuid(), publication.Id, slots[^2].StartsAt), default);

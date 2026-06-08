@@ -1,3 +1,4 @@
+using Dealership.Domain.Common;
 using System.Globalization;
 using Dealership.Application.Branches;
 using Dealership.Domain.Intake;
@@ -5,7 +6,7 @@ using Dealership.Domain.Intake;
 namespace Dealership.Application.Intake;
 
 public sealed class IntakeDiscoveryService(IPublicBranchStore branches, IIntakeBookingStore bookings,
-    InspectionSchedule schedule, TimeProvider clock)
+    AppointmentSchedule schedule, TimeProvider clock)
 {
     public async Task<SlotDiscoveryResult> GetSlotsAsync(Guid branchId, string? date, CancellationToken cancellationToken)
     {

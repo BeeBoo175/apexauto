@@ -1,3 +1,4 @@
+using Dealership.Domain.Common;
 using Dealership.Application.Accounts;
 using Dealership.Application.Branches;
 using Dealership.Application.Sales;
@@ -57,7 +58,7 @@ internal sealed class SaleWorld
     private static async Task<SaleWorld> CreateAsync(IntakePhotoFixture fixture)
     {
         var data = await CheckInTestData.CreateAsync(fixture,
-            new Dealership.Domain.Intake.InspectionSchedule(new TimeOnly(9, 0), new TimeOnly(18, 0),
+            new AppointmentSchedule(new TimeOnly(9, 0), new TimeOnly(18, 0),
                 15, 30, 0, Enum.GetValues<DayOfWeek>()));
         var scope = data.Factory.Services.CreateScope();
         var services = scope.ServiceProvider;

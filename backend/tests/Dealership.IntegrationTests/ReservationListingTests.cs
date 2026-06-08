@@ -1,3 +1,4 @@
+using Dealership.Domain.Common;
 using System.Data.Common;
 using System.Net;
 using System.Net.Http.Headers;
@@ -25,7 +26,7 @@ public sealed class ReservationListingTests(IntakePhotoFixture fixture) : IClass
     [Fact]
     public async Task ManagerReadsAndActionsRetainScopedPageBoundedDeadlineRefundsAcrossReplayAndRestart()
     {
-        var schedule = new InspectionSchedule(new(9, 0), new(18, 0), 15, 30, 0, Enum.GetValues<DayOfWeek>());
+        var schedule = new AppointmentSchedule(new(9, 0), new(18, 0), 15, 30, 0, Enum.GetValues<DayOfWeek>());
         using var data = await CheckInTestData.CreateAsync(fixture, schedule);
         using var scope = data.Factory.Services.CreateScope();
         var services = scope.ServiceProvider;

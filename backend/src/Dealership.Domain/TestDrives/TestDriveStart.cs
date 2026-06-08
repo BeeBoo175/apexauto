@@ -1,4 +1,4 @@
-using Dealership.Domain.Intake;
+using Dealership.Domain.Common;
 
 namespace Dealership.Domain.TestDrives;
 

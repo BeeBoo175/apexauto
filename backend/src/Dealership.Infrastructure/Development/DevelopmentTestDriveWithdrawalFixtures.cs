@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Dealership.Infrastructure.Development;
 
 public sealed class DevelopmentTestDriveWithdrawalFixtures(DealershipDbContext database,
-    TestDriveBookingService bookings, ListingService listings, InspectionSchedule schedule)
+    TestDriveBookingService bookings, ListingService listings, AppointmentSchedule schedule)
 {
     public static DevelopmentInspectionScenario Scenario => DevelopmentTestDriveFixtures.Scenarios[2];
     public static Guid BookingId => Scenario.OperationId("test-drive-withdrawal-booking");
@@ -32,7 +32,7 @@ public sealed class DevelopmentTestDriveWithdrawalFixtures(DealershipDbContext d
         if (booking is null && seed)
         {
             var now = await database.DatabaseNowAsync(cancellationToken);
-            var malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
+            var malaysia = DealershipLocale.Malaysia;
             var date = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(now, malaysia).DateTime);
             var slot = Enumerable.Range(0, 30).SelectMany(day =>
                 schedule.GetSlots(date.AddDays(day), now, TestDriveBooking.Duration)).FirstOrDefault();

@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Dealership.Infrastructure.Development;
 
 public sealed class DevelopmentTestDriveFixtures(DealershipDbContext database, TestDriveBookingService bookings,
-    TestDriveCancellationService cancellations, TestDriveAssignmentService assignments, InspectionSchedule schedule,
+    TestDriveCancellationService cancellations, TestDriveAssignmentService assignments, AppointmentSchedule schedule,
     ReservationService reservations, ReservationCancellationService releases, DevelopmentTestDriveWithdrawalFixtures withdrawals,
     DevelopmentTestDriveReopeningFixtures reopenings, DevelopmentTestDriveRepairFixtures repairs,
     DevelopmentTestDriveHandlingFixtures handling, DevelopmentTestDriveVolumeFixtures volume)
@@ -62,7 +62,7 @@ public sealed class DevelopmentTestDriveFixtures(DealershipDbContext database, T
         if (booking is null && seed)
         {
             var now = await database.DatabaseNowAsync(cancellationToken);
-            var malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
+            var malaysia = DealershipLocale.Malaysia;
             var date = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(now, malaysia).DateTime);
             var slot = await FindSlotAsync(2, source.BranchId, date, now, cancellationToken);
             if (slot is null)
@@ -151,7 +151,7 @@ public sealed class DevelopmentTestDriveFixtures(DealershipDbContext database, T
         }
 
         var now = await database.DatabaseNowAsync(cancellationToken);
-        var malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
+        var malaysia = DealershipLocale.Malaysia;
         var date = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(now, malaysia).DateTime);
         var slot = await FindSlotAsync(index, scenario.Intake.BranchId, date, now, cancellationToken);
         if (slot is null)
@@ -232,7 +232,7 @@ public sealed class DevelopmentTestDriveFixtures(DealershipDbContext database, T
         return new(label, succeeded ? "claimed" : "claim unavailable; preserved", !succeeded);
     }
 
-    private async Task<InspectionSlot?> FindSlotAsync(int index, Guid branchId, DateOnly date,
+    private async Task<AppointmentSlot?> FindSlotAsync(int index, Guid branchId, DateOnly date,
         DateTimeOffset now, CancellationToken cancellationToken)
     {
         var handlerId = DevelopmentFixtureManifest.Staff.Single(item =>

@@ -103,14 +103,14 @@ internal static class DevelopmentIntakeFixtureAssertions
         Assert.Equal(3, await database.IntakeAppointments.CountAsync(item => item.CancelledAt != null));
         Assert.Equal(3, await database.AppointmentMailOutbox.Where(item => item.Kind == AppointmentMailKind.Cancellation).CountAsync());
         Assert.Equal(DevelopmentIntakeManifest.Appointments.Count * 4, await database.IntakePhotos.CountAsync(photo => photo.AvailableAt != null));
-        var schedule = services.GetRequiredService<InspectionSchedule>();
-        var malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
+        var schedule = services.GetRequiredService<AppointmentSchedule>();
+        var malaysia = DealershipLocale.Malaysia;
         var confirmations = await database.EmailVerificationChallenges.Where(item => item.ConsumedAt != null)
             .ToDictionaryAsync(item => item.UserId, item => item.ConsumedAt!.Value);
         foreach (var appointment in appointments)
         {
             Assert.True(confirmations[appointment.OwnerId] <= appointment.CreatedAt);
-            Assert.Equal(new InspectionSlot(appointment.StartsAt, appointment.EndsAt),
+            Assert.Equal(new AppointmentSlot(appointment.StartsAt, appointment.EndsAt),
                 schedule.FindSlot(appointment.StartsAt, appointment.CreatedAt));
             Assert.Equal(TimeZoneInfo.ConvertTime(appointment.CreatedAt, malaysia).Year,
                 appointment.Valuation.ValuationYear);

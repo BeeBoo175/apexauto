@@ -1,7 +1,7 @@
+using Dealership.Domain.Common;
 using Dealership.Application.Accounts;
 using Dealership.Application.TestDrives;
 using Dealership.Domain.TestDrives;
-using Dealership.Domain.Intake;
 using Dealership.Infrastructure.Mail;
 using Dealership.Infrastructure.Persistence;
 using Dealership.Infrastructure.Vehicles;

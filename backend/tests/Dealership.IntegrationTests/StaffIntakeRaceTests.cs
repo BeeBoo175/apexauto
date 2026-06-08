@@ -17,9 +17,9 @@ public sealed class StaffIntakeRaceTests(IntakePhotoFixture fixture) : IClassFix
     [Fact]
     public async Task OrderedContendersCancelWaitersAndRetainCheckedInPhotosAcrossCleanupAndRestart()
     {
-        var schedule = new InspectionSchedule(TimeOnly.MinValue, new TimeOnly(23, 59), 1, 30, 0,
+        var schedule = new AppointmentSchedule(TimeOnly.MinValue, new TimeOnly(23, 59), 1, 30, 0,
             Enum.GetValues<DayOfWeek>());
-        var malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
+        var malaysia = DealershipLocale.Malaysia;
         var now = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, malaysia);
         // The booking helper's clock is midnight; expiry must still be in the real database's future at attachment.
         var lifetime = now.TimeOfDay + TimeSpan.FromSeconds(20);

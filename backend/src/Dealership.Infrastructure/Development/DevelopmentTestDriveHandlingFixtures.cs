@@ -11,7 +11,7 @@ namespace Dealership.Infrastructure.Development;
 
 public sealed class DevelopmentTestDriveHandlingFixtures(DealershipDbContext database,
     TestDriveBookingService bookings, TestDriveAssignmentService assignments, TestDriveHandlingService handling,
-    InspectionSchedule schedule)
+    AppointmentSchedule schedule)
 {
     public static DevelopmentInspectionScenario Scenario => DevelopmentTestDriveFixtures.Scenarios[0];
     public static IReadOnlyList<string> Kinds { get; } = Array.AsReadOnly(new[] { "completed", "not-completed", "active" });
@@ -137,10 +137,10 @@ public sealed class DevelopmentTestDriveHandlingFixtures(DealershipDbContext dat
         return new(label, valid ? "attended outcome retained" : "outcome missing/drift; preserved", !valid);
     }
 
-    private async Task<InspectionSlot?> FindSlotAsync(Guid staffId, CancellationToken cancellationToken)
+    private async Task<AppointmentSlot?> FindSlotAsync(Guid staffId, CancellationToken cancellationToken)
     {
         var now = await database.DatabaseNowAsync(cancellationToken);
-        var malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
+        var malaysia = DealershipLocale.Malaysia;
         var date = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(now, malaysia).DateTime);
         var occupied = await database.TestDriveBookings.Where(item => item.BranchId == Scenario.Intake.BranchId &&
             !database.TestDriveCancellations.Any(cancellation => cancellation.BookingId == item.Id) &&

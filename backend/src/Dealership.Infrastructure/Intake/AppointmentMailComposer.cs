@@ -6,11 +6,10 @@ namespace Dealership.Infrastructure.Intake;
 
 public static class AppointmentMailComposer
 {
-    private static readonly TimeZoneInfo Malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
 
     public static OutboundMail Confirmation(AppointmentMail message, IntakeAppointment appointment, string branchName)
     {
-        var startsAt = TimeZoneInfo.ConvertTime(appointment.StartsAt, Malaysia);
+        var startsAt = TimeZoneInfo.ConvertTime(appointment.StartsAt, DealershipLocale.Malaysia);
         var body = FormattableString.Invariant($"Your ApexAuto inspection booking is confirmed.\nReference: {appointment.Id:D}\nBranch: {branchName}\nStarts: {startsAt:yyyy-MM-dd HH:mm} (Asia/Kuala_Lumpur)\nRegistration: {appointment.RegistrationPlate}");
         return new OutboundMail(message.RecipientEmail, "ApexAuto inspection booking confirmed", body);
     }

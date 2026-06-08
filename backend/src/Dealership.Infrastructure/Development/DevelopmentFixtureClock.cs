@@ -1,3 +1,4 @@
+using Dealership.Domain.Common;
 using Dealership.Domain.Intake;
 
 namespace Dealership.Infrastructure.Development;
@@ -6,10 +7,10 @@ public sealed class DevelopmentFixtureClock : TimeProvider
 {
     private readonly Lazy<IReadOnlyList<DevelopmentIntakeMoment>> _timeline;
 
-    public DevelopmentFixtureClock(InspectionSchedule schedule)
+    public DevelopmentFixtureClock(AppointmentSchedule schedule)
     {
         var now = System.GetUtcNow();
-        var anchor = new DateTimeOffset(now.UtcTicks - now.UtcTicks % 10, TimeSpan.Zero);
+        var anchor = UtcTime.TruncateToMicroseconds(now);
         _timeline = new Lazy<IReadOnlyList<DevelopmentIntakeMoment>>(() => DevelopmentIntakeTimeline.Create(schedule, anchor));
     }
 

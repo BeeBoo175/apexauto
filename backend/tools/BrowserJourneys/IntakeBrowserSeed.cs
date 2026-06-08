@@ -23,19 +23,19 @@ internal static class IntakeBrowserSeed
 {
     public static async Task SeedArrivalsAsync(IntakePhotoFixture fixture, bool workshop = false)
     {
-        var malaysia = TimeZoneInfo.FindSystemTimeZoneById(DealershipLocale.MalaysiaTimeZoneId);
+        var malaysia = DealershipLocale.Malaysia;
         var date = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, malaysia).DateTime);
         var midnight = new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(date.ToDateTime(TimeOnly.MinValue), malaysia));
         // Canonical snapshot slots may fill today after midnight; arrivals use a separate test-only window.
         var schedule = workshop
-            ? new InspectionSchedule(new TimeOnly(4, 0), new TimeOnly(6, 0), 10, 30, 0, Enum.GetValues<DayOfWeek>())
-            : new InspectionSchedule(new TimeOnly(6, 0), new TimeOnly(9, 0), 90, 30, 0, Enum.GetValues<DayOfWeek>());
+            ? new AppointmentSchedule(new TimeOnly(4, 0), new TimeOnly(6, 0), 10, 30, 0, Enum.GetValues<DayOfWeek>())
+            : new AppointmentSchedule(new TimeOnly(6, 0), new TimeOnly(9, 0), 90, 30, 0, Enum.GetValues<DayOfWeek>());
         using var factory = fixture.CreateFactory(clock: new ArrivalClock(midnight)).WithWebHostBuilder(builder =>
         {
             builder.UseContentRoot(Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../../backend/src/Dealership.Api")));
             builder.ConfigureServices(services =>
             {
-                services.RemoveAll<InspectionSchedule>();
+                services.RemoveAll<AppointmentSchedule>();
                 services.AddSingleton(schedule);
             });
         });

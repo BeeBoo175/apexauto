@@ -1,3 +1,4 @@
+using Dealership.Domain.Common;
 using Dealership.Application.Intake;
 using Dealership.Domain.Intake;
 using Dealership.Infrastructure.Persistence;
@@ -69,12 +70,12 @@ public sealed class IntakeBookingStore(DealershipDbContext database, MailDeliver
         return receipt is null ? new BookingResult(BookingStatus.NotFound) : new BookingResult(BookingStatus.Succeeded, receipt);
     }
 
-    public async Task<IReadOnlyList<InspectionSlot>> GetOccupiedSlotsAsync(Guid branchId, DateTimeOffset first,
+    public async Task<IReadOnlyList<AppointmentSlot>> GetOccupiedSlotsAsync(Guid branchId, DateTimeOffset first,
         DateTimeOffset last, CancellationToken cancellationToken)
     {
         return await database.IntakeAppointments.Where(item => item.BranchId == branchId &&
             item.EndsAt > first && item.StartsAt < last &&
             item.CancelledAt == null)
-            .Select(item => new InspectionSlot(item.StartsAt, item.EndsAt)).ToArrayAsync(cancellationToken);
+            .Select(item => new AppointmentSlot(item.StartsAt, item.EndsAt)).ToArrayAsync(cancellationToken);
     }
 }
