@@ -158,7 +158,7 @@ public sealed class TestDriveApiTests(IntakePhotoFixture fixture) : IClassFixtur
                 $"/api/staff/test-drives/{next.OperationId}/cancellations", new { OperationId = Guid.NewGuid(), Reason = "Customer requested another date" })).StatusCode);
         }
 
-        await AssertHistoryAsync(customer, unrelated, agent, date);
+        await AssertHistoryAsync(customer, unrelated, agent, date, services, data.OwnerId, other);
         await AssertStaffReadsAsync(branchManager, groupManager, agent, date, request.OperationId, data.BranchId);
         var reads = services.GetRequiredService<IStaffTestDriveReadStore>();
         Assert.Equal(TestDriveReadStatus.Forbidden, (await reads.GetAsync(technician, request.OperationId, default)).Status);
@@ -189,10 +189,17 @@ public sealed class TestDriveApiTests(IntakePhotoFixture fixture) : IClassFixtur
         Assert.Equal(own.Items.Select(item => item.Id), refined.Items.Select(item => item.Id));
         Assert.Empty((await reads.ScheduledAsync(managerId, query with { Scope = new(null, "unassigned") }, default)).Value!.Items);
         Assert.Empty((await reads.ScheduledAsync(managerId, query with { Scope = new(null, "%") }, default)).Value!.Items);
-        Assert.Equal(WorkCalendarReadStatus.BranchRequired, (await reads.ScheduledAsync(groupId, query, default)).Status);
+        var allBranches = (await reads.ScheduledAsync(groupId, query, default)).Value!;
+        Assert.Null(allBranches.BranchId);
+        Assert.Equal(bookingId, Assert.Single(allBranches.Items).Id);
         Assert.Equal(bookingId, Assert.Single((await reads.ScheduledAsync(groupId,
             query with { Scope = new(data.BranchId) }, default)).Value!.Items).Id);
-        Assert.Empty((await reads.ScheduledAsync(technicianId, query, default)).Value!.Items);
+        Assert.Equal(WorkCalendarReadStatus.Forbidden,
+            (await reads.ScheduledAsync(technicianId, query, default)).Status);
+        Assert.Equal(bookingId, Assert.Single((await reads.ScheduledAsync(managerId,
+            query with { Search = data.StaffEmail.ToUpperInvariant(), Assignment = "Assigned" }, default)).Value!.Items).Id);
+        Assert.Empty((await reads.ScheduledAsync(managerId,
+            query with { Assignment = "Unassigned" }, default)).Value!.Items);
         Assert.Equal(WorkCalendarReadStatus.Forbidden, (await reads.ScheduledAsync(data.StaffId,
             query with { Scope = new(null, "unassigned") }, default)).Status);
         Assert.Equal(WorkCalendarReadStatus.Forbidden, (await reads.ScheduledAsync(managerId,
@@ -244,7 +251,8 @@ public sealed class TestDriveApiTests(IntakePhotoFixture fixture) : IClassFixtur
         Assert.Equal(HttpStatusCode.BadRequest, (await handler.PostAsJsonAsync($"{path}/outcomes", outcome)).StatusCode);
     }
 
-    private static async Task AssertHistoryAsync(HttpClient customer, HttpClient unrelated, HttpClient staff, string date)
+    private static async Task AssertHistoryAsync(HttpClient customer, HttpClient unrelated, HttpClient staff, string date,
+        IServiceProvider services, Guid customerId, Guid unrelatedId)
     {
         var first = (await customer.GetFromJsonAsync<TestDriveHistory>("/api/account/test-drives"))!;
         Assert.Equal(7, first.Total);
@@ -256,6 +264,14 @@ public sealed class TestDriveApiTests(IntakePhotoFixture fixture) : IClassFixtur
         Assert.Empty(first.Items.Select(item => item.Id).Intersect(last.Items.Select(item => item.Id)));
         Assert.Empty((await customer.GetFromJsonAsync<TestDriveHistory>($"/api/account/test-drives?page={int.MaxValue}"))!.Items);
         Assert.Equal(7, (await customer.GetFromJsonAsync<TestDriveHistory>($"/api/account/test-drives?from={date}&to={date}"))!.Total);
+        var reference = last.Items[0].Id;
+        var reads = services.GetRequiredService<ITestDriveReadStore>();
+        var dates = Dealership.Application.Common.ListDateRange.Parse(null, null)!;
+        var searched = (await reads.AccountAsync(customerId, 1, dates, default, reference.ToString())).History!;
+        Assert.Equal(1, searched.Total);
+        Assert.Equal(reference, Assert.Single(searched.Items).Id);
+        Assert.Equal(0, (await reads.AccountAsync(unrelatedId, 1, dates, default, reference.ToString())).History!.Total);
+        Assert.Equal(0, (await reads.AccountAsync(customerId, 1, dates, default, "%")).History!.Total);
         Assert.Equal(0, (await unrelated.GetFromJsonAsync<TestDriveHistory>("/api/account/test-drives"))!.Total);
         Assert.Equal(HttpStatusCode.Forbidden, (await staff.GetAsync("/api/account/test-drives")).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await customer.GetAsync("/api/account/test-drives?page=0")).StatusCode);

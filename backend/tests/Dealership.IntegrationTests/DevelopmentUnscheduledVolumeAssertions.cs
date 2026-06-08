@@ -1,4 +1,5 @@
 using Dealership.Application.Accounts;
+using Dealership.Application.Inspections;
 using Dealership.Application.Sales;
 using Dealership.Application.WorkCalendar;
 using Dealership.Domain.Sales;
@@ -52,7 +53,12 @@ internal static class DevelopmentUnscheduledVolumeAssertions
             var manager = DevelopmentFixtureManifest.Staff.Single(item => item.Role == AccountRoles.BranchManager &&
                 item.BranchId == technician.BranchId);
             var own = new UnscheduledWorkQuery(new(technician.BranchId), 1, 25);
-            await AssertPagesAsync(calendar, technician.Id, own, expected, technician.Id, ids);
+            Assert.Equal(WorkCalendarReadStatus.Forbidden,
+                (await calendar.UnscheduledAsync(technician.Id, own, CancellationToken.None)).Status);
+            var ordered = await database.Vehicles.AsNoTracking().Where(item => expected.Contains(item.Id))
+                .OrderByDescending(item => item.CreatedAt).ThenByDescending(item => item.Id)
+                .Select(item => item.Id).ToArrayAsync();
+            await AssertWorkshopPagesAsync(services.GetRequiredService<IWorkshopQueueStore>(), technician.Id, ordered);
             var oversight = own with { Scope = own.Scope with { Employee = technician.Email.ToUpperInvariant() } };
             await AssertPagesAsync(calendar, manager.Id, oversight, expected, technician.Id, ids);
             await AssertPagesAsync(calendar, generalManager.Id, oversight, expected, technician.Id, ids);
@@ -115,6 +121,24 @@ internal static class DevelopmentUnscheduledVolumeAssertions
     }
 
     private sealed record ExpectedWork(Guid Id, string Kind, string Registration);
+
+    private static async Task AssertWorkshopPagesAsync(IWorkshopQueueStore workshop, Guid technicianId, Guid[] expected)
+    {
+        var actual = new List<Guid>();
+        for (var page = 1; page <= 4; page++)
+        {
+            var result = await workshop.ReadJobsAsync(technicianId, new InspectionQueueFilter(Page: page),
+                WorkshopTask.MyWork, CancellationToken.None);
+            Assert.Equal(InspectionAssignmentStatus.Succeeded, result.Status);
+            var snapshot = Assert.IsType<WorkshopJobs>(result.Queue);
+            Assert.Equal(expected.Length, snapshot.Total);
+            Assert.Equal(page, snapshot.Page);
+            Assert.Equal(expected.Skip((page - 1) * 25).Take(25), snapshot.Items.Select(item => item.VehicleId));
+            actual.AddRange(snapshot.Items.Select(item => item.VehicleId));
+        }
+
+        Assert.Equal(expected, actual);
+    }
 
     private static async Task AssertMixedPagesAsync(IWorkCalendarStore calendar, Guid actorId,
         UnscheduledWorkQuery query, ExpectedWork[] expected, Guid? handlerId = null)

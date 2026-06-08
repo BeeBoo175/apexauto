@@ -20,4 +20,25 @@ public sealed class WorkCalendarTests
         Assert.Null(WorkCalendarQuery.Parse("2026-10-20", "2026-10-20", Guid.Empty, null));
         Assert.Equal("aina", WorkCalendarQuery.Parse("2026-10-20", "2026-10-20", null, " aina ")!.Scope.Employee);
     }
+
+    [Fact]
+    public void SharedSearchAndPanelFiltersRejectInvalidInputs()
+    {
+        var query = WorkCalendarQuery.Parse("2026-11-01", "2026-11-30", null, null,
+            " aina.sofia ", "Unassigned")!;
+        Assert.Equal("aina.sofia", query.Search);
+        Assert.Equal("Unassigned", query.Assignment);
+        Assert.Null(query.Scope.BranchId);
+        Assert.Null(WorkCalendarQuery.Parse("2026-11-01", "2026-11-30", null, null,
+            assignment: "unknown"));
+        Assert.Null(WorkCalendarQuery.Parse("2026-11-01", "2026-11-30", null, null,
+            new string('a', 161)));
+
+        var work = UnscheduledWorkQuery.Parse(null, null, 2, 10, " Proton ", "Workshop")!;
+        Assert.Equal("Proton", work.Search);
+        Assert.Equal("Workshop", work.Kind);
+        Assert.Equal(2, work.Page);
+        Assert.Null(UnscheduledWorkQuery.Parse(null, null, 1, 5));
+        Assert.Null(UnscheduledWorkQuery.Parse(null, null, 1, 25, kind: "Intake"));
+    }
 }

@@ -5,6 +5,7 @@ import {
   parseUnscheduledWork,
   workCalendarParams,
   workCalendarQuery,
+  hasWorkCalendarAccess,
 } from "@/lib/staff/work-calendar";
 import { workCalendarEvents, workItemHref } from "@/lib/staff/work-calendar-presentation";
 
@@ -46,6 +47,10 @@ test("shared calendar rejects partial, duplicate, oversized and wrong-range snap
     total: 2,
   })!;
   expect(new Set(workCalendarEvents(shared).map((item) => item.id)).size).toBe(2);
+  expect(workCalendarEvents(shared)[0].title).toBe("Intake · VCA 9701");
+  expect(workCalendarEvents({ ...shared, branchId: null })[0].title).toBe(
+    "Intake · VCA 9701 · ApexAuto Glenmarie",
+  );
 });
 
 test("unscheduled work validates ownership and real editor identity without inventing dates", () => {
@@ -56,7 +61,14 @@ test("unscheduled work validates ownership and real editor identity without inve
     handlerEmail: "aina@example.invalid",
     inspectionId: branchId,
   };
-  const snapshot = { ...scope, items: [item], total: 1, page: 1, pageSize: 25 };
+  const snapshot = {
+    ...scope,
+    items: [item],
+    total: 1,
+    page: 1,
+    pageSize: 25,
+    counts: { all: 1, workshop: 1, sale: 0 },
+  };
   const work = parseUnscheduledWork(snapshot)!;
   expect(work.items[0]).not.toHaveProperty("startsAt");
   expect(workItemHref(work.items[0])).toBe(`/dashboard/inspection?inspection=${branchId}`);
@@ -65,15 +77,41 @@ test("unscheduled work validates ownership and real editor identity without inve
   ).toBeNull();
   expect(parseUnscheduledWork({ ...snapshot, items: [{ ...item, handlerId: null }] })).toBeNull();
   expect(parseUnscheduledWork({ ...snapshot, pageSize: 5 })).toBeNull();
-  const filters = workCalendarParams({ date: "2027-01-01", employee: " aina ", page: "2" });
+  expect(
+    parseUnscheduledWork({ ...snapshot, counts: { all: 2, workshop: 1, sale: 0 } }),
+  ).toBeNull();
+  const filters = workCalendarParams({
+    date: "2027-01-01",
+    search: " aina ",
+    assignment: "Unassigned",
+    kind: "Workshop",
+    page: "2",
+  });
   expect(Object.fromEntries(workCalendarQuery(filters))).toEqual({
-    employee: "aina",
+    search: "aina",
+    assignment: "Unassigned",
     from: "2026-12-28",
     to: "2027-02-07",
   });
   expect(Object.fromEntries(workCalendarQuery(filters, true))).toEqual({
-    employee: "aina",
+    search: "aina",
+    kind: "Workshop",
     page: "2",
     pageSize: "25",
   });
+});
+
+test("only general managers accept an all-branch calendar and technicians have no calendar grant", () => {
+  const snapshot = { ...scope, ...calendarRange("2026-10-20"), items: [row], total: 1 };
+  const generalManager = { userId: id, role: "GeneralManager", branchId: null };
+  expect(parseWorkCalendar({ ...snapshot, actor: generalManager, branchId: null })?.items).toEqual([
+    row,
+  ]);
+  expect(parseWorkCalendar({ ...snapshot, branchId: null })).toBeNull();
+  expect(
+    parseWorkCalendar({ ...snapshot, actor: { ...actor, role: "WorkshopTechnician" } }),
+  ).toBeNull();
+  expect(hasWorkCalendarAccess("WorkshopTechnician")).toBe(false);
+  expect(hasWorkCalendarAccess("Administrator")).toBe(false);
+  expect(parseWorkCalendar({ ...snapshot, actor: generalManager, branchId: id })).toBeNull();
 });

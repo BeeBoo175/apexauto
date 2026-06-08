@@ -53,16 +53,19 @@ public sealed class InspectionQueueTests(IntakePhotoFixture fixture) : IClassFix
         var workshop = services.GetRequiredService<IWorkshopQueueStore>();
         var calendar = services.GetRequiredService<IWorkCalendarStore>();
         var workQuery = UnscheduledWorkQuery.Parse(null, null, 1, 10)!;
-        var assignedWork = (await calendar.UnscheduledAsync(technician, workQuery, default)).Value!;
+        var assignedWork = (await calendar.UnscheduledAsync(manager,
+            workQuery with { Scope = new(null, (await database.Users.SingleAsync(item => item.Id == technician)).Email!) }, default)).Value!;
         Assert.Equal(vehicles[0], Assert.Single(assignedWork.Items).Id);
         Assert.Equal("InspectionUnderway", assignedWork.Items[0].Status);
         Assert.Equal(inspection, assignedWork.Items[0].InspectionId);
         var branchWork = (await calendar.UnscheduledAsync(manager, workQuery, default)).Value!;
         Assert.Equal(2, branchWork.Total);
         Assert.DoesNotContain(branchWork.Items, item => item.Id == vehicles[2]);
-        Assert.Equal(WorkCalendarReadStatus.BranchRequired,
-            (await calendar.UnscheduledAsync(group, workQuery, default)).Status);
-        foreach (var denied in new[] { data.OwnerId, admin })
+        var groupWork = (await calendar.UnscheduledAsync(group, workQuery, default)).Value!;
+        Assert.Null(groupWork.BranchId);
+        Assert.Equal(branchWork.Items, groupWork.Items);
+        Assert.Equal(new UnscheduledWorkCounts(2, 2, 0), groupWork.Counts);
+        foreach (var denied in new[] { data.OwnerId, admin, technician })
         {
             Assert.Equal(WorkCalendarReadStatus.Forbidden,
                 (await calendar.UnscheduledAsync(denied, workQuery, default)).Status);

@@ -77,13 +77,12 @@ export async function reviewAgentQueue(page: Page, area: "sales" | "inspection")
   await expect(page.getByRole("searchbox")).toBeVisible();
   const jobs = page.locator("ul li button");
   await expect(jobs.first()).toBeVisible();
-  const loaded = await jobs.count();
-  const more = page.getByRole("button", { name: "Load more", exact: true });
-  if (await more.isVisible()) {
-    await more.scrollIntoViewIfNeeded();
-    expect(await jobs.count()).toBe(loaded);
-    await more.click();
-    await expect.poll(() => jobs.count()).toBeGreaterThan(loaded);
+  const identities = await jobs.allTextContents();
+  const next = page.getByRole("button", { name: "Next records", exact: true });
+  if (await next.isEnabled()) {
+    await next.click();
+    await expect(page.getByLabel("Page number", { exact: true })).toHaveValue("2");
+    expect(await jobs.allTextContents()).not.toEqual(identities);
   }
   await captureIntake(page, `${area}-queue`);
 }

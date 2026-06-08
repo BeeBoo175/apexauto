@@ -20,7 +20,7 @@ async function login(page: Page, email: string) {
   await page.getByLabel("Email", { exact: true }).fill(email);
   await page.getByLabel("Password", { exact: true }).fill("Password123!");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page).toHaveURL(/\/dashboard\/intake$/);
+  await expect(page).toHaveURL(/\/dashboard\/work-calendar$/);
 }
 
 async function readWork(page: Page, action: () => Promise<unknown>): Promise<WorkPage> {
@@ -34,7 +34,7 @@ async function readWork(page: Page, action: () => Promise<unknown>): Promise<Wor
 }
 
 async function collectPages(page: Page, first: WorkPage) {
-  const work = page.getByRole("region", { name: "Unscheduled work", exact: true });
+  const work = page.getByRole("region", { name: "Ongoing work", exact: true });
   const items: WorkItem[] = [];
   let current = first;
   for (let index = 1; index <= Math.ceil(first.total / 25); index++) {
@@ -70,7 +70,7 @@ test("agent unscheduled sales span full and partial pages and open the owned sal
   const items = await collectPages(page, first);
   expect(items.every((item) => item.kind === "Sale" && item.branchId === branchId)).toBe(true);
   expect(items.every((item) => item.handlerEmail === "aina.sofia@example.invalid")).toBe(true);
-  const work = page.getByRole("region", { name: "Unscheduled work", exact: true });
+  const work = page.getByRole("region", { name: "Ongoing work", exact: true });
   const fresh = await readWork(page, () =>
     page.getByRole("button", { name: "Refresh work calendar", exact: true }).click(),
   );
@@ -103,26 +103,25 @@ test("manager mixed work pages retain global ordering and agent employee refinem
 }, info) => {
   const group = info.project.name === "mobile";
   await login(page, group ? "farah.aziz@example.invalid" : "siti.aminah@example.invalid");
-  let first: WorkPage;
+  let first = await readWork(page, () => page.goto("/dashboard/work-calendar"));
   if (group) {
-    await page.goto("/dashboard/work-calendar");
-    await expect(
-      page.getByText("Choose a branch to view its work calendar.", { exact: true }),
-    ).toBeVisible();
+    expect(first.total).toBeGreaterThan(100);
     first = await readWork(page, () =>
       page.getByLabel("Branch", { exact: true }).selectOption(branchId),
     );
-  } else {
-    first = await readWork(page, () => page.goto("/dashboard/work-calendar"));
   }
   expect(first.total).toBeGreaterThan(100);
   const items = await collectPages(page, first);
   expect(items.some((item) => item.kind === "Sale")).toBe(true);
   expect(items.some((item) => item.kind === "Workshop")).toBe(true);
   expect(items.every((item) => item.branchId === branchId)).toBe(true);
-  await page.getByLabel("Employee email", { exact: true }).fill("AINA.SOFIA");
+  await page
+    .getByRole("searchbox", { name: "Search ongoing work and appointments", exact: true })
+    .fill("AINA.SOFIA");
   const filtered = await readWork(page, () =>
-    page.getByRole("button", { name: "Apply", exact: true }).click(),
+    page
+      .getByRole("searchbox", { name: "Search ongoing work and appointments", exact: true })
+      .press("Enter"),
   );
   expect(filtered.page).toBe(1);
   expect(filtered.total).toBe(54);

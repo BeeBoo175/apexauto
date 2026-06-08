@@ -43,7 +43,7 @@ mono_crash.*
 [Dd]ebugPublic/
 [Rr]elease/
 [Rr]eleases/
-!/frontend/src/app/api/staff/intake/appointments/*/releases/
+!/frontend/src/app/api/**/releases/
 x64/
 x86/
 [Ww][Ii][Nn]32/

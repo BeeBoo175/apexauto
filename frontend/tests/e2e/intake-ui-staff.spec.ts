@@ -51,7 +51,8 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
   context,
 }, testInfo) => {
   test.setTimeout(120000);
-  await login(page, "aina.sofia@example.invalid", "/dashboard/intake");
+  await login(page, "aina.sofia@example.invalid", "/dashboard/work-calendar");
+  await page.goto("/dashboard/intake");
   await expect(
     page.getByRole("heading", { name: "Select an appointment", exact: true }),
   ).toBeVisible();
@@ -324,14 +325,19 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
       },
     }),
   );
-  await queue.getByRole("button", { name: "Load more", exact: true }).click();
-  await expect(queue.getByRole("button", { name: "Retry queue", exact: true })).toBeVisible();
+  await queue.getByRole("button", { name: "Next records", exact: true }).click();
+  await expect(
+    page
+      .getByRole("alert")
+      .filter({ hasText: "The last confirmed rows and filters remain shown." }),
+  ).toBeVisible();
   expect(await queue.locator("li").allTextContents()).toEqual(oldJobs);
+  await expect(queue.getByLabel("Page number", { exact: true })).toHaveValue("1");
   await page.unroute("**/api/staff/intake/appointments?**");
-  await queue.getByRole("button", { name: "Retry queue", exact: true }).click();
-  await expect(queue.locator("li")).toHaveCount(20);
-  expect(await queue.locator("li").count()).toBeGreaterThan(0);
-  expect(await queue.locator("li").count()).toBe(20);
+  await queue.getByRole("button", { name: "Next records", exact: true }).click();
+  await expect(queue.getByLabel("Page number", { exact: true })).toHaveValue("2");
+  await expect(queue.locator("li")).toHaveCount(10);
+  expect(await queue.locator("li").allTextContents()).not.toEqual(oldJobs);
   await page.route("**/api/staff/intake/appointments?**", (route) =>
     route.fulfill({
       status: 502,
@@ -354,7 +360,7 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
   await page.unroute("**/api/staff/intake/appointments?**");
   await page.getByRole("button", { name: "Refresh worklist", exact: true }).click();
   await expect(queue.locator("li")).toHaveCount(10);
-  expect(await queue.locator("li").allTextContents()).toEqual(oldJobs);
+  expect(await queue.locator("li").allTextContents()).toEqual(oldRows);
   await captureIntake(page, "agent-history");
   await reviewAgentQueue(page, "sales");
 
@@ -368,10 +374,10 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
 });
 
 for (const [role, email, destination] of [
-  ["Branch manager", "siti.aminah@example.invalid", "/dashboard/intake"],
-  ["General manager", "farah.aziz@example.invalid", "/dashboard/intake"],
+  ["Branch manager", "siti.aminah@example.invalid", "/dashboard/work-calendar"],
+  ["General manager", "farah.aziz@example.invalid", "/dashboard/work-calendar"],
   ["Workshop technician", "azlan.rahim@example.invalid", "/dashboard/inspection"],
-  ["Administrator", "muhammad.hafiz@example.invalid", "/dashboard/settings"],
+  ["Administrator", "muhammad.hafiz@example.invalid", "/dashboard"],
 ]) {
   test(`${role} receives its verified destination and current intake permission`, async ({
     page,
@@ -383,7 +389,7 @@ for (const [role, email, destination] of [
       await expect(page).toHaveURL(new RegExp(`${destination}$`));
     }
     if (role === "Workshop technician" || role === "Administrator") {
-      const heading = role === "Workshop technician" ? "Workshop" : "Settings";
+      const heading = role === "Workshop technician" ? "Workshop" : "Administration";
       await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
       if (role === "Workshop technician") {
         await reviewAgentQueue(page, "inspection");
@@ -401,6 +407,7 @@ for (const [role, email, destination] of [
       ).toBe(403);
       return;
     }
+    await page.goto("/dashboard/intake?view=list");
     await expect(
       page.getByRole("table", { name: "Scoped intake appointments", exact: true }),
     ).toBeVisible();

@@ -11,7 +11,7 @@ async function login(page: Page, email: string) {
   await page.getByLabel("Email", { exact: true }).fill(email);
   await page.getByLabel("Password", { exact: true }).fill("Password123!");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page).toHaveURL(/\/dashboard\/(intake|inspection)$/);
+  await expect(page).toHaveURL(/\/dashboard\/(work-calendar|inspection)$/);
 }
 
 test("own calendar loads once, retains each section on failure and opens the feature workspace", async ({
@@ -28,13 +28,13 @@ test("own calendar loads once, retains each section on failure and opens the fea
   await page.goto("/dashboard/work-calendar");
   const calendar = page.getByRole("region", { name: "Work calendar", exact: true });
   await expect(calendar).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Unscheduled work", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Sales", exact: true })).toBeVisible();
   expect(reads).toHaveLength(2);
   const selected = calendar.getByRole("region", { name: "Selected date events", exact: true });
   const today = calendarDate();
   await expect(calendar.locator(`[data-date="${today}"]`)).toBeVisible();
   const confirmed = await calendar.innerText();
-  const unscheduled = page.getByRole("region", { name: "Unscheduled work", exact: true });
+  const unscheduled = page.getByRole("region", { name: "Ongoing work", exact: true });
   const confirmedWork = await unscheduled.innerText();
   await page.route("**/api/staff/work-calendar?**", (route) =>
     route.fulfill({
@@ -44,7 +44,7 @@ test("own calendar loads once, retains each section on failure and opens the fea
   );
   await page.getByRole("button", { name: "Refresh work calendar", exact: true }).click();
   await expect(
-    page.getByRole("alert").filter({ hasText: "Scheduled work could not be refreshed" }),
+    page.getByRole("alert").filter({ hasText: "Appointments could not be refreshed" }),
   ).toBeVisible();
   expect(await calendar.innerText()).toBe(confirmed);
   expect(await unscheduled.innerText()).toBe(confirmedWork);
@@ -57,7 +57,7 @@ test("own calendar loads once, retains each section on failure and opens the fea
   );
   await page.getByRole("button", { name: "Refresh work calendar", exact: true }).click();
   await expect(
-    page.getByRole("alert").filter({ hasText: "Unscheduled work could not be refreshed" }),
+    page.getByRole("alert").filter({ hasText: "Ongoing work could not be loaded" }),
   ).toBeVisible();
   expect(await calendar.innerText()).toBe(confirmed);
   expect(await unscheduled.innerText()).toBe(confirmedWork);
@@ -100,9 +100,9 @@ test("own calendar loads once, retains each section on failure and opens the fea
   );
   const appointment =
     testInfo.project.name === "mobile"
-      ? selected.getByRole("button", { name: /^Open VCA 970/ }).first()
+      ? selected.getByRole("button", { name: /^Open Intake · VCA 970/ }).first()
       : calendar
-          .getByRole("button", { name: /^Open VCA 970/ })
+          .getByRole("button", { name: /^Open Intake · VCA 970/ })
           .filter({ visible: true })
           .first();
   await expect(appointment).toBeVisible();
@@ -111,7 +111,7 @@ test("own calendar loads once, retains each section on failure and opens the fea
   await expect(page.getByLabel("VIN", { exact: true })).toBeVisible();
 });
 
-test("group calendar requires a branch before reads and filters full-dataset employee responsibility", async ({
+test("group calendar defaults to all branches and shares search without cross-filtering panels", async ({
   page,
 }) => {
   test.setTimeout(120_000);
@@ -123,21 +123,47 @@ test("group calendar requires a branch before reads and filters full-dataset emp
     }
   });
   await page.goto("/dashboard/work-calendar");
-  await expect(
-    page.getByText("Choose a branch to view its work calendar.", { exact: true }),
-  ).toBeVisible();
-  expect(reads).toHaveLength(0);
-  await page.getByLabel("Branch", { exact: true }).selectOption(branchId);
-  await expect(page.getByRole("region", { name: "Work calendar", exact: true })).toBeVisible();
+  const calendar = page.getByRole("region", { name: "Work calendar", exact: true });
+  const ongoing = page.getByRole("region", { name: "Ongoing work", exact: true });
+  const refresh = page.getByRole("button", { name: "Refresh work calendar", exact: true });
+  await expect(calendar).toBeVisible();
+  await expect(refresh).toBeEnabled();
+  await expect(page.getByLabel("Branch", { exact: true })).toHaveValue("");
   expect(reads).toHaveLength(2);
-  expect(reads.every((url) => new URL(url).searchParams.get("branchId") === branchId)).toBe(true);
-  await page.getByLabel("Employee email", { exact: true }).fill("aina.sofia");
+  expect(reads.every((url) => !new URL(url).searchParams.has("branchId"))).toBe(true);
+  await page.getByLabel("Branch", { exact: true }).selectOption(branchId);
+  await expect(refresh).toBeEnabled();
+  expect(
+    reads.slice(-2).every((url) => new URL(url).searchParams.get("branchId") === branchId),
+  ).toBe(true);
+  const search = page.getByRole("searchbox", {
+    name: "Search ongoing work and appointments",
+    exact: true,
+  });
+  await search.fill("aina.sofia");
+  const previousAppointments = await calendar.innerText();
+  const previousWork = await ongoing.innerText();
+  await page.route("**/api/staff/work-calendar?**", (route) =>
+    route.fulfill({
+      status: 502,
+      json: { status: 502, data: null, message: "Controlled shared read failure", uncertain: true },
+    }),
+  );
+  await search.press("Enter");
+  await expect(
+    page.getByRole("alert").filter({ hasText: "Appointments could not be refreshed" }),
+  ).toBeVisible();
+  await expect(refresh).toBeEnabled();
+  expect(await calendar.innerText()).toBe(previousAppointments);
+  expect(await ongoing.innerText()).toBe(previousWork);
+  await expect(search).toHaveValue("aina.sofia");
+  await page.unroute("**/api/staff/work-calendar?**");
   const filteredRead = page.waitForResponse(
     (response) =>
       response.url().includes("/api/staff/work-calendar?") &&
-      response.url().includes("employee=aina.sofia"),
+      response.url().includes("search=aina.sofia"),
   );
-  await page.getByRole("button", { name: "Apply", exact: true }).click();
+  await search.press("Enter");
   const filtered = (await (await filteredRead).json()).data;
   expect(filtered.items.length).toBeGreaterThan(0);
   expect(
@@ -145,46 +171,44 @@ test("group calendar requires a branch before reads and filters full-dataset emp
       item.handlerEmail.includes("aina.sofia"),
     ),
   ).toBe(true);
-  await expect(
-    page.getByRole("button", { name: "Refresh work calendar", exact: true }),
-  ).toBeEnabled();
-  await page.getByLabel("Employee scope", { exact: true }).selectOption("unassigned");
-  const unassignedRead = page.waitForResponse(
-    (response) =>
-      response.url().includes("/api/staff/work-calendar/unscheduled?") &&
-      response.url().includes("employee=unassigned"),
-  );
-  await page.getByRole("button", { name: "Apply", exact: true }).click();
-  expect((await (await unassignedRead).json()).data.items).toEqual([]);
-  await expect(
-    page.getByRole("button", { name: "Refresh work calendar", exact: true }),
-  ).toBeEnabled();
-  await page.getByLabel("Branch", { exact: true }).selectOption("");
-  await expect(page.getByRole("region", { name: "Work calendar", exact: true })).toHaveCount(0);
+  await expect(refresh).toBeEnabled();
+  expect(
+    reads.slice(-2).every((url) => new URL(url).searchParams.get("search") === "aina.sofia"),
+  ).toBe(true);
+  const confirmedWork = await ongoing.innerText();
+  const beforeAssignment = reads.length;
+  await page
+    .getByLabel("Appointment assignment (appointments only)", { exact: true })
+    .selectOption("Unassigned");
+  await expect(refresh).toBeEnabled();
+  expect(reads.slice(beforeAssignment)).toHaveLength(1);
+  expect(reads.at(-1)).not.toContain("unscheduled");
+  expect(await ongoing.innerText()).toBe(confirmedWork);
+  await expect(calendar.getByRole("button", { name: /^Open / })).toHaveCount(0);
+  const beforeType = reads.length;
+  await page
+    .getByRole("navigation", { name: "Ongoing work types", exact: true })
+    .getByRole("button", { name: /^Sales\b/ })
+    .click();
+  await expect(refresh).toBeEnabled();
+  expect(reads.slice(beforeType)).toHaveLength(1);
+  expect(reads.at(-1)).toContain("unscheduled");
 });
 
-test("technician unscheduled work opens its authorized existing Workshop inspection", async ({
-  page,
-}) => {
+test("technician enters Workshop and is denied calendar reads", async ({ page }) => {
   await login(page, "azlan.rahim@example.invalid");
-  const read = page.waitForResponse(
-    (response) =>
-      new URL(response.url()).pathname === "/api/staff/work-calendar/unscheduled" &&
-      response.status() === 200,
+  await expect(page).toHaveURL(/\/dashboard\/inspection$/);
+  await expect(page.getByRole("link", { name: "Work calendar", exact: true })).toHaveCount(0);
+  const cookie = (await page.context().cookies()).find((item) => item.name === "apexauto_token")!;
+  const headers = { Cookie: `apexauto_token=${cookie.value}` };
+  const response = await page.request.get(
+    "/api/staff/work-calendar?from=2026-11-01&to=2026-11-30",
+    { headers },
   );
-  await page.goto("/dashboard/work-calendar");
-  const work = (await (await read).json()).data;
-  expect(work.items.length).toBeGreaterThan(0);
-  expect(work.items.every((item: { kind: string }) => item.kind === "Workshop")).toBe(true);
-  const item = work.items[0];
-  expect(item.inspectionId).not.toBe(item.id);
-  const href = `/dashboard/inspection?inspection=${item.inspectionId}`;
-  const unscheduled = page.getByRole("region", { name: "Unscheduled work", exact: true });
-  await unscheduled.locator(`a[href="${href}"]`).click();
-  await expect(page).toHaveURL(href);
-  const selected = page.getByRole("region", { name: "Selected workshop job", exact: true });
-  await expect(
-    selected.getByRole("heading", { name: item.registrationPlate, exact: true }),
-  ).toBeVisible();
-  await expect(selected.getByText("This job is unavailable.", { exact: true })).toHaveCount(0);
+  expect(response.status()).toBe(403);
+  const ongoing = await page.request.get(
+    "/api/staff/work-calendar/unscheduled?page=1&pageSize=25",
+    { headers },
+  );
+  expect(ongoing.status()).toBe(403);
 });

@@ -13,22 +13,60 @@ test("canonical drive queues retain all full and partial batches", async ({ page
     );
   await page.getByLabel("Password", { exact: true }).fill("Password123!");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page).toHaveURL(/\/dashboard\/intake$/);
+  await expect(page).toHaveURL(/\/dashboard\/work-calendar$/);
   await page.goto("/dashboard/test-drives");
   const queue = page.getByRole("complementary", { name: "Test drive queues", exact: true });
+  async function readIds(action: () => Promise<unknown>, number: number, size = 25) {
+    const response = page.waitForResponse((value) => {
+      const url = new URL(value.url());
+      return (
+        url.pathname === "/api/staff/test-drives" &&
+        value.status() === 200 &&
+        url.searchParams.get("page") === String(number) &&
+        url.searchParams.get("pageSize") === String(size)
+      );
+    });
+    await action();
+    return ((await (await response).json()).data.items as { id: string }[]).map((item) => item.id);
+  }
   for (const name of [/^My work\b/, /^To claim\b/, /^History\b/]) {
     await queue.getByRole("button", { name }).click();
+    await expect(queue.getByLabel("Rows per page", { exact: true })).toBeEnabled();
+    const identities = await readIds(
+      () => queue.getByLabel("Rows per page", { exact: true }).selectOption("25"),
+      1,
+    );
     const rows = queue.locator("ul li button");
     await expect(rows).toHaveCount(25);
-    const identities = await rows.allTextContents();
-    await expect(queue.getByRole("status")).toHaveText("25 of 51 loaded");
-    await queue.getByRole("button", { name: "Load more", exact: true }).click();
+    await expect(queue.getByLabel("Page number", { exact: true })).toHaveValue("1");
+    identities.push(
+      ...(await readIds(
+        () => queue.getByRole("button", { name: "Next records", exact: true }).click(),
+        2,
+      )),
+    );
+    await expect(queue.getByLabel("Page number", { exact: true })).toHaveValue("2");
+    await expect(rows).toHaveCount(25);
+    identities.push(
+      ...(await readIds(
+        () => queue.getByRole("button", { name: "Next records", exact: true }).click(),
+        3,
+      )),
+    );
+    await expect(queue.getByLabel("Page number", { exact: true })).toHaveValue("3");
+    await expect(rows).toHaveCount(1);
+    expect(new Set(identities).size).toBe(51);
+    await expect(queue.getByRole("button", { name: "Next records", exact: true })).toBeDisabled();
+    await queue.getByLabel("Rows per page", { exact: true }).selectOption("50");
     await expect(rows).toHaveCount(50);
-    expect((await rows.allTextContents()).slice(0, 25)).toEqual(identities);
-    await queue.getByRole("button", { name: "Load more", exact: true }).click();
-    await expect(rows).toHaveCount(51);
-    await expect(queue.getByRole("status")).toHaveText("51 of 51 loaded");
-    await expect(queue.getByRole("button", { name: "Load more", exact: true })).toHaveCount(0);
+    const jump = queue.getByLabel("Page number", { exact: true });
+    await jump.fill("2");
+    await jump.press("Enter");
+    await expect(rows).toHaveCount(1);
+    await expect(jump).toHaveValue("2");
+    await queue.getByLabel("Rows per page", { exact: true }).selectOption("10");
+    await expect(rows).toHaveCount(10);
+    await expect(jump).toHaveValue("1");
   }
 });
 
@@ -47,17 +85,13 @@ test("canonical unscheduled pages and confirmed claim preserve exact lost-receip
   await page.getByLabel("Password", { exact: true }).fill("Password123!");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page).toHaveURL(/\/dashboard\/inspection$/);
-  await page.goto("/dashboard/work-calendar");
-  const work = page.getByRole("region", { name: "Unscheduled work", exact: true });
+  const work = page.getByRole("region", { name: "Ready to work", exact: true });
   const first: string[] = [];
   for (const [index, count] of [25, 25, 1].entries()) {
     await expect(work.getByLabel("Page number", { exact: true })).toHaveValue(String(index + 1));
-    const links = work.locator("ul li a");
+    const links = work.getByRole("button", { name: /^Open job ·/ });
     await expect(links).toHaveCount(count);
-    const hrefs = await links.evaluateAll((items) =>
-      items.map((item) => item.getAttribute("href")!),
-    );
-    expect(hrefs.every((href) => href.includes("inspection="))).toBe(true);
+    const hrefs = await links.allTextContents();
     first.push(...hrefs);
     if (index < 2) {
       await work.getByRole("button", { name: "Next records", exact: true }).click();
@@ -65,6 +99,12 @@ test("canonical unscheduled pages and confirmed claim preserve exact lost-receip
   }
   expect(new Set(first).size).toBe(51);
   await expect(work.getByRole("button", { name: "Next records", exact: true })).toBeDisabled();
+  await work.getByLabel("Rows per page", { exact: true }).selectOption("50");
+  await expect(work.getByRole("button", { name: /^Open job ·/ })).toHaveCount(50);
+  const jump = work.getByLabel("Page number", { exact: true });
+  await jump.fill("2");
+  await jump.press("Enter");
+  await expect(work.getByRole("button", { name: /^Open job ·/ })).toHaveCount(1);
   await page.screenshot({
     path: path.join(evidence, "unscheduled-final-page.png"),
     fullPage: true,
@@ -94,9 +134,9 @@ test("canonical unscheduled pages and confirmed claim preserve exact lost-receip
     }
     await route.fulfill({ response });
   });
-  await page.getByRole("button", { name: "Confirm assignment", exact: true }).click();
-  const confirmation = page.getByRole("dialog", { name: "Claim this inspection?", exact: true });
+  const confirmation = page.getByRole("dialog", { name: /^Claim inspection ·/ });
   await expect(confirmation).toBeVisible();
+  await expect(page.getByRole("dialog")).toHaveCount(1);
   expect(bodies).toHaveLength(0);
   await confirmation.getByRole("button", { name: "Confirm assignment", exact: true }).click();
   await expect(

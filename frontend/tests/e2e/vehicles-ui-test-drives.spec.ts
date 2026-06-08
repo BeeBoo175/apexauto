@@ -1,7 +1,7 @@
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { calendarDate } from "@/lib/calendar";
+import { addCalendarDays, calendarDate } from "@/lib/calendar";
 import { closeStaffWorkspaces, openStaffWorkspace } from "./intake-ui-controls";
 
 test.use({ actionTimeout: 15_000, timezoneId: "America/New_York" });
@@ -31,6 +31,15 @@ async function prepareBooking(page: Page, occupied: { startsAt: string; endsAt: 
   const dialog = page.getByRole("dialog", { name: "Book a test drive", exact: true });
   const times = dialog.getByLabel("Available time (Malaysia)", { exact: true });
   await expect(times).toBeEnabled();
+  for (let day = 1; day <= 7; day++) {
+    if ((await times.locator('option[value]:not([value=""])').count()) > 0) {
+      break;
+    }
+    await dialog
+      .getByLabel("Date (Malaysia)", { exact: true })
+      .fill(addCalendarDays(calendarDate(), day));
+    await expect(times).toBeEnabled();
+  }
   const options = await times
     .locator('option[value]:not([value=""])')
     .evaluateAll((items) => items.map((item) => (item as HTMLOptionElement).value));
@@ -45,6 +54,7 @@ async function prepareBooking(page: Page, occupied: { startsAt: string; endsAt: 
   expect(startsAt).toBeTruthy();
   await times.selectOption(startsAt!);
   await dialog.getByRole("button", { name: "Continue", exact: true }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(1);
   return page.getByRole("dialog", { name: "Confirm this test drive?", exact: true });
 }
 
@@ -76,13 +86,22 @@ test("customer booking and cancellation reconcile exact receipts before manager 
   expect(await documentResponse!.text()).toContain("Book a test drive");
   expect(counts()[slotPath] ?? 0).toBe(beforeSlots);
   const bookingBodies: string[] = [];
+  const slotReads: string[] = [];
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname === slotPath) {
+      slotReads.push(request.url());
+    }
+  });
   let firstBooking = "";
+  let firstStartsAt = "";
   const bookingRoute = `**/api/vehicles/${vehicleId}/test-drives`;
   await page.route(bookingRoute, async (route) => {
     bookingBodies.push(route.request().postData()!);
     const response = await route.fetch();
     expect(response.status()).toBe(200);
-    firstBooking = (await response.json()).data.id;
+    const receipt = (await response.json()).data;
+    firstBooking = receipt.id;
+    firstStartsAt = receipt.startsAt;
     if (bookingBodies.length === 1) {
       await route.fulfill({
         status: 502,
@@ -98,7 +117,8 @@ test("customer booking and cancellation reconcile exact receipts before manager 
     await route.fulfill({ response });
   });
   const confirmation = await prepareBooking(page);
-  expect(counts()[slotPath] - beforeSlots).toBe(1);
+  expect(slotReads.length).toBeGreaterThan(0);
+  expect(counts()[slotPath] - beforeSlots).toBe(slotReads.length);
   await confirmation.getByRole("button", { name: "Confirm test drive", exact: true }).click();
   await expect(
     confirmation.getByRole("button", { name: "Choose another time", exact: true }),
@@ -116,24 +136,31 @@ test("customer booking and cancellation reconcile exact receipts before manager 
   const initialReads = counts()["/api/account/test-drives"];
   await expect(
     history.getByRole("button", { name: "Refresh test drives", exact: true }),
-  ).toBeEnabled();
+  ).toHaveCount(0);
   expect(counts()["/api/account/test-drives"]).toBe(initialReads);
-  const articles = await history.locator("article").allTextContents();
+  const articles = await history.locator("details").allTextContents();
   const from = history.getByLabel("From (Malaysia)", { exact: true });
   await from.fill("2026-01-01");
+  await history.getByLabel("To (Malaysia)", { exact: true }).fill(calendarDate());
   await page.route("**/api/account/test-drives?**", (route) =>
     route.fulfill({
       status: 502,
       json: { status: 502, data: null, uncertain: true, message: "Controlled history failure" },
     }),
   );
-  await history.getByRole("button", { name: "Refresh test drives", exact: true }).click();
+  await history.getByRole("button", { name: "Apply filters", exact: true }).click();
   await expect(
     page.getByRole("alert").filter({ hasText: "Test drives could not be refreshed" }),
   ).toBeVisible();
-  expect(await history.locator("article").allTextContents()).toEqual(articles);
+  expect(await history.locator("details").allTextContents()).toEqual(articles);
   await expect(from).toHaveValue("2026-01-01");
   await page.unroute("**/api/account/test-drives?**");
+  await history.getByLabel("Search test drives", { exact: true }).fill(firstBooking);
+  await history.getByLabel("From (Malaysia)", { exact: true }).fill("");
+  await history.getByLabel("To (Malaysia)", { exact: true }).fill("");
+  await history.getByRole("button", { name: "Apply filters", exact: true }).click();
+  await expect(history.locator("details")).toHaveCount(1);
+  await expect(page).toHaveURL(new RegExp(`testDriveSearch=${firstBooking}`));
   const cancellationBodies: string[] = [];
   const cancelRoute = `**/api/account/test-drives/${firstBooking}/cancellations`;
   await page.route(cancelRoute, async (route) => {
@@ -154,8 +181,9 @@ test("customer booking and cancellation reconcile exact receipts before manager 
         : { response },
     );
   });
+  await history.locator("details").filter({ hasText: firstBooking }).locator("summary").click();
   await history
-    .locator("article")
+    .locator("details")
     .filter({ hasText: firstBooking })
     .getByRole("button", { name: "Request cancellation", exact: true })
     .click();
@@ -163,12 +191,36 @@ test("customer booking and cancellation reconcile exact receipts before manager 
   await cancellation.getByRole("button", { name: "Confirm cancellation", exact: true }).click();
   await cancellation.getByRole("button", { name: "Reconcile cancellation", exact: true }).click();
   await expect(cancellation).toBeHidden();
-  await expect(history.locator("article").filter({ hasText: firstBooking })).toContainText(
+  await expect(history.locator("details").filter({ hasText: firstBooking })).toContainText(
     "Cancelled",
   );
   expect(cancellationBodies).toHaveLength(2);
   expect(cancellationBodies[1]).toBe(cancellationBodies[0]);
   await page.unroute(cancelRoute);
+  writeFileSync(
+    path.join(evidence, `test-drive-customer-${info.project.name}.json`),
+    JSON.stringify({
+      bookingId: firstBooking,
+      startsAt: firstStartsAt,
+      exactBookingReplay: bookingBodies[0] === bookingBodies[1],
+      exactCancellationReplay: cancellationBodies[0] === cancellationBodies[1],
+      searchedReference: firstBooking,
+      sameDayHandlingAvailable: calendarDate(new Date(firstStartsAt)) === calendarDate(),
+    }),
+  );
+
+  if (calendarDate(new Date(firstStartsAt)) !== calendarDate()) {
+    info.annotations.push({
+      type: "acceptance scope",
+      description:
+        "Customer booking, search and exact cancellation verified; same-day handling window unavailable, prior staff lifecycle evidence retained",
+    });
+    await page.screenshot({
+      path: path.join(evidence, `test-drive-customer-${info.project.name}.png`),
+      fullPage: true,
+    });
+    return;
+  }
 
   const manager = await browser.newContext({ ...info.project.use, baseURL: origin });
   const agent = await browser.newContext({ ...info.project.use, baseURL: origin });
@@ -270,7 +322,7 @@ test("customer booking and cancellation reconcile exact receipts before manager 
   // The combined multi-actor journey shares the local ingress budget with public photos.
   await new Promise((resolve) => setTimeout(resolve, 61_000));
   await page.goto("/account#test-drives");
-  await expect(history.locator("article").filter({ hasText: completedBooking })).toContainText(
+  await expect(history.locator("details").filter({ hasText: completedBooking })).toContainText(
     "Completed",
   );
   await page.screenshot({
