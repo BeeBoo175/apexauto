@@ -45,7 +45,7 @@ function Workspace({ actor, initial, initialView: content }: Props) {
   );
   function refresh() {
     worklist.cancel();
-    return worklist.load(worklist.active.filters, view === "queue" ? 1 : worklist.active.page);
+    return worklist.load(worklist.active.filters, worklist.active.page);
   }
 
   return (

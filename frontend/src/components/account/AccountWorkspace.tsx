@@ -10,7 +10,7 @@ import type { HistoryFilters } from "@/lib/intake/list-query";
 import { AppointmentHistory } from "./AppointmentHistory";
 import { AccountReservations } from "./AccountReservations";
 import { AccountTestDrives } from "./AccountTestDrives";
-import type { TestDriveHistory } from "@/lib/test-drives/account";
+import type { TestDriveHistory, TestDriveHistoryFilters } from "@/lib/test-drives/account";
 import type {
   AccountReservations as ReservationSnapshot,
   ReservationFilters,
@@ -49,7 +49,7 @@ export function AccountWorkspace({
   reservationPage: number;
   reservationFilters: ReservationFilters;
   testDrives: ApiResult<TestDriveHistory>;
-  testDriveQuery: { page: number; filters: HistoryFilters };
+  testDriveQuery: { page: number; filters: TestDriveHistoryFilters };
 }) {
   const actor = useIntakeActor({ userId: account.userId, role: "Customer", branchId: null });
   const [section, setSection] = useState<AccountSection>("reservations");

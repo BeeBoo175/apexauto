@@ -17,7 +17,9 @@ export function AssignmentForm({
   onLocked,
   onConfirmed,
   onDraft,
+  confirmInPlace = false,
 }: {
+  confirmInPlace?: boolean;
   actor: CurrentActor;
   vehicleId: string;
   version: number;
@@ -43,36 +45,39 @@ export function AssignmentForm({
       className={styles.form}
       onSubmit={async (event) => {
         event.preventDefault();
-        if (command.uncertain) {
+        if (command.uncertain || confirmInPlace) {
           await assignment.submit();
           return;
         }
         setConfirming(true);
       }}
     >
-      <ConfirmationDialog
-        open={confirming}
-        title={
-          actor.role === "WorkshopTechnician"
-            ? "Claim this inspection?"
-            : "Confirm inspection assignment"
-        }
-        confirmLabel="Confirm assignment"
-        busy={command.busy}
-        onClose={() => setConfirming(false)}
-        onConfirm={async () => {
-          await assignment.submit();
-          setConfirming(false);
-        }}
-      >
-        <p>
-          {actor.role === "WorkshopTechnician" && "Assign this vehicle to yourself for inspection."}
-          {actor.role !== "WorkshopTechnician" &&
-            (version > 0
-              ? "Transfer this unsigned inspection to the selected technician using the entered reason."
-              : "Assign this vehicle to the selected technician for inspection.")}
-        </p>
-      </ConfirmationDialog>
+      {!confirmInPlace && (
+        <ConfirmationDialog
+          open={confirming}
+          title={
+            actor.role === "WorkshopTechnician"
+              ? "Claim this inspection?"
+              : "Confirm inspection assignment"
+          }
+          confirmLabel="Confirm assignment"
+          busy={command.busy}
+          onClose={() => setConfirming(false)}
+          onConfirm={async () => {
+            await assignment.submit();
+            setConfirming(false);
+          }}
+        >
+          <p>
+            {actor.role === "WorkshopTechnician" &&
+              "Assign this vehicle to yourself for inspection."}
+            {actor.role !== "WorkshopTechnician" &&
+              (version > 0
+                ? "Transfer this unsigned inspection to the selected technician using the entered reason."
+                : "Assign this vehicle to the selected technician for inspection.")}
+          </p>
+        </ConfirmationDialog>
+      )}
       {actor.role === "BranchManager" && (
         <>
           <Select

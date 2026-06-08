@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { SearchField } from "@/components/ui/SearchField";
 import { StaffQueueLayout } from "./StaffQueueLayout";
 import { StaffQueueTabs } from "./StaffQueueTabs";
-import { StaffQueueContinuation } from "./StaffQueueContinuation";
+import { StaffQueueFooter } from "./StaffQueueFooter";
 import type { useStaffWorklist } from "@/hooks/use-staff-worklist";
 import type { useStaffAppointmentDrawer } from "@/hooks/use-staff-appointment-drawer";
 import { formatMalaysianDateTime } from "@/lib/date-format";
@@ -35,8 +35,6 @@ export function IntakeAgentQueue({
 }) {
   const [expanded, setExpanded] = useState(!drawer.id);
   const list = useRef<HTMLDivElement | null>(null);
-  const [failedSnapshot, setFailedSnapshot] = useState(worklist.snapshot);
-  const [failedMore, setFailedMore] = useState(false);
   const { active, snapshot, busy, ready, draft, setDraft } = worklist;
   const queue = active.filters.queue || "MyWork";
   const selected = Boolean(drawer.id || drawer.pendingId);
@@ -46,15 +44,8 @@ export function IntakeAgentQueue({
       nextQueue !== queue || page !== active.page || pageSize !== active.filters.pageSize;
     const success = await worklist.load({ ...active.filters, queue: nextQueue, pageSize }, page);
     if (success && changedPage) {
-      setFailedMore(false);
       list.current?.scrollTo({ top: 0 });
     }
-  }
-
-  async function loadMore() {
-    const success = await worklist.load(active.filters, active.page + 1, true, undefined, true);
-    setFailedMore(!success);
-    setFailedSnapshot(snapshot);
   }
 
   return (
@@ -108,62 +99,63 @@ export function IntakeAgentQueue({
         </form>
       }
       queue={
-        <div className={styles.list} ref={list} aria-busy={busy}>
-          {!snapshot && (
-            <div className={styles.empty}>
-              <Button
-                size="compact"
-                variant="secondary"
-                disabled={!ready || busy}
-                onClick={() => void load(queue, active.page)}
-              >
-                Retry queue
-              </Button>
-            </div>
-          )}
-          {snapshot?.items.length === 0 && (
-            <p className={styles.empty}>No appointments in this queue match your search.</p>
-          )}
-          <ul className={styles.jobs}>
-            {snapshot?.items.map((row) => (
-              <li key={row.id}>
+        <div className={styles.queueList}>
+          <div className={styles.list} ref={list} aria-busy={busy}>
+            {!snapshot && (
+              <div className={styles.empty}>
                 <Button
-                  variant="ghost"
-                  size="row"
-                  className={styles.job}
-                  aria-pressed={row.id === (drawer.pendingId || drawer.id)}
-                  aria-busy={row.id === drawer.pendingId || undefined}
-                  onClick={() => {
-                    setExpanded(false);
-                    drawer.open(row.id);
-                  }}
+                  size="compact"
+                  variant="secondary"
+                  disabled={!ready || busy}
+                  onClick={() => void load(queue, active.page)}
                 >
-                  <span className={styles.jobHeading}>
-                    <span className={styles.identity}>
-                      <strong>{row.registrationPlate}</strong>
-                      <span>
-                        {row.manufactureYear} {row.make} {row.model} {row.trim}
-                      </span>
-                    </span>
-                    <AppointmentStatus status={row.status} />
-                  </span>
-                  <span className={styles.jobMeta}>
-                    {row.customerName} · {formatMalaysianDateTime(row.startsAt)}
-                  </span>
+                  Retry queue
                 </Button>
-              </li>
-            ))}
-          </ul>
+              </div>
+            )}
+            {snapshot?.items.length === 0 && (
+              <p className={styles.empty}>No appointments in this queue match your search.</p>
+            )}
+            <ul className={styles.jobs}>
+              {snapshot?.items.map((row) => (
+                <li key={row.id}>
+                  <Button
+                    variant="ghost"
+                    size="row"
+                    className={styles.job}
+                    aria-pressed={row.id === (drawer.pendingId || drawer.id)}
+                    aria-busy={row.id === drawer.pendingId || undefined}
+                    onClick={() => {
+                      setExpanded(false);
+                      drawer.open(row.id);
+                    }}
+                  >
+                    <span className={styles.jobHeading}>
+                      <span className={styles.identity}>
+                        <strong>{row.registrationPlate}</strong>
+                        <span>
+                          {row.manufactureYear} {row.make} {row.model} {row.trim}
+                        </span>
+                      </span>
+                      <AppointmentStatus status={row.status} />
+                    </span>
+                    <span className={styles.jobMeta}>
+                      {row.customerName} · {formatMalaysianDateTime(row.startsAt)}
+                    </span>
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </div>
           {snapshot && (
-            <StaffQueueContinuation
-              loaded={snapshot.items.length}
-              total={snapshot.total}
-              more={snapshot.items.length < snapshot.total}
+            <StaffQueueFooter
+              page={snapshot}
+              count={snapshot.items.length}
               busy={busy}
-              failed={failedMore && failedSnapshot === snapshot}
+              failed={false}
               disabled={!ready}
-              onMore={() => void loadMore()}
-              onRetry={() => void loadMore()}
+              onPage={(page, pageSize) => void load(queue, page, pageSize)}
+              onRetry={() => void load(queue, active.page)}
             />
           )}
         </div>

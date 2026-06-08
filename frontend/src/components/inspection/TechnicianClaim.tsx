@@ -44,6 +44,7 @@ export function TechnicianClaim({
         {vehicle && (
           <AssignmentForm
             key={vehicle.vehicleId}
+            confirmInPlace
             actor={actor}
             vehicleId={vehicle.vehicleId}
             version={0}

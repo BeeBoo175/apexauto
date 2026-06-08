@@ -61,7 +61,6 @@ export function StaffTestDriveWorkspace({
             <Dialog
               open={Boolean(record.id || record.pendingId)}
               variant="drawer"
-              width="wide"
               title="Test drive"
               onClose={close}
               headerActions={

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { SearchField } from "@/components/ui/SearchField";
 import { StaffQueueLayout } from "@/components/staff/StaffQueueLayout";
 import { StaffQueueTabs } from "@/components/staff/StaffQueueTabs";
-import { StaffQueueContinuation } from "@/components/staff/StaffQueueContinuation";
+import { StaffQueueFooter } from "@/components/staff/StaffQueueFooter";
 import type { useStaffTestDriveList } from "@/hooks/use-staff-test-drive-list";
 import { testDriveQueues } from "@/lib/test-drives/staff-query";
 import { formatMalaysianDateTime } from "@/lib/date-format";
@@ -81,49 +81,54 @@ export function StaffTestDriveQueue({
         </form>
       }
       queue={
-        <div className={styles.list} ref={scroller} aria-busy={busy}>
-          {snapshot.items.length === 0 && (
-            <p className={styles.empty}>No test drives in this queue match your search.</p>
-          )}
-          <ul className={styles.jobs}>
-            {snapshot.items.map((row) => (
-              <li key={row.id}>
-                <Button
-                  variant="ghost"
-                  size="row"
-                  className={styles.job}
-                  aria-pressed={row.id === (pendingId || selectedId)}
-                  aria-busy={row.id === pendingId || undefined}
-                  onClick={() => {
-                    setExpanded(false);
-                    open(row.id);
-                  }}
-                >
-                  <span className={styles.jobHeading}>
-                    <span className={styles.identity}>
-                      <strong>{row.registrationPlate}</strong>
-                      <span>
-                        {row.manufactureYear} {row.make} {row.model} {row.trim}
+        <div className={styles.queueList}>
+          <div
+            className={styles.list}
+            key={`${snapshot.page}:${snapshot.pageSize}:${active.filters.search}`}
+            ref={scroller}
+            aria-busy={busy}
+          >
+            {snapshot.items.length === 0 && (
+              <p className={styles.empty}>No test drives in this queue match your search.</p>
+            )}
+            <ul className={styles.jobs}>
+              {snapshot.items.map((row) => (
+                <li key={row.id}>
+                  <Button
+                    variant="ghost"
+                    size="row"
+                    className={styles.job}
+                    aria-pressed={row.id === (pendingId || selectedId)}
+                    aria-busy={row.id === pendingId || undefined}
+                    onClick={() => {
+                      setExpanded(false);
+                      open(row.id);
+                    }}
+                  >
+                    <span className={styles.jobHeading}>
+                      <span className={styles.identity}>
+                        <strong>{row.registrationPlate}</strong>
+                        <span>
+                          {row.manufactureYear} {row.make} {row.model} {row.trim}
+                        </span>
                       </span>
+                      <StaffTestDriveStatus status={row.status} />
                     </span>
-                    <StaffTestDriveStatus status={row.status} />
-                  </span>
-                  <span className={styles.jobMeta}>
-                    {row.customerName} · {formatMalaysianDateTime(row.startsAt)}
-                  </span>
-                </Button>
-              </li>
-            ))}
-          </ul>
-          <StaffQueueContinuation
-            loaded={snapshot.items.length}
-            total={snapshot.total}
-            more={snapshot.items.length < snapshot.total}
+                    <span className={styles.jobMeta}>
+                      {row.customerName} · {formatMalaysianDateTime(row.startsAt)}
+                    </span>
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <StaffQueueFooter
+            page={snapshot}
+            count={snapshot.items.length}
             busy={busy}
-            failed={list.failedMore}
-            disabled={false}
-            onMore={() => void list.load(active.filters, active.page + 1, true)}
-            onRetry={() => void list.load(active.filters, active.page + 1, true)}
+            failed={false}
+            onPage={(page, pageSize) => void list.load({ ...active.filters, pageSize }, page)}
+            onRetry={() => void list.load(active.filters, active.page)}
           />
         </div>
       }

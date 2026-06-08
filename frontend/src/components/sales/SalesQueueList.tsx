@@ -1,6 +1,6 @@
 "use client";
 
-import { StaffQueueContinuation } from "@/components/staff/StaffQueueContinuation";
+import { StaffQueueFooter } from "@/components/staff/StaffQueueFooter";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import type { useSalesQueue } from "@/hooks/use-sales-queue";
@@ -50,88 +50,88 @@ export function SalesQueueList({
   pendingId?: string;
   selectionLocked?: boolean;
 }) {
-  const { snapshot, loadMore, busy, failed } = state;
+  const { snapshot, busy, failed } = state;
   const activeId = pendingId || selectedId;
-  const more = Boolean(snapshot && snapshot.items.length < snapshot.total);
 
   return (
-    <section className={styles.list} aria-label={title} aria-busy={busy}>
-      {!snapshot && !failed && (
-        <div className={styles.empty}>
-          <p>This queue is unavailable.</p>
-          <Button
-            size="compact"
-            variant="secondary"
-            disabled={busy}
-            onClick={() => void state.retry()}
-          >
-            Retry queue
-          </Button>
-        </div>
-      )}
-      {snapshot?.items.length === 0 && <p className={styles.empty}>{emptyMessages[view]}</p>}
-      <ul className={styles.jobs}>
-        {snapshot?.items.map((item) => {
-          const open = item.status === "Open";
-          const tab = queueViewOf[item.status];
-          return (
-            <li key={item.id}>
-              <Button
-                variant="ghost"
-                size="row"
-                className={styles.job}
-                onClick={() => onOpen(item)}
-                aria-pressed={!open && item.id === activeId}
-                aria-busy={(!open && item.id === pendingId) || undefined}
-                disabled={selectionLocked && (open || item.id !== selectedId)}
-                aria-label={`${open ? "Claim hold" : "Open sale"} · ${item.registration}`}
-              >
-                <span className={styles.jobHeading}>
-                  <span className={styles.identity}>
-                    <strong>{item.registration}</strong>
-                    <span>
-                      {item.manufactureYear} {item.make} {item.model}
+    <section className={styles.queueList} aria-label={title} aria-busy={busy}>
+      <div className={styles.list} key={`${snapshot?.page}:${snapshot?.pageSize}:${state.search}`}>
+        {!snapshot && !failed && (
+          <div className={styles.empty}>
+            <p>This queue is unavailable.</p>
+            <Button
+              size="compact"
+              variant="secondary"
+              disabled={busy}
+              onClick={() => void state.retry()}
+            >
+              Retry queue
+            </Button>
+          </div>
+        )}
+        {snapshot?.items.length === 0 && <p className={styles.empty}>{emptyMessages[view]}</p>}
+        <ul className={styles.jobs}>
+          {snapshot?.items.map((item) => {
+            const open = item.status === "Open";
+            const tab = queueViewOf[item.status];
+            return (
+              <li key={item.id}>
+                <Button
+                  variant="ghost"
+                  size="row"
+                  className={styles.job}
+                  onClick={() => onOpen(item)}
+                  aria-pressed={!open && item.id === activeId}
+                  aria-busy={(!open && item.id === pendingId) || undefined}
+                  disabled={selectionLocked && (open || item.id !== selectedId)}
+                  aria-label={`${open ? "Claim hold" : "Open sale"} · ${item.registration}`}
+                >
+                  <span className={styles.jobHeading}>
+                    <span className={styles.identity}>
+                      <strong>{item.registration}</strong>
+                      <span>
+                        {item.manufactureYear} {item.make} {item.model}
+                      </span>
+                      <span>{item.customer}</span>
                     </span>
-                    <span>{item.customer}</span>
+                    {!open && (
+                      <span className={sales.queueBalance}>
+                        <span className="sr-only">Balance payable </span>
+                        {formatCurrency(item.balancePayable)}
+                      </span>
+                    )}
                   </span>
-                  {!open && (
-                    <span className={sales.queueBalance}>
-                      <span className="sr-only">Balance payable </span>
-                      {formatCurrency(item.balancePayable)}
+                  <span className={styles.jobState}>
+                    {view === "Search" && tab && <Badge variant="info">{queueViewTabs[tab]}</Badge>}
+                    {(item.status === "Approved" ||
+                      item.status === "Settled" ||
+                      item.status === "Delivered") && <SaleStatus status={item.status} />}
+                    {saleHasHoldTimer(item.status) && (
+                      <HoldWheel dueAt={item.dueAt} pausedSeconds={item.pausedSeconds} now={now} />
+                    )}
+                    <span className={styles.jobMeta}>
+                      {saleReference(item)}
+                      {item.status === "Delivered" &&
+                        item.closedAt &&
+                        ` · Delivered ${formatMalaysianDateTime(item.closedAt)}`}
+                      {open && ` · Expires ${formatMalaysianDateTime(item.dueAt ?? "")}`}
+                      {!open &&
+                        item.status !== "Delivered" &&
+                        ` · Claimed ${claimAge(item.claimedAt, now)}`}
                     </span>
-                  )}
-                </span>
-                <span className={styles.jobState}>
-                  {view === "Search" && tab && <Badge variant="info">{queueViewTabs[tab]}</Badge>}
-                  {(item.status === "Approved" ||
-                    item.status === "Settled" ||
-                    item.status === "Delivered") && <SaleStatus status={item.status} />}
-                  {saleHasHoldTimer(item.status) && (
-                    <HoldWheel dueAt={item.dueAt} pausedSeconds={item.pausedSeconds} now={now} />
-                  )}
-                  <span className={styles.jobMeta}>
-                    {saleReference(item)}
-                    {item.status === "Delivered" &&
-                      item.closedAt &&
-                      ` · Delivered ${formatMalaysianDateTime(item.closedAt)}`}
-                    {open && ` · Expires ${formatMalaysianDateTime(item.dueAt ?? "")}`}
-                    {!open &&
-                      item.status !== "Delivered" &&
-                      ` · Claimed ${claimAge(item.claimedAt, now)}`}
                   </span>
-                </span>
-              </Button>
-            </li>
-          );
-        })}
-      </ul>
-      <StaffQueueContinuation
-        loaded={snapshot?.items.length ?? 0}
-        total={snapshot?.total}
-        more={more}
+                </Button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+      <StaffQueueFooter
+        page={snapshot ?? null}
+        count={snapshot?.items.length ?? 0}
         busy={busy}
         failed={failed}
-        onMore={() => void loadMore()}
+        onPage={(page, pageSize) => void state.changePage(page, pageSize)}
         onRetry={() => void state.retry()}
       />
     </section>

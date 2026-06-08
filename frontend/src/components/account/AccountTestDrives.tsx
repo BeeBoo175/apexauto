@@ -2,19 +2,20 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
 import { useAccountTestDrives } from "@/hooks/use-account-test-drives";
 import type { ApiResult } from "@/lib/api";
-import type { HistoryFilters } from "@/lib/intake/list-query";
-import { formatMalaysianDateTime } from "@/lib/date-format";
+import { TestDriveHistoryRow } from "./TestDriveHistoryRow";
 import {
-  testDriveStatusLabels,
   type TestDriveHistory,
   type TestDriveHistoryItem,
+  type TestDriveHistoryFilters,
 } from "@/lib/test-drives/account";
 import { CancelTestDrive } from "./CancelTestDrive";
 import { HistoryFilterForm } from "./HistoryFilterForm";
 import { EmptyState } from "./EmptyState";
 import styles from "./Account.module.css";
+import historyStyles from "./ReservationHistory.module.css";
 
 export function AccountTestDrives({
   initial,
@@ -25,7 +26,7 @@ export function AccountTestDrives({
 }: {
   initial: ApiResult<TestDriveHistory>;
   page: number;
-  filters: HistoryFilters;
+  filters: TestDriveHistoryFilters;
   actorId: string;
   ready: boolean;
 }) {
@@ -33,23 +34,40 @@ export function AccountTestDrives({
   const [cancelling, setCancelling] = useState<TestDriveHistoryItem | null>(null);
   const { snapshot } = history;
   const disabled = !ready || history.busy || Boolean(cancelling);
-  const empty = snapshot?.total === 0 && !history.filters.from && !history.filters.to;
+  const filtered = Boolean(
+    history.filters.from || history.filters.to || history.filters.search.trim(),
+  );
+  const empty = snapshot?.total === 0 && !filtered;
   return (
-    <section className={styles.history} aria-labelledby="test-drive-history-title">
+    <section
+      className={`${styles.history} ${historyStyles.historyScope}`}
+      aria-labelledby="test-drive-history-title"
+    >
       <div className={styles.heading}>
-        <h2 id="test-drive-history-title">Your test drives</h2>
-        <Button variant="secondary" disabled={disabled} onClick={() => void history.load()}>
-          {history.busy ? "Refreshing test drives" : "Refresh test drives"}
-        </Button>
+        <div>
+          <h2 id="test-drive-history-title">Your test drives</h2>
+          <p className={styles.help}>
+            Your appointments to drive a car, with their dates and status.
+          </p>
+        </div>
       </div>
-      <p className={styles.help}>
-        Your booked test drives, newest first. All times are in Malaysia time.
-      </p>
+      {!snapshot && (
+        <Button variant="secondary" disabled={disabled} onClick={() => void history.load()}>
+          {history.busy ? "Loading test drives" : "Try loading test drives again"}
+        </Button>
+      )}
       {!empty && (
         <HistoryFilterForm
           draft={history.draft}
           disabled={disabled}
           busy={history.busy}
+          searchLabel="Search test drives"
+          searchPlaceholder="Search booking reference, vehicle or branch"
+          onClearSearch={() => {
+            const next = { ...history.draft, search: "" };
+            history.setDraft(next);
+            void history.load(1, next);
+          }}
           onDraft={history.setDraft}
           onApply={() => void history.load(1, history.draft)}
         />
@@ -68,87 +86,66 @@ export function AccountTestDrives({
           <p className={styles.help}>
             {snapshot.total} test drives · Page {history.page}
           </p>
-          {snapshot.items.length === 0 && <p>No test drives match these dates.</p>}
-          <div className={styles.records}>
+          {snapshot.items.length === 0 && (
+            <EmptyState
+              title="No matching test drives"
+              description="Try another search or date range, or browse cars to book a drive."
+              href="/vehicles"
+              action="Browse cars"
+              prefetch={false}
+            />
+          )}
+          {snapshot.items.length === 0 && filtered && (
+            <Button
+              variant="ghost"
+              size="compact"
+              disabled={disabled}
+              onClick={() => {
+                const next = { from: "", to: "", search: "" };
+                history.setDraft(next);
+                void history.load(1, next);
+              }}
+            >
+              Clear filters
+            </Button>
+          )}
+          <ul className={historyStyles.historyList}>
             {snapshot.items.map((item) => (
-              <article key={item.id} className={styles.appointment}>
-                <div className={styles.heading}>
-                  <h3>
-                    {item.manufactureYear} {item.make} {item.model} {item.trim}
-                  </h3>
-                  <span className={styles.state}>{testDriveStatusLabels[item.status]}</span>
-                </div>
-                <dl className={styles.details}>
-                  <div>
-                    <dt>Branch</dt>
-                    <dd>{item.branchName}</dd>
-                  </div>
-                  <div>
-                    <dt>Booked time</dt>
-                    <dd>{formatMalaysianDateTime(item.startsAt)}</dd>
-                  </div>
-                  <div>
-                    <dt>Reference</dt>
-                    <dd className={styles.reference}>{item.id}</dd>
-                  </div>
-                  {item.startedAt && (
-                    <div>
-                      <dt>Started</dt>
-                      <dd>{formatMalaysianDateTime(item.startedAt)}</dd>
-                    </div>
-                  )}
-                  {item.endedAt && (
-                    <div>
-                      <dt>Ended</dt>
-                      <dd>{formatMalaysianDateTime(item.endedAt)}</dd>
-                    </div>
-                  )}
-                  {item.cancelledAt && (
-                    <div>
-                      <dt>Cancelled</dt>
-                      <dd>{formatMalaysianDateTime(item.cancelledAt)}</dd>
-                    </div>
-                  )}
-                  {item.cancellationReason && (
-                    <div>
-                      <dt>Reason</dt>
-                      <dd>{item.cancellationReason}</dd>
-                    </div>
-                  )}
-                  {item.outcomeReason && (
-                    <div>
-                      <dt>Outcome</dt>
-                      <dd>{item.outcomeReason}</dd>
-                    </div>
-                  )}
-                </dl>
-                {item.status === "Booked" && (
-                  <Button
-                    variant="secondary"
-                    disabled={disabled}
-                    onClick={() => setCancelling(item)}
-                  >
-                    Request cancellation
-                  </Button>
-                )}
-              </article>
+              <TestDriveHistoryRow
+                key={item.id}
+                item={item}
+                disabled={disabled}
+                onCancel={() => setCancelling(item)}
+              />
             ))}
-          </div>
-          <nav className={styles.paging} aria-label="Test-drive history pages">
-            <Button
-              variant="secondary"
-              disabled={disabled || history.page <= 1}
-              onClick={() => void history.load(history.page - 1)}
-            >
-              Previous test drives
-            </Button>
-            <Button
-              variant="secondary"
-              disabled={disabled || history.page * snapshot.pageSize >= snapshot.total}
-              onClick={() => void history.load(history.page + 1)}
-            >
-              Next test drives
-            </Button>
+          </ul>
+          <nav className={historyStyles.pager} aria-label="Test-drive history pages">
+            <span className={historyStyles.pagerMeta} aria-live="polite">
+              {snapshot.total} test drives
+            </span>
+            <div className={historyStyles.pagerControls}>
+              <Button
+                variant="ghost"
+                size="icon"
+                disabled={disabled || history.page <= 1}
+                onClick={() => void history.load(history.page - 1)}
+              >
+                <span className="sr-only">Previous test drives</span>
+                <Icon name="previous" />
+              </Button>
+              <span>
+                Page {history.page} of {Math.max(1, Math.ceil(snapshot.total / snapshot.pageSize))}
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                disabled={disabled || history.page * snapshot.pageSize >= snapshot.total}
+                onClick={() => void history.load(history.page + 1)}
+              >
+                <span className="sr-only">Next test drives</span>
+                <Icon name="next" />
+              </Button>
+            </div>
           </nav>
         </>
       )}

@@ -5,6 +5,7 @@ import styles from "./SiteChrome.module.css";
 export async function SiteHeader() {
   const current = await readCurrentActor().catch(() => ({ status: 502, actor: null }));
   const showAccount = current.status === 401 || current.actor?.role === "Customer";
+  const showStaffPortal = Boolean(current.actor && current.actor.role !== "Customer");
   return (
     <header className={styles.header}>
       <Link href="/" className={styles.brand} aria-label="ApexAuto home">
@@ -18,7 +19,7 @@ export async function SiteHeader() {
         <Link href="/sell" prefetch={false}>
           Sell car
         </Link>
-        <a href="/dashboard">Staff portal</a>
+        {showStaffPortal && <a href="/dashboard">Staff portal</a>}
       </nav>
     </header>
   );

@@ -10,6 +10,7 @@ import styles from "./Staff.module.css";
 import loading from "./StaffLoadingShell.module.css";
 
 const titles: Record<string, string> = {
+  "/dashboard": "Administration",
   "/dashboard/intake": "Intake appointments",
   "/dashboard/inspection": "Workshop",
   "/dashboard/inspection/repairs": "Repair requests",

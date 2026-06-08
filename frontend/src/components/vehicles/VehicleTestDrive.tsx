@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
-import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { Input, Select } from "@/components/ui/Input";
 import { useIntakeActor } from "@/hooks/use-intake-actor";
 import { useVehicleTestDrive } from "@/hooks/use-vehicle-test-drive";
@@ -69,6 +68,12 @@ function CustomerTestDrive({
   const receipt = drive.command.receipt;
   const confirmedDate = drive.offer?.date === drive.date;
   const vehicle = `${detail.listing.manufactureYear} ${detail.listing.make} ${detail.listing.model} ${detail.listing.trim}`;
+  let title = "Book a test drive";
+  if (receipt) {
+    title = "Test drive confirmed";
+  } else if (drive.confirmation) {
+    title = "Confirm this test drive?";
+  }
   return (
     <>
       <Button variant="secondary" disabled={!ready || drive.locked} onClick={drive.show}>
@@ -76,13 +81,13 @@ function CustomerTestDrive({
       </Button>
       <Dialog
         open={drive.open}
-        title={receipt ? "Test drive confirmed" : "Book a test drive"}
+        title={title}
         description={`${vehicle} · ${detail.listing.branchName}`}
         closeDisabled={drive.locked}
         onClose={drive.close}
       >
         <div className={styles.content}>
-          {receipt ? (
+          {receipt && (
             <>
               <p>Your 30-minute test drive is booked at {detail.listing.branchName}.</p>
               <dl className={styles.facts}>
@@ -106,7 +111,36 @@ function CustomerTestDrive({
                 Done
               </Button>
             </>
-          ) : (
+          )}
+          {!receipt && drive.confirmation && (
+            <>
+              <p>Review your appointment before confirming. No deposit is required.</p>
+              <dl className={styles.facts}>
+                <div>
+                  <dt>Branch</dt>
+                  <dd>{detail.listing.branchName}</dd>
+                </div>
+                <div>
+                  <dt>Time (Malaysia)</dt>
+                  <dd>{formatMalaysianDateTime(drive.confirmation.startsAt)}</dd>
+                </div>
+              </dl>
+              <p>This books a 30-minute test drive. It does not reserve the car for purchase.</p>
+              <div className={styles.actions}>
+                <Button
+                  variant="secondary"
+                  disabled={drive.locked}
+                  onClick={() => drive.setConfirmation(null)}
+                >
+                  Choose another time
+                </Button>
+                <Button disabled={drive.command.busy} onClick={() => void drive.book()}>
+                  {drive.command.uncertain ? "Reconcile booking" : "Confirm test drive"}
+                </Button>
+              </div>
+            </>
+          )}
+          {!receipt && !drive.confirmation && (
             <>
               <p>
                 Choose a 30-minute appointment in Malaysia time. No deposit is required. Bring your
@@ -118,15 +152,13 @@ function CustomerTestDrive({
                 value={drive.date}
                 min={drive.offer?.dateWindow.firstDate}
                 max={drive.offer?.dateWindow.lastDate}
-                disabled={drive.locked || Boolean(drive.confirmation)}
+                disabled={drive.locked}
                 onChange={(event) => void drive.load(event.target.value)}
               />
               <Select
                 label="Available time (Malaysia)"
                 value={drive.startsAt}
-                disabled={
-                  drive.busy || drive.locked || !confirmedDate || Boolean(drive.confirmation)
-                }
+                disabled={drive.busy || drive.locked || !confirmedDate}
                 onChange={(event) => drive.setStartsAt(event.target.value)}
               >
                 <option value="">Choose a time</option>
@@ -143,7 +175,7 @@ function CustomerTestDrive({
               <div className={styles.actions}>
                 <Button
                   variant="secondary"
-                  disabled={drive.busy || drive.locked || Boolean(drive.confirmation)}
+                  disabled={drive.busy || drive.locked}
                   onClick={() => void drive.load()}
                 >
                   Refresh times
@@ -161,26 +193,6 @@ function CustomerTestDrive({
             </>
           )}
         </div>
-        <ConfirmationDialog
-          open={Boolean(drive.confirmation)}
-          title="Confirm this test drive?"
-          confirmLabel={drive.command.uncertain ? "Reconcile booking" : "Confirm test drive"}
-          cancelLabel="Choose another time"
-          busy={drive.command.busy}
-          locked={drive.command.uncertain}
-          onClose={() => drive.setConfirmation(null)}
-          onConfirm={drive.book}
-          facts={[
-            { label: "Vehicle", value: vehicle },
-            { label: "Branch", value: detail.listing.branchName },
-            {
-              label: "Time (Malaysia)",
-              value: drive.confirmation ? formatMalaysianDateTime(drive.confirmation.startsAt) : "",
-            },
-          ]}
-        >
-          <p>This books a 30-minute test drive. It does not reserve the car for purchase.</p>
-        </ConfirmationDialog>
       </Dialog>
     </>
   );

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Input, Select } from "@/components/ui/Input";
-import { Button } from "@/components/ui/Button";
+import { Select } from "@/components/ui/Input";
+import { RecordToolbar } from "@/components/ui/RecordToolbar";
+import { SearchField } from "@/components/ui/SearchField";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { useWorkCalendar } from "@/hooks/use-work-calendar";
 import { BranchFilter } from "./BranchFilter";
@@ -16,89 +17,107 @@ export function WorkCalendarFilters({
   calendar: ReturnType<typeof useWorkCalendar>;
 }) {
   const { filters, pending, branches } = calendar;
-  const [email, setEmail] = useState(filters.employee === "unassigned" ? "" : filters.employee);
-  const [mode, setMode] = useState(filters.employee === "unassigned" ? "unassigned" : "all");
-  const manager = actor.role === "BranchManager" || actor.role === "GeneralManager";
-  const disabled = pending.scheduled || pending.unscheduled;
-  if (!manager) {
-    return null;
-  }
+  const [search, setSearch] = useState(filters.search);
+  const busy = pending.scheduled || pending.unscheduled;
   return (
-    <div className={styles.filters}>
-      {actor.role === "GeneralManager" && (
-        <BranchFilter
-          branches={branches}
-          branchId={filters.branchId}
-          emptyLabel="Choose a branch"
-          selectedBranchName={
-            calendar.scheduled.data?.items.find((item) => item.branchId === filters.branchId)
-              ?.branchName ??
-            calendar.unscheduled.data?.items.find((item) => item.branchId === filters.branchId)
-              ?.branchName
-          }
-          disabled={disabled || pending.branches}
-          onChange={(branchId) => void calendar.changeScope({ ...filters, branchId })}
-          onPage={(page) => void calendar.loadBranches(page)}
-        />
-      )}
-      {manager && (
+    <div
+      className={styles.sharedFilters}
+      role="group"
+      aria-label="Filters for ongoing work and appointments"
+    >
+      <RecordToolbar
+        filters={null}
+        filterCount={0}
+        filterSummary={null}
+        disabled={busy}
+        actions={
+          <div className={styles.filterActions}>
+            {actor.role === "GeneralManager" && (
+              <div className={styles.branchControl}>
+                <BranchFilter
+                  branches={branches}
+                  branchId={filters.branchId}
+                  emptyLabel="All branches"
+                  showTitle
+                  disabled={busy || pending.branches}
+                  selectedBranchName={
+                    calendar.scheduled.data?.items.find(
+                      (item) => item.branchId === filters.branchId,
+                    )?.branchName ??
+                    calendar.unscheduled.data?.items.find(
+                      (item) => item.branchId === filters.branchId,
+                    )?.branchName
+                  }
+                  onChange={(branchId) =>
+                    void calendar.changeScope({ ...filters, branchId, page: 1 })
+                  }
+                  onPage={(page) => void calendar.loadBranches(page)}
+                />
+              </div>
+            )}
+            {actor.role !== "SalesAgent" && (
+              <div className={styles.assignmentControl}>
+                <Select
+                  label="Appointment assignment (appointments only)"
+                  labelHidden
+                  density="compact"
+                  value={calendar.scheduled.filters.assignment}
+                  disabled={pending.scheduled}
+                  onChange={(event) => {
+                    const assignment = event.target.value;
+                    if (
+                      assignment === "All" ||
+                      assignment === "Assigned" ||
+                      assignment === "Unassigned"
+                    ) {
+                      void calendar.changeAssignment(assignment);
+                    }
+                  }}
+                >
+                  <option value="All">Appointments: all</option>
+                  <option value="Assigned">Appointments: assigned</option>
+                  <option value="Unassigned">Appointments: unassigned</option>
+                </Select>
+              </div>
+            )}
+          </div>
+        }
+      >
         <form
-          className={styles.filters}
+          className={styles.sharedSearch}
           onSubmit={(event) => {
             event.preventDefault();
-            void calendar.changeScope({
-              ...filters,
-              employee: mode === "unassigned" ? "unassigned" : email,
-            });
+            if (!busy) {
+              void calendar.changeScope({ ...filters, search, page: 1 });
+            }
           }}
         >
-          <Select
-            label="Employee scope"
-            labelHidden
-            density="compact"
-            value={mode}
-            disabled={disabled}
-            onChange={(event) => setMode(event.target.value)}
-          >
-            <option value="all">All employees</option>
-            <option value="unassigned">Unassigned</option>
-          </Select>
-          {mode !== "unassigned" && (
-            <Input
-              label="Employee email"
-              labelHidden
-              density="compact"
-              placeholder="Filter employee email"
-              maxLength={160}
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-            />
-          )}
-          <Button
-            type="submit"
-            size="compact"
-            variant="secondary"
-            disabled={disabled || calendar.branchRequired}
-          >
-            Apply
-          </Button>
-          {filters.employee && (
-            <Button
-              type="button"
-              size="compact"
-              variant="secondary"
-              disabled={disabled}
-              onClick={() => {
-                setEmail("");
-                setMode("all");
-                void calendar.changeScope({ ...filters, employee: "" });
-              }}
-            >
-              Clear employee
-            </Button>
-          )}
+          <SearchField
+            label="Search ongoing work and appointments"
+            placeholder={
+              actor.role === "SalesAgent"
+                ? "Search all my work"
+                : "Search all branch work, customers or staff"
+            }
+            value={search}
+            disabled={false}
+            busy={busy}
+            onChange={setSearch}
+            onClear={
+              filters.search && !busy
+                ? () => {
+                    setSearch("");
+                    void calendar.changeScope({ ...filters, search: "", page: 1 });
+                  }
+                : undefined
+            }
+          />
         </form>
-      )}
+      </RecordToolbar>
+      <span className="sr-only">
+        Branch and submitted search apply to both panels. Other controls affect only their own
+        panel.
+      </span>
     </div>
   );
 }
