@@ -20,9 +20,9 @@ public static class WorkCalendarQueryEndpoints
 
     private static Task<IResult> ScheduledAsync(HttpContext context, IWorkCalendarStore reads,
         CancellationToken cancellationToken, string? from = null, string? to = null,
-        Guid? branchId = null, string? employee = null)
+        Guid? branchId = null, string? employee = null, string? search = null, string? assignment = null)
     {
-        var query = WorkCalendarQuery.Parse(from, to, branchId, employee);
+        var query = WorkCalendarQuery.Parse(from, to, branchId, employee, search, assignment);
         return query is null
             ? Task.FromResult<IResult>(Results.Problem(statusCode: 400, title: "Choose a valid calendar period of at most 42 days."))
             : ReadAsync(token => reads.ScheduledAsync(ActorId(context), query, token), cancellationToken);
@@ -30,9 +30,9 @@ public static class WorkCalendarQueryEndpoints
 
     private static Task<IResult> UnscheduledAsync(HttpContext context, IWorkCalendarStore reads,
         CancellationToken cancellationToken, Guid? branchId = null, string? employee = null,
-        int page = 1, int pageSize = Pagination.DefaultPageSize)
+        int page = 1, int pageSize = Pagination.DefaultPageSize, string? search = null, string? kind = null)
     {
-        var query = UnscheduledWorkQuery.Parse(branchId, employee, page, pageSize);
+        var query = UnscheduledWorkQuery.Parse(branchId, employee, page, pageSize, search, kind);
         return query is null
             ? Task.FromResult<IResult>(Results.Problem(statusCode: 400, title: "Provide valid work filters and paging."))
             : ReadAsync(token => reads.UnscheduledAsync(ActorId(context), query, token), cancellationToken);
@@ -52,7 +52,7 @@ public static class WorkCalendarQueryEndpoints
                 WorkCalendarReadStatus.Forbidden => Results.Forbid(),
                 WorkCalendarReadStatus.Invalid => Results.Problem(statusCode: 400, title: "Provide valid work filters."),
                 WorkCalendarReadStatus.BranchRequired => Results.Problem(statusCode: 400, title: "Choose a branch to read its work calendar."),
-                _ => Results.Problem(statusCode: 422, title: "More than 1,000 appointments match. Refine the employee filter.")
+                _ => Results.Problem(statusCode: 422, title: "More than 1,000 appointments match. Refine the search or choose another month.")
             };
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)

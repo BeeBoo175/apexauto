@@ -55,9 +55,9 @@ public sealed class WorkshopQueueStore(DealershipDbContext database) : IWorkshop
     }
 
     public async Task<WorkshopJobsResult> ReadJobsAsync(Guid actorId, InspectionQueueFilter filter,
-        WorkshopTask task, string? after, CancellationToken cancellationToken)
+        WorkshopTask task, CancellationToken cancellationToken)
     {
-        if (!filter.IsValid || filter.Page != 1 || filter.BranchId is not null || filter.From is not null ||
+        if (!filter.IsValid || filter.BranchId is not null || filter.From is not null ||
             filter.Sort != "since" || filter.Direction != "desc" ||
             task is not (WorkshopTask.MyWork or WorkshopTask.Waiting or WorkshopTask.Claimable))
         {
@@ -71,35 +71,14 @@ public sealed class WorkshopQueueStore(DealershipDbContext database) : IWorkshop
             return new(InspectionAssignmentStatus.Forbidden);
         }
 
-        var cursor = after is null ? null : WorkshopQueueCursor.Parse(after);
-        if (after is not null && (cursor is null || !cursor.Matches(actorId, actor.BranchId, filter, task)))
-        {
-            return new(InspectionAssignmentStatus.Invalid);
-        }
-
         var work = Filter(actor, filter, task);
         var total = await work.CountAsync(cancellationToken);
-        if (cursor is not null)
-        {
-            // Use PostgreSQL's timestamp/uuid order for both the boundary and the ordered rows.
-            work = work.Where(row => EF.Functions.LessThan(
-                ValueTuple.Create(row.Since, row.VehicleId), ValueTuple.Create(cursor.Since, cursor.VehicleId)));
-        }
-
-        var rows = await work.OrderByDescending(row => row.Since).ThenByDescending(row => row.VehicleId)
-            .Take(filter.PageSize + 1).ToArrayAsync(cancellationToken);
-        var page = rows.Take(filter.PageSize).ToArray();
-        string? nextCursor = null;
-        if (rows.Length > filter.PageSize)
-        {
-            var last = page[^1];
-            nextCursor = new WorkshopQueueCursor(1, actorId, actor.BranchId, task,
-                filter.Search, filter.PageSize, last.Since, last.VehicleId).Encode();
-        }
+        var page = await work.OrderByDescending(row => row.Since).ThenByDescending(row => row.VehicleId)
+            .ReadPageAsync(filter.Page, filter.PageSize, total, cancellationToken);
 
         await transaction.CommitAsync(cancellationToken);
         return new(InspectionAssignmentStatus.Succeeded,
-            new(Array.AsReadOnly(Items(page)), total, filter.PageSize, after, nextCursor));
+            new(Array.AsReadOnly(Items(page)), total, filter.Page, filter.PageSize));
     }
 
     private IQueryable<WorkshopRow> Filter(AccountUser actor, InspectionQueueFilter filter, WorkshopTask task)

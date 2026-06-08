@@ -69,14 +69,14 @@ export function useStaffTestDriveWorkspace(actor: CurrentActor, entry: TestDrive
       filters = { ...filters, queue: "History" };
     }
     const [rows, detail] = await Promise.all([
-      list.load(filters, agent ? 1 : list.active.page, false, true),
+      list.load(filters, filters.queue !== list.active.filters.queue ? 1 : list.active.page, true),
       record.id ? record.load() : Promise.resolve(true),
     ]);
     return rows && detail;
   }
 
   async function restoreConfirmed(next: ReturnType<typeof staffTestDriveParams>) {
-    const loaded = await list.load(next.filters, next.page, false, true);
+    const loaded = await list.load(next.filters, next.page, true);
     if (!loaded) {
       return;
     }

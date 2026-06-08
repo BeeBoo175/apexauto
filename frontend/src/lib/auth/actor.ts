@@ -36,13 +36,13 @@ export function hasIntakeAccess(actor: CurrentActor) {
 
 export function actorDestination(actor: CurrentActor, returnTo?: string) {
   if (actor.role !== "Customer") {
+    if (actor.role === "Administrator") {
+      return "/dashboard";
+    }
     if (actor.role === "WorkshopTechnician") {
       return "/dashboard/inspection";
     }
-    if (actor.role === "Administrator") {
-      return "/dashboard/settings";
-    }
-    return hasIntakeAccess(actor) ? "/dashboard/intake" : "/dashboard";
+    return "/dashboard/work-calendar";
   }
   const destination = safeReturnTo(returnTo);
   return destination.startsWith("/dashboard") ? "/account" : destination;

@@ -110,10 +110,10 @@ public static class InspectionQueueEndpoints
         }
     }
 
-    private static async Task<IResult> WorkshopJobsAsync(string? status, int? pageSize, string? search,
-        string? after, HttpContext context, IWorkshopQueueStore store, CancellationToken cancellationToken)
+    private static async Task<IResult> WorkshopJobsAsync(string? status, int? page, int? pageSize, string? search,
+        HttpContext context, IWorkshopQueueStore store, CancellationToken cancellationToken)
     {
-        var filter = InspectionQueueFilter.Parse(null, null, null, pageSize: pageSize ?? Pagination.DefaultPageSize,
+        var filter = InspectionQueueFilter.Parse(null, null, null, page: page ?? 1, pageSize: pageSize ?? Pagination.DefaultPageSize,
             search: search);
         if (filter is null || !Enum.TryParse<WorkshopTask>(status, out var task) ||
             task is not (WorkshopTask.MyWork or WorkshopTask.Waiting or WorkshopTask.Claimable) ||
@@ -126,7 +126,7 @@ public static class InspectionQueueEndpoints
         deadline.CancelAfter(TimeSpan.FromSeconds(20));
         try
         {
-            var result = await store.ReadJobsAsync(ActorId(context), filter, task, after, deadline.Token);
+            var result = await store.ReadJobsAsync(ActorId(context), filter, task, deadline.Token);
             return Map(result.Status, result.Queue);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)

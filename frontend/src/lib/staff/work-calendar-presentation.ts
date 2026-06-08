@@ -38,7 +38,7 @@ export function workItemHref(item: WorkItem) {
 export function workCalendarEvents(snapshot: WorkCalendarSnapshot): CalendarEvent<ScheduledWork>[] {
   return snapshot.items.map((item) => ({
     id: `${item.kind}:${item.id}`,
-    title: `${item.registrationPlate} · ${workItemKind(item)}`,
+    title: `${workItemKind(item)} · ${item.registrationPlate}${snapshot.branchId === null ? ` · ${item.branchName}` : ""}`,
     startsAt: item.startsAt,
     endsAt: item.endsAt,
     label: workItemLabel(item),

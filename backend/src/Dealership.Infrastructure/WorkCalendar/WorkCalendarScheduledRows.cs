@@ -1,4 +1,3 @@
-using Dealership.Application.Accounts;
 using Dealership.Application.Common;
 using Dealership.Application.Intake;
 using Dealership.Application.WorkCalendar;
@@ -15,11 +14,6 @@ internal static class WorkCalendarScheduledRows
     public static async Task<WorkCalendarEvent[]?> ReadAsync(DealershipDbContext database,
         WorkCalendarReadScope scope, WorkCalendarQuery query, CancellationToken cancellationToken)
     {
-        if (scope.Actor.Role == AccountRoles.WorkshopTechnician)
-        {
-            return [];
-        }
-
         var intakeQuery = new StaffWorklistQuery(query.Dates.From, query.Dates.Until,
             StaffWorklistStatus.All, scope.BranchId, 1, Pagination.DefaultPageSize);
         var intake = (await StaffWorklistRows.CreateAsync(database, scope.Actor.Id, intakeQuery, cancellationToken))!;
@@ -41,6 +35,29 @@ internal static class WorkCalendarScheduledRows
             var pattern = LiteralSearch.Pattern(scope.Employee);
             intake = intake.Where(row => row.HandlerEmail != null && EF.Functions.ILike(row.HandlerEmail, pattern, "!"));
             drives = drives.Where(row => row.HandlerEmail != null && EF.Functions.ILike(row.HandlerEmail, pattern, "!"));
+        }
+
+        if (query.Assignment == "Assigned")
+        {
+            intake = intake.Where(row => row.HandlerId != null);
+            drives = drives.Where(row => row.HandlerId != null);
+        }
+        if (query.Assignment == "Unassigned")
+        {
+            intake = intake.Where(row => row.HandlerId == null);
+            drives = drives.Where(row => row.HandlerId == null);
+        }
+        if (query.Search.Length > 0)
+        {
+            var pattern = LiteralSearch.Pattern(query.Search);
+            intake = intake.Where(row => EF.Functions.ILike(row.RegistrationPlate, pattern, "!") ||
+                EF.Functions.ILike(row.ManufactureYear + " " + row.Make + " " + row.Model + " " + row.Trim, pattern, "!") ||
+                EF.Functions.ILike(row.CustomerName, pattern, "!") ||
+                row.HandlerEmail != null && EF.Functions.ILike(row.HandlerEmail, pattern, "!"));
+            drives = drives.Where(row => EF.Functions.ILike(row.RegistrationPlate, pattern, "!") ||
+                EF.Functions.ILike(row.ManufactureYear + " " + row.Make + " " + row.Model + " " + row.Trim, pattern, "!") ||
+                EF.Functions.ILike(row.CustomerName, pattern, "!") ||
+                row.HandlerEmail != null && EF.Functions.ILike(row.HandlerEmail, pattern, "!"));
         }
 
         var total = await intake.CountAsync(cancellationToken) + await drives.CountAsync(cancellationToken);

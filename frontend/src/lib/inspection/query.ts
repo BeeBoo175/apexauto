@@ -127,15 +127,27 @@ export function technicianQueueParams(params: SearchParams, task: TechnicianTask
   return typeof search === "string" ? search.trim() : "";
 }
 
+export function technicianQueuePaging(params: SearchParams, task: TechnicianTask) {
+  const page = Number(params[`${task}.page`] ?? 1);
+  const pageSize = Number(params[`${task}.pageSize`] ?? DEFAULT_PAGE_SIZE);
+  return {
+    page: Number.isSafeInteger(page) && page > 0 && page <= 2147483647 ? page : 1,
+    pageSize: isPageSize(pageSize) ? pageSize : DEFAULT_PAGE_SIZE,
+  };
+}
+
 export function technicianQueueQuery(
   task: TechnicianTask,
   search: string,
-  after: string | null = null,
+  page = 1,
+  pageSize = DEFAULT_PAGE_SIZE,
 ) {
-  const query = new URLSearchParams({ status: task, search, pageSize: String(DEFAULT_PAGE_SIZE) });
-  if (after !== null) {
-    query.set("after", after);
-  }
+  const query = new URLSearchParams({
+    status: task,
+    search,
+    page: String(page),
+    pageSize: String(pageSize),
+  });
   return query.toString();
 }
 

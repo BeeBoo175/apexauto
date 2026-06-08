@@ -18,16 +18,16 @@ export async function relayWorkCalendar(request: Request, unscheduled = false) {
     if (!hasWorkCalendarAccess(actor.role)) {
       return accessDenied(actor, "Operational calendar access required.");
     }
-    const keys = unscheduled ? ["page", "pageSize"] : ["from", "to"];
-    const query = allowedQuery(new URL(request.url).searchParams, [
-      ...keys,
-      "branchId",
-      "employee",
-    ]);
-    const scopeMatches = (data: { actor: CurrentActor; branchId: string; employee: string }) =>
+    const keys = unscheduled ? ["page", "pageSize", "kind"] : ["from", "to", "assignment"];
+    const query = allowedQuery(new URL(request.url).searchParams, [...keys, "branchId", "search"]);
+    const scopeMatches = (data: {
+      actor: CurrentActor;
+      branchId: string | null;
+      employee: string;
+    }) =>
       actorIdentity(data.actor) === actorIdentity(actor) &&
       data.branchId === (query.get("branchId") || actor.branchId) &&
-      data.employee === (query.get("employee") ?? "").trim();
+      data.employee === "";
     const result = unscheduled
       ? await privateApiRead(
           `/api/staff/work-calendar/unscheduled?${query}`,

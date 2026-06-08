@@ -10,11 +10,14 @@ import { queueQuery, salesQueuePath } from "@/lib/sales/query";
 import type { QueueView, SalesQueue } from "@/lib/sales/contracts";
 import { useInitialToast } from "./use-initial-toast";
 
-// One tab of the agent's queue, or a search across all of them: its first screen, more on demand, and a refresh
-// that keeps what was confirmed.
+// Failed page replacements retain confirmed sales and the selected editor.
 export function useSalesQueue(view: QueueView, initial: ApiResult<SalesQueue> | null, search = "") {
   const [entry, setEntry] = useState({ initial, snapshot: initial?.data ?? null, search });
-  const [failedPage, setFailedPage] = useState<number | null>(null);
+  const [failedRead, setFailedRead] = useState<{
+    page: number;
+    pageSize: number;
+    term: string;
+  } | null>(null);
   const [busy, setBusy] = useState(false);
   const [ready, setReady] = useState(false);
   const controller = useRef<AbortController | null>(null);
@@ -22,7 +25,7 @@ export function useSalesQueue(view: QueueView, initial: ApiResult<SalesQueue> | 
   useInitialToast(initial?.message ?? "");
   if (entry.initial !== initial) {
     setEntry({ initial, snapshot: initial?.data ?? null, search });
-    setFailedPage(null);
+    setFailedRead(null);
     setBusy(false);
   }
   useEffect(() => {
@@ -34,17 +37,17 @@ export function useSalesQueue(view: QueueView, initial: ApiResult<SalesQueue> | 
   }, [initial]);
 
   const load = useCallback(
-    async (page: number, term: string, notifyFailure = true) => {
+    async (page: number, term: string, pageSize = DEFAULT_PAGE_SIZE, notifyFailure = true) => {
       if (controller.current) {
         return false;
       }
       const attempt = new AbortController();
       controller.current = attempt;
       setBusy(true);
-      setFailedPage(null);
+      setFailedRead(null);
       try {
         const result = await privateApiFetch(
-          `${salesQueuePath}?${queueQuery(view, term, page)}`,
+          `${salesQueuePath}?${queueQuery(view, term, page, pageSize)}`,
           parseSalesQueue,
           { signal: attempt.signal },
         );
@@ -52,26 +55,14 @@ export function useSalesQueue(view: QueueView, initial: ApiResult<SalesQueue> | 
           return false;
         }
         const next = result.data;
-        if (
-          result.status !== 200 ||
-          !next ||
-          next.page !== page ||
-          next.pageSize !== DEFAULT_PAGE_SIZE
-        ) {
+        if (result.status !== 200 || !next || next.page !== page || next.pageSize !== pageSize) {
           throw new Error("Sales queue unavailable");
         }
-        setEntry((current) => {
-          const rows = page === 1 ? [] : (current.snapshot?.items ?? []);
-          const items = new Map(rows.map((row) => [row.id, row]));
-          for (const row of next.items) {
-            items.set(row.id, row);
-          }
-          return { initial, snapshot: { ...next, items: [...items.values()] }, search: term };
-        });
+        setEntry({ initial, snapshot: next, search: term });
         return true;
       } catch {
         if (!attempt.signal.aborted && controller.current === attempt) {
-          setFailedPage(page);
+          setFailedRead({ page, pageSize, term });
           if (notifyFailure) {
             error(
               "The sales queue could not be loaded. Confirmed sales and your selected sale remain shown.",
@@ -90,31 +81,29 @@ export function useSalesQueue(view: QueueView, initial: ApiResult<SalesQueue> | 
   );
 
   const { snapshot, search: term } = entry;
-  const loaded = snapshot?.items.length ?? 0;
-  const loadMore = useCallback(() => {
-    if (!snapshot || failedPage !== null || loaded >= snapshot.total) {
-      return;
-    }
-    return load(snapshot.page + 1, term);
-  }, [snapshot, failedPage, loaded, load, term]);
 
   return {
     snapshot,
     search: term,
     busy,
     ready,
-    failed: failedPage !== null,
-    loadMore,
+    failed: failedRead !== null,
+    changePage: (page: number, pageSize: number) => load(page, term, pageSize),
     find: (next: string) => {
       controller.current?.abort();
       controller.current = null;
-      return load(1, next.trim());
+      return load(1, next.trim(), snapshot?.pageSize);
     },
     refresh: (notifyFailure = true) => {
       controller.current?.abort();
       controller.current = null;
-      return load(1, term, notifyFailure);
+      return load(snapshot?.page ?? 1, term, snapshot?.pageSize, notifyFailure);
     },
-    retry: () => load(failedPage ?? 1, term),
+    retry: () =>
+      load(
+        failedRead?.page ?? snapshot?.page ?? 1,
+        failedRead?.term ?? term,
+        failedRead?.pageSize ?? snapshot?.pageSize,
+      ),
   };
 }

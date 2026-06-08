@@ -56,7 +56,6 @@ export function useStaffWorklist(
     nextPage = active.page,
     updateHistory = true,
     selectedSort?: WorklistSort | null,
-    append = false,
   ) {
     if (controller.current) {
       return;
@@ -88,16 +87,7 @@ export function useStaffWorklist(
         throw new Error("Worklist unavailable");
       }
       const next = result.data;
-      setSnapshot((current) => {
-        if (!append || !nextFilters.queue || !current) {
-          return next;
-        }
-        const items = new Map(current.items.map((row) => [row.id, row]));
-        for (const row of next.items) {
-          items.set(row.id, row);
-        }
-        return { ...next, items: [...items.values()] };
-      });
+      setSnapshot(next);
       setRevision((current) => current + 1);
       let sort = selectedSort;
       if (sort === undefined) {

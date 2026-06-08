@@ -51,8 +51,7 @@ export type WorkshopJobs = {
   items: WorkshopRow[];
   total: number;
   pageSize: number;
-  after: string | null;
-  nextCursor: string | null;
+  page: number;
 };
 
 const taskLabels: Record<string, string> = {

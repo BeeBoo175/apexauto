@@ -22,19 +22,12 @@ export function useStaffTestDriveList(
   const [active, setActive] = useState({ filters, page });
   const [draft, setDraft] = useState(filters);
   const [busy, setBusy] = useState(false);
-  const [failedMore, setFailedMore] = useState(false);
   const [revision, setRevision] = useState(0);
   const controller = useRef<AbortController | null>(null);
   const toast = useToast();
   useEffect(() => () => controller.current?.abort(), []);
 
-  async function load(
-    next = active.filters,
-    nextPage = 1,
-    append = false,
-    supersede = false,
-    history = true,
-  ) {
+  async function load(next = active.filters, nextPage = 1, supersede = false, history = true) {
     if (controller.current && !supersede) {
       return false;
     }
@@ -67,17 +60,9 @@ export function useStaffTestDriveList(
       ) {
         throw new Error("Test drives unavailable");
       }
-      setSnapshot((current) => {
-        if (!append) {
-          return confirmed;
-        }
-        const items = new Map(current.items.map((item) => [item.id, item]));
-        confirmed.items.forEach((item) => items.set(item.id, item));
-        return { ...confirmed, items: [...items.values()] };
-      });
+      setSnapshot(confirmed);
       setActive({ filters: next, page: nextPage });
       setDraft((current) => (current === submitted ? next : current));
-      setFailedMore(false);
       setRevision((current) => current + 1);
       if (history) {
         const selected = new URL(window.location.href).searchParams.get("booking") ?? "";
@@ -86,7 +71,6 @@ export function useStaffTestDriveList(
       return true;
     } catch {
       if (!attempt.signal.aborted) {
-        setFailedMore(append);
         toast.error(
           "Test drives could not be refreshed. Confirmed rows, filters and drafts remain shown.",
         );
@@ -100,5 +84,5 @@ export function useStaffTestDriveList(
     }
   }
 
-  return { snapshot, active, draft, setDraft, busy, failedMore, revision, load };
+  return { snapshot, active, draft, setDraft, busy, revision, load };
 }

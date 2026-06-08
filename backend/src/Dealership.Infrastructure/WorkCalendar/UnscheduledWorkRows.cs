@@ -18,17 +18,13 @@ internal static class UnscheduledWorkRows
         var workshop = WorkshopRows.ForTask(database, scope.Actor, scope.BranchId, task)
             .Where(row => row.TechnicianId != null);
         var sales = SaleRows.Project(database, database.SalesOrders.AsNoTracking().Where(sale =>
-            sale.BranchId == scope.BranchId && sale.AgentId != null &&
+            (scope.BranchId == null || sale.BranchId == scope.BranchId) && sale.AgentId != null &&
             (sale.Status == SalesOrderStatus.Handling || sale.Status == SalesOrderStatus.Approved ||
                 sale.Status == SalesOrderStatus.Settled || sale.Status == SalesOrderStatus.PendingApproval)));
         if (scope.Actor.Role == AccountRoles.SalesAgent)
         {
             workshop = workshop.Where(row => false);
             sales = sales.Where(row => row.AgentId == scope.Actor.Id && row.Status != SalesOrderStatus.PendingApproval);
-        }
-        if (scope.Actor.Role == AccountRoles.WorkshopTechnician)
-        {
-            sales = sales.Where(row => false);
         }
         if (scope.Employee == "unassigned")
         {
@@ -44,9 +40,34 @@ internal static class UnscheduledWorkRows
             sales = sales.Where(row => row.Agent != null && EF.Functions.ILike(row.Agent, pattern, "!"));
         }
 
+        if (query.Search.Length > 0)
+        {
+            var pattern = LiteralSearch.Pattern(query.Search);
+            workshop = workshop.Where(row => EF.Functions.ILike(row.RegistrationPlate, pattern, "!") ||
+                EF.Functions.ILike(row.ManufactureYear + " " + row.Make + " " + row.Model + " " + row.Trim, pattern, "!") ||
+                row.TechnicianIdentity != null && EF.Functions.ILike(row.TechnicianIdentity, pattern, "!"));
+            sales = SaleRows.Search(sales, query.Search, scope.Actor.Role == AccountRoles.GeneralManager);
+        }
+
+        var workshopTotal = await workshop.CountAsync(cancellationToken);
+        var salesTotal = await sales.CountAsync(cancellationToken);
+        var counts = new UnscheduledWorkCounts(workshopTotal + salesTotal, workshopTotal, salesTotal);
+        if (query.Kind == "Sale")
+        {
+            workshop = workshop.Where(row => false);
+        }
+        if (query.Kind == "Workshop")
+        {
+            sales = sales.Where(row => false);
+        }
+        var total = query.Kind switch
+        {
+            "Workshop" => counts.Workshop,
+            "Sale" => counts.Sale,
+            _ => counts.All
+        };
         var keys = workshop.Select(row => new { Id = row.VehicleId, Kind = "Workshop", Registration = row.RegistrationPlate })
             .Concat(sales.Select(row => new { row.Id, Kind = "Sale", Registration = row.Plate }));
-        var total = await keys.CountAsync(cancellationToken);
         var page = await keys.OrderBy(row => row.Registration).ThenBy(row => row.Kind).ThenBy(row => row.Id)
             .ReadPageAsync(query.Page, query.PageSize, total, cancellationToken);
         var workshopIds = page.Where(row => row.Kind == "Workshop").Select(row => row.Id).ToArray();
@@ -61,6 +82,6 @@ internal static class UnscheduledWorkRows
                 row.Plate, $"{row.Year} {row.Make} {row.Model} {row.Trim}", row.Status.ToString(), row.AgentId!.Value,
                 row.Agent ?? string.Empty, null))).ToDictionary(row => (row.Kind, row.Id));
         return new(scope.CurrentActor, page.Select(row => items[(row.Kind, row.Id)]).ToArray(), total,
-            query.Page, query.PageSize, scope.BranchId, scope.Employee);
+            query.Page, query.PageSize, scope.BranchId, scope.Employee, counts);
     }
 }

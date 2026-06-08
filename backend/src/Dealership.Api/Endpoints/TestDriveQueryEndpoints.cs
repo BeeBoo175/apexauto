@@ -38,7 +38,7 @@ public static class TestDriveQueryEndpoints
         }
     }
 
-    private static async Task<IResult> AccountAsync(int? page, string? from, string? to, HttpContext context,
+    private static async Task<IResult> AccountAsync(int? page, string? from, string? to, string? search, HttpContext context,
         ITestDriveReadStore reads, CancellationToken cancellationToken)
     {
         var dates = ListDateRange.Parse(from, to);
@@ -51,11 +51,12 @@ public static class TestDriveQueryEndpoints
         deadline.CancelAfter(TimeSpan.FromSeconds(20));
         try
         {
-            var result = await reads.AccountAsync(TestDriveCommandEndpoints.ActorId(context), page ?? 1, dates, deadline.Token);
+            var result = await reads.AccountAsync(TestDriveCommandEndpoints.ActorId(context), page ?? 1, dates,
+                deadline.Token, search?.Trim() ?? "");
             return result.Status switch
             {
                 TestDriveReadStatus.Succeeded => Results.Ok(result.History),
-                TestDriveReadStatus.Invalid => Results.Problem(statusCode: 400, title: "Provide a valid history page."),
+                TestDriveReadStatus.Invalid => Results.Problem(statusCode: 400, title: "Provide a valid history page and search of at most 160 characters."),
                 TestDriveReadStatus.Forbidden => Results.Forbid(),
                 _ => Results.Problem(statusCode: 500)
             };

@@ -30,13 +30,12 @@ export function useWorkCalendar(actor: CurrentActor, initial: WorkCalendarEntry)
     branches?: AbortController;
   }>({});
   const toast = useToast();
-  const branchRequired = actor.role === "GeneralManager" && !filters.branchId;
   useInitialToast(
     initial.scheduled && !initial.scheduled.data ? calendarFailure(initial.scheduled.status) : null,
   );
   useInitialToast(
     initial.unscheduled && !initial.unscheduled.data
-      ? "Unscheduled work could not be loaded. Use Retry unscheduled work."
+      ? "Ongoing work could not be loaded. Use Retry ongoing work."
       : null,
   );
   useEffect(
@@ -61,6 +60,7 @@ export function useWorkCalendar(actor: CurrentActor, initial: WorkCalendarEntry)
         return;
       }
       setScheduled({ data: result.data, filters: next });
+      setFilters((current) => ({ ...current, date: next.date, assignment: next.assignment }));
     } catch {
       if (!attempt.signal.aborted) {
         toast.error(calendarFailure(502));
@@ -84,17 +84,80 @@ export function useWorkCalendar(actor: CurrentActor, initial: WorkCalendarEntry)
         return;
       }
       if (!result.data) {
-        throw new Error("Unscheduled work unavailable");
+        throw new Error("Ongoing work unavailable");
       }
       setUnscheduled({ data: result.data, filters: next });
+      setFilters((current) => ({
+        ...current,
+        kind: next.kind,
+        page: next.page,
+        pageSize: next.pageSize,
+      }));
     } catch {
       if (!attempt.signal.aborted) {
-        toast.error("Unscheduled work could not be refreshed. Confirmed work remains shown.");
+        toast.error("Ongoing work could not be refreshed. Confirmed work remains shown.");
       }
     } finally {
       if (controllers.current.unscheduled === attempt) {
         delete controllers.current.unscheduled;
         setPending((current) => ({ ...current, unscheduled: false }));
+      }
+    }
+  }
+
+  async function changeScope(next: WorkCalendarFilters) {
+    controllers.current.scheduled?.abort();
+    controllers.current.unscheduled?.abort();
+    const confirmed = { ...next, search: next.search.trim() };
+    const attempt = new AbortController();
+    controllers.current.scheduled = attempt;
+    controllers.current.unscheduled = attempt;
+    setPending((current) => ({ ...current, scheduled: true, unscheduled: true }));
+    try {
+      const [appointments, work] = await Promise.all([
+        readScheduledWork(actor, confirmed, attempt.signal),
+        readUnscheduledWork(actor, confirmed, attempt.signal),
+      ]);
+      if (attempt.signal.aborted) {
+        return false;
+      }
+      if (!appointments.data || !work.data) {
+        if (!scheduled.data && !unscheduled.data) {
+          // With no confirmed content to preserve, expose the chosen scope's narrowing and retry controls.
+          setFilters(confirmed);
+          setScheduled({ data: appointments.data, filters: confirmed });
+          setUnscheduled({ data: work.data, filters: confirmed });
+        }
+        toast.error(
+          appointments.data
+            ? "Ongoing work could not be loaded. Confirmed content and filters remain shown; retry or change the shared filters."
+            : calendarFailure(appointments.status),
+        );
+        return false;
+      }
+      // A shared scope commits both panels together so their controls never describe different reads.
+      setFilters(confirmed);
+      setScheduled({ data: appointments.data, filters: confirmed });
+      setUnscheduled({ data: work.data, filters: confirmed });
+      return true;
+    } catch {
+      if (!attempt.signal.aborted) {
+        if (!scheduled.data && !unscheduled.data) {
+          setFilters(confirmed);
+          setScheduled({ data: null, filters: confirmed });
+          setUnscheduled({ data: null, filters: confirmed });
+        }
+        toast.error(
+          "The shared filters could not be applied. Confirmed content remains shown; retry or change the filters.",
+        );
+        attempt.abort();
+      }
+      return false;
+    } finally {
+      if (controllers.current.scheduled === attempt) {
+        delete controllers.current.scheduled;
+        delete controllers.current.unscheduled;
+        setPending((current) => ({ ...current, scheduled: false, unscheduled: false }));
       }
     }
   }
@@ -125,48 +188,20 @@ export function useWorkCalendar(actor: CurrentActor, initial: WorkCalendarEntry)
     }
   }
 
-  async function changeScope(next: WorkCalendarFilters) {
-    const nextFilters = { ...next, employee: next.employee.trim(), page: 1 };
-    setFilters(nextFilters);
-    if (actor.role === "GeneralManager" && !nextFilters.branchId) {
-      controllers.current.scheduled?.abort();
-      controllers.current.unscheduled?.abort();
-      setScheduled({ data: null, filters: nextFilters });
-      setUnscheduled({ data: null, filters: nextFilters });
-      return;
-    }
-    await Promise.all([loadScheduled(nextFilters), loadUnscheduled(nextFilters)]);
-  }
-
-  async function changeMonth(date: string) {
-    const next = { ...filters, date };
-    setFilters(next);
-    await loadScheduled(next);
-  }
-
-  async function changePage(page: number, pageSize: number) {
-    const next = { ...filters, page, pageSize };
-    setFilters(next);
-    await loadUnscheduled(next);
-  }
-
-  async function refresh() {
-    if (!branchRequired) {
-      await Promise.all([loadScheduled(filters), loadUnscheduled(filters)]);
-    }
-  }
-
   return {
     filters,
     scheduled,
     unscheduled,
     branches,
     pending,
-    branchRequired,
     changeScope,
-    changeMonth,
-    changePage,
-    refresh,
+    changeWork: (kind: WorkCalendarFilters["kind"]) =>
+      loadUnscheduled({ ...filters, kind, page: 1 }),
+    changeMonth: (date: string) => loadScheduled({ ...filters, date }),
+    changeAssignment: (assignment: WorkCalendarFilters["assignment"]) =>
+      loadScheduled({ ...filters, assignment }),
+    changePage: (page: number, pageSize: number) => loadUnscheduled({ ...filters, page, pageSize }),
+    refresh: () => changeScope(filters),
     loadScheduled,
     loadUnscheduled,
     loadBranches,
@@ -175,7 +210,7 @@ export function useWorkCalendar(actor: CurrentActor, initial: WorkCalendarEntry)
 
 function calendarFailure(status: number) {
   if (status === 422) {
-    return "More than 1,000 appointments match. Filter by employee or choose another month. Confirmed appointments remain shown.";
+    return "More than 1,000 appointments match. Refine the shared search, assignment or month. Confirmed content and filters remain shown.";
   }
-  return "Scheduled work could not be refreshed. Confirmed appointments remain shown; retry or change the filters.";
+  return "Appointments could not be refreshed. Confirmed content and filters remain shown; retry or change the filters.";
 }

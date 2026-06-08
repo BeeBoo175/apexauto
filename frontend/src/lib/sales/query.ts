@@ -16,11 +16,11 @@ import {
 
 export const salePath = (id: string) => `/api/staff/sales/${id}`;
 
-export function queueQuery(view: QueueView, search = "", page = 1) {
+export function queueQuery(view: QueueView, search = "", page = 1, pageSize = DEFAULT_PAGE_SIZE) {
   const query = new URLSearchParams({
     view,
     page: String(page),
-    pageSize: String(DEFAULT_PAGE_SIZE),
+    pageSize: String(pageSize),
   });
   if (search.trim()) {
     query.set("search", search.trim());

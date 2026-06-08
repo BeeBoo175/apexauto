@@ -33,9 +33,10 @@ public sealed class TestDriveReadStore(DealershipDbContext database) : ITestDriv
     }
 
     public async Task<TestDriveHistoryResult> AccountAsync(Guid customerId, int page, ListDateRange dates,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, string search = "")
     {
-        if (!Pagination.IsValidAccount(page, Pagination.AccountPageSize) || !ListDateRange.IsValid(dates.From, dates.Until))
+        if (!Pagination.IsValidAccount(page, Pagination.AccountPageSize) ||
+            !ListDateRange.IsValid(dates.From, dates.Until) || !ListSearch.IsValid(search))
         {
             return new(TestDriveReadStatus.Invalid);
         }
@@ -55,6 +56,16 @@ public sealed class TestDriveReadStore(DealershipDbContext database) : ITestDriv
         if (dates.From is not null)
         {
             bookings = bookings.Where(item => item.StartsAt >= dates.From && item.StartsAt < dates.Until);
+        }
+
+        if (search.Length > 0)
+        {
+            var pattern = LiteralSearch.Pattern(search);
+            bookings = bookings.Where(booking => database.Vehicles.Any(vehicle => vehicle.Id == booking.VehicleId &&
+                (EF.Functions.ILike(vehicle.ManufactureYear + " " + vehicle.Make + " " + vehicle.Model + " " + vehicle.Trim, pattern, "!") ||
+                    EF.Functions.ILike(vehicle.RegistrationPlate, pattern, "!"))) ||
+                database.Branches.Any(branch => branch.Id == booking.BranchId && EF.Functions.ILike(branch.Name, pattern, "!")) ||
+                EF.Functions.ILike(booking.Id.ToString(), pattern, "!"));
         }
 
         var total = await bookings.CountAsync(cancellationToken);

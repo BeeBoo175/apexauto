@@ -1,16 +1,18 @@
 import { parseItems, parsePage, type Page } from "@/lib/api";
 import { parseActor, type CurrentActor } from "@/lib/auth/actor";
-import { isRecord, isUtcInstant, isUuid } from "@/lib/auth/contracts";
+import { isRecord, isUtcInstant, isUuid, isNonNegativeInteger } from "@/lib/auth/contracts";
 import { calendarDate, calendarRange, isCalendarDate } from "@/lib/calendar";
 import { DEFAULT_PAGE_SIZE, isPageSize } from "@/lib/pagination";
 import type { SearchParams } from "@/lib/query";
 
 export interface WorkCalendarScope {
   branchId: string;
-  employee: string;
 }
 
 export interface WorkCalendarFilters extends WorkCalendarScope {
+  assignment: "All" | "Assigned" | "Unassigned";
+  search: string;
+  kind: "" | "Workshop" | "Sale";
   date: string;
   page: number;
   pageSize: number;
@@ -37,7 +39,7 @@ export interface ScheduledWork extends WorkItem {
 
 interface WorkScopeSnapshot {
   actor: CurrentActor;
-  branchId: string;
+  branchId: string | null;
   employee: string;
 }
 
@@ -48,20 +50,27 @@ export interface WorkCalendarSnapshot extends WorkScopeSnapshot {
   to: string;
 }
 
-export type UnscheduledWorkPage = Page<WorkItem> & WorkScopeSnapshot;
+export type UnscheduledWorkPage = Page<WorkItem> &
+  WorkScopeSnapshot & {
+    counts: { all: number; workshop: number; sale: number };
+  };
 
 export function hasWorkCalendarAccess(role: string) {
-  return ["SalesAgent", "WorkshopTechnician", "BranchManager", "GeneralManager"].includes(role);
+  return ["SalesAgent", "BranchManager", "GeneralManager"].includes(role);
 }
 
 export function workCalendarParams(parameters: SearchParams): WorkCalendarFilters {
   const page = Number(parameters.page ?? 1);
   const size = Number(parameters.pageSize ?? DEFAULT_PAGE_SIZE);
   return {
+    search: typeof parameters.search === "string" ? parameters.search.trim() : "",
+    kind: parameters.kind === "Workshop" || parameters.kind === "Sale" ? parameters.kind : "",
     date: isCalendarDate(parameters.date) ? parameters.date : calendarDate(),
     branchId: isUuid(parameters.branchId) ? parameters.branchId : "",
-    employee:
-      typeof parameters.employee === "string" ? parameters.employee.trim().slice(0, 160) : "",
+    assignment:
+      parameters.assignment === "Assigned" || parameters.assignment === "Unassigned"
+        ? parameters.assignment
+        : "All",
     page: Number.isSafeInteger(page) && page > 0 && page <= 2147483647 ? page : 1,
     pageSize: isPageSize(size) ? size : DEFAULT_PAGE_SIZE,
   };
@@ -72,13 +81,15 @@ export function workCalendarQuery(filters: WorkCalendarFilters, unscheduled = fa
   if (filters.branchId) {
     query.set("branchId", filters.branchId);
   }
-  if (filters.employee) {
-    query.set("employee", filters.employee.trim());
+  if (filters.search.trim()) {
+    query.set("search", filters.search.trim());
   }
   if (unscheduled) {
+    query.set("kind", filters.kind);
     query.set("page", String(filters.page));
     query.set("pageSize", String(filters.pageSize));
   } else {
+    query.set("assignment", filters.assignment);
     const range = calendarRange(filters.date);
     query.set("from", range.from);
     query.set("to", range.to);
@@ -87,11 +98,20 @@ export function workCalendarQuery(filters: WorkCalendarFilters, unscheduled = fa
 }
 
 function parseScope(value: unknown): WorkScopeSnapshot | null {
-  if (!isRecord(value) || !isUuid(value.branchId) || typeof value.employee !== "string") {
+  if (
+    !isRecord(value) ||
+    (value.branchId !== null && !isUuid(value.branchId)) ||
+    typeof value.employee !== "string"
+  ) {
     return null;
   }
   const actor = parseActor(value.actor);
-  if (!actor || !hasWorkCalendarAccess(actor.role) || value.employee.length > 160) {
+  if (
+    !actor ||
+    !hasWorkCalendarAccess(actor.role) ||
+    value.employee.length > 160 ||
+    (value.branchId === null && actor.role !== "GeneralManager")
+  ) {
     return null;
   }
   return { actor, branchId: value.branchId, employee: value.employee };
@@ -162,7 +182,9 @@ export function parseWorkCalendar(value: unknown): WorkCalendarSnapshot | null {
     !uniqueWork(items) ||
     items.some((item) => {
       const day = calendarDate(new Date(item.startsAt));
-      return item.branchId !== scope.branchId || day < from || day > to;
+      return (
+        (scope.branchId !== null && item.branchId !== scope.branchId) || day < from || day > to
+      );
     })
   ) {
     return null;
@@ -181,12 +203,22 @@ export function parseUnscheduledWork(value: unknown): UnscheduledWorkPage | null
       (item) =>
         (item.kind !== "Workshop" && item.kind !== "Sale") ||
         !item.handlerId ||
-        item.branchId !== scope.branchId,
+        (scope.branchId !== null && item.branchId !== scope.branchId),
     )
   ) {
     return null;
   }
   if (!isRecord(value) || !Array.isArray(value.items)) {
+    return null;
+  }
+  const counts = value.counts;
+  if (
+    !isRecord(counts) ||
+    !isNonNegativeInteger(counts.all) ||
+    !isNonNegativeInteger(counts.workshop) ||
+    !isNonNegativeInteger(counts.sale) ||
+    counts.all !== counts.workshop + counts.sale
+  ) {
     return null;
   }
   const rawItems = value.items;
@@ -203,7 +235,12 @@ export function parseUnscheduledWork(value: unknown): UnscheduledWorkPage | null
   if (items.some((item) => item === null)) {
     return null;
   }
-  return { ...scope, ...page, items: items as WorkItem[] };
+  return {
+    ...scope,
+    ...page,
+    items: items as WorkItem[],
+    counts: { all: counts.all, workshop: counts.workshop, sale: counts.sale },
+  };
 }
 
 function uniqueWork(items: WorkItem[]) {

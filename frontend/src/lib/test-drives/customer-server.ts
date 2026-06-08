@@ -3,7 +3,7 @@ import { API_DEADLINE_MS } from "@/lib/api";
 import { actorIdentity } from "@/lib/auth/actor";
 import { isRecord, isUuid } from "@/lib/auth/contracts";
 import { HttpError, readBoundedJson } from "@/lib/http";
-import { dateRangeError, type HistoryFilters } from "@/lib/intake/list-query";
+import { dateRangeError } from "@/lib/intake/list-query";
 import { requireSameOrigin } from "@/lib/server/http/request";
 import {
   apiError,
@@ -21,6 +21,7 @@ import {
   parseTestDriveSlots,
   matchesTestDriveBooking,
 } from "./customer";
+import { testDriveHistoryQuery, type TestDriveHistoryFilters } from "./account";
 import { parseTestDriveConflict } from "./errors";
 
 export async function relayTestDriveSlots(request: Request, vehicleId: string) {
@@ -46,14 +47,10 @@ export async function relayTestDriveSlots(request: Request, vehicleId: string) {
 
 export async function readTestDriveHistory(
   page: number,
-  filters: HistoryFilters,
+  filters: TestDriveHistoryFilters,
   signal?: AbortSignal,
 ) {
-  const query = new URLSearchParams({ page: String(page) });
-  if (filters.from) {
-    query.set("from", filters.from);
-    query.set("to", filters.to);
-  }
+  const query = testDriveHistoryQuery(filters, page);
   return privateApiRead(
     `/api/account/test-drives?${query}`,
     (value) => {
@@ -68,7 +65,14 @@ export async function relayTestDriveHistory(request: Request) {
   try {
     const query = new URL(request.url).searchParams;
     const page = Number(query.get("page") ?? 1);
-    const filters = { from: query.get("from") ?? "", to: query.get("to") ?? "" };
+    const filters = {
+      from: query.get("from") ?? "",
+      to: query.get("to") ?? "",
+      search: query.get("search")?.trim() ?? "",
+    };
+    if (filters.search.length > 160) {
+      throw new HttpError(400, "Search must be at most 160 characters.");
+    }
     if (!Number.isSafeInteger(page) || page < 1 || page > 2147483647) {
       throw new HttpError(400, "Choose a valid test-drive history page.");
     }

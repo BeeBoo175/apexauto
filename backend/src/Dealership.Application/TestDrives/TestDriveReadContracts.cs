@@ -36,5 +36,5 @@ public interface ITestDriveReadStore
         CancellationToken cancellationToken);
 
     Task<TestDriveHistoryResult> AccountAsync(Guid customerId, int page, ListDateRange dates,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken, string search = "");
 }

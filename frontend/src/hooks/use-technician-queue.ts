@@ -10,7 +10,7 @@ import { technicianQueueQuery } from "@/lib/inspection/query";
 import type { TechnicianTask, WorkshopJobs } from "@/lib/inspection/workshop-contracts";
 import { useInitialToast } from "./use-initial-toast";
 
-type Read = { search: string; after: string | null; submittedDraft?: string };
+type Read = { search: string; page: number; pageSize: number; submittedDraft?: string };
 
 export function useTechnicianQueue(
   task: TechnicianTask,
@@ -50,7 +50,7 @@ export function useTechnicianQueue(
       setFailed(null);
       try {
         const result = await inspectionFetch(
-          `workshop/jobs?${technicianQueueQuery(task, read.search, read.after)}`,
+          `workshop/jobs?${technicianQueueQuery(task, read.search, read.page, read.pageSize)}`,
           parseWorkshopJobs,
           { signal: attempt.signal },
         );
@@ -61,9 +61,8 @@ export function useTechnicianQueue(
         if (
           result.status !== 200 ||
           !page ||
-          page.after !== read.after ||
-          page.pageSize !== DEFAULT_PAGE_SIZE ||
-          (read.after !== null && page.nextCursor === read.after)
+          page.page !== read.page ||
+          page.pageSize !== read.pageSize
         ) {
           throw new Error("Worklist unavailable");
         }
@@ -71,23 +70,18 @@ export function useTechnicianQueue(
           if (current.initial !== initial) {
             return current;
           }
-          const rows = read.after === null ? [] : (current.snapshot?.items ?? []);
-          const items = new Map(rows.map((row) => [row.vehicleId, row]));
-          for (const row of page.items) {
-            items.set(row.vehicleId, row);
-          }
           return {
             initial,
             search: read.search,
-            snapshot: { ...page, items: [...items.values()] },
+            snapshot: page,
           };
         });
         if (read.submittedDraft !== undefined) {
           setDraft((current) => (current === read.submittedDraft ? read.search : current));
         }
         const url = new URL(window.location.href);
-        url.searchParams.delete(`${task}.page`);
-        url.searchParams.delete(`${task}.pageSize`);
+        url.searchParams.set(`${task}.page`, String(read.page));
+        url.searchParams.set(`${task}.pageSize`, String(read.pageSize));
         if (read.search) {
           url.searchParams.set(`${task}.search`, read.search);
         } else {
@@ -121,19 +115,13 @@ export function useTechnicianQueue(
     return load(
       {
         search: search.trim(),
-        after: null,
+        page: 1,
+        pageSize: entry.snapshot?.pageSize ?? DEFAULT_PAGE_SIZE,
         submittedDraft: replaceDraft ? draft : undefined,
       },
       notifyFailure,
     );
   }
-
-  const loadMore = useCallback(() => {
-    if (!entry.snapshot?.nextCursor || failed) {
-      return;
-    }
-    return load({ search: entry.search, after: entry.snapshot.nextCursor });
-  }, [entry, failed, load]);
 
   return {
     snapshot: entry.snapshot,
@@ -143,10 +131,21 @@ export function useTechnicianQueue(
     busy,
     ready,
     failed: Boolean(failed),
-    loadMore,
+    changePage: (page: number, pageSize: number) => load({ search: entry.search, page, pageSize }),
     submit: () => restart(draft, true, true),
     clear: () => restart("", true, true),
-    refresh: (notifyFailure = true) => restart(entry.search, notifyFailure),
+    refresh: (notifyFailure = true) => {
+      controller.current?.abort();
+      controller.current = null;
+      return load(
+        {
+          search: entry.search,
+          page: entry.snapshot?.page ?? 1,
+          pageSize: entry.snapshot?.pageSize ?? DEFAULT_PAGE_SIZE,
+        },
+        notifyFailure,
+      );
+    },
     retry: () => (failed ? load(failed) : restart(entry.search)),
   };
 }

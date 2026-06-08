@@ -50,7 +50,9 @@ export async function readUnscheduledWork(
       return data &&
         matchesScope(data, actor, filters) &&
         data.page === filters.page &&
-        data.pageSize === filters.pageSize
+        data.pageSize === filters.pageSize &&
+        data.total ===
+          data.counts[({ "": "all", Workshop: "workshop", Sale: "sale" } as const)[filters.kind]]
         ? data
         : null;
     },
@@ -66,7 +68,7 @@ function matchesScope(
   return (
     actorIdentity(data.actor) === actorIdentity(actor) &&
     data.branchId === (filters.branchId || actor.branchId) &&
-    data.employee === filters.employee.trim()
+    data.employee === ""
   );
 }
 
@@ -88,20 +90,12 @@ export function useWorkCalendarEntry(actor: CurrentActor, parameters: SearchPara
       filters.branchId = "";
     }
     if (actor.role !== "BranchManager" && actor.role !== "GeneralManager") {
-      filters.employee = "";
+      filters.assignment = "All";
+      filters.kind = "";
     }
-    const branchRequired = actor.role === "GeneralManager" && !filters.branchId;
     const [scheduled, unscheduled, branches] = await Promise.all([
-      branchRequired
-        ? null
-        : readScheduledWork(actor, filters, signal).catch(() =>
-            unavailable<WorkCalendarSnapshot>(),
-          ),
-      branchRequired
-        ? null
-        : readUnscheduledWork(actor, filters, signal).catch(() =>
-            unavailable<UnscheduledWorkPage>(),
-          ),
+      readScheduledWork(actor, filters, signal).catch(() => unavailable<WorkCalendarSnapshot>()),
+      readUnscheduledWork(actor, filters, signal).catch(() => unavailable<UnscheduledWorkPage>()),
       actor.role === "GeneralManager" ? readCalendarBranches(1, signal).catch(() => null) : null,
     ]);
     return { filters, scheduled, unscheduled, branches: branches?.data ?? null };

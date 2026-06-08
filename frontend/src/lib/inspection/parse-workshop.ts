@@ -1,6 +1,5 @@
 import { isPositiveInteger, isRecord, isUtcInstant, isUuid } from "@/lib/auth/contracts";
-import { parseCountedPage, parseItems } from "@/lib/api";
-import { isPageSize } from "@/lib/pagination";
+import { parseCountedPage, parsePage } from "@/lib/api";
 import { enumValue, money, nullableId, text } from "./parse";
 import { workshopStatuses, type WorkshopJobs, type WorkshopRow } from "./workshop-contracts";
 
@@ -49,29 +48,10 @@ const workshopCountKeys = ["active", "inspection", "approval", "repairs", "all"]
 export const parseWorkshopPage = (value: unknown) =>
   parseCountedPage(value, parseWorkshopRow, workshopCountKeys);
 
-const cursor = (value: unknown) =>
-  value === null || (typeof value === "string" && value.length > 0 && value.length <= 2048);
-
 export function parseWorkshopJobs(value: unknown): WorkshopJobs | null {
-  if (
-    !isRecord(value) ||
-    !Number.isSafeInteger(value.total) ||
-    Number(value.total) < 0 ||
-    !isPageSize(value.pageSize) ||
-    !cursor(value.after) ||
-    !cursor(value.nextCursor)
-  ) {
+  const page = parsePage(value, parseWorkshopRow);
+  if (!page || new Set(page.items.map((item) => item.vehicleId)).size !== page.items.length) {
     return null;
   }
-  const items = parseItems(value.items, parseWorkshopRow);
-  if (
-    !items ||
-    items.length > value.pageSize ||
-    items.length > Number(value.total) ||
-    new Set(items.map((item) => item.vehicleId)).size !== items.length ||
-    (value.nextCursor !== null && items.length !== value.pageSize)
-  ) {
-    return null;
-  }
-  return { ...value, items } as WorkshopJobs;
+  return page;
 }

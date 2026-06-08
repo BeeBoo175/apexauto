@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Dealership.Infrastructure.WorkCalendar;
 
-internal sealed record WorkCalendarReadScope(AccountUser Actor, Guid BranchId, string Employee)
+internal sealed record WorkCalendarReadScope(AccountUser Actor, Guid? BranchId, string Employee)
 {
     public CurrentActor CurrentActor => new(Actor.Id, Actor.Role, Actor.BranchId);
 
@@ -18,25 +18,29 @@ internal sealed record WorkCalendarReadScope(AccountUser Actor, Guid BranchId, s
         var actor = await database.Users.AsNoTracking().SingleOrDefaultAsync(user => user.Id == actorId && user.IsActive,
             cancellationToken);
         if (!query.IsValid || actor is null || actor.Role is not (AccountRoles.SalesAgent or
-            AccountRoles.WorkshopTechnician or AccountRoles.BranchManager or AccountRoles.GeneralManager))
+            AccountRoles.BranchManager or AccountRoles.GeneralManager))
         {
             return null;
         }
 
         var branchId = actor.Role == AccountRoles.GeneralManager ? query.BranchId : actor.BranchId;
-        if (branchId is null || actor.Role != AccountRoles.GeneralManager &&
-            query.BranchId is not null && query.BranchId != branchId ||
+        if (actor.Role != AccountRoles.GeneralManager && (branchId is null ||
+            query.BranchId is not null && query.BranchId != branchId))
+        {
+            return null;
+        }
+        if (branchId is not null &&
             !await database.Branches.AnyAsync(branch => branch.Id == branchId && branch.IsActive, cancellationToken))
         {
             return null;
         }
 
         // Employee refinements never replace an employee's own-work predicate.
-        if (actor.Role is AccountRoles.SalesAgent or AccountRoles.WorkshopTechnician && query.Employee.Length > 0)
+        if (actor.Role == AccountRoles.SalesAgent && query.Employee.Length > 0)
         {
             return null;
         }
 
-        return new(actor, branchId.Value, query.Employee);
+        return new(actor, branchId, query.Employee);
     }
 }

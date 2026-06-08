@@ -1,5 +1,4 @@
 using System.Data;
-using Dealership.Application.Accounts;
 using Dealership.Application.WorkCalendar;
 using Dealership.Domain.Common;
 using Dealership.Infrastructure.Persistence;
@@ -23,7 +22,7 @@ public sealed class WorkCalendarStore(DealershipDbContext database) : IWorkCalen
         var scope = await WorkCalendarReadScope.ResolveAsync(database, actorId, query.Scope, cancellationToken);
         if (scope is null)
         {
-            return new(await DeniedStatusAsync(actorId, query.Scope, cancellationToken));
+            return new(WorkCalendarReadStatus.Forbidden);
         }
 
         var items = await WorkCalendarScheduledRows.ReadAsync(database, scope, query, cancellationToken);
@@ -51,19 +50,11 @@ public sealed class WorkCalendarStore(DealershipDbContext database) : IWorkCalen
         var scope = await WorkCalendarReadScope.ResolveAsync(database, actorId, query.Scope, cancellationToken);
         if (scope is null)
         {
-            return new(await DeniedStatusAsync(actorId, query.Scope, cancellationToken));
+            return new(WorkCalendarReadStatus.Forbidden);
         }
 
         var page = await UnscheduledWorkRows.ReadAsync(database, scope, query, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return new(WorkCalendarReadStatus.Succeeded, page);
-    }
-
-    private async Task<WorkCalendarReadStatus> DeniedStatusAsync(Guid actorId, WorkCalendarScope query,
-        CancellationToken cancellationToken)
-    {
-        var branchRequired = query.BranchId is null && await database.Users.AsNoTracking().AnyAsync(user =>
-            user.Id == actorId && user.IsActive && user.Role == AccountRoles.GeneralManager, cancellationToken);
-        return branchRequired ? WorkCalendarReadStatus.BranchRequired : WorkCalendarReadStatus.Forbidden;
     }
 }

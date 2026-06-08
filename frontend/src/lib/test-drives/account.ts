@@ -6,16 +6,32 @@ import { parseTestDriveHistory, parseTestDriveHistoryItem } from "./customer";
 export type TestDriveHistory = NonNullable<ReturnType<typeof parseTestDriveHistory>>;
 export type TestDriveHistoryItem = NonNullable<ReturnType<typeof parseTestDriveHistoryItem>>;
 
+export interface TestDriveHistoryFilters extends HistoryFilters {
+  search: string;
+}
+
 export function accountTestDriveParams(params: SearchParams) {
-  return historyParams({
+  const query = historyParams({
     page: params.testDrivePage,
     from: params.testDriveFrom,
     to: params.testDriveTo,
   });
+  return {
+    ...query,
+    filters: {
+      ...query.filters,
+      search:
+        typeof params.testDriveSearch === "string" ? params.testDriveSearch.slice(0, 160) : "",
+    },
+  };
 }
 
-export function testDriveHistoryQuery(filters: HistoryFilters, page: number) {
-  return historyQuery(filters, page, ACCOUNT_PAGE_SIZE);
+export function testDriveHistoryQuery(filters: TestDriveHistoryFilters, page: number) {
+  const query = new URLSearchParams(historyQuery(filters, page, ACCOUNT_PAGE_SIZE));
+  if (filters.search.trim()) {
+    query.set("search", filters.search.trim());
+  }
+  return query.toString();
 }
 
 export const testDriveStatusLabels = {

@@ -38,8 +38,7 @@ public sealed record WorkshopQueuePage(IReadOnlyList<WorkshopQueueItem> Items, i
 
 public sealed record WorkshopQueueResult(InspectionAssignmentStatus Status, WorkshopQueuePage? Queue = null);
 
-public sealed record WorkshopJobs(IReadOnlyList<WorkshopQueueItem> Items, int Total, int PageSize,
-    string? After, string? NextCursor);
+public sealed record WorkshopJobs(IReadOnlyList<WorkshopQueueItem> Items, int Total, int Page, int PageSize);
 
 public sealed record WorkshopJobsResult(InspectionAssignmentStatus Status, WorkshopJobs? Queue = null);
 
@@ -49,5 +48,5 @@ public interface IWorkshopQueueStore
         WorkshopTask task, CancellationToken cancellationToken);
 
     Task<WorkshopJobsResult> ReadJobsAsync(Guid actorId, InspectionQueueFilter filter,
-        WorkshopTask task, string? after, CancellationToken cancellationToken);
+        WorkshopTask task, CancellationToken cancellationToken);
 }

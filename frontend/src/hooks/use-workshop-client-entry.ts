@@ -8,7 +8,6 @@ import { apiFetch } from "@/lib/api-browser";
 import { parsePage, type ApiResult } from "@/lib/api";
 import type { CurrentActor } from "@/lib/auth/actor";
 import { parseBranch } from "@/lib/branches";
-import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 import type { SearchParams } from "@/lib/query";
 import { inspectionFetch } from "@/lib/inspection/browser";
 import { parseEditor, type EditorSnapshot } from "@/lib/inspection/editor-snapshot";
@@ -18,6 +17,7 @@ import {
   queueParams,
   queueQuery,
   technicianQueueParams,
+  technicianQueuePaging,
   technicianQueueQuery,
   technicianQueueView,
   workshopSelection,
@@ -95,15 +95,13 @@ async function readTechnician(parameters: SearchParams, signal: AbortSignal) {
   const entries = await Promise.all(
     (["MyWork", "Waiting", "Claimable"] as const).map(async (task) => {
       const search = technicianQueueParams(parameters, task);
+      const { page, pageSize } = technicianQueuePaging(parameters, task);
       const initial = await inspectionFetch(
-        `workshop/jobs?${technicianQueueQuery(task, search)}`,
+        `workshop/jobs?${technicianQueueQuery(task, search, page, pageSize)}`,
         parseWorkshopJobs,
         { signal },
       );
-      if (
-        initial.data &&
-        (initial.data.after !== null || initial.data.pageSize !== DEFAULT_PAGE_SIZE)
-      ) {
+      if (initial.data && (initial.data.page !== page || initial.data.pageSize !== pageSize)) {
         throw new Error("Workshop jobs unavailable");
       }
       return { task, search, initial };

@@ -4,15 +4,19 @@ import { useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { privateApiFetch } from "@/lib/api-browser";
 import type { ApiResult } from "@/lib/api";
-import { dateRangeError, type HistoryFilters } from "@/lib/intake/list-query";
-import { testDriveHistoryQuery, type TestDriveHistory } from "@/lib/test-drives/account";
+import { dateRangeError } from "@/lib/intake/list-query";
+import {
+  testDriveHistoryQuery,
+  type TestDriveHistory,
+  type TestDriveHistoryFilters,
+} from "@/lib/test-drives/account";
 import { parseTestDriveHistory, parseTestDriveCancellation } from "@/lib/test-drives/customer";
 import { useInitialToast } from "./use-initial-toast";
 
 export function useAccountTestDrives(
   initial: ApiResult<TestDriveHistory>,
   initialPage: number,
-  initialFilters: HistoryFilters,
+  initialFilters: TestDriveHistoryFilters,
   actorId: string,
 ) {
   const [snapshot, setSnapshot] = useState(initial.data);
@@ -60,6 +64,7 @@ export function useAccountTestDrives(
       for (const [key, value] of [
         ["testDriveFrom", nextFilters.from],
         ["testDriveTo", nextFilters.to],
+        ["testDriveSearch", nextFilters.search.trim()],
       ]) {
         if (value) {
           url.searchParams.set(key, value);
