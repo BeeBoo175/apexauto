@@ -2,6 +2,39 @@
   color: var(--color-muted);
 }
 
+.adminTools {
+  display: flex;
+  flex-direction: column;
+}
+
+.adminTools a {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-block: 16px;
+  border-bottom: 1px solid var(--color-line-soft);
+  text-decoration: none;
+}
+
+.adminTools a:last-child {
+  border-bottom: 0;
+}
+
+.adminTools strong {
+  font-size: 16px;
+}
+
+.adminTools span {
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.adminTools a:hover strong {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
 .commandBar {
   position: sticky;
   top: 0;

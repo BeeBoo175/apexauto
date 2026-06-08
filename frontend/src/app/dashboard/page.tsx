@@ -5,6 +5,7 @@ import { actorDestination } from "@/lib/auth/actor";
 import { StaffNotice } from "@/components/staff/StaffPage";
 import { SessionCheckUnavailable } from "@/components/auth/SessionCheckUnavailable";
 import { StaffFrame } from "@/components/staff/StaffFrame";
+import { StaffLink } from "@/components/staff/StaffLink";
 import { LoadingProgressReady } from "@/components/ui/LoadingProgress";
 import styles from "@/components/staff/Staff.module.css";
 
@@ -31,10 +32,24 @@ export default async function DashboardPage() {
         snapshotId={crypto.randomUUID()}
       >
         <LoadingProgressReady />
-        <StaffNotice title="Your staff workspace">
+        <StaffNotice title="Administration">
           <p className={styles.noticeDescription}>
-            Administration tools arrive in a later slice. This role does not have intake access.
+            Manage dealership settings, promotions and warranty packages.
           </p>
+          <nav className={styles.adminTools} aria-label="Administration tools">
+            <StaffLink href="/dashboard/settings" prefetch={false}>
+              <strong>Settings</strong>
+              <span>Purchase fees, tax, discount limits and reservation duration</span>
+            </StaffLink>
+            <StaffLink href="/dashboard/settings?section=promos" prefetch={false}>
+              <strong>Promos</strong>
+              <span>Promotion codes, discounts and availability</span>
+            </StaffLink>
+            <StaffLink href="/dashboard/settings?section=warranties" prefetch={false}>
+              <strong>Warranty packages</strong>
+              <span>Package terms, coverage and prices</span>
+            </StaffLink>
+          </nav>
         </StaffNotice>
       </StaffActorBoundary>
     </StaffFrame>

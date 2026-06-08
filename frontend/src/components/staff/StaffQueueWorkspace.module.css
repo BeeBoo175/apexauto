@@ -129,17 +129,20 @@
   min-width: 0;
   min-height: 0;
   overflow-y: auto;
-  border-bottom: 1px solid var(--color-line);
 }
 
-.continuation {
-  display: grid;
-  justify-items: start;
-  gap: 12px;
-  padding: 16px;
-  font-size: 13px;
-  border-top: 1px solid var(--color-line-soft);
-  color: var(--color-muted);
+.queueFooter {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  flex-shrink: 0;
+  background: var(--color-paper);
+}
+
+.queueFooter > nav {
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 16px;
 }
 
 .search {
@@ -253,7 +256,7 @@
   }
 
   .columns[data-selected="true"] .queue[data-expanded="true"] .queueBody {
-    overflow-y: auto;
+    overflow: hidden;
   }
 
   .columns[data-selected="true"] .queue[data-expanded="true"] .list {
