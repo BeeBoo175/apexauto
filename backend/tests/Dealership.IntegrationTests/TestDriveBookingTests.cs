@@ -113,7 +113,7 @@ public sealed class TestDriveBookingTests(IntakePhotoFixture fixture) : IClassFi
         await TestDriveCancellationAssertions.VerifyAsync(data.Factory, fixture, database, receipt, request, other, manager);
         using var terminalScope = data.Factory.Services.CreateScope();
         var terminal = await terminalScope.ServiceProvider.GetRequiredService<TestDriveAssignmentService>()
-            .ExecuteAsync(manager, receipt.Id, TestDriveAssignmentKind.Released,
+            .ExecuteAsync(manager, receipt.Id, WorkOwnershipKind.Released,
                 new(Guid.NewGuid(), await database.TestDriveAssignments.Where(item => item.BookingId == receipt.Id)
                     .MaxAsync(item => item.Version)), default);
         Assert.Equal(TestDriveAssignmentStatus.Unavailable, terminal.Status);

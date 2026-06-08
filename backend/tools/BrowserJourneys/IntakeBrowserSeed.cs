@@ -78,7 +78,7 @@ internal static class IntakeBrowserSeed
             var staff = DevelopmentFixtureManifest.Staff.Single(item => item.BranchId == branch.Id &&
                 item.Role == AccountRoles.SalesAgent);
             var claimed = await services.GetRequiredService<AppointmentAssignmentService>()
-                .ExecuteAsync(staff.Id, result.Receipt!.Id, AppointmentAssignmentKind.Claimed,
+                .ExecuteAsync(staff.Id, result.Receipt!.Id, WorkOwnershipKind.Claimed,
                     new(Guid.NewGuid(), 0), CancellationToken.None);
             if (claimed.Status != AppointmentAssignmentStatus.Succeeded || claimed.Current?.HandlerId != staff.Id)
             {

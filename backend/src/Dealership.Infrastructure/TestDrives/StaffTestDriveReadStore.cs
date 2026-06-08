@@ -119,10 +119,7 @@ public sealed class StaffTestDriveReadStore(DealershipDbContext database) : ISta
             return new(TestDriveReadStatus.NotFound);
         }
 
-        var handlers = await database.Users.AsNoTracking().Where(user => user.IsActive && user.BranchId == actor.BranchId &&
-                (user.Role == AccountRoles.SalesAgent || user.Role == AccountRoles.BranchManager))
-            .OrderBy(user => user.Email).ThenBy(user => user.Id)
-            .Select(user => new TestDriveHandler(user.Id, user.Email ?? string.Empty)).ToArrayAsync(cancellationToken);
+        var handlers = await StaffHandlerRows.ReadAsync(database, actor.BranchId, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return new(TestDriveReadStatus.Succeeded, new(actor, handlers));
     }

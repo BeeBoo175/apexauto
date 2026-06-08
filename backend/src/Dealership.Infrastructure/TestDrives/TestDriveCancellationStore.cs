@@ -32,7 +32,7 @@ public sealed class TestDriveCancellationStore(DealershipDbContext database, Mai
 
             var existing = await database.TestDriveCancellations.AsNoTracking()
                 .SingleOrDefaultAsync(item => item.Id == operationId, cancellationToken);
-            var staff = new TestDriveStaff(actor.IsActive, actor.Role, actor.BranchId);
+            var staff = new BranchStaff(actor.IsActive, actor.Role, actor.BranchId);
             if (existing is not null && customerCommand)
             {
                 return new TestDriveCancellationTransaction(database, transaction, mail,

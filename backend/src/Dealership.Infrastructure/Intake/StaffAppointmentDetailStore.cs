@@ -28,10 +28,7 @@ public sealed class StaffAppointmentDetailStore(DealershipDbContext database) : 
             return new(StaffAppointmentDetailStatus.NotFound);
         }
 
-        var handlers = await database.Users.AsNoTracking().Where(user => user.IsActive && user.BranchId == branchId &&
-                (user.Role == AccountRoles.SalesAgent || user.Role == AccountRoles.BranchManager))
-            .OrderBy(user => user.Email).ThenBy(user => user.Id)
-            .Select(user => new AppointmentHandler(user.Id, user.Email ?? string.Empty)).ToArrayAsync(cancellationToken);
+        var handlers = await StaffHandlerRows.ReadAsync(database, branchId, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return new(StaffAppointmentDetailStatus.Succeeded, handlers);
     }
@@ -108,15 +105,15 @@ public sealed class StaffAppointmentDetailStore(DealershipDbContext database) : 
         var assignment = await database.AppointmentAssignments.AsNoTracking()
             .Where(item => item.AppointmentId == appointmentId).OrderByDescending(item => item.Version)
             .FirstOrDefaultAsync(cancellationToken);
-        var handler = assignment?.HandlerId is not { } handlerId ? null
+        var handlerEmail = assignment?.HandlerId is not { } handlerId ? null
             : await database.Users.AsNoTracking().Where(user => user.Id == handlerId)
-                .Select(user => new { user.Email, user.IsActive, user.Role, user.BranchId })
+                .Select(user => user.Email)
                 .SingleOrDefaultAsync(cancellationToken);
-        var handlerEligible = handler is { IsActive: true } && handler.BranchId == row.BranchId &&
-            handler.Role is AccountRoles.SalesAgent or AccountRoles.BranchManager &&
-            await database.Branches.AnyAsync(branch => branch.Id == row.BranchId && branch.IsActive, cancellationToken);
+        var handlerEligible = assignment?.HandlerId is { } currentHandlerId &&
+            await StaffHandlerRows.Eligible(database).AnyAsync(user =>
+                user.Id == currentHandlerId && user.BranchId == row.BranchId, cancellationToken);
         var ownership = assignment is null ? null
-            : new AppointmentOwnership(assignment.Version, assignment.HandlerId, handler?.Email, handlerEligible,
+            : new AppointmentOwnership(assignment.Version, assignment.HandlerId, handlerEmail, handlerEligible,
                 assignment.ActorId, assignment.Kind, assignment.RecordedAt, assignment.Reason);
         var detail = new StaffAppointmentDetail(row.Id, row.BranchId, row.BranchName, row.CustomerName,
             row.RegistrationPlate, row.StartsAt, row.EndsAt, status, row.Make, row.Model, row.Trim,

@@ -1,3 +1,4 @@
+using Dealership.Application.Accounts;
 using Dealership.Application.Intake;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -14,6 +15,7 @@ public sealed class AppointmentAssignmentStore(DealershipDbContext database) : I
         {
             await database.Database.ExecuteSqlInterpolatedAsync(
                 $"SELECT pg_advisory_xact_lock(hashtextextended({"intake-assignment:" + request.OperationId}, 0))", cancellationToken);
+            // Check-in and cancellation share this record fence independently of the assignment receipt key.
             await database.Database.ExecuteSqlInterpolatedAsync(
                 $"SELECT pg_advisory_xact_lock(hashtextextended({"appointment:" + appointmentId}, 0))", cancellationToken);
             var users = await database.Users.FromSqlInterpolated($"""
@@ -39,8 +41,8 @@ public sealed class AppointmentAssignmentStore(DealershipDbContext database) : I
                 .FirstOrDefaultAsync(cancellationToken);
             var checkedIn = await database.AppointmentCheckIns.AnyAsync(item => item.AppointmentId == appointmentId, cancellationToken);
             var context = new AppointmentAssignmentContext(appointment,
-                actor is null ? null : new CheckInStaff(actor.IsActive, actor.Role, actor.BranchId),
-                handler is null ? null : new CheckInStaff(handler.IsActive, handler.Role, handler.BranchId),
+                actor is null ? null : new BranchStaff(actor.IsActive, actor.Role, actor.BranchId),
+                handler is null ? null : new BranchStaff(handler.IsActive, handler.Role, handler.BranchId),
                 branchActive, checkedIn, existing, current);
             return new AppointmentAssignmentTransaction(database, transaction, context);
         }

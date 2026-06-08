@@ -89,7 +89,7 @@ public sealed class TestDriveHandlingTests
         var claim = Claim(booking);
         var start = Start(booking, claim);
         var replacement = Guid.NewGuid();
-        var handoff = new TestDriveAssignment(Guid.NewGuid(), booking, Guid.NewGuid(), TestDriveAssignmentKind.Assigned,
+        var handoff = new TestDriveAssignment(Guid.NewGuid(), booking, Guid.NewGuid(), WorkOwnershipKind.Assigned,
             replacement, claim, "Original handler unavailable", start.StartedAt.AddDays(2));
         var outcome = Outcome(booking, handoff, start, TestDriveOutcomeKind.Completed, null, null, handoff.RecordedAt);
 
@@ -178,7 +178,7 @@ public sealed class TestDriveHandlingTests
     private static TestDriveAssignment Claim(TestDriveBooking booking)
     {
         var staffId = Guid.NewGuid();
-        return new(Guid.NewGuid(), booking, staffId, TestDriveAssignmentKind.Claimed,
+        return new(Guid.NewGuid(), booking, staffId, WorkOwnershipKind.Claimed,
             staffId, null, null, booking.CreatedAt);
     }
 

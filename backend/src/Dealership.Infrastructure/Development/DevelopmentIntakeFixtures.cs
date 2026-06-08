@@ -178,7 +178,7 @@ public sealed class DevelopmentIntakeFixtures(DealershipDbContext database, Deve
         var staffId = DevelopmentFixtureManifest.Staff.Single(item =>
             item.BranchId == appointment.BranchId && item.Role == AccountRoles.SalesAgent).Id;
         database.AppointmentAssignments.Add(new AppointmentAssignment(Guid.NewGuid(), appointment, staffId,
-            AppointmentAssignmentKind.Claimed, staffId, null, null, moment.TransitionAt!.Value));
+            WorkOwnershipKind.Claimed, staffId, null, null, moment.TransitionAt!.Value));
         // Admission must observe the claim before the terminal check-in, even within this snapshot transaction.
         await database.SaveChangesAsync(cancellationToken);
         var checkIn = new AppointmentCheckIn(Guid.NewGuid(), appointment, staffId,

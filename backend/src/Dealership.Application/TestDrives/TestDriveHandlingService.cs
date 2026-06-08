@@ -1,3 +1,4 @@
+using Dealership.Domain.Common;
 using Dealership.Application.Accounts;
 using Dealership.Domain.TestDrives;
 
@@ -84,7 +85,7 @@ public sealed class TestDriveHandlingService(ITestDriveHandlingStore handling)
         {
             request = request with
             {
-                Reason = TestDriveAssignment.NormalizeReason(request.Reason),
+                Reason = WorkOwnership.NormalizeReason(request.Reason),
                 Notes = TestDriveOutcome.NormalizeNotes(request.Notes)
             };
         }

@@ -1,3 +1,4 @@
+using Dealership.Application.Accounts;
 using Dealership.Domain.TestDrives;
 
 namespace Dealership.Application.TestDrives;
@@ -17,7 +18,7 @@ public sealed record TestDriveCancellationResult(TestDriveCancellationStatus Sta
 
 public sealed record TestDriveCancellationContext(TestDriveCancellationStatus Status, DateTimeOffset Now,
     TestDriveBooking? Booking = null, TestDriveCancellation? Existing = null, bool Cancelled = false,
-    TestDriveStaff? Actor = null, bool BranchActive = false, TestDriveAssignment? Current = null,
+    BranchStaff? Actor = null, bool BranchActive = false, TestDriveAssignment? Current = null,
     bool Started = false, bool Completed = false);
 
 public interface ITestDriveCancellationTransaction : IAsyncDisposable

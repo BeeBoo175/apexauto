@@ -1,3 +1,4 @@
+using Dealership.Domain.Common;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -29,7 +30,7 @@ public sealed class AppointmentAssignmentTests(IntakePhotoFixture fixture) : ICl
         var claims = new[] { data.StaffId, second }.Select(actor =>
             (Actor: actor, Request: new AppointmentAssignmentRequest(Guid.NewGuid(), 0))).ToArray();
         var results = await Task.WhenAll(claims.Select(claim => ExecuteAsync(data.Factory, claim.Actor,
-            appointment.Id, AppointmentAssignmentKind.Claimed, claim.Request)));
+            appointment.Id, WorkOwnershipKind.Claimed, claim.Request)));
         var winner = Array.FindIndex(results, result => result.Status == AppointmentAssignmentStatus.Succeeded);
         Assert.Single(results, result => result.Status == AppointmentAssignmentStatus.Succeeded);
         var lost = Assert.Single(results, result => result.Status == AppointmentAssignmentStatus.Conflict);
@@ -38,34 +39,34 @@ public sealed class AppointmentAssignmentTests(IntakePhotoFixture fixture) : ICl
         var replacement = claims[1 - winner].Actor;
         var request = new AppointmentAssignmentRequest(Guid.NewGuid(), 1, replacement, "  Cover customer arrival  ");
         Assert.Equal(AppointmentAssignmentStatus.Forbidden,
-            (await ExecuteAsync(data.Factory, replacement, appointment.Id, AppointmentAssignmentKind.Assigned, request)).Status);
-        var assigned = await ExecuteAsync(data.Factory, manager, appointment.Id, AppointmentAssignmentKind.Assigned, request);
+            (await ExecuteAsync(data.Factory, replacement, appointment.Id, WorkOwnershipKind.Assigned, request)).Status);
+        var assigned = await ExecuteAsync(data.Factory, manager, appointment.Id, WorkOwnershipKind.Assigned, request);
         Assert.Equal(AppointmentAssignmentStatus.Succeeded, assigned.Status);
         Assert.Equal(claimed.HandlerId, assigned.Receipt!.PreviousHandlerId);
         Assert.Equal("Cover customer arrival", assigned.Receipt.Reason);
         using var restarted = fixture.CreateFactory();
         var replay = await ExecuteAsync(restarted, claims[winner].Actor, appointment.Id,
-            AppointmentAssignmentKind.Claimed, claims[winner].Request);
+            WorkOwnershipKind.Claimed, claims[winner].Request);
         Assert.Equal(claimed.Id, replay.Receipt!.Id);
         Assert.Equal(claimed.RecordedAt, replay.Receipt.RecordedAt);
         Assert.Equal(replacement, replay.Current!.HandlerId);
         Assert.Equal(AppointmentAssignmentStatus.Conflict, (await ExecuteAsync(restarted, manager, appointment.Id,
-            AppointmentAssignmentKind.Assigned, request with { Reason = "Different handover" })).Status);
+            WorkOwnershipKind.Assigned, request with { Reason = "Different handover" })).Status);
         Assert.Equal(AppointmentAssignmentStatus.Forbidden, (await ExecuteAsync(restarted, claims[winner].Actor,
-            appointment.Id, AppointmentAssignmentKind.Released, new(Guid.NewGuid(), 2))).Status);
+            appointment.Id, WorkOwnershipKind.Released, new(Guid.NewGuid(), 2))).Status);
         var released = await ExecuteAsync(restarted, replacement, appointment.Id,
-            AppointmentAssignmentKind.Released, new(Guid.NewGuid(), 2));
+            WorkOwnershipKind.Released, new(Guid.NewGuid(), 2));
         Assert.Equal(AppointmentAssignmentStatus.Succeeded, released.Status);
         Assert.Null(released.Receipt!.HandlerId);
         var reclaimed = await ExecuteAsync(restarted, manager, appointment.Id,
-            AppointmentAssignmentKind.Claimed, new(Guid.NewGuid(), 3));
+            WorkOwnershipKind.Claimed, new(Guid.NewGuid(), 3));
         Assert.Equal(AppointmentAssignmentStatus.Succeeded, reclaimed.Status);
 
         var database = services.GetRequiredService<DealershipDbContext>();
         await database.Users.Where(user => user.Id == manager).ExecuteUpdateAsync(update => update.SetProperty(user => user.IsActive, false));
         Assert.Equal(manager, (await database.AppointmentAssignments.OrderByDescending(item => item.Version).FirstAsync()).HandlerId);
         Assert.Equal(AppointmentAssignmentStatus.Forbidden, (await ExecuteAsync(restarted, manager,
-            appointment.Id, AppointmentAssignmentKind.Claimed, new(claimed.Id, 0))).Status);
+            appointment.Id, WorkOwnershipKind.Claimed, new(claimed.Id, 0))).Status);
         await database.Users.Where(user => user.Id == manager).ExecuteUpdateAsync(update => update.SetProperty(user => user.IsActive, true));
         await AssertSqlGuardsAsync(claimed, manager, replacement);
         await AssertTerminalAndIneligibleAsync(data, manager);
@@ -81,10 +82,10 @@ public sealed class AppointmentAssignmentTests(IntakePhotoFixture fixture) : ICl
         await data.ClaimAsync(appointment.Id);
         Assert.Equal(CheckInStatus.Forbidden, (await CheckInAsync(data, manager, appointment.Id)).Status);
         Assert.Equal(AppointmentAssignmentStatus.Succeeded, (await ExecuteAsync(data.Factory, manager, appointment.Id,
-            AppointmentAssignmentKind.Assigned, new(Guid.NewGuid(), 1, manager, "Handle customer arrival"))).Status);
+            WorkOwnershipKind.Assigned, new(Guid.NewGuid(), 1, manager, "Handle customer arrival"))).Status);
         Assert.Equal(CheckInStatus.Forbidden, (await CheckInAsync(data, data.StaffId, appointment.Id)).Status);
         Assert.Equal(AppointmentAssignmentStatus.Succeeded, (await ExecuteAsync(data.Factory, manager, appointment.Id,
-            AppointmentAssignmentKind.Released, new(Guid.NewGuid(), 2))).Status);
+            WorkOwnershipKind.Released, new(Guid.NewGuid(), 2))).Status);
         Assert.Equal(CheckInStatus.Forbidden, (await CheckInAsync(data, manager, appointment.Id)).Status);
 
         using var scope = data.Factory.Services.CreateScope();
@@ -94,13 +95,13 @@ public sealed class AppointmentAssignmentTests(IntakePhotoFixture fixture) : ICl
         Assert.False(await database.AppointmentMailOutbox.AnyAsync(item =>
             item.AppointmentId == appointment.Id && item.Kind == Dealership.Infrastructure.Intake.AppointmentMailKind.CheckIn));
         Assert.Equal(AppointmentAssignmentStatus.Succeeded, (await ExecuteAsync(data.Factory, manager, appointment.Id,
-            AppointmentAssignmentKind.Claimed, new(Guid.NewGuid(), 3))).Status);
+            WorkOwnershipKind.Claimed, new(Guid.NewGuid(), 3))).Status);
         var checkedIn = await CheckInAsync(data, manager, appointment.Id);
         Assert.Equal(CheckInStatus.Succeeded, checkedIn.Status);
         Assert.Equal(manager, checkedIn.Receipt!.StaffId);
         Assert.Equal(checkedIn.Receipt, (await CheckInAsync(data, data.StaffId, appointment.Id)).Receipt);
         Assert.Equal(AppointmentAssignmentStatus.Unavailable, (await ExecuteAsync(data.Factory, manager, appointment.Id,
-            AppointmentAssignmentKind.Released, new(Guid.NewGuid(), 4))).Status);
+            WorkOwnershipKind.Released, new(Guid.NewGuid(), 4))).Status);
         await AssertCheckInHandoffRaceAsync(data, manager);
     }
 
@@ -110,7 +111,7 @@ public sealed class AppointmentAssignmentTests(IntakePhotoFixture fixture) : ICl
         await data.ClaimAsync(appointment.Id);
         var evidence = CheckInTestData.Evidence with { Vin = "PL1BT65R84B123457" };
         var arrival = CheckInAsync(data, data.StaffId, appointment.Id, evidence);
-        var handoff = ExecuteAsync(data.Factory, manager, appointment.Id, AppointmentAssignmentKind.Assigned,
+        var handoff = ExecuteAsync(data.Factory, manager, appointment.Id, WorkOwnershipKind.Assigned,
             new(Guid.NewGuid(), 1, manager, "Cover customer arrival"));
         await Task.WhenAll(arrival, handoff);
         if (arrival.Result.Status == CheckInStatus.Succeeded)
@@ -248,15 +249,15 @@ public sealed class AppointmentAssignmentTests(IntakePhotoFixture fixture) : ICl
         var group = await ProvisionAsync(services, null, AccountRoles.GeneralManager);
         var database = services.GetRequiredService<DealershipDbContext>();
         Assert.Equal(AppointmentAssignmentStatus.Forbidden, (await ExecuteAsync(data.Factory, group, appointment.Id,
-            AppointmentAssignmentKind.Claimed, new(Guid.NewGuid(), 0))).Status);
+            WorkOwnershipKind.Claimed, new(Guid.NewGuid(), 0))).Status);
         await database.Users.Where(user => user.Id == data.StaffId).ExecuteUpdateAsync(update => update.SetProperty(user => user.IsActive, false));
         Assert.Equal(AppointmentAssignmentStatus.Unavailable, (await ExecuteAsync(data.Factory, manager, appointment.Id,
-            AppointmentAssignmentKind.Assigned, new(Guid.NewGuid(), 0, data.StaffId))).Status);
+            WorkOwnershipKind.Assigned, new(Guid.NewGuid(), 0, data.StaffId))).Status);
         await database.Users.Where(user => user.Id == data.StaffId).ExecuteUpdateAsync(update => update.SetProperty(user => user.IsActive, true));
         Assert.Equal(CancellationStatus.Succeeded, (await services.GetRequiredService<AppointmentCancellationService>()
             .CancelAsync(data.OwnerId, appointment.Id, CancellationToken.None)).Status);
         Assert.Equal(AppointmentAssignmentStatus.Unavailable, (await ExecuteAsync(data.Factory, data.StaffId, appointment.Id,
-            AppointmentAssignmentKind.Claimed, new(Guid.NewGuid(), 0))).Status);
+            WorkOwnershipKind.Claimed, new(Guid.NewGuid(), 0))).Status);
         Assert.False(await database.AppointmentAssignments.AnyAsync(item => item.AppointmentId == appointment.Id));
     }
 

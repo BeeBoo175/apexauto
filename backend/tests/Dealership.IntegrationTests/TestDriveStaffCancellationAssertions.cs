@@ -1,3 +1,4 @@
+using Dealership.Domain.Common;
 using System.Text.Json;
 using Dealership.Application.Accounts;
 using Dealership.Application.TestDrives;
@@ -62,9 +63,9 @@ internal static class TestDriveStaffCancellationAssertions
 
         var assignments = setup.ServiceProvider.GetRequiredService<TestDriveAssignmentService>();
         Assert.Equal(TestDriveAssignmentStatus.Succeeded, (await assignments.ExecuteAsync(agent, booking.Id,
-            TestDriveAssignmentKind.Claimed, new(Guid.NewGuid(), 0), default)).Status);
+            WorkOwnershipKind.Claimed, new(Guid.NewGuid(), 0), default)).Status);
         Assert.Equal(TestDriveAssignmentStatus.Succeeded, (await assignments.ExecuteAsync(manager, booking.Id,
-            TestDriveAssignmentKind.Assigned, new(Guid.NewGuid(), 1, nextAgent, "Cover customer arrival"), default)).Status);
+            WorkOwnershipKind.Assigned, new(Guid.NewGuid(), 1, nextAgent, "Cover customer arrival"), default)).Status);
         Assert.Equal(TestDriveCancellationStatus.Forbidden,
             (await CancelAsync(agent, Guid.NewGuid(), "Customer cannot attend")).Status);
         var formerHandler = await Assert.ThrowsAsync<PostgresException>(() => InsertAsync(agent, "Customer cannot attend"));

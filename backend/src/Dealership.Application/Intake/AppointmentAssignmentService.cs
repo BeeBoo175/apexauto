@@ -17,18 +17,15 @@ public sealed class AppointmentAssignmentService(IAppointmentAssignmentStore ass
 
         try
         {
-            request = request with { Reason = AppointmentAssignment.NormalizeReason(request.Reason) };
+            request = request with { Reason = WorkOwnership.NormalizeReason(request.Reason) };
         }
         catch (ArgumentException)
         {
             return new(AppointmentAssignmentStatus.Invalid);
         }
 
-        var handlerId = kind == AppointmentAssignmentKind.Claimed ? actorId : request.HandlerId;
-        if (kind is not (AppointmentAssignmentKind.Claimed or AppointmentAssignmentKind.Assigned or AppointmentAssignmentKind.Released) ||
-            kind == AppointmentAssignmentKind.Claimed && (request.HandlerId is not null || request.Reason is not null) ||
-            kind == AppointmentAssignmentKind.Assigned && handlerId is null ||
-            kind == AppointmentAssignmentKind.Released && handlerId is not null)
+        var handlerId = kind == WorkOwnershipKind.Claimed ? actorId : request.HandlerId;
+        if (!WorkOwnership.IsRequestValid(kind, request.HandlerId, request.Reason))
         {
             return new(AppointmentAssignmentStatus.Invalid);
         }
@@ -39,7 +36,7 @@ public sealed class AppointmentAssignmentService(IAppointmentAssignmentStore ass
         var actor = context.Actor;
         if (actor is not { IsActive: true, BranchId: not null } || !context.BranchActive ||
             actor.Role is not (AccountRoles.SalesAgent or AccountRoles.BranchManager) ||
-            kind == AppointmentAssignmentKind.Assigned && actor.Role != AccountRoles.BranchManager)
+            kind == WorkOwnershipKind.Assigned && actor.Role != AccountRoles.BranchManager)
         {
             return new(AppointmentAssignmentStatus.Forbidden);
         }
@@ -66,7 +63,7 @@ public sealed class AppointmentAssignmentService(IAppointmentAssignmentStore ass
             return new(AppointmentAssignmentStatus.Conflict, Current: current);
         }
 
-        if (kind == AppointmentAssignmentKind.Released && actor.Role == AccountRoles.SalesAgent &&
+        if (kind == WorkOwnershipKind.Released && actor.Role == AccountRoles.SalesAgent &&
             current?.HandlerId != actorId)
         {
             return new(AppointmentAssignmentStatus.Forbidden);
@@ -78,9 +75,7 @@ public sealed class AppointmentAssignmentService(IAppointmentAssignmentStore ass
             return new(AppointmentAssignmentStatus.Unavailable, Current: current);
         }
 
-        if (handlerId is not null && (context.Handler is not { IsActive: true } handler ||
-            handler.BranchId != appointment.BranchId ||
-            handler.Role is not (AccountRoles.SalesAgent or AccountRoles.BranchManager)))
+        if (handlerId is not null && context.Handler?.CanHandle(appointment.BranchId) != true)
         {
             return new(AppointmentAssignmentStatus.Unavailable, Current: current);
         }

@@ -1,3 +1,5 @@
+using Dealership.Domain.Common;
+
 namespace Dealership.Domain.TestDrives;
 
 public static class TestDriveCancellationKind
@@ -69,11 +71,7 @@ public sealed class TestDriveCancellation
 
     public static string NormalizeReason(string reason)
     {
-        if (string.IsNullOrWhiteSpace(reason) || reason.Trim().Length > 1000 || reason.Any(char.IsControl))
-        {
-            throw new ArgumentException("Cancellation requires a reason of up to 1000 non-control characters.");
-        }
-
-        return reason.Trim();
+        return BoundedText.NormalizeRequired(reason,
+            "Cancellation requires a reason of up to 1000 non-control characters.");
     }
 }

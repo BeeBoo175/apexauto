@@ -20,7 +20,7 @@ public sealed class TestDriveOutcome
     {
         ArgumentNullException.ThrowIfNull(booking);
         ArgumentNullException.ThrowIfNull(assignment);
-        reason = TestDriveAssignment.NormalizeReason(reason);
+        reason = WorkOwnership.NormalizeReason(reason);
         notes = NormalizeNotes(notes);
         if (id == Guid.Empty || staffId == Guid.Empty || assignment.BookingId != booking.Id ||
             assignment.BranchId != booking.BranchId || assignment.HandlerId != staffId ||
@@ -73,17 +73,7 @@ public sealed class TestDriveOutcome
 
     public static string? NormalizeNotes(string? notes)
     {
-        if (notes is null)
-        {
-            return null;
-        }
-
-        notes = notes.Trim();
-        if (notes.Length is < 1 or > 1000 || notes.Any(char.IsControl))
-        {
-            throw new ArgumentException("Outcome notes require up to 1000 non-control characters.");
-        }
-
-        return notes;
+        return BoundedText.NormalizeOptional(notes,
+            "Outcome notes require up to 1000 non-control characters.");
     }
 }

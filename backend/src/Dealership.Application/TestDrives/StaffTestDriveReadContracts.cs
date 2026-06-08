@@ -56,9 +56,7 @@ public sealed record TestDriveStartView(Guid Id, Guid BookingId, Guid Assignment
 public sealed record TestDriveOutcomeView(Guid Id, Guid BookingId, Guid AssignmentId, Guid StaffId,
     Guid? StartId, string Kind, bool CustomerPresent, string? Reason, string? Notes, DateTimeOffset EndedAt);
 
-public sealed record TestDriveHandler(Guid Id, string Email);
-
-public sealed record TestDriveHandlers(CurrentActor Actor, IReadOnlyList<TestDriveHandler> Items);
+public sealed record TestDriveHandlers(CurrentActor Actor, IReadOnlyList<StaffHandler> Items);
 
 public sealed record StaffTestDriveReadResult<T>(TestDriveReadStatus Status, T? Value = default);
 

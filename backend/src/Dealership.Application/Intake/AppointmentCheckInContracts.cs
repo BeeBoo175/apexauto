@@ -1,3 +1,4 @@
+using Dealership.Application.Accounts;
 using Dealership.Domain.Intake;
 using Dealership.Domain.Vehicles;
 
@@ -23,11 +24,9 @@ public enum CheckInStatus
 
 public sealed record CheckInResult(CheckInStatus Status, CheckInReceipt? Receipt = null);
 
-public sealed record CheckInStaff(bool IsActive, string Role, Guid? BranchId);
-
 public sealed record CheckInCustomer(bool IsActive, bool EmailConfirmed, string Role);
 
-public sealed record CheckInContext(IntakeAppointment? Appointment, CheckInStaff? Staff,
+public sealed record CheckInContext(IntakeAppointment? Appointment, BranchStaff? Staff,
     CheckInCustomer? Customer, bool BranchActive, AppointmentCheckIn? Existing, Guid? HandlerId);
 
 public sealed record CheckInPhotoCandidate(Guid Id, DateTimeOffset? AvailableAt, bool RemovalPending);

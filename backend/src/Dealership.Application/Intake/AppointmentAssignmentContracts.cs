@@ -1,3 +1,4 @@
+using Dealership.Application.Accounts;
 using Dealership.Domain.Intake;
 
 namespace Dealership.Application.Intake;
@@ -19,8 +20,8 @@ public enum AppointmentAssignmentStatus
 public sealed record AppointmentAssignmentResult(AppointmentAssignmentStatus Status,
     AppointmentAssignment? Receipt = null, AppointmentAssignment? Current = null);
 
-public sealed record AppointmentAssignmentContext(IntakeAppointment? Appointment, CheckInStaff? Actor,
-    CheckInStaff? Handler, bool BranchActive, bool CheckedIn, AppointmentAssignment? Existing,
+public sealed record AppointmentAssignmentContext(IntakeAppointment? Appointment, BranchStaff? Actor,
+    BranchStaff? Handler, bool BranchActive, bool CheckedIn, AppointmentAssignment? Existing,
     AppointmentAssignment? Current);
 
 public interface IAppointmentAssignmentStore

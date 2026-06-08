@@ -86,7 +86,7 @@ public sealed class DevelopmentTestDriveVolumeFixtures(DealershipDbContext datab
             .OrderByDescending(item => item.Version).FirstOrDefaultAsync(cancellationToken);
         if (ownership is null && scenario.Queue != "ToClaim" && seed)
         {
-            await assignments.ExecuteAsync(handlerId, bookingId, TestDriveAssignmentKind.Claimed,
+            await assignments.ExecuteAsync(handlerId, bookingId, WorkOwnershipKind.Claimed,
                 new(scenario.OperationId("claim"), 0), cancellationToken);
             ownership = await database.TestDriveAssignments.AsNoTracking().Where(item => item.BookingId == bookingId)
                 .OrderByDescending(item => item.Version).FirstOrDefaultAsync(cancellationToken);
@@ -95,7 +95,7 @@ public sealed class DevelopmentTestDriveVolumeFixtures(DealershipDbContext datab
         var expectedHandler = scenario.Queue == "ToClaim" ? (Guid?)null : handlerId;
         var matches = ownership?.HandlerId == expectedHandler && (ownership is null ||
             ownership.Id == scenario.OperationId("claim") && ownership.Version == 1 && ownership.ActorId == handlerId &&
-            ownership.Kind == TestDriveAssignmentKind.Claimed);
+            ownership.Kind == WorkOwnershipKind.Claimed);
         if (!matches)
         {
             return new(label, "ownership missing/drift; preserved", true);

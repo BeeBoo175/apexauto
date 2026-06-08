@@ -1,8 +1,7 @@
+using Dealership.Application.Accounts;
 using Dealership.Domain.TestDrives;
 
 namespace Dealership.Application.TestDrives;
-
-public sealed record TestDriveStaff(bool IsActive, string Role, Guid? BranchId);
 
 public sealed record TestDriveAssignmentRequest(Guid OperationId, long ExpectedVersion,
     Guid? HandlerId = null, string? Reason = null);
@@ -21,8 +20,8 @@ public enum TestDriveAssignmentStatus
 public sealed record TestDriveAssignmentResult(TestDriveAssignmentStatus Status,
     TestDriveAssignment? Receipt = null, TestDriveAssignment? Current = null);
 
-public sealed record TestDriveAssignmentContext(TestDriveBooking? Booking, TestDriveStaff? Actor,
-    TestDriveStaff? Handler, bool BranchActive, bool Cancelled, TestDriveAssignment? Existing,
+public sealed record TestDriveAssignmentContext(TestDriveBooking? Booking, BranchStaff? Actor,
+    BranchStaff? Handler, bool BranchActive, bool Cancelled, TestDriveAssignment? Existing,
     TestDriveAssignment? Current, bool Started = false, bool Completed = false);
 
 public interface ITestDriveAssignmentStore

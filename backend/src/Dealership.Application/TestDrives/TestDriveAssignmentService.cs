@@ -17,18 +17,15 @@ public sealed class TestDriveAssignmentService(ITestDriveAssignmentStore assignm
 
         try
         {
-            request = request with { Reason = TestDriveAssignment.NormalizeReason(request.Reason) };
+            request = request with { Reason = WorkOwnership.NormalizeReason(request.Reason) };
         }
         catch (ArgumentException)
         {
             return new(TestDriveAssignmentStatus.Invalid);
         }
 
-        var handlerId = kind == TestDriveAssignmentKind.Claimed ? actorId : request.HandlerId;
-        if (kind is not (TestDriveAssignmentKind.Claimed or TestDriveAssignmentKind.Assigned or TestDriveAssignmentKind.Released) ||
-            kind == TestDriveAssignmentKind.Claimed && (request.HandlerId is not null || request.Reason is not null) ||
-            kind == TestDriveAssignmentKind.Assigned && handlerId is null ||
-            kind == TestDriveAssignmentKind.Released && handlerId is not null)
+        var handlerId = kind == WorkOwnershipKind.Claimed ? actorId : request.HandlerId;
+        if (!WorkOwnership.IsRequestValid(kind, request.HandlerId, request.Reason))
         {
             return new(TestDriveAssignmentStatus.Invalid);
         }
@@ -39,7 +36,7 @@ public sealed class TestDriveAssignmentService(ITestDriveAssignmentStore assignm
         var actor = context.Actor;
         if (actor is not { IsActive: true, BranchId: not null } || !context.BranchActive ||
             actor.Role is not (AccountRoles.SalesAgent or AccountRoles.BranchManager) ||
-            kind == TestDriveAssignmentKind.Assigned && actor.Role != AccountRoles.BranchManager)
+            kind == WorkOwnershipKind.Assigned && actor.Role != AccountRoles.BranchManager)
         {
             return new(TestDriveAssignmentStatus.Forbidden);
         }
@@ -66,7 +63,7 @@ public sealed class TestDriveAssignmentService(ITestDriveAssignmentStore assignm
             return new(TestDriveAssignmentStatus.Conflict, Current: current);
         }
 
-        if (kind == TestDriveAssignmentKind.Released && actor.Role == AccountRoles.SalesAgent &&
+        if (kind == WorkOwnershipKind.Released && actor.Role == AccountRoles.SalesAgent &&
             current?.HandlerId != actorId)
         {
             return new(TestDriveAssignmentStatus.Forbidden);
@@ -78,15 +75,13 @@ public sealed class TestDriveAssignmentService(ITestDriveAssignmentStore assignm
             return new(TestDriveAssignmentStatus.Unavailable, Current: current);
         }
 
-        if (context.Started && (kind != TestDriveAssignmentKind.Assigned ||
+        if (context.Started && (kind != WorkOwnershipKind.Assigned ||
             actor.Role != AccountRoles.BranchManager || request.Reason is null))
         {
             return new(TestDriveAssignmentStatus.Unavailable, Current: current);
         }
 
-        if (handlerId is not null && (context.Handler is not { IsActive: true } handler ||
-            handler.BranchId != booking.BranchId ||
-            handler.Role is not (AccountRoles.SalesAgent or AccountRoles.BranchManager)))
+        if (handlerId is not null && context.Handler?.CanHandle(booking.BranchId) != true)
         {
             return new(TestDriveAssignmentStatus.Unavailable, Current: current);
         }

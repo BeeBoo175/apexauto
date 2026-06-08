@@ -1,3 +1,4 @@
+using Dealership.Domain.Common;
 using Dealership.Infrastructure.Intake;
 using Dealership.Application.Accounts;
 using Dealership.Application.Intake;
@@ -90,15 +91,15 @@ public sealed class IntakeCheckInSchemaTests(IntakePhotoFixture fixture) : IClas
         using var scope = data.Factory.Services.CreateScope();
         var assignments = scope.ServiceProvider.GetRequiredService<AppointmentAssignmentService>();
         Assert.Equal(AppointmentAssignmentStatus.Succeeded, (await assignments.ExecuteAsync(managerId, appointment.Id,
-            AppointmentAssignmentKind.Assigned, new(Guid.NewGuid(), 1, managerId, "Manager takes over arrival"), CancellationToken.None)).Status);
+            WorkOwnershipKind.Assigned, new(Guid.NewGuid(), 1, managerId, "Manager takes over arrival"), CancellationToken.None)).Status);
         await RejectAsync(data, appointment.Id, InsertCheckIn + InsertMail,
             "CK_AppointmentCheckIns_Handler", "former handler after reassignment");
         Assert.Equal(AppointmentAssignmentStatus.Succeeded, (await assignments.ExecuteAsync(managerId, appointment.Id,
-            AppointmentAssignmentKind.Released, new(Guid.NewGuid(), 2), CancellationToken.None)).Status);
+            WorkOwnershipKind.Released, new(Guid.NewGuid(), 2), CancellationToken.None)).Status);
         await RejectAsync(data, appointment.Id, InsertCheckIn + InsertMail,
             "CK_AppointmentCheckIns_Handler", "released assignment retains earlier claim history");
         Assert.Equal(AppointmentAssignmentStatus.Succeeded, (await assignments.ExecuteAsync(data.StaffId, appointment.Id,
-            AppointmentAssignmentKind.Claimed, new(Guid.NewGuid(), 3), CancellationToken.None)).Status);
+            WorkOwnershipKind.Claimed, new(Guid.NewGuid(), 3), CancellationToken.None)).Status);
         var result = await scope.ServiceProvider.GetRequiredService<AppointmentCheckInService>()
             .CheckInAsync(data.StaffId, appointment.Id, CheckInTestData.Evidence, CancellationToken.None);
         Assert.Equal(CheckInStatus.Succeeded, result.Status);

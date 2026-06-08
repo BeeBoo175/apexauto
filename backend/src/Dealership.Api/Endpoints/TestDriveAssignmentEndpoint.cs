@@ -1,3 +1,4 @@
+using Dealership.Domain.Common;
 using Dealership.Application.TestDrives;
 using Dealership.Domain.TestDrives;
 
@@ -8,19 +9,19 @@ public static class TestDriveAssignmentEndpoint
     public static Task<IResult> ClaimAsync(Guid id, HttpContext context, TestDriveAssignmentService assignments,
         CancellationToken cancellationToken)
     {
-        return SubmitAsync(id, context, assignments, TestDriveAssignmentKind.Claimed, cancellationToken);
+        return SubmitAsync(id, context, assignments, WorkOwnershipKind.Claimed, cancellationToken);
     }
 
     public static Task<IResult> AssignAsync(Guid id, HttpContext context, TestDriveAssignmentService assignments,
         CancellationToken cancellationToken)
     {
-        return SubmitAsync(id, context, assignments, TestDriveAssignmentKind.Assigned, cancellationToken);
+        return SubmitAsync(id, context, assignments, WorkOwnershipKind.Assigned, cancellationToken);
     }
 
     public static Task<IResult> ReleaseAsync(Guid id, HttpContext context, TestDriveAssignmentService assignments,
         CancellationToken cancellationToken)
     {
-        return SubmitAsync(id, context, assignments, TestDriveAssignmentKind.Released, cancellationToken);
+        return SubmitAsync(id, context, assignments, WorkOwnershipKind.Released, cancellationToken);
     }
 
     private static async Task<IResult> SubmitAsync(Guid id, HttpContext context, TestDriveAssignmentService assignments,

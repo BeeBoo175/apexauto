@@ -47,7 +47,7 @@ internal static class TestDriveHandlingAssertions
         Assert.Equal(TestDriveBookingStatus.Succeeded, booked.Status);
         var booking = booked.Booking!;
         var assigned = await services.GetRequiredService<TestDriveAssignmentService>().ExecuteAsync(manager,
-            booking.Id, TestDriveAssignmentKind.Assigned, new(Guid.NewGuid(), 0, agent), default);
+            booking.Id, WorkOwnershipKind.Assigned, new(Guid.NewGuid(), 0, agent), default);
         Assert.Equal(TestDriveAssignmentStatus.Succeeded, assigned.Status);
         var startRequest = new TestDriveStartRequest(Guid.NewGuid(), assigned.Receipt!.Id, true, true);
 
@@ -75,7 +75,7 @@ internal static class TestDriveHandlingAssertions
         Assert.Equal(TestDriveCancellationStatus.Conflict, (await services.GetRequiredService<TestDriveCancellationService>()
             .CancelByStaffAsync(manager, booking.Id, Guid.NewGuid(), "Customer requested cancellation", default)).Status);
         Assert.Equal(TestDriveAssignmentStatus.Unavailable, (await services.GetRequiredService<TestDriveAssignmentService>()
-            .ExecuteAsync(agent, booking.Id, TestDriveAssignmentKind.Released, new(Guid.NewGuid(), 1), default)).Status);
+            .ExecuteAsync(agent, booking.Id, WorkOwnershipKind.Released, new(Guid.NewGuid(), 1), default)).Status);
         Assert.Equal(ReservationStatus.NotFound, (await services.GetRequiredService<ReservationService>()
             .ReserveAsync(otherCustomer, booking.VehicleId, new(Guid.NewGuid(), publication.Id, null), default)).Status);
 
@@ -108,7 +108,7 @@ internal static class TestDriveHandlingAssertions
             new(Guid.NewGuid(), publication.Id, slots[^1].StartsAt), default);
         Assert.Equal(TestDriveBookingStatus.Succeeded, next.Status);
         var nextAssignment = await services.GetRequiredService<TestDriveAssignmentService>().ExecuteAsync(manager,
-            next.Booking!.Id, TestDriveAssignmentKind.Claimed, new(Guid.NewGuid(), 0), default);
+            next.Booking!.Id, WorkOwnershipKind.Claimed, new(Guid.NewGuid(), 0), default);
         Assert.Equal(TestDriveAssignmentStatus.Succeeded, nextAssignment.Status);
         using (var blockedScope = data.Factory.Services.CreateScope())
         {
@@ -127,7 +127,7 @@ internal static class TestDriveHandlingAssertions
         }
 
         var handoff = await services.GetRequiredService<TestDriveAssignmentService>().ExecuteAsync(manager,
-            booking.Id, TestDriveAssignmentKind.Assigned, new(Guid.NewGuid(), 1, manager, "Agent is attending another customer"), default);
+            booking.Id, WorkOwnershipKind.Assigned, new(Guid.NewGuid(), 1, manager, "Agent is attending another customer"), default);
         Assert.Equal(TestDriveAssignmentStatus.Succeeded, handoff.Status);
         var outcomeRequest = new TestDriveOutcomeRequest(Guid.NewGuid(), handoff.Receipt!.Id,
             TestDriveOutcomeKind.Completed, true, Notes: "Customer reviewed the vehicle");
@@ -159,7 +159,7 @@ internal static class TestDriveHandlingAssertions
         }
 
         var raceAssignment = await services.GetRequiredService<TestDriveAssignmentService>().ExecuteAsync(manager,
-            newBooking.Booking!.Id, TestDriveAssignmentKind.Assigned, new(Guid.NewGuid(), 0, agent), default);
+            newBooking.Booking!.Id, WorkOwnershipKind.Assigned, new(Guid.NewGuid(), 0, agent), default);
         Assert.Equal(TestDriveAssignmentStatus.Succeeded, raceAssignment.Status);
         using (var startScope = data.Factory.Services.CreateScope())
         using (var reservationScope = data.Factory.Services.CreateScope())

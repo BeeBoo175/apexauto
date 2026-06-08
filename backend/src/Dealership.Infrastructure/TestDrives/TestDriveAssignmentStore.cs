@@ -1,3 +1,4 @@
+using Dealership.Application.Accounts;
 using Dealership.Application.TestDrives;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -32,6 +33,7 @@ public sealed class TestDriveAssignmentStore(DealershipDbContext database) : ITe
                 .SingleOrDefaultAsync(item => item.Id == bookingId, cancellationToken);
             if (booking is not null && booking.BranchId == actor?.BranchId)
             {
+                // Vehicle fencing also serializes active-drive handoff with start, outcome and availability writers.
                 await database.Database.ExecuteSqlInterpolatedAsync(
                     $"SELECT 1 FROM \"Vehicles\" WHERE \"Id\" = {booking.VehicleId} FOR UPDATE", cancellationToken);
             }
@@ -45,8 +47,8 @@ public sealed class TestDriveAssignmentStore(DealershipDbContext database) : ITe
             var started = await database.TestDriveStarts.AnyAsync(item => item.BookingId == bookingId, cancellationToken);
             var completed = await database.TestDriveOutcomes.AnyAsync(item => item.BookingId == bookingId, cancellationToken);
             var context = new TestDriveAssignmentContext(booking,
-                actor is null ? null : new TestDriveStaff(actor.IsActive, actor.Role, actor.BranchId),
-                handler is null ? null : new TestDriveStaff(handler.IsActive, handler.Role, handler.BranchId),
+                actor is null ? null : new BranchStaff(actor.IsActive, actor.Role, actor.BranchId),
+                handler is null ? null : new BranchStaff(handler.IsActive, handler.Role, handler.BranchId),
                 branchActive, cancelled, existing, current, started, completed);
             return new TestDriveAssignmentTransaction(database, transaction, context);
         }

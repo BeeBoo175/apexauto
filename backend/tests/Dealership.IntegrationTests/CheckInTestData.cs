@@ -121,7 +121,7 @@ internal sealed class CheckInTestData : IDisposable
     {
         using var scope = Factory.Services.CreateScope();
         var result = await scope.ServiceProvider.GetRequiredService<AppointmentAssignmentService>()
-            .ExecuteAsync(staffId ?? StaffId, appointmentId, AppointmentAssignmentKind.Claimed,
+            .ExecuteAsync(staffId ?? StaffId, appointmentId, WorkOwnershipKind.Claimed,
                 new(Guid.NewGuid(), 0, null, null), CancellationToken.None);
         Assert.Equal(AppointmentAssignmentStatus.Succeeded, result.Status);
         Assert.Equal(staffId ?? StaffId, result.Current!.HandlerId);

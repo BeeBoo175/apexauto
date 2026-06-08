@@ -217,7 +217,7 @@ public sealed class DevelopmentTestDriveFixtures(DealershipDbContext database, T
         if (current is not null)
         {
             var matches = current.Id == operationId && current.HandlerId == handlerId &&
-                current.ActorId == handlerId && current.Kind == TestDriveAssignmentKind.Claimed && current.Version == 1;
+                current.ActorId == handlerId && current.Kind == WorkOwnershipKind.Claimed && current.Version == 1;
             return new(label, matches ? "claimed; receipt preserved" : "ownership drift; preserved", !matches);
         }
 
@@ -226,7 +226,7 @@ public sealed class DevelopmentTestDriveFixtures(DealershipDbContext database, T
             return new(label, "ownership missing", true);
         }
 
-        var result = await assignments.ExecuteAsync(handlerId, booking.Id, TestDriveAssignmentKind.Claimed,
+        var result = await assignments.ExecuteAsync(handlerId, booking.Id, WorkOwnershipKind.Claimed,
             new(operationId, 0), cancellationToken);
         var succeeded = result.Status == TestDriveAssignmentStatus.Succeeded;
         return new(label, succeeded ? "claimed" : "claim unavailable; preserved", !succeeded);

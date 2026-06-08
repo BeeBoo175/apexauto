@@ -1,3 +1,5 @@
+using Dealership.Application.Accounts;
+
 namespace Dealership.Application.Intake;
 
 public sealed record StaffAppointmentDetail(Guid Id, Guid BranchId, string BranchName, string CustomerName,
@@ -10,10 +12,8 @@ public sealed record StaffAppointmentDetail(Guid Id, Guid BranchId, string Branc
 public sealed record AppointmentOwnership(long Version, Guid? HandlerId, string? HandlerEmail,
     bool HandlerEligible, Guid ActorId, string Kind, DateTimeOffset RecordedAt, string? Reason);
 
-public sealed record AppointmentHandler(Guid Id, string Email);
-
 public sealed record AppointmentHandlersResult(StaffAppointmentDetailStatus Status,
-    IReadOnlyList<AppointmentHandler>? Handlers = null);
+    IReadOnlyList<StaffHandler>? Handlers = null);
 
 public enum StaffAppointmentDetailStatus
 {

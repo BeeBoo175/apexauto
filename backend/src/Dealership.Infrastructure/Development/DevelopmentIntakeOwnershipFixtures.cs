@@ -1,3 +1,4 @@
+using Dealership.Domain.Common;
 using Dealership.Application.Accounts;
 using Dealership.Application.Intake;
 using Dealership.Domain.Intake;
@@ -45,7 +46,7 @@ public sealed class DevelopmentIntakeOwnershipFixtures(DealershipDbContext datab
                     continue;
                 }
 
-                var result = await assignments.ExecuteAsync(handlerId.Value, fixture.Id, AppointmentAssignmentKind.Claimed,
+                var result = await assignments.ExecuteAsync(handlerId.Value, fixture.Id, WorkOwnershipKind.Claimed,
                     new(fixture.Id, 0), cancellationToken);
                 var succeeded = result.Status == AppointmentAssignmentStatus.Succeeded;
                 reports.Add(new($"Intake ownership ({fixture.RegistrationPlate})",

@@ -1,3 +1,4 @@
+using Dealership.Application.Accounts;
 using Dealership.Application.TestDrives;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -46,7 +47,7 @@ public sealed class TestDriveHandlingStore(DealershipDbContext database) : ITest
                 .SingleOrDefaultAsync(item => item.Id == operationId, cancellationToken);
             var cancelled = await database.TestDriveCancellations.AnyAsync(item => item.BookingId == bookingId, cancellationToken);
             var context = new TestDriveHandlingContext(booking,
-                actor is null ? null : new TestDriveStaff(actor.IsActive, actor.Role, actor.BranchId),
+                actor is null ? null : new BranchStaff(actor.IsActive, actor.Role, actor.BranchId),
                 branchActive, cancelled, current, start, outcome, existingStart, existingOutcome);
             return new TestDriveHandlingTransaction(database, transaction, context);
         }

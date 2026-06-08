@@ -81,12 +81,12 @@ public sealed class DevelopmentTestDriveHandlingFixtures(DealershipDbContext dat
             .FirstOrDefaultAsync(cancellationToken);
         if (assignment is null && seed)
         {
-            assignment = (await assignments.ExecuteAsync(staffId, booking.Id, TestDriveAssignmentKind.Claimed,
+            assignment = (await assignments.ExecuteAsync(staffId, booking.Id, WorkOwnershipKind.Claimed,
                 new(OperationId(kind, "claim"), 0), cancellationToken)).Receipt;
         }
 
         if (assignment is null || assignment.Id != OperationId(kind, "claim") || assignment.HandlerId != staffId ||
-            assignment.ActorId != staffId || assignment.Kind != TestDriveAssignmentKind.Claimed || assignment.Version != 1)
+            assignment.ActorId != staffId || assignment.Kind != WorkOwnershipKind.Claimed || assignment.Version != 1)
         {
             return new(label, "ownership missing/drift; preserved", true);
         }

@@ -210,7 +210,7 @@ internal static class DevelopmentIntakeFixtureAssertions
             Assert.Equal(DevelopmentFixtureManifest.Staff.Single(item =>
                 item.BranchId == fixture.BranchId && item.Role == AccountRoles.SalesAgent).Id, checkIn.StaffId);
             var claim = await database.AppointmentAssignments.SingleAsync(item => item.AppointmentId == fixture.Id);
-            Assert.Equal(AppointmentAssignmentKind.Claimed, claim.Kind);
+            Assert.Equal(WorkOwnershipKind.Claimed, claim.Kind);
             Assert.Equal(checkIn.StaffId, claim.ActorId);
             Assert.Equal(checkIn.StaffId, claim.HandlerId);
             Assert.Equal(checkIn.CheckedInAt, claim.RecordedAt);

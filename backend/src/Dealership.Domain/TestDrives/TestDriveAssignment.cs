@@ -1,11 +1,6 @@
-namespace Dealership.Domain.TestDrives;
+using Dealership.Domain.Common;
 
-public static class TestDriveAssignmentKind
-{
-    public const string Claimed = "Claimed";
-    public const string Assigned = "Assigned";
-    public const string Released = "Released";
-}
+namespace Dealership.Domain.TestDrives;
 
 public sealed class TestDriveAssignment
 {
@@ -17,7 +12,7 @@ public sealed class TestDriveAssignment
         Guid? handlerId, TestDriveAssignment? previous, string? reason, DateTimeOffset recordedAt)
     {
         ArgumentNullException.ThrowIfNull(booking);
-        reason = NormalizeReason(reason);
+        reason = WorkOwnership.NormalizeReason(reason);
         if (id == Guid.Empty || actorId == Guid.Empty || handlerId == Guid.Empty ||
             previous is not null && previous.BookingId != booking.Id ||
             previous?.Version == long.MaxValue || recordedAt < booking.CreatedAt ||
@@ -27,15 +22,7 @@ public sealed class TestDriveAssignment
         }
 
         var previousHandler = previous?.HandlerId;
-        var valid = kind switch
-        {
-            TestDriveAssignmentKind.Claimed => handlerId == actorId && previousHandler is null && reason is null,
-            TestDriveAssignmentKind.Assigned => handlerId is not null && handlerId != previousHandler &&
-                (previousHandler is null || reason is not null),
-            TestDriveAssignmentKind.Released => handlerId is null && previousHandler is not null,
-            _ => false
-        };
-        if (!valid)
+        if (!WorkOwnership.IsTransitionValid(kind, actorId, handlerId, previousHandler, reason))
         {
             throw new ArgumentException("Assignment does not match its ownership transition.");
         }
@@ -64,20 +51,4 @@ public sealed class TestDriveAssignment
     public long Version { get; private set; }
     public string? Reason { get; private set; }
     public DateTimeOffset RecordedAt { get; private set; }
-
-    public static string? NormalizeReason(string? reason)
-    {
-        if (reason is null)
-        {
-            return null;
-        }
-
-        reason = reason.Trim();
-        if (reason.Length is < 1 or > 1000 || reason.Any(char.IsControl))
-        {
-            throw new ArgumentException("Ownership reason requires up to 1000 non-control characters.");
-        }
-
-        return reason;
-    }
 }

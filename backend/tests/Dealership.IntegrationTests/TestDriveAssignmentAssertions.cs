@@ -1,3 +1,4 @@
+using Dealership.Domain.Common;
 using System.Text.Json;
 using Dealership.Application.Accounts;
 using Dealership.Application.Branches;
@@ -59,47 +60,47 @@ internal static class TestDriveAssignmentAssertions
         var outside = await ProvisionAsync(setup.ServiceProvider, outsideBranch, AccountRoles.SalesAgent);
         var claim = new TestDriveAssignmentRequest(Guid.NewGuid(), 0);
         Assert.Equal(TestDriveAssignmentStatus.Invalid, (await ExecuteAsync(data.StaffId,
-            TestDriveAssignmentKind.Claimed, claim with { ExpectedVersion = -1 })).Status);
+            WorkOwnershipKind.Claimed, claim with { ExpectedVersion = -1 })).Status);
         foreach (var denied in new[] { booking.CustomerId, technician, gm, admin })
         {
             Assert.Equal(TestDriveAssignmentStatus.Forbidden,
-                (await ExecuteAsync(denied, TestDriveAssignmentKind.Claimed, claim)).Status);
+                (await ExecuteAsync(denied, WorkOwnershipKind.Claimed, claim)).Status);
         }
 
         Assert.Equal(TestDriveAssignmentStatus.Forbidden, (await ExecuteAsync(data.StaffId,
-            TestDriveAssignmentKind.Assigned, claim with { HandlerId = other })).Status);
+            WorkOwnershipKind.Assigned, claim with { HandlerId = other })).Status);
         Assert.Equal(TestDriveAssignmentStatus.NotFound,
-            (await ExecuteAsync(outside, TestDriveAssignmentKind.Claimed, claim)).Status);
+            (await ExecuteAsync(outside, WorkOwnershipKind.Claimed, claim)).Status);
         Assert.Equal(TestDriveAssignmentStatus.Unavailable, (await ExecuteAsync(manager,
-            TestDriveAssignmentKind.Assigned, claim with { HandlerId = outside })).Status);
-        var race = await Task.WhenAll(ExecuteAsync(data.StaffId, TestDriveAssignmentKind.Claimed, claim),
-            ExecuteAsync(other, TestDriveAssignmentKind.Claimed, claim with { OperationId = Guid.NewGuid() }));
+            WorkOwnershipKind.Assigned, claim with { HandlerId = outside })).Status);
+        var race = await Task.WhenAll(ExecuteAsync(data.StaffId, WorkOwnershipKind.Claimed, claim),
+            ExecuteAsync(other, WorkOwnershipKind.Claimed, claim with { OperationId = Guid.NewGuid() }));
         var winner = Assert.Single(race, result => result.Status == TestDriveAssignmentStatus.Succeeded).Receipt!;
         var loser = Assert.Single(race, result => result.Status == TestDriveAssignmentStatus.Conflict);
         Assert.Equal(winner.Id, loser.Current!.Id);
         Assert.Null(loser.Receipt);
         var oldRequest = new TestDriveAssignmentRequest(winner.Id, 0);
         Assert.Equal(TestDriveAssignmentStatus.Conflict, (await ExecuteAsync(manager,
-            TestDriveAssignmentKind.Claimed, oldRequest)).Status);
+            WorkOwnershipKind.Claimed, oldRequest)).Status);
         Assert.Equal(TestDriveAssignmentStatus.Invalid, (await ExecuteAsync(manager,
-            TestDriveAssignmentKind.Assigned, new(Guid.NewGuid(), 1, manager))).Status);
+            WorkOwnershipKind.Assigned, new(Guid.NewGuid(), 1, manager))).Status);
         var assignedRequest = new TestDriveAssignmentRequest(Guid.NewGuid(), 1, manager, " Cover customer arrival ");
-        var assigned = await ExecuteAsync(manager, TestDriveAssignmentKind.Assigned, assignedRequest);
+        var assigned = await ExecuteAsync(manager, WorkOwnershipKind.Assigned, assignedRequest);
         Assert.Equal(TestDriveAssignmentStatus.Succeeded, assigned.Status);
         Assert.Equal(winner.HandlerId, assigned.Receipt!.PreviousHandlerId);
         Assert.Equal("Cover customer arrival", assigned.Receipt.Reason);
         Assert.Equal(TestDriveAssignmentStatus.Forbidden, (await ExecuteAsync(winner.ActorId,
-            TestDriveAssignmentKind.Released, new(Guid.NewGuid(), 2))).Status);
+            WorkOwnershipKind.Released, new(Guid.NewGuid(), 2))).Status);
 
         using var restarted = fixture.CreateFactory();
         using var restartedScope = restarted.Services.CreateScope();
         var replay = await restartedScope.ServiceProvider.GetRequiredService<TestDriveAssignmentService>()
-            .ExecuteAsync(winner.ActorId, booking.Id, TestDriveAssignmentKind.Claimed, oldRequest, default);
+            .ExecuteAsync(winner.ActorId, booking.Id, WorkOwnershipKind.Claimed, oldRequest, default);
         Assert.Equal(TestDriveAssignmentStatus.Succeeded, replay.Status);
         Assert.Equal(JsonSerializer.Serialize(winner), JsonSerializer.Serialize(replay.Receipt));
         Assert.Equal(2, replay.Current!.Version);
         Assert.Equal(TestDriveAssignmentStatus.Conflict, (await ExecuteAsync(manager,
-            TestDriveAssignmentKind.Assigned, assignedRequest with { Reason = "Changed request" })).Status);
+            WorkOwnershipKind.Assigned, assignedRequest with { Reason = "Changed request" })).Status);
 
         var immutable = await Assert.ThrowsAsync<PostgresException>(() => database.Database.ExecuteSqlInterpolatedAsync(
             $"UPDATE \"TestDriveAssignments\" SET \"Reason\" = \"Reason\" WHERE \"Id\" = {winner.Id}"));
@@ -118,7 +119,7 @@ internal static class TestDriveAssignmentAssertions
         using var intakeScope = data.Factory.Services.CreateScope();
         var intakeService = intakeScope.ServiceProvider.GetRequiredService<AppointmentAssignmentService>();
         Assert.Equal(AppointmentAssignmentStatus.ScheduleConflict, (await intakeService.ExecuteAsync(manager,
-            intake.Id, AppointmentAssignmentKind.Claimed, new(Guid.NewGuid(), 0), default)).Status);
+            intake.Id, WorkOwnershipKind.Claimed, new(Guid.NewGuid(), 0), default)).Status);
         var sqlOverlap = await Assert.ThrowsAsync<PostgresException>(() => database.Database.ExecuteSqlInterpolatedAsync($"""
             INSERT INTO "AppointmentAssignments" ("Id", "AppointmentId", "BranchId", "ActorId", "Kind", "HandlerId",
                 "ExpectedVersion", "Version", "RecordedAt")
@@ -126,31 +127,31 @@ internal static class TestDriveAssignmentAssertions
             """));
         Assert.Equal("CK_AppointmentAssignments_Overlap", sqlOverlap.ConstraintName);
         Assert.Equal(TestDriveAssignmentStatus.Succeeded, (await ExecuteAsync(manager,
-            TestDriveAssignmentKind.Released, new(Guid.NewGuid(), 2))).Status);
+            WorkOwnershipKind.Released, new(Guid.NewGuid(), 2))).Status);
         Assert.Equal(AppointmentAssignmentStatus.Succeeded, (await intakeService.ExecuteAsync(manager,
-            intake.Id, AppointmentAssignmentKind.Claimed, new(Guid.NewGuid(), 0), default)).Status);
+            intake.Id, WorkOwnershipKind.Claimed, new(Guid.NewGuid(), 0), default)).Status);
         Assert.Equal(TestDriveAssignmentStatus.ScheduleConflict, (await ExecuteAsync(manager,
-            TestDriveAssignmentKind.Claimed, new(Guid.NewGuid(), 3))).Status);
+            WorkOwnershipKind.Claimed, new(Guid.NewGuid(), 3))).Status);
         var driveOverlap = await Assert.ThrowsAsync<PostgresException>(() => InsertAsync(manager, data.BranchId,
             "Claimed", manager, null, 3));
         Assert.Equal("CK_TestDriveAssignments_Overlap", driveOverlap.ConstraintName);
         Assert.Equal(AppointmentAssignmentStatus.Succeeded, (await intakeService.ExecuteAsync(manager,
-            intake.Id, AppointmentAssignmentKind.Released, new(Guid.NewGuid(), 1), default)).Status);
+            intake.Id, WorkOwnershipKind.Released, new(Guid.NewGuid(), 1), default)).Status);
         Assert.Equal(TestDriveAssignmentStatus.Succeeded, (await ExecuteAsync(manager,
-            TestDriveAssignmentKind.Claimed, new(Guid.NewGuid(), 3))).Status);
+            WorkOwnershipKind.Claimed, new(Guid.NewGuid(), 3))).Status);
         await database.Users.Where(item => item.Id == manager)
             .ExecuteUpdateAsync(update => update.SetProperty(item => item.IsActive, false));
         Assert.Equal(TestDriveAssignmentStatus.Forbidden, (await ExecuteAsync(manager,
-            TestDriveAssignmentKind.Released, new(Guid.NewGuid(), 4))).Status);
+            WorkOwnershipKind.Released, new(Guid.NewGuid(), 4))).Status);
         Assert.Equal(manager, await database.TestDriveAssignments.Where(item => item.BookingId == booking.Id)
             .OrderByDescending(item => item.Version).Select(item => item.HandlerId).FirstAsync());
         await database.Users.Where(item => item.Id == manager)
             .ExecuteUpdateAsync(update => update.SetProperty(item => item.IsActive, true));
         Assert.Equal(TestDriveAssignmentStatus.Succeeded, (await ExecuteAsync(manager,
-            TestDriveAssignmentKind.Released, new(Guid.NewGuid(), 4))).Status);
-        var intakeRace = intakeService.ExecuteAsync(manager, intake.Id, AppointmentAssignmentKind.Claimed,
+            WorkOwnershipKind.Released, new(Guid.NewGuid(), 4))).Status);
+        var intakeRace = intakeService.ExecuteAsync(manager, intake.Id, WorkOwnershipKind.Claimed,
             new(Guid.NewGuid(), 2), default);
-        var driveRace = ExecuteAsync(manager, TestDriveAssignmentKind.Claimed, new(Guid.NewGuid(), 5));
+        var driveRace = ExecuteAsync(manager, WorkOwnershipKind.Claimed, new(Guid.NewGuid(), 5));
         await Task.WhenAll(intakeRace, driveRace);
         Assert.True(intakeRace.Result.Status == AppointmentAssignmentStatus.Succeeded &&
             driveRace.Result.Status == TestDriveAssignmentStatus.ScheduleConflict ||

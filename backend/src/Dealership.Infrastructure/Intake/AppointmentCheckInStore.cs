@@ -1,3 +1,4 @@
+using Dealership.Application.Accounts;
 using Dealership.Application.Intake;
 using Dealership.Infrastructure.Mail;
 using Dealership.Infrastructure.Persistence;
@@ -39,7 +40,7 @@ public sealed class AppointmentCheckInStore(DealershipDbContext database, MailDe
                 .Where(item => item.AppointmentId == appointmentId).OrderByDescending(item => item.Version)
                 .Select(item => item.HandlerId).FirstOrDefaultAsync(cancellationToken);
             var context = new CheckInContext(appointment,
-                staff is null ? null : new CheckInStaff(staff.IsActive, staff.Role, staff.BranchId),
+                staff is null ? null : new BranchStaff(staff.IsActive, staff.Role, staff.BranchId),
                 customer is null ? null : new CheckInCustomer(customer.IsActive, customer.EmailConfirmed, customer.Role),
                 branchActive, existing, handlerId);
             return new AppointmentCheckInTransaction(database, transaction, context, appointmentId, customer?.Email, mail);

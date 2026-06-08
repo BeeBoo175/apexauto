@@ -8,6 +8,16 @@ namespace Dealership.UnitTests;
 
 public sealed class TestDriveCancellationServiceTests
 {
+    [Fact]
+    public void OptionalOwnershipAndRequiredCancellationRetainDifferentControlRules()
+    {
+        const string reason = "\nCustomer cannot attend\t";
+
+        Assert.Equal("Customer cannot attend", WorkOwnership.NormalizeReason(reason));
+        Assert.Throws<ArgumentException>(() => TestDriveCancellation.NormalizeReason(reason));
+        Assert.Throws<ArgumentException>(() => WorkOwnership.NormalizeReason("Customer\ncannot attend"));
+    }
+
     [Theory]
     [InlineData(-1, TestDriveCancellationStatus.Succeeded)]
     [InlineData(0, TestDriveCancellationStatus.TooLate)]

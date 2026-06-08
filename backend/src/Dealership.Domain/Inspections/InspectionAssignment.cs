@@ -1,3 +1,5 @@
+using Dealership.Domain.Common;
+
 namespace Dealership.Domain.Inspections;
 
 public sealed class InspectionAssignment
@@ -50,17 +52,7 @@ public sealed class InspectionAssignment
 
     public static string? NormalizeReason(string? reason)
     {
-        reason = reason?.Trim();
-        if (reason is null)
-        {
-            return null;
-        }
-
-        if (reason.Length is < 1 or > 1000 || reason.Any(char.IsControl))
-        {
-            throw new ArgumentException("Reassignment reason must contain up to 1000 non-control characters.");
-        }
-
-        return reason;
+        return BoundedText.NormalizeOptional(reason,
+            "Reassignment reason must contain up to 1000 non-control characters.");
     }
 }

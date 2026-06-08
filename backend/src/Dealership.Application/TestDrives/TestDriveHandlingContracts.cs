@@ -1,3 +1,4 @@
+using Dealership.Application.Accounts;
 using Dealership.Domain.TestDrives;
 
 namespace Dealership.Application.TestDrives;
@@ -22,7 +23,7 @@ public sealed record TestDriveOutcomeRequest(Guid OperationId, Guid AssignmentId
 public sealed record TestDriveHandlingResult(TestDriveHandlingStatus Status,
     TestDriveStart? Start = null, TestDriveOutcome? Outcome = null);
 
-public sealed record TestDriveHandlingContext(TestDriveBooking? Booking, TestDriveStaff? Actor,
+public sealed record TestDriveHandlingContext(TestDriveBooking? Booking, BranchStaff? Actor,
     bool BranchActive, bool Cancelled, TestDriveAssignment? Current, TestDriveStart? Start,
     TestDriveOutcome? Outcome, TestDriveStart? ExistingStart, TestDriveOutcome? ExistingOutcome);
 

@@ -105,6 +105,7 @@ internal static class StaffWorklistRows
     private static IQueryable<WorklistRow> Records(DealershipDbContext database,
         IQueryable<AppointmentFlags> rows, StaffWorklistQuery query, bool searchBranch)
     {
+        var handlers = StaffHandlerRows.Eligible(database);
         var records = rows.Join(database.Branches, row => row.Appointment.BranchId, branch => branch.Id,
                 (row, branch) => new { Row = row, BranchName = branch.Name })
             .Join(database.CustomerProfiles, row => row.Row.Appointment.OwnerId, customer => customer.UserId,
@@ -129,10 +130,8 @@ internal static class StaffWorklistRows
                     HandlerId = row.Row.HandlerId,
                     OwnershipVersion = row.Row.OwnershipVersion,
                     HandlerEmail = database.Users.Where(user => user.Id == row.Row.HandlerId).Select(user => user.Email).FirstOrDefault(),
-                    HandlerEligible = database.Users.Any(user => user.Id == row.Row.HandlerId && user.IsActive &&
-                        user.BranchId == row.Row.Appointment.BranchId &&
-                        (user.Role == AccountRoles.SalesAgent || user.Role == AccountRoles.BranchManager)) &&
-                        database.Branches.Any(branch => branch.Id == row.Row.Appointment.BranchId && branch.IsActive)
+                    HandlerEligible = handlers.Any(user => user.Id == row.Row.HandlerId &&
+                        user.BranchId == row.Row.Appointment.BranchId)
                 });
         if (query.Search.Length > 0)
         {
