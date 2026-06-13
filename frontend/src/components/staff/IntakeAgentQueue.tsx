@@ -2,13 +2,13 @@
 
 import { useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
-import { SearchField } from "@/components/ui/SearchField";
 import { StaffQueueLayout } from "./StaffQueueLayout";
 import { StaffQueueTabs } from "./StaffQueueTabs";
 import { StaffQueueFooter } from "./StaffQueueFooter";
+import { StaffQueueSearch } from "./StaffQueueSearch";
+import { StaffQueueVehicleRow } from "./StaffQueueVehicleRow";
 import type { useStaffWorklist } from "@/hooks/use-staff-worklist";
 import type { useStaffAppointmentDrawer } from "@/hooks/use-staff-appointment-drawer";
-import { formatMalaysianDateTime } from "@/lib/date-format";
 import { intakeQueues, type IntakeQueue } from "@/lib/staff/contracts";
 import { AppointmentStatus } from "./AppointmentStatus";
 import styles from "./StaffQueueWorkspace.module.css";
@@ -74,29 +74,24 @@ export function IntakeAgentQueue({
         />
       }
       search={
-        <form
-          className={styles.search}
-          onSubmit={(event) => {
-            event.preventDefault();
+        <StaffQueueSearch
+          label="Search intake queue"
+          placeholder="Search registration, vehicle or customer"
+          value={draft.search}
+          busy={busy}
+          disabled={!ready}
+          onChange={(search) => setDraft((current) => ({ ...current, search }))}
+          onSubmit={() => {
             if (ready && !busy) {
               void worklist.load({ ...active.filters, search: draft.search }, 1);
             }
           }}
-        >
-          <SearchField
-            label="Search intake queue"
-            placeholder="Search registration, vehicle or customer"
-            value={draft.search}
-            disabled={!ready}
-            busy={busy}
-            onChange={(search) => setDraft((current) => ({ ...current, search }))}
-            onClear={
-              active.filters.search && !busy
-                ? () => void worklist.load({ ...active.filters, search: "" }, 1)
-                : undefined
-            }
-          />
-        </form>
+          onClear={
+            active.filters.search && !busy
+              ? () => void worklist.load({ ...active.filters, search: "" }, 1)
+              : undefined
+          }
+        />
       }
       queue={
         <div className={styles.queueList}>
@@ -118,32 +113,17 @@ export function IntakeAgentQueue({
             )}
             <ul className={styles.jobs}>
               {snapshot?.items.map((row) => (
-                <li key={row.id}>
-                  <Button
-                    variant="ghost"
-                    size="row"
-                    className={styles.job}
-                    aria-pressed={row.id === (drawer.pendingId || drawer.id)}
-                    aria-busy={row.id === drawer.pendingId || undefined}
-                    onClick={() => {
-                      setExpanded(false);
-                      drawer.open(row.id);
-                    }}
-                  >
-                    <span className={styles.jobHeading}>
-                      <span className={styles.identity}>
-                        <strong>{row.registrationPlate}</strong>
-                        <span>
-                          {row.manufactureYear} {row.make} {row.model} {row.trim}
-                        </span>
-                      </span>
-                      <AppointmentStatus status={row.status} />
-                    </span>
-                    <span className={styles.jobMeta}>
-                      {row.customerName} · {formatMalaysianDateTime(row.startsAt)}
-                    </span>
-                  </Button>
-                </li>
+                <StaffQueueVehicleRow
+                  key={row.id}
+                  row={row}
+                  status={<AppointmentStatus status={row.status} />}
+                  selected={row.id === (drawer.pendingId || drawer.id)}
+                  pending={row.id === drawer.pendingId}
+                  onOpen={() => {
+                    setExpanded(false);
+                    drawer.open(row.id);
+                  }}
+                />
               ))}
             </ul>
           </div>

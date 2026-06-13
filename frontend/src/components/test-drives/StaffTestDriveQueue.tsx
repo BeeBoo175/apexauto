@@ -1,14 +1,13 @@
 "use client";
 
 import { useRef, useState, type ReactNode } from "react";
-import { Button } from "@/components/ui/Button";
-import { SearchField } from "@/components/ui/SearchField";
 import { StaffQueueLayout } from "@/components/staff/StaffQueueLayout";
 import { StaffQueueTabs } from "@/components/staff/StaffQueueTabs";
 import { StaffQueueFooter } from "@/components/staff/StaffQueueFooter";
+import { StaffQueueSearch } from "@/components/staff/StaffQueueSearch";
+import { StaffQueueVehicleRow } from "@/components/staff/StaffQueueVehicleRow";
 import type { useStaffTestDriveList } from "@/hooks/use-staff-test-drive-list";
 import { testDriveQueues } from "@/lib/test-drives/staff-query";
-import { formatMalaysianDateTime } from "@/lib/date-format";
 import { StaffTestDriveStatus } from "./StaffTestDriveStatus";
 import styles from "@/components/staff/StaffQueueWorkspace.module.css";
 
@@ -56,29 +55,23 @@ export function StaffTestDriveQueue({
         />
       }
       search={
-        <form
-          className={styles.search}
-          onSubmit={(event) => {
-            event.preventDefault();
+        <StaffQueueSearch
+          label="Search test drive queue"
+          placeholder="Search reference, vehicle or customer"
+          value={draft.search}
+          busy={busy}
+          onChange={(search) => setDraft((current) => ({ ...current, search }))}
+          onSubmit={() => {
             if (!busy) {
               void list.load({ ...active.filters, search: draft.search.trim() }, 1);
             }
           }}
-        >
-          <SearchField
-            label="Search test drive queue"
-            placeholder="Search reference, vehicle or customer"
-            value={draft.search}
-            disabled={false}
-            busy={busy}
-            onChange={(search) => setDraft((current) => ({ ...current, search }))}
-            onClear={
-              active.filters.search && !busy
-                ? () => void list.load({ ...active.filters, search: "" }, 1)
-                : undefined
-            }
-          />
-        </form>
+          onClear={
+            active.filters.search && !busy
+              ? () => void list.load({ ...active.filters, search: "" }, 1)
+              : undefined
+          }
+        />
       }
       queue={
         <div className={styles.queueList}>
@@ -93,32 +86,17 @@ export function StaffTestDriveQueue({
             )}
             <ul className={styles.jobs}>
               {snapshot.items.map((row) => (
-                <li key={row.id}>
-                  <Button
-                    variant="ghost"
-                    size="row"
-                    className={styles.job}
-                    aria-pressed={row.id === (pendingId || selectedId)}
-                    aria-busy={row.id === pendingId || undefined}
-                    onClick={() => {
-                      setExpanded(false);
-                      open(row.id);
-                    }}
-                  >
-                    <span className={styles.jobHeading}>
-                      <span className={styles.identity}>
-                        <strong>{row.registrationPlate}</strong>
-                        <span>
-                          {row.manufactureYear} {row.make} {row.model} {row.trim}
-                        </span>
-                      </span>
-                      <StaffTestDriveStatus status={row.status} />
-                    </span>
-                    <span className={styles.jobMeta}>
-                      {row.customerName} · {formatMalaysianDateTime(row.startsAt)}
-                    </span>
-                  </Button>
-                </li>
+                <StaffQueueVehicleRow
+                  key={row.id}
+                  row={row}
+                  status={<StaffTestDriveStatus status={row.status} />}
+                  selected={row.id === (pendingId || selectedId)}
+                  pending={row.id === pendingId}
+                  onOpen={() => {
+                    setExpanded(false);
+                    open(row.id);
+                  }}
+                />
               ))}
             </ul>
           </div>
