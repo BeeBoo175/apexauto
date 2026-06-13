@@ -1,85 +1,44 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useToast } from "@/components/ui/Toast";
+import { useMemo } from "react";
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import { privateApiFetch } from "@/lib/api-browser";
 import { parseStaffTestDriveDetail } from "@/lib/test-drives/staff";
 import type { StaffTestDriveDetail } from "@/lib/test-drives/staff-query";
+import { useInitialToast } from "./use-initial-toast";
+import { useStaffSelection } from "./use-staff-selection";
 
 export function useStaffTestDriveDetail(
   actor: CurrentActor,
   initialId: string,
   initial: StaffTestDriveDetail | null,
 ) {
-  const [id, setId] = useState(initialId);
-  const [snapshot, setSnapshot] = useState(initial);
-  const [pendingId, setPendingId] = useState("");
-  const controller = useRef<AbortController | null>(null);
-  const { error } = useToast();
-  useEffect(() => {
-    if (initialId && !initial) {
-      error("The selected test drive could not be opened. Retry it from the workspace.");
-    }
-    return () => controller.current?.abort();
-  }, [initialId, initial, error]);
+  const initialResult = useMemo(
+    () => (initial ? { status: 200, data: initial, message: "", uncertain: false } : null),
+    [initial],
+  );
+  const selection = useStaffSelection(initialId, initialResult, {
+    parameter: "booking",
+    path: (id) => `/api/staff/test-drives/${id}`,
+    parse: parseStaffTestDriveDetail,
+    matches: (detail, id) =>
+      detail.booking.id === id && actorIdentity(detail.actor) === actorIdentity(actor),
+    read: privateApiFetch,
+    commitAfterRead: true,
+    clearOnDenied: true,
+    failureMessage: "The test drive could not be opened. Retry to read its current details.",
+  });
+  useInitialToast(
+    initialId && !initial
+      ? "The selected test drive could not be opened. Retry it from the workspace."
+      : "",
+  );
 
-  async function load(nextId = id) {
-    if (!nextId) {
-      return false;
-    }
-    controller.current?.abort();
-    const attempt = new AbortController();
-    controller.current = attempt;
-    setPendingId(nextId);
-    try {
-      const result = await privateApiFetch(
-        `/api/staff/test-drives/${nextId}`,
-        (value) => {
-          const detail = parseStaffTestDriveDetail(value);
-          return detail?.booking.id === nextId ? detail : null;
-        },
-        { signal: attempt.signal },
-      );
-      if (attempt.signal.aborted) {
-        return false;
-      }
-      if (result.status === 403 || result.status === 404) {
-        if (nextId === id) {
-          setSnapshot(null);
-        }
-        throw new Error("Access unavailable");
-      }
-      if (
-        !result.data ||
-        result.status !== 200 ||
-        actorIdentity(result.data.actor) !== actorIdentity(actor)
-      ) {
-        throw new Error("Detail unavailable");
-      }
-      setId(nextId);
-      setSnapshot(result.data);
-      return true;
-    } catch {
-      if (!attempt.signal.aborted) {
-        error("The test drive could not be opened. Retry to read its current details.");
-      }
-      return false;
-    } finally {
-      if (controller.current === attempt) {
-        controller.current = null;
-        setPendingId("");
-      }
-    }
-  }
-
-  function close() {
-    controller.current?.abort();
-    controller.current = null;
-    setId("");
-    setPendingId("");
-    setSnapshot(null);
-  }
-
-  return { id, snapshot, pendingId, load, close };
+  return {
+    id: selection.id,
+    snapshot: selection.result?.data ?? null,
+    pendingId: selection.pendingId,
+    load: (id = selection.id) => (id ? selection.load(id) : Promise.resolve(null)),
+    close: selection.close,
+  };
 }

@@ -12,7 +12,10 @@ import {
   type TestDriveStaffCommand,
 } from "@/lib/test-drives/staff-commands";
 import type { CurrentActor } from "@/lib/auth/actor";
-import type { StaffTestDriveDetail } from "@/lib/test-drives/staff-query";
+import {
+  isTerminalTestDriveStatus,
+  type StaffTestDriveDetail,
+} from "@/lib/test-drives/staff-query";
 
 export const testDriveCommandLabels: Record<TestDriveStaffCommand, string> = {
   claims: "Claim test drive",
@@ -61,7 +64,7 @@ export function useStaffTestDriveCommand(
   );
   const locked = command.busy || command.uncertain;
   const dirty = Boolean(action || reason || notes || handlerId || present || licence);
-  const terminal = ["Completed", "NotCompleted", "Cancelled", "NoShow"].includes(booking.status);
+  const terminal = isTerminalTestDriveStatus(booking.status);
   const manager = actor.role === "BranchManager";
   const handler = booking.handlerId === actor.userId && booking.handlerEligible;
   const actions: TestDriveStaffCommand[] = [];

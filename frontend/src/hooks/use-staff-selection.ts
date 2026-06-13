@@ -12,6 +12,8 @@ interface SelectionResource<T> {
   matches: (value: T, id: string) => boolean;
   read?: ApiRequest;
   commitAfterRead?: boolean;
+  clearOnDenied?: boolean;
+  failureMessage?: string;
 }
 
 export function useStaffSelection<T>(
@@ -70,12 +72,15 @@ export function useStaffSelection<T>(
         signal: attempt.signal,
       });
       if (attempt.signal.aborted || controller.current !== attempt) {
-        return;
+        return null;
       }
       if (response.data && !resource.matches(response.data, nextId)) {
         throw new Error("Mismatched record");
       }
       if (!response.data || response.status !== 200) {
+        if (resource.clearOnDenied && nextId === id && [403, 404].includes(response.status)) {
+          setResult(null);
+        }
         throw new Error("Record unavailable");
       }
       if (resource.commitAfterRead) {
@@ -86,10 +91,12 @@ export function useStaffSelection<T>(
         setId(nextId);
       }
       setResult(response);
+      return response.data;
     } catch {
       if (!attempt.signal.aborted && controller.current === attempt) {
         toast.error(
-          "The record could not be refreshed. Existing details and your draft remain shown.",
+          resource.failureMessage ??
+            "The record could not be refreshed. Existing details and your draft remain shown.",
         );
         if (!resource.commitAfterRead) {
           setResult((current) => ({
@@ -100,6 +107,7 @@ export function useStaffSelection<T>(
           }));
         }
       }
+      return null;
     } finally {
       if (!attempt.signal.aborted && controller.current === attempt) {
         controller.current = null;
@@ -119,5 +127,6 @@ export function useStaffSelection<T>(
     url.searchParams.delete(resource.parameter);
     window.history.replaceState(null, "", url);
   }
-  return { id, result, busy, pendingId, choose, close };
+  // Workspaces that already guard record replacement can await the confirmed record (null when the read did not confirm one).
+  return { id, result, busy, pendingId, choose, load: readSelection, close };
 }

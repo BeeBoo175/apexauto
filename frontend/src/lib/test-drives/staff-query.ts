@@ -29,6 +29,19 @@ export const testDriveQueues = [
   { value: "History", label: "History", count: "history" },
 ] as const;
 
+const terminalTestDriveStatuses = ["Completed", "NotCompleted", "Cancelled", "NoShow"];
+
+export function isTerminalTestDriveStatus(status: string) {
+  return terminalTestDriveStatuses.includes(status);
+}
+
+export function testDriveQueue(detail: StaffTestDriveDetail) {
+  if (isTerminalTestDriveStatus(detail.booking.status)) {
+    return "History";
+  }
+  return detail.booking.handlerId ? "MyWork" : "ToClaim";
+}
+
 export const testDriveSections = [
   { value: "All", label: "All test drives", count: "all" },
   { value: "Booked", label: "Booked", count: "booked" },
