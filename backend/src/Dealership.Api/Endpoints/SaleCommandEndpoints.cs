@@ -1,5 +1,5 @@
-using System.IdentityModel.Tokens.Jwt;
 using Dealership.Application.Sales;
+using static Dealership.Api.Endpoints.HttpContextActor;
 
 namespace Dealership.Api.Endpoints;
 
@@ -81,7 +81,4 @@ public static class SaleCommandEndpoints
                 title: "The sale command is unconfirmed; reconcile with the same operation and contents.");
         }
     }
-
-    private static Guid ActorId(HttpContext context) =>
-        Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Sub)!.Value);
 }

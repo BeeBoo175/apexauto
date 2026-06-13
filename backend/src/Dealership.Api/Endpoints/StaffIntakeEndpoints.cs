@@ -1,5 +1,4 @@
 using Dealership.Application.Common;
-using System.IdentityModel.Tokens.Jwt;
 using Dealership.Application.Intake;
 using Dealership.Domain.Intake;
 
@@ -47,7 +46,7 @@ public static class StaffIntakeEndpoints
 
         try
         {
-            var result = await worklist.ListAsync(StaffId(context), query, deadline.Token);
+            var result = await worklist.ListAsync(HttpContextActor.ActorId(context), query, deadline.Token);
             return result is null ? Results.Forbid() : Results.Ok(result);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
@@ -64,7 +63,7 @@ public static class StaffIntakeEndpoints
 
         try
         {
-            var result = await appointments.GetAsync(StaffId(context), id, deadline.Token);
+            var result = await appointments.GetAsync(HttpContextActor.ActorId(context), id, deadline.Token);
             return result.Status switch
             {
                 StaffAppointmentDetailStatus.Succeeded => Results.Ok(result.Detail),
@@ -86,7 +85,7 @@ public static class StaffIntakeEndpoints
         deadline.CancelAfter(TimeSpan.FromSeconds(20));
         try
         {
-            var result = await appointments.HandlersAsync(StaffId(context), id, deadline.Token);
+            var result = await appointments.HandlersAsync(HttpContextActor.ActorId(context), id, deadline.Token);
             return result.Status switch
             {
                 StaffAppointmentDetailStatus.Succeeded => Results.Ok(result.Handlers),
@@ -143,11 +142,11 @@ public static class StaffIntakeEndpoints
                     return Results.Problem(statusCode: 400, title: "Provide original-date attendance time and a correction reason.");
                 }
 
-                return Map(await checkIns.CorrectNoShowAsync(StaffId(context), id, evidence,
+                return Map(await checkIns.CorrectNoShowAsync(HttpContextActor.ActorId(context), id, evidence,
                     new NoShowCorrectionRequest(value.AttendedAt.Value, value.Reason), deadline.Token));
             }
 
-            return Map(await checkIns.CheckInAsync(StaffId(context), id, evidence, deadline.Token));
+            return Map(await checkIns.CheckInAsync(HttpContextActor.ActorId(context), id, evidence, deadline.Token));
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
@@ -155,8 +154,6 @@ public static class StaffIntakeEndpoints
                 title: "Check-in is unconfirmed; reconcile using the same appointment ID and contents.");
         }
     }
-
-    private static Guid StaffId(HttpContext context) => Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Sub)!.Value);
 
     private static IResult Map(CheckInResult result)
     {

@@ -210,7 +210,7 @@ export function useWorkCalendar(actor: CurrentActor, initial: WorkCalendarEntry)
 
 function calendarFailure(status: number) {
   if (status === 422) {
-    return "More than 1,000 appointments match. Refine the shared search, assignment or month. Confirmed content and filters remain shown.";
+    return "More than 1,000 appointments and test drives match. Refine the shared search, assignment or month. Confirmed content and filters remain shown.";
   }
   return "Appointments could not be refreshed. Confirmed content and filters remain shown; retry or change the filters.";
 }

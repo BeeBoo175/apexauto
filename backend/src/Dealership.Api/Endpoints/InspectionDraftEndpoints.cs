@@ -1,8 +1,8 @@
 using Dealership.Api.Configuration;
 using Dealership.Application.Common;
-using System.IdentityModel.Tokens.Jwt;
 using Dealership.Application.Inspections;
 using Dealership.Application.Photos;
+using static Dealership.Api.Endpoints.HttpContextActor;
 
 namespace Dealership.Api.Endpoints;
 
@@ -207,8 +207,6 @@ public static class InspectionDraftEndpoints
             return Results.Problem(statusCode: 503, title: "Inspection draft is temporarily unavailable.");
         }
     }
-
-    private static Guid ActorId(HttpContext context) => Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Sub)!.Value);
 
     private static IResult Map(InspectionAssignmentStatus status, object? value)
     {

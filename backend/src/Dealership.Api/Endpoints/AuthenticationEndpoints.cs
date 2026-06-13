@@ -39,7 +39,7 @@ public static class AuthenticationEndpoints
         CancellationToken cancellationToken)
     {
         context.Response.Headers.CacheControl = "no-store";
-        var userId = Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Sub)!.Value);
+        var userId = HttpContextActor.ActorId(context);
         var sessionId = Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Jti)!.Value);
         await sessions.RevokeAsync(userId, sessionId, cancellationToken);
         return Results.NoContent();
@@ -49,7 +49,7 @@ public static class AuthenticationEndpoints
         CancellationToken cancellationToken)
     {
         context.Response.Headers.CacheControl = "no-store";
-        var userId = Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Sub)!.Value);
+        var userId = HttpContextActor.ActorId(context);
         var account = await accounts.GetAccountAsync(userId, cancellationToken);
         return account is null ? Results.Forbid() : Results.Ok(account);
     }
@@ -58,7 +58,7 @@ public static class AuthenticationEndpoints
         CancellationToken cancellationToken)
     {
         context.Response.Headers.CacheControl = "no-store";
-        var userId = Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Sub)!.Value);
+        var userId = HttpContextActor.ActorId(context);
         var sessionId = Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Jti)!.Value);
         var actor = await sessions.GetActorAsync(userId, sessionId, cancellationToken);
         return actor is null ? Results.Unauthorized() : Results.Ok(actor);
@@ -75,7 +75,7 @@ public static class AuthenticationEndpoints
             return error;
         }
 
-        var userId = Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Sub)!.Value);
+        var userId = HttpContextActor.ActorId(context);
         var result = await verification.ResendAsync(userId, request!.ResendKey, cancellationToken);
 
         if (result.Status == VerificationStatus.RateLimited)

@@ -1,4 +1,5 @@
 import "server-only";
+import { API_DEADLINE_MS } from "@/lib/api";
 import { isPositiveInteger, isRecord, isUtcInstant, isUuid } from "@/lib/auth/contracts";
 import { isMyr } from "@/lib/currency-input";
 import { HttpError, readBoundedJson } from "@/lib/http";
@@ -58,7 +59,7 @@ export async function relaySettingsRead<T>(
     if (id !== null && !isUuid(id)) {
       throw new HttpError(400, "Choose a valid record ID.");
     }
-    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(25_000)]);
+    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(API_DEADLINE_MS)]);
     const current = await settingsActor(signal);
     if (current.denied) {
       return current.denied;
@@ -96,7 +97,7 @@ export async function relaySettingsWrite<T>(
     if (id !== null && !isUuid(id)) {
       throw new HttpError(400, "Choose a valid record ID.");
     }
-    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(25_000)]);
+    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(API_DEADLINE_MS)]);
     const token = await sessionToken();
     if (!token) {
       throw new HttpError(401, "Sign in to continue.");

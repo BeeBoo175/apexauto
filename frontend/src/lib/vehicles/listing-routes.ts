@@ -1,4 +1,5 @@
 import "server-only";
+import { API_DEADLINE_MS } from "@/lib/api";
 import { isRecord, isUuid } from "@/lib/auth/contracts";
 import { HttpError, readBoundedJson } from "@/lib/http";
 import { requireSameOrigin } from "@/lib/server/http/request";
@@ -23,7 +24,7 @@ export async function relayListingRead<T>(
     if (!isUuid(id)) {
       throw new HttpError(400, "Choose a valid vehicle ID.");
     }
-    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(25_000)]);
+    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(API_DEADLINE_MS)]);
     const actor = await confirmedActor(signal);
     if (!hasListingAccess(actor)) {
       return accessDenied(actor, "Listing access unavailable.");
@@ -49,7 +50,7 @@ export async function relayListingCommand<T>(
     if (!isUuid(id)) {
       throw new HttpError(400, "Choose a valid vehicle ID.");
     }
-    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(25_000)]);
+    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(API_DEADLINE_MS)]);
     const token = await sessionToken();
     if (!token) {
       throw new HttpError(401, "Sign in to continue.");

@@ -40,7 +40,7 @@ export async function relayCustomerReservation(request: Request, vehicleId: stri
     ) {
       throw new HttpError(415, "Send application/json.");
     }
-    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(25_000)]);
+    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(API_DEADLINE_MS)]);
     const body = parseCustomerReservationRequest(
       await readBoundedJson(request.body, signal, 8 * 1024),
     );

@@ -1,4 +1,3 @@
-using System.IdentityModel.Tokens.Jwt;
 using System.Text.Json.Serialization;
 using Dealership.Application.Sales;
 
@@ -25,7 +24,7 @@ public static class SaleDocumentCorrectionEndpoints
                 return error;
             }
 
-            var actor = Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Sub)!.Value);
+            var actor = HttpContextActor.ActorId(context);
             var request = new SaleDocumentCorrectionRequest(input!.OperationId, input.ExpectedVersion, input.DocumentId,
                 new(input.BuyerName!, input.BuyerAddress!, input.Reason!));
             var result = await corrections.ReissueAsync(actor, id, request, deadline.Token);

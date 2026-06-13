@@ -1,4 +1,5 @@
 import "server-only";
+import { API_DEADLINE_MS } from "@/lib/api";
 
 import { readCurrentActor } from "@/lib/auth/server";
 import { isRecord, isUuid } from "@/lib/auth/contracts";
@@ -55,7 +56,7 @@ export async function relayAccountReservations(request: Request) {
     if (dateRangeError(filters)) {
       throw new HttpError(400, dateRangeError(filters));
     }
-    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(25_000)]);
+    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(API_DEADLINE_MS)]);
     const current = await readCurrentActor(signal);
     if (!current.actor) {
       throw new HttpError(
@@ -84,7 +85,7 @@ export async function relayCustomerCancellation(request: Request, id: string) {
     ) {
       throw new HttpError(415, "Send application/json.");
     }
-    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(25_000)]);
+    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(API_DEADLINE_MS)]);
     const body = await readBoundedJson(request.body, signal, 8 * 1024);
     if (!isRecord(body) || !isUuid(body.operationId) || body.reason !== null) {
       throw new HttpError(400, "Provide a cancellation operation ID without a staff reason.");

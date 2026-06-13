@@ -1,6 +1,6 @@
 using Dealership.Application.Common;
-using System.IdentityModel.Tokens.Jwt;
 using Dealership.Application.Inspections;
+using static Dealership.Api.Endpoints.HttpContextActor;
 
 namespace Dealership.Api.Endpoints;
 
@@ -67,8 +67,6 @@ public static class InspectionQueueEndpoints
             return Results.Problem(statusCode: 503, title: "Repair approval queue is temporarily unavailable.");
         }
     }
-
-    private static Guid ActorId(HttpContext context) => Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Sub)!.Value);
 
     private static async Task<IResult> WorkshopAsync(string? from, string? to, string? status, Guid? branchId,
         int? page, int? pageSize, string? search, string? sort, string? direction, HttpContext context, IWorkshopQueueStore store,

@@ -1,5 +1,4 @@
 using Dealership.Application.Common;
-using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using Dealership.Application.Intake;
 
@@ -22,7 +21,7 @@ public static class StaffIntakeExportEndpoint
         deadline.CancelAfter(TimeSpan.FromSeconds(20));
         try
         {
-            var staffId = Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Sub)!.Value);
+            var staffId = HttpContextActor.ActorId(context);
             var result = await worklist.ExportAsync(staffId, query, deadline.Token);
             if (result is null)
             {
@@ -46,5 +45,4 @@ public static class StaffIntakeExportEndpoint
             return Results.Problem(statusCode: 503, title: "Export did not complete. Narrow the filters or retry deliberately.");
         }
     }
-
 }

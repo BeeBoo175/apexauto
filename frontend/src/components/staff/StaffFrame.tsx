@@ -14,10 +14,8 @@ import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { hasIntakeAccess, roleNames, type CurrentActor } from "@/lib/auth/actor";
 import { hasInspectionAccess } from "@/lib/inspection/contracts";
 import { hasListingAccess } from "@/lib/vehicles/listings";
-import { hasSalesAccess } from "@/lib/sales/contracts";
 import { hasSettingsAccess } from "@/lib/settings/settings";
-import { hasTestDriveAccess } from "@/lib/test-drives/staff";
-import { hasWorkCalendarAccess } from "@/lib/staff/work-calendar";
+import { fitViewportPaths, staffLinkActive, staffWorkspaceLinks } from "@/lib/staff/navigation";
 import styles from "./StaffFrame.module.css";
 import { StaffActorContext, StaffNavigationContext } from "./StaffActorBoundary";
 import { StaffNavigationLockContext } from "./StaffNavigationLockContext";
@@ -46,16 +44,7 @@ function StaffFrameContent({
   ready: boolean;
 }) {
   const navigation = useStaffNavigation();
-  const fitViewport = [
-    "/dashboard/intake",
-    "/dashboard/inspection",
-    "/dashboard/inspection/repairs",
-    "/dashboard/management",
-    "/dashboard/settings",
-    "/dashboard/sales",
-    "/dashboard/test-drives",
-    "/dashboard/work-calendar",
-  ].includes(navigation.pathname);
+  const fitViewport = fitViewportPaths.includes(navigation.pathname);
   const logout = useAuthMutation("logout", "/login");
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -141,134 +130,24 @@ function StaffFrameContent({
                     Administration
                   </StaffLink>
                 )}
-                {hasWorkCalendarAccess(actor.role) && (
-                  <StaffLink
-                    href="/dashboard/work-calendar"
-                    prefetch={false}
-                    prefetchOnIntent={true}
-                    className={
-                      navigation.selectedPath === "/dashboard/work-calendar"
-                        ? styles.activeLink
-                        : styles.navLink
-                    }
-                    aria-current={
-                      navigation.selectedPath === "/dashboard/work-calendar" ? "page" : undefined
-                    }
-                    onNavigate={(event) => navigate(event, "/dashboard/work-calendar")}
-                  >
-                    Work calendar
-                  </StaffLink>
-                )}
-                {actor && hasIntakeAccess(actor) && (
-                  <StaffLink
-                    href="/dashboard/intake"
-                    prefetch={false}
-                    prefetchOnIntent={Boolean(actor)}
-                    className={
-                      navigation.selectedPath.startsWith("/dashboard/intake")
-                        ? styles.activeLink
-                        : styles.navLink
-                    }
-                    aria-current={
-                      navigation.selectedPath.startsWith("/dashboard/intake") ? "page" : undefined
-                    }
-                    onNavigate={(event) => navigate(event, "/dashboard/intake")}
-                  >
-                    Intake appointments
-                  </StaffLink>
-                )}
-                {actor && hasInspectionAccess(actor) && (
-                  <StaffLink
-                    href="/dashboard/inspection"
-                    prefetch={false}
-                    prefetchOnIntent={true}
-                    className={
-                      navigation.selectedPath.startsWith("/dashboard/inspection")
-                        ? styles.activeLink
-                        : styles.navLink
-                    }
-                    aria-current={
-                      navigation.selectedPath.startsWith("/dashboard/inspection")
-                        ? "page"
-                        : undefined
-                    }
-                    onNavigate={(event) => navigate(event, "/dashboard/inspection")}
-                  >
-                    Workshop
-                  </StaffLink>
-                )}
-                {actor && hasListingAccess(actor) && (
-                  <StaffLink
-                    href="/dashboard/management"
-                    prefetch={false}
-                    prefetchOnIntent={true}
-                    className={
-                      navigation.selectedPath === "/dashboard/management"
-                        ? styles.activeLink
-                        : styles.navLink
-                    }
-                    aria-current={
-                      navigation.selectedPath === "/dashboard/management" ? "page" : undefined
-                    }
-                    onNavigate={(event) => navigate(event, "/dashboard/management")}
-                  >
-                    Listings
-                  </StaffLink>
-                )}
-                {actor && hasSalesAccess(actor) && (
-                  <StaffLink
-                    href="/dashboard/sales"
-                    prefetch={false}
-                    prefetchOnIntent={true}
-                    className={
-                      navigation.selectedPath === "/dashboard/sales"
-                        ? styles.activeLink
-                        : styles.navLink
-                    }
-                    aria-current={
-                      navigation.selectedPath === "/dashboard/sales" ? "page" : undefined
-                    }
-                    onNavigate={(event) => navigate(event, "/dashboard/sales")}
-                  >
-                    Sales
-                  </StaffLink>
-                )}
-                {actor && hasTestDriveAccess(actor.role) && (
-                  <StaffLink
-                    href="/dashboard/test-drives"
-                    prefetch={false}
-                    prefetchOnIntent={true}
-                    className={
-                      navigation.selectedPath === "/dashboard/test-drives"
-                        ? styles.activeLink
-                        : styles.navLink
-                    }
-                    aria-current={
-                      navigation.selectedPath === "/dashboard/test-drives" ? "page" : undefined
-                    }
-                    onNavigate={(event) => navigate(event, "/dashboard/test-drives")}
-                  >
-                    Test drives
-                  </StaffLink>
-                )}
-                {actor && hasSettingsAccess(actor) && (
-                  <StaffLink
-                    href="/dashboard/settings"
-                    prefetch={false}
-                    prefetchOnIntent={true}
-                    className={
-                      navigation.selectedPath === "/dashboard/settings"
-                        ? styles.activeLink
-                        : styles.navLink
-                    }
-                    aria-current={
-                      navigation.selectedPath === "/dashboard/settings" ? "page" : undefined
-                    }
-                    onNavigate={(event) => navigate(event, "/dashboard/settings")}
-                  >
-                    Settings
-                  </StaffLink>
-                )}
+                {staffWorkspaceLinks
+                  .filter((link) => link.allowed(actor))
+                  .map((link) => {
+                    const active = staffLinkActive(link, navigation.selectedPath);
+                    return (
+                      <StaffLink
+                        key={link.href}
+                        href={link.href}
+                        prefetch={false}
+                        prefetchOnIntent={true}
+                        className={active ? styles.activeLink : styles.navLink}
+                        aria-current={active ? "page" : undefined}
+                        onNavigate={(event) => navigate(event, link.href)}
+                      >
+                        {link.label}
+                      </StaffLink>
+                    );
+                  })}
                 {actor &&
                   !hasIntakeAccess(actor) &&
                   !hasInspectionAccess(actor) &&

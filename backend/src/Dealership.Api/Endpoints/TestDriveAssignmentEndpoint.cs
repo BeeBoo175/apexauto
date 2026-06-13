@@ -42,7 +42,7 @@ public static class TestDriveAssignmentEndpoint
                 return Results.Problem(statusCode: 400, title: "Provide an operation ID and expected ownership version.");
             }
 
-            var result = await assignments.ExecuteAsync(TestDriveCommandEndpoints.ActorId(context), id, kind,
+            var result = await assignments.ExecuteAsync(HttpContextActor.ActorId(context), id, kind,
                 new(input.OperationId.Value, input.ExpectedVersion.Value, input.HandlerId, input.Reason), deadline.Token);
             return Map(result);
         }

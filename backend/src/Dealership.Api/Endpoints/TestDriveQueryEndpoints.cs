@@ -51,7 +51,7 @@ public static class TestDriveQueryEndpoints
         deadline.CancelAfter(TimeSpan.FromSeconds(20));
         try
         {
-            var result = await reads.AccountAsync(TestDriveCommandEndpoints.ActorId(context), page ?? 1, dates,
+            var result = await reads.AccountAsync(HttpContextActor.ActorId(context), page ?? 1, dates,
                 deadline.Token, search?.Trim() ?? "");
             return result.Status switch
             {

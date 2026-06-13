@@ -1,9 +1,9 @@
 using Dealership.Api.Configuration;
-using System.IdentityModel.Tokens.Jwt;
 using Dealership.Application.Vehicles;
 using Dealership.Application.Photos;
 using Dealership.Domain.Photos;
 using Microsoft.AspNetCore.Http.Features;
+using static Dealership.Api.Endpoints.HttpContextActor;
 
 namespace Dealership.Api.Endpoints;
 
@@ -145,8 +145,6 @@ public static class ListingPhotoEndpoints
             return StorageUnavailable();
         }
     }
-
-    private static Guid ActorId(HttpContext context) => Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Sub)!.Value);
 
     private static IResult Map(ListingPhotoResult result)
     {

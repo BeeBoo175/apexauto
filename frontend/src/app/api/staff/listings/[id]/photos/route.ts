@@ -1,4 +1,5 @@
 import { isUuid } from "@/lib/auth/contracts";
+import { API_DEADLINE_MS } from "@/lib/api";
 import { readCurrentActor } from "@/lib/auth/server";
 import { apiError, apiJson, privateApiRead } from "@/lib/server/http/api";
 import { HttpError } from "@/lib/http";
@@ -14,7 +15,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     if (!isUuid(id) || !/^\d+$/.test(input) || !Number.isSafeInteger(page) || page < 1) {
       throw new HttpError(400, "Choose a valid vehicle ID and photo page.");
     }
-    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(25_000)]);
+    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(API_DEADLINE_MS)]);
     const current = await readCurrentActor(signal);
     if (!current.actor) {
       throw new HttpError(

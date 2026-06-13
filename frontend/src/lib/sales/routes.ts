@@ -1,4 +1,5 @@
 import "server-only";
+import { API_DEADLINE_MS } from "@/lib/api";
 import { isPositiveInteger, isRecord, isUuid } from "@/lib/auth/contracts";
 import { isMyr } from "@/lib/currency-input";
 import { HttpError, readBoundedJson } from "@/lib/http";
@@ -79,7 +80,7 @@ export async function relaySaleRead<T>(
     if (!saleReads.test(resource)) {
       throw new HttpError(400, "Choose a valid resource.");
     }
-    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(25_000)]);
+    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(API_DEADLINE_MS)]);
     const current = await relayActor(signal);
     if (current.denied) {
       return current.denied;
@@ -101,7 +102,7 @@ export async function relaySaleCommand<T>(
 ) {
   try {
     requireSameOrigin(request);
-    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(25_000)]);
+    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(API_DEADLINE_MS)]);
     const token = await sessionToken();
     if (!token) {
       throw new HttpError(401, "Sign in to continue.");

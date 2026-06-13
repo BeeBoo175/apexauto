@@ -1,6 +1,6 @@
-using System.IdentityModel.Tokens.Jwt;
 using Dealership.Application.Common;
 using Dealership.Application.Vehicles;
+using static Dealership.Api.Endpoints.HttpContextActor;
 
 namespace Dealership.Api.Endpoints;
 
@@ -85,8 +85,6 @@ public static class PromoAdministrationEndpoints
             return Unconfirmed();
         }
     }
-
-    private static Guid ActorId(HttpContext context) => Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Sub)!.Value);
 
     private static IResult Unconfirmed() => Results.Problem(statusCode: 503,
         title: "The promo change is unconfirmed; reload the promos before retrying.");

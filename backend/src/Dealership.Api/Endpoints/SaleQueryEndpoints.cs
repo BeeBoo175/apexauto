@@ -1,7 +1,7 @@
-using System.IdentityModel.Tokens.Jwt;
 using Dealership.Api.Configuration;
 using Dealership.Application.Common;
 using Dealership.Application.Sales;
+using static Dealership.Api.Endpoints.HttpContextActor;
 
 namespace Dealership.Api.Endpoints;
 
@@ -127,7 +127,4 @@ public static class SaleQueryEndpoints
 
     private static IResult Unavailable() =>
         Results.Problem(statusCode: 503, title: "Sales are temporarily unavailable.");
-
-    private static Guid ActorId(HttpContext context) =>
-        Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Sub)!.Value);
 }

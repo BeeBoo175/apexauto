@@ -15,9 +15,9 @@ public static class StaffTestDriveQueryEndpoints
         });
         routes.MapGet("", ListAsync);
         routes.MapGet("/{id:guid}", (Guid id, HttpContext context, IStaffTestDriveReadStore reads, CancellationToken token) =>
-            ReadAsync(deadline => reads.GetAsync(TestDriveCommandEndpoints.ActorId(context), id, deadline), token));
+            ReadAsync(deadline => reads.GetAsync(HttpContextActor.ActorId(context), id, deadline), token));
         routes.MapGet("/{id:guid}/handlers", (Guid id, HttpContext context, IStaffTestDriveReadStore reads, CancellationToken token) =>
-            ReadAsync(deadline => reads.HandlersAsync(TestDriveCommandEndpoints.ActorId(context), id, deadline), token));
+            ReadAsync(deadline => reads.HandlersAsync(HttpContextActor.ActorId(context), id, deadline), token));
     }
 
     private static Task<IResult> ListAsync(HttpContext context, IStaffTestDriveReadStore reads,
@@ -29,7 +29,7 @@ public static class StaffTestDriveQueryEndpoints
         var query = StaffTestDriveQuery.Parse(from, to, page, pageSize, queue, status, branchId, handlerId, search, sort, direction, handler);
         return query is null
             ? Task.FromResult<IResult>(Results.Problem(statusCode: 400, title: "Provide valid test-drive dates, filters, sort and paging."))
-            : ReadAsync(deadline => reads.ListAsync(TestDriveCommandEndpoints.ActorId(context), query, deadline), cancellationToken);
+            : ReadAsync(deadline => reads.ListAsync(HttpContextActor.ActorId(context), query, deadline), cancellationToken);
     }
 
     private static async Task<IResult> ReadAsync<T>(Func<CancellationToken, Task<StaffTestDriveReadResult<T>>> read,
@@ -45,7 +45,7 @@ public static class StaffTestDriveQueryEndpoints
                 TestDriveReadStatus.Succeeded => Results.Ok(result.Value),
                 TestDriveReadStatus.Forbidden => Results.Forbid(),
                 TestDriveReadStatus.NotFound => Results.NotFound(),
-                TestDriveReadStatus.Invalid => Results.Problem(statusCode: 400),
+                TestDriveReadStatus.Invalid => Results.Problem(statusCode: 400, title: "Provide a valid test-drive request."),
                 _ => Results.Problem(statusCode: 500)
             };
         }

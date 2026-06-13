@@ -1,6 +1,6 @@
-using System.IdentityModel.Tokens.Jwt;
 using Dealership.Application.Common;
 using Dealership.Application.WorkCalendar;
+using static Dealership.Api.Endpoints.HttpContextActor;
 
 namespace Dealership.Api.Endpoints;
 
@@ -51,8 +51,7 @@ public static class WorkCalendarQueryEndpoints
                 WorkCalendarReadStatus.Succeeded => Results.Ok(result.Value),
                 WorkCalendarReadStatus.Forbidden => Results.Forbid(),
                 WorkCalendarReadStatus.Invalid => Results.Problem(statusCode: 400, title: "Provide valid work filters."),
-                WorkCalendarReadStatus.BranchRequired => Results.Problem(statusCode: 400, title: "Choose a branch to read its work calendar."),
-                _ => Results.Problem(statusCode: 422, title: "More than 1,000 appointments match. Refine the search or choose another month.")
+                _ => Results.Problem(statusCode: 422, title: "More than 1,000 appointments and test drives match. Refine the search or choose another month.")
             };
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
@@ -60,6 +59,4 @@ public static class WorkCalendarQueryEndpoints
             return Results.Problem(statusCode: 503, title: "Work could not be refreshed.");
         }
     }
-
-    private static Guid ActorId(HttpContext context) => Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Sub)!.Value);
 }

@@ -1,5 +1,5 @@
-using System.IdentityModel.Tokens.Jwt;
 using Dealership.Application.TestDrives;
+using static Dealership.Api.Endpoints.HttpContextActor;
 
 namespace Dealership.Api.Endpoints;
 
@@ -110,8 +110,6 @@ public static class TestDriveCommandEndpoints
             return Unconfirmed();
         }
     }
-
-    internal static Guid ActorId(HttpContext context) => Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Sub)!.Value);
 
     internal static IResult Unconfirmed() => Results.Problem(statusCode: 503,
         title: "Test-drive operation is unconfirmed; reconcile with the same operation ID and contents.");

@@ -25,7 +25,7 @@ public static class StaffIntakeBackgroundExportEndpoint
         Stream? file = null;
         try
         {
-            var staffId = Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Sub)!.Value);
+            var staffId = HttpContextActor.ActorId(context);
             var sessionId = Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Jti)!.Value);
             var actor = await sessions.GetActorAsync(staffId, sessionId, deadline.Token);
             if (actor is null)

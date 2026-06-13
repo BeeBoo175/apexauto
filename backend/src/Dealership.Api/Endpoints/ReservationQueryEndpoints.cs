@@ -1,6 +1,6 @@
-using System.IdentityModel.Tokens.Jwt;
 using Dealership.Application.Common;
 using Dealership.Application.Vehicles;
+using static Dealership.Api.Endpoints.HttpContextActor;
 
 namespace Dealership.Api.Endpoints;
 
@@ -38,8 +38,6 @@ public static class ReservationQueryEndpoints
             return Unavailable();
         }
     }
-
-    private static Guid ActorId(HttpContext context) => Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Sub)!.Value);
 
     private static IResult Unavailable() => Results.Problem(statusCode: 503, title: "Reservation history is temporarily unavailable.");
 

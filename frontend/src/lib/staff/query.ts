@@ -1,4 +1,5 @@
 import type { SearchParams } from "@/lib/query";
+import { isUuid } from "@/lib/auth/contracts";
 import { DEFAULT_PAGE_SIZE, isPageSize } from "@/lib/pagination";
 import { historyParams, historyQuery } from "@/lib/intake/list-query";
 import {
@@ -83,7 +84,8 @@ export function staffParams(params: SearchParams): { page: number; filters: Staf
       vehicle: typeof params.vehicle === "string" ? params.vehicle : "",
       customer: typeof params.customer === "string" ? params.customer : "",
       queue: intakeQueues.find((queue) => queue === params.queue) ?? "",
-      handlerId: typeof params.handlerId === "string" ? params.handlerId : "",
+      handlerId:
+        typeof params.handlerId === "string" && isUuid(params.handlerId) ? params.handlerId : "",
       handler: typeof params.handler === "string" ? params.handler : "",
       sort: typeof params.sort === "string" ? params.sort : "startsAt",
       direction: params.direction === "desc" ? ("desc" as const) : ("asc" as const),

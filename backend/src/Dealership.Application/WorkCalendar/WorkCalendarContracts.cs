@@ -63,7 +63,6 @@ public enum WorkCalendarReadStatus
 {
     Succeeded,
     Forbidden,
-    BranchRequired,
     Invalid,
     TooMany
 }

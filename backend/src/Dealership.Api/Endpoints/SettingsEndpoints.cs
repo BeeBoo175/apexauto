@@ -1,5 +1,5 @@
-using System.IdentityModel.Tokens.Jwt;
 using Dealership.Application.Vehicles;
+using static Dealership.Api.Endpoints.HttpContextActor;
 
 namespace Dealership.Api.Endpoints;
 
@@ -55,8 +55,6 @@ public static class SettingsEndpoints
                 title: "The settings change is unconfirmed; reload the settings before retrying.");
         }
     }
-
-    private static Guid ActorId(HttpContext context) => Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Sub)!.Value);
 
     private static IResult Unavailable() => Results.Problem(statusCode: 503, title: "Settings are temporarily unavailable.");
 

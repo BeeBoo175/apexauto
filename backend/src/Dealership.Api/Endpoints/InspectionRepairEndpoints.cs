@@ -1,6 +1,6 @@
 using Dealership.Application.Common;
-using System.IdentityModel.Tokens.Jwt;
 using Dealership.Application.Inspections;
+using static Dealership.Api.Endpoints.HttpContextActor;
 
 namespace Dealership.Api.Endpoints;
 
@@ -148,8 +148,6 @@ public static class InspectionRepairEndpoints
             return Results.Problem(statusCode: 503, title: "Repair request is temporarily unavailable.");
         }
     }
-
-    private static Guid ActorId(HttpContext context) => Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Sub)!.Value);
 
     private static IResult MapApproval(InspectionRepairApprovalResult result) => result.Status switch
     {

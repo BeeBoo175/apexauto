@@ -23,7 +23,7 @@ public static class TestDriveHandlingEndpoint
                 return Results.Problem(statusCode: 400, title: "Provide operation, assignment, attendance and licence affirmation.");
             }
 
-            return Map(await handling.StartAsync(TestDriveCommandEndpoints.ActorId(context), id,
+            return Map(await handling.StartAsync(HttpContextActor.ActorId(context), id,
                 new(input.OperationId.Value, input.AssignmentId.Value, input.CustomerPresent.Value,
                     input.DrivingLicenceChecked.Value), deadline.Token));
         }
@@ -51,7 +51,7 @@ public static class TestDriveHandlingEndpoint
                 return Results.Problem(statusCode: 400, title: "Provide operation, assignment, attendance and outcome.");
             }
 
-            return Map(await handling.RecordOutcomeAsync(TestDriveCommandEndpoints.ActorId(context), id,
+            return Map(await handling.RecordOutcomeAsync(HttpContextActor.ActorId(context), id,
                 new(input.OperationId.Value, input.AssignmentId.Value, input.Kind, input.CustomerPresent.Value,
                     input.Reason, input.Notes), deadline.Token));
         }

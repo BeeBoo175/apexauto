@@ -1,4 +1,5 @@
 import { readCurrentActor } from "@/lib/auth/server";
+import { API_DEADLINE_MS } from "@/lib/api";
 import { apiError, apiJson, privateApiRead } from "@/lib/server/http/api";
 import { HttpError } from "@/lib/http";
 import { hasListingAccess } from "@/lib/vehicles/listings";
@@ -6,7 +7,7 @@ import { parseListings } from "@/lib/vehicles/parse-listings";
 
 export async function GET(request: Request) {
   try {
-    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(25_000)]);
+    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(API_DEADLINE_MS)]);
     const current = await readCurrentActor(signal);
     if (!current.actor) {
       throw new HttpError(

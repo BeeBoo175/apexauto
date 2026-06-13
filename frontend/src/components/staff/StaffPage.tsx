@@ -6,20 +6,9 @@ import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { StaffNavigationContext } from "./StaffActorBoundary";
 import { StaffEntryPresentationContext } from "./StaffClientEntryBoundary";
 import { StaffLoadingShell, type StaffLoadingView } from "./StaffLoadingShell";
+import { staffPageTitles } from "@/lib/staff/navigation";
 import styles from "./Staff.module.css";
 import loading from "./StaffLoadingShell.module.css";
-
-const titles: Record<string, string> = {
-  "/dashboard": "Administration",
-  "/dashboard/intake": "Intake appointments",
-  "/dashboard/inspection": "Workshop",
-  "/dashboard/inspection/repairs": "Repair requests",
-  "/dashboard/management": "Listings",
-  "/dashboard/settings": "Settings",
-  "/dashboard/sales": "Sales",
-  "/dashboard/test-drives": "Test drives",
-  "/dashboard/work-calendar": "Work calendar",
-};
 
 export function StaffLoading() {
   const presentation = useContext(StaffEntryPresentationContext);
@@ -42,7 +31,7 @@ export function StaffLoading() {
     "/dashboard/work-calendar": "calendar",
   };
   let view = views[pathname] ?? "inspection";
-  let title = titles[pathname] ?? "Your staff workspace";
+  let title = staffPageTitles[pathname] ?? "Your staff workspace";
   if (pathname === "/dashboard/intake") {
     view = actor.role === "SalesAgent" ? "technician" : "intake";
   }
@@ -74,7 +63,9 @@ export function StaffCommandBar({
   actionsRef?: Ref<HTMLDivElement>;
 }) {
   const navigation = useContext(StaffNavigationContext);
-  const pendingTitle = navigation?.pendingPath ? titles[navigation.pendingPath] : undefined;
+  const pendingTitle = navigation?.pendingPath
+    ? staffPageTitles[navigation.pendingPath]
+    : undefined;
   return (
     <header className={styles.commandBar}>
       {title === null ? (

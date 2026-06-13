@@ -1,5 +1,4 @@
 using Dealership.Domain.Common;
-using System.IdentityModel.Tokens.Jwt;
 using Dealership.Application.Intake;
 using Dealership.Domain.Intake;
 
@@ -43,7 +42,7 @@ public static class StaffIntakeAssignmentEndpoint
                 return Results.Problem(statusCode: 400, title: "Provide an operation ID and expected ownership version.");
             }
 
-            var actorId = Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Sub)!.Value);
+            var actorId = HttpContextActor.ActorId(context);
             var request = new AppointmentAssignmentRequest(input.OperationId.Value, input.ExpectedVersion.Value,
                 input.HandlerId, input.Reason);
             return Map(await assignments.ExecuteAsync(actorId, id, kind, request, deadline.Token));

@@ -57,7 +57,7 @@ try
         ValidateOnBuild = true
     });
     await using var scope = provider.CreateAsyncScope();
-    using var deadline = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+    using var deadline = new CancellationTokenSource(TimeSpan.FromMinutes(5));
 
     if (args[0] == "clear")
     {
