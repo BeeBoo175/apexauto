@@ -2,6 +2,7 @@ import { openStaffWorkspace, showIntakeQueue } from "./intake-ui-controls";
 import { expect, test, type Page } from "@playwright/test";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { signIn } from "./staff-sign-in";
 
 test.use({ actionTimeout: 15_000 });
 
@@ -10,10 +11,7 @@ const assignment = (command: string) =>
   writeFileSync(path.join(evidence, "assignment.txt"), command);
 
 async function login(page: Page, email = "aina.sofia@example.invalid") {
-  await page.goto("/login");
-  await page.getByLabel("Email", { exact: true }).fill(email);
-  await page.getByLabel("Password", { exact: true }).fill("Password123!");
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await signIn(page, email);
   await expect(page.getByRole("button", { name: "Refresh worklist", exact: true })).toBeEnabled();
 }
 

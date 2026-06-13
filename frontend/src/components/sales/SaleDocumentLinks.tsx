@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/Button";
 import { useSaleDocumentVersion } from "@/hooks/use-sale-document-version";
 import { documentLabels, saleDocumentPdf, type SaleDocument } from "@/lib/sales/documents";
 import { formatMalaysianDateTime } from "@/lib/date-format";
-import styles from "./SaleCompletion.module.css";
 import links from "./SaleDocumentLinks.module.css";
 
 export function SaleDocumentLinks({
@@ -86,13 +85,13 @@ export function SaleDocumentLinks({
         {documentLabels[document.kind]} · {document.number} (PDF)
       </a>
       {compact ? (
-        <details className={styles.disclosure}>
+        <details className={links.disclosure}>
           <summary>
             Document details
             {document.correction && <span>Corrected</span>}
             {document.replacementDocumentId && <span>Superseded</span>}
           </summary>
-          <div className={styles.disclosureContent}>{details}</div>
+          <div className={links.disclosureContent}>{details}</div>
         </details>
       ) : (
         details

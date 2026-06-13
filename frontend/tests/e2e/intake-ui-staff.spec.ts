@@ -13,6 +13,7 @@ import { expect, test, type Page, type BrowserContext } from "@playwright/test";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { calendarDate } from "@/lib/calendar";
+import { signIn } from "./staff-sign-in";
 
 test.use({ actionTimeout: 15000 });
 const evidence = process.env.BROWSER_EVIDENCE_DIR!;
@@ -39,10 +40,7 @@ async function privateHeaders(context: BrowserContext) {
 }
 
 async function login(page: Page, email: string, destination: string) {
-  await page.goto("/login");
-  await page.getByLabel("Email", { exact: true }).fill(email);
-  await page.getByLabel("Password", { exact: true }).fill("Password123!");
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await signIn(page, email);
   await expect(page).toHaveURL(new RegExp(`${destination}$`));
 }
 

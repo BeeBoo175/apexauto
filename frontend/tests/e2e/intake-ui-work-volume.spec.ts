@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { writeFileSync } from "node:fs";
 import path from "node:path";
+import { signIn } from "./staff-sign-in";
 
 test.use({ actionTimeout: 15_000 });
 const branchId = "c77708bf-1a31-42f5-9a69-0c8766697a52";
@@ -16,10 +17,7 @@ type WorkItem = {
 type WorkPage = { items: WorkItem[]; total: number; page: number };
 
 async function login(page: Page, email: string) {
-  await page.goto("/login");
-  await page.getByLabel("Email", { exact: true }).fill(email);
-  await page.getByLabel("Password", { exact: true }).fill("Password123!");
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await signIn(page, email);
   await expect(page).toHaveURL(/\/dashboard\/work-calendar$/);
 }
 

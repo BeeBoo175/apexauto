@@ -2,6 +2,7 @@ import { expect, test, type Page, type BrowserContext } from "@playwright/test";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { formatCurrency } from "../../src/lib/currency-format";
+import { signIn } from "./staff-sign-in";
 
 const evidence = process.env.BROWSER_EVIDENCE_DIR!;
 const branch = "c77708bf-1a31-42f5-9a69-0c8766697a52";
@@ -9,10 +10,7 @@ const counts = () =>
   JSON.parse(readFileSync(path.join(evidence, "counts.json"), "utf8")) as Record<string, number>;
 
 async function login(page: Page, email: string) {
-  await page.goto("/login");
-  await page.getByLabel("Email", { exact: true }).fill(email);
-  await page.getByLabel("Password", { exact: true }).fill("Password123!");
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await signIn(page, email);
   await expect(page).toHaveURL(/\/dashboard\/intake$/);
 }
 
