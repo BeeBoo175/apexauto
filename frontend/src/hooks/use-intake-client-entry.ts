@@ -3,16 +3,15 @@
 import { useEffect } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { useStaffClientEntry } from "./use-staff-client-entry";
-import { apiFetch, privateApiFetch } from "@/lib/api-browser";
-import { parsePage } from "@/lib/api";
+import { privateApiFetch } from "@/lib/api-browser";
 import type { CurrentActor } from "@/lib/auth/actor";
 import { isUuid } from "@/lib/auth/contracts";
-import { parseBranch } from "@/lib/branches";
 import type { SearchParams } from "@/lib/query";
 import { parseDetail, parseWorklistPage } from "@/lib/staff/parse";
 import { appointmentQueue, intakeQueueParams, staffParams, staffQuery } from "@/lib/staff/query";
 import { intakeQueues } from "@/lib/staff/contracts";
 import type { IntakeViewComponent, IntakeWorkspaceSnapshot } from "./use-intake-workspace";
+import { readBranchChoices } from "@/lib/branch-choices";
 
 interface IntakeEntry {
   snapshot: IntakeWorkspaceSnapshot;
@@ -50,13 +49,7 @@ export function useIntakeClientEntry(actor: CurrentActor, parameters: SearchPara
         parseWorklistPage,
         { signal },
       ),
-      actor.role === "GeneralManager"
-        ? apiFetch(
-            "/api/intake/branches?page=1&pageSize=25",
-            (value) => parsePage(value, parseBranch),
-            { signal },
-          ).catch(() => null)
-        : null,
+      actor.role === "GeneralManager" ? readBranchChoices(1, signal, 25).catch(() => null) : null,
       selectedRead,
       prepareView(agent),
     ]);

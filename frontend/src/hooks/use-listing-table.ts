@@ -3,11 +3,12 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { useInitialToast } from "./use-initial-toast";
-import { apiFetch, privateApiFetch } from "@/lib/api-browser";
-import { parsePage, type ApiResult, type Page } from "@/lib/api";
-import { parseBranch, type Branch } from "@/lib/branches";
+import { privateApiFetch } from "@/lib/api-browser";
+import { type ApiResult, type Page } from "@/lib/api";
+import { type Branch } from "@/lib/branches";
 import { listingQuery, type ListingFilters, type ListingItem } from "@/lib/vehicles/listings";
 import { parseListings } from "@/lib/vehicles/parse-listings";
+import { readBranchChoices } from "@/lib/branch-choices";
 
 export function useListingTable(
   initial: ApiResult<Page<ListingItem>>,
@@ -179,11 +180,7 @@ export function useListingTable(
     controller.current = attempt;
     setBusy(true);
     try {
-      const result = await apiFetch(
-        `/api/intake/branches?page=${nextPage}`,
-        (value) => parsePage(value, parseBranch),
-        { signal: attempt.signal },
-      );
+      const result = await readBranchChoices(nextPage, attempt.signal);
       if (!attempt.signal.aborted && result.data) {
         setBranches(result.data);
       }

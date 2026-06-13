@@ -4,14 +4,12 @@ import { inspectionFetch } from "@/lib/inspection/browser";
 import { dateRangeError } from "@/lib/intake/list-query";
 import type { ApiResult, Page } from "@/lib/api";
 import type { Branch } from "@/lib/branches";
-import { parseBranch } from "@/lib/branches";
-import { parsePage } from "@/lib/api";
-import { apiFetch } from "@/lib/api-browser";
 import type { QueueFilters, QueueKind } from "@/lib/inspection/contracts";
 import { queueLocationQuery, queuePath, queueQuery } from "@/lib/inspection/query";
 import { useToast } from "@/components/ui/Toast";
 import { useInitialToast } from "./use-initial-toast";
 import type { TableSort } from "@/components/ui/data-table/types";
+import { readBranchChoices } from "@/lib/branch-choices";
 
 function initialSort(filters: QueueFilters): TableSort | null {
   const column = filters.sort ?? "since";
@@ -139,11 +137,7 @@ export function useInspectionQueue<T>(
     controller.current = attempt;
     setBusy(true);
     try {
-      const result = await apiFetch(
-        `/api/intake/branches?page=${page}`,
-        (v) => parsePage(v, parseBranch),
-        { signal: attempt.signal },
-      );
+      const result = await readBranchChoices(page, attempt.signal);
       if (!attempt.signal.aborted && result.data) {
         setBranches(result.data);
       }

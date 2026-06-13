@@ -1,9 +1,7 @@
 "use client";
 
 import { useStaffClientEntry } from "./use-staff-client-entry";
-import { privateApiFetch, apiFetch } from "@/lib/api-browser";
-import { parsePage } from "@/lib/api";
-import { parseBranch } from "@/lib/branches";
+import { privateApiFetch } from "@/lib/api-browser";
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import type { SearchParams } from "@/lib/query";
 import { parseStaffTestDrivePage, parseStaffTestDriveDetail } from "@/lib/test-drives/staff";
@@ -12,6 +10,7 @@ import {
   staffTestDriveQuery,
   testDriveDateError,
 } from "@/lib/test-drives/staff-query";
+import { readBranchChoices } from "@/lib/branch-choices";
 
 export function useStaffTestDriveEntry(actor: CurrentActor, parameters: SearchParams) {
   return useStaffClientEntry(async (signal) => {
@@ -38,13 +37,7 @@ export function useStaffTestDriveEntry(actor: CurrentActor, parameters: SearchPa
           ).catch(() => null)
         : null,
       prepareSurface(actor.role === "SalesAgent"),
-      actor.role === "GeneralManager"
-        ? apiFetch(
-            "/api/intake/branches?page=1&pageSize=25",
-            (value) => parsePage(value, parseBranch),
-            { signal },
-          ).catch(() => null)
-        : null,
+      actor.role === "GeneralManager" ? readBranchChoices(1, signal, 25).catch(() => null) : null,
     ]);
     if (
       !initial.data ||

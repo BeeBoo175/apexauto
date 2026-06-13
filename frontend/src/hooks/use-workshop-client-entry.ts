@@ -4,10 +4,8 @@ import type { ComponentProps } from "react";
 import type { WorkshopQueue } from "@/components/inspection/WorkshopQueue";
 import type { TechnicianWorkspace } from "@/components/inspection/TechnicianWorkspace";
 import { useStaffClientEntry } from "./use-staff-client-entry";
-import { apiFetch } from "@/lib/api-browser";
-import { parsePage, type ApiResult } from "@/lib/api";
+import { type ApiResult } from "@/lib/api";
 import type { CurrentActor } from "@/lib/auth/actor";
-import { parseBranch } from "@/lib/branches";
 import type { SearchParams } from "@/lib/query";
 import { inspectionFetch } from "@/lib/inspection/browser";
 import { parseEditor, type EditorSnapshot } from "@/lib/inspection/editor-snapshot";
@@ -22,6 +20,7 @@ import {
   technicianQueueView,
   workshopSelection,
 } from "@/lib/inspection/query";
+import { readBranchChoices } from "@/lib/branch-choices";
 
 type WorkshopEntry =
   | {
@@ -78,11 +77,7 @@ async function readManager(actor: CurrentActor, parameters: SearchParams, signal
   const { filters, page } = queueParams(parameters, "workshop");
   const [initial, branches, { WorkshopQueue: Workspace }] = await Promise.all([
     inspectionFetch(`workshop?${queueQuery(filters, page)}`, parseWorkshopPage, { signal }),
-    actor.role === "GeneralManager"
-      ? apiFetch("/api/intake/branches?page=1", (value) => parsePage(value, parseBranch), {
-          signal,
-        }).catch(() => null)
-      : null,
+    actor.role === "GeneralManager" ? readBranchChoices(1, signal).catch(() => null) : null,
     import("@/components/inspection/WorkshopQueue"),
   ]);
   if (initial.data && (initial.data.page !== page || initial.data.pageSize !== filters.pageSize)) {

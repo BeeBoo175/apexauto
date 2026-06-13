@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { apiFetch } from "@/lib/api-browser";
-import { parsePage, type Page } from "@/lib/api";
-import { parseBranch, type Branch } from "@/lib/branches";
+import { type Page } from "@/lib/api";
+import { type Branch } from "@/lib/branches";
 import { useToast } from "@/components/ui/Toast";
 import { BranchFilter } from "@/components/staff/BranchFilter";
 import {
@@ -12,6 +11,7 @@ import {
   TextColumnFilter,
 } from "@/components/ui/data-table/ColumnFilterForm";
 import type { useStaffTestDriveList } from "@/hooks/use-staff-test-drive-list";
+import { readBranchChoices } from "@/lib/branch-choices";
 
 export function StaffTestDriveFilters({
   list,
@@ -40,11 +40,7 @@ export function StaffTestDriveFilters({
     controller.current = attempt;
     setBusy(true);
     try {
-      const result = await apiFetch(
-        `/api/intake/branches?page=${page}&pageSize=25`,
-        (value) => parsePage(value, parseBranch),
-        { signal: attempt.signal },
-      );
+      const result = await readBranchChoices(page, attempt.signal, 25);
       if (!attempt.signal.aborted && result.data) {
         setBranches(result.data);
       } else if (!attempt.signal.aborted) {

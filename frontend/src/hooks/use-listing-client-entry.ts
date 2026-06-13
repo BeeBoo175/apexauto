@@ -2,14 +2,15 @@
 
 import type { ListingTable } from "@/components/vehicles/ListingTable";
 import { useStaffClientEntry } from "./use-staff-client-entry";
-import { apiFetch, privateApiFetch } from "@/lib/api-browser";
-import { parsePage, type ApiResult, type Page } from "@/lib/api";
+import { privateApiFetch } from "@/lib/api-browser";
+import { type ApiResult, type Page } from "@/lib/api";
 import type { CurrentActor } from "@/lib/auth/actor";
-import { parseBranch, type Branch } from "@/lib/branches";
+import { type Branch } from "@/lib/branches";
 import type { SearchParams } from "@/lib/query";
 import { listingParams, listingQuery, type ListingItem } from "@/lib/vehicles/listings";
 import { parseListings } from "@/lib/vehicles/parse-listings";
 import { parseListingWorkspace, type ListingWorkspace } from "@/lib/vehicles/listing-workspace";
+import { readBranchChoices } from "@/lib/branch-choices";
 
 interface ListingEntry extends ReturnType<typeof listingParams> {
   Table: typeof ListingTable;
@@ -27,11 +28,7 @@ export function useListingClientEntry(actor: CurrentActor, parameters: SearchPar
       privateApiFetch(`/api/staff/listings?${listingQuery(filters, page)}`, parseListings, {
         signal,
       }),
-      actor.role === "GeneralManager"
-        ? apiFetch("/api/intake/branches?page=1", (value) => parsePage(value, parseBranch), {
-            signal,
-          }).catch(() => null)
-        : null,
+      actor.role === "GeneralManager" ? readBranchChoices(1, signal).catch(() => null) : null,
       listingId
         ? privateApiFetch(
             `/api/staff/listings/${listingId}`,

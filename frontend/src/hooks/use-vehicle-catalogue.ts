@@ -3,12 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { apiFetch } from "@/lib/api-browser";
-import { parsePage, type ApiResult, type Page } from "@/lib/api";
-import { parseBranch, type Branch } from "@/lib/branches";
+import { type ApiResult, type Page } from "@/lib/api";
+import { type Branch } from "@/lib/branches";
 import { parseCatalogue } from "@/lib/vehicles/parse";
 import { catalogueFilterError, catalogueQuery } from "@/lib/vehicles/query";
 import type { CatalogueFilters, CataloguePage } from "@/lib/vehicles/contracts";
 import { useInitialToast } from "./use-initial-toast";
+import { readBranchChoices } from "@/lib/branch-choices";
 
 export function useVehicleCatalogue(
   initial: ApiResult<CataloguePage>,
@@ -87,11 +88,7 @@ export function useVehicleCatalogue(
     branchController.current = attempt;
     setBranchBusy(true);
     try {
-      const result = await apiFetch(
-        `/api/intake/branches?page=${nextPage}&pageSize=25`,
-        (value) => parsePage(value, parseBranch),
-        { signal: attempt.signal },
-      );
+      const result = await readBranchChoices(nextPage, attempt.signal, 25);
       if (attempt.signal.aborted) {
         return;
       }

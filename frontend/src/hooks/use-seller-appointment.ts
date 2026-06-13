@@ -2,12 +2,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { apiFetch } from "@/lib/api-browser";
-import { parseBranch } from "@/lib/branches";
-import { parsePage } from "@/lib/api";
 import { parseSlots } from "@/lib/intake/parse";
 import type { Branch } from "@/lib/branches";
 import type { Page } from "@/lib/api";
 import type { SlotOffer } from "@/lib/intake/contracts";
+import { readBranchChoices } from "@/lib/branch-choices";
 
 export function useSellerAppointment(initialBranches: Page<Branch>) {
   const [branches, setBranches] = useState(initialBranches);
@@ -85,11 +84,7 @@ export function useSellerAppointment(initialBranches: Page<Branch>) {
     controller.current = attempt;
     setBusy(true);
     try {
-      const result = await apiFetch(
-        `/api/intake/branches?page=${page}`,
-        (value) => parsePage(value, parseBranch),
-        { signal: attempt.signal },
-      );
+      const result = await readBranchChoices(page, attempt.signal);
       if (attempt.signal.aborted) {
         return;
       }

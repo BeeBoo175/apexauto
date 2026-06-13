@@ -1,8 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { apiFetch, privateApiFetch } from "@/lib/api-browser";
-import { parsePage } from "@/lib/api";
-import { parseBranch } from "@/lib/branches";
+import { privateApiFetch } from "@/lib/api-browser";
 import { dateRangeError } from "@/lib/intake/list-query";
 import { parseWorklistPage } from "@/lib/staff/parse";
 import { staffQuery, staffViewQuery } from "@/lib/staff/query";
@@ -11,6 +9,7 @@ import type { Branch } from "@/lib/branches";
 import type { StaffFilters, WorklistPage } from "@/lib/staff/contracts";
 import { useToast } from "@/components/ui/Toast";
 import { useInitialToast } from "./use-initial-toast";
+import { readBranchChoices } from "@/lib/branch-choices";
 
 interface WorklistSort {
   column: string;
@@ -139,11 +138,7 @@ export function useStaffWorklist(
     controller.current = attempt;
     setBusy(true);
     try {
-      const result = await apiFetch(
-        `/api/intake/branches?page=${page}`,
-        (value) => parsePage(value, parseBranch),
-        { signal: attempt.signal },
-      );
+      const result = await readBranchChoices(page, attempt.signal);
       if (attempt.signal.aborted) {
         return;
       }
