@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Button } from "@/components/ui/Button";
+import { Button, buttonClassName } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input, Select } from "@/components/ui/Input";
 import { useIntakeActor } from "@/hooks/use-intake-actor";
@@ -9,16 +9,15 @@ import { useVehicleTestDrive } from "@/hooks/use-vehicle-test-drive";
 import { authHref, type CustomerAccount } from "@/lib/auth/contracts";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import type { PublicVehicleDetail } from "@/lib/vehicles/public-detail";
-import type { ReservationAccess } from "@/lib/vehicles/customer-reservation";
+import type { CustomerVehicleAccess } from "@/lib/vehicles/customer-access";
 import styles from "./VehicleTestDrive.module.css";
-import buttonStyles from "@/components/ui/Button.module.css";
 
 export function VehicleTestDrive({
   detail,
   access,
 }: {
   detail: PublicVehicleDetail;
-  access: ReservationAccess;
+  access: CustomerVehicleAccess;
 }) {
   const actor = useIntakeActor(access.actor ?? undefined);
   if (!actor.active || access.status === 403) {
@@ -29,7 +28,7 @@ export function VehicleTestDrive({
       <Link
         href={authHref("/login", `/vehicles/${detail.listing.id}`)}
         prefetch={false}
-        className={`${buttonStyles.button} ${buttonStyles.secondary} ${buttonStyles.md}`}
+        className={buttonClassName("secondary", "md")}
       >
         Sign in to book a test drive
       </Link>

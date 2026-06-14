@@ -1,33 +1,13 @@
 import "server-only";
 
-import { readCurrentActor, readOwnAccount } from "@/lib/auth/server";
 import { isUuid } from "@/lib/auth/contracts";
 import { API_DEADLINE_MS } from "@/lib/api";
 import { HttpError, readBoundedJson } from "@/lib/http";
 import { requireSameOrigin } from "@/lib/server/http/request";
 import { apiError, apiJson, requestApiJson, sessionToken } from "@/lib/server/http/api";
-import {
-  parseCustomerReservation,
-  parseCustomerReservationRequest,
-  type ReservationAccess,
-} from "./customer-reservation";
+import { parseCustomerReservation, parseCustomerReservationRequest } from "./customer-reservation";
+import { readCustomerVehicleAccess } from "./customer-access-server";
 import { parseReservationConflict } from "./reservation-errors";
-
-export async function readReservationAccess(signal?: AbortSignal): Promise<ReservationAccess> {
-  try {
-    const current = await readCurrentActor(signal);
-    if (!current.actor || current.actor.role !== "Customer") {
-      return { status: current.actor ? 403 : current.status, actor: current.actor, account: null };
-    }
-    const own = await readOwnAccount(signal);
-    if (own.account?.userId !== current.actor.userId) {
-      return { status: 502, actor: current.actor, account: null };
-    }
-    return { status: own.status, actor: current.actor, account: own.account };
-  } catch {
-    return { status: 502, actor: null, account: null };
-  }
-}
 
 export async function relayCustomerReservation(request: Request, vehicleId: string) {
   try {
@@ -51,7 +31,7 @@ export async function relayCustomerReservation(request: Request, vehicleId: stri
     if (!token) {
       throw new HttpError(401, "Sign in to reserve this vehicle.");
     }
-    const access = await readReservationAccess(signal);
+    const access = await readCustomerVehicleAccess(signal);
     if (access.status !== 200 || !access.actor || !access.account) {
       throw new HttpError(access.status, "Your customer account could not be confirmed.");
     }

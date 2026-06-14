@@ -1,5 +1,5 @@
 import Link from "next/link";
-import buttonStyles from "@/components/ui/Button.module.css";
+import { buttonClassName } from "@/components/ui/Button";
 import styles from "./EmptyState.module.css";
 
 export function EmptyState({
@@ -19,11 +19,7 @@ export function EmptyState({
     <div className={styles.empty}>
       <p className={styles.title}>{title}</p>
       <p className={styles.description}>{description}</p>
-      <Link
-        href={href}
-        prefetch={prefetch}
-        className={`${buttonStyles.button} ${buttonStyles.primary} ${buttonStyles.md}`}
-      >
+      <Link href={href} prefetch={prefetch} className={buttonClassName("primary", "md")}>
         {action}
       </Link>
     </div>

@@ -1,7 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/Button";
-import buttonStyles from "@/components/ui/Button.module.css";
+import { Button, buttonClassName } from "@/components/ui/Button";
 import { useAuthMutation } from "@/hooks/use-auth-mutation";
 import { useEmailVerificationResend } from "@/hooks/use-email-verification-resend";
 import type { CustomerAccount } from "@/lib/auth/contracts";
@@ -74,10 +73,7 @@ export function AccountPanel({ initialAccount }: { initialAccount: CustomerAccou
             <span className={styles.help}>Reset your password by email.</span>
           </dd>
           <dd className={styles.control}>
-            <a
-              href="/forgot-password"
-              className={`${buttonStyles.button} ${buttonStyles.secondary} ${buttonStyles.md}`}
-            >
+            <a href="/forgot-password" className={buttonClassName("secondary", "md")}>
               Password recovery
             </a>
           </dd>

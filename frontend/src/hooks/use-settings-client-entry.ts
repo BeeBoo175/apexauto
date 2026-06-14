@@ -3,7 +3,7 @@
 import type { SettingsWorkspace } from "@/components/settings/SettingsWorkspace";
 import { useStaffClientEntry } from "./use-staff-client-entry";
 import { privateApiFetch } from "@/lib/api-browser";
-import type { ApiResult, Page } from "@/lib/api";
+import { unavailableResult, type ApiResult, type Page } from "@/lib/api";
 import { isUuid } from "@/lib/auth/contracts";
 import type { SearchParams } from "@/lib/query";
 import {
@@ -38,8 +38,6 @@ export interface SettingsEntry {
   selectedWarranty: ApiResult<Warranty> | null;
 }
 
-const unavailable = { status: 502, data: null, message: "", uncertain: false };
-
 // A named record opens only when the confirmed read is exactly that record.
 function confirmed<T extends { id: string }>(
   id: string,
@@ -48,7 +46,7 @@ function confirmed<T extends { id: string }>(
   if (!id) {
     return null;
   }
-  return result?.data?.id === id ? result : unavailable;
+  return result?.data?.id === id ? result : unavailableResult();
 }
 
 export function useSettingsClientEntry(parameters: SearchParams) {

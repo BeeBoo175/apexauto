@@ -2,8 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import tradeInPhoto from "../../../public/images/vehicle-trade-in.webp";
 import { VehicleValuationFields } from "@/components/sell/VehicleValuationFields";
-import { Button } from "@/components/ui/Button";
-import buttonStyles from "@/components/ui/Button.module.css";
+import { Button, buttonClassName } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import type { useVehicleTradeIn } from "@/hooks/use-vehicle-trade-in";
 import { formatCurrency } from "@/lib/currency-format";
@@ -119,7 +118,7 @@ export function VehicleTradeIn({ tradeIn }: { tradeIn: ReturnType<typeof useVehi
               <div className={styles.formAction}>
                 <a
                   href="#financing"
-                  className={`${buttonStyles.button} ${buttonStyles.primary} ${buttonStyles.md}`}
+                  className={buttonClassName("primary", "md")}
                   tabIndex={tradeIn.editing ? -1 : undefined}
                 >
                   View updated financing <Icon name="next" />

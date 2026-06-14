@@ -1,12 +1,5 @@
-import { isRecord, isUtcInstant, isUuid, type CustomerAccount } from "@/lib/auth/contracts";
-import type { CurrentActor } from "@/lib/auth/actor";
+import { isRecord, isUtcInstant, isUuid } from "@/lib/auth/contracts";
 import { parsePurchasePrice, type PurchasePrice } from "./purchase-quote";
-
-export interface ReservationAccess {
-  status: number;
-  actor: CurrentActor | null;
-  account: CustomerAccount | null;
-}
 
 export interface CustomerReservationRequest {
   operationId: string;

@@ -1,7 +1,7 @@
 "use client";
 
 import { apiFetch, privateApiFetch } from "@/lib/api-browser";
-import { parsePage, type ApiResult } from "@/lib/api";
+import { parsePage, unavailableResult } from "@/lib/api";
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import { parseBranch } from "@/lib/branches";
 import type { SearchParams } from "@/lib/query";
@@ -94,16 +94,16 @@ export function useWorkCalendarEntry(actor: CurrentActor, parameters: SearchPara
       filters.kind = "";
     }
     const [scheduled, unscheduled, branches] = await Promise.all([
-      readScheduledWork(actor, filters, signal).catch(() => unavailable<WorkCalendarSnapshot>()),
-      readUnscheduledWork(actor, filters, signal).catch(() => unavailable<UnscheduledWorkPage>()),
+      readScheduledWork(actor, filters, signal).catch(() =>
+        unavailableResult<WorkCalendarSnapshot>(),
+      ),
+      readUnscheduledWork(actor, filters, signal).catch(() =>
+        unavailableResult<UnscheduledWorkPage>(),
+      ),
       actor.role === "GeneralManager" ? readCalendarBranches(1, signal).catch(() => null) : null,
     ]);
     return { filters, scheduled, unscheduled, branches: branches?.data ?? null };
   }, "Work calendar could not be opened. Retry to load your work.");
-}
-
-function unavailable<T>(): ApiResult<T> {
-  return { status: 502, data: null, message: "", uncertain: false };
 }
 
 export type WorkCalendarEntry = NonNullable<ReturnType<typeof useWorkCalendarEntry>["entry"]>;

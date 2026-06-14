@@ -8,7 +8,7 @@ import { requestApiJson } from "@/lib/server/http/api";
 import { parsePublicDetail } from "@/lib/vehicles/public-detail";
 import { vehicleDetailSectionHref } from "@/lib/vehicles/query";
 import type { SearchParams } from "@/lib/query";
-import { readReservationAccess } from "@/lib/vehicles/customer-reservation-server";
+import { readCustomerVehicleAccess } from "@/lib/vehicles/customer-access-server";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -44,7 +44,10 @@ export default async function VehiclePage({ params, searchParams }: Props) {
   if (sectionHref) {
     redirect(sectionHref);
   }
-  const [initial, reservationAccess] = await Promise.all([readDetail(id), readReservationAccess()]);
+  const [initial, reservationAccess] = await Promise.all([
+    readDetail(id),
+    readCustomerVehicleAccess(),
+  ]);
   return (
     <LoadingProgressProvider initialLabel="Loading trade-in options">
       <VehicleDetail key={id} id={id} initial={initial} reservationAccess={reservationAccess} />

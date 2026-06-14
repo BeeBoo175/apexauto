@@ -12,7 +12,7 @@ import type { ApiResult } from "@/lib/api";
 import { formatCurrency } from "@/lib/currency-format";
 import { fuelLabel } from "@/lib/vehicles/contracts";
 import type { PublicVehicleDetail } from "@/lib/vehicles/public-detail";
-import type { ReservationAccess } from "@/lib/vehicles/customer-reservation";
+import type { CustomerVehicleAccess } from "@/lib/vehicles/customer-access";
 import { VehicleReservation } from "./VehicleReservation";
 import { VehicleTestDrive } from "./VehicleTestDrive";
 import { VehicleDetailView } from "./VehicleDetailView";
@@ -33,7 +33,7 @@ export function VehicleDetail({
 }: {
   id: string;
   initial: ApiResult<PublicVehicleDetail>;
-  reservationAccess: ReservationAccess;
+  reservationAccess: CustomerVehicleAccess;
 }) {
   const snapshot = initial.data;
   const unavailable = initial.status === 404;

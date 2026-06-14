@@ -1,6 +1,6 @@
 import styles from "./Home.module.css";
 import Link from "next/link";
-import buttonStyles from "@/components/ui/Button.module.css";
+import { buttonClassName } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 
@@ -21,18 +21,10 @@ export default function Home() {
           contract closing.
         </p>
         <div className={styles.actions}>
-          <Link
-            href="/vehicles"
-            prefetch={false}
-            className={`${buttonStyles.button} ${buttonStyles.primary} ${buttonStyles.lg}`}
-          >
+          <Link href="/vehicles" prefetch={false} className={buttonClassName("primary", "lg")}>
             Browse vehicles
           </Link>
-          <Link
-            href="/sell"
-            prefetch={false}
-            className={`${buttonStyles.button} ${buttonStyles.secondary} ${buttonStyles.lg}`}
-          >
+          <Link href="/sell" prefetch={false} className={buttonClassName("secondary", "lg")}>
             Instant Trade-In Valuation
           </Link>
         </div>

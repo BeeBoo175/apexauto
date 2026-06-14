@@ -2,19 +2,18 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Button } from "@/components/ui/Button";
+import { Button, buttonClassName } from "@/components/ui/Button";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { useIntakeActor } from "@/hooks/use-intake-actor";
 import { useInitialToast } from "@/hooks/use-initial-toast";
 import { useVehicleReservation } from "@/hooks/use-vehicle-reservation";
 import { authHref, type CustomerAccount } from "@/lib/auth/contracts";
-import type { ReservationAccess } from "@/lib/vehicles/customer-reservation";
+import type { CustomerVehicleAccess } from "@/lib/vehicles/customer-access";
 import type { PublicVehicleDetail } from "@/lib/vehicles/public-detail";
 import type { PurchaseQuote } from "@/lib/vehicles/purchase-quote";
 import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import styles from "./VehicleReservation.module.css";
-import buttonStyles from "@/components/ui/Button.module.css";
 
 export function VehicleReservation({
   detail,
@@ -24,7 +23,7 @@ export function VehicleReservation({
   financing,
 }: {
   detail: PublicVehicleDetail;
-  access: ReservationAccess;
+  access: CustomerVehicleAccess;
   promo: PurchaseQuote | null;
   promoBusy: boolean;
   financing: ReactNode;
@@ -43,7 +42,7 @@ export function VehicleReservation({
           <Link
             href={authHref("/login", `/vehicles/${detail.listing.id}`)}
             prefetch={false}
-            className={`${buttonStyles.button} ${buttonStyles.muted} ${buttonStyles.md}`}
+            className={buttonClassName("muted", "md")}
           >
             Sign in to reserve this car
           </Link>
@@ -74,11 +73,7 @@ export function VehicleReservation({
     return (
       <div className={styles.reservation}>
         <div className={styles.actions}>
-          <Link
-            href="/account"
-            prefetch={false}
-            className={`${buttonStyles.button} ${buttonStyles.primary} ${buttonStyles.md}`}
-          >
+          <Link href="/account" prefetch={false} className={buttonClassName("primary", "md")}>
             Verify email to reserve
           </Link>
           {financing}

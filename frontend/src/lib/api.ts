@@ -28,6 +28,11 @@ export interface ApiResult<T> {
   retryAfterSeconds?: number;
 }
 
+// A read that could not be confirmed: callers keep their last confirmed content and offer a retry.
+export function unavailableResult<T>(message = ""): ApiResult<T> {
+  return { status: 502, data: null, message, uncertain: false };
+}
+
 export type ApiRequest = <T>(
   path: string,
   parse: (value: unknown) => T | null,

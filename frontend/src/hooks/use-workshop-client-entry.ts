@@ -4,7 +4,7 @@ import type { ComponentProps } from "react";
 import type { WorkshopQueue } from "@/components/inspection/WorkshopQueue";
 import type { TechnicianWorkspace } from "@/components/inspection/TechnicianWorkspace";
 import { useStaffClientEntry } from "./use-staff-client-entry";
-import { type ApiResult } from "@/lib/api";
+import { unavailableResult } from "@/lib/api";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { SearchParams } from "@/lib/query";
 import { inspectionFetch } from "@/lib/inspection/browser";
@@ -34,10 +34,6 @@ type WorkshopEntry =
       props: Omit<ComponentProps<typeof TechnicianWorkspace>, "actor">;
     };
 
-function unavailable<T>(message: string): ApiResult<T> {
-  return { status: 502, data: null, message, uncertain: false };
-}
-
 async function readSelection(parameters: SearchParams, signal: AbortSignal) {
   const selected = workshopSelection(parameters);
   const [inspection, review] = await Promise.all([
@@ -50,14 +46,16 @@ async function readSelection(parameters: SearchParams, signal: AbortSignal) {
           },
           { signal },
         ).catch(() =>
-          unavailable<EditorSnapshot>("The inspection could not be loaded. Use refresh to retry."),
+          unavailableResult<EditorSnapshot>(
+            "The inspection could not be loaded. Use refresh to retry.",
+          ),
         )
       : null,
     selected.id && selected.request
       ? readRepairReview(selected.id, selected.request, inspectionFetch, signal)
           .then((data) => ({ status: 200, data, message: "", uncertain: false }))
           .catch(() =>
-            unavailable<RepairReview>(
+            unavailableResult<RepairReview>(
               "The selected repair request could not be loaded. Use refresh to retry.",
             ),
           )

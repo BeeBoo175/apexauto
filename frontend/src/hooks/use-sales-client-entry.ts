@@ -4,7 +4,7 @@ import type { SalesTable } from "@/components/sales/SalesTable";
 import type { SalesWorkspace } from "@/components/sales/SalesWorkspace";
 import { useStaffClientEntry } from "./use-staff-client-entry";
 import { privateApiFetch } from "@/lib/api-browser";
-import type { ApiResult } from "@/lib/api";
+import { unavailableResult, type ApiResult } from "@/lib/api";
 import type { CurrentActor } from "@/lib/auth/actor";
 import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 import type { SearchParams } from "@/lib/query";
@@ -22,15 +22,13 @@ import {
 } from "@/lib/sales/query";
 import { type Sale, isSalesManager, type QueueView, type SalesQueue } from "@/lib/sales/contracts";
 
-const unavailable: ApiResult<Sale> = { status: 502, data: null, message: "", uncertain: false };
-
 // A sale named in the address is read with the first screen so its editor opens populated.
 async function readSelected(saleId: string, signal: AbortSignal) {
   if (!saleId) {
     return null;
   }
   const result = await privateApiFetch(salePath(saleId), parseSale, { signal }).catch(() => null);
-  return result?.data?.id === saleId ? result : unavailable;
+  return result?.data?.id === saleId ? result : unavailableResult<Sale>();
 }
 
 async function readQueue(view: QueueView, signal: AbortSignal) {

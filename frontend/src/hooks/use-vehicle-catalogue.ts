@@ -9,7 +9,7 @@ import { parseCatalogue } from "@/lib/vehicles/parse";
 import { catalogueFilterError, catalogueQuery } from "@/lib/vehicles/query";
 import type { CatalogueFilters, CataloguePage } from "@/lib/vehicles/contracts";
 import { useInitialToast } from "./use-initial-toast";
-import { readBranchChoices } from "@/lib/branch-choices";
+import { useBranchChoices } from "./use-branch-choices";
 
 export function useVehicleCatalogue(
   initial: ApiResult<CataloguePage>,
@@ -22,17 +22,18 @@ export function useVehicleCatalogue(
   const [draft, setDraft] = useState(filters);
   const [busy, setBusy] = useState(false);
   const [photoVersion, setPhotoVersion] = useState(0);
-  const [branches, setBranches] = useState(initialBranches);
-  const [branchBusy, setBranchBusy] = useState(false);
+  const branchChoices = useBranchChoices(
+    initialBranches,
+    25,
+    "Branches could not be refreshed. The last confirmed choices remain available.",
+  );
   const controller = useRef<AbortController | null>(null);
-  const branchController = useRef<AbortController | null>(null);
   const { error } = useToast();
   useInitialToast(initial.data ? null : initial.message);
 
   useEffect(
     () => () => {
       controller.current?.abort();
-      branchController.current?.abort();
     },
     [],
   );
@@ -80,36 +81,6 @@ export function useVehicleCatalogue(
     }
   }
 
-  async function loadBranches(nextPage: number) {
-    if (branchController.current) {
-      return;
-    }
-    const attempt = new AbortController();
-    branchController.current = attempt;
-    setBranchBusy(true);
-    try {
-      const result = await readBranchChoices(nextPage, attempt.signal, 25);
-      if (attempt.signal.aborted) {
-        return;
-      }
-      if (!result.data || result.data.page !== nextPage) {
-        throw new Error("Branches unavailable");
-      }
-      setBranches(result.data);
-    } catch {
-      if (!attempt.signal.aborted) {
-        error("Branches could not be refreshed. The last confirmed choices remain available.");
-      }
-    } finally {
-      if (!attempt.signal.aborted) {
-        setBranchBusy(false);
-      }
-      if (branchController.current === attempt) {
-        branchController.current = null;
-      }
-    }
-  }
-
   return {
     snapshot,
     active,
@@ -118,8 +89,8 @@ export function useVehicleCatalogue(
     busy,
     photoVersion,
     load,
-    branches,
-    branchBusy,
-    loadBranches,
+    branches: branchChoices.branches,
+    branchBusy: branchChoices.busy,
+    loadBranches: branchChoices.load,
   };
 }

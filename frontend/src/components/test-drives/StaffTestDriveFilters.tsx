@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { type Page } from "@/lib/api";
 import { type Branch } from "@/lib/branches";
-import { useToast } from "@/components/ui/Toast";
 import { BranchFilter } from "@/components/staff/BranchFilter";
 import {
   ColumnFilterForm,
@@ -11,7 +10,7 @@ import {
   TextColumnFilter,
 } from "@/components/ui/data-table/ColumnFilterForm";
 import type { useStaffTestDriveList } from "@/hooks/use-staff-test-drive-list";
-import { readBranchChoices } from "@/lib/branch-choices";
+import { useBranchChoices } from "@/hooks/use-branch-choices";
 
 export function StaffTestDriveFilters({
   list,
@@ -26,37 +25,12 @@ export function StaffTestDriveFilters({
 }) {
   const { filters } = list.active;
   const [branchId, setBranchId] = useState(filters.branchId);
-  const [branches, setBranches] = useState(initialBranches);
-  const [busy, setBusy] = useState(false);
-  const controller = useRef<AbortController | null>(null);
-  const { error } = useToast();
-  useEffect(() => () => controller.current?.abort(), []);
-
-  async function loadBranches(page: number) {
-    if (controller.current) {
-      return;
-    }
-    const attempt = new AbortController();
-    controller.current = attempt;
-    setBusy(true);
-    try {
-      const result = await readBranchChoices(page, attempt.signal, 25);
-      if (!attempt.signal.aborted && result.data) {
-        setBranches(result.data);
-      } else if (!attempt.signal.aborted) {
-        error("Branch choices could not be refreshed. Retry to load branches.");
-      }
-    } catch {
-      if (!attempt.signal.aborted) {
-        error("Branch choices could not be refreshed. Retry to load branches.");
-      }
-    } finally {
-      if (controller.current === attempt) {
-        controller.current = null;
-        setBusy(false);
-      }
-    }
-  }
+  const branchChoices = useBranchChoices(
+    initialBranches,
+    25,
+    "Branch choices could not be refreshed. Retry to load branches.",
+  );
+  const { branches, busy } = branchChoices;
 
   if (column === "startsAt") {
     return (
@@ -93,7 +67,7 @@ export function StaffTestDriveFilters({
         disabled={disabled || busy}
         labelHidden={false}
         onChange={setBranchId}
-        onPage={(page) => void loadBranches(page)}
+        onPage={(page) => void branchChoices.load(page)}
       />
     </ColumnFilterForm>
   );
