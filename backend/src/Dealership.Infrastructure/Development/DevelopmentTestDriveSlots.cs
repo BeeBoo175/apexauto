@@ -16,8 +16,8 @@ internal static class DevelopmentTestDriveSlots
     {
         var now = await database.DatabaseNowAsync(cancellationToken);
         var date = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(now, DealershipLocale.Malaysia).DateTime);
-        return Enumerable.Range(0, HorizonDays).SelectMany(day =>
-            schedule.GetSlots(date.AddDays(day), now, TestDriveBooking.Duration)).ToArray();
+        return [.. Enumerable.Range(0, HorizonDays).SelectMany(day =>
+            schedule.GetSlots(date.AddDays(day), now, TestDriveBooking.Duration))];
     }
 
     public static Task<DateTimeOffset[]> ActiveStartsAsync(DealershipDbContext database, Guid branchId,

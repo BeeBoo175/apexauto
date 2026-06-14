@@ -45,7 +45,7 @@ public sealed class StaffTestDriveReadStore(DealershipDbContext database) : ISta
             : new(totals.All, totals.Booked, totals.InProgress, totals.Completed, totals.NotCompleted,
                 totals.NoShow, totals.Cancelled, totals.ToClaim, totals.MyWork, totals.History);
         await transaction.CommitAsync(cancellationToken);
-        return new(TestDriveReadStatus.Succeeded, new(actor, items.Select(StaffTestDriveRows.ToItem).ToArray(),
+        return new(TestDriveReadStatus.Succeeded, new(actor, [.. items.Select(StaffTestDriveRows.ToItem)],
             total, query.Page, query.PageSize, counts));
     }
 

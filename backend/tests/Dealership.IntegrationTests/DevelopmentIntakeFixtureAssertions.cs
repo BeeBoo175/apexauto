@@ -17,9 +17,9 @@ namespace Dealership.IntegrationTests;
 
 internal static class DevelopmentIntakeFixtureAssertions
 {
-    private static readonly int[] PageSizes = Enumerable.Range(0,
+    private static readonly int[] PageSizes = [.. Enumerable.Range(0,
         (DevelopmentIntakeManifest.TotalPerBranch + 24) / 25)
-        .Select(page => Math.Min(25, DevelopmentIntakeManifest.TotalPerBranch - page * 25)).ToArray();
+        .Select(page => Math.Min(25, DevelopmentIntakeManifest.TotalPerBranch - page * 25))];
 
     public static async Task VerifyAuthenticatedAsync(HttpClient client, string email)
     {

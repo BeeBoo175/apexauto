@@ -133,8 +133,8 @@ public sealed class StaffWorklistTests(IntakePhotoFixture fixture) : IClassFixtu
         await data.ClaimAsync(booked[^1].Id, secondHandler);
         var handlerOrder = unrestricted with { Handler = "@example.invalid", Sort = "handlerEmail", Direction = "desc" };
         var sortedHandlers = (await ListAsync(data, manager, handlerOrder))!;
-        Assert.Equal(new[] { secondEmail, data.StaffEmail }, sortedHandlers.Items.Select(item => item.HandlerEmail));
-        Assert.Equal(new[] { data.StaffEmail, secondEmail }, (await ListAsync(data, manager,
+        Assert.Equal([secondEmail, data.StaffEmail], sortedHandlers.Items.Select(item => item.HandlerEmail));
+        Assert.Equal([data.StaffEmail, secondEmail], (await ListAsync(data, manager,
             handlerOrder with { Direction = "asc" }))!.Items.Select(item => item.HandlerEmail));
         var handlerQuery = unrestricted with { Handler = data.StaffEmail.ToUpperInvariant(), Sort = "handlerEmail" };
         var handled = (await ListAsync(data, manager, handlerQuery))!;

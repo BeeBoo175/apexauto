@@ -14,7 +14,7 @@ public sealed class DevelopmentTestDriveHandlingFixtures(DealershipDbContext dat
     AppointmentSchedule schedule)
 {
     public static DevelopmentInspectionScenario Scenario => DevelopmentTestDriveFixtures.Scenarios[0];
-    public static IReadOnlyList<string> Kinds { get; } = Array.AsReadOnly(new[] { "completed", "not-completed", "active" });
+    public static IReadOnlyList<string> Kinds { get; } = Array.AsReadOnly<string>(["completed", "not-completed", "active"]);
 
     public static Guid OperationId(string kind, string action) => Scenario.OperationId($"test-drive-{kind}-{action}");
 

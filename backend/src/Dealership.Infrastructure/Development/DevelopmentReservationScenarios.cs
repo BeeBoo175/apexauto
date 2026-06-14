@@ -54,7 +54,7 @@ public static class DevelopmentReservationScenarios
 
     private static IEnumerable<DevelopmentReservationScenario> SaleHolds()
     {
-        DevelopmentReservationScenario Hold(int branch, int listing, int customer, int index) => new(
+        static DevelopmentReservationScenario Hold(int branch, int listing, int customer, int index) => new(
             DevelopmentInspectionScenarios.PublishedAt(branch, listing),
             DevelopmentFixtureManifest.Customers[customer].Registration.RegistrationKey, index, true);
 

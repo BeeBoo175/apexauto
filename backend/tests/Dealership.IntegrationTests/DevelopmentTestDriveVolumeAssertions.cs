@@ -37,7 +37,7 @@ internal static class DevelopmentTestDriveVolumeAssertions
                 await AssertPagesAsync(store, agent.Id, query, expected);
                 // All registration values tie, so only the canonical UUID tie-breaker can prevent page drift.
                 await AssertPagesAsync(store, agent.Id, query with { Sort = "registrationPlate", Direction = "desc" },
-                    expected.Order().ToArray());
+                    [.. expected.Order()]);
                 if (queue == "ToClaim")
                 {
                     continue;

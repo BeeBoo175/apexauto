@@ -50,7 +50,7 @@ internal static class ReservationTestData
         var inspectionId = assignment.Receipt!.InspectionId;
         var evidence = withInspectionEvidence
             ? await InspectionEvidenceAsync(services, technician, inspectionId)
-            : Array.Empty<Guid>();
+            : [];
         var saveVersion = withInspectionEvidence ? 2 : 1;
         var saved = await services.GetRequiredService<InspectionDraftSaveService>().SaveAsync(technician, inspectionId,
             new(Guid.NewGuid(), 1, saveVersion - 1, withInspectionEvidence

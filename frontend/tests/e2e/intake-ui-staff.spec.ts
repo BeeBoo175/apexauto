@@ -4,11 +4,13 @@ import {
   exerciseOwnership,
   exerciseManagerHandler,
   captureIntake,
+  hideIntakeQueue,
+} from "./intake-ui-controls";
+import {
   reviewAgentQueue,
   openStaffWorkspace,
   closeStaffWorkspaces,
-  hideIntakeQueue,
-} from "./intake-ui-controls";
+} from "./staff-workspace-controls";
 import { expect, test, type Page, type BrowserContext } from "@playwright/test";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -360,7 +362,7 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
   await expect(queue.locator("li")).toHaveCount(10);
   expect(await queue.locator("li").allTextContents()).toEqual(oldRows);
   await captureIntake(page, "agent-history");
-  await reviewAgentQueue(page, "sales");
+  await reviewAgentQueue(page, "sales", captureIntake);
 
   await expect(
     page.getByText(
@@ -390,7 +392,7 @@ for (const [role, email, destination] of [
       const heading = role === "Workshop technician" ? "Workshop" : "Administration";
       await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
       if (role === "Workshop technician") {
-        await reviewAgentQueue(page, "inspection");
+        await reviewAgentQueue(page, "inspection", captureIntake);
       }
       await page.goto("/dashboard/intake?view=list");
       await expect(

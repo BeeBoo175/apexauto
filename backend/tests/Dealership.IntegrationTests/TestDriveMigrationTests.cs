@@ -40,7 +40,7 @@ public sealed class TestDriveMigrationTests(RegistrationDatabase fixture) : ICla
                 ORDER BY proname
                 """).ToArrayAsync();
 
-            return definitions.Select(definition => definition.ReplaceLineEndings("\n")).ToArray();
+            return [.. definitions.Select(definition => definition.ReplaceLineEndings("\n"))];
         }
     }
 
@@ -78,7 +78,7 @@ public sealed class TestDriveMigrationTests(RegistrationDatabase fixture) : ICla
                 ORDER BY proname
                 """).ToArrayAsync();
 
-            return definitions.Select(definition => definition.ReplaceLineEndings("\n")).ToArray();
+            return [.. definitions.Select(definition => definition.ReplaceLineEndings("\n"))];
         }
     }
 
@@ -299,7 +299,7 @@ public sealed class TestDriveMigrationTests(RegistrationDatabase fixture) : ICla
                 ORDER BY proname
                 """).ToArrayAsync();
 
-            return definitions.Select(definition => definition.ReplaceLineEndings("\n")).ToArray();
+            return [.. definitions.Select(definition => definition.ReplaceLineEndings("\n"))];
         }
     }
 }

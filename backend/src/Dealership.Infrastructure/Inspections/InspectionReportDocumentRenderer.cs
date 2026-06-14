@@ -174,23 +174,23 @@ public sealed partial class InspectionReportDocumentRenderer : IInspectionReport
         });
     }
 
-    private static void Category(IContainer container, InspectionCategory category, IReadOnlyList<InspectionReportPoint> points)
+    private static void Category(IContainer container, InspectionCategory category, InspectionReportPoint[] points)
     {
         container.Column(column =>
         {
             column.Item().BorderBottom(Hairline).BorderColor(Line).PaddingBottom(Tight).Row(row =>
             {
                 row.RelativeItem().Text(Label(category.ToString())).FontSize(Body).Bold();
-                row.AutoItem().Text($"{points.Count} points").FontSize(Small).FontColor(Muted);
+                row.AutoItem().Text($"{points.Length} points").FontSize(Small).FontColor(Muted);
             });
             column.Item().PaddingTop(Tight).Element(item => PointTable(item, points));
         });
     }
 
     // Column-major halves share the grid's centre line and let long categories break between rows.
-    private static void PointTable(IContainer container, IReadOnlyList<InspectionReportPoint> points)
+    private static void PointTable(IContainer container, InspectionReportPoint[] points)
     {
-        var half = (points.Count + 1) / 2;
+        var half = (points.Length + 1) / 2;
         container.Table(table =>
         {
             table.ColumnsDefinition(columns =>
@@ -203,7 +203,7 @@ public sealed partial class InspectionReportDocumentRenderer : IInspectionReport
             for (var index = 0; index < half; index++)
             {
                 PointCells(table, points[index], gutter: true);
-                if (index + half < points.Count)
+                if (index + half < points.Length)
                 {
                     PointCells(table, points[index + half], gutter: false);
                 }

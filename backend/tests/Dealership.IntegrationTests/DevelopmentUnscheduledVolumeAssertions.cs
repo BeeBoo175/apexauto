@@ -94,11 +94,11 @@ internal static class DevelopmentUnscheduledVolumeAssertions
             await AssertMixedPagesAsync(calendar, agent.Id, query, actionable, agent.Id);
             await AssertMixedPagesAsync(calendar, manager.Id,
                 query with { Scope = query.Scope with { Employee = agent.Email.ToUpperInvariant() } },
-                scenarios.Where(item => item.Hold.Listing.Intake.BranchId == branch.Id &&
+                [.. scenarios.Where(item => item.Hold.Listing.Intake.BranchId == branch.Id &&
                     item.Target is SalesOrderStatus.Handling or SalesOrderStatus.PendingApproval or
                         SalesOrderStatus.Approved or SalesOrderStatus.Settled)
                     .Select(item => new ExpectedWork(item.ReservationId, "Sale", item.Hold.Listing.Intake.RegistrationPlate))
-                    .OrderBy(item => item.Registration, StringComparer.Ordinal).ToArray(), agent.Id);
+                    .OrderBy(item => item.Registration, StringComparer.Ordinal)], agent.Id);
 
             var vehicles = await database.Vehicles.AsNoTracking().Where(item => item.BranchId == branch.Id &&
                 item.Status == VehicleStatus.PendingInspection).ToArrayAsync();

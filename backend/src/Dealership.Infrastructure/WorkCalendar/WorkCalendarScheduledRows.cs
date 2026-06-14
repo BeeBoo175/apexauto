@@ -76,7 +76,7 @@ internal static class WorkCalendarScheduledRows
         var testDrives = bookings.Select(row => new WorkCalendarEvent(row.Id, "TestDrive", row.BranchId,
             row.BranchName, row.RegistrationPlate, $"{row.ManufactureYear} {row.Make} {row.Model} {row.Trim}",
             row.Status, row.HandlerId, row.HandlerEmail, row.StartsAt, row.EndsAt));
-        return items.Concat(testDrives).OrderBy(row => row.StartsAt).ThenBy(row => row.Kind, StringComparer.Ordinal)
-            .ThenBy(row => row.Id).ToArray();
+        return [.. items.Concat(testDrives).OrderBy(row => row.StartsAt).ThenBy(row => row.Kind, StringComparer.Ordinal)
+            .ThenBy(row => row.Id)];
     }
 }

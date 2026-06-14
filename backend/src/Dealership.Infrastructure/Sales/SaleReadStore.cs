@@ -174,8 +174,8 @@ public sealed class SaleReadStore(DealershipDbContext database) : ISaleReadStore
             Email(emails, row.ActorId) ?? "System", Email(emails, row.AgentId), Email(emails, row.PreviousAgentId),
             row.FromStatus?.ToString(), row.ToStatus.ToString(), row.Reason, row.Changes ?? [], row.Refund)
         {
-            Documents = documents.Where(item => item.IssuingOperationId == row.Id).OrderBy(item => item.Kind)
-                .Select(item => new SaleHistoryDocument(item.Id, item.Kind.ToString(), item.Number)).ToList()
+            Documents = [.. documents.Where(item => item.IssuingOperationId == row.Id).OrderBy(item => item.Kind)
+                .Select(item => new SaleHistoryDocument(item.Id, item.Kind.ToString(), item.Number))]
         }).ToList();
         await transaction.CommitAsync(cancellationToken);
         return new(SaleResultStatus.Succeeded, new SaleHistoryPage(items, total, page, pageSize));

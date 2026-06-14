@@ -32,7 +32,7 @@ public sealed class SaleLifecycleQueueTests(IntakePhotoFixture fixture) : IClass
         Assert.Equal((21, 21, 0), (queue.Total, queue.Counts.Settling, queue.Counts.Completed));
         var allMatches = (await world.Lists.QueueAsync(world.Agent, SaleViews.ToClaim, "Hafiz", 1, 10, default)).Value!;
         Assert.Equal((21, 21), (allMatches.Total, allMatches.Counts.Settling));
-        await VerifyPagesAsync(world, SaleViews.Settling, holds.Select(item => item.Id).ToArray());
+        await VerifyPagesAsync(world, SaleViews.Settling, [.. holds.Select(item => item.Id)]);
         var approved = await TableAsync(world, SaleViews.Approved);
         var awaiting = await TableAsync(world, SaleViews.AwaitingHandover);
         Assert.Equal((10, 11, 0), (approved.Counts.Approved, awaiting.Counts.AwaitingHandover, awaiting.Counts.Delivered));
@@ -77,7 +77,7 @@ public sealed class SaleLifecycleQueueTests(IntakePhotoFixture fixture) : IClass
             await DeliverAsync(world, held);
         }
 
-        await VerifyPagesAsync(world, SaleViews.Completed, holds.Select(item => item.Id).Reverse().ToArray());
+        await VerifyPagesAsync(world, SaleViews.Completed, [.. holds.Select(item => item.Id).Reverse()]);
         var completed = (await world.Lists.QueueAsync(world.Agent, SaleViews.Completed, null, 1, 10, default)).Value!;
         Assert.Equal((0, 21), (completed.Counts.Settling, completed.Counts.Completed));
         var delivered = await TableAsync(world, SaleViews.Delivered);

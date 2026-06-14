@@ -2,7 +2,7 @@ import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { addCalendarDays, calendarDate } from "@/lib/calendar";
-import { closeStaffWorkspaces, openStaffWorkspace } from "./intake-ui-controls";
+import { closeStaffWorkspaces, openStaffWorkspace } from "./staff-workspace-controls";
 
 test.use({ actionTimeout: 15_000, timezoneId: "America/New_York" });
 

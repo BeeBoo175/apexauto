@@ -1,4 +1,5 @@
-import { openStaffWorkspace, showIntakeQueue } from "./intake-ui-controls";
+import { showIntakeQueue } from "./intake-ui-controls";
+import { openStaffWorkspace } from "./staff-workspace-controls";
 import { expect, test, type Page } from "@playwright/test";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";

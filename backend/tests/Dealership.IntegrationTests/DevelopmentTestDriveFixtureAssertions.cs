@@ -31,10 +31,10 @@ internal static class DevelopmentTestDriveFixtureAssertions
             Mail = mail
         });
         var volumeIds = DevelopmentTestDriveVolumeManifest.All.Select(item => item.OperationId("booking")).ToHashSet();
-        bookings = bookings.Where(item => !volumeIds.Contains(item.Id)).ToArray();
-        cancellations = cancellations.Where(item => !volumeIds.Contains(item.BookingId)).ToArray();
-        assignments = assignments.Where(item => !volumeIds.Contains(item.BookingId)).ToArray();
-        mail = mail.Where(item => !volumeIds.Contains(item.BookingId)).ToArray();
+        bookings = [.. bookings.Where(item => !volumeIds.Contains(item.Id))];
+        cancellations = [.. cancellations.Where(item => !volumeIds.Contains(item.BookingId))];
+        assignments = [.. assignments.Where(item => !volumeIds.Contains(item.BookingId))];
+        mail = [.. mail.Where(item => !volumeIds.Contains(item.BookingId))];
         var attendance = bookings.Where(item => DevelopmentTestDriveHandlingFixtures.Kinds.Any(kind =>
             item.Id == DevelopmentTestDriveHandlingFixtures.OperationId(kind, "booking"))).ToArray();
         Assert.Equal(DevelopmentTestDriveFixtures.Scenarios.Count + 4 + attendance.Length, bookings.Length);
