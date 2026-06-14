@@ -122,9 +122,7 @@ public sealed class DevelopmentTestDriveVolumeFixtures(DealershipDbContext datab
     {
         var now = await database.DatabaseNowAsync(cancellationToken);
         var window = schedule.GetDateWindow(now);
-        var occupied = await database.TestDriveBookings.AsNoTracking().Where(item => item.BranchId == branchId &&
-            !database.TestDriveCancellations.Any(cancellation => cancellation.BookingId == item.Id))
-            .Select(item => item.StartsAt).ToArrayAsync(cancellationToken);
+        var occupied = await DevelopmentTestDriveSlots.ActiveStartsAsync(database, branchId, cancellationToken);
         for (var date = window.FirstDate; date <= window.LastDate; date = date.AddDays(1))
         {
             foreach (var slot in schedule.GetSlots(date, now, TestDriveBooking.Duration))

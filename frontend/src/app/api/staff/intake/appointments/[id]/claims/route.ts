@@ -1,18 +1,6 @@
-import { isUuid } from "@/lib/auth/contracts";
-import { apiError } from "@/lib/server/http/api";
-import { relayIntake } from "@/lib/intake/routes";
-import { HttpError } from "@/lib/http";
+import { relayStaffAppointment } from "@/lib/intake/routes";
 import { parseOwnershipResult } from "@/lib/staff/ownership";
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
-  const { id } = await context.params;
-  if (!isUuid(id)) {
-    return apiError(new HttpError(400, "Provide a valid appointment reference."));
-  }
-  return relayIntake(
-    request,
-    `/api/staff/intake/appointments/${id}/claims`,
-    parseOwnershipResult,
-    true,
-  );
+  return relayStaffAppointment(request, context, "claims", parseOwnershipResult);
 }

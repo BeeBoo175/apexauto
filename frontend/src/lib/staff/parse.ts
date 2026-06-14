@@ -1,6 +1,7 @@
 import { parseCountedPage, parseItems } from "@/lib/api";
 import { isNonNegativeInteger, isPositiveInteger, isRecord, isUuid } from "@/lib/auth/contracts";
 import { parseSlot, parseVehicle } from "@/lib/intake/parse";
+import { parseOwnershipKind } from "./ownership";
 import {
   intakeCountKeys,
   type AppointmentDetail,
@@ -132,8 +133,8 @@ function parseOwnership(value: unknown): AppointmentOwnership | null {
   ) {
     return null;
   }
-  const kind = (["Claimed", "Assigned", "Released"] as const).find((item) => item === value.kind);
-  if (!kind || (kind === "Released") !== (value.handlerId === null)) {
+  const kind = parseOwnershipKind(value.kind, value.handlerId);
+  if (!kind) {
     return null;
   }
   return {

@@ -96,6 +96,11 @@ public static class DevelopmentInspectionScenarios
                 Create(intake, 1) with { Name = "Purchase examination" }))
             .ToArray());
 
+    // Named lookup of the nth published listing at a branch, so fixtures never depend on manifest order by position.
+    public static DevelopmentInspectionScenario PublishedAt(int branchIndex, int listing) => All.Where(item =>
+        item.PublishListing && item.Intake.BranchId == DevelopmentFixtureManifest.Branches[branchIndex].Id)
+        .ElementAt(listing);
+
     public static Guid OperationId(Guid inspectionId, string purpose)
     {
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes($"apexauto/development/inspection/{inspectionId:N}/{purpose}"));

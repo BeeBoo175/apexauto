@@ -8,12 +8,22 @@ import {
 
 export type OwnershipAction = "claims" | "assignments" | "releases";
 
+const ownershipKinds = ["Claimed", "Assigned", "Released"] as const;
+
+export type OwnershipKind = (typeof ownershipKinds)[number];
+
+// Every ownership record releases exactly when it has no handler; receipts add their own transition rules.
+export function parseOwnershipKind(kind: unknown, handlerId: string | null): OwnershipKind | null {
+  const parsed = ownershipKinds.find((item) => item === kind);
+  return parsed && (parsed === "Released") === (handlerId === null) ? parsed : null;
+}
+
 export interface OwnershipReceipt {
   id: string;
   appointmentId: string;
   branchId: string;
   actorId: string;
-  kind: "Claimed" | "Assigned" | "Released";
+  kind: OwnershipKind;
   handlerId: string | null;
   previousHandlerId: string | null;
   expectedVersion: number;
@@ -44,7 +54,7 @@ export function parseOwnershipReceipt(value: unknown): OwnershipReceipt | null {
   ) {
     return null;
   }
-  const kind = (["Claimed", "Assigned", "Released"] as const).find((item) => item === value.kind);
+  const kind = ownershipKinds.find((item) => item === value.kind);
   if (!kind || !validTransition(value, kind)) {
     return null;
   }

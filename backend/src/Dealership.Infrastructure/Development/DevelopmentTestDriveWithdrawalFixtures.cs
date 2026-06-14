@@ -31,11 +31,8 @@ public sealed class DevelopmentTestDriveWithdrawalFixtures(DealershipDbContext d
             .SingleOrDefaultAsync(item => item.Id == BookingId, cancellationToken);
         if (booking is null && seed)
         {
-            var now = await database.DatabaseNowAsync(cancellationToken);
-            var malaysia = DealershipLocale.Malaysia;
-            var date = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(now, malaysia).DateTime);
-            var slot = Enumerable.Range(0, 30).SelectMany(day =>
-                schedule.GetSlots(date.AddDays(day), now, TestDriveBooking.Duration)).FirstOrDefault();
+            var slot = (await DevelopmentTestDriveSlots.UpcomingAsync(database, schedule, cancellationToken))
+                .FirstOrDefault();
             if (slot is null)
             {
                 return new(label, "schedule unavailable; preserved", true);

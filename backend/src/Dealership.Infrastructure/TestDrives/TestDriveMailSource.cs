@@ -1,4 +1,3 @@
-using Dealership.Domain.Common;
 using Dealership.Infrastructure.Mail;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -36,19 +35,13 @@ public sealed class TestDriveMailSource(DealershipDbContext database, TimeProvid
             .SingleAsync(item => item.Id == booking.BranchId, cancellationToken);
         var vehicle = await database.Vehicles.AsNoTracking()
             .SingleAsync(item => item.Id == booking.VehicleId, cancellationToken);
-        var startsAt = TimeZoneInfo.ConvertTime(booking.StartsAt, DealershipLocale.Malaysia);
-        var state = message.Kind == TestDriveMailKind.Cancellation ? "cancelled" : "confirmed";
-        var body = FormattableString.Invariant($"Your ApexAuto test drive is {state}.\nReference: {booking.Id:D}\nBranch: {branch.Name}\nVehicle: {vehicle.ManufactureYear} {vehicle.Make} {vehicle.Model} ({vehicle.RegistrationPlate})\nStarts: {startsAt:yyyy-MM-dd HH:mm} (Asia/Kuala_Lumpur)");
+        string? reason = null;
         if (message.Kind == TestDriveMailKind.Cancellation)
         {
-            var reason = await database.TestDriveCancellations.Where(item => item.BookingId == booking.Id)
+            reason = await database.TestDriveCancellations.Where(item => item.BookingId == booking.Id)
                 .Select(item => item.Reason).SingleAsync(cancellationToken);
-            if (reason is not null)
-            {
-                body += $"\nReason: {reason}";
-            }
         }
 
-        return new(message.RecipientEmail, $"ApexAuto test drive {state}", body);
+        return TestDriveMailComposer.Compose(message, booking, branch.Name, vehicle, reason);
     }
 }

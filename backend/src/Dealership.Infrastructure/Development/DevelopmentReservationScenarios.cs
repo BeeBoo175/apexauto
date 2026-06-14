@@ -55,8 +55,7 @@ public static class DevelopmentReservationScenarios
     private static IEnumerable<DevelopmentReservationScenario> SaleHolds()
     {
         DevelopmentReservationScenario Hold(int branch, int listing, int customer, int index) => new(
-            DevelopmentInspectionScenarios.All.Where(item => item.PublishListing &&
-                item.Intake.BranchId == DevelopmentFixtureManifest.Branches[branch].Id).ElementAt(listing),
+            DevelopmentInspectionScenarios.PublishedAt(branch, listing),
             DevelopmentFixtureManifest.Customers[customer].Registration.RegistrationKey, index, true);
 
         // Completed purchases release the customer's active slot before the next purchase is confirmed.

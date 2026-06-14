@@ -94,3 +94,17 @@ export async function relayPhoto(request: Request, id: string, parse: (value: un
     return apiError(error);
   }
 }
+
+// Staff appointment routes validate the appointment reference once, then relay the named sub-resource.
+export async function relayStaffAppointment<T>(
+  request: Request,
+  context: { params: Promise<{ id: string }> },
+  resource: string,
+  parse: (value: unknown) => T | null,
+) {
+  const { id } = await context.params;
+  if (!isUuid(id)) {
+    return apiError(new HttpError(400, "Provide a valid appointment reference."));
+  }
+  return relayIntake(request, `/api/staff/intake/appointments/${id}/${resource}`, parse, true);
+}

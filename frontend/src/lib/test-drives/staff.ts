@@ -1,5 +1,6 @@
 import { parseCountedPage, parseItems } from "@/lib/api";
 import { parseActor } from "@/lib/auth/actor";
+import { parseOwnershipKind } from "@/lib/staff/ownership";
 import {
   isNonNegativeInteger,
   isPositiveInteger,
@@ -35,8 +36,8 @@ export function parseTestDriveOwnership(value: unknown) {
   ) {
     return null;
   }
-  const kind = ["Claimed", "Assigned", "Released"].find((item) => item === value.kind);
-  if (!kind || (kind === "Released") !== (value.handlerId === null)) {
+  const kind = parseOwnershipKind(value.kind, value.handlerId);
+  if (!kind) {
     return null;
   }
   return {

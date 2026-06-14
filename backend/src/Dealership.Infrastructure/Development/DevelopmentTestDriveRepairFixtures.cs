@@ -12,8 +12,7 @@ namespace Dealership.Infrastructure.Development;
 public sealed class DevelopmentTestDriveRepairFixtures(DealershipDbContext database,
     TestDriveBookingService bookings, InspectionRepairRequestService repairs, InspectionRepairCompletionService completions, AppointmentSchedule schedule)
 {
-    public static DevelopmentInspectionScenario Scenario => DevelopmentInspectionScenarios.All.Where(item =>
-        item.PublishListing && item.Intake.BranchId == DevelopmentFixtureManifest.Branches[0].Id).ElementAt(1);
+    public static DevelopmentInspectionScenario Scenario => DevelopmentInspectionScenarios.PublishedAt(0, 1);
 
     public static Guid BookingId => Scenario.OperationId("test-drive-repair-booking");
     public static Guid RequestId => Scenario.OperationId("test-drive-inspection-repair");
@@ -39,14 +38,9 @@ public sealed class DevelopmentTestDriveRepairFixtures(DealershipDbContext datab
             .SingleOrDefaultAsync(item => item.Id == BookingId, cancellationToken);
         if (booking is null && seed)
         {
-            var now = await database.DatabaseNowAsync(cancellationToken);
-            var malaysia = DealershipLocale.Malaysia;
-            var date = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(now, malaysia).DateTime);
-            var occupied = await database.TestDriveBookings.Where(item => item.BranchId == scenario.Intake.BranchId &&
-                !database.TestDriveCancellations.Any(cancellation => cancellation.BookingId == item.Id))
-                .Select(item => item.StartsAt).ToArrayAsync(cancellationToken);
-            var slot = Enumerable.Range(0, 30).SelectMany(day =>
-                schedule.GetSlots(date.AddDays(day), now, TestDriveBooking.Duration))
+            var occupied = await DevelopmentTestDriveSlots.ActiveStartsAsync(database,
+                scenario.Intake.BranchId, cancellationToken);
+            var slot = (await DevelopmentTestDriveSlots.UpcomingAsync(database, schedule, cancellationToken))
                 .FirstOrDefault(item => !occupied.Contains(item.StartsAt));
             if (slot is null)
             {
