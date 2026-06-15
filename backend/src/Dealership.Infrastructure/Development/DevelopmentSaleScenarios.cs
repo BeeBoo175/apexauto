@@ -32,8 +32,7 @@ public sealed record DevelopmentSaleScenario(DevelopmentReservationScenario Hold
         _ => throw new InvalidOperationException("The sale fixture has no command path for this target.")
     };
 
-    public Guid AgentId => DevelopmentFixtureManifest.Staff.Single(item =>
-        item.Role == AccountRoles.SalesAgent && item.BranchId == Hold.Listing.Intake.BranchId).Id;
+    public Guid AgentId => DevelopmentFixtureManifest.AgentFor(Hold.Listing.Intake.BranchId, ReservationId).Id;
 
     public Guid ManagerId => DevelopmentFixtureManifest.Staff.Single(item =>
         item.Role == AccountRoles.BranchManager && item.BranchId == Hold.Listing.Intake.BranchId).Id;

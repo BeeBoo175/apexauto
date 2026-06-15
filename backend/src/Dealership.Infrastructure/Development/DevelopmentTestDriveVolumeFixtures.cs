@@ -59,8 +59,7 @@ public sealed class DevelopmentTestDriveVolumeFixtures(DealershipDbContext datab
         var customerId = await database.CustomerProfiles.Where(item =>
             item.RegistrationKey == scenario.Customer.Registration.RegistrationKey)
             .Select(item => item.UserId).SingleAsync(cancellationToken);
-        var handlerId = DevelopmentFixtureManifest.Staff.Single(item => item.BranchId == scenario.BranchId &&
-            item.Role == AccountRoles.SalesAgent).Id;
+        var handlerId = scenario.HandlerId;
         var bookingId = scenario.OperationId("booking");
         var booking = await database.TestDriveBookings.AsNoTracking()
             .SingleOrDefaultAsync(item => item.Id == bookingId, cancellationToken);

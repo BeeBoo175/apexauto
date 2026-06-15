@@ -28,6 +28,41 @@ public sealed class DevelopmentIntakeTimelineTests
         Assert.Equal(Guid.Parse(appointmentId), appointment.Id);
     }
 
+    [Fact]
+    public void CheckInsAreSpreadAcrossEveryHandlerInEachBranch()
+    {
+        foreach (var branch in DevelopmentFixtureManifest.Branches)
+        {
+            var handlers = DevelopmentIntakeManifest.Appointments
+                .Where(item => item.BranchId == branch.Id && item.CheckIn is not null)
+                .GroupBy(item => DevelopmentFixtureManifest.CheckInHandlerFor(item.BranchId, item.Id).Id)
+                .ToDictionary(group => group.Key, group => group.Count());
+            var total = handlers.Values.Sum();
+            Assert.Equal(3, handlers.Count);
+            Assert.All(handlers.Values, count => Assert.InRange(count, total / 5, total * 3 / 5));
+        }
+    }
+
+    [Fact]
+    public void SalesAndTestDrivesAreSpreadAcrossBothAgentsInEachBranch()
+    {
+        foreach (var branch in DevelopmentFixtureManifest.Branches)
+        {
+            var testDrives = DevelopmentTestDriveVolumeManifest.All
+                .Where(item => item.BranchId == branch.Id && item.Queue != "ToClaim")
+                .GroupBy(item => item.HandlerId).ToDictionary(group => group.Key, group => group.Count());
+            var sales = DevelopmentSaleVolumeManifest.All
+                .Where(item => item.Hold.Listing.Intake.BranchId == branch.Id)
+                .GroupBy(item => item.AgentId).ToDictionary(group => group.Key, group => group.Count());
+            foreach (var spread in new[] { testDrives, sales })
+            {
+                var total = spread.Values.Sum();
+                Assert.Equal(2, spread.Count);
+                Assert.All(spread.Values, count => Assert.InRange(count, total / 4, total * 3 / 4));
+            }
+        }
+    }
+
     [Theory]
     [InlineData("VCA 6323")]
     [InlineData("BPL 6323")]

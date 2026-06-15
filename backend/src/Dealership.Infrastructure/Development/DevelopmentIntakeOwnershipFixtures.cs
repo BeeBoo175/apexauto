@@ -16,12 +16,11 @@ public sealed class DevelopmentIntakeOwnershipFixtures(DealershipDbContext datab
         {
             var manager = DevelopmentFixtureManifest.Staff.Single(item =>
                 item.BranchId == branch.Key && item.Role == AccountRoles.BranchManager).Id;
-            var agent = DevelopmentFixtureManifest.Staff.Single(item =>
-                item.BranchId == branch.Key && item.Role == AccountRoles.SalesAgent).Id;
             var booked = branch.Where(item => item.Status == StaffWorklistStatus.Booked).ToArray();
             for (var index = 0; index < booked.Length; index++)
             {
                 var fixture = booked[index];
+                var agent = DevelopmentFixtureManifest.AgentFor(branch.Key, fixture.Id).Id;
                 var handlerId = (index % 3) switch { 0 => (Guid?)agent, 1 => manager, _ => null };
                 if (!await database.IntakeAppointments.AnyAsync(item => item.Id == fixture.Id, cancellationToken))
                 {

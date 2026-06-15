@@ -207,8 +207,7 @@ internal static class DevelopmentIntakeFixtureAssertions
             Assert.Equal(appointment.StartsAt, checkIn.CheckedInAt);
             Assert.True(checkIn.CheckedInAt < DateTimeOffset.UtcNow);
             Assert.True(checkIn.Matches(fixture.CheckIn!));
-            Assert.Equal(DevelopmentFixtureManifest.Staff.Single(item =>
-                item.BranchId == fixture.BranchId && item.Role == AccountRoles.SalesAgent).Id, checkIn.StaffId);
+            Assert.Equal(DevelopmentFixtureManifest.CheckInHandlerFor(fixture.BranchId, fixture.Id).Id, checkIn.StaffId);
             var claim = await database.AppointmentAssignments.SingleAsync(item => item.AppointmentId == fixture.Id);
             Assert.Equal(WorkOwnershipKind.Claimed, claim.Kind);
             Assert.Equal(checkIn.StaffId, claim.ActorId);

@@ -23,8 +23,7 @@ internal static class NoShowLifecycleAssertions
         var appointment = await database.IntakeAppointments.SingleAsync(item => item.Id == row.Id);
         var manager = DevelopmentFixtureManifest.Staff.Single(item =>
             item.BranchId == row.BranchId && item.Role == AccountRoles.BranchManager);
-        var agent = DevelopmentFixtureManifest.Staff.Single(item =>
-            item.BranchId == row.BranchId && item.Role == AccountRoles.SalesAgent);
+        var agent = DevelopmentFixtureManifest.PrimaryAgent(row.BranchId);
         var otherManager = DevelopmentFixtureManifest.Staff.First(item =>
             item.BranchId != row.BranchId && item.Role == AccountRoles.BranchManager);
         var evidence = new CheckInEvidence("PL1BT65R84B123459", 92500, true, true, true, true, "Attendance verified");

@@ -71,6 +71,7 @@ try
     }
 
     IReadOnlyList<DevelopmentFixtureReport> reports;
+    IReadOnlyList<DevelopmentFixtureTiming> timings = [];
     if (accountsOnly)
     {
         var accounts = scope.ServiceProvider.GetRequiredService<DevelopmentAccountFixtures>();
@@ -84,11 +85,17 @@ try
         reports = args[0] == "seed"
             ? await runner.SeedAsync(target, deadline.Token, deliverMail: args.Length == 2)
             : await runner.ReviewAsync(target, deadline.Token);
+        timings = runner.Timings;
     }
 
     foreach (var report in reports)
     {
         Console.WriteLine($"{report.Fixture}: {report.State}");
+    }
+
+    foreach (var timing in timings)
+    {
+        Console.WriteLine($"Timing {timing.Unit}: {timing.Elapsed.TotalSeconds:0.0} s");
     }
 
     if (args[0] == "seed-accounts")

@@ -80,7 +80,8 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
             Assert.Equal(0, await database.IntakeAppointments.CountAsync());
             Assert.Equal(0, await database.IntakePhotos.CountAsync());
             Assert.Equal(0, await database.AppointmentAssignments.CountAsync());
-            Assert.Equal(20, await database.Users.CountAsync());
+            Assert.Equal(DevelopmentFixtureManifest.Customers.Count + DevelopmentFixtureManifest.Staff.Count,
+                await database.Users.CountAsync());
         }
 
         Assert.Equal(definitions, await ReadGuardsAsync());
@@ -257,7 +258,13 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         await using var command = new NpgsqlCommand("""
             SELECT pg_get_functiondef(oid) FROM pg_proc WHERE pronamespace = 'public'::regnamespace
                 AND proname IN ('require_available_appointment_photo', 'validate_appointment_cancellation',
-                    'validate_appointment_checkin', 'guard_appointment_assignment')
+                    'validate_appointment_checkin', 'guard_appointment_assignment',
+                    'guard_inspection_signed_revision', 'guard_inspection_repair_request',
+                    'guard_inspection_repair_approval', 'guard_inspection_repair_completion',
+                    'guard_listing_operation', 'guard_listing_photo', 'guard_reservation',
+                    'guard_reservation_release', 'guard_sales_order_event', 'guard_sale_settlement',
+                    'guard_sale_handover', 'guard_test_drive_booking', 'guard_test_drive_assignment',
+                    'guard_test_drive_handling', 'guard_test_drive_cancellation')
                 ORDER BY proname
             """, connection);
         await using var reader = await command.ExecuteReaderAsync();
@@ -267,7 +274,7 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
             definitions.Add(reader.GetString(0));
         }
 
-        Assert.Equal(4, definitions.Count);
+        Assert.Equal(19, definitions.Count);
         return [.. definitions];
     }
 

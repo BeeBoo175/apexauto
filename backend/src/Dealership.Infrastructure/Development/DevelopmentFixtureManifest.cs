@@ -51,6 +51,42 @@ public static class DevelopmentFixtureManifest
             Password, AccountRoles.WorkshopTechnician, Branches[2].Id)
     ]);
 
+    public static IReadOnlyList<StaffProvisioningRequest> AdditionalAgents { get; } = Array.AsReadOnly<StaffProvisioningRequest>(
+    [
+        new(Guid.Parse("c202854c-3fc6-4224-a159-3ba88a2eca18"), "nurul.huda@example.invalid",
+            Password, AccountRoles.SalesAgent, Branches[0].Id),
+        new(Guid.Parse("2c51d2a2-3a7a-4d2f-90a1-5695ad6dd23f"), "kelvin.tan@example.invalid",
+            Password, AccountRoles.SalesAgent, Branches[1].Id),
+        new(Guid.Parse("841698d7-2709-43f6-88c0-6395d62de946"), "suresh.kumar@example.invalid",
+            Password, AccountRoles.SalesAgent, Branches[2].Id)
+    ]);
+
+    public static StaffProvisioningRequest PrimaryAgent(Guid branchId) => Staff.Single(item =>
+        item.BranchId == branchId && item.Role == AccountRoles.SalesAgent &&
+        !AdditionalAgents.Any(additional => additional.Id == item.Id));
+
+    // Fixture identifiers are hash-derived, so one byte spreads work evenly and repeatably across a branch's staff.
+    public static StaffProvisioningRequest AgentFor(Guid branchId, Guid key)
+    {
+        StaffProvisioningRequest[] agents =
+        [
+            PrimaryAgent(branchId),
+            AdditionalAgents.Single(item => item.BranchId == branchId)
+        ];
+        return agents[key.ToByteArray()[0] % agents.Length];
+    }
+
+    public static StaffProvisioningRequest CheckInHandlerFor(Guid branchId, Guid key)
+    {
+        StaffProvisioningRequest[] handlers =
+        [
+            PrimaryAgent(branchId),
+            AdditionalAgents.Single(item => item.BranchId == branchId),
+            Staff.Single(item => item.BranchId == branchId && item.Role == AccountRoles.BranchManager)
+        ];
+        return handlers[key.ToByteArray()[1] % handlers.Length];
+    }
+
     public static StaffProvisioningRequest PrimaryTechnician(Guid branchId) => Staff.Single(item =>
         item.BranchId == branchId && item.Role == AccountRoles.WorkshopTechnician &&
         !ReliefTechnicians.Any(relief => relief.Id == item.Id));
@@ -79,6 +115,7 @@ public static class DevelopmentFixtureManifest
             Password, AccountRoles.WorkshopTechnician, Branches[2].Id),
         new(Guid.Parse("12d6d08e-921a-45e7-8c20-f37e8ca8b0e3"), "nur.syafiqah@example.invalid",
             Password, AccountRoles.BranchManager, Branches[2].Id),
-        .. ReliefTechnicians
+        .. ReliefTechnicians,
+        .. AdditionalAgents
     ]);
 }

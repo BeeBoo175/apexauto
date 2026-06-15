@@ -75,8 +75,7 @@ internal static class IntakeBrowserSeed
             {
                 throw new InvalidOperationException("Same-day browser arrival booking was not confirmed.");
             }
-            var staff = DevelopmentFixtureManifest.Staff.Single(item => item.BranchId == branch.Id &&
-                item.Role == AccountRoles.SalesAgent);
+            var staff = DevelopmentFixtureManifest.PrimaryAgent(branch.Id);
             var claimed = await services.GetRequiredService<AppointmentAssignmentService>()
                 .ExecuteAsync(staff.Id, result.Receipt!.Id, WorkOwnershipKind.Claimed,
                     new(Guid.NewGuid(), 0), CancellationToken.None);

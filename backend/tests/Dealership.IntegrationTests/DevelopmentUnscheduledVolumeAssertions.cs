@@ -81,24 +81,31 @@ internal static class DevelopmentUnscheduledVolumeAssertions
         var scenarios = DevelopmentSaleScenarios.All.Concat(DevelopmentSaleVolumeManifest.All).ToArray();
         foreach (var branch in DevelopmentFixtureManifest.Branches)
         {
-            var agent = DevelopmentFixtureManifest.Staff.Single(item => item.Role == AccountRoles.SalesAgent &&
-                item.BranchId == branch.Id);
             var manager = DevelopmentFixtureManifest.Staff.Single(item => item.Role == AccountRoles.BranchManager &&
                 item.BranchId == branch.Id);
-            var actionable = scenarios.Where(item => item.Hold.Listing.Intake.BranchId == branch.Id &&
-                item.Target is SalesOrderStatus.Handling or SalesOrderStatus.Approved or SalesOrderStatus.Settled)
-                .Select(item => new ExpectedWork(item.ReservationId, "Sale", item.Hold.Listing.Intake.RegistrationPlate))
-                .OrderBy(item => item.Registration, StringComparer.Ordinal).ToArray();
-            Assert.True(actionable.Length > 50 && actionable.Length < 75);
+            var branchSales = scenarios.Where(item => item.Hold.Listing.Intake.BranchId == branch.Id).ToArray();
             var query = new UnscheduledWorkQuery(new(branch.Id), 1, 25);
-            await AssertMixedPagesAsync(calendar, agent.Id, query, actionable, agent.Id);
-            await AssertMixedPagesAsync(calendar, manager.Id,
-                query with { Scope = query.Scope with { Employee = agent.Email.ToUpperInvariant() } },
-                [.. scenarios.Where(item => item.Hold.Listing.Intake.BranchId == branch.Id &&
-                    item.Target is SalesOrderStatus.Handling or SalesOrderStatus.PendingApproval or
-                        SalesOrderStatus.Approved or SalesOrderStatus.Settled)
+            var agents = new[]
+            {
+                DevelopmentFixtureManifest.PrimaryAgent(branch.Id),
+                DevelopmentFixtureManifest.AdditionalAgents.Single(item => item.BranchId == branch.Id)
+            };
+            foreach (var agent in agents)
+            {
+                var own = branchSales.Where(item => item.AgentId == agent.Id).ToArray();
+                var actionable = own.Where(item =>
+                    item.Target is SalesOrderStatus.Handling or SalesOrderStatus.Approved or SalesOrderStatus.Settled)
                     .Select(item => new ExpectedWork(item.ReservationId, "Sale", item.Hold.Listing.Intake.RegistrationPlate))
-                    .OrderBy(item => item.Registration, StringComparer.Ordinal)], agent.Id);
+                    .OrderBy(item => item.Registration, StringComparer.Ordinal).ToArray();
+                Assert.NotEmpty(actionable);
+                await AssertMixedPagesAsync(calendar, agent.Id, query, actionable, agent.Id);
+                await AssertMixedPagesAsync(calendar, manager.Id,
+                    query with { Scope = query.Scope with { Employee = agent.Email.ToUpperInvariant() } },
+                    [.. own.Where(item => item.Target is SalesOrderStatus.Handling or SalesOrderStatus.PendingApproval or
+                            SalesOrderStatus.Approved or SalesOrderStatus.Settled)
+                        .Select(item => new ExpectedWork(item.ReservationId, "Sale", item.Hold.Listing.Intake.RegistrationPlate))
+                        .OrderBy(item => item.Registration, StringComparer.Ordinal)], agent.Id);
+            }
 
             var vehicles = await database.Vehicles.AsNoTracking().Where(item => item.BranchId == branch.Id &&
                 item.Status == VehicleStatus.PendingInspection).ToArrayAsync();

@@ -5,6 +5,8 @@ namespace Dealership.Infrastructure.Development;
 public sealed record DevelopmentTestDriveVolumeScenario(Guid BranchId, string Queue, int Index,
     DevelopmentCustomerFixture Customer)
 {
+    public Guid HandlerId => DevelopmentFixtureManifest.AgentFor(BranchId, OperationId("claim")).Id;
+
     public Guid OperationId(string action) => DevelopmentInspectionScenarios.OperationId(BranchId,
         $"test-drive-volume/{Queue}/{Index}/{action}");
 }

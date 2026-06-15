@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -5,16 +6,24 @@ namespace Dealership.Infrastructure.Development;
 
 public sealed record DevelopmentFixtureReport(string Fixture, string State, bool RequiresAttention);
 
+public sealed record DevelopmentFixtureTiming(string Unit, TimeSpan Elapsed);
+
 public sealed class DevelopmentFixtureRunner(DealershipDbContext database, DevelopmentAccountFixtures accounts,
     DevelopmentIntakeFixtures intake,
     DevelopmentInspectionFixtures inspections, DevelopmentListingFixtures listings, DevelopmentPurchaseFixtures purchases,
     DevelopmentReservationFixtures reservations, DevelopmentSaleFixtures sales,
     DevelopmentFixtureMail mail, DevelopmentTestDriveFixtures testDrives, DevelopmentSaleVolumeFixtures salesVolume)
 {
+    private readonly List<DevelopmentFixtureTiming> timings = [];
+
+    // Timings describe the latest seed or review run; reports stay free of operational measurements.
+    public IReadOnlyList<DevelopmentFixtureTiming> Timings => timings;
+
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> SeedAsync(DevelopmentFixtureTarget target,
         CancellationToken cancellationToken, bool deliverMail = false)
     {
         target.EnsureMatches(database.Database.GetConnectionString());
+        timings.Clear();
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromMinutes(5));
         var token = deadline.Token;
@@ -60,15 +69,16 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
         CancellationToken token)
     {
         // A dedicated nonpooled connection owns the run lock; disposal releases it after failure or restart.
-        var reports = new List<DevelopmentFixtureReport>(await accounts.RunAsync(true, token));
+        var reports = new List<DevelopmentFixtureReport>();
 
-        reports.AddRange(await purchases.RunAsync(true, token));
-        reports.AddRange(await intake.SeedAsync(target, token));
-        reports.AddRange(await inspections.RunAsync(true, token));
-        reports.AddRange(await listings.RunAsync(true, token));
-        reports.AddRange(await reservations.RunAsync(true, token));
-        reports.AddRange(await testDrives.RunAsync(true, token));
-        reports.AddRange(await salesVolume.RunAsync(true, token));
+        reports.AddRange(await TimeAsync("Accounts", () => accounts.RunAsync(true, token)));
+        reports.AddRange(await TimeAsync("Purchase settings", () => purchases.RunAsync(true, token)));
+        reports.AddRange(await TimeAsync("Intake", () => intake.SeedAsync(target, token)));
+        reports.AddRange(await TimeAsync("Inspections", () => inspections.RunAsync(true, token)));
+        reports.AddRange(await TimeAsync("Listings", () => listings.RunAsync(true, token)));
+        reports.AddRange(await TimeAsync("Reservations", () => reservations.RunAsync(true, token)));
+        reports.AddRange(await TimeAsync("Test drives", () => testDrives.RunAsync(true, token)));
+        reports.AddRange(await TimeAsync("Sales", () => salesVolume.RunAsync(true, token)));
         return reports;
     }
 
@@ -76,6 +86,7 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
         CancellationToken cancellationToken)
     {
         target.EnsureMatches(database.Database.GetConnectionString());
+        timings.Clear();
         // One bounded session avoids reopening unpooled connections for every canonical command/read.
         var opened = database.Database.GetDbConnection().State != System.Data.ConnectionState.Open;
         if (opened)
@@ -84,16 +95,17 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
         }
         try
         {
-            var reports = new List<DevelopmentFixtureReport>(await accounts.RunAsync(false, cancellationToken));
+            var reports = new List<DevelopmentFixtureReport>();
 
-            reports.AddRange(await purchases.RunAsync(false, cancellationToken));
-            reports.AddRange(await intake.ReviewAsync(cancellationToken));
-            reports.AddRange(await inspections.RunAsync(false, cancellationToken));
-            reports.AddRange(await listings.RunAsync(false, cancellationToken));
-            reports.AddRange(await reservations.RunAsync(false, cancellationToken));
-            reports.AddRange(await sales.RunAsync(false, cancellationToken));
-            reports.AddRange(await testDrives.RunAsync(false, cancellationToken));
-            reports.AddRange(await salesVolume.RunAsync(false, cancellationToken));
+            reports.AddRange(await TimeAsync("Accounts", () => accounts.RunAsync(false, cancellationToken)));
+            reports.AddRange(await TimeAsync("Purchase settings", () => purchases.RunAsync(false, cancellationToken)));
+            reports.AddRange(await TimeAsync("Intake", () => intake.ReviewAsync(cancellationToken)));
+            reports.AddRange(await TimeAsync("Inspections", () => inspections.RunAsync(false, cancellationToken)));
+            reports.AddRange(await TimeAsync("Listings", () => listings.RunAsync(false, cancellationToken)));
+            reports.AddRange(await TimeAsync("Reservations", () => reservations.RunAsync(false, cancellationToken)));
+            reports.AddRange(await TimeAsync("Sales", () => sales.RunAsync(false, cancellationToken)));
+            reports.AddRange(await TimeAsync("Test drives", () => testDrives.RunAsync(false, cancellationToken)));
+            reports.AddRange(await TimeAsync("Sales volume", () => salesVolume.RunAsync(false, cancellationToken)));
             return reports;
         }
         finally
@@ -105,4 +117,17 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
         }
     }
 
+    private async Task<IReadOnlyList<DevelopmentFixtureReport>> TimeAsync(string unit,
+        Func<Task<IReadOnlyList<DevelopmentFixtureReport>>> run)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        try
+        {
+            return await run();
+        }
+        finally
+        {
+            timings.Add(new(unit, stopwatch.Elapsed));
+        }
+    }
 }
