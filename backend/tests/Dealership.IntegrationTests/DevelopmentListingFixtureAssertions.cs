@@ -1,6 +1,9 @@
 using System.Text.Json;
 using Dealership.Application.Accounts;
+using Dealership.Application.Sales;
 using Dealership.Application.Vehicles;
+using Dealership.Domain.Sales;
+using Dealership.Domain.TestDrives;
 using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Development;
 using Dealership.Infrastructure.Persistence;
@@ -25,6 +28,60 @@ internal static class DevelopmentListingFixtureAssertions
         Assert.All(await database.ListingRevisions.ToArrayAsync(), revision => Assert.Equal(4, revision.PhotoIds.Length));
         Assert.Equal(DevelopmentTestDriveWithdrawalFixtures.WithdrawalId,
             (await database.ListingWithdrawals.SingleAsync()).Id);
+        var dated = DevelopmentInspectionScenarios.All.Where(item => item.PublishListing && DevelopmentWorkshopHistory.Covers(item)).ToArray();
+        Assert.NotEmpty(dated);
+        foreach (var scenario in dated)
+        {
+            var checkIn = await database.AppointmentCheckIns.AsNoTracking().SingleAsync(item => item.AppointmentId == scenario.Id);
+            var publication = await database.ListingPublications.AsNoTracking()
+                .SingleAsync(item => item.Id == scenario.OperationId("listing-publication"));
+            Assert.Equal(DevelopmentWorkshopHistory.SignedAt(checkIn.CheckedInAt).AddMinutes(90), publication.RecordedAt);
+            Assert.True(publication.RecordedAt < DateTimeOffset.UtcNow);
+        }
+
+        var datedHolds = DevelopmentReservationScenarios.All.Where(DevelopmentReservationHistory.Covers).ToArray();
+        Assert.NotEmpty(datedHolds);
+        foreach (var hold in datedHolds)
+        {
+            var publication = await database.ListingPublications.AsNoTracking()
+                .SingleAsync(item => item.Id == hold.PublicationId);
+            var held = await database.Reservations.AsNoTracking().SingleAsync(item => item.Id == hold.Id);
+            var release = await database.ReservationReleases.AsNoTracking()
+                .SingleAsync(item => item.ReservationId == hold.Id);
+            Assert.InRange(held.CreatedAt, publication.RecordedAt, DateTimeOffset.UtcNow);
+            Assert.InRange(release.RecordedAt, held.CreatedAt, DateTimeOffset.UtcNow);
+        }
+
+        var datedSales = DevelopmentSaleScenarios.All.Where(DevelopmentSaleHistory.Covers).ToArray();
+        Assert.NotEmpty(datedSales);
+        foreach (var sale in datedSales)
+        {
+            var publication = await database.ListingPublications.AsNoTracking()
+                .SingleAsync(item => item.Id == sale.Hold.PublicationId);
+            var held = await database.Reservations.AsNoTracking().SingleAsync(item => item.Id == sale.ReservationId);
+            var events = await database.SalesOrderEvents.AsNoTracking()
+                .Where(item => item.SalesOrderId == sale.ReservationId).OrderBy(item => item.Sequence).ToArrayAsync();
+            Assert.InRange(held.CreatedAt, publication.RecordedAt, DateTimeOffset.UtcNow);
+            Assert.Equal(events.OrderBy(item => item.RecordedAt), events);
+            Assert.All(events, entry => Assert.InRange(entry.RecordedAt, held.CreatedAt, DateTimeOffset.UtcNow));
+            Assert.Equal(sale.Target, events[^1].Kind == SalesOrderEventKind.Delivered
+                ? SalesOrderStatus.Delivered : SalesOrderStatus.Settled);
+            Assert.Contains(await database.SaleDocuments.AsNoTracking().Where(item => item.SalesOrderId == sale.ReservationId)
+                .ToArrayAsync(), document => document.Kind == SaleDocumentKind.PurchaseOrder);
+        }
+
+        var historyIds = DevelopmentTestDriveHistory.All.Select(item => item.Id).ToArray();
+        var drives = await database.TestDriveBookings.AsNoTracking().Where(item => historyIds.Contains(item.Id)).ToArrayAsync();
+        Assert.All(drives, drive => Assert.True(drive.EndsAt < DateTimeOffset.UtcNow));
+        foreach (var branch in DevelopmentFixtureManifest.Branches)
+        {
+            var completed = DevelopmentTestDriveHistory.All.Where(item => item.Kind == DevelopmentTestDriveHistoryKind.Completed &&
+                item.Listing.Intake.BranchId == branch.Id).Select(item => item.Id).ToArray();
+            Assert.Contains(drives, drive => completed.Contains(drive.Id));
+            Assert.True(await database.TestDriveOutcomes.AnyAsync(outcome => completed.Contains(outcome.BookingId) &&
+                outcome.Kind == TestDriveOutcomeKind.Completed));
+        }
+
         var original = await database.ListingRevisions.AsNoTracking().Where(item => database.Vehicles.Any(vehicle =>
             vehicle.Id == item.VehicleId && vehicle.Status == VehicleStatus.Available))
             .OrderBy(item => item.Id).FirstAsync();

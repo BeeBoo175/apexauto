@@ -32,7 +32,7 @@ public static class DevelopmentReservationScenarios
 {
     public const int ReleasedPerBranch = 12;
     private const int ActiveHoldIndex = 51;
-    private const int FirstBuyerIndex = 52;
+    public const int FirstBuyerIndex = 52;
 
     public static IReadOnlyList<DevelopmentReservationScenario> All { get; } = Array.AsReadOnly(
         DevelopmentFixtureManifest.Branches.SelectMany((branch, branchIndex) =>

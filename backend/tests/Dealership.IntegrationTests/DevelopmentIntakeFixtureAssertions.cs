@@ -214,6 +214,16 @@ internal static class DevelopmentIntakeFixtureAssertions
             Assert.Equal(checkIn.StaffId, claim.HandlerId);
             Assert.Equal(checkIn.CheckedInAt, claim.RecordedAt);
             Assert.Equal(1, claim.Version);
+            var historyScenario = DevelopmentInspectionScenarios.All.SingleOrDefault(item => item.Id == fixture.Id);
+            if (DevelopmentWorkshopHistory.Covers(fixture) ||
+                historyScenario is not null && DevelopmentWorkshopHistory.Covers(historyScenario))
+            {
+                var signed = await database.InspectionSignedRevisions.AsNoTracking()
+                    .SingleAsync(item => item.InspectionId == fixture.Id);
+                Assert.Equal(checkIn.CheckedInAt.AddMinutes(80), signed.SignedAt);
+                Assert.True(signed.SignedAt < DateTimeOffset.UtcNow);
+            }
+
             var vehicle = await database.Vehicles.SingleAsync(item => item.Id == checkIn.VehicleId);
             var completedBaseline = fixture.Id == DevelopmentInspectionManifest.Baselines[1].Id;
             var scenario = DevelopmentInspectionScenarios.All.SingleOrDefault(item => item.Id == fixture.Id);

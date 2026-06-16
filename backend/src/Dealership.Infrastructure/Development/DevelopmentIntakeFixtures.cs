@@ -18,7 +18,10 @@ namespace Dealership.Infrastructure.Development;
 
 public sealed class DevelopmentIntakeFixtures(DealershipDbContext database, DevelopmentFixturePhotos photos,
     AppointmentSchedule schedule, PhotoStorageSettings storage, DevelopmentFixtureClock clock,
-    IOptions<IntakePhotoSettings> photoSettings, IAmazonS3 objects, DevelopmentIntakeOwnershipFixtures ownership)
+    IOptions<IntakePhotoSettings> photoSettings, IAmazonS3 objects, DevelopmentIntakeOwnershipFixtures ownership,
+    DevelopmentWorkshopHistory workshopHistory, DevelopmentListingHistory listingHistory,
+    DevelopmentReservationHistory reservationHistory, DevelopmentSaleHistory saleHistory,
+    DevelopmentTestDriveHistory testDriveHistory)
 {
     public async Task EnsureLocalStorageAsync(CancellationToken cancellationToken)
     {
@@ -155,7 +158,50 @@ public sealed class DevelopmentIntakeFixtures(DealershipDbContext database, Deve
         await database.SaveChangesAsync(cancellationToken);
         await AddTransitionAsync(moment, appointment, owner.Email!, cancellationToken);
         await database.SaveChangesAsync(cancellationToken);
+        await AddInspectionHistoryAsync(moment, cancellationToken);
+
         database.ChangeTracker.Clear();
+    }
+
+    private async Task AddInspectionHistoryAsync(DevelopmentIntakeMoment moment, CancellationToken cancellationToken)
+    {
+        var fixture = moment.Fixture;
+        if (DevelopmentWorkshopHistory.Covers(fixture))
+        {
+            await workshopHistory.AddSignedInspectionAsync(fixture, moment.TransitionAt!.Value, cancellationToken);
+            return;
+        }
+
+        var scenario = DevelopmentInspectionScenarios.All.SingleOrDefault(item => item.Id == fixture.Id);
+        if (scenario is null || fixture.Status != StaffWorklistStatus.CheckedIn || !DevelopmentWorkshopHistory.Covers(scenario))
+        {
+            return;
+        }
+
+        var signedAt = await workshopHistory.AddSignedInspectionAsync(scenario, moment.TransitionAt!.Value, cancellationToken);
+        if (scenario.PublishListing)
+        {
+            await listingHistory.AddPublishedListingAsync(scenario, signedAt, cancellationToken);
+            var now = await database.DatabaseNowAsync(cancellationToken);
+            foreach (var hold in DevelopmentReservationHistory.For(scenario))
+            {
+                await reservationHistory.AddReleasedHoldAsync(hold, DevelopmentListingHistory.PublishedAt(signedAt), now,
+                    cancellationToken);
+            }
+
+            var drives = DevelopmentTestDriveHistory.For(scenario);
+            if (drives.Count > 0)
+            {
+                await testDriveHistory.AddAsync(drives, DevelopmentListingHistory.PublishedAt(signedAt), now,
+                    cancellationToken);
+            }
+
+            foreach (var sale in DevelopmentSaleHistory.For(scenario))
+            {
+                await saleHistory.AddSaleAsync(sale, DevelopmentListingHistory.PublishedAt(signedAt), now,
+                    cancellationToken);
+            }
+        }
     }
 
     private async Task AddTransitionAsync(DevelopmentIntakeMoment moment, IntakeAppointment appointment, string email,

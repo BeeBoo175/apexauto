@@ -36,6 +36,11 @@ public static class DevelopmentFixtureRegistration
         services.AddScoped<DevelopmentInspectionScenarioFixtures>();
         services.AddScoped<DevelopmentIntakeFixtures>();
         services.AddScoped<DevelopmentIntakeOwnershipFixtures>();
+        services.AddScoped<DevelopmentWorkshopHistory>();
+        services.AddScoped<DevelopmentListingHistory>();
+        services.AddScoped<DevelopmentReservationHistory>();
+        services.AddScoped<DevelopmentSaleHistory>();
+        services.AddScoped<DevelopmentTestDriveHistory>();
         services.AddScoped<DevelopmentFixturePhotos>();
         return services;
     }

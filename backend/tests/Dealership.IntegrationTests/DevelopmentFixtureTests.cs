@@ -99,7 +99,8 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         await Assert.ThrowsAsync<IOException>(() => SeedAsync(provider, target));
         await using (var scope = provider.CreateAsyncScope())
         {
-            var pending = await scope.ServiceProvider.GetRequiredService<DealershipDbContext>().ListingPhotos.SingleAsync();
+            var pending = await scope.ServiceProvider.GetRequiredService<DealershipDbContext>().ListingPhotos
+                .SingleAsync(photo => photo.AvailableAt == null);
             Assert.Null(pending.AvailableAt);
         }
 

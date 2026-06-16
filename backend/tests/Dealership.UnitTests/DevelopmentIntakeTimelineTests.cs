@@ -63,6 +63,16 @@ public sealed class DevelopmentIntakeTimelineTests
         }
     }
 
+    [Fact]
+    public void HistoricalWorkshopInspectionsCoverEveryBranch()
+    {
+        foreach (var branch in DevelopmentFixtureManifest.Branches)
+        {
+            Assert.Contains(DevelopmentIntakeManifest.Appointments,
+                item => item.BranchId == branch.Id && DevelopmentWorkshopHistory.Covers(item));
+        }
+    }
+
     [Theory]
     [InlineData("VCA 6323")]
     [InlineData("BPL 6323")]

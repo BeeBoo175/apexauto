@@ -138,7 +138,7 @@ public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHa
 
         var id = scenario.ReservationId;
         var agent = scenario.AgentId;
-        var request = await TermsAsync(scenario, cancellationToken);
+        var request = await TermsAsync(database, scenario, cancellationToken);
         var steps = new List<Func<Task<SaleCommandResult>>>
         {
             () => handling.ClaimAsync(agent, id, new(scenario.OperationId("claim"), 1), cancellationToken),
@@ -179,12 +179,7 @@ public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHa
         if (scenario.Target is SalesOrderStatus.Settled or SalesOrderStatus.Delivered)
         {
             var sale = await database.SalesOrders.AsNoTracking().SingleAsync(item => item.Id == id, cancellationToken);
-            var profile = await database.CustomerProfiles.AsNoTracking()
-                .SingleAsync(item => item.UserId == sale.CustomerId, cancellationToken);
-            var vehicle = await database.Vehicles.AsNoTracking()
-                .SingleAsync(item => item.Id == sale.VehicleId, cancellationToken);
-            var review = new SaleSettlementReview(profile.LegalName, profile.Nric, profile.ResidentialAddress,
-                SaleReviewedVehicle.Of(vehicle));
+            var review = await ReviewAsync(database, sale, cancellationToken);
             var payment = Payment(scenario, sale.BalancePayable, sale.CreatedAt);
             if ((await settlement.SettleAsync(agent, id,
                 new(scenario.OperationId("settle"), scenario.ApprovedVersion, payment, review),
@@ -204,7 +199,19 @@ public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHa
         return true;
     }
 
-    private async Task<SaleTermsRequest> TermsAsync(DevelopmentSaleScenario scenario, CancellationToken cancellationToken)
+    public static async Task<SaleSettlementReview> ReviewAsync(DealershipDbContext database, SalesOrder sale,
+        CancellationToken cancellationToken)
+    {
+        var profile = await database.CustomerProfiles.AsNoTracking()
+            .SingleAsync(item => item.UserId == sale.CustomerId, cancellationToken);
+        var vehicle = await database.Vehicles.AsNoTracking()
+            .SingleAsync(item => item.Id == sale.VehicleId, cancellationToken);
+        return new SaleSettlementReview(profile.LegalName, profile.Nric, profile.ResidentialAddress,
+            SaleReviewedVehicle.Of(vehicle));
+    }
+
+    public static async Task<SaleTermsRequest> TermsAsync(DealershipDbContext database,
+        DevelopmentSaleScenario scenario, CancellationToken cancellationToken)
     {
         if (scenario.PaymentMethod != SalePaymentMethod.ZeroBalance)
         {
@@ -220,7 +227,7 @@ public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHa
             price.BalancePayable);
     }
 
-    private static SalePaymentEvidence Payment(DevelopmentSaleScenario scenario, decimal balance, DateTimeOffset createdAt)
+    public static SalePaymentEvidence Payment(DevelopmentSaleScenario scenario, decimal balance, DateTimeOffset createdAt)
     {
         var reference = scenario.Hold.Listing.Intake.RegistrationPlate;
         return scenario.PaymentMethod switch

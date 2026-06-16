@@ -53,16 +53,7 @@ public sealed class DevelopmentListingFixtures(DealershipDbContext database, Lis
             item.BranchId == vehicle.BranchId && item.Role == AccountRoles.BranchManager);
         var appointment = await database.IntakeAppointments.AsNoTracking()
             .SingleAsync(item => item.Id == scenario.Id, cancellationToken);
-        var details = DevelopmentVehicleCatalogue.For(vehicle.Make, vehicle.Model, vehicle.Trim);
-        var request = new ListingDraftRequest(scenario.OperationId("listing-draft"), 0,
-            appointment.Valuation.Maximum, details.RoadTax, VehicleTransmission.Automatic, details.Fuel,
-            $"{vehicle.ManufactureYear} {vehicle.Make} {vehicle.Model} {vehicle.Trim}. " +
-            details.Description + " " +
-            "View the signed inspection checklist for the recorded vehicle condition.")
-        {
-            PhotoIds = [.. new[] { PhotoAngle.Front, PhotoAngle.Rear, PhotoAngle.Driver, PhotoAngle.Passenger }.Select(angle =>
-                scenario.OperationId($"listing-photo-{DevelopmentFixturePhotos.MediaVersion}-{angle}"))]
-        };
+        var request = DraftRequest(scenario, vehicle, appointment);
         var existing = await database.ListingRevisions.AsNoTracking()
             .Where(item => item.VehicleId == vehicle.Id).OrderByDescending(item => item.Version)
             .FirstOrDefaultAsync(cancellationToken);
@@ -121,6 +112,22 @@ public sealed class DevelopmentListingFixtures(DealershipDbContext database, Lis
         var result = await listings.PublishAsync(manager.Id, vehicle.Id, new(publicationId, existing.Id, signedId), cancellationToken);
         var created = result.Status == ListingStatus.Succeeded && result.Publication!.SignedRevisionId == signedId;
         return new(label, created ? "created" : "publication unavailable; preserved", !created);
+    }
+
+    // The draft request is the single definition of the fixture listing for the canonical flow and the snapshot history.
+    public static ListingDraftRequest DraftRequest(DevelopmentInspectionScenario scenario, Vehicle vehicle,
+        IntakeAppointment appointment)
+    {
+        var details = DevelopmentVehicleCatalogue.For(vehicle.Make, vehicle.Model, vehicle.Trim);
+        return new ListingDraftRequest(scenario.OperationId("listing-draft"), 0,
+            appointment.Valuation.Maximum, details.RoadTax, VehicleTransmission.Automatic, details.Fuel,
+            $"{vehicle.ManufactureYear} {vehicle.Make} {vehicle.Model} {vehicle.Trim}. " +
+            details.Description + " " +
+            "View the signed inspection checklist for the recorded vehicle condition.")
+        {
+            PhotoIds = [.. new[] { PhotoAngle.Front, PhotoAngle.Rear, PhotoAngle.Driver, PhotoAngle.Passenger }.Select(angle =>
+                scenario.OperationId($"listing-photo-{DevelopmentFixturePhotos.MediaVersion}-{angle}"))]
+        };
     }
 
     private async Task<bool> PhotosAsync(bool seed, DevelopmentInspectionScenario scenario, Guid vehicleId,

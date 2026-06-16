@@ -21,7 +21,7 @@ public sealed class DevelopmentAccountFixtureTests(RegistrationDatabase fixture)
         var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
         Assert.Equal(DevelopmentFixtureManifest.Customers.Count + DevelopmentFixtureManifest.Staff.Count,
             await database.Users.CountAsync());
-        Assert.Equal(6, await database.CustomerProfiles.CountAsync());
+        Assert.Equal(DevelopmentFixtureManifest.Customers.Count, await database.CustomerProfiles.CountAsync());
         Assert.Equal(3, await database.Branches.CountAsync());
         Assert.False(await database.Users.AnyAsync(item => !item.EmailConfirmed && item.Role == AccountRoles.Customer));
         await AssertBusinessTablesEmptyAsync();

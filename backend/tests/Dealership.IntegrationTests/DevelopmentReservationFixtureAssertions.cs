@@ -20,10 +20,10 @@ internal static class DevelopmentReservationFixtureAssertions
     {
         await using var scope = provider.CreateAsyncScope();
         var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
-        var hold = Assert.Single(await database.Reservations.AsNoTracking().ToArrayAsync());
-        Assert.True(hold.IsActive);
-        Assert.Empty(await database.ReservationReleases.ToArrayAsync());
-        Assert.Equal(1, await database.ReservationMailOutbox.CountAsync());
+        // Dated holds from the snapshot are already released, so the interrupted canonical hold is the only active one.
+        var hold = Assert.Single(await database.Reservations.AsNoTracking().Where(item => item.IsActive).ToArrayAsync());
+        Assert.Empty(await database.ReservationReleases.Where(item => item.ReservationId == hold.Id).ToArrayAsync());
+        Assert.Equal(await database.Reservations.CountAsync(), await database.ReservationMailOutbox.CountAsync());
         return hold;
     }
 

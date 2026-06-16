@@ -30,7 +30,9 @@ internal static class DevelopmentTestDriveFixtureAssertions
             Occupations = occupations,
             Mail = mail
         });
-        var volumeIds = DevelopmentTestDriveVolumeManifest.All.Select(item => item.OperationId("booking")).ToHashSet();
+        // Paged volume and dated history have their own assertions; this map covers the named canonical scenarios.
+        var volumeIds = DevelopmentTestDriveVolumeManifest.All.Select(item => item.OperationId("booking"))
+            .Concat(DevelopmentTestDriveHistory.All.Select(item => item.Id)).ToHashSet();
         bookings = [.. bookings.Where(item => !volumeIds.Contains(item.Id))];
         cancellations = [.. cancellations.Where(item => !volumeIds.Contains(item.BookingId))];
         assignments = [.. assignments.Where(item => !volumeIds.Contains(item.BookingId))];
