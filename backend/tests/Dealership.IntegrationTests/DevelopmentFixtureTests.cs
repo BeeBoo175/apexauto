@@ -80,8 +80,9 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
             Assert.Equal(0, await database.IntakeAppointments.CountAsync());
             Assert.Equal(0, await database.IntakePhotos.CountAsync());
             Assert.Equal(0, await database.AppointmentAssignments.CountAsync());
-            Assert.Equal(DevelopmentFixtureManifest.Customers.Count + DevelopmentFixtureManifest.Staff.Count,
-                await database.Users.CountAsync());
+            // A rolled-back snapshot leaves the accounts and the registered buyers of dated sales.
+            Assert.Equal(DevelopmentFixtureManifest.Customers.Count + DevelopmentFixtureManifest.Staff.Count +
+                DevelopmentSaleVolumeManifest.Customers.Count, await database.Users.CountAsync());
         }
 
         Assert.Equal(definitions, await ReadGuardsAsync());

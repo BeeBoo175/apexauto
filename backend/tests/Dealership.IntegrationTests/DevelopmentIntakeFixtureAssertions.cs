@@ -222,6 +222,12 @@ internal static class DevelopmentIntakeFixtureAssertions
                     .SingleAsync(item => item.InspectionId == fixture.Id);
                 Assert.Equal(checkIn.CheckedInAt.AddMinutes(80), signed.SignedAt);
                 Assert.True(signed.SignedAt < DateTimeOffset.UtcNow);
+                if (DevelopmentWorkshopHistory.Covers(fixture))
+                {
+                    var repair = await database.InspectionRepairRequests.AsNoTracking()
+                        .SingleAsync(item => item.InspectionId == fixture.Id);
+                    Assert.Equal(signed.SignedAt.AddMinutes(30), repair.RequestedAt);
+                }
             }
 
             var vehicle = await database.Vehicles.SingleAsync(item => item.Id == checkIn.VehicleId);

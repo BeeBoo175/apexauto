@@ -11,12 +11,25 @@ public sealed record DevelopmentIntakeFixture(Guid Id, Guid BranchId, Guid Regis
 
 public static class DevelopmentIntakeManifest
 {
+    // Everyday intake stock rotates through the supported models so seller, workshop and sales lists vary by make.
+    private static readonly ValuationRequest[] BulkSpecifications =
+    [
+        new("Perodua", "Myvi", "1.5 AV", 2019, 45000),
+        new("Perodua", "Ativa", "H", 2021, 30000),
+        new("Proton", "Saga", "Standard", 2020, 52000),
+        new("Honda", "City", "S", 2022, 36000),
+        new("Toyota", "Vios", "1.5 G", 2019, 60000),
+        new("Mazda", "Mazda 3", "2.0 High Plus", 2020, 55000),
+        new("BYD", "Dolphin", "Dynamic Standard", 2023, 25000),
+        new("Perodua", "Alza", "AV", 2022, 40000)
+    ];
+
     public const int AppointmentsPerBranch = 12;
     public const int RepairRequestsPerBranch = 3;
     public const int InspectionExamplesPerBranch = 14;
     public const int CatalogueExamplesPerBranch = 14;
-    public const int WorkshopExamplesPerBranch = 51;
-    public const int SalesExamplesPerBranch = 51;
+    public const int WorkshopExamplesPerBranch = 27;
+    public const int SalesExamplesPerBranch = 27;
     public const int BaselineTotalPerBranch = AppointmentsPerBranch + RepairRequestsPerBranch + 4;
     public const int InspectionCheckedInPerBranch = RepairRequestsPerBranch + 2 + InspectionExamplesPerBranch;
     public const int CheckedInPerBranch = InspectionCheckedInPerBranch + CatalogueExamplesPerBranch +
@@ -64,7 +77,7 @@ public static class DevelopmentIntakeManifest
             var catalogue = catalogueIndex >= 0 && catalogueIndex < CatalogueExamplesPerBranch;
             var vehicle = catalogue
                 ? CatalogueVehicle(catalogueIndex, branchIndex)
-                : new ValuationRequest("Perodua", "Myvi", "1.5 AV", 2019, 45000 + identityIndex * 1200);
+                : BulkVehicle(identityIndex);
             var status = index switch
             {
                 AppointmentsPerBranch => StaffWorklistStatus.Cancelled,
@@ -97,6 +110,12 @@ public static class DevelopmentIntakeManifest
         }
 
         return 95 + index - (BaselineTotalPerBranch - 1);
+    }
+
+    private static ValuationRequest BulkVehicle(int identityIndex)
+    {
+        var specification = BulkSpecifications[identityIndex % BulkSpecifications.Length];
+        return specification with { MileageKilometres = specification.MileageKilometres + identityIndex % 40 * 1200 };
     }
 
     private static ValuationRequest CatalogueVehicle(int index, int branchIndex)

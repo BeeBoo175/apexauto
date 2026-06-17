@@ -65,5 +65,8 @@ public static class DevelopmentReservationScenarios
         yield return Hold(2, 6, 2, 72);
         yield return Hold(0, 8, 4, 73);
         yield return Hold(1, 8, 5, 74);
+        // One approved sale carries a warranty and one returns to handling after its discount is rejected.
+        yield return Hold(0, 10, 6, 75);
+        yield return Hold(1, 10, 7, 76);
     }
 }

@@ -23,7 +23,9 @@ public sealed class DevelopmentAccountFixtureTests(RegistrationDatabase fixture)
             await database.Users.CountAsync());
         Assert.Equal(DevelopmentFixtureManifest.Customers.Count, await database.CustomerProfiles.CountAsync());
         Assert.Equal(3, await database.Branches.CountAsync());
-        Assert.False(await database.Users.AnyAsync(item => !item.EmailConfirmed && item.Role == AccountRoles.Customer));
+        // Only the customers deliberately seeded as unverified may lack a confirmed email.
+        Assert.Equal(DevelopmentFixtureManifest.Customers.Count(item => !item.VerifyEmail),
+            await database.Users.CountAsync(item => !item.EmailConfirmed && item.Role == AccountRoles.Customer));
         await AssertBusinessTablesEmptyAsync();
 
         foreach (var email in DevelopmentFixtureManifest.Customers.Select(item => item.Registration.Email)

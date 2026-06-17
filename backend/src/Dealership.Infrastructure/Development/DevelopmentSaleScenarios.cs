@@ -7,7 +7,8 @@ namespace Dealership.Infrastructure.Development;
 // Finite sale paths use canonical commands and retain the reservation's stable operation identities.
 public sealed record DevelopmentSaleScenario(DevelopmentReservationScenario Hold, SalesOrderStatus Target,
     bool ReleasedFirst, decimal Discount, string? CorrectedBuyerAddress = null, bool ManagerApproval = false,
-    SalePaymentMethod PaymentMethod = SalePaymentMethod.BankTransfer, Guid? TradeInAppointmentId = null)
+    SalePaymentMethod PaymentMethod = SalePaymentMethod.BankTransfer, Guid? TradeInAppointmentId = null,
+    Guid? WarrantyPackageId = null, bool RejectedOnce = false)
 {
     public Guid ReservationId => Hold.Id;
 
@@ -24,7 +25,8 @@ public sealed record DevelopmentSaleScenario(DevelopmentReservationScenario Hold
     public long FinalVersion => Target switch
     {
         SalesOrderStatus.Open => 1,
-        SalesOrderStatus.Handling => TermsVersion,
+        // A rejected discount returns the sale to handling two events after its terms.
+        SalesOrderStatus.Handling => TermsVersion + (RejectedOnce ? 2 : 0),
         SalesOrderStatus.PendingApproval => SubmittedVersion,
         SalesOrderStatus.Approved => ApprovedVersion,
         SalesOrderStatus.Settled => SettledVersion,
@@ -62,7 +64,10 @@ public static class DevelopmentSaleScenarios
             new(Extra(72), SalesOrderStatus.Settled, false, 0m,
                 PaymentMethod: SalePaymentMethod.ZeroBalance, TradeInAppointmentId: tradeIn.Id),
             new(Extra(73), SalesOrderStatus.PendingApproval, false, 1500m),
-            new(Extra(74), SalesOrderStatus.Approved, false, 500m)
+            new(Extra(74), SalesOrderStatus.Approved, false, 500m),
+            new(Extra(75), SalesOrderStatus.Approved, false, 0m,
+                WarrantyPackageId: DevelopmentPurchaseFixtures.Warranties[1].Id),
+            new(Extra(76), SalesOrderStatus.Handling, false, 1500m, RejectedOnce: true)
         ]);
     }
 }

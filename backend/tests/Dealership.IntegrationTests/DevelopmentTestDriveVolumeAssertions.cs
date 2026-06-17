@@ -34,16 +34,32 @@ internal static class DevelopmentTestDriveVolumeAssertions
                 {
                     var scenarios = DevelopmentTestDriveVolumeManifest.All.Where(item => item.BranchId == branch.Id &&
                         item.Queue == queue && (queue == "ToClaim" || item.HandlerId == agent.Id)).ToArray();
-                    var ids = scenarios.Select(item => item.OperationId("booking")).ToArray();
+                    var volumeIds = scenarios.Select(item => item.OperationId("booking")).ToArray();
+                    // Completed dated drives an agent handled belong to that agent's own history queue.
+                    var completed = queue == "History"
+                        ? DevelopmentTestDriveHistory.All.Where(item =>
+                            item.Kind == DevelopmentTestDriveHistoryKind.Completed &&
+                            item.Listing.Intake.BranchId == branch.Id &&
+                            DevelopmentTestDriveHistory.HandlerFor(item) == agent.Id).Select(item => item.Id).ToArray()
+                        : [];
+                    var ids = volumeIds.Concat(completed).ToArray();
                     var expected = await database.TestDriveBookings.AsNoTracking().Where(item => ids.Contains(item.Id))
                         .OrderBy(item => item.StartsAt).ThenBy(item => item.Id).Select(item => item.Id).ToArrayAsync();
+                    var oversightExpected = await database.TestDriveBookings.AsNoTracking()
+                        .Where(item => volumeIds.Contains(item.Id)).OrderBy(item => item.StartsAt)
+                        .ThenBy(item => item.Id).Select(item => item.Id).ToArrayAsync();
                     Assert.NotEmpty(expected);
                     Assert.Equal(ids.Length, expected.Length);
                     var query = StaffTestDriveQuery.Parse(null, null, 1, 25, queue)!;
                     await AssertPagesAsync(store, agent.Id, query, expected);
                     // All registration values tie, so only the canonical UUID tie-breaker can prevent page drift.
+                    var plates = await (from booking in database.TestDriveBookings.AsNoTracking()
+                                        join vehicle in database.Vehicles.AsNoTracking() on booking.VehicleId equals vehicle.Id
+                                        where ids.Contains(booking.Id)
+                                        select new { booking.Id, vehicle.RegistrationPlate }).ToArrayAsync();
                     await AssertPagesAsync(store, agent.Id, query with { Sort = "registrationPlate", Direction = "desc" },
-                        [.. expected.Order()]);
+                        [.. plates.OrderByDescending(item => item.RegistrationPlate, StringComparer.Ordinal)
+                            .ThenBy(item => item.Id).Select(item => item.Id)]);
                     if (queue == "ToClaim")
                     {
                         continue;
@@ -56,8 +72,8 @@ internal static class DevelopmentTestDriveVolumeAssertions
                         Handler = agent.Email.ToUpperInvariant(),
                         Status = queue == "History" ? "Cancelled" : "Booked"
                     };
-                    await AssertPagesAsync(store, manager.Id, oversight, expected);
-                    await AssertPagesAsync(store, generalManager.Id, oversight, expected);
+                    await AssertPagesAsync(store, manager.Id, oversight, oversightExpected);
+                    await AssertPagesAsync(store, generalManager.Id, oversight, oversightExpected);
                 }
 
                 await AssertScheduledAsync(database, calendar, agent.Id, branch.Id, null, agent.Id);

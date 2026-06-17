@@ -14,6 +14,7 @@ public sealed class DevelopmentWorkshopHistory(DealershipDbContext database)
     private static readonly TimeSpan AssignmentDelay = TimeSpan.FromMinutes(20);
     private static readonly TimeSpan SaveDelay = TimeSpan.FromMinutes(50);
     private static readonly TimeSpan SignDelay = TimeSpan.FromMinutes(80);
+    private static readonly TimeSpan RepairDelay = TimeSpan.FromMinutes(30);
 
     public static bool Covers(DevelopmentIntakeFixture fixture)
     {
@@ -32,7 +33,7 @@ public sealed class DevelopmentWorkshopHistory(DealershipDbContext database)
 
     public static DateTimeOffset SignedAt(DateTimeOffset checkedInAt) => checkedInAt + SignDelay;
 
-    public Task<DateTimeOffset> AddSignedInspectionAsync(DevelopmentIntakeFixture fixture, DateTimeOffset checkedInAt,
+    public async Task<DateTimeOffset> AddSignedInspectionAsync(DevelopmentIntakeFixture fixture, DateTimeOffset checkedInAt,
         CancellationToken cancellationToken)
     {
         var save = new InspectionDraftSaveRequest(fixture.Id, 1, 0, DevelopmentInspectionManifest.Entries)
@@ -43,8 +44,23 @@ public sealed class DevelopmentWorkshopHistory(DealershipDbContext database)
         var technicianId = DevelopmentIntakeManifest.WorkshopExamples.Any(item => item.Id == fixture.Id)
             ? DevelopmentFixtureManifest.ReliefTechnicians.Single(item => item.BranchId == fixture.BranchId).Id
             : DevelopmentFixtureManifest.PrimaryTechnician(fixture.BranchId).Id;
-        return AddSignedInspectionAsync(fixture, technicianId, save, new InspectionSignRequest(fixture.Id, 1, 1, 1),
-            checkedInAt, cancellationToken);
+        var signedAt = await AddSignedInspectionAsync(fixture, technicianId, save,
+            new InspectionSignRequest(fixture.Id, 1, 1, 1), checkedInAt, cancellationToken);
+        await AddRepairRequestAsync(fixture, technicianId, signedAt, cancellationToken);
+        return signedAt;
+    }
+
+    // The baseline repair request follows its signed report by half an hour, as the canonical request does later.
+    private async Task AddRepairRequestAsync(DevelopmentIntakeFixture fixture, Guid technicianId, DateTimeOffset signedAt,
+        CancellationToken cancellationToken)
+    {
+        var request = DevelopmentInspectionManifest.RepairRequest(fixture.Id);
+        var scope = new InspectionRepairScope(request.Items, request.Budget);
+        var receipt = new InspectionRepairReceipt(request.OperationId, fixture.Id, fixture.BranchId, technicianId,
+            fixture.Id, request.AssignmentVersion, request.Revision, request.ExpectedVersion, request.ExpectedVersion + 1,
+            scope.Items, scope.Budget, signedAt + RepairDelay);
+        database.InspectionRepairRequests.Add(new InspectionRepairRequestRecord(receipt));
+        await database.SaveChangesAsync(cancellationToken);
     }
 
     public Task<DateTimeOffset> AddSignedInspectionAsync(DevelopmentInspectionScenario scenario, DateTimeOffset checkedInAt,

@@ -21,7 +21,7 @@ public sealed class DevelopmentIntakeFixtures(DealershipDbContext database, Deve
     IOptions<IntakePhotoSettings> photoSettings, IAmazonS3 objects, DevelopmentIntakeOwnershipFixtures ownership,
     DevelopmentWorkshopHistory workshopHistory, DevelopmentListingHistory listingHistory,
     DevelopmentReservationHistory reservationHistory, DevelopmentSaleHistory saleHistory,
-    DevelopmentTestDriveHistory testDriveHistory)
+    DevelopmentTestDriveHistory testDriveHistory, DevelopmentCustomerFixtures customers)
 {
     public async Task EnsureLocalStorageAsync(CancellationToken cancellationToken)
     {
@@ -58,6 +58,16 @@ public sealed class DevelopmentIntakeFixtures(DealershipDbContext database, Deve
         {
             return [.. await ReviewAppointmentsAsync(cancellationToken),
                 .. await ownership.RunAsync(true, cancellationToken)];
+        }
+
+        // Buyers of dated sales must exist before the snapshot opens; the volume fixtures later find them in place.
+        foreach (var customer in DevelopmentSaleVolumeManifest.Customers)
+        {
+            var registered = await customers.SeedAsync(customer, cancellationToken);
+            if (registered.RequiresAttention)
+            {
+                throw new InvalidOperationException("A dated-sale buyer could not be registered; clear then seed.");
+            }
         }
 
         var timeline = clock.Timeline;

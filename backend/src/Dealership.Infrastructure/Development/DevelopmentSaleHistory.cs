@@ -12,12 +12,27 @@ public sealed class DevelopmentSaleHistory(DealershipDbContext database, Develop
 {
     private static readonly TimeSpan MaximumStep = TimeSpan.FromMinutes(30);
 
+    public static IReadOnlyList<DevelopmentSaleScenario> All { get; } = Array.AsReadOnly(
+        DevelopmentSaleScenarios.All.Concat(DevelopmentSaleVolumeManifest.All).ToArray());
+
+    // The first volume sale stays on canonical commands so interrupted-claim recovery is proven on every seed.
+    public static DevelopmentSaleScenario CanonicalVolumeSale => DevelopmentSaleVolumeManifest.All[0];
+
+    // A sale that stays with staff keeps its customer's one active hold, so it is dated only when that customer
+    // holds nothing else in the snapshot; trade-ins and released-first handling stay on canonical commands.
     public static bool Covers(DevelopmentSaleScenario scenario) =>
-        scenario.Target is SalesOrderStatus.Settled or SalesOrderStatus.Delivered &&
-        scenario.TradeInAppointmentId is null && DevelopmentWorkshopHistory.Covers(scenario.Hold.Listing);
+        scenario != CanonicalVolumeSale && scenario.TradeInAppointmentId is null && !scenario.ReleasedFirst &&
+        scenario.Target is SalesOrderStatus.Settled or SalesOrderStatus.Delivered or SalesOrderStatus.PendingApproval or
+            SalesOrderStatus.Approved or SalesOrderStatus.Handling &&
+        DevelopmentWorkshopHistory.Covers(scenario.Hold.Listing) &&
+        (scenario.Target is SalesOrderStatus.Settled or SalesOrderStatus.Delivered || HoldsOnlyThisReservation(scenario));
+
+    private static bool HoldsOnlyThisReservation(DevelopmentSaleScenario scenario) =>
+        DevelopmentReservationScenarios.All.Concat(DevelopmentSaleVolumeManifest.All.Select(item => item.Hold))
+            .Count(item => item.RegistrationKey == scenario.Hold.RegistrationKey) == 1;
 
     public static IReadOnlyList<DevelopmentSaleScenario> For(DevelopmentInspectionScenario listing) =>
-        [.. DevelopmentSaleScenarios.All.Where(item => item.Hold.Listing.Id == listing.Id && Covers(item))];
+        [.. All.Where(item => item.Hold.Listing.Id == listing.Id && Covers(item))];
 
     public async Task AddSaleAsync(DevelopmentSaleScenario scenario, DateTimeOffset publishedAt, DateTimeOffset now,
         CancellationToken cancellationToken)
@@ -34,9 +49,16 @@ public sealed class DevelopmentSaleHistory(DealershipDbContext database, Develop
         await RecordAsync(sale.Claim(scenario.OperationId("claim"), agent, agent, heldAt + step), cancellationToken);
 
         var request = await DevelopmentSaleFixtures.TermsAsync(database, scenario, cancellationToken);
-        var input = new SaleTermsInput(null, request.NegotiatedDiscount, null);
+        var input = new SaleTermsInput(await WarrantyAsync(request.WarrantyPackageId, cancellationToken),
+            request.NegotiatedDiscount, null);
         await RecordAsync(sale.SaveTerms(request.OperationId, input, settings, agent, heldAt + step * 2),
             cancellationToken);
+
+        if (scenario.Target == SalesOrderStatus.Handling && !scenario.RejectedOnce)
+        {
+            database.ChangeTracker.Clear();
+            return;
+        }
 
         var submittedAt = heldAt + step * 3;
         var number = sale.OrderNumber ??
@@ -44,11 +66,25 @@ public sealed class DevelopmentSaleHistory(DealershipDbContext database, Develop
         await RecordAsync(sale.Submit(scenario.OperationId("submit"), settings, number, agent, submittedAt),
             cancellationToken);
 
+        if (scenario.RejectedOnce)
+        {
+            await RecordAsync(sale.Reject(scenario.OperationId("reject"), scenario.ManagerId,
+                DevelopmentSaleFixtures.RejectionReason, heldAt + step * 4), cancellationToken);
+            database.ChangeTracker.Clear();
+            return;
+        }
+
         var next = 4;
-        if (scenario.ManagerApproval)
+        if (scenario.ManagerApproval && scenario.Target != SalesOrderStatus.PendingApproval)
         {
             await RecordAsync(sale.Approve(scenario.OperationId("approve"), scenario.ManagerId, heldAt + step * next++),
                 cancellationToken);
+        }
+
+        if (scenario.Target is SalesOrderStatus.PendingApproval or SalesOrderStatus.Approved)
+        {
+            database.ChangeTracker.Clear();
+            return;
         }
 
         await SettleAsync(scenario, sale, agent, heldAt + step * next++, cancellationToken);
@@ -58,6 +94,18 @@ public sealed class DevelopmentSaleHistory(DealershipDbContext database, Develop
         }
 
         database.ChangeTracker.Clear();
+    }
+
+    private async Task<SaleWarranty?> WarrantyAsync(Guid? packageId, CancellationToken cancellationToken)
+    {
+        if (packageId is null)
+        {
+            return null;
+        }
+
+        var package = await database.WarrantyPackages.AsNoTracking()
+            .SingleAsync(item => item.Id == packageId, cancellationToken);
+        return new SaleWarranty(package.Id, package.Name, package.Price);
     }
 
     private async Task SettleAsync(DevelopmentSaleScenario scenario, SalesOrder sale, Guid agent, DateTimeOffset settledAt,

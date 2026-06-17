@@ -47,7 +47,14 @@ public static class DevelopmentFixtureManifest
             "15 Lorong Kenanga 2, Petaling Jaya, Selangor"), VerifyEmail: true),
         new(new RegistrationRequest(Guid.Parse("c702bbce-93c3-41e9-ad63-3380ae727ae4"), "Priya Nair",
             "priya.nair@example.invalid", Password, "010318140772", "0165432198",
-            "23 Lebuh Pantai Jerejak, Bayan Lepas, Pulau Pinang"), VerifyEmail: true)
+            "23 Lebuh Pantai Jerejak, Bayan Lepas, Pulau Pinang"), VerifyEmail: true),
+        // A customer who registered but has not yet confirmed their email, and one verified customer with no history.
+        new(new RegistrationRequest(Guid.Parse("b6e423b5-0a9d-4d2e-8d0b-74d06c99fb37"), "Aiman Hakimi Roslan",
+            "aiman.hakimi@example.invalid", Password, "960611105347", "0187654321",
+            "5 Jalan Tiara 2/4, Shah Alam, Selangor"), VerifyEmail: false),
+        new(new RegistrationRequest(Guid.Parse("277053e1-1b06-4f71-8a29-c71f738a2f92"), "Jasmine Tan Mei Xuan",
+            "jasmine.tan@example.invalid", Password, "000925146028", "0159876543",
+            "12 Lorong Delima 1, Petaling Jaya, Selangor"), VerifyEmail: true)
     ]);
 
     public static IReadOnlyList<StaffProvisioningRequest> ReliefTechnicians { get; } = Array.AsReadOnly<StaffProvisioningRequest>(

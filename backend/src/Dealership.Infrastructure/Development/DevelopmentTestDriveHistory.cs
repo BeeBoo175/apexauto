@@ -33,7 +33,7 @@ public sealed record DevelopmentTestDriveHistoryItem(DevelopmentInspectionScenar
 
 // Builds finished test drives of dated listings at their historical times inside the snapshot transaction, mirroring
 // the canonical booking, claim, attendance and cancellation commands, which can only stamp the database clock.
-// Branch managers handle them, so the agents' working queues keep only the paged volume scenarios.
+// Branch managers handle most of them; every other completed drive goes to an agent, whose history queue shows it.
 public sealed class DevelopmentTestDriveHistory(DealershipDbContext database, AppointmentSchedule schedule)
 {
     private const int FirstFreeListing = 12;
@@ -56,6 +56,16 @@ public sealed class DevelopmentTestDriveHistory(DealershipDbContext database, Ap
             return Plan.SelectMany((kinds, index) => kinds.Select(kind =>
                 new DevelopmentTestDriveHistoryItem(listings[FirstFreeListing + index], kind, sequence++)));
         }).ToArray());
+
+    public static Guid HandlerFor(DevelopmentTestDriveHistoryItem item)
+    {
+        var branchId = item.Listing.Intake.BranchId;
+        var agentHandles = item.Kind == DevelopmentTestDriveHistoryKind.Completed && item.Sequence % 2 == 0;
+        return agentHandles
+            ? DevelopmentFixtureManifest.AgentFor(branchId, item.Id).Id
+            : DevelopmentFixtureManifest.Staff.Single(row =>
+                row.BranchId == branchId && row.Role == AccountRoles.BranchManager).Id;
+    }
 
     public static IReadOnlyList<DevelopmentTestDriveHistoryItem> For(DevelopmentInspectionScenario listing) =>
         [.. All.Where(item => item.Listing.Id == listing.Id)];
@@ -88,8 +98,7 @@ public sealed class DevelopmentTestDriveHistory(DealershipDbContext database, Ap
             .SingleAsync(cancellationToken);
         var email = await database.Users.AsNoTracking().Where(row => row.Id == customerId)
             .Select(row => row.Email!).SingleAsync(cancellationToken);
-        var managerId = DevelopmentFixtureManifest.Staff.Single(row =>
-            row.BranchId == vehicle.BranchId && row.Role == AccountRoles.BranchManager).Id;
+        var managerId = HandlerFor(item);
         var booking = new TestDriveBooking(item.Id, customerId, vehicle.Id, vehicle.BranchId,
             item.Listing.OperationId("listing-publication"), slot, bookedAt);
         database.TestDriveBookings.Add(booking);

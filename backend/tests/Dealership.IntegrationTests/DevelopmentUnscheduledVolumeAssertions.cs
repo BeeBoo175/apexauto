@@ -49,7 +49,7 @@ internal static class DevelopmentUnscheduledVolumeAssertions
             var vehicles = await database.Vehicles.AsNoTracking().Where(item => ids.Contains(item.IntakeAppointmentId))
                 .ToDictionaryAsync(item => item.IntakeAppointmentId, item => item.Id);
             var expected = scenarios.Select(item => vehicles[item.Id]).ToArray();
-            Assert.Equal(51, expected.Length);
+            Assert.Equal(DevelopmentIntakeManifest.WorkshopExamplesPerBranch, expected.Length);
             var manager = DevelopmentFixtureManifest.Staff.Single(item => item.Role == AccountRoles.BranchManager &&
                 item.BranchId == technician.BranchId);
             var own = new UnscheduledWorkQuery(new(technician.BranchId), 1, 25);
@@ -189,7 +189,7 @@ internal static class DevelopmentUnscheduledVolumeAssertions
             var result = await calendar.UnscheduledAsync(actorId, query with { Page = page }, CancellationToken.None);
             Assert.Equal(WorkCalendarReadStatus.Succeeded, result.Status);
             var snapshot = Assert.IsType<UnscheduledWorkPage>(result.Value);
-            Assert.Equal(51, snapshot.Total);
+            Assert.Equal(expected.Length, snapshot.Total);
             Assert.Equal(expected.Skip((page - 1) * 25).Take(25), snapshot.Items.Select(item => item.Id));
             Assert.All(snapshot.Items, item =>
             {
@@ -206,6 +206,6 @@ internal static class DevelopmentUnscheduledVolumeAssertions
         Assert.Equal(expected.Take(25), refreshed.Value!.Items.Select(item => item.Id));
         var outside = await calendar.UnscheduledAsync(actorId, query with { Page = int.MaxValue }, CancellationToken.None);
         Assert.Empty(outside.Value!.Items);
-        Assert.Equal(51, outside.Value.Total);
+        Assert.Equal(expected.Length, outside.Value.Total);
     }
 }

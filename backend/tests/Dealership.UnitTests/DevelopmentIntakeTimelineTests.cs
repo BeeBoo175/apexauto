@@ -108,8 +108,10 @@ public sealed class DevelopmentIntakeTimelineTests
             var sales = DevelopmentIntakeManifest.SalesExamples.Select(item => item.Id).ToHashSet();
             Assert.Equal(14, branch.Count(item => examples.Contains(item.Fixture.Id)));
             Assert.Equal(14, branch.Count(item => catalogue.Contains(item.Fixture.Id)));
-            Assert.Equal(51, branch.Count(item => workshop.Contains(item.Fixture.Id)));
-            Assert.Equal(51, branch.Count(item => sales.Contains(item.Fixture.Id)));
+            Assert.Equal(DevelopmentIntakeManifest.WorkshopExamplesPerBranch,
+                branch.Count(item => workshop.Contains(item.Fixture.Id)));
+            Assert.Equal(DevelopmentIntakeManifest.SalesExamplesPerBranch,
+                branch.Count(item => sales.Contains(item.Fixture.Id)));
             Assert.Empty(workshop.Intersect(sales));
             var oldestWorkshop = branch.Where(item => workshop.Contains(item.Fixture.Id)).Min(item => item.Slot.StartsAt);
             Assert.All(branch.Where(item => sales.Contains(item.Fixture.Id)), item => Assert.True(item.Slot.StartsAt < oldestWorkshop));

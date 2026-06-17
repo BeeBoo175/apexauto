@@ -20,8 +20,11 @@ internal static class DevelopmentReservationFixtureAssertions
     {
         await using var scope = provider.CreateAsyncScope();
         var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
-        // Dated holds from the snapshot are already released, so the interrupted canonical hold is the only active one.
-        var hold = Assert.Single(await database.Reservations.AsNoTracking().Where(item => item.IsActive).ToArrayAsync());
+        // Snapshot holds are released or belong to dated sales, so the interrupted canonical hold is the only other active one.
+        var datedSales = DevelopmentSaleHistory.All.Where(DevelopmentSaleHistory.Covers)
+            .Select(item => item.ReservationId).ToArray();
+        var hold = Assert.Single(await database.Reservations.AsNoTracking()
+            .Where(item => item.IsActive && !datedSales.Contains(item.Id)).ToArrayAsync());
         Assert.Empty(await database.ReservationReleases.Where(item => item.ReservationId == hold.Id).ToArrayAsync());
         Assert.Equal(await database.Reservations.CountAsync(), await database.ReservationMailOutbox.CountAsync());
         return hold;
@@ -32,10 +35,16 @@ internal static class DevelopmentReservationFixtureAssertions
         await using var scope = provider.CreateAsyncScope();
         var services = scope.ServiceProvider;
         var database = services.GetRequiredService<DealershipDbContext>();
-        Assert.Equal(57 + DevelopmentSaleVolumeManifest.All.Count, await database.Reservations.CountAsync());
-        Assert.Equal(49, await database.ReservationReleases.CountAsync());
-        Assert.Equal(57 + DevelopmentSaleVolumeManifest.All.Count, await database.ReservationMailOutbox.CountAsync());
-        Assert.Equal(4 + DevelopmentSaleVolumeManifest.All.Count, await database.Reservations.CountAsync(item => item.IsActive));
+        // Every hold, plus the reservation cancelled by the test-drive scenario, and the volume sales' holds.
+        var holds = DevelopmentReservationScenarios.All.Count + 1 + DevelopmentSaleVolumeManifest.All.Count;
+        Assert.Equal(holds, await database.Reservations.CountAsync());
+        Assert.Equal(DevelopmentReservationScenarios.All.Count(item => !item.KeepActive) + 1,
+            await database.ReservationReleases.CountAsync());
+        Assert.Equal(holds, await database.ReservationMailOutbox.CountAsync());
+        var staffSales = DevelopmentSaleScenarios.All.Count(item =>
+            item.Target is not (SalesOrderStatus.Settled or SalesOrderStatus.Delivered));
+        Assert.Equal(staffSales + DevelopmentSaleVolumeManifest.All.Count,
+            await database.Reservations.CountAsync(item => item.IsActive));
         // The demo sales work the branches' open holds, which stay active while they are handled.
         foreach (var sale in DevelopmentSaleScenarios.All)
         {
@@ -167,7 +176,7 @@ internal static class DevelopmentReservationFixtureAssertions
     private static async Task VerifySalePreservationAsync(IServiceProvider services, DealershipDbContext database,
         DevelopmentFixtureRunner runner, DevelopmentFixtureTarget target)
     {
-        var scenario = DevelopmentSaleScenarios.All.Single(item => item.Target == SalesOrderStatus.Handling);
+        var scenario = DevelopmentSaleScenarios.All.Single(item => item.Target == SalesOrderStatus.Handling && !item.RejectedOnce);
         var saved = await services.GetRequiredService<SaleTermsService>().SaveTermsAsync(scenario.AgentId,
             scenario.ReservationId, new(Guid.NewGuid(), scenario.FinalVersion, null, scenario.Discount + 1m, null, 0m),
             CancellationToken.None);

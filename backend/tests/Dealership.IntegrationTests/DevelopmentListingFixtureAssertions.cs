@@ -52,7 +52,7 @@ internal static class DevelopmentListingFixtureAssertions
             Assert.InRange(release.RecordedAt, held.CreatedAt, DateTimeOffset.UtcNow);
         }
 
-        var datedSales = DevelopmentSaleScenarios.All.Where(DevelopmentSaleHistory.Covers).ToArray();
+        var datedSales = DevelopmentSaleHistory.All.Where(DevelopmentSaleHistory.Covers).ToArray();
         Assert.NotEmpty(datedSales);
         foreach (var sale in datedSales)
         {
@@ -64,10 +64,18 @@ internal static class DevelopmentListingFixtureAssertions
             Assert.InRange(held.CreatedAt, publication.RecordedAt, DateTimeOffset.UtcNow);
             Assert.Equal(events.OrderBy(item => item.RecordedAt), events);
             Assert.All(events, entry => Assert.InRange(entry.RecordedAt, held.CreatedAt, DateTimeOffset.UtcNow));
-            Assert.Equal(sale.Target, events[^1].Kind == SalesOrderEventKind.Delivered
-                ? SalesOrderStatus.Delivered : SalesOrderStatus.Settled);
-            Assert.Contains(await database.SaleDocuments.AsNoTracking().Where(item => item.SalesOrderId == sale.ReservationId)
-                .ToArrayAsync(), document => document.Kind == SaleDocumentKind.PurchaseOrder);
+            Assert.Equal(sale.Target, (await database.SalesOrders.AsNoTracking()
+                .SingleAsync(item => item.Id == sale.ReservationId)).Status);
+            var documents = await database.SaleDocuments.AsNoTracking()
+                .Where(item => item.SalesOrderId == sale.ReservationId).ToArrayAsync();
+            if (sale.Target is SalesOrderStatus.Settled or SalesOrderStatus.Delivered)
+            {
+                Assert.Contains(documents, document => document.Kind == SaleDocumentKind.PurchaseOrder);
+            }
+            else
+            {
+                Assert.Empty(documents);
+            }
         }
 
         var historyIds = DevelopmentTestDriveHistory.All.Select(item => item.Id).ToArray();
@@ -107,9 +115,14 @@ internal static class DevelopmentListingFixtureAssertions
         var database = services.GetRequiredService<DealershipDbContext>();
         var store = services.GetRequiredService<IPublicListingStore>();
         var managers = services.GetRequiredService<IListingReadStore>();
+        var catalogueTotal = 0;
         foreach (var branch in DevelopmentFixtureManifest.Branches)
         {
-            var available = branch.Id == DevelopmentTestDriveReopeningFixtures.Scenario.Intake.BranchId ? 14 : 15;
+            // Sales that carry a warranty or a rejected discount hold one more catalogue vehicle at their branch.
+            var heldBySales = DevelopmentSaleScenarios.All.Count(item => item.Hold.Listing.Intake.BranchId == branch.Id &&
+                (item.WarrantyPackageId is not null || item.RejectedOnce));
+            var available = (branch.Id == DevelopmentTestDriveReopeningFixtures.Scenario.Intake.BranchId ? 14 : 15) -
+                heldBySales;
             var expected = await database.ListingRevisions.Where(item => item.BranchId == branch.Id)
                 .Where(item => database.Vehicles.Any(vehicle => vehicle.Id == item.VehicleId &&
                     vehicle.Status == VehicleStatus.Available))
@@ -155,9 +168,10 @@ internal static class DevelopmentListingFixtureAssertions
             }
 
             Assert.Equal(available, publicCount);
+            catalogueTotal += available;
         }
 
-        Assert.Equal(44, (await store.ReadAsync(new(), CancellationToken.None)).Catalogue!.Total);
+        Assert.Equal(catalogueTotal, (await store.ReadAsync(new(), CancellationToken.None)).Catalogue!.Total);
     }
 
     private static async Task<string> SnapshotAsync(DealershipDbContext database)

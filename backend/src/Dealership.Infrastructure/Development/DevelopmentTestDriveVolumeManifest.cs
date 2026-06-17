@@ -13,7 +13,8 @@ public sealed record DevelopmentTestDriveVolumeScenario(Guid BranchId, string Qu
 
 public static class DevelopmentTestDriveVolumeManifest
 {
-    public const int RowsPerQueue = 51;
+    // Just over the 25-row page size, so every paged queue shows a second page without repeated filler.
+    public const int RowsPerQueue = 27;
 
     public static IReadOnlyList<DevelopmentTestDriveVolumeScenario> All { get; } = Array.AsReadOnly(
         DevelopmentFixtureManifest.Branches.SelectMany((branch, branchIndex) =>

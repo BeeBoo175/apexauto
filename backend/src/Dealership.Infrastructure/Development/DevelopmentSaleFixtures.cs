@@ -12,6 +12,8 @@ public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHa
     SaleTermsService terms, SaleSettlementService settlement, SaleHandoverService handover,
     SaleDocumentCorrectionService corrections, IInspectionReportStore inspectionReports)
 {
+    public const string RejectionReason = "Requested discount exceeds the branch limit; renegotiate the terms.";
+
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> RunAsync(bool seed, CancellationToken cancellationToken)
     {
         var reports = new List<DevelopmentFixtureReport>();
@@ -155,10 +157,18 @@ public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHa
                 request with { OperationId = scenario.OperationId("terms-again"), ExpectedVersion = 5 }, cancellationToken));
         }
 
-        if (scenario.Target is SalesOrderStatus.PendingApproval or SalesOrderStatus.Approved or SalesOrderStatus.Settled or SalesOrderStatus.Delivered)
+        if (scenario.Target is SalesOrderStatus.PendingApproval or SalesOrderStatus.Approved or SalesOrderStatus.Settled or SalesOrderStatus.Delivered ||
+            scenario.RejectedOnce)
         {
             steps.Add(() => terms.SubmitAsync(agent, id,
                 new(scenario.OperationId("submit"), scenario.TermsVersion), cancellationToken));
+        }
+
+        if (scenario.RejectedOnce)
+        {
+            steps.Add(() => terms.RejectAsync(scenario.ManagerId, id, new(scenario.OperationId("reject"),
+                scenario.SubmittedVersion, RejectionReason),
+                cancellationToken));
         }
 
         if (scenario.ManagerApproval && scenario.Target is
@@ -215,7 +225,8 @@ public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHa
     {
         if (scenario.PaymentMethod != SalePaymentMethod.ZeroBalance)
         {
-            return new(scenario.OperationId("terms"), 2, null, scenario.Discount, scenario.TradeInAppointmentId, 0m);
+            return new(scenario.OperationId("terms"), 2, scenario.WarrantyPackageId, scenario.Discount,
+                scenario.TradeInAppointmentId, 0m);
         }
 
         var hold = await database.Reservations.AsNoTracking()

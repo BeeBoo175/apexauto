@@ -12,12 +12,16 @@ public static class DevelopmentIntakeTimeline
 
     public static IReadOnlyList<DevelopmentIntakeMoment> Create(AppointmentSchedule schedule, DateTimeOffset anchor)
     {
-        var future = Slots(schedule, anchor).Where(slot => slot.StartsAt > anchor)
-            .Take(DevelopmentIntakeManifest.AppointmentsPerBranch).ToArray();
-        if (future.Length != DevelopmentIntakeManifest.AppointmentsPerBranch)
+        var upcoming = Slots(schedule, anchor).Where(slot => slot.StartsAt > anchor).ToArray();
+        if (upcoming.Length < DevelopmentIntakeManifest.AppointmentsPerBranch)
         {
             throw new InvalidOperationException("The configured schedule cannot fit the development worklist within its booking horizon.");
         }
+
+        // Evenly spaced slots keep the calendar populated from tomorrow to the end of the booking horizon.
+        var stride = upcoming.Length / DevelopmentIntakeManifest.AppointmentsPerBranch;
+        var future = Enumerable.Range(0, DevelopmentIntakeManifest.AppointmentsPerBranch)
+            .Select(index => upcoming[index * stride]).ToArray();
 
         var historical = HistoricalSlots(schedule, anchor);
         var examples = DevelopmentIntakeManifest.InspectionExamples.Select(item => item.Id).ToHashSet();
@@ -62,7 +66,8 @@ public static class DevelopmentIntakeTimeline
             var slots = schedule.GetSlots(date, bookedAt);
             if (slots.Count > 0)
             {
-                result.Add((slots[0], bookedAt));
+                // Rotating the slot by day gives past appointments a spread of weekdays and times.
+                result.Add((slots[days % slots.Count], bookedAt));
             }
         }
 
