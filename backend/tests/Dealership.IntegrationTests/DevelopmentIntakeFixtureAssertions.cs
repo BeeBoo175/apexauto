@@ -264,7 +264,9 @@ internal static class DevelopmentIntakeFixtureAssertions
         foreach (var angle in Enum.GetValues<PhotoAngle>())
         {
             var id = DevelopmentIntakeManifest.PhotoId(appointment.Id, angle);
-            using var expected = DevelopmentFixturePhotos.Open(angle);
+            using var expected = DevelopmentFixturePhotos.Open(angle,
+                DevelopmentVehicleCatalogue.For(appointment.Valuation.Make, appointment.Valuation.Model,
+                    appointment.Valuation.Trim));
             using var actual = new MemoryStream();
             Assert.Equal(PhotoStatus.Available, (await photos.DownloadAsync(appointment.OwnerId, id, actual, CancellationToken.None)).Status);
             Assert.Equal(await SHA256.HashDataAsync(expected), SHA256.HashData(actual.ToArray()));

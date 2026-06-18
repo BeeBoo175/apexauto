@@ -78,6 +78,12 @@ public sealed class DevelopmentIntakeFixtures(DealershipDbContext database, Deve
                 await CreateAppointmentAsync(moment, cancellationToken);
             }
 
+            foreach (var moment in timeline)
+            {
+                await AddInspectionHistoryAsync(moment, cancellationToken);
+                database.ChangeTracker.Clear();
+            }
+
             await initialization.CommitAsync(cancellationToken);
         }
 
@@ -168,8 +174,6 @@ public sealed class DevelopmentIntakeFixtures(DealershipDbContext database, Deve
         await database.SaveChangesAsync(cancellationToken);
         await AddTransitionAsync(moment, appointment, owner.Email!, cancellationToken);
         await database.SaveChangesAsync(cancellationToken);
-        await AddInspectionHistoryAsync(moment, cancellationToken);
-
         database.ChangeTracker.Clear();
     }
 

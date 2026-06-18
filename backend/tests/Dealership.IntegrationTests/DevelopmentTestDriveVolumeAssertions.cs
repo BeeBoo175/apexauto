@@ -23,6 +23,15 @@ internal static class DevelopmentTestDriveVolumeAssertions
         {
             var manager = DevelopmentFixtureManifest.Staff.Single(item => item.BranchId == branch.Id &&
                 item.Role == AccountRoles.BranchManager);
+            // Volume bookings are spread over the horizon: no branch day holds a queue, and many days are used.
+            var volumeBookingIds = DevelopmentTestDriveVolumeManifest.All.Where(item => item.BranchId == branch.Id)
+                .Select(item => item.OperationId("booking")).ToArray();
+            var starts = await database.TestDriveBookings.AsNoTracking().Where(item => volumeBookingIds.Contains(item.Id))
+                .Select(item => item.StartsAt).ToArrayAsync();
+            var perDay = starts.GroupBy(item => DateOnly.FromDateTime(
+                TimeZoneInfo.ConvertTime(item, DealershipLocale.Malaysia).DateTime)).Select(group => group.Count()).ToArray();
+            Assert.True(perDay.Max() <= 8, $"{branch.Name} holds {perDay.Max()} volume drives on one day");
+            Assert.True(perDay.Length >= 10, $"{branch.Name} uses only {perDay.Length} days");
             var agents = new[]
             {
                 DevelopmentFixtureManifest.PrimaryAgent(branch.Id),
@@ -49,7 +58,10 @@ internal static class DevelopmentTestDriveVolumeAssertions
                         .Where(item => volumeIds.Contains(item.Id)).OrderBy(item => item.StartsAt)
                         .ThenBy(item => item.Id).Select(item => item.Id).ToArrayAsync();
                     Assert.NotEmpty(expected);
-                    Assert.Equal(ids.Length, expected.Length);
+                    var missing = ids.Except(expected).ToArray();
+                    Assert.True(missing.Length == 0, $"{branch.Name} {queue} missing {missing.Length} of {ids.Length}: " +
+                        string.Join(", ", DevelopmentTestDriveVolumeManifest.All.Where(item => missing.Contains(
+                            item.OperationId("booking"))).Select(item => $"{item.Queue}#{item.Index}")));
                     var query = StaffTestDriveQuery.Parse(null, null, 1, 25, queue)!;
                     await AssertPagesAsync(store, agent.Id, query, expected);
                     // All registration values tie, so only the canonical UUID tie-breaker can prevent page drift.

@@ -65,14 +65,19 @@ public sealed class DevelopmentTestDriveVolumeFixtures(DealershipDbContext datab
             .SingleOrDefaultAsync(item => item.Id == bookingId, cancellationToken);
         if (booking is null && seed)
         {
-            var slot = await FindSlotAsync(scenario.BranchId, handlerId, cancellationToken);
+            var slot = await FindSlotAsync(scenario, handlerId, cancellationToken);
             if (slot is null)
             {
                 return new(label, "schedule unavailable; preserved", true);
             }
 
-            booking = (await bookings.BookAsync(customerId, vehicleId,
-                new(bookingId, publicationId, slot.StartsAt), cancellationToken)).Booking;
+            var booked = await bookings.BookAsync(customerId, vehicleId,
+                new(bookingId, publicationId, slot.StartsAt), cancellationToken);
+            booking = booked.Booking;
+            if (booking is null)
+            {
+                return new(label, $"booking {booked.Status} at {slot.StartsAt:O}; preserved", true);
+            }
         }
 
         if (booking is null || booking.CustomerId != customerId || booking.VehicleId != vehicleId ||
@@ -117,21 +122,30 @@ public sealed class DevelopmentTestDriveVolumeFixtures(DealershipDbContext datab
         return new(label, terminalMatches && !handled ? "matches" : "lifecycle drift; preserved", !terminalMatches || handled);
     }
 
-    private async Task<AppointmentSlot?> FindSlotAsync(Guid branchId, Guid handlerId, CancellationToken cancellationToken)
+    // Interleaves the queues and spreads their bookings over the whole horizon, so no day holds a whole queue.
+    private async Task<AppointmentSlot?> FindSlotAsync(DevelopmentTestDriveVolumeScenario scenario, Guid handlerId,
+        CancellationToken cancellationToken)
     {
         var now = await database.DatabaseNowAsync(cancellationToken);
         var window = schedule.GetDateWindow(now);
-        var occupied = await DevelopmentTestDriveSlots.ActiveStartsAsync(database, branchId, cancellationToken);
+        var occupied = await DevelopmentTestDriveSlots.ActiveStartsAsync(database, scenario.BranchId, cancellationToken);
+        var free = new List<AppointmentSlot>();
         for (var date = window.FirstDate; date <= window.LastDate; date = date.AddDays(1))
         {
-            foreach (var slot in schedule.GetSlots(date, now, TestDriveBooking.Duration))
-            {
-                if (occupied.Contains(slot.StartsAt) || await StaffScheduleConflicts.HasOverlapAsync(database,
-                    handlerId, slot.StartsAt, slot.EndsAt, null, null, cancellationToken))
-                {
-                    continue;
-                }
+            free.AddRange(schedule.GetSlots(date, now, TestDriveBooking.Duration)
+                .Where(slot => !occupied.Contains(slot.StartsAt)));
+        }
 
+        var queues = new[] { "History", "MyWork", "ToClaim" };
+        var position = scenario.Index * queues.Length + Array.IndexOf(queues, scenario.Queue);
+        var total = DevelopmentTestDriveVolumeManifest.RowsPerQueue * queues.Length;
+        var start = free.Count * position / total;
+        for (var offset = 0; offset < free.Count; offset++)
+        {
+            var slot = free[(start + offset) % free.Count];
+            if (!await StaffScheduleConflicts.HasOverlapAsync(database, handlerId, slot.StartsAt, slot.EndsAt, null, null,
+                cancellationToken))
+            {
                 return slot;
             }
         }

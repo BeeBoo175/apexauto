@@ -52,6 +52,9 @@ public static class DevelopmentIntakeTimeline
         }).OrderBy(moment => moment.Slot.StartsAt).ThenBy(moment => moment.Fixture.Id)];
     }
 
+    // A branch handles a couple of arrivals on each open day, so history covers about two months, not one day per record.
+    public const int HistoricalArrivalsPerDay = 2;
+
     private static (AppointmentSlot Slot, DateTimeOffset BookedAt)[] HistoricalSlots(AppointmentSchedule schedule,
         DateTimeOffset anchor)
     {
@@ -64,10 +67,17 @@ public static class DevelopmentIntakeTimeline
             var localMidnight = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified);
             var bookedAt = new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(localMidnight, DealershipLocale.Malaysia));
             var slots = schedule.GetSlots(date, bookedAt);
-            if (slots.Count > 0)
+            if (slots.Count < HistoricalArrivalsPerDay)
             {
-                // Rotating the slot by day gives past appointments a spread of weekdays and times.
-                result.Add((slots[days % slots.Count], bookedAt));
+                continue;
+            }
+
+            // Newer records take the later part of the day, so record order never contradicts clock order; the slot
+            // within each part rotates by date so weekdays do not share one clock time.
+            var part = slots.Count / HistoricalArrivalsPerDay;
+            for (var arrival = 0; arrival < HistoricalArrivalsPerDay && result.Count < required; arrival++)
+            {
+                result.Add((slots[(HistoricalArrivalsPerDay - 1 - arrival) * part + days % part], bookedAt));
             }
         }
 

@@ -62,11 +62,12 @@ try
     if (args[0] == "clear")
     {
         var databaseName = new NpgsqlConnectionStringBuilder(target.ConnectionString).Database;
-        Console.WriteLine($"This erases every record in local database {databaseName} and reapplies migrations.");
+        var bucketName = scope.ServiceProvider.GetRequiredService<PhotoStorageSettings>().BucketName;
+        Console.WriteLine($"This erases every record in local database {databaseName}, clears local bucket {bucketName}, and reapplies migrations.");
         Console.Write($"Type rebuild {databaseName} to continue: ");
         var rebuilder = scope.ServiceProvider.GetRequiredService<DevelopmentDatabaseRebuilder>();
         await rebuilder.RebuildAsync(target, Console.ReadLine(), deadline.Token);
-        Console.WriteLine("Local database rebuilt. Run seed deliberately to recreate fixtures.");
+        Console.WriteLine("Local database and object storage rebuilt. Run seed deliberately to recreate fixtures.");
         return 0;
     }
 

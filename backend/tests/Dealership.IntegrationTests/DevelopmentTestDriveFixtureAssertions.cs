@@ -37,6 +37,9 @@ internal static class DevelopmentTestDriveFixtureAssertions
         cancellations = [.. cancellations.Where(item => !volumeIds.Contains(item.BookingId))];
         assignments = [.. assignments.Where(item => !volumeIds.Contains(item.BookingId))];
         mail = [.. mail.Where(item => !volumeIds.Contains(item.BookingId))];
+        starts = [.. starts.Where(item => !volumeIds.Contains(item.BookingId))];
+        outcomes = [.. outcomes.Where(item => !volumeIds.Contains(item.BookingId))];
+        occupations = [.. occupations.Where(item => !volumeIds.Contains(item.BookingId))];
         var attendance = bookings.Where(item => DevelopmentTestDriveHandlingFixtures.Kinds.Any(kind =>
             item.Id == DevelopmentTestDriveHandlingFixtures.OperationId(kind, "booking"))).ToArray();
         Assert.Equal(DevelopmentTestDriveFixtures.Scenarios.Count + 4 + attendance.Length, bookings.Length);

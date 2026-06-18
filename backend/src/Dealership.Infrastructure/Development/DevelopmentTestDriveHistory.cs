@@ -84,10 +84,11 @@ public sealed class DevelopmentTestDriveHistory(DealershipDbContext database, Ap
     private async Task AddOneAsync(DevelopmentTestDriveHistoryItem item, DateTimeOffset bookedAt, int position,
         DateTimeOffset now, CancellationToken cancellationToken)
     {
-        var slot = FindSlot(bookedAt, item.Sequence + position);
-        if (slot.EndsAt + TimeSpan.FromHours(2) > now)
+        var slot = await FindSlotAsync(item.Listing.Intake.BranchId, bookedAt, now, item.Sequence + position,
+            cancellationToken);
+        if (slot is null)
         {
-            // A slot that has not safely passed cannot be history; a recently published listing simply has none.
+            // A listing published too recently has no slot that has safely passed, so it has no test-drive history.
             return;
         }
 
@@ -160,27 +161,24 @@ public sealed class DevelopmentTestDriveHistory(DealershipDbContext database, Ap
         await database.SaveChangesAsync(cancellationToken);
     }
 
-    // Spreads bookings over distinct open days after the booking time so branch slots never collide.
-    private AppointmentSlot FindSlot(DateTimeOffset bookedAt, int spread)
+    // Picks a free past slot after the booking, spread over the days since so history never piles onto one day.
+    private async Task<AppointmentSlot?> FindSlotAsync(Guid branchId, DateTimeOffset bookedAt, DateTimeOffset now,
+        int spread, CancellationToken cancellationToken)
     {
         var window = schedule.GetDateWindow(bookedAt);
-        var skip = spread * 2;
+        var occupied = await DevelopmentTestDriveSlots.ActiveStartsAsync(database, branchId, cancellationToken);
+        var intakes = await database.IntakeAppointments.AsNoTracking()
+            .Where(item => item.BranchId == branchId && item.CancelledAt == null)
+            .Select(item => new { item.StartsAt, item.EndsAt })
+            .ToArrayAsync(cancellationToken);
+        var candidates = new List<AppointmentSlot>();
         for (var date = window.FirstDate; date <= window.LastDate; date = date.AddDays(1))
         {
-            var slots = schedule.GetSlots(date, bookedAt, TestDriveBooking.Duration);
-            if (slots.Count == 0)
-            {
-                continue;
-            }
-
-            if (skip-- > 0)
-            {
-                continue;
-            }
-
-            return slots[spread % slots.Count];
+            candidates.AddRange(schedule.GetSlots(date, bookedAt, TestDriveBooking.Duration).Where(slot =>
+                slot.EndsAt + TimeSpan.FromHours(2) <= now && !occupied.Contains(slot.StartsAt) &&
+                !intakes.Any(intake => intake.StartsAt < slot.EndsAt && slot.StartsAt < intake.EndsAt)));
         }
 
-        throw new InvalidOperationException("The configured schedule cannot place a historical test drive.");
+        return candidates.Count == 0 ? null : candidates[spread * 7 % candidates.Count];
     }
 }

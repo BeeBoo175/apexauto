@@ -101,7 +101,7 @@ public sealed class DevelopmentWorkshopHistory(DealershipDbContext database)
     private static InspectionDraftSaveReceipt CreateReceipt(Guid inspectionId, Guid technicianId,
         InspectionDraftSaveRequest request, DateTimeOffset recordedAt)
     {
-        InspectionDraftEntry[] entries = [.. request.Entries.Select(entry => new InspectionDraftEntry(
+        InspectionDraftEntry[] entries = [.. request.Entries!.Select(entry => new InspectionDraftEntry(
             entry.PointCode, entry.Kind, entry.Severity, entry.EstimatedRepairCost, entry.Notes))
             .OrderBy(entry => entry.PointCode, StringComparer.Ordinal)];
         var assessment = InspectionGrading.Calculate(entries);
