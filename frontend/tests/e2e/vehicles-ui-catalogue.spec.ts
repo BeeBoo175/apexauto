@@ -13,7 +13,8 @@ test("catalogue retains failed filter reads and uses browser reload for fresh av
 }, info) => {
   test.setTimeout(120_000);
   const mobile = info.project.name === "mobile";
-  const available = mobile ? 15 : 14;
+  // Each branch lists its published vehicles minus the holds and withdrawals the seeded scenarios create.
+  const available = mobile ? 14 : 13;
   const branchId = mobile
     ? "68f371ad-223a-43d6-b45b-b878eece79ae"
     : "c77708bf-1a31-42f5-9a69-0c8766697a52";

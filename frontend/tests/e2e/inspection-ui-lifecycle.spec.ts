@@ -105,11 +105,8 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     page,
     "**/api/staff/inspection/vehicles/*/assignments",
   );
+  // A technician's claim confirms in place; the first confirmation submits the captured request.
   await page.getByRole("button", { name: "Confirm assignment", exact: true }).click();
-  await page
-    .getByRole("dialog", { name: "Claim this inspection?", exact: true })
-    .getByRole("button", { name: "Confirm assignment", exact: true })
-    .click();
   await expect(
     page.getByRole("button", { name: "Reconcile assignment", exact: true }),
   ).toBeVisible();
@@ -229,6 +226,10 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     `**/api/staff/inspection/drafts/${id}/repair-requests`,
   );
   await page.getByRole("button", { name: "Submit request", exact: true }).click();
+  await page
+    .getByRole("dialog", { name: "Submit this repair request?", exact: true })
+    .getByRole("button", { name: "Submit request", exact: true })
+    .click();
   await expect(page.getByRole("button", { name: "Reconcile request", exact: true })).toBeVisible();
   await expect(page.getByLabel("EP-004 repair work", { exact: true })).toBeDisabled();
   await expect(page.getByLabel("Requested budget (MYR)", { exact: true })).toBeDisabled();
@@ -258,7 +259,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     baseURL: process.env.APP_BASE_URL,
   });
   const manager = await managerContext.newPage();
-  await login(manager, managerEmail, "/dashboard/intake");
+  await login(manager, managerEmail, "/dashboard/work-calendar");
   await manager.goto("/dashboard/intake?view=list");
   await expect(
     manager.getByRole("button", { name: "Refresh worklist", exact: true }),
@@ -325,13 +326,17 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     `**/api/staff/inspection/drafts/${id}/repair-approvals`,
   );
   await manager.getByRole("button", { name: "Approve budget", exact: true }).click();
+  await manager
+    .getByRole("dialog", { name: "Approve this repair budget?", exact: true })
+    .getByRole("button", { name: "Approve budget", exact: true })
+    .click();
   await expect(
     manager.getByRole("button", { name: "Reconcile action", exact: true }),
   ).toBeVisible();
   await expect(
     manager
       .getByRole("dialog", { name: registration, exact: true })
-      .getByRole("button", { name: "Close dialog", exact: true }),
+      .getByRole("button", { name: "Close drawer", exact: true }),
   ).toBeDisabled();
   await manager.getByRole("button", { name: "Reconcile action", exact: true }).click();
   await expect(
@@ -357,6 +362,10 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     `**/api/staff/inspection/drafts/${id}/repair-completions`,
   );
   await page.getByRole("button", { name: "Complete repairs", exact: true }).click();
+  await page
+    .getByRole("dialog", { name: "Complete these repairs?", exact: true })
+    .getByRole("button", { name: "Complete repairs", exact: true })
+    .click();
   await expect(page.getByRole("button", { name: "Reconcile action", exact: true })).toBeVisible();
   await expect(page.getByLabel("Completion & reinspection notes", { exact: true })).toBeDisabled();
   await expect(
@@ -390,63 +399,27 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   const reportHref = await page
     .getByRole("link", { name: "Open signed report · revision 1", exact: true })
     .getAttribute("href");
-  await page.goto(reportHref!);
-  await expect(page.getByRole("heading", { name: "Inspection report", exact: true })).toBeVisible();
-  await screenshot(page, "signed-report");
-  expect(await page.locator("tbody tr").count()).toBe(210);
-  await page.evaluate(() => {
-    const target = window as Window & { printCalls?: number };
-    target.printCalls = 0;
-    window.print = () => {
-      target.printCalls = (target.printCalls ?? 0) + 1;
+  // The signed report is a retained PDF served inline, so the browser fetches it with the signed-in cookie.
+  const reportDocument = await page.evaluate(async (url) => {
+    const response = await fetch(url, { credentials: "include" });
+    const bytes = Array.from(new Uint8Array(await response.arrayBuffer()));
+    return {
+      status: response.status,
+      type: response.headers.get("content-type"),
+      disposition: response.headers.get("content-disposition"),
+      bytes,
     };
-  });
-  let failEvidence = true;
-  await page.route(`**/api/staff/inspection/drafts/${id}/photos/*`, async (route) => {
-    if (failEvidence) {
-      failEvidence = false;
-      await route.fulfill({ status: 429, body: "Controlled evidence request limit" });
-      return;
-    }
-    await route.continue();
-  });
-  await page
-    .getByRole("img", { name: "EP-004 signed evidence 1", exact: true })
-    .evaluate((img: HTMLImageElement) => {
-      img.src = `${img.src}?printProbe=1`;
-    });
-  await page.getByRole("button", { name: "Print / save PDF", exact: true }).click();
-  await expect(
-    page.getByRole("alert").filter({ hasText: "Some evidence is unavailable" }),
-  ).toBeVisible();
-  expect(await page.evaluate(() => (window as Window & { printCalls?: number }).printCalls)).toBe(
-    0,
-  );
-  await expect.poll(() => failEvidence).toBe(false);
-  await expect
-    .poll(() =>
-      page
-        .getByRole("img", { name: "EP-004 signed evidence 1", exact: true })
-        .evaluate((img: HTMLImageElement) => img.complete),
-    )
-    .toBe(true);
-  await page.getByRole("button", { name: "Print / save PDF", exact: true }).click();
-  await expect
-    .poll(() => page.evaluate(() => (window as Window & { printCalls?: number }).printCalls))
-    .toBe(1);
-  await page.unroute(`**/api/staff/inspection/drafts/${id}/photos/*`);
-  await page.emulateMedia({ media: "print" });
-  await expect(page.getByRole("button", { name: "Print / save PDF", exact: true })).toBeHidden();
-  await page.pdf({
-    path: path.join(evidence, "signed-report.pdf"),
-    preferCSSPageSize: true,
-    printBackground: true,
-  });
-  await page.emulateMedia({ media: "screen" });
+  }, reportHref!);
+  expect(reportDocument.status).toBe(200);
+  expect(reportDocument.type).toContain("application/pdf");
+  expect(reportDocument.disposition).toContain("inline");
+  const reportBytes = Buffer.from(reportDocument.bytes);
+  expect(reportBytes.subarray(0, 5).toString("latin1")).toBe("%PDF-");
+  writeFileSync(path.join(evidence, "signed-report.pdf"), reportBytes);
 
   await manager
     .getByRole("dialog", { name: registration, exact: true })
-    .getByRole("button", { name: "Close dialog", exact: true })
+    .getByRole("button", { name: "Close drawer", exact: true })
     .click();
   await manager.goto(`/dashboard/inspection?inspection=${id}`);
   await manager.getByRole("button", { name: "Reopen inspection", exact: true }).click();
@@ -470,6 +443,10 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     `**/api/staff/inspection/drafts/${id}/reopenings`,
   );
   await manager.getByRole("button", { name: "Confirm reopening", exact: true }).click();
+  await manager
+    .getByRole("dialog", { name: "Reopen this signed inspection?", exact: true })
+    .getByRole("button", { name: "Reopen inspection", exact: true })
+    .click();
   await expect(
     manager.getByRole("button", { name: "Reconcile reopening", exact: true }),
   ).toBeVisible();
@@ -489,7 +466,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   await manager.unroute(`**/api/staff/inspection/drafts/${id}/reopenings`);
   await manager
     .getByRole("dialog", { name: registration, exact: true })
-    .getByRole("button", { name: "Close dialog", exact: true })
+    .getByRole("button", { name: "Close drawer", exact: true })
     .click();
   await manager.goto(
     `/dashboard/inspection/repairs?inspection=${id}&request=${repairRequestId}&revision=1`,
@@ -508,7 +485,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   await expect(manager.getByRole("heading", { name: "Retained repair request" })).toHaveCount(0);
   await manager
     .getByRole("dialog", { name: registration, exact: true })
-    .getByRole("button", { name: "Close dialog", exact: true })
+    .getByRole("button", { name: "Close drawer", exact: true })
     .click();
   await manager.goto(`/dashboard/inspection?inspection=${id}`);
   await new Promise((resolve) => setTimeout(resolve, 61_000));
@@ -534,7 +511,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
       checklistPoints: report.checklist.length,
     }),
   );
-  await page.getByRole("link", { name: "Back to inspection", exact: true }).click();
+  await page.goto(`/dashboard/inspection?inspection=${id}`);
   await expect(page.getByRole("button", { name: "Save draft", exact: true })).toBeEnabled();
   await selectPoint(page, "EP-004");
   await page.getByLabel("EP-004 finding notes", { exact: true }).fill("Retained local findings.");
@@ -578,14 +555,28 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   const rejectedHref = await page
     .getByRole("link", { name: "Open signed report · revision 2", exact: true })
     .getAttribute("href");
-  await page.goto(rejectedHref!);
-  await expect(page.getByText("Rejected", { exact: true }).first()).toBeVisible();
+  const rejectedReport = await page.evaluate(async (url) => {
+    const response = await fetch(url, { credentials: "include" });
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    return {
+      status: response.status,
+      type: response.headers.get("content-type"),
+      size: bytes.length,
+    };
+  }, rejectedHref!);
+  expect(rejectedReport.status).toBe(200);
+  expect(rejectedReport.type).toContain("application/pdf");
+  expect(rejectedReport.size).toBeGreaterThan(1000);
   await manager.getByRole("button", { name: "Refresh inspection", exact: true }).click();
   await manager.getByRole("button", { name: "Reopen inspection", exact: true }).click();
   await manager
     .getByLabel("Reopening reason", { exact: true })
     .fill("Review accident evidence in a new retained revision.");
   await manager.getByRole("button", { name: "Confirm reopening", exact: true }).click();
+  await manager
+    .getByRole("dialog", { name: "Reopen this signed inspection?", exact: true })
+    .getByRole("button", { name: "Reopen inspection", exact: true })
+    .click();
   await expect(reopenedSummary.getByText("Inspecting", { exact: true }).first()).toBeVisible();
   await expect(reopenedSummary.getByText("Revision 3 · Draft", { exact: true })).toBeVisible();
   await managerContext.close();
@@ -594,7 +585,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     baseURL: process.env.APP_BASE_URL,
   });
   const sales = await salesContext.newPage();
-  await login(sales, "aina.sofia@example.invalid", "/dashboard/intake");
+  await login(sales, "aina.sofia@example.invalid", "/dashboard/work-calendar");
   await sales.goto(`/dashboard/inspection/${id}`);
   await expect(
     sales.getByRole("heading", { name: "Inspection access unavailable", exact: true }),
@@ -610,7 +601,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     (cookie) => cookie.name === "apexauto_token",
   );
   await context.addCookies(changed);
-  await page.getByRole("link", { name: "Back to inspection", exact: true }).click();
+  await page.goto(`/dashboard/inspection?inspection=${id}`);
   await expect(
     page.getByRole("heading", { name: "Inspection access unavailable", exact: true }),
   ).toBeVisible();
@@ -623,7 +614,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     baseURL: process.env.APP_BASE_URL,
   });
   const group = await groupContext.newPage();
-  await login(group, "farah.aziz@example.invalid", "/dashboard/intake");
+  await login(group, "farah.aziz@example.invalid", "/dashboard/work-calendar");
   await group.goto("/dashboard/inspection");
   await expect(group.getByRole("button", { name: /^Claim inspection ·/ })).toHaveCount(0);
   await group.getByLabel("Rows per page", { exact: true }).selectOption("10");
