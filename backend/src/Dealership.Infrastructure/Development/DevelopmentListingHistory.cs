@@ -9,8 +9,7 @@ namespace Dealership.Infrastructure.Development;
 
 // Builds the published listing of a signed vehicle at its historical times inside the snapshot transaction,
 // mirroring the canonical photo upload, draft save and publication commands, which can only stamp the database clock.
-public sealed class DevelopmentListingHistory(DealershipDbContext database, IPhotoImageValidator validator,
-    IPhotoStorage storage)
+public sealed class DevelopmentListingHistory(DealershipDbContext database, DevelopmentFixturePhotos fixturePhotos)
 {
     private static readonly TimeSpan PhotoDelay = TimeSpan.FromMinutes(30);
     private static readonly TimeSpan AvailableDelay = TimeSpan.FromMinutes(31);
@@ -49,20 +48,18 @@ public sealed class DevelopmentListingHistory(DealershipDbContext database, IPho
     {
         var details = DevelopmentVehicleCatalogue.For(vehicle.Make, vehicle.Model, vehicle.Trim);
         var photos = new List<ListingPhoto>();
+        var uploads = new List<Task>();
         foreach (var angle in Enum.GetValues<PhotoAngle>())
         {
-            var contentType = details.ContentType(angle);
-            using var content = DevelopmentFixturePhotos.Open(angle, details);
-            var validated = await validator.ValidateAsync(content, contentType, cancellationToken)
-                ?? throw new InvalidOperationException("The listing fixture photo must pass canonical image validation.");
+            var validated = await fixturePhotos.ValidatedAsync(angle, details, cancellationToken);
             var photo = new ListingPhoto(
                 scenario.OperationId($"listing-photo-{DevelopmentFixturePhotos.MediaVersion}-{angle}"),
                 vehicle.Id, vehicle.BranchId, managerId, validated, signedAt + PhotoDelay);
-            content.Position = 0;
-            await storage.PutAsync(photo, content, cancellationToken);
+            uploads.Add(fixturePhotos.StoreAsync(photo, angle, details, cancellationToken));
             photos.Add(photo);
         }
 
+        await Task.WhenAll(uploads);
         database.ListingPhotos.AddRange(photos);
         await database.SaveChangesAsync(cancellationToken);
         foreach (var photo in photos)

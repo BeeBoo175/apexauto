@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Dealership.Infrastructure.Development;
 
 public sealed class DevelopmentInspectionFixtures(DealershipDbContext database, InspectionAssignmentService assignments,
-    InspectionDraftSaveService inspectionSaves, InspectionPhotoService inspectionPhotos, IPhotoImageValidator photoValidator,
+    InspectionDraftSaveService inspectionSaves, InspectionPhotoService inspectionPhotos, DevelopmentFixturePhotos fixturePhotos,
     InspectionSignoffService inspectionSignoffs, InspectionReopeningService inspectionReopenings, InspectionRepairRequestService inspectionRepairs,
     InspectionRepairApprovalService inspectionApprovals, InspectionRepairCompletionService inspectionCompletions,
     DevelopmentInspectionScenarioFixtures scenarios)
@@ -257,9 +257,7 @@ public sealed class DevelopmentInspectionFixtures(DealershipDbContext database, 
         string plate, CancellationToken cancellationToken)
     {
         var id = DevelopmentInspectionManifest.PhotoId(inspectionId);
-        using var content = DevelopmentFixturePhotos.Open(Dealership.Domain.Intake.PhotoAngle.Front);
-        var validated = await photoValidator.ValidateAsync(content, "image/jpeg", cancellationToken)
-            ?? throw new InvalidOperationException("The inspection fixture photo must pass canonical source validation.");
+        var validated = await fixturePhotos.ValidatedAsync(Dealership.Domain.Intake.PhotoAngle.Front, null, cancellationToken);
         var existing = await database.InspectionPhotos.AsNoTracking().SingleOrDefaultAsync(photo => photo.Id == id, cancellationToken);
         if (existing is not null)
         {
@@ -277,7 +275,7 @@ public sealed class DevelopmentInspectionFixtures(DealershipDbContext database, 
             return new($"Inspection photo ({plate})", "missing", true);
         }
 
-        content.Position = 0;
+        using var content = DevelopmentFixturePhotos.Open(Dealership.Domain.Intake.PhotoAngle.Front);
         var result = await inspectionPhotos.UploadAsync(technicianId, inspectionId, id, 1, "EP-004", "image/jpeg",
             content, cancellationToken);
         var succeeded = result.Status == InspectionPhotoStatus.Available;

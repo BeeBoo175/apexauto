@@ -11,7 +11,7 @@ public sealed class DevelopmentInspectionScenarioFixtures(DealershipDbContext da
     InspectionAssignmentService assignments, InspectionDraftSaveService saves, InspectionSignoffService signoffs,
     InspectionReopeningService reopenings, InspectionRepairRequestService repairs,
     InspectionRepairApprovalService approvals, InspectionRepairCompletionService completions,
-    InspectionPhotoService photos, IPhotoImageValidator photoValidator)
+    InspectionPhotoService photos, DevelopmentFixturePhotos fixturePhotos)
 {
     public async Task<DevelopmentFixtureReport> RunAsync(bool seed, DevelopmentInspectionScenario scenario,
         Guid vehicleId, Guid technicianId, CancellationToken cancellationToken)
@@ -169,9 +169,7 @@ public sealed class DevelopmentInspectionScenarioFixtures(DealershipDbContext da
         Guid technicianId, CancellationToken cancellationToken)
     {
         var id = scenario.PhotoId(photo);
-        using var content = DevelopmentFixturePhotos.Open(photo.Angle);
-        var validated = await photoValidator.ValidateAsync(content, "image/jpeg", cancellationToken)
-            ?? throw new InvalidOperationException("The inspection fixture photo must pass canonical source validation.");
+        var validated = await fixturePhotos.ValidatedAsync(photo.Angle, null, cancellationToken);
         var existing = await database.InspectionPhotos.AsNoTracking().SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
         if (existing is not null && (!existing.Matches(scenario.Id, technicianId, 1, photo.PointCode, validated) || existing.AvailableAt is not null))
         {
@@ -183,7 +181,7 @@ public sealed class DevelopmentInspectionScenarioFixtures(DealershipDbContext da
             return false;
         }
 
-        content.Position = 0;
+        using var content = DevelopmentFixturePhotos.Open(photo.Angle);
         var result = await photos.UploadAsync(technicianId, scenario.Id, id, 1, photo.PointCode, "image/jpeg", content, cancellationToken);
         return result.Status == InspectionPhotoStatus.Available;
     }

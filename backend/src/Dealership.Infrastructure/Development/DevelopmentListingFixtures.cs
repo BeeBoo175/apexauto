@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Dealership.Infrastructure.Development;
 
 public sealed class DevelopmentListingFixtures(DealershipDbContext database, ListingService listings,
-    ListingPhotoService photos, IPhotoImageValidator validator)
+    ListingPhotoService photos, DevelopmentFixturePhotos fixturePhotos)
 {
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> RunAsync(bool seed, CancellationToken cancellationToken)
     {
@@ -139,9 +139,7 @@ public sealed class DevelopmentListingFixtures(DealershipDbContext database, Lis
         {
             var id = scenario.OperationId($"listing-photo-{DevelopmentFixturePhotos.MediaVersion}-{angle}");
             var contentType = details.ContentType(angle);
-            using var content = DevelopmentFixturePhotos.Open(angle, details);
-            var validated = await validator.ValidateAsync(content, contentType, cancellationToken)
-                ?? throw new InvalidOperationException("The listing fixture photo must pass canonical image validation.");
+            var validated = await fixturePhotos.ValidatedAsync(angle, details, cancellationToken);
             var existing = await database.ListingPhotos.AsNoTracking().SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
             if (existing is not null && !existing.Matches(vehicleId, managerId, validated))
             {
@@ -158,7 +156,7 @@ public sealed class DevelopmentListingFixtures(DealershipDbContext database, Lis
                 return false;
             }
 
-            content.Position = 0;
+            using var content = DevelopmentFixturePhotos.Open(angle, details);
             var result = await photos.UploadAsync(managerId, vehicleId, id, contentType, content, cancellationToken);
             if (result.Status != ListingPhotoStatus.Available)
             {
