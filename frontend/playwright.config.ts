@@ -4,6 +4,8 @@ const browserJourneys = Boolean(process.env.BROWSER_EVIDENCE_DIR);
 const appBaseUrl = process.env.APP_BASE_URL;
 const nextOrigin = process.env.BROWSER_NEXT_ORIGIN;
 const intakeUi = Boolean(process.env.BROWSER_INTAKE);
+// Mobile runs only the golden purchase journey; every other journey is desktop-only.
+const goldenMobileTests = "e2e/vehicles-ui-sales-completion.spec.ts";
 
 function browserTests() {
   if (intakeUi) {
@@ -73,7 +75,7 @@ export default defineConfig({
           },
           {
             name: "mobile",
-            testMatch: browserTests(),
+            testMatch: goldenMobileTests,
             use: { ...devices["Pixel 7"], baseURL: appBaseUrl },
           },
         ]

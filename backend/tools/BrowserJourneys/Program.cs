@@ -2,12 +2,15 @@ namespace Dealership.BrowserJourneys;
 
 internal static class BrowserJourneysCli
 {
+    // Mobile adds cost for every environment, so only the golden purchase journey runs on both devices.
+    private const string GoldenMobileSpecification = "vehicles-ui-sales-completion.spec.ts";
+
     public static async Task<int> Main(string[] args)
     {
         if (args.Length == 0 || args.Contains("--help", StringComparer.Ordinal))
         {
             Console.WriteLine("BrowserJourneys <auth|intake|recovery> <spec filename|request|reset|fragment|--all> [--both]");
-            Console.WriteLine("Desktop only by default. --both adds mobile. No arguments start no services.");
+            Console.WriteLine($"Desktop only by default. --both adds mobile for the golden journey ({GoldenMobileSpecification}) only. No arguments start no services.");
             return 0;
         }
 
@@ -38,12 +41,12 @@ internal static class BrowserJourneysCli
         string[] projects = args.Contains("--both", StringComparer.Ordinal) ? ["desktop", "mobile"] : ["desktop"];
         foreach (var selection in selected)
         {
-            var selectedProjects = selection == "auth-transport.spec.ts" ? new[] { "desktop" } : projects;
+            var selectedProjects = ProjectsFor(selection, projects);
             var result = mode switch
             {
                 "auth" => await AuthBrowserJourney.RunAsync(selection, selectedProjects),
-                "intake" => await IntakeBrowserJourney.RunAsync(selection, projects),
-                _ => await RecoveryBrowserJourney.RunAsync(selection, projects)
+                "intake" => await IntakeBrowserJourney.RunAsync(selection, selectedProjects),
+                _ => await RecoveryBrowserJourney.RunAsync(selection, selectedProjects)
             };
             if (result != 0)
             {
@@ -51,6 +54,16 @@ internal static class BrowserJourneysCli
             }
         }
         return 0;
+    }
+
+    private static string[] ProjectsFor(string selection, string[] requested)
+    {
+        if (selection == GoldenMobileSpecification)
+        {
+            return requested;
+        }
+
+        return ["desktop"];
     }
 
     private static string[] AvailableSelections(string mode, string directory)

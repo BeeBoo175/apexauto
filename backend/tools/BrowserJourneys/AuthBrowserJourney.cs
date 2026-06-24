@@ -30,7 +30,6 @@ internal static class AuthBrowserJourney
         File.WriteAllText(Path.Combine(evidence, "profiles.json"), "[]");
         File.WriteAllText(Path.Combine(evidence, "confirmed-emails.json"), "[]");
         var database = new RegistrationDatabase();
-        var guestPageFixtures = specification == "browser-auth-guest-pages.spec.ts";
         await database.InitializeAsync();
         Environment.SetEnvironmentVariable("ASPNETCORE_URLS", "http://127.0.0.1:0");
         Environment.SetEnvironmentVariable("AllowedHosts", "localhost;127.0.0.1");
@@ -39,8 +38,7 @@ internal static class AuthBrowserJourney
         {
             foreach (var project in projects)
             {
-                var exitCode = await RunBrowserAsync(project, specification, database, state, evidence, frontend,
-                    guestPageFixtures);
+                var exitCode = await RunBrowserAsync(project, specification, database, state, evidence, frontend);
 
                 if (exitCode != 0)
                 {
@@ -60,7 +58,7 @@ internal static class AuthBrowserJourney
     }
 
     private static async Task<int> RunBrowserAsync(string project, string specification, RegistrationDatabase database,
-        BrowserEvidence state, string evidence, string frontend, bool guestPageFixtures)
+        BrowserEvidence state, string evidence, string frontend)
     {
         var nextOrigin = BrowserProcess.AllocateNextOrigin();
         await using var ingress = await TrustedIngress.StartAsync(nextOrigin);
@@ -103,26 +101,6 @@ internal static class AuthBrowserJourney
         using (var scope = factory.Services.CreateScope())
         {
             var registration = scope.ServiceProvider.GetRequiredService<RegistrationService>();
-            if (guestPageFixtures)
-            {
-                var staff = scope.ServiceProvider.GetRequiredService<StaffProvisioningService>();
-                var provisioned = await staff.ProvisionStaffAsync(new StaffProvisioningRequest(
-                    Guid.Parse("4ccabff9-76e5-4636-80cb-d2f204241a2b"), "guest.staff@example.invalid",
-                    "Password123!", AccountRoles.Administrator, null), CancellationToken.None);
-
-                if (!provisioned.MatchesRequestedState)
-                {
-                    throw new InvalidOperationException("Guest-page staff fixture did not match its canonical request.");
-                }
-
-                var confirmedPath = Path.Combine(evidence, "confirmed-emails.json");
-                var confirmed = JsonSerializer.Deserialize<List<string>>(File.ReadAllText(confirmedPath))!;
-                if (!confirmed.Contains("guest.staff@example.invalid", StringComparer.OrdinalIgnoreCase))
-                {
-                    confirmed.Add("guest.staff@example.invalid");
-                    File.WriteAllText(confirmedPath, JsonSerializer.Serialize(confirmed));
-                }
-            }
 
             var customer = DevelopmentFixtureManifest.Customers[0].Registration;
             var result = await registration.RegisterAsync(customer, CancellationToken.None);

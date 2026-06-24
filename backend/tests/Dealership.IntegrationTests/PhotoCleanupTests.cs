@@ -20,7 +20,7 @@ public sealed class PhotoCleanupTests(IntakePhotoFixture fixture) : IClassFixtur
     public async Task CleanupCoordinatesTransfersRetainsEvidenceAndReconcilesLostDeletionAcknowledgementsAfterRestart()
     {
         using var factory = fixture.CreateFactory(unsubmittedLifetimeHours: TimeSpan.FromSeconds(10).TotalHours,
-            cancelledRetentionDays: TimeSpan.FromSeconds(15).TotalDays);
+            cancelledRetentionDays: TimeSpan.FromHours(1).TotalDays);
         using var client = factory.CreateClient();
         var registration = await IntakePhotoFixture.RegisterAsync(client);
         await IntakePhotoFixture.VerifyAsync(factory, client, registration);
