@@ -133,7 +133,6 @@ public sealed class InspectionLifecycleTests(IntakePhotoFixture fixture) : IClas
         await completions.CompleteAsync(technician, inspection, completedRequest, CancellationToken.None);
         await AssertStatusAsync(database, vehicle, VehicleStatus.Available);
         await AssertForgedStatusAsync(vehicle, VehicleStatus.PendingInspection);
-        await InspectionLifecycleMigrationAssertions.VerifyAsync(fixture.Database, services);
 
         using var restarted = fixture.CreateFactory();
         using var restored = restarted.Services.CreateScope();

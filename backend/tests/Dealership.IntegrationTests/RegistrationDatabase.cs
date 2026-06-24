@@ -73,9 +73,10 @@ public sealed class RegistrationDatabase : IAsyncLifetime
 
     private async Task ProvisionAsync(NpgsqlConnectionStringBuilder settings)
     {
+        var template = await TemplateDatabase.EnsureAsync(_maintenanceConnection);
         await using var maintenance = new NpgsqlConnection(_maintenanceConnection);
         await maintenance.OpenAsync();
-        await using (var create = new NpgsqlCommand($"CREATE DATABASE \"{_databaseName}\"", maintenance))
+        await using (var create = new NpgsqlCommand($"CREATE DATABASE \"{_databaseName}\" TEMPLATE \"{template}\"", maintenance))
         {
             await create.ExecuteNonQueryAsync();
             _databaseCreated = true;
@@ -83,9 +84,6 @@ public sealed class RegistrationDatabase : IAsyncLifetime
 
         settings.Database = _databaseName;
         ConnectionString = settings.ConnectionString;
-        var options = new DbContextOptionsBuilder<DealershipDbContext>().UseNpgsql(ConnectionString).Options;
-        await using var database = new DealershipDbContext(options);
-        await database.Database.MigrateAsync();
 
         var password = Guid.NewGuid().ToString("N");
         await using (var createRole = new NpgsqlCommand($"CREATE ROLE \"{_runtimeRole}\" LOGIN PASSWORD '{password}' NOSUPERUSER NOCREATEDB NOCREATEROLE", maintenance))

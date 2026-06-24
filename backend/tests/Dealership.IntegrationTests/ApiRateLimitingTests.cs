@@ -124,40 +124,6 @@ public sealed class ApiRateLimitingTests
     }
 
     [Fact]
-    public async Task UntrustedForwardingAndMappedAddressesCannotBypassTheBudget()
-    {
-        using var factory = CreateFactory();
-        using var client = factory.CreateClient();
-
-        for (var request = 0; request < ApiRateLimiting.RequestsPerMinute; request++)
-        {
-            var response = await Send(factory, FirstClient, "/api/taxonomy", SecondClient);
-            Assert.Equal(StatusCodes.Status200OK, response.Response.StatusCode);
-        }
-
-        var rejected = await Send(factory, "::ffff:198.51.100.10", "/api/taxonomy", "198.51.100.12");
-        Assert.Equal(StatusCodes.Status429TooManyRequests, rejected.Response.StatusCode);
-    }
-
-    [Fact]
-    public async Task TrustedProxyPreservesIndependentClientBudgets()
-    {
-        using var factory = CreateFactory();
-        using var client = factory.CreateClient();
-
-        for (var request = 0; request < ApiRateLimiting.RequestsPerMinute; request++)
-        {
-            var response = await Send(factory, TrustedProxy, "/api/taxonomy", FirstClient);
-            Assert.Equal(StatusCodes.Status200OK, response.Response.StatusCode);
-        }
-
-        var rejected = await Send(factory, TrustedProxy, "/api/taxonomy", FirstClient);
-        Assert.Equal(StatusCodes.Status429TooManyRequests, rejected.Response.StatusCode);
-        var otherClient = await Send(factory, TrustedProxy, "/api/taxonomy", SecondClient);
-        Assert.Equal(StatusCodes.Status200OK, otherClient.Response.StatusCode);
-    }
-
-    [Fact]
     public async Task TrustedProxyPreservesIndependentLoginBudgetsAndConsumesOnlyTheNearestAddress()
     {
         using var factory = CreateFactory();

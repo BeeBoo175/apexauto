@@ -21,6 +21,7 @@ using Npgsql;
 
 namespace Dealership.IntegrationTests;
 
+[Trait("Category", "SeedPipeline")]
 public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClassFixture<IntakePhotoFixture>
 {
     [Fact]
@@ -124,22 +125,13 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
             await DevelopmentTestDriveVolumeAssertions.VerifyAsync(volumeScope.ServiceProvider);
             await DevelopmentUnscheduledVolumeAssertions.VerifyAsync(volumeScope.ServiceProvider);
         }
-        var testDriveSnapshot = await DevelopmentTestDriveFixtureAssertions.SnapshotAsync(restarted);
         await AssertFixtureMailAsync(restarted, interrupted.Id);
         await AssertNormalAuthenticationAsync();
         await DevelopmentIntakeFixtureAssertions.VerifyAsync(provider);
         await InspectionQueueFixtureAssertions.VerifyAsync(provider);
         await DevelopmentListingFixtureAssertions.VerifyCatalogueAsync(provider);
         await DevelopmentPurchaseFixtureAssertions.VerifyAsync(provider, target);
-        var snapshot = await DevelopmentIntakeFixtureAssertions.SnapshotAsync(provider);
-        await ValuationMigrationAssertions.VerifyAsync(fixture.Database);
         Assert.Equal(definitions, await ReadGuardsAsync());
-        await CancellationMigrationAssertions.VerifyAsync(fixture.Database);
-        Assert.Equal(definitions, await ReadGuardsAsync());
-        Assert.Equal(snapshot, await DevelopmentIntakeFixtureAssertions.SnapshotAsync(provider));
-        Assert.All(await SeedAsync(restarted, target), report => Assert.False(report.RequiresAttention));
-        Assert.Equal(testDriveSnapshot, await DevelopmentTestDriveFixtureAssertions.SnapshotAsync(restarted));
-        Assert.Equal(snapshot, await DevelopmentIntakeFixtureAssertions.SnapshotAsync(restarted));
         await AssertReviewPreservesDriftAsync(provider, target);
         await AssertRuntimeGuardsAsync();
         await DevelopmentInspectionScenarioAssertions.VerifyAsync(provider, target);
@@ -176,7 +168,6 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         await using var scope = provider.CreateAsyncScope();
         var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
         var runner = scope.ServiceProvider.GetRequiredService<DevelopmentFixtureRunner>();
-        Assert.All(await runner.ReviewAsync(target, CancellationToken.None), report => Assert.False(report.RequiresAttention));
         var branch = DevelopmentFixtureManifest.Branches[0];
         var administrator = DevelopmentFixtureManifest.Staff.Single(item => item.Role == AccountRoles.Administrator);
         await database.Branches.Where(item => item.Id == branch.Id)

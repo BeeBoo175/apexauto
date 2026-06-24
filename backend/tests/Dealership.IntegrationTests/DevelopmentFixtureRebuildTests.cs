@@ -16,6 +16,7 @@ using Npgsql;
 
 namespace Dealership.IntegrationTests;
 
+[Trait("Category", "SeedPipeline")]
 public sealed class DevelopmentFixtureRebuildTests(IntakePhotoFixture fixture) : IClassFixture<IntakePhotoFixture>
 {
     [Fact]

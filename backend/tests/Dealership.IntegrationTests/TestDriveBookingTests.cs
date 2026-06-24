@@ -19,7 +19,9 @@ public sealed class TestDriveBookingTests(IntakePhotoFixture fixture) : IClassFi
     public async Task AdmissionSerializesCapacityAndCustomerLimitAndRetainsExactReceiptAndMail()
     {
         await TestDriveAssignmentAssertions.VerifyEmptyMigrationAsync(fixture);
-        using var data = await CheckInTestData.CreateAsync(fixture);
+        // An all-day schedule keeps two same-day slots bookable for the attendance scenario unless the run is within the last hour.
+        var allDay = new AppointmentSchedule(new TimeOnly(1, 0), new TimeOnly(23, 59), 90, 30, 0, Enum.GetValues<DayOfWeek>());
+        using var data = await CheckInTestData.CreateAsync(fixture, allDay);
         using var scope = data.Factory.Services.CreateScope();
         var services = scope.ServiceProvider;
         var manager = await ProvisionAsync(services, data.BranchId, AccountRoles.BranchManager);

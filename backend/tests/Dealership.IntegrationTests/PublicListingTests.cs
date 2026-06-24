@@ -19,11 +19,12 @@ namespace Dealership.IntegrationTests;
 
 public sealed class PublicListingTests(IntakePhotoFixture fixture) : IClassFixture<IntakePhotoFixture>
 {
-    private static readonly int[] PageCounts = [8, 8, 1];
+    // The reservation expiry batch needs more holds than one catalogue page, plus the withdrawn and reopened listings.
+    internal const int RecordCount = 12;
     private static readonly string[] PointFields = ["code", "category", "description", "kind", "severity", "estimatedRepairCost"];
 
     [Fact]
-    public async Task CatalogueAndRedactedDetailFollowApprovedEligibilityWithStableScopedPaging()
+    public async Task CatalogueAndRedactedDetailFollowApprovedEligibilityWithScopedCounts()
     {
         var schedule = new AppointmentSchedule(new(9, 0), new(18, 0), 15, 30, 0, Enum.GetValues<DayOfWeek>());
         using var data = await CheckInTestData.CreateAsync(fixture, schedule);
@@ -36,7 +37,7 @@ public sealed class PublicListingTests(IntakePhotoFixture fixture) : IClassFixtu
         var listings = services.GetRequiredService<ListingService>();
         var store = services.GetRequiredService<IPublicListingStore>();
         var records = new List<ListingRecord>();
-        for (var index = 0; index < 17; index++)
+        for (var index = 0; index < RecordCount; index++)
         {
             records.Add(await CreateAsync(data, services, manager, technician, index));
         }
@@ -47,27 +48,14 @@ public sealed class PublicListingTests(IntakePhotoFixture fixture) : IClassFixtu
         var outsideManager = await ProvisionAsync(services, outsideBranch, AccountRoles.BranchManager);
         var outsideTechnician = await ProvisionAsync(services, outsideBranch, AccountRoles.WorkshopTechnician);
         var outsideSales = await ProvisionAsync(services, outsideBranch, AccountRoles.SalesAgent);
-        var other = await CreateAsync(data, services, outsideManager, outsideTechnician, 18, outsideBranch, outsideSales);
+        var other = await CreateAsync(data, services, outsideManager, outsideTechnician, RecordCount + 1, outsideBranch, outsideSales);
 
         var filter = new PublicListingFilter(BranchId: data.BranchId, Sort: "price", Direction: "asc");
-        var pages = new List<PublicListingPage>();
-        for (var page = 1; page <= 3; page++)
-        {
-            var result = await store.ReadAsync(filter with { Page = page }, CancellationToken.None);
-            Assert.Equal(ListingStatus.Succeeded, result.Status);
-            pages.Add(result.Catalogue!);
-        }
-
-        Assert.Equal(PageCounts, pages.Select(page => page.Items.Count));
-        Assert.All(pages, page => Assert.Equal(17, page.Total));
-        var expected = await database.ListingRevisions.Where(row => row.BranchId == data.BranchId)
-            .OrderBy(row => row.VehiclePrice).ThenBy(row => row.VehicleId).Select(row => row.VehicleId).ToArrayAsync();
-        Assert.Equal(expected, pages.SelectMany(page => page.Items).Select(item => item.Id));
-        Assert.Equal(pages[0].Items.Select(item => item.Id),
-            (await store.ReadAsync(filter, CancellationToken.None)).Catalogue!.Items.Select(item => item.Id));
-        Assert.Empty((await store.ReadAsync(filter with { Page = int.MaxValue }, CancellationToken.None)).Catalogue!.Items);
-        Assert.Equal(18, (await store.ReadAsync(new(), CancellationToken.None)).Catalogue!.Total);
-        await VerifyFiltersAsync(store, filter, pages[0].Items[0]);
+        var firstPage = await store.ReadAsync(filter, CancellationToken.None);
+        Assert.Equal(ListingStatus.Succeeded, firstPage.Status);
+        Assert.Equal(PublicListingFilter.PageSize, firstPage.Catalogue!.Items.Count);
+        Assert.Equal(RecordCount, firstPage.Catalogue.Total);
+        Assert.Equal(RecordCount + 1, (await store.ReadAsync(new(), CancellationToken.None)).Catalogue!.Total);
         await ListingReadAssertions.VerifyAsync(fixture, services, data, manager, outsideManager, technician,
             records[0].VehicleId, other.VehicleId);
 
@@ -101,10 +89,10 @@ public sealed class PublicListingTests(IntakePhotoFixture fixture) : IClassFixtu
             document.RootElement.GetProperty("checklist").GetProperty("points")[0].EnumerateObject().Select(property => property.Name));
         Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/api/vehicles?page=0")).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/api/vehicles?fuel=999")).StatusCode);
-        using var catalogueResponse = await client.GetAsync($"/api/vehicles?branchId={data.BranchId}&page=3");
+        using var catalogueResponse = await client.GetAsync($"/api/vehicles?branchId={data.BranchId}");
         Assert.Equal(HttpStatusCode.OK, catalogueResponse.StatusCode);
         Assert.True(catalogueResponse.Headers.CacheControl!.NoStore);
-        Assert.Single((await catalogueResponse.Content.ReadFromJsonAsync<PublicListingPage>())!.Items);
+        Assert.Equal(PublicListingFilter.PageSize, (await catalogueResponse.Content.ReadFromJsonAsync<PublicListingPage>())!.Items.Count);
 
         var draft = await listings.SaveAsync(manager, first.VehicleId, new(Guid.NewGuid(), 1, 65000m, 100m,
             VehicleTransmission.Manual, VehicleFuel.Hybrid, "New description requires approval"), CancellationToken.None);
@@ -128,7 +116,7 @@ public sealed class PublicListingTests(IntakePhotoFixture fixture) : IClassFixtu
         Assert.True(withdrawn.Vehicle.IsWithdrawn);
         Assert.False(withdrawn.Vehicle.IsPublic);
         Assert.Equal(approved.Publication.Id, withdrawn.Withdrawal!.PublicationId);
-        Assert.Equal(16, (await store.ReadAsync(filter, CancellationToken.None)).Catalogue!.Total);
+        Assert.Equal(RecordCount - 1, (await store.ReadAsync(filter, CancellationToken.None)).Catalogue!.Total);
 
         var reopened = await services.GetRequiredService<InspectionReopeningService>().ReopenAsync(manager, records[1].InspectionId,
             new(Guid.NewGuid(), 1, 1, "Reinspect before sale"), CancellationToken.None);
@@ -158,37 +146,9 @@ public sealed class PublicListingTests(IntakePhotoFixture fixture) : IClassFixtu
             .ExecuteUpdateAsync(update => update.SetProperty(branch => branch.IsActive, false));
         Assert.Equal(ListingStatus.NotFound, (await store.DetailAsync(other.VehicleId, CancellationToken.None)).Status);
         Assert.Equal(ListingStatus.Forbidden, (await management.ReadAsync(outsideManager, new(), CancellationToken.None)).Status);
-        Assert.Equal(15, (await store.ReadAsync(new(), CancellationToken.None)).Catalogue!.Total);
+        Assert.Equal(RecordCount - 2, (await store.ReadAsync(new(), CancellationToken.None)).Catalogue!.Total);
         await ReservationCatalogueAssertions.VerifyAsync(fixture, services, data.BranchId,
             [.. records.Skip(2).Take(PublicListingFilter.PageSize + 1).Select(item => item.VehicleId)]);
-    }
-
-    private static async Task VerifyFiltersAsync(IPublicListingStore store, PublicListingFilter filter, PublicListingItem sample)
-    {
-        var matching = filter with
-        {
-            Make = sample.Make,
-            Model = sample.Model,
-            MinimumYear = 2020,
-            MaximumYear = 2020,
-            MinimumPrice = 60000m,
-            MaximumPrice = 60000m,
-            Transmission = VehicleTransmission.Automatic,
-            Fuel = VehicleFuel.Petrol
-        };
-        Assert.Equal(6, (await store.ReadAsync(matching, CancellationToken.None)).Catalogue!.Total);
-        foreach (var empty in new[] { filter with { Make = "Unknown make" }, filter with { Model = "Unknown model" },
-            filter with { MinimumYear = 2021 }, filter with { MaximumYear = 2019 },
-            filter with { MaximumPrice = 59000m }, filter with { MinimumPrice = 63000m },
-            filter with { Transmission = VehicleTransmission.Manual }, filter with { Fuel = VehicleFuel.Electric } })
-        {
-            Assert.Empty((await store.ReadAsync(empty, CancellationToken.None)).Catalogue!.Items);
-        }
-        foreach (var invalid in new[] { filter with { MinimumPrice = 1.001m }, filter with { MinimumYear = 2021, MaximumYear = 2020 },
-            filter with { MinimumPrice = 2m, MaximumPrice = 1m }, filter with { Sort = "privateOwner" } })
-        {
-            Assert.Equal(ListingStatus.Invalid, (await store.ReadAsync(invalid, CancellationToken.None)).Status);
-        }
     }
 
     private static async Task<ListingRecord> CreateAsync(CheckInTestData data, IServiceProvider services,

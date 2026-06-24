@@ -6,6 +6,7 @@ using Dealership.Infrastructure.Photos;
 
 namespace Dealership.UnitTests;
 
+[Trait("Category", "SeedPipeline")]
 public sealed class DevelopmentVehicleCatalogueTests
 {
     [Fact]

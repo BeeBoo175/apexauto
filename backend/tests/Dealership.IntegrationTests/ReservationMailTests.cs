@@ -55,7 +55,7 @@ public sealed class ReservationMailTests(IntakePhotoFixture fixture) : IClassFix
             var service = new ReservationService(new ReservationStore(restarted, signal, new ReservationExpirySignal()));
             Assert.Equal(ReservationStatus.Succeeded, (await service.ReserveAsync(data.OwnerId,
                 listing.Revision.VehicleId, request, CancellationToken.None)).Status);
-            Assert.Equal(ReservationStatus.Conflict, (await service.ReserveAsync(data.OwnerId,
+            Assert.Equal(ReservationStatus.CustomerHasReservation, (await service.ReserveAsync(data.OwnerId,
                 listing.Revision.VehicleId, request with { OperationId = Guid.NewGuid() }, CancellationToken.None)).Status);
         }
 

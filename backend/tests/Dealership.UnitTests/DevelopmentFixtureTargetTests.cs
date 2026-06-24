@@ -2,6 +2,7 @@ using Dealership.Infrastructure.Development;
 
 namespace Dealership.UnitTests;
 
+[Trait("Category", "SeedPipeline")]
 public sealed class DevelopmentFixtureTargetTests
 {
     [Theory]

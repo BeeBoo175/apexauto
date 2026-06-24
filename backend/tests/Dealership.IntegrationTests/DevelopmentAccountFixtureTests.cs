@@ -9,6 +9,7 @@ using Npgsql;
 
 namespace Dealership.IntegrationTests;
 
+[Trait("Category", "SeedPipeline")]
 public sealed class DevelopmentAccountFixtureTests(RegistrationDatabase fixture) : IClassFixture<RegistrationDatabase>
 {
     [Fact]

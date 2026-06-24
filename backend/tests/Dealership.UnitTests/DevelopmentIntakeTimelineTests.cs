@@ -6,6 +6,7 @@ using Dealership.Infrastructure.Development;
 
 namespace Dealership.UnitTests;
 
+[Trait("Category", "SeedPipeline")]
 public sealed class DevelopmentIntakeTimelineTests
 {
     private static readonly AppointmentSchedule Schedule = new(new TimeOnly(9, 0), new TimeOnly(18, 0),

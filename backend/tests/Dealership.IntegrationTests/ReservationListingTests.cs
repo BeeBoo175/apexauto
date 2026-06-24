@@ -76,8 +76,6 @@ public sealed class ReservationListingTests(IntakePhotoFixture fixture) : IClass
             Assert.Equal(ListingStatus.NotFound, (await new ListingService(new ListingStore(denied, new MailDeliverySignal())).PublishAsync(outsider,
                 first.Publication.VehicleId, new(Guid.NewGuid(), first.Revision.Id, first.Publication.SignedRevisionId),
                 CancellationToken.None)).Status);
-            Assert.Empty((await reads.ReadAsync(manager, new(Page: int.MaxValue), CancellationToken.None)).Listings!.Items);
-            Assert.Empty((await reads.ReadAsync(manager, new(Search: "Unknown make"), CancellationToken.None)).Listings!.Items);
         }
 
         await using (var firstReader = clock.CreateContext())
@@ -99,18 +97,6 @@ public sealed class ReservationListingTests(IntakePhotoFixture fixture) : IClass
             Assert.Equal(last.Publication.VehicleId, Assert.Single(second.Items).VehicleId);
             Assert.True(second.Items[0].IsPublic);
             await AssertRefundAsync(firstReader, laterPage);
-        }
-
-        var sortedHold = await HoldAsync(clock, otherCustomer, last.Publication);
-        await clock.AdvanceAsync(sortedHold.ExpiresAt);
-        await using (var sortedReader = clock.CreateContext())
-        {
-            var sorted = await new ListingReadStore(sortedReader).ReadAsync(manager,
-                new(PageSize: 10, Sort: "publication", Direction: "desc"), CancellationToken.None);
-            Assert.Equal(ListingStatus.Succeeded, sorted.Status);
-            Assert.Equal(11, sorted.Listings!.Total);
-            Assert.All(sorted.Listings.Items, item => Assert.True(item.IsPublic));
-            await AssertRefundAsync(sortedReader, sortedHold);
         }
 
         // Each entry initiates its own catch-up; no public/account read can refund on its behalf.

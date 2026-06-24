@@ -133,9 +133,7 @@ public sealed class PhotoCleanupTests(IntakePhotoFixture fixture) : IClassFixtur
         Assert.NotNull(deleted.DeletedAt);
         using (var scope = factory.Services.CreateScope())
         {
-            var expires = await scope.ServiceProvider.GetRequiredService<DealershipDbContext>().IntakeAppointments
-                .Where(item => item.Id == cancelled.Id).Select(item => item.CancellationPhotosExpireAt!.Value).SingleAsync();
-            await WaitUntilAsync(expires);
+            await ExpireCancellationRetentionAsync(cancelled.Id);
         }
 
         Assert.True(await fixture.OwnedObjectExistsAsync(cancelled.Photos[0].Id));
@@ -199,6 +197,23 @@ public sealed class PhotoCleanupTests(IntakePhotoFixture fixture) : IClassFixtur
         {
             await Task.Delay(delay);
         }
+    }
+
+    private async Task ExpireCancellationRetentionAsync(Guid appointmentId)
+    {
+        await using var connection = new NpgsqlConnection(fixture.Database.ConnectionString);
+        await connection.OpenAsync();
+        await using var transaction = await connection.BeginTransactionAsync();
+        // The owner-only disposable database lifts the immutability trigger for this single retention timestamp.
+        await using var command = new NpgsqlCommand("""
+            ALTER TABLE "IntakeAppointments" DISABLE TRIGGER USER;
+            UPDATE "IntakeAppointments" SET "CancellationPhotosExpireAt" = clock_timestamp() - interval '1 second'
+            WHERE "Id" = @id;
+            ALTER TABLE "IntakeAppointments" ENABLE TRIGGER USER;
+            """, connection, transaction);
+        command.Parameters.AddWithValue("id", appointmentId);
+        await command.ExecuteNonQueryAsync();
+        await transaction.CommitAsync();
     }
 
     private async Task ExpireClaimsAsync()
