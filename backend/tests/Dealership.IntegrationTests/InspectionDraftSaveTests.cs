@@ -192,7 +192,8 @@ public sealed class InspectionDraftSaveTests(IntakePhotoFixture fixture) : IClas
         var id = Guid.NewGuid();
         var email = $"arif.hakimi.{id:N}@example.invalid";
         await services.GetRequiredService<StaffProvisioningService>().ProvisionStaffAsync(
-            new StaffProvisioningRequest(id, email, "Password123!", role, branch), CancellationToken.None);
+            new StaffProvisioningRequest(id, email, "Password123!", role, branch, "Azlan Rahim", "0123456703"),
+            CancellationToken.None);
         return (id, email);
     }
 

@@ -18,7 +18,7 @@ public sealed class StaffProvisioningTests(RegistrationDatabase database) : ICla
         var staffId = Guid.NewGuid();
         var staff = new StaffProvisioningRequest(staffId,
             $"siti.aminah.{Guid.NewGuid():N}@example.invalid", "Password123!",
-            AccountRoles.SalesAgent, branchId);
+            AccountRoles.SalesAgent, branchId, "Siti Aminah", "0123456704");
 
         Assert.Equal(new BranchProvisioningResult(true, true), await ProvisionBranchAsync(services, branch));
         Assert.Equal(new ProvisioningResult(true, true), await ProvisionStaffAsync(services, staff));
@@ -26,6 +26,8 @@ public sealed class StaffProvisioningTests(RegistrationDatabase database) : ICla
         Assert.Equal(new ProvisioningResult(false, true), await ProvisionStaffAsync(services, staff));
         Assert.Equal(new ProvisioningResult(false, false), await ProvisionStaffAsync(services,
             staff with { Password = "DifferentPassword123!" }));
+        Assert.Equal(new ProvisioningResult(false, false), await ProvisionStaffAsync(services,
+            staff with { Name = "Siti Aminah Binti Yusof" }));
 
         string originalHash;
         using (var scope = services.CreateScope())
@@ -50,6 +52,9 @@ public sealed class StaffProvisioningTests(RegistrationDatabase database) : ICla
         var retained = await saved.Users.SingleAsync(user => user.Id == staffId);
         Assert.Equal(AccountRoles.BranchManager, retained.Role);
         Assert.Equal(originalHash, retained.PasswordHash);
+        var profile = await saved.StaffProfiles.SingleAsync(candidate => candidate.UserId == staffId);
+        Assert.Equal("Siti Aminah", profile.Name);
+        Assert.Equal("0123456704", profile.Mobile);
     }
 
     [Fact]
@@ -62,7 +67,8 @@ public sealed class StaffProvisioningTests(RegistrationDatabase database) : ICla
         Assert.Single(branches, result => result.Created);
         Assert.All(branches, result => Assert.True(result.MatchesRequestedState));
         var staff = new StaffProvisioningRequest(Guid.NewGuid(),
-            $"azlan.rahim.{Guid.NewGuid():N}@example.invalid", "Password123!", AccountRoles.SalesAgent, branch.Id);
+            $"azlan.rahim.{Guid.NewGuid():N}@example.invalid", "Password123!", AccountRoles.SalesAgent, branch.Id,
+            "Azlan Rahim", "0123456705");
         var accounts = await Task.WhenAll(ProvisionStaffAsync(services, staff), ProvisionStaffAsync(services, staff));
         Assert.Single(accounts, result => result.Created);
         Assert.All(accounts, result => Assert.True(result.MatchesRequestedState));
@@ -77,7 +83,7 @@ public sealed class StaffProvisioningTests(RegistrationDatabase database) : ICla
             "16 Persiaran Bayan Indah", "Bayan Lepas", "Pulau Pinang", "+6046123456"));
         var email = $"muhammad.hafiz.{Guid.NewGuid():N}@example.invalid";
         var request = new StaffProvisioningRequest(Guid.NewGuid(), email, "Password123!",
-            AccountRoles.SalesAgent, branchId);
+            AccountRoles.SalesAgent, branchId, "Aina Sofia", "0123456706");
 
         using (var scope = services.CreateScope())
         {

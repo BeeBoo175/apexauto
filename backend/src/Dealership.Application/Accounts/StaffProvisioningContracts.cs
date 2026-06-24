@@ -1,10 +1,10 @@
 namespace Dealership.Application.Accounts;
 
 public sealed record StaffProvisioningRequest(Guid Id, string Email, string Password, string Role,
-    Guid? BranchId);
+    Guid? BranchId, string Name, string Mobile);
 
 public sealed record ValidatedStaffProvisioning(Guid Id, string Email, string Password, string Role,
-    Guid? BranchId);
+    Guid? BranchId, string Name, string Mobile);
 
 public sealed record ProvisioningResult(bool Created, bool MatchesRequestedState);
 

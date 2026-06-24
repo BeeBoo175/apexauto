@@ -230,7 +230,7 @@ public sealed class ListingPhotoTests(IntakePhotoFixture fixture) : IClassFixtur
         var id = Guid.NewGuid();
         var email = $"staff.{id:N}@example.invalid";
         await services.GetRequiredService<StaffProvisioningService>().ProvisionStaffAsync(
-            new(id, email, "Password123!", role, branch), CancellationToken.None);
+            new(id, email, "Password123!", role, branch, "Amir Hakim", "0123456789"), CancellationToken.None);
         return (id, email);
     }
 }

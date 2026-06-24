@@ -19,7 +19,7 @@ internal static class ListingReadAssertions
         var database = services.GetRequiredService<DealershipDbContext>();
         var group = Guid.NewGuid();
         await services.GetRequiredService<StaffProvisioningService>().ProvisionStaffAsync(
-            new(group, $"staff.{group:N}@example.invalid", "Password123!", AccountRoles.GeneralManager, null), CancellationToken.None);
+            new(group, $"staff.{group:N}@example.invalid", "Password123!", AccountRoles.GeneralManager, null, "Amir Hakim", "0123456789"), CancellationToken.None);
         var filter = new ListingReadFilter(PageSize: 10);
         var first = await store.ReadAsync(manager, filter, CancellationToken.None);
         Assert.Equal(ListingStatus.Succeeded, first.Status);

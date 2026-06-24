@@ -82,7 +82,7 @@ internal sealed class CheckInTestData : IDisposable
         StaffId = Guid.NewGuid();
         StaffEmail = $"aina.sofia.{Guid.NewGuid():N}@example.invalid";
         await services.GetRequiredService<StaffProvisioningService>().ProvisionStaffAsync(new StaffProvisioningRequest(
-            StaffId, StaffEmail, "Password123!", AccountRoles.SalesAgent, BranchId),
+            StaffId, StaffEmail, "Password123!", AccountRoles.SalesAgent, BranchId, "Aina Sofia", "0123456702"),
             CancellationToken.None);
     }
 

@@ -253,7 +253,7 @@ public sealed class InspectionQueueTests(IntakePhotoFixture fixture) : IClassFix
     {
         var id = Guid.NewGuid();
         var email = $"amir.hakim.{id:N}@example.invalid";
-        await services.GetRequiredService<StaffProvisioningService>().ProvisionStaffAsync(new(id, email, "Password123!", role, branch), CancellationToken.None);
+        await services.GetRequiredService<StaffProvisioningService>().ProvisionStaffAsync(new(id, email, "Password123!", role, branch, "Amir Hakim", "0123456789"), CancellationToken.None);
         return (id, email);
     }
 

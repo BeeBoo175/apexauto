@@ -46,7 +46,8 @@ internal static class RecoveryBrowserFixture
     {
         var id = Guid.NewGuid();
         var email = $"recovery.staff.{Guid.NewGuid():N}@example.invalid";
-        var request = new StaffProvisioningRequest(id, email, InitialPassword, AccountRoles.Administrator, null);
+        var request = new StaffProvisioningRequest(id, email, InitialPassword, AccountRoles.Administrator, null,
+            "Muhammad Hafiz", "0123456711");
         var provisioned = await services.GetRequiredService<StaffProvisioningService>()
             .ProvisionStaffAsync(request, CancellationToken.None);
 

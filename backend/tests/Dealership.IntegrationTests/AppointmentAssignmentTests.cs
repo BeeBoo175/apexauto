@@ -296,7 +296,7 @@ public sealed class AppointmentAssignmentTests(IntakePhotoFixture fixture) : ICl
     {
         var id = Guid.NewGuid();
         await services.GetRequiredService<StaffProvisioningService>().ProvisionStaffAsync(new(id,
-            $"farid.hakim.{id:N}@example.invalid", "Password123!", role, branchId), CancellationToken.None);
+            $"farid.hakim.{id:N}@example.invalid", "Password123!", role, branchId, "Amir Hakim", "0123456789"), CancellationToken.None);
         return id;
     }
 

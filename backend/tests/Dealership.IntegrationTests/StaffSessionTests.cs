@@ -132,7 +132,7 @@ public sealed class StaffSessionTests(RegistrationDatabase database) : IClassFix
         var provisioner = scope.ServiceProvider.GetRequiredService<StaffProvisioningService>();
         var staffId = Guid.NewGuid();
         var result = await provisioner.ProvisionStaffAsync(new StaffProvisioningRequest(staffId, email,
-            "Password123!", role, branchId), CancellationToken.None);
+            "Password123!", role, branchId, "Azlan Rahim", "0123456707"), CancellationToken.None);
         Assert.True(result.Created);
         return staffId;
     }

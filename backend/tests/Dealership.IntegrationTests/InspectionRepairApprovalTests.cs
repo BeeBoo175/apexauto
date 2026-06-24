@@ -154,7 +154,7 @@ public sealed class InspectionRepairApprovalTests(IntakePhotoFixture fixture) : 
     {
         var id = Guid.NewGuid();
         var email = $"hafiz.rahman.{id:N}@example.invalid";
-        await services.GetRequiredService<StaffProvisioningService>().ProvisionStaffAsync(new(id, email, "Password123!", role, branch), CancellationToken.None);
+        await services.GetRequiredService<StaffProvisioningService>().ProvisionStaffAsync(new(id, email, "Password123!", role, branch, "Amir Hakim", "0123456789"), CancellationToken.None);
         return (id, email);
     }
 

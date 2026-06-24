@@ -1,4 +1,5 @@
 using Dealership.Application.Accounts;
+using Dealership.Domain.Staff;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -19,7 +20,9 @@ public sealed class StaffProvisioningStore(DealershipDbContext database, UserMan
 
         if (existing is not null)
         {
-            var matches = Matches(existing, staff, passwords);
+            var profile = await database.StaffProfiles.AsNoTracking()
+                .SingleOrDefaultAsync(candidate => candidate.UserId == staff.Id, cancellationToken);
+            var matches = Matches(existing, profile, staff, passwords);
             return new ProvisioningResult(false, matches);
         }
 
@@ -46,14 +49,18 @@ public sealed class StaffProvisioningStore(DealershipDbContext database, UserMan
                 string.Join(", ", result.Errors.Select(error => error.Code)));
         }
 
+        // Identity and profile writes share the scoped DbContext, so neither can commit alone.
+        database.StaffProfiles.Add(new StaffProfile(user.Id, staff.Name, staff.Mobile));
+        await database.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return new ProvisioningResult(true, true);
     }
 
-    internal static bool Matches(AccountUser existing, ValidatedStaffProvisioning requested,
+    internal static bool Matches(AccountUser existing, StaffProfile? profile, ValidatedStaffProvisioning requested,
         IPasswordHasher<AccountUser> passwords)
     {
-        return existing.Email == requested.Email && existing.Role == requested.Role &&
+        return profile is not null && profile.Name == requested.Name && profile.Mobile == requested.Mobile &&
+            existing.Email == requested.Email && existing.Role == requested.Role &&
             existing.BranchId == requested.BranchId && existing.IsActive && existing.EmailConfirmed &&
             existing.PasswordHash is not null &&
             passwords.VerifyHashedPassword(existing, existing.PasswordHash, requested.Password) != PasswordVerificationResult.Failed;

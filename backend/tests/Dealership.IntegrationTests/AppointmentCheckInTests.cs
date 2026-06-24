@@ -81,7 +81,7 @@ public sealed class AppointmentCheckInTests(IntakePhotoFixture fixture) : IClass
         var colleagueId = Guid.NewGuid();
         await scope.ServiceProvider.GetRequiredService<StaffProvisioningService>().ProvisionStaffAsync(
             new StaffProvisioningRequest(colleagueId, $"farid.hakim.{Guid.NewGuid():N}@example.invalid", "Password123!",
-                AccountRoles.SalesAgent, data.BranchId), CancellationToken.None);
+                AccountRoles.SalesAgent, data.BranchId, "Farid Hakim", "0123456701"), CancellationToken.None);
         Assert.Equal(receipt, (await CheckInAsync(restarted, colleagueId, appointment.Id, evidence)).Receipt);
         var otherBranchId = Guid.NewGuid();
         await scope.ServiceProvider.GetRequiredService<BranchProvisioningService>().ProvisionBranchAsync(

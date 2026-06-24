@@ -202,7 +202,8 @@ public sealed class InspectionAssignmentTests(IntakePhotoFixture fixture) : ICla
         var id = Guid.NewGuid();
         var email = $"{name}.{id:N}@example.invalid";
         await services.GetRequiredService<StaffProvisioningService>().ProvisionStaffAsync(
-            new StaffProvisioningRequest(id, email, "Password123!", role, branch), CancellationToken.None);
+            new StaffProvisioningRequest(id, email, "Password123!", role, branch, "Azlan Rahim", "0123456703"),
+            CancellationToken.None);
         return (id, email);
     }
 

@@ -32,7 +32,7 @@ internal static class ReservationTestData
     {
         var id = Guid.NewGuid();
         await services.GetRequiredService<StaffProvisioningService>().ProvisionStaffAsync(
-            new(id, $"staff.{id:N}@example.invalid", "Password123!", role, branchId), CancellationToken.None);
+            new(id, $"staff.{id:N}@example.invalid", "Password123!", role, branchId, "Amir Hakim", "0123456789"), CancellationToken.None);
         return id;
     }
 

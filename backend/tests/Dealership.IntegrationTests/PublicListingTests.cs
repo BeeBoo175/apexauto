@@ -195,7 +195,7 @@ public sealed class PublicListingTests(IntakePhotoFixture fixture) : IClassFixtu
     {
         var id = Guid.NewGuid();
         await services.GetRequiredService<StaffProvisioningService>().ProvisionStaffAsync(
-            new(id, $"staff.{id:N}@example.invalid", "Password123!", role, branch), CancellationToken.None);
+            new(id, $"staff.{id:N}@example.invalid", "Password123!", role, branch, "Amir Hakim", "0123456789"), CancellationToken.None);
         return id;
     }
 

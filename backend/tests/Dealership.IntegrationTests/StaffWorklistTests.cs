@@ -28,7 +28,7 @@ public sealed class StaffWorklistTests(IntakePhotoFixture fixture) : IClassFixtu
             DevelopmentFixtureManifest.Branches[0] with { Id = otherBranch, Name = "ApexAuto Petaling Jaya" }, CancellationToken.None);
         var manager = Guid.NewGuid();
         await services.GetRequiredService<StaffProvisioningService>().ProvisionStaffAsync(new StaffProvisioningRequest(
-            manager, $"farah.aziz.{Guid.NewGuid():N}@example.invalid", "Password123!", AccountRoles.GeneralManager, null),
+            manager, $"farah.aziz.{Guid.NewGuid():N}@example.invalid", "Password123!", AccountRoles.GeneralManager, null, "Farah Aziz", "0123456708"),
             CancellationToken.None);
         var booked = new List<AppointmentReceipt>();
 
@@ -129,7 +129,8 @@ public sealed class StaffWorklistTests(IntakePhotoFixture fixture) : IClassFixtu
         var secondHandler = Guid.NewGuid();
         var secondEmail = $"zulaikha.hassan.{Guid.NewGuid():N}@example.invalid";
         await services.GetRequiredService<StaffProvisioningService>().ProvisionStaffAsync(new StaffProvisioningRequest(
-            secondHandler, secondEmail, "Password123!", AccountRoles.SalesAgent, data.BranchId), CancellationToken.None);
+            secondHandler, secondEmail, "Password123!", AccountRoles.SalesAgent, data.BranchId, "Nurul Huda", "0123456709"),
+            CancellationToken.None);
         await data.ClaimAsync(booked[^1].Id, secondHandler);
         var handlerOrder = unrestricted with { Handler = "@example.invalid", Sort = "handlerEmail", Direction = "desc" };
         var sortedHandlers = (await ListAsync(data, manager, handlerOrder))!;

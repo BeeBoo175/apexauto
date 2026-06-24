@@ -54,7 +54,7 @@ public sealed class IntakeCheckInSchemaTests(IntakePhotoFixture fixture) : IClas
             await branchScope.ServiceProvider.GetRequiredService<BranchProvisioningService>().ProvisionBranchAsync(
                 DevelopmentFixtureManifest.Branches[0] with { Id = Guid.NewGuid(), Name = "ApexAuto Petaling Jaya" }, CancellationToken.None);
             await branchScope.ServiceProvider.GetRequiredService<StaffProvisioningService>().ProvisionStaffAsync(
-                new(managerId, $"farid.{managerId:N}@example.invalid", "Password123!", AccountRoles.BranchManager, data.BranchId),
+                new(managerId, $"farid.{managerId:N}@example.invalid", "Password123!", AccountRoles.BranchManager, data.BranchId, "Amir Hakim", "0123456789"),
                 CancellationToken.None);
         }
 

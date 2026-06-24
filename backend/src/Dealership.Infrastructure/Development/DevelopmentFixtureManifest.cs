@@ -60,21 +60,27 @@ public static class DevelopmentFixtureManifest
     public static IReadOnlyList<StaffProvisioningRequest> ReliefTechnicians { get; } = Array.AsReadOnly<StaffProvisioningRequest>(
     [
         new(Guid.Parse("71afccdb-f74c-44b1-a122-c33ae580d92f"), "farid.hakim@example.invalid",
-            Password, AccountRoles.WorkshopTechnician, Branches[0].Id),
+            Password, AccountRoles.WorkshopTechnician, Branches[0].Id,
+            "Farid Hakim", "013-3407319"),
         new(Guid.Parse("d7d08a9c-2fc8-4b2b-b102-7bc31a572814"), "lee.jun.wei@example.invalid",
-            Password, AccountRoles.WorkshopTechnician, Branches[1].Id),
+            Password, AccountRoles.WorkshopTechnician, Branches[1].Id,
+            "Lee Jun Wei", "014-3414638"),
         new(Guid.Parse("96e5687b-51ec-484d-8b3d-871173210b2d"), "amirul.izzat@example.invalid",
-            Password, AccountRoles.WorkshopTechnician, Branches[2].Id)
+            Password, AccountRoles.WorkshopTechnician, Branches[2].Id,
+            "Amirul Izzat", "015-3421957")
     ]);
 
     public static IReadOnlyList<StaffProvisioningRequest> AdditionalAgents { get; } = Array.AsReadOnly<StaffProvisioningRequest>(
     [
         new(Guid.Parse("c202854c-3fc6-4224-a159-3ba88a2eca18"), "nurul.huda@example.invalid",
-            Password, AccountRoles.SalesAgent, Branches[0].Id),
+            Password, AccountRoles.SalesAgent, Branches[0].Id,
+            "Nurul Huda", "016-3429276"),
         new(Guid.Parse("2c51d2a2-3a7a-4d2f-90a1-5695ad6dd23f"), "kelvin.tan@example.invalid",
-            Password, AccountRoles.SalesAgent, Branches[1].Id),
+            Password, AccountRoles.SalesAgent, Branches[1].Id,
+            "Kelvin Tan", "017-3436595"),
         new(Guid.Parse("841698d7-2709-43f6-88c0-6395d62de946"), "suresh.kumar@example.invalid",
-            Password, AccountRoles.SalesAgent, Branches[2].Id)
+            Password, AccountRoles.SalesAgent, Branches[2].Id,
+            "Suresh Kumar", "018-3443914")
     ]);
 
     public static StaffProvisioningRequest PrimaryAgent(Guid branchId) => Staff.Single(item =>
@@ -110,27 +116,38 @@ public static class DevelopmentFixtureManifest
     public static IReadOnlyList<StaffProvisioningRequest> Staff { get; } = Array.AsReadOnly<StaffProvisioningRequest>(
     [
         new(Guid.Parse("d15eb7ab-de96-46fa-bd3c-057384244131"), "aina.sofia@example.invalid",
-            Password, AccountRoles.SalesAgent, Branches[0].Id),
+            Password, AccountRoles.SalesAgent, Branches[0].Id,
+            "Aina Sofia", "019-3451233"),
         new(Guid.Parse("ac637058-c306-4ddf-a08b-aa724ca48e61"), "azlan.rahim@example.invalid",
-            Password, AccountRoles.WorkshopTechnician, Branches[0].Id),
+            Password, AccountRoles.WorkshopTechnician, Branches[0].Id,
+            "Azlan Rahim", "012-3458552"),
         new(Guid.Parse("6284a941-2479-4cdd-8794-2919d9a22ab2"), "siti.aminah@example.invalid",
-            Password, AccountRoles.BranchManager, Branches[0].Id),
+            Password, AccountRoles.BranchManager, Branches[0].Id,
+            "Siti Aminah", "013-3465871"),
         new(Guid.Parse("eef92f15-3178-4573-92ba-27e6b6f675d0"), "farah.aziz@example.invalid",
-            Password, AccountRoles.GeneralManager, null),
+            Password, AccountRoles.GeneralManager, null,
+            "Farah Aziz", "014-3473190"),
         new(Guid.Parse("e23b4856-dc3d-4e11-ad84-b5e409bb5167"), "muhammad.hafiz@example.invalid",
-            Password, AccountRoles.Administrator, null),
+            Password, AccountRoles.Administrator, null,
+            "Muhammad Hafiz", "015-3480509"),
         new(Guid.Parse("86ad2123-6c9b-49b6-ae90-12e23bac7bd3"), "daniel.wong@example.invalid",
-            Password, AccountRoles.SalesAgent, Branches[1].Id),
+            Password, AccountRoles.SalesAgent, Branches[1].Id,
+            "Daniel Wong", "016-3487828"),
         new(Guid.Parse("d50e876c-867f-4c68-9854-6b7c3d017d31"), "arif.hakimi@example.invalid",
-            Password, AccountRoles.WorkshopTechnician, Branches[1].Id),
+            Password, AccountRoles.WorkshopTechnician, Branches[1].Id,
+            "Arif Hakimi", "017-3495147"),
         new(Guid.Parse("00ba453c-12c0-4b20-9401-c76c44926796"), "lim.mei.ling@example.invalid",
-            Password, AccountRoles.BranchManager, Branches[1].Id),
+            Password, AccountRoles.BranchManager, Branches[1].Id,
+            "Lim Mei Ling", "018-3502466"),
         new(Guid.Parse("7e870e1a-d129-4c42-b1b7-5a8f90bd3707"), "ong.jia.hao@example.invalid",
-            Password, AccountRoles.SalesAgent, Branches[2].Id),
+            Password, AccountRoles.SalesAgent, Branches[2].Id,
+            "Ong Jia Hao", "019-3509785"),
         new(Guid.Parse("2fbe1418-c72f-4fb6-9aa8-672795212a1c"), "mohd.firdaus@example.invalid",
-            Password, AccountRoles.WorkshopTechnician, Branches[2].Id),
+            Password, AccountRoles.WorkshopTechnician, Branches[2].Id,
+            "Mohd Firdaus", "012-3517104"),
         new(Guid.Parse("12d6d08e-921a-45e7-8c20-f37e8ca8b0e3"), "nur.syafiqah@example.invalid",
-            Password, AccountRoles.BranchManager, Branches[2].Id),
+            Password, AccountRoles.BranchManager, Branches[2].Id,
+            "Nur Syafiqah", "013-3524423"),
         .. ReliefTechnicians,
         .. AdditionalAgents
     ]);
