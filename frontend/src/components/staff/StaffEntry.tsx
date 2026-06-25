@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { SessionCheckUnavailable } from "@/components/auth/SessionCheckUnavailable";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { SearchParams } from "@/lib/query";
+import { readCurrentActor } from "@/lib/auth/server";
 import { staffActor } from "@/lib/staff/server";
 import { StaffActorBoundary } from "./StaffActorBoundary";
 import { StaffLink } from "./StaffLink";
@@ -34,20 +35,40 @@ export async function StaffEntry({
     );
   }
 
+  // Staff with an unconfirmed email may only verify; the backend denies their other reads.
+  const { emailVerified } = await readCurrentActor();
+  const unverified = !emailVerified;
+
   // Run page reads only after the current request's actor and feature access are confirmed.
-  const permitted = access(actor);
+  const permitted = access(actor) && !unverified;
   const parameters = permitted && searchParams ? await searchParams : {};
-  const content = permitted ? (
-    await children(actor)
-  ) : (
-    <>
-      <LoadingProgressReady />
-      <StaffNotice title={deniedTitle}>
-        <p>{deniedDescription}</p>
-        <StaffLink href="/dashboard">Return to your staff workspace</StaffLink>
-      </StaffNotice>
-    </>
-  );
+  let content: ReactNode;
+  if (unverified) {
+    content = (
+      <>
+        <LoadingProgressReady />
+        <StaffNotice title="Verify your email">
+          <p>
+            Confirm your email address to use the staff workspace. Request a new link from your
+            account if the first has expired.
+          </p>
+          <StaffLink href="/account">Open your account</StaffLink>
+        </StaffNotice>
+      </>
+    );
+  } else if (permitted) {
+    content = await children(actor);
+  } else {
+    content = (
+      <>
+        <LoadingProgressReady />
+        <StaffNotice title={deniedTitle}>
+          <p>{deniedDescription}</p>
+          <StaffLink href="/dashboard">Return to your staff workspace</StaffLink>
+        </StaffNotice>
+      </>
+    );
+  }
 
   return (
     <StaffActorBoundary

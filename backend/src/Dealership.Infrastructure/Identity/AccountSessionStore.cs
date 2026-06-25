@@ -100,7 +100,7 @@ public sealed class AccountSessionStore(DealershipDbContext database, UserManage
     public async Task<CurrentActor?> GetActorAsync(Guid userId, Guid sessionId, CancellationToken cancellationToken)
     {
         return await SessionUsers(userId, sessionId)
-            .Select(user => new CurrentActor(user.Id, user.Role, user.BranchId))
+            .Select(user => new CurrentActor(user.Id, user.Role, user.BranchId, user.EmailConfirmed))
             .SingleOrDefaultAsync(cancellationToken);
     }
 

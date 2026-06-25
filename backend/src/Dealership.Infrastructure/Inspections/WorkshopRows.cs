@@ -45,6 +45,7 @@ internal static class WorkshopRows
                    TechnicianIdentity = technician == null ? null : database.StaffProfiles
                        .Where(profile => profile.UserId == technician.Id)
                        .Select(profile => profile.Name).FirstOrDefault() ?? technician.UserName,
+                   TechnicianEmail = technician == null ? null : technician.Email,
                    TechnicianPictureId = technician == null ? null : database.AccountPictures
                        .Where(picture => picture.UserId == technician.Id && picture.RemovedAt == null)
                        .Select(picture => (Guid?)picture.Id).FirstOrDefault(),
@@ -129,6 +130,7 @@ internal static class WorkshopRows
         public Guid? InspectionId { get; init; }
         public Guid? TechnicianId { get; init; }
         public string? TechnicianIdentity { get; init; }
+        public string? TechnicianEmail { get; init; }
         public Guid? TechnicianPictureId { get; init; }
         public long? Revision { get; init; }
         public bool IsSigned { get; init; }

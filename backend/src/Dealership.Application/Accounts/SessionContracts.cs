@@ -4,7 +4,7 @@ public sealed record LoginRequest(Guid LoginKey, string? Email, string? Password
 
 public sealed record LoginSession(string AccessToken, DateTimeOffset ExpiresAt);
 
-public sealed record CurrentActor(Guid UserId, string Role, Guid? BranchId);
+public sealed record CurrentActor(Guid UserId, string Role, Guid? BranchId, bool EmailVerified = true);
 
 public interface IAccountSessionStore
 {

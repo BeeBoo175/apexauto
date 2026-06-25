@@ -2,7 +2,7 @@ import "server-only";
 
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { SESSION_COOKIE, parseAccount } from "./contracts";
+import { SESSION_COOKIE, isRecord, parseAccount } from "./contracts";
 import { authUpstream } from "./http";
 import { cache } from "react";
 import { parseActor } from "./actor";
@@ -61,15 +61,17 @@ export async function readOwnAccount(signal?: AbortSignal) {
 export const readCurrentActor = cache(async (signal?: AbortSignal) => {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) {
-    return { status: 401, actor: null };
+    return { status: 401, actor: null, emailVerified: true };
   }
   const response = await authUpstream("/api/auth/session", { token, signal });
   if (response.status !== 200) {
-    return { status: response.status, actor: null };
+    return { status: response.status, actor: null, emailVerified: true };
   }
   const actor = parseActor(response.body);
   if (!actor) {
     throw new Error("Invalid current-actor response");
   }
-  return { status: 200, actor };
+  // Staff pages gate on it; customers are gated per workflow by the backend.
+  const emailVerified = !isRecord(response.body) || response.body.emailVerified !== false;
+  return { status: 200, actor, emailVerified };
 });

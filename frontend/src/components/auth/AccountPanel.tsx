@@ -13,16 +13,18 @@ import styles from "./AccountPanel.module.css";
 export function AccountPanel({ profile }: { profile: AccountProfile }) {
   const isCustomer = profile.role === "Customer";
   const logout = useAuthMutation("logout", "/login");
-  const resend = useEmailVerificationResend(
-    isCustomer
-      ? {
-          userId: profile.userId,
-          legalName: profile.name,
-          email: profile.email,
-          emailVerified: profile.emailVerified,
-        }
-      : null,
-  );
+  const resend = useEmailVerificationResend({
+    userId: profile.userId,
+    legalName: profile.name,
+    email: profile.email,
+    emailVerified: profile.emailVerified,
+  });
+  const verifiedPurpose = isCustomer
+    ? "Your email is verified for reservations and inspection bookings."
+    : "Your email is verified for the staff workspace.";
+  const unverifiedPurpose = isCustomer
+    ? "Verify your email to reserve a car or book an inspection."
+    : "Verify your email to use the staff workspace.";
   const picture = useAccountPicture(profile.userId, profile.pictureId);
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -88,11 +90,9 @@ export function AccountPanel({ profile }: { profile: AccountProfile }) {
             )}
           </div>
         </div>
-        {isCustomer && (
-          <span className={styles.verificationState} data-verified={profile.emailVerified}>
-            {profile.emailVerified ? "Verified" : "Not verified"}
-          </span>
-        )}
+        <span className={styles.verificationState} data-verified={profile.emailVerified}>
+          {profile.emailVerified ? "Verified" : "Not verified"}
+        </span>
       </div>
       <dl className={styles.rows}>
         <div className={styles.row}>
@@ -117,29 +117,25 @@ export function AccountPanel({ profile }: { profile: AccountProfile }) {
             <dd className={styles.value}>{profile.mobile}</dd>
           </div>
         )}
-        {isCustomer && (
-          <div className={styles.row}>
-            <dt className={styles.label}>Email verification</dt>
-            <dd className={styles.value}>
-              <span className={styles.help}>
-                {profile.emailVerified
-                  ? "Your email is verified for reservations and inspection bookings."
-                  : "Verify your email to reserve a car or book an inspection."}
-              </span>
+        <div className={styles.row}>
+          <dt className={styles.label}>Email verification</dt>
+          <dd className={styles.value}>
+            <span className={styles.help}>
+              {profile.emailVerified ? verifiedPurpose : unverifiedPurpose}
+            </span>
+          </dd>
+          {!profile.emailVerified && (
+            <dd className={styles.control}>
+              <Button
+                variant="secondary"
+                disabled={resend.busy || logout.busy || logout.uncertain}
+                onClick={() => void resend.resend()}
+              >
+                {resend.busy ? "Requesting email" : "Resend verification email"}
+              </Button>
             </dd>
-            {!profile.emailVerified && (
-              <dd className={styles.control}>
-                <Button
-                  variant="secondary"
-                  disabled={resend.busy || logout.busy || logout.uncertain}
-                  onClick={() => void resend.resend()}
-                >
-                  {resend.busy ? "Requesting email" : "Resend verification email"}
-                </Button>
-              </dd>
-            )}
-          </div>
-        )}
+          )}
+        </div>
         <div className={styles.row}>
           <dt className={styles.label}>Password</dt>
           <dd className={styles.value}>

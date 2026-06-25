@@ -99,6 +99,7 @@ public sealed class WorkshopQueueStore(DealershipDbContext database) : IWorkshop
                 EF.Functions.ILike(row.Vin, pattern, "!") ||
                 EF.Functions.ILike(row.ManufactureYear + " " + row.Make + " " + row.Model + " " + row.Trim, pattern, "!") ||
                 row.TechnicianIdentity != null && EF.Functions.ILike(row.TechnicianIdentity, pattern, "!") ||
+                row.TechnicianEmail != null && EF.Functions.ILike(row.TechnicianEmail, pattern, "!") ||
                 searchBranch && EF.Functions.ILike(row.BranchName, pattern, "!"));
         }
 
@@ -144,7 +145,8 @@ public sealed class WorkshopQueueStore(DealershipDbContext database) : IWorkshop
         else if (filter.Technician.Length > 0)
         {
             var pattern = LiteralSearch.Pattern(filter.Technician);
-            rows = rows.Where(row => row.TechnicianIdentity != null && EF.Functions.ILike(row.TechnicianIdentity, pattern, "!"));
+            rows = rows.Where(row => row.TechnicianIdentity != null && EF.Functions.ILike(row.TechnicianIdentity, pattern, "!") ||
+                row.TechnicianEmail != null && EF.Functions.ILike(row.TechnicianEmail, pattern, "!"));
         }
         if (filter.MinimumBudget is not null)
         {

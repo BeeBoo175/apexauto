@@ -36,7 +36,8 @@ internal static class UnscheduledWorkRows
         {
             var pattern = LiteralSearch.Pattern(scope.Employee);
             workshop = workshop.Where(row => row.TechnicianIdentity != null &&
-                EF.Functions.ILike(row.TechnicianIdentity, pattern, "!"));
+                EF.Functions.ILike(row.TechnicianIdentity, pattern, "!") ||
+                row.TechnicianEmail != null && EF.Functions.ILike(row.TechnicianEmail, pattern, "!"));
             sales = sales.Where(row => row.Agent != null && EF.Functions.ILike(row.Agent, pattern, "!"));
         }
 
@@ -45,7 +46,8 @@ internal static class UnscheduledWorkRows
             var pattern = LiteralSearch.Pattern(query.Search);
             workshop = workshop.Where(row => EF.Functions.ILike(row.RegistrationPlate, pattern, "!") ||
                 EF.Functions.ILike(row.ManufactureYear + " " + row.Make + " " + row.Model + " " + row.Trim, pattern, "!") ||
-                row.TechnicianIdentity != null && EF.Functions.ILike(row.TechnicianIdentity, pattern, "!"));
+                row.TechnicianIdentity != null && EF.Functions.ILike(row.TechnicianIdentity, pattern, "!") ||
+                row.TechnicianEmail != null && EF.Functions.ILike(row.TechnicianEmail, pattern, "!"));
             sales = SaleRows.Search(sales, query.Search, scope.Actor.Role == AccountRoles.GeneralManager);
         }
 
