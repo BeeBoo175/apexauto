@@ -51,6 +51,34 @@ public sealed class AccountPictureTests(IntakePhotoFixture fixture) : IClassFixt
         Assert.Equal(HttpStatusCode.NotFound, (await customerClient.DeleteAsync($"/api/accounts/{customerId}/picture")).StatusCode);
     }
 
+    [Fact]
+    public async Task StaffSeeCustomersByNameAndColleaguesInFullWhileCustomersSeeNobody()
+    {
+        using var factory = fixture.CreateFactory();
+        using var customerClient = factory.CreateClient();
+        var customer = await IntakePhotoFixture.RegisterAsync(customerClient);
+        var customerId = (await customerClient.GetFromJsonAsync<AccountProfile>("/api/account/profile"))!.UserId;
+        using var managerClient = factory.CreateClient();
+        await SignInStaffAsync(factory, managerClient, AccountRoles.GeneralManager);
+        var managerId = (await managerClient.GetFromJsonAsync<AccountProfile>("/api/account/profile"))!.UserId;
+
+        var asCustomer = (await managerClient.GetFromJsonAsync<Person>($"/api/people/{customerId}"))!;
+        Assert.Equal(customer.LegalName, asCustomer.Name);
+        Assert.Equal(customer.Username, asCustomer.Username);
+        Assert.Null(asCustomer.Email);
+        Assert.Null(asCustomer.Mobile);
+
+        using var colleagueClient = factory.CreateClient();
+        await SignInStaffAsync(factory, colleagueClient, AccountRoles.Administrator);
+        var colleague = (await colleagueClient.GetFromJsonAsync<Person>($"/api/people/{managerId}"))!;
+        Assert.Equal("Amir Hakim", colleague.Name);
+        Assert.Equal("0123456789", colleague.Mobile);
+        Assert.NotNull(colleague.Email);
+
+        Assert.Equal(HttpStatusCode.Forbidden, (await customerClient.GetAsync($"/api/people/{managerId}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await managerClient.GetAsync($"/api/people/{Guid.NewGuid()}")).StatusCode);
+    }
+
     private static async Task<HttpResponseMessage> PutAsync(HttpClient client, byte[] bytes, string contentType)
     {
         using var body = new ByteArrayContent(bytes);
