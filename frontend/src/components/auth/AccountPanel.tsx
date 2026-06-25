@@ -1,15 +1,30 @@
 "use client";
 
+import { useRef } from "react";
+import { Avatar } from "@/components/ui/Avatar";
 import { Button, buttonClassName } from "@/components/ui/Button";
+import { useAccountPicture } from "@/hooks/use-account-picture";
 import { useAuthMutation } from "@/hooks/use-auth-mutation";
 import { useEmailVerificationResend } from "@/hooks/use-email-verification-resend";
-import type { CustomerAccount } from "@/lib/auth/contracts";
+import type { AccountProfile } from "@/lib/account/contracts";
+import { roleNames } from "@/lib/auth/actor";
 import styles from "./AccountPanel.module.css";
 
-export function AccountPanel({ initialAccount }: { initialAccount: CustomerAccount }) {
-  const account = initialAccount;
+export function AccountPanel({ profile }: { profile: AccountProfile }) {
+  const isCustomer = profile.role === "Customer";
   const logout = useAuthMutation("logout", "/login");
-  const resend = useEmailVerificationResend(account);
+  const resend = useEmailVerificationResend(
+    isCustomer
+      ? {
+          userId: profile.userId,
+          legalName: profile.name,
+          email: profile.email,
+          emailVerified: profile.emailVerified,
+        }
+      : null,
+  );
+  const picture = useAccountPicture(profile.userId, profile.pictureId);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   let logoutLabel = "Sign out";
 
@@ -21,12 +36,6 @@ export function AccountPanel({ initialAccount }: { initialAccount: CustomerAccou
     logoutLabel = "Signing out";
   }
 
-  const initials = account.legalName
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
-
   return (
     <div className={styles.panel}>
       <header className={styles.header}>
@@ -34,39 +43,103 @@ export function AccountPanel({ initialAccount }: { initialAccount: CustomerAccou
         <p className={styles.help}>Your sign-in identity and security.</p>
       </header>
       <div className={styles.profile}>
-        <span className={styles.avatar} aria-hidden="true">
-          {initials}
-        </span>
+        <Avatar
+          accountId={profile.userId}
+          name={profile.name}
+          pictureId={picture.pictureId}
+          size="lg"
+        />
         <div className={styles.identity}>
-          <p className={styles.name}>{account.legalName}</p>
-          <p className={styles.email}>{account.email}</p>
+          <p className={styles.name}>{profile.name}</p>
+          <p className={styles.email}>{profile.email}</p>
+          <div className={styles.pictureActions}>
+            <input
+              ref={fileInput}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="sr-only"
+              aria-label="Choose a profile picture"
+              tabIndex={-1}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                event.target.value = "";
+                if (file) {
+                  void picture.upload(file);
+                }
+              }}
+            />
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={picture.busy}
+              onClick={() => fileInput.current?.click()}
+            >
+              {picture.pictureId ? "Change picture" : "Add picture"}
+            </Button>
+            {picture.pictureId && (
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={picture.busy}
+                onClick={() => void picture.remove()}
+              >
+                Remove picture
+              </Button>
+            )}
+          </div>
         </div>
-        <span className={styles.verificationState} data-verified={account.emailVerified}>
-          {account.emailVerified ? "Verified" : "Not verified"}
-        </span>
+        {isCustomer && (
+          <span className={styles.verificationState} data-verified={profile.emailVerified}>
+            {profile.emailVerified ? "Verified" : "Not verified"}
+          </span>
+        )}
       </div>
       <dl className={styles.rows}>
         <div className={styles.row}>
-          <dt className={styles.label}>Email verification</dt>
-          <dd className={styles.value}>
-            <span className={styles.help}>
-              {account.emailVerified
-                ? "Your email is verified for reservations and inspection bookings."
-                : "Verify your email to reserve a car or book an inspection."}
-            </span>
-          </dd>
-          {!account.emailVerified && (
-            <dd className={styles.control}>
-              <Button
-                variant="secondary"
-                disabled={resend.busy || logout.busy || logout.uncertain}
-                onClick={() => void resend.resend()}
-              >
-                {resend.busy ? "Requesting email" : "Resend verification email"}
-              </Button>
-            </dd>
-          )}
+          <dt className={styles.label}>Username</dt>
+          <dd className={styles.value}>{profile.username}</dd>
         </div>
+        {!isCustomer && (
+          <div className={styles.row}>
+            <dt className={styles.label}>Role</dt>
+            <dd className={styles.value}>{roleNames[profile.role]}</dd>
+          </div>
+        )}
+        {profile.branchName && (
+          <div className={styles.row}>
+            <dt className={styles.label}>Branch</dt>
+            <dd className={styles.value}>{profile.branchName}</dd>
+          </div>
+        )}
+        {profile.mobile && (
+          <div className={styles.row}>
+            <dt className={styles.label}>Work mobile</dt>
+            <dd className={styles.value}>{profile.mobile}</dd>
+          </div>
+        )}
+        {isCustomer && (
+          <div className={styles.row}>
+            <dt className={styles.label}>Email verification</dt>
+            <dd className={styles.value}>
+              <span className={styles.help}>
+                {profile.emailVerified
+                  ? "Your email is verified for reservations and inspection bookings."
+                  : "Verify your email to reserve a car or book an inspection."}
+              </span>
+            </dd>
+            {!profile.emailVerified && (
+              <dd className={styles.control}>
+                <Button
+                  variant="secondary"
+                  disabled={resend.busy || logout.busy || logout.uncertain}
+                  onClick={() => void resend.resend()}
+                >
+                  {resend.busy ? "Requesting email" : "Resend verification email"}
+                </Button>
+              </dd>
+            )}
+          </div>
+        )}
         <div className={styles.row}>
           <dt className={styles.label}>Password</dt>
           <dd className={styles.value}>

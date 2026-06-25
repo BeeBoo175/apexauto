@@ -4,7 +4,7 @@ import styles from "./SiteChrome.module.css";
 
 export async function SiteHeader() {
   const current = await readCurrentActor().catch(() => ({ status: 502, actor: null }));
-  const showAccount = current.status === 401 || current.actor?.role === "Customer";
+  const showAccount = current.status === 401 || Boolean(current.actor);
   const showStaffPortal = Boolean(current.actor && current.actor.role !== "Customer");
   return (
     <header className={styles.header}>

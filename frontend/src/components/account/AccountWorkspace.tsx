@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { AccountPanel } from "@/components/auth/AccountPanel";
 import { useIntakeActor } from "@/hooks/use-intake-actor";
-import type { CustomerAccount } from "@/lib/auth/contracts";
+import type { AccountProfile } from "@/lib/account/contracts";
 import type { ApiResult, Page } from "@/lib/api";
 import type { Appointment } from "@/lib/intake/contracts";
 import type { HistoryFilters } from "@/lib/intake/list-query";
@@ -31,7 +31,7 @@ function sectionFromHash(hash: string) {
 }
 
 export function AccountWorkspace({
-  account,
+  profile,
   history,
   filters,
   page,
@@ -41,7 +41,7 @@ export function AccountWorkspace({
   testDrives,
   testDriveQuery,
 }: {
-  account: CustomerAccount;
+  profile: AccountProfile;
   history: ApiResult<Page<Appointment>> | null;
   filters: HistoryFilters;
   page: number;
@@ -51,7 +51,7 @@ export function AccountWorkspace({
   testDrives: ApiResult<TestDriveHistory>;
   testDriveQuery: { page: number; filters: TestDriveHistoryFilters };
 }) {
-  const actor = useIntakeActor({ userId: account.userId, role: "Customer", branchId: null });
+  const actor = useIntakeActor({ userId: profile.userId, role: "Customer", branchId: null });
   const [section, setSection] = useState<AccountSection>("reservations");
   useEffect(() => {
     function sync() {
@@ -72,7 +72,7 @@ export function AccountWorkspace({
       <header className={styles.pageHeader}>
         <div>
           <h1 tabIndex={-1}>Your account</h1>
-          <p className={styles.welcome}>Welcome back, {account.legalName}.</p>
+          <p className={styles.welcome}>Welcome back, {profile.name}.</p>
         </div>
       </header>
       <nav className={styles.tabs} aria-label="Account sections">
@@ -99,7 +99,7 @@ export function AccountWorkspace({
             initial={reservations}
             page={reservationPage}
             filters={reservationFilters}
-            actorId={account.userId}
+            actorId={profile.userId}
             ready={actor.ready}
           />
         </div>
@@ -123,7 +123,7 @@ export function AccountWorkspace({
             initial={testDrives}
             page={testDriveQuery.page}
             filters={testDriveQuery.filters}
-            actorId={account.userId}
+            actorId={profile.userId}
             ready={actor.ready}
           />
         </div>
@@ -133,7 +133,7 @@ export function AccountWorkspace({
           aria-labelledby="account-details-title"
           hidden={section !== "account-details"}
         >
-          <AccountPanel initialAccount={account} />
+          <AccountPanel profile={profile} />
         </section>
       </div>
     </section>

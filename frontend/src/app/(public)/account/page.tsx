@@ -1,8 +1,8 @@
 import type { SearchParams } from "@/lib/query";
 import { redirect } from "next/navigation";
 import { AccountWorkspace } from "@/components/account/AccountWorkspace";
-import { readOwnAccount, readCurrentActor } from "@/lib/auth/server";
-import { actorDestination } from "@/lib/auth/actor";
+import { StaffAccount } from "@/components/account/StaffAccount";
+import { readOwnProfile } from "@/lib/account/server";
 import { privateApiRead } from "@/lib/server/http/api";
 import { parseAppointment } from "@/lib/intake/parse";
 import { parsePage } from "@/lib/api";
@@ -26,20 +26,20 @@ export default async function AccountPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  const response = await readOwnAccount();
+  const response = await readOwnProfile();
 
-  if (response.status === 403) {
-    const current = await readCurrentActor();
-    if (current.actor && current.actor.role !== "Customer") {
-      redirect(actorDestination(current.actor));
-    }
-  }
   if (response.status === 401) {
     redirect("/login");
   }
 
-  if (!response.account) {
+  if (!response.data) {
     throw new Error("Account service unavailable");
+  }
+
+  const profile = response.data;
+
+  if (profile.role !== "Customer") {
+    return <StaffAccount key={profile.userId} profile={profile} />;
   }
 
   const params = await searchParams;
@@ -48,7 +48,7 @@ export default async function AccountPage({
   const reservationFilters = accountReservationFilters(params);
   const testDriveQuery = accountTestDriveParams(params);
   const [history, reservations, testDrives] = await Promise.all([
-    response.account.emailVerified
+    profile.emailVerified
       ? privateApiRead(
           `/api/intake/appointments?${historyQuery(filters, page, ACCOUNT_PAGE_SIZE)}`,
           (value) => parsePage(value, parseAppointment, ACCOUNT_PAGE_SIZE),
@@ -57,16 +57,16 @@ export default async function AccountPage({
     readAccountReservations(reservationPage, reservationFilters),
     readTestDriveHistory(testDriveQuery.page, testDriveQuery.filters),
   ]);
-  if (reservations.data && reservations.data.actor.userId !== response.account.userId) {
+  if (reservations.data && reservations.data.actor.userId !== profile.userId) {
     throw new Error("Account identity could not be confirmed");
   }
-  if (testDrives.data && testDrives.data.actor.userId !== response.account.userId) {
+  if (testDrives.data && testDrives.data.actor.userId !== profile.userId) {
     throw new Error("Account identity could not be confirmed");
   }
   return (
     <AccountWorkspace
-      key={response.account.userId}
-      account={response.account}
+      key={profile.userId}
+      profile={profile}
       history={history}
       filters={filters}
       page={page}
