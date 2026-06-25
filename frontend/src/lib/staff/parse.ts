@@ -1,3 +1,4 @@
+import { parseHandlerDisplay } from "@/lib/account/handler-display";
 import { parseCountedPage, parseItems } from "@/lib/api";
 import { isNonNegativeInteger, isPositiveInteger, isRecord, isUuid } from "@/lib/auth/contracts";
 import { parseSlot, parseVehicle } from "@/lib/intake/parse";
@@ -27,10 +28,16 @@ export function parseWorklistItem(value: unknown): WorklistItem | null {
   ) {
     return null;
   }
+  const display = parseHandlerDisplay(value, "handlerName", "handlerPictureId");
+  if (!display) {
+    return null;
+  }
   return {
     ...row,
     handlerId: value.handlerId,
     handlerEmail: value.handlerEmail,
+    handlerName: display.name,
+    handlerPictureId: display.pictureId,
     handlerEligible: value.handlerEligible,
     ownershipVersion: value.ownershipVersion,
   };
@@ -134,13 +141,16 @@ function parseOwnership(value: unknown): AppointmentOwnership | null {
     return null;
   }
   const kind = parseOwnershipKind(value.kind, value.handlerId);
-  if (!kind) {
+  const display = parseHandlerDisplay(value, "handlerName", "handlerPictureId");
+  if (!kind || !display) {
     return null;
   }
   return {
     version: value.version,
     handlerId: value.handlerId,
     handlerEmail: value.handlerEmail,
+    handlerName: display.name,
+    handlerPictureId: display.pictureId,
     handlerEligible: value.handlerEligible,
     actorId: value.actorId,
     kind,

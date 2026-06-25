@@ -3,6 +3,7 @@ import type { WorklistItem } from "@/lib/staff/contracts";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { staffColumnSizing } from "@/lib/staff/table-columns";
 import { AppointmentStatus } from "./AppointmentStatus";
+import { HandlerAvatar } from "./HandlerAvatar";
 import { VehicleDescription, VehicleRegistration } from "./VehicleTableCells";
 import styles from "./StaffTable.module.css";
 
@@ -46,8 +47,13 @@ export function intakeColumns(showBranch: boolean): DataColumn<WorklistItem>[] {
           return <span className={styles.muted}>Unassigned</span>;
         }
         return (
-          <span>
-            {row.handlerEmail}
+          <span className={styles.handler}>
+            <HandlerAvatar
+              id={row.handlerId}
+              identity={row.handlerEmail ?? ""}
+              name={row.handlerName}
+              pictureId={row.handlerPictureId}
+            />
             {!row.handlerEligible && <span className={styles.muted}> (Ineligible)</span>}
           </span>
         );

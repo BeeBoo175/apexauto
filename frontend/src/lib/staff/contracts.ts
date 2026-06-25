@@ -35,6 +35,8 @@ export interface AppointmentSummary {
 export interface WorklistItem extends AppointmentSummary {
   handlerId: string | null;
   handlerEmail: string | null;
+  handlerName: string | null;
+  handlerPictureId: string | null;
   handlerEligible: boolean;
   ownershipVersion: number;
 }
@@ -54,6 +56,8 @@ export interface AppointmentOwnership {
   version: number;
   handlerId: string | null;
   handlerEmail: string | null;
+  handlerName: string | null;
+  handlerPictureId: string | null;
   handlerEligible: boolean;
   actorId: string;
   kind: "Claimed" | "Assigned" | "Released";

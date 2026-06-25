@@ -6,6 +6,7 @@ import { RecordToolbar } from "@/components/ui/RecordToolbar";
 import { CsvExportActions } from "@/components/ui/CsvExportActions";
 import { DataTable } from "@/components/ui/data-table/DataTable";
 import type { DataColumn } from "@/components/ui/data-table/types";
+import { HandlerAvatar } from "@/components/staff/HandlerAvatar";
 import { StaffQueueTabs } from "@/components/staff/StaffQueueTabs";
 import { VehicleDescription, VehicleRegistration } from "@/components/staff/VehicleTableCells";
 import { staffColumnSizing } from "@/lib/staff/table-columns";
@@ -87,7 +88,17 @@ export function StaffTestDriveTable({
       label: "Handling staff",
       ...staffColumnSizing.person,
       sortable: true,
-      cell: (row) => row.handlerEmail ?? <span className={table.muted}>Unassigned</span>,
+      cell: (row) =>
+        row.handlerId && row.handlerEmail ? (
+          <HandlerAvatar
+            id={row.handlerId}
+            identity={row.handlerEmail}
+            name={row.handlerName}
+            pictureId={row.handlerPictureId}
+          />
+        ) : (
+          <span className={table.muted}>Unassigned</span>
+        ),
     },
     {
       id: "status",

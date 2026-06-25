@@ -1,5 +1,6 @@
 "use client";
 
+import { Avatar } from "@/components/ui/Avatar";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { StaffLink } from "@/components/staff/StaffLink";
 import { StaffHistoryProgress } from "@/components/staff/StaffHistoryProgress";
@@ -55,7 +56,14 @@ export function ListingHistory({
                 <time dateTime={entry.recordedAt}>{formatMalaysianDateTime(entry.recordedAt)}</time>
               </div>
               <span className={styles.context}>
-                Revision {entry.version} · {entry.actorIdentity}
+                Revision {entry.version} · {entry.actorIdentity}{" "}
+                <Avatar
+                  accountId={entry.actorId}
+                  name={entry.actorIdentity}
+                  pictureId={entry.actorPictureId}
+                  size="sm"
+                  detail="Listing history"
+                />
               </span>
               {entry.reason && <p>{entry.reason}</p>}
               <div className={styles.eventActions}>

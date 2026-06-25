@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { HandlerAvatar } from "@/components/staff/HandlerAvatar";
 import { VehicleDescription, VehicleRegistration } from "@/components/staff/VehicleTableCells";
 import { Dialog } from "@/components/ui/Dialog";
 import type { DataColumn } from "@/components/ui/data-table/types";
@@ -98,7 +99,17 @@ export function WorkshopQueue({
       label: "Assigned technician",
       sortable: true,
       ...staffColumnSizing.person,
-      cell: (row) => row.technicianIdentity ?? <span className={styles.muted}>Unassigned</span>,
+      cell: (row) =>
+        row.technicianId && row.technicianIdentity ? (
+          <HandlerAvatar
+            id={row.technicianId}
+            identity={row.technicianIdentity}
+            name={row.technicianIdentity}
+            pictureId={row.technicianPictureId}
+          />
+        ) : (
+          <span className={styles.muted}>Unassigned</span>
+        ),
     });
   }
   columns.push({

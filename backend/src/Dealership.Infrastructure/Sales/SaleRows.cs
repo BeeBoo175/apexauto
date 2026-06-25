@@ -117,7 +117,7 @@ internal static class SaleRows
         row.Agent, row.Branch, row.DueAt, row.PausedSeconds, row.ClaimedAt, row.NegotiatedDiscount,
         row.DiscountLimitAtSubmit, row.BalancePayable, row.SubmittedAt, row.DecidedAt, row.ClosedAt,
         SalesOrder.IsClosedStatus(row.Status) ? row.Status.ToString() : null,
-        row.Version, row.UpdatedAt, row.AgentName, row.AgentPictureId);
+        row.Version, row.UpdatedAt, row.AgentName, row.AgentPictureId, row.AgentId);
 
     // Compare remaining time before counting and paging, using one instant for both bounds.
     public static IQueryable<SaleRow> TimeLeftBetween(IQueryable<SaleRow> rows, decimal? minimum,

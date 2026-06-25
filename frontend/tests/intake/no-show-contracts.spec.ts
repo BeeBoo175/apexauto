@@ -88,6 +88,8 @@ const row = {
   status: "NoShow",
   handlerId: null,
   handlerEmail: null,
+  handlerName: null,
+  handlerPictureId: null,
   handlerEligible: false,
   ownershipVersion: 0,
 };
@@ -118,6 +120,8 @@ test("no-show snapshots retain status and validate correction evidence", () => {
     version: 2,
     handlerId: id,
     handlerEmail: "agent@example.invalid",
+    handlerName: "Aina Rahman",
+    handlerPictureId: id,
     handlerEligible: false,
     actorId: id,
     kind: "Assigned",
@@ -135,6 +139,8 @@ test("no-show snapshots retain status and validate correction evidence", () => {
     kind: "Released",
     handlerId: null,
     handlerEmail: null,
+    handlerName: null,
+    handlerPictureId: null,
   };
   expect(parseDetail({ ...detail, ownership: released })?.ownership).toEqual(released);
   expect(parseWorklistItem({ ...row, handlerId: id })).toBeNull();

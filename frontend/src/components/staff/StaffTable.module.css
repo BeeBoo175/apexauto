@@ -11,6 +11,12 @@
   justify-content: flex-end;
 }
 
+.handler {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .muted {
   color: var(--color-muted);
   font-size: 12px;

@@ -34,3 +34,48 @@
   height: 100%;
   object-fit: cover;
 }
+
+.previewHost {
+  position: relative;
+  display: inline-flex;
+}
+
+.link {
+  display: inline-flex;
+  border-radius: 50%;
+  color: inherit;
+  text-decoration: none;
+}
+
+.preview {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: max-content;
+  padding: 10px 14px;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  background: var(--color-paper);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.16);
+  pointer-events: none;
+}
+
+.previewText {
+  display: grid;
+  gap: 2px;
+  text-align: left;
+}
+
+.previewName {
+  color: var(--color-graphite);
+  font-weight: 700;
+}
+
+.previewDetail {
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+}

@@ -22,6 +22,8 @@ const row = {
   status: "Booked",
   handlerId: null,
   handlerEmail: null,
+  handlerName: null,
+  handlerPictureId: null,
   startsAt: "2026-10-20T01:00:00Z",
   endsAt: "2026-10-20T02:30:00Z",
 };
@@ -59,6 +61,8 @@ test("unscheduled work validates ownership and real editor identity without inve
     kind: "Workshop",
     handlerId: id,
     handlerEmail: "aina@example.invalid",
+    handlerName: "Aina Rahman",
+    handlerPictureId: null,
     inspectionId: branchId,
   };
   const snapshot = {

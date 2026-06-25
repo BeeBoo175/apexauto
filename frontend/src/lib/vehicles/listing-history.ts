@@ -15,6 +15,7 @@ export interface ListingHistoryEntry {
   version: number;
   actorId: string;
   actorIdentity: string;
+  actorPictureId: string | null;
   recordedAt: string;
   reason: string | null;
 }
@@ -47,6 +48,7 @@ function parseEntry(value: unknown): ListingHistoryEntry | null {
     Number(value.version) < 1 ||
     typeof value.actorIdentity !== "string" ||
     !value.actorIdentity.trim() ||
+    (value.actorPictureId !== null && !isUuid(value.actorPictureId)) ||
     typeof value.recordedAt !== "string" ||
     !/(?:Z|\+00:00)$/.test(value.recordedAt) ||
     !Number.isFinite(Date.parse(value.recordedAt))
@@ -70,6 +72,7 @@ function parseEntry(value: unknown): ListingHistoryEntry | null {
     version: Number(value.version),
     actorId: value.actorId,
     actorIdentity: value.actorIdentity,
+    actorPictureId: value.actorPictureId,
     recordedAt: value.recordedAt,
     reason: typeof value.reason === "string" ? value.reason : null,
   };

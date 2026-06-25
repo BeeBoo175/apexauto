@@ -1,3 +1,4 @@
+import { HandlerAvatar } from "@/components/staff/HandlerAvatar";
 import { VehicleDescription, VehicleRegistration } from "@/components/staff/VehicleTableCells";
 import { Badge } from "@/components/ui/Badge";
 import type { DataColumn } from "@/components/ui/data-table/types";
@@ -62,7 +63,17 @@ export function saleColumns(role: CurrentActor["role"], now: number): DataColumn
       label: "Agent",
       sortable: true,
       ...staffColumnSizing.person,
-      cell: (row) => row.agent ?? <span className={styles.muted}>Unclaimed</span>,
+      cell: (row) =>
+        row.agentId && row.agent ? (
+          <HandlerAvatar
+            id={row.agentId}
+            identity={row.agent}
+            name={row.agentName}
+            pictureId={row.agentPictureId}
+          />
+        ) : (
+          <span className={styles.muted}>Unclaimed</span>
+        ),
     },
     {
       id: "status",

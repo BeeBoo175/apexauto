@@ -1,3 +1,4 @@
+import { parseHandlerDisplay } from "@/lib/account/handler-display";
 import { parseItems, parsePage, type Page } from "@/lib/api";
 import { parseActor, type CurrentActor } from "@/lib/auth/actor";
 import { isRecord, isUtcInstant, isUuid, isNonNegativeInteger } from "@/lib/auth/contracts";
@@ -28,6 +29,8 @@ export interface WorkItem {
   status: string;
   handlerId: string | null;
   handlerEmail: string | null;
+  handlerName: string | null;
+  handlerPictureId: string | null;
   inspectionId?: string | null;
 }
 
@@ -135,7 +138,8 @@ function parseWorkItem(value: unknown): WorkItem | null {
   const kind = (["Intake", "TestDrive", "Workshop", "Sale"] as const).find(
     (item) => item === value.kind,
   );
-  if (!kind) {
+  const display = parseHandlerDisplay(value, "handlerName", "handlerPictureId");
+  if (!kind || !display) {
     return null;
   }
   return {
@@ -148,6 +152,8 @@ function parseWorkItem(value: unknown): WorkItem | null {
     status: value.status,
     handlerId: value.handlerId,
     handlerEmail: value.handlerEmail,
+    handlerName: display.name,
+    handlerPictureId: display.pictureId,
   };
 }
 

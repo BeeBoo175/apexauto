@@ -1,3 +1,4 @@
+import { parseHandlerDisplay } from "@/lib/account/handler-display";
 import { parseCountedPage, parseItems } from "@/lib/api";
 import { parseActor } from "@/lib/auth/actor";
 import { parseOwnershipKind } from "@/lib/staff/ownership";
@@ -78,7 +79,8 @@ export function parseStaffTestDriveItem(value: unknown) {
     return null;
   }
   const status = testDriveStates.find((item) => item === value.status);
-  if (!status || (value.ownershipVersion === 0 && value.handlerId !== null)) {
+  const display = parseHandlerDisplay(value, "handlerName", "handlerPictureId");
+  if (!status || !display || (value.ownershipVersion === 0 && value.handlerId !== null)) {
     return null;
   }
   return {
@@ -98,6 +100,8 @@ export function parseStaffTestDriveItem(value: unknown) {
     ownershipVersion: value.ownershipVersion,
     handlerId: value.handlerId,
     handlerEmail: value.handlerEmail,
+    handlerName: display.name,
+    handlerPictureId: display.pictureId,
     handlerEligible: value.handlerEligible,
   };
 }

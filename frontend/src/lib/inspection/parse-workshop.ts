@@ -17,6 +17,7 @@ function parseWorkshopRow(value: unknown): WorkshopRow | null {
     !nullableId(value.inspectionId) ||
     !nullableId(value.technicianId) ||
     !(value.technicianIdentity === null || text(value.technicianIdentity)) ||
+    !nullableId(value.technicianPictureId) ||
     !(value.revision === null || isPositiveInteger(value.revision)) ||
     !nullableId(value.requestId) ||
     !(value.budget === null || money(value.budget)) ||

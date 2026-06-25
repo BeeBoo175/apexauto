@@ -159,6 +159,9 @@ export interface SaleSummary {
   trim: string;
   customer: string;
   agent: string | null;
+  agentId: string | null;
+  agentName: string | null;
+  agentPictureId: string | null;
   branch: string;
   dueAt: string | null;
   pausedSeconds: number | null;

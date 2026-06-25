@@ -135,7 +135,7 @@ export async function exerciseManagerHandler(page: Page) {
   const rows = page.locator("tbody tr");
   expect(await rows.count()).toBeGreaterThan(0);
   for (const row of await rows.all()) {
-    await expect(row.getByRole("cell").nth(5)).toHaveText(handler);
+    await expect(row.getByRole("cell").nth(5)).toContainText(handler);
   }
   await page.getByRole("button", { name: /^Remove handler filter:/ }).click();
   await expect.poll(() => new URL(page.url()).searchParams.has("handler")).toBe(false);

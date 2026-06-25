@@ -39,6 +39,7 @@ export type WorkshopRow = {
   inspectionId: string | null;
   technicianId: string | null;
   technicianIdentity: string | null;
+  technicianPictureId: string | null;
   revision: number | null;
   requestId: string | null;
   budget: number | null;

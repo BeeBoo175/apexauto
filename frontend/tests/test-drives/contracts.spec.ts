@@ -178,6 +178,8 @@ test("staff snapshots preserve released ownership and bind handling evidence to 
     ownershipVersion: 2,
     handlerId: null,
     handlerEmail: null,
+    handlerName: null,
+    handlerPictureId: null,
     handlerEligible: false,
   };
   const ownership = {

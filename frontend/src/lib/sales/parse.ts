@@ -241,6 +241,10 @@ export function parseSaleSummary(value: unknown): SaleSummary | null {
     typeof value.trim !== "string" ||
     !text(value.customer) ||
     !nullable(text)(value.agent) ||
+    !nullable(isUuid)(value.agentId) ||
+    !nullable(text)(value.agentName) ||
+    !nullable(isUuid)(value.agentPictureId) ||
+    (value.agent === null) !== (value.agentId === null) ||
     !text(value.branch) ||
     !nullable(isUtcInstant)(value.dueAt) ||
     !nullable(isPositiveInteger)(value.pausedSeconds) ||

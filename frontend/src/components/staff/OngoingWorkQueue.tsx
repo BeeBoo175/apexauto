@@ -96,7 +96,7 @@ export function OngoingWorkQueue({
                 {!own && (
                   <span className={queue.jobMeta}>
                     {showBranch && `${item.branchName} · `}
-                    {item.handlerEmail}
+                    {item.handlerName ?? item.handlerEmail}
                   </span>
                 )}
               </StaffLink>
