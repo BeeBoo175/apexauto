@@ -101,6 +101,44 @@ public sealed class StaffSessionTests(RegistrationDatabase database) : IClassFix
         Assert.Equal(AccountRoles.Administrator, (await client.GetFromJsonAsync<CurrentActor>("/api/auth/session"))!.Role);
     }
 
+    [Fact]
+    public async Task OwnProfileShowsStaffWorkDetailsAndCustomerIdentity()
+    {
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+        var branchId = await CreateBranchAsync(factory, "ApexAuto Cheras");
+        var email = $"azlan.rahim.{Guid.NewGuid():N}@example.invalid";
+        var userId = await CreateStaffAsync(factory, email, AccountRoles.SalesAgent, branchId);
+        var staff = await LoginAsync(client, email);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", staff.AccessToken);
+
+        var response = await client.GetAsync("/api/account/profile");
+        Assert.True(response.Headers.CacheControl?.NoStore);
+        var profile = (await response.Content.ReadFromJsonAsync<AccountProfile>())!;
+        Assert.Equal(userId, profile.UserId);
+        Assert.Equal(AccountRoles.SalesAgent, profile.Role);
+        Assert.Equal("Azlan Rahim", profile.Name);
+        Assert.Equal(email, profile.Email);
+        Assert.Equal(branchId, profile.BranchId);
+        Assert.Equal("ApexAuto Cheras", profile.BranchName);
+        Assert.Equal("0123456707", profile.Mobile);
+        Assert.True(UsernamePolicy.IsValid(profile.Username));
+
+        var registration = new RegistrationRequest(Guid.NewGuid(), "Nur Aisyah Rahman",
+            $"nur.aisyah.{Guid.NewGuid():N}@example.invalid", "Password123!", "950312101234",
+            "0123456789", "18 Jalan Melati, Petaling Jaya, Selangor", TestUsernames.Next());
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await client.PostAsJsonAsync("/api/auth/register", registration)).StatusCode);
+        var customer = await LoginAsync(client, registration.Email!);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", customer.AccessToken);
+        var own = (await client.GetFromJsonAsync<AccountProfile>("/api/account/profile"))!;
+        Assert.Equal(AccountRoles.Customer, own.Role);
+        Assert.Equal("Nur Aisyah Rahman", own.Name);
+        Assert.Equal(registration.Username, own.Username);
+        Assert.Null(own.BranchName);
+        Assert.Null(own.Mobile);
+    }
+
     private WebApplicationFactory<Program> CreateFactory()
     {
         return new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>

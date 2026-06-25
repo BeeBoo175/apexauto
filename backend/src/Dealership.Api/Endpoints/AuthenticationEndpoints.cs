@@ -11,6 +11,7 @@ public static class AuthenticationEndpoints
         app.MapPost("/api/auth/login", LoginAsync).RequireRateLimiting(ApiRateLimiting.LoginPolicy);
         app.MapPost("/api/auth/logout", LogoutAsync).RequireAuthorization();
         app.MapGet("/api/account", GetAccountAsync).RequireAuthorization();
+        app.MapGet("/api/account/profile", GetProfileAsync).RequireAuthorization();
         app.MapGet("/api/auth/session", GetActorAsync).RequireAuthorization();
         app.MapPost("/api/auth/email-verification/resend", ResendVerificationAsync)
             .RequireAuthorization().RequireRateLimiting(ApiRateLimiting.VerificationPolicy);
@@ -52,6 +53,14 @@ public static class AuthenticationEndpoints
         var userId = HttpContextActor.ActorId(context);
         var account = await accounts.GetAccountAsync(userId, cancellationToken);
         return account is null ? Results.Forbid() : Results.Ok(account);
+    }
+
+    private static async Task<IResult> GetProfileAsync(HttpContext context, IAccountProfileQuery profiles,
+        CancellationToken cancellationToken)
+    {
+        context.Response.Headers.CacheControl = "no-store";
+        var profile = await profiles.GetProfileAsync(HttpContextActor.ActorId(context), cancellationToken);
+        return profile is null ? Results.Forbid() : Results.Ok(profile);
     }
 
     private static async Task<IResult> GetActorAsync(HttpContext context, IAccountSessionStore sessions,
