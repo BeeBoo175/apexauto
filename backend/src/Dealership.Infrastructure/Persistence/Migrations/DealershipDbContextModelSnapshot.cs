@@ -1981,6 +1981,11 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("integer");
 
+                    b.Property<string>("AccountUsername")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
                     b.Property<Guid?>("BranchId")
                         .HasColumnType("uuid");
 
@@ -2006,6 +2011,12 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.Property<DateTimeOffset?>("LockoutEnd")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("NormalizedAccountUsername")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasComputedColumnSql("upper(\"AccountUsername\")", true);
 
                     b.Property<string>("NormalizedEmail")
                         .IsRequired()
@@ -2046,6 +2057,10 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("BranchId");
 
+                    b.HasIndex("NormalizedAccountUsername")
+                        .IsUnique()
+                        .HasDatabaseName("AccountUsernameIndex");
+
                     b.HasIndex("NormalizedEmail")
                         .IsUnique()
                         .HasDatabaseName("EmailIndex");
@@ -2056,6 +2071,8 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.ToTable("AspNetUsers", null, t =>
                         {
+                            t.HasCheckConstraint("CK_Users_AccountUsername", "\"AccountUsername\" ~ '^[A-Za-z0-9._]{3,30}$'");
+
                             t.HasCheckConstraint("CK_Users_EmailNormalization", "length(\"Email\") > 0 AND \"Email\" = btrim(\"Email\", U&'\\0009\\000A\\000B\\000C\\000D\\0020\\0085\\00A0\\1680\\2000\\2001\\2002\\2003\\2004\\2005\\2006\\2007\\2008\\2009\\200A\\2028\\2029\\202F\\205F\\3000') AND \"NormalizedEmail\" = upper(\"Email\")");
 
                             t.HasCheckConstraint("CK_Users_RoleBranch", "\"Role\" IN ('Customer', 'SalesAgent', 'WorkshopTechnician', 'BranchManager', 'GeneralManager', 'Administrator') AND ((\"Role\" IN ('SalesAgent', 'WorkshopTechnician', 'BranchManager') AND \"BranchId\" IS NOT NULL) OR (\"Role\" IN ('Customer', 'GeneralManager', 'Administrator') AND \"BranchId\" IS NULL))");
