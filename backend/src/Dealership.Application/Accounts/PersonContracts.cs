@@ -17,3 +17,9 @@ public interface IPersonQuery
 {
     Task<Person?> FindAsync(Guid userId, CancellationToken cancellationToken);
 }
+
+public interface IRecordHandlerQuery
+{
+    // Whether the staff account currently handles an appointment, test drive or sale of the customer.
+    Task<bool> HandlesCustomerAsync(Guid staffId, Guid customerId, CancellationToken cancellationToken);
+}

@@ -29,7 +29,11 @@ public sealed class InspectionAssignmentStore(DealershipDbContext database) : II
             item.BranchId == actor.BranchId && item.Role == AccountRoles.WorkshopTechnician);
         var total = await technicians.CountAsync(cancellationToken);
         var items = await technicians.OrderBy(item => item.UserName).ThenBy(item => item.Id)
-            .Select(item => new InspectionTechnician(item.Id, item.UserName!))
+            .Select(item => new InspectionTechnician(item.Id,
+                database.StaffProfiles.Where(profile => profile.UserId == item.Id)
+                    .Select(profile => profile.Name).FirstOrDefault() ?? item.UserName!,
+                database.AccountPictures.Where(picture => picture.UserId == item.Id && picture.RemovedAt == null)
+                    .Select(picture => (Guid?)picture.Id).FirstOrDefault()))
             .ReadPageAsync(page, pageSize, total, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return new(InspectionAssignmentStatus.Succeeded, new(Array.AsReadOnly(items), total, page, pageSize));

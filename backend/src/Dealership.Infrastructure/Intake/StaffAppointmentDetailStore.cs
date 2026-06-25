@@ -112,9 +112,11 @@ public sealed class StaffAppointmentDetailStore(DealershipDbContext database) : 
         var handlerEligible = assignment?.HandlerId is { } currentHandlerId &&
             await StaffHandlerRows.Eligible(database).AnyAsync(user =>
                 user.Id == currentHandlerId && user.BranchId == row.BranchId, cancellationToken);
+        var display = await StaffHandlerRows.DisplayAsync(database, assignment?.HandlerId, cancellationToken);
         var ownership = assignment is null ? null
             : new AppointmentOwnership(assignment.Version, assignment.HandlerId, handlerEmail, handlerEligible,
-                assignment.ActorId, assignment.Kind, assignment.RecordedAt, assignment.Reason);
+                assignment.ActorId, assignment.Kind, assignment.RecordedAt, assignment.Reason,
+                display.Name, display.PictureId);
         var detail = new StaffAppointmentDetail(row.Id, row.BranchId, row.BranchName, row.CustomerName,
             row.RegistrationPlate, row.StartsAt, row.EndsAt, status, row.Make, row.Model, row.Trim,
             row.ManufactureYear, row.MileageKilometres, wasNoShow ? noShowAt : null, row.CheckIn?.CorrectionRecordedAt, row.CheckIn?.CorrectionReason,

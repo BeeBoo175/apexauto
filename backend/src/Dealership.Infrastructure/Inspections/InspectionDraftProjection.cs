@@ -35,8 +35,9 @@ internal static class InspectionDraftProjection
                 .OrderBy(photo => photo.PhotoId)
                 .Select(photo => new InspectionPhotoReference(photo.PhotoId, photo.PointCode))
                 .ToArrayAsync(cancellationToken);
-            var technician = await database.Users.AsNoTracking().Where(user => user.Id == draft.TechnicianId)
-                .Select(user => user.UserName).FirstOrDefaultAsync(cancellationToken);
+            var technician = await database.StaffProfiles.AsNoTracking()
+                .Where(profile => profile.UserId == draft.TechnicianId)
+                .Select(profile => profile.Name).FirstOrDefaultAsync(cancellationToken);
             draft = draft with
             {
                 LatestSave = latest?.Receipt(),

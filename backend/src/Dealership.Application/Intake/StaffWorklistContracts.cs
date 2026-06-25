@@ -62,7 +62,8 @@ public sealed record StaffWorklistQuery(DateTimeOffset? From, DateTimeOffset? Un
 public sealed record StaffWorklistItem(Guid Id, Guid BranchId, string BranchName, string CustomerName,
     string RegistrationPlate, DateTimeOffset StartsAt, DateTimeOffset EndsAt, string Status,
     string Make, string Model, string Trim, int ManufactureYear,
-    Guid? HandlerId = null, string? HandlerEmail = null, bool HandlerEligible = false, long OwnershipVersion = 0);
+    Guid? HandlerId = null, string? HandlerEmail = null, bool HandlerEligible = false, long OwnershipVersion = 0,
+    string? HandlerName = null, Guid? HandlerPictureId = null);
 
 // Section totals for the actor's branch scope, independent of dates, search and column filters.
 public sealed record StaffWorklistCounts(int Booked, int CheckedIn, int Cancelled, int NoShow, int All,

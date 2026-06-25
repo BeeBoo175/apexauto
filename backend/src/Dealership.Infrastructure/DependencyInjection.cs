@@ -74,6 +74,7 @@ public static class DependencyInjection
         services.AddScoped<ICustomerAccountQuery, CustomerAccountQuery>();
         services.AddScoped<IAccountProfileQuery, AccountProfileQuery>();
         services.AddScoped<IPersonQuery, PersonQuery>();
+        services.AddScoped<IRecordHandlerQuery, RecordHandlerQuery>();
         services.AddScoped<IAccountPictureStore, AccountPictureStore>();
         services.AddScoped<IStaffProvisioningStore, StaffProvisioningStore>();
         services.AddScoped<IBranchProvisioningStore, BranchProvisioningStore>();

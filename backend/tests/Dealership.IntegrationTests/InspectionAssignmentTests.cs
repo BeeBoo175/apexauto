@@ -146,7 +146,7 @@ public sealed class InspectionAssignmentTests(IntakePhotoFixture fixture) : ICla
             Assert.Equal(pageSize, choices.PageSize);
             Assert.Equal(2, choices.Total);
             Assert.Equal(new[] { first, second }.Order(), choices.Items.Select(item => item.Id).Order());
-            Assert.All(choices.Items, item => Assert.Contains("@example.invalid", item.Identity));
+            Assert.All(choices.Items, item => Assert.DoesNotContain("@", item.Identity));
         }
         Assert.Empty((await store.TechniciansAsync(manager, int.MaxValue, 50, CancellationToken.None)).Technicians!.Items);
         Assert.Equal(InspectionAssignmentStatus.Invalid, (await store.TechniciansAsync(manager, 0, 25, CancellationToken.None)).Status);

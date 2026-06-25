@@ -31,7 +31,8 @@ public sealed record StaffTestDriveQuery(ListDateRange Dates, int Page, int Page
 public sealed record StaffTestDriveItem(Guid Id, Guid VehicleId, Guid BranchId, string BranchName,
     string RegistrationPlate, string Make, string Model, string Trim, int ManufactureYear,
     string CustomerName, DateTimeOffset StartsAt, DateTimeOffset EndsAt, string Status,
-    Guid? AssignmentId, long OwnershipVersion, Guid? HandlerId, string? HandlerEmail, bool HandlerEligible);
+    Guid? AssignmentId, long OwnershipVersion, Guid? HandlerId, string? HandlerEmail, bool HandlerEligible,
+    string? HandlerName = null, Guid? HandlerPictureId = null);
 
 // Counts use the same branch scope, independently of list dates, search and handler filters.
 public sealed record StaffTestDriveCounts(int All, int Booked, int InProgress, int Completed,

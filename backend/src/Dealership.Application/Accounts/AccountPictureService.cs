@@ -4,10 +4,10 @@ using Dealership.Domain.Photos;
 
 namespace Dealership.Application.Accounts;
 
-// A picture is visible to staff and to its owner; only the owner or an Administrator may remove it.
+// A picture is visible to staff, to its owner and to customers whose records its owner handles; only the owner or an Administrator may remove it.
 public sealed class AccountPictureService(IAccountProfileQuery profiles, IAccountPictureStore pictures,
     IPhotoImageValidator validator, IPhotoThumbnailer thumbnailer, PhotoTransferService transfers,
-    IPhotoTransferLock locks, IPhotoStorage storage, TimeProvider clock)
+    IPhotoTransferLock locks, IPhotoStorage storage, IRecordHandlerQuery handlers, TimeProvider clock)
 {
     public async Task<AccountPictureResult> UploadAsync(Guid actorId, string contentType, Stream content,
         CancellationToken cancellationToken)
@@ -53,7 +53,8 @@ public sealed class AccountPictureService(IAccountProfileQuery profiles, IAccoun
     {
         var viewer = await profiles.GetProfileAsync(viewerId, cancellationToken);
 
-        if (viewer is null || (viewerId != ownerId && viewer.Role == AccountRoles.Customer))
+        if (viewer is null || (viewerId != ownerId && viewer.Role == AccountRoles.Customer &&
+            !await handlers.HandlesCustomerAsync(ownerId, viewerId, cancellationToken)))
         {
             return new AccountPictureResult(AccountPictureStatus.Forbidden);
         }

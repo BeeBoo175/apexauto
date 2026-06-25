@@ -9,4 +9,4 @@ public sealed record BranchStaff(bool IsActive, string Role, Guid? BranchId)
     }
 }
 
-public sealed record StaffHandler(Guid Id, string Email);
+public sealed record StaffHandler(Guid Id, string Email, string Name, Guid? PictureId);

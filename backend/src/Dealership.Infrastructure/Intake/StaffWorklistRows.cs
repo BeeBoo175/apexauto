@@ -130,6 +130,11 @@ internal static class StaffWorklistRows
                     HandlerId = row.Row.HandlerId,
                     OwnershipVersion = row.Row.OwnershipVersion,
                     HandlerEmail = database.Users.Where(user => user.Id == row.Row.HandlerId).Select(user => user.Email).FirstOrDefault(),
+                    HandlerName = database.StaffProfiles.Where(profile => profile.UserId == row.Row.HandlerId)
+                        .Select(profile => profile.Name).FirstOrDefault(),
+                    HandlerPictureId = database.AccountPictures
+                        .Where(picture => picture.UserId == row.Row.HandlerId && picture.RemovedAt == null)
+                        .Select(picture => (Guid?)picture.Id).FirstOrDefault(),
                     HandlerEligible = handlers.Any(user => user.Id == row.Row.HandlerId &&
                         user.BranchId == row.Row.Appointment.BranchId)
                 });
@@ -173,7 +178,8 @@ internal static class StaffWorklistRows
         return new StaffWorklistItem(row.Id, row.BranchId, row.BranchName, row.CustomerName,
             row.RegistrationPlate, row.StartsAt, row.EndsAt, Status(row.CheckedIn, row.Cancelled, row.NoShow),
             row.Make, row.Model, row.Trim, row.ManufactureYear,
-            row.HandlerId, row.HandlerEmail, row.HandlerEligible, row.OwnershipVersion);
+            row.HandlerId, row.HandlerEmail, row.HandlerEligible, row.OwnershipVersion,
+            row.HandlerName, row.HandlerPictureId);
     }
 
     public static IOrderedQueryable<WorklistRow> Order(IQueryable<WorklistRow> rows, StaffWorklistQuery query)
@@ -249,6 +255,8 @@ internal static class StaffWorklistRows
         public bool NoShow { get; init; }
         public Guid? HandlerId { get; init; }
         public string? HandlerEmail { get; init; }
+        public string? HandlerName { get; init; }
+        public Guid? HandlerPictureId { get; init; }
         public bool HandlerEligible { get; init; }
         public long OwnershipVersion { get; init; }
     }

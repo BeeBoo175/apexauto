@@ -25,7 +25,7 @@ public sealed record InspectionPhotoReference(Guid Id, string PointCode);
 public sealed record InspectionDraftVehicle(string RegistrationPlate, string Make, string Model, string Vin,
     int MileageKilometres, string Status, string BranchName);
 
-public sealed record InspectionTechnician(Guid Id, string Identity);
+public sealed record InspectionTechnician(Guid Id, string Identity, Guid? PictureId = null);
 
 public sealed record InspectionTechnicianPage(IReadOnlyList<InspectionTechnician> Items, int Total, int Page, int PageSize);
 

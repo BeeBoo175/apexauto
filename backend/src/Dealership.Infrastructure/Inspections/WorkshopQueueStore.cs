@@ -111,7 +111,7 @@ public sealed class WorkshopQueueStore(DealershipDbContext database) : IWorkshop
             row.RegistrationPlate, row.Make, row.Model, row.VehicleStatus.ToString(), row.InspectionId,
             row.TechnicianId, row.TechnicianIdentity, row.Revision, row.RequestId, row.Budget,
             row.Since, row.RequestId is null ? "CheckedIn" : "Requested", WorkshopRows.Status(row),
-            row.ManufactureYear, row.Trim, row.CheckedInAt, row.RequestedAt))];
+            row.ManufactureYear, row.Trim, row.CheckedInAt, row.RequestedAt, row.TechnicianPictureId))];
     }
 
     private static IQueryable<WorkshopRow> FilterColumns(IQueryable<WorkshopRow> rows, InspectionQueueFilter filter)

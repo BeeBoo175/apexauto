@@ -10,7 +10,8 @@ public sealed record StaffAppointmentDetail(Guid Id, Guid BranchId, string Branc
     AppointmentOwnership? Ownership = null);
 
 public sealed record AppointmentOwnership(long Version, Guid? HandlerId, string? HandlerEmail,
-    bool HandlerEligible, Guid ActorId, string Kind, DateTimeOffset RecordedAt, string? Reason);
+    bool HandlerEligible, Guid ActorId, string Kind, DateTimeOffset RecordedAt, string? Reason,
+    string? HandlerName = null, Guid? HandlerPictureId = null);
 
 public sealed record AppointmentHandlersResult(StaffAppointmentDetailStatus Status,
     IReadOnlyList<StaffHandler>? Handlers = null);

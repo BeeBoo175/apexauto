@@ -28,7 +28,7 @@ public sealed record WorkshopQueueItem(Guid VehicleId, Guid BranchId, string Bra
     Guid? InspectionId, Guid? TechnicianId, string? TechnicianIdentity, long? Revision,
     Guid? RequestId, decimal? Budget, DateTimeOffset Since, string DateSource, WorkshopWorkStatus Status,
     int ManufactureYear = 0, string Trim = "", DateTimeOffset CheckedInAt = default,
-    DateTimeOffset? RequestedAt = null);
+    DateTimeOffset? RequestedAt = null, Guid? TechnicianPictureId = null);
 
 // Managerial task totals for the actor's branch scope, independent of dates, search and column filters.
 public sealed record WorkshopQueueCounts(int Active, int Inspection, int Approval, int Repairs, int All);

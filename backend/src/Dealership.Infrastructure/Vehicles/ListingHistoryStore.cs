@@ -70,13 +70,21 @@ public sealed class ListingHistoryStore(DealershipDbContext database) : IListing
         var total = await events.CountAsync(cancellationToken);
         var rows = await (from entry in events
                           join actor in database.Users.AsNoTracking() on entry.ActorId equals actor.Id
-                          select new { Entry = entry, ActorIdentity = actor.UserName ?? actor.Id.ToString() })
+                          select new
+                          {
+                              Entry = entry,
+                              ActorIdentity = database.StaffProfiles.Where(profile => profile.UserId == actor.Id)
+                                  .Select(profile => profile.Name).FirstOrDefault() ?? actor.UserName ?? actor.Id.ToString(),
+                              ActorPictureId = database.AccountPictures
+                                  .Where(picture => picture.UserId == actor.Id && picture.RemovedAt == null)
+                                  .Select(picture => (Guid?)picture.Id).FirstOrDefault()
+                          })
             .OrderByDescending(row => row.Entry.RecordedAt).ThenByDescending(row => row.Entry.Order)
             .ThenByDescending(row => row.Entry.Id)
             .ReadPageAsync(query.Page, query.PageSize, total, cancellationToken);
         var items = rows.Select(row => new ListingHistoryEntry(row.Entry.Id, row.Entry.Kind,
             row.Entry.RevisionId, row.Entry.Version, row.Entry.ActorId, row.ActorIdentity,
-            row.Entry.RecordedAt, row.Entry.Reason)).ToArray();
+            row.Entry.RecordedAt, row.Entry.Reason, row.ActorPictureId)).ToArray();
 
         await transaction.CommitAsync(cancellationToken);
         return new(ListingStatus.Succeeded,

@@ -9,7 +9,7 @@ public sealed record ListingHistoryQuery(int Page = 1, int PageSize = Pagination
 }
 
 public sealed record ListingHistoryEntry(Guid Id, string Kind, Guid RevisionId, long Version,
-    Guid ActorId, string ActorIdentity, DateTimeOffset RecordedAt, string? Reason);
+    Guid ActorId, string ActorIdentity, DateTimeOffset RecordedAt, string? Reason, Guid? ActorPictureId = null);
 
 public sealed record ListingHistoryPage(Guid VehicleId, Guid BranchId,
     IReadOnlyList<ListingHistoryEntry> Items, int TotalCount, int Page, int PageSize);

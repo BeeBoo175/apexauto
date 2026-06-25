@@ -72,10 +72,11 @@ internal static class WorkCalendarScheduledRows
         var items = appointments.Select(StaffWorklistRows.ToItem).Select(row => new WorkCalendarEvent(
             row.Id, "Intake", row.BranchId, row.BranchName, row.RegistrationPlate,
             $"{row.ManufactureYear} {row.Make} {row.Model} {row.Trim}", row.Status,
-            row.HandlerId, row.HandlerEmail, row.StartsAt, row.EndsAt));
+            row.HandlerId, row.HandlerEmail, row.StartsAt, row.EndsAt, row.HandlerName, row.HandlerPictureId));
         var testDrives = bookings.Select(row => new WorkCalendarEvent(row.Id, "TestDrive", row.BranchId,
             row.BranchName, row.RegistrationPlate, $"{row.ManufactureYear} {row.Make} {row.Model} {row.Trim}",
-            row.Status, row.HandlerId, row.HandlerEmail, row.StartsAt, row.EndsAt));
+            row.Status, row.HandlerId, row.HandlerEmail, row.StartsAt, row.EndsAt, row.HandlerName,
+            row.HandlerPictureId));
         return [.. items.Concat(testDrives).OrderBy(row => row.StartsAt).ThenBy(row => row.Kind, StringComparer.Ordinal)
             .ThenBy(row => row.Id)];
     }

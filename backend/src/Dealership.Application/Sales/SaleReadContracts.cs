@@ -23,7 +23,7 @@ public sealed record SaleSummary(Guid Id, string ReservationNumber, string? Orde
     string Registration, int ManufactureYear, string Make, string Model, string Trim, string Customer, string? Agent, string Branch, DateTimeOffset? DueAt,
     long? PausedSeconds, DateTimeOffset? ClaimedAt, decimal NegotiatedDiscount, decimal? DiscountLimitAtSubmit,
     decimal BalancePayable, DateTimeOffset? SubmittedAt, DateTimeOffset? DecidedAt, DateTimeOffset? ClosedAt,
-    string? Outcome, long Version, DateTimeOffset UpdatedAt);
+    string? Outcome, long Version, DateTimeOffset UpdatedAt, string? AgentName = null, Guid? AgentPictureId = null);
 
 public sealed record SaleQueueCounts(int ToClaim, int Handling, int Waiting, int Settling, int Completed);
 

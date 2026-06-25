@@ -77,10 +77,11 @@ internal static class UnscheduledWorkRows
         var items = jobs.Select(row => new UnscheduledWorkItem(row.VehicleId, "Workshop", row.BranchId,
             row.BranchName, row.RegistrationPlate, $"{row.ManufactureYear} {row.Make} {row.Model} {row.Trim}",
             WorkshopRows.Status(row).ToString(), row.TechnicianId!.Value, row.TechnicianIdentity ?? string.Empty,
-            row.InspectionId))
+            row.InspectionId, row.TechnicianIdentity, row.TechnicianPictureId))
             .Concat(orders.Select(row => new UnscheduledWorkItem(row.Id, "Sale", row.BranchId, row.Branch,
                 row.Plate, $"{row.Year} {row.Make} {row.Model} {row.Trim}", row.Status.ToString(), row.AgentId!.Value,
-                row.Agent ?? string.Empty, null))).ToDictionary(row => (row.Kind, row.Id));
+                row.Agent ?? string.Empty, null, row.AgentName, row.AgentPictureId)))
+            .ToDictionary(row => (row.Kind, row.Id));
         return new(scope.CurrentActor, [.. page.Select(row => items[(row.Kind, row.Id)])], total,
             query.Page, query.PageSize, scope.BranchId, scope.Employee, counts);
     }
