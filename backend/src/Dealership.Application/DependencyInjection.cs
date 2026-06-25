@@ -69,6 +69,7 @@ public static class DependencyInjection
         services.AddScoped<InspectionPhotoService>();
         services.AddScoped<InspectionReportDocumentService>();
         services.AddScoped<ListingPhotoService>();
+        services.AddScoped<AccountPictureService>();
         services.AddScoped<Sales.SaleVehiclePhotoService>();
         return services;
     }

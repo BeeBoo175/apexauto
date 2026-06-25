@@ -10,7 +10,8 @@ public sealed record AccountProfile(
     bool EmailVerified,
     Guid? BranchId,
     string? BranchName,
-    string? Mobile);
+    string? Mobile,
+    Guid? PictureId);
 
 public interface IAccountProfileQuery
 {

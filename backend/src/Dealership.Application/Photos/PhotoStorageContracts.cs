@@ -18,3 +18,9 @@ public interface IPhotoStorage
 
 public sealed class PhotoStorageException(Exception? innerException = null)
     : Exception("Photo storage is temporarily unavailable.", innerException);
+
+public interface IPhotoThumbnailer
+{
+    // Writes a square JPEG centred on the source and returns its description, or null when the source cannot be decoded.
+    Task<PhotoContent?> CreateAsync(Stream source, Stream destination, int edge, CancellationToken cancellationToken);
+}
