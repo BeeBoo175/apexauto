@@ -15,9 +15,9 @@ public sealed class EmailVerificationService(IEmailVerificationStore store, Time
         }
 
         await using var transaction = await store.LockResendAsync(userId, cancellationToken);
-        var customer = transaction.Customer;
+        var customer = transaction.Account;
 
-        if (customer is not { IsActive: true, Role: AccountRoles.Customer, HasProfile: true })
+        if (customer is not { IsActive: true, HasProfile: true })
         {
             return new VerificationResult(VerificationStatus.Forbidden);
         }
@@ -56,9 +56,9 @@ public sealed class EmailVerificationService(IEmailVerificationStore store, Time
 
         await using var transaction = await store.LockConfirmationAsync(token, cancellationToken);
         var context = transaction?.Context;
-        var customer = context?.Customer;
+        var customer = context?.Account;
 
-        if (customer is not { IsActive: true, Role: AccountRoles.Customer, HasProfile: true })
+        if (customer is not { IsActive: true, HasProfile: true })
         {
             return new VerificationResult(VerificationStatus.Invalid);
         }

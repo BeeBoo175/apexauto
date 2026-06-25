@@ -91,6 +91,12 @@ public sealed class AccountSessionStore(DealershipDbContext database, UserManage
         return await SessionUsers(userId, sessionId).AnyAsync(cancellationToken);
     }
 
+    public async Task<bool> IsUnverifiedStaffAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        return await database.Users.AsNoTracking().AnyAsync(user => user.Id == userId &&
+            user.Role != AccountRoles.Customer && !user.EmailConfirmed, cancellationToken);
+    }
+
     public async Task<CurrentActor?> GetActorAsync(Guid userId, Guid sessionId, CancellationToken cancellationToken)
     {
         return await SessionUsers(userId, sessionId)

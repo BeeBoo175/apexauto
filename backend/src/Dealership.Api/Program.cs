@@ -125,6 +125,7 @@ app.UseRateLimiter();
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseUnverifiedStaffGate();
 
 // Orchestrator probes share one source IP and must never be throttled into a container restart.
 app.MapGet("/health", () => Results.Ok(new

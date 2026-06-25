@@ -7,10 +7,10 @@ using Microsoft.EntityFrameworkCore.Storage;
 namespace Dealership.Infrastructure.Identity;
 
 internal sealed class EmailVerificationResendTransaction(DealershipDbContext database, IDbContextTransaction transaction,
-    EmailVerificationCustomer? customer, AccountUser? user, TimeProvider clock, MailDeliverySignal mail)
+    EmailVerificationAccount? account, AccountUser? user, TimeProvider clock, MailDeliverySignal mail)
     : IEmailVerificationResendTransaction
 {
-    public EmailVerificationCustomer? Customer => customer;
+    public EmailVerificationAccount? Account => account;
 
     public Task<Guid?> ReadResendOwnerAsync(Guid resendKey, CancellationToken cancellationToken)
     {

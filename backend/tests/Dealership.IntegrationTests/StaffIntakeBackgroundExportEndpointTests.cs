@@ -95,6 +95,9 @@ public sealed class StaffIntakeBackgroundExportEndpointTests
         public Task<LoginSession?> LoginAsync(Guid loginKey, string email, string password, CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
+        public Task<bool> IsUnverifiedStaffAsync(Guid userId, CancellationToken cancellationToken)
+            => throw new NotSupportedException();
+
         public Task<bool> IsActiveAsync(Guid userId, Guid sessionId, CancellationToken cancellationToken)
             => throw new NotSupportedException();
 

@@ -324,6 +324,40 @@ public sealed class EmailVerificationTests(RegistrationDatabase database) : ICla
             $"940215{Random.Shared.Next(100000, 1000000)}", "0123456789", "18 Jalan Melati, Petaling Jaya, Selangor", TestUsernames.Next());
     }
 
+    [Fact]
+    public async Task UnverifiedStaffMayOnlyVerifyAndThenReachProtectedEndpoints()
+    {
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+        var email = $"staff.{Guid.NewGuid():N}@example.invalid";
+        using (var scope = factory.Services.CreateScope())
+        {
+            var provisioned = await scope.ServiceProvider.GetRequiredService<StaffProvisioningService>()
+                .ProvisionStaffAsync(new(Guid.NewGuid(), email, "Password123!", AccountRoles.Administrator, null,
+                    "Amir Hakim", "0123456789"), CancellationToken.None);
+            Assert.True(provisioned.Created);
+            var context = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
+            await context.Users.Where(user => user.Email == email)
+                .ExecuteUpdateAsync(update => update.SetProperty(user => user.EmailConfirmed, false));
+        }
+
+        var login = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest(Guid.NewGuid(), email, "Password123!"));
+        var session = await login.Content.ReadFromJsonAsync<LoginSession>();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", session!.AccessToken);
+
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/staff/settings")).StatusCode);
+        var profile = await client.GetFromJsonAsync<AccountProfile>("/api/account/profile");
+        Assert.False(profile!.EmailVerified);
+
+        Assert.Equal(HttpStatusCode.Accepted, (await client.PostAsJsonAsync(
+            "/api/auth/email-verification/resend", new { resendKey = Guid.NewGuid() })).StatusCode);
+        var token = GetToken(factory, await GetLatestChallengeAsync(factory, email));
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await client.PostAsJsonAsync("/api/auth/email-verification", new { token })).StatusCode);
+
+        Assert.NotEqual(HttpStatusCode.Forbidden, (await client.GetAsync("/api/staff/settings")).StatusCode);
+    }
+
     private static async Task<RegistrationRequest> RegisterAsync(HttpClient client, RegistrationRequest? request = null)
     {
         var registration = request ?? NewRegistration();

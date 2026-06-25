@@ -17,6 +17,20 @@ public sealed class EmailVerificationStore(DealershipDbContext database, UserMan
         await database.SaveChangesAsync(cancellationToken);
     }
 
+    // Customers and staff both verify; each needs the profile its role owns.
+    private async Task<EmailVerificationAccount?> AccountOfAsync(AccountUser? user, CancellationToken cancellationToken)
+    {
+        if (user is null)
+        {
+            return null;
+        }
+
+        var hasProfile = user.Role == AccountRoles.Customer
+            ? await database.CustomerProfiles.AnyAsync(profile => profile.UserId == user.Id, cancellationToken)
+            : await database.StaffProfiles.AnyAsync(profile => profile.UserId == user.Id, cancellationToken);
+        return new EmailVerificationAccount(user.IsActive, user.Role, hasProfile, user.EmailConfirmed);
+    }
+
     public async Task<IEmailVerificationResendTransaction> LockResendAsync(Guid userId, CancellationToken cancellationToken)
     {
         var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
@@ -26,10 +40,8 @@ public sealed class EmailVerificationStore(DealershipDbContext database, UserMan
             var user = await database.Users.FromSqlInterpolated(
                 $"SELECT * FROM \"AspNetUsers\" WHERE \"Id\" = {userId} FOR UPDATE")
                 .AsNoTracking().SingleOrDefaultAsync(cancellationToken);
-            var hasProfile = await database.CustomerProfiles.AnyAsync(profile => profile.UserId == userId, cancellationToken);
-            var customer = user is null ? null :
-                new EmailVerificationCustomer(user.IsActive, user.Role, hasProfile, user.EmailConfirmed);
-            return new EmailVerificationResendTransaction(database, transaction, customer, user, clock, mail);
+            var account = await AccountOfAsync(user, cancellationToken);
+            return new EmailVerificationResendTransaction(database, transaction, account, user, clock, mail);
         }
         catch
         {
@@ -63,11 +75,8 @@ public sealed class EmailVerificationStore(DealershipDbContext database, UserMan
             var user = userId is null ? null : await database.Users.FromSqlInterpolated(
                 $"SELECT * FROM \"AspNetUsers\" WHERE \"Id\" = {userId} FOR UPDATE")
                 .SingleOrDefaultAsync(cancellationToken);
-            var hasProfile = user is not null &&
-                await database.CustomerProfiles.AnyAsync(profile => profile.UserId == userId, cancellationToken);
-            var customer = user is null ? null :
-                new EmailVerificationCustomer(user.IsActive, user.Role, hasProfile, user.EmailConfirmed);
-            var context = new EmailVerificationConfirmationContext(customer, user?.Email);
+            var account = await AccountOfAsync(user, cancellationToken);
+            var context = new EmailVerificationConfirmationContext(account, user?.Email);
             return new EmailVerificationConfirmationTransaction(database, transaction, context, user, users, tokens, token, challengeId);
         }
         catch

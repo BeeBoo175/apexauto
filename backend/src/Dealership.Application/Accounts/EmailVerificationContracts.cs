@@ -10,9 +10,9 @@ public enum VerificationStatus
 
 public sealed record VerificationResult(VerificationStatus Status, TimeSpan? RetryAfter = null);
 
-public sealed record EmailVerificationCustomer(bool IsActive, string Role, bool HasProfile, bool EmailConfirmed);
+public sealed record EmailVerificationAccount(bool IsActive, string Role, bool HasProfile, bool EmailConfirmed);
 
-public sealed record EmailVerificationConfirmationContext(EmailVerificationCustomer? Customer, string? Email);
+public sealed record EmailVerificationConfirmationContext(EmailVerificationAccount? Account, string? Email);
 
 public sealed record EmailVerificationConfirmationChallenge(bool TokenValid, string RecipientEmail,
     DateTimeOffset ExpiresAt, DateTimeOffset? InvalidatedAt, DateTimeOffset? ConsumedAt);
@@ -28,7 +28,7 @@ public interface IEmailVerificationConfirmationTransaction : IAsyncDisposable
 
 public interface IEmailVerificationResendTransaction : IAsyncDisposable
 {
-    EmailVerificationCustomer? Customer { get; }
+    EmailVerificationAccount? Account { get; }
 
     Task<Guid?> ReadResendOwnerAsync(Guid resendKey, CancellationToken cancellationToken);
 
