@@ -81,6 +81,7 @@ async function signIn(page: Page, email: string) {
   await page.getByLabel("Password", { exact: true }).fill("Password123!");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page).toHaveURL(`${origin}/account`);
+  await page.getByRole("link", { name: "Account details", exact: true }).click();
 }
 
 test("email verification journey uses captured mail and deliberate anonymous confirmation", async ({
@@ -124,7 +125,9 @@ test("email verification journey uses captured mail and deliberate anonymous con
   await expect(page.getByText(/an email is queued/)).toBeVisible();
   await expect(page.getByText(registration.legalName, { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Resend verification email" }).click();
-  await expect(page.getByText("Too many attempts. Wait before trying again.")).toBeVisible();
+  await expect(
+    page.getByText(/Too many attempts\. Wait (?:\d+ seconds )?before trying again\./),
+  ).toBeVisible();
   await expect(page.getByText(registration.legalName, { exact: true })).toBeVisible();
   const latestLink = await waitForNewLink(request, registration.email, initialLink.hash);
   expect(latestLink.hash).not.toBe(initialLink.hash);

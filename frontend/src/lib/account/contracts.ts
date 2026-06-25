@@ -1,7 +1,11 @@
-import { roleNames, type Role } from "@/lib/auth/actor";
+import { roleNames, type CurrentActor, type Role } from "@/lib/auth/actor";
 import { isRecord, isUuid } from "@/lib/auth/contracts";
 
 export const PICTURE_CONTENT_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+export function hasPersonAccess(actor: CurrentActor) {
+  return actor.role !== "Customer";
+}
 
 export interface AccountProfile {
   userId: string;

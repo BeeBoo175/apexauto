@@ -101,6 +101,7 @@ test("registration, unverified own account, bounded refresh and current-session 
   ).toBeUndefined();
   expect(counts()["/api/auth/register"] - (before["/api/auth/register"] ?? 0)).toBe(1);
   await signIn(page, owner.email);
+  await page.getByRole("link", { name: "Account details", exact: true }).click();
   await expect(page.getByText(owner.legalName, { exact: true })).toBeVisible();
   await expect(page.getByText("Not verified", { exact: true })).toBeVisible();
 
@@ -112,7 +113,7 @@ test("registration, unverified own account, bounded refresh and current-session 
   expect(await page.evaluate(() => document.cookie)).not.toContain("apexauto_token");
 
   const sameActorTab = await context.newPage();
-  const accountDocument = await sameActorTab.goto("/account");
+  const accountDocument = await sameActorTab.goto("/account#account-details");
   expect(accountDocument).not.toBeNull();
   const accountHeaders = accountDocument!.headers();
   expect(accountHeaders["cache-control"]).toContain("no-store");
@@ -144,6 +145,7 @@ test("registration, unverified own account, bounded refresh and current-session 
   const outsider = await browser.newContext({ baseURL: origin });
   const outsiderPage = await outsider.newPage();
   await signIn(outsiderPage, other.email);
+  await outsiderPage.getByRole("link", { name: "Account details", exact: true }).click();
   await expect(outsiderPage.getByText(other.legalName, { exact: true })).toBeVisible();
   await expect(outsiderPage.getByText(owner.legalName, { exact: true })).toHaveCount(0);
   const ownerId = JSON.parse(Buffer.from(cookie.value.split(".")[1], "base64url").toString()).sub;
@@ -174,7 +176,7 @@ test("registration, unverified own account, bounded refresh and current-session 
   fault("");
   await page.getByRole("button", { name: "Retry sign out" }).click();
   await expect(page).toHaveURL(`${origin}/login`);
-  await expect(sameActorTab).toHaveURL(/\/login$/);
+  await expect(sameActorTab).toHaveURL(/\/login(?:#account-details)?$/);
   await expect(sameActorTab.getByText(owner.legalName, { exact: true })).toHaveCount(0);
   expect(
     (await context.cookies()).find((entry) => entry.name === "apexauto_token"),
