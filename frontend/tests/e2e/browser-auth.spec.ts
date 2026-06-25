@@ -12,6 +12,7 @@ function customer(legalName: string) {
   return {
     registrationKey: randomUUID(),
     legalName,
+    username: `customer.${randomInt(100000, 999999)}`,
     email: `customer-${randomUUID()}@example.invalid`,
     password,
     nric: `90041514${randomInt(1000, 9999)}`,
@@ -83,6 +84,7 @@ test("registration, unverified own account, bounded refresh and current-session 
 
   const before = counts();
   await page.getByLabel("Legal name", { exact: true }).fill(owner.legalName);
+  await page.getByLabel("Username", { exact: true }).fill(owner.username);
   await page.getByLabel("Email", { exact: true }).fill(owner.email);
   await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByLabel("NRIC", { exact: true }).fill(owner.nric);
@@ -204,6 +206,7 @@ test("lost registration receipt replays the same persisted request without dropp
   await page.goto("/register");
   for (const [label, value] of Object.entries({
     "Legal name": owner.legalName,
+    Username: owner.username,
     Email: owner.email,
     Password: password,
     NRIC: owner.nric,

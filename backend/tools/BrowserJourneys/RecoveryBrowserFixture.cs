@@ -67,7 +67,7 @@ internal static class RecoveryBrowserFixture
         var request = new RegistrationRequest(Guid.NewGuid(), legalName,
             $"recovery.{Guid.NewGuid():N}@example.invalid", InitialPassword,
             $"940215{Random.Shared.Next(100000, 1000000)}", "+60123456789",
-            "18 Jalan Melati, Petaling Jaya, Selangor");
+            "18 Jalan Melati, Petaling Jaya, Selangor", $"recovery{Guid.NewGuid():N}"[..20]);
         var registered = await services.GetRequiredService<RegistrationService>()
             .RegisterAsync(request, CancellationToken.None);
 

@@ -78,7 +78,7 @@ public sealed class DevelopmentAccountFixtures(DealershipDbContext database, Dev
         var profile = await database.StaffProfiles.AsNoTracking().SingleOrDefaultAsync(
             candidate => candidate.UserId == requested.Id, cancellationToken);
         var staff = new ValidatedStaffProvisioning(requested.Id, requested.Email, requested.Password,
-            requested.Role, requested.BranchId, requested.Name, requested.Mobile);
+            requested.Role, requested.BranchId, requested.Name, requested.Mobile, requested.Username);
         var matches = account is not null && StaffProvisioningStore.Matches(account, profile, staff, passwords);
         var state = account is null ? "missing" : "drift; preserved";
         return new($"{requested.Role} ({requested.Email})", matches ? "matches" : state, !matches);

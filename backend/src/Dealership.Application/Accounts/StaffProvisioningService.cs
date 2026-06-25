@@ -26,6 +26,14 @@ public sealed class StaffProvisioningService(IStaffProvisioningStore store)
             throw new ArgumentException("Staff profile fields are invalid.", nameof(request));
         }
 
+        // Bootstrap staff without a chosen username get one derived from their email by the store.
+        var username = request.Username?.Trim();
+
+        if (username is not null && !UsernamePolicy.IsValid(username))
+        {
+            throw new ArgumentException("Staff username is invalid.", nameof(request));
+        }
+
         var branchScoped = request.Role is AccountRoles.SalesAgent or AccountRoles.WorkshopTechnician or AccountRoles.BranchManager;
         var groupScoped = request.Role is AccountRoles.GeneralManager or AccountRoles.Administrator;
 
@@ -37,7 +45,7 @@ public sealed class StaffProvisioningService(IStaffProvisioningStore store)
         }
 
         var staff = new ValidatedStaffProvisioning(request.Id, email, request.Password,
-            request.Role, request.BranchId, name, mobile);
+            request.Role, request.BranchId, name, mobile, username);
         return store.ProvisionStaffAsync(staff, cancellationToken);
     }
 }

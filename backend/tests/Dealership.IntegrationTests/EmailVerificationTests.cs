@@ -321,7 +321,7 @@ public sealed class EmailVerificationTests(RegistrationDatabase database) : ICla
     {
         return new RegistrationRequest(Guid.NewGuid(), "Nur Aina Abdullah",
             $"nur.aina.{Guid.NewGuid():N}@example.invalid", "Password123!",
-            $"940215{Random.Shared.Next(100000, 1000000)}", "0123456789", "18 Jalan Melati, Petaling Jaya, Selangor");
+            $"940215{Random.Shared.Next(100000, 1000000)}", "0123456789", "18 Jalan Melati, Petaling Jaya, Selangor", TestUsernames.Next());
     }
 
     private static async Task<RegistrationRequest> RegisterAsync(HttpClient client, RegistrationRequest? request = null)

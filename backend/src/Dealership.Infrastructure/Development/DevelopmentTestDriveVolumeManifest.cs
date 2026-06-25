@@ -43,6 +43,7 @@ public static class DevelopmentTestDriveVolumeManifest
         return new(new RegistrationRequest(id, $"{first} {last}",
             $"{first}.{last}.{locations[branchIndex]}@example.invalid".ToLowerInvariant(),
             DevelopmentFixtureManifest.Password, $"95061514{identity + 1000:0000}", $"012{identity + 3456000:0000000}",
-            $"{customerIndex + 1} Jalan Melati, {DevelopmentFixtureManifest.Branches[branchIndex].City}"), true);
+            $"{customerIndex + 1} Jalan Melati, {DevelopmentFixtureManifest.Branches[branchIndex].City}",
+            $"{first}.{last}.{locations[branchIndex]}".ToLowerInvariant()), true);
     }
 }

@@ -13,6 +13,7 @@ public sealed class RegistrationService(ICustomerRegistrationStore store)
         var address = ValidateText(request.ResidentialAddress, "residentialAddress", CustomerProfile.AddressMaximumLength, errors);
         var email = request.Email?.Trim() ?? string.Empty;
         var nric = request.Nric?.Trim() ?? string.Empty;
+        var username = request.Username?.Trim() ?? string.Empty;
 
         if (request.RegistrationKey == Guid.Empty)
         {
@@ -22,6 +23,11 @@ public sealed class RegistrationService(ICustomerRegistrationStore store)
         if (!CustomerProfile.IsValidNric(nric))
         {
             errors["nric"] = ["Enter a 12-digit NRIC without separators."];
+        }
+
+        if (!UsernamePolicy.IsValid(username))
+        {
+            errors["username"] = [$"Enter a username of {UsernamePolicy.MinimumLength} to {UsernamePolicy.MaximumLength} letters, numbers, dots or underscores."];
         }
 
         if (email.Length > AccountCredentialPolicy.EmailMaximumLength || !MailAddress.TryCreate(email, out var parsedEmail) || parsedEmail.Address != email)
@@ -40,7 +46,7 @@ public sealed class RegistrationService(ICustomerRegistrationStore store)
         }
 
         var registration = new ValidatedRegistration(request.RegistrationKey, legalName, email,
-            request.Password!, nric, mobile, address);
+            request.Password!, nric, mobile, address, username);
         return await store.RegisterAsync(registration, cancellationToken);
     }
 

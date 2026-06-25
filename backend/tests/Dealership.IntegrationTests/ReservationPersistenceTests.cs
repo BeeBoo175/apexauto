@@ -139,7 +139,7 @@ public sealed class ReservationPersistenceTests(IntakePhotoFixture fixture) : IC
 
         var email = $"hafiz.{Guid.NewGuid():N}@example.invalid";
         var registration = new RegistrationRequest(Guid.NewGuid(), "Hafiz Rahman", email, "Password123!",
-            $"920418{Random.Shared.Next(100000, 1000000)}", "0135678910", "20 Jalan Mawar, Shah Alam");
+            $"920418{Random.Shared.Next(100000, 1000000)}", "0135678910", "20 Jalan Mawar, Shah Alam", TestUsernames.Next());
         Assert.Equal(RegistrationStatus.Succeeded, (await services.GetRequiredService<RegistrationService>()
             .RegisterAsync(registration, CancellationToken.None)).Status);
         var customerId = await database.Users.Where(item => item.Email == email).Select(item => item.Id).SingleAsync();

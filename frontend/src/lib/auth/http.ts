@@ -110,7 +110,7 @@ export async function readAuthRequest(
   const fields =
     kind === "login"
       ? ["email", "password"]
-      : ["legalName", "email", "password", "nric", "mobile", "residentialAddress"];
+      : ["legalName", "email", "password", "nric", "mobile", "residentialAddress", "username"];
 
   if (
     !isRecord(value) ||
@@ -174,6 +174,16 @@ export function authFailure(error: unknown) {
     },
     502,
   );
+}
+
+// The backend authors the username message, so it is safe to relay to the registration form.
+export function usernameDenial(body: unknown) {
+  if (!isRecord(body) || !isRecord(body.errors) || !Array.isArray(body.errors.username)) {
+    return null;
+  }
+
+  const message: unknown = body.errors.username[0];
+  return typeof message === "string" ? authJson({ message }, 400) : null;
 }
 
 export function upstreamDenial(status: number, retryAfterSeconds?: number) {

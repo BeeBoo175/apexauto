@@ -37,6 +37,7 @@ public sealed class StaffProvisioningStore(DealershipDbContext database, UserMan
             Id = staff.Id,
             UserName = staff.Email,
             Email = staff.Email,
+            AccountUsername = staff.Username ?? await FindFreeUsernameAsync(staff.Email, cancellationToken),
             EmailConfirmed = true,
             Role = staff.Role,
             BranchId = staff.BranchId
@@ -59,11 +60,26 @@ public sealed class StaffProvisioningStore(DealershipDbContext database, UserMan
     internal static bool Matches(AccountUser existing, StaffProfile? profile, ValidatedStaffProvisioning requested,
         IPasswordHasher<AccountUser> passwords)
     {
-        return profile is not null && profile.Name == requested.Name && profile.Mobile == requested.Mobile &&
+        return profile is not null && (requested.Username is null || existing.AccountUsername == requested.Username) &&
+            profile.Name == requested.Name && profile.Mobile == requested.Mobile &&
             existing.Email == requested.Email && existing.Role == requested.Role &&
             existing.BranchId == requested.BranchId && existing.IsActive && existing.EmailConfirmed &&
             existing.PasswordHash is not null &&
             passwords.VerifyHashedPassword(existing, existing.PasswordHash, requested.Password) != PasswordVerificationResult.Failed;
+    }
+
+    private async Task<string> FindFreeUsernameAsync(string email, CancellationToken cancellationToken)
+    {
+        var candidate = UsernamePolicy.DeriveFromEmail(email);
+        var suffix = 1;
+
+        while (await database.Users.AnyAsync(user => user.AccountUsername.ToUpper() == candidate.ToUpper(), cancellationToken))
+        {
+            suffix++;
+            candidate = UsernamePolicy.WithSuffix(UsernamePolicy.DeriveFromEmail(email), suffix);
+        }
+
+        return candidate;
     }
 
     private Task<int> LockFixtureAsync(Guid id, CancellationToken cancellationToken)

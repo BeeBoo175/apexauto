@@ -7,6 +7,9 @@ public sealed class AccountUser : IdentityUser<Guid>
 {
     public string Role { get; set; } = AccountRoles.Customer;
 
+    // A unique display handle; login and recovery stay on email.
+    public string AccountUsername { get; set; } = string.Empty;
+
     public Guid? BranchId { get; set; }
 
     public bool IsActive { get; set; } = true;

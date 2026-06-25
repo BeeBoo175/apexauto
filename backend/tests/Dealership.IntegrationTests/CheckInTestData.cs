@@ -67,7 +67,7 @@ internal sealed class CheckInTestData : IDisposable
         CustomerEmail = $"nur.aina.{Guid.NewGuid():N}@example.invalid";
         var registration = new RegistrationRequest(Guid.NewGuid(), "Nur Aina Abdullah", CustomerEmail,
             "Password123!", $"940215{Random.Shared.Next(100000, 1000000)}", "0123456789",
-            "18 Jalan Melati, Petaling Jaya, Selangor");
+            "18 Jalan Melati, Petaling Jaya, Selangor", TestUsernames.Next());
         Assert.Equal(RegistrationStatus.Succeeded,
             (await services.GetRequiredService<RegistrationService>().RegisterAsync(registration, CancellationToken.None)).Status);
         var database = services.GetRequiredService<DealershipDbContext>();

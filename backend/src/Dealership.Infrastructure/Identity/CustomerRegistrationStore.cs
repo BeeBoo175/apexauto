@@ -14,6 +14,11 @@ public sealed class CustomerRegistrationStore(DealershipDbContext database, User
 {
     private static readonly RegistrationResult Success = new(RegistrationStatus.Succeeded, new Dictionary<string, string[]>());
 
+    private const string UsernameIndex = "AccountUsernameIndex";
+
+    private static readonly RegistrationResult UsernameTaken = new(RegistrationStatus.Invalid,
+        new Dictionary<string, string[]> { ["username"] = ["That username is taken. Choose another."] });
+
     private static readonly RegistrationResult Conflict = new(RegistrationStatus.Conflict,
         new Dictionary<string, string[]> { ["account"] = ["Registration conflicts with an existing account or request. Use existing-account recovery."] });
 
@@ -33,6 +38,7 @@ public sealed class CustomerRegistrationStore(DealershipDbContext database, User
             Id = Guid.NewGuid(),
             UserName = registration.Email,
             Email = registration.Email,
+            AccountUsername = registration.Username,
             EmailConfirmed = false
         };
 
@@ -63,12 +69,13 @@ public sealed class CustomerRegistrationStore(DealershipDbContext database, User
             return Success;
         }
         catch (DbUpdateException exception) when (exception.InnerException is PostgresException
-        { SqlState: PostgresErrorCodes.UniqueViolation })
+        { SqlState: PostgresErrorCodes.UniqueViolation } violation)
         {
             // PostgreSQL aborts a transaction on constraint failure; roll back before reading the winner.
             await transaction.RollbackAsync(cancellationToken);
             database.ChangeTracker.Clear();
-            return await FindReplayAsync(registration, cancellationToken) ?? Conflict;
+            var taken = violation.ConstraintName == UsernameIndex ? UsernameTaken : Conflict;
+            return await FindReplayAsync(registration, cancellationToken) ?? taken;
         }
     }
 
@@ -86,6 +93,7 @@ public sealed class CustomerRegistrationStore(DealershipDbContext database, User
         var user = await users.FindByIdAsync(profile.UserId.ToString());
         var matches = user is not null &&
             users.NormalizeEmail(user.Email) == users.NormalizeEmail(registration.Email) &&
+            user.AccountUsername == registration.Username &&
             profile.LegalName == registration.LegalName && profile.Nric == registration.Nric &&
             profile.Mobile == registration.Mobile && profile.ResidentialAddress == registration.ResidentialAddress &&
             await users.CheckPasswordAsync(user, registration.Password);

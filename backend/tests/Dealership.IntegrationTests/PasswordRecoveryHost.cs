@@ -58,7 +58,7 @@ internal sealed class PasswordRecoveryHost : IDisposable
     {
         var request = new RegistrationRequest(Guid.NewGuid(), "Nur Aina Abdullah",
             $"nur.aina.{Guid.NewGuid():N}@example.invalid", "Password123!",
-            $"940215{Random.Shared.Next(100000, 1000000)}", "0123456789", "18 Jalan Melati, Petaling Jaya, Selangor");
+            $"940215{Random.Shared.Next(100000, 1000000)}", "0123456789", "18 Jalan Melati, Petaling Jaya, Selangor", TestUsernames.Next());
         using var scope = Factory.Services.CreateScope();
         var result = await scope.ServiceProvider.GetRequiredService<RegistrationService>()
             .RegisterAsync(request, CancellationToken.None);

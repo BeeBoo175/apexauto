@@ -117,6 +117,7 @@ test("origin and body protection, malformed sessions and bounded body consumptio
         ...login,
         registrationKey: randomUUID(),
         legalName: "Test",
+        username: "test.user",
         nric: "900415141234",
         mobile: "0123456789",
         residentialAddress: "Test address",

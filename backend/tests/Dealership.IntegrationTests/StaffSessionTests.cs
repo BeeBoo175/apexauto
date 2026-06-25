@@ -85,7 +85,7 @@ public sealed class StaffSessionTests(RegistrationDatabase database) : IClassFix
 
         var registration = new RegistrationRequest(Guid.NewGuid(), "Nur Aisyah Rahman",
             $"nur.aisyah.{Guid.NewGuid():N}@example.invalid", "Password123!", "940215140865",
-            "0123456789", "18 Jalan Melati, Petaling Jaya, Selangor");
+            "0123456789", "18 Jalan Melati, Petaling Jaya, Selangor", TestUsernames.Next());
         Assert.Equal(HttpStatusCode.NoContent,
             (await client.PostAsJsonAsync("/api/auth/register", registration)).StatusCode);
         var customer = await LoginAsync(client, registration.Email!);

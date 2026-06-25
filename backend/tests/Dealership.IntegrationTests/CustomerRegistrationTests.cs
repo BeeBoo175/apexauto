@@ -149,7 +149,7 @@ public sealed class CustomerRegistrationTests(RegistrationDatabase database) : I
         var nricRequest = NewRequest();
         var nricResponses = await Task.WhenAll(
             client.PostAsJsonAsync("/api/auth/register", nricRequest),
-            client.PostAsJsonAsync("/api/auth/register", nricRequest with { RegistrationKey = Guid.NewGuid(), Email = NewRequest().Email }));
+            client.PostAsJsonAsync("/api/auth/register", nricRequest with { RegistrationKey = Guid.NewGuid(), Email = NewRequest().Email, Username = TestUsernames.Next() }));
         Assert.Equal(1, nricResponses.Count(response => response.StatusCode == HttpStatusCode.NoContent));
         Assert.Equal(1, nricResponses.Count(response => response.StatusCode == HttpStatusCode.Conflict));
         using var scope = factory.Services.CreateScope();
@@ -232,6 +232,25 @@ public sealed class CustomerRegistrationTests(RegistrationDatabase database) : I
     }
 
     [Fact]
+    public async Task UsernameConflictIgnoresCaseAndLeavesNoSecondAccount()
+    {
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+        var first = NewRequest() with { Username = "Farid.Hassan_88" };
+        var second = NewRequest() with { Username = "FARID.hassan_88" };
+        Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/auth/register", first)).StatusCode);
+
+        var response = await client.PostAsJsonAsync("/api/auth/register", second);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.True(json.RootElement.GetProperty("errors").TryGetProperty("username", out _));
+        using var scope = factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
+        Assert.False(await context.Users.AnyAsync(user => user.Email == second.Email));
+        Assert.Equal("Farid.Hassan_88", (await context.Users.SingleAsync(user => user.Email == first.Email)).AccountUsername);
+    }
+
+    [Fact]
     public async Task TransportRejectsMalformedWrongMediaAndOversizedBodies()
     {
         using var factory = CreateFactory();
@@ -296,7 +315,7 @@ public sealed class CustomerRegistrationTests(RegistrationDatabase database) : I
     private static RegistrationRequest NewRequest()
     {
         return new RegistrationRequest(Guid.NewGuid(), "Farid Hassan", $"farid.hassan.{Guid.NewGuid():N}@example.invalid",
-            "Password123!", NewNric(), "0123456789", "24 Jalan Kenanga, Shah Alam, Selangor");
+            "Password123!", NewNric(), "0123456789", "24 Jalan Kenanga, Shah Alam, Selangor", TestUsernames.Next());
     }
 
     private static string NewNric()

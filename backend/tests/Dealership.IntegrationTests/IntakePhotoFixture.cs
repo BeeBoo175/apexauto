@@ -131,7 +131,7 @@ public sealed class IntakePhotoFixture : IAsyncLifetime, IAsyncDisposable
     {
         var registration = new RegistrationRequest(Guid.NewGuid(), "Nur Aina Abdullah",
             $"nur.aina.{Guid.NewGuid():N}@example.invalid", "Password123!", $"940215{Random.Shared.Next(100000, 1000000)}",
-            "0123456789", "18 Jalan Melati, Petaling Jaya, Selangor");
+            "0123456789", "18 Jalan Melati, Petaling Jaya, Selangor", TestUsernames.Next());
         Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/auth/register", registration)).StatusCode);
         await LoginAsync(client, registration);
         return registration;

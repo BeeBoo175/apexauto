@@ -31,7 +31,7 @@ public sealed class DevelopmentFixtureRebuildTests(IntakePhotoFixture fixture) :
         var objects = scope.ServiceProvider.GetRequiredService<IAmazonS3>();
         var registration = new RegistrationRequest(Guid.NewGuid(), "Nur Aina Abdullah",
             $"nur.aina.{Guid.NewGuid():N}@example.invalid", "Password123!", "940215140865",
-            "0123456789", "18 Jalan Melati, Petaling Jaya, Selangor");
+            "0123456789", "18 Jalan Melati, Petaling Jaya, Selangor", TestUsernames.Next());
         var registered = await scope.ServiceProvider.GetRequiredService<RegistrationService>()
             .RegisterAsync(registration, CancellationToken.None);
         Assert.Equal(RegistrationStatus.Succeeded, registered.Status);

@@ -72,7 +72,24 @@ export function AuthForm({
       </noscript>
       <fieldset disabled={!hydrated || busy || uncertain} className={styles.fields}>
         {kind === "register" && (
-          <Input label="Legal name" name="legalName" autoComplete="name" required />
+          <>
+            <Input label="Legal name" name="legalName" autoComplete="name" required />
+            <div className={styles.password}>
+              <Input
+                label="Username"
+                name="username"
+                autoComplete="nickname"
+                pattern="[A-Za-z0-9._]{3,30}"
+                maxLength={30}
+                aria-describedby="username-help"
+                required
+              />
+              <p id="username-help" className={styles.help}>
+                3 to 30 letters, numbers, dots or underscores. Shown to staff; you still sign in
+                with your email.
+              </p>
+            </div>
+          </>
         )}
         <Input
           ref={emailInput}

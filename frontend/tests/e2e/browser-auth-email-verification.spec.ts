@@ -94,6 +94,7 @@ test("email verification journey uses captured mail and deliberate anonymous con
   const registration = {
     registrationKey: randomUUID(),
     legalName: "Nur Aina Abdullah",
+    username: `nur.aina.${randomInt(100000, 999999)}`,
     email: `verification-${randomUUID()}@example.invalid`,
     password: "Password123!",
     nric: `940215${randomInt(100000, 999999)}`,

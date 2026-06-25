@@ -17,6 +17,8 @@ public sealed class AccountUserConfiguration : IEntityTypeConfiguration<AccountU
             table.HasCheckConstraint("CK_Users_EmailNormalization",
                 // Explicit Unicode White_Space characters match .NET Trim rather than PostgreSQL's space-only default.
                 "length(\"Email\") > 0 AND \"Email\" = btrim(\"Email\", U&'\\0009\\000A\\000B\\000C\\000D\\0020\\0085\\00A0\\1680\\2000\\2001\\2002\\2003\\2004\\2005\\2006\\2007\\2008\\2009\\200A\\2028\\2029\\202F\\205F\\3000') AND \"NormalizedEmail\" = upper(\"Email\")");
+            table.HasCheckConstraint("CK_Users_AccountUsername",
+                $"\"AccountUsername\" ~ '^[A-Za-z0-9._]{{{UsernamePolicy.MinimumLength},{UsernamePolicy.MaximumLength}}}$'");
             table.HasCheckConstraint("CK_Users_RoleBranch",
                 $"\"Role\" IN ({allowedRoles}) AND " +
                 $"((\"Role\" IN ({branchRoles}) AND \"BranchId\" IS NOT NULL) OR " +
@@ -28,6 +30,11 @@ public sealed class AccountUserConfiguration : IEntityTypeConfiguration<AccountU
         builder.HasIndex(user => user.BranchId);
         builder.Property(user => user.Email).HasMaxLength(AccountCredentialPolicy.EmailMaximumLength).IsRequired();
         builder.Property(user => user.NormalizedEmail).HasMaxLength(AccountCredentialPolicy.EmailMaximumLength).IsRequired();
+        builder.Property(user => user.AccountUsername).HasMaxLength(UsernamePolicy.MaximumLength).IsRequired();
+        // Uniqueness ignores case through a stored uppercase key, as email does with NormalizedEmail.
+        builder.Property<string>("NormalizedAccountUsername").HasMaxLength(UsernamePolicy.MaximumLength)
+            .HasComputedColumnSql("upper(\"AccountUsername\")", stored: true);
+        builder.HasIndex("NormalizedAccountUsername").HasDatabaseName("AccountUsernameIndex").IsUnique();
         builder.Property(user => user.Role).HasMaxLength(32).HasDefaultValue(AccountRoles.Customer).IsRequired();
         builder.Property(user => user.IsActive).HasDefaultValue(true);
         builder.HasIndex(user => user.NormalizedEmail).HasDatabaseName("EmailIndex").IsUnique();

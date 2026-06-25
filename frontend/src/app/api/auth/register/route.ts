@@ -4,6 +4,7 @@ import {
   authUpstream,
   readAuthRequest,
   upstreamDenial,
+  usernameDenial,
 } from "@/lib/auth/http";
 
 export async function POST(request: Request) {
@@ -14,6 +15,14 @@ export async function POST(request: Request) {
       body,
       signal: request.signal,
     });
+
+    if (response.status === 400) {
+      const denial = usernameDenial(response.body);
+
+      if (denial) {
+        return denial;
+      }
+    }
 
     if (response.status !== 204) {
       return upstreamDenial(response.status, response.retryAfterSeconds);
