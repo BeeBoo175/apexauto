@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { parseAccount, parseSession, safeReturnTo } from "@/lib/auth/contracts";
+import { parseStaffInvitation } from "@/lib/auth/staff-invitation";
 import { trustedClientAddress } from "@/lib/server/http/client-address";
 import { HttpError, parseRetryAfterSeconds, readBoundedJson } from "@/lib/http";
 import { apiFetch } from "@/lib/api-browser";
@@ -295,4 +296,38 @@ test("shared browser transport validates envelopes and preserves private actor r
       Reflect.deleteProperty(globalThis, "window");
     }
   }
+});
+
+test("the public invitation preview keeps only a name, role and branch", () => {
+  expect(
+    parseStaffInvitation({
+      name: "Aina Sofia",
+      role: "SalesAgent",
+      branchName: "ApexAuto Glenmarie",
+    }),
+  ).toEqual({ name: "Aina Sofia", role: "SalesAgent", branchName: "ApexAuto Glenmarie" });
+  expect(
+    parseStaffInvitation({ name: "Amir Hakim", role: "Administrator", branchName: null }),
+  ).toEqual({
+    name: "Amir Hakim",
+    role: "Administrator",
+    branchName: null,
+  });
+  for (const invalid of [
+    null,
+    {},
+    { name: " ", role: "SalesAgent", branchName: null },
+    { name: "Aina", role: "", branchName: null },
+    { name: "Aina", role: "SalesAgent", branchName: 7 },
+  ]) {
+    expect(parseStaffInvitation(invalid)).toBeNull();
+  }
+  expect(
+    parseStaffInvitation({
+      name: "Aina",
+      role: "SalesAgent",
+      branchName: null,
+      email: "a@b.invalid",
+    }),
+  ).toEqual({ name: "Aina", role: "SalesAgent", branchName: null });
 });

@@ -25,7 +25,9 @@ export async function readAuthRequest(
     | "verify-email"
     | "resend-verification"
     | "password-recovery"
-    | "password-reset",
+    | "password-reset"
+    | "staff-invitation-preview"
+    | "staff-invitation-activation",
 ) {
   requireSameOrigin(request);
 
@@ -60,12 +62,31 @@ export async function readAuthRequest(
     return {};
   }
 
-  if (kind === "verify-email") {
+  if (kind === "verify-email" || kind === "staff-invitation-preview") {
     if (!isRecord(value) || typeof value.token !== "string" || value.token.length > 160) {
-      throw new HttpError(400, "The verification link is invalid.");
+      throw new HttpError(400, "The link is invalid.");
     }
 
     return { token: value.token };
+  }
+
+  if (kind === "staff-invitation-activation") {
+    if (
+      !isRecord(value) ||
+      typeof value.token !== "string" ||
+      !value.token ||
+      value.token.length > 160 ||
+      typeof value.password !== "string" ||
+      !value.password ||
+      value.password.length > 128 ||
+      typeof value.username !== "string" ||
+      value.username.length > 30 ||
+      Object.keys(value).length !== 3
+    ) {
+      throw new HttpError(400, "Enter a password and a username.");
+    }
+
+    return { token: value.token, password: value.password, username: value.username };
   }
 
   if (kind === "resend-verification") {
