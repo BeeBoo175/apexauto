@@ -36,6 +36,8 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
 
     public DbSet<Domain.Accounts.AccountPicture> AccountPictures => Set<Domain.Accounts.AccountPicture>();
 
+    public DbSet<Domain.Accounts.AccountEvent> AccountEvents => Set<Domain.Accounts.AccountEvent>();
+
     public DbSet<Branch> Branches => Set<Branch>();
 
     public DbSet<PromoCode> PromoCodes => Set<PromoCode>();
@@ -181,6 +183,7 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
         builder.ApplyConfiguration(new CustomerProfileConfiguration());
         builder.ApplyConfiguration(new StaffProfileConfiguration());
         builder.ApplyConfiguration(new AccountPictureConfiguration());
+        builder.ApplyConfiguration(new AccountEventConfiguration());
         builder.ApplyConfiguration(new AccountSessionConfiguration());
         builder.ApplyConfiguration(new EmailVerificationChallengeConfiguration());
         builder.ApplyConfiguration(new PasswordResetChallengeConfiguration());

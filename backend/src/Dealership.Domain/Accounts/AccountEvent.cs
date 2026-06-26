@@ -1,0 +1,78 @@
+namespace Dealership.Domain.Accounts;
+
+public enum AccountEventKind
+{
+    UsernameChanged,
+    PictureRemoved,
+    ProfileEdited,
+    EmailChanged,
+    BranchTransferred,
+    Suspended,
+    SuspensionLifted,
+    Deactivated,
+    Reactivated
+}
+
+// One field an action changed, with the values either side as plain invariant text.
+public sealed record AccountChange(string Field, string? Before, string? After);
+
+// The account's only audit history: one append-only receipt per administrative or self-service change, keyed by
+// the action's operation identity. Actor and target stay referenced by identity, so later edits never rewrite it.
+public sealed class AccountEvent
+{
+    public const int ReasonMaximumLength = 1000;
+
+    private AccountEvent()
+    {
+    }
+
+    public AccountEvent(Guid operationId, Guid targetId, Guid actorId, AccountEventKind kind, string? reason,
+        IReadOnlyList<AccountChange>? changes, DateTimeOffset recordedAt)
+    {
+        reason = reason?.Trim();
+        if (operationId == Guid.Empty || targetId == Guid.Empty || actorId == Guid.Empty ||
+            !Enum.IsDefined(kind) || !IsValidReason(kind, reason) || recordedAt == default)
+        {
+            throw new ArgumentException("An account event requires valid identities, a known kind and its reason.");
+        }
+
+        Id = operationId;
+        TargetId = targetId;
+        ActorId = actorId;
+        Kind = kind;
+        Reason = reason;
+        Changes = changes is { Count: > 0 } ? changes : null;
+        RecordedAt = recordedAt;
+    }
+
+    public Guid Id { get; private set; }
+
+    public Guid TargetId { get; private set; }
+
+    public Guid ActorId { get; private set; }
+
+    public AccountEventKind Kind { get; private set; }
+
+    public string? Reason { get; private set; }
+
+    public IReadOnlyList<AccountChange>? Changes { get; private set; }
+
+    public DateTimeOffset RecordedAt { get; private set; }
+
+    // Suspension, deactivation and branch transfer carry the administrator's reason; no other kind has one.
+    public static bool RequiresReason(AccountEventKind kind)
+    {
+        return kind is AccountEventKind.Suspended or AccountEventKind.Deactivated or AccountEventKind.BranchTransferred;
+    }
+
+    private static bool IsValidReason(AccountEventKind kind, string? reason)
+    {
+        if (!RequiresReason(kind))
+        {
+            return reason is null;
+        }
+
+        return !string.IsNullOrEmpty(reason) && reason.Length <= ReasonMaximumLength &&
+            !reason.Any(char.IsControl);
+    }
+}
