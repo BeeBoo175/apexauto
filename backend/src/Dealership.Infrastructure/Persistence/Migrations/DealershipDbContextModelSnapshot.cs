@@ -23,6 +23,44 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Dealership.Domain.Accounts.AccountEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Changes")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTimeOffset>("RecordedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("TargetId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorId");
+
+                    b.HasIndex("TargetId", "RecordedAt", "Id");
+
+                    b.ToTable("AccountEvents", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_AccountEvents_Shape", "isfinite(\"RecordedAt\") AND \"Kind\" IN ('UsernameChanged', 'PictureRemoved', 'ProfileEdited', 'EmailChanged', 'BranchTransferred', 'Suspended', 'SuspensionLifted', 'Deactivated', 'Reactivated') AND ((\"Kind\" IN ('Suspended', 'Deactivated', 'BranchTransferred') AND \"Reason\" IS NOT NULL AND \"Reason\" = btrim(\"Reason\") AND length(\"Reason\") BETWEEN 1 AND 1000 AND \"Reason\" !~ '[[:cntrl:]]') OR (\"Kind\" NOT IN ('Suspended', 'Deactivated', 'BranchTransferred') AND \"Reason\" IS NULL)) AND (\"Changes\" IS NULL OR jsonb_typeof(\"Changes\") = 'array')");
+                        });
+                });
+
             modelBuilder.Entity("Dealership.Domain.Accounts.AccountPicture", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3049,6 +3087,21 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("AspNetUserTokens", (string)null);
+                });
+
+            modelBuilder.Entity("Dealership.Domain.Accounts.AccountEvent", b =>
+                {
+                    b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
+                        .WithMany()
+                        .HasForeignKey("TargetId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Dealership.Domain.Accounts.AccountPicture", b =>
