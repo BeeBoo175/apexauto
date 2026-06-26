@@ -4,6 +4,7 @@ import { StaffDetailsDialog, type StaffDetail } from "./StaffDetailsDialog";
 import { AppointmentStatus } from "./AppointmentStatus";
 import { StaffStatusGroup } from "./StaffStatusGroup";
 import styles from "./StaffWorkspace.module.css";
+import { PersonLabel } from "./PersonLabel";
 
 export function IntakeRecord({
   detail,
@@ -61,7 +62,16 @@ export function IntakeRecord({
       </div>
       <div>
         <span className={styles.summaryLabel}>Handling agent</span>
-        <span>{ownership?.handlerEmail ?? "Unassigned"}</span>
+        {ownership?.handlerId && ownership.handlerEmail ? (
+          <PersonLabel
+            id={ownership.handlerId}
+            name={ownership.handlerName ?? ownership.handlerEmail}
+            identity={ownership.handlerEmail}
+            pictureId={ownership.handlerPictureId}
+          />
+        ) : (
+          <span>Unassigned</span>
+        )}
       </div>
       {ownership?.handlerId && !ownership.handlerEligible && (
         <p>

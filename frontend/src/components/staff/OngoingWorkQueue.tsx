@@ -11,6 +11,7 @@ import { workItemHref } from "@/lib/staff/work-calendar-presentation";
 import { StaffLink } from "./StaffLink";
 import queue from "./StaffQueueWorkspace.module.css";
 import styles from "./WorkCalendar.module.css";
+import { PersonLabel } from "./PersonLabel";
 
 export function OngoingWorkQueue({
   snapshot,
@@ -96,7 +97,15 @@ export function OngoingWorkQueue({
                 {!own && (
                   <span className={queue.jobMeta}>
                     {showBranch && `${item.branchName} · `}
-                    {item.handlerName ?? item.handlerEmail}
+                    {item.handlerId && item.handlerEmail && (
+                      <PersonLabel
+                        id={item.handlerId}
+                        name={item.handlerName ?? item.handlerEmail}
+                        identity={item.handlerEmail}
+                        pictureId={item.handlerPictureId}
+                        linked={false}
+                      />
+                    )}
                   </span>
                 )}
               </StaffLink>

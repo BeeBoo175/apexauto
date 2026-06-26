@@ -1,5 +1,6 @@
 "use client";
 
+import { ResolvedPersonLabel } from "@/components/staff/ResolvedPersonLabel";
 import { StaffDetailsDialog, type StaffDetail } from "@/components/staff/StaffDetailsDialog";
 import { StaffLink } from "@/components/staff/StaffLink";
 import { StaffStatusGroup } from "@/components/staff/StaffStatusGroup";
@@ -112,7 +113,12 @@ export function InspectionDetails({ editor }: { editor: ReturnType<typeof useIns
     },
     {
       label: "Assigned technician",
-      value: snapshot.report?.technicianIdentity ?? snapshot.draft.technicianIdentity,
+      value: (
+        <ResolvedPersonLabel
+          id={snapshot.report?.technicianId ?? snapshot.draft.technicianId}
+          identity={snapshot.report?.technicianIdentity ?? snapshot.draft.technicianIdentity}
+        />
+      ),
     },
     {
       label: "Saved assessment",

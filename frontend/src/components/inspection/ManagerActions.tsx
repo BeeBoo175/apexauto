@@ -1,4 +1,5 @@
 "use client";
+import { ResolvedPersonLabel } from "@/components/staff/ResolvedPersonLabel";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Input";
@@ -61,8 +62,9 @@ export function ManagerActions({
         </Button>
       </div>
       <p className={styles.help}>
-        Assigned technician: {draft.technicianIdentity}. Assignment version{" "}
-        {draft.assignmentVersion}.
+        Assigned technician:{" "}
+        <ResolvedPersonLabel id={draft.technicianId} identity={draft.technicianIdentity} />.
+        Assignment version {draft.assignmentVersion}.
       </p>
       <Dialog
         open={open}

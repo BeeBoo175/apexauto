@@ -1,4 +1,5 @@
 "use client";
+import { ResolvedPersonLabel } from "@/components/staff/ResolvedPersonLabel";
 import { useInspectionHistory } from "@/hooks/use-inspection-history";
 import { StaffLink } from "@/components/staff/StaffLink";
 import { DataTablePagination } from "@/components/ui/data-table/DataTablePagination";
@@ -89,7 +90,8 @@ export function RevisionHistoryView({
             {item.assessment.isRejected ? "Rejected" : `Grade ${item.assessment.grade}`}
           </StaffLink>
           <span>
-            {item.technicianIdentity} · {formatMalaysianDateTime(item.signedAt)}
+            <ResolvedPersonLabel id={item.technicianId} identity={item.technicianIdentity} /> ·{" "}
+            {formatMalaysianDateTime(item.signedAt)}
           </span>
           {item.reopening && (
             <p>

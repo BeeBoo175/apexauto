@@ -99,7 +99,10 @@ export async function downloadPicture(request: Request, accountId: string) {
       headers: {
         "Content-Type": contentType,
         "Content-Length": String(bytes.byteLength),
-        "Cache-Control": "private, no-store",
+        // The version in the URL changes with the picture; keying on the session cookie keeps one
+        // account's cached picture from being served to another account in the same browser.
+        "Cache-Control": "private, max-age=600",
+        Vary: "Cookie",
         "X-Content-Type-Options": "nosniff",
         "X-Robots-Tag": "noindex, nofollow",
       },

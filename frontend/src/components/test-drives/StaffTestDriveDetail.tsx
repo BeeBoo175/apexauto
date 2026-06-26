@@ -11,6 +11,7 @@ import { StaffTestDriveActions } from "./StaffTestDriveActions";
 import shared from "@/components/staff/StaffWorkspace.module.css";
 import facts from "@/components/staff/StaffRecordContent.module.css";
 import styles from "./StaffTestDrive.module.css";
+import { PersonLabel } from "@/components/staff/PersonLabel";
 
 export function StaffTestDriveDetail({
   actor,
@@ -98,7 +99,16 @@ export function StaffTestDriveDetail({
             <div>
               <dt>Handling staff</dt>
               <dd>
-                {booking.handlerEmail ?? "Unassigned"}
+                {booking.handlerId && booking.handlerEmail ? (
+                  <PersonLabel
+                    id={booking.handlerId}
+                    name={booking.handlerName ?? booking.handlerEmail}
+                    identity={booking.handlerEmail}
+                    pictureId={booking.handlerPictureId}
+                  />
+                ) : (
+                  "Unassigned"
+                )}
                 {booking.handlerId && !booking.handlerEligible ? " (currently ineligible)" : ""}
               </dd>
             </div>
