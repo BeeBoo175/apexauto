@@ -1,6 +1,8 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
+import { UsernameDialog } from "./UsernameDialog";
+import { useAccountUsername } from "@/hooks/use-account-username";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button, buttonClassName } from "@/components/ui/Button";
 import { useAccountPicture } from "@/hooks/use-account-picture";
@@ -26,6 +28,8 @@ export function AccountPanel({ profile }: { profile: AccountProfile }) {
     ? "Verify your email to reserve a car or book an inspection."
     : "Verify your email to use the staff workspace.";
   const picture = useAccountPicture(profile.userId, profile.pictureId);
+  const username = useAccountUsername(profile.username);
+  const [usernameOpen, setUsernameOpen] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
   let logoutLabel = "Sign out";
@@ -97,7 +101,12 @@ export function AccountPanel({ profile }: { profile: AccountProfile }) {
       <dl className={styles.rows}>
         <div className={styles.row}>
           <dt className={styles.label}>Username</dt>
-          <dd className={styles.value}>{profile.username}</dd>
+          <dd className={styles.value}>{username.username}</dd>
+          <dd className={styles.control}>
+            <Button variant="secondary" onClick={() => setUsernameOpen(true)}>
+              Change username
+            </Button>
+          </dd>
         </div>
         {!isCustomer && (
           <div className={styles.row}>
@@ -159,6 +168,11 @@ export function AccountPanel({ profile }: { profile: AccountProfile }) {
           </dd>
         </div>
       </dl>
+      <UsernameDialog
+        account={username}
+        open={usernameOpen}
+        onClose={() => setUsernameOpen(false)}
+      />
     </div>
   );
 }

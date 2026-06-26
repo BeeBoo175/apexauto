@@ -21,6 +21,7 @@ public sealed class PasswordRecoveryConstraintTests(RegistrationDatabase databas
                 Id = Guid.NewGuid(),
                 Email = email,
                 UserName = email,
+                AccountUsername = TestUsernames.Next(),
                 Role = AccountRoles.GeneralManager
             }, "Password123!")).Succeeded);
         }

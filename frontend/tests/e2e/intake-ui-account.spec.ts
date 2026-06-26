@@ -84,6 +84,17 @@ test("staff manage their own picture on the shared account page and open a colle
   await page.getByRole("button", { name: "Remove picture" }).click();
   await expect(page.getByText("Picture removed.")).toBeVisible();
   await expect(page.locator("img[src^='/api/accounts/']")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Change username" }).click();
+  await page.getByLabel("Username", { exact: true }).fill("no");
+  await page.getByRole("button", { name: "Save username" }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "Use 3 to 30" })).toBeVisible();
+  await page.getByLabel("Username", { exact: true }).fill("siti.aminah.pj");
+  await page.getByRole("button", { name: "Save username" }).click();
+  await expect(page.getByText("Username updated.")).toBeVisible();
+  await expect(page.getByText("siti.aminah.pj", { exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByText("siti.aminah.pj", { exact: true })).toBeVisible();
 });
 
 test("customers keep the sectioned account page and cannot read staff profiles", async ({

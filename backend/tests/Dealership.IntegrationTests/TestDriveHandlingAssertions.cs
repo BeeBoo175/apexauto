@@ -182,6 +182,8 @@ internal static class TestDriveHandlingAssertions
         var rollback = await Assert.ThrowsAsync<PostgresException>(() => maintenance.GetService<IMigrator>()
             .MigrateAsync("20261103151704_TestDriveInspectionRepairCancellations"));
         Assert.Contains("Retained test-drive handling evidence", rollback.MessageText, StringComparison.Ordinal);
+        // The refused rollback has already undone the later account migrations, so bring the schema back up first.
+        await maintenance.GetService<IMigrator>().MigrateAsync();
         Assert.Equal(JsonSerializer.Serialize(outcome), JsonSerializer.Serialize((await FinishAsync(manager, outcomeRequest)).Outcome));
 
         async Task<TestDriveHandlingResult> StartAsync(Guid actor, TestDriveStartRequest request)

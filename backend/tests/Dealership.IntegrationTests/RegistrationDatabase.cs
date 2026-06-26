@@ -94,7 +94,7 @@ public sealed class RegistrationDatabase : IAsyncLifetime
 
         await using var target = new NpgsqlConnection(ConnectionString);
         await target.OpenAsync();
-        await using (var grants = new NpgsqlCommand($"GRANT CONNECT ON DATABASE \"{_databaseName}\" TO \"{_runtimeRole}\"; GRANT USAGE ON SCHEMA public TO \"{_runtimeRole}\"; GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA public TO \"{_runtimeRole}\"", target))
+        await using (var grants = new NpgsqlCommand($"GRANT CONNECT ON DATABASE \"{_databaseName}\" TO \"{_runtimeRole}\"; GRANT USAGE ON SCHEMA public TO \"{_runtimeRole}\"; GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA public TO \"{_runtimeRole}\"; ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE ON TABLES TO \"{_runtimeRole}\"", target))
         {
             await grants.ExecuteNonQueryAsync();
         }

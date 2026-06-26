@@ -41,8 +41,9 @@ internal static class TestDriveAssignmentAssertions
         var role = new NpgsqlConnectionStringBuilder(fixture.Database.RuntimeConnectionString).Username!;
         Assert.Matches("^aa02_runtime_[0-9a-f]{32}$", role);
         await maintenance.Database.OpenConnectionAsync();
+        // Migrating down and up recreates every later table, so the runtime role's grants are restored for all of them.
         await using var grant = new NpgsqlCommand(
-            $"GRANT SELECT, INSERT, UPDATE ON \"TestDriveAssignments\" TO \"{role}\"",
+            $"GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA public TO \"{role}\"",
             (NpgsqlConnection)maintenance.Database.GetDbConnection());
         await grant.ExecuteNonQueryAsync();
     }
