@@ -33,6 +33,7 @@ public static class DependencyInjection
         services.AddScoped<AuthenticationService>();
         services.AddScoped<PersonViewService>();
         services.AddScoped<AccountUsernameService>();
+        services.AddScoped<StaffInvitationService>();
         services.AddScoped<StaffProvisioningService>();
         services.AddScoped<BranchProvisioningService>();
         services.AddScoped<BranchDiscoveryService>();
