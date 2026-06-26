@@ -47,6 +47,14 @@ public sealed class AccountPictureTests(IntakePhotoFixture fixture) : IClassFixt
         await SignInStaffAsync(factory, administratorClient, AccountRoles.Administrator);
         Assert.Equal(HttpStatusCode.NoContent, (await administratorClient.DeleteAsync($"/api/accounts/{customerId}/picture")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await customerClient.GetAsync($"/api/accounts/{customerId}/picture")).StatusCode);
+        using (var scope = factory.Services.CreateScope())
+        {
+            var database = scope.ServiceProvider.GetRequiredService<Dealership.Infrastructure.Persistence.DealershipDbContext>();
+            var removal = Assert.Single(database.AccountEvents.Where(item => item.TargetId == customerId));
+            Assert.Equal(Dealership.Domain.Accounts.AccountEventKind.PictureRemoved, removal.Kind);
+            Assert.NotEqual(customerId, removal.ActorId);
+        }
+
         Assert.Null((await customerClient.GetFromJsonAsync<AccountProfile>("/api/account/profile"))!.PictureId);
         Assert.Equal(HttpStatusCode.NotFound, (await customerClient.DeleteAsync($"/api/accounts/{customerId}/picture")).StatusCode);
     }

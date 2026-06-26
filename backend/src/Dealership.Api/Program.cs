@@ -158,6 +158,7 @@ app.MapListingPhotoEndpoints();
 app.MapRegistrationEndpoints();
 app.MapAuthenticationEndpoints();
 app.MapAccountPictureEndpoints();
+app.MapAccountUsernameEndpoint();
 app.MapPersonEndpoints();
 app.MapPasswordRecoveryEndpoints();
 app.MapBranchDiscoveryEndpoints();

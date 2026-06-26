@@ -76,6 +76,7 @@ public static class DependencyInjection
         services.AddScoped<IPersonQuery, PersonQuery>();
         services.AddScoped<IRecordHandlerQuery, RecordHandlerQuery>();
         services.AddScoped<IAccountPictureStore, AccountPictureStore>();
+        services.AddScoped<IAccountUsernameStore, AccountUsernameStore>();
         services.AddScoped<IStaffProvisioningStore, StaffProvisioningStore>();
         services.AddScoped<IBranchProvisioningStore, BranchProvisioningStore>();
         services.AddScoped<IEmailVerificationStore, EmailVerificationStore>();

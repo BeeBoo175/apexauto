@@ -76,7 +76,7 @@ public sealed class AccountPictureService(IAccountProfileQuery profiles, IAccoun
         }
 
         await using var transfer = await locks.AcquireAsync(ownerId, cancellationToken);
-        var removed = await pictures.RemoveAsync(ownerId, cancellationToken);
+        var removed = await pictures.RemoveAsync(ownerId, actorId, cancellationToken);
         await DeleteObjectAsync(removed, cancellationToken);
         return new AccountPictureResult(removed is null ? AccountPictureStatus.NotFound : AccountPictureStatus.Removed);
     }

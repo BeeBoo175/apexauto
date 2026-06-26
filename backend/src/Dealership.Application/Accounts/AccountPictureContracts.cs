@@ -21,5 +21,7 @@ public interface IAccountPictureStore
     // Stores the picture as the account's only one and returns the one it replaced.
     Task<AccountPicture?> ReplaceAsync(AccountPicture picture, CancellationToken cancellationToken);
 
-    Task<AccountPicture?> RemoveAsync(Guid userId, CancellationToken cancellationToken);
+    // Marks the current picture removed; an Administrator removing another account's picture is recorded in the
+    // same commit as an account event.
+    Task<AccountPicture?> RemoveAsync(Guid userId, Guid actorId, CancellationToken cancellationToken);
 }

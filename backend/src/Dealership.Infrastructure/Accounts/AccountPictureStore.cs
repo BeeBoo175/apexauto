@@ -31,7 +31,7 @@ public sealed class AccountPictureStore(DealershipDbContext database, TimeProvid
         return previous;
     }
 
-    public async Task<AccountPicture?> RemoveAsync(Guid userId, CancellationToken cancellationToken)
+    public async Task<AccountPicture?> RemoveAsync(Guid userId, Guid actorId, CancellationToken cancellationToken)
     {
         var existing = await database.AccountPictures.SingleOrDefaultAsync(
             picture => picture.UserId == userId && picture.RemovedAt == null, cancellationToken);
@@ -41,7 +41,14 @@ public sealed class AccountPictureStore(DealershipDbContext database, TimeProvid
             return null;
         }
 
-        existing.MarkRemoved(Now());
+        var removedAt = Now();
+        existing.MarkRemoved(removedAt);
+        if (actorId != userId)
+        {
+            database.AccountEvents.Add(new AccountEvent(Guid.NewGuid(), userId, actorId,
+                AccountEventKind.PictureRemoved, null, null, removedAt));
+        }
+
         await database.SaveChangesAsync(cancellationToken);
         return existing;
     }
