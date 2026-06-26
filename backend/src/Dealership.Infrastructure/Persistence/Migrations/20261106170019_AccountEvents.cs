@@ -8,6 +8,8 @@ namespace Dealership.Infrastructure.Persistence.Migrations
     /// <inheritdoc />
     public partial class AccountEvents : Migration
     {
+        private static readonly string[] TargetRecordedColumns = ["TargetId", "RecordedAt", "Id"];
+
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -49,7 +51,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_AccountEvents_TargetId_RecordedAt_Id",
                 table: "AccountEvents",
-                columns: new[] { "TargetId", "RecordedAt", "Id" });
+                columns: TargetRecordedColumns);
 
             migrationBuilder.Sql("""
                 CREATE FUNCTION forbid_account_event_change() RETURNS trigger LANGUAGE plpgsql AS $$
