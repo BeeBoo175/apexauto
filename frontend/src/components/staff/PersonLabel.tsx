@@ -23,7 +23,8 @@ export function PersonLabel({
         name={name}
         pictureId={pictureId}
         size="sm"
-        detail={linked ? identity : undefined}
+        detail={identity}
+        linked={linked}
       />
       <span>{name}</span>
     </span>
