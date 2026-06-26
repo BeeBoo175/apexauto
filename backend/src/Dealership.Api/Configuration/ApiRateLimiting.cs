@@ -8,6 +8,7 @@ namespace Dealership.Api.Configuration;
 public static class ApiRateLimiting
 {
     public const int RequestsPerMinute = 100;
+    public const int PictureReadsPerMinute = 300;
     public const int LoginAttemptsPerMinute = 5;
     public const string LoginPolicy = "login";
     public const string PhotoTransferPolicy = "photo-transfers";
@@ -45,11 +46,15 @@ public static class ApiRateLimiting
                     AutoReplenishment = true
                 });
             });
-            options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, IPAddress>(context =>
+            options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
             {
-                return RateLimitPartition.GetFixedWindowLimiter(GetClientAddress(context), _ => new FixedWindowRateLimiterOptions
+                // A page of avatars reads many small private pictures; they draw on their own budget so they
+                // cannot starve the API calls of the same page.
+                var pictures = IsPictureRead(context);
+                var partition = (pictures ? "pictures:" : "api:") + GetClientAddress(context);
+                return RateLimitPartition.GetFixedWindowLimiter(partition, _ => new FixedWindowRateLimiterOptions
                 {
-                    PermitLimit = RequestsPerMinute,
+                    PermitLimit = pictures ? PictureReadsPerMinute : RequestsPerMinute,
                     Window = RequestWindow,
                     // Reject immediately so bursts do not accumulate pending requests.
                     QueueLimit = 0,
@@ -79,6 +84,14 @@ public static class ApiRateLimiting
         });
 
         return services;
+    }
+
+    private static bool IsPictureRead(HttpContext context)
+    {
+        var path = context.Request.Path.Value ?? string.Empty;
+        return HttpMethods.IsGet(context.Request.Method) &&
+            path.StartsWith("/api/accounts/", StringComparison.OrdinalIgnoreCase) &&
+            path.EndsWith("/picture", StringComparison.OrdinalIgnoreCase);
     }
 
     private static IPAddress GetClientAddress(HttpContext context)

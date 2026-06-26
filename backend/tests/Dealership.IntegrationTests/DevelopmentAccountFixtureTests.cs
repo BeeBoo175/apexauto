@@ -102,7 +102,7 @@ public sealed class DevelopmentAccountFixtureTests(RegistrationDatabase fixture)
         await using var tables = new NpgsqlCommand("""
             SELECT tablename FROM pg_tables WHERE schemaname = 'public'
                 AND tablename NOT IN ('__EFMigrationsHistory', 'Branches', 'AspNetUsers', 'CustomerProfiles',
-                    'EmailVerificationChallenges', 'AccountSessions') ORDER BY tablename
+                    'StaffProfiles', 'EmailVerificationChallenges', 'AccountSessions') ORDER BY tablename
             """, connection);
         var names = new List<string>();
         await using (var reader = await tables.ExecuteReaderAsync())

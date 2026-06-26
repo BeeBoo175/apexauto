@@ -5,6 +5,8 @@ namespace Dealership.Infrastructure.Development;
 
 public sealed record DevelopmentCustomerFixture(RegistrationRequest Registration, bool VerifyEmail);
 
+public sealed record DevelopmentAccountPicture(string Email, string File);
+
 public static class DevelopmentFixtureManifest
 {
     public const string Password = "Password123!";
@@ -18,6 +20,17 @@ public static class DevelopmentFixtureManifest
         new(Guid.Parse("a50f99b1-8ff4-4ffb-b716-c82aa21fe117"), "ApexAuto Bayan Lepas",
             "8 Jalan Mahsuri", "Bayan Lepas", "Pulau Pinang", "+6046411234")
     ]);
+
+    // Licensed non-identifiable demo pictures; see Media/attribution.json for source, author and licence.
+    public const int PictureCount = 8;
+
+    // About half of the named accounts (every other customer and staff member) carry a picture; the rest keep initials.
+    public static IReadOnlyList<DevelopmentAccountPicture> Pictures =>
+        Array.AsReadOnly(Customers.Select(item => item.Registration.Email!)
+            .Where((_, index) => index % 2 == 0)
+            .Concat(Staff.Where((_, index) => index % 2 == 0).Select(item => item.Email))
+            .Select((email, index) => new DevelopmentAccountPicture(email, $"avatar-{index % PictureCount + 1:D2}.jpg"))
+            .ToArray());
 
     public static IReadOnlyList<DevelopmentCustomerFixture> Customers { get; } = Array.AsReadOnly<DevelopmentCustomerFixture>(
     [

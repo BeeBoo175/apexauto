@@ -70,7 +70,9 @@ internal sealed class DevelopmentFixtureInterruption
                 throw new IOException("Injected lost acknowledgement for the listing fixture upload.");
             }
 
-            if (fault.Enabled && Interlocked.Increment(ref fault._uploads) == 5)
+            // The fifth upload is meant to be the first appointment bundle; account pictures are seeded before it.
+            if (fault.Enabled && !photo.ObjectKey.StartsWith("accounts/", StringComparison.Ordinal) &&
+                Interlocked.Increment(ref fault._uploads) == 5)
             {
                 throw new IOException("Injected lost acknowledgement after the first appointment bundle was inserted.");
             }

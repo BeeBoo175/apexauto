@@ -21,6 +21,7 @@ public static class DevelopmentFixtureRegistration
         services.AddDevelopmentAccounts(configuration);
         services.AddScoped<DevelopmentFixtureRunner>();
         services.AddScoped<DevelopmentFixtureMail>();
+        services.AddScoped<DevelopmentAccountPictureFixtures>();
         services.AddScoped<DevelopmentInspectionFixtures>();
         services.AddScoped<DevelopmentListingFixtures>();
         services.AddScoped<DevelopmentPurchaseFixtures>();

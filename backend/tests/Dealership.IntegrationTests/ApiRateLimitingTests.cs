@@ -53,6 +53,22 @@ public sealed class ApiRateLimitingTests
     }
 
     [Fact]
+    public async Task PictureReadsUseTheirOwnBudgetBesideTheApiBudget()
+    {
+        using var factory = CreateFactory();
+        for (var request = 0; request < ApiRateLimiting.RequestsPerMinute; request++)
+        {
+            var response = await Send(factory, FirstClient, "/api/taxonomy");
+            Assert.Equal(StatusCodes.Status200OK, response.Response.StatusCode);
+        }
+
+        Assert.Equal(StatusCodes.Status429TooManyRequests,
+            (await Send(factory, FirstClient, "/api/taxonomy")).Response.StatusCode);
+        var picture = await Send(factory, FirstClient, $"/api/accounts/{Guid.NewGuid()}/picture");
+        Assert.Equal(StatusCodes.Status401Unauthorized, picture.Response.StatusCode);
+    }
+
+    [Fact]
     public async Task GlobalBudgetIncludesPreflightWhileHealthProbesRemainExempt()
     {
         using var factory = CreateFactory();
