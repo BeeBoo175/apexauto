@@ -2295,6 +2295,114 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Dealership.Infrastructure.Identity.StaffInvitation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ActivatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ActivatedUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DeliveredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DeliveryAttempts")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("DeliveryClaimExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeliveryClaimId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("character varying(254)");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("InvitedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Mobile")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTimeOffset>("NextDeliveryAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("NormalizedEmail")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasMaxLength(254)
+                        .HasColumnType("character varying(254)")
+                        .HasComputedColumnSql("upper(\"Email\")", true);
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("RevokedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.PrimitiveCollection<DateTimeOffset[]>("SentAt")
+                        .IsRequired()
+                        .HasColumnType("timestamp with time zone[]");
+
+                    b.Property<Guid>("TokenNonce")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActivatedUserId")
+                        .IsUnique()
+                        .HasFilter("\"ActivatedUserId\" IS NOT NULL");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("InvitedById");
+
+                    b.HasIndex("NextDeliveryAt");
+
+                    b.HasIndex("NormalizedEmail")
+                        .IsUnique()
+                        .HasDatabaseName("StaffInvitationPendingEmailIndex")
+                        .HasFilter("\"ActivatedAt\" IS NULL AND \"RevokedAt\" IS NULL");
+
+                    b.HasIndex("RevokedById");
+
+                    b.ToTable("StaffInvitations", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_StaffInvitations_Lifetime", "\"ExpiresAt\" > \"CreatedAt\" AND \"DeliveryAttempts\" >= 0");
+
+                            t.HasCheckConstraint("CK_StaffInvitations_Outcome", "(\"ActivatedAt\" IS NULL OR \"RevokedAt\" IS NULL) AND (\"ActivatedAt\" IS NULL) = (\"ActivatedUserId\" IS NULL) AND (\"RevokedAt\" IS NULL) = (\"RevokedById\" IS NULL)");
+
+                            t.HasCheckConstraint("CK_StaffInvitations_Profile", "\"Name\" ~ '[^[:space:]]' AND \"Mobile\" ~ '[^[:space:]]'");
+
+                            t.HasCheckConstraint("CK_StaffInvitations_Role", "\"Role\" IN ('SalesAgent', 'WorkshopTechnician', 'BranchManager', 'GeneralManager', 'Administrator') AND ((\"Role\" IN ('SalesAgent', 'WorkshopTechnician', 'BranchManager') AND \"BranchId\" IS NOT NULL) OR (\"Role\" IN ('GeneralManager', 'Administrator') AND \"BranchId\" IS NULL))");
+                        });
+                });
+
             modelBuilder.Entity("Dealership.Infrastructure.Inspections.InspectionDraftPhoto", b =>
                 {
                     b.Property<Guid>("SaveId")
@@ -3686,6 +3794,30 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Dealership.Infrastructure.Identity.StaffInvitation", b =>
+                {
+                    b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
+                        .WithMany()
+                        .HasForeignKey("ActivatedUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Dealership.Domain.Branches.Branch", null)
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
+                        .WithMany()
+                        .HasForeignKey("InvitedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
+                        .WithMany()
+                        .HasForeignKey("RevokedById")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("Dealership.Infrastructure.Inspections.InspectionDraftPhoto", b =>
