@@ -73,13 +73,21 @@ public sealed class StaffProvisioningStore(DealershipDbContext database, UserMan
         var candidate = UsernamePolicy.DeriveFromEmail(email);
         var suffix = 1;
 
-        while (await database.Users.AnyAsync(user => user.AccountUsername.ToUpper() == candidate.ToUpper(), cancellationToken))
+        // The stored uppercase key is the uniqueness key, so a clash is judged exactly as the index judges it.
+        while (await IsTakenAsync(candidate, cancellationToken))
         {
             suffix++;
             candidate = UsernamePolicy.WithSuffix(UsernamePolicy.DeriveFromEmail(email), suffix);
         }
 
         return candidate;
+    }
+
+    private Task<bool> IsTakenAsync(string username, CancellationToken cancellationToken)
+    {
+        var key = username.ToUpperInvariant();
+        return database.Users.AnyAsync(user => EF.Property<string>(user, "NormalizedAccountUsername") == key,
+            cancellationToken);
     }
 
     private Task<int> LockFixtureAsync(Guid id, CancellationToken cancellationToken)

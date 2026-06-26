@@ -13,7 +13,7 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
     DevelopmentInspectionFixtures inspections, DevelopmentListingFixtures listings, DevelopmentPurchaseFixtures purchases,
     DevelopmentReservationFixtures reservations, DevelopmentSaleFixtures sales,
     DevelopmentFixtureMail mail, DevelopmentTestDriveFixtures testDrives, DevelopmentSaleVolumeFixtures salesVolume,
-    DevelopmentAccountPictureFixtures accountPictures)
+    DevelopmentAccountPictureFixtures accountPictures, DevelopmentInvitationFixtures invitations)
 {
     private readonly List<DevelopmentFixtureTiming> timings = [];
 
@@ -74,6 +74,7 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
 
         reports.AddRange(await TimeAsync("Accounts", () => accounts.RunAsync(true, token)));
         reports.AddRange(await TimeAsync("Account pictures", () => accountPictures.RunAsync(true, token)));
+        reports.AddRange(await TimeAsync("Staff invitations", () => invitations.RunAsync(true, token)));
         reports.AddRange(await TimeAsync("Purchase settings", () => purchases.RunAsync(true, token)));
         reports.AddRange(await TimeAsync("Intake", () => intake.SeedAsync(target, token)));
         reports.AddRange(await TimeAsync("Inspections", () => inspections.RunAsync(true, token)));
@@ -101,6 +102,7 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
 
             reports.AddRange(await TimeAsync("Accounts", () => accounts.RunAsync(false, cancellationToken)));
             reports.AddRange(await TimeAsync("Account pictures", () => accountPictures.RunAsync(false, cancellationToken)));
+            reports.AddRange(await TimeAsync("Staff invitations", () => invitations.RunAsync(false, cancellationToken)));
             reports.AddRange(await TimeAsync("Purchase settings", () => purchases.RunAsync(false, cancellationToken)));
             reports.AddRange(await TimeAsync("Intake", () => intake.ReviewAsync(cancellationToken)));
             reports.AddRange(await TimeAsync("Inspections", () => inspections.RunAsync(false, cancellationToken)));

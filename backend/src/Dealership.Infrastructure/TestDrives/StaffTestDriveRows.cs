@@ -16,7 +16,7 @@ internal static class StaffTestDriveRows
                 (user.Role == AccountRoles.GeneralManager ||
                     (user.Role == AccountRoles.SalesAgent || user.Role == AccountRoles.BranchManager) &&
                     database.Branches.Any(branch => branch.Id == user.BranchId && branch.IsActive)))
-            .Select(user => new CurrentActor(user.Id, user.Role, user.BranchId))
+            .Select(user => new CurrentActor(user.Id, user.Role, user.BranchId, user.EmailConfirmed))
             .SingleOrDefaultAsync(cancellationToken);
     }
 

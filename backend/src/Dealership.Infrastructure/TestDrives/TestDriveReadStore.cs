@@ -44,7 +44,7 @@ public sealed class TestDriveReadStore(DealershipDbContext database) : ITestDriv
         await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead, cancellationToken);
         var actor = await database.Users.AsNoTracking()
             .Where(user => user.Id == customerId && user.IsActive && user.Role == AccountRoles.Customer)
-            .Select(user => new CurrentActor(user.Id, user.Role, user.BranchId)).SingleOrDefaultAsync(cancellationToken);
+            .Select(user => new CurrentActor(user.Id, user.Role, user.BranchId, user.EmailConfirmed)).SingleOrDefaultAsync(cancellationToken);
         if (actor is null)
         {
             return new(TestDriveReadStatus.Forbidden);

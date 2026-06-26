@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 
 namespace Dealership.Application.Accounts;
@@ -30,7 +31,7 @@ public static class UsernamePolicy
     // A numeric suffix keeps the candidate within the maximum length while resolving a clash.
     public static string WithSuffix(string username, int suffix)
     {
-        var text = suffix.ToString();
+        var text = suffix.ToString(CultureInfo.InvariantCulture);
         var stem = username.Length + text.Length > MaximumLength ? username[..(MaximumLength - text.Length)] : username;
         return stem + text;
     }

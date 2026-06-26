@@ -25,7 +25,7 @@ public sealed class StaffWorklistStore(DealershipDbContext database) : IStaffWor
     {
         await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead, cancellationToken);
         var current = await database.Users.AsNoTracking().Where(user => user.Id == actor.UserId && user.IsActive)
-            .Select(user => new CurrentActor(user.Id, user.Role, user.BranchId)).SingleOrDefaultAsync(cancellationToken);
+            .Select(user => new CurrentActor(user.Id, user.Role, user.BranchId, user.EmailConfirmed)).SingleOrDefaultAsync(cancellationToken);
         if (current != actor)
         {
             return false;
