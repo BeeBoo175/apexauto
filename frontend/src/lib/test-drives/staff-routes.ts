@@ -12,6 +12,7 @@ import {
   parseStaffTestDrivePage,
   parseTestDriveHandlers,
 } from "./staff";
+import { parseStaffTestDriveHistory } from "./staff-history";
 
 const listKeys = [
   "from",
@@ -59,6 +60,21 @@ export async function relayStaffTestDriveHandlers(request: Request, id: string) 
     return apiError(new HttpError(400, "Choose a valid test drive."));
   }
   return relayRead(request, `/${id}/handlers`, parseTestDriveHandlers);
+}
+
+export async function relayStaffTestDriveHistory(request: Request, id: string) {
+  if (!isUuid(id)) {
+    return apiError(new HttpError(400, "Choose a valid test drive."));
+  }
+  return relayRead(
+    request,
+    `/${id}/history`,
+    (value) => {
+      const history = parseStaffTestDriveHistory(value);
+      return history?.bookingId === id ? history : null;
+    },
+    ["page", "pageSize"],
+  );
 }
 
 async function relayRead<T extends { actor: CurrentActor }>(

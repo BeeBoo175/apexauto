@@ -2,6 +2,7 @@ using Dealership.Domain.TestDrives;
 using Dealership.Domain.Common;
 using System.Data;
 using Dealership.Application.Accounts;
+using Dealership.Application.Common;
 using Dealership.Application.TestDrives;
 using Dealership.Infrastructure.Accounts;
 using Dealership.Infrastructure.Persistence;
@@ -95,11 +96,8 @@ public sealed class StaffTestDriveReadStore(DealershipDbContext database) : ISta
             .Select(item => new TestDriveOutcomeView(item.Id, item.BookingId, item.AssignmentId, item.StaffId,
                 item.StartId, item.Kind, item.CustomerPresent, item.Reason, item.Notes, item.EndedAt))
             .SingleOrDefaultAsync(cancellationToken);
-        var names = await AccountNames.ReadAsync(database, [start?.StaffId, outcome?.StaffId], cancellationToken);
         var detail = new StaffTestDriveDetail(actor, StaffTestDriveRows.ToItem(row), facts.Mobile, facts.Email ?? string.Empty,
-            facts.CreatedAt, ownership, cancellation, start, outcome,
-            start is null ? null : names.GetValueOrDefault(start.StaffId),
-            outcome is null ? null : names.GetValueOrDefault(outcome.StaffId));
+            facts.CreatedAt, ownership, cancellation, start, outcome);
         await transaction.CommitAsync(cancellationToken);
         return new(TestDriveReadStatus.Succeeded, detail);
     }
@@ -122,5 +120,85 @@ public sealed class StaffTestDriveReadStore(DealershipDbContext database) : ISta
         var handlers = await StaffHandlerRows.ReadAsync(database, actor.BranchId, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return new(TestDriveReadStatus.Succeeded, new(actor, handlers));
+    }
+
+    // Every retained step of one booking, newest first: the booking, each ownership change, the start, the outcome
+    // and the cancellation. A booking has few steps, so they are merged and paged in memory.
+    public async Task<StaffTestDriveReadResult<TestDriveEventPage>> HistoryAsync(Guid staffId, Guid bookingId,
+        int page, int pageSize, CancellationToken cancellationToken)
+    {
+        if (!Pagination.IsValid(page, pageSize))
+        {
+            return new(TestDriveReadStatus.Invalid);
+        }
+
+        await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead, cancellationToken);
+        var actor = await StaffTestDriveRows.ActorAsync(database, staffId, cancellationToken);
+        if (actor is null)
+        {
+            return new(TestDriveReadStatus.Forbidden);
+        }
+
+        var now = await database.DatabaseNowAsync(cancellationToken);
+        var rows = StaffTestDriveRows.Create(database, actor.BranchId, AppointmentDay.StartUtc(now));
+        if (actor.Role == AccountRoles.SalesAgent)
+        {
+            rows = rows.Where(row => row.HandlerId == staffId || row.Status == TestDriveStatus.Booked && row.HandlerId == null);
+        }
+
+        if (!await rows.AnyAsync(item => item.Id == bookingId, cancellationToken))
+        {
+            return new(TestDriveReadStatus.NotFound);
+        }
+
+        var booking = await database.TestDriveBookings.AsNoTracking().SingleAsync(item => item.Id == bookingId, cancellationToken);
+        var assignments = await database.TestDriveAssignments.AsNoTracking().Where(item => item.BookingId == bookingId)
+            .ToListAsync(cancellationToken);
+        var start = await database.TestDriveStarts.AsNoTracking().SingleOrDefaultAsync(item => item.BookingId == bookingId, cancellationToken);
+        var outcome = await database.TestDriveOutcomes.AsNoTracking().SingleOrDefaultAsync(item => item.BookingId == bookingId, cancellationToken);
+        var cancellation = await database.TestDriveCancellations.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.BookingId == bookingId, cancellationToken);
+        var names = await AccountNames.ReadAsync(database,
+        [
+            booking.CustomerId, start?.StaffId, outcome?.StaffId, cancellation?.StaffId,
+            .. assignments.SelectMany(item => new Guid?[] { item.ActorId, item.HandlerId })
+        ], cancellationToken);
+
+        var items = new List<TestDriveEvent>
+        {
+            new(booking.Id, "Booked", booking.CreatedAt, NameOf(booking.CustomerId), booking.CustomerId, null, null, null, null)
+        };
+        items.AddRange(assignments.Select(item => new TestDriveEvent(item.Id, item.Kind, item.RecordedAt,
+            NameOf(item.ActorId), item.ActorId, item.HandlerId is { } handler ? NameOf(handler) : null, item.HandlerId,
+            item.Reason, null)));
+        if (start is not null)
+        {
+            items.Add(new(start.Id, "Started", start.StartedAt, NameOf(start.StaffId), start.StaffId, null, null, null,
+                $"{(start.CustomerPresent ? "Customer present" : "Customer absent")} · " +
+                (start.DrivingLicenceChecked ? "Driving licence checked" : "Driving licence not checked")));
+        }
+
+        if (outcome is not null)
+        {
+            items.Add(new(outcome.Id, outcome.Kind, outcome.EndedAt, NameOf(outcome.StaffId), outcome.StaffId, null, null,
+                outcome.Reason, outcome.Notes));
+        }
+
+        if (cancellation is not null)
+        {
+            var byStaff = cancellation.StaffId is not null;
+            var byCustomer = !byStaff && cancellation.Kind == TestDriveCancellationKind.CustomerCancelled;
+            Guid? cancelledBy = byStaff ? cancellation.StaffId : byCustomer ? cancellation.CustomerId : null;
+            items.Add(new(cancellation.Id, cancellation.Kind, cancellation.RecordedAt,
+                cancelledBy is { } who ? NameOf(who) : "System", cancelledBy, null, null, cancellation.Reason, null));
+        }
+
+        var ordered = items.OrderByDescending(item => item.RecordedAt).ThenByDescending(item => item.Kind != "Booked")
+            .ThenBy(item => item.Id).ToList();
+        var pageItems = ordered.Skip((page - 1) * pageSize).Take(pageSize).ToArray();
+        await transaction.CommitAsync(cancellationToken);
+        return new(TestDriveReadStatus.Succeeded, new TestDriveEventPage(actor, bookingId, pageItems, ordered.Count, page, pageSize));
+
+        string NameOf(Guid id) => names.GetValueOrDefault(id, string.Empty);
     }
 }

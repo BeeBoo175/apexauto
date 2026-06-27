@@ -6,6 +6,7 @@ import {
   parseTestDriveHistory,
   parseTestDriveSlots,
 } from "@/lib/test-drives/customer";
+import { parseStaffTestDriveHistory, testDriveEventSummary } from "@/lib/test-drives/staff-history";
 import {
   parseStaffTestDriveDetail,
   parseStaffTestDrivePage,
@@ -202,8 +203,6 @@ test("staff snapshots preserve released ownership and bind handling evidence to 
     createdAt: receipt.createdAt,
     customerMobile: "0123456789",
     customerEmail: "aina@example.invalid",
-    startedBy: null,
-    completedBy: null,
   };
   expect(parseStaffTestDriveDetail(detail)?.ownership?.version).toBe(2);
   expect(
@@ -364,4 +363,33 @@ test("staff commands preserve exact ownership replay while rejecting other actor
       ),
     ).toBeNull();
   }
+});
+
+test("a booking history keeps ordered, attributed steps and rejects unknown or partial ones", () => {
+  const id = crypto.randomUUID();
+  const actor = {
+    userId: crypto.randomUUID(),
+    role: "BranchManager",
+    branchId: crypto.randomUUID(),
+  };
+  const event = {
+    id,
+    kind: "Assigned",
+    recordedAt: "2026-11-05T02:00:00Z",
+    actor: "Aina Sofia",
+    actorId: actor.userId,
+    handler: "Daniel Wong",
+    handlerId: crypto.randomUUID(),
+    reason: "Branch handoff",
+    notes: null,
+  };
+  const page = { actor, bookingId: id, items: [event], totalCount: 1, page: 1, pageSize: 25 };
+  expect(parseStaffTestDriveHistory(page)?.items[0].handler).toBe("Daniel Wong");
+  expect(testDriveEventSummary(event)).toBe("Now with Daniel Wong.");
+  expect(
+    parseStaffTestDriveHistory({ ...page, items: [{ ...event, kind: "Promoted" }] }),
+  ).toBeNull();
+  expect(parseStaffTestDriveHistory({ ...page, items: [{ ...event, actor: " " }] })).toBeNull();
+  expect(parseStaffTestDriveHistory({ ...page, items: [event, event] })).toBeNull();
+  expect(parseStaffTestDriveHistory({ ...page, bookingId: "not-an-id" })).toBeNull();
 });

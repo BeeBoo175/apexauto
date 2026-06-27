@@ -44,7 +44,7 @@ public sealed record StaffTestDrivePage(CurrentActor Actor, IReadOnlyList<StaffT
 public sealed record StaffTestDriveDetail(CurrentActor Actor, StaffTestDriveItem Booking,
     string CustomerMobile, string CustomerEmail, DateTimeOffset CreatedAt,
     TestDriveOwnership? Ownership, TestDriveCancellationView? Cancellation,
-    TestDriveStartView? Start, TestDriveOutcomeView? Outcome, string? StartedBy, string? CompletedBy);
+    TestDriveStartView? Start, TestDriveOutcomeView? Outcome);
 
 public sealed record TestDriveOwnership(Guid Id, Guid BookingId, long Version, Guid? HandlerId,
     Guid ActorId, string Kind, DateTimeOffset RecordedAt, string? Reason);
@@ -60,6 +60,14 @@ public sealed record TestDriveOutcomeView(Guid Id, Guid BookingId, Guid Assignme
 
 public sealed record TestDriveHandlers(CurrentActor Actor, IReadOnlyList<StaffHandler> Items);
 
+// One retained step of a booking: what happened, who did it and when. Handler is who held it after the step.
+public sealed record TestDriveEvent(Guid Id, string Kind, DateTimeOffset RecordedAt, string Actor,
+    Guid? ActorId, string? Handler, Guid? HandlerId, string? Reason, string? Notes);
+
+// Shaped for the shared staff history reader, which pages by TotalCount.
+public sealed record TestDriveEventPage(CurrentActor Actor, Guid BookingId, IReadOnlyList<TestDriveEvent> Items,
+    int TotalCount, int Page, int PageSize);
+
 public sealed record StaffTestDriveReadResult<T>(TestDriveReadStatus Status, T? Value = default);
 
 public interface IStaffTestDriveReadStore
@@ -72,4 +80,7 @@ public interface IStaffTestDriveReadStore
 
     Task<StaffTestDriveReadResult<TestDriveHandlers>> HandlersAsync(Guid staffId, Guid bookingId,
         CancellationToken cancellationToken);
+
+    Task<StaffTestDriveReadResult<TestDriveEventPage>> HistoryAsync(Guid staffId, Guid bookingId, int page,
+        int pageSize, CancellationToken cancellationToken);
 }

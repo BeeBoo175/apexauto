@@ -18,6 +18,14 @@ public static class StaffTestDriveQueryEndpoints
             ReadAsync(deadline => reads.GetAsync(HttpContextActor.ActorId(context), id, deadline), token));
         routes.MapGet("/{id:guid}/handlers", (Guid id, HttpContext context, IStaffTestDriveReadStore reads, CancellationToken token) =>
             ReadAsync(deadline => reads.HandlersAsync(HttpContextActor.ActorId(context), id, deadline), token));
+        routes.MapGet("/{id:guid}/history", (Guid id, int? page, int? pageSize, HttpContext context,
+            IStaffTestDriveReadStore reads, CancellationToken token) =>
+        {
+            var (number, size) = (page ?? 1, pageSize ?? Pagination.DefaultPageSize);
+            return Pagination.IsValid(number, size)
+                ? ReadAsync(deadline => reads.HistoryAsync(HttpContextActor.ActorId(context), id, number, size, deadline), token)
+                : Task.FromResult<IResult>(Results.Problem(statusCode: 400, title: "Provide a valid history page."));
+        });
     }
 
     private static Task<IResult> ListAsync(HttpContext context, IStaffTestDriveReadStore reads,

@@ -76,6 +76,20 @@ internal static class TestDriveHandlingAssertions
             .CancelByStaffAsync(manager, booking.Id, Guid.NewGuid(), "Customer requested cancellation", default)).Status);
         Assert.Equal(TestDriveAssignmentStatus.Unavailable, (await services.GetRequiredService<TestDriveAssignmentService>()
             .ExecuteAsync(agent, booking.Id, WorkOwnershipKind.Released, new(Guid.NewGuid(), 1), default)).Status);
+
+        var reads = services.GetRequiredService<IStaffTestDriveReadStore>();
+        var history = await reads.HistoryAsync(manager, booking.Id, 1, 25, default);
+        Assert.Equal(TestDriveReadStatus.Succeeded, history.Status);
+        Assert.Equal(["Started", "Assigned", "Booked"], history.Value!.Items.Select(item => item.Kind));
+        Assert.Equal(3, history.Value.TotalCount);
+        Assert.Equal(agent, history.Value.Items[0].ActorId);
+        Assert.Equal(agent, history.Value.Items[1].HandlerId);
+        Assert.Equal(customer, history.Value.Items[2].ActorId);
+        Assert.All(history.Value.Items, item => Assert.False(string.IsNullOrWhiteSpace(item.Actor)));
+        Assert.Empty((await reads.HistoryAsync(manager, booking.Id, 2, 25, default)).Value!.Items);
+        Assert.Equal(TestDriveReadStatus.Invalid, (await reads.HistoryAsync(manager, booking.Id, 0, 25, default)).Status);
+        Assert.Equal(TestDriveReadStatus.NotFound, (await reads.HistoryAsync(manager, Guid.NewGuid(), 1, 25, default)).Status);
+        Assert.Equal(TestDriveReadStatus.Forbidden, (await reads.HistoryAsync(customer, booking.Id, 1, 25, default)).Status);
         Assert.Equal(ReservationStatus.NotFound, (await services.GetRequiredService<ReservationService>()
             .ReserveAsync(otherCustomer, booking.VehicleId, new(Guid.NewGuid(), publication.Id, null), default)).Status);
 

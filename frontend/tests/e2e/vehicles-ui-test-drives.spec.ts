@@ -287,7 +287,7 @@ test("customer booking and cancellation reconcile exact receipts before manager 
     await closeStaffWorkspaces(agentPage);
     await expect(record.getByLabel("Customer attendance", { exact: true })).toHaveValue("present");
     await confirmStaffAction(agentPage, "Start test drive");
-    await expect(record).toContainText("Actual start");
+    await expect(record).toContainText("In progress");
     await expect(record.getByLabel("Test drive action", { exact: true })).toHaveValue("");
     await record.getByLabel("Test drive action", { exact: true }).selectOption("outcomes");
     await record.getByLabel("Customer attendance", { exact: true }).selectOption("present");
@@ -295,8 +295,16 @@ test("customer booking and cancellation reconcile exact receipts before manager 
       .getByLabel("Outcome notes (optional)", { exact: true })
       .fill("Customer completed the branch test drive.");
     await confirmStaffAction(agentPage, "Record outcome");
-    await expect(record).toContainText("Actual outcome");
-    await expect(record).toContainText("Completed");
+    await expect(record).toContainText("Handled by");
+    await record.getByRole("button", { name: /^History/ }).click();
+    for (const step of [
+      "Test drive booked",
+      "Assigned to staff",
+      "Test drive started",
+      "Test drive completed",
+    ]) {
+      await expect(record).toContainText(step);
+    }
     const persisted = await agent.request.get(`/api/staff/test-drives/${booking.id}`, {
       headers: await headers(agent),
     });

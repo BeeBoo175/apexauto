@@ -222,8 +222,6 @@ export function parseStaffTestDriveDetail(value: unknown) {
     !isUtcInstant(value.createdAt) ||
     typeof value.customerMobile !== "string" ||
     typeof value.customerEmail !== "string" ||
-    (value.startedBy !== null && typeof value.startedBy !== "string") ||
-    (value.completedBy !== null && typeof value.completedBy !== "string") ||
     (value.ownership !== null && !ownership) ||
     (value.cancellation !== null && !cancellation) ||
     (value.start !== null && !start) ||
@@ -256,8 +254,6 @@ export function parseStaffTestDriveDetail(value: unknown) {
     cancellation,
     start,
     outcome,
-    startedBy: value.startedBy,
-    completedBy: value.completedBy,
   };
 }
 
