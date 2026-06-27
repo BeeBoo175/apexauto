@@ -11,6 +11,7 @@ import {
   staffTestDriveParams,
   staffTestDriveUrl,
   testDriveQueue,
+  testDriveSectionParameter,
 } from "@/lib/test-drives/staff-query";
 import type { TestDriveStaffCommand } from "@/lib/test-drives/staff-commands";
 
@@ -100,7 +101,12 @@ export function useStaffTestDriveWorkspace(actor: CurrentActor, entry: TestDrive
     agent,
     busy: list.busy || Boolean(record.pendingId),
     open,
-    close: record.close,
+    close: () => {
+      record.close();
+      const url = new URL(window.location.href);
+      url.searchParams.delete(testDriveSectionParameter);
+      window.history.replaceState(null, "", url);
+    },
     refresh,
   };
 }

@@ -2,12 +2,45 @@ import { isRecord } from "@/lib/auth/contracts";
 import { parseActor } from "@/lib/auth/actor";
 import { API_DEADLINE_MS, type ApiConflict, type ApiResult } from "./api";
 import { parseRetryAfterSeconds, readBoundedJson } from "./http";
+import { sessionChanges } from "./auth/browser-session";
+
+// Owner decision, 8 November 2026 (dashboard pages): a dashboard read is made once and reused until the user refreshes the page
+// (browser reload clears this memory) or presses a refresh control, trading some freshness for server load.
+// Records, their histories and every other nested read therefore open from here after the first load. Only
+// confirmed successes are kept, a refresh control or any write forgets everything, and a changed session
+// forgets it too, so one account's reads are never shown to another.
+const snapshots = new Map<string, ApiResult<unknown>>();
+const MAXIMUM_SNAPSHOTS = 300;
+// Only the staff dashboard reads are reused. Exports always go to the server, and public or customer reads
+// (availability, reservations, photos) stay current.
+const reusablePath = /^\/api\/staff\/(?!.*\/export(?:\?|$))/;
+
+export function forgetSnapshots() {
+  snapshots.clear();
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("apexauto-session-invalid", forgetSnapshots);
+  sessionChanges?.addEventListener("message", forgetSnapshots);
+}
+
+function remember(path: string, result: ApiResult<unknown>) {
+  if (snapshots.size >= MAXIMUM_SNAPSHOTS) {
+    const oldest = snapshots.keys().next();
+    if (!oldest.done) {
+      snapshots.delete(oldest.value);
+    }
+  }
+  snapshots.set(path, result);
+}
 
 interface BrowserRequestPolicy {
   deadlineMs?: number;
   maximumResponseBytes?: number;
   requireActor?: boolean;
   parseConflict?: (code: unknown) => ApiConflict | undefined;
+  // Reads from the server even when a snapshot exists.
+  fresh?: boolean;
 }
 
 export function privateApiFetch<T>(
@@ -24,6 +57,33 @@ export async function apiFetch<T>(
   parse: (value: unknown) => T | null,
   options: RequestInit = {},
   policy: BrowserRequestPolicy = {},
+): Promise<ApiResult<T>> {
+  const isRead = (options.method ?? "GET").toUpperCase() === "GET";
+  if (!isRead) {
+    // A write, confirmed or not, may have changed anything that was read before it.
+    forgetSnapshots();
+  }
+  const reusable = isRead && reusablePath.test(path);
+  if (reusable && !policy.fresh) {
+    const snapshot = snapshots.get(path);
+    if (snapshot) {
+      return snapshot as ApiResult<T>;
+    }
+  }
+  const result = await requestApi(path, parse, options, policy);
+  if (!isRead) {
+    forgetSnapshots();
+  } else if (reusable && result.status === 200 && result.data) {
+    remember(path, result);
+  }
+  return result;
+}
+
+async function requestApi<T>(
+  path: string,
+  parse: (value: unknown) => T | null,
+  options: RequestInit,
+  policy: BrowserRequestPolicy,
 ): Promise<ApiResult<T>> {
   const signal = AbortSignal.any([
     AbortSignal.timeout(policy.deadlineMs ?? API_DEADLINE_MS + 2000),

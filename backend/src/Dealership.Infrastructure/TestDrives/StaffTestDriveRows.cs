@@ -103,7 +103,27 @@ internal static class StaffTestDriveRows
         if (query.Handler.Length > 0)
         {
             var pattern = LiteralSearch.Pattern(query.Handler);
-            rows = rows.Where(row => row.HandlerEmail != null && EF.Functions.ILike(row.HandlerEmail, pattern, "!"));
+            rows = rows.Where(row => row.HandlerEmail != null && EF.Functions.ILike(row.HandlerEmail, pattern, "!") ||
+                row.HandlerName != null && EF.Functions.ILike(row.HandlerName, pattern, "!"));
+        }
+
+        if (query.Registration.Length > 0)
+        {
+            var pattern = LiteralSearch.Pattern(query.Registration);
+            rows = rows.Where(row => EF.Functions.ILike(row.RegistrationPlate, pattern, "!"));
+        }
+
+        if (query.Vehicle.Length > 0)
+        {
+            var pattern = LiteralSearch.Pattern(query.Vehicle);
+            rows = rows.Where(row =>
+                EF.Functions.ILike(row.ManufactureYear + " " + row.Make + " " + row.Model + " " + row.Trim, pattern, "!"));
+        }
+
+        if (query.Customer.Length > 0)
+        {
+            var pattern = LiteralSearch.Pattern(query.Customer);
+            rows = rows.Where(row => EF.Functions.ILike(row.CustomerName, pattern, "!"));
         }
 
         return rows;

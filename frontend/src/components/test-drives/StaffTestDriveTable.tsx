@@ -55,6 +55,10 @@ export function StaffTestDriveTable({
   );
   const disabled = Boolean(selectedId) || csv.busy;
   const indicators: Record<string, boolean> = {
+    registrationPlate: Boolean(filters.registration),
+    vehicle: Boolean(filters.vehicle),
+    customerName: Boolean(filters.customer),
+    status: filters.status !== "All",
     startsAt: Boolean(filters.from || filters.to),
     handlerEmail: Boolean(filters.handlerId || filters.handler),
   };
@@ -166,9 +170,19 @@ export function StaffTestDriveTable({
   if (filters.handler) {
     applied.push({
       key: "handler",
-      label: `Handler email: ${filters.handler}`,
+      label: `Handler: ${filters.handler}`,
       without: { ...filters, handler: "" },
     });
+  }
+  const textApplied = [
+    ["registration", "Registration", filters.registration],
+    ["vehicle", "Vehicle", filters.vehicle],
+    ["customer", "Customer", filters.customer],
+  ] as const;
+  for (const [key, label, value] of textApplied) {
+    if (value) {
+      applied.push({ key, label: `${label}: ${value}`, without: { ...filters, [key]: "" } });
+    }
   }
   if (filters.branchId) {
     applied.push({
@@ -248,6 +262,9 @@ export function StaffTestDriveTable({
                               branchId: "",
                               handlerId: "",
                               handler: "",
+                              registration: "",
+                              vehicle: "",
+                              customer: "",
                             },
                             1,
                           )

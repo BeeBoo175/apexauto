@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { AUTH_DEADLINE_MS, authHref, isRecord } from "@/lib/auth/contracts";
+import { forgetSnapshots } from "@/lib/api-browser";
 import { sessionChanges } from "@/lib/auth/browser-session";
 
 export function useAuthMutation(kind: "login" | "register" | "logout", destination: string) {
@@ -49,6 +50,8 @@ export function useAuthMutation(kind: "login" | "register" | "logout", destinati
     }
 
     try {
+      // Signing in, out or changing the session must not leave the previous account's reads behind.
+      forgetSnapshots();
       const response = await fetch(`/api/auth/${kind}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

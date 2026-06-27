@@ -8,6 +8,7 @@ import { parseStaffTestDrivePage } from "@/lib/test-drives/staff";
 import {
   staffTestDriveQuery,
   staffTestDriveUrl,
+  testDriveSectionParameter,
   testDriveDateError,
   type StaffTestDrivePage,
   type TestDriveFilters,
@@ -65,8 +66,10 @@ export function useStaffTestDriveList(
       setDraft((current) => (current === submitted ? next : current));
       setRevision((current) => current + 1);
       if (history) {
-        const selected = new URL(window.location.href).searchParams.get("booking") ?? "";
-        window.history.replaceState(null, "", staffTestDriveUrl(next, nextPage, selected));
+        const current = new URL(window.location.href).searchParams;
+        const selected = current.get("booking") ?? "";
+        const section = current.get(testDriveSectionParameter) ?? "";
+        window.history.replaceState(null, "", staffTestDriveUrl(next, nextPage, selected, section));
       }
       return true;
     } catch {

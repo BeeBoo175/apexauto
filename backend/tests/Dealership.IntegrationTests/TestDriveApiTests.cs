@@ -118,6 +118,13 @@ public sealed class TestDriveApiTests(IntakePhotoFixture fixture) : IClassFixtur
         Assert.Equal(filtered.Total, (await groupManager.GetFromJsonAsync<StaffTestDrivePage>($"{handlerPath}&branchId={data.BranchId}"))!.Total);
         Assert.Empty((await branchManager.GetFromJsonAsync<StaffTestDrivePage>("/api/staff/test-drives?handler=%25"))!.Items);
         Assert.Equal(HttpStatusCode.BadRequest, (await branchManager.GetAsync($"/api/staff/test-drives?handler={new string('x', 161)}")).StatusCode);
+        var row = filtered.Items[0];
+        var columns = $"registration={Uri.EscapeDataString(row.RegistrationPlate.ToLowerInvariant())}" +
+            $"&vehicle={Uri.EscapeDataString(row.Model.ToLowerInvariant())}" +
+            $"&customer={Uri.EscapeDataString(row.CustomerName.ToLowerInvariant())}";
+        Assert.Contains((await branchManager.GetFromJsonAsync<StaffTestDrivePage>($"/api/staff/test-drives?{columns}"))!.Items,
+            item => item.Id == row.Id);
+        Assert.Empty((await branchManager.GetFromJsonAsync<StaffTestDrivePage>("/api/staff/test-drives?customer=%25"))!.Items);
         var assignment = (await claimed.Content.ReadFromJsonAsync<JsonObject>())!["receipt"]!.AsObject();
         var stale = await agent.PostAsJsonAsync($"{bookingPath}/claims", claim with { OperationId = Guid.NewGuid() });
         Assert.Equal(HttpStatusCode.Conflict, stale.StatusCode);

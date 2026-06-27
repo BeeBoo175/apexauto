@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { forgetSnapshots } from "@/lib/api-browser";
 import { Button } from "./Button";
 import { Icon } from "./Icon";
 import styles from "./RefreshButton.module.css";
@@ -29,6 +30,8 @@ export function RefreshButton({
       disabled={disabled || busy}
       onClick={() => {
         setAcknowledging(true);
+        // Reads are reused until someone asks for current data; this is that request.
+        forgetSnapshots();
         onClick();
       }}
       onAnimationIteration={() => {

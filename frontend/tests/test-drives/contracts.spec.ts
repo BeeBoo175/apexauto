@@ -132,6 +132,9 @@ test("staff snapshots preserve released ownership and bind handling evidence to 
     branchId: id,
     handlerId: id,
     handler: "siti",
+    registration: "BPL",
+    vehicle: "Honda",
+    customer: "Ahmad",
     sort: "handlerEmail",
     direction: "desc",
     queue: "ToClaim",
@@ -145,6 +148,9 @@ test("staff snapshots preserve released ownership and bind handling evidence to 
     branchId: "",
     handlerId: "",
     handler: "",
+    registration: "",
+    vehicle: "",
+    customer: "",
     sort: "",
     direction: "asc",
     queue: "ToClaim",
@@ -153,14 +159,21 @@ test("staff snapshots preserve released ownership and bind handling evidence to 
   const managerQuery = staffTestDriveParams(hidden, false);
   expect(managerQuery.filters).toMatchObject({
     handler: "siti",
+    registration: "BPL",
+    vehicle: "Honda",
+    customer: "Ahmad",
     handlerId: id,
     queue: "",
     sort: "handlerEmail",
     direction: "desc",
   });
-  expect(new URLSearchParams(staffTestDriveQuery(managerQuery.filters)).get("handler")).toBe(
-    "siti",
-  );
+  const sent = new URLSearchParams(staffTestDriveQuery(managerQuery.filters));
+  expect(sent.get("handler")).toBe("siti");
+  expect([sent.get("registration"), sent.get("vehicle"), sent.get("customer")]).toEqual([
+    "BPL",
+    "Honda",
+    "Ahmad",
+  ]);
   expect(
     new URLSearchParams(staffTestDriveQuery(staffTestDriveParams({}, false).filters)).has("sort"),
   ).toBe(false);

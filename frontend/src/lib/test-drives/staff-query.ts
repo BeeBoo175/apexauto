@@ -17,6 +17,9 @@ export interface TestDriveFilters {
   branchId: string;
   handlerId: string;
   handler: string;
+  registration: string;
+  vehicle: string;
+  customer: string;
   search: string;
   sort: string;
   direction: "asc" | "desc";
@@ -62,6 +65,8 @@ const sortKeys = [
   "handlerEmail",
 ];
 
+const cleanText = (value: string) => value.replace(/[\x00-\x1f\x7f-\x9f]/g, "").slice(0, 160);
+
 export function staffTestDriveParams(parameters: SearchParams, agent: boolean) {
   const text = (key: string) => (typeof parameters[key] === "string" ? parameters[key] : "");
   const page = Number(text("page") || 1);
@@ -76,11 +81,10 @@ export function staffTestDriveParams(parameters: SearchParams, agent: boolean) {
       status: !agent && Object.hasOwn(testDriveStatusLabels, status) ? status : "All",
       branchId: !agent && isUuid(text("branchId")) ? text("branchId") : "",
       handlerId: !agent && isUuid(text("handlerId")) ? text("handlerId") : "",
-      handler: agent
-        ? ""
-        : text("handler")
-            .replace(/[\x00-\x1f\x7f-\x9f]/g, "")
-            .slice(0, 160),
+      handler: agent ? "" : cleanText(text("handler")),
+      registration: agent ? "" : cleanText(text("registration")),
+      vehicle: agent ? "" : cleanText(text("vehicle")),
+      customer: agent ? "" : cleanText(text("customer")),
       search: text("search")
         .replace(/[\x00-\x1f\x7f-\x9f]/g, "")
         .slice(0, 160),
@@ -103,10 +107,20 @@ export function staffTestDriveQuery(filters: TestDriveFilters, page = 1) {
   return query.toString();
 }
 
-export function staffTestDriveUrl(filters: TestDriveFilters, page: number, selectedId = "") {
+export const testDriveSectionParameter = "section";
+
+export function staffTestDriveUrl(
+  filters: TestDriveFilters,
+  page: number,
+  selectedId = "",
+  section = "",
+) {
   const query = new URLSearchParams(staffTestDriveQuery(filters, page));
   if (selectedId) {
     query.set("booking", selectedId);
+    if (section) {
+      query.set(testDriveSectionParameter, section);
+    }
   }
   return `/dashboard/test-drives?${query}`;
 }
