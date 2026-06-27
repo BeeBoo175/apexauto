@@ -36,7 +36,7 @@ export function TechnicianJobWorkspace({
   if (selection.busy && !selection.result?.data) {
     return (
       <section className={styles.content} aria-label="Job content" aria-busy="true">
-        <StaffDrawerLoadingShell label="Loading workshop record…" />
+        <StaffDrawerLoadingShell label="Loading workshop record…" fact />
       </section>
     );
   }

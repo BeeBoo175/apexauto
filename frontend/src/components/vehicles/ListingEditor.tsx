@@ -13,7 +13,12 @@ import {
   listingRecordSection,
   type ListingRecordSelection,
 } from "@/lib/vehicles/listing-history-selection";
-import { listingPublication, type ListingSection } from "@/lib/vehicles/listings";
+import { listingPublicationState, type ListingSection } from "@/lib/vehicles/listings";
+import { formatCurrency } from "@/lib/currency-format";
+import { Badge } from "@/components/ui/Badge";
+import { StaffRecordSummary } from "@/components/staff/StaffRecordSummary";
+import { StaffStatusGroup } from "@/components/staff/StaffStatusGroup";
+import tones from "@/components/ui/StatusTone.module.css";
 import { ListingPublication } from "./ListingPublication";
 import { ListingPhotoPicker } from "./ListingPhotoPicker";
 import { ListingDraftFields } from "./ListingDraftFields";
@@ -113,12 +118,31 @@ export function ListingEditor({
       <LoadingProgress label="Approving publication" active={editor.approval.busy} />
       <LoadingProgress label="Withdrawing publication" active={editor.withdrawal.busy} />
       {!historical && (
-        <div className={styles.status}>
-          <strong>{listingPublication(vehicle)}</strong>
-          {(editing || section === "history") && (
-            <span>{editor.base ? `Saved draft v${editor.base.version}` : "No saved draft"}</span>
-          )}
-        </div>
+        <StaffRecordSummary
+          ariaLabel="Listing vehicle and publication"
+          label="Listing price"
+          value={
+            editor.base?.vehiclePrice === undefined
+              ? "Not set"
+              : formatCurrency(editor.base.vehiclePrice)
+          }
+          status={
+            <StaffStatusGroup label="Publication status">
+              <Badge className={`${tones.badge} ${tones[listingPublicationState(vehicle).tone]}`}>
+                {listingPublicationState(vehicle).label}
+              </Badge>
+            </StaffStatusGroup>
+          }
+          context={
+            <>
+              {(editing || section === "history") && (
+                <span>
+                  {editor.base ? `Saved draft v${editor.base.version}` : "No saved draft"}
+                </span>
+              )}
+            </>
+          }
+        />
       )}
       <StaffWorkspaceTabs
         label="Listing workspace"

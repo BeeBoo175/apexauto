@@ -2,18 +2,9 @@ import { useState } from "react";
 import { useLoadingProgress } from "@/components/ui/LoadingProgress";
 import { Dialog, DialogActionSlot } from "@/components/ui/Dialog";
 import { AppointmentWorkbench } from "./AppointmentWorkbench";
-import { StaffRecordLoadingShell } from "./StaffRecordLoadingShell";
+import { StaffDrawerLoadingShell } from "./StaffDrawerLoadingShell";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { useStaffAppointmentDrawer } from "@/hooks/use-staff-appointment-drawer";
-
-const appointmentDetails = [
-  "Branch",
-  "Customer",
-  "Inspection",
-  "Booked vehicle",
-  "Declared mileage",
-  "Reference",
-];
 
 export function IntakeAppointmentDrawer({
   actor,
@@ -34,7 +25,6 @@ export function IntakeAppointmentDrawer({
       density="compact"
       title="Intake appointment"
       headerLoading={drawer.busy}
-      descriptionPlaceholder={false}
       description={
         drawer.result?.data
           ? `${drawer.result.data.registrationPlate} · ${drawer.result.data.manufactureYear} ${drawer.result.data.make} ${drawer.result.data.model} ${drawer.result.data.trim} · ${drawer.result.data.branchName}`
@@ -44,11 +34,7 @@ export function IntakeAppointmentDrawer({
       onClose={drawer.close}
     >
       {drawer.busy && (
-        <StaffRecordLoadingShell
-          label="Loading appointment…"
-          details={appointmentDetails}
-          showForm={actor.role !== "GeneralManager"}
-        />
+        <StaffDrawerLoadingShell label="Loading appointment…" fact single tabs={false} />
       )}
       {!drawer.busy && drawer.result && (
         <AppointmentWorkbench

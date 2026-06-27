@@ -121,6 +121,9 @@ public sealed record SaleHistoryItem(Guid Id, long Version, string Kind, DateTim
     IReadOnlyList<SaleChange> Changes, decimal? Refund)
 {
     public IReadOnlyList<SaleHistoryDocument> Documents { get; init; } = [];
+
+    // The account behind Actor, so a reader can open the person; null for the system.
+    public Guid? ActorId { get; init; }
 }
 
 public sealed record SaleHistoryDocument(Guid Id, string Kind, string Number);

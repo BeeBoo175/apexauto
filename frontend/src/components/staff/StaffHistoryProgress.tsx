@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/Button";
 import type { StaffHistoryPage } from "@/hooks/use-staff-history";
-import placeholders from "./StaffRecordLoadingShell.module.css";
 import timeline from "./StaffHistory.module.css";
 
 interface HistoryRead {
@@ -24,14 +23,18 @@ export function StaffHistoryProgress({
   if (!history && busy) {
     return (
       <div role="status" aria-label={`Loading ${label}`}>
-        <ul className={timeline.repairs} aria-hidden="true">
+        <ol className={timeline.timeline} aria-hidden="true">
           {[0, 1, 2].map((row) => (
             <li key={row}>
-              <span className={`${placeholders.placeholder} ${placeholders.status}`} />
-              <span className={`${placeholders.placeholder} ${placeholders.value}`} />
+              <div className={timeline.eventHeading}>
+                <span className={timeline.eventTitle} />
+                <span className={timeline.eventDate} />
+              </div>
+              <span className={timeline.eventContext} />
+              <span className={timeline.eventText} />
             </li>
           ))}
-        </ul>
+        </ol>
       </div>
     );
   }

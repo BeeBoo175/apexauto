@@ -18,7 +18,12 @@
 .shortValue,
 .tableHeading,
 .block,
-.grade {
+.grade,
+.tabBar,
+.wideSearch,
+.avatarBar,
+.badgeBar,
+.cellBar {
   composes: placeholder from "./StaffRecordLoadingShell.module.css";
 }
 
@@ -99,14 +104,16 @@
 }
 
 .tableHeading {
-  height: 40px;
+  height: 45px;
 }
 
 .tableRow {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   align-items: center;
-  min-height: 44px;
-  padding-inline: 12px;
+  gap: 24px;
+  min-height: 67px;
+  padding-inline: 16px;
   border-bottom: 1px solid var(--color-line-soft);
 }
 
@@ -139,6 +146,83 @@
   }
 
   .tableRow {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     min-height: 60px;
   }
+
+  .tableRow > :nth-child(n + 4) {
+    display: none;
+  }
+}
+
+/* A tab strip: the shape of the queue tabs above a table or a calendar pane. */
+.tabsRow {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  padding: 16px 24px 15px;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.tabBar {
+  width: 96px;
+  height: 18px;
+}
+
+.wideSearch {
+  flex: 1;
+  height: 32px;
+}
+
+.avatarBar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+}
+
+.badgeBar {
+  width: 88px;
+  height: 24px;
+  border-radius: 999px;
+}
+
+.cellBar {
+  width: 80%;
+  height: 16px;
+}
+
+.queueJob {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-top: 1px solid var(--color-line-soft);
+}
+
+.queueJobHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.queueJobPerson {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* The narrow queue pane holds its three tabs without spilling into the calendar. */
+.tabsRowNarrow {
+  gap: 20px;
+  padding-inline: 16px;
+}
+
+.tabsRowNarrow .tabBar {
+  width: 72px;
+}
+
+/* Inside a pane toolbar, which already draws the rule beneath the tabs. */
+.tabsRowBare {
+  flex: 1 1 auto;
+  border-bottom: 0;
 }

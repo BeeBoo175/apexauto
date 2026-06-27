@@ -1,3 +1,4 @@
+import { StaffSummaryLoadingShell } from "@/components/staff/StaffSummaryLoadingShell";
 import type { ListingSection } from "@/lib/vehicles/listings";
 import styles from "./ListingLoadingShell.module.css";
 
@@ -5,14 +6,7 @@ export function ListingLoadingShell({ section }: { section: ListingSection }) {
   const editing = section === "listing" || section === "card";
   return (
     <div className={styles.shell} aria-hidden="true">
-      <div className={styles.status}>
-        <span className={styles.line} />
-      </div>
-      <div className={styles.tabs}>
-        <span className={styles.line} />
-        <span className={styles.line} />
-        <span className={styles.line} />
-      </div>
+      <StaffSummaryLoadingShell />
       {editing ? (
         <>
           <div className={styles.toolbar}>

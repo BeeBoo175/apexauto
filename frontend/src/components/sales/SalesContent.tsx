@@ -30,7 +30,7 @@ export function SalesContent({
   if (selection.busy && !sale) {
     return (
       <section className={styles.content} aria-label="Sale content" aria-busy="true">
-        <StaffDrawerLoadingShell label="Loading sale…" />
+        <StaffDrawerLoadingShell label="Loading sale…" fact />
       </section>
     );
   }

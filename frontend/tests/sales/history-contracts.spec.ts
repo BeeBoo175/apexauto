@@ -21,6 +21,7 @@ test("history validates entries and shows readable changes", () => {
         kind: "Claimed",
         recordedAt: "2026-10-31T02:00:00+00:00",
         actor: "agent@example.invalid",
+        actorId: null,
         agent: "agent@example.invalid",
         previousAgent: null,
         fromStatus: "Open",

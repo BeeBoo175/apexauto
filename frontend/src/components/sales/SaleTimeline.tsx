@@ -3,8 +3,10 @@
 import type { ComponentProps } from "react";
 import { createPortal } from "react-dom";
 import { RefreshButton } from "@/components/ui/RefreshButton";
+import { StaffHistorySection } from "@/components/staff/StaffHistorySection";
 import { StaffHistoryProgress } from "@/components/staff/StaffHistoryProgress";
 import { StaffLink } from "@/components/staff/StaffLink";
+import { HistoryActor } from "@/components/staff/HistoryActor";
 import { StaffTimeline, StaffTimelineEvent } from "@/components/staff/StaffTimeline";
 import { useStaffHistory } from "@/hooks/use-staff-history";
 import { privateApiFetch } from "@/lib/api-browser";
@@ -21,7 +23,6 @@ import {
   saleHistoryPath,
 } from "@/lib/sales/sale-history";
 import timeline from "@/components/staff/StaffHistory.module.css";
-import workbench from "@/components/staff/StaffWorkspace.module.css";
 import links from "./SaleDocumentLinks.module.css";
 
 // Every action remains in history; financial milestones open their retained Deal snapshot.
@@ -54,7 +55,11 @@ export function SaleTimeline({
   );
   const { history, busy } = read;
   return (
-    <section className={timeline.history} aria-label="Sale history" aria-busy={busy}>
+    <StaffHistorySection
+      label="Sale history"
+      busy={busy}
+      progress={<StaffHistoryProgress read={read} label="Sale history" disabled={disabled} />}
+    >
       {active &&
         actionsContainer &&
         createPortal(
@@ -69,9 +74,6 @@ export function SaleTimeline({
           />,
           actionsContainer,
         )}
-      <div className={workbench.sectionHeader}>
-        <h2 className={workbench.sectionTitle}>Record history</h2>
-      </div>
       <StaffTimeline>
         {history?.items.map((item) => {
           const link = historyLink(item);
@@ -81,7 +83,7 @@ export function SaleTimeline({
               key={item.id}
               title={historyTitle(item)}
               at={item.recordedAt}
-              context={item.actor}
+              context={<HistoryActor id={item.actorId} name={item.actor} />}
             >
               {summary && <p>{summary}</p>}
               {item.reason && <p>{item.reason}</p>}
@@ -135,7 +137,6 @@ export function SaleTimeline({
           );
         })}
       </StaffTimeline>
-      <StaffHistoryProgress read={read} label="Sale history" disabled={disabled} />
-    </section>
+    </StaffHistorySection>
   );
 }

@@ -5,7 +5,7 @@ import type { useStaffAppointmentDrawer } from "@/hooks/use-staff-appointment-dr
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { AppointmentDetail } from "@/lib/staff/contracts";
 import { AppointmentWorkbench } from "./AppointmentWorkbench";
-import { StaffRecordLoadingShell } from "./StaffRecordLoadingShell";
+import { StaffDrawerLoadingShell } from "./StaffDrawerLoadingShell";
 import styles from "./StaffQueueWorkspace.module.css";
 
 export function IntakeAgentContent({
@@ -46,11 +46,7 @@ export function IntakeAgentContent({
         </div>
       </header>
       {selection.busy && !selection.result?.data && (
-        <StaffRecordLoadingShell
-          label="Loading appointment…"
-          details={["Branch", "Customer", "Inspection", "Booked vehicle", "Declared mileage"]}
-          showForm
-        />
+        <StaffDrawerLoadingShell label="Loading appointment…" fact single tabs={false} />
       )}
       {selection.result?.data && (
         <div className={styles.editor} inert={selection.busy}>

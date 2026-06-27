@@ -14,8 +14,6 @@
   composes: placeholder from "../staff/StaffRecordLoadingShell.module.css";
 }
 
-.status,
-.tabs,
 .toolbar,
 .footer {
   display: flex;
@@ -109,7 +107,6 @@
   .preview,
   .records,
   .status,
-  .tabs,
   .toolbar,
   .footer {
     padding: 16px;

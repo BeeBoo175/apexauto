@@ -1,6 +1,7 @@
 .group {
-  display: grid;
-  justify-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 6px;
   min-width: 0;
   max-width: 100%;

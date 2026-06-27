@@ -1,5 +1,7 @@
 import { StaffDetailsDialog, type StaffDetail } from "@/components/staff/StaffDetailsDialog";
 import { Badge } from "@/components/ui/Badge";
+import { ResolvedPersonLabel } from "@/components/staff/ResolvedPersonLabel";
+import { StaffRecordSummary, StaffSummaryFact } from "@/components/staff/StaffRecordSummary";
 import { StaffStatusGroup } from "@/components/staff/StaffStatusGroup";
 import type { useSaleEditor } from "@/hooks/use-sale-editor";
 import { formatCurrency } from "@/lib/currency-format";
@@ -8,7 +10,6 @@ import { saleHasHoldTimer, type SaleSnapshot } from "@/lib/sales/contracts";
 import { historyTitle, type SaleVersion } from "@/lib/sales/sale-history";
 import { HoldWheel } from "./HoldWheel";
 import { SaleStatus } from "./SaleStatus";
-import workbench from "@/components/staff/StaffWorkspace.module.css";
 import styles from "./Sales.module.css";
 import tones from "@/components/ui/StatusTone.module.css";
 
@@ -44,10 +45,6 @@ function saleDetails(
       label: "Last activity",
       value: formatMalaysianDateTime(editor.snapshot.updatedAt),
     });
-  }
-  const agent = retained ? retained.agent : editor.snapshot.agent;
-  if (agent) {
-    details.push({ label: "Handling agent", value: agent });
   }
   if (sale.claimedAt) {
     details.push({ label: "Claimed", value: formatMalaysianDateTime(sale.claimedAt) });
@@ -93,41 +90,29 @@ export function SaleRecord({
   }
 
   return (
-    <section
-      className={workbench.summary}
-      aria-label="Sale balance and status"
-      aria-busy={loadingVersion && !versionFailed}
-    >
-      <div className={styles.summaryLayout}>
-        <div className={styles.summaryMain}>
-          <div>
-            <span className={workbench.summaryLabel}>Balance payable</span>
-            <strong className={workbench.summaryValue}>{balance}</strong>
-          </div>
-          <div
-            className={styles.summaryAgent}
-            data-empty={loadingVersion || !agent || undefined}
-            aria-hidden={loadingVersion || !agent || undefined}
+    <StaffRecordSummary
+      ariaLabel="Sale balance and status"
+      label="Balance payable"
+      value={balance}
+      busy={loadingVersion && !versionFailed}
+      status={
+        loadingVersion ? (
+          <span className={styles.statusPlaceholder} aria-hidden="true" />
+        ) : (
+          <StaffStatusGroup
+            label="Sale status"
+            attention={
+              overLimit && (
+                <Badge className={`${tones.badge} ${tones.warning}`}>Discount over limit</Badge>
+              )
+            }
           >
-            <span>Handling agent</span>
-            <span title={agent ?? undefined}>{agent ?? ""}</span>
-          </div>
-        </div>
-        <div className={styles.summaryStatus}>
-          {loadingVersion ? (
-            <span className={styles.statusPlaceholder} aria-hidden="true" />
-          ) : (
-            <StaffStatusGroup
-              label="Sale status"
-              attention={
-                overLimit && (
-                  <Badge className={`${tones.badge} ${tones.warning}`}>Discount over limit</Badge>
-                )
-              }
-            >
-              <SaleStatus status={sale.status} />
-            </StaffStatusGroup>
-          )}
+            <SaleStatus status={sale.status} />
+          </StaffStatusGroup>
+        )
+      }
+      context={
+        <>
           <div className={styles.summaryClock}>
             {loadingVersion && <span className={styles.clockPlaceholder} aria-hidden="true" />}
             {!loadingVersion && running && (
@@ -140,8 +125,20 @@ export function SaleRecord({
             disabled={loadingVersion}
             details={saleDetails(editor, sale, retained)}
           />
-        </div>
-      </div>
+        </>
+      }
+      facts={
+        <StaffSummaryFact label="Handling agent">
+          {!loadingVersion && agent && sale.agentId ? (
+            <ResolvedPersonLabel id={sale.agentId} identity={agent} />
+          ) : (
+            <span aria-hidden={loadingVersion || undefined}>
+              {loadingVersion ? "" : "Unassigned"}
+            </span>
+          )}
+        </StaffSummaryFact>
+      }
+    >
       {editor.stale && (
         <p role="status">
           A newer version of this sale is available. Your terms remain retained; use the latest
@@ -159,6 +156,6 @@ export function SaleRecord({
           The last action is unconfirmed. Repeat it to reconcile the same operation.
         </p>
       )}
-    </section>
+    </StaffRecordSummary>
   );
 }

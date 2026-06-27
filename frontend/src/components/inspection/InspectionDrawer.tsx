@@ -40,7 +40,11 @@ export function InspectionDrawer({
         onClose={selection.close}
       >
         {selection.busy && !selection.result?.data && (
-          <StaffDrawerLoadingShell label="Loading workshop record…" section={selection.section} />
+          <StaffDrawerLoadingShell
+            label="Loading workshop record…"
+            section={selection.section}
+            fact
+          />
         )}
         {selection.result?.data && (
           <InspectionEditor

@@ -25,6 +25,7 @@ export interface SaleHistoryItem {
   kind: string;
   recordedAt: string;
   actor: string;
+  actorId: string | null;
   agent: string | null;
   previousAgent: string | null;
   fromStatus: SaleStatus | null;
@@ -73,6 +74,7 @@ function parseItem(value: unknown): SaleHistoryItem | null {
     !text(value.kind) ||
     !isUtcInstant(value.recordedAt) ||
     !text(value.actor) ||
+    !(value.actorId === null || isUuid(value.actorId)) ||
     !nullable(text)(value.agent) ||
     !nullable(text)(value.previousAgent) ||
     !(value.fromStatus === null || isSaleStatus(value.fromStatus)) ||

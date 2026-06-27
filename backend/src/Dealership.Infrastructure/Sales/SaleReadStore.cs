@@ -177,6 +177,7 @@ public sealed class SaleReadStore(DealershipDbContext database) : ISaleReadStore
             Name(names, row.ActorId) ?? "System", Name(names, row.AgentId), Name(names, row.PreviousAgentId),
             row.FromStatus?.ToString(), row.ToStatus.ToString(), row.Reason, row.Changes ?? [], row.Refund)
         {
+            ActorId = row.ActorId,
             Documents = [.. documents.Where(item => item.IssuingOperationId == row.Id).OrderBy(item => item.Kind)
                 .Select(item => new SaleHistoryDocument(item.Id, item.Kind.ToString(), item.Number))]
         }).ToList();

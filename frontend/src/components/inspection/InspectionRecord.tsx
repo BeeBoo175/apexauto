@@ -3,6 +3,7 @@
 import { ResolvedPersonLabel } from "@/components/staff/ResolvedPersonLabel";
 import { StaffDetailsDialog, type StaffDetail } from "@/components/staff/StaffDetailsDialog";
 import { StaffLink } from "@/components/staff/StaffLink";
+import { StaffRecordSummary, StaffSummaryFact } from "@/components/staff/StaffRecordSummary";
 import { StaffStatusGroup } from "@/components/staff/StaffStatusGroup";
 import { WorkshopStatus } from "./WorkshopStatus";
 import type { useInspectionEditor } from "@/hooks/use-inspection-editor";
@@ -10,7 +11,6 @@ import { assessmentLabel, reportDocumentHref } from "@/lib/inspection/contracts"
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { formatCurrency } from "@/lib/currency-format";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
-import workshop from "./Workshop.module.css";
 import { workshopSnapshotStatus } from "@/lib/inspection/workshop-contracts";
 
 export function InspectionRecord({
@@ -34,37 +34,45 @@ export function InspectionRecord({
     (entry) => entry.kind === "Finding",
   ).length;
   return (
-    <section className={workbench.summary} aria-label="Vehicle and confirmed assessment">
-      <div className={workbench.summaryMain}>
-        <div>
-          <span className={workbench.summaryLabel}>{summaryLabel}</span>
-          <strong className={workbench.summaryValue}>{summaryValue}</strong>
-        </div>
-        <div className={workbench.summaryContext}>
-          <StaffStatusGroup label="Workshop status">
-            <WorkshopStatus status={status} />
-          </StaffStatusGroup>
+    <StaffRecordSummary
+      ariaLabel="Vehicle and confirmed assessment"
+      label={summaryLabel}
+      value={summaryValue}
+      status={
+        <StaffStatusGroup label="Workshop status">
+          <WorkshopStatus status={status} />
+        </StaffStatusGroup>
+      }
+      context={
+        <>
           <span>
             {`Revision ${snapshot.draft.revision} · ${snapshot.draft.isSigned ? "Signed" : "Draft"}`}
           </span>
           <span>
             {findingCount} {findingCount === 1 ? "finding" : "findings"}
           </span>
-        </div>
-      </div>
-      <div className={workshop.summaryLinks}>
-        {snapshot.report && (
-          <StaffLink
-            prefetch={false}
-            target="_blank"
-            rel="noopener"
-            href={reportDocumentHref(id, snapshot.report.revision)}
-          >
-            Open signed report · revision {snapshot.report.revision}
-          </StaffLink>
-        )}
-        <InspectionDetails editor={editor} />
-      </div>
+          {snapshot.report && (
+            <StaffLink
+              prefetch={false}
+              target="_blank"
+              rel="noopener"
+              href={reportDocumentHref(id, snapshot.report.revision)}
+            >
+              Open signed report · revision {snapshot.report.revision}
+            </StaffLink>
+          )}
+          <InspectionDetails editor={editor} />
+        </>
+      }
+      facts={
+        <StaffSummaryFact label="Technician">
+          <ResolvedPersonLabel
+            id={snapshot.report?.technicianId ?? snapshot.draft.technicianId}
+            identity={snapshot.report?.technicianIdentity ?? snapshot.draft.technicianIdentity}
+          />
+        </StaffSummaryFact>
+      }
+    >
       {editor.stale && (
         <p role="alert">
           A newer assignment, save or revision is available. Your draft remains retained. Discard it
@@ -91,7 +99,7 @@ export function InspectionRecord({
       {editor.sign.uncertain && (
         <p role="alert">Sign-off is unconfirmed. Reconcile the same saved version and revision.</p>
       )}
-    </section>
+    </StaffRecordSummary>
   );
 }
 
@@ -112,29 +120,20 @@ export function InspectionDetails({ editor }: { editor: ReturnType<typeof useIns
       value: `${snapshot.draft.vehicle.mileageKilometres.toLocaleString("en-MY")} km`,
     },
     {
-      label: "Assigned technician",
-      value: (
-        <ResolvedPersonLabel
-          id={snapshot.report?.technicianId ?? snapshot.draft.technicianId}
-          identity={snapshot.report?.technicianIdentity ?? snapshot.draft.technicianIdentity}
-        />
-      ),
-    },
-    {
       label: "Saved assessment",
       value: snapshot.draft.latestSave
         ? assessmentLabel(snapshot.draft.latestSave.assessment)
         : "No saved assessment",
     },
-    {
-      label: "Saved estimate",
-      value: snapshot.draft.latestSave
-        ? formatCurrency(snapshot.draft.latestSave.assessment.estimatedRepairCost)
-        : "No saved assessment",
-    },
   ];
   if (request) {
     details.push(
+      {
+        label: "Saved estimate",
+        value: snapshot.draft.latestSave
+          ? formatCurrency(snapshot.draft.latestSave.assessment.estimatedRepairCost)
+          : "No saved assessment",
+      },
       { label: "Requested", value: formatMalaysianDateTime(request.requestedAt) },
       { label: "Work version", value: `${request.version} · Signed revision ${request.revision}` },
     );

@@ -55,3 +55,16 @@
   flex: 1 1 auto;
   min-height: 0;
 }
+
+/* A tab panel fills the drawer so the action footer stays at its foot, as the other drawers do. */
+.panel {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.panel[hidden] {
+  display: none;
+}

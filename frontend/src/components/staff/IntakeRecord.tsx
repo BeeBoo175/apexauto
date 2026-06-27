@@ -3,7 +3,7 @@ import { formatMalaysianDateTime } from "@/lib/date-format";
 import { StaffDetailsDialog, type StaffDetail } from "./StaffDetailsDialog";
 import { AppointmentStatus } from "./AppointmentStatus";
 import { StaffStatusGroup } from "./StaffStatusGroup";
-import styles from "./StaffWorkspace.module.css";
+import { StaffRecordSummary, StaffSummaryFact } from "./StaffRecordSummary";
 import { PersonLabel } from "./PersonLabel";
 
 export function IntakeRecord({
@@ -45,40 +45,37 @@ export function IntakeRecord({
   }
 
   return (
-    <section className={styles.summary} aria-label="Appointment time and status">
-      <div className={styles.summaryMain}>
-        <div>
-          <span className={styles.summaryLabel}>Inspection</span>
-          <strong className={styles.summaryValue}>
-            {formatMalaysianDateTime(detail.startsAt)}
-          </strong>
-        </div>
-        <div className={styles.summaryContext}>
-          <StaffStatusGroup label="Appointment status">
-            <AppointmentStatus status={detail.status} />
-          </StaffStatusGroup>
-          <StaffDetailsDialog title="Appointment details" details={details} />
-        </div>
-      </div>
-      <div>
-        <span className={styles.summaryLabel}>Handling agent</span>
-        {ownership?.handlerId && ownership.handlerEmail ? (
-          <PersonLabel
-            id={ownership.handlerId}
-            name={ownership.handlerName ?? ownership.handlerEmail}
-            identity={ownership.handlerEmail}
-            pictureId={ownership.handlerPictureId}
-          />
-        ) : (
-          <span>Unassigned</span>
-        )}
-      </div>
+    <StaffRecordSummary
+      ariaLabel="Appointment time and status"
+      label="Inspection"
+      value={formatMalaysianDateTime(detail.startsAt)}
+      status={
+        <StaffStatusGroup label="Appointment status">
+          <AppointmentStatus status={detail.status} />
+        </StaffStatusGroup>
+      }
+      context={<StaffDetailsDialog title="Appointment details" details={details} />}
+      facts={
+        <StaffSummaryFact label="Handling agent">
+          {ownership?.handlerId && ownership.handlerEmail ? (
+            <PersonLabel
+              id={ownership.handlerId}
+              name={ownership.handlerName ?? ownership.handlerEmail}
+              identity={ownership.handlerEmail}
+              pictureId={ownership.handlerPictureId}
+            />
+          ) : (
+            <span>Unassigned</span>
+          )}
+        </StaffSummaryFact>
+      }
+    >
       {ownership?.handlerId && !ownership.handlerEligible && (
         <p>
           The recorded handler is no longer eligible. A branch manager must reassign this
           appointment.
         </p>
       )}
-    </section>
+    </StaffRecordSummary>
   );
 }

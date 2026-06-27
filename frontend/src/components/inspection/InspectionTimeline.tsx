@@ -11,8 +11,8 @@ import type { EditorSnapshot } from "@/lib/inspection/editor-snapshot";
 import type { RepairSelection } from "@/lib/inspection/query";
 import styles from "@/components/staff/StaffHistory.module.css";
 import { StaffTimeline, StaffTimelineEvent } from "@/components/staff/StaffTimeline";
+import { StaffHistorySection } from "@/components/staff/StaffHistorySection";
 import { StaffHistoryProgress } from "@/components/staff/StaffHistoryProgress";
-import workbench from "@/components/staff/StaffWorkspace.module.css";
 import { InspectionRepairLink } from "./InspectionHistory";
 
 export function InspectionTimeline({
@@ -51,15 +51,19 @@ export function InspectionTimeline({
   }, [revealed, previous.busy, previous.failed]);
 
   return (
-    <section
-      className={styles.history}
-      aria-label="Record history"
-      aria-busy={revisions.busy || repairs.busy || previous.busy}
+    <StaffHistorySection
+      label="Record history"
+      busy={revisions.busy || repairs.busy || previous.busy}
+      empty={revisions.history?.totalCount === 0 && <p>No signed inspections yet.</p>}
+      progress={
+        <>
+          <StaffHistoryProgress read={revisions} label="Signed inspections" disabled={disabled} />
+          {snapshot.draft.isSigned && (
+            <StaffHistoryProgress read={repairs} label="Repair requests" disabled={disabled} />
+          )}
+        </>
+      }
     >
-      <div className={workbench.sectionHeader}>
-        <h2 className={workbench.sectionTitle}>Record history</h2>
-      </div>
-      {revisions.history?.totalCount === 0 && <p>No signed inspections yet.</p>}
       <StaffTimeline listRef={rail}>
         {events.map((event) => {
           const signed = event.kind === "inspection";
@@ -124,10 +128,6 @@ export function InspectionTimeline({
           );
         })}
       </StaffTimeline>
-      <StaffHistoryProgress read={revisions} label="Signed inspections" disabled={disabled} />
-      {snapshot.draft.isSigned && (
-        <StaffHistoryProgress read={repairs} label="Repair requests" disabled={disabled} />
-      )}
-    </section>
+    </StaffHistorySection>
   );
 }

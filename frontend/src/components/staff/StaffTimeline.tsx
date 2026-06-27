@@ -26,7 +26,7 @@ export function StaffTimelineEvent({
 }: Omit<ComponentPropsWithoutRef<"li">, "title"> & {
   title: string;
   at: string;
-  context?: string;
+  context?: ReactNode;
 }) {
   return (
     <li {...props}>

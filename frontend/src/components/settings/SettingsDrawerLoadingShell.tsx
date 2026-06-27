@@ -1,8 +1,10 @@
+import { StaffSummaryLoadingShell } from "@/components/staff/StaffSummaryLoadingShell";
 import styles from "./SettingsDrawerLoadingShell.module.css";
 
 export function SettingsDrawerLoadingShell({ fields }: { fields: number }) {
   return (
     <div className={styles.shell} aria-hidden="true">
+      <StaffSummaryLoadingShell />
       <div className={styles.body}>
         {Array.from({ length: fields }, (_, index) => (
           <div className={styles.field} key={index}>

@@ -1,5 +1,7 @@
 "use client";
 
+import { StaffHistorySection } from "@/components/staff/StaffHistorySection";
+import { StaffTimeline, StaffTimelineEvent } from "@/components/staff/StaffTimeline";
 import { PersonLabel } from "@/components/staff/PersonLabel";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { StaffLink } from "@/components/staff/StaffLink";
@@ -11,10 +13,7 @@ import {
   type ListingRecordSelection,
 } from "@/lib/vehicles/listing-history-selection";
 import type { ListingWorkspace } from "@/lib/vehicles/listing-workspace";
-import { formatMalaysianDateTime } from "@/lib/date-format";
 import styles from "@/components/staff/StaffHistory.module.css";
-import editorStyles from "./ListingEditor.module.css";
-import workbench from "@/components/staff/StaffWorkspace.module.css";
 
 const eventTitles: Record<ListingHistoryEntry["kind"], string> = {
   DraftSaved: "Listing draft saved",
@@ -34,36 +33,35 @@ export function ListingHistory({
   const read = useListingHistory(snapshot, active);
 
   return (
-    <section
-      className={editorStyles.historyContent}
-      aria-label="Listing history"
-      aria-busy={read.busy}
+    <StaffHistorySection
+      label="Listing history"
+      busy={read.busy}
+      empty={read.history?.totalCount === 0 && <p>No listing revisions have been saved yet.</p>}
+      progress={<StaffHistoryProgress read={read} label="Listing records" />}
     >
       <LoadingProgress label="Loading listing history" active={active && read.busy} />
-      <div className={workbench.sectionHeader}>
-        <h2 className={workbench.sectionTitle}>Record history</h2>
-      </div>
-      {read.history?.totalCount === 0 && <p>No listing revisions have been saved yet.</p>}
-      <ol className={styles.timeline}>
+      <StaffTimeline>
         {read.history?.items.map((entry) => {
           const record = { kind: entry.kind, revisionId: entry.revisionId, eventId: entry.id };
           const query = listingRecordQuery(record);
           query.set("listing", snapshot.vehicle.vehicleId);
           return (
-            <li key={`${entry.kind}:${entry.id}`}>
-              <div className={styles.eventHeading}>
-                <h3>{eventTitles[entry.kind]}</h3>
-                <time dateTime={entry.recordedAt}>{formatMalaysianDateTime(entry.recordedAt)}</time>
-              </div>
-              <span className={styles.context}>
-                Revision {entry.version} ·{" "}
-                <PersonLabel
-                  id={entry.actorId}
-                  name={entry.actorIdentity}
-                  identity={entry.actorIdentity}
-                  pictureId={entry.actorPictureId}
-                />
-              </span>
+            <StaffTimelineEvent
+              key={`${entry.kind}:${entry.id}`}
+              title={eventTitles[entry.kind]}
+              at={entry.recordedAt}
+              context={
+                <>
+                  Revision {entry.version} ·{" "}
+                  <PersonLabel
+                    id={entry.actorId}
+                    name={entry.actorIdentity}
+                    identity={entry.actorIdentity}
+                    pictureId={entry.actorPictureId}
+                  />
+                </>
+              }
+            >
               {entry.reason && <p>{entry.reason}</p>}
               <div className={styles.eventActions}>
                 <StaffLink
@@ -88,11 +86,10 @@ export function ListingHistory({
                     : "View publication record"}
                 </StaffLink>
               </div>
-            </li>
+            </StaffTimelineEvent>
           );
         })}
-      </ol>
-      <StaffHistoryProgress read={read} label="Listing records" />
-    </section>
+      </StaffTimeline>
+    </StaffHistorySection>
   );
 }

@@ -38,7 +38,7 @@ export function TechnicianLoadingShell({ selected }: { selected: boolean }) {
               </div>
             </div>
             <div className={workspace.editor}>
-              <StaffDrawerLoadingShell label="Loading workshop record…" />
+              <StaffDrawerLoadingShell label="Loading workshop record…" fact />
             </div>
           </div>
         ) : (

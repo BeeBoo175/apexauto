@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { PersonLabel } from "@/components/staff/PersonLabel";
 import { StaffContact } from "@/components/staff/StaffContact";
-import { StaffRecordLoadingShell } from "@/components/staff/StaffRecordLoadingShell";
+import { StaffRecordSummary, StaffSummaryFact } from "@/components/staff/StaffRecordSummary";
+import { StaffStatusGroup } from "@/components/staff/StaffStatusGroup";
+import { StaffDrawerLoadingShell } from "@/components/staff/StaffDrawerLoadingShell";
 import { StaffWorkspaceTabs } from "@/components/staff/StaffWorkspaceTabs";
 import { Button } from "@/components/ui/Button";
 import { useWorkspaceTabs } from "@/hooks/use-workspace-tabs";
@@ -13,6 +15,7 @@ import { formatMalaysianDateTime } from "@/lib/date-format";
 import type { TestDriveStaffCommand } from "@/lib/test-drives/staff-commands";
 import {
   isTerminalTestDriveStatus,
+  testDriveSectionParameter,
   type StaffTestDriveDetail,
 } from "@/lib/test-drives/staff-query";
 import { StaffTestDriveActions } from "./StaffTestDriveActions";
@@ -22,15 +25,23 @@ import shared from "@/components/staff/StaffWorkspace.module.css";
 import facts from "@/components/staff/StaffRecordContent.module.css";
 import styles from "./StaffTestDrive.module.css";
 
-const loadingDetails = [
-  "Reference",
-  "Booked start",
-  "Booked end",
-  "Created",
-  "Handling staff",
-] as const;
-
 type TestDriveSection = "details" | "history";
+
+// The open tab rides in the address like the other drawers, so a reload or shared link returns to it.
+function sectionFromAddress(): TestDriveSection {
+  const requested = new URL(window.location.href).searchParams.get(testDriveSectionParameter);
+  return requested === "history" ? "history" : "details";
+}
+
+function writeSection(section: TestDriveSection) {
+  const url = new URL(window.location.href);
+  if (section === "details") {
+    url.searchParams.delete(testDriveSectionParameter);
+  } else {
+    url.searchParams.set(testDriveSectionParameter, section);
+  }
+  window.history.replaceState(null, "", url);
+}
 
 const sections = [
   { value: "details", label: "Details", available: true },
@@ -50,7 +61,7 @@ export function StaffTestDriveDetail({
   if (!detail) {
     // A drawer that is opening or reading its record holds the shape of the loaded one, never an empty prompt.
     if (record.pendingId) {
-      return <StaffRecordLoadingShell label="Loading test drive…" details={loadingDetails} />;
+      return <StaffDrawerLoadingShell label="Loading test drive…" fact single />;
     }
     return (
       <div className={styles.empty}>
@@ -92,9 +103,9 @@ function LoadedTestDrive({
   refresh: (kind?: TestDriveStaffCommand) => Promise<boolean>;
 }) {
   const { booking } = detail;
-  const [requested, setRequested] = useState<TestDriveSection>("details");
+  const [requested, setRequested] = useState<TestDriveSection>(sectionFromAddress);
   // History is read only once its section has been opened.
-  const [historyOpened, setHistoryOpened] = useState(false);
+  const [historyOpened, setHistoryOpened] = useState(requested === "history");
   const { tabs, section } = useWorkspaceTabs<TestDriveSection>(
     requested,
     sections,
@@ -105,30 +116,45 @@ function LoadedTestDrive({
 
   return (
     <section className={shared.workspace} aria-label="Selected test drive" inert={inert}>
-      <div className={shared.summary}>
-        <div className={shared.summaryMain}>
-          <div>
-            <strong className={shared.summaryValue}>{booking.registrationPlate}</strong>
-            <p className={shared.help}>
-              {booking.manufactureYear} {booking.make} {booking.model} {booking.trim}
-            </p>
-          </div>
-          <StaffTestDriveStatus status={booking.status} />
-        </div>
-        <p className={shared.help}>
-          {formatMalaysianDateTime(booking.startsAt)} · {booking.branchName}
-        </p>
-      </div>
+      <StaffRecordSummary
+        ariaLabel="Test drive vehicle and status"
+        label={`${booking.manufactureYear} ${booking.make} ${booking.model} ${booking.trim}`}
+        value={booking.registrationPlate}
+        status={
+          <StaffStatusGroup label="Test drive status">
+            <StaffTestDriveStatus status={booking.status} />
+          </StaffStatusGroup>
+        }
+        context={<span>{booking.branchName}</span>}
+        facts={
+          <StaffSummaryFact label={finished ? "Handled by" : "Handling staff"}>
+            {booking.handlerId && booking.handlerEmail ? (
+              <PersonLabel
+                id={booking.handlerId}
+                name={booking.handlerName ?? booking.handlerEmail}
+                identity={booking.handlerEmail}
+                pictureId={booking.handlerPictureId}
+              />
+            ) : (
+              <span>Unassigned</span>
+            )}
+            {!finished && booking.handlerId && !booking.handlerEligible && (
+              <span> (currently ineligible)</span>
+            )}
+          </StaffSummaryFact>
+        }
+      />
       <StaffWorkspaceTabs
         label="Test drive sections"
         tabs={tabs}
         value={section}
         onChange={(next) => {
           setRequested(next);
+          writeSection(next);
           setHistoryOpened((opened) => opened || next === "history");
         }}
       />
-      <div hidden={section !== "details"}>
+      <div className={styles.panel} hidden={section !== "details"}>
         <StaffTestDriveActions actor={actor} detail={detail} refresh={refresh} reading={reading}>
           <section className={facts.group}>
             <h3 className={shared.sectionTitle}>Customer</h3>
@@ -157,35 +183,19 @@ function LoadedTestDrive({
                 <dt>Created</dt>
                 <dd>{formatMalaysianDateTime(detail.createdAt)}</dd>
               </div>
-              <div>
-                <dt>{finished ? "Handled by" : "Handling staff"}</dt>
-                <dd>
-                  {booking.handlerId && booking.handlerEmail ? (
-                    <PersonLabel
-                      id={booking.handlerId}
-                      name={booking.handlerName ?? booking.handlerEmail}
-                      identity={booking.handlerEmail}
-                      pictureId={booking.handlerPictureId}
-                    />
-                  ) : (
-                    "Unassigned"
-                  )}
-                  {!finished && booking.handlerId && !booking.handlerEligible
-                    ? " (currently ineligible)"
-                    : ""}
-                </dd>
-              </div>
             </dl>
           </section>
         </StaffTestDriveActions>
       </div>
       {historyOpened && (
-        <div hidden={section !== "history"}>
-          <StaffTestDriveTimeline
-            key={`${booking.status}:${booking.ownershipVersion}`}
-            bookingId={booking.id}
-            disabled={reading}
-          />
+        <div className={styles.panel} hidden={section !== "history"}>
+          <div className={shared.body}>
+            <StaffTestDriveTimeline
+              key={`${booking.status}:${booking.ownershipVersion}`}
+              bookingId={booking.id}
+              disabled={reading}
+            />
+          </div>
         </div>
       )}
     </section>

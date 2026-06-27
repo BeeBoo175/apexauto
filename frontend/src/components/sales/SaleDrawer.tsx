@@ -36,7 +36,7 @@ export function SaleDrawer({
         headerActions={<DialogActionSlot ref={setHeaderActions} />}
         onClose={selection.close}
       >
-        {loading && <StaffDrawerLoadingShell label="Loading sale…" />}
+        {loading && <StaffDrawerLoadingShell label="Loading sale…" fact />}
         {!selection.busy && !sale && selection.id && (
           <div className={workbench.protocol}>
             <p>The sale is unavailable. Your table remains unchanged.</p>

@@ -140,3 +140,32 @@
     min-height: 44px;
   }
 }
+
+/* The loading shape of one timeline event: heading with its date, the actor line and one line of text. */
+.eventTitle,
+.eventDate,
+.eventContext,
+.eventText {
+  composes: placeholder from "./StaffRecordLoadingShell.module.css";
+}
+
+.eventTitle {
+  width: 180px;
+  max-width: 60%;
+  height: 20px;
+}
+
+.eventDate {
+  width: 110px;
+  height: 14px;
+}
+
+.eventContext {
+  width: 140px;
+  height: 14px;
+}
+
+.eventText {
+  width: 70%;
+  height: 20px;
+}

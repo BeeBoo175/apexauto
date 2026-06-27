@@ -105,8 +105,5 @@ export function testDriveEventSummary(item: TestDriveEvent) {
   if (item.kind === "Assigned" && item.handler) {
     return `Now with ${item.handler}.`;
   }
-  if (item.kind === "Claimed" && item.handler) {
-    return `${item.handler} took it on.`;
-  }
   return null;
 }

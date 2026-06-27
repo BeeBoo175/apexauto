@@ -2,7 +2,11 @@
 
 import { ConfirmationButton } from "@/components/ui/ConfirmationButton";
 import { StaffWorkspaceFooter } from "@/components/staff/StaffWorkspaceFooter";
+import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { StaffRecordSummary } from "@/components/staff/StaffRecordSummary";
+import { StaffStatusGroup } from "@/components/staff/StaffStatusGroup";
+import tones from "@/components/ui/StatusTone.module.css";
 import { Input, Select } from "@/components/ui/Input";
 import type { useSettingsSave } from "@/hooks/use-settings-save";
 import { useWarrantyForm } from "@/hooks/use-warranty-form";
@@ -69,20 +73,23 @@ export function WarrantyForm({
       }}
     >
       {base && (
-        <div className={workbench.summary}>
-          <div className={workbench.summaryMain}>
-            <div>
-              <span className={workbench.summaryLabel}>Price</span>
-              <strong className={workbench.summaryValue}>{formatCurrency(base.price)}</strong>
-            </div>
-            <div className={workbench.summaryContext}>
-              <strong>{base.isActive ? "Active" : "Inactive"}</strong>
-              <span>
-                Grade {base.minimumGrade} or better · {base.durationMonths} months
-              </span>
-            </div>
-          </div>
-        </div>
+        <StaffRecordSummary
+          ariaLabel="Warranty price and status"
+          label="Price"
+          value={formatCurrency(base.price)}
+          status={
+            <StaffStatusGroup label="Warranty status">
+              <Badge className={`${tones.badge} ${base.isActive ? tones.success : tones.neutral}`}>
+                {base.isActive ? "Active" : "Inactive"}
+              </Badge>
+            </StaffStatusGroup>
+          }
+          context={
+            <span>
+              Grade {base.minimumGrade} or better · {base.durationMonths} months
+            </span>
+          }
+        />
       )}
       <div className={workbench.body}>
         <div className={styles.fields}>

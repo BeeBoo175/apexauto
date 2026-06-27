@@ -2,7 +2,11 @@
 
 import { ConfirmationButton } from "@/components/ui/ConfirmationButton";
 import { StaffWorkspaceFooter } from "@/components/staff/StaffWorkspaceFooter";
+import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { StaffRecordSummary } from "@/components/staff/StaffRecordSummary";
+import { StaffStatusGroup } from "@/components/staff/StaffStatusGroup";
+import tones from "@/components/ui/StatusTone.module.css";
 import { Input } from "@/components/ui/Input";
 import { usePromoForm } from "@/hooks/use-promo-form";
 import type { useSettingsSave } from "@/hooks/use-settings-save";
@@ -66,18 +70,21 @@ export function PromoForm({
       }}
     >
       {base && (
-        <div className={workbench.summary}>
-          <div className={workbench.summaryMain}>
-            <div>
-              <span className={workbench.summaryLabel}>Discount</span>
-              <strong className={workbench.summaryValue}>{formatCurrency(base.discount)}</strong>
-            </div>
-            <div className={workbench.summaryContext}>
-              <strong>{promoState(base)}</strong>
-              <span>Expires {formatMalaysianDateTime(base.expiresAtUtc)}</span>
-            </div>
-          </div>
-        </div>
+        <StaffRecordSummary
+          ariaLabel="Promotion discount and status"
+          label="Discount"
+          value={formatCurrency(base.discount)}
+          status={
+            <StaffStatusGroup label="Promotion status">
+              <Badge
+                className={`${tones.badge} ${promoState(base) === "Active" ? tones.success : tones.neutral}`}
+              >
+                {promoState(base)}
+              </Badge>
+            </StaffStatusGroup>
+          }
+          context={<span>Expires {formatMalaysianDateTime(base.expiresAtUtc)}</span>}
+        />
       )}
       <div className={workbench.body}>
         <div className={styles.fields}>

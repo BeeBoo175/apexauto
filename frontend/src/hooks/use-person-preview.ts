@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { parsePerson, type Person } from "@/lib/account/contracts";
 import { privateApiFetch } from "@/lib/api-browser";
 import { sessionChanges } from "@/lib/auth/browser-session";
@@ -11,11 +11,20 @@ const HOVER_INTENT_MS = 250;
 // `known` holds the finished reads, so a later hover or dialog renders the person on its first frame.
 const reads = new Map<string, Promise<Person | null>>();
 const known = new Map<string, Person>();
+const listeners = new Set<() => void>();
+
+const subscribe = (listener: () => void) => {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+};
 
 // What a person may see differs per signed-in account, so a session change forgets every read.
 sessionChanges?.addEventListener("message", () => {
   reads.clear();
   known.clear();
+  listeners.forEach((listener) => listener());
 });
 
 function readPerson(id: string) {
@@ -30,6 +39,7 @@ function readPerson(id: string) {
   void read.then((person) => {
     if (person) {
       known.set(id, person);
+      listeners.forEach((listener) => listener());
     } else {
       // A failed read is retried the next time someone asks.
       reads.delete(id);
@@ -42,7 +52,12 @@ function readPerson(id: string) {
 // first time: after that every avatar and dialog of the same person shows them immediately.
 export function usePersonPreview(id: string, open: boolean, delayMs = HOVER_INTENT_MS) {
   const [loaded, setLoaded] = useState<{ id: string; person: Person | null } | null>(null);
-  const cached = known.get(id);
+  // Re-renders when another avatar of the same person finishes the shared read.
+  const cached = useSyncExternalStore(
+    subscribe,
+    () => known.get(id),
+    () => undefined,
+  );
 
   useEffect(() => {
     if (!open || known.has(id)) {
