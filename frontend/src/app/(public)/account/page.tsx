@@ -1,7 +1,6 @@
 import type { SearchParams } from "@/lib/query";
 import { redirect } from "next/navigation";
 import { AccountWorkspace } from "@/components/account/AccountWorkspace";
-import { StaffAccount } from "@/components/account/StaffAccount";
 import { readOwnProfile } from "@/lib/account/server";
 import { privateApiRead } from "@/lib/server/http/api";
 import { parseAppointment } from "@/lib/intake/parse";
@@ -39,7 +38,7 @@ export default async function AccountPage({
   const profile = response.data;
 
   if (profile.role !== "Customer") {
-    return <StaffAccount key={profile.userId} profile={profile} />;
+    redirect("/dashboard/account");
   }
 
   const params = await searchParams;

@@ -20,6 +20,7 @@ public sealed class PurchaseSettingsSchemaTests(RegistrationDatabase database) :
             Email = email,
             NormalizedEmail = email.ToUpperInvariant(),
             UserName = email,
+            AccountUsername = TestUsernames.Next(),
             NormalizedUserName = email.ToUpperInvariant()
         });
         context.PurchaseSettings.Add(new(500m, 0.08m, actor, DateTimeOffset.UtcNow));

@@ -162,7 +162,7 @@ export function StaffTestDriveTable({
     applied.push({
       key: "handlerId",
       label:
-        snapshot.items.find((row) => row.handlerId === filters.handlerId)?.handlerEmail ??
+        snapshot.items.find((row) => row.handlerId === filters.handlerId)?.handlerName ??
         "Selected handling staff",
       without: { ...filters, handlerId: "" },
     });

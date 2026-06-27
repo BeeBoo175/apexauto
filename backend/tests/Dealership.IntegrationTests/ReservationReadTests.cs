@@ -80,7 +80,7 @@ public sealed class ReservationReadTests(IntakePhotoFixture fixture) : IClassFix
             Assert.Equal(51, history.Total);
             Assert.Equal(pageSize, history.PageSize);
             Assert.Equal(page == pages ? 51 - pageSize * (pages - 1) : pageSize, history.Items.Count);
-            Assert.Equal(new CurrentActor(data.OwnerId, AccountRoles.Customer, null), history.Actor);
+            Assert.Equal(new CurrentActor(data.OwnerId, AccountRoles.Customer, null, false), history.Actor);
             Assert.Equal(active!.Id, history.Active!.Receipt.Id);
             Assert.True(history.Active.IsActive);
             actual.AddRange(history.Items.Select(item => item.Receipt.Id));

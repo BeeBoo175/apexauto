@@ -70,9 +70,11 @@ test("staff manage their own picture on the shared account page and open a colle
   await expect(page).not.toHaveURL(/appointment=/);
   await expect(page.getByRole("region", { name: "Selected appointment" })).toHaveCount(0);
 
+  // Staff land on the dashboard account page from the public address.
   await page.goto("/account");
-  await expect(page.getByRole("heading", { name: "Your account", exact: true })).toBeVisible();
-  await expect(page.getByText("Branch manager", { exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/\/dashboard\/account$/);
+  await expect(page.getByRole("heading", { name: "Account details", exact: true })).toBeVisible();
+  await expect(page.getByText("Branch manager", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("Work mobile", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Reservations" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Account", exact: true })).toBeVisible();

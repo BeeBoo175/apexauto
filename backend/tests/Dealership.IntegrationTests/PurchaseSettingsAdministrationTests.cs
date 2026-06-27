@@ -83,6 +83,7 @@ public sealed class PurchaseSettingsAdministrationTests(RegistrationDatabase dat
             Email = email,
             NormalizedEmail = email.ToUpperInvariant(),
             UserName = email,
+            AccountUsername = TestUsernames.Next(),
             NormalizedUserName = email.ToUpperInvariant(),
             Role = role,
             IsActive = active

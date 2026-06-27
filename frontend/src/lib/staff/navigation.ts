@@ -45,6 +45,7 @@ export const staffWorkspaceLinks: StaffWorkspaceLink[] = [
 
 export const staffPageTitles: Record<string, string> = {
   "/dashboard": "Administration",
+  "/dashboard/account": "Account",
   "/dashboard/inspection/repairs": "Repair requests",
   ...Object.fromEntries(staffWorkspaceLinks.map((link) => [link.href, link.label])),
 };

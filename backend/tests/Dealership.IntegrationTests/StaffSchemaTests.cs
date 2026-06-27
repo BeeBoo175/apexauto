@@ -20,6 +20,7 @@ public sealed class StaffSchemaTests(RegistrationDatabase database) : IClassFixt
             Email = email,
             NormalizedEmail = email.ToUpperInvariant(),
             UserName = email,
+            AccountUsername = TestUsernames.Next(),
             NormalizedUserName = email.ToUpperInvariant(),
             SecurityStamp = Guid.NewGuid().ToString()
         };

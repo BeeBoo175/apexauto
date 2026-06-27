@@ -163,6 +163,21 @@ function StaffFrameContent({
                       Your staff workspace
                     </StaffLink>
                   )}
+                <StaffLink
+                  href="/dashboard/account"
+                  prefetch={false}
+                  className={
+                    navigation.selectedPath === "/dashboard/account"
+                      ? styles.activeLink
+                      : styles.navLink
+                  }
+                  aria-current={
+                    navigation.selectedPath === "/dashboard/account" ? "page" : undefined
+                  }
+                  onNavigate={(event) => navigate(event, "/dashboard/account")}
+                >
+                  Account
+                </StaffLink>
               </nav>
               {actor && (
                 <div className={styles.session}>

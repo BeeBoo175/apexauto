@@ -1,7 +1,8 @@
 .panel {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 32px;
+  max-width: 880px;
 }
 
 .header h2 {
@@ -12,18 +13,11 @@
   letter-spacing: -0.02em;
 }
 
-.profile,
-.rows {
-  border: 1px solid var(--color-line-soft);
-  border-radius: 8px;
-  background: var(--color-paper);
-}
-
+/* Open layout: the identity and the rows sit on the page itself, separated by space and, between rows, one hairline. */
 .profile {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 20px 24px;
+  gap: 20px;
 }
 
 .identity {
@@ -63,7 +57,7 @@
   grid-template-columns: 200px minmax(0, 1fr) 220px;
   align-items: center;
   gap: 8px 24px;
-  padding: 16px 24px;
+  padding: 16px 0;
 }
 
 .row + .row {

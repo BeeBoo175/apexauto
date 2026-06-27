@@ -185,6 +185,7 @@ public sealed class WarrantyAdministrationTests(RegistrationDatabase database) :
             Email = email,
             NormalizedEmail = email.ToUpperInvariant(),
             UserName = email,
+            AccountUsername = TestUsernames.Next(),
             NormalizedUserName = email.ToUpperInvariant(),
             Role = role,
             IsActive = active

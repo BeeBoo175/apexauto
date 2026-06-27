@@ -16,6 +16,7 @@ export async function StaffEntry({
   deniedTitle,
   deniedDescription,
   searchParams,
+  allowUnverified = false,
   children,
 }: {
   path: string;
@@ -23,6 +24,8 @@ export async function StaffEntry({
   deniedTitle: string;
   deniedDescription: string;
   searchParams?: Promise<SearchParams>;
+  // The account page stays open to staff who still have to verify their email.
+  allowUnverified?: boolean;
   children: (actor: CurrentActor) => Promise<ReactNode>;
 }) {
   const actor = await staffActor(path);
@@ -37,7 +40,7 @@ export async function StaffEntry({
 
   // Staff with an unconfirmed email may only verify; the backend denies their other reads.
   const { emailVerified } = await readCurrentActor();
-  const unverified = !emailVerified;
+  const unverified = !emailVerified && !allowUnverified;
 
   // Run page reads only after the current request's actor and feature access are confirmed.
   const permitted = access(actor) && !unverified;
@@ -52,7 +55,7 @@ export async function StaffEntry({
             Confirm your email address to use the staff workspace. Request a new link from your
             account if the first has expired.
           </p>
-          <StaffLink href="/account">Open your account</StaffLink>
+          <StaffLink href="/dashboard/account">Open your account</StaffLink>
         </StaffNotice>
       </>
     );

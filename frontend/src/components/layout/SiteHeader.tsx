@@ -15,7 +15,7 @@ export async function SiteHeader() {
         <Link href="/vehicles" prefetch={false}>
           Buy car
         </Link>
-        {showAccount && <a href="/account">Account</a>}
+        {showAccount && <a href={showStaffPortal ? "/dashboard/account" : "/account"}>Account</a>}
         <Link href="/sell" prefetch={false}>
           Sell car
         </Link>

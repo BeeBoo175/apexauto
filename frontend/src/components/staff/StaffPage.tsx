@@ -29,6 +29,7 @@ export function StaffLoading() {
     "/dashboard/sales": actor.role === "SalesAgent" ? "technician" : "inspection",
     "/dashboard/test-drives": actor.role === "SalesAgent" ? "technician" : "inspection",
     "/dashboard/work-calendar": "calendar",
+    "/dashboard/account": "appointment",
   };
   let view = views[pathname] ?? "inspection";
   let title = staffPageTitles[pathname] ?? "Your staff workspace";
