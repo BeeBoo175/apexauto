@@ -3,6 +3,7 @@ using System.Data;
 using Dealership.Application.Accounts;
 using Dealership.Application.Intake;
 using Dealership.Domain.Intake;
+using Dealership.Infrastructure.Accounts;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -99,9 +100,8 @@ public sealed class StaffAppointmentDetailStore(DealershipDbContext database) : 
         }
 
         var correctorId = row.CheckIn?.CorrectionRecordedAt is null ? (Guid?)null : row.CheckIn.StaffId;
-        var correctorEmail = correctorId is null ? null
-            : await database.Users.AsNoTracking().Where(user => user.Id == correctorId).Select(user => user.Email)
-                .FirstOrDefaultAsync(cancellationToken);
+        var corrector = correctorId is null ? null
+            : (await AccountNames.ReadAsync(database, [correctorId], cancellationToken)).GetValueOrDefault(correctorId.Value);
         var assignment = await database.AppointmentAssignments.AsNoTracking()
             .Where(item => item.AppointmentId == appointmentId).OrderByDescending(item => item.Version)
             .FirstOrDefaultAsync(cancellationToken);
@@ -121,7 +121,7 @@ public sealed class StaffAppointmentDetailStore(DealershipDbContext database) : 
         var detail = new StaffAppointmentDetail(row.Id, row.BranchId, row.BranchName, row.CustomerName,
             row.RegistrationPlate, row.StartsAt, row.EndsAt, status, row.Make, row.Model, row.Trim,
             row.ManufactureYear, row.MileageKilometres, wasNoShow ? noShowAt : null, row.CheckIn?.CorrectionRecordedAt, row.CheckIn?.CorrectionReason,
-            correctorId, row.Mobile, row.CustomerEmail ?? string.Empty, correctorEmail, ownership);
+            correctorId, row.Mobile, row.CustomerEmail ?? string.Empty, corrector, ownership);
         await transaction.CommitAsync(cancellationToken);
         return new StaffAppointmentDetailResult(StaffAppointmentDetailStatus.Succeeded, detail);
     }

@@ -40,7 +40,7 @@ export function IntakeRecord({
         value: formatMalaysianDateTime(detail.attendanceCorrectedAt),
       },
       { label: "Correction reason", value: detail.correctionReason },
-      { label: "Corrected by", value: detail.correctedByEmail ?? "Not on file" },
+      { label: "Corrected by", value: detail.correctedByName ?? "Not on file" },
     );
   }
 

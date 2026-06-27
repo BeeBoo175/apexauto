@@ -12,6 +12,16 @@ import shared from "@/components/staff/StaffWorkspace.module.css";
 import facts from "@/components/staff/StaffRecordContent.module.css";
 import styles from "./StaffTestDrive.module.css";
 import { PersonLabel } from "@/components/staff/PersonLabel";
+import { ResolvedPersonLabel } from "@/components/staff/ResolvedPersonLabel";
+import { StaffRecordLoadingShell } from "@/components/staff/StaffRecordLoadingShell";
+
+const loadingDetails = [
+  "Reference",
+  "Booked start",
+  "Booked end",
+  "Created",
+  "Handling staff",
+] as const;
 
 export function StaffTestDriveDetail({
   actor,
@@ -24,15 +34,14 @@ export function StaffTestDriveDetail({
 }) {
   const detail = record.snapshot;
   if (!detail) {
+    // A drawer that is opening or reading its record holds the shape of the loaded one, never an empty prompt.
+    if (record.pendingId) {
+      return <StaffRecordLoadingShell label="Loading test drive…" details={loadingDetails} />;
+    }
     return (
       <div className={styles.empty}>
         {record.id ? (
-          <Button
-            variant="secondary"
-            size="compact"
-            disabled={Boolean(record.pendingId)}
-            onClick={() => void record.load()}
-          >
+          <Button variant="secondary" size="compact" onClick={() => void record.load()}>
             Retry selected test drive
           </Button>
         ) : (
@@ -125,7 +134,8 @@ export function StaffTestDriveDetail({
               <div>
                 <dt>Actual start</dt>
                 <dd>
-                  {formatMalaysianDateTime(start.startedAt)} · {detail.startedByEmail}
+                  {formatMalaysianDateTime(start.startedAt)} ·{" "}
+                  <ResolvedPersonLabel id={start.staffId} identity={detail.startedBy ?? "Staff"} />
                   <br />
                   Customer present · Driving licence checked
                 </dd>
@@ -136,7 +146,11 @@ export function StaffTestDriveDetail({
                 <dt>Actual outcome</dt>
                 <dd>
                   {outcome.kind === "Completed" ? "Completed" : "Not completed"} ·{" "}
-                  {formatMalaysianDateTime(outcome.endedAt)} · {detail.completedByEmail}
+                  {formatMalaysianDateTime(outcome.endedAt)} ·{" "}
+                  <ResolvedPersonLabel
+                    id={outcome.staffId}
+                    identity={detail.completedBy ?? "Staff"}
+                  />
                 </dd>
               </div>
             )}

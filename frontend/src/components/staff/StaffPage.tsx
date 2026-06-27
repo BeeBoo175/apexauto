@@ -39,10 +39,6 @@ export function StaffLoading() {
     view = "appointment";
     title = "Intake appointment";
   }
-  if (pathname.startsWith("/dashboard/people/")) {
-    view = "appointment";
-    title = "Person";
-  }
   return (
     <>
       <LoadingProgress label="Opening workspace" />

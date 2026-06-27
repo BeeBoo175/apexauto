@@ -202,8 +202,8 @@ test("staff snapshots preserve released ownership and bind handling evidence to 
     createdAt: receipt.createdAt,
     customerMobile: "0123456789",
     customerEmail: "aina@example.invalid",
-    startedByEmail: null,
-    completedByEmail: null,
+    startedBy: null,
+    completedBy: null,
   };
   expect(parseStaffTestDriveDetail(detail)?.ownership?.version).toBe(2);
   expect(

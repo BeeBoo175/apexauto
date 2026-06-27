@@ -3,6 +3,7 @@ using Dealership.Domain.Common;
 using System.Data;
 using Dealership.Application.Accounts;
 using Dealership.Application.TestDrives;
+using Dealership.Infrastructure.Accounts;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -94,13 +95,11 @@ public sealed class StaffTestDriveReadStore(DealershipDbContext database) : ISta
             .Select(item => new TestDriveOutcomeView(item.Id, item.BookingId, item.AssignmentId, item.StaffId,
                 item.StartId, item.Kind, item.CustomerPresent, item.Reason, item.Notes, item.EndedAt))
             .SingleOrDefaultAsync(cancellationToken);
-        var ids = new[] { start?.StaffId, outcome?.StaffId };
-        var emails = await database.Users.AsNoTracking().Where(user => ids.Contains(user.Id))
-            .ToDictionaryAsync(user => user.Id, user => user.Email, cancellationToken);
+        var names = await AccountNames.ReadAsync(database, [start?.StaffId, outcome?.StaffId], cancellationToken);
         var detail = new StaffTestDriveDetail(actor, StaffTestDriveRows.ToItem(row), facts.Mobile, facts.Email ?? string.Empty,
             facts.CreatedAt, ownership, cancellation, start, outcome,
-            start is null ? null : emails.GetValueOrDefault(start.StaffId),
-            outcome is null ? null : emails.GetValueOrDefault(outcome.StaffId));
+            start is null ? null : names.GetValueOrDefault(start.StaffId),
+            outcome is null ? null : names.GetValueOrDefault(outcome.StaffId));
         await transaction.CommitAsync(cancellationToken);
         return new(TestDriveReadStatus.Succeeded, detail);
     }

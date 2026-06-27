@@ -114,7 +114,7 @@ export function StaffTestDriveActions({
                   <option value="">Choose a handler</option>
                   {workflow.handlers?.items.map((item) => (
                     <option key={item.id} value={item.id}>
-                      {item.email}
+                      {item.name}
                     </option>
                   ))}
                 </Select>
@@ -261,7 +261,7 @@ export function StaffTestDriveActions({
                   label: "Handler",
                   value:
                     workflow.handlers?.items.find((item) => item.id === captured.body.handlerId)
-                      ?.email ?? String(captured.body.handlerId),
+                      ?.name ?? String(captured.body.handlerId),
                 },
               ]
             : []),

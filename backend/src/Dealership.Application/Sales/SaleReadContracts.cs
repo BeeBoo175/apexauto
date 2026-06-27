@@ -138,7 +138,7 @@ public sealed record TradeInOption(Guid AppointmentId, string Label, decimal Min
 
 public sealed record SaleOptions(IReadOnlyList<WarrantyOption> Warranties, IReadOnlyList<TradeInOption> TradeIns);
 
-public sealed record SaleAgent(Guid Id, string Email);
+public sealed record SaleAgent(Guid Id, string Email, string Name);
 
 // Listing content is retained by the reservation; vehicle identity and mileage are current record facts.
 public sealed record SaleVehicleReference(Guid SaleId, string Make, string Model, string Trim, int ManufactureYear,

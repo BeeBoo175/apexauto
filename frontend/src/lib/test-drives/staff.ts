@@ -1,4 +1,4 @@
-import { parseHandlerDisplay } from "@/lib/account/handler-display";
+import { handlerName, parseHandlerDisplay } from "@/lib/account/handler-display";
 import { parseCountedPage, parseItems } from "@/lib/api";
 import { parseActor } from "@/lib/auth/actor";
 import { parseOwnershipKind } from "@/lib/staff/ownership";
@@ -222,8 +222,8 @@ export function parseStaffTestDriveDetail(value: unknown) {
     !isUtcInstant(value.createdAt) ||
     typeof value.customerMobile !== "string" ||
     typeof value.customerEmail !== "string" ||
-    (value.startedByEmail !== null && typeof value.startedByEmail !== "string") ||
-    (value.completedByEmail !== null && typeof value.completedByEmail !== "string") ||
+    (value.startedBy !== null && typeof value.startedBy !== "string") ||
+    (value.completedBy !== null && typeof value.completedBy !== "string") ||
     (value.ownership !== null && !ownership) ||
     (value.cancellation !== null && !cancellation) ||
     (value.start !== null && !start) ||
@@ -256,8 +256,8 @@ export function parseStaffTestDriveDetail(value: unknown) {
     cancellation,
     start,
     outcome,
-    startedByEmail: value.startedByEmail,
-    completedByEmail: value.completedByEmail,
+    startedBy: value.startedBy,
+    completedBy: value.completedBy,
   };
 }
 
@@ -268,7 +268,7 @@ export function parseTestDriveHandlers(value: unknown) {
   const actor = parseActor(value.actor);
   const items = parseItems(value.items, (item) => {
     return isRecord(item) && isUuid(item.id) && typeof item.email === "string" && item.email
-      ? { id: item.id, email: item.email }
+      ? { id: item.id, email: item.email, name: handlerName(item.name, item.email) }
       : null;
   });
   return actor?.role === "BranchManager" && items ? { actor, items } : null;

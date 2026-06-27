@@ -1,3 +1,4 @@
+import { handlerName } from "@/lib/account/handler-display";
 import {
   isNonNegativeInteger,
   isPositiveInteger,
@@ -222,7 +223,13 @@ export function parseSaleAgents(value: unknown): SaleAgent[] | null {
     return null;
   }
   const agents = value.map((item) =>
-    isRecord(item) && isUuid(item.id) && text(item.email) ? (item as unknown as SaleAgent) : null,
+    isRecord(item) && isUuid(item.id) && text(item.email)
+      ? ({
+          id: item.id,
+          email: item.email,
+          name: handlerName(item.name, item.email),
+        } satisfies SaleAgent)
+      : null,
   );
   return agents.every((item) => item !== null) ? (agents as SaleAgent[]) : null;
 }

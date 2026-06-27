@@ -1,0 +1,76 @@
+.body {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 20px;
+  padding-top: 12px;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.facts dt {
+  margin-bottom: 4px;
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.facts dd {
+  min-height: 20px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+  overflow-wrap: anywhere;
+}
+
+.facts dd[data-pending="true"] {
+  position: relative;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--color-line-soft);
+}
+
+.facts dd[data-pending="true"]::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-paper) 65%, transparent),
+    transparent
+  );
+  content: "";
+  transform: translateX(-100%);
+  animation: shimmer 1.6s linear infinite;
+}
+
+.failed {
+  padding-top: 12px;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+@keyframes shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (max-width: 520px) {
+  .body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .facts dd[data-pending="true"]::after {
+    animation: none;
+  }
+}

@@ -103,7 +103,7 @@ export function OngoingWorkQueue({
                         name={item.handlerName ?? item.handlerEmail}
                         identity={item.handlerEmail}
                         pictureId={item.handlerPictureId}
-                        linked={false}
+                        nested
                       />
                     )}
                   </span>

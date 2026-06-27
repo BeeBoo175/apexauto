@@ -134,6 +134,7 @@ export interface SaleOptions {
 export interface SaleAgent {
   id: string;
   email: string;
+  name: string;
 }
 
 // One role-aware page: agents work from the queue, managers from the table.

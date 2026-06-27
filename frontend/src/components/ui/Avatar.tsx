@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePersonPreview } from "@/hooks/use-person-preview";
@@ -66,43 +65,54 @@ function PreviewDetails({
   detail: string;
   open: boolean;
 }) {
-  const person = usePersonPreview(accountId, open);
-  const role = person ? roleNames[person.role] : null;
-  const lines = person
-    ? [[role, person.branchName].filter(Boolean).join(" · "), person.mobile, person.email]
-    : [detail];
+  const { person } = usePersonPreview(accountId, open);
+  const pending = !person;
+  // Every row keeps its slot while the shared read loads, so the card never changes size.
+  const rows = {
+    role: person ? roleNames[person.role] : detail,
+    branch: person?.branchName ?? "",
+    mobile: person?.mobile ?? "",
+    email: person?.email ?? "",
+  };
 
   return (
     <span className={styles.previewText}>
       <span className={styles.previewName}>{person?.name ?? name}</span>
-      {lines.filter(Boolean).map((line) => (
-        <span key={line} className={styles.previewDetail}>
-          {line}
-        </span>
-      ))}
-      {!person && <span className={styles.previewPending}>Loading contact details</span>}
+      <span className={styles.previewRole}>{rows.role}</span>
+      <span className={styles.previewRole} data-pending={pending}>
+        {rows.branch}
+      </span>
+      <span className={styles.previewContact}>
+        <span data-pending={pending}>{rows.mobile}</span>
+        <span data-pending={pending}>{rows.email}</span>
+      </span>
     </span>
   );
 }
 
-// With `detail` set the avatar links to the person's profile and shows a preview on hover, focus
-// or tap, with contact details fetched once the preview rests open. A touch tap opens the preview
-// first and a second tap follows the link.
+// With `detail` set the avatar shows a preview on hover, focus or tap, with contact details fetched once the
+// preview rests open. `onOpen` makes the avatar and label one button, which the caller answers by showing the
+// person in place, so nobody leaves their work. A touch tap shows the preview first and a second tap opens.
 export function Avatar({
   accountId,
   name,
   pictureId,
   size = "md",
   detail,
-  linked = true,
+  label,
+  onOpen,
+  nested = false,
 }: {
   accountId: string;
   name: string;
   pictureId: string | null;
   size?: AvatarSize;
   detail?: string;
-  // False inside another link or clickable row: the preview still shows on hover, without a link.
-  linked?: boolean;
+  // Visible text beside the picture; it is part of the button, so the whole label is clickable.
+  label?: string;
+  onOpen?: () => void;
+  // Inside a link or clickable row: a plain element stands in for the button, which keeps the row's own link valid.
+  nested?: boolean;
 }) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [touchPointer, setTouchPointer] = useState(false);
@@ -120,7 +130,35 @@ export function Avatar({
     setPreviewOpen(true);
   }
 
-  const face = <AvatarFace accountId={accountId} name={name} pictureId={pictureId} size={size} />;
+  function activate(event: React.SyntheticEvent) {
+    event.stopPropagation();
+    event.preventDefault();
+    if (touchPointer && !previewOpen) {
+      open();
+      return;
+    }
+    setPreviewOpen(false);
+    onOpen?.();
+  }
+
+  const face = (
+    <>
+      <AvatarFace accountId={accountId} name={name} pictureId={pictureId} size={size} />
+      {label !== undefined && <span className={styles.label}>{label}</span>}
+    </>
+  );
+  const behaviour = {
+    className: styles.trigger,
+    onFocus: open,
+    onBlur: () => setPreviewOpen(false),
+    onPointerDown: (event: React.PointerEvent) => setTouchPointer(event.pointerType === "touch"),
+    onClick: activate,
+    onKeyDown: (event: React.KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setPreviewOpen(false);
+      }
+    },
+  };
 
   return (
     <span
@@ -129,31 +167,23 @@ export function Avatar({
       onMouseEnter={open}
       onMouseLeave={() => setPreviewOpen(false)}
     >
-      {linked ? (
-        <Link
-          className={styles.link}
-          href={`/dashboard/people/${accountId}`}
-          aria-label={`${name}, ${detail}`}
-          onFocus={open}
-          onBlur={() => setPreviewOpen(false)}
-          onPointerDown={(event) => setTouchPointer(event.pointerType === "touch")}
-          onClick={(event) => {
-            event.stopPropagation();
-            if (touchPointer && !previewOpen) {
-              event.preventDefault();
-              open();
-            }
-          }}
-          onKeyDown={(event) => {
-            if (event.key === "Escape") {
-              setPreviewOpen(false);
-            }
-          }}
+      {nested ? (
+        <span
+          {...behaviour}
+          role="button"
+          tabIndex={-1}
+          aria-label={label === undefined ? `${name}, ${detail}` : undefined}
         >
           {face}
-        </Link>
+        </span>
       ) : (
-        face
+        <button
+          {...behaviour}
+          type="button"
+          aria-label={label === undefined ? `${name}, ${detail}` : undefined}
+        >
+          {face}
+        </button>
       )}
       {previewOpen && anchor
         ? createPortal(
@@ -180,7 +210,6 @@ export function Avatar({
     </span>
   );
 }
-
 type PreviewAnchor = { left: number; top: number; above: boolean; container: HTMLElement };
 
 const PREVIEW_WIDTH = 300;

@@ -167,7 +167,7 @@ export function AppointmentWorkbench({
             status: "CheckedIn",
             attendanceCorrectedAt: receipt.correction?.recordedAt ?? null,
             correctionReason: receipt.correction?.reason ?? null,
-            correctedByEmail: null,
+            correctedByName: null,
           }
         : null,
     }));

@@ -44,7 +44,7 @@ public sealed record StaffTestDrivePage(CurrentActor Actor, IReadOnlyList<StaffT
 public sealed record StaffTestDriveDetail(CurrentActor Actor, StaffTestDriveItem Booking,
     string CustomerMobile, string CustomerEmail, DateTimeOffset CreatedAt,
     TestDriveOwnership? Ownership, TestDriveCancellationView? Cancellation,
-    TestDriveStartView? Start, TestDriveOutcomeView? Outcome, string? StartedByEmail, string? CompletedByEmail);
+    TestDriveStartView? Start, TestDriveOutcomeView? Outcome, string? StartedBy, string? CompletedBy);
 
 public sealed record TestDriveOwnership(Guid Id, Guid BookingId, long Version, Guid? HandlerId,
     Guid ActorId, string Kind, DateTimeOffset RecordedAt, string? Reason);

@@ -43,7 +43,7 @@ function AgentSelection({
       <option value="">{agents ? "Choose an agent" : "Loading agents…"}</option>
       {agents?.map((agent) => (
         <option key={agent.id} value={agent.id} disabled={agent.id === currentAgent}>
-          {agent.email}
+          {agent.name}
         </option>
       ))}
     </Select>

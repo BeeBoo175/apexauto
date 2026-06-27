@@ -6,37 +6,46 @@ import { privateApiFetch } from "@/lib/api-browser";
 import { sessionChanges } from "@/lib/auth/browser-session";
 
 const HOVER_INTENT_MS = 250;
-const CACHE_LIFETIME_MS = 60_000;
 
-const reads = new Map<string, { expiresAt: number; read: Promise<Person | null> }>();
+// A person's profile rarely changes, so it is read once per signed-in session and shared by every avatar.
+// `known` holds the finished reads, so a later hover or dialog renders the person on its first frame.
+const reads = new Map<string, Promise<Person | null>>();
+const known = new Map<string, Person>();
 
 // What a person may see differs per signed-in account, so a session change forgets every read.
-sessionChanges?.addEventListener("message", () => reads.clear());
+sessionChanges?.addEventListener("message", () => {
+  reads.clear();
+  known.clear();
+});
 
 function readPerson(id: string) {
   const cached = reads.get(id);
-  if (cached && cached.expiresAt > Date.now()) {
-    return cached.read;
+  if (cached) {
+    return cached;
   }
   const read = privateApiFetch(`/api/people/${id}`, parsePerson)
     .then((result) => (result.status === 200 && result.data?.userId === id ? result.data : null))
     .catch(() => null);
-  reads.set(id, { expiresAt: Date.now() + CACHE_LIFETIME_MS, read });
+  reads.set(id, read);
   void read.then((person) => {
-    if (!person) {
+    if (person) {
+      known.set(id, person);
+    } else {
+      // A failed read is retried the next time someone asks.
       reads.delete(id);
     }
   });
   return read;
 }
 
-// Contact details load only after the pointer or focus rests on an avatar, and are shared between
-// every avatar of the same person for a short while.
-export function usePersonPreview(id: string, open: boolean) {
+// Contact details are read only once the pointer or focus rests on an avatar (or a dialog opens), and only the
+// first time: after that every avatar and dialog of the same person shows them immediately.
+export function usePersonPreview(id: string, open: boolean, delayMs = HOVER_INTENT_MS) {
   const [loaded, setLoaded] = useState<{ id: string; person: Person | null } | null>(null);
+  const cached = known.get(id);
 
   useEffect(() => {
-    if (!open) {
+    if (!open || known.has(id)) {
       return;
     }
     let current = true;
@@ -46,12 +55,17 @@ export function usePersonPreview(id: string, open: boolean) {
           setLoaded({ id, person });
         }
       });
-    }, HOVER_INTENT_MS);
+    }, delayMs);
     return () => {
       current = false;
       window.clearTimeout(timer);
     };
-  }, [id, open]);
+  }, [id, open, delayMs]);
 
-  return loaded?.id === id ? loaded.person : null;
+  if (cached) {
+    return { person: cached, settled: true };
+  }
+
+  const settled = loaded?.id === id;
+  return { person: settled ? loaded.person : null, settled };
 }

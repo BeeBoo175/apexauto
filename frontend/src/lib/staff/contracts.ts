@@ -67,13 +67,14 @@ export interface AppointmentOwnership {
 export interface AppointmentHandler {
   id: string;
   email: string;
+  name: string;
 }
 export interface AppointmentDetail extends AppointmentSummary {
   ownership: AppointmentOwnership | null;
   noShowAt: string | null;
   attendanceCorrectedAt: string | null;
   correctionReason: string | null;
-  correctedByEmail: string | null;
+  correctedByName: string | null;
   customerMobile: string;
   customerEmail: string;
   mileageKilometres: number;

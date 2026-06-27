@@ -1,3 +1,4 @@
+using Dealership.Infrastructure.Accounts;
 using System.Data;
 using Dealership.Application.Accounts;
 using Dealership.Application.Sales;
@@ -72,14 +73,14 @@ public sealed class SaleReadStore(DealershipDbContext database) : ISaleReadStore
             ? await database.IntakeAppointments.AsNoTracking()
                 .SingleAsync(item => item.Id == appointmentId, cancellationToken)
             : null;
-        var emails = await EmailsAsync([sale.AgentId, sale.DecidedById], cancellationToken);
+        var names = await NamesAsync([sale.AgentId, sale.DecidedById], cancellationToken);
         var context = new SaleContext(facts.Number, facts.RegistrationPlate,
             SaleLabels.Vehicle(facts.ManufactureYear, facts.Make, facts.Model, facts.Trim), facts.Vin,
             facts.MileageKilometres, facts.LegalName, facts.Mobile, facts.Email ?? string.Empty, facts.Branch,
             facts.CreatedAt, warranty?.DurationMonths, warranty?.MileageCapKm, tradeIn?.Valuation.Minimum,
             tradeIn?.Valuation.Maximum);
-        return new(SaleResultStatus.Succeeded, new SaleView(sale.Id, SaleSnapshot.Of(sale), Email(emails, sale.AgentId),
-            Email(emails, sale.DecidedById), sale.CreatedAt, sale.UpdatedAt, context, SaleAccess.Actions(actor!, sale)));
+        return new(SaleResultStatus.Succeeded, new SaleView(sale.Id, SaleSnapshot.Of(sale), Name(names, sale.AgentId),
+            Name(names, sale.DecidedById), sale.CreatedAt, sale.UpdatedAt, context, SaleAccess.Actions(actor!, sale)));
     }
 
     // What the editor may offer: warranties the signed grade qualifies for and the customer's eligible trade-ins.
@@ -124,7 +125,9 @@ public sealed class SaleReadStore(DealershipDbContext database) : ISaleReadStore
         var agents = await database.Users.AsNoTracking().Where(item =>
                 item.Role == AccountRoles.SalesAgent && item.BranchId == sale.BranchId && item.IsActive)
             .OrderBy(item => item.Email).ThenBy(item => item.Id)
-            .Select(item => new SaleAgent(item.Id, item.Email ?? string.Empty)).ToListAsync(cancellationToken);
+            .Select(item => new SaleAgent(item.Id, item.Email ?? string.Empty,
+                database.StaffProfiles.Where(profile => profile.UserId == item.Id).Select(profile => profile.Name)
+                    .FirstOrDefault() ?? string.Empty)).ToListAsync(cancellationToken);
         return new(SaleResultStatus.Succeeded, agents);
     }
 
@@ -162,7 +165,7 @@ public sealed class SaleReadStore(DealershipDbContext database) : ISaleReadStore
                               entry.Changes,
                               Refund = release == null ? (decimal?)null : release.Refund
                           }).ReadPageAsync(page, pageSize, total, cancellationToken);
-        var emails = await EmailsAsync(rows.SelectMany(row => new[] { row.ActorId, row.AgentId, row.PreviousAgentId }),
+        var names = await NamesAsync(rows.SelectMany(row => new[] { row.ActorId, row.AgentId, row.PreviousAgentId }),
             cancellationToken);
         var operationIds = rows.Select(row => row.Id).ToArray();
         var documents = await database.SaleDocuments.AsNoTracking()
@@ -171,7 +174,7 @@ public sealed class SaleReadStore(DealershipDbContext database) : ISaleReadStore
             .Select(item => new { item.Id, item.IssuingOperationId, item.Kind, item.Number })
             .ToListAsync(cancellationToken);
         var items = rows.Select(row => new SaleHistoryItem(row.Id, row.Sequence, row.Kind.ToString(), row.RecordedAt,
-            Email(emails, row.ActorId) ?? "System", Email(emails, row.AgentId), Email(emails, row.PreviousAgentId),
+            Name(names, row.ActorId) ?? "System", Name(names, row.AgentId), Name(names, row.PreviousAgentId),
             row.FromStatus?.ToString(), row.ToStatus.ToString(), row.Reason, row.Changes ?? [], row.Refund)
         {
             Documents = [.. documents.Where(item => item.IssuingOperationId == row.Id).OrderBy(item => item.Kind)
@@ -200,19 +203,15 @@ public sealed class SaleReadStore(DealershipDbContext database) : ISaleReadStore
         }
 
         var previous = entries.SingleOrDefault(item => item.Sequence == version - 1);
-        var emails = await EmailsAsync([entry.ActorId, entry.AgentId], cancellationToken);
+        var names = await NamesAsync([entry.ActorId, entry.AgentId], cancellationToken);
         return new(SaleResultStatus.Succeeded, new SaleVersionView(saleId, entry.Sequence, entry.Kind.ToString(),
-            entry.RecordedAt, Email(emails, entry.ActorId) ?? "System", Email(emails, entry.AgentId), entry.Reason,
+            entry.RecordedAt, Name(names, entry.ActorId) ?? "System", Name(names, entry.AgentId), entry.Reason,
             entry.Snapshot, previous?.Snapshot));
     }
 
-    private async Task<Dictionary<Guid, string>> EmailsAsync(IEnumerable<Guid?> ids, CancellationToken cancellationToken)
-    {
-        var wanted = ids.Where(id => id is not null).Select(id => id!.Value).Distinct().ToArray();
-        return await database.Users.AsNoTracking().Where(item => wanted.Contains(item.Id))
-            .ToDictionaryAsync(item => item.Id, item => item.Email ?? string.Empty, cancellationToken);
-    }
+    private Task<Dictionary<Guid, string>> NamesAsync(IEnumerable<Guid?> ids, CancellationToken cancellationToken) =>
+        AccountNames.ReadAsync(database, ids, cancellationToken);
 
-    private static string? Email(Dictionary<Guid, string> emails, Guid? id) =>
-        id is { } value ? emails.GetValueOrDefault(value, string.Empty) : null;
+    private static string? Name(Dictionary<Guid, string> names, Guid? id) =>
+        id is { } value ? names.GetValueOrDefault(value, string.Empty) : null;
 }

@@ -41,13 +41,34 @@ function solidPng(size: number) {
   ]);
 }
 
-test("staff manage their own picture on the shared account page and open a colleague profile", async ({
+test("staff manage their own picture on the shared account page and open a colleague in place", async ({
   page,
-  context,
 }) => {
   test.setTimeout(90000);
   await signIn(page, "siti.aminah@example.invalid");
   await expect(page).toHaveURL(/\/dashboard\/work-calendar$/);
+
+  await page.goto("/dashboard/intake?view=list");
+  const handler = page
+    .locator("tbody tr")
+    .filter({ hasText: "@example.invalid" })
+    .first()
+    .getByRole("button")
+    .first();
+  await handler.hover();
+  await expect(page.getByRole("tooltip")).toBeVisible();
+  await expect(page.getByRole("tooltip").locator("[data-pending='true']")).toHaveCount(0);
+  await handler.click();
+  const profile = page.getByRole("dialog");
+  await expect(profile.getByText("Work mobile", { exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/\/dashboard\/intake/);
+  await expect(profile.locator("[data-pending='true']")).toHaveCount(0);
+  await expect(profile.getByText("Branch manager", { exact: true })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(profile).toBeHidden();
+  // The click belonged to the person, not to the row beneath it.
+  await expect(page).not.toHaveURL(/appointment=/);
+  await expect(page.getByRole("region", { name: "Selected appointment" })).toHaveCount(0);
 
   await page.goto("/account");
   await expect(page.getByRole("heading", { name: "Your account", exact: true })).toBeVisible();
@@ -72,12 +93,6 @@ test("staff manage their own picture on the shared account page and open a colle
     .toBeGreaterThan(0);
 
   await page.reload();
-  await expect(page.locator("img[src^='/api/accounts/']")).toBeVisible();
-
-  const token = (await context.cookies()).find((entry) => entry.name === "apexauto_token")!;
-  const ownId = JSON.parse(Buffer.from(token.value.split(".")[1], "base64url").toString()).sub;
-  await page.goto(`/dashboard/people/${ownId}`);
-  await expect(page.getByText("Work mobile", { exact: true })).toBeVisible();
   await expect(page.locator("img[src^='/api/accounts/']")).toBeVisible();
 
   await page.goto("/account");

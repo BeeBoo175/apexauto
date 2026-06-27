@@ -8,13 +8,13 @@ import { PersonLabel } from "./PersonLabel";
 export function ResolvedPersonLabel({
   id,
   identity,
-  linked = true,
+  nested = false,
 }: {
   id: string;
   identity: string;
-  linked?: boolean;
+  nested?: boolean;
 }) {
-  const person = usePersonPreview(id, true);
+  const { person } = usePersonPreview(id, true);
 
   return (
     <PersonLabel
@@ -22,7 +22,7 @@ export function ResolvedPersonLabel({
       name={person?.name ?? identity}
       identity={identity}
       pictureId={person?.pictureId ?? null}
-      linked={linked}
+      nested={nested}
     />
   );
 }

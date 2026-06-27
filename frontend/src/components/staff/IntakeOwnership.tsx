@@ -57,7 +57,7 @@ export function IntakeOwnership({
               )}
             {ownership.choices?.map((item) => (
               <option key={item.id} value={item.id}>
-                {item.email}
+                {item.name}
               </option>
             ))}
           </Select>

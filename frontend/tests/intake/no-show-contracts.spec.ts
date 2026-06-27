@@ -106,7 +106,7 @@ test("no-show snapshots retain status and validate correction evidence", () => {
     noShowAt: "2026-10-20T16:00:00Z",
     attendanceCorrectedAt: null,
     correctionReason: null,
-    correctedByEmail: null,
+    correctedByName: null,
     customerMobile: "0123456789",
     customerEmail: "nur.aina@example.invalid",
     ownership: null,
@@ -145,7 +145,7 @@ test("no-show snapshots retain status and validate correction evidence", () => {
   expect(parseDetail({ ...detail, ownership: released })?.ownership).toEqual(released);
   expect(parseWorklistItem({ ...row, handlerId: id })).toBeNull();
   expect(parseAppointmentHandlers([{ id, email: ownership.handlerEmail }])).toEqual([
-    { id, email: ownership.handlerEmail },
+    { id, email: ownership.handlerEmail, name: ownership.handlerEmail },
   ]);
   expect(parseAppointmentHandlers([{ id, email: "" }])).toBeNull();
   expect(

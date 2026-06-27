@@ -24,3 +24,8 @@ export function parseHandlerDisplay(
   }
   return { name, pictureId };
 }
+
+// The recorded name of a handler for a choice list; the email stands in only when no profile name was recorded.
+export function handlerName(name: unknown, email: string) {
+  return typeof name === "string" && name.trim() ? name : email;
+}

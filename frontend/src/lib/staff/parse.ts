@@ -1,4 +1,4 @@
-import { parseHandlerDisplay } from "@/lib/account/handler-display";
+import { handlerName, parseHandlerDisplay } from "@/lib/account/handler-display";
 import { parseCountedPage, parseItems } from "@/lib/api";
 import { isNonNegativeInteger, isPositiveInteger, isRecord, isUuid } from "@/lib/auth/contracts";
 import { parseSlot, parseVehicle } from "@/lib/intake/parse";
@@ -95,8 +95,8 @@ export function parseDetail(value: unknown): AppointmentDetail | null {
     (value.noShowAt !== null && !utcTimestamp(value.noShowAt)) ||
     (value.attendanceCorrectedAt !== null && !utcTimestamp(value.attendanceCorrectedAt)) ||
     (value.correctionReason !== null && typeof value.correctionReason !== "string") ||
-    (value.correctedByEmail !== null &&
-      !(typeof value.correctedByEmail === "string" && value.correctedByEmail)) ||
+    (value.correctedByName !== null &&
+      !(typeof value.correctedByName === "string" && value.correctedByName)) ||
     typeof value.customerMobile !== "string" ||
     typeof value.customerEmail !== "string"
   ) {
@@ -109,7 +109,7 @@ export function parseDetail(value: unknown): AppointmentDetail | null {
     noShowAt: value.noShowAt,
     attendanceCorrectedAt: value.attendanceCorrectedAt,
     correctionReason: value.correctionReason,
-    correctedByEmail: value.correctedByEmail,
+    correctedByName: value.correctedByName,
     customerMobile: value.customerMobile,
     customerEmail: value.customerEmail,
   };
@@ -169,7 +169,7 @@ export function parseAppointmentHandlers(value: unknown): AppointmentHandler[] |
     ) {
       return null;
     }
-    return { id: item.id, email: item.email };
+    return { id: item.id, email: item.email, name: handlerName(item.name, item.email) };
   });
   return handlers && new Set(handlers.map((item) => item.id)).size === handlers.length
     ? handlers
