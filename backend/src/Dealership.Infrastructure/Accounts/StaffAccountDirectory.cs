@@ -1,0 +1,150 @@
+using System.Data;
+using Dealership.Application.Accounts;
+using Dealership.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+
+namespace Dealership.Infrastructure.Accounts;
+
+// The Administrator's staff directory: real accounts with a staff profile beside pending and lapsed invitations,
+// as one name-ordered list. Revoked and activated invitations are not people to manage and stay out.
+public sealed class StaffAccountDirectory(DealershipDbContext database) : IStaffAccountDirectory
+{
+    public async Task<StaffAccountReadResult> ListAsync(Guid administratorId, StaffAccountQuery query,
+        CancellationToken cancellationToken)
+    {
+        await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead,
+            cancellationToken);
+        var actor = await database.Users.AsNoTracking()
+            .Where(user => user.Id == administratorId && user.IsActive && user.Role == AccountRoles.Administrator)
+            .Select(user => new CurrentActor(user.Id, user.Role, user.BranchId, user.EmailConfirmed))
+            .SingleOrDefaultAsync(cancellationToken);
+        if (actor is null)
+        {
+            return new(StaffAccountReadStatus.Forbidden);
+        }
+
+        var now = await database.DatabaseNowAsync(cancellationToken);
+        var everyone = Accounts().Concat(Invitations(now));
+        var counts = new StaffAccountCounts(
+            await Narrow(everyone, query, StaffAccountTabs.All).CountAsync(cancellationToken),
+            await Narrow(everyone, query, StaffAccountTabs.Active).CountAsync(cancellationToken),
+            await Narrow(everyone, query, StaffAccountTabs.Invited).CountAsync(cancellationToken),
+            await Narrow(everyone, query, StaffAccountTabs.Deactivated).CountAsync(cancellationToken));
+        var rows = Narrow(everyone, query, query.Tab);
+        var total = query.Tab switch
+        {
+            StaffAccountTabs.Active => counts.Active,
+            StaffAccountTabs.Invited => counts.Invited,
+            StaffAccountTabs.Deactivated => counts.Deactivated,
+            _ => counts.All
+        };
+        var page = await rows.OrderBy(row => row.Name).ThenBy(row => row.Id)
+            .ReadPageAsync(query.Page, query.PageSize, total, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        var items = page.Select(row => new StaffAccountRow(row.Id, row.Name, row.Email, row.Mobile, row.Role,
+            row.BranchId, row.BranchName, row.Status, row.PictureId, row.InvitationExpiresAt)).ToArray();
+        return new(StaffAccountReadStatus.Succeeded, new StaffAccountPage(actor, items, total, query.Page, query.PageSize, counts));
+    }
+
+    private IQueryable<DirectoryRow> Accounts()
+    {
+        return from user in database.Users.AsNoTracking()
+               where user.Role != AccountRoles.Customer
+               join staff in database.StaffProfiles.AsNoTracking() on user.Id equals staff.UserId
+               join branch in database.Branches.AsNoTracking() on user.BranchId equals branch.Id into branches
+               from branch in branches.DefaultIfEmpty()
+               join picture in database.AccountPictures.AsNoTracking().Where(item => item.RemovedAt == null)
+                   on user.Id equals picture.UserId into pictures
+               from picture in pictures.DefaultIfEmpty()
+               select new DirectoryRow
+               {
+                   Id = user.Id,
+                   Name = staff.Name,
+                   Email = user.Email!,
+                   Mobile = staff.Mobile,
+                   Role = user.Role,
+                   BranchId = user.BranchId,
+                   BranchName = branch.Name,
+                   Status = user.IsActive ? StaffAccountStatuses.Active : StaffAccountStatuses.Deactivated,
+                   PictureId = (Guid?)picture.Id,
+                   InvitationExpiresAt = null
+               };
+    }
+
+    private IQueryable<DirectoryRow> Invitations(DateTimeOffset now)
+    {
+        return from invitation in database.StaffInvitations.AsNoTracking()
+               where invitation.ActivatedAt == null && invitation.RevokedAt == null
+               join branch in database.Branches.AsNoTracking() on invitation.BranchId equals branch.Id into branches
+               from branch in branches.DefaultIfEmpty()
+               select new DirectoryRow
+               {
+                   Id = invitation.Id,
+                   Name = invitation.Name,
+                   Email = invitation.Email,
+                   Mobile = invitation.Mobile,
+                   Role = invitation.Role,
+                   BranchId = invitation.BranchId,
+                   BranchName = branch.Name,
+                   Status = invitation.ExpiresAt > now ? StaffAccountStatuses.Invited : StaffAccountStatuses.InvitationExpired,
+                   PictureId = null,
+                   InvitationExpiresAt = invitation.ExpiresAt
+               };
+    }
+
+    // The search and the role and branch filters apply to every tab, so each tab's count follows them too.
+    private static IQueryable<DirectoryRow> Narrow(IQueryable<DirectoryRow> rows, StaffAccountQuery query,
+        string tab)
+    {
+        rows = tab switch
+        {
+            StaffAccountTabs.Active => rows.Where(row => row.Status == StaffAccountStatuses.Active),
+            StaffAccountTabs.Invited => rows.Where(row => row.Status == StaffAccountStatuses.Invited ||
+                row.Status == StaffAccountStatuses.InvitationExpired),
+            StaffAccountTabs.Deactivated => rows.Where(row => row.Status == StaffAccountStatuses.Deactivated),
+            _ => rows
+        };
+        if (query.Role is not null)
+        {
+            rows = rows.Where(row => row.Role == query.Role);
+        }
+
+        if (query.BranchId is not null)
+        {
+            rows = rows.Where(row => row.BranchId == query.BranchId);
+        }
+
+        if (query.Search.Length > 0)
+        {
+            var pattern = LiteralSearch.Pattern(query.Search);
+            rows = rows.Where(row => EF.Functions.ILike(row.Name, pattern, "!") ||
+                EF.Functions.ILike(row.Email, pattern, "!") || EF.Functions.ILike(row.Mobile, pattern, "!"));
+        }
+
+        return rows;
+    }
+
+    // Set operations need a member-initialised shape, so rows are projected here and mapped after paging.
+    private sealed class DirectoryRow
+    {
+        public Guid Id { get; init; }
+
+        public string Name { get; init; } = string.Empty;
+
+        public string Email { get; init; } = string.Empty;
+
+        public string Mobile { get; init; } = string.Empty;
+
+        public string Role { get; init; } = string.Empty;
+
+        public Guid? BranchId { get; init; }
+
+        public string? BranchName { get; init; }
+
+        public string Status { get; init; } = string.Empty;
+
+        public Guid? PictureId { get; init; }
+
+        public DateTimeOffset? InvitationExpiresAt { get; init; }
+    }
+}

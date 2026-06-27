@@ -114,7 +114,7 @@ public sealed class StaffInvitationTests(IntakePhotoFixture fixture) : IClassFix
         return client.PostAsJsonAsync("/api/auth/staff-invitation/activation", new { token, password, username });
     }
 
-    private static async Task<Guid> SignInAdministratorAsync(WebApplicationFactory<Program> factory, HttpClient client)
+    internal static async Task<Guid> SignInAdministratorAsync(WebApplicationFactory<Program> factory, HttpClient client)
     {
         using var scope = factory.Services.CreateScope();
         var branchId = Guid.NewGuid();

@@ -161,6 +161,7 @@ app.MapAuthenticationEndpoints();
 app.MapAccountPictureEndpoints();
 app.MapAccountUsernameEndpoint();
 app.MapStaffInvitationEndpoints();
+app.MapStaffAccountDirectoryEndpoints();
 app.MapPersonEndpoints();
 app.MapPasswordRecoveryEndpoints();
 app.MapBranchDiscoveryEndpoints();
