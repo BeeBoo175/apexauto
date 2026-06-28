@@ -32,6 +32,7 @@ export interface AppliedFilter<Filters = StaffFilters> {
     | "updated"
     | "code"
     | "name"
+    | "role"
     | "discount"
     | "grade"
     | "outcome"

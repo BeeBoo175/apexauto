@@ -34,9 +34,13 @@ export default async function DashboardPage() {
         <LoadingProgressReady />
         <StaffNotice title="Administration">
           <p className={styles.noticeDescription}>
-            Manage dealership settings, promotions and warranty packages.
+            Manage staff accounts, dealership settings, promotions and warranty packages.
           </p>
           <nav className={styles.adminTools} aria-label="Administration tools">
+            <StaffLink href="/dashboard/accounts" prefetch={false}>
+              <strong>Staff accounts</strong>
+              <span>Invitations, active staff and deactivated accounts</span>
+            </StaffLink>
             <StaffLink href="/dashboard/settings" prefetch={false}>
               <strong>Settings</strong>
               <span>Purchase fees, tax, discount limits and reservation duration</span>

@@ -1,3 +1,4 @@
+import { hasAccountAdministration } from "@/lib/accounts/staff-accounts";
 import { hasIntakeAccess, type CurrentActor } from "@/lib/auth/actor";
 import { hasInspectionAccess } from "@/lib/inspection/contracts";
 import { hasSalesAccess } from "@/lib/sales/contracts";
@@ -41,6 +42,7 @@ export const staffWorkspaceLinks: StaffWorkspaceLink[] = [
     allowed: (actor) => hasTestDriveAccess(actor.role),
   },
   { href: "/dashboard/settings", label: "Settings", allowed: hasSettingsAccess },
+  { href: "/dashboard/accounts", label: "Staff accounts", allowed: hasAccountAdministration },
 ];
 
 export const staffPageTitles: Record<string, string> = {
