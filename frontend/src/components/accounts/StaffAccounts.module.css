@@ -59,3 +59,7 @@
 .panel[hidden] {
   display: none;
 }
+
+.content {
+  padding-top: 24px;
+}
