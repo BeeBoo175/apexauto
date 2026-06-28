@@ -1,5 +1,6 @@
 using System.Data;
 using Dealership.Application.Accounts;
+using Dealership.Application.Common;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -46,6 +47,43 @@ public sealed class StaffAccountDirectory(DealershipDbContext database) : IStaff
         var items = page.Select(row => new StaffAccountRow(row.Id, row.Name, row.Email, row.Mobile, row.Role,
             row.BranchId, row.BranchName, row.Status, row.PictureId, row.InvitationExpiresAt)).ToArray();
         return new(StaffAccountReadStatus.Succeeded, new StaffAccountPage(actor, items, total, query.Page, query.PageSize, counts));
+    }
+
+    // The account's retained events, newest first, for an Administrator reading one account's drawer.
+    public async Task<AccountEventReadResult> HistoryAsync(Guid administratorId, Guid accountId, int page,
+        int pageSize, CancellationToken cancellationToken)
+    {
+        if (!Pagination.IsValid(page, pageSize))
+        {
+            return new(StaffAccountReadStatus.Invalid);
+        }
+
+        await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead,
+            cancellationToken);
+        var actor = await database.Users.AsNoTracking()
+            .Where(user => user.Id == administratorId && user.IsActive && user.Role == AccountRoles.Administrator)
+            .Select(user => new CurrentActor(user.Id, user.Role, user.BranchId, user.EmailConfirmed))
+            .SingleOrDefaultAsync(cancellationToken);
+        if (actor is null)
+        {
+            return new(StaffAccountReadStatus.Forbidden);
+        }
+
+        if (!await database.Users.AsNoTracking().AnyAsync(user => user.Id == accountId, cancellationToken))
+        {
+            return new(StaffAccountReadStatus.NotFound);
+        }
+
+        var events = database.AccountEvents.AsNoTracking().Where(item => item.TargetId == accountId);
+        var total = await events.CountAsync(cancellationToken);
+        var rows = await events.OrderByDescending(item => item.RecordedAt).ThenByDescending(item => item.Id)
+            .ReadPageAsync(page, pageSize, total, cancellationToken);
+        var names = await AccountNames.ReadAsync(database, rows.Select(item => (Guid?)item.ActorId), cancellationToken);
+        var items = rows.Select(item => new AccountEventRow(item.Id, item.Kind.ToString(), item.RecordedAt, item.ActorId,
+            names.GetValueOrDefault(item.ActorId, string.Empty), item.Reason,
+            [.. (item.Changes ?? []).Select(change => new AccountEventChange(change.Field, change.Before, change.After))])).ToArray();
+        await transaction.CommitAsync(cancellationToken);
+        return new(StaffAccountReadStatus.Succeeded, new AccountEventPage(actor, accountId, items, total, page, pageSize));
     }
 
     private IQueryable<DirectoryRow> Accounts()

@@ -59,13 +59,28 @@ public enum StaffAccountReadStatus
 {
     Succeeded,
     Invalid,
-    Forbidden
+    Forbidden,
+    NotFound
 }
 
 public sealed record StaffAccountReadResult(StaffAccountReadStatus Status, StaffAccountPage? Page = null);
 
+// One retained administrative or self-service change to an account; the actor is read by name, never by email.
+public sealed record AccountEventRow(Guid Id, string Kind, DateTimeOffset RecordedAt, Guid ActorId, string Actor,
+    string? Reason, IReadOnlyList<AccountEventChange> Changes);
+
+public sealed record AccountEventChange(string Field, string? Before, string? After);
+
+public sealed record AccountEventPage(CurrentActor Actor, Guid AccountId, IReadOnlyList<AccountEventRow> Items,
+    int TotalCount, int Page, int PageSize);
+
+public sealed record AccountEventReadResult(StaffAccountReadStatus Status, AccountEventPage? Page = null);
+
 public interface IStaffAccountDirectory
 {
+    Task<AccountEventReadResult> HistoryAsync(Guid administratorId, Guid accountId, int page, int pageSize,
+        CancellationToken cancellationToken);
+
     Task<StaffAccountReadResult> ListAsync(Guid administratorId, StaffAccountQuery query,
         CancellationToken cancellationToken);
 }

@@ -43,6 +43,13 @@ public sealed class AccountSuspensionTests(IntakePhotoFixture fixture) : IClassF
         var lift = $"{path}/lift";
         Assert.Equal(HttpStatusCode.NoContent, (await admin.PostAsJsonAsync(lift, Request(Guid.NewGuid(), null))).StatusCode);
         Assert.Equal(HttpStatusCode.Conflict, (await admin.PostAsJsonAsync(lift, Request(Guid.NewGuid(), null))).StatusCode);
+        var history = (await admin.GetFromJsonAsync<AccountEventPage>($"/api/staff-accounts/{customerId}/history"))!;
+        Assert.Equal(["SuspensionLifted", "Suspended"], history.Items.Select(item => item.Kind));
+        var suspended = history.Items[1];
+        Assert.Equal(("Amir Hakim", "Chargeback dispute"), (suspended.Actor, suspended.Reason));
+        Assert.Contains(suspended.Changes, change => change is { Field: "Password", After: "Reset required" });
+        Assert.Equal(HttpStatusCode.Unauthorized, (await customer.GetAsync($"/api/staff-accounts/{customerId}/history")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await admin.GetAsync($"/api/staff-accounts/{Guid.NewGuid()}/history")).StatusCode);
         // The password was replaced, so the recovery flow the lift re-opened is the way back in.
         await visitor.PostAsJsonAsync("/api/auth/password-recovery", new { email = registration.Email });
         Assert.True(await HasRecoveryChallengeAsync(factory, registration.Email));

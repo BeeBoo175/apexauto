@@ -14,6 +14,34 @@ public static class StaffAccountDirectoryEndpoints
             return await next(context);
         });
         routes.MapGet("", ListAsync);
+        routes.MapGet("/{id:guid}/history", HistoryAsync);
+    }
+
+    private static async Task<IResult> HistoryAsync(Guid id, HttpContext context, IStaffAccountDirectory directory,
+        CancellationToken cancellationToken, int page = 1, int pageSize = Pagination.DefaultPageSize)
+    {
+        if (!Pagination.IsValid(page, pageSize))
+        {
+            return Results.Problem(statusCode: 400, title: "Provide a valid history page.");
+        }
+
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(20));
+        try
+        {
+            var result = await directory.HistoryAsync(HttpContextActor.ActorId(context), id, page, pageSize, deadline.Token);
+            return result.Status switch
+            {
+                StaffAccountReadStatus.Succeeded => Results.Ok(result.Page),
+                StaffAccountReadStatus.Forbidden => Results.Forbid(),
+                StaffAccountReadStatus.NotFound => Results.NotFound(),
+                _ => Results.Problem(statusCode: 400, title: "Provide a valid history page.")
+            };
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return Results.Problem(statusCode: 503, title: "Account history is temporarily unavailable.");
+        }
     }
 
     private static async Task<IResult> ListAsync(HttpContext context, IStaffAccountDirectory directory,
