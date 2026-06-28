@@ -29,12 +29,14 @@ public sealed class StaffAccountDirectory(DealershipDbContext database) : IStaff
             await Narrow(everyone, query, StaffAccountTabs.All).CountAsync(cancellationToken),
             await Narrow(everyone, query, StaffAccountTabs.Active).CountAsync(cancellationToken),
             await Narrow(everyone, query, StaffAccountTabs.Invited).CountAsync(cancellationToken),
+            await Narrow(everyone, query, StaffAccountTabs.Suspended).CountAsync(cancellationToken),
             await Narrow(everyone, query, StaffAccountTabs.Deactivated).CountAsync(cancellationToken));
         var rows = Narrow(everyone, query, query.Tab);
         var total = query.Tab switch
         {
             StaffAccountTabs.Active => counts.Active,
             StaffAccountTabs.Invited => counts.Invited,
+            StaffAccountTabs.Suspended => counts.Suspended,
             StaffAccountTabs.Deactivated => counts.Deactivated,
             _ => counts.All
         };
@@ -65,7 +67,8 @@ public sealed class StaffAccountDirectory(DealershipDbContext database) : IStaff
                    Role = user.Role,
                    BranchId = user.BranchId,
                    BranchName = branch.Name,
-                   Status = user.IsActive ? StaffAccountStatuses.Active : StaffAccountStatuses.Deactivated,
+                   Status = user.IsActive ? StaffAccountStatuses.Active
+                       : user.SuspendedAt != null ? StaffAccountStatuses.Suspended : StaffAccountStatuses.Deactivated,
                    PictureId = (Guid?)picture.Id,
                    InvitationExpiresAt = null
                };
@@ -101,6 +104,7 @@ public sealed class StaffAccountDirectory(DealershipDbContext database) : IStaff
             StaffAccountTabs.Active => rows.Where(row => row.Status == StaffAccountStatuses.Active),
             StaffAccountTabs.Invited => rows.Where(row => row.Status == StaffAccountStatuses.Invited ||
                 row.Status == StaffAccountStatuses.InvitationExpired),
+            StaffAccountTabs.Suspended => rows.Where(row => row.Status == StaffAccountStatuses.Suspended),
             StaffAccountTabs.Deactivated => rows.Where(row => row.Status == StaffAccountStatuses.Deactivated),
             _ => rows
         };

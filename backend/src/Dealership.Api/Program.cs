@@ -162,6 +162,7 @@ app.MapAccountPictureEndpoints();
 app.MapAccountUsernameEndpoint();
 app.MapStaffInvitationEndpoints();
 app.MapStaffAccountDirectoryEndpoints();
+app.MapAccountSuspensionEndpoints();
 app.MapPersonEndpoints();
 app.MapPasswordRecoveryEndpoints();
 app.MapBranchDiscoveryEndpoints();

@@ -202,7 +202,7 @@ public sealed class PasswordRecoveryTests(RegistrationDatabase database) : IClas
     }
 
     [Fact]
-    public async Task CanonicalStaffMayRecoverWhileDisabledWithoutChangingAssignmentOrVerification()
+    public async Task DisabledStaffReceiveNoRecoveryLinkAndNothingChanges()
     {
         using var host = new PasswordRecoveryHost(database);
         using (var scope = host.Factory.Services.CreateScope())
@@ -218,17 +218,16 @@ public sealed class PasswordRecoveryTests(RegistrationDatabase database) : IClas
 
         var staff = DevelopmentFixtureManifest.Staff[0];
         await host.RequestAsync(staff.Email!);
-        Assert.Equal(PasswordResetStatus.Succeeded, (await host.ResetAsync(host.Token(await host.LatestAsync(staff.Email!)))).Status);
+        // Suspended and deactivated accounts get no link, and nothing about them changes.
         using var verification = host.Factory.Services.CreateScope();
+        var challenges = verification.ServiceProvider.GetRequiredService<DealershipDbContext>().PasswordResetChallenges;
+        Assert.False(await challenges.AnyAsync(challenge => challenge.UserId == staff.Id));
         var users = verification.ServiceProvider.GetRequiredService<UserManager<AccountUser>>();
         var persisted = (await users.FindByIdAsync(staff.Id.ToString()))!;
-        Assert.True(await users.CheckPasswordAsync(persisted, "Recovered123!"));
         Assert.Equal(staff.Role, persisted.Role);
         Assert.Equal(staff.BranchId, persisted.BranchId);
         Assert.False(persisted.IsActive);
         Assert.False(persisted.EmailConfirmed);
-        Assert.Null(await verification.ServiceProvider.GetRequiredService<AuthenticationService>()
-            .LoginAsync(new LoginRequest(Guid.NewGuid(), staff.Email, "Recovered123!"), CancellationToken.None));
     }
 
     private sealed class RejectingPasswordValidator : IPasswordValidator<AccountUser>

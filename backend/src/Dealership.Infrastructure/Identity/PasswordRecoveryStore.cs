@@ -19,7 +19,7 @@ public sealed class PasswordRecoveryStore(DealershipDbContext database, UserMana
             var user = await database.Users.FromSqlInterpolated(
                 $"SELECT * FROM \"AspNetUsers\" WHERE \"NormalizedEmail\" = {normalized} FOR UPDATE")
                 .AsNoTracking().SingleOrDefaultAsync(cancellationToken);
-            var context = new PasswordRecoveryRequestContext(user is not null);
+            var context = new PasswordRecoveryRequestContext(user is { IsActive: true });
             return new PasswordRecoveryRequestTransaction(database, transaction, context, user, mail);
         }
         catch
@@ -55,7 +55,7 @@ public sealed class PasswordRecoveryStore(DealershipDbContext database, UserMana
             var user = userId is null ? null : await database.Users.FromSqlInterpolated(
                 $"SELECT * FROM \"AspNetUsers\" WHERE \"Id\" = {userId} FOR UPDATE")
                 .SingleOrDefaultAsync(cancellationToken);
-            var context = new PasswordResetContext(user is not null, user?.Email, user?.SecurityStamp);
+            var context = new PasswordResetContext(user is { IsActive: true }, user?.Email, user?.SecurityStamp);
             return new PasswordResetTransaction(database, transaction, context, user, users, tokens, token, challengeId);
         }
         catch

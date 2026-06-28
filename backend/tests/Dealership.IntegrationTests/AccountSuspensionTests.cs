@@ -1,0 +1,94 @@
+using System.Net;
+using System.Net.Http.Json;
+using Dealership.Application.Accounts;
+using Dealership.Domain.Accounts;
+using Dealership.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Dealership.IntegrationTests;
+
+public sealed class AccountSuspensionTests(IntakePhotoFixture fixture) : IClassFixture<IntakePhotoFixture>
+{
+    [Fact]
+    public async Task SuspendingCutsAccessAtOnceBlocksRecoveryAndLiftingRestoresTheAccount()
+    {
+        using var factory = fixture.CreateFactory();
+        using var admin = factory.CreateClient();
+        await StaffInvitationTests.SignInAdministratorAsync(factory, admin);
+        using var customer = factory.CreateClient();
+        var registration = await IntakePhotoFixture.RegisterAsync(customer);
+        var customerId = await CustomerIdAsync(factory, registration.Email);
+        Assert.Equal(HttpStatusCode.OK, (await customer.GetAsync("/api/account/profile")).StatusCode);
+
+        var path = $"/api/accounts/{customerId}/suspensions";
+        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PostAsJsonAsync(path, Request(Guid.NewGuid(), null))).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PostAsJsonAsync(path, Request(Guid.Empty, "Chargeback"))).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await customer.PostAsJsonAsync(path, Request(Guid.NewGuid(), "Chargeback"))).StatusCode);
+
+        var operation = Guid.NewGuid();
+        Assert.Equal(HttpStatusCode.NoContent, (await admin.PostAsJsonAsync(path, Request(operation, "Chargeback dispute", reset: true))).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await admin.PostAsJsonAsync(path, Request(operation, "Chargeback dispute", reset: true))).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await admin.PostAsJsonAsync(path, Request(Guid.NewGuid(), "Again"))).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await customer.GetAsync("/api/account/profile")).StatusCode);
+
+        using var visitor = factory.CreateClient();
+        Assert.Equal(HttpStatusCode.Unauthorized, (await visitor.PostAsJsonAsync("/api/auth/login",
+            new LoginRequest(Guid.NewGuid(), registration.Email, registration.Password))).StatusCode);
+        Assert.Equal(1, await EventCountAsync(factory, customerId, AccountEventKind.Suspended));
+        Assert.False(await HasRecoveryChallengeAsync(factory, registration.Email));
+        await visitor.PostAsJsonAsync("/api/auth/password-recovery", new { email = registration.Email });
+        Assert.False(await HasRecoveryChallengeAsync(factory, registration.Email));
+
+        var lift = $"{path}/lift";
+        Assert.Equal(HttpStatusCode.NoContent, (await admin.PostAsJsonAsync(lift, Request(Guid.NewGuid(), null))).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await admin.PostAsJsonAsync(lift, Request(Guid.NewGuid(), null))).StatusCode);
+        // The password was replaced, so the recovery flow the lift re-opened is the way back in.
+        await visitor.PostAsJsonAsync("/api/auth/password-recovery", new { email = registration.Email });
+        Assert.True(await HasRecoveryChallengeAsync(factory, registration.Email));
+    }
+
+    [Fact]
+    public async Task AdministratorsCannotSuspendThemselvesOrBeSuspendedByAnotherRole()
+    {
+        using var factory = fixture.CreateFactory();
+        using var admin = factory.CreateClient();
+        await StaffInvitationTests.SignInAdministratorAsync(factory, admin);
+        var adminId = (await admin.GetFromJsonAsync<AccountProfile>("/api/account/profile"))!.UserId;
+
+        Assert.Equal(HttpStatusCode.Conflict, (await admin.PostAsJsonAsync($"/api/accounts/{adminId}/suspensions",
+            Request(Guid.NewGuid(), "Testing"))).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await admin.PostAsJsonAsync($"/api/accounts/{Guid.NewGuid()}/suspensions",
+            Request(Guid.NewGuid(), "Testing"))).StatusCode);
+        using var anonymous = factory.CreateClient();
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.PostAsJsonAsync($"/api/accounts/{adminId}/suspensions",
+            Request(Guid.NewGuid(), "Testing"))).StatusCode);
+    }
+
+    private static object Request(Guid operationId, string? reason, bool reset = false, bool verify = false) =>
+        new { operationId, reason, requirePasswordReset = reset, requireEmailVerification = verify };
+
+    private static async Task<Guid> CustomerIdAsync(Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory<Program> factory, string email)
+    {
+        using var scope = factory.Services.CreateScope();
+        var normalized = email.ToUpperInvariant();
+        return await scope.ServiceProvider.GetRequiredService<DealershipDbContext>().Users
+            .Where(user => user.NormalizedEmail == normalized).Select(user => user.Id).SingleAsync();
+    }
+
+    private static async Task<int> EventCountAsync(Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory<Program> factory,
+        Guid targetId, AccountEventKind kind)
+    {
+        using var scope = factory.Services.CreateScope();
+        return await scope.ServiceProvider.GetRequiredService<DealershipDbContext>().AccountEvents
+            .CountAsync(item => item.TargetId == targetId && item.Kind == kind);
+    }
+
+    private static async Task<bool> HasRecoveryChallengeAsync(Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory<Program> factory,
+        string email)
+    {
+        using var scope = factory.Services.CreateScope();
+        return await scope.ServiceProvider.GetRequiredService<DealershipDbContext>().PasswordResetChallenges
+            .AnyAsync(challenge => challenge.RecipientEmail == email);
+    }
+}

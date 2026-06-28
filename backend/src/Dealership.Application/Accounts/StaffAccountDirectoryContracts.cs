@@ -7,14 +7,16 @@ public static class StaffAccountTabs
     public const string All = "All";
     public const string Active = "Active";
     public const string Invited = "Invited";
+    public const string Suspended = "Suspended";
     public const string Deactivated = "Deactivated";
 
-    public static bool IsValid(string? tab) => tab is null or All or Active or Invited or Deactivated;
+    public static bool IsValid(string? tab) => tab is null or All or Active or Invited or Suspended or Deactivated;
 }
 
 public static class StaffAccountStatuses
 {
     public const string Active = "Active";
+    public const string Suspended = "Suspended";
     public const string Deactivated = "Deactivated";
     // A pending invitation that can still be activated, and one whose link has lapsed and needs a resend.
     public const string Invited = "Invited";
@@ -48,7 +50,7 @@ public sealed record StaffAccountQuery(string Tab, string Search, string? Role, 
 public sealed record StaffAccountRow(Guid Id, string Name, string Email, string Mobile, string Role, Guid? BranchId,
     string? BranchName, string Status, Guid? PictureId, DateTimeOffset? InvitationExpiresAt);
 
-public sealed record StaffAccountCounts(int All, int Active, int Invited, int Deactivated);
+public sealed record StaffAccountCounts(int All, int Active, int Invited, int Suspended, int Deactivated);
 
 public sealed record StaffAccountPage(CurrentActor Actor, IReadOnlyList<StaffAccountRow> Items, int Total, int Page,
     int PageSize, StaffAccountCounts Counts);

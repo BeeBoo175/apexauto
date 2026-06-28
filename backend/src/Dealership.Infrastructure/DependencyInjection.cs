@@ -83,6 +83,7 @@ public static class DependencyInjection
         services.AddSingleton<EmailVerificationToken>();
         services.AddScoped<IStaffInvitationStore, StaffInvitationStore>();
         services.AddScoped<IStaffAccountDirectory, Accounts.StaffAccountDirectory>();
+        services.AddScoped<IAccountSuspensionStore, Accounts.AccountSuspensionStore>();
         services.AddSingleton<StaffInvitationToken>();
         services.AddScoped<IPasswordRecoveryStore, PasswordRecoveryStore>();
         services.AddSingleton<PasswordResetToken>();
