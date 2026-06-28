@@ -7,7 +7,7 @@ import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import { useStaffAccountsList } from "@/hooks/use-staff-accounts-list";
 import type { useStaffAccountsEntry } from "@/hooks/use-staff-accounts-entry";
-import { useStaffInvitationCommand } from "@/hooks/use-staff-invitation-command";
+import { useAccountCommand } from "@/hooks/use-account-command";
 import { StaffAccountDrawer } from "./StaffAccountDrawer";
 import { StaffAccountsTable } from "./StaffAccountsTable";
 import { StaffInviteDialog } from "./StaffInviteDialog";
@@ -16,7 +16,7 @@ type AccountsEntry = NonNullable<ReturnType<typeof useStaffAccountsEntry>["entry
 
 export function StaffAccountsWorkspace({ entry }: { entry: AccountsEntry }) {
   const list = useStaffAccountsList(entry.initial, entry.filters, entry.page);
-  const command = useStaffInvitationCommand();
+  const command = useAccountCommand();
   const [selectedId, setSelectedId] = useState("");
   const [inviting, setInviting] = useState(false);
   // A revoked invitation leaves the list, which closes its drawer.
@@ -50,6 +50,7 @@ export function StaffAccountsWorkspace({ entry }: { entry: AccountsEntry }) {
       />
       <StaffAccountDrawer
         row={selected}
+        selfId={list.snapshot.actor.userId}
         command={command}
         onClose={() => setSelectedId("")}
         onChanged={reload}

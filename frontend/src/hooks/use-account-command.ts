@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { privateApiFetch } from "@/lib/api-browser";
+import type { AccountSuspensionDraft } from "@/lib/accounts/account-suspension";
 import { parseAcknowledgement } from "@/lib/accounts/staff-invitations";
 
-// One invitation command at a time. A command that was not confirmed is reported and never retried silently.
-export function useStaffInvitationCommand() {
+// One administrator account command at a time. A command that was not confirmed is reported and never retried silently.
+export function useAccountCommand() {
   const [busy, setBusy] = useState(false);
   const toast = useToast();
 
@@ -49,6 +50,10 @@ export function useStaffInvitationCommand() {
         { email },
         "Email changed and invitation sent.",
       ),
+    suspend: (id: string, draft: AccountSuspensionDraft) =>
+      send(`/api/accounts/${id}/suspensions`, "POST", draft, "Account suspended."),
+    lift: (id: string, draft: AccountSuspensionDraft) =>
+      send(`/api/accounts/${id}/suspensions/lift`, "POST", draft, "Suspension lifted."),
     revoke: (id: string) =>
       send(`/api/staff-invitations/${id}/revocations`, "POST", null, "Invitation revoked."),
   };

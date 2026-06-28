@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input, Select } from "@/components/ui/Input";
-import type { useStaffInvitationCommand } from "@/hooks/use-staff-invitation-command";
+import type { useAccountCommand } from "@/hooks/use-account-command";
 import type { Page } from "@/lib/api";
 import type { Branch } from "@/lib/branches";
 import { roleNames } from "@/lib/auth/actor";
@@ -26,7 +26,7 @@ export function StaffInviteDialog({
 }: {
   open: boolean;
   branches: Page<Branch> | null;
-  command: ReturnType<typeof useStaffInvitationCommand>;
+  command: ReturnType<typeof useAccountCommand>;
   onClose: () => void;
   onInvited: () => void;
 }) {

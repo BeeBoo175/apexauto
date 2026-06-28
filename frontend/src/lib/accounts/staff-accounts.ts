@@ -9,6 +9,7 @@ export const staffAccountTabs = [
   { value: "All", label: "All", count: "all" },
   { value: "Active", label: "Active", count: "active" },
   { value: "Invited", label: "Invited", count: "invited" },
+  { value: "Suspended", label: "Suspended", count: "suspended" },
   { value: "Deactivated", label: "Deactivated", count: "deactivated" },
 ] as const;
 
@@ -16,6 +17,7 @@ export const staffAccountStatusLabels: Record<string, string> = {
   Active: "Active",
   Deactivated: "Deactivated",
   Invited: "Invited",
+  Suspended: "Suspended",
   InvitationExpired: "Invitation expired",
 };
 
@@ -49,6 +51,7 @@ export interface StaffAccountCounts {
   all: number;
   active: number;
   invited: number;
+  suspended: number;
   deactivated: number;
 }
 
@@ -95,6 +98,7 @@ function parseCounts(value: unknown): StaffAccountCounts | null {
     !isNonNegativeInteger(value.all) ||
     !isNonNegativeInteger(value.active) ||
     !isNonNegativeInteger(value.invited) ||
+    !isNonNegativeInteger(value.suspended) ||
     !isNonNegativeInteger(value.deactivated)
   ) {
     return null;

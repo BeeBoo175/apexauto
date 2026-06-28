@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/Button";
 import { ConfirmationButton } from "@/components/ui/ConfirmationButton";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input } from "@/components/ui/Input";
-import type { useStaffInvitationCommand } from "@/hooks/use-staff-invitation-command";
+import type { useAccountCommand } from "@/hooks/use-account-command";
 import { roleNames } from "@/lib/auth/actor";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import type { StaffAccountRow } from "@/lib/accounts/staff-accounts";
+import { AccountSuspensionDialog } from "./AccountSuspensionDialog";
 import { StaffAccountStatus } from "./StaffAccountStatus";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 import styles from "./StaffAccounts.module.css";
@@ -22,16 +23,19 @@ const roleName = (role: string) => roleNames[role as keyof typeof roleNames] ?? 
 // revoked; accounts are read-only here until their own administration actions arrive.
 export function StaffAccountDrawer({
   row,
+  selfId,
   command,
   onClose,
   onChanged,
 }: {
   row: StaffAccountRow | null;
-  command: ReturnType<typeof useStaffInvitationCommand>;
+  selfId: string;
+  command: ReturnType<typeof useAccountCommand>;
   onClose: () => void;
   onChanged: () => void;
 }) {
   const [editing, setEditing] = useState(false);
+  const [suspension, setSuspension] = useState<"suspend" | "lift" | null>(null);
   const [email, setEmail] = useState("");
   const invitation = row?.status === "Invited" || row?.status === "InvitationExpired";
 
@@ -41,11 +45,17 @@ export function StaffAccountDrawer({
   }
 
   async function run(action: Promise<boolean>) {
-    if (await action) {
+    const done = await action;
+    if (done) {
       setEditing(false);
       onChanged();
     }
+    return done;
   }
+
+  // Suspension applies to an account that is active (and not the administrator's own) or already suspended.
+  const suspendable = row?.status === "Active" && row.id !== selfId;
+  const suspended = row?.status === "Suspended";
 
   return (
     <Dialog
@@ -93,6 +103,23 @@ export function StaffAccountDrawer({
                 <dd>{row.branchName ?? "All branches"}</dd>
               </dl>
             </section>
+            {(suspendable || suspended) && (
+              <section className={styles.section} aria-label="Access">
+                <div className={workbench.sectionHeader}>
+                  <h2 className={workbench.sectionTitle}>Access</h2>
+                </div>
+                <div className={styles.actions}>
+                  <Button
+                    variant={suspended ? "secondary" : "danger"}
+                    size="compact"
+                    disabled={command.busy}
+                    onClick={() => setSuspension(suspended ? "lift" : "suspend")}
+                  >
+                    {suspended ? "Lift suspension" : "Suspend account"}
+                  </Button>
+                </div>
+              </section>
+            )}
             {invitation && (
               <section className={styles.section} aria-label="Invitation actions">
                 <div className={workbench.sectionHeader}>
@@ -168,6 +195,22 @@ export function StaffAccountDrawer({
           </div>
         </div>
       )}
+      <AccountSuspensionDialog
+        open={suspension !== null}
+        lifting={suspension === "lift"}
+        name={row?.name ?? ""}
+        command={command}
+        onSubmit={(draft) =>
+          row
+            ? run(
+                suspension === "lift"
+                  ? command.lift(row.id, draft)
+                  : command.suspend(row.id, draft),
+              )
+            : Promise.resolve(false)
+        }
+        onClose={() => setSuspension(null)}
+      />
     </Dialog>
   );
 }

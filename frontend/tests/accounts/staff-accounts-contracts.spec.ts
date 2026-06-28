@@ -25,7 +25,7 @@ const page = {
   total: 1,
   page: 1,
   pageSize: 25,
-  counts: { all: 1, active: 1, invited: 0, deactivated: 0 },
+  counts: { all: 1, active: 1, invited: 0, suspended: 0, deactivated: 0 },
 };
 
 test("staff account pages keep only recognised states, counts and unique rows", () => {

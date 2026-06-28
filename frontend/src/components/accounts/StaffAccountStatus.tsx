@@ -7,6 +7,7 @@ const statusTones = {
   Active: "success",
   Deactivated: "neutral",
   Invited: "info",
+  Suspended: "danger",
   InvitationExpired: "warning",
 } as const;
 
