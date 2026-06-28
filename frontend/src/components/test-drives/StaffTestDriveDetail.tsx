@@ -8,6 +8,7 @@ import { StaffStatusGroup } from "@/components/staff/StaffStatusGroup";
 import { StaffDrawerLoadingShell } from "@/components/staff/StaffDrawerLoadingShell";
 import { StaffWorkspaceTabs } from "@/components/staff/StaffWorkspaceTabs";
 import { Button } from "@/components/ui/Button";
+import { useAddressSection } from "@/hooks/use-address-section";
 import { useWorkspaceTabs } from "@/hooks/use-workspace-tabs";
 import type { useStaffTestDriveDetail } from "@/hooks/use-staff-test-drive-detail";
 import type { CurrentActor } from "@/lib/auth/actor";
@@ -26,22 +27,6 @@ import facts from "@/components/staff/StaffRecordContent.module.css";
 import styles from "./StaffTestDrive.module.css";
 
 type TestDriveSection = "details" | "history";
-
-// The open tab rides in the address like the other drawers, so a reload or shared link returns to it.
-function sectionFromAddress(): TestDriveSection {
-  const requested = new URL(window.location.href).searchParams.get(testDriveSectionParameter);
-  return requested === "history" ? "history" : "details";
-}
-
-function writeSection(section: TestDriveSection) {
-  const url = new URL(window.location.href);
-  if (section === "details") {
-    url.searchParams.delete(testDriveSectionParameter);
-  } else {
-    url.searchParams.set(testDriveSectionParameter, section);
-  }
-  window.history.replaceState(null, "", url);
-}
 
 const sections = [
   { value: "details", label: "Details", available: true },
@@ -103,7 +88,10 @@ function LoadedTestDrive({
   refresh: (kind?: TestDriveStaffCommand) => Promise<boolean>;
 }) {
   const { booking } = detail;
-  const [requested, setRequested] = useState<TestDriveSection>(sectionFromAddress);
+  const [requested, setRequested] = useAddressSection<TestDriveSection>(
+    ["details", "history"],
+    testDriveSectionParameter,
+  );
   // History is read only once its section has been opened.
   const [historyOpened, setHistoryOpened] = useState(requested === "history");
   const { tabs, section } = useWorkspaceTabs<TestDriveSection>(
@@ -150,7 +138,6 @@ function LoadedTestDrive({
         value={section}
         onChange={(next) => {
           setRequested(next);
-          writeSection(next);
           setHistoryOpened((opened) => opened || next === "history");
         }}
       />

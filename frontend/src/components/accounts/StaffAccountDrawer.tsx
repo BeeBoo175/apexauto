@@ -2,17 +2,20 @@
 
 import { useState } from "react";
 import { StaffRecordSummary } from "@/components/staff/StaffRecordSummary";
+import { StaffWorkspaceTabs } from "@/components/staff/StaffWorkspaceTabs";
 import { StaffStatusGroup } from "@/components/staff/StaffStatusGroup";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { ConfirmationButton } from "@/components/ui/ConfirmationButton";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input } from "@/components/ui/Input";
+import { useAddressSection } from "@/hooks/use-address-section";
 import type { useAccountCommand } from "@/hooks/use-account-command";
 import { roleNames } from "@/lib/auth/actor";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import type { StaffAccountRow } from "@/lib/accounts/staff-accounts";
 import { AccountSuspensionDialog } from "./AccountSuspensionDialog";
+import { AccountHistory } from "./AccountHistory";
 import { StaffAccountStatus } from "./StaffAccountStatus";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 import styles from "./StaffAccounts.module.css";
@@ -35,6 +38,9 @@ export function StaffAccountDrawer({
   onChanged: () => void;
 }) {
   const [editing, setEditing] = useState(false);
+  const [section, chooseSection] = useAddressSection<"details" | "history">(["details", "history"]);
+  // History is read only once its tab has been opened.
+  const [historyOpened, setHistoryOpened] = useState(section === "history");
   const [suspension, setSuspension] = useState<"suspend" | "lift" | null>(null);
   const [email, setEmail] = useState("");
   const invitation = row?.status === "Invited" || row?.status === "InvitationExpired";
@@ -87,112 +93,137 @@ export function StaffAccountDrawer({
               )
             }
           />
-          <div className={workbench.body}>
-            <section className={styles.section} aria-label="Contact and role">
-              <div className={workbench.sectionHeader}>
-                <h2 className={workbench.sectionTitle}>Details</h2>
-              </div>
-              <dl className={styles.details}>
-                <dt>Email</dt>
-                <dd>{row.email}</dd>
-                <dt>Work mobile</dt>
-                <dd>{row.mobile}</dd>
-                <dt>Role</dt>
-                <dd>{roleName(row.role)}</dd>
-                <dt>Branch</dt>
-                <dd>{row.branchName ?? "All branches"}</dd>
-              </dl>
-            </section>
-            {(suspendable || suspended) && (
-              <section className={styles.section} aria-label="Access">
+          <StaffWorkspaceTabs
+            label="Account sections"
+            tabs={[
+              { value: "details", label: "Details", available: true },
+              { value: "history", label: "History", available: true },
+            ]}
+            value={section}
+            onChange={(next) => {
+              chooseSection(next);
+              setHistoryOpened((opened) => opened || next === "history");
+            }}
+          />
+          <div className={styles.panel} hidden={section !== "details"}>
+            <div className={workbench.body}>
+              <section className={styles.section} aria-label="Contact and role">
                 <div className={workbench.sectionHeader}>
-                  <h2 className={workbench.sectionTitle}>Access</h2>
+                  <h2 className={workbench.sectionTitle}>Details</h2>
                 </div>
-                <div className={styles.actions}>
-                  <Button
-                    variant={suspended ? "secondary" : "danger"}
-                    size="compact"
-                    disabled={command.busy}
-                    onClick={() => setSuspension(suspended ? "lift" : "suspend")}
-                  >
-                    {suspended ? "Lift suspension" : "Suspend account"}
-                  </Button>
-                </div>
+                <dl className={styles.details}>
+                  <dt>Email</dt>
+                  <dd>{row.email}</dd>
+                  <dt>Work mobile</dt>
+                  <dd>{row.mobile}</dd>
+                  <dt>Role</dt>
+                  <dd>{roleName(row.role)}</dd>
+                  <dt>Branch</dt>
+                  <dd>{row.branchName ?? "All branches"}</dd>
+                </dl>
               </section>
-            )}
-            {invitation && (
-              <section className={styles.section} aria-label="Invitation actions">
-                <div className={workbench.sectionHeader}>
-                  <h2 className={workbench.sectionTitle}>Invitation</h2>
-                </div>
-                {editing ? (
-                  <form
-                    className={styles.form}
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      void run(command.changeEmail(row.id, email.trim()));
-                    }}
-                  >
-                    <Input
-                      label="Corrected email"
-                      type="email"
-                      value={email}
-                      maxLength={254}
-                      required
-                      disabled={command.busy}
-                      onChange={(event) => setEmail(event.target.value)}
-                    />
-                    <div className={styles.actions}>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="compact"
-                        disabled={command.busy}
-                        onClick={() => setEditing(false)}
-                      >
-                        Cancel
-                      </Button>
-                      <Button type="submit" size="compact" disabled={command.busy || !email.trim()}>
-                        Save and resend
-                      </Button>
-                    </div>
-                  </form>
-                ) : (
+              {(suspendable || suspended) && (
+                <section className={styles.section} aria-label="Access">
+                  <div className={workbench.sectionHeader}>
+                    <h2 className={workbench.sectionTitle}>Access</h2>
+                  </div>
                   <div className={styles.actions}>
                     <Button
-                      variant="secondary"
+                      variant={suspended ? "secondary" : "danger"}
                       size="compact"
                       disabled={command.busy}
-                      onClick={() => void run(command.resend(row.id))}
+                      onClick={() => setSuspension(suspended ? "lift" : "suspend")}
                     >
-                      Resend invitation
+                      {suspended ? "Lift suspension" : "Suspend account"}
                     </Button>
-                    <Button
-                      variant="secondary"
-                      size="compact"
-                      disabled={command.busy}
-                      onClick={() => {
-                        setEmail(row.email);
-                        setEditing(true);
+                  </div>
+                </section>
+              )}
+              {invitation && (
+                <section className={styles.section} aria-label="Invitation actions">
+                  <div className={workbench.sectionHeader}>
+                    <h2 className={workbench.sectionTitle}>Invitation</h2>
+                  </div>
+                  {editing ? (
+                    <form
+                      className={styles.form}
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        void run(command.changeEmail(row.id, email.trim()));
                       }}
                     >
-                      Change email
-                    </Button>
-                    <ConfirmationButton
-                      variant="danger"
-                      size="compact"
-                      disabled={command.busy}
-                      confirmationTitle="Revoke this invitation?"
-                      message="The link stops working and the email is released. Invite again to correct a wrong role."
-                      onConfirm={() => run(command.revoke(row.id))}
-                    >
-                      Revoke
-                    </ConfirmationButton>
-                  </div>
-                )}
-              </section>
-            )}
+                      <Input
+                        label="Corrected email"
+                        type="email"
+                        value={email}
+                        maxLength={254}
+                        required
+                        disabled={command.busy}
+                        onChange={(event) => setEmail(event.target.value)}
+                      />
+                      <div className={styles.actions}>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="compact"
+                          disabled={command.busy}
+                          onClick={() => setEditing(false)}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          type="submit"
+                          size="compact"
+                          disabled={command.busy || !email.trim()}
+                        >
+                          Save and resend
+                        </Button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div className={styles.actions}>
+                      <Button
+                        variant="secondary"
+                        size="compact"
+                        disabled={command.busy}
+                        onClick={() => void run(command.resend(row.id))}
+                      >
+                        Resend invitation
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="compact"
+                        disabled={command.busy}
+                        onClick={() => {
+                          setEmail(row.email);
+                          setEditing(true);
+                        }}
+                      >
+                        Change email
+                      </Button>
+                      <ConfirmationButton
+                        variant="danger"
+                        size="compact"
+                        disabled={command.busy}
+                        confirmationTitle="Revoke this invitation?"
+                        message="The link stops working and the email is released. Invite again to correct a wrong role."
+                        onConfirm={() => run(command.revoke(row.id))}
+                      >
+                        Revoke
+                      </ConfirmationButton>
+                    </div>
+                  )}
+                </section>
+              )}
+            </div>
           </div>
+          {historyOpened && (
+            <div className={styles.panel} hidden={section !== "history"}>
+              <div className={workbench.body}>
+                <AccountHistory key={row.id} accountId={row.id} />
+              </div>
+            </div>
+          )}
         </div>
       )}
       <AccountSuspensionDialog

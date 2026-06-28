@@ -46,3 +46,16 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* A tab panel fills the drawer so the pane scrolls inside it; the hidden panel must not keep its flex display. */
+.panel {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.panel[hidden] {
+  display: none;
+}
