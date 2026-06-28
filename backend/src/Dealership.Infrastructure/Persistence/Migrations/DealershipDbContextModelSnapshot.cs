@@ -2129,6 +2129,9 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("text");
 
+                    b.Property<DateTimeOffset?>("SuspendedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("boolean");
 
@@ -2159,6 +2162,8 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                             t.HasCheckConstraint("CK_Users_EmailNormalization", "length(\"Email\") > 0 AND \"Email\" = btrim(\"Email\", U&'\\0009\\000A\\000B\\000C\\000D\\0020\\0085\\00A0\\1680\\2000\\2001\\2002\\2003\\2004\\2005\\2006\\2007\\2008\\2009\\200A\\2028\\2029\\202F\\205F\\3000') AND \"NormalizedEmail\" = upper(\"Email\")");
 
                             t.HasCheckConstraint("CK_Users_RoleBranch", "\"Role\" IN ('Customer', 'SalesAgent', 'WorkshopTechnician', 'BranchManager', 'GeneralManager', 'Administrator') AND ((\"Role\" IN ('SalesAgent', 'WorkshopTechnician', 'BranchManager') AND \"BranchId\" IS NOT NULL) OR (\"Role\" IN ('Customer', 'GeneralManager', 'Administrator') AND \"BranchId\" IS NULL))");
+
+                            t.HasCheckConstraint("CK_Users_SuspendedInactive", "\"SuspendedAt\" IS NULL OR NOT \"IsActive\"");
                         });
                 });
 
