@@ -73,10 +73,11 @@ test("staff manage their own picture on the shared account page and open a colle
   // Staff land on the dashboard account page from the public address.
   await page.goto("/account");
   await expect(page).toHaveURL(/\/dashboard\/account$/);
-  await expect(page.getByRole("heading", { name: "Account details", exact: true })).toBeVisible();
-  await expect(page.getByText("Branch manager", { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole("region", { name: "Your account", exact: true })).toBeVisible();
+  await expect(page.getByText("Branch manager", { exact: false }).first()).toBeVisible();
   await expect(page.getByText("Work mobile", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Reservations" })).toHaveCount(0);
+  // The sidebar's profile panel is the way back to this page.
   await expect(page.getByRole("link", { name: "Account", exact: true })).toBeVisible();
 
   await page.getByLabel("Choose a profile picture").setInputFiles({

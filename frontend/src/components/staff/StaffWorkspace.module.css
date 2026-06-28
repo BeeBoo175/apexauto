@@ -272,6 +272,13 @@
   font-variant-numeric: tabular-nums;
 }
 
+.summaryLead {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
 .summaryFact {
   display: grid;
   gap: 2px;

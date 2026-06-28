@@ -16,6 +16,7 @@ export const iconFiles = {
   "table-filter": "bootstrap-funnel.svg",
   "table-sort-ascending": "bootstrap-arrow-up.svg",
   "table-sort-descending": "bootstrap-arrow-down.svg",
+  logout: "logout.svg",
 } as const;
 
 export type IconName = keyof typeof iconFiles;

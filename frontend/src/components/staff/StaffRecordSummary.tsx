@@ -8,6 +8,7 @@ export function StaffRecordSummary({
   ariaLabel,
   label,
   value,
+  lead,
   facts,
   status,
   context,
@@ -17,6 +18,8 @@ export function StaffRecordSummary({
   ariaLabel: string;
   label: ReactNode;
   value: ReactNode;
+  // A picture or mark beside the headline, for records that are a person.
+  lead?: ReactNode;
   facts?: ReactNode;
   status?: ReactNode;
   context?: ReactNode;
@@ -26,10 +29,13 @@ export function StaffRecordSummary({
   return (
     <section className={styles.summary} aria-label={ariaLabel} aria-busy={busy || undefined}>
       <div className={styles.summaryMain}>
-        <div>
-          <span className={styles.summaryLabel}>{label}</span>
-          <strong className={styles.summaryValue}>{value}</strong>
-          {facts}
+        <div className={lead ? styles.summaryLead : undefined}>
+          {lead}
+          <div>
+            <span className={styles.summaryLabel}>{label}</span>
+            <strong className={styles.summaryValue}>{value}</strong>
+            {facts}
+          </div>
         </div>
         <div className={styles.summaryContext}>
           {status}

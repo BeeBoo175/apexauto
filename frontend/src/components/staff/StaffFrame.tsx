@@ -6,8 +6,11 @@ import { StaffClientEntryBoundary } from "./StaffClientEntryBoundary";
 import { useStaffNavigation } from "@/hooks/use-staff-navigation";
 import { useIntakeActor } from "@/hooks/use-intake-actor";
 import { useAuthMutation } from "@/hooks/use-auth-mutation";
+import { usePersonPreview } from "@/hooks/use-person-preview";
+import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { CloseButton } from "@/components/ui/CloseButton";
+import { Icon } from "@/components/ui/Icon";
 import { EditGuardFeedback } from "@/components/ui/EditGuardFeedback";
 import { Dialog } from "@/components/ui/Dialog";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
@@ -46,6 +49,8 @@ function StaffFrameContent({
   const navigation = useStaffNavigation();
   const fitViewport = fitViewportPaths.includes(navigation.pathname);
   const logout = useAuthMutation("logout", "/login");
+  // The signed-in person's name and picture come from the shared person read, once per session.
+  const { person } = usePersonPreview(actor?.userId ?? "", Boolean(actor));
   const [mobileOpen, setMobileOpen] = useState(false);
 
   function navigate(event: { preventDefault: () => void }, href: string) {
@@ -163,30 +168,38 @@ function StaffFrameContent({
                       Your staff workspace
                     </StaffLink>
                   )}
-                <StaffLink
-                  href="/dashboard/account"
-                  prefetch={false}
-                  className={
-                    navigation.selectedPath === "/dashboard/account"
-                      ? styles.activeLink
-                      : styles.navLink
-                  }
-                  aria-current={
-                    navigation.selectedPath === "/dashboard/account" ? "page" : undefined
-                  }
-                  onNavigate={(event) => navigate(event, "/dashboard/account")}
-                >
-                  Account
-                </StaffLink>
               </nav>
               {actor && (
                 <div className={styles.session}>
-                  <span>{roleNames[actor.role]}</span>
+                  <StaffLink
+                    href="/dashboard/account"
+                    prefetch={false}
+                    className={styles.profile}
+                    aria-label="Account"
+                    onNavigate={(event) => navigate(event, "/dashboard/account")}
+                  >
+                    <Avatar
+                      accountId={actor.userId}
+                      name={person?.name ?? roleNames[actor.role]}
+                      pictureId={person?.pictureId ?? null}
+                      size="sm"
+                    />
+                    <span className={styles.profileText}>
+                      <strong>{person?.name ?? "Your account"}</strong>
+                      <span>{roleNames[actor.role]}</span>
+                    </span>
+                  </StaffLink>
                   <Button
                     variant="shell"
-                    size="compact"
+                    size="icon"
+                    className={styles.logoutButton}
+                    aria-label={logout.uncertain ? "Retry sign out" : "Sign out"}
+                    title={
+                      logout.uncertain
+                        ? "Retry sign out"
+                        : navigation.guardState.message || "Sign out"
+                    }
                     disabled={logout.busy || navigation.guardState.blocked}
-                    title={navigation.guardState.message || undefined}
                     onClick={() => {
                       navigation.operationLock.guard.request(
                         () => void logout.submit(),
@@ -194,7 +207,7 @@ function StaffFrameContent({
                       );
                     }}
                   >
-                    {logout.uncertain ? "Retry sign out" : "Sign out"}
+                    <Icon name="logout" />
                   </Button>
                 </div>
               )}
