@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { privateApiFetch } from "@/lib/api-browser";
+import type { StaffAccountChangeDraft } from "@/lib/accounts/account-administration";
 import type { AccountSuspensionDraft } from "@/lib/accounts/account-suspension";
 import { parseAcknowledgement } from "@/lib/accounts/staff-invitations";
 
@@ -54,6 +55,17 @@ export function useAccountCommand() {
       send(`/api/accounts/${id}/suspensions`, "POST", draft, "Account suspended."),
     lift: (id: string, draft: AccountSuspensionDraft) =>
       send(`/api/accounts/${id}/suspensions/lift`, "POST", draft, "Suspension lifted."),
+    deactivate: (id: string, draft: StaffAccountChangeDraft) =>
+      send(`/api/staff-accounts/${id}/deactivations`, "POST", draft, "Account deactivated."),
+    reactivate: (id: string) =>
+      send(
+        `/api/staff-accounts/${id}/reactivations`,
+        "POST",
+        { operationId: crypto.randomUUID() },
+        "Account reactivated.",
+      ),
+    transfer: (id: string, draft: StaffAccountChangeDraft) =>
+      send(`/api/staff-accounts/${id}/transfers`, "POST", draft, "Employee transferred."),
     revoke: (id: string) =>
       send(`/api/staff-invitations/${id}/revocations`, "POST", null, "Invitation revoked."),
   };

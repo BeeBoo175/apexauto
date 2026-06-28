@@ -12,9 +12,12 @@ import { Dialog } from "@/components/ui/Dialog";
 import { Input } from "@/components/ui/Input";
 import { useAddressSection } from "@/hooks/use-address-section";
 import type { useAccountCommand } from "@/hooks/use-account-command";
+import type { Page } from "@/lib/api";
+import type { Branch } from "@/lib/branches";
 import { roleNames } from "@/lib/auth/actor";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import type { StaffAccountRow } from "@/lib/accounts/staff-accounts";
+import { AccountChangeDialog } from "./AccountChangeDialog";
 import { AccountHistory } from "./AccountHistory";
 import { AccountSuspensionDialog } from "./AccountSuspensionDialog";
 import { StaffAccountStatus } from "./StaffAccountStatus";
@@ -30,12 +33,14 @@ type Section = "details" | "history";
 export function StaffAccountDrawer({
   row,
   selfId,
+  branches,
   command,
   onClose,
   onChanged,
 }: {
   row: StaffAccountRow | null;
   selfId: string;
+  branches: Page<Branch> | null;
   command: ReturnType<typeof useAccountCommand>;
   onClose: () => void;
   onChanged: () => void;
@@ -43,6 +48,7 @@ export function StaffAccountDrawer({
   const [section, chooseSection] = useAddressSection<Section>(["details", "history"]);
   // History is read only once its tab has been opened.
   const [historyOpened, setHistoryOpened] = useState(section === "history");
+  const [change, setChange] = useState<"deactivate" | "transfer" | null>(null);
   const [suspension, setSuspension] = useState<"suspend" | "lift" | null>(null);
   const [changingEmail, setChangingEmail] = useState(false);
   const [email, setEmail] = useState("");
@@ -50,6 +56,9 @@ export function StaffAccountDrawer({
   // Suspension applies to an active account that is not the administrator's own, or to one already suspended.
   const suspendable = row?.status === "Active" && row.id !== selfId;
   const suspended = row?.status === "Suspended";
+  const deactivated = row?.status === "Deactivated";
+  const self = row?.id === selfId;
+  const branchScoped = row?.branchId != null;
 
   async function run(action: Promise<boolean>) {
     const done = await action;
@@ -66,6 +75,12 @@ export function StaffAccountDrawer({
     footerNote = "Suspending ends every session at once; their work stays assigned.";
   } else if (suspended) {
     footerNote = "Lifting the suspension lets them sign in again.";
+  } else if (deactivated) {
+    footerNote =
+      "Reactivating restores access to a fixed role and branch, without their former work.";
+  }
+  if (!invitation && !self && !deactivated && !suspendable && !suspended) {
+    footerNote = "";
   }
 
   return (
@@ -169,6 +184,39 @@ export function StaffAccountDrawer({
                   </Button>
                 </>
               )}
+              {deactivated && (
+                <ConfirmationButton
+                  size="compact"
+                  disabled={command.busy}
+                  confirmationTitle="Reactivate this account?"
+                  message="They keep their role and branch and can sign in again. Former work is not restored."
+                  onConfirm={() => run(command.reactivate(row.id))}
+                >
+                  Reactivate
+                </ConfirmationButton>
+              )}
+              {!invitation && !self && !deactivated && (
+                <>
+                  <Button
+                    variant="secondary"
+                    size="compact"
+                    disabled={command.busy}
+                    onClick={() => setChange("deactivate")}
+                  >
+                    Deactivate
+                  </Button>
+                  {branchScoped && row.status === "Active" && (
+                    <Button
+                      variant="secondary"
+                      size="compact"
+                      disabled={command.busy}
+                      onClick={() => setChange("transfer")}
+                    >
+                      Transfer
+                    </Button>
+                  )}
+                </>
+              )}
               {(suspendable || suspended) && (
                 <Button
                   variant={suspended ? "primary" : "danger"}
@@ -183,6 +231,22 @@ export function StaffAccountDrawer({
           )}
         </div>
       )}
+      <AccountChangeDialog
+        row={row}
+        kind={change}
+        branches={branches}
+        command={command}
+        onSubmit={(draft) =>
+          row
+            ? run(
+                change === "transfer"
+                  ? command.transfer(row.id, draft)
+                  : command.deactivate(row.id, draft),
+              )
+            : Promise.resolve(false)
+        }
+        onClose={() => setChange(null)}
+      />
       <AccountSuspensionDialog
         open={suspension !== null}
         lifting={suspension === "lift"}

@@ -13,7 +13,7 @@ const snapshots = new Map<string, ApiResult<unknown>>();
 const MAXIMUM_SNAPSHOTS = 300;
 // Only the staff dashboard reads are reused. Exports always go to the server, and public or customer reads
 // (availability, reservations, photos) stay current.
-const reusablePath = /^\/api\/staff\/(?!.*\/export(?:\?|$))/;
+const reusablePath = /^\/api\/staff(?:-accounts)?\/(?!.*\/export(?:\?|$))/;
 
 export function forgetSnapshots() {
   snapshots.clear();

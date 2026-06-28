@@ -63,3 +63,29 @@
 .content {
   padding-top: 24px;
 }
+
+.blockers {
+  display: grid;
+  gap: 8px;
+}
+
+.blockerList {
+  display: grid;
+  gap: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.blockerList li {
+  display: grid;
+  gap: 2px;
+}
+
+.blockerList span {
+  color: var(--color-muted);
+  font-size: 12px;
+}

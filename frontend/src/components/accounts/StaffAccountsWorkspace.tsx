@@ -51,6 +51,7 @@ export function StaffAccountsWorkspace({ entry }: { entry: AccountsEntry }) {
       <StaffAccountDrawer
         row={selected}
         selfId={list.snapshot.actor.userId}
+        branches={entry.branches}
         command={command}
         onClose={() => setSelectedId("")}
         onChanged={reload}
