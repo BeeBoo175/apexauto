@@ -1,0 +1,48 @@
+.form {
+  display: grid;
+  gap: 16px;
+}
+
+.note {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.details {
+  display: grid;
+  gap: 4px 24px;
+  grid-template-columns: 160px minmax(0, 1fr);
+  margin: 0;
+}
+
+.details dt {
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.details dd {
+  margin: 0;
+  min-width: 0;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.section {
+  display: grid;
+  gap: 12px;
+}
+
+@media (max-width: 520px) {
+  .details {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -29,9 +29,13 @@ const roleName = (role: string) => roleNames[role as keyof typeof roleNames] ?? 
 export function StaffAccountsTable({
   list,
   branches,
+  selectedId,
+  onOpen,
 }: {
   list: ReturnType<typeof useStaffAccountsList>;
   branches: Page<Branch> | null;
+  selectedId: string;
+  onOpen: (id: string) => void;
 }) {
   const { snapshot, active, busy, draft, setDraft } = list;
   const filters = active.filters;
@@ -114,6 +118,8 @@ export function StaffAccountsTable({
           page={snapshot}
           busy={busy}
           disabled={false}
+          selectedRowId={selectedId}
+          onRowClick={(row) => onOpen(row.id)}
           onPage={(page, pageSize) => void list.load({ ...filters, pageSize }, page)}
           emptyState={{
             title: "No matching staff",
