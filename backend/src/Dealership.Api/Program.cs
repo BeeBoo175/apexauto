@@ -163,6 +163,7 @@ app.MapAccountUsernameEndpoint();
 app.MapStaffInvitationEndpoints();
 app.MapStaffAccountDirectoryEndpoints();
 app.MapAccountSuspensionEndpoints();
+app.MapStaffAccountAdministrationEndpoints();
 app.MapPersonEndpoints();
 app.MapPasswordRecoveryEndpoints();
 app.MapBranchDiscoveryEndpoints();

@@ -34,6 +34,7 @@ public static class DependencyInjection
         services.AddScoped<PersonViewService>();
         services.AddScoped<AccountUsernameService>();
         services.AddScoped<AccountSuspensionService>();
+        services.AddScoped<StaffAccountAdministrationService>();
         services.AddScoped<StaffInvitationService>();
         services.AddScoped<StaffProvisioningService>();
         services.AddScoped<BranchProvisioningService>();
