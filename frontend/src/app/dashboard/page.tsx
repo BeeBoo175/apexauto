@@ -38,8 +38,8 @@ export default async function DashboardPage() {
           </p>
           <nav className={styles.adminTools} aria-label="Administration tools">
             <StaffLink href="/dashboard/accounts" prefetch={false}>
-              <strong>Staff accounts</strong>
-              <span>Invitations, active staff and deactivated accounts</span>
+              <strong>Accounts</strong>
+              <span>Staff invitations, suspensions and deactivation, and customer account support</span>
             </StaffLink>
             <StaffLink href="/dashboard/settings" prefetch={false}>
               <strong>Settings</strong>

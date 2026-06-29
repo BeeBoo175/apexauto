@@ -8,6 +8,7 @@ import { RefreshButton } from "@/components/ui/RefreshButton";
 import { useStaffAccountsList } from "@/hooks/use-staff-accounts-list";
 import type { useStaffAccountsEntry } from "@/hooks/use-staff-accounts-entry";
 import { useAccountCommand } from "@/hooks/use-account-command";
+import { AccountsViewSwitch } from "./AccountsViewSwitch";
 import { StaffAccountDrawer } from "./StaffAccountDrawer";
 import { StaffAccountsTable } from "./StaffAccountsTable";
 import { StaffInviteDialog } from "./StaffInviteDialog";
@@ -30,6 +31,7 @@ export function StaffAccountsWorkspace({ entry }: { entry: AccountsEntry }) {
         title="Staff accounts"
         actions={
           <>
+            <AccountsViewSwitch view="staff" />
             <Button size="compact" onClick={() => setInviting(true)}>
               Invite staff
             </Button>

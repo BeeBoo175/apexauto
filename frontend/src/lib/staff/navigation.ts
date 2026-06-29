@@ -42,7 +42,7 @@ export const staffWorkspaceLinks: StaffWorkspaceLink[] = [
     allowed: (actor) => hasTestDriveAccess(actor.role),
   },
   { href: "/dashboard/settings", label: "Settings", allowed: hasSettingsAccess },
-  { href: "/dashboard/accounts", label: "Staff accounts", allowed: hasAccountAdministration },
+  { href: "/dashboard/accounts", label: "Accounts", allowed: hasAccountAdministration },
 ];
 
 export const staffPageTitles: Record<string, string> = {

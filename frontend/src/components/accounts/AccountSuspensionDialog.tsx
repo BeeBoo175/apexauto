@@ -15,6 +15,7 @@ export function AccountSuspensionDialog({
   lifting,
   name,
   command,
+  customer = false,
   onSubmit,
   onClose,
 }: {
@@ -22,6 +23,8 @@ export function AccountSuspensionDialog({
   lifting: boolean;
   name: string;
   command: ReturnType<typeof useAccountCommand>;
+  // A customer's bookings and sales continue; only their sign-in stops.
+  customer?: boolean;
   onSubmit: (draft: AccountSuspensionDraft) => Promise<boolean>;
   onClose: () => void;
 }) {
@@ -30,6 +33,14 @@ export function AccountSuspensionDialog({
     setDraft((current) => ({ ...current, ...patch }));
   const title = lifting ? "Lift suspension" : "Suspend account";
   const complete = lifting || draft.reason.trim().length > 0;
+  let note =
+    "Sign-in stops at once and every session ends. Their bookings and sales continue as normal.";
+  if (lifting) {
+    note = "They can sign in again as soon as you confirm.";
+  } else if (!customer) {
+    note =
+      "Access stops at once and every session ends. Their work stays assigned until a manager reassigns it.";
+  }
 
   return (
     <Dialog
@@ -51,11 +62,7 @@ export function AccountSuspensionDialog({
           });
         }}
       >
-        <p className={styles.note}>
-          {lifting
-            ? "They can sign in again as soon as you confirm."
-            : "Access stops at once and every session ends. Their work stays assigned until a manager reassigns it."}
-        </p>
+        <p className={styles.note}>{note}</p>
         {!lifting && (
           <Textarea
             label="Reason"

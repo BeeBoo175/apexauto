@@ -64,6 +64,11 @@
   padding-top: 24px;
 }
 
+.viewSwitch {
+  display: flex;
+  gap: 4px;
+}
+
 .blockers {
   display: grid;
   gap: 8px;

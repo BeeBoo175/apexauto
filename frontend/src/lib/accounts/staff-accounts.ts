@@ -18,6 +18,7 @@ export const staffAccountStatusLabels: Record<string, string> = {
   Deactivated: "Deactivated",
   Invited: "Invited",
   Suspended: "Suspended",
+  Unverified: "Email not verified",
   InvitationExpired: "Invitation expired",
 };
 
