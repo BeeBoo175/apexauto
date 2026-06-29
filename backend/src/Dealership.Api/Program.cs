@@ -165,6 +165,7 @@ app.MapStaffAccountDirectoryEndpoints();
 app.MapCustomerAccountDirectoryEndpoints();
 app.MapAccountSuspensionEndpoints();
 app.MapStaffAccountAdministrationEndpoints();
+app.MapCustomerSupportEndpoints();
 app.MapPersonEndpoints();
 app.MapPasswordRecoveryEndpoints();
 app.MapBranchDiscoveryEndpoints();

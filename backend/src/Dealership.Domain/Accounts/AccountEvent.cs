@@ -10,7 +10,11 @@ public enum AccountEventKind
     Suspended,
     SuspensionLifted,
     Deactivated,
-    Reactivated
+    Reactivated,
+    NricRevealed,
+    SessionsRevoked,
+    VerificationResent,
+    ResetSent
 }
 
 // One field an action changed, with the values either side as plain invariant text.
@@ -59,10 +63,13 @@ public sealed class AccountEvent
 
     public DateTimeOffset RecordedAt { get; private set; }
 
-    // Suspension, deactivation and branch transfer carry the administrator's reason; no other kind has one.
+    // Every administrative action except lifting a suspension or reactivating carries the administrator's reason;
+    // self-service changes and those two lifts do not.
     public static bool RequiresReason(AccountEventKind kind)
     {
-        return kind is AccountEventKind.Suspended or AccountEventKind.Deactivated or AccountEventKind.BranchTransferred;
+        return kind is AccountEventKind.Suspended or AccountEventKind.Deactivated or AccountEventKind.BranchTransferred
+            or AccountEventKind.NricRevealed or AccountEventKind.SessionsRevoked or AccountEventKind.VerificationResent
+            or AccountEventKind.ResetSent or AccountEventKind.ProfileEdited or AccountEventKind.EmailChanged;
     }
 
     private static bool IsValidReason(AccountEventKind kind, string? reason)

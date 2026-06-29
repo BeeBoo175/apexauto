@@ -18,10 +18,13 @@ public sealed class AccountEventConfiguration : IEntityTypeConfiguration<Account
             table.HasCheckConstraint("CK_AccountEvents_Shape",
                 "isfinite(\"RecordedAt\") AND " +
                 "\"Kind\" IN ('UsernameChanged', 'PictureRemoved', 'ProfileEdited', 'EmailChanged', 'BranchTransferred', " +
-                "'Suspended', 'SuspensionLifted', 'Deactivated', 'Reactivated') AND " +
-                "((\"Kind\" IN ('Suspended', 'Deactivated', 'BranchTransferred') AND \"Reason\" IS NOT NULL AND " +
+                "'Suspended', 'SuspensionLifted', 'Deactivated', 'Reactivated', 'NricRevealed', 'SessionsRevoked', " +
+                "'VerificationResent', 'ResetSent') AND " +
+                "((\"Kind\" IN ('Suspended', 'Deactivated', 'BranchTransferred', 'NricRevealed', 'SessionsRevoked', " +
+                "'VerificationResent', 'ResetSent', 'ProfileEdited', 'EmailChanged') AND \"Reason\" IS NOT NULL AND " +
                 "\"Reason\" = btrim(\"Reason\") AND length(\"Reason\") BETWEEN 1 AND 1000 AND \"Reason\" !~ '[[:cntrl:]]') OR " +
-                "(\"Kind\" NOT IN ('Suspended', 'Deactivated', 'BranchTransferred') AND \"Reason\" IS NULL)) AND " +
+                "(\"Kind\" NOT IN ('Suspended', 'Deactivated', 'BranchTransferred', 'NricRevealed', 'SessionsRevoked', " +
+                "'VerificationResent', 'ResetSent', 'ProfileEdited', 'EmailChanged') AND \"Reason\" IS NULL)) AND " +
                 "(\"Changes\" IS NULL OR jsonb_typeof(\"Changes\") = 'array')");
         });
         builder.HasKey(item => item.Id);
