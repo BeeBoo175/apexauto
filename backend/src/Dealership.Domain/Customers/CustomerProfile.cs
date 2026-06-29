@@ -37,6 +37,24 @@ public sealed class CustomerProfile
         ResidentialAddress = residentialAddress;
     }
 
+    // An administrator's edit; the NRIC and the registration identity never change here.
+    public void Update(string legalName, string mobile, string residentialAddress)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(legalName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(mobile);
+        ArgumentException.ThrowIfNullOrWhiteSpace(residentialAddress);
+
+        if (legalName.Length > LegalNameMaximumLength || mobile.Length > MobileMaximumLength ||
+            residentialAddress.Length > AddressMaximumLength)
+        {
+            throw new ArgumentException("Customer profile fields are invalid.");
+        }
+
+        LegalName = legalName;
+        Mobile = mobile;
+        ResidentialAddress = residentialAddress;
+    }
+
     public Guid UserId { get; private set; }
 
     public Guid RegistrationKey { get; private set; }

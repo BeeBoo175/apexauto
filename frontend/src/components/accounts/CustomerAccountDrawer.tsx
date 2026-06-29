@@ -18,6 +18,7 @@ import {
   type CustomerAccountDetail,
   type CustomerAccountRow,
 } from "@/lib/accounts/customer-accounts";
+import { AccountEditDialog } from "./AccountEditDialog";
 import { AccountHistory } from "./AccountHistory";
 import { CustomerSupportDialog } from "./CustomerSupportDialog";
 import { AccountSuspensionDialog } from "./AccountSuspensionDialog";
@@ -44,6 +45,9 @@ export function CustomerAccountDrawer({
   const [historyOpened, setHistoryOpened] = useState(section === "history");
   const [suspension, setSuspension] = useState<"suspend" | "lift" | null>(null);
   const [support, setSupport] = useState<CustomerSupportAction | null>(null);
+  const [editing, setEditing] = useState(false);
+  // Bumped after an edit so the full details are read again.
+  const [edits, setEdits] = useState(0);
   // A revealed number is shown only until the drawer changes customer or closes.
   const [revealed, setRevealed] = useState<{ id: string; nric: string } | null>(null);
   const [read, setRead] = useState<{ id: string; detail: CustomerAccountDetail | null } | null>(
@@ -70,7 +74,7 @@ export function CustomerAccountDrawer({
         }
       });
     return () => attempt.abort();
-  }, [id, row?.suspended, row?.verified]);
+  }, [id, edits, row?.suspended, row?.verified]);
 
   const detail = read?.id === id ? read.detail : null;
   const suspended = row?.suspended === true;
@@ -122,6 +126,16 @@ export function CustomerAccountDrawer({
               <section className={styles.section} aria-label="Contact">
                 <div className={workbench.sectionHeader}>
                   <h2 className={workbench.sectionTitle}>Contact</h2>
+                  {detail && (
+                    <Button
+                      variant="secondary"
+                      size="compact"
+                      disabled={command.busy}
+                      onClick={() => setEditing(true)}
+                    >
+                      Edit details
+                    </Button>
+                  )}
                 </div>
                 {detail ? (
                   <dl className={styles.details}>
@@ -214,6 +228,28 @@ export function CustomerAccountDrawer({
           </StaffWorkspaceFooter>
         </div>
       )}
+      <AccountEditDialog
+        open={editing}
+        subject={
+          detail
+            ? {
+                name: detail.name,
+                mobile: detail.mobile,
+                address: detail.address,
+                email: detail.email,
+              }
+            : null
+        }
+        command={command}
+        onSubmit={async (draft) => {
+          const done = row ? await run(command.edit(row.id, draft)) : false;
+          if (done) {
+            setEdits((count) => count + 1);
+          }
+          return done;
+        }}
+        onClose={() => setEditing(false)}
+      />
       <CustomerSupportDialog
         open={support !== null}
         action={support}

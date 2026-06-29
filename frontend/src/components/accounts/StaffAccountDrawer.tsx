@@ -18,6 +18,7 @@ import { roleNames } from "@/lib/auth/actor";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import type { StaffAccountRow } from "@/lib/accounts/staff-accounts";
 import { AccountChangeDialog } from "./AccountChangeDialog";
+import { AccountEditDialog } from "./AccountEditDialog";
 import { AccountHistory } from "./AccountHistory";
 import { AccountSuspensionDialog } from "./AccountSuspensionDialog";
 import { StaffAccountStatus } from "./StaffAccountStatus";
@@ -50,6 +51,7 @@ export function StaffAccountDrawer({
   const [historyOpened, setHistoryOpened] = useState(section === "history");
   const [change, setChange] = useState<"deactivate" | "transfer" | null>(null);
   const [suspension, setSuspension] = useState<"suspend" | "lift" | null>(null);
+  const [editing, setEditing] = useState(false);
   const [changingEmail, setChangingEmail] = useState(false);
   const [email, setEmail] = useState("");
   const invitation = row?.status === "Invited" || row?.status === "InvitationExpired";
@@ -130,6 +132,16 @@ export function StaffAccountDrawer({
               <section className={styles.section} aria-label="Contact">
                 <div className={workbench.sectionHeader}>
                   <h2 className={workbench.sectionTitle}>Contact</h2>
+                  {!invitation && !self && (
+                    <Button
+                      variant="secondary"
+                      size="compact"
+                      disabled={command.busy}
+                      onClick={() => setEditing(true)}
+                    >
+                      Edit details
+                    </Button>
+                  )}
                 </div>
                 <dl className={styles.details}>
                   <dt>Email</dt>
@@ -246,6 +258,15 @@ export function StaffAccountDrawer({
             : Promise.resolve(false)
         }
         onClose={() => setChange(null)}
+      />
+      <AccountEditDialog
+        open={editing}
+        subject={
+          row ? { name: row.name, mobile: row.mobile, address: null, email: row.email } : null
+        }
+        command={command}
+        onSubmit={(draft) => (row ? run(command.edit(row.id, draft)) : Promise.resolve(false))}
+        onClose={() => setEditing(false)}
       />
       <AccountSuspensionDialog
         open={suspension !== null}

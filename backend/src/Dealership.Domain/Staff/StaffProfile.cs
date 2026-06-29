@@ -29,6 +29,21 @@ public sealed class StaffProfile
         Mobile = mobile;
     }
 
+    // An administrator's edit; the values were validated by the use case and are checked again here.
+    public void Update(string name, string mobile)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentException.ThrowIfNullOrWhiteSpace(mobile);
+
+        if (name.Length > NameMaximumLength || mobile.Length > MobileMaximumLength)
+        {
+            throw new ArgumentException("Staff profile fields are invalid.");
+        }
+
+        Name = name;
+        Mobile = mobile;
+    }
+
     public Guid UserId { get; private set; }
 
     public string Name { get; private set; } = string.Empty;

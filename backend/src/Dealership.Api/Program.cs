@@ -164,6 +164,7 @@ app.MapStaffInvitationEndpoints();
 app.MapStaffAccountDirectoryEndpoints();
 app.MapCustomerAccountDirectoryEndpoints();
 app.MapAccountSuspensionEndpoints();
+app.MapAccountEditEndpoints();
 app.MapStaffAccountAdministrationEndpoints();
 app.MapCustomerSupportEndpoints();
 app.MapPersonEndpoints();

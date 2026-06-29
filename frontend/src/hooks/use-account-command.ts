@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { privateApiFetch } from "@/lib/api-browser";
+import type { AccountEditDraft } from "@/lib/accounts/account-edit";
 import type { StaffAccountChangeDraft } from "@/lib/accounts/account-administration";
 import type { AccountSuspensionDraft } from "@/lib/accounts/account-suspension";
 import {
@@ -94,6 +95,8 @@ export function useAccountCommand() {
         { email },
         "Email changed and invitation sent.",
       ),
+    edit: (id: string, draft: AccountEditDraft) =>
+      send(`/api/accounts/${id}/edits`, "POST", draft, "Details saved."),
     suspend: (id: string, draft: AccountSuspensionDraft) =>
       send(`/api/accounts/${id}/suspensions`, "POST", draft, "Account suspended."),
     lift: (id: string, draft: AccountSuspensionDraft) =>
