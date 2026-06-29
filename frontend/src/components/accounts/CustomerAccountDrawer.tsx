@@ -11,6 +11,7 @@ import { Dialog } from "@/components/ui/Dialog";
 import { useAddressSection } from "@/hooks/use-address-section";
 import type { useAccountCommand } from "@/hooks/use-account-command";
 import { privateApiFetch } from "@/lib/api-browser";
+import type { CustomerSupportAction } from "@/lib/accounts/customer-support";
 import {
   customerStatus,
   parseCustomerAccountDetail,
@@ -18,6 +19,7 @@ import {
   type CustomerAccountRow,
 } from "@/lib/accounts/customer-accounts";
 import { AccountHistory } from "./AccountHistory";
+import { CustomerSupportDialog } from "./CustomerSupportDialog";
 import { AccountSuspensionDialog } from "./AccountSuspensionDialog";
 import { StaffAccountStatus } from "./StaffAccountStatus";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
@@ -41,6 +43,9 @@ export function CustomerAccountDrawer({
   const [section, chooseSection] = useAddressSection<Section>(["details", "history"]);
   const [historyOpened, setHistoryOpened] = useState(section === "history");
   const [suspension, setSuspension] = useState<"suspend" | "lift" | null>(null);
+  const [support, setSupport] = useState<CustomerSupportAction | null>(null);
+  // A revealed number is shown only until the drawer changes customer or closes.
+  const [revealed, setRevealed] = useState<{ id: string; nric: string } | null>(null);
   const [read, setRead] = useState<{ id: string; detail: CustomerAccountDetail | null } | null>(
     null,
   );
@@ -129,13 +134,57 @@ export function CustomerAccountDrawer({
                     <dt>Username</dt>
                     <dd>@{detail.username}</dd>
                     <dt>NRIC</dt>
-                    <dd>{detail.nric}</dd>
+                    <dd>{revealed?.id === id ? revealed.nric : detail.nric}</dd>
                   </dl>
                 ) : (
                   <p className={styles.note}>
                     {read?.id === id ? "The account could not be read." : "Loading the account…"}
                   </p>
                 )}
+              </section>
+              <section className={styles.section} aria-label="Support">
+                <div className={workbench.sectionHeader}>
+                  <h2 className={workbench.sectionTitle}>Support</h2>
+                </div>
+                <div className={`${styles.actions} ${styles.supportActions}`}>
+                  <Button
+                    variant="secondary"
+                    size="compact"
+                    disabled={command.busy}
+                    onClick={() => setSupport("nric-reveal")}
+                  >
+                    Reveal NRIC
+                  </Button>
+                  {!row.verified && (
+                    <Button
+                      variant="secondary"
+                      size="compact"
+                      disabled={command.busy}
+                      onClick={() => setSupport("verification-resend")}
+                    >
+                      Resend verification
+                    </Button>
+                  )}
+                  <Button
+                    variant="secondary"
+                    size="compact"
+                    disabled={command.busy || suspended}
+                    onClick={() => setSupport("password-reset")}
+                  >
+                    Send password reset
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="compact"
+                    disabled={command.busy}
+                    onClick={() => setSupport("session-revocation")}
+                  >
+                    End all sessions
+                  </Button>
+                </div>
+                <p className={styles.note}>
+                  Each action asks for a reason and is recorded in the account history.
+                </p>
               </section>
             </div>
           </div>
@@ -165,6 +214,24 @@ export function CustomerAccountDrawer({
           </StaffWorkspaceFooter>
         </div>
       )}
+      <CustomerSupportDialog
+        open={support !== null}
+        action={support}
+        name={row?.name ?? ""}
+        command={command}
+        onSubmit={async (draft) => {
+          if (!row || !support) {
+            return false;
+          }
+          if (support === "nric-reveal") {
+            const nric = await command.reveal(row.id, draft);
+            setRevealed(nric ? { id: row.id, nric } : null);
+            return nric !== null;
+          }
+          return run(command.support(row.id, support, draft));
+        }}
+        onClose={() => setSupport(null)}
+      />
       <AccountSuspensionDialog
         open={suspension !== null}
         lifting={suspension === "lift"}

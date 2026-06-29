@@ -12,6 +12,10 @@ export const accountEventTitles: Record<string, string> = {
   SuspensionLifted: "Suspension lifted",
   Deactivated: "Account deactivated",
   Reactivated: "Account reactivated",
+  NricRevealed: "NRIC revealed",
+  SessionsRevoked: "Sessions ended",
+  VerificationResent: "Verification email sent",
+  ResetSent: "Password reset email sent",
 };
 
 export interface AccountEventChange {

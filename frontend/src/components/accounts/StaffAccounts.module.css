@@ -64,6 +64,10 @@
   padding-top: 24px;
 }
 
+.supportActions {
+  justify-content: flex-start;
+}
+
 .viewSwitch {
   display: flex;
   gap: 4px;

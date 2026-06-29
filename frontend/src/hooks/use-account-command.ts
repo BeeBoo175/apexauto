@@ -5,6 +5,12 @@ import { useToast } from "@/components/ui/Toast";
 import { privateApiFetch } from "@/lib/api-browser";
 import type { StaffAccountChangeDraft } from "@/lib/accounts/account-administration";
 import type { AccountSuspensionDraft } from "@/lib/accounts/account-suspension";
+import {
+  customerSupportActions,
+  parseNricReveal,
+  type CustomerSupportAction,
+  type CustomerSupportDraft,
+} from "@/lib/accounts/customer-support";
 import { parseAcknowledgement } from "@/lib/accounts/staff-invitations";
 
 // One administrator account command at a time. A command that was not confirmed is reported and never retried silently.
@@ -39,8 +45,45 @@ export function useAccountCommand() {
     }
   }
 
+  // The NRIC comes back in the response, so it is read here rather than acknowledged.
+  async function reveal(id: string, draft: CustomerSupportDraft) {
+    if (busy) {
+      return null;
+    }
+    setBusy(true);
+    try {
+      const result = await privateApiFetch(
+        `/api/customer-accounts/${id}/support/nric-reveal`,
+        parseNricReveal,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(draft),
+        },
+      );
+      if (result.status !== 200 || !result.data) {
+        toast.error(result.message || "The number could not be revealed. Nothing was shown.");
+        return null;
+      }
+      return result.data.nric;
+    } catch {
+      toast.error("The number could not be revealed. Nothing was shown.");
+      return null;
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return {
     busy,
+    reveal,
+    support: (id: string, action: CustomerSupportAction, draft: CustomerSupportDraft) =>
+      send(
+        `/api/customer-accounts/${id}/support/${action}`,
+        "POST",
+        draft,
+        customerSupportActions[action].done,
+      ),
     invite: (body: unknown) => send("/api/staff-invitations", "POST", body, "Invitation sent."),
     resend: (id: string) =>
       send(`/api/staff-invitations/${id}/resends`, "POST", null, "Invitation sent again."),
