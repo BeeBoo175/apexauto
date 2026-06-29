@@ -4,6 +4,7 @@ import { formatMalaysianDateTime } from "@/lib/date-format";
 import { staffColumnSizing } from "@/lib/staff/table-columns";
 import { AppointmentStatus } from "./AppointmentStatus";
 import { HandlerAvatar } from "./HandlerAvatar";
+import { SuspensionBadge } from "./SuspensionBadge";
 import { VehicleDescription, VehicleRegistration } from "./VehicleTableCells";
 import styles from "./StaffTable.module.css";
 
@@ -35,7 +36,15 @@ export function intakeColumns(showBranch: boolean): DataColumn<WorklistItem>[] {
       label: "Customer",
       sortable: true,
       ...staffColumnSizing.person,
-      cell: (row) => row.customerName,
+      cell: (row) =>
+        row.customerSuspended ? (
+          <span className={styles.handler}>
+            {row.customerName}
+            <SuspensionBadge person="Customer" />
+          </span>
+        ) : (
+          row.customerName
+        ),
     },
     {
       id: "handlerEmail",
@@ -54,7 +63,10 @@ export function intakeColumns(showBranch: boolean): DataColumn<WorklistItem>[] {
               name={row.handlerName}
               pictureId={row.handlerPictureId}
             />
-            {!row.handlerEligible && <span className={styles.muted}> (Ineligible)</span>}
+            {row.handlerSuspended && <SuspensionBadge person="Handler" />}
+            {!row.handlerEligible && !row.handlerSuspended && (
+              <span className={styles.muted}> (Ineligible)</span>
+            )}
           </span>
         );
       },

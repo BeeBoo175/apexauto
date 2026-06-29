@@ -39,6 +39,8 @@ export function parseWorklistItem(value: unknown): WorklistItem | null {
     handlerName: display.name,
     handlerPictureId: display.pictureId,
     handlerEligible: value.handlerEligible,
+    handlerSuspended: value.handlerSuspended === true,
+    customerSuspended: value.customerSuspended === true,
     ownershipVersion: value.ownershipVersion,
   };
 }
@@ -112,6 +114,7 @@ export function parseDetail(value: unknown): AppointmentDetail | null {
     correctedByName: value.correctedByName,
     customerMobile: value.customerMobile,
     customerEmail: value.customerEmail,
+    customerSuspended: value.customerSuspended === true,
   };
 }
 
@@ -152,6 +155,7 @@ function parseOwnership(value: unknown): AppointmentOwnership | null {
     handlerName: display.name,
     handlerPictureId: display.pictureId,
     handlerEligible: value.handlerEligible,
+    handlerSuspended: value.handlerSuspended === true,
     actorId: value.actorId,
     kind,
     recordedAt: value.recordedAt,

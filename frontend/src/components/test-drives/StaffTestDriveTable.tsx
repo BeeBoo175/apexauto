@@ -7,6 +7,7 @@ import { CsvExportActions } from "@/components/ui/CsvExportActions";
 import { DataTable } from "@/components/ui/data-table/DataTable";
 import type { DataColumn } from "@/components/ui/data-table/types";
 import { HandlerAvatar } from "@/components/staff/HandlerAvatar";
+import { SuspensionBadge } from "@/components/staff/SuspensionBadge";
 import { StaffQueueTabs } from "@/components/staff/StaffQueueTabs";
 import { VehicleDescription, VehicleRegistration } from "@/components/staff/VehicleTableCells";
 import { staffColumnSizing } from "@/lib/staff/table-columns";
@@ -85,7 +86,14 @@ export function StaffTestDriveTable({
       label: "Customer",
       ...staffColumnSizing.person,
       sortable: true,
-      cell: (row) => row.customerName,
+      cell: (row) =>
+        row.customerSuspended ? (
+          <>
+            {row.customerName} <SuspensionBadge person="Customer" />
+          </>
+        ) : (
+          row.customerName
+        ),
     },
     {
       id: "handlerEmail",
@@ -94,12 +102,15 @@ export function StaffTestDriveTable({
       sortable: true,
       cell: (row) =>
         row.handlerId && row.handlerEmail ? (
-          <HandlerAvatar
-            id={row.handlerId}
-            identity={row.handlerEmail}
-            name={row.handlerName}
-            pictureId={row.handlerPictureId}
-          />
+          <>
+            <HandlerAvatar
+              id={row.handlerId}
+              identity={row.handlerEmail}
+              name={row.handlerName}
+              pictureId={row.handlerPictureId}
+            />
+            {row.handlerSuspended && <SuspensionBadge person="Handler" />}
+          </>
         ) : (
           <span className={table.muted}>Unassigned</span>
         ),

@@ -29,6 +29,8 @@ internal sealed class SaleRow
     public string? Agent { get; init; }
     public string? AgentName { get; init; }
     public Guid? AgentPictureId { get; init; }
+    public bool AgentSuspended { get; init; }
+    public bool CustomerSuspended { get; init; }
     public DateTimeOffset? DueAt { get; init; }
     public long? PausedSeconds { get; init; }
     public DateTimeOffset? ClaimedAt { get; init; }
@@ -80,6 +82,8 @@ internal static class SaleRows
             AgentPictureId = database.AccountPictures
                 .Where(picture => picture.UserId == sale.AgentId && picture.RemovedAt == null)
                 .Select(picture => (Guid?)picture.Id).FirstOrDefault(),
+            AgentSuspended = agent.SuspendedAt != null,
+            CustomerSuspended = customer.SuspendedAt != null,
             DueAt = sale.DueAt,
             PausedSeconds = sale.PausedSeconds,
             ClaimedAt = sale.ClaimedAt,
@@ -117,7 +121,8 @@ internal static class SaleRows
         row.Agent, row.Branch, row.DueAt, row.PausedSeconds, row.ClaimedAt, row.NegotiatedDiscount,
         row.DiscountLimitAtSubmit, row.BalancePayable, row.SubmittedAt, row.DecidedAt, row.ClosedAt,
         SalesOrder.IsClosedStatus(row.Status) ? row.Status.ToString() : null,
-        row.Version, row.UpdatedAt, row.AgentName, row.AgentPictureId, row.AgentId);
+        row.Version, row.UpdatedAt, row.AgentName, row.AgentPictureId, row.AgentId,
+        row.AgentSuspended, row.CustomerSuspended);
 
     // Compare remaining time before counting and paging, using one instant for both bounds.
     public static IQueryable<SaleRow> TimeLeftBetween(IQueryable<SaleRow> rows, decimal? minimum,

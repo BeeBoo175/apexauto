@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { PersonLabel } from "@/components/staff/PersonLabel";
+import { SuspensionBadge } from "@/components/staff/SuspensionBadge";
 import { StaffContact } from "@/components/staff/StaffContact";
 import { StaffRecordSummary, StaffSummaryFact } from "@/components/staff/StaffRecordSummary";
 import { StaffStatusGroup } from "@/components/staff/StaffStatusGroup";
@@ -126,9 +127,11 @@ function LoadedTestDrive({
             ) : (
               <span>Unassigned</span>
             )}
-            {!finished && booking.handlerId && !booking.handlerEligible && (
-              <span> (currently ineligible)</span>
-            )}
+            {!finished && booking.handlerSuspended && <SuspensionBadge person="Handler" />}
+            {!finished &&
+              booking.handlerId &&
+              !booking.handlerEligible &&
+              !booking.handlerSuspended && <span> (currently ineligible)</span>}
           </StaffSummaryFact>
         }
       />

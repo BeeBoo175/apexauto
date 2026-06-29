@@ -24,7 +24,7 @@ public sealed record SaleSummary(Guid Id, string ReservationNumber, string? Orde
     long? PausedSeconds, DateTimeOffset? ClaimedAt, decimal NegotiatedDiscount, decimal? DiscountLimitAtSubmit,
     decimal BalancePayable, DateTimeOffset? SubmittedAt, DateTimeOffset? DecidedAt, DateTimeOffset? ClosedAt,
     string? Outcome, long Version, DateTimeOffset UpdatedAt, string? AgentName = null, Guid? AgentPictureId = null,
-    Guid? AgentId = null);
+    Guid? AgentId = null, bool AgentSuspended = false, bool CustomerSuspended = false);
 
 public sealed record SaleQueueCounts(int ToClaim, int Handling, int Waiting, int Settling, int Completed);
 

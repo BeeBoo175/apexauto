@@ -58,7 +58,11 @@ internal static class StaffTestDriveRows
                        .Where(picture => picture.UserId == assignment!.HandlerId && picture.RemovedAt == null)
                        .Select(picture => (Guid?)picture.Id).FirstOrDefault(),
                    HandlerEligible = handlers.Any(user => user.Id == assignment!.HandlerId &&
-                       user.BranchId == booking.BranchId)
+                       user.BranchId == booking.BranchId),
+                   HandlerSuspended = database.Users.Any(user => user.Id == assignment!.HandlerId &&
+                       user.SuspendedAt != null),
+                   CustomerSuspended = database.Users.Any(user => user.Id == booking.CustomerId &&
+                       user.SuspendedAt != null)
                };
     }
 
@@ -132,7 +136,8 @@ internal static class StaffTestDriveRows
     public static StaffTestDriveItem ToItem(StaffTestDriveRow row) => new(row.Id, row.VehicleId, row.BranchId,
         row.BranchName, row.RegistrationPlate, row.Make, row.Model, row.Trim, row.ManufactureYear,
         row.CustomerName, row.StartsAt, row.EndsAt, row.Status, row.AssignmentId, row.OwnershipVersion,
-        row.HandlerId, row.HandlerEmail, row.HandlerEligible, row.HandlerName, row.HandlerPictureId);
+        row.HandlerId, row.HandlerEmail, row.HandlerEligible, row.HandlerName, row.HandlerPictureId,
+        row.HandlerSuspended, row.CustomerSuspended);
 
     public static IOrderedQueryable<StaffTestDriveRow> Order(IQueryable<StaffTestDriveRow> rows,
         StaffTestDriveQuery query)
@@ -193,4 +198,8 @@ internal sealed class StaffTestDriveRow
     public Guid? HandlerPictureId { get; init; }
 
     public bool HandlerEligible { get; init; }
+
+    public bool HandlerSuspended { get; init; }
+
+    public bool CustomerSuspended { get; init; }
 }

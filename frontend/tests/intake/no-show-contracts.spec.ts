@@ -123,6 +123,7 @@ test("no-show snapshots retain status and validate correction evidence", () => {
     handlerName: "Aina Rahman",
     handlerPictureId: id,
     handlerEligible: false,
+    handlerSuspended: false,
     actorId: id,
     kind: "Assigned",
     recordedAt: row.startsAt,

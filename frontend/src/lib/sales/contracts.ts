@@ -163,6 +163,8 @@ export interface SaleSummary {
   agentId: string | null;
   agentName: string | null;
   agentPictureId: string | null;
+  agentSuspended: boolean;
+  customerSuspended: boolean;
   branch: string;
   dueAt: string | null;
   pausedSeconds: number | null;

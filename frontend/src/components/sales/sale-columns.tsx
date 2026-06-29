@@ -1,4 +1,5 @@
 import { HandlerAvatar } from "@/components/staff/HandlerAvatar";
+import { SuspensionBadge } from "@/components/staff/SuspensionBadge";
 import { VehicleDescription, VehicleRegistration } from "@/components/staff/VehicleTableCells";
 import { Badge } from "@/components/ui/Badge";
 import type { DataColumn } from "@/components/ui/data-table/types";
@@ -56,7 +57,14 @@ export function saleColumns(role: CurrentActor["role"], now: number): DataColumn
       label: "Customer",
       sortable: true,
       ...staffColumnSizing.person,
-      cell: (row) => row.customer,
+      cell: (row) =>
+        row.customerSuspended ? (
+          <>
+            {row.customer} <SuspensionBadge person="Customer" />
+          </>
+        ) : (
+          row.customer
+        ),
     },
     {
       id: "agent",
@@ -65,12 +73,15 @@ export function saleColumns(role: CurrentActor["role"], now: number): DataColumn
       ...staffColumnSizing.person,
       cell: (row) =>
         row.agentId && row.agent ? (
-          <HandlerAvatar
-            id={row.agentId}
-            identity={row.agent}
-            name={row.agentName}
-            pictureId={row.agentPictureId}
-          />
+          <>
+            <HandlerAvatar
+              id={row.agentId}
+              identity={row.agent}
+              name={row.agentName}
+              pictureId={row.agentPictureId}
+            />
+            {row.agentSuspended && <SuspensionBadge person="Handler" />}
+          </>
         ) : (
           <span className={styles.muted}>Unclaimed</span>
         ),

@@ -38,6 +38,8 @@ export interface WorklistItem extends AppointmentSummary {
   handlerName: string | null;
   handlerPictureId: string | null;
   handlerEligible: boolean;
+  handlerSuspended: boolean;
+  customerSuspended: boolean;
   ownershipVersion: number;
 }
 export const intakeCountKeys = [
@@ -59,6 +61,7 @@ export interface AppointmentOwnership {
   handlerName: string | null;
   handlerPictureId: string | null;
   handlerEligible: boolean;
+  handlerSuspended: boolean;
   actorId: string;
   kind: "Claimed" | "Assigned" | "Released";
   recordedAt: string;
@@ -77,6 +80,7 @@ export interface AppointmentDetail extends AppointmentSummary {
   correctedByName: string | null;
   customerMobile: string;
   customerEmail: string;
+  customerSuspended: boolean;
   mileageKilometres: number;
 }
 export interface CheckInDraft {

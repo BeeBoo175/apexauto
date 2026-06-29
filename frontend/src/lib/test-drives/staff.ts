@@ -103,6 +103,8 @@ export function parseStaffTestDriveItem(value: unknown) {
     handlerName: display.name,
     handlerPictureId: display.pictureId,
     handlerEligible: value.handlerEligible,
+    handlerSuspended: value.handlerSuspended === true,
+    customerSuspended: value.customerSuspended === true,
   };
 }
 

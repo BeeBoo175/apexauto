@@ -5,6 +5,7 @@ import { AppointmentStatus } from "./AppointmentStatus";
 import { StaffStatusGroup } from "./StaffStatusGroup";
 import { StaffRecordSummary, StaffSummaryFact } from "./StaffRecordSummary";
 import { PersonLabel } from "./PersonLabel";
+import { SuspensionBadge } from "./SuspensionBadge";
 
 export function IntakeRecord({
   detail,
@@ -70,7 +71,12 @@ export function IntakeRecord({
         </StaffSummaryFact>
       }
     >
-      {ownership?.handlerId && !ownership.handlerEligible && (
+      {ownership?.handlerId && ownership.handlerSuspended && (
+        <p>
+          <SuspensionBadge person="Handler" /> A branch manager must reassign this appointment.
+        </p>
+      )}
+      {ownership?.handlerId && !ownership.handlerEligible && !ownership.handlerSuspended && (
         <p>
           The recorded handler is no longer eligible. A branch manager must reassign this
           appointment.

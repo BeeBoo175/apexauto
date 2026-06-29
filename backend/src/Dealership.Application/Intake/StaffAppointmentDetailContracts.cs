@@ -7,11 +7,11 @@ public sealed record StaffAppointmentDetail(Guid Id, Guid BranchId, string Branc
     string Make, string Model, string Trim, int ManufactureYear, int MileageKilometres, DateTimeOffset? NoShowAt = null,
     DateTimeOffset? AttendanceCorrectedAt = null, string? CorrectionReason = null, Guid? CorrectedBy = null,
     string CustomerMobile = "", string CustomerEmail = "", string? CorrectedByName = null,
-    AppointmentOwnership? Ownership = null);
+    AppointmentOwnership? Ownership = null, bool CustomerSuspended = false);
 
 public sealed record AppointmentOwnership(long Version, Guid? HandlerId, string? HandlerEmail,
     bool HandlerEligible, Guid ActorId, string Kind, DateTimeOffset RecordedAt, string? Reason,
-    string? HandlerName = null, Guid? HandlerPictureId = null);
+    string? HandlerName = null, Guid? HandlerPictureId = null, bool HandlerSuspended = false);
 
 public sealed record AppointmentHandlersResult(StaffAppointmentDetailStatus Status,
     IReadOnlyList<StaffHandler>? Handlers = null);

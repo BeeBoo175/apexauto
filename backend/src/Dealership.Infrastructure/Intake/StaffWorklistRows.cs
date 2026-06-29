@@ -136,7 +136,11 @@ internal static class StaffWorklistRows
                         .Where(picture => picture.UserId == row.Row.HandlerId && picture.RemovedAt == null)
                         .Select(picture => (Guid?)picture.Id).FirstOrDefault(),
                     HandlerEligible = handlers.Any(user => user.Id == row.Row.HandlerId &&
-                        user.BranchId == row.Row.Appointment.BranchId)
+                        user.BranchId == row.Row.Appointment.BranchId),
+                    HandlerSuspended = database.Users.Any(user => user.Id == row.Row.HandlerId &&
+                        user.SuspendedAt != null),
+                    CustomerSuspended = database.Users.Any(user => user.Id == row.Row.Appointment.OwnerId &&
+                        user.SuspendedAt != null)
                 });
         if (query.Search.Length > 0)
         {
@@ -179,7 +183,7 @@ internal static class StaffWorklistRows
             row.RegistrationPlate, row.StartsAt, row.EndsAt, Status(row.CheckedIn, row.Cancelled, row.NoShow),
             row.Make, row.Model, row.Trim, row.ManufactureYear,
             row.HandlerId, row.HandlerEmail, row.HandlerEligible, row.OwnershipVersion,
-            row.HandlerName, row.HandlerPictureId);
+            row.HandlerName, row.HandlerPictureId, row.HandlerSuspended, row.CustomerSuspended);
     }
 
     public static IOrderedQueryable<WorklistRow> Order(IQueryable<WorklistRow> rows, StaffWorklistQuery query)
@@ -258,6 +262,8 @@ internal static class StaffWorklistRows
         public string? HandlerName { get; init; }
         public Guid? HandlerPictureId { get; init; }
         public bool HandlerEligible { get; init; }
+        public bool HandlerSuspended { get; init; }
+        public bool CustomerSuspended { get; init; }
         public long OwnershipVersion { get; init; }
     }
 }

@@ -268,7 +268,11 @@ export function parseSaleSummary(value: unknown): SaleSummary | null {
   ) {
     return null;
   }
-  return value as unknown as SaleSummary;
+  return {
+    ...value,
+    agentSuspended: value.agentSuspended === true,
+    customerSuspended: value.customerSuspended === true,
+  } as unknown as SaleSummary;
 }
 
 function uniquePage<T extends { items: SaleSummary[] }>(page: T | null) {
