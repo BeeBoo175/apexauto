@@ -37,7 +37,8 @@ internal static class DevelopmentTestDriveVolumeAssertions
                 DevelopmentFixtureManifest.PrimaryAgent(branch.Id),
                 DevelopmentFixtureManifest.AdditionalAgents.Single(item => item.BranchId == branch.Id)
             };
-            foreach (var agent in agents)
+            // The agent the lifecycle fixtures suspend cannot act, so their queues are read through the managers.
+            foreach (var agent in agents.Where(item => item.Id != DevelopmentLifecycleManifest.SuspendedStaffId))
             {
                 foreach (var queue in new[] { "ToClaim", "MyWork", "History" })
                 {

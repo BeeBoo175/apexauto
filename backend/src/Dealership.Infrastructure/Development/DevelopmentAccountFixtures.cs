@@ -50,6 +50,13 @@ public sealed class DevelopmentAccountFixtures(DealershipDbContext database, Dev
 
         foreach (var customer in DevelopmentFixtureManifest.Customers)
         {
+            if (await IsSuspendedByLifecycleAsync(u => u.NormalizedEmail == customer.Registration.Email!.ToUpperInvariant(),
+                    cancellationToken))
+            {
+                reports.Add(new($"Customer ({customer.Registration.Email})", "matches (suspended)", false));
+                continue;
+            }
+
             reports.Add(seed
                 ? await customers.SeedAsync(customer, cancellationToken)
                 : await customers.ReviewAsync(customer, cancellationToken));
@@ -57,6 +64,13 @@ public sealed class DevelopmentAccountFixtures(DealershipDbContext database, Dev
 
         foreach (var account in DevelopmentFixtureManifest.Staff)
         {
+            if (account.Id == DevelopmentLifecycleManifest.SuspendedStaffId &&
+                await IsSuspendedByLifecycleAsync(u => u.Id == account.Id, cancellationToken))
+            {
+                reports.Add(new($"{account.Role} ({account.Email})", "matches (suspended)", false));
+                continue;
+            }
+
             if (seed)
             {
                 var provisioned = await staff.ProvisionStaffAsync(account, cancellationToken);
@@ -69,6 +83,14 @@ public sealed class DevelopmentAccountFixtures(DealershipDbContext database, Dev
 
         return reports;
     }
+
+    // A fixture account the lifecycle run suspended is inactive on purpose, so the baseline check leaves it alone.
+    private Task<bool> IsSuspendedByLifecycleAsync(System.Linq.Expressions.Expression<Func<AccountUser, bool>> account,
+        CancellationToken cancellationToken) =>
+        database.Users.AsNoTracking().Where(account).AnyAsync(user => user.SuspendedAt != null &&
+            (user.Id == DevelopmentLifecycleManifest.SuspendedStaffId ||
+                user.NormalizedEmail == DevelopmentLifecycleManifest.SuspendedCustomerEmail.ToUpperInvariant()),
+            cancellationToken);
 
     private async Task<DevelopmentFixtureReport> ReviewStaffAsync(StaffProvisioningRequest requested,
         CancellationToken cancellationToken)

@@ -98,7 +98,12 @@ internal static class DevelopmentUnscheduledVolumeAssertions
                     .Select(item => new ExpectedWork(item.ReservationId, "Sale", item.Hold.Listing.Intake.RegistrationPlate))
                     .OrderBy(item => item.Registration, StringComparer.Ordinal).ToArray();
                 Assert.NotEmpty(actionable);
-                await AssertMixedPagesAsync(calendar, agent.Id, query, actionable, agent.Id);
+                // A suspended agent cannot read their own queue; the manager view below still covers their work.
+                if (agent.Id != DevelopmentLifecycleManifest.SuspendedStaffId)
+                {
+                    await AssertMixedPagesAsync(calendar, agent.Id, query, actionable, agent.Id);
+                }
+
                 await AssertMixedPagesAsync(calendar, manager.Id,
                     query with { Scope = query.Scope with { Employee = agent.Email.ToUpperInvariant() } },
                     [.. own.Where(item => item.Target is SalesOrderStatus.Handling or SalesOrderStatus.PendingApproval or

@@ -13,7 +13,8 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
     DevelopmentInspectionFixtures inspections, DevelopmentListingFixtures listings, DevelopmentPurchaseFixtures purchases,
     DevelopmentReservationFixtures reservations, DevelopmentSaleFixtures sales,
     DevelopmentFixtureMail mail, DevelopmentTestDriveFixtures testDrives, DevelopmentSaleVolumeFixtures salesVolume,
-    DevelopmentAccountPictureFixtures accountPictures, DevelopmentInvitationFixtures invitations)
+    DevelopmentAccountPictureFixtures accountPictures, DevelopmentInvitationFixtures invitations,
+    DevelopmentLifecycleFixtures lifecycle)
 {
     private readonly List<DevelopmentFixtureTiming> timings = [];
 
@@ -82,6 +83,7 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
         reports.AddRange(await TimeAsync("Reservations", () => reservations.RunAsync(true, token)));
         reports.AddRange(await TimeAsync("Test drives", () => testDrives.RunAsync(true, token)));
         reports.AddRange(await TimeAsync("Sales", () => salesVolume.RunAsync(true, token)));
+        reports.AddRange(await TimeAsync("Account lifecycle", () => lifecycle.RunAsync(true, token)));
         return reports;
     }
 
@@ -111,6 +113,7 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
             reports.AddRange(await TimeAsync("Sales", () => sales.RunAsync(false, cancellationToken)));
             reports.AddRange(await TimeAsync("Test drives", () => testDrives.RunAsync(false, cancellationToken)));
             reports.AddRange(await TimeAsync("Sales volume", () => salesVolume.RunAsync(false, cancellationToken)));
+            reports.AddRange(await TimeAsync("Account lifecycle", () => lifecycle.RunAsync(false, cancellationToken)));
             return reports;
         }
         finally

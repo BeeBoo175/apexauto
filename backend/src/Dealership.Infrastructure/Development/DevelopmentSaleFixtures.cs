@@ -85,6 +85,13 @@ public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHa
             return new(label, $"{status}; preserved", true);
         }
 
+        // A suspended customer cannot read reports at all, so their report scope is judged by the lifecycle run.
+        if (await database.Users.AsNoTracking().AnyAsync(user => user.Id == current.CustomerId &&
+                user.SuspendedAt != null, cancellationToken))
+        {
+            return new(label, sale.Status == scenario.Target ? "matches" : "created", false);
+        }
+
         var inspection = await database.InspectionDrafts.AsNoTracking()
             .SingleAsync(item => item.VehicleId == current.VehicleId, cancellationToken);
         var signed = await database.InspectionSignedRevisions.AsNoTracking()

@@ -330,6 +330,12 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
             using var customerClient = customerFactory.CreateClient();
             foreach (var customer in customers)
             {
+                if (customer.Registration.Email == DevelopmentLifecycleManifest.SuspendedCustomerEmail)
+                {
+                    await AssertSuspendedLoginAsync(customerClient, customer.Registration.Email!);
+                    continue;
+                }
+
                 await AssertLoginAsync(customerClient, customer.Registration.Email!, HttpStatusCode.OK);
             }
         }
@@ -341,9 +347,23 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
 
             foreach (var account in accounts)
             {
+                if (account.Id == DevelopmentLifecycleManifest.SuspendedStaffId)
+                {
+                    await AssertSuspendedLoginAsync(staffClient, account.Email);
+                    continue;
+                }
+
                 await AssertLoginAsync(staffClient, account.Email, HttpStatusCode.Forbidden);
             }
         }
+    }
+
+    // A suspended account keeps its password but cannot sign in.
+    private static async Task AssertSuspendedLoginAsync(HttpClient client, string email)
+    {
+        var response = await client.PostAsJsonAsync("/api/auth/login",
+            new LoginRequest(Guid.NewGuid(), email, DevelopmentFixtureManifest.Password));
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
     private static async Task AssertLoginAsync(HttpClient client, string email, HttpStatusCode accountStatus)

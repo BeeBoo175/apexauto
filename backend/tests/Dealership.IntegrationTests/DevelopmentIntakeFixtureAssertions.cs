@@ -124,7 +124,9 @@ internal static class DevelopmentIntakeFixtureAssertions
         {
             var store = services.GetRequiredService<IStaffWorklistStore>();
 
-            if (staff.Role is AccountRoles.Administrator or AccountRoles.WorkshopTechnician)
+            // A suspended account is inactive, so the worklist is refused to them.
+            if (staff.Role is AccountRoles.Administrator or AccountRoles.WorkshopTechnician ||
+                staff.Id == DevelopmentLifecycleManifest.SuspendedStaffId)
             {
                 Assert.Null(await store.ListAsync(staff.Id, query, CancellationToken.None));
                 continue;
@@ -162,7 +164,7 @@ internal static class DevelopmentIntakeFixtureAssertions
                 profile.RegistrationKey == customer.Registration.RegistrationKey);
             var history = services.GetRequiredService<IAppointmentHistoryStore>();
 
-            if (!customer.VerifyEmail)
+            if (!customer.VerifyEmail || customer.Registration.Email == DevelopmentLifecycleManifest.SuspendedCustomerEmail)
             {
                 Assert.Null(await history.ListAsync(owner.UserId, new AppointmentHistoryQuery(null, null, 1, 25), CancellationToken.None));
                 continue;

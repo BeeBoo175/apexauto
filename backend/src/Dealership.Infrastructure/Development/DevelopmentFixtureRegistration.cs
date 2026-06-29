@@ -23,6 +23,7 @@ public static class DevelopmentFixtureRegistration
         services.AddScoped<DevelopmentFixtureMail>();
         services.AddScoped<DevelopmentAccountPictureFixtures>();
         services.AddScoped<DevelopmentInvitationFixtures>();
+        services.AddScoped<DevelopmentLifecycleFixtures>();
         services.AddScoped<DevelopmentInspectionFixtures>();
         services.AddScoped<DevelopmentListingFixtures>();
         services.AddScoped<DevelopmentPurchaseFixtures>();
