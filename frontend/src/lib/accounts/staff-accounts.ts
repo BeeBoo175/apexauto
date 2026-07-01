@@ -70,6 +70,9 @@ export interface StaffAccountFilters {
   search: string;
   role: string;
   branchId: string;
+  name: string;
+  email: string;
+  mobile: string;
   pageSize: number;
 }
 
@@ -141,6 +144,9 @@ export function staffAccountParams(parameters: SearchParams) {
       search: cleanText(text("search")),
       role: staffAccountRoles.some((role) => role === text("role")) ? text("role") : "",
       branchId: isUuid(text("branchId")) ? text("branchId") : "",
+      name: cleanText(text("name")),
+      email: cleanText(text("email")),
+      mobile: cleanText(text("mobile")),
       pageSize: isPageSize(pageSize) ? pageSize : DEFAULT_PAGE_SIZE,
     } satisfies StaffAccountFilters,
     page: Number.isSafeInteger(page) && page > 0 ? page : 1,

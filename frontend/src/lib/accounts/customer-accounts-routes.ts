@@ -30,6 +30,9 @@ export async function relayCustomerAccounts(request: Request) {
   const query = allowedQuery(new URL(request.url).searchParams, [
     "tab",
     "search",
+    "name",
+    "email",
+    "mobile",
     "page",
     "pageSize",
   ]);

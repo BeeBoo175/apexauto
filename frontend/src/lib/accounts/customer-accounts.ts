@@ -51,6 +51,9 @@ export interface CustomerAccountDetail {
 export interface CustomerAccountFilters {
   tab: string;
   search: string;
+  name: string;
+  email: string;
+  mobile: string;
   pageSize: number;
 }
 
@@ -126,6 +129,9 @@ export function customerAccountParams(parameters: SearchParams) {
     filters: {
       tab: customerAccountTabs.some((tab) => tab.value === text("tab")) ? text("tab") : "All",
       search: cleanText(text("search")),
+      name: cleanText(text("name")),
+      email: cleanText(text("email")),
+      mobile: cleanText(text("mobile")),
       pageSize: isPageSize(pageSize) ? pageSize : DEFAULT_PAGE_SIZE,
     } satisfies CustomerAccountFilters,
     page: Number.isSafeInteger(page) && page > 0 ? page : 1,

@@ -90,6 +90,12 @@
   min-width: 0;
 }
 
+.supportList button {
+  flex: 0 0 112px;
+  width: 112px;
+  justify-content: center;
+}
+
 .supportList strong {
   font-size: 14px;
   font-weight: 600;

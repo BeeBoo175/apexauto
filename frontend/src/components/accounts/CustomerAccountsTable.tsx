@@ -1,14 +1,19 @@
 "use client";
 
+import { Button } from "@/components/ui/Button";
 import { SearchField } from "@/components/ui/SearchField";
 import { RecordToolbar } from "@/components/ui/RecordToolbar";
 import { DataTable } from "@/components/ui/data-table/DataTable";
 import type { DataColumn } from "@/components/ui/data-table/types";
+import { TextColumnFilter } from "@/components/ui/data-table/ColumnFilterForm";
+import { AppliedWorklistFilters } from "@/components/staff/AppliedWorklistFilters";
+import type { AppliedFilter } from "@/lib/staff/filter-summary";
 import { StaffQueueTabs } from "@/components/staff/StaffQueueTabs";
 import type { useCustomerAccountsList } from "@/hooks/use-customer-accounts-list";
 import {
   customerAccountTabs,
   customerStatus,
+  type CustomerAccountFilters,
   type CustomerAccountRow,
 } from "@/lib/accounts/customer-accounts";
 import { staffColumnSizing } from "@/lib/staff/table-columns";
@@ -39,13 +44,46 @@ export function CustomerAccountsTable({
 }) {
   const { snapshot, active, busy, draft, setDraft } = list;
   const filters = active.filters;
+  const textColumns = [
+    ["name", "Name"],
+    ["email", "Email"],
+    ["mobile", "Mobile"],
+  ] as const;
+  const filteredColumns = columns.map((column) => {
+    const text = textColumns.find(([key]) => key === column.id);
+    if (!text) {
+      return column;
+    }
+    const [key, label] = text;
+    return {
+      ...column,
+      filter: {
+        active: Boolean(filters[key]),
+        content: (
+          <TextColumnFilter
+            label={`${label} contains`}
+            value={filters[key]}
+            busy={busy}
+            onApply={(value) => list.load({ ...filters, [key]: value }, 1)}
+          />
+        ),
+      },
+    };
+  });
+  const applied: AppliedFilter<CustomerAccountFilters>[] = textColumns
+    .filter(([key]) => filters[key])
+    .map(([key, label]) => ({
+      key,
+      label: `${label}: ${filters[key]}`,
+      without: { ...filters, [key]: "" },
+    }));
   return (
     <div className={styles.page}>
       <div className={styles.body}>
         <DataTable
           label="Customer accounts"
           rows={snapshot.items}
-          columns={columns}
+          columns={filteredColumns}
           rowId={(row) => row.id}
           page={snapshot}
           busy={busy}
@@ -73,9 +111,28 @@ export function CustomerAccountsTable({
               <RecordToolbar
                 filters={null}
                 disabled={false}
-                filterCount={0}
-                filterSummary={null}
-                actions={null}
+                filterCount={applied.length}
+                filterSummary={
+                  <AppliedWorklistFilters
+                    filters={applied}
+                    disabled={busy}
+                    onRemove={(next) => void list.load(next, 1)}
+                  />
+                }
+                actions={
+                  applied.length > 0 && (
+                    <Button
+                      size="compact"
+                      variant="ghost"
+                      disabled={busy}
+                      onClick={() =>
+                        void list.load({ ...filters, name: "", email: "", mobile: "" }, 1)
+                      }
+                    >
+                      Reset filters
+                    </Button>
+                  )
+                }
               >
                 <form
                   className={styles.search}

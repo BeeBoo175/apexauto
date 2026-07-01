@@ -14,6 +14,8 @@ export interface AppliedFilter<Filters = StaffFilters> {
     | "budget"
     | "technician"
     | "workStatus"
+    | "email"
+    | "mobile"
     | "registration"
     | "vehicle"
     | "customer"

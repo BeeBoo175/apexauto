@@ -5,7 +5,7 @@ import { type Page } from "@/lib/api";
 import { type Branch } from "@/lib/branches";
 import { BranchFilter } from "@/components/staff/BranchFilter";
 import { ChoiceColumnFilter } from "@/components/ui/data-table/ChoiceColumnFilter";
-import { ColumnFilterForm } from "@/components/ui/data-table/ColumnFilterForm";
+import { ColumnFilterForm, TextColumnFilter } from "@/components/ui/data-table/ColumnFilterForm";
 import type { useStaffAccountsList } from "@/hooks/use-staff-accounts-list";
 import { useBranchChoices } from "@/hooks/use-branch-choices";
 import { roleNames } from "@/lib/auth/actor";
@@ -36,6 +36,17 @@ export function StaffAccountFilters({
   );
   const { branches, busy } = branchChoices;
 
+  if (column === "name" || column === "email" || column === "mobile") {
+    const labels = { name: "Name", email: "Email", mobile: "Mobile" } as const;
+    return (
+      <TextColumnFilter
+        label={`${labels[column]} contains`}
+        value={filters[column]}
+        busy={disabled}
+        onApply={(value) => list.load({ ...filters, [column]: value }, 1)}
+      />
+    );
+  }
   if (column === "role") {
     return (
       <ChoiceColumnFilter

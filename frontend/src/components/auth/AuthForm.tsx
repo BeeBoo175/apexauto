@@ -61,7 +61,9 @@ export function AuthForm({
 
     emailInput.current.value = account.email;
     passwordInput.current.value = account.password;
-    submitButton.current?.focus();
+    // The accounts sit below the form, so return to the filled fields and the Sign in button.
+    submitButton.current?.focus({ preventScroll: true });
+    window.scrollTo({ top: 0, behavior: "smooth" });
     info("Demo details filled. Sign in to continue.");
   }
 

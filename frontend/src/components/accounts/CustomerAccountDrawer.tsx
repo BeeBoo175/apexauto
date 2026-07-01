@@ -238,7 +238,7 @@ export function CustomerAccountDrawer({
             description={
               suspended
                 ? "Lifting lets them sign in again."
-                : "Blocks sign-in; bookings and sales go on."
+                : "Blocks sign-in, bookings and sales go on."
             }
           >
             <Button

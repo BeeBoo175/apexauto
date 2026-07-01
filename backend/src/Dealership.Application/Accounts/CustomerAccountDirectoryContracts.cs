@@ -34,12 +34,29 @@ public static class PersonalDataMasking
 
 public sealed record CustomerDirectoryQuery(string Tab, string Search, int Page, int PageSize)
 {
-    public static CustomerDirectoryQuery? Parse(string? tab, string? search, int page, int pageSize)
+    // Column filters: each narrows one column by a literal contains match on the full value.
+    public string Name { get; init; } = string.Empty;
+
+    public string Email { get; init; } = string.Empty;
+
+    public string Mobile { get; init; } = string.Empty;
+
+    public static CustomerDirectoryQuery? Parse(string? tab, string? search, int page, int pageSize,
+        string? name = null, string? email = null, string? mobile = null)
     {
         var text = search?.Trim() ?? string.Empty;
-        return !CustomerAccountTabs.IsValid(tab) || !ListSearch.IsValid(text) || !Pagination.IsValid(page, pageSize)
+        var nameText = name?.Trim() ?? string.Empty;
+        var emailText = email?.Trim() ?? string.Empty;
+        var mobileText = mobile?.Trim() ?? string.Empty;
+        return !ListSearch.IsValid(nameText) || !ListSearch.IsValid(emailText) || !ListSearch.IsValid(mobileText) ||
+            !CustomerAccountTabs.IsValid(tab) || !ListSearch.IsValid(text) || !Pagination.IsValid(page, pageSize)
             ? null
-            : new(tab ?? CustomerAccountTabs.All, text, page, pageSize);
+            : new(tab ?? CustomerAccountTabs.All, text, page, pageSize)
+            {
+                Name = nameText,
+                Email = emailText,
+                Mobile = mobileText
+            };
     }
 }
 

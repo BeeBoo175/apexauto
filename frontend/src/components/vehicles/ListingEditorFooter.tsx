@@ -136,7 +136,7 @@ function footerContext(
       title: section === "publication" ? "Historical publication" : "Historical listing",
       description:
         section === "publication"
-          ? "Past records are read only; draft kept."
+          ? "Past records are read only, draft kept."
           : "Saved fields are read only.",
     };
   }

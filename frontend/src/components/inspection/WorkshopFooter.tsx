@@ -69,7 +69,7 @@ function footerContext(
       title: editor.editable ? "Inspection draft" : "Inspection review",
       description: editor.editable
         ? "Save findings before signing."
-        : "Read-only; actions follow assignment.",
+        : "Read-only, actions follow assignment.",
     };
   }
   if (section === "history" || historical) {

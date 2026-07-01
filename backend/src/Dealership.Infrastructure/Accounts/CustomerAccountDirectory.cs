@@ -102,6 +102,24 @@ public sealed class CustomerAccountDirectory(DealershipDbContext database) : ICu
             CustomerAccountTabs.Suspended => rows.Where(row => row.Suspended),
             _ => rows
         };
+        if (query.Name.Length > 0)
+        {
+            var pattern = LiteralSearch.Pattern(query.Name);
+            rows = rows.Where(row => EF.Functions.ILike(row.Name, pattern, "!"));
+        }
+
+        if (query.Email.Length > 0)
+        {
+            var pattern = LiteralSearch.Pattern(query.Email);
+            rows = rows.Where(row => EF.Functions.ILike(row.Email, pattern, "!"));
+        }
+
+        if (query.Mobile.Length > 0)
+        {
+            var pattern = LiteralSearch.Pattern(query.Mobile);
+            rows = rows.Where(row => EF.Functions.ILike(row.Mobile, pattern, "!"));
+        }
+
         if (query.Search.Length > 0)
         {
             var pattern = LiteralSearch.Pattern(query.Search);

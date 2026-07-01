@@ -44,6 +44,9 @@ export function StaffAccountsTable({
   const { snapshot, active, busy, draft, setDraft } = list;
   const filters = active.filters;
   const indicators: Record<string, boolean> = {
+    name: Boolean(filters.name),
+    email: Boolean(filters.email),
+    mobile: Boolean(filters.mobile),
     role: Boolean(filters.role),
     branchName: Boolean(filters.branchId),
   };
@@ -94,6 +97,19 @@ export function StaffAccountsTable({
         },
   );
   const applied: AppliedFilter<Filters>[] = [];
+  for (const [key, label] of [
+    ["name", "Name"],
+    ["email", "Email"],
+    ["mobile", "Mobile"],
+  ] as const) {
+    if (filters[key]) {
+      applied.push({
+        key,
+        label: `${label}: ${filters[key]}`,
+        without: { ...filters, [key]: "" },
+      });
+    }
+  }
   if (filters.role) {
     applied.push({
       key: "role",
@@ -160,7 +176,12 @@ export function StaffAccountsTable({
                         size="compact"
                         variant="ghost"
                         disabled={busy}
-                        onClick={() => void list.load({ ...filters, role: "", branchId: "" }, 1)}
+                        onClick={() =>
+                          void list.load(
+                            { ...filters, role: "", branchId: "", name: "", email: "", mobile: "" },
+                            1,
+                          )
+                        }
                       >
                         Reset filters
                       </Button>

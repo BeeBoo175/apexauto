@@ -30,9 +30,9 @@ function nextStepNote(status: SaleStatus, actions: SaleActions, dirty: boolean) 
     PendingApproval: "Waiting for manager approval.",
     Approved: "Settlement and handover follow.",
     Settled: "Settled. Hand over when the vehicle is ready.",
-    Delivered: "Delivered; records are read only.",
-    Expired: "Hold expired; deposit refunded.",
-    Cancelled: "Cancelled; deposit refunded.",
+    Delivered: "Delivered, records are read only.",
+    Expired: "Hold expired, deposit refunded.",
+    Cancelled: "Cancelled, deposit refunded.",
   };
   return notes[status];
 }

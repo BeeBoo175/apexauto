@@ -8,7 +8,17 @@ import { HttpError } from "@/lib/http";
 import { accountHistoryPath, parseAccountHistory } from "./account-history";
 import { hasAccountAdministration, parseStaffAccountPage } from "./staff-accounts";
 
-const listKeys = ["tab", "search", "role", "branchId", "page", "pageSize"];
+const listKeys = [
+  "tab",
+  "search",
+  "role",
+  "branchId",
+  "name",
+  "email",
+  "mobile",
+  "page",
+  "pageSize",
+];
 
 export async function relayStaffAccounts(request: Request) {
   try {
