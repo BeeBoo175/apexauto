@@ -37,7 +37,7 @@ public sealed class StaffInvitationTests(IntakePhotoFixture fixture) : IClassFix
         var shown = (await preview.Content.ReadFromJsonAsync<PublicStaffInvitation>())!;
         Assert.Equal(("Aina Sofia", AccountRoles.SalesAgent), (shown.Name, shown.Role));
         Assert.Equal(HttpStatusCode.NotFound, (await visitor.PostAsJsonAsync("/api/auth/staff-invitation/preview",
-            new { token = firstToken[..^1] + "0" })).StatusCode);
+            new { token = firstToken[..^1] + (firstToken[^1] == '0' ? '1' : '0') })).StatusCode);
 
         Assert.Equal(HttpStatusCode.TooManyRequests, (await admin.PostAsync($"/api/staff-invitations/{invitationId}/resends", null)).StatusCode);
         await ClearSendHistoryAsync(factory, invitationId);

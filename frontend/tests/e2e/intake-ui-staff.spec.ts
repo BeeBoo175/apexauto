@@ -389,7 +389,7 @@ for (const [role, email, destination] of [
       await expect(page).toHaveURL(new RegExp(`${destination}$`));
     }
     if (role === "Workshop technician" || role === "Administrator") {
-      const heading = role === "Workshop technician" ? "Workshop" : "Staff accounts";
+      const heading = role === "Workshop technician" ? "Workshop" : "Accounts";
       await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
       if (role === "Workshop technician") {
         await reviewAgentQueue(page, "inspection", captureIntake);

@@ -24,7 +24,7 @@ export function CustomerAccountsWorkspace({ entry }: { entry: CustomersEntry }) 
     <>
       <LoadingProgress label="Loading customer accounts" active={list.busy} />
       <StaffCommandBar
-        title="Customer accounts"
+        title="Accounts"
         actions={
           <>
             <AccountsViewSwitch view="customers" />

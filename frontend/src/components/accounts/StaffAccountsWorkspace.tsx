@@ -28,7 +28,7 @@ export function StaffAccountsWorkspace({ entry }: { entry: AccountsEntry }) {
     <>
       <LoadingProgress label="Loading staff accounts" active={list.busy} />
       <StaffCommandBar
-        title="Staff accounts"
+        title="Accounts"
         actions={
           <>
             <AccountsViewSwitch view="staff" />

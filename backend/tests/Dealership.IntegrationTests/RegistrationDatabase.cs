@@ -82,6 +82,10 @@ public sealed class RegistrationDatabase : IAsyncLifetime
             _databaseCreated = true;
         }
 
+        // The maintenance connection stays unpooled; the test database and role pool their connections, because
+        // opening a fresh socket for every request exhausts the local ephemeral ports across a full run.
+        settings.Pooling = true;
+        settings.MaxPoolSize = 20;
         settings.Database = _databaseName;
         ConnectionString = settings.ConnectionString;
 
@@ -120,6 +124,9 @@ public sealed class RegistrationDatabase : IAsyncLifetime
 
         await using var maintenance = new NpgsqlConnection(_maintenanceConnection);
         await maintenance.OpenAsync();
+
+        // Idle pooled connections to the owned database would otherwise be reused after it is gone.
+        NpgsqlConnection.ClearAllPools();
 
         if (_databaseCreated)
         {

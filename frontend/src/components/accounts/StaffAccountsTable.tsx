@@ -1,6 +1,9 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useContext } from "react";
+import { StaffPageEntranceContext } from "@/components/staff/StaffActorBoundary";
+import workspace from "@/components/staff/StaffWorkspace.module.css";
 import { Button } from "@/components/ui/Button";
 import { SearchField } from "@/components/ui/SearchField";
 import { RecordToolbar } from "@/components/ui/RecordToolbar";
@@ -43,6 +46,7 @@ export function StaffAccountsTable({
 }) {
   const { snapshot, active, busy, draft, setDraft } = list;
   const filters = active.filters;
+  const animateEntry = useContext(StaffPageEntranceContext);
   const indicators: Record<string, boolean> = {
     name: Boolean(filters.name),
     email: Boolean(filters.email),
@@ -128,7 +132,7 @@ export function StaffAccountsTable({
     });
   }
   return (
-    <div className={styles.page}>
+    <div className={`${styles.page} ${animateEntry ? workspace.reveal : ""}`}>
       <div className={styles.body}>
         <DataTable
           label="Staff accounts"
