@@ -35,6 +35,12 @@
   min-width: 0;
 }
 
+/* Beside a labelled field, the checkbox lines up with the control, not with the whole field block. */
+.pair > .check {
+  align-self: start;
+  margin-top: 20px;
+}
+
 .hint,
 .error {
   margin: 4px 0 0;
@@ -86,6 +92,10 @@
 @media (max-width: 600px) {
   .pair {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pair > .check {
+    margin-top: 0;
   }
 }
 

@@ -96,6 +96,9 @@ public sealed class WarrantyAdministrationTests(RegistrationDatabase database) :
         Assert.Equal("ApexShield Silver,ApexShield Gold", Names(await ListAsync(administrator, grade: "B")));
         Assert.Equal("ApexShield Platinum", Names(await ListAsync(administrator, grade: "A")));
         Assert.Equal("", Names(await ListAsync(administrator, grade: "C")));
+        Assert.Equal("ApexShield Platinum", Names(await ListAsync(administrator, minimumTerm: 30, maximumTerm: 40)));
+        Assert.Equal("ApexShield Platinum", Names(await ListAsync(administrator, minimumMileage: 60000, maximumMileage: 80000)));
+        Assert.Equal(WarrantyAdministrationStatus.Invalid, (await ListAsync(administrator, minimumTerm: 30, maximumTerm: 18)).Status);
         Assert.Equal(WarrantyAdministrationStatus.Invalid, (await ListAsync(administrator, grade: "D")).Status);
         Assert.Equal(WarrantyAdministrationStatus.Invalid,
             (await ListAsync(administrator, minimumPrice: 10m, maximumPrice: 5m)).Status);
@@ -148,9 +151,11 @@ public sealed class WarrantyAdministrationTests(RegistrationDatabase database) :
 
     private Task<WarrantyAdministrationResult> ListAsync(Guid actor, int page = 1, int pageSize = 25,
         string? search = null, string? status = null, string? sort = null, string? direction = null,
-        string? name = null, decimal? minimumPrice = null, decimal? maximumPrice = null, string? grade = null) =>
+        string? name = null, decimal? minimumPrice = null, decimal? maximumPrice = null, string? grade = null,
+        int? minimumTerm = null, int? maximumTerm = null, int? minimumMileage = null, int? maximumMileage = null) =>
         ServiceAsync(service => service.ListAsync(actor, page, pageSize, search, status, sort, direction, name,
-            minimumPrice, maximumPrice, grade, CancellationToken.None));
+            minimumPrice, maximumPrice, grade, CancellationToken.None, minimumTerm, maximumTerm, minimumMileage,
+            maximumMileage));
 
     private Task<WarrantyAdministrationResult> CreateAsync(Guid actor, WarrantyCreateRequest request) =>
         ServiceAsync(service => service.CreateAsync(actor, request, CancellationToken.None));

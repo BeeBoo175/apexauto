@@ -20,6 +20,34 @@ public sealed record AdministrationListQuery(int Page, int PageSize, string? Sea
 
     public string? Grade { get; init; }
 
+    // Warranty term (months) and mileage cap (kilometres) ranges, both inclusive.
+    public int? MinimumTerm { get; init; }
+
+    public int? MaximumTerm { get; init; }
+
+    public int? MinimumMileage { get; init; }
+
+    public int? MaximumMileage { get; init; }
+
+    // Applies the warranty ranges, returning null when a bound is not positive or a range is reversed.
+    public AdministrationListQuery? WithWarrantyRanges(int? minimumTerm, int? maximumTerm, int? minimumMileage,
+        int? maximumMileage)
+    {
+        return ValidRange(minimumTerm, maximumTerm) && ValidRange(minimumMileage, maximumMileage)
+            ? this with
+            {
+                MinimumTerm = minimumTerm,
+                MaximumTerm = maximumTerm,
+                MinimumMileage = minimumMileage,
+                MaximumMileage = maximumMileage
+            }
+            : null;
+    }
+
+    private static bool ValidRange(int? minimum, int? maximum) =>
+        (minimum is null || minimum > 0) && (maximum is null || maximum > 0) &&
+        (minimum is null || maximum is null || minimum <= maximum);
+
     public static AdministrationListQuery? Create(int page, int pageSize, string? search, string? status, string? sort,
         string? direction, IReadOnlySet<string> statuses, IReadOnlySet<string> sorts)
     {

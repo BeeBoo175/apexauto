@@ -124,6 +124,26 @@ public sealed class WarrantyAdministrationStore(DealershipDbContext database) : 
             packages = packages.Where(item => item.Price <= maximum);
         }
 
+        if (query.MinimumTerm is { } minimumTerm)
+        {
+            packages = packages.Where(item => item.DurationMonths >= minimumTerm);
+        }
+
+        if (query.MaximumTerm is { } maximumTerm)
+        {
+            packages = packages.Where(item => item.DurationMonths <= maximumTerm);
+        }
+
+        if (query.MinimumMileage is { } minimumMileage)
+        {
+            packages = packages.Where(item => item.MileageCapKm >= minimumMileage);
+        }
+
+        if (query.MaximumMileage is { } maximumMileage)
+        {
+            packages = packages.Where(item => item.MileageCapKm <= maximumMileage);
+        }
+
         if (query.Grade is not null)
         {
             var grade = Enum.Parse<InspectionGrade>(query.Grade);

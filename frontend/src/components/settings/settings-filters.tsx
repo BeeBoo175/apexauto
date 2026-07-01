@@ -5,6 +5,7 @@ import {
   DateRangeFilter,
   MoneyRangeFilter,
   TextColumnFilter,
+  WholeRangeFilter,
 } from "@/components/ui/data-table/ColumnFilterForm";
 import { ChoiceColumnFilter } from "@/components/ui/data-table/ChoiceColumnFilter";
 import type { DataColumn } from "@/components/ui/data-table/types";
@@ -18,6 +19,13 @@ import {
 import type { AppliedFilter } from "@/lib/staff/filter-summary";
 import { promoColumns, warrantyColumns } from "./settings-columns";
 import { moneyRangeLabel } from "@/lib/range-label";
+
+function wholeRangeLabel(from: string, to: string, unit: string) {
+  if (from && to) {
+    return `${from} to ${to} ${unit}`;
+  }
+  return from ? `from ${from} ${unit}` : `up to ${to} ${unit}`;
+}
 
 export type LoadList = (filters: ListFilters, page: number) => Promise<boolean>;
 
@@ -147,6 +155,20 @@ export function warrantyTableFilters(
       without: { ...filters, minimum: "", maximum: "" },
     });
   }
+  if (filters.termFrom || filters.termTo) {
+    applied.push({
+      key: "term",
+      label: `Term: ${wholeRangeLabel(filters.termFrom, filters.termTo, "months")}`,
+      without: { ...filters, termFrom: "", termTo: "" },
+    });
+  }
+  if (filters.mileageFrom || filters.mileageTo) {
+    applied.push({
+      key: "mileage",
+      label: `Mileage cap: ${wholeRangeLabel(filters.mileageFrom, filters.mileageTo, "km")}`,
+      without: { ...filters, mileageFrom: "", mileageTo: "" },
+    });
+  }
   if (filters.grade) {
     applied.push({
       key: "grade",
@@ -166,6 +188,24 @@ export function warrantyTableFilters(
           value={filters.text}
           busy={busy}
           onApply={(text) => apply({ text })}
+        />
+      ),
+      term: (
+        <WholeRangeFilter
+          unit="months"
+          minimum={filters.termFrom}
+          maximum={filters.termTo}
+          busy={busy}
+          onApply={(termFrom, termTo) => apply({ termFrom, termTo })}
+        />
+      ),
+      mileage: (
+        <WholeRangeFilter
+          unit="km"
+          minimum={filters.mileageFrom}
+          maximum={filters.mileageTo}
+          busy={busy}
+          onApply={(mileageFrom, mileageTo) => apply({ mileageFrom, mileageTo })}
         />
       ),
       price: (
@@ -193,6 +233,8 @@ export function warrantyTableFilters(
     },
     {
       name: Boolean(filters.text),
+      term: Boolean(filters.termFrom || filters.termTo),
+      mileage: Boolean(filters.mileageFrom || filters.mileageTo),
       price: Boolean(filters.minimum || filters.maximum),
       grade: Boolean(filters.grade),
       status: filters.status !== "All",

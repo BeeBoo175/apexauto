@@ -13,7 +13,8 @@ public sealed class WarrantyAdministrationService(IWarrantyAdministrationStore s
 
     public Task<WarrantyAdministrationResult> ListAsync(Guid actorId, int page, int pageSize, string? search,
         string? status, string? sort, string? direction, string? name, decimal? minimumPrice, decimal? maximumPrice,
-        string? grade, CancellationToken cancellationToken)
+        string? grade, CancellationToken cancellationToken, int? minimumTerm = null, int? maximumTerm = null,
+        int? minimumMileage = null, int? maximumMileage = null)
     {
         if (actorId == Guid.Empty)
         {
@@ -21,7 +22,8 @@ public sealed class WarrantyAdministrationService(IWarrantyAdministrationStore s
         }
 
         var query = AdministrationListQuery.Create(page, pageSize, search, status, sort, direction, Statuses, Sorts)
-            ?.WithColumns(name, minimumPrice, maximumPrice, null, null, grade);
+            ?.WithColumns(name, minimumPrice, maximumPrice, null, null, grade)
+            ?.WithWarrantyRanges(minimumTerm, maximumTerm, minimumMileage, maximumMileage);
         return query is null ? Rejected(WarrantyAdministrationStatus.Invalid)
             : store.ListAsync(actorId, query, cancellationToken);
     }

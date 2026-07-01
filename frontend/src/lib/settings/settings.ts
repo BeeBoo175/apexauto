@@ -79,6 +79,10 @@ export interface ListFilters {
   expiresFrom: string;
   expiresTo: string;
   grade: string;
+  termFrom: string;
+  termTo: string;
+  mileageFrom: string;
+  mileageTo: string;
 }
 
 export const columnFilterKeys = [
@@ -88,6 +92,10 @@ export const columnFilterKeys = [
   "expiresFrom",
   "expiresTo",
   "grade",
+  "termFrom",
+  "termTo",
+  "mileageFrom",
+  "mileageTo",
 ] as const;
 
 export function hasSettingsAccess(actor: CurrentActor) {
@@ -246,6 +254,10 @@ const emptyColumnFilters = {
   expiresFrom: "",
   expiresTo: "",
   grade: "",
+  termFrom: "",
+  termTo: "",
+  mileageFrom: "",
+  mileageTo: "",
 };
 
 export const emptyListFilters: ListFilters = {

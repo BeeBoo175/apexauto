@@ -147,6 +147,21 @@ export function MoneyRangeFilter(props: RangeFilterProps) {
   return <NumericRangeFilter {...props} unit="MYR" validate={validateMoneyRange} />;
 }
 
+function validateWholeRange(lower: string, upper: string) {
+  const first = lower.trim();
+  const last = upper.trim();
+  const invalidValue = [first, last].some((value) => value !== "" && !/^[1-9]\d{0,8}$/.test(value));
+  if (invalidValue || Boolean(first && last && Number(first) > Number(last))) {
+    return { error: "Enter whole numbers with the minimum no greater than the maximum." };
+  }
+  return { lower: first, upper: last };
+}
+
+// A range of whole numbers in the given unit, such as months or kilometres.
+export function WholeRangeFilter({ unit, ...props }: RangeFilterProps & { unit: string }) {
+  return <NumericRangeFilter {...props} unit={unit} validate={validateWholeRange} />;
+}
+
 export function HoursRangeFilter({
   maximumHours,
   ...props

@@ -37,7 +37,16 @@ const columnKeys: Record<Exclude<SettingsResource, "settings">, Record<string, s
     expiresFrom: "expiresFrom",
     expiresTo: "expiresTo",
   },
-  warranties: { text: "name", minimum: "minimumPrice", maximum: "maximumPrice", grade: "grade" },
+  warranties: {
+    text: "name",
+    minimum: "minimumPrice",
+    maximum: "maximumPrice",
+    grade: "grade",
+    termFrom: "minimumTerm",
+    termTo: "maximumTerm",
+    mileageFrom: "minimumMileage",
+    mileageTo: "maximumMileage",
+  },
 };
 type Body = Record<string, unknown>;
 

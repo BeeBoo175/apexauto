@@ -22,7 +22,8 @@ public static class WarrantyAdministrationEndpoints
 
     private static async Task<IResult> ListAsync(int? page, int? pageSize, string? search, string? status, string? sort,
         string? direction, string? name, decimal? minimumPrice, decimal? maximumPrice, string? grade,
-        HttpContext context, WarrantyAdministrationService warranties, CancellationToken cancellationToken)
+        int? minimumTerm, int? maximumTerm, int? minimumMileage, int? maximumMileage, HttpContext context,
+        WarrantyAdministrationService warranties, CancellationToken cancellationToken)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(20));
@@ -30,7 +31,7 @@ public static class WarrantyAdministrationEndpoints
         {
             var result = await warranties.ListAsync(ActorId(context), page ?? 1,
                 pageSize ?? Pagination.DefaultPageSize, search, status, sort, direction, name, minimumPrice,
-                maximumPrice, grade, deadline.Token);
+                maximumPrice, grade, deadline.Token, minimumTerm, maximumTerm, minimumMileage, maximumMileage);
             return Map(result);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
