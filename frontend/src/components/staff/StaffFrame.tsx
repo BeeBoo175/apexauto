@@ -122,19 +122,6 @@ function StaffFrameContent({
                 </StaffLink>
               </div>
               <nav className={styles.navigation} aria-label="Staff navigation">
-                {actor.role === "Administrator" && (
-                  <StaffLink
-                    href="/dashboard"
-                    prefetch={false}
-                    className={
-                      navigation.selectedPath === "/dashboard" ? styles.activeLink : styles.navLink
-                    }
-                    aria-current={navigation.selectedPath === "/dashboard" ? "page" : undefined}
-                    onNavigate={(event) => navigate(event, "/dashboard")}
-                  >
-                    Administration
-                  </StaffLink>
-                )}
                 {staffWorkspaceLinks
                   .filter((link) => link.allowed(actor))
                   .map((link) => {

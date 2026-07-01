@@ -32,9 +32,6 @@ export function StaffAccountsWorkspace({ entry }: { entry: AccountsEntry }) {
         actions={
           <>
             <AccountsViewSwitch view="staff" />
-            <Button size="compact" onClick={() => setInviting(true)}>
-              Invite staff
-            </Button>
             <RefreshButton
               label="Refresh staff accounts"
               busy={list.busy}
@@ -49,6 +46,11 @@ export function StaffAccountsWorkspace({ entry }: { entry: AccountsEntry }) {
         branches={entry.branches}
         selectedId={selectedId}
         onOpen={setSelectedId}
+        actions={
+          <Button size="compact" onClick={() => setInviting(true)}>
+            Invite staff
+          </Button>
+        }
       />
       <StaffAccountDrawer
         row={selected}

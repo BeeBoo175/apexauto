@@ -33,6 +33,7 @@ export function AccountHistory({ accountId }: { accountId: string }) {
     <StaffHistorySection
       label="Account history"
       busy={busy}
+      flush
       empty={history?.totalCount === 0 && <p>No changes have been recorded yet.</p>}
       progress={<StaffHistoryProgress read={read} label="Account history" />}
     >

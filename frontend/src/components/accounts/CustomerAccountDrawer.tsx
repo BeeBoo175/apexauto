@@ -160,42 +160,66 @@ export function CustomerAccountDrawer({
                 <div className={workbench.sectionHeader}>
                   <h2 className={workbench.sectionTitle}>Support</h2>
                 </div>
-                <div className={`${styles.actions} ${styles.supportActions}`}>
-                  <Button
-                    variant="secondary"
-                    size="compact"
-                    disabled={command.busy}
-                    onClick={() => setSupport("nric-reveal")}
-                  >
-                    Reveal NRIC
-                  </Button>
-                  {!row.verified && (
+                <ul className={styles.supportList}>
+                  <li>
+                    <span>
+                      <strong>Reveal NRIC</strong>
+                      <span>Shows the full number until you close the account.</span>
+                    </span>
                     <Button
                       variant="secondary"
                       size="compact"
                       disabled={command.busy}
-                      onClick={() => setSupport("verification-resend")}
+                      onClick={() => setSupport("nric-reveal")}
                     >
-                      Resend verification
+                      Reveal
                     </Button>
+                  </li>
+                  {!row.verified && (
+                    <li>
+                      <span>
+                        <strong>Email verification</strong>
+                        <span>Sends the verification link again.</span>
+                      </span>
+                      <Button
+                        variant="secondary"
+                        size="compact"
+                        disabled={command.busy}
+                        onClick={() => setSupport("verification-resend")}
+                      >
+                        Resend
+                      </Button>
+                    </li>
                   )}
-                  <Button
-                    variant="secondary"
-                    size="compact"
-                    disabled={command.busy || suspended}
-                    onClick={() => setSupport("password-reset")}
-                  >
-                    Send password reset
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="compact"
-                    disabled={command.busy}
-                    onClick={() => setSupport("session-revocation")}
-                  >
-                    End all sessions
-                  </Button>
-                </div>
+                  <li>
+                    <span>
+                      <strong>Password</strong>
+                      <span>Sends the usual reset link.</span>
+                    </span>
+                    <Button
+                      variant="secondary"
+                      size="compact"
+                      disabled={command.busy || suspended}
+                      onClick={() => setSupport("password-reset")}
+                    >
+                      Send reset
+                    </Button>
+                  </li>
+                  <li>
+                    <span>
+                      <strong>Sessions</strong>
+                      <span>Signs out every device.</span>
+                    </span>
+                    <Button
+                      variant="secondary"
+                      size="compact"
+                      disabled={command.busy}
+                      onClick={() => setSupport("session-revocation")}
+                    >
+                      End all
+                    </Button>
+                  </li>
+                </ul>
                 <p className={styles.note}>
                   Each action asks for a reason and is recorded in the account history.
                 </p>
@@ -213,8 +237,8 @@ export function CustomerAccountDrawer({
             title="Access"
             description={
               suspended
-                ? "Lifting the suspension lets them sign in again."
-                : "Suspending blocks sign-in and ends their sessions; bookings and sales continue."
+                ? "Lifting lets them sign in again."
+                : "Blocks sign-in; bookings and sales go on."
             }
           >
             <Button

@@ -9,16 +9,23 @@ export function StaffHistorySection({
   busy,
   empty,
   progress,
+  flush = false,
   children,
 }: {
   label: string;
   busy: boolean;
   empty?: ReactNode;
   progress: ReactNode;
+  // Drawers whose other tabs start at the top edge drop the extra top space.
+  flush?: boolean;
   children: ReactNode;
 }) {
   return (
-    <section className={styles.history} aria-label={label} aria-busy={busy}>
+    <section
+      className={`${styles.history} ${flush ? styles.flush : ""}`.trim()}
+      aria-label={label}
+      aria-busy={busy}
+    >
       <div className={workbench.sectionHeader}>
         <h2 className={workbench.sectionTitle}>Record history</h2>
       </div>

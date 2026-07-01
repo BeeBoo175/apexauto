@@ -41,8 +41,8 @@ test("reason drafts override term editing and retained records while preserving 
         title: cancelling ? "Cancel sale" : "Return to agent",
         description:
           section === "deal" && version === null
-            ? "Complete this action, or discard changes to continue reviewing the sale."
-            : "Your reason is kept. Return to Deal to complete the action, or discard changes.",
+            ? "Complete this, or discard changes."
+            : "Reason kept. Return to Deal to finish.",
       });
     }
   }
@@ -55,8 +55,8 @@ test("term editing owns the footer across reference sections and historical vers
         title: dirty ? "Unsaved deal terms" : "Edit deal terms",
         description:
           section === "deal" && version === null
-            ? "Save the agreed terms, or discard changes to restore the confirmed deal."
-            : "Your terms are kept. Return to Deal to save or discard changes.",
+            ? "Save the terms, or discard changes."
+            : "Terms kept. Return to Deal to save.",
       });
     }
   }
@@ -66,12 +66,12 @@ test("read-only history names retained sections without treating Car as a versio
   for (const section of ["customer", "deal"] as const) {
     expect(saleFooterPresentation({ ...state, section, version: 3 })).toEqual({
       title: `Historical ${section} · version 3`,
-      description: "Retained sale versions are read only.",
+      description: "Past versions are read only.",
     });
   }
   expect(saleFooterPresentation({ ...state, section: "history", version: 3 })).toEqual({
     title: "Record history",
-    description: "Retained sale versions are read only.",
+    description: "Past versions are read only.",
   });
   expect(saleFooterPresentation({ ...state, section: "car", version: 3 })).toEqual({
     title: "Next step",
@@ -82,13 +82,13 @@ test("read-only history names retained sections without treating Car as a versio
 test("normal guidance preserves status, permission and dirty-term precedence", () => {
   const notes: Record<SaleStatus, string> = {
     Open: "Assign an agent to start agreeing terms.",
-    Handling: "Key the terms agreed with the customer, then submit.",
-    PendingApproval: "Waiting for a manager to approve the discount.",
+    Handling: "Enter the agreed terms, then submit.",
+    PendingApproval: "Waiting for manager approval.",
     Approved: "Settlement and handover follow.",
-    Settled: "Settlement is confirmed. Complete handover after the vehicle is ready.",
-    Delivered: "This sale has been delivered. Retained records are read only.",
-    Expired: "This hold expired and its deposit was refunded.",
-    Cancelled: "This sale is cancelled and its deposit refunded.",
+    Settled: "Settled. Hand over when the vehicle is ready.",
+    Delivered: "Delivered; records are read only.",
+    Expired: "Hold expired; deposit refunded.",
+    Cancelled: "Cancelled; deposit refunded.",
   };
   for (const [status, description] of Object.entries(notes)) {
     expect(saleFooterPresentation({ ...state, status: status as SaleStatus })).toEqual({
@@ -102,10 +102,10 @@ test("normal guidance preserves status, permission and dirty-term precedence", (
   ).toBe("Claim this sale to start agreeing terms.");
   expect(
     saleFooterPresentation({ ...state, actions: { ...actions, saveTerms: false } }).description,
-  ).toBe("Review the agreed terms or manage this sale’s assignment.");
+  ).toBe("Review terms or manage assignment.");
   expect(
     saleFooterPresentation({ ...state, actions: { ...actions, decide: true } }).description,
-  ).toBe("Approve the submitted terms, or return them to the agent with a reason.");
+  ).toBe("Approve the terms or return them.");
   expect(
     saleFooterPresentation({ ...state, dirty: true, actions: { ...actions, decide: true } })
       .description,

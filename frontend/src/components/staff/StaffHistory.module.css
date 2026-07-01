@@ -5,6 +5,10 @@
   padding-top: 16px;
 }
 
+.flush {
+  padding-top: 0;
+}
+
 .timeline,
 .repairs {
   margin: 0;
@@ -160,12 +164,13 @@
   height: 14px;
 }
 
+/* The loaded actor row holds a 28px avatar and each text line is 13px at a 1.6 line height. */
 .eventContext {
   width: 140px;
-  height: 14px;
+  height: 28px;
 }
 
 .eventText {
   width: 70%;
-  height: 20px;
+  height: 21px;
 }

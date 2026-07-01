@@ -24,6 +24,7 @@ export function PersonDialog({
   onClose: () => void;
 }) {
   const { person, settled } = usePersonPreview(id, open, 0);
+  const customer = person?.role === "Customer";
 
   return (
     <Dialog
@@ -43,9 +44,17 @@ export function PersonDialog({
               value={person ? `@${person.username}` : null}
               loading={!person}
             />
-            <Fact label="Branch" value={person?.branchName} loading={!person} />
-            <Fact label="Work mobile" value={person?.mobile} loading={!person} />
-            <Fact label="Email" value={person?.email} loading={!person} />
+            <Fact
+              label={customer ? "Account" : "Branch"}
+              value={person ? accountSlot(person) : null}
+              loading={!person}
+            />
+            {!customer && (
+              <>
+                <Fact label="Work mobile" value={person?.mobile} loading={!person} />
+                <Fact label="Email" value={person?.email} loading={!person} />
+              </>
+            )}
           </dl>
         </div>
       )}
@@ -82,6 +91,15 @@ function Fact({
 }
 
 function summary(person: Person) {
-  const parts = [roleNames[person.role], person.isActive ? null : "Deactivated"];
+  const inactive = person.role === "Customer" ? "Suspended" : "Deactivated";
+  const parts = [roleNames[person.role], person.isActive ? null : inactive];
   return parts.filter(Boolean).join(" · ");
+}
+
+// A customer has no branch, so that slot tells staff whether they can sign in.
+function accountSlot(person: Person) {
+  if (person.role !== "Customer") {
+    return person.branchName;
+  }
+  return person.isActive ? "Active" : "Suspended";
 }

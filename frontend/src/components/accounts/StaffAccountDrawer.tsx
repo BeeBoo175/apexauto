@@ -72,14 +72,13 @@ export function StaffAccountDrawer({
 
   let footerNote = "";
   if (invitation) {
-    footerNote = "Send the link again, correct the address or revoke the invitation.";
+    footerNote = "Manage this invite.";
   } else if (suspendable) {
-    footerNote = "Suspending ends every session at once; their work stays assigned.";
+    footerNote = "Ends all sessions.";
   } else if (suspended) {
-    footerNote = "Lifting the suspension lets them sign in again.";
+    footerNote = "Restores sign-in.";
   } else if (deactivated) {
-    footerNote =
-      "Reactivating restores access to a fixed role and branch, without their former work.";
+    footerNote = "Restores role and branch, not past work.";
   }
   if (!invitation && !self && !deactivated && !suspendable && !suspended) {
     footerNote = "";

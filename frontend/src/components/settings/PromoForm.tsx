@@ -175,8 +175,8 @@ export function PromoForm({
         title={base ? "Promo terms" : "New promo"}
         description={
           base
-            ? "The code is fixed. Accepted reservations keep the discount they were given."
-            : "Codes are case-sensitive and can be reused across separate reservations."
+            ? "Accepted reservations keep their discount."
+            : "Codes are case-sensitive and reusable."
         }
       >
         <ConfirmationButton

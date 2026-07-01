@@ -153,18 +153,20 @@
   text-transform: uppercase;
 }
 
-.demoList {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.demoRoles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
 }
 
 .demoContent .demoOption {
   flex-direction: column;
   align-items: flex-start;
-  gap: 2px;
+  justify-content: flex-start;
+  gap: 4px;
   height: auto;
-  padding: 8px;
+  padding: 10px 12px;
+  text-align: left;
   white-space: normal;
 }
 
@@ -176,6 +178,7 @@
 
 .demoOptionDescription {
   color: var(--color-muted);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 400;
+  line-height: 1.4;
 }

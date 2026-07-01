@@ -89,3 +89,11 @@
     transition: none;
   }
 }
+
+.labelled {
+  --view-size: 112px;
+}
+
+.labelled .option {
+  gap: 6px;
+}

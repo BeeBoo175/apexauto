@@ -6,6 +6,8 @@ export const iconFiles = {
   inspection: "shield-search.svg",
   calendar: "calendar.svg",
   table: "table.svg",
+  users: "users.svg",
+  user: "user.svg",
   previous: "chevron-left.svg",
   next: "chevron-right.svg",
   refresh: "refresh.svg",

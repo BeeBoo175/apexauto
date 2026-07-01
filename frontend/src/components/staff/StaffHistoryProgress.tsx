@@ -32,6 +32,7 @@ export function StaffHistoryProgress({
               </div>
               <span className={timeline.eventContext} />
               <span className={timeline.eventText} />
+              <span className={timeline.eventText} />
             </li>
           ))}
         </ol>

@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 import { SearchField } from "@/components/ui/SearchField";
 import { RecordToolbar } from "@/components/ui/RecordToolbar";
@@ -31,11 +32,14 @@ export function StaffAccountsTable({
   branches,
   selectedId,
   onOpen,
+  actions,
 }: {
   list: ReturnType<typeof useStaffAccountsList>;
   branches: Page<Branch> | null;
   selectedId: string;
   onOpen: (id: string) => void;
+  // The view switch and Invite staff sit beside the search, like other staff tables.
+  actions: ReactNode;
 }) {
   const { snapshot, active, busy, draft, setDraft } = list;
   const filters = active.filters;
@@ -150,16 +154,19 @@ export function StaffAccountsTable({
                   />
                 }
                 actions={
-                  applied.length > 0 && (
-                    <Button
-                      size="compact"
-                      variant="ghost"
-                      disabled={busy}
-                      onClick={() => void list.load({ ...filters, role: "", branchId: "" }, 1)}
-                    >
-                      Reset filters
-                    </Button>
-                  )
+                  <>
+                    {applied.length > 0 && (
+                      <Button
+                        size="compact"
+                        variant="ghost"
+                        disabled={busy}
+                        onClick={() => void list.load({ ...filters, role: "", branchId: "" }, 1)}
+                      >
+                        Reset filters
+                      </Button>
+                    )}
+                    {actions}
+                  </>
                 }
               >
                 <form

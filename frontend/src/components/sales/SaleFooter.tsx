@@ -61,21 +61,19 @@ export function SaleFooter({
 
   if (completionActive || completionLoading) {
     let taskTitle = "Review settlement";
-    let taskDescription = "Confirm buyer details and payment before issuing documents.";
+    let taskDescription = "Confirm buyer and payment first.";
     if (completionStage === "handover") {
       taskTitle = "Complete handover";
-      taskDescription = "Record the odometer, keys and delivery confirmations.";
+      taskDescription = "Record odometer, keys and delivery.";
     }
     if (correctingDocument) {
       taskTitle = "Correct buyer details";
-      taskDescription = "The original document remains available after reissue.";
+      taskDescription = "The original stays available.";
     }
     return (
       <StaffWorkspaceFooter
         title={completionLoading ? "Loading buyer details" : taskTitle}
-        description={
-          delivery ? taskDescription : "Your entries are kept. Return to Delivery to continue."
-        }
+        description={delivery ? taskDescription : "Entries kept. Return to Delivery."}
       >
         <div ref={onActionsContainer} className={workspace.footerActions} />
         {!delivery && (

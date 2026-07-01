@@ -55,39 +55,37 @@ function footerContext(
   if (editor.save.uncertain || editor.sign.uncertain) {
     return {
       title: "Inspection action unconfirmed",
-      description: "Reconcile the captured inspection action before continuing.",
+      description: "Confirm the earlier action first.",
     };
   }
   if (editor.checklistDirty) {
     return {
       title: "Unsaved inspection changes",
-      description:
-        "Your findings are retained across tabs. Save or discard them before leaving this job.",
+      description: "Findings are kept. Save or discard them.",
     };
   }
   if (section === "inspection") {
     return {
       title: editor.editable ? "Inspection draft" : "Inspection review",
       description: editor.editable
-        ? "Save your findings before signing this revision."
-        : "Read-only findings. Actions depend on the current assignment.",
+        ? "Save findings before signing."
+        : "Read-only; actions follow assignment.",
     };
   }
   if (section === "history" || historical) {
     return {
       title: section === "history" ? "Record history" : "Historical repair work",
-      description: "Retained inspection and repair records are read only.",
+      description: "Past records are read only.",
     };
   }
   if (repairEditing) {
     return {
       title: "Edit repair work and budget",
-      description:
-        "Submit the required work and budget for approval. Your edits are retained across tabs.",
+      description: "Submit work and budget for approval.",
     };
   }
   return {
     title: "Repair work",
-    description: "Review the requested work and budget before approving or completing repairs.",
+    description: "Review work and budget before acting.",
   };
 }

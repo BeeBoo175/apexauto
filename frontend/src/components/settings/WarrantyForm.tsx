@@ -199,7 +199,7 @@ export function WarrantyForm({
       </div>
       <StaffWorkspaceFooter
         title={base ? "Package terms" : "New warranty package"}
-        description="Existing deals and certificates keep the terms they were sold with."
+        description="Sold deals keep their original terms."
       >
         <ConfirmationButton
           size="compact"

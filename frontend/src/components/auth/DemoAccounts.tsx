@@ -40,13 +40,12 @@ export function DemoAccounts({
         {groupAccounts(accounts).map(([group, members]) => (
           <section key={group} className={styles.demoGroup}>
             <h3 className={styles.demoGroupTitle}>{group}</h3>
-            <div className={styles.demoList}>
+            <div className={styles.demoRoles}>
               {members.map((account) => (
                 <Button
                   key={account.email}
                   type="button"
-                  variant="choice"
-                  size="row"
+                  variant="secondary"
                   className={styles.demoOption}
                   aria-label={`Use ${account.label} demo account`}
                   onClick={() => onSelect(account)}

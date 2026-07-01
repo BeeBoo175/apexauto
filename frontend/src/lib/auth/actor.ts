@@ -37,7 +37,7 @@ export function hasIntakeAccess(actor: CurrentActor) {
 export function actorDestination(actor: CurrentActor, returnTo?: string) {
   if (actor.role !== "Customer") {
     if (actor.role === "Administrator") {
-      return "/dashboard";
+      return "/dashboard/accounts";
     }
     if (actor.role === "WorkshopTechnician") {
       return "/dashboard/inspection";

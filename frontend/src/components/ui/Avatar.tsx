@@ -54,6 +54,10 @@ function AvatarFace({
   );
 }
 
+function customerAccountState(person: { isActive: boolean }) {
+  return person.isActive ? "Active" : "Suspended";
+}
+
 function PreviewDetails({
   accountId,
   name,
@@ -70,7 +74,8 @@ function PreviewDetails({
   // Every row keeps its slot while the shared read loads, so the card never changes size.
   const rows = {
     role: person ? roleNames[person.role] : detail,
-    branch: person?.branchName ?? "",
+    // A customer has no branch; the slot tells staff whether they can sign in.
+    branch: person?.role === "Customer" ? customerAccountState(person) : (person?.branchName ?? ""),
     mobile: person?.mobile ?? "",
     email: person?.email ?? "",
   };
@@ -82,10 +87,12 @@ function PreviewDetails({
       <span className={styles.previewRole} data-pending={pending}>
         {rows.branch}
       </span>
-      <span className={styles.previewContact}>
-        <span data-pending={pending}>{rows.mobile}</span>
-        <span data-pending={pending}>{rows.email}</span>
-      </span>
+      {person?.role !== "Customer" && (
+        <span className={styles.previewContact}>
+          <span data-pending={pending}>{rows.mobile}</span>
+          <span data-pending={pending}>{rows.email}</span>
+        </span>
+      )}
     </span>
   );
 }

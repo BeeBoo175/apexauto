@@ -128,7 +128,7 @@ function footerContext(
   if (editor.command.uncertain || editor.approval.uncertain || editor.withdrawal.uncertain) {
     return {
       title: "Listing action unconfirmed",
-      description: "Reconcile the captured action before continuing.",
+      description: "Confirm the earlier action first.",
     };
   }
   if (historical) {
@@ -136,73 +136,70 @@ function footerContext(
       title: section === "publication" ? "Historical publication" : "Historical listing",
       description:
         section === "publication"
-          ? "Approval and withdrawal records are read only. Your current draft is retained."
-          : "Saved fields are read only; identity and mileage reflect the current vehicle record.",
+          ? "Past records are read only; draft kept."
+          : "Saved fields are read only.",
     };
   }
   if (editor.withdrawalReason) {
     return {
       title: "Withdraw listing",
       description: editor.withdrawalTargetChanged
-        ? "The publication changed. Clear the reason before withdrawing the current publication."
-        : "Withdrawal requires a valid reason and confirmation. Clear the reason to return to publication review.",
+        ? "Publication changed. Clear the reason."
+        : "Withdrawing needs a reason and confirmation.",
     };
   }
   if (editor.value.photoIds.length > MAX_LISTING_PHOTOS) {
     return {
       title: "Photo limit exceeded",
-      description: "Keep up to four photos in Listing, then save the draft before approval.",
+      description: "Keep four photos at most, then save.",
     };
   }
   if (editor.upload.file) {
     return {
       title: editor.upload.uncertain ? "Photo upload unconfirmed" : "Photo selected",
-      description: "Open Listing to upload the selected photo or check its receipt.",
+      description: "Upload the photo or check it in Listing.",
     };
   }
   if (editor.stale) {
     return {
       title: "Newer saved draft available",
-      description: "Discard local changes in Listing to use the newer saved draft.",
+      description: "Discard changes to use the newer draft.",
     };
   }
   if (editor.dirty) {
     return {
       title: "Unsaved draft changes",
-      description: "Your edits are retained. Save or discard them in Listing before approval.",
+      description: "Save or discard edits before approval.",
     };
   }
   if (section === "history") {
     return {
       title: "Listing history",
-      description: "Saved revisions and publication records are read only.",
+      description: "Past revisions are read only.",
     };
   }
   if (section === "publication") {
     if (editor.approval.awaitingRefresh) {
       return {
         title: "Publication confirmed",
-        description: "Refresh the listing to update its displayed publication record.",
+        description: "Refresh to show the publication record.",
       };
     }
     if (editor.isWithdrawn) {
       return {
         title: "Listing withdrawn",
-        description:
-          "Republish listing approves these saved details and puts the listing back online.",
+        description: "Republish approves and restores the listing.",
       };
     }
     if (editor.hasActivePublication && !editor.canApprove) {
       return {
         title: "Listing published",
-        description:
-          "Enter a withdrawal reason to remove the listing. Save changed details in Listing before approving an update.",
+        description: "Withdraw with a reason, or save to update.",
       };
     }
     return {
       title: "Publication review",
-      description:
-        "Approve the saved draft to publish it. Enter a withdrawal reason to switch to withdrawal.",
+      description: "Approve the saved draft to publish it.",
     };
   }
   return {

@@ -377,7 +377,7 @@ for (const [role, email, destination] of [
   ["Branch manager", "siti.aminah@example.invalid", "/dashboard/work-calendar"],
   ["General manager", "farah.aziz@example.invalid", "/dashboard/work-calendar"],
   ["Workshop technician", "azlan.rahim@example.invalid", "/dashboard/inspection"],
-  ["Administrator", "muhammad.hafiz@example.invalid", "/dashboard"],
+  ["Administrator", "muhammad.hafiz@example.invalid", "/dashboard/accounts"],
 ]) {
   test(`${role} receives its verified destination and current intake permission`, async ({
     page,
@@ -389,7 +389,7 @@ for (const [role, email, destination] of [
       await expect(page).toHaveURL(new RegExp(`${destination}$`));
     }
     if (role === "Workshop technician" || role === "Administrator") {
-      const heading = role === "Workshop technician" ? "Workshop" : "Administration";
+      const heading = role === "Workshop technician" ? "Workshop" : "Staff accounts";
       await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
       if (role === "Workshop technician") {
         await reviewAgentQueue(page, "inspection", captureIntake);

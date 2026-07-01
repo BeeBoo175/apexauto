@@ -41,12 +41,11 @@ export const staffWorkspaceLinks: StaffWorkspaceLink[] = [
     label: "Test drives",
     allowed: (actor) => hasTestDriveAccess(actor.role),
   },
-  { href: "/dashboard/settings", label: "Settings", allowed: hasSettingsAccess },
   { href: "/dashboard/accounts", label: "Accounts", allowed: hasAccountAdministration },
+  { href: "/dashboard/settings", label: "Settings", allowed: hasSettingsAccess },
 ];
 
 export const staffPageTitles: Record<string, string> = {
-  "/dashboard": "Administration",
   "/dashboard/account": "Account",
   "/dashboard/inspection/repairs": "Repair requests",
   ...Object.fromEntries(staffWorkspaceLinks.map((link) => [link.href, link.label])),

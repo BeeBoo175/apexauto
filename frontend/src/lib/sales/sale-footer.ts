@@ -17,22 +17,22 @@ function nextStepNote(status: SaleStatus, actions: SaleActions, dirty: boolean) 
     return "Save your term changes before submitting.";
   }
   if (actions.decide) {
-    return "Approve the submitted terms, or return them to the agent with a reason.";
+    return "Approve the terms or return them.";
   }
   if (status === "Handling" && !actions.saveTerms) {
-    return "Review the agreed terms or manage this sale’s assignment.";
+    return "Review terms or manage assignment.";
   }
   const notes: Record<SaleStatus, string> = {
     Open: actions.claim
       ? "Claim this sale to start agreeing terms."
       : "Assign an agent to start agreeing terms.",
-    Handling: "Key the terms agreed with the customer, then submit.",
-    PendingApproval: "Waiting for a manager to approve the discount.",
+    Handling: "Enter the agreed terms, then submit.",
+    PendingApproval: "Waiting for manager approval.",
     Approved: "Settlement and handover follow.",
-    Settled: "Settlement is confirmed. Complete handover after the vehicle is ready.",
-    Delivered: "This sale has been delivered. Retained records are read only.",
-    Expired: "This hold expired and its deposit was refunded.",
-    Cancelled: "This sale is cancelled and its deposit refunded.",
+    Settled: "Settled. Hand over when the vehicle is ready.",
+    Delivered: "Delivered; records are read only.",
+    Expired: "Hold expired; deposit refunded.",
+    Cancelled: "Cancelled; deposit refunded.",
   };
   return notes[status];
 }
@@ -47,26 +47,26 @@ export function saleFooterPresentation(state: SaleFooterState) {
     return {
       title: cancelling ? "Cancel sale" : "Return to agent",
       description: editingHere
-        ? "Complete this action, or discard changes to continue reviewing the sale."
-        : "Your reason is kept. Return to Deal to complete the action, or discard changes.",
+        ? "Complete this, or discard changes."
+        : "Reason kept. Return to Deal to finish.",
     };
   }
   if (editing) {
     return {
       title: dirty ? "Unsaved deal terms" : "Edit deal terms",
       description: editingHere
-        ? "Save the agreed terms, or discard changes to restore the confirmed deal."
-        : "Your terms are kept. Return to Deal to save or discard changes.",
+        ? "Save the terms, or discard changes."
+        : "Terms kept. Return to Deal to save.",
     };
   }
   if (viewingPast) {
     return {
       title: `Historical ${saleSectionLabels[section].toLowerCase()} · version ${version}`,
-      description: "Retained sale versions are read only.",
+      description: "Past versions are read only.",
     };
   }
   if (section === "history") {
-    return { title: "Record history", description: "Retained sale versions are read only." };
+    return { title: "Record history", description: "Past versions are read only." };
   }
   if (section === "delivery") {
     return {

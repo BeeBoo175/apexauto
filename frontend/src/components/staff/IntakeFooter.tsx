@@ -87,7 +87,7 @@ function footerContext({
   if (uncertain) {
     return {
       title: "Attendance action unconfirmed",
-      description: "Reconcile the captured action before continuing.",
+      description: "Confirm the earlier action first.",
     };
   }
   if (confirmed) {
@@ -97,21 +97,21 @@ function footerContext({
     return {
       title: dirty ? "Unsaved attendance entries" : "Physical check-in",
       description: correcting
-        ? "Confirm the recorded attendance and correction reason."
-        : "Confirm the customer's arrival and physical vehicle.",
+        ? "Confirm attendance and the reason."
+        : "Confirm the customer and vehicle.",
     };
   }
   if (readOnly) {
     return {
       title: "Read-only appointment",
-      description: "Your role has read-only intake access.",
+      description: "Your role has read-only access.",
     };
   }
   if (terminal) {
-    return { title: "Appointment history", description: "The recorded appointment is read only." };
+    return { title: "Appointment history", description: "This appointment is read only." };
   }
   return {
     title: "Appointment ownership",
-    description: "Claim or assign an eligible handler before recording arrival.",
+    description: "Claim or assign a handler first.",
   };
 }
