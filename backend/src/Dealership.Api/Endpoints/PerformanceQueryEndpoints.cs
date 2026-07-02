@@ -15,6 +15,7 @@ public static class PerformanceQueryEndpoints
         routes.MapGet("/headline", HeadlineAsync);
         routes.MapGet("/pipeline", PipelineAsync);
         routes.MapGet("/stock-flow", StockFlowAsync);
+        routes.MapGet("/stage-waiting", StageWaitingAsync);
     }
 
     private static async Task<IResult> HeadlineAsync(HttpContext context, IPerformanceReads reads,
@@ -36,6 +37,13 @@ public static class PerformanceQueryEndpoints
     {
         return await ReadAsync(from, to, branchId,
             (query, token) => reads.StockFlowAsync(HttpContextActor.ActorId(context), query, token), cancellationToken);
+    }
+
+    private static async Task<IResult> StageWaitingAsync(HttpContext context, IPerformanceReads reads,
+        CancellationToken cancellationToken, string? from = null, string? to = null, Guid? branchId = null)
+    {
+        return await ReadAsync(from, to, branchId,
+            (query, token) => reads.StageWaitingAsync(HttpContextActor.ActorId(context), query, token), cancellationToken);
     }
 
     private static async Task<IResult> ReadAsync<T>(string? from, string? to, Guid? branchId,

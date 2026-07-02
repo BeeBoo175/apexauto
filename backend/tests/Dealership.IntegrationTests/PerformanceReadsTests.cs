@@ -23,7 +23,11 @@ public sealed class PerformanceReadsTests(IntakePhotoFixture fixture) : IClassFi
         var pipelineBefore = (await reads.PipelineAsync(world.Manager, query, default)).Value!;
 
         var flowBefore = (await reads.StockFlowAsync(world.Manager, query, default)).Value!;
+        var stagesBefore = (await reads.StageWaitingAsync(world.Manager, query, default)).Value!;
         var (held, request, total) = await SettledAsync(world);
+        var stagesSettled = (await reads.StageWaitingAsync(world.Manager, query, default)).Value!;
+        Assert.Equal(StageNow(stagesBefore, PerformanceStages.SaleInProgress) + 1,
+            StageNow(stagesSettled, PerformanceStages.SaleInProgress));
         var settledGroup = (await reads.PipelineAsync(world.Manager, query, default)).Value!.Groups
             .Single(group => group.Group == PerformancePipelineGroups.SettledUndelivered);
         var settledBefore = pipelineBefore.Groups.Single(group => group.Group == PerformancePipelineGroups.SettledUndelivered);
@@ -42,6 +46,14 @@ public sealed class PerformanceReadsTests(IntakePhotoFixture fixture) : IClassFi
             .Single(group => group.Group == PerformancePipelineGroups.SettledUndelivered);
         Assert.Equal(settledBefore.Count, settledAfter.Count);
 
+        var stagesAfter = (await reads.StageWaitingAsync(world.Manager, query, default)).Value!;
+        Assert.Equal(StageNow(stagesBefore, PerformanceStages.SaleInProgress),
+            StageNow(stagesAfter, PerformanceStages.SaleInProgress));
+        var delivery = stagesAfter.Stages.Single(stage => stage.Stage == PerformanceStages.SaleInProgress);
+        Assert.Equal(stagesBefore.Stages.Single(stage => stage.Stage == PerformanceStages.SaleInProgress).CompletedCount + 1,
+            delivery.CompletedCount);
+        Assert.NotNull(delivery.AverageDays);
+        Assert.Equal(PerformanceReadStatus.Forbidden, (await reads.StageWaitingAsync(world.Agent, query, default)).Status);
         var flowAfter = (await reads.StockFlowAsync(world.Manager, query, default)).Value!;
         Assert.Equal(flowBefore.Weeks.Sum(week => week.Deliveries) + 1, flowAfter.Weeks.Sum(week => week.Deliveries));
         Assert.All(flowAfter.Weeks, week => Assert.Equal(DayOfWeek.Monday, week.WeekStart.DayOfWeek));
@@ -63,6 +75,9 @@ public sealed class PerformanceReadsTests(IntakePhotoFixture fixture) : IClassFi
         Assert.Equal(TimeSpan.FromDays(7), period.Length);
         Assert.Equal(new DateTimeOffset(2026, 10, 31, 16, 0, 0, TimeSpan.Zero), period.From);
     }
+
+    private static int StageNow(PerformanceStageWaiting waiting, string stage) =>
+        waiting.Stages.Single(item => item.Stage == stage).InStageNow;
 
     private async Task<(Dealership.Domain.Vehicles.Reservation Hold, SaleHandoverRequest Request, decimal Total)> SettledAsync(
         SaleWorld world)

@@ -57,6 +57,25 @@ public sealed record PerformanceStockWeek(DateOnly WeekStart, int CheckIns, int 
 
 public sealed record PerformanceStockFlow(CurrentActor Actor, IReadOnlyList<PerformanceStockWeek> Weeks);
 
+public static class PerformanceStages
+{
+    public const string AwaitingInspection = "AwaitingInspection";
+    public const string InInspection = "InInspection";
+    public const string InRepair = "InRepair";
+    public const string AwaitingListing = "AwaitingListing";
+    public const string Listed = "Listed";
+    public const string SaleInProgress = "SaleInProgress";
+
+    public static readonly string[] Ordered =
+        [AwaitingInspection, InInspection, InRepair, AwaitingListing, Listed, SaleInProgress];
+}
+
+// InStageNow ignores the period. AverageDays is the elapsed calendar time of first passes that left the stage in
+// the period, with the number of passes it averages; it is absent when no pass completed.
+public sealed record PerformanceStage(string Stage, int InStageNow, int CompletedCount, double? AverageDays);
+
+public sealed record PerformanceStageWaiting(CurrentActor Actor, IReadOnlyList<PerformanceStage> Stages);
+
 public interface IPerformanceReads
 {
     Task<PerformanceReadResult<PerformanceHeadline>> HeadlineAsync(Guid actorId, PerformanceQuery query,
@@ -66,5 +85,8 @@ public interface IPerformanceReads
         CancellationToken cancellationToken);
 
     Task<PerformanceReadResult<PerformanceStockFlow>> StockFlowAsync(Guid actorId, PerformanceQuery query,
+        CancellationToken cancellationToken);
+
+    Task<PerformanceReadResult<PerformanceStageWaiting>> StageWaitingAsync(Guid actorId, PerformanceQuery query,
         CancellationToken cancellationToken);
 }
