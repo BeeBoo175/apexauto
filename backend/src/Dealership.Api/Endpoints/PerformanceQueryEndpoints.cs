@@ -22,6 +22,7 @@ public static class PerformanceQueryEndpoints
         routes.MapGet("/stage-waiting", StageWaitingAsync);
         routes.MapGet("/workload", WorkloadAsync);
         routes.MapGet("/roster", RosterAsync);
+        routes.MapGet("/branches", BranchComparisonAsync);
         routes.MapGet("/team/sales", SalesTeamAsync);
         routes.MapGet("/team/workshop", WorkshopTeamAsync);
         routes.MapGet("/team/sales/export", ExportSalesTeamAsync);
@@ -61,6 +62,14 @@ public static class PerformanceQueryEndpoints
     {
         return await ReadAsync(from, to, branchId,
             (query, token) => reads.WorkloadAsync(HttpContextActor.ActorId(context), query, token), cancellationToken);
+    }
+
+    private static async Task<IResult> BranchComparisonAsync(HttpContext context, IPerformanceReads reads,
+        CancellationToken cancellationToken, string? from = null, string? to = null)
+    {
+        return await ReadAsync(from, to, null,
+            (query, token) => reads.BranchComparisonAsync(HttpContextActor.ActorId(context), query, token),
+            cancellationToken);
     }
 
     private static async Task<IResult> RosterAsync(HttpContext context, IPerformanceReads reads,

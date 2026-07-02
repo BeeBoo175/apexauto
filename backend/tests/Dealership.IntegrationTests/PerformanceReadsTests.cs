@@ -92,6 +92,23 @@ public sealed class PerformanceReadsTests(IntakePhotoFixture fixture) : IClassFi
         var secondPage = (await reads.SalesTeamAsync(world.Manager, team with { Page = 99 }, default)).Value!;
         Assert.Empty(secondPage.Items);
         Assert.Equal(salesTeam.Total, secondPage.Total);
+        Assert.Equal(PerformanceReadStatus.Forbidden, (await reads.BranchComparisonAsync(world.Manager, query, default)).Status);
+        var generalEmail = $"general.{Guid.NewGuid():N}@example.invalid";
+        var general = await world.Services.GetRequiredService<StaffProvisioningService>().ProvisionStaffAsync(
+            new(Guid.NewGuid(), generalEmail, "Password123!",
+                AccountRoles.GeneralManager, null, "Mei Ling Tan", "0123456789"), default);
+        Assert.True(general.Created);
+        await using var lookup = new DealershipDbContext(new DbContextOptionsBuilder<DealershipDbContext>()
+            .UseNpgsql(fixture.Database.RuntimeConnectionString).Options);
+        var generalId = await lookup.Users.Where(user => user.Email == generalEmail).Select(user => user.Id).SingleAsync();
+        var comparison = (await reads.BranchComparisonAsync(generalId, query, default)).Value!;
+        var ownBranch = comparison.Branches.Single(branch => branch.BranchId == after.Actor.BranchId);
+        Assert.Equal(after.Current.VehiclesDelivered, ownBranch.Current.VehiclesDelivered);
+        Assert.Equal(after.Current.DeliveredValue, ownBranch.Current.DeliveredValue);
+        Assert.Equal(comparison.Branches.Select(branch => branch.BranchName).Order(),
+            comparison.Branches.Select(branch => branch.BranchName));
+        var everywhere = (await reads.HeadlineAsync(generalId, query, default)).Value!;
+        Assert.Equal(comparison.Branches.Sum(branch => branch.Current.VehiclesDelivered), everywhere.Current.VehiclesDelivered);
         var flowAfter = (await reads.StockFlowAsync(world.Manager, query, default)).Value!;
         Assert.Equal(flowBefore.Weeks.Sum(week => week.Deliveries) + 1, flowAfter.Weeks.Sum(week => week.Deliveries));
         Assert.All(flowAfter.Weeks, week => Assert.Equal(DayOfWeek.Monday, week.WeekStart.DayOfWeek));

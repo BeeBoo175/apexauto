@@ -90,6 +90,12 @@ public sealed record PerformanceRosterCell(int Weekday, int Hour, int Appointmen
 
 public sealed record PerformanceRoster(CurrentActor Actor, IReadOnlyList<PerformanceRosterCell> Cells);
 
+// One row per active branch for a GeneralManager, with the headline measures of the period and the one before it.
+public sealed record PerformanceBranchRow(Guid BranchId, string BranchName, PerformancePeriodTotals Current,
+    PerformancePeriodTotals Previous);
+
+public sealed record PerformanceBranchComparison(CurrentActor Actor, IReadOnlyList<PerformanceBranchRow> Branches);
+
 public interface IPerformanceReads
 {
     Task<PerformanceReadResult<PerformanceHeadline>> HeadlineAsync(Guid actorId, PerformanceQuery query,
@@ -106,6 +112,9 @@ public interface IPerformanceReads
 
     Task<PerformanceReadResult<PerformanceWorkload>> WorkloadAsync(Guid actorId, PerformanceQuery query,
         CancellationToken cancellationToken);
+
+    Task<PerformanceReadResult<PerformanceBranchComparison>> BranchComparisonAsync(Guid actorId,
+        PerformanceQuery query, CancellationToken cancellationToken);
 
     Task<PerformanceReadResult<PerformanceRoster>> RosterAsync(Guid actorId, PerformanceQuery query,
         CancellationToken cancellationToken);
