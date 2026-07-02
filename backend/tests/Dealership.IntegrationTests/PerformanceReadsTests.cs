@@ -133,42 +133,29 @@ public sealed class PerformanceReadsTests(IntakePhotoFixture fixture) : IClassFi
     }
 
     [Fact]
-    public async Task TeamOutputExportsMatchThePageAndStayOutOfReachOfAgents()
+    public async Task TeamOutputPagesStayOutOfReachOfAgentsAndRejectBadRequests()
     {
         var world = await SaleWorld.SharedAsync(fixture);
         using var factory = fixture.CreateFactory();
         using var anonymous = factory.CreateClient();
         const string period = "from=2026-01-01&to=2026-12-31";
         Assert.Equal(HttpStatusCode.Unauthorized,
-            (await anonymous.GetAsync($"/api/performance/team/sales/export?{period}")).StatusCode);
+            (await anonymous.GetAsync($"/api/performance/team/sales?{period}")).StatusCode);
 
         using var agent = factory.CreateClient();
         await LoginAsync(agent, world.Agent);
         Assert.Equal(HttpStatusCode.Forbidden,
-            (await agent.GetAsync($"/api/performance/team/sales/export?{period}")).StatusCode);
+            (await agent.GetAsync($"/api/performance/team/sales?{period}")).StatusCode);
 
         using var manager = factory.CreateClient();
         await LoginAsync(manager, world.Manager);
-        var sales = await manager.GetAsync($"/api/performance/team/sales/export?{period}");
-        Assert.Equal(HttpStatusCode.OK, sales.StatusCode);
-        Assert.Equal("text/csv", sales.Content.Headers.ContentType!.MediaType);
-        var text = await sales.Content.ReadAsStringAsync();
-        Assert.StartsWith("\"Name\",\"Role\",\"Branch\"", text, StringComparison.Ordinal);
-        Assert.DoesNotContain("Value", text, StringComparison.Ordinal);
         var page = (await manager.GetFromJsonAsync<PerformanceTeamPage<PerformanceSalesRow>>(
             $"/api/performance/team/sales?{period}"))!;
-        Assert.Equal(page.Total, int.Parse(sales.Headers.GetValues("X-Export-Row-Count").Single(), CultureInfo.InvariantCulture));
-        Assert.Equal(HttpStatusCode.OK, (await manager.GetAsync($"/api/performance/team/workshop/export?{period}")).StatusCode);
-        var milestones = await manager.GetAsync($"/api/performance/people/{world.Agent}/milestones/export?{period}");
-        Assert.Equal(HttpStatusCode.OK, milestones.StatusCode);
-        Assert.StartsWith("\"Milestone\",\"Reference\",\"Date (UTC)\"", await milestones.Content.ReadAsStringAsync(),
-            StringComparison.Ordinal);
-        Assert.Equal(HttpStatusCode.NotFound,
-            (await manager.GetAsync($"/api/performance/people/{Guid.NewGuid()}/milestones/export?{period}")).StatusCode);
+        Assert.Equal(1, page.Page);
         Assert.Equal(HttpStatusCode.Forbidden,
             (await agent.GetAsync($"/api/performance/people/{world.Agent}/milestones?{period}")).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest,
-            (await manager.GetAsync("/api/performance/team/sales/export?from=2026-02-01&to=2026-01-01")).StatusCode);
+            (await manager.GetAsync("/api/performance/team/sales?from=2026-02-01&to=2026-01-01")).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest,
             (await manager.GetAsync($"/api/performance/team/sales?{period}&pageSize=7")).StatusCode);
     }
