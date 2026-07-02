@@ -22,6 +22,7 @@ public sealed class PerformanceReadsTests(IntakePhotoFixture fixture) : IClassFi
         var before = (await reads.HeadlineAsync(world.Manager, query, default)).Value!;
         var pipelineBefore = (await reads.PipelineAsync(world.Manager, query, default)).Value!;
 
+        var flowBefore = (await reads.StockFlowAsync(world.Manager, query, default)).Value!;
         var (held, request, total) = await SettledAsync(world);
         var settledGroup = (await reads.PipelineAsync(world.Manager, query, default)).Value!.Groups
             .Single(group => group.Group == PerformancePipelineGroups.SettledUndelivered);
@@ -40,6 +41,11 @@ public sealed class PerformanceReadsTests(IntakePhotoFixture fixture) : IClassFi
         var settledAfter = (await reads.PipelineAsync(world.Manager, query, default)).Value!.Groups
             .Single(group => group.Group == PerformancePipelineGroups.SettledUndelivered);
         Assert.Equal(settledBefore.Count, settledAfter.Count);
+
+        var flowAfter = (await reads.StockFlowAsync(world.Manager, query, default)).Value!;
+        Assert.Equal(flowBefore.Weeks.Sum(week => week.Deliveries) + 1, flowAfter.Weeks.Sum(week => week.Deliveries));
+        Assert.All(flowAfter.Weeks, week => Assert.Equal(DayOfWeek.Monday, week.WeekStart.DayOfWeek));
+        Assert.Equal(PerformanceReadStatus.Forbidden, (await reads.StockFlowAsync(world.Agent, query, default)).Status);
 
         // Agents and customers may not read performance at all.
         Assert.Equal(PerformanceReadStatus.Forbidden, (await reads.HeadlineAsync(world.Agent, query, default)).Status);

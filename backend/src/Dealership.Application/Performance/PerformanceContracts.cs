@@ -52,11 +52,19 @@ public sealed record PerformancePipelineGroup(string Group, int Count, decimal A
 
 public sealed record PerformancePipeline(CurrentActor Actor, IReadOnlyList<PerformancePipelineGroup> Groups);
 
+// One Malaysian calendar week, named by its Monday, with the check-ins and deliveries completed in it.
+public sealed record PerformanceStockWeek(DateOnly WeekStart, int CheckIns, int Deliveries);
+
+public sealed record PerformanceStockFlow(CurrentActor Actor, IReadOnlyList<PerformanceStockWeek> Weeks);
+
 public interface IPerformanceReads
 {
     Task<PerformanceReadResult<PerformanceHeadline>> HeadlineAsync(Guid actorId, PerformanceQuery query,
         CancellationToken cancellationToken);
 
     Task<PerformanceReadResult<PerformancePipeline>> PipelineAsync(Guid actorId, PerformanceQuery query,
+        CancellationToken cancellationToken);
+
+    Task<PerformanceReadResult<PerformanceStockFlow>> StockFlowAsync(Guid actorId, PerformanceQuery query,
         CancellationToken cancellationToken);
 }

@@ -10,7 +10,7 @@ namespace Dealership.Infrastructure.Performance;
 
 // Manager operations reporting: every section is a bounded aggregate over retained event rows, attributed to the
 // branch recorded at the event, never to a person's current branch.
-public sealed class PerformanceReads(DealershipDbContext database) : IPerformanceReads
+public sealed partial class PerformanceReads(DealershipDbContext database) : IPerformanceReads
 {
     public async Task<PerformanceReadResult<PerformanceHeadline>> HeadlineAsync(Guid actorId, PerformanceQuery query,
         CancellationToken cancellationToken)
