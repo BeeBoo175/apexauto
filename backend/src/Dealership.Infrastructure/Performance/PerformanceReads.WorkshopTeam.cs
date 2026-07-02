@@ -66,7 +66,7 @@ public sealed partial class PerformanceReads
             var again = mine.Where(item => item.Revision > 1).ToArray();
             var current = people.IsCurrent(personId, rowBranch);
             return new PerformanceWorkshopRow(personId, people.Name(personId), people.Role(personId), rowBranch,
-                people.BranchName(rowBranch), people.Status(personId, rowBranch), first.Length, again.Length,
+                people.BranchName(rowBranch), people.Picture(personId), people.Status(personId, rowBranch), first.Length, again.Length,
                 repairs.Where(item => item.ActorId == personId && item.BranchId == rowBranch).Sum(item => item.Count),
                 AverageDays(first.Select(item => (item.SignedAt - item.Assigned).TotalSeconds)),
                 AverageDays(again.Select(item => (item.SignedAt - Later(item.Assigned, item.Reopened)).TotalSeconds)),

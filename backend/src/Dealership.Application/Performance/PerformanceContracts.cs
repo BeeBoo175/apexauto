@@ -79,7 +79,7 @@ public sealed record PerformanceStageWaiting(CurrentActor Actor, IReadOnlyList<P
 
 // Open work now, split by how long the current holder has had it: under 2 days, 2 to 7 days and over 7 days.
 public sealed record PerformanceWorkloadPerson(Guid Id, string Name, string Role, Guid BranchId, string BranchName,
-    int Under2Days, int TwoToSevenDays, int OverSevenDays)
+    Guid? PictureId, int Under2Days, int TwoToSevenDays, int OverSevenDays)
 {
     public int Total => Under2Days + TwoToSevenDays + OverSevenDays;
 }

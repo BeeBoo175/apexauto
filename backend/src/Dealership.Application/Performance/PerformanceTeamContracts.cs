@@ -27,11 +27,11 @@ public sealed record PerformanceTeamQuery(PerformanceQuery Period, int Page, int
 // Sales & service. The Now counts are absent for a row whose branch is not the person's current branch.
 // AssignmentToDeliveryDays averages the delivering agent's latest assignment up to the delivery.
 public sealed record PerformanceSalesRow(Guid PersonId, string Name, string Role, Guid BranchId, string BranchName,
-    string Status, int CheckIns, int NoShowCorrections, int DrivesCompleted, int DrivesNotCompleted, int SalesSettled,
+    Guid? PictureId, string Status, int CheckIns, int NoShowCorrections, int DrivesCompleted, int DrivesNotCompleted, int SalesSettled,
     int SalesDelivered, double? AssignmentToDeliveryDays, int? IntakeHandled, int? TestDrivesHeld, int? SalesHandled);
 
 // Workshop. Re-inspections are counted and timed apart from first inspections. Intervals run from the latest
 // assignment, or the reopening when that came later, to the sign-off.
 public sealed record PerformanceWorkshopRow(Guid PersonId, string Name, string Role, Guid BranchId, string BranchName,
-    string Status, int InspectionsSigned, int Reinspections, int RepairsCompleted, double? AssignmentToSignOffDays,
+    Guid? PictureId, string Status, int InspectionsSigned, int Reinspections, int RepairsCompleted, double? AssignmentToSignOffDays,
     double? AssignmentToReinspectionDays, int? OpenDrafts, int? OpenRepairs);

@@ -31,6 +31,7 @@ export function StaffLoading() {
     "/dashboard/work-calendar": "calendar",
     "/dashboard/account": "appointment",
     "/dashboard/accounts": "intake",
+    "/dashboard/performance": "inspection",
   };
   let view = views[pathname] ?? "inspection";
   let title = staffPageTitles[pathname] ?? "Your staff workspace";

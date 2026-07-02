@@ -32,7 +32,17 @@ public sealed partial class PerformanceReads
                             join profile in database.StaffProfiles.AsNoTracking() on user.Id equals profile.UserId
                             where user.IsActive && WorkloadRoles.Contains(user.Role) &&
                                 (branchId == null || user.BranchId == branchId)
-                            select new { user.Id, profile.Name, user.Role, BranchId = branch.Id, BranchName = branch.Name })
+                            select new
+                            {
+                                user.Id,
+                                profile.Name,
+                                user.Role,
+                                BranchId = branch.Id,
+                                BranchName = branch.Name,
+                                PictureId = database.AccountPictures
+                                    .Where(picture => picture.UserId == user.Id && picture.RemovedAt == null)
+                                    .Select(picture => (Guid?)picture.Id).FirstOrDefault()
+                            })
             .ToListAsync(cancellationToken);
 
         var started = new List<(Guid PersonId, DateTimeOffset Since)>();
@@ -48,7 +58,7 @@ public sealed partial class PerformanceReads
             {
                 var ages = started.Where(item => item.PersonId == person.Id).Select(item => now - item.Since).ToArray();
                 return new PerformanceWorkloadPerson(person.Id, person.Name, person.Role, person.BranchId,
-                    person.BranchName, ages.Count(age => age < TimeSpan.FromDays(2)),
+                    person.BranchName, person.PictureId, ages.Count(age => age < TimeSpan.FromDays(2)),
                     ages.Count(age => age >= TimeSpan.FromDays(2) && age <= TimeSpan.FromDays(7)),
                     ages.Count(age => age > TimeSpan.FromDays(7)));
             }).ToArray();

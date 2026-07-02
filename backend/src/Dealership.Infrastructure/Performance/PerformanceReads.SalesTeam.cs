@@ -65,7 +65,7 @@ public sealed partial class PerformanceReads
             var (personId, rowBranch) = key;
             var current = people.IsCurrent(personId, rowBranch);
             return new PerformanceSalesRow(personId, people.Name(personId), people.Role(personId), rowBranch,
-                people.BranchName(rowBranch), people.Status(personId, rowBranch),
+                people.BranchName(rowBranch), people.Picture(personId), people.Status(personId, rowBranch),
                 checkIns.Where(item => item.StaffId == personId && item.BranchId == rowBranch && !item.Corrected)
                     .Sum(item => item.Count),
                 checkIns.Where(item => item.StaffId == personId && item.BranchId == rowBranch && item.Corrected)
