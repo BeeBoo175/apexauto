@@ -3,6 +3,7 @@ import { hasIntakeAccess, type CurrentActor } from "@/lib/auth/actor";
 import { hasInspectionAccess } from "@/lib/inspection/contracts";
 import { hasSalesAccess } from "@/lib/sales/contracts";
 import { hasSettingsAccess } from "@/lib/settings/settings";
+import { hasPerformanceAccess } from "@/lib/performance/performance";
 import { hasTestDriveAccess } from "@/lib/test-drives/staff";
 import { hasListingAccess } from "@/lib/vehicles/listings";
 import { hasWorkCalendarAccess } from "./work-calendar";
@@ -41,6 +42,7 @@ export const staffWorkspaceLinks: StaffWorkspaceLink[] = [
     label: "Test drives",
     allowed: (actor) => hasTestDriveAccess(actor.role),
   },
+  { href: "/dashboard/performance", label: "Performance", allowed: hasPerformanceAccess },
   { href: "/dashboard/accounts", label: "Accounts", allowed: hasAccountAdministration },
   { href: "/dashboard/settings", label: "Settings", allowed: hasSettingsAccess },
 ];
