@@ -7,7 +7,8 @@ public enum PerformanceReadStatus
 {
     Succeeded,
     Invalid,
-    Forbidden
+    Forbidden,
+    NotFound
 }
 
 public sealed record PerformanceReadResult<T>(PerformanceReadStatus Status, T? Value = default)
@@ -115,6 +116,9 @@ public interface IPerformanceReads
 
     Task<PerformanceReadResult<PerformanceBranchComparison>> BranchComparisonAsync(Guid actorId,
         PerformanceQuery query, CancellationToken cancellationToken);
+
+    Task<PerformanceReadResult<PerformanceMilestonePage>> MilestonesAsync(Guid actorId,
+        PerformanceMilestoneQuery query, CancellationToken cancellationToken);
 
     Task<PerformanceReadResult<PerformanceRoster>> RosterAsync(Guid actorId, PerformanceQuery query,
         CancellationToken cancellationToken);

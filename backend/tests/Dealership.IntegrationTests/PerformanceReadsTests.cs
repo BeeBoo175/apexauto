@@ -109,6 +109,19 @@ public sealed class PerformanceReadsTests(IntakePhotoFixture fixture) : IClassFi
             comparison.Branches.Select(branch => branch.BranchName));
         var everywhere = (await reads.HeadlineAsync(generalId, query, default)).Value!;
         Assert.Equal(comparison.Branches.Sum(branch => branch.Current.VehiclesDelivered), everywhere.Current.VehiclesDelivered);
+        var milestones = (await reads.MilestonesAsync(world.Manager,
+            PerformanceMilestoneQuery.Parse(query, world.Agent, 1, 25)!, default)).Value!;
+        var delivered = milestones.Items.Single(item => item.Kind == PerformanceMilestoneKinds.SaleDelivered);
+        Assert.Equal(total, delivered.AgreedTotal);
+        Assert.True(delivered.HasAccess);
+        Assert.Equal(held.Id, delivered.RecordId);
+        Assert.Contains(milestones.Items, item => item.Kind == PerformanceMilestoneKinds.SaleSettled && item.AgreedTotal is null);
+        Assert.Equal(milestones.Items.OrderByDescending(item => item.At).Select(item => item.RecordId),
+            milestones.Items.Select(item => item.RecordId));
+        Assert.Equal(PerformanceReadStatus.NotFound, (await reads.MilestonesAsync(world.Manager,
+            PerformanceMilestoneQuery.Parse(query, Guid.NewGuid(), 1, 25)!, default)).Status);
+        Assert.Equal(PerformanceReadStatus.Forbidden, (await reads.MilestonesAsync(world.Agent,
+            PerformanceMilestoneQuery.Parse(query, world.Agent, 1, 25)!, default)).Status);
         var flowAfter = (await reads.StockFlowAsync(world.Manager, query, default)).Value!;
         Assert.Equal(flowBefore.Weeks.Sum(week => week.Deliveries) + 1, flowAfter.Weeks.Sum(week => week.Deliveries));
         Assert.All(flowAfter.Weeks, week => Assert.Equal(DayOfWeek.Monday, week.WeekStart.DayOfWeek));
@@ -146,6 +159,14 @@ public sealed class PerformanceReadsTests(IntakePhotoFixture fixture) : IClassFi
             $"/api/performance/team/sales?{period}"))!;
         Assert.Equal(page.Total, int.Parse(sales.Headers.GetValues("X-Export-Row-Count").Single(), CultureInfo.InvariantCulture));
         Assert.Equal(HttpStatusCode.OK, (await manager.GetAsync($"/api/performance/team/workshop/export?{period}")).StatusCode);
+        var milestones = await manager.GetAsync($"/api/performance/people/{world.Agent}/milestones/export?{period}");
+        Assert.Equal(HttpStatusCode.OK, milestones.StatusCode);
+        Assert.StartsWith("\"Milestone\",\"Reference\",\"Date (UTC)\"", await milestones.Content.ReadAsStringAsync(),
+            StringComparison.Ordinal);
+        Assert.Equal(HttpStatusCode.NotFound,
+            (await manager.GetAsync($"/api/performance/people/{Guid.NewGuid()}/milestones/export?{period}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden,
+            (await agent.GetAsync($"/api/performance/people/{world.Agent}/milestones?{period}")).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest,
             (await manager.GetAsync("/api/performance/team/sales/export?from=2026-02-01&to=2026-01-01")).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest,

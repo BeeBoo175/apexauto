@@ -23,6 +23,8 @@ public static class PerformanceQueryEndpoints
         routes.MapGet("/workload", WorkloadAsync);
         routes.MapGet("/roster", RosterAsync);
         routes.MapGet("/branches", BranchComparisonAsync);
+        routes.MapGet("/people/{personId:guid}/milestones", MilestonesAsync);
+        routes.MapGet("/people/{personId:guid}/milestones/export", ExportMilestonesAsync);
         routes.MapGet("/team/sales", SalesTeamAsync);
         routes.MapGet("/team/workshop", WorkshopTeamAsync);
         routes.MapGet("/team/sales/export", ExportSalesTeamAsync);
@@ -70,6 +72,72 @@ public static class PerformanceQueryEndpoints
         return await ReadAsync(from, to, null,
             (query, token) => reads.BranchComparisonAsync(HttpContextActor.ActorId(context), query, token),
             cancellationToken);
+    }
+
+    private static async Task<IResult> MilestonesAsync(Guid personId, HttpContext context, IPerformanceReads reads,
+        CancellationToken cancellationToken, string? from = null, string? to = null, Guid? branchId = null,
+        int page = 1, int pageSize = Pagination.DefaultPageSize)
+    {
+        var query = PerformanceMilestoneQuery.Parse(PerformanceQuery.Parse(from, to, branchId), personId, page, pageSize);
+        if (query is null)
+        {
+            return Results.Problem(statusCode: 400, title: "Provide a valid period of at most 366 days and page.");
+        }
+
+        return await ReadAsync(from, to, branchId, (_, token) => reads.MilestonesAsync(
+            HttpContextActor.ActorId(context), query, token), cancellationToken);
+    }
+
+    // One employee's milestones with each delivered sale's reference, date and agreed total for payroll software.
+    private static async Task<IResult> ExportMilestonesAsync(Guid personId, HttpContext context, IPerformanceReads reads,
+        CancellationToken cancellationToken, string? from = null, string? to = null, Guid? branchId = null)
+    {
+        const int pageSize = 50;
+        var period = PerformanceQuery.Parse(from, to, branchId);
+        if (PerformanceMilestoneQuery.Parse(period, personId, 1, pageSize) is not { } first)
+        {
+            return Results.Problem(statusCode: 400, title: "Provide a valid period of at most 366 days.");
+        }
+
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(20));
+        try
+        {
+            var csv = new StringBuilder(PerformanceMilestoneCsv.Header);
+            var count = 0;
+            for (var number = 1; ; number++)
+            {
+                var result = await reads.MilestonesAsync(HttpContextActor.ActorId(context), first with { Page = number },
+                    deadline.Token);
+                if (result.Status != PerformanceReadStatus.Succeeded)
+                {
+                    return result.Status == PerformanceReadStatus.NotFound ? Results.NotFound() : Results.Forbid();
+                }
+
+                if (result.Value!.Total > StaffExportLimits.ImmediateRows)
+                {
+                    return Results.Problem(statusCode: 422, title: "This export is too large. Narrow the period.");
+                }
+
+                foreach (var item in result.Value.Items)
+                {
+                    csv.Append(PerformanceMilestoneCsv.Row(item));
+                    count++;
+                }
+
+                if (count >= result.Value.Total || result.Value.Items.Count == 0)
+                {
+                    break;
+                }
+            }
+
+            context.Response.Headers["X-Export-Row-Count"] = count.ToString(CultureInfo.InvariantCulture);
+            return Results.File(Encoding.UTF8.GetBytes(csv.ToString()), "text/csv; charset=utf-8", "employee-milestones.csv");
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return Results.Problem(statusCode: 503, title: "Export did not complete. Retry deliberately.");
+        }
     }
 
     private static async Task<IResult> RosterAsync(HttpContext context, IPerformanceReads reads,
@@ -199,6 +267,7 @@ public static class PerformanceQueryEndpoints
             {
                 PerformanceReadStatus.Succeeded => Results.Ok(result.Value),
                 PerformanceReadStatus.Forbidden => Results.Forbid(),
+                PerformanceReadStatus.NotFound => Results.NotFound(),
                 _ => Results.Problem(statusCode: 400, title: "Provide a valid performance request.")
             };
         }
