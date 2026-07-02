@@ -162,6 +162,7 @@ app.MapAccountPictureEndpoints();
 app.MapAccountUsernameEndpoint();
 app.MapStaffInvitationEndpoints();
 app.MapStaffAccountDirectoryEndpoints();
+app.MapPerformanceQueryEndpoints();
 app.MapCustomerAccountDirectoryEndpoints();
 app.MapAccountSuspensionEndpoints();
 app.MapAccountEditEndpoints();
