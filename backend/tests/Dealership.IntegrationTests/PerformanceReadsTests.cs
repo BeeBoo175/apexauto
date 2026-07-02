@@ -1,4 +1,7 @@
 using System.Globalization;
+using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using Dealership.Application.Accounts;
 using Dealership.Application.Performance;
 using Dealership.Application.Sales;
@@ -100,6 +103,39 @@ public sealed class PerformanceReadsTests(IntakePhotoFixture fixture) : IClassFi
     }
 
     [Fact]
+    public async Task TeamOutputExportsMatchThePageAndStayOutOfReachOfAgents()
+    {
+        var world = await SaleWorld.SharedAsync(fixture);
+        using var factory = fixture.CreateFactory();
+        using var anonymous = factory.CreateClient();
+        const string period = "from=2026-01-01&to=2026-12-31";
+        Assert.Equal(HttpStatusCode.Unauthorized,
+            (await anonymous.GetAsync($"/api/performance/team/sales/export?{period}")).StatusCode);
+
+        using var agent = factory.CreateClient();
+        await LoginAsync(agent, world.Agent);
+        Assert.Equal(HttpStatusCode.Forbidden,
+            (await agent.GetAsync($"/api/performance/team/sales/export?{period}")).StatusCode);
+
+        using var manager = factory.CreateClient();
+        await LoginAsync(manager, world.Manager);
+        var sales = await manager.GetAsync($"/api/performance/team/sales/export?{period}");
+        Assert.Equal(HttpStatusCode.OK, sales.StatusCode);
+        Assert.Equal("text/csv", sales.Content.Headers.ContentType!.MediaType);
+        var text = await sales.Content.ReadAsStringAsync();
+        Assert.StartsWith("\"Name\",\"Role\",\"Branch\"", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Value", text, StringComparison.Ordinal);
+        var page = (await manager.GetFromJsonAsync<PerformanceTeamPage<PerformanceSalesRow>>(
+            $"/api/performance/team/sales?{period}"))!;
+        Assert.Equal(page.Total, int.Parse(sales.Headers.GetValues("X-Export-Row-Count").Single(), CultureInfo.InvariantCulture));
+        Assert.Equal(HttpStatusCode.OK, (await manager.GetAsync($"/api/performance/team/workshop/export?{period}")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest,
+            (await manager.GetAsync("/api/performance/team/sales/export?from=2026-02-01&to=2026-01-01")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest,
+            (await manager.GetAsync($"/api/performance/team/sales?{period}&pageSize=7")).StatusCode);
+    }
+
+    [Fact]
     public void PeriodsOutsideTheMalaysianCalendarLimitAreRejected()
     {
         Assert.Null(PerformanceQuery.Parse(null, null, null));
@@ -111,6 +147,16 @@ public sealed class PerformanceReadsTests(IntakePhotoFixture fixture) : IClassFi
         var period = PerformanceQuery.Parse("2026-11-01", "2026-11-07", null)!;
         Assert.Equal(TimeSpan.FromDays(7), period.Length);
         Assert.Equal(new DateTimeOffset(2026, 10, 31, 16, 0, 0, TimeSpan.Zero), period.From);
+    }
+
+    private async Task LoginAsync(HttpClient client, Guid actorId)
+    {
+        await using var database = new DealershipDbContext(new DbContextOptionsBuilder<DealershipDbContext>()
+            .UseNpgsql(fixture.Database.RuntimeConnectionString).Options);
+        var email = await database.Users.Where(item => item.Id == actorId).Select(item => item.Email).SingleAsync();
+        var response = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest(Guid.NewGuid(), email!, "Password123!"));
+        var session = (await response.Content.ReadFromJsonAsync<LoginSession>())!;
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
     }
 
     private static int StageNow(PerformanceStageWaiting waiting, string stage) =>

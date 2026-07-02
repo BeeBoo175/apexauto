@@ -1,4 +1,7 @@
+using System.Globalization;
+using System.Text;
 using Dealership.Application.Common;
+using Dealership.Application.Intake;
 using Dealership.Application.Performance;
 
 namespace Dealership.Api.Endpoints;
@@ -21,6 +24,8 @@ public static class PerformanceQueryEndpoints
         routes.MapGet("/roster", RosterAsync);
         routes.MapGet("/team/sales", SalesTeamAsync);
         routes.MapGet("/team/workshop", WorkshopTeamAsync);
+        routes.MapGet("/team/sales/export", ExportSalesTeamAsync);
+        routes.MapGet("/team/workshop/export", ExportWorkshopTeamAsync);
     }
 
     private static async Task<IResult> HeadlineAsync(HttpContext context, IPerformanceReads reads,
@@ -80,6 +85,77 @@ public static class PerformanceQueryEndpoints
         return await ReadTeamAsync(from, to, branchId, page, pageSize,
             (query, token) => reads.WorkshopTeamAsync(HttpContextActor.ActorId(context), query, token),
             cancellationToken);
+    }
+
+    private static async Task<IResult> ExportSalesTeamAsync(HttpContext context, IPerformanceReads reads,
+        CancellationToken cancellationToken, string? from = null, string? to = null, Guid? branchId = null)
+    {
+        return await ExportTeamAsync(from, to, branchId, "team-output-sales-and-service.csv",
+            PerformanceTeamCsv.SalesHeader, PerformanceTeamCsv.Row,
+            (query, token) => reads.SalesTeamAsync(HttpContextActor.ActorId(context), query, token), context,
+            cancellationToken);
+    }
+
+    private static async Task<IResult> ExportWorkshopTeamAsync(HttpContext context, IPerformanceReads reads,
+        CancellationToken cancellationToken, string? from = null, string? to = null, Guid? branchId = null)
+    {
+        return await ExportTeamAsync(from, to, branchId, "team-output-workshop.csv", PerformanceTeamCsv.WorkshopHeader,
+            PerformanceTeamCsv.Row,
+            (query, token) => reads.WorkshopTeamAsync(HttpContextActor.ActorId(context), query, token), context,
+            cancellationToken);
+    }
+
+    // Exports every row of the tab with the same query and attribution as the page, in fixed alphabetical order.
+    private static async Task<IResult> ExportTeamAsync<T>(string? from, string? to, Guid? branchId, string fileName,
+        string header, Func<T, string> line,
+        Func<PerformanceTeamQuery, CancellationToken, Task<PerformanceReadResult<PerformanceTeamPage<T>>>> read,
+        HttpContext context, CancellationToken cancellationToken)
+    {
+        const int pageSize = 50;
+        var period = PerformanceQuery.Parse(from, to, branchId);
+        if (PerformanceTeamQuery.Parse(period, 1, pageSize) is not { } first)
+        {
+            return Results.Problem(statusCode: 400, title: "Provide a valid period of at most 366 days.");
+        }
+
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(20));
+        try
+        {
+            var csv = new StringBuilder(header);
+            var count = 0;
+            for (var page = 1; ; page++)
+            {
+                var result = await read(first with { Page = page }, deadline.Token);
+                if (result.Status == PerformanceReadStatus.Forbidden)
+                {
+                    return Results.Forbid();
+                }
+
+                if (result.Value!.Total > StaffExportLimits.ImmediateRows)
+                {
+                    return Results.Problem(statusCode: 422, title: "This export is too large. Narrow the branch or period.");
+                }
+
+                foreach (var item in result.Value.Items)
+                {
+                    csv.Append(line(item));
+                    count++;
+                }
+
+                if (count >= result.Value.Total || result.Value.Items.Count == 0)
+                {
+                    break;
+                }
+            }
+
+            context.Response.Headers["X-Export-Row-Count"] = count.ToString(CultureInfo.InvariantCulture);
+            return Results.File(Encoding.UTF8.GetBytes(csv.ToString()), "text/csv; charset=utf-8", fileName);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return Results.Problem(statusCode: 503, title: "Export did not complete. Retry deliberately.");
+        }
     }
 
     private static async Task<IResult> ReadTeamAsync<T>(string? from, string? to, Guid? branchId, int page, int pageSize,
