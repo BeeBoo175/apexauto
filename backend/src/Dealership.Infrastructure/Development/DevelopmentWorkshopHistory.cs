@@ -1,3 +1,4 @@
+using Dealership.Application.Accounts;
 using Dealership.Application.Inspections;
 using Dealership.Application.Intake;
 using Dealership.Domain.Inspections;
@@ -15,6 +16,20 @@ public sealed class DevelopmentWorkshopHistory(DealershipDbContext database)
     private static readonly TimeSpan SaveDelay = TimeSpan.FromMinutes(50);
     private static readonly TimeSpan SignDelay = TimeSpan.FromMinutes(80);
     private static readonly TimeSpan RepairDelay = TimeSpan.FromMinutes(30);
+    private static readonly TimeSpan ReassignmentDelay = TimeSpan.FromMinutes(10);
+    private const string ReassignmentReason = "Moved to the primary technician for this inspection.";
+
+    // About one in four everyday inspections starts with the relief technician and is moved by the branch manager to
+    // the primary technician, so reassignment evidence and its elapsed time are present in history.
+    public static bool IsReassigned(Guid inspectionId)
+    {
+        return inspectionId.ToByteArray()[2] % 4 == 0 &&
+            DevelopmentIntakeManifest.WorkshopExamples.All(item => item.Id != inspectionId) &&
+            DevelopmentInspectionManifest.Baselines.All(item => item.Id != inspectionId);
+    }
+
+    // A reassigned history inspection is signed under its second assignment.
+    public static long AssignmentVersionOf(Guid inspectionId) => IsReassigned(inspectionId) ? 2 : 1;
 
     public static bool Covers(DevelopmentIntakeFixture fixture)
     {
@@ -36,7 +51,9 @@ public sealed class DevelopmentWorkshopHistory(DealershipDbContext database)
     public async Task<DateTimeOffset> AddSignedInspectionAsync(DevelopmentIntakeFixture fixture, DateTimeOffset checkedInAt,
         CancellationToken cancellationToken)
     {
-        var save = new InspectionDraftSaveRequest(fixture.Id, 1, 0, DevelopmentInspectionManifest.Entries)
+        var reassigned = IsReassigned(fixture.Id);
+        var assignmentVersion = AssignmentVersionOf(fixture.Id);
+        var save = new InspectionDraftSaveRequest(fixture.Id, assignmentVersion, 0, DevelopmentInspectionManifest.Entries)
         {
             PhotoIds = [],
             ExaminedPointCodes = DevelopmentInspectionManifest.ExaminedPointCodes
@@ -44,20 +61,23 @@ public sealed class DevelopmentWorkshopHistory(DealershipDbContext database)
         var technicianId = DevelopmentIntakeManifest.WorkshopExamples.Any(item => item.Id == fixture.Id)
             ? DevelopmentFixtureManifest.ReliefTechnicians.Single(item => item.BranchId == fixture.BranchId).Id
             : DevelopmentFixtureManifest.PrimaryTechnician(fixture.BranchId).Id;
-        var signedAt = await AddSignedInspectionAsync(fixture, technicianId, save,
-            new InspectionSignRequest(fixture.Id, 1, 1, 1), checkedInAt, cancellationToken);
-        await AddRepairRequestAsync(fixture, technicianId, signedAt, cancellationToken);
+        var firstTechnicianId = reassigned
+            ? DevelopmentFixtureManifest.ReliefTechnicians.Single(item => item.BranchId == fixture.BranchId).Id
+            : technicianId;
+        var signedAt = await AddSignedInspectionAsync(fixture, technicianId, firstTechnicianId, save,
+            new InspectionSignRequest(fixture.Id, assignmentVersion, 1, 1), checkedInAt, cancellationToken);
+        await AddRepairRequestAsync(fixture, technicianId, assignmentVersion, signedAt, cancellationToken);
         return signedAt;
     }
 
     // The baseline repair request follows its signed report by half an hour, as the canonical request does later.
-    private async Task AddRepairRequestAsync(DevelopmentIntakeFixture fixture, Guid technicianId, DateTimeOffset signedAt,
-        CancellationToken cancellationToken)
+    private async Task AddRepairRequestAsync(DevelopmentIntakeFixture fixture, Guid technicianId, long assignmentVersion,
+        DateTimeOffset signedAt, CancellationToken cancellationToken)
     {
         var request = DevelopmentInspectionManifest.RepairRequest(fixture.Id);
         var scope = new InspectionRepairScope(request.Items, request.Budget);
         var receipt = new InspectionRepairReceipt(request.OperationId, fixture.Id, fixture.BranchId, technicianId,
-            fixture.Id, request.AssignmentVersion, request.Revision, request.ExpectedVersion, request.ExpectedVersion + 1,
+            fixture.Id, assignmentVersion, request.Revision, request.ExpectedVersion, request.ExpectedVersion + 1,
             scope.Items, scope.Budget, signedAt + RepairDelay);
         database.InspectionRepairRequests.Add(new InspectionRepairRequestRecord(receipt));
         await database.SaveChangesAsync(cancellationToken);
@@ -69,22 +89,35 @@ public sealed class DevelopmentWorkshopHistory(DealershipDbContext database)
         var technicianId = DevelopmentIntakeManifest.WorkshopExamples.Any(item => item.Id == scenario.Id)
             ? DevelopmentFixtureManifest.ReliefTechnicians.Single(item => item.BranchId == scenario.Intake.BranchId).Id
             : DevelopmentFixtureManifest.PrimaryTechnician(scenario.Intake.BranchId).Id;
-        return AddSignedInspectionAsync(scenario.Intake, technicianId, scenario.Save(), scenario.Sign(), checkedInAt,
-            cancellationToken);
+        return AddSignedInspectionAsync(scenario.Intake, technicianId, technicianId, scenario.Save(), scenario.Sign(),
+            checkedInAt, cancellationToken);
     }
 
     private async Task<DateTimeOffset> AddSignedInspectionAsync(DevelopmentIntakeFixture fixture, Guid technicianId,
-        InspectionDraftSaveRequest request, InspectionSignRequest sign, DateTimeOffset checkedInAt,
+        Guid firstTechnicianId, InspectionDraftSaveRequest request, InspectionSignRequest sign, DateTimeOffset checkedInAt,
         CancellationToken cancellationToken)
     {
         var technician = await database.Users.AsNoTracking().SingleAsync(item => item.Id == technicianId, cancellationToken);
         var vehicle = await database.Vehicles.AsNoTracking()
             .SingleAsync(item => item.IntakeAppointmentId == fixture.Id, cancellationToken);
         var assignedAt = checkedInAt + AssignmentDelay;
-        var draft = new InspectionDraft(fixture.Id, vehicle, technicianId, assignedAt);
+        var draft = new InspectionDraft(fixture.Id, vehicle, firstTechnicianId, assignedAt);
         database.InspectionDrafts.Add(draft);
-        database.InspectionAssignments.Add(new InspectionAssignment(fixture.Id, draft, technicianId, null, 0, null, assignedAt));
+        database.InspectionAssignments.Add(new InspectionAssignment(fixture.Id, draft, firstTechnicianId, null, 0, null,
+            assignedAt));
         await database.SaveChangesAsync(cancellationToken);
+        if (firstTechnicianId != technicianId)
+        {
+            var managerId = DevelopmentFixtureManifest.Staff
+                .Single(item => item.BranchId == fixture.BranchId && item.Role == AccountRoles.BranchManager).Id;
+            // The assignment guard reads the draft it extends, so the draft moves first; the receipt trigger is deferred.
+            draft.Reassign(technicianId, 1);
+            await database.SaveChangesAsync(cancellationToken);
+            database.InspectionAssignments.Add(new InspectionAssignment(
+                DevelopmentInspectionScenarios.OperationId(fixture.Id, "reassign"), draft, managerId, firstTechnicianId, 1,
+                ReassignmentReason, assignedAt + ReassignmentDelay));
+            await database.SaveChangesAsync(cancellationToken);
+        }
 
         var receipt = CreateReceipt(fixture.Id, technicianId, request, checkedInAt + SaveDelay);
         database.InspectionDraftSaves.Add(new InspectionDraftSave(draft.BranchId, receipt));

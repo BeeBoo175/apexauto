@@ -22,7 +22,11 @@ internal static class DevelopmentInspectionFixtureAssertions
         var salesExamples = DevelopmentIntakeManifest.SalesExamples.Count;
         Assert.Equal(96 + workshopExamples + salesExamples, allDrafts.Length);
         Assert.Equal(3, drafts.Length);
-        Assert.Equal(96 + workshopExamples + salesExamples, await database.InspectionAssignments.CountAsync());
+        var reassignedHistory = DevelopmentIntakeManifest.Appointments.Count(item =>
+            DevelopmentWorkshopHistory.Covers(item) && DevelopmentWorkshopHistory.IsReassigned(item.Id));
+        Assert.True(reassignedHistory > 0);
+        Assert.Equal(96 + workshopExamples + salesExamples + reassignedHistory, await database.InspectionAssignments.CountAsync());
+        Assert.Equal(reassignedHistory, await database.InspectionDrafts.CountAsync(item => item.AssignmentVersion == 2));
         Assert.Equal(99 + workshopExamples + salesExamples, await database.InspectionDraftSaves.CountAsync());
         Assert.Equal(9, await database.InspectionPhotos.CountAsync());
         Assert.Equal(9, await database.InspectionDraftPhotos.CountAsync());

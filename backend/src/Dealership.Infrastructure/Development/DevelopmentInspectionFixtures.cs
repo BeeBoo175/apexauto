@@ -46,7 +46,8 @@ public sealed class DevelopmentInspectionFixtures(DealershipDbContext database, 
             var attention = true;
             if (draft is not null)
             {
-                attention = draft.Id != fixture.Id || draft.TechnicianId != technicianId || draft.AssignmentVersion != 1;
+                attention = draft.Id != fixture.Id || draft.TechnicianId != technicianId ||
+                    draft.AssignmentVersion != DevelopmentWorkshopHistory.AssignmentVersionOf(fixture.Id);
                 state = attention ? "drift; preserved" : "matches";
             }
             if (seed && draft is null && vehicleId.HasValue)
@@ -152,7 +153,8 @@ public sealed class DevelopmentInspectionFixtures(DealershipDbContext database, 
     private async Task<DevelopmentFixtureReport> InspectionRepairAsync(bool seed, Guid inspectionId, Guid technicianId,
         string plate, CancellationToken cancellationToken)
     {
-        var request = DevelopmentInspectionManifest.RepairRequest(inspectionId);
+        var request = DevelopmentInspectionManifest.RepairRequest(inspectionId,
+            DevelopmentWorkshopHistory.AssignmentVersionOf(inspectionId));
         var draft = await database.InspectionDrafts.AsNoTracking().SingleAsync(item => item.Id == inspectionId, cancellationToken);
         var latest = await database.InspectionRepairRequests.AsNoTracking().Where(item => item.InspectionId == inspectionId)
             .OrderByDescending(item => item.Version).FirstOrDefaultAsync(cancellationToken);
@@ -179,7 +181,8 @@ public sealed class DevelopmentInspectionFixtures(DealershipDbContext database, 
     {
         var latest = await database.InspectionDraftSaves.AsNoTracking().Where(save => save.InspectionId == inspectionId)
             .OrderByDescending(save => save.Version).FirstOrDefaultAsync(cancellationToken);
-        var request = new InspectionDraftSaveRequest(inspectionId, 1, 0, DevelopmentInspectionManifest.Entries)
+        var request = new InspectionDraftSaveRequest(inspectionId,
+            DevelopmentWorkshopHistory.AssignmentVersionOf(inspectionId), 0, DevelopmentInspectionManifest.Entries)
         {
             PhotoIds = withPhoto ? [DevelopmentInspectionManifest.PhotoId(inspectionId)] : [],
             ExaminedPointCodes = DevelopmentInspectionManifest.ExaminedPointCodes
@@ -205,7 +208,7 @@ public sealed class DevelopmentInspectionFixtures(DealershipDbContext database, 
     private async Task<DevelopmentFixtureReport> InspectionReportAsync(bool seed, Guid inspectionId, Guid technicianId,
         string plate, CancellationToken cancellationToken)
     {
-        var request = new InspectionSignRequest(inspectionId, 1, 1, 1);
+        var request = new InspectionSignRequest(inspectionId, DevelopmentWorkshopHistory.AssignmentVersionOf(inspectionId), 1, 1);
         var draft = await database.InspectionDrafts.AsNoTracking().SingleAsync(item => item.Id == inspectionId, cancellationToken);
         var existing = await database.InspectionSignedRevisions.AsNoTracking()
             .Where(item => item.InspectionId == inspectionId).OrderByDescending(item => item.Revision)

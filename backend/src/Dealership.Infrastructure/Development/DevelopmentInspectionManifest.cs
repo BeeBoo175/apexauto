@@ -24,8 +24,8 @@ public static class DevelopmentInspectionManifest
     public static InspectionRepairApprovalRequest RepairApproval(Guid inspectionId) => new(DevelopmentInspectionScenarios.OperationId(inspectionId, "approval"),
         RepairRequest(inspectionId).OperationId, 1, 1, 1);
 
-    public static InspectionRepairRequest RepairRequest(Guid inspectionId) => new(DevelopmentInspectionScenarios.OperationId(inspectionId, "repair"),
-        1, 1, 0, [new("EP-004", "Prepare and refinish the scratched front bumper surface")], 250m);
+    public static InspectionRepairRequest RepairRequest(Guid inspectionId, long assignmentVersion = 1) =>
+        new(DevelopmentInspectionScenarios.OperationId(inspectionId, "repair"), assignmentVersion, 1, 0, [new("EP-004", "Prepare and refinish the scratched front bumper surface")], 250m);
 
     public static Guid PhotoId(Guid inspectionId)
     {
