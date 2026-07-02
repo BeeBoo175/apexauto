@@ -1,4 +1,5 @@
 using System.Globalization;
+using Dealership.Application.Accounts;
 using Dealership.Application.Performance;
 using Dealership.Application.Sales;
 using Dealership.Domain.Common;
@@ -25,6 +26,12 @@ public sealed class PerformanceReadsTests(IntakePhotoFixture fixture) : IClassFi
         var flowBefore = (await reads.StockFlowAsync(world.Manager, query, default)).Value!;
         var stagesBefore = (await reads.StageWaitingAsync(world.Manager, query, default)).Value!;
         var (held, request, total) = await SettledAsync(world);
+        var workload = (await reads.WorkloadAsync(world.Manager, query, default)).Value!;
+        var agent = workload.People.Single(person => person.Id == world.Agent);
+        Assert.Equal(world.Manager, workload.Actor.UserId);
+        Assert.Equal(AccountRoles.SalesAgent, agent.Role);
+        Assert.True(agent.Under2Days >= 1);
+        Assert.DoesNotContain(workload.People, person => person.Id == world.OtherBranchAgent);
         var stagesSettled = (await reads.StageWaitingAsync(world.Manager, query, default)).Value!;
         Assert.Equal(StageNow(stagesBefore, PerformanceStages.SaleInProgress) + 1,
             StageNow(stagesSettled, PerformanceStages.SaleInProgress));
@@ -54,6 +61,16 @@ public sealed class PerformanceReadsTests(IntakePhotoFixture fixture) : IClassFi
             delivery.CompletedCount);
         Assert.NotNull(delivery.AverageDays);
         Assert.Equal(PerformanceReadStatus.Forbidden, (await reads.StageWaitingAsync(world.Agent, query, default)).Status);
+        var workloadAfter = (await reads.WorkloadAsync(world.Manager, query, default)).Value!;
+        Assert.Equal(agent.Total - 1, workloadAfter.People.Single(person => person.Id == world.Agent).Total);
+        var roster = (await reads.RosterAsync(world.Manager, query, default)).Value!;
+        Assert.All(roster.Cells, cell =>
+        {
+            Assert.InRange(cell.Weekday, 0, 6);
+            Assert.InRange(cell.Hour, 0, 23);
+        });
+        Assert.Equal(PerformanceReadStatus.Forbidden, (await reads.WorkloadAsync(world.Agent, query, default)).Status);
+        Assert.Equal(PerformanceReadStatus.Forbidden, (await reads.RosterAsync(world.Agent, query, default)).Status);
         var flowAfter = (await reads.StockFlowAsync(world.Manager, query, default)).Value!;
         Assert.Equal(flowBefore.Weeks.Sum(week => week.Deliveries) + 1, flowAfter.Weeks.Sum(week => week.Deliveries));
         Assert.All(flowAfter.Weeks, week => Assert.Equal(DayOfWeek.Monday, week.WeekStart.DayOfWeek));

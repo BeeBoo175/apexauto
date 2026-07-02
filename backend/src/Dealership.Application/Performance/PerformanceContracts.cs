@@ -76,6 +76,20 @@ public sealed record PerformanceStage(string Stage, int InStageNow, int Complete
 
 public sealed record PerformanceStageWaiting(CurrentActor Actor, IReadOnlyList<PerformanceStage> Stages);
 
+// Open work now, split by how long the current holder has had it: under 2 days, 2 to 7 days and over 7 days.
+public sealed record PerformanceWorkloadPerson(Guid Id, string Name, string Role, Guid BranchId, string BranchName,
+    int Under2Days, int TwoToSevenDays, int OverSevenDays)
+{
+    public int Total => Under2Days + TwoToSevenDays + OverSevenDays;
+}
+
+public sealed record PerformanceWorkload(CurrentActor Actor, IReadOnlyList<PerformanceWorkloadPerson> People);
+
+// Booked Intake appointments and test drives in the period by Malaysian weekday (Monday is 0) and clock hour.
+public sealed record PerformanceRosterCell(int Weekday, int Hour, int Appointments, int TestDrives);
+
+public sealed record PerformanceRoster(CurrentActor Actor, IReadOnlyList<PerformanceRosterCell> Cells);
+
 public interface IPerformanceReads
 {
     Task<PerformanceReadResult<PerformanceHeadline>> HeadlineAsync(Guid actorId, PerformanceQuery query,
@@ -88,5 +102,11 @@ public interface IPerformanceReads
         CancellationToken cancellationToken);
 
     Task<PerformanceReadResult<PerformanceStageWaiting>> StageWaitingAsync(Guid actorId, PerformanceQuery query,
+        CancellationToken cancellationToken);
+
+    Task<PerformanceReadResult<PerformanceWorkload>> WorkloadAsync(Guid actorId, PerformanceQuery query,
+        CancellationToken cancellationToken);
+
+    Task<PerformanceReadResult<PerformanceRoster>> RosterAsync(Guid actorId, PerformanceQuery query,
         CancellationToken cancellationToken);
 }

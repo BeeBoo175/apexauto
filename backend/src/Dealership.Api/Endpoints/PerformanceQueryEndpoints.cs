@@ -16,6 +16,8 @@ public static class PerformanceQueryEndpoints
         routes.MapGet("/pipeline", PipelineAsync);
         routes.MapGet("/stock-flow", StockFlowAsync);
         routes.MapGet("/stage-waiting", StageWaitingAsync);
+        routes.MapGet("/workload", WorkloadAsync);
+        routes.MapGet("/roster", RosterAsync);
     }
 
     private static async Task<IResult> HeadlineAsync(HttpContext context, IPerformanceReads reads,
@@ -44,6 +46,20 @@ public static class PerformanceQueryEndpoints
     {
         return await ReadAsync(from, to, branchId,
             (query, token) => reads.StageWaitingAsync(HttpContextActor.ActorId(context), query, token), cancellationToken);
+    }
+
+    private static async Task<IResult> WorkloadAsync(HttpContext context, IPerformanceReads reads,
+        CancellationToken cancellationToken, string? from = null, string? to = null, Guid? branchId = null)
+    {
+        return await ReadAsync(from, to, branchId,
+            (query, token) => reads.WorkloadAsync(HttpContextActor.ActorId(context), query, token), cancellationToken);
+    }
+
+    private static async Task<IResult> RosterAsync(HttpContext context, IPerformanceReads reads,
+        CancellationToken cancellationToken, string? from = null, string? to = null, Guid? branchId = null)
+    {
+        return await ReadAsync(from, to, branchId,
+            (query, token) => reads.RosterAsync(HttpContextActor.ActorId(context), query, token), cancellationToken);
     }
 
     private static async Task<IResult> ReadAsync<T>(string? from, string? to, Guid? branchId,
