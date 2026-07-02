@@ -71,6 +71,24 @@ public sealed class PerformanceReadsTests(IntakePhotoFixture fixture) : IClassFi
         });
         Assert.Equal(PerformanceReadStatus.Forbidden, (await reads.WorkloadAsync(world.Agent, query, default)).Status);
         Assert.Equal(PerformanceReadStatus.Forbidden, (await reads.RosterAsync(world.Agent, query, default)).Status);
+        var team = PerformanceTeamQuery.Parse(query, 1, 25)!;
+        var salesTeam = (await reads.SalesTeamAsync(world.Manager, team, default)).Value!;
+        var agentRow = salesTeam.Items.Single(row => row.PersonId == world.Agent);
+        Assert.Equal(PerformancePersonStatuses.Active, agentRow.Status);
+        Assert.True(agentRow.SalesSettled >= 1);
+        Assert.True(agentRow.SalesDelivered >= 1);
+        Assert.NotNull(agentRow.AssignmentToDeliveryDays);
+        Assert.NotNull(agentRow.SalesHandled);
+        Assert.Equal(salesTeam.Items.OrderBy(row => row.Name).ThenBy(row => row.PersonId).Select(row => row.PersonId),
+            salesTeam.Items.Select(row => row.PersonId));
+        Assert.DoesNotContain(salesTeam.Items, row => row.PersonId == world.OtherBranchAgent);
+        var workshopTeam = (await reads.WorkshopTeamAsync(world.Manager, team, default)).Value!;
+        Assert.All(workshopTeam.Items, row => Assert.Equal(AccountRoles.WorkshopTechnician, row.Role));
+        Assert.Equal(PerformanceReadStatus.Forbidden, (await reads.SalesTeamAsync(world.Agent, team, default)).Status);
+        Assert.Equal(PerformanceReadStatus.Forbidden, (await reads.WorkshopTeamAsync(world.Agent, team, default)).Status);
+        var secondPage = (await reads.SalesTeamAsync(world.Manager, team with { Page = 99 }, default)).Value!;
+        Assert.Empty(secondPage.Items);
+        Assert.Equal(salesTeam.Total, secondPage.Total);
         var flowAfter = (await reads.StockFlowAsync(world.Manager, query, default)).Value!;
         Assert.Equal(flowBefore.Weeks.Sum(week => week.Deliveries) + 1, flowAfter.Weeks.Sum(week => week.Deliveries));
         Assert.All(flowAfter.Weeks, week => Assert.Equal(DayOfWeek.Monday, week.WeekStart.DayOfWeek));
@@ -85,6 +103,8 @@ public sealed class PerformanceReadsTests(IntakePhotoFixture fixture) : IClassFi
     public void PeriodsOutsideTheMalaysianCalendarLimitAreRejected()
     {
         Assert.Null(PerformanceQuery.Parse(null, null, null));
+        Assert.Null(PerformanceTeamQuery.Parse(PerformanceQuery.Parse("2026-11-01", "2026-11-02", null), 1, 7));
+        Assert.Null(PerformanceTeamQuery.Parse(PerformanceQuery.Parse("2026-11-01", "2026-11-02", null), 0, 25));
         Assert.Null(PerformanceQuery.Parse("2026-11-02", "2026-11-01", null));
         Assert.Null(PerformanceQuery.Parse("2025-01-01", "2026-01-02", null));
         Assert.Null(PerformanceQuery.Parse("2026-11-01", "2026-11-02", Guid.Empty));

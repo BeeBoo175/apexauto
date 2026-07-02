@@ -39,7 +39,8 @@ public sealed partial class PerformanceReads
         started.AddRange(await IntakeWorkAsync(branchId, now, cancellationToken));
         started.AddRange(await TestDriveWorkAsync(branchId, cancellationToken));
         started.AddRange(await SaleWorkAsync(branchId, cancellationToken));
-        started.AddRange(await WorkshopWorkAsync(branchId, cancellationToken));
+        started.AddRange(await DraftWorkAsync(branchId, cancellationToken));
+        started.AddRange(await RepairWorkAsync(branchId, cancellationToken));
         await transaction.CommitAsync(cancellationToken);
 
         var rows = people.OrderBy(person => person.BranchName).ThenBy(person => person.Name).ThenBy(person => person.Id)
@@ -97,9 +98,8 @@ public sealed partial class PerformanceReads
         return rows.Select(row => (row.PersonId, row.Since)).ToList();
     }
 
-    // Unsigned drafts from their latest assignment, and signed drafts whose latest repair request is not completed.
-    private async Task<List<(Guid, DateTimeOffset)>> WorkshopWorkAsync(Guid? branchId,
-        CancellationToken cancellationToken)
+    // Unsigned drafts, aged from their latest assignment.
+    private async Task<List<(Guid, DateTimeOffset)>> DraftWorkAsync(Guid? branchId, CancellationToken cancellationToken)
     {
         var drafts = await (from draft in database.InspectionDrafts.AsNoTracking()
                             join assignment in database.InspectionAssignments.AsNoTracking() on
@@ -108,6 +108,12 @@ public sealed partial class PerformanceReads
                             where !draft.IsSigned && (branchId == null || draft.BranchId == branchId)
                             select new { PersonId = draft.TechnicianId, Since = assignment.RecordedAt })
             .ToListAsync(cancellationToken);
+        return drafts.Select(row => (row.PersonId, row.Since)).ToList();
+    }
+
+    // Signed drafts whose latest repair request is not yet completed, aged from that request.
+    private async Task<List<(Guid, DateTimeOffset)>> RepairWorkAsync(Guid? branchId, CancellationToken cancellationToken)
+    {
         var repairs = await (from draft in database.InspectionDrafts.AsNoTracking()
                              join request in database.InspectionRepairRequests.AsNoTracking() on
                                  new { InspectionId = draft.Id, Version = draft.RepairVersion } equals
@@ -117,6 +123,6 @@ public sealed partial class PerformanceReads
                                      completion.InspectionId == draft.Id && completion.RepairVersion == draft.RepairVersion)
                              select new { PersonId = draft.TechnicianId, Since = request.RequestedAt })
             .ToListAsync(cancellationToken);
-        return drafts.Concat(repairs).Select(row => (row.PersonId, row.Since)).ToList();
+        return repairs.Select(row => (row.PersonId, row.Since)).ToList();
     }
 }

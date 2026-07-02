@@ -1,3 +1,4 @@
+using Dealership.Application.Common;
 using Dealership.Application.Performance;
 
 namespace Dealership.Api.Endpoints;
@@ -18,6 +19,8 @@ public static class PerformanceQueryEndpoints
         routes.MapGet("/stage-waiting", StageWaitingAsync);
         routes.MapGet("/workload", WorkloadAsync);
         routes.MapGet("/roster", RosterAsync);
+        routes.MapGet("/team/sales", SalesTeamAsync);
+        routes.MapGet("/team/workshop", WorkshopTeamAsync);
     }
 
     private static async Task<IResult> HeadlineAsync(HttpContext context, IPerformanceReads reads,
@@ -60,6 +63,36 @@ public static class PerformanceQueryEndpoints
     {
         return await ReadAsync(from, to, branchId,
             (query, token) => reads.RosterAsync(HttpContextActor.ActorId(context), query, token), cancellationToken);
+    }
+
+    private static async Task<IResult> SalesTeamAsync(HttpContext context, IPerformanceReads reads,
+        CancellationToken cancellationToken, string? from = null, string? to = null, Guid? branchId = null,
+        int page = 1, int pageSize = Pagination.DefaultPageSize)
+    {
+        return await ReadTeamAsync(from, to, branchId, page, pageSize,
+            (query, token) => reads.SalesTeamAsync(HttpContextActor.ActorId(context), query, token), cancellationToken);
+    }
+
+    private static async Task<IResult> WorkshopTeamAsync(HttpContext context, IPerformanceReads reads,
+        CancellationToken cancellationToken, string? from = null, string? to = null, Guid? branchId = null,
+        int page = 1, int pageSize = Pagination.DefaultPageSize)
+    {
+        return await ReadTeamAsync(from, to, branchId, page, pageSize,
+            (query, token) => reads.WorkshopTeamAsync(HttpContextActor.ActorId(context), query, token),
+            cancellationToken);
+    }
+
+    private static async Task<IResult> ReadTeamAsync<T>(string? from, string? to, Guid? branchId, int page, int pageSize,
+        Func<PerformanceTeamQuery, CancellationToken, Task<PerformanceReadResult<PerformanceTeamPage<T>>>> read,
+        CancellationToken cancellationToken)
+    {
+        var query = PerformanceTeamQuery.Parse(PerformanceQuery.Parse(from, to, branchId), page, pageSize);
+        if (query is null)
+        {
+            return Results.Problem(statusCode: 400, title: "Provide a valid period of at most 366 days and page.");
+        }
+
+        return await ReadAsync(from, to, branchId, (_, token) => read(query, token), cancellationToken);
     }
 
     private static async Task<IResult> ReadAsync<T>(string? from, string? to, Guid? branchId,

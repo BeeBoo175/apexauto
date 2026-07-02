@@ -109,4 +109,10 @@ public interface IPerformanceReads
 
     Task<PerformanceReadResult<PerformanceRoster>> RosterAsync(Guid actorId, PerformanceQuery query,
         CancellationToken cancellationToken);
+
+    Task<PerformanceReadResult<PerformanceTeamPage<PerformanceSalesRow>>> SalesTeamAsync(Guid actorId,
+        PerformanceTeamQuery query, CancellationToken cancellationToken);
+
+    Task<PerformanceReadResult<PerformanceTeamPage<PerformanceWorkshopRow>>> WorkshopTeamAsync(Guid actorId,
+        PerformanceTeamQuery query, CancellationToken cancellationToken);
 }
