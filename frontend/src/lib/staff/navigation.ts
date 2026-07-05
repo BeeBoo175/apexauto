@@ -16,13 +16,22 @@ export interface StaffWorkspaceLink {
   allowed: (actor: CurrentActor) => boolean;
 }
 
-// Order is the sidebar order. The Administration and fallback links are rendered by the frame itself.
+// Home gathers what needs the user across several pages, so it exists for the roles that work across several pages.
+// Technicians land on their Workshop queue and administrators on Accounts instead.
+export const hasHomeAccess = (actor: Pick<CurrentActor, "role">) =>
+  hasPerformanceAccess(actor) || actor.role === "SalesAgent";
+
+// Order is the sidebar order: the overview pages first (Home, the planning calendar, then Performance for
+// managers), then the work pages in the order a vehicle moves through them. The Administration and fallback links
+// are rendered by the frame itself.
 export const staffWorkspaceLinks: StaffWorkspaceLink[] = [
+  { href: "/dashboard/home", label: "Home", allowed: hasHomeAccess },
   {
     href: "/dashboard/work-calendar",
     label: "Work calendar",
     allowed: (actor) => hasWorkCalendarAccess(actor.role),
   },
+  { href: "/dashboard/performance", label: "Performance", allowed: hasPerformanceAccess },
   {
     href: "/dashboard/intake",
     label: "Intake appointments",
@@ -36,13 +45,12 @@ export const staffWorkspaceLinks: StaffWorkspaceLink[] = [
     allowed: hasInspectionAccess,
   },
   { href: "/dashboard/management", label: "Listings", allowed: hasListingAccess },
-  { href: "/dashboard/sales", label: "Sales", allowed: hasSalesAccess },
   {
     href: "/dashboard/test-drives",
     label: "Test drives",
     allowed: (actor) => hasTestDriveAccess(actor.role),
   },
-  { href: "/dashboard/performance", label: "Performance", allowed: hasPerformanceAccess },
+  { href: "/dashboard/sales", label: "Sales", allowed: hasSalesAccess },
   { href: "/dashboard/accounts", label: "Accounts", allowed: hasAccountAdministration },
   { href: "/dashboard/settings", label: "Settings", allowed: hasSettingsAccess },
 ];
