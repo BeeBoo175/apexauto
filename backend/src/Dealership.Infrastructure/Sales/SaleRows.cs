@@ -113,6 +113,7 @@ internal static class SaleRows
             row.Email != null && EF.Functions.ILike(row.Email, pattern, "!") ||
             row.Promo != null && EF.Functions.ILike(row.Promo, pattern, "!") ||
             row.Agent != null && EF.Functions.ILike(row.Agent, pattern, "!") ||
+            row.AgentName != null && EF.Functions.ILike(row.AgentName, pattern, "!") ||
             searchBranch && EF.Functions.ILike(row.Branch, pattern, "!"));
     }
 

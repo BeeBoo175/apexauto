@@ -52,12 +52,11 @@ function PersonCell({ person }: { person: PerformanceWorkload["people"][number] 
       <Avatar
         accountId={person.id}
         name={person.name}
-        pictureId={null}
+        pictureId={person.pictureId}
         size="sm"
         detail={roleNames[person.role as Role] ?? person.role}
         label={person.name}
       />
-      <span>{person.name}</span>
     </span>
   );
 }

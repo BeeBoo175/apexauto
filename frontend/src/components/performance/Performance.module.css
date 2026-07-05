@@ -184,8 +184,7 @@
 
 .chart {
   display: block;
-  width: 100%;
-  height: auto;
+  max-width: none;
 }
 
 .chartLabel {
@@ -329,4 +328,143 @@
     grid-column: 1 / -1;
     grid-row: 2;
   }
+}
+
+.personButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.personButton:hover span:first-of-type {
+  text-decoration: underline;
+}
+
+.personFact {
+  display: block;
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.cellValue {
+  display: block;
+}
+
+.miniTrack {
+  display: block;
+  width: 100%;
+  min-width: 56px;
+  height: 4px;
+  margin-top: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--color-line-soft);
+}
+
+.miniFill {
+  display: block;
+  height: 100%;
+  background: var(--color-graphite-soft);
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.drawerBody {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+.facts {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+.fact {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-line-soft);
+  font-size: 14px;
+}
+
+.fact dt {
+  color: var(--color-muted);
+}
+
+.fact dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.milestonePanel {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.milestonePanel[hidden] {
+  display: none;
+}
+
+.milestones {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.milestone {
+  display: grid;
+  gap: 2px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-line-soft);
+  font-size: 14px;
+}
+
+.milestoneKind {
+  font-weight: 600;
+}
+
+.table .number {
+  white-space: nowrap;
+}
+
+.table thead th.number {
+  min-width: 96px;
+  white-space: normal;
+}
+
+.table tbody th {
+  min-width: 200px;
 }

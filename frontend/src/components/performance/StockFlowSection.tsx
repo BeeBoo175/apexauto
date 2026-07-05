@@ -44,7 +44,8 @@ function StockChart({ flow }: { flow: PerformanceStockFlow }) {
       <div className={styles.scroll}>
         <svg
           className={styles.chart}
-          style={{ minWidth: width }}
+          width={width}
+          height={chartHeight + labelHeight}
           viewBox={`0 0 ${width} ${chartHeight + labelHeight}`}
           role="img"
           aria-label={`Weekly vehicles checked in and delivered. ${totalIn} checked in and ${totalOut} delivered in the period.`}

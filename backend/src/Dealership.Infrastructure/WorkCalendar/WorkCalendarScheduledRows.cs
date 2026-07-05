@@ -54,11 +54,13 @@ internal static class WorkCalendarScheduledRows
             intake = intake.Where(row => EF.Functions.ILike(row.RegistrationPlate, pattern, "!") ||
                 EF.Functions.ILike(row.ManufactureYear + " " + row.Make + " " + row.Model + " " + row.Trim, pattern, "!") ||
                 EF.Functions.ILike(row.CustomerName, pattern, "!") ||
-                row.HandlerEmail != null && EF.Functions.ILike(row.HandlerEmail, pattern, "!"));
+                row.HandlerEmail != null && EF.Functions.ILike(row.HandlerEmail, pattern, "!") ||
+                row.HandlerName != null && EF.Functions.ILike(row.HandlerName, pattern, "!"));
             drives = drives.Where(row => EF.Functions.ILike(row.RegistrationPlate, pattern, "!") ||
                 EF.Functions.ILike(row.ManufactureYear + " " + row.Make + " " + row.Model + " " + row.Trim, pattern, "!") ||
                 EF.Functions.ILike(row.CustomerName, pattern, "!") ||
-                row.HandlerEmail != null && EF.Functions.ILike(row.HandlerEmail, pattern, "!"));
+                row.HandlerEmail != null && EF.Functions.ILike(row.HandlerEmail, pattern, "!") ||
+                row.HandlerName != null && EF.Functions.ILike(row.HandlerName, pattern, "!"));
         }
 
         var total = await intake.CountAsync(cancellationToken) + await drives.CountAsync(cancellationToken);

@@ -77,6 +77,7 @@ export interface WorkloadPerson {
   role: string;
   branchId: string;
   branchName: string;
+  pictureId: string | null;
   under2Days: number;
   twoToSevenDays: number;
   overSevenDays: number;
@@ -237,6 +238,7 @@ function parseWorkloadPerson(value: unknown): WorkloadPerson | null {
     typeof value.role !== "string" ||
     !isUuid(value.branchId) ||
     typeof value.branchName !== "string" ||
+    !(value.pictureId === null || isUuid(value.pictureId)) ||
     !isNonNegativeInteger(value.under2Days) ||
     !isNonNegativeInteger(value.twoToSevenDays) ||
     !isNonNegativeInteger(value.overSevenDays) ||

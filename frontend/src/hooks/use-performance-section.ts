@@ -5,18 +5,19 @@ import { useToast } from "@/components/ui/Toast";
 import { privateApiFetch } from "@/lib/api-browser";
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import { periodQuery } from "@/lib/performance/period";
-import type { PerformancePeriod, SectionName } from "@/lib/performance/performance";
+import type { PerformancePeriod } from "@/lib/performance/performance";
 
 // One dashboard section: its own bounded read, concurrent with the others, that keeps its last confirmed content
 // when a refresh fails and offers a deliberate retry.
 export function usePerformanceSection<T extends { actor: CurrentActor }>(
-  section: SectionName,
+  section: string,
   parse: (value: unknown) => T | null,
   period: PerformancePeriod,
   actor: CurrentActor,
   refreshes: number,
   label: string,
   enabled = true,
+  extra = "",
 ) {
   const [data, setData] = useState<T | null>(null);
   const [busy, setBusy] = useState(enabled);
@@ -24,7 +25,7 @@ export function usePerformanceSection<T extends { actor: CurrentActor }>(
   const [attempt, setAttempt] = useState(0);
   const toast = useToast();
   const reported = useRef(false);
-  const query = periodQuery(period);
+  const query = `${periodQuery(period)}${extra ? `&${extra}` : ""}`;
 
   useEffect(() => {
     if (!enabled) {

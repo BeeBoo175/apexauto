@@ -24,6 +24,7 @@ import { PeriodControl } from "./PeriodControl";
 import { PipelineSection } from "./PipelineSection";
 import { RosterSection } from "./RosterSection";
 import { StageSection } from "./StageSection";
+import { TeamOutputSection } from "./TeamOutputSection";
 import { StockFlowSection } from "./StockFlowSection";
 import { WorkloadSection } from "./WorkloadSection";
 import styles from "./Performance.module.css";
@@ -190,6 +191,12 @@ export function PerformanceWorkspace({ entry }: { entry: PerformanceEntry }) {
           <StockFlowSection flow={stock.data} state={state(stock)} asTable={asTable} />
           <RosterSection roster={roster.data} state={state(roster)} asTable={asTable} />
           <WorkloadSection workload={workload.data} state={state(workload)} asTable={asTable} />
+          <TeamOutputSection
+            period={period}
+            actor={actor}
+            refreshes={refreshes}
+            asTable={asTable}
+          />
           {isGeneral && <BranchSection branches={branches.data} state={state(branches)} />}
         </div>
       </div>

@@ -18,7 +18,7 @@ public sealed partial class PerformanceReads
 
     private static double? AverageDays(IEnumerable<double> seconds)
     {
-        var values = seconds.ToArray();
+        var values = seconds.Where(value => value >= 0).ToArray();
         return values.Length == 0 ? null : values.Average() / TimeSpan.SecondsPerDay;
     }
 

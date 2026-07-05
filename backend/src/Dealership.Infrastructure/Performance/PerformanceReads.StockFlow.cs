@@ -7,7 +7,8 @@ namespace Dealership.Infrastructure.Performance;
 
 public sealed partial class PerformanceReads
 {
-    // Weekly vehicles in and out. A no-show attendance correction is a manager's record, not a vehicle arriving.
+    // Weekly vehicles in and out, with the agreed value delivered each week (the same agreed total as the headline).
+    // A no-show attendance correction is a manager's record, not a vehicle arriving.
     public async Task<PerformanceReadResult<PerformanceStockFlow>> StockFlowAsync(Guid actorId, PerformanceQuery query,
         CancellationToken cancellationToken)
     {
@@ -26,29 +27,38 @@ public sealed partial class PerformanceReads
             .ToListAsync(cancellationToken);
         var deliveries = await SalesInScope(scope.BranchId)
             .Where(order => order.DeliveredAt >= query.From && order.DeliveredAt < query.Until)
-            .Select(order => order.DeliveredAt!.Value)
+            .Select(order => new
+            {
+                At = order.DeliveredAt!.Value,
+                Value = order.BalancePayable + order.DepositCredit + order.TradeInAllowance,
+            })
             .ToListAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
-        var weeks = new SortedDictionary<DateOnly, (int CheckIns, int Deliveries)>();
+        var weeks = new SortedDictionary<DateOnly, (int CheckIns, int Deliveries, decimal Value)>();
         for (var week = WeekStart(query.From); week < MalaysiaDate(query.Until); week = week.AddDays(7))
         {
-            weeks[week] = (0, 0);
+            weeks[week] = (0, 0, 0m);
         }
 
         foreach (var at in checkIns)
         {
             var week = WeekStart(at);
-            weeks[week] = (weeks[week].CheckIns + 1, weeks[week].Deliveries);
+            weeks[week] = weeks[week] with { CheckIns = weeks[week].CheckIns + 1 };
         }
 
-        foreach (var at in deliveries)
+        foreach (var delivery in deliveries)
         {
-            var week = WeekStart(at);
-            weeks[week] = (weeks[week].CheckIns, weeks[week].Deliveries + 1);
+            var week = WeekStart(delivery.At);
+            weeks[week] = weeks[week] with
+            {
+                Deliveries = weeks[week].Deliveries + 1,
+                Value = weeks[week].Value + delivery.Value,
+            };
         }
 
-        var result = weeks.Select(item => new PerformanceStockWeek(item.Key, item.Value.CheckIns, item.Value.Deliveries))
+        var result = weeks.Select(item =>
+                new PerformanceStockWeek(item.Key, item.Value.CheckIns, item.Value.Deliveries, item.Value.Value))
             .ToArray();
         return new(PerformanceReadStatus.Succeeded, new PerformanceStockFlow(scope.Actor, result));
     }

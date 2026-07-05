@@ -124,6 +124,9 @@ public sealed class PerformanceReadsTests(IntakePhotoFixture fixture) : IClassFi
             PerformanceMilestoneQuery.Parse(query, world.Agent, 1, 25)!, default)).Status);
         var flowAfter = (await reads.StockFlowAsync(world.Manager, query, default)).Value!;
         Assert.Equal(flowBefore.Weeks.Sum(week => week.Deliveries) + 1, flowAfter.Weeks.Sum(week => week.Deliveries));
+        Assert.Equal(flowBefore.Weeks.Sum(week => week.DeliveredValue) + total,
+            flowAfter.Weeks.Sum(week => week.DeliveredValue));
+        Assert.Equal(after.Current.DeliveredValue, flowAfter.Weeks.Sum(week => week.DeliveredValue));
         Assert.All(flowAfter.Weeks, week => Assert.Equal(DayOfWeek.Monday, week.WeekStart.DayOfWeek));
         Assert.Equal(PerformanceReadStatus.Forbidden, (await reads.StockFlowAsync(world.Agent, query, default)).Status);
 

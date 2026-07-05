@@ -36,7 +36,8 @@ public sealed partial class PerformanceReads
 
         var stages = PerformanceStages.Ordered.Select(stage =>
         {
-            var seconds = passes[stage];
+            // Evidence that runs backwards, such as a listing dated before its repair completed, is not a pass.
+            var seconds = passes[stage].Where(value => value >= 0).ToList();
             return new PerformanceStage(stage, current.GetValueOrDefault(stage), seconds.Count,
                 seconds.Count == 0 ? null : seconds.Average() / TimeSpan.SecondsPerDay);
         }).ToArray();

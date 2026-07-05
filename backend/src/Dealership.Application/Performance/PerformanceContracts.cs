@@ -53,8 +53,9 @@ public sealed record PerformancePipelineGroup(string Group, int Count, decimal A
 
 public sealed record PerformancePipeline(CurrentActor Actor, IReadOnlyList<PerformancePipelineGroup> Groups);
 
-// One Malaysian calendar week, named by its Monday, with the check-ins and deliveries completed in it.
-public sealed record PerformanceStockWeek(DateOnly WeekStart, int CheckIns, int Deliveries);
+// One Malaysian calendar week, named by its Monday, with the check-ins and deliveries completed in it and the
+// agreed value of those deliveries.
+public sealed record PerformanceStockWeek(DateOnly WeekStart, int CheckIns, int Deliveries, decimal DeliveredValue);
 
 public sealed record PerformanceStockFlow(CurrentActor Actor, IReadOnlyList<PerformanceStockWeek> Weeks);
 
