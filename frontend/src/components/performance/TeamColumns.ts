@@ -10,12 +10,15 @@ export interface TeamColumn<Row> {
   // Counts share a bar scale per column; elapsed days are shown as text only.
   bar: boolean;
   now?: boolean;
+  // Measures left out of the table stay in the employee drawer and the export.
+  detailOnly?: boolean;
 }
 
 function heldCount<Row>(
   key: string,
   label: string,
   value: (row: Row) => number | null,
+  detailOnly = false,
 ): TeamColumn<Row> {
   return {
     key,
@@ -27,6 +30,7 @@ function heldCount<Row>(
     },
     bar: true,
     now: true,
+    detailOnly,
   };
 }
 
@@ -34,39 +38,46 @@ function elapsed<Row>(
   key: string,
   label: string,
   value: (row: Row) => number | null,
+  detailOnly = false,
 ): TeamColumn<Row> {
-  return { key, label, value, text: (row) => formatDays(value(row)), bar: false };
+  return { key, label, value, text: (row) => formatDays(value(row)), bar: false, detailOnly };
 }
 
-function counted<Row>(key: string, label: string, value: (row: Row) => number): TeamColumn<Row> {
-  return { key, label, value, text: (row) => String(value(row)), bar: true };
+function counted<Row>(
+  key: string,
+  label: string,
+  value: (row: Row) => number,
+  detailOnly = false,
+): TeamColumn<Row> {
+  return { key, label, value, text: (row) => String(value(row)), bar: true, detailOnly };
 }
 
 export const salesColumns: TeamColumn<SalesRow>[] = [
   counted("checkIns", "Check-ins", (row) => row.checkIns),
-  counted("drivesCompleted", "Drives completed", (row) => row.drivesCompleted),
-  counted("drivesNotCompleted", "Drives not completed", (row) => row.drivesNotCompleted),
-  counted("salesSettled", "Sales settled", (row) => row.salesSettled),
-  counted("salesDelivered", "Sales delivered", (row) => row.salesDelivered),
-  counted("noShowCorrections", "No-show corrections", (row) => row.noShowCorrections),
-  elapsed("assignmentToDelivery", "Assignment to delivery", (row) => row.assignmentToDeliveryDays),
-  heldCount("intakeHandled", "Intake handled", (row) => row.intakeHandled),
-  heldCount("testDrivesHeld", "Test drives held", (row) => row.testDrivesHeld),
-  heldCount("salesHandled", "Sales handled", (row) => row.salesHandled),
+  counted("drivesCompleted", "Drives done", (row) => row.drivesCompleted),
+  counted("drivesNotCompleted", "Drives not done", (row) => row.drivesNotCompleted, true),
+  counted("salesSettled", "Settled", (row) => row.salesSettled),
+  counted("salesDelivered", "Delivered", (row) => row.salesDelivered),
+  counted("noShowCorrections", "No-show fixes", (row) => row.noShowCorrections, true),
+  elapsed("assignmentToDelivery", "Time to deliver", (row) => row.assignmentToDeliveryDays),
+  heldCount("intakeHandled", "Intake", (row) => row.intakeHandled, true),
+  heldCount("testDrivesHeld", "Test drives", (row) => row.testDrivesHeld, true),
+  heldCount("salesHandled", "Open sales", (row) => row.salesHandled),
 ];
 
 export const workshopColumns: TeamColumn<WorkshopRow>[] = [
-  counted("inspectionsSigned", "Inspections signed", (row) => row.inspectionsSigned),
+  counted("inspectionsSigned", "Inspections", (row) => row.inspectionsSigned),
   counted("reinspections", "Re-inspections", (row) => row.reinspections),
-  counted("repairsCompleted", "Repairs completed", (row) => row.repairsCompleted),
-  elapsed("assignmentToSignOff", "Assignment to sign-off", (row) => row.assignmentToSignOffDays),
+  counted("repairsCompleted", "Repairs", (row) => row.repairsCompleted),
+  elapsed("assignmentToSignOff", "Time to sign off", (row) => row.assignmentToSignOffDays),
   elapsed(
     "assignmentToReinspection",
-    "Assignment to re-inspection sign-off",
+    "Re-inspection time",
     (row) => row.assignmentToReinspectionDays,
+    true,
   ),
-  heldCount("openDrafts", "Open drafts", (row) => row.openDrafts),
-  heldCount("openRepairs", "Open repair work", (row) => row.openRepairs),
+  heldCount("openDrafts", "Drafts", (row) => row.openDrafts),
+  heldCount("openRepairs", "Repair work", (row) => row.openRepairs),
 ];
 
 export const teamTitles: Record<TeamTab, string> = {
