@@ -1,4 +1,5 @@
 import { Card } from "@/components/ui/Card";
+import { HomeLoadingShell } from "@/components/home/HomeLoadingShell";
 import { TechnicianLoadingShell } from "@/components/inspection/TechnicianLoadingShell";
 import { PerformanceLoadingShell } from "@/components/performance/PerformanceLoadingShell";
 import { WorkCalendarLoadingShell } from "./WorkCalendarLoadingShell";
@@ -7,7 +8,14 @@ import layout from "./Staff.module.css";
 import styles from "./StaffLoadingShell.module.css";
 
 export type StaffLoadingView =
-  "calendar" | "intake" | "inspection" | "technician" | "repairs" | "appointment" | "report";
+  | "calendar"
+  | "intake"
+  | "inspection"
+  | "technician"
+  | "repairs"
+  | "appointment"
+  | "report"
+  | "home";
 
 // The report shell follows the requested performance view and whether the actor also sees the Branches tab.
 type LoadingShellProps = {
@@ -31,6 +39,9 @@ function LoadingContent({ view, selected = false, report }: LoadingShellProps) {
   }
   if (view === "report") {
     return <PerformanceLoadingShell view={report?.view ?? ""} general={report?.general ?? false} />;
+  }
+  if (view === "home") {
+    return <HomeLoadingShell tiles={report?.agent ? 3 : 4} toolbar={report?.general ?? false} />;
   }
   if (view === "calendar") {
     return <WorkCalendarLoadingShell />;

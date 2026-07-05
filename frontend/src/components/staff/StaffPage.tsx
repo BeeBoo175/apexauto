@@ -32,6 +32,7 @@ export function StaffLoading() {
     "/dashboard/account": "appointment",
     "/dashboard/accounts": "intake",
     "/dashboard/performance": "report",
+    "/dashboard/home": "home",
   };
   let view = views[pathname] ?? "inspection";
   let title = staffPageTitles[pathname] ?? "Your staff workspace";
