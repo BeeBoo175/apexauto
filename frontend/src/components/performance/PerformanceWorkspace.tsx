@@ -1,204 +1,178 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useContext, useState } from "react";
+import { StaffPageEntranceContext } from "@/components/staff/StaffActorBoundary";
 import { StaffCommandBar } from "@/components/staff/StaffPage";
-import { Button } from "@/components/ui/Button";
-import { LoadingProgress } from "@/components/ui/LoadingProgress";
+import { StaffQueueTabs } from "@/components/staff/StaffQueueTabs";
 import { RefreshButton } from "@/components/ui/RefreshButton";
-import { usePerformanceSection } from "@/hooks/use-performance-section";
 import type { usePerformanceEntry } from "@/hooks/use-performance-entry";
-import { performancePeriod, type PeriodPreset } from "@/lib/performance/period";
-import {
-  parseBranches,
-  parseHeadline,
-  parsePipeline,
-  parseRoster,
-  parseStageWaiting,
-  parseStockFlow,
-  parseWorkload,
-  type PerformancePeriod,
-} from "@/lib/performance/performance";
-import { BranchSection } from "./BranchSection";
-import { HeadlineSection } from "./HeadlineSection";
-import { PeriodControl } from "./PeriodControl";
-import { PipelineSection } from "./PipelineSection";
-import { RosterSection } from "./RosterSection";
-import { StageSection } from "./StageSection";
-import { TeamOutputSection } from "./TeamOutputSection";
-import { StockFlowSection } from "./StockFlowSection";
-import { WorkloadSection } from "./WorkloadSection";
+import { useAddressSection } from "@/hooks/use-address-section";
+import type { PeriodPreset } from "@/lib/performance/period";
+import type { PerformancePeriod } from "@/lib/performance/performance";
+import { PerformanceToolbar } from "./PerformanceToolbar";
+import { BranchesView, ResultsView } from "./PerformanceViews";
+import { TeamView, type TeamExport } from "./TeamView";
+import type { TeamTab } from "@/lib/performance/team";
+import workspace from "@/components/staff/StaffWorkspace.module.css";
 import styles from "./Performance.module.css";
 
 type PerformanceEntry = NonNullable<ReturnType<typeof usePerformanceEntry>["entry"]>;
+type View = "results" | "sales" | "workshop" | "branches";
 
-function addressFor(preset: PeriodPreset, period: PerformancePeriod, asTable: boolean) {
-  const query = new URLSearchParams();
+// Period and branch ride in the address beside the open view, so a reload returns to the same page.
+function writePeriod(preset: PeriodPreset, period: PerformancePeriod) {
+  const url = new URL(window.location.href);
+  for (const key of ["period", "from", "to", "branchId"]) {
+    url.searchParams.delete(key);
+  }
   if (preset !== "this-month") {
-    query.set("period", preset);
+    url.searchParams.set("period", preset);
   }
   if (preset === "custom") {
-    query.set("from", period.from);
-    query.set("to", period.to);
+    url.searchParams.set("from", period.from);
+    url.searchParams.set("to", period.to);
   }
   if (period.branchId) {
-    query.set("branchId", period.branchId);
+    url.searchParams.set("branchId", period.branchId);
   }
-  if (asTable) {
-    query.set("view", "table");
-  }
-  const text = query.toString();
-  return `/dashboard/performance${text ? `?${text}` : ""}`;
+  window.history.replaceState(null, "", url);
 }
 
+// Performance is the reporting page: how a chosen period went, in tables a manager can read, compare and export.
+// What needs a manager today lives on Home.
 export function PerformanceWorkspace({ entry }: { entry: PerformanceEntry }) {
   const { actor } = entry;
+  const isGeneral = actor.role === "GeneralManager";
   const [preset, setPreset] = useState<PeriodPreset>(entry.preset);
   const [period, setPeriod] = useState(entry.period);
-  const [asTable, setAsTable] = useState(entry.asTable);
   const [refreshes, setRefreshes] = useState(0);
-  const isGeneral = actor.role === "GeneralManager";
-
-  const headline = usePerformanceSection(
-    "headline",
-    parseHeadline,
-    period,
-    actor,
-    refreshes,
-    "Headline",
+  const [exports, setExports] = useState<Record<TeamTab, TeamExport | null>>({
+    sales: null,
+    workshop: null,
+  });
+  // The same soft entrance as the other staff pages when Performance is navigated to.
+  const animateEntry = useContext(StaffPageEntranceContext);
+  // Every manager opens on Results; a general manager also has Branches, second.
+  const [view, chooseView] = useAddressSection<View>(
+    isGeneral ? ["results", "branches", "sales", "workshop"] : ["results", "sales", "workshop"],
+    "view",
   );
-  const pipeline = usePerformanceSection(
-    "pipeline",
-    parsePipeline,
-    period,
-    actor,
-    refreshes,
-    "Sales pipeline",
-  );
-  const stock = usePerformanceSection(
-    "stock-flow",
-    parseStockFlow,
-    period,
-    actor,
-    refreshes,
-    "Stock in and out",
-  );
-  const stages = usePerformanceSection(
-    "stage-waiting",
-    parseStageWaiting,
-    period,
-    actor,
-    refreshes,
-    "Stage waiting",
-  );
-  const workload = usePerformanceSection(
-    "workload",
-    parseWorkload,
-    period,
-    actor,
-    refreshes,
-    "Workload",
-  );
-  const roster = usePerformanceSection(
-    "roster",
-    parseRoster,
-    period,
-    actor,
-    refreshes,
-    "Rostering",
-  );
-  const branches = usePerformanceSection(
-    "branches",
-    parseBranches,
-    period,
-    actor,
-    refreshes,
-    "Branch comparison",
-    isGeneral,
-  );
-  const sections = [
-    headline,
-    pipeline,
-    stock,
-    stages,
-    workload,
-    roster,
-    isGeneral ? branches : null,
+  const tabs: { value: View; label: string }[] = [
+    { value: "results", label: "Results" },
+    ...(isGeneral ? [{ value: "branches" as const, label: "Branches" }] : []),
+    { value: "sales", label: "Sales & service" },
+    { value: "workshop", label: "Workshop" },
   ];
-  const busy = sections.some((section) => section?.busy);
+  const current: View = tabs.some((tab) => tab.value === view) ? view : tabs[0].value;
+  // Like the other staff pages, a chosen view loads out of sight while the confirmed one stays on screen, and
+  // replaces it only once its figures are in, so the page never shows an empty view or moves while loading.
+  const [pending, setPending] = useState<View | null>(null);
+  const [firstView] = useState(current);
+  const team = current === "sales" || current === "workshop";
 
-  function choose(nextPreset: PeriodPreset, next: PerformancePeriod, table = asTable) {
+  const settle = useCallback(
+    (settled: View) => {
+      if (settled !== pending) {
+        return;
+      }
+      chooseView(settled);
+      setPending(null);
+    },
+    [pending, chooseView],
+  );
+  const recordExport = useCallback((tab: TeamTab, state: TeamExport | null) => {
+    setExports((value) => ({ ...value, [tab]: state }));
+  }, []);
+
+  function requestView(next: View) {
+    setPending(next === current ? null : next);
+  }
+
+  function choose(nextPreset: PeriodPreset, next: PerformancePeriod) {
     setPreset(nextPreset);
     setPeriod(next);
-    window.history.replaceState(null, "", addressFor(nextPreset, next, table));
+    writePeriod(nextPreset, next);
   }
 
-  function toggleTable() {
-    const next = !asTable;
-    setAsTable(next);
-    window.history.replaceState(null, "", addressFor(preset, period, next));
+  // What the entry read belongs only to the view and period the page opened on.
+  const opened = (candidate: View) => candidate === firstView && period === entry.period;
+  const shared = { period, actor, refreshes };
+
+  function renderView(candidate: View) {
+    if (candidate === "results") {
+      return (
+        <ResultsView
+          {...shared}
+          initialHeadline={entry.headline}
+          initial={
+            opened("results") ? entry.results : { stock: null, stages: null, pipeline: null }
+          }
+          onSettled={() => settle("results")}
+        />
+      );
+    }
+    if (candidate === "branches") {
+      return (
+        <BranchesView
+          {...shared}
+          initial={opened("branches") ? entry.comparison : null}
+          onSettled={() => settle("branches")}
+          onOpen={(branchId) => {
+            choose(preset, { ...period, branchId });
+            requestView("results");
+          }}
+        />
+      );
+    }
+    return (
+      <TeamView
+        tab={candidate}
+        initial={opened(candidate) ? entry.team : null}
+        onExport={recordExport}
+        onSettled={() => settle(candidate)}
+        {...shared}
+      />
+    );
   }
 
-  const state = (section: ReturnType<typeof usePerformanceSection>) => ({
-    hasData: section.data !== null,
-    busy: section.busy,
-    failed: section.failed,
-    retry: section.retry,
-  });
-
+  const mounted = pending ? [current, pending] : [current];
   return (
     <>
-      <LoadingProgress label="Loading performance" active={busy} />
       <StaffCommandBar
         title="Performance"
         actions={
-          <>
-            <Button
-              size="compact"
-              variant={asTable ? "secondary" : "ghost"}
-              aria-pressed={asTable}
-              onClick={toggleTable}
-            >
-              View as table
-            </Button>
-            <RefreshButton
-              label="Refresh performance"
-              busy={busy}
-              disabled={busy}
-              onClick={() => setRefreshes((value) => value + 1)}
-            />
-          </>
+          <RefreshButton
+            label="Refresh performance"
+            busy={false}
+            disabled={false}
+            onClick={() => setRefreshes((value) => value + 1)}
+          />
         }
       />
-      <div className={styles.workspace}>
-        <PeriodControl
-          preset={preset}
-          period={period}
-          branches={entry.branches}
-          showBranches={isGeneral}
-          onPreset={(value) =>
-            choose(value, performancePeriod({ period: value, branchId: period.branchId }))
-          }
-          onCustom={(from, to) => choose("custom", { from, to, branchId: period.branchId })}
-          onBranch={(branchId) => choose(preset, { ...period, branchId })}
-        />
-        <div className={styles.grid}>
-          <HeadlineSection
-            headline={headline.data ?? entry.headline}
-            state={{ ...state(headline), hasData: true }}
-          />
-          <PipelineSection pipeline={pipeline.data} state={state(pipeline)} asTable={asTable} />
-          <StageSection stages={stages.data} state={state(stages)} asTable={asTable} />
-          <StockFlowSection flow={stock.data} state={state(stock)} asTable={asTable} />
-          <RosterSection roster={roster.data} state={state(roster)} asTable={asTable} />
-          <WorkloadSection workload={workload.data} state={state(workload)} asTable={asTable} />
-          <TeamOutputSection
+      <div className={`${styles.workspace} ${animateEntry ? workspace.reveal : ""}`}>
+        {/* The period and branch apply to every view, so their row sits above the view tabs. */}
+        <div className={styles.toolbarFrame}>
+          <PerformanceToolbar
+            teamExport={team ? (exports[current] ?? "pending") : null}
+            preset={preset}
             period={period}
-            actor={actor}
-            refreshes={refreshes}
-            asTable={asTable}
+            branches={entry.branches}
+            showBranches={isGeneral}
+            busy={false}
+            onApply={choose}
           />
-          {isGeneral && <BranchSection branches={branches.data} state={state(branches)} />}
         </div>
+        <StaffQueueTabs
+          label="Performance views"
+          tabs={tabs}
+          value={pending ?? current}
+          onChange={requestView}
+        />
+        {mounted.map((candidate) => (
+          <div key={candidate} className={styles.viewSlot} hidden={candidate !== current}>
+            {renderView(candidate)}
+          </div>
+        ))}
       </div>
     </>
   );

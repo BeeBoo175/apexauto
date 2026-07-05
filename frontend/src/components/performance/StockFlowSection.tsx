@@ -1,112 +1,142 @@
+import type { CSSProperties } from "react";
 import { weekLabel } from "@/lib/performance/format";
-import type { PerformanceStockFlow } from "@/lib/performance/performance";
+import type { PerformanceStockFlow, StockWeek } from "@/lib/performance/performance";
 import { PerformanceSection, type SectionState } from "./PerformanceSection";
+import { ChartSkeleton } from "./PerformanceSkeletons";
 import styles from "./Performance.module.css";
 
-const stride = 36;
-const barWidth = 14;
-const chartHeight = 140;
-const labelHeight = 20;
+// Each week keeps at least this width, so a long period scrolls sideways instead of crowding its labels.
+const weekMinimum = 32;
+// Each week's figures print beneath it while they fit; longer periods show them on hover and in the screen-reader
+// table instead.
+const figureWeeks = 6;
+// Room above the highest point, as a share of the plot height.
+const headroom = 0.15;
 
-// Fewer week labels as the period grows, so they stay readable.
-function labelEvery(weeks: number) {
-  if (weeks > 20) {
-    return 4;
-  }
-  return weeks > 10 ? 2 : 1;
-}
+const series = [
+  { key: "checkIns", label: "Checked in", className: styles.seriesIn },
+  { key: "deliveries", label: "Delivered", className: styles.seriesOut },
+] as const;
 
+// The weekly flow of vehicles across the full width: the two lines show direction and each week prints its own
+// figures beneath, so the chart needs no table beside it. Screen readers get the same figures as a table.
 export function StockFlowSection({
   flow,
   state,
-  asTable,
 }: {
   flow: PerformanceStockFlow | null;
   state: SectionState;
-  asTable: boolean;
 }) {
   return (
-    <PerformanceSection title="Stock in and out" state={state}>
-      {flow && (asTable ? <StockTable flow={flow} /> : <StockChart flow={flow} />)}
+    <PerformanceSection
+      title="Vehicles in and out, by week"
+      half
+      aside={
+        <span className={styles.flowAside}>
+          {flow && (
+            <span className={styles.panelAside}>
+              {total(flow.weeks, "checkIns")} in, {total(flow.weeks, "deliveries")} out
+            </span>
+          )}
+          <SeriesLegend />
+        </span>
+      }
+      state={{ ...state, hasData: flow !== null }}
+      placeholder={<ChartSkeleton />}
+    >
+      {flow && (
+        <>
+          <StockChart flow={flow} />
+          <div className="sr-only">
+            <StockTable flow={flow} />
+          </div>
+        </>
+      )}
     </PerformanceSection>
   );
 }
 
-function StockChart({ flow }: { flow: PerformanceStockFlow }) {
-  const maximum = Math.max(1, ...flow.weeks.flatMap((week) => [week.checkIns, week.deliveries]));
-  const width = Math.max(flow.weeks.length * stride, stride);
-  const scale = (value: number) => (value / maximum) * (chartHeight - 8);
-  const every = labelEvery(flow.weeks.length);
-  const totalIn = flow.weeks.reduce((sum, week) => sum + week.checkIns, 0);
-  const totalOut = flow.weeks.reduce((sum, week) => sum + week.deliveries, 0);
+function SeriesLegend() {
   return (
-    <>
-      <div className={styles.scroll}>
-        <svg
-          className={styles.chart}
-          width={width}
-          height={chartHeight + labelHeight}
-          viewBox={`0 0 ${width} ${chartHeight + labelHeight}`}
-          role="img"
-          aria-label={`Weekly vehicles checked in and delivered. ${totalIn} checked in and ${totalOut} delivered in the period.`}
-        >
-          {flow.weeks.map((week, index) => {
-            const x = index * stride + (stride - barWidth * 2 - 2) / 2;
-            return (
-              <g key={week.weekStart}>
-                <rect
-                  x={x}
-                  y={chartHeight - scale(week.checkIns)}
-                  width={barWidth}
-                  height={scale(week.checkIns)}
-                  fill="var(--color-graphite-soft)"
-                >
-                  <title>{`Week of ${weekLabel(week.weekStart)}: ${week.checkIns} checked in`}</title>
-                </rect>
-                <rect
-                  x={x + barWidth + 2}
-                  y={chartHeight - scale(week.deliveries)}
-                  width={barWidth}
-                  height={scale(week.deliveries)}
-                  fill="var(--color-trust)"
-                >
-                  <title>{`Week of ${weekLabel(week.weekStart)}: ${week.deliveries} delivered`}</title>
-                </rect>
-                {index % every === 0 && (
-                  <text
-                    className={styles.chartLabel}
-                    x={index * stride + stride / 2}
-                    y={chartHeight + 14}
-                    textAnchor="middle"
-                  >
-                    {weekLabel(week.weekStart)}
-                  </text>
-                )}
-              </g>
-            );
-          })}
-          <line
-            x1={0}
-            x2={width}
-            y1={chartHeight}
-            y2={chartHeight}
-            stroke="var(--color-line)"
-            strokeWidth={1}
-          />
-        </svg>
+    <ul className={styles.legend} aria-label="Lines">
+      {series.map((line) => (
+        <li key={line.key}>
+          <span className={`${styles.swatch} ${line.className}`} aria-hidden="true" />
+          {line.label}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function total(weeks: StockWeek[], key: "checkIns" | "deliveries") {
+  return weeks.reduce((sum, week) => sum + week[key], 0);
+}
+
+// Fewer week labels as the period grows, so they stay readable.
+function labelEvery(weeks: number) {
+  if (weeks > 16) {
+    return 4;
+  }
+  return weeks > 8 ? 2 : 1;
+}
+
+// Points sit at the centre of their week column, in percent of the plot, so the plot fills any width.
+function pointsFor(weeks: StockWeek[], key: "checkIns" | "deliveries", maximum: number) {
+  return weeks.map((week, index) => ({
+    x: ((index + 0.5) / weeks.length) * 100,
+    y: 100 - (week[key] / maximum) * (1 - headroom) * 100,
+  }));
+}
+
+function StockChart({ flow }: { flow: PerformanceStockFlow }) {
+  if (flow.weeks.length === 0) {
+    return <p className={styles.note}>No weeks in this period.</p>;
+  }
+  const maximum = Math.max(1, ...flow.weeks.flatMap((week) => [week.checkIns, week.deliveries]));
+  const every = labelEvery(flow.weeks.length);
+  const layout: CSSProperties = {
+    gridTemplateColumns: `repeat(${flow.weeks.length}, minmax(${weekMinimum}px, 1fr))`,
+    minWidth: flow.weeks.length * weekMinimum,
+  };
+  return (
+    <div className={styles.scroll}>
+      <div className={styles.flow} style={layout} aria-hidden="true">
+        <div className={styles.plot}>
+          <svg className={styles.lines} viewBox="0 0 100 100" preserveAspectRatio="none">
+            {series.map((line) => (
+              <polyline
+                key={line.key}
+                className={`${styles.line} ${line.className}`}
+                points={pointsFor(flow.weeks, line.key, maximum)
+                  .map((point) => `${point.x},${point.y}`)
+                  .join(" ")}
+              />
+            ))}
+          </svg>
+          {series.map((line) =>
+            pointsFor(flow.weeks, line.key, maximum).map((point, index) => (
+              <span
+                key={`${line.key}:${point.x}`}
+                className={`${styles.point} ${line.className}`}
+                style={{ left: `${point.x}%`, top: `${point.y}%` }}
+                title={`Week of ${weekLabel(flow.weeks[index].weekStart)}: ${flow.weeks[index][line.key]} ${line.label.toLowerCase()}`}
+              />
+            )),
+          )}
+        </div>
+        {flow.weeks.map((week, index) => (
+          <span key={week.weekStart} className={styles.flowWeek}>
+            <span>{index % every === 0 ? weekLabel(week.weekStart) : ""}</span>
+            {flow.weeks.length <= figureWeeks && (
+              <span className={styles.flowFigures}>
+                {week.checkIns} in, {week.deliveries} out
+              </span>
+            )}
+          </span>
+        ))}
       </div>
-      <ul className={styles.legend}>
-        <li>
-          <span className={styles.swatch} style={{ background: "var(--color-graphite-soft)" }} />
-          Checked in ({totalIn})
-        </li>
-        <li>
-          <span className={styles.swatch} style={{ background: "var(--color-trust)" }} />
-          Delivered ({totalOut})
-        </li>
-        <li>Weeks start on Monday, Malaysia time</li>
-      </ul>
-    </>
+    </div>
   );
 }
 
@@ -135,6 +165,13 @@ function StockTable({ flow }: { flow: PerformanceStockFlow }) {
             </tr>
           ))}
         </tbody>
+        <tfoot>
+          <tr>
+            <th scope="row">Period total</th>
+            <td className={styles.number}>{total(flow.weeks, "checkIns")}</td>
+            <td className={styles.number}>{total(flow.weeks, "deliveries")}</td>
+          </tr>
+        </tfoot>
       </table>
     </div>
   );

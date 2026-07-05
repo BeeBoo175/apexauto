@@ -9,56 +9,75 @@ export interface SectionState {
   retry: () => void;
 }
 
-// A section keeps its own loading silhouette, its confirmed content and its own retry, so one slow or failed read
-// never blanks the rest of the page.
+// One flat section with a plain title and, on its right, what reads the section (a legend or totals). While its read
+// is pending the section shows placeholders of the final geometry (`placeholder`), so the page does not move when the
+// figures arrive.
 export function PerformanceSection({
   title,
-  now = false,
   half = false,
-  shell = "rows",
+  aside,
+  tools,
   state,
+  placeholder,
   children,
 }: {
   title: string;
-  now?: boolean;
   half?: boolean;
-  shell?: "tiles" | "rows";
+  aside?: ReactNode;
+  // Controls for a long list (tabs, search). With them the heading block sticks to the top of its scroll pane, so
+  // the controls stay in reach while the list scrolls under them.
+  tools?: ReactNode;
   state: SectionState;
+  placeholder: ReactNode;
   children: ReactNode;
 }) {
   const headingId = `performance-${title.toLowerCase().replace(/[^a-z]+/g, "-")}`;
+  const head = (
+    <div className={styles.panelHead}>
+      <h2 id={headingId} className={styles.panelTitle}>
+        {title}
+      </h2>
+      {state.hasData && aside}
+    </div>
+  );
   return (
     <section
-      className={`${styles.section} ${half ? styles.half : ""}`.trim()}
+      className={`${styles.panel} ${half ? styles.half : ""}`.trim()}
       aria-labelledby={headingId}
       aria-busy={state.busy}
     >
-      <div className={styles.sectionHeader}>
-        <h2 id={headingId} className={styles.sectionTitle}>
-          {title}
-        </h2>
-        {now && <span className={styles.nowTag}>Now</span>}
-      </div>
-      {state.hasData ? children : <SectionFallback shell={shell} state={state} title={title} />}
+      {tools ? (
+        <div className={styles.stickyHead}>
+          {head}
+          {state.hasData && tools}
+        </div>
+      ) : (
+        head
+      )}
+      {state.hasData ? (
+        children
+      ) : (
+        <SectionFallback state={state} title={title} placeholder={placeholder} />
+      )}
     </section>
   );
 }
 
 function SectionFallback({
-  shell,
   state,
   title,
+  placeholder,
 }: {
-  shell: "tiles" | "rows";
   state: SectionState;
   title: string;
+  placeholder: ReactNode;
 }) {
   if (state.failed && !state.busy) {
     return (
       <div className={styles.retry}>
         <p className={styles.note}>{title} could not be loaded.</p>
         <Button size="compact" variant="secondary" onClick={state.retry}>
-          Retry {title.toLowerCase()}
+          Retry
         </Button>
       </div>
     );
@@ -66,19 +85,7 @@ function SectionFallback({
   return (
     <div role="status" aria-label={`Loading ${title.toLowerCase()}`}>
       <span className="sr-only">Loading {title.toLowerCase()}…</span>
-      {shell === "tiles" ? (
-        <div className={styles.shellTiles} aria-hidden="true">
-          {[0, 1, 2, 3].map((index) => (
-            <span key={index} className={`${styles.placeholder} ${styles.shellTile}`} />
-          ))}
-        </div>
-      ) : (
-        <div className={styles.shellRows} aria-hidden="true">
-          {[0, 1, 2, 3].map((index) => (
-            <span key={index} className={`${styles.placeholder} ${styles.shellBlock}`} />
-          ))}
-        </div>
-      )}
+      <div aria-hidden="true">{placeholder}</div>
     </div>
   );
 }
