@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
   type ReactNode,
@@ -30,6 +31,27 @@ function synchronizeLayer(bar: HTMLElement) {
   bar.showPopover();
 }
 
+// Shows an idle or finishing bar and begins its opening stroke at once. Returns that stroke, or null when the bar is
+// already running and the provider's effect owns it.
+function startStroke(bar: HTMLElement) {
+  const track = bar.firstElementChild;
+  if (!(track instanceof HTMLElement) || !(bar.hidden || bar.dataset.phase === "completing")) {
+    return null;
+  }
+  bar.getAnimations().forEach((animation) => animation.cancel());
+  track.getAnimations().forEach((animation) => animation.cancel());
+  track.style.transform = "scaleX(0.04)";
+  bar.hidden = false;
+  bar.dataset.phase = "pending";
+  synchronizeLayer(bar);
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  return track.animate([{ transform: "scaleX(0.04)" }, { transform: "scaleX(0.8)" }], {
+    duration: reduced ? 1 : 1100,
+    easing: "cubic-bezier(0.16, 1, 0.3, 1)",
+    fill: "forwards",
+  });
+}
+
 export function LoadingProgressProvider({
   children,
   initialLabel = "Opening workspace",
@@ -39,11 +61,21 @@ export function LoadingProgressProvider({
 }) {
   const element = useRef<HTMLSpanElement>(null);
   const started = useRef(0);
+  const opening = useRef<Animation | null>(null);
   const [initialPending, setInitialPending] = useState(true);
   const [activities, setActivities] = useState(() => new Map<string, string>());
   const active = initialPending || activities.size > 0;
   const ready = useCallback(() => setInitialPending(false), []);
   const register = useCallback((id: string, label: string) => {
+    // Show the bar in the same frame as the interaction that started the work, instead of after the re-render the
+    // registration causes; the effect below then takes over the same stroke.
+    // Found by its attribute rather than the effect's ref: the dashboard renders one bar.
+    const bar = document.querySelector<HTMLElement>("[data-loading-progress]");
+    const stroke = bar ? startStroke(bar) : null;
+    if (stroke) {
+      started.current = performance.now();
+      opening.current = stroke;
+    }
     setActivities((current) => new Map(current).set(id, label));
     return () => {
       setActivities((current) => {
@@ -115,6 +147,12 @@ export function LoadingProgressProvider({
       });
     }
 
+    // Continue the stroke the registration already started rather than restarting or abandoning it.
+    if (opening.current) {
+      track.style.transform = getComputedStyle(track).transform;
+      opening.current.cancel();
+      opening.current = null;
+    }
     if (active) {
       if (bar.dataset.phase === "completing") {
         track.style.transform = "scaleX(0.04)";
@@ -152,7 +190,13 @@ export function LoadingProgressProvider({
   const label = Array.from(activities.values()).pop() ?? initialLabel;
   return (
     <ProgressContext.Provider value={register}>
-      <span ref={element} className={styles.progress} role="progressbar" aria-label={label}>
+      <span
+        ref={element}
+        className={styles.progress}
+        role="progressbar"
+        aria-label={label}
+        data-loading-progress=""
+      >
         <span className={styles.track} />
       </span>
       <ProgressReadyContext.Provider value={ready}>{children}</ProgressReadyContext.Provider>
@@ -174,10 +218,11 @@ export function LoadingProgressReady() {
   return null;
 }
 
+// Registers in the layout phase, so work started by a click shows the bar before the browser paints that click.
 export function useLoadingProgress(label: string, active = true) {
   const register = useContext(ProgressContext);
   const id = useId();
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (active) {
       return register?.(id, label);
     }

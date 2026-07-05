@@ -41,6 +41,12 @@
   gap: 6px;
 }
 
+/* Applied filters keep the trigger emphasised, as the table column filters do. */
+.filterButton[data-filtered] {
+  border-color: var(--color-interaction-border, var(--color-graphite));
+  color: var(--color-graphite);
+}
+
 .filterButton[aria-expanded="true"] {
   border-color: var(--color-interaction-border, var(--color-graphite));
   background: var(--color-selected-surface, var(--color-canvas));

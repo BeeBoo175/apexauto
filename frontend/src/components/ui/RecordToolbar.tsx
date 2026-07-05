@@ -15,6 +15,7 @@ export function RecordToolbar({
   disabled,
   onFiltersOpenChange,
   defaultFiltersExpanded = false,
+  summaryInline = false,
 }: {
   children?: ReactNode;
   filters: ReactNode;
@@ -24,6 +25,9 @@ export function RecordToolbar({
   disabled: boolean;
   onFiltersOpenChange?: (open: boolean) => void;
   defaultFiltersExpanded?: boolean;
+  // A toolbar with no search shows the applied filters on the Filters row, right after the button, instead of on a
+  // row of their own.
+  summaryInline?: boolean;
 }) {
   const [expanded, setExpanded] = useState(defaultFiltersExpanded);
   const id = useId();
@@ -34,7 +38,7 @@ export function RecordToolbar({
     <div className={styles.toolbar}>
       <div className={styles.toolbarMain}>
         <div className={styles.queryActions}>
-          <div className={styles.query}>{children}</div>
+          {children && <div className={styles.query}>{children}</div>}
           {filters && (
             <Button
               variant={expanded ? "secondary" : "ghost"}
@@ -45,6 +49,7 @@ export function RecordToolbar({
               popoverTarget={panelId}
               style={{ anchorName: anchor }}
               className={styles.filterButton}
+              data-filtered={filterCount > 0 || undefined}
             >
               <Icon name="filter" />
               <span>Filters</span>
@@ -55,10 +60,11 @@ export function RecordToolbar({
               )}
             </Button>
           )}
+          {summaryInline && filterSummary}
         </div>
         {actions}
       </div>
-      {filterSummary}
+      {!summaryInline && filterSummary}
       {filters && (
         <FilterShelf
           id={panelId}

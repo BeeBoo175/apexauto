@@ -36,9 +36,14 @@ export function FilterShelf({
     const above =
       availableBelow < Math.min(shelf.scrollHeight, 300) && availableAbove > availableBelow;
     shelf.style.maxHeight = `${Math.max(80, above ? availableAbove : availableBelow)}px`;
+    // The shelf ends at the trigger's right edge, unless that would carry it past the start of the trigger's own
+    // row (a toolbar with no search before Filters); then it starts at the trigger's left edge instead.
+    const rowStart = trigger.parentElement?.getBoundingClientRect().left ?? gutter;
+    const preferred =
+      bounds.right - shelf.offsetWidth < rowStart ? bounds.left : bounds.right - shelf.offsetWidth;
     const left = Math.max(
       gutter,
-      Math.min(bounds.right - shelf.offsetWidth, window.innerWidth - shelf.offsetWidth - gutter),
+      Math.min(preferred, window.innerWidth - shelf.offsetWidth - gutter),
     );
     const top = above ? bounds.top - shelf.offsetHeight - 8 : bounds.bottom + 8;
     shelf.style.left = `${left}px`;
