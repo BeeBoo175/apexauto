@@ -8,7 +8,8 @@ import { periodQuery } from "@/lib/performance/period";
 import type { PerformancePeriod } from "@/lib/performance/performance";
 
 // One dashboard section: its own bounded read, concurrent with the others, that keeps its last confirmed content
-// when a refresh fails and offers a deliberate retry.
+// when a refresh fails and offers a deliberate retry. A page whose entry already read the section passes that
+// result as `initial`, so the section opens with it and reads again only on refresh, retry or a changed query.
 export function usePerformanceSection<T extends { actor: CurrentActor }>(
   section: string,
   parse: (value: unknown) => T | null,
@@ -18,9 +19,11 @@ export function usePerformanceSection<T extends { actor: CurrentActor }>(
   label: string,
   enabled = true,
   extra = "",
+  initial: T | null = null,
 ) {
-  const [data, setData] = useState<T | null>(null);
-  const [busy, setBusy] = useState(enabled);
+  const [data, setData] = useState<T | null>(initial);
+  const [busy, setBusy] = useState(enabled && initial === null);
+  const skipFirst = useRef(initial !== null);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const toast = useToast();
@@ -29,6 +32,10 @@ export function usePerformanceSection<T extends { actor: CurrentActor }>(
 
   useEffect(() => {
     if (!enabled) {
+      return;
+    }
+    if (skipFirst.current) {
+      skipFirst.current = false;
       return;
     }
     const controller = new AbortController();

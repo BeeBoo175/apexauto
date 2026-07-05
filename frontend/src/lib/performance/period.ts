@@ -77,3 +77,10 @@ export function periodQuery(period: PerformancePeriod) {
 export function periodLabel(period: PerformancePeriod) {
   return period.from === period.to ? period.from : `${period.from} to ${period.to}`;
 }
+
+// The look ahead used for planning: today and the next 27 Malaysian calendar days.
+export function planningPeriod(branchId: string, now = Date.now()): PerformancePeriod {
+  const today = malaysiaToday(now);
+  const end = utcDay(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 27);
+  return { from: isoDate(today), to: isoDate(end), branchId };
+}

@@ -52,6 +52,8 @@ export interface StockWeek {
   weekStart: string;
   checkIns: number;
   deliveries: number;
+  // The agreed total of the week's deliveries, the same measure as the headline's delivered value.
+  deliveredValue: number;
 }
 
 export interface PerformanceStockFlow {
@@ -197,7 +199,9 @@ function parseStockWeek(value: unknown): StockWeek | null {
     typeof value.weekStart !== "string" ||
     !/^\d{4}-\d{2}-\d{2}$/.test(value.weekStart) ||
     !isNonNegativeInteger(value.checkIns) ||
-    !isNonNegativeInteger(value.deliveries)
+    !isNonNegativeInteger(value.deliveries) ||
+    !isNumber(value.deliveredValue) ||
+    value.deliveredValue < 0
   ) {
     return null;
   }

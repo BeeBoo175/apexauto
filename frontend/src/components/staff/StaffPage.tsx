@@ -31,7 +31,7 @@ export function StaffLoading() {
     "/dashboard/work-calendar": "calendar",
     "/dashboard/account": "appointment",
     "/dashboard/accounts": "intake",
-    "/dashboard/performance": "inspection",
+    "/dashboard/performance": "report",
   };
   let view = views[pathname] ?? "inspection";
   let title = staffPageTitles[pathname] ?? "Your staff workspace";
@@ -51,6 +51,11 @@ export function StaffLoading() {
         selected={Boolean(
           parameters.inspection || parameters.sale || parameters.appointment || parameters.booking,
         )}
+        report={{
+          view: typeof parameters.view === "string" ? parameters.view : "",
+          general: actor.role === "GeneralManager",
+          agent: actor.role === "SalesAgent",
+        }}
       />
     </>
   );

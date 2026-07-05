@@ -1,27 +1,36 @@
 import { Card } from "@/components/ui/Card";
 import { TechnicianLoadingShell } from "@/components/inspection/TechnicianLoadingShell";
+import { PerformanceLoadingShell } from "@/components/performance/PerformanceLoadingShell";
 import { WorkCalendarLoadingShell } from "./WorkCalendarLoadingShell";
 import { StaffTableLoadingShell } from "./StaffTableLoadingShell";
 import layout from "./Staff.module.css";
 import styles from "./StaffLoadingShell.module.css";
 
 export type StaffLoadingView =
-  "calendar" | "intake" | "inspection" | "technician" | "repairs" | "appointment";
+  "calendar" | "intake" | "inspection" | "technician" | "repairs" | "appointment" | "report";
 
-type LoadingShellProps = { view: StaffLoadingView; selected?: boolean };
+// The report shell follows the requested performance view and whether the actor also sees the Branches tab.
+type LoadingShellProps = {
+  view: StaffLoadingView;
+  selected?: boolean;
+  report?: { view: string; general: boolean; agent: boolean };
+};
 
-export function StaffLoadingShell({ view, selected }: LoadingShellProps) {
+export function StaffLoadingShell({ view, selected, report }: LoadingShellProps) {
   return (
     <div className={styles.shell} role="status" aria-label="Loading workspace content">
       <span className="sr-only">Loading workspace content…</span>
-      <LoadingContent view={view} selected={selected} />
+      <LoadingContent view={view} selected={selected} report={report} />
     </div>
   );
 }
 
-function LoadingContent({ view, selected = false }: LoadingShellProps) {
+function LoadingContent({ view, selected = false, report }: LoadingShellProps) {
   if (view === "technician") {
     return <TechnicianLoadingShell selected={selected} />;
+  }
+  if (view === "report") {
+    return <PerformanceLoadingShell view={report?.view ?? ""} general={report?.general ?? false} />;
   }
   if (view === "calendar") {
     return <WorkCalendarLoadingShell />;

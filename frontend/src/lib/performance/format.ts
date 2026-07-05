@@ -1,28 +1,33 @@
 // Elapsed calendar days, never hours worked, shown to one decimal place.
 export function formatDays(days: number | null) {
-  return days === null ? "No data" : `${days.toFixed(1)} days`;
+  if (days === null) {
+    return "No data";
+  }
+  return days < 1 ? "Under a day" : `${days.toFixed(1)} days`;
 }
 
-export interface Change {
+export type DeltaTone = "success" | "danger" | "neutral";
+
+export interface Delta {
   text: string;
-  direction: "up" | "down" | "flat" | "none";
+  tone: DeltaTone;
 }
 
-// Compares a value with the same measure over the preceding equal-length period; no base means no percentage.
-export function changeFrom(current: number, previous: number): Change {
+// The change on the period before, in words. Whether a rise is good depends on the measure.
+export function deltaText(current: number, previous: number, higherIsBetter: boolean): Delta {
   if (previous === 0) {
     return current === 0
-      ? { text: "No change from the previous period", direction: "flat" }
-      : { text: "No earlier figure to compare", direction: "none" };
+      ? { text: "None last period either", tone: "neutral" }
+      : { text: "Up from none last period", tone: higherIsBetter ? "success" : "danger" };
   }
   const percent = Math.round(((current - previous) / previous) * 100);
   if (percent === 0) {
-    return { text: "No change from the previous period", direction: "flat" };
+    return { text: "Same as last period", tone: "neutral" };
   }
-  const word = percent > 0 ? "up" : "down";
+  const better = percent > 0 === higherIsBetter;
   return {
-    text: `${word} ${Math.abs(percent)}% on the previous period`,
-    direction: percent > 0 ? "up" : "down",
+    text: `${percent > 0 ? "Up" : "Down"} ${Math.abs(percent)}% on last period`,
+    tone: better ? "success" : "danger",
   };
 }
 
@@ -42,4 +47,16 @@ export function weekLabel(weekStart: string) {
     month: "short",
     timeZone: "UTC",
   }).format(date);
+}
+
+// A short Malaysian-style date range such as "1 Nov to 7 Nov 2026".
+export function rangeText(from: string, to: string) {
+  const format = (value: string, year: boolean) =>
+    new Intl.DateTimeFormat("en-MY", {
+      day: "numeric",
+      month: "short",
+      ...(year ? { year: "numeric" } : {}),
+      timeZone: "UTC",
+    }).format(new Date(`${value}T00:00:00Z`));
+  return `${format(from, false)} to ${format(to, true)}`;
 }

@@ -1,166 +1,658 @@
+/* Operate mode, as on the other staff pages: the tabs and toolbar stay put and one white pane scrolls beneath them.
+   Sections sit flat on that pane, divided by hairlines, with one inset shared with the toolbar. Rows keep a fixed
+   geometry, loaded or loading, so nothing shifts when data arrives. */
 .workspace {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--color-paper);
+}
+
+/* The toolbar never gives up height to a tall view below it, and Filters sits right after the summary. */
+.toolbarFrame {
+  --record-query-max-width: max-content;
+
+  flex-shrink: 0;
+}
+
+/* One view of the page. A view loading in the background stays mounted but hidden until it can replace the
+   confirmed one. */
+.viewSlot {
+  display: contents;
+}
+
+.viewSlot[hidden] {
+  display: none;
+}
+
+.view {
+  scrollbar-gutter: stable;
   display: grid;
   flex: 1 1 auto;
   align-content: start;
-  gap: 0;
   min-height: 0;
   min-width: 0;
   overflow-y: auto;
-  padding: 0 24px 32px;
-}
-
-.toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
-  padding: 12px 0;
-}
-
-.presets {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.periodNote {
-  color: var(--color-muted);
-  font-size: 13px;
+  overscroll-behavior: contain;
+  background: var(--color-paper);
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: 0 32px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.section {
+.filterForm {
   display: grid;
-  grid-column: span 12;
-  align-content: start;
   gap: 12px;
+  width: min(320px, 100%);
+}
+
+/* One section: a heading row, then its content. */
+.panel {
+  display: grid;
+  grid-column: 1 / -1;
+  align-content: start;
+  gap: 16px;
   min-width: 0;
-  padding: 20px 0;
-  border-top: 1px solid var(--color-line-soft);
+  padding: 20px 20px 24px;
+  border-bottom: 1px solid var(--color-line-soft);
 }
 
 .half {
-  grid-column: span 6;
+  grid-column: auto;
 }
 
-.sectionHeader {
+.half + .half {
+  border-left: 1px solid var(--color-line-soft);
+}
+
+.panelHead {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  gap: 4px 12px;
+  gap: 4px 24px;
+  min-height: 24px;
 }
 
-.sectionTitle {
+.panelTitle {
   margin: 0;
   font-size: 15px;
   font-weight: 700;
+  line-height: 24px;
 }
 
-.nowTag {
+.panelAside {
   color: var(--color-muted);
   font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  line-height: 18px;
 }
 
 .note {
   margin: 0;
   color: var(--color-muted);
   font-size: 13px;
+  line-height: 1.5;
 }
 
-.tiles {
+.retry {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+}
+
+.scroll {
+  overflow-x: auto;
+}
+
+/* Headline figures for the period */
+.stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0;
+  gap: 16px 24px;
+  margin: 0;
 }
 
-.tile {
+.stat {
   display: grid;
   align-content: start;
   gap: 4px;
-  padding: 0 20px;
-  border-left: 1px solid var(--color-line-soft);
+  min-width: 0;
+  min-height: 68px;
 }
 
-.tile:first-child {
-  padding-left: 0;
-  border-left: 0;
-}
-
-.tileLabel {
+.statLabel {
   color: var(--color-muted);
   font-size: 13px;
+  line-height: 18px;
 }
 
-.tileValue {
-  font-size: 26px;
+.statValue {
+  margin: 0;
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
   font-weight: 700;
-  line-height: 1.15;
+  line-height: 28px;
   overflow-wrap: anywhere;
 }
 
-.tileChange {
+.statUnit {
   color: var(--color-muted);
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 400;
 }
 
-.bars {
+.delta {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.deltaUp {
+  color: #145c44;
+}
+
+.deltaDown {
+  color: #9b2424;
+}
+
+/* Rows: label and value, the bar, then one line of context. */
+.rows {
   display: grid;
-  gap: 8px;
+  gap: 14px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.barRow {
+.row {
   display: grid;
-  align-items: center;
-  gap: 4px 12px;
-  grid-template-columns: minmax(120px, 190px) minmax(0, 1fr) auto;
-}
-
-.barLabel {
+  align-content: start;
+  gap: 6px;
   font-size: 13px;
 }
 
-.track {
+.rowHead {
   display: flex;
-  height: 14px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 20px;
+}
+
+a.rowValue {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.rowTall {
+  min-height: 28px;
+}
+
+.rowDetail {
+  display: block;
+  height: 18px;
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+/* Who has room: team tabs and search, then people grouped by state; each row opens that person's work. */
+/* Measure bars: who, the bar on a shared scale, and the figure in words beside it. */
+.bars {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bars > li + li {
+  border-top: 1px solid var(--color-line-soft);
+}
+
+.barRow {
+  display: grid;
+  grid-template-columns: minmax(160px, 1.2fr) minmax(120px, 2fr) 128px;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  min-height: 52px;
+  padding: 6px 8px;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.barButton {
+  margin: 0 -8px;
+  width: calc(100% + 16px);
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  cursor: pointer;
+}
+
+.barButton:hover {
+  background: var(--color-canvas);
+}
+
+.barButton:focus-visible {
+  outline: 2px solid var(--color-graphite);
+  outline-offset: -2px;
+}
+
+.barLabel {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.barTracks {
+  display: grid;
+  gap: 3px;
+}
+
+.barTrack {
+  display: block;
+  height: 10px;
   overflow: hidden;
   border-radius: 2px;
+  background: #eef2fb;
+}
+
+.barFill {
+  display: block;
+  height: 100%;
+  background: #253c9a;
+}
+
+.barPrevious {
+  background: #a9bbe4;
+}
+
+.barValue {
+  display: grid;
+  justify-items: end;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.barPreviousText {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.barsCompact .barRow {
+  grid-template-columns: minmax(88px, 1fr) minmax(64px, 1.6fr) minmax(56px, auto);
+  gap: 10px;
+  min-height: 34px;
+  padding-block: 4px;
+}
+
+.barsCompact .barLabel {
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.barsCompact .barTrack {
+  height: 8px;
+}
+
+.barsCompact .barValue {
+  font-size: 13px;
+}
+
+/* Highlight matrix: one hue, shaded within each column, the figure always printed. */
+.matrix {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 3px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.matrix thead th {
+  padding: 0 8px 6px;
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.matrix thead th:first-child {
+  text-align: left;
+}
+
+.matrix tbody th {
+  width: 28%;
+  min-width: 160px;
+  padding: 0;
+  font-weight: 600;
+  text-align: left;
+}
+
+.matrixPerson {
+  display: grid;
+  gap: 1px;
+  width: 100%;
+  min-height: 40px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.matrixPerson:hover {
+  background: var(--color-canvas);
+}
+
+.matrixPerson:focus-visible,
+.dotRow:focus-visible {
+  outline: 2px solid var(--color-graphite);
+  outline-offset: -2px;
+}
+
+.matrixCell {
+  height: 40px;
+  border-radius: 3px;
+  background: color-mix(in srgb, #253c9a calc(var(--heat) * 100%), #eef2fb);
+  color: var(--color-graphite);
+  font-weight: 600;
+  text-align: center;
+}
+
+.matrixCell[data-empty="true"] {
+  background: var(--color-canvas);
+  color: var(--color-muted);
+  font-weight: 400;
+}
+
+.matrixCell[data-strong="true"] {
+  color: var(--color-paper);
+}
+
+/* Dot plot: one days axis shared by every person. */
+.dotPlot {
+  display: grid;
+}
+
+.dotAxis,
+.dotRow {
+  display: grid;
+  grid-template-columns: minmax(96px, 1fr) minmax(120px, 2.4fr) minmax(84px, auto);
+  align-items: center;
+  gap: 12px;
+}
+
+.dotTicks {
+  position: relative;
+  height: 18px;
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.dotTicks > span {
+  position: absolute;
+  transform: translateX(-50%);
+}
+
+.dotTicks > span:first-child {
+  transform: none;
+}
+
+.dotTicks > span:last-child {
+  transform: translateX(-100%);
+}
+
+.dotRow {
+  min-height: 36px;
+  margin: 0 -8px;
+  padding: 2px 8px;
+  border: 0;
+  border-top: 1px solid var(--color-line-soft);
+  border-radius: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dotRow:hover {
+  background: var(--color-canvas);
+}
+
+.dotTrack {
+  position: relative;
+  height: 2px;
   background: var(--color-line-soft);
+}
+
+.dot {
+  position: absolute;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--color-paper);
+  border-radius: 50%;
+  background: #253c9a;
+  transform: translate(-50%, -50%);
+}
+
+.dotPrevious {
+  z-index: 0;
+  background: var(--color-paper);
+  box-shadow: inset 0 0 0 2px #6d8fd0;
+}
+
+.dot:not(.dotPrevious) {
+  z-index: 1;
+}
+
+.dumbbellLine {
+  position: absolute;
+  top: 50%;
+  height: 3px;
+  background: #a9bbe4;
+  transform: translateY(-50%);
+}
+
+.dumbbellValue {
+  display: grid;
+  justify-items: end;
+}
+
+.swatchOpen {
+  background: var(--color-paper);
+  box-shadow: inset 0 0 0 2px #6d8fd0;
+  border-radius: 50%;
+}
+
+.dotValue {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Small multiples share hairlines: each panel draws its right and bottom rule, the grid clips the outer ones. */
+.multiples {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  margin: 0 -20px -24px;
+  overflow: hidden;
+  border-top: 1px solid var(--color-line-soft);
+}
+
+.multiple {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-width: 0;
+  margin: 0 -1px -1px 0;
+  padding: 16px 20px 20px;
+  border-right: 1px solid var(--color-line-soft);
+  border-bottom: 1px solid var(--color-line-soft);
+}
+
+.multipleHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px 12px;
+}
+
+.multipleTitle {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+}
+
+.pagerFrame {
+  flex-shrink: 0;
+}
+
+/* The shared search field at its usual size, then the team tabs, whose own rule closes the sticky block. */
+.roomTools {
+  display: grid;
+  gap: 8px;
+}
+
+.roomGroups {
+  display: grid;
+  gap: 20px;
+}
+
+.groupTitle {
+  margin: 0 0 10px;
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+}
+
+/* A section heading block that stays at the top of its scroll pane, over the list it controls. It reaches the
+   section's edges so rows never show through beside it. */
+.stickyHead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: grid;
+  gap: 12px;
+  margin: -20px -20px 0;
+  padding: 20px 20px 0;
+  background: var(--color-paper);
+}
+
+.people {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.people > li + li {
+  border-top: 1px solid var(--color-line-soft);
+}
+
+/* One line per person: who, how their open work is aged, how much. The whole row opens their work. */
+.personRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(64px, 1fr) 72px;
+  align-items: center;
+  gap: 16px;
+  min-height: 56px;
+  margin: 0 -8px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.personRow:hover {
+  background: var(--color-canvas);
+}
+
+.personCell {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.personMeta {
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.personCount {
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.personUnit {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+/* Bars share one hue: a light track and a navy fill. */
+.track {
+  display: flex;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: #e3eafa;
 }
 
 .fill {
   height: 100%;
-  background: var(--color-graphite-soft);
+  background: #253c9a;
 }
 
-.fillTrust {
-  background: var(--color-trust);
+/* Workload ages in one hue on a grey track: the older the work, the darker the band. */
+.ageTrack {
+  gap: 2px;
+  background: var(--color-line-soft);
 }
 
-.fillWarning {
-  background: var(--color-warning);
+.ageNew {
+  background: #9fb7ec;
 }
 
-.fillSignal {
-  background: var(--color-signal);
+.ageMiddle {
+  background: #5b7cc4;
 }
 
-.barValue {
-  min-width: 64px;
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
+.ageOld {
+  background: #1f3283;
 }
 
 .legend {
@@ -171,7 +663,13 @@
   padding: 0;
   color: var(--color-muted);
   font-size: 12px;
+  line-height: 18px;
   list-style: none;
+}
+
+.legend li {
+  display: inline-flex;
+  align-items: center;
 }
 
 .swatch {
@@ -182,23 +680,132 @@
   border-radius: 2px;
 }
 
-.chart {
-  display: block;
-  max-width: none;
+.swatchEmpty {
+  background: var(--color-canvas);
+  box-shadow: inset 0 0 0 1px var(--color-line-soft);
 }
 
-.chartLabel {
-  fill: var(--color-muted);
-  font-size: 11px;
+.swatchLow {
+  background: #dbe5fb;
 }
 
-.person {
-  display: inline-flex;
+.swatchHigh {
+  background: #253c9a;
+}
+
+/* Now rows on Results: one column per stage, left to right in lifecycle order. */
+/* Stock in and out: a short trend over aligned week columns beside the table that carries every figure. */
+.flow {
+  display: grid;
   align-items: center;
-  gap: 8px;
-  min-width: 0;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 
+.plot {
+  position: relative;
+  grid-column: 1 / -1;
+  height: 180px;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.line {
+  fill: none;
+  stroke-width: 2px;
+  vector-effect: non-scaling-stroke;
+}
+
+.point {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: 2px solid var(--color-paper);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.seriesIn {
+  background: #253c9a;
+  stroke: #253c9a;
+}
+
+.seriesOut {
+  background: #0e6f5c;
+  stroke: #0e6f5c;
+}
+
+.flowWeek {
+  display: grid;
+  padding: 8px 4px 0;
+  color: var(--color-muted);
+  line-height: 18px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Delivered value columns: one per week on a shared scale, the amount printed above each. */
+.columns {
+  display: grid;
+  grid-template-rows: 180px auto;
+  align-items: end;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+  padding-inline: 6px;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.columnValue {
+  color: var(--color-graphite);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.columnTrack {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  min-height: 0;
+}
+
+.columnBar {
+  width: min(32px, 100%);
+  min-height: 1px;
+  border-radius: 2px 2px 0 0;
+  background: #0e6f5c;
+}
+
+.flowFigures {
+  color: var(--color-graphite);
+  font-size: 12px;
+}
+
+.flowAside {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+}
+
+/* Bookings ahead: weekday rows by hour columns. Empty hours stay neutral so a single booking still reads. */
 .heat {
   display: grid;
   gap: 2px;
@@ -214,7 +821,8 @@
 .heatHead,
 .heatDay {
   color: var(--color-muted);
-  font-size: 11px;
+  font-size: 12px;
+  line-height: 18px;
   text-align: center;
 }
 
@@ -225,16 +833,16 @@
 .heatCell {
   display: grid;
   place-items: center;
-  min-height: 26px;
+  min-height: 32px;
   border-radius: 2px;
-  background: color-mix(
-    in srgb,
-    var(--color-graphite-soft) calc(var(--heat) * 85%),
-    var(--color-line-soft)
-  );
+  background: color-mix(in srgb, #253c9a calc(var(--heat) * 100%), #dbe5fb);
   color: var(--color-graphite);
-  font-size: 11px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
+}
+
+.heatCell[data-empty="true"] {
+  background: var(--color-canvas);
 }
 
 .heatCell[data-strong="true"] {
@@ -249,150 +857,42 @@
 
 .table th,
 .table td {
-  padding: 6px 10px 6px 0;
+  padding: 10px 12px 10px 0;
   border-bottom: 1px solid var(--color-line-soft);
   text-align: left;
   vertical-align: middle;
 }
 
-.table th {
+.table thead th {
+  padding-top: 0;
   color: var(--color-muted);
+  font-size: 12px;
   font-weight: 600;
+}
+
+.table tbody th {
+  font-weight: 600;
+}
+
+.table tfoot th,
+.table tfoot td {
+  border-bottom: 0;
+  font-weight: 700;
 }
 
 .table .number {
   font-variant-numeric: tabular-nums;
   text-align: right;
+  white-space: nowrap;
 }
 
-.scroll {
-  overflow-x: auto;
-}
-
-.retry {
-  display: grid;
-  justify-items: start;
-  gap: 8px;
-}
-
-.placeholder {
-  composes: placeholder from "../staff/StaffRecordLoadingShell.module.css";
-}
-
-.shellBlock {
-  height: 14px;
-}
-
-.shellTile {
-  height: 48px;
-}
-
-.shellTiles {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 20px;
-}
-
-.shellRows {
-  display: grid;
-  gap: 10px;
-}
-
-@media (max-width: 960px) {
-  .half {
-    grid-column: span 12;
-  }
-
-  .tiles,
-  .shellTiles {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 20px 0;
-  }
-
-  .tile:nth-child(odd) {
-    padding-left: 0;
-    border-left: 0;
-  }
-}
-
-@media (max-width: 640px) {
-  .workspace {
-    padding: 0 16px 24px;
-  }
-
-  .barRow {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .barRow .track {
-    grid-column: 1 / -1;
-    grid-row: 2;
-  }
-}
-
-.personButton {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  max-width: 100%;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  font-weight: 600;
-  text-align: left;
-  cursor: pointer;
-}
-
-.personButton:hover span:first-of-type {
-  text-decoration: underline;
-}
-
-.personFact {
-  display: block;
+/* Team output cells */
+.absent {
   color: var(--color-muted);
   font-size: 12px;
-  font-weight: 400;
 }
 
-.cellValue {
-  display: block;
-}
-
-.miniTrack {
-  display: block;
-  width: 100%;
-  min-width: 56px;
-  height: 4px;
-  margin-top: 4px;
-  overflow: hidden;
-  border-radius: 2px;
-  background: var(--color-line-soft);
-}
-
-.miniFill {
-  display: block;
-  height: 100%;
-  background: var(--color-graphite-soft);
-}
-
-.tabs {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px 16px;
-}
-
-.pager {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--color-muted);
-  font-size: 13px;
-}
-
+/* Employee drawer */
 .drawerBody {
   display: grid;
   align-content: start;
@@ -410,7 +910,6 @@
   justify-content: space-between;
   gap: 16px;
   padding: 8px 0;
-  border-bottom: 1px solid var(--color-line-soft);
   font-size: 14px;
 }
 
@@ -436,35 +935,98 @@
   display: none;
 }
 
-.milestones {
-  display: grid;
-  gap: 0;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+/* Loading silhouettes */
+.placeholder {
+  composes: placeholder from "../staff/StaffRecordLoadingShell.module.css";
 }
 
-.milestone {
-  display: grid;
-  gap: 2px;
-  padding: 10px 0;
+.shellLine {
+  display: block;
+  height: 12px;
+  margin-top: 4px;
+}
+
+.shellWide {
+  width: 38%;
+}
+
+.shellNarrow {
+  width: 56%;
+}
+
+.shellBar {
+  height: 8px;
+}
+
+.shellStat {
+  height: 14px;
+}
+
+.shellStatValue {
+  height: 28px;
+}
+
+.shellHeat {
+  height: 32px;
+}
+
+.shellHeatHead {
+  height: 18px;
+}
+
+.shellChart {
+  display: block;
+  height: 224px;
+}
+
+.shellToolbar {
+  box-sizing: border-box;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  height: 57px;
+  padding: 0 20px;
   border-bottom: 1px solid var(--color-line-soft);
-  font-size: 14px;
 }
 
-.milestoneKind {
-  font-weight: 600;
+.shellControl {
+  width: 200px;
+  height: 18px;
 }
 
-.table .number {
-  white-space: nowrap;
+.shellTitle {
+  width: 140px;
+  height: 18px;
+  margin-block: 3px;
 }
 
-.table thead th.number {
-  min-width: 96px;
-  white-space: normal;
+@media (max-width: 960px) {
+  .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .half + .half {
+    border-left: 0;
+  }
 }
 
-.table tbody th {
-  min-width: 200px;
+@media (max-width: 820px) {
+  .panel {
+    padding: 16px 16px 20px;
+  }
+
+  .shellToolbar {
+    padding-inline: 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  .stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
