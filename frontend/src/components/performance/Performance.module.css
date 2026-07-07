@@ -805,50 +805,6 @@ a.rowValue {
   gap: 4px 16px;
 }
 
-/* Bookings ahead: weekday rows by hour columns. Empty hours stay neutral so a single booking still reads. */
-.heat {
-  display: grid;
-  gap: 2px;
-  overflow-x: auto;
-}
-
-.heatRow {
-  display: grid;
-  align-items: center;
-  gap: 2px;
-}
-
-.heatHead,
-.heatDay {
-  color: var(--color-muted);
-  font-size: 12px;
-  line-height: 18px;
-  text-align: center;
-}
-
-.heatDay {
-  text-align: left;
-}
-
-.heatCell {
-  display: grid;
-  place-items: center;
-  min-height: 32px;
-  border-radius: 2px;
-  background: color-mix(in srgb, #253c9a calc(var(--heat) * 100%), #dbe5fb);
-  color: var(--color-graphite);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-}
-
-.heatCell[data-empty="true"] {
-  background: var(--color-canvas);
-}
-
-.heatCell[data-strong="true"] {
-  color: var(--color-paper);
-}
-
 .table {
   width: 100%;
   border-collapse: collapse;
@@ -964,14 +920,6 @@ a.rowValue {
 
 .shellStatValue {
   height: 28px;
-}
-
-.shellHeat {
-  height: 32px;
-}
-
-.shellHeatHead {
-  height: 18px;
 }
 
 .shellChart {

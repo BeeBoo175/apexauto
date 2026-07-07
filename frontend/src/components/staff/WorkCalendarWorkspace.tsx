@@ -65,7 +65,9 @@ export function WorkCalendarWorkspace({
             label="Refresh work calendar"
             busy={busy}
             disabled={busy}
-            onClick={() => void calendar.refresh()}
+            onClick={() => {
+              void calendar.refresh();
+            }}
           />
         }
       />

@@ -38,14 +38,3 @@ export function StatsSkeleton() {
 export function ChartSkeleton() {
   return <span className={`${styles.placeholder} ${styles.shellChart}`} />;
 }
-
-export function HeatSkeleton() {
-  return (
-    <div className={styles.heat}>
-      <span className={`${styles.placeholder} ${styles.shellHeatHead}`} />
-      {Array.from({ length: 7 }, (_, index) => (
-        <span key={index} className={`${styles.placeholder} ${styles.shellHeat}`} />
-      ))}
-    </div>
-  );
-}

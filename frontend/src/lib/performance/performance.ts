@@ -9,7 +9,6 @@ export const sectionNames = [
   "stock-flow",
   "stage-waiting",
   "workload",
-  "roster",
   "branches",
 ] as const;
 export type SectionName = (typeof sectionNames)[number];
@@ -89,18 +88,6 @@ export interface WorkloadPerson {
 export interface PerformanceWorkload {
   actor: CurrentActor;
   people: WorkloadPerson[];
-}
-
-export interface RosterCell {
-  weekday: number;
-  hour: number;
-  appointments: number;
-  testDrives: number;
-}
-
-export interface PerformanceRoster {
-  actor: CurrentActor;
-  cells: RosterCell[];
 }
 
 export interface BranchRow {
@@ -259,27 +246,6 @@ export function parseWorkload(value: unknown): PerformanceWorkload | null {
   return actor && people ? { actor, people } : null;
 }
 
-function parseRosterCell(value: unknown): RosterCell | null {
-  if (
-    !isRecord(value) ||
-    !isNonNegativeInteger(value.weekday) ||
-    value.weekday > 6 ||
-    !isNonNegativeInteger(value.hour) ||
-    value.hour > 23 ||
-    !isNonNegativeInteger(value.appointments) ||
-    !isNonNegativeInteger(value.testDrives)
-  ) {
-    return null;
-  }
-  return value as unknown as RosterCell;
-}
-
-export function parseRoster(value: unknown): PerformanceRoster | null {
-  const actor = isRecord(value) ? parseActor(value.actor) : null;
-  const cells = isRecord(value) ? parseList(value.cells, parseRosterCell) : null;
-  return actor && cells ? { actor, cells } : null;
-}
-
 function parseBranchRow(value: unknown): BranchRow | null {
   const current = isRecord(value) ? parseTotals(value.current) : null;
   const previous = isRecord(value) ? parseTotals(value.previous) : null;
@@ -307,6 +273,5 @@ export const sectionParsers = {
   "stock-flow": parseStockFlow,
   "stage-waiting": parseStageWaiting,
   workload: parseWorkload,
-  roster: parseRoster,
   branches: parseBranches,
 } as const;

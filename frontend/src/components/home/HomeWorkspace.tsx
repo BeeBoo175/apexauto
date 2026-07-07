@@ -36,7 +36,7 @@ function writeBranch(branchId: string) {
 }
 
 // A manager's Home: what needs them now, today's schedule and who has room. Period figures live on Performance and
-// the month and busy hours on the Work calendar.
+// the month on the Work calendar.
 export function HomeWorkspace({ entry }: { entry: Extract<HomeEntry, { kind: "manager" }> }) {
   const { actor } = entry;
   const general = actor.role === "GeneralManager";
