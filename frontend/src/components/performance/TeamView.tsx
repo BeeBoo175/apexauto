@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
+import { ChoiceColumnFilter } from "@/components/ui/data-table/ChoiceColumnFilter";
+import { TextColumnFilter } from "@/components/ui/data-table/ColumnFilterForm";
 import { DataTable } from "@/components/ui/data-table/DataTable";
 import type { DataColumn } from "@/components/ui/data-table/types";
 import { PersonLabel } from "@/components/staff/PersonLabel";
@@ -25,6 +27,14 @@ import {
   type WorkshopRow,
 } from "@/lib/performance/team";
 import { HeadlineFigures } from "./HeadlineFigures";
+import {
+  appliedTeamFilters,
+  noTeamFilters,
+  statusChoices,
+  teamQuery,
+  type TeamFilters,
+} from "@/lib/performance/team-filters";
+import { TeamTableToolbar } from "./TeamTableToolbar";
 import { TeamCharts, teamStats, type OverviewLabels } from "./TeamOverview";
 import { PerformanceDrawer } from "./PerformanceDrawer";
 import { PerformanceSection } from "./PerformanceSection";
@@ -123,6 +133,12 @@ function TeamTable<Row extends SalesRow | WorkshopRow>({
   const measures = columns.filter((column) => !column.detailOnly);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  const [filters, setFilters] = useState<TeamFilters>(noTeamFilters);
+  // Any change to what the table shows starts again at the first page.
+  function change(next: TeamFilters) {
+    setFilters(next);
+    setPage(1);
+  }
   const [selected, setSelected] = useState<Row | null>(null);
   // The entry parsed this page with the same parser for this tab.
   const [initialPage] = useState(() => initial as TeamPage<Row> | null);
@@ -134,8 +150,8 @@ function TeamTable<Row extends SalesRow | WorkshopRow>({
     refreshes,
     `${teamTitles[tab]} team output`,
     true,
-    `page=${page}&pageSize=${pageSize}`,
-    initialPage,
+    `page=${page}&pageSize=${pageSize}&${teamQuery(filters)}`,
+    filters === noTeamFilters && page === 1 && pageSize === 25 ? initialPage : null,
   );
   const settled = read.data !== null || (read.failed && !read.busy);
   useEffect(() => {
@@ -148,7 +164,7 @@ function TeamTable<Row extends SalesRow | WorkshopRow>({
     csvFor(columns),
     async (number, size, signal) => {
       const result = await privateApiFetch(
-        `/api/staff/performance/team/${tab}?${periodQuery(period)}&page=${number}&pageSize=${size}`,
+        `/api/staff/performance/team/${tab}?${periodQuery(period)}&page=${number}&pageSize=${size}&${teamQuery(filters)}`,
         parse,
         { signal },
       );
@@ -174,11 +190,50 @@ function TeamTable<Row extends SalesRow | WorkshopRow>({
   }, [onExport, tab, exportBusy, exportDisabled]);
   const showBranch = actor.role === "GeneralManager";
   const rows = people?.items ?? [];
+  const busy = read.busy;
+  const labelOf = (measure: string) =>
+    measures.find((column) => column.key === measure)?.label ?? measure;
+  const minimumFilter = (column: TeamColumn<Row>) => ({
+    active: filters.minimums[column.key] !== undefined,
+    content: (
+      <TextColumnFilter
+        label="At least"
+        value={filters.minimums[column.key]?.toString() ?? ""}
+        busy={busy}
+        onApply={async (value) => {
+          const count = Number.parseInt(value, 10);
+          const { [column.key]: removed, ...rest } = filters.minimums;
+          void removed;
+          change({
+            ...filters,
+            minimums:
+              Number.isInteger(count) && count >= 0 ? { ...rest, [column.key]: count } : rest,
+          });
+          return true;
+        }}
+      />
+    ),
+  });
   const tableColumns: DataColumn<Row>[] = [
     {
-      id: "person",
+      id: "name",
       label: "Person",
       width: 280,
+      sortable: true,
+      filter: {
+        active: filters.name !== "",
+        content: (
+          <TextColumnFilter
+            label="Name contains"
+            value={filters.name}
+            busy={busy}
+            onApply={async (value) => {
+              change({ ...filters, name: value });
+              return true;
+            }}
+          />
+        ),
+      },
       cell: (row) => (
         <PersonLabel
           id={row.personId}
@@ -189,10 +244,36 @@ function TeamTable<Row extends SalesRow | WorkshopRow>({
         />
       ),
     },
+    {
+      id: "status",
+      label: "Status",
+      width: 128,
+      sortable: true,
+      filter: {
+        active: filters.status !== "",
+        content: (
+          <ChoiceColumnFilter
+            label="Status"
+            options={statusChoices}
+            value={filters.status}
+            empty=""
+            busy={busy}
+            onApply={async (value) => {
+              change({ ...filters, status: value });
+              return true;
+            }}
+          />
+        ),
+      },
+      cell: (row) => personStatusLabels[row.status] ?? row.status,
+    },
     ...measures.map((column): DataColumn<Row> => ({
       id: column.key,
       label: column.label,
       align: "right",
+      sortable: true,
+      // Counts can be limited to people with at least some; elapsed days can only be sorted.
+      filter: column.bar && !column.now ? minimumFilter(column) : undefined,
       cell: (row) => column.text(row),
     })),
   ];
@@ -225,7 +306,7 @@ function TeamTable<Row extends SalesRow | WorkshopRow>({
       <LoadingProgress label="Loading team output" active={read.busy} />
       <div className={styles.view}>
         <HeadlineFigures
-          stats={teamStats(people?.points ?? [], people?.total ?? 0, overviewLabels[tab])}
+          stats={teamStats(people?.points ?? [], people?.points.length ?? 0, overviewLabels[tab])}
           covers={rangeText(period.from, period.to)}
           state={sectionState}
         />
@@ -243,6 +324,18 @@ function TeamTable<Row extends SalesRow | WorkshopRow>({
           <DataTable
             label={`${teamTitles[tab]} team output`}
             density="comfortable"
+            sorting={{
+              value: filters.sort,
+              onChange: (sort) => change({ ...filters, sort }),
+            }}
+            toolbar={
+              <TeamTableToolbar
+                filters={filters}
+                applied={appliedTeamFilters(filters, labelOf)}
+                busy={busy}
+                onChange={change}
+              />
+            }
             rows={rows}
             rowId={(row) => `${row.personId}:${row.branchId}`}
             columns={tableColumns}
@@ -254,8 +347,8 @@ function TeamTable<Row extends SalesRow | WorkshopRow>({
             disabled={false}
             busy={read.busy}
             emptyState={{
-              title: "No one in this team",
-              description: "No one in this team matches this period and branch.",
+              title: "No one matches",
+              description: "Change the search or filters, or choose another period or branch.",
             }}
             onPage={(next, size) => {
               setPage(size === pageSize ? next : 1);

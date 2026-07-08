@@ -100,26 +100,32 @@ public static class PerformanceQueryEndpoints
 
     private static async Task<IResult> SalesTeamAsync(HttpContext context, IPerformanceReads reads,
         CancellationToken cancellationToken, string? from = null, string? to = null, Guid? branchId = null,
-        int page = 1, int pageSize = Pagination.DefaultPageSize)
+        int page = 1, int pageSize = Pagination.DefaultPageSize, string? search = null, string? name = null,
+        string? status = null, string? sort = null, string? direction = null, string? min = null)
     {
-        return await ReadTeamAsync(from, to, branchId, page, pageSize,
+        var filter = PerformanceTeamFilter.Parse(search, name, status, sort, direction, min);
+        return await ReadTeamAsync(from, to, branchId, page, pageSize, filter,
             (query, token) => reads.SalesTeamAsync(HttpContextActor.ActorId(context), query, token), cancellationToken);
     }
 
     private static async Task<IResult> WorkshopTeamAsync(HttpContext context, IPerformanceReads reads,
         CancellationToken cancellationToken, string? from = null, string? to = null, Guid? branchId = null,
-        int page = 1, int pageSize = Pagination.DefaultPageSize)
+        int page = 1, int pageSize = Pagination.DefaultPageSize, string? search = null, string? name = null,
+        string? status = null, string? sort = null, string? direction = null, string? min = null)
     {
-        return await ReadTeamAsync(from, to, branchId, page, pageSize,
+        var filter = PerformanceTeamFilter.Parse(search, name, status, sort, direction, min);
+        return await ReadTeamAsync(from, to, branchId, page, pageSize, filter,
             (query, token) => reads.WorkshopTeamAsync(HttpContextActor.ActorId(context), query, token),
             cancellationToken);
     }
 
     private static async Task<IResult> ReadTeamAsync<T>(string? from, string? to, Guid? branchId, int page, int pageSize,
+        PerformanceTeamFilter? filter,
         Func<PerformanceTeamQuery, CancellationToken, Task<PerformanceReadResult<PerformanceTeamPage<T>>>> read,
         CancellationToken cancellationToken)
     {
-        var query = PerformanceTeamQuery.Parse(PerformanceQuery.Parse(from, to, branchId), page, pageSize);
+        var query = filter is null ? null :
+            PerformanceTeamQuery.Parse(PerformanceQuery.Parse(from, to, branchId), page, pageSize, filter);
         if (query is null)
         {
             return Results.Problem(statusCode: 400, title: "Provide a valid period of at most 366 days and page.");

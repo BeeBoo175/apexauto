@@ -45,7 +45,17 @@ export async function relayPerformanceSection(request: Request, section: string)
   }
 }
 
-const teamKeys = [...queryKeys, "page", "pageSize"];
+const teamKeys = [
+  ...queryKeys,
+  "page",
+  "pageSize",
+  "search",
+  "name",
+  "status",
+  "sort",
+  "direction",
+  "min",
+];
 
 // Team output pages: one tab per read, 25 people per page, in fixed alphabetical order.
 export async function relayPerformanceTeam(request: Request, tab: string) {

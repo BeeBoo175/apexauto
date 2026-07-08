@@ -73,11 +73,23 @@ public sealed partial class PerformanceReads
                 current ? drafts.Count(item => item.Item1 == personId) : null,
                 current ? openRepairs.Count(item => item.Item1 == personId) : null);
         });
-        return new(PerformanceReadStatus.Succeeded, PageOf(scope, team,
-            rows.OrderBy(row => row.BranchName).ThenBy(row => row.Name).ThenBy(row => row.PersonId),
+        return new(PerformanceReadStatus.Succeeded, PageOf(scope, team, rows, WorkshopColumns,
             row => new PerformanceTeamPoint(row.PersonId, row.BranchId, row.Name, row.InspectionsSigned,
                 row.AssignmentToSignOffDays)));
     }
+
+    private static readonly TeamColumns<PerformanceWorkshopRow> WorkshopColumns = new(row => row.PersonId,
+        row => row.Name, row => row.BranchName, row => row.Status,
+        new Dictionary<string, Func<PerformanceWorkshopRow, double?>>
+        {
+            ["inspectionsSigned"] = row => row.InspectionsSigned,
+            ["reinspections"] = row => row.Reinspections,
+            ["repairsCompleted"] = row => row.RepairsCompleted,
+            ["assignmentToSignOff"] = row => row.AssignmentToSignOffDays,
+            ["assignmentToReinspection"] = row => row.AssignmentToReinspectionDays,
+            ["openDrafts"] = row => row.OpenDrafts,
+            ["openRepairs"] = row => row.OpenRepairs
+        });
 
     private static DateTimeOffset Later(DateTimeOffset assigned, DateTimeOffset? reopened)
     {

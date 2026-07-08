@@ -23,11 +23,60 @@ public sealed record PerformanceTeamPoint(Guid PersonId, Guid BranchId, string N
     public const int MaximumPoints = 500;
 }
 
-public sealed record PerformanceTeamQuery(PerformanceQuery Period, int Page, int PageSize)
+// What the table asks for beside the period and page: search by name or branch, a name filter, a status filter,
+// one sort and minimum counts per measure. The charts and headline figures always cover everyone; these shape only
+// the table's rows.
+public sealed record PerformanceTeamFilter(string Search, string Name, string Status, string Sort, bool Descending,
+    IReadOnlyDictionary<string, int> Minimums)
 {
-    public static PerformanceTeamQuery? Parse(PerformanceQuery? period, int page, int pageSize)
+    public const int MaximumTextLength = 100;
+    public const int MaximumMinimums = 8;
+
+    public static PerformanceTeamFilter None { get; } = new(string.Empty, string.Empty, string.Empty, string.Empty,
+        false, new Dictionary<string, int>());
+
+    // Minimums arrive as "measure:count" pairs separated by commas, for example "checkIns:5,salesDelivered:1".
+    public static PerformanceTeamFilter? Parse(string? search, string? name, string? status, string? sort,
+        string? direction, string? minimums)
     {
-        return period is null || !Pagination.IsValid(page, pageSize) ? null : new(period, page, pageSize);
+        var text = new[] { search, name }.Select(value => value?.Trim() ?? string.Empty).ToArray();
+        var chosenStatus = status?.Trim() ?? string.Empty;
+        var chosenSort = sort?.Trim() ?? string.Empty;
+        var chosenDirection = direction?.Trim().ToLowerInvariant() ?? "asc";
+        if (text.Any(value => value.Length > MaximumTextLength) || chosenSort.Length > 40 ||
+            chosenDirection is not ("asc" or "desc") ||
+            chosenStatus is not ("" or PerformancePersonStatuses.Active or PerformancePersonStatuses.Transferred or
+                PerformancePersonStatuses.Deactivated))
+        {
+            return null;
+        }
+
+        var counts = new Dictionary<string, int>();
+        foreach (var pair in (minimums ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries |
+            StringSplitOptions.TrimEntries))
+        {
+            var parts = pair.Split(':');
+            if (parts.Length != 2 || parts[0].Length is 0 or > 40 || !int.TryParse(parts[1], out var count) ||
+                count < 0 || count > 1_000_000 || counts.Count >= MaximumMinimums)
+            {
+                return null;
+            }
+
+            counts[parts[0]] = count;
+        }
+
+        return new(text[0], text[1], chosenStatus, chosenSort, chosenDirection == "desc", counts);
+    }
+}
+
+public sealed record PerformanceTeamQuery(PerformanceQuery Period, int Page, int PageSize,
+    PerformanceTeamFilter Filter)
+{
+    public static PerformanceTeamQuery? Parse(PerformanceQuery? period, int page, int pageSize,
+        PerformanceTeamFilter? filter = null)
+    {
+        return period is null || !Pagination.IsValid(page, pageSize) ? null :
+            new(period, page, pageSize, filter ?? PerformanceTeamFilter.None);
     }
 }
 

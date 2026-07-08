@@ -86,6 +86,19 @@ public sealed class PerformanceReadsTests(IntakePhotoFixture fixture) : IClassFi
         Assert.Equal(salesTeam.Items.OrderBy(row => row.Name).ThenBy(row => row.PersonId).Select(row => row.PersonId),
             salesTeam.Items.Select(row => row.PersonId));
         Assert.DoesNotContain(salesTeam.Items, row => row.PersonId == world.OtherBranchAgent);
+
+        // The table's search, status, minimum and sort shape its rows only; the charts' points still cover everyone.
+        var searched = PerformanceTeamFilter.Parse(agentRow.Name, null, null, "salesDelivered", "desc", null)!;
+        var narrowed = (await reads.SalesTeamAsync(world.Manager, team with { Filter = searched }, default)).Value!;
+        Assert.Contains(narrowed.Items, row => row.PersonId == world.Agent);
+        Assert.All(narrowed.Items, row => Assert.Contains(agentRow.Name, row.Name, StringComparison.OrdinalIgnoreCase));
+        Assert.Equal(salesTeam.Points.Count, narrowed.Points.Count);
+        var none = PerformanceTeamFilter.Parse("no one has this name", null, null, null, null, null)!;
+        Assert.Empty((await reads.SalesTeamAsync(world.Manager, team with { Filter = none }, default)).Value!.Items);
+        var impossible = PerformanceTeamFilter.Parse(null, null, null, null, null, "salesDelivered:1000000")!;
+        Assert.Equal(0, (await reads.SalesTeamAsync(world.Manager, team with { Filter = impossible }, default)).Value!.Total);
+        Assert.Null(PerformanceTeamFilter.Parse(null, null, "Retired", null, null, null));
+        Assert.Null(PerformanceTeamFilter.Parse(null, null, null, null, "sideways", null));
         var workshopTeam = (await reads.WorkshopTeamAsync(world.Manager, team, default)).Value!;
         Assert.All(workshopTeam.Items, row => Assert.Equal(AccountRoles.WorkshopTechnician, row.Role));
         Assert.Equal(PerformanceReadStatus.Forbidden, (await reads.SalesTeamAsync(world.Agent, team, default)).Status);

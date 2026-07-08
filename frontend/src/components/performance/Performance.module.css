@@ -62,8 +62,11 @@
   border-bottom: 1px solid var(--color-line-soft);
 }
 
+/* Two sections side by side stretch to the same height; the heading stays at the top and the chart sits at the bottom,
+   so their baselines line up even when one heading wraps onto a second line. */
 .half {
   grid-column: auto;
+  align-content: space-between;
 }
 
 .half + .half {

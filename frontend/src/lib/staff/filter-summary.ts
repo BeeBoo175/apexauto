@@ -42,7 +42,8 @@ export interface AppliedFilter<Filters = StaffFilters> {
     | "outcome"
     | "balance"
     | "closed"
-    | "reference";
+    | "reference"
+    | "minimum";
   label: string;
   without: Filters;
 }

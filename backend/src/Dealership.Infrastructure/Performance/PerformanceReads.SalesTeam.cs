@@ -84,11 +84,26 @@ public sealed partial class PerformanceReads
                 current ? driving.Count(item => item.Item1 == personId) : null,
                 current ? handled.Count(item => item.Item1 == personId) : null);
         });
-        return new(PerformanceReadStatus.Succeeded, PageOf(scope, team,
-            rows.OrderBy(row => row.BranchName).ThenBy(row => row.Name).ThenBy(row => row.PersonId),
+        return new(PerformanceReadStatus.Succeeded, PageOf(scope, team, rows, SalesColumns,
             row => new PerformanceTeamPoint(row.PersonId, row.BranchId, row.Name, row.SalesDelivered,
                 row.AssignmentToDeliveryDays)));
     }
+
+    private static readonly TeamColumns<PerformanceSalesRow> SalesColumns = new(row => row.PersonId,
+        row => row.Name, row => row.BranchName, row => row.Status,
+        new Dictionary<string, Func<PerformanceSalesRow, double?>>
+        {
+            ["checkIns"] = row => row.CheckIns,
+            ["drivesCompleted"] = row => row.DrivesCompleted,
+            ["drivesNotCompleted"] = row => row.DrivesNotCompleted,
+            ["salesSettled"] = row => row.SalesSettled,
+            ["salesDelivered"] = row => row.SalesDelivered,
+            ["noShowCorrections"] = row => row.NoShowCorrections,
+            ["assignmentToDelivery"] = row => row.AssignmentToDeliveryDays,
+            ["intakeHandled"] = row => row.IntakeHandled,
+            ["testDrivesHeld"] = row => row.TestDrivesHeld,
+            ["salesHandled"] = row => row.SalesHandled
+        });
 
     // From the delivering agent's latest claim, assignment or reassignment of the sale to its delivery.
     private async Task<List<(Guid PersonId, Guid BranchId, double Seconds)>> DeliveryIntervalsAsync(PerformanceQuery query,
