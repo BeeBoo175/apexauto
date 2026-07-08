@@ -43,8 +43,9 @@ internal static class DevelopmentReservationFixtureAssertions
         Assert.Equal(holds, await database.ReservationMailOutbox.CountAsync());
         var staffSales = DevelopmentSaleScenarios.All.Count(item =>
             item.Target is not (SalesOrderStatus.Settled or SalesOrderStatus.Delivered));
-        Assert.Equal(staffSales + DevelopmentSaleVolumeManifest.All.Count,
-            await database.Reservations.CountAsync(item => item.IsActive));
+        var staffVolumeSales = DevelopmentSaleVolumeManifest.All.Count(item =>
+            item.Target is not (SalesOrderStatus.Settled or SalesOrderStatus.Delivered));
+        Assert.Equal(staffSales + staffVolumeSales, await database.Reservations.CountAsync(item => item.IsActive));
         // The demo sales work the branches' open holds, which stay active while they are handled.
         foreach (var sale in DevelopmentSaleScenarios.All)
         {

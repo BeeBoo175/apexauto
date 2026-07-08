@@ -52,7 +52,7 @@ public sealed class DevelopmentFixtureMail(DealershipDbContext database)
         await database.ReservationMailOutbox.Where(item => reservations.Contains(item.ReservationId) &&
             !_existingReservations.Contains(item.Id) && item.DeliveredAt == null && item.DeliveryClaimId == null)
             .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.DeliveredAt, now), cancellationToken);
-        var deliveries = DevelopmentSaleScenarios.All.Select(item => item.ReservationId).ToArray();
+        var deliveries = DevelopmentSaleHistory.All.Select(item => item.ReservationId).ToArray();
         await database.SaleDeliveryMailOutbox.Where(item => deliveries.Contains(item.SalesOrderId) &&
             !_existingDeliveries.Contains(item.Id) && item.DeliveredAt == null && item.DeliveryClaimId == null)
             .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.DeliveredAt, now), cancellationToken);

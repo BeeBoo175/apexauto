@@ -153,7 +153,7 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         Assert.Equal(optedInReservationId, optedIn.ReservationId);
         Assert.False(await database.ReservationMailOutbox.AnyAsync(item => item.DeliveryAttempts != 0));
         var deliveries = await database.SaleDeliveryMailOutbox.AsNoTracking().ToArrayAsync();
-        Assert.Equal(DevelopmentSaleScenarios.All.Count(item => item.Target == SalesOrderStatus.Delivered), deliveries.Length);
+        Assert.Equal(DevelopmentSaleHistory.All.Count(item => item.Target == SalesOrderStatus.Delivered), deliveries.Length);
         Assert.All(deliveries, delivery =>
         {
             Assert.NotNull(delivery.DeliveredAt);

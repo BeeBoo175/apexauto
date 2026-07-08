@@ -21,7 +21,8 @@ public sealed class DevelopmentInspectionFixtures(DealershipDbContext database, 
         foreach (var fixture in checkedIn)
         {
             var baseline = DevelopmentInspectionManifest.Baselines.Any(item => item.Id == fixture.Id);
-            var technicianId = DevelopmentIntakeManifest.WorkshopExamples.Any(item => item.Id == fixture.Id)
+            var technicianId = DevelopmentIntakeManifest.WorkshopExamples.Any(item => item.Id == fixture.Id) ||
+                DevelopmentWorkshopHistory.IsSignedByRelief(fixture.Id)
                 ? DevelopmentFixtureManifest.ReliefTechnicians.Single(item => item.BranchId == fixture.BranchId).Id
                 : DevelopmentFixtureManifest.PrimaryTechnician(fixture.BranchId).Id;
             var vehicleId = await database.Vehicles.Where(item => item.IntakeAppointmentId == fixture.Id)

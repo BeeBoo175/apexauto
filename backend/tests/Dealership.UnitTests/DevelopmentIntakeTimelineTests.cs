@@ -56,7 +56,7 @@ public sealed class DevelopmentIntakeTimelineTests
                 .Select(group => group.Count()).ToArray();
             Assert.InRange(perDay.Max(), 1, DevelopmentIntakeTimeline.HistoricalArrivalsPerDay);
             var oldest = branch.Min(item => item.Slot.StartsAt);
-            Assert.InRange((anchor - oldest).TotalDays, 60, 150);
+            Assert.InRange((anchor - oldest).TotalDays, 60, 250);
         }
     }
 

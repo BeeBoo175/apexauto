@@ -185,32 +185,39 @@ internal static class DevelopmentUnscheduledVolumeAssertions
         Assert.Empty(empty.Value.Items);
     }
 
+    // The technician's open drafts come first and in order; repair requests awaiting approval for the same technician
+    // may follow, since signed history can leave a request with whoever signed it.
     private static async Task AssertPagesAsync(IWorkCalendarStore calendar, Guid actorId, UnscheduledWorkQuery query,
         Guid[] expected, Guid technicianId, Guid[] inspectionIds)
     {
-        var actual = new List<Guid>();
-        for (var page = 1; page <= 4; page++)
+        var all = new List<UnscheduledWorkItem>();
+        var total = 0;
+        for (var page = 1; all.Count < total || page == 1; page++)
         {
             var result = await calendar.UnscheduledAsync(actorId, query with { Page = page }, CancellationToken.None);
             Assert.Equal(WorkCalendarReadStatus.Succeeded, result.Status);
             var snapshot = Assert.IsType<UnscheduledWorkPage>(result.Value);
-            Assert.Equal(expected.Length, snapshot.Total);
-            Assert.Equal(expected.Skip((page - 1) * 25).Take(25), snapshot.Items.Select(item => item.Id));
-            Assert.All(snapshot.Items, item =>
-            {
-                Assert.Equal("Workshop", item.Kind);
-                Assert.Equal("InspectionUnderway", item.Status);
-                Assert.Equal(technicianId, item.HandlerId);
-                Assert.Contains(item.InspectionId!.Value, inspectionIds);
-            });
-            actual.AddRange(snapshot.Items.Select(item => item.Id));
+            total = snapshot.Total;
+            Assert.Equal(Math.Min(25, total - (page - 1) * 25), snapshot.Items.Count);
+            all.AddRange(snapshot.Items);
         }
 
-        Assert.Equal(expected, actual);
-        var refreshed = await calendar.UnscheduledAsync(actorId, query, CancellationToken.None);
-        Assert.Equal(expected.Take(25), refreshed.Value!.Items.Select(item => item.Id));
+        var drafts = all.Where(item => item.Status == "InspectionUnderway").ToArray();
+        Assert.Equal(expected, drafts.Select(item => item.Id));
+        Assert.All(drafts, item =>
+        {
+            Assert.Equal("Workshop", item.Kind);
+            Assert.Equal(technicianId, item.HandlerId);
+            Assert.Contains(item.InspectionId!.Value, inspectionIds);
+        });
+        Assert.All(all.Where(item => item.Status != "InspectionUnderway"), item =>
+        {
+            Assert.Equal("Workshop", item.Kind);
+            Assert.Equal("ApprovalRequired", item.Status);
+            Assert.Equal(technicianId, item.HandlerId);
+        });
         var outside = await calendar.UnscheduledAsync(actorId, query with { Page = int.MaxValue }, CancellationToken.None);
         Assert.Empty(outside.Value!.Items);
-        Assert.Equal(expected.Length, outside.Value.Total);
+        Assert.Equal(all.Count, outside.Value.Total);
     }
 }

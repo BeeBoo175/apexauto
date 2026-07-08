@@ -29,7 +29,9 @@ public static class DevelopmentIntakeManifest
     public const int InspectionExamplesPerBranch = 14;
     public const int CatalogueExamplesPerBranch = 14;
     public const int WorkshopExamplesPerBranch = 27;
-    public const int SalesExamplesPerBranch = 27;
+    // The last examples are older completed purchases, so deliveries also exist before the latest 90 days.
+    public const int OldSalesExamplesPerBranch = 2;
+    public const int SalesExamplesPerBranch = 27 + OldSalesExamplesPerBranch;
     public const int BaselineTotalPerBranch = AppointmentsPerBranch + RepairRequestsPerBranch + 4;
     public const int InspectionCheckedInPerBranch = RepairRequestsPerBranch + 2 + InspectionExamplesPerBranch;
     public const int CheckedInPerBranch = InspectionCheckedInPerBranch + CatalogueExamplesPerBranch +

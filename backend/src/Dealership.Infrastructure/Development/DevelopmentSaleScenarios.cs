@@ -75,7 +75,7 @@ public static class DevelopmentSaleScenarios
     }
 
     // Completed purchases of catalogue vehicles that carry no other hold, per branch, so deliveries, delivered value
-    // and delivery time have a shape across the weeks and agents. One at each branch stays settled and awaits handover.
+    // and delivery time have a shape across the weeks and agents. One at the first branch stays settled and awaits handover.
     private static IEnumerable<DevelopmentSaleScenario> CompletedHistory()
     {
         SalePaymentMethod[] methods =
@@ -92,9 +92,8 @@ public static class DevelopmentSaleScenarios
                 var hold = DevelopmentReservationScenarios.All.Single(item =>
                     item.Index == DevelopmentReservationScenarios.FirstCompletedIndex + branch *
                     DevelopmentReservationScenarios.CompletedPerBranch + slot);
-                var target = slot == DevelopmentReservationScenarios.CompletedPerBranch - 1
-                    ? SalesOrderStatus.Settled
-                    : SalesOrderStatus.Delivered;
+                var awaitsHandover = branch == 0 && slot == DevelopmentReservationScenarios.CompletedPerBranch - 1;
+                var target = awaitsHandover ? SalesOrderStatus.Settled : SalesOrderStatus.Delivered;
                 yield return new(hold, target, false, discounts[slot], PaymentMethod: methods[slot],
                     HeldStep: steps[branch][slot]);
             }

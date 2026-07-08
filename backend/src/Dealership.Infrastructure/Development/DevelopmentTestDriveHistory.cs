@@ -41,9 +41,11 @@ public sealed class DevelopmentTestDriveHistory(DealershipDbContext database, Ap
     private static readonly DevelopmentTestDriveHistoryKind[][] Plan =
     [
         [DevelopmentTestDriveHistoryKind.Completed, DevelopmentTestDriveHistoryKind.NotCompleted],
-        [DevelopmentTestDriveHistoryKind.Completed, DevelopmentTestDriveHistoryKind.CustomerCancelled],
+        [DevelopmentTestDriveHistoryKind.Completed, DevelopmentTestDriveHistoryKind.CustomerCancelled,
+            DevelopmentTestDriveHistoryKind.Completed, DevelopmentTestDriveHistoryKind.NotCompleted],
         [DevelopmentTestDriveHistoryKind.Completed, DevelopmentTestDriveHistoryKind.StaffCancelled],
-        [DevelopmentTestDriveHistoryKind.NotCompleted, DevelopmentTestDriveHistoryKind.NoShow],
+        [DevelopmentTestDriveHistoryKind.NotCompleted, DevelopmentTestDriveHistoryKind.NoShow,
+            DevelopmentTestDriveHistoryKind.Completed, DevelopmentTestDriveHistoryKind.Completed],
         [DevelopmentTestDriveHistoryKind.Completed]
     ];
 

@@ -28,6 +28,17 @@ public sealed class DevelopmentWorkshopHistory(DealershipDbContext database)
             DevelopmentInspectionManifest.Baselines.All(item => item.Id != inspectionId);
     }
 
+    // About one in three everyday inspections that are not reassigned is examined and signed by the relief
+    // technician, so both technicians have sign-off times in history.
+    public static bool IsSignedByRelief(Guid inspectionId)
+    {
+        return inspectionId.ToByteArray()[5] % 3 == 0 && !IsReassigned(inspectionId) &&
+            DevelopmentIntakeManifest.WorkshopExamples.All(item => item.Id != inspectionId) &&
+            DevelopmentInspectionScenarios.All.All(item => item.Id != inspectionId ||
+                DevelopmentIntakeManifest.SalesExamples.Any(sale => sale.Id == inspectionId)) &&
+            DevelopmentInspectionManifest.Baselines.All(item => item.Id != inspectionId);
+    }
+
     // A reassigned history inspection is signed under its second assignment.
     public static long AssignmentVersionOf(Guid inspectionId) => IsReassigned(inspectionId) ? 2 : 1;
 
@@ -58,7 +69,8 @@ public sealed class DevelopmentWorkshopHistory(DealershipDbContext database)
             PhotoIds = [],
             ExaminedPointCodes = DevelopmentInspectionManifest.ExaminedPointCodes
         };
-        var technicianId = DevelopmentIntakeManifest.WorkshopExamples.Any(item => item.Id == fixture.Id)
+        var technicianId = DevelopmentIntakeManifest.WorkshopExamples.Any(item => item.Id == fixture.Id) ||
+            IsSignedByRelief(fixture.Id)
             ? DevelopmentFixtureManifest.ReliefTechnicians.Single(item => item.BranchId == fixture.BranchId).Id
             : DevelopmentFixtureManifest.PrimaryTechnician(fixture.BranchId).Id;
         var firstTechnicianId = reassigned
@@ -86,7 +98,8 @@ public sealed class DevelopmentWorkshopHistory(DealershipDbContext database)
     public Task<DateTimeOffset> AddSignedInspectionAsync(DevelopmentInspectionScenario scenario, DateTimeOffset checkedInAt,
         CancellationToken cancellationToken)
     {
-        var technicianId = DevelopmentIntakeManifest.WorkshopExamples.Any(item => item.Id == scenario.Id)
+        var technicianId = DevelopmentIntakeManifest.WorkshopExamples.Any(item => item.Id == scenario.Id) ||
+            IsSignedByRelief(scenario.Id)
             ? DevelopmentFixtureManifest.ReliefTechnicians.Single(item => item.BranchId == scenario.Intake.BranchId).Id
             : DevelopmentFixtureManifest.PrimaryTechnician(scenario.Intake.BranchId).Id;
         return AddSignedInspectionAsync(scenario.Intake, technicianId, technicianId, scenario.Save(), scenario.Sign(),

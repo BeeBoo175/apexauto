@@ -55,14 +55,24 @@ public static class DevelopmentIntakeTimeline
     // A branch handles one arrival on each open day, so history covers about four months, not one day per record.
     public const int HistoricalArrivalsPerDay = 1;
 
+    // The oldest examples are checked in this many days before the continuous history begins.
+    public const int OldRecordGapDays = 85;
+
     private static (AppointmentSlot Slot, DateTimeOffset BookedAt)[] HistoricalSlots(AppointmentSchedule schedule,
         DateTimeOffset anchor)
     {
         var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(anchor, DealershipLocale.Malaysia).DateTime);
         var result = new List<(AppointmentSlot, DateTimeOffset)>();
         var required = DevelopmentIntakeManifest.CheckedInPerBranch + 2;
+        var skipped = false;
         for (var days = 1; days <= 366 && result.Count < required; days++)
         {
+            if (!skipped && result.Count >= required - DevelopmentIntakeManifest.OldSalesExamplesPerBranch)
+            {
+                days += OldRecordGapDays;
+                skipped = true;
+            }
+
             var date = today.AddDays(-days);
             var localMidnight = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified);
             var bookedAt = new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(localMidnight, DealershipLocale.Malaysia));
