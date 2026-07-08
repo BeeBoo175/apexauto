@@ -20,6 +20,13 @@ export function AppliedWorklistFilters<Filters>({
     <div className={styles.summary} role="group" aria-label="Applied filters">
       {filters.map((filter) => {
         const without = filter.without;
+        if (filter.fixed) {
+          return (
+            <span key={filter.key} className={styles.chip} title={filter.label}>
+              <span>{filter.label}</span>
+            </span>
+          );
+        }
         return (
           <Button
             key={filter.key}

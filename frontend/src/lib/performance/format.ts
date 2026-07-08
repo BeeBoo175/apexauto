@@ -60,3 +60,21 @@ export function rangeText(from: string, to: string) {
     }).format(new Date(`${value}T00:00:00Z`));
   return `${format(from, false)} to ${format(to, true)}`;
 }
+
+// Every branch is named "ApexAuto Bayan Lepas" and so on; on a page that is all ApexAuto the shared first word only
+// repeats, so labels show the place.
+export function branchLabel(name: string) {
+  return name.replace(/^ApexAuto\s+/, "");
+}
+
+const compactCurrency = new Intl.NumberFormat("en-MY", {
+  style: "currency",
+  currency: "MYR",
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
+
+// Short MYR amounts for chart scales, such as "MYR 1.2M"; hovers and tables carry the exact amount.
+export function compactMoney(amount: number) {
+  return compactCurrency.format(amount);
+}

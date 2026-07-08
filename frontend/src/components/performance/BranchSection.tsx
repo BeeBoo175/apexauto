@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Select } from "@/components/ui/Input";
 import { formatCurrency } from "@/lib/currency-format";
-import { deltaText, weekLabel } from "@/lib/performance/format";
+import { branchLabel, compactMoney, deltaText, weekLabel } from "@/lib/performance/format";
 import type {
   BranchRow,
   PerformanceBranches,
@@ -107,11 +107,12 @@ export function BranchSection({
   const rows = branches?.branches ?? [];
   return (
     <PerformanceSection
-      title="Branches over time"
+      title="Branches"
       tools={
         <div className={styles.measureSelect}>
           <Select
             label="Measure"
+            labelHidden
             density="compact"
             value={measureKey}
             onChange={(event) => setMeasureKey(measureOf(event.target.value))}
@@ -129,7 +130,7 @@ export function BranchSection({
           label="Branches"
           items={rows.map((row, index) => ({
             key: row.branchId,
-            label: row.branchName,
+            label: branchLabel(row.branchName),
             color: lineColors[index % lineColors.length],
           }))}
         />
@@ -183,13 +184,14 @@ function BranchChart({
       label={`${measure.label} by week for each branch`}
       series={rows.map((row, index) => ({
         key: row.branchId,
-        label: row.branchName,
+        label: branchLabel(row.branchName),
         color: lineColors[index % lineColors.length],
         values: row.weeks.map((week) => measure.week(week)),
         onSelect: () => onOpen(row.branchId),
       }))}
       labels={weeks.map((week) => weekLabel(week.weekStart))}
       formatValue={measure.text}
+      formatTick={measure.key === "value" ? compactMoney : String}
       titleFor={(column) => `Week of ${weekLabel(weeks[column].weekStart)}`}
     />
   );
@@ -214,7 +216,7 @@ function BranchSummary({
     <li>
       <button type="button" className={styles.branchSummary} onClick={onOpen}>
         <span className={styles.swatch} style={{ background: lineColor }} aria-hidden="true" />
-        <span className={styles.branchName}>{row.branchName}</span>
+        <span className={styles.branchName}>{branchLabel(row.branchName)}</span>
         <span className={styles.branchFigure}>
           {measure.text(current)} {measure.key === "value" ? "" : measure.noun}
         </span>

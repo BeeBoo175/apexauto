@@ -53,7 +53,10 @@ export function PerformanceToolbar({
     const label = periodPresets.find((item) => item.value === preset)?.label ?? "Period";
     applied.push({
       key: "dates",
-      label: preset === "custom" ? rangeText(period.from, period.to) : label,
+      label:
+        preset === "custom"
+          ? rangeText(period.from, period.to)
+          : `${label}, ${rangeText(period.from, period.to)}`,
       without: { preset: "last-90", period: performancePeriod({ branchId: period.branchId }) },
     });
   }
@@ -65,17 +68,32 @@ export function PerformanceToolbar({
     });
   }
 
+  // The period is always on the bar: a removable pill when it was changed, a fixed one for the default.
+  const shown: AppliedFilter<PerformanceFilters>[] =
+    preset === "last-90"
+      ? [
+          {
+            key: "dates",
+            label: `Last 90 days, ${rangeText(period.from, period.to)}`,
+            without: current,
+            fixed: true,
+          },
+          ...applied,
+        ]
+      : applied;
   return (
     <RecordToolbar
       disabled={busy}
       summaryInline
       filterCount={applied.length}
       filterSummary={
-        <AppliedWorklistFilters
-          filters={applied}
-          disabled={busy}
-          onRemove={(next) => onApply(next.preset, next.period)}
-        />
+        <>
+          <AppliedWorklistFilters
+            filters={shown}
+            disabled={busy}
+            onRemove={(next) => onApply(next.preset, next.period)}
+          />
+        </>
       }
       filters={
         <PerformanceFilterForm

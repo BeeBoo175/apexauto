@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import { rangeText } from "@/lib/performance/format";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { usePerformanceSection } from "@/hooks/use-performance-section";
 import type { CurrentActor } from "@/lib/auth/actor";
@@ -101,11 +100,7 @@ export function ResultsView({
     <>
       <LoadingProgress label="Loading results" active={busy} />
       <div className={styles.view}>
-        <SummarySection
-          headline={headline.data ?? initialHeadline}
-          period={period}
-          state={stateOf(headline)}
-        />
+        <SummarySection headline={headline.data ?? initialHeadline} state={stateOf(headline)} />
         <div className={styles.grid}>
           <StockFlowSection flow={stock.data} state={stateOf(stock)} />
           <ValueTrendSection flow={stock.data} state={stateOf(stock)} />
@@ -151,7 +146,6 @@ export function BranchesView({
       <div className={styles.view}>
         <HeadlineFigures
           stats={branchStats(branches.data)}
-          covers={`${rangeText(period.from, period.to)}, all branches, compared with the period before`}
           state={{ ...stateOf(branches), hasData: branches.data !== null }}
         />
         <BranchSection branches={branches.data} state={stateOf(branches)} onOpen={onOpen} />

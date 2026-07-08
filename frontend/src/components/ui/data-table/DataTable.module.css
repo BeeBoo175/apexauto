@@ -381,13 +381,14 @@
   overflow-wrap: anywhere;
 }
 
-/* A right-aligned header leaves room for its sort and filter controls, so its figures end that far from the column
-   edge. Cells keep the same inset, so each figure sits directly under its heading. */
-.comfortable .table td[data-align="right"] {
+/* A right-aligned header with a filter leaves room for its icon, so its figures end that far from the column edge. A
+   column without a filter has nothing beside its heading and its figures stay at the edge. */
+.comfortable .table td[data-align="right"][data-filterable] {
   padding-right: calc(var(--table-cell-padding) + var(--table-filter-control-width));
 }
 
-/* The last column has no resize handle beside its heading, so its figures need no extra inset. */
-.comfortable .table td[data-align="right"]:last-child {
-  padding-right: var(--table-cell-padding);
+/* A toolbar above a comfortable table lines up with the table's own edges and sits close under the section heading. */
+.comfortable > :first-child:not(.scroll) {
+  padding-inline: 0;
+  padding-top: 0;
 }

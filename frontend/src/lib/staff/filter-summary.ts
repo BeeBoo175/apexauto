@@ -46,6 +46,8 @@ export interface AppliedFilter<Filters = StaffFilters> {
     | "minimum";
   label: string;
   without: Filters;
+  // A fixed pill states what the page is showing, such as the default period, and offers no remove button.
+  fixed?: boolean;
 }
 
 export function resetWorklistFilters(filters: StaffFilters): StaffFilters {

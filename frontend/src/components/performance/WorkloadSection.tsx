@@ -8,6 +8,7 @@ import { SearchField } from "@/components/ui/SearchField";
 import { DataTablePagination } from "@/components/ui/data-table/DataTablePagination";
 import { roleNames, type Role } from "@/lib/auth/actor";
 import type { PerformanceWorkload, WorkloadPerson } from "@/lib/performance/performance";
+import { branchLabel } from "@/lib/performance/format";
 import type { RoomView } from "@/lib/performance/room";
 import { Legend } from "./Legend";
 import { PerformanceSection, type SectionState } from "./PerformanceSection";
@@ -183,12 +184,12 @@ function WorkloadRow({
         <PersonLabel
           id={person.id}
           name={person.name}
-          identity={showBranch ? `${role}, ${person.branchName}` : role}
+          identity={showBranch ? `${role}, ${branchLabel(person.branchName)}` : role}
           pictureId={person.pictureId}
           nested
         />
         <span className={styles.personMeta}>
-          {showBranch ? `${person.branchName}, ${overWeek(person)}` : overWeek(person)}
+          {showBranch ? `${branchLabel(person.branchName)}, ${overWeek(person)}` : overWeek(person)}
         </span>
       </span>
       <span

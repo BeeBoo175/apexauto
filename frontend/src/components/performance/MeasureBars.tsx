@@ -12,14 +12,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import {
-  chartMargin,
-  colors,
-  tickStyle,
-  tooltipSettings,
-  useReducedMotion,
-  type TipData,
-} from "./ChartKit";
+import { chartMargin, colors, tooltipSettings, useReducedMotion, type TipData } from "./ChartKit";
 import styles from "./Performance.module.css";
 
 export interface BarItem {
@@ -33,6 +26,22 @@ export interface BarItem {
   // The page that holds this item's work.
   href?: string;
   openLabel?: string;
+}
+
+// The bar labels start at the left edge of the section, like every other label on the page, instead of ending at the
+// axis.
+function LeftTick({ y, payload }: { y?: number; payload?: { value?: string } }) {
+  return (
+    <text
+      x={0}
+      y={y}
+      dy={4}
+      textAnchor="start"
+      style={{ fill: "var(--color-graphite)", fontSize: 13 }}
+    >
+      {payload?.value}
+    </text>
+  );
 }
 
 const rowHeight = 44;
@@ -79,7 +88,7 @@ export function MeasureBars({
             type="category"
             dataKey="name"
             width={labelWidth}
-            tick={{ ...tickStyle, fill: "var(--color-graphite)", fontSize: 13 }}
+            tick={<LeftTick />}
             tickLine={false}
             axisLine={false}
           />

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { StaffLink } from "@/components/staff/StaffLink";
 import { PerformanceSection, type SectionState } from "@/components/performance/PerformanceSection";
 import performance from "@/components/performance/Performance.module.css";
-import { hourLabel } from "@/lib/performance/format";
+import { branchLabel, hourLabel } from "@/lib/performance/format";
 import { calendarTime } from "@/lib/calendar";
 import type { ScheduledWork } from "@/lib/staff/work-calendar";
 import { workItemHref } from "@/lib/staff/work-calendar-presentation";
@@ -108,7 +108,7 @@ function HourRows({ items, showBranch }: { items: ScheduledWork[]; showBranch: b
                   </span>
                   <span className={styles.bookingLine}>
                     {item.registrationPlate}
-                    {showBranch ? `, ${item.branchName}` : ""}
+                    {showBranch ? `, ${branchLabel(item.branchName)}` : ""}
                   </span>
                   <span
                     className={`${styles.bookingLine} ${item.handlerId ? "" : styles.unassigned}`.trim()}

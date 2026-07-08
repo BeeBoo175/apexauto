@@ -23,7 +23,7 @@ export function StockFlowSection({
 }) {
   return (
     <PerformanceSection
-      title="Vehicles in and out, by week"
+      title="Vehicles in and out"
       half
       aside={
         <span className={styles.flowAside}>

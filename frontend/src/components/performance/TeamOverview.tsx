@@ -36,6 +36,9 @@ export interface OverviewLabels {
   volume: string;
   // What the days axis measures, for example "Days to deliver".
   days: string;
+  // The titles of the two charts.
+  scatter: string;
+  spread: string;
 }
 
 const average = (values: number[]) =>
@@ -88,11 +91,7 @@ export function TeamCharts({
 }) {
   if (state.hasData && (points.length === 0 || points.every((point) => point.volume === 0))) {
     return (
-      <PerformanceSection
-        title={`${labels.volume} per person`}
-        state={state}
-        placeholder={<ChartSkeleton />}
-      >
+      <PerformanceSection title={labels.spread} state={state} placeholder={<ChartSkeleton />}>
         <p className={styles.note}>
           {points.length === 0
             ? "No one in this team to show."
@@ -139,15 +138,9 @@ function PeopleScatter({
   }));
   return (
     <PerformanceSection
-      title={`${labels.volume} and ${labels.days.toLowerCase()}`}
+      title={labels.scatter}
       half
-      aside={
-        untimed > 0 && (
-          <span className={styles.panelAside}>
-            {untimed} without {labels.days.toLowerCase()}
-          </span>
-        )
-      }
+      aside={untimed > 0 && <span className={styles.panelAside}>{untimed} not timed</span>}
       state={state}
       placeholder={<ChartSkeleton />}
     >
@@ -222,12 +215,7 @@ function Spread({
       .length,
   }));
   return (
-    <PerformanceSection
-      title={`People by ${labels.volume.toLowerCase()}`}
-      half
-      state={state}
-      placeholder={<ChartSkeleton />}
-    >
+    <PerformanceSection title={labels.spread} half state={state} placeholder={<ChartSkeleton />}>
       <ColumnChart
         label={`People by ${labels.volume.toLowerCase()}`}
         formatValue={String}

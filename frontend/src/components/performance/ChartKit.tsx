@@ -79,13 +79,13 @@ function TipContent({ active, payload }: { active?: boolean; payload?: TipPayloa
   );
 }
 
-// The tooltip settings every chart passes to Recharts. It floats above the page rather than inside the chart, so a tall
-// bar or a chart at the edge of a pane never clips or hides it.
+// The tooltip settings every chart passes to Recharts. It may rise above the chart, so a tall bar never hides it, but
+// it never leaves the chart sideways, so a mark at the edge of the screen keeps its card on screen.
 export const tooltipSettings = {
   content: <TipContent />,
   isAnimationActive: false,
   offset: 18,
-  allowEscapeViewBox: { x: true, y: true },
+  allowEscapeViewBox: { x: false, y: true },
   wrapperStyle: { zIndex: 30, pointerEvents: "none" as const },
   cursor: { fill: "color-mix(in srgb, var(--color-line-soft) 60%, transparent)" },
 };

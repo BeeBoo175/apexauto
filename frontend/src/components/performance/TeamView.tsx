@@ -12,7 +12,7 @@ import { usePerformanceSection } from "@/hooks/use-performance-section";
 import { privateApiFetch } from "@/lib/api-browser";
 import { roleNames, type CurrentActor, type Role } from "@/lib/auth/actor";
 import type { CsvColumn } from "@/lib/csv";
-import { rangeText } from "@/lib/performance/format";
+import { branchLabel } from "@/lib/performance/format";
 import { periodQuery } from "@/lib/performance/period";
 import type { PerformancePeriod } from "@/lib/performance/performance";
 import {
@@ -97,13 +97,23 @@ export function TeamView({
 }
 
 const overviewLabels: Record<TeamTab, OverviewLabels> = {
-  sales: { volume: "Cars delivered", days: "Average days to deliver" },
-  workshop: { volume: "Inspections signed", days: "Average days to sign off" },
+  sales: {
+    volume: "Cars delivered",
+    days: "Average days to deliver",
+    scatter: "Deliveries and time to deliver",
+    spread: "Deliveries per person",
+  },
+  workshop: {
+    volume: "Inspections signed",
+    days: "Average days to sign off",
+    scatter: "Inspections and time to sign off",
+    spread: "Inspections per person",
+  },
 };
 
 function personDetail(row: TeamPerson, showBranch: boolean) {
   const role = roleNames[row.role as Role] ?? row.role;
-  const parts = [showBranch ? `${role}, ${row.branchName}` : role];
+  const parts = [showBranch ? `${role}, ${branchLabel(row.branchName)}` : role];
   if (row.status !== "Active") {
     parts.push(personStatusLabels[row.status]);
   }
@@ -307,7 +317,6 @@ function TeamTable<Row extends SalesRow | WorkshopRow>({
       <div className={styles.view}>
         <HeadlineFigures
           stats={teamStats(people?.points ?? [], people?.points.length ?? 0, overviewLabels[tab])}
-          covers={rangeText(period.from, period.to)}
           state={sectionState}
         />
         <TeamCharts
@@ -317,7 +326,7 @@ function TeamTable<Row extends SalesRow | WorkshopRow>({
           onOpen={openPoint}
         />
         <PerformanceSection
-          title="Everyone, in alphabetical order"
+          title="People"
           state={sectionState}
           placeholder={<RowsSkeleton count={5} tall />}
         >
@@ -354,6 +363,7 @@ function TeamTable<Row extends SalesRow | WorkshopRow>({
               setPage(size === pageSize ? next : 1);
               setPageSize(size);
             }}
+            selectedRowId={drawerRow ? `${drawerRow.personId}:${drawerRow.branchId}` : undefined}
             onRowClick={setSelected}
           />
         </PerformanceSection>

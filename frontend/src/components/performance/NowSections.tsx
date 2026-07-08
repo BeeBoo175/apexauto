@@ -36,7 +36,7 @@ export function StageNowSection({
   const total = stages?.stages.reduce((sum, stage) => sum + stage.inStageNow, 0) ?? 0;
   return (
     <PerformanceSection
-      title="Stock by stage, now"
+      title="Stock by stage"
       aside={<span className={styles.panelAside}>{total} vehicles</span>}
       state={{ ...state, hasData: stages !== null }}
       placeholder={<RowsSkeleton count={6} />}

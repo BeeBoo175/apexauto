@@ -38,12 +38,15 @@ export function LineChart({
   series,
   labels,
   formatValue,
+  formatTick = formatValue,
   titleFor,
   label,
 }: {
   series: LineSeries[];
   labels: string[];
   formatValue: (value: number) => string;
+  // A shorter form for the scale, when the exact figure would not fit beside the axis.
+  formatTick?: (value: number) => string;
   titleFor: (column: number) => string;
   label: string;
 }) {
@@ -84,7 +87,7 @@ export function LineChart({
             axisLine={{ stroke: axisStroke }}
             allowDecimals={false}
             domain={[0, "auto"]}
-            tickFormatter={(value: number) => formatValue(value)}
+            tickFormatter={(value: number) => formatTick(value)}
           />
           <Tooltip {...tooltipSettings} />
           {series.map((line) => (

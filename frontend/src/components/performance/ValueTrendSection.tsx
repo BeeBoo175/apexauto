@@ -1,18 +1,10 @@
 import { formatCurrency } from "@/lib/currency-format";
-import { weekLabel } from "@/lib/performance/format";
+import { compactMoney, weekLabel } from "@/lib/performance/format";
 import type { PerformanceStockFlow } from "@/lib/performance/performance";
 import { ColumnChart } from "./ColumnChart";
 import { PerformanceSection, type SectionState } from "./PerformanceSection";
 import { ChartSkeleton } from "./PerformanceSkeletons";
 import styles from "./Performance.module.css";
-
-// Short MYR amounts for the scale, such as "MYR 1.2M"; the full amounts are in the hover and the accessible table.
-const compact = new Intl.NumberFormat("en-MY", {
-  style: "currency",
-  currency: "MYR",
-  notation: "compact",
-  maximumFractionDigits: 1,
-});
 
 // The agreed value delivered each week of the period, as columns on one scale with each week's amount above it.
 export function ValueTrendSection({
@@ -25,7 +17,7 @@ export function ValueTrendSection({
   const total = flow?.weeks.reduce((sum, week) => sum + week.deliveredValue, 0) ?? 0;
   return (
     <PerformanceSection
-      title="Delivered value, by week"
+      title="Delivered value"
       half
       aside={
         flow && <span className={styles.panelAside}>{formatCurrency(total)} in the period</span>
@@ -49,7 +41,7 @@ function ValueColumns({ flow }: { flow: PerformanceStockFlow }) {
     <>
       <ColumnChart
         label="Delivered value by week"
-        formatValue={(value) => compact.format(value)}
+        formatValue={compactMoney}
         columns={flow.weeks.map((week) => ({
           key: week.weekStart,
           label: weekLabel(week.weekStart),

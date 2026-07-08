@@ -177,7 +177,11 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
                   </td>
                 )}
                 {columns.map((column) => (
-                  <td key={column.id} data-align={column.align ?? "left"}>
+                  <td
+                    key={column.id}
+                    data-align={column.align ?? "left"}
+                    data-filterable={column.filter ? "true" : undefined}
+                  >
                     <div className={styles.cell}>{column.cell(row)}</div>
                   </td>
                 ))}
