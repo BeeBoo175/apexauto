@@ -74,7 +74,9 @@ public sealed partial class PerformanceReads
                 current ? openRepairs.Count(item => item.Item1 == personId) : null);
         });
         return new(PerformanceReadStatus.Succeeded, PageOf(scope, team,
-            rows.OrderBy(row => row.BranchName).ThenBy(row => row.Name).ThenBy(row => row.PersonId)));
+            rows.OrderBy(row => row.BranchName).ThenBy(row => row.Name).ThenBy(row => row.PersonId),
+            row => new PerformanceTeamPoint(row.PersonId, row.BranchId, row.Name, row.InspectionsSigned,
+                row.AssignmentToSignOffDays)));
     }
 
     private static DateTimeOffset Later(DateTimeOffset assigned, DateTimeOffset? reopened)

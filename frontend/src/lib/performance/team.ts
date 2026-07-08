@@ -49,8 +49,31 @@ export interface WorkshopRow extends TeamPerson {
   openRepairs: number | null;
 }
 
+// One person's volume of work and average days for the whole team, whatever page is read.
+export interface TeamPoint {
+  personId: string;
+  branchId: string;
+  name: string;
+  volume: number;
+  days: number | null;
+}
+
 // The page fields stay at the top level, so the relay and the browser parse the same shape.
-export type TeamPage<Row> = Page<Row> & { actor: CurrentActor };
+export type TeamPage<Row> = Page<Row> & { actor: CurrentActor; points: TeamPoint[] };
+
+function parsePoint(value: unknown): TeamPoint | null {
+  if (
+    !isRecord(value) ||
+    !isUuid(value.personId) ||
+    !isUuid(value.branchId) ||
+    typeof value.name !== "string" ||
+    !isNonNegativeInteger(value.volume) ||
+    !isOptionalDays(value.days)
+  ) {
+    return null;
+  }
+  return value as unknown as TeamPoint;
+}
 
 const isOptionalCount = (value: unknown) => value === null || isNonNegativeInteger(value);
 
@@ -113,10 +136,12 @@ function parseTeam<Row extends TeamPerson>(
   const actor = isRecord(value) ? parseActor(value.actor) : null;
   const page = parsePage(value, parseRow);
   const keys = page?.items.map((row) => `${row.personId}:${row.branchId}`) ?? [];
-  if (!actor || !page || new Set(keys).size !== keys.length) {
+  const rawPoints = isRecord(value) && Array.isArray(value.points) ? value.points : null;
+  const points = rawPoints?.map(parsePoint) ?? null;
+  if (!actor || !page || !points || points.includes(null) || new Set(keys).size !== keys.length) {
     return null;
   }
-  return { actor, ...page };
+  return { actor, ...page, points: points as TeamPoint[] };
 }
 
 export const parseSalesTeam = (value: unknown) => parseTeam(value, parseSalesRow);

@@ -32,7 +32,8 @@ public sealed partial class PerformanceReads
         {
             var current = await TotalsAsync(branch.Id, query.From, query.Until, now, cancellationToken);
             var previous = await TotalsAsync(branch.Id, previousFrom, query.From, now, cancellationToken);
-            rows.Add(new(branch.Id, branch.Name, current, previous));
+            var weeks = await WeeklyFlowAsync(branch.Id, query, cancellationToken);
+            rows.Add(new(branch.Id, branch.Name, current, previous, weeks));
         }
 
         await transaction.CommitAsync(cancellationToken);

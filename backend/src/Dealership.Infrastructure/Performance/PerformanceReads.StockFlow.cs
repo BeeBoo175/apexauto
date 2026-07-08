@@ -20,12 +20,21 @@ public sealed partial class PerformanceReads
             return new(PerformanceReadStatus.Forbidden);
         }
 
+        var result = await WeeklyFlowAsync(scope.BranchId, query, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return new(PerformanceReadStatus.Succeeded, new PerformanceStockFlow(scope.Actor, result));
+    }
+
+    // The weekly flow of one branch, or of every branch in scope when none is chosen.
+    private async Task<PerformanceStockWeek[]> WeeklyFlowAsync(Guid? branchId, PerformanceQuery query,
+        CancellationToken cancellationToken)
+    {
         var checkIns = await database.AppointmentCheckIns.AsNoTracking()
             .Where(item => item.CorrectionRecordedAt == null && item.CheckedInAt >= query.From &&
-                item.CheckedInAt < query.Until && (scope.BranchId == null || item.BranchId == scope.BranchId))
+                item.CheckedInAt < query.Until && (branchId == null || item.BranchId == branchId))
             .Select(item => item.CheckedInAt)
             .ToListAsync(cancellationToken);
-        var deliveries = await SalesInScope(scope.BranchId)
+        var deliveries = await SalesInScope(branchId)
             .Where(order => order.DeliveredAt >= query.From && order.DeliveredAt < query.Until)
             .Select(order => new
             {
@@ -33,7 +42,6 @@ public sealed partial class PerformanceReads
                 Value = order.BalancePayable + order.DepositCredit + order.TradeInAllowance,
             })
             .ToListAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
 
         var weeks = new SortedDictionary<DateOnly, (int CheckIns, int Deliveries, decimal Value)>();
         for (var week = WeekStart(query.From); week < MalaysiaDate(query.Until); week = week.AddDays(7))
@@ -57,10 +65,8 @@ public sealed partial class PerformanceReads
             };
         }
 
-        var result = weeks.Select(item =>
-                new PerformanceStockWeek(item.Key, item.Value.CheckIns, item.Value.Deliveries, item.Value.Value))
-            .ToArray();
-        return new(PerformanceReadStatus.Succeeded, new PerformanceStockFlow(scope.Actor, result));
+        return [.. weeks.Select(item =>
+            new PerformanceStockWeek(item.Key, item.Value.CheckIns, item.Value.Deliveries, item.Value.Value))];
     }
 
     private static DateOnly MalaysiaDate(DateTimeOffset instant)

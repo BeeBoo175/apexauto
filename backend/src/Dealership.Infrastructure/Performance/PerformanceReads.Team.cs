@@ -9,11 +9,12 @@ public sealed partial class PerformanceReads
     // Team output is person-per-branch: a result belongs to the branch recorded at the event, so a transferred agent
     // keeps their old results at the old branch and a deactivated one stays visible with their history.
     private static PerformanceTeamPage<T> PageOf<T>(PerformanceScope scope, PerformanceTeamQuery team,
-        IEnumerable<T> ordered)
+        IEnumerable<T> ordered, Func<T, PerformanceTeamPoint> point)
     {
         var rows = ordered.ToArray();
         var items = rows.Skip((team.Page - 1) * team.PageSize).Take(team.PageSize).ToArray();
-        return new(scope.Actor, items, rows.Length, team.Page, team.PageSize);
+        var points = rows.Take(PerformanceTeamPoint.MaximumPoints).Select(point).ToArray();
+        return new(scope.Actor, items, rows.Length, team.Page, team.PageSize, points);
     }
 
     private static double? AverageDays(IEnumerable<double> seconds)

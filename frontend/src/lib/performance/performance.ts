@@ -102,6 +102,7 @@ export interface BranchRow {
   branchName: string;
   current: PeriodTotals;
   previous: PeriodTotals;
+  weeks: StockWeek[];
 }
 
 export interface PerformanceBranches {
@@ -278,16 +279,18 @@ export function parseWorkload(value: unknown): PerformanceWorkload | null {
 function parseBranchRow(value: unknown): BranchRow | null {
   const current = isRecord(value) ? parseTotals(value.current) : null;
   const previous = isRecord(value) ? parseTotals(value.previous) : null;
+  const weeks = isRecord(value) ? parseList(value.weeks, parseStockWeek) : null;
   if (
     !isRecord(value) ||
     !isUuid(value.branchId) ||
     typeof value.branchName !== "string" ||
     !current ||
-    !previous
+    !previous ||
+    !weeks
   ) {
     return null;
   }
-  return { branchId: value.branchId, branchName: value.branchName, current, previous };
+  return { branchId: value.branchId, branchName: value.branchName, current, previous, weeks };
 }
 
 export function parseBranches(value: unknown): PerformanceBranches | null {

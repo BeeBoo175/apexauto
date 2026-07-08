@@ -14,7 +14,14 @@ public static class PerformancePersonStatuses
 // A page of one person-per-branch row set. A person who worked at two branches appears once for each, because results
 // belong to the branch recorded at the event.
 public sealed record PerformanceTeamPage<T>(CurrentActor Actor, IReadOnlyList<T> Items, int Total, int Page,
-    int PageSize);
+    int PageSize, IReadOnlyList<PerformanceTeamPoint> Points);
+
+// One person's volume of completed work and average days for the whole team in scope, whatever page is shown, so a
+// scatter plot and a spread chart cover everyone. At most MaximumPoints people are returned, in the page order.
+public sealed record PerformanceTeamPoint(Guid PersonId, Guid BranchId, string Name, int Volume, double? Days)
+{
+    public const int MaximumPoints = 500;
+}
 
 public sealed record PerformanceTeamQuery(PerformanceQuery Period, int Page, int PageSize)
 {
