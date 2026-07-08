@@ -52,8 +52,8 @@ public static class DevelopmentIntakeTimeline
         }).OrderBy(moment => moment.Slot.StartsAt).ThenBy(moment => moment.Fixture.Id)];
     }
 
-    // A branch handles a couple of arrivals on each open day, so history covers about two months, not one day per record.
-    public const int HistoricalArrivalsPerDay = 2;
+    // A branch handles one arrival on each open day, so history covers about four months, not one day per record.
+    public const int HistoricalArrivalsPerDay = 1;
 
     private static (AppointmentSlot Slot, DateTimeOffset BookedAt)[] HistoricalSlots(AppointmentSchedule schedule,
         DateTimeOffset anchor)

@@ -118,9 +118,11 @@ internal static class DevelopmentListingFixtureAssertions
         var catalogueTotal = 0;
         foreach (var branch in DevelopmentFixtureManifest.Branches)
         {
-            // Sales that carry a warranty or a rejected discount hold one more catalogue vehicle at their branch.
+            // Sales that carry a warranty or a rejected discount hold one more catalogue vehicle at their branch, and
+            // each completed history purchase takes its vehicle off the catalogue.
             var heldBySales = DevelopmentSaleScenarios.All.Count(item => item.Hold.Listing.Intake.BranchId == branch.Id &&
-                (item.WarrantyPackageId is not null || item.RejectedOnce));
+                (item.WarrantyPackageId is not null || item.RejectedOnce ||
+                 item.Hold.Index >= DevelopmentReservationScenarios.FirstCompletedIndex));
             var available = (branch.Id == DevelopmentTestDriveReopeningFixtures.Scenario.Intake.BranchId ? 14 : 15) -
                 heldBySales;
             var expected = await database.ListingRevisions.Where(item => item.BranchId == branch.Id)
@@ -144,12 +146,19 @@ internal static class DevelopmentListingFixtureAssertions
             }
 
             Assert.Equal(expected.Select(item => item.VehicleId), actual.Select(item => item.Id));
-            Assert.Equal(6, actual.Select(item => item.Make).Distinct().Count());
+            // Completed purchases take their vehicles off the catalogue, which still offers at least five makes.
+            var expectedIds = expected.Select(item => item.VehicleId).ToArray();
+            var expectedMakes = await database.Vehicles.Where(item => expectedIds.Contains(item.Id))
+                .Select(item => item.Make).Distinct().CountAsync();
+            Assert.InRange(expectedMakes, 5, 6);
+            Assert.Equal(expectedMakes, actual.Select(item => item.Make).Distinct().Count());
             Assert.Equal(actual.Take(8).Select(item => item.Id),
                 (await store.ReadAsync(filter, CancellationToken.None)).Catalogue!.Items.Select(item => item.Id));
             Assert.Empty((await store.ReadAsync(filter with { Page = 3 }, CancellationToken.None)).Catalogue!.Items);
             var electric = await store.ReadAsync(filter with { Fuel = VehicleFuel.Electric }, CancellationToken.None);
-            Assert.Equal(2, electric.Catalogue!.Total);
+            var expectedElectric = expected.Count(item => item.Fuel == VehicleFuel.Electric);
+            Assert.InRange(expectedElectric, 1, 2);
+            Assert.Equal(expectedElectric, electric.Catalogue!.Total);
             Assert.All(electric.Catalogue.Items, item => Assert.Equal("BYD", item.Make));
             var detail = await store.DetailAsync(actual[0].Id, CancellationToken.None);
             Assert.Equal(ListingStatus.Succeeded, detail.Status);

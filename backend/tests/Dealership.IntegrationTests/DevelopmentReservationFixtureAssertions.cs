@@ -86,14 +86,17 @@ internal static class DevelopmentReservationFixtureAssertions
         var buyerId = await database.CustomerProfiles.Where(item => item.RegistrationKey == buyerKey)
             .Select(item => item.UserId).SingleAsync();
         var buyerHistory = new List<Guid>();
-        for (var page = 1; buyerHistory.Count < 15; page++)
+        // Fifteen released holds and the dated completed purchases the same buyer made.
+        var buyerTotal = 15 + DevelopmentReservationScenarios.All.Count(item =>
+            item.Index >= DevelopmentReservationScenarios.FirstCompletedIndex && item.RegistrationKey == buyerKey);
+        for (var page = 1; buyerHistory.Count < buyerTotal; page++)
         {
             var result = await reads.AccountAsync(buyerId, page, CancellationToken.None);
             Assert.Equal(ReservationStatus.Succeeded, result.Status);
-            Assert.Equal(15, result.History!.Total);
+            Assert.Equal(buyerTotal, result.History!.Total);
             Assert.Null(result.History.Active);
             Assert.Equal(ReservationHistory.PageSize, result.History.PageSize);
-            Assert.Equal(Math.Min(ReservationHistory.PageSize, 15 - buyerHistory.Count), result.History.Items.Count);
+            Assert.Equal(Math.Min(ReservationHistory.PageSize, buyerTotal - buyerHistory.Count), result.History.Items.Count);
             buyerHistory.AddRange(result.History.Items.Select(item => item.Receipt.Id));
         }
         Assert.Equal(await database.Reservations.Where(item => item.CustomerId == buyerId)

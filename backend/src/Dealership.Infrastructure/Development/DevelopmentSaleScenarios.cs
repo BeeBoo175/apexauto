@@ -4,11 +4,13 @@ using System.Collections.ObjectModel;
 
 namespace Dealership.Infrastructure.Development;
 
-// Finite sale paths use canonical commands and retain the reservation's stable operation identities.
+// Finite sale paths use canonical commands and retain the reservation's stable operation identities. HeldStep places
+// a dated sale's hold, in tenths of the gap between its listing's publication and the snapshot, so completed sales
+// of vehicles that carry no other hold spread across the weeks of history.
 public sealed record DevelopmentSaleScenario(DevelopmentReservationScenario Hold, SalesOrderStatus Target,
     bool ReleasedFirst, decimal Discount, string? CorrectedBuyerAddress = null, bool ManagerApproval = false,
     SalePaymentMethod PaymentMethod = SalePaymentMethod.BankTransfer, Guid? TradeInAppointmentId = null,
-    Guid? WarrantyPackageId = null, bool RejectedOnce = false)
+    Guid? WarrantyPackageId = null, bool RejectedOnce = false, int HeldStep = 5)
 {
     public Guid ReservationId => Hold.Id;
 
@@ -67,7 +69,35 @@ public static class DevelopmentSaleScenarios
             new(Extra(74), SalesOrderStatus.Approved, false, 500m),
             new(Extra(75), SalesOrderStatus.Approved, false, 0m,
                 WarrantyPackageId: DevelopmentPurchaseFixtures.Warranties[1].Id),
-            new(Extra(76), SalesOrderStatus.Handling, false, 1500m, RejectedOnce: true)
+            new(Extra(76), SalesOrderStatus.Handling, false, 1500m, RejectedOnce: true),
+            .. CompletedHistory()
         ]);
+    }
+
+    // Completed purchases of catalogue vehicles that carry no other hold, per branch, so deliveries, delivered value
+    // and delivery time have a shape across the weeks and agents. One at each branch stays settled and awaits handover.
+    private static IEnumerable<DevelopmentSaleScenario> CompletedHistory()
+    {
+        SalePaymentMethod[] methods =
+        [
+            SalePaymentMethod.BankTransfer, SalePaymentMethod.HirePurchase, SalePaymentMethod.Cash
+        ];
+        decimal[] discounts = [100m, 300m, 500m];
+        // Each vehicle's test drives in history end before its purchase, so every purchase is in the later half.
+        int[][] steps = [[5, 7, 9], [6, 8, 9], [5, 6, 8]];
+        for (var branch = 0; branch < DevelopmentFixtureManifest.Branches.Count; branch++)
+        {
+            for (var slot = 0; slot < DevelopmentReservationScenarios.CompletedPerBranch; slot++)
+            {
+                var hold = DevelopmentReservationScenarios.All.Single(item =>
+                    item.Index == DevelopmentReservationScenarios.FirstCompletedIndex + branch *
+                    DevelopmentReservationScenarios.CompletedPerBranch + slot);
+                var target = slot == DevelopmentReservationScenarios.CompletedPerBranch - 1
+                    ? SalesOrderStatus.Settled
+                    : SalesOrderStatus.Delivered;
+                yield return new(hold, target, false, discounts[slot], PaymentMethod: methods[slot],
+                    HeldStep: steps[branch][slot]);
+            }
+        }
     }
 }

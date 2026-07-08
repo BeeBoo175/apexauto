@@ -45,7 +45,7 @@ public sealed class DevelopmentIntakeTimelineTests
     }
 
     [Fact]
-    public void HistoryCoversAboutTwoMonthsWithFewArrivalsPerBranchDay()
+    public void HistoryCoversSeveralMonthsWithFewArrivalsPerBranchDay()
     {
         var anchor = new DateTimeOffset(2026, 11, 6, 2, 0, 0, TimeSpan.Zero);
         var moments = DevelopmentIntakeTimeline.Create(Schedule, anchor);
@@ -56,7 +56,7 @@ public sealed class DevelopmentIntakeTimelineTests
                 .Select(group => group.Count()).ToArray();
             Assert.InRange(perDay.Max(), 1, DevelopmentIntakeTimeline.HistoricalArrivalsPerDay);
             var oldest = branch.Min(item => item.Slot.StartsAt);
-            Assert.InRange((anchor - oldest).TotalDays, 30, 75);
+            Assert.InRange((anchor - oldest).TotalDays, 60, 150);
         }
     }
 

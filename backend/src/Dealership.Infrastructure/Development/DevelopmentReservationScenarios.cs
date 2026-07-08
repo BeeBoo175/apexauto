@@ -33,6 +33,12 @@ public static class DevelopmentReservationScenarios
     public const int ReleasedPerBranch = 12;
     private const int ActiveHoldIndex = 51;
     public const int FirstBuyerIndex = 52;
+    public const int FirstCompletedIndex = 80;
+    public const int CompletedPerBranch = 3;
+
+    // Listings of one branch that complete a purchase: one Mazda, one BYD and the Alza, so every make stays in the public
+    // catalogue. Their earlier test drives are history of the same vehicle and end before the purchase.
+    private static readonly int[] CompletedListings = [12, 14, 16];
 
     public static IReadOnlyList<DevelopmentReservationScenario> All { get; } = Array.AsReadOnly(
         DevelopmentFixtureManifest.Branches.SelectMany((branch, branchIndex) =>
@@ -68,5 +74,17 @@ public static class DevelopmentReservationScenarios
         // One approved sale carries a warranty and one returns to handling after its discount is rejected.
         yield return Hold(0, 10, 6, 75);
         yield return Hold(1, 10, 7, 76);
+
+        // Completed purchases of the catalogue vehicles no other scenario holds, by different buyers.
+        for (var branch = 0; branch < DevelopmentFixtureManifest.Branches.Count; branch++)
+        {
+            for (var slot = 0; slot < CompletedPerBranch; slot++)
+            {
+                // Only customers that keep no other active hold buy here, so each purchase completes before the next.
+                var buyer = (branch + slot) % 2 == 0 ? 0 : 8;
+                yield return Hold(branch, CompletedListings[slot], buyer,
+                    FirstCompletedIndex + branch * CompletedPerBranch + slot);
+            }
+        }
     }
 }

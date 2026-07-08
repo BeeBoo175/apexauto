@@ -38,7 +38,7 @@ public sealed class DevelopmentSaleHistory(DealershipDbContext database, Develop
         CancellationToken cancellationToken)
     {
         var gap = now - publishedAt;
-        var heldAt = DevelopmentReservationHistory.Instant(publishedAt, gap, 5, 10);
+        var heldAt = DevelopmentReservationHistory.Instant(publishedAt, gap, scenario.HeldStep, 10);
         // Steps stay well inside the 48-hour hold, so the sale is claimed before it could expire.
         var step = TimeSpan.FromTicks(Math.Min(MaximumStep.Ticks, (gap / 40).Ticks));
         await holds.AddHoldAsync(scenario.Hold, heldAt, cancellationToken);
