@@ -35,9 +35,6 @@ export interface AttentionSources {
   schedule: ScheduledWork[] | null;
 }
 
-// People with work open over a week are listed by name up to this many; the rest are counted in one line.
-const namedPeople = 3;
-
 function plural(count: number, one: string, many: string) {
   return count === 1 ? one : many;
 }
@@ -62,7 +59,7 @@ export function managerAttention({ pipeline, stages, workload, schedule }: Atten
     ? groupOf(pipeline, "SettledUndelivered")
     : { count: 0, agreedTotal: 0 };
   const unassigned = schedule?.filter((item) => !item.handlerId).length ?? 0;
-  const stretched = (workload?.people ?? []).filter((person) => person.overSevenDays > 0);
+  const stretched = workload?.stretchedCount ?? 0;
   const groups: AttentionGroup[] = [
     {
       key: "sales",
@@ -125,25 +122,15 @@ export function managerAttention({ pipeline, stages, workload, schedule }: Atten
       key: "people",
       title: "Work over a week old",
       icon: "users",
-      summary: `${stretched.length} ${plural(stretched.length, "person", "people")}`,
-      lines: [
-        ...stretched.slice(0, namedPeople).map((person) => ({
-          key: person.id,
-          count: person.overSevenDays,
-          text: `with ${person.name}`,
-          href: `/dashboard/work-calendar?search=${encodeURIComponent(person.name)}`,
-        })),
-        ...(stretched.length > namedPeople
-          ? [
-              {
-                key: "more",
-                count: stretched.length - namedPeople,
-                text: `more ${plural(stretched.length - namedPeople, "person", "people")}`,
-                href: "/dashboard/work-calendar",
-              },
-            ]
-          : []),
-      ],
+      summary: `${stretched} ${plural(stretched, "person", "people")}`,
+      lines: present([
+        {
+          key: "stretched",
+          count: stretched,
+          text: `${plural(stretched, "person holds", "people hold")} work open over a week`,
+          href: "/dashboard/work-calendar",
+        },
+      ]),
     },
   ];
   return groups;

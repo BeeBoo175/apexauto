@@ -17,6 +17,7 @@ import {
   type PerformanceStageWaiting,
   type PerformanceWorkload,
 } from "@/lib/performance/performance";
+import { initialRoom, workloadQuery } from "@/lib/performance/room";
 import type { SearchParams } from "@/lib/query";
 import type { SalesQueue } from "@/lib/sales/contracts";
 import type { ScheduledWork, UnscheduledWorkPage } from "@/lib/staff/work-calendar";
@@ -46,9 +47,10 @@ async function readSection<T extends { actor: CurrentActor }>(
   period: PerformancePeriod,
   actor: CurrentActor,
   signal: AbortSignal,
+  extra = "",
 ) {
   const result = await privateApiFetch(
-    `/api/staff/performance/${section}?${periodQuery(period)}`,
+    `/api/staff/performance/${section}?${periodQuery(period)}${extra ? `&${extra}` : ""}`,
     parse,
     {
       signal,
@@ -83,7 +85,7 @@ export function useHomeEntry(actor: CurrentActor, parameters: SearchParams) {
         actor,
         signal,
       ),
-      readSection("workload", parseWorkload, now, actor, signal),
+      readSection("workload", parseWorkload, now, actor, signal, workloadQuery(initialRoom)),
       readTodaySchedule(actor, branchId, signal),
       general ? readBranchChoices(1, signal, 25).catch(() => null) : Promise.resolve(null),
     ]);

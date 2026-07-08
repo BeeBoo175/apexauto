@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { WorkloadSection } from "@/components/performance/WorkloadSection";
 import type { HomeEntry } from "@/hooks/use-home-entry";
 import { usePerformanceSection } from "@/hooks/use-performance-section";
 import { useTodaySchedule } from "@/hooks/use-today-schedule";
 import { performancePeriod } from "@/lib/performance/period";
+import { initialRoom, workloadQuery, type RoomView } from "@/lib/performance/room";
 import { parsePipeline, parseStageWaiting, parseWorkload } from "@/lib/performance/performance";
 import { AttentionBand, managerAttention } from "./AttentionSection";
 import { HomeBranchToolbar } from "./HomeBranchToolbar";
@@ -42,6 +43,8 @@ export function HomeWorkspace({ entry }: { entry: Extract<HomeEntry, { kind: "ma
   const general = actor.role === "GeneralManager";
   const [branchId, setBranchId] = useState(entry.branchId);
   const [refreshes, setRefreshes] = useState(0);
+  const [room, setRoom] = useState<RoomView>(initialRoom);
+  const changeRoom = useCallback((next: RoomView) => setRoom(next), []);
   const now = performancePeriod({ branchId });
   // Every section opens with the entry's read; a branch change or refresh reads again and keeps the figures shown
   // until the new ones arrive.
@@ -75,7 +78,7 @@ export function HomeWorkspace({ entry }: { entry: Extract<HomeEntry, { kind: "ma
     refreshes,
     "Who has room",
     true,
-    "",
+    workloadQuery(room),
     entry.workload,
   );
   const schedule = useTodaySchedule(actor, branchId, refreshes, entry.schedule);
@@ -126,6 +129,8 @@ export function HomeWorkspace({ entry }: { entry: Extract<HomeEntry, { kind: "ma
           workload={workload.data}
           state={stateOf(workload)}
           showBranch={general && !branchId}
+          view={room}
+          onView={changeRoom}
         />
       }
     />

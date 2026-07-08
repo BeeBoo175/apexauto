@@ -85,9 +85,16 @@ export interface WorkloadPerson {
   total: number;
 }
 
+// One page of the people holding open work. The counts describe the whole scope, whatever page is shown.
 export interface PerformanceWorkload {
   actor: CurrentActor;
   people: WorkloadPerson[];
+  total: number;
+  salesCount: number;
+  workshopCount: number;
+  stretchedCount: number;
+  page: number;
+  pageSize: number;
 }
 
 export interface BranchRow {
@@ -243,7 +250,29 @@ function parseWorkloadPerson(value: unknown): WorkloadPerson | null {
 export function parseWorkload(value: unknown): PerformanceWorkload | null {
   const actor = isRecord(value) ? parseActor(value.actor) : null;
   const people = isRecord(value) ? parseList(value.people, parseWorkloadPerson) : null;
-  return actor && people ? { actor, people } : null;
+  if (
+    !actor ||
+    !people ||
+    !isRecord(value) ||
+    !isNonNegativeInteger(value.total) ||
+    !isNonNegativeInteger(value.salesCount) ||
+    !isNonNegativeInteger(value.workshopCount) ||
+    !isNonNegativeInteger(value.stretchedCount) ||
+    !isNonNegativeInteger(value.page) ||
+    !isNonNegativeInteger(value.pageSize)
+  ) {
+    return null;
+  }
+  return {
+    actor,
+    people,
+    total: value.total,
+    salesCount: value.salesCount,
+    workshopCount: value.workshopCount,
+    stretchedCount: value.stretchedCount,
+    page: value.page,
+    pageSize: value.pageSize,
+  };
 }
 
 function parseBranchRow(value: unknown): BranchRow | null {

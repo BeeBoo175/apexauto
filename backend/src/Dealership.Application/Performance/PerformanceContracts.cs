@@ -85,7 +85,33 @@ public sealed record PerformanceWorkloadPerson(Guid Id, string Name, string Role
     public int Total => Under2Days + TwoToSevenDays + OverSevenDays;
 }
 
-public sealed record PerformanceWorkload(CurrentActor Actor, IReadOnlyList<PerformanceWorkloadPerson> People);
+// One page of the people who hold open work, stretched people first. The counts describe the whole scope: Sales
+// and Workshop count the people holding work in each team, Stretched counts those with work open over a week.
+public sealed record PerformanceWorkload(CurrentActor Actor, IReadOnlyList<PerformanceWorkloadPerson> People,
+    int Total, int SalesCount, int WorkshopCount, int StretchedCount, int Page, int PageSize);
+
+// An empty team reads both teams. Search matches a person's name or branch.
+public sealed record PerformanceWorkloadQuery(PerformanceQuery Period, string Team, string Search, int Page,
+    int PageSize)
+{
+    public const string SalesTeam = "sales";
+    public const string WorkshopTeam = "workshop";
+    public const int MaximumSearchLength = 100;
+
+    public static PerformanceWorkloadQuery? Parse(PerformanceQuery? period, string? team, string? search, int page,
+        int pageSize)
+    {
+        var chosen = team?.Trim().ToLowerInvariant() ?? string.Empty;
+        var term = search?.Trim() ?? string.Empty;
+        if (period is null || !Pagination.IsValid(page, pageSize) || term.Length > MaximumSearchLength ||
+            chosen is not ("" or SalesTeam or WorkshopTeam))
+        {
+            return null;
+        }
+
+        return new(period, chosen, term, page, pageSize);
+    }
+}
 
 // Booked Intake appointments and test drives in the period by Malaysian weekday (Monday is 0) and clock hour.
 public sealed record PerformanceRosterCell(int Weekday, int Hour, int Appointments, int TestDrives);
@@ -112,7 +138,7 @@ public interface IPerformanceReads
     Task<PerformanceReadResult<PerformanceStageWaiting>> StageWaitingAsync(Guid actorId, PerformanceQuery query,
         CancellationToken cancellationToken);
 
-    Task<PerformanceReadResult<PerformanceWorkload>> WorkloadAsync(Guid actorId, PerformanceQuery query,
+    Task<PerformanceReadResult<PerformanceWorkload>> WorkloadAsync(Guid actorId, PerformanceWorkloadQuery query,
         CancellationToken cancellationToken);
 
     Task<PerformanceReadResult<PerformanceBranchComparison>> BranchComparisonAsync(Guid actorId,

@@ -13,6 +13,8 @@ import {
 } from "./performance";
 
 const queryKeys = ["from", "to", "branchId"];
+// Who has room pages its read by team, search and page.
+const sectionKeys = [...queryKeys, "team", "search", "page", "pageSize"];
 
 function isSection(value: string): value is SectionName {
   return (sectionNames as readonly string[]).includes(value);
@@ -31,7 +33,7 @@ export async function relayPerformanceSection(request: Request, section: string)
     if (!allowed) {
       return accessDenied(actor, "Manager access required.");
     }
-    const query = allowedQuery(new URL(request.url).searchParams, queryKeys);
+    const query = allowedQuery(new URL(request.url).searchParams, sectionKeys);
     const result = await privateApiRead(
       `/api/performance/${section}${query.size > 0 ? `?${query}` : ""}`,
       sectionParsers[section] as (value: unknown) => unknown,

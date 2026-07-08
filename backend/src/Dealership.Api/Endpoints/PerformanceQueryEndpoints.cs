@@ -54,10 +54,19 @@ public static class PerformanceQueryEndpoints
     }
 
     private static async Task<IResult> WorkloadAsync(HttpContext context, IPerformanceReads reads,
-        CancellationToken cancellationToken, string? from = null, string? to = null, Guid? branchId = null)
+        CancellationToken cancellationToken, string? from = null, string? to = null, Guid? branchId = null,
+        string? team = null, string? search = null, int page = 1, int pageSize = Pagination.DefaultPageSize)
     {
-        return await ReadAsync(from, to, branchId,
-            (query, token) => reads.WorkloadAsync(HttpContextActor.ActorId(context), query, token), cancellationToken);
+        var query = PerformanceWorkloadQuery.Parse(PerformanceQuery.Parse(from, to, branchId), team, search, page,
+            pageSize);
+        if (query is null)
+        {
+            return Results.Problem(statusCode: 400,
+                title: "Provide a valid period of at most 366 days, team, search and page.");
+        }
+
+        return await ReadAsync(from, to, branchId, (_, token) => reads.WorkloadAsync(
+            HttpContextActor.ActorId(context), query, token), cancellationToken);
     }
 
     private static async Task<IResult> BranchComparisonAsync(HttpContext context, IPerformanceReads reads,

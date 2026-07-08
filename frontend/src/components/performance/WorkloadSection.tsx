@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PersonLabel } from "@/components/staff/PersonLabel";
 import { StaffLink } from "@/components/staff/StaffLink";
 import { StaffQueueTabs } from "@/components/staff/StaffQueueTabs";
 import { SearchField } from "@/components/ui/SearchField";
+import { DataTablePagination } from "@/components/ui/data-table/DataTablePagination";
 import { roleNames, type Role } from "@/lib/auth/actor";
 import type { PerformanceWorkload, WorkloadPerson } from "@/lib/performance/performance";
+import type { RoomView } from "@/lib/performance/room";
 import { PerformanceSection, type SectionState } from "./PerformanceSection";
 import { RowsSkeleton } from "./PerformanceSkeletons";
 import styles from "./Performance.module.css";
@@ -17,37 +19,34 @@ const ageBands = [
   { key: "overSevenDays", label: "Over 7 days", fill: styles.ageOld },
 ] as const;
 
-type Team = "sales" | "workshop";
-
-const teamOf = (person: WorkloadPerson): Team =>
-  person.role === "WorkshopTechnician" ? "workshop" : "sales";
+const searchDelay = 300;
 
 // Open work per person today, aged from when the current holder received it: who is stretched and who has room.
-// It lists only people holding open work, split by team, those with work open over a week first; within a group
-// people stay in alphabetical order, so the grouping is by state and never a ranking. Each row opens that person's
-// work on the Work calendar.
+// It lists only people holding open work, one page of a team at a time, those with work open over a week first;
+// within a group people stay in alphabetical order, so the grouping is by state and never a ranking and a page
+// boundary never depends on a measure. Each row opens that person's work on the Work calendar.
 export function WorkloadSection({
   workload,
   state,
   showBranch,
+  view,
+  onView,
 }: {
   workload: PerformanceWorkload | null;
   state: SectionState;
   showBranch: boolean;
+  view: RoomView;
+  onView: (next: RoomView) => void;
 }) {
-  const [team, setTeam] = useState<Team>("sales");
-  const [search, setSearch] = useState("");
-  const holding = (workload?.people ?? []).filter((person) => person.total > 0);
-  const counts = {
-    sales: holding.filter((person) => teamOf(person) === "sales").length,
-    workshop: holding.filter((person) => teamOf(person) === "workshop").length,
-  };
-  const term = search.trim().toLowerCase();
-  const shown = holding.filter(
-    (person) =>
-      teamOf(person) === team &&
-      (!term || `${person.name} ${person.branchName}`.toLowerCase().includes(term)),
-  );
+  const [draft, setDraft] = useState(view.search);
+  useEffect(() => {
+    if (draft.trim() === view.search.trim()) {
+      return;
+    }
+    const timer = setTimeout(() => onView({ ...view, search: draft, page: 1 }), searchDelay);
+    return () => clearTimeout(timer);
+  }, [draft, view, onView]);
+  const searching = view.search.trim() !== "";
   return (
     <PerformanceSection
       title="Who has room"
@@ -57,20 +56,20 @@ export function WorkloadSection({
           <SearchField
             label="Search people"
             placeholder="Search people"
-            value={search}
+            value={draft}
             disabled={false}
-            onChange={setSearch}
-            onClear={search ? () => setSearch("") : undefined}
+            onChange={setDraft}
+            onClear={draft ? () => setDraft("") : undefined}
           />
           <StaffQueueTabs
             label="Teams"
             countNoun="people with open work"
             tabs={[
-              { value: "sales", label: "Sales & service", count: counts.sales },
-              { value: "workshop", label: "Workshop", count: counts.workshop },
+              { value: "sales", label: "Sales & service", count: workload?.salesCount },
+              { value: "workshop", label: "Workshop", count: workload?.workshopCount },
             ]}
-            value={team}
-            onChange={setTeam}
+            value={view.team}
+            onChange={(team) => onView({ ...view, team, page: 1 })}
           />
         </div>
       }
@@ -78,7 +77,17 @@ export function WorkloadSection({
       placeholder={<RowsSkeleton count={5} tall />}
     >
       {workload && (
-        <WorkloadGroups people={shown} showBranch={showBranch} searching={term !== ""} />
+        <>
+          <WorkloadGroups people={workload.people} showBranch={showBranch} searching={searching} />
+          <DataTablePagination
+            page={{ page: workload.page, pageSize: workload.pageSize, total: workload.total }}
+            count={workload.people.length}
+            disabled={state.busy}
+            onPage={(page, pageSize) =>
+              onView({ ...view, page: pageSize === view.pageSize ? page : 1, pageSize })
+            }
+          />
+        </>
       )}
     </PerformanceSection>
   );
@@ -113,22 +122,17 @@ function WorkloadGroups({
       </p>
     );
   }
-  // A general manager reading every branch sees people by branch first, then by name.
-  const ordered = [...people].sort((first, second) =>
-    showBranch
-      ? first.branchName.localeCompare(second.branchName) || first.name.localeCompare(second.name)
-      : first.name.localeCompare(second.name),
-  );
+  // The read already orders people: work over a week first, then by branch for a general manager, then by name.
   const groups = [
     {
       key: "stretched",
       title: "Work open over a week",
-      people: ordered.filter((p) => p.overSevenDays > 0),
+      people: people.filter((p) => p.overSevenDays > 0),
     },
     {
       key: "current",
       title: "All work under a week",
-      people: ordered.filter((p) => p.overSevenDays === 0),
+      people: people.filter((p) => p.overSevenDays === 0),
     },
   ].filter((group) => group.people.length > 0);
   const maximum = Math.max(1, ...people.map((person) => person.total));
@@ -136,9 +140,7 @@ function WorkloadGroups({
     <div className={styles.roomGroups}>
       {groups.map((group) => (
         <section key={group.key} aria-label={group.title}>
-          <h3 className={styles.groupTitle}>
-            {group.title}, {group.people.length}
-          </h3>
+          <h3 className={styles.groupTitle}>{group.title}</h3>
           <ul className={styles.people}>
             {group.people.map((person) => (
               <li key={person.id}>
