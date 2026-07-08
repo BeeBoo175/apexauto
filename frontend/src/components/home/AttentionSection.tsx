@@ -179,10 +179,8 @@ export function AttentionBand({
                 <Icon name={group.icon} />
               </span>
               <h3 className={styles.tileTitle}>{group.title}</h3>
-              {ready && group.lines.length > 0 && (
-                <span className={styles.tileState}>{tileState(group)}</span>
-              )}
             </div>
+            {ready && <span className={styles.tileTotal}>{groupTotal(group)}</span>}
             <AttentionLines group={group} ready={ready} />
           </div>
         ))}
@@ -199,11 +197,9 @@ function tileTone(group: AttentionGroup, ready: boolean) {
   return group.lines.length > 0 ? "waiting" : "clear";
 }
 
-function tileState(group: AttentionGroup) {
-  if (group.summary && group.lines.length > 0) {
-    return group.summary;
-  }
-  return `${group.lines.reduce((sum, line) => sum + line.count, 0)} waiting`;
+// The one figure that heads each column, in the same type as the headline figures on Performance.
+function groupTotal(group: AttentionGroup) {
+  return group.lines.reduce((sum, line) => sum + line.count, 0);
 }
 
 function AttentionLines({ group, ready }: { group: AttentionGroup; ready: boolean }) {

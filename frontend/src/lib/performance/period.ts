@@ -2,9 +2,9 @@ import type { SearchParams } from "@/lib/query";
 import type { PerformancePeriod } from "./performance";
 
 export const periodPresets = [
+  { value: "last-90", label: "Last 90 days" },
   { value: "this-month", label: "This month" },
   { value: "last-month", label: "Last month" },
-  { value: "last-90", label: "Last 90 days" },
   { value: "custom", label: "Custom" },
 ] as const;
 export type PeriodPreset = (typeof periodPresets)[number]["value"];
@@ -28,7 +28,7 @@ function utcDay(year: number, month: number, day: number) {
 export function presetOf(parameters: SearchParams): PeriodPreset {
   const value = typeof parameters.period === "string" ? parameters.period : "";
   const preset = periodPresets.find((item) => item.value === value);
-  return preset ? preset.value : "this-month";
+  return preset ? preset.value : "last-90";
 }
 
 function text(parameters: SearchParams, key: string) {
@@ -49,12 +49,8 @@ export function performancePeriod(parameters: SearchParams, now = Date.now()): P
       branchId,
     };
   }
-  if (preset === "last-90") {
-    return {
-      from: isoDate(utcDay(year, month, today.getUTCDate() - 89)),
-      to: isoDate(today),
-      branchId,
-    };
+  if (preset === "this-month") {
+    return { from: isoDate(utcDay(year, month, 1)), to: isoDate(today), branchId };
   }
   if (preset === "custom") {
     const from = text(parameters, "from");
@@ -63,7 +59,12 @@ export function performancePeriod(parameters: SearchParams, now = Date.now()): P
       return { from, to, branchId };
     }
   }
-  return { from: isoDate(utcDay(year, month, 1)), to: isoDate(today), branchId };
+  // Ninety days is the default: a month that has just begun has too few weeks to show a trend.
+  return {
+    from: isoDate(utcDay(year, month, today.getUTCDate() - 89)),
+    to: isoDate(today),
+    branchId,
+  };
 }
 
 export function periodQuery(period: PerformancePeriod) {

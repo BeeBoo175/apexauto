@@ -9,7 +9,6 @@ import { parseSalesTeam, parseWorkshopTeam } from "@/lib/performance/team";
 import {
   parseBranches,
   parseHeadline,
-  parsePipeline,
   parseStageWaiting,
   parseStockFlow,
   type PerformancePeriod,
@@ -60,7 +59,7 @@ export function usePerformanceEntry(actor: CurrentActor, parameters: SearchParam
     const view = typeof parameters.view === "string" ? parameters.view : "results";
     const results = view === "results";
     const lookBack = performancePeriod({ period: "last-90", branchId: period.branchId });
-    const [headline, branches, stock, stages, pipeline, team, comparison] = await Promise.all([
+    const [headline, branches, stock, stages, team, comparison] = await Promise.all([
       privateApiFetch(`/api/staff/performance/headline?${periodQuery(period)}`, parseHeadline, {
         signal,
       }),
@@ -69,7 +68,6 @@ export function usePerformanceEntry(actor: CurrentActor, parameters: SearchParam
         : Promise.resolve(null),
       results ? readAhead("stock-flow", parseStockFlow, period, actor, signal) : null,
       results ? readAhead("stage-waiting", parseStageWaiting, lookBack, actor, signal) : null,
-      results ? readAhead("pipeline", parsePipeline, period, actor, signal) : null,
       readTeam(view, period, actor, signal),
       view === "branches" && actor.role === "GeneralManager"
         ? readAhead("branches", parseBranches, period, actor, signal)
@@ -83,7 +81,7 @@ export function usePerformanceEntry(actor: CurrentActor, parameters: SearchParam
       period,
       preset: presetOf(parameters),
       headline: headline.data,
-      results: { stock, stages, pipeline },
+      results: { stock, stages },
       team,
       comparison,
       branches: branches?.data ?? null,

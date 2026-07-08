@@ -1,14 +1,12 @@
-import type { CSSProperties } from "react";
 import { formatCurrency } from "@/lib/currency-format";
 import { weekLabel } from "@/lib/performance/format";
 import type { PerformanceStockFlow } from "@/lib/performance/performance";
+import { ColumnChart } from "./ColumnChart";
 import { PerformanceSection, type SectionState } from "./PerformanceSection";
 import { ChartSkeleton } from "./PerformanceSkeletons";
 import styles from "./Performance.module.css";
 
-const weekMinimum = 32;
-
-// Short MYR amounts for the column tops, such as "MYR 1.2M"; the full amounts are in the accessible table.
+// Short MYR amounts for the scale, such as "MYR 1.2M"; the full amounts are in the hover and the accessible table.
 const compact = new Intl.NumberFormat("en-MY", {
   style: "currency",
   currency: "MYR",
@@ -44,43 +42,24 @@ function ValueColumns({ flow }: { flow: PerformanceStockFlow }) {
   if (flow.weeks.length === 0) {
     return <p className={styles.note}>No weeks in this period.</p>;
   }
-  const maximum = Math.max(1, ...flow.weeks.map((week) => week.deliveredValue));
   if (flow.weeks.every((week) => week.deliveredValue === 0)) {
     return <p className={styles.note}>No sales were delivered in this period.</p>;
   }
-  const every = flow.weeks.length > 8 ? 2 : 1;
-  const layout: CSSProperties = {
-    gridTemplateColumns: `repeat(${flow.weeks.length}, minmax(${weekMinimum}px, 1fr))`,
-    minWidth: flow.weeks.length * weekMinimum,
-  };
   return (
-    <div className={styles.scroll}>
-      <div className={styles.columns} style={layout} aria-hidden="true">
-        {flow.weeks.map((week) => (
-          <span
-            key={week.weekStart}
-            className={styles.column}
-            title={`Week of ${weekLabel(week.weekStart)}: ${formatCurrency(week.deliveredValue)}`}
-          >
-            <span className={styles.columnValue}>
-              {flow.weeks.length <= 8 && week.deliveredValue > 0
-                ? compact.format(week.deliveredValue)
-                : ""}
-            </span>
-            <span className={styles.columnTrack}>
-              <span
-                className={styles.columnBar}
-                style={{ height: `${(week.deliveredValue / maximum) * 100}%` }}
-              />
-            </span>
-          </span>
-        ))}
-        {flow.weeks.map((week, index) => (
-          <span key={week.weekStart} className={styles.flowWeek}>
-            {index % every === 0 ? weekLabel(week.weekStart) : ""}
-          </span>
-        ))}
-      </div>
+    <>
+      <ColumnChart
+        label="Delivered value by week"
+        formatValue={(value) => compact.format(value)}
+        columns={flow.weeks.map((week) => ({
+          key: week.weekStart,
+          label: weekLabel(week.weekStart),
+          value: week.deliveredValue,
+          title: `Week of ${weekLabel(week.weekStart)}`,
+          lines: [`${formatCurrency(week.deliveredValue)} delivered`],
+          href: "/dashboard/sales",
+          action: "Open Sales",
+        }))}
+      />
       <table className="sr-only">
         <caption>Agreed value delivered each week</caption>
         <thead>
@@ -98,6 +77,6 @@ function ValueColumns({ flow }: { flow: PerformanceStockFlow }) {
           ))}
         </tbody>
       </table>
-    </div>
+    </>
   );
 }

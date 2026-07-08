@@ -1,101 +1,98 @@
 "use client";
 
+import { useState } from "react";
+import { Select } from "@/components/ui/Input";
 import { formatCurrency } from "@/lib/currency-format";
-import { formatDays } from "@/lib/performance/format";
-import type { PerformanceBranches, PeriodTotals } from "@/lib/performance/performance";
+import { deltaText, weekLabel } from "@/lib/performance/format";
+import type {
+  BranchRow,
+  PerformanceBranches,
+  PeriodTotals,
+  StockWeek,
+} from "@/lib/performance/performance";
+import type { Stat } from "./StatGrid";
+import { colors } from "./ChartKit";
+import { Legend } from "./Legend";
+import { LineChart } from "./LineChart";
 import { PerformanceSection, type SectionState } from "./PerformanceSection";
 import { RowsSkeleton } from "./PerformanceSkeletons";
 import styles from "./Performance.module.css";
 
+type MeasureKey = "delivered" | "value" | "checkedIn";
+
 interface BranchMeasure {
-  key: string;
+  key: MeasureKey;
   label: string;
-  value: (totals: PeriodTotals) => number | null;
-  text: (totals: PeriodTotals) => string;
+  // What one figure of this measure counts, for the sentence under the chart and the empty message.
+  noun: string;
+  week: (week: StockWeek) => number;
+  total: (totals: PeriodTotals) => number;
+  text: (amount: number) => string;
 }
 
 const measures: BranchMeasure[] = [
   {
+    key: "delivered",
+    label: "Cars delivered",
+    noun: "cars delivered",
+    week: (week) => week.deliveries,
+    total: (totals) => totals.vehiclesDelivered,
+    text: (amount) => String(amount),
+  },
+  {
     key: "value",
     label: "Delivered value",
-    value: (totals) => totals.deliveredValue,
-    text: (totals) => formatCurrency(totals.deliveredValue),
+    noun: "delivered value",
+    week: (week) => week.deliveredValue,
+    total: (totals) => totals.deliveredValue,
+    text: (amount) => formatCurrency(amount),
   },
   {
-    key: "vehicles",
-    label: "Vehicles delivered",
-    value: (totals) => totals.vehiclesDelivered,
-    text: (totals) => String(totals.vehiclesDelivered),
-  },
-  {
-    key: "listed",
-    label: "Check-in to listed",
-    value: (totals) => totals.checkInToListedDays,
-    text: (totals) => formatDays(totals.checkInToListedDays),
-  },
-  {
-    key: "noShows",
-    label: "Customer no-shows",
-    value: (totals) => totals.customerNoShows,
-    text: (totals) => String(totals.customerNoShows),
+    key: "checkedIn",
+    label: "Cars checked in",
+    noun: "cars checked in",
+    week: (week) => week.checkIns,
+    // Check-ins have no period total on the headline, so the sentence uses the weekly sum.
+    total: () => 0,
+    text: (amount) => String(amount),
   },
 ];
 
-// One branch on a dumbbell: an open dot for the period before, a filled dot for this period and the line between,
-// so the direction and size of the change read before the figures do.
-function Dumbbell({
-  label,
-  current,
-  previous,
-  maximum,
-  currentText,
-  previousText,
-  onOpen,
-}: {
-  label: string;
-  current: number | null;
-  previous: number | null;
-  maximum: number;
-  currentText: string;
-  previousText: string;
-  onOpen: () => void;
-}) {
-  const position = (value: number) => `${(value / maximum) * 100}%`;
-  const low = Math.min(current ?? 0, previous ?? current ?? 0);
-  const high = Math.max(current ?? 0, previous ?? current ?? 0);
-  return (
-    <button
-      type="button"
-      className={styles.dotRow}
-      onClick={onOpen}
-      aria-label={`${label}, ${currentText} this period, ${previousText} the period before. Open its results`}
-    >
-      <span className={styles.barLabel}>{label}</span>
-      <span className={styles.dotTrack} aria-hidden="true">
-        {current !== null && previous !== null && (
-          <span
-            className={styles.dumbbellLine}
-            style={{ left: position(low), width: `${((high - low) / maximum) * 100}%` }}
-          />
-        )}
-        {previous !== null && (
-          <span
-            className={`${styles.dot} ${styles.dotPrevious}`}
-            style={{ left: position(previous) }}
-          />
-        )}
-        {current !== null && <span className={styles.dot} style={{ left: position(current) }} />}
-      </span>
-      <span className={styles.dumbbellValue}>
-        <span className={current === null ? styles.absent : styles.dotValue}>{currentText}</span>
-        <span className={styles.barPreviousText}>{previousText} before</span>
-      </span>
-    </button>
-  );
+// Branch lines keep a fixed colour by branch order, so a branch looks the same on every measure.
+const lineColors = [colors.blue, colors.green, colors.amber, colors.violet];
+
+const measureOf = (value: string): MeasureKey =>
+  measures.find((item) => item.key === value)?.key ?? "delivered";
+
+const sum = (weeks: StockWeek[], pick: (week: StockWeek) => number) =>
+  weeks.reduce((total, week) => total + pick(week), 0);
+
+// The branches together: the headline figures summed over every active branch, each against the period before.
+export function branchStats(branches: PerformanceBranches | null): Stat[] {
+  const rows = branches?.branches ?? [];
+  const add = (pick: (totals: PeriodTotals) => number, side: "current" | "previous") =>
+    rows.reduce((sum, row) => sum + pick(row[side]), 0);
+  const stat = (
+    label: string,
+    pick: (totals: PeriodTotals) => number,
+    text: (value: number) => string,
+    higherIsBetter: boolean,
+  ): Stat => ({
+    label,
+    value: text(add(pick, "current")),
+    note: deltaText(add(pick, "current"), add(pick, "previous"), higherIsBetter),
+  });
+  return [
+    stat("Delivered value", (totals) => totals.deliveredValue, formatCurrency, true),
+    stat("Vehicles delivered", (totals) => totals.vehiclesDelivered, String, true),
+    stat("Vehicles listed", (totals) => totals.listedCount, String, true),
+    stat("Customer no-shows", (totals) => totals.customerNoShows, String, false),
+  ];
 }
 
-// The general manager's comparison: each measure as its own dumbbell chart across the branches, this period
-// against the period before. Opening a branch narrows Results to it.
+// How the branches are doing over time: one line per branch across the weeks of the period, for the measure
+// chosen, with a sentence per branch saying where it ended up against the period before. Opening a branch narrows
+// Results to it.
 export function BranchSection({
   branches,
   state,
@@ -105,21 +102,37 @@ export function BranchSection({
   state: SectionState;
   onOpen: (branchId: string) => void;
 }) {
+  const [measureKey, setMeasureKey] = useState<MeasureKey>("delivered");
+  const measure = measures.find((item) => item.key === measureKey) ?? measures[0];
   const rows = branches?.branches ?? [];
   return (
     <PerformanceSection
-      title="Branches side by side"
+      title="Branches over time"
+      tools={
+        <div className={styles.measureSelect}>
+          <Select
+            label="Measure"
+            density="compact"
+            value={measureKey}
+            onChange={(event) => setMeasureKey(measureOf(event.target.value))}
+          >
+            {measures.map((item) => (
+              <option key={item.key} value={item.key}>
+                {item.label}
+              </option>
+            ))}
+          </Select>
+        </div>
+      }
       aside={
-        <ul className={styles.legend} aria-label="Dots">
-          <li>
-            <span className={`${styles.swatch} ${styles.swatchHigh}`} aria-hidden="true" />
-            This period
-          </li>
-          <li>
-            <span className={`${styles.swatch} ${styles.swatchOpen}`} aria-hidden="true" />
-            Period before
-          </li>
-        </ul>
+        <Legend
+          label="Branches"
+          items={rows.map((row, index) => ({
+            key: row.branchId,
+            label: row.branchName,
+            color: lineColors[index % lineColors.length],
+          }))}
+        />
       }
       state={{ ...state, hasData: branches !== null }}
       placeholder={<RowsSkeleton count={3} tall />}
@@ -127,39 +140,87 @@ export function BranchSection({
       {rows.length === 0 ? (
         <p className={styles.note}>No active branches to compare.</p>
       ) : (
-        <div className={styles.multiples}>
-          {measures.map((measure) => {
-            const maximum = Math.max(
-              1,
-              ...rows.flatMap((row) => [
-                measure.value(row.current) ?? 0,
-                measure.value(row.previous) ?? 0,
-              ]),
-            );
-            return (
-              <section key={measure.key} className={styles.multiple} aria-label={measure.label}>
-                <div className={styles.multipleHead}>
-                  <h3 className={styles.multipleTitle}>{measure.label}</h3>
-                </div>
-                <div className={styles.dotPlot}>
-                  {rows.map((row) => (
-                    <Dumbbell
-                      key={row.branchId}
-                      label={row.branchName}
-                      current={measure.value(row.current)}
-                      previous={measure.value(row.previous)}
-                      maximum={maximum}
-                      currentText={measure.text(row.current)}
-                      previousText={measure.text(row.previous)}
-                      onOpen={() => onOpen(row.branchId)}
-                    />
-                  ))}
-                </div>
-              </section>
-            );
-          })}
-        </div>
+        <>
+          <BranchChart rows={rows} measure={measure} onOpen={onOpen} />
+          <ul className={styles.branchSummaries}>
+            {rows.map((row, index) => (
+              <BranchSummary
+                key={row.branchId}
+                row={row}
+                measure={measure}
+                lineColor={lineColors[index % lineColors.length]}
+                onOpen={() => onOpen(row.branchId)}
+              />
+            ))}
+          </ul>
+        </>
       )}
     </PerformanceSection>
+  );
+}
+
+function BranchChart({
+  rows,
+  measure,
+  onOpen,
+}: {
+  rows: BranchRow[];
+  measure: BranchMeasure;
+  onOpen: (branchId: string) => void;
+}) {
+  const weeks = rows[0]?.weeks ?? [];
+  const maximum = Math.max(
+    0,
+    ...rows.flatMap((row) => row.weeks.map((week) => measure.week(week))),
+  );
+  if (weeks.length === 0 || maximum === 0) {
+    return (
+      <p className={styles.note}>No {measure.noun} in this period, so there is no line to draw.</p>
+    );
+  }
+  return (
+    <LineChart
+      label={`${measure.label} by week for each branch`}
+      series={rows.map((row, index) => ({
+        key: row.branchId,
+        label: row.branchName,
+        color: lineColors[index % lineColors.length],
+        values: row.weeks.map((week) => measure.week(week)),
+        onSelect: () => onOpen(row.branchId),
+      }))}
+      labels={weeks.map((week) => weekLabel(week.weekStart))}
+      formatValue={measure.text}
+      titleFor={(column) => `Week of ${weekLabel(weeks[column].weekStart)}`}
+    />
+  );
+}
+
+function BranchSummary({
+  row,
+  measure,
+  lineColor,
+  onOpen,
+}: {
+  row: BranchRow;
+  measure: BranchMeasure;
+  lineColor: string;
+  onOpen: () => void;
+}) {
+  const current =
+    measure.key === "checkedIn" ? sum(row.weeks, measure.week) : measure.total(row.current);
+  const previous = measure.key === "checkedIn" ? null : measure.total(row.previous);
+  const change = previous === null ? null : deltaText(current, previous, true);
+  return (
+    <li>
+      <button type="button" className={styles.branchSummary} onClick={onOpen}>
+        <span className={styles.swatch} style={{ background: lineColor }} aria-hidden="true" />
+        <span className={styles.branchName}>{row.branchName}</span>
+        <span className={styles.branchFigure}>
+          {measure.text(current)} {measure.key === "value" ? "" : measure.noun}
+        </span>
+        {change && <span className={styles.branchChange}>{change.text}</span>}
+        <span className="sr-only">Open this branch&apos;s results</span>
+      </button>
+    </li>
   );
 }

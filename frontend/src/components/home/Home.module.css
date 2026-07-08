@@ -18,6 +18,8 @@
 }
 
 .pane {
+  display: flex;
+  flex-direction: column;
   scrollbar-gutter: stable;
   min-height: 0;
   overflow-y: auto;
@@ -98,12 +100,23 @@
   min-width: 0;
   margin: 0;
   overflow: hidden;
-  color: var(--color-graphite);
+  color: var(--color-muted);
   font-size: 13px;
-  font-weight: 700;
-  line-height: 20px;
+  font-weight: 400;
+  line-height: 18px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.tileTotal {
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  line-height: 28px;
+}
+
+.tile[data-tone="waiting"] .tileTotal {
+  color: var(--color-warning);
 }
 
 .tileState {
@@ -321,6 +334,19 @@
 .shellTimeline {
   display: block;
   height: 240px;
+}
+
+/* When the band wraps to two rows, or the screen is short, the panes would shrink to a sliver with a scrollbar of
+   their own. The whole page scrolls instead, so there is one scroll and each pane takes the height it needs. */
+@media (max-width: 1180px), (max-height: 760px) {
+  .view {
+    display: block;
+    overflow-y: auto;
+  }
+
+  .pane {
+    overflow: visible;
+  }
 }
 
 @media (max-width: 1180px) {

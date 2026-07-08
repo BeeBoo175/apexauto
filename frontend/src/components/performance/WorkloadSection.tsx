@@ -9,6 +9,7 @@ import { DataTablePagination } from "@/components/ui/data-table/DataTablePaginat
 import { roleNames, type Role } from "@/lib/auth/actor";
 import type { PerformanceWorkload, WorkloadPerson } from "@/lib/performance/performance";
 import type { RoomView } from "@/lib/performance/room";
+import { Legend } from "./Legend";
 import { PerformanceSection, type SectionState } from "./PerformanceSection";
 import { RowsSkeleton } from "./PerformanceSkeletons";
 import styles from "./Performance.module.css";
@@ -64,6 +65,7 @@ export function WorkloadSection({
           <StaffQueueTabs
             label="Teams"
             countNoun="people with open work"
+            layout="queue"
             tabs={[
               { value: "sales", label: "Sales & service", count: workload?.salesCount },
               { value: "workshop", label: "Workshop", count: workload?.workshopCount },
@@ -73,12 +75,8 @@ export function WorkloadSection({
           />
         </div>
       }
-      state={{ ...state, hasData: workload !== null }}
-      placeholder={<RowsSkeleton count={5} tall />}
-    >
-      {workload && (
-        <>
-          <WorkloadGroups people={workload.people} showBranch={showBranch} searching={searching} />
+      footer={
+        workload && (
           <DataTablePagination
             page={{ page: workload.page, pageSize: workload.pageSize, total: workload.total }}
             count={workload.people.length}
@@ -87,7 +85,13 @@ export function WorkloadSection({
               onView({ ...view, page: pageSize === view.pageSize ? page : 1, pageSize })
             }
           />
-        </>
+        )
+      }
+      state={{ ...state, hasData: workload !== null }}
+      placeholder={<RowsSkeleton count={5} tall />}
+    >
+      {workload && (
+        <WorkloadGroups people={workload.people} showBranch={showBranch} searching={searching} />
       )}
     </PerformanceSection>
   );
@@ -95,14 +99,10 @@ export function WorkloadSection({
 
 function AgeLegend() {
   return (
-    <ul className={styles.legend} aria-label="Age of open work">
-      {ageBands.map((band) => (
-        <li key={band.key}>
-          <span className={`${styles.swatch} ${band.fill}`} aria-hidden="true" />
-          {band.label}
-        </li>
-      ))}
-    </ul>
+    <Legend
+      label="Age of open work"
+      items={ageBands.map((band) => ({ key: band.key, label: band.label, className: band.fill }))}
+    />
   );
 }
 
@@ -191,7 +191,11 @@ function WorkloadRow({
           {showBranch ? `${person.branchName}, ${overWeek(person)}` : overWeek(person)}
         </span>
       </span>
-      <span className={`${styles.track} ${styles.ageTrack}`} aria-hidden="true">
+      <span
+        className={`${styles.track} ${styles.ageTrack} ${styles.tipHost}`}
+        data-tip={`${person.under2Days} under 2 days, ${person.twoToSevenDays} at 2 to 7 days, ${person.overSevenDays} over 7 days`}
+        aria-hidden="true"
+      >
         {ageBands.map((band) => (
           <span
             key={band.key}

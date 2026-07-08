@@ -2,12 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
-import { DataTablePagination } from "@/components/ui/data-table/DataTablePagination";
+import { DataTable } from "@/components/ui/data-table/DataTable";
+import type { DataColumn } from "@/components/ui/data-table/types";
+import { PersonLabel } from "@/components/staff/PersonLabel";
 import { usePerformanceExport } from "@/hooks/use-performance-export";
 import { usePerformanceSection } from "@/hooks/use-performance-section";
 import { privateApiFetch } from "@/lib/api-browser";
 import { roleNames, type CurrentActor, type Role } from "@/lib/auth/actor";
 import type { CsvColumn } from "@/lib/csv";
+import { rangeText } from "@/lib/performance/format";
 import { periodQuery } from "@/lib/performance/period";
 import type { PerformancePeriod } from "@/lib/performance/performance";
 import {
@@ -16,12 +19,13 @@ import {
   personStatusLabels,
   type SalesRow,
   type TeamPage,
+  type TeamPoint,
   type TeamPerson,
   type TeamTab,
   type WorkshopRow,
 } from "@/lib/performance/team";
-import { MeasureGrid } from "./MeasureBars";
-import { DotPlot, HighlightMatrix } from "./TeamCharts";
+import { HeadlineFigures } from "./HeadlineFigures";
+import { TeamCharts, teamStats, type OverviewLabels } from "./TeamOverview";
 import { PerformanceDrawer } from "./PerformanceDrawer";
 import { PerformanceSection } from "./PerformanceSection";
 import { RowsSkeleton } from "./PerformanceSkeletons";
@@ -81,6 +85,11 @@ export function TeamView({
     />
   );
 }
+
+const overviewLabels: Record<TeamTab, OverviewLabels> = {
+  sales: { volume: "Cars delivered", days: "Average days to deliver" },
+  workshop: { volume: "Inspections signed", days: "Average days to sign off" },
+};
 
 function personDetail(row: TeamPerson, showBranch: boolean) {
   const role = roleNames[row.role as Role] ?? row.role;
@@ -165,17 +174,46 @@ function TeamTable<Row extends SalesRow | WorkshopRow>({
   }, [onExport, tab, exportBusy, exportDisabled]);
   const showBranch = actor.role === "GeneralManager";
   const rows = people?.items ?? [];
-  const chartPeople = rows.map((row) => ({
-    key: `${row.personId}:${row.branchId}`,
-    name: row.name,
-    detail: personDetail(row, showBranch),
-    onOpen: () => setSelected(row),
-  }));
-  // Each kind of measure gets the chart that suits it: counts of completed work in a highlight matrix, elapsed days
-  // on a dot plot, and work held now as bars.
-  const counted = measures.filter((column) => column.bar && !column.now);
-  const elapsed = measures.filter((column) => !column.bar);
-  const held = measures.filter((column) => column.now);
+  const tableColumns: DataColumn<Row>[] = [
+    {
+      id: "person",
+      label: "Person",
+      width: 280,
+      cell: (row) => (
+        <PersonLabel
+          id={row.personId}
+          name={row.name}
+          identity={personDetail(row, showBranch)}
+          pictureId={row.pictureId}
+          nested
+        />
+      ),
+    },
+    ...measures.map((column): DataColumn<Row> => ({
+      id: column.key,
+      label: column.label,
+      align: "right",
+      cell: (row) => column.text(row),
+    })),
+  ];
+  // A dot for someone on another page jumps to that page first, then opens them once it has loaded.
+  const [pendingOpen, setPendingOpen] = useState<string | null>(null);
+  const drawerRow =
+    selected ?? rows.find((row) => `${row.personId}:${row.branchId}` === pendingOpen) ?? null;
+  function openPoint(point: TeamPoint) {
+    const key = `${point.personId}:${point.branchId}`;
+    const found = rows.find((row) => `${row.personId}:${row.branchId}` === key);
+    if (found) {
+      setSelected(found);
+      return;
+    }
+    const index =
+      people?.points.findIndex((item) => `${item.personId}:${item.branchId}` === key) ?? -1;
+    if (index >= 0) {
+      setPendingOpen(key);
+      setPage(Math.floor(index / pageSize) + 1);
+    }
+  }
   const sectionState = {
     hasData: people !== null,
     busy: read.busy,
@@ -186,97 +224,57 @@ function TeamTable<Row extends SalesRow | WorkshopRow>({
     <>
       <LoadingProgress label="Loading team output" active={read.busy} />
       <div className={styles.view}>
+        <HeadlineFigures
+          stats={teamStats(people?.points ?? [], people?.total ?? 0, overviewLabels[tab])}
+          covers={rangeText(period.from, period.to)}
+          state={sectionState}
+        />
+        <TeamCharts
+          points={people?.points ?? []}
+          labels={overviewLabels[tab]}
+          state={sectionState}
+          onOpen={openPoint}
+        />
         <PerformanceSection
-          title="Completed work in the period"
-          aside={
-            people && (
-              <span className={styles.panelAside}>
-                {people.total} {people.total === 1 ? "person" : "people"} in alphabetical order,
-                darker cells did more of that measure, open a person for their detail
-              </span>
-            )
-          }
+          title="Everyone, in alphabetical order"
           state={sectionState}
           placeholder={<RowsSkeleton count={5} tall />}
         >
-          <HighlightMatrix
-            caption={`${teamTitles[tab]} completed work per person`}
-            people={chartPeople}
+          <DataTable
+            label={`${teamTitles[tab]} team output`}
+            density="comfortable"
             rows={rows}
-            measures={counted.map((column) => ({
-              key: column.key,
-              label: column.label,
-              value: column.value,
-              text: column.text,
-            }))}
+            rowId={(row) => `${row.personId}:${row.branchId}`}
+            columns={tableColumns}
+            page={{
+              page: people?.page ?? page,
+              pageSize: people?.pageSize ?? pageSize,
+              total: people?.total ?? 0,
+            }}
+            disabled={false}
+            busy={read.busy}
+            emptyState={{
+              title: "No one in this team",
+              description: "No one in this team matches this period and branch.",
+            }}
+            onPage={(next, size) => {
+              setPage(size === pageSize ? next : 1);
+              setPageSize(size);
+            }}
+            onRowClick={setSelected}
           />
         </PerformanceSection>
-        <div className={styles.grid}>
-          {elapsed.map((column) => (
-            <PerformanceSection
-              key={column.key}
-              title={column.label}
-              half
-              aside={<span className={styles.panelAside}>Calendar days, not hours worked</span>}
-              state={sectionState}
-              placeholder={<RowsSkeleton count={3} />}
-            >
-              <DotPlot
-                caption={`${column.label} for each person, in days`}
-                people={chartPeople}
-                rows={rows}
-                value={column.value}
-                text={column.text}
-              />
-            </PerformanceSection>
-          ))}
-          <PerformanceSection
-            title="Holding now"
-            half
-            aside={<span className={styles.panelAside}>Open work today, whatever the period</span>}
-            state={sectionState}
-            placeholder={<RowsSkeleton count={3} />}
-          >
-            <MeasureGrid
-              empty="Nobody holds open work."
-              panels={held.map((column) => ({
-                key: column.key,
-                title: column.label,
-                items: rows.map((row, index) => ({
-                  key: chartPeople[index].key,
-                  label: row.name,
-                  value: column.value(row),
-                  text: column.text(row),
-                  onOpen: chartPeople[index].onOpen,
-                  openLabel: `${row.name}, ${column.label} now ${column.text(row)}. Open their period detail`,
-                })),
-              }))}
-            />
-          </PerformanceSection>
-        </div>
-      </div>
-      <div className={styles.pagerFrame}>
-        <DataTablePagination
-          page={{
-            page: people?.page ?? page,
-            pageSize: people?.pageSize ?? pageSize,
-            total: people?.total ?? 0,
-          }}
-          count={people?.items.length ?? 0}
-          disabled={read.busy}
-          onPage={(next, size) => {
-            setPage(size === pageSize ? next : 1);
-            setPageSize(size);
-          }}
-        />
       </div>
       <PerformanceDrawer
-        row={selected}
+        row={drawerRow}
         columns={columns}
         period={period}
         actor={actor}
         refreshes={refreshes}
-        onClose={() => setSelected(null)}
+        onClose={() => {
+          setSelected(null);
+          setPendingOpen(null);
+        }}
       />
     </>
   );

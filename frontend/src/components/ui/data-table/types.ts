@@ -60,4 +60,9 @@ export interface DataTableProps<Row> {
   selection?: TableSelection;
   selectedRowId?: string;
   onRowClick?: (row: Row) => void;
+  /**
+   * Compact is the dense record table that fills its pane. Comfortable suits a table that sits among other content on
+   * a page that scrolls: taller rows, wrapping cells and the height its rows need.
+   */
+  density?: "compact" | "comfortable";
 }

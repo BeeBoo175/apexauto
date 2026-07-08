@@ -71,7 +71,10 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
   }
 
   return (
-    <section className={`${styles.workspace} ${styles.fillHeight}`} aria-label={props.label}>
+    <section
+      className={`${styles.workspace} ${props.density === "comfortable" ? styles.comfortable : styles.fillHeight}`}
+      aria-label={props.label}
+    >
       {props.toolbar}
       <div
         className={`${styles.scroll} ${rows.length === 0 ? styles.emptyScroll : ""}`}

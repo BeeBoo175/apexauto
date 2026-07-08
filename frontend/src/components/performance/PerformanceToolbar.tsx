@@ -23,9 +23,9 @@ interface PerformanceFilters {
   period: PerformancePeriod;
 }
 
-// The default every filter returns to: this month, every branch the viewer may read.
+// The default every filter returns to: the last 90 days, every branch the viewer may read.
 function defaults(): PerformanceFilters {
-  return { preset: "this-month", period: performancePeriod({}) };
+  return { preset: "last-90", period: performancePeriod({}) };
 }
 
 // The same toolbar as the table pages: the shared Filters popover with a draft that applies or clears together,
@@ -49,12 +49,12 @@ export function PerformanceToolbar({
 }) {
   const current = { preset, period };
   const applied: AppliedFilter<PerformanceFilters>[] = [];
-  if (preset !== "this-month") {
+  if (preset !== "last-90") {
     const label = periodPresets.find((item) => item.value === preset)?.label ?? "Period";
     applied.push({
       key: "dates",
       label: preset === "custom" ? rangeText(period.from, period.to) : label,
-      without: { preset: "this-month", period: performancePeriod({ branchId: period.branchId }) },
+      without: { preset: "last-90", period: performancePeriod({ branchId: period.branchId }) },
     });
   }
   if (showBranches && period.branchId) {

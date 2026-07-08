@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { rangeText } from "@/lib/performance/format";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { usePerformanceSection } from "@/hooks/use-performance-section";
 import type { CurrentActor } from "@/lib/auth/actor";
@@ -8,18 +9,17 @@ import { performancePeriod } from "@/lib/performance/period";
 import {
   parseBranches,
   parseHeadline,
-  parsePipeline,
   parseStageWaiting,
   parseStockFlow,
   type PerformanceBranches,
   type PerformanceHeadline,
   type PerformancePeriod,
-  type PerformancePipeline,
   type PerformanceStageWaiting,
   type PerformanceStockFlow,
 } from "@/lib/performance/performance";
-import { BranchSection } from "./BranchSection";
-import { PipelineNowSection, StageNowSection } from "./NowSections";
+import { BranchSection, branchStats } from "./BranchSection";
+import { HeadlineFigures } from "./HeadlineFigures";
+import { StageNowSection } from "./NowSections";
 import { StockFlowSection } from "./StockFlowSection";
 import { SummarySection } from "./SummarySection";
 import { ValueTrendSection } from "./ValueTrendSection";
@@ -53,7 +53,6 @@ export function ResultsView({
   initial: {
     stock: PerformanceStockFlow | null;
     stages: PerformanceStageWaiting | null;
-    pipeline: PerformancePipeline | null;
   };
 }) {
   const headline = usePerformanceSection(
@@ -87,18 +86,7 @@ export function ResultsView({
     "",
     initial.stages,
   );
-  const pipeline = usePerformanceSection(
-    "pipeline",
-    parsePipeline,
-    period,
-    actor,
-    refreshes,
-    "Open sales",
-    true,
-    "",
-    initial.pipeline,
-  );
-  const sections = [headline, stock, stages, pipeline];
+  const sections = [headline, stock, stages];
   const busy = sections.some((section) => section.busy);
   // Ready to be shown once every section has figures or has failed with its retry.
   const settled = sections.every(
@@ -122,10 +110,7 @@ export function ResultsView({
           <StockFlowSection flow={stock.data} state={stateOf(stock)} />
           <ValueTrendSection flow={stock.data} state={stateOf(stock)} />
         </div>
-        <div className={styles.grid}>
-          <StageNowSection stages={stages.data} state={stateOf(stages)} />
-          <PipelineNowSection pipeline={pipeline.data} state={stateOf(pipeline)} />
-        </div>
+        <StageNowSection stages={stages.data} state={stateOf(stages)} />
       </div>
     </>
   );
@@ -164,6 +149,11 @@ export function BranchesView({
     <>
       <LoadingProgress label="Loading branches" active={branches.busy} />
       <div className={styles.view}>
+        <HeadlineFigures
+          stats={branchStats(branches.data)}
+          covers={`${rangeText(period.from, period.to)}, all branches, compared with the period before`}
+          state={{ ...stateOf(branches), hasData: branches.data !== null }}
+        />
         <BranchSection branches={branches.data} state={stateOf(branches)} onOpen={onOpen} />
       </div>
     </>

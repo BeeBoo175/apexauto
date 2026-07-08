@@ -104,9 +104,7 @@ export function PerformanceWorkspace({ entry }: { entry: PerformanceEntry }) {
         <ResultsView
           {...shared}
           initialHeadline={entry.headline}
-          initial={
-            opened("results") ? entry.results : { stock: null, stages: null, pipeline: null }
-          }
+          initial={opened("results") ? entry.results : { stock: null, stages: null }}
           onSettled={() => settle("results")}
         />
       );

@@ -1,10 +1,4 @@
-import { formatCurrency } from "@/lib/currency-format";
-import {
-  pipelineLabels,
-  stageLabels,
-  type PerformancePipeline,
-  type PerformanceStageWaiting,
-} from "@/lib/performance/performance";
+import { stageLabels, type PerformanceStageWaiting } from "@/lib/performance/performance";
 import { MeasureBars } from "./MeasureBars";
 import { PerformanceSection, type SectionState } from "./PerformanceSection";
 import { RowsSkeleton } from "./PerformanceSkeletons";
@@ -43,7 +37,6 @@ export function StageNowSection({
   return (
     <PerformanceSection
       title="Stock by stage, now"
-      half
       aside={<span className={styles.panelAside}>{total} vehicles</span>}
       state={{ ...state, hasData: stages !== null }}
       placeholder={<RowsSkeleton count={6} />}
@@ -60,44 +53,7 @@ export function StageNowSection({
             value: stage.inStageNow,
             text: String(stage.inStageNow),
             href: stageLinks[stage.stage],
-            openLabel: `${label}, ${stage.inStageNow} vehicles. Open the page for this stage`,
-          };
-        })}
-      />
-    </PerformanceSection>
-  );
-}
-
-// Open sales today by stage, with the agreed value each stage holds. Each stage opens the Sales table.
-export function PipelineNowSection({
-  pipeline,
-  state,
-}: {
-  pipeline: PerformancePipeline | null;
-  state: SectionState;
-}) {
-  const value = pipeline?.groups.reduce((sum, group) => sum + group.agreedTotal, 0) ?? 0;
-  return (
-    <PerformanceSection
-      title="Open sales, now"
-      half
-      aside={<span className={styles.panelAside}>{formatCurrency(value)} agreed</span>}
-      state={{ ...state, hasData: pipeline !== null }}
-      placeholder={<RowsSkeleton count={5} />}
-    >
-      <MeasureBars
-        caption="Open sales in each stage now, with their agreed totals"
-        empty="No open sales."
-        items={(pipeline?.groups ?? []).map((group) => {
-          const label = pipelineLabels[group.group] ?? group.group;
-          return {
-            key: group.group,
-            label,
-            detail: group.count === 0 ? "None open" : `${formatCurrency(group.agreedTotal)} agreed`,
-            value: group.count,
-            text: String(group.count),
-            href: "/dashboard/sales",
-            openLabel: `${label}, ${group.count} sales. Open the Sales table`,
+            openLabel: "Open the page for this stage",
           };
         })}
       />

@@ -17,6 +17,7 @@ export function PerformanceSection({
   half = false,
   aside,
   tools,
+  footer,
   state,
   placeholder,
   children,
@@ -27,6 +28,8 @@ export function PerformanceSection({
   // Controls for a long list (tabs, search). With them the heading block sticks to the top of its scroll pane, so
   // the controls stay in reach while the list scrolls under them.
   tools?: ReactNode;
+  // A pager or summary that stays at the bottom of the scroll pane while the list scrolls above it.
+  footer?: ReactNode;
   state: SectionState;
   placeholder: ReactNode;
   children: ReactNode;
@@ -42,7 +45,7 @@ export function PerformanceSection({
   );
   return (
     <section
-      className={`${styles.panel} ${half ? styles.half : ""}`.trim()}
+      className={`${styles.panel} ${half ? styles.half : ""} ${footer ? styles.panelWithFoot : ""}`.trim()}
       aria-labelledby={headingId}
       aria-busy={state.busy}
     >
@@ -59,6 +62,7 @@ export function PerformanceSection({
       ) : (
         <SectionFallback state={state} title={title} placeholder={placeholder} />
       )}
+      {state.hasData && footer && <div className={styles.stickyFoot}>{footer}</div>}
     </section>
   );
 }
