@@ -372,7 +372,6 @@ function TeamTable<Row extends SalesRow | WorkshopRow>({
         row={drawerRow}
         columns={columns}
         period={period}
-        actor={actor}
         refreshes={refreshes}
         onClose={() => {
           setSelected(null);

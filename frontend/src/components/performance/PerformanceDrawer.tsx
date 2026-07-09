@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { StaffHistoryProgress } from "@/components/staff/StaffHistoryProgress";
 import { StaffHistorySection } from "@/components/staff/StaffHistorySection";
 import { StaffRecordSummary } from "@/components/staff/StaffRecordSummary";
 import { StaffTimeline, StaffTimelineEvent } from "@/components/staff/StaffTimeline";
@@ -9,26 +10,30 @@ import { StaffWorkspaceTabs } from "@/components/staff/StaffWorkspaceTabs";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
-import { DataTablePagination } from "@/components/ui/data-table/DataTablePagination";
 import { useAddressSection } from "@/hooks/use-address-section";
 import { usePerformanceExport } from "@/hooks/use-performance-export";
-import { usePerformanceSection } from "@/hooks/use-performance-section";
+import { useStaffHistory } from "@/hooks/use-staff-history";
+import type { ApiRequest } from "@/lib/api";
 import { privateApiFetch } from "@/lib/api-browser";
-import { roleNames, type CurrentActor, type Role } from "@/lib/auth/actor";
+import { roleNames, type Role } from "@/lib/auth/actor";
 import type { CsvColumn } from "@/lib/csv";
 import { formatCurrency } from "@/lib/currency-format";
+import { branchLabel } from "@/lib/performance/format";
 import { periodQuery } from "@/lib/performance/period";
 import type { PerformancePeriod } from "@/lib/performance/performance";
 import {
   milestoneHref,
   milestoneLabels,
+  appendMilestones,
+  parseMilestoneHistory,
   parseMilestonePage,
   personStatusLabels,
   type Milestone,
+  type MilestoneHistory,
   type TeamPerson,
 } from "@/lib/performance/team";
-import { RowsSkeleton } from "./PerformanceSkeletons";
 import type { TeamColumn } from "./TeamColumns";
+import shared from "@/components/staff/StaffDetails.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 import styles from "./Performance.module.css";
 
@@ -45,10 +50,17 @@ const milestoneCsvColumns: CsvColumn<Milestone>[] = [
   },
 ];
 
+// The This period tab groups the measures the way a reader asks about them, each group titled like the sections of the
+// other drawers.
+const measureGroups = [
+  { title: "Completed work", includes: (column: TeamColumn<never>) => column.bar && !column.now },
+  { title: "Time taken", includes: (column: TeamColumn<never>) => !column.bar },
+  { title: "Held now", includes: (column: TeamColumn<never>) => Boolean(column.now) },
+];
+
 interface DrawerProps<Row extends TeamPerson> {
   columns: TeamColumn<Row>[];
   period: PerformancePeriod;
-  actor: CurrentActor;
   refreshes: number;
 }
 
@@ -76,7 +88,6 @@ function DrawerContent<Row extends TeamPerson>({
   row,
   columns,
   period,
-  actor,
   refreshes,
 }: DrawerProps<Row> & { row: Row }) {
   const [section, chooseSection] = useAddressSection<Section>(["summary", "milestones"]);
@@ -120,27 +131,46 @@ function DrawerContent<Row extends TeamPerson>({
           setOpened((current) => current || next === "milestones");
         }}
       />
-      {section === "summary" && (
-        <div className={`${workbench.body} ${styles.drawerBody}`}>
-          <dl className={styles.facts}>
-            {columns.map((column) => (
-              <div key={column.key} className={styles.fact}>
-                <dt>{column.now ? `${column.label}, now` : column.label}</dt>
-                <dd className={column.value(row) === null ? styles.absent : undefined}>
-                  {column.text(row)}
-                </dd>
-              </div>
-            ))}
-          </dl>
+      <div className={shared.panel} hidden={section !== "summary"}>
+        <div className={`${workbench.body} ${shared.content}`}>
+          {measureGroups.map((group) => {
+            const shown = columns.filter(group.includes);
+            return (
+              shown.length > 0 && (
+                <section key={group.title} className={shared.section} aria-label={group.title}>
+                  <div className={workbench.sectionHeader}>
+                    <h2 className={workbench.sectionTitle}>{group.title}</h2>
+                  </div>
+                  <dl className={shared.details}>
+                    {shown.map((column) => (
+                      <Fragment key={column.key}>
+                        <dt>{column.label}</dt>
+                        <dd className={column.value(row) === null ? styles.absent : undefined}>
+                          {column.text(row)}
+                        </dd>
+                      </Fragment>
+                    ))}
+                  </dl>
+                </section>
+              )
+            );
+          })}
           <p className={styles.note}>
             Results belong to the branch that recorded them. Elapsed times are calendar days, not
             hours worked.
           </p>
         </div>
-      )}
+      </div>
       {opened && (
-        <div className={styles.milestonePanel} hidden={section !== "milestones"}>
-          <Milestones path={path} period={period} actor={actor} refreshes={refreshes} />
+        <div className={shared.panel} hidden={section !== "milestones"}>
+          <div className={`${workbench.body} ${shared.content}`}>
+            <Milestones
+              personId={row.personId}
+              period={period}
+              refreshes={refreshes}
+              enabled={section === "milestones"}
+            />
+          </div>
         </div>
       )}
       <StaffWorkspaceFooter
@@ -160,95 +190,77 @@ function DrawerContent<Row extends TeamPerson>({
   );
 }
 
-const milestonePageSize = 10;
-
-// The person's completed work in the period on the shared history timeline, newest first, paged with the shared
-// table pager.
+// The person's completed work in the period on the shared history timeline, newest first. The shared history reveals
+// older entries on request, like every other record history, so a busy person never loads hundreds at once.
 function Milestones({
-  path,
+  personId,
   period,
-  actor,
   refreshes,
+  enabled,
 }: {
-  path: string;
+  personId: string;
   period: PerformancePeriod;
-  actor: CurrentActor;
   refreshes: number;
+  enabled: boolean;
 }) {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(milestonePageSize);
-  const read = usePerformanceSection(
-    path,
-    parseMilestonePage,
-    period,
-    actor,
-    refreshes,
-    "Milestones",
-    true,
-    `page=${page}&pageSize=${pageSize}`,
+  const resource = useMemo(
+    () => ({
+      path: `people/${personId}/milestones`,
+      parse: parseMilestoneHistory,
+      matches: (value: MilestoneHistory) => value.personId === personId,
+      append: appendMilestones,
+      // The history adds its page to the path; the period belongs on every read.
+      read: ((url, parse, options) =>
+        privateApiFetch(
+          `/api/staff/performance/${url}&${periodQuery(period)}`,
+          parse,
+          options,
+        )) as ApiRequest,
+    }),
+    [personId, period],
   );
-  const milestones = read.data;
+  const read = useStaffHistory(
+    null,
+    resource,
+    "Milestones could not be loaded. Confirmed entries remain shown.",
+    { enabled, progressive: true },
+  );
+  const { history, refresh } = read;
+  // A refresh of the page reads the milestones again.
+  const seen = useRef(refreshes);
+  useEffect(() => {
+    if (seen.current !== refreshes) {
+      seen.current = refreshes;
+      void refresh();
+    }
+  }, [refreshes, refresh]);
   return (
-    <div className={`${workbench.body} ${styles.drawerBody}`}>
-      <StaffHistorySection
-        label="Milestones"
-        busy={read.busy}
-        flush
-        empty={milestones?.total === 0 && <p>No completed work in this period.</p>}
-        progress={
-          <>
-            {!milestones && !read.failed && (
-              <div role="status" aria-label="Loading milestones">
-                <span className="sr-only">Loading milestones…</span>
-                <RowsSkeleton count={4} />
-              </div>
-            )}
-            {!milestones && read.failed && (
-              <div className={styles.retry}>
-                <p className={styles.note}>Milestones could not be loaded.</p>
-                <Button size="compact" variant="secondary" onClick={read.retry}>
-                  Retry milestones
-                </Button>
-              </div>
-            )}
-            {milestones && milestones.total > milestones.pageSize && (
-              <DataTablePagination
-                page={{
-                  page: milestones.page,
-                  pageSize: milestones.pageSize,
-                  total: milestones.total,
-                }}
-                count={milestones.items.length}
-                disabled={read.busy}
-                onPage={(next, size) => {
-                  setPage(size === pageSize ? next : 1);
-                  setPageSize(size);
-                }}
-              />
-            )}
-          </>
-        }
-      >
-        <StaffTimeline>
-          {milestones?.items.map((item) => (
-            <StaffTimelineEvent
-              key={`${item.kind}:${item.recordId}`}
-              title={milestoneLabels[item.kind] ?? item.kind}
-              at={item.at}
-              context={<span>{item.branchName}</span>}
-            >
-              <p>
-                {item.hasAccess ? (
-                  <a href={milestoneHref(item)}>{item.reference || "Open record"}</a>
-                ) : (
-                  <span>No access, {item.reference}</span>
-                )}
-                {item.agreedTotal !== null && `, ${formatCurrency(item.agreedTotal)} agreed`}
-              </p>
-            </StaffTimelineEvent>
-          ))}
-        </StaffTimeline>
-      </StaffHistorySection>
-    </div>
+    <StaffHistorySection
+      label="Milestones"
+      busy={read.busy}
+      flush
+      empty={history?.totalCount === 0 && <p>No completed work in this period.</p>}
+      progress={<StaffHistoryProgress read={read} label="Milestones" />}
+    >
+      <StaffTimeline>
+        {history?.items.map((item) => (
+          <StaffTimelineEvent
+            key={`${item.kind}:${item.recordId}`}
+            title={milestoneLabels[item.kind] ?? item.kind}
+            at={item.at}
+            context={<span>{branchLabel(item.branchName)}</span>}
+          >
+            <p>
+              {item.hasAccess ? (
+                <a href={milestoneHref(item)}>{item.reference || "Open record"}</a>
+              ) : (
+                <span>No access, {item.reference}</span>
+              )}
+              {item.agreedTotal !== null && `, ${formatCurrency(item.agreedTotal)} agreed`}
+            </p>
+          </StaffTimelineEvent>
+        ))}
+      </StaffTimeline>
+    </StaffHistorySection>
   );
 }

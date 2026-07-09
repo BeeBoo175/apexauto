@@ -211,6 +211,21 @@ export function parseMilestonePage(value: unknown): MilestonePage | null {
   return { actor, personId: value.personId, personName: value.personName, ...page };
 }
 
+// The shared progressive history counts its entries as totalCount and grows by appending older pages.
+export type MilestoneHistory = MilestonePage & { totalCount: number };
+
+export function parseMilestoneHistory(value: unknown): MilestoneHistory | null {
+  const page = parseMilestonePage(value);
+  return page ? { ...page, totalCount: page.total } : null;
+}
+
+export function appendMilestones(
+  previous: MilestoneHistory,
+  next: MilestoneHistory,
+): MilestoneHistory {
+  return { ...next, items: [...previous.items, ...next.items] };
+}
+
 // Where a milestone's record opens, when the viewer has access to it today.
 export function milestoneHref(milestone: Milestone) {
   switch (milestone.recordKind) {

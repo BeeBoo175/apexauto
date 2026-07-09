@@ -16,6 +16,11 @@
   list-style: none;
 }
 
+/* Before the first event arrives the list is empty; it must not add its own gap above the loading shell. */
+.timeline:empty {
+  display: none;
+}
+
 .timeline > li {
   position: relative;
   display: grid;

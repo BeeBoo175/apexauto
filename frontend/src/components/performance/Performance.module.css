@@ -430,49 +430,6 @@ a.rowValue {
   font-size: 12px;
 }
 
-/* Employee drawer */
-.drawerBody {
-  display: grid;
-  align-content: start;
-  gap: 12px;
-}
-
-.facts {
-  display: grid;
-  gap: 0;
-  margin: 0;
-}
-
-.fact {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 8px 0;
-  font-size: 14px;
-}
-
-.fact dt {
-  color: var(--color-muted);
-}
-
-.fact dd {
-  margin: 0;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-}
-
-.milestonePanel {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  min-height: 0;
-  min-width: 0;
-}
-
-.milestonePanel[hidden] {
-  display: none;
-}
-
 /* Loading silhouettes */
 .placeholder {
   composes: placeholder from "../staff/StaffRecordLoadingShell.module.css";

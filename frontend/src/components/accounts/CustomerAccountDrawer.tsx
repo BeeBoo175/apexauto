@@ -24,6 +24,7 @@ import { CustomerSupportDialog } from "./CustomerSupportDialog";
 import { AccountSuspensionDialog } from "./AccountSuspensionDialog";
 import { StaffAccountStatus } from "./StaffAccountStatus";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
+import shared from "@/components/staff/StaffDetails.module.css";
 import styles from "./StaffAccounts.module.css";
 
 type Section = "details" | "history";
@@ -121,9 +122,9 @@ export function CustomerAccountDrawer({
               setHistoryOpened((opened) => opened || next === "history");
             }}
           />
-          <div className={styles.panel} hidden={section !== "details"}>
-            <div className={`${workbench.body} ${styles.content}`}>
-              <section className={styles.section} aria-label="Contact">
+          <div className={shared.panel} hidden={section !== "details"}>
+            <div className={`${workbench.body} ${shared.content}`}>
+              <section className={shared.section} aria-label="Contact">
                 <div className={workbench.sectionHeader}>
                   <h2 className={workbench.sectionTitle}>Contact</h2>
                   {detail && (
@@ -138,7 +139,7 @@ export function CustomerAccountDrawer({
                   )}
                 </div>
                 {detail ? (
-                  <dl className={styles.details}>
+                  <dl className={shared.details}>
                     <dt>Email</dt>
                     <dd>{detail.email}</dd>
                     <dt>Mobile</dt>
@@ -156,7 +157,7 @@ export function CustomerAccountDrawer({
                   </p>
                 )}
               </section>
-              <section className={styles.section} aria-label="Support">
+              <section className={shared.section} aria-label="Support">
                 <div className={workbench.sectionHeader}>
                   <h2 className={workbench.sectionTitle}>Support</h2>
                 </div>
@@ -227,8 +228,8 @@ export function CustomerAccountDrawer({
             </div>
           </div>
           {historyOpened && (
-            <div className={styles.panel} hidden={section !== "history"}>
-              <div className={`${workbench.body} ${styles.content}`}>
+            <div className={shared.panel} hidden={section !== "history"}>
+              <div className={`${workbench.body} ${shared.content}`}>
                 <AccountHistory key={row.id} accountId={row.id} />
               </div>
             </div>

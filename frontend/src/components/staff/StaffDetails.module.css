@@ -1,0 +1,49 @@
+/* The content a staff drawer tab shares: titled sections of label and value rows inside a panel that fills the drawer
+   so the pane scrolls inside it. */
+.details {
+  display: grid;
+  gap: 4px 24px;
+  grid-template-columns: 160px minmax(0, 1fr);
+  margin: 0;
+}
+
+.details dt {
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.details dd {
+  margin: 0;
+  min-width: 0;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.section {
+  display: grid;
+  gap: 12px;
+}
+
+@media (max-width: 520px) {
+  .details {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* A tab panel fills the drawer so the pane scrolls inside it; the hidden panel must not keep its flex display. */
+.panel {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.panel[hidden] {
+  display: none;
+}
+
+.content {
+  padding-top: 24px;
+}

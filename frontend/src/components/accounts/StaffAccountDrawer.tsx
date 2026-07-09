@@ -23,6 +23,7 @@ import { AccountHistory } from "./AccountHistory";
 import { AccountSuspensionDialog } from "./AccountSuspensionDialog";
 import { StaffAccountStatus } from "./StaffAccountStatus";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
+import shared from "@/components/staff/StaffDetails.module.css";
 import styles from "./StaffAccounts.module.css";
 
 const roleName = (role: string) => roleNames[role as keyof typeof roleNames] ?? role;
@@ -126,9 +127,9 @@ export function StaffAccountDrawer({
               setHistoryOpened((opened) => opened || next === "history");
             }}
           />
-          <div className={styles.panel} hidden={section !== "details"}>
-            <div className={`${workbench.body} ${styles.content}`}>
-              <section className={styles.section} aria-label="Contact">
+          <div className={shared.panel} hidden={section !== "details"}>
+            <div className={`${workbench.body} ${shared.content}`}>
+              <section className={shared.section} aria-label="Contact">
                 <div className={workbench.sectionHeader}>
                   <h2 className={workbench.sectionTitle}>Contact</h2>
                   {!invitation && !self && (
@@ -142,7 +143,7 @@ export function StaffAccountDrawer({
                     </Button>
                   )}
                 </div>
-                <dl className={styles.details}>
+                <dl className={shared.details}>
                   <dt>Email</dt>
                   <dd>{row.email}</dd>
                   <dt>Work mobile</dt>
@@ -152,8 +153,8 @@ export function StaffAccountDrawer({
             </div>
           </div>
           {historyOpened && (
-            <div className={styles.panel} hidden={section !== "history"}>
-              <div className={`${workbench.body} ${styles.content}`}>
+            <div className={shared.panel} hidden={section !== "history"}>
+              <div className={`${workbench.body} ${shared.content}`}>
                 <AccountHistory key={row.id} accountId={row.id} />
               </div>
             </div>
