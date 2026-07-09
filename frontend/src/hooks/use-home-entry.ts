@@ -17,7 +17,7 @@ import {
   type PerformanceStageWaiting,
   type PerformanceWorkload,
 } from "@/lib/performance/performance";
-import { initialRoom, workloadQuery } from "@/lib/performance/room";
+import { parseRoomUrl, workloadQuery, type RoomView } from "@/lib/performance/room";
 import type { SearchParams } from "@/lib/query";
 import type { SalesQueue } from "@/lib/sales/contracts";
 import type { ScheduledWork, UnscheduledWorkPage } from "@/lib/staff/work-calendar";
@@ -27,6 +27,7 @@ export type HomeEntry =
       kind: "manager";
       actor: CurrentActor;
       branchId: string;
+      room: RoomView;
       pipeline: PerformancePipeline;
       stages: PerformanceStageWaiting;
       workload: PerformanceWorkload;
@@ -76,6 +77,7 @@ export function useHomeEntry(actor: CurrentActor, parameters: SearchParams) {
     const general = actor.role === "GeneralManager";
     const branchId = general && isUuid(parameters.branchId) ? parameters.branchId : "";
     const now = performancePeriod({ branchId });
+    const room = parseRoomUrl(parameters);
     const [pipeline, stages, workload, schedule, branches] = await Promise.all([
       readSection("pipeline", parsePipeline, now, actor, signal),
       readSection(
@@ -85,7 +87,7 @@ export function useHomeEntry(actor: CurrentActor, parameters: SearchParams) {
         actor,
         signal,
       ),
-      readSection("workload", parseWorkload, now, actor, signal, workloadQuery(initialRoom)),
+      readSection("workload", parseWorkload, now, actor, signal, workloadQuery(room)),
       readTodaySchedule(actor, branchId, signal),
       general ? readBranchChoices(1, signal, 25).catch(() => null) : Promise.resolve(null),
     ]);
@@ -93,6 +95,7 @@ export function useHomeEntry(actor: CurrentActor, parameters: SearchParams) {
       kind: "manager",
       actor,
       branchId,
+      room,
       pipeline,
       stages,
       workload,

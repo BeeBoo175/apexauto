@@ -86,9 +86,9 @@ test("normal guidance preserves status, permission and dirty-term precedence", (
     PendingApproval: "Waiting for manager approval.",
     Approved: "Settlement and handover follow.",
     Settled: "Settled. Hand over when the vehicle is ready.",
-    Delivered: "Delivered; records are read only.",
-    Expired: "Hold expired; deposit refunded.",
-    Cancelled: "Cancelled; deposit refunded.",
+    Delivered: "Delivered, records are read only.",
+    Expired: "Hold expired, deposit refunded.",
+    Cancelled: "Cancelled, deposit refunded.",
   };
   for (const [status, description] of Object.entries(notes)) {
     expect(saleFooterPresentation({ ...state, status: status as SaleStatus })).toEqual({

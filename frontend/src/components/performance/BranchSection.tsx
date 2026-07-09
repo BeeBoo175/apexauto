@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useAddressSection } from "@/hooks/use-address-section";
 import { Select } from "@/components/ui/Input";
 import { formatCurrency } from "@/lib/currency-format";
 import { branchLabel, compactMoney, deltaText, weekLabel } from "@/lib/performance/format";
@@ -102,7 +102,10 @@ export function BranchSection({
   state: SectionState;
   onOpen: (branchId: string) => void;
 }) {
-  const [measureKey, setMeasureKey] = useState<MeasureKey>("delivered");
+  const [measureKey, setMeasureKey] = useAddressSection<MeasureKey>(
+    ["delivered", "value", "checkedIn"],
+    "measure",
+  );
   const measure = measures.find((item) => item.key === measureKey) ?? measures[0];
   const rows = branches?.branches ?? [];
   return (

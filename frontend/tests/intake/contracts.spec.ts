@@ -178,8 +178,12 @@ test("actor destinations require a validated persisted role and branch shape", (
   expect(
     actorDestination({ userId: id, role: "Customer", branchId: null }, "/dashboard/intake"),
   ).toBe("/account");
+  // Sales agents and managers land on Home, what needs them today.
   expect(actorDestination({ userId: id, role: "SalesAgent", branchId: id }, "/sell")).toBe(
-    "/dashboard/work-calendar",
+    "/dashboard/home",
+  );
+  expect(actorDestination({ userId: id, role: "BranchManager", branchId: id })).toBe(
+    "/dashboard/home",
   );
   expect(actorDestination({ userId: id, role: "Administrator", branchId: null })).toBe(
     "/dashboard/accounts",

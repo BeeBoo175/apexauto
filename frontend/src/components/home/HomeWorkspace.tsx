@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { WorkloadSection } from "@/components/performance/WorkloadSection";
 import type { HomeEntry } from "@/hooks/use-home-entry";
 import { usePerformanceSection } from "@/hooks/use-performance-section";
 import { useTodaySchedule } from "@/hooks/use-today-schedule";
 import { performancePeriod } from "@/lib/performance/period";
-import { initialRoom, workloadQuery, type RoomView } from "@/lib/performance/room";
+import { replaceUrlParams } from "@/lib/browser-url";
+import { roomUrlValues, workloadQuery, type RoomView } from "@/lib/performance/room";
 import { parsePipeline, parseStageWaiting, parseWorkload } from "@/lib/performance/performance";
 import { AttentionBand, managerAttention } from "./AttentionSection";
 import { HomeBranchToolbar } from "./HomeBranchToolbar";
@@ -43,8 +44,12 @@ export function HomeWorkspace({ entry }: { entry: Extract<HomeEntry, { kind: "ma
   const general = actor.role === "GeneralManager";
   const [branchId, setBranchId] = useState(entry.branchId);
   const [refreshes, setRefreshes] = useState(0);
-  const [room, setRoom] = useState<RoomView>(initialRoom);
+  const [room, setRoom] = useState<RoomView>(entry.room);
   const changeRoom = useCallback((next: RoomView) => setRoom(next), []);
+  // Team, search and page ride in the address, like the other staff pages, so a reload returns to the same list.
+  useEffect(() => {
+    replaceUrlParams(roomUrlValues(room));
+  }, [room]);
   const now = performancePeriod({ branchId });
   // Every section opens with the entry's read; a branch change or refresh reads again and keeps the figures shown
   // until the new ones arrive.

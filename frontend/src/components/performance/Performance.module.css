@@ -53,6 +53,9 @@
 
 /* One section: a heading row, then its content. */
 .panel {
+  /* Screen-reader text inside is absolutely positioned; anchoring it here keeps it inside the scrolling area instead of
+     stretching the page. */
+  position: relative;
   display: grid;
   grid-column: 1 / -1;
   align-content: start;
@@ -258,7 +261,6 @@ a.rowValue {
   z-index: 1;
   margin: auto -20px 0;
   background: var(--color-paper);
-  border-top: 1px solid var(--color-line-soft);
 }
 
 .people {
@@ -503,6 +505,18 @@ a.rowValue {
 }
 
 @media (max-width: 820px) {
+  /* Like the other staff pages on a narrow screen, the page scrolls as one instead of holding a second scroll area
+     under the heading and tabs. */
+  .workspace {
+    flex: none;
+    overflow: visible;
+  }
+
+  .view {
+    flex: none;
+    overflow: visible;
+  }
+
   .panel {
     padding: 16px 16px 20px;
   }

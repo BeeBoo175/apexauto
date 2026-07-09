@@ -12,6 +12,7 @@ import { usePerformanceSection } from "@/hooks/use-performance-section";
 import { privateApiFetch } from "@/lib/api-browser";
 import { roleNames, type CurrentActor, type Role } from "@/lib/auth/actor";
 import type { CsvColumn } from "@/lib/csv";
+import { replaceUrlParams } from "@/lib/browser-url";
 import { branchLabel } from "@/lib/performance/format";
 import { periodQuery } from "@/lib/performance/period";
 import type { PerformancePeriod } from "@/lib/performance/performance";
@@ -29,10 +30,12 @@ import {
 import { HeadlineFigures } from "./HeadlineFigures";
 import {
   appliedTeamFilters,
-  noTeamFilters,
   statusChoices,
   teamQuery,
+  teamUrlKeys,
+  teamUrlValues,
   type TeamFilters,
+  type TeamUrlState,
 } from "@/lib/performance/team-filters";
 import { TeamTableToolbar } from "./TeamTableToolbar";
 import { TeamCharts, teamStats, type OverviewLabels } from "./TeamOverview";
@@ -77,6 +80,8 @@ export function TeamView({
   onExport: (tab: TeamTab, state: TeamExport | null) => void;
   // What the page entry already read for this tab, so a direct entry opens complete.
   initial: unknown;
+  // The search, filters, sort, page and open person the address names for this tab.
+  urlState: TeamUrlState;
   // Called once the first figures (or a failure) are in, so the page can swap to this view without a gap.
   onSettled: () => void;
 }) {
@@ -131,19 +136,21 @@ function TeamTable<Row extends SalesRow | WorkshopRow>({
   refreshes,
   onExport,
   initial,
+  urlState,
   onSettled,
 }: TeamProps & {
   tab: TeamTab;
   onExport: (tab: TeamTab, state: TeamExport | null) => void;
   initial: unknown;
+  urlState: TeamUrlState;
   onSettled: () => void;
   parse: (value: unknown) => TeamPage<Row> | null;
   columns: TeamColumn<Row>[];
 }) {
   const measures = columns.filter((column) => !column.detailOnly);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
-  const [filters, setFilters] = useState<TeamFilters>(noTeamFilters);
+  const [page, setPage] = useState(urlState.page);
+  const [pageSize, setPageSize] = useState(urlState.pageSize);
+  const [filters, setFilters] = useState<TeamFilters>(urlState.filters);
   // Any change to what the table shows starts again at the first page.
   function change(next: TeamFilters) {
     setFilters(next);
@@ -161,7 +168,7 @@ function TeamTable<Row extends SalesRow | WorkshopRow>({
     `${teamTitles[tab]} team output`,
     true,
     `page=${page}&pageSize=${pageSize}&${teamQuery(filters)}`,
-    filters === noTeamFilters && page === 1 && pageSize === 25 ? initialPage : null,
+    initialPage,
   );
   const settled = read.data !== null || (read.failed && !read.busy);
   useEffect(() => {
@@ -288,9 +295,19 @@ function TeamTable<Row extends SalesRow | WorkshopRow>({
     })),
   ];
   // A dot for someone on another page jumps to that page first, then opens them once it has loaded.
-  const [pendingOpen, setPendingOpen] = useState<string | null>(null);
+  const [pendingOpen, setPendingOpen] = useState<string | null>(urlState.person || null);
   const drawerRow =
     selected ?? rows.find((row) => `${row.personId}:${row.branchId}` === pendingOpen) ?? null;
+  // What the table shows rides in the address, like the other staff pages: search, filters, sort, page and the open
+  // person. Leaving the tab clears it.
+  const drawerKey = drawerRow ? `${drawerRow.personId}:${drawerRow.branchId}` : (pendingOpen ?? "");
+  useEffect(() => {
+    replaceUrlParams(teamUrlValues({ filters, page, pageSize, person: drawerKey }));
+  }, [filters, page, pageSize, drawerKey]);
+  useEffect(
+    () => () => replaceUrlParams(Object.fromEntries(teamUrlKeys.map((key) => [key, ""]))),
+    [],
+  );
   function openPoint(point: TeamPoint) {
     const key = `${point.personId}:${point.branchId}`;
     const found = rows.find((row) => `${row.personId}:${row.branchId}` === key);

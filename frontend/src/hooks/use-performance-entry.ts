@@ -6,6 +6,7 @@ import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import { readBranchChoices } from "@/lib/branch-choices";
 import { performancePeriod, periodQuery, presetOf } from "@/lib/performance/period";
 import { parseSalesTeam, parseWorkshopTeam } from "@/lib/performance/team";
+import { parseTeamUrl, teamQuery, type TeamUrlState } from "@/lib/performance/team-filters";
 import {
   parseBranches,
   parseHeadline,
@@ -40,8 +41,9 @@ function readTeam(
   period: PerformancePeriod,
   actor: CurrentActor,
   signal: AbortSignal,
+  state: TeamUrlState,
 ) {
-  const firstPage = "&page=1&pageSize=25";
+  const firstPage = `&page=${state.page}&pageSize=${state.pageSize}&${teamQuery(state.filters)}`;
   if (view === "sales") {
     return readAhead("team/sales", parseSalesTeam, period, actor, signal, firstPage);
   }
@@ -58,6 +60,7 @@ export function usePerformanceEntry(actor: CurrentActor, parameters: SearchParam
     const period = performancePeriod(parameters);
     const view = typeof parameters.view === "string" ? parameters.view : "results";
     const results = view === "results";
+    const teamUrl = parseTeamUrl(parameters);
     const lookBack = performancePeriod({ period: "last-90", branchId: period.branchId });
     const [headline, branches, stock, stages, team, comparison] = await Promise.all([
       privateApiFetch(`/api/staff/performance/headline?${periodQuery(period)}`, parseHeadline, {
@@ -68,7 +71,7 @@ export function usePerformanceEntry(actor: CurrentActor, parameters: SearchParam
         : Promise.resolve(null),
       results ? readAhead("stock-flow", parseStockFlow, period, actor, signal) : null,
       results ? readAhead("stage-waiting", parseStageWaiting, lookBack, actor, signal) : null,
-      readTeam(view, period, actor, signal),
+      readTeam(view, period, actor, signal, teamUrl),
       view === "branches" && actor.role === "GeneralManager"
         ? readAhead("branches", parseBranches, period, actor, signal)
         : null,
@@ -83,6 +86,7 @@ export function usePerformanceEntry(actor: CurrentActor, parameters: SearchParam
       headline: headline.data,
       results: { stock, stages },
       team,
+      teamUrl,
       comparison,
       branches: branches?.data ?? null,
     };

@@ -13,6 +13,7 @@ import { PerformanceToolbar } from "./PerformanceToolbar";
 import { BranchesView, ResultsView } from "./PerformanceViews";
 import { TeamView, type TeamExport } from "./TeamView";
 import type { TeamTab } from "@/lib/performance/team";
+import { defaultTeamUrl } from "@/lib/performance/team-filters";
 import workspace from "@/components/staff/StaffWorkspace.module.css";
 import styles from "./Performance.module.css";
 
@@ -25,7 +26,7 @@ function writePeriod(preset: PeriodPreset, period: PerformancePeriod) {
   for (const key of ["period", "from", "to", "branchId"]) {
     url.searchParams.delete(key);
   }
-  if (preset !== "this-month") {
+  if (preset !== "last-90") {
     url.searchParams.set("period", preset);
   }
   if (preset === "custom") {
@@ -126,6 +127,7 @@ export function PerformanceWorkspace({ entry }: { entry: PerformanceEntry }) {
       <TeamView
         tab={candidate}
         initial={opened(candidate) ? entry.team : null}
+        urlState={opened(candidate) ? entry.teamUrl : defaultTeamUrl}
         onExport={recordExport}
         onSettled={() => settle(candidate)}
         {...shared}

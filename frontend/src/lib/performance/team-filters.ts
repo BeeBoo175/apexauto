@@ -1,3 +1,4 @@
+import type { SearchParams } from "@/lib/query";
 import type { AppliedFilter } from "@/lib/staff/filter-summary";
 import type { TableSort } from "@/components/ui/data-table/types";
 
@@ -91,4 +92,88 @@ export function appliedTeamFilters(
     });
   }
   return applied;
+}
+
+export interface TeamUrlState {
+  filters: TeamFilters;
+  page: number;
+  pageSize: number;
+  // The open person's drawer, as personId:branchId, or empty.
+  person: string;
+}
+
+const pageSizes = [10, 25, 50];
+const personPattern = /^[0-9a-f-]{36}:[0-9a-f-]{36}$/i;
+
+export const defaultTeamUrl: TeamUrlState = {
+  filters: noTeamFilters,
+  page: 1,
+  pageSize: 25,
+  person: "",
+};
+
+const first = (value: string | string[] | undefined) =>
+  (Array.isArray(value) ? value[0] : value) ?? "";
+
+// What the address says about a team table, read the way the other staff pages read theirs: unknown values fall
+// back to the default.
+export function parseTeamUrl(parameters: SearchParams): TeamUrlState {
+  const minimums: Record<string, number> = {};
+  for (const pair of first(parameters.min).split(",")) {
+    const [key, count] = pair.split(":");
+    const value = Number.parseInt(count ?? "", 10);
+    if (/^\w{1,40}$/.test(key ?? "") && Number.isInteger(value) && value >= 0) {
+      minimums[key] = value;
+    }
+  }
+  const sort = first(parameters.sort);
+  const status = first(parameters.status);
+  const page = Number.parseInt(first(parameters.page), 10);
+  const pageSize = Number.parseInt(first(parameters.pageSize), 10);
+  const person = first(parameters.person);
+  return {
+    filters: {
+      search: first(parameters.search).trim().slice(0, 100),
+      name: first(parameters.name).trim().slice(0, 100),
+      status: statusChoices.some((choice) => choice.value === status) ? status : "",
+      minimums,
+      sort: /^\w{1,40}$/.test(sort)
+        ? { column: sort, direction: first(parameters.direction) === "desc" ? "desc" : "asc" }
+        : null,
+    },
+    page: Number.isSafeInteger(page) && page > 0 ? page : 1,
+    pageSize: pageSizes.includes(pageSize) ? pageSize : 25,
+    person: personPattern.test(person) ? person : "",
+  };
+}
+
+// Every address parameter a team table owns. The default for each is empty, so it leaves the address.
+export const teamUrlKeys = [
+  "search",
+  "name",
+  "status",
+  "min",
+  "sort",
+  "direction",
+  "page",
+  "pageSize",
+  "person",
+  "section",
+];
+
+export function teamUrlValues({ filters, page, pageSize, person }: TeamUrlState) {
+  const query = new URLSearchParams(teamQuery(filters));
+  return {
+    search: query.get("search") ?? "",
+    name: query.get("name") ?? "",
+    status: query.get("status") ?? "",
+    min: query.get("min") ?? "",
+    sort: query.get("sort") ?? "",
+    direction: filters.sort?.direction === "desc" ? "desc" : "",
+    page: page > 1 ? String(page) : "",
+    pageSize: pageSize === 25 ? "" : String(pageSize),
+    person,
+    // The drawer's tab belongs to the open drawer.
+    ...(person ? {} : { section: "" }),
+  };
 }
