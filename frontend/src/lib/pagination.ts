@@ -13,3 +13,14 @@ export function paginationQuery(
 ) {
   return new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
 }
+
+// A page answers its request only when it echoes the requested page and size.
+export function echoesPage<T extends { page: number; pageSize: number }>(
+  page: T | null,
+  query: URLSearchParams,
+) {
+  const matches =
+    page?.page === Number(query.get("page") ?? 1) &&
+    page.pageSize === Number(query.get("pageSize") ?? DEFAULT_PAGE_SIZE);
+  return matches ? page : null;
+}

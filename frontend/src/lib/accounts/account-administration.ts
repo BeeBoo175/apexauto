@@ -63,3 +63,17 @@ export function shapeAccountCommand(kind: StaffAccountCommandKind, body: Record<
     ? { operationId: body.operationId, reason, branchId: body.branchId }
     : null;
 }
+
+const commandConflicts: Record<StaffAccountCommandKind, string> = {
+  deactivations:
+    "This account cannot be deactivated: it is already deactivated, it is your own, or it is the last active Administrator.",
+  reactivations: "This account is not deactivated, or its branch is no longer active.",
+  transfers: "This account cannot move to that branch. Refresh and choose an active branch.",
+};
+
+// What a 409 means for a staff account command; the upstream's Blocked code lists open work instead.
+export function staffAccountConflict(kind: StaffAccountCommandKind, code: unknown) {
+  return code === "Blocked"
+    ? "This employee still owns open work. Ask the branch manager to resolve it first."
+    : commandConflicts[kind];
+}

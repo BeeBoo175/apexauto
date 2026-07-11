@@ -19,24 +19,41 @@ export interface AdministratorCommand {
   conflict: (code: unknown) => string;
 }
 
+export const administratorAccess = {
+  allowed: hasAccountAdministration,
+  denial: "Administrator access required.",
+};
+
+// The prologue every administrator command shares: same origin, a signed-in session and a confirmed actor.
+export async function administratorSession(request: Request, signal: AbortSignal) {
+  requireSameOrigin(request);
+  const token = await sessionToken();
+  if (!token) {
+    throw new HttpError(401, "Sign in to continue.");
+  }
+
+  const actor = await confirmedActor(signal);
+  return { token, actor, allowed: administratorAccess.allowed(actor) };
+}
+
+export async function readJsonBody(request: Request, signal: AbortSignal, limit: number) {
+  requireJsonRequest(request);
+  return readBoundedJson(request.body, signal, limit);
+}
+
 // Administrator account commands answer with an empty accepted or no-content response, so success is confirmed
 // from the status alone and the browser receives a small acknowledgement.
 export async function relayAdministratorCommand(request: Request, command: AdministratorCommand) {
   try {
-    requireSameOrigin(request);
     const signal = AbortSignal.any([request.signal, AbortSignal.timeout(API_DEADLINE_MS)]);
-    const token = await sessionToken();
-    if (!token) {
-      throw new HttpError(401, "Sign in to continue.");
+    const { token, actor, allowed } = await administratorSession(request, signal);
+    if (!allowed) {
+      return accessDenied(actor, administratorAccess.denial);
     }
-    const actor = await confirmedActor(signal);
-    if (!hasAccountAdministration(actor)) {
-      return accessDenied(actor, "Administrator access required.");
-    }
+
     let forwarded: Body | undefined;
     if (command.shape) {
-      requireJsonRequest(request);
-      const body = await readBoundedJson(request.body, signal, 8 * 1024);
+      const body = await readJsonBody(request, signal, 8 * 1024);
       const shaped = isRecord(body) ? command.shape(body) : null;
       if (!shaped) {
         throw new HttpError(400, "Provide valid details within the approved limits.");
