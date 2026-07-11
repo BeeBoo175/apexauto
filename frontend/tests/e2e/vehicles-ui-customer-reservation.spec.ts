@@ -2,27 +2,15 @@ import { expect, test, type BrowserContext } from "@playwright/test";
 import { writeFileSync } from "node:fs";
 import path from "node:path";
 import type { CustomerReservationReceipt } from "@/lib/vehicles/customer-reservation";
+import { apiLogin, privateHeaders } from "./staff-session";
 
 const evidence = process.env.BROWSER_EVIDENCE_DIR!;
 const branch = "c77708bf-1a31-42f5-9a69-0c8766697a52";
 const origin = process.env.APP_BASE_URL!;
 
-async function login(context: BrowserContext, email: string) {
-  const response = await context.request.post("/api/auth/login", {
-    headers: { Origin: origin },
-    data: { loginKey: crypto.randomUUID(), email, password: "Password123!" },
-  });
-  expect(response.status()).toBe(200);
-}
-
-async function requestHeaders(context: BrowserContext) {
-  const cookie = (await context.cookies()).find((item) => item.name === "apexauto_token")!;
-  return { Cookie: `apexauto_token=${cookie.value}`, Origin: origin };
-}
-
 async function branchSales(context: BrowserContext, view: string) {
   const response = await context.request.get(`/api/staff/sales?view=${view}&pageSize=50`, {
-    headers: await requestHeaders(context),
+    headers: await privateHeaders(context),
   });
   expect(response.status()).toBe(200);
   return (await response.json()).data.items as { id: string; version: number }[];
@@ -35,12 +23,12 @@ test("customer reserves from vehicle detail and reconciles a committed hold afte
 }, info) => {
   test.setTimeout(120_000);
   const manager = await browser.newContext({ ...info.project.use, baseURL: origin });
-  await login(manager, "siti.aminah@example.invalid");
+  await apiLogin(manager, "siti.aminah@example.invalid");
   // Managers may cancel a sale in any open status, which releases its hold.
   for (const view of ["NeedsApproval", "Open", "BeingHandled", "Approved"]) {
     for (const sale of await branchSales(manager, view)) {
       const cancelled = await manager.request.post(`/api/staff/sales/${sale.id}/cancellations`, {
-        headers: await requestHeaders(manager),
+        headers: await privateHeaders(manager),
         data: {
           operationId: crypto.randomUUID(),
           expectedVersion: sale.version,
@@ -59,7 +47,7 @@ test("customer reserves from vehicle detail and reconciles a committed hold afte
   const vehicleId = destination.split("/").at(-1)!;
   await page.goto(destination);
   const unverified = await browser.newContext({ ...info.project.use, baseURL: origin });
-  await login(unverified, "nur.aisyah@example.invalid");
+  await apiLogin(unverified, "nur.aisyah@example.invalid");
   const unverifiedPage = await unverified.newPage();
   await unverifiedPage.goto(destination);
   await expect(
@@ -82,7 +70,7 @@ test("customer reserves from vehicle detail and reconciles a committed hold afte
   expect(
     (
       await unverified.request.post(`/api${destination}/reservations`, {
-        headers: await requestHeaders(unverified),
+        headers: await privateHeaders(unverified),
         data: {
           operationId: crypto.randomUUID(),
           publicationId: crypto.randomUUID(),
@@ -109,14 +97,14 @@ test("customer reserves from vehicle detail and reconciles a committed hold afte
   expect(
     (
       await context.request.post(endpoint, {
-        headers: { ...(await requestHeaders(context)), Origin: "https://outside.invalid" },
+        headers: { ...(await privateHeaders(context)), Origin: "https://outside.invalid" },
         data: body,
       })
     ).status(),
   ).toBe(403);
   expect(
     (
-      await manager.request.post(endpoint, { headers: await requestHeaders(manager), data: body })
+      await manager.request.post(endpoint, { headers: await privateHeaders(manager), data: body })
     ).status(),
   ).toBe(403);
 

@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { deflateSync } from "node:zlib";
-import { signIn } from "./staff-sign-in";
+import { signIn, signInAs } from "./staff-session";
 
 test.use({ actionTimeout: 15000 });
 
@@ -45,8 +45,7 @@ test("staff manage their own picture on the shared account page and open a colle
   page,
 }) => {
   test.setTimeout(90000);
-  await signIn(page, "siti.aminah@example.invalid");
-  await expect(page).toHaveURL(/\/dashboard\/work-calendar$/);
+  await signInAs(page, "siti.aminah@example.invalid", "BranchManager");
 
   await page.goto("/dashboard/intake?view=list");
   const handler = page

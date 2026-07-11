@@ -1,17 +1,9 @@
-import { expect, test, type Page, type BrowserContext } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { signIn } from "./staff-sign-in";
+import { privateHeaders, signInAs } from "./staff-session";
 
 const evidence = process.env.BROWSER_EVIDENCE_DIR!;
-async function login(page: Page, email: string, destination: string) {
-  await signIn(page, email);
-  await expect(page).toHaveURL(new RegExp(`${destination}$`));
-}
-async function privateHeaders(context: BrowserContext) {
-  const cookie = (await context.cookies()).find((c) => c.name === "apexauto_token")!;
-  return { Cookie: `apexauto_token=${cookie.value}` };
-}
 async function screenshot(page: Page, name: string) {
   await expect(page.locator('[aria-label="Notifications"] > *')).toHaveCount(0);
   await page.evaluate(() => window.scrollTo(0, 0));
@@ -71,7 +63,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     return snapshot!;
   };
   const before = (await counts())["/api/staff/inspection/workshop/jobs"] ?? 0;
-  await login(page, technician, "/dashboard/inspection");
+  await signInAs(page, technician, "WorkshopTechnician");
   await expect(page.getByRole("button", { name: "Refresh workshop", exact: true })).toBeEnabled();
   expect((await counts())["/api/staff/inspection/workshop/jobs"] - before).toBe(3);
   await expect(page.getByRole("heading", { name: "Select a job", exact: true })).toBeVisible();
@@ -259,7 +251,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     baseURL: process.env.APP_BASE_URL,
   });
   const manager = await managerContext.newPage();
-  await login(manager, managerEmail, "/dashboard/work-calendar");
+  await signInAs(manager, managerEmail, "BranchManager");
   await manager.goto("/dashboard/intake?view=list");
   await expect(
     manager.getByRole("button", { name: "Refresh worklist", exact: true }),
@@ -585,7 +577,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     baseURL: process.env.APP_BASE_URL,
   });
   const sales = await salesContext.newPage();
-  await login(sales, "aina.sofia@example.invalid", "/dashboard/work-calendar");
+  await signInAs(sales, "aina.sofia@example.invalid", "SalesAgent");
   await sales.goto(`/dashboard/inspection/${id}`);
   await expect(
     sales.getByRole("heading", { name: "Inspection access unavailable", exact: true }),
@@ -614,7 +606,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     baseURL: process.env.APP_BASE_URL,
   });
   const group = await groupContext.newPage();
-  await login(group, "farah.aziz@example.invalid", "/dashboard/work-calendar");
+  await signInAs(group, "farah.aziz@example.invalid", "GeneralManager");
   await group.goto("/dashboard/inspection");
   await expect(group.getByRole("button", { name: /^Claim inspection ·/ })).toHaveCount(0);
   await group.getByLabel("Rows per page", { exact: true }).selectOption("10");

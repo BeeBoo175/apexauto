@@ -1,8 +1,9 @@
-import { expect, test, type BrowserContext, type Page } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { addCalendarDays, calendarDate } from "@/lib/calendar";
 import { closeStaffWorkspaces, openStaffWorkspace } from "./staff-workspace-controls";
+import { apiLogin, privateHeaders } from "./staff-session";
 
 test.use({ actionTimeout: 15_000, timezoneId: "America/New_York" });
 
@@ -12,19 +13,6 @@ const branch = "68f371ad-223a-43d6-b45b-b878eece79ae";
 const agentId = "86ad2123-6c9b-49b6-ae90-12e23bac7bd3";
 const counts = () =>
   JSON.parse(readFileSync(path.join(evidence, "counts.json"), "utf8")) as Record<string, number>;
-
-async function login(context: BrowserContext, email: string) {
-  const response = await context.request.post("/api/auth/login", {
-    headers: { Origin: origin },
-    data: { loginKey: crypto.randomUUID(), email, password: "Password123!" },
-  });
-  expect(response.status()).toBe(200);
-}
-
-async function headers(context: BrowserContext) {
-  const cookie = (await context.cookies()).find((item) => item.name === "apexauto_token")!;
-  return { Cookie: `apexauto_token=${cookie.value}`, Origin: origin };
-}
 
 async function prepareBooking(page: Page, occupied: { startsAt: string; endsAt: string }[] = []) {
   await page.getByRole("button", { name: "Book a test drive", exact: true }).click();
@@ -73,7 +61,7 @@ test("customer booking and cancellation reconcile exact receipts before manager 
   browser,
 }, info) => {
   test.setTimeout(180_000);
-  await login(context, "ahmad.faizal@example.invalid");
+  await apiLogin(context, "ahmad.faizal@example.invalid");
   await page.goto(`/vehicles?branchId=${branch}`);
   const destination = await page
     .getByRole("link", { name: /^View details for / })
@@ -226,11 +214,11 @@ test("customer booking and cancellation reconcile exact receipts before manager 
   const agent = await browser.newContext({ ...info.project.use, baseURL: origin });
   let completedBooking = "";
   try {
-    await login(manager, "lim.mei.ling@example.invalid");
+    await apiLogin(manager, "lim.mei.ling@example.invalid");
     const today = calendarDate();
     const schedule = await manager.request.get(
       `/api/staff/work-calendar?from=${today}&to=${today}&employee=daniel.wong`,
-      { headers: await headers(manager) },
+      { headers: await privateHeaders(manager) },
     );
     expect(schedule.status()).toBe(200);
     await page.goto(destination!);
@@ -265,7 +253,7 @@ test("customer booking and cancellation reconcile exact receipts before manager 
     await confirmStaffAction(managerPage, "Assign handler");
     expect((await assigned).status()).toBe(200);
     await expect(managerRecord.getByLabel("Test drive action", { exact: true })).toHaveValue("");
-    await login(agent, "daniel.wong@example.invalid");
+    await apiLogin(agent, "daniel.wong@example.invalid");
     const agentPage = await agent.newPage();
     agentPage.setDefaultTimeout(15_000);
     agentPage.on("dialog", (dialog) => dialog.accept());
@@ -306,7 +294,7 @@ test("customer booking and cancellation reconcile exact receipts before manager 
       await expect(record).toContainText(step);
     }
     const persisted = await agent.request.get(`/api/staff/test-drives/${booking.id}`, {
-      headers: await headers(agent),
+      headers: await privateHeaders(agent),
     });
     expect(persisted.status()).toBe(200);
     const final = (await persisted.json()).data;

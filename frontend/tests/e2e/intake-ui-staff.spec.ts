@@ -11,11 +11,12 @@ import {
   openStaffWorkspace,
   closeStaffWorkspaces,
 } from "./staff-workspace-controls";
-import { expect, test, type Page, type BrowserContext } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { calendarDate } from "@/lib/calendar";
-import { signIn } from "./staff-sign-in";
+import { privateHeaders, signInAs } from "./staff-session";
+import { actorDestination, type Role } from "@/lib/auth/actor";
 
 test.use({ actionTimeout: 15000 });
 const evidence = process.env.BROWSER_EVIDENCE_DIR!;
@@ -35,23 +36,12 @@ function appointmentRange() {
   return { from: dates[0], to: dates[dates.length - 1] };
 }
 
-async function privateHeaders(context: BrowserContext) {
-  const cookie = (await context.cookies()).find((entry) => entry.name === "apexauto_token")!;
-  // APIRequestContext does not apply Chromium's loopback Secure-cookie exception.
-  return { Cookie: `apexauto_token=${cookie.value}` };
-}
-
-async function login(page: Page, email: string, destination: string) {
-  await signIn(page, email);
-  await expect(page).toHaveURL(new RegExp(`${destination}$`));
-}
-
 test("sales intake preserves scoped queues, workbench drafts and an exact lost check-in receipt", async ({
   page,
   context,
 }, testInfo) => {
   test.setTimeout(120000);
-  await login(page, "aina.sofia@example.invalid", "/dashboard/work-calendar");
+  await signInAs(page, "aina.sofia@example.invalid", "SalesAgent");
   await page.goto("/dashboard/intake");
   await expect(
     page.getByRole("heading", { name: "Select an appointment", exact: true }),
@@ -373,17 +363,21 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
   await new Promise((resolve) => setTimeout(resolve, 61_000));
 });
 
-for (const [role, email, destination] of [
-  ["Branch manager", "siti.aminah@example.invalid", "/dashboard/work-calendar"],
-  ["General manager", "farah.aziz@example.invalid", "/dashboard/work-calendar"],
-  ["Workshop technician", "azlan.rahim@example.invalid", "/dashboard/inspection"],
-  ["Administrator", "muhammad.hafiz@example.invalid", "/dashboard/accounts"],
-]) {
+const staffRoles: [string, string, Role][] = [
+  ["Branch manager", "siti.aminah@example.invalid", "BranchManager"],
+  ["General manager", "farah.aziz@example.invalid", "GeneralManager"],
+  ["Workshop technician", "azlan.rahim@example.invalid", "WorkshopTechnician"],
+  ["Administrator", "muhammad.hafiz@example.invalid", "Administrator"],
+];
+
+for (const [role, email, actorRole] of staffRoles) {
+  const destination = actorDestination({ userId: "", role: actorRole, branchId: null });
+
   test(`${role} receives its verified destination and current intake permission`, async ({
     page,
     context,
   }) => {
-    await login(page, email, destination);
+    await signInAs(page, email, actorRole);
     for (const route of ["/login", "/register"]) {
       await page.goto(route);
       await expect(page).toHaveURL(new RegExp(`${destination}$`));

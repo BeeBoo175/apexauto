@@ -1,24 +1,14 @@
-import { expect, test, type BrowserContext, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { listingDraft, listingDraftContents } from "../../src/lib/vehicles/listing-draft";
 import { formatCurrency } from "../../src/lib/currency-format";
-import { signIn } from "./staff-sign-in";
+import { privateHeaders, signInAs } from "./staff-session";
 
 const evidence = process.env.BROWSER_EVIDENCE_DIR!;
 const branch = "c77708bf-1a31-42f5-9a69-0c8766697a52";
 const counts = () =>
   JSON.parse(readFileSync(path.join(evidence, "counts.json"), "utf8")) as Record<string, number>;
-
-async function login(page: Page, email: string) {
-  await signIn(page, email);
-  await expect(page).toHaveURL(/\/dashboard\/intake$/);
-}
-
-async function headers(context: BrowserContext) {
-  const cookie = (await context.cookies()).find((entry) => entry.name === "apexauto_token")!;
-  return { Cookie: `apexauto_token=${cookie.value}`, Origin: process.env.APP_BASE_URL! };
-}
 
 test("manager explicitly approves only saved drafts with bound receipts, exact replay and actor isolation", async ({
   page,
@@ -26,10 +16,9 @@ test("manager explicitly approves only saved drafts with bound receipts, exact r
   browser,
 }, info) => {
   test.setTimeout(120_000);
-  await login(
-    page,
-    info.project.name === "mobile" ? "siti.aminah@example.invalid" : "farah.aziz@example.invalid",
-  );
+  await (info.project.name === "mobile"
+    ? signInAs(page, "siti.aminah@example.invalid", "BranchManager")
+    : signInAs(page, "farah.aziz@example.invalid", "GeneralManager"));
   const cataloguePath = `/api/vehicles?branchId=${branch}&page=1`;
   const catalogue = (await (await context.request.get(cataloguePath)).json()).data;
   const item = catalogue.items[info.project.name === "mobile" ? 1 : 0];
@@ -37,7 +26,8 @@ test("manager explicitly approves only saved drafts with bound receipts, exact r
   const postPath = `${endpoint}/publications`;
   const savePath = `${endpoint}/drafts`;
   const readWorkspace = async () =>
-    (await (await context.request.get(endpoint, { headers: await headers(context) })).json()).data;
+    (await (await context.request.get(endpoint, { headers: await privateHeaders(context) })).json())
+      .data;
   const saved = await readWorkspace();
   // Media recovery has separate acceptance; this journey keeps the approval controls usable during an image outage.
   await page.route(new RegExp(`${endpoint}/photos/[^/?]+$`), (route) =>
@@ -219,7 +209,7 @@ test("manager explicitly approves only saved drafts with bound receipts, exact r
   await page.screenshot({ path: path.join(evidence, "listing-approval.png") });
 
   const outside = await context.request.post(savePath, {
-    headers: await headers(context),
+    headers: await privateHeaders(context),
     data: {
       ...listingDraftContents(listingDraft(current.draft)),
       operationId: crypto.randomUUID(),
@@ -232,7 +222,7 @@ test("manager explicitly approves only saved drafts with bound receipts, exact r
   await expect(approve).toBeEnabled();
   const replacement = await readWorkspace();
   const newer = await context.request.post(savePath, {
-    headers: await headers(context),
+    headers: await privateHeaders(context),
     data: {
       ...listingDraftContents(listingDraft(replacement.draft)),
       operationId: crypto.randomUUID(),
@@ -254,7 +244,7 @@ test("manager explicitly approves only saved drafts with bound receipts, exact r
   expect(
     (
       await context.request.post(postPath, {
-        headers: { ...(await headers(context)), Origin: "https://outside.invalid" },
+        headers: { ...(await privateHeaders(context)), Origin: "https://outside.invalid" },
         data: captured,
       })
     ).status(),
@@ -265,11 +255,11 @@ test("manager explicitly approves only saved drafts with bound receipts, exact r
     baseURL: process.env.APP_BASE_URL,
   });
   const deniedPage = await deniedContext.newPage();
-  await login(deniedPage, "lim.mei.ling@example.invalid");
+  await signInAs(deniedPage, "lim.mei.ling@example.invalid", "BranchManager");
   expect(
     (
       await deniedContext.request.post(postPath, {
-        headers: await headers(deniedContext),
+        headers: await privateHeaders(deniedContext),
         data: { ...captured, operationId: crypto.randomUUID() },
       })
     ).status(),
@@ -290,12 +280,12 @@ test("manager explicitly approves only saved drafts with bound receipts, exact r
     baseURL: process.env.APP_BASE_URL,
   });
   const salesPage = await salesContext.newPage();
-  await login(salesPage, "aina.sofia@example.invalid");
+  await signInAs(salesPage, "aina.sofia@example.invalid", "SalesAgent");
   const beforeSales = counts()[postPath] ?? 0;
   expect(
     (
       await salesContext.request.post(postPath, {
-        headers: await headers(salesContext),
+        headers: await privateHeaders(salesContext),
         data: captured,
       })
     ).status(),

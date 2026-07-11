@@ -1,24 +1,12 @@
-import { expect, test, type BrowserContext } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { listingDraft, listingDraftContents } from "../../src/lib/vehicles/listing-draft";
+import { apiLogin, privateHeaders } from "./staff-session";
 
 const evidence = process.env.BROWSER_EVIDENCE_DIR!;
 const counts = () =>
   JSON.parse(readFileSync(path.join(evidence, "counts.json"), "utf8")) as Record<string, number>;
-
-async function login(context: BrowserContext, email: string) {
-  const response = await context.request.post("/api/auth/login", {
-    headers: { Origin: process.env.APP_BASE_URL! },
-    data: { loginKey: crypto.randomUUID(), email, password: "Password123!" },
-  });
-  expect(response.status()).toBe(200);
-}
-
-async function headers(context: BrowserContext) {
-  const cookie = (await context.cookies()).find((entry) => entry.name === "apexauto_token")!;
-  return { Cookie: `apexauto_token=${cookie.value}`, Origin: process.env.APP_BASE_URL! };
-}
 
 test("manager withdraws an exact publication with retained drafts, receipts, refunds and actor isolation", async ({
   page,
@@ -30,7 +18,7 @@ test("manager withdraws an exact publication with retained drafts, receipts, ref
   const branch = mobile
     ? "68f371ad-223a-43d6-b45b-b878eece79ae"
     : "c77708bf-1a31-42f5-9a69-0c8766697a52";
-  await login(context, mobile ? "lim.mei.ling@example.invalid" : "farah.aziz@example.invalid");
+  await apiLogin(context, mobile ? "lim.mei.ling@example.invalid" : "farah.aziz@example.invalid");
   const cataloguePath = `/api/vehicles?branchId=${branch}&page=1`;
   const catalogue = (await (await context.request.get(cataloguePath)).json()).data;
   const item = catalogue.items[mobile ? 1 : 0];
@@ -39,7 +27,8 @@ test("manager withdraws an exact publication with retained drafts, receipts, ref
   const endpoint = `/api/staff/listings/${item.id}`;
   const postPath = `${endpoint}/withdrawals`;
   const readWorkspace = async () =>
-    (await (await context.request.get(endpoint, { headers: await headers(context) })).json()).data;
+    (await (await context.request.get(endpoint, { headers: await privateHeaders(context) })).json())
+      .data;
   const saved = await readWorkspace();
   // Gallery recovery has separate acceptance; keep command checks within the unchanged request budget.
   await page.route(/\/api\/staff\/listings\/[^/]+\/photos\/[^/?]+$/, (route) =>
@@ -106,7 +95,7 @@ test("manager withdraws an exact publication with retained drafts, receipts, ref
   const prepared = await readWorkspace();
   await reason.fill("  Showroom stock review  ");
   const outsideDraft = await context.request.post(savePath, {
-    headers: await headers(context),
+    headers: await privateHeaders(context),
     data: {
       ...listingDraftContents(listingDraft(prepared.draft)),
       operationId: crypto.randomUUID(),
@@ -119,7 +108,7 @@ test("manager withdraws an exact publication with retained drafts, receipts, ref
   expect(
     (
       await context.request.post(publicationPath, {
-        headers: await headers(context),
+        headers: await privateHeaders(context),
         data: {
           operationId: crypto.randomUUID(),
           revisionId: newerDraft.id,
@@ -317,7 +306,7 @@ test("manager withdraws an exact publication with retained drafts, receipts, ref
   expect(
     (
       await context.request.post(postPath, {
-        headers: { ...(await headers(context)), Origin: "https://outside.invalid" },
+        headers: { ...(await privateHeaders(context)), Origin: "https://outside.invalid" },
         data: captured,
       })
     ).status(),
@@ -327,11 +316,11 @@ test("manager withdraws an exact publication with retained drafts, receipts, ref
     ...info.project.use,
     baseURL: process.env.APP_BASE_URL,
   });
-  await login(denied, mobile ? "siti.aminah@example.invalid" : "lim.mei.ling@example.invalid");
+  await apiLogin(denied, mobile ? "siti.aminah@example.invalid" : "lim.mei.ling@example.invalid");
   expect(
     (
       await denied.request.post(postPath, {
-        headers: await headers(denied),
+        headers: await privateHeaders(denied),
         data: { ...captured, operationId: crypto.randomUUID() },
       })
     ).status(),
@@ -350,7 +339,9 @@ test("manager withdraws an exact publication with retained drafts, receipts, ref
   )!;
   const heldEndpoint = `/api/staff/listings/${hold.vehicleId}`;
   const held = (
-    await (await context.request.get(heldEndpoint, { headers: await headers(context) })).json()
+    await (
+      await context.request.get(heldEndpoint, { headers: await privateHeaders(context) })
+    ).json()
   ).data;
   await page.goto(
     `/dashboard/management?branchId=${branch}&listing=${hold.vehicleId}&section=publication`,
@@ -389,11 +380,11 @@ test("manager withdraws an exact publication with retained drafts, receipts, ref
     ...info.project.use,
     baseURL: process.env.APP_BASE_URL,
   });
-  await login(sales, "aina.sofia@example.invalid");
+  await apiLogin(sales, "aina.sofia@example.invalid");
   const beforeSales = counts()[postPath] ?? 0;
   expect(
     (
-      await sales.request.post(postPath, { headers: await headers(sales), data: captured })
+      await sales.request.post(postPath, { headers: await privateHeaders(sales), data: captured })
     ).status(),
   ).toBe(403);
   expect(counts()[postPath] ?? 0).toBe(beforeSales);

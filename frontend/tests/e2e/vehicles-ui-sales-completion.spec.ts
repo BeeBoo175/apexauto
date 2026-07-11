@@ -3,26 +3,14 @@ import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import type { Sale } from "@/lib/sales/contracts";
 import type { SaleDocument } from "@/lib/sales/documents";
+import { apiLogin, privateHeaders } from "./staff-session";
 
 const evidence = process.env.BROWSER_EVIDENCE_DIR!;
 const origin = process.env.APP_BASE_URL!;
 const branch = "c77708bf-1a31-42f5-9a69-0c8766697a52";
 
-async function requestHeaders(context: BrowserContext) {
-  const cookie = (await context.cookies()).find((item) => item.name === "apexauto_token")!;
-  return { Cookie: `apexauto_token=${cookie.value}`, Origin: origin };
-}
-
 async function read(context: BrowserContext, resource: string) {
-  return context.request.get(resource, { headers: await requestHeaders(context) });
-}
-
-async function login(context: BrowserContext, email: string) {
-  const response = await context.request.post("/api/auth/login", {
-    headers: { Origin: origin },
-    data: { loginKey: crypto.randomUUID(), email, password: "Password123!" },
-  });
-  expect(response.status()).toBe(200);
+  return context.request.get(resource, { headers: await privateHeaders(context) });
 }
 
 async function command(
@@ -33,7 +21,7 @@ async function command(
   fields = {},
 ) {
   const response = await context.request.post(`/api/staff/sales/${id}/${name}`, {
-    headers: await requestHeaders(context),
+    headers: await privateHeaders(context),
     data: { operationId: crypto.randomUUID(), expectedVersion: version, ...fields },
   });
   expect(response.status(), await response.text()).toBe(200);
@@ -63,10 +51,10 @@ test("sales settlement, handover, corrections and own customer PDFs retain exact
   const outsider = await browser.newContext({ ...info.project.use, baseURL: origin });
   const firstRequestAt = Date.now();
   try {
-    await login(context, "aina.sofia@example.invalid");
-    await login(customer, "ahmad.faizal@example.invalid");
-    await login(manager, "siti.aminah@example.invalid");
-    await login(outsider, "nur.aisyah@example.invalid");
+    await apiLogin(context, "aina.sofia@example.invalid");
+    await apiLogin(customer, "ahmad.faizal@example.invalid");
+    await apiLogin(manager, "siti.aminah@example.invalid");
+    await apiLogin(outsider, "nur.aisyah@example.invalid");
     const holds = (await (await read(customer, "/api/account/reservations")).json()).data;
     let id: string = holds.active?.receipt.id;
     if (!id) {
@@ -75,7 +63,7 @@ test("sales settlement, handover, corrections and own customer PDFs retain exact
       const vehicle = catalogue.items[0];
       const listing = (await (await read(customer, `/api/vehicles/${vehicle.id}`)).json()).data;
       const reserved = await customer.request.post(`/api/vehicles/${vehicle.id}/reservations`, {
-        headers: await requestHeaders(customer),
+        headers: await privateHeaders(customer),
         data: {
           operationId: crypto.randomUUID(),
           publicationId: listing.publicationId,
@@ -279,7 +267,7 @@ test("sales settlement, handover, corrections and own customer PDFs retain exact
       fullPage: true,
     });
 
-    await login(manager, "farah.aziz@example.invalid");
+    await apiLogin(manager, "farah.aziz@example.invalid");
     const awaiting = await read(
       manager,
       "/api/staff/sales?view=AwaitingHandover&registration=PQA%206312",
