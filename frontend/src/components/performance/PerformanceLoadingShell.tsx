@@ -1,13 +1,15 @@
 import type { ReactNode } from "react";
 import loading from "@/components/staff/StaffLoadingShell.module.css";
-import { ChartSkeleton, RowsSkeleton, StatsSkeleton } from "./PerformanceSkeletons";
+import { RowsSkeleton } from "@/components/staff/DashboardSkeletons";
+import { ChartSkeleton, StatsSkeleton } from "./PerformanceSkeletons";
 import styles from "./Performance.module.css";
+import dashboard from "@/components/staff/DashboardSection.module.css";
 
 function ShellPanel({ half = false, children }: { half?: boolean; children: ReactNode }) {
   return (
-    <div className={`${styles.panel} ${half ? styles.half : ""}`.trim()}>
-      <div className={styles.panelHead}>
-        <span className={`${styles.placeholder} ${styles.shellTitle}`} />
+    <div className={`${dashboard.panel} ${half ? dashboard.half : ""}`.trim()}>
+      <div className={dashboard.panelHead}>
+        <span className={`${dashboard.placeholder} ${dashboard.shellTitle}`} />
       </div>
       {children}
     </div>
@@ -51,9 +53,9 @@ function TeamOrBranchShell({ branches }: { branches: boolean }) {
 export function PerformanceLoadingShell({ view, general }: { view: string; general: boolean }) {
   const current = view || "results";
   return (
-    <div className={styles.workspace} aria-hidden="true">
-      <div className={styles.shellToolbar}>
-        <span className={`${styles.placeholder} ${styles.shellControl}`} />
+    <div className={dashboard.workspace} aria-hidden="true">
+      <div className={dashboard.shellToolbar}>
+        <span className={`${dashboard.placeholder} ${dashboard.shellControl}`} />
       </div>
       <div className={loading.tabsRow}>
         {Array.from({ length: general ? 4 : 3 }, (_, index) => (

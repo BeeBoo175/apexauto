@@ -421,3 +421,9 @@
     width: 100%;
   }
 }
+
+.filterForm {
+  display: grid;
+  gap: 12px;
+  width: min(320px, 100%);
+}

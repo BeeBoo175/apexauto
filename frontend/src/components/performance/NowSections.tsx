@@ -1,8 +1,8 @@
 import { stageLabels, type PerformanceStageWaiting } from "@/lib/performance/performance";
 import { MeasureBars } from "./MeasureBars";
-import { PerformanceSection, type SectionState } from "./PerformanceSection";
-import { RowsSkeleton } from "./PerformanceSkeletons";
-import styles from "./Performance.module.css";
+import { DashboardSection, type SectionState } from "@/components/staff/DashboardSection";
+import { RowsSkeleton } from "@/components/staff/DashboardSkeletons";
+import dashboard from "@/components/staff/DashboardSection.module.css";
 
 function waitText(days: number | null, passes: number) {
   if (days === null || passes === 0) {
@@ -35,9 +35,9 @@ export function StageNowSection({
 }) {
   const total = stages?.stages.reduce((sum, stage) => sum + stage.inStageNow, 0) ?? 0;
   return (
-    <PerformanceSection
+    <DashboardSection
       title="Stock by stage"
-      aside={<span className={styles.panelAside}>{total} vehicles</span>}
+      aside={<span className={dashboard.panelAside}>{total} vehicles</span>}
       state={{ ...state, hasData: stages !== null }}
       placeholder={<RowsSkeleton count={6} />}
     >
@@ -57,6 +57,6 @@ export function StageNowSection({
           };
         })}
       />
-    </PerformanceSection>
+    </DashboardSection>
   );
 }

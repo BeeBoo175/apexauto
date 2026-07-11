@@ -1,10 +1,11 @@
 import { formatCurrency } from "@/lib/currency-format";
-import { compactMoney, weekLabel } from "@/lib/performance/format";
+import { weekLabel } from "@/lib/performance/format";
+import { compactMoney } from "@/lib/currency-format";
 import type { PerformanceStockFlow } from "@/lib/performance/performance";
 import { ColumnChart } from "./ColumnChart";
-import { PerformanceSection, type SectionState } from "./PerformanceSection";
+import { DashboardSection, type SectionState } from "@/components/staff/DashboardSection";
 import { ChartSkeleton } from "./PerformanceSkeletons";
-import styles from "./Performance.module.css";
+import dashboard from "@/components/staff/DashboardSection.module.css";
 
 // The agreed value delivered each week of the period, as columns on one scale with each week's amount above it.
 export function ValueTrendSection({
@@ -16,26 +17,26 @@ export function ValueTrendSection({
 }) {
   const total = flow?.weeks.reduce((sum, week) => sum + week.deliveredValue, 0) ?? 0;
   return (
-    <PerformanceSection
+    <DashboardSection
       title="Delivered value"
       half
       aside={
-        flow && <span className={styles.panelAside}>{formatCurrency(total)} in the period</span>
+        flow && <span className={dashboard.panelAside}>{formatCurrency(total)} in the period</span>
       }
       state={{ ...state, hasData: flow !== null }}
       placeholder={<ChartSkeleton />}
     >
       {flow && <ValueColumns flow={flow} />}
-    </PerformanceSection>
+    </DashboardSection>
   );
 }
 
 function ValueColumns({ flow }: { flow: PerformanceStockFlow }) {
   if (flow.weeks.length === 0) {
-    return <p className={styles.note}>No weeks in this period.</p>;
+    return <p className={dashboard.note}>No weeks in this period.</p>;
   }
   if (flow.weeks.every((week) => week.deliveredValue === 0)) {
-    return <p className={styles.note}>No sales were delivered in this period.</p>;
+    return <p className={dashboard.note}>No sales were delivered in this period.</p>;
   }
   return (
     <>

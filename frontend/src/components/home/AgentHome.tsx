@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { StaffLink } from "@/components/staff/StaffLink";
-import { PerformanceSection } from "@/components/performance/PerformanceSection";
-import { RowsSkeleton } from "@/components/performance/PerformanceSkeletons";
-import performance from "@/components/performance/Performance.module.css";
+import { DashboardSection } from "@/components/staff/DashboardSection";
+import { RowsSkeleton } from "@/components/staff/DashboardSkeletons";
+import dashboard from "@/components/staff/DashboardSection.module.css";
 import { useAgentHome } from "@/hooks/use-agent-home";
 import { useTodaySchedule } from "@/hooks/use-today-schedule";
 import type { CurrentActor } from "@/lib/auth/actor";
@@ -105,11 +105,11 @@ function OpenWorkSection({
   retry: () => void;
 }) {
   return (
-    <PerformanceSection
+    <DashboardSection
       title="Your open work"
       aside={
         work && (
-          <span className={performance.panelAside}>
+          <span className={dashboard.panelAside}>
             {work.total} open,{" "}
             <StaffLink href="/dashboard/work-calendar">open the work calendar</StaffLink>
           </span>
@@ -118,9 +118,7 @@ function OpenWorkSection({
       state={{ hasData: work !== null, busy, failed, retry }}
       placeholder={<RowsSkeleton count={5} />}
     >
-      {work && work.items.length === 0 && (
-        <p className={performance.note}>You have no open work.</p>
-      )}
+      {work && work.items.length === 0 && <p className={dashboard.note}>You have no open work.</p>}
       {work && work.items.length > 0 && (
         <ul className={styles.workList}>
           {work.items.map((item) => (
@@ -134,7 +132,7 @@ function OpenWorkSection({
           ))}
         </ul>
       )}
-    </PerformanceSection>
+    </DashboardSection>
   );
 }
 

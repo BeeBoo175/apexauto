@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { StaffLink } from "@/components/staff/StaffLink";
-import { PerformanceSection, type SectionState } from "@/components/performance/PerformanceSection";
-import performance from "@/components/performance/Performance.module.css";
-import { branchLabel, hourLabel } from "@/lib/performance/format";
+import { DashboardSection, type SectionState } from "@/components/staff/DashboardSection";
+import dashboard from "@/components/staff/DashboardSection.module.css";
+import { branchLabel } from "@/lib/branches";
+import { hourLabel } from "@/lib/calendar";
 import { calendarTime } from "@/lib/calendar";
 import type { ScheduledWork } from "@/lib/staff/work-calendar";
 import { workItemHref } from "@/lib/staff/work-calendar-presentation";
@@ -64,22 +65,22 @@ export function ScheduleSection({
   showBranch: boolean;
 }) {
   return (
-    <PerformanceSection
+    <DashboardSection
       title="Today's schedule"
       aside={
         items && (
-          <span className={performance.panelAside}>
+          <span className={dashboard.panelAside}>
             {scheduleSummary(items)},{" "}
             <StaffLink href={calendarHref}>open the work calendar</StaffLink>
           </span>
         )
       }
       state={{ ...state, hasData: items !== null }}
-      placeholder={<span className={`${performance.placeholder} ${styles.shellTimeline}`} />}
+      placeholder={<span className={`${dashboard.placeholder} ${styles.shellTimeline}`} />}
     >
-      {items && items.length === 0 && <p className={performance.note}>Nothing is booked today.</p>}
+      {items && items.length === 0 && <p className={dashboard.note}>Nothing is booked today.</p>}
       {items && items.length > 0 && <HourRows items={items} showBranch={showBranch} />}
-    </PerformanceSection>
+    </DashboardSection>
   );
 }
 

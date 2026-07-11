@@ -18,7 +18,7 @@ import { privateApiFetch } from "@/lib/api-browser";
 import { roleNames, type Role } from "@/lib/auth/actor";
 import type { CsvColumn } from "@/lib/csv";
 import { formatCurrency } from "@/lib/currency-format";
-import { branchLabel } from "@/lib/performance/format";
+import { branchLabel } from "@/lib/branches";
 import { periodQuery } from "@/lib/performance/period";
 import type { PerformancePeriod } from "@/lib/performance/performance";
 import {
@@ -36,6 +36,7 @@ import type { TeamColumn } from "./TeamColumns";
 import shared from "@/components/staff/StaffDetails.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 import styles from "./Performance.module.css";
+import dashboard from "@/components/staff/DashboardSection.module.css";
 
 type Section = "summary" | "milestones";
 
@@ -155,7 +156,7 @@ function DrawerContent<Row extends TeamPerson>({
               )
             );
           })}
-          <p className={styles.note}>
+          <p className={dashboard.note}>
             Results belong to the branch that recorded them. Elapsed times are calendar days, not
             hours worked.
           </p>

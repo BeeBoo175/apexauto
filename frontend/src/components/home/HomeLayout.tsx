@@ -6,7 +6,7 @@ import { StaffCommandBar } from "@/components/staff/StaffPage";
 import workspace from "@/components/staff/StaffWorkspace.module.css";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { RefreshButton } from "@/components/ui/RefreshButton";
-import performance from "@/components/performance/Performance.module.css";
+import dashboard from "@/components/staff/DashboardSection.module.css";
 import styles from "./Home.module.css";
 
 // The one Home frame every role shares: the command bar, a filter toolbar only where the role has something to
@@ -36,8 +36,8 @@ export function HomeLayout({
           <RefreshButton label="Refresh home" busy={false} disabled={false} onClick={onRefresh} />
         }
       />
-      <div className={`${performance.workspace} ${animateEntry ? workspace.reveal : ""}`}>
-        {toolbar && <div className={performance.toolbarFrame}>{toolbar}</div>}
+      <div className={`${dashboard.workspace} ${animateEntry ? workspace.reveal : ""}`}>
+        {toolbar && <div className={dashboard.toolbarFrame}>{toolbar}</div>}
         <LoadingProgress label="Loading home" active={busy} />
         <div className={styles.view}>
           {band}

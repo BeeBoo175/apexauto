@@ -16,6 +16,7 @@ import type { TeamTab } from "@/lib/performance/team";
 import { defaultTeamUrl } from "@/lib/performance/team-filters";
 import workspace from "@/components/staff/StaffWorkspace.module.css";
 import styles from "./Performance.module.css";
+import dashboard from "@/components/staff/DashboardSection.module.css";
 
 type PerformanceEntry = NonNullable<ReturnType<typeof usePerformanceEntry>["entry"]>;
 type View = "results" | "sales" | "workshop" | "branches";
@@ -149,9 +150,9 @@ export function PerformanceWorkspace({ entry }: { entry: PerformanceEntry }) {
           />
         }
       />
-      <div className={`${styles.workspace} ${animateEntry ? workspace.reveal : ""}`}>
+      <div className={`${dashboard.workspace} ${animateEntry ? workspace.reveal : ""}`}>
         {/* The period and branch apply to every view, so their row sits above the view tabs. */}
-        <div className={styles.toolbarFrame}>
+        <div className={dashboard.toolbarFrame}>
           <PerformanceToolbar
             teamExport={team ? (exports[current] ?? "pending") : null}
             preset={preset}

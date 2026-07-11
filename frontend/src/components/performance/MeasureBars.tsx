@@ -13,7 +13,7 @@ import {
   YAxis,
 } from "recharts";
 import { chartMargin, colors, tooltipSettings, useReducedMotion, type TipData } from "./ChartKit";
-import styles from "./Performance.module.css";
+import dashboard from "@/components/staff/DashboardSection.module.css";
 
 export interface BarItem {
   key: string;
@@ -63,7 +63,7 @@ export function MeasureBars({
   const router = useRouter();
   const reduced = useReducedMotion();
   if (items.length === 0) {
-    return <p className={styles.note}>{empty}</p>;
+    return <p className={dashboard.note}>{empty}</p>;
   }
   const data = items.map((item) => {
     const lines = [{ value: item.text }, ...(item.detail ? [{ value: item.detail }] : [])];

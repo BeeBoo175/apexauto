@@ -1,0 +1,224 @@
+/* The sections every staff dashboard page is built from: the flat white workspace, its toolbar frame, one section with a
+   heading row, and the loading silhouettes that give a section its final geometry before its figures arrive. */
+
+/* Operate mode, as on the other staff pages: the tabs and toolbar stay put and one white pane scrolls beneath them.
+   Sections sit flat on that pane, divided by hairlines, with one inset shared with the toolbar. Rows keep a fixed
+   geometry, loaded or loading, so nothing shifts when data arrives. */
+.workspace {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--color-paper);
+}
+
+/* The toolbar never gives up height to a tall view below it, and Filters sits right after the summary. */
+.toolbarFrame {
+  --record-query-max-width: max-content;
+
+  flex-shrink: 0;
+}
+
+/* One section: a heading row, then its content. */
+.panel {
+  /* Screen-reader text inside is absolutely positioned; anchoring it here keeps it inside the scrolling area instead of
+     stretching the page. */
+  position: relative;
+  display: grid;
+  grid-column: 1 / -1;
+  align-content: start;
+  gap: 16px;
+  min-width: 0;
+  padding: 20px 20px 24px;
+  border-bottom: 1px solid var(--color-line-soft);
+}
+
+/* Two sections side by side stretch to the same height; the heading stays at the top and the chart sits at the bottom,
+   so their baselines line up even when one heading wraps onto a second line. */
+.half {
+  grid-column: auto;
+  align-content: space-between;
+}
+
+.half + .half {
+  border-left: 1px solid var(--color-line-soft);
+}
+
+.panelHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 24px;
+  min-height: 24px;
+}
+
+.panelTitle {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 24px;
+}
+
+.panelAside {
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.note {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.retry {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+}
+
+/* Rows: label and value, the bar, then one line of context. */
+.rows {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.rowHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 20px;
+}
+
+.rowTall {
+  min-height: 28px;
+}
+
+.rowDetail {
+  display: block;
+  height: 18px;
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+/* A section heading block that stays at the top of its scroll pane, over the list it controls. It reaches the
+   section's edges so rows never show through beside it. */
+.stickyHead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: grid;
+  gap: 12px;
+  margin: -20px -20px 0;
+  padding: 20px 20px 0;
+  background: var(--color-paper);
+}
+
+.panelWithFoot {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+  padding-bottom: 0;
+}
+
+/* The bottom edge of a scroll pane: it stays in view and, when the list is short, rests at the pane's bottom. */
+.stickyFoot {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  margin: auto -20px 0;
+  background: var(--color-paper);
+}
+
+/* Bars share one hue: a light track and a navy fill. */
+.track {
+  display: flex;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: #e3eafa;
+}
+
+/* Loading silhouettes */
+.placeholder {
+  composes: placeholder from "./StaffRecordLoadingShell.module.css";
+}
+
+.shellLine {
+  display: block;
+  height: 12px;
+  margin-top: 4px;
+}
+
+.shellWide {
+  width: 38%;
+}
+
+.shellNarrow {
+  width: 56%;
+}
+
+.shellBar {
+  height: 8px;
+}
+
+.shellToolbar {
+  box-sizing: border-box;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  height: 57px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--color-line-soft);
+}
+
+.shellControl {
+  width: 200px;
+  height: 18px;
+}
+
+.shellTitle {
+  width: 140px;
+  height: 18px;
+  margin-block: 3px;
+}
+
+@media (max-width: 960px) {
+  .half + .half {
+    border-left: 0;
+  }
+}
+
+@media (max-width: 820px) {
+  /* Like the other staff pages on a narrow screen, the page scrolls as one instead of holding a second scroll area
+     under the heading and tabs. */
+  .workspace {
+    flex: none;
+    overflow: visible;
+  }
+
+  .panel {
+    padding: 16px 16px 20px;
+  }
+
+  .shellToolbar {
+    padding-inline: 16px;
+  }
+}

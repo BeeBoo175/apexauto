@@ -6,3 +6,15 @@ export function formatCurrency(amount: number, currency = "MYR"): string {
 
   return `${currency} ${formatted}`;
 }
+
+const compactCurrency = new Intl.NumberFormat("en-MY", {
+  style: "currency",
+  currency: "MYR",
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
+
+// Short MYR amounts for chart scales, such as "MYR 1.2M"; hovers and tables carry the exact amount.
+export function compactMoney(amount: number) {
+  return compactCurrency.format(amount);
+}

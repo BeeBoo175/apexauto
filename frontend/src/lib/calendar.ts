@@ -64,3 +64,9 @@ export function calendarTime(stamp: string, timeZone: string, locale = "en-MY", 
     hour12,
   }).format(new Date(stamp));
 }
+
+export function hourLabel(hour: number) {
+  const suffix = hour < 12 ? "am" : "pm";
+  const display = hour % 12 === 0 ? 12 : hour % 12;
+  return `${display}${suffix}`;
+}

@@ -6,10 +6,10 @@ import { BranchFilter } from "@/components/staff/BranchFilter";
 import { Button } from "@/components/ui/Button";
 import { ColumnFilterForm } from "@/components/ui/data-table/ColumnFilterForm";
 import { RecordToolbar } from "@/components/ui/RecordToolbar";
-import performance from "@/components/performance/Performance.module.css";
 import type { Page } from "@/lib/api";
 import type { Branch } from "@/lib/branches";
 import type { AppliedFilter } from "@/lib/staff/filter-summary";
+import home from "./Home.module.css";
 
 // A general manager's Home filter, built like the table pages: the Filters popover with Clear and Apply, the chosen
 // branch as a removable pill and Reset filters beside it.
@@ -85,7 +85,7 @@ function BranchForm({
         return true;
       }}
     >
-      <div className={performance.filterForm}>
+      <div className={home.filterForm}>
         <BranchFilter
           branches={branches}
           branchId={draft}

@@ -3,9 +3,10 @@ import type { PerformanceStockFlow, StockWeek } from "@/lib/performance/performa
 import { colors } from "./ChartKit";
 import { Legend } from "./Legend";
 import { LineChart } from "./LineChart";
-import { PerformanceSection, type SectionState } from "./PerformanceSection";
+import { DashboardSection, type SectionState } from "@/components/staff/DashboardSection";
 import { ChartSkeleton } from "./PerformanceSkeletons";
 import styles from "./Performance.module.css";
+import dashboard from "@/components/staff/DashboardSection.module.css";
 
 const series = [
   { key: "checkIns", label: "Checked in", color: colors.blue, href: "/dashboard/intake" },
@@ -22,13 +23,13 @@ export function StockFlowSection({
   state: SectionState;
 }) {
   return (
-    <PerformanceSection
+    <DashboardSection
       title="Vehicles in and out"
       half
       aside={
         <span className={styles.flowAside}>
           {flow && (
-            <span className={styles.panelAside}>
+            <span className={dashboard.panelAside}>
               {total(flow.weeks, "checkIns")} in, {total(flow.weeks, "deliveries")} out
             </span>
           )}
@@ -53,7 +54,7 @@ export function StockFlowSection({
           </div>
         </>
       )}
-    </PerformanceSection>
+    </DashboardSection>
   );
 }
 
@@ -63,7 +64,7 @@ function total(weeks: StockWeek[], key: "checkIns" | "deliveries") {
 
 function StockChart({ flow }: { flow: PerformanceStockFlow }) {
   if (flow.weeks.length === 0) {
-    return <p className={styles.note}>No weeks in this period.</p>;
+    return <p className={dashboard.note}>No weeks in this period.</p>;
   }
   return (
     <LineChart

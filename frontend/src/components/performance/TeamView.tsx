@@ -13,7 +13,7 @@ import { privateApiFetch } from "@/lib/api-browser";
 import { roleNames, type CurrentActor, type Role } from "@/lib/auth/actor";
 import type { CsvColumn } from "@/lib/csv";
 import { replaceUrlParams } from "@/lib/browser-url";
-import { branchLabel } from "@/lib/performance/format";
+import { branchLabel } from "@/lib/branches";
 import { periodQuery } from "@/lib/performance/period";
 import type { PerformancePeriod } from "@/lib/performance/performance";
 import {
@@ -40,8 +40,8 @@ import {
 import { TeamTableToolbar } from "./TeamTableToolbar";
 import { TeamCharts, teamStats, type OverviewLabels } from "./TeamOverview";
 import { PerformanceDrawer } from "./PerformanceDrawer";
-import { PerformanceSection } from "./PerformanceSection";
-import { RowsSkeleton } from "./PerformanceSkeletons";
+import { DashboardSection } from "@/components/staff/DashboardSection";
+import { RowsSkeleton } from "@/components/staff/DashboardSkeletons";
 import { salesColumns, teamTitles, workshopColumns, type TeamColumn } from "./TeamColumns";
 import styles from "./Performance.module.css";
 
@@ -341,7 +341,7 @@ function TeamTable<Row extends SalesRow | WorkshopRow>({
           state={sectionState}
           onOpen={openPoint}
         />
-        <PerformanceSection
+        <DashboardSection
           title="People"
           state={sectionState}
           placeholder={<RowsSkeleton count={5} tall />}
@@ -382,7 +382,7 @@ function TeamTable<Row extends SalesRow | WorkshopRow>({
             selectedRowId={drawerRow ? `${drawerRow.personId}:${drawerRow.branchId}` : undefined}
             onRowClick={setSelected}
           />
-        </PerformanceSection>
+        </DashboardSection>
       </div>
       <PerformanceDrawer
         row={drawerRow}

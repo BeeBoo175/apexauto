@@ -8,12 +8,13 @@ import { SearchField } from "@/components/ui/SearchField";
 import { DataTablePagination } from "@/components/ui/data-table/DataTablePagination";
 import { roleNames, type Role } from "@/lib/auth/actor";
 import type { PerformanceWorkload, WorkloadPerson } from "@/lib/performance/performance";
-import { branchLabel } from "@/lib/performance/format";
+import { branchLabel } from "@/lib/branches";
 import type { RoomView } from "@/lib/performance/room";
 import { Legend } from "./Legend";
-import { PerformanceSection, type SectionState } from "./PerformanceSection";
-import { RowsSkeleton } from "./PerformanceSkeletons";
+import { DashboardSection, type SectionState } from "@/components/staff/DashboardSection";
+import { RowsSkeleton } from "@/components/staff/DashboardSkeletons";
 import styles from "./Performance.module.css";
+import dashboard from "@/components/staff/DashboardSection.module.css";
 
 const ageBands = [
   { key: "under2Days", label: "Under 2 days", fill: styles.ageNew },
@@ -50,7 +51,7 @@ export function WorkloadSection({
   }, [draft, view, onView]);
   const searching = view.search.trim() !== "";
   return (
-    <PerformanceSection
+    <DashboardSection
       title="Who has room"
       aside={<AgeLegend />}
       tools={
@@ -94,7 +95,7 @@ export function WorkloadSection({
       {workload && (
         <WorkloadGroups people={workload.people} showBranch={showBranch} searching={searching} />
       )}
-    </PerformanceSection>
+    </DashboardSection>
   );
 }
 
@@ -118,7 +119,7 @@ function WorkloadGroups({
 }) {
   if (people.length === 0) {
     return (
-      <p className={styles.note}>
+      <p className={dashboard.note}>
         {searching ? "No one matches that search." : "No one in this team holds open work."}
       </p>
     );
@@ -193,7 +194,7 @@ function WorkloadRow({
         </span>
       </span>
       <span
-        className={`${styles.track} ${styles.ageTrack} ${styles.tipHost}`}
+        className={`${dashboard.track} ${styles.ageTrack} ${styles.tipHost}`}
         data-tip={`${person.under2Days} under 2 days, ${person.twoToSevenDays} at 2 to 7 days, ${person.overSevenDays} over 7 days`}
         aria-hidden="true"
       >

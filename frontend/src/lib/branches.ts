@@ -32,3 +32,9 @@ export function parseBranch(value: unknown): Branch | null {
     phone: value.phone,
   };
 }
+
+// Every branch is named "ApexAuto Bayan Lepas" and so on; on a page that is all ApexAuto the shared first word only
+// repeats, so labels show the place.
+export function branchLabel(name: string) {
+  return name.replace(/^ApexAuto\s+/, "");
+}

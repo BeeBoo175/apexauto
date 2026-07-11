@@ -3,7 +3,9 @@
 import { useAddressSection } from "@/hooks/use-address-section";
 import { Select } from "@/components/ui/Input";
 import { formatCurrency } from "@/lib/currency-format";
-import { branchLabel, compactMoney, deltaText, weekLabel } from "@/lib/performance/format";
+import { deltaText, weekLabel } from "@/lib/performance/format";
+import { branchLabel } from "@/lib/branches";
+import { compactMoney } from "@/lib/currency-format";
 import type {
   BranchRow,
   PerformanceBranches,
@@ -14,9 +16,10 @@ import type { Stat } from "./StatGrid";
 import { colors } from "./ChartKit";
 import { Legend } from "./Legend";
 import { LineChart } from "./LineChart";
-import { PerformanceSection, type SectionState } from "./PerformanceSection";
-import { RowsSkeleton } from "./PerformanceSkeletons";
+import { DashboardSection, type SectionState } from "@/components/staff/DashboardSection";
+import { RowsSkeleton } from "@/components/staff/DashboardSkeletons";
 import styles from "./Performance.module.css";
+import dashboard from "@/components/staff/DashboardSection.module.css";
 
 type MeasureKey = "delivered" | "value" | "checkedIn";
 
@@ -109,7 +112,7 @@ export function BranchSection({
   const measure = measures.find((item) => item.key === measureKey) ?? measures[0];
   const rows = branches?.branches ?? [];
   return (
-    <PerformanceSection
+    <DashboardSection
       title="Branches"
       tools={
         <div className={styles.measureSelect}>
@@ -142,7 +145,7 @@ export function BranchSection({
       placeholder={<RowsSkeleton count={3} tall />}
     >
       {rows.length === 0 ? (
-        <p className={styles.note}>No active branches to compare.</p>
+        <p className={dashboard.note}>No active branches to compare.</p>
       ) : (
         <>
           <BranchChart rows={rows} measure={measure} onOpen={onOpen} />
@@ -159,7 +162,7 @@ export function BranchSection({
           </ul>
         </>
       )}
-    </PerformanceSection>
+    </DashboardSection>
   );
 }
 
@@ -179,7 +182,9 @@ function BranchChart({
   );
   if (weeks.length === 0 || maximum === 0) {
     return (
-      <p className={styles.note}>No {measure.noun} in this period, so there is no line to draw.</p>
+      <p className={dashboard.note}>
+        No {measure.noun} in this period, so there is no line to draw.
+      </p>
     );
   }
   return (

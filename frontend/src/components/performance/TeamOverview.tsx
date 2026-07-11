@@ -26,10 +26,11 @@ import {
   type TipData,
 } from "./ChartKit";
 import { ColumnChart } from "./ColumnChart";
-import { PerformanceSection, type SectionState } from "./PerformanceSection";
+import { DashboardSection, type SectionState } from "@/components/staff/DashboardSection";
 import { ChartSkeleton } from "./PerformanceSkeletons";
 import type { Stat } from "./StatGrid";
 import styles from "./Performance.module.css";
+import dashboard from "@/components/staff/DashboardSection.module.css";
 
 export interface OverviewLabels {
   // What the volume axis counts, for example "Cars delivered".
@@ -91,13 +92,13 @@ export function TeamCharts({
 }) {
   if (state.hasData && (points.length === 0 || points.every((point) => point.volume === 0))) {
     return (
-      <PerformanceSection title={labels.spread} state={state} placeholder={<ChartSkeleton />}>
-        <p className={styles.note}>
+      <DashboardSection title={labels.spread} state={state} placeholder={<ChartSkeleton />}>
+        <p className={dashboard.note}>
           {points.length === 0
             ? "No one in this team to show."
             : `Nobody has ${labels.volume.toLowerCase()} in this period, so there is nothing to compare.`}
         </p>
-      </PerformanceSection>
+      </DashboardSection>
     );
   }
   return (
@@ -137,15 +138,15 @@ function PeopleScatter({
     } satisfies TipData,
   }));
   return (
-    <PerformanceSection
+    <DashboardSection
       title={labels.scatter}
       half
-      aside={untimed > 0 && <span className={styles.panelAside}>{untimed} not timed</span>}
+      aside={untimed > 0 && <span className={dashboard.panelAside}>{untimed} not timed</span>}
       state={state}
       placeholder={<ChartSkeleton />}
     >
       {timed.length === 0 ? (
-        <p className={styles.note}>
+        <p className={dashboard.note}>
           No one has a {labels.days.toLowerCase()} figure in this period yet.
         </p>
       ) : (
@@ -195,7 +196,7 @@ function PeopleScatter({
           </ResponsiveContainer>
         </div>
       )}
-    </PerformanceSection>
+    </DashboardSection>
   );
 }
 
@@ -215,7 +216,7 @@ function Spread({
       .length,
   }));
   return (
-    <PerformanceSection title={labels.spread} half state={state} placeholder={<ChartSkeleton />}>
+    <DashboardSection title={labels.spread} half state={state} placeholder={<ChartSkeleton />}>
       <ColumnChart
         label={`People by ${labels.volume.toLowerCase()}`}
         formatValue={String}
@@ -228,6 +229,6 @@ function Spread({
           lines: [`${group.count} ${group.count === 1 ? "person" : "people"}`],
         }))}
       />
-    </PerformanceSection>
+    </DashboardSection>
   );
 }

@@ -2,7 +2,7 @@ import { formatCurrency } from "@/lib/currency-format";
 import { deltaText } from "@/lib/performance/format";
 import type { PerformanceHeadline } from "@/lib/performance/performance";
 import { HeadlineFigures } from "./HeadlineFigures";
-import type { SectionState } from "./PerformanceSection";
+import type { SectionState } from "@/components/staff/DashboardSection";
 import type { Stat } from "./StatGrid";
 
 // The four figures a manager reads first, for the chosen period, each with its change on the period before.

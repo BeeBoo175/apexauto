@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import { StaffLink } from "@/components/staff/StaffLink";
-import performance from "@/components/performance/Performance.module.css";
+import dashboard from "@/components/staff/DashboardSection.module.css";
 import { Icon } from "@/components/ui/Icon";
 import type { IconName } from "@/lib/icons";
 import { formatCurrency } from "@/lib/currency-format";
@@ -154,15 +154,15 @@ export function AttentionBand({
   return (
     <section className={styles.band} aria-labelledby="home-attention">
       <div className={styles.bandHead}>
-        <h2 id="home-attention" className={performance.panelTitle}>
+        <h2 id="home-attention" className={dashboard.panelTitle}>
           Needs you now
         </h2>
         {ready && waiting === 0 && (
-          <span className={performance.panelAside}>Nothing waits on you</span>
+          <span className={dashboard.panelAside}>Nothing waits on you</span>
         )}
       </div>
       {!ready && failed && (
-        <p className={performance.note}>
+        <p className={dashboard.note}>
           Some figures could not be loaded, so this may be incomplete. Refresh to try again.
         </p>
       )}
@@ -204,7 +204,7 @@ function groupTotal(group: AttentionGroup) {
 
 function AttentionLines({ group, ready }: { group: AttentionGroup; ready: boolean }) {
   if (!ready) {
-    return <span className={`${performance.placeholder} ${styles.shellTile}`} />;
+    return <span className={`${dashboard.placeholder} ${styles.shellTile}`} />;
   }
   if (group.lines.length === 0) {
     return <p className={styles.allClear}>Nothing waiting</p>;

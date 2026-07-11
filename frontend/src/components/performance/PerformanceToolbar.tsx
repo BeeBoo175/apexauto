@@ -12,7 +12,7 @@ import { RecordToolbar } from "@/components/ui/RecordToolbar";
 import type { Page } from "@/lib/api";
 import type { Branch } from "@/lib/branches";
 import { dateRangeError } from "@/lib/intake/list-query";
-import { rangeText } from "@/lib/performance/format";
+import { shortDateRange } from "@/lib/date-range-label";
 import { performancePeriod, periodPresets, type PeriodPreset } from "@/lib/performance/period";
 import type { PerformancePeriod } from "@/lib/performance/performance";
 import type { AppliedFilter } from "@/lib/staff/filter-summary";
@@ -55,8 +55,8 @@ export function PerformanceToolbar({
       key: "dates",
       label:
         preset === "custom"
-          ? rangeText(period.from, period.to)
-          : `${label}, ${rangeText(period.from, period.to)}`,
+          ? shortDateRange(period.from, period.to)
+          : `${label}, ${shortDateRange(period.from, period.to)}`,
       without: { preset: "last-90", period: performancePeriod({ branchId: period.branchId }) },
     });
   }
@@ -74,7 +74,7 @@ export function PerformanceToolbar({
       ? [
           {
             key: "dates",
-            label: `Last 90 days, ${rangeText(period.from, period.to)}`,
+            label: `Last 90 days, ${shortDateRange(period.from, period.to)}`,
             without: current,
             fixed: true,
           },

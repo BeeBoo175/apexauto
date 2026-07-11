@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
-import styles from "./Performance.module.css";
+import styles from "./DashboardSection.module.css";
 
 export interface SectionState {
   hasData: boolean;
@@ -12,7 +12,7 @@ export interface SectionState {
 // One flat section with a plain title and, on its right, what reads the section (a legend or totals). While its read
 // is pending the section shows placeholders of the final geometry (`placeholder`), so the page does not move when the
 // figures arrive.
-export function PerformanceSection({
+export function DashboardSection({
   title,
   half = false,
   aside,
@@ -34,7 +34,7 @@ export function PerformanceSection({
   placeholder: ReactNode;
   children: ReactNode;
 }) {
-  const headingId = `performance-${title.toLowerCase().replace(/[^a-z]+/g, "-")}`;
+  const headingId = `dashboard-${title.toLowerCase().replace(/[^a-z]+/g, "-")}`;
   const head = (
     <div className={styles.panelHead}>
       <h2 id={headingId} className={styles.panelTitle}>
