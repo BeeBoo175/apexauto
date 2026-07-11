@@ -159,17 +159,16 @@ function TeamTable<Row extends SalesRow | WorkshopRow>({
   const [selected, setSelected] = useState<Row | null>(null);
   // The entry parsed this page with the same parser for this tab.
   const [initialPage] = useState(() => initial as TeamPage<Row> | null);
-  const read = usePerformanceSection(
-    `team/${tab}`,
+  const read = usePerformanceSection({
+    section: `team/${tab}`,
     parse,
     period,
     actor,
     refreshes,
-    `${teamTitles[tab]} team output`,
-    true,
-    `page=${page}&pageSize=${pageSize}&${teamQuery(filters)}`,
-    initialPage,
-  );
+    label: `${teamTitles[tab]} team output`,
+    extra: `page=${page}&pageSize=${pageSize}&${teamQuery(filters)}`,
+    initial: initialPage,
+  });
   const settled = read.data !== null || (read.failed && !read.busy);
   useEffect(() => {
     if (settled) {

@@ -53,39 +53,34 @@ export function HomeWorkspace({ entry }: { entry: Extract<HomeEntry, { kind: "ma
   const now = performancePeriod({ branchId });
   // Every section opens with the entry's read; a branch change or refresh reads again and keeps the figures shown
   // until the new ones arrive.
-  const pipeline = usePerformanceSection(
-    "pipeline",
-    parsePipeline,
-    now,
+  const pipeline = usePerformanceSection({
+    section: "pipeline",
+    parse: parsePipeline,
+    period: now,
     actor,
     refreshes,
-    "Sales",
-    true,
-    "",
-    entry.pipeline,
-  );
-  const stages = usePerformanceSection(
-    "stage-waiting",
-    parseStageWaiting,
-    performancePeriod({ period: "last-90", branchId }),
+    label: "Sales",
+    initial: entry.pipeline,
+  });
+  const stages = usePerformanceSection({
+    section: "stage-waiting",
+    parse: parseStageWaiting,
+    period: performancePeriod({ period: "last-90", branchId }),
     actor,
     refreshes,
-    "Stock",
-    true,
-    "",
-    entry.stages,
-  );
-  const workload = usePerformanceSection(
-    "workload",
-    parseWorkload,
-    now,
+    label: "Stock",
+    initial: entry.stages,
+  });
+  const workload = usePerformanceSection({
+    section: "workload",
+    parse: parseWorkload,
+    period: now,
     actor,
     refreshes,
-    "Who has room",
-    true,
-    workloadQuery(room),
-    entry.workload,
-  );
+    label: "Who has room",
+    extra: workloadQuery(room),
+    initial: entry.workload,
+  });
   const schedule = useTodaySchedule(actor, branchId, refreshes, entry.schedule);
   const sections = [pipeline, stages, workload, schedule];
   const sources = {

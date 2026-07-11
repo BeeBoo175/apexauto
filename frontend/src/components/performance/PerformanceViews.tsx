@@ -54,37 +54,33 @@ export function ResultsView({
     stages: PerformanceStageWaiting | null;
   };
 }) {
-  const headline = usePerformanceSection(
-    "headline",
-    parseHeadline,
+  const headline = usePerformanceSection({
+    section: "headline",
+    parse: parseHeadline,
     period,
     actor,
     refreshes,
-    "Headline",
-  );
-  const stock = usePerformanceSection(
-    "stock-flow",
-    parseStockFlow,
+    label: "Headline",
+  });
+  const stock = usePerformanceSection({
+    section: "stock-flow",
+    parse: parseStockFlow,
     period,
     actor,
     refreshes,
-    "Vehicles in and out",
-    true,
-    "",
-    initial.stock,
-  );
+    label: "Vehicles in and out",
+    initial: initial.stock,
+  });
   // The now rows ignore the period; the usual wait looks back over the last 90 days.
-  const stages = usePerformanceSection(
-    "stage-waiting",
-    parseStageWaiting,
-    performancePeriod({ period: "last-90", branchId: period.branchId }),
+  const stages = usePerformanceSection({
+    section: "stage-waiting",
+    parse: parseStageWaiting,
+    period: performancePeriod({ period: "last-90", branchId: period.branchId }),
     actor,
     refreshes,
-    "Vehicles by stage",
-    true,
-    "",
-    initial.stages,
-  );
+    label: "Vehicles by stage",
+    initial: initial.stages,
+  });
   const sections = [headline, stock, stages];
   const busy = sections.some((section) => section.busy);
   // Ready to be shown once every section has figures or has failed with its retry.
@@ -123,17 +119,15 @@ export function BranchesView({
   initial: PerformanceBranches | null;
   onSettled: () => void;
 }) {
-  const branches = usePerformanceSection(
-    "branches",
-    parseBranches,
+  const branches = usePerformanceSection({
+    section: "branches",
+    parse: parseBranches,
     period,
     actor,
     refreshes,
-    "Branch comparison",
-    true,
-    "",
+    label: "Branch comparison",
     initial,
-  );
+  });
   const settled = branches.data !== null || (branches.failed && !branches.busy);
   useEffect(() => {
     if (settled) {

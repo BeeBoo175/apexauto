@@ -1,9 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useToast } from "@/components/ui/Toast";
 import { readScheduledWork } from "@/hooks/use-work-calendar-entry";
-import type { CurrentActor } from "@/lib/auth/actor";
+import { useSectionRead } from "@/hooks/use-section-read";
+import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import { calendarDate } from "@/lib/calendar";
 import { workCalendarParams, type ScheduledWork } from "@/lib/staff/work-calendar";
 
@@ -33,55 +32,11 @@ export function useTodaySchedule(
   refreshes: number,
   initial: ScheduledWork[] | null,
 ) {
-  const [items, setItems] = useState<ScheduledWork[] | null>(initial);
-  const [busy, setBusy] = useState(initial === null);
-  const [failed, setFailed] = useState(false);
-  const [attempt, setAttempt] = useState(0);
-  const toast = useToast();
-  const reported = useRef(false);
-  const skipFirst = useRef(initial !== null);
-
-  useEffect(() => {
-    if (skipFirst.current) {
-      skipFirst.current = false;
-      return;
-    }
-    const controller = new AbortController();
-    let current = true;
-    async function load() {
-      setBusy(true);
-      try {
-        const next = await readTodaySchedule(actor, branchId, controller.signal);
-        if (!current) {
-          return;
-        }
-        setItems(next);
-        setFailed(false);
-        reported.current = false;
-      } catch {
-        if (!current) {
-          return;
-        }
-        setFailed(true);
-        if (!reported.current) {
-          reported.current = true;
-          toast.error("Today's schedule could not be loaded. Retry that section.");
-        }
-      } finally {
-        if (current) {
-          setBusy(false);
-        }
-      }
-    }
-    void load();
-    return () => {
-      current = false;
-      controller.abort();
-    };
-    // The toast is stable; the read depends on the viewer, branch, refreshes and retries.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [actor, branchId, refreshes, attempt]);
-
-  const retry = useCallback(() => setAttempt((value) => value + 1), []);
-  return { data: items, busy, failed, retry };
+  return useSectionRead({
+    key: `${actorIdentity(actor)}#${branchId}`,
+    refreshes,
+    failure: "Today's schedule could not be loaded. Retry that section.",
+    initial,
+    read: (signal) => readTodaySchedule(actor, branchId, signal),
+  });
 }
