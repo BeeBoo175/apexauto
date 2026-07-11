@@ -1,3 +1,6 @@
+using System.Diagnostics.CodeAnalysis;
+using Dealership.Domain.Common;
+
 namespace Dealership.Domain.Accounts;
 
 public enum AccountEventKind
@@ -24,7 +27,7 @@ public sealed record AccountChange(string Field, string? Before, string? After);
 // the action's operation identity. Actor and target stay referenced by identity, so later edits never rewrite it.
 public sealed class AccountEvent
 {
-    public const int ReasonMaximumLength = 1000;
+    public const int ReasonMaximumLength = BoundedText.MaximumLength;
 
     private AccountEvent()
     {
@@ -35,7 +38,7 @@ public sealed class AccountEvent
     {
         reason = reason?.Trim();
         if (operationId == Guid.Empty || targetId == Guid.Empty || actorId == Guid.Empty ||
-            !Enum.IsDefined(kind) || !IsValidReason(kind, reason) || recordedAt == default)
+            !Enum.IsDefined(kind) || !IsValidReasonFor(kind, reason) || recordedAt == default)
         {
             throw new ArgumentException("An account event requires valid identities, a known kind and its reason.");
         }
@@ -72,14 +75,19 @@ public sealed class AccountEvent
             or AccountEventKind.ResetSent or AccountEventKind.ProfileEdited or AccountEventKind.EmailChanged;
     }
 
-    private static bool IsValidReason(AccountEventKind kind, string? reason)
+    // The one rule for an administrator's reason; services trim before storing.
+    public static bool IsValidReason([NotNullWhen(true)] string? reason)
+    {
+        return BoundedText.IsValidRequired(reason);
+    }
+
+    private static bool IsValidReasonFor(AccountEventKind kind, string? reason)
     {
         if (!RequiresReason(kind))
         {
             return reason is null;
         }
 
-        return !string.IsNullOrEmpty(reason) && reason.Length <= ReasonMaximumLength &&
-            !reason.Any(char.IsControl);
+        return IsValidReason(reason);
     }
 }

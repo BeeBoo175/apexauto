@@ -1,4 +1,5 @@
 using Dealership.Application.Accounts;
+using Dealership.Domain.Common;
 using Dealership.Domain.Staff;
 using Dealership.Infrastructure.Mail;
 using Dealership.Infrastructure.Persistence;
@@ -312,9 +313,5 @@ public sealed class StaffInvitationStore(DealershipDbContext database, UserManag
 
     private static StaffInvitationResult Result(StaffInvitationStatus status) => new(status);
 
-    private DateTimeOffset Now()
-    {
-        var ticks = clock.GetUtcNow().UtcTicks;
-        return new DateTimeOffset(ticks - ticks % 10, TimeSpan.Zero);
-    }
+    private DateTimeOffset Now() => UtcTime.TruncateToMicroseconds(clock.GetUtcNow());
 }

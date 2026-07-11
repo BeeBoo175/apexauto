@@ -1,8 +1,17 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Dealership.Domain.Common;
 
 public static class BoundedText
 {
     public const int MaximumLength = 1000;
+
+    // The trimmed text is present, within the maximum and free of control characters.
+    public static bool IsValidRequired([NotNullWhen(true)] string? value)
+    {
+        var text = value?.Trim();
+        return !string.IsNullOrEmpty(text) && text.Length <= MaximumLength && !text.Any(char.IsControl);
+    }
 
     public static string? NormalizeOptional(string? value, string errorMessage)
     {

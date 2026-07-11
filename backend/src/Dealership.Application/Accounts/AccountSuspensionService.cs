@@ -9,8 +9,7 @@ public sealed class AccountSuspensionService(IAccountSuspensionStore store)
     {
         var reason = request.Reason?.Trim();
         if (administratorId == Guid.Empty || targetId == Guid.Empty || request.OperationId == Guid.Empty ||
-            string.IsNullOrEmpty(reason) || reason.Length > AccountEvent.ReasonMaximumLength ||
-            reason.Any(char.IsControl))
+            !AccountEvent.IsValidReason(reason))
         {
             return Task.FromResult(AccountSuspensionStatus.Invalid);
         }

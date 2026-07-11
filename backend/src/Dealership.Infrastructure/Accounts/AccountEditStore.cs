@@ -2,6 +2,7 @@ using System.Data;
 using System.Security.Cryptography;
 using Dealership.Application.Accounts;
 using Dealership.Domain.Accounts;
+using Dealership.Domain.Common;
 using Dealership.Infrastructure.Identity;
 using Dealership.Infrastructure.Mail;
 using Dealership.Infrastructure.Persistence;
@@ -21,24 +22,19 @@ public sealed class AccountEditStore(DealershipDbContext database, IPasswordHash
     {
         await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted,
             cancellationToken);
-        if (!await AdministratorScope.LockAdministratorAsync(database, administratorId, cancellationToken))
+        var locked = await AdministratorScope.LockTargetAsync(database, administratorId, targetId,
+            edit.OperationId, lockAdministrators: false, cancellationToken);
+        switch (locked.Outcome)
         {
-            return AccountEditStatus.Forbidden;
+            case AdministratorTargetOutcome.Forbidden:
+                return AccountEditStatus.Forbidden;
+            case AdministratorTargetOutcome.Replayed:
+                return AccountEditStatus.Succeeded;
+            case AdministratorTargetOutcome.NotFound:
+                return AccountEditStatus.NotFound;
         }
 
-        // The action's identity is the event's, so an applied edit is recognised when it is sent again.
-        if (await database.AccountEvents.AnyAsync(item => item.Id == edit.OperationId && item.TargetId == targetId,
-                cancellationToken))
-        {
-            return AccountEditStatus.Succeeded;
-        }
-
-        var user = await database.Users.FromSqlInterpolated(
-            $"SELECT * FROM \"AspNetUsers\" WHERE \"Id\" = {targetId} FOR UPDATE").SingleOrDefaultAsync(cancellationToken);
-        if (user is null)
-        {
-            return AccountEditStatus.NotFound;
-        }
+        var user = locked.User!;
 
         if (targetId == administratorId)
         {
@@ -142,13 +138,7 @@ public sealed class AccountEditStore(DealershipDbContext database, IPasswordHash
         user.NormalizedEmail = edit.Email.ToUpperInvariant();
         user.NormalizedUserName = user.NormalizedEmail;
         user.SecurityStamp = Guid.NewGuid().ToString();
-        await database.AccountSessions.Where(session => session.UserId == user.Id && session.RevokedAt == null)
-            .ExecuteUpdateAsync(update => update.SetProperty(session => session.RevokedAt, now), cancellationToken);
-        await database.PasswordResetChallenges
-            .Where(challenge => challenge.UserId == user.Id && challenge.InvalidatedAt == null &&
-                challenge.ConsumedAt == null)
-            .ExecuteUpdateAsync(update => update.SetProperty(challenge => challenge.InvalidatedAt, now),
-                cancellationToken);
+        await AccountAccessRevocation.RevokeAsync(database, user.Id, now, cancellationToken);
         await database.EmailVerificationChallenges
             .Where(challenge => challenge.UserId == user.Id && challenge.InvalidatedAt == null &&
                 challenge.ConsumedAt == null)
@@ -192,9 +182,5 @@ public sealed class AccountEditStore(DealershipDbContext database, IPasswordHash
         }
     }
 
-    private DateTimeOffset Now()
-    {
-        var ticks = clock.GetUtcNow().UtcTicks;
-        return new DateTimeOffset(ticks - ticks % 10, TimeSpan.Zero);
-    }
+    private DateTimeOffset Now() => UtcTime.TruncateToMicroseconds(clock.GetUtcNow());
 }

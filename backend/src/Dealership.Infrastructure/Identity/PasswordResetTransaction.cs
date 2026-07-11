@@ -59,8 +59,7 @@ internal sealed class PasswordResetTransaction(DealershipDbContext database, IDb
             throw new InvalidOperationException("Identity could not update the recovered credentials.");
         }
 
-        await database.AccountSessions.Where(session => session.UserId == user.Id && session.RevokedAt == null)
-            .ExecuteUpdateAsync(update => update.SetProperty(session => session.RevokedAt, resetAt), cancellationToken);
+        await AccountAccessRevocation.RevokeSessionsAsync(database, user.Id, resetAt, cancellationToken);
         _challenge!.ConsumedAt = resetAt;
         _challenge.CompletedSecurityStamp = user.SecurityStamp;
         await database.SaveChangesAsync(cancellationToken);

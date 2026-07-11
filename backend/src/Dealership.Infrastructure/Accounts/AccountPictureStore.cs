@@ -1,5 +1,6 @@
 using Dealership.Application.Accounts;
 using Dealership.Domain.Accounts;
+using Dealership.Domain.Common;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -53,9 +54,5 @@ public sealed class AccountPictureStore(DealershipDbContext database, TimeProvid
         return existing;
     }
 
-    private DateTimeOffset Now()
-    {
-        var ticks = clock.GetUtcNow().UtcTicks;
-        return new DateTimeOffset(ticks - ticks % 10, TimeSpan.Zero);
-    }
+    private DateTimeOffset Now() => UtcTime.TruncateToMicroseconds(clock.GetUtcNow());
 }

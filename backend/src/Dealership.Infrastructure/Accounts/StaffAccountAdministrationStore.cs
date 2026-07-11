@@ -1,6 +1,7 @@
 using System.Data;
 using Dealership.Application.Accounts;
 using Dealership.Domain.Accounts;
+using Dealership.Domain.Common;
 using Dealership.Infrastructure.Identity;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -14,7 +15,7 @@ public sealed class StaffAccountAdministrationStore(DealershipDbContext database
 {
     private static readonly AccountAdministrationResult SucceededResult = new(AccountAdministrationStatus.Succeeded);
 
-    public async Task<AccountBlockerResult> BlockersAsync(Guid administratorId, Guid staffId,
+    public async Task<AccountAdministrationResult> BlockersAsync(Guid administratorId, Guid staffId,
         CancellationToken cancellationToken)
     {
         if (!await AdministratorScope.IsAdministratorAsync(database, administratorId, cancellationToken))
@@ -58,7 +59,7 @@ public sealed class StaffAccountAdministrationStore(DealershipDbContext database
             user.IsActive = false;
             user.SuspendedAt = null;
             user.SecurityStamp = Guid.NewGuid().ToString();
-            await RevokeAccessAsync(user.Id, now, cancellationToken);
+            await AccountAccessRevocation.RevokeAsync(database, user.Id, now, cancellationToken);
             database.AccountEvents.Add(new AccountEvent(request.OperationId, user.Id, administratorId,
                 AccountEventKind.Deactivated, request.Reason, [new("Access", before, "Deactivated")], now));
             return SucceededResult;
@@ -126,30 +127,25 @@ public sealed class StaffAccountAdministrationStore(DealershipDbContext database
     {
         await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted,
             cancellationToken);
-        if (!await AdministratorScope.LockAdministratorAsync(database, administratorId, cancellationToken))
+        var locked = await AdministratorScope.LockTargetAsync(database, administratorId, staffId, operationId,
+            lockAdministrators: true, cancellationToken);
+        switch (locked.Outcome)
         {
-            return new(AccountAdministrationStatus.Forbidden);
+            case AdministratorTargetOutcome.Forbidden:
+                return new(AccountAdministrationStatus.Forbidden);
+            case AdministratorTargetOutcome.Replayed:
+                return SucceededResult;
+            case AdministratorTargetOutcome.NotFound:
+                return new(AccountAdministrationStatus.NotFound);
         }
 
-        // The action's identity is the event's, so an applied change is recognised when it is sent again.
-        if (await database.AccountEvents.AnyAsync(item => item.Id == operationId && item.TargetId == staffId,
-                cancellationToken))
-        {
-            return SucceededResult;
-        }
-
-        var administrators = await database.Users.FromSqlInterpolated(
-            $"SELECT * FROM \"AspNetUsers\" WHERE \"Role\" = {AccountRoles.Administrator} AND \"IsActive\" ORDER BY \"Id\" FOR UPDATE")
-            .ToListAsync(cancellationToken);
-        var user = administrators.SingleOrDefault(item => item.Id == staffId) ?? await database.Users
-            .FromSqlInterpolated($"SELECT * FROM \"AspNetUsers\" WHERE \"Id\" = {staffId} FOR UPDATE")
-            .SingleOrDefaultAsync(cancellationToken);
-        if (user is null || user.Role == AccountRoles.Customer)
+        var user = locked.User!;
+        if (user.Role == AccountRoles.Customer)
         {
             return new(AccountAdministrationStatus.NotFound);
         }
 
-        var result = await apply(user, administrators, Now());
+        var result = await apply(user, locked.Administrators!, Now());
         if (result.Status != AccountAdministrationStatus.Succeeded)
         {
             return result;
@@ -160,19 +156,5 @@ public sealed class StaffAccountAdministrationStore(DealershipDbContext database
         return result;
     }
 
-    private async Task RevokeAccessAsync(Guid userId, DateTimeOffset now, CancellationToken cancellationToken)
-    {
-        await database.AccountSessions.Where(session => session.UserId == userId && session.RevokedAt == null)
-            .ExecuteUpdateAsync(update => update.SetProperty(session => session.RevokedAt, now), cancellationToken);
-        await database.PasswordResetChallenges
-            .Where(challenge => challenge.UserId == userId && challenge.InvalidatedAt == null &&
-                challenge.ConsumedAt == null)
-            .ExecuteUpdateAsync(update => update.SetProperty(challenge => challenge.InvalidatedAt, now), cancellationToken);
-    }
-
-    private DateTimeOffset Now()
-    {
-        var ticks = clock.GetUtcNow().UtcTicks;
-        return new DateTimeOffset(ticks - ticks % 10, TimeSpan.Zero);
-    }
+    private DateTimeOffset Now() => UtcTime.TruncateToMicroseconds(clock.GetUtcNow());
 }

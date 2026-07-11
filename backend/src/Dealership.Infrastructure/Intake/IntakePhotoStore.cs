@@ -1,3 +1,4 @@
+using Dealership.Domain.Common;
 using Dealership.Domain.Photos;
 using Dealership.Application.Intake;
 using Dealership.Domain.Intake;
@@ -120,12 +121,8 @@ public sealed class IntakePhotoStore(DealershipDbContext database, TimeProvider 
         return new PhotoPreparation(status, photo, removal);
     }
 
-    private DateTimeOffset ReceiptTime()
-    {
-        // PostgreSQL stores microseconds; the first response must match persisted replay receipts exactly.
-        var ticks = clock.GetUtcNow().UtcTicks;
-        return new DateTimeOffset(ticks - ticks % 10, TimeSpan.Zero);
-    }
+    // PostgreSQL stores microseconds; the first response must match persisted replay receipts exactly.
+    private DateTimeOffset ReceiptTime() => UtcTime.TruncateToMicroseconds(clock.GetUtcNow());
 
     private async Task<bool> IsVerifiedOwnerAsync(Guid ownerId, bool lockUser, CancellationToken cancellationToken)
     {

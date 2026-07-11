@@ -2,6 +2,7 @@ using System.Data;
 using System.Security.Cryptography;
 using Dealership.Application.Accounts;
 using Dealership.Domain.Accounts;
+using Dealership.Domain.Common;
 using Dealership.Infrastructure.Identity;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
@@ -25,29 +26,20 @@ public sealed class AccountSuspensionStore(DealershipDbContext database, IPasswo
     {
         await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted,
             cancellationToken);
-        if (!await AdministratorScope.LockAdministratorAsync(database, administratorId, cancellationToken))
+        var locked = await AdministratorScope.LockTargetAsync(database, administratorId, targetId,
+            request.OperationId, lockAdministrators: true, cancellationToken);
+        switch (locked.Outcome)
         {
-            return AccountSuspensionStatus.Forbidden;
+            case AdministratorTargetOutcome.Forbidden:
+                return AccountSuspensionStatus.Forbidden;
+            case AdministratorTargetOutcome.Replayed:
+                return AccountSuspensionStatus.Succeeded;
+            case AdministratorTargetOutcome.NotFound:
+                return AccountSuspensionStatus.NotFound;
         }
 
-        // The action's identity is the event's, so an applied change is recognised when it is sent again.
-        if (await database.AccountEvents.AnyAsync(item => item.Id == request.OperationId && item.TargetId == targetId,
-                cancellationToken))
-        {
-            return AccountSuspensionStatus.Succeeded;
-        }
-
-        // Every active Administrator row is locked in a fixed order, so two suspensions can never leave none.
-        var administrators = await database.Users.FromSqlInterpolated(
-            $"SELECT * FROM \"AspNetUsers\" WHERE \"Role\" = {AccountRoles.Administrator} AND \"IsActive\" ORDER BY \"Id\" FOR UPDATE")
-            .ToListAsync(cancellationToken);
-        var user = administrators.SingleOrDefault(item => item.Id == targetId) ?? await database.Users
-            .FromSqlInterpolated($"SELECT * FROM \"AspNetUsers\" WHERE \"Id\" = {targetId} FOR UPDATE")
-            .SingleOrDefaultAsync(cancellationToken);
-        if (user is null)
-        {
-            return AccountSuspensionStatus.NotFound;
-        }
+        var user = locked.User!;
+        var administrators = locked.Administrators!;
 
         var allowed = suspend ? user.IsActive : user.SuspendedAt is not null;
         if (!allowed || (suspend && (targetId == administratorId ||
@@ -79,13 +71,7 @@ public sealed class AccountSuspensionStore(DealershipDbContext database, IPasswo
 
         if (suspend)
         {
-            await database.AccountSessions.Where(session => session.UserId == targetId && session.RevokedAt == null)
-                .ExecuteUpdateAsync(update => update.SetProperty(session => session.RevokedAt, now), cancellationToken);
-            await database.PasswordResetChallenges
-                .Where(challenge => challenge.UserId == targetId && challenge.InvalidatedAt == null &&
-                    challenge.ConsumedAt == null)
-                .ExecuteUpdateAsync(update => update.SetProperty(challenge => challenge.InvalidatedAt, now),
-                    cancellationToken);
+            await AccountAccessRevocation.RevokeAsync(database, targetId, now, cancellationToken);
         }
 
         database.AccountEvents.Add(new AccountEvent(request.OperationId, targetId, administratorId,
@@ -95,9 +81,5 @@ public sealed class AccountSuspensionStore(DealershipDbContext database, IPasswo
         return AccountSuspensionStatus.Succeeded;
     }
 
-    private DateTimeOffset Now()
-    {
-        var ticks = clock.GetUtcNow().UtcTicks;
-        return new DateTimeOffset(ticks - ticks % 10, TimeSpan.Zero);
-    }
+    private DateTimeOffset Now() => UtcTime.TruncateToMicroseconds(clock.GetUtcNow());
 }

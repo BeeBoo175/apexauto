@@ -4,6 +4,11 @@ import { apiFetch } from "@/lib/api-browser";
 import type { ApiResult, ApiRequest } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
 
+// Throttling a replay does not resolve the earlier unconfirmed write.
+export function isUnconfirmedResult(result: ApiResult<unknown>, replaying: boolean) {
+  return result.uncertain || result.status >= 500 || (replaying && result.status === 429);
+}
+
 export function useApiCommand<T>(
   path: string,
   parse: (value: unknown) => T | null,
@@ -46,8 +51,7 @@ export function useApiCommand<T>(
       if (operation.signal.aborted) {
         return null;
       }
-      // Throttling a replay does not resolve the earlier unconfirmed write.
-      if (result.uncertain || result.status >= 500 || (uncertain && result.status === 429)) {
+      if (isUnconfirmedResult(result, uncertain)) {
         throw new Error("Unconfirmed mutation");
       }
       if (

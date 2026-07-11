@@ -1,5 +1,6 @@
 using Dealership.Application.Accounts;
 using Dealership.Domain.Accounts;
+using Dealership.Domain.Common;
 using Dealership.Infrastructure.Identity;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -64,8 +65,7 @@ public sealed class CustomerSupportStore(DealershipDbContext database, TimeProvi
 
         var now = Now();
         user.SecurityStamp = Guid.NewGuid().ToString();
-        await database.AccountSessions.Where(session => session.UserId == customerId && session.RevokedAt == null)
-            .ExecuteUpdateAsync(update => update.SetProperty(session => session.RevokedAt, now), cancellationToken);
+        await AccountAccessRevocation.RevokeSessionsAsync(database, customerId, now, cancellationToken);
         database.AccountEvents.Add(new AccountEvent(request.OperationId, customerId, administratorId,
             AccountEventKind.SessionsRevoked, request.Reason, null, now));
         await database.SaveChangesAsync(cancellationToken);
@@ -107,9 +107,5 @@ public sealed class CustomerSupportStore(DealershipDbContext database, TimeProvi
         return CustomerSupportStatus.Succeeded;
     }
 
-    private DateTimeOffset Now()
-    {
-        var ticks = clock.GetUtcNow().UtcTicks;
-        return new DateTimeOffset(ticks - ticks % 10, TimeSpan.Zero);
-    }
+    private DateTimeOffset Now() => UtcTime.TruncateToMicroseconds(clock.GetUtcNow());
 }
