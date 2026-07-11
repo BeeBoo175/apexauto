@@ -18,7 +18,6 @@ public static class PerformanceQueryEndpoints
         routes.MapGet("/stock-flow", StockFlowAsync);
         routes.MapGet("/stage-waiting", StageWaitingAsync);
         routes.MapGet("/workload", WorkloadAsync);
-        routes.MapGet("/roster", RosterAsync);
         routes.MapGet("/branches", BranchComparisonAsync);
         routes.MapGet("/people/{personId:guid}/milestones", MilestonesAsync);
         routes.MapGet("/team/sales", SalesTeamAsync);
@@ -89,13 +88,6 @@ public static class PerformanceQueryEndpoints
 
         return await ReadAsync(from, to, branchId, (_, token) => reads.MilestonesAsync(
             HttpContextActor.ActorId(context), query, token), cancellationToken);
-    }
-
-    private static async Task<IResult> RosterAsync(HttpContext context, IPerformanceReads reads,
-        CancellationToken cancellationToken, string? from = null, string? to = null, Guid? branchId = null)
-    {
-        return await ReadAsync(from, to, branchId,
-            (query, token) => reads.RosterAsync(HttpContextActor.ActorId(context), query, token), cancellationToken);
     }
 
     private static async Task<IResult> SalesTeamAsync(HttpContext context, IPerformanceReads reads,

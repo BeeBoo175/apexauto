@@ -14,27 +14,27 @@ public sealed partial class PerformanceReads
 
     // Sales & service: every agent in scope appears; a manager only when they handled Intake or test drives.
     public async Task<PerformanceReadResult<PerformanceTeamPage<PerformanceSalesRow>>> SalesTeamAsync(Guid actorId,
-        PerformanceTeamQuery team, CancellationToken cancellationToken)
+        PerformanceTeamQuery query, CancellationToken cancellationToken)
     {
         await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead,
             cancellationToken);
-        var scope = await ResolveScopeAsync(actorId, team.Period, cancellationToken);
+        var scope = await ResolveScopeAsync(actorId, query.Period, cancellationToken);
         if (scope is null)
         {
             return new(PerformanceReadStatus.Forbidden);
         }
 
-        var query = team.Period;
+        var period = query.Period;
         var branchId = scope.BranchId;
         var people = await TeamPeople.ReadAsync(database, SalesTeamRoles, cancellationToken);
         var checkIns = await database.AppointmentCheckIns.AsNoTracking()
-            .Where(item => item.CheckedInAt >= query.From && item.CheckedInAt < query.Until &&
+            .Where(item => item.CheckedInAt >= period.From && item.CheckedInAt < period.Until &&
                 (branchId == null || item.BranchId == branchId))
             .GroupBy(item => new { item.StaffId, item.BranchId, Corrected = item.CorrectionRecordedAt != null })
             .Select(group => new { group.Key.StaffId, group.Key.BranchId, group.Key.Corrected, Count = group.Count() })
             .ToListAsync(cancellationToken);
         var drives = await database.TestDriveOutcomes.AsNoTracking()
-            .Where(item => item.EndedAt >= query.From && item.EndedAt < query.Until &&
+            .Where(item => item.EndedAt >= period.From && item.EndedAt < period.Until &&
                 (branchId == null || item.BranchId == branchId))
             .GroupBy(item => new { item.StaffId, item.BranchId, item.Kind })
             .Select(group => new { group.Key.StaffId, group.Key.BranchId, group.Key.Kind, Count = group.Count() })
@@ -42,12 +42,12 @@ public sealed partial class PerformanceReads
         var sales = await (from entry in database.SalesOrderEvents.AsNoTracking()
                            join order in database.SalesOrders.AsNoTracking() on entry.SalesOrderId equals order.Id
                            where (entry.Kind == SalesOrderEventKind.Settled || entry.Kind == SalesOrderEventKind.Delivered) &&
-                               entry.RecordedAt >= query.From && entry.RecordedAt < query.Until &&
+                               entry.RecordedAt >= period.From && entry.RecordedAt < period.Until &&
                                (branchId == null || order.BranchId == branchId)
                            group entry by new { PersonId = entry.ActorId!.Value, order.BranchId, entry.Kind } into grouped
                            select new { grouped.Key.PersonId, grouped.Key.BranchId, grouped.Key.Kind, Count = grouped.Count() })
             .ToListAsync(cancellationToken);
-        var deliveryIntervals = await DeliveryIntervalsAsync(query, branchId, cancellationToken);
+        var deliveryIntervals = await DeliveryIntervalsAsync(period, branchId, cancellationToken);
         var intake = await IntakeWorkAsync(branchId, await database.DatabaseNowAsync(cancellationToken), cancellationToken);
         var driving = await TestDriveWorkAsync(branchId, cancellationToken);
         var handled = await SaleWorkAsync(branchId, cancellationToken);
@@ -84,7 +84,7 @@ public sealed partial class PerformanceReads
                 current ? driving.Count(item => item.Item1 == personId) : null,
                 current ? handled.Count(item => item.Item1 == personId) : null);
         });
-        return new(PerformanceReadStatus.Succeeded, PageOf(scope, team, rows, SalesColumns,
+        return new(PerformanceReadStatus.Succeeded, PageOf(scope, query, rows, SalesColumns,
             row => new PerformanceTeamPoint(row.PersonId, row.BranchId, row.Name, row.SalesDelivered,
                 row.AssignmentToDeliveryDays)));
     }

@@ -15,11 +15,11 @@ public sealed partial class PerformanceReads
     // Open work now, held by people who are currently in scope. Age runs from the current holder's assignment, so a
     // reassigned item starts again for its new holder.
     public async Task<PerformanceReadResult<PerformanceWorkload>> WorkloadAsync(Guid actorId,
-        PerformanceWorkloadQuery workload, CancellationToken cancellationToken)
+        PerformanceWorkloadQuery query, CancellationToken cancellationToken)
     {
         await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead,
             cancellationToken);
-        var scope = await ResolveScopeAsync(actorId, workload.Period, cancellationToken);
+        var scope = await ResolveScopeAsync(actorId, query.Period, cancellationToken);
         if (scope is null)
         {
             return new(PerformanceReadStatus.Forbidden);
@@ -64,15 +64,15 @@ public sealed partial class PerformanceReads
 
         // Stretched people come first as a state, never a ranking; a reader of every branch sees branches in order.
         // Within each group people stay in alphabetical order, so a page boundary never depends on a measure.
-        var matching = holders.Where(person => InTeam(person, workload.Team) && Matches(person, workload.Search))
+        var matching = holders.Where(person => InTeam(person, query.Team) && Matches(person, query.Search))
             .OrderBy(person => person.OverSevenDays > 0 ? 0 : 1)
             .ThenBy(person => branchId == null ? person.BranchName : string.Empty, StringComparer.Ordinal)
             .ThenBy(person => person.Name, StringComparer.Ordinal).ThenBy(person => person.Id).ToArray();
-        var page = matching.Skip((workload.Page - 1) * workload.PageSize).Take(workload.PageSize).ToArray();
+        var page = matching.Skip((query.Page - 1) * query.PageSize).Take(query.PageSize).ToArray();
         return new(PerformanceReadStatus.Succeeded, new PerformanceWorkload(scope.Actor, page, matching.Length,
             holders.Count(person => InTeam(person, PerformanceWorkloadQuery.SalesTeam)),
             holders.Count(person => InTeam(person, PerformanceWorkloadQuery.WorkshopTeam)),
-            holders.Count(person => person.OverSevenDays > 0), workload.Page, workload.PageSize));
+            holders.Count(person => person.OverSevenDays > 0), query.Page, query.PageSize));
     }
 
     private static bool InTeam(PerformanceWorkloadPerson person, string team)

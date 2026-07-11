@@ -51,7 +51,7 @@ public sealed class AccountSuspensionStore(DealershipDbContext database, IPasswo
 
         var allowed = suspend ? user.IsActive : user.SuspendedAt is not null;
         if (!allowed || (suspend && (targetId == administratorId ||
-            (user.Role == AccountRoles.Administrator && administrators.Count(item => item.Id != targetId) == 0))))
+            (user.Role == AccountRoles.Administrator && !administrators.Any(item => item.Id != targetId)))))
         {
             return AccountSuspensionStatus.Conflict;
         }

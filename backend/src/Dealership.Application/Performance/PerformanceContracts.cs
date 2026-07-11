@@ -113,11 +113,6 @@ public sealed record PerformanceWorkloadQuery(PerformanceQuery Period, string Te
     }
 }
 
-// Booked Intake appointments and test drives in the period by Malaysian weekday (Monday is 0) and clock hour.
-public sealed record PerformanceRosterCell(int Weekday, int Hour, int Appointments, int TestDrives);
-
-public sealed record PerformanceRoster(CurrentActor Actor, IReadOnlyList<PerformanceRosterCell> Cells);
-
 // One row per active branch for a GeneralManager, with the headline measures of the period and the one before it.
 // Weeks are this branch's own weekly flow over the period, so branches can be read as lines over time.
 public sealed record PerformanceBranchRow(Guid BranchId, string BranchName, PerformancePeriodTotals Current,
@@ -147,9 +142,6 @@ public interface IPerformanceReads
 
     Task<PerformanceReadResult<PerformanceMilestonePage>> MilestonesAsync(Guid actorId,
         PerformanceMilestoneQuery query, CancellationToken cancellationToken);
-
-    Task<PerformanceReadResult<PerformanceRoster>> RosterAsync(Guid actorId, PerformanceQuery query,
-        CancellationToken cancellationToken);
 
     Task<PerformanceReadResult<PerformanceTeamPage<PerformanceSalesRow>>> SalesTeamAsync(Guid actorId,
         PerformanceTeamQuery query, CancellationToken cancellationToken);

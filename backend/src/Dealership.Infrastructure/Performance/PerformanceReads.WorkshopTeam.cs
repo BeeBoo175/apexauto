@@ -11,24 +11,24 @@ public sealed partial class PerformanceReads
 
     // Workshop: every technician in scope appears, with first inspections and re-inspections kept apart.
     public async Task<PerformanceReadResult<PerformanceTeamPage<PerformanceWorkshopRow>>> WorkshopTeamAsync(
-        Guid actorId, PerformanceTeamQuery team, CancellationToken cancellationToken)
+        Guid actorId, PerformanceTeamQuery query, CancellationToken cancellationToken)
     {
         await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead,
             cancellationToken);
-        var scope = await ResolveScopeAsync(actorId, team.Period, cancellationToken);
+        var scope = await ResolveScopeAsync(actorId, query.Period, cancellationToken);
         if (scope is null)
         {
             return new(PerformanceReadStatus.Forbidden);
         }
 
-        var query = team.Period;
+        var period = query.Period;
         var branchId = scope.BranchId;
         var people = await TeamPeople.ReadAsync(database, WorkshopTeamRoles, cancellationToken);
         var signed = await (from item in database.InspectionSignedRevisions.AsNoTracking()
                             join assignment in database.InspectionAssignments.AsNoTracking() on
                                 new { item.InspectionId, Version = item.AssignmentVersion } equals
                                 new { assignment.InspectionId, assignment.Version }
-                            where item.SignedAt >= query.From && item.SignedAt < query.Until &&
+                            where item.SignedAt >= period.From && item.SignedAt < period.Until &&
                                 (branchId == null || item.BranchId == branchId)
                             select new
                             {
@@ -43,7 +43,7 @@ public sealed partial class PerformanceReads
                                     .Select(reopening => (DateTimeOffset?)reopening.RecordedAt).FirstOrDefault()
                             }).ToListAsync(cancellationToken);
         var repairs = await database.InspectionRepairCompletions.AsNoTracking()
-            .Where(item => item.CompletedAt >= query.From && item.CompletedAt < query.Until &&
+            .Where(item => item.CompletedAt >= period.From && item.CompletedAt < period.Until &&
                 (branchId == null || item.BranchId == branchId))
             .GroupBy(item => new { item.ActorId, item.BranchId })
             .Select(group => new { group.Key.ActorId, group.Key.BranchId, Count = group.Count() })
@@ -73,7 +73,7 @@ public sealed partial class PerformanceReads
                 current ? drafts.Count(item => item.Item1 == personId) : null,
                 current ? openRepairs.Count(item => item.Item1 == personId) : null);
         });
-        return new(PerformanceReadStatus.Succeeded, PageOf(scope, team, rows, WorkshopColumns,
+        return new(PerformanceReadStatus.Succeeded, PageOf(scope, query, rows, WorkshopColumns,
             row => new PerformanceTeamPoint(row.PersonId, row.BranchId, row.Name, row.InspectionsSigned,
                 row.AssignmentToSignOffDays)));
     }

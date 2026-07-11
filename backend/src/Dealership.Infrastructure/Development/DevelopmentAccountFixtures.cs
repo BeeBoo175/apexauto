@@ -50,8 +50,8 @@ public sealed class DevelopmentAccountFixtures(DealershipDbContext database, Dev
 
         foreach (var customer in DevelopmentFixtureManifest.Customers)
         {
-            if (await IsSuspendedByLifecycleAsync(u => u.NormalizedEmail == customer.Registration.Email!.ToUpperInvariant(),
-                    cancellationToken))
+            var normalizedEmail = customer.Registration.Email!.ToUpperInvariant();
+            if (await IsSuspendedByLifecycleAsync(u => u.NormalizedEmail == normalizedEmail, cancellationToken))
             {
                 reports.Add(new($"Customer ({customer.Registration.Email})", "matches (suspended)", false));
                 continue;
@@ -86,11 +86,14 @@ public sealed class DevelopmentAccountFixtures(DealershipDbContext database, Dev
 
     // A fixture account the lifecycle run suspended is inactive on purpose, so the baseline check leaves it alone.
     private Task<bool> IsSuspendedByLifecycleAsync(System.Linq.Expressions.Expression<Func<AccountUser, bool>> account,
-        CancellationToken cancellationToken) =>
-        database.Users.AsNoTracking().Where(account).AnyAsync(user => user.SuspendedAt != null &&
+        CancellationToken cancellationToken)
+    {
+        var suspendedCustomerEmail = DevelopmentLifecycleManifest.SuspendedCustomerEmail.ToUpperInvariant();
+        return database.Users.AsNoTracking().Where(account).AnyAsync(user => user.SuspendedAt != null &&
             (user.Id == DevelopmentLifecycleManifest.SuspendedStaffId ||
-                user.NormalizedEmail == DevelopmentLifecycleManifest.SuspendedCustomerEmail.ToUpperInvariant()),
+                user.NormalizedEmail == suspendedCustomerEmail),
             cancellationToken);
+    }
 
     private async Task<DevelopmentFixtureReport> ReviewStaffAsync(StaffProvisioningRequest requested,
         CancellationToken cancellationToken)

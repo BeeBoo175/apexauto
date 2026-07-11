@@ -12,18 +12,18 @@ public sealed partial class PerformanceReads
     // One employee's completed work in the period, newest first. Rows keep the branch recorded at the event, and a
     // manager only sees events of their own branch, so every row they see is a record they can open.
     public async Task<PerformanceReadResult<PerformanceMilestonePage>> MilestonesAsync(Guid actorId,
-        PerformanceMilestoneQuery milestones, CancellationToken cancellationToken)
+        PerformanceMilestoneQuery query, CancellationToken cancellationToken)
     {
         await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead,
             cancellationToken);
-        var query = milestones.Period;
-        var scope = await ResolveScopeAsync(actorId, query, cancellationToken);
+        var period = query.Period;
+        var scope = await ResolveScopeAsync(actorId, period, cancellationToken);
         if (scope is null)
         {
             return new(PerformanceReadStatus.Forbidden);
         }
 
-        var personId = milestones.PersonId;
+        var personId = query.PersonId;
         var name = await database.StaffProfiles.AsNoTracking().Where(profile => profile.UserId == personId)
             .Select(profile => profile.Name).SingleOrDefaultAsync(cancellationToken);
         if (name is null)
@@ -33,23 +33,23 @@ public sealed partial class PerformanceReads
 
         var branchId = scope.BranchId;
         var found = new List<Milestone>();
-        found.AddRange(await CheckInMilestonesAsync(personId, branchId, query, cancellationToken));
-        found.AddRange(await DriveMilestonesAsync(personId, branchId, query, cancellationToken));
-        found.AddRange(await SaleMilestonesAsync(personId, branchId, query, cancellationToken));
-        found.AddRange(await WorkshopMilestonesAsync(personId, branchId, query, cancellationToken));
+        found.AddRange(await CheckInMilestonesAsync(personId, branchId, period, cancellationToken));
+        found.AddRange(await DriveMilestonesAsync(personId, branchId, period, cancellationToken));
+        found.AddRange(await SaleMilestonesAsync(personId, branchId, period, cancellationToken));
+        found.AddRange(await WorkshopMilestonesAsync(personId, branchId, period, cancellationToken));
         var branches = await database.Branches.AsNoTracking().ToDictionaryAsync(branch => branch.Id,
             branch => branch.Name, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
         var ordered = found.OrderByDescending(item => item.At).ThenBy(item => item.RecordId).ThenBy(item => item.Kind)
             .ToArray();
-        var items = ordered.Skip((milestones.Page - 1) * milestones.PageSize).Take(milestones.PageSize)
+        var items = ordered.Skip((query.Page - 1) * query.PageSize).Take(query.PageSize)
             .Select(item => new PerformanceMilestone(item.Kind, item.At, item.BranchId,
                 branches.GetValueOrDefault(item.BranchId, string.Empty), item.Reference, item.RecordKind,
                 item.RecordId, item.AgreedTotal, HasAccess(scope.Actor, item.BranchId)))
             .ToArray();
         return new(PerformanceReadStatus.Succeeded, new PerformanceMilestonePage(scope.Actor, personId, name, items,
-            ordered.Length, milestones.Page, milestones.PageSize));
+            ordered.Length, query.Page, query.PageSize));
     }
 
     private static bool HasAccess(CurrentActor viewer, Guid eventBranchId)

@@ -43,7 +43,7 @@ public sealed class StaffAccountAdministrationStore(DealershipDbContext database
             }
 
             if (user.Id == administratorId || (user.Role == AccountRoles.Administrator && user.IsActive &&
-                administrators.Count(item => item.Id != user.Id) == 0))
+                !administrators.Any(item => item.Id != user.Id)))
             {
                 return Conflict();
             }

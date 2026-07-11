@@ -18,6 +18,7 @@ public sealed class AccountSuspensionTests(IntakePhotoFixture fixture) : IClassF
         await StaffInvitationTests.SignInAdministratorAsync(factory, admin);
         using var customer = factory.CreateClient();
         var registration = await IntakePhotoFixture.RegisterAsync(customer);
+        Assert.NotNull(registration.Email);
         var customerId = await CustomerIdAsync(factory, registration.Email);
         Assert.Equal(HttpStatusCode.OK, (await customer.GetAsync("/api/account/profile")).StatusCode);
 

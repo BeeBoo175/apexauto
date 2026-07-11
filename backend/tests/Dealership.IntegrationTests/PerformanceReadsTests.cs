@@ -67,14 +67,7 @@ public sealed class PerformanceReadsTests(IntakePhotoFixture fixture) : IClassFi
         Assert.Equal(PerformanceReadStatus.Forbidden, (await reads.StageWaitingAsync(world.Agent, query, default)).Status);
         var workloadAfter = (await reads.WorkloadAsync(world.Manager, everyone, default)).Value!;
         Assert.Equal(agent.Total - 1, workloadAfter.People.SingleOrDefault(person => person.Id == world.Agent)?.Total ?? 0);
-        var roster = (await reads.RosterAsync(world.Manager, query, default)).Value!;
-        Assert.All(roster.Cells, cell =>
-        {
-            Assert.InRange(cell.Weekday, 0, 6);
-            Assert.InRange(cell.Hour, 0, 23);
-        });
         Assert.Equal(PerformanceReadStatus.Forbidden, (await reads.WorkloadAsync(world.Agent, everyone, default)).Status);
-        Assert.Equal(PerformanceReadStatus.Forbidden, (await reads.RosterAsync(world.Agent, query, default)).Status);
         var team = PerformanceTeamQuery.Parse(query, 1, 25)!;
         var salesTeam = (await reads.SalesTeamAsync(world.Manager, team, default)).Value!;
         var agentRow = salesTeam.Items.Single(row => row.PersonId == world.Agent);
