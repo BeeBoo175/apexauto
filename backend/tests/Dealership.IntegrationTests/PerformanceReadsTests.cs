@@ -19,27 +19,32 @@ public sealed class PerformanceReadsTests(IntakePhotoFixture fixture) : IClassFi
     public async Task DeliveredSaleMovesTheHeadlineAndPipelineOfItsBranchManager()
     {
         var world = await SaleWorld.SharedAsync(fixture);
-        var reads = world.Services.GetRequiredService<IPerformanceReads>();
+        var summary = world.Services.GetRequiredService<IPerformanceSummaryReads>();
+        var stock = world.Services.GetRequiredService<IPerformanceStockReads>();
+        var workloads = world.Services.GetRequiredService<IPerformanceWorkloadReads>();
+        var milestoneReads = world.Services.GetRequiredService<IPerformanceMilestoneReads>();
+        var salesTeams = world.Services.GetRequiredService<IPerformanceSalesTeamReads>();
+        var workshopTeams = world.Services.GetRequiredService<IPerformanceWorkshopTeamReads>();
         var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, DealershipLocale.Malaysia).DateTime);
         var query = PerformanceQuery.Parse(today.AddDays(-1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             today.AddDays(1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), null)!;
-        var before = (await reads.HeadlineAsync(world.Manager, query, default)).Value!;
-        var pipelineBefore = (await reads.PipelineAsync(world.Manager, query, default)).Value!;
+        var before = (await summary.HeadlineAsync(world.Manager, query, default)).Value!;
+        var pipelineBefore = (await summary.PipelineAsync(world.Manager, query, default)).Value!;
 
-        var flowBefore = (await reads.StockFlowAsync(world.Manager, query, default)).Value!;
-        var stagesBefore = (await reads.StageWaitingAsync(world.Manager, query, default)).Value!;
+        var flowBefore = (await stock.StockFlowAsync(world.Manager, query, default)).Value!;
+        var stagesBefore = (await stock.StageWaitingAsync(world.Manager, query, default)).Value!;
         var (held, request, total) = await SettledAsync(world);
         var everyone = PerformanceWorkloadQuery.Parse(query, null, null, 1, 50)!;
-        var workload = (await reads.WorkloadAsync(world.Manager, everyone, default)).Value!;
+        var workload = (await workloads.WorkloadAsync(world.Manager, everyone, default)).Value!;
         var agent = workload.People.Single(person => person.Id == world.Agent);
         Assert.Equal(world.Manager, workload.Actor.UserId);
         Assert.Equal(AccountRoles.SalesAgent, agent.Role);
         Assert.True(agent.Under2Days >= 1);
         Assert.DoesNotContain(workload.People, person => person.Id == world.OtherBranchAgent);
-        var stagesSettled = (await reads.StageWaitingAsync(world.Manager, query, default)).Value!;
+        var stagesSettled = (await stock.StageWaitingAsync(world.Manager, query, default)).Value!;
         Assert.Equal(StageNow(stagesBefore, PerformanceStages.SaleInProgress) + 1,
             StageNow(stagesSettled, PerformanceStages.SaleInProgress));
-        var settledGroup = (await reads.PipelineAsync(world.Manager, query, default)).Value!.Groups
+        var settledGroup = (await summary.PipelineAsync(world.Manager, query, default)).Value!.Groups
             .Single(group => group.Group == PerformancePipelineGroups.SettledUndelivered);
         var settledBefore = pipelineBefore.Groups.Single(group => group.Group == PerformancePipelineGroups.SettledUndelivered);
         Assert.Equal(settledBefore.Count + 1, settledGroup.Count);
@@ -47,29 +52,29 @@ public sealed class PerformanceReadsTests(IntakePhotoFixture fixture) : IClassFi
 
         Assert.Equal(SaleResultStatus.Succeeded, (await world.Services.GetRequiredService<SaleHandoverService>()
             .DeliverAsync(world.Agent, held.Id, request, default)).Status);
-        var after = (await reads.HeadlineAsync(world.Manager, query, default)).Value!;
+        var after = (await summary.HeadlineAsync(world.Manager, query, default)).Value!;
         Assert.Equal(before.Current.VehiclesDelivered + 1, after.Current.VehiclesDelivered);
         Assert.Equal(before.Current.DeliveredValue + total, after.Current.DeliveredValue);
         Assert.Equal(before.Current.ListedCount + 1, after.Current.ListedCount);
         Assert.NotNull(after.Current.CheckInToListedDays);
         Assert.Equal(0, after.Previous.VehiclesDelivered);
-        var settledAfter = (await reads.PipelineAsync(world.Manager, query, default)).Value!.Groups
+        var settledAfter = (await summary.PipelineAsync(world.Manager, query, default)).Value!.Groups
             .Single(group => group.Group == PerformancePipelineGroups.SettledUndelivered);
         Assert.Equal(settledBefore.Count, settledAfter.Count);
 
-        var stagesAfter = (await reads.StageWaitingAsync(world.Manager, query, default)).Value!;
+        var stagesAfter = (await stock.StageWaitingAsync(world.Manager, query, default)).Value!;
         Assert.Equal(StageNow(stagesBefore, PerformanceStages.SaleInProgress),
             StageNow(stagesAfter, PerformanceStages.SaleInProgress));
         var delivery = stagesAfter.Stages.Single(stage => stage.Stage == PerformanceStages.SaleInProgress);
         Assert.Equal(stagesBefore.Stages.Single(stage => stage.Stage == PerformanceStages.SaleInProgress).CompletedCount + 1,
             delivery.CompletedCount);
         Assert.NotNull(delivery.AverageDays);
-        Assert.Equal(PerformanceReadStatus.Forbidden, (await reads.StageWaitingAsync(world.Agent, query, default)).Status);
-        var workloadAfter = (await reads.WorkloadAsync(world.Manager, everyone, default)).Value!;
+        Assert.Equal(PerformanceReadStatus.Forbidden, (await stock.StageWaitingAsync(world.Agent, query, default)).Status);
+        var workloadAfter = (await workloads.WorkloadAsync(world.Manager, everyone, default)).Value!;
         Assert.Equal(agent.Total - 1, workloadAfter.People.SingleOrDefault(person => person.Id == world.Agent)?.Total ?? 0);
-        Assert.Equal(PerformanceReadStatus.Forbidden, (await reads.WorkloadAsync(world.Agent, everyone, default)).Status);
+        Assert.Equal(PerformanceReadStatus.Forbidden, (await workloads.WorkloadAsync(world.Agent, everyone, default)).Status);
         var team = PerformanceTeamQuery.Parse(query, 1, 25)!;
-        var salesTeam = (await reads.SalesTeamAsync(world.Manager, team, default)).Value!;
+        var salesTeam = (await salesTeams.SalesTeamAsync(world.Manager, team, default)).Value!;
         var agentRow = salesTeam.Items.Single(row => row.PersonId == world.Agent);
         Assert.Equal(PerformancePersonStatuses.Active, agentRow.Status);
         Assert.True(agentRow.SalesSettled >= 1);
@@ -82,24 +87,24 @@ public sealed class PerformanceReadsTests(IntakePhotoFixture fixture) : IClassFi
 
         // The table's search, status, minimum and sort shape its rows only; the charts' points still cover everyone.
         var searched = PerformanceTeamFilter.Parse(agentRow.Name, null, null, "salesDelivered", "desc", null)!;
-        var narrowed = (await reads.SalesTeamAsync(world.Manager, team with { Filter = searched }, default)).Value!;
+        var narrowed = (await salesTeams.SalesTeamAsync(world.Manager, team with { Filter = searched }, default)).Value!;
         Assert.Contains(narrowed.Items, row => row.PersonId == world.Agent);
         Assert.All(narrowed.Items, row => Assert.Contains(agentRow.Name, row.Name, StringComparison.OrdinalIgnoreCase));
         Assert.Equal(salesTeam.Points.Count, narrowed.Points.Count);
         var none = PerformanceTeamFilter.Parse("no one has this name", null, null, null, null, null)!;
-        Assert.Empty((await reads.SalesTeamAsync(world.Manager, team with { Filter = none }, default)).Value!.Items);
+        Assert.Empty((await salesTeams.SalesTeamAsync(world.Manager, team with { Filter = none }, default)).Value!.Items);
         var impossible = PerformanceTeamFilter.Parse(null, null, null, null, null, "salesDelivered:1000000")!;
-        Assert.Equal(0, (await reads.SalesTeamAsync(world.Manager, team with { Filter = impossible }, default)).Value!.Total);
+        Assert.Equal(0, (await salesTeams.SalesTeamAsync(world.Manager, team with { Filter = impossible }, default)).Value!.Total);
         Assert.Null(PerformanceTeamFilter.Parse(null, null, "Retired", null, null, null));
         Assert.Null(PerformanceTeamFilter.Parse(null, null, null, null, "sideways", null));
-        var workshopTeam = (await reads.WorkshopTeamAsync(world.Manager, team, default)).Value!;
+        var workshopTeam = (await workshopTeams.WorkshopTeamAsync(world.Manager, team, default)).Value!;
         Assert.All(workshopTeam.Items, row => Assert.Equal(AccountRoles.WorkshopTechnician, row.Role));
-        Assert.Equal(PerformanceReadStatus.Forbidden, (await reads.SalesTeamAsync(world.Agent, team, default)).Status);
-        Assert.Equal(PerformanceReadStatus.Forbidden, (await reads.WorkshopTeamAsync(world.Agent, team, default)).Status);
-        var secondPage = (await reads.SalesTeamAsync(world.Manager, team with { Page = 99 }, default)).Value!;
+        Assert.Equal(PerformanceReadStatus.Forbidden, (await salesTeams.SalesTeamAsync(world.Agent, team, default)).Status);
+        Assert.Equal(PerformanceReadStatus.Forbidden, (await workshopTeams.WorkshopTeamAsync(world.Agent, team, default)).Status);
+        var secondPage = (await salesTeams.SalesTeamAsync(world.Manager, team with { Page = 99 }, default)).Value!;
         Assert.Empty(secondPage.Items);
         Assert.Equal(salesTeam.Total, secondPage.Total);
-        Assert.Equal(PerformanceReadStatus.Forbidden, (await reads.BranchComparisonAsync(world.Manager, query, default)).Status);
+        Assert.Equal(PerformanceReadStatus.Forbidden, (await summary.BranchComparisonAsync(world.Manager, query, default)).Status);
         var generalEmail = $"general.{Guid.NewGuid():N}@example.invalid";
         var general = await world.Services.GetRequiredService<StaffProvisioningService>().ProvisionStaffAsync(
             new(Guid.NewGuid(), generalEmail, "Password123!",
@@ -108,15 +113,15 @@ public sealed class PerformanceReadsTests(IntakePhotoFixture fixture) : IClassFi
         await using var lookup = new DealershipDbContext(new DbContextOptionsBuilder<DealershipDbContext>()
             .UseNpgsql(fixture.Database.RuntimeConnectionString).Options);
         var generalId = await lookup.Users.Where(user => user.Email == generalEmail).Select(user => user.Id).SingleAsync();
-        var comparison = (await reads.BranchComparisonAsync(generalId, query, default)).Value!;
+        var comparison = (await summary.BranchComparisonAsync(generalId, query, default)).Value!;
         var ownBranch = comparison.Branches.Single(branch => branch.BranchId == after.Actor.BranchId);
         Assert.Equal(after.Current.VehiclesDelivered, ownBranch.Current.VehiclesDelivered);
         Assert.Equal(after.Current.DeliveredValue, ownBranch.Current.DeliveredValue);
         Assert.Equal(comparison.Branches.Select(branch => branch.BranchName).Order(),
             comparison.Branches.Select(branch => branch.BranchName));
-        var everywhere = (await reads.HeadlineAsync(generalId, query, default)).Value!;
+        var everywhere = (await summary.HeadlineAsync(generalId, query, default)).Value!;
         Assert.Equal(comparison.Branches.Sum(branch => branch.Current.VehiclesDelivered), everywhere.Current.VehiclesDelivered);
-        var milestones = (await reads.MilestonesAsync(world.Manager,
+        var milestones = (await milestoneReads.MilestonesAsync(world.Manager,
             PerformanceMilestoneQuery.Parse(query, world.Agent, 1, 25)!, default)).Value!;
         var delivered = milestones.Items.Single(item => item.Kind == PerformanceMilestoneKinds.SaleDelivered);
         Assert.Equal(total, delivered.AgreedTotal);
@@ -125,21 +130,21 @@ public sealed class PerformanceReadsTests(IntakePhotoFixture fixture) : IClassFi
         Assert.Contains(milestones.Items, item => item.Kind == PerformanceMilestoneKinds.SaleSettled && item.AgreedTotal is null);
         Assert.Equal(milestones.Items.OrderByDescending(item => item.At).Select(item => item.RecordId),
             milestones.Items.Select(item => item.RecordId));
-        Assert.Equal(PerformanceReadStatus.NotFound, (await reads.MilestonesAsync(world.Manager,
+        Assert.Equal(PerformanceReadStatus.NotFound, (await milestoneReads.MilestonesAsync(world.Manager,
             PerformanceMilestoneQuery.Parse(query, Guid.NewGuid(), 1, 25)!, default)).Status);
-        Assert.Equal(PerformanceReadStatus.Forbidden, (await reads.MilestonesAsync(world.Agent,
+        Assert.Equal(PerformanceReadStatus.Forbidden, (await milestoneReads.MilestonesAsync(world.Agent,
             PerformanceMilestoneQuery.Parse(query, world.Agent, 1, 25)!, default)).Status);
-        var flowAfter = (await reads.StockFlowAsync(world.Manager, query, default)).Value!;
+        var flowAfter = (await stock.StockFlowAsync(world.Manager, query, default)).Value!;
         Assert.Equal(flowBefore.Weeks.Sum(week => week.Deliveries) + 1, flowAfter.Weeks.Sum(week => week.Deliveries));
         Assert.Equal(flowBefore.Weeks.Sum(week => week.DeliveredValue) + total,
             flowAfter.Weeks.Sum(week => week.DeliveredValue));
         Assert.Equal(after.Current.DeliveredValue, flowAfter.Weeks.Sum(week => week.DeliveredValue));
         Assert.All(flowAfter.Weeks, week => Assert.Equal(DayOfWeek.Monday, week.WeekStart.DayOfWeek));
-        Assert.Equal(PerformanceReadStatus.Forbidden, (await reads.StockFlowAsync(world.Agent, query, default)).Status);
+        Assert.Equal(PerformanceReadStatus.Forbidden, (await stock.StockFlowAsync(world.Agent, query, default)).Status);
 
         // Agents and customers may not read performance at all.
-        Assert.Equal(PerformanceReadStatus.Forbidden, (await reads.HeadlineAsync(world.Agent, query, default)).Status);
-        Assert.Equal(PerformanceReadStatus.Forbidden, (await reads.PipelineAsync(held.CustomerId, query, default)).Status);
+        Assert.Equal(PerformanceReadStatus.Forbidden, (await summary.HeadlineAsync(world.Agent, query, default)).Status);
+        Assert.Equal(PerformanceReadStatus.Forbidden, (await summary.PipelineAsync(held.CustomerId, query, default)).Status);
     }
 
     [Fact]

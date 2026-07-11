@@ -26,7 +26,7 @@ public sealed class ReservationReadStore(DealershipDbContext database) : IReserv
     {
         var actor = await database.Users.AsNoTracking()
             .Where(user => user.Id == customerId && user.IsActive && user.Role == AccountRoles.Customer)
-            .Select(user => new CurrentActor(user.Id, user.Role, user.BranchId, user.EmailConfirmed)).SingleOrDefaultAsync(cancellationToken);
+            .Select(ActorRows.Current).SingleOrDefaultAsync(cancellationToken);
         if (actor is null)
         {
             return new(ReservationStatus.Forbidden);

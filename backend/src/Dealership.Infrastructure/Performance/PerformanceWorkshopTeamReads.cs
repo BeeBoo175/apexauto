@@ -1,11 +1,12 @@
 using System.Data;
 using Dealership.Application.Accounts;
 using Dealership.Application.Performance;
+using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dealership.Infrastructure.Performance;
 
-public sealed partial class PerformanceReads
+public sealed class PerformanceWorkshopTeamReads(DealershipDbContext database) : IPerformanceWorkshopTeamReads
 {
     private static readonly string[] WorkshopTeamRoles = [AccountRoles.WorkshopTechnician];
 
@@ -15,7 +16,7 @@ public sealed partial class PerformanceReads
     {
         await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead,
             cancellationToken);
-        var scope = await ResolveScopeAsync(actorId, query.Period, cancellationToken);
+        var scope = await PerformanceScopes.ResolveAsync(database, actorId, query.Period, cancellationToken);
         if (scope is null)
         {
             return new(PerformanceReadStatus.Forbidden);
@@ -48,8 +49,8 @@ public sealed partial class PerformanceReads
             .GroupBy(item => new { item.ActorId, item.BranchId })
             .Select(group => new { group.Key.ActorId, group.Key.BranchId, Count = group.Count() })
             .ToListAsync(cancellationToken);
-        var drafts = await DraftWorkAsync(branchId, cancellationToken);
-        var openRepairs = await RepairWorkAsync(branchId, cancellationToken);
+        var drafts = await PerformanceWork.DraftWorkAsync(database, branchId, cancellationToken);
+        var openRepairs = await PerformanceWork.RepairWorkAsync(database, branchId, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
         var keys = signed.Select(item => (item.TechnicianId, item.BranchId))
@@ -68,12 +69,12 @@ public sealed partial class PerformanceReads
             return new PerformanceWorkshopRow(personId, people.Name(personId), people.Role(personId), rowBranch,
                 people.BranchName(rowBranch), people.Picture(personId), people.Status(personId, rowBranch), first.Length, again.Length,
                 repairs.Where(item => item.ActorId == personId && item.BranchId == rowBranch).Sum(item => item.Count),
-                AverageDays(first.Select(item => (item.SignedAt - item.Assigned).TotalSeconds)),
-                AverageDays(again.Select(item => (item.SignedAt - Later(item.Assigned, item.Reopened)).TotalSeconds)),
+                PerformanceTeamTable.AverageDays(first.Select(item => (item.SignedAt - item.Assigned).TotalSeconds)),
+                PerformanceTeamTable.AverageDays(again.Select(item => (item.SignedAt - Later(item.Assigned, item.Reopened)).TotalSeconds)),
                 current ? drafts.Count(item => item.Item1 == personId) : null,
                 current ? openRepairs.Count(item => item.Item1 == personId) : null);
         });
-        return new(PerformanceReadStatus.Succeeded, PageOf(scope, query, rows, WorkshopColumns,
+        return new(PerformanceReadStatus.Succeeded, PerformanceTeamTable.PageOf(scope, query, rows, WorkshopColumns,
             row => new PerformanceTeamPoint(row.PersonId, row.BranchId, row.Name, row.InspectionsSigned,
                 row.AssignmentToSignOffDays)));
     }

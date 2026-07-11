@@ -2,12 +2,31 @@ using System.Data;
 using Dealership.Application.Performance;
 using Dealership.Domain.Sales;
 using Dealership.Domain.Vehicles;
+using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dealership.Infrastructure.Performance;
 
-public sealed partial class PerformanceReads
+public sealed class PerformanceStockReads(DealershipDbContext database) : IPerformanceStockReads
 {
+    // Weekly vehicles in and out, with the agreed value delivered each week (the same agreed total as the headline).
+    // A no-show attendance correction is a manager's record, not a vehicle arriving.
+    public async Task<PerformanceReadResult<PerformanceStockFlow>> StockFlowAsync(Guid actorId, PerformanceQuery query,
+        CancellationToken cancellationToken)
+    {
+        await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead,
+            cancellationToken);
+        var scope = await PerformanceScopes.ResolveAsync(database, actorId, query, cancellationToken);
+        if (scope is null)
+        {
+            return new(PerformanceReadStatus.Forbidden);
+        }
+
+        var result = await PerformanceFigures.WeeklyFlowAsync(database, scope.BranchId, query, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return new(PerformanceReadStatus.Succeeded, new PerformanceStockFlow(scope.Actor, result));
+    }
+
     // Six stages a vehicle passes through. Averages follow the first pass only, so reopened inspections and relisted
     // vehicles do not stretch them; the Now counts classify every vehicle by where it stands today.
     public async Task<PerformanceReadResult<PerformanceStageWaiting>> StageWaitingAsync(Guid actorId,
@@ -15,7 +34,7 @@ public sealed partial class PerformanceReads
     {
         await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead,
             cancellationToken);
-        var scope = await ResolveScopeAsync(actorId, query, cancellationToken);
+        var scope = await PerformanceScopes.ResolveAsync(database, actorId, query, cancellationToken);
         if (scope is null)
         {
             return new(PerformanceReadStatus.Forbidden);
@@ -115,7 +134,7 @@ public sealed partial class PerformanceReads
     private Task<List<double>> SaleInProgressPassesAsync(Guid? branchId, PerformanceQuery query,
         CancellationToken cancellationToken)
     {
-        return (from order in SalesInScope(branchId)
+        return (from order in PerformanceScopes.SalesInScope(database, branchId)
                 join reservation in database.Reservations.AsNoTracking() on order.Id equals reservation.Id
                 where order.DeliveredAt >= query.From && order.DeliveredAt < query.Until
                 select (order.DeliveredAt!.Value - reservation.CreatedAt).TotalSeconds).ToListAsync(cancellationToken);

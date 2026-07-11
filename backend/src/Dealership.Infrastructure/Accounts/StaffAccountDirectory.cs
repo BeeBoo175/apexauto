@@ -17,7 +17,7 @@ public sealed class StaffAccountDirectory(DealershipDbContext database) : IStaff
             cancellationToken);
         var actor = await database.Users.AsNoTracking()
             .Where(user => user.Id == administratorId && user.IsActive && user.Role == AccountRoles.Administrator)
-            .Select(user => new CurrentActor(user.Id, user.Role, user.BranchId, user.EmailConfirmed))
+            .Select(ActorRows.Current)
             .SingleOrDefaultAsync(cancellationToken);
         if (actor is null)
         {
@@ -62,7 +62,7 @@ public sealed class StaffAccountDirectory(DealershipDbContext database) : IStaff
             cancellationToken);
         var actor = await database.Users.AsNoTracking()
             .Where(user => user.Id == administratorId && user.IsActive && user.Role == AccountRoles.Administrator)
-            .Select(user => new CurrentActor(user.Id, user.Role, user.BranchId, user.EmailConfirmed))
+            .Select(ActorRows.Current)
             .SingleOrDefaultAsync(cancellationToken);
         if (actor is null)
         {

@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Dealership.Infrastructure.Performance;
 
-public sealed partial class PerformanceReads
+public sealed class PerformanceSalesTeamReads(DealershipDbContext database) : IPerformanceSalesTeamReads
 {
     private static readonly string[] SalesTeamRoles = [AccountRoles.SalesAgent, AccountRoles.BranchManager];
 
@@ -18,7 +18,7 @@ public sealed partial class PerformanceReads
     {
         await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead,
             cancellationToken);
-        var scope = await ResolveScopeAsync(actorId, query.Period, cancellationToken);
+        var scope = await PerformanceScopes.ResolveAsync(database, actorId, query.Period, cancellationToken);
         if (scope is null)
         {
             return new(PerformanceReadStatus.Forbidden);
@@ -48,9 +48,9 @@ public sealed partial class PerformanceReads
                            select new { grouped.Key.PersonId, grouped.Key.BranchId, grouped.Key.Kind, Count = grouped.Count() })
             .ToListAsync(cancellationToken);
         var deliveryIntervals = await DeliveryIntervalsAsync(period, branchId, cancellationToken);
-        var intake = await IntakeWorkAsync(branchId, await database.DatabaseNowAsync(cancellationToken), cancellationToken);
-        var driving = await TestDriveWorkAsync(branchId, cancellationToken);
-        var handled = await SaleWorkAsync(branchId, cancellationToken);
+        var intake = await PerformanceWork.IntakeWorkAsync(database, branchId, await database.DatabaseNowAsync(cancellationToken), cancellationToken);
+        var driving = await PerformanceWork.TestDriveWorkAsync(database, branchId, cancellationToken);
+        var handled = await PerformanceWork.SaleWorkAsync(database, branchId, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
         var keys = checkIns.Select(item => (item.StaffId, item.BranchId))
@@ -78,13 +78,13 @@ public sealed partial class PerformanceReads
                     item.Kind == SalesOrderEventKind.Settled).Sum(item => item.Count),
                 sales.Where(item => item.PersonId == personId && item.BranchId == rowBranch &&
                     item.Kind == SalesOrderEventKind.Delivered).Sum(item => item.Count),
-                AverageDays(deliveryIntervals.Where(item => item.PersonId == personId && item.BranchId == rowBranch)
+                PerformanceTeamTable.AverageDays(deliveryIntervals.Where(item => item.PersonId == personId && item.BranchId == rowBranch)
                     .Select(item => item.Seconds)),
                 current ? intake.Count(item => item.Item1 == personId) : null,
                 current ? driving.Count(item => item.Item1 == personId) : null,
                 current ? handled.Count(item => item.Item1 == personId) : null);
         });
-        return new(PerformanceReadStatus.Succeeded, PageOf(scope, query, rows, SalesColumns,
+        return new(PerformanceReadStatus.Succeeded, PerformanceTeamTable.PageOf(scope, query, rows, SalesColumns,
             row => new PerformanceTeamPoint(row.PersonId, row.BranchId, row.Name, row.SalesDelivered,
                 row.AssignmentToDeliveryDays)));
     }

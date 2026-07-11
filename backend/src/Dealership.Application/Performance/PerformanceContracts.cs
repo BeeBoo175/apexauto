@@ -120,7 +120,7 @@ public sealed record PerformanceBranchRow(Guid BranchId, string BranchName, Perf
 
 public sealed record PerformanceBranchComparison(CurrentActor Actor, IReadOnlyList<PerformanceBranchRow> Branches);
 
-public interface IPerformanceReads
+public interface IPerformanceSummaryReads
 {
     Task<PerformanceReadResult<PerformanceHeadline>> HeadlineAsync(Guid actorId, PerformanceQuery query,
         CancellationToken cancellationToken);
@@ -128,24 +128,39 @@ public interface IPerformanceReads
     Task<PerformanceReadResult<PerformancePipeline>> PipelineAsync(Guid actorId, PerformanceQuery query,
         CancellationToken cancellationToken);
 
+    Task<PerformanceReadResult<PerformanceBranchComparison>> BranchComparisonAsync(Guid actorId,
+        PerformanceQuery query, CancellationToken cancellationToken);
+}
+
+public interface IPerformanceStockReads
+{
     Task<PerformanceReadResult<PerformanceStockFlow>> StockFlowAsync(Guid actorId, PerformanceQuery query,
         CancellationToken cancellationToken);
 
     Task<PerformanceReadResult<PerformanceStageWaiting>> StageWaitingAsync(Guid actorId, PerformanceQuery query,
         CancellationToken cancellationToken);
+}
 
+public interface IPerformanceWorkloadReads
+{
     Task<PerformanceReadResult<PerformanceWorkload>> WorkloadAsync(Guid actorId, PerformanceWorkloadQuery query,
         CancellationToken cancellationToken);
+}
 
-    Task<PerformanceReadResult<PerformanceBranchComparison>> BranchComparisonAsync(Guid actorId,
-        PerformanceQuery query, CancellationToken cancellationToken);
-
+public interface IPerformanceMilestoneReads
+{
     Task<PerformanceReadResult<PerformanceMilestonePage>> MilestonesAsync(Guid actorId,
         PerformanceMilestoneQuery query, CancellationToken cancellationToken);
+}
 
+public interface IPerformanceSalesTeamReads
+{
     Task<PerformanceReadResult<PerformanceTeamPage<PerformanceSalesRow>>> SalesTeamAsync(Guid actorId,
         PerformanceTeamQuery query, CancellationToken cancellationToken);
+}
 
+public interface IPerformanceWorkshopTeamReads
+{
     Task<PerformanceReadResult<PerformanceTeamPage<PerformanceWorkshopRow>>> WorkshopTeamAsync(Guid actorId,
         PerformanceTeamQuery query, CancellationToken cancellationToken);
 }

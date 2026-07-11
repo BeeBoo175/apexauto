@@ -3,11 +3,12 @@ using Dealership.Application.Accounts;
 using Dealership.Application.Performance;
 using Dealership.Domain.Sales;
 using Dealership.Domain.TestDrives;
+using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dealership.Infrastructure.Performance;
 
-public sealed partial class PerformanceReads
+public sealed class PerformanceMilestoneReads(DealershipDbContext database) : IPerformanceMilestoneReads
 {
     // One employee's completed work in the period, newest first. Rows keep the branch recorded at the event, and a
     // manager only sees events of their own branch, so every row they see is a record they can open.
@@ -17,7 +18,7 @@ public sealed partial class PerformanceReads
         await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead,
             cancellationToken);
         var period = query.Period;
-        var scope = await ResolveScopeAsync(actorId, period, cancellationToken);
+        var scope = await PerformanceScopes.ResolveAsync(database, actorId, period, cancellationToken);
         if (scope is null)
         {
             return new(PerformanceReadStatus.Forbidden);
