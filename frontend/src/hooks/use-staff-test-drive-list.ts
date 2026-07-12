@@ -13,6 +13,7 @@ import {
   type StaffTestDrivePage,
   type TestDriveFilters,
 } from "@/lib/test-drives/staff-query";
+import { writeAddress } from "@/lib/browser-url";
 
 export function useStaffTestDriveList(
   initial: StaffTestDrivePage,
@@ -69,7 +70,7 @@ export function useStaffTestDriveList(
         const current = new URL(window.location.href).searchParams;
         const selected = current.get("booking") ?? "";
         const section = current.get(testDriveSectionParameter) ?? "";
-        window.history.replaceState(null, "", staffTestDriveUrl(next, nextPage, selected, section));
+        writeAddress(staffTestDriveUrl(next, nextPage, selected, section));
       }
       return true;
     } catch {

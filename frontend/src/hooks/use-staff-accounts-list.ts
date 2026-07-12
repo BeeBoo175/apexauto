@@ -11,6 +11,7 @@ import {
   type StaffAccountFilters,
   type StaffAccountPage,
 } from "@/lib/accounts/staff-accounts";
+import { writeAddress } from "@/lib/browser-url";
 
 export function useStaffAccountsList(
   initial: StaffAccountPage,
@@ -58,7 +59,7 @@ export function useStaffAccountsList(
       setActive({ filters: next, page: nextPage });
       setDraft((current) => (current === submitted ? next : current));
       setRevision((current) => current + 1);
-      window.history.replaceState(null, "", staffAccountsUrl(next, nextPage));
+      writeAddress(staffAccountsUrl(next, nextPage));
       return true;
     } catch {
       if (!attempt.signal.aborted) {

@@ -19,6 +19,7 @@ import {
 } from "@/lib/settings/settings";
 import { useBoundedRead } from "./use-bounded-read";
 import type { SettingsEntry } from "./use-settings-client-entry";
+import { writeAddress } from "@/lib/browser-url";
 
 export interface ListSnapshot<T> {
   filters: ListFilters;
@@ -114,7 +115,7 @@ export function useSettingsWorkspace(entry: SettingsEntry) {
       setSection(next);
       const url = new URL(window.location.href);
       url.search = locationQuery(next, nextFilters, nextPage);
-      window.history.replaceState(null, "", url);
+      writeAddress(url);
       return true;
     } catch {
       if (!attempt.signal.aborted) {

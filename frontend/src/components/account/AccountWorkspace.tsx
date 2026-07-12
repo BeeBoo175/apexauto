@@ -16,6 +16,7 @@ import type {
   ReservationFilters,
 } from "@/lib/vehicles/account-reservations";
 import styles from "./Account.module.css";
+import { writeAddress } from "@/lib/browser-url";
 
 const sections = [
   { id: "reservations", label: "Reservations" },
@@ -85,7 +86,7 @@ export function AccountWorkspace({
               if (event.button === 0 && !(event.metaKey || event.ctrlKey || event.shiftKey)) {
                 event.preventDefault();
                 setSection(id);
-                window.history.replaceState(null, "", `#${id}`);
+                writeAddress(`#${id}`);
               }
             }}
           >

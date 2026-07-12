@@ -7,6 +7,7 @@ import type { ApiResult } from "@/lib/api";
 import { useStaffSelection } from "./use-staff-selection";
 import { useGuardedAction } from "./use-guarded-action";
 import type { RepairSelection, WorkshopSection } from "@/lib/inspection/query";
+import { writeAddress } from "@/lib/browser-url";
 export type { RepairSelection } from "@/lib/inspection/query";
 
 export function useInspectionDrawer(
@@ -53,7 +54,7 @@ export function useInspectionDrawer(
     setSection(next);
     const url = new URL(window.location.href);
     url.searchParams.set("section", next);
-    window.history.replaceState(null, "", url);
+    writeAddress(url);
   }
 
   function review(request: RepairSelection | null) {
@@ -66,7 +67,7 @@ export function useInspectionDrawer(
       url.searchParams.set("request", request.requestId);
       url.searchParams.set("revision", String(request.revision));
     }
-    window.history.replaceState(null, "", url);
+    writeAddress(url);
   }
 
   function close() {
@@ -79,7 +80,7 @@ export function useInspectionDrawer(
     url.searchParams.delete("request");
     url.searchParams.delete("revision");
     url.searchParams.delete("section");
-    window.history.replaceState(null, "", url);
+    writeAddress(url);
     setRequest(null);
     if (changed.current) {
       changed.current = false;

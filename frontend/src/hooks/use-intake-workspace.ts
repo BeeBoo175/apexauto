@@ -15,6 +15,7 @@ import {
 import type { ApiResult, Page } from "@/lib/api";
 import type { Branch } from "@/lib/branches";
 import type { AppointmentDetail, StaffFilters, WorklistPage } from "@/lib/staff/contracts";
+import { writeAddress } from "@/lib/browser-url";
 
 export interface IntakeWorkspaceSnapshot {
   worklist: ApiResult<WorklistPage>;
@@ -54,7 +55,7 @@ export function useIntakeWorkspace(initial: IntakeWorkspaceSnapshot, agent: bool
       return;
     }
     const destination = new URL(window.location.href);
-    window.history.replaceState(null, "", confirmedHref.current);
+    writeAddress(confirmedHref.current);
     interaction.request(() => {
       const params = Object.fromEntries(destination.searchParams);
       const next = agent ? intakeQueueParams(params) : staffParams({ ...params, queue: "" });

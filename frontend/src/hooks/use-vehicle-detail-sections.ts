@@ -6,6 +6,7 @@ import {
   vehicleDetailSections,
   type VehicleDetailSection,
 } from "@/lib/vehicles/contracts";
+import { writeAddress } from "@/lib/browser-url";
 
 function updateSectionUrl(section: VehicleDetailSection | null) {
   const url = new URL(window.location.href);
@@ -16,7 +17,7 @@ function updateSectionUrl(section: VehicleDetailSection | null) {
 
   url.searchParams.delete("section");
   url.hash = hash;
-  window.history.replaceState(window.history.state, "", url);
+  writeAddress(url, window.history.state);
 }
 
 export function useVehicleDetailSections() {

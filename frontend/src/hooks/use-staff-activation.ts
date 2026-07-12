@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
 import { AUTH_DEADLINE_MS, isRecord } from "@/lib/auth/contracts";
 import { parseStaffInvitation, type StaffInvitationPreview } from "@/lib/auth/staff-invitation";
+import { writeAddress } from "@/lib/browser-url";
 
 type Preview =
   | { state: "loading" }
@@ -63,7 +64,7 @@ export function useStaffActivation() {
       });
       const receipt: unknown = await response.json();
       if (response.ok && isRecord(receipt) && receipt.ok === true) {
-        window.history.replaceState(null, "", "/activate-account");
+        writeAddress("/activate-account");
         success("Account activated. Sign in with your email and password.");
         router.push("/login");
         return;

@@ -19,6 +19,7 @@ import {
 import type { ApiResult } from "@/lib/api";
 import { ListingEditor } from "./ListingEditor";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
+import { writeAddress } from "@/lib/browser-url";
 
 export function ListingDrawer({
   actor,
@@ -52,7 +53,7 @@ export function ListingDrawer({
     setSection(next);
     const url = new URL(window.location.href);
     url.searchParams.set("section", next);
-    window.history.replaceState(null, "", url);
+    writeAddress(url);
   }
 
   function close() {
@@ -68,7 +69,7 @@ export function ListingDrawer({
     url.searchParams.delete("revision");
     url.searchParams.delete("event");
     url.searchParams.delete("eventKind");
-    window.history.replaceState(null, "", url);
+    writeAddress(url);
   }
 
   function review(next: ListingRecordSelection | null) {
@@ -81,7 +82,7 @@ export function ListingDrawer({
       setSection(listingRecordSection(next));
       listingRecordQuery(next).forEach((value, key) => url.searchParams.set(key, value));
     }
-    window.history.replaceState(null, "", url);
+    writeAddress(url);
   }
 
   return (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { replaceUrlParams } from "@/lib/browser-url";
 
 // The open tab of a drawer rides in the address (`?section=history`), so a reload or a shared link returns to it.
 // The first section is the default and is never written, which keeps ordinary addresses clean. Read the address
@@ -16,13 +17,7 @@ export function useAddressSection<T extends string>(
 
   function choose(next: T) {
     setSection(next);
-    const url = new URL(window.location.href);
-    if (next === sections[0]) {
-      url.searchParams.delete(parameter);
-    } else {
-      url.searchParams.set(parameter, next);
-    }
-    window.history.replaceState(null, "", url);
+    replaceUrlParams({ [parameter]: next === sections[0] ? "" : next });
   }
 
   return [section, choose] as const;

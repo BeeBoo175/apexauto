@@ -10,6 +10,7 @@ import { catalogueFilterError, catalogueQuery } from "@/lib/vehicles/query";
 import type { CatalogueFilters, CataloguePage } from "@/lib/vehicles/contracts";
 import { useInitialToast } from "./use-initial-toast";
 import { useBranchChoices } from "./use-branch-choices";
+import { writeAddress } from "@/lib/browser-url";
 
 export function useVehicleCatalogue(
   initial: ApiResult<CataloguePage>,
@@ -64,7 +65,7 @@ export function useVehicleCatalogue(
       setSnapshot(result.data);
       setPhotoVersion((current) => current + 1);
       setActive({ filters: nextFilters, page: nextPage });
-      window.history.replaceState(null, "", `/vehicles?${query}`);
+      writeAddress(`/vehicles?${query}`);
     } catch {
       if (!attempt.signal.aborted) {
         const message =

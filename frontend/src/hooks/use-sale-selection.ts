@@ -9,6 +9,7 @@ import type { Sale } from "@/lib/sales/contracts";
 import { isSaleVersionSection, type SaleSection } from "@/lib/sales/sale-sections";
 import { useStaffSelection } from "./use-staff-selection";
 import { useGuardedAction } from "./use-guarded-action";
+import { writeAddress } from "@/lib/browser-url";
 
 // The selected sale, its section and any past version, all kept in the address as the workshop keeps its job.
 export function useSaleSelection(
@@ -37,7 +38,7 @@ export function useSaleSelection(
   function address(apply: (url: URL) => void) {
     const url = new URL(window.location.href);
     apply(url);
-    window.history.replaceState(null, "", url);
+    writeAddress(url);
   }
 
   // Choosing another sale opens it on the Deal section; reading the same sale again keeps where it was.

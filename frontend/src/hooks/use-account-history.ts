@@ -6,6 +6,7 @@ import { privateApiFetch } from "@/lib/api-browser";
 import type { ApiResult } from "@/lib/api";
 import { dateRangeError, type HistoryFilters } from "@/lib/intake/list-query";
 import { useInitialToast } from "./use-initial-toast";
+import { writeAddress } from "@/lib/browser-url";
 
 interface SearchableHistoryFilters extends HistoryFilters {
   search: string;
@@ -103,5 +104,5 @@ function writeHistoryUrl(prefix: string, page: number, filters: SearchableHistor
       url.searchParams.delete(key);
     }
   }
-  window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+  writeAddress(`${url.pathname}${url.search}${url.hash}`);
 }

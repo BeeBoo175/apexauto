@@ -10,6 +10,7 @@ import type { ApiResult, Page } from "@/lib/api";
 import type { Appointment } from "@/lib/intake/contracts";
 import { useToast } from "@/components/ui/Toast";
 import { useInitialToast } from "./use-initial-toast";
+import { writeAddress } from "@/lib/browser-url";
 
 export function useAppointmentHistory(
   initial: ApiResult<Page<Appointment>>,
@@ -57,7 +58,7 @@ export function useAppointmentHistory(
         url.searchParams.delete(key);
       }
       query.forEach((value, key) => url.searchParams.set(key, value));
-      window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+      writeAddress(`${url.pathname}${url.search}${url.hash}`);
     } catch {
       if (!attempt.signal.aborted) {
         const notice =

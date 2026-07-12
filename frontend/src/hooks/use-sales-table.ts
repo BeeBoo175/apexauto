@@ -8,6 +8,7 @@ import { parseSalesTable } from "@/lib/sales/parse";
 import { salesTablePath, tableQuery } from "@/lib/sales/query";
 import type { SalesTableFilters, SalesTablePage } from "@/lib/sales/contracts";
 import { useBoundedRead } from "./use-bounded-read";
+import { writeAddress } from "@/lib/browser-url";
 
 // The managers' Sales table: one bounded read per view, filter, sort or page, keeping the last confirmed rows.
 export function useSalesTable(
@@ -62,7 +63,7 @@ export function useSalesTable(
           url.searchParams.set(name, value);
         }
       }
-      window.history.replaceState(null, "", url);
+      writeAddress(url);
       return true;
     } catch {
       if (!attempt.signal.aborted) {

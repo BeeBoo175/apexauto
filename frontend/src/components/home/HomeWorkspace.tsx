@@ -26,17 +26,6 @@ const stateOf = (section: {
   retry: section.retry,
 });
 
-// The branch rides in the address, so a reload returns to the same scope.
-function writeBranch(branchId: string) {
-  const url = new URL(window.location.href);
-  if (branchId) {
-    url.searchParams.set("branchId", branchId);
-  } else {
-    url.searchParams.delete("branchId");
-  }
-  window.history.replaceState(null, "", url);
-}
-
 // A manager's Home: what needs them now, today's schedule and who has room. Period figures live on Performance and
 // the month on the Work calendar.
 export function HomeWorkspace({ entry }: { entry: Extract<HomeEntry, { kind: "manager" }> }) {
@@ -93,7 +82,7 @@ export function HomeWorkspace({ entry }: { entry: Extract<HomeEntry, { kind: "ma
 
   function chooseBranch(next: string) {
     setBranchId(next);
-    writeBranch(next);
+    replaceUrlParams({ branchId: next });
   }
 
   return (

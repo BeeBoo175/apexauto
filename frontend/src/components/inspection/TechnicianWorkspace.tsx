@@ -25,6 +25,7 @@ import { TechnicianClaim } from "./TechnicianClaim";
 import { TechnicianJobWorkspace } from "./TechnicianJobWorkspace";
 import styles from "@/components/staff/StaffQueueWorkspace.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
+import { writeAddress } from "@/lib/browser-url";
 
 const viewLabels: Record<TechnicianTask, string> = {
   MyWork: "Ready to work",
@@ -120,7 +121,7 @@ export function TechnicianWorkspace({
     setView(value);
     const url = new URL(window.location.href);
     url.searchParams.set("view", viewQueries[value]);
-    window.history.replaceState(null, "", url);
+    writeAddress(url);
   }
 
   function open(row: WorkshopRow) {

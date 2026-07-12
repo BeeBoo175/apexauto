@@ -31,6 +31,7 @@ import { SalesContent } from "./SalesContent";
 import { SalesQueueList } from "./SalesQueueList";
 import styles from "@/components/staff/StaffQueueWorkspace.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
+import { writeAddress } from "@/lib/browser-url";
 
 export interface SalesWorkspaceProps {
   // The opening tab is read on entry; the others are read the first time they are shown.
@@ -115,7 +116,7 @@ export function SalesWorkspace({
     }
     const url = new URL(window.location.href);
     url.searchParams.set("view", queueViewQueries[value]);
-    window.history.replaceState(null, "", url);
+    writeAddress(url);
   }
 
   function open(item: SaleSummary) {

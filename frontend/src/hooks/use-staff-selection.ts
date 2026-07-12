@@ -4,6 +4,7 @@ import { useToast } from "@/components/ui/Toast";
 import { apiFetch } from "@/lib/api-browser";
 import { useGuardedAction } from "./use-guarded-action";
 import type { ApiResult, ApiRequest } from "@/lib/api";
+import { writeAddress } from "@/lib/browser-url";
 
 interface SelectionResource<T> {
   parameter: string;
@@ -62,7 +63,7 @@ export function useStaffSelection<T>(
       setId(nextId);
       const url = new URL(window.location.href);
       url.searchParams.set(resource.parameter, nextId);
-      window.history.replaceState(null, "", url);
+      writeAddress(url);
     }
     setBusy(true);
     setPendingId(nextId);
@@ -87,7 +88,7 @@ export function useStaffSelection<T>(
         const url = new URL(window.location.href);
         url.searchParams.set(resource.parameter, nextId);
         onConfirmed?.(url);
-        window.history.replaceState(null, "", url);
+        writeAddress(url);
         setId(nextId);
       }
       setResult(response);
@@ -125,7 +126,7 @@ export function useStaffSelection<T>(
     setPendingId("");
     const url = new URL(window.location.href);
     url.searchParams.delete(resource.parameter);
-    window.history.replaceState(null, "", url);
+    writeAddress(url);
   }
   // Workspaces that already guard record replacement can await the confirmed record (null when the read did not confirm one).
   return { id, result, busy, pendingId, choose, load: readSelection, close };

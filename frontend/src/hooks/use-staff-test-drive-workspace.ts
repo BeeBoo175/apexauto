@@ -14,6 +14,7 @@ import {
   testDriveSectionParameter,
 } from "@/lib/test-drives/staff-query";
 import type { TestDriveStaffCommand } from "@/lib/test-drives/staff-commands";
+import { writeAddress } from "@/lib/browser-url";
 
 export type TestDriveEntry = NonNullable<ReturnType<typeof useStaffTestDriveEntry>["entry"]>;
 
@@ -26,11 +27,7 @@ export function useStaffTestDriveWorkspace(actor: CurrentActor, entry: TestDrive
 
   useEffect(() => {
     if (entry.notice) {
-      window.history.replaceState(
-        null,
-        "",
-        staffTestDriveUrl(entry.filters, entry.page, entry.selectedId),
-      );
+      writeAddress(staffTestDriveUrl(entry.filters, entry.page, entry.selectedId));
     }
   }, [entry]);
 
@@ -83,7 +80,7 @@ export function useStaffTestDriveWorkspace(actor: CurrentActor, entry: TestDrive
     const parameters = Object.fromEntries(new URL(window.location.href).searchParams);
     const next = staffTestDriveParams(parameters, agent);
     const previous = staffTestDriveUrl(list.active.filters, list.active.page, record.id);
-    window.history.replaceState(null, "", previous);
+    writeAddress(previous);
     guard.request(() => {
       void restoreConfirmed(next);
     });
@@ -105,7 +102,7 @@ export function useStaffTestDriveWorkspace(actor: CurrentActor, entry: TestDrive
       record.close();
       const url = new URL(window.location.href);
       url.searchParams.delete(testDriveSectionParameter);
-      window.history.replaceState(null, "", url);
+      writeAddress(url);
     },
     refresh,
   };

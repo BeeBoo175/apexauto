@@ -10,6 +10,7 @@ import type { StaffFilters, WorklistPage } from "@/lib/staff/contracts";
 import { useToast } from "@/components/ui/Toast";
 import { useInitialToast } from "./use-initial-toast";
 import { readBranchChoices } from "@/lib/branch-choices";
+import { writeAddress } from "@/lib/browser-url";
 
 interface WorklistSort {
   column: string;
@@ -111,7 +112,7 @@ export function useStaffWorklist(
         query.set("appointment", selected);
       }
       if (updateHistory) {
-        window.history.replaceState(null, "", `/dashboard/intake?${query}`);
+        writeAddress(`/dashboard/intake?${query}`);
       }
       return true;
     } catch {

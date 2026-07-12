@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { useRouter } from "next/navigation";
 import { AUTH_DEADLINE_MS, isRecord } from "@/lib/auth/contracts";
+import { writeAddress } from "@/lib/browser-url";
 
 export function useEmailVerificationConfirm() {
   const [token, setToken] = useState<string | null>(null);
@@ -82,7 +83,7 @@ export function useEmailVerificationConfirm() {
       }
 
       if (response.ok && isRecord(receipt) && receipt.ok === true) {
-        window.history.replaceState(null, "", "/verify-email");
+        writeAddress("/verify-email");
         success("Email verified. Sign in to continue.");
         router.push("/login");
         return;

@@ -11,6 +11,7 @@ import {
   type CustomerAccountFilters,
   type CustomerAccountPage,
 } from "@/lib/accounts/customer-accounts";
+import { writeAddress } from "@/lib/browser-url";
 
 export function useCustomerAccountsList(
   initial: CustomerAccountPage,
@@ -56,7 +57,7 @@ export function useCustomerAccountsList(
       setSnapshot(confirmed);
       setActive({ filters: next, page: nextPage });
       setDraft((current) => (current === submitted ? next : current));
-      window.history.replaceState(null, "", customerAccountsUrl(next, nextPage));
+      writeAddress(customerAccountsUrl(next, nextPage));
       return true;
     } catch {
       if (!attempt.signal.aborted) {

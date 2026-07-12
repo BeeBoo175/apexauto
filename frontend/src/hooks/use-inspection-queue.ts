@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/Toast";
 import { useInitialToast } from "./use-initial-toast";
 import type { TableSort } from "@/components/ui/data-table/types";
 import { readBranchChoices } from "@/lib/branch-choices";
+import { writeAddress } from "@/lib/browser-url";
 
 function initialSort(filters: QueueFilters): TableSort | null {
   const column = filters.sort ?? "since";
@@ -110,7 +111,7 @@ export function useInspectionQueue<T>(
       });
       const current = new URL(window.location.href);
       const query = queueLocationQuery(current.searchParams, nextFilters, nextPage);
-      window.history.replaceState(null, "", `${queuePath(kind)}?${query}`);
+      writeAddress(`${queuePath(kind)}?${query}`);
       return true;
     } catch {
       if (!attempt.signal.aborted && notifyFailure) {

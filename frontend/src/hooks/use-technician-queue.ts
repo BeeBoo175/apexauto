@@ -9,6 +9,7 @@ import { parseWorkshopJobs } from "@/lib/inspection/parse-workshop";
 import { technicianQueueQuery } from "@/lib/inspection/query";
 import type { TechnicianTask, WorkshopJobs } from "@/lib/inspection/workshop-contracts";
 import { useInitialToast } from "./use-initial-toast";
+import { writeAddress } from "@/lib/browser-url";
 
 type Read = { search: string; page: number; pageSize: number; submittedDraft?: string };
 
@@ -87,7 +88,7 @@ export function useTechnicianQueue(
         } else {
           url.searchParams.delete(`${task}.search`);
         }
-        window.history.replaceState(null, "", url);
+        writeAddress(url);
         return true;
       } catch {
         if (!attempt.signal.aborted && controller.current === attempt) {

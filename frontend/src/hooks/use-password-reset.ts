@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { sessionChanges } from "@/lib/auth/browser-session";
 import { AUTH_DEADLINE_MS, isRecord } from "@/lib/auth/contracts";
+import { writeAddress } from "@/lib/browser-url";
 
 export function usePasswordReset() {
   const [token, setToken] = useState<string | null>(null);
@@ -109,7 +110,7 @@ export function usePasswordReset() {
         setToken(null);
         setPassword("");
         setUncertain(false);
-        window.history.replaceState(null, "", "/reset-password");
+        writeAddress("/reset-password");
         sessionChanges?.postMessage("session-changed");
         success("Password reset. Sign in with your new password.");
         window.location.assign(new URL("/login", window.location.origin).href);

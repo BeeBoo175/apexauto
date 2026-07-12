@@ -17,6 +17,7 @@ import { defaultTeamUrl } from "@/lib/performance/team-filters";
 import workspace from "@/components/staff/StaffWorkspace.module.css";
 import styles from "./Performance.module.css";
 import dashboard from "@/components/staff/DashboardSection.module.css";
+import { writeAddress } from "@/lib/browser-url";
 
 type PerformanceEntry = NonNullable<ReturnType<typeof usePerformanceEntry>["entry"]>;
 type View = "results" | "sales" | "workshop" | "branches";
@@ -37,7 +38,7 @@ function writePeriod(preset: PeriodPreset, period: PerformancePeriod) {
   if (period.branchId) {
     url.searchParams.set("branchId", period.branchId);
   }
-  window.history.replaceState(null, "", url);
+  writeAddress(url);
 }
 
 // Performance is the reporting page: how a chosen period went, in tables a manager can read, compare and export.

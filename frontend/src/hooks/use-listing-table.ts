@@ -9,6 +9,7 @@ import { type Branch } from "@/lib/branches";
 import { listingQuery, type ListingFilters, type ListingItem } from "@/lib/vehicles/listings";
 import { parseListings } from "@/lib/vehicles/parse-listings";
 import { readBranchChoices } from "@/lib/branch-choices";
+import { writeAddress } from "@/lib/browser-url";
 
 export function useListingTable(
   initial: ApiResult<Page<ListingItem>>,
@@ -155,7 +156,7 @@ export function useListingTable(
       new URLSearchParams(listingQuery(nextFilters, nextPage)).forEach((value, key) =>
         query.set(key, value),
       );
-      window.history.replaceState(null, "", `/dashboard/management?${query}`);
+      writeAddress(`/dashboard/management?${query}`);
       return true;
     } catch {
       if (!attempt.signal.aborted) {
