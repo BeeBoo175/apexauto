@@ -37,6 +37,12 @@ public sealed class SaleListTests(IntakePhotoFixture fixture) : IClassFixture<In
             new SaleTableQuery(1, 25, null, null, null, false), default)).Status);
         await using var database = new DealershipDbContext(new DbContextOptionsBuilder<DealershipDbContext>()
             .UseNpgsql(fixture.Database.RuntimeConnectionString).Options);
+        // The handling agent is found by their name as well as their email.
+        var agentName = await database.StaffProfiles.Where(profile => profile.UserId == world.Agent)
+            .Select(profile => profile.Name).SingleAsync();
+        var byAgent = (await world.Lists.TableAsync(world.Manager,
+            new SaleTableQuery(1, 25, "BeingHandled", agentName, null, false), default)).Value!;
+        Assert.Contains(mine.Id, byAgent.Items.Select(item => item.Id));
         var calendar = new WorkCalendarStore(database);
         var query = UnscheduledWorkQuery.Parse(null, null, 1, 10)!;
         var work = (await calendar.UnscheduledAsync(world.Agent, query, default)).Value!;

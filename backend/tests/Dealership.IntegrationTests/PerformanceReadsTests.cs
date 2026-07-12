@@ -123,7 +123,8 @@ public sealed class PerformanceReadsTests(IntakePhotoFixture fixture) : IClassFi
         Assert.Equal(comparison.Branches.Sum(branch => branch.Current.VehiclesDelivered), everywhere.Current.VehiclesDelivered);
         var milestones = (await milestoneReads.MilestonesAsync(world.Manager,
             PerformanceMilestoneQuery.Parse(query, world.Agent, 1, 25)!, default)).Value!;
-        var delivered = milestones.Items.Single(item => item.Kind == PerformanceMilestoneKinds.SaleDelivered);
+        var delivered = milestones.Items.Single(item => item.Kind == PerformanceMilestoneKinds.SaleDelivered &&
+            item.RecordId == held.Id);
         Assert.Equal(total, delivered.AgreedTotal);
         Assert.True(delivered.HasAccess);
         Assert.Equal(held.Id, delivered.RecordId);
@@ -187,6 +188,63 @@ public sealed class PerformanceReadsTests(IntakePhotoFixture fixture) : IClassFi
         var period = PerformanceQuery.Parse("2026-11-01", "2026-11-07", null)!;
         Assert.Equal(TimeSpan.FromDays(7), period.Length);
         Assert.Equal(new DateTimeOffset(2026, 10, 31, 16, 0, 0, TimeSpan.Zero), period.From);
+    }
+
+    [Fact]
+    public async Task ABranchManagerAlwaysReadsOwnBranchWhateverBranchIsRequested()
+    {
+        var world = await SaleWorld.SharedAsync(fixture);
+        var summary = world.Services.GetRequiredService<IPerformanceSummaryReads>();
+        var (held, request, _) = await SettledAsync(world);
+        Assert.Equal(SaleResultStatus.Succeeded, (await world.Services.GetRequiredService<SaleHandoverService>()
+            .DeliverAsync(world.Agent, held.Id, request, default)).Status);
+        var period = TodayPeriod();
+
+        var own = (await summary.HeadlineAsync(world.Manager, period, default)).Value!;
+        var asked = (await summary.HeadlineAsync(world.Manager, period with { BranchId = Guid.NewGuid() }, default)).Value!;
+
+        Assert.True(own.Current.VehiclesDelivered >= 1);
+        Assert.Equal(own.Current, asked.Current);
+    }
+
+    [Fact]
+    public async Task ATransferredAgentKeepsDeliveriesAtTheBranchRecordedAtTheEvent()
+    {
+        var world = await SaleWorld.SharedAsync(fixture);
+        var teams = world.Services.GetRequiredService<IPerformanceSalesTeamReads>();
+        var (held, request, _) = await SettledAsync(world);
+        Assert.Equal(SaleResultStatus.Succeeded, (await world.Services.GetRequiredService<SaleHandoverService>()
+            .DeliverAsync(world.Agent, held.Id, request, default)).Status);
+        var team = PerformanceTeamQuery.Parse(TodayPeriod(), 1, 50)!;
+        var home = (await teams.SalesTeamAsync(world.Manager, team, default)).Value!.Items
+            .Single(row => row.PersonId == world.Agent);
+        Assert.Equal(PerformancePersonStatuses.Active, home.Status);
+
+        await using var database = new DealershipDbContext(new DbContextOptionsBuilder<DealershipDbContext>()
+            .UseNpgsql(fixture.Database.RuntimeConnectionString).Options);
+        var otherBranch = await database.Users.Where(user => user.Id == world.OtherBranchAgent)
+            .Select(user => user.BranchId).SingleAsync();
+        try
+        {
+            await database.Users.Where(user => user.Id == world.Agent)
+                .ExecuteUpdateAsync(update => update.SetProperty(user => user.BranchId, otherBranch));
+            var moved = (await teams.SalesTeamAsync(world.Manager, team, default)).Value!.Items
+                .Single(row => row.PersonId == world.Agent && row.BranchId == home.BranchId);
+            Assert.Equal(PerformancePersonStatuses.Transferred, moved.Status);
+            Assert.Equal(home.SalesDelivered, moved.SalesDelivered);
+        }
+        finally
+        {
+            await database.Users.Where(user => user.Id == world.Agent)
+                .ExecuteUpdateAsync(update => update.SetProperty(user => user.BranchId, home.BranchId));
+        }
+    }
+
+    private static PerformanceQuery TodayPeriod()
+    {
+        var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, DealershipLocale.Malaysia).DateTime);
+        return PerformanceQuery.Parse(today.AddDays(-1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            today.AddDays(1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), null)!;
     }
 
     private async Task LoginAsync(HttpClient client, Guid actorId)
