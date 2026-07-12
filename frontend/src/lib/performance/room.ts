@@ -1,6 +1,6 @@
 import type { SearchParams } from "@/lib/query";
 
-export type RoomTeam = "sales" | "workshop";
+type RoomTeam = "sales" | "workshop";
 
 // What the Who has room section shows: one team, an optional search and one page of people holding open work.
 export interface RoomView {
@@ -9,8 +9,6 @@ export interface RoomView {
   page: number;
   pageSize: number;
 }
-
-export const initialRoom: RoomView = { team: "sales", search: "", page: 1, pageSize: 25 };
 
 export function workloadQuery(view: RoomView) {
   const query = new URLSearchParams({

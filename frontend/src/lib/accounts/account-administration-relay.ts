@@ -10,7 +10,7 @@ import { hasAccountAdministration } from "./staff-accounts";
 
 type Body = Record<string, unknown>;
 
-export interface AdministratorCommand {
+interface AdministratorCommand {
   path: string;
   method: "POST" | "PUT";
   // Null for a command with no body; otherwise reduces the browser's body to exactly what is forwarded.

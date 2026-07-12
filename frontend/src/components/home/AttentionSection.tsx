@@ -12,7 +12,7 @@ import type {
 import type { ScheduledWork } from "@/lib/staff/work-calendar";
 import styles from "./Home.module.css";
 
-export interface AttentionLine {
+interface AttentionLine {
   key: string;
   count: number;
   text: string;
@@ -28,7 +28,7 @@ export interface AttentionGroup {
   lines: AttentionLine[];
 }
 
-export interface AttentionSources {
+interface AttentionSources {
   pipeline: PerformancePipeline | null;
   stages: PerformanceStageWaiting | null;
   workload: PerformanceWorkload | null;

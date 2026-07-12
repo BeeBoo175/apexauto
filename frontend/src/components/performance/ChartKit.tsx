@@ -8,7 +8,6 @@ import styles from "./Performance.module.css";
 export const chartHeight = 240;
 export const axisWidth = 56;
 export const chartMargin = { top: 12, right: 16, bottom: 4, left: 0 };
-export const inkMuted = "var(--color-muted)";
 export const gridStroke = "var(--color-line-soft)";
 export const axisStroke = "var(--color-line)";
 export const colors = {
@@ -37,7 +36,7 @@ export function useReducedMotion() {
   );
 }
 
-export interface TipLine {
+interface TipLine {
   label?: string;
   value: string;
   color?: string;

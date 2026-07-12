@@ -6,9 +6,9 @@ import { usePersonPreview } from "@/hooks/use-person-preview";
 import { roleNames } from "@/lib/auth/actor";
 import styles from "./Avatar.module.css";
 
-export type AvatarSize = "sm" | "md" | "lg";
+type AvatarSize = "sm" | "md" | "lg";
 
-export function initialsOf(name: string) {
+function initialsOf(name: string) {
   return name
     .split(/\s+/)
     .filter(Boolean)

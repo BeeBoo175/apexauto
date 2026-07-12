@@ -15,7 +15,7 @@ import {
 import { chartMargin, colors, tooltipSettings, useReducedMotion, type TipData } from "./ChartKit";
 import dashboard from "@/components/staff/DashboardSection.module.css";
 
-export interface BarItem {
+interface BarItem {
   key: string;
   // Who or what the bar is about.
   label: string;

@@ -4,7 +4,7 @@ import { HttpError } from "@/lib/http";
 import { apiError } from "@/lib/server/http/api";
 import { echoesPage } from "@/lib/pagination";
 import { relayGatedRead } from "@/lib/server/http/staff-relay";
-import { administratorAccess } from "./account-admin-relay";
+import { administratorAccess } from "./account-administration-relay";
 import { parseCustomerAccountDetail, parseCustomerAccountPage } from "./customer-accounts";
 
 const listKeys = ["tab", "search", "name", "email", "mobile", "page", "pageSize"];

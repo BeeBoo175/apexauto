@@ -5,11 +5,6 @@ import type { Page } from "@/lib/api";
 
 export type TeamTab = "sales" | "workshop";
 
-export const teamTabs = [
-  { value: "sales", label: "Sales & service" },
-  { value: "workshop", label: "Workshop" },
-] as const;
-
 export const personStatusLabels: Record<string, string> = {
   Active: "Active",
   Transferred: "Transferred",
@@ -171,7 +166,7 @@ export interface Milestone {
   hasAccess: boolean;
 }
 
-export type MilestonePage = Page<Milestone> & {
+type MilestonePage = Page<Milestone> & {
   actor: CurrentActor;
   personId: string;
   personName: string;

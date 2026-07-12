@@ -36,7 +36,7 @@ export interface PerformanceHeadline {
   previous: PeriodTotals;
 }
 
-export interface PipelineGroup {
+interface PipelineGroup {
   group: string;
   count: number;
   agreedTotal: number;
@@ -60,7 +60,7 @@ export interface PerformanceStockFlow {
   weeks: StockWeek[];
 }
 
-export interface StageRow {
+interface StageRow {
   stage: string;
   inStageNow: number;
   completedCount: number;
@@ -110,7 +110,7 @@ export interface PerformanceBranches {
   branches: BranchRow[];
 }
 
-export const pipelineLabels: Record<string, string> = {
+const pipelineLabels: Record<string, string> = {
   Unclaimed: "Unclaimed",
   Handling: "Handling",
   NeedsApproval: "Needs approval",

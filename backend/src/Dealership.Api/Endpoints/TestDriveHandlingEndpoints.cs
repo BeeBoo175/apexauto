@@ -2,7 +2,7 @@ using Dealership.Application.TestDrives;
 
 namespace Dealership.Api.Endpoints;
 
-public static class TestDriveHandlingEndpoint
+public static class TestDriveHandlingEndpoints
 {
     public static async Task<IResult> StartAsync(Guid id, HttpContext context, TestDriveHandlingService handling,
         CancellationToken cancellationToken)

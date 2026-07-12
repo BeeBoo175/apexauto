@@ -2,9 +2,9 @@ using Dealership.Application.Accounts;
 
 namespace Dealership.Api.Endpoints;
 
-public static class AccountUsernameEndpoint
+public static class AccountUsernameEndpoints
 {
-    public static void MapAccountUsernameEndpoint(this WebApplication app)
+    public static void MapAccountUsernameEndpoints(this WebApplication app)
     {
         app.MapPut("/api/account/username", ChangeAsync).RequireAuthorization();
     }

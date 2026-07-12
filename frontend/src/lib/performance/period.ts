@@ -74,7 +74,3 @@ export function periodQuery(period: PerformancePeriod) {
   }
   return query.toString();
 }
-
-export function periodLabel(period: PerformancePeriod) {
-  return period.from === period.to ? period.from : `${period.from} to ${period.to}`;
-}

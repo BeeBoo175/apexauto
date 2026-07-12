@@ -53,12 +53,6 @@ export function teamQuery(filters: TeamFilters) {
   return query.toString();
 }
 
-export function teamFiltersApplied(filters: TeamFilters) {
-  return Boolean(
-    filters.search || filters.name || filters.status || Object.keys(filters.minimums).length > 0,
-  );
-}
-
 // The removable pills under the search: one for each filter that applies.
 export function appliedTeamFilters(
   filters: TeamFilters,
@@ -131,15 +125,14 @@ export function parseTeamUrl(parameters: SearchParams): TeamUrlState {
   const page = Number.parseInt(first(parameters.page), 10);
   const pageSize = Number.parseInt(first(parameters.pageSize), 10);
   const person = first(parameters.person);
+  const direction = first(parameters.direction) === "desc" ? "desc" : "asc";
   return {
     filters: {
       search: first(parameters.search).trim().slice(0, 100),
       name: first(parameters.name).trim().slice(0, 100),
       status: statusChoices.some((choice) => choice.value === status) ? status : "",
       minimums,
-      sort: /^\w{1,40}$/.test(sort)
-        ? { column: sort, direction: first(parameters.direction) === "desc" ? "desc" : "asc" }
-        : null,
+      sort: /^\w{1,40}$/.test(sort) ? { column: sort, direction } : null,
     },
     page: Number.isSafeInteger(page) && page > 0 ? page : 1,
     pageSize: pageSizes.includes(pageSize) ? pageSize : 25,

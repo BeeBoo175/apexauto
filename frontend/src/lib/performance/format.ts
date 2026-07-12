@@ -6,7 +6,7 @@ export function formatDays(days: number | null) {
   return days < 1 ? "Under a day" : `${days.toFixed(1)} days`;
 }
 
-export type DeltaTone = "success" | "danger" | "neutral";
+type DeltaTone = "success" | "danger" | "neutral";
 
 export interface Delta {
   text: string;
@@ -30,8 +30,6 @@ export function deltaText(current: number, previous: number, higherIsBetter: boo
     tone: better ? "success" : "danger",
   };
 }
-
-export const weekdayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 // Short Monday label such as "2 Nov" from a yyyy-MM-dd week start.
 export function weekLabel(weekStart: string) {

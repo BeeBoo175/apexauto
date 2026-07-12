@@ -159,7 +159,7 @@ app.MapListingPhotoEndpoints();
 app.MapRegistrationEndpoints();
 app.MapAuthenticationEndpoints();
 app.MapAccountPictureEndpoints();
-app.MapAccountUsernameEndpoint();
+app.MapAccountUsernameEndpoints();
 app.MapStaffInvitationEndpoints();
 app.MapStaffAccountDirectoryEndpoints();
 app.MapPerformanceQueryEndpoints();

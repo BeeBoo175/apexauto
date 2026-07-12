@@ -3,7 +3,7 @@ import { isUuid } from "@/lib/auth/contracts";
 import { HttpError } from "@/lib/http";
 import { apiError } from "@/lib/server/http/api";
 import { relayGatedRead } from "@/lib/server/http/staff-relay";
-import { administratorAccess, relayAdministratorCommand } from "./account-admin-relay";
+import { administratorAccess, relayAdministratorCommand } from "./account-administration-relay";
 import {
   accountBlockersPath,
   parseBlockers,

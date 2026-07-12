@@ -2,7 +2,7 @@ import { isRecord, isUuid } from "@/lib/auth/contracts";
 import { staffAccountRoles } from "./staff-accounts";
 
 // Roles tied to one branch; General managers and Administrators have none.
-export const branchRoles = ["SalesAgent", "WorkshopTechnician", "BranchManager"] as const;
+const branchRoles = ["SalesAgent", "WorkshopTechnician", "BranchManager"] as const;
 
 export const isBranchRole = (role: string) => branchRoles.some((item) => item === role);
 

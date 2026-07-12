@@ -24,7 +24,7 @@ import {
   type TipData,
 } from "./ChartKit";
 
-export interface ChartColumn {
+interface ChartColumn {
   key: string;
   label: string;
   value: number;

@@ -1,6 +1,6 @@
 import styles from "./Performance.module.css";
 
-export interface LegendItem {
+interface LegendItem {
   key: string;
   label: string;
   // The swatch's colour, shared with the mark it names: a colour for charts, a class for stacked bars.

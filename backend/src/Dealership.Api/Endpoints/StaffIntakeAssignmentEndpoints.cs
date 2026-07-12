@@ -4,7 +4,7 @@ using Dealership.Domain.Intake;
 
 namespace Dealership.Api.Endpoints;
 
-public static class StaffIntakeAssignmentEndpoint
+public static class StaffIntakeAssignmentEndpoints
 {
     public static Task<IResult> ClaimAsync(Guid id, HttpContext context, AppointmentAssignmentService assignments,
         CancellationToken cancellationToken)

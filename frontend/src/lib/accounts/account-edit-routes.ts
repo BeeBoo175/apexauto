@@ -2,7 +2,7 @@ import "server-only";
 import { isUuid } from "@/lib/auth/contracts";
 import { HttpError } from "@/lib/http";
 import { apiError } from "@/lib/server/http/api";
-import { relayAdministratorCommand } from "./account-admin-relay";
+import { relayAdministratorCommand } from "./account-administration-relay";
 import { shapeEdit } from "./account-edit";
 
 export function relayAccountEdit(request: Request, id: string) {

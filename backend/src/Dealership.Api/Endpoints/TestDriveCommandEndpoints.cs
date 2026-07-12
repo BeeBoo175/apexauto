@@ -16,11 +16,11 @@ public static class TestDriveCommandEndpoints
         routes.MapPost("/vehicles/{vehicleId:guid}/test-drives", BookAsync);
         routes.MapPost("/test-drives/{id:guid}/cancellations", CancelAsync);
         routes.MapPost("/staff/test-drives/{id:guid}/cancellations", CancelByStaffAsync);
-        routes.MapPost("/staff/test-drives/{id:guid}/claims", TestDriveAssignmentEndpoint.ClaimAsync);
-        routes.MapPost("/staff/test-drives/{id:guid}/assignments", TestDriveAssignmentEndpoint.AssignAsync);
-        routes.MapPost("/staff/test-drives/{id:guid}/releases", TestDriveAssignmentEndpoint.ReleaseAsync);
-        routes.MapPost("/staff/test-drives/{id:guid}/starts", TestDriveHandlingEndpoint.StartAsync);
-        routes.MapPost("/staff/test-drives/{id:guid}/outcomes", TestDriveHandlingEndpoint.OutcomeAsync);
+        routes.MapPost("/staff/test-drives/{id:guid}/claims", TestDriveAssignmentEndpoints.ClaimAsync);
+        routes.MapPost("/staff/test-drives/{id:guid}/assignments", TestDriveAssignmentEndpoints.AssignAsync);
+        routes.MapPost("/staff/test-drives/{id:guid}/releases", TestDriveAssignmentEndpoints.ReleaseAsync);
+        routes.MapPost("/staff/test-drives/{id:guid}/starts", TestDriveHandlingEndpoints.StartAsync);
+        routes.MapPost("/staff/test-drives/{id:guid}/outcomes", TestDriveHandlingEndpoints.OutcomeAsync);
     }
 
     private static async Task<IResult> BookAsync(Guid vehicleId, HttpContext context,

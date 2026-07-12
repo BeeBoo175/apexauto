@@ -48,7 +48,7 @@ export interface StaffAccountRow {
   invitationExpiresAt: string | null;
 }
 
-export interface StaffAccountCounts {
+interface StaffAccountCounts {
   all: number;
   active: number;
   invited: number;

@@ -186,9 +186,12 @@ public sealed class StaffTestDriveReadStore(DealershipDbContext database) : ISta
 
         if (cancellation is not null)
         {
-            var byStaff = cancellation.StaffId is not null;
-            var byCustomer = !byStaff && cancellation.Kind == TestDriveCancellationKind.CustomerCancelled;
-            Guid? cancelledBy = byStaff ? cancellation.StaffId : byCustomer ? cancellation.CustomerId : null;
+            Guid? cancelledBy = cancellation.StaffId;
+            if (cancelledBy is null && cancellation.Kind == TestDriveCancellationKind.CustomerCancelled)
+            {
+                cancelledBy = cancellation.CustomerId;
+            }
+
             items.Add(new(cancellation.Id, cancellation.Kind, cancellation.RecordedAt,
                 cancelledBy is { } who ? NameOf(who) : "System", cancelledBy, null, null, cancellation.Reason, null));
         }

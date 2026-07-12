@@ -20,7 +20,7 @@ export interface CustomerAccountRow {
   suspended: boolean;
 }
 
-export interface CustomerAccountCounts {
+interface CustomerAccountCounts {
   all: number;
   unverified: number;
   suspended: number;

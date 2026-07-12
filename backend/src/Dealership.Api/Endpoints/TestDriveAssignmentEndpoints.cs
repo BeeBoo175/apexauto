@@ -4,7 +4,7 @@ using Dealership.Domain.TestDrives;
 
 namespace Dealership.Api.Endpoints;
 
-public static class TestDriveAssignmentEndpoint
+public static class TestDriveAssignmentEndpoints
 {
     public static Task<IResult> ClaimAsync(Guid id, HttpContext context, TestDriveAssignmentService assignments,
         CancellationToken cancellationToken)

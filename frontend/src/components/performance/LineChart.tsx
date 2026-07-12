@@ -22,7 +22,7 @@ import {
   type TipData,
 } from "./ChartKit";
 
-export interface LineSeries {
+interface LineSeries {
   key: string;
   label: string;
   color: string;

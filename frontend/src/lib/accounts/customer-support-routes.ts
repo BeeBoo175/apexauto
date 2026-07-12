@@ -9,7 +9,7 @@ import {
   administratorSession,
   readJsonBody,
   relayAdministratorCommand,
-} from "./account-admin-relay";
+} from "./account-administration-relay";
 import {
   customerSupportActions,
   isCustomerSupportAction,
