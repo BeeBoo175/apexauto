@@ -10,9 +10,9 @@ public static class AuthenticationEndpoints
     {
         app.MapPost("/api/auth/login", LoginAsync).RequireRateLimiting(ApiRateLimiting.LoginPolicy);
         app.MapPost("/api/auth/logout", LogoutAsync).RequireAuthorization();
-        app.MapGet("/api/account", GetAccountAsync).RequireAuthorization();
-        app.MapGet("/api/account/profile", GetProfileAsync).RequireAuthorization();
-        app.MapGet("/api/auth/session", GetActorAsync).RequireAuthorization();
+        app.MapGet("/api/account", GetAccountAsync).RequireAuthorization().NoStore();
+        app.MapGet("/api/account/profile", GetProfileAsync).RequireAuthorization().NoStore();
+        app.MapGet("/api/auth/session", GetActorAsync).RequireAuthorization().NoStore();
         app.MapPost("/api/auth/email-verification/resend", ResendVerificationAsync)
             .RequireAuthorization().RequireRateLimiting(ApiRateLimiting.VerificationPolicy);
         app.MapPost("/api/auth/email-verification", ConfirmEmailAsync)
@@ -49,28 +49,34 @@ public static class AuthenticationEndpoints
     private static async Task<IResult> GetAccountAsync(HttpContext context, ICustomerAccountQuery accounts,
         CancellationToken cancellationToken)
     {
-        context.Response.Headers.CacheControl = "no-store";
         var userId = HttpContextActor.ActorId(context);
-        var account = await accounts.GetAccountAsync(userId, cancellationToken);
-        return account is null ? Results.Forbid() : Results.Ok(account);
+        return await BoundedRead.RunAsync(async token =>
+        {
+            var account = await accounts.GetAccountAsync(userId, token);
+            return account is null ? Results.Forbid() : Results.Ok(account);
+        }, "Account details are temporarily unavailable.", cancellationToken);
     }
 
     private static async Task<IResult> GetProfileAsync(HttpContext context, IAccountProfileQuery profiles,
         CancellationToken cancellationToken)
     {
-        context.Response.Headers.CacheControl = "no-store";
-        var profile = await profiles.GetProfileAsync(HttpContextActor.ActorId(context), cancellationToken);
-        return profile is null ? Results.Forbid() : Results.Ok(profile);
+        return await BoundedRead.RunAsync(async token =>
+        {
+            var profile = await profiles.GetProfileAsync(HttpContextActor.ActorId(context), token);
+            return profile is null ? Results.Forbid() : Results.Ok(profile);
+        }, "Account profile is temporarily unavailable.", cancellationToken);
     }
 
     private static async Task<IResult> GetActorAsync(HttpContext context, IAccountSessionStore sessions,
         CancellationToken cancellationToken)
     {
-        context.Response.Headers.CacheControl = "no-store";
         var userId = HttpContextActor.ActorId(context);
         var sessionId = Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Jti)!.Value);
-        var actor = await sessions.GetActorAsync(userId, sessionId, cancellationToken);
-        return actor is null ? Results.Unauthorized() : Results.Ok(actor);
+        return await BoundedRead.RunAsync(async token =>
+        {
+            var actor = await sessions.GetActorAsync(userId, sessionId, token);
+            return actor is null ? Results.Unauthorized() : Results.Ok(actor);
+        }, "Session details are temporarily unavailable.", cancellationToken);
     }
 
     private static async Task<IResult> ResendVerificationAsync(HttpContext context, EmailVerificationService verification,
