@@ -21,9 +21,10 @@ test("a forwarded path carries only a non-empty reviewed query", () => {
 });
 
 test("a blocked staff account conflict names open work and others keep their own command text", () => {
-  const blocked = staffAccountConflict("deactivations", "Blocked");
+  const blocked = staffAccountConflict("deactivations", "blocked");
   expect(blocked).toContain("open work");
-  expect(staffAccountConflict("transfers", "Blocked")).toBe(blocked);
+  expect(staffAccountConflict("transfers", "blocked")).toBe(blocked);
+  expect(staffAccountConflict("deactivations", "conflict")).toContain("last active Administrator");
   expect(staffAccountConflict("deactivations", null)).toContain("last active Administrator");
   expect(staffAccountConflict("reactivations", undefined)).toContain("not deactivated");
   expect(staffAccountConflict("transfers", "Other")).toContain("active branch");

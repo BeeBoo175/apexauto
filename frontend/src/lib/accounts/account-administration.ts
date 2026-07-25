@@ -71,9 +71,9 @@ const commandConflicts: Record<StaffAccountCommandKind, string> = {
   transfers: "This account cannot move to that branch. Refresh and choose an active branch.",
 };
 
-// What a 409 means for a staff account command; the upstream's Blocked code lists open work instead.
+// The blocked conflict lists open work instead of a command-specific eligibility failure.
 export function staffAccountConflict(kind: StaffAccountCommandKind, code: unknown) {
-  return code === "Blocked"
+  return code === "blocked"
     ? "This employee still owns open work. Ask the branch manager to resolve it first."
     : commandConflicts[kind];
 }
