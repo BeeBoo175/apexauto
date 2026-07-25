@@ -1,3 +1,4 @@
+using Dealership.Api.Configuration;
 using Dealership.Application.Accounts;
 using Dealership.Application.Common;
 
@@ -7,12 +8,7 @@ public static class StaffAccountDirectoryEndpoints
 {
     public static void MapStaffAccountDirectoryEndpoints(this WebApplication app)
     {
-        var routes = app.MapGroup("/api/staff-accounts").RequireAuthorization();
-        routes.AddEndpointFilter(async (context, next) =>
-        {
-            context.HttpContext.Response.Headers.CacheControl = "no-store";
-            return await next(context);
-        });
+        var routes = app.MapGroup("/api/staff-accounts").RequireAuthorization().NoStore();
         routes.MapGet("", ListAsync);
         routes.MapGet("/{id:guid}/history", HistoryAsync);
     }
@@ -25,11 +21,9 @@ public static class StaffAccountDirectoryEndpoints
             return Results.Problem(statusCode: 400, title: "Provide a valid history page.");
         }
 
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(TimeSpan.FromSeconds(20));
-        try
+        return await BoundedRead.RunAsync(async token =>
         {
-            var result = await directory.HistoryAsync(HttpContextActor.ActorId(context), id, page, pageSize, deadline.Token);
+            var result = await directory.HistoryAsync(HttpContextActor.ActorId(context), id, page, pageSize, token);
             return result.Status switch
             {
                 StaffAccountReadStatus.Succeeded => Results.Ok(result.Page),
@@ -37,11 +31,7 @@ public static class StaffAccountDirectoryEndpoints
                 StaffAccountReadStatus.NotFound => Results.NotFound(),
                 _ => Results.Problem(statusCode: 400, title: "Provide a valid history page.")
             };
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            return Results.Problem(statusCode: 503, title: "Account history is temporarily unavailable.");
-        }
+        }, "Account history is temporarily unavailable.", cancellationToken);
     }
 
     private static async Task<IResult> ListAsync(HttpContext context, IStaffAccountDirectory directory,
@@ -55,21 +45,15 @@ public static class StaffAccountDirectoryEndpoints
             return Results.Problem(statusCode: 400, title: "Provide a valid staff account tab, search, filters and paging.");
         }
 
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(TimeSpan.FromSeconds(20));
-        try
+        return await BoundedRead.RunAsync(async token =>
         {
-            var result = await directory.ListAsync(HttpContextActor.ActorId(context), query, deadline.Token);
+            var result = await directory.ListAsync(HttpContextActor.ActorId(context), query, token);
             return result.Status switch
             {
                 StaffAccountReadStatus.Succeeded => Results.Ok(result.Page),
                 StaffAccountReadStatus.Forbidden => Results.Forbid(),
                 _ => Results.Problem(statusCode: 400, title: "Provide a valid staff account request.")
             };
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            return Results.Problem(statusCode: 503, title: "Staff accounts are temporarily unavailable.");
-        }
+        }, "Staff accounts are temporarily unavailable.", cancellationToken);
     }
 }

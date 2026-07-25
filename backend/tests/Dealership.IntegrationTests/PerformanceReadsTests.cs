@@ -165,8 +165,9 @@ public sealed class PerformanceReadsTests(IntakePhotoFixture fixture) : IClassFi
 
         using var manager = factory.CreateClient();
         await LoginAsync(manager, world.Manager);
-        var page = (await manager.GetFromJsonAsync<PerformanceTeamPage<PerformanceSalesRow>>(
-            $"/api/performance/team/sales?{period}"))!;
+        using var response = await manager.GetAsync($"/api/performance/team/sales?{period}");
+        Assert.True(response.Headers.CacheControl?.NoStore);
+        var page = (await response.Content.ReadFromJsonAsync<PerformanceTeamPage<PerformanceSalesRow>>())!;
         Assert.Equal(1, page.Page);
         Assert.Equal(HttpStatusCode.Forbidden,
             (await agent.GetAsync($"/api/performance/people/{world.Agent}/milestones?{period}")).StatusCode);

@@ -1,3 +1,4 @@
+using Dealership.Api.Configuration;
 using Dealership.Application.Common;
 using Dealership.Application.Performance;
 
@@ -7,12 +8,7 @@ public static class PerformanceQueryEndpoints
 {
     public static void MapPerformanceQueryEndpoints(this WebApplication app)
     {
-        var routes = app.MapGroup("/api/performance").RequireAuthorization();
-        routes.AddEndpointFilter(async (context, next) =>
-        {
-            context.HttpContext.Response.Headers.CacheControl = "no-store";
-            return await next(context);
-        });
+        var routes = app.MapGroup("/api/performance").RequireAuthorization().NoStore();
         routes.MapGet("/headline", HeadlineAsync);
         routes.MapGet("/pipeline", PipelineAsync);
         routes.MapGet("/stock-flow", StockFlowAsync);
@@ -24,35 +20,35 @@ public static class PerformanceQueryEndpoints
         routes.MapGet("/team/workshop", WorkshopTeamAsync);
     }
 
-    private const string InvalidPeriod = "Provide a valid period of at most 366 days.";
+    private const string INVALID_PERIOD = "Provide a valid period of at most 366 days.";
 
-    private const string InvalidPeriodAndPage = "Provide a valid period of at most 366 days and page.";
+    private const string INVALID_PERIOD_AND_PAGE = "Provide a valid period of at most 366 days and page.";
 
     private static async Task<IResult> HeadlineAsync(HttpContext context, IPerformanceSummaryQuery reads,
         CancellationToken cancellationToken, string? from = null, string? to = null, Guid? branchId = null)
     {
-        return await ReadAsync(PerformanceQuery.Parse(from, to, branchId), InvalidPeriod,
+        return await ReadAsync(PerformanceQuery.Parse(from, to, branchId), INVALID_PERIOD,
             (query, token) => reads.HeadlineAsync(HttpContextActor.ActorId(context), query, token), cancellationToken);
     }
 
     private static async Task<IResult> PipelineAsync(HttpContext context, IPerformanceSummaryQuery reads,
         CancellationToken cancellationToken, string? from = null, string? to = null, Guid? branchId = null)
     {
-        return await ReadAsync(PerformanceQuery.Parse(from, to, branchId), InvalidPeriod,
+        return await ReadAsync(PerformanceQuery.Parse(from, to, branchId), INVALID_PERIOD,
             (query, token) => reads.PipelineAsync(HttpContextActor.ActorId(context), query, token), cancellationToken);
     }
 
     private static async Task<IResult> StockFlowAsync(HttpContext context, IPerformanceStockReads reads,
         CancellationToken cancellationToken, string? from = null, string? to = null, Guid? branchId = null)
     {
-        return await ReadAsync(PerformanceQuery.Parse(from, to, branchId), InvalidPeriod,
+        return await ReadAsync(PerformanceQuery.Parse(from, to, branchId), INVALID_PERIOD,
             (query, token) => reads.StockFlowAsync(HttpContextActor.ActorId(context), query, token), cancellationToken);
     }
 
     private static async Task<IResult> StageWaitingAsync(HttpContext context, IPerformanceStockReads reads,
         CancellationToken cancellationToken, string? from = null, string? to = null, Guid? branchId = null)
     {
-        return await ReadAsync(PerformanceQuery.Parse(from, to, branchId), InvalidPeriod,
+        return await ReadAsync(PerformanceQuery.Parse(from, to, branchId), INVALID_PERIOD,
             (query, token) => reads.StageWaitingAsync(HttpContextActor.ActorId(context), query, token),
             cancellationToken);
     }
@@ -70,7 +66,7 @@ public static class PerformanceQueryEndpoints
     private static async Task<IResult> BranchComparisonAsync(HttpContext context, IPerformanceSummaryQuery reads,
         CancellationToken cancellationToken, string? from = null, string? to = null)
     {
-        return await ReadAsync(PerformanceQuery.Parse(from, to, null), InvalidPeriod,
+        return await ReadAsync(PerformanceQuery.Parse(from, to, null), INVALID_PERIOD,
             (query, token) => reads.BranchComparisonAsync(HttpContextActor.ActorId(context), query, token),
             cancellationToken);
     }
@@ -80,7 +76,7 @@ public static class PerformanceQueryEndpoints
         Guid? branchId = null, int page = 1, int pageSize = Pagination.DefaultPageSize)
     {
         var query = PerformanceMilestoneQuery.Parse(PerformanceQuery.Parse(from, to, branchId), personId, page, pageSize);
-        return await ReadAsync(query, InvalidPeriodAndPage,
+        return await ReadAsync(query, INVALID_PERIOD_AND_PAGE,
             (valid, token) => reads.MilestonesAsync(HttpContextActor.ActorId(context), valid, token),
             cancellationToken);
     }
@@ -92,7 +88,7 @@ public static class PerformanceQueryEndpoints
     {
         var filter = PerformanceTeamFilter.Parse(search, name, status, sort, direction, min);
         var query = ParseTeam(from, to, branchId, page, pageSize, filter);
-        return await ReadAsync(query, InvalidPeriodAndPage,
+        return await ReadAsync(query, INVALID_PERIOD_AND_PAGE,
             (valid, token) => reads.SalesTeamAsync(HttpContextActor.ActorId(context), valid, token), cancellationToken);
     }
 
@@ -103,7 +99,7 @@ public static class PerformanceQueryEndpoints
     {
         var filter = PerformanceTeamFilter.Parse(search, name, status, sort, direction, min);
         var query = ParseTeam(from, to, branchId, page, pageSize, filter);
-        return await ReadAsync(query, InvalidPeriodAndPage,
+        return await ReadAsync(query, INVALID_PERIOD_AND_PAGE,
             (valid, token) => reads.WorkshopTeamAsync(HttpContextActor.ActorId(context), valid, token),
             cancellationToken);
     }
@@ -125,11 +121,9 @@ public static class PerformanceQueryEndpoints
             return Results.Problem(statusCode: 400, title: invalidTitle);
         }
 
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(TimeSpan.FromSeconds(20));
-        try
+        return await BoundedRead.RunAsync(async token =>
         {
-            var result = await read(query, deadline.Token);
+            var result = await read(query, token);
             return result.Status switch
             {
                 PerformanceReadStatus.Succeeded => Results.Ok(result.Value),
@@ -137,10 +131,6 @@ public static class PerformanceQueryEndpoints
                 PerformanceReadStatus.NotFound => Results.NotFound(),
                 _ => Results.Problem(statusCode: 400, title: "Provide a valid performance request.")
             };
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            return Results.Problem(statusCode: 503, title: "Performance figures are temporarily unavailable.");
-        }
+        }, "Performance figures are temporarily unavailable.", cancellationToken);
     }
 }

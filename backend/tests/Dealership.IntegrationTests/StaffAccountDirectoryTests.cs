@@ -24,7 +24,9 @@ public sealed class StaffAccountDirectoryTests(IntakePhotoFixture fixture) : ICl
             mobile = "0129876543"
         })).StatusCode);
 
-        var all = (await admin.GetFromJsonAsync<StaffAccountPage>("/api/staff-accounts?pageSize=25"))!;
+        using var response = await admin.GetAsync("/api/staff-accounts?pageSize=25");
+        Assert.True(response.Headers.CacheControl?.NoStore);
+        var all = (await response.Content.ReadFromJsonAsync<StaffAccountPage>())!;
         Assert.Equal(all.Total, all.Counts.All);
         Assert.Equal(all.Counts.Active + all.Counts.Invited + all.Counts.Suspended + all.Counts.Deactivated, all.Counts.All);
         Assert.Contains(all.Items, row => row.Id == invitationId && row.Status == StaffAccountStatuses.Invited && row.Email == email);
