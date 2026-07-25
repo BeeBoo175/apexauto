@@ -1,3 +1,4 @@
+using Dealership.Api.Configuration;
 using Dealership.Application.Accounts;
 using Dealership.Application.Common;
 
@@ -7,12 +8,7 @@ public static class CustomerAccountDirectoryEndpoints
 {
     public static void MapCustomerAccountDirectoryEndpoints(this WebApplication app)
     {
-        var routes = app.MapGroup("/api/customer-accounts").RequireAuthorization();
-        routes.AddEndpointFilter(async (context, next) =>
-        {
-            context.HttpContext.Response.Headers.CacheControl = "no-store";
-            return await next(context);
-        });
+        var routes = app.MapGroup("/api/customer-accounts").RequireAuthorization().NoStore();
         routes.MapGet("", ListAsync);
         routes.MapGet("/{id:guid}", GetAsync);
     }
@@ -28,12 +24,20 @@ public static class CustomerAccountDirectoryEndpoints
             return Results.Problem(statusCode: 400, title: "Provide a valid customer account tab, search and paging.");
         }
 
-        return Map(await directory.ListAsync(HttpContextActor.ActorId(context), query, cancellationToken));
+        return await BoundedRead.RunAsync(async token =>
+        {
+            return Map(await directory.ListAsync(HttpContextActor.ActorId(context), query, token));
+        }, "Customer accounts are temporarily unavailable.", cancellationToken);
     }
 
     private static async Task<IResult> GetAsync(Guid id, HttpContext context, ICustomerAccountDirectory directory,
-        CancellationToken cancellationToken) =>
-        Map(await directory.GetAsync(HttpContextActor.ActorId(context), id, cancellationToken));
+        CancellationToken cancellationToken)
+    {
+        return await BoundedRead.RunAsync(async token =>
+        {
+            return Map(await directory.GetAsync(HttpContextActor.ActorId(context), id, token));
+        }, "Customer account details are temporarily unavailable.", cancellationToken);
+    }
 
     private static IResult Map<T>(CustomerDirectoryResult<T> result) => result.Status switch
     {

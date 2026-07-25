@@ -70,7 +70,9 @@ public sealed class AccountPictureTests(IntakePhotoFixture fixture) : IClassFixt
         await SignInStaffAsync(factory, managerClient, AccountRoles.GeneralManager);
         var managerId = (await managerClient.GetFromJsonAsync<AccountProfile>("/api/account/profile"))!.UserId;
 
-        var asCustomer = (await managerClient.GetFromJsonAsync<Person>($"/api/people/{customerId}"))!;
+        using var response = await managerClient.GetAsync($"/api/people/{customerId}");
+        Assert.True(response.Headers.CacheControl?.NoStore);
+        var asCustomer = (await response.Content.ReadFromJsonAsync<Person>())!;
         Assert.Equal(customer.LegalName, asCustomer.Name);
         Assert.Equal(customer.Username, asCustomer.Username);
         Assert.Null(asCustomer.Email);
