@@ -83,10 +83,10 @@ public static class DependencyInjection
         services.AddSingleton<EmailVerificationToken>();
         services.AddScoped<IStaffInvitationStore, StaffInvitationStore>();
         services.AddScoped<IStaffAccountDirectory, Accounts.StaffAccountDirectory>();
-        services.AddScoped<Application.Performance.IPerformanceSummaryReads, Performance.PerformanceSummaryReads>();
+        services.AddScoped<Application.Performance.IPerformanceSummaryQuery, Performance.PerformanceSummaryQuery>();
         services.AddScoped<Application.Performance.IPerformanceStockReads, Performance.PerformanceStockReads>();
         services.AddScoped<Application.Performance.IPerformanceWorkloadReads, Performance.PerformanceWorkloadReads>();
-        services.AddScoped<Application.Performance.IPerformanceMilestoneReads, Performance.PerformanceMilestoneReads>();
+        services.AddScoped<Application.Performance.IPerformanceMilestoneQuery, Performance.PerformanceMilestoneQuery>();
         services.AddScoped<Application.Performance.IPerformanceSalesTeamReads, Performance.PerformanceSalesTeamReads>();
         services.AddScoped<Application.Performance.IPerformanceWorkshopTeamReads, Performance.PerformanceWorkshopTeamReads>();
         services.AddScoped<ICustomerAccountDirectory, Accounts.CustomerAccountDirectory>();

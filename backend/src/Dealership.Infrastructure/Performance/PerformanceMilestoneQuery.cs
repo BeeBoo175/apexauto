@@ -5,15 +5,16 @@ using Dealership.Domain.Sales;
 using Dealership.Domain.TestDrives;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using MilestoneQuery = Dealership.Application.Performance.PerformanceMilestoneQuery;
 
 namespace Dealership.Infrastructure.Performance;
 
-public sealed class PerformanceMilestoneReads(DealershipDbContext database) : IPerformanceMilestoneReads
+public sealed class PerformanceMilestoneQuery(DealershipDbContext database) : IPerformanceMilestoneQuery
 {
     // One employee's completed work in the period, newest first. Rows keep the branch recorded at the event, and a
     // manager only sees events of their own branch, so every row they see is a record they can open.
     public async Task<PerformanceReadResult<PerformanceMilestonePage>> MilestonesAsync(Guid actorId,
-        PerformanceMilestoneQuery query, CancellationToken cancellationToken)
+        MilestoneQuery query, CancellationToken cancellationToken)
     {
         await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead,
             cancellationToken);
@@ -99,7 +100,8 @@ public sealed class PerformanceMilestoneReads(DealershipDbContext database) : IP
         CancellationToken cancellationToken)
     {
         var rows = await (from entry in database.SalesOrderEvents.AsNoTracking()
-                          join order in database.SalesOrders.AsNoTracking() on entry.SalesOrderId equals order.Id
+                          join order in database.SalesOrders.AsNoTracking().Select(SalesOrderValue.Projection)
+                              on entry.SalesOrderId equals order.Id
                           where entry.ActorId == personId &&
                               (entry.Kind == SalesOrderEventKind.Settled || entry.Kind == SalesOrderEventKind.Delivered) &&
                               entry.RecordedAt >= query.From && entry.RecordedAt < query.Until &&
@@ -111,7 +113,7 @@ public sealed class PerformanceMilestoneReads(DealershipDbContext database) : IP
                               entry.Kind,
                               entry.RecordedAt,
                               order.OrderNumber,
-                              Total = order.BalancePayable + order.DepositCredit + order.TradeInAllowance
+                              Total = order.Subtotal
                           }).ToListAsync(cancellationToken);
         return rows.Select(row => row.Kind == SalesOrderEventKind.Delivered
             ? new Milestone(PerformanceMilestoneKinds.SaleDelivered, row.RecordedAt, row.BranchId,

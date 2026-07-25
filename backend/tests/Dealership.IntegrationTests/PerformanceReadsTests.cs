@@ -19,10 +19,10 @@ public sealed class PerformanceReadsTests(IntakePhotoFixture fixture) : IClassFi
     public async Task DeliveredSaleMovesTheHeadlineAndPipelineOfItsBranchManager()
     {
         var world = await SaleWorld.SharedAsync(fixture);
-        var summary = world.Services.GetRequiredService<IPerformanceSummaryReads>();
+        var summary = world.Services.GetRequiredService<IPerformanceSummaryQuery>();
         var stock = world.Services.GetRequiredService<IPerformanceStockReads>();
         var workloads = world.Services.GetRequiredService<IPerformanceWorkloadReads>();
-        var milestoneReads = world.Services.GetRequiredService<IPerformanceMilestoneReads>();
+        var milestoneReads = world.Services.GetRequiredService<IPerformanceMilestoneQuery>();
         var salesTeams = world.Services.GetRequiredService<IPerformanceSalesTeamReads>();
         var workshopTeams = world.Services.GetRequiredService<IPerformanceWorkshopTeamReads>();
         var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, DealershipLocale.Malaysia).DateTime);
@@ -194,7 +194,7 @@ public sealed class PerformanceReadsTests(IntakePhotoFixture fixture) : IClassFi
     public async Task ABranchManagerAlwaysReadsOwnBranchWhateverBranchIsRequested()
     {
         var world = await SaleWorld.SharedAsync(fixture);
-        var summary = world.Services.GetRequiredService<IPerformanceSummaryReads>();
+        var summary = world.Services.GetRequiredService<IPerformanceSummaryQuery>();
         var (held, request, _) = await SettledAsync(world);
         Assert.Equal(SaleResultStatus.Succeeded, (await world.Services.GetRequiredService<SaleHandoverService>()
             .DeliverAsync(world.Agent, held.Id, request, default)).Status);

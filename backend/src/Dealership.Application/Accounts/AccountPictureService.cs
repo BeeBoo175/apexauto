@@ -1,5 +1,6 @@
 using Dealership.Application.Photos;
 using Dealership.Domain.Accounts;
+using Dealership.Domain.Common;
 using Dealership.Domain.Photos;
 
 namespace Dealership.Application.Accounts;
@@ -35,7 +36,7 @@ public sealed class AccountPictureService(IAccountProfileQuery profiles, IAccoun
             return new AccountPictureResult(AccountPictureStatus.Invalid);
         }
 
-        var picture = new AccountPicture(Guid.NewGuid(), actorId, described, Truncated(clock.GetUtcNow()));
+        var picture = new AccountPicture(Guid.NewGuid(), actorId, described, UtcTime.TruncateToMicroseconds(clock.GetUtcNow()));
         AccountPicture? replaced = null;
         await transfers.UploadAsync(actorId, thumbnail,
             _ => Task.FromResult(picture), prepared => prepared,
@@ -97,10 +98,5 @@ public sealed class AccountPictureService(IAccountProfileQuery profiles, IAccoun
         {
             // Left for a later storage sweep; the account no longer references it.
         }
-    }
-
-    private static DateTimeOffset Truncated(DateTimeOffset value)
-    {
-        return new DateTimeOffset(value.UtcTicks - value.UtcTicks % 10, TimeSpan.Zero);
     }
 }

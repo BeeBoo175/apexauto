@@ -9,7 +9,7 @@ namespace Dealership.Infrastructure.Performance;
 
 // Manager operations reporting: every section is a bounded aggregate over retained event rows, attributed to the
 // branch recorded at the event, never to a person's current branch.
-public sealed class PerformanceSummaryReads(DealershipDbContext database) : IPerformanceSummaryReads
+public sealed class PerformanceSummaryQuery(DealershipDbContext database) : IPerformanceSummaryQuery
 {
     public async Task<PerformanceReadResult<PerformanceHeadline>> HeadlineAsync(Guid actorId, PerformanceQuery query,
         CancellationToken cancellationToken)
@@ -46,12 +46,12 @@ public sealed class PerformanceSummaryReads(DealershipDbContext database) : IPer
             order.Status == SalesOrderStatus.Handling || order.Status == SalesOrderStatus.PendingApproval ||
             order.Status == SalesOrderStatus.Approved || order.Status == SalesOrderStatus.Settled ||
             order.Status == SalesOrderStatus.Open && (order.DueAt == null || order.DueAt > now));
-        var rows = await open.GroupBy(order => order.Status)
+        var rows = await open.Select(SalesOrderValue.Projection).GroupBy(order => order.Status)
             .Select(group => new
             {
                 Status = group.Key,
                 Count = group.Count(),
-                Total = group.Sum(order => order.BalancePayable + order.DepositCredit + order.TradeInAllowance)
+                Total = group.Sum(order => order.Subtotal)
             })
             .ToListAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);

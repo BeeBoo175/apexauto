@@ -120,7 +120,7 @@ public sealed record PerformanceBranchRow(Guid BranchId, string BranchName, Perf
 
 public sealed record PerformanceBranchComparison(CurrentActor Actor, IReadOnlyList<PerformanceBranchRow> Branches);
 
-public interface IPerformanceSummaryReads
+public interface IPerformanceSummaryQuery
 {
     Task<PerformanceReadResult<PerformanceHeadline>> HeadlineAsync(Guid actorId, PerformanceQuery query,
         CancellationToken cancellationToken);
@@ -147,7 +147,7 @@ public interface IPerformanceWorkloadReads
         CancellationToken cancellationToken);
 }
 
-public interface IPerformanceMilestoneReads
+public interface IPerformanceMilestoneQuery
 {
     Task<PerformanceReadResult<PerformanceMilestonePage>> MilestonesAsync(Guid actorId,
         PerformanceMilestoneQuery query, CancellationToken cancellationToken);

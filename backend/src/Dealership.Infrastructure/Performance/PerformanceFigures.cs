@@ -1,5 +1,6 @@
 using Dealership.Application.Performance;
 using Dealership.Domain.Common;
+using Dealership.Domain.Sales;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,7 +16,8 @@ internal static class PerformanceFigures
             .Where(order => order.DeliveredAt >= periodStart && order.DeliveredAt < periodEnd);
         var deliveredCount = await delivered.CountAsync(cancellationToken);
         var deliveredValue = await delivered
-            .SumAsync(order => (decimal?)(order.BalancePayable + order.DepositCredit + order.TradeInAllowance),
+            .Select(SalesOrderValue.Projection)
+            .SumAsync(order => (decimal?)order.Subtotal,
                 cancellationToken) ?? 0m;
 
         var firstListings = database.ListingPublications.AsNoTracking()
@@ -52,10 +54,11 @@ internal static class PerformanceFigures
             .ToListAsync(cancellationToken);
         var deliveries = await PerformanceScopes.SalesInScope(database, branchId)
             .Where(order => order.DeliveredAt >= query.From && order.DeliveredAt < query.Until)
+            .Select(SalesOrderValue.Projection)
             .Select(order => new
             {
                 At = order.DeliveredAt!.Value,
-                Value = order.BalancePayable + order.DepositCredit + order.TradeInAllowance,
+                Value = order.Subtotal,
             })
             .ToListAsync(cancellationToken);
 

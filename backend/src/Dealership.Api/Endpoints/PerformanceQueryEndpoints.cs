@@ -28,14 +28,14 @@ public static class PerformanceQueryEndpoints
 
     private const string InvalidPeriodAndPage = "Provide a valid period of at most 366 days and page.";
 
-    private static async Task<IResult> HeadlineAsync(HttpContext context, IPerformanceSummaryReads reads,
+    private static async Task<IResult> HeadlineAsync(HttpContext context, IPerformanceSummaryQuery reads,
         CancellationToken cancellationToken, string? from = null, string? to = null, Guid? branchId = null)
     {
         return await ReadAsync(PerformanceQuery.Parse(from, to, branchId), InvalidPeriod,
             (query, token) => reads.HeadlineAsync(HttpContextActor.ActorId(context), query, token), cancellationToken);
     }
 
-    private static async Task<IResult> PipelineAsync(HttpContext context, IPerformanceSummaryReads reads,
+    private static async Task<IResult> PipelineAsync(HttpContext context, IPerformanceSummaryQuery reads,
         CancellationToken cancellationToken, string? from = null, string? to = null, Guid? branchId = null)
     {
         return await ReadAsync(PerformanceQuery.Parse(from, to, branchId), InvalidPeriod,
@@ -67,7 +67,7 @@ public static class PerformanceQueryEndpoints
             (valid, token) => reads.WorkloadAsync(HttpContextActor.ActorId(context), valid, token), cancellationToken);
     }
 
-    private static async Task<IResult> BranchComparisonAsync(HttpContext context, IPerformanceSummaryReads reads,
+    private static async Task<IResult> BranchComparisonAsync(HttpContext context, IPerformanceSummaryQuery reads,
         CancellationToken cancellationToken, string? from = null, string? to = null)
     {
         return await ReadAsync(PerformanceQuery.Parse(from, to, null), InvalidPeriod,
@@ -76,7 +76,7 @@ public static class PerformanceQueryEndpoints
     }
 
     private static async Task<IResult> MilestonesAsync(Guid personId, HttpContext context,
-        IPerformanceMilestoneReads reads, CancellationToken cancellationToken, string? from = null, string? to = null,
+        IPerformanceMilestoneQuery reads, CancellationToken cancellationToken, string? from = null, string? to = null,
         Guid? branchId = null, int page = 1, int pageSize = Pagination.DefaultPageSize)
     {
         var query = PerformanceMilestoneQuery.Parse(PerformanceQuery.Parse(from, to, branchId), personId, page, pageSize);
