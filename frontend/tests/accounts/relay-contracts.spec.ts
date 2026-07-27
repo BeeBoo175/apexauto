@@ -1,9 +1,22 @@
 import { expect, test } from "@playwright/test";
 import { staffAccountConflict } from "@/lib/accounts/account-administration";
+import { staffInvitationConflict } from "@/lib/accounts/staff-invitations";
+import { staffActivationConflict } from "@/lib/auth/staff-invitation";
 import { echoesPage } from "@/lib/pagination";
 import { withQuery } from "@/lib/query";
 
 const page = { page: 2, pageSize: 10, items: [] as string[] };
+
+test("invitation conflict codes keep administrator and public activation guidance distinct", () => {
+  expect(staffInvitationConflict("email-taken")).toContain("pending invitation");
+  expect(staffActivationConflict("email-taken")).toContain("Ask an administrator");
+  expect(staffInvitationConflict("username-taken")).toBe("That username is taken.");
+  expect(staffActivationConflict("username-taken")).toContain("Choose another");
+  for (const code of ["unavailable", "unknown", "toString", "__proto__", null, 409, {}]) {
+    expect(staffInvitationConflict(code)).toContain("Refresh the list");
+    expect(staffActivationConflict(code)).toContain("new one");
+  }
+});
 
 test("a relayed page answers only the page and size that were requested", () => {
   expect(echoesPage(page, new URLSearchParams({ page: "2", pageSize: "10" }))).toBe(page);

@@ -6,12 +6,7 @@ import {
   upstreamDenial,
 } from "@/lib/auth/http";
 import { isRecord } from "@/lib/auth/contracts";
-
-const conflictMessages: Record<string, string> = {
-  UsernameTaken: "That username is taken. Choose another.",
-  EmailTaken: "An account already uses this email. Ask an administrator for help.",
-  Unavailable: "This invitation link is no longer available. Ask an administrator for a new one.",
-};
+import { staffActivationConflict } from "@/lib/auth/staff-invitation";
 
 export async function POST(request: Request) {
   try {
@@ -38,8 +33,7 @@ export async function POST(request: Request) {
 
     if (response.status === 409) {
       const code = isRecord(response.body) ? response.body.code : null;
-      const message = typeof code === "string" ? conflictMessages[code] : undefined;
-      return authJson({ message: message ?? conflictMessages.Unavailable }, 409);
+      return authJson({ message: staffActivationConflict(code) }, 409);
     }
 
     return upstreamDenial(response.status, response.retryAfterSeconds);

@@ -3,23 +3,14 @@ import { isUuid } from "@/lib/auth/contracts";
 import { HttpError } from "@/lib/http";
 import { apiError } from "@/lib/server/http/api";
 import { relayAdministratorCommand } from "./account-administration-relay";
-import { shapeEmailChange, shapeInvitation } from "./staff-invitations";
-
-const conflictMessages: Record<string, string> = {
-  EmailTaken: "An account or pending invitation already uses this email.",
-  UsernameTaken: "That username is taken.",
-  Unavailable: "This invitation is no longer pending. Refresh the list.",
-};
-
-const conflict = (code: unknown) =>
-  (typeof code === "string" && conflictMessages[code]) || conflictMessages.Unavailable;
+import { shapeEmailChange, shapeInvitation, staffInvitationConflict } from "./staff-invitations";
 
 export const relayInvite = (request: Request) =>
   relayAdministratorCommand(request, {
     path: "/api/staff-invitations",
     method: "POST",
     shape: shapeInvitation,
-    conflict,
+    conflict: staffInvitationConflict,
   });
 
 export function relayInvitationCommand(
@@ -36,13 +27,13 @@ export function relayInvitationCommand(
       path: `${path}/email`,
       method: "PUT",
       shape: shapeEmailChange,
-      conflict,
+      conflict: staffInvitationConflict,
     });
   }
   return relayAdministratorCommand(request, {
     path: `${path}/${command}`,
     method: "POST",
     shape: null,
-    conflict,
+    conflict: staffInvitationConflict,
   });
 }

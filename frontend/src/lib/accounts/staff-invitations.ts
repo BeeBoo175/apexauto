@@ -56,3 +56,15 @@ export function shapeEmailChange(body: Record<string, unknown>) {
 
 export const parseAcknowledgement = (value: unknown) =>
   isRecord(value) && value.accepted === true ? { accepted: true as const } : null;
+
+const conflictMessages: Record<string, string> = {
+  "email-taken": "An account or pending invitation already uses this email.",
+  "username-taken": "That username is taken.",
+  unavailable: "This invitation is no longer pending. Refresh the list.",
+};
+
+export function staffInvitationConflict(code: unknown) {
+  return typeof code === "string" && Object.hasOwn(conflictMessages, code)
+    ? conflictMessages[code]
+    : conflictMessages.unavailable;
+}

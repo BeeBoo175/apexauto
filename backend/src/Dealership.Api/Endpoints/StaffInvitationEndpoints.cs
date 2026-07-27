@@ -11,14 +11,15 @@ public static class StaffInvitationEndpoints
 
     public static void MapStaffInvitationEndpoints(this WebApplication app)
     {
-        var administration = app.MapGroup("/api/staff-invitations").RequireAuthorization();
+        var administration = app.MapGroup("/api/staff-invitations").RequireAuthorization().NoStore();
         administration.MapPost("/", InviteAsync);
         administration.MapPost("/{id:guid}/resends", ResendAsync);
         administration.MapPut("/{id:guid}/email", ChangeEmailAsync);
         administration.MapPost("/{id:guid}/revocations", RevokeAsync);
 
         // The emailed link carries a token in its fragment; the frontend posts it, never puts it in a URL.
-        var activation = app.MapGroup("/api/auth/staff-invitation").RequireRateLimiting(ApiRateLimiting.VerificationPolicy);
+        var activation = app.MapGroup("/api/auth/staff-invitation")
+            .RequireRateLimiting(ApiRateLimiting.VerificationPolicy).NoStore();
         activation.MapPost("/preview", PreviewAsync);
         activation.MapPost("/activation", ActivateAsync);
     }
@@ -51,12 +52,14 @@ public static class StaffInvitationEndpoints
             Results.NoContent());
     }
 
-    private static async Task<IResult> PreviewAsync(TokenRequest request, HttpContext context,
+    private static async Task<IResult> PreviewAsync(TokenRequest request,
         StaffInvitationService invitations, CancellationToken cancellationToken)
     {
-        context.Response.Headers.CacheControl = "no-store";
-        var result = await invitations.ReadPublicAsync(request.Token, cancellationToken);
-        return result.Invitation is { } invitation ? Results.Ok(invitation) : Results.NotFound();
+        return await BoundedRead.RunAsync(async token =>
+        {
+            var result = await invitations.ReadPublicAsync(request.Token, token);
+            return result.Invitation is { } invitation ? Results.Ok(invitation) : Results.NotFound();
+        }, "Staff invitation details are temporarily unavailable.", cancellationToken);
     }
 
     private static async Task<IResult> ActivateAsync(StaffInvitationActivation request, HttpContext context,
@@ -67,8 +70,6 @@ public static class StaffInvitationEndpoints
 
     private static IResult Map(HttpContext context, StaffInvitationResult result, IResult success)
     {
-        context.Response.Headers.CacheControl = "no-store";
-
         if (result.Status == StaffInvitationStatus.RateLimited && result.RetryAfter is { } retry)
         {
             context.Response.Headers.RetryAfter = Math.Max(1, (int)Math.Ceiling(retry.TotalSeconds))
@@ -80,9 +81,9 @@ public static class StaffInvitationEndpoints
             StaffInvitationStatus.Succeeded => success,
             StaffInvitationStatus.Forbidden => Results.Forbid(),
             StaffInvitationStatus.NotFound => Results.NotFound(),
-            StaffInvitationStatus.EmailTaken => Results.Conflict(new { code = "EmailTaken" }),
-            StaffInvitationStatus.UsernameTaken => Results.Conflict(new { code = "UsernameTaken" }),
-            StaffInvitationStatus.Unavailable => Results.Conflict(new { code = "Unavailable" }),
+            StaffInvitationStatus.EmailTaken => Results.Conflict(new { code = "email-taken" }),
+            StaffInvitationStatus.UsernameTaken => Results.Conflict(new { code = "username-taken" }),
+            StaffInvitationStatus.Unavailable => Results.Conflict(new { code = "unavailable" }),
             StaffInvitationStatus.RateLimited => Results.StatusCode(StatusCodes.Status429TooManyRequests),
             _ => Results.BadRequest()
         };
