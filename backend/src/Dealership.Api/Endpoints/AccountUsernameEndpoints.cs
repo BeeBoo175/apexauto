@@ -1,3 +1,4 @@
+using Dealership.Api.Configuration;
 using Dealership.Application.Accounts;
 
 namespace Dealership.Api.Endpoints;
@@ -6,13 +7,12 @@ public static class AccountUsernameEndpoints
 {
     public static void MapAccountUsernameEndpoints(this WebApplication app)
     {
-        app.MapPut("/api/account/username", ChangeAsync).RequireAuthorization();
+        app.MapPut("/api/account/username", ChangeAsync).RequireAuthorization().NoStore();
     }
 
     private static async Task<IResult> ChangeAsync(AccountUsernameRequest request, HttpContext context,
         AccountUsernameService usernames, CancellationToken cancellationToken)
     {
-        context.Response.Headers.CacheControl = "no-store";
         var status = await usernames.ChangeAsync(HttpContextActor.ActorId(context), request, cancellationToken);
         return status switch
         {

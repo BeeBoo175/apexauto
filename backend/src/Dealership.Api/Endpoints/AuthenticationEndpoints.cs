@@ -8,21 +8,20 @@ public static class AuthenticationEndpoints
 {
     public static void MapAuthenticationEndpoints(this WebApplication app)
     {
-        app.MapPost("/api/auth/login", LoginAsync).RequireRateLimiting(ApiRateLimiting.LoginPolicy);
-        app.MapPost("/api/auth/logout", LogoutAsync).RequireAuthorization();
+        app.MapPost("/api/auth/login", LoginAsync).RequireRateLimiting(ApiRateLimiting.LoginPolicy).NoStore();
+        app.MapPost("/api/auth/logout", LogoutAsync).RequireAuthorization().NoStore();
         app.MapGet("/api/account", GetAccountAsync).RequireAuthorization().NoStore();
         app.MapGet("/api/account/profile", GetProfileAsync).RequireAuthorization().NoStore();
         app.MapGet("/api/auth/session", GetActorAsync).RequireAuthorization().NoStore();
         app.MapPost("/api/auth/email-verification/resend", ResendVerificationAsync)
-            .RequireAuthorization().RequireRateLimiting(ApiRateLimiting.VerificationPolicy);
+            .RequireAuthorization().RequireRateLimiting(ApiRateLimiting.VerificationPolicy).NoStore();
         app.MapPost("/api/auth/email-verification", ConfirmEmailAsync)
-            .RequireRateLimiting(ApiRateLimiting.VerificationPolicy);
+            .RequireRateLimiting(ApiRateLimiting.VerificationPolicy).NoStore();
     }
 
     private static async Task<IResult> LoginAsync(HttpContext context, AuthenticationService authentication,
         CancellationToken cancellationToken)
     {
-        context.Response.Headers.CacheControl = "no-store";
         var (request, error) = await JsonRequestReader.ReadAsync<LoginRequest>(context.Request, cancellationToken);
 
         if (error is not null)
@@ -39,7 +38,6 @@ public static class AuthenticationEndpoints
     private static async Task<IResult> LogoutAsync(HttpContext context, IAccountSessionStore sessions,
         CancellationToken cancellationToken)
     {
-        context.Response.Headers.CacheControl = "no-store";
         var userId = HttpContextActor.ActorId(context);
         var sessionId = Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Jti)!.Value);
         await sessions.RevokeAsync(userId, sessionId, cancellationToken);
@@ -82,7 +80,6 @@ public static class AuthenticationEndpoints
     private static async Task<IResult> ResendVerificationAsync(HttpContext context, EmailVerificationService verification,
         CancellationToken cancellationToken)
     {
-        context.Response.Headers.CacheControl = "no-store";
         var (request, error) = await JsonRequestReader.ReadAsync<ResendVerificationRequest>(context.Request, cancellationToken);
 
         if (error is not null)
@@ -112,7 +109,6 @@ public static class AuthenticationEndpoints
     private static async Task<IResult> ConfirmEmailAsync(HttpContext context, EmailVerificationService verification,
         CancellationToken cancellationToken)
     {
-        context.Response.Headers.CacheControl = "no-store";
         var (request, error) = await JsonRequestReader.ReadAsync<EmailVerificationRequest>(context.Request, cancellationToken);
 
         if (error is not null)

@@ -1,6 +1,6 @@
 import { weekLabel } from "@/lib/performance/format";
 import type { PerformanceStockFlow, StockWeek } from "@/lib/performance/performance";
-import { colors } from "./ChartKit";
+import { colors } from "./chart-kit";
 import { Legend } from "./Legend";
 import { LineChart } from "./LineChart";
 import { DashboardSection, type SectionState } from "@/components/staff/DashboardSection";

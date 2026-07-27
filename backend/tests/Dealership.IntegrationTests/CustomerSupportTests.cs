@@ -23,30 +23,41 @@ public sealed class CustomerSupportTests(IntakePhotoFixture fixture) : IClassFix
         var id = await CustomerIdAsync(factory, registration.Email!);
         var path = $"/api/customer-accounts/{id}";
 
-        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PostAsJsonAsync($"{path}/nric-reveals",
-            new { operationId = Guid.NewGuid(), reason = " " })).StatusCode);
+        var invalid = await admin.PostAsJsonAsync($"{path}/nric-reveals",
+            new { operationId = Guid.NewGuid(), reason = " " });
+        Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
+        Assert.True(invalid.Headers.CacheControl?.NoStore);
         Assert.Equal(0, await EventCountAsync(factory, id, AccountEventKind.NricRevealed));
 
         var reveal = new { operationId = Guid.NewGuid(), reason = "Caller asked to confirm the number on file" };
         var shown = await admin.PostAsJsonAsync($"{path}/nric-reveals", reveal);
+        Assert.True(shown.Headers.CacheControl?.NoStore);
         Assert.Equal(registration.Nric, (await shown.Content.ReadFromJsonAsync<JsonObject>())!["nric"]!.GetValue<string>());
         await admin.PostAsJsonAsync($"{path}/nric-reveals", reveal);
         Assert.Equal(1, await EventCountAsync(factory, id, AccountEventKind.NricRevealed));
-        Assert.Equal(HttpStatusCode.Forbidden, (await customer.PostAsJsonAsync($"{path}/nric-reveals",
-            new { operationId = Guid.NewGuid(), reason = "Peeking" })).StatusCode);
+        var denied = await customer.PostAsJsonAsync($"{path}/nric-reveals",
+            new { operationId = Guid.NewGuid(), reason = "Peeking" });
+        Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
+        Assert.True(denied.Headers.CacheControl?.NoStore);
 
         var verify = new { operationId = Guid.NewGuid(), reason = "Customer cannot find the email" };
-        Assert.Equal(HttpStatusCode.NoContent, (await admin.PostAsJsonAsync($"{path}/verification-resends", verify)).StatusCode);
+        var resent = await admin.PostAsJsonAsync($"{path}/verification-resends", verify);
+        Assert.Equal(HttpStatusCode.NoContent, resent.StatusCode);
+        Assert.True(resent.Headers.CacheControl?.NoStore);
         Assert.Equal(HttpStatusCode.NoContent, (await admin.PostAsJsonAsync($"{path}/verification-resends", verify)).StatusCode);
         Assert.Equal(1, await EventCountAsync(factory, id, AccountEventKind.VerificationResent));
 
-        Assert.Equal(HttpStatusCode.NoContent, (await admin.PostAsJsonAsync($"{path}/session-revocations",
-            new { operationId = Guid.NewGuid(), reason = "Shared device" })).StatusCode);
+        var revoked = await admin.PostAsJsonAsync($"{path}/session-revocations",
+            new { operationId = Guid.NewGuid(), reason = "Shared device" });
+        Assert.Equal(HttpStatusCode.NoContent, revoked.StatusCode);
+        Assert.True(revoked.Headers.CacheControl?.NoStore);
         Assert.Equal(HttpStatusCode.Unauthorized, (await customer.GetAsync("/api/account/profile")).StatusCode);
         Assert.Equal(1, await EventCountAsync(factory, id, AccountEventKind.SessionsRevoked));
 
-        Assert.Equal(HttpStatusCode.NoContent, (await admin.PostAsJsonAsync($"{path}/password-resets",
-            new { operationId = Guid.NewGuid(), reason = "Locked out" })).StatusCode);
+        var reset = await admin.PostAsJsonAsync($"{path}/password-resets",
+            new { operationId = Guid.NewGuid(), reason = "Locked out" });
+        Assert.Equal(HttpStatusCode.NoContent, reset.StatusCode);
+        Assert.True(reset.Headers.CacheControl?.NoStore);
         Assert.Equal(1, await EventCountAsync(factory, id, AccountEventKind.ResetSent));
         Assert.Equal(HttpStatusCode.NotFound, (await admin.PostAsJsonAsync($"/api/customer-accounts/{Guid.NewGuid()}/password-resets",
             new { operationId = Guid.NewGuid(), reason = "Locked out" })).StatusCode);

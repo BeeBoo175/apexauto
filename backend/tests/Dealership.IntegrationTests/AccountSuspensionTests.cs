@@ -23,12 +23,18 @@ public sealed class AccountSuspensionTests(IntakePhotoFixture fixture) : IClassF
         Assert.Equal(HttpStatusCode.OK, (await customer.GetAsync("/api/account/profile")).StatusCode);
 
         var path = $"/api/accounts/{customerId}/suspensions";
-        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PostAsJsonAsync(path, Request(Guid.NewGuid(), null))).StatusCode);
+        var invalid = await admin.PostAsJsonAsync(path, Request(Guid.NewGuid(), null));
+        Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
+        Assert.True(invalid.Headers.CacheControl?.NoStore);
         Assert.Equal(HttpStatusCode.BadRequest, (await admin.PostAsJsonAsync(path, Request(Guid.Empty, "Chargeback"))).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await customer.PostAsJsonAsync(path, Request(Guid.NewGuid(), "Chargeback"))).StatusCode);
+        var denied = await customer.PostAsJsonAsync(path, Request(Guid.NewGuid(), "Chargeback"));
+        Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
+        Assert.True(denied.Headers.CacheControl?.NoStore);
 
         var operation = Guid.NewGuid();
-        Assert.Equal(HttpStatusCode.NoContent, (await admin.PostAsJsonAsync(path, Request(operation, "Chargeback dispute", reset: true))).StatusCode);
+        var suspendedResponse = await admin.PostAsJsonAsync(path, Request(operation, "Chargeback dispute", reset: true));
+        Assert.Equal(HttpStatusCode.NoContent, suspendedResponse.StatusCode);
+        Assert.True(suspendedResponse.Headers.CacheControl?.NoStore);
         Assert.Equal(HttpStatusCode.NoContent, (await admin.PostAsJsonAsync(path, Request(operation, "Chargeback dispute", reset: true))).StatusCode);
         Assert.Equal(HttpStatusCode.Conflict, (await admin.PostAsJsonAsync(path, Request(Guid.NewGuid(), "Again"))).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await customer.GetAsync("/api/account/profile")).StatusCode);
@@ -42,8 +48,12 @@ public sealed class AccountSuspensionTests(IntakePhotoFixture fixture) : IClassF
         Assert.False(await HasRecoveryChallengeAsync(factory, registration.Email));
 
         var lift = $"{path}/lift";
-        Assert.Equal(HttpStatusCode.NoContent, (await admin.PostAsJsonAsync(lift, Request(Guid.NewGuid(), null))).StatusCode);
-        Assert.Equal(HttpStatusCode.Conflict, (await admin.PostAsJsonAsync(lift, Request(Guid.NewGuid(), null))).StatusCode);
+        var lifted = await admin.PostAsJsonAsync(lift, Request(Guid.NewGuid(), null));
+        Assert.Equal(HttpStatusCode.NoContent, lifted.StatusCode);
+        Assert.True(lifted.Headers.CacheControl?.NoStore);
+        var unchanged = await admin.PostAsJsonAsync(lift, Request(Guid.NewGuid(), null));
+        Assert.Equal(HttpStatusCode.Conflict, unchanged.StatusCode);
+        Assert.True(unchanged.Headers.CacheControl?.NoStore);
         var history = (await admin.GetFromJsonAsync<AccountEventPage>($"/api/staff-accounts/{customerId}/history"))!;
         Assert.Equal(["SuspensionLifted", "Suspended"], history.Items.Select(item => item.Kind));
         var suspended = history.Items[1];
@@ -66,8 +76,10 @@ public sealed class AccountSuspensionTests(IntakePhotoFixture fixture) : IClassF
 
         Assert.Equal(HttpStatusCode.Conflict, (await admin.PostAsJsonAsync($"/api/accounts/{adminId}/suspensions",
             Request(Guid.NewGuid(), "Testing"))).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await admin.PostAsJsonAsync($"/api/accounts/{Guid.NewGuid()}/suspensions",
-            Request(Guid.NewGuid(), "Testing"))).StatusCode);
+        var missing = await admin.PostAsJsonAsync($"/api/accounts/{Guid.NewGuid()}/suspensions",
+            Request(Guid.NewGuid(), "Testing"));
+        Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
+        Assert.True(missing.Headers.CacheControl?.NoStore);
         using var anonymous = factory.CreateClient();
         Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.PostAsJsonAsync($"/api/accounts/{adminId}/suspensions",
             Request(Guid.NewGuid(), "Testing"))).StatusCode);

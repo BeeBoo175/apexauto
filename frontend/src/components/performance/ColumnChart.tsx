@@ -22,7 +22,7 @@ import {
   tooltipSettings,
   useReducedMotion,
   type TipData,
-} from "./ChartKit";
+} from "./chart-kit";
 
 interface ChartColumn {
   key: string;

@@ -1,3 +1,4 @@
+using Dealership.Api.Configuration;
 using Dealership.Application.Accounts;
 
 namespace Dealership.Api.Endpoints;
@@ -6,7 +7,7 @@ public static class AccountSuspensionEndpoints
 {
     public static void MapAccountSuspensionEndpoints(this WebApplication app)
     {
-        var routes = app.MapGroup("/api/accounts/{id:guid}/suspensions").RequireAuthorization();
+        var routes = app.MapGroup("/api/accounts/{id:guid}/suspensions").RequireAuthorization().NoStore();
         routes.MapPost("", SuspendAsync);
         routes.MapPost("/lift", LiftAsync);
     }
@@ -14,18 +15,17 @@ public static class AccountSuspensionEndpoints
     private static async Task<IResult> SuspendAsync(Guid id, AccountSuspensionRequest request, HttpContext context,
         AccountSuspensionService suspensions, CancellationToken cancellationToken)
     {
-        return Map(context, await suspensions.SuspendAsync(HttpContextActor.ActorId(context), id, request, cancellationToken));
+        return Map(await suspensions.SuspendAsync(HttpContextActor.ActorId(context), id, request, cancellationToken));
     }
 
     private static async Task<IResult> LiftAsync(Guid id, AccountSuspensionRequest request, HttpContext context,
         AccountSuspensionService suspensions, CancellationToken cancellationToken)
     {
-        return Map(context, await suspensions.LiftAsync(HttpContextActor.ActorId(context), id, request, cancellationToken));
+        return Map(await suspensions.LiftAsync(HttpContextActor.ActorId(context), id, request, cancellationToken));
     }
 
-    private static IResult Map(HttpContext context, AccountSuspensionStatus status)
+    private static IResult Map(AccountSuspensionStatus status)
     {
-        context.Response.Headers.CacheControl = "no-store";
         return status switch
         {
             AccountSuspensionStatus.Succeeded => Results.NoContent(),

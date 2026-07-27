@@ -13,7 +13,7 @@ import type {
   StockWeek,
 } from "@/lib/performance/performance";
 import type { Stat } from "./StatGrid";
-import { colors } from "./ChartKit";
+import { colors } from "./chart-kit";
 import { Legend } from "./Legend";
 import { LineChart } from "./LineChart";
 import { DashboardSection, type SectionState } from "@/components/staff/DashboardSection";

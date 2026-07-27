@@ -1,3 +1,4 @@
+using Dealership.Api.Configuration;
 using Dealership.Application.Accounts;
 
 namespace Dealership.Api.Endpoints;
@@ -6,12 +7,7 @@ public static class CustomerSupportEndpoints
 {
     public static void MapCustomerSupportEndpoints(this WebApplication app)
     {
-        var routes = app.MapGroup("/api/customer-accounts/{id:guid}").RequireAuthorization();
-        routes.AddEndpointFilter(async (context, next) =>
-        {
-            context.HttpContext.Response.Headers.CacheControl = "no-store";
-            return await next(context);
-        });
+        var routes = app.MapGroup("/api/customer-accounts/{id:guid}").RequireAuthorization().NoStore();
         routes.MapPost("/nric-reveals", RevealAsync);
         routes.MapPost("/session-revocations", (Guid id, CustomerSupportRequest request, HttpContext context,
             CustomerSupportService support, CancellationToken token) => RunAsync(

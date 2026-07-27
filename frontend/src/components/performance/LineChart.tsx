@@ -20,7 +20,7 @@ import {
   tooltipSettings,
   useReducedMotion,
   type TipData,
-} from "./ChartKit";
+} from "./chart-kit";
 
 interface LineSeries {
   key: string;

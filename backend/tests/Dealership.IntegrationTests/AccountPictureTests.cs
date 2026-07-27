@@ -19,20 +19,30 @@ public sealed class AccountPictureTests(IntakePhotoFixture fixture) : IClassFixt
         using var otherClient = factory.CreateClient();
         await IntakePhotoFixture.RegisterAsync(otherClient);
 
-        Assert.Equal(HttpStatusCode.UnsupportedMediaType, (await PutAsync(customerClient, [1, 2, 3], "text/plain")).StatusCode);
-        Assert.Equal(HttpStatusCode.BadRequest, (await PutAsync(customerClient, [1, 2, 3], "image/jpeg")).StatusCode);
+        using var unsupported = await PutAsync(customerClient, [1, 2, 3], "text/plain");
+        Assert.Equal(HttpStatusCode.UnsupportedMediaType, unsupported.StatusCode);
+        AssertPictureHeaders(unsupported);
+        using var invalid = await PutAsync(customerClient, [1, 2, 3], "image/jpeg");
+        Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
+        AssertPictureHeaders(invalid);
         var wide = Image(SKEncodedImageFormat.Png, 600, 300);
         var stored = await PutAsync(customerClient, wide, "image/png");
         Assert.Equal(HttpStatusCode.OK, stored.StatusCode);
+        AssertPictureHeaders(stored);
         var first = (await customerClient.GetFromJsonAsync<AccountProfile>("/api/account/profile"))!.PictureId;
         Assert.NotNull(first);
 
         var thumbnail = await customerClient.GetAsync($"/api/accounts/{customerId}/picture");
+        AssertPictureHeaders(thumbnail);
         Assert.Equal("image/jpeg", thumbnail.Content.Headers.ContentType?.MediaType);
         using var decoded = SKBitmap.Decode(await thumbnail.Content.ReadAsByteArrayAsync());
         Assert.Equal((256, 256), (decoded.Width, decoded.Height));
-        Assert.Equal(HttpStatusCode.Forbidden, (await otherClient.GetAsync($"/api/accounts/{customerId}/picture")).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await otherClient.DeleteAsync($"/api/accounts/{customerId}/picture")).StatusCode);
+        using var forbiddenRead = await otherClient.GetAsync($"/api/accounts/{customerId}/picture");
+        Assert.Equal(HttpStatusCode.Forbidden, forbiddenRead.StatusCode);
+        AssertPictureHeaders(forbiddenRead);
+        using var forbiddenRemoval = await otherClient.DeleteAsync($"/api/accounts/{customerId}/picture");
+        Assert.Equal(HttpStatusCode.Forbidden, forbiddenRemoval.StatusCode);
+        AssertPictureHeaders(forbiddenRemoval);
 
         Assert.Equal(HttpStatusCode.OK, (await PutAsync(customerClient, Image(SKEncodedImageFormat.Jpeg, 40, 40), "image/jpeg")).StatusCode);
         var second = (await customerClient.GetFromJsonAsync<AccountProfile>("/api/account/profile"))!.PictureId;
@@ -45,8 +55,12 @@ public sealed class AccountPictureTests(IntakePhotoFixture fixture) : IClassFixt
 
         using var administratorClient = factory.CreateClient();
         await SignInStaffAsync(factory, administratorClient, AccountRoles.Administrator);
-        Assert.Equal(HttpStatusCode.NoContent, (await administratorClient.DeleteAsync($"/api/accounts/{customerId}/picture")).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await customerClient.GetAsync($"/api/accounts/{customerId}/picture")).StatusCode);
+        using var removed = await administratorClient.DeleteAsync($"/api/accounts/{customerId}/picture");
+        Assert.Equal(HttpStatusCode.NoContent, removed.StatusCode);
+        AssertPictureHeaders(removed);
+        using var missing = await customerClient.GetAsync($"/api/accounts/{customerId}/picture");
+        Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
+        AssertPictureHeaders(missing);
         using (var scope = factory.Services.CreateScope())
         {
             var database = scope.ServiceProvider.GetRequiredService<Dealership.Infrastructure.Persistence.DealershipDbContext>();
@@ -94,6 +108,12 @@ public sealed class AccountPictureTests(IntakePhotoFixture fixture) : IClassFixt
         using var body = new ByteArrayContent(bytes);
         body.Headers.ContentType = new MediaTypeHeaderValue(contentType);
         return await client.PutAsync("/api/accounts/me/picture", body);
+    }
+
+    private static void AssertPictureHeaders(HttpResponseMessage response)
+    {
+        Assert.True(response.Headers.CacheControl?.NoStore);
+        Assert.Equal("nosniff", Assert.Single(response.Headers.GetValues("X-Content-Type-Options")));
     }
 
     private static async Task SignInStaffAsync(Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory<Program> factory,

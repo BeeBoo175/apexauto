@@ -32,7 +32,7 @@ import {
   type MilestoneHistory,
   type TeamPerson,
 } from "@/lib/performance/team";
-import type { TeamColumn } from "./TeamColumns";
+import type { TeamColumn } from "./team-columns";
 import shared from "@/components/staff/StaffDetails.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 import styles from "./Performance.module.css";

@@ -7,14 +7,13 @@ public static class PasswordRecoveryEndpoints
 {
     public static void MapPasswordRecoveryEndpoints(this WebApplication app)
     {
-        app.MapPost("/api/auth/password-recovery", RequestAsync).RequireRateLimiting(ApiRateLimiting.LoginPolicy);
-        app.MapPost("/api/auth/password-reset", ResetAsync).RequireRateLimiting(ApiRateLimiting.LoginPolicy);
+        app.MapPost("/api/auth/password-recovery", RequestAsync).RequireRateLimiting(ApiRateLimiting.LoginPolicy).NoStore();
+        app.MapPost("/api/auth/password-reset", ResetAsync).RequireRateLimiting(ApiRateLimiting.LoginPolicy).NoStore();
     }
 
     private static async Task<IResult> RequestAsync(HttpContext context, PasswordRecoveryService recovery,
         CancellationToken cancellationToken)
     {
-        context.Response.Headers.CacheControl = "no-store";
         var (request, error) = await JsonRequestReader.ReadAsync<PasswordRecoveryRequest>(context.Request, cancellationToken);
 
         if (error is not null)
@@ -29,7 +28,6 @@ public static class PasswordRecoveryEndpoints
     private static async Task<IResult> ResetAsync(HttpContext context, PasswordRecoveryService recovery,
         CancellationToken cancellationToken)
     {
-        context.Response.Headers.CacheControl = "no-store";
         var (request, error) = await JsonRequestReader.ReadAsync<PasswordResetRequest>(context.Request, cancellationToken);
 
         if (error is not null)

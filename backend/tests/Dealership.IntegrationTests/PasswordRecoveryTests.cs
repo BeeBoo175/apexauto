@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text;
 using Dealership.Application.Accounts;
 using Dealership.Application.Branches;
 using Dealership.Infrastructure.Development;
@@ -25,6 +26,10 @@ public sealed class PasswordRecoveryTests(RegistrationDatabase database) : IClas
         using (var host = new PasswordRecoveryHost(database, clock))
         {
             account = await host.RegisterAsync();
+            var malformed = await host.Client.PostAsync("/api/auth/password-recovery",
+                new StringContent("{", Encoding.UTF8, "application/json"));
+            Assert.Equal(HttpStatusCode.BadRequest, malformed.StatusCode);
+            Assert.True(malformed.Headers.CacheControl?.NoStore);
             var known = await host.Client.PostAsJsonAsync("/api/auth/password-recovery",
                 new PasswordRecoveryRequest($"  {account.Email!.ToUpperInvariant()}  "));
             var unknown = await host.Client.PostAsJsonAsync("/api/auth/password-recovery",
@@ -36,6 +41,8 @@ public sealed class PasswordRecoveryTests(RegistrationDatabase database) : IClas
             Assert.Equal(await known.Content.ReadAsStringAsync(), await unknown.Content.ReadAsStringAsync());
             Assert.Equal(await known.Content.ReadAsStringAsync(), await throttled.Content.ReadAsStringAsync());
             Assert.True(known.Headers.CacheControl?.NoStore);
+            Assert.True(unknown.Headers.CacheControl?.NoStore);
+            Assert.True(throttled.Headers.CacheControl?.NoStore);
             Assert.Null(throttled.Headers.RetryAfter);
             var first = await host.LatestAsync(account.Email);
             firstToken = host.Token(first);
@@ -158,9 +165,14 @@ public sealed class PasswordRecoveryTests(RegistrationDatabase database) : IClas
         Assert.Equal(HttpStatusCode.MethodNotAllowed, (await host.Client.GetAsync("/api/auth/password-reset")).StatusCode);
         var rejected = await host.Client.PostAsJsonAsync("/api/auth/password-reset", new PasswordResetRequest(token, "short"));
         Assert.Equal(HttpStatusCode.BadRequest, rejected.StatusCode);
+        Assert.True(rejected.Headers.CacheControl?.NoStore);
         Assert.Contains("password", await rejected.Content.ReadAsStringAsync());
         var forged = token[..^1] + (token[^1] == 'a' ? 'b' : 'a');
         Assert.Equal(PasswordResetStatus.Invalid, (await host.ResetAsync(forged)).Status);
+        var invalidResponse = await host.Client.PostAsJsonAsync("/api/auth/password-reset", new PasswordResetRequest(forged, "Recovered123!"));
+        Assert.Equal(HttpStatusCode.BadRequest, invalidResponse.StatusCode);
+        Assert.True(invalidResponse.Headers.CacheControl?.NoStore);
+        Assert.Contains("Reset link is invalid or expired.", await invalidResponse.Content.ReadAsStringAsync());
         using (var scope = host.Factory.Services.CreateScope())
         {
             var verificationTokens = scope.ServiceProvider.GetRequiredService<EmailVerificationToken>();

@@ -38,16 +38,19 @@ public sealed class EmailVerificationTests(RegistrationDatabase database) : ICla
             var resend = await client.PostAsJsonAsync("/api/auth/email-verification/resend",
                 new { resendKey = Guid.NewGuid() });
             Assert.Equal(HttpStatusCode.Accepted, resend.StatusCode);
+            Assert.True(resend.Headers.CacheControl?.NoStore);
             latestToken = GetToken(factory, await GetLatestChallengeAsync(factory, registration.Email!));
             Assert.NotEqual(firstToken, latestToken);
-            Assert.Equal(HttpStatusCode.BadRequest,
-                (await client.PostAsJsonAsync("/api/auth/email-verification", new { token = firstToken })).StatusCode);
+            var invalid = await client.PostAsJsonAsync("/api/auth/email-verification", new { token = firstToken });
+            Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
+            Assert.True(invalid.Headers.CacheControl?.NoStore);
         }
 
         using var restarted = CreateFactory();
         using var restartedClient = restarted.CreateClient();
-        Assert.Equal(HttpStatusCode.NoContent,
-            (await restartedClient.PostAsJsonAsync("/api/auth/email-verification", new { token = latestToken })).StatusCode);
+        var confirmed = await restartedClient.PostAsJsonAsync("/api/auth/email-verification", new { token = latestToken });
+        Assert.Equal(HttpStatusCode.NoContent, confirmed.StatusCode);
+        Assert.True(confirmed.Headers.CacheControl?.NoStore);
         Assert.Equal(HttpStatusCode.NoContent,
             (await restartedClient.PostAsJsonAsync("/api/auth/email-verification", new { token = latestToken })).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest,
@@ -77,6 +80,8 @@ public sealed class EmailVerificationTests(RegistrationDatabase database) : ICla
                 new { resendKey = Guid.NewGuid() });
             Assert.Equal(HttpStatusCode.TooManyRequests, denied.StatusCode);
             Assert.NotNull(denied.Headers.RetryAfter);
+            Assert.True(denied.Headers.RetryAfter.Delta > TimeSpan.Zero);
+            Assert.True(denied.Headers.CacheControl?.NoStore);
         }
 
         using var restarted = CreateFactory(clock);

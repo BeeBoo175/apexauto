@@ -24,7 +24,7 @@ import {
   tooltipSettings,
   useReducedMotion,
   type TipData,
-} from "./ChartKit";
+} from "./chart-kit";
 import { ColumnChart } from "./ColumnChart";
 import { DashboardSection, type SectionState } from "@/components/staff/DashboardSection";
 import { ChartSkeleton } from "./PerformanceSkeletons";

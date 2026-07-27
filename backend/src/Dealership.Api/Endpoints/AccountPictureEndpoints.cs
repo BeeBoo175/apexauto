@@ -10,10 +10,9 @@ public static class AccountPictureEndpoints
 {
     public static void MapAccountPictureEndpoints(this WebApplication app)
     {
-        var routes = app.MapGroup("/api/accounts").RequireAuthorization();
+        var routes = app.MapGroup("/api/accounts").RequireAuthorization().NoStore();
         routes.AddEndpointFilter(async (context, next) =>
         {
-            context.HttpContext.Response.Headers.CacheControl = "no-store";
             context.HttpContext.Response.Headers.XContentTypeOptions = "nosniff";
             return await next(context);
         });

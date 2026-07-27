@@ -22,6 +22,7 @@ public sealed class AccountUsernameTests(IntakePhotoFixture fixture) : IClassFix
 
         var changed = await PutAsync(client, operationId, "New.Name_01");
         Assert.Equal(HttpStatusCode.NoContent, changed.StatusCode);
+        Assert.True(changed.Headers.CacheControl?.NoStore);
         Assert.Equal("New.Name_01", (await client.GetFromJsonAsync<AccountProfile>("/api/account/profile"))!.Username);
         Assert.Equal(HttpStatusCode.NoContent, (await PutAsync(client, operationId, "New.Name_01")).StatusCode);
         Assert.Equal(HttpStatusCode.NoContent, (await PutAsync(client, Guid.NewGuid(), "New.Name_01")).StatusCode);
@@ -37,9 +38,13 @@ public sealed class AccountUsernameTests(IntakePhotoFixture fixture) : IClassFix
             Assert.Equal(("Username", customer.Username, "New.Name_01"), (change.Field, change.Before, change.After));
         }
 
-        Assert.Equal(HttpStatusCode.Conflict, (await PutAsync(other, Guid.NewGuid(), "new.name_01")).StatusCode);
+        var taken = await PutAsync(other, Guid.NewGuid(), "new.name_01");
+        Assert.Equal(HttpStatusCode.Conflict, taken.StatusCode);
+        Assert.True(taken.Headers.CacheControl?.NoStore);
         Assert.Equal(HttpStatusCode.Conflict, (await PutAsync(client, Guid.NewGuid(), neighbour.Username!.ToUpperInvariant())).StatusCode);
-        Assert.Equal(HttpStatusCode.BadRequest, (await PutAsync(client, Guid.NewGuid(), "no")).StatusCode);
+        var invalid = await PutAsync(client, Guid.NewGuid(), "no");
+        Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
+        Assert.True(invalid.Headers.CacheControl?.NoStore);
         Assert.Equal(HttpStatusCode.BadRequest, (await PutAsync(client, Guid.NewGuid(), "bad name!")).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await PutAsync(client, Guid.Empty, "valid.name")).StatusCode);
     }

@@ -23,22 +23,30 @@ public sealed class AccountEditTests(IntakePhotoFixture fixture) : IClassFixture
         var id = await UserIdAsync(factory, registration.Email!);
         var path = $"/api/accounts/{id}/edits";
 
-        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PostAsJsonAsync(path,
-            Edit(Guid.NewGuid(), " ", registration.Email!, address: "1 Jalan Baru"))).StatusCode);
+        var invalid = await admin.PostAsJsonAsync(path,
+            Edit(Guid.NewGuid(), " ", registration.Email!, address: "1 Jalan Baru"));
+        Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
+        Assert.True(invalid.Headers.CacheControl?.NoStore);
         Assert.Equal(HttpStatusCode.BadRequest, (await admin.PostAsJsonAsync(path,
             Edit(Guid.NewGuid(), "Typo fix", "not-an-email", address: "1 Jalan Baru"))).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await admin.PostAsJsonAsync(path,
             Edit(Guid.NewGuid(), "Typo fix", registration.Email!))).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await customer.PostAsJsonAsync(path,
-            Edit(Guid.NewGuid(), "Self edit", registration.Email!, address: "1 Jalan Baru"))).StatusCode);
-        Assert.Equal(HttpStatusCode.Conflict, (await admin.PostAsJsonAsync(path,
+        var denied = await customer.PostAsJsonAsync(path,
+            Edit(Guid.NewGuid(), "Self edit", registration.Email!, address: "1 Jalan Baru"));
+        Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
+        Assert.True(denied.Headers.CacheControl?.NoStore);
+        var unchanged = await admin.PostAsJsonAsync(path,
             Edit(Guid.NewGuid(), "Nothing changes", registration.Email!, name: registration.LegalName!,
-                mobile: registration.Mobile!, address: registration.ResidentialAddress))).StatusCode);
+                mobile: registration.Mobile!, address: registration.ResidentialAddress));
+        Assert.Equal(HttpStatusCode.Conflict, unchanged.StatusCode);
+        Assert.True(unchanged.Headers.CacheControl?.NoStore);
 
         var operation = Guid.NewGuid();
         var edit = Edit(operation, "Customer moved house", registration.Email!, name: "Nur Aisyah", mobile: "0127654321",
             address: "9 Jalan Cempaka, Shah Alam");
-        Assert.Equal(HttpStatusCode.NoContent, (await admin.PostAsJsonAsync(path, edit)).StatusCode);
+        var edited = await admin.PostAsJsonAsync(path, edit);
+        Assert.Equal(HttpStatusCode.NoContent, edited.StatusCode);
+        Assert.True(edited.Headers.CacheControl?.NoStore);
         Assert.Equal(HttpStatusCode.NoContent, (await admin.PostAsJsonAsync(path, edit)).StatusCode);
 
         Assert.Equal(HttpStatusCode.OK, (await customer.GetAsync("/api/account/profile")).StatusCode);
@@ -129,8 +137,10 @@ public sealed class AccountEditTests(IntakePhotoFixture fixture) : IClassFixture
         var adminProfile = (await admin.GetFromJsonAsync<AccountProfile>("/api/account/profile"))!;
         Assert.Equal(HttpStatusCode.Conflict, (await admin.PostAsJsonAsync($"/api/accounts/{adminProfile.UserId}/edits",
             Edit(Guid.NewGuid(), "Self edit", adminProfile.Email, name: "Someone Else", mobile: "0123456789"))).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await admin.PostAsJsonAsync($"/api/accounts/{Guid.NewGuid()}/edits",
-            Edit(Guid.NewGuid(), "Nobody", "nobody@example.invalid", name: "Nobody", mobile: "0123456789"))).StatusCode);
+        var missing = await admin.PostAsJsonAsync($"/api/accounts/{Guid.NewGuid()}/edits",
+            Edit(Guid.NewGuid(), "Nobody", "nobody@example.invalid", name: "Nobody", mobile: "0123456789"));
+        Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
+        Assert.True(missing.Headers.CacheControl?.NoStore);
         using var anonymous = factory.CreateClient();
         Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.PostAsJsonAsync($"/api/accounts/{staff.Id}/edits",
             Edit(Guid.NewGuid(), "Anonymous", newEmail, name: "Lim Aina", mobile: "0121234567"))).StatusCode);

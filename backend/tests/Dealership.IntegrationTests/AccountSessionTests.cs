@@ -51,7 +51,9 @@ public sealed class AccountSessionTests(RegistrationDatabase database) : IClassF
         using var restartedClient = restarted.CreateClient();
         Assert.Equal(original, await LoginAsync(restartedClient, registration, key));
         restartedClient.DefaultRequestHeaders.Authorization = Bearer(original);
-        Assert.Equal(HttpStatusCode.NoContent, (await restartedClient.PostAsync("/api/auth/logout", null)).StatusCode);
+        var logout = await restartedClient.PostAsync("/api/auth/logout", null);
+        Assert.Equal(HttpStatusCode.NoContent, logout.StatusCode);
+        Assert.True(logout.Headers.CacheControl?.NoStore);
         restartedClient.DefaultRequestHeaders.Authorization = null;
         Assert.Equal(HttpStatusCode.Unauthorized, (await restartedClient.PostAsJsonAsync("/api/auth/login",
             new LoginRequest(key, registration.Email, registration.Password))).StatusCode);
@@ -131,7 +133,9 @@ public sealed class AccountSessionTests(RegistrationDatabase database) : IClassF
         Assert.NotEqual(accountHash, verifications[1].Hash);
         Assert.All(verifications, verification => Assert.Equal(PasswordVerificationResult.Failed, verification.Result));
         Assert.Equal(hashesBeforeDenial.Length, verificationLog.CreatedHashes.Count);
-        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsync("/api/auth/login", new StringContent("{", Encoding.UTF8, "application/json"))).StatusCode);
+        var malformed = await client.PostAsync("/api/auth/login", new StringContent("{", Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.BadRequest, malformed.StatusCode);
+        Assert.True(malformed.Headers.CacheControl?.NoStore);
         using var scope = factory.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
         var userId = await context.Users.Where(user => user.Email == registration.Email).Select(user => user.Id).SingleAsync();

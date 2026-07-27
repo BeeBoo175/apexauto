@@ -42,7 +42,7 @@ import { TeamCharts, teamStats, type OverviewLabels } from "./TeamOverview";
 import { PerformanceDrawer } from "./PerformanceDrawer";
 import { DashboardSection } from "@/components/staff/DashboardSection";
 import { RowsSkeleton } from "@/components/staff/DashboardSkeletons";
-import { salesColumns, teamTitles, workshopColumns, type TeamColumn } from "./TeamColumns";
+import { salesColumns, teamTitles, workshopColumns, type TeamColumn } from "./team-columns";
 import styles from "./Performance.module.css";
 
 // What the page toolbar needs to offer this table's export.

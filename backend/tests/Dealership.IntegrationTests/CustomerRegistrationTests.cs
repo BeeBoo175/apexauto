@@ -86,6 +86,7 @@ public sealed class CustomerRegistrationTests(RegistrationDatabase database) : I
         var request = NewRequest() with { Password = password };
         var response = await client.PostAsJsonAsync("/api/auth/register", request);
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.True(response.Headers.CacheControl?.NoStore);
         using var scope = factory.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
         Assert.False(await context.Users.AnyAsync(user => user.Email == request.Email));
@@ -126,7 +127,9 @@ public sealed class CustomerRegistrationTests(RegistrationDatabase database) : I
         using var restarted = CreateFactory();
         using var restartedClient = restarted.CreateClient();
         Assert.Equal(HttpStatusCode.NoContent, (await restartedClient.PostAsJsonAsync("/api/auth/register", request)).StatusCode);
-        Assert.Equal(HttpStatusCode.Conflict, (await restartedClient.PostAsJsonAsync("/api/auth/register", request with { Password = "Different123!" })).StatusCode);
+        var conflict = await restartedClient.PostAsJsonAsync("/api/auth/register", request with { Password = "Different123!" });
+        Assert.Equal(HttpStatusCode.Conflict, conflict.StatusCode);
+        Assert.True(conflict.Headers.CacheControl?.NoStore);
         Assert.Equal(HttpStatusCode.Conflict, (await restartedClient.PostAsJsonAsync("/api/auth/register", request with { LegalName = "Nur Aisyah Abdullah" })).StatusCode);
     }
 
@@ -255,9 +258,18 @@ public sealed class CustomerRegistrationTests(RegistrationDatabase database) : I
     {
         using var factory = CreateFactory();
         using var client = factory.CreateClient();
-        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsync("/api/auth/register", new StringContent("{", Encoding.UTF8, "application/json"))).StatusCode);
-        Assert.Equal(HttpStatusCode.UnsupportedMediaType, (await client.PostAsync("/api/auth/register", new StringContent("{}"))).StatusCode);
-        Assert.Equal(HttpStatusCode.RequestEntityTooLarge, (await client.PostAsync("/api/auth/register", new StringContent(new string('x', 17000), Encoding.UTF8, "application/json"))).StatusCode);
+        var malformed = await client.PostAsync("/api/auth/register", new StringContent("{", Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.BadRequest, malformed.StatusCode);
+        Assert.True(malformed.Headers.CacheControl?.NoStore);
+
+        var wrongMedia = await client.PostAsync("/api/auth/register", new StringContent("{}"));
+        Assert.Equal(HttpStatusCode.UnsupportedMediaType, wrongMedia.StatusCode);
+        Assert.True(wrongMedia.Headers.CacheControl?.NoStore);
+
+        var oversized = await client.PostAsync("/api/auth/register",
+            new StringContent(new string('x', 17000), Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.RequestEntityTooLarge, oversized.StatusCode);
+        Assert.True(oversized.Headers.CacheControl?.NoStore);
     }
 
     private static async Task RegisterDirectAsync(ServiceProvider services, RegistrationRequest request)

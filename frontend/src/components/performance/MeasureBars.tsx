@@ -12,7 +12,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { chartMargin, colors, tooltipSettings, useReducedMotion, type TipData } from "./ChartKit";
+import { chartMargin, colors, tooltipSettings, useReducedMotion, type TipData } from "./chart-kit";
 import dashboard from "@/components/staff/DashboardSection.module.css";
 
 interface BarItem {
