@@ -15,68 +15,89 @@ namespace Dealership.IntegrationTests;
 public sealed class StaffAccountAdministrationTests(IntakePhotoFixture fixture) : IClassFixture<IntakePhotoFixture>
 {
     [Fact]
-    public async Task AdministratorsTransferDeactivateAndReactivateStaffWithReasonsReplayAndProtection()
+    public async Task BlockersAreReadPrivatelyAndTransfersNeedAReasonAndReplayExactly()
     {
-        using var factory = fixture.CreateFactory();
-        using var admin = factory.CreateClient();
-        var branchA = await StaffInvitationTests.SignInAdministratorAsync(factory, admin);
-        var branchB = await ProvisionBranchAsync(factory);
-        var staffId = await ProvisionAgentAsync(factory, branchA);
-        var adminId = (await admin.GetFromJsonAsync<AccountProfile>("/api/account/profile"))!.UserId;
-        var path = $"/api/staff-accounts/{staffId}";
+        using var scenario = await AdministrationScenario.StartAsync(fixture);
+        var path = scenario.Path;
 
-        using var blockersResponse = await admin.GetAsync($"{path}/blockers");
+        using var blockersResponse = await scenario.Admin.GetAsync($"{path}/blockers");
         Assert.True(blockersResponse.Headers.CacheControl?.NoStore);
         var blockers = await blockersResponse.Content.ReadFromJsonAsync<BlockersBody>();
         Assert.Empty(blockers!.Blockers);
-        Assert.Equal(HttpStatusCode.NotFound, (await admin.GetAsync($"/api/staff-accounts/{Guid.NewGuid()}/blockers")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound,
+            (await scenario.Admin.GetAsync($"/api/staff-accounts/{Guid.NewGuid()}/blockers")).StatusCode);
 
-        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PostAsJsonAsync($"{path}/transfers",
-            new { operationId = Guid.NewGuid(), reason = (string?)null, branchId = branchB })).StatusCode);
-        using var conflict = await admin.PostAsJsonAsync($"{path}/transfers",
-            new { operationId = Guid.NewGuid(), reason = "Same place", branchId = branchA });
+        Assert.Equal(HttpStatusCode.BadRequest, (await scenario.Admin.PostAsJsonAsync($"{path}/transfers",
+            new { operationId = Guid.NewGuid(), reason = (string?)null, branchId = scenario.BranchB })).StatusCode);
+        using var conflict = await scenario.Admin.PostAsJsonAsync($"{path}/transfers",
+            new { operationId = Guid.NewGuid(), reason = "Same place", branchId = scenario.BranchA });
         Assert.Equal(HttpStatusCode.Conflict, conflict.StatusCode);
         Assert.True(conflict.Headers.CacheControl?.NoStore);
         Assert.Equal("conflict", (await conflict.Content.ReadFromJsonAsync<ConflictBody>())!.Code);
-        var transfer = Guid.NewGuid();
-        var transferBody = new { operationId = transfer, reason = "Covering Bayan Lepas", branchId = branchB };
-        Assert.Equal(HttpStatusCode.NoContent, (await admin.PostAsJsonAsync($"{path}/transfers", transferBody)).StatusCode);
-        Assert.Equal(HttpStatusCode.NoContent, (await admin.PostAsJsonAsync($"{path}/transfers", transferBody)).StatusCode);
-        Assert.Equal(branchB, await BranchOfAsync(factory, staffId));
+        await TransferAsync(scenario);
+        Assert.Equal(scenario.BranchB, await BranchOfAsync(scenario.Factory, scenario.StaffId));
+    }
 
-        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PostAsJsonAsync($"{path}/deactivations",
+    [Fact]
+    public async Task DeactivationNeedsAReasonProtectsTheAdministratorAndReplaysExactly()
+    {
+        using var scenario = await AdministrationScenario.StartAsync(fixture);
+        var path = scenario.Path;
+
+        Assert.Equal(HttpStatusCode.BadRequest, (await scenario.Admin.PostAsJsonAsync($"{path}/deactivations",
             new { operationId = Guid.NewGuid(), reason = " " })).StatusCode);
-        Assert.Equal(HttpStatusCode.Conflict, (await admin.PostAsJsonAsync($"/api/staff-accounts/{adminId}/deactivations",
-            new { operationId = Guid.NewGuid(), reason = "Self" })).StatusCode);
-        var deactivation = new { operationId = Guid.NewGuid(), reason = "Left the company" };
-        Assert.Equal(HttpStatusCode.NoContent, (await admin.PostAsJsonAsync($"{path}/deactivations", deactivation)).StatusCode);
-        Assert.Equal(HttpStatusCode.NoContent, (await admin.PostAsJsonAsync($"{path}/deactivations", deactivation)).StatusCode);
-        Assert.Equal(HttpStatusCode.Conflict, (await admin.PostAsJsonAsync($"{path}/deactivations",
+        Assert.Equal(HttpStatusCode.Conflict,
+            (await scenario.Admin.PostAsJsonAsync($"/api/staff-accounts/{scenario.AdminId}/deactivations",
+                new { operationId = Guid.NewGuid(), reason = "Self" })).StatusCode);
+        await DeactivateAsync(scenario);
+        Assert.Equal(HttpStatusCode.Conflict, (await scenario.Admin.PostAsJsonAsync($"{path}/deactivations",
             new { operationId = Guid.NewGuid(), reason = "Again" })).StatusCode);
-        var deactivated = (await admin.GetFromJsonAsync<StaffAccountPage>("/api/staff-accounts?tab=Deactivated"))!;
-        Assert.Contains(deactivated.Items, row => row.Id == staffId);
+        var deactivated = (await scenario.Admin.GetFromJsonAsync<StaffAccountPage>("/api/staff-accounts?tab=Deactivated"))!;
+        Assert.Contains(deactivated.Items, row => row.Id == scenario.StaffId);
+    }
 
-        Assert.Equal(HttpStatusCode.NoContent, (await admin.PostAsJsonAsync($"{path}/reactivations",
+    [Fact]
+    public async Task ReactivationRestoresAnAccountOnceAndTheHistoryRecordsEveryChange()
+    {
+        using var scenario = await AdministrationScenario.StartAsync(fixture);
+        var path = scenario.Path;
+        await TransferAsync(scenario);
+        await DeactivateAsync(scenario);
+
+        Assert.Equal(HttpStatusCode.NoContent, (await scenario.Admin.PostAsJsonAsync($"{path}/reactivations",
             new { operationId = Guid.NewGuid() })).StatusCode);
-        Assert.Equal(HttpStatusCode.Conflict, (await admin.PostAsJsonAsync($"{path}/reactivations",
+        Assert.Equal(HttpStatusCode.Conflict, (await scenario.Admin.PostAsJsonAsync($"{path}/reactivations",
             new { operationId = Guid.NewGuid() })).StatusCode);
 
-        var history = (await admin.GetFromJsonAsync<AccountEventPage>($"{path}/history"))!;
+        var history = (await scenario.Admin.GetFromJsonAsync<AccountEventPage>($"{path}/history"))!;
         Assert.Equal(["Reactivated", "Deactivated", "BranchTransferred"], history.Items.Select(item => item.Kind));
         Assert.Contains(history.Items[2].Changes, change => change.Field == "Branch" && change.After is not null);
+    }
 
-        using var anonymous = factory.CreateClient();
-        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync($"{path}/blockers")).StatusCode);
-        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.PostAsJsonAsync($"{path}/deactivations", deactivation)).StatusCode);
+    [Fact]
+    public async Task AnonymousCallersCannotReadBlockersOrDeactivate()
+    {
+        using var scenario = await AdministrationScenario.StartAsync(fixture);
+        using var anonymous = scenario.Factory.CreateClient();
 
-        var probeStore = new AdministrationProbe(adminId, staffId);
-        using var probeFactory = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync($"{scenario.Path}/blockers")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.PostAsJsonAsync($"{scenario.Path}/deactivations",
+            new { operationId = Guid.NewGuid(), reason = "Left the company" })).StatusCode);
+    }
+
+    [Fact]
+    public async Task BlockedCommandsAndUnavailableReadsMapToTheirOwnResponses()
+    {
+        using var scenario = await AdministrationScenario.StartAsync(fixture);
+        var path = scenario.Path;
+        var probeStore = new AdministrationProbe(scenario.AdminId, scenario.StaffId);
+        using var probeFactory = scenario.Factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
         {
             services.RemoveAll<IStaffAccountAdministrationStore>();
             services.AddSingleton<IStaffAccountAdministrationStore>(probeStore);
         }));
         using var probe = probeFactory.CreateClient();
-        probe.DefaultRequestHeaders.Authorization = admin.DefaultRequestHeaders.Authorization;
+        probe.DefaultRequestHeaders.Authorization = scenario.Admin.DefaultRequestHeaders.Authorization;
 
         using var unavailable = await probe.GetAsync($"{path}/blockers");
         Assert.Equal(HttpStatusCode.ServiceUnavailable, unavailable.StatusCode);
@@ -90,7 +111,7 @@ public sealed class StaffAccountAdministrationTests(IntakePhotoFixture fixture) 
             {
                 operationId = Guid.NewGuid(),
                 reason = "Moving to another branch",
-                branchId = branchA
+                branchId = scenario.BranchA
             });
             Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
             Assert.True(response.Headers.CacheControl?.NoStore);
@@ -101,6 +122,59 @@ public sealed class StaffAccountAdministrationTests(IntakePhotoFixture fixture) 
             {
                 Assert.Equal(probeStore.Blocker, Assert.Single(body.Blockers!));
             }
+        }
+    }
+
+    private static async Task TransferAsync(AdministrationScenario scenario)
+    {
+        var body = new { operationId = Guid.NewGuid(), reason = "Covering Bayan Lepas", branchId = scenario.BranchB };
+        Assert.Equal(HttpStatusCode.NoContent, (await scenario.Admin.PostAsJsonAsync($"{scenario.Path}/transfers", body)).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await scenario.Admin.PostAsJsonAsync($"{scenario.Path}/transfers", body)).StatusCode);
+    }
+
+    private static async Task DeactivateAsync(AdministrationScenario scenario)
+    {
+        var body = new { operationId = Guid.NewGuid(), reason = "Left the company" };
+        Assert.Equal(HttpStatusCode.NoContent, (await scenario.Admin.PostAsJsonAsync($"{scenario.Path}/deactivations", body)).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await scenario.Admin.PostAsJsonAsync($"{scenario.Path}/deactivations", body)).StatusCode);
+    }
+
+    private sealed class AdministrationScenario : IDisposable
+    {
+        private AdministrationScenario(WebApplicationFactory<Program> factory, HttpClient admin, Guid branchA, Guid branchB,
+            Guid staffId, Guid adminId)
+        {
+            Factory = factory;
+            Admin = admin;
+            BranchA = branchA;
+            BranchB = branchB;
+            StaffId = staffId;
+            AdminId = adminId;
+        }
+
+        public WebApplicationFactory<Program> Factory { get; }
+        public HttpClient Admin { get; }
+        public Guid BranchA { get; }
+        public Guid BranchB { get; }
+        public Guid StaffId { get; }
+        public Guid AdminId { get; }
+        public string Path => $"/api/staff-accounts/{StaffId}";
+
+        public static async Task<AdministrationScenario> StartAsync(IntakePhotoFixture fixture)
+        {
+            var factory = fixture.CreateFactory();
+            var admin = factory.CreateClient();
+            var branchA = await StaffInvitationTests.SignInAdministratorAsync(factory, admin);
+            var branchB = await ProvisionBranchAsync(factory);
+            var staffId = await ProvisionAgentAsync(factory, branchA);
+            var adminId = (await admin.GetFromJsonAsync<AccountProfile>("/api/account/profile"))!.UserId;
+            return new AdministrationScenario(factory, admin, branchA, branchB, staffId, adminId);
+        }
+
+        public void Dispose()
+        {
+            Admin.Dispose();
+            Factory.Dispose();
         }
     }
 

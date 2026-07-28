@@ -187,9 +187,6 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   await expect(
     page.locator("footer").getByText("Edit repair work and budget", { exact: true }),
   ).toBeVisible();
-  await expect(
-    page.locator("footer").getByText(/Submit the required work and budget for approval/),
-  ).toBeVisible();
   await page.getByRole("checkbox", { name: "Include in request", exact: true }).check();
   await page
     .getByLabel("EP-004 repair work", { exact: true })

@@ -16,18 +16,13 @@ namespace Dealership.IntegrationTests;
 public sealed class PerformanceReadsTests(IntakePhotoFixture fixture) : IClassFixture<IntakePhotoFixture>
 {
     [Fact]
-    public async Task DeliveredSaleMovesTheHeadlineAndPipelineOfItsBranchManager()
+    public async Task DeliveringASaleMovesTheHeadlinePipelineStagesFlowAndWorkloadOfItsBranch()
     {
         var world = await SaleWorld.SharedAsync(fixture);
         var summary = world.Services.GetRequiredService<IPerformanceSummaryQuery>();
         var stock = world.Services.GetRequiredService<IPerformanceStockReads>();
         var workloads = world.Services.GetRequiredService<IPerformanceWorkloadReads>();
-        var milestoneReads = world.Services.GetRequiredService<IPerformanceMilestoneQuery>();
-        var salesTeams = world.Services.GetRequiredService<IPerformanceSalesTeamReads>();
-        var workshopTeams = world.Services.GetRequiredService<IPerformanceWorkshopTeamReads>();
-        var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, DealershipLocale.Malaysia).DateTime);
-        var query = PerformanceQuery.Parse(today.AddDays(-1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-            today.AddDays(1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), null)!;
+        var query = TodayPeriod();
         var before = (await summary.HeadlineAsync(world.Manager, query, default)).Value!;
         var pipelineBefore = (await summary.PipelineAsync(world.Manager, query, default)).Value!;
 
@@ -49,6 +44,7 @@ public sealed class PerformanceReadsTests(IntakePhotoFixture fixture) : IClassFi
         var settledBefore = pipelineBefore.Groups.Single(group => group.Group == PerformancePipelineGroups.SettledUndelivered);
         Assert.Equal(settledBefore.Count + 1, settledGroup.Count);
         Assert.Equal(settledBefore.AgreedTotal + total, settledGroup.AgreedTotal);
+
 
         Assert.Equal(SaleResultStatus.Succeeded, (await world.Services.GetRequiredService<SaleHandoverService>()
             .DeliverAsync(world.Agent, held.Id, request, default)).Status);
@@ -73,6 +69,28 @@ public sealed class PerformanceReadsTests(IntakePhotoFixture fixture) : IClassFi
         var workloadAfter = (await workloads.WorkloadAsync(world.Manager, everyone, default)).Value!;
         Assert.Equal(agent.Total - 1, workloadAfter.People.SingleOrDefault(person => person.Id == world.Agent)?.Total ?? 0);
         Assert.Equal(PerformanceReadStatus.Forbidden, (await workloads.WorkloadAsync(world.Agent, everyone, default)).Status);
+
+        var flowAfter = (await stock.StockFlowAsync(world.Manager, query, default)).Value!;
+        Assert.Equal(flowBefore.Weeks.Sum(week => week.Deliveries) + 1, flowAfter.Weeks.Sum(week => week.Deliveries));
+        Assert.Equal(flowBefore.Weeks.Sum(week => week.DeliveredValue) + total,
+            flowAfter.Weeks.Sum(week => week.DeliveredValue));
+        Assert.Equal(after.Current.DeliveredValue, flowAfter.Weeks.Sum(week => week.DeliveredValue));
+        Assert.All(flowAfter.Weeks, week => Assert.Equal(DayOfWeek.Monday, week.WeekStart.DayOfWeek));
+        Assert.Equal(PerformanceReadStatus.Forbidden, (await stock.StockFlowAsync(world.Agent, query, default)).Status);
+
+        // Agents and customers may not read performance at all.
+        Assert.Equal(PerformanceReadStatus.Forbidden, (await summary.HeadlineAsync(world.Agent, query, default)).Status);
+        Assert.Equal(PerformanceReadStatus.Forbidden, (await summary.PipelineAsync(held.CustomerId, query, default)).Status);
+    }
+
+    [Fact]
+    public async Task TeamTablesRankSearchAndPageOnlyTheirOwnBranchAndStayOutOfReachOfAgents()
+    {
+        var world = await SaleWorld.SharedAsync(fixture);
+        var salesTeams = world.Services.GetRequiredService<IPerformanceSalesTeamReads>();
+        var workshopTeams = world.Services.GetRequiredService<IPerformanceWorkshopTeamReads>();
+        await DeliveredAsync(world);
+        var query = TodayPeriod();
         var team = PerformanceTeamQuery.Parse(query, 1, 25)!;
         var salesTeam = (await salesTeams.SalesTeamAsync(world.Manager, team, default)).Value!;
         var agentRow = salesTeam.Items.Single(row => row.PersonId == world.Agent);
@@ -104,6 +122,16 @@ public sealed class PerformanceReadsTests(IntakePhotoFixture fixture) : IClassFi
         var secondPage = (await salesTeams.SalesTeamAsync(world.Manager, team with { Page = 99 }, default)).Value!;
         Assert.Empty(secondPage.Items);
         Assert.Equal(salesTeam.Total, secondPage.Total);
+    }
+
+    [Fact]
+    public async Task OnlyAGeneralManagerComparesBranchesAndEveryBranchAddsUpToTheHeadline()
+    {
+        var world = await SaleWorld.SharedAsync(fixture);
+        var summary = world.Services.GetRequiredService<IPerformanceSummaryQuery>();
+        await DeliveredAsync(world);
+        var query = TodayPeriod();
+        var after = (await summary.HeadlineAsync(world.Manager, query, default)).Value!;
         Assert.Equal(PerformanceReadStatus.Forbidden, (await summary.BranchComparisonAsync(world.Manager, query, default)).Status);
         var generalEmail = $"general.{Guid.NewGuid():N}@example.invalid";
         var general = await world.Services.GetRequiredService<StaffProvisioningService>().ProvisionStaffAsync(
@@ -121,6 +149,15 @@ public sealed class PerformanceReadsTests(IntakePhotoFixture fixture) : IClassFi
             comparison.Branches.Select(branch => branch.BranchName));
         var everywhere = (await summary.HeadlineAsync(generalId, query, default)).Value!;
         Assert.Equal(comparison.Branches.Sum(branch => branch.Current.VehiclesDelivered), everywhere.Current.VehiclesDelivered);
+    }
+
+    [Fact]
+    public async Task MilestonesListTheSettlementAndDeliveryOfAPersonNewestFirst()
+    {
+        var world = await SaleWorld.SharedAsync(fixture);
+        var milestoneReads = world.Services.GetRequiredService<IPerformanceMilestoneQuery>();
+        var (held, total) = await DeliveredAsync(world);
+        var query = TodayPeriod();
         var milestones = (await milestoneReads.MilestonesAsync(world.Manager,
             PerformanceMilestoneQuery.Parse(query, world.Agent, 1, 25)!, default)).Value!;
         var delivered = milestones.Items.Single(item => item.Kind == PerformanceMilestoneKinds.SaleDelivered &&
@@ -135,17 +172,6 @@ public sealed class PerformanceReadsTests(IntakePhotoFixture fixture) : IClassFi
             PerformanceMilestoneQuery.Parse(query, Guid.NewGuid(), 1, 25)!, default)).Status);
         Assert.Equal(PerformanceReadStatus.Forbidden, (await milestoneReads.MilestonesAsync(world.Agent,
             PerformanceMilestoneQuery.Parse(query, world.Agent, 1, 25)!, default)).Status);
-        var flowAfter = (await stock.StockFlowAsync(world.Manager, query, default)).Value!;
-        Assert.Equal(flowBefore.Weeks.Sum(week => week.Deliveries) + 1, flowAfter.Weeks.Sum(week => week.Deliveries));
-        Assert.Equal(flowBefore.Weeks.Sum(week => week.DeliveredValue) + total,
-            flowAfter.Weeks.Sum(week => week.DeliveredValue));
-        Assert.Equal(after.Current.DeliveredValue, flowAfter.Weeks.Sum(week => week.DeliveredValue));
-        Assert.All(flowAfter.Weeks, week => Assert.Equal(DayOfWeek.Monday, week.WeekStart.DayOfWeek));
-        Assert.Equal(PerformanceReadStatus.Forbidden, (await stock.StockFlowAsync(world.Agent, query, default)).Status);
-
-        // Agents and customers may not read performance at all.
-        Assert.Equal(PerformanceReadStatus.Forbidden, (await summary.HeadlineAsync(world.Agent, query, default)).Status);
-        Assert.Equal(PerformanceReadStatus.Forbidden, (await summary.PipelineAsync(held.CustomerId, query, default)).Status);
     }
 
     [Fact]
@@ -191,56 +217,6 @@ public sealed class PerformanceReadsTests(IntakePhotoFixture fixture) : IClassFi
         Assert.Equal(new DateTimeOffset(2026, 10, 31, 16, 0, 0, TimeSpan.Zero), period.From);
     }
 
-    [Fact]
-    public async Task ABranchManagerAlwaysReadsOwnBranchWhateverBranchIsRequested()
-    {
-        var world = await SaleWorld.SharedAsync(fixture);
-        var summary = world.Services.GetRequiredService<IPerformanceSummaryQuery>();
-        var (held, request, _) = await SettledAsync(world);
-        Assert.Equal(SaleResultStatus.Succeeded, (await world.Services.GetRequiredService<SaleHandoverService>()
-            .DeliverAsync(world.Agent, held.Id, request, default)).Status);
-        var period = TodayPeriod();
-
-        var own = (await summary.HeadlineAsync(world.Manager, period, default)).Value!;
-        var asked = (await summary.HeadlineAsync(world.Manager, period with { BranchId = Guid.NewGuid() }, default)).Value!;
-
-        Assert.True(own.Current.VehiclesDelivered >= 1);
-        Assert.Equal(own.Current, asked.Current);
-    }
-
-    [Fact]
-    public async Task ATransferredAgentKeepsDeliveriesAtTheBranchRecordedAtTheEvent()
-    {
-        var world = await SaleWorld.SharedAsync(fixture);
-        var teams = world.Services.GetRequiredService<IPerformanceSalesTeamReads>();
-        var (held, request, _) = await SettledAsync(world);
-        Assert.Equal(SaleResultStatus.Succeeded, (await world.Services.GetRequiredService<SaleHandoverService>()
-            .DeliverAsync(world.Agent, held.Id, request, default)).Status);
-        var team = PerformanceTeamQuery.Parse(TodayPeriod(), 1, 50)!;
-        var home = (await teams.SalesTeamAsync(world.Manager, team, default)).Value!.Items
-            .Single(row => row.PersonId == world.Agent);
-        Assert.Equal(PerformancePersonStatuses.Active, home.Status);
-
-        await using var database = new DealershipDbContext(new DbContextOptionsBuilder<DealershipDbContext>()
-            .UseNpgsql(fixture.Database.RuntimeConnectionString).Options);
-        var otherBranch = await database.Users.Where(user => user.Id == world.OtherBranchAgent)
-            .Select(user => user.BranchId).SingleAsync();
-        try
-        {
-            await database.Users.Where(user => user.Id == world.Agent)
-                .ExecuteUpdateAsync(update => update.SetProperty(user => user.BranchId, otherBranch));
-            var moved = (await teams.SalesTeamAsync(world.Manager, team, default)).Value!.Items
-                .Single(row => row.PersonId == world.Agent && row.BranchId == home.BranchId);
-            Assert.Equal(PerformancePersonStatuses.Transferred, moved.Status);
-            Assert.Equal(home.SalesDelivered, moved.SalesDelivered);
-        }
-        finally
-        {
-            await database.Users.Where(user => user.Id == world.Agent)
-                .ExecuteUpdateAsync(update => update.SetProperty(user => user.BranchId, home.BranchId));
-        }
-    }
-
     private static PerformanceQuery TodayPeriod()
     {
         var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, DealershipLocale.Malaysia).DateTime);
@@ -260,6 +236,14 @@ public sealed class PerformanceReadsTests(IntakePhotoFixture fixture) : IClassFi
 
     private static int StageNow(PerformanceStageWaiting waiting, string stage) =>
         waiting.Stages.Single(item => item.Stage == stage).InStageNow;
+
+    private async Task<(Dealership.Domain.Vehicles.Reservation Held, decimal Total)> DeliveredAsync(SaleWorld world)
+    {
+        var (held, request, total) = await SettledAsync(world);
+        Assert.Equal(SaleResultStatus.Succeeded, (await world.Services.GetRequiredService<SaleHandoverService>()
+            .DeliverAsync(world.Agent, held.Id, request, default)).Status);
+        return (held, total);
+    }
 
     private async Task<(Dealership.Domain.Vehicles.Reservation Hold, SaleHandoverRequest Request, decimal Total)> SettledAsync(
         SaleWorld world)

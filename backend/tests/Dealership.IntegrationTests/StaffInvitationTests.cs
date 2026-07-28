@@ -16,29 +16,34 @@ namespace Dealership.IntegrationTests;
 public sealed class StaffInvitationTests(IntakePhotoFixture fixture) : IClassFixture<IntakePhotoFixture>
 {
     [Fact]
-    public async Task InvitationsReplayRenewRevokeAndActivateOnceIntoAVerifiedAccount()
+    public async Task InvitingReplaysExactlyRejectsAChangedBodyAndBlocksADuplicateEmail()
     {
-        using var factory = fixture.CreateFactory();
-        using var admin = factory.CreateClient();
-        var branchId = await SignInAdministratorAsync(factory, admin);
+        using var scenario = await InvitationScenario.StartAsync(fixture);
         var invitationId = Guid.NewGuid();
         var email = $"new.agent.{Guid.NewGuid():N}@example.invalid";
-        var body = Body(invitationId, email, branchId);
+        var body = Body(invitationId, email, scenario.BranchId);
 
-        using var invited = await admin.PostAsJsonAsync("/api/staff-invitations", body);
+        using var invited = await scenario.Admin.PostAsJsonAsync("/api/staff-invitations", body);
         Assert.Equal(HttpStatusCode.Accepted, invited.StatusCode);
         Assert.True(invited.Headers.CacheControl?.NoStore);
-        Assert.Equal(HttpStatusCode.Accepted, (await admin.PostAsJsonAsync("/api/staff-invitations", body)).StatusCode);
-        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PostAsJsonAsync("/api/staff-invitations",
-            Body(invitationId, email, branchId, name: "Someone Else"))).StatusCode);
-        var clash = await admin.PostAsJsonAsync("/api/staff-invitations", Body(Guid.NewGuid(), email.ToUpperInvariant(), branchId));
+        Assert.Equal(HttpStatusCode.Accepted, (await scenario.Admin.PostAsJsonAsync("/api/staff-invitations", body)).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await scenario.Admin.PostAsJsonAsync("/api/staff-invitations",
+            Body(invitationId, email, scenario.BranchId, name: "Someone Else"))).StatusCode);
+        var clash = await scenario.Admin.PostAsJsonAsync("/api/staff-invitations",
+            Body(Guid.NewGuid(), email.ToUpperInvariant(), scenario.BranchId));
         Assert.Equal(HttpStatusCode.Conflict, clash.StatusCode);
         Assert.True(clash.Headers.CacheControl?.NoStore);
         Assert.Equal("email-taken", (await clash.Content.ReadFromJsonAsync<ConflictBody>())!.Code);
-        Assert.False(await AccountExistsAsync(factory, email));
+        Assert.False(await AccountExistsAsync(scenario.Factory, email));
+    }
 
-        using var visitor = factory.CreateClient();
-        var firstToken = await TokenAsync(factory, invitationId);
+    [Fact]
+    public async Task ThePublicPreviewShowsTheInvitationAndResendingRenewsTheTokenWithinTheLimit()
+    {
+        using var scenario = await InvitationScenario.StartAsync(fixture);
+        var (invitationId, _, firstToken) = await scenario.InviteAsync();
+        using var visitor = scenario.Factory.CreateClient();
+
         var preview = await visitor.PostAsJsonAsync("/api/auth/staff-invitation/preview", new { token = firstToken });
         Assert.True(preview.Headers.CacheControl?.NoStore);
         var shown = (await preview.Content.ReadFromJsonAsync<PublicStaffInvitation>())!;
@@ -46,41 +51,106 @@ public sealed class StaffInvitationTests(IntakePhotoFixture fixture) : IClassFix
         Assert.Equal(HttpStatusCode.NotFound, (await visitor.PostAsJsonAsync("/api/auth/staff-invitation/preview",
             new { token = firstToken[..^1] + (firstToken[^1] == '0' ? '1' : '0') })).StatusCode);
 
-        using var limited = await admin.PostAsync($"/api/staff-invitations/{invitationId}/resends", null);
+        using var limited = await scenario.Admin.PostAsync($"/api/staff-invitations/{invitationId}/resends", null);
         Assert.Equal(HttpStatusCode.TooManyRequests, limited.StatusCode);
         Assert.True(limited.Headers.CacheControl?.NoStore);
         Assert.True(limited.Headers.RetryAfter?.Delta > TimeSpan.Zero);
-        await ClearSendHistoryAsync(factory, invitationId);
-        Assert.Equal(HttpStatusCode.Accepted, (await admin.PostAsync($"/api/staff-invitations/{invitationId}/resends", null)).StatusCode);
-        var secondToken = await TokenAsync(factory, invitationId);
+        await ClearSendHistoryAsync(scenario.Factory, invitationId);
+        Assert.Equal(HttpStatusCode.Accepted,
+            (await scenario.Admin.PostAsync($"/api/staff-invitations/{invitationId}/resends", null)).StatusCode);
+        var secondToken = await TokenAsync(scenario.Factory, invitationId);
         Assert.NotEqual(firstToken, secondToken);
-        Assert.Equal(HttpStatusCode.NotFound, (await visitor.PostAsJsonAsync("/api/auth/staff-invitation/preview", new { token = firstToken })).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound,
+            (await visitor.PostAsJsonAsync("/api/auth/staff-invitation/preview", new { token = firstToken })).StatusCode);
+    }
 
-        await ClearSendHistoryAsync(factory, invitationId);
+    [Fact]
+    public async Task CorrectingTheEmailRenewsTheTokenAndRetiresTheEarlierOne()
+    {
+        using var scenario = await InvitationScenario.StartAsync(fixture);
+        var (invitationId, _, firstToken) = await scenario.InviteAsync();
+        using var visitor = scenario.Factory.CreateClient();
+
+        await ClearSendHistoryAsync(scenario.Factory, invitationId);
         var corrected = $"corrected.{Guid.NewGuid():N}@example.invalid";
-        Assert.Equal(HttpStatusCode.Accepted, (await admin.PutAsJsonAsync($"/api/staff-invitations/{invitationId}/email", new { email = corrected })).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await visitor.PostAsJsonAsync("/api/auth/staff-invitation/preview", new { token = secondToken })).StatusCode);
-        var thirdToken = await TokenAsync(factory, invitationId);
+        Assert.Equal(HttpStatusCode.Accepted, (await scenario.Admin.PutAsJsonAsync(
+            $"/api/staff-invitations/{invitationId}/email", new { email = corrected })).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound,
+            (await visitor.PostAsJsonAsync("/api/auth/staff-invitation/preview", new { token = firstToken })).StatusCode);
+        Assert.NotEqual(firstToken, await TokenAsync(scenario.Factory, invitationId));
+    }
 
-        Assert.Equal(HttpStatusCode.BadRequest, (await Activate(visitor, thirdToken, "short", "aina.sofia")).StatusCode);
-        Assert.Equal(HttpStatusCode.BadRequest, (await Activate(visitor, thirdToken, "Password123!", "no")).StatusCode);
-        Assert.Equal(HttpStatusCode.NoContent, (await Activate(visitor, thirdToken, "Password123!", "aina.sofia")).StatusCode);
-        Assert.Equal(HttpStatusCode.NoContent, (await Activate(visitor, thirdToken, "Password123!", "aina.sofia")).StatusCode);
-        using var unavailable = await Activate(visitor, thirdToken, "Another123!", "aina.sofia");
+    [Fact]
+    public async Task ActivatingOnceCreatesAVerifiedAccountAndExhaustsTheInvitation()
+    {
+        using var scenario = await InvitationScenario.StartAsync(fixture);
+        var (invitationId, email, token) = await scenario.InviteAsync();
+        using var visitor = scenario.Factory.CreateClient();
+
+        Assert.Equal(HttpStatusCode.BadRequest, (await Activate(visitor, token, "short", "aina.sofia")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await Activate(visitor, token, "Password123!", "no")).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await Activate(visitor, token, "Password123!", "aina.sofia")).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await Activate(visitor, token, "Password123!", "aina.sofia")).StatusCode);
+        using var unavailable = await Activate(visitor, token, "Another123!", "aina.sofia");
         Assert.Equal(HttpStatusCode.Conflict, unavailable.StatusCode);
         Assert.True(unavailable.Headers.CacheControl?.NoStore);
         Assert.Equal("unavailable", (await unavailable.Content.ReadFromJsonAsync<ConflictBody>())!.Code);
-        Assert.Equal(HttpStatusCode.NotFound, (await visitor.PostAsJsonAsync("/api/auth/staff-invitation/preview", new { token = thirdToken })).StatusCode);
-        Assert.Equal(HttpStatusCode.Conflict, (await admin.PostAsync($"/api/staff-invitations/{invitationId}/revocations", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound,
+            (await visitor.PostAsJsonAsync("/api/auth/staff-invitation/preview", new { token })).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict,
+            (await scenario.Admin.PostAsync($"/api/staff-invitations/{invitationId}/revocations", null)).StatusCode);
 
-        var login = await visitor.PostAsJsonAsync("/api/auth/login", new LoginRequest(Guid.NewGuid(), corrected, "Password123!"));
+        var login = await visitor.PostAsJsonAsync("/api/auth/login", new LoginRequest(Guid.NewGuid(), email, "Password123!"));
         var session = (await login.Content.ReadFromJsonAsync<LoginSession>())!;
         visitor.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
         var profile = (await visitor.GetFromJsonAsync<AccountProfile>("/api/account/profile"))!;
-        Assert.Equal((AccountRoles.SalesAgent, "aina.sofia", true, branchId, "Aina Sofia"),
+        Assert.Equal((AccountRoles.SalesAgent, "aina.sofia", true, scenario.BranchId, "Aina Sofia"),
             (profile.Role, profile.Username, profile.EmailVerified, profile.BranchId, profile.Name));
+    }
 
-        await AssertPreviewPolicyAsync(factory, thirdToken);
+    [Fact]
+    public async Task PreviewAndActivationMapUnavailableInvalidAndUsernameConflictResponses()
+    {
+        using var scenario = await InvitationScenario.StartAsync(fixture);
+        var (_, _, token) = await scenario.InviteAsync();
+
+        await AssertPreviewPolicyAsync(scenario.Factory, token);
+    }
+
+    private sealed class InvitationScenario : IDisposable
+    {
+        private InvitationScenario(WebApplicationFactory<Program> factory, HttpClient admin, Guid branchId)
+        {
+            Factory = factory;
+            Admin = admin;
+            BranchId = branchId;
+        }
+
+        public WebApplicationFactory<Program> Factory { get; }
+        public HttpClient Admin { get; }
+        public Guid BranchId { get; }
+
+        public static async Task<InvitationScenario> StartAsync(IntakePhotoFixture fixture)
+        {
+            var factory = fixture.CreateFactory();
+            var admin = factory.CreateClient();
+            return new InvitationScenario(factory, admin, await SignInAdministratorAsync(factory, admin));
+        }
+
+        public async Task<(Guid Id, string Email, string Token)> InviteAsync()
+        {
+            var id = Guid.NewGuid();
+            var email = $"new.agent.{Guid.NewGuid():N}@example.invalid";
+            Assert.Equal(HttpStatusCode.Accepted,
+                (await Admin.PostAsJsonAsync("/api/staff-invitations", Body(id, email, BranchId))).StatusCode);
+            return (id, email, await TokenAsync(Factory, id));
+        }
+
+        public void Dispose()
+        {
+            Admin.Dispose();
+            Factory.Dispose();
+        }
     }
 
     private static async Task AssertPreviewPolicyAsync(WebApplicationFactory<Program> factory, string token)
