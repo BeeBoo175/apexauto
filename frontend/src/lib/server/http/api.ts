@@ -129,5 +129,8 @@ export function apiError(error: unknown) {
         ? error.message
         : "The result is unconfirmed. Retry the same request.",
     uncertain: status >= 500,
+    ...(error instanceof HttpError && status === 429
+      ? { retryAfterSeconds: error.retryAfterSeconds }
+      : {}),
   });
 }

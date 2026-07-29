@@ -15,7 +15,7 @@ export async function staffActor(returnTo: string) {
   if (result.actor?.role === "Customer") {
     redirect("/account");
   }
-  return result.actor;
+  return result;
 }
 
 export async function staffBranches(actor: CurrentActor) {

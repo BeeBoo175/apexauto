@@ -36,6 +36,19 @@ internal sealed class BrowserEvidence(string directory) : IStartupFilter
 
                 var transportPath = path.StartsWith("/api/auth/", StringComparison.Ordinal) && path != "/api/auth/session" ||
                     path == "/api/intake/appointments";
+                if (path == "/api/auth/session" && fault is "session-retry" or "session-error")
+                {
+                    context.Response.StatusCode = fault == "session-retry"
+                        ? StatusCodes.Status429TooManyRequests
+                        : StatusCodes.Status500InternalServerError;
+                    if (fault == "session-retry")
+                    {
+                        context.Response.Headers.RetryAfter = "7";
+                    }
+                    await context.Response.WriteAsJsonAsync(new { title = "private provider detail" });
+                    return;
+                }
+
                 if (transportPath && fault.StartsWith("retry:", StringComparison.Ordinal))
                 {
                     context.Response.StatusCode = StatusCodes.Status429TooManyRequests;

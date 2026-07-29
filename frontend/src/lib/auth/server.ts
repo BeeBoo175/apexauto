@@ -65,7 +65,12 @@ export const readCurrentActor = cache(async (signal?: AbortSignal) => {
   }
   const response = await authUpstream("/api/auth/session", { token, signal });
   if (response.status !== 200) {
-    return { status: response.status, actor: null, emailVerified: true };
+    return {
+      status: response.status,
+      actor: null,
+      emailVerified: true,
+      retryAfterSeconds: response.retryAfterSeconds,
+    };
   }
   const actor = parseActor(response.body);
   if (!actor) {

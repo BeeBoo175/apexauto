@@ -14,6 +14,13 @@ export async function confirmedActor(
   message = "Your session could not be confirmed.",
 ): Promise<CurrentActor> {
   const current = await readCurrentActor(signal);
+  if (current.status === 429) {
+    throw new HttpError(
+      429,
+      "Too many requests. Wait before trying again.",
+      current.retryAfterSeconds,
+    );
+  }
   if (!current.actor) {
     throw new HttpError(current.status === 401 ? 401 : 502, message);
   }

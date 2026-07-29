@@ -156,6 +156,27 @@ test("origin and body protection, malformed sessions and bounded body consumptio
   expect(signedIn.status()).toBe(200);
   const cookie = signedIn.headers()["set-cookie"].split(";")[0];
   const headers = { Cookie: cookie };
+  for (const [sessionFault, status] of [
+    ["session-retry", 429],
+    ["session-error", 502],
+  ] as const) {
+    fault(sessionFault);
+    const response = await request.get("/api/staff/performance/headline", { headers });
+    expect(response.status()).toBe(status);
+    expect(response.headers()["retry-after"]).toBe(status === 429 ? "7" : undefined);
+    expect(response.headers()["cache-control"]).toContain("no-store");
+    expect(response.headers()["set-cookie"]).toBeUndefined();
+    expect(await response.json()).toEqual({
+      status,
+      data: null,
+      uncertain: status === 502,
+      message:
+        status === 429
+          ? "Too many requests. Wait before trying again."
+          : "Your session could not be confirmed.",
+      ...(status === 429 ? { retryAfterSeconds: 7 } : {}),
+    });
+  }
   const conflicts = [
     "check-in-content-conflict",
     "check-in-unavailable",

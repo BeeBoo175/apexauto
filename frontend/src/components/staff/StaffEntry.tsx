@@ -28,12 +28,12 @@ export async function StaffEntry({
   allowUnverified?: boolean;
   children: (actor: CurrentActor) => Promise<ReactNode>;
 }) {
-  const actor = await staffActor(path);
+  const { actor, status } = await staffActor(path);
   if (!actor) {
     return (
       <>
         <LoadingProgressReady />
-        <SessionCheckUnavailable />
+        <SessionCheckUnavailable status={status} />
       </>
     );
   }

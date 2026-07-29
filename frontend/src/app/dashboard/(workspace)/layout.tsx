@@ -8,12 +8,12 @@ import { staffActor } from "@/lib/staff/server";
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   await connection();
-  const actor = await staffActor("/dashboard");
+  const { actor, status } = await staffActor("/dashboard");
   if (!actor) {
     return (
       <>
         <LoadingProgressReady />
-        <SessionCheckUnavailable />
+        <SessionCheckUnavailable status={status} />
       </>
     );
   }
