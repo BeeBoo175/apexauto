@@ -240,8 +240,6 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     items: [{ pointCode: "EP-004", work: "Repair bumper scuff and inspect finish." }],
   });
   await page.unroute(`**/api/staff/inspection/drafts/${id}/repair-requests`);
-  // Pace the accelerated actors within the real shared-loopback rate limit.
-  await new Promise((resolve) => setTimeout(resolve, 61_000));
 
   const managerContext = await browser.newContext({
     ...info.project.use,
@@ -419,11 +417,10 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     .getByRole("dialog", { name: "Reopen signed inspection", exact: true })
     .getByRole("button", { name: "Close dialog", exact: true })
     .click();
-  await manager.getByRole("button", { name: "Refresh inspection", exact: true }).click();
-  await expect(
-    manager.getByRole("button", { name: "Refresh inspection", exact: true }),
-  ).toBeEnabled();
-  await manager.getByRole("button", { name: "Reopen inspection", exact: true }).click();
+  await manager
+    .getByRole("dialog", { name: "Discard unsaved changes?", exact: true })
+    .getByRole("button", { name: "Keep editing", exact: true })
+    .click();
   await expect(manager.getByLabel("Reopening reason", { exact: true })).toHaveValue(
     "  Inspect newly reported suspension noise.  ",
   );
@@ -477,7 +474,6 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     .getByRole("button", { name: "Close drawer", exact: true })
     .click();
   await manager.goto(`/dashboard/inspection?inspection=${id}`);
-  await new Promise((resolve) => setTimeout(resolve, 61_000));
   const selected = await context.request.get(`/api/staff/inspection/reports/${id}/revisions/1`, {
     headers: await privateHeaders(context),
   });

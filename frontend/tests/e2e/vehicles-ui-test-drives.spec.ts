@@ -315,8 +315,6 @@ test("customer booking and cancellation reconcile exact receipts before manager 
     await manager.close();
     await agent.close();
   }
-  // The combined multi-actor journey shares the local ingress budget with public photos.
-  await new Promise((resolve) => setTimeout(resolve, 61_000));
   await page.goto("/account#test-drives");
   await expect(history.locator("details").filter({ hasText: completedBooking })).toContainText(
     "Completed",

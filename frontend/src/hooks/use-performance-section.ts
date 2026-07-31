@@ -1,6 +1,7 @@
 "use client";
 
 import { privateApiFetch } from "@/lib/api-browser";
+import { apiReadError } from "@/lib/api";
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import { periodQuery } from "@/lib/performance/period";
 import type { PerformancePeriod } from "@/lib/performance/performance";
@@ -47,7 +48,7 @@ export function usePerformanceSection<T extends { actor: CurrentActor }>({
         !result.data ||
         actorIdentity(result.data.actor) !== actorIdentity(actor)
       ) {
-        throw new Error(`${label} unavailable`);
+        throw apiReadError(`${label} unavailable`, result);
       }
       return result.data;
     },

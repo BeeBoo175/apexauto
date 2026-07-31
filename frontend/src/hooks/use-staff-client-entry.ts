@@ -7,6 +7,7 @@ import {
 } from "@/components/staff/StaffClientEntryBoundary";
 import { useToast } from "@/components/ui/Toast";
 import { useLoadingProgress, useLoadingProgressReady } from "@/components/ui/LoadingProgress";
+import { readFailureMessage } from "@/lib/http";
 
 const subscribe = () => () => {};
 const clientSnapshot = () => true;
@@ -44,7 +45,7 @@ export function useStaffClientEntry<T>(
     }
     requests.release(id);
     if (!entry) {
-      error(failureMessage);
+      error(readFailureMessage(request.failure, failureMessage));
     }
     return () => request.controller.abort();
   }, [requests, id, request, entry, error, failureMessage]);

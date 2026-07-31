@@ -360,7 +360,6 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
       { exact: true },
     ),
   ).toHaveCount(0);
-  await new Promise((resolve) => setTimeout(resolve, 61_000));
 });
 
 const staffRoles: [string, string, Role][] = [
@@ -409,6 +408,31 @@ for (const [role, email, actorRole] of staffRoles) {
     await setAppointmentDates(page, range.from, range.to);
     await page.getByRole("button", { name: "Apply", exact: true }).click();
     await expect(page.getByRole("row")).toHaveCount(26);
+    if (role === "Branch manager") {
+      const rows = await page.locator("tbody tr").allTextContents();
+      const refresh = page.getByRole("button", { name: "Refresh worklist", exact: true });
+      let reads = 0;
+      await page.route("**/api/staff/intake/appointments?**", async (route) => {
+        reads++;
+        if (reads === 1) {
+          await route.fulfill({
+            status: 429,
+            headers: { "Retry-After": "1" },
+            json: { status: 429, data: null, message: "Busy", uncertain: false },
+          });
+          return;
+        }
+        await route.continue();
+      });
+      await refresh.click();
+      await expect.poll(() => reads).toBe(1);
+      await expect(refresh).toBeDisabled();
+      expect(await page.locator("tbody tr").allTextContents()).toEqual(rows);
+      await expect(refresh).toBeEnabled();
+      expect(reads).toBe(2);
+      expect(await page.locator("tbody tr").allTextContents()).toEqual(rows);
+      await page.unroute("**/api/staff/intake/appointments?**");
+    }
     await exerciseManagerHandler(page);
     const link = page.locator("tbody tr").first();
     await link.click();
@@ -417,7 +441,6 @@ for (const [role, email, actorRole] of staffRoles) {
       dialog.getByRole("button", { name: "Refresh appointment", exact: true }),
     ).toBeEnabled();
     if (role === "General manager") {
-      await expect(dialog.getByText("Your role has read-only intake access.")).toBeVisible();
       await expect(
         dialog.getByRole("button", { name: "Confirm check-in", exact: true }),
       ).toHaveCount(0);

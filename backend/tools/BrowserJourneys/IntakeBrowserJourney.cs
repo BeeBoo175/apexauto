@@ -43,7 +43,11 @@ internal static class IntakeBrowserJourney
                 builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(new Dictionary<string, string?>
                 {
                     ["ForwardedHeaders:KnownProxies:0"] = "127.0.0.1",
-                    ["ForwardedHeaders:KnownProxies:1"] = "::1"
+                    ["ForwardedHeaders:KnownProxies:1"] = "::1",
+                    ["RateLimiting:ApiRequestsPerWindow"] = "10000",
+                    ["RateLimiting:PictureReadsPerWindow"] = "10000",
+                    ["RateLimiting:LoginAttemptsPerWindow"] = "100",
+                    ["RateLimiting:VerificationAttemptsPerWindow"] = "100"
                 }));
                 builder.ConfigureServices(services =>
                 {

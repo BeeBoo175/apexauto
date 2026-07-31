@@ -2,6 +2,7 @@
 
 import { useStaffClientEntry } from "./use-staff-client-entry";
 import { privateApiFetch } from "@/lib/api-browser";
+import { apiReadError } from "@/lib/api";
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import type { SearchParams } from "@/lib/query";
 import {
@@ -24,7 +25,7 @@ export function useCustomerAccountsEntry(actor: CurrentActor, parameters: Search
       initial.data.pageSize !== query.filters.pageSize ||
       actorIdentity(initial.data.actor) !== actorIdentity(actor)
     ) {
-      throw new Error("Customer accounts unavailable");
+      throw apiReadError("Customer accounts unavailable", initial);
     }
     return { ...query, initial: initial.data };
   }, "Customer accounts could not be loaded. Retry to open the workspace.");

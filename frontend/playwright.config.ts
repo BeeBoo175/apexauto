@@ -36,6 +36,7 @@ export default defineConfig({
       name: "contracts",
       testMatch: [
         "auth/contracts.spec.ts",
+        "auth/browser-transport-contracts.spec.ts",
         "accounts/staff-accounts-contracts.spec.ts",
         "accounts/relay-contracts.spec.ts",
         "intake/contracts.spec.ts",

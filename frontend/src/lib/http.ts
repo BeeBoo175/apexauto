@@ -16,6 +16,13 @@ export class HttpError extends Error {
   }
 }
 
+export function readFailureMessage(error: unknown, fallback: string): string {
+  if (error instanceof HttpError && error.status === 429 && error.retryAfterSeconds) {
+    return `Too many requests. Try again in ${error.retryAfterSeconds} seconds.`;
+  }
+  return fallback;
+}
+
 export async function readBoundedJson(
   body: ReadableStream<Uint8Array> | null,
   signal: AbortSignal,

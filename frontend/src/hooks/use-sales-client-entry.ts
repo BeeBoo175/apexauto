@@ -4,7 +4,7 @@ import type { SalesTable } from "@/components/sales/SalesTable";
 import type { SalesWorkspace } from "@/components/sales/SalesWorkspace";
 import { useStaffClientEntry } from "./use-staff-client-entry";
 import { privateApiFetch } from "@/lib/api-browser";
-import { unavailableResult, type ApiResult } from "@/lib/api";
+import { apiReadError, unavailableResult, type ApiResult } from "@/lib/api";
 import type { CurrentActor } from "@/lib/auth/actor";
 import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 import type { SearchParams } from "@/lib/query";
@@ -68,7 +68,7 @@ export function useSalesClientEntry(actor: CurrentActor, parameters: SearchParam
         initial.data.page !== query.page ||
         initial.data.pageSize !== query.filters.pageSize
       ) {
-        throw new Error("Sales unavailable");
+        throw apiReadError("Sales unavailable", initial);
       }
       return {
         kind: "manager" as const,

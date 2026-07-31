@@ -2,6 +2,7 @@
 
 import { useStaffClientEntry } from "./use-staff-client-entry";
 import { privateApiFetch } from "@/lib/api-browser";
+import { apiReadError } from "@/lib/api";
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import type { SearchParams } from "@/lib/query";
 import { parseStaffTestDrivePage, parseStaffTestDriveDetail } from "@/lib/test-drives/staff";
@@ -45,7 +46,7 @@ export function useStaffTestDriveEntry(actor: CurrentActor, parameters: SearchPa
       initial.data.pageSize !== query.filters.pageSize ||
       actorIdentity(initial.data.actor) !== actorIdentity(actor)
     ) {
-      throw new Error("Test drives unavailable");
+      throw apiReadError("Test drives unavailable", initial);
     }
     if (selected?.data && actorIdentity(selected.data.actor) !== actorIdentity(actor)) {
       throw new Error("Test drive actor changed");

@@ -81,7 +81,7 @@ builder.Services.AddHostedService<ReservationExpiryWorker>();
 builder.Services.AddSingleton<StaffExportWorker>();
 builder.Services.AddSingleton<IStaffExportWorker>(provider => provider.GetRequiredService<StaffExportWorker>());
 builder.Services.AddHostedService(provider => provider.GetRequiredService<StaffExportWorker>());
-builder.Services.AddApiRateLimiting();
+builder.Services.AddApiRateLimiting(builder.Configuration);
 builder.Services.AddApiAuthentication();
 
 builder.Services.AddCors(options =>

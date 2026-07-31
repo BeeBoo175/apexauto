@@ -3,7 +3,7 @@
 import type { AppointmentWorkbench } from "@/components/staff/AppointmentWorkbench";
 import { useStaffClientEntry } from "./use-staff-client-entry";
 import { privateApiFetch } from "@/lib/api-browser";
-import type { ApiResult } from "@/lib/api";
+import { apiReadError, type ApiResult } from "@/lib/api";
 import type { AppointmentDetail } from "@/lib/staff/contracts";
 import { parseDetail } from "@/lib/staff/parse";
 
@@ -20,7 +20,7 @@ export function useAppointmentClientEntry(id: string) {
     ]);
     signal.throwIfAborted();
     if (initial.status !== 200 || initial.data?.id !== id) {
-      throw new Error("Appointment unavailable");
+      throw apiReadError("Appointment unavailable", initial);
     }
     return { Workbench, initial };
   }, "The appointment could not be loaded. Retry to open it.");

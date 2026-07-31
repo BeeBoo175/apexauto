@@ -3,6 +3,7 @@
 import { useSectionRead } from "@/hooks/use-section-read";
 import { readUnscheduledWork } from "@/hooks/use-work-calendar-entry";
 import { privateApiFetch } from "@/lib/api-browser";
+import { apiReadError } from "@/lib/api";
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import type { SalesQueue } from "@/lib/sales/contracts";
 import { parseSalesQueue } from "@/lib/sales/parse";
@@ -18,7 +19,7 @@ export async function readAgentWork(actor: CurrentActor, signal: AbortSignal) {
     readUnscheduledWork(actor, workCalendarParams({}), signal),
   ]);
   if (!queue.data || !work.data) {
-    throw new Error("Home unavailable");
+    throw apiReadError("Home unavailable", queue, work);
   }
   return { queue: queue.data, work: work.data };
 }

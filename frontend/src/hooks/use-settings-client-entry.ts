@@ -3,7 +3,7 @@
 import type { SettingsWorkspace } from "@/components/settings/SettingsWorkspace";
 import { useStaffClientEntry } from "./use-staff-client-entry";
 import { privateApiFetch } from "@/lib/api-browser";
-import { unavailableResult, type ApiResult, type Page } from "@/lib/api";
+import { apiReadError, unavailableResult, type ApiResult, type Page } from "@/lib/api";
 import { isUuid } from "@/lib/auth/contracts";
 import type { SearchParams } from "@/lib/query";
 import {
@@ -85,7 +85,7 @@ export function useSettingsClientEntry(parameters: SearchParams) {
       (section !== "settings" &&
         (!list || list.page !== page || list.pageSize !== filters.pageSize))
     ) {
-      throw new Error("Settings unavailable");
+      throw apiReadError("Settings unavailable", settings, promos, warranties);
     }
     return {
       Workspace,

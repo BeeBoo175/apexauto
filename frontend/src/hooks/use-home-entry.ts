@@ -4,6 +4,7 @@ import { useStaffClientEntry } from "./use-staff-client-entry";
 import { readAgentWork } from "./use-agent-home";
 import { readTodaySchedule } from "./use-today-schedule";
 import { privateApiFetch } from "@/lib/api-browser";
+import { apiReadError } from "@/lib/api";
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import { readBranchChoices } from "@/lib/branch-choices";
 import { isUuid } from "@/lib/auth/contracts";
@@ -58,7 +59,7 @@ async function readSection<T extends { actor: CurrentActor }>(
     },
   );
   if (!result.data || actorIdentity(result.data.actor) !== actorIdentity(actor)) {
-    throw new Error("Home unavailable");
+    throw apiReadError("Home unavailable", result);
   }
   return result.data;
 }

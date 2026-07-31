@@ -22,6 +22,7 @@ export function StaffHistoryBoundary({ children }: { children: ReactNode }) {
 export interface StaffEntryRequest<T> {
   controller: AbortController;
   promise: Promise<T | null>;
+  failure?: unknown;
 }
 
 interface EntryRequests {
@@ -72,9 +73,12 @@ function createRequests(): EntryRequests {
           signal.addEventListener("abort", () => reject(signal.reason), { once: true });
         }),
       ])
-        .catch(() => null)
+        .catch((error: unknown) => {
+          request.failure = error;
+          return null;
+        })
         .finally(() => controller.abort());
-      const request = { controller, promise };
+      const request: StaffEntryRequest<T> = { controller, promise };
       pending = { id, request };
       return request;
     },

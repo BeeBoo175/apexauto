@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Options;
 
 namespace Dealership.Api.Configuration;
 
@@ -16,22 +17,39 @@ public static class ApiRateLimiting
 
     public static readonly TimeSpan RequestWindow = TimeSpan.FromMinutes(1);
 
-    public static IServiceCollection AddApiRateLimiting(this IServiceCollection services)
+    public static IServiceCollection AddApiRateLimiting(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddOptions<RateLimitingSettings>()
+            .Bind(configuration.GetSection(RateLimitingSettings.SectionName))
+            .Validate(settings => settings.ApiRequestsPerWindow is > 0 and <= 100000 &&
+                settings.PictureReadsPerWindow is > 0 and <= 100000 &&
+                settings.LoginAttemptsPerWindow is > 0 and <= 100000 &&
+                settings.VerificationAttemptsPerWindow is > 0 and <= 100000,
+                "Rate limiting request limits must be between 1 and 100000.")
+            .Validate(settings => settings.PhotoTransferConcurrency is > 0 and <= 1000,
+                "Photo transfer concurrency must be between 1 and 1000.")
+            .Validate(settings => settings.WindowSeconds is >= 1 and <= 3600,
+                "Rate limiting window must be between 1 and 3600 seconds.")
+            .ValidateOnStart();
         services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+        });
+        services.AddOptions<RateLimiterOptions>().Configure<IOptions<RateLimitingSettings>>((options, configured) =>
+        {
+            var settings = configured.Value;
+            var window = TimeSpan.FromSeconds(settings.WindowSeconds);
             options.AddConcurrencyLimiter(PhotoTransferPolicy, limiter =>
             {
-                limiter.PermitLimit = 4;
+                limiter.PermitLimit = settings.PhotoTransferConcurrency;
                 limiter.QueueLimit = 0;
             });
             options.AddPolicy(LoginPolicy, context =>
             {
                 return RateLimitPartition.GetFixedWindowLimiter(GetClientAddress(context), _ => new FixedWindowRateLimiterOptions
                 {
-                    PermitLimit = LoginAttemptsPerMinute,
-                    Window = RequestWindow,
+                    PermitLimit = settings.LoginAttemptsPerWindow,
+                    Window = window,
                     QueueLimit = 0,
                     AutoReplenishment = true
                 });
@@ -40,8 +58,8 @@ public static class ApiRateLimiting
             {
                 return RateLimitPartition.GetFixedWindowLimiter(GetClientAddress(context), _ => new FixedWindowRateLimiterOptions
                 {
-                    PermitLimit = 10,
-                    Window = RequestWindow,
+                    PermitLimit = settings.VerificationAttemptsPerWindow,
+                    Window = window,
                     QueueLimit = 0,
                     AutoReplenishment = true
                 });
@@ -54,8 +72,8 @@ public static class ApiRateLimiting
                 var partition = (pictures ? "pictures:" : "api:") + GetClientAddress(context);
                 return RateLimitPartition.GetFixedWindowLimiter(partition, _ => new FixedWindowRateLimiterOptions
                 {
-                    PermitLimit = pictures ? PictureReadsPerMinute : RequestsPerMinute,
-                    Window = RequestWindow,
+                    PermitLimit = pictures ? settings.PictureReadsPerWindow : settings.ApiRequestsPerWindow,
+                    Window = window,
                     // Reject immediately so bursts do not accumulate pending requests.
                     QueueLimit = 0,
                     AutoReplenishment = true

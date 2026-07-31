@@ -2,6 +2,7 @@
 
 import { useStaffClientEntry } from "./use-staff-client-entry";
 import { privateApiFetch } from "@/lib/api-browser";
+import { apiReadError } from "@/lib/api";
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import type { SearchParams } from "@/lib/query";
 import {
@@ -28,7 +29,7 @@ export function useStaffAccountsEntry(actor: CurrentActor, parameters: SearchPar
       initial.data.pageSize !== query.filters.pageSize ||
       actorIdentity(initial.data.actor) !== actorIdentity(actor)
     ) {
-      throw new Error("Staff accounts unavailable");
+      throw apiReadError("Staff accounts unavailable", initial);
     }
     return { ...query, initial: initial.data, branches: branches?.data ?? null };
   }, "Staff accounts could not be loaded. Retry to open the workspace.");

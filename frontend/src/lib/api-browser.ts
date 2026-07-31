@@ -90,6 +90,48 @@ async function requestApi<T>(
     AbortSignal.timeout(policy.deadlineMs ?? API_DEADLINE_MS + 2000),
     ...(options.signal ? [options.signal] : []),
   ]);
+  const result = await requestAttempt(path, parse, options, policy, signal);
+  if (
+    (options.method ?? "GET").toUpperCase() !== "GET" ||
+    result.status !== 429 ||
+    result.uncertain ||
+    !result.retryAfterSeconds ||
+    result.retryAfterSeconds > 10
+  ) {
+    return result;
+  }
+  await waitForRetry(result.retryAfterSeconds * 1000 + Math.random() * 500, signal);
+  try {
+    return await requestAttempt(path, parse, options, policy, signal);
+  } catch {
+    signal.throwIfAborted();
+    return result;
+  }
+}
+
+function waitForRetry(milliseconds: number, signal: AbortSignal): Promise<void> {
+  signal.throwIfAborted();
+  return new Promise((resolve, reject) => {
+    const cancel = () => {
+      clearTimeout(timer);
+      reject(signal.reason);
+    };
+    const timer = setTimeout(() => {
+      signal.removeEventListener("abort", cancel);
+      resolve();
+    }, milliseconds);
+    signal.addEventListener("abort", cancel, { once: true });
+  });
+}
+
+async function requestAttempt<T>(
+  path: string,
+  parse: (value: unknown) => T | null,
+  options: RequestInit,
+  policy: BrowserRequestPolicy,
+  signal: AbortSignal,
+): Promise<ApiResult<T>> {
+  signal.throwIfAborted();
   const response = await fetch(path, { ...options, cache: "no-store", signal });
   if (response.status === 401) {
     window.dispatchEvent(new Event("apexauto-session-invalid"));

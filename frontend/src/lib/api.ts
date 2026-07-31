@@ -1,6 +1,7 @@
 import type { CurrentActor } from "@/lib/auth/actor";
 import { isNonNegativeInteger, isRecord } from "@/lib/auth/contracts";
 import { isPageSize } from "@/lib/pagination";
+import { HttpError } from "./http";
 
 export const API_DEADLINE_MS = 25_000;
 
@@ -26,6 +27,14 @@ export interface ApiResult<T> {
   actor?: CurrentActor;
   code?: string;
   retryAfterSeconds?: number;
+}
+
+export function apiReadError(
+  message: string,
+  ...results: (ApiResult<unknown> | null | undefined)[]
+): HttpError {
+  const limited = results.find((result) => result?.status === 429);
+  return new HttpError(limited?.status ?? 502, message, limited?.retryAfterSeconds);
 }
 
 // A read that could not be confirmed: callers keep their last confirmed content and offer a retry.

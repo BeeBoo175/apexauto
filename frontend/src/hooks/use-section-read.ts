@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
+import { readFailureMessage } from "@/lib/http";
 
 interface SectionReadOptions<T> {
   // Reads the section; throws when the answer is unavailable or belongs to another viewer.
@@ -54,14 +55,14 @@ export function useSectionRead<T>({
         setData(next);
         setFailed(false);
         reported.current = false;
-      } catch {
+      } catch (error) {
         if (!current) {
           return;
         }
         setFailed(true);
         if (!reported.current) {
           reported.current = true;
-          toast.error(failure);
+          toast.error(readFailureMessage(error, failure));
         }
       } finally {
         if (current) {

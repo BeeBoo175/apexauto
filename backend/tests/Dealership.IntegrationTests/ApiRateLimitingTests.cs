@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace Dealership.IntegrationTests;
 
@@ -157,16 +158,79 @@ public sealed class ApiRateLimitingTests
         Assert.Equal(StatusCodes.Status401Unauthorized, otherClient.Response.StatusCode);
     }
 
-    private static WebApplicationFactory<Program> CreateFactory()
+    [Fact]
+    public async Task ConfiguredBudgetsAndWindowReplaceTheDefaults()
+    {
+        using var factory = CreateFactory(new Dictionary<string, string?>
+        {
+            ["RateLimiting:ApiRequestsPerWindow"] = "2",
+            ["RateLimiting:PictureReadsPerWindow"] = "3",
+            ["RateLimiting:LoginAttemptsPerWindow"] = "1",
+            ["RateLimiting:VerificationAttemptsPerWindow"] = "2",
+            ["RateLimiting:PhotoTransferConcurrency"] = "2",
+            ["RateLimiting:WindowSeconds"] = "120"
+        });
+        using var client = factory.CreateClient();
+
+        for (var request = 0; request < 2; request++)
+        {
+            Assert.Equal(StatusCodes.Status200OK,
+                (await Send(factory, FirstClient, "/api/taxonomy")).Response.StatusCode);
+        }
+
+        var rejected = await Send(factory, FirstClient, "/api/taxonomy");
+        Assert.Equal(StatusCodes.Status429TooManyRequests, rejected.Response.StatusCode);
+        Assert.True(int.TryParse(rejected.Response.Headers.RetryAfter, out var retrySeconds));
+        Assert.InRange(retrySeconds, 61, 120);
+
+        for (var request = 0; request < 3; request++)
+        {
+            Assert.Equal(StatusCodes.Status401Unauthorized,
+                (await Send(factory, FirstClient, $"/api/accounts/{Guid.NewGuid()}/picture")).Response.StatusCode);
+        }
+
+        Assert.Equal(StatusCodes.Status429TooManyRequests,
+            (await Send(factory, FirstClient, $"/api/accounts/{Guid.NewGuid()}/picture")).Response.StatusCode);
+        Assert.Equal(StatusCodes.Status401Unauthorized, (await SendLogin(factory, SecondClient)).Response.StatusCode);
+        Assert.Equal(StatusCodes.Status429TooManyRequests, (await SendLogin(factory, SecondClient)).Response.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("ApiRequestsPerWindow", 0)]
+    [InlineData("ApiRequestsPerWindow", 100001)]
+    [InlineData("PictureReadsPerWindow", -1)]
+    [InlineData("PictureReadsPerWindow", 100001)]
+    [InlineData("LoginAttemptsPerWindow", 0)]
+    [InlineData("LoginAttemptsPerWindow", 100001)]
+    [InlineData("VerificationAttemptsPerWindow", 0)]
+    [InlineData("VerificationAttemptsPerWindow", 100001)]
+    [InlineData("PhotoTransferConcurrency", 0)]
+    [InlineData("PhotoTransferConcurrency", 1001)]
+    [InlineData("WindowSeconds", 0)]
+    [InlineData("WindowSeconds", 3601)]
+    public void InvalidConfigurationFailsStartup(string property, int value)
+    {
+        using var factory = CreateFactory(new Dictionary<string, string?>
+        {
+            [$"RateLimiting:{property}"] = value.ToString(System.Globalization.CultureInfo.InvariantCulture)
+        });
+
+        Assert.Throws<OptionsValidationException>(() => factory.CreateClient());
+    }
+
+    private static WebApplicationFactory<Program> CreateFactory(Dictionary<string, string?>? overrides = null)
     {
         return new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
             // Readiness may probe only this unreachable test target, never the named database.
-            builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
-                new Dictionary<string, string?>
+            builder.ConfigureAppConfiguration((_, configuration) =>
+            {
+                configuration.AddInMemoryCollection(new Dictionary<string, string?>
                 {
                     ["ConnectionStrings:DefaultConnection"] = "Host=127.0.0.1;Port=1;Database=unavailable;Username=unavailable;Password=unavailable;Timeout=1"
-                }));
+                });
+                configuration.AddInMemoryCollection(overrides ?? []);
+            });
             builder.ConfigureServices(services =>
             {
                 services.PostConfigure<ForwardedHeadersOptions>(options =>

@@ -49,7 +49,6 @@ test("sales settlement, handover, corrections and own customer PDFs retain exact
   const customer = await browser.newContext({ ...info.project.use, baseURL: origin });
   const manager = await browser.newContext({ ...info.project.use, baseURL: origin });
   const outsider = await browser.newContext({ ...info.project.use, baseURL: origin });
-  const firstRequestAt = Date.now();
   try {
     await apiLogin(context, "aina.sofia@example.invalid");
     await apiLogin(customer, "ahmad.faizal@example.invalid");
@@ -296,9 +295,6 @@ test("sales settlement, handover, corrections and own customer PDFs retain exact
       fullPage: true,
     });
 
-    // Staff and customer contexts share the harness's loopback IP and its real admission window.
-    const remainingWindow = Math.max(0, 61_000 - (Date.now() - firstRequestAt));
-    await new Promise((resolve) => setTimeout(resolve, remainingWindow));
     const customerPage = await customer.newPage();
     const counts = () =>
       JSON.parse(readFileSync(path.join(evidence, "counts.json"), "utf8")) as Record<

@@ -2,6 +2,7 @@
 
 import { useStaffClientEntry } from "./use-staff-client-entry";
 import { privateApiFetch } from "@/lib/api-browser";
+import { apiReadError } from "@/lib/api";
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import { readBranchChoices } from "@/lib/branch-choices";
 import { performancePeriod, periodQuery, presetOf } from "@/lib/performance/period";
@@ -77,7 +78,7 @@ export function usePerformanceEntry(actor: CurrentActor, parameters: SearchParam
         : null,
     ]);
     if (!headline.data || actorIdentity(headline.data.actor) !== actorIdentity(actor)) {
-      throw new Error("Performance unavailable");
+      throw apiReadError("Performance unavailable", headline);
     }
     return {
       actor,

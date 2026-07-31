@@ -117,6 +117,8 @@ internal static class RecoveryBrowserJourney
                     ["ForwardedHeaders:KnownProxies:0"] = "127.0.0.1",
                     ["ForwardedHeaders:KnownProxies:1"] = "::1",
                     ["APP_BASE_URL"] = browserOrigin,
+                    ["RateLimiting:ApiRequestsPerWindow"] = "10000",
+                    ["RateLimiting:PictureReadsPerWindow"] = "10000",
                     ["Email:Mode"] = "Loopback",
                     ["Email:SmtpHost"] = "127.0.0.1",
                     ["Email:SmtpPort"] = "1025",

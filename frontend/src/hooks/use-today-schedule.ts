@@ -2,6 +2,7 @@
 
 import { readScheduledWork } from "@/hooks/use-work-calendar-entry";
 import { useSectionRead } from "@/hooks/use-section-read";
+import { apiReadError } from "@/lib/api";
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import { calendarDate } from "@/lib/calendar";
 import { workCalendarParams, type ScheduledWork } from "@/lib/staff/work-calendar";
@@ -17,7 +18,7 @@ export async function readTodaySchedule(
   const filters = { ...workCalendarParams({}), date: today, branchId };
   const result = await readScheduledWork(actor, filters, signal);
   if (result.status !== 200 || !result.data) {
-    throw new Error("Schedule unavailable");
+    throw apiReadError("Schedule unavailable", result);
   }
   return result.data.items
     .filter((item) => calendarDate(new Date(item.startsAt)) === today)
