@@ -6,6 +6,14 @@ public sealed class RateLimitingSettings
 
     public int ApiRequestsPerWindow { get; init; } = ApiRateLimiting.RequestsPerMinute;
 
+    public int BearerRequestsPerWindow { get; init; } = 600;
+
+    public int UserReadBurst { get; init; } = 120;
+
+    public int UserReadTokensPerSecond { get; init; } = 5;
+
+    public int UserWritesPerWindow { get; init; } = 60;
+
     public int PictureReadsPerWindow { get; init; } = ApiRateLimiting.PictureReadsPerMinute;
 
     public int LoginAttemptsPerWindow { get; init; } = ApiRateLimiting.LoginAttemptsPerMinute;

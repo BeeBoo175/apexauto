@@ -23,6 +23,10 @@ public static class ApiRateLimiting
         services.AddOptions<RateLimitingSettings>()
             .Bind(configuration.GetSection(RateLimitingSettings.SectionName))
             .Validate(settings => settings.ApiRequestsPerWindow is > 0 and <= 100000 &&
+                settings.BearerRequestsPerWindow is > 0 and <= 100000 &&
+                settings.UserReadBurst is > 0 and <= 100000 &&
+                settings.UserReadTokensPerSecond is > 0 and <= 100000 &&
+                settings.UserWritesPerWindow is > 0 and <= 100000 &&
                 settings.PictureReadsPerWindow is > 0 and <= 100000 &&
                 settings.LoginAttemptsPerWindow is > 0 and <= 100000 &&
                 settings.VerificationAttemptsPerWindow is > 0 and <= 100000,
@@ -36,6 +40,7 @@ public static class ApiRateLimiting
             .Validate(settings => settings.WindowSeconds is >= 1 and <= 3600,
                 "Rate limiting window must be between 1 and 3600 seconds.")
             .ValidateOnStart();
+        services.AddSingleton<UserRateLimiting>();
         services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -73,13 +78,16 @@ public static class ApiRateLimiting
             });
             options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
             {
-                // A page of avatars reads many small private pictures; they draw on their own budget so they
-                // cannot starve the API calls of the same page.
+                // Private pictures retain a separate address budget from API requests.
                 var pictures = IsPictureRead(context);
-                var partition = (pictures ? "pictures:" : "api:") + GetClientAddress(context);
+                var bearer = context.Request.Headers.Authorization.ToString()
+                    .StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase);
+                var budget = bearer ? settings.BearerRequestsPerWindow : settings.ApiRequestsPerWindow;
+                var prefix = bearer ? "bearer:" : "api:";
+                var partition = (pictures ? "pictures:" : prefix) + GetClientAddress(context);
                 return RateLimitPartition.GetFixedWindowLimiter(partition, _ => new FixedWindowRateLimiterOptions
                 {
-                    PermitLimit = pictures ? settings.PictureReadsPerWindow : settings.ApiRequestsPerWindow,
+                    PermitLimit = pictures ? settings.PictureReadsPerWindow : budget,
                     Window = window,
                     // Reject immediately so bursts do not accumulate pending requests.
                     QueueLimit = 0,
@@ -87,28 +95,22 @@ public static class ApiRateLimiting
                 });
             });
 
-            options.OnRejected = async (context, cancellationToken) =>
-            {
-                if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
-                {
-                    // Round up remaining lease duration to guarantee a strictly positive integer seconds interval.
-                    var seconds = Math.Max(1, (int)Math.Ceiling(retryAfter.TotalSeconds));
-                    context.HttpContext.Response.Headers.RetryAfter = seconds.ToString(CultureInfo.InvariantCulture);
-                }
-                else
-                {
-                    context.HttpContext.Response.Headers.RetryAfter = "1";
-                }
-
-                // Prevent intermediate proxies and edge caches from caching transient 429 rejections.
-                context.HttpContext.Response.Headers.CacheControl = "no-store";
-                await Results.Problem(
-                    statusCode: StatusCodes.Status429TooManyRequests,
-                    title: "Request limit reached.").ExecuteAsync(context.HttpContext);
-            };
+            options.OnRejected = (context, _) => new ValueTask(RejectAsync(context.HttpContext, context.Lease));
         });
 
         return services;
+    }
+
+    internal static Task RejectAsync(HttpContext context, RateLimitLease lease)
+    {
+        var seconds = lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter)
+            ? Math.Max(1, (int)Math.Ceiling(retryAfter.TotalSeconds))
+            : 1;
+        context.Response.Headers.RetryAfter = seconds.ToString(CultureInfo.InvariantCulture);
+        context.Response.Headers.CacheControl = "no-store";
+        return Results.Problem(
+            statusCode: StatusCodes.Status429TooManyRequests,
+            title: "Request limit reached.").ExecuteAsync(context);
     }
 
     private static bool IsPictureRead(HttpContext context)

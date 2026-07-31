@@ -45,6 +45,9 @@ internal static class IntakeBrowserJourney
                     ["ForwardedHeaders:KnownProxies:0"] = "127.0.0.1",
                     ["ForwardedHeaders:KnownProxies:1"] = "::1",
                     ["RateLimiting:ApiRequestsPerWindow"] = "10000",
+                    ["RateLimiting:BearerRequestsPerWindow"] = "10000",
+                    ["RateLimiting:UserReadBurst"] = "10000",
+                    ["RateLimiting:UserWritesPerWindow"] = "10000",
                     ["RateLimiting:PictureReadsPerWindow"] = "10000",
                     ["RateLimiting:LoginAttemptsPerWindow"] = "100",
                     ["RateLimiting:VerificationAttemptsPerWindow"] = "100"

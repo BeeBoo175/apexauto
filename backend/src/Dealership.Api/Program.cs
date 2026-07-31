@@ -105,6 +105,14 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
+if (!app.Environment.IsDevelopment() &&
+    !builder.Configuration.GetSection("ForwardedHeaders:KnownProxies").GetChildren().Any())
+{
+    var warnMissingProxy = LoggerMessage.Define(LogLevel.Warning, new EventId(1, "MissingTrustedProxy"),
+        "ForwardedHeaders:KnownProxies is empty; multi-user environments require trusted API proxies and TRUSTED_CLIENT_IP_HEADER on Next to avoid shared address budgets.");
+    warnMissingProxy(app.Logger, null);
+}
+
 // Prepare missing-account verification before requests so cold initialization cannot become a login signal.
 app.Services.GetRequiredService<MissingAccountPasswordHash>();
 
@@ -121,11 +129,12 @@ else
 }
 
 app.UseSerilogRequestLogging();
-// Rate limit before CORS so preflight requests consume the API budget.
+// Address admission precedes CORS/authentication; validated-user admission follows authorization.
 app.UseRateLimiter();
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<UserRateLimiting>();
 app.UseUnverifiedStaffGate();
 
 // Orchestrator probes share one source IP and must never be throttled into a container restart.

@@ -201,6 +201,14 @@ public sealed class ApiRateLimitingTests
     [Theory]
     [InlineData("ApiRequestsPerWindow", 0)]
     [InlineData("ApiRequestsPerWindow", 100001)]
+    [InlineData("BearerRequestsPerWindow", 0)]
+    [InlineData("BearerRequestsPerWindow", 100001)]
+    [InlineData("UserReadBurst", 0)]
+    [InlineData("UserReadBurst", 100001)]
+    [InlineData("UserReadTokensPerSecond", 0)]
+    [InlineData("UserReadTokensPerSecond", 100001)]
+    [InlineData("UserWritesPerWindow", 0)]
+    [InlineData("UserWritesPerWindow", 100001)]
     [InlineData("PictureReadsPerWindow", -1)]
     [InlineData("PictureReadsPerWindow", 100001)]
     [InlineData("LoginAttemptsPerWindow", 0)]
@@ -341,7 +349,7 @@ public sealed class ApiRateLimitingTests
         }
     }
 
-    private static WebApplicationFactory<Program> CreateFactory(Dictionary<string, string?>? overrides = null)
+    internal static WebApplicationFactory<Program> CreateFactory(Dictionary<string, string?>? overrides = null)
     {
         return new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
