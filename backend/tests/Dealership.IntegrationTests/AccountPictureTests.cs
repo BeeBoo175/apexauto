@@ -32,6 +32,17 @@ public sealed class AccountPictureTests(IntakePhotoFixture fixture) : IClassFixt
         var first = (await customerClient.GetFromJsonAsync<AccountProfile>("/api/account/profile"))!.PictureId;
         Assert.NotNull(first);
 
+        var burst = await Task.WhenAll(Enumerable.Range(0, 50)
+            .Select(_ => customerClient.GetAsync($"/api/accounts/{customerId}/picture")));
+        foreach (var response in burst)
+        {
+            using (response)
+            {
+                Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+                AssertPictureHeaders(response);
+            }
+        }
+
         var thumbnail = await customerClient.GetAsync($"/api/accounts/{customerId}/picture");
         AssertPictureHeaders(thumbnail);
         Assert.Equal("image/jpeg", thumbnail.Content.Headers.ContentType?.MediaType);

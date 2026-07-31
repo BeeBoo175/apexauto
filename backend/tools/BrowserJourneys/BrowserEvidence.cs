@@ -35,7 +35,8 @@ internal sealed class BrowserEvidence(string directory) : IStartupFilter
                 }
 
                 var transportPath = path.StartsWith("/api/auth/", StringComparison.Ordinal) && path != "/api/auth/session" ||
-                    path == "/api/intake/appointments";
+                    path == "/api/intake/appointments" ||
+                    path.StartsWith("/api/accounts/", StringComparison.Ordinal) && path.EndsWith("/picture", StringComparison.Ordinal);
                 if (path == "/api/auth/session" && fault is "session-retry" or "session-error")
                 {
                     context.Response.StatusCode = fault == "session-retry"

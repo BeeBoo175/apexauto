@@ -13,6 +13,7 @@ public static class ApiRateLimiting
     public const int LoginAttemptsPerMinute = 5;
     public const string LoginPolicy = "login";
     public const string PhotoTransferPolicy = "photo-transfers";
+    public const string PictureDownloadPolicy = "picture-downloads";
     public const string VerificationPolicy = "email-verification";
 
     public static readonly TimeSpan RequestWindow = TimeSpan.FromMinutes(1);
@@ -28,6 +29,10 @@ public static class ApiRateLimiting
                 "Rate limiting request limits must be between 1 and 100000.")
             .Validate(settings => settings.PhotoTransferConcurrency is > 0 and <= 1000,
                 "Photo transfer concurrency must be between 1 and 1000.")
+            .Validate(settings => settings.PictureDownloadConcurrency is > 0 and <= 1000 &&
+                settings.PictureDownloadQueueLimit is >= 0 and <= 1000 &&
+                settings.PictureDownloadQueueSeconds is >= 1 and <= 10,
+                "Picture download concurrency must be between 1 and 1000, queue size between 0 and 1000, and queue wait between 1 and 10 seconds.")
             .Validate(settings => settings.WindowSeconds is >= 1 and <= 3600,
                 "Rate limiting window must be between 1 and 3600 seconds.")
             .ValidateOnStart();
@@ -39,6 +44,8 @@ public static class ApiRateLimiting
         {
             var settings = configured.Value;
             var window = TimeSpan.FromSeconds(settings.WindowSeconds);
+            options.AddPolicy(PictureDownloadPolicy, _ =>
+                RateLimitPartition.Get(PictureDownloadPolicy, _ => new PictureDownloadRateLimiter(settings)));
             options.AddConcurrencyLimiter(PhotoTransferPolicy, limiter =>
             {
                 limiter.PermitLimit = settings.PhotoTransferConcurrency;

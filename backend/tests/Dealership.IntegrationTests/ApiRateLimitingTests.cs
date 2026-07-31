@@ -6,6 +6,9 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -206,6 +209,12 @@ public sealed class ApiRateLimitingTests
     [InlineData("VerificationAttemptsPerWindow", 100001)]
     [InlineData("PhotoTransferConcurrency", 0)]
     [InlineData("PhotoTransferConcurrency", 1001)]
+    [InlineData("PictureDownloadConcurrency", 0)]
+    [InlineData("PictureDownloadConcurrency", 1001)]
+    [InlineData("PictureDownloadQueueLimit", -1)]
+    [InlineData("PictureDownloadQueueLimit", 1001)]
+    [InlineData("PictureDownloadQueueSeconds", 0)]
+    [InlineData("PictureDownloadQueueSeconds", 11)]
     [InlineData("WindowSeconds", 0)]
     [InlineData("WindowSeconds", 3601)]
     public void InvalidConfigurationFailsStartup(string property, int value)
@@ -216,6 +225,120 @@ public sealed class ApiRateLimitingTests
         });
 
         Assert.Throws<OptionsValidationException>(() => factory.CreateClient());
+    }
+
+    [Fact]
+    public async Task PictureDownloadQueueAdmitsAFullPageBurstAndRejectsOnlyBeyondItsBound()
+    {
+        var settings = new RateLimitingSettings { PictureDownloadQueueSeconds = 10 };
+        using var limiter = new PictureDownloadRateLimiter(settings);
+        using var held = limiter.AttemptAcquire(settings.PictureDownloadConcurrency);
+        Assert.True(held.IsAcquired);
+        var queued = Enumerable.Range(0, settings.PictureDownloadQueueLimit)
+            .Select(_ => limiter.AcquireAsync().AsTask()).ToArray();
+
+        Assert.Equal(settings.PictureDownloadQueueLimit, limiter.GetStatistics()!.CurrentQueuedCount);
+        using var rejected = await limiter.AcquireAsync();
+        Assert.False(rejected.IsAcquired);
+
+        held.Dispose();
+        foreach (var pending in queued)
+        {
+            using var admitted = await pending.WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.True(admitted.IsAcquired);
+        }
+
+        Assert.Equal(0, limiter.GetStatistics()!.CurrentQueuedCount);
+        Assert.Equal(settings.PictureDownloadConcurrency, limiter.GetStatistics()!.CurrentAvailablePermits);
+    }
+
+    [Fact]
+    public async Task PictureDownloadCancellationAndQueueDeadlineReleaseTheirSlots()
+    {
+        using var limiter = new PictureDownloadRateLimiter(new RateLimitingSettings
+        {
+            PictureDownloadConcurrency = 1,
+            PictureDownloadQueueLimit = 1,
+            PictureDownloadQueueSeconds = 1
+        });
+        using var held = limiter.AttemptAcquire();
+        using var caller = new CancellationTokenSource();
+        var cancelled = limiter.AcquireAsync(cancellationToken: caller.Token).AsTask();
+        Assert.Equal(1, limiter.GetStatistics()!.CurrentQueuedCount);
+        caller.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => cancelled);
+        Assert.Equal(0, limiter.GetStatistics()!.CurrentQueuedCount);
+
+        using var expired = await limiter.AcquireAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.False(expired.IsAcquired);
+        Assert.Equal(0, limiter.GetStatistics()!.CurrentQueuedCount);
+        held.Dispose();
+        using var recovered = await limiter.AcquireAsync();
+        Assert.True(recovered.IsAcquired);
+    }
+
+    [Fact]
+    public void AccountPictureDownloadsAndUploadsUseIndependentPolicies()
+    {
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+        var endpoints = factory.Services.GetRequiredService<EndpointDataSource>().Endpoints;
+        var downloads = Assert.Single(endpoints.OfType<RouteEndpoint>(), endpoint =>
+            endpoint.RoutePattern.RawText == "/api/accounts/{id:guid}/picture" &&
+            endpoint.Metadata.GetMetadata<HttpMethodMetadata>()!.HttpMethods.Contains(HttpMethods.Get));
+        var uploads = Assert.Single(endpoints.OfType<RouteEndpoint>(), endpoint =>
+            endpoint.RoutePattern.RawText == "/api/accounts/me/picture" &&
+            endpoint.Metadata.GetMetadata<HttpMethodMetadata>()!.HttpMethods.Contains(HttpMethods.Put));
+
+        Assert.Equal(ApiRateLimiting.PictureDownloadPolicy,
+            downloads.Metadata.GetMetadata<EnableRateLimitingAttribute>()!.PolicyName);
+        Assert.Equal(ApiRateLimiting.PhotoTransferPolicy,
+            uploads.Metadata.GetMetadata<EnableRateLimitingAttribute>()!.PolicyName);
+    }
+
+    [Fact]
+    public async Task HeldDownloadPermitsLeaveUploadsAvailableAndQueueExpiryReturnsTruthfulRejection()
+    {
+        var builder = WebApplication.CreateBuilder();
+        builder.WebHost.UseTestServer();
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["RateLimiting:PictureDownloadConcurrency"] = "1",
+            ["RateLimiting:PictureDownloadQueueLimit"] = "1",
+            ["RateLimiting:PictureDownloadQueueSeconds"] = "1",
+            ["RateLimiting:PhotoTransferConcurrency"] = "1"
+        });
+        builder.Services.AddApiRateLimiting(builder.Configuration);
+        await using var app = builder.Build();
+        app.UseRateLimiter();
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        app.MapGet("/download", async () =>
+        {
+            entered.TrySetResult();
+            await release.Task;
+            return Results.NoContent();
+        }).RequireRateLimiting(ApiRateLimiting.PictureDownloadPolicy);
+        app.MapPut("/upload", () => Results.NoContent()).RequireRateLimiting(ApiRateLimiting.PhotoTransferPolicy);
+        await app.StartAsync();
+        using var client = app.GetTestClient();
+        var held = client.GetAsync("/download");
+
+        try
+        {
+            await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            using var upload = await client.PutAsync("/upload", null);
+            Assert.Equal(HttpStatusCode.NoContent, upload.StatusCode);
+            using var rejected = await client.GetAsync("/download").WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.Equal(HttpStatusCode.TooManyRequests, rejected.StatusCode);
+            Assert.True(rejected.Headers.CacheControl?.NoStore);
+            Assert.Equal(TimeSpan.FromSeconds(1), rejected.Headers.RetryAfter?.Delta);
+        }
+        finally
+        {
+            release.TrySetResult();
+            using var completed = await held.WaitAsync(TimeSpan.FromSeconds(5));
+        }
     }
 
     private static WebApplicationFactory<Program> CreateFactory(Dictionary<string, string?>? overrides = null)

@@ -156,6 +156,16 @@ test("origin and body protection, malformed sessions and bounded body consumptio
   expect(signedIn.status()).toBe(200);
   const cookie = signedIn.headers()["set-cookie"].split(";")[0];
   const headers = { Cookie: cookie };
+  for (const retry of ["7", "", "86401", "1.5"]) {
+    fault(`retry:${retry}`);
+    const picture = await request.get(`/api/accounts/${randomUUID()}/picture`, {
+      headers,
+    });
+    expect(picture.status()).toBe(429);
+    expect(picture.headers()["retry-after"]).toBe(retry === "7" ? "7" : undefined);
+    expect(picture.headers()["cache-control"]).toContain("no-store");
+    expect(await picture.json()).toMatchObject({ status: 429, data: null, uncertain: false });
+  }
   for (const [sessionFault, status] of [
     ["session-retry", 429],
     ["session-error", 502],

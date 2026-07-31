@@ -17,7 +17,7 @@ public static class AccountPictureEndpoints
             return await next(context);
         });
         routes.MapPut("/me/picture", UploadAsync).RequireRateLimiting(ApiRateLimiting.PhotoTransferPolicy);
-        routes.MapGet("/{id:guid}/picture", DownloadAsync).RequireRateLimiting(ApiRateLimiting.PhotoTransferPolicy);
+        routes.MapGet("/{id:guid}/picture", DownloadAsync).RequireRateLimiting(ApiRateLimiting.PictureDownloadPolicy);
         routes.MapDelete("/{id:guid}/picture", RemoveAsync);
     }
 

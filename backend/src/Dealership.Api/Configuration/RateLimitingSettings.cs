@@ -14,5 +14,11 @@ public sealed class RateLimitingSettings
 
     public int PhotoTransferConcurrency { get; init; } = 4;
 
+    public int PictureDownloadConcurrency { get; init; } = 8;
+
+    public int PictureDownloadQueueLimit { get; init; } = 48;
+
+    public int PictureDownloadQueueSeconds { get; init; } = 2;
+
     public int WindowSeconds { get; init; } = 60;
 }
