@@ -11,10 +11,10 @@ import { sessionChanges } from "./auth/browser-session";
 // forgets it too, so one account's reads are never shown to another.
 const snapshots = new Map<string, ApiResult<unknown>>();
 const MAXIMUM_SNAPSHOTS = 300;
-// Only the staff dashboard reads are reused. Exports always go to the server, and public or customer reads
-// (availability, reservations, photos) stay current.
+// Staff dashboard reads and branch choices are reused. Exports always go to the server; public branch
+// pickers opt into fresh reads, like current public availability and customer reads.
 const reusablePath =
-  /^(?!.*\/export(?:\?|$))\/api\/(?:staff\/|staff-accounts(?:[/?]|$)|customer-accounts(?:[/?]|$))/;
+  /^(?!.*\/export(?:\?|$))\/api\/(?:staff\/|staff-accounts(?:[/?]|$)|customer-accounts(?:[/?]|$)|intake\/branches(?:\?|$))/;
 
 export function forgetSnapshots() {
   snapshots.clear();

@@ -84,7 +84,7 @@ export function useSellerAppointment(initialBranches: Page<Branch>) {
     controller.current = attempt;
     setBusy(true);
     try {
-      const result = await readBranchChoices(page, attempt.signal);
+      const result = await readBranchChoices(page, attempt.signal, undefined, { fresh: true });
       if (attempt.signal.aborted) {
         return;
       }

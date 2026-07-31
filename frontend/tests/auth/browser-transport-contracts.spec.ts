@@ -1,8 +1,82 @@
 import { test, expect } from "@playwright/test";
-import { apiFetch } from "@/lib/api-browser";
+import { apiFetch, forgetSnapshots } from "@/lib/api-browser";
+import { readBranchChoices } from "@/lib/branch-choices";
 import { parseIntakeConflict } from "@/lib/intake/errors";
 import { apiReadError } from "@/lib/api";
 import { readFailureMessage } from "@/lib/http";
+
+test.beforeEach(forgetSnapshots);
+test.afterEach(forgetSnapshots);
+
+test("branch choices reuse confirmed pages until refresh while public picker reads stay fresh", async () => {
+  const originalFetch = globalThis.fetch;
+  const signal = new AbortController().signal;
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls++;
+    return Response.json({
+      status: 200,
+      data: { items: [], page: 1, pageSize: 25, total: calls },
+      message: "",
+      uncertain: false,
+    });
+  };
+
+  try {
+    const first = await readBranchChoices(1, signal, 25);
+    expect(first.data).not.toBeNull();
+    expect(await readBranchChoices(1, signal, 25)).toEqual(first);
+    expect(calls).toBe(1);
+
+    forgetSnapshots();
+    expect((await readBranchChoices(1, signal, 25)).data?.total).toBe(2);
+    expect(calls).toBe(2);
+
+    for (const total of [3, 4]) {
+      const current = await readBranchChoices(1, signal, 25, { fresh: true });
+      expect(current.data?.total).toBe(total);
+    }
+    expect(calls).toBe(4);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("branch snapshots exclude failures, other queries, exports and write attempts", async () => {
+  const originalFetch = globalThis.fetch;
+  const parse = (value: unknown) => (value === "confirmed" ? value : null);
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls++;
+    return Response.json({ status: 200, data: "confirmed", message: "", uncertain: false });
+  };
+
+  try {
+    const path = "/api/intake/branches?page=1";
+    await apiFetch(path, parse);
+    await apiFetch(path, parse);
+    expect(calls).toBe(1);
+    await apiFetch("/api/intake/branches?page=2", parse);
+    expect(calls).toBe(2);
+
+    for (const excluded of ["/api/staff/intake/export", "/api/intake/branches/other"]) {
+      await apiFetch(excluded, parse);
+      await apiFetch(excluded, parse);
+    }
+    expect(calls).toBe(6);
+
+    globalThis.fetch = async () => {
+      calls++;
+      return limited("60");
+    };
+    await apiFetch("/api/staff/intake/assignments", parse, { method: "POST" });
+    expect((await apiFetch(path, parse)).status).toBe(429);
+    expect((await apiFetch(path, parse)).status).toBe(429);
+    expect(calls).toBe(9);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
 
 function limited(seconds = "1") {
   return Response.json(
@@ -26,7 +100,7 @@ test("browser GET retries once and retains the final rejection metadata", async 
         }
         return Response.json({ status: 200, data: "confirmed", message: "", uncertain: false });
       };
-      const result = await apiFetch("/api/intake/branches", parse);
+      const result = await apiFetch("/api/intake/slots", parse);
       expect(calls).toBe(2);
       expect(signals[1]).toBe(signals[0]);
       expect(result.status).toBe(succeeds ? 200 : 429);
@@ -58,7 +132,7 @@ test("writes and long or missing Retry-After values never schedule another reque
         calls++;
         return limited(seconds);
       };
-      const result = await apiFetch("/api/intake/branches", () => null, { method });
+      const result = await apiFetch("/api/intake/slots", () => null, { method });
       expect(result.status).toBe(429);
       expect(result.retryAfterSeconds).toBe(seconds === "invalid" ? undefined : Number(seconds));
       expect(calls).toBe(1);
@@ -80,7 +154,7 @@ test("caller cancellation and the original deadline abort the backoff without an
         return limited();
       };
       const request = apiFetch(
-        "/api/intake/branches",
+        "/api/intake/slots",
         () => null,
         { signal: controller.signal },
         {
@@ -113,7 +187,7 @@ test("a failed second transport retains the rejection while uncertain results ar
       }
       throw new TypeError("Connection unavailable");
     };
-    await expect(apiFetch("/api/intake/branches", () => null)).resolves.toMatchObject({
+    await expect(apiFetch("/api/intake/slots", () => null)).resolves.toMatchObject({
       status: 429,
       retryAfterSeconds: 1,
       uncertain: false,
@@ -127,7 +201,7 @@ test("a failed second transport retains the rejection while uncertain results ar
         { status: 429, headers: { "Retry-After": "1" } },
       );
     };
-    await expect(apiFetch("/api/intake/branches", () => null)).resolves.toMatchObject({
+    await expect(apiFetch("/api/intake/slots", () => null)).resolves.toMatchObject({
       status: 429,
       uncertain: true,
     });
@@ -149,7 +223,7 @@ test("shared browser transport validates envelopes and preserves private actor r
 
   try {
     globalThis.fetch = async () => Response.json(envelope);
-    await expect(apiFetch("/api/intake/branches", parse)).resolves.toMatchObject({
+    await expect(apiFetch("/api/intake/slots", parse)).resolves.toMatchObject({
       data: "confirmed",
     });
     await expect(
@@ -161,11 +235,11 @@ test("shared browser transport validates envelopes and preserves private actor r
       ),
     ).rejects.toThrow("Unconfirmed service response");
     globalThis.fetch = async () => Response.json({ ...envelope, data: null });
-    await expect(apiFetch("/api/intake/branches", parse)).rejects.toThrow(
+    await expect(apiFetch("/api/intake/slots", parse)).rejects.toThrow(
       "Unconfirmed service response",
     );
     globalThis.fetch = async () => Response.json({ ...envelope, status: 201 });
-    await expect(apiFetch("/api/intake/branches", parse)).rejects.toThrow(
+    await expect(apiFetch("/api/intake/slots", parse)).rejects.toThrow(
       "Unreadable service response",
     );
     globalThis.fetch = async () =>
@@ -262,7 +336,7 @@ test("shared browser transport validates envelopes and preserves private actor r
           },
           { status: 429, headers: retryAfter ? { "Retry-After": retryAfter } : {} },
         );
-      const result = await apiFetch("/api/intake/branches", parse);
+      const result = await apiFetch("/api/intake/slots", parse);
       expect(result.retryAfterSeconds).toBe(retryAfter === "60" ? 60 : undefined);
       expect(result.uncertain).toBe(false);
     }
