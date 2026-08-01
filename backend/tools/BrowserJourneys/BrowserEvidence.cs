@@ -34,6 +34,18 @@ internal sealed class BrowserEvidence(string directory) : IStartupFilter
                     File.WriteAllText(Path.Combine(directory, "counts.json"), JsonSerializer.Serialize(_counts));
                 }
 
+                if (fault.StartsWith("staff-read:", StringComparison.Ordinal))
+                {
+                    using var payload = JsonDocument.Parse(fault["staff-read:".Length..]);
+                    var root = payload.RootElement;
+                    if (path == root.GetProperty("path").GetString())
+                    {
+                        context.Response.StatusCode = root.GetProperty("status").GetInt32();
+                        await context.Response.WriteAsJsonAsync(root.GetProperty("body"));
+                        return;
+                    }
+                }
+
                 var transportPath = path.StartsWith("/api/auth/", StringComparison.Ordinal) && path != "/api/auth/session" ||
                     path == "/api/intake/appointments" ||
                     path.StartsWith("/api/accounts/", StringComparison.Ordinal) && path.EndsWith("/picture", StringComparison.Ordinal);

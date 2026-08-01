@@ -1,66 +1,44 @@
 import "server-only";
-import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
+import type { CurrentActor } from "@/lib/auth/actor";
 import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
-import { apiError, apiJson, privateApiRead } from "@/lib/server/http/api";
-import { accessDenied, allowedQuery, confirmedActor } from "@/lib/server/http/staff-relay";
-import {
-  hasWorkCalendarAccess,
-  parseUnscheduledWork,
-  parseWorkCalendar,
-  type UnscheduledWorkPage,
-  type WorkCalendarSnapshot,
-} from "./work-calendar";
+import { relayGatedRead } from "@/lib/server/http/staff-relay";
+import { hasWorkCalendarAccess, parseUnscheduledWork, parseWorkCalendar } from "./work-calendar";
 
-export async function relayWorkCalendar(request: Request, unscheduled = false) {
-  try {
-    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(20_000)]);
-    const actor = await confirmedActor(signal);
-    if (!hasWorkCalendarAccess(actor.role)) {
-      return accessDenied(actor, "Operational calendar access required.");
-    }
-    const keys = unscheduled ? ["page", "pageSize", "kind"] : ["from", "to", "assignment"];
-    const query = allowedQuery(new URL(request.url).searchParams, [...keys, "branchId", "search"]);
-    const scopeMatches = (data: {
-      actor: CurrentActor;
-      branchId: string | null;
-      employee: string;
-    }) =>
-      actorIdentity(data.actor) === actorIdentity(actor) &&
-      data.branchId === (query.get("branchId") || actor.branchId) &&
-      data.employee === "";
-    const result = unscheduled
-      ? await privateApiRead(
-          `/api/staff/work-calendar/unscheduled?${query}`,
-          (value) => {
-            const page = parseUnscheduledWork(value);
-            return page &&
-              scopeMatches(page) &&
-              page.page === Number(query.get("page") ?? 1) &&
-              page.pageSize === Number(query.get("pageSize") ?? DEFAULT_PAGE_SIZE)
-              ? page
-              : null;
-          },
-          signal,
-        )
-      : await privateApiRead(
-          `/api/staff/work-calendar?${query}`,
-          (value) => {
-            const calendar = parseWorkCalendar(value);
-            return calendar &&
-              scopeMatches(calendar) &&
-              calendar.from === query.get("from") &&
-              calendar.to === query.get("to")
-              ? calendar
-              : null;
-          },
-          signal,
-          1024 * 1024,
-        );
-    return apiJson<WorkCalendarSnapshot | UnscheduledWorkPage>({
-      ...result,
-      actor: result.data?.actor ?? actor,
-    });
-  } catch (error) {
-    return apiError(error);
-  }
+export function relayWorkCalendar(request: Request, unscheduled = false) {
+  const keys = unscheduled ? ["page", "pageSize", "kind"] : ["from", "to", "assignment"];
+  return relayGatedRead(request, {
+    dataFirst: true,
+    allowed: (actor) => hasWorkCalendarAccess(actor.role),
+    denial: "Operational calendar access required.",
+    path: unscheduled ? "/api/staff/work-calendar/unscheduled" : "/api/staff/work-calendar",
+    keys: [...keys, "branchId", "search"],
+    deadlineMs: 20_000,
+    maximumResponseBytes: unscheduled ? undefined : 1024 * 1024,
+    parse: (value, query) => {
+      const scopeMatches = (data: {
+        actor: CurrentActor;
+        branchId: string | null;
+        employee: string;
+      }) =>
+        data.branchId === (query.get("branchId") || data.actor.branchId) &&
+        (data.actor.role === "GeneralManager" || data.branchId === data.actor.branchId) &&
+        data.employee === "";
+      if (unscheduled) {
+        const page = parseUnscheduledWork(value);
+        return page &&
+          scopeMatches(page) &&
+          page.page === Number(query.get("page") ?? 1) &&
+          page.pageSize === Number(query.get("pageSize") ?? DEFAULT_PAGE_SIZE)
+          ? page
+          : null;
+      }
+      const calendar = parseWorkCalendar(value);
+      return calendar &&
+        scopeMatches(calendar) &&
+        calendar.from === query.get("from") &&
+        calendar.to === query.get("to")
+        ? calendar
+        : null;
+    },
+  });
 }

@@ -22,6 +22,7 @@ const listKeys = [
 
 export function relayStaffAccounts(request: Request) {
   return relayGatedRead(request, {
+    dataFirst: true,
     ...administratorAccess,
     path: "/api/staff-accounts",
     keys: listKeys,
@@ -35,6 +36,7 @@ export function relayAccountHistory(request: Request, id: string) {
   }
 
   return relayGatedRead(request, {
+    dataFirst: true,
     ...administratorAccess,
     path: accountHistoryPath(id),
     keys: ["page", "pageSize"],

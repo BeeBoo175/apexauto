@@ -32,6 +32,7 @@ const listKeys = [
 ];
 
 const testDriveAccess = {
+  dataFirst: true,
   allowed: (actor: CurrentActor) => hasTestDriveAccess(actor.role),
   denial: "Test-drive staff access required.",
 };

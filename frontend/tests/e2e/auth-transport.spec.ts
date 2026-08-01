@@ -171,7 +171,9 @@ test("origin and body protection, malformed sessions and bounded body consumptio
     ["session-error", 502],
   ] as const) {
     fault(sessionFault);
-    const response = await request.get("/api/staff/performance/headline", { headers });
+    const response = await request.get(`/api/staff-accounts/${randomUUID()}/blockers`, {
+      headers,
+    });
     expect(response.status()).toBe(status);
     expect(response.headers()["retry-after"]).toBe(status === 429 ? "7" : undefined);
     expect(response.headers()["cache-control"]).toContain("no-store");
@@ -230,4 +232,128 @@ test("origin and body protection, malformed sessions and bounded body consumptio
   const malformed = await request.get("/api/intake/appointments", { headers });
   expect(malformed.status()).toBe(502);
   expect(await malformed.json()).toMatchObject({ data: null, uncertain: true, actor });
+});
+
+test("staff actor-bearing reads authorize data without session preflight", async ({ request }) => {
+  const signedIn = await request.post("/api/auth/login", {
+    data: { loginKey: randomUUID(), email: "nur.aisyah@example.invalid", password },
+    headers: { Origin: origin },
+  });
+  expect(signedIn.status()).toBe(200);
+  const headers = { Cookie: signedIn.headers()["set-cookie"].split(";")[0] };
+  const id = randomUUID();
+  const branchId = randomUUID();
+  const manager = { userId: randomUUID(), role: "GeneralManager", branchId: null };
+  const administrator = { ...manager, role: "Administrator" };
+  const branchManager = { ...manager, role: "BranchManager", branchId };
+  const customer = { ...manager, role: "Customer" };
+  const period = "from=2026-11-01&to=2026-11-30";
+  const page = { items: [], total: 0, page: 1, pageSize: 25 };
+  const reads = [
+    ...["headline", "pipeline", "stock-flow", "stage-waiting", "workload", "branches"].map(
+      (section) => [`/api/staff/performance/${section}?${period}`, `/api/performance/${section}`],
+    ),
+    ...["sales", "workshop"].map((tab) => [
+      `/api/staff/performance/team/${tab}?${period}`,
+      `/api/performance/team/${tab}`,
+    ]),
+    [
+      `/api/staff/performance/people/${id}/milestones?${period}`,
+      `/api/performance/people/${id}/milestones`,
+    ],
+    ["/api/staff-accounts", "/api/staff-accounts"],
+    [`/api/staff-accounts/${id}/history`, `/api/staff-accounts/${id}/history`],
+    ["/api/customer-accounts", "/api/customer-accounts"],
+    [`/api/customer-accounts/${id}`, `/api/customer-accounts/${id}`],
+    ["/api/staff/test-drives", "/api/staff/test-drives"],
+    [`/api/staff/test-drives/${id}`, `/api/staff/test-drives/${id}`],
+    [`/api/staff/test-drives/${id}/handlers`, `/api/staff/test-drives/${id}/handlers`],
+    [`/api/staff/test-drives/${id}/history`, `/api/staff/test-drives/${id}/history`],
+    [`/api/staff/work-calendar?${period}`, "/api/staff/work-calendar"],
+    ["/api/staff/work-calendar/unscheduled", "/api/staff/work-calendar/unscheduled"],
+  ];
+  const sessionBefore = counts()["/api/auth/session"] ?? 0;
+  for (const [url, upstream] of reads) {
+    fault("");
+    const anonymous = await request.get(url, { headers: { Cookie: "" } });
+    expect(anonymous.status(), url).toBe(401);
+    expect(await anonymous.json()).toMatchObject({ data: null, uncertain: false });
+    const forbidden = await request.get(url, { headers });
+    expect(forbidden.status(), url).toBe(403);
+    expect(await forbidden.json()).toMatchObject({ data: null, uncertain: false });
+    for (const [actor, status] of [
+      [customer, 403],
+      [undefined, 502],
+      [{ ...branchManager, branchId: null }, 502],
+    ] as const) {
+      fault(
+        `staff-read:${JSON.stringify({ path: upstream, status: 200, body: { actor, private: "discard me" } })}`,
+      );
+      const response = await request.get(url, { headers });
+      expect(response.status(), url).toBe(status);
+      expect(response.headers()["cache-control"]).toContain("no-store");
+      expect(response.headers()["set-cookie"]).toBeUndefined();
+      const body = await response.json();
+      expect(body.data).toBeNull();
+      expect(JSON.stringify(body)).not.toContain("discard me");
+    }
+  }
+  const calendar = {
+    actor: branchManager,
+    branchId,
+    employee: "",
+    items: [],
+    total: 0,
+    from: "2026-11-01",
+    to: "2026-11-30",
+  };
+  const successes = [
+    {
+      url: "/api/staff-accounts",
+      upstream: "/api/staff-accounts",
+      body: {
+        ...page,
+        actor: administrator,
+        counts: { all: 0, active: 0, invited: 0, suspended: 0, deactivated: 0 },
+      },
+    },
+    {
+      url: "/api/customer-accounts",
+      upstream: "/api/customer-accounts",
+      body: { ...page, actor: administrator, counts: { all: 0, unverified: 0, suspended: 0 } },
+    },
+    {
+      url: `/api/staff/performance/team/sales?${period}`,
+      upstream: "/api/performance/team/sales",
+      body: { ...page, actor: manager, points: [] },
+    },
+    {
+      url: `/api/staff/test-drives/${id}/handlers`,
+      upstream: `/api/staff/test-drives/${id}/handlers`,
+      body: { actor: branchManager, items: [] },
+    },
+    {
+      url: `/api/staff/work-calendar?${period}`,
+      upstream: "/api/staff/work-calendar",
+      body: calendar,
+    },
+  ];
+  for (const entry of successes) {
+    fault(`staff-read:${JSON.stringify({ path: entry.upstream, status: 200, body: entry.body })}`);
+    const before = counts()[entry.upstream] ?? 0;
+    const response = await request.get(entry.url, { headers });
+    expect(response.status(), entry.url).toBe(200);
+    expect((await response.json()).actor).toEqual(entry.body.actor);
+    expect(counts()[entry.upstream]).toBe(before + 1);
+  }
+  for (const body of [
+    { ...calendar, branchId: randomUUID() },
+    { ...calendar, actor: { ...branchManager, branchId: randomUUID() } },
+  ]) {
+    fault(`staff-read:${JSON.stringify({ path: "/api/staff/work-calendar", status: 200, body })}`);
+    const response = await request.get(`/api/staff/work-calendar?${period}`, { headers });
+    expect(response.status()).toBe(502);
+    expect((await response.json()).data).toBeNull();
+  }
+  expect(counts()["/api/auth/session"] ?? 0).toBe(sessionBefore);
 });

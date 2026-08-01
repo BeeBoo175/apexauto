@@ -11,6 +11,7 @@ const listKeys = ["tab", "search", "name", "email", "mobile", "page", "pageSize"
 
 export function relayCustomerAccounts(request: Request) {
   return relayGatedRead(request, {
+    dataFirst: true,
     ...administratorAccess,
     path: "/api/customer-accounts",
     keys: listKeys,
@@ -24,6 +25,7 @@ export async function relayCustomerAccount(request: Request, id: string) {
   }
 
   return relayGatedRead(request, {
+    dataFirst: true,
     ...administratorAccess,
     path: `/api/customer-accounts/${id}`,
     parse: (value) => {

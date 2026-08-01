@@ -1,6 +1,6 @@
 import "server-only";
 import { API_DEADLINE_MS } from "@/lib/api";
-import type { CurrentActor } from "@/lib/auth/actor";
+import { parseActor, type CurrentActor } from "@/lib/auth/actor";
 import { isRecord } from "@/lib/auth/contracts";
 import { readCurrentActor } from "@/lib/auth/server";
 import { HttpError } from "@/lib/http";
@@ -49,6 +49,10 @@ export function allowedQuery(source: URLSearchParams, keys: string[]) {
 }
 
 export interface GatedRead {
+  // Opt in only after reviewing the backend authorization and the parser's current actor.
+  dataFirst?: boolean;
+  deadlineMs?: number;
+  maximumResponseBytes?: number;
   allowed: (actor: CurrentActor) => boolean;
   denial: string;
   path: string;
@@ -58,26 +62,44 @@ export interface GatedRead {
   parse: (value: unknown, query: URLSearchParams) => unknown;
 }
 
-// The shared mechanics of a staff read relay: deadline, confirmed actor, access predicate, reviewed query and the
-// actor the upstream answered with (the confirmed one when the body carries none).
+// Actor-bearing reads authorize the parsed backend actor; other reads retain session confirmation.
 export async function relayGatedRead(request: Request, read: GatedRead) {
   try {
-    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(API_DEADLINE_MS)]);
-    const actor = await confirmedActor(signal);
-    if (!read.allowed(actor)) {
+    const signal = AbortSignal.any([
+      request.signal,
+      AbortSignal.timeout(read.deadlineMs ?? API_DEADLINE_MS),
+    ]);
+    const actor = read.dataFirst ? null : await confirmedActor(signal);
+    if (actor && !read.allowed(actor)) {
       return accessDenied(actor, read.denial);
     }
 
     const query = allowedQuery(new URL(request.url).searchParams, read.keys ?? []);
+    let deniedActor: CurrentActor | null = null;
     const result = await privateApiRead(
       withQuery(read.path, query),
-      (value) => read.parse(value, query),
+      (value) => {
+        const responseActor = isRecord(value) ? parseActor(value.actor) : null;
+        if (read.dataFirst && responseActor && !read.allowed(responseActor)) {
+          deniedActor = responseActor;
+          return null;
+        }
+        return read.parse(value, query);
+      },
       signal,
+      read.maximumResponseBytes,
     );
-    const upstream = isRecord(result.data)
-      ? (result.data.actor as CurrentActor | undefined)
-      : undefined;
-    return apiJson({ ...result, actor: upstream ?? actor });
+    if (deniedActor) {
+      return accessDenied(deniedActor, read.denial);
+    }
+    const upstream = isRecord(result.data) ? parseActor(result.data.actor) : null;
+    if (read.dataFirst && result.data && !upstream) {
+      throw new HttpError(502, "The response actor could not be confirmed.");
+    }
+    if (read.dataFirst && upstream && !read.allowed(upstream)) {
+      return accessDenied(upstream, read.denial);
+    }
+    return apiJson({ ...result, actor: upstream ?? actor ?? undefined });
   } catch (error) {
     return apiError(error);
   }

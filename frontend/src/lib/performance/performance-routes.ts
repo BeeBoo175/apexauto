@@ -28,6 +28,7 @@ export function relayPerformanceSection(request: Request, section: string) {
   }
 
   return relayGatedRead(request, {
+    dataFirst: true,
     allowed: (actor) =>
       hasPerformanceAccess(actor) && (section !== "branches" || actor.role === "GeneralManager"),
     denial: managerDenial,
@@ -56,6 +57,7 @@ export function relayPerformanceTeam(request: Request, tab: string) {
   }
 
   return relayGatedRead(request, {
+    dataFirst: true,
     allowed: hasPerformanceAccess,
     denial: managerDenial,
     path: `/api/performance/team/${tab}`,
@@ -71,6 +73,7 @@ export function relayPerformanceMilestones(request: Request, id: string) {
   }
 
   return relayGatedRead(request, {
+    dataFirst: true,
     allowed: hasPerformanceAccess,
     denial: managerDenial,
     path: `/api/performance/people/${id}/milestones`,
