@@ -17,6 +17,7 @@ import { createInteractionGuard, type InteractionBlock } from "@/lib/interaction
 import {
   StaffEntryRequestsContext,
   StaffHistoryContext,
+  StaffLocalHistoryContext,
 } from "@/components/staff/StaffClientEntryBoundary";
 
 export function useStaffNavigation() {
@@ -24,6 +25,7 @@ export function useStaffNavigation() {
   const router = useRouter();
   const entries = useContext(StaffEntryRequestsContext);
   const historyRef = useContext(StaffHistoryContext);
+  const localHistory = useContext(StaffLocalHistoryContext);
   const [guard] = useState(createInteractionGuard);
   const guardState = useSyncExternalStore(guard.subscribe, guard.getSnapshot, guard.getSnapshot);
   const confirmed = useRef<{ href: string; state: unknown } | null>(null);
@@ -59,6 +61,11 @@ export function useStaffNavigation() {
   );
 
   const protectOperation = useEffectEvent((event: PopStateEvent) => {
+    if (localHistory?.current?.(event)) {
+      event.stopImmediatePropagation();
+      previousPath.current = window.location.pathname;
+      return;
+    }
     if (!confirmed.current) {
       return;
     }
@@ -127,5 +134,6 @@ export function useStaffNavigation() {
     captureHistory,
     recordNavigation,
     entryPath,
+    localPath: localHistory?.pathname,
   };
 }

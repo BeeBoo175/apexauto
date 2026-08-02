@@ -3,14 +3,13 @@ import { useEffect, useRef, useState } from "react";
 import { privateApiFetch } from "@/lib/api-browser";
 import { dateRangeError } from "@/lib/intake/list-query";
 import { parseWorklistPage } from "@/lib/staff/parse";
-import { staffQuery, staffViewQuery } from "@/lib/staff/query";
+import { staffQuery } from "@/lib/staff/query";
 import type { ApiResult, Page } from "@/lib/api";
 import type { Branch } from "@/lib/branches";
 import type { StaffFilters, WorklistPage } from "@/lib/staff/contracts";
 import { useToast } from "@/components/ui/Toast";
 import { useInitialToast } from "./use-initial-toast";
 import { readBranchChoices } from "@/lib/branch-choices";
-import { writeAddress } from "@/lib/browser-url";
 
 interface WorklistSort {
   column: string;
@@ -29,6 +28,7 @@ export function useStaffWorklist(
   filters: StaffFilters,
   page: number,
   initialBranches: Page<Branch> | null,
+  onLocation: (filters: StaffFilters, page: number) => void,
 ) {
   const [snapshot, setSnapshot] = useState(initial.data);
   const [branches, setBranches] = useState(initialBranches);
@@ -106,13 +106,8 @@ export function useStaffWorklist(
           search: submittedSearch && unchangedSearch ? nextFilters.search : current.search,
         };
       });
-      const query = new URLSearchParams(staffViewQuery(nextFilters, nextPage));
-      const selected = new URL(window.location.href).searchParams.get("appointment");
-      if (selected) {
-        query.set("appointment", selected);
-      }
       if (updateHistory) {
-        writeAddress(`/dashboard/intake?${query}`);
+        onLocation(nextFilters, nextPage);
       }
       return true;
     } catch {

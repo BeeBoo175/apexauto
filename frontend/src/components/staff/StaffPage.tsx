@@ -17,7 +17,8 @@ export function StaffLoading() {
     throw new Error("Staff loading requires its authorized page presentation");
   }
 
-  const { actor, path: pathname, parameters } = presentation;
+  const { actor, path, parameters } = presentation;
+  const pathname = path.startsWith("/dashboard/intake/") ? "/dashboard/intake" : path;
   const workshopView: StaffLoadingView =
     actor.role === "WorkshopTechnician" ? "technician" : "inspection";
   const views: Record<string, StaffLoadingView> = {
@@ -35,13 +36,9 @@ export function StaffLoading() {
     "/dashboard/home": "home",
   };
   let view = views[pathname] ?? "inspection";
-  let title = staffPageTitles[pathname] ?? "Your staff workspace";
+  const title = staffPageTitles[pathname] ?? "Your staff workspace";
   if (pathname === "/dashboard/intake") {
     view = actor.role === "SalesAgent" ? "technician" : "intake";
-  }
-  if (pathname.startsWith("/dashboard/intake/")) {
-    view = "appointment";
-    title = "Intake appointment";
   }
   return (
     <>

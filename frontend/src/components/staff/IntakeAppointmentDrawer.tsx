@@ -20,7 +20,7 @@ export function IntakeAppointmentDrawer({
 
   return (
     <Dialog
-      open={Boolean(drawer.id)}
+      open={Boolean(drawer.id || drawer.pendingId)}
       variant="drawer"
       density="compact"
       title="Intake appointment"

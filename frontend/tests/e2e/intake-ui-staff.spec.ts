@@ -61,8 +61,9 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
   ).toBe(404);
   await page.goto(`/dashboard/intake/${cross.id}`);
   await expect(
-    page.getByRole("heading", { name: "Intake appointment unavailable", exact: true }),
+    page.getByRole("heading", { name: "Intake appointments", exact: true }),
   ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Retry appointment", exact: true })).toBeVisible();
   await expect(page.getByLabel("VIN", { exact: true })).toHaveCount(0);
   await expect(page.getByText(cross.registrationPlate, { exact: true })).toHaveCount(0);
   await page.route("**/api/staff/intake/appointments?**", (route) =>
@@ -118,11 +119,23 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
   );
   await dialog.getByRole("button", { name: "Copy email", exact: true }).click();
   await expect(page.getByRole("status").filter({ hasText: "Email address copied." })).toBeVisible();
-  const detailPath = `/api/staff/intake/appointments/${new URL(page.url()).searchParams.get("appointment")}`;
+  await expect(page).toHaveURL(new RegExp(`/dashboard/intake/${arrival.id}\\?`));
+  const detailPath = `/api/staff/intake/appointments/${arrival.id}`;
   const detailReads = counts()[detailPath];
+  await page.evaluate(() => window.history.back());
+  await expect(
+    page.getByRole("heading", { name: "Select an appointment", exact: true }),
+  ).toBeVisible();
+  await page.evaluate(() => window.history.forward());
+  await expect(dialog.getByLabel("VIN", { exact: true })).toBeEditable();
+  expect(counts()[detailPath]).toBe(detailReads);
   const reopened = await page.reload();
   expect(await reopened!.text()).not.toContain("Declared mileage");
-  await expect(dialog.getByLabel("VIN", { exact: true })).toBeEditable();
+  await expect(
+    page.getByRole("heading", { name: "Intake appointments", exact: true }),
+  ).toBeVisible();
+  await expect(queue).toBeAttached();
+  await expect(page.getByLabel("VIN", { exact: true })).toBeEditable();
   expect(counts()[detailPath] - detailReads).toBe(1);
   await captureIntake(page, "agent-attendance");
   expect(requests.length).toBeGreaterThan(0);
@@ -133,12 +146,17 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
   }
   await page.goto("/dashboard/intake?view=queue&queue=MyWork");
   await expect(page.getByRole("button", { name: "Refresh worklist", exact: true })).toBeEnabled();
-  await page.evaluate(() => {
-    window.history.pushState(window.history.state, "", window.location.href);
-  });
   await showIntakeQueue(page);
   await link.click();
   await expect(dialog.getByLabel("VIN", { exact: true })).toBeEditable();
+  const beforeDirtyBack = page.url();
+  await dialog.getByLabel("VIN", { exact: true }).fill("PL1BT65R84B654321");
+  await page.evaluate(() => window.history.back());
+  const dirtyBack = page.getByRole("dialog", { name: "Discard unsaved changes?", exact: true });
+  await dirtyBack.getByRole("button", { name: "Keep editing", exact: true }).click();
+  await expect(page).toHaveURL(beforeDirtyBack);
+  await expect(dialog.getByLabel("VIN", { exact: true })).toHaveValue("PL1BT65R84B654321");
+  await dialog.getByLabel("VIN", { exact: true }).fill("");
   await exerciseOwnership(page);
   await showIntakeQueue(page);
   const selectedHref = page.url();
@@ -287,7 +305,7 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
   ).toHaveAttribute("aria-pressed", "true");
   expect(counts()[detailPath] - completedReads).toBe(1);
   await page.goto(detailHref!);
-  await expect(page.getByText("Checked in", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("Checked in", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Appointment details", exact: true }).click();
   await expect(
     page
@@ -435,16 +453,31 @@ for (const [role, email, actorRole] of staffRoles) {
     }
     await exerciseManagerHandler(page);
     const link = page.locator("tbody tr").first();
-    await link.click();
     const dialog = page.getByRole("dialog", { name: "Intake appointment", exact: true });
+    let releaseDetail = () => {};
+    const detailGate = new Promise<void>((resolve) => {
+      releaseDetail = resolve;
+    });
+    await page.route("**/api/staff/intake/appointments/*", async (route) => {
+      await detailGate;
+      await route.continue();
+    });
+    try {
+      await link.click();
+      await expect(dialog).toBeVisible();
+      await expect(dialog.locator('[data-layout="single"]')).toBeVisible();
+    } finally {
+      releaseDetail();
+    }
     await expect(
       dialog.getByRole("button", { name: "Refresh appointment", exact: true }),
     ).toBeEnabled();
+    await page.unroute("**/api/staff/intake/appointments/*");
     if (role === "General manager") {
       await expect(
         dialog.getByRole("button", { name: "Confirm check-in", exact: true }),
       ).toHaveCount(0);
-      const id = new URL(page.url()).searchParams.get("appointment");
+      const id = new URL(page.url()).pathname.split("/").at(-1);
       const denial = await context.request.post(`/api/staff/intake/appointments/${id}/check-ins`, {
         headers: { ...(await privateHeaders(context)), Origin: new URL(page.url()).origin },
         data: {
@@ -463,8 +496,46 @@ for (const [role, email, actorRole] of staffRoles) {
       page,
       role === "General manager" ? "manager-read-only-drawer" : "manager-appointment-drawer",
     );
+    const recordHref = page.url();
+    const recordId = new URL(recordHref).pathname.split("/").at(-1)!;
+    const readsBeforeHistory = counts()[`/api/staff/intake/appointments/${recordId}`];
+    await page.evaluate(() => window.history.back());
+    await expect(dialog).toHaveCount(0);
+    await expect(
+      page.getByRole("table", { name: "Scoped intake appointments", exact: true }),
+    ).toBeVisible();
+    await page.evaluate(() => window.history.forward());
+    await expect(dialog).toBeVisible();
+    await expect(page).toHaveURL(recordHref);
+    expect(counts()[`/api/staff/intake/appointments/${recordId}`]).toBe(readsBeforeHistory);
     await dialog.getByRole("button", { name: "Close drawer", exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect(page).toHaveURL(/\/dashboard\/intake\?/);
     if (role === "General manager") {
+      const shared = await context.newPage();
+      await shared.goto(recordHref);
+      await expect(
+        shared.getByRole("heading", { name: "Intake appointments", exact: true }),
+      ).toBeVisible();
+      const sharedDrawer = shared.getByRole("dialog", { name: "Intake appointment", exact: true });
+      await expect(sharedDrawer).toBeVisible();
+      await sharedDrawer.getByRole("button", { name: "Close drawer", exact: true }).click();
+      await expect(sharedDrawer).toHaveCount(0);
+      await expect(new URL(shared.url()).pathname).toBe("/dashboard/intake");
+      await expect(
+        shared.getByRole("table", { name: "Scoped intake appointments", exact: true }),
+      ).toBeVisible();
+      await shared.close();
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.locator("tbody tr").first().click();
+      await expect(dialog).toBeVisible();
+      await page.evaluate(() => window.history.back());
+      await expect(dialog).toHaveCount(0);
+      await page.evaluate(() => window.history.forward());
+      await expect(dialog).toBeVisible();
+      await dialog.getByRole("button", { name: "Close drawer", exact: true }).click();
+      await expect(dialog).toHaveCount(0);
+      await page.setViewportSize({ width: 1440, height: 1024 });
       await page.getByRole("button", { name: "Filter Branch", exact: true }).click();
       await page
         .getByRole("combobox", { name: "Branch", exact: true })

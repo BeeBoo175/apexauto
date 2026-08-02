@@ -20,7 +20,7 @@ export function intakeQueueParams(params: SearchParams): { page: number; filters
   const { filters, page } = staffParams({
     queue: params.queue,
     search: params.search,
-    page: "1",
+    page: params.page,
     pageSize: params.pageSize,
   });
   return { page, filters: { ...filters, queue: filters.queue || "MyWork" } };
@@ -54,8 +54,7 @@ export function staffQuery(filters: StaffFilters, page = 1) {
 }
 
 export function staffViewQuery(filters: StaffFilters, page = 1) {
-  const query = new URLSearchParams(staffQuery(filters, filters.queue ? 1 : page));
-  query.set("view", filters.queue ? "queue" : "list");
+  const query = new URLSearchParams(staffQuery(filters, page));
   const defaults = {
     page: "1",
     pageSize: String(DEFAULT_PAGE_SIZE),

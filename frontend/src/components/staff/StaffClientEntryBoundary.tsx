@@ -8,15 +8,27 @@ export const StaffHistoryContext = createContext<{
   current: ((event: PopStateEvent) => void) | null;
 } | null>(null);
 
+export const StaffLocalHistoryContext = createContext<{
+  current: ((event: PopStateEvent) => boolean) | null;
+  pathname?: string;
+} | null>(null);
+
 export function StaffHistoryBoundary({ children }: { children: ReactNode }) {
   const handler = useRef<((event: PopStateEvent) => void) | null>(null);
+  const localRef = useRef<((event: PopStateEvent) => boolean) | null>(null);
   useLayoutEffect(() => {
     // Keep registration ahead of the router even when the dashboard unmounts.
     const restore = (event: PopStateEvent) => handler.current?.(event);
     window.addEventListener("popstate", restore);
     return () => window.removeEventListener("popstate", restore);
   }, []);
-  return <StaffHistoryContext.Provider value={handler}>{children}</StaffHistoryContext.Provider>;
+  return (
+    <StaffHistoryContext.Provider value={handler}>
+      <StaffLocalHistoryContext.Provider value={localRef}>
+        {children}
+      </StaffLocalHistoryContext.Provider>
+    </StaffHistoryContext.Provider>
+  );
 }
 
 export interface StaffEntryRequest<T> {

@@ -1,9 +1,16 @@
 // Pages keep what they show in the address, so a reload or a shared link returns to the same view: filters, page,
 // sort, the open record and its tab. Empty values leave the address, so a default view has a clean address.
 
-// The one place that rewrites the address bar. It replaces the current history entry, so navigating inside a page never
-// adds Back steps; keep the history policy here rather than in each workspace.
-export function writeAddress(target: string | URL, state: unknown = null) {
+// Workspaces may supply their own traversal metadata; Next retains its router state.
+export function writeAddress(
+  target: string | URL,
+  state: unknown = null,
+  mode: "replace" | "push" = "replace",
+) {
+  if (mode === "push") {
+    window.history.pushState(state, "", target);
+    return;
+  }
   window.history.replaceState(state, "", target);
 }
 

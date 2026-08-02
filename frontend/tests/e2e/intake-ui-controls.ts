@@ -65,6 +65,9 @@ export async function exerciseOwnership(page: Page) {
     page.getByRole("button", { name: /^To claim\b/, includeHidden: true }),
   ).toHaveAttribute("aria-pressed", "true");
   const unassigned = new URL(page.url());
+  const selectedId = unassigned.pathname.split("/").at(-1)!;
+  unassigned.pathname = "/dashboard/intake";
+  unassigned.searchParams.set("appointment", selectedId);
   unassigned.searchParams.delete("queue");
   await page.goto(unassigned.toString());
   await expect(
@@ -117,9 +120,6 @@ export async function exerciseOwnership(page: Page) {
   expect(bodies).toHaveLength(2);
   expect(bodies[1]).toBe(bodies[0]);
   await page.unroute("**/api/staff/intake/appointments/*/claims");
-  await page.evaluate(() => {
-    window.history.pushState(window.history.state, "", window.location.href);
-  });
 }
 
 export async function exerciseManagerHandler(page: Page) {

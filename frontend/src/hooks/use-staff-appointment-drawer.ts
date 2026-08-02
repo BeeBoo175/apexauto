@@ -12,6 +12,7 @@ export function useStaffAppointmentDrawer(
   selectedId: string,
   selected: ApiResult<AppointmentDetail> | null,
   commitAfterRead = false,
+  address?: (id: string) => void,
 ) {
   const interaction = useGuardedAction();
   const selection = useStaffSelection(selectedId, selected, {
@@ -21,6 +22,7 @@ export function useStaffAppointmentDrawer(
     matches: (value, id) => value.id === id,
     read: privateApiFetch,
     commitAfterRead,
+    address,
   });
   const [drafts, setDrafts] = useState<Record<string, CheckInDraft>>({});
   const [locked, setLocked] = useState(false);

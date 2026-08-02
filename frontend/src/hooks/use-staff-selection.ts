@@ -15,6 +15,7 @@ interface SelectionResource<T> {
   commitAfterRead?: boolean;
   clearOnDenied?: boolean;
   failureMessage?: string;
+  address?: (id: string) => void;
 }
 
 export function useStaffSelection<T>(
@@ -63,7 +64,11 @@ export function useStaffSelection<T>(
       setId(nextId);
       const url = new URL(window.location.href);
       url.searchParams.set(resource.parameter, nextId);
-      writeAddress(url);
+      if (resource.address) {
+        resource.address(nextId);
+      } else {
+        writeAddress(url);
+      }
     }
     setBusy(true);
     setPendingId(nextId);
@@ -88,7 +93,11 @@ export function useStaffSelection<T>(
         const url = new URL(window.location.href);
         url.searchParams.set(resource.parameter, nextId);
         onConfirmed?.(url);
-        writeAddress(url);
+        if (resource.address) {
+          resource.address(nextId);
+        } else {
+          writeAddress(url);
+        }
         setId(nextId);
       }
       setResult(response);
@@ -126,7 +135,11 @@ export function useStaffSelection<T>(
     setPendingId("");
     const url = new URL(window.location.href);
     url.searchParams.delete(resource.parameter);
-    writeAddress(url);
+    if (resource.address) {
+      resource.address("");
+    } else {
+      writeAddress(url);
+    }
   }
   // Workspaces that already guard record replacement can await the confirmed record (null when the read did not confirm one).
   return { id, result, busy, pendingId, choose, load: readSelection, close };

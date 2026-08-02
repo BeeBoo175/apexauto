@@ -78,8 +78,8 @@ test("agent queues discard hidden table and calendar criteria and restore only q
   };
   const { filters, page } = intakeQueueParams(input);
   expect(Object.fromEntries(new URLSearchParams(staffViewQuery(filters, page)))).toEqual({
-    view: "queue",
     queue: "History",
+    page: "3",
     pageSize: "10",
     search: "VCA",
   });
