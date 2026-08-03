@@ -44,8 +44,7 @@ function Workspace({ actor, initial, initialView: content }: Props) {
       : null,
   );
   function refresh() {
-    worklist.cancel();
-    return worklist.load(worklist.active.filters, worklist.active.page);
+    return workspace.refresh();
   }
 
   return (
@@ -78,6 +77,7 @@ function Workspace({ actor, initial, initialView: content }: Props) {
             selection={drawer}
             actionsContainer={headerActions}
             onConfirmed={workspace.onConfirmed}
+            retryTraversal={workspace.retryTraversal}
           />
         </content.Component>
       ) : (
@@ -88,7 +88,12 @@ function Workspace({ actor, initial, initialView: content }: Props) {
         </div>
       )}
       {view !== "queue" && (
-        <IntakeAppointmentDrawer actor={actor} drawer={drawer} onConfirmed={() => void refresh()} />
+        <IntakeAppointmentDrawer
+          actor={actor}
+          drawer={drawer}
+          onConfirmed={() => void refresh()}
+          retryTraversal={workspace.retryTraversal}
+        />
       )}
     </div>
   );

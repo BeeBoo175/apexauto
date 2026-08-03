@@ -125,7 +125,7 @@ public sealed class StaffWorklistTests(IntakePhotoFixture fixture) : IClassFixtu
             query with { Status = StaffWorklistStatus.CheckedIn }))!.Items).Id);
         Assert.Equal(booked[6].Id, Assert.Single((await ListAsync(data, data.StaffId,
             query with { Status = StaffWorklistStatus.Cancelled }))!.Items).Id);
-        var unrestricted = StaffWorklistQuery.Parse(null, null, "All", null, 1, 25)!;
+        var unrestricted = StaffWorklistQuery.Parse(null, null, "all", null, 1, 25)!;
         var secondHandler = Guid.NewGuid();
         var secondEmail = $"zulaikha.hassan.{Guid.NewGuid():N}@example.invalid";
         await services.GetRequiredService<StaffProvisioningService>().ProvisionStaffAsync(new StaffProvisioningRequest(

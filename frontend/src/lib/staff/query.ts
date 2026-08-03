@@ -2,18 +2,41 @@ import type { SearchParams } from "@/lib/query";
 import { isUuid } from "@/lib/auth/contracts";
 import { DEFAULT_PAGE_SIZE, isPageSize } from "@/lib/pagination";
 import { historyParams, historyQuery } from "@/lib/intake/list-query";
-import {
-  intakeQueues,
-  type AppointmentDetail,
-  type IntakeQueue,
-  type StaffFilters,
-} from "./contracts";
+import { type AppointmentDetail, type IntakeQueue, type StaffFilters } from "./contracts";
+
+const legacyStatuses: Record<string, string> = {
+  Booked: "booked",
+  CheckedIn: "checkedIn",
+  Cancelled: "cancelled",
+  NoShow: "noShow",
+  All: "all",
+};
+
+const legacyQueues: Record<string, IntakeQueue> = {
+  toClaim: "toClaim",
+  myWork: "myWork",
+  history: "history",
+  ToClaim: "toClaim",
+  MyWork: "myWork",
+  History: "history",
+};
+
+export function parseIntakeQueue(value: unknown): IntakeQueue | "" {
+  return typeof value === "string" && Object.hasOwn(legacyQueues, value) ? legacyQueues[value] : "";
+}
+
+function normalizeWorklistStatus(value: unknown): string {
+  if (typeof value !== "string") {
+    return "all";
+  }
+  return Object.hasOwn(legacyStatuses, value) ? legacyStatuses[value] : value;
+}
 
 export function appointmentQueue(detail: AppointmentDetail): IntakeQueue {
   if (detail.status !== "Booked") {
-    return "History";
+    return "history";
   }
-  return detail.ownership?.handlerId ? "MyWork" : "ToClaim";
+  return detail.ownership?.handlerId ? "myWork" : "toClaim";
 }
 
 export function intakeQueueParams(params: SearchParams): { page: number; filters: StaffFilters } {
@@ -23,7 +46,7 @@ export function intakeQueueParams(params: SearchParams): { page: number; filters
     page: params.page,
     pageSize: params.pageSize,
   });
-  return { page, filters: { ...filters, queue: filters.queue || "MyWork" } };
+  return { page, filters: { ...filters, queue: filters.queue || "myWork" } };
 }
 
 export function staffQuery(filters: StaffFilters, page = 1) {
@@ -58,7 +81,8 @@ export function staffViewQuery(filters: StaffFilters, page = 1) {
   const defaults = {
     page: "1",
     pageSize: String(DEFAULT_PAGE_SIZE),
-    status: "All",
+    status: "all",
+    queue: "myWork",
     sort: "startsAt",
     direction: "asc",
   };
@@ -76,13 +100,13 @@ export function staffParams(params: SearchParams): { page: number; filters: Staf
     page,
     filters: {
       ...filters,
-      status: typeof params.status === "string" ? params.status : "All",
+      status: normalizeWorklistStatus(params.status),
       branchId: typeof params.branchId === "string" ? params.branchId : "",
       search: typeof params.search === "string" ? params.search : "",
       registration: typeof params.registration === "string" ? params.registration : "",
       vehicle: typeof params.vehicle === "string" ? params.vehicle : "",
       customer: typeof params.customer === "string" ? params.customer : "",
-      queue: intakeQueues.find((queue) => queue === params.queue) ?? "",
+      queue: parseIntakeQueue(params.queue),
       handlerId:
         typeof params.handlerId === "string" && isUuid(params.handlerId) ? params.handlerId : "",
       handler: typeof params.handler === "string" ? params.handler : "",

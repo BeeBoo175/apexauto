@@ -35,6 +35,7 @@ export function AppointmentWorkbench({
   onDraft,
   onLock,
   onConfirmed,
+  retryTraversal,
   scrollWithHost = false,
 }: {
   id: string;
@@ -45,6 +46,7 @@ export function AppointmentWorkbench({
   onDraft?: (draft: CheckInDraft) => void;
   onLock?: (locked: boolean) => void;
   onConfirmed?: (detail: AppointmentDetail) => void;
+  retryTraversal?: () => boolean;
   scrollWithHost?: boolean;
 }) {
   useInitialToast(initial.message);
@@ -107,6 +109,9 @@ export function AppointmentWorkbench({
     !command.receipt;
 
   async function refresh() {
+    if (retryTraversal?.()) {
+      return;
+    }
     if (controller.current || locked) {
       return;
     }

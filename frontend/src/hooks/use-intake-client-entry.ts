@@ -8,8 +8,13 @@ import type { CurrentActor } from "@/lib/auth/actor";
 import { isUuid } from "@/lib/auth/contracts";
 import type { SearchParams } from "@/lib/query";
 import { parseDetail, parseWorklistPage } from "@/lib/staff/parse";
-import { appointmentQueue, intakeQueueParams, staffParams, staffQuery } from "@/lib/staff/query";
-import { intakeQueues } from "@/lib/staff/contracts";
+import {
+  appointmentQueue,
+  intakeQueueParams,
+  parseIntakeQueue,
+  staffParams,
+  staffQuery,
+} from "@/lib/staff/query";
 import type { IntakeViewComponent, IntakeWorkspaceSnapshot } from "./use-intake-workspace";
 import { readBranchChoices } from "@/lib/branch-choices";
 
@@ -36,7 +41,7 @@ export function useIntakeClientEntry(actor: CurrentActor, parameters: SearchPara
           { signal },
         ).catch(() => null)
       : Promise.resolve(null);
-    const explicitQueue = intakeQueues.some((queue) => queue === parameters.queue);
+    const explicitQueue = Boolean(parseIntakeQueue(parameters.queue));
     if (agent && selectedId && !explicitQueue) {
       const selected = await selectedRead;
       if (selected?.data) {

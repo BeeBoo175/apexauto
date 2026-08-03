@@ -13,11 +13,13 @@ export function IntakeAgentContent({
   selection,
   actionsContainer,
   onConfirmed,
+  retryTraversal,
 }: {
   actor: CurrentActor;
   selection: ReturnType<typeof useStaffAppointmentDrawer>;
   actionsContainer: HTMLElement | null;
   onConfirmed: (detail: AppointmentDetail) => void;
+  retryTraversal: () => boolean;
 }) {
   if (!selection.id && !selection.pendingId) {
     return (
@@ -60,6 +62,7 @@ export function IntakeAgentContent({
             onDraft={selection.setDraft}
             onLock={selection.lock}
             onConfirmed={onConfirmed}
+            retryTraversal={retryTraversal}
             scrollWithHost
           />
         </div>

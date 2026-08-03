@@ -15,7 +15,7 @@ interface SelectionResource<T> {
   commitAfterRead?: boolean;
   clearOnDenied?: boolean;
   failureMessage?: string;
-  address?: (id: string) => void;
+  address?: (id: string, updateAddress?: boolean) => void;
 }
 
 export function useStaffSelection<T>(
@@ -53,7 +53,11 @@ export function useStaffSelection<T>(
     await readSelection(nextId, onConfirmed);
   }
 
-  async function readSelection(nextId: string, onConfirmed?: (url: URL) => void) {
+  async function readSelection(
+    nextId: string,
+    onConfirmed?: (url: URL) => void,
+    updateAddress = true,
+  ) {
     controller.current?.abort();
     const attempt = new AbortController();
     controller.current = attempt;
@@ -62,12 +66,14 @@ export function useStaffSelection<T>(
         setResult(null);
       }
       setId(nextId);
-      const url = new URL(window.location.href);
-      url.searchParams.set(resource.parameter, nextId);
-      if (resource.address) {
-        resource.address(nextId);
-      } else {
-        writeAddress(url);
+      if (updateAddress) {
+        const url = new URL(window.location.href);
+        url.searchParams.set(resource.parameter, nextId);
+        if (resource.address) {
+          resource.address(nextId);
+        } else {
+          writeAddress(url);
+        }
       }
     }
     setBusy(true);
@@ -94,8 +100,8 @@ export function useStaffSelection<T>(
         url.searchParams.set(resource.parameter, nextId);
         onConfirmed?.(url);
         if (resource.address) {
-          resource.address(nextId);
-        } else {
+          resource.address(nextId, updateAddress);
+        } else if (updateAddress) {
           writeAddress(url);
         }
         setId(nextId);
@@ -126,20 +132,23 @@ export function useStaffSelection<T>(
       }
     }
   }
-  function close() {
+  function close(updateAddress = true) {
     controller.current?.abort();
     controller.current = null;
     setId("");
     setResult(null);
     setBusy(false);
     setPendingId("");
+    if (resource.address) {
+      resource.address("", updateAddress);
+      return;
+    }
+    if (!updateAddress) {
+      return;
+    }
     const url = new URL(window.location.href);
     url.searchParams.delete(resource.parameter);
-    if (resource.address) {
-      resource.address("");
-    } else {
-      writeAddress(url);
-    }
+    writeAddress(url);
   }
   // Workspaces that already guard record replacement can await the confirmed record (null when the read did not confirm one).
   return { id, result, busy, pendingId, choose, load: readSelection, close };

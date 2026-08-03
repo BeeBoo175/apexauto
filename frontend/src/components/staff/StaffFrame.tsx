@@ -47,7 +47,9 @@ function StaffFrameContent({
   ready: boolean;
 }) {
   const navigation = useStaffNavigation();
-  const fitViewport = fitViewportPaths.includes(navigation.localPath ?? navigation.pathname);
+  const currentPath = navigation.localPath ?? navigation.pathname;
+  const fitViewport =
+    fitViewportPaths.includes(currentPath) || currentPath.startsWith("/dashboard/intake/");
   const logout = useAuthMutation("logout", "/login");
   // The signed-in person's name and picture come from the shared person read, once per session.
   const { person } = usePersonPreview(actor?.userId ?? "", Boolean(actor));

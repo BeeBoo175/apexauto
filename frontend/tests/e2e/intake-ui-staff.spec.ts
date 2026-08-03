@@ -119,7 +119,7 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
   );
   await dialog.getByRole("button", { name: "Copy email", exact: true }).click();
   await expect(page.getByRole("status").filter({ hasText: "Email address copied." })).toBeVisible();
-  await expect(page).toHaveURL(new RegExp(`/dashboard/intake/${arrival.id}\\?`));
+  await expect(page).toHaveURL(new RegExp(`/dashboard/intake/${arrival.id}$`));
   const detailPath = `/api/staff/intake/appointments/${arrival.id}`;
   const detailReads = counts()[detailPath];
   await page.evaluate(() => window.history.back());
@@ -140,7 +140,7 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
   await captureIntake(page, "agent-attendance");
   expect(requests.length).toBeGreaterThan(0);
   for (const url of requests) {
-    expect(url.searchParams.get("status")).toBe("All");
+    expect(url.searchParams.get("status")).toBe("all");
     expect(url.searchParams.has("handler")).toBe(false);
     expect(url.searchParams.get("sort")).toBe("startsAt");
   }
@@ -192,10 +192,13 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
   );
   await page.getByRole("button", { name: "Refresh appointment", exact: true }).click();
   await expect(
-    page.getByRole("alert").filter({
-      hasText:
-        "The appointment could not be refreshed. Existing details and your draft remain shown.",
-    }),
+    page
+      .getByRole("alert")
+      .filter({
+        hasText:
+          "The appointment could not be refreshed. Existing details and your draft remain shown.",
+      })
+      .last(),
   ).toBeVisible();
   await expect(dialog.getByLabel("VIN", { exact: true })).toHaveValue(vin);
   await page.unroute("**/api/staff/intake/appointments/*");
@@ -212,10 +215,13 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
   );
   await page.getByRole("button", { name: "Refresh appointment", exact: true }).click();
   await expect(
-    page.getByRole("alert").filter({
-      hasText:
-        "The appointment could not be refreshed. Existing details and your draft remain shown.",
-    }),
+    page
+      .getByRole("alert")
+      .filter({
+        hasText:
+          "The appointment could not be refreshed. Existing details and your draft remain shown.",
+      })
+      .last(),
   ).toBeVisible();
   await expect(dialog.getByLabel("VIN", { exact: true })).toHaveValue(vin);
   await page.unroute("**/api/staff/intake/appointments/*");
@@ -303,6 +309,7 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
   await expect(
     queue.getByRole("button", { name: /^History\b/, includeHidden: true }),
   ).toHaveAttribute("aria-pressed", "true");
+  await expect(page).toHaveURL(new RegExp(`/dashboard/intake/${arrival.id}\\?queue=history$`));
   expect(counts()[detailPath] - completedReads).toBe(1);
   await page.goto(detailHref!);
   await expect(dialog.getByText("Checked in", { exact: true })).toBeVisible();
@@ -317,8 +324,19 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
     .getByRole("button", { name: "Close dialog", exact: true })
     .click();
   await expect(page.getByLabel("VIN", { exact: true })).toHaveCount(0);
+  await showIntakeQueue(page);
+  await queue.locator("li button").filter({ hasNotText: arrivalPlate }).first().click();
+  await expect(page).not.toHaveURL(new RegExp(`/dashboard/intake/${arrival.id}`));
+  await page.getByRole("button", { name: "Appointment details", exact: true }).click();
+  await expect(
+    page.getByRole("dialog", { name: "Appointment details", exact: true }),
+  ).toBeVisible();
+  await page.evaluate(() => window.history.back());
+  await expect(page).toHaveURL(new RegExp(`/dashboard/intake/${arrival.id}\\?queue=history$`));
+  await expect(dialog.getByRole("heading", { name: arrivalPlate, exact: true })).toBeVisible();
 
   await page.goto("/dashboard/intake?view=queue&queue=History&pageSize=10");
+  await expect(page).toHaveURL(/\/dashboard\/intake\?pageSize=10&queue=history$/);
   await expect(queue.locator("li")).toHaveCount(10);
   const oldJobs = await queue.locator("li").allTextContents();
   expect(oldJobs).toHaveLength(10);
@@ -344,8 +362,45 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
   await page.unroute("**/api/staff/intake/appointments?**");
   await queue.getByRole("button", { name: "Next records", exact: true }).click();
   await expect(queue.getByLabel("Page number", { exact: true })).toHaveValue("2");
+  await expect(page).toHaveURL(/\/dashboard\/intake\?page=2&pageSize=10&queue=history$/);
   await expect(queue.locator("li")).toHaveCount(10);
-  expect(await queue.locator("li").allTextContents()).not.toEqual(oldJobs);
+  const pageTwoJobs = await queue.locator("li").allTextContents();
+  expect(pageTwoJobs).not.toEqual(oldJobs);
+  await page.evaluate(() => window.history.back());
+  await expect(page).toHaveURL(/\/dashboard\/intake\?pageSize=10&queue=history$/);
+  await expect(queue.getByLabel("Page number", { exact: true })).toHaveValue("1");
+  expect(await queue.locator("li").allTextContents()).toEqual(oldJobs);
+  await expect(
+    page
+      .getByRole("alert")
+      .filter({ hasText: "The last confirmed rows and filters remain shown." }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "Refresh worklist", exact: true }).click();
+  await expect(queue.getByLabel("Page number", { exact: true })).toHaveValue("1");
+  await page.route("**/api/staff/intake/appointments?**", (route) =>
+    route.fulfill({
+      status: 502,
+      json: {
+        status: 502,
+        data: null,
+        uncertain: true,
+        message: "Controlled failed forward traversal",
+      },
+    }),
+  );
+  await page.evaluate(() => window.history.forward());
+  await expect(page).toHaveURL(/\/dashboard\/intake\?page=2&pageSize=10&queue=history$/);
+  await expect(
+    page
+      .getByRole("alert")
+      .filter({ hasText: "The last confirmed rows and filters remain shown." }),
+  ).toBeVisible();
+  await expect(queue.getByLabel("Page number", { exact: true })).toHaveValue("1");
+  expect(await queue.locator("li").allTextContents()).toEqual(oldJobs);
+  await page.unroute("**/api/staff/intake/appointments?**");
+  await page.getByRole("button", { name: "Refresh worklist", exact: true }).click();
+  await expect(queue.getByLabel("Page number", { exact: true })).toHaveValue("2");
+  expect(await queue.locator("li").allTextContents()).toEqual(pageTwoJobs);
   await page.route("**/api/staff/intake/appointments?**", (route) =>
     route.fulfill({
       status: 502,
@@ -450,6 +505,12 @@ for (const [role, email, actorRole] of staffRoles) {
       expect(reads).toBe(2);
       expect(await page.locator("tbody tr").allTextContents()).toEqual(rows);
       await page.unroute("**/api/staff/intake/appointments?**");
+      await page.getByRole("button", { name: "Next records", exact: true }).click();
+      await expect(page).toHaveURL(/page=2/);
+      expect(await page.locator("tbody tr").allTextContents()).not.toEqual(rows);
+      await page.evaluate(() => window.history.back());
+      await expect(page).not.toHaveURL(/page=2/);
+      expect(await page.locator("tbody tr").allTextContents()).toEqual(rows);
     }
     await exerciseManagerHandler(page);
     const link = page.locator("tbody tr").first();
@@ -511,6 +572,13 @@ for (const [role, email, actorRole] of staffRoles) {
     await dialog.getByRole("button", { name: "Close drawer", exact: true }).click();
     await expect(dialog).toHaveCount(0);
     await expect(page).toHaveURL(/\/dashboard\/intake\?/);
+    await page.evaluate(() => window.history.back());
+    await expect(dialog).toBeVisible();
+    await expect(page).toHaveURL(recordHref);
+    expect(counts()[`/api/staff/intake/appointments/${recordId}`]).toBe(readsBeforeHistory);
+    await page.evaluate(() => window.history.forward());
+    await expect(dialog).toHaveCount(0);
+    await expect(page).toHaveURL(/\/dashboard\/intake\?/);
     if (role === "General manager") {
       const shared = await context.newPage();
       await shared.goto(recordHref);
@@ -525,6 +593,9 @@ for (const [role, email, actorRole] of staffRoles) {
       await expect(
         shared.getByRole("table", { name: "Scoped intake appointments", exact: true }),
       ).toBeVisible();
+      await shared.evaluate(() => window.history.back());
+      await expect(sharedDrawer).toBeVisible();
+      await expect(shared).toHaveURL(recordHref);
       await shared.close();
       await page.setViewportSize({ width: 390, height: 844 });
       await page.locator("tbody tr").first().click();
@@ -558,6 +629,10 @@ for (const [role, email, actorRole] of staffRoles) {
       await expect(
         page.getByRole("cell", { name: "ApexAuto Petaling Jaya", exact: true }),
       ).toHaveCount(branchRows.length);
+      await page.evaluate(() => window.history.back());
+      await expect(page).not.toHaveURL(/branchId=/);
+      await page.evaluate(() => window.history.back());
+      await expect(dialog).toBeVisible();
     }
   });
 }

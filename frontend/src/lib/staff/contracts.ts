@@ -1,8 +1,8 @@
 import type { CountedPage } from "@/lib/api";
 import type { HistoryFilters } from "@/lib/intake/list-query";
 
-export const worklistStatuses = ["Booked", "CheckedIn", "Cancelled", "NoShow", "All"] as const;
-export const intakeQueues = ["ToClaim", "MyWork", "History"] as const;
+export const worklistStatuses = ["booked", "checkedIn", "cancelled", "noShow", "all"] as const;
+export const intakeQueues = ["toClaim", "myWork", "history"] as const;
 export type IntakeQueue = (typeof intakeQueues)[number];
 export interface StaffFilters extends HistoryFilters {
   status: string;

@@ -144,6 +144,12 @@ export async function exerciseManagerHandler(page: Page) {
   await expect(header).toHaveAttribute("aria-sort", "ascending");
   await sort.click();
   await expect(header).toHaveAttribute("aria-sort", "descending");
+  await page.evaluate(() => window.history.back());
+  await expect.poll(() => new URL(page.url()).searchParams.get("direction")).toBeNull();
+  await expect(header).toHaveAttribute("aria-sort", "ascending");
+  await page.evaluate(() => window.history.forward());
+  await expect.poll(() => new URL(page.url()).searchParams.get("direction")).toBe("desc");
+  await expect(header).toHaveAttribute("aria-sort", "descending");
   await page.getByRole("button", { name: /^Filter Handler/ }).click();
   await page.getByLabel("Handler email contains", { exact: true }).fill(handler);
   await page.getByRole("button", { name: "Apply", exact: true }).click();

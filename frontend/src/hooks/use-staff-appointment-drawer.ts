@@ -12,7 +12,7 @@ export function useStaffAppointmentDrawer(
   selectedId: string,
   selected: ApiResult<AppointmentDetail> | null,
   commitAfterRead = false,
-  address?: (id: string) => void,
+  address?: (id: string, updateAddress?: boolean) => void,
 ) {
   const interaction = useGuardedAction();
   const selection = useStaffSelection(selectedId, selected, {
@@ -39,7 +39,7 @@ export function useStaffAppointmentDrawer(
       void selection.choose(id);
     },
     close: () => {
-      interaction.request(selection.close, "Discard and close");
+      interaction.request(() => selection.close(), "Discard and close");
     },
   };
 }

@@ -30,11 +30,11 @@ interface IntakeWorklistProps {
 }
 
 const intakeSections = [
-  { value: "All", label: "All appointments", count: "all" },
-  { value: "Booked", label: "Booked", count: "booked" },
-  { value: "CheckedIn", label: "Checked in", count: "checkedIn" },
-  { value: "NoShow", label: "No shows", count: "noShow" },
-  { value: "Cancelled", label: "Cancelled", count: "cancelled" },
+  { value: "all", label: "All appointments", count: "all" },
+  { value: "booked", label: "Booked", count: "booked" },
+  { value: "checkedIn", label: "Checked in", count: "checkedIn" },
+  { value: "noShow", label: "No shows", count: "noShow" },
+  { value: "cancelled", label: "Cancelled", count: "cancelled" },
 ] as const;
 
 export function IntakeWorklist({ actor, worklist, drawer }: IntakeWorklistProps) {
@@ -69,7 +69,7 @@ export function IntakeWorklist({ actor, worklist, drawer }: IntakeWorklistProps)
     "Selected branch";
   const appliedFilters = appliedIntakeFilters(active.filters, branchName);
   const filtered =
-    appliedFilters.length > 0 || Boolean(active.filters.search) || active.filters.status !== "All";
+    appliedFilters.length > 0 || Boolean(active.filters.search) || active.filters.status !== "all";
 
   async function sortWorklist(sort: TableSort | null) {
     await worklist.load(

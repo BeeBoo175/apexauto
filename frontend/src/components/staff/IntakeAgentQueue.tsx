@@ -14,11 +14,11 @@ import { AppointmentStatus } from "./AppointmentStatus";
 import styles from "./StaffQueueWorkspace.module.css";
 
 const labels: Record<IntakeQueue, string> = {
-  ToClaim: "To claim",
-  MyWork: "My work",
-  History: "History",
+  toClaim: "To claim",
+  myWork: "My work",
+  history: "History",
 };
-const countKeys = { ToClaim: "toClaim", MyWork: "myWork", History: "history" } as const;
+const countKeys = { toClaim: "toClaim", myWork: "myWork", history: "history" } as const;
 
 export function IntakeAgentQueue({
   worklist,
@@ -34,10 +34,16 @@ export function IntakeAgentQueue({
   inert?: boolean;
 }) {
   const [expanded, setExpanded] = useState(!drawer.id);
+  const [lastDrawerId, setLastDrawerId] = useState(drawer.id);
   const list = useRef<HTMLDivElement | null>(null);
   const { active, snapshot, busy, ready, draft, setDraft } = worklist;
-  const queue = active.filters.queue || "MyWork";
+  const queue = active.filters.queue || "myWork";
   const selected = Boolean(drawer.id || drawer.pendingId);
+
+  if (lastDrawerId !== drawer.id) {
+    setLastDrawerId(drawer.id);
+    setExpanded(!drawer.id);
+  }
 
   async function load(nextQueue = queue, page = 1, pageSize = active.filters.pageSize) {
     const changedPage =

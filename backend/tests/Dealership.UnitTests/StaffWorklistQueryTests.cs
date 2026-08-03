@@ -24,9 +24,21 @@ public sealed class StaffWorklistQueryTests
         Assert.Null(Parse("2024-01-01", "2025-01-01"));
         Assert.NotNull(Parse(page: int.MaxValue));
 
-        foreach (var state in new[] { "Booked", "CheckedIn", "Cancelled", "NoShow", "All" })
+        foreach (var (token, expected) in new (string Token, StaffWorklistStatus Expected)[]
         {
-            Assert.Equal(state, Parse(status: state)!.Status.ToString());
+            ("booked", StaffWorklistStatus.Booked),
+            ("checkedIn", StaffWorklistStatus.CheckedIn),
+            ("cancelled", StaffWorklistStatus.Cancelled),
+            ("noShow", StaffWorklistStatus.NoShow),
+            ("all", StaffWorklistStatus.All)
+        })
+        {
+            Assert.Equal(expected, Parse(status: token)!.Status);
+        }
+
+        foreach (var queue in new[] { "toClaim", "myWork", "history" })
+        {
+            Assert.Equal(queue, StaffWorklistQuery.Parse(null, null, "all", null, 1, 25, queue: queue)!.Queue);
         }
     }
 
@@ -38,7 +50,11 @@ public sealed class StaffWorklistQueryTests
     [InlineData("2026-10-17", "2026-10-16", null, 1, 25)]
     [InlineData("9999-12-31", "9999-12-31", null, 1, 25)]
     [InlineData("0001-01-01", "0001-01-01", null, 1, 25)]
-    [InlineData(null, null, "booked", 1, 25)]
+    [InlineData(null, null, "Booked", 1, 25)]
+    [InlineData(null, null, "CheckedIn", 1, 25)]
+    [InlineData(null, null, "Cancelled", 1, 25)]
+    [InlineData(null, null, "NoShow", 1, 25)]
+    [InlineData(null, null, "All", 1, 25)]
     [InlineData(null, null, "0", 1, 25)]
     [InlineData(null, null, "", 1, 25)]
     [InlineData(null, null, null, 0, 25)]
@@ -48,6 +64,9 @@ public sealed class StaffWorklistQueryTests
     {
         Assert.Null(Parse(from, to, status, page, pageSize));
         Assert.Null(StaffWorklistQuery.Parse(null, null, null, Guid.Empty, 1, 25));
+        Assert.Null(StaffWorklistQuery.Parse(null, null, "all", null, 1, 25, queue: "MyWork"));
+        Assert.Null(StaffWorklistQuery.Parse(null, null, "all", null, 1, 25, queue: "ToClaim"));
+        Assert.Null(StaffWorklistQuery.Parse(null, null, "all", null, 1, 25, queue: "History"));
     }
 
     private static StaffWorklistQuery? Parse(string? from = null, string? to = null, string? status = null,
@@ -68,7 +87,7 @@ public sealed class StaffWorklistQueryTests
         Assert.Null(StaffWorklistQuery.Parse(null, null, null, null, 1, 25, "a\nb"));
         Assert.Null(StaffWorklistQuery.Parse(null, null, null, null, 1, 25, sort: "arbitrary"));
         Assert.Null(StaffWorklistQuery.Parse(null, null, null, null, 1, 25, direction: "DESC"));
-        var handler = StaffWorklistQuery.Parse(null, null, "All", null, 1, 25,
+        var handler = StaffWorklistQuery.Parse(null, null, "all", null, 1, 25,
             sort: "handlerEmail", handler: "  aina.sofia  ")!;
         Assert.Equal("aina.sofia", handler.Handler);
         Assert.Equal("handlerEmail", handler.Sort);

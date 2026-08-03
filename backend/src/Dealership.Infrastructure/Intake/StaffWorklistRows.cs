@@ -29,9 +29,9 @@ internal static class StaffWorklistRows
         };
         rows = query.Queue switch
         {
-            "ToClaim" => rows.Where(row => !row.CheckedIn && !row.Cancelled && !row.NoShow && row.HandlerId == null),
-            "MyWork" => rows.Where(row => !row.CheckedIn && !row.Cancelled && !row.NoShow && row.HandlerId == staffId),
-            "History" => rows.Where(row => (row.CheckedIn || row.Cancelled || row.NoShow) && row.HandlerId == staffId),
+            "toClaim" => rows.Where(row => !row.CheckedIn && !row.Cancelled && !row.NoShow && row.HandlerId == null),
+            "myWork" => rows.Where(row => !row.CheckedIn && !row.Cancelled && !row.NoShow && row.HandlerId == staffId),
+            "history" => rows.Where(row => (row.CheckedIn || row.Cancelled || row.NoShow) && row.HandlerId == staffId),
             _ => rows
         };
         // Only the group scope, which has no branch of its own, chooses branches by name.

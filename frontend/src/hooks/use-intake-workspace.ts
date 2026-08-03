@@ -22,18 +22,23 @@ export type IntakeViewComponent =
   | { view: "queue"; Component: typeof IntakeAgentQueue };
 
 export function useIntakeWorkspace(initial: IntakeWorkspaceSnapshot, agent: boolean) {
-  const { worklist, drawer, busy } = useIntakeHistory(initial, agent);
+  const { worklist, drawer, replaceList, refresh, retryTraversal, busy } = useIntakeHistory(
+    initial,
+    agent,
+  );
 
   function onConfirmed(detail: AppointmentDetail) {
     worklist.cancel();
     const filters = worklist.active.filters;
     const next = agent ? { ...filters, queue: appointmentQueue(detail) } : filters;
-    void worklist.load(next, agent ? 1 : worklist.active.page);
+    void replaceList(next, agent ? 1 : worklist.active.page);
   }
 
   return {
     worklist,
     drawer,
+    refresh,
+    retryTraversal,
     onConfirmed,
     historyBusy: busy,
   };

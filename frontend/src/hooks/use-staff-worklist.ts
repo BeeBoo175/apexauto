@@ -28,7 +28,7 @@ export function useStaffWorklist(
   filters: StaffFilters,
   page: number,
   initialBranches: Page<Branch> | null,
-  onLocation: (filters: StaffFilters, page: number) => void,
+  onLocation: (filters: StaffFilters, page: number, mode: false | "push" | "replace") => void,
 ) {
   const [snapshot, setSnapshot] = useState(initial.data);
   const [branches, setBranches] = useState(initialBranches);
@@ -54,7 +54,7 @@ export function useStaffWorklist(
   async function load(
     nextFilters = active.filters,
     nextPage = active.page,
-    updateHistory = true,
+    updateHistory: boolean | "replace" = true,
     selectedSort?: WorklistSort | null,
   ) {
     if (controller.current) {
@@ -106,9 +106,8 @@ export function useStaffWorklist(
           search: submittedSearch && unchangedSearch ? nextFilters.search : current.search,
         };
       });
-      if (updateHistory) {
-        onLocation(nextFilters, nextPage);
-      }
+      const mode = updateHistory === true ? "push" : updateHistory;
+      onLocation(nextFilters, nextPage, mode);
       return true;
     } catch {
       if (!attempt.signal.aborted) {

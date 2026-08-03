@@ -55,7 +55,7 @@ export function resetWorklistFilters(filters: StaffFilters): StaffFilters {
     ...filters,
     from: "",
     to: "",
-    status: "All",
+    status: "all",
     branchId: "",
     search: "",
     registration: "",

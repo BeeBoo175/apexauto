@@ -10,10 +10,12 @@ export function IntakeAppointmentDrawer({
   actor,
   drawer,
   onConfirmed,
+  retryTraversal,
 }: {
   actor: CurrentActor;
   drawer: ReturnType<typeof useStaffAppointmentDrawer>;
   onConfirmed: () => void;
+  retryTraversal: () => boolean;
 }) {
   const [headerActions, setHeaderActions] = useState<HTMLDivElement | null>(null);
   useLoadingProgress("Loading intake appointment", drawer.busy);
@@ -47,6 +49,7 @@ export function IntakeAppointmentDrawer({
           onDraft={drawer.setDraft}
           onLock={drawer.lock}
           onConfirmed={onConfirmed}
+          retryTraversal={retryTraversal}
         />
       )}
     </Dialog>

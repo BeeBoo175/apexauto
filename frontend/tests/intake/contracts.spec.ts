@@ -4,6 +4,7 @@ import { parseBooking, parseSlots, parseTaxonomy } from "@/lib/intake/parse";
 import { bookingMatchesRequest } from "@/lib/intake/receipt";
 import { csvCell, selectedCsv } from "@/lib/csv";
 import { intakeQueueParams, staffParams, staffQuery, staffViewQuery } from "@/lib/staff/query";
+import { intakeLocation, intakeLocationId } from "@/lib/staff/intake-location";
 import { DEFAULT_PAGE_SIZE, PAGE_SIZES, paginationQuery } from "@/lib/pagination";
 import { parsePage } from "@/lib/api";
 
@@ -77,14 +78,26 @@ test("agent queues discard hidden table and calendar criteria and restore only q
     direction: "desc",
   };
   const { filters, page } = intakeQueueParams(input);
+  expect(filters.queue).toBe("history");
+  expect(filters.status).toBe("all");
   expect(Object.fromEntries(new URLSearchParams(staffViewQuery(filters, page)))).toEqual({
-    queue: "History",
+    queue: "history",
     page: "3",
     pageSize: "10",
     search: "VCA",
   });
-  expect(intakeQueueParams({ queue: "unknown" }).filters.queue).toBe("MyWork");
-  expect(intakeQueueParams({}).filters.queue).toBe("MyWork");
+  expect(intakeQueueParams({ queue: "unknown" }).filters.queue).toBe("myWork");
+  for (const queue of ["constructor", "toString", "__proto__"]) {
+    expect(intakeQueueParams({ queue }).filters.queue).toBe("myWork");
+  }
+  expect(intakeQueueParams({}).filters.queue).toBe("myWork");
+  expect(staffViewQuery(intakeQueueParams({ queue: "MyWork" }).filters, 1)).toBe("");
+  expect(intakeLocation(intakeQueueParams({ queue: "ToClaim" }).filters, 2, id)).toBe(
+    `/dashboard/intake/${id}?page=2&queue=toClaim`,
+  );
+  expect(intakeLocationId("/dashboard/intake")).toBe("");
+  expect(intakeLocationId(`/dashboard/intake/${id}`)).toBe(id);
+  expect(intakeLocationId("/dashboard/intake/not-a-uuid")).toBeNull();
 });
 
 test("appointment dates use Malaysian midnight and retain year/leap boundaries", () => {
@@ -142,13 +155,25 @@ test("staff queries preserve applied search, sorting, branch and page size throu
   const { filters, page } = staffParams(input);
   expect(page).toBe(3);
   const query = new URLSearchParams(staffQuery(filters, page));
-  expect(Object.fromEntries(query)).toEqual({ ...input, search: "VCA %_!" });
+  expect(Object.fromEntries(query)).toEqual({
+    ...input,
+    status: "all",
+    queue: "myWork",
+    search: "VCA %_!",
+  });
+  expect(staffParams({ status: "CheckedIn", queue: "ToClaim" }).filters).toMatchObject({
+    status: "checkedIn",
+    queue: "toClaim",
+  });
+  expect(staffParams({ status: "NoShow" }).filters.status).toBe("noShow");
   expect(staffParams({}).filters).toMatchObject({
     sort: "startsAt",
     direction: "asc",
     pageSize: 25,
-    status: "All",
+    status: "all",
   });
+  expect(staffViewQuery(staffParams({}).filters, 1)).toBe("");
+  expect(new URLSearchParams(staffQuery(staffParams({}).filters, 1)).get("status")).toBe("all");
 });
 
 test("manager handler criteria remain visible, removable and reset without losing table order", () => {

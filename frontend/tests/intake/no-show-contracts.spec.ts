@@ -112,9 +112,9 @@ test("no-show snapshots retain status and validate correction evidence", () => {
     ownership: null,
   };
   expect(parseDetail(detail)?.status).toBe("NoShow");
-  expect(appointmentQueue(parseDetail(detail)!)).toBe("History");
+  expect(appointmentQueue(parseDetail(detail)!)).toBe("history");
   expect(appointmentQueue(parseDetail({ ...detail, status: "Booked", noShowAt: null })!)).toBe(
-    "ToClaim",
+    "toClaim",
   );
   const ownership = {
     version: 2,
@@ -132,7 +132,7 @@ test("no-show snapshots retain status and validate correction evidence", () => {
   expect(parseDetail({ ...detail, ownership })?.ownership).toEqual(ownership);
   expect(
     appointmentQueue(parseDetail({ ...detail, status: "Booked", noShowAt: null, ownership })!),
-  ).toBe("MyWork");
+  ).toBe("myWork");
   expect(parseDetail({ ...detail, ownership: { ...ownership, version: 0 } })).toBeNull();
   expect(parseDetail({ ...detail, ownership: { ...ownership, kind: "Released" } })).toBeNull();
   const released = {

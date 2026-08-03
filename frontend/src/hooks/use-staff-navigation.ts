@@ -14,11 +14,22 @@ import {
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { createInteractionGuard, type InteractionBlock } from "@/lib/interaction-guard";
+import { writeAddress } from "@/lib/browser-url";
+import { isUuid } from "@/lib/auth/contracts";
+import { intakeLocationId } from "@/lib/staff/intake-location";
 import {
   StaffEntryRequestsContext,
   StaffHistoryContext,
   StaffLocalHistoryContext,
 } from "@/components/staff/StaffClientEntryBoundary";
+
+function targetIntakeId(url: URL, pathId: string) {
+  if (pathId) {
+    return pathId;
+  }
+  const legacy = url.searchParams.get("appointment");
+  return isUuid(legacy) ? legacy : "";
+}
 
 export function useStaffNavigation() {
   const pathname = usePathname();
@@ -36,6 +47,7 @@ export function useStaffNavigation() {
 
   const captureHistory = useCallback(() => {
     confirmed.current = { href: window.location.href, state: window.history.state };
+    previousPath.current = window.location.pathname;
   }, []);
 
   const setLocked = useCallback(
@@ -67,6 +79,30 @@ export function useStaffNavigation() {
       return;
     }
     if (!confirmed.current) {
+      return;
+    }
+    const previousIntakeId = intakeLocationId(previousPath.current);
+    const destinationUrl = new URL(window.location.href);
+    const destinationIntakeId = intakeLocationId(destinationUrl.pathname);
+    if (previousIntakeId !== null && destinationIntakeId !== null) {
+      const nextSelectedId = targetIntakeId(destinationUrl, destinationIntakeId);
+      const currentSelectedId = localHistory?.selectedId ?? previousIntakeId;
+      if (
+        !guard.isLocked() ||
+        (!guard.getSnapshot().blocked && nextSelectedId === currentSelectedId)
+      ) {
+        confirmed.current = { href: window.location.href, state: window.history.state };
+        previousPath.current = window.location.pathname;
+        return;
+      }
+      event.stopImmediatePropagation();
+      const href = `${destinationUrl.pathname}${destinationUrl.search}`;
+      writeAddress(confirmed.current.href, confirmed.current.state, "push");
+      guard.request(() => {
+        writeAddress(href, null, "replace");
+        confirmed.current = { href: window.location.href, state: window.history.state };
+        previousPath.current = window.location.pathname;
+      });
       return;
     }
     if (guard.isLocked()) {
@@ -134,6 +170,8 @@ export function useStaffNavigation() {
     captureHistory,
     recordNavigation,
     entryPath,
-    localPath: localHistory?.pathname,
+    localPath:
+      localHistory?.pathname ??
+      (pathname.startsWith("/dashboard/intake/") ? "/dashboard/intake" : undefined),
   };
 }

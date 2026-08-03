@@ -10,6 +10,7 @@ export const StaffHistoryContext = createContext<{
 
 export const StaffLocalHistoryContext = createContext<{
   current: ((event: PopStateEvent) => boolean) | null;
+  selectedId?: string;
   pathname?: string;
 } | null>(null);
 

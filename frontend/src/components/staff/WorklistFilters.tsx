@@ -10,9 +10,9 @@ import { BranchFilter } from "./BranchFilter";
 import styles from "./WorklistFilters.module.css";
 
 const statusChoices = [
-  { value: "All", label: "All statuses" },
+  { value: "all", label: "All statuses" },
   ...worklistStatuses
-    .filter((status) => status !== "All")
+    .filter((status) => status !== "all")
     .map((status) => ({
       value: status,
       label: appointmentStatusLabel(status),

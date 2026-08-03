@@ -1,11 +1,20 @@
 import type { WorklistItem } from "./contracts";
 
 export function appointmentStatusLabel(status: string) {
-  if (status === "CheckedIn") {
+  if (status === "CheckedIn" || status === "checkedIn") {
     return "Checked in";
   }
-  if (status === "NoShow") {
+  if (status === "NoShow" || status === "noShow") {
     return "No show";
+  }
+  if (status === "booked") {
+    return "Booked";
+  }
+  if (status === "cancelled") {
+    return "Cancelled";
+  }
+  if (status === "all") {
+    return "All";
   }
   return status;
 }

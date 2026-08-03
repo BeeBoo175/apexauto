@@ -22,6 +22,11 @@ function IntakeColumnFilter({
 }) {
   const filters = worklist.active.filters;
   const [draft, setDraft] = useState(filters);
+  const [lastFilters, setLastFilters] = useState(filters);
+  if (lastFilters !== filters) {
+    setLastFilters(filters);
+    setDraft(filters);
+  }
   const busy = disabled || worklist.busy;
   const apply = (next: StaffFilters) => worklist.load(next, 1);
 
@@ -65,7 +70,7 @@ function IntakeColumnFilter({
     <ColumnFilterForm
       busy={busy}
       onApply={() => apply({ ...filters, [key]: draft[key] })}
-      onClear={() => apply({ ...filters, [key]: branch ? "" : "All" })}
+      onClear={() => apply({ ...filters, [key]: branch ? "" : "all" })}
     >
       {branch ? (
         <BranchFilter
@@ -84,7 +89,7 @@ function IntakeColumnFilter({
           label="Status"
           options={worklistStatuses.map((status) => ({
             value: status,
-            label: status === "All" ? "All statuses" : appointmentStatusLabel(status),
+            label: status === "all" ? "All statuses" : appointmentStatusLabel(status),
           }))}
           value={draft.status}
           disabled={busy}
@@ -104,7 +109,7 @@ export function intakeColumnFilters(
   const filters = worklist.active.filters;
   const indicators: Record<string, boolean> = {
     startsAt: Boolean(filters.from || filters.to),
-    status: filters.status !== "All",
+    status: filters.status !== "all",
     registrationPlate: Boolean(filters.registration),
     vehicle: Boolean(filters.vehicle),
     customerName: Boolean(filters.customer),

@@ -23,7 +23,7 @@ public sealed record StaffWorklistQuery(DateTimeOffset? From, DateTimeOffset? Un
     {
         var dates = ListDateRange.Parse(from, to);
         if (!Pagination.IsValid(page, pageSize) || branchId == Guid.Empty || handlerId == Guid.Empty || dates is null ||
-            queue is not (null or "" or "ToClaim" or "MyWork" or "History"))
+            queue is not (null or "" or "toClaim" or "myWork" or "history"))
         {
             return null;
         }
@@ -42,11 +42,11 @@ public sealed record StaffWorklistQuery(DateTimeOffset? From, DateTimeOffset? Un
 
         var state = status switch
         {
-            null or "Booked" => StaffWorklistStatus.Booked,
-            "CheckedIn" => StaffWorklistStatus.CheckedIn,
-            "Cancelled" => StaffWorklistStatus.Cancelled,
-            "NoShow" => StaffWorklistStatus.NoShow,
-            "All" => StaffWorklistStatus.All,
+            null or "booked" => StaffWorklistStatus.Booked,
+            "checkedIn" => StaffWorklistStatus.CheckedIn,
+            "cancelled" => StaffWorklistStatus.Cancelled,
+            "noShow" => StaffWorklistStatus.NoShow,
+            "all" => StaffWorklistStatus.All,
             _ => (StaffWorklistStatus?)null
         };
         if (state is null)
