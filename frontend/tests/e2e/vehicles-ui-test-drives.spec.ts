@@ -4,6 +4,7 @@ import path from "node:path";
 import { addCalendarDays, calendarDate } from "@/lib/calendar";
 import { closeStaffWorkspaces, openStaffWorkspace } from "./staff-workspace-controls";
 import { apiLogin, privateHeaders } from "./staff-session";
+import { openTestDriveHistoryDuringRefresh } from "./test-drive-history-controls";
 
 test.use({ actionTimeout: 15_000, timezoneId: "America/New_York" });
 
@@ -324,4 +325,78 @@ test("customer booking and cancellation reconcile exact receipts before manager 
     fullPage: true,
   });
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+});
+
+test("staff test-drive history keeps workspace sections and retries the requested record after a failed traversal", async ({
+  page,
+  context,
+}) => {
+  await apiLogin(context, "farah.aziz@example.invalid");
+  const response = await context.request.get("/api/staff/test-drives?pageSize=10&status=all", {
+    headers: await privateHeaders(context),
+  });
+  expect(response.status()).toBe(200);
+  const items = (await response.json()).data.items as { id: string; registrationPlate: string }[];
+  expect(items.length).toBeGreaterThan(1);
+  const [first, second] = items;
+  await page.goto(`/dashboard/test-drives?booking=${first.id}&status=All`);
+  const record = page.getByRole("region", { name: "Selected test drive", exact: true });
+  await expect(record).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`/dashboard/test-drives/${first.id}$`));
+  await openTestDriveHistoryDuringRefresh(page);
+  await expect(page).toHaveURL(new RegExp(`/${first.id}/history$`));
+  await page.goBack();
+  await expect(page).toHaveURL(new RegExp(`/${first.id}$`));
+  await expect(record.getByRole("button", { name: "Details", exact: true })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await page.goForward();
+  await expect(record.getByRole("button", { name: "History", exact: true })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await page.getByRole("button", { name: "Close drawer", exact: true }).click();
+  await expect(page).toHaveURL(/\/dashboard\/test-drives$/);
+  await expect(record).toBeHidden();
+  await page.goBack();
+  await expect(record).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`/${first.id}/history$`));
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.reload();
+  await expect(record).toBeVisible();
+  await expect(page.getByRole("table", { name: "Scoped test drives" })).toBeVisible();
+  await page.getByRole("button", { name: "Close drawer", exact: true }).click();
+  await page.setViewportSize({ width: 1440, height: 1024 });
+  await page
+    .getByRole("table", { name: "Scoped test drives" })
+    .getByRole("row")
+    .nth(2)
+    .getByRole("cell")
+    .nth(1)
+    .click();
+  await expect(page).toHaveURL(new RegExp(`/${second.id}$`));
+  await expect(record).toContainText(second.id);
+  await page.route(`**/api/staff/test-drives/${first.id}`, (route) =>
+    route.fulfill({
+      status: 502,
+      json: { status: 502, data: null, uncertain: true, message: "Controlled traversal failure" },
+    }),
+  );
+  // Refresh clears the shared read snapshots before the failed destination is revisited.
+  await page
+    .getByRole("dialog", { name: "Test drive", exact: true })
+    .getByRole("button", { name: "Refresh test drives", exact: true })
+    .click();
+  await page.evaluate(() => window.history.go(-2));
+  await expect(page).toHaveURL(new RegExp(`/${first.id}/history$`));
+  await expect(page.getByRole("alert").filter({ hasText: "could not be opened" })).toBeVisible();
+  await expect(record).toContainText(second.id);
+  await page.unroute(`**/api/staff/test-drives/${first.id}`);
+  await page
+    .getByRole("dialog", { name: "Test drive", exact: true })
+    .getByRole("button", { name: "Refresh test drives", exact: true })
+    .click();
+  await expect(record).toContainText(first.registrationPlate);
+  await expect(page).toHaveURL(new RegExp(`/${first.id}/history$`));
 });

@@ -3,7 +3,7 @@ import { DEFAULT_PAGE_SIZE, isPageSize, paginationQuery } from "@/lib/pagination
 import { isUuid } from "@/lib/auth/contracts";
 import { isCalendarDate } from "@/lib/calendar";
 import { dateRangeError, type HistoryFilters } from "@/lib/intake/list-query";
-import { testDriveStatusLabels } from "./account";
+import { staffRecordLocation } from "@/lib/staff/record-location";
 import type { parseStaffTestDriveDetail, parseStaffTestDrivePage } from "./staff";
 
 export type StaffTestDrivePage = NonNullable<ReturnType<typeof parseStaffTestDrivePage>>;
@@ -27,9 +27,9 @@ export interface TestDriveFilters {
 }
 
 export const testDriveQueues = [
-  { value: "ToClaim", label: "To claim", count: "toClaim" },
-  { value: "MyWork", label: "My work", count: "myWork" },
-  { value: "History", label: "History", count: "history" },
+  { value: "toClaim", label: "To claim", count: "toClaim" },
+  { value: "myWork", label: "My work", count: "myWork" },
+  { value: "history", label: "History", count: "history" },
 ] as const;
 
 const terminalTestDriveStatuses = ["Completed", "NotCompleted", "Cancelled", "NoShow"];
@@ -40,19 +40,19 @@ export function isTerminalTestDriveStatus(status: string) {
 
 export function testDriveQueue(detail: StaffTestDriveDetail) {
   if (isTerminalTestDriveStatus(detail.booking.status)) {
-    return "History";
+    return "history";
   }
-  return detail.booking.handlerId ? "MyWork" : "ToClaim";
+  return detail.booking.handlerId ? "myWork" : "toClaim";
 }
 
 export const testDriveSections = [
-  { value: "All", label: "All test drives", count: "all" },
-  { value: "Booked", label: "Booked", count: "booked" },
-  { value: "InProgress", label: "In progress", count: "inProgress" },
-  { value: "Completed", label: "Completed", count: "completed" },
-  { value: "NotCompleted", label: "Not completed", count: "notCompleted" },
-  { value: "NoShow", label: "No shows", count: "noShow" },
-  { value: "Cancelled", label: "Cancelled", count: "cancelled" },
+  { value: "all", label: "All test drives", count: "all" },
+  { value: "booked", label: "Booked", count: "booked" },
+  { value: "inProgress", label: "In progress", count: "inProgress" },
+  { value: "completed", label: "Completed", count: "completed" },
+  { value: "notCompleted", label: "Not completed", count: "notCompleted" },
+  { value: "noShow", label: "No shows", count: "noShow" },
+  { value: "cancelled", label: "Cancelled", count: "cancelled" },
 ] as const;
 
 const sortKeys = [
@@ -71,14 +71,15 @@ export function staffTestDriveParams(parameters: SearchParams, agent: boolean) {
   const text = (key: string) => (typeof parameters[key] === "string" ? parameters[key] : "");
   const page = Number(text("page") || 1);
   const pageSize = Number(text("pageSize"));
-  const requestedQueue = testDriveQueues.find((item) => item.value === text("queue"));
-  const status = text("status");
+  const token = (key: string) => text(key).replace(/^[A-Z]/, (letter) => letter.toLowerCase());
+  const requestedQueue = testDriveQueues.find((item) => item.value === token("queue"));
+  const status = token("status");
   return {
     filters: {
       from: agent ? "" : text("from"),
       to: agent ? "" : text("to"),
-      queue: agent ? (requestedQueue?.value ?? "MyWork") : "",
-      status: !agent && Object.hasOwn(testDriveStatusLabels, status) ? status : "All",
+      queue: agent ? (requestedQueue?.value ?? "myWork") : "",
+      status: !agent && testDriveSections.some((item) => item.value === status) ? status : "all",
       branchId: !agent && isUuid(text("branchId")) ? text("branchId") : "",
       handlerId: !agent && isUuid(text("handlerId")) ? text("handlerId") : "",
       handler: agent ? "" : cleanText(text("handler")),
@@ -107,7 +108,23 @@ export function staffTestDriveQuery(filters: TestDriveFilters, page = 1) {
   return query.toString();
 }
 
-export const testDriveSectionParameter = "section";
+export function staffTestDriveLocation(pathname: string, search: string, agent: boolean) {
+  const record = staffRecordLocation(pathname, "/dashboard/test-drives");
+  if (!record) {
+    return null;
+  }
+  const query = new URLSearchParams(search);
+  const parsed = staffTestDriveParams(Object.fromEntries(query), agent);
+  const selectedId = record.id || parsed.selectedId;
+  const requestedSection = record.section || query.get("section");
+  const section = selectedId && requestedSection === "history" ? "history" : "";
+  return {
+    ...parsed,
+    selectedId,
+    section,
+    href: staffTestDriveUrl(parsed.filters, parsed.page, selectedId, section),
+  };
+}
 
 export function staffTestDriveUrl(
   filters: TestDriveFilters,
@@ -116,13 +133,23 @@ export function staffTestDriveUrl(
   section = "",
 ) {
   const query = new URLSearchParams(staffTestDriveQuery(filters, page));
-  if (selectedId) {
-    query.set("booking", selectedId);
-    if (section) {
-      query.set(testDriveSectionParameter, section);
+  const defaults: Record<string, string> = {
+    page: "1",
+    pageSize: String(DEFAULT_PAGE_SIZE),
+    status: "all",
+    queue: "myWork",
+    direction: "asc",
+  };
+  for (const [key, value] of Object.entries(defaults)) {
+    if (query.get(key) === value) {
+      query.delete(key);
     }
   }
-  return `/dashboard/test-drives?${query}`;
+  const suffix = selectedId && section === "history" ? "/history" : "";
+  const path = selectedId
+    ? `/dashboard/test-drives/${selectedId}${suffix}`
+    : "/dashboard/test-drives";
+  return query.size ? `${path}?${query}` : path;
 }
 
 export function testDriveDateError(filters: HistoryFilters) {

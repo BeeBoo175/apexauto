@@ -20,6 +20,8 @@ import {
 import {
   staffTestDriveParams,
   staffTestDriveQuery,
+  staffTestDriveLocation,
+  staffTestDriveUrl,
   testDriveDateError,
 } from "@/lib/test-drives/staff-query";
 
@@ -121,7 +123,7 @@ test("customer history retains indefinite active work and rejects malformed life
 });
 
 test("staff snapshots preserve released ownership and bind handling evidence to the selected booking", () => {
-  expect(staffTestDriveParams({ status: "toString" }, false).filters.status).toBe("All");
+  expect(staffTestDriveParams({ status: "toString" }, false).filters.status).toBe("all");
   expect(testDriveDateError({ from: "2026-02-30", to: "2026-03-03" })).not.toBe("");
   expect(testDriveDateError({ from: "2026-1-1", to: "2026-1-2" })).not.toBe("");
   expect(testDriveDateError({ from: "", to: "" })).toBe("");
@@ -144,7 +146,7 @@ test("staff snapshots preserve released ownership and bind handling evidence to 
   expect(agentQuery.filters).toMatchObject({
     from: "",
     to: "",
-    status: "All",
+    status: "all",
     branchId: "",
     handlerId: "",
     handler: "",
@@ -153,7 +155,7 @@ test("staff snapshots preserve released ownership and bind handling evidence to 
     customer: "",
     sort: "",
     direction: "asc",
-    queue: "ToClaim",
+    queue: "toClaim",
     search: "Saga",
   });
   const managerQuery = staffTestDriveParams(hidden, false);
@@ -405,4 +407,31 @@ test("a booking history keeps ordered, attributed steps and rejects unknown or p
   expect(parseStaffTestDriveHistory({ ...page, items: [{ ...event, actor: " " }] })).toBeNull();
   expect(parseStaffTestDriveHistory({ ...page, items: [event, event] })).toBeNull();
   expect(parseStaffTestDriveHistory({ ...page, bookingId: "not-an-id" })).toBeNull();
+});
+
+test("staff test-drive locations normalize legacy tokens and preserve record sections and list context", () => {
+  const manager = staffTestDriveParams({}, false);
+  expect(staffTestDriveUrl(manager.filters, 1)).toBe("/dashboard/test-drives");
+  expect(staffTestDriveUrl({ ...manager.filters, sort: "startsAt" }, 1)).toBe(
+    "/dashboard/test-drives?sort=startsAt",
+  );
+  const agent = staffTestDriveParams({}, true);
+  expect(staffTestDriveUrl(agent.filters, 1)).toBe("/dashboard/test-drives");
+  const legacy = staffTestDriveLocation(
+    "/dashboard/test-drives",
+    `?booking=${id}&section=history&status=NotCompleted&page=2&pageSize=10`,
+    false,
+  )!;
+  expect(legacy.selectedId).toBe(id);
+  expect(legacy.filters.status).toBe("notCompleted");
+  expect(legacy.href).toBe(
+    `/dashboard/test-drives/${id}/history?page=2&pageSize=10&status=notCompleted`,
+  );
+  expect(
+    staffTestDriveLocation(`/dashboard/test-drives/${vehicleId}`, `?booking=${id}`, false)
+      ?.selectedId,
+  ).toBe(vehicleId);
+  expect(staffTestDriveLocation("/dashboard/test-drives/not-a-record", "", false)).toBeNull();
+  expect(staffTestDriveParams({ queue: "ToClaim" }, true).filters.queue).toBe("toClaim");
+  expect(staffTestDriveParams({ status: "constructor" }, false).filters.status).toBe("all");
 });

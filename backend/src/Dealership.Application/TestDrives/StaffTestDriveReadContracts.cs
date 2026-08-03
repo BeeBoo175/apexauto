@@ -18,15 +18,25 @@ public sealed record StaffTestDriveQuery(ListDateRange Dates, int Page, int Page
         if (dates is null || !Pagination.IsValid(page, pageSize) || !ListSearch.IsValid(text) || !ListSearch.IsValid(handler ?? "") ||
             !ListSearch.IsValid(registration ?? "") || !ListSearch.IsValid(vehicle ?? "") || !ListSearch.IsValid(customer ?? "") ||
             branchId == Guid.Empty || handlerId == Guid.Empty ||
-            queue is not (null or "" or "ToClaim" or "MyWork" or "History") ||
-            status is not (null or "All" or TestDriveStatus.Booked or TestDriveStatus.InProgress or TestDriveStatus.Completed or TestDriveStatus.NotCompleted or TestDriveStatus.NoShow or TestDriveStatus.Cancelled) ||
+            queue is not (null or "" or "toClaim" or "myWork" or "history") ||
+            status is not (null or "all" or "booked" or "inProgress" or "completed" or "notCompleted" or "noShow" or "cancelled") ||
             sort is not (null or "startsAt" or "registrationPlate" or "vehicle" or "customerName" or "branchName" or "status" or "handlerEmail") ||
             direction is not (null or "asc" or "desc"))
         {
             return null;
         }
 
-        return new(dates, page, pageSize, queue ?? string.Empty, status ?? "All", branchId, handlerId,
+        var recordStatus = status switch
+        {
+            "booked" => TestDriveStatus.Booked,
+            "inProgress" => TestDriveStatus.InProgress,
+            "completed" => TestDriveStatus.Completed,
+            "notCompleted" => TestDriveStatus.NotCompleted,
+            "noShow" => TestDriveStatus.NoShow,
+            "cancelled" => TestDriveStatus.Cancelled,
+            _ => "All"
+        };
+        return new(dates, page, pageSize, queue ?? string.Empty, recordStatus, branchId, handlerId,
             text, sort ?? "startsAt", direction ?? "asc", handler?.Trim() ?? "",
             registration?.Trim() ?? "", vehicle?.Trim() ?? "", customer?.Trim() ?? "");
     }

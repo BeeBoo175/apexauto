@@ -7,18 +7,16 @@ import { privateApiFetch } from "@/lib/api-browser";
 import { parseStaffTestDrivePage } from "@/lib/test-drives/staff";
 import {
   staffTestDriveQuery,
-  staffTestDriveUrl,
-  testDriveSectionParameter,
   testDriveDateError,
   type StaffTestDrivePage,
   type TestDriveFilters,
 } from "@/lib/test-drives/staff-query";
-import { writeAddress } from "@/lib/browser-url";
 
 export function useStaffTestDriveList(
   initial: StaffTestDrivePage,
   filters: TestDriveFilters,
   page: number,
+  onLocation: (filters: TestDriveFilters, page: number, mode: false | "push" | "replace") => void,
 ) {
   const [snapshot, setSnapshot] = useState(initial);
   const [active, setActive] = useState({ filters, page });
@@ -29,7 +27,18 @@ export function useStaffTestDriveList(
   const toast = useToast();
   useEffect(() => () => controller.current?.abort(), []);
 
-  async function load(next = active.filters, nextPage = 1, supersede = false, history = true) {
+  function cancel() {
+    controller.current?.abort();
+    controller.current = null;
+    setBusy(false);
+  }
+
+  async function load(
+    next = active.filters,
+    nextPage = 1,
+    supersede = false,
+    history: false | "push" | "replace" = "push",
+  ) {
     if (controller.current && !supersede) {
       return false;
     }
@@ -66,12 +75,7 @@ export function useStaffTestDriveList(
       setActive({ filters: next, page: nextPage });
       setDraft((current) => (current === submitted ? next : current));
       setRevision((current) => current + 1);
-      if (history) {
-        const current = new URL(window.location.href).searchParams;
-        const selected = current.get("booking") ?? "";
-        const section = current.get(testDriveSectionParameter) ?? "";
-        writeAddress(staffTestDriveUrl(next, nextPage, selected, section));
-      }
+      onLocation(next, nextPage, history);
       return true;
     } catch {
       if (!attempt.signal.aborted) {
@@ -88,5 +92,5 @@ export function useStaffTestDriveList(
     }
   }
 
-  return { snapshot, active, draft, setDraft, busy, revision, load };
+  return { snapshot, active, draft, setDraft, busy, revision, load, cancel };
 }

@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useEffectEvent } from "react";
+import { useContext, useEffect, useEffectEvent, useLayoutEffect, useRef } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { StaffLocalHistoryContext } from "@/components/staff/StaffClientEntryBoundary";
 import { useGuardedAction } from "./use-guarded-action";
 import { useInitialToast } from "./use-initial-toast";
 import { useStaffTestDriveList } from "./use-staff-test-drive-list";
@@ -8,10 +10,11 @@ import { useStaffTestDriveDetail } from "./use-staff-test-drive-detail";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { useStaffTestDriveEntry } from "./use-staff-test-drive-entry";
 import {
-  staffTestDriveParams,
+  staffTestDriveLocation,
+  staffTestDriveQuery,
   staffTestDriveUrl,
   testDriveQueue,
-  testDriveSectionParameter,
+  type TestDriveFilters,
 } from "@/lib/test-drives/staff-query";
 import type { TestDriveStaffCommand } from "@/lib/test-drives/staff-commands";
 import { writeAddress } from "@/lib/browser-url";
@@ -20,76 +23,152 @@ export type TestDriveEntry = NonNullable<ReturnType<typeof useStaffTestDriveEntr
 
 export function useStaffTestDriveWorkspace(actor: CurrentActor, entry: TestDriveEntry) {
   useInitialToast(entry.notice);
-  const list = useStaffTestDriveList(entry.initial, entry.filters, entry.page);
-  const record = useStaffTestDriveDetail(actor, entry.selectedId, entry.selected);
-  const guard = useGuardedAction();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const localHistoryRef = useContext(StaffLocalHistoryContext);
   const agent = actor.role === "SalesAgent";
+  const initialHref = staffTestDriveUrl(entry.filters, entry.page, entry.selectedId, entry.section);
+  const lastAttempted = useRef(initialHref);
+  const confirmed = useRef({ filters: entry.filters, page: entry.page, id: entry.selectedId });
+  const list = useStaffTestDriveList(entry.initial, entry.filters, entry.page, commitList);
+  const record = useStaffTestDriveDetail(actor, entry.selectedId, entry.selected, commitRecord);
+  const guard = useGuardedAction();
 
-  useEffect(() => {
-    if (entry.notice) {
-      writeAddress(staffTestDriveUrl(entry.filters, entry.page, entry.selectedId));
+  function commit(href: string, mode: "push" | "replace") {
+    lastAttempted.current = href;
+    if (`${window.location.pathname}${window.location.search}` !== href) {
+      writeAddress(href, null, mode);
     }
-  }, [entry]);
-
-  function open(id: string) {
-    if (id === record.id && record.snapshot) {
-      return;
-    }
-    guard.request(() => {
-      void record.load(id);
-    });
   }
 
-  async function refresh(kind?: TestDriveStaffCommand) {
-    let filters = list.active.filters;
-    if (agent && kind) {
-      const detail = await record.load();
-      if (detail) {
-        filters = { ...filters, queue: testDriveQueue(detail) };
-      }
-      const rows = await list.load(
-        filters,
-        filters.queue !== list.active.filters.queue ? 1 : list.active.page,
-        true,
-      );
-      return rows && Boolean(detail);
+  function currentSection(id: string) {
+    const target = staffTestDriveLocation(window.location.pathname, window.location.search, agent);
+    return target?.selectedId === id ? target.section : "";
+  }
+
+  function commitRecord(id: string, updateAddress = true) {
+    confirmed.current.id = id;
+    if (updateAddress) {
+      const { filters, page } = confirmed.current;
+      commit(staffTestDriveUrl(filters, page, id, currentSection(id)), "push");
     }
+  }
+
+  function commitList(filters: TestDriveFilters, page: number, mode: false | "push" | "replace") {
+    confirmed.current = { ...confirmed.current, filters, page };
+    if (mode) {
+      const { id } = confirmed.current;
+      commit(staffTestDriveUrl(filters, page, id, currentSection(id)), mode);
+    }
+  }
+
+  function open(id: string) {
+    if (id !== record.id || !record.snapshot) {
+      guard.request(() => void record.load(id));
+    }
+  }
+
+  function close() {
+    guard.request(() => {
+      record.close(Boolean(record.id));
+    }, "Discard and close");
+  }
+
+  async function readDestination() {
+    const target = staffTestDriveLocation(window.location.pathname, window.location.search, agent);
+    if (!target) {
+      return false;
+    }
+    lastAttempted.current = target.href;
     const [rows, detail] = await Promise.all([
-      list.load(filters, list.active.page, true),
-      record.id ? record.load() : Promise.resolve(true),
+      list.load(target.filters, target.page, true, false),
+      target.selectedId ? record.load(target.selectedId, false) : Promise.resolve(true),
     ]);
+    if (!target.selectedId) {
+      record.close(false);
+    }
     return rows && Boolean(detail);
   }
 
-  async function restoreConfirmed(next: ReturnType<typeof staffTestDriveParams>) {
-    const loaded = await list.load(next.filters, next.page, true);
-    if (!loaded) {
-      return;
+  async function refresh(kind?: TestDriveStaffCommand) {
+    const target = staffTestDriveLocation(window.location.pathname, window.location.search, agent);
+    if (!kind && target && target.selectedId !== record.id) {
+      guard.request(() => void readDestination());
+      return false;
     }
-    if (!next.selectedId) {
-      record.close();
-      return;
+    if (!kind) {
+      return readDestination();
     }
-    await record.load(next.selectedId);
+    const detail = await record.load(record.id, false);
+    const filters =
+      agent && detail
+        ? { ...list.active.filters, queue: testDriveQueue(detail) }
+        : list.active.filters;
+    const page = filters.queue !== list.active.filters.queue ? 1 : list.active.page;
+    const rows = await list.load(filters, page, true, "replace");
+    return rows && Boolean(detail);
   }
 
-  const restore = useEffectEvent(() => {
-    if (window.location.pathname !== "/dashboard/test-drives") {
+  const synchronize = useEffectEvent(() => {
+    const target = staffTestDriveLocation(window.location.pathname, window.location.search, agent);
+    if (!target) {
       return;
     }
-    const parameters = Object.fromEntries(new URL(window.location.href).searchParams);
-    const next = staffTestDriveParams(parameters, agent);
-    const previous = staffTestDriveUrl(list.active.filters, list.active.page, record.id);
-    writeAddress(previous);
-    guard.request(() => {
-      void restoreConfirmed(next);
-    });
+    if (`${window.location.pathname}${window.location.search}` !== target.href) {
+      writeAddress(target.href, null, "replace");
+    }
+    if (target.href === lastAttempted.current) {
+      return;
+    }
+    const previousUrl = new URL(lastAttempted.current, window.location.origin);
+    const previous = staffTestDriveLocation(previousUrl.pathname, previousUrl.search, agent);
+    lastAttempted.current = target.href;
+    const targetQuery = staffTestDriveQuery(target.filters, target.page);
+    if (
+      previous?.selectedId === target.selectedId &&
+      staffTestDriveQuery(previous.filters, previous.page) === targetQuery
+    ) {
+      return;
+    }
+    list.cancel();
+    if (targetQuery !== staffTestDriveQuery(list.active.filters, list.active.page)) {
+      void list.load(target.filters, target.page, true, false);
+    }
+    if (target.selectedId !== record.id || record.pendingId) {
+      if (target.selectedId) {
+        void record.load(target.selectedId, false);
+      } else {
+        record.close(false);
+      }
+    }
   });
 
-  useEffect(() => {
-    window.addEventListener("popstate", restore);
-    return () => window.removeEventListener("popstate", restore);
-  }, []);
+  useLayoutEffect(() => {
+    lastAttempted.current = initialHref;
+    if (`${window.location.pathname}${window.location.search}` !== initialHref) {
+      writeAddress(initialHref, null, "replace");
+    }
+    if (localHistoryRef) {
+      localHistoryRef.current = null;
+      localHistoryRef.pathname = "/dashboard/test-drives";
+    }
+    return () => {
+      if (localHistoryRef) {
+        localHistoryRef.current = null;
+        localHistoryRef.pathname = undefined;
+        localHistoryRef.selectedId = undefined;
+      }
+    };
+  }, [initialHref, localHistoryRef]);
+
+  useLayoutEffect(() => {
+    if (localHistoryRef) {
+      localHistoryRef.selectedId = record.id;
+    }
+  }, [localHistoryRef, record.id]);
+
+  const search = searchParams.toString();
+  useEffect(() => synchronize(), [pathname, search]);
 
   return {
     list,
@@ -98,12 +177,7 @@ export function useStaffTestDriveWorkspace(actor: CurrentActor, entry: TestDrive
     agent,
     busy: list.busy || Boolean(record.pendingId),
     open,
-    close: () => {
-      record.close();
-      const url = new URL(window.location.href);
-      url.searchParams.delete(testDriveSectionParameter);
-      writeAddress(url);
-    },
+    close,
     refresh,
   };
 }

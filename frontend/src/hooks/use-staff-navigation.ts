@@ -16,7 +16,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { createInteractionGuard, type InteractionBlock } from "@/lib/interaction-guard";
 import { writeAddress } from "@/lib/browser-url";
 import { isUuid } from "@/lib/auth/contracts";
-import { intakeLocationId } from "@/lib/staff/intake-location";
+import { staffRecordLocation } from "@/lib/staff/record-location";
+import { staffWorkspacePath } from "@/lib/staff/navigation";
 import {
   StaffEntryRequestsContext,
   StaffHistoryContext,
@@ -81,12 +82,16 @@ export function useStaffNavigation() {
     if (!confirmed.current) {
       return;
     }
-    const previousIntakeId = intakeLocationId(previousPath.current);
+    const workspace = localHistory?.pathname ?? "/dashboard/intake";
+    const previousRecord = staffRecordLocation(previousPath.current, workspace);
     const destinationUrl = new URL(window.location.href);
-    const destinationIntakeId = intakeLocationId(destinationUrl.pathname);
-    if (previousIntakeId !== null && destinationIntakeId !== null) {
-      const nextSelectedId = targetIntakeId(destinationUrl, destinationIntakeId);
-      const currentSelectedId = localHistory?.selectedId ?? previousIntakeId;
+    const destinationRecord = staffRecordLocation(destinationUrl.pathname, workspace);
+    if (previousRecord !== null && destinationRecord !== null) {
+      const nextSelectedId =
+        workspace === "/dashboard/intake"
+          ? targetIntakeId(destinationUrl, destinationRecord.id)
+          : destinationRecord.id;
+      const currentSelectedId = localHistory?.selectedId ?? previousRecord.id;
       if (
         !guard.isLocked() ||
         (!guard.getSnapshot().blocked && nextSelectedId === currentSelectedId)
@@ -170,8 +175,6 @@ export function useStaffNavigation() {
     captureHistory,
     recordNavigation,
     entryPath,
-    localPath:
-      localHistory?.pathname ??
-      (pathname.startsWith("/dashboard/intake/") ? "/dashboard/intake" : undefined),
+    localPath: localHistory?.pathname ?? staffWorkspacePath(pathname),
   };
 }

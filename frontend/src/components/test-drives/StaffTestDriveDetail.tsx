@@ -9,7 +9,7 @@ import { StaffStatusGroup } from "@/components/staff/StaffStatusGroup";
 import { StaffDrawerLoadingShell } from "@/components/staff/StaffDrawerLoadingShell";
 import { StaffWorkspaceTabs } from "@/components/staff/StaffWorkspaceTabs";
 import { Button } from "@/components/ui/Button";
-import { useAddressSection } from "@/hooks/use-address-section";
+import { useRecordSection } from "@/hooks/use-record-section";
 import { useWorkspaceTabs } from "@/hooks/use-workspace-tabs";
 import type { useStaffTestDriveDetail } from "@/hooks/use-staff-test-drive-detail";
 import type { CurrentActor } from "@/lib/auth/actor";
@@ -17,7 +17,6 @@ import { formatMalaysianDateTime } from "@/lib/date-format";
 import type { TestDriveStaffCommand } from "@/lib/test-drives/staff-commands";
 import {
   isTerminalTestDriveStatus,
-  testDriveSectionParameter,
   type StaffTestDriveDetail,
 } from "@/lib/test-drives/staff-query";
 import { StaffTestDriveActions } from "./StaffTestDriveActions";
@@ -52,7 +51,7 @@ export function StaffTestDriveDetail({
     return (
       <div className={styles.empty}>
         {record.id ? (
-          <Button variant="secondary" size="compact" onClick={() => void record.load()}>
+          <Button variant="secondary" size="compact" onClick={() => void refresh()}>
             Retry selected test drive
           </Button>
         ) : (
@@ -89,9 +88,10 @@ function LoadedTestDrive({
   refresh: (kind?: TestDriveStaffCommand) => Promise<boolean>;
 }) {
   const { booking } = detail;
-  const [requested, setRequested] = useAddressSection<TestDriveSection>(
+  const [requested, setRequested] = useRecordSection<TestDriveSection>(
+    "/dashboard/test-drives",
+    booking.id,
     ["details", "history"],
-    testDriveSectionParameter,
   );
   // History is read only once its section has been opened.
   const [historyOpened, setHistoryOpened] = useState(requested === "history");
@@ -177,7 +177,7 @@ function LoadedTestDrive({
           </section>
         </StaffTestDriveActions>
       </div>
-      {historyOpened && (
+      {(historyOpened || section === "history") && (
         <div className={styles.panel} hidden={section !== "history"}>
           <div className={shared.body}>
             <StaffTestDriveTimeline

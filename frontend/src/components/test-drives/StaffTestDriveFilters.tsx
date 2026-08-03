@@ -68,7 +68,7 @@ export function StaffTestDriveFilters({
         label="Status"
         options={testDriveSections.map(({ value, label }) => ({ value, label }))}
         value={filters.status}
-        empty="All"
+        empty="all"
         busy={disabled}
         onApply={(status) => list.load({ ...filters, status }, 1)}
       />

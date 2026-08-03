@@ -71,9 +71,9 @@ internal static class StaffTestDriveRows
     {
         return queue switch
         {
-            "ToClaim" => rows.Where(row => row.Status == TestDriveStatus.Booked && row.HandlerId == null),
-            "MyWork" => rows.Where(row => (row.Status == TestDriveStatus.Booked || row.Status == TestDriveStatus.InProgress) && row.HandlerId == staffId),
-            "History" => rows.Where(row => row.Status != TestDriveStatus.Booked && row.Status != TestDriveStatus.InProgress && row.HandlerId == staffId),
+            "toClaim" => rows.Where(row => row.Status == TestDriveStatus.Booked && row.HandlerId == null),
+            "myWork" => rows.Where(row => (row.Status == TestDriveStatus.Booked || row.Status == TestDriveStatus.InProgress) && row.HandlerId == staffId),
+            "history" => rows.Where(row => row.Status != TestDriveStatus.Booked && row.Status != TestDriveStatus.InProgress && row.HandlerId == staffId),
             _ => rows
         };
     }

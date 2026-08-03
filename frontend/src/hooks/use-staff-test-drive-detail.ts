@@ -12,6 +12,7 @@ export function useStaffTestDriveDetail(
   actor: CurrentActor,
   initialId: string,
   initial: StaffTestDriveDetail | null,
+  address: (id: string, updateAddress?: boolean) => void,
 ) {
   const initialResult = useMemo(
     () => (initial ? { status: 200, data: initial, message: "", uncertain: false } : null),
@@ -19,6 +20,7 @@ export function useStaffTestDriveDetail(
   );
   const selection = useStaffSelection(initialId, initialResult, {
     parameter: "booking",
+    address,
     path: (id) => `/api/staff/test-drives/${id}`,
     parse: parseStaffTestDriveDetail,
     matches: (detail, id) =>
@@ -38,7 +40,8 @@ export function useStaffTestDriveDetail(
     id: selection.id,
     snapshot: selection.result?.data ?? null,
     pendingId: selection.pendingId,
-    load: (id = selection.id) => (id ? selection.load(id) : Promise.resolve(null)),
+    load: (id = selection.id, updateAddress = true) =>
+      id ? selection.load(id, undefined, updateAddress) : Promise.resolve(null),
     close: selection.close,
   };
 }

@@ -48,6 +48,7 @@ export const staffWorkspaceLinks: StaffWorkspaceLink[] = [
   {
     href: "/dashboard/test-drives",
     label: "Test drives",
+    activeBelow: true,
     allowed: (actor) => hasTestDriveAccess(actor.role),
   },
   { href: "/dashboard/sales", label: "Sales", allowed: hasSalesAccess },
@@ -66,6 +67,16 @@ export const fitViewportPaths = [
   "/dashboard/inspection/repairs",
   ...staffWorkspaceLinks.map((link) => link.href),
 ];
+
+export function staffWorkspacePath(pathname: string) {
+  if (Object.hasOwn(staffPageTitles, pathname)) {
+    return pathname;
+  }
+  return (
+    staffWorkspaceLinks.find((link) => link.activeBelow && pathname.startsWith(`${link.href}/`))
+      ?.href ?? pathname
+  );
+}
 
 export function staffLinkActive(link: StaffWorkspaceLink, selectedPath: string) {
   return link.activeBelow ? selectedPath.startsWith(link.href) : selectedPath === link.href;

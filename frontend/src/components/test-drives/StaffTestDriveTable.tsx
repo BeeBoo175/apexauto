@@ -59,7 +59,7 @@ export function StaffTestDriveTable({
     registrationPlate: Boolean(filters.registration),
     vehicle: Boolean(filters.vehicle),
     customerName: Boolean(filters.customer),
-    status: filters.status !== "All",
+    status: filters.status !== "all",
     startsAt: Boolean(filters.from || filters.to),
     handlerEmail: Boolean(filters.handlerId || filters.handler),
   };

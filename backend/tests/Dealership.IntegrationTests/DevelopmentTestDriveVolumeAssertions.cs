@@ -63,7 +63,7 @@ internal static class DevelopmentTestDriveVolumeAssertions
                     Assert.True(missing.Length == 0, $"{branch.Name} {queue} missing {missing.Length} of {ids.Length}: " +
                         string.Join(", ", DevelopmentTestDriveVolumeManifest.All.Where(item => missing.Contains(
                             item.OperationId("booking"))).Select(item => $"{item.Queue}#{item.Index}")));
-                    var query = StaffTestDriveQuery.Parse(null, null, 1, 25, queue)!;
+                    var query = StaffTestDriveQuery.Parse(null, null, 1, 25, char.ToLowerInvariant(queue[0]) + queue[1..])!;
                     await AssertPagesAsync(store, agent.Id, query, expected);
                     // All registration values tie, so only the canonical UUID tie-breaker can prevent page drift.
                     var plates = await (from booking in database.TestDriveBookings.AsNoTracking()
@@ -97,7 +97,7 @@ internal static class DevelopmentTestDriveVolumeAssertions
             await AssertScheduledAsync(database, calendar, manager.Id, branch.Id, "unassigned", null);
             var foreignBranch = DevelopmentFixtureManifest.Branches.First(item => item.Id != branch.Id).Id;
             Assert.Equal(TestDriveReadStatus.Forbidden, (await store.ListAsync(agents[0].Id,
-                StaffTestDriveQuery.Parse(null, null, 1, 25, "MyWork", branchId: foreignBranch)!, CancellationToken.None)).Status);
+                StaffTestDriveQuery.Parse(null, null, 1, 25, "myWork", branchId: foreignBranch)!, CancellationToken.None)).Status);
         }
     }
 

@@ -53,6 +53,7 @@ export function useStaffTestDriveEntry(actor: CurrentActor, parameters: SearchPa
     }
     return {
       ...query,
+      section: parameters.section === "history" ? "history" : "",
       notice,
       initial: initial.data,
       selected: selected?.data ?? null,

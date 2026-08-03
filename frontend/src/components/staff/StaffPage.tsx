@@ -6,7 +6,7 @@ import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { StaffNavigationContext } from "./StaffActorBoundary";
 import { StaffEntryPresentationContext } from "./StaffClientEntryBoundary";
 import { StaffLoadingShell, type StaffLoadingView } from "./StaffLoadingShell";
-import { staffPageTitles } from "@/lib/staff/navigation";
+import { staffPageTitles, staffWorkspacePath } from "@/lib/staff/navigation";
 import styles from "./Staff.module.css";
 import loading from "./StaffLoadingShell.module.css";
 
@@ -18,7 +18,7 @@ export function StaffLoading() {
   }
 
   const { actor, path, parameters } = presentation;
-  const pathname = path.startsWith("/dashboard/intake/") ? "/dashboard/intake" : path;
+  const pathname = staffWorkspacePath(path);
   const workshopView: StaffLoadingView =
     actor.role === "WorkshopTechnician" ? "technician" : "inspection";
   const views: Record<string, StaffLoadingView> = {
