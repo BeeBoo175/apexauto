@@ -10,8 +10,17 @@ import { queueQuery, salesQueuePath } from "@/lib/sales/query";
 import type { QueueView, SalesQueue } from "@/lib/sales/contracts";
 import { useInitialToast } from "./use-initial-toast";
 
-// Failed page replacements retain confirmed sales and the selected editor.
-export function useSalesQueue(view: QueueView, initial: ApiResult<SalesQueue> | null, search = "") {
+export type SalesQueueRead = { page: number; pageSize: number; term: string };
+type HistoryMode = false | "push" | "replace";
+
+// Failed page replacements retain confirmed sales and the selected editor. A confirmed read reports its page,
+// size and search so the owner can write them to the address.
+export function useSalesQueue(
+  view: QueueView,
+  initial: ApiResult<SalesQueue> | null,
+  search = "",
+  onLocation?: (read: SalesQueueRead, mode: HistoryMode) => void,
+) {
   const [entry, setEntry] = useState({ initial, snapshot: initial?.data ?? null, search });
   const [failedRead, setFailedRead] = useState<{
     page: number;
@@ -37,10 +46,18 @@ export function useSalesQueue(view: QueueView, initial: ApiResult<SalesQueue> | 
   }, [initial]);
 
   const load = useCallback(
-    async (page: number, term: string, pageSize = DEFAULT_PAGE_SIZE, notifyFailure = true) => {
-      if (controller.current) {
+    async (
+      page: number,
+      term: string,
+      pageSize = DEFAULT_PAGE_SIZE,
+      notifyFailure = true,
+      history: HistoryMode = "push",
+      supersede = false,
+    ) => {
+      if (controller.current && !supersede) {
         return false;
       }
+      controller.current?.abort();
       const attempt = new AbortController();
       controller.current = attempt;
       setBusy(true);
@@ -59,6 +76,7 @@ export function useSalesQueue(view: QueueView, initial: ApiResult<SalesQueue> | 
           throw new Error("Sales queue unavailable");
         }
         setEntry({ initial, snapshot: next, search: term });
+        onLocation?.({ page, pageSize, term }, history);
         return true;
       } catch {
         if (!attempt.signal.aborted && controller.current === attempt) {
@@ -77,7 +95,7 @@ export function useSalesQueue(view: QueueView, initial: ApiResult<SalesQueue> | 
         }
       }
     },
-    [view, initial, error],
+    [view, initial, error, onLocation],
   );
 
   const { snapshot, search: term } = entry;
@@ -97,8 +115,10 @@ export function useSalesQueue(view: QueueView, initial: ApiResult<SalesQueue> | 
     refresh: (notifyFailure = true) => {
       controller.current?.abort();
       controller.current = null;
-      return load(snapshot?.page ?? 1, term, snapshot?.pageSize, notifyFailure);
+      return load(snapshot?.page ?? 1, term, snapshot?.pageSize, notifyFailure, "replace");
     },
+    // Reads a browser Back or Forward destination without writing the address.
+    visit: (read: SalesQueueRead) => load(read.page, read.term, read.pageSize, true, false, true),
     retry: () =>
       load(
         failedRead?.page ?? snapshot?.page ?? 1,

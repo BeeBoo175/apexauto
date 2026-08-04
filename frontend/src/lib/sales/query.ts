@@ -7,12 +7,18 @@ import {
   queueViews,
   queueViewQueries,
   type QueueCounts,
+  tableOutcomes,
   tableViews,
   tableSorts,
   tableTextKeys,
   type SalesTableFilters,
   type TableView,
 } from "./contracts";
+
+// Domain statuses keep their PascalCase on the wire; the address carries their camelCase token.
+export function salesQueryToken(value: string) {
+  return value.replace(/^[A-Z]/, (letter) => letter.toLowerCase());
+}
 
 export const salePath = (id: string) => `/api/staff/sales/${id}`;
 
@@ -62,7 +68,7 @@ export function tableParams(params: SearchParams) {
   const size = Number(params.pageSize);
   const filters: SalesTableFilters = {
     ...defaults,
-    view: tableViews.find((view) => view.value === params.view)?.value ?? "",
+    view: tableViews.find((view) => salesQueryToken(view.value) === params.view)?.value ?? "",
     pageSize: isPageSize(size) ? size : defaults.pageSize,
     sort: tableSorts.find((sort) => sort === params.sort) ?? "",
     direction: params.direction === "desc" ? "desc" : "asc",
@@ -73,6 +79,8 @@ export function tableParams(params: SearchParams) {
       filters[key] = value;
     }
   }
+  // The address carries the camelCase token of the closed outcome; filters keep the domain value.
+  filters.outcome = tableOutcomes.find((value) => salesQueryToken(value) === params.outcome) ?? "";
   return { filters, page: Number.isSafeInteger(page) && page > 0 ? page : 1 };
 }
 

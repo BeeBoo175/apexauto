@@ -6,13 +6,13 @@ import { useStaffClientEntry } from "./use-staff-client-entry";
 import { privateApiFetch } from "@/lib/api-browser";
 import { apiReadError, unavailableResult, type ApiResult } from "@/lib/api";
 import type { CurrentActor } from "@/lib/auth/actor";
-import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 import type { SearchParams } from "@/lib/query";
+import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 import { parseSale, parseSalesQueue, parseSalesTable } from "@/lib/sales/parse";
+import { agentList } from "@/lib/sales/sales-location";
 import {
   salePath,
   firstQueueView,
-  queueParams,
   queueQuery,
   saleSelection,
   salesQueuePath,
@@ -31,11 +31,17 @@ async function readSelected(saleId: string, signal: AbortSignal) {
   return result?.data?.id === saleId ? result : unavailableResult<Sale>();
 }
 
-async function readQueue(view: QueueView, signal: AbortSignal) {
-  const result = await privateApiFetch(`${salesQueuePath}?${queueQuery(view)}`, parseSalesQueue, {
-    signal,
-  });
-  if (result.data && (result.data.page !== 1 || result.data.pageSize !== DEFAULT_PAGE_SIZE)) {
+async function readQueue(
+  view: QueueView,
+  signal: AbortSignal,
+  { search, page, pageSize } = { search: "", page: 1, pageSize: DEFAULT_PAGE_SIZE },
+) {
+  const result = await privateApiFetch(
+    `${salesQueuePath}?${queueQuery(view, search, page, pageSize)}`,
+    parseSalesQueue,
+    { signal },
+  );
+  if (result.data && (result.data.page !== page || result.data.pageSize !== pageSize)) {
     throw new Error("Sales queue unavailable");
   }
   return result;
@@ -80,10 +86,18 @@ export function useSalesClientEntry(actor: CurrentActor, parameters: SearchParam
       };
     }
     // One read carries every tab's count and the opening tab's first screen; other tabs load when shown.
-    const requested = queueParams(parameters);
+    const list = agentList(parameters);
+    const requested = list.view || null;
     const first = requested ?? "Handling";
-    const [opening, selected, { SalesWorkspace: Workspace }] = await Promise.all([
-      readQueue(first, signal),
+    // The page and size name the search results when a search is applied, otherwise the opening tab.
+    const paging =
+      requested || list.search ? list : { ...list, page: 1, pageSize: DEFAULT_PAGE_SIZE };
+    const tabRead = list.search
+      ? { search: "", page: 1, pageSize: DEFAULT_PAGE_SIZE }
+      : { search: "", page: paging.page, pageSize: paging.pageSize };
+    const [opening, found, selected, { SalesWorkspace: Workspace }] = await Promise.all([
+      readQueue(first, signal, requested ? tabRead : undefined),
+      list.search ? readQueue("ToClaim", signal, paging) : null,
       readSelected(selection.saleId, signal),
       import("@/components/sales/SalesWorkspace"),
     ]);
@@ -93,11 +107,13 @@ export function useSalesClientEntry(actor: CurrentActor, parameters: SearchParam
     if (initialView !== first) {
       queues[initialView] = await readQueue(initialView, signal);
     }
+    const open = paging;
     return {
       kind: "agent" as const,
       Workspace: Workspace as typeof SalesWorkspace,
       queues,
-      initialView,
+      found,
+      list: { ...open, view: initialView },
       ...common,
       selected,
     };

@@ -291,6 +291,9 @@ export interface SalesTablePage {
   view: TableView;
 }
 
+// Closed outcomes the Status filter can ask for inside History.
+export const tableOutcomes = ["Expired", "Cancelled"] as const;
+
 export const tableSorts = [
   "reference",
   "registration",

@@ -27,7 +27,7 @@ export function workItemHref(item: WorkItem) {
     return `/dashboard/inspection/${item.inspectionId}`;
   }
   if (item.kind === "Sale") {
-    return `/dashboard/sales?sale=${item.id}`;
+    return `/dashboard/sales/${item.id}`;
   }
   if (item.kind === "TestDrive") {
     return `/dashboard/test-drives?booking=${item.id}`;

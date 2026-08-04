@@ -51,7 +51,12 @@ export const staffWorkspaceLinks: StaffWorkspaceLink[] = [
     activeBelow: true,
     allowed: (actor) => hasTestDriveAccess(actor.role),
   },
-  { href: "/dashboard/sales", label: "Sales", allowed: hasSalesAccess },
+  {
+    href: "/dashboard/sales",
+    label: "Sales",
+    activeBelow: true,
+    allowed: hasSalesAccess,
+  },
   { href: "/dashboard/accounts", label: "Accounts", allowed: hasAccountAdministration },
   { href: "/dashboard/settings", label: "Settings", allowed: hasSettingsAccess },
 ];

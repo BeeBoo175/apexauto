@@ -229,7 +229,7 @@ export function milestoneHref(milestone: Milestone) {
     case "TestDrive":
       return `/dashboard/test-drives?booking=${milestone.recordId}`;
     case "Sale":
-      return `/dashboard/sales?sale=${milestone.recordId}`;
+      return `/dashboard/sales/${milestone.recordId}`;
     default:
       return `/dashboard/inspection/${milestone.recordId}`;
   }

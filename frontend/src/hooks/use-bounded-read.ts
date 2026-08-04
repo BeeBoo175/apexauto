@@ -17,10 +17,12 @@ export function useBoundedRead() {
     };
   }, []);
 
-  function begin() {
-    if (controller.current) {
+  // A read for a browser Back or Forward destination supersedes the one in flight instead of being refused.
+  function begin(supersede = false) {
+    if (controller.current && !supersede) {
       return null;
     }
+    controller.current?.abort();
     const attempt = new AbortController();
     controller.current = attempt;
     setBusy(true);
@@ -38,5 +40,11 @@ export function useBoundedRead() {
     }
   }
 
-  return { busy, ready, begin, isCurrent, end };
+  function cancel() {
+    controller.current?.abort();
+    controller.current = null;
+    setBusy(false);
+  }
+
+  return { busy, ready, begin, isCurrent, end, cancel };
 }
