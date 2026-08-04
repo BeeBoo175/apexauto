@@ -17,7 +17,12 @@ export function InspectionRepairLink({
   return (
     <StaffLink
       prefetch={false}
-      href={workshopSelectionHref({ id: inspectionId, section: "repairs", request: selection })}
+      href={workshopSelectionHref({
+        id: inspectionId,
+        section: "repairs",
+        request: selection,
+        category: "",
+      })}
       aria-disabled={disabled || undefined}
       onClick={(event) => {
         if (disabled) {

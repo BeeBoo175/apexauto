@@ -8,7 +8,12 @@ import {
 } from "@/lib/inspection/workshop-location";
 import type { SearchParams } from "@/lib/query";
 
-const baseSelection: WorkshopSelectionPath = { id: "", section: "inspection", request: null };
+const baseSelection: WorkshopSelectionPath = {
+  id: "",
+  section: "inspection",
+  request: null,
+  category: "",
+};
 
 export function WorkshopPageEntry({
   searchParams,

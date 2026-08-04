@@ -56,6 +56,8 @@ export function InspectionDrawer({
             actionsContainer={headerActions}
             section={selection.section}
             onSection={selection.changeSection}
+            category={selection.category}
+            onCategory={selection.changeCategory}
             onReview={selection.review}
             selectedRequest={selection.request}
             selectedReview={selectedReview}

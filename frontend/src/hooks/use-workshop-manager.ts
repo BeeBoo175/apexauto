@@ -31,6 +31,7 @@ export interface WorkshopManagerEntry {
   selectedInspection: ApiResult<EditorSnapshot> | null;
   selectedRequest: RepairSelection | null;
   selectedSection: WorkshopSection;
+  selectedCategory: string;
 }
 
 export function useWorkshopManager(entry: WorkshopManagerEntry) {
@@ -39,6 +40,7 @@ export function useWorkshopManager(entry: WorkshopManagerEntry) {
     id: entry.selectedId,
     section: entry.selectedSection,
     request: entry.selectedRequest,
+    category: entry.selectedCategory,
     filters: entry.filters,
     page: entry.page,
     view: "MyWork",
@@ -61,6 +63,7 @@ export function useWorkshopManager(entry: WorkshopManagerEntry) {
     (selection, mode) => address.select(selection, mode),
     entry.selectedRequest,
     entry.selectedSection,
+    entry.selectedCategory,
   );
 
   useWorkshopSelectedRecord(drawer.id);

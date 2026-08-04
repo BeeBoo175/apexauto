@@ -48,6 +48,7 @@ export function TechnicianWorkspace({
   selectedInspection = null,
   selectedRequest = null,
   selectedSection = "inspection",
+  selectedCategory = "",
   selectedReview = null,
 }: Props) {
   const animateEntry = useContext(StaffPageEntranceContext);
@@ -68,6 +69,7 @@ export function TechnicianWorkspace({
     selectedInspection,
     selectedRequest,
     selectedSection,
+    selectedCategory,
   });
   const { MyWork: ready, Waiting: waiting, Claimable: claimable } = worklists;
   const busy = ready.busy || waiting.busy || claimable.busy;

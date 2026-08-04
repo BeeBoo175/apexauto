@@ -70,6 +70,8 @@ export function TechnicianJobWorkspace({
             scrollWithHost
             section={selection.section}
             onSection={selection.changeSection}
+            category={selection.category}
+            onCategory={selection.changeCategory}
             onReview={selection.review}
             selectedRequest={selection.request}
             selectedReview={selectedReview}

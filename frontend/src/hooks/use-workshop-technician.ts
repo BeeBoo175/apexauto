@@ -38,6 +38,7 @@ export interface WorkshopTechnicianEntry {
   selectedInspection: ApiResult<EditorSnapshot> | null;
   selectedRequest: RepairSelection | null;
   selectedSection: WorkshopSection;
+  selectedCategory: string;
 }
 
 function queueStates(entry: WorkshopTechnicianEntry): TechnicianQueues {
@@ -57,6 +58,7 @@ export function useWorkshopTechnician(entry: WorkshopTechnicianEntry) {
     id: entry.selectedId,
     section: entry.selectedSection,
     request: entry.selectedRequest,
+    category: entry.selectedCategory,
     filters: queueParams({}, "workshop").filters,
     page: 1,
     view: entry.initialView,
@@ -114,6 +116,7 @@ export function useWorkshopTechnician(entry: WorkshopTechnicianEntry) {
     (selection, mode) => address.select(selection, mode),
     entry.selectedRequest,
     entry.selectedSection,
+    entry.selectedCategory,
   );
   useWorkshopSelectedRecord(drawer.id);
 

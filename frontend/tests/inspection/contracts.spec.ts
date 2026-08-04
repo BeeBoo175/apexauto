@@ -282,6 +282,23 @@ test("workshop addresses put the record in the path and omit defaults", () => {
   );
 });
 
+test("workshop checklist category is a query key only for a selected inspection", () => {
+  const id = "11111111-1111-4111-8111-111111111111";
+  const record = `/dashboard/inspection/${id}`;
+  expect(workshopLocation(record, "category=exteriorPaint", false)).toMatchObject({
+    category: "exteriorPaint",
+    href: `${record}?category=exteriorPaint`,
+  });
+  expect(workshopLocation(record, "category=ExteriorPaint", false)?.href).toBe(record);
+  expect(workshopLocation(record, "category=unknown", false)?.href).toBe(record);
+  expect(workshopLocation(`${record}/history`, "category=exteriorPaint", false)?.href).toBe(
+    `${record}/history`,
+  );
+  expect(workshopLocation("/dashboard/inspection", "category=exteriorPaint", true)?.href).toBe(
+    "/dashboard/inspection",
+  );
+});
+
 test("MYR input never silently rounds sub-cents or unsafe amounts", () => {
   expect(parseMyr("250.10")).toBe(250.1);
   expect(parseMyr("000250.1")).toBe(250.1);

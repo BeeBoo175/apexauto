@@ -1,7 +1,13 @@
 import type { SearchParams } from "@/lib/query";
 import { isUuid } from "@/lib/auth/contracts";
 import { DEFAULT_PAGE_SIZE, isPageSize } from "@/lib/pagination";
-import { inspectionStatuses, repairStatuses, type QueueFilters, type QueueKind } from "./contracts";
+import {
+  checklistCategories,
+  inspectionStatuses,
+  repairStatuses,
+  type QueueFilters,
+  type QueueKind,
+} from "./contracts";
 import {
   workshopDate,
   workshopTasks,
@@ -15,6 +21,14 @@ export type RepairSelection = { requestId: string; revision: number };
 
 export function inspectionQueryToken(value: string) {
   return value.replace(/^[A-Z]/, (letter) => letter.toLowerCase());
+}
+
+// A checklist category travels as its camelCase token; anything unknown means the default first category.
+export function checklistCategoryToken(value: unknown) {
+  const category = checklistCategories.find(
+    (candidate) => inspectionQueryToken(candidate) === value,
+  );
+  return category ? inspectionQueryToken(category) : "";
 }
 
 function queueToken<T extends string>(values: readonly T[], value: string) {
@@ -33,7 +47,12 @@ export function workshopSelection(params: SearchParams) {
   const sections: WorkshopSection[] = ["inspection", "repairs", "history"];
   const section =
     sections.find((value) => value === params.section) ?? (request ? "repairs" : "inspection");
-  return { id: isUuid(params.inspection) ? params.inspection : "", request, section };
+  return {
+    id: isUuid(params.inspection) ? params.inspection : "",
+    request,
+    section,
+    category: checklistCategoryToken(params.category),
+  };
 }
 
 export function queueParams(params: SearchParams, kind: QueueKind) {

@@ -4,6 +4,7 @@ import { DEFAULT_PAGE_SIZE, isPageSize } from "@/lib/pagination";
 import { staffRecordLocation } from "@/lib/staff/record-location";
 import type { QueueFilters } from "./contracts";
 import {
+  checklistCategoryToken,
   inspectionQueryToken,
   queueParams,
   queueQuery,
@@ -30,6 +31,8 @@ export type WorkshopSelectionPath = {
   id: string;
   section: WorkshopSection;
   request: RepairSelection | null;
+  // The checklist category token of the Inspection section; empty means the first category.
+  category: string;
 };
 
 export type WorkshopState = WorkshopSelectionPath & {
@@ -48,16 +51,16 @@ export function workshopSelectionPath(pathname: string): WorkshopSelectionPath |
   }
   const { id, section, trail } = record;
   if (section === "" && trail.length === 0) {
-    return { id, section: "inspection", request: null };
+    return { id, section: "inspection", request: null, category: "" };
   }
   if (section === "history" && trail.length === 0) {
-    return { id, section: "history", request: null };
+    return { id, section: "history", request: null, category: "" };
   }
   if (section !== "repairs") {
     return null;
   }
   if (trail.length === 0) {
-    return { id, section: "repairs", request: null };
+    return { id, section: "repairs", request: null, category: "" };
   }
   const [requestId, keyword, revision, ...extra] = trail;
   if (
@@ -68,7 +71,12 @@ export function workshopSelectionPath(pathname: string): WorkshopSelectionPath |
   ) {
     return null;
   }
-  return { id, section: "repairs", request: { requestId, revision: Number(revision) } };
+  return {
+    id,
+    section: "repairs",
+    request: { requestId, revision: Number(revision) },
+    category: "",
+  };
 }
 
 export function workshopSelectionRoute(id: string, section: string[] = []) {
@@ -159,6 +167,9 @@ export function workshopHref(state: WorkshopState, technician: boolean) {
   const query = technician
     ? technicianUrlQuery(state.view, state.queues)
     : managerUrlQuery(state.filters, state.page);
+  if (state.id && state.section === "inspection" && state.category) {
+    query.set("category", state.category);
+  }
   const path = workshopSelectionHref(state);
   return query.size ? `${path}?${query}` : path;
 }
@@ -170,8 +181,11 @@ export function workshopLocation(pathname: string, search: string, technician: b
   }
   const parameters = Object.fromEntries(new URLSearchParams(search));
   const { filters, page } = queueParams(parameters, "workshop");
+  const category =
+    selection.section === "inspection" ? checklistCategoryToken(parameters.category) : "";
   const state: WorkshopState = {
     ...selection,
+    category: selection.id ? category : "",
     filters,
     page,
     view: technicianView(parameters.view),
@@ -187,6 +201,7 @@ export function workshopEntryParameters(query: SearchParams, selection: Workshop
     delete rest[key];
   }
   if (!selection.id) {
+    delete rest.category;
     return rest;
   }
   return {

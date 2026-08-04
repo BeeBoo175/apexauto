@@ -1,5 +1,5 @@
 "use client";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { SearchField } from "@/components/ui/SearchField";
@@ -7,6 +7,7 @@ import { useInspectionPhoto } from "@/hooks/use-inspection-photo";
 import { useInspectionChecklistScroll } from "@/hooks/use-inspection-checklist-scroll";
 import { label, type Draft } from "@/lib/inspection/contracts";
 import { checklistViews, type ChecklistDraft, type ChecklistView } from "@/lib/inspection/draft";
+import { inspectionQueryToken } from "@/lib/inspection/query";
 import type { Report } from "@/lib/inspection/report-contracts";
 import { ChecklistPoint } from "./ChecklistPoint";
 import { InspectionPointStatus } from "./WorkshopStatus";
@@ -23,6 +24,8 @@ export function InspectionChecklist({
   onChange,
   onLock,
   active = true,
+  category: requestedCategory,
+  onCategory,
   report,
   managerControls,
 }: {
@@ -34,6 +37,8 @@ export function InspectionChecklist({
   onChange: (v: ChecklistDraft) => void;
   onLock: (locked: boolean) => void;
   active?: boolean;
+  category: string;
+  onCategory: (category: string, mode?: "push" | "replace") => void;
   report?: Report | null;
   managerControls?: ReactNode;
 }) {
@@ -42,10 +47,25 @@ export function InspectionChecklist({
   const [selectedCode, setSelectedCode] = useState(draft.catalog[0]?.code ?? "");
   const views = checklistViews(draft.catalog, value, search);
   const matches = views[filter];
-  const selected = matches.find((point) => point.code === selectedCode) ?? matches[0];
+  const categories = [...new Set(draft.catalog.map((point) => point.category))];
+  // The address names the category (empty is the first); the point inside it stays local state.
+  const category =
+    categories.find((candidate) => inspectionQueryToken(candidate) === requestedCategory) ??
+    categories[0];
+  const inCategory = matches.filter((point) => point.category === category);
+  const chosen = matches.find((point) => point.code === selectedCode);
+  const selected = chosen?.category === category ? chosen : (inCategory[0] ?? chosen ?? matches[0]);
   const pointCode = selected?.code ?? selectedCode;
   const { sectionRef, toolsRef, selectedRef, selectedHidden, scrollDirection, showSelected } =
     useInspectionChecklistScroll(active, selected?.code ?? "");
+  // The default first category has no query key, so a stored or typed first-category key is normalized away.
+  const redundantCategory = requestedCategory !== "" && category === categories[0];
+  const unknownCategory = requestedCategory !== "" && !category;
+  useEffect(() => {
+    if (redundantCategory || unknownCategory) {
+      onCategory("", "replace");
+    }
+  }, [redundantCategory, unknownCategory, onCategory]);
   const photo = useInspectionPhoto(
     draft.id,
     draft.assignmentVersion,
@@ -62,7 +82,6 @@ export function InspectionChecklist({
       }),
     onLock,
   );
-  const categories = [...new Set(draft.catalog.map((point) => point.category))];
   const fitted = draft.catalog.filter((point) => value.entries[point.code]?.kind !== "NotFitted");
   const allExamined = fitted.every((point) => value.examined.includes(point.code));
   let jumpArrow = "↑";
@@ -73,6 +92,13 @@ export function InspectionChecklist({
     jumpArrow = "↗";
     jumpPrefix = "Expand ";
   }
+  function selectPoint(code: string, pointCategory: string) {
+    setSelectedCode(code);
+    if (pointCategory !== category) {
+      onCategory(pointCategory === categories[0] ? "" : inspectionQueryToken(pointCategory));
+    }
+  }
+
   // The checklist stays mounted while hidden so a pending or uncertain point photo upload survives a tab change.
   return (
     <section
@@ -183,7 +209,7 @@ export function InspectionChecklist({
                       className={workshop.indexItem}
                       aria-pressed={selected?.code === point.code}
                       disabled={photo.file !== null || photo.busy || photo.uncertain}
-                      onClick={() => setSelectedCode(point.code)}
+                      onClick={() => selectPoint(point.code, point.category)}
                     >
                       <span className={workshop.pointCode}>{point.code}</span>
                       <strong>{point.description}</strong>

@@ -39,6 +39,7 @@ export function WorkshopQueue({
   selectedInspection = null,
   selectedRequest = null,
   selectedSection = "inspection",
+  selectedCategory = "",
   selectedReview = null,
 }: {
   actor: CurrentActor;
@@ -50,6 +51,7 @@ export function WorkshopQueue({
   selectedInspection?: ApiResult<EditorSnapshot> | null;
   selectedRequest?: RepairSelection | null;
   selectedSection?: WorkshopSection;
+  selectedCategory?: string;
   selectedReview?: SelectedRepairReview | null;
 }) {
   const {
@@ -65,6 +67,7 @@ export function WorkshopQueue({
     selectedInspection,
     selectedRequest,
     selectedSection,
+    selectedCategory,
   });
   const state = { ...queue, refresh };
   const [unassigned, setUnassigned] = useState<WorkshopRow | null>(null);

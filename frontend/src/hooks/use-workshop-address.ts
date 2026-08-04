@@ -17,7 +17,10 @@ type Mode = false | "push" | "replace";
 
 // The query that identifies the list shown beside the selection, so section-only traversals can be told apart.
 export function workshopListKey(state: WorkshopState, technician: boolean) {
-  return workshopHref({ ...state, id: "", section: "inspection", request: null }, technician);
+  return workshopHref(
+    { ...state, id: "", section: "inspection", request: null, category: "" },
+    technician,
+  );
 }
 
 // Tells the shared navigation guard which record the workspace currently shows.

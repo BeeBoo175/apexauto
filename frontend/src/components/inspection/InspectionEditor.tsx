@@ -37,6 +37,8 @@ export function InspectionEditor({
   scrollWithHost = false,
   section: requestedSection,
   onSection,
+  category,
+  onCategory,
   onReview,
   onLocked,
   onChanged,
@@ -52,6 +54,8 @@ export function InspectionEditor({
   scrollWithHost?: boolean;
   section: WorkshopSection;
   onSection: (section: WorkshopSection) => void;
+  category: string;
+  onCategory: (category: string, mode?: "push" | "replace") => void;
   onReview: (request: RepairSelection | null) => void;
   onLocked?: (locked: boolean) => void;
   onChanged?: () => void;
@@ -165,6 +169,8 @@ export function InspectionEditor({
                 editable={editor.editable}
                 disabled={disabled}
                 active={section === "inspection"}
+                category={category}
+                onCategory={onCategory}
                 onChange={editor.change}
                 onLock={editor.lockChild}
                 managerControls={

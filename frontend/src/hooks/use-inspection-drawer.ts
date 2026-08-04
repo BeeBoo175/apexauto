@@ -15,6 +15,8 @@ export type InspectionLocationHandler = (
   mode: false | "push" | "replace",
 ) => void;
 
+type Destination = Omit<WorkshopSelectionPath, "id">;
+
 export function useInspectionDrawer(
   id: string,
   initial: ApiResult<EditorSnapshot> | null,
@@ -22,13 +24,19 @@ export function useInspectionDrawer(
   onLocation: InspectionLocationHandler,
   initialRequest: RepairSelection | null = null,
   initialSection: WorkshopSection = "inspection",
+  initialCategory = "",
 ) {
   const interaction = useGuardedAction();
   const [locked, setLocked] = useState(false);
   const [request, setRequest] = useState(initialRequest);
   const [section, setSection] = useState(initialSection);
+  const [category, setCategory] = useState(initialCategory);
   // The destination of the read in flight; it becomes the shown section only once the read is confirmed.
-  const destination = useRef({ section: initialSection, request: initialRequest });
+  const destination = useRef<Destination>({
+    section: initialSection,
+    request: initialRequest,
+    category: initialCategory,
+  });
   const changed = useRef(false);
   const lock = useCallback((value: boolean) => setLocked(value), []);
   const selection = useStaffSelection(id, initial, {
@@ -41,15 +49,16 @@ export function useInspectionDrawer(
     address: (confirmedId, updateAddress = true) => {
       const target = confirmedId
         ? destination.current
-        : { section: "inspection" as const, request: null };
+        : { section: "inspection" as const, request: null, category: "" };
       onLocation({ id: confirmedId, ...target }, updateAddress && "push");
     },
   });
 
-  function show(target: { section: WorkshopSection; request: RepairSelection | null }) {
+  function show(target: Destination) {
     destination.current = target;
     setSection(target.section);
     setRequest(target.request);
+    setCategory(target.category);
   }
 
   function open(
@@ -57,13 +66,17 @@ export function useInspectionDrawer(
     request: RepairSelection | null = null,
     section: WorkshopSection = request ? "repairs" : "inspection",
   ) {
-    destination.current = { section, request };
+    destination.current = { section, request, category: "" };
     void selection.choose(id, () => show(destination.current));
   }
 
   // Applies a browser Back/Forward or refresh destination without writing the address.
   function visit(target: WorkshopSelectionPath, updateAddress = false) {
-    destination.current = { section: target.section, request: target.request };
+    destination.current = {
+      section: target.section,
+      request: target.request,
+      category: target.category,
+    };
     if (target.id === selection.id && selection.result?.data) {
       show(destination.current);
       return Promise.resolve(selection.result.data);
@@ -72,13 +85,19 @@ export function useInspectionDrawer(
   }
 
   function changeSection(next: WorkshopSection) {
-    show({ section: next, request: null });
-    onLocation({ id: selection.id, section: next, request: null }, "push");
+    show({ section: next, request: null, category });
+    onLocation({ id: selection.id, section: next, request: null, category }, "push");
+  }
+
+  // Moving between checklist categories stays inside the same open draft, so it never reaches the discard guard.
+  function changeCategory(next: string, mode: "push" | "replace" = "push") {
+    show({ section: "inspection", request: null, category: next });
+    onLocation({ id: selection.id, section: "inspection", request: null, category: next }, mode);
   }
 
   function review(next: RepairSelection | null) {
-    show({ section: "repairs", request: next });
-    onLocation({ id: selection.id, section: "repairs", request: next }, "push");
+    show({ section: "repairs", request: next, category });
+    onLocation({ id: selection.id, section: "repairs", request: next, category }, "push");
   }
 
   function close() {
@@ -87,7 +106,7 @@ export function useInspectionDrawer(
 
   function closeConfirmed(updateAddress = true) {
     selection.close(updateAddress);
-    show({ section: "inspection", request: null });
+    show({ section: "inspection", request: null, category: "" });
     if (changed.current) {
       changed.current = false;
       onChanged();
@@ -104,6 +123,8 @@ export function useInspectionDrawer(
     lock,
     request,
     section,
+    category,
+    changeCategory,
     changeSection,
     review,
     markChanged: () => {

@@ -68,6 +68,7 @@ async function readSelection(parameters: SearchParams, signal: AbortSignal) {
     selectedInspection: inspection,
     selectedRequest: selected.request,
     selectedSection: selected.section,
+    selectedCategory: selected.category,
     selectedReview:
       selected.request && review ? { selection: selected.request, result: review } : null,
   };

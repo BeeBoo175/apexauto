@@ -21,6 +21,13 @@ export type Assessment = {
   grade: "A" | "B" | "C" | null;
   isRejected: boolean;
 };
+export const checklistCategories = [
+  "FrameChassis",
+  "EngineTransmission",
+  "ExteriorPaint",
+  "InteriorElectrical",
+  "UnderbodyBrakesSuspension",
+] as const;
 export type Point = { code: string; category: string; description: string };
 export type Entry = {
   pointCode: string;

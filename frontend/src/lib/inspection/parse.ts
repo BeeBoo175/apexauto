@@ -6,7 +6,7 @@ import {
   isUuid,
 } from "@/lib/auth/contracts";
 import { parseItems, parsePage } from "@/lib/api";
-import { inspectionStatuses, repairStatuses, severities } from "./contracts";
+import { checklistCategories, inspectionStatuses, repairStatuses, severities } from "./contracts";
 import type {
   Assessment,
   Draft,
@@ -50,16 +50,7 @@ export function parsePoint(v: unknown): Point | null {
   if (!isRecord(v) || !text(v.code) || !text(v.description)) {
     return null;
   }
-  const category = enumValue(
-    [
-      "FrameChassis",
-      "EngineTransmission",
-      "ExteriorPaint",
-      "InteriorElectrical",
-      "UnderbodyBrakesSuspension",
-    ],
-    v.category,
-  );
+  const category = enumValue(checklistCategories, v.category);
   return category ? { code: v.code, category, description: v.description } : null;
 }
 
