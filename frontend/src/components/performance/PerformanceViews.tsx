@@ -75,7 +75,7 @@ export function ResultsView({
   const stages = usePerformanceSection({
     section: "stage-waiting",
     parse: parseStageWaiting,
-    period: performancePeriod({ period: "last-90", branchId: period.branchId }),
+    period: performancePeriod({ period: "last90Days", branchId: period.branchId }),
     actor,
     refreshes,
     label: "Vehicles by stage",

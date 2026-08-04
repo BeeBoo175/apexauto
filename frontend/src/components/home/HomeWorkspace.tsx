@@ -67,7 +67,7 @@ export function HomeWorkspace({ entry }: { entry: Extract<HomeEntry, { kind: "ma
   const stages = usePerformanceSection({
     section: "stage-waiting",
     parse: parseStageWaiting,
-    period: performancePeriod({ period: "last-90", branchId }),
+    period: performancePeriod({ period: "last90Days", branchId }),
     actor,
     refreshes,
     label: "Stock",

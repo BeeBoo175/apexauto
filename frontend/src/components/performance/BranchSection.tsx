@@ -1,6 +1,7 @@
 "use client";
 
-import { useAddressSection } from "@/hooks/use-address-section";
+import { useState } from "react";
+import { usePerformanceAddressContext } from "@/hooks/use-performance-address";
 import { Select } from "@/components/ui/Input";
 import { formatCurrency } from "@/lib/currency-format";
 import { deltaText, weekLabel } from "@/lib/performance/format";
@@ -105,10 +106,13 @@ export function BranchSection({
   state: SectionState;
   onOpen: (branchId: string) => void;
 }) {
-  const [measureKey, setMeasureKey] = useAddressSection<MeasureKey>(
-    ["delivered", "value", "checkedIn"],
-    "measure",
-  );
+  const address = usePerformanceAddressContext();
+  const requested = measures.find((item) => item.key === address.parameters.measure);
+  const [measureKey, setMeasureKey] = useState<MeasureKey>(requested?.key ?? "delivered");
+  function chooseMeasure(next: MeasureKey) {
+    setMeasureKey(next);
+    address.patch({ measure: next === "delivered" ? "" : next });
+  }
   const measure = measures.find((item) => item.key === measureKey) ?? measures[0];
   const rows = branches?.branches ?? [];
   return (
@@ -121,7 +125,7 @@ export function BranchSection({
             labelHidden
             density="compact"
             value={measureKey}
-            onChange={(event) => setMeasureKey(measureOf(event.target.value))}
+            onChange={(event) => chooseMeasure(measureOf(event.target.value))}
           >
             {measures.map((item) => (
               <option key={item.key} value={item.key}>

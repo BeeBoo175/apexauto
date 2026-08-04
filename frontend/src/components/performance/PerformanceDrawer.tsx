@@ -10,7 +10,6 @@ import { StaffWorkspaceTabs } from "@/components/staff/StaffWorkspaceTabs";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
-import { useAddressSection } from "@/hooks/use-address-section";
 import { usePerformanceExport } from "@/hooks/use-performance-export";
 import { useStaffHistory } from "@/hooks/use-staff-history";
 import type { ApiRequest } from "@/lib/api";
@@ -63,6 +62,8 @@ interface DrawerProps<Row extends TeamPerson> {
   columns: TeamColumn<Row>[];
   period: PerformancePeriod;
   refreshes: number;
+  section: Section;
+  onSection: (section: Section) => void;
 }
 
 // One person's period in the shared staff drawer layout, like the Accounts drawers: the summary band, This period
@@ -90,8 +91,9 @@ function DrawerContent<Row extends TeamPerson>({
   columns,
   period,
   refreshes,
+  section,
+  onSection: chooseSection,
 }: DrawerProps<Row> & { row: Row }) {
-  const [section, chooseSection] = useAddressSection<Section>(["summary", "milestones"]);
   // Milestones are read only once their tab has been opened.
   const [opened, setOpened] = useState(section === "milestones");
   const path = `people/${row.personId}/milestones`;

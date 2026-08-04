@@ -23,9 +23,9 @@ export const noTeamFilters: TeamFilters = {
 
 export const statusChoices = [
   { value: "", label: "All statuses" },
-  { value: "Active", label: "Active" },
-  { value: "Transferred", label: "Transferred" },
-  { value: "Deactivated", label: "Deactivated" },
+  { value: "active", label: "Active" },
+  { value: "transferred", label: "Transferred" },
+  { value: "deactivated", label: "Deactivated" },
 ];
 
 // The query parameters the Team reads understand, left out when unset so the default order stays the default.
@@ -74,7 +74,12 @@ export function appliedTeamFilters(
     });
   }
   if (filters.status) {
-    applied.push({ key: "status", label: filters.status, without: { ...filters, status: "" } });
+    applied.push({
+      key: "status",
+      label:
+        statusChoices.find((choice) => choice.value === filters.status)?.label ?? filters.status,
+      without: { ...filters, status: "" },
+    });
   }
   for (const [measure, count] of Object.entries(filters.minimums)) {
     const { [measure]: removed, ...rest } = filters.minimums;
@@ -94,6 +99,8 @@ export interface TeamUrlState {
   pageSize: number;
   // The open person's drawer, as personId:branchId, or empty.
   person: string;
+  // The open drawer tab; Milestones is the only one the address names.
+  section: "summary" | "milestones";
 }
 
 const pageSizes = [10, 25, 50];
@@ -104,6 +111,7 @@ export const defaultTeamUrl: TeamUrlState = {
   page: 1,
   pageSize: 25,
   person: "",
+  section: "summary",
 };
 
 const first = (value: string | string[] | undefined) =>
@@ -137,24 +145,12 @@ export function parseTeamUrl(parameters: SearchParams): TeamUrlState {
     page: Number.isSafeInteger(page) && page > 0 ? page : 1,
     pageSize: pageSizes.includes(pageSize) ? pageSize : 25,
     person: personPattern.test(person) ? person : "",
+    section: first(parameters.section) === "milestones" ? "milestones" : "summary",
   };
 }
 
 // Every address parameter a team table owns. The default for each is empty, so it leaves the address.
-export const teamUrlKeys = [
-  "search",
-  "name",
-  "status",
-  "min",
-  "sort",
-  "direction",
-  "page",
-  "pageSize",
-  "person",
-  "section",
-];
-
-export function teamUrlValues({ filters, page, pageSize, person }: TeamUrlState) {
+export function teamUrlValues({ filters, page, pageSize, person, section }: TeamUrlState) {
   const query = new URLSearchParams(teamQuery(filters));
   return {
     search: query.get("search") ?? "",
@@ -166,7 +162,6 @@ export function teamUrlValues({ filters, page, pageSize, person }: TeamUrlState)
     page: page > 1 ? String(page) : "",
     pageSize: pageSize === 25 ? "" : String(pageSize),
     person,
-    // The drawer's tab belongs to the open drawer.
-    ...(person ? {} : { section: "" }),
+    section: person && section === "milestones" ? section : "",
   };
 }

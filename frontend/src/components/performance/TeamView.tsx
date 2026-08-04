@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { ChoiceColumnFilter } from "@/components/ui/data-table/ChoiceColumnFilter";
 import { TextColumnFilter } from "@/components/ui/data-table/ColumnFilterForm";
@@ -12,7 +12,7 @@ import { usePerformanceSection } from "@/hooks/use-performance-section";
 import { privateApiFetch } from "@/lib/api-browser";
 import { roleNames, type CurrentActor, type Role } from "@/lib/auth/actor";
 import type { CsvColumn } from "@/lib/csv";
-import { replaceUrlParams } from "@/lib/browser-url";
+import { usePerformanceAddressContext } from "@/hooks/use-performance-address";
 import { branchLabel } from "@/lib/branches";
 import { periodQuery } from "@/lib/performance/period";
 import type { PerformancePeriod } from "@/lib/performance/performance";
@@ -32,7 +32,6 @@ import {
   appliedTeamFilters,
   statusChoices,
   teamQuery,
-  teamUrlKeys,
   teamUrlValues,
   type TeamFilters,
   type TeamUrlState,
@@ -53,6 +52,8 @@ export interface TeamExport {
 }
 
 interface TeamProps {
+  // Only the shown view writes its table to the address.
+  active: boolean;
   period: PerformancePeriod;
   actor: CurrentActor;
   refreshes: number;
@@ -129,6 +130,7 @@ function personDetail(row: TeamPerson, showBranch: boolean) {
 // open a person for their period detail and milestones. The CSV export in the page toolbar carries every measure.
 function TeamTable<Row extends SalesRow | WorkshopRow>({
   tab,
+  active,
   parse,
   columns,
   period,
@@ -157,6 +159,7 @@ function TeamTable<Row extends SalesRow | WorkshopRow>({
     setPage(1);
   }
   const [selected, setSelected] = useState<Row | null>(null);
+  const [section, setSection] = useState(urlState.section);
   // The entry parsed this page with the same parser for this tab.
   const [initialPage] = useState(() => initial as TeamPage<Row> | null);
   const read = usePerformanceSection({
@@ -300,18 +303,24 @@ function TeamTable<Row extends SalesRow | WorkshopRow>({
   // What the table shows rides in the address, like the other staff pages: search, filters, sort, page and the open
   // person. Leaving the tab clears it.
   const drawerKey = drawerRow ? `${drawerRow.personId}:${drawerRow.branchId}` : (pendingOpen ?? "");
-  useEffect(() => {
-    replaceUrlParams(teamUrlValues({ filters, page, pageSize, person: drawerKey }));
-  }, [filters, page, pageSize, drawerKey]);
-  useEffect(
-    () => () => replaceUrlParams(Object.fromEntries(teamUrlKeys.map((key) => [key, ""]))),
-    [],
+  const address = usePerformanceAddressContext();
+  const writeAddress = useEffectEvent(() =>
+    address.patch(teamUrlValues({ filters, page, pageSize, person: drawerKey, section }), "push"),
   );
+  useEffect(() => {
+    if (active) {
+      writeAddress();
+    }
+  }, [active, filters, page, pageSize, drawerKey, section]);
+  function openRow(row: Row) {
+    setSection("summary");
+    setSelected(row);
+  }
   function openPoint(point: TeamPoint) {
     const key = `${point.personId}:${point.branchId}`;
     const found = rows.find((row) => `${row.personId}:${row.branchId}` === key);
     if (found) {
-      setSelected(found);
+      openRow(found);
       return;
     }
     const index =
@@ -380,7 +389,7 @@ function TeamTable<Row extends SalesRow | WorkshopRow>({
               setPageSize(size);
             }}
             selectedRowId={drawerRow ? `${drawerRow.personId}:${drawerRow.branchId}` : undefined}
-            onRowClick={setSelected}
+            onRowClick={openRow}
           />
         </DashboardSection>
       </div>
@@ -389,9 +398,12 @@ function TeamTable<Row extends SalesRow | WorkshopRow>({
         columns={columns}
         period={period}
         refreshes={refreshes}
+        section={section}
+        onSection={setSection}
         onClose={() => {
           setSelected(null);
           setPendingOpen(null);
+          setSection("summary");
         }}
       />
     </>

@@ -62,7 +62,7 @@ export function usePerformanceEntry(actor: CurrentActor, parameters: SearchParam
     const view = typeof parameters.view === "string" ? parameters.view : "results";
     const results = view === "results";
     const teamUrl = parseTeamUrl(parameters);
-    const lookBack = performancePeriod({ period: "last-90", branchId: period.branchId });
+    const lookBack = performancePeriod({ period: "last90Days", branchId: period.branchId });
     const [headline, branches, stock, stages, team, comparison] = await Promise.all([
       privateApiFetch(`/api/staff/performance/headline?${periodQuery(period)}`, parseHeadline, {
         signal,

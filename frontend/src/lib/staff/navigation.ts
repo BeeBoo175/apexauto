@@ -31,7 +31,12 @@ export const staffWorkspaceLinks: StaffWorkspaceLink[] = [
     label: "Work calendar",
     allowed: (actor) => hasWorkCalendarAccess(actor.role),
   },
-  { href: "/dashboard/performance", label: "Performance", allowed: hasPerformanceAccess },
+  {
+    href: "/dashboard/performance",
+    label: "Performance",
+    activeBelow: true,
+    allowed: hasPerformanceAccess,
+  },
   {
     href: "/dashboard/intake",
     label: "Intake appointments",

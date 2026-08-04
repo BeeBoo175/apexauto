@@ -2,9 +2,9 @@ import type { SearchParams } from "@/lib/query";
 import type { PerformancePeriod } from "./performance";
 
 export const periodPresets = [
-  { value: "last-90", label: "Last 90 days" },
-  { value: "this-month", label: "This month" },
-  { value: "last-month", label: "Last month" },
+  { value: "last90Days", label: "Last 90 days" },
+  { value: "thisMonth", label: "This month" },
+  { value: "lastMonth", label: "Last month" },
   { value: "custom", label: "Custom" },
 ] as const;
 export type PeriodPreset = (typeof periodPresets)[number]["value"];
@@ -28,7 +28,7 @@ function utcDay(year: number, month: number, day: number) {
 export function presetOf(parameters: SearchParams): PeriodPreset {
   const value = typeof parameters.period === "string" ? parameters.period : "";
   const preset = periodPresets.find((item) => item.value === value);
-  return preset ? preset.value : "last-90";
+  return preset ? preset.value : "last90Days";
 }
 
 function text(parameters: SearchParams, key: string) {
@@ -42,14 +42,14 @@ export function performancePeriod(parameters: SearchParams, now = Date.now()): P
   const year = today.getUTCFullYear();
   const month = today.getUTCMonth();
   const branchId = text(parameters, "branchId");
-  if (preset === "last-month") {
+  if (preset === "lastMonth") {
     return {
       from: isoDate(utcDay(year, month - 1, 1)),
       to: isoDate(utcDay(year, month, 0)),
       branchId,
     };
   }
-  if (preset === "this-month") {
+  if (preset === "thisMonth") {
     return { from: isoDate(utcDay(year, month, 1)), to: isoDate(today), branchId };
   }
   if (preset === "custom") {

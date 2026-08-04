@@ -84,7 +84,7 @@ export function useHomeEntry(actor: CurrentActor, parameters: SearchParams) {
       readSection(
         "stage-waiting",
         parseStageWaiting,
-        performancePeriod({ period: "last-90", branchId }),
+        performancePeriod({ period: "last90Days", branchId }),
         actor,
         signal,
       ),

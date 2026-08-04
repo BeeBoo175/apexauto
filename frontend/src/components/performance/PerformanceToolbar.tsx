@@ -25,7 +25,7 @@ interface PerformanceFilters {
 
 // The default every filter returns to: the last 90 days, every branch the viewer may read.
 function defaults(): PerformanceFilters {
-  return { preset: "last-90", period: performancePeriod({}) };
+  return { preset: "last90Days", period: performancePeriod({}) };
 }
 
 // The same toolbar as the table pages: the shared Filters popover with a draft that applies or clears together,
@@ -49,7 +49,7 @@ export function PerformanceToolbar({
 }) {
   const current = { preset, period };
   const applied: AppliedFilter<PerformanceFilters>[] = [];
-  if (preset !== "last-90") {
+  if (preset !== "last90Days") {
     const label = periodPresets.find((item) => item.value === preset)?.label ?? "Period";
     applied.push({
       key: "dates",
@@ -57,7 +57,7 @@ export function PerformanceToolbar({
         preset === "custom"
           ? shortDateRange(period.from, period.to)
           : `${label}, ${shortDateRange(period.from, period.to)}`,
-      without: { preset: "last-90", period: performancePeriod({ branchId: period.branchId }) },
+      without: { preset: "last90Days", period: performancePeriod({ branchId: period.branchId }) },
     });
   }
   if (showBranches && period.branchId) {
@@ -70,7 +70,7 @@ export function PerformanceToolbar({
 
   // The period is always on the bar: a removable pill when it was changed, a fixed one for the default.
   const shown: AppliedFilter<PerformanceFilters>[] =
-    preset === "last-90"
+    preset === "last90Days"
       ? [
           {
             key: "dates",

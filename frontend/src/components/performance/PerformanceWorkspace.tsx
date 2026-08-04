@@ -6,9 +6,10 @@ import { StaffCommandBar } from "@/components/staff/StaffPage";
 import { StaffQueueTabs } from "@/components/staff/StaffQueueTabs";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import type { usePerformanceEntry } from "@/hooks/use-performance-entry";
-import { useAddressSection } from "@/hooks/use-address-section";
+import { usePerformanceAddressContext } from "@/hooks/use-performance-address";
 import type { PeriodPreset } from "@/lib/performance/period";
 import type { PerformancePeriod } from "@/lib/performance/performance";
+import type { AddressMode } from "@/hooks/use-staff-address";
 import { PerformanceToolbar } from "./PerformanceToolbar";
 import { BranchesView, ResultsView } from "./PerformanceViews";
 import { TeamView, type TeamExport } from "./TeamView";
@@ -17,29 +18,34 @@ import { defaultTeamUrl } from "@/lib/performance/team-filters";
 import workspace from "@/components/staff/StaffWorkspace.module.css";
 import styles from "./Performance.module.css";
 import dashboard from "@/components/staff/DashboardSection.module.css";
-import { writeAddress } from "@/lib/browser-url";
 
 type PerformanceEntry = NonNullable<ReturnType<typeof usePerformanceEntry>["entry"]>;
 type View = "results" | "sales" | "workshop" | "branches";
 
-// Period and branch ride in the address beside the open view, so a reload returns to the same page.
-function writePeriod(preset: PeriodPreset, period: PerformancePeriod) {
-  const url = new URL(window.location.href);
-  for (const key of ["period", "from", "to", "branchId"]) {
-    url.searchParams.delete(key);
-  }
-  if (preset !== "last-90") {
-    url.searchParams.set("period", preset);
-  }
-  if (preset === "custom") {
-    url.searchParams.set("from", period.from);
-    url.searchParams.set("to", period.to);
-  }
-  if (period.branchId) {
-    url.searchParams.set("branchId", period.branchId);
-  }
-  writeAddress(url);
+// Period and branch ride in the address beside the open view; defaults never appear in it.
+function periodValues(preset: PeriodPreset, period: PerformancePeriod) {
+  return {
+    period: preset === "last90Days" ? "" : preset,
+    from: preset === "custom" ? period.from : "",
+    to: preset === "custom" ? period.to : "",
+    branchId: period.branchId,
+  };
 }
+
+// What leaving a view takes out of the address: the team table, its open person and the branch measure.
+const clearedView = {
+  search: "",
+  name: "",
+  status: "",
+  min: "",
+  sort: "",
+  direction: "",
+  page: "",
+  pageSize: "",
+  person: "",
+  section: "",
+  measure: "",
+};
 
 // Performance is the reporting page: how a chosen period went, in tables a manager can read, compare and export.
 // What needs a manager today lives on Home.
@@ -56,17 +62,15 @@ export function PerformanceWorkspace({ entry }: { entry: PerformanceEntry }) {
   // The same soft entrance as the other staff pages when Performance is navigated to.
   const animateEntry = useContext(StaffPageEntranceContext);
   // Every manager opens on Results; a general manager also has Branches, second.
-  const [view, chooseView] = useAddressSection<View>(
-    isGeneral ? ["results", "branches", "sales", "workshop"] : ["results", "sales", "workshop"],
-    "view",
-  );
+  const address = usePerformanceAddressContext();
+  const [view, setView] = useState<string>(address.parameters.view ?? "results");
   const tabs: { value: View; label: string }[] = [
     { value: "results", label: "Results" },
     ...(isGeneral ? [{ value: "branches" as const, label: "Branches" }] : []),
     { value: "sales", label: "Sales & service" },
     { value: "workshop", label: "Workshop" },
   ];
-  const current: View = tabs.some((tab) => tab.value === view) ? view : tabs[0].value;
+  const current: View = tabs.find((tab) => tab.value === view)?.value ?? tabs[0].value;
   // Like the other staff pages, a chosen view loads out of sight while the confirmed one stays on screen, and
   // replaces it only once its figures are in, so the page never shows an empty view or moves while loading.
   const [pending, setPending] = useState<View | null>(null);
@@ -78,10 +82,16 @@ export function PerformanceWorkspace({ entry }: { entry: PerformanceEntry }) {
       if (settled !== pending) {
         return;
       }
-      chooseView(settled);
+      setView(settled);
       setPending(null);
+      const shown = settled === "sales" || settled === "workshop";
+      // A team table writes its own state once it is shown, completing this one push.
+      address.patch(
+        { ...clearedView, view: settled === "results" ? "" : settled },
+        shown ? false : "push",
+      );
     },
-    [pending, chooseView],
+    [pending, address],
   );
   const recordExport = useCallback((tab: TeamTab, state: TeamExport | null) => {
     setExports((value) => ({ ...value, [tab]: state }));
@@ -91,10 +101,10 @@ export function PerformanceWorkspace({ entry }: { entry: PerformanceEntry }) {
     setPending(next === current ? null : next);
   }
 
-  function choose(nextPreset: PeriodPreset, next: PerformancePeriod) {
+  function choose(nextPreset: PeriodPreset, next: PerformancePeriod, mode: AddressMode = "push") {
     setPreset(nextPreset);
     setPeriod(next);
-    writePeriod(nextPreset, next);
+    address.patch(periodValues(nextPreset, next), mode);
   }
 
   // What the entry read belongs only to the view and period the page opened on.
@@ -119,7 +129,7 @@ export function PerformanceWorkspace({ entry }: { entry: PerformanceEntry }) {
           initial={opened("branches") ? entry.comparison : null}
           onSettled={() => settle("branches")}
           onOpen={(branchId) => {
-            choose(preset, { ...period, branchId });
+            choose(preset, { ...period, branchId }, false);
             requestView("results");
           }}
         />
@@ -128,6 +138,7 @@ export function PerformanceWorkspace({ entry }: { entry: PerformanceEntry }) {
     return (
       <TeamView
         tab={candidate}
+        active={candidate === current}
         initial={opened(candidate) ? entry.team : null}
         urlState={opened(candidate) ? entry.teamUrl : defaultTeamUrl}
         onExport={recordExport}

@@ -40,13 +40,11 @@ public sealed record PerformanceTeamFilter(string Search, string Name, string St
         string? direction, string? minimums)
     {
         var text = new[] { search, name }.Select(value => value?.Trim() ?? string.Empty).ToArray();
-        var chosenStatus = status?.Trim() ?? string.Empty;
         var chosenSort = sort?.Trim() ?? string.Empty;
         var chosenDirection = direction?.Trim().ToLowerInvariant() ?? "asc";
-        if (text.Any(value => value.Length > MaximumTextLength) || chosenSort.Length > 40 ||
-            chosenDirection is not ("asc" or "desc") ||
-            chosenStatus is not ("" or PerformancePersonStatuses.Active or PerformancePersonStatuses.Transferred or
-                PerformancePersonStatuses.Deactivated))
+        if (!StatusOf(status?.Trim() ?? string.Empty, out var chosenStatus) ||
+            text.Any(value => value.Length > MaximumTextLength) || chosenSort.Length > 40 ||
+            chosenDirection is not ("asc" or "desc"))
         {
             return null;
         }
@@ -66,6 +64,20 @@ public sealed record PerformanceTeamFilter(string Search, string Name, string St
         }
 
         return new(text[0], text[1], chosenStatus, chosenSort, chosenDirection == "desc", counts);
+    }
+
+    // The query carries camelCase tokens; the filter keeps the person status the rows report.
+    private static bool StatusOf(string token, out string status)
+    {
+        status = token switch
+        {
+            "" => string.Empty,
+            "active" => PerformancePersonStatuses.Active,
+            "transferred" => PerformancePersonStatuses.Transferred,
+            "deactivated" => PerformancePersonStatuses.Deactivated,
+            _ => "invalid"
+        };
+        return status != "invalid";
     }
 }
 
