@@ -17,13 +17,21 @@ public sealed record WorkCalendarQuery(ListDateRange Dates, WorkCalendarScope Sc
         Assignment is "All" or "Assigned" or "Unassigned" && Dates is { From: not null, Until: not null } &&
         Dates.Until > Dates.From && Dates.Until - Dates.From <= TimeSpan.FromDays(42);
 
+    // The query carries camelCase tokens; the query keeps the assignment values the rows use.
+    private static readonly Dictionary<string, string> AssignmentTokens = new()
+    {
+        ["all"] = "All",
+        ["assigned"] = "Assigned",
+        ["unassigned"] = "Unassigned"
+    };
+
     public static WorkCalendarQuery? Parse(string? from, string? to, Guid? branchId, string? employee,
         string? search = null, string? assignment = null)
     {
         var dates = ListDateRange.Parse(from, to);
         var scope = new WorkCalendarScope(branchId, employee?.Trim() ?? string.Empty);
-        var query = dates is null ? null : new WorkCalendarQuery(dates, scope,
-            search?.Trim() ?? "", assignment ?? "All");
+        var query = dates is null || !AssignmentTokens.TryGetValue(assignment ?? "all", out var chosen) ? null :
+            new WorkCalendarQuery(dates, scope, search?.Trim() ?? "", chosen);
         return query?.IsValid == true ? query : null;
     }
 }
@@ -34,11 +42,24 @@ public sealed record UnscheduledWorkQuery(WorkCalendarScope Scope, int Page, int
     public bool IsValid => Scope.IsValid && Pagination.IsValid(Page, PageSize) &&
         ListSearch.IsValid(Search) && Kind is "" or "Workshop" or "Sale";
 
+    // The query carries camelCase tokens; the query keeps the kind names the rows use.
+    private static readonly Dictionary<string, string> KindTokens = new()
+    {
+        [""] = "",
+        ["workshop"] = "Workshop",
+        ["sale"] = "Sale"
+    };
+
     public static UnscheduledWorkQuery? Parse(Guid? branchId, string? employee, int page, int pageSize,
         string? search = null, string? kind = null)
     {
         var scope = new WorkCalendarScope(branchId, employee?.Trim() ?? string.Empty);
-        var query = new UnscheduledWorkQuery(scope, page, pageSize, search?.Trim() ?? "", kind ?? "");
+        if (!KindTokens.TryGetValue(kind ?? "", out var chosen))
+        {
+            return null;
+        }
+
+        var query = new UnscheduledWorkQuery(scope, page, pageSize, search?.Trim() ?? "", chosen);
         return query.IsValid ? query : null;
     }
 }

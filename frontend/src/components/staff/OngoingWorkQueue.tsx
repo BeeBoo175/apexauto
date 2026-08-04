@@ -30,9 +30,9 @@ export function OngoingWorkQueue({
   own: boolean;
   showBranch: boolean;
   search: string;
-  kind: "" | "Workshop" | "Sale";
-  kinds: ("Workshop" | "Sale")[];
-  onKind: (kind: "" | "Workshop" | "Sale") => void;
+  kind: "" | "workshop" | "sale";
+  kinds: ("workshop" | "sale")[];
+  onKind: (kind: "" | "workshop" | "sale") => void;
   onPage: (page: number, pageSize: number) => void;
   onRetry: () => void;
 }) {
@@ -52,14 +52,14 @@ export function OngoingWorkQueue({
         ) : (
           <>
             <h2 className="sr-only">Ongoing work</h2>
-            <StaffQueueTabs<"" | "Workshop" | "Sale">
+            <StaffQueueTabs<"" | "workshop" | "sale">
               label="Ongoing work types"
               layout="queue"
               countNoun="jobs"
               tabs={[
                 { value: "", label: "All work", count: snapshot?.counts.all },
-                { value: "Workshop", label: "Workshop", count: snapshot?.counts.workshop },
-                { value: "Sale", label: "Sales", count: snapshot?.counts.sale },
+                { value: "workshop", label: "Workshop", count: snapshot?.counts.workshop },
+                { value: "sale", label: "Sales", count: snapshot?.counts.sale },
               ]}
               value={kind}
               disabled={busy}

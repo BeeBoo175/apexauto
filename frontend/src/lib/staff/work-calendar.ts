@@ -11,9 +11,9 @@ export interface WorkCalendarScope {
 }
 
 export interface WorkCalendarFilters extends WorkCalendarScope {
-  assignment: "All" | "Assigned" | "Unassigned";
+  assignment: "all" | "assigned" | "unassigned";
   search: string;
-  kind: "" | "Workshop" | "Sale";
+  kind: "" | "workshop" | "sale";
   date: string;
   page: number;
   pageSize: number;
@@ -67,13 +67,13 @@ export function workCalendarParams(parameters: SearchParams): WorkCalendarFilter
   const size = Number(parameters.pageSize ?? DEFAULT_PAGE_SIZE);
   return {
     search: typeof parameters.search === "string" ? parameters.search.trim() : "",
-    kind: parameters.kind === "Workshop" || parameters.kind === "Sale" ? parameters.kind : "",
+    kind: parameters.kind === "workshop" || parameters.kind === "sale" ? parameters.kind : "",
     date: isCalendarDate(parameters.date) ? parameters.date : calendarDate(),
     branchId: isUuid(parameters.branchId) ? parameters.branchId : "",
     assignment:
-      parameters.assignment === "Assigned" || parameters.assignment === "Unassigned"
+      parameters.assignment === "assigned" || parameters.assignment === "unassigned"
         ? parameters.assignment
-        : "All",
+        : "all",
     page: Number.isSafeInteger(page) && page > 0 && page <= 2147483647 ? page : 1,
     pageSize: isPageSize(size) ? size : DEFAULT_PAGE_SIZE,
   };

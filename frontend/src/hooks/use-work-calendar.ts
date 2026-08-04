@@ -4,7 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { WorkCalendarFilters } from "@/lib/staff/work-calendar";
+import {
+  workCalendarHref,
+  workCalendarLocation,
+  workCalendarWorkspace,
+} from "@/lib/staff/work-calendar-location";
 import { useInitialToast } from "./use-initial-toast";
+import { useStaffAddress, type AddressMode } from "./use-staff-address";
 import {
   readCalendarBranches,
   readScheduledWork,
@@ -30,6 +36,17 @@ export function useWorkCalendar(actor: CurrentActor, initial: WorkCalendarEntry)
     branches?: AbortController;
   }>({});
   const toast = useToast();
+  type Target = NonNullable<ReturnType<typeof workCalendarLocation>>;
+  // The address holds the shared filters. An applied change pushes; Back and Forward read the requested destination,
+  // and a failed read keeps that address with the confirmed content.
+  const address = useStaffAddress<WorkCalendarFilters, Target>({
+    workspace: workCalendarWorkspace,
+    initial: initial.filters,
+    href: workCalendarHref,
+    locate: (pathname, search) => workCalendarLocation(pathname, search, actor.role),
+    synchronize: (target) => void changeScope(target.filters, false),
+  });
+  const destinationFilters = () => address.destination()?.filters ?? filters;
   useInitialToast(
     initial.scheduled && !initial.scheduled.data ? calendarFailure(initial.scheduled.status) : null,
   );
@@ -45,7 +62,10 @@ export function useWorkCalendar(actor: CurrentActor, initial: WorkCalendarEntry)
     [],
   );
 
-  async function loadScheduled(next = filters) {
+  async function loadScheduled(next?: WorkCalendarFilters) {
+    if (!next) {
+      return changeScope(destinationFilters(), "replace");
+    }
     controllers.current.scheduled?.abort();
     const attempt = new AbortController();
     controllers.current.scheduled = attempt;
@@ -61,6 +81,7 @@ export function useWorkCalendar(actor: CurrentActor, initial: WorkCalendarEntry)
       }
       setScheduled({ data: result.data, filters: next });
       setFilters((current) => ({ ...current, date: next.date, assignment: next.assignment }));
+      address.update({ date: next.date, assignment: next.assignment }, "push");
     } catch {
       if (!attempt.signal.aborted) {
         toast.error(calendarFailure(502));
@@ -73,7 +94,10 @@ export function useWorkCalendar(actor: CurrentActor, initial: WorkCalendarEntry)
     }
   }
 
-  async function loadUnscheduled(next = filters) {
+  async function loadUnscheduled(next?: WorkCalendarFilters) {
+    if (!next) {
+      return changeScope(destinationFilters(), "replace");
+    }
     controllers.current.unscheduled?.abort();
     const attempt = new AbortController();
     controllers.current.unscheduled = attempt;
@@ -93,6 +117,7 @@ export function useWorkCalendar(actor: CurrentActor, initial: WorkCalendarEntry)
         page: next.page,
         pageSize: next.pageSize,
       }));
+      address.update({ kind: next.kind, page: next.page, pageSize: next.pageSize }, "push");
     } catch {
       if (!attempt.signal.aborted) {
         toast.error("Ongoing work could not be refreshed. Confirmed work remains shown.");
@@ -105,7 +130,7 @@ export function useWorkCalendar(actor: CurrentActor, initial: WorkCalendarEntry)
     }
   }
 
-  async function changeScope(next: WorkCalendarFilters) {
+  async function changeScope(next: WorkCalendarFilters, mode: AddressMode = "push") {
     controllers.current.scheduled?.abort();
     controllers.current.unscheduled?.abort();
     const confirmed = { ...next, search: next.search.trim() };
@@ -139,6 +164,7 @@ export function useWorkCalendar(actor: CurrentActor, initial: WorkCalendarEntry)
       setFilters(confirmed);
       setScheduled({ data: appointments.data, filters: confirmed });
       setUnscheduled({ data: work.data, filters: confirmed });
+      address.update(confirmed, mode);
       return true;
     } catch {
       if (!attempt.signal.aborted) {
@@ -201,7 +227,7 @@ export function useWorkCalendar(actor: CurrentActor, initial: WorkCalendarEntry)
     changeAssignment: (assignment: WorkCalendarFilters["assignment"]) =>
       loadScheduled({ ...filters, assignment }),
     changePage: (page: number, pageSize: number) => loadUnscheduled({ ...filters, page, pageSize }),
-    refresh: () => changeScope(filters),
+    refresh: () => changeScope(destinationFilters(), "replace"),
     loadScheduled,
     loadUnscheduled,
     loadBranches,

@@ -87,19 +87,19 @@ test("unscheduled work validates ownership and real editor identity without inve
   const filters = workCalendarParams({
     date: "2027-01-01",
     search: " aina ",
-    assignment: "Unassigned",
-    kind: "Workshop",
+    assignment: "unassigned",
+    kind: "workshop",
     page: "2",
   });
   expect(Object.fromEntries(workCalendarQuery(filters))).toEqual({
     search: "aina",
-    assignment: "Unassigned",
+    assignment: "unassigned",
     from: "2026-12-28",
     to: "2027-02-07",
   });
   expect(Object.fromEntries(workCalendarQuery(filters, true))).toEqual({
     search: "aina",
-    kind: "Workshop",
+    kind: "workshop",
     page: "2",
     pageSize: "25",
   });
@@ -118,4 +118,38 @@ test("only general managers accept an all-branch calendar and technicians have n
   expect(hasWorkCalendarAccess("WorkshopTechnician")).toBe(false);
   expect(hasWorkCalendarAccess("Administrator")).toBe(false);
   expect(parseWorkCalendar({ ...snapshot, actor: generalManager, branchId: id })).toBeNull();
+});
+
+test("work calendar addresses omit defaults, keep camelCase tokens and scope by role", async () => {
+  const { workCalendarLocation } = await import("../../src/lib/staff/work-calendar-location");
+  const { calendarDate } = await import("../../src/lib/calendar");
+  expect(workCalendarLocation("/dashboard/work-calendar", "", "BranchManager")?.href).toBe(
+    "/dashboard/work-calendar",
+  );
+  expect(
+    workCalendarLocation(
+      "/dashboard/work-calendar",
+      `date=${calendarDate()}&kind=workshop&assignment=assigned&page=2&search=%20aina%20`,
+      "BranchManager",
+    )?.href,
+  ).toBe("/dashboard/work-calendar?search=aina&kind=workshop&assignment=assigned&page=2");
+  expect(
+    workCalendarLocation(
+      "/dashboard/work-calendar",
+      `branchId=${branchId}&kind=workshop&assignment=assigned`,
+      "SalesAgent",
+    )?.href,
+  ).toBe("/dashboard/work-calendar");
+  expect(
+    workCalendarLocation(
+      "/dashboard/work-calendar",
+      "kind=Workshop&assignment=Assigned",
+      "GeneralManager",
+    )?.href,
+  ).toBe("/dashboard/work-calendar");
+});
+
+test("work items open the role workspace on a path, never a selection query", () => {
+  expect(workItemHref({ ...row, kind: "TestDrive" } as never)).toBe(`/dashboard/test-drives/${id}`);
+  expect(workItemHref({ ...row, kind: "Intake" } as never)).toBe(`/dashboard/intake/${id}`);
 });

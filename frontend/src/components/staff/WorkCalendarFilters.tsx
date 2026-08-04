@@ -66,17 +66,17 @@ export function WorkCalendarFilters({
                   onChange={(event) => {
                     const assignment = event.target.value;
                     if (
-                      assignment === "All" ||
-                      assignment === "Assigned" ||
-                      assignment === "Unassigned"
+                      assignment === "all" ||
+                      assignment === "assigned" ||
+                      assignment === "unassigned"
                     ) {
                       void calendar.changeAssignment(assignment);
                     }
                   }}
                 >
-                  <option value="All">Appointments: all</option>
-                  <option value="Assigned">Appointments: assigned</option>
-                  <option value="Unassigned">Appointments: unassigned</option>
+                  <option value="all">Appointments: all</option>
+                  <option value="assigned">Appointments: assigned</option>
+                  <option value="unassigned">Appointments: unassigned</option>
                 </Select>
               </div>
             )}

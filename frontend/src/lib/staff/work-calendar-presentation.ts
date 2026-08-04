@@ -30,9 +30,9 @@ export function workItemHref(item: WorkItem) {
     return `/dashboard/sales/${item.id}`;
   }
   if (item.kind === "TestDrive") {
-    return `/dashboard/test-drives?booking=${item.id}`;
+    return `/dashboard/test-drives/${item.id}`;
   }
-  return `/dashboard/intake?appointment=${item.id}`;
+  return `/dashboard/intake/${item.id}`;
 }
 
 export function workCalendarEvents(snapshot: WorkCalendarSnapshot): CalendarEvent<ScheduledWork>[] {

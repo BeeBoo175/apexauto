@@ -36,9 +36,9 @@ export function WorkCalendarWorkspace({
   const guard = useGuardedAction();
   const busy = pending.scheduled || pending.unscheduled;
   const own = actor.role === "SalesAgent";
-  let kinds: ("Workshop" | "Sale")[] = ["Workshop", "Sale"];
+  let kinds: ("workshop" | "sale")[] = ["workshop", "sale"];
   if (actor.role === "SalesAgent") {
-    kinds = ["Sale"];
+    kinds = ["sale"];
   }
   const appointments = scheduled.data?.items;
   const tabs = [

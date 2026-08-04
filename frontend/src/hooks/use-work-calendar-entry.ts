@@ -14,6 +14,7 @@ import {
   type WorkCalendarSnapshot,
   type UnscheduledWorkPage,
 } from "@/lib/staff/work-calendar";
+import { scopeWorkCalendarFilters } from "@/lib/staff/work-calendar-location";
 import { calendarRange } from "@/lib/calendar";
 import { useStaffClientEntry } from "./use-staff-client-entry";
 
@@ -52,7 +53,7 @@ export async function readUnscheduledWork(
         data.page === filters.page &&
         data.pageSize === filters.pageSize &&
         data.total ===
-          data.counts[({ "": "all", Workshop: "workshop", Sale: "sale" } as const)[filters.kind]]
+          data.counts[({ "": "all", workshop: "workshop", sale: "sale" } as const)[filters.kind]]
         ? data
         : null;
     },
@@ -85,14 +86,7 @@ export function readCalendarBranches(page: number, signal: AbortSignal) {
 
 export function useWorkCalendarEntry(actor: CurrentActor, parameters: SearchParams) {
   return useStaffClientEntry(async (signal) => {
-    const filters = workCalendarParams(parameters);
-    if (actor.role !== "GeneralManager") {
-      filters.branchId = "";
-    }
-    if (actor.role !== "BranchManager" && actor.role !== "GeneralManager") {
-      filters.assignment = "All";
-      filters.kind = "";
-    }
+    const filters = scopeWorkCalendarFilters(workCalendarParams(parameters), actor.role);
     const [scheduled, unscheduled, branches] = await Promise.all([
       readScheduledWork(actor, filters, signal).catch(() =>
         unavailableResult<WorkCalendarSnapshot>(),
