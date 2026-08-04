@@ -152,8 +152,8 @@ public sealed class WarrantyAdministrationStore(DealershipDbContext database) : 
 
         return query.Status switch
         {
-            "Active" => packages.Where(item => item.IsActive),
-            "Inactive" => packages.Where(item => !item.IsActive),
+            "active" => packages.Where(item => item.IsActive),
+            "inactive" => packages.Where(item => !item.IsActive),
             _ => packages
         };
     }

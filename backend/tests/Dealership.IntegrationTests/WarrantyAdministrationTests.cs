@@ -73,11 +73,11 @@ public sealed class WarrantyAdministrationTests(RegistrationDatabase database) :
         // Silver is now inactive grade B at RM 1,500; Gold is active grade B at RM 2,400.
         Assert.Equal(WarrantyAdministrationStatus.Succeeded,
             (await CreateAsync(administrator, new(Guid.NewGuid(), "ApexShield Platinum", 36, 75000, 3600m, "A"))).Status);
-        Assert.Equal(WarrantyAdministrationStatus.Invalid, (await ListAsync(administrator, status: "Expired")).Status);
+        Assert.Equal(WarrantyAdministrationStatus.Invalid, (await ListAsync(administrator, status: "expired")).Status);
         Assert.Equal(WarrantyAdministrationStatus.Invalid, (await ListAsync(administrator, sort: "version")).Status);
         Assert.Equal(WarrantyAdministrationStatus.Invalid, (await ListAsync(administrator, direction: "asc")).Status);
-        Assert.Equal("ApexShield Silver", Names(await ListAsync(administrator, status: "Inactive")));
-        Assert.Equal("ApexShield Gold,ApexShield Platinum", Names(await ListAsync(administrator, status: "Active", sort: "name")));
+        Assert.Equal("ApexShield Silver", Names(await ListAsync(administrator, status: "inactive")));
+        Assert.Equal("ApexShield Gold,ApexShield Platinum", Names(await ListAsync(administrator, status: "active", sort: "name")));
         Assert.Equal("ApexShield Platinum", Names(await ListAsync(administrator, search: "PLAT")));
         Assert.Equal("", Names(await ListAsync(administrator, search: "%")));
         Assert.Equal("ApexShield Platinum,ApexShield Gold,ApexShield Silver",
@@ -88,7 +88,7 @@ public sealed class WarrantyAdministrationTests(RegistrationDatabase database) :
             Names(await ListAsync(administrator, sort: "grade", direction: "asc")));
         Assert.Equal("ApexShield Silver,ApexShield Gold,ApexShield Platinum",
             Names(await ListAsync(administrator, sort: "status", direction: "asc")));
-        var scoped = (await ListAsync(administrator, 1, 10, "apexshield", "Active", "mileage", "asc")).Page!;
+        var scoped = (await ListAsync(administrator, 1, 10, "apexshield", "active", "mileage", "asc")).Page!;
         Assert.Equal((2, "ApexShield Gold"), (scoped.Total, scoped.Items[0].Name));
 
         Assert.Equal("ApexShield Gold", Names(await ListAsync(administrator, name: "GOLD")));

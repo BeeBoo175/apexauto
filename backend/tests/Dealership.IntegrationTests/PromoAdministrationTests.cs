@@ -71,9 +71,9 @@ public sealed class PromoAdministrationTests(RegistrationDatabase database) : IC
         Assert.Equal(PromoAdministrationStatus.Invalid, (await ListAsync(administrator, direction: "desc")).Status);
         Assert.Equal(PromoAdministrationStatus.Invalid, (await ListAsync(administrator, sort: "code", direction: "up")).Status);
         Assert.Equal(PromoAdministrationStatus.Invalid, (await ListAsync(administrator, search: new string('x', 161))).Status);
-        Assert.Equal("OLD_100", Codes(await ListAsync(administrator, status: "Expired")));
-        Assert.Equal("APEX500,apex500", Codes(await ListAsync(administrator, status: "Inactive")));
-        Assert.Equal("", Codes(await ListAsync(administrator, status: "Active")));
+        Assert.Equal("OLD_100", Codes(await ListAsync(administrator, status: "expired")));
+        Assert.Equal("APEX500,apex500", Codes(await ListAsync(administrator, status: "inactive")));
+        Assert.Equal("", Codes(await ListAsync(administrator, status: "active")));
         Assert.Equal("APEX500,apex500", Codes(await ListAsync(administrator, search: " apex ", sort: "code", direction: "asc")));
         Assert.Equal("apex500,APEX500", Codes(await ListAsync(administrator, search: "APEX", sort: "code", direction: "desc")));
         Assert.Equal("OLD_100", Codes(await ListAsync(administrator, search: "d_1")));
@@ -82,7 +82,7 @@ public sealed class PromoAdministrationTests(RegistrationDatabase database) : IC
         Assert.Equal("OLD_100,apex500,APEX500", Codes(await ListAsync(administrator, sort: "discount", direction: "asc")));
         Assert.Equal("APEX500,apex500,OLD_100", Codes(await ListAsync(administrator, sort: "status", direction: "asc")));
         Assert.Equal("OLD_100,APEX500,apex500", Codes(await ListAsync(administrator, sort: "status", direction: "desc")));
-        var scoped = (await ListAsync(administrator, 1, 10, "apex", "Inactive", "code", "asc")).Page!;
+        var scoped = (await ListAsync(administrator, 1, 10, "apex", "inactive", "code", "asc")).Page!;
         Assert.Equal((2, 2), (scoped.Total, scoped.Items.Count));
 
         Assert.Equal("APEX500,apex500", Codes(await ListAsync(administrator, code: "PEX")));

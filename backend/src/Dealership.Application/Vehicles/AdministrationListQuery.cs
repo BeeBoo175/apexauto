@@ -7,7 +7,7 @@ public sealed record AdministrationListQuery(int Page, int PageSize, string? Sea
     bool Descending)
 {
     public const int SearchMaximumLength = 160;
-    public const string AllStatuses = "All";
+    public const string AllStatuses = "all";
 
     // Column filters: text on the identifying column, an amount range, an inclusive Malaysia-date range and a grade.
     public string? Text { get; init; }

@@ -1,13 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { WorkloadSection } from "@/components/performance/WorkloadSection";
 import type { HomeEntry } from "@/hooks/use-home-entry";
 import { usePerformanceSection } from "@/hooks/use-performance-section";
 import { useTodaySchedule } from "@/hooks/use-today-schedule";
 import { performancePeriod } from "@/lib/performance/period";
-import { replaceUrlParams } from "@/lib/browser-url";
-import { roomUrlValues, workloadQuery, type RoomView } from "@/lib/performance/room";
+import { useStaffAddress } from "@/hooks/use-staff-address";
+import { homeHref, homeLocation, homeWorkspace, type HomeState } from "@/lib/home/home-location";
+import { workloadQuery, type RoomView } from "@/lib/performance/room";
 import { parsePipeline, parseStageWaiting, parseWorkload } from "@/lib/performance/performance";
 import { AttentionBand, managerAttention } from "./AttentionSection";
 import { HomeBranchToolbar } from "./HomeBranchToolbar";
@@ -34,11 +35,23 @@ export function HomeWorkspace({ entry }: { entry: Extract<HomeEntry, { kind: "ma
   const [branchId, setBranchId] = useState(entry.branchId);
   const [refreshes, setRefreshes] = useState(0);
   const [room, setRoom] = useState<RoomView>(entry.room);
-  const changeRoom = useCallback((next: RoomView) => setRoom(next), []);
-  // Team, search and page ride in the address, like the other staff pages, so a reload returns to the same list.
-  useEffect(() => {
-    replaceUrlParams(roomUrlValues(room));
-  }, [room]);
+  // Branch, team, search and page ride in the address: an applied change pushes, and Back or Forward restores it.
+  type Target = NonNullable<ReturnType<typeof homeLocation>>;
+  const address = useStaffAddress<HomeState, Target>({
+    workspace: homeWorkspace,
+    initial: { branchId: entry.branchId, room: entry.room },
+    href: homeHref,
+    locate: (pathname, search) => homeLocation(pathname, search, general),
+    synchronize: (target) => {
+      setBranchId(target.branchId);
+      setRoom(target.room);
+      address.update({ branchId: target.branchId, room: target.room }, false);
+    },
+  });
+  function changeRoom(next: RoomView) {
+    setRoom(next);
+    address.update({ room: next }, "push");
+  }
   const now = performancePeriod({ branchId });
   // Every section opens with the entry's read; a branch change or refresh reads again and keeps the figures shown
   // until the new ones arrive.
@@ -82,7 +95,7 @@ export function HomeWorkspace({ entry }: { entry: Extract<HomeEntry, { kind: "ma
 
   function chooseBranch(next: string) {
     setBranchId(next);
-    replaceUrlParams({ branchId: next });
+    address.update({ branchId: next }, "push");
   }
 
   return (

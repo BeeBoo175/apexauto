@@ -68,7 +68,12 @@ export const staffWorkspaceLinks: StaffWorkspaceLink[] = [
     activeBelow: true,
     allowed: hasAccountAdministration,
   },
-  { href: "/dashboard/settings", label: "Settings", allowed: hasSettingsAccess },
+  {
+    href: "/dashboard/settings",
+    label: "Settings",
+    activeBelow: true,
+    allowed: hasSettingsAccess,
+  },
 ];
 
 export const staffPageTitles: Record<string, string> = {

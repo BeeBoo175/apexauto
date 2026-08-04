@@ -27,6 +27,8 @@ function wholeRangeLabel(from: string, to: string, unit: string) {
   return from ? `from ${from} ${unit}` : `up to ${to} ${unit}`;
 }
 
+const statusLabel = (status: string) => `${status.charAt(0).toUpperCase()}${status.slice(1)}`;
+
 export type LoadList = (filters: ListFilters, page: number) => Promise<boolean>;
 
 function statusFilter(
@@ -40,10 +42,10 @@ function statusFilter(
       label="Status"
       options={statuses.map((value) => ({
         value,
-        label: value === "All" ? "All statuses" : value,
+        label: value === "all" ? "All statuses" : statusLabel(value),
       }))}
       value={filters.status}
-      empty="All"
+      empty="all"
       busy={busy}
       onApply={(status) => apply({ status })}
     />
@@ -91,8 +93,12 @@ export function promoTableFilters(
       without: { ...filters, expiresFrom: "", expiresTo: "" },
     });
   }
-  if (filters.status !== "All") {
-    applied.push({ key: "status", label: filters.status, without: { ...filters, status: "All" } });
+  if (filters.status !== "all") {
+    applied.push({
+      key: "status",
+      label: statusLabel(filters.status),
+      without: { ...filters, status: "all" },
+    });
   }
   const columns = attach<Promo>(
     promoColumns,
@@ -127,7 +133,7 @@ export function promoTableFilters(
       code: Boolean(filters.text),
       discount: Boolean(filters.minimum || filters.maximum),
       expiresAt: Boolean(filters.expiresFrom || filters.expiresTo),
-      status: filters.status !== "All",
+      status: filters.status !== "all",
     },
   );
   return { columns, applied };
@@ -176,8 +182,12 @@ export function warrantyTableFilters(
       without: { ...filters, grade: "" },
     });
   }
-  if (filters.status !== "All") {
-    applied.push({ key: "status", label: filters.status, without: { ...filters, status: "All" } });
+  if (filters.status !== "all") {
+    applied.push({
+      key: "status",
+      label: statusLabel(filters.status),
+      without: { ...filters, status: "all" },
+    });
   }
   const columns = attach<Warranty>(
     warrantyColumns,
@@ -237,7 +247,7 @@ export function warrantyTableFilters(
       mileage: Boolean(filters.mileageFrom || filters.mileageTo),
       price: Boolean(filters.minimum || filters.maximum),
       grade: Boolean(filters.grade),
-      status: filters.status !== "All",
+      status: filters.status !== "all",
     },
   );
   return { columns, applied };

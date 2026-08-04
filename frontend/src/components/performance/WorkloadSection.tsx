@@ -42,6 +42,14 @@ export function WorkloadSection({
   onView: (next: RoomView) => void;
 }) {
   const [draft, setDraft] = useState(view.search);
+  const [applied, setApplied] = useState(view.search);
+  // A search applied from outside (Back or Forward) replaces the field, unless the user has typed since.
+  if (applied !== view.search) {
+    setApplied(view.search);
+    if (draft.trim() === applied.trim()) {
+      setDraft(view.search);
+    }
+  }
   useEffect(() => {
     if (draft.trim() === view.search.trim()) {
       return;

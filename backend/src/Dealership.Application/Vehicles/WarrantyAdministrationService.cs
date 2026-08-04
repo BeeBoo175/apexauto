@@ -6,7 +6,7 @@ namespace Dealership.Application.Vehicles;
 public sealed class WarrantyAdministrationService(IWarrantyAdministrationStore store)
 {
     public static readonly IReadOnlySet<string> Statuses =
-        new HashSet<string> { AdministrationListQuery.AllStatuses, "Active", "Inactive" };
+        new HashSet<string> { AdministrationListQuery.AllStatuses, "active", "inactive" };
 
     public static readonly IReadOnlySet<string> Sorts =
         new HashSet<string> { "name", "term", "mileage", "price", "grade", "status" };

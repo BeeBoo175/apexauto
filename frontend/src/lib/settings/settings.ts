@@ -18,8 +18,8 @@ export type WarrantyGrade = (typeof warrantyGrades)[number];
 
 export const promoSorts = ["code", "discount", "expiresAt", "status"] as const;
 export const warrantySorts = ["name", "term", "mileage", "price", "grade", "status"] as const;
-export const promoStatuses = ["All", "Active", "Inactive", "Expired"] as const;
-export const warrantyStatuses = ["All", "Active", "Inactive"] as const;
+export const promoStatuses = ["all", "active", "inactive", "expired"] as const;
+export const warrantyStatuses = ["all", "active", "inactive"] as const;
 
 export interface SettingsBounds {
   maximumFee: number;
@@ -218,10 +218,6 @@ function uniquePage<T extends { id: string }>(
 export const parsePromos = (value: unknown) => uniquePage(value, parsePromo);
 export const parseWarranties = (value: unknown) => uniquePage(value, parseWarranty);
 
-export function settingsSection(params: SearchParams): SettingsSection {
-  return settingsSections.find((section) => section.value === params.section)?.value ?? "settings";
-}
-
 export function listParams(params: SearchParams, section: SettingsSection) {
   const sorts: readonly string[] = section === "promos" ? promoSorts : warrantySorts;
   const statuses: readonly string[] = section === "promos" ? promoStatuses : warrantyStatuses;
@@ -230,7 +226,7 @@ export function listParams(params: SearchParams, section: SettingsSection) {
   const filters: ListFilters = {
     pageSize: isPageSize(size) ? size : DEFAULT_PAGE_SIZE,
     search: typeof params.search === "string" ? params.search : "",
-    status: statuses.find((status) => status === params.status) ?? "All",
+    status: statuses.find((status) => status === params.status) ?? "all",
     sort: sorts.find((sort) => sort === params.sort) ?? "",
     direction: params.direction === "desc" ? "desc" : "asc",
     ...emptyColumnFilters,
@@ -263,7 +259,7 @@ const emptyColumnFilters = {
 export const emptyListFilters: ListFilters = {
   pageSize: DEFAULT_PAGE_SIZE,
   search: "",
-  status: "All",
+  status: "all",
   sort: "",
   direction: "asc",
   ...emptyColumnFilters,
@@ -275,7 +271,7 @@ export function listQuery(filters: ListFilters, page = 1) {
   if (search) {
     query.set("search", search);
   }
-  if (filters.status !== "All") {
+  if (filters.status !== "all") {
     query.set("status", filters.status);
   }
   if (filters.sort) {
@@ -289,6 +285,18 @@ export function listQuery(filters: ListFilters, page = 1) {
     }
   }
   return query.toString();
+}
+
+// The browser address omits every default: first page, default page size, all statuses and no explicit sort.
+export function listUrlQuery(filters: ListFilters, page = 1) {
+  const query = new URLSearchParams(listQuery(filters, page));
+  if (page === 1) {
+    query.delete("page");
+  }
+  if (filters.pageSize === DEFAULT_PAGE_SIZE) {
+    query.delete("pageSize");
+  }
+  return query;
 }
 
 export function recordPath(section: Exclude<SettingsSection, "settings">, id: string) {

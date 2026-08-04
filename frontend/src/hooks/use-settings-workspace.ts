@@ -6,7 +6,6 @@ import { privateApiFetch } from "@/lib/api-browser";
 import type { Page } from "@/lib/api";
 import {
   emptyListFilters,
-  listQuery,
   parsePromos,
   parseSettings,
   parseWarranties,
@@ -19,7 +18,6 @@ import {
 } from "@/lib/settings/settings";
 import { useBoundedRead } from "./use-bounded-read";
 import type { SettingsEntry } from "./use-settings-client-entry";
-import { writeAddress } from "@/lib/browser-url";
 
 export interface ListSnapshot<T> {
   filters: ListFilters;
@@ -34,35 +32,21 @@ function snapshot<T>(
   return data ? { filters: entry.filters, page: entry.page, data } : null;
 }
 
-const selectionParameter = { promos: "promo", warranties: "warranty" } as const;
-
-function locationQuery(section: SettingsSection, filters: ListFilters, page: number) {
-  const query = new URLSearchParams(section === "settings" ? "" : listQuery(filters, page));
-  query.set("section", section);
-  // An open record drawer stays addressable while its list refreshes.
-  if (section !== "settings") {
-    const parameter = selectionParameter[section];
-    const selected = new URL(window.location.href).searchParams.get(parameter);
-    if (selected) {
-      query.set(parameter, selected);
-    }
-  }
-  return query.toString();
-}
-
 export function useSettingsWorkspace(entry: SettingsEntry) {
   const [section, setSection] = useState(entry.section);
   const [settings, setSettings] = useState<PurchaseSettings | null>(entry.settings?.data ?? null);
   const [promos, setPromos] = useState(snapshot(entry, entry.promos?.data));
   const [warranties, setWarranties] = useState(snapshot(entry, entry.warranties?.data));
-  const { busy, ready, begin, isCurrent, end } = useBoundedRead();
+  const { busy, ready, begin, isCurrent, end, cancel } = useBoundedRead();
   const toast = useToast();
 
-  // Reads one section; every failure keeps the last confirmed content and filters on screen.
+  // Reads one section; every failure keeps the last confirmed content and filters on screen. A confirmed read
+  // returns the location it shows so the caller can write the address.
   async function open(
     next: SettingsSection = section,
     filters: ListFilters | null = null,
     page: number | null = null,
+    supersede = false,
   ) {
     let current: ListSnapshot<Promo | Warranty> | null = null;
     if (next === "promos") {
@@ -72,9 +56,9 @@ export function useSettingsWorkspace(entry: SettingsEntry) {
     }
     const nextFilters = filters ?? current?.filters ?? emptyListFilters;
     const nextPage = page ?? current?.page ?? 1;
-    const attempt = begin();
+    const attempt = begin(supersede);
     if (!attempt) {
-      return false;
+      return null;
     }
     try {
       const path = sectionPath(next, nextFilters, nextPage);
@@ -94,7 +78,7 @@ export function useSettingsWorkspace(entry: SettingsEntry) {
             ? await privateApiFetch(path, parsePromos, options)
             : await privateApiFetch(path, parseWarranties, options);
         if (!isCurrent(attempt)) {
-          return false;
+          return null;
         }
         const data = result.data;
         if (
@@ -113,19 +97,16 @@ export function useSettingsWorkspace(entry: SettingsEntry) {
         }
       }
       setSection(next);
-      const url = new URL(window.location.href);
-      url.search = locationQuery(next, nextFilters, nextPage);
-      writeAddress(url);
-      return true;
+      return { section: next, filters: nextFilters, page: nextPage };
     } catch {
       if (!attempt.signal.aborted) {
         toast.error("Settings could not be refreshed. The last confirmed content remains shown.");
       }
-      return false;
+      return null;
     } finally {
       end(attempt);
     }
   }
 
-  return { section, settings, setSettings, promos, warranties, busy, ready, open };
+  return { section, settings, setSettings, promos, warranties, busy, ready, open, cancel };
 }

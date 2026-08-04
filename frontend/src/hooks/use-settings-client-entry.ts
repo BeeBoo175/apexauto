@@ -2,10 +2,10 @@
 
 import type { SettingsWorkspace } from "@/components/settings/SettingsWorkspace";
 import { useStaffClientEntry } from "./use-staff-client-entry";
+import type { SearchParams } from "@/lib/query";
 import { privateApiFetch } from "@/lib/api-browser";
 import { apiReadError, unavailableResult, type ApiResult, type Page } from "@/lib/api";
-import { isUuid } from "@/lib/auth/contracts";
-import type { SearchParams } from "@/lib/query";
+import type { SettingsSelectionPath } from "@/lib/settings/settings-location";
 import {
   listParams,
   parsePromo,
@@ -15,7 +15,6 @@ import {
   parseWarranty,
   recordPath,
   sectionPath,
-  settingsSection,
   type ListFilters,
   type Promo,
   type PurchaseSettings,
@@ -49,15 +48,14 @@ function confirmed<T extends { id: string }>(
   return result?.data?.id === id ? result : unavailableResult();
 }
 
-export function useSettingsClientEntry(parameters: SearchParams) {
+export function useSettingsClientEntry(parameters: SearchParams, selection: SettingsSelectionPath) {
   return useStaffClientEntry<SettingsEntry>(async (signal) => {
     // Only the section being opened is read; the others load when the administrator selects them.
-    const section = settingsSection(parameters);
+    const { section } = selection;
     const { filters, page } = listParams(parameters, section);
     const path = sectionPath(section, filters, page);
-    const promoId = section === "promos" && isUuid(parameters.promo) ? parameters.promo : "";
-    const warrantyId =
-      section === "warranties" && isUuid(parameters.warranty) ? parameters.warranty : "";
+    const promoId = section === "promos" ? selection.id : "";
+    const warrantyId = section === "warranties" ? selection.id : "";
     const [
       settings,
       promos,

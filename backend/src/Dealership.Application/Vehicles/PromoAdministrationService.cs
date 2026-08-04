@@ -5,7 +5,7 @@ namespace Dealership.Application.Vehicles;
 public sealed class PromoAdministrationService(IPromoAdministrationStore store, TimeProvider clock)
 {
     public static readonly IReadOnlySet<string> Statuses =
-        new HashSet<string> { AdministrationListQuery.AllStatuses, "Active", "Inactive", "Expired" };
+        new HashSet<string> { AdministrationListQuery.AllStatuses, "active", "inactive", "expired" };
 
     public static readonly IReadOnlySet<string> Sorts =
         new HashSet<string> { "code", "discount", "expiresAt", "status" };

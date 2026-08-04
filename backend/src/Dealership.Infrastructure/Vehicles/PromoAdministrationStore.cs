@@ -128,9 +128,9 @@ public sealed class PromoAdministrationStore(DealershipDbContext database) : IPr
 
         return query.Status switch
         {
-            "Active" => promos.Where(item => item.IsActive && item.ExpiresAtUtc > now),
-            "Inactive" => promos.Where(item => !item.IsActive && item.ExpiresAtUtc > now),
-            "Expired" => promos.Where(item => item.ExpiresAtUtc <= now),
+            "active" => promos.Where(item => item.IsActive && item.ExpiresAtUtc > now),
+            "inactive" => promos.Where(item => !item.IsActive && item.ExpiresAtUtc > now),
+            "expired" => promos.Where(item => item.ExpiresAtUtc <= now),
             _ => promos
         };
     }

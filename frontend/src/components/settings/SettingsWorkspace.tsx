@@ -9,17 +9,9 @@ import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import { useSettingsWorkspace } from "@/hooks/use-settings-workspace";
 import type { SettingsEntry } from "@/hooks/use-settings-client-entry";
-import { useStaffSelection } from "@/hooks/use-staff-selection";
+import { useSettingsAddress } from "@/hooks/use-settings-address";
 import { useGuardedAction } from "@/hooks/use-guarded-action";
-import { privateApiFetch } from "@/lib/api-browser";
-import {
-  parsePromo,
-  parseWarranty,
-  promoStatuses,
-  recordPath,
-  settingsSections,
-  warrantyStatuses,
-} from "@/lib/settings/settings";
+import { promoStatuses, settingsSections, warrantyStatuses } from "@/lib/settings/settings";
 import type { SettingsDraft } from "@/lib/settings/settings-draft";
 import { MasterDataTable } from "./MasterDataTable";
 import { PromoDrawer } from "./PromoDrawer";
@@ -31,31 +23,16 @@ import workspace from "@/components/staff/StaffWorkspace.module.css";
 
 export function SettingsWorkspace({ entry }: { entry: SettingsEntry }) {
   const state = useSettingsWorkspace(entry);
+  const nav = useSettingsAddress(entry, state);
+  const { promoDrawer, warrantyDrawer } = nav;
   const interaction = useGuardedAction();
   const animateEntry = useContext(StaffPageEntranceContext);
   const [draft, setDraft] = useState<SettingsDraft | null>(null);
   const [editingLocked, setEditingLocked] = useState(false);
   const [creating, setCreating] = useState<"promo" | "warranty" | null>(null);
-  const promoDrawer = useStaffSelection(entry.promoId, entry.selectedPromo, {
-    parameter: "promo",
-    path: (id) => recordPath("promos", id),
-    parse: parsePromo,
-    matches: (value, id) => value.id === id,
-    read: privateApiFetch,
-    commitAfterRead: true,
-  });
-  const warrantyDrawer = useStaffSelection(entry.warrantyId, entry.selectedWarranty, {
-    parameter: "warranty",
-    path: (id) => recordPath("warranties", id),
-    parse: parseWarranty,
-    matches: (value, id) => value.id === id,
-    read: privateApiFetch,
-    commitAfterRead: true,
-  });
   const { section, settings, promos, warranties, busy } = state;
-  const refreshList = () => void state.open(section);
-  const loadPromos: LoadList = (filters, page) => state.open("promos", filters, page);
-  const loadWarranties: LoadList = (filters, page) => state.open("warranties", filters, page);
+  const refreshList = () => void nav.reload();
+  const loadList: LoadList = nav.loadList;
 
   // Section switching sits in the table toolbar, like the other staff tables, and above the form otherwise.
   const tabs = (
@@ -65,7 +42,7 @@ export function SettingsWorkspace({ entry }: { entry: SettingsEntry }) {
       value={section}
       disabled={busy || interaction.blocked}
       onChange={(next) => {
-        interaction.request(() => void state.open(next));
+        interaction.request(() => void nav.switchSection(next));
       }}
     />
   );
@@ -76,7 +53,7 @@ export function SettingsWorkspace({ entry }: { entry: SettingsEntry }) {
         {tabs}
         <div className={styles.unavailableFilters}>
           <p>{label} are unavailable. Retry when the service is available.</p>
-          <Button size="compact" variant="secondary" onClick={() => void state.open(section)}>
+          <Button size="compact" variant="secondary" onClick={() => void nav.reload()}>
             Retry {label.toLowerCase()}
           </Button>
         </div>
@@ -102,9 +79,7 @@ export function SettingsWorkspace({ entry }: { entry: SettingsEntry }) {
       unavailable("Settings")
     );
   } else if (section === "promos") {
-    const table = promos
-      ? promoTableFilters(promos.filters, busy, promoStatuses, loadPromos)
-      : null;
+    const table = promos ? promoTableFilters(promos.filters, busy, promoStatuses, loadList) : null;
     body =
       promos && table ? (
         <MasterDataTable
@@ -116,7 +91,7 @@ export function SettingsWorkspace({ entry }: { entry: SettingsEntry }) {
           applied={table.applied}
           busy={busy}
           selectedId={promoDrawer.id}
-          onLoad={loadPromos}
+          onLoad={loadList}
           onOpen={(promo) => {
             setCreating(null);
             void promoDrawer.choose(promo.id);
@@ -131,7 +106,7 @@ export function SettingsWorkspace({ entry }: { entry: SettingsEntry }) {
       );
   } else {
     const table = warranties
-      ? warrantyTableFilters(warranties.filters, busy, warrantyStatuses, loadWarranties)
+      ? warrantyTableFilters(warranties.filters, busy, warrantyStatuses, loadList)
       : null;
     body =
       warranties && table ? (
@@ -144,7 +119,7 @@ export function SettingsWorkspace({ entry }: { entry: SettingsEntry }) {
           applied={table.applied}
           busy={busy}
           selectedId={warrantyDrawer.id}
-          onLoad={loadWarranties}
+          onLoad={loadList}
           onOpen={(warranty) => {
             setCreating(null);
             void warrantyDrawer.choose(warranty.id);
@@ -169,7 +144,7 @@ export function SettingsWorkspace({ entry }: { entry: SettingsEntry }) {
             label="Refresh settings"
             busy={busy}
             disabled={!state.ready || editingLocked}
-            onClick={() => void state.open()}
+            onClick={() => void nav.refresh()}
           />
         }
       />
