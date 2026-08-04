@@ -92,6 +92,11 @@ export interface ListingFilters {
   direction: "asc" | "desc";
 }
 
+// Domain statuses keep their PascalCase on the wire; the address carries their camelCase token.
+export function listingQueryToken(value: string) {
+  return value.replace(/^[A-Z]/, (letter) => letter.toLowerCase());
+}
+
 export function hasListingAccess(actor: CurrentActor) {
   return actor.role === "BranchManager" || actor.role === "GeneralManager";
 }
@@ -104,8 +109,13 @@ export function listingParams(params: SearchParams) {
     registration: typeof params.registration === "string" ? params.registration : "",
     vehicle: typeof params.vehicle === "string" ? params.vehicle : "",
     branchId: isUuid(params.branchId) ? params.branchId : "",
+    // The address carries the camelCase token of the domain status.
     inspection:
-      listingInspectionOptions.find((option) => option.value === params.inspection)?.value ?? "",
+      listingInspectionOptions.find(
+        (option) =>
+          option.value &&
+          option.value.replace(/^[A-Z]/, (c) => c.toLowerCase()) === params.inspection,
+      )?.value ?? "",
     publication:
       listingPublicationOptions.find((option) => option.value === params.publication)?.value ?? "",
     minimumPrice: typeof params.minimumPrice === "string" ? params.minimumPrice : "",

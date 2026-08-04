@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { parseCatalogue } from "@/lib/vehicles/parse";
 import { parseListings } from "@/lib/vehicles/parse-listings";
 import { parseListingWorkspace } from "@/lib/vehicles/listing-workspace";
+import { listingLocation } from "@/lib/vehicles/listing-location";
 import {
   listingDraft,
   listingDraftContents,
@@ -443,5 +444,39 @@ test("catalogue filters round-trip only supported fields and preserve exact pric
     { make: "a\0b" },
   ]) {
     expect(catalogueFilterError({ ...catalogueDefaults, ...changed })).not.toBeNull();
+  }
+});
+
+test("listing addresses put the listing and history record in the path and omit defaults", () => {
+  const id = "11111111-1111-4111-8111-111111111111";
+  const revisionId = "22222222-2222-4222-8222-222222222222";
+  const eventId = "33333333-3333-4333-8333-333333333333";
+  const record = `/dashboard/management/${id}/publication/revisions/${revisionId}/publicationApproved/${eventId}`;
+  expect(listingLocation("/dashboard/management", "")?.href).toBe("/dashboard/management");
+  expect(listingLocation(`/dashboard/management/${id}`, "")?.href).toBe(
+    `/dashboard/management/${id}`,
+  );
+  expect(
+    listingLocation(`/dashboard/management/${id}/card`, "page=2&inspection=available"),
+  ).toMatchObject({
+    section: "card",
+    href: `/dashboard/management/${id}/card?page=2&inspection=available`,
+  });
+  expect(listingLocation(record, "")).toMatchObject({
+    section: "publication",
+    record: { kind: "PublicationApproved", revisionId, eventId },
+    href: record,
+  });
+  expect(
+    listingLocation(`/dashboard/management/${id}`, "listing=other&inspection=Available")?.href,
+  ).toBe(`/dashboard/management/${id}`);
+  for (const path of [
+    `/dashboard/management/${id}/listing`,
+    `/dashboard/management/${id}/listing/revisions/${revisionId}/publicationApproved/${eventId}`,
+    `/dashboard/management/${id}/publication/revisions/${revisionId}/PublicationApproved/${eventId}`,
+    `/dashboard/management/${id}/card/extra`,
+    "/dashboard/management/not-an-id",
+  ]) {
+    expect(listingLocation(path, "")).toBeNull();
   }
 });

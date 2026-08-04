@@ -9,13 +9,13 @@ import { type Branch } from "@/lib/branches";
 import { listingQuery, type ListingFilters, type ListingItem } from "@/lib/vehicles/listings";
 import { parseListings } from "@/lib/vehicles/parse-listings";
 import { readBranchChoices } from "@/lib/branch-choices";
-import { writeAddress } from "@/lib/browser-url";
 
 export function useListingTable(
   initial: ApiResult<Page<ListingItem>>,
   filters: ListingFilters,
   page: number,
   initialBranches: Page<Branch> | null,
+  onLocation: (filters: ListingFilters, page: number, mode: false | "push" | "replace") => void,
 ) {
   const [snapshot, setSnapshot] = useState(initial.data);
   const [active, setActive] = useState({ filters, page });
@@ -52,10 +52,18 @@ export function useListingTable(
     };
   }, [initial]);
 
-  async function load(nextFilters = active.filters, nextPage = active.page, resetDraft = false) {
-    if (controller.current) {
+  // Applied loads push; refresh and reconciliation replace; a Back or Forward destination writes nothing.
+  async function load(
+    nextFilters = active.filters,
+    nextPage = active.page,
+    resetDraft = false,
+    history: false | "push" | "replace" = "push",
+    supersede = false,
+  ) {
+    if (controller.current && !supersede) {
       return;
     }
+    controller.current?.abort();
     if (
       nextFilters.search.length > 160 ||
       /[\u0000-\u001f\u007f-\u009f]/u.test(nextFilters.search)
@@ -132,31 +140,7 @@ export function useListingTable(
         direction: nextFilters.direction,
       }));
       setRevision((value) => value + 1);
-      const query = new URLSearchParams(window.location.search);
-      for (const key of [
-        "page",
-        "pageSize",
-        "search",
-        "branchId",
-        "inspection",
-        "publication",
-        "sort",
-        "direction",
-        "minimumPrice",
-        "maximumPrice",
-        "minimumPublishedPrice",
-        "maximumPublishedPrice",
-        "from",
-        "to",
-        "registration",
-        "vehicle",
-      ]) {
-        query.delete(key);
-      }
-      new URLSearchParams(listingQuery(nextFilters, nextPage)).forEach((value, key) =>
-        query.set(key, value),
-      );
-      writeAddress(`/dashboard/management?${query}`);
+      onLocation(nextFilters, nextPage, history);
       return true;
     } catch {
       if (!attempt.signal.aborted) {
@@ -197,10 +181,15 @@ export function useListingTable(
     }
   }
 
-  function refreshAfterCommand() {
+  function cancel() {
     controller.current?.abort();
     controller.current = null;
-    void load();
+    setBusy(false);
+  }
+
+  function refreshAfterCommand() {
+    cancel();
+    void load(undefined, undefined, false, "replace");
   }
 
   return {
@@ -215,5 +204,6 @@ export function useListingTable(
     load,
     loadBranches,
     refreshAfterCommand,
+    cancel,
   };
 }

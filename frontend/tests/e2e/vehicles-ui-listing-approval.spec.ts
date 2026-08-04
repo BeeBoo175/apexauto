@@ -34,9 +34,7 @@ test("manager explicitly approves only saved drafts with bound receipts, exact r
     route.fulfill({ status: 503, body: "" }),
   );
   const initialReads = counts()[endpoint] ?? 0;
-  const entry = await page.goto(
-    `/dashboard/management?branchId=${branch}&listing=${item.id}&section=publication`,
-  );
+  const entry = await page.goto(`/dashboard/management/${item.id}/publication?branchId=${branch}`);
   expect(await entry!.text()).not.toContain("Publication record");
   const dialog = page.getByRole("dialog", { name: saved.vehicle.registrationPlate, exact: true });
   await expect(

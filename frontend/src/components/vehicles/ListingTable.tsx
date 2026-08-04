@@ -13,11 +13,9 @@ import { RecordToolbar } from "@/components/ui/RecordToolbar";
 import { CsvExportActions } from "@/components/ui/CsvExportActions";
 import { DataTable } from "@/components/ui/data-table/DataTable";
 import type { TableSort } from "@/components/ui/data-table/types";
-import { useListingTable } from "@/hooks/use-listing-table";
+import { useListingManager } from "@/hooks/use-listing-manager";
 import { useRowSelection } from "@/hooks/use-row-selection";
 import { useCsvExport } from "@/hooks/use-csv-export";
-import { useStaffSelection } from "@/hooks/use-staff-selection";
-import { privateApiFetch } from "@/lib/api-browser";
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import type { ApiResult, Page } from "@/lib/api";
 import type { Branch } from "@/lib/branches";
@@ -32,7 +30,7 @@ import { exportListings, listingExportColumns } from "@/lib/vehicles/listing-exp
 import { listingTableFilters } from "./listing-table-filters";
 import { ListingDrawer } from "./ListingDrawer";
 import { listingColumns } from "./listing-columns";
-import { parseListingWorkspace, type ListingWorkspace } from "@/lib/vehicles/listing-workspace";
+import type { ListingWorkspace } from "@/lib/vehicles/listing-workspace";
 import type { ListingRecordSelection } from "@/lib/vehicles/listing-history-selection";
 import styles from "@/components/staff/StaffWorklist.module.css";
 import workspace from "@/components/staff/StaffWorkspace.module.css";
@@ -60,14 +58,19 @@ export function ListingTable({
   section: ListingSection;
   record?: ListingRecordSelection | null;
 }) {
-  const state = useListingTable(initial, filters, page, branches);
-  const drawer = useStaffSelection(listingId, selected, {
-    parameter: "listing",
-    path: (id) => `/api/staff/listings/${id}`,
-    parse: parseListingWorkspace,
-    matches: (value, id) => value.vehicle.vehicleId === id,
-    read: privateApiFetch,
-    commitAfterRead: true,
+  const {
+    table: state,
+    drawer,
+    refresh,
+  } = useListingManager({
+    initial,
+    filters,
+    page,
+    branches,
+    listingId,
+    selected,
+    section,
+    record,
   });
   const baseColumns = listingColumns(actor.role === "GeneralManager");
   const animateEntry = useContext(StaffPageEntranceContext);
@@ -125,7 +128,7 @@ export function ListingTable({
             label="Refresh listings"
             busy={state.busy}
             disabled={!state.ready}
-            onClick={() => void state.load()}
+            onClick={() => void refresh()}
           />
         }
       />
@@ -260,21 +263,14 @@ export function ListingTable({
           ) : (
             <div className={styles.unavailableFilters}>
               <p>Listings are unavailable. Retry when the service is available.</p>
-              <Button size="compact" variant="secondary" onClick={() => void state.load()}>
+              <Button size="compact" variant="secondary" onClick={() => void refresh()}>
                 Retry listings
               </Button>
             </div>
           )}
         </div>
       </div>
-      <ListingDrawer
-        actor={actor}
-        selection={drawer}
-        initial={selected}
-        initialSection={section}
-        initialRecord={record}
-        onSaved={state.refreshAfterCommand}
-      />
+      <ListingDrawer actor={actor} selection={drawer} onSaved={state.refreshAfterCommand} />
     </div>
   );
 }

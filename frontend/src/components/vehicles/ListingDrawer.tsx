@@ -1,89 +1,29 @@
 "use client";
 
 import { useState } from "react";
-import { useGuardedAction } from "@/hooks/use-guarded-action";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { ListingLoadingShell } from "./ListingLoadingShell";
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
-import type { useStaffSelection } from "@/hooks/use-staff-selection";
-import type { ListingWorkspace } from "@/lib/vehicles/listing-workspace";
-import type { ListingSection } from "@/lib/vehicles/listings";
-import {
-  listingRecordQuery,
-  listingRecordSection,
-  type ListingRecordSelection,
-} from "@/lib/vehicles/listing-history-selection";
-import type { ApiResult } from "@/lib/api";
+import type { useListingSelection } from "@/hooks/use-listing-selection";
 import { ListingEditor } from "./ListingEditor";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
-import { writeAddress } from "@/lib/browser-url";
 
 export function ListingDrawer({
   actor,
   onSaved,
   selection,
-  initial,
-  initialSection,
-  initialRecord = null,
 }: {
   actor: CurrentActor;
   onSaved: () => void;
-  selection: ReturnType<typeof useStaffSelection<ListingWorkspace>>;
-  initial: ApiResult<ListingWorkspace> | null;
-  initialSection: ListingSection;
-  initialRecord?: ListingRecordSelection | null;
+  selection: ReturnType<typeof useListingSelection>;
 }) {
   const [locked, setLocked] = useState(false);
-  const interaction = useGuardedAction();
-  const [section, setSection] = useState(initialSection);
-  const [record, setRecord] = useState(initialRecord);
-  const [entry, setEntry] = useState(initial);
-  if (entry !== initial) {
-    setEntry(initial);
-    setSection(initialSection);
-    setRecord(initialRecord);
-  }
+  const { section, record, changeSection, review: onRecord } = selection;
   const snapshot = selection.result?.data;
   const vehicle = snapshot?.vehicle;
-
-  function changeSection(next: ListingSection) {
-    setSection(next);
-    const url = new URL(window.location.href);
-    url.searchParams.set("section", next);
-    writeAddress(url);
-  }
-
-  function close() {
-    interaction.request(closeConfirmed, "Discard and close");
-  }
-
-  function closeConfirmed() {
-    selection.close();
-    setSection("listing");
-    setRecord(null);
-    const url = new URL(window.location.href);
-    url.searchParams.delete("section");
-    url.searchParams.delete("revision");
-    url.searchParams.delete("event");
-    url.searchParams.delete("eventKind");
-    writeAddress(url);
-  }
-
-  function review(next: ListingRecordSelection | null) {
-    setRecord(next);
-    const url = new URL(window.location.href);
-    url.searchParams.delete("revision");
-    url.searchParams.delete("event");
-    url.searchParams.delete("eventKind");
-    if (next) {
-      setSection(listingRecordSection(next));
-      listingRecordQuery(next).forEach((value, key) => url.searchParams.set(key, value));
-    }
-    writeAddress(url);
-  }
 
   return (
     <>
@@ -98,7 +38,7 @@ export function ListingDrawer({
         description={
           vehicle ? `${vehicle.make} ${vehicle.model} · ${vehicle.branchName}` : undefined
         }
-        onClose={close}
+        onClose={selection.close}
         headerActions={
           <RefreshButton
             label="Refresh listing"
@@ -129,7 +69,7 @@ export function ListingDrawer({
             section={section}
             changeSection={changeSection}
             record={record}
-            onRecord={review}
+            onRecord={onRecord}
             onLock={setLocked}
             onSaved={() => {
               onSaved();

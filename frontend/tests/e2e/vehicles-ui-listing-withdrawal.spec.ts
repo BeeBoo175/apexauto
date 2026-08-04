@@ -35,9 +35,7 @@ test("manager withdraws an exact publication with retained drafts, receipts, ref
     route.fulfill({ status: 503, body: "" }),
   );
   const initialReads = counts()[endpoint] ?? 0;
-  const entry = await page.goto(
-    `/dashboard/management?branchId=${branch}&listing=${item.id}&section=publication`,
-  );
+  const entry = await page.goto(`/dashboard/management/${item.id}/publication?branchId=${branch}`);
   expect(await entry!.text()).not.toContain("Withdraw approved listing");
   const dialog = page.getByRole("dialog", { name: saved.vehicle.registrationPlate, exact: true });
   const button = (name: string) => dialog.getByRole("button", { name, exact: true });
@@ -343,9 +341,7 @@ test("manager withdraws an exact publication with retained drafts, receipts, ref
       await context.request.get(heldEndpoint, { headers: await privateHeaders(context) })
     ).json()
   ).data;
-  await page.goto(
-    `/dashboard/management?branchId=${branch}&listing=${hold.vehicleId}&section=publication`,
-  );
+  await page.goto(`/dashboard/management/${hold.vehicleId}/publication?branchId=${branch}`);
   const heldDialog = page.getByRole("dialog", {
     name: held.vehicle.registrationPlate,
     exact: true,

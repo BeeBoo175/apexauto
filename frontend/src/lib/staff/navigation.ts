@@ -44,7 +44,12 @@ export const staffWorkspaceLinks: StaffWorkspaceLink[] = [
     activeBelow: true,
     allowed: hasInspectionAccess,
   },
-  { href: "/dashboard/management", label: "Listings", allowed: hasListingAccess },
+  {
+    href: "/dashboard/management",
+    label: "Listings",
+    activeBelow: true,
+    allowed: hasListingAccess,
+  },
   {
     href: "/dashboard/test-drives",
     label: "Test drives",

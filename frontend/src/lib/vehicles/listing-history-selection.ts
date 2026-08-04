@@ -24,12 +24,3 @@ export function parseListingRecord(params: SearchParams): ListingRecordSelection
 export function listingRecordSection(record: ListingRecordSelection) {
   return record.kind === "DraftSaved" ? "listing" : "publication";
 }
-
-export function listingRecordQuery(record: ListingRecordSelection) {
-  return new URLSearchParams({
-    section: listingRecordSection(record),
-    revision: record.revisionId,
-    event: record.eventId,
-    eventKind: record.kind,
-  });
-}

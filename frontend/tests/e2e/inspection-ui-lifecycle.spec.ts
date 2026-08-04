@@ -454,9 +454,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     .getByRole("dialog", { name: registration, exact: true })
     .getByRole("button", { name: "Close drawer", exact: true })
     .click();
-  await manager.goto(
-    `/dashboard/inspection/${id}/repairs/${repairRequestId}/revisions/1`,
-  );
+  await manager.goto(`/dashboard/inspection/${id}/repairs/${repairRequestId}/revisions/1`);
   await expect(
     manager.getByRole("heading", { name: "Retained repair request", exact: true }),
   ).toBeVisible();
