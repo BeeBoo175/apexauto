@@ -10,11 +10,15 @@ import { StaffTestDriveWorkspace } from "./StaffTestDriveWorkspace";
 export function StaffTestDriveClientEntry({
   actor,
   parameters,
+  selectedId,
+  section,
 }: {
   actor: CurrentActor;
   parameters: SearchParams;
+  selectedId: string;
+  section: string;
 }) {
-  const { entry, failed, retry } = useStaffTestDriveEntry(actor, parameters);
+  const { entry, failed, retry } = useStaffTestDriveEntry(actor, parameters, selectedId, section);
   if (failed) {
     return (
       <StaffNotice title="Test drives">

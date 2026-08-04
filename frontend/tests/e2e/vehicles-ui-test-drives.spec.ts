@@ -238,7 +238,7 @@ test("customer booking and cancellation reconcile exact receipts before manager 
     ).toBeVisible();
     const managerPage = await manager.newPage();
     managerPage.setDefaultTimeout(15_000);
-    await managerPage.goto(`/dashboard/test-drives?booking=${booking.id}`);
+    await managerPage.goto(`/dashboard/test-drives/${booking.id}`);
     const managerRecord = managerPage.getByRole("region", {
       name: "Selected test drive",
       exact: true,
@@ -258,7 +258,7 @@ test("customer booking and cancellation reconcile exact receipts before manager 
     const agentPage = await agent.newPage();
     agentPage.setDefaultTimeout(15_000);
     agentPage.on("dialog", (dialog) => dialog.accept());
-    await agentPage.goto(`/dashboard/test-drives?booking=${booking.id}`);
+    await agentPage.goto(`/dashboard/test-drives/${booking.id}`);
     const record = agentPage.getByRole("region", { name: "Selected test drive", exact: true });
     await expect(record).toBeVisible();
     await record.getByLabel("Test drive action", { exact: true }).selectOption("starts");
@@ -339,7 +339,7 @@ test("staff test-drive history keeps workspace sections and retries the requeste
   const items = (await response.json()).data.items as { id: string; registrationPlate: string }[];
   expect(items.length).toBeGreaterThan(1);
   const [first, second] = items;
-  await page.goto(`/dashboard/test-drives?booking=${first.id}&status=All`);
+  await page.goto(`/dashboard/test-drives/${first.id}`);
   const record = page.getByRole("region", { name: "Selected test drive", exact: true });
   await expect(record).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`/dashboard/test-drives/${first.id}$`));

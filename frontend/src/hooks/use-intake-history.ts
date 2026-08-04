@@ -7,7 +7,6 @@ import { useGuardedAction } from "./use-guarded-action";
 import { useStaffWorklist } from "./use-staff-worklist";
 import { useStaffAppointmentDrawer } from "./use-staff-appointment-drawer";
 import type { IntakeWorkspaceSnapshot } from "./use-intake-workspace";
-import { isUuid } from "@/lib/auth/contracts";
 import { writeAddress } from "@/lib/browser-url";
 import { intakeLocation, intakeLocationId } from "@/lib/staff/intake-location";
 import { intakeQueueParams, staffParams, staffQuery } from "@/lib/staff/query";
@@ -18,15 +17,12 @@ function parseIntakeUrl(pathname: string, search: string, agent: boolean) {
   if (pathId === null) {
     return null;
   }
-  const query = new URLSearchParams(search);
-  const legacyAppointment = query.get("appointment");
-  const id = pathId || (isUuid(legacyAppointment) ? legacyAppointment : "");
-  const parameters = Object.fromEntries(query.entries());
+  const parameters = Object.fromEntries(new URLSearchParams(search));
   const { filters, page } = agent
     ? intakeQueueParams(parameters)
     : staffParams({ ...parameters, queue: "" });
-  const href = intakeLocation(filters, page, id);
-  return { id, filters, page, href };
+  const href = intakeLocation(filters, page, pathId);
+  return { id: pathId, filters, page, href };
 }
 
 export function useIntakeHistory(initial: IntakeWorkspaceSnapshot, agent: boolean) {

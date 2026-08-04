@@ -130,7 +130,7 @@ test("staff snapshots preserve released ownership and bind handling evidence to 
   const hidden = {
     from: "2026-11-01",
     to: "2026-11-02",
-    status: "Cancelled",
+    status: "cancelled",
     branchId: id,
     handlerId: id,
     handler: "siti",
@@ -139,7 +139,7 @@ test("staff snapshots preserve released ownership and bind handling evidence to 
     customer: "Ahmad",
     sort: "handlerEmail",
     direction: "desc",
-    queue: "ToClaim",
+    queue: "toClaim",
     search: "Saga",
   };
   const agentQuery = staffTestDriveParams(hidden, true);
@@ -409,7 +409,7 @@ test("a booking history keeps ordered, attributed steps and rejects unknown or p
   expect(parseStaffTestDriveHistory({ ...page, bookingId: "not-an-id" })).toBeNull();
 });
 
-test("staff test-drive locations normalize legacy tokens and preserve record sections and list context", () => {
+test("staff test-drive locations reject legacy selection and tokens and preserve record sections and list context", () => {
   const manager = staffTestDriveParams({}, false);
   expect(staffTestDriveUrl(manager.filters, 1)).toBe("/dashboard/test-drives");
   expect(staffTestDriveUrl({ ...manager.filters, sort: "startsAt" }, 1)).toBe(
@@ -422,9 +422,15 @@ test("staff test-drive locations normalize legacy tokens and preserve record sec
     `?booking=${id}&section=history&status=NotCompleted&page=2&pageSize=10`,
     false,
   )!;
-  expect(legacy.selectedId).toBe(id);
-  expect(legacy.filters.status).toBe("notCompleted");
-  expect(legacy.href).toBe(
+  expect(legacy.selectedId).toBe("");
+  expect(legacy.filters.status).toBe("all");
+  expect(legacy.href).toBe("/dashboard/test-drives?page=2&pageSize=10");
+  const current = staffTestDriveLocation(
+    `/dashboard/test-drives/${id}/history`,
+    "?status=notCompleted&page=2&pageSize=10",
+    false,
+  )!;
+  expect(current.href).toBe(
     `/dashboard/test-drives/${id}/history?page=2&pageSize=10&status=notCompleted`,
   );
   expect(
@@ -432,6 +438,6 @@ test("staff test-drive locations normalize legacy tokens and preserve record sec
       ?.selectedId,
   ).toBe(vehicleId);
   expect(staffTestDriveLocation("/dashboard/test-drives/not-a-record", "", false)).toBeNull();
-  expect(staffTestDriveParams({ queue: "ToClaim" }, true).filters.queue).toBe("toClaim");
+  expect(staffTestDriveParams({ queue: "ToClaim" }, true).filters.queue).toBe("myWork");
   expect(staffTestDriveParams({ status: "constructor" }, false).filters.status).toBe("all");
 });

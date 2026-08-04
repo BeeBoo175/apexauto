@@ -12,13 +12,10 @@ export function StaffTestDrivePageEntry({
   selectedId?: string;
   section?: string;
 }) {
-  const parameters = searchParams.then((query) =>
-    selectedId ? { ...query, booking: selectedId, section } : query,
-  );
   return (
     <StaffEntry
       path={selectedId ? `/dashboard/test-drives/${selectedId}` : "/dashboard/test-drives"}
-      searchParams={parameters}
+      searchParams={searchParams}
       access={(actor) => hasTestDriveAccess(actor.role)}
       deniedTitle="Test drive access unavailable"
       deniedDescription="Only sales agents and managers can read test drives."
@@ -27,7 +24,9 @@ export function StaffTestDrivePageEntry({
         <StaffTestDriveClientEntry
           key={crypto.randomUUID()}
           actor={actor}
-          parameters={await parameters}
+          parameters={await searchParams}
+          selectedId={selectedId}
+          section={section}
         />
       )}
     </StaffEntry>

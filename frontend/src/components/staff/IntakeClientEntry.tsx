@@ -10,11 +10,13 @@ import { StaffLoading, StaffNotice } from "./StaffPage";
 export function IntakeClientEntry({
   actor,
   parameters,
+  selectedId,
 }: {
   actor: CurrentActor;
   parameters: SearchParams;
+  selectedId: string;
 }) {
-  const { entry, failed, retry } = useIntakeClientEntry(actor, parameters);
+  const { entry, failed, retry } = useIntakeClientEntry(actor, parameters, selectedId);
   if (failed) {
     return (
       <StaffNotice title="Intake appointments">

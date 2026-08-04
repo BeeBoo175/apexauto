@@ -15,7 +15,6 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import { createInteractionGuard, type InteractionBlock } from "@/lib/interaction-guard";
 import { writeAddress } from "@/lib/browser-url";
-import { isUuid } from "@/lib/auth/contracts";
 import { staffRecordLocation } from "@/lib/staff/record-location";
 import { staffWorkspacePath } from "@/lib/staff/navigation";
 import {
@@ -23,14 +22,6 @@ import {
   StaffHistoryContext,
   StaffLocalHistoryContext,
 } from "@/components/staff/StaffClientEntryBoundary";
-
-function targetIntakeId(url: URL, pathId: string) {
-  if (pathId) {
-    return pathId;
-  }
-  const legacy = url.searchParams.get("appointment");
-  return isUuid(legacy) ? legacy : "";
-}
 
 export function useStaffNavigation() {
   const pathname = usePathname();
@@ -87,10 +78,7 @@ export function useStaffNavigation() {
     const destinationUrl = new URL(window.location.href);
     const destinationRecord = staffRecordLocation(destinationUrl.pathname, workspace);
     if (previousRecord !== null && destinationRecord !== null) {
-      const nextSelectedId =
-        workspace === "/dashboard/intake"
-          ? targetIntakeId(destinationUrl, destinationRecord.id)
-          : destinationRecord.id;
+      const nextSelectedId = destinationRecord.id;
       const currentSelectedId = localHistory?.selectedId ?? previousRecord.id;
       if (
         !guard.isLocked() ||

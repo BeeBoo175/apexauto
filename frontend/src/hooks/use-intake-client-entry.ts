@@ -5,7 +5,6 @@ import { useToast } from "@/components/ui/Toast";
 import { useStaffClientEntry } from "./use-staff-client-entry";
 import { privateApiFetch } from "@/lib/api-browser";
 import type { CurrentActor } from "@/lib/auth/actor";
-import { isUuid } from "@/lib/auth/contracts";
 import type { SearchParams } from "@/lib/query";
 import { parseDetail, parseWorklistPage } from "@/lib/staff/parse";
 import {
@@ -23,14 +22,17 @@ interface IntakeEntry {
   view: IntakeViewComponent;
 }
 
-export function useIntakeClientEntry(actor: CurrentActor, parameters: SearchParams) {
+export function useIntakeClientEntry(
+  actor: CurrentActor,
+  parameters: SearchParams,
+  selectedId: string,
+) {
   const { error } = useToast();
   const agent = actor.role === "SalesAgent";
   const result = useStaffClientEntry<IntakeEntry>(async (signal) => {
     const { filters, page } = agent
       ? intakeQueueParams(parameters)
       : staffParams({ ...parameters, queue: "" });
-    const selectedId = isUuid(parameters.appointment) ? parameters.appointment : "";
     const selectedRead = selectedId
       ? privateApiFetch(
           `/api/staff/intake/appointments/${selectedId}`,

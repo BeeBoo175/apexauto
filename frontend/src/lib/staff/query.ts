@@ -2,34 +2,20 @@ import type { SearchParams } from "@/lib/query";
 import { isUuid } from "@/lib/auth/contracts";
 import { DEFAULT_PAGE_SIZE, isPageSize } from "@/lib/pagination";
 import { historyParams, historyQuery } from "@/lib/intake/list-query";
-import { type AppointmentDetail, type IntakeQueue, type StaffFilters } from "./contracts";
-
-const legacyStatuses: Record<string, string> = {
-  Booked: "booked",
-  CheckedIn: "checkedIn",
-  Cancelled: "cancelled",
-  NoShow: "noShow",
-  All: "all",
-};
-
-const legacyQueues: Record<string, IntakeQueue> = {
-  toClaim: "toClaim",
-  myWork: "myWork",
-  history: "history",
-  ToClaim: "toClaim",
-  MyWork: "myWork",
-  History: "history",
-};
+import {
+  intakeQueues,
+  worklistStatuses,
+  type AppointmentDetail,
+  type IntakeQueue,
+  type StaffFilters,
+} from "./contracts";
 
 export function parseIntakeQueue(value: unknown): IntakeQueue | "" {
-  return typeof value === "string" && Object.hasOwn(legacyQueues, value) ? legacyQueues[value] : "";
+  return intakeQueues.find((queue) => queue === value) ?? "";
 }
 
 function normalizeWorklistStatus(value: unknown): string {
-  if (typeof value !== "string") {
-    return "all";
-  }
-  return Object.hasOwn(legacyStatuses, value) ? legacyStatuses[value] : value;
+  return worklistStatuses.find((status) => status === value) ?? "all";
 }
 
 export function appointmentQueue(detail: AppointmentDetail): IntakeQueue {

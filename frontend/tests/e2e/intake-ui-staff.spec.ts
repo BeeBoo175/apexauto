@@ -304,7 +304,7 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
   ).toBeVisible();
   await captureIntake(page, "agent-check-in");
   const completedReads = counts()[detailPath];
-  await page.goto(`/dashboard/intake?appointment=${arrival.id}`);
+  await page.goto(`/dashboard/intake/${arrival.id}`);
   await expect(dialog.getByText("Checked in", { exact: true })).toBeVisible();
   await expect(
     queue.getByRole("button", { name: /^History\b/, includeHidden: true }),

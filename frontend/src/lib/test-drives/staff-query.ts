@@ -71,9 +71,8 @@ export function staffTestDriveParams(parameters: SearchParams, agent: boolean) {
   const text = (key: string) => (typeof parameters[key] === "string" ? parameters[key] : "");
   const page = Number(text("page") || 1);
   const pageSize = Number(text("pageSize"));
-  const token = (key: string) => text(key).replace(/^[A-Z]/, (letter) => letter.toLowerCase());
-  const requestedQueue = testDriveQueues.find((item) => item.value === token("queue"));
-  const status = token("status");
+  const requestedQueue = testDriveQueues.find((item) => item.value === text("queue"));
+  const status = text("status");
   return {
     filters: {
       from: agent ? "" : text("from"),
@@ -94,7 +93,6 @@ export function staffTestDriveParams(parameters: SearchParams, agent: boolean) {
       pageSize: isPageSize(pageSize) ? pageSize : DEFAULT_PAGE_SIZE,
     },
     page: Number.isSafeInteger(page) && page > 0 ? page : 1,
-    selectedId: isUuid(text("booking")) ? text("booking") : "",
   };
 }
 
@@ -115,9 +113,8 @@ export function staffTestDriveLocation(pathname: string, search: string, agent: 
   }
   const query = new URLSearchParams(search);
   const parsed = staffTestDriveParams(Object.fromEntries(query), agent);
-  const selectedId = record.id || parsed.selectedId;
-  const requestedSection = record.section || query.get("section");
-  const section = selectedId && requestedSection === "history" ? "history" : "";
+  const selectedId = record.id;
+  const section = selectedId && record.section === "history" ? "history" : "";
   return {
     ...parsed,
     selectedId,

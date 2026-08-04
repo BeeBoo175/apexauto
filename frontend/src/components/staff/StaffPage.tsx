@@ -45,9 +45,7 @@ export function StaffLoading() {
       <StaffCommandBar title={title} />
       <StaffLoadingShell
         view={view}
-        selected={Boolean(
-          parameters.inspection || parameters.sale || parameters.appointment || parameters.booking,
-        )}
+        selected={path !== pathname}
         report={{
           view: typeof parameters.view === "string" ? parameters.view : "",
           general: actor.role === "GeneralManager",

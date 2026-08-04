@@ -13,7 +13,12 @@ import {
 } from "@/lib/test-drives/staff-query";
 import { readBranchChoices } from "@/lib/branch-choices";
 
-export function useStaffTestDriveEntry(actor: CurrentActor, parameters: SearchParams) {
+export function useStaffTestDriveEntry(
+  actor: CurrentActor,
+  parameters: SearchParams,
+  selectedId: string,
+  section: string,
+) {
   return useStaffClientEntry(async (signal) => {
     const query = staffTestDriveParams(parameters, actor.role === "SalesAgent");
     const notice = testDriveDateError(query.filters);
@@ -27,12 +32,12 @@ export function useStaffTestDriveEntry(actor: CurrentActor, parameters: SearchPa
         parseStaffTestDrivePage,
         { signal },
       ),
-      query.selectedId
+      selectedId
         ? privateApiFetch(
-            `/api/staff/test-drives/${query.selectedId}`,
+            `/api/staff/test-drives/${selectedId}`,
             (value) => {
               const detail = parseStaffTestDriveDetail(value);
-              return detail?.booking.id === query.selectedId ? detail : null;
+              return detail?.booking.id === selectedId ? detail : null;
             },
             { signal },
           ).catch(() => null)
@@ -53,7 +58,8 @@ export function useStaffTestDriveEntry(actor: CurrentActor, parameters: SearchPa
     }
     return {
       ...query,
-      section: parameters.section === "history" ? "history" : "",
+      selectedId,
+      section: selectedId && section === "history" ? "history" : "",
       notice,
       initial: initial.data,
       selected: selected?.data ?? null,

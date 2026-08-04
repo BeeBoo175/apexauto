@@ -28,7 +28,7 @@ export default async function PerformancePage({
         <PerformanceClientEntry
           key={crypto.randomUUID()}
           actor={actor}
-          parameters={{ ...(await searchParams), ...selection }}
+          parameters={{ ...(await searchParams), person: "", section: "", ...selection }}
         />
       )}
     </StaffEntry>

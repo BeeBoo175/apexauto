@@ -63,11 +63,11 @@ test("list queries and snapshots share 10/25/50 sizes and the default 25", () =>
 test("agent queues discard hidden table and calendar criteria and restore only queue context", () => {
   const input = {
     view: "queue",
-    queue: "History",
+    queue: "history",
     page: "3",
     pageSize: "10",
     search: "VCA",
-    status: "Booked",
+    status: "booked",
     handlerId: id,
     handler: "hidden handler",
     branchId: id,
@@ -92,7 +92,7 @@ test("agent queues discard hidden table and calendar criteria and restore only q
   }
   expect(intakeQueueParams({}).filters.queue).toBe("myWork");
   expect(staffViewQuery(intakeQueueParams({ queue: "MyWork" }).filters, 1)).toBe("");
-  expect(intakeLocation(intakeQueueParams({ queue: "ToClaim" }).filters, 2, id)).toBe(
+  expect(intakeLocation(intakeQueueParams({ queue: "toClaim" }).filters, 2, id)).toBe(
     `/dashboard/intake/${id}?page=2&queue=toClaim`,
   );
   expect(intakeLocationId("/dashboard/intake")).toBe("");
@@ -141,14 +141,14 @@ test("staff queries preserve applied search, sorting, branch and page size throu
   const input = {
     from: "2026-10-20",
     to: "2026-10-29",
-    status: "All",
+    status: "all",
     branchId: id,
     search: " VCA %_! ",
     sort: "registrationPlate",
     direction: "desc",
     pageSize: "50",
     page: "3",
-    queue: "MyWork",
+    queue: "myWork",
     handlerId: id,
     handler: "aina.sofia",
   };
@@ -161,11 +161,11 @@ test("staff queries preserve applied search, sorting, branch and page size throu
     queue: "myWork",
     search: "VCA %_!",
   });
-  expect(staffParams({ status: "CheckedIn", queue: "ToClaim" }).filters).toMatchObject({
+  expect(staffParams({ status: "checkedIn", queue: "toClaim" }).filters).toMatchObject({
     status: "checkedIn",
     queue: "toClaim",
   });
-  expect(staffParams({ status: "NoShow" }).filters.status).toBe("noShow");
+  expect(staffParams({ status: "noShow" }).filters.status).toBe("noShow");
   expect(staffParams({}).filters).toMatchObject({
     sort: "startsAt",
     direction: "asc",
