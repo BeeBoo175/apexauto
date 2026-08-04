@@ -86,7 +86,7 @@ test("sales settlement, handover, corrections and own customer PDFs retain exact
       sale = await readSale(context, id);
     }
     expect(sale.sale.status).toBe("Approved");
-    await page.goto(`/dashboard/sales?view=settling&sale=${id}&section=deal`);
+    await page.goto(`/dashboard/sales/${id}?view=settling`);
     const selected = page.getByRole("region", { name: "Selected sale", exact: true });
     await selected.getByRole("button", { name: "Open delivery", exact: true }).click();
     await selected.getByRole("button", { name: "Review settlement", exact: true }).click();
@@ -191,7 +191,7 @@ test("sales settlement, handover, corrections and own customer PDFs retain exact
     await page.screenshot({ path: path.join(evidence, "delivered-sale.png"), fullPage: true });
 
     const managerPage = await manager.newPage();
-    await managerPage.goto(`/dashboard/sales?view=Delivered&sale=${id}&section=delivery`);
+    await managerPage.goto(`/dashboard/sales/${id}/delivery?view=delivered`);
     const drawer = managerPage.getByRole("dialog").filter({
       has: managerPage.getByRole("heading", { name: delivered.sale.orderNumber!, exact: true }),
     });
@@ -280,9 +280,7 @@ test("sales settlement, handover, corrections and own customer PDFs retain exact
     expect(covered.sale.negotiatedDiscount).toBe(0);
     expect(covered.sale.balancePayable).toBe(0);
     expect(covered.sale.tradeInAllowance).toBeGreaterThan(covered.sale.depositCredit);
-    await managerPage.goto(
-      `/dashboard/sales?view=AwaitingHandover&sale=${tradeIn.id}&section=delivery`,
-    );
+    await managerPage.goto(`/dashboard/sales/${tradeIn.id}/delivery?view=awaitingHandover`);
     const coveredDrawer = managerPage.getByRole("dialog").filter({
       has: managerPage.getByRole("heading", { name: covered.sale.orderNumber!, exact: true }),
     });

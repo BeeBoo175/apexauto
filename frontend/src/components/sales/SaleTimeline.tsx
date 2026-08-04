@@ -13,6 +13,7 @@ import { privateApiFetch } from "@/lib/api-browser";
 import { formatCurrency } from "@/lib/currency-format";
 import type { SaleSection } from "@/lib/sales/sale-sections";
 import { documentLabels, saleDocumentPdf } from "@/lib/sales/documents";
+import { saleSelectionHref } from "@/lib/sales/sales-location";
 import {
   appendSaleHistory,
   historyChange,
@@ -110,7 +111,7 @@ export function SaleTimeline({
                 <div className={timeline.eventActions}>
                   <StaffLink
                     prefetch={false}
-                    href={`?sale=${saleId}&section=deal&version=${item.version}`}
+                    href={saleSelectionHref({ id: saleId, section: "deal", version: item.version })}
                     aria-disabled={disabled}
                     onClick={(event) => {
                       if (

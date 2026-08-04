@@ -11,6 +11,7 @@ import { createInteractionGuard } from "@/lib/interaction-guard";
 import { parseMyr } from "@/lib/currency-input";
 import { queueCountOf, queueViewOf, saleReference } from "@/lib/sales/contracts";
 import { queueParams, queueQuery, saleSelection } from "@/lib/sales/query";
+import { salesLocation } from "@/lib/sales/sales-location";
 import { isSaleVersionSection, saleSections, saleSectionLabels } from "@/lib/sales/sale-sections";
 import { parseSaleVehicle } from "@/lib/sales/vehicle-reference";
 
@@ -361,5 +362,53 @@ test("queues and tables parse their counts and the table names the view it chose
     expect(
       parseSalesTable({ ...table, view, counts: { ...table.counts, delivered: -1 } }),
     ).toBeNull();
+  }
+});
+
+test("sales addresses put the sale in the path and omit defaults", () => {
+  const record = `/dashboard/sales/${id}`;
+  expect(salesLocation("/dashboard/sales", "", true)?.href).toBe("/dashboard/sales");
+  expect(salesLocation(record, "", true)?.href).toBe(record);
+  expect(salesLocation(`${record}/delivery`, "view=awaitingHandover&page=2", true)).toMatchObject({
+    id,
+    section: "delivery",
+    version: null,
+    href: `${record}/delivery?view=awaitingHandover&page=2`,
+  });
+  expect(salesLocation(`${record}/customer/versions/3`, "", true)).toMatchObject({
+    section: "customer",
+    version: 3,
+  });
+  expect(salesLocation(`${record}/deal/versions/2`, "", false)?.href).toBe(
+    `${record}/deal/versions/2`,
+  );
+  expect(
+    salesLocation("/dashboard/sales", "view=history&outcome=expired&sort=timeLeft", true)?.href,
+  ).toBe("/dashboard/sales?view=history&sort=timeLeft&direction=asc&outcome=expired");
+  expect(
+    salesLocation("/dashboard/sales", "view=handling&search=%20abc%20&page=2", false),
+  ).toMatchObject({
+    href: "/dashboard/sales?view=handling&search=abc&page=2",
+  });
+});
+
+test("sales addresses reject legacy selection, PascalCase tokens and non-canonical paths", () => {
+  const record = `/dashboard/sales/${id}`;
+  expect(salesLocation(record, `sale=${agent}&section=car&version=2`, true)?.href).toBe(record);
+  expect(salesLocation("/dashboard/sales", "view=NeedsApproval", true)?.href).toBe(
+    "/dashboard/sales",
+  );
+  expect(salesLocation("/dashboard/sales", "view=history&outcome=Expired", true)?.href).toBe(
+    "/dashboard/sales?view=history",
+  );
+  for (const path of [
+    `${record}/deal`,
+    `${record}/car/versions/1`,
+    `${record}/deal/versions/0`,
+    `${record}/history/extra`,
+    `${record}/customer/versions/2/extra`,
+    "/dashboard/sales/not-an-id",
+  ]) {
+    expect(salesLocation(path, "", true)).toBeNull();
   }
 });

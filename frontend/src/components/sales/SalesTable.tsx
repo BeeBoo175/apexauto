@@ -16,8 +16,7 @@ import { SearchField } from "@/components/ui/SearchField";
 import { useCsvExport } from "@/hooks/use-csv-export";
 import { useMinuteClock } from "@/hooks/use-minute-clock";
 import { useRowSelection } from "@/hooks/use-row-selection";
-import { useSaleSelection } from "@/hooks/use-sale-selection";
-import { useSalesTable } from "@/hooks/use-sales-table";
+import { useSalesManager } from "@/hooks/use-sales-manager";
 import type { ApiResult } from "@/lib/api";
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import {
@@ -69,8 +68,19 @@ export function SalesTable({
   version: number | null;
   selected: ApiResult<Sale> | null;
 }) {
-  const state = useSalesTable(initial, filters, page);
-  const drawer = useSaleSelection(saleId, selected, section, version);
+  const {
+    table: state,
+    drawer,
+    refresh,
+  } = useSalesManager({
+    initial,
+    filters,
+    page,
+    saleId,
+    section,
+    version,
+    selected,
+  });
   const animateEntry = useContext(StaffPageEntranceContext);
   // Hold timers are read against this moment, which moves forward with each confirmed read.
   const [now, setNow] = useMinuteClock();
@@ -127,7 +137,7 @@ export function SalesTable({
             label="Refresh sales"
             busy={state.busy}
             disabled={!state.ready}
-            onClick={() => void load(active.filters, active.page)}
+            onClick={() => void refresh()}
           />
         }
       />
@@ -238,11 +248,7 @@ export function SalesTable({
           ) : (
             <div className={styles.unavailableFilters}>
               <p>Sales are unavailable. Retry when the service is available.</p>
-              <Button
-                size="compact"
-                variant="secondary"
-                onClick={() => void load(active.filters, active.page)}
-              >
+              <Button size="compact" variant="secondary" onClick={() => void refresh()}>
                 Retry sales
               </Button>
             </div>
@@ -253,7 +259,7 @@ export function SalesTable({
         key={`${actorIdentity(actor)}:${drawer.id}`}
         selection={drawer}
         now={now}
-        onChanged={() => void load(active.filters, active.page)}
+        onChanged={() => void refresh()}
       />
     </div>
   );

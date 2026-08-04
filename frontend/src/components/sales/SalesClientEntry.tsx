@@ -41,11 +41,12 @@ export function SalesClientEntry({
       />
     );
   }
-  const { Workspace, saleId, section, version, selected, queues, initialView } = entry;
+  const { Workspace, saleId, section, version, selected, queues, found, list } = entry;
   return (
     <Workspace
       queues={queues}
-      initialView={initialView}
+      found={found}
+      list={list}
       selectedSaleId={saleId}
       selectedSale={selected}
       selectedSection={section}

@@ -5,28 +5,31 @@ import {
   saleHasHoldTimer,
 } from "@/lib/sales/contracts";
 import { tableParams, tableQuery, tableViewFilters } from "@/lib/sales/query";
+import { tableUrlQuery } from "@/lib/sales/sales-location";
 
 test("table filters round-trip through the address and leave an unset view to the server", () => {
   const { filters, page } = tableParams({
-    view: "History",
-    outcome: "Expired",
+    view: "history",
+    outcome: "expired",
     page: "2",
     sort: "x",
   });
   expect(filters.sort).toBe("");
-  const query = new URLSearchParams(tableQuery(filters, page));
+  const query = tableUrlQuery(filters, page);
   expect([query.get("view"), query.get("outcome"), query.get("page")]).toEqual([
-    "History",
-    "Expired",
+    "history",
+    "expired",
     "2",
   ]);
-  expect(new URLSearchParams(tableQuery(tableParams({}).filters)).has("view")).toBe(false);
+  const api = new URLSearchParams(tableQuery(filters, page));
+  expect([api.get("view"), api.get("outcome")]).toEqual(["History", "Expired"]);
+  expect(tableUrlQuery(tableParams({}).filters, 1).has("view")).toBe(false);
 });
 
 test("queue changes preserve the fixed columns' filters and sort while clearing the old outcome", () => {
   const { filters } = tableParams({
-    view: "History",
-    outcome: "Cancelled",
+    view: "history",
+    outcome: "cancelled",
     reference: "VRS-2026",
     minimumHoursLeft: "6.5",
     maximumHoursLeft: "24",
@@ -46,7 +49,7 @@ test("queue changes preserve the fixed columns' filters and sort while clearing 
   ] as const) {
     const next = tableViewFilters(filters, view);
     expect(next).toEqual({ ...filters, view, outcome: "" });
-    const parameters = Object.fromEntries(new URLSearchParams(tableQuery(next)));
+    const parameters = Object.fromEntries(tableUrlQuery(next, 1));
     expect(tableParams(parameters).filters).toEqual(next);
   }
   expect(tableParams({ sort: "claimed", submittedFrom: "2026-10-31" }).filters.sort).toBe("");
