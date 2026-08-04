@@ -7,17 +7,30 @@ import type { ApiResult } from "@/lib/api";
 import { useStaffSelection } from "./use-staff-selection";
 import { useGuardedAction } from "./use-guarded-action";
 import type { RepairSelection, WorkshopSection } from "@/lib/inspection/query";
-import { writeAddress } from "@/lib/browser-url";
+import type { WorkshopSelectionPath } from "@/lib/inspection/workshop-location";
 export type { RepairSelection } from "@/lib/inspection/query";
+
+export type InspectionLocationHandler = (
+  selection: WorkshopSelectionPath,
+  mode: false | "push" | "replace",
+) => void;
 
 export function useInspectionDrawer(
   id: string,
   initial: ApiResult<EditorSnapshot> | null,
   onChanged: () => void,
+  onLocation: InspectionLocationHandler,
   initialRequest: RepairSelection | null = null,
   initialSection: WorkshopSection = "inspection",
 ) {
   const interaction = useGuardedAction();
+  const [locked, setLocked] = useState(false);
+  const [request, setRequest] = useState(initialRequest);
+  const [section, setSection] = useState(initialSection);
+  // The destination of the read in flight; it becomes the shown section only once the read is confirmed.
+  const destination = useRef({ section: initialSection, request: initialRequest });
+  const changed = useRef(false);
+  const lock = useCallback((value: boolean) => setLocked(value), []);
   const selection = useStaffSelection(id, initial, {
     parameter: "inspection",
     path: (id) => `drafts/${id}/workspace`,
@@ -25,63 +38,56 @@ export function useInspectionDrawer(
     matches: (value, id) => value.draft.id === id,
     read: inspectionFetch,
     commitAfterRead: true,
+    address: (confirmedId, updateAddress = true) => {
+      const target = confirmedId
+        ? destination.current
+        : { section: "inspection" as const, request: null };
+      onLocation({ id: confirmedId, ...target }, updateAddress && "push");
+    },
   });
-  const [locked, setLocked] = useState(false);
-  const [request, setRequest] = useState(initialRequest);
-  const [section, setSection] = useState(initialSection);
-  const changed = useRef(false);
-  const lock = useCallback((value: boolean) => setLocked(value), []);
+
+  function show(target: { section: WorkshopSection; request: RepairSelection | null }) {
+    destination.current = target;
+    setSection(target.section);
+    setRequest(target.request);
+  }
 
   function open(
     id: string,
     request: RepairSelection | null = null,
     section: WorkshopSection = request ? "repairs" : "inspection",
   ) {
-    void selection.choose(id, (url) => {
-      setRequest(request);
-      setSection(section);
-      url.searchParams.set("section", section);
-      url.searchParams.delete("request");
-      url.searchParams.delete("revision");
-      if (request) {
-        url.searchParams.set("request", request.requestId);
-        url.searchParams.set("revision", String(request.revision));
-      }
-    });
+    destination.current = { section, request };
+    void selection.choose(id, () => show(destination.current));
+  }
+
+  // Applies a browser Back/Forward or refresh destination without writing the address.
+  function visit(target: WorkshopSelectionPath, updateAddress = false) {
+    destination.current = { section: target.section, request: target.request };
+    if (target.id === selection.id && selection.result?.data) {
+      show(destination.current);
+      return Promise.resolve(selection.result.data);
+    }
+    return selection.load(target.id, () => show(destination.current), updateAddress);
   }
 
   function changeSection(next: WorkshopSection) {
-    setSection(next);
-    const url = new URL(window.location.href);
-    url.searchParams.set("section", next);
-    writeAddress(url);
+    show({ section: next, request: null });
+    onLocation({ id: selection.id, section: next, request: null }, "push");
   }
 
-  function review(request: RepairSelection | null) {
-    setRequest(request);
-    changeSection("repairs");
-    const url = new URL(window.location.href);
-    url.searchParams.delete("request");
-    url.searchParams.delete("revision");
-    if (request) {
-      url.searchParams.set("request", request.requestId);
-      url.searchParams.set("revision", String(request.revision));
-    }
-    writeAddress(url);
+  function review(next: RepairSelection | null) {
+    show({ section: "repairs", request: next });
+    onLocation({ id: selection.id, section: "repairs", request: next }, "push");
   }
 
   function close() {
-    interaction.request(closeConfirmed, "Discard and close");
+    interaction.request(() => closeConfirmed(), "Discard and close");
   }
 
-  function closeConfirmed() {
-    selection.close();
-    const url = new URL(window.location.href);
-    url.searchParams.delete("request");
-    url.searchParams.delete("revision");
-    url.searchParams.delete("section");
-    writeAddress(url);
-    setRequest(null);
+  function closeConfirmed(updateAddress = true) {
+    selection.close(updateAddress);
+    show({ section: "inspection", request: null });
     if (changed.current) {
       changed.current = false;
       onChanged();
@@ -91,7 +97,9 @@ export function useInspectionDrawer(
   return {
     ...selection,
     open,
+    visit,
     close,
+    closeConfirmed,
     locked,
     lock,
     request,

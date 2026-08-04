@@ -6,11 +6,20 @@ import {
   workshopDate,
   workshopTasks,
   workshopSorts,
+  workshopStatuses,
   type TechnicianTask,
 } from "./workshop-contracts";
 
 export type WorkshopSection = "inspection" | "repairs" | "history";
 export type RepairSelection = { requestId: string; revision: number };
+
+export function inspectionQueryToken(value: string) {
+  return value.replace(/^[A-Z]/, (letter) => letter.toLowerCase());
+}
+
+function queueToken<T extends string>(values: readonly T[], value: string) {
+  return values.find((candidate) => inspectionQueryToken(candidate) === value);
+}
 
 export function workshopSelection(params: SearchParams) {
   const revision =
@@ -27,31 +36,6 @@ export function workshopSelection(params: SearchParams) {
   return { id: isUuid(params.inspection) ? params.inspection : "", request, section };
 }
 
-export function legacyRepairsPath(params: SearchParams) {
-  const { filters, page } = queueParams(params, "repair-requests");
-  const tasks: Record<string, string> = {
-    PendingApproval: "Approval",
-    Approved: "Repairs",
-    ApprovalNotRequired: "Repairs",
-    Completed: "All",
-    Superseded: "All",
-    All: "All",
-  };
-  const query = new URLSearchParams(
-    queueQuery({ ...filters, status: tasks[filters.status] ?? "All" }, page),
-  );
-  const selected = workshopSelection(params);
-  if (selected.id) {
-    query.set("inspection", selected.id);
-    query.set("section", "repairs");
-  }
-  if (selected.request) {
-    query.set("request", selected.request.requestId);
-    query.set("revision", String(selected.request.revision));
-  }
-  return `/dashboard/inspection?${query}`;
-}
-
 export function queueParams(params: SearchParams, kind: QueueKind) {
   const get = (key: string) => (typeof params[key] === "string" ? params[key] : "");
   const options = {
@@ -62,8 +46,7 @@ export function queueParams(params: SearchParams, kind: QueueKind) {
   const statuses = options[kind];
   const page = Number(get("page") || 1);
   const size = Number(get("pageSize") || DEFAULT_PAGE_SIZE);
-  const status =
-    statuses.find((value) => value === get("status")) ?? (kind === "workshop" ? "Active" : "All");
+  const status = queueToken(statuses, get("status")) ?? (kind === "workshop" ? "Active" : "All");
   const defaultSort = kind === "workshop" ? workshopDate(status).column : "since";
   const defaultDirection = kind === "workshop" ? "asc" : "desc";
   const requestedDirection = get("direction");
@@ -73,7 +56,7 @@ export function queueParams(params: SearchParams, kind: QueueKind) {
     search: get("search"),
     registration: get("registration"),
     vehicle: get("vehicle"),
-    workStatus: get("workStatus"),
+    workStatus: queueToken(workshopStatuses, get("workStatus")) ?? "",
     technician: get("technician"),
     minimumBudget: get("minimumBudget"),
     maximumBudget: get("maximumBudget"),
@@ -95,7 +78,7 @@ export function queueQuery(filters: QueueFilters, page: number) {
   const query = new URLSearchParams({
     page: String(page),
     pageSize: String(filters.pageSize),
-    status: filters.status,
+    status: inspectionQueryToken(filters.status),
     sort: filters.sort ?? "since",
     direction: filters.direction ?? "desc",
   });
@@ -112,28 +95,10 @@ export function queueQuery(filters: QueueFilters, page: number) {
     "vehicle",
   ] as const) {
     if (filters[key]) {
-      query.set(key, filters[key]);
+      query.set(key, key === "workStatus" ? inspectionQueryToken(filters[key]) : filters[key]);
     }
   }
   return query.toString();
-}
-
-export function queuePath(kind: QueueKind) {
-  return kind === "repair-requests" ? "/dashboard/inspection/repairs" : "/dashboard/inspection";
-}
-
-export function technicianQueueParams(params: SearchParams, task: TechnicianTask) {
-  const search = params[`${task}.search`];
-  return typeof search === "string" ? search.trim() : "";
-}
-
-export function technicianQueuePaging(params: SearchParams, task: TechnicianTask) {
-  const page = Number(params[`${task}.page`] ?? 1);
-  const pageSize = Number(params[`${task}.pageSize`] ?? DEFAULT_PAGE_SIZE);
-  return {
-    page: Number.isSafeInteger(page) && page > 0 && page <= 2147483647 ? page : 1,
-    pageSize: isPageSize(pageSize) ? pageSize : DEFAULT_PAGE_SIZE,
-  };
 }
 
 export function technicianQueueQuery(
@@ -143,31 +108,10 @@ export function technicianQueueQuery(
   pageSize = DEFAULT_PAGE_SIZE,
 ) {
   const query = new URLSearchParams({
-    status: task,
+    status: inspectionQueryToken(task),
     search,
     page: String(page),
     pageSize: String(pageSize),
   });
   return query.toString();
-}
-
-export function technicianQueueView(params: SearchParams): TechnicianTask {
-  if (params.view === "claim") {
-    return "Claimable";
-  }
-  if (params.view === "waiting") {
-    return "Waiting";
-  }
-  return "MyWork";
-}
-
-export function queueLocationQuery(current: URLSearchParams, filters: QueueFilters, page: number) {
-  const query = new URLSearchParams(queueQuery(filters, page));
-  for (const name of ["inspection", "request", "revision", "section"]) {
-    const value = current.get(name);
-    if (value) {
-      query.set(name, value);
-    }
-  }
-  return query;
 }

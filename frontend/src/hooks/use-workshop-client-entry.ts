@@ -14,12 +14,14 @@ import { readRepairReview, type RepairReview } from "@/lib/inspection/repair-rev
 import {
   queueParams,
   queueQuery,
-  technicianQueueParams,
-  technicianQueuePaging,
   technicianQueueQuery,
-  technicianQueueView,
   workshopSelection,
 } from "@/lib/inspection/query";
+import {
+  technicianQueueParams,
+  technicianQueuePaging,
+  technicianView,
+} from "@/lib/inspection/workshop-location";
 import { readBranchChoices } from "@/lib/branch-choices";
 
 type WorkshopEntry =
@@ -97,7 +99,7 @@ async function readTechnician(parameters: SearchParams, signal: AbortSignal) {
       if (initial.data && (initial.data.page !== page || initial.data.pageSize !== pageSize)) {
         throw new Error("Workshop jobs unavailable");
       }
-      return { task, search, initial };
+      return { task, search, page, pageSize, initial };
     }),
   );
   return {
@@ -119,7 +121,7 @@ export function useWorkshopClientEntry(actor: CurrentActor, parameters: SearchPa
       next = {
         kind: "technician",
         Workspace,
-        props: { queues, initialView: technicianQueueView(parameters), ...selected },
+        props: { queues, initialView: technicianView(parameters.view), ...selected },
       };
     } else {
       const [{ Workspace, ...queue }, selected] = await Promise.all([

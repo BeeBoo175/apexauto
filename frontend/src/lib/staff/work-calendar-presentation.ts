@@ -24,7 +24,7 @@ export function workItemKind(item: WorkItem) {
 
 export function workItemHref(item: WorkItem) {
   if (item.kind === "Workshop") {
-    return `/dashboard/inspection?inspection=${item.inspectionId}`;
+    return `/dashboard/inspection/${item.inspectionId}`;
   }
   if (item.kind === "Sale") {
     return `/dashboard/sales?sale=${item.id}`;
@@ -38,7 +38,7 @@ export function workItemHref(item: WorkItem) {
 export function workCalendarEvents(snapshot: WorkCalendarSnapshot): CalendarEvent<ScheduledWork>[] {
   return snapshot.items.map((item) => ({
     id: `${item.kind}:${item.id}`,
-    title: `${workItemKind(item)} · ${item.registrationPlate}${snapshot.branchId === null ? ` · ${item.branchName}` : ""}`,
+    title: `${workItemKind(item)} Â· ${item.registrationPlate}${snapshot.branchId === null ? ` Â· ${item.branchName}` : ""}`,
     startsAt: item.startsAt,
     endsAt: item.endsAt,
     label: workItemLabel(item),

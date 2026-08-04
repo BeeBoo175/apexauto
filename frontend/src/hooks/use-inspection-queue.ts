@@ -5,12 +5,11 @@ import { dateRangeError } from "@/lib/intake/list-query";
 import type { ApiResult, Page } from "@/lib/api";
 import type { Branch } from "@/lib/branches";
 import type { QueueFilters, QueueKind } from "@/lib/inspection/contracts";
-import { queueLocationQuery, queuePath, queueQuery } from "@/lib/inspection/query";
+import { queueQuery } from "@/lib/inspection/query";
 import { useToast } from "@/components/ui/Toast";
 import { useInitialToast } from "./use-initial-toast";
 import type { TableSort } from "@/components/ui/data-table/types";
 import { readBranchChoices } from "@/lib/branch-choices";
-import { writeAddress } from "@/lib/browser-url";
 
 function initialSort(filters: QueueFilters): TableSort | null {
   const column = filters.sort ?? "since";
@@ -28,6 +27,7 @@ export function useInspectionQueue<T>(
   page: number,
   initialBranches: Page<Branch> | null,
   parse: (v: unknown) => Page<T> | null,
+  onLocation: (filters: QueueFilters, page: number, mode: false | "push" | "replace") => void,
 ) {
   const [snapshot, setSnapshot] = useState(initial.data);
   const [active, setActive] = useState({ filters, page, sort: initialSort(filters) });
@@ -57,7 +57,13 @@ export function useInspectionQueue<T>(
   function refresh(notifyFailure = true) {
     controller.current?.abort();
     controller.current = null;
-    return load(active.filters, active.page, undefined, notifyFailure);
+    return load(active.filters, active.page, undefined, notifyFailure, "replace");
+  }
+
+  function cancel() {
+    controller.current?.abort();
+    controller.current = null;
+    setBusy(false);
   }
 
   async function load(
@@ -65,8 +71,10 @@ export function useInspectionQueue<T>(
     nextPage = active.page,
     selectedSort?: TableSort | null,
     notifyFailure = true,
+    history: false | "push" | "replace" = "push",
+    supersede = false,
   ) {
-    if (controller.current) {
+    if (controller.current && !supersede) {
       return;
     }
     const invalid = dateRangeError(nextFilters);
@@ -74,6 +82,7 @@ export function useInspectionQueue<T>(
       toast.error(invalid);
       return;
     }
+    controller.current?.abort();
     const attempt = new AbortController();
     const submittedDraft = draft;
     controller.current = attempt;
@@ -109,9 +118,7 @@ export function useInspectionQueue<T>(
         }
         return { ...current, sort: nextFilters.sort, direction: nextFilters.direction };
       });
-      const current = new URL(window.location.href);
-      const query = queueLocationQuery(current.searchParams, nextFilters, nextPage);
-      writeAddress(`${queuePath(kind)}?${query}`);
+      onLocation(nextFilters, nextPage, history);
       return true;
     } catch {
       if (!attempt.signal.aborted && notifyFailure) {
@@ -167,5 +174,6 @@ export function useInspectionQueue<T>(
     load,
     loadBranches,
     refresh,
+    cancel,
   };
 }

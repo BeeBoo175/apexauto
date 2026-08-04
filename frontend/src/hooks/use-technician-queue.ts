@@ -9,7 +9,6 @@ import { parseWorkshopJobs } from "@/lib/inspection/parse-workshop";
 import { technicianQueueQuery } from "@/lib/inspection/query";
 import type { TechnicianTask, WorkshopJobs } from "@/lib/inspection/workshop-contracts";
 import { useInitialToast } from "./use-initial-toast";
-import { writeAddress } from "@/lib/browser-url";
 
 type Read = { search: string; page: number; pageSize: number; submittedDraft?: string };
 
@@ -17,6 +16,7 @@ export function useTechnicianQueue(
   task: TechnicianTask,
   initial: ApiResult<WorkshopJobs>,
   search: string,
+  onLocation: (task: TechnicianTask, read: Read, mode: false | "push" | "replace") => void,
 ) {
   const [entry, setEntry] = useState({ initial, snapshot: initial.data, search });
   const [draft, setDraft] = useState(search);
@@ -41,10 +41,16 @@ export function useTechnicianQueue(
   }, [initial]);
 
   const load = useCallback(
-    async (read: Read, notifyFailure = true) => {
-      if (controller.current) {
+    async (
+      read: Read,
+      notifyFailure = true,
+      history: false | "push" | "replace" = "push",
+      supersede = false,
+    ) => {
+      if (controller.current && !supersede) {
         return false;
       }
+      controller.current?.abort();
       const attempt = new AbortController();
       controller.current = attempt;
       setBusy(true);
@@ -80,15 +86,7 @@ export function useTechnicianQueue(
         if (read.submittedDraft !== undefined) {
           setDraft((current) => (current === read.submittedDraft ? read.search : current));
         }
-        const url = new URL(window.location.href);
-        url.searchParams.set(`${task}.page`, String(read.page));
-        url.searchParams.set(`${task}.pageSize`, String(read.pageSize));
-        if (read.search) {
-          url.searchParams.set(`${task}.search`, read.search);
-        } else {
-          url.searchParams.delete(`${task}.search`);
-        }
-        writeAddress(url);
+        onLocation(task, read, history);
         return true;
       } catch {
         if (!attempt.signal.aborted && controller.current === attempt) {
@@ -107,7 +105,7 @@ export function useTechnicianQueue(
         }
       }
     },
-    [task, initial, error],
+    [task, initial, error, onLocation],
   );
 
   function restart(search: string, notifyFailure = true, replaceDraft = false) {
@@ -145,8 +143,18 @@ export function useTechnicianQueue(
           pageSize: entry.snapshot?.pageSize ?? DEFAULT_PAGE_SIZE,
         },
         notifyFailure,
+        "replace",
       );
     },
+    // Applies a browser Back/Forward or refresh destination without writing the address.
+    visit: (read: Read) => load(read, false, false, true),
+    cancel: () => {
+      controller.current?.abort();
+      controller.current = null;
+      setBusy(false);
+    },
+    page: entry.snapshot?.page ?? 1,
+    pageSize: entry.snapshot?.pageSize ?? DEFAULT_PAGE_SIZE,
     retry: () => (failed ? load(failed) : restart(entry.search)),
   };
 }

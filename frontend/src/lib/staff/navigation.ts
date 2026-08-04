@@ -58,15 +58,11 @@ export const staffWorkspaceLinks: StaffWorkspaceLink[] = [
 
 export const staffPageTitles: Record<string, string> = {
   "/dashboard/account": "Account",
-  "/dashboard/inspection/repairs": "Repair requests",
   ...Object.fromEntries(staffWorkspaceLinks.map((link) => [link.href, link.label])),
 };
 
 // Workspaces that fill the viewport and scroll inside their own panes.
-export const fitViewportPaths = [
-  "/dashboard/inspection/repairs",
-  ...staffWorkspaceLinks.map((link) => link.href),
-];
+export const fitViewportPaths = staffWorkspaceLinks.map((link) => link.href);
 
 export function staffWorkspacePath(pathname: string) {
   if (Object.hasOwn(staffPageTitles, pathname)) {

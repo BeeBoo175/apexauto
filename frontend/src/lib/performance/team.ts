@@ -231,6 +231,6 @@ export function milestoneHref(milestone: Milestone) {
     case "Sale":
       return `/dashboard/sales?sale=${milestone.recordId}`;
     default:
-      return `/dashboard/inspection?inspection=${milestone.recordId}`;
+      return `/dashboard/inspection/${milestone.recordId}`;
   }
 }

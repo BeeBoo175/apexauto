@@ -110,7 +110,7 @@ export function staffTestDriveQuery(filters: TestDriveFilters, page = 1) {
 
 export function staffTestDriveLocation(pathname: string, search: string, agent: boolean) {
   const record = staffRecordLocation(pathname, "/dashboard/test-drives");
-  if (!record) {
+  if (!record || record.trail.length > 0) {
     return null;
   }
   const query = new URLSearchParams(search);
