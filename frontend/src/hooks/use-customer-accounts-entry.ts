@@ -4,6 +4,7 @@ import { useStaffClientEntry } from "./use-staff-client-entry";
 import { privateApiFetch } from "@/lib/api-browser";
 import { apiReadError } from "@/lib/api";
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
+import type { AccountSelectionPath } from "@/lib/accounts/accounts-location";
 import type { SearchParams } from "@/lib/query";
 import {
   customerAccountParams,
@@ -11,7 +12,11 @@ import {
   parseCustomerAccountPage,
 } from "@/lib/accounts/customer-accounts";
 
-export function useCustomerAccountsEntry(actor: CurrentActor, parameters: SearchParams) {
+export function useCustomerAccountsEntry(
+  actor: CurrentActor,
+  parameters: SearchParams,
+  selection: AccountSelectionPath,
+) {
   return useStaffClientEntry(async (signal) => {
     const query = customerAccountParams(parameters);
     const initial = await privateApiFetch(
@@ -27,6 +32,12 @@ export function useCustomerAccountsEntry(actor: CurrentActor, parameters: Search
     ) {
       throw apiReadError("Customer accounts unavailable", initial);
     }
-    return { ...query, initial: initial.data };
+    // The drawer needs its row, so an account outside the table the address names opens the table alone.
+    const held = initial.data.items.some((row) => row.id === selection.id);
+    return {
+      ...query,
+      ...(held ? selection : { id: "", section: "details" as const }),
+      initial: initial.data,
+    };
   }, "Customer accounts could not be loaded. Retry to open the workspace.");
 }

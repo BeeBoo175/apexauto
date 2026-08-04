@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useAccountsAddress } from "@/hooks/use-accounts-address";
+import { staffAccountsRules } from "@/lib/accounts/accounts-location";
 import { StaffCommandBar } from "@/components/staff/StaffPage";
 import { Button } from "@/components/ui/Button";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
@@ -16,13 +18,25 @@ import { StaffInviteDialog } from "./StaffInviteDialog";
 type AccountsEntry = NonNullable<ReturnType<typeof useStaffAccountsEntry>["entry"]>;
 
 export function StaffAccountsWorkspace({ entry }: { entry: AccountsEntry }) {
-  const list = useStaffAccountsList(entry.initial, entry.filters, entry.page);
+  const address = useAccountsAddress(
+    staffAccountsRules,
+    {
+      id: entry.id,
+      section: entry.section,
+      filters: entry.filters,
+      page: entry.page,
+    },
+    currentList,
+  );
+  const list = useStaffAccountsList(entry.initial, entry.filters, entry.page, address.onLocation);
   const command = useAccountCommand();
-  const [selectedId, setSelectedId] = useState("");
   const [inviting, setInviting] = useState(false);
   // A revoked invitation leaves the list, which closes its drawer.
-  const selected = list.snapshot.items.find((row) => row.id === selectedId) ?? null;
-  const reload = () => void list.load(list.active.filters, list.active.page, true);
+  function currentList() {
+    return list;
+  }
+
+  const reload = () => void list.load(list.active.filters, list.active.page, true, "replace");
 
   return (
     <>
@@ -36,7 +50,7 @@ export function StaffAccountsWorkspace({ entry }: { entry: AccountsEntry }) {
               label="Refresh staff accounts"
               busy={list.busy}
               disabled={list.busy}
-              onClick={reload}
+              onClick={() => void address.refresh()}
             />
           </>
         }
@@ -44,8 +58,8 @@ export function StaffAccountsWorkspace({ entry }: { entry: AccountsEntry }) {
       <StaffAccountsTable
         list={list}
         branches={entry.branches}
-        selectedId={selectedId}
-        onOpen={setSelectedId}
+        selectedId={address.selection.id}
+        onOpen={address.open}
         actions={
           <Button size="compact" onClick={() => setInviting(true)}>
             Invite staff
@@ -53,11 +67,13 @@ export function StaffAccountsWorkspace({ entry }: { entry: AccountsEntry }) {
         }
       />
       <StaffAccountDrawer
-        row={selected}
+        row={address.selected}
+        section={address.selection.section}
+        onSection={address.choose}
         selfId={list.snapshot.actor.userId}
         branches={entry.branches}
         command={command}
-        onClose={() => setSelectedId("")}
+        onClose={address.close}
         onChanged={reload}
       />
       <StaffInviteDialog

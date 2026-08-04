@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { accountsWorkspace } from "@/lib/accounts/accounts-location";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { ViewSwitcher } from "@/components/ui/ViewSwitcher";
 
@@ -27,11 +28,7 @@ export function AccountsViewSwitch({ view }: { view: View }) {
         ]}
         onChange={(next) => {
           setShown(next);
-          startTransition(() =>
-            router.push(
-              next === "staff" ? "/dashboard/accounts" : "/dashboard/accounts?view=customers",
-            ),
-          );
+          startTransition(() => router.push(accountsWorkspace(next)));
         }}
       />
     </>

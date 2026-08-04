@@ -8,7 +8,7 @@ import { StaffWorkspaceTabs } from "@/components/staff/StaffWorkspaceTabs";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
-import { useAddressSection } from "@/hooks/use-address-section";
+import type { AccountSection } from "@/lib/accounts/accounts-location";
 import type { useAccountCommand } from "@/hooks/use-account-command";
 import { privateApiFetch } from "@/lib/api-browser";
 import type { CustomerSupportAction } from "@/lib/accounts/customer-support";
@@ -27,23 +27,25 @@ import workbench from "@/components/staff/StaffWorkspace.module.css";
 import shared from "@/components/staff/StaffDetails.module.css";
 import styles from "./StaffAccounts.module.css";
 
-type Section = "details" | "history";
-
 // One customer, laid out like the other drawers. The full contact details are read when the drawer opens and
 // kept for the session; the NRIC arrives masked.
 export function CustomerAccountDrawer({
   row,
   command,
+  section,
+  onSection,
   onClose,
   onChanged,
 }: {
   row: CustomerAccountRow | null;
   command: ReturnType<typeof useAccountCommand>;
+  section: AccountSection;
+  onSection: (section: AccountSection) => void;
   onClose: () => void;
   onChanged: () => void;
 }) {
-  const [section, chooseSection] = useAddressSection<Section>(["details", "history"]);
   const [historyOpened, setHistoryOpened] = useState(section === "history");
+  const historyRead = historyOpened || section === "history";
   const [suspension, setSuspension] = useState<"suspend" | "lift" | null>(null);
   const [support, setSupport] = useState<CustomerSupportAction | null>(null);
   const [editing, setEditing] = useState(false);
@@ -118,7 +120,7 @@ export function CustomerAccountDrawer({
             ]}
             value={section}
             onChange={(next) => {
-              chooseSection(next);
+              onSection(next);
               setHistoryOpened((opened) => opened || next === "history");
             }}
           />
@@ -227,7 +229,7 @@ export function CustomerAccountDrawer({
               </section>
             </div>
           </div>
-          {historyOpened && (
+          {historyRead && (
             <div className={shared.panel} hidden={section !== "history"}>
               <div className={`${workbench.body} ${shared.content}`}>
                 <AccountHistory key={row.id} accountId={row.id} />

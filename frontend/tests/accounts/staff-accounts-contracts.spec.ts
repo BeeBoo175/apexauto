@@ -37,15 +37,20 @@ test("staff account pages keep only recognised states, counts and unique rows", 
 });
 
 test("staff account parameters accept only known tabs and roles and leave defaults off the query", () => {
-  const unknown = staffAccountParams({ tab: "Everything", role: "Customer", branchId: "nope" });
-  expect(unknown.filters).toMatchObject({ tab: "All", role: "", branchId: "" });
-  const known = staffAccountParams({ tab: "Invited", role: "SalesAgent", search: " aina " });
-  expect(known.filters).toMatchObject({ tab: "Invited", role: "SalesAgent" });
+  const unknown = staffAccountParams({ tab: "Everything", role: "customer", branchId: "nope" });
+  expect(unknown.filters).toMatchObject({ tab: "all", role: "", branchId: "" });
+  const known = staffAccountParams({ tab: "invited", role: "salesAgent", search: " aina " });
+  expect(known.filters).toMatchObject({ tab: "invited", role: "SalesAgent" });
   const query = new URLSearchParams(staffAccountQuery(known.filters, 2));
   expect([query.get("tab"), query.get("role"), query.get("page")]).toEqual([
-    "Invited",
-    "SalesAgent",
+    "invited",
+    "salesAgent",
     "2",
   ]);
   expect(new URLSearchParams(staffAccountQuery(unknown.filters)).has("tab")).toBe(false);
+});
+
+test("staff account parameters reject legacy PascalCase tokens", () => {
+  const legacy = staffAccountParams({ tab: "Invited", role: "SalesAgent" });
+  expect(legacy.filters).toMatchObject({ tab: "all", role: "" });
 });

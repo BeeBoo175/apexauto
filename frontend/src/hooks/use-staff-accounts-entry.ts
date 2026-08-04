@@ -4,6 +4,7 @@ import { useStaffClientEntry } from "./use-staff-client-entry";
 import { privateApiFetch } from "@/lib/api-browser";
 import { apiReadError } from "@/lib/api";
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
+import type { AccountSelectionPath } from "@/lib/accounts/accounts-location";
 import type { SearchParams } from "@/lib/query";
 import {
   parseStaffAccountPage,
@@ -12,7 +13,11 @@ import {
 } from "@/lib/accounts/staff-accounts";
 import { readBranchChoices } from "@/lib/branch-choices";
 
-export function useStaffAccountsEntry(actor: CurrentActor, parameters: SearchParams) {
+export function useStaffAccountsEntry(
+  actor: CurrentActor,
+  parameters: SearchParams,
+  selection: AccountSelectionPath,
+) {
   return useStaffClientEntry(async (signal) => {
     const query = staffAccountParams(parameters);
     const [initial, branches] = await Promise.all([
@@ -31,6 +36,13 @@ export function useStaffAccountsEntry(actor: CurrentActor, parameters: SearchPar
     ) {
       throw apiReadError("Staff accounts unavailable", initial);
     }
-    return { ...query, initial: initial.data, branches: branches?.data ?? null };
+    // The drawer needs its row, so an account outside the table the address names opens the table alone.
+    const held = initial.data.items.some((row) => row.id === selection.id);
+    return {
+      ...query,
+      ...(held ? selection : { id: "", section: "details" as const }),
+      initial: initial.data,
+      branches: branches?.data ?? null,
+    };
   }, "Staff accounts could not be loaded. Retry to open the workspace.");
 }

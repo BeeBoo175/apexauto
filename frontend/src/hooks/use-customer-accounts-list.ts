@@ -6,17 +6,23 @@ import { actorIdentity } from "@/lib/auth/actor";
 import { privateApiFetch } from "@/lib/api-browser";
 import {
   customerAccountQuery,
-  customerAccountsUrl,
   parseCustomerAccountPage,
   type CustomerAccountFilters,
+  type CustomerAccountRow,
   type CustomerAccountPage,
 } from "@/lib/accounts/customer-accounts";
-import { writeAddress } from "@/lib/browser-url";
+import type { AddressMode } from "./use-staff-address";
 
 export function useCustomerAccountsList(
   initial: CustomerAccountPage,
   filters: CustomerAccountFilters,
   page: number,
+  onLocation: (
+    filters: CustomerAccountFilters,
+    page: number,
+    mode: AddressMode,
+    items: CustomerAccountRow[],
+  ) => void,
 ) {
   const [snapshot, setSnapshot] = useState(initial);
   const [active, setActive] = useState({ filters, page });
@@ -26,7 +32,13 @@ export function useCustomerAccountsList(
   const toast = useToast();
   useEffect(() => () => controller.current?.abort(), []);
 
-  async function load(next = active.filters, nextPage = 1, supersede = false) {
+  // An applied change pushes its address; a reload or a traversal passes its own mode.
+  async function load(
+    next = active.filters,
+    nextPage = 1,
+    supersede = false,
+    mode: AddressMode = "push",
+  ) {
     if (controller.current && !supersede) {
       return false;
     }
@@ -57,7 +69,7 @@ export function useCustomerAccountsList(
       setSnapshot(confirmed);
       setActive({ filters: next, page: nextPage });
       setDraft((current) => (current === submitted ? next : current));
-      writeAddress(customerAccountsUrl(next, nextPage));
+      onLocation(next, nextPage, mode, confirmed.items);
       return true;
     } catch {
       if (!attempt.signal.aborted) {
@@ -74,5 +86,11 @@ export function useCustomerAccountsList(
     }
   }
 
-  return { snapshot, active, draft, setDraft, busy, load };
+  function cancel() {
+    controller.current?.abort();
+    controller.current = null;
+    setBusy(false);
+  }
+
+  return { cancel, snapshot, active, draft, setDraft, busy, load };
 }

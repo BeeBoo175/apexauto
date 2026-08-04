@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { ConfirmationButton } from "@/components/ui/ConfirmationButton";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input } from "@/components/ui/Input";
-import { useAddressSection } from "@/hooks/use-address-section";
+import type { AccountSection } from "@/lib/accounts/accounts-location";
 import type { useAccountCommand } from "@/hooks/use-account-command";
 import type { Page } from "@/lib/api";
 import type { Branch } from "@/lib/branches";
@@ -28,8 +28,6 @@ import styles from "./StaffAccounts.module.css";
 
 const roleName = (role: string) => roleNames[role as keyof typeof roleNames] ?? role;
 
-type Section = "details" | "history";
-
 // One staff member or pending invitation, laid out like the other drawers: the summary band, a scrolling
 // content area under Details and History tabs, and a footer carrying the actions the Administrator may take.
 export function StaffAccountDrawer({
@@ -37,6 +35,8 @@ export function StaffAccountDrawer({
   selfId,
   branches,
   command,
+  section,
+  onSection,
   onClose,
   onChanged,
 }: {
@@ -44,12 +44,14 @@ export function StaffAccountDrawer({
   selfId: string;
   branches: Page<Branch> | null;
   command: ReturnType<typeof useAccountCommand>;
+  section: AccountSection;
+  onSection: (section: AccountSection) => void;
   onClose: () => void;
   onChanged: () => void;
 }) {
-  const [section, chooseSection] = useAddressSection<Section>(["details", "history"]);
   // History is read only once its tab has been opened.
   const [historyOpened, setHistoryOpened] = useState(section === "history");
+  const historyRead = historyOpened || section === "history";
   const [change, setChange] = useState<"deactivate" | "transfer" | null>(null);
   const [suspension, setSuspension] = useState<"suspend" | "lift" | null>(null);
   const [editing, setEditing] = useState(false);
@@ -123,7 +125,7 @@ export function StaffAccountDrawer({
             ]}
             value={section}
             onChange={(next) => {
-              chooseSection(next);
+              onSection(next);
               setHistoryOpened((opened) => opened || next === "history");
             }}
           />
@@ -152,7 +154,7 @@ export function StaffAccountDrawer({
               </section>
             </div>
           </div>
-          {historyOpened && (
+          {historyRead && (
             <div className={shared.panel} hidden={section !== "history"}>
               <div className={`${workbench.body} ${shared.content}`}>
                 <AccountHistory key={row.id} accountId={row.id} />

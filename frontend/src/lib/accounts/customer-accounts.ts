@@ -5,9 +5,9 @@ import { DEFAULT_PAGE_SIZE, isPageSize, paginationQuery } from "@/lib/pagination
 import type { SearchParams } from "@/lib/query";
 
 export const customerAccountTabs = [
-  { value: "All", label: "All", count: "all" },
-  { value: "Unverified", label: "Unverified", count: "unverified" },
-  { value: "Suspended", label: "Suspended", count: "suspended" },
+  { value: "all", label: "All", count: "all" },
+  { value: "unverified", label: "Unverified", count: "unverified" },
+  { value: "suspended", label: "Suspended", count: "suspended" },
 ] as const;
 
 // Contact in the list is masked by the server; the opened account shows the full details.
@@ -127,7 +127,7 @@ export function customerAccountParams(parameters: SearchParams) {
   const pageSize = Number(text("pageSize"));
   return {
     filters: {
-      tab: customerAccountTabs.some((tab) => tab.value === text("tab")) ? text("tab") : "All",
+      tab: customerAccountTabs.some((tab) => tab.value === text("tab")) ? text("tab") : "all",
       search: cleanText(text("search")),
       name: cleanText(text("name")),
       email: cleanText(text("email")),
@@ -138,15 +138,30 @@ export function customerAccountParams(parameters: SearchParams) {
   };
 }
 
+function filterEntries(filters: CustomerAccountFilters) {
+  return Object.entries(filters)
+    .filter(
+      ([key, value]) => key !== "pageSize" && value !== "" && !(key === "tab" && value === "all"),
+    )
+    .map(([key, value]): [string, string] => [key, String(value)]);
+}
+
 export function customerAccountQuery(filters: CustomerAccountFilters, page = 1) {
   const query = paginationQuery(page, filters.pageSize);
-  for (const [key, value] of Object.entries(filters)) {
-    if (key !== "pageSize" && value !== "" && !(key === "tab" && value === "All")) {
-      query.set(key, String(value));
-    }
+  for (const [key, value] of filterEntries(filters)) {
+    query.set(key, value);
   }
   return query.toString();
 }
 
-export const customerAccountsUrl = (filters: CustomerAccountFilters, page: number) =>
-  `/dashboard/accounts?view=customers&${customerAccountQuery(filters, page)}`;
+// The browser address omits every default: the first page, the standard page size and the All tab.
+export function customerAccountUrlQuery(filters: CustomerAccountFilters, page: number) {
+  const query = new URLSearchParams(filterEntries(filters));
+  if (page !== 1) {
+    query.set("page", String(page));
+  }
+  if (filters.pageSize !== DEFAULT_PAGE_SIZE) {
+    query.set("pageSize", String(filters.pageSize));
+  }
+  return query;
+}

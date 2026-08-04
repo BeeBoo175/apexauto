@@ -7,16 +7,22 @@ import { privateApiFetch } from "@/lib/api-browser";
 import {
   parseStaffAccountPage,
   staffAccountQuery,
-  staffAccountsUrl,
   type StaffAccountFilters,
+  type StaffAccountRow,
   type StaffAccountPage,
 } from "@/lib/accounts/staff-accounts";
-import { writeAddress } from "@/lib/browser-url";
+import type { AddressMode } from "./use-staff-address";
 
 export function useStaffAccountsList(
   initial: StaffAccountPage,
   filters: StaffAccountFilters,
   page: number,
+  onLocation: (
+    filters: StaffAccountFilters,
+    page: number,
+    mode: AddressMode,
+    items: StaffAccountRow[],
+  ) => void,
 ) {
   const [snapshot, setSnapshot] = useState(initial);
   const [active, setActive] = useState({ filters, page });
@@ -27,7 +33,13 @@ export function useStaffAccountsList(
   const toast = useToast();
   useEffect(() => () => controller.current?.abort(), []);
 
-  async function load(next = active.filters, nextPage = 1, supersede = false) {
+  // An applied change pushes its address; a reload or a traversal passes its own mode.
+  async function load(
+    next = active.filters,
+    nextPage = 1,
+    supersede = false,
+    mode: AddressMode = "push",
+  ) {
     if (controller.current && !supersede) {
       return false;
     }
@@ -59,7 +71,7 @@ export function useStaffAccountsList(
       setActive({ filters: next, page: nextPage });
       setDraft((current) => (current === submitted ? next : current));
       setRevision((current) => current + 1);
-      writeAddress(staffAccountsUrl(next, nextPage));
+      onLocation(next, nextPage, mode, confirmed.items);
       return true;
     } catch {
       if (!attempt.signal.aborted) {
@@ -76,5 +88,11 @@ export function useStaffAccountsList(
     }
   }
 
-  return { snapshot, active, draft, setDraft, busy, revision, load };
+  function cancel() {
+    controller.current?.abort();
+    controller.current = null;
+    setBusy(false);
+  }
+
+  return { cancel, snapshot, active, draft, setDraft, busy, revision, load };
 }

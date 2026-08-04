@@ -62,7 +62,12 @@ export const staffWorkspaceLinks: StaffWorkspaceLink[] = [
     activeBelow: true,
     allowed: hasSalesAccess,
   },
-  { href: "/dashboard/accounts", label: "Accounts", allowed: hasAccountAdministration },
+  {
+    href: "/dashboard/accounts",
+    label: "Accounts",
+    activeBelow: true,
+    allowed: hasAccountAdministration,
+  },
   { href: "/dashboard/settings", label: "Settings", allowed: hasSettingsAccess },
 ];
 

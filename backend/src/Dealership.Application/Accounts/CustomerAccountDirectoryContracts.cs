@@ -4,9 +4,9 @@ namespace Dealership.Application.Accounts;
 
 public static class CustomerAccountTabs
 {
-    public const string All = "All";
-    public const string Unverified = "Unverified";
-    public const string Suspended = "Suspended";
+    public const string All = "all";
+    public const string Unverified = "unverified";
+    public const string Suspended = "suspended";
 
     public static bool IsValid(string? tab) => tab is null or All or Unverified or Suspended;
 }

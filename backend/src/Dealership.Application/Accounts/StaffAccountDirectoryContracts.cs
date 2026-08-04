@@ -4,11 +4,11 @@ namespace Dealership.Application.Accounts;
 
 public static class StaffAccountTabs
 {
-    public const string All = "All";
-    public const string Active = "Active";
-    public const string Invited = "Invited";
-    public const string Suspended = "Suspended";
-    public const string Deactivated = "Deactivated";
+    public const string All = "all";
+    public const string Active = "active";
+    public const string Invited = "invited";
+    public const string Suspended = "suspended";
+    public const string Deactivated = "deactivated";
 
     public static bool IsValid(string? tab) => tab is null or All or Active or Invited or Suspended or Deactivated;
 }
@@ -33,11 +33,15 @@ public sealed record StaffAccountQuery(string Tab, string Search, string? Role, 
 
     public string Mobile { get; init; } = string.Empty;
 
-    private static readonly string[] StaffRoles =
-    [
-        AccountRoles.SalesAgent, AccountRoles.WorkshopTechnician, AccountRoles.BranchManager,
-        AccountRoles.GeneralManager, AccountRoles.Administrator
-    ];
+    // The query names a role in camelCase; the account keeps its role code.
+    private static readonly Dictionary<string, string> StaffRoles = new()
+    {
+        ["salesAgent"] = AccountRoles.SalesAgent,
+        ["workshopTechnician"] = AccountRoles.WorkshopTechnician,
+        ["branchManager"] = AccountRoles.BranchManager,
+        ["generalManager"] = AccountRoles.GeneralManager,
+        ["administrator"] = AccountRoles.Administrator
+    };
 
     public static StaffAccountQuery? Parse(string? tab, string? search, string? role, Guid? branchId, int page,
         int pageSize, string? name = null, string? email = null, string? mobile = null)
@@ -48,12 +52,12 @@ public sealed record StaffAccountQuery(string Tab, string Search, string? Role, 
         var mobileText = mobile?.Trim() ?? string.Empty;
         if (!ListSearch.IsValid(nameText) || !ListSearch.IsValid(emailText) || !ListSearch.IsValid(mobileText) ||
             !StaffAccountTabs.IsValid(tab) || !ListSearch.IsValid(text) || !Pagination.IsValid(page, pageSize) ||
-            branchId == Guid.Empty || (!string.IsNullOrEmpty(role) && !StaffRoles.Contains(role)))
+            branchId == Guid.Empty || (!string.IsNullOrEmpty(role) && !StaffRoles.ContainsKey(role)))
         {
             return null;
         }
 
-        return new(tab ?? StaffAccountTabs.All, text, string.IsNullOrEmpty(role) ? null : role, branchId, page, pageSize)
+        return new(tab ?? StaffAccountTabs.All, text, string.IsNullOrEmpty(role) ? null : StaffRoles[role], branchId, page, pageSize)
         {
             Name = nameText,
             Email = emailText,

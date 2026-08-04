@@ -31,9 +31,9 @@ public sealed class CustomerAccountDirectoryTests(IntakePhotoFixture fixture) : 
         Assert.False(row.Verified);
         Assert.Contains(page.Items, item => item.Id == row.Id);
         Assert.True(page.Counts.Unverified >= 1);
-        Assert.Contains((await admin.GetFromJsonAsync<CustomerAccountPage>("/api/customer-accounts?tab=Unverified"))!.Items,
+        Assert.Contains((await admin.GetFromJsonAsync<CustomerAccountPage>("/api/customer-accounts?tab=unverified"))!.Items,
             item => item.Id == row.Id);
-        Assert.Empty((await admin.GetFromJsonAsync<CustomerAccountPage>("/api/customer-accounts?tab=Suspended&search=" +
+        Assert.Empty((await admin.GetFromJsonAsync<CustomerAccountPage>("/api/customer-accounts?tab=suspended&search=" +
             Uri.EscapeDataString(registration.Email!)))!.Items);
 
         using var detailResponse = await admin.GetAsync($"/api/customer-accounts/{row.Id}");

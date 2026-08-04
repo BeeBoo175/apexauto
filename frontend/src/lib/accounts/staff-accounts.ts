@@ -6,11 +6,11 @@ import { DEFAULT_PAGE_SIZE, isPageSize, paginationQuery } from "@/lib/pagination
 import type { SearchParams } from "@/lib/query";
 
 export const staffAccountTabs = [
-  { value: "All", label: "All", count: "all" },
-  { value: "Active", label: "Active", count: "active" },
-  { value: "Invited", label: "Invited", count: "invited" },
-  { value: "Suspended", label: "Suspended", count: "suspended" },
-  { value: "Deactivated", label: "Deactivated", count: "deactivated" },
+  { value: "all", label: "All", count: "all" },
+  { value: "active", label: "Active", count: "active" },
+  { value: "invited", label: "Invited", count: "invited" },
+  { value: "suspended", label: "Suspended", count: "suspended" },
+  { value: "deactivated", label: "Deactivated", count: "deactivated" },
 ] as const;
 
 export const staffAccountStatusLabels: Record<string, string> = {
@@ -30,6 +30,9 @@ export const staffAccountRoles = [
   "GeneralManager",
   "Administrator",
 ] as const;
+
+// The address and API name a role in camelCase; the role itself keeps its DTO casing.
+export const staffRoleToken = (role: string) => `${role.charAt(0).toLowerCase()}${role.slice(1)}`;
 
 export const hasAccountAdministration = (actor: Pick<CurrentActor, "role">) =>
   actor.role === "Administrator";
@@ -140,9 +143,9 @@ export function staffAccountParams(parameters: SearchParams) {
   const pageSize = Number(text("pageSize"));
   return {
     filters: {
-      tab: staffAccountTabs.some((tab) => tab.value === text("tab")) ? text("tab") : "All",
+      tab: staffAccountTabs.some((tab) => tab.value === text("tab")) ? text("tab") : "all",
       search: cleanText(text("search")),
-      role: staffAccountRoles.some((role) => role === text("role")) ? text("role") : "",
+      role: staffAccountRoles.find((role) => staffRoleToken(role) === text("role")) ?? "",
       branchId: isUuid(text("branchId")) ? text("branchId") : "",
       name: cleanText(text("name")),
       email: cleanText(text("email")),
@@ -153,15 +156,33 @@ export function staffAccountParams(parameters: SearchParams) {
   };
 }
 
+function filterEntries(filters: StaffAccountFilters) {
+  const entries: [string, string][] = [];
+  for (const [key, value] of Object.entries(filters)) {
+    if (key === "pageSize" || value === "" || (key === "tab" && value === "all")) {
+      continue;
+    }
+    entries.push([key, key === "role" ? staffRoleToken(String(value)) : String(value)]);
+  }
+  return entries;
+}
+
 export function staffAccountQuery(filters: StaffAccountFilters, page = 1) {
   const query = paginationQuery(page, filters.pageSize);
-  for (const [key, value] of Object.entries(filters)) {
-    if (key !== "pageSize" && value !== "" && !(key === "tab" && value === "All")) {
-      query.set(key, String(value));
-    }
+  for (const [key, value] of filterEntries(filters)) {
+    query.set(key, value);
   }
   return query.toString();
 }
 
-export const staffAccountsUrl = (filters: StaffAccountFilters, page: number) =>
-  `/dashboard/accounts?${staffAccountQuery(filters, page)}`;
+// The browser address omits every default: the first page, the standard page size and the All tab.
+export function staffAccountUrlQuery(filters: StaffAccountFilters, page: number) {
+  const query = new URLSearchParams(filterEntries(filters));
+  if (page !== 1) {
+    query.set("page", String(page));
+  }
+  if (filters.pageSize !== DEFAULT_PAGE_SIZE) {
+    query.set("pageSize", String(filters.pageSize));
+  }
+  return query;
+}
