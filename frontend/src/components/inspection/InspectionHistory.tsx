@@ -1,6 +1,7 @@
 "use client";
 import { StaffLink } from "@/components/staff/StaffLink";
 import type { RepairSelection } from "@/lib/inspection/query";
+import { workshopSelectionHref } from "@/lib/inspection/workshop-location";
 
 export function InspectionRepairLink({
   inspectionId,
@@ -16,7 +17,7 @@ export function InspectionRepairLink({
   return (
     <StaffLink
       prefetch={false}
-      href={`/dashboard/inspection?inspection=${inspectionId}&section=repairs&request=${selection.requestId}&revision=${selection.revision}`}
+      href={workshopSelectionHref({ id: inspectionId, section: "repairs", request: selection })}
       aria-disabled={disabled || undefined}
       onClick={(event) => {
         if (disabled) {

@@ -1,30 +1,6 @@
-import { StaffEntry } from "@/components/staff/StaffEntry";
-import { WorkshopClientEntry } from "@/components/inspection/WorkshopClientEntry";
-import { hasInspectionAccess } from "@/lib/inspection/contracts";
+import { WorkshopPageEntry } from "@/components/inspection/WorkshopPageEntry";
 import type { SearchParams } from "@/lib/query";
 
-export default async function InspectionPage({
-  searchParams,
-}: {
-  searchParams: Promise<SearchParams>;
-}) {
-  return (
-    <StaffEntry
-      path="/dashboard/inspection"
-      searchParams={searchParams}
-      access={hasInspectionAccess}
-      deniedTitle="Inspection access unavailable"
-      deniedDescription="This role cannot access inspections or repair requests."
-    >
-      {async (actor) => {
-        return (
-          <WorkshopClientEntry
-            key={crypto.randomUUID()}
-            actor={actor}
-            parameters={await searchParams}
-          />
-        );
-      }}
-    </StaffEntry>
-  );
+export default function InspectionPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  return <WorkshopPageEntry searchParams={searchParams} />;
 }

@@ -7,7 +7,12 @@ import {
   parseRepairPage,
 } from "@/lib/inspection/parse";
 import { parseMyr } from "@/lib/currency-input";
-import { queueParams, queueQuery } from "@/lib/inspection/query";
+import { queueParams, queueQuery, technicianQueueQuery } from "@/lib/inspection/query";
+import {
+  technicianQueueParams,
+  technicianQueuePaging,
+  workshopLocation,
+} from "@/lib/inspection/workshop-location";
 import { appliedWorklistFilters } from "@/lib/staff/filter-summary";
 import { checklistDraft, saveContents } from "@/lib/inspection/draft";
 import type { Draft } from "@/lib/inspection/contracts";
@@ -170,7 +175,7 @@ test("inspection adapters normalize numeric API enums and reject unknown authori
 test("repair queues default to all and shared pills remove only the chosen applied criterion", () => {
   const initial = queueParams({}, "repair-requests");
   expect(initial.filters.status).toBe("All");
-  expect(new URLSearchParams(queueQuery(initial.filters, 1)).get("status")).toBe("All");
+  expect(new URLSearchParams(queueQuery(initial.filters, 1)).get("status")).toBe("all");
   const filters = {
     ...initial.filters,
     status: "Approved",
@@ -194,6 +199,87 @@ test("repair queues default to all and shared pills remove only the chosen appli
     ...filters,
     branchId: "",
   });
+});
+
+test("workshop query accepts only camelCase tokens and keeps domain status and search", () => {
+  const parsed = queueParams(
+    { status: "approval", workStatus: "approvalRequired", search: "WXY 8210" },
+    "workshop",
+  );
+  expect(parsed.filters).toMatchObject({
+    status: "Approval",
+    workStatus: "ApprovalRequired",
+    search: "WXY 8210",
+  });
+  const query = new URLSearchParams(queueQuery(parsed.filters, 2));
+  expect(query.get("status")).toBe("approval");
+  expect(query.get("workStatus")).toBe("approvalRequired");
+  expect(query.get("page")).toBe("2");
+  expect(query.get("sort")).toBe("requestedAt");
+  for (const status of ["Approval", "APPROVAL"]) {
+    expect(
+      queueParams({ status, workStatus: "ApprovalRequired" }, "workshop").filters,
+    ).toMatchObject({
+      status: "Active",
+      workStatus: "",
+    });
+  }
+  for (const task of ["MyWork", "Waiting", "Claimable"] as const) {
+    const prefix = task[0].toLowerCase() + task.slice(1);
+    const current = {
+      [`${prefix}Search`]: "  XYZ  ",
+      [`${prefix}Page`]: "2",
+      [`${prefix}PageSize`]: "10",
+    };
+    expect(technicianQueueParams(current, task)).toBe("XYZ");
+    expect(technicianQueuePaging(current, task)).toEqual({ page: 2, pageSize: 10 });
+    expect(technicianQueueParams({ [`${task}.search`]: "ABC" }, task)).toBe("");
+    expect(new URLSearchParams(technicianQueueQuery(task, "XYZ")).get("status")).toBe(prefix);
+  }
+});
+
+test("workshop addresses put the record in the path and omit defaults", () => {
+  const id = "11111111-1111-4111-8111-111111111111";
+  const requestId = "22222222-2222-4222-8222-222222222222";
+  const retained = `/dashboard/inspection/${id}/repairs/${requestId}/revisions/3`;
+  expect(workshopLocation("/dashboard/inspection", "", false)?.href).toBe("/dashboard/inspection");
+  expect(workshopLocation(`/dashboard/inspection/${id}`, "", false)?.href).toBe(
+    `/dashboard/inspection/${id}`,
+  );
+  expect(workshopLocation(retained, "status=approval&page=2", false)).toMatchObject({
+    id,
+    section: "repairs",
+    request: { requestId, revision: 3 },
+    href: `${retained}?page=2&status=approval`,
+  });
+  expect(
+    workshopLocation(`/dashboard/inspection/${id}/history`, "sort=requestedAt", false)?.href,
+  ).toBe(`/dashboard/inspection/${id}/history?sort=requestedAt`);
+  expect(
+    workshopLocation(`/dashboard/inspection/${id}`, "inspection=other&section=history", false)
+      ?.href,
+  ).toBe(`/dashboard/inspection/${id}`);
+  for (const path of [
+    `/dashboard/inspection/${id}/inspection`,
+    `/dashboard/inspection/${id}/repairs/${requestId}`,
+    `/dashboard/inspection/${id}/repairs/${requestId}/revisions/0`,
+    `/dashboard/inspection/${id}/history/extra`,
+    "/dashboard/inspection/not-an-id",
+  ]) {
+    expect(workshopLocation(path, "", false)).toBeNull();
+  }
+  const technician = workshopLocation(
+    "/dashboard/inspection",
+    "view=claimable&waitingPage=2&waitingSearch=ABC&myWorkPageSize=50",
+    true,
+  );
+  expect(technician?.view).toBe("Claimable");
+  expect(technician?.href).toBe(
+    "/dashboard/inspection?view=claimable&myWorkPageSize=50&waitingSearch=ABC&waitingPage=2",
+  );
+  expect(workshopLocation("/dashboard/inspection", "view=myWork", true)?.href).toBe(
+    "/dashboard/inspection",
+  );
 });
 
 test("MYR input never silently rounds sub-cents or unsafe amounts", () => {

@@ -108,8 +108,8 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   await page.getByRole("button", { name: "Reconcile assignment", exact: true }).click();
   expect(assignmentBodies).toHaveLength(2);
   expect(assignmentBodies[1]).toBe(assignmentBodies[0]);
-  await expect(page).toHaveURL(/\/dashboard\/inspection\?.*inspection=[a-f0-9-]+/);
-  const id = new URL(page.url()).searchParams.get("inspection")!;
+  await expect(page).toHaveURL(/\/dashboard\/inspection\/[a-f0-9-]+/);
+  const id = new URL(page.url()).pathname.split("/")[3];
   await expect(page.getByRole("button", { name: "Save draft", exact: true })).toBeEnabled();
   await page.unroute("**/api/staff/inspection/vehicles/*/assignments");
   const header = page.getByRole("heading", { level: 1 });
@@ -252,7 +252,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     manager.getByRole("button", { name: "Refresh worklist", exact: true }),
   ).toBeEnabled();
   await screenshot(manager, "intake-parity-reference");
-  await manager.goto("/dashboard/inspection/repairs");
+  await manager.goto("/dashboard/inspection?status=approval");
   await expect(
     manager.getByRole("button", { name: "Refresh workshop", exact: true }),
   ).toBeEnabled();
@@ -408,7 +408,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     .getByRole("dialog", { name: registration, exact: true })
     .getByRole("button", { name: "Close drawer", exact: true })
     .click();
-  await manager.goto(`/dashboard/inspection?inspection=${id}`);
+  await manager.goto(`/dashboard/inspection/${id}`);
   await manager.getByRole("button", { name: "Reopen inspection", exact: true }).click();
   await manager
     .getByLabel("Reopening reason", { exact: true })
@@ -455,7 +455,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     .getByRole("button", { name: "Close drawer", exact: true })
     .click();
   await manager.goto(
-    `/dashboard/inspection/repairs?inspection=${id}&request=${repairRequestId}&revision=1`,
+    `/dashboard/inspection/${id}/repairs/${repairRequestId}/revisions/1`,
   );
   await expect(
     manager.getByRole("heading", { name: "Retained repair request", exact: true }),
@@ -473,7 +473,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     .getByRole("dialog", { name: registration, exact: true })
     .getByRole("button", { name: "Close drawer", exact: true })
     .click();
-  await manager.goto(`/dashboard/inspection?inspection=${id}`);
+  await manager.goto(`/dashboard/inspection/${id}`);
   const selected = await context.request.get(`/api/staff/inspection/reports/${id}/revisions/1`, {
     headers: await privateHeaders(context),
   });
@@ -496,7 +496,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
       checklistPoints: report.checklist.length,
     }),
   );
-  await page.goto(`/dashboard/inspection?inspection=${id}`);
+  await page.goto(`/dashboard/inspection/${id}`);
   await expect(page.getByRole("button", { name: "Save draft", exact: true })).toBeEnabled();
   await selectPoint(page, "EP-004");
   await page.getByLabel("EP-004 finding notes", { exact: true }).fill("Retained local findings.");
@@ -586,7 +586,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     (cookie) => cookie.name === "apexauto_token",
   );
   await context.addCookies(changed);
-  await page.goto(`/dashboard/inspection?inspection=${id}`);
+  await page.goto(`/dashboard/inspection/${id}`);
   await expect(
     page.getByRole("heading", { name: "Inspection access unavailable", exact: true }),
   ).toBeVisible();

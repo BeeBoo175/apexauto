@@ -23,6 +23,7 @@ public static class InspectionDraftEndpoints
         routes.MapPost("/drafts/{id:guid}/saves", SaveAsync);
         routes.MapPost("/drafts/{id:guid}/sign-offs", SignAsync);
         routes.MapPost("/drafts/{id:guid}/reopenings", ReopenAsync);
+        routes.MapGet("/reports/{id:guid}/revisions/{revision:long}", ReportAsync);
         routes.MapGet("/reports/{id:guid}/revisions/{revision:long}/document", ReportDocumentAsync)
             .RequireRateLimiting(ApiRateLimiting.PhotoTransferPolicy);
         routes.MapGet("/reports/{id:guid}/revisions", HistoryAsync);
@@ -103,6 +104,16 @@ public static class InspectionDraftEndpoints
         {
             return Results.Problem(statusCode: 503, title: "Sign-off is unconfirmed; reconcile with the same operation and contents.");
         }
+    }
+
+    private static Task<IResult> ReportAsync(Guid id, long revision, HttpContext context,
+        IInspectionReportStore reports, CancellationToken cancellationToken)
+    {
+        return BoundedRead.RunAsync(async token =>
+        {
+            var result = await reports.ReadAsync(ActorId(context), id, revision, token);
+            return Map(result.Status, result.Report);
+        }, "Signed inspection report is temporarily unavailable.", cancellationToken);
     }
 
     private static async Task<IResult> ReportDocumentAsync(Guid id, long revision, HttpContext context,

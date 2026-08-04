@@ -49,9 +49,9 @@ test("shared calendar rejects partial, duplicate, oversized and wrong-range snap
     total: 2,
   })!;
   expect(new Set(workCalendarEvents(shared).map((item) => item.id)).size).toBe(2);
-  expect(workCalendarEvents(shared)[0].title).toBe("Intake · VCA 9701");
+  expect(workCalendarEvents(shared)[0].title).toBe("Intake Â· VCA 9701");
   expect(workCalendarEvents({ ...shared, branchId: null })[0].title).toBe(
-    "Intake · VCA 9701 · ApexAuto Glenmarie",
+    "Intake Â· VCA 9701 Â· ApexAuto Glenmarie",
   );
 });
 
@@ -75,7 +75,7 @@ test("unscheduled work validates ownership and real editor identity without inve
   };
   const work = parseUnscheduledWork(snapshot)!;
   expect(work.items[0]).not.toHaveProperty("startsAt");
-  expect(workItemHref(work.items[0])).toBe(`/dashboard/inspection?inspection=${branchId}`);
+  expect(workItemHref(work.items[0])).toBe(`/dashboard/inspection/${branchId}`);
   expect(
     parseUnscheduledWork({ ...snapshot, items: [{ ...item, inspectionId: null }] }),
   ).toBeNull();

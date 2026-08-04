@@ -25,7 +25,7 @@ public sealed class InspectionQueueTests(IntakePhotoFixture fixture) : IClassFix
         using var scope = data.Factory.Services.CreateScope();
         var services = scope.ServiceProvider;
         var database = services.GetRequiredService<DealershipDbContext>();
-        var (technician, _) = await ProvisionAsync(services, data.BranchId, AccountRoles.WorkshopTechnician);
+        var (technician, technicianEmail) = await ProvisionAsync(services, data.BranchId, AccountRoles.WorkshopTechnician);
         var (colleague, _) = await ProvisionAsync(services, data.BranchId, AccountRoles.WorkshopTechnician);
         var (manager, email) = await ProvisionAsync(services, data.BranchId, AccountRoles.BranchManager);
         var (group, _) = await ProvisionAsync(services, null, AccountRoles.GeneralManager);
@@ -208,7 +208,7 @@ public sealed class InspectionQueueTests(IntakePhotoFixture fixture) : IClassFix
         var restored = restartedScope.ServiceProvider.GetRequiredService<IInspectionQueueStore>();
         Assert.Equal(JsonSerializer.Serialize((await queues.RepairsAsync(group, new(), InspectionRepairQueueStatus.All, CancellationToken.None)).Queue),
             JsonSerializer.Serialize((await restored.RepairsAsync(group, new(), InspectionRepairQueueStatus.All, CancellationToken.None)).Queue));
-        await VerifyHttpAsync(restarted.CreateClient(), email);
+        await VerifyHttpAsync(restarted.CreateClient(), email, technicianEmail);
         Assert.Equal(InspectionAssignmentStatus.Invalid, (await queues.InspectionsAsync(manager, new(PageSize: 20), InspectionQueueStatus.All, CancellationToken.None)).Status);
         Assert.Equal(InspectionAssignmentStatus.Invalid, (await queues.RepairsAsync(manager, new(), (InspectionRepairQueueStatus)999, CancellationToken.None)).Status);
         await database.Users.Where(item => item.Id == manager).ExecuteUpdateAsync(update => update.SetProperty(item => item.Role, AccountRoles.SalesAgent));
@@ -220,7 +220,7 @@ public sealed class InspectionQueueTests(IntakePhotoFixture fixture) : IClassFix
         Assert.Equal(3, (await queues.InspectionsAsync(group, new(), InspectionQueueStatus.All, CancellationToken.None)).Queue!.Total);
     }
 
-    private static async Task VerifyHttpAsync(HttpClient client, string email)
+    private static async Task VerifyHttpAsync(HttpClient client, string email, string technicianEmail)
     {
         using (client)
         {
@@ -238,13 +238,38 @@ public sealed class InspectionQueueTests(IntakePhotoFixture fixture) : IClassFix
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.True(response.Headers.CacheControl?.NoStore);
             Assert.Single((await response.Content.ReadFromJsonAsync<InspectionRepairQueuePage>())!.Items);
-            Assert.Equal(5, (await client.GetFromJsonAsync<InspectionRepairQueuePage>($"{repairs}?status=Superseded"))!.Total);
-            foreach (var path in new[] { vehicles, repairs })
+            Assert.Equal(5, (await client.GetFromJsonAsync<InspectionRepairQueuePage>($"{repairs}?status=superseded"))!.Total);
+            const string workshop = "/api/staff/inspection/workshop";
+            foreach (var status in new[] { "active", "inspection", "approval", "repairs", "all" })
             {
-                foreach (var query in new[] { "pageSize=20", "page=0", "status=999", "status=0", "from=2026-10-22" })
+                response = await client.GetAsync($"{workshop}?status={status}");
+                Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+                Assert.True(response.Headers.CacheControl?.NoStore);
+            }
+            var filtered = (await client.GetFromJsonAsync<WorkshopQueuePage>(
+                $"{workshop}?status=all&workStatus=approvalRequired"))!;
+            Assert.Equal(WorkshopWorkStatus.ApprovalRequired, Assert.Single(filtered.Items).Status);
+            foreach (var path in new[] { vehicles, repairs, workshop })
+            {
+                foreach (var query in new[] { "pageSize=20", "page=0", "status=999", "status=0", "status=All", "from=2026-10-22" })
                 {
                     Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync($"{path}?{query}")).StatusCode);
                 }
+            }
+            Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync($"{workshop}?workStatus=ApprovalRequired")).StatusCode);
+            Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync($"{workshop}?workStatus=unknown")).StatusCode);
+            login = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest(Guid.NewGuid(), technicianEmail, "Password123!"));
+            session = (await login.Content.ReadFromJsonAsync<LoginSession>())!;
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
+            foreach (var task in new[] { "myWork", "waiting", "claimable" })
+            {
+                response = await client.GetAsync($"{workshop}/jobs?status={task}");
+                Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+                Assert.True(response.Headers.CacheControl?.NoStore);
+            }
+            foreach (var task in new[] { "MyWork", "Waiting", "Claimable", "all", "0" })
+            {
+                Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync($"{workshop}/jobs?status={task}")).StatusCode);
             }
         }
     }

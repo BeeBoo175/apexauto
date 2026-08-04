@@ -10,7 +10,7 @@ test("administrator cannot enter the inspection workspace", async ({ page }) => 
     page.getByRole("heading", { name: "Your staff workspace", exact: true }),
   ).toBeVisible();
   await expect(page.getByRole("progressbar")).toBeHidden();
-  await page.goto("/dashboard/inspection/repairs");
+  await page.goto("/dashboard/inspection");
   await expect(
     page.getByRole("heading", { name: "Inspection access unavailable", exact: true }),
   ).toBeVisible();

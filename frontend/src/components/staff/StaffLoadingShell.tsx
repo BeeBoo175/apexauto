@@ -8,14 +8,7 @@ import layout from "./Staff.module.css";
 import styles from "./StaffLoadingShell.module.css";
 
 export type StaffLoadingView =
-  | "calendar"
-  | "intake"
-  | "inspection"
-  | "technician"
-  | "repairs"
-  | "appointment"
-  | "report"
-  | "home";
+  "calendar" | "intake" | "inspection" | "technician" | "appointment" | "report" | "home";
 
 // The report shell follows the requested performance view and whether the actor also sees the Branches tab.
 type LoadingShellProps = {

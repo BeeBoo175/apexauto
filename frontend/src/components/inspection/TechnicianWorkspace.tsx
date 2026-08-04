@@ -8,24 +8,22 @@ import { SearchField } from "@/components/ui/SearchField";
 import { StaffQueueTabs } from "@/components/staff/StaffQueueTabs";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
-import { useToast } from "@/components/ui/Toast";
-import { useTechnicianQueue } from "@/hooks/use-technician-queue";
-import { useInspectionDrawer } from "@/hooks/use-inspection-drawer";
+import {
+  useWorkshopTechnician,
+  type WorkshopTechnicianEntry,
+} from "@/hooks/use-workshop-technician";
 import { useGuardedAction } from "@/hooks/use-guarded-action";
 import {
   workshopRowSection,
   type TechnicianTask,
   type WorkshopRow,
-  type WorkshopJobs,
 } from "@/lib/inspection/workshop-contracts";
-import type { ApiResult } from "@/lib/api";
 import type { WorkshopQueue } from "./WorkshopQueue";
 import { TechnicianJobList } from "./TechnicianJobList";
 import { TechnicianClaim } from "./TechnicianClaim";
 import { TechnicianJobWorkspace } from "./TechnicianJobWorkspace";
 import styles from "@/components/staff/StaffQueueWorkspace.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
-import { writeAddress } from "@/lib/browser-url";
 
 const viewLabels: Record<TechnicianTask, string> = {
   MyWork: "Ready to work",
@@ -39,29 +37,8 @@ const viewTabs: Record<TechnicianTask, string> = {
   Claimable: "To claim",
 };
 
-const viewQueries: Record<TechnicianTask, string> = {
-  MyWork: "ready",
-  Waiting: "waiting",
-  Claimable: "claim",
-};
-
-export type TechnicianQueueEntry = {
-  initial: ApiResult<WorkshopJobs>;
-  search: string;
-};
-
-type Props = Pick<
-  ComponentProps<typeof WorkshopQueue>,
-  | "actor"
-  | "selectedId"
-  | "selectedInspection"
-  | "selectedRequest"
-  | "selectedSection"
-  | "selectedReview"
-> & {
-  queues: Record<TechnicianTask, TechnicianQueueEntry>;
-  initialView: TechnicianTask;
-};
+type Props = Pick<ComponentProps<typeof WorkshopQueue>, "actor" | "selectedReview"> &
+  WorkshopTechnicianEntry;
 
 export function TechnicianWorkspace({
   actor,
@@ -75,54 +52,32 @@ export function TechnicianWorkspace({
 }: Props) {
   const animateEntry = useContext(StaffPageEntranceContext);
   const interaction = useGuardedAction();
-  const [view, setView] = useState(initialView);
   const [queueExpanded, setQueueExpanded] = useState(initialView !== "MyWork");
   const [headerActions, setHeaderActions] = useState<HTMLDivElement | null>(null);
-  const toast = useToast();
-  const ready = useTechnicianQueue("MyWork", queues.MyWork.initial, queues.MyWork.search);
-  const waiting = useTechnicianQueue("Waiting", queues.Waiting.initial, queues.Waiting.search);
-  const claimable = useTechnicianQueue(
-    "Claimable",
-    queues.Claimable.initial,
-    queues.Claimable.search,
-  );
-
-  async function refresh(includeClaims = true) {
-    const results = await Promise.all([
-      ready.refresh(false),
-      waiting.refresh(false),
-      ...(includeClaims ? [claimable.refresh(false)] : []),
-    ]);
-    if (results.some((result) => result === false)) {
-      toast.error(
-        "Workshop jobs could not all be refreshed. The last confirmed worklists remain shown.",
-      );
-    }
-  }
-
-  const selection = useInspectionDrawer(
+  const {
+    view,
+    showView,
+    worklists,
+    drawer: selection,
+    refresh,
+    refreshDestination,
+  } = useWorkshopTechnician({
+    queues,
+    initialView,
     selectedId,
     selectedInspection,
-    () => void refresh(),
     selectedRequest,
     selectedSection,
-  );
+  });
+  const { MyWork: ready, Waiting: waiting, Claimable: claimable } = worklists;
   const busy = ready.busy || waiting.busy || claimable.busy;
   const interactive = ready.ready && waiting.ready && claimable.ready;
-  const worklists = { MyWork: ready, Waiting: waiting, Claimable: claimable };
   const refreshControl = {
     label: "Refresh workshop",
     busy,
     disabled: !interactive || selection.busy,
-    onClick: () => void refresh(),
+    onClick: () => void refreshDestination(),
   };
-
-  function showView(value: TechnicianTask) {
-    setView(value);
-    const url = new URL(window.location.href);
-    url.searchParams.set("view", viewQueries[value]);
-    writeAddress(url);
-  }
 
   function open(row: WorkshopRow) {
     if (row.inspectionId) {
@@ -194,7 +149,7 @@ export function TechnicianWorkspace({
               selectionLocked={selection.locked}
               onClaimed={(id) => {
                 setQueueExpanded(false);
-                showView("MyWork");
+                showView("MyWork", false);
                 void refresh();
                 selection.open(id);
               }}

@@ -5,8 +5,8 @@ import { HandlerAvatar } from "@/components/staff/HandlerAvatar";
 import { VehicleDescription, VehicleRegistration } from "@/components/staff/VehicleTableCells";
 import { Dialog } from "@/components/ui/Dialog";
 import type { DataColumn } from "@/components/ui/data-table/types";
-import { useInspectionQueue } from "@/hooks/use-inspection-queue";
-import { useInspectionDrawer, type RepairSelection } from "@/hooks/use-inspection-drawer";
+import { useWorkshopManager } from "@/hooks/use-workshop-manager";
+import type { RepairSelection } from "@/hooks/use-inspection-drawer";
 import { parseWorkshopPage } from "@/lib/inspection/parse-workshop";
 import { workshopExportColumns } from "@/lib/inspection/workshop-export";
 import {
@@ -52,15 +52,22 @@ export function WorkshopQueue({
   selectedSection?: WorkshopSection;
   selectedReview?: SelectedRepairReview | null;
 }) {
-  const state = useInspectionQueue("workshop", initial, filters, page, branches, parseWorkshopPage);
-  const [unassigned, setUnassigned] = useState<WorkshopRow | null>(null);
-  const selection = useInspectionDrawer(
+  const {
+    queue,
+    drawer: selection,
+    refresh,
+  } = useWorkshopManager({
+    initial,
+    filters,
+    page,
+    branches,
     selectedId,
     selectedInspection,
-    () => void state.refresh(),
     selectedRequest,
     selectedSection,
-  );
+  });
+  const state = { ...queue, refresh };
+  const [unassigned, setUnassigned] = useState<WorkshopRow | null>(null);
 
   function open(row: WorkshopRow) {
     if (!row.inspectionId) {
@@ -171,7 +178,7 @@ export function WorkshopQueue({
     >
       <Dialog
         open={Boolean(unassigned)}
-        title={`Unassigned inspection · ${unassigned?.registrationPlate ?? ""}`}
+        title={`Unassigned inspection Â· ${unassigned?.registrationPlate ?? ""}`}
         onClose={() => setUnassigned(null)}
       >
         {unassigned && <p>This vehicle is awaiting a workshop technician&apos;s first claim.</p>}

@@ -108,7 +108,7 @@ export function managerAttention({ pipeline, stages, workload, schedule }: Atten
           key: "inspection",
           count: stageCount(stages, "AwaitingInspection"),
           text: "waiting for inspection",
-          href: "/dashboard/inspection?status=Inspection",
+          href: "/dashboard/inspection?status=inspection",
         },
         stages !== null && {
           key: "listing",
