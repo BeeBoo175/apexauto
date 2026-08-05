@@ -166,7 +166,10 @@ export function listingQuery(filters: ListingFilters, page = 1) {
     query.set("branchId", filters.branchId);
   }
   if (filters.inspection) {
-    query.set("inspection", filters.inspection);
+    query.set(
+      "inspection",
+      filters.inspection.replace(/^[A-Z]/, (letter) => letter.toLowerCase()),
+    );
   }
   if (filters.publication) {
     query.set("publication", filters.publication);

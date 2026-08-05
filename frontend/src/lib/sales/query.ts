@@ -15,7 +15,7 @@ import {
   type TableView,
 } from "./contracts";
 
-// Domain statuses keep their PascalCase on the wire; the address carries their camelCase token.
+// Domain statuses keep their PascalCase in the DTOs; the address and the API query carry their camelCase token.
 export function salesQueryToken(value: string) {
   return value.replace(/^[A-Z]/, (letter) => letter.toLowerCase());
 }
@@ -24,7 +24,7 @@ export const salePath = (id: string) => `/api/staff/sales/${id}`;
 
 export function queueQuery(view: QueueView, search = "", page = 1, pageSize = DEFAULT_PAGE_SIZE) {
   const query = new URLSearchParams({
-    view,
+    view: salesQueryToken(view),
     page: String(page),
     pageSize: String(pageSize),
   });
@@ -96,7 +96,7 @@ export function tableViewFilters(filters: SalesTableFilters, view: TableView): S
 export function tableQuery(filters: SalesTableFilters, page = 1) {
   const query = paginationQuery(page, filters.pageSize);
   if (filters.view) {
-    query.set("view", filters.view);
+    query.set("view", salesQueryToken(filters.view));
   }
   if (filters.sort) {
     query.set("sort", filters.sort);
@@ -105,7 +105,7 @@ export function tableQuery(filters: SalesTableFilters, page = 1) {
   for (const key of tableTextKeys) {
     const value = filters[key].trim();
     if (value) {
-      query.set(key, value);
+      query.set(key, key === "outcome" ? salesQueryToken(value) : value);
     }
   }
   return query.toString();

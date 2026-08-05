@@ -31,6 +31,7 @@ export function CustomerAccountsWorkspace({ entry }: { entry: CustomersEntry }) 
     entry.page,
     address.onLocation,
   );
+  const selected = list.snapshot.items.find((row) => row.id === address.selection.id) ?? null;
   const command = useAccountCommand();
   function currentList() {
     return list;
@@ -57,7 +58,7 @@ export function CustomerAccountsWorkspace({ entry }: { entry: CustomersEntry }) 
       />
       <CustomerAccountsTable list={list} selectedId={address.selection.id} onOpen={address.open} />
       <CustomerAccountDrawer
-        row={address.selected}
+        row={selected}
         section={address.selection.section}
         onSection={address.choose}
         command={command}

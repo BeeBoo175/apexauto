@@ -269,7 +269,7 @@ test("sales settlement, handover, corrections and own customer PDFs retain exact
     await apiLogin(manager, "farah.aziz@example.invalid");
     const awaiting = await read(
       manager,
-      "/api/staff/sales?view=AwaitingHandover&registration=PQA%206312",
+      "/api/staff/sales?view=awaitingHandover&registration=PQA%206312",
     );
     expect(awaiting.status()).toBe(200);
     const tradeIn = (await awaiting.json()).data.items.find(

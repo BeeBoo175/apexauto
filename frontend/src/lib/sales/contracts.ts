@@ -233,7 +233,7 @@ export const queueViewQueries: Record<QueueView, string> = {
   Waiting: "waiting",
   Settling: "settling",
   Completed: "completed",
-  ToClaim: "claim",
+  ToClaim: "toClaim",
 };
 
 export const queueCountKeys = ["toClaim", "handling", "waiting", "settling", "completed"] as const;

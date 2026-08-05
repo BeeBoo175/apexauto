@@ -29,6 +29,7 @@ export function StaffAccountsWorkspace({ entry }: { entry: AccountsEntry }) {
     currentList,
   );
   const list = useStaffAccountsList(entry.initial, entry.filters, entry.page, address.onLocation);
+  const selected = list.snapshot.items.find((row) => row.id === address.selection.id) ?? null;
   const command = useAccountCommand();
   const [inviting, setInviting] = useState(false);
   // A revoked invitation leaves the list, which closes its drawer.
@@ -67,7 +68,7 @@ export function StaffAccountsWorkspace({ entry }: { entry: AccountsEntry }) {
         }
       />
       <StaffAccountDrawer
-        row={address.selected}
+        row={selected}
         section={address.selection.section}
         onSection={address.choose}
         selfId={list.snapshot.actor.userId}

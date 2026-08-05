@@ -66,8 +66,7 @@ export async function exerciseOwnership(page: Page) {
   ).toHaveAttribute("aria-pressed", "true");
   const unassigned = new URL(page.url());
   const selectedId = unassigned.pathname.split("/").at(-1)!;
-  unassigned.pathname = "/dashboard/intake";
-  unassigned.searchParams.set("appointment", selectedId);
+  unassigned.pathname = `/dashboard/intake/${selectedId}`;
   unassigned.searchParams.delete("queue");
   await page.goto(unassigned.toString());
   await expect(

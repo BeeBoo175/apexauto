@@ -39,7 +39,7 @@ public static class ListingQueryEndpoints
         {
             var result = await store.ReadAsync(ActorId(context),
                 new(branchId, page ?? 1, pageSize ?? Pagination.DefaultPageSize, search?.Trim() ?? "",
-                    sort ?? "", direction ?? "asc", inspection ?? "", publication ?? "",
+                    sort ?? "", direction ?? "asc", QueryToken.ToDomain(inspection) ?? "", publication ?? "",
                     minimumPrice, maximumPrice, minimumPublishedPrice, maximumPublishedPrice,
                     dates.From, dates.Until, registration?.Trim() ?? "", vehicle?.Trim() ?? ""), deadline.Token);
             return Map(result.Status, result.Listings);

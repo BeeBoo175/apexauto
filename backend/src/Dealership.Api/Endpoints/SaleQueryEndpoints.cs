@@ -75,6 +75,7 @@ public static class SaleQueryEndpoints
         HttpContext context, ISaleListStore sales, CancellationToken cancellationToken)
     {
         var (number, size, text) = (page ?? 1, pageSize ?? Pagination.DefaultPageSize, search?.Trim());
+        view = QueryToken.ToDomain(view);
         text = string.IsNullOrEmpty(text) ? null : text;
         return SaleQueries.ValidQueue(view, text, number, size)
             ? ReadAsync(deadline => sales.QueueAsync(ActorId(context), view ?? SaleViews.ToClaim, text,

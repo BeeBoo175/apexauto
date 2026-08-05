@@ -77,7 +77,7 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
       },
     }),
   );
-  await page.goto("/dashboard/intake?view=queue&queue=MyWork");
+  await page.goto("/dashboard/intake?queue=myWork");
   await expect(page.getByRole("button", { name: "Retry queue", exact: true })).toBeVisible();
   await page.unroute("**/api/staff/intake/appointments?**");
   await page.getByRole("button", { name: "Retry queue", exact: true }).click();
@@ -90,7 +90,7 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
     }
   });
   await page.goto(
-    "/dashboard/intake?view=queue&queue=MyWork&status=Cancelled&handler=hidden&sort=handlerEmail",
+    "/dashboard/intake?queue=myWork&status=cancelled&handler=hidden&sort=handlerEmail",
   );
   const arrivalPlate = testInfo.project.name === "mobile" ? "VCA 9702" : "VCA 9701";
   const queue = page.getByRole("complementary", { name: "Intake queues", exact: true });
@@ -144,7 +144,7 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
     expect(url.searchParams.has("handler")).toBe(false);
     expect(url.searchParams.get("sort")).toBe("startsAt");
   }
-  await page.goto("/dashboard/intake?view=queue&queue=MyWork");
+  await page.goto("/dashboard/intake?queue=myWork");
   await expect(page.getByRole("button", { name: "Refresh worklist", exact: true })).toBeEnabled();
   await showIntakeQueue(page);
   await link.click();
@@ -335,7 +335,7 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
   await expect(page).toHaveURL(new RegExp(`/dashboard/intake/${arrival.id}\\?queue=history$`));
   await expect(dialog.getByRole("heading", { name: arrivalPlate, exact: true })).toBeVisible();
 
-  await page.goto("/dashboard/intake?view=queue&queue=History&pageSize=10");
+  await page.goto("/dashboard/intake?queue=history&pageSize=10");
   await expect(page).toHaveURL(/\/dashboard\/intake\?pageSize=10&queue=history$/);
   await expect(queue.locator("li")).toHaveCount(10);
   const oldJobs = await queue.locator("li").allTextContents();
@@ -460,7 +460,7 @@ for (const [role, email, actorRole] of staffRoles) {
       if (role === "Workshop technician") {
         await reviewAgentQueue(page, "inspection", captureIntake);
       }
-      await page.goto("/dashboard/intake?view=list");
+      await page.goto("/dashboard/intake");
       await expect(
         page.getByRole("heading", { name: "Intake access unavailable", exact: true }),
       ).toBeVisible();
@@ -473,7 +473,7 @@ for (const [role, email, actorRole] of staffRoles) {
       ).toBe(403);
       return;
     }
-    await page.goto("/dashboard/intake?view=list");
+    await page.goto("/dashboard/intake");
     await expect(
       page.getByRole("table", { name: "Scoped intake appointments", exact: true }),
     ).toBeVisible();

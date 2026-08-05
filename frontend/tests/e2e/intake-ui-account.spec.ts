@@ -47,7 +47,7 @@ test("staff manage their own picture on the shared account page and open a colle
   test.setTimeout(90000);
   await signInAs(page, "siti.aminah@example.invalid", "BranchManager");
 
-  await page.goto("/dashboard/intake?view=list");
+  await page.goto("/dashboard/intake");
   const handler = page
     .locator("tbody tr")
     .filter({ hasText: "@example.invalid" })

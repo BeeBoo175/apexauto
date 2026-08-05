@@ -181,7 +181,7 @@ export function WorkshopQueue({
     >
       <Dialog
         open={Boolean(unassigned)}
-        title={`Unassigned inspection Â· ${unassigned?.registrationPlate ?? ""}`}
+        title={`Unassigned inspection · ${unassigned?.registrationPlate ?? ""}`}
         onClose={() => setUnassigned(null)}
       >
         {unassigned && <p>This vehicle is awaiting a workshop technician&apos;s first claim.</p>}

@@ -118,7 +118,5 @@ export function useAccountsAddress<Filters, Row extends { id: string }>(
     return shown.load(target.filters, target.page, true, false);
   }
 
-  const selected = list().snapshot.items.find((row) => row.id === selection.id) ?? null;
-
-  return { selected, selection, open, close, choose, refresh, onLocation };
+  return { selection, open, close, choose, refresh, onLocation };
 }

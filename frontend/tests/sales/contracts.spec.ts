@@ -349,7 +349,9 @@ test("queues and tables parse their counts and the table names the view it chose
     expect(view).toBe(status === "Delivered" ? "Completed" : "Settling");
     const parsed = parseSalesQueue({ ...queue, items: [{ ...summary, status }] });
     expect(parsed?.counts[queueCountOf[view]]).toBe(status === "Delivered" ? 4 : 3);
-    expect(new URLSearchParams(queueQuery(view)).get("view")).toBe(view);
+    expect(new URLSearchParams(queueQuery(view)).get("view")).toBe(
+      view.replace(/^[A-Z]/, (letter) => letter.toLowerCase()),
+    );
   }
   expect(queueParams({ view: "settling" })).toBe("Settling");
   expect(queueParams({ view: "completed" })).toBe("Completed");

@@ -29,6 +29,7 @@ public static class SaleQueries
     {
         var page = input.Page ?? 1;
         var pageSize = input.PageSize ?? Pagination.DefaultPageSize;
+        input = input with { View = QueryToken.ToDomain(input.View), Outcome = QueryToken.ToDomain(input.Outcome) };
         var normalized = input with
         {
             Search = Clean(input.Search),

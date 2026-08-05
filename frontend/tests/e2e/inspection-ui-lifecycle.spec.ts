@@ -247,7 +247,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   });
   const manager = await managerContext.newPage();
   await signInAs(manager, managerEmail, "BranchManager");
-  await manager.goto("/dashboard/intake?view=list");
+  await manager.goto("/dashboard/intake");
   await expect(
     manager.getByRole("button", { name: "Refresh worklist", exact: true }),
   ).toBeEnabled();

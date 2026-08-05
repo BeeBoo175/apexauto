@@ -160,26 +160,26 @@ public sealed class SaleLifecycleQueueTests(IntakePhotoFixture fixture) : IClass
 
         using var factory = fixture.CreateFactory();
         using var client = factory.CreateClient();
-        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/staff/sales/queue?view=Completed")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/staff/sales/queue?view=completed")).StatusCode);
         await LoginAsync(client, world.Colleague);
-        var response = await client.GetAsync($"/api/staff/sales/queue?view=Settling&search={held.Number}&pageSize=10");
+        var response = await client.GetAsync($"/api/staff/sales/queue?view=settling&search={held.Number}&pageSize=10");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.True(response.Headers.CacheControl!.NoStore);
         Assert.Equal(held.Id, Assert.Single((await response.Content.ReadFromJsonAsync<SaleQueuePage>())!.Items).Id);
-        Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/api/staff/sales/queue?view=Approved")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/api/staff/sales/queue?view=approved")).StatusCode);
         await LoginAsync(client, world.Manager);
-        response = await client.GetAsync($"/api/staff/sales?view=AwaitingHandover&search={held.Number}&sort=balance&direction=desc");
+        response = await client.GetAsync($"/api/staff/sales?view=awaitingHandover&search={held.Number}&sort=balance&direction=desc");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.True(response.Headers.CacheControl!.NoStore);
         Assert.Equal(held.Id, Assert.Single((await response.Content.ReadFromJsonAsync<SaleTablePage>())!.Items).Id);
-        Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/api/staff/sales?view=Completed")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/api/staff/sales?view=completed")).StatusCode);
 
         await DeliverAsync(world, held, world.Colleague);
         await LoginAsync(client, world.Colleague);
-        response = await client.GetAsync($"/api/staff/sales/queue?view=Completed&search={held.Number}");
+        response = await client.GetAsync($"/api/staff/sales/queue?view=completed&search={held.Number}");
         Assert.Equal(held.Id, Assert.Single((await response.Content.ReadFromJsonAsync<SaleQueuePage>())!.Items).Id);
         await LoginAsync(client, world.Manager);
-        var delivered = await client.GetFromJsonAsync<SaleTablePage>($"/api/staff/sales?view=Delivered&search={held.Number}");
+        var delivered = await client.GetFromJsonAsync<SaleTablePage>($"/api/staff/sales?view=delivered&search={held.Number}");
         Assert.Equal(held.Id, Assert.Single(delivered!.Items).Id);
         await database.Users.Where(item => item.Id == world.Colleague)
             .ExecuteUpdateAsync(update => update.SetProperty(item => item.IsActive, false));

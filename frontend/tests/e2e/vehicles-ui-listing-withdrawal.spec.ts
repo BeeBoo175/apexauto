@@ -365,7 +365,7 @@ test("manager withdraws an exact publication with retained drafts, receipts, ref
   const registration = encodeURIComponent(held.vehicle.registrationPlate);
   const closed = await (
     await context.request.get(
-      `${process.env.API_BASE_URL}/api/staff/sales?view=History&search=${registration}&pageSize=50`,
+      `${process.env.API_BASE_URL}/api/staff/sales?view=history&search=${registration}&pageSize=50`,
       { headers: backendHeaders },
     )
   ).json();

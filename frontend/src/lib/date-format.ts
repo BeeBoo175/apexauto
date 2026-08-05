@@ -30,7 +30,10 @@ export function formatMalaysianDateTime(
     ...options,
   };
 
-  return new Intl.DateTimeFormat("en-MY", defaultOptions).format(date);
+  // ICU separates the time and am/pm with a narrow no-break space, which renders as stray characters in some fonts.
+  return new Intl.DateTimeFormat("en-MY", defaultOptions)
+    .format(date)
+    .replace(/[\u202f\u00a0]/g, " ");
 }
 
 export function formatMalaysianDate(utcDate: string | Date): string {

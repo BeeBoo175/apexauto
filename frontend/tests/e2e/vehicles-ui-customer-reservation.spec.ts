@@ -25,7 +25,7 @@ test("customer reserves from vehicle detail and reconciles a committed hold afte
   const manager = await browser.newContext({ ...info.project.use, baseURL: origin });
   await apiLogin(manager, "siti.aminah@example.invalid");
   // Managers may cancel a sale in any open status, which releases its hold.
-  for (const view of ["NeedsApproval", "Open", "BeingHandled", "Approved"]) {
+  for (const view of ["needsApproval", "open", "beingHandled", "approved"]) {
     for (const sale of await branchSales(manager, view)) {
       const cancelled = await manager.request.post(`/api/staff/sales/${sale.id}/cancellations`, {
         headers: await privateHeaders(manager),
@@ -154,7 +154,7 @@ test("customer reserves from vehicle detail and reconciles a committed hold afte
   expect(JSON.stringify(saved)).not.toMatch(/nric|mobile/);
 
   // The confirmed hold opens its sale under the reservation's id, waiting for an agent.
-  const persisted = await branchSales(manager, "Open");
+  const persisted = await branchSales(manager, "open");
   expect(persisted.filter((item) => item.id === saved!.id)).toHaveLength(1);
   expect((await context.request.get(`/api${destination}`)).status()).toBe(404);
   const catalogue = (await (await context.request.get(`/api/vehicles?branchId=${branch}`)).json())

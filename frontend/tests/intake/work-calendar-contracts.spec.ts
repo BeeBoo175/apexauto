@@ -49,9 +49,9 @@ test("shared calendar rejects partial, duplicate, oversized and wrong-range snap
     total: 2,
   })!;
   expect(new Set(workCalendarEvents(shared).map((item) => item.id)).size).toBe(2);
-  expect(workCalendarEvents(shared)[0].title).toBe("Intake Â· VCA 9701");
+  expect(workCalendarEvents(shared)[0].title).toBe("Intake · VCA 9701");
   expect(workCalendarEvents({ ...shared, branchId: null })[0].title).toBe(
-    "Intake Â· VCA 9701 Â· ApexAuto Glenmarie",
+    "Intake · VCA 9701 · ApexAuto Glenmarie",
   );
 });
 

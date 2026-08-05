@@ -22,7 +22,7 @@ test("table filters round-trip through the address and leave an unset view to th
     "2",
   ]);
   const api = new URLSearchParams(tableQuery(filters, page));
-  expect([api.get("view"), api.get("outcome")]).toEqual(["History", "Expired"]);
+  expect([api.get("view"), api.get("outcome")]).toEqual(["history", "expired"]);
   expect(tableUrlQuery(tableParams({}).filters, 1).has("view")).toBe(false);
 });
 
