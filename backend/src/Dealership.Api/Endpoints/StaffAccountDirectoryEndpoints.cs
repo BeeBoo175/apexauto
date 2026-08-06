@@ -35,14 +35,14 @@ public static class StaffAccountDirectoryEndpoints
     }
 
     private static async Task<IResult> ListAsync(HttpContext context, IStaffAccountDirectory directory,
-        CancellationToken cancellationToken, string? tab = null, string? search = null, string? role = null,
+        CancellationToken cancellationToken, string? view = null, string? search = null, string? role = null,
         Guid? branchId = null, int page = 1, int pageSize = Pagination.DefaultPageSize, string? name = null,
         string? email = null, string? mobile = null)
     {
-        var query = StaffAccountQuery.Parse(tab, search, role, branchId, page, pageSize, name, email, mobile);
+        var query = StaffAccountQuery.Parse(view, search, role, branchId, page, pageSize, name, email, mobile);
         if (query is null)
         {
-            return Results.Problem(statusCode: 400, title: "Provide a valid staff account tab, search, filters and paging.");
+            return Results.Problem(statusCode: 400, title: "Provide a valid staff account view, search, filters and paging.");
         }
 
         return await BoundedRead.RunAsync(async token =>

@@ -309,7 +309,7 @@ export const tableSorts = [
 
 export const tableTextKeys = [
   "search",
-  "agent",
+  "handler",
   "branch",
   "outcome",
   "minimumDiscount",

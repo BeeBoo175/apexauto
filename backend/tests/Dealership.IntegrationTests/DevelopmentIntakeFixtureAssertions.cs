@@ -68,7 +68,7 @@ internal static class DevelopmentIntakeFixtureAssertions
         foreach (var status in Enum.GetValues<StaffWorklistStatus>())
         {
             var token = JsonNamingPolicy.CamelCase.ConvertName(status.ToString());
-            var result = await client.GetFromJsonAsync<StaffWorklistPage>($"{url}&status={token}");
+            var result = await client.GetFromJsonAsync<StaffWorklistPage>($"{url}&view={token}");
             Assert.NotNull(result);
             var expected = DevelopmentIntakeManifest.Appointments.Where(item =>
                 (staff.BranchId == null || item.BranchId == staff.BranchId) &&

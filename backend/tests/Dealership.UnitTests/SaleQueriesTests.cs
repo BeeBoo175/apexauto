@@ -16,7 +16,7 @@ public sealed class SaleQueriesTests
 
         foreach (var view in new[] { SaleViews.Approved, SaleViews.AwaitingHandover, SaleViews.Delivered })
         {
-            Assert.NotNull(SaleQueries.Table(new() { View = view }));
+            Assert.NotNull(SaleQueries.Table(new() { View = char.ToLowerInvariant(view[0]) + view[1..] }));
             Assert.False(SaleQueries.ValidQueue(view, null, 1, 10));
         }
 
@@ -33,13 +33,13 @@ public sealed class SaleQueriesTests
         {
             Page = 2,
             PageSize = 50,
-            View = "History",
+            View = "history",
             Search = "  buyer@example.invalid  ",
             Sort = "updated",
             Direction = "desc",
-            Agent = "  agent@example.invalid  ",
+            Handler = "  agent@example.invalid  ",
             Branch = "  Glenmarie  ",
-            Outcome = "Cancelled",
+            Outcome = "cancelled",
             MinimumDiscount = 1.01m,
             MaximumDiscount = 2.02m,
             MinimumBalance = 3.03m,
@@ -79,7 +79,7 @@ public sealed class SaleQueriesTests
         Assert.Equal(expected, SaleQueries.Table(new()
         {
             Search = "  ",
-            Agent = "",
+            Handler = "",
             Branch = "\t",
             Registration = "\n",
             Vehicle = "\r\n",
@@ -99,7 +99,7 @@ public sealed class SaleQueriesTests
         SaleTableInput[] inputs =
         [
             new() { Search = padded },
-            new() { Agent = padded },
+            new() { Handler = padded },
             new() { Branch = padded },
             new() { Registration = padded },
             new() { Vehicle = padded },

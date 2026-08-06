@@ -52,7 +52,7 @@ public sealed class StaffAccountAdministrationTests(IntakePhotoFixture fixture) 
         await DeactivateAsync(scenario);
         Assert.Equal(HttpStatusCode.Conflict, (await scenario.Admin.PostAsJsonAsync($"{path}/deactivations",
             new { operationId = Guid.NewGuid(), reason = "Again" })).StatusCode);
-        var deactivated = (await scenario.Admin.GetFromJsonAsync<StaffAccountPage>("/api/staff-accounts?tab=deactivated"))!;
+        var deactivated = (await scenario.Admin.GetFromJsonAsync<StaffAccountPage>("/api/staff-accounts?view=deactivated"))!;
         Assert.Contains(deactivated.Items, row => row.Id == scenario.StaffId);
     }
 

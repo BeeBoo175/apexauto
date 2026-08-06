@@ -28,8 +28,8 @@ test("a relayed page answers only the page and size that were requested", () => 
 
 test("a forwarded path carries only a non-empty reviewed query", () => {
   expect(withQuery("/api/staff-accounts", new URLSearchParams())).toBe("/api/staff-accounts");
-  expect(withQuery("/api/staff-accounts", new URLSearchParams({ tab: "active" }))).toBe(
-    "/api/staff-accounts?tab=active",
+  expect(withQuery("/api/staff-accounts", new URLSearchParams({ view: "active" }))).toBe(
+    "/api/staff-accounts?view=active",
   );
 });
 

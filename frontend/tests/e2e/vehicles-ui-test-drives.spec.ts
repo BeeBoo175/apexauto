@@ -332,7 +332,7 @@ test("staff test-drive history keeps workspace sections and retries the requeste
   context,
 }) => {
   await apiLogin(context, "farah.aziz@example.invalid");
-  const response = await context.request.get("/api/staff/test-drives?pageSize=10&status=all", {
+  const response = await context.request.get("/api/staff/test-drives?pageSize=10&view=all", {
     headers: await privateHeaders(context),
   });
   expect(response.status()).toBe(200);

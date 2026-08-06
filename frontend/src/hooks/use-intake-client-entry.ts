@@ -10,8 +10,8 @@ import { parseDetail, parseWorklistPage } from "@/lib/staff/parse";
 import {
   appointmentQueue,
   intakeQueueParams,
+  managerQueueParams,
   parseIntakeQueue,
-  staffParams,
   staffQuery,
 } from "@/lib/staff/query";
 import type { IntakeViewComponent, IntakeWorkspaceSnapshot } from "./use-intake-workspace";
@@ -32,7 +32,7 @@ export function useIntakeClientEntry(
   const result = useStaffClientEntry<IntakeEntry>(async (signal) => {
     const { filters, page } = agent
       ? intakeQueueParams(parameters)
-      : staffParams({ ...parameters, queue: "" });
+      : managerQueueParams(parameters);
     const selectedRead = selectedId
       ? privateApiFetch(
           `/api/staff/intake/appointments/${selectedId}`,
@@ -43,7 +43,7 @@ export function useIntakeClientEntry(
           { signal },
         ).catch(() => null)
       : Promise.resolve(null);
-    const explicitQueue = Boolean(parseIntakeQueue(parameters.queue));
+    const explicitQueue = Boolean(parseIntakeQueue(parameters.view));
     if (agent && selectedId && !explicitQueue) {
       const selected = await selectedRead;
       if (selected?.data) {

@@ -11,20 +11,23 @@ test("settings addresses name the section and record in the path and omit defaul
   expect(
     settingsLocation(
       `/dashboard/settings/promos/${id}`,
-      "status=expired&page=2&sort=code&direction=desc",
+      "view=expired&page=2&sort=code&direction=desc",
     )?.href,
-  ).toBe(`/dashboard/settings/promos/${id}?page=2&status=expired&sort=code&direction=desc`);
+  ).toBe(`/dashboard/settings/promos/${id}?page=2&view=expired&sort=code&direction=desc`);
   expect(settingsLocation(`/dashboard/settings/warranties/${id}`, "pageSize=50")?.href).toBe(
     `/dashboard/settings/warranties/${id}?pageSize=50`,
   );
 });
 
-test("legacy tokens, sections and extra segments are rejected", () => {
-  expect(settingsLocation("/dashboard/settings/promos", "status=Expired")?.href).toBe(
+test("legacy status key, sections and extra segments are rejected", () => {
+  expect(settingsLocation("/dashboard/settings/promos", "view=Expired")?.href).toBe(
     "/dashboard/settings/promos",
   );
-  expect(settingsLocation("/dashboard/settings/warranties", "status=expired")?.href).toBe(
+  expect(settingsLocation("/dashboard/settings/warranties", "view=expired")?.href).toBe(
     "/dashboard/settings/warranties",
+  );
+  expect(settingsLocation("/dashboard/settings/promos", "status=expired")?.href).toBe(
+    "/dashboard/settings/promos",
   );
   expect(settingsLocation("/dashboard/settings", "section=promos&promo=" + id)?.href).toBe(
     "/dashboard/settings",

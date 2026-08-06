@@ -14,7 +14,7 @@ export function workshopColumnFilters<T>(
       vehicle: Boolean(filters.vehicle),
       branchName: Boolean(filters.branchId),
       status: Boolean(filters.workStatus),
-      technicianIdentity: Boolean(filters.technician),
+      technicianIdentity: Boolean(filters.handler),
       budget: Boolean(filters.minimumBudget || filters.maximumBudget),
       checkedInAt: Boolean(filters.from || filters.to),
       requestedAt: Boolean(filters.from || filters.to),

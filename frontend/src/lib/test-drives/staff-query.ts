@@ -71,8 +71,8 @@ export function staffTestDriveParams(parameters: SearchParams, agent: boolean) {
   const text = (key: string) => (typeof parameters[key] === "string" ? parameters[key] : "");
   const page = Number(text("page") || 1);
   const pageSize = Number(text("pageSize"));
-  const requestedQueue = testDriveQueues.find((item) => item.value === text("queue"));
-  const status = text("status");
+  const requestedQueue = testDriveQueues.find((item) => item.value === text("view"));
+  const status = text("view");
   return {
     filters: {
       from: agent ? "" : text("from"),
@@ -98,11 +98,14 @@ export function staffTestDriveParams(parameters: SearchParams, agent: boolean) {
 
 export function staffTestDriveQuery(filters: TestDriveFilters, page = 1) {
   const query = paginationQuery(page, filters.pageSize);
+  const merged = ["pageSize", "queue", "status"];
   for (const [key, value] of Object.entries(filters)) {
-    if (key !== "pageSize" && value !== "") {
+    if (!merged.includes(key) && value !== "") {
       query.set(key, String(value));
     }
   }
+  // One view token: the agent queue when set, otherwise the manager's status section.
+  query.set("view", filters.queue || filters.status);
   return query.toString();
 }
 
@@ -133,8 +136,7 @@ export function staffTestDriveUrl(
   const defaults: Record<string, string> = {
     page: "1",
     pageSize: String(DEFAULT_PAGE_SIZE),
-    status: "all",
-    queue: "myWork",
+    view: filters.queue ? "myWork" : "all",
     direction: "asc",
   };
   for (const [key, value] of Object.entries(defaults)) {

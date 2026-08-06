@@ -17,17 +17,18 @@ test("staff accounts addresses name the account and section in the path and omit
     `/dashboard/accounts/${id}/history`,
   );
   expect(
-    accountsLocation(staffAccountsRules, `/dashboard/accounts/${id}`, "tab=suspended&page=2")?.href,
-  ).toBe(`/dashboard/accounts/${id}?tab=suspended&page=2`);
+    accountsLocation(staffAccountsRules, `/dashboard/accounts/${id}`, "view=suspended&page=2")
+      ?.href,
+  ).toBe(`/dashboard/accounts/${id}?view=suspended&page=2`);
 });
 
 test("customer accounts use their own path and camelCase tabs", () => {
   const location = accountsLocation(
     customerAccountsRules,
     `/dashboard/accounts/customers/${id}`,
-    "tab=unverified&pageSize=50",
+    "view=unverified&pageSize=50",
   );
-  expect(location?.href).toBe(`/dashboard/accounts/customers/${id}?tab=unverified&pageSize=50`);
+  expect(location?.href).toBe(`/dashboard/accounts/customers/${id}?view=unverified&pageSize=50`);
   expect(accountsLocation(staffAccountsRules, "/dashboard/accounts/customers", "")).toBeNull();
 });
 
@@ -36,8 +37,8 @@ test("explicit details, unknown sections, extra segments and legacy tokens are r
   expect(accountSelectionRoute("staff", id, ["notes"])).toBeNull();
   expect(accountSelectionRoute("staff", id, ["history", "extra"])).toBeNull();
   expect(accountSelectionRoute("customers", "not-an-id")).toBeNull();
-  const legacy = accountsLocation(staffAccountsRules, "/dashboard/accounts", "tab=Invited");
-  expect(legacy?.filters.tab).toBe("all");
+  const legacy = accountsLocation(staffAccountsRules, "/dashboard/accounts", "view=Invited");
+  expect(legacy?.filters.view).toBe("all");
   expect(
     accountsHref(staffAccountsRules, {
       id: "",

@@ -69,7 +69,7 @@ export interface StaffAccountPage {
 }
 
 export interface StaffAccountFilters {
-  tab: string;
+  view: string;
   search: string;
   role: string;
   branchId: string;
@@ -143,7 +143,7 @@ export function staffAccountParams(parameters: SearchParams) {
   const pageSize = Number(text("pageSize"));
   return {
     filters: {
-      tab: staffAccountTabs.some((tab) => tab.value === text("tab")) ? text("tab") : "all",
+      view: staffAccountTabs.some((tab) => tab.value === text("view")) ? text("view") : "all",
       search: cleanText(text("search")),
       role: staffAccountRoles.find((role) => staffRoleToken(role) === text("role")) ?? "",
       branchId: isUuid(text("branchId")) ? text("branchId") : "",
@@ -159,7 +159,7 @@ export function staffAccountParams(parameters: SearchParams) {
 function filterEntries(filters: StaffAccountFilters) {
   const entries: [string, string][] = [];
   for (const [key, value] of Object.entries(filters)) {
-    if (key === "pageSize" || value === "" || (key === "tab" && value === "all")) {
+    if (key === "pageSize" || value === "" || (key === "view" && value === "all")) {
       continue;
     }
     entries.push([key, key === "role" ? staffRoleToken(String(value)) : String(value)]);
@@ -175,7 +175,7 @@ export function staffAccountQuery(filters: StaffAccountFilters, page = 1) {
   return query.toString();
 }
 
-// The browser address omits every default: the first page, the standard page size and the All tab.
+// The browser address omits every default: the first page, the standard page size and the All view.
 export function staffAccountUrlQuery(filters: StaffAccountFilters, page: number) {
   const query = new URLSearchParams(filterEntries(filters));
   if (page !== 1) {

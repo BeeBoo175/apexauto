@@ -89,7 +89,7 @@ test("a delayed list confirmation preserves the agent's newer record selection",
   page,
 }) => {
   await signInAs(page, "aina.sofia@example.invalid", "SalesAgent");
-  await page.goto("/dashboard/intake?queue=history");
+  await page.goto("/dashboard/intake?view=history");
   const queue = page.getByRole("complementary", { name: "Intake queues", exact: true });
   await expect(queue.locator("li button").nth(1)).toBeVisible();
   await queue.locator("li button").first().click();
@@ -159,6 +159,6 @@ test("a failed post-write queue reload does not replace the next user history en
   await page.unroute("**/api/staff/intake/appointments?**");
   const length = await page.evaluate(() => window.history.length);
   await queue.getByRole("button", { name: /^History\b/ }).click();
-  await expect(page).toHaveURL(/queue=history/);
+  await expect(page).toHaveURL(/view=history/);
   expect(await page.evaluate(() => window.history.length)).toBe(length + 1);
 });

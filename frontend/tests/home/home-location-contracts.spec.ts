@@ -8,10 +8,10 @@ test("home addresses omit defaults and keep the room view in a deterministic ord
   expect(
     homeLocation(
       "/dashboard/home",
-      `pageSize=50&page=2&search=%20amy%20&team=workshop&branchId=${branchId}`,
+      `pageSize=50&page=2&search=%20amy%20&view=workshop&branchId=${branchId}`,
       true,
     )?.href,
-  ).toBe(`/dashboard/home?branchId=${branchId}&team=workshop&search=amy&page=2&pageSize=50`);
+  ).toBe(`/dashboard/home?branchId=${branchId}&view=workshop&search=amy&page=2&pageSize=50`);
 });
 
 test("only the general manager keeps a branch and other paths are not home", () => {

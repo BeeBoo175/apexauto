@@ -67,7 +67,7 @@ export async function exerciseOwnership(page: Page) {
   const unassigned = new URL(page.url());
   const selectedId = unassigned.pathname.split("/").at(-1)!;
   unassigned.pathname = `/dashboard/intake/${selectedId}`;
-  unassigned.searchParams.delete("queue");
+  unassigned.searchParams.delete("view");
   await page.goto(unassigned.toString());
   await expect(
     content.locator("footer").getByRole("button", { name: "Claim appointment", exact: true }),

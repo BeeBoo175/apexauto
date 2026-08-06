@@ -252,7 +252,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     manager.getByRole("button", { name: "Refresh worklist", exact: true }),
   ).toBeEnabled();
   await screenshot(manager, "intake-parity-reference");
-  await manager.goto("/dashboard/inspection?status=approval");
+  await manager.goto("/dashboard/inspection?view=approval");
   await expect(
     manager.getByRole("button", { name: "Refresh workshop", exact: true }),
   ).toBeEnabled();

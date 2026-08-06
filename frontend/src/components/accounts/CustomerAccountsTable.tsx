@@ -97,7 +97,7 @@ export function CustomerAccountsTable({
           onPage={(page, pageSize) => void list.load({ ...filters, pageSize }, page)}
           emptyState={{
             title: "No matching customers",
-            description: "Choose another tab or search.",
+            description: "Choose another view or search.",
           }}
           toolbar={
             <>
@@ -108,9 +108,9 @@ export function CustomerAccountsTable({
                   ...item,
                   count: snapshot.counts[item.count],
                 }))}
-                value={filters.tab}
+                value={filters.view}
                 disabled={busy}
-                onChange={(tab) => void list.load({ ...filters, tab }, 1)}
+                onChange={(view) => void list.load({ ...filters, view }, 1)}
               />
               <RecordToolbar
                 filters={null}

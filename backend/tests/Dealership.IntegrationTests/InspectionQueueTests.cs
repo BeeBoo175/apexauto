@@ -238,20 +238,20 @@ public sealed class InspectionQueueTests(IntakePhotoFixture fixture) : IClassFix
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.True(response.Headers.CacheControl?.NoStore);
             Assert.Single((await response.Content.ReadFromJsonAsync<InspectionRepairQueuePage>())!.Items);
-            Assert.Equal(5, (await client.GetFromJsonAsync<InspectionRepairQueuePage>($"{repairs}?status=superseded"))!.Total);
+            Assert.Equal(5, (await client.GetFromJsonAsync<InspectionRepairQueuePage>($"{repairs}?view=superseded"))!.Total);
             const string workshop = "/api/staff/inspection/workshop";
             foreach (var status in new[] { "active", "inspection", "approval", "repairs", "all" })
             {
-                response = await client.GetAsync($"{workshop}?status={status}");
+                response = await client.GetAsync($"{workshop}?view={status}");
                 Assert.Equal(HttpStatusCode.OK, response.StatusCode);
                 Assert.True(response.Headers.CacheControl?.NoStore);
             }
             var filtered = (await client.GetFromJsonAsync<WorkshopQueuePage>(
-                $"{workshop}?status=all&workStatus=approvalRequired"))!;
+                $"{workshop}?view=all&workStatus=approvalRequired"))!;
             Assert.Equal(WorkshopWorkStatus.ApprovalRequired, Assert.Single(filtered.Items).Status);
             foreach (var path in new[] { vehicles, repairs, workshop })
             {
-                foreach (var query in new[] { "pageSize=20", "page=0", "status=999", "status=0", "status=All", "from=2026-10-22" })
+                foreach (var query in new[] { "pageSize=20", "page=0", "view=999", "view=0", "view=All", "from=2026-10-22" })
                 {
                     Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync($"{path}?{query}")).StatusCode);
                 }
@@ -263,13 +263,13 @@ public sealed class InspectionQueueTests(IntakePhotoFixture fixture) : IClassFix
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
             foreach (var task in new[] { "myWork", "waiting", "claimable" })
             {
-                response = await client.GetAsync($"{workshop}/jobs?status={task}");
+                response = await client.GetAsync($"{workshop}/jobs?view={task}");
                 Assert.Equal(HttpStatusCode.OK, response.StatusCode);
                 Assert.True(response.Headers.CacheControl?.NoStore);
             }
             foreach (var task in new[] { "MyWork", "Waiting", "Claimable", "all", "0" })
             {
-                Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync($"{workshop}/jobs?status={task}")).StatusCode);
+                Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync($"{workshop}/jobs?view={task}")).StatusCode);
             }
         }
     }

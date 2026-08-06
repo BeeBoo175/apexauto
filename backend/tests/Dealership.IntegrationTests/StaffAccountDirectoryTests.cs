@@ -32,14 +32,14 @@ public sealed class StaffAccountDirectoryTests(IntakePhotoFixture fixture) : ICl
         Assert.Contains(all.Items, row => row.Id == invitationId && row.Status == StaffAccountStatuses.Invited && row.Email == email);
         Assert.Contains(all.Items, row => row.Role == AccountRoles.Administrator && row.Status == StaffAccountStatuses.Active);
 
-        var invited = (await admin.GetFromJsonAsync<StaffAccountPage>($"/api/staff-accounts?tab=invited&search={Uri.EscapeDataString("zahra")}"))!;
+        var invited = (await admin.GetFromJsonAsync<StaffAccountPage>($"/api/staff-accounts?view=invited&search={Uri.EscapeDataString("zahra")}"))!;
         Assert.Equal(invitationId, Assert.Single(invited.Items).Id);
         var byBranch = (await admin.GetFromJsonAsync<StaffAccountPage>($"/api/staff-accounts?branchId={branchId}&role=salesAgent"))!;
         Assert.All(byBranch.Items, row => Assert.Equal(branchId, row.BranchId));
         Assert.Empty((await admin.GetFromJsonAsync<StaffAccountPage>("/api/staff-accounts?search=%25"))!.Items);
 
-        Assert.Equal(HttpStatusCode.BadRequest, (await admin.GetAsync("/api/staff-accounts?tab=Everything")).StatusCode);
-        Assert.Equal(HttpStatusCode.BadRequest, (await admin.GetAsync("/api/staff-accounts?tab=Invited")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await admin.GetAsync("/api/staff-accounts?view=Everything")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await admin.GetAsync("/api/staff-accounts?view=Invited")).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await admin.GetAsync($"/api/staff-accounts?role={AccountRoles.SalesAgent}")).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await admin.GetAsync($"/api/staff-accounts?role={AccountRoles.Customer}")).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await admin.GetAsync($"/api/staff-accounts?search={new string('x', 161)}")).StatusCode);

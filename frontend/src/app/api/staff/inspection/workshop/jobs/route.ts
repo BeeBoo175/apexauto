@@ -4,7 +4,7 @@ import { parseWorkshopJobs } from "@/lib/inspection/parse-workshop";
 export function GET(request: Request) {
   const source = new URL(request.url).searchParams;
   const query = new URLSearchParams();
-  for (const key of ["status", "search", "page", "pageSize"]) {
+  for (const key of ["view", "search", "page", "pageSize"]) {
     if (source.has(key)) {
       query.set(key, source.get(key)!);
     }

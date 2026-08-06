@@ -55,9 +55,9 @@ public static class PerformanceQueryEndpoints
 
     private static async Task<IResult> WorkloadAsync(HttpContext context, IPerformanceWorkloadReads reads,
         CancellationToken cancellationToken, string? from = null, string? to = null, Guid? branchId = null,
-        string? team = null, string? search = null, int page = 1, int pageSize = Pagination.DefaultPageSize)
+        string? view = null, string? search = null, int page = 1, int pageSize = Pagination.DefaultPageSize)
     {
-        var query = PerformanceWorkloadQuery.Parse(PerformanceQuery.Parse(from, to, branchId), team, search, page,
+        var query = PerformanceWorkloadQuery.Parse(PerformanceQuery.Parse(from, to, branchId), view, search, page,
             pageSize);
         return await ReadAsync(query, "Provide a valid period of at most 366 days, team, search and page.",
             (valid, token) => reads.WorkloadAsync(HttpContextActor.ActorId(context), valid, token), cancellationToken);

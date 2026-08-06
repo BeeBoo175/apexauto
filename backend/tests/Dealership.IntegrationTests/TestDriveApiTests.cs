@@ -85,7 +85,7 @@ public sealed class TestDriveApiTests(IntakePhotoFixture fixture) : IClassFixtur
         Assert.DoesNotContain(occupied.Slots, slot => slot.StartsAt == request.StartsAt);
         var bookingPath = $"/api/staff/test-drives/{request.OperationId}";
         Assert.Equal(HttpStatusCode.Forbidden, (await customer.GetAsync(bookingPath)).StatusCode);
-        var open = (await agent.GetFromJsonAsync<StaffTestDrivePage>("/api/staff/test-drives?queue=toClaim"))!;
+        var open = (await agent.GetFromJsonAsync<StaffTestDrivePage>("/api/staff/test-drives?view=toClaim"))!;
         Assert.Equal(data.StaffId, open.Actor.UserId);
         Assert.Contains(open.Items, item => item.Id == request.OperationId && item.AssignmentId == null);
         Assert.Equal(HttpStatusCode.Forbidden, (await agent.GetAsync("/api/staff/test-drives")).StatusCode);
@@ -109,7 +109,7 @@ public sealed class TestDriveApiTests(IntakePhotoFixture fixture) : IClassFixtur
         var claimed = await agent.PostAsJsonAsync($"{bookingPath}/claims", claim);
         Assert.Equal(HttpStatusCode.OK, claimed.StatusCode);
         await AssertCalendarAsync(agent, branchManager, customer, date, request.OperationId, data, services, manager, generalManager, technician);
-        var myWork = (await agent.GetFromJsonAsync<StaffTestDrivePage>("/api/staff/test-drives?queue=myWork"))!;
+        var myWork = (await agent.GetFromJsonAsync<StaffTestDrivePage>("/api/staff/test-drives?view=myWork"))!;
         Assert.Contains(myWork.Items, item => item.Id == request.OperationId && item.HandlerId == data.StaffId && item.HandlerEligible);
         var handlerPath = $"/api/staff/test-drives?handler={Uri.EscapeDataString(data.StaffEmail.ToUpperInvariant())}&pageSize=10";
         var filtered = (await branchManager.GetFromJsonAsync<StaffTestDrivePage>(handlerPath))!;
@@ -228,11 +228,11 @@ public sealed class TestDriveApiTests(IntakePhotoFixture fixture) : IClassFixtur
         Assert.Equal(7, page.Total);
         Assert.Equal(7, page.Counts.Cancelled);
         Assert.All(page.Items, item => Assert.Equal("Cancelled", item.Status));
-        var cancelled = (await manager.GetFromJsonAsync<StaffTestDrivePage>($"{path}&status=cancelled"))!;
+        var cancelled = (await manager.GetFromJsonAsync<StaffTestDrivePage>($"{path}&view=cancelled"))!;
         Assert.Equal(page.Total, cancelled.Total);
         Assert.All(cancelled.Items, item => Assert.Equal(TestDriveStatus.Cancelled, item.Status));
-        Assert.Equal(HttpStatusCode.BadRequest, (await manager.GetAsync($"{path}&status=Cancelled")).StatusCode);
-        Assert.Equal(HttpStatusCode.BadRequest, (await agent.GetAsync("/api/staff/test-drives?queue=MyWork")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await manager.GetAsync($"{path}&view=Cancelled")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await agent.GetAsync("/api/staff/test-drives?view=MyWork")).StatusCode);
         Assert.Equal(page.Items.OrderByDescending(item => item.StartsAt).ThenBy(item => item.Id).Select(item => item.Id),
             page.Items.Select(item => item.Id));
         Assert.Empty((await manager.GetFromJsonAsync<StaffTestDrivePage>($"{path}&page={int.MaxValue}"))!.Items);
@@ -244,7 +244,7 @@ public sealed class TestDriveApiTests(IntakePhotoFixture fixture) : IClassFixtur
         Assert.Equal(HttpStatusCode.BadRequest, (await manager.GetAsync($"/api/staff/test-drives?from={date}")).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await manager.GetAsync("/api/staff/test-drives?pageSize=5")).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await manager.GetAsync("/api/staff/test-drives?sort=unknown")).StatusCode);
-        Assert.Equal(0, (await agent.GetFromJsonAsync<StaffTestDrivePage>("/api/staff/test-drives?queue=history"))!.Total);
+        Assert.Equal(0, (await agent.GetFromJsonAsync<StaffTestDrivePage>("/api/staff/test-drives?view=history"))!.Total);
     }
 
     private static async Task AssertHandlingBindingAsync(HttpClient handler, HttpClient denied, string path, Guid assignmentId)

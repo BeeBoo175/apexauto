@@ -160,20 +160,20 @@ test("team pages accept optional measures as null and reject duplicate people or
 
 test("Who has room reads only known address values and leaves defaults off the address", () => {
   expect(parseRoomUrl({})).toEqual({ team: "sales", search: "", page: 1, pageSize: 25 });
-  expect(parseRoomUrl({ team: "workshop", search: "  Aina ", page: "3", pageSize: "50" })).toEqual({
+  expect(parseRoomUrl({ view: "workshop", search: "  Aina ", page: "3", pageSize: "50" })).toEqual({
     team: "workshop",
     search: "Aina",
     page: 3,
     pageSize: 50,
   });
-  expect(parseRoomUrl({ team: "everyone", page: "-2", pageSize: "7" })).toEqual({
+  expect(parseRoomUrl({ view: "everyone", page: "-2", pageSize: "7" })).toEqual({
     team: "sales",
     search: "",
     page: 1,
     pageSize: 25,
   });
   expect(roomUrlValues({ team: "sales", search: "", page: 1, pageSize: 25 })).toEqual({
-    team: "",
+    view: "",
     search: "",
     page: "",
     pageSize: "",
@@ -182,7 +182,7 @@ test("Who has room reads only known address values and leaves defaults off the a
     workloadQuery({ team: "workshop", search: " Aina ", page: 2, pageSize: 10 }),
   );
   expect(Object.fromEntries(query)).toEqual({
-    team: "workshop",
+    view: "workshop",
     search: "Aina",
     page: "2",
     pageSize: "10",

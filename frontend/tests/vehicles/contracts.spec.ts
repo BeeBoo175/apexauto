@@ -470,6 +470,12 @@ test("listing addresses put the listing and history record in the path and omit 
   expect(
     listingLocation(`/dashboard/management/${id}`, "listing=other&inspection=Available")?.href,
   ).toBe(`/dashboard/management/${id}`);
+  expect(
+    listingLocation("/dashboard/management", "view=published&inspection=available")?.href,
+  ).toBe("/dashboard/management?inspection=available&view=published");
+  expect(listingLocation("/dashboard/management", "publication=published")?.href).toBe(
+    "/dashboard/management",
+  );
   for (const path of [
     `/dashboard/management/${id}/listing`,
     `/dashboard/management/${id}/listing/revisions/${revisionId}/publicationApproved/${eventId}`,

@@ -31,9 +31,9 @@ public sealed class CustomerAccountDirectoryTests(IntakePhotoFixture fixture) : 
         Assert.False(row.Verified);
         Assert.Contains(page.Items, item => item.Id == row.Id);
         Assert.True(page.Counts.Unverified >= 1);
-        Assert.Contains((await admin.GetFromJsonAsync<CustomerAccountPage>("/api/customer-accounts?tab=unverified"))!.Items,
+        Assert.Contains((await admin.GetFromJsonAsync<CustomerAccountPage>("/api/customer-accounts?view=unverified"))!.Items,
             item => item.Id == row.Id);
-        Assert.Empty((await admin.GetFromJsonAsync<CustomerAccountPage>("/api/customer-accounts?tab=suspended&search=" +
+        Assert.Empty((await admin.GetFromJsonAsync<CustomerAccountPage>("/api/customer-accounts?view=suspended&search=" +
             Uri.EscapeDataString(registration.Email!)))!.Items);
 
         using var detailResponse = await admin.GetAsync($"/api/customer-accounts/{row.Id}");
@@ -44,7 +44,7 @@ public sealed class CustomerAccountDirectoryTests(IntakePhotoFixture fixture) : 
         Assert.DoesNotContain(registration.Nric!, await admin.GetStringAsync($"/api/customer-accounts/{row.Id}"));
 
         Assert.Equal(HttpStatusCode.NotFound, (await admin.GetAsync($"/api/customer-accounts/{Guid.NewGuid()}")).StatusCode);
-        Assert.Equal(HttpStatusCode.BadRequest, (await admin.GetAsync("/api/customer-accounts?tab=Staff")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await admin.GetAsync("/api/customer-accounts?view=Staff")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await customer.GetAsync("/api/customer-accounts")).StatusCode);
         using var anonymous = factory.CreateClient();
         Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync("/api/customer-accounts")).StatusCode);

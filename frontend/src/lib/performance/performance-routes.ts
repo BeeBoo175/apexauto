@@ -13,7 +13,7 @@ import {
 
 const queryKeys = ["from", "to", "branchId"];
 // Who has room pages its read by team, search and page.
-const sectionKeys = [...queryKeys, "team", "search", "page", "pageSize"];
+const sectionKeys = [...queryKeys, "view", "search", "page", "pageSize"];
 
 const managerDenial = "Manager access required.";
 

@@ -25,7 +25,7 @@ public sealed class WorkCalendarTests
     public void SharedSearchAndPanelFiltersRejectInvalidInputs()
     {
         var query = WorkCalendarQuery.Parse("2026-11-01", "2026-11-30", null, null,
-            " aina.sofia ", "Unassigned")!;
+            " aina.sofia ", "unassigned")!;
         Assert.Equal("aina.sofia", query.Search);
         Assert.Equal("Unassigned", query.Assignment);
         Assert.Null(query.Scope.BranchId);
@@ -34,11 +34,11 @@ public sealed class WorkCalendarTests
         Assert.Null(WorkCalendarQuery.Parse("2026-11-01", "2026-11-30", null, null,
             new string('a', 161)));
 
-        var work = UnscheduledWorkQuery.Parse(null, null, 2, 10, " Proton ", "Workshop")!;
+        var work = UnscheduledWorkQuery.Parse(null, null, 2, 10, " Proton ", "workshop")!;
         Assert.Equal("Proton", work.Search);
         Assert.Equal("Workshop", work.Kind);
         Assert.Equal(2, work.Page);
         Assert.Null(UnscheduledWorkQuery.Parse(null, null, 1, 5));
-        Assert.Null(UnscheduledWorkQuery.Parse(null, null, 1, 25, kind: "Intake"));
+        Assert.Null(UnscheduledWorkQuery.Parse(null, null, 1, 25, kind: "intake"));
     }
 }

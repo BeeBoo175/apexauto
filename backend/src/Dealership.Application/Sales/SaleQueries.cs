@@ -33,7 +33,7 @@ public static class SaleQueries
         var normalized = input with
         {
             Search = Clean(input.Search),
-            Agent = Clean(input.Agent),
+            Handler = Clean(input.Handler),
             Branch = Clean(input.Branch),
             Registration = Clean(input.Registration),
             Vehicle = Clean(input.Vehicle),
@@ -41,7 +41,7 @@ public static class SaleQueries
             Reference = Clean(input.Reference)
         };
         var updated = ListDateRange.Parse(input.UpdatedFrom, input.UpdatedTo);
-        var texts = new[] { normalized.Search, normalized.Agent, normalized.Branch, normalized.Registration,
+        var texts = new[] { normalized.Search, normalized.Handler, normalized.Branch, normalized.Registration,
             normalized.Vehicle, normalized.Customer, normalized.Reference };
         if (!Pagination.IsValid(page, pageSize) || input.View is not null && !TableViews.Contains(input.View) ||
             input.Sort is not null && !Sorts.Contains(input.Sort) || input.Direction is not (null or "asc" or "desc") ||
@@ -56,7 +56,7 @@ public static class SaleQueries
 
         return new SaleTableQuery(page, pageSize, input.View, normalized.Search, input.Sort, input.Direction == "desc")
         {
-            Agent = normalized.Agent,
+            Agent = normalized.Handler,
             Branch = normalized.Branch,
             Outcome = input.Outcome,
             Registration = normalized.Registration,

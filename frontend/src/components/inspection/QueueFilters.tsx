@@ -30,7 +30,7 @@ export function QueueFilters({
 }) {
   const id = useId();
   const [draft, setDraft] = useState(filters);
-  const [unassigned, setUnassigned] = useState(filters.technician === "unassigned");
+  const [unassigned, setUnassigned] = useState(filters.handler === "unassigned");
   if (column === "registrationPlate" || column === "vehicle") {
     const key = column === "vehicle" ? "vehicle" : "registration";
     return (
@@ -72,11 +72,11 @@ export function QueueFilters({
       return { ...filters, workStatus: clear ? "" : draft.workStatus };
     }
     if (column === "technicianIdentity") {
-      let technician = draft.technician?.trim() ?? "";
+      let handler = draft.handler?.trim() ?? "";
       if (unassigned) {
-        technician = "unassigned";
+        handler = "unassigned";
       }
-      return { ...filters, technician: clear ? "" : technician };
+      return { ...filters, handler: clear ? "" : handler };
     }
     return { ...filters, from: clear ? "" : draft.from, to: clear ? "" : draft.to };
   }
@@ -117,7 +117,7 @@ export function QueueFilters({
             disabled={busy}
             onChange={(event) => {
               setUnassigned(event.target.value === "unassigned");
-              setDraft({ ...draft, technician: "" });
+              setDraft({ ...draft, handler: "" });
             }}
           >
             <option value="identity">Any technician</option>
@@ -131,9 +131,9 @@ export function QueueFilters({
               placeholder="Enter technician name or email…"
               density="compact"
               maxLength={160}
-              value={draft.technician ?? ""}
+              value={draft.handler ?? ""}
               disabled={busy}
-              onChange={(event) => setDraft({ ...draft, technician: event.target.value })}
+              onChange={(event) => setDraft({ ...draft, handler: event.target.value })}
             />
           )}
         </>

@@ -5,7 +5,7 @@ export const homeWorkspace = "/dashboard/home";
 
 export type HomeState = { branchId: string; room: RoomView };
 
-// Shape: /dashboard/home[?branchId=&team=workshop&search=&page=&pageSize=]. Defaults never appear in the address.
+// Shape: /dashboard/home[?branchId=&view=workshop&search=&page=&pageSize=]. Defaults never appear in the address.
 export function homeHref({ branchId, room }: HomeState) {
   const query = new URLSearchParams();
   const values = { branchId, ...roomUrlValues(room) };

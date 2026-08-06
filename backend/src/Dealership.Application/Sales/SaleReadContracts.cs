@@ -52,7 +52,7 @@ public sealed record SaleTableInput
 
     public string? Direction { get; init; }
 
-    public string? Agent { get; init; }
+    public string? Handler { get; init; }
 
     public string? Branch { get; init; }
 

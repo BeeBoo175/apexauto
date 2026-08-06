@@ -77,7 +77,7 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
       },
     }),
   );
-  await page.goto("/dashboard/intake?queue=myWork");
+  await page.goto("/dashboard/intake?view=myWork");
   await expect(page.getByRole("button", { name: "Retry queue", exact: true })).toBeVisible();
   await page.unroute("**/api/staff/intake/appointments?**");
   await page.getByRole("button", { name: "Retry queue", exact: true }).click();
@@ -89,9 +89,7 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
       requests.push(url);
     }
   });
-  await page.goto(
-    "/dashboard/intake?queue=myWork&status=cancelled&handler=hidden&sort=handlerEmail",
-  );
+  await page.goto("/dashboard/intake?view=myWork&handler=hidden&sort=handlerEmail");
   const arrivalPlate = testInfo.project.name === "mobile" ? "VCA 9702" : "VCA 9701";
   const queue = page.getByRole("complementary", { name: "Intake queues", exact: true });
   const link = queue.getByRole("button", { name: new RegExp(`^${arrivalPlate} `) });
@@ -140,11 +138,11 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
   await captureIntake(page, "agent-attendance");
   expect(requests.length).toBeGreaterThan(0);
   for (const url of requests) {
-    expect(url.searchParams.get("status")).toBe("all");
+    expect(["toClaim", "myWork", "history"]).toContain(url.searchParams.get("view"));
     expect(url.searchParams.has("handler")).toBe(false);
     expect(url.searchParams.get("sort")).toBe("startsAt");
   }
-  await page.goto("/dashboard/intake?queue=myWork");
+  await page.goto("/dashboard/intake?view=myWork");
   await expect(page.getByRole("button", { name: "Refresh worklist", exact: true })).toBeEnabled();
   await showIntakeQueue(page);
   await link.click();
@@ -309,7 +307,7 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
   await expect(
     queue.getByRole("button", { name: /^History\b/, includeHidden: true }),
   ).toHaveAttribute("aria-pressed", "true");
-  await expect(page).toHaveURL(new RegExp(`/dashboard/intake/${arrival.id}\\?queue=history$`));
+  await expect(page).toHaveURL(new RegExp(`/dashboard/intake/${arrival.id}\\?view=history$`));
   expect(counts()[detailPath] - completedReads).toBe(1);
   await page.goto(detailHref!);
   await expect(dialog.getByText("Checked in", { exact: true })).toBeVisible();
@@ -332,11 +330,11 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
     page.getByRole("dialog", { name: "Appointment details", exact: true }),
   ).toBeVisible();
   await page.evaluate(() => window.history.back());
-  await expect(page).toHaveURL(new RegExp(`/dashboard/intake/${arrival.id}\\?queue=history$`));
+  await expect(page).toHaveURL(new RegExp(`/dashboard/intake/${arrival.id}\\?view=history$`));
   await expect(dialog.getByRole("heading", { name: arrivalPlate, exact: true })).toBeVisible();
 
-  await page.goto("/dashboard/intake?queue=history&pageSize=10");
-  await expect(page).toHaveURL(/\/dashboard\/intake\?pageSize=10&queue=history$/);
+  await page.goto("/dashboard/intake?view=history&pageSize=10");
+  await expect(page).toHaveURL(/\/dashboard\/intake\?pageSize=10&view=history$/);
   await expect(queue.locator("li")).toHaveCount(10);
   const oldJobs = await queue.locator("li").allTextContents();
   expect(oldJobs).toHaveLength(10);
@@ -362,12 +360,12 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
   await page.unroute("**/api/staff/intake/appointments?**");
   await queue.getByRole("button", { name: "Next records", exact: true }).click();
   await expect(queue.getByLabel("Page number", { exact: true })).toHaveValue("2");
-  await expect(page).toHaveURL(/\/dashboard\/intake\?page=2&pageSize=10&queue=history$/);
+  await expect(page).toHaveURL(/\/dashboard\/intake\?page=2&pageSize=10&view=history$/);
   await expect(queue.locator("li")).toHaveCount(10);
   const pageTwoJobs = await queue.locator("li").allTextContents();
   expect(pageTwoJobs).not.toEqual(oldJobs);
   await page.evaluate(() => window.history.back());
-  await expect(page).toHaveURL(/\/dashboard\/intake\?pageSize=10&queue=history$/);
+  await expect(page).toHaveURL(/\/dashboard\/intake\?pageSize=10&view=history$/);
   await expect(queue.getByLabel("Page number", { exact: true })).toHaveValue("1");
   expect(await queue.locator("li").allTextContents()).toEqual(oldJobs);
   await expect(
@@ -389,7 +387,7 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
     }),
   );
   await page.evaluate(() => window.history.forward());
-  await expect(page).toHaveURL(/\/dashboard\/intake\?page=2&pageSize=10&queue=history$/);
+  await expect(page).toHaveURL(/\/dashboard\/intake\?page=2&pageSize=10&view=history$/);
   await expect(
     page
       .getByRole("alert")

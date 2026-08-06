@@ -8,7 +8,7 @@ export function GET(request: Request) {
   for (const name of [
     "from",
     "to",
-    "status",
+    "view",
     "branchId",
     "page",
     "pageSize",
@@ -16,7 +16,6 @@ export function GET(request: Request) {
     "registration",
     "vehicle",
     "customer",
-    "queue",
     "handlerId",
     "handler",
     "sort",

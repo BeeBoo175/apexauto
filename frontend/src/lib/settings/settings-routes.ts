@@ -27,7 +27,7 @@ const upstream: Record<SettingsResource, string> = {
   warranties: "/api/staff/warranties",
 };
 
-const listKeys = ["page", "pageSize", "search", "status", "sort", "direction"];
+const listKeys = ["page", "pageSize", "search", "view", "sort", "direction"];
 // The browser uses one neutral column-filter vocabulary; each upstream resource names its own columns.
 const columnKeys: Record<Exclude<SettingsResource, "settings">, Record<string, string>> = {
   promos: {

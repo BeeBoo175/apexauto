@@ -30,9 +30,9 @@ public static class WorkCalendarQueryEndpoints
 
     private static Task<IResult> UnscheduledAsync(HttpContext context, IWorkCalendarStore reads,
         CancellationToken cancellationToken, Guid? branchId = null, string? employee = null,
-        int page = 1, int pageSize = Pagination.DefaultPageSize, string? search = null, string? kind = null)
+        int page = 1, int pageSize = Pagination.DefaultPageSize, string? search = null, string? view = null)
     {
-        var query = UnscheduledWorkQuery.Parse(branchId, employee, page, pageSize, search, kind);
+        var query = UnscheduledWorkQuery.Parse(branchId, employee, page, pageSize, search, view);
         return query is null
             ? Task.FromResult<IResult>(Results.Problem(statusCode: 400, title: "Provide valid work filters and paging."))
             : ReadAsync(token => reads.UnscheduledAsync(ActorId(context), query, token), cancellationToken);

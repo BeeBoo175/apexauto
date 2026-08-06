@@ -147,7 +147,7 @@ export function StaffAccountsTable({
           onPage={(page, pageSize) => void list.load({ ...filters, pageSize }, page)}
           emptyState={{
             title: "No matching staff",
-            description: "Choose another tab, search or filter.",
+            description: "Choose another view, search or filter.",
           }}
           toolbar={
             <>
@@ -158,9 +158,9 @@ export function StaffAccountsTable({
                   ...item,
                   count: snapshot.counts[item.count],
                 }))}
-                value={filters.tab}
+                value={filters.view}
                 disabled={busy}
-                onChange={(tab) => void list.load({ ...filters, tab }, 1)}
+                onChange={(view) => void list.load({ ...filters, view }, 1)}
               />
               <RecordToolbar
                 filters={null}

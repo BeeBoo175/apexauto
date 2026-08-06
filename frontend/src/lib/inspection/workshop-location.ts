@@ -116,7 +116,7 @@ function managerUrlQuery(filters: QueueFilters, page: number) {
   const defaults: Record<string, string> = {
     page: "1",
     pageSize: String(DEFAULT_PAGE_SIZE),
-    status: "active",
+    view: "active",
     sort: workshopDate(filters.status).column,
     direction: "asc",
   };

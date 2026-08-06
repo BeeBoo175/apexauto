@@ -123,14 +123,13 @@ test("customer history retains indefinite active work and rejects malformed life
 });
 
 test("staff snapshots preserve released ownership and bind handling evidence to the selected booking", () => {
-  expect(staffTestDriveParams({ status: "toString" }, false).filters.status).toBe("all");
+  expect(staffTestDriveParams({ view: "toString" }, false).filters.status).toBe("all");
   expect(testDriveDateError({ from: "2026-02-30", to: "2026-03-03" })).not.toBe("");
   expect(testDriveDateError({ from: "2026-1-1", to: "2026-1-2" })).not.toBe("");
   expect(testDriveDateError({ from: "", to: "" })).toBe("");
   const hidden = {
     from: "2026-11-01",
     to: "2026-11-02",
-    status: "cancelled",
     branchId: id,
     handlerId: id,
     handler: "siti",
@@ -139,10 +138,9 @@ test("staff snapshots preserve released ownership and bind handling evidence to 
     customer: "Ahmad",
     sort: "handlerEmail",
     direction: "desc",
-    queue: "toClaim",
     search: "Saga",
   };
-  const agentQuery = staffTestDriveParams(hidden, true);
+  const agentQuery = staffTestDriveParams({ ...hidden, view: "toClaim" }, true);
   expect(agentQuery.filters).toMatchObject({
     from: "",
     to: "",
@@ -158,13 +156,14 @@ test("staff snapshots preserve released ownership and bind handling evidence to 
     queue: "toClaim",
     search: "Saga",
   });
-  const managerQuery = staffTestDriveParams(hidden, false);
+  const managerQuery = staffTestDriveParams({ ...hidden, view: "cancelled" }, false);
   expect(managerQuery.filters).toMatchObject({
     handler: "siti",
     registration: "BPL",
     vehicle: "Honda",
     customer: "Ahmad",
     handlerId: id,
+    status: "cancelled",
     queue: "",
     sort: "handlerEmail",
     direction: "desc",
@@ -419,7 +418,7 @@ test("staff test-drive locations reject legacy selection and tokens and preserve
   expect(staffTestDriveUrl(agent.filters, 1)).toBe("/dashboard/test-drives");
   const legacy = staffTestDriveLocation(
     "/dashboard/test-drives",
-    `?booking=${id}&section=history&status=NotCompleted&page=2&pageSize=10`,
+    `?booking=${id}&section=history&view=NotCompleted&page=2&pageSize=10`,
     false,
   )!;
   expect(legacy.selectedId).toBe("");
@@ -427,17 +426,17 @@ test("staff test-drive locations reject legacy selection and tokens and preserve
   expect(legacy.href).toBe("/dashboard/test-drives?page=2&pageSize=10");
   const current = staffTestDriveLocation(
     `/dashboard/test-drives/${id}/history`,
-    "?status=notCompleted&page=2&pageSize=10",
+    "?view=notCompleted&page=2&pageSize=10",
     false,
   )!;
   expect(current.href).toBe(
-    `/dashboard/test-drives/${id}/history?page=2&pageSize=10&status=notCompleted`,
+    `/dashboard/test-drives/${id}/history?page=2&pageSize=10&view=notCompleted`,
   );
   expect(
     staffTestDriveLocation(`/dashboard/test-drives/${vehicleId}`, `?booking=${id}`, false)
       ?.selectedId,
   ).toBe(vehicleId);
   expect(staffTestDriveLocation("/dashboard/test-drives/not-a-record", "", false)).toBeNull();
-  expect(staffTestDriveParams({ queue: "ToClaim" }, true).filters.queue).toBe("myWork");
-  expect(staffTestDriveParams({ status: "constructor" }, false).filters.status).toBe("all");
+  expect(staffTestDriveParams({ view: "ToClaim" }, true).filters.queue).toBe("myWork");
+  expect(staffTestDriveParams({ view: "constructor" }, false).filters.status).toBe("all");
 });

@@ -8,7 +8,7 @@ public static class CustomerAccountTabs
     public const string Unverified = "unverified";
     public const string Suspended = "suspended";
 
-    public static bool IsValid(string? tab) => tab is null or All or Unverified or Suspended;
+    public static bool IsValid(string? view) => view is null or All or Unverified or Suspended;
 }
 
 // What an Administrator may read of a customer's contact details: enough to recognise them in a list, never the whole.
@@ -41,7 +41,7 @@ public sealed record CustomerDirectoryQuery(string Tab, string Search, int Page,
 
     public string Mobile { get; init; } = string.Empty;
 
-    public static CustomerDirectoryQuery? Parse(string? tab, string? search, int page, int pageSize,
+    public static CustomerDirectoryQuery? Parse(string? view, string? search, int page, int pageSize,
         string? name = null, string? email = null, string? mobile = null)
     {
         var text = search?.Trim() ?? string.Empty;
@@ -49,9 +49,9 @@ public sealed record CustomerDirectoryQuery(string Tab, string Search, int Page,
         var emailText = email?.Trim() ?? string.Empty;
         var mobileText = mobile?.Trim() ?? string.Empty;
         return !ListSearch.IsValid(nameText) || !ListSearch.IsValid(emailText) || !ListSearch.IsValid(mobileText) ||
-            !CustomerAccountTabs.IsValid(tab) || !ListSearch.IsValid(text) || !Pagination.IsValid(page, pageSize)
+            !CustomerAccountTabs.IsValid(view) || !ListSearch.IsValid(text) || !Pagination.IsValid(page, pageSize)
             ? null
-            : new(tab ?? CustomerAccountTabs.All, text, page, pageSize)
+            : new(view ?? CustomerAccountTabs.All, text, page, pageSize)
             {
                 Name = nameText,
                 Email = emailText,

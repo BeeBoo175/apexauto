@@ -5,7 +5,7 @@ import { relayGatedRead } from "@/lib/server/http/staff-relay";
 import { hasWorkCalendarAccess, parseUnscheduledWork, parseWorkCalendar } from "./work-calendar";
 
 export function relayWorkCalendar(request: Request, unscheduled = false) {
-  const keys = unscheduled ? ["page", "pageSize", "kind"] : ["from", "to", "assignment"];
+  const keys = unscheduled ? ["page", "pageSize", "view"] : ["from", "to", "assignment"];
   return relayGatedRead(request, {
     dataFirst: true,
     allowed: (actor) => hasWorkCalendarAccess(actor.role),

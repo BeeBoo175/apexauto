@@ -88,7 +88,7 @@ test("unscheduled work validates ownership and real editor identity without inve
     date: "2027-01-01",
     search: " aina ",
     assignment: "unassigned",
-    kind: "workshop",
+    view: "workshop",
     page: "2",
   });
   expect(Object.fromEntries(workCalendarQuery(filters))).toEqual({
@@ -99,7 +99,7 @@ test("unscheduled work validates ownership and real editor identity without inve
   });
   expect(Object.fromEntries(workCalendarQuery(filters, true))).toEqual({
     search: "aina",
-    kind: "workshop",
+    view: "workshop",
     page: "2",
     pageSize: "25",
   });
@@ -129,21 +129,21 @@ test("work calendar addresses omit defaults, keep camelCase tokens and scope by 
   expect(
     workCalendarLocation(
       "/dashboard/work-calendar",
-      `date=${calendarDate()}&kind=workshop&assignment=assigned&page=2&search=%20aina%20`,
+      `date=${calendarDate()}&view=workshop&assignment=assigned&page=2&search=%20aina%20`,
       "BranchManager",
     )?.href,
-  ).toBe("/dashboard/work-calendar?search=aina&kind=workshop&assignment=assigned&page=2");
+  ).toBe("/dashboard/work-calendar?search=aina&view=workshop&assignment=assigned&page=2");
   expect(
     workCalendarLocation(
       "/dashboard/work-calendar",
-      `branchId=${branchId}&kind=workshop&assignment=assigned`,
+      `branchId=${branchId}&view=workshop&assignment=assigned`,
       "SalesAgent",
     )?.href,
   ).toBe("/dashboard/work-calendar");
   expect(
     workCalendarLocation(
       "/dashboard/work-calendar",
-      "kind=Workshop&assignment=Assigned",
+      "view=Workshop&assignment=Assigned",
       "GeneralManager",
     )?.href,
   ).toBe("/dashboard/work-calendar");

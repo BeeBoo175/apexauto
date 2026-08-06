@@ -32,7 +32,7 @@ export async function GET(request: Request) {
       "search",
       "branchId",
       "inspection",
-      "publication",
+      "view",
       "sort",
       "direction",
       "minimumPrice",

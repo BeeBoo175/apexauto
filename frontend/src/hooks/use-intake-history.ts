@@ -9,7 +9,7 @@ import { useStaffAppointmentDrawer } from "./use-staff-appointment-drawer";
 import type { IntakeWorkspaceSnapshot } from "./use-intake-workspace";
 import { writeAddress } from "@/lib/browser-url";
 import { intakeLocation, intakeLocationId } from "@/lib/staff/intake-location";
-import { intakeQueueParams, staffParams, staffQuery } from "@/lib/staff/query";
+import { intakeQueueParams, managerQueueParams, staffQuery } from "@/lib/staff/query";
 import type { StaffFilters } from "@/lib/staff/contracts";
 
 function parseIntakeUrl(pathname: string, search: string, agent: boolean) {
@@ -18,9 +18,7 @@ function parseIntakeUrl(pathname: string, search: string, agent: boolean) {
     return null;
   }
   const parameters = Object.fromEntries(new URLSearchParams(search));
-  const { filters, page } = agent
-    ? intakeQueueParams(parameters)
-    : staffParams({ ...parameters, queue: "" });
+  const { filters, page } = agent ? intakeQueueParams(parameters) : managerQueueParams(parameters);
   const href = intakeLocation(filters, page, pathId);
   return { id: pathId, filters, page, href };
 }

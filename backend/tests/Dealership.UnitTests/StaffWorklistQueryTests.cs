@@ -38,7 +38,7 @@ public sealed class StaffWorklistQueryTests
 
         foreach (var queue in new[] { "toClaim", "myWork", "history" })
         {
-            Assert.Equal(queue, StaffWorklistQuery.Parse(null, null, "all", null, 1, 25, queue: queue)!.Queue);
+            Assert.Equal(queue, StaffWorklistQuery.Parse(null, null, queue, null, 1, 25)!.Queue);
         }
     }
 
@@ -64,9 +64,9 @@ public sealed class StaffWorklistQueryTests
     {
         Assert.Null(Parse(from, to, status, page, pageSize));
         Assert.Null(StaffWorklistQuery.Parse(null, null, null, Guid.Empty, 1, 25));
-        Assert.Null(StaffWorklistQuery.Parse(null, null, "all", null, 1, 25, queue: "MyWork"));
-        Assert.Null(StaffWorklistQuery.Parse(null, null, "all", null, 1, 25, queue: "ToClaim"));
-        Assert.Null(StaffWorklistQuery.Parse(null, null, "all", null, 1, 25, queue: "History"));
+        Assert.Null(StaffWorklistQuery.Parse(null, null, "MyWork", null, 1, 25));
+        Assert.Null(StaffWorklistQuery.Parse(null, null, "ToClaim", null, 1, 25));
+        Assert.Null(StaffWorklistQuery.Parse(null, null, "History", null, 1, 25));
     }
 
     private static StaffWorklistQuery? Parse(string? from = null, string? to = null, string? status = null,

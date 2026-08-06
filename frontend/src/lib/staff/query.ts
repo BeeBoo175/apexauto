@@ -27,7 +27,7 @@ export function appointmentQueue(detail: AppointmentDetail): IntakeQueue {
 
 export function intakeQueueParams(params: SearchParams): { page: number; filters: StaffFilters } {
   const { filters, page } = staffParams({
-    queue: params.queue,
+    view: params.view,
     search: params.search,
     page: params.page,
     pageSize: params.pageSize,
@@ -35,9 +35,16 @@ export function intakeQueueParams(params: SearchParams): { page: number; filters
   return { page, filters: { ...filters, queue: filters.queue || "myWork" } };
 }
 
+// Managers use the status views only, so an agent queue token falls back to the default view.
+export function managerQueueParams(params: SearchParams): { page: number; filters: StaffFilters } {
+  const { filters, page } = staffParams(params);
+  return { page, filters: { ...filters, queue: "" } };
+}
+
 export function staffQuery(filters: StaffFilters, page = 1) {
   const query = new URLSearchParams(historyQuery(filters, page));
-  query.set("status", filters.status);
+  // One view token: the agent queue when set, otherwise the manager's status tab.
+  query.set("view", filters.queue || filters.status);
   query.set("pageSize", String(filters.pageSize));
   query.set("sort", filters.sort);
   query.set("direction", filters.direction);
@@ -46,9 +53,6 @@ export function staffQuery(filters: StaffFilters, page = 1) {
   }
   if (filters.branchId) {
     query.set("branchId", filters.branchId);
-  }
-  if (filters.queue) {
-    query.set("queue", filters.queue);
   }
   if (filters.handlerId) {
     query.set("handlerId", filters.handlerId);
@@ -67,8 +71,7 @@ export function staffViewQuery(filters: StaffFilters, page = 1) {
   const defaults = {
     page: "1",
     pageSize: String(DEFAULT_PAGE_SIZE),
-    status: "all",
-    queue: "myWork",
+    view: filters.queue ? "myWork" : "all",
     sort: "startsAt",
     direction: "asc",
   };
@@ -86,13 +89,13 @@ export function staffParams(params: SearchParams): { page: number; filters: Staf
     page,
     filters: {
       ...filters,
-      status: normalizeWorklistStatus(params.status),
+      status: normalizeWorklistStatus(params.view),
       branchId: typeof params.branchId === "string" ? params.branchId : "",
       search: typeof params.search === "string" ? params.search : "",
       registration: typeof params.registration === "string" ? params.registration : "",
       vehicle: typeof params.vehicle === "string" ? params.vehicle : "",
       customer: typeof params.customer === "string" ? params.customer : "",
-      queue: parseIntakeQueue(params.queue),
+      queue: parseIntakeQueue(params.view),
       handlerId:
         typeof params.handlerId === "string" && isUuid(params.handlerId) ? params.handlerId : "",
       handler: typeof params.handler === "string" ? params.handler : "",

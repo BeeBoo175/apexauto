@@ -49,7 +49,7 @@ public sealed class StaffIntakeApiTests(IntakePhotoFixture fixture) : IClassFixt
         Assert.DoesNotContain("address", json, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain(data.CustomerEmail, json, StringComparison.OrdinalIgnoreCase);
 
-        foreach (var query in new[] { "from=2026-10-16", "from=bad&to=bad", "status=0", "status=Booked",
+        foreach (var query in new[] { "from=2026-10-16", "from=bad&to=bad", "view=0", "view=Booked",
             "page=0", "page=abc", "pageSize=20", "pageSize=51", "branchId=bad", $"branchId={Guid.Empty}" })
         {
             Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync($"{Route}?{query}")).StatusCode);
@@ -93,7 +93,7 @@ public sealed class StaffIntakeApiTests(IntakePhotoFixture fixture) : IClassFixt
             (await vehicleConflict.Content.ReadFromJsonAsync<JsonObject>())!["code"]!.GetValue<string>());
         Assert.Equal(HttpStatusCode.Conflict, (await client.PostAsJsonAsync($"{Route}/{duplicatePlate.Id}/check-ins",
             evidence with { Vin = "PL1BT65R84B123457" })).StatusCode);
-        var checkedIn = (await client.GetFromJsonAsync<StaffWorklistPage>($"{Route}?status=checkedIn"))!;
+        var checkedIn = (await client.GetFromJsonAsync<StaffWorklistPage>($"{Route}?view=checkedIn"))!;
         Assert.Equal(appointment.Id, Assert.Single(checkedIn.Items).Id);
         Assert.Equal(2, (await client.GetFromJsonAsync<StaffWorklistPage>(Route))!.Total);
 

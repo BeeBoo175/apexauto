@@ -9,7 +9,7 @@ import { accountHistoryPath, parseAccountHistory } from "./account-history";
 import { parseStaffAccountPage } from "./staff-accounts";
 
 const listKeys = [
-  "tab",
+  "view",
   "search",
   "role",
   "branchId",

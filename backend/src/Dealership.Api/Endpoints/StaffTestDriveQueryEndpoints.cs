@@ -30,11 +30,11 @@ public static class StaffTestDriveQueryEndpoints
 
     private static Task<IResult> ListAsync(HttpContext context, IStaffTestDriveReadStore reads,
         CancellationToken cancellationToken, string? from = null, string? to = null,
-        int page = 1, int pageSize = Pagination.DefaultPageSize, string? queue = null, string? status = null,
+        int page = 1, int pageSize = Pagination.DefaultPageSize, string? view = null,
         Guid? branchId = null, Guid? handlerId = null, string? search = null, string? sort = null, string? direction = null,
         string? handler = null, string? registration = null, string? vehicle = null, string? customer = null)
     {
-        var query = StaffTestDriveQuery.Parse(from, to, page, pageSize, queue, status, branchId, handlerId, search, sort, direction, handler,
+        var query = StaffTestDriveQuery.Parse(from, to, page, pageSize, view, branchId, handlerId, search, sort, direction, handler,
             registration, vehicle, customer);
         return query is null
             ? Task.FromResult<IResult>(Results.Problem(statusCode: 400, title: "Provide valid test-drive dates, filters, sort and paging."))

@@ -117,7 +117,7 @@ export function listingParams(params: SearchParams) {
           option.value.replace(/^[A-Z]/, (c) => c.toLowerCase()) === params.inspection,
       )?.value ?? "",
     publication:
-      listingPublicationOptions.find((option) => option.value === params.publication)?.value ?? "",
+      listingPublicationOptions.find((option) => option.value === params.view)?.value ?? "",
     minimumPrice: typeof params.minimumPrice === "string" ? params.minimumPrice : "",
     maximumPrice: typeof params.maximumPrice === "string" ? params.maximumPrice : "",
     minimumPublishedPrice:
@@ -172,7 +172,7 @@ export function listingQuery(filters: ListingFilters, page = 1) {
     );
   }
   if (filters.publication) {
-    query.set("publication", filters.publication);
+    query.set("view", filters.publication);
   }
   return query.toString();
 }

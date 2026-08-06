@@ -116,7 +116,7 @@ export type QueueFilters = {
   registration?: string;
   vehicle?: string;
   workStatus?: string;
-  technician?: string;
+  handler?: string;
   minimumBudget?: string;
   maximumBudget?: string;
   search: string;

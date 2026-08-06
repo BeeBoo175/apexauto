@@ -226,7 +226,7 @@ export function listParams(params: SearchParams, section: SettingsSection) {
   const filters: ListFilters = {
     pageSize: isPageSize(size) ? size : DEFAULT_PAGE_SIZE,
     search: typeof params.search === "string" ? params.search : "",
-    status: statuses.find((status) => status === params.status) ?? "all",
+    status: statuses.find((status) => status === params.view) ?? "all",
     sort: sorts.find((sort) => sort === params.sort) ?? "",
     direction: params.direction === "desc" ? "desc" : "asc",
     ...emptyColumnFilters,
@@ -272,7 +272,7 @@ export function listQuery(filters: ListFilters, page = 1) {
     query.set("search", search);
   }
   if (filters.status !== "all") {
-    query.set("status", filters.status);
+    query.set("view", filters.status);
   }
   if (filters.sort) {
     query.set("sort", filters.sort);

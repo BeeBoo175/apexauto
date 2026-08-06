@@ -17,12 +17,12 @@ public static class InspectionQueueEndpoints
         routes.MapGet("/workshop/jobs", WorkshopJobsAsync);
     }
 
-    private static async Task<IResult> InspectionsAsync(string? from, string? to, string? status, Guid? branchId,
+    private static async Task<IResult> InspectionsAsync(string? from, string? to, string? view, Guid? branchId,
         int? page, int? pageSize, string? search, HttpContext context, IInspectionQueueStore store,
         CancellationToken cancellationToken)
     {
         var filter = InspectionQueueFilter.Parse(from, to, branchId, page ?? 1, pageSize ?? Pagination.DefaultPageSize, search);
-        if (filter is null || !TryQueryToken(status ?? "all", out InspectionQueueStatus state))
+        if (filter is null || !TryQueryToken(view ?? "all", out InspectionQueueStatus state))
         {
             return Invalid();
         }
@@ -34,12 +34,12 @@ public static class InspectionQueueEndpoints
         }, "Inspection queue is temporarily unavailable.", cancellationToken);
     }
 
-    private static async Task<IResult> RepairsAsync(string? from, string? to, string? status, Guid? branchId,
+    private static async Task<IResult> RepairsAsync(string? from, string? to, string? view, Guid? branchId,
         int? page, int? pageSize, string? search, HttpContext context, IInspectionQueueStore store,
         CancellationToken cancellationToken)
     {
         var filter = InspectionQueueFilter.Parse(from, to, branchId, page ?? 1, pageSize ?? Pagination.DefaultPageSize, search);
-        if (filter is null || !TryQueryToken(status ?? "pendingApproval", out InspectionRepairQueueStatus state))
+        if (filter is null || !TryQueryToken(view ?? "pendingApproval", out InspectionRepairQueueStatus state))
         {
             return Invalid();
         }
@@ -51,14 +51,14 @@ public static class InspectionQueueEndpoints
         }, "Repair approval queue is temporarily unavailable.", cancellationToken);
     }
 
-    private static async Task<IResult> WorkshopAsync(string? from, string? to, string? status, Guid? branchId,
+    private static async Task<IResult> WorkshopAsync(string? from, string? to, string? view, Guid? branchId,
         int? page, int? pageSize, string? search, string? sort, string? direction, HttpContext context, IWorkshopQueueStore store,
-        string? workStatus, string? technician, decimal? minimumBudget, decimal? maximumBudget,
+        string? workStatus, string? handler, decimal? minimumBudget, decimal? maximumBudget,
         string? registration, string? vehicle, CancellationToken cancellationToken)
     {
         var filter = InspectionQueueFilter.Parse(from, to, branchId, page ?? 1, pageSize ?? Pagination.DefaultPageSize,
             search, sort, direction);
-        if (filter is null || !TryQueryToken(status ?? "active", out WorkshopTask task))
+        if (filter is null || !TryQueryToken(view ?? "active", out WorkshopTask task))
         {
             return Invalid();
         }
@@ -76,7 +76,7 @@ public static class InspectionQueueEndpoints
         filter = filter with
         {
             WorkStatus = selectedWorkStatus,
-            Technician = technician?.Trim() ?? "",
+            Technician = handler?.Trim() ?? "",
             MinimumBudget = minimumBudget,
             MaximumBudget = maximumBudget,
             Registration = registration?.Trim() ?? "",
@@ -94,12 +94,12 @@ public static class InspectionQueueEndpoints
         }, "Workshop queue is temporarily unavailable.", cancellationToken);
     }
 
-    private static async Task<IResult> WorkshopJobsAsync(string? status, int? page, int? pageSize, string? search,
+    private static async Task<IResult> WorkshopJobsAsync(string? view, int? page, int? pageSize, string? search,
         HttpContext context, IWorkshopQueueStore store, CancellationToken cancellationToken)
     {
         var filter = InspectionQueueFilter.Parse(null, null, null, page: page ?? 1, pageSize: pageSize ?? Pagination.DefaultPageSize,
             search: search);
-        if (filter is null || !TryQueryToken(status, out WorkshopTask task) ||
+        if (filter is null || !TryQueryToken(view, out WorkshopTask task) ||
             task is not (WorkshopTask.MyWork or WorkshopTask.Waiting or WorkshopTask.Claimable))
         {
             return Invalid();

@@ -49,7 +49,7 @@ export interface CustomerAccountDetail {
 }
 
 export interface CustomerAccountFilters {
-  tab: string;
+  view: string;
   search: string;
   name: string;
   email: string;
@@ -127,7 +127,7 @@ export function customerAccountParams(parameters: SearchParams) {
   const pageSize = Number(text("pageSize"));
   return {
     filters: {
-      tab: customerAccountTabs.some((tab) => tab.value === text("tab")) ? text("tab") : "all",
+      view: customerAccountTabs.some((tab) => tab.value === text("view")) ? text("view") : "all",
       search: cleanText(text("search")),
       name: cleanText(text("name")),
       email: cleanText(text("email")),
@@ -141,7 +141,7 @@ export function customerAccountParams(parameters: SearchParams) {
 function filterEntries(filters: CustomerAccountFilters) {
   return Object.entries(filters)
     .filter(
-      ([key, value]) => key !== "pageSize" && value !== "" && !(key === "tab" && value === "all"),
+      ([key, value]) => key !== "pageSize" && value !== "" && !(key === "view" && value === "all"),
     )
     .map(([key, value]): [string, string] => [key, String(value)]);
 }
@@ -154,7 +154,7 @@ export function customerAccountQuery(filters: CustomerAccountFilters, page = 1) 
   return query.toString();
 }
 
-// The browser address omits every default: the first page, the standard page size and the All tab.
+// The browser address omits every default: the first page, the standard page size and the All view.
 export function customerAccountUrlQuery(filters: CustomerAccountFilters, page: number) {
   const query = new URLSearchParams(filterEntries(filters));
   if (page !== 1) {

@@ -8,11 +8,11 @@ public static class StaffIntakeExportEndpoint
 {
     public static async Task<IResult> ExportAsync(HttpContext context, IStaffWorklistStore worklist,
         CancellationToken cancellationToken, string? from = null, string? to = null,
-        string? status = null, Guid? branchId = null, string? search = null, string? sort = null, string? direction = null,
+        string? view = null, Guid? branchId = null, string? search = null, string? sort = null, string? direction = null,
         string? registration = null, string? vehicle = null, string? customer = null,
-        string? queue = null, Guid? handlerId = null, string? handler = null)
+        Guid? handlerId = null, string? handler = null)
     {
-        var query = StaffWorklistQuery.Parse(from, to, status, branchId, 1, Pagination.DefaultPageSize, search, sort, direction, registration, vehicle, customer, queue, handlerId, handler);
+        var query = StaffWorklistQuery.Parse(from, to, view, branchId, 1, Pagination.DefaultPageSize, search, sort, direction, registration, vehicle, customer, handlerId, handler);
         if (query is null)
         {
             return Results.Problem(statusCode: 400, title: "Provide valid export filters and sorting.");

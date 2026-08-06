@@ -23,7 +23,7 @@ public static class ListingQueryEndpoints
     }
 
     private static async Task<IResult> ReadAsync(Guid? branchId, int? page, int? pageSize, string? search,
-        string? sort, string? direction, string? inspection, string? publication,
+        string? sort, string? direction, string? inspection, string? view,
         decimal? minimumPrice, decimal? maximumPrice, decimal? minimumPublishedPrice, decimal? maximumPublishedPrice,
         string? from, string? to, string? registration, string? vehicle,
         HttpContext context, IListingReadStore store, CancellationToken cancellationToken)
@@ -39,7 +39,7 @@ public static class ListingQueryEndpoints
         {
             var result = await store.ReadAsync(ActorId(context),
                 new(branchId, page ?? 1, pageSize ?? Pagination.DefaultPageSize, search?.Trim() ?? "",
-                    sort ?? "", direction ?? "asc", QueryToken.ToDomain(inspection) ?? "", publication ?? "",
+                    sort ?? "", direction ?? "asc", QueryToken.ToDomain(inspection) ?? "", view ?? "",
                     minimumPrice, maximumPrice, minimumPublishedPrice, maximumPublishedPrice,
                     dates.From, dates.Until, registration?.Trim() ?? "", vehicle?.Trim() ?? ""), deadline.Token);
             return Map(result.Status, result.Listings);

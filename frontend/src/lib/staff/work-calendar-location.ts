@@ -16,14 +16,14 @@ export function scopeWorkCalendarFilters(filters: WorkCalendarFilters, role: str
   };
 }
 
-// Shape: /dashboard/work-calendar[?branchId=&search=&kind=workshop|sale&assignment=assigned|unassigned&date=&page=
+// Shape: /dashboard/work-calendar[?branchId=&search=&view=workshop|sale&assignment=assigned|unassigned&date=&page=
 // &pageSize=]. A default (today, all work, first page, default size) never appears in the address.
 export function workCalendarHref(filters: WorkCalendarFilters) {
   const query = new URLSearchParams();
   const values = {
     branchId: filters.branchId,
     search: filters.search.trim(),
-    kind: filters.kind,
+    view: filters.kind,
     assignment: filters.assignment === "all" ? "" : filters.assignment,
     date: filters.date === calendarDate() ? "" : filters.date,
     page: filters.page > 1 ? String(filters.page) : "",

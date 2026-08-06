@@ -12,7 +12,7 @@ export interface RoomView {
 
 export function workloadQuery(view: RoomView) {
   const query = new URLSearchParams({
-    team: view.team,
+    view: view.team,
     page: String(view.page),
     pageSize: String(view.pageSize),
   });
@@ -33,7 +33,7 @@ export function parseRoomUrl(parameters: SearchParams): RoomView {
   const page = Number.parseInt(textOf(parameters.page), 10);
   const pageSize = Number.parseInt(textOf(parameters.pageSize), 10);
   return {
-    team: textOf(parameters.team) === "workshop" ? "workshop" : "sales",
+    team: textOf(parameters.view) === "workshop" ? "workshop" : "sales",
     search: textOf(parameters.search).trim().slice(0, 100),
     page: Number.isSafeInteger(page) && page > 0 ? page : 1,
     pageSize: roomSizes.includes(pageSize) ? pageSize : 25,
@@ -42,7 +42,7 @@ export function parseRoomUrl(parameters: SearchParams): RoomView {
 
 export function roomUrlValues(view: RoomView) {
   return {
-    team: view.team === "workshop" ? "workshop" : "",
+    view: view.team === "workshop" ? "workshop" : "",
     search: view.search.trim(),
     page: view.page > 1 ? String(view.page) : "",
     pageSize: view.pageSize === 25 ? "" : String(view.pageSize),

@@ -67,7 +67,7 @@ export function workCalendarParams(parameters: SearchParams): WorkCalendarFilter
   const size = Number(parameters.pageSize ?? DEFAULT_PAGE_SIZE);
   return {
     search: typeof parameters.search === "string" ? parameters.search.trim() : "",
-    kind: parameters.kind === "workshop" || parameters.kind === "sale" ? parameters.kind : "",
+    kind: parameters.view === "workshop" || parameters.view === "sale" ? parameters.view : "",
     date: isCalendarDate(parameters.date) ? parameters.date : calendarDate(),
     branchId: isUuid(parameters.branchId) ? parameters.branchId : "",
     assignment:
@@ -88,7 +88,7 @@ export function workCalendarQuery(filters: WorkCalendarFilters, unscheduled = fa
     query.set("search", filters.search.trim());
   }
   if (unscheduled) {
-    query.set("kind", filters.kind);
+    query.set("view", filters.kind);
     query.set("page", String(filters.page));
     query.set("pageSize", String(filters.pageSize));
   } else {

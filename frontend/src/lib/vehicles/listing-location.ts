@@ -82,7 +82,6 @@ export function listingSelectionHref({ id, section, record }: ListingSelectionPa
 const textKeys = [
   "search",
   "branchId",
-  "publication",
   "minimumPrice",
   "maximumPrice",
   "minimumPublishedPrice",
@@ -113,6 +112,9 @@ export function listingUrlQuery(filters: ListingFilters, page: number) {
   }
   if (filters.inspection) {
     query.set("inspection", listingQueryToken(filters.inspection));
+  }
+  if (filters.publication) {
+    query.set("view", filters.publication);
   }
   return query;
 }

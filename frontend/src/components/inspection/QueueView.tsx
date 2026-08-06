@@ -94,14 +94,14 @@ export function QueueView<T>({
       });
     }
   }
-  if (active.filters.technician) {
+  if (active.filters.handler) {
     applied.push({
       key: "technician",
       label:
-        active.filters.technician === "unassigned"
+        active.filters.handler === "unassigned"
           ? "Unassigned"
-          : `Technician: ${active.filters.technician}`,
-      without: { ...active.filters, technician: "" },
+          : `Technician: ${active.filters.handler}`,
+      without: { ...active.filters, handler: "" },
     });
   }
   if (active.filters.minimumBudget || active.filters.maximumBudget) {
@@ -115,7 +115,7 @@ export function QueueView<T>({
     applied.length > 0 ||
     Boolean(
       active.filters.workStatus ||
-      active.filters.technician ||
+      active.filters.handler ||
       active.filters.minimumBudget ||
       active.filters.maximumBudget,
     );
@@ -149,7 +149,7 @@ export function QueueView<T>({
         from: "",
         to: "",
         workStatus: "",
-        technician: "",
+        handler: "",
         minimumBudget: "",
         maximumBudget: "",
         registration: "",

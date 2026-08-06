@@ -16,14 +16,14 @@ public sealed record StaffWorklistQuery(DateTimeOffset? From, DateTimeOffset? Un
     string Registration = "", string Vehicle = "", string Customer = "", string Queue = "", Guid? HandlerId = null,
     string Handler = "")
 {
-    public static StaffWorklistQuery? Parse(string? from, string? to, string? status, Guid? branchId,
+    // One view token: an agent queue (toClaim, myWork, history) or a manager status tab; the sets never overlap.
+    public static StaffWorklistQuery? Parse(string? from, string? to, string? view, Guid? branchId,
         int page, int pageSize, string? search = null, string? sort = null, string? direction = null,
         string? registration = null, string? vehicle = null, string? customer = null,
-        string? queue = null, Guid? handlerId = null, string? handler = null)
+        Guid? handlerId = null, string? handler = null)
     {
         var dates = ListDateRange.Parse(from, to);
-        if (!Pagination.IsValid(page, pageSize) || branchId == Guid.Empty || handlerId == Guid.Empty || dates is null ||
-            queue is not (null or "" or "toClaim" or "myWork" or "history"))
+        if (!Pagination.IsValid(page, pageSize) || branchId == Guid.Empty || handlerId == Guid.Empty || dates is null)
         {
             return null;
         }
@@ -40,8 +40,10 @@ public sealed record StaffWorklistQuery(DateTimeOffset? From, DateTimeOffset? Un
             return null;
         }
 
-        var state = status switch
+        var queue = view is "toClaim" or "myWork" or "history" ? view : "";
+        var state = view switch
         {
+            "toClaim" or "myWork" or "history" => StaffWorklistStatus.All,
             null or "booked" => StaffWorklistStatus.Booked,
             "checkedIn" => StaffWorklistStatus.CheckedIn,
             "cancelled" => StaffWorklistStatus.Cancelled,
@@ -55,7 +57,7 @@ public sealed record StaffWorklistQuery(DateTimeOffset? From, DateTimeOffset? Un
         }
 
         return new StaffWorklistQuery(dates.From, dates.Until, state.Value, branchId, page, pageSize, term, order, orderDirection,
-            registration?.Trim() ?? "", vehicle?.Trim() ?? "", customer?.Trim() ?? "", queue ?? "", handlerId, handler?.Trim() ?? "");
+            registration?.Trim() ?? "", vehicle?.Trim() ?? "", customer?.Trim() ?? "", queue, handlerId, handler?.Trim() ?? "");
     }
 }
 

@@ -29,12 +29,12 @@ public static class StaffIntakeEndpoints
 
     private static async Task<IResult> ListAsync(HttpContext context, IStaffWorklistStore worklist,
         CancellationToken cancellationToken, string? from = null, string? to = null,
-        string? status = null, Guid? branchId = null, int page = 1, int pageSize = Pagination.DefaultPageSize,
+        string? view = null, Guid? branchId = null, int page = 1, int pageSize = Pagination.DefaultPageSize,
         string? search = null, string? sort = null, string? direction = null,
         string? registration = null, string? vehicle = null, string? customer = null,
-        string? queue = null, Guid? handlerId = null, string? handler = null)
+        Guid? handlerId = null, string? handler = null)
     {
-        var query = StaffWorklistQuery.Parse(from, to, status, branchId, page, pageSize, search, sort, direction, registration, vehicle, customer, queue, handlerId, handler);
+        var query = StaffWorklistQuery.Parse(from, to, view, branchId, page, pageSize, search, sort, direction, registration, vehicle, customer, handlerId, handler);
 
         if (query is null)
         {

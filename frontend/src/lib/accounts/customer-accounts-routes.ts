@@ -7,7 +7,7 @@ import { relayGatedRead } from "@/lib/server/http/staff-relay";
 import { administratorAccess } from "./account-administration-relay";
 import { parseCustomerAccountDetail, parseCustomerAccountPage } from "./customer-accounts";
 
-const listKeys = ["tab", "search", "name", "email", "mobile", "page", "pageSize"];
+const listKeys = ["view", "search", "name", "email", "mobile", "page", "pageSize"];
 
 export function relayCustomerAccounts(request: Request) {
   return relayGatedRead(request, {

@@ -65,7 +65,7 @@ export function queueParams(params: SearchParams, kind: QueueKind) {
   const statuses = options[kind];
   const page = Number(get("page") || 1);
   const size = Number(get("pageSize") || DEFAULT_PAGE_SIZE);
-  const status = queueToken(statuses, get("status")) ?? (kind === "workshop" ? "Active" : "All");
+  const status = queueToken(statuses, get("view")) ?? (kind === "workshop" ? "Active" : "All");
   const defaultSort = kind === "workshop" ? workshopDate(status).column : "since";
   const defaultDirection = kind === "workshop" ? "asc" : "desc";
   const requestedDirection = get("direction");
@@ -76,7 +76,7 @@ export function queueParams(params: SearchParams, kind: QueueKind) {
     registration: get("registration"),
     vehicle: get("vehicle"),
     workStatus: queueToken(workshopStatuses, get("workStatus")) ?? "",
-    technician: get("technician"),
+    handler: get("handler"),
     minimumBudget: get("minimumBudget"),
     maximumBudget: get("maximumBudget"),
     status,
@@ -97,7 +97,7 @@ export function queueQuery(filters: QueueFilters, page: number) {
   const query = new URLSearchParams({
     page: String(page),
     pageSize: String(filters.pageSize),
-    status: inspectionQueryToken(filters.status),
+    view: inspectionQueryToken(filters.status),
     sort: filters.sort ?? "since",
     direction: filters.direction ?? "desc",
   });
@@ -107,7 +107,7 @@ export function queueQuery(filters: QueueFilters, page: number) {
     "from",
     "to",
     "workStatus",
-    "technician",
+    "handler",
     "minimumBudget",
     "maximumBudget",
     "registration",
@@ -127,7 +127,7 @@ export function technicianQueueQuery(
   pageSize = DEFAULT_PAGE_SIZE,
 ) {
   const query = new URLSearchParams({
-    status: inspectionQueryToken(task),
+    view: inspectionQueryToken(task),
     search,
     page: String(page),
     pageSize: String(pageSize),

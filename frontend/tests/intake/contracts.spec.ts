@@ -62,12 +62,10 @@ test("list queries and snapshots share 10/25/50 sizes and the default 25", () =>
 
 test("agent queues discard hidden table and calendar criteria and restore only queue context", () => {
   const input = {
-    view: "queue",
-    queue: "history",
+    view: "history",
     page: "3",
     pageSize: "10",
     search: "VCA",
-    status: "booked",
     handlerId: id,
     handler: "hidden handler",
     branchId: id,
@@ -81,19 +79,19 @@ test("agent queues discard hidden table and calendar criteria and restore only q
   expect(filters.queue).toBe("history");
   expect(filters.status).toBe("all");
   expect(Object.fromEntries(new URLSearchParams(staffViewQuery(filters, page)))).toEqual({
-    queue: "history",
+    view: "history",
     page: "3",
     pageSize: "10",
     search: "VCA",
   });
-  expect(intakeQueueParams({ queue: "unknown" }).filters.queue).toBe("myWork");
-  for (const queue of ["constructor", "toString", "__proto__"]) {
-    expect(intakeQueueParams({ queue }).filters.queue).toBe("myWork");
+  expect(intakeQueueParams({ view: "unknown" }).filters.queue).toBe("myWork");
+  for (const view of ["constructor", "toString", "__proto__"]) {
+    expect(intakeQueueParams({ view }).filters.queue).toBe("myWork");
   }
   expect(intakeQueueParams({}).filters.queue).toBe("myWork");
-  expect(staffViewQuery(intakeQueueParams({ queue: "MyWork" }).filters, 1)).toBe("");
-  expect(intakeLocation(intakeQueueParams({ queue: "toClaim" }).filters, 2, id)).toBe(
-    `/dashboard/intake/${id}?page=2&queue=toClaim`,
+  expect(staffViewQuery(intakeQueueParams({ view: "MyWork" }).filters, 1)).toBe("");
+  expect(intakeLocation(intakeQueueParams({ view: "toClaim" }).filters, 2, id)).toBe(
+    `/dashboard/intake/${id}?page=2&view=toClaim`,
   );
   expect(intakeLocationId("/dashboard/intake")).toBe("");
   expect(intakeLocationId(`/dashboard/intake/${id}`)).toBe(id);
@@ -141,14 +139,13 @@ test("staff queries preserve applied search, sorting, branch and page size throu
   const input = {
     from: "2026-10-20",
     to: "2026-10-29",
-    status: "all",
     branchId: id,
     search: " VCA %_! ",
     sort: "registrationPlate",
     direction: "desc",
     pageSize: "50",
     page: "3",
-    queue: "myWork",
+    view: "myWork",
     handlerId: id,
     handler: "aina.sofia",
   };
@@ -157,15 +154,18 @@ test("staff queries preserve applied search, sorting, branch and page size throu
   const query = new URLSearchParams(staffQuery(filters, page));
   expect(Object.fromEntries(query)).toEqual({
     ...input,
-    status: "all",
-    queue: "myWork",
+    view: "myWork",
     search: "VCA %_!",
   });
-  expect(staffParams({ status: "checkedIn", queue: "toClaim" }).filters).toMatchObject({
+  expect(staffParams({ view: "checkedIn" }).filters).toMatchObject({
     status: "checkedIn",
+    queue: "",
+  });
+  expect(staffParams({ view: "toClaim" }).filters).toMatchObject({
+    status: "all",
     queue: "toClaim",
   });
-  expect(staffParams({ status: "noShow" }).filters.status).toBe("noShow");
+  expect(staffParams({ view: "noShow" }).filters.status).toBe("noShow");
   expect(staffParams({}).filters).toMatchObject({
     sort: "startsAt",
     direction: "asc",
@@ -173,7 +173,7 @@ test("staff queries preserve applied search, sorting, branch and page size throu
     status: "all",
   });
   expect(staffViewQuery(staffParams({}).filters, 1)).toBe("");
-  expect(new URLSearchParams(staffQuery(staffParams({}).filters, 1)).get("status")).toBe("all");
+  expect(new URLSearchParams(staffQuery(staffParams({}).filters, 1)).get("view")).toBe("all");
 });
 
 test("manager handler criteria remain visible, removable and reset without losing table order", () => {

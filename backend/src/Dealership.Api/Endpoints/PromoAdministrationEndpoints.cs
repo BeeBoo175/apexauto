@@ -20,7 +20,7 @@ public static class PromoAdministrationEndpoints
         routes.MapPut("/{promoId:guid}", UpdateAsync);
     }
 
-    private static async Task<IResult> ListAsync(int? page, int? pageSize, string? search, string? status, string? sort,
+    private static async Task<IResult> ListAsync(int? page, int? pageSize, string? search, string? view, string? sort,
         string? direction, string? code, decimal? minimumDiscount, decimal? maximumDiscount, string? expiresFrom,
         string? expiresTo, HttpContext context, PromoAdministrationService promos, CancellationToken cancellationToken)
     {
@@ -29,7 +29,7 @@ public static class PromoAdministrationEndpoints
         try
         {
             var result = await promos.ListAsync(ActorId(context), page ?? 1, pageSize ?? Pagination.DefaultPageSize,
-                search, status, sort, direction, code, minimumDiscount, maximumDiscount, expiresFrom, expiresTo,
+                search, view, sort, direction, code, minimumDiscount, maximumDiscount, expiresFrom, expiresTo,
                 deadline.Token);
             return Map(result);
         }

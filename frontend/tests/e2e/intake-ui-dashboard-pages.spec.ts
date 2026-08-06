@@ -3,9 +3,9 @@ import { signInAs } from "./staff-session";
 
 const pages = [
   "/dashboard/home",
-  "/dashboard/home?team=workshop&page=1&pageSize=10",
+  "/dashboard/home?view=workshop&page=1&pageSize=10",
   "/dashboard/work-calendar",
-  "/dashboard/work-calendar?kind=workshop&assignment=assigned&pageSize=10",
+  "/dashboard/work-calendar?view=workshop&assignment=assigned&pageSize=10",
   "/dashboard/performance",
   "/dashboard/performance?view=branches",
   "/dashboard/performance?view=sales&period=thisMonth&status=active",

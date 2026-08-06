@@ -38,7 +38,7 @@ export function saleTableFilters(
     ["registration", "Registration"],
     ["vehicle", "Vehicle"],
     ["customer", "Customer"],
-    ["agent", "Agent"],
+    ["handler", "Agent"],
     ["branch", "Branch"],
   ] as const;
   for (const [key, label] of texts) {
