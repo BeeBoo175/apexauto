@@ -35,7 +35,7 @@ test("manager withdraws an exact publication with retained drafts, receipts, ref
     route.fulfill({ status: 503, body: "" }),
   );
   const initialReads = counts()[endpoint] ?? 0;
-  const entry = await page.goto(`/dashboard/management/${item.id}/publication?branchId=${branch}`);
+  const entry = await page.goto(`/dashboard/listings/${item.id}/publication?branchId=${branch}`);
   expect(await entry!.text()).not.toContain("Withdraw approved listing");
   const dialog = page.getByRole("dialog", { name: saved.vehicle.registrationPlate, exact: true });
   const button = (name: string) => dialog.getByRole("button", { name, exact: true });
@@ -57,15 +57,15 @@ test("manager withdraws an exact publication with retained drafts, receipts, ref
   const reason = dialog.getByLabel("Withdrawal reason", { exact: true });
   const withdraw = button("Withdraw listing");
   const reconcile = button("Reconcile listing withdrawal");
-  await expect(withdraw).toBeEnabled();
+  // The withdraw action appears once a reason is being typed and stays disabled until it is valid.
+  await expect(reason).toBeVisible();
+  await expect(withdraw).toHaveCount(0);
   expect((counts()[endpoint] ?? 0) - initialReads).toBe(1);
   const beforeValidation = counts()[postPath] ?? 0;
-  await withdraw.click();
-  await expect(reason).toHaveAttribute("aria-invalid", "true");
   await reason.fill("   ");
-  await withdraw.click();
+  await expect(withdraw).toBeDisabled();
   await reason.fill("Showroom\nreview");
-  await withdraw.click();
+  await expect(withdraw).toBeDisabled();
   expect(counts()[postPath] ?? 0).toBe(beforeValidation);
   await reason.fill("");
   await reason.fill("Reason retained while discarding listing edits");
@@ -341,7 +341,7 @@ test("manager withdraws an exact publication with retained drafts, receipts, ref
       await context.request.get(heldEndpoint, { headers: await privateHeaders(context) })
     ).json()
   ).data;
-  await page.goto(`/dashboard/management/${hold.vehicleId}/publication?branchId=${branch}`);
+  await page.goto(`/dashboard/listings/${hold.vehicleId}/publication?branchId=${branch}`);
   const heldDialog = page.getByRole("dialog", {
     name: held.vehicle.registrationPlate,
     exact: true,

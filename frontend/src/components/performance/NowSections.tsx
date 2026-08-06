@@ -16,11 +16,11 @@ function waitText(days: number | null, passes: number) {
 }
 
 const stageLinks: Record<string, string> = {
-  AwaitingInspection: "/dashboard/inspection",
-  InInspection: "/dashboard/inspection",
-  InRepair: "/dashboard/inspection",
-  AwaitingListing: "/dashboard/management",
-  Listed: "/dashboard/management",
+  AwaitingInspection: "/dashboard/workshop",
+  InInspection: "/dashboard/workshop",
+  InRepair: "/dashboard/workshop",
+  AwaitingListing: "/dashboard/listings",
+  Listed: "/dashboard/listings",
   SaleInProgress: "/dashboard/sales",
 };
 

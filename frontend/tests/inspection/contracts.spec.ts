@@ -241,10 +241,10 @@ test("workshop query accepts only camelCase tokens and keeps domain status and s
 test("workshop addresses put the record in the path and omit defaults", () => {
   const id = "11111111-1111-4111-8111-111111111111";
   const requestId = "22222222-2222-4222-8222-222222222222";
-  const retained = `/dashboard/inspection/${id}/repairs/${requestId}/revisions/3`;
-  expect(workshopLocation("/dashboard/inspection", "", false)?.href).toBe("/dashboard/inspection");
-  expect(workshopLocation(`/dashboard/inspection/${id}`, "", false)?.href).toBe(
-    `/dashboard/inspection/${id}`,
+  const retained = `/dashboard/workshop/${id}/repairs/${requestId}/revisions/3`;
+  expect(workshopLocation("/dashboard/workshop", "", false)?.href).toBe("/dashboard/workshop");
+  expect(workshopLocation(`/dashboard/workshop/${id}`, "", false)?.href).toBe(
+    `/dashboard/workshop/${id}`,
   );
   expect(workshopLocation(retained, "view=approval&page=2", false)).toMatchObject({
     id,
@@ -253,38 +253,37 @@ test("workshop addresses put the record in the path and omit defaults", () => {
     href: `${retained}?page=2&view=approval`,
   });
   expect(
-    workshopLocation(`/dashboard/inspection/${id}/history`, "sort=requestedAt", false)?.href,
-  ).toBe(`/dashboard/inspection/${id}/history?sort=requestedAt`);
+    workshopLocation(`/dashboard/workshop/${id}/history`, "sort=requestedAt", false)?.href,
+  ).toBe(`/dashboard/workshop/${id}/history?sort=requestedAt`);
   expect(
-    workshopLocation(`/dashboard/inspection/${id}`, "inspection=other&section=history", false)
-      ?.href,
-  ).toBe(`/dashboard/inspection/${id}`);
+    workshopLocation(`/dashboard/workshop/${id}`, "inspection=other&section=history", false)?.href,
+  ).toBe(`/dashboard/workshop/${id}`);
   for (const path of [
-    `/dashboard/inspection/${id}/inspection`,
-    `/dashboard/inspection/${id}/repairs/${requestId}`,
-    `/dashboard/inspection/${id}/repairs/${requestId}/revisions/0`,
-    `/dashboard/inspection/${id}/history/extra`,
-    "/dashboard/inspection/not-an-id",
+    `/dashboard/workshop/${id}/inspection`,
+    `/dashboard/workshop/${id}/repairs/${requestId}`,
+    `/dashboard/workshop/${id}/repairs/${requestId}/revisions/0`,
+    `/dashboard/workshop/${id}/history/extra`,
+    "/dashboard/workshop/not-an-id",
   ]) {
     expect(workshopLocation(path, "", false)).toBeNull();
   }
   const technician = workshopLocation(
-    "/dashboard/inspection",
+    "/dashboard/workshop",
     "view=claimable&waitingPage=2&waitingSearch=ABC&myWorkPageSize=50",
     true,
   );
   expect(technician?.view).toBe("Claimable");
   expect(technician?.href).toBe(
-    "/dashboard/inspection?view=claimable&myWorkPageSize=50&waitingSearch=ABC&waitingPage=2",
+    "/dashboard/workshop?view=claimable&myWorkPageSize=50&waitingSearch=ABC&waitingPage=2",
   );
-  expect(workshopLocation("/dashboard/inspection", "view=myWork", true)?.href).toBe(
-    "/dashboard/inspection",
+  expect(workshopLocation("/dashboard/workshop", "view=myWork", true)?.href).toBe(
+    "/dashboard/workshop",
   );
 });
 
 test("workshop checklist category is a query key only for a selected inspection", () => {
   const id = "11111111-1111-4111-8111-111111111111";
-  const record = `/dashboard/inspection/${id}`;
+  const record = `/dashboard/workshop/${id}`;
   expect(workshopLocation(record, "category=exteriorPaint", false)).toMatchObject({
     category: "exteriorPaint",
     href: `${record}?category=exteriorPaint`,
@@ -294,8 +293,8 @@ test("workshop checklist category is a query key only for a selected inspection"
   expect(workshopLocation(`${record}/history`, "category=exteriorPaint", false)?.href).toBe(
     `${record}/history`,
   );
-  expect(workshopLocation("/dashboard/inspection", "category=exteriorPaint", true)?.href).toBe(
-    "/dashboard/inspection",
+  expect(workshopLocation("/dashboard/workshop", "category=exteriorPaint", true)?.href).toBe(
+    "/dashboard/workshop",
   );
 });
 

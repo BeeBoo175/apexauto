@@ -75,7 +75,7 @@ test("unscheduled work validates ownership and real editor identity without inve
   };
   const work = parseUnscheduledWork(snapshot)!;
   expect(work.items[0]).not.toHaveProperty("startsAt");
-  expect(workItemHref(work.items[0])).toBe(`/dashboard/inspection/${branchId}`);
+  expect(workItemHref(work.items[0])).toBe(`/dashboard/workshop/${branchId}`);
   expect(
     parseUnscheduledWork({ ...snapshot, items: [{ ...item, inspectionId: null }] }),
   ).toBeNull();

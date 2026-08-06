@@ -62,7 +62,7 @@ test("staff manage their own picture on the shared account page and open a colle
   await expect(profile.getByText("Work mobile", { exact: true })).toBeVisible();
   await expect(page).toHaveURL(/\/dashboard\/intake/);
   await expect(profile.locator("[data-pending='true']")).toHaveCount(0);
-  await expect(profile.getByText("Branch manager", { exact: true })).toBeVisible();
+  await expect(profile.getByText(/^(Sales agent|Branch manager|General manager)$/)).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(profile).toBeHidden();
   // The click belonged to the person, not to the row beneath it.

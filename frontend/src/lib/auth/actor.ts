@@ -40,7 +40,7 @@ export function actorDestination(actor: CurrentActor, returnTo?: string) {
       return "/dashboard/accounts";
     }
     if (actor.role === "WorkshopTechnician") {
-      return "/dashboard/inspection";
+      return "/dashboard/workshop";
     }
     // Sales agents and managers work across several pages, so they land on Home, what needs them today.
     return "/dashboard/home";

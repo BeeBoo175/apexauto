@@ -15,10 +15,10 @@ const pages = [
   "/dashboard/settings",
   "/dashboard/settings/promos",
   "/dashboard/settings/warranties",
-  "/dashboard/management",
+  "/dashboard/listings",
   "/dashboard/sales",
   "/dashboard/test-drives",
-  "/dashboard/inspection",
+  "/dashboard/workshop",
   "/dashboard/intake",
   "/dashboard/account",
 ];

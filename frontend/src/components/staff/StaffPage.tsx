@@ -23,7 +23,7 @@ export function StaffLoading() {
     actor.role === "WorkshopTechnician" ? "technician" : "inspection";
   const views: Record<string, StaffLoadingView> = {
     "/dashboard/intake": "intake",
-    "/dashboard/inspection": workshopView,
+    "/dashboard/workshop": workshopView,
     "/dashboard/settings": "inspection",
     // Agents get the queue workspace and managers the Sales table, so the shell follows the role.
     "/dashboard/sales": actor.role === "SalesAgent" ? "technician" : "inspection",

@@ -451,16 +451,14 @@ test("listing addresses put the listing and history record in the path and omit 
   const id = "11111111-1111-4111-8111-111111111111";
   const revisionId = "22222222-2222-4222-8222-222222222222";
   const eventId = "33333333-3333-4333-8333-333333333333";
-  const record = `/dashboard/management/${id}/publication/revisions/${revisionId}/publicationApproved/${eventId}`;
-  expect(listingLocation("/dashboard/management", "")?.href).toBe("/dashboard/management");
-  expect(listingLocation(`/dashboard/management/${id}`, "")?.href).toBe(
-    `/dashboard/management/${id}`,
-  );
+  const record = `/dashboard/listings/${id}/publication/revisions/${revisionId}/publicationApproved/${eventId}`;
+  expect(listingLocation("/dashboard/listings", "")?.href).toBe("/dashboard/listings");
+  expect(listingLocation(`/dashboard/listings/${id}`, "")?.href).toBe(`/dashboard/listings/${id}`);
   expect(
-    listingLocation(`/dashboard/management/${id}/card`, "page=2&inspection=available"),
+    listingLocation(`/dashboard/listings/${id}/card`, "page=2&inspection=available"),
   ).toMatchObject({
     section: "card",
-    href: `/dashboard/management/${id}/card?page=2&inspection=available`,
+    href: `/dashboard/listings/${id}/card?page=2&inspection=available`,
   });
   expect(listingLocation(record, "")).toMatchObject({
     section: "publication",
@@ -468,20 +466,20 @@ test("listing addresses put the listing and history record in the path and omit 
     href: record,
   });
   expect(
-    listingLocation(`/dashboard/management/${id}`, "listing=other&inspection=Available")?.href,
-  ).toBe(`/dashboard/management/${id}`);
-  expect(
-    listingLocation("/dashboard/management", "view=published&inspection=available")?.href,
-  ).toBe("/dashboard/management?inspection=available&view=published");
-  expect(listingLocation("/dashboard/management", "publication=published")?.href).toBe(
-    "/dashboard/management",
+    listingLocation(`/dashboard/listings/${id}`, "listing=other&inspection=Available")?.href,
+  ).toBe(`/dashboard/listings/${id}`);
+  expect(listingLocation("/dashboard/listings", "view=published&inspection=available")?.href).toBe(
+    "/dashboard/listings?inspection=available&view=published",
+  );
+  expect(listingLocation("/dashboard/listings", "publication=published")?.href).toBe(
+    "/dashboard/listings",
   );
   for (const path of [
-    `/dashboard/management/${id}/listing`,
-    `/dashboard/management/${id}/listing/revisions/${revisionId}/publicationApproved/${eventId}`,
-    `/dashboard/management/${id}/publication/revisions/${revisionId}/PublicationApproved/${eventId}`,
-    `/dashboard/management/${id}/card/extra`,
-    "/dashboard/management/not-an-id",
+    `/dashboard/listings/${id}/listing`,
+    `/dashboard/listings/${id}/listing/revisions/${revisionId}/publicationApproved/${eventId}`,
+    `/dashboard/listings/${id}/publication/revisions/${revisionId}/PublicationApproved/${eventId}`,
+    `/dashboard/listings/${id}/card/extra`,
+    "/dashboard/listings/not-an-id",
   ]) {
     expect(listingLocation(path, "")).toBeNull();
   }

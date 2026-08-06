@@ -15,7 +15,7 @@ import {
   type ListingRecordSelection,
 } from "./listing-history-selection";
 
-export const listingWorkspace = "/dashboard/management";
+export const listingWorkspace = "/dashboard/listings";
 
 export type ListingSelectionPath = {
   id: string;

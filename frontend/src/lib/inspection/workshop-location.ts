@@ -13,7 +13,7 @@ import {
 } from "./query";
 import { technicianTasks, workshopDate, type TechnicianTask } from "./workshop-contracts";
 
-export const workshopWorkspace = "/dashboard/inspection";
+export const workshopWorkspace = "/dashboard/workshop";
 
 export type TechnicianQueueState = { search: string; page: number; pageSize: number };
 export type TechnicianQueues = Record<TechnicianTask, TechnicianQueueState>;

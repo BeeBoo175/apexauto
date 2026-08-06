@@ -24,7 +24,7 @@ export function workItemKind(item: WorkItem) {
 
 export function workItemHref(item: WorkItem) {
   if (item.kind === "Workshop") {
-    return `/dashboard/inspection/${item.inspectionId}`;
+    return `/dashboard/workshop/${item.inspectionId}`;
   }
   if (item.kind === "Sale") {
     return `/dashboard/sales/${item.id}`;
