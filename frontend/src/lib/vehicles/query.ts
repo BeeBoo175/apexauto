@@ -65,6 +65,22 @@ export function catalogueHref(filters: CatalogueFilters, page = 1) {
   return `/vehicles?${catalogueQuery(filters, page)}`;
 }
 
+export function trimCatalogueFilters(filters: CatalogueFilters): CatalogueFilters {
+  return {
+    make: filters.make.trim(),
+    model: filters.model.trim(),
+    minimumYear: filters.minimumYear.trim(),
+    maximumYear: filters.maximumYear.trim(),
+    minimumPrice: filters.minimumPrice.trim(),
+    maximumPrice: filters.maximumPrice.trim(),
+    transmission: filters.transmission.trim(),
+    fuel: filters.fuel.trim(),
+    branchId: filters.branchId.trim(),
+    sort: filters.sort.trim(),
+    direction: filters.direction.trim(),
+  };
+}
+
 export function catalogueFilterError(filters: CatalogueFilters): string | null {
   if (
     [filters.make, filters.model].some((value) => value.trim().length > 100 || value.includes("\0"))

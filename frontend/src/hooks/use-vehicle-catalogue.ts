@@ -6,11 +6,18 @@ import { apiFetch } from "@/lib/api-browser";
 import { type ApiResult, type Page } from "@/lib/api";
 import { type Branch } from "@/lib/branches";
 import { parseCatalogue } from "@/lib/vehicles/parse";
-import { catalogueFilterError, catalogueQuery } from "@/lib/vehicles/query";
+import {
+  catalogueFilterError,
+  catalogueHref,
+  catalogueQuery,
+  trimCatalogueFilters,
+} from "@/lib/vehicles/query";
 import type { CatalogueFilters, CataloguePage } from "@/lib/vehicles/contracts";
 import { useInitialToast } from "./use-initial-toast";
 import { useBranchChoices } from "./use-branch-choices";
 import { writeAddress } from "@/lib/browser-url";
+
+export type CatalogueDraftSync = "all" | "sort" | "none";
 
 export function useVehicleCatalogue(
   initial: ApiResult<CataloguePage>,
@@ -19,8 +26,8 @@ export function useVehicleCatalogue(
   initialBranches: Page<Branch> | null,
 ) {
   const [snapshot, setSnapshot] = useState(initial.data);
-  const [active, setActive] = useState({ filters, page });
-  const [draft, setDraft] = useState(filters);
+  const [active, setActive] = useState({ filters: trimCatalogueFilters(filters), page });
+  const [draft, setDraft] = useState(() => trimCatalogueFilters(filters));
   const [busy, setBusy] = useState(false);
   const [photoVersion, setPhotoVersion] = useState(0);
   const branchChoices = useBranchChoices(
@@ -39,39 +46,56 @@ export function useVehicleCatalogue(
     [],
   );
 
-  async function load(nextFilters: CatalogueFilters, nextPage: number) {
+  async function load(
+    nextFilters: CatalogueFilters,
+    nextPage: number,
+    options?: { syncDraft?: CatalogueDraftSync },
+  ): Promise<boolean> {
     if (controller.current) {
-      return;
+      return false;
     }
-    const invalid = catalogueFilterError(nextFilters);
+    const normalized = trimCatalogueFilters(nextFilters);
+    const invalid = catalogueFilterError(normalized);
     if (invalid) {
       error(invalid);
-      return;
+      return false;
     }
     const attempt = new AbortController();
     controller.current = attempt;
     setBusy(true);
     try {
-      const query = catalogueQuery(nextFilters, nextPage);
+      const query = catalogueQuery(normalized, nextPage);
       const result = await apiFetch(`/api/vehicles?${query}`, parseCatalogue, {
         signal: attempt.signal,
       });
       if (attempt.signal.aborted) {
-        return;
+        return false;
       }
       if (!result.data || result.data.page !== nextPage) {
         throw new Error("Catalogue unavailable");
       }
       setSnapshot(result.data);
       setPhotoVersion((current) => current + 1);
-      setActive({ filters: nextFilters, page: nextPage });
-      writeAddress(`/vehicles?${query}`);
+      setActive({ filters: normalized, page: nextPage });
+      const syncDraft = options?.syncDraft ?? "all";
+      if (syncDraft === "all") {
+        setDraft(normalized);
+      } else if (syncDraft === "sort") {
+        setDraft((current) => ({
+          ...current,
+          sort: normalized.sort,
+          direction: normalized.direction,
+        }));
+      }
+      writeAddress(catalogueHref(normalized, nextPage));
+      return true;
     } catch {
       if (!attempt.signal.aborted) {
         const message =
           "The catalogue could not be loaded. Your last confirmed vehicles and filters are still shown. Apply your filters again, or reload the page.";
         error(message);
       }
+      return false;
     } finally {
       if (!attempt.signal.aborted) {
         setBusy(false);

@@ -67,3 +67,20 @@ export function selectDiverseVehicles(items: readonly PublicVehicle[], limit: nu
   return chosen;
 }
 
+export function matchingQuickFilterId(filters: CatalogueFilters): string | null {
+  const match = FEATURED_QUICK_FILTERS.find(
+    (chip) =>
+      chip.filters.maximumPrice === filters.maximumPrice &&
+      chip.filters.minimumPrice === filters.minimumPrice &&
+      chip.filters.transmission === filters.transmission &&
+      chip.filters.fuel === filters.fuel &&
+      chip.filters.make === filters.make &&
+      chip.filters.model === filters.model &&
+      chip.filters.branchId === filters.branchId &&
+      chip.filters.minimumYear === filters.minimumYear &&
+      chip.filters.maximumYear === filters.maximumYear &&
+      (chip.id !== "all" ||
+        (chip.filters.sort === filters.sort && chip.filters.direction === filters.direction)),
+  );
+  return match?.id ?? null;
+}
