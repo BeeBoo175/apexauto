@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { readCurrentActor } from "@/lib/auth/server";
 import styles from "./SiteChrome.module.css";
+import { SiteNavigation } from "./SiteNavigation";
 
 export async function SiteHeader() {
   const current = await readCurrentActor().catch(() => ({ status: 502, actor: null }));
@@ -11,16 +12,7 @@ export async function SiteHeader() {
       <Link href="/" className={styles.brand} aria-label="ApexAuto home">
         Apex<span>Auto</span>
       </Link>
-      <nav className={styles.navigation} aria-label="Main navigation">
-        <Link href="/vehicles" prefetch={false}>
-          Buy car
-        </Link>
-        {showAccount && <a href={showStaffPortal ? "/dashboard/account" : "/account"}>Account</a>}
-        <Link href="/sell" prefetch={false}>
-          Sell car
-        </Link>
-        {showStaffPortal && <a href="/dashboard">Staff portal</a>}
-      </nav>
+      <SiteNavigation showAccount={showAccount} showStaffPortal={showStaffPortal} />
     </header>
   );
 }

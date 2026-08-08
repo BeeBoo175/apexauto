@@ -11,8 +11,7 @@ export function SiteFooter() {
               Apex<span>Auto</span>
             </Link>
             <p className={styles.footerTagline}>
-              Inspected used cars, itemized Malaysian pricing and showroom trade-ins across
-              Malaysia.
+              Verified cars, transparent MYR pricing, and trusted trade-ins across Malaysia.
             </p>
           </div>
           <nav className={styles.footerColumns} aria-label="Footer navigation">
@@ -30,10 +29,13 @@ export function SiteFooter() {
                 <li>
                   <Link href="/buying-guide#financing">Financing guide</Link>
                 </li>
+                <li>
+                  <Link href="/buying-guide#warranty">ApexShield warranty</Link>
+                </li>
               </ul>
             </div>
             <div className={styles.footerColumn}>
-              <h2>Sell &amp; trade in</h2>
+              <h2>Sell &amp; inspect</h2>
               <ul>
                 <li>
                   <Link href="/sell" prefetch={false}>
@@ -41,10 +43,27 @@ export function SiteFooter() {
                   </Link>
                 </li>
                 <li>
+                  <Link href="/inspection">210-point inspection</Link>
+                </li>
+                <li>
                   <Link href="/buying-guide#trade-in">How trade-in works</Link>
                 </li>
                 <li>
+                  <Link href="/branches">Showroom branches</Link>
+                </li>
+              </ul>
+            </div>
+            <div className={styles.footerColumn}>
+              <h2>Company &amp; help</h2>
+              <ul>
+                <li>
                   <Link href="/buying-guide">Buying guide</Link>
+                </li>
+                <li>
+                  <Link href="/faq">FAQ</Link>
+                </li>
+                <li>
+                  <Link href="/disclaimer">Disclaimers &amp; notices</Link>
                 </li>
               </ul>
             </div>
