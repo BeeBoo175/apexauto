@@ -299,6 +299,16 @@ test("listing workspace validates revision and publication relationships before 
     hold: { buyer: "Nur Aina", agent: null, expiresAtUtc: "2026-10-28T00:00:00Z" },
   };
   expect(parseListingWorkspace(workspace)?.vin).toBe("MHKA1BA1JGK123456");
+  // A handled sale pauses its deadline, so a held listing may carry no expiry.
+  expect(
+    parseListingWorkspace({
+      ...workspace,
+      hold: { buyer: "Nur Aina", agent: "a@x.invalid", expiresAtUtc: null },
+    })?.hold?.expiresAtUtc,
+  ).toBeNull();
+  expect(
+    parseListingWorkspace({ ...workspace, hold: { buyer: "Nur Aina", expiresAtUtc: "tomorrow" } }),
+  ).toBeNull();
   expect(parseListingWorkspace({ ...workspace, hold: undefined })?.hold).toBeNull();
   expect(parseListingWorkspace({ ...workspace, hold: { buyer: "" } })).toBeNull();
   expect(parseListingWorkspace({ ...workspace, vin: "" })).toBeNull();

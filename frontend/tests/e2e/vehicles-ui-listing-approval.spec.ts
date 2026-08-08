@@ -35,21 +35,30 @@ test("manager explicitly approves only saved drafts with bound receipts, exact r
   );
   const initialReads = counts()[endpoint] ?? 0;
   const entry = await page.goto(`/dashboard/listings/${item.id}/publication?branchId=${branch}`);
-  expect(await entry!.text()).not.toContain("Publication record");
+  expect(await entry!.text()).not.toContain("Saved listing");
   const dialog = page.getByRole("dialog", { name: saved.vehicle.registrationPlate, exact: true });
-  await expect(
-    dialog.getByRole("heading", { name: "Publication record", exact: true }),
-  ).toBeVisible();
+  await expect(dialog.getByRole("heading", { name: "Saved listing", exact: true })).toBeVisible();
   const approve = dialog.getByRole("button", { name: "Approve publication", exact: true });
+  const confirm = (title: string, label: string) =>
+    page
+      .getByRole("dialog", { name: title, exact: true })
+      .getByRole("button", { name: label, exact: true })
+      .click();
+  async function showFields() {
+    await dialog.getByRole("button", { name: "Listing", exact: true }).click();
+    const show = dialog.getByRole("button", { name: "Show listing fields", exact: true });
+    if (await show.isVisible()) {
+      await show.click();
+    }
+  }
   const reconcile = dialog.getByRole("button", {
     name: "Reconcile publication approval",
     exact: true,
   });
-  await expect(approve).toBeDisabled();
+  await expect(approve).toHaveCount(0);
   expect((counts()[endpoint] ?? 0) - initialReads).toBe(1);
   const writesBefore = counts()[postPath] ?? 0;
-  await dialog.getByRole("button", { name: "Listing page", exact: true }).click();
-  await dialog.getByRole("button", { name: "Edit price", exact: true }).click();
+  await showFields();
   const price = (saved.draft.vehiclePrice + 441.01).toFixed(2);
   await dialog.getByLabel("Vehicle price (MYR)", { exact: true }).fill(price);
   const order = saved.draft.photoIds;
@@ -73,7 +82,7 @@ test("manager explicitly approves only saved drafts with bound receipts, exact r
     dialog.getByRole("button", { name: "Reconcile draft save", exact: true }),
   ).toBeEnabled();
   await dialog.getByRole("button", { name: "Publication", exact: true }).click();
-  await expect(approve).toBeDisabled();
+  await expect(approve).toHaveCount(0);
   await dialog.getByRole("button", { name: "Reconcile draft save", exact: true }).click();
   await expect(approve).toBeEnabled();
   expect(saveAttempts[1]).toBe(saveAttempts[0]);
@@ -83,28 +92,31 @@ test("manager explicitly approves only saved drafts with bound receipts, exact r
   expect(prepared.publication).toEqual(saved.publication);
   const publicBefore = (await (await context.request.get(cataloguePath)).json()).data;
   expect(publicBefore.items.find((row: { id: string }) => row.id === item.id)).toEqual(item);
-  await dialog.getByRole("button", { name: "Listing page", exact: true }).click();
-  await dialog.getByRole("button", { name: "Edit price", exact: true }).click();
+  await showFields();
   await dialog.getByLabel("Vehicle price (MYR)", { exact: true }).fill("123.456");
   await dialog.getByRole("button", { name: "Publication", exact: true }).click();
-  await expect(approve).toBeDisabled();
-  await dialog.getByRole("button", { name: "Listing page", exact: true }).click();
-  await dialog.getByRole("button", { name: "Edit price", exact: true }).click();
+  await expect(approve).toHaveCount(0);
+  await showFields();
   await expect(dialog.getByLabel("Vehicle price (MYR)", { exact: true })).toHaveValue("123.456");
   await dialog.getByLabel("Vehicle price (MYR)", { exact: true }).fill("45000.01");
   await dialog.getByRole("button", { name: "Publication", exact: true }).click();
-  await expect(approve).toBeDisabled();
+  await expect(approve).toHaveCount(0);
+  await showFields();
   await dialog.getByRole("button", { name: "Discard changes", exact: true }).click();
+  await confirm("Discard listing changes?", "Discard changes");
+  await dialog.getByRole("button", { name: "Publication", exact: true }).click();
   await expect(approve).toBeEnabled();
-  await dialog.getByRole("button", { name: "Listing page", exact: true }).click();
-  await dialog.getByRole("button", { name: "Edit photos", exact: true }).click();
+  await showFields();
+  await dialog.getByRole("button", { name: "Remove photo 1", exact: true }).click();
   await dialog
     .getByLabel("New listing photo", { exact: true })
     .setInputFiles(path.join(evidence, "upload.jpg"));
   await dialog.getByRole("button", { name: "Publication", exact: true }).click();
-  await expect(approve).toBeDisabled();
-  await dialog.getByRole("button", { name: "Listing page", exact: true }).click();
-  await dialog.getByRole("button", { name: "Discard selected photo", exact: true }).click();
+  await expect(approve).toHaveCount(0);
+  await showFields();
+  await dialog.getByRole("button", { name: "Discard", exact: true }).click();
+  await dialog.getByRole("button", { name: "Discard changes", exact: true }).click();
+  await confirm("Discard listing changes?", "Discard changes");
   await dialog.getByRole("button", { name: "Publication", exact: true }).click();
   await expect(approve).toBeEnabled();
   expect(counts()[postPath] ?? 0).toBe(writesBefore);
@@ -123,34 +135,22 @@ test("manager explicitly approves only saved drafts with bound receipts, exact r
     });
   });
   await approve.click();
+  await confirm("Approve publication?", "Approve publication");
   await expect(reconcile).toBeEnabled();
-  await expect(dialog.getByRole("button", { name: "Save draft", exact: true })).toBeDisabled();
-  await expect(
-    dialog.getByRole("button", { name: "Back to listings", exact: true }),
-  ).toBeDisabled();
+  await expect(dialog.getByRole("button", { name: "Save draft", exact: true })).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "Close drawer", exact: true })).toBeDisabled();
   await page.keyboard.press("Escape");
   await expect(dialog).toBeVisible();
+  await dialog.getByRole("button", { name: "Listing", exact: true }).click();
   await dialog.getByRole("button", { name: "Catalogue card", exact: true }).click();
-  await expect(
-    dialog.getByRole("region", { name: "Catalogue card preview", exact: true }),
-  ).toContainText(formatCurrency(Number(price)));
-  await expect(reconcile).toBeEnabled();
-  await dialog.getByRole("button", { name: "Listing page", exact: true }).click();
-  await expect(dialog.getByRole("button", { name: "Edit price", exact: true })).toBeDisabled();
-  await page.route(`**${endpoint}`, (route) =>
-    route.fulfill({
-      status: 503,
-      json: { status: 503, data: null, message: "Unavailable", uncertain: true },
-    }),
+  await expect(dialog.getByRole("region", { name: "Listing preview", exact: true })).toContainText(
+    formatCurrency(Number(price)),
   );
-  await dialog.getByRole("button", { name: "Refresh listing", exact: true }).click();
-  await expect(
-    page.getByRole("alert").filter({ hasText: "record could not be refreshed" }),
-  ).toBeVisible();
   await expect(reconcile).toBeEnabled();
-  await page.unroute(`**${endpoint}`);
-  await dialog.getByRole("button", { name: "Refresh listing", exact: true }).click();
-  await expect(dialog.getByRole("button", { name: "Refresh listing", exact: true })).toBeEnabled();
+  await showFields();
+  await expect(dialog.getByLabel("Vehicle price (MYR)", { exact: true })).toBeDisabled();
+  // An unconfirmed approval locks Refresh; reconciling is the only way to read the result.
+  await expect(dialog.getByRole("button", { name: "Refresh listing", exact: true })).toBeDisabled();
   await expect(reconcile).toBeEnabled();
   for (let index = 1; index < mismatches.length; index += 1) {
     await reconcile.click();
@@ -170,14 +170,18 @@ test("manager explicitly approves only saved drafts with bound receipts, exact r
   await reconcile.click();
   await failedApprovalRefresh;
   await expect(dialog.getByRole("button", { name: "Refresh listing", exact: true })).toBeEnabled();
-  await expect(dialog.getByText("Confirmed approval receipt", { exact: true })).toBeVisible();
-  await expect(approve).toBeDisabled();
+  await expect(
+    dialog.getByRole("region", { name: "Listing vehicle and publication", exact: true }),
+  ).toContainText(formatCurrency(Number(price)));
+  await expect(approve).toHaveCount(0);
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByRole("button", { name: "Back to listings", exact: true })).toBeEnabled();
+  await expect(dialog.getByRole("button", { name: "Close drawer", exact: true })).toBeEnabled();
   await page.unroute(`**${endpoint}`);
   await dialog.getByRole("button", { name: "Refresh listing", exact: true }).click();
   await expect(dialog.getByRole("button", { name: "Refresh listing", exact: true })).toBeEnabled();
-  await expect(dialog.getByText("Confirmed approval receipt", { exact: true })).toBeVisible();
+  await expect(
+    dialog.getByRole("region", { name: "Listing vehicle and publication", exact: true }),
+  ).toContainText(formatCurrency(Number(price)));
   await page.unroute(`**${postPath}`);
   expect(attempts).toHaveLength(mismatches.length + 1);
   expect(new Set(attempts).size).toBe(1);
@@ -200,9 +204,9 @@ test("manager explicitly approves only saved drafts with bound receipts, exact r
   });
   await expect(page.getByRole("table", { name: "Listings", exact: true })).toBeVisible();
   await dialog.getByRole("button", { name: "Publication", exact: true }).click();
-  await expect(approve).toBeDisabled();
+  await expect(approve).toHaveCount(0);
   await dialog
-    .getByRole("heading", { name: "Publication record", exact: true })
+    .getByRole("heading", { name: "Saved listing", exact: true })
     .scrollIntoViewIfNeeded();
   await page.screenshot({ path: path.join(evidence, "listing-approval.png") });
 
@@ -217,6 +221,7 @@ test("manager explicitly approves only saved drafts with bound receipts, exact r
   });
   expect(outside.status()).toBe(200);
   await dialog.getByRole("button", { name: "Refresh listing", exact: true }).click();
+  await dialog.getByRole("button", { name: "Publication", exact: true }).click();
   await expect(approve).toBeEnabled();
   const replacement = await readWorkspace();
   const newer = await context.request.post(savePath, {
@@ -233,6 +238,7 @@ test("manager explicitly approves only saved drafts with bound receipts, exact r
     (response) => response.url().endsWith(postPath) && response.status() === 409,
   );
   await approve.click();
+  await confirm("Approve publication?", "Approve publication");
   await deniedResponse;
   await expect(approve).toBeEnabled();
   expect((await readWorkspace()).publication).toEqual(current.publication);
@@ -272,6 +278,7 @@ test("manager explicitly approves only saved drafts with bound receipts, exact r
     });
   });
   await approve.click();
+  await confirm("Approve publication?", "Approve publication");
   await expect(reconcile).toBeEnabled();
   const salesContext = await browser.newContext({
     ...info.project.use,
@@ -292,7 +299,8 @@ test("manager explicitly approves only saved drafts with bound receipts, exact r
   await context.addCookies(
     (await salesContext.cookies()).filter((cookie) => cookie.name === "apexauto_token"),
   );
-  await dialog.getByRole("button", { name: "Refresh listing", exact: true }).click();
+  // A locked drawer cannot refresh, so reload to read as the new actor.
+  await page.reload();
   await expect(dialog).toHaveCount(0);
   await expect(reconcile).toHaveCount(0);
   await expect(

@@ -95,7 +95,7 @@ for (const navigation of [false, true]) {
       .fill(navigation ? "farah.aziz@example.invalid" : "aina.sofia@example.invalid");
     await page.getByLabel("Password", { exact: true }).fill("Password123!");
     await page.getByRole("button", { name: "Sign in", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Refresh worklist", exact: true })).toBeEnabled();
+    await expect(page).toHaveURL(/\/dashboard\/home$/);
 
     let release = () => {};
     let observed = () => {};
@@ -123,14 +123,9 @@ for (const navigation of [false, true]) {
     try {
       if (navigation) {
         const listings = page.getByRole("link", { name: "Listings", exact: true });
-        if (!(await listings.isVisible())) {
-          await page.getByRole("button", { name: "Workspaces", exact: true }).click();
-        }
+        await expect(listings).toBeVisible();
         await listings.click();
         await requested;
-        await expect(
-          page.getByRole("table", { name: "Scoped intake appointments", exact: true }),
-        ).toBeVisible();
       } else {
         const document = await page.goto("/dashboard/intake");
         expect(document!.headers()["cache-control"]).toContain("no-store");

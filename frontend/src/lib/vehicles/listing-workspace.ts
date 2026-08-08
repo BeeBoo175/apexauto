@@ -41,7 +41,7 @@ export interface ListingWorkspace {
   currentSignedRevisionId: string | null;
   currentSignedReport: { inspectionId: string; revision: number } | null;
   vin: string;
-  hold: { buyer: string; agent: string | null; expiresAtUtc: string } | null;
+  hold: { buyer: string; agent: string | null; expiresAtUtc: string | null } | null;
 }
 
 export function parseRevision(value: unknown): ListingRevision | null {
@@ -190,11 +190,17 @@ export function parseListingWorkspace(value: unknown): ListingWorkspace | null {
       typeof held.buyer !== "string" ||
       !held.buyer ||
       (held.agent !== null && held.agent !== undefined && typeof held.agent !== "string") ||
-      !isUtcInstant(held.expiresAtUtc)
+      (held.expiresAtUtc !== null &&
+        held.expiresAtUtc !== undefined &&
+        !isUtcInstant(held.expiresAtUtc))
     ) {
       return null;
     }
-    hold = { buyer: held.buyer, agent: held.agent ?? null, expiresAtUtc: held.expiresAtUtc };
+    hold = {
+      buyer: held.buyer,
+      agent: held.agent ?? null,
+      expiresAtUtc: held.expiresAtUtc ?? null,
+    };
   }
   if (typeof value.vin !== "string" || !value.vin) {
     return null;

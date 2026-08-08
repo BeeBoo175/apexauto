@@ -27,7 +27,7 @@ export async function reviewAgentQueue(
   area: "sales" | "inspection",
   capture: (page: Page, name: string) => Promise<void>,
 ) {
-  await page.goto(`/dashboard/${area}`);
+  await page.goto(`/dashboard/${area === "inspection" ? "workshop" : area}`);
   const label = area === "sales" ? "Sales queue tabs" : "Workshop worklists";
   await expect(page.getByRole("navigation", { name: label, exact: true })).toBeVisible();
   const tab = page.getByRole("button", { name: area === "sales" ? /^Handling\b/ : /^To claim\b/ });
