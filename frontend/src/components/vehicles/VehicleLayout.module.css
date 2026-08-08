@@ -5,6 +5,19 @@
   padding-inline: 32px;
 }
 
+.band {
+  padding-block: 64px;
+}
+
+.displayHeading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
 .columns {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -23,5 +36,57 @@
 @media (max-width: 640px) {
   .content {
     padding-inline: 16px;
+  }
+
+  .band {
+    padding-block: 44px;
+  }
+}
+
+.arrowLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  color: var(--color-signal-dark);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: color 180ms ease;
+}
+
+.arrowLink svg {
+  width: 18px;
+  height: 18px;
+  transition: transform 180ms ease;
+}
+
+.arrowLink:hover svg {
+  transform: translateX(3px);
+}
+
+.arrowLink:active {
+  color: var(--color-graphite);
+}
+
+.arrowLink:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 4px;
+}
+
+.guideLink {
+  composes: arrowLink;
+  margin-top: 12px;
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arrowLink,
+  .arrowLink svg {
+    transition: none;
+  }
+
+  .arrowLink:hover svg {
+    transform: none;
   }
 }
