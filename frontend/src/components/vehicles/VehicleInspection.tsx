@@ -6,18 +6,9 @@ import { Input } from "@/components/ui/Input";
 import { useVehicleInspection } from "@/hooks/use-vehicle-inspection";
 import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDate } from "@/lib/date-format";
-import type { IconName } from "@/lib/icons";
-import { label } from "@/lib/inspection/contracts";
+import { inspectionCategoryIcons, label } from "@/lib/inspection/contracts";
 import type { PublicVehicleDetail } from "@/lib/vehicles/public-detail";
 import styles from "./VehicleInspection.module.css";
-
-const categoryIcons: Record<string, IconName> = {
-  FrameChassis: "inspection",
-  EngineTransmission: "engine",
-  ExteriorPaint: "car",
-  InteriorElectrical: "armchair",
-  UnderbodyBrakesSuspension: "tool",
-};
 
 export function VehicleInspection({ checklist }: { checklist: PublicVehicleDetail["checklist"] }) {
   const explorer = useVehicleInspection(checklist);
@@ -80,7 +71,7 @@ export function VehicleInspection({ checklist }: { checklist: PublicVehicleDetai
                 aria-pressed={explorer.category === category}
                 onClick={() => explorer.setCategory(category)}
               >
-                <Icon name={categoryIcons[category] ?? "inspection"} />
+                <Icon name={inspectionCategoryIcons[category] ?? "inspection"} />
                 <span>
                   {label(category)}
                   <small>

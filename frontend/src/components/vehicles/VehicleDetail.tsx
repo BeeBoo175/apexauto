@@ -13,6 +13,7 @@ import { formatCurrency } from "@/lib/currency-format";
 import { fuelLabel } from "@/lib/vehicles/contracts";
 import type { PublicVehicleDetail } from "@/lib/vehicles/public-detail";
 import type { CustomerVehicleAccess } from "@/lib/vehicles/customer-access";
+import { TradeInValuation } from "@/components/sell/TradeInValuation";
 import { VehicleReservation } from "./VehicleReservation";
 import { VehicleTestDrive } from "./VehicleTestDrive";
 import { VehicleDetailView } from "./VehicleDetailView";
@@ -22,7 +23,6 @@ import { VehicleOverview } from "./VehicleOverview";
 import { VehiclePromo } from "./VehiclePromo";
 import { VehicleFinancing } from "./VehicleFinancing";
 import { VehicleInspection } from "./VehicleInspection";
-import { VehicleTradeIn } from "./VehicleTradeIn";
 import styles from "./VehicleDetail.module.css";
 import layout from "./VehicleLayout.module.css";
 
@@ -138,7 +138,7 @@ export function VehicleDetail({
                 tradeInAllowance={tradeIn.accepted?.quote.minValuation ?? 0}
               />
             }
-            tradeIn={<VehicleTradeIn tradeIn={tradeIn} />}
+            tradeIn={<TradeInValuation tradeIn={tradeIn} />}
           />
         </VehicleDetailView>
       )}

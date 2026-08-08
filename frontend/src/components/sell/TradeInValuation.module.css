@@ -1,3 +1,8 @@
+.tradeInSection {
+  container-type: inline-size;
+  min-width: 0;
+}
+
 .tradeInPhoto {
   position: relative;
   overflow: hidden;
@@ -23,16 +28,25 @@
   min-width: 0;
 }
 
-.tradeInContent > button {
-  align-self: start;
+.tradeInIntroduction {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 24px;
 }
 
-.tradeInIntroduction h2 {
+.detailTitle {
   max-width: 25ch;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+  color: var(--color-graphite);
 }
 
 .tradeInIntroduction p {
-  margin: 0 0 24px;
+  margin: 0;
   color: var(--color-muted);
   font-size: 0.9375rem;
   line-height: 1.65;
@@ -42,7 +56,12 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  padding: 0;
+}
+
+.retryAction {
+  display: flex;
+  align-items: flex-start;
+  margin-top: 16px;
 }
 
 .valuation {
@@ -137,17 +156,15 @@
 
 .tradeInSupport {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  gap: 4px;
   flex-direction: column;
   align-items: flex-start;
+  gap: 4px;
   margin-top: 16px;
 }
 
-.tradeInSupport a {
-  margin-top: 0;
-  min-height: 36px;
+.tradeInGuideLink {
+  composes: arrowLink from "../vehicles/VehicleLayout.module.css";
+  font-weight: 600;
 }
 
 .tradeInSupport p {
@@ -165,10 +182,6 @@
 }
 
 @media (max-width: 440px) {
-  .tradeInForm {
-    padding: 0;
-  }
-
   .fields {
     grid-template-columns: 1fr;
     gap: 16px;
@@ -189,6 +202,10 @@
   flex: 1;
   align-items: stretch;
   min-height: 340px;
+}
+
+.modeStage[data-failed="true"] {
+  min-height: 0;
 }
 
 .editor,
@@ -213,13 +230,13 @@
   pointer-events: none;
 }
 
-.result {
-  padding-top: 0;
-}
-
 @media (max-width: 440px) {
   .modeStage {
     min-height: 460px;
+  }
+
+  .modeStage[data-failed="true"] {
+    min-height: 0;
   }
 }
 
