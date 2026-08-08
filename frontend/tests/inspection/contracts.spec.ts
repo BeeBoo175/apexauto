@@ -1,4 +1,7 @@
 import { test, expect } from "@playwright/test";
+import { inspectionPoints } from "@/lib/guide/inspection-points";
+import { evaluateInspectionOutcome, inspectionCategories } from "@/lib/guide/inspection-rules";
+import { isWarrantyPlanEligible } from "@/lib/guide/warranty-plans";
 import {
   parseAssessment,
   parseEntry,
@@ -366,4 +369,40 @@ test("reopening and assignment handover require a fresh examination declaration"
   expect(
     saveContents(draft, { ...reopened, examined: ["FC-001"] }).body?.examinedPointCodes,
   ).toEqual(["FC-001"]);
+});
+
+test("public inspection rules catalog contains all 210 unique points and matches grading and warranty gates", () => {
+  expect(inspectionPoints).toHaveLength(210);
+  expect(new Set(inspectionPoints.map((point) => point.code)).size).toBe(210);
+
+  for (const category of inspectionCategories) {
+    const inCategory = inspectionPoints.filter((point) => point.category === category.key);
+    expect(inCategory).toHaveLength(category.count);
+    for (const point of inCategory) {
+      expect(point.code.startsWith(`${category.prefix}-`)).toBe(true);
+    }
+  }
+
+  expect(evaluateInspectionOutcome(0, "Advisory")?.grade).toBe("A");
+  expect(evaluateInspectionOutcome(499.99, "Advisory")?.grade).toBe("A");
+  expect(evaluateInspectionOutcome(500, "Advisory")?.grade).toBe("B");
+  expect(evaluateInspectionOutcome(0, "MinorDefect")?.grade).toBe("B");
+  expect(evaluateInspectionOutcome(2499.99, "MinorDefect")?.grade).toBe("B");
+  expect(evaluateInspectionOutcome(2500, "Advisory")?.grade).toBe("C");
+  expect(evaluateInspectionOutcome(0, "MajorDefect")?.grade).toBe("C");
+  expect(evaluateInspectionOutcome(15000, "Advisory")?.grade).toBe("C");
+  expect(evaluateInspectionOutcome(15000.01, "Advisory")).toMatchObject({
+    grade: null,
+    isRejected: true,
+  });
+  expect(evaluateInspectionOutcome(0, "CriticalDisqualifier")).toMatchObject({
+    grade: null,
+    isRejected: true,
+  });
+
+  expect(isWarrantyPlanEligible("A", "A")).toBe(true);
+  expect(isWarrantyPlanEligible("A", "B")).toBe(false);
+  expect(isWarrantyPlanEligible("B", "B")).toBe(true);
+  expect(isWarrantyPlanEligible("C", "C")).toBe(true);
+  expect(isWarrantyPlanEligible("C", null)).toBe(false);
 });

@@ -1,0 +1,115 @@
+.catalogControls {
+  display: grid;
+  gap: 24px;
+  margin-bottom: 44px;
+}
+
+.toolbarTop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px 24px;
+}
+
+.searchWrap {
+  flex: 1 1 320px;
+  max-width: 480px;
+}
+
+.toolbarMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+
+.toolbarStatus {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.sheetHeadingRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.sheetHeadingRow span {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.pointRows {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 72px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pointRow {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+  padding-block: 20px;
+  border-bottom: 1px solid var(--color-line-soft);
+}
+
+.pointCode {
+  color: var(--color-muted);
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.pointRowRisk .pointCode {
+  color: var(--color-signal-dark);
+}
+
+.pointText {
+  display: grid;
+  gap: 4px;
+  color: var(--color-graphite);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.riskNote {
+  color: var(--color-signal-dark);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.expandWrap {
+  margin-top: 28px;
+}
+
+.emptyPoints {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+  padding-block: 28px;
+  border-top: 1px solid var(--color-line-soft);
+}
+
+.emptyPoints p {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+@media (max-width: 920px) {
+  .pointRows {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
