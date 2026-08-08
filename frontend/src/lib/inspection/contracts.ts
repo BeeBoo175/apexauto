@@ -1,4 +1,13 @@
 import type { CurrentActor } from "@/lib/auth/actor";
+import type { IconName } from "@/lib/icons";
+
+export const inspectionCategoryIcons: Record<string, IconName> = {
+  FrameChassis: "inspection",
+  EngineTransmission: "engine",
+  ExteriorPaint: "car",
+  InteriorElectrical: "armchair",
+  UnderbodyBrakesSuspension: "tool",
+};
 
 export const inspectionStatuses = ["All", "Unassigned", "Draft", "Sealed"] as const;
 export const repairStatuses = [

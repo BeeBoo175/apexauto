@@ -11,6 +11,10 @@ export interface Branch {
 
 const text = (value: unknown): value is string => typeof value === "string" && value.length > 0;
 
+export function showroomName(name: string) {
+  return name.replace(/^ApexAuto\s+/i, "");
+}
+
 export function parseBranch(value: unknown): Branch | null {
   if (
     !isRecord(value) ||

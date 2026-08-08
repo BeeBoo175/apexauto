@@ -55,6 +55,16 @@ export function catalogueQuery(filters: CatalogueFilters, page = 1) {
   return query.toString();
 }
 
+export function catalogueHref(filters: CatalogueFilters, page = 1) {
+  const isDefaultFilters = (Object.keys(catalogueDefaults) as (keyof CatalogueFilters)[]).every(
+    (key) => filters[key].trim() === catalogueDefaults[key],
+  );
+  if (page === 1 && isDefaultFilters) {
+    return "/vehicles";
+  }
+  return `/vehicles?${catalogueQuery(filters, page)}`;
+}
+
 export function catalogueFilterError(filters: CatalogueFilters): string | null {
   if (
     [filters.make, filters.model].some((value) => value.trim().length > 100 || value.includes("\0"))

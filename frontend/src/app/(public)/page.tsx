@@ -1,69 +1,34 @@
-import styles from "./Home.module.css";
-import Link from "next/link";
-import { buttonClassName } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
+import type { Metadata } from "next";
+import { LoadingProgressProvider } from "@/components/ui/LoadingProgress";
+import { LandingStorefront } from "@/components/vehicles/LandingStorefront";
+import { parsePage } from "@/lib/api";
+import { parseBranch } from "@/lib/branches";
+import { parseTaxonomy } from "@/lib/intake/parse";
+import { requestApiJson } from "@/lib/server/http/api";
+import { parseCatalogue } from "@/lib/vehicles/parse";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Buy Inspected Used Cars & Sell Online | ApexAuto Malaysia",
+  description:
+    "Browse 210-point inspected used cars across ApexAuto Malaysian showrooms, estimate monthly repayments, value your trade-in and reserve online for 48 hours.",
+};
+
+export default async function Home() {
+  const [vehicles, branches, taxonomy] = await Promise.all([
+    requestApiJson("/api/vehicles?page=1&sort=published&direction=desc", parseCatalogue),
+    requestApiJson("/api/branches?page=1&pageSize=25", (value) => parsePage(value, parseBranch)),
+    requestApiJson("/api/taxonomy", parseTaxonomy),
+  ]);
+
   return (
-    <div className={styles.page}>
-      <section className={styles.hero}>
-        <div className={styles.eyebrow}>
-          <Badge variant="trust">Malaysia Retail DMS</Badge>
-          <span className={styles.subtitle}>Verified Single Record Lifecycle</span>
-        </div>
-        <h1 className={styles.title}>
-          The Editorial <span className={styles.accent}>Service Bay</span>
-        </h1>
-        <p className={styles.introduction}>
-          High-precision dealership operations connecting public customer intake directly to
-          standardized 210-point inspections, storefront 48-hour reservations, and Deal Desk
-          contract closing.
-        </p>
-        <div className={styles.actions}>
-          <Link href="/vehicles" prefetch={false} className={buttonClassName("primary", "lg")}>
-            Browse vehicles
-          </Link>
-          <Link href="/sell" prefetch={false} className={buttonClassName("secondary", "lg")}>
-            Instant Trade-In Valuation
-          </Link>
-        </div>
-      </section>
-
-      <section className={styles.stages}>
-        <Card>
-          <span className={styles.stageNumber}>Stage 01</span>
-          <h3 className={styles.stageTitle}>Intake &amp; Appraisal</h3>
-          <p className={styles.stageDescription}>
-            Carsome-style 4-step wizard with pure C# algorithmic depreciation curves and S3 photo
-            capture.
-          </p>
-        </Card>
-
-        <Card>
-          <span className={styles.stageNumber}>Stage 02</span>
-          <h3 className={styles.stageTitle}>Inspection &amp; Recond</h3>
-          <p className={styles.stageDescription}>
-            Static 210 checklist catalog with defect exception logging and Puspakom/B5 grading.
-          </p>
-        </Card>
-
-        <Card>
-          <span className={styles.stageNumber}>Stage 03</span>
-          <h3 className={styles.stageTitle}>Storefront &amp; Hold</h3>
-          <p className={styles.stageDescription}>
-            RSC vehicle catalogue with live trade-in loan offset and 48-hour row-locked reservation.
-          </p>
-        </Card>
-
-        <Card>
-          <span className={styles.stageNumber}>Stage 04</span>
-          <h3 className={styles.stageTitle}>Deal Desk &amp; Closing</h3>
-          <p className={styles.stageDescription}>
-            Itemized VPO contract with discount gate, bank LOU settlement, and printable receipts.
-          </p>
-        </Card>
-      </section>
-    </div>
+    <LoadingProgressProvider initialLabel="Loading vehicles">
+      <LandingStorefront
+        initialVehicles={vehicles}
+        initialBranches={branches}
+        initialTaxonomy={taxonomy}
+      />
+    </LoadingProgressProvider>
   );
 }

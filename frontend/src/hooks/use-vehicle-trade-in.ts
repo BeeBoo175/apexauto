@@ -8,13 +8,16 @@ import { parseTaxonomy } from "@/lib/intake/parse";
 import { emptyValuation, type ValuationDraft } from "@/lib/intake/vehicle-draft";
 import { parseTradeInQuote, tradeInRequest } from "@/lib/vehicles/trade-in";
 
-export function useVehicleTradeIn() {
-  const [taxonomy, setTaxonomy] = useState<Taxonomy | null>(null);
+const LAST_VALUATION_RETAINED = "Your last accepted valuation is still shown. Retry deliberately.";
+
+export function useVehicleTradeIn(initialTaxonomy?: Taxonomy | null) {
+  const hasInitial = initialTaxonomy !== undefined;
+  const [taxonomy, setTaxonomy] = useState<Taxonomy | null>(initialTaxonomy ?? null);
   const [draft, setDraft] = useState<ValuationDraft>(emptyValuation);
   const [accepted, setAccepted] = useState<{ vehicle: VehicleInput; quote: Quote } | null>(null);
-  const [busy, setBusy] = useState(true);
+  const [busy, setBusy] = useState(!hasInitial);
   const [editing, setEditing] = useState(true);
-  const [optionsFailed, setOptionsFailed] = useState(false);
+  const [optionsFailed, setOptionsFailed] = useState(hasInitial && initialTaxonomy === null);
   const controller = useRef<AbortController | null>(null);
   const { error } = useToast();
 
@@ -72,8 +75,10 @@ export function useVehicleTradeIn() {
   }, [taxonomy, error]);
 
   useEffect(() => {
-    void readOptions();
-  }, [readOptions]);
+    if (!hasInitial) {
+      void readOptions();
+    }
+  }, [hasInitial, readOptions]);
 
   function retryOptions() {
     if (taxonomy || controller.current) {
@@ -91,7 +96,7 @@ export function useVehicleTradeIn() {
     const vehicle = tradeInRequest(draft);
     if (!vehicle) {
       error(
-        "Enter a whole-number manufacture year and mileage using digits, then retry. Your last accepted valuation is still shown.",
+        `Enter a whole-number manufacture year and mileage using digits, then retry. ${LAST_VALUATION_RETAINED}`,
       );
       return;
     }
@@ -111,8 +116,8 @@ export function useVehicleTradeIn() {
       if (!result.data) {
         error(
           result.status === 400
-            ? "Check the supported vehicle, year and whole-number mileage, then retry. Your last accepted valuation is still shown."
-            : "The trade-in could not be valued. Your last accepted valuation is still shown. Retry deliberately.",
+            ? `Check the supported vehicle, year and whole-number mileage, then retry. ${LAST_VALUATION_RETAINED}`
+            : `The trade-in could not be valued. ${LAST_VALUATION_RETAINED}`,
         );
         return;
       }
@@ -120,9 +125,7 @@ export function useVehicleTradeIn() {
       setEditing(false);
     } catch {
       if (!attempt.signal.aborted && controller.current === attempt) {
-        error(
-          "The trade-in could not be valued. Your last accepted valuation is still shown. Retry deliberately.",
-        );
+        error(`The trade-in could not be valued. ${LAST_VALUATION_RETAINED}`);
       }
     } finally {
       if (!attempt.signal.aborted && controller.current === attempt) {

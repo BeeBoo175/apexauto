@@ -6,9 +6,9 @@ import { IconSprite } from "@/components/ui/IconSprite";
 import { StaffHistoryBoundary } from "@/components/staff/StaffClientEntryBoundary";
 
 export const metadata: Metadata = {
-  title: "ApexAuto | Editorial Service Bay Dealership Platform",
+  title: "ApexAuto | Inspected Used Cars & Trade-In Valuation in Malaysia",
   description:
-    "Malaysian automotive retail and dealership management platform with verified vehicle lifecycle tracking.",
+    "Browse 210-point inspected used cars with transparent MYR pricing, 48-hour online reservations, instant trade-in valuations and financing estimates.",
 };
 
 export default function RootLayout({

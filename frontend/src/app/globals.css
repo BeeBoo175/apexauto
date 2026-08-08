@@ -36,9 +36,15 @@ body {
   background-color: var(--color-canvas);
   color: var(--color-graphite);
   font-family: var(--font-sans);
+  caret-color: var(--color-signal);
   margin: 0;
   padding: 0;
   -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background-color: color-mix(in srgb, var(--color-signal) 18%, var(--color-paper));
+  color: var(--color-graphite);
 }
 
 .sr-only {
