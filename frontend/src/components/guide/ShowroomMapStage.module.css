@@ -1,0 +1,297 @@
+.mapFrame {
+  position: sticky;
+  top: calc(var(--site-header-height) + 24px);
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--color-graphite-soft);
+  border-radius: 8px;
+  background: var(--color-graphite);
+  color: var(--color-paper);
+}
+
+.mapTopBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--color-graphite-soft);
+}
+
+.mapBarHeading {
+  display: grid;
+  gap: 3px;
+}
+
+.mapBarTitle {
+  color: var(--color-paper);
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+}
+
+.mapBarSub {
+  color: var(--color-line-soft);
+  font-size: 0.8125rem;
+}
+
+.zoomControls {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--color-graphite-soft);
+  border-radius: 6px;
+  background: #132336;
+}
+
+.zoomButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0 11px;
+  border: 0;
+  border-right: 1px solid var(--color-graphite-soft);
+  background: transparent;
+  color: var(--color-paper);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease,
+    transform 120ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.zoomButton:last-child {
+  border-right: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.zoomButton:hover:not(:disabled) {
+  background: var(--color-graphite-soft);
+}
+
+.zoomButton:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.zoomButton:disabled {
+  color: #7d92a8;
+  cursor: default;
+}
+
+.zoomButton:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: -2px;
+}
+
+.mapCanvasWrap {
+  position: relative;
+  height: 416px;
+  background: radial-gradient(circle at 60% 42%, #13253a 0%, #09131e 100%);
+}
+
+.mapSvg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+}
+
+.mapGridLine {
+  stroke: rgb(255 255 255 / 4%);
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+}
+
+.mapState {
+  fill: #15263a;
+  stroke: #29415c;
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+  transition:
+    fill 240ms ease,
+    stroke 240ms ease;
+}
+
+.mapStateActive {
+  fill: #1d334c;
+  stroke: #436285;
+}
+
+.mapLabel {
+  fill: #8da2b8;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.mapPinGroup {
+  cursor: pointer;
+}
+
+.mapPinGroup:focus {
+  outline: none;
+}
+
+.mapPinGroup:focus-visible .beaconRing,
+.mapPinGroup:focus-visible .clusterRing {
+  stroke: var(--color-paper);
+  stroke-width: 3.5px;
+}
+
+.mapPinVisual {
+  transform-origin: 0 0;
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mapPinGroup:hover .mapPinVisual,
+.mapPinHovered .mapPinVisual {
+  transform: scale(1.18);
+}
+
+.mapPinGroup:active .mapPinVisual {
+  transform: scale(0.92);
+}
+
+.pinHalo {
+  fill: transparent;
+  transition: fill 180ms ease;
+}
+
+.mapPinSelected .pinHalo,
+.mapPinGroup:hover .pinHalo,
+.mapPinHovered .pinHalo {
+  fill: rgb(217 37 24 / 22%);
+}
+
+.beaconRing {
+  fill: var(--color-signal);
+  stroke: var(--color-paper);
+  stroke-width: 2.5px;
+  transition:
+    fill 160ms ease,
+    stroke 160ms ease;
+}
+
+.mapPinSelected .beaconRing {
+  fill: var(--color-paper);
+  stroke: var(--color-signal);
+  stroke-width: 3px;
+}
+
+.beaconCore {
+  fill: var(--color-paper);
+  transition: fill 160ms ease;
+}
+
+.mapPinSelected .beaconCore {
+  fill: var(--color-signal);
+}
+
+.clusterRing {
+  fill: var(--color-signal);
+  stroke: var(--color-paper);
+  stroke-width: 2.5px;
+}
+
+.clusterText {
+  fill: var(--color-paper);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.pinTagGroup {
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 160ms ease,
+    transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateY(4px);
+}
+
+.mapPinGroup:hover .pinTagGroup,
+.mapPinHovered:not(.mapPinSelected) .pinTagGroup {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.pinTagBox {
+  fill: #09131e;
+  stroke: #344d69;
+  stroke-width: 1px;
+}
+
+.pinTagText {
+  fill: var(--color-paper);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.mapFooterBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  min-height: 72px;
+  padding: 16px 22px;
+  border-top: 1px solid var(--color-graphite-soft);
+  background: #101f31;
+}
+
+.mapFooterMeta {
+  display: grid;
+  gap: 3px;
+}
+
+.mapFooterMeta strong {
+  color: var(--color-paper);
+  font-size: 0.9375rem;
+}
+
+.mapFooterMeta span {
+  color: var(--color-line-soft);
+  font-size: 0.8125rem;
+}
+
+.mapFooterActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+}
+
+@media (max-width: 960px) {
+  .mapFrame {
+    position: static;
+  }
+
+  .mapCanvasWrap {
+    height: 300px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zoomButton,
+  .mapState,
+  .mapPinVisual,
+  .pinHalo,
+  .beaconRing,
+  .beaconCore,
+  .pinTagGroup {
+    transition: none;
+  }
+}
