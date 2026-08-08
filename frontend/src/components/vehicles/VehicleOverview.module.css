@@ -1,32 +1,32 @@
 .description {
   max-width: 65ch;
-  margin: 14px 0 28px;
+  margin: 12px 0 22px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   color: var(--color-muted);
   font-size: 0.9375rem;
-  line-height: 1.75;
+  line-height: 1.65;
 }
 
 .specifications {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
+  gap: 12px;
   margin: 0;
 }
 
 .specifications div {
   min-width: 0;
-  padding: 20px;
+  padding: 14px 16px;
   background: var(--color-paper);
   border: 1px solid var(--color-line);
   border-radius: 8px;
 }
 
 .specifications dt {
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   color: var(--color-muted);
-  font-size: 0.875rem;
+  font-size: 0.75rem;
 }
 
 .specifications dd {

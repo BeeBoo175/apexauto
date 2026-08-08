@@ -131,7 +131,7 @@ export function VehicleFinancing({
                 <span>{formatCurrency(effectiveTotal)}</span>
               </div>
               <p id={`${headingId}-cash-help`} className={styles.help}>
-                Include any paid MYR 500 deposit in your contribution.
+                Includes any RM 500 hold deposit paid online.
               </p>
             </div>
             <div className={styles.sliderField}>

@@ -11,7 +11,7 @@
   justify-content: space-between;
   gap: 8px 16px;
   padding: var(--vehicle-total-padding, 16px 0 0);
-  border: var(--vehicle-total-border, 0);
+  border: 0;
   border-top: var(--vehicle-total-border, 1px solid var(--color-line-soft));
   border-radius: var(--vehicle-total-radius, 0);
   background: var(--vehicle-total-background, transparent);

@@ -102,8 +102,7 @@ export function LandingInspectionOverview() {
             Signed 210-point inspection on every listing
           </h2>
           <p className={styles.intro}>
-            Every listed vehicle carries a technician-signed inspection ledger published directly on
-            its page, so you can inspect recorded findings and pricing before paying a deposit.
+            Every listed car includes a signed report you can inspect before paying a deposit.
           </p>
           <ul className={styles.guarantees}>
             <li>
@@ -112,10 +111,7 @@ export function LandingInspectionOverview() {
               </span>
               <div>
                 <strong>Full checkpoint visibility</strong>
-                <p>
-                  Search all 210 items or filter specifically for recorded findings and repair
-                  estimates on each vehicle page.
-                </p>
+                <p>Search all 210 checks, findings, and repair estimates on any car page.</p>
               </div>
             </li>
             <li>
@@ -124,10 +120,7 @@ export function LandingInspectionOverview() {
               </span>
               <div>
                 <strong>Upfront itemized MYR pricing</strong>
-                <p>
-                  Vehicle price, processing fee, road tax and applicable SST appear clearly before
-                  you commit to a hold.
-                </p>
+                <p>See vehicle price, fees, road tax, and SST clearly upfront.</p>
               </div>
             </li>
             <li>
@@ -135,11 +128,8 @@ export function LandingInspectionOverview() {
                 <Icon name="calendar" />
               </span>
               <div>
-                <strong>48-hour online hold or test drive</strong>
-                <p>
-                  Lock an available car with a MYR 500 simulated deposit or schedule a showroom test
-                  drive directly from the listing.
-                </p>
+                <strong>48-hour hold or test drive</strong>
+                <p>Lock a car online for MYR 500 or book a showroom test drive.</p>
               </div>
             </li>
           </ul>

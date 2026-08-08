@@ -3,47 +3,70 @@
   min-width: 0;
 }
 
-.tradeInPhoto {
-  position: relative;
-  overflow: hidden;
-  border-radius: 8px;
-  aspect-ratio: 4 / 3;
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  align-items: start;
+  gap: 32px 48px;
 }
 
-.tradeInPhoto img {
-  position: absolute;
-  inset: 0;
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: 50% 52%;
-}
-
-.tradeInContent {
+.introColumn {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  justify-content: flex-start;
+  align-items: flex-start;
+  gap: 20px;
   min-width: 0;
 }
 
 .tradeInIntroduction {
   display: grid;
-  gap: 12px;
-  margin-bottom: 24px;
+  gap: 10px;
 }
 
 .title {
-  max-width: 25ch;
+  max-width: 24ch;
   color: var(--color-graphite);
 }
 
 .tradeInIntroduction p {
   margin: 0;
+  max-width: 48ch;
   color: var(--color-muted);
   font-size: 0.9375rem;
-  line-height: 1.65;
+  line-height: 1.6;
+}
+
+.highlights {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-graphite);
+}
+
+.highlights li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.highlights svg {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  color: var(--color-trust);
+}
+
+.tradeInCard {
+  min-width: 0;
+  padding: 28px;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  background: var(--color-paper);
 }
 
 .tradeInForm {
@@ -164,10 +187,14 @@
   line-height: 1.65;
 }
 
-@container (min-width: 700px) {
-  .tradeInPhoto {
-    min-height: 320px;
-    aspect-ratio: auto;
+@container (max-width: 760px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+
+  .tradeInCard {
+    padding: 20px;
   }
 }
 
@@ -191,7 +218,7 @@
   display: grid;
   flex: 1;
   align-items: stretch;
-  min-height: 340px;
+  min-height: 272px;
 }
 
 .modeStage[data-failed="true"] {
@@ -211,7 +238,7 @@
 
 .editor > button {
   align-self: flex-start;
-  margin-top: auto;
+  margin-top: 4px;
 }
 
 .editor[data-active="false"],
@@ -222,7 +249,7 @@
 
 @media (max-width: 440px) {
   .modeStage {
-    min-height: 460px;
+    min-height: 396px;
   }
 
   .modeStage[data-failed="true"] {
@@ -234,8 +261,8 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   align-content: start;
-  gap: 24px 20px;
-  min-height: 284px;
+  gap: 20px;
+  min-height: 224px;
 }
 
 .optionPlaceholder {

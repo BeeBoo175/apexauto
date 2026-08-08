@@ -36,8 +36,7 @@ export function LandingHero({
             Buy inspected cars. Sell yours with clarity.
           </h1>
           <p className={styles.lead}>
-            Every ApexAuto vehicle includes a signed 210-point workshop inspection, itemized
-            Malaysian pricing and a 48-hour online reservation hold.
+            Signed 210-point inspection, upfront pricing, and a 48-hour hold on every car.
           </p>
           <div className={styles.actions}>
             <Link href="/vehicles" prefetch={false} className={buttonClassName("secondary", "lg")}>
@@ -50,15 +49,15 @@ export function LandingHero({
           <dl className={styles.facts}>
             <div>
               <dt>210 points</dt>
-              <dd>Signed inspection record open on every car</dd>
+              <dd>Signed report on every car</dd>
             </div>
             <div>
               <dt>MYR 500</dt>
-              <dd>48-hour reservation hold with upfront fees</dd>
+              <dd>48-hour online hold</dd>
             </div>
             <div>
               <dt>{branchSummary}</dt>
-              <dd>Test drives and trade-ins across Malaysia</dd>
+              <dd>Test drives and trade-ins</dd>
             </div>
           </dl>
         </div>

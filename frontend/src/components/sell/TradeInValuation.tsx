@@ -1,7 +1,5 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import tradeInPhoto from "../../../public/images/vehicle-trade-in.webp";
 import { Button, buttonClassName } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import layout from "@/components/vehicles/VehicleLayout.module.css";
@@ -21,6 +19,12 @@ interface TradeInValuationProps {
   className?: string;
 }
 
+const TRADE_IN_HIGHLIGHTS = [
+  "Instant indicative MYR range from make, model, year, and mileage",
+  "Applies your valuation directly into monthly loan calculations",
+  "Confirmed after a 90-minute branch check with zero obligation",
+] as const;
+
 export function TradeInValuation({
   tradeIn,
   headingId = "vehicle-trade-in",
@@ -34,18 +38,9 @@ export function TradeInValuation({
   const accepted = tradeIn.accepted;
   const optionsUnavailable = !tradeIn.taxonomy && tradeIn.optionsFailed;
   const support = (
-    <footer className={styles.tradeInSupport}>
-      <Link
-        href="/buying-guide#trade-in"
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label="How trade-in works (opens in a new tab)"
-        className={styles.tradeInGuideLink}
-      >
-        How trade-in works <Icon name="next" />
-      </Link>
+    <div className={styles.tradeInSupport}>
       <p>Final value is subject to inspection.</p>
-    </footer>
+    </div>
   );
 
   const defaultResultAction = (
@@ -60,21 +55,33 @@ export function TradeInValuation({
 
   return (
     <section aria-labelledby={headingId} className={`${styles.tradeInSection} ${className}`.trim()}>
-      <div className={layout.columns}>
-        <div className={styles.tradeInPhoto}>
-          <Image
-            src={tradeInPhoto}
-            alt="A hand holding a car key beside a vehicle"
-            sizes="(max-width: 700px) 100vw, 420px"
-          />
-        </div>
-        <div className={styles.tradeInContent}>
+      <div className={styles.grid}>
+        <div className={styles.introColumn}>
           <header className={styles.tradeInIntroduction}>
             <h2 id={headingId} className={`${layout.sectionHeading} ${styles.title}`}>
               {heading}
             </h2>
             <p>{description}</p>
           </header>
+          <ul className={styles.highlights}>
+            {TRADE_IN_HIGHLIGHTS.map((item) => (
+              <li key={item}>
+                <Icon name="check" />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+          <Link
+            href="/buying-guide#trade-in"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="How trade-in works (opens in a new tab)"
+            className={styles.tradeInGuideLink}
+          >
+            How trade-in works <Icon name="next" />
+          </Link>
+        </div>
+        <div className={styles.tradeInCard}>
           <form
             className={styles.tradeInForm}
             onSubmit={(event) => {

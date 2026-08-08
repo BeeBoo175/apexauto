@@ -74,14 +74,24 @@ function SellerWorkflow({ initial, ready }: { initial: SellerSnapshot; ready: bo
 
   return (
     <section className={styles.page} aria-label="Sell your car">
-      <ol className={styles.progress}>
-        {steps.map((label, index) => (
-          <li key={label} aria-current={index === step ? "step" : undefined}>
-            <span>{index + 1}</span>
-            {label}
-          </li>
-        ))}
-      </ol>
+      <header className={styles.heroBand}>
+        <div className={styles.heroInner}>
+          <p className={styles.bannerTitle}>Sell or trade in your car</p>
+          <p className={styles.bannerLead}>
+            Get an instant MYR guide range, upload four photos, and book a branch inspection.
+          </p>
+        </div>
+      </header>
+      <div className={styles.progressBand}>
+        <ol className={styles.progress}>
+          {steps.map((label, index) => (
+            <li key={label} aria-current={index === step ? "step" : undefined}>
+              <span>{index + 1}</span>
+              {label}
+            </li>
+          ))}
+        </ol>
+      </div>
       <div className={styles.workspace}>
         <div className={styles.formPanel}>
           <h1 ref={heading} tabIndex={-1}>

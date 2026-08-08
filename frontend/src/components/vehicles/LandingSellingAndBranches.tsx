@@ -8,27 +8,23 @@ import layout from "./VehicleLayout.module.css";
 const SELLING_STEPS = [
   {
     number: "01",
-    title: "Request an indicative quote",
-    description:
-      "Select your make, model, trim, manufacture year and mileage for an instant MYR guide range.",
+    title: "Get an indicative quote",
+    description: "Select your car details and mileage for an instant MYR guide range.",
   },
   {
     number: "02",
-    title: "Upload four exterior photos",
-    description:
-      "Sign in with a verified customer account and attach clear front, rear and side exterior photographs.",
+    title: "Upload four photos",
+    description: "Sign in with a verified account to upload front, rear, and side views.",
   },
   {
     number: "03",
     title: "Book a showroom slot",
-    description:
-      "Pick a convenient ApexAuto branch and time window with live appointment availability.",
+    description: "Pick your preferred branch and a 90-minute inspection window.",
   },
   {
     number: "04",
-    title: "Complete workshop inspection",
-    description:
-      "Our showroom team inspects the vehicle in person before confirming your final purchase offer.",
+    title: "Confirm final offer",
+    description: "Complete a technician check at the hub before accepting your offer.",
   },
 ] as const;
 
@@ -46,8 +42,8 @@ function BranchCardActions({
       <Link href={browseHref} prefetch={false} className={buttonClassName("secondary", "md")}>
         {browseLabel}
       </Link>
-      <Link href="/sell" prefetch={false} className={layout.arrowLink}>
-        {sellLabel} <Icon name="next" />
+      <Link href="/sell" prefetch={false} className={buttonClassName("secondary", "md")}>
+        {sellLabel}
       </Link>
     </div>
   );
@@ -64,10 +60,7 @@ export function LandingSellingAndBranches({ branches }: { branches: Branch[] | n
           <header className={styles.blockHeader}>
             <div className={styles.blockHeading}>
               <h2 className={layout.sectionHeading}>Sell your car in four straightforward steps</h2>
-              <p>
-                Book an intake appointment online with a transparent valuation range and no
-                obligation before inspection.
-              </p>
+              <p>Book online with an instant guide range and zero obligation before inspection.</p>
             </div>
             <Link href="/sell" prefetch={false} className={buttonClassName("primary", "md")}>
               Start selling your car
@@ -92,11 +85,11 @@ export function LandingSellingAndBranches({ branches }: { branches: Branch[] | n
           <header className={styles.blockHeader}>
             <div className={styles.blockHeading}>
               <h2 className={layout.sectionHeading}>Visit an ApexAuto showroom</h2>
-              <p>
-                Browse branch inventory in person, book a test drive or drop off your car for
-                trade-in inspection.
-              </p>
+              <p>Open Monday to Saturday, 09:00–18:00 MYT for test drives and trade-ins.</p>
             </div>
+            <Link href="/branches" className={layout.arrowLink}>
+              All hub locations <Icon name="next" />
+            </Link>
           </header>
           {branches && branches.length > 0 ? (
             <div className={styles.branches}>
@@ -108,10 +101,9 @@ export function LandingSellingAndBranches({ branches }: { branches: Branch[] | n
                     <br />
                     {branch.city}, {branch.state}
                   </p>
-                  <p className={styles.branchPhone}>{branch.phone}</p>
                   <BranchCardActions
                     browseHref={`/vehicles?branchId=${branch.id}`}
-                    browseLabel="View showroom cars"
+                    browseLabel="View cars"
                     sellLabel="Book intake"
                   />
                 </article>
@@ -121,36 +113,16 @@ export function LandingSellingAndBranches({ branches }: { branches: Branch[] | n
             <div className={styles.branchCard}>
               <h3 className={layout.cardHeading}>ApexAuto Malaysian showrooms</h3>
               <p className={styles.branchAddress}>
-                Showroom directory details are temporarily unavailable. Browse our available
-                vehicles or start your trade-in booking online.
+                Showroom directory details are temporarily unavailable. Browse available vehicles or
+                book an intake online.
               </p>
               <BranchCardActions
                 browseHref="/vehicles"
-                browseLabel="Browse vehicles"
+                browseLabel="Browse cars"
                 sellLabel="Sell your car"
               />
             </div>
           )}
-        </div>
-
-        <div className={styles.closingBand}>
-          <div>
-            <h2 className={layout.sectionHeading}>
-              Ready to inspect your next car or value your trade-in?
-            </h2>
-            <p>
-              Explore verified listings online, reserve for 48 hours with MYR 500 or start your
-              4-step selling appointment.
-            </p>
-          </div>
-          <div className={styles.closingActions}>
-            <Link href="/vehicles" prefetch={false} className={buttonClassName("primary", "lg")}>
-              Browse all vehicles
-            </Link>
-            <Link href="/sell" prefetch={false} className={buttonClassName("shell", "lg")}>
-              Sell your car
-            </Link>
-          </div>
         </div>
       </div>
     </section>

@@ -1,24 +1,65 @@
 .page {
+  --radius-sm: 8px;
   color: var(--color-graphite);
+}
+
+.heroBand {
+  border-top: 1px solid var(--color-graphite-soft);
+  border-bottom: 1px solid var(--color-graphite-soft);
+  background: var(--color-graphite);
+  color: var(--color-paper);
+  padding-block: 36px;
+}
+
+.heroInner {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  max-width: 1360px;
+  margin-inline: auto;
+  padding-inline: 32px;
+}
+
+.bannerTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 2.7vw, 2.25rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+  color: var(--color-paper);
+}
+
+.bannerLead {
+  margin: 0;
+  max-width: 72ch;
+  color: var(--color-line-soft);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.progressBand {
+  border-bottom: 1px solid var(--color-line);
+  background: var(--color-paper);
 }
 
 .progress {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
-  margin: 0;
-  padding: 20px max(24px, calc((100vw - 1060px) / 2));
+  width: 100%;
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 16px 32px;
   list-style: none;
-  background: var(--color-paper);
-  border-bottom: 1px solid var(--color-line-soft);
 }
 
 .progress li {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   color: var(--color-muted);
-  font-size: 13px;
+  font-size: 0.875rem;
 }
 
 .progress li span {
@@ -27,8 +68,9 @@
   flex: 0 0 28px;
   height: 28px;
   border: 1px solid var(--color-line);
-  border-radius: 50%;
-  font-weight: 600;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 700;
 }
 
 .progress li[aria-current="step"] {
@@ -44,36 +86,43 @@
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1.7fr) minmax(280px, 0.9fr);
+  grid-template-columns: minmax(0, 1.65fr) minmax(300px, 0.95fr);
   align-items: start;
   gap: 24px;
-  width: min(1200px, calc(100% - 48px));
-  margin: 32px auto 56px;
+  width: 100%;
+  max-width: 1360px;
+  margin: 32px auto 64px;
+  padding-inline: 32px;
 }
 
 .formPanel,
 .summary {
   min-width: 0;
-  padding: 32px;
+  padding: 28px;
   background: var(--color-paper);
-  border: 1px solid var(--color-line-soft);
-  border-radius: 4px;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
 }
 
 .formPanel h1,
 .unavailable h1 {
-  margin: 0 0 12px;
+  margin: 0 0 8px;
   font-family: var(--font-display);
-  font-size: 32px;
+  font-size: 1.625rem;
   font-weight: 700;
   line-height: 1.2;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.02em;
+}
+
+.formPanel h1:focus,
+.unavailable h1:focus {
+  outline: none;
 }
 
 .summary h2 {
-  margin: 0 0 24px;
+  margin: 0 0 20px;
   font-family: var(--font-display);
-  font-size: 20px;
+  font-size: 1.25rem;
   font-weight: 700;
 }
 
@@ -82,28 +131,32 @@
   flex-direction: column;
   gap: 20px;
   min-width: 0;
+  border: 0;
+  margin: 0;
+  padding: 0;
 }
 
 .intro {
-  margin: 0 0 8px;
+  margin: 0 0 4px;
   color: var(--color-muted);
-  font-size: 15px;
-  line-height: 1.6;
+  font-size: 0.9375rem;
+  line-height: 1.55;
 }
 
 .fields,
 .uploadGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 20px;
+  gap: 18px 20px;
 }
 
 .formPanel label,
 .formPanel legend {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  font-size: 14px;
+  gap: 6px;
+  color: var(--color-graphite);
+  font-size: 0.875rem;
   font-weight: 600;
   text-transform: none;
   letter-spacing: normal;
@@ -117,15 +170,19 @@
   background: var(--color-paper);
   color: var(--color-graphite);
   border: 1px solid var(--color-line);
-  border-radius: 2px;
-  font-size: 16px;
+  border-radius: 8px;
+  font-size: 0.875rem;
   font-weight: 400;
 }
 
-.formPanel :focus-visible,
-.unavailable :focus-visible {
-  outline: 2px solid var(--color-graphite);
-  outline-offset: 4px;
+.formPanel input:not([type="radio"]):not([type="file"]):focus-visible,
+.formPanel select:focus-visible,
+.formPanel button:focus-visible,
+.formPanel a:focus-visible,
+.unavailable a:focus-visible,
+.unavailable button:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
 }
 
 .actions {
@@ -138,7 +195,7 @@
 .help {
   margin: 0;
   color: var(--color-muted);
-  font-size: 13px;
+  font-size: 0.8125rem;
   line-height: 1.6;
 }
 
@@ -146,12 +203,13 @@
   display: inline-block;
   max-width: 100%;
   margin: 0 0 16px;
-  padding: 10px 16px;
+  padding: 8px 14px;
+  border-radius: 8px;
   color: var(--color-paper);
   background: var(--color-graphite);
-  font-size: 22px;
+  font-size: 1rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   overflow-wrap: anywhere;
 }
 
@@ -208,6 +266,7 @@
   min-width: 0;
   padding: 16px;
   border: 1px solid var(--color-line);
+  border-radius: 8px;
 }
 
 .upload > * + * {
@@ -217,6 +276,7 @@
 .preview {
   width: 100%;
   height: 140px;
+  border-radius: 6px;
   object-fit: contain;
   background: var(--color-canvas);
 }
@@ -238,8 +298,9 @@
   align-items: center;
   gap: 8px;
   min-height: 44px;
-  padding: 8px;
+  padding: 8px 12px;
   border: 1px solid var(--color-line);
+  border-radius: 8px;
 }
 
 .unavailable {
@@ -250,6 +311,8 @@
   max-width: 720px;
   margin: 48px auto;
   padding: 32px;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
   background: var(--color-paper);
 }
 
@@ -266,18 +329,27 @@
 }
 
 @media (max-width: 540px) {
+  .heroBand {
+    padding-block: 28px;
+  }
+
+  .heroInner,
   .workspace {
-    width: calc(100% - 32px);
-    margin-block: 24px;
+    padding-inline: 16px;
+  }
+
+  .workspace {
+    margin-block: 24px 40px;
   }
 
   .formPanel,
   .summary {
-    padding: 24px;
+    padding: 20px;
   }
 
   .fields,
-  .uploadGrid {
+  .uploadGrid,
+  .slots {
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -298,7 +370,7 @@
   }
 
   .formPanel h1 {
-    font-size: 28px;
+    font-size: 26px;
   }
 
   .actions {

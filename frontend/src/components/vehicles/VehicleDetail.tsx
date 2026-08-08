@@ -118,7 +118,7 @@ export function VehicleDetail({
                   financing={
                     <>
                       <VehicleTestDrive detail={snapshot} access={reservationAccess} />
-                      <Button variant="secondary" onClick={() => tabs.select("financing")}>
+                      <Button variant="ghost" onClick={() => tabs.select("financing")}>
                         Calculate financing
                       </Button>
                     </>

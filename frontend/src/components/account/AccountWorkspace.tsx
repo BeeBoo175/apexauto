@@ -70,30 +70,34 @@ export function AccountWorkspace({
   }
   return (
     <section className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div>
-          <h1 tabIndex={-1}>Your account</h1>
-          <p className={styles.welcome}>Welcome back, {profile.name}.</p>
+      <header className={styles.heroBand}>
+        <div className={styles.heroInner}>
+          <div>
+            <h1 tabIndex={-1}>Your account</h1>
+            <p className={styles.welcome}>Welcome back, {profile.name}.</p>
+          </div>
         </div>
       </header>
-      <nav className={styles.tabs} aria-label="Account sections">
-        {sections.map(({ id, label }) => (
-          <a
-            key={id}
-            href={`#${id}`}
-            aria-current={section === id ? "location" : undefined}
-            onClick={(event) => {
-              if (event.button === 0 && !(event.metaKey || event.ctrlKey || event.shiftKey)) {
-                event.preventDefault();
-                setSection(id);
-                writeAddress(`#${id}`);
-              }
-            }}
-          >
-            {label}
-          </a>
-        ))}
-      </nav>
+      <div className={styles.tabsBand}>
+        <nav className={styles.tabs} aria-label="Account sections">
+          {sections.map(({ id, label }) => (
+            <a
+              key={id}
+              href={`#${id}`}
+              aria-current={section === id ? "location" : undefined}
+              onClick={(event) => {
+                if (event.button === 0 && !(event.metaKey || event.ctrlKey || event.shiftKey)) {
+                  event.preventDefault();
+                  setSection(id);
+                  writeAddress(`#${id}`);
+                }
+              }}
+            >
+              {label}
+            </a>
+          ))}
+        </nav>
+      </div>
       <div className={styles.content}>
         <div hidden={section !== "reservations"}>
           <AccountReservations

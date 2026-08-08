@@ -16,40 +16,76 @@
 .page {
   --radius-sm: 8px;
   width: 100%;
+  min-width: 0;
+  padding-bottom: 72px;
+}
+
+.heroBand {
+  border-top: 1px solid var(--color-graphite-soft);
+  border-bottom: 1px solid var(--color-graphite-soft);
+  background: var(--color-graphite);
+  color: var(--color-paper);
+  padding-block: 36px;
+}
+
+.heroInner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px 32px;
+  width: 100%;
   max-width: 1360px;
-  margin: 40px auto 72px;
+  margin-inline: auto;
   padding-inline: 32px;
 }
 
-.pageHeader {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 24px;
-  padding-bottom: 24px;
+.heroInner h1 {
+  margin: 0 0 8px;
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 2.7vw, 2.25rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+  color: var(--color-paper);
 }
 
-.tabs {
+.welcome {
+  margin: 0;
+  color: var(--color-line-soft);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.tabsBand {
   position: sticky;
   top: var(--site-header-height);
   z-index: 10;
+  border-bottom: 1px solid var(--color-line);
+  background: var(--color-paper);
+}
+
+.tabs {
   display: flex;
   justify-content: flex-start;
-  min-height: 64px;
-  border-bottom: 1px solid var(--color-line);
-  background: var(--color-canvas);
+  overflow-x: auto;
+  width: 100%;
+  max-width: 1360px;
+  min-height: 56px;
+  margin-inline: auto;
+  padding-inline: 32px;
 }
 
 .tabs a {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 64px;
-  padding: 16px 28px;
+  min-height: 56px;
+  padding: 12px 24px;
   color: var(--color-muted);
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   font-weight: 600;
+  white-space: nowrap;
   text-align: center;
   text-decoration: none;
   transition:
@@ -58,8 +94,8 @@
 }
 
 .tabs a[aria-current="location"] {
-  box-shadow: inset 0 -2px var(--color-signal);
-  color: var(--color-signal-dark);
+  box-shadow: inset 0 -3px var(--color-signal);
+  color: var(--color-graphite);
 }
 
 .tabs a:hover:not([aria-current]) {
@@ -81,43 +117,36 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
-}
-
-.page h1 {
-  margin-bottom: 8px;
-  font-family: var(--font-display);
-  font-size: clamp(1.75rem, 2.7vw, 2.25rem);
-  font-weight: 700;
-  line-height: 1.15;
-  letter-spacing: -0.025em;
-}
-
-.welcome {
-  color: var(--color-muted);
-  font-size: 0.9375rem;
-  line-height: 1.6;
+  width: 100%;
+  max-width: 1360px;
+  margin-inline: auto;
+  padding-inline: 32px;
 }
 
 .panel {
   padding-block: 40px;
-  scroll-margin-top: 100px;
+  scroll-margin-top: calc(var(--site-header-height) + 64px);
 }
 
 @media (max-width: 640px) {
-  .tabs a {
-    flex: 1;
-    min-width: 0;
-    padding-inline: 8px;
-    font-size: 0.875rem;
+  .heroBand {
+    padding-block: 28px;
   }
 
-  .page {
-    margin-top: 24px;
+  .heroInner,
+  .tabs,
+  .content {
     padding-inline: 16px;
   }
 
+  .tabs a {
+    flex: 0 0 auto;
+    padding: 12px 14px;
+    font-size: 0.8125rem;
+  }
+
   .panel {
-    padding-block: 32px;
+    padding-block: 28px;
   }
 }
 
@@ -225,9 +254,13 @@
   gap: 12px;
 }
 
-.page :focus-visible {
-  outline: 2px solid var(--color-graphite);
-  outline-offset: 4px;
+.page :is(a, button, input, select, summary):focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+}
+
+.page h1:focus {
+  outline: none;
 }
 
 @media (max-width: 540px) {

@@ -27,7 +27,7 @@
 
 .blockHeading p {
   margin: 0;
-  max-width: 58ch;
+  max-width: 68ch;
   color: var(--color-muted);
   font-size: 0.9375rem;
   line-height: 1.6;
@@ -118,58 +118,19 @@
   color: var(--color-graphite);
 }
 
-.branchAddress,
-.branchPhone {
+.branchAddress {
   margin: 0;
   color: var(--color-muted);
   font-size: 0.875rem;
   line-height: 1.55;
 }
 
-.branchPhone {
-  color: var(--color-graphite);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
 .branchActions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px 16px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
   margin-top: auto;
   padding-top: 8px;
-}
-
-.closingBand {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px 32px;
-  padding: 32px;
-  border: 1px solid var(--color-graphite-soft);
-  border-radius: 8px;
-  background: var(--color-graphite);
-  color: var(--color-paper);
-}
-
-.closingBand h2 {
-  margin-bottom: 8px;
-}
-
-.closingBand p {
-  margin: 0;
-  max-width: 54ch;
-  color: var(--color-line-soft);
-  font-size: 0.9375rem;
-  line-height: 1.6;
-}
-
-.closingActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
 }
 
 @media (max-width: 1020px) {

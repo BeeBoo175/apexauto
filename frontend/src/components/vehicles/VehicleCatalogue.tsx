@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { GuideHubBanner } from "@/components/guide/GuidePageShell";
 import { Button, buttonClassName } from "@/components/ui/Button";
 import { LoadingProgress, LoadingProgressReady } from "@/components/ui/LoadingProgress";
 import { type CatalogueDraftSync, useVehicleCatalogue } from "@/hooks/use-vehicle-catalogue";
@@ -62,25 +63,14 @@ export function VehicleCatalogue({
       <LoadingProgress label="Loading vehicles" active={busy} />
       <LoadingProgress label="Loading showroom branches" active={catalogue.branchBusy} />
 
-      <header className={styles.banner}>
-        <div className={`${layout.content} ${styles.bannerInner}`}>
-          <div className={styles.bannerCopy}>
-            <h1 className={layout.pageHeading}>Used cars for sale</h1>
-            <p>
-              Signed 210-point inspection, itemized MYR pricing and a 48-hour online reservation
-              hold on every vehicle.
-            </p>
-          </div>
-          <div className={styles.bannerActions}>
-            <Link href="/buying-guide" className={buttonClassName("shell", "md")}>
-              Buying guide
-            </Link>
-            <Link href="/sell" prefetch={false} className={buttonClassName("secondary", "md")}>
-              Sell or trade in
-            </Link>
-          </div>
-        </div>
-      </header>
+      <GuideHubBanner
+        title="Used cars for sale"
+        description="Signed 210-point inspection, upfront pricing, and a 48-hour hold on every car."
+        actions={[
+          { href: "/buying-guide", label: "Buying guide", variant: "shell", prefetch: true },
+          { href: "/sell", label: "Sell or trade in", variant: "secondary" },
+        ]}
+      />
 
       <div className={`${layout.content} ${styles.workspace}`}>
         <CatalogueFilters

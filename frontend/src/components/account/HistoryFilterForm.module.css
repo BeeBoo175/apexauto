@@ -1,12 +1,22 @@
 .form {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+  grid-template-columns: minmax(240px, 1.5fr) repeat(2, minmax(145px, 0.85fr)) auto;
   align-items: end;
   gap: 12px;
 }
 
 .search {
-  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .form {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+  }
+
+  .search {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 540px) {
