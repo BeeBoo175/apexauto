@@ -11,6 +11,7 @@ import type { ListingWorkspace } from "@/lib/vehicles/listing-workspace";
 import { VehicleDetailView } from "./VehicleDetailView";
 import { VehicleOverview } from "./VehicleOverview";
 import { VehiclePurchaseSummary } from "./VehiclePurchaseSummary";
+import layout from "./VehicleLayout.module.css";
 import styles from "./ListingEditor.module.css";
 
 export function ListingDetailPreview({
@@ -72,7 +73,9 @@ export function ListingDetailPreview({
           />
         </div>
         <section className={styles.previewSection} aria-labelledby={`${previewId}-inspection`}>
-          <h2 id={`${previewId}-inspection`}>Signed inspection</h2>
+          <h2 id={`${previewId}-inspection`} className={layout.sectionHeading}>
+            Signed inspection
+          </h2>
           {report ? (
             <StaffLink
               prefetch={false}

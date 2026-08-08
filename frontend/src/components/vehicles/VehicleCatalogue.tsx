@@ -65,7 +65,7 @@ export function VehicleCatalogue({
       <header className={styles.banner}>
         <div className={`${layout.content} ${styles.bannerInner}`}>
           <div className={styles.bannerCopy}>
-            <h1>Used cars for sale</h1>
+            <h1 className={layout.pageHeading}>Used cars for sale</h1>
             <p>
               Signed 210-point inspection, itemized MYR pricing and a 48-hour online reservation
               hold on every vehicle.
@@ -126,7 +126,7 @@ export function VehicleCatalogue({
 
             {snapshot && snapshot.total > 0 && snapshot.items.length === 0 && (
               <div className={styles.emptyCard}>
-                <h2>No vehicles on page {active.page}</h2>
+                <h2 className={layout.cardHeading}>No vehicles on page {active.page}</h2>
                 <p>
                   Available showroom listings may have updated while browsing. Return to page 1 to
                   keep viewing with your current filters.
@@ -155,7 +155,7 @@ export function VehicleCatalogue({
 
             {snapshot && snapshot.total === 0 && (
               <div className={styles.emptyCard}>
-                <h2>
+                <h2 className={layout.cardHeading}>
                   {hasActiveFilters
                     ? "No vehicles match these filters"
                     : "No inspected cars currently listed"}
@@ -189,7 +189,7 @@ export function VehicleCatalogue({
 
             {!snapshot && (
               <div className={styles.emptyCard}>
-                <h2>Vehicle catalogue is temporarily unavailable</h2>
+                <h2 className={layout.cardHeading}>Vehicle catalogue is temporarily unavailable</h2>
                 <p>
                   We could not reach the inventory service right now. Try loading again or reload
                   the page.

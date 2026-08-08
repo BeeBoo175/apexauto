@@ -6,7 +6,7 @@
 
 .hero {
   display: grid;
-  gap: 40px;
+  gap: 32px 40px;
   align-items: stretch;
   min-width: 0;
   animation: var(--vehicle-detail-enter-animation, arrive 550ms cubic-bezier(0.16, 1, 0.3, 1) both);
@@ -17,16 +17,14 @@
   flex-direction: column;
   gap: 20px;
   min-width: 0;
-  padding: 0 0 0 12px;
+  padding: var(--vehicle-purchase-padding, 0 0 0 12px);
+  border: var(--vehicle-purchase-border, 0);
+  border-radius: var(--vehicle-purchase-radius, 0);
+  background: var(--vehicle-purchase-background, transparent);
 }
 
 .identity h1 {
   margin: 0 0 12px;
-  font-family: var(--font-display);
-  font-size: clamp(1.75rem, 2.7vw, 2.25rem);
-  font-weight: 700;
-  line-height: 1.15;
-  letter-spacing: -0.025em;
   overflow-wrap: anywhere;
 }
 
@@ -70,21 +68,12 @@
 }
 
 .price strong {
-  font-size: clamp(2rem, 3vw, 2.5rem);
+  font-size: clamp(1.625rem, 2.3vw, 2rem);
   font-weight: 700;
   line-height: 1.15;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.025em;
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
-}
-
-.view h2 {
-  margin: 0 0 14px;
-  font-family: var(--font-display);
-  font-size: 26px;
-  font-weight: 700;
-  line-height: 1.35;
-  letter-spacing: -0.02em;
 }
 
 .view[data-layout="reference"] {
@@ -132,7 +121,7 @@
 
 @container (max-width: 879px) {
   .purchase {
-    padding: 8px 0 0;
+    padding: var(--vehicle-purchase-mobile-padding, 8px 0 0);
   }
 }
 

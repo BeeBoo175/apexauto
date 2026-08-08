@@ -8,6 +8,7 @@ import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDate } from "@/lib/date-format";
 import { inspectionCategoryIcons, label } from "@/lib/inspection/contracts";
 import type { PublicVehicleDetail } from "@/lib/vehicles/public-detail";
+import layout from "./VehicleLayout.module.css";
 import styles from "./VehicleInspection.module.css";
 
 export function VehicleInspection({ checklist }: { checklist: PublicVehicleDetail["checklist"] }) {
@@ -19,7 +20,9 @@ export function VehicleInspection({ checklist }: { checklist: PublicVehicleDetai
       <div className={styles.introduction}>
         <header className={styles.heading}>
           <div>
-            <h2 id="vehicle-inspection">Inspection report</h2>
+            <h2 id="vehicle-inspection" className={layout.sectionHeading}>
+              Inspection report
+            </h2>
             <p>Signed inspection · {formatMalaysianDate(checklist.signedAt)}</p>
           </div>
           <div className={styles.grade}>
@@ -83,7 +86,7 @@ export function VehicleInspection({ checklist }: { checklist: PublicVehicleDetai
           })}
         </nav>
         <div className={styles.content}>
-          <div className={styles.controls}>
+          <div className={`${styles.controls} ${layout.calmFields}`}>
             <Input
               label="Search inspection"
               id="inspection-search"

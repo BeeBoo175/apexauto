@@ -14,6 +14,7 @@ import {
 import { countActiveCatalogueFilters } from "@/lib/vehicles/catalogue-controls";
 import { catalogueDefaults } from "@/lib/vehicles/query";
 import styles from "./Catalogue.module.css";
+import layout from "./VehicleLayout.module.css";
 
 interface CatalogueFiltersProps {
   active: Filters;
@@ -111,7 +112,7 @@ export function CatalogueFilters({
           }}
         >
           <div className={styles.railHeader}>
-            <h2>Filter vehicles</h2>
+            <h2 className={layout.cardHeading}>Filter vehicles</h2>
             {(draftCount > 0 || activeCount > 0) && (
               <Button
                 type="button"
@@ -125,7 +126,7 @@ export function CatalogueFilters({
             )}
           </div>
 
-          <div className={styles.fields}>
+          <div className={`${styles.fields} ${layout.calmFields}`}>
             {taxonomy ? (
               <>
                 <Select

@@ -190,6 +190,10 @@
   padding-block: 24px;
 }
 
+.previewSection > h2 {
+  margin-bottom: 14px;
+}
+
 .previewSection + .previewSection {
   border-top: 1px solid var(--color-line-soft);
 }

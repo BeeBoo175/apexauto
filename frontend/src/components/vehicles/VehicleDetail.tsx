@@ -48,26 +48,31 @@ export function VehicleDetail({
     : "Vehicle details";
 
   return (
-    <section className={`${layout.content} ${styles.page}`}>
+    <section className={styles.page}>
       <LoadingProgressReady />
       <LoadingProgress
         label="Loading trade-in options"
         active={!tradeIn.taxonomy && tradeIn.busy}
       />
-      <div className={styles.heading}>
-        <Link href="/vehicles" prefetch={false}>
-          <Icon name="previous" />
-          Back to vehicles
-        </Link>
+      <div className={styles.topBar}>
+        <div className={`${layout.content} ${styles.topBarInner}`}>
+          <Link href="/vehicles" prefetch={false} className={styles.backLink}>
+            <Icon name="previous" />
+            Back to vehicles
+          </Link>
+          {listing && <span className={styles.showroomName}>{listing.branchName}</span>}
+        </div>
       </div>
       {!snapshot || !listing || !price ? (
-        <div>
-          <h1>Vehicle details</h1>
-          <p>
-            {unavailable
-              ? "This vehicle is currently unavailable. Browse the catalogue for available vehicles."
-              : "Vehicle details could not be loaded. Reload the page to try again."}
-          </p>
+        <div className={`${layout.content} ${styles.heroBand}`}>
+          <div className={styles.unavailable}>
+            <h1 className={layout.pageHeading}>Vehicle details</h1>
+            <p>
+              {unavailable
+                ? "This vehicle is currently unavailable. Browse the catalogue for available vehicles."
+                : "Vehicle details could not be loaded. Reload the page to try again."}
+            </p>
+          </div>
         </div>
       ) : (
         <VehicleDetailView
@@ -78,6 +83,7 @@ export function VehicleDetail({
           transmission={listing.transmission}
           fuel={fuelLabel(listing.fuel)}
           price={formatCurrency(price.vehiclePrice)}
+          heroClassName={`${layout.content} ${styles.heroBand}`}
           photos={snapshot.photoIds.map((photoId) => ({
             id: photoId,
             url: `/api/vehicles/${id}/photos/${photoId}`,

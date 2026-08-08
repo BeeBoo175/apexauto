@@ -1,4 +1,5 @@
 import type { PublicVehicle } from "@/lib/vehicles/contracts";
+import layout from "./VehicleLayout.module.css";
 import styles from "./VehicleOverview.module.css";
 
 type OverviewVehicle = Pick<
@@ -20,7 +21,9 @@ export function VehicleOverview({
 }) {
   return (
     <section aria-labelledby={headingId}>
-      <h2 id={headingId}>About this vehicle</h2>
+      <h2 id={headingId} className={layout.sectionHeading}>
+        About this vehicle
+      </h2>
       <p className={styles.description}>{description}</p>
       <dl className={styles.specifications}>
         <div>

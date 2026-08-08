@@ -1,44 +1,95 @@
 .page {
-  padding-block: 28px 80px;
+  --vehicle-purchase-background: var(--color-paper);
+  --vehicle-purchase-border: 1px solid var(--color-line);
+  --vehicle-purchase-radius: 8px;
+  --vehicle-purchase-padding: 24px;
+  --vehicle-purchase-mobile-padding: 20px;
+  --vehicle-total-background: var(--color-canvas);
+  --vehicle-total-border: 1px solid var(--color-line);
+  --vehicle-total-radius: 8px;
+  --vehicle-total-padding: 14px 16px;
+  background: var(--color-canvas);
   color: var(--color-graphite);
 }
 
-.heading {
-  display: flex;
-  align-items: center;
-  margin-bottom: 20px;
+.topBar {
+  border-top: 1px solid var(--color-graphite-soft);
+  border-bottom: 1px solid var(--color-graphite-soft);
+  background: var(--color-graphite);
+  color: var(--color-paper);
 }
 
-.heading a {
+.topBarInner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding-block: 2px;
+}
+
+.backLink {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   min-height: 44px;
   padding: 8px 0;
-  color: var(--color-muted);
-  font-size: 0.8125rem;
+  color: var(--color-line-soft);
+  font-size: 0.875rem;
+  font-weight: 600;
   text-decoration: none;
   transition: color 180ms ease;
 }
 
-.heading a:hover,
-.heading a:active {
-  color: var(--color-signal-dark);
+.backLink:hover,
+.backLink:active {
+  color: var(--color-paper);
 }
 
-.heading a:focus-visible {
-  outline: 2px solid var(--color-signal);
+.backLink:focus-visible {
+  outline: 2px solid var(--color-paper);
   outline-offset: 4px;
 }
 
+.showroomName {
+  color: var(--color-line-soft);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.heroBand {
+  padding-block: 20px 36px;
+}
+
+.unavailable {
+  display: grid;
+  gap: 12px;
+  max-width: 58ch;
+  padding: 28px;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  background: var(--color-paper);
+}
+
+.unavailable p {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
 @media (max-width: 640px) {
-  .page {
-    padding-block: 20px 48px;
+  .heroBand {
+    padding-block: 20px 32px;
+  }
+
+  .unavailable {
+    padding: 20px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .heading a {
+  .backLink {
     transition: none;
   }
 }

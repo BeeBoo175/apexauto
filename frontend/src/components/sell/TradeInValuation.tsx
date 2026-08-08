@@ -14,7 +14,6 @@ interface TradeInValuationProps {
   tradeIn: ReturnType<typeof useVehicleTradeIn>;
   headingId?: string;
   heading?: string;
-  headingScale?: "detail" | "section";
   description?: string;
   allowanceLabel?: string;
   primaryResultAction?: ReactNode;
@@ -26,7 +25,6 @@ export function TradeInValuation({
   tradeIn,
   headingId = "vehicle-trade-in",
   heading = "Trade-in valuation",
-  headingScale = "detail",
   description = "Estimate your car’s value and apply it to financing.",
   allowanceLabel = "Applied to financing",
   primaryResultAction,
@@ -72,10 +70,7 @@ export function TradeInValuation({
         </div>
         <div className={styles.tradeInContent}>
           <header className={styles.tradeInIntroduction}>
-            <h2
-              id={headingId}
-              className={headingScale === "section" ? layout.displayHeading : styles.detailTitle}
-            >
+            <h2 id={headingId} className={`${layout.sectionHeading} ${styles.title}`}>
               {heading}
             </h2>
             <p>{description}</p>
@@ -96,7 +91,7 @@ export function TradeInValuation({
               >
                 {tradeIn.taxonomy && (
                   <>
-                    <div className={styles.fields}>
+                    <div className={`${styles.fields} ${layout.calmFields}`}>
                       <VehicleValuationFields
                         taxonomy={tradeIn.taxonomy}
                         value={tradeIn.draft}

@@ -56,7 +56,6 @@ export function LandingInteractiveTools({
             tradeIn={tradeIn}
             headingId="landing-trade-in"
             heading="Estimate your car’s value"
-            headingScale="section"
             description="Check your current car’s indicative MYR valuation, then apply it directly to the monthly financing calculator below or book a showroom inspection."
             allowanceLabel="Synced to financing estimate"
             unavailableNotice="Vehicle options are currently unavailable. You can still test monthly repayments in the financing calculator below."
@@ -86,7 +85,6 @@ export function LandingInteractiveTools({
           <VehicleFinancing
             headingId="landing-financing"
             heading="Plan your monthly repayments"
-            headingScale="section"
             description="Pick a showroom vehicle or enter your target budget, adjust your down payment and tenure, and include any trade-in estimate from above."
             total={presets[0].total}
             tradeInAllowance={activeAllowance}

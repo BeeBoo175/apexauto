@@ -12,6 +12,7 @@ import type { CatalogueFilters, CataloguePage } from "@/lib/vehicles/contracts";
 import { FEATURED_QUICK_FILTERS, matchingQuickFilterId } from "@/lib/vehicles/featured";
 import { catalogueDefaults } from "@/lib/vehicles/query";
 import styles from "./Catalogue.module.css";
+import layout from "./VehicleLayout.module.css";
 
 interface CatalogueToolbarProps {
   active: CatalogueFilters;
@@ -98,7 +99,7 @@ export function CatalogueToolbar({
         </p>
 
         <div className={styles.sortField}>
-          <span className={styles.sortLabel} aria-hidden="true">
+          <span className={`${styles.sortLabel} ${layout.fieldLabel}`} aria-hidden="true">
             Sort by
           </span>
           <div className={styles.sortSelect}>

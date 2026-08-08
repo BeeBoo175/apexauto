@@ -97,7 +97,7 @@ export function LandingInspectionOverview() {
         <div className={styles.copy}>
           <h2
             id="inspection-overview-heading"
-            className={`${layout.displayHeading} ${styles.overviewTitle}`}
+            className={`${layout.sectionHeading} ${styles.overviewTitle}`}
           >
             Signed 210-point inspection on every listing
           </h2>
@@ -178,7 +178,7 @@ export function LandingInspectionOverview() {
 
           <div className={styles.detail} role="region" aria-live="polite" aria-label={activeLabel}>
             <header className={styles.detailHeader}>
-              <h3>{activeLabel}</h3>
+              <h3 className={layout.cardHeading}>{activeLabel}</h3>
               <span className={styles.pointCount}>{activeArea.count} checks in report</span>
             </header>
             <p className={styles.detailSummary}>{activeArea.summary}</p>

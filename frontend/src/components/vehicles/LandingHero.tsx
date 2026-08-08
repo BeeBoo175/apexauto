@@ -32,7 +32,7 @@ export function LandingHero({
       </div>
       <div className={`${layout.content} ${styles.inner}`}>
         <div className={styles.copy}>
-          <h1 id="landing-hero-title" className={styles.title}>
+          <h1 id="landing-hero-title" className={`${layout.heroHeading} ${styles.title}`}>
             Buy inspected cars. Sell yours with clarity.
           </h1>
           <p className={styles.lead}>

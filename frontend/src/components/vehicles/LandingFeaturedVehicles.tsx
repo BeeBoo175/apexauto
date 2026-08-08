@@ -95,7 +95,7 @@ export function LandingFeaturedVehicles({ initial }: { initial: ApiResult<Catalo
       <div className={`${layout.content} ${styles.inner}`}>
         <header className={styles.header}>
           <div className={styles.heading}>
-            <h2 id="featured-vehicles-heading" className={layout.displayHeading}>
+            <h2 id="featured-vehicles-heading" className={layout.sectionHeading}>
               Inspected cars ready to reserve
             </h2>
             <p>

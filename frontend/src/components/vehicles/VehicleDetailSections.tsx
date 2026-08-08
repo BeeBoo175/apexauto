@@ -1,6 +1,7 @@
 import type { MouseEvent, ReactNode } from "react";
 import { vehicleDetailSections, type VehicleDetailSection } from "@/lib/vehicles/contracts";
 import styles from "./VehicleDetailSections.module.css";
+import layout from "./VehicleLayout.module.css";
 
 const sectionLabels: Record<VehicleDetailSection, string> = {
   overview: "Overview",
@@ -37,21 +38,29 @@ export function VehicleDetailSections({
   return (
     <div className={styles.sections}>
       <nav className={styles.tabs} aria-label="Vehicle information">
-        {vehicleDetailSections.map((id) => (
-          <a
-            key={id}
-            id={`vehicle-tab-${id}`}
-            href={`#${id}`}
-            aria-current={section === id ? "location" : undefined}
-            onClick={(event) => navigate(event, id)}
-          >
-            {sectionLabels[id]}
-          </a>
-        ))}
+        <div className={`${layout.content} ${styles.tabsInner}`}>
+          {vehicleDetailSections.map((id) => (
+            <a
+              key={id}
+              id={`vehicle-tab-${id}`}
+              href={`#${id}`}
+              aria-current={section === id ? "location" : undefined}
+              onClick={(event) => navigate(event, id)}
+            >
+              {sectionLabels[id]}
+            </a>
+          ))}
+        </div>
       </nav>
       {vehicleDetailSections.map((id) => (
         <div key={id} id={id} tabIndex={-1} className={styles.panel} data-section={id}>
-          {panels[id]}
+          <div className={layout.content}>
+            {id === "inspection" ? (
+              <div className={styles.inspectionCard}>{panels[id]}</div>
+            ) : (
+              panels[id]
+            )}
+          </div>
         </div>
       ))}
     </div>

@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import type { useVehiclePromo } from "@/hooks/use-vehicle-promo";
 import { promoCode } from "@/lib/vehicles/purchase-quote";
+import layout from "./VehicleLayout.module.css";
 import styles from "./VehiclePurchaseSummary.module.css";
 
 export function VehiclePromo({ promo }: { promo: ReturnType<typeof useVehiclePromo> }) {
@@ -13,7 +14,7 @@ export function VehiclePromo({ promo }: { promo: ReturnType<typeof useVehiclePro
         void promo.apply();
       }}
     >
-      <div className={styles.promoEntry}>
+      <div className={`${styles.promoEntry} ${layout.calmFields}`}>
         <Input
           label="Promo code"
           id="vehicle-promo"

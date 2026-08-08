@@ -128,11 +128,6 @@
 }
 
 .detailHeader h3 {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 1.375rem;
-  font-weight: 700;
-  line-height: 1.25;
   color: var(--color-graphite);
 }
 

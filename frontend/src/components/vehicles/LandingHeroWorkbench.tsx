@@ -11,6 +11,7 @@ import type { Taxonomy } from "@/lib/intake/contracts";
 import { FEATURED_QUICK_FILTERS } from "@/lib/vehicles/featured";
 import { catalogueDefaults, catalogueHref } from "@/lib/vehicles/query";
 import styles from "./LandingHero.module.css";
+import layout from "./VehicleLayout.module.css";
 
 const BUDGET_OPTIONS = [
   { value: "", label: "Any budget" },
@@ -88,7 +89,7 @@ export function LandingHeroWorkbench({
 
       {mode === "buy" ? (
         <form
-          className={styles.workbenchForm}
+          className={`${styles.workbenchForm} ${layout.calmFields}`}
           method="get"
           action="/vehicles"
           onSubmit={handleBuySubmit}
@@ -167,7 +168,10 @@ export function LandingHeroWorkbench({
           </div>
         </form>
       ) : (
-        <form className={styles.workbenchForm} onSubmit={handleSellSubmit}>
+        <form
+          className={`${styles.workbenchForm} ${layout.calmFields}`}
+          onSubmit={handleSellSubmit}
+        >
           <p className={styles.sellCopy}>
             Check your vehicle’s indicative MYR range right below, apply it to a monthly payment
             estimate, or book an intake slot online.

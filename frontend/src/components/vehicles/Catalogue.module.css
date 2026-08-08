@@ -24,12 +24,6 @@
 }
 
 .bannerCopy h1 {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: clamp(1.75rem, 3.2vw, 2.5rem);
-  font-weight: 700;
-  line-height: 1.08;
-  letter-spacing: -0.025em;
   color: var(--color-paper);
 }
 
@@ -125,11 +119,6 @@
 }
 
 .railHeader h2 {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 1.25rem;
-  font-weight: 700;
-  line-height: 1.2;
   color: var(--color-graphite);
 }
 
@@ -201,11 +190,6 @@
 }
 
 .sortLabel {
-  color: var(--color-muted);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
   white-space: nowrap;
 }
 
@@ -271,11 +255,6 @@
 }
 
 .emptyCard h2 {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 1.5rem;
-  font-weight: 700;
-  line-height: 1.2;
   color: var(--color-graphite);
 }
 

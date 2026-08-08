@@ -22,7 +22,6 @@ interface VehicleFinancingProps {
   tradeInAllowance?: number;
   headingId?: string;
   heading?: string;
-  headingScale?: "detail" | "section";
   description?: string;
   presets?: readonly FinancingPreset[];
   allowCustomTotal?: boolean;
@@ -35,7 +34,6 @@ export function VehicleFinancing({
   tradeInAllowance = 0,
   headingId = "vehicle-financing",
   heading = "Financing estimate",
-  headingScale = "detail",
   description,
   presets,
   allowCustomTotal = false,
@@ -69,15 +67,12 @@ export function VehicleFinancing({
       <div className={layout.columns}>
         <div className={styles.inputs}>
           <header className={styles.sectionHeading}>
-            <h2
-              id={headingId}
-              className={headingScale === "section" ? layout.displayHeading : styles.detailTitle}
-            >
+            <h2 id={headingId} className={`${layout.sectionHeading} ${styles.title}`}>
               {heading}
             </h2>
             {description && <p className={styles.sectionDescription}>{description}</p>}
           </header>
-          <div className={styles.fields}>
+          <div className={`${styles.fields} ${layout.calmFields}`}>
             {allowCustomTotal && (
               <div className={styles.budgetGroup}>
                 {presets && presets.length > 0 && (

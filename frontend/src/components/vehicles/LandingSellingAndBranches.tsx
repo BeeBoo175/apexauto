@@ -63,7 +63,7 @@ export function LandingSellingAndBranches({ branches }: { branches: Branch[] | n
         <div>
           <header className={styles.blockHeader}>
             <div className={styles.blockHeading}>
-              <h2 className={layout.displayHeading}>Sell your car in four straightforward steps</h2>
+              <h2 className={layout.sectionHeading}>Sell your car in four straightforward steps</h2>
               <p>
                 Book an intake appointment online with a transparent valuation range and no
                 obligation before inspection.
@@ -91,7 +91,7 @@ export function LandingSellingAndBranches({ branches }: { branches: Branch[] | n
         <div>
           <header className={styles.blockHeader}>
             <div className={styles.blockHeading}>
-              <h2 className={layout.displayHeading}>Visit an ApexAuto showroom</h2>
+              <h2 className={layout.sectionHeading}>Visit an ApexAuto showroom</h2>
               <p>
                 Browse branch inventory in person, book a test drive or drop off your car for
                 trade-in inspection.
@@ -102,7 +102,7 @@ export function LandingSellingAndBranches({ branches }: { branches: Branch[] | n
             <div className={styles.branches}>
               {branches.map((branch) => (
                 <article key={branch.id} className={styles.branchCard}>
-                  <h3>{branch.name}</h3>
+                  <h3 className={layout.cardHeading}>{branch.name}</h3>
                   <p className={styles.branchAddress}>
                     {branch.address}
                     <br />
@@ -119,7 +119,7 @@ export function LandingSellingAndBranches({ branches }: { branches: Branch[] | n
             </div>
           ) : (
             <div className={styles.branchCard}>
-              <h3>ApexAuto Malaysian showrooms</h3>
+              <h3 className={layout.cardHeading}>ApexAuto Malaysian showrooms</h3>
               <p className={styles.branchAddress}>
                 Showroom directory details are temporarily unavailable. Browse our available
                 vehicles or start your trade-in booking online.
@@ -135,7 +135,9 @@ export function LandingSellingAndBranches({ branches }: { branches: Branch[] | n
 
         <div className={styles.closingBand}>
           <div>
-            <h2>Ready to inspect your next car or value your trade-in?</h2>
+            <h2 className={layout.sectionHeading}>
+              Ready to inspect your next car or value your trade-in?
+            </h2>
             <p>
               Explore verified listings online, reserve for 48 hours with MYR 500 or start your
               4-step selling appointment.
