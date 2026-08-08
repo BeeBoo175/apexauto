@@ -67,7 +67,11 @@ const zoneMedia: Record<InspectionCategoryKey, ZoneDetails> = {
   },
 };
 
-export function InspectionZoneShowcase() {
+export function InspectionZoneShowcase({
+  onExploreCatalog,
+}: {
+  onExploreCatalog?: (key: InspectionCategoryKey) => void;
+} = {}) {
   const [activeKey, setActiveKey] = useState<InspectionCategoryKey>("FrameChassis");
   const tabRefs = useRef<Partial<Record<InspectionCategoryKey, HTMLButtonElement | null>>>({});
 
@@ -164,8 +168,17 @@ export function InspectionZoneShowcase() {
               </li>
             ))}
           </ul>
-          <a href="#catalog" className={layout.arrowLink}>
-            <span>View all {activeCategory.count} items</span>
+          <a
+            href="#catalog"
+            className={layout.arrowLink}
+            onClick={(event) => {
+              if (onExploreCatalog) {
+                event.preventDefault();
+                onExploreCatalog(activeCategory.key);
+              }
+            }}
+          >
+            <span>Inspect {activeCategory.title} checklist</span>
             <Icon name="next" />
           </a>
         </div>

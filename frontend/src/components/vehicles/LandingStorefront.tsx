@@ -64,8 +64,8 @@ export function LandingStorefront({
         onStartTradeInMake={handleStartTradeInMake}
       />
       <LandingFeaturedVehicles initial={initialVehicles} />
-      <LandingInteractiveTools tradeIn={tradeIn} featuredVehicles={featuredVehicles} />
       <LandingInspectionOverview />
+      <LandingInteractiveTools tradeIn={tradeIn} featuredVehicles={featuredVehicles} />
       <LandingSellingAndBranches branches={branches} />
     </>
   );

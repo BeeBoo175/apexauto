@@ -63,8 +63,9 @@ export function BuyingGuideTradeInSection() {
         <Image
           src={tradeInPhoto}
           alt="Driver holding a car key beside a vehicle prepared for showroom appraisal"
+          fill
           loading="eager"
-          sizes="(max-width: 920px) 100vw, 580px"
+          sizes="(max-width: 920px) 100vw, 560px"
         />
       </div>
     </div>

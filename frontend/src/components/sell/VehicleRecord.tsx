@@ -1,3 +1,4 @@
+import { Icon } from "@/components/ui/Icon";
 import type { Quote } from "@/lib/intake/contracts";
 import { formatCurrency } from "@/lib/currency-format";
 import type { VehicleDraft } from "@/lib/intake/vehicle-draft";
@@ -15,7 +16,7 @@ export function VehicleRecord({
   return (
     <aside className={styles.summary} aria-label="Your vehicle record">
       <h2>Vehicle record</h2>
-      <p className={styles.plate} translate="no">
+      <p className={vehicle.registrationPlate ? styles.plate : styles.platePending} translate="no">
         {vehicle.registrationPlate || "Registration pending"}
       </p>
       <p className={styles.vehicleName}>
@@ -51,7 +52,10 @@ export function VehicleRecord({
           This range is non-binding. The vehicle must be inspected before an offer can be confirmed.
         </p>
       </div>
-      <p className={styles.help}>{photos} of 4 exterior photos confirmed</p>
+      <div className={styles.recordFooter}>
+        <Icon name="inspection" />
+        <span>{photos} of 4 exterior photos confirmed</span>
+      </div>
     </aside>
   );
 }

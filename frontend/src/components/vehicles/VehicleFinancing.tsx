@@ -53,6 +53,15 @@ export function VehicleFinancing({
     useVehicleFinancing(effectiveTotal, tradeInAllowance);
   const cash = parseMyr(cashContribution);
   const sliderCash = Math.min(effectiveTotal, cash ?? 0);
+  const appliedCash = Math.max(0, cash ?? 0);
+  const mixSum =
+    estimate && !error
+      ? Math.max(1, appliedCash + tradeInAllowance + estimate.principal + estimate.interest)
+      : 1;
+  const cashMixPct = (appliedCash / mixSum) * 100;
+  const tradeInMixPct = (tradeInAllowance / mixSum) * 100;
+  const principalMixPct = ((estimate?.principal ?? 0) / mixSum) * 100;
+  const interestMixPct = ((estimate?.interest ?? 0) / mixSum) * 100;
 
   function selectPreset(id: string) {
     setSelectedPresetId(id);
@@ -176,6 +185,44 @@ export function VehicleFinancing({
                 </p>
                 <p className={styles.monthly}>{formatCurrency(estimate.monthlyInstallment)}</p>
                 <p className={styles.resultNote}>{termYears}-year term · 3% annual flat interest</p>
+                <div className={styles.mixWrap}>
+                  <div className={styles.mixBar} aria-hidden="true">
+                    {cashMixPct > 0 && (
+                      <span className={styles.mixCash} style={{ width: `${cashMixPct}%` }} />
+                    )}
+                    {tradeInMixPct > 0 && (
+                      <span className={styles.mixTradeIn} style={{ width: `${tradeInMixPct}%` }} />
+                    )}
+                    {principalMixPct > 0 && (
+                      <span
+                        className={styles.mixPrincipal}
+                        style={{ width: `${principalMixPct}%` }}
+                      />
+                    )}
+                    {interestMixPct > 0 && (
+                      <span
+                        className={styles.mixInterest}
+                        style={{ width: `${interestMixPct}%` }}
+                      />
+                    )}
+                  </div>
+                  <div className={styles.mixLegend} aria-hidden="true">
+                    <span>
+                      <i className={styles.mixCash} /> Cash
+                    </span>
+                    {tradeInAllowance > 0 && (
+                      <span>
+                        <i className={styles.mixTradeIn} /> Trade-in
+                      </span>
+                    )}
+                    <span>
+                      <i className={styles.mixPrincipal} /> Principal
+                    </span>
+                    <span>
+                      <i className={styles.mixInterest} /> Interest
+                    </span>
+                  </div>
+                </div>
                 <dl className={styles.summary}>
                   <div>
                     <dt>

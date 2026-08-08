@@ -7,11 +7,13 @@ namespace Dealership.Application.Vehicles;
 public sealed record PublicListingFilter(int Page = 1, string? Make = null, string? Model = null,
     int? MinimumYear = null, int? MaximumYear = null, decimal? MinimumPrice = null, decimal? MaximumPrice = null,
     VehicleTransmission? Transmission = null, VehicleFuel? Fuel = null, Guid? BranchId = null,
-    string Sort = "published", string Direction = "desc")
+    string Sort = "published", string Direction = "desc", int RequestedPageSize = PublicListingFilter.PageSize)
 {
     public const int PageSize = 8;
+    public const int StorefrontPageSize = 12;
 
-    public bool IsValid => Page >= 1 && ValidText(Make) && ValidText(Model) && BranchId != Guid.Empty &&
+    public bool IsValid => Page >= 1 && RequestedPageSize is PageSize or StorefrontPageSize &&
+        ValidText(Make) && ValidText(Model) && BranchId != Guid.Empty &&
         (MinimumYear is null or >= 1886 and <= 9999) && (MaximumYear is null or >= 1886 and <= 9999) &&
         (MinimumYear is null || MaximumYear is null || MinimumYear <= MaximumYear) &&
         ValidPrice(MinimumPrice) && ValidPrice(MaximumPrice) &&

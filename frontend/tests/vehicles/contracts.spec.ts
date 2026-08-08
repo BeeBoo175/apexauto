@@ -397,11 +397,11 @@ test("listing workspace validates revision and publication relationships before 
   });
 });
 
-test("catalogue accepts exact eight-item paging and rejects missing, duplicate or private projections", () => {
-  const partial = { items: [vehicle], total: 17, page: 3, pageSize: 8 };
+test("catalogue accepts exact twelve-item paging and rejects missing, duplicate or private projections", () => {
+  const partial = { items: [vehicle], total: 25, page: 3, pageSize: 12 };
   expect(parseCatalogue(partial)?.items[0].transmission).toBe("Automatic");
-  expect(parseCatalogue({ items: [], total: 17, page: 4, pageSize: 8 })?.items).toEqual([]);
-  for (const pageSize of [0, 10, 25, 50]) {
+  expect(parseCatalogue({ items: [], total: 25, page: 4, pageSize: 12 })?.items).toEqual([]);
+  for (const pageSize of [0, 8, 10, 25, 50]) {
     expect(parseCatalogue({ ...partial, pageSize })).toBeNull();
   }
   for (const changed of [

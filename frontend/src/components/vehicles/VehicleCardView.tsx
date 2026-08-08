@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { Icon } from "@/components/ui/Icon";
 import type { PublicVehicle } from "@/lib/vehicles/contracts";
 import styles from "./VehicleCardView.module.css";
 
@@ -51,7 +52,12 @@ export function VehicleCardView({
         {!photoUrl && !photoPending && <p>Photography unavailable</p>}
       </div>
       <div className={styles.vehicleBody}>
-        <p className={styles.price}>{price}</p>
+        <div className={styles.priceRow}>
+          <p className={styles.price}>{price}</p>
+          <span className={styles.trustTag}>
+            <Icon name="shield-check" /> 210-pt
+          </span>
+        </div>
         <div className={styles.identity}>
           <h2>
             {vehicle.manufactureYear} {vehicle.make} {vehicle.model} {vehicle.trim}
@@ -61,7 +67,10 @@ export function VehicleCardView({
               {vehicle.mileageKilometres.toLocaleString("en-MY")} km · {vehicle.transmission} ·{" "}
               {vehicle.fuel === "PlugInHybrid" ? "Plug-in hybrid" : vehicle.fuel}
             </p>
-            <p>{vehicle.branchName}</p>
+            <p className={styles.branchLine}>
+              <Icon name="map-pin" />
+              <span>{vehicle.branchName}</span>
+            </p>
           </div>
         </div>
       </div>

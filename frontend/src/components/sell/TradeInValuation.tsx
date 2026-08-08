@@ -20,9 +20,21 @@ interface TradeInValuationProps {
 }
 
 const TRADE_IN_HIGHLIGHTS = [
-  "Instant indicative MYR range from make, model, year, and mileage",
-  "Applies your valuation directly into monthly loan calculations",
-  "Confirmed after a 90-minute branch check with zero obligation",
+  {
+    icon: "inspection" as const,
+    title: "Instant MYR range",
+    note: "Calculated from make, model, year, and mileage.",
+  },
+  {
+    icon: "car" as const,
+    title: "Syncs to financing",
+    note: "Applies your lower bound straight to loan calculations.",
+  },
+  {
+    icon: "calendar" as const,
+    title: "Zero-obligation check",
+    note: "Confirm during a 90-minute branch inspection bay.",
+  },
 ] as const;
 
 export function TradeInValuation({
@@ -65,9 +77,14 @@ export function TradeInValuation({
           </header>
           <ul className={styles.highlights}>
             {TRADE_IN_HIGHLIGHTS.map((item) => (
-              <li key={item}>
-                <Icon name="check" />
-                <span>{item}</span>
+              <li key={item.title}>
+                <span className={styles.highlightIcon} aria-hidden="true">
+                  <Icon name={item.icon} />
+                </span>
+                <div>
+                  <strong>{item.title}</strong>
+                  <span>{item.note}</span>
+                </div>
               </li>
             ))}
           </ul>
@@ -76,7 +93,7 @@ export function TradeInValuation({
             target="_blank"
             rel="noopener noreferrer"
             aria-label="How trade-in works (opens in a new tab)"
-            className={styles.tradeInGuideLink}
+            className={`${styles.tradeInGuideLink} ${styles.guideAnchor}`}
           >
             How trade-in works <Icon name="next" />
           </Link>

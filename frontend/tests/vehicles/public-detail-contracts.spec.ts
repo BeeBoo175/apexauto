@@ -192,7 +192,7 @@ test("catalogue and purchase projections agree on exact MYR precision", () => {
       total: amount,
     };
     const accepted = amount === 0.01 || amount === 123.45 || amount === 45000.99;
-    expect(Boolean(parseCatalogue({ items: [vehicle], total: 1, page: 1, pageSize: 8 }))).toBe(
+    expect(Boolean(parseCatalogue({ items: [vehicle], total: 1, page: 1, pageSize: 12 }))).toBe(
       accepted,
     );
     expect(Boolean(parsePurchasePrice(purchase))).toBe(accepted);

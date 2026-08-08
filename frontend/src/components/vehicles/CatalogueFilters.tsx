@@ -127,138 +127,195 @@ export function CatalogueFilters({
           </div>
 
           <div className={`${styles.fields} ${layout.calmFields}`}>
-            {taxonomy ? (
-              <>
-                <Select
-                  label="Make"
-                  name="make"
-                  value={draft.make}
-                  onChange={(event) => setDraft({ ...draft, make: event.target.value, model: "" })}
-                >
-                  <option value="">All makes</option>
-                  {customMake && <option value={customMake}>{customMake}</option>}
-                  {taxonomy.makes.map((item) => (
-                    <option key={item.name} value={item.name}>
-                      {item.name}
-                    </option>
-                  ))}
-                </Select>
-                <Select
-                  label="Model"
-                  name="model"
-                  value={draft.model}
-                  disabled={!draft.make && !draft.model}
-                  onChange={(event) => change("model", event.target.value)}
-                >
-                  <option value="">All models</option>
-                  {customModel && <option value={customModel}>{customModel}</option>}
-                  {availableModels.map((item) => (
-                    <option key={item.name} value={item.name}>
-                      {item.name}
-                    </option>
-                  ))}
-                </Select>
-              </>
-            ) : (
-              <>
-                <Input
-                  label="Make"
-                  name="make"
-                  placeholder="e.g. Honda"
-                  value={draft.make}
-                  maxLength={100}
-                  onChange={(event) => change("make", event.target.value)}
-                />
-                <Input
-                  label="Model"
-                  name="model"
-                  placeholder="e.g. City"
-                  value={draft.model}
-                  maxLength={100}
-                  onChange={(event) => change("model", event.target.value)}
-                />
-              </>
-            )}
+            <div className={styles.firstGroup}>
+              <span className={styles.groupHeading}>Vehicle</span>
+              {taxonomy ? (
+                <>
+                  <Select
+                    label="Make"
+                    name="make"
+                    value={draft.make}
+                    onChange={(event) =>
+                      setDraft({ ...draft, make: event.target.value, model: "" })
+                    }
+                  >
+                    <option value="">All makes</option>
+                    {customMake && <option value={customMake}>{customMake}</option>}
+                    {taxonomy.makes.map((item) => (
+                      <option key={item.name} value={item.name}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </Select>
+                  <Select
+                    label="Model"
+                    name="model"
+                    value={draft.model}
+                    disabled={!draft.make && !draft.model}
+                    onChange={(event) => change("model", event.target.value)}
+                  >
+                    <option value="">All models</option>
+                    {customModel && <option value={customModel}>{customModel}</option>}
+                    {availableModels.map((item) => (
+                      <option key={item.name} value={item.name}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </Select>
+                </>
+              ) : (
+                <>
+                  <Input
+                    label="Make"
+                    name="make"
+                    placeholder="e.g. Honda"
+                    value={draft.make}
+                    maxLength={100}
+                    onChange={(event) => change("make", event.target.value)}
+                  />
+                  <Input
+                    label="Model"
+                    name="model"
+                    placeholder="e.g. City"
+                    value={draft.model}
+                    maxLength={100}
+                    onChange={(event) => change("model", event.target.value)}
+                  />
+                </>
+              )}
+            </div>
 
-            <div className={styles.rangePair}>
-              <Input
-                label="Min (MYR)"
-                name="minimumPrice"
-                placeholder="Any"
-                inputMode="decimal"
-                value={draft.minimumPrice}
-                onChange={(event) => change("minimumPrice", event.target.value)}
-              />
-              <Input
-                label="Max (MYR)"
-                name="maximumPrice"
-                placeholder="Any"
-                inputMode="decimal"
-                value={draft.maximumPrice}
-                onChange={(event) => change("maximumPrice", event.target.value)}
+            <div className={styles.filterGroup}>
+              <span className={styles.groupHeading}>Budget (MYR)</span>
+              <div className={styles.budgetChips} role="group" aria-label="Quick budget presets">
+                {[
+                  { label: "< RM 60k", min: "", max: "60000" },
+                  { label: "RM 60k–100k", min: "60000", max: "100000" },
+                  { label: "> RM 100k", min: "100000", max: "" },
+                ].map((preset) => {
+                  const activePreset =
+                    draft.minimumPrice === preset.min && draft.maximumPrice === preset.max;
+                  return (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      className={styles.filterChip}
+                      aria-pressed={activePreset}
+                      onClick={() =>
+                        setDraft(
+                          activePreset
+                            ? { ...draft, minimumPrice: "", maximumPrice: "" }
+                            : { ...draft, minimumPrice: preset.min, maximumPrice: preset.max },
+                        )
+                      }
+                    >
+                      {preset.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className={styles.rangePair}>
+                <Input
+                  label="Min (MYR)"
+                  name="minimumPrice"
+                  placeholder="Any"
+                  inputMode="decimal"
+                  value={draft.minimumPrice}
+                  onChange={(event) => change("minimumPrice", event.target.value)}
+                />
+                <Input
+                  label="Max (MYR)"
+                  name="maximumPrice"
+                  placeholder="Any"
+                  inputMode="decimal"
+                  value={draft.maximumPrice}
+                  onChange={(event) => change("maximumPrice", event.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className={styles.filterGroup}>
+              <span className={styles.groupHeading}>Manufacture year</span>
+              <div className={styles.rangePair}>
+                <Input
+                  label="Min year"
+                  name="minimumYear"
+                  placeholder="Any"
+                  inputMode="numeric"
+                  value={draft.minimumYear}
+                  maxLength={4}
+                  onChange={(event) => change("minimumYear", event.target.value)}
+                />
+                <Input
+                  label="Max year"
+                  name="maximumYear"
+                  placeholder="Any"
+                  inputMode="numeric"
+                  value={draft.maximumYear}
+                  maxLength={4}
+                  onChange={(event) => change("maximumYear", event.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className={styles.filterGroup}>
+              <BranchFilter
+                branches={branches}
+                branchId={draft.branchId}
+                disabled={branchBusy}
+                label="Showroom"
+                labelHidden={false}
+                density="default"
+                emptyLabel="All showrooms"
+                onChange={(value) => change("branchId", value)}
+                onPage={loadBranches}
               />
             </div>
 
-            <div className={styles.rangePair}>
-              <Input
-                label="Min year"
-                name="minimumYear"
-                placeholder="Any"
-                inputMode="numeric"
-                value={draft.minimumYear}
-                maxLength={4}
-                onChange={(event) => change("minimumYear", event.target.value)}
-              />
-              <Input
-                label="Max year"
-                name="maximumYear"
-                placeholder="Any"
-                inputMode="numeric"
-                value={draft.maximumYear}
-                maxLength={4}
-                onChange={(event) => change("maximumYear", event.target.value)}
-              />
+            <div className={styles.filterGroup}>
+              <span className={styles.groupHeading}>Transmission</span>
+              <div className={styles.segmentedGroup} role="group" aria-label="Transmission">
+                {[
+                  { value: "", label: "All" },
+                  ...transmissions.map((value) => ({ value, label: value })),
+                ].map((option) => (
+                  <button
+                    key={option.label}
+                    type="button"
+                    className={styles.segmentButton}
+                    aria-pressed={draft.transmission === option.value}
+                    onClick={() => change("transmission", option.value)}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <BranchFilter
-              branches={branches}
-              branchId={draft.branchId}
-              disabled={branchBusy}
-              label="Showroom"
-              labelHidden={false}
-              density="default"
-              emptyLabel="All showrooms"
-              onChange={(value) => change("branchId", value)}
-              onPage={loadBranches}
-            />
-
-            <Select
-              label="Transmission"
-              name="transmission"
-              value={draft.transmission}
-              onChange={(event) => change("transmission", event.target.value)}
-            >
-              <option value="">All transmissions</option>
-              {transmissions.map((value) => (
-                <option key={value} value={value}>
-                  {value}
-                </option>
-              ))}
-            </Select>
-
-            <Select
-              label="Fuel"
-              name="fuel"
-              value={draft.fuel}
-              onChange={(event) => change("fuel", event.target.value)}
-            >
-              <option value="">All fuels</option>
-              {fuels.map((value) => (
-                <option key={value} value={value}>
-                  {fuelLabel(value)}
-                </option>
-              ))}
-            </Select>
+            <div className={styles.filterGroup}>
+              <span className={styles.groupHeading}>Fuel type</span>
+              <div className={styles.pillWrap} role="group" aria-label="Fuel type">
+                <button
+                  type="button"
+                  className={styles.filterChip}
+                  aria-pressed={draft.fuel === ""}
+                  onClick={() => change("fuel", "")}
+                >
+                  All
+                </button>
+                {fuels.map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={styles.filterChip}
+                    aria-pressed={draft.fuel === value}
+                    onClick={() => change("fuel", draft.fuel === value ? "" : value)}
+                  >
+                    {fuelLabel(value)}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div className={styles.railActions}>

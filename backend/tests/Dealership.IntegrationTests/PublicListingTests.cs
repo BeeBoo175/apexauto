@@ -89,10 +89,14 @@ public sealed class PublicListingTests(IntakePhotoFixture fixture) : IClassFixtu
             document.RootElement.GetProperty("checklist").GetProperty("points")[0].EnumerateObject().Select(property => property.Name));
         Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/api/vehicles?page=0")).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/api/vehicles?fuel=999")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/api/vehicles?pageSize=10")).StatusCode);
         using var catalogueResponse = await client.GetAsync($"/api/vehicles?branchId={data.BranchId}");
         Assert.Equal(HttpStatusCode.OK, catalogueResponse.StatusCode);
         Assert.True(catalogueResponse.Headers.CacheControl!.NoStore);
         Assert.Equal(PublicListingFilter.PageSize, (await catalogueResponse.Content.ReadFromJsonAsync<PublicListingPage>())!.Items.Count);
+        using var storefrontCatalogueResponse = await client.GetAsync($"/api/vehicles?branchId={data.BranchId}&pageSize={PublicListingFilter.StorefrontPageSize}");
+        Assert.Equal(HttpStatusCode.OK, storefrontCatalogueResponse.StatusCode);
+        Assert.Equal(PublicListingFilter.StorefrontPageSize, (await storefrontCatalogueResponse.Content.ReadFromJsonAsync<PublicListingPage>())!.Items.Count);
 
         var draft = await listings.SaveAsync(manager, first.VehicleId, new(Guid.NewGuid(), 1, 65000m, 100m,
             VehicleTransmission.Manual, VehicleFuel.Hybrid, "New description requires approval"), CancellationToken.None);

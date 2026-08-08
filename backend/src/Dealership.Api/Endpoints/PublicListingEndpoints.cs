@@ -17,7 +17,7 @@ public static class PublicListingEndpoints
         routes.MapGet("/{vehicleId:guid}", DetailAsync);
     }
 
-    private static async Task<IResult> ReadAsync(int? page, string? make, string? model, int? minimumYear,
+    private static async Task<IResult> ReadAsync(int? page, int? pageSize, string? make, string? model, int? minimumYear,
         int? maximumYear, decimal? minimumPrice, decimal? maximumPrice, VehicleTransmission? transmission,
         VehicleFuel? fuel, Guid? branchId, string? sort, string? direction, IPublicListingStore store,
         CancellationToken cancellationToken)
@@ -27,7 +27,8 @@ public static class PublicListingEndpoints
         try
         {
             var filter = new PublicListingFilter(page ?? 1, make, model, minimumYear, maximumYear,
-                minimumPrice, maximumPrice, transmission, fuel, branchId, sort ?? "published", direction ?? "desc");
+                minimumPrice, maximumPrice, transmission, fuel, branchId, sort ?? "published", direction ?? "desc",
+                pageSize ?? PublicListingFilter.PageSize);
             var result = await store.ReadAsync(filter, deadline.Token);
             return result.Status switch
             {

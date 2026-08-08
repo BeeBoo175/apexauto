@@ -14,11 +14,25 @@ type CategoryFilter = InspectionCategoryKey | "ALL";
 
 const INITIAL_VISIBLE_COUNT = 12;
 
-export function InspectionCatalogBrowser() {
-  const [category, setCategory] = useState<CategoryFilter>("FrameChassis");
+interface InspectionCatalogBrowserProps {
+  selectedCategory?: CategoryFilter;
+  onSelectCategory?: (category: CategoryFilter) => void;
+}
+
+export function InspectionCatalogBrowser({
+  selectedCategory,
+  onSelectCategory,
+}: InspectionCatalogBrowserProps = {}) {
+  const [internalCategory, setInternalCategory] = useState<CategoryFilter>("FrameChassis");
   const [query, setQuery] = useState("");
   const [disqualifiersOnly, setDisqualifiersOnly] = useState(false);
   const [expanded, setExpanded] = useState(false);
+
+  const category = selectedCategory ?? internalCategory;
+  function updateCategory(next: CategoryFilter) {
+    setInternalCategory(next);
+    onSelectCategory?.(next);
+  }
 
   const normalizedQuery = query.trim().toLowerCase();
   const effectiveCategory: CategoryFilter = normalizedQuery ? "ALL" : category;
@@ -45,7 +59,7 @@ export function InspectionCatalogBrowser() {
   const hasMore = !showAll && visiblePoints.length > INITIAL_VISIBLE_COUNT;
 
   function resetFilters() {
-    setCategory("FrameChassis");
+    updateCategory("FrameChassis");
     setQuery("");
     setDisqualifiersOnly(false);
     setExpanded(false);
@@ -104,7 +118,7 @@ export function InspectionCatalogBrowser() {
               aria-pressed={effectiveCategory === item.key}
               onClick={() => {
                 setQuery("");
-                setCategory(item.key);
+                updateCategory(item.key);
                 setExpanded(false);
               }}
             >
@@ -117,7 +131,7 @@ export function InspectionCatalogBrowser() {
             aria-pressed={effectiveCategory === "ALL"}
             onClick={() => {
               setQuery("");
-              setCategory("ALL");
+              updateCategory("ALL");
               setExpanded(false);
             }}
           >
@@ -134,7 +148,7 @@ export function InspectionCatalogBrowser() {
           </Button>
         </div>
       ) : (
-        <div>
+        <div className={styles.checklistSheet}>
           <div className={styles.sheetHeadingRow}>
             <h3 className={layout.cardHeading}>{activeTitle}</h3>
             <span>{visiblePoints.length} items</span>

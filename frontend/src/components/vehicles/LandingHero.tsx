@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import heroPhoto from "../../../public/images/apexauto-hero.avif";
 import { buttonClassName } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
 import type { Branch } from "@/lib/branches";
 import type { Taxonomy } from "@/lib/intake/contracts";
 import { LandingHeroWorkbench } from "./LandingHeroWorkbench";
@@ -48,15 +49,24 @@ export function LandingHero({
           </div>
           <dl className={styles.facts}>
             <div>
-              <dt>210 points</dt>
+              <dt>
+                <Icon name="inspection" />
+                <span>210 points</span>
+              </dt>
               <dd>Signed report on every car</dd>
             </div>
             <div>
-              <dt>MYR 500</dt>
+              <dt>
+                <Icon name="shield-check" />
+                <span>MYR 500</span>
+              </dt>
               <dd>48-hour online hold</dd>
             </div>
             <div>
-              <dt>{branchSummary}</dt>
+              <dt>
+                <Icon name="map-pin" />
+                <span>{branchSummary}</span>
+              </dt>
               <dd>Test drives and trade-ins</dd>
             </div>
           </dl>

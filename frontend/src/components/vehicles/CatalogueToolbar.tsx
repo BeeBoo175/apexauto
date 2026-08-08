@@ -40,7 +40,6 @@ export function CatalogueToolbar({
   const firstItem = snapshot && snapshot.items.length > 0 ? (page - 1) * snapshot.pageSize + 1 : 0;
   const lastItem =
     snapshot && snapshot.items.length > 0 ? firstItem + snapshot.items.length - 1 : 0;
-  const totalPages = snapshot ? Math.max(1, Math.ceil(snapshot.total / snapshot.pageSize)) : 1;
 
   function handleChipClick(chipId: string, chipFilters: CatalogueFilters) {
     if (chipId !== "all" && activeChipId === chipId) {
@@ -56,6 +55,29 @@ export function CatalogueToolbar({
       return;
     }
     onSort(selected.sort, selected.direction);
+  }
+
+  function renderSummary() {
+    if (!snapshot) {
+      return <span>Vehicle inventory unavailable</span>;
+    }
+    const noun = snapshot.total === 1 ? "vehicle" : "vehicles";
+    if (snapshot.items.length === 0) {
+      return (
+        <>
+          <strong>{snapshot.total}</strong> inspected {noun}
+        </>
+      );
+    }
+    return (
+      <>
+        Showing{" "}
+        <strong>
+          {firstItem}–{lastItem}
+        </strong>{" "}
+        of <strong>{snapshot.total}</strong> inspected {noun}
+      </>
+    );
   }
 
   return (
@@ -82,20 +104,7 @@ export function CatalogueToolbar({
 
       <div className={styles.resultsToolbar}>
         <p className={styles.summary} aria-live="polite">
-          {snapshot ? (
-            <>
-              <strong>{snapshot.total}</strong> available{" "}
-              {snapshot.total === 1 ? "vehicle" : "vehicles"}
-              {snapshot.items.length > 0 && (
-                <span>
-                  {" "}
-                  · Showing {firstItem}–{lastItem} · Page {page} of {totalPages}
-                </span>
-              )}
-            </>
-          ) : (
-            <span>Vehicle inventory unavailable</span>
-          )}
+          {renderSummary()}
         </p>
 
         <div className={styles.sortField}>

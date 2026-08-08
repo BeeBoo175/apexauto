@@ -31,7 +31,7 @@ public sealed class PublicListingStore(DealershipDbContext database) : IPublicLi
     {
         var vehicleIds = Filter(PublicListingQuery.Published(database), filter).Select(row => row.Vehicle.Id);
         var caughtUp = await ReservationReadSnapshot.ReconcileDueAsync(database, vehicleIds,
-            PublicListingFilter.PageSize, cancellationToken);
+            filter.RequestedPageSize, cancellationToken);
         if (!caughtUp)
         {
             return new(ListingStatus.Unavailable);
@@ -41,8 +41,8 @@ public sealed class PublicListingStore(DealershipDbContext database) : IPublicLi
         var rows = Filter(PublicListingQuery.Read(database), filter);
         var total = await rows.CountAsync(cancellationToken);
         var items = await Order(rows, filter).Select(Item)
-            .ReadPageAsync(filter.Page, PublicListingFilter.PageSize, total, cancellationToken);
-        return new(ListingStatus.Succeeded, new(Array.AsReadOnly(items), total, filter.Page, PublicListingFilter.PageSize));
+            .ReadPageAsync(filter.Page, filter.RequestedPageSize, total, cancellationToken);
+        return new(ListingStatus.Succeeded, new(Array.AsReadOnly(items), total, filter.Page, filter.RequestedPageSize));
     }
 
     public async Task<PublicListingDetailResult> DetailAsync(Guid vehicleId, CancellationToken cancellationToken)

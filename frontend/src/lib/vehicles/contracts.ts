@@ -1,6 +1,6 @@
 import type { Page } from "@/lib/api";
 
-export const CATALOGUE_PAGE_SIZE = 8;
+export const CATALOGUE_PAGE_SIZE = 12;
 export const transmissions = ["Automatic", "Manual"] as const;
 export const fuels = ["Petrol", "Diesel", "Hybrid", "PlugInHybrid", "Electric"] as const;
 export const vehicleDetailSections = ["overview", "inspection", "financing", "trade-in"] as const;

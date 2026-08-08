@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
 import { useIntakeActor } from "@/hooks/use-intake-actor";
 import { useSellerWorkflow } from "@/hooks/use-seller-workflow";
 import { useSellerAppointment } from "@/hooks/use-seller-appointment";
@@ -15,6 +16,12 @@ import { AppointmentFields } from "./AppointmentFields";
 import styles from "./Sell.module.css";
 
 const steps = ["Vehicle details", "Valuation", "Exterior photos", "Appointment"];
+const stepNotes = [
+  "Specs and plate",
+  "Indicative MYR range",
+  "Four exterior angles",
+  "90-min branch bay",
+] as const;
 
 export function SellerJourney({ initial }: { initial: SellerSnapshot }) {
   const unavailable = !initial.taxonomy || !initial.branches || initial.access >= 500;
@@ -74,23 +81,30 @@ function SellerWorkflow({ initial, ready }: { initial: SellerSnapshot; ready: bo
 
   return (
     <section className={styles.page} aria-label="Sell your car">
-      <header className={styles.heroBand}>
-        <div className={styles.heroInner}>
-          <p className={styles.bannerTitle}>Sell or trade in your car</p>
-          <p className={styles.bannerLead}>
-            Get an instant MYR guide range, upload four photos, and book a branch inspection.
-          </p>
-        </div>
-      </header>
       <div className={styles.progressBand}>
-        <ol className={styles.progress}>
-          {steps.map((label, index) => (
-            <li key={label} aria-current={index === step ? "step" : undefined}>
-              <span>{index + 1}</span>
-              {label}
-            </li>
-          ))}
-        </ol>
+        <div className={styles.progressWrap}>
+          <ol className={styles.progress}>
+            {steps.map((label, index) => {
+              const done = index < step;
+              const current = index === step;
+              return (
+                <li
+                  key={label}
+                  aria-current={current ? "step" : undefined}
+                  data-done={done || undefined}
+                >
+                  <span className={styles.stepMarker} aria-hidden="true">
+                    {done ? <Icon name="check" /> : `0${index + 1}`}
+                  </span>
+                  <div className={styles.stepText}>
+                    <span className={styles.stepTitle}>{label}</span>
+                    <span className={styles.stepNote}>{stepNotes[index]}</span>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
       </div>
       <div className={styles.workspace}>
         <div className={styles.formPanel}>
@@ -100,14 +114,14 @@ function SellerWorkflow({ initial, ready }: { initial: SellerSnapshot; ready: bo
           {step === 0 && (
             <form
               method="post"
-              className={styles.stack}
+              className={`${styles.stack} ${styles.formFill}`}
               onSubmit={(event) => {
                 event.preventDefault();
                 void workflow.requestQuote();
               }}
             >
               <p className={styles.intro}>
-                Tell us about your car. Start with a non-binding valuation, then arrange an
+                Tell us about your car for an instant guide valuation, then arrange a showroom
                 inspection.
               </p>
               <fieldset disabled={!ready || locked} className={styles.stack}>
@@ -117,9 +131,13 @@ function SellerWorkflow({ initial, ready }: { initial: SellerSnapshot; ready: bo
                   onChange={workflow.editDetails}
                 />
               </fieldset>
-              <Button type="submit" disabled={!ready || workflow.valuation.busy}>
-                {workflow.valuation.uncertain ? "Retry same valuation" : "Get indicative valuation"}
-              </Button>
+              <div className={styles.actions}>
+                <Button type="submit" disabled={!ready || workflow.valuation.busy}>
+                  {workflow.valuation.uncertain
+                    ? "Retry same valuation"
+                    : "Get indicative valuation"}
+                </Button>
+              </div>
             </form>
           )}
           {step === 1 && (
