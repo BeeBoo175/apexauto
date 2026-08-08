@@ -19,9 +19,15 @@ import {
 import {
   catalogueDefaults,
   catalogueFilterError,
+  catalogueHref,
   catalogueParams,
   catalogueQuery,
 } from "@/lib/vehicles/query";
+import {
+  buildAppliedCataloguePills,
+  buildPaginationSlots,
+} from "@/lib/vehicles/catalogue-controls";
+import { matchingQuickFilterId } from "@/lib/vehicles/featured";
 
 const ids = [
   "47cf2705-95cc-48b6-b907-64bf18dd87da",
@@ -493,4 +499,52 @@ test("listing addresses put the listing and history record in the path and omit 
   ]) {
     expect(listingLocation(path, "")).toBeNull();
   }
+});
+
+test("catalogue pills and pagination slots summarize active criteria and bounded pages", () => {
+  const pills = buildAppliedCataloguePills(
+    {
+      ...catalogueDefaults,
+      make: "Honda",
+      model: "City",
+      maximumPrice: "60000",
+      fuel: "PlugInHybrid",
+      branchId: ids[1],
+    },
+    {
+      items: [
+        {
+          id: ids[1],
+          name: "ApexAuto Glenmarie",
+          address: "12 Jalan U1/51A",
+          city: "Shah Alam",
+          state: "Selangor",
+          phone: "+60355551234",
+        },
+      ],
+      total: 1,
+      page: 1,
+      pageSize: 25,
+    },
+  );
+  expect(pills.map((pill) => pill.label)).toEqual([
+    "Make: Honda",
+    "Model: City",
+    "Under MYR 60,000",
+    "Plug In Hybrid",
+    "Showroom: Glenmarie",
+  ]);
+  expect(pills[0].without).toMatchObject({ make: "", model: "" });
+  expect(catalogueHref(catalogueDefaults)).toBe("/vehicles");
+  expect(buildPaginationSlots(1, 5)).toEqual([1, 2, 3, 4, 5]);
+  expect(buildPaginationSlots(5, 10)).toEqual([1, "ellipsis-start", 4, 5, 6, "ellipsis-end", 10]);
+  expect(buildPaginationSlots(14, 10)).toEqual([1, "ellipsis-start", 9, 10]);
+  expect(
+    matchingQuickFilterId({
+      ...catalogueDefaults,
+      maximumPrice: "60000",
+      sort: "price",
+      direction: "asc",
+    }),
+  ).toBe("under-60k");
 });

@@ -11,6 +11,7 @@ interface Props {
   onChange: (branchId: string) => void;
   onPage: (page: number) => void;
   id?: string;
+  label?: string;
   labelHidden?: boolean;
   showTitle?: boolean;
   paginationClassName?: string;
@@ -26,6 +27,7 @@ export function BranchFilter({
   onChange,
   onPage,
   id,
+  label = "Branch",
   labelHidden = true,
   showTitle = false,
   paginationClassName,
@@ -62,7 +64,7 @@ export function BranchFilter({
   return (
     <>
       <Select
-        label="Branch"
+        label={label}
         labelHidden={labelHidden}
         density={density}
         id={id}

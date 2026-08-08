@@ -1,20 +1,21 @@
 import type { Metadata } from "next";
-import { VehicleCatalogue } from "@/components/vehicles/VehicleCatalogue";
 import { LoadingProgressProvider } from "@/components/ui/LoadingProgress";
-import { requestApiJson } from "@/lib/server/http/api";
-import { parseBranch } from "@/lib/branches";
+import { VehicleCatalogue } from "@/components/vehicles/VehicleCatalogue";
 import { parsePage } from "@/lib/api";
+import { parseBranch } from "@/lib/branches";
+import { parseTaxonomy } from "@/lib/intake/parse";
 import type { SearchParams } from "@/lib/query";
+import { requestApiJson } from "@/lib/server/http/api";
 import { parseCatalogue } from "@/lib/vehicles/parse";
 import { catalogueParams, catalogueQuery } from "@/lib/vehicles/query";
 
 export const metadata: Metadata = {
   title: "Used cars for sale | ApexAuto",
   description:
-    "Browse inspected used cars across ApexAuto showrooms. Compare vehicle prices, mileage and specifications.",
+    "Browse 210-point inspected used cars across ApexAuto Malaysian showrooms. Compare verified mileage, transparent MYR pricing and reserve online.",
   openGraph: {
-    title: "Find your next car | ApexAuto",
-    description: "Explore inspected vehicles approved for our showroom.",
+    title: "Used cars for sale | ApexAuto",
+    description: "Explore inspected vehicles approved across ApexAuto Malaysian showrooms.",
     type: "website",
   },
 };
@@ -26,10 +27,12 @@ export default async function VehiclesPage({
 }) {
   const { filters, page } = catalogueParams(await searchParams);
   const query = catalogueQuery(filters, page);
-  const [catalogue, branches] = await Promise.all([
+  const [catalogue, branches, taxonomy] = await Promise.all([
     requestApiJson(`/api/vehicles?${query}`, parseCatalogue),
     requestApiJson("/api/branches?page=1&pageSize=25", (value) => parsePage(value, parseBranch)),
+    requestApiJson("/api/taxonomy", parseTaxonomy),
   ]);
+
   return (
     <LoadingProgressProvider initialLabel="Loading vehicles">
       <VehicleCatalogue
@@ -38,6 +41,7 @@ export default async function VehiclesPage({
         filters={filters}
         page={page}
         branches={branches.data}
+        taxonomy={taxonomy.data}
       />
     </LoadingProgressProvider>
   );
