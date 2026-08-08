@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { calculateGuideOtr, DEFAULT_PROCESSING_FEE } from "@/lib/guide/buying-guide-math";
 import { calculateFinancing, defaultCashContribution } from "@/lib/vehicles/financing";
 
 test("flat estimate reconciles every sen through the final installment", () => {
@@ -60,4 +61,28 @@ test("invalid money, unsafe output and non-whole terms never produce a financing
   }
   expect(calculateFinancing(80000000000000, 0, 9)).toBeNull();
   expect(calculateFinancing(70000000000000.01, 0, 7)).toBeNull();
+});
+
+test("buying guide OTR estimator applies 8% SST on processing fee and caps promos cleanly", () => {
+  expect(calculateGuideOtr(80000, 280, 0, DEFAULT_PROCESSING_FEE)).toEqual({
+    vehiclePrice: 80000,
+    processingFee: 500,
+    roadTax: 280,
+    serviceTax: 40,
+    promoDiscount: 0,
+    total: 80820,
+  });
+
+  expect(calculateGuideOtr(400, 90, 1000, DEFAULT_PROCESSING_FEE)).toEqual({
+    vehiclePrice: 400,
+    processingFee: 500,
+    roadTax: 90,
+    serviceTax: 40,
+    promoDiscount: 400,
+    total: 630,
+  });
+
+  expect(calculateGuideOtr(0, 90)).toBeNull();
+  expect(calculateGuideOtr(-100, 90)).toBeNull();
+  expect(calculateGuideOtr(50000, -1)).toBeNull();
 });

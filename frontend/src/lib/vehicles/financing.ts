@@ -9,19 +9,22 @@ export interface FinancingEstimate {
   finalInstallment: number;
 }
 
-function minorUnits(amount: number): bigint | null {
+export function minorUnits(amount: number): bigint | null {
   if (!isMyr(amount)) {
     return null;
   }
   return BigInt(Math.round(amount * 100));
 }
 
-function roundedDivision(amount: bigint, divisor: bigint): bigint {
+export function roundedDivision(amount: bigint, divisor: bigint): bigint {
   const quotient = amount / divisor;
   return quotient + ((amount % divisor) * BigInt(2) >= divisor ? BigInt(1) : BigInt(0));
 }
 
-function exactMyr(sen: bigint): number | null {
+export function exactMyr(sen: bigint): number | null {
+  if (sen < BigInt(0)) {
+    return null;
+  }
   const whole = sen / BigInt(100);
   const fraction = (sen % BigInt(100)).toString().padStart(2, "0");
   return parseMyr(`${whole}.${fraction}`);
