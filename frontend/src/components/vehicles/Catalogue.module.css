@@ -12,13 +12,13 @@
 }
 
 .filterRail {
+  --radius-sm: 8px;
   position: sticky;
   top: calc(var(--site-header-height) + 16px);
-  max-height: calc(100dvh - var(--site-header-height) - 32px);
-  overflow-y: auto;
   border: 1px solid var(--color-line);
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--color-paper);
+  box-shadow: 0 2px 12px rgb(14 27 42 / 4%);
 }
 
 .mobileToggleBar {
@@ -66,8 +66,8 @@
 
 .filters {
   display: grid;
-  gap: 14px;
-  padding: 18px;
+  gap: 16px;
+  padding: 20px;
 }
 
 .railHeader {
@@ -75,7 +75,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding-bottom: 10px;
+  padding-bottom: 12px;
   border-bottom: 1px solid var(--color-line-soft);
 }
 
@@ -85,7 +85,113 @@
 
 .fields {
   display: grid;
-  gap: 12px;
+  gap: 16px;
+}
+
+.filterGroup {
+  display: grid;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-line-soft);
+}
+
+.firstGroup {
+  display: grid;
+  gap: 10px;
+}
+
+.groupHeading {
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.budgetChips {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.pillWrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.filterChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid var(--color-line);
+  border-radius: 6px;
+  background: var(--color-paper);
+  color: var(--color-graphite);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.filterChip:hover {
+  border-color: var(--color-graphite);
+}
+
+.filterChip[aria-pressed="true"] {
+  border-color: var(--color-graphite);
+  background: var(--color-graphite);
+  color: var(--color-paper);
+}
+
+.filterChip:focus-visible,
+.segmentButton:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+}
+
+.segmentedGroup {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--color-line-soft);
+  border-radius: 8px;
+  background: var(--color-canvas);
+}
+
+.segmentButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-muted);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.segmentButton[aria-pressed="true"] {
+  border-color: var(--color-line);
+  background: var(--color-paper);
+  color: var(--color-graphite);
+  box-shadow: 0 1px 3px rgb(14 27 42 / 8%);
 }
 
 .rangePair {

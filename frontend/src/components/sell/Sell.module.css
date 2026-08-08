@@ -3,91 +3,110 @@
   color: var(--color-graphite);
 }
 
-.heroBand {
-  border-top: 1px solid var(--color-graphite-soft);
-  border-bottom: 1px solid var(--color-graphite-soft);
-  background: var(--color-graphite);
-  color: var(--color-paper);
-  padding-block: 36px;
-}
-
-.heroInner {
-  display: grid;
-  gap: 8px;
-  width: 100%;
-  max-width: 1360px;
-  margin-inline: auto;
-  padding-inline: 32px;
-}
-
-.bannerTitle {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: clamp(1.75rem, 2.7vw, 2.25rem);
-  font-weight: 700;
-  line-height: 1.15;
-  letter-spacing: -0.025em;
-  color: var(--color-paper);
-}
-
-.bannerLead {
-  margin: 0;
-  max-width: 72ch;
-  color: var(--color-line-soft);
-  font-size: 1rem;
-  line-height: 1.5;
-}
-
 .progressBand {
+  border-top: 1px solid var(--color-line-soft);
   border-bottom: 1px solid var(--color-line);
   background: var(--color-paper);
 }
 
-.progress {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
+.progressWrap {
   width: 100%;
   max-width: 1360px;
-  margin: 0 auto;
-  padding: 16px 32px;
+  margin-inline: auto;
+  padding: 24px 32px;
+}
+
+.progress {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px;
+  margin: 0;
+  padding: 0;
   list-style: none;
 }
 
-.progress li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--color-muted);
-  font-size: 0.875rem;
+.progress::before {
+  content: "";
+  position: absolute;
+  top: 18px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--color-line);
 }
 
-.progress li span {
+.progress li {
+  position: relative;
   display: grid;
-  place-items: center;
-  flex: 0 0 28px;
-  height: 28px;
+  align-content: start;
+  gap: 10px;
+  padding-right: 12px;
+}
+
+.stepMarker {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
   border: 1px solid var(--color-line);
   border-radius: 8px;
+  outline: 4px solid var(--color-paper);
+  background: var(--color-paper);
+  color: var(--color-muted);
   font-size: 0.8125rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.stepMarker svg {
+  width: 16px;
+  height: 16px;
+}
+
+.progress li[data-done="true"] .stepMarker {
+  border-color: var(--color-trust);
+  background: var(--color-trust);
+  color: var(--color-paper);
+}
+
+.progress li[aria-current="step"] .stepMarker {
+  border-color: var(--color-signal);
+  background: var(--color-signal);
+  color: var(--color-paper);
+}
+
+.stepText {
+  display: grid;
+  gap: 2px;
+}
+
+.stepTitle {
+  color: var(--color-muted);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.progress li[aria-current="step"] .stepTitle,
+.progress li[data-done="true"] .stepTitle {
+  color: var(--color-graphite);
   font-weight: 700;
 }
 
-.progress li[aria-current="step"] {
-  color: var(--color-graphite);
-  font-weight: 600;
-}
-
-.progress li[aria-current="step"] span {
-  color: var(--color-paper);
-  background: var(--color-signal);
-  border-color: var(--color-signal);
+.stepNote {
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  line-height: 1.4;
 }
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1.65fr) minmax(300px, 0.95fr);
-  align-items: start;
+  grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr);
+  align-items: stretch;
   gap: 24px;
   width: 100%;
   max-width: 1360px;
@@ -97,11 +116,14 @@
 
 .formPanel,
 .summary {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+  height: 100%;
   padding: 28px;
   background: var(--color-paper);
   border: 1px solid var(--color-line);
-  border-radius: 8px;
+  border-radius: 12px;
 }
 
 .formPanel h1,
@@ -185,6 +207,15 @@
   outline-offset: 2px;
 }
 
+.formFill {
+  flex: 1 1 auto;
+}
+
+.formFill > .actions {
+  margin-top: auto;
+  padding-top: 20px;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -199,23 +230,34 @@
   line-height: 1.6;
 }
 
-.plate {
+.plate,
+.platePending {
   display: inline-block;
+  align-self: flex-start;
   max-width: 100%;
   margin: 0 0 16px;
   padding: 8px 14px;
   border-radius: 8px;
-  color: var(--color-paper);
-  background: var(--color-graphite);
-  font-size: 1rem;
+  font-size: 0.9375rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   overflow-wrap: anywhere;
 }
 
+.plate {
+  color: var(--color-paper);
+  background: var(--color-graphite);
+}
+
+.platePending {
+  border: 1px solid var(--color-line);
+  color: var(--color-muted);
+  background: var(--color-canvas);
+}
+
 .vehicleName {
-  margin: 0 0 24px;
-  font-size: 19px;
+  margin: 0 0 20px;
+  font-size: 1.125rem;
   font-weight: 600;
 }
 
@@ -237,9 +279,9 @@
 }
 
 .quote {
-  margin-block: 24px;
-  padding-block: 24px;
-  border-block: 1px solid var(--color-line-soft);
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-line-soft);
 }
 
 .quote h3,
@@ -260,6 +302,25 @@
   margin: 8px 0;
   font-size: 28px;
   font-weight: 700;
+}
+
+.recordFooter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-line-soft);
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.recordFooter svg {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: var(--color-trust);
 }
 
 .upload {
@@ -328,18 +389,29 @@
   }
 }
 
-@media (max-width: 540px) {
-  .heroBand {
-    padding-block: 28px;
+@media (max-width: 720px) {
+  .progress {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px 16px;
   }
 
-  .heroInner,
+  .progress::before {
+    display: none;
+  }
+}
+
+@media (max-width: 540px) {
+  .progressWrap,
   .workspace {
     padding-inline: 16px;
   }
 
+  .progressWrap {
+    padding-block: 16px;
+  }
+
   .workspace {
-    margin-block: 24px 40px;
+    margin-block: 20px 40px;
   }
 
   .formPanel,
@@ -354,23 +426,30 @@
   }
 
   .progress {
-    gap: 8px;
-    padding: 16px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+    padding-left: 4px;
+  }
+
+  .progress::before {
+    display: block;
+    top: 8px;
+    bottom: 8px;
+    left: 21px;
+    right: auto;
+    width: 1px;
+    height: auto;
   }
 
   .progress li {
-    flex-direction: column;
-    align-items: flex-start;
-    font-size: 12px;
-  }
-
-  .progress li span {
-    flex-basis: auto;
-    width: 28px;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 12px;
+    padding-right: 0;
   }
 
   .formPanel h1 {
-    font-size: 26px;
+    font-size: 1.5rem;
   }
 
   .actions {

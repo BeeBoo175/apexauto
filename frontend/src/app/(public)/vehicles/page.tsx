@@ -6,6 +6,7 @@ import { parseBranch } from "@/lib/branches";
 import { parseTaxonomy } from "@/lib/intake/parse";
 import type { SearchParams } from "@/lib/query";
 import { requestApiJson } from "@/lib/server/http/api";
+import { CATALOGUE_PAGE_SIZE } from "@/lib/vehicles/contracts";
 import { parseCatalogue } from "@/lib/vehicles/parse";
 import { catalogueParams, catalogueQuery } from "@/lib/vehicles/query";
 
@@ -28,7 +29,7 @@ export default async function VehiclesPage({
   const { filters, page } = catalogueParams(await searchParams);
   const query = catalogueQuery(filters, page);
   const [catalogue, branches, taxonomy] = await Promise.all([
-    requestApiJson(`/api/vehicles?${query}`, parseCatalogue),
+    requestApiJson(`/api/vehicles?${query}&pageSize=${CATALOGUE_PAGE_SIZE}`, parseCatalogue),
     requestApiJson("/api/branches?page=1&pageSize=25", (value) => parsePage(value, parseBranch)),
     requestApiJson("/api/taxonomy", parseTaxonomy),
   ]);

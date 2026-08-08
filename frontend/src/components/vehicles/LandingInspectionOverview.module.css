@@ -6,12 +6,13 @@
 .inner {
   display: grid;
   grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.25fr);
-  align-items: start;
+  align-items: stretch;
   gap: 36px 48px;
 }
 
 .copy {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 20px;
   min-width: 0;
 }
@@ -74,14 +75,16 @@
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+  margin-top: auto;
   padding-top: 8px;
 }
 
 .explorer {
   min-width: 0;
+  height: 100%;
   padding: 28px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--color-paper);
   color: var(--color-graphite);
   box-shadow: 0 8px 28px rgb(7 15 24 / 24%);

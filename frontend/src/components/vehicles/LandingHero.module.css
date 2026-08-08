@@ -84,10 +84,20 @@
 }
 
 .facts dt {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   color: var(--color-paper);
   font-size: 1rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+
+.facts dt svg {
+  flex-shrink: 0;
+  width: 17px;
+  height: 17px;
+  color: var(--color-line-soft);
 }
 
 .facts dd {
@@ -99,9 +109,9 @@
 
 .workbench {
   min-width: 0;
-  padding: 24px;
+  padding: 28px 32px;
   border: 1px solid var(--color-line);
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--color-paper);
   color: var(--color-graphite);
   box-shadow: 0 20px 44px rgb(7 15 24 / 28%);
@@ -112,22 +122,58 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
-  margin-bottom: 20px;
+  margin-bottom: 22px;
   padding: 4px;
   border: 1px solid var(--color-line-soft);
   border-radius: 8px;
   background: var(--color-canvas);
 }
 
-.workbenchForm {
+.workbenchStage {
   display: grid;
-  gap: 18px;
+}
+
+.workbenchPane {
+  grid-area: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.workbenchPane[data-active="false"] {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.paneReset {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 22px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.workbenchForm {
+  gap: 20px;
 }
 
 .workbenchFields {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.paneFooter {
+  display: grid;
   gap: 14px;
+}
+
+.fullWidthButton {
+  width: 100%;
 }
 
 .quickLinks {
@@ -135,7 +181,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 8px 16px;
-  padding-top: 4px;
+  padding-top: 2px;
   font-size: 0.8125rem;
   color: var(--color-muted);
 }
@@ -158,37 +204,49 @@
   outline-offset: 3px;
 }
 
+.sellWorkbenchBody {
+  display: grid;
+  gap: 16px;
+}
+
 .sellCopy {
   margin: 0;
   color: var(--color-muted);
-  font-size: 0.9375rem;
-  line-height: 1.6;
-}
-
-.sellHighlights {
-  display: grid;
-  gap: 10px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.sellHighlights li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
   font-size: 0.875rem;
-  color: var(--color-graphite);
+  line-height: 1.55;
 }
 
-.sellHighlights li > span:first-child {
-  color: var(--color-trust);
+.sellPerks {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.sellPerks span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-line-soft);
+  border-radius: 8px;
+  background: var(--color-canvas);
+  color: var(--color-graphite);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.sellPerks svg {
   flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  color: var(--color-trust);
 }
 
 .sellActions {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -222,11 +280,13 @@
   }
 
   .facts,
-  .workbenchFields {
+  .workbenchFields,
+  .sellPerks,
+  .sellActions {
     grid-template-columns: minmax(0, 1fr);
   }
 
   .workbench {
-    padding: 20px;
+    padding: 22px 20px;
   }
 }

@@ -113,3 +113,19 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.checklistSheet {
+  display: grid;
+  gap: 18px;
+  padding: 26px 28px;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  background: var(--color-paper);
+  box-shadow: 0 2px 12px rgb(14 27 42 / 4%);
+}
+
+@media (max-width: 640px) {
+  .checklistSheet {
+    padding: 18px;
+  }
+}

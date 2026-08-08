@@ -7,6 +7,10 @@
   border-radius: 12px;
   overflow: hidden;
   background: var(--color-paper);
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
 }
 
 .photo {
@@ -44,9 +48,9 @@
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   min-width: 0;
-  padding: 14px;
+  padding: 16px;
   overflow-wrap: anywhere;
 }
 
@@ -55,25 +59,68 @@
   margin: 0;
 }
 
+.priceRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.trustTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-trust) 10%, var(--color-paper));
+  color: var(--color-trust);
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.trustTag svg {
+  width: 13px;
+  height: 13px;
+}
+
 .identity {
   display: grid;
   gap: 8px;
+  margin-top: auto;
 }
 
 .identity h2 {
   font-family: var(--font-sans);
-  font-size: 0.875rem;
-  font-weight: 500;
-  line-height: 1.4;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--color-graphite);
 }
 
 .metadata {
   display: grid;
-  gap: 3px;
+  gap: 6px;
   color: var(--color-muted);
   font-size: 0.75rem;
-  font-weight: 400;
+  font-weight: 500;
   line-height: 1.5;
+}
+
+.branchLine {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--color-graphite);
+  font-weight: 600;
+}
+
+.branchLine svg {
+  flex-shrink: 0;
+  width: 13px;
+  height: 13px;
+  color: var(--color-muted);
 }
 
 .price {
@@ -81,6 +128,7 @@
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: -0.02em;
+  color: var(--color-graphite);
   font-variant-numeric: tabular-nums;
 }
 
@@ -94,6 +142,18 @@
 
 .link:hover .vehicle {
   border-color: var(--color-graphite);
+  box-shadow: 0 10px 24px rgb(14 27 42 / 9%);
+  transform: translateY(-2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vehicle {
+    transition: none;
+  }
+
+  .link:hover .vehicle {
+    transform: none;
+  }
 }
 
 .link:active .vehicle {

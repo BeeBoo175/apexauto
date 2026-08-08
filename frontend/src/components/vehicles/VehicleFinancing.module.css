@@ -103,13 +103,13 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  align-self: start;
   min-width: 0;
+  height: 100%;
   font-variant-numeric: tabular-nums;
   padding: 28px;
   background: var(--color-canvas);
   border: 1px solid var(--color-line);
-  border-radius: 8px;
+  border-radius: 12px;
 }
 
 .resultLabel {
@@ -129,9 +129,60 @@
 }
 
 .resultNote {
-  margin: 8px 0 24px;
+  margin: 8px 0 18px;
   color: var(--color-muted);
   font-size: 0.8125rem;
+}
+
+.mixWrap {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.mixBar {
+  display: flex;
+  overflow: hidden;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-line-soft);
+}
+
+.mixCash {
+  background: #0d7a64;
+}
+
+.mixTradeIn {
+  background: #2f6bd6;
+}
+
+.mixPrincipal {
+  background: #6f8096;
+}
+
+.mixInterest {
+  background: #d97706;
+}
+
+.mixLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+.mixLegend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.mixLegend i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
 }
 
 .summary {
@@ -211,7 +262,7 @@
 .qualification {
   max-width: 52ch;
   width: 100%;
-  margin: 20px 0 0;
+  margin: auto 0 0;
   padding-top: 16px;
   border-top: 1px solid var(--color-line-soft);
   color: var(--color-muted);

@@ -170,14 +170,20 @@
 }
 
 .receiptPanel {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 20px;
+  height: 100%;
   padding: 28px;
   border: 1px solid var(--color-line);
   border-radius: 8px;
   background: var(--color-paper);
   color: var(--color-graphite);
   box-shadow: 0 2px 12px rgb(14 27 42 / 5%);
+}
+
+.receiptPanel > :last-child {
+  margin-top: auto;
 }
 
 .receiptHeader {
