@@ -15,7 +15,7 @@
 .purchase {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   min-width: 0;
   padding: var(--vehicle-purchase-padding, 0 0 0 12px);
   border: var(--vehicle-purchase-border, 0);
@@ -24,7 +24,7 @@
 }
 
 .identity h1 {
-  margin: 0 0 12px;
+  margin: 0 0 8px;
   overflow-wrap: anywhere;
 }
 
@@ -38,8 +38,8 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
-  margin: 24px 0 0;
-  padding-top: 20px;
+  margin: 16px 0 0;
+  padding-top: 16px;
   border-top: 1px solid var(--color-line-soft);
 
   font-size: 0.875rem;
@@ -112,6 +112,11 @@
 @container (min-width: 880px) {
   .hero {
     grid-template-columns: minmax(0, 1.45fr) minmax(350px, 1fr);
+    align-items: stretch;
+  }
+
+  .view[data-layout="reference"] .hero {
+    align-items: start;
   }
 }
 

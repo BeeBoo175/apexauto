@@ -94,8 +94,12 @@ export function VehicleDetail({
             <VehiclePurchaseSummary
               promo={reserved ? undefined : <VehiclePromo promo={promo} />}
               total={formatCurrency(price.total)}
+              totalNote={
+                promo.accepted
+                  ? `(incl. ${formatCurrency(price.processingFee + price.roadTax + price.serviceTax)} fees, −${formatCurrency(price.promoDiscount)} promo)`
+                  : `(incl. ${formatCurrency(price.processingFee + price.roadTax + price.serviceTax)} fees & road tax)`
+              }
               breakdown={[
-                { label: "Vehicle price", amount: formatCurrency(price.vehiclePrice) },
                 { label: "Processing fee", amount: formatCurrency(price.processingFee) },
                 { label: "Road tax", amount: formatCurrency(price.roadTax) },
                 {

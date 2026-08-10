@@ -30,7 +30,7 @@ export function VehiclePromo({ promo }: { promo: ReturnType<typeof useVehiclePro
       <p id="vehicle-promo-help">Case-sensitive. Does not reserve the car or lock its price.</p>
       <div className={styles.promoFeedback}>
         <p id="vehicle-promo-status" role="status">
-          {promo.accepted ? `${promo.accepted.promoCode} applied to the total below.` : ""}
+          {promo.accepted ? `${promo.accepted.promoCode} applied to the estimated total.` : ""}
         </p>
         {promo.accepted && (
           <Button type="button" size="compact" variant="ghost" onClick={promo.remove}>
