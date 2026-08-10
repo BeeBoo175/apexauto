@@ -1,5 +1,10 @@
 import { expect, test } from "@playwright/test";
 import { parseActor, actorDestination } from "@/lib/auth/actor";
+import {
+  defaultIntakeDateWindow,
+  isSundayDate,
+  validateIntakeDate,
+} from "@/lib/intake/appointment-date";
 import { parseBooking, parseSlots, parseTaxonomy } from "@/lib/intake/parse";
 import { bookingMatchesRequest } from "@/lib/intake/receipt";
 import { csvCell, selectedCsv } from "@/lib/csv";
@@ -289,4 +294,17 @@ test("booking receipts bind the exact operation and four distinct photo angles",
   expect(
     parseBooking({ ...receipt, photos: photos.map((photo) => ({ ...photo, angle: "Driver" })) }),
   ).toBeNull();
+});
+
+test("intake date bounds restrict picker window to 30 Malaysian days and reject Sundays", () => {
+  // 2026-11-12T04:00:00Z is 2026-11-12 12:00 MYT (Thursday)
+  const window = defaultIntakeDateWindow(new Date("2026-11-12T04:00:00Z"));
+  expect(window).toEqual({ firstDate: "2026-11-12", lastDate: "2026-12-11" });
+  expect(isSundayDate("2026-11-15")).toBe(true);
+  expect(isSundayDate("2026-11-16")).toBe(false);
+  expect(validateIntakeDate("2026-11-11", window)).toContain("30 days");
+  expect(validateIntakeDate("2026-12-12", window)).toContain("30 days");
+  expect(validateIntakeDate("2026-11-15", window)).toContain("Sundays");
+  expect(validateIntakeDate("2026-11-14", window)).toBeNull();
+  expect(validateIntakeDate("2026-11-16", window)).toBeNull();
 });

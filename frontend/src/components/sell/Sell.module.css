@@ -242,6 +242,19 @@
   line-height: 1.6;
 }
 
+.dateFieldGroup {
+  display: grid;
+  gap: 6px;
+}
+
+.fieldError {
+  margin: 0;
+  color: var(--color-signal-dark);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
 .valuationCard {
   display: grid;
   gap: 10px;

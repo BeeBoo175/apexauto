@@ -1,7 +1,8 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { apiFetch } from "@/lib/api-browser";
+import { defaultIntakeDateWindow, validateIntakeDate } from "@/lib/intake/appointment-date";
 import { parseSlots } from "@/lib/intake/parse";
 import type { Branch } from "@/lib/branches";
 import type { Page } from "@/lib/api";
@@ -19,6 +20,12 @@ export function useSellerAppointment(initialBranches: Page<Branch>) {
   const toast = useToast();
   const controller = useRef<AbortController | null>(null);
   useEffect(() => () => controller.current?.abort(), []);
+
+  const dateWindow = useMemo(
+    () => offer?.dateWindow ?? defaultIntakeDateWindow(),
+    [offer?.dateWindow],
+  );
+  const dateError = useMemo(() => validateIntakeDate(date, dateWindow), [date, dateWindow]);
 
   function selectBranch(id: string) {
     controller.current?.abort();
@@ -38,6 +45,9 @@ export function useSellerAppointment(initialBranches: Page<Branch>) {
     setOffer(null);
   }
   async function loadSlots() {
+    if (!branchId || !date || validateIntakeDate(date, dateWindow)) {
+      return;
+    }
     controller.current?.abort();
     const attempt = new AbortController();
     controller.current = attempt;
@@ -108,6 +118,8 @@ export function useSellerAppointment(initialBranches: Page<Branch>) {
     selectedBranch,
     branchId,
     date,
+    dateWindow,
+    dateError,
     startsAt,
     setStartsAt,
     offer,

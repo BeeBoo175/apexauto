@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Input";
 import { formatMalaysianDateTime } from "@/lib/date-format";
@@ -11,7 +12,10 @@ export function AppointmentFields({
   selection: ReturnType<typeof useSellerAppointment>;
   disabled: boolean;
 }) {
-  const { branches, offer, selectedBranch } = selection;
+  const { branches, offer, selectedBranch, dateWindow, dateError } = selection;
+  const dateHelpId = useId();
+  const dateErrorId = useId();
+
   return (
     <fieldset disabled={disabled} className={styles.stack}>
       <Select
@@ -53,17 +57,31 @@ export function AppointmentFields({
           </Button>
         </div>
       )}
-      <Input
-        label="Appointment date (Malaysia)"
-        type="date"
-        required
-        value={selection.date}
-        onChange={(event) => selection.selectDate(event.target.value)}
-      />
+      <div className={styles.dateFieldGroup}>
+        <Input
+          label="Appointment date (Malaysia)"
+          type="date"
+          required
+          value={selection.date}
+          min={dateWindow.firstDate}
+          max={dateWindow.lastDate}
+          aria-invalid={Boolean(dateError) || undefined}
+          aria-describedby={dateError ? `${dateErrorId} ${dateHelpId}` : dateHelpId}
+          onChange={(event) => selection.selectDate(event.target.value)}
+        />
+        {dateError && (
+          <p id={dateErrorId} className={styles.fieldError} role="alert">
+            {dateError}
+          </p>
+        )}
+        <p id={dateHelpId} className={styles.help}>
+          Open Monday to Saturday, 09:00–18:00 MYT, within the next 30 days (2 hours’ notice).
+        </p>
+      </div>
       <Button
         type="button"
         variant="secondary"
-        disabled={selection.busy || !selection.branchId || !selection.date}
+        disabled={selection.busy || !selection.branchId || !selection.date || Boolean(dateError)}
         onClick={() => void selection.loadSlots()}
       >
         {selection.busy ? "Checking slots" : "Check available slots"}

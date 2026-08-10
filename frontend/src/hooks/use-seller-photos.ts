@@ -14,7 +14,7 @@ export interface SellerPhotoController {
   uncertain: boolean;
   receipt: PhotoReceipt | null;
   select: (selected: File | null) => void;
-  upload: () => Promise<boolean>;
+  upload: (options?: { silentSuccess?: boolean }) => Promise<boolean>;
 }
 
 export function useSellerPhoto(
@@ -68,7 +68,7 @@ export function useSellerPhoto(
     onReceipt(angle, null);
   }
 
-  async function upload(): Promise<boolean> {
+  async function upload(options?: { silentSuccess?: boolean }): Promise<boolean> {
     if (receiptRef.current) {
       return true;
     }
@@ -119,7 +119,9 @@ export function useSellerPhoto(
       receiptRef.current = result.data;
       setReceipt(result.data);
       onReceipt(angle, result.data);
-      success(`${angle} photo confirmed.`);
+      if (!options?.silentSuccess) {
+        success(`${angle} photo confirmed.`);
+      }
       return true;
     } catch {
       if (!attempt.signal.aborted) {
@@ -147,6 +149,7 @@ export function useSellerPhotos(
   const front = useSellerPhoto("Front", onReceipt, onLock);
   const rear = useSellerPhoto("Rear", onReceipt, onLock);
   const items = [driver, passenger, front, rear] as const;
+  const { success } = useToast();
 
   const readyCount = items.filter((item) => Boolean(item.file || item.receipt)).length;
   const uploadedCount = items.filter((item) => Boolean(item.receipt)).length;
@@ -155,6 +158,7 @@ export function useSellerPhotos(
 
   async function uploadPending(): Promise<boolean> {
     let allConfirmed = true;
+    let uploadedNow = 0;
     for (const item of items) {
       if (item.receipt) {
         continue;
@@ -163,10 +167,15 @@ export function useSellerPhotos(
         allConfirmed = false;
         continue;
       }
-      const ok = await item.upload();
-      if (!ok) {
+      const ok = await item.upload({ silentSuccess: true });
+      if (ok) {
+        uploadedNow += 1;
+      } else {
         allConfirmed = false;
       }
+    }
+    if (allConfirmed && uploadedNow > 0) {
+      success("All 4 exterior photos confirmed.");
     }
     return allConfirmed;
   }
