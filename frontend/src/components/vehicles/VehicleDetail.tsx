@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
 import { Button } from "@/components/ui/Button";
@@ -41,6 +42,7 @@ export function VehicleDetail({
   const promo = useVehiclePromo(snapshot);
   const tradeIn = useVehicleTradeIn();
   const tabs = useVehicleDetailSections();
+  const [reserved, setReserved] = useState(false);
   const price = promo.accepted?.price ?? snapshot?.price;
   const listing = snapshot?.listing;
   const name = listing
@@ -90,7 +92,7 @@ export function VehicleDetail({
           }))}
           summary={
             <VehiclePurchaseSummary
-              promo={<VehiclePromo promo={promo} />}
+              promo={reserved ? undefined : <VehiclePromo promo={promo} />}
               total={formatCurrency(price.total)}
               breakdown={[
                 { label: "Vehicle price", amount: formatCurrency(price.vehiclePrice) },
@@ -115,13 +117,12 @@ export function VehicleDetail({
                   access={reservationAccess}
                   promo={promo.accepted}
                   promoBusy={promo.busy}
+                  testDrive={<VehicleTestDrive detail={snapshot} access={reservationAccess} />}
+                  onReserved={() => setReserved(true)}
                   financing={
-                    <>
-                      <VehicleTestDrive detail={snapshot} access={reservationAccess} />
-                      <Button variant="ghost" onClick={() => tabs.select("financing")}>
-                        Calculate financing
-                      </Button>
-                    </>
+                    <Button variant="ghost" onClick={() => tabs.select("financing")}>
+                      Calculate financing
+                    </Button>
                   }
                 />
               }

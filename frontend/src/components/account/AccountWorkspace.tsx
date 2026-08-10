@@ -4,6 +4,11 @@ import { useEffect, useState } from "react";
 import { AccountPanel } from "@/components/auth/AccountPanel";
 import { useIntakeActor } from "@/hooks/use-intake-actor";
 import type { AccountProfile } from "@/lib/account/contracts";
+import {
+  accountSections as sections,
+  sectionFromHash,
+  type AccountSection,
+} from "@/lib/account/sections";
 import type { ApiResult, Page } from "@/lib/api";
 import type { Appointment } from "@/lib/intake/contracts";
 import type { HistoryFilters } from "@/lib/intake/list-query";
@@ -18,19 +23,6 @@ import type {
 import styles from "./Account.module.css";
 import { writeAddress } from "@/lib/browser-url";
 
-const sections = [
-  { id: "reservations", label: "Reservations" },
-  { id: "appointments", label: "Selling appointments" },
-  { id: "test-drives", label: "Test drives" },
-  { id: "account-details", label: "Account details" },
-] as const;
-
-type AccountSection = (typeof sections)[number]["id"];
-
-function sectionFromHash(hash: string) {
-  return sections.find(({ id }) => `#${id}` === hash)?.id;
-}
-
 export function AccountWorkspace({
   profile,
   history,
@@ -41,6 +33,7 @@ export function AccountWorkspace({
   reservationFilters,
   testDrives,
   testDriveQuery,
+  initialSection = "reservations",
 }: {
   profile: AccountProfile;
   history: ApiResult<Page<Appointment>> | null;
@@ -51,9 +44,10 @@ export function AccountWorkspace({
   reservationFilters: ReservationFilters;
   testDrives: ApiResult<TestDriveHistory>;
   testDriveQuery: { page: number; filters: TestDriveHistoryFilters };
+  initialSection?: AccountSection;
 }) {
   const actor = useIntakeActor({ userId: profile.userId, role: "Customer", branchId: null });
-  const [section, setSection] = useState<AccountSection>("reservations");
+  const [section, setSection] = useState<AccountSection>(initialSection);
   useEffect(() => {
     function sync() {
       const next = sectionFromHash(window.location.hash);
@@ -89,7 +83,7 @@ export function AccountWorkspace({
                 if (event.button === 0 && !(event.metaKey || event.ctrlKey || event.shiftKey)) {
                   event.preventDefault();
                   setSection(id);
-                  writeAddress(`#${id}`);
+                  writeAddress(`/account#${id}`);
                 }
               }}
             >

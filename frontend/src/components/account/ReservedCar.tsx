@@ -92,7 +92,12 @@ export function ReservedCar({
         <p className={styles.reference}>Reservation {item.receipt.number}</p>
         {/* Once our team handles the sale, changes are agreed with them rather than cancelled online. */}
         {item.isActive && !item.isHandled && (
-          <Button variant="ghost" disabled={disabled} onClick={onCancel}>
+          <Button
+            variant="secondary"
+            className={styles.cancelButton}
+            disabled={disabled}
+            onClick={onCancel}
+          >
             Cancel reservation
           </Button>
         )}

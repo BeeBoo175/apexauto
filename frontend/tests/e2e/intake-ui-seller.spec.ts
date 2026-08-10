@@ -71,11 +71,13 @@ test("seller journey retains vehicle handoff, confirms independent uploads and r
     await section
       .getByLabel(`${angle} photo`, { exact: true })
       .setInputFiles(path.join(evidence, "upload.jpg"));
-    await section.getByRole("button", { name: "Upload photo", exact: true }).click();
-    if (angle === "Driver") {
-      await expect(section.getByLabel(`${angle} photo`, { exact: true })).toBeDisabled();
-      await section.getByRole("button", { name: "Retry same upload", exact: true }).click();
-    }
+  }
+  await page.getByRole("button", { name: "Choose appointment", exact: true }).click();
+  const driverSection = page.getByRole("region", { name: "Driver photo upload", exact: true });
+  await expect(driverSection.getByLabel("Driver photo", { exact: true })).toBeDisabled();
+  await driverSection.getByRole("button", { name: "Retry same upload", exact: true }).click();
+  for (const angle of ["Driver", "Passenger", "Front", "Rear"]) {
+    const section = page.getByRole("region", { name: `${angle} photo upload`, exact: true });
     await expect(
       page.getByRole("status").filter({ hasText: `${angle} photo confirmed.` }),
     ).toBeVisible();

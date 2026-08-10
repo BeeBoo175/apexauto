@@ -1,12 +1,11 @@
 .reservation,
-.receipt {
+.confirmedWrap {
   display: grid;
   gap: 12px;
   min-width: 0;
 }
 
 .reservation p,
-.receipt p,
 .help {
   margin: 0;
   color: var(--color-muted);
@@ -17,34 +16,94 @@
 .actions {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
 }
 
-.receipt h2 {
-  margin: 0;
-  font-size: 1.125rem;
-}
-
-.receipt dl {
+.receipt {
   display: grid;
-  gap: 10px;
+  gap: 12px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--color-trust) 30%, var(--color-line));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-trust) 6%, var(--color-paper));
+}
+
+.receiptHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+.receiptTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-trust);
+}
+
+.receiptTitle svg {
+  width: 18px;
+  height: 18px;
+}
+
+.receiptTitle h2 {
   margin: 0;
+  color: var(--color-graphite);
+  font-size: 1rem;
+  font-weight: 700;
 }
 
-.receipt dl > div {
+.holdBadge {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--color-trust);
+  color: var(--color-paper);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.receiptGrid {
   display: grid;
-  gap: 4px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 16px;
+  margin: 0;
+  padding-top: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--color-trust) 18%, var(--color-line-soft));
 }
 
-.receipt dt {
+.receiptGrid > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.receiptGrid dt {
   color: var(--color-muted);
   font-size: 0.75rem;
 }
 
-.receipt dd {
+.receiptGrid dd {
   margin: 0;
   overflow-wrap: anywhere;
-  font-size: 0.875rem;
+  color: var(--color-graphite);
+  font-size: 0.8125rem;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
+}
+
+.receiptNote {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 480px) {
+  .receiptGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

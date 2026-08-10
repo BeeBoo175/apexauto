@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import { Icon } from "./Icon";
 import styles from "./Input.module.css";
@@ -9,9 +11,33 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ label, labelHidden = false, density = "default", className = "", id, ...props }, ref) => {
+  (
+    {
+      label,
+      labelHidden = false,
+      density = "default",
+      className = "",
+      id,
+      onClick,
+      type,
+      ...props
+    },
+    ref,
+  ) => {
     const generatedId = React.useId();
     const inputId = id ?? generatedId;
+
+    function handleClick(event: React.MouseEvent<HTMLInputElement>) {
+      if (type === "date" && !event.currentTarget.disabled) {
+        const picker = event.currentTarget as HTMLInputElement & { showPicker?: () => void };
+        try {
+          picker.showPicker?.();
+        } catch {
+          /* Native picker may be blocked without direct user activation or on unsupported platforms. */
+        }
+      }
+      onClick?.(event);
+    }
 
     return (
       <div className={styles.field}>
@@ -23,7 +49,9 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         <input
           ref={ref}
           id={inputId}
+          type={type}
           className={`${styles.control} ${styles.input} ${density === "compact" ? styles.compact : ""} ${className}`.trim()}
+          onClick={handleClick}
           {...props}
         />
       </div>

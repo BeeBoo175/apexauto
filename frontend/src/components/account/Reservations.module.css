@@ -4,10 +4,34 @@
   scroll-margin-top: 100px;
 }
 
-.heading,
-.reservationActions {
+.heading {
   display: block;
   padding: 0;
+}
+
+.reservationActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-line-soft);
+}
+
+.cancelButton {
+  border-color: var(--color-signal-dark);
+  background: color-mix(in srgb, var(--color-signal) 6%, var(--color-paper));
+  color: var(--color-signal-dark);
+}
+
+@media (hover: hover) {
+  .cancelButton:hover:not(:disabled) {
+    border-color: var(--color-signal-dark);
+    background: var(--color-signal);
+    color: var(--color-paper);
+  }
 }
 
 .body {
@@ -116,10 +140,6 @@
 
 .reference {
   overflow-wrap: anywhere;
-}
-
-.reservationActions {
-  margin-top: 16px;
 }
 
 .steps {

@@ -1,6 +1,7 @@
 import type { SearchParams } from "@/lib/query";
 import { redirect } from "next/navigation";
 import { AccountWorkspace } from "@/components/account/AccountWorkspace";
+import { sectionFromParam } from "@/lib/account/sections";
 import { readOwnProfile } from "@/lib/account/server";
 import { privateApiRead } from "@/lib/server/http/api";
 import { parseAppointment } from "@/lib/intake/parse";
@@ -62,6 +63,7 @@ export default async function AccountPage({
   if (testDrives.data && testDrives.data.actor.userId !== profile.userId) {
     throw new Error("Account identity could not be confirmed");
   }
+  const initialSection = sectionFromParam(params.section);
   return (
     <AccountWorkspace
       key={profile.userId}
@@ -74,6 +76,7 @@ export default async function AccountPage({
       reservationFilters={reservationFilters}
       testDrives={testDrives}
       testDriveQuery={testDriveQuery}
+      initialSection={initialSection}
     />
   );
 }

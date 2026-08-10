@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { Button, buttonClassName } from "@/components/ui/Button";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
+import { Icon } from "@/components/ui/Icon";
 import { useIntakeActor } from "@/hooks/use-intake-actor";
 import { useInitialToast } from "@/hooks/use-initial-toast";
 import { useVehicleReservation } from "@/hooks/use-vehicle-reservation";
@@ -20,13 +21,17 @@ export function VehicleReservation({
   access,
   promo,
   promoBusy,
+  testDrive,
   financing,
+  onReserved,
 }: {
   detail: PublicVehicleDetail;
   access: CustomerVehicleAccess;
   promo: PurchaseQuote | null;
   promoBusy: boolean;
+  testDrive?: ReactNode;
   financing: ReactNode;
+  onReserved?: () => void;
 }) {
   const actor = useIntakeActor(access.actor ?? undefined);
   useInitialToast(
@@ -46,6 +51,7 @@ export function VehicleReservation({
           >
             Sign in to reserve this car
           </Link>
+          {testDrive}
           {financing}
         </div>
       </div>
@@ -54,6 +60,7 @@ export function VehicleReservation({
   if (access.status === 403) {
     return (
       <div className={styles.reservation}>
+        {testDrive}
         {financing}
         <p className={styles.help}>Reservations require a Customer account.</p>
       </div>
@@ -65,6 +72,7 @@ export function VehicleReservation({
         <Button variant="secondary" onClick={() => window.location.reload()}>
           Retry account check
         </Button>
+        {testDrive}
         {financing}
       </div>
     );
@@ -76,6 +84,7 @@ export function VehicleReservation({
           <Link href="/account" prefetch={false} className={buttonClassName("primary", "md")}>
             Verify email to reserve
           </Link>
+          {testDrive}
           {financing}
         </div>
       </div>
@@ -88,7 +97,9 @@ export function VehicleReservation({
       account={access.account}
       promo={promo}
       disabled={!actor.ready || promoBusy}
+      testDrive={testDrive}
       financing={financing}
+      onReserved={onReserved}
     />
   );
 }
@@ -98,63 +109,76 @@ function CustomerReservation({
   account,
   promo,
   disabled,
+  testDrive,
   financing,
+  onReserved,
 }: {
   detail: PublicVehicleDetail;
   account: CustomerAccount;
   promo: PurchaseQuote | null;
   disabled: boolean;
+  testDrive?: ReactNode;
   financing: ReactNode;
+  onReserved?: () => void;
 }) {
   const reservation = useVehicleReservation(detail, account);
   const { command } = reservation;
   const receipt = command.receipt;
   const price = promo?.price ?? detail.price;
+
+  useEffect(() => {
+    if (receipt) {
+      onReserved?.();
+    }
+  }, [receipt, onReserved]);
+
   if (receipt) {
     return (
-      <section className={styles.receipt} aria-label="Reservation confirmation" tabIndex={-1}>
-        <h2>Reservation confirmed</h2>
-        <dl>
-          <div>
-            <dt>Reference</dt>
-            <dd>{receipt.number}</dd>
+      <div className={styles.confirmedWrap}>
+        <section className={styles.receipt} aria-label="Reservation confirmation" tabIndex={-1}>
+          <div className={styles.receiptHeader}>
+            <span className={styles.receiptTitle}>
+              <Icon name="shield-check" />
+              <h2>Reservation confirmed</h2>
+            </span>
+            <span className={styles.holdBadge}>48-hour hold</span>
           </div>
-          <div>
-            <dt>Buyer</dt>
-            <dd>{receipt.buyer.legalName}</dd>
-          </div>
-          <div>
-            <dt>Reserved total</dt>
-            <dd>{formatCurrency(receipt.price.total)}</dd>
-          </div>
-          <div>
-            <dt>Simulated deposit</dt>
-            <dd>{formatCurrency(receipt.deposit)}</dd>
-          </div>
-          <div>
-            <dt>Created</dt>
-            <dd>{formatMalaysianDateTime(receipt.createdAt)}</dd>
-          </div>
-          <div>
-            <dt>Hold expires</dt>
-            <dd>{formatMalaysianDateTime(receipt.expiresAt)}</dd>
-          </div>
-          <div>
-            <dt>Accepted promo</dt>
-            <dd>{receipt.promoCode ?? "None"}</dd>
-          </div>
-        </dl>
-        <p>
-          Keep this reference. Confirmation email delivery may take a moment. The deposit is
-          included in your cash contribution.
-        </p>
-        <Link href="/vehicles" prefetch={false}>
-          Back to vehicles
-        </Link>
-        {financing}
-      </section>
+          <dl className={styles.receiptGrid}>
+            <div>
+              <dt>Reference</dt>
+              <dd>{receipt.number}</dd>
+            </div>
+            <div>
+              <dt>Simulated deposit</dt>
+              <dd>{formatCurrency(receipt.deposit)}</dd>
+            </div>
+            <div>
+              <dt>Hold expires</dt>
+              <dd>{formatMalaysianDateTime(receipt.expiresAt)}</dd>
+            </div>
+            <div>
+              <dt>Promo</dt>
+              <dd>{receipt.promoCode ?? "None"}</dd>
+            </div>
+          </dl>
+          <p className={styles.receiptNote}>
+            Deposit counts toward your cash down payment. Receipt emailed separately.
+          </p>
+        </section>
+        <div className={styles.actions}>
+          <Link
+            href="/account#reservations"
+            prefetch={false}
+            className={buttonClassName("primary", "md")}
+          >
+            Manage reservation in account
+          </Link>
+          {financing}
+        </div>
+      </div>
     );
   }
+
   return (
     <div className={styles.reservation}>
       <div className={styles.actions}>
@@ -164,6 +188,7 @@ function CustomerReservation({
         >
           Reserve this car
         </Button>
+        {testDrive}
         {financing}
       </div>
       <ConfirmationDialog
