@@ -1,0 +1,68 @@
+.list {
+  display: grid;
+  gap: 12px;
+}
+
+.row {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--color-line-soft);
+  border-radius: 4px;
+}
+
+.placeholder {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--color-line-soft);
+}
+
+.placeholder::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-paper) 65%, transparent),
+    transparent
+  );
+  content: "";
+  transform: translateX(-100%);
+  animation: shimmer 2.4s linear infinite;
+}
+
+.summary {
+  width: 180px;
+  height: 16px;
+}
+
+.title {
+  width: 45%;
+  height: 20px;
+}
+
+.detail {
+  width: 70%;
+  height: 14px;
+}
+
+.badge {
+  width: 84px;
+  height: 22px;
+  border-radius: 999px;
+}
+
+@keyframes shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .placeholder::after {
+    animation: none;
+    background: none;
+  }
+}

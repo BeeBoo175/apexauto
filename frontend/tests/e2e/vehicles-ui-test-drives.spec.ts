@@ -149,7 +149,7 @@ test("customer booking and cancellation reconcile exact receipts before manager 
   await history.getByLabel("To (Malaysia)", { exact: true }).fill("");
   await history.getByRole("button", { name: "Apply filters", exact: true }).click();
   await expect(history.locator("details")).toHaveCount(1);
-  await expect(page).toHaveURL(new RegExp(`testDriveSearch=${firstBooking}`));
+  await expect(page).toHaveURL(new RegExp(`search=${firstBooking}`));
   const cancellationBodies: string[] = [];
   const cancelRoute = `**/api/account/test-drives/${firstBooking}/cancellations`;
   await page.route(cancelRoute, async (route) => {
@@ -316,7 +316,7 @@ test("customer booking and cancellation reconcile exact receipts before manager 
     await manager.close();
     await agent.close();
   }
-  await page.goto("/account#test-drives");
+  await page.goto("/account/test-drives");
   await expect(history.locator("details").filter({ hasText: completedBooking })).toContainText(
     "Completed",
   );

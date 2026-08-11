@@ -2,10 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
+import { useLoadingProgress, useLoadingProgressReady } from "@/components/ui/LoadingProgress";
 import { privateApiFetch } from "@/lib/api-browser";
-import type { ApiResult } from "@/lib/api";
 import { dateRangeError, type HistoryFilters } from "@/lib/intake/list-query";
-import { useInitialToast } from "./use-initial-toast";
 import { writeAddress } from "@/lib/browser-url";
 
 interface SearchableHistoryFilters extends HistoryFilters {
@@ -21,26 +20,32 @@ interface AccountHistoryResource<T extends HistoryPage, F extends SearchableHist
   parse: (value: unknown) => T | null;
   // Extra checks beyond the confirmed page number, such as actor identity.
   confirms?: (history: T) => boolean;
-  // URL parameter prefix, such as "reservation" for reservationPage and reservationFrom.
-  prefix: string;
   failureMessage: string;
+  loadingLabel: string;
 }
 
 export function useAccountHistory<T extends HistoryPage, F extends SearchableHistoryFilters>(
-  initial: ApiResult<T>,
   initialPage: number,
   initialFilters: F,
   resource: AccountHistoryResource<T, F>,
 ) {
-  const [snapshot, setSnapshot] = useState(initial.data);
+  const [snapshot, setSnapshot] = useState<T | null>(null);
   const [page, setPage] = useState(initialPage);
   const [filters, setFilters] = useState(initialFilters);
   const [draft, setDraft] = useState(initialFilters);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(true);
   const controller = useRef<AbortController | null>(null);
+  // The entry read mirrors the address that is already shown, so it must not rewrite it with defaults.
+  const entryRead = useRef(true);
   const toast = useToast();
-  useInitialToast(initial.message);
+  useLoadingProgress(resource.loadingLabel, busy);
+  useLoadingProgressReady(!busy);
   useEffect(() => () => controller.current?.abort(), []);
+  useEffect(() => {
+    // Every section reads its first page in the browser when it opens.
+    void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function load(nextPage = page, nextFilters = filters) {
     const invalid = dateRangeError(nextFilters);
@@ -70,7 +75,10 @@ export function useAccountHistory<T extends HistoryPage, F extends SearchableHis
       setSnapshot(result.data);
       setPage(nextPage);
       setFilters(nextFilters);
-      writeHistoryUrl(resource.prefix, nextPage, nextFilters);
+      if (!entryRead.current) {
+        writeHistoryUrl(nextPage, nextFilters);
+      }
+      entryRead.current = false;
     } catch {
       if (!attempt.signal.aborted) {
         toast.error(resource.failureMessage);
@@ -90,13 +98,13 @@ export function useAccountHistory<T extends HistoryPage, F extends SearchableHis
   return { snapshot, setSnapshot, page, filters, draft, setDraft, busy, load, abort };
 }
 
-function writeHistoryUrl(prefix: string, page: number, filters: SearchableHistoryFilters) {
+function writeHistoryUrl(page: number, filters: SearchableHistoryFilters) {
   const url = new URL(window.location.href);
-  url.searchParams.set(`${prefix}Page`, String(page));
+  url.searchParams.set("page", String(page));
   for (const [key, value] of [
-    [`${prefix}From`, filters.from],
-    [`${prefix}To`, filters.to],
-    [`${prefix}Search`, filters.search.trim()],
+    ["from", filters.from],
+    ["to", filters.to],
+    ["search", filters.search.trim()],
   ]) {
     if (value) {
       url.searchParams.set(key, value);

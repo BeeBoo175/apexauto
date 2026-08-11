@@ -3,27 +3,25 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { useAppointmentHistory } from "@/hooks/use-appointment-history";
-import type { ApiResult, Page } from "@/lib/api";
 import type { Appointment } from "@/lib/intake/contracts";
 import type { HistoryFilters } from "@/lib/intake/list-query";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { CancelAppointment } from "./CancelAppointment";
 import { EmptyState } from "./EmptyState";
 import { HistoryFilterForm } from "./HistoryFilterForm";
+import { AccountLoadingShell } from "./AccountLoadingShell";
 import styles from "./Account.module.css";
 
 export function AppointmentHistory({
-  initial,
   filters,
   page,
   ready,
 }: {
-  initial: ApiResult<Page<Appointment>>;
   filters: HistoryFilters;
   page: number;
   ready: boolean;
 }) {
-  const history = useAppointmentHistory(initial, filters, page);
+  const history = useAppointmentHistory(filters, page);
   const [cancelling, setCancelling] = useState<Appointment | null>(null);
   const { snapshot, active, draft } = history;
   const disabled = !ready || history.busy || Boolean(cancelling);
@@ -38,6 +36,12 @@ export function AppointmentHistory({
           </p>
         </div>
       </div>
+      {!snapshot && history.busy && <AccountLoadingShell label="Loading appointments" />}
+      {!snapshot && !history.busy && (
+        <Button variant="secondary" disabled={disabled} onClick={() => void history.load()}>
+          Try loading appointments again
+        </Button>
+      )}
       {!empty && (
         <HistoryFilterForm
           draft={draft}

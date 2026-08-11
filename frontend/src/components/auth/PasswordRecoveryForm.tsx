@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { usePasswordRecovery } from "@/hooks/use-password-recovery";
 import styles from "./AuthForm.module.css";
+import { useLoadingProgress } from "@/components/ui/LoadingProgress";
 
 export function PasswordRecoveryForm() {
   const [hydrated, setHydrated] = useState(false);
@@ -14,6 +15,7 @@ export function PasswordRecoveryForm() {
   }, []);
 
   const { email, setEmail, busy, uncertain, submit } = usePasswordRecovery();
+  useLoadingProgress("Requesting a reset link", busy);
   let label = "Send reset link";
 
   if (uncertain) {

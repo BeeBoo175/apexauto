@@ -114,8 +114,8 @@ test("customer history accepts no registration and keeps an independent active h
   ]) {
     expect(parseAccountReservations({ ...snapshot, ...change })).toBeNull();
   }
-  expect(accountReservationPage({ page: "3", reservationPage: "2" })).toBe(2);
-  expect(accountReservationPage({ reservationPage: "2147483648" })).toBe(1);
+  expect(accountReservationPage({ page: "3" })).toBe(3);
+  expect(accountReservationPage({ page: "2147483648" })).toBe(1);
 });
 
 test("customer cancellation requires the exact operation, target and actor without a staff reason", () => {
@@ -137,12 +137,12 @@ test("customer cancellation requires the exact operation, target and actor witho
   }
 });
 
-test("reservation filters stay independent from appointments and recognized conflicts use safe guidance", () => {
+test("reservation filters read the plain section keys and ignore the retired prefixed keys and recognized conflicts use safe guidance", () => {
   const filters = accountReservationFilters({
-    from: "2026-01-01",
-    reservationFrom: "2026-10-30",
-    reservationTo: "2026-10-31",
-    reservationSearch: "  Petaling Jaya  ",
+    from: "2026-10-30",
+    to: "2026-10-31",
+    search: "  Petaling Jaya  ",
+    reservationFrom: "2026-01-01",
   });
   expect(Object.fromEntries(new URLSearchParams(accountReservationQuery(2, filters)))).toEqual({
     page: "2",
@@ -150,9 +150,7 @@ test("reservation filters stay independent from appointments and recognized conf
     to: "2026-10-31",
     search: "Petaling Jaya",
   });
-  expect(accountReservationFilters({ reservationSearch: "x".repeat(161) }).search).toHaveLength(
-    160,
-  );
+  expect(accountReservationFilters({ search: "x".repeat(161) }).search).toHaveLength(160);
   expect(parseReservationConflict("customer-has-reservation")?.message).toContain("sales team");
   expect(parseReservationConflict("vehicle-reserved")?.message).toContain("another customer");
   expect(parseReservationConflict("private backend error")).toBeUndefined();

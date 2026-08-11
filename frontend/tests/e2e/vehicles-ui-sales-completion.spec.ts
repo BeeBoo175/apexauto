@@ -346,7 +346,7 @@ test("sales settlement, handover, corrections and own customer PDFs retain exact
       404,
     );
     await customerPage.goto(
-      `/account?reservationSearch=${encodeURIComponent(sale.context.reservationNumber)}`,
+      `/account?search=${encodeURIComponent(sale.context.reservationNumber)}`,
       {
         waitUntil: "domcontentloaded",
         timeout: 30_000,

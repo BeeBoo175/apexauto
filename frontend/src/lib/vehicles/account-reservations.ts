@@ -141,13 +141,12 @@ export interface ReservationFilters extends HistoryFilters {
   search: string;
 }
 
-// Reservation filters travel as reservationFrom/reservationTo/reservationSearch so they never collide with the appointment dates.
+// The section path scopes these keys, so they use the same names as every other history list.
 export function accountReservationFilters(params: SearchParams): ReservationFilters {
   return {
-    from: typeof params.reservationFrom === "string" ? params.reservationFrom : "",
-    to: typeof params.reservationTo === "string" ? params.reservationTo : "",
-    search:
-      typeof params.reservationSearch === "string" ? params.reservationSearch.slice(0, 160) : "",
+    from: typeof params.from === "string" ? params.from : "",
+    to: typeof params.to === "string" ? params.to : "",
+    search: typeof params.search === "string" ? params.search.slice(0, 160) : "",
   };
 }
 
@@ -166,7 +165,7 @@ export function accountReservationQuery(page: number, filters: ReservationFilter
 }
 
 export function accountReservationPage(params: SearchParams) {
-  const page = Number(params.reservationPage);
+  const page = Number(params.page);
   return Number.isSafeInteger(page) && page > 0 && page <= 2147483647 ? page : 1;
 }
 

@@ -103,7 +103,7 @@ function CustomerTestDrive({
                 Bring your valid driving licence. You can view or cancel your booking in your
                 account.
               </p>
-              <Link href="/account#test-drives" prefetch={false}>
+              <Link href="/account/test-drives" prefetch={false}>
                 Your test drives
               </Link>
               <Button variant="secondary" onClick={drive.close}>

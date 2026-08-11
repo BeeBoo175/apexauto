@@ -40,6 +40,7 @@ export default defineConfig({
         "accounts/staff-accounts-contracts.spec.ts",
         "accounts/relay-contracts.spec.ts",
         "accounts/accounts-location-contracts.spec.ts",
+        "accounts/account-sections-contracts.spec.ts",
         "settings/settings-location-contracts.spec.ts",
         "home/home-location-contracts.spec.ts",
         "intake/contracts.spec.ts",

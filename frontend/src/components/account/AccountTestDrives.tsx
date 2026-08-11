@@ -4,33 +4,27 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { useAccountTestDrives } from "@/hooks/use-account-test-drives";
-import type { ApiResult } from "@/lib/api";
 import { TestDriveHistoryRow } from "./TestDriveHistoryRow";
-import {
-  type TestDriveHistory,
-  type TestDriveHistoryItem,
-  type TestDriveHistoryFilters,
-} from "@/lib/test-drives/account";
+import { type TestDriveHistoryItem, type TestDriveHistoryFilters } from "@/lib/test-drives/account";
 import { CancelTestDrive } from "./CancelTestDrive";
 import { HistoryFilterForm } from "./HistoryFilterForm";
 import { EmptyState } from "./EmptyState";
+import { AccountLoadingShell } from "./AccountLoadingShell";
 import styles from "./Account.module.css";
 import historyStyles from "./ReservationHistory.module.css";
 
 export function AccountTestDrives({
-  initial,
   page,
   filters,
   actorId,
   ready,
 }: {
-  initial: ApiResult<TestDriveHistory>;
   page: number;
   filters: TestDriveHistoryFilters;
   actorId: string;
   ready: boolean;
 }) {
-  const history = useAccountTestDrives(initial, page, filters, actorId);
+  const history = useAccountTestDrives(page, filters, actorId);
   const [cancelling, setCancelling] = useState<TestDriveHistoryItem | null>(null);
   const { snapshot } = history;
   const disabled = !ready || history.busy || Boolean(cancelling);
@@ -51,9 +45,10 @@ export function AccountTestDrives({
           </p>
         </div>
       </div>
-      {!snapshot && (
+      {!snapshot && history.busy && <AccountLoadingShell label="Loading test drives" />}
+      {!snapshot && !history.busy && (
         <Button variant="secondary" disabled={disabled} onClick={() => void history.load()}>
-          {history.busy ? "Loading test drives" : "Try loading test drives again"}
+          Try loading test drives again
         </Button>
       )}
       {!empty && (

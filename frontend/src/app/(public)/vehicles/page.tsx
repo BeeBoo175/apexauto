@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { LoadingProgressProvider } from "@/components/ui/LoadingProgress";
 import { VehicleCatalogue } from "@/components/vehicles/VehicleCatalogue";
 import { parsePage } from "@/lib/api";
 import { parseBranch } from "@/lib/branches";
@@ -35,15 +34,13 @@ export default async function VehiclesPage({
   ]);
 
   return (
-    <LoadingProgressProvider initialLabel="Loading vehicles">
-      <VehicleCatalogue
-        key={query}
-        initial={catalogue}
-        filters={filters}
-        page={page}
-        branches={branches.data}
-        taxonomy={taxonomy.data}
-      />
-    </LoadingProgressProvider>
+    <VehicleCatalogue
+      key={query}
+      initial={catalogue}
+      filters={filters}
+      page={page}
+      branches={branches.data}
+      taxonomy={taxonomy.data}
+    />
   );
 }

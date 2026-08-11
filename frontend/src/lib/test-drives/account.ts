@@ -11,17 +11,12 @@ export interface TestDriveHistoryFilters extends HistoryFilters {
 }
 
 export function accountTestDriveParams(params: SearchParams) {
-  const query = historyParams({
-    page: params.testDrivePage,
-    from: params.testDriveFrom,
-    to: params.testDriveTo,
-  });
+  const query = historyParams(params);
   return {
     ...query,
     filters: {
       ...query.filters,
-      search:
-        typeof params.testDriveSearch === "string" ? params.testDriveSearch.slice(0, 160) : "",
+      search: typeof params.search === "string" ? params.search.slice(0, 160) : "",
     },
   };
 }

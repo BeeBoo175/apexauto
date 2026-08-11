@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef } from "react";
+import Link from "next/link";
 import { Button, buttonClassName } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { useIntakeActor } from "@/hooks/use-intake-actor";
@@ -87,9 +88,13 @@ function SellerWorkflow({ initial, ready }: { initial: SellerSnapshot; ready: bo
           A confirmation email is delivered separately. Your booking remains confirmed if mail is
           delayed.
         </p>
-        <a href="/account?section=appointments" className={buttonClassName("primary", "md")}>
+        <Link
+          href="/account/appointments"
+          prefetch={false}
+          className={buttonClassName("primary", "md")}
+        >
           View your appointments
-        </a>
+        </Link>
       </section>
     );
   }

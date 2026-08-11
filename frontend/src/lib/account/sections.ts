@@ -2,16 +2,30 @@ export const accountSections = [
   { id: "reservations", label: "Reservations" },
   { id: "appointments", label: "Selling appointments" },
   { id: "test-drives", label: "Test drives" },
-  { id: "account-details", label: "Account details" },
+  { id: "details", label: "Account details" },
 ] as const;
 
 export type AccountSection = (typeof accountSections)[number]["id"];
 
-export function sectionFromParam(value: string | string[] | undefined): AccountSection | undefined {
-  const token = Array.isArray(value) ? value[0] : value;
-  return accountSections.find(({ id }) => id === token)?.id;
+const accountPath = "/account";
+
+// The first section is the workspace root, so its address carries no section segment.
+export function accountSectionPath(section: AccountSection) {
+  return section === "reservations" ? accountPath : `${accountPath}/${section}`;
 }
 
-export function sectionFromHash(hash: string): AccountSection | undefined {
-  return accountSections.find(({ id }) => `#${id}` === hash)?.id;
+export function sectionFromSegments(segments: string[] | undefined): AccountSection | null {
+  if (!segments || segments.length === 0) {
+    return "reservations";
+  }
+  if (segments.length > 1) {
+    return null;
+  }
+  const named = accountSections.find(({ id }) => id === segments[0]);
+  return named && named.id !== "reservations" ? named.id : null;
+}
+
+export function sectionFromPathname(pathname: string): AccountSection {
+  const segments = pathname.split("/").filter(Boolean).slice(1);
+  return sectionFromSegments(segments) ?? "reservations";
 }

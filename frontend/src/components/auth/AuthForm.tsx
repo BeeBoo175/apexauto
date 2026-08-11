@@ -9,6 +9,7 @@ import { useToast } from "@/components/ui/Toast";
 import { DemoAccounts } from "@/components/auth/DemoAccounts";
 import type { DemoAccount } from "@/components/auth/DemoAccounts";
 import styles from "./AuthForm.module.css";
+import { useLoadingProgress } from "@/components/ui/LoadingProgress";
 
 export function AuthForm({
   kind,
@@ -26,6 +27,7 @@ export function AuthForm({
   }, []);
 
   const { busy, uncertain, submit } = useAuthMutation(kind, destination);
+  useLoadingProgress(kind === "login" ? "Signing in" : "Creating your account", busy);
   const emailInput = useRef<HTMLInputElement>(null);
   const passwordInput = useRef<HTMLInputElement>(null);
   const submitButton = useRef<HTMLButtonElement>(null);

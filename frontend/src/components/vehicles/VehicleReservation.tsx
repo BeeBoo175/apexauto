@@ -166,11 +166,7 @@ function CustomerReservation({
           </p>
         </section>
         <div className={styles.actions}>
-          <Link
-            href="/account#reservations"
-            prefetch={false}
-            className={buttonClassName("primary", "md")}
-          >
+          <Link href="/account" prefetch={false} className={buttonClassName("primary", "md")}>
             Manage reservation in account
           </Link>
           {financing}

@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { GuideHubBanner } from "@/components/guide/GuidePageShell";
 import { Button, buttonClassName } from "@/components/ui/Button";
-import { LoadingProgress, LoadingProgressReady } from "@/components/ui/LoadingProgress";
+import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { type CatalogueDraftSync, useVehicleCatalogue } from "@/hooks/use-vehicle-catalogue";
 import type { ApiResult, Page } from "@/lib/api";
 import type { Branch } from "@/lib/branches";
@@ -59,7 +59,6 @@ export function VehicleCatalogue({
 
   return (
     <section className={styles.page}>
-      <LoadingProgressReady />
       <LoadingProgress label="Loading vehicles" active={busy} />
       <LoadingProgress label="Loading showroom branches" active={catalogue.branchBusy} />
 

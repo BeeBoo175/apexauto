@@ -113,7 +113,7 @@ test("registration, unverified own account, bounded refresh and current-session 
   expect(await page.evaluate(() => document.cookie)).not.toContain("apexauto_token");
 
   const sameActorTab = await context.newPage();
-  const accountDocument = await sameActorTab.goto("/account#account-details");
+  const accountDocument = await sameActorTab.goto("/account/details");
   expect(accountDocument).not.toBeNull();
   const accountHeaders = accountDocument!.headers();
   expect(accountHeaders["cache-control"]).toContain("no-store");
@@ -176,7 +176,7 @@ test("registration, unverified own account, bounded refresh and current-session 
   fault("");
   await page.getByRole("button", { name: "Retry sign out" }).click();
   await expect(page).toHaveURL(`${origin}/login`);
-  await expect(sameActorTab).toHaveURL(/\/login(?:#account-details)?$/);
+  await expect(sameActorTab).toHaveURL(/\/login$/);
   await expect(sameActorTab.getByText(owner.legalName, { exact: true })).toHaveCount(0);
   expect(
     (await context.cookies()).find((entry) => entry.name === "apexauto_token"),

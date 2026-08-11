@@ -1,67 +1,57 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { AccountPanel } from "@/components/auth/AccountPanel";
 import { useIntakeActor } from "@/hooks/use-intake-actor";
 import type { AccountProfile } from "@/lib/account/contracts";
 import {
+  accountSectionPath,
   accountSections as sections,
-  sectionFromHash,
+  sectionFromPathname,
   type AccountSection,
 } from "@/lib/account/sections";
-import type { ApiResult, Page } from "@/lib/api";
-import type { Appointment } from "@/lib/intake/contracts";
+import { writeAddress } from "@/lib/browser-url";
 import type { HistoryFilters } from "@/lib/intake/list-query";
 import { AppointmentHistory } from "./AppointmentHistory";
 import { AccountReservations } from "./AccountReservations";
 import { AccountTestDrives } from "./AccountTestDrives";
-import type { TestDriveHistory, TestDriveHistoryFilters } from "@/lib/test-drives/account";
-import type {
-  AccountReservations as ReservationSnapshot,
-  ReservationFilters,
-} from "@/lib/vehicles/account-reservations";
+import type { TestDriveHistoryFilters } from "@/lib/test-drives/account";
+import type { ReservationFilters } from "@/lib/vehicles/account-reservations";
 import styles from "./Account.module.css";
-import { writeAddress } from "@/lib/browser-url";
+
+interface SectionEntry<Filters> {
+  page: number;
+  filters: Filters;
+}
+
+const emptyDates: HistoryFilters = { from: "", to: "" };
+const emptySearch: ReservationFilters & TestDriveHistoryFilters = { from: "", to: "", search: "" };
 
 export function AccountWorkspace({
   profile,
-  history,
-  filters,
-  page,
+  section: entrySection,
+  appointments,
   reservations,
-  reservationPage,
-  reservationFilters,
   testDrives,
-  testDriveQuery,
-  initialSection = "reservations",
 }: {
   profile: AccountProfile;
-  history: ApiResult<Page<Appointment>> | null;
-  filters: HistoryFilters;
-  page: number;
-  reservations: ApiResult<ReservationSnapshot>;
-  reservationPage: number;
-  reservationFilters: ReservationFilters;
-  testDrives: ApiResult<TestDriveHistory>;
-  testDriveQuery: { page: number; filters: TestDriveHistoryFilters };
-  initialSection?: AccountSection;
+  section: AccountSection;
+  appointments: SectionEntry<HistoryFilters> | null;
+  reservations: SectionEntry<ReservationFilters> | null;
+  testDrives: SectionEntry<TestDriveHistoryFilters> | null;
 }) {
   const actor = useIntakeActor({ userId: profile.userId, role: "Customer", branchId: null });
-  const [section, setSection] = useState<AccountSection>(initialSection);
-  useEffect(() => {
-    function sync() {
-      const next = sectionFromHash(window.location.hash);
-      if (next) {
-        setSection(next);
-      }
-    }
-    queueMicrotask(sync);
-    window.addEventListener("hashchange", sync);
-    return () => window.removeEventListener("hashchange", sync);
-  }, []);
+  const section = sectionFromPathname(usePathname());
+  // A section mounts the first time it is opened and then stays mounted, keeping its drafts.
+  const [opened, setOpened] = useState<AccountSection[]>([entrySection]);
+  if (!opened.includes(section)) {
+    setOpened([...opened, section]);
+  }
   if (!actor.active) {
     return null;
   }
+  const mounted = (id: AccountSection) => opened.includes(id) || section === id;
   return (
     <section className={styles.page}>
       <header className={styles.heroBand}>
@@ -77,13 +67,12 @@ export function AccountWorkspace({
           {sections.map(({ id, label }) => (
             <a
               key={id}
-              href={`#${id}`}
+              href={accountSectionPath(id)}
               aria-current={section === id ? "location" : undefined}
               onClick={(event) => {
                 if (event.button === 0 && !(event.metaKey || event.ctrlKey || event.shiftKey)) {
                   event.preventDefault();
-                  setSection(id);
-                  writeAddress(`/account#${id}`);
+                  writeAddress(accountSectionPath(id), null, "push");
                 }
               }}
             >
@@ -94,43 +83,44 @@ export function AccountWorkspace({
       </div>
       <div className={styles.content}>
         <div hidden={section !== "reservations"}>
-          <AccountReservations
-            initial={reservations}
-            page={reservationPage}
-            filters={reservationFilters}
-            actorId={profile.userId}
-            ready={actor.ready}
-          />
-        </div>
-        <div id="appointments" className={styles.panel} hidden={section !== "appointments"}>
-          {history ? (
-            <AppointmentHistory
-              initial={history}
-              filters={filters}
-              page={page}
+          {mounted("reservations") && (
+            <AccountReservations
+              page={reservations?.page ?? 1}
+              filters={reservations?.filters ?? emptySearch}
+              actorId={profile.userId}
               ready={actor.ready}
             />
-          ) : (
-            <section aria-labelledby="appointments-title">
-              <h2 id="appointments-title">Your appointments</h2>
-              <p className={styles.help}>Verify your email to view your appointment history.</p>
-            </section>
           )}
         </div>
-        <div id="test-drives" className={styles.panel} hidden={section !== "test-drives"}>
-          <AccountTestDrives
-            initial={testDrives}
-            page={testDriveQuery.page}
-            filters={testDriveQuery.filters}
-            actorId={profile.userId}
-            ready={actor.ready}
-          />
+        <div className={styles.panel} hidden={section !== "appointments"}>
+          {mounted("appointments") &&
+            (profile.emailVerified ? (
+              <AppointmentHistory
+                filters={appointments?.filters ?? emptyDates}
+                page={appointments?.page ?? 1}
+                ready={actor.ready}
+              />
+            ) : (
+              <section aria-labelledby="appointments-title">
+                <h2 id="appointments-title">Your appointments</h2>
+                <p className={styles.help}>Verify your email to view your appointment history.</p>
+              </section>
+            ))}
+        </div>
+        <div className={styles.panel} hidden={section !== "test-drives"}>
+          {mounted("test-drives") && (
+            <AccountTestDrives
+              page={testDrives?.page ?? 1}
+              filters={testDrives?.filters ?? emptySearch}
+              actorId={profile.userId}
+              ready={actor.ready}
+            />
+          )}
         </div>
         <section
-          id="account-details"
           className={styles.panel}
           aria-labelledby="account-details-title"
-          hidden={section !== "account-details"}
+          hidden={section !== "details"}
         >
           <AccountPanel profile={profile} />
         </section>

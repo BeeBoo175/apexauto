@@ -1,25 +1,24 @@
 "use client";
 
-import type { ApiResult } from "@/lib/api";
 import {
   accountReservationQuery,
   parseAccountReservations,
   type ReservationFilters,
   type AccountReservation,
-  type AccountReservations,
 } from "@/lib/vehicles/account-reservations";
 import type { CustomerReservationCancellation } from "@/lib/vehicles/customer-reservation-cancellation";
 import { useAccountHistory } from "./use-account-history";
 
 export function useAccountReservations(
-  initial: ApiResult<AccountReservations>,
   initialPage: number,
   initialFilters: ReservationFilters,
+  actorId: string,
 ) {
-  const history = useAccountHistory(initial, initialPage, initialFilters, {
+  const history = useAccountHistory(initialPage, initialFilters, {
     path: (filters, page) => `/api/account/reservations?${accountReservationQuery(page, filters)}`,
     parse: parseAccountReservations,
-    prefix: "reservation",
+    confirms: (confirmed) => confirmed.actor.userId === actorId,
+    loadingLabel: "Loading reservations",
     failureMessage:
       "Reservations could not be refreshed. Your last confirmed records remain shown.",
   });

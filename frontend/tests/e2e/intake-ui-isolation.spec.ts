@@ -78,7 +78,7 @@ test("changed customer cookies clear prior snapshots and unavailable session rea
   await expect(page).toHaveURL(/\/account$/);
   await expect(page.getByText("Welcome back, Tan Hui Min.", { exact: true })).toBeVisible();
   const other = await context.newPage();
-  await other.goto("/account#account-details");
+  await other.goto("/account/details");
   await other.getByRole("button", { name: "Sign out", exact: true }).click();
   await expect(page).toHaveURL(/\/login$/);
   await expect(page.getByText("Tan Hui Min", { exact: true })).toHaveCount(0);

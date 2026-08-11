@@ -52,39 +52,49 @@ function startStroke(bar: HTMLElement) {
   });
 }
 
+// `initialPending` keeps the bar running until the first entry read reports ready (the dashboard). Pages that
+// render their content on the server leave it false, so the bar only appears while a registered read runs.
 export function LoadingProgressProvider({
   children,
   initialLabel = "Opening workspace",
+  initialPending: startsPending = true,
 }: {
   children: ReactNode;
   initialLabel?: string;
+  initialPending?: boolean;
 }) {
   const element = useRef<HTMLSpanElement>(null);
+  const barId = useId();
   const started = useRef(0);
   const opening = useRef<Animation | null>(null);
-  const [initialPending, setInitialPending] = useState(true);
+  const [initialPending, setInitialPending] = useState(startsPending);
   const [activities, setActivities] = useState(() => new Map<string, string>());
   const active = initialPending || activities.size > 0;
   const ready = useCallback(() => setInitialPending(false), []);
-  const register = useCallback((id: string, label: string) => {
-    // Show the bar in the same frame as the interaction that started the work, instead of after the re-render the
-    // registration causes; the effect below then takes over the same stroke.
-    // Found by its attribute rather than the effect's ref: the dashboard renders one bar.
-    const bar = document.querySelector<HTMLElement>("[data-loading-progress]");
-    const stroke = bar ? startStroke(bar) : null;
-    if (stroke) {
-      started.current = performance.now();
-      opening.current = stroke;
-    }
-    setActivities((current) => new Map(current).set(id, label));
-    return () => {
-      setActivities((current) => {
-        const next = new Map(current);
-        next.delete(id);
-        return next;
-      });
-    };
-  }, []);
+  const register = useCallback(
+    (id: string, label: string) => {
+      // Show the bar in the same frame as the interaction that started the work, instead of after the re-render the
+      // registration causes; the effect below then takes over the same stroke.
+      // Found by this provider's own id, so a bar nested under another provider never starts the outer one.
+      const bar = document.querySelector<HTMLElement>(
+        `[data-loading-progress="${CSS.escape(barId)}"]`,
+      );
+      const stroke = bar ? startStroke(bar) : null;
+      if (stroke) {
+        started.current = performance.now();
+        opening.current = stroke;
+      }
+      setActivities((current) => new Map(current).set(id, label));
+      return () => {
+        setActivities((current) => {
+          const next = new Map(current);
+          next.delete(id);
+          return next;
+        });
+      };
+    },
+    [barId],
+  );
 
   useEffect(() => {
     const bar = element.current;
@@ -195,7 +205,8 @@ export function LoadingProgressProvider({
         className={styles.progress}
         role="progressbar"
         aria-label={label}
-        data-loading-progress=""
+        data-loading-progress={barId}
+        hidden={!startsPending}
       >
         <span className={styles.track} />
       </span>

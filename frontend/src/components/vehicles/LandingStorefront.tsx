@@ -1,6 +1,5 @@
 "use client";
 
-import { LoadingProgressReady } from "@/components/ui/LoadingProgress";
 import { useInitialToast } from "@/hooks/use-initial-toast";
 import { useVehicleTradeIn } from "@/hooks/use-vehicle-trade-in";
 import type { ApiResult, Page } from "@/lib/api";
@@ -56,7 +55,6 @@ export function LandingStorefront({
 
   return (
     <>
-      <LoadingProgressReady />
       <LandingHero
         taxonomy={tradeIn.taxonomy ?? initialTaxonomy.data}
         branches={branches}

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { LoadingProgressProvider } from "@/components/ui/LoadingProgress";
 import { LandingStorefront } from "@/components/vehicles/LandingStorefront";
 import { parsePage } from "@/lib/api";
 import { parseBranch } from "@/lib/branches";
@@ -27,12 +26,10 @@ export default async function Home() {
   ]);
 
   return (
-    <LoadingProgressProvider initialLabel="Loading vehicles">
-      <LandingStorefront
-        initialVehicles={vehicles}
-        initialBranches={branches}
-        initialTaxonomy={taxonomy}
-      />
-    </LoadingProgressProvider>
+    <LandingStorefront
+      initialVehicles={vehicles}
+      initialBranches={branches}
+      initialTaxonomy={taxonomy}
+    />
   );
 }

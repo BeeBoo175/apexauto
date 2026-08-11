@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
 import { Button } from "@/components/ui/Button";
-import { LoadingProgress, LoadingProgressReady } from "@/components/ui/LoadingProgress";
+import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { useInitialToast } from "@/hooks/use-initial-toast";
 import { useVehiclePromo } from "@/hooks/use-vehicle-promo";
 import { useVehicleTradeIn } from "@/hooks/use-vehicle-trade-in";
@@ -51,7 +51,6 @@ export function VehicleDetail({
 
   return (
     <section className={styles.page}>
-      <LoadingProgressReady />
       <LoadingProgress
         label="Loading trade-in options"
         active={!tradeIn.taxonomy && tradeIn.busy}

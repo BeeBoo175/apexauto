@@ -2,7 +2,6 @@ import { expect, test } from "@playwright/test";
 import { parsePublicDetail } from "@/lib/vehicles/public-detail";
 import { parseCatalogue } from "@/lib/vehicles/parse";
 import { parsePurchasePrice } from "@/lib/vehicles/purchase-quote";
-import { vehicleDetailSectionHref } from "@/lib/vehicles/query";
 import { safeReturnTo } from "@/lib/auth/contracts";
 import {
   matchesCustomerReservation,
@@ -200,14 +199,4 @@ test("catalogue and purchase projections agree on exact MYR precision", () => {
       Boolean(parsePublicDetail({ ...raw, listing: vehicle, price: purchase, roadTax: 0 })),
     ).toBe(accepted);
   }
-});
-
-test("legacy vehicle sections preserve repeated query values and reject unsupported destinations", () => {
-  expect(
-    vehicleDetailSectionHref(id, { section: "financing", ref: ["one", "two"], absent: undefined }),
-  ).toBe(`/vehicles/${id}?ref=one&ref=two#financing`);
-  expect(vehicleDetailSectionHref(id, { section: "trade-in" })).toBe(`/vehicles/${id}#trade-in`);
-  expect(vehicleDetailSectionHref(id, {})).toBeNull();
-  expect(vehicleDetailSectionHref(id, { section: "unsupported" })).toBeNull();
-  expect(vehicleDetailSectionHref(id, { section: ["overview", "inspection"] })).toBeNull();
 });

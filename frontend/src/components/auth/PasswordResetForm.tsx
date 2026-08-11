@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { usePasswordReset } from "@/hooks/use-password-reset";
 import styles from "./AuthForm.module.css";
+import { useLoadingProgress } from "@/components/ui/LoadingProgress";
 
 export function PasswordResetForm() {
   const [hydrated, setHydrated] = useState(false);
@@ -15,6 +16,7 @@ export function PasswordResetForm() {
 
   const { token, password, setPassword, busy, uncertain, passwordError, submit } =
     usePasswordReset();
+  useLoadingProgress("Resetting your password", busy);
   let label = "Reset password";
 
   if (uncertain) {

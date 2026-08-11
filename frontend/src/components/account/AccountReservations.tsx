@@ -4,34 +4,31 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { useAccountReservations } from "@/hooks/use-account-reservations";
-import type { ApiResult } from "@/lib/api";
 import {
   type ReservationFilters,
   type AccountReservation,
-  type AccountReservations as ReservationSnapshot,
 } from "@/lib/vehicles/account-reservations";
 import { EmptyState } from "./EmptyState";
 import { HistoryFilterForm } from "./HistoryFilterForm";
 import { ReservedCar } from "./ReservedCar";
 import { ReservationHistoryRow } from "./ReservationHistoryRow";
 import { CancelReservation } from "./CancelReservation";
+import { AccountLoadingShell } from "./AccountLoadingShell";
 import styles from "./Reservations.module.css";
 import historyStyles from "./ReservationHistory.module.css";
 
 export function AccountReservations({
-  initial,
   page,
   filters,
   actorId,
   ready,
 }: {
-  initial: ApiResult<ReservationSnapshot>;
   page: number;
   filters: ReservationFilters;
   actorId: string;
   ready: boolean;
 }) {
-  const history = useAccountReservations(initial, page, filters);
+  const history = useAccountReservations(page, filters, actorId);
   const [cancelling, setCancelling] = useState<AccountReservation | null>(null);
   const { snapshot } = history;
   const featured = snapshot?.active;
@@ -53,9 +50,10 @@ export function AccountReservations({
         </p>
       </div>
       <div className={styles.body}>
-        {!snapshot && (
+        {!snapshot && history.busy && <AccountLoadingShell label="Loading reservations" />}
+        {!snapshot && !history.busy && (
           <Button variant="secondary" disabled={disabled} onClick={() => void history.load()}>
-            {history.busy ? "Loading reservations" : "Try loading reservations again"}
+            Try loading reservations again
           </Button>
         )}
         {featured && (

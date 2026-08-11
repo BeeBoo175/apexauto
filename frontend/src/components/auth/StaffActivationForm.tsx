@@ -4,12 +4,14 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useStaffActivation } from "@/hooks/use-staff-activation";
+import { useLoadingProgress } from "@/components/ui/LoadingProgress";
 import { roleNames, type Role } from "@/lib/auth/actor";
 import styles from "./AuthForm.module.css";
 
 export function StaffActivationForm() {
   const [hydrated, setHydrated] = useState(false);
   const activation = useStaffActivation();
+  useLoadingProgress("Activating your account", activation.busy);
   const { preview } = activation;
 
   useEffect(() => {

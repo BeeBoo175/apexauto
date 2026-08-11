@@ -6,28 +6,33 @@ import { parseAppointment } from "@/lib/intake/parse";
 import { parsePage } from "@/lib/api";
 import { ACCOUNT_PAGE_SIZE } from "@/lib/pagination";
 import { dateRangeError, historyQuery, type HistoryFilters } from "@/lib/intake/list-query";
-import type { ApiResult, Page } from "@/lib/api";
+import type { Page } from "@/lib/api";
 import type { Appointment } from "@/lib/intake/contracts";
 import { useToast } from "@/components/ui/Toast";
-import { useInitialToast } from "./use-initial-toast";
+import { useLoadingProgress, useLoadingProgressReady } from "@/components/ui/LoadingProgress";
 import { writeAddress } from "@/lib/browser-url";
 
-export function useAppointmentHistory(
-  initial: ApiResult<Page<Appointment>>,
-  filters: HistoryFilters,
-  page: number,
-) {
-  const [snapshot, setSnapshot] = useState(initial.data);
+export function useAppointmentHistory(filters: HistoryFilters, page: number) {
+  const [snapshot, setSnapshot] = useState<Page<Appointment> | null>(null);
   const [active, setActive] = useState({ filters, page });
   const [draft, setDraft] = useState(filters);
-  const [busy, setBusy] = useState(false);
-  useInitialToast(initial.message);
+  const [busy, setBusy] = useState(true);
+  useLoadingProgress("Loading appointments", busy);
+  useLoadingProgressReady(!busy);
   const controller = useRef<AbortController | null>(null);
+  // The entry read mirrors the address that is already shown, so it must not rewrite it with defaults.
+  const entryRead = useRef(true);
   const { error } = useToast();
   useEffect(() => () => controller.current?.abort(), []);
+  useEffect(() => {
+    // Every section reads its first page in the browser when it opens.
+    void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function load(nextFilters = active.filters, nextPage = active.page) {
-    if (controller.current) {
+    // An attempt aborted by unmounting must not block the load that replaces it.
+    if (controller.current && !controller.current.signal.aborted) {
       return;
     }
     const invalid = dateRangeError(nextFilters);
@@ -52,6 +57,10 @@ export function useAppointmentHistory(
       }
       setSnapshot(result.data);
       setActive({ filters: nextFilters, page: nextPage });
+      if (entryRead.current) {
+        entryRead.current = false;
+        return;
+      }
       const url = new URL(window.location.href);
       const query = new URLSearchParams(historyQuery(nextFilters, nextPage, ACCOUNT_PAGE_SIZE));
       for (const key of ["page", "pageSize", "from", "to"]) {
