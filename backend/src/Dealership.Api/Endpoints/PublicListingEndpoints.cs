@@ -19,7 +19,7 @@ public static class PublicListingEndpoints
 
     private static async Task<IResult> ReadAsync(int? page, int? pageSize, string? make, string? model, int? minimumYear,
         int? maximumYear, decimal? minimumPrice, decimal? maximumPrice, VehicleTransmission? transmission,
-        VehicleFuel? fuel, Guid? branchId, string? sort, string? direction, IPublicListingStore store,
+        VehicleFuel? fuel, Guid? branchId, string? sort, string? direction, string? search, IPublicListingStore store,
         CancellationToken cancellationToken)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -28,7 +28,7 @@ public static class PublicListingEndpoints
         {
             var filter = new PublicListingFilter(page ?? 1, make, model, minimumYear, maximumYear,
                 minimumPrice, maximumPrice, transmission, fuel, branchId, sort ?? "published", direction ?? "desc",
-                pageSize ?? PublicListingFilter.PageSize);
+                pageSize ?? PublicListingFilter.PageSize, search);
             var result = await store.ReadAsync(filter, deadline.Token);
             return result.Status switch
             {

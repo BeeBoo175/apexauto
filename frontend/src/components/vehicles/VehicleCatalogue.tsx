@@ -77,7 +77,7 @@ export function VehicleCatalogue({
           draft={catalogue.draft}
           setDraft={catalogue.setDraft}
           busy={busy}
-          apply={(next) => void applyFilters(next, "all")}
+          apply={(next) => void applyFilters({ ...next, search: active.filters.search }, "all")}
           branches={catalogue.branches}
           branchBusy={catalogue.branchBusy}
           loadBranches={(next) => void catalogue.loadBranches(next)}
@@ -94,6 +94,7 @@ export function VehicleCatalogue({
             branches={catalogue.branches}
             busy={busy}
             onApply={(next) => void applyFilters(next, "all")}
+            onSearch={(search) => void applyFilters({ ...active.filters, search }, "none")}
             onSort={(sort, direction) =>
               void applyFilters({ ...active.filters, sort, direction }, "sort")
             }

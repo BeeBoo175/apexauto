@@ -1,8 +1,16 @@
+"use client";
+
+import { useEffect, useRef } from "react";
 import { Button } from "./Button";
 import { Icon } from "./Icon";
 import { Input } from "./Input";
 import styles from "./SearchField.module.css";
 
+// Typing pauses this long before the enclosing form applies the search.
+const SEARCH_DEBOUNCE_MS = 400;
+
+// Every search bar applies itself: a pause in typing submits the enclosing form, so no one has to press a Search
+// button. A bar outside a form (a local filter) has nothing to submit and simply filters as the value changes.
 export function SearchField({
   label,
   value,
@@ -24,8 +32,40 @@ export function SearchField({
   disabledReason?: string;
   density?: "default" | "compact";
 }) {
+  const field = useRef<HTMLDivElement>(null);
+  const timer = useRef(0);
+  // A change made while a read is running waits for it, so the newest text is never dropped.
+  const queued = useRef(false);
+  const busyNow = useRef(busy);
+
+  function submit() {
+    window.clearTimeout(timer.current);
+    queued.current = false;
+    field.current?.closest("form")?.requestSubmit();
+  }
+
+  function schedule() {
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => {
+      if (busyNow.current) {
+        queued.current = true;
+        return;
+      }
+      submit();
+    }, SEARCH_DEBOUNCE_MS);
+  }
+
+  useEffect(() => {
+    busyNow.current = busy;
+    if (!busy && queued.current) {
+      submit();
+    }
+  }, [busy]);
+
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+
   return (
-    <div className={styles.field}>
+    <div ref={field} className={styles.field}>
       <Input
         label={label}
         labelHidden
@@ -36,7 +76,16 @@ export function SearchField({
         value={value}
         disabled={disabled}
         title={disabledReason}
-        onChange={(event) => onChange(event.target.value)}
+        onChange={(event) => {
+          onChange(event.target.value);
+          schedule();
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            submit();
+          }
+        }}
       />
       {onClear && (
         <Button
@@ -46,23 +95,18 @@ export function SearchField({
           aria-label="Clear search"
           title={disabledReason ?? "Clear search"}
           disabled={disabled || busy}
-          onClick={onClear}
+          onClick={() => {
+            window.clearTimeout(timer.current);
+            queued.current = false;
+            onClear();
+          }}
         >
           <Icon name="close" />
         </Button>
       )}
-      <Button
-        type="submit"
-        size="icon"
-        variant="ghost"
-        aria-label="Search"
-        title={disabledReason ?? "Search"}
-        disabled={disabled || busy}
-      >
-        <span className={styles.searchIcon}>
-          <Icon name="search" />
-        </span>
-      </Button>
+      <span className={styles.searchIcon} aria-hidden="true">
+        <Icon name="search" />
+      </span>
     </div>
   );
 }

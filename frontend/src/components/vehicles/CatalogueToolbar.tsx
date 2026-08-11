@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Select } from "@/components/ui/Input";
+import { CatalogueSearch } from "./CatalogueSearch";
 import type { Page } from "@/lib/api";
 import type { Branch } from "@/lib/branches";
 import {
@@ -21,6 +22,7 @@ interface CatalogueToolbarProps {
   branches: Page<Branch> | null;
   busy: boolean;
   onApply: (filters: CatalogueFilters) => void;
+  onSearch: (search: string) => void;
   onSort: (sort: CatalogueFilters["sort"], direction: CatalogueFilters["direction"]) => void;
 }
 
@@ -31,6 +33,7 @@ export function CatalogueToolbar({
   branches,
   busy,
   onApply,
+  onSearch,
   onSort,
 }: CatalogueToolbarProps) {
   const activeChipId = matchingQuickFilterId(active);
@@ -82,6 +85,8 @@ export function CatalogueToolbar({
 
   return (
     <div className={styles.controlsBar}>
+      <CatalogueSearch search={active.search} busy={busy} onSearch={onSearch} />
+
       <div className={styles.quickChips} role="group" aria-label="Quick vehicle filters">
         {FEATURED_QUICK_FILTERS.map((chip) => {
           const isSelected = activeChipId === chip.id;

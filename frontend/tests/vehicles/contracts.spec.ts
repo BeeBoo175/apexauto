@@ -431,6 +431,7 @@ test("catalogue filters round-trip only supported fields and preserve exact pric
     make: " Proton ",
     minimumPrice: "45000.01",
     fuel: "Electric",
+    search: "  honda city 2022 ",
     page: "3",
     customerId: ids[0],
     pageSize: "500",
@@ -440,6 +441,7 @@ test("catalogue filters round-trip only supported fields and preserve exact pric
     make: "Proton",
     minimumPrice: "45000.01",
     fuel: "Electric",
+    search: "honda city 2022",
     page: "3",
   });
   expect(query).not.toHaveProperty("customerId");

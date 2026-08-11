@@ -44,6 +44,7 @@ export interface CatalogueFilters {
   transmission: string;
   fuel: string;
   branchId: string;
+  search: string;
   sort: string;
   direction: string;
 }

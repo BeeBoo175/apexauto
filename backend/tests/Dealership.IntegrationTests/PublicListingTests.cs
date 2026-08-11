@@ -56,6 +56,12 @@ public sealed class PublicListingTests(IntakePhotoFixture fixture) : IClassFixtu
         Assert.Equal(PublicListingFilter.PageSize, firstPage.Catalogue!.Items.Count);
         Assert.Equal(RecordCount, firstPage.Catalogue.Total);
         Assert.Equal(RecordCount + 1, (await store.ReadAsync(new(), CancellationToken.None)).Catalogue!.Total);
+        var searched = await store.ReadAsync(new(Search: "  zzz-no-such-car "), CancellationToken.None);
+        Assert.Equal(0, searched.Catalogue!.Total);
+        var make = await database.Vehicles.Where(row => row.Id == records[0].VehicleId).Select(row => row.Make).SingleAsync();
+        var byMake = await store.ReadAsync(new(Search: make.ToUpperInvariant()), CancellationToken.None);
+        Assert.Equal(RecordCount + 1, byMake.Catalogue!.Total);
+        Assert.Equal(ListingStatus.Invalid, (await store.ReadAsync(new(Search: " "), CancellationToken.None)).Status);
         await ListingReadAssertions.VerifyAsync(fixture, services, data, manager, outsideManager, technician,
             records[0].VehicleId, other.VehicleId);
 

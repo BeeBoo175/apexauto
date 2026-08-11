@@ -68,6 +68,14 @@ export function buildAppliedCataloguePills(
   const minPrice = filters.minimumPrice.trim();
   const maxPrice = filters.maximumPrice.trim();
 
+  if (filters.search.trim()) {
+    pills.push({
+      key: "search",
+      label: `Search: ${filters.search.trim()}`,
+      without: { ...filters, search: "" },
+    });
+  }
+
   if (make) {
     pills.push({
       key: "make",

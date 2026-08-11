@@ -99,7 +99,7 @@ public sealed class PublicListingStore(DealershipDbContext database) : IPublicLi
     {
         var make = filter.Make?.Trim();
         var model = filter.Model?.Trim();
-        return rows.Where(row =>
+        rows = rows.Where(row =>
             (make == null || row.Vehicle.Make == make) &&
             (model == null || row.Vehicle.Model == model) &&
             (filter.BranchId == null || row.Vehicle.BranchId == filter.BranchId) &&
@@ -109,6 +109,24 @@ public sealed class PublicListingStore(DealershipDbContext database) : IPublicLi
             (filter.MaximumPrice == null || row.Revision.VehiclePrice <= filter.MaximumPrice) &&
             (filter.Transmission == null || row.Revision.Transmission == filter.Transmission) &&
             (filter.Fuel == null || row.Revision.Fuel == filter.Fuel));
+        return Search(rows, filter.Search);
+    }
+
+    // Every word must match the make, model or trim; a four digit word also matches the year.
+    private static IQueryable<PublicListingRow> Search(IQueryable<PublicListingRow> rows, string? search)
+    {
+        var terms = (search ?? string.Empty).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+            .Distinct(StringComparer.OrdinalIgnoreCase).Take(6);
+        foreach (var term in terms)
+        {
+            var pattern = LiteralSearch.Pattern(term);
+            var year = int.TryParse(term, out var parsed) ? parsed : (int?)null;
+            rows = rows.Where(row => EF.Functions.ILike(row.Vehicle.Make, pattern, "!") ||
+                EF.Functions.ILike(row.Vehicle.Model, pattern, "!") ||
+                EF.Functions.ILike(row.Vehicle.Trim, pattern, "!") || row.Vehicle.ManufactureYear == year);
+        }
+
+        return rows;
     }
 
     private static IOrderedQueryable<PublicListingRow> Order(IQueryable<PublicListingRow> rows, PublicListingFilter filter)

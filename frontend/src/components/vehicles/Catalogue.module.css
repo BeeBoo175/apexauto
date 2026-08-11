@@ -215,6 +215,10 @@
   min-width: 0;
 }
 
+.catalogueSearch {
+  min-width: 0;
+}
+
 .controlsBar {
   display: grid;
   gap: 14px;

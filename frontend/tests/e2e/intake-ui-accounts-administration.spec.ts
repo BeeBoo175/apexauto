@@ -26,7 +26,7 @@ test("administrator invites staff and suspends then restores a signed-in colleag
   await invite.getByRole("button", { name: "Send invitation", exact: true }).click();
   await expect(invite).toHaveCount(0);
   await page.getByRole("searchbox", { name: "Search staff", exact: true }).fill(invited);
-  await page.getByRole("searchbox", { name: "Search staff", exact: true }).press("Enter");
+  // No Enter and no Search button: pausing in the box applies the search by itself.
   const invitedRow = page.getByRole("row").filter({ hasText: invited });
   await expect(invitedRow).toBeVisible();
   await expect(invitedRow).toContainText("Invited");
