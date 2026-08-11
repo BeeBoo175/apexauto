@@ -59,7 +59,7 @@ public sealed class ApiRateLimitingTests
     [Fact]
     public async Task PictureReadsUseTheirOwnBudgetBesideTheApiBudget()
     {
-        using var factory = CreateFactory();
+        using var factory = CreateFactory(SlowRefill);
         for (var request = 0; request < ApiRateLimiting.RequestsPerMinute; request++)
         {
             var response = await Send(factory, FirstClient, "/api/taxonomy");
@@ -75,7 +75,7 @@ public sealed class ApiRateLimitingTests
     [Fact]
     public async Task GlobalBudgetIncludesPreflightWhileHealthProbesRemainExempt()
     {
-        using var factory = CreateFactory();
+        using var factory = CreateFactory(SlowRefill);
         using var client = factory.CreateClient();
 
         using var healthResponse = await client.GetAsync("/health");
@@ -129,9 +129,37 @@ public sealed class ApiRateLimitingTests
     }
 
     [Fact]
+    public async Task AddressBudgetRefillsSmoothlyInsteadOfWaitingForTheWindowEdge()
+    {
+        using var factory = CreateFactory(new Dictionary<string, string?>
+        {
+            ["RateLimiting:ApiRequestsPerWindow"] = "2",
+            ["RateLimiting:WindowSeconds"] = "2"
+        });
+        for (var request = 0; request < 2; request++)
+        {
+            Assert.Equal(StatusCodes.Status200OK,
+                (await Send(factory, FirstClient, "/api/taxonomy")).Response.StatusCode);
+        }
+
+        var rejected = await Send(factory, FirstClient, "/api/taxonomy");
+        Assert.Equal(StatusCodes.Status429TooManyRequests, rejected.Response.StatusCode);
+        Assert.Equal("1", rejected.Response.Headers.RetryAfter.ToString());
+
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var status = StatusCodes.Status429TooManyRequests;
+        while (status == StatusCodes.Status429TooManyRequests)
+        {
+            await Task.Delay(TimeSpan.FromMilliseconds(100), deadline.Token);
+            status = (await Send(factory, FirstClient, "/api/taxonomy")).Response.StatusCode;
+        }
+
+        Assert.Equal(StatusCodes.Status200OK, status);
+    }
+    [Fact]
     public async Task ConcurrentRequestsCannotExceedTheBudget()
     {
-        using var factory = CreateFactory();
+        using var factory = CreateFactory(SlowRefill);
         using var client = factory.CreateClient();
         var requests = Enumerable.Range(0, ApiRateLimiting.RequestsPerMinute + 20)
             .Select(_ => Send(factory, FirstClient, "/api/taxonomy"));
@@ -162,6 +190,26 @@ public sealed class ApiRateLimitingTests
     }
 
     [Fact]
+    public async Task TrustedProxyGivesEachForwardedVisitorItsOwnAnonymousBudget()
+    {
+        using var factory = CreateFactory(new Dictionary<string, string?>
+        {
+            ["RateLimiting:ApiRequestsPerWindow"] = "2",
+            ["RateLimiting:WindowSeconds"] = "3600"
+        });
+        for (var request = 0; request < 2; request++)
+        {
+            Assert.Equal(StatusCodes.Status200OK,
+                (await Send(factory, TrustedProxy, "/api/taxonomy", FirstClient)).Response.StatusCode);
+        }
+
+        Assert.Equal(StatusCodes.Status429TooManyRequests,
+            (await Send(factory, TrustedProxy, "/api/taxonomy", FirstClient)).Response.StatusCode);
+        Assert.Equal(StatusCodes.Status200OK,
+            (await Send(factory, TrustedProxy, "/api/taxonomy", SecondClient)).Response.StatusCode);
+    }
+
+    [Fact]
     public async Task ConfiguredBudgetsAndWindowReplaceTheDefaults()
     {
         using var factory = CreateFactory(new Dictionary<string, string?>
@@ -184,7 +232,7 @@ public sealed class ApiRateLimitingTests
         var rejected = await Send(factory, FirstClient, "/api/taxonomy");
         Assert.Equal(StatusCodes.Status429TooManyRequests, rejected.Response.StatusCode);
         Assert.True(int.TryParse(rejected.Response.Headers.RetryAfter, out var retrySeconds));
-        Assert.InRange(retrySeconds, 61, 120);
+        Assert.InRange(retrySeconds, 1, 120);
 
         for (var request = 0; request < 3; request++)
         {
@@ -348,6 +396,9 @@ public sealed class ApiRateLimitingTests
             using var completed = await held.WaitAsync(TimeSpan.FromSeconds(5));
         }
     }
+
+    // A one hour window refills too slowly to add a token while a test drains its burst.
+    private static Dictionary<string, string?> SlowRefill => new() { ["RateLimiting:WindowSeconds"] = "3600" };
 
     internal static WebApplicationFactory<Program> CreateFactory(Dictionary<string, string?>? overrides = null)
     {

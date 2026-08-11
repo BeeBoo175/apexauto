@@ -8,7 +8,7 @@ namespace Dealership.Api.Configuration;
 
 public static class ApiRateLimiting
 {
-    public const int RequestsPerMinute = 100;
+    public const int RequestsPerMinute = 300;
     public const int PictureReadsPerMinute = 300;
     public const int LoginAttemptsPerMinute = 5;
     public const string LoginPolicy = "login";
@@ -85,22 +85,32 @@ public static class ApiRateLimiting
                 var budget = bearer ? settings.BearerRequestsPerWindow : settings.ApiRequestsPerWindow;
                 var prefix = bearer ? "bearer:" : "api:";
                 var partition = (pictures ? "pictures:" : prefix) + GetClientAddress(context);
-                return RateLimitPartition.GetFixedWindowLimiter(partition, _ => new FixedWindowRateLimiterOptions
-                {
-                    PermitLimit = pictures ? settings.PictureReadsPerWindow : budget,
-                    Window = window,
-                    // Reject immediately so bursts do not accumulate pending requests.
-                    QueueLimit = 0,
-                    AutoReplenishment = true
-                });
+                return RateLimitPartition.GetTokenBucketLimiter(
+                    partition,
+                    _ => SmoothBudget(pictures ? settings.PictureReadsPerWindow : budget, window));
             });
-
             options.OnRejected = (context, _) => new ValueTask(RejectAsync(context.HttpContext, context.Lease));
         });
 
         return services;
     }
 
+    // One smooth address budget: a burst of `budget` that refills evenly across the window, so a
+    // short burst never costs a full dead window and the window edge has no cliff.
+    internal static TokenBucketRateLimiterOptions SmoothBudget(int budget, TimeSpan window)
+    {
+        var period = TimeSpan.FromSeconds(Math.Max(0.1, window.TotalSeconds / budget));
+        var tokens = Math.Max(1, (int)Math.Round(budget * period.TotalSeconds / window.TotalSeconds));
+        return new TokenBucketRateLimiterOptions
+        {
+            TokenLimit = budget,
+            TokensPerPeriod = tokens,
+            ReplenishmentPeriod = period,
+            AutoReplenishment = true,
+            // Reject immediately so bursts do not accumulate pending requests.
+            QueueLimit = 0
+        };
+    }
     internal static Task RejectAsync(HttpContext context, RateLimitLease lease)
     {
         var seconds = lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter)

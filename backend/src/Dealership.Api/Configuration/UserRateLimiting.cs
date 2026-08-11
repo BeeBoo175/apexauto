@@ -23,13 +23,8 @@ public sealed class UserRateLimiting : IMiddleware, IDisposable
                 QueueLimit = 0
             }));
         _writes = PartitionedRateLimiter.Create<HttpContext, Guid>(context =>
-            RateLimitPartition.GetFixedWindowLimiter(Subject(context), _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = settings.UserWritesPerWindow,
-                Window = TimeSpan.FromSeconds(settings.WindowSeconds),
-                AutoReplenishment = true,
-                QueueLimit = 0
-            }));
+            RateLimitPartition.GetTokenBucketLimiter(Subject(context), _ =>
+                ApiRateLimiting.SmoothBudget(settings.UserWritesPerWindow, TimeSpan.FromSeconds(settings.WindowSeconds))));
     }
 
     public async Task InvokeAsync(HttpContext context, RequestDelegate next)

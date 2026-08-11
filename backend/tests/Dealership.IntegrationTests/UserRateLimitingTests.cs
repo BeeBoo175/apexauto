@@ -53,7 +53,7 @@ public sealed class UserRateLimitingTests(IntakePhotoFixture fixture) : IClassFi
                 (await Send(factory, firstToken, "/api/account/username", method: HttpMethods.Put)).Response.StatusCode);
         }
 
-        AssertRejected(await Send(factory, firstToken, "/api/account/username", method: HttpMethods.Put), 60);
+        AssertRejected(await Send(factory, firstToken, "/api/account/username", method: HttpMethods.Put), 30);
         Assert.Equal(StatusCodes.Status400BadRequest,
             (await Send(factory, secondToken, "/api/account/username", method: HttpMethods.Put)).Response.StatusCode);
         Assert.Equal(StatusCodes.Status200OK, (await Send(factory, firstToken, "/health")).Response.StatusCode);
@@ -77,7 +77,7 @@ public sealed class UserRateLimitingTests(IntakePhotoFixture fixture) : IClassFi
                 (await Send(factory, $"{bearer}{request}", "/api/auth/session")).Response.StatusCode);
         }
 
-        AssertRejected(await Send(factory, bearer, "/api/auth/session"), 60);
+        AssertRejected(await Send(factory, bearer, "/api/auth/session"), 20);
         Assert.Equal(StatusCodes.Status200OK,
             (await Send(factory, bearer, "/health")).Response.StatusCode);
         Assert.Equal(StatusCodes.Status401Unauthorized,
