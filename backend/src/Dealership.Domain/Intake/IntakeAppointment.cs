@@ -1,8 +1,14 @@
+using System.Text.RegularExpressions;
 using Dealership.Domain.Common;
 namespace Dealership.Domain.Intake;
 
-public sealed class IntakeAppointment
+public sealed partial class IntakeAppointment
 {
+    public const int RegistrationPlateMaximumLength = 20;
+
+    [GeneratedRegex("^[A-Z]{1,3} ?[1-9][0-9]{0,3}(?: ?[A-Z])?$", RegexOptions.CultureInvariant)]
+    private static partial Regex MalaysianPlatePattern();
+
     private IntakeAppointment()
     {
     }
@@ -13,7 +19,7 @@ public sealed class IntakeAppointment
         ArgumentNullException.ThrowIfNull(valuation);
 
         if (id == Guid.Empty || ownerId == Guid.Empty || branchId == Guid.Empty ||
-            string.IsNullOrWhiteSpace(registrationPlate) || registrationPlate.Length > 20 ||
+            !IsValidRegistrationPlate(registrationPlate) ||
             slot.StartsAt <= createdAt || slot.EndsAt <= slot.StartsAt)
         {
             throw new ArgumentException("An appointment requires valid identity, registration and future slot.");
@@ -55,5 +61,12 @@ public sealed class IntakeAppointment
 
         CancelledAt = now.ToUniversalTime();
         CancellationPhotosExpireAt = CancelledAt + photoRetention;
+    }
+
+    public static bool IsValidRegistrationPlate(string? registrationPlate)
+    {
+        return !string.IsNullOrWhiteSpace(registrationPlate) &&
+            registrationPlate.Length <= RegistrationPlateMaximumLength &&
+            MalaysianPlatePattern().IsMatch(registrationPlate);
     }
 }

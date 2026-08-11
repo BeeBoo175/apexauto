@@ -79,6 +79,7 @@ export function matchingQuickFilterId(filters: CatalogueFilters): string | null 
       chip.filters.branchId === filters.branchId &&
       chip.filters.minimumYear === filters.minimumYear &&
       chip.filters.maximumYear === filters.maximumYear &&
+      chip.filters.search === filters.search &&
       (chip.id !== "all" ||
         (chip.filters.sort === filters.sort && chip.filters.direction === filters.direction)),
   );

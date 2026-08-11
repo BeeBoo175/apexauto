@@ -29,10 +29,13 @@ export function HistoryFilterForm<T extends Draft>({
   onApply: () => void;
   onClearSearch?: () => void;
 }) {
+  const hasSearch =
+    draft.search !== undefined && Boolean(searchLabel) && Boolean(searchPlaceholder);
+
   return (
     <form
       method="post"
-      className={styles.form}
+      className={`${styles.form} ${hasSearch ? "" : styles.datesOnly}`.trim()}
       onSubmit={(event) => {
         event.preventDefault();
         onApply();
@@ -66,7 +69,7 @@ export function HistoryFilterForm<T extends Draft>({
         disabled={disabled}
         onChange={(event) => onDraft({ ...draft, to: event.target.value })}
       />
-      <Button variant="secondary" type="submit" disabled={disabled}>
+      <Button variant="secondary" size="sm" type="submit" disabled={disabled}>
         {draft.search === undefined ? "Apply dates" : "Apply filters"}
       </Button>
     </form>

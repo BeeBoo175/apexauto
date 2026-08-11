@@ -95,8 +95,9 @@ export function CatalogueToolbar({
             <Button
               key={chip.id}
               type="button"
-              variant={isSelected ? "primary" : "secondary"}
+              variant="secondary"
               size="compact"
+              className={styles.quickChip}
               aria-pressed={isSelected}
               disabled={busy}
               onClick={() => handleChipClick(chip.id, chip.filters)}

@@ -549,4 +549,10 @@ test("catalogue pills and pagination slots summarize active criteria and bounded
       direction: "asc",
     }),
   ).toBe("under-60k");
+  expect(
+    matchingQuickFilterId({
+      ...catalogueDefaults,
+      search: "City",
+    }),
+  ).toBeNull();
 });

@@ -4,6 +4,7 @@
 }
 
 .workspace {
+  --radius-sm: 8px;
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);
   align-items: start;
@@ -12,11 +13,10 @@
 }
 
 .filterRail {
-  --radius-sm: 8px;
   position: sticky;
   top: calc(var(--site-header-height) + 16px);
   border: 1px solid var(--color-line);
-  border-radius: 12px;
+  border-radius: 8px;
   background: var(--color-paper);
   box-shadow: 0 2px 12px rgb(14 27 42 / 4%);
 }
@@ -75,6 +75,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  min-height: 42px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--color-line-soft);
 }
@@ -138,11 +139,23 @@
   transition:
     background-color 160ms ease,
     border-color 160ms ease,
-    color 160ms ease;
+    color 160ms ease,
+    filter 160ms ease;
 }
 
-.filterChip:hover {
-  border-color: var(--color-graphite);
+@media (hover: hover) {
+  .filterChip:hover:not(:disabled) {
+    border-color: var(--color-graphite);
+  }
+}
+
+.filterChip:active:not(:disabled) {
+  filter: brightness(0.92);
+}
+
+.filterChip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .filterChip[aria-pressed="true"] {
@@ -161,7 +174,7 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 4px;
-  padding: 4px;
+  padding: 3px;
   border: 1px solid var(--color-line-soft);
   border-radius: 8px;
   background: var(--color-canvas);
@@ -171,8 +184,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 34px;
-  padding: 6px 8px;
+  min-height: 28px;
+  padding: 4px 8px;
   border: 1px solid transparent;
   border-radius: 6px;
   background: transparent;
@@ -184,7 +197,23 @@
   transition:
     background-color 160ms ease,
     border-color 160ms ease,
-    color 160ms ease;
+    color 160ms ease,
+    filter 160ms ease;
+}
+
+@media (hover: hover) {
+  .segmentButton:hover:not(:disabled) {
+    color: var(--color-graphite);
+  }
+}
+
+.segmentButton:active:not(:disabled) {
+  filter: brightness(0.92);
+}
+
+.segmentButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .segmentButton[aria-pressed="true"] {
@@ -211,23 +240,46 @@
 
 .resultsColumn {
   display: grid;
+  align-content: start;
   gap: 20px;
   min-width: 0;
 }
 
 .catalogueSearch {
   min-width: 0;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgb(14 27 42 / 4%);
 }
 
 .controlsBar {
   display: grid;
-  gap: 14px;
+  gap: 12px;
 }
 
 .quickChips {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.quickChip {
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+@media (hover: hover) {
+  .quickChip:hover:not(:disabled) {
+    border-color: var(--color-graphite);
+  }
+}
+
+.quickChip[aria-pressed="true"] {
+  border-color: var(--color-graphite);
+  background: var(--color-graphite);
+  color: var(--color-paper);
 }
 
 .resultsToolbar {
@@ -240,6 +292,7 @@
   border: 1px solid var(--color-line);
   border-radius: 8px;
   background: var(--color-paper);
+  box-shadow: 0 2px 8px rgb(14 27 42 / 4%);
 }
 
 .summary {
@@ -281,6 +334,9 @@
   border-color: var(--color-line);
   background: var(--color-paper);
   color: var(--color-graphite);
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
 }
 
 .pillText {
@@ -301,6 +357,10 @@
   .appliedPill:hover:not(:disabled) {
     border-color: var(--color-graphite);
     background: var(--color-canvas);
+  }
+
+  .clearAllButton:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-signal) 8%, var(--color-paper));
   }
 }
 
@@ -323,6 +383,7 @@
   border: 1px solid var(--color-line);
   border-radius: 8px;
   background: var(--color-paper);
+  box-shadow: 0 2px 8px rgb(14 27 42 / 4%);
 }
 
 .emptyCard h2 {
@@ -396,7 +457,9 @@
     max-height: none;
     overflow: visible;
     border: 0;
+    border-radius: 0;
     background: transparent;
+    box-shadow: none;
   }
 
   .mobileToggleBar {
@@ -412,10 +475,20 @@
     border: 1px solid var(--color-line);
     border-radius: 8px;
     background: var(--color-paper);
+    box-shadow: 0 2px 12px rgb(14 27 42 / 4%);
   }
 }
 
 @media (max-width: 820px) {
+  .railHeader {
+    min-height: 58px;
+  }
+
+  .filterChip,
+  .segmentButton {
+    min-height: 44px;
+  }
+
   .pageButton {
     min-width: 44px;
   }
@@ -460,7 +533,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mobileChevron {
+  .mobileChevron,
+  .filterChip,
+  .segmentButton {
     transition: none;
   }
 }

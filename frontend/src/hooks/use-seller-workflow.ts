@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useApiCommand } from "@/hooks/use-api-command";
 import { parseBooking, parseQuote } from "@/lib/intake/parse";
 import type { PhotoAngle, PhotoReceipt, Quote, SellerSnapshot } from "@/lib/intake/contracts";
+import { normalizeMalaysianPlate, validateMalaysianPlate } from "@/lib/intake/registration-plate";
 import { emptyVehicle, parseVehicleDraft, type VehicleDraft } from "@/lib/intake/vehicle-draft";
 import { bookingMatchesRequest } from "@/lib/intake/receipt";
 
@@ -11,6 +12,8 @@ const handoffKey = "apexauto-seller-vehicle-handoff";
 export function useSellerWorkflow(initial: SellerSnapshot) {
   const [step, setStep] = useState(0);
   const [vehicle, setVehicle] = useState<VehicleDraft>(emptyVehicle);
+  const [plateTouched, setPlateTouched] = useState(false);
+  const [plateSubmitted, setPlateSubmitted] = useState(false);
   const [quote, setQuote] = useState<Quote | null>(null);
   const [freshQuote, setFreshQuote] = useState<Quote | null>(null);
   const [photos, setPhotos] = useState<Partial<Record<PhotoAngle, PhotoReceipt>>>({});
@@ -28,6 +31,12 @@ export function useSellerWorkflow(initial: SellerSnapshot) {
     booking.busy ||
     booking.uncertain ||
     Object.values(locks).some(Boolean);
+  let plateError: string | null = null;
+  if (plateSubmitted) {
+    plateError = validateMalaysianPlate(vehicle.registrationPlate, true);
+  } else if (plateTouched) {
+    plateError = validateMalaysianPlate(vehicle.registrationPlate, false);
+  }
 
   useEffect(() => {
     try {
@@ -52,7 +61,23 @@ export function useSellerWorkflow(initial: SellerSnapshot) {
     setLocks((current) => ({ ...current, [angle]: pending }));
   }, []);
 
+  function commitPlate(required = false) {
+    setPlateTouched(true);
+    if (required) {
+      setPlateSubmitted(true);
+    }
+    const normalized = normalizeMalaysianPlate(vehicle.registrationPlate);
+    if (normalized !== vehicle.registrationPlate) {
+      setVehicle((current) => ({ ...current, registrationPlate: normalized }));
+    }
+    return normalized;
+  }
+
   async function requestQuote() {
+    const normalizedPlate = commitPlate(true);
+    if (validateMalaysianPlate(normalizedPlate, true)) {
+      return false;
+    }
     const result = await valuation.submit({
       make: vehicle.make,
       model: vehicle.model,
@@ -64,7 +89,9 @@ export function useSellerWorkflow(initial: SellerSnapshot) {
       setQuote(result.data);
       setFreshQuote(null);
       setStep(1);
+      return true;
     }
+    return false;
   }
 
   function saveHandoff() {
@@ -82,11 +109,15 @@ export function useSellerWorkflow(initial: SellerSnapshot) {
     if (!quote) {
       return;
     }
+    const normalizedPlate = commitPlate(true);
+    if (validateMalaysianPlate(normalizedPlate, true)) {
+      return;
+    }
     const result = await booking.submit({
       id: crypto.randomUUID(),
       branchId,
       startsAt,
-      registrationPlate: vehicle.registrationPlate,
+      registrationPlate: normalizedPlate,
       vehicle: {
         make: vehicle.make,
         model: vehicle.model,
@@ -117,6 +148,8 @@ export function useSellerWorkflow(initial: SellerSnapshot) {
     step,
     setStep,
     vehicle,
+    plateError,
+    commitPlate,
     editDetails,
     quote,
     freshQuote,

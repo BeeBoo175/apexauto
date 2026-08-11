@@ -39,7 +39,7 @@ export function VehicleTestDrive({
   }
   if (!access.account.emailVerified) {
     return (
-      <Link href="/account" prefetch={false}>
+      <Link href="/account" prefetch={false} className={buttonClassName("secondary", "md")}>
         Verify email to book a test drive
       </Link>
     );

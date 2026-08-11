@@ -5,6 +5,12 @@ import {
   isSundayDate,
   validateIntakeDate,
 } from "@/lib/intake/appointment-date";
+import {
+  isValidMalaysianPlate,
+  normalizeMalaysianPlate,
+  sanitizeRegistrationPlateInput,
+  validateMalaysianPlate,
+} from "@/lib/intake/registration-plate";
 import { parseBooking, parseSlots, parseTaxonomy } from "@/lib/intake/parse";
 import { bookingMatchesRequest } from "@/lib/intake/receipt";
 import { csvCell, selectedCsv } from "@/lib/csv";
@@ -307,4 +313,20 @@ test("intake date bounds restrict picker window to 30 Malaysian days and reject 
   expect(validateIntakeDate("2026-11-15", window)).toContain("Sundays");
   expect(validateIntakeDate("2026-11-14", window)).toBeNull();
   expect(validateIntakeDate("2026-11-16", window)).toBeNull();
+});
+
+test("Malaysian registration plate helper validates and normalizes JPJ formats", () => {
+  expect(sanitizeRegistrationPlateInput("  w-1234  a! ")).toBe("W1234 A ");
+  expect(normalizeMalaysianPlate("vca6242")).toBe("VCA 6242");
+  expect(normalizeMalaysianPlate("  w  1234   a ")).toBe("W 1234 A");
+  for (const valid of ["VCA 6242", "W 1234 A", "WYY8821", "KV 12 A", "A 1", "QAA 9999 C"]) {
+    expect(isValidMalaysianPlate(valid)).toBe(true);
+    expect(validateMalaysianPlate(valid, true)).toBeNull();
+  }
+  for (const invalid of ["123123", "W 0123", "UI 462078", "ABCD 123", "W 12345", "W 123 AB"]) {
+    expect(isValidMalaysianPlate(invalid)).toBe(false);
+    expect(validateMalaysianPlate(invalid, true)).toContain("Malaysian plate format");
+  }
+  expect(validateMalaysianPlate("   ", false)).toBeNull();
+  expect(validateMalaysianPlate("   ", true)).toContain("Enter your Malaysian registration plate");
 });

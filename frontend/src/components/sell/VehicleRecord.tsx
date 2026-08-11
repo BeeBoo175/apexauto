@@ -16,7 +16,7 @@ export function VehicleRecord({
   return (
     <aside className={styles.summary} aria-label="Your vehicle record">
       <h2>Vehicle record</h2>
-      <p className={vehicle.registrationPlate ? styles.plate : styles.platePending} translate="no">
+      <p className={styles.plate} translate="no">
         {vehicle.registrationPlate || "Registration pending"}
       </p>
       <p className={styles.vehicleName}>

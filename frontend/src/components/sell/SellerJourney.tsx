@@ -11,6 +11,7 @@ import { useInitialToast } from "@/hooks/use-initial-toast";
 import type { SellerSnapshot } from "@/lib/intake/contracts";
 import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDateTime } from "@/lib/date-format";
+import { isValidMalaysianPlate } from "@/lib/intake/registration-plate";
 import { VehicleFields } from "./VehicleFields";
 import { VehicleRecord } from "./VehicleRecord";
 import { PhotoUpload } from "./PhotoUpload";
@@ -56,6 +57,7 @@ function SellerWorkflow({ initial, ready }: { initial: SellerSnapshot; ready: bo
   const appointment = useSellerAppointment(initial.branches!);
   const sellerPhotos = useSellerPhotos(workflow.receivePhoto, workflow.lockPhoto);
   const heading = useRef<HTMLHeadingElement>(null);
+  const plateInput = useRef<HTMLInputElement>(null);
   const { step, quote, locked, receipt } = workflow;
   const photoCount = Object.values(workflow.photos).filter(Boolean).length;
 
@@ -139,7 +141,11 @@ function SellerWorkflow({ initial, ready }: { initial: SellerSnapshot; ready: bo
               className={`${styles.stack} ${styles.formFill}`}
               onSubmit={(event) => {
                 event.preventDefault();
-                void workflow.requestQuote();
+                void workflow.requestQuote().then((submitted) => {
+                  if (!submitted && !isValidMalaysianPlate(workflow.vehicle.registrationPlate)) {
+                    plateInput.current?.focus();
+                  }
+                });
               }}
             >
               <p className={styles.intro}>
@@ -150,6 +156,9 @@ function SellerWorkflow({ initial, ready }: { initial: SellerSnapshot; ready: bo
                 <VehicleFields
                   taxonomy={initial.taxonomy!}
                   value={workflow.vehicle}
+                  plateError={workflow.plateError}
+                  onPlateBlur={() => workflow.commitPlate()}
+                  plateInputRef={plateInput}
                   onChange={workflow.editDetails}
                 />
               </fieldset>

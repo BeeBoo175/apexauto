@@ -172,6 +172,12 @@
   min-width: 0;
 }
 
+.filterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .heading {
   display: flex;
   justify-content: space-between;
@@ -213,17 +219,96 @@
   width: 100%;
 }
 
-.plate {
+.appointmentCard {
+  display: grid;
+  gap: 16px;
+  padding: 20px 24px;
+  border: 1px solid var(--color-line-soft);
+  border-radius: 8px;
+  background: var(--color-paper);
+}
+
+.appointmentHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+}
+
+.appointmentIdentity {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  min-width: 0;
+}
+
+.appointmentIdentity h3 {
+  margin: 0;
   color: var(--color-graphite);
-  font-size: 22px;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.appointmentPlate {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 11px;
+  border-radius: 6px;
+  background: var(--color-graphite);
+  color: var(--color-paper);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
 
-.state {
+.appointmentFacts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-line-soft);
+}
+
+.appointmentFacts div {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.appointmentFacts dt {
   color: var(--color-muted);
-  font-size: 14px;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.appointmentFacts dd {
+  color: var(--color-graphite);
+  font-size: 0.9375rem;
   font-weight: 600;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+}
+
+.appointmentFacts .reference {
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.appointmentFooter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-line-soft);
 }
 
 .details {
@@ -248,12 +333,6 @@
   font-size: 13px;
 }
 
-.paging {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
 .page :is(a, button, input, select, summary):focus-visible {
   outline: 2px solid var(--color-signal);
   outline-offset: 2px;
@@ -261,6 +340,26 @@
 
 .page h1:focus {
   outline: none;
+}
+
+@media (max-width: 640px) {
+  .appointmentCard {
+    padding: 16px;
+    gap: 14px;
+  }
+
+  .appointmentFacts {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .appointmentFooter {
+    justify-content: stretch;
+  }
+
+  .appointmentFooter > button {
+    width: 100%;
+  }
 }
 
 @media (max-width: 540px) {

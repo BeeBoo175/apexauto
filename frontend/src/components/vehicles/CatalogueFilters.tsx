@@ -189,9 +189,14 @@ export function CatalogueFilters({
               <span className={styles.groupHeading}>Budget (MYR)</span>
               <div className={styles.budgetChips} role="group" aria-label="Quick budget presets">
                 {[
-                  { label: "< RM 60k", min: "", max: "60000" },
-                  { label: "RM 60k–100k", min: "60000", max: "100000" },
-                  { label: "> RM 100k", min: "100000", max: "" },
+                  { label: "< 60k", name: "Under RM 60,000", min: "", max: "60000" },
+                  {
+                    label: "60k–100k",
+                    name: "RM 60,000 to RM 100,000",
+                    min: "60000",
+                    max: "100000",
+                  },
+                  { label: "> 100k", name: "Above RM 100,000", min: "100000", max: "" },
                 ].map((preset) => {
                   const activePreset =
                     draft.minimumPrice === preset.min && draft.maximumPrice === preset.max;
@@ -200,6 +205,7 @@ export function CatalogueFilters({
                       key={preset.label}
                       type="button"
                       className={styles.filterChip}
+                      aria-label={preset.name}
                       aria-pressed={activePreset}
                       onClick={() =>
                         setDraft(
@@ -259,12 +265,12 @@ export function CatalogueFilters({
             </div>
 
             <div className={styles.filterGroup}>
+              <span className={styles.groupHeading}>Showroom</span>
               <BranchFilter
                 branches={branches}
                 branchId={draft.branchId}
                 disabled={branchBusy}
                 label="Showroom"
-                labelHidden={false}
                 density="default"
                 emptyLabel="All showrooms"
                 onChange={(value) => change("branchId", value)}

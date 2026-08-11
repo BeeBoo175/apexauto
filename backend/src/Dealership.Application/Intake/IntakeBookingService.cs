@@ -1,22 +1,28 @@
+using System.Text.RegularExpressions;
 using Dealership.Domain.Common;
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Intake;
 
 namespace Dealership.Application.Intake;
 
-public sealed class IntakeBookingService(IIntakeBookingStore bookings, ValuationService valuations,
+public sealed partial class IntakeBookingService(IIntakeBookingStore bookings, ValuationService valuations,
     AppointmentSchedule schedule, TimeProvider clock)
 {
+    [GeneratedRegex(@"\s+", RegexOptions.CultureInvariant)]
+    private static partial Regex MultipleWhitespace();
+
     public async Task<BookingResult> BookAsync(Guid ownerId, BookingRequest request, CancellationToken cancellationToken)
     {
-        if (!HasValidShape(request))
+        var normalizedPlate = NormalizeRegistrationPlate(request.RegistrationPlate);
+
+        if (!HasValidShape(request, normalizedPlate))
         {
             return new BookingResult(BookingStatus.Invalid);
         }
 
         var normalized = request with
         {
-            RegistrationPlate = request.RegistrationPlate!.Trim().ToUpperInvariant(),
+            RegistrationPlate = normalizedPlate!,
             StartsAt = request.StartsAt.ToUniversalTime()
         };
         await using var transaction = await bookings.LockAsync(ownerId, normalized, cancellationToken);
@@ -75,10 +81,20 @@ public sealed class IntakeBookingService(IIntakeBookingStore bookings, Valuation
         return await bookings.FindAsync(ownerId, id, cancellationToken);
     }
 
-    private static bool HasValidShape(BookingRequest request)
+    private static string? NormalizeRegistrationPlate(string? registrationPlate)
+    {
+        if (string.IsNullOrWhiteSpace(registrationPlate))
+        {
+            return null;
+        }
+
+        return MultipleWhitespace().Replace(registrationPlate.Trim().ToUpperInvariant(), " ");
+    }
+
+    private static bool HasValidShape(BookingRequest request, string? normalizedPlate)
     {
         return request.Id != Guid.Empty && request.BranchId != Guid.Empty &&
-            !string.IsNullOrWhiteSpace(request.RegistrationPlate) && request.RegistrationPlate.Trim().Length <= 20 &&
+            IntakeAppointment.IsValidRegistrationPlate(normalizedPlate) &&
             request.Vehicle is not null && request.AcceptedQuote is not null &&
             request.PhotoIds is { Count: 4 } && request.PhotoIds.All(id => id != Guid.Empty) &&
             request.PhotoIds.Distinct().Count() == 4;
