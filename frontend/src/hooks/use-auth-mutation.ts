@@ -12,10 +12,24 @@ export function useAuthMutation(kind: "login" | "register" | "logout", destinati
   const attempt = useRef<string | null>(null);
   const inFlight = useRef(false);
   const controller = useRef<AbortController | null>(null);
+  // Set once the browser is leaving for the destination; the form stays locked until the new document replaces it.
+  const leaving = useRef(false);
   const { success, error, warning } = useToast();
 
   useEffect(() => {
     return () => controller.current?.abort();
+  }, []);
+
+  useEffect(() => {
+    // A page restored from the back/forward cache is not leaving any more.
+    const restored = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        leaving.current = false;
+        setBusy(false);
+      }
+    };
+    window.addEventListener("pageshow", restored);
+    return () => window.removeEventListener("pageshow", restored);
   }, []);
 
   useEffect(() => {
@@ -66,13 +80,16 @@ export function useAuthMutation(kind: "login" | "register" | "logout", destinati
       if (response.ok && isRecord(receipt) && receipt.ok === true) {
         attempt.current = null;
         setUncertain(false);
-        success(kind === "register" ? "Account created. Sign in to continue." : "Done.");
+        if (kind === "register") {
+          success("Account created. Sign in to continue.");
+        }
         if (kind !== "register") {
           sessionChanges?.postMessage("session-changed");
         }
 
         // A new document discards the previous actor's router snapshots after cookie changes.
         const next = kind === "login" ? authHref("/auth/continue", destination) : destination;
+        leaving.current = true;
         window.location.assign(new URL(next, window.location.origin).href);
         return;
       }
@@ -95,7 +112,9 @@ export function useAuthMutation(kind: "login" | "register" | "logout", destinati
       warning("The result is unconfirmed. Keep this page open and retry the same request.");
     } finally {
       inFlight.current = false;
-      setBusy(false);
+      if (!leaving.current) {
+        setBusy(false);
+      }
     }
   }
 

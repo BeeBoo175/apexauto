@@ -46,7 +46,7 @@ export function PasswordRecoveryForm() {
         maxLength={254}
         value={email}
         onChange={(event) => setEmail(event.target.value)}
-        disabled={!hydrated || busy || uncertain}
+        disabled={busy || uncertain}
         required
       />
       <Button type="submit" disabled={!hydrated || busy} className={styles.submit}>

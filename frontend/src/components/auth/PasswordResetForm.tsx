@@ -52,7 +52,7 @@ export function PasswordResetForm() {
           maxLength={128}
           value={password}
           onChange={(event) => setPassword(event.target.value)}
-          disabled={!hydrated || !token || busy || uncertain}
+          disabled={!token || busy || uncertain}
           aria-describedby="password-help"
           aria-invalid={Boolean(passwordError)}
           required

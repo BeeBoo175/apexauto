@@ -17,6 +17,21 @@
   min-width: 0;
 }
 
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.groupTitle {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
 .password {
   display: flex;
   flex-direction: column;

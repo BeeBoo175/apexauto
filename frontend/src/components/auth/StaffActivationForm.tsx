@@ -58,7 +58,7 @@ export function StaffActivationForm() {
         maxLength={30}
         value={activation.username}
         onChange={(event) => activation.setUsername(event.target.value)}
-        disabled={!hydrated || activation.busy}
+        disabled={activation.busy}
         required
       />
       <div className={styles.password}>
@@ -71,7 +71,7 @@ export function StaffActivationForm() {
           maxLength={128}
           value={activation.password}
           onChange={(event) => activation.setPassword(event.target.value)}
-          disabled={!hydrated || activation.busy}
+          disabled={activation.busy}
           aria-describedby="activation-help"
           required
         />

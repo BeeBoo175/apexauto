@@ -22,9 +22,12 @@ function groupAccounts(accounts: readonly DemoAccount[]) {
 
 export function DemoAccounts({
   accounts,
+  ready,
   onSelect,
 }: {
   accounts: readonly DemoAccount[];
+  // The summary is always present so the form never shifts; the accounts appear once filling them can work.
+  ready: boolean;
   onSelect: (account: DemoAccount) => void;
 }) {
   return (
@@ -37,26 +40,27 @@ export function DemoAccounts({
       </summary>
       <div className={styles.demoContent}>
         <p className={styles.help}>Choose an account to fill the fields, then select Sign in.</p>
-        {groupAccounts(accounts).map(([group, members]) => (
-          <section key={group} className={styles.demoGroup}>
-            <h3 className={styles.demoGroupTitle}>{group}</h3>
-            <div className={styles.demoRoles}>
-              {members.map((account) => (
-                <Button
-                  key={account.email}
-                  type="button"
-                  variant="secondary"
-                  className={styles.demoOption}
-                  aria-label={`Use ${account.label} demo account`}
-                  onClick={() => onSelect(account)}
-                >
-                  <span className={styles.demoOptionLabel}>{account.label}</span>
-                  <span className={styles.demoOptionDescription}>{account.description}</span>
-                </Button>
-              ))}
-            </div>
-          </section>
-        ))}
+        {ready &&
+          groupAccounts(accounts).map(([group, members]) => (
+            <section key={group} className={styles.demoGroup}>
+              <h3 className={styles.demoGroupTitle}>{group}</h3>
+              <div className={styles.demoRoles}>
+                {members.map((account) => (
+                  <Button
+                    key={account.email}
+                    type="button"
+                    variant="secondary"
+                    className={styles.demoOption}
+                    aria-label={`Use ${account.label} demo account`}
+                    onClick={() => onSelect(account)}
+                  >
+                    <span className={styles.demoOptionLabel}>{account.label}</span>
+                    <span className={styles.demoOptionDescription}>{account.description}</span>
+                  </Button>
+                ))}
+              </div>
+            </section>
+          ))}
       </div>
     </details>
   );

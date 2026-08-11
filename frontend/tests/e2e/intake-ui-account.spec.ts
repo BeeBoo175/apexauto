@@ -75,7 +75,7 @@ test("staff manage their own picture on the shared account page and open a colle
   await expect(page.getByRole("region", { name: "Your account", exact: true })).toBeVisible();
   await expect(page.getByText("Branch manager", { exact: false }).first()).toBeVisible();
   await expect(page.getByText("Work mobile", { exact: true })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Reservations" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Reservations", exact: true })).toHaveCount(0);
   // The sidebar's profile panel is the way back to this page.
   await expect(page.getByRole("link", { name: "Account", exact: true })).toBeVisible();
 
@@ -85,7 +85,11 @@ test("staff manage their own picture on the shared account page and open a colle
     buffer: solidPng(96),
   });
   await expect(page.getByText("Picture updated.")).toBeVisible();
-  await expect(page.locator("img[src^='/api/accounts/']")).toBeVisible();
+  await expect(
+    page
+      .getByRole("region", { name: "Your account", exact: true })
+      .locator("img[src^='/api/accounts/']"),
+  ).toBeVisible();
   await expect
     .poll(() =>
       page
@@ -95,12 +99,20 @@ test("staff manage their own picture on the shared account page and open a colle
     .toBeGreaterThan(0);
 
   await page.reload();
-  await expect(page.locator("img[src^='/api/accounts/']")).toBeVisible();
+  await expect(
+    page
+      .getByRole("region", { name: "Your account", exact: true })
+      .locator("img[src^='/api/accounts/']"),
+  ).toBeVisible();
 
   await page.goto("/account");
   await page.getByRole("button", { name: "Remove picture" }).click();
   await expect(page.getByText("Picture removed.")).toBeVisible();
-  await expect(page.locator("img[src^='/api/accounts/']")).toHaveCount(0);
+  await expect(
+    page
+      .getByRole("region", { name: "Your account", exact: true })
+      .locator("img[src^='/api/accounts/']"),
+  ).toHaveCount(0);
 
   await page.getByRole("button", { name: "Change username" }).click();
   await page.getByLabel("Username", { exact: true }).fill("no");
@@ -119,7 +131,7 @@ test("customers keep the sectioned account page and cannot read staff profiles",
 }) => {
   await signIn(page, "nur.aisyah@example.invalid");
   await expect(page).toHaveURL(/\/account$/);
-  await expect(page.getByRole("link", { name: "Reservations" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Reservations", exact: true })).toBeVisible();
 
   const denied = await page.request.get(
     "/api/accounts/00000000-0000-4000-8000-000000000001/picture",

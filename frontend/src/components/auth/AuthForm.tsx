@@ -74,10 +74,55 @@ export function AuthForm({
       <noscript>
         <p className={styles.help}>Enable JavaScript and reload this page to continue.</p>
       </noscript>
-      <fieldset disabled={!hydrated || busy || uncertain} className={styles.fields}>
+      <fieldset disabled={busy || uncertain} className={styles.fields}>
         {kind === "register" && (
-          <>
-            <Input label="Legal name" name="legalName" autoComplete="name" required />
+          <div className={styles.group} role="group" aria-labelledby="register-about">
+            <p id="register-about" className={styles.groupTitle}>
+              About you
+            </p>
+            <div className={styles.pairedFields}>
+              <Input label="Legal name" name="legalName" autoComplete="name" required />
+              <Input
+                label="NRIC"
+                name="nric"
+                inputMode="numeric"
+                pattern="[0-9]{12}"
+                maxLength={12}
+                required
+              />
+            </div>
+            <Input
+              label="Residential address"
+              name="residentialAddress"
+              autoComplete="street-address"
+              required
+            />
+          </div>
+        )}
+        <div
+          className={styles.group}
+          role="group"
+          aria-labelledby={kind === "register" ? "register-sign-in" : undefined}
+        >
+          {kind === "register" && (
+            <p id="register-sign-in" className={styles.groupTitle}>
+              Sign in details
+            </p>
+          )}
+          <div className={kind === "register" ? styles.pairedFields : styles.fields}>
+            <Input
+              ref={emailInput}
+              label="Email"
+              name="email"
+              type="email"
+              autoComplete="username"
+              required
+            />
+            {kind === "register" && (
+              <Input label="Mobile" name="mobile" type="tel" autoComplete="tel" required />
+            )}
+          </div>
+          {kind === "register" && (
             <div className={styles.password}>
               <Input
                 label="Username"
@@ -93,53 +138,24 @@ export function AuthForm({
                 with your email.
               </p>
             </div>
-          </>
-        )}
-        <Input
-          ref={emailInput}
-          label="Email"
-          name="email"
-          type="email"
-          autoComplete="username"
-          required
-        />
-        <div className={styles.password}>
-          <Input
-            ref={passwordInput}
-            label="Password"
-            name="password"
-            type="password"
-            autoComplete={kind === "register" ? "new-password" : "current-password"}
-            aria-describedby={kind === "register" ? "password-help" : undefined}
-            required
-          />
-          {kind === "register" && (
-            <p id="password-help" className={styles.help}>
-              8+ characters with uppercase, lowercase, a number and a symbol.
-            </p>
           )}
-        </div>
-        {kind === "register" && (
-          <>
-            <div className={styles.pairedFields}>
-              <Input
-                label="NRIC"
-                name="nric"
-                inputMode="numeric"
-                pattern="[0-9]{12}"
-                maxLength={12}
-                required
-              />
-              <Input label="Mobile" name="mobile" type="tel" autoComplete="tel" required />
-            </div>
+          <div className={styles.password}>
             <Input
-              label="Residential address"
-              name="residentialAddress"
-              autoComplete="street-address"
+              ref={passwordInput}
+              label="Password"
+              name="password"
+              type="password"
+              autoComplete={kind === "register" ? "new-password" : "current-password"}
+              aria-describedby={kind === "register" ? "password-help" : undefined}
               required
             />
-          </>
-        )}
+            {kind === "register" && (
+              <p id="password-help" className={styles.help}>
+                8+ characters with uppercase, lowercase, a number and a symbol.
+              </p>
+            )}
+          </div>
+        </div>
       </fieldset>
       <div className={styles.actions}>
         <Button
@@ -162,12 +178,8 @@ export function AuthForm({
         </div>
       )}
       {kind === "login" && demoAccounts && (
-        <fieldset
-          disabled={!hydrated || busy || uncertain}
-          className={styles.demo}
-          aria-label="Demo accounts"
-        >
-          <DemoAccounts accounts={demoAccounts} onSelect={fillDemoAccount} />
+        <fieldset disabled={busy || uncertain} className={styles.demo} aria-label="Demo accounts">
+          <DemoAccounts accounts={demoAccounts} ready={hydrated} onSelect={fillDemoAccount} />
         </fieldset>
       )}
     </form>

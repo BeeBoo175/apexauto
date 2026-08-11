@@ -34,11 +34,11 @@ export function AuthPage({ title, introduction, children, links }: AuthPageProps
             alt=""
             fill
             sizes="(max-width: 820px) 100vw, 50vw"
-            preload
+            loading="lazy"
+            fetchPriority="low"
             className={styles.image}
           />
         </div>
-        <p className={styles.photoContent}>Your ApexAuto account</p>
       </div>
     </section>
   );

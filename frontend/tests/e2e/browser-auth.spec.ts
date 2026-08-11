@@ -47,12 +47,12 @@ async function assertHydrationGuard(page: Page, html: string) {
     const form = document.querySelector("form");
     return (
       form?.method === "post" &&
-      form.querySelector("fieldset")?.disabled === true &&
+      form.querySelector("fieldset")?.disabled === false &&
       form.querySelector<HTMLButtonElement>("button[type=submit]")?.disabled === true &&
       form.querySelector("noscript")?.textContent?.includes("JavaScript") === true
     );
   }, html);
-  expect(guarded, "Credentials and submit remain disabled until hydration").toBe(true);
+  expect(guarded, "Credentials are usable before hydration while submit waits for it").toBe(true);
 }
 
 async function signIn(page: Page, email: string) {
