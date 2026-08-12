@@ -1,6 +1,6 @@
 import "server-only";
 import { HttpError, readBoundedBytes, readBoundedJson } from "@/lib/http";
-import { requireSameOrigin } from "@/lib/server/http/request";
+import { assistedCustomerId, requireSameOrigin } from "@/lib/server/http/request";
 import { isRecord, isUuid } from "@/lib/auth/contracts";
 import { requestApiJson, sessionToken, apiJson, apiError } from "@/lib/server/http/api";
 import { API_DEADLINE_MS } from "@/lib/api";
@@ -54,6 +54,7 @@ export async function relayIntake<T>(
         body,
         method,
         signal,
+        onBehalfOf: assistedCustomerId(request),
       },
       API_DEADLINE_MS,
       maximumResponseBytes,
@@ -86,7 +87,7 @@ export async function relayPhoto(request: Request, id: string, parse: (value: un
     const result = await requestApiJson(
       `/api/intake/photos/${id}?angle=${angle}`,
       parse,
-      { token, bytes, contentType, method: "PUT", signal },
+      { token, bytes, contentType, method: "PUT", signal, onBehalfOf: assistedCustomerId(request) },
       PHOTO_DEADLINE_MS,
     );
     return apiJson({ ...result, actor });

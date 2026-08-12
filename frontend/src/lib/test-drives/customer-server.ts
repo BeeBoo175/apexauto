@@ -4,7 +4,8 @@ import { actorIdentity } from "@/lib/auth/actor";
 import { isRecord, isUuid } from "@/lib/auth/contracts";
 import { HttpError, readBoundedJson } from "@/lib/http";
 import { dateRangeError } from "@/lib/intake/list-query";
-import { requireSameOrigin } from "@/lib/server/http/request";
+import { hasIntakeAccess } from "@/lib/auth/actor";
+import { assistedCustomerId, requireSameOrigin } from "@/lib/server/http/request";
 import {
   apiError,
   apiJson,
@@ -108,18 +109,23 @@ export async function relayTestDriveBooking(request: Request, vehicleId: string)
       throw new HttpError(400, "Provide an operation ID, publication and booked start.");
     }
     const actor = await confirmedActor(signal);
-    if (actor.role !== "Customer") {
-      return accessDenied(actor, "Customer account required.");
+    const onBehalfOf = assistedCustomerId(request);
+    if (onBehalfOf ? !hasIntakeAccess(actor) : actor.role !== "Customer") {
+      return accessDenied(
+        actor,
+        onBehalfOf ? "Your role cannot book for a customer." : "Customer account required.",
+      );
     }
+    const customerId = onBehalfOf ?? actor.userId;
     const result = await requestApiJson(
       `/api/vehicles/${vehicleId}/test-drives`,
       (value) => {
         const receipt = parseTestDriveBooking(value);
-        return receipt && matchesTestDriveBooking(receipt, body, vehicleId, actor.userId)
+        return receipt && matchesTestDriveBooking(receipt, body, vehicleId, customerId)
           ? receipt
           : null;
       },
-      { token: await sessionToken(), signal, method: "POST", body },
+      { token: await sessionToken(), signal, method: "POST", body, onBehalfOf },
       API_DEADLINE_MS,
       undefined,
       parseTestDriveConflict,

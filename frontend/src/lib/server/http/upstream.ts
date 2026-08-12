@@ -1,6 +1,7 @@
 import "server-only";
 
 import { headers } from "next/headers";
+import { ON_BEHALF_OF_HEADER } from "@/lib/staff/assisted-customer";
 import { trustedClientAddress } from "./client-address";
 
 export interface ApiRequestOptions {
@@ -11,6 +12,8 @@ export interface ApiRequestOptions {
   bytes?: Uint8Array;
   contentType?: string;
   expectedActor?: string;
+  // The customer a staff member books for; the backend authorizes the staff role and branch.
+  onBehalfOf?: string;
 }
 
 export async function requestApi(
@@ -47,6 +50,7 @@ export async function requestApi(
         : {}),
       ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
       ...(options.expectedActor ? { "X-Expected-Actor": options.expectedActor } : {}),
+      ...(options.onBehalfOf ? { [ON_BEHALF_OF_HEADER]: options.onBehalfOf } : {}),
       ...(clientAddress ? { "X-Forwarded-For": clientAddress } : {}),
     },
     body,
