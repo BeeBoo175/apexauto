@@ -1,3 +1,4 @@
+using Dealership.Application.Accounts;
 using Dealership.Application.TestDrives;
 using static Dealership.Api.Endpoints.HttpContextActor;
 
@@ -24,7 +25,7 @@ public static class TestDriveCommandEndpoints
     }
 
     private static async Task<IResult> BookAsync(Guid vehicleId, HttpContext context,
-        TestDriveBookingService bookings, CancellationToken cancellationToken)
+        TestDriveBookingService bookings, IStaffAssistanceQuery assistance, CancellationToken cancellationToken)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(20));
@@ -41,8 +42,14 @@ public static class TestDriveCommandEndpoints
                 return Results.Problem(statusCode: 400, title: "Provide an operation ID, publication and booked start.");
             }
 
-            var result = await bookings.BookAsync(ActorId(context), vehicleId,
-                new(input.OperationId.Value, input.PublicationId.Value, input.StartsAt.Value), deadline.Token);
+            var owner = await AssistedOwner.ResolveAsync(context, assistance, deadline.Token);
+            if (owner.Error is not null)
+            {
+                return owner.Error;
+            }
+
+            var result = await bookings.BookAsync(owner.OwnerId, vehicleId,
+                new(input.OperationId.Value, input.PublicationId.Value, input.StartsAt.Value), deadline.Token, owner.Staff);
             return result.Status switch
             {
                 TestDriveBookingStatus.Succeeded => Results.Ok(result.Booking),

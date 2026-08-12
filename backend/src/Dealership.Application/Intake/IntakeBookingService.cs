@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Dealership.Application.Accounts;
 using Dealership.Domain.Common;
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Intake;
@@ -11,13 +12,19 @@ public sealed partial class IntakeBookingService(IIntakeBookingStore bookings, V
     [GeneratedRegex(@"\s+", RegexOptions.CultureInvariant)]
     private static partial Regex MultipleWhitespace();
 
-    public async Task<BookingResult> BookAsync(Guid ownerId, BookingRequest request, CancellationToken cancellationToken)
+    public async Task<BookingResult> BookAsync(Guid ownerId, BookingRequest request, CancellationToken cancellationToken,
+        AssistingStaff? assistedBy = null)
     {
         var normalizedPlate = NormalizeRegistrationPlate(request.RegistrationPlate);
 
         if (!HasValidShape(request, normalizedPlate))
         {
             return new BookingResult(BookingStatus.Invalid);
+        }
+
+        if (assistedBy is not null && !assistedBy.CanActAt(request.BranchId))
+        {
+            return new BookingResult(BookingStatus.Forbidden);
         }
 
         var normalized = request with
@@ -72,6 +79,11 @@ public sealed partial class IntakeBookingService(IIntakeBookingStore bookings, V
             quote.MinValuation, quote.MaxValuation, quote.Currency, quote.ValuationYear);
         var appointment = new IntakeAppointment(normalized.Id, ownerId, normalized.BranchId,
             normalized.RegistrationPlate!, slot, now, valuation);
+        if (assistedBy is not null)
+        {
+            appointment.RecordAssistance(assistedBy.Id);
+        }
+
         var attachments = photoSet!.Selections.Select(photo => new AppointmentPhoto(appointment.Id, ownerId, photo)).ToArray();
         return await transaction.CommitAsync(appointment, attachments, cancellationToken);
     }

@@ -2,6 +2,7 @@ using Dealership.Api.Configuration;
 using Dealership.Domain.Photos;
 using Dealership.Application.Photos;
 using System.IdentityModel.Tokens.Jwt;
+using Dealership.Application.Accounts;
 using Dealership.Application.Intake;
 using Dealership.Domain.Intake;
 using Microsoft.AspNetCore.Http.Features;
@@ -25,7 +26,7 @@ public static class IntakePhotoEndpoints
     }
 
     private static async Task<IResult> UploadAsync(Guid id, string? angle, HttpContext context,
-        IntakePhotoService photos, CancellationToken cancellationToken)
+        IntakePhotoService photos, IStaffAssistanceQuery assistance, CancellationToken cancellationToken)
     {
         if (!Enum.TryParse<PhotoAngle>(angle, out var selectedAngle) || !Enum.IsDefined(selectedAngle) ||
             selectedAngle.ToString() != angle || id == Guid.Empty)
@@ -40,7 +41,13 @@ public static class IntakePhotoEndpoints
             return Results.Problem(statusCode: 415, title: "Upload a JPEG, PNG or WebP photo.");
         }
 
-        if (!await photos.CanUploadAsync(OwnerId(context), cancellationToken))
+        var owner = await AssistedOwner.ResolveAsync(context, assistance, cancellationToken);
+        if (owner.Error is not null)
+        {
+            return owner.Error;
+        }
+
+        if (!await photos.CanUploadAsync(owner.OwnerId, cancellationToken))
         {
             return Results.Forbid();
         }
@@ -66,7 +73,7 @@ public static class IntakePhotoEndpoints
             using var bodyDeadline = CancellationTokenSource.CreateLinkedTokenSource(deadline.Token);
             bodyDeadline.CancelAfter(TimeSpan.FromSeconds(60));
             await PhotoTemporaryFile.CopyRequestAsync(context.Request.Body, file, bodyDeadline.Token);
-            return Map(await photos.UploadAsync(OwnerId(context), id, selectedAngle, contentType!, file, deadline.Token));
+            return Map(await photos.UploadAsync(owner.OwnerId, id, selectedAngle, contentType!, file, deadline.Token));
         }
         catch (BadHttpRequestException exception)
         {
@@ -83,9 +90,15 @@ public static class IntakePhotoEndpoints
     }
 
     private static async Task<IResult> GetReceiptAsync(Guid id, HttpContext context, IntakePhotoService photos,
-        CancellationToken cancellationToken)
+        IStaffAssistanceQuery assistance, CancellationToken cancellationToken)
     {
-        return Map(await photos.GetReceiptAsync(OwnerId(context), id, cancellationToken));
+        var owner = await AssistedOwner.ResolveAsync(context, assistance, cancellationToken);
+        if (owner.Error is not null)
+        {
+            return owner.Error;
+        }
+
+        return Map(await photos.GetReceiptAsync(owner.OwnerId, id, cancellationToken));
     }
 
     private static async Task<IResult> DownloadAsync(Guid id, HttpContext context, IntakePhotoService photos,

@@ -1,3 +1,4 @@
+using Dealership.Application.Accounts;
 using Dealership.Application.Vehicles;
 using static Dealership.Api.Endpoints.HttpContextActor;
 
@@ -18,7 +19,7 @@ public static class ReservationCommandEndpoints
     }
 
     private static async Task<IResult> ReserveAsync(Guid vehicleId, HttpContext context, ReservationService reservations,
-        CancellationToken cancellationToken)
+        IStaffAssistanceQuery assistance, CancellationToken cancellationToken)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(20));
@@ -30,7 +31,13 @@ public static class ReservationCommandEndpoints
                 return error;
             }
 
-            var result = await reservations.ReserveAsync(ActorId(context), vehicleId, request!, deadline.Token);
+            var owner = await AssistedOwner.ResolveAsync(context, assistance, deadline.Token);
+            if (owner.Error is not null)
+            {
+                return owner.Error;
+            }
+
+            var result = await reservations.ReserveAsync(owner.OwnerId, vehicleId, request!, deadline.Token, owner.Staff);
             var receipt = result.Reservation is null ? null : ReservationReceipt.From(result.Reservation);
             return Map(result.Status, receipt);
         }

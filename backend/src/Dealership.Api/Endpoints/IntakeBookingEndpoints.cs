@@ -1,5 +1,6 @@
 using Dealership.Application.Common;
 using System.IdentityModel.Tokens.Jwt;
+using Dealership.Application.Accounts;
 using Dealership.Application.Intake;
 
 namespace Dealership.Api.Endpoints;
@@ -70,7 +71,7 @@ public static class IntakeBookingEndpoints
     }
 
     private static async Task<IResult> BookAsync(HttpContext context, IntakeBookingService bookings,
-        CancellationToken cancellationToken)
+        IStaffAssistanceQuery assistance, CancellationToken cancellationToken)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(20));
@@ -84,7 +85,13 @@ public static class IntakeBookingEndpoints
                 return error;
             }
 
-            return Map(await bookings.BookAsync(OwnerId(context), request!, deadline.Token));
+            var owner = await AssistedOwner.ResolveAsync(context, assistance, deadline.Token);
+            if (owner.Error is not null)
+            {
+                return owner.Error;
+            }
+
+            return Map(await bookings.BookAsync(owner.OwnerId, request!, deadline.Token, owner.Staff));
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
@@ -93,9 +100,15 @@ public static class IntakeBookingEndpoints
     }
 
     private static async Task<IResult> GetReceiptAsync(Guid id, HttpContext context, IntakeBookingService bookings,
-        CancellationToken cancellationToken)
+        IStaffAssistanceQuery assistance, CancellationToken cancellationToken)
     {
-        return Map(await bookings.GetReceiptAsync(OwnerId(context), id, cancellationToken));
+        var owner = await AssistedOwner.ResolveAsync(context, assistance, cancellationToken);
+        if (owner.Error is not null)
+        {
+            return owner.Error;
+        }
+
+        return Map(await bookings.GetReceiptAsync(owner.OwnerId, id, cancellationToken));
     }
 
     private static Guid OwnerId(HttpContext context) => Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Sub)!.Value);

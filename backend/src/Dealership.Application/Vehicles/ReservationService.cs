@@ -6,7 +6,7 @@ namespace Dealership.Application.Vehicles;
 public sealed class ReservationService(IReservationStore reservations)
 {
     public async Task<ReservationResult> ReserveAsync(Guid customerId, Guid vehicleId, ReservationRequest request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, AssistingStaff? assistedBy = null)
     {
         if (customerId == Guid.Empty || vehicleId == Guid.Empty || request.OperationId == Guid.Empty ||
             request.PublicationId == Guid.Empty || request.PromoId == Guid.Empty)
@@ -51,6 +51,11 @@ public sealed class ReservationService(IReservationStore reservations)
             return await CompleteAsync(transaction, ReservationStatus.NotFound, null, cancellationToken);
         }
 
+        if (assistedBy is not null && !assistedBy.CanActAt(context.Publication.BranchId))
+        {
+            return await CompleteAsync(transaction, ReservationStatus.Forbidden, null, cancellationToken);
+        }
+
         if (context.Publication.Id != request.PublicationId)
         {
             return await CompleteAsync(transaction, ReservationStatus.Conflict, null, cancellationToken);
@@ -69,6 +74,11 @@ public sealed class ReservationService(IReservationStore reservations)
 
         var reservation = new Reservation(request.OperationId, context.Profile, context.Customer.Email!,
             context.Publication, context.Listing, context.Settings, context.Promo, context.Now);
+        if (assistedBy is not null)
+        {
+            reservation.RecordAssistance(assistedBy.Id);
+        }
+
         var status = await transaction.CommitAsync(reservation, cancellationToken);
         return new(status, status == ReservationStatus.Succeeded ? reservation : null);
     }
