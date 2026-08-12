@@ -25,6 +25,16 @@ public sealed class SaleDeliveryMailComposer
         var body = $"Your ApexAuto vehicle handover is complete.\n" +
             $"Purchase order: {sale.OrderNumber}\nHandover note: {document.Number}\n\n" +
             $"Sign in to your own account to view your issued documents:\n{link}";
-        return new OutboundMail(message.RecipientEmail, "ApexAuto vehicle handover confirmation", body);
+        var html = MailTemplate.Render(new MailLayout(
+            "Your vehicle handover is complete",
+            ["Congratulations on your ApexAuto vehicle. Your handover is complete and your documents are ready."],
+            [
+                new MailDetail("Purchase order", sale.OrderNumber ?? string.Empty),
+                new MailDetail("Handover note", document.Number)
+            ],
+            ["Sign in to your own account to view your issued documents."],
+            "View your documents",
+            link));
+        return new OutboundMail(message.RecipientEmail, "ApexAuto vehicle handover confirmation", body, html);
     }
 }

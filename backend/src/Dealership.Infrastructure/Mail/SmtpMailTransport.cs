@@ -55,6 +55,12 @@ public sealed class SmtpMailTransport(IOptions<EmailDeliverySettings> options, I
             Body = message.Body
         };
         smtpMessage.To.Add(message.Recipient);
+        if (message.HtmlBody is not null)
+        {
+            // Plain text stays as the fallback part for clients that do not render HTML.
+            smtpMessage.AlternateViews.Add(AlternateView.CreateAlternateViewFromString(message.Body, null, "text/plain"));
+            smtpMessage.AlternateViews.Add(AlternateView.CreateAlternateViewFromString(message.HtmlBody, null, "text/html"));
+        }
         using var client = new SmtpClient(settings.SmtpHost!, settings.SmtpPort)
         {
             EnableSsl = settings.EnableSsl,

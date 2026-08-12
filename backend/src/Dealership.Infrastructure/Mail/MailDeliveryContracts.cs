@@ -1,6 +1,6 @@
 namespace Dealership.Infrastructure.Mail;
 
-public sealed record OutboundMail(string Recipient, string Subject, string Body);
+public sealed record OutboundMail(string Recipient, string Subject, string Body, string? HtmlBody = null);
 
 public sealed record ClaimedMail(Guid Id, Guid ClaimId, OutboundMail Message);
 

@@ -10,6 +10,13 @@ public sealed class VerificationMailComposer(AuthMailLinks links, EmailVerificat
         var link = links.Create("/verify-email", tokens.Create(challenge));
         var body = $"Open this link and choose Verify email to confirm your address:\n\n{link}\n\n" +
             $"This link expires in {EmailVerificationPolicy.LifetimeHours} hours. If you did not create this account, ignore this message.";
-        return new OutboundMail(challenge.RecipientEmail, "Verify your ApexAuto email", body);
+        var html = MailTemplate.Render(new MailLayout(
+            "Confirm your email address",
+            ["Thanks for creating an ApexAuto account. Confirm your email address to finish setting it up."],
+            [],
+            [$"This link expires in {EmailVerificationPolicy.LifetimeHours} hours. If you did not create this account, ignore this message."],
+            "Verify email",
+            link));
+        return new OutboundMail(challenge.RecipientEmail, "Verify your ApexAuto email", body, html);
     }
 }
