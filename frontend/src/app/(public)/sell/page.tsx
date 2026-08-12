@@ -1,6 +1,7 @@
 import { paginationQuery } from "@/lib/pagination";
 import type { Metadata } from "next";
-import { readOwnAccount } from "@/lib/auth/server";
+import { readCurrentActor, readOwnAccount } from "@/lib/auth/server";
+import { staffSellNotice } from "@/lib/intake/staff-sell-notice";
 import { requestApiJson } from "@/lib/server/http/api";
 import { parseBranch } from "@/lib/branches";
 import { parsePage } from "@/lib/api";
@@ -18,6 +19,8 @@ export default async function SellPage() {
     requestApiJson(`/api/branches?${paginationQuery()}`, (value) => parsePage(value, parseBranch)),
     readOwnAccount().catch(() => ({ status: 502, account: null })),
   ]);
+  // The customer account read refuses staff, so a refused read is the only case that needs the signed-in role.
+  const staffNotice = access.status === 403 ? await readStaffSellNotice() : null;
   return (
     <SellerJourney
       initial={{
@@ -25,7 +28,13 @@ export default async function SellPage() {
         branches: branches.data,
         account: access.account,
         access: access.status,
+        staffNotice,
       }}
     />
   );
+}
+
+async function readStaffSellNotice() {
+  const current = await readCurrentActor().catch(() => ({ actor: null }));
+  return current.actor ? staffSellNotice(current.actor) : null;
 }

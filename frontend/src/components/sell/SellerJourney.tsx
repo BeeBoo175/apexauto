@@ -16,6 +16,7 @@ import { VehicleFields } from "./VehicleFields";
 import { VehicleRecord } from "./VehicleRecord";
 import { PhotoUpload } from "./PhotoUpload";
 import { AppointmentFields } from "./AppointmentFields";
+import { SellerAuthGate } from "./SellerAuthGate";
 import styles from "./Sell.module.css";
 
 const steps = ["Vehicle details", "Valuation", "Exterior photos", "Appointment"];
@@ -234,20 +235,7 @@ function SellerWorkflow({ initial, ready }: { initial: SellerSnapshot; ready: bo
                 automatically when you choose an appointment.
               </p>
               {!workflow.verified && (
-                <div className={styles.authGateCard}>
-                  <p>
-                    {initial.account
-                      ? "Verify your account email before adding photos or booking an inspection bay."
-                      : "Sign in with a verified customer account to continue. Your entered vehicle details are kept."}
-                  </p>
-                  <a
-                    href={initial.account ? "/account" : "/login?returnTo=%2Fsell"}
-                    className={buttonClassName("primary", "md")}
-                    onClick={workflow.saveHandoff}
-                  >
-                    {initial.account ? "Manage email verification" : "Sign in to continue"}
-                  </a>
-                </div>
+                <SellerAuthGate initial={initial} onSignIn={workflow.saveHandoff} />
               )}
               {workflow.verified && (
                 <div className={styles.uploadGrid}>

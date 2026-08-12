@@ -1,6 +1,7 @@
 import type { Branch } from "@/lib/branches";
 import type { Page } from "@/lib/api";
 import type { CustomerAccount } from "@/lib/auth/contracts";
+import type { StaffSellNotice } from "./staff-sell-notice";
 export const PHOTO_DEADLINE_MS = 100_000;
 export const PHOTO_MAX_BYTES = 10 * 1024 * 1024;
 export const angles = ["Driver", "Passenger", "Front", "Rear"] as const;
@@ -81,4 +82,5 @@ export interface SellerSnapshot {
   branches: Page<Branch> | null;
   account: CustomerAccount | null;
   access: number;
+  staffNotice: StaffSellNotice | null;
 }
