@@ -14,12 +14,17 @@ test("customers need no staff notice on the sell page", () => {
 
 test("roles with intake access are sent to the intake workspace", () => {
   for (const role of ["SalesAgent", "BranchManager"] as const) {
-    expect(staffSellNotice(actor(role, branchId))?.href).toBe("/dashboard/intake");
+    const notice = staffSellNotice(actor(role, branchId));
+    expect(notice?.href).toBe("/dashboard/intake");
+    expect(notice?.assisted).toBe(true);
   }
   expect(staffSellNotice(actor("GeneralManager", null))?.href).toBe("/dashboard/intake");
+  expect(staffSellNotice(actor("GeneralManager", null))?.assisted).toBe(true);
 });
 
 test("other staff roles are sent to the workspace their role may use", () => {
   expect(staffSellNotice(actor("WorkshopTechnician", branchId))?.href).toBe("/dashboard/workshop");
   expect(staffSellNotice(actor("Administrator", null))?.href).toBe("/dashboard/accounts");
+  expect(staffSellNotice(actor("WorkshopTechnician", branchId))?.assisted).toBe(false);
+  expect(staffSellNotice(actor("Administrator", null))?.assisted).toBe(false);
 });

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Button, buttonClassName } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
@@ -9,6 +9,7 @@ import { useSellerAppointment } from "@/hooks/use-seller-appointment";
 import { useSellerPhotos } from "@/hooks/use-seller-photos";
 import { useInitialToast } from "@/hooks/use-initial-toast";
 import type { SellerSnapshot } from "@/lib/intake/contracts";
+import type { CustomerLookupRow } from "@/lib/staff/assisted-customer";
 import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { isValidMalaysianPlate } from "@/lib/intake/registration-plate";
@@ -16,6 +17,7 @@ import { VehicleFields } from "./VehicleFields";
 import { VehicleRecord } from "./VehicleRecord";
 import { PhotoUpload } from "./PhotoUpload";
 import { AppointmentFields } from "./AppointmentFields";
+import { AssistedSellerGate } from "./AssistedSellerGate";
 import { SellerAuthGate } from "./SellerAuthGate";
 import styles from "./Sell.module.css";
 
@@ -54,9 +56,11 @@ export function SellerJourney({ initial }: { initial: SellerSnapshot }) {
 }
 
 function SellerWorkflow({ initial, ready }: { initial: SellerSnapshot; ready: boolean }) {
-  const workflow = useSellerWorkflow(initial);
+  // Sales staff choose the customer they book for; everything below then belongs to that customer.
+  const [customer, setCustomer] = useState<CustomerLookupRow | null>(null);
+  const workflow = useSellerWorkflow(initial, customer?.id);
   const appointment = useSellerAppointment(initial.branches!);
-  const sellerPhotos = useSellerPhotos(workflow.receivePhoto, workflow.lockPhoto);
+  const sellerPhotos = useSellerPhotos(workflow.receivePhoto, workflow.lockPhoto, customer?.id);
   const heading = useRef<HTMLHeadingElement>(null);
   const plateInput = useRef<HTMLInputElement>(null);
   const { step, quote, locked, receipt } = workflow;
@@ -82,21 +86,22 @@ function SellerWorkflow({ initial, ready }: { initial: SellerSnapshot; ready: bo
     return (
       <section className={styles.unavailable}>
         <h1 ref={heading} tabIndex={-1}>
-          Your appointment is confirmed
+          {customer ? "Appointment confirmed" : "Your appointment is confirmed"}
         </h1>
         <p className={styles.plate}>{receipt.registrationPlate}</p>
         <p>{formatMalaysianDateTime(receipt.slot.startsAt)}</p>
         <p className={styles.help}>Reference: {receipt.id}</p>
         <p>
-          A confirmation email is delivered separately. Your booking remains confirmed if mail is
-          delayed.
+          {customer
+            ? `Booked for ${customer.name}. The confirmation email is delivered to the customer separately, and the booking remains confirmed if mail is delayed.`
+            : "A confirmation email is delivered separately. Your booking remains confirmed if mail is delayed."}
         </p>
         <Link
-          href="/account/appointments"
+          href={customer ? "/dashboard/intake" : "/account/appointments"}
           prefetch={false}
           className={buttonClassName("primary", "md")}
         >
-          View your appointments
+          {customer ? "Open intake workspace" : "View your appointments"}
         </Link>
       </section>
     );
@@ -234,7 +239,16 @@ function SellerWorkflow({ initial, ready }: { initial: SellerSnapshot; ready: bo
                 Add 4 clear exterior angles (JPEG, PNG or WebP, max 10 MiB each). Photos upload
                 automatically when you choose an appointment.
               </p>
-              {!workflow.verified && (
+              {initial.staffNotice?.assisted && (
+                <AssistedSellerGate
+                  notice={initial.staffNotice}
+                  customer={customer}
+                  locked={locked || sellerPhotos.readyCount > 0}
+                  onSelect={setCustomer}
+                  onClear={() => setCustomer(null)}
+                />
+              )}
+              {!workflow.verified && !initial.staffNotice?.assisted && (
                 <SellerAuthGate initial={initial} onSignIn={workflow.saveHandoff} />
               )}
               {workflow.verified && (

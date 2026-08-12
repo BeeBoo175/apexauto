@@ -6,10 +6,12 @@ import type { PhotoAngle, PhotoReceipt, Quote, SellerSnapshot } from "@/lib/inta
 import { normalizeMalaysianPlate, validateMalaysianPlate } from "@/lib/intake/registration-plate";
 import { emptyVehicle, parseVehicleDraft, type VehicleDraft } from "@/lib/intake/vehicle-draft";
 import { bookingMatchesRequest } from "@/lib/intake/receipt";
+import { apiFetchFor } from "@/lib/staff/assisted-fetch";
 
 const handoffKey = "apexauto-seller-vehicle-handoff";
 
-export function useSellerWorkflow(initial: SellerSnapshot) {
+// actingFor names the customer when sales staff book the trade-in on their behalf.
+export function useSellerWorkflow(initial: SellerSnapshot, actingFor?: string) {
   const [step, setStep] = useState(0);
   const [vehicle, setVehicle] = useState<VehicleDraft>(emptyVehicle);
   const [plateTouched, setPlateTouched] = useState(false);
@@ -23,6 +25,7 @@ export function useSellerWorkflow(initial: SellerSnapshot) {
     "/api/intake/appointments",
     (value) => parseBooking(value) ?? parseQuote(value),
     (receipt, body) => bookingMatchesRequest(receipt, body),
+    apiFetchFor(actingFor),
   );
   const receipt = parseBooking(booking.receipt);
   const locked =
@@ -167,6 +170,6 @@ export function useSellerWorkflow(initial: SellerSnapshot) {
     requestQuote,
     saveHandoff,
     book,
-    verified: initial.account?.emailVerified === true,
+    verified: initial.account?.emailVerified === true || actingFor !== undefined,
   };
 }

@@ -5,6 +5,7 @@ import { parsePhoto } from "@/lib/intake/parse";
 import { PHOTO_DEADLINE_MS, PHOTO_MAX_BYTES } from "@/lib/intake/contracts";
 import type { PhotoAngle, PhotoReceipt } from "@/lib/intake/contracts";
 import { useToast } from "@/components/ui/Toast";
+import { assistedHeaders } from "@/lib/staff/assisted-customer";
 
 export interface SellerPhotoController {
   angle: PhotoAngle;
@@ -21,6 +22,7 @@ export function useSellerPhoto(
   angle: PhotoAngle,
   onReceipt: (angle: PhotoAngle, receipt: PhotoReceipt | null) => void,
   onLock: (angle: PhotoAngle, locked: boolean) => void,
+  actingFor?: string,
 ): SellerPhotoController {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState("");
@@ -86,7 +88,7 @@ export function useSellerPhoto(
         parsePhoto,
         {
           method: "PUT",
-          headers: { "Content-Type": captured.file.type },
+          headers: { "Content-Type": captured.file.type, ...assistedHeaders(actingFor) },
           body: captured.file,
           signal: attempt.signal,
         },
@@ -143,11 +145,12 @@ export function useSellerPhoto(
 export function useSellerPhotos(
   onReceipt: (angle: PhotoAngle, receipt: PhotoReceipt | null) => void,
   onLock: (angle: PhotoAngle, locked: boolean) => void,
+  actingFor?: string,
 ) {
-  const driver = useSellerPhoto("Driver", onReceipt, onLock);
-  const passenger = useSellerPhoto("Passenger", onReceipt, onLock);
-  const front = useSellerPhoto("Front", onReceipt, onLock);
-  const rear = useSellerPhoto("Rear", onReceipt, onLock);
+  const driver = useSellerPhoto("Driver", onReceipt, onLock, actingFor);
+  const passenger = useSellerPhoto("Passenger", onReceipt, onLock, actingFor);
+  const front = useSellerPhoto("Front", onReceipt, onLock, actingFor);
+  const rear = useSellerPhoto("Rear", onReceipt, onLock, actingFor);
   const items = [driver, passenger, front, rear] as const;
   const { success } = useToast();
 
