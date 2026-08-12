@@ -47,6 +47,7 @@ export default defineConfig({
         "intake/work-calendar-contracts.spec.ts",
         "intake/no-show-contracts.spec.ts",
         "intake/staff-sell-notice-contracts.spec.ts",
+        "intake/taxonomy-contracts.spec.ts",
         "performance/performance-contracts.spec.ts",
         "performance/performance-location-contracts.spec.ts",
         "inspection/contracts.spec.ts",

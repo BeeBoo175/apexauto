@@ -32,7 +32,6 @@ export function VehicleFields({
       <VehicleValuationFields
         taxonomy={taxonomy}
         value={value}
-        yearBounds={{ min: 1900, max: 2100 }}
         onChange={(valuation) => onChange({ ...value, ...valuation })}
       />
       <div className={styles.plateFieldGroup}>

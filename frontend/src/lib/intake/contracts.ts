@@ -15,11 +15,20 @@ export interface VehicleInput {
   mileageKilometres: number;
 }
 
+export interface TaxonomyTrim {
+  name: string;
+  baselinePrice: number;
+  firstYear: number;
+  // Null while the trim is still sold, so its newest accepted year is the current Malaysian year.
+  lastYear: number | null;
+}
+
 export interface Taxonomy {
   currency: string;
+  maximumMileageKilometres: number;
   makes: {
     name: string;
-    models: { name: string; trims: { name: string; baselinePrice: number }[] }[];
+    models: { name: string; trims: TaxonomyTrim[] }[];
   }[];
 }
 

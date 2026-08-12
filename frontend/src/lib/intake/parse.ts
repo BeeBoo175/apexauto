@@ -23,8 +23,13 @@ export function parseTaxonomy(value: unknown): Taxonomy | null {
   if (!isRecord(value) || !text(value.currency) || !Array.isArray(value.makes)) {
     return null;
   }
+  if (!isNonNegativeInteger(value.maximumMileageKilometres)) {
+    return null;
+  }
   const makes = parseItems(value.makes, parseMake);
-  return makes ? { currency: value.currency, makes } : null;
+  return makes
+    ? { currency: value.currency, maximumMileageKilometres: value.maximumMileageKilometres, makes }
+    : null;
 }
 
 function parseTrim(value: unknown) {
@@ -34,7 +39,19 @@ function parseTrim(value: unknown) {
   if (!Number.isFinite(value.baselinePrice) || value.baselinePrice < 0) {
     return null;
   }
-  return { name: value.name, baselinePrice: value.baselinePrice };
+  if (!isNonNegativeInteger(value.firstYear)) {
+    return null;
+  }
+  const lastYear = value.lastYear ?? null;
+  if (lastYear !== null && !isNonNegativeInteger(lastYear)) {
+    return null;
+  }
+  return {
+    name: value.name,
+    baselinePrice: value.baselinePrice,
+    firstYear: value.firstYear,
+    lastYear,
+  };
 }
 
 function parseModel(value: unknown) {
