@@ -8,12 +8,15 @@ import { Icon } from "@/components/ui/Icon";
 import { useIntakeActor } from "@/hooks/use-intake-actor";
 import { useInitialToast } from "@/hooks/use-initial-toast";
 import { useVehicleReservation } from "@/hooks/use-vehicle-reservation";
+import { hasIntakeAccess } from "@/lib/auth/actor";
 import { authHref, type CustomerAccount } from "@/lib/auth/contracts";
 import type { CustomerVehicleAccess } from "@/lib/vehicles/customer-access";
 import type { PublicVehicleDetail } from "@/lib/vehicles/public-detail";
 import type { PurchaseQuote } from "@/lib/vehicles/purchase-quote";
 import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDateTime } from "@/lib/date-format";
+import { AssistedVehicleBooking } from "./AssistedVehicleBooking";
+import { VehicleTestDrive } from "./VehicleTestDrive";
 import styles from "./VehicleReservation.module.css";
 
 export function VehicleReservation({
@@ -55,6 +58,33 @@ export function VehicleReservation({
           {financing}
         </div>
       </div>
+    );
+  }
+  if (access.status === 403 && access.actor && hasIntakeAccess(access.actor)) {
+    const staff = access.actor;
+    return (
+      <AssistedVehicleBooking
+        financing={financing}
+        renderBooking={(account) => (
+          <CustomerReservation
+            key={`${account.userId}:${detail.publicationId}`}
+            detail={detail}
+            account={account}
+            actingFor={account.userId}
+            promo={promo}
+            disabled={!actor.ready || promoBusy}
+            testDrive={
+              <VehicleTestDrive
+                detail={detail}
+                access={{ status: 200, actor: staff, account }}
+                actingFor={account.userId}
+              />
+            }
+            financing={financing}
+            onReserved={onReserved}
+          />
+        )}
+      />
     );
   }
   if (access.status === 403) {
@@ -107,6 +137,7 @@ export function VehicleReservation({
 function CustomerReservation({
   detail,
   account,
+  actingFor,
   promo,
   disabled,
   testDrive,
@@ -115,13 +146,15 @@ function CustomerReservation({
 }: {
   detail: PublicVehicleDetail;
   account: CustomerAccount;
+  // The customer's id when sales staff reserve on their behalf.
+  actingFor?: string;
   promo: PurchaseQuote | null;
   disabled: boolean;
   testDrive?: ReactNode;
   financing: ReactNode;
   onReserved?: () => void;
 }) {
-  const reservation = useVehicleReservation(detail, account);
+  const reservation = useVehicleReservation(detail, account, actingFor);
   const { command } = reservation;
   const receipt = command.receipt;
   const price = promo?.price ?? detail.price;
@@ -162,13 +195,17 @@ function CustomerReservation({
             </div>
           </dl>
           <p className={styles.receiptNote}>
-            Deposit counts toward your cash down payment. Receipt emailed separately.
+            {actingFor
+              ? "Deposit counts toward the customer's cash down payment. The receipt is emailed to the customer."
+              : "Deposit counts toward your cash down payment. Receipt emailed separately."}
           </p>
         </section>
         <div className={styles.actions}>
-          <Link href="/account" prefetch={false} className={buttonClassName("primary", "md")}>
-            Manage reservation in account
-          </Link>
+          {!actingFor && (
+            <Link href="/account" prefetch={false} className={buttonClassName("primary", "md")}>
+              Manage reservation in account
+            </Link>
+          )}
           {financing}
         </div>
       </div>
@@ -210,8 +247,8 @@ function CustomerReservation({
         ]}
       >
         <p>
-          This reservation records a refundable RM500 deposit and holds the car for 48
-          hours. No real payment is taken. The deposit counts toward your cash contribution.
+          This reservation records a refundable RM500 deposit and holds the car for 48 hours. No
+          real payment is taken. The deposit counts toward your cash contribution.
         </p>
         <p>
           The backend confirms availability and current terms. Your receipt shows the reserved total

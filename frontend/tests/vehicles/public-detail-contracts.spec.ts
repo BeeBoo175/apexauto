@@ -139,6 +139,9 @@ test("reservation confirmations bind exact operation, vehicle, publication, prom
   expect(matchesCustomerReservation(parsed, body, photoId, id, "other@example.invalid")).toBe(
     false,
   );
+  // Sales staff reserving for a customer know only masked contact, so the buyer email is not compared.
+  expect(matchesCustomerReservation(parsed, body, photoId, id, null)).toBe(true);
+  expect(matchesCustomerReservation(parsed, body, id, id, null)).toBe(false);
   for (const changed of [
     { deposit: 0 },
     { expiresAt: "2026-11-01T00:00:01Z" },

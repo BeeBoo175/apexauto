@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useApiCommand } from "./use-api-command";
-import { privateApiFetch } from "@/lib/api-browser";
+import { privateFetchFor } from "@/lib/staff/assisted-fetch";
 import type { PublicVehicleDetail } from "@/lib/vehicles/public-detail";
 import type { CustomerAccount } from "@/lib/auth/contracts";
 import {
@@ -11,7 +11,12 @@ import {
   type CustomerReservationRequest,
 } from "@/lib/vehicles/customer-reservation";
 
-export function useVehicleReservation(detail: PublicVehicleDetail, account: CustomerAccount) {
+// actingFor names the customer when sales staff reserve on their behalf; the account then carries masked contact.
+export function useVehicleReservation(
+  detail: PublicVehicleDetail,
+  account: CustomerAccount,
+  actingFor?: string,
+) {
   const [confirmation, setConfirmation] = useState<CustomerReservationRequest | null>(null);
   const command = useApiCommand(
     `/api/vehicles/${detail.listing.id}/reservations`,
@@ -22,9 +27,9 @@ export function useVehicleReservation(detail: PublicVehicleDetail, account: Cust
         body,
         detail.listing.id,
         detail.listing.branchId,
-        account.email,
+        actingFor ? null : account.email,
       ),
-    privateApiFetch,
+    privateFetchFor(actingFor),
   );
   const locked = command.busy || command.uncertain;
 

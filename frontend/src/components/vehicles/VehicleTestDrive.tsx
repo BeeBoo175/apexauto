@@ -15,9 +15,12 @@ import styles from "./VehicleTestDrive.module.css";
 export function VehicleTestDrive({
   detail,
   access,
+  actingFor,
 }: {
   detail: PublicVehicleDetail;
   access: CustomerVehicleAccess;
+  // The customer's id when sales staff book on their behalf.
+  actingFor?: string;
 }) {
   const actor = useIntakeActor(access.actor ?? undefined);
   if (!actor.active || access.status === 403) {
@@ -49,6 +52,7 @@ export function VehicleTestDrive({
       key={`${access.actor.userId}:${detail.publicationId}`}
       detail={detail}
       account={access.account}
+      actingFor={actingFor}
       ready={actor.ready}
     />
   );
@@ -57,13 +61,15 @@ export function VehicleTestDrive({
 function CustomerTestDrive({
   detail,
   account,
+  actingFor,
   ready,
 }: {
   detail: PublicVehicleDetail;
   account: CustomerAccount;
+  actingFor?: string;
   ready: boolean;
 }) {
-  const drive = useVehicleTestDrive(detail, account);
+  const drive = useVehicleTestDrive(detail, account, actingFor);
   const receipt = drive.command.receipt;
   const confirmedDate = drive.offer?.date === drive.date;
   const vehicle = `${detail.listing.manufactureYear} ${detail.listing.make} ${detail.listing.model} ${detail.listing.trim}`;

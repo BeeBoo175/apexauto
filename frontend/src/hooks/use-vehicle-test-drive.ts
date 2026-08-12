@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
-import { apiFetch, privateApiFetch } from "@/lib/api-browser";
+import { apiFetch } from "@/lib/api-browser";
+import { privateFetchFor } from "@/lib/staff/assisted-fetch";
 import { calendarDate, isCalendarDate } from "@/lib/calendar";
 import type { CustomerAccount } from "@/lib/auth/contracts";
 import type { PublicVehicleDetail } from "@/lib/vehicles/public-detail";
@@ -17,7 +18,11 @@ import { useApiCommand } from "./use-api-command";
 type Offer = NonNullable<ReturnType<typeof parseTestDriveSlots>>;
 type Request = NonNullable<ReturnType<typeof parseTestDriveRequest>>;
 
-export function useVehicleTestDrive(detail: PublicVehicleDetail, account: CustomerAccount) {
+export function useVehicleTestDrive(
+  detail: PublicVehicleDetail,
+  account: CustomerAccount,
+  actingFor?: string,
+) {
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState(calendarDate);
   const [offer, setOffer] = useState<Offer | null>(null);
@@ -37,7 +42,7 @@ export function useVehicleTestDrive(detail: PublicVehicleDetail, account: Custom
         matchesTestDriveBooking(receipt, request, detail.listing.id, account.userId),
       );
     },
-    privateApiFetch,
+    privateFetchFor(actingFor),
   );
   const locked = command.busy || command.uncertain;
   useEffect(() => () => controller.current?.abort(), []);

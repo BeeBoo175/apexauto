@@ -90,7 +90,8 @@ export function matchesCustomerReservation(
   body: unknown,
   vehicleId: string,
   branchId: string,
-  email: string,
+  // Null when staff reserve for a customer and only masked contact is known.
+  email: string | null,
 ) {
   const request = parseCustomerReservationRequest(body);
   return Boolean(
@@ -100,6 +101,6 @@ export function matchesCustomerReservation(
     receipt.branchId === branchId &&
     receipt.publicationId === request.publicationId &&
     receipt.promoId === request.promoId &&
-    receipt.buyer.email === email,
+    (email === null || receipt.buyer.email === email),
   );
 }
