@@ -562,6 +562,9 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("BookedByStaffId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("BranchId")
                         .HasColumnType("uuid");
 
@@ -640,6 +643,8 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         });
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BookedByStaffId");
 
                     b.HasIndex("BranchId", "StartsAt");
 
@@ -1166,6 +1171,9 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("BookedByStaffId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("BranchId")
                         .HasColumnType("uuid");
 
@@ -1188,6 +1196,8 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BookedByStaffId");
 
                     b.HasIndex("BranchId", "StartsAt", "Id");
 
@@ -1695,6 +1705,9 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("BookedByStaffId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("BranchId")
                         .HasColumnType("uuid");
 
@@ -1803,6 +1816,8 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         });
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BookedByStaffId");
 
                     b.HasIndex("CustomerId")
                         .IsUnique()
@@ -3362,6 +3377,11 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Dealership.Domain.Intake.IntakeAppointment", b =>
                 {
+                    b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
+                        .WithMany()
+                        .HasForeignKey("BookedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Dealership.Domain.Branches.Branch", null)
                         .WithMany()
                         .HasForeignKey("BranchId")
@@ -3517,6 +3537,11 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Dealership.Domain.TestDrives.TestDriveBooking", b =>
                 {
+                    b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
+                        .WithMany()
+                        .HasForeignKey("BookedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Dealership.Domain.Customers.CustomerProfile", null)
                         .WithMany()
                         .HasForeignKey("CustomerId")
@@ -3723,6 +3748,11 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Dealership.Domain.Vehicles.Reservation", b =>
                 {
+                    b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
+                        .WithMany()
+                        .HasForeignKey("BookedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Dealership.Domain.Customers.CustomerProfile", null)
                         .WithMany()
                         .HasForeignKey("CustomerId")
