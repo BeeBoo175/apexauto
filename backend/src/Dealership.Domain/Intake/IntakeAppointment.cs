@@ -46,6 +46,18 @@ public sealed partial class IntakeAppointment
     public DateTimeOffset? CancelledAt { get; private set; }
     public DateTimeOffset? CancellationPhotosExpireAt { get; private set; }
     public SellerValuation Valuation { get; private set; } = null!;
+    public Guid? BookedByStaffId { get; private set; }
+
+    // Set when a staff member made the booking for the customer, so the record still names who acted.
+    public void RecordAssistance(Guid staffId)
+    {
+        if (staffId == Guid.Empty)
+        {
+            throw new ArgumentException("Assisting staff require an identity.", nameof(staffId));
+        }
+
+        BookedByStaffId = staffId;
+    }
 
     public void Cancel(DateTimeOffset now, TimeSpan photoRetention)
     {

@@ -1,6 +1,7 @@
 using Dealership.Domain.Branches;
 using Dealership.Domain.Customers;
 using Dealership.Domain.Intake;
+using Dealership.Infrastructure.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -25,6 +26,7 @@ public sealed class IntakeBookingConfiguration : IEntityTypeConfiguration<Intake
         builder.HasAlternateKey(item => new { item.Id, item.OwnerId });
         builder.HasAlternateKey(item => new { item.Id, item.OwnerId, item.BranchId });
         builder.HasOne<CustomerProfile>().WithMany().HasForeignKey(item => item.OwnerId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<AccountUser>().WithMany().HasForeignKey(item => item.BookedByStaffId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Branch>().WithMany().HasForeignKey(item => item.BranchId).OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(item => new { item.BranchId, item.StartsAt });
         builder.HasIndex(item => new { item.OwnerId, item.StartsAt, item.Id });

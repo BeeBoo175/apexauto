@@ -1,6 +1,7 @@
 using Dealership.Domain.Customers;
 using Dealership.Domain.TestDrives;
 using Dealership.Domain.Vehicles;
+using Dealership.Infrastructure.Identity;
 using Dealership.Infrastructure.TestDrives;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -23,6 +24,7 @@ public sealed class TestDriveBookingConfiguration : IEntityTypeConfiguration<Tes
         builder.HasIndex(item => new { item.VehicleId, item.StartsAt, item.Id });
         builder.HasOne<CustomerProfile>().WithMany().HasForeignKey(item => item.CustomerId)
             .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<AccountUser>().WithMany().HasForeignKey(item => item.BookedByStaffId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<ListingPublication>().WithMany()
             .HasForeignKey(item => new { item.PublicationId, item.VehicleId, item.BranchId })
             .HasPrincipalKey(item => new { item.Id, item.VehicleId, item.BranchId })

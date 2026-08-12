@@ -43,6 +43,7 @@ public sealed class ReservationConfiguration : IEntityTypeConfiguration<Reservat
         builder.HasKey(item => item.Id);
         builder.Property(item => item.Id).ValueGeneratedNever();
         builder.HasOne<CustomerProfile>().WithMany().HasForeignKey(item => item.CustomerId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<AccountUser>().WithMany().HasForeignKey(item => item.BookedByStaffId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<ListingPublication>().WithMany()
             .HasForeignKey(item => new { item.PublicationId, item.VehicleId, item.BranchId })
             .HasPrincipalKey(item => new { item.Id, item.VehicleId, item.BranchId }).OnDelete(DeleteBehavior.Restrict);

@@ -39,4 +39,16 @@ public sealed class TestDriveBooking
     public DateTimeOffset StartsAt { get; private set; }
     public DateTimeOffset EndsAt { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
+    public Guid? BookedByStaffId { get; private set; }
+
+    // Set when a staff member made the booking for the customer, so the record still names who acted.
+    public void RecordAssistance(Guid staffId)
+    {
+        if (staffId == Guid.Empty)
+        {
+            throw new ArgumentException("Assisting staff require an identity.", nameof(staffId));
+        }
+
+        BookedByStaffId = staffId;
+    }
 }

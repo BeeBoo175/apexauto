@@ -239,7 +239,8 @@ public sealed class ReservationPersistenceTests(IntakePhotoFixture fixture) : IC
             SELECT count(*) FROM pg_constraint WHERE contype = 'f' AND
                 conrelid IN ('"Reservations"'::regclass, '"ReservationReleases"'::regclass) AND confdeltype = 'r'
             """, connection);
-        Assert.Equal(5L, await command.ExecuteScalarAsync());
+        // Customer, vehicle and publication, release links, and the staff member who booked on a customer's behalf.
+        Assert.Equal(6L, await command.ExecuteScalarAsync());
         command.CommandText = """
             SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conrelid = '"Reservations"'::regclass
                 AND confrelid = '"ListingPublications"'::regclass

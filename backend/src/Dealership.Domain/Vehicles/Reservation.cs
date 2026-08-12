@@ -66,6 +66,7 @@ public sealed partial class Reservation
     public PurchasePrice Price { get; private set; } = null!;
     public decimal Deposit { get; private set; } = DepositAmount;
     public DateTimeOffset CreatedAt { get; private set; }
+    public Guid? BookedByStaffId { get; private set; }
 
     // The original confirmed deadline; once the sale exists it owns the running deadline and any paused time.
     public DateTimeOffset ExpiresAt { get; private set; }
@@ -85,4 +86,15 @@ public sealed partial class Reservation
 
     [GeneratedRegex("^VRS-[0-9]{4}-[0-9]{6}$")]
     private static partial Regex NumberPattern();
+
+    // Set when a staff member made the booking for the customer, so the record still names who acted.
+    public void RecordAssistance(Guid staffId)
+    {
+        if (staffId == Guid.Empty)
+        {
+            throw new ArgumentException("Assisting staff require an identity.", nameof(staffId));
+        }
+
+        BookedByStaffId = staffId;
+    }
 }
