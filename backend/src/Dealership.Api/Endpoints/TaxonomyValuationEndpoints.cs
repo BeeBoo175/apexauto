@@ -1,6 +1,7 @@
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Vehicles;
 using Dealership.Domain.Common;
+using Dealership.Domain.Valuation;
 
 namespace Dealership.Api.Endpoints;
 
@@ -17,6 +18,7 @@ public static class TaxonomyValuationEndpoints
         return Results.Ok(new
         {
             currency = DealershipLocale.DefaultCurrency,
+            maximumMileageKilometres = ValuationPolicy.MaximumMileageKilometres,
             makes = VehicleTaxonomy.Makes
         });
     }

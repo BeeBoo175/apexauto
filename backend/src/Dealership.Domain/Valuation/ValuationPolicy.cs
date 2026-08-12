@@ -13,4 +13,5 @@ public static class ValuationPolicy
     public const decimal MaximumMileagePremium = 0.10m;
     public const decimal SalvageFloorRate = 0.10m;
     public const decimal QuoteSpread = 0.05m;
+    public const int MaximumMileageKilometres = 500000;
 }

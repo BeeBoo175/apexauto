@@ -20,14 +20,20 @@ public sealed class ValuationService(TimeProvider timeProvider)
             errors["vehicle"] = ["Select a make, model and trim from the supported taxonomy."];
         }
 
-        if (request.ManufactureYear is null || request.ManufactureYear <= 0 || request.ManufactureYear > currentYear)
+        var year = request.ManufactureYear;
+        var yearOutsideTrim = trim is not null && year is not null && !trim.AcceptsYear(year.Value, currentYear);
+        if (year is null or <= 0 || year > currentYear || yearOutsideTrim)
         {
-            errors["manufactureYear"] = ["Enter a positive manufacture year no later than the current Malaysian year."];
+            errors["manufactureYear"] = trim is null
+                ? ["Enter a positive manufacture year no later than the current Malaysian year."]
+                : [$"Choose a manufacture year from {trim.FirstYear} to the current Malaysian year for this trim."];
         }
 
-        if (request.MileageKilometres is null || request.MileageKilometres < 0)
+        if (request.MileageKilometres is null || request.MileageKilometres < 0 ||
+            request.MileageKilometres > ValuationPolicy.MaximumMileageKilometres)
         {
-            errors["mileageKilometres"] = ["Enter a non-negative whole-number mileage in kilometres."];
+            errors["mileageKilometres"] =
+                [$"Enter a whole-number mileage from 0 to {ValuationPolicy.MaximumMileageKilometres} kilometres."];
         }
 
         if (errors.Count > 0)

@@ -4,6 +4,53 @@ namespace Dealership.Domain.Vehicles;
 
 public static class VehicleTaxonomy
 {
+    // First model year each model was sold in Malaysia. A trim launched later overrides its model below.
+    private static readonly Dictionary<string, int> modelFirstYears = new()
+    {
+        ["Perodua|Myvi"] = 2005,
+        ["Perodua|Axia"] = 2014,
+        ["Perodua|Ativa"] = 2021,
+        ["Perodua|Bezza"] = 2016,
+        ["Perodua|Alza"] = 2009,
+        ["Proton|X50"] = 2020,
+        ["Proton|Saga"] = 2008,
+        ["Proton|X70"] = 2018,
+        ["Proton|Persona"] = 2007,
+        ["Proton|Iriz"] = 2014,
+        ["Honda|Civic"] = 2016,
+        ["Honda|City"] = 2014,
+        ["Honda|HR-V"] = 2015,
+        ["Honda|CR-V"] = 2017,
+        ["Toyota|Vios"] = 2014,
+        ["Toyota|Yaris"] = 2019,
+        ["Toyota|Corolla Cross"] = 2020,
+        ["Toyota|Hilux"] = 2016,
+        ["Mazda|Mazda 2"] = 2015,
+        ["Mazda|Mazda 3"] = 2014,
+        ["Mazda|CX-5"] = 2013,
+        ["BYD|Atto 3"] = 2022,
+        ["BYD|Dolphin"] = 2024,
+        ["BYD|Seal"] = 2024
+    };
+
+    private static readonly Dictionary<string, int> trimFirstYears = new()
+    {
+        ["Perodua|Myvi|1.5 AV"] = 2018,
+        ["Perodua|Alza|AV"] = 2022,
+        ["Proton|Saga|Premium S"] = 2019,
+        ["Honda|Civic|e:HEV RS"] = 2022,
+        ["Honda|City|RS"] = 2020,
+        ["Honda|City|e:HEV RS"] = 2021,
+        ["Honda|HR-V|RS"] = 2022,
+        ["Honda|CR-V|e:HEV RS"] = 2023,
+        ["Toyota|Corolla Cross|Hybrid"] = 2021,
+        ["Mazda|Mazda 3|2.0 High Plus"] = 2019,
+        ["Mazda|Mazda 3|2.0 Ignite Edition"] = 2020,
+        ["Mazda|CX-5|2.2D"] = 2015,
+        ["Mazda|CX-5|2.5 High"] = 2017,
+        ["Mazda|CX-5|2.5 Turbo"] = 2020
+    };
+
     public static IReadOnlyList<TaxonomyMake> Makes { get; } = Build();
 
     private static ReadOnlyCollection<TaxonomyMake> Build()
@@ -91,7 +138,8 @@ public static class VehicleTaxonomy
         {
             var models = make.GroupBy(entry => entry.Model).Select(model =>
             {
-                var trims = model.Select(entry => new TaxonomyTrim(entry.Trim, entry.BaselinePrice)).ToArray();
+                var trims = model.Select(entry => new TaxonomyTrim(entry.Trim, entry.BaselinePrice,
+                    FirstYear(entry), null)).ToArray();
                 return new TaxonomyModel(model.Key, Array.AsReadOnly(trims));
             }).ToArray();
 
@@ -101,6 +149,13 @@ public static class VehicleTaxonomy
         return Array.AsReadOnly(makes);
     }
 
+    private static int FirstYear(TaxonomyEntry entry)
+    {
+        return trimFirstYears.TryGetValue($"{entry.Make}|{entry.Model}|{entry.Trim}", out var trimYear)
+            ? trimYear
+            : modelFirstYears[$"{entry.Make}|{entry.Model}"];
+    }
+
     private sealed record TaxonomyEntry(string Make, string Model, string Trim, decimal BaselinePrice);
 }
 
@@ -108,4 +163,8 @@ public sealed record TaxonomyMake(string Name, IReadOnlyList<TaxonomyModel> Mode
 
 public sealed record TaxonomyModel(string Name, IReadOnlyList<TaxonomyTrim> Trims);
 
-public sealed record TaxonomyTrim(string Name, decimal BaselinePrice);
+// LastYear is null while the trim is still sold, so the newest accepted year is the current Malaysian year.
+public sealed record TaxonomyTrim(string Name, decimal BaselinePrice, int FirstYear, int? LastYear)
+{
+    public bool AcceptsYear(int year, int currentYear) => year >= FirstYear && year <= Math.Min(LastYear ?? currentYear, currentYear);
+}
