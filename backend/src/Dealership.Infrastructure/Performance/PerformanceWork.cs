@@ -21,7 +21,7 @@ internal static class PerformanceWork
                               !database.AppointmentCheckIns.Any(item => item.AppointmentId == appointment.Id)
                           select new { PersonId = assignment.HandlerId!.Value, Since = assignment.RecordedAt })
             .ToListAsync(cancellationToken);
-        return rows.Select(row => (row.PersonId, row.Since)).ToList();
+        return [.. rows.Select(row => (row.PersonId, row.Since))];
     }
 
     // Test drives assigned to a handler that have neither finished nor been cancelled.
@@ -37,7 +37,7 @@ internal static class PerformanceWork
                               !database.TestDriveCancellations.Any(item => item.BookingId == assignment.BookingId)
                           select new { PersonId = assignment.HandlerId!.Value, Since = assignment.RecordedAt })
             .ToListAsync(cancellationToken);
-        return rows.Select(row => (row.PersonId, row.Since)).ToList();
+        return [.. rows.Select(row => (row.PersonId, row.Since))];
     }
 
     // Sales a person is handling, approved or has settled and not yet delivered.
@@ -50,7 +50,7 @@ internal static class PerformanceWork
                     order.Status == SalesOrderStatus.Approved || order.Status == SalesOrderStatus.Settled))
             .Select(order => new { PersonId = order.AgentId!.Value, Since = order.ClaimedAt!.Value })
             .ToListAsync(cancellationToken);
-        return rows.Select(row => (row.PersonId, row.Since)).ToList();
+        return [.. rows.Select(row => (row.PersonId, row.Since))];
     }
 
     // Unsigned drafts, aged from their latest assignment.
@@ -64,7 +64,7 @@ internal static class PerformanceWork
                             where !draft.IsSigned && (branchId == null || draft.BranchId == branchId)
                             select new { PersonId = draft.TechnicianId, Since = assignment.RecordedAt })
             .ToListAsync(cancellationToken);
-        return drafts.Select(row => (row.PersonId, row.Since)).ToList();
+        return [.. drafts.Select(row => (row.PersonId, row.Since))];
     }
 
     // Signed drafts whose latest repair request is not yet completed, aged from that request.
@@ -80,6 +80,6 @@ internal static class PerformanceWork
                                      completion.InspectionId == draft.Id && completion.RepairVersion == draft.RepairVersion)
                              select new { PersonId = draft.TechnicianId, Since = request.RequestedAt })
             .ToListAsync(cancellationToken);
-        return repairs.Select(row => (row.PersonId, row.Since)).ToList();
+        return [.. repairs.Select(row => (row.PersonId, row.Since))];
     }
 }

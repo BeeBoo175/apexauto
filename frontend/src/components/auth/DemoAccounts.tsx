@@ -33,7 +33,7 @@ export function DemoAccounts({
   return (
     <details className={styles.demoDetails}>
       <summary className={styles.demoSummary}>
-        <span>Demo credentials</span>
+        <span>Sample credentials</span>
         <span className={styles.chevron} aria-hidden="true">
           <Icon name="down" />
         </span>
@@ -51,7 +51,7 @@ export function DemoAccounts({
                     type="button"
                     variant="secondary"
                     className={styles.demoOption}
-                    aria-label={`Use ${account.label} demo account`}
+                    aria-label={`Use ${account.label} sample account`}
                     onClick={() => onSelect(account)}
                   >
                     <span className={styles.demoOptionLabel}>{account.label}</span>

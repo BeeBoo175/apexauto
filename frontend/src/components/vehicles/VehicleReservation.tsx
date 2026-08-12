@@ -210,12 +210,12 @@ function CustomerReservation({
         ]}
       >
         <p>
-          This portfolio simulation records a refundable RM500 deposit and holds the car for 48
+          This reservation records a refundable RM500 deposit and holds the car for 48
           hours. No real payment is taken. The deposit counts toward your cash contribution.
         </p>
         <p>
           The backend confirms availability and current terms. Your receipt shows the reserved total
-          and exact expiry. Cancellation or expiry records one full simulated refund.
+          and exact expiry. Cancellation or expiry records one full refund.
         </p>
       </ConfirmationDialog>
     </div>

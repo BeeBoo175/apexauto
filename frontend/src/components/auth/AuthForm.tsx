@@ -66,7 +66,7 @@ export function AuthForm({
     // The accounts sit below the form, so return to the filled fields and the Sign in button.
     submitButton.current?.focus({ preventScroll: true });
     window.scrollTo({ top: 0, behavior: "smooth" });
-    info("Demo details filled. Sign in to continue.");
+    info("Sample details filled. Sign in to continue.");
   }
 
   return (
@@ -178,7 +178,7 @@ export function AuthForm({
         </div>
       )}
       {kind === "login" && demoAccounts && (
-        <fieldset disabled={busy || uncertain} className={styles.demo} aria-label="Demo accounts">
+        <fieldset disabled={busy || uncertain} className={styles.demo} aria-label="Sample accounts">
           <DemoAccounts accounts={demoAccounts} ready={hydrated} onSelect={fillDemoAccount} />
         </fieldset>
       )}

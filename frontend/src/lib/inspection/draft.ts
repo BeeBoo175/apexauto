@@ -19,7 +19,10 @@ export function checklistViews(catalog: Point[], value: ChecklistDraft, search: 
   return {
     all,
     findings: all.filter((point) => value.entries[point.code]?.kind === "Finding"),
-    remaining: all.filter((point) => !examined.has(point.code)),
+    // Points recorded as not fitted are settled without examination, so they never count as remaining.
+    remaining: all.filter(
+      (point) => value.entries[point.code]?.kind !== "NotFitted" && !examined.has(point.code),
+    ),
   };
 }
 

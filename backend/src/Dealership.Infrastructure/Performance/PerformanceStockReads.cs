@@ -110,11 +110,11 @@ public sealed class PerformanceStockReads(DealershipDbContext database) : IPerfo
                                   .Where(item => item.InspectionId == draft.Id && item.RepairVersion == 1)
                                   .Select(item => (DateTimeOffset?)item.CompletedAt).FirstOrDefault()
                           }).ToListAsync(cancellationToken);
-        return rows.Select(row =>
+        return [.. rows.Select(row =>
         {
             var ready = row.Repaired is { } repaired && repaired > row.SignedAt ? repaired : row.SignedAt;
             return (row.ListedAt - ready).TotalSeconds;
-        }).ToList();
+        })];
     }
 
     private Task<List<double>> ListedPassesAsync(Guid? branchId, PerformanceQuery query,

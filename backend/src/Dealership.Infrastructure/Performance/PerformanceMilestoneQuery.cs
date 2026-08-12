@@ -74,9 +74,9 @@ public sealed class PerformanceMilestoneQuery(DealershipDbContext database) : IP
                               Corrected = checkIn.CorrectionRecordedAt != null,
                               appointment.RegistrationPlate
                           }).ToListAsync(cancellationToken);
-        return rows.Select(row => new Milestone(
+        return [.. rows.Select(row => new Milestone(
             row.Corrected ? PerformanceMilestoneKinds.NoShowCorrection : PerformanceMilestoneKinds.CheckIn,
-            row.CheckedInAt, row.BranchId, row.RegistrationPlate, "Appointment", row.AppointmentId, null)).ToList();
+            row.CheckedInAt, row.BranchId, row.RegistrationPlate, "Appointment", row.AppointmentId, null))];
     }
 
     private async Task<List<Milestone>> DriveMilestonesAsync(Guid personId, Guid? branchId, PerformanceQuery query,
@@ -89,11 +89,11 @@ public sealed class PerformanceMilestoneQuery(DealershipDbContext database) : IP
                               outcome.EndedAt < query.Until && (branchId == null || outcome.BranchId == branchId)
                           select new { outcome.BookingId, outcome.BranchId, outcome.EndedAt, outcome.Kind, vehicle.RegistrationPlate })
             .ToListAsync(cancellationToken);
-        return rows.Select(row => new Milestone(
+        return [.. rows.Select(row => new Milestone(
             row.Kind == TestDriveOutcomeKind.Completed
                 ? PerformanceMilestoneKinds.DriveCompleted
                 : PerformanceMilestoneKinds.DriveNotCompleted,
-            row.EndedAt, row.BranchId, row.RegistrationPlate, "TestDrive", row.BookingId, null)).ToList();
+            row.EndedAt, row.BranchId, row.RegistrationPlate, "TestDrive", row.BookingId, null))];
     }
 
     private async Task<List<Milestone>> SaleMilestonesAsync(Guid personId, Guid? branchId, PerformanceQuery query,
@@ -115,11 +115,11 @@ public sealed class PerformanceMilestoneQuery(DealershipDbContext database) : IP
                               order.OrderNumber,
                               Total = order.Subtotal
                           }).ToListAsync(cancellationToken);
-        return rows.Select(row => row.Kind == SalesOrderEventKind.Delivered
+        return [.. rows.Select(row => row.Kind == SalesOrderEventKind.Delivered
             ? new Milestone(PerformanceMilestoneKinds.SaleDelivered, row.RecordedAt, row.BranchId,
                 row.OrderNumber ?? string.Empty, "Sale", row.OrderId, row.Total)
             : new Milestone(PerformanceMilestoneKinds.SaleSettled, row.RecordedAt, row.BranchId,
-                row.OrderNumber ?? string.Empty, "Sale", row.OrderId, null)).ToList();
+                row.OrderNumber ?? string.Empty, "Sale", row.OrderId, null))];
     }
 
     private async Task<List<Milestone>> WorkshopMilestonesAsync(Guid personId, Guid? branchId, PerformanceQuery query,
@@ -139,12 +139,12 @@ public sealed class PerformanceMilestoneQuery(DealershipDbContext database) : IP
                                  item.CompletedAt < query.Until && (branchId == null || item.BranchId == branchId)
                              select new { item.InspectionId, item.BranchId, item.CompletedAt, vehicle.RegistrationPlate })
             .ToListAsync(cancellationToken);
-        return signed.Select(row => new Milestone(
+        return [.. signed.Select(row => new Milestone(
                 row.Revision == 1 ? PerformanceMilestoneKinds.InspectionSigned : PerformanceMilestoneKinds.Reinspection,
                 row.SignedAt, row.BranchId, row.RegistrationPlate, "Inspection", row.InspectionId, null))
             .Concat(repairs.Select(row => new Milestone(PerformanceMilestoneKinds.RepairCompleted, row.CompletedAt,
                 row.BranchId, row.RegistrationPlate, "Inspection", row.InspectionId, null)))
-            .ToList();
+            ];
     }
 
     private sealed record Milestone(string Kind, DateTimeOffset At, Guid BranchId, string Reference, string RecordKind,

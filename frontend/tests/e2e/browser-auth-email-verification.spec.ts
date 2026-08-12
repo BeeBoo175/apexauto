@@ -74,8 +74,8 @@ async function waitForNewLink(request: APIRequestContext, email: string, previou
 
 async function signIn(page: Page, email: string) {
   await page.goto("/login");
-  await page.getByText("Demo credentials", { exact: true }).click();
-  await page.getByRole("button", { name: "Use Customer demo account" }).click();
+  await page.getByText("Sample credentials", { exact: true }).click();
+  await page.getByRole("button", { name: "Use Customer sample account" }).click();
   await expect(page.getByLabel("Email", { exact: true })).toHaveValue(/@/);
   await page.getByLabel("Email", { exact: true }).fill(email);
   await page.getByLabel("Password", { exact: true }).fill("Password123!");

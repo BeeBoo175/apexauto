@@ -126,7 +126,7 @@ public sealed class PerformanceSalesTeamReads(DealershipDbContext database) : IP
                                   .OrderByDescending(item => item.Sequence)
                                   .Select(item => (DateTimeOffset?)item.RecordedAt).FirstOrDefault()
                           }).ToListAsync(cancellationToken);
-        return rows.Where(row => row.Assigned != null)
-            .Select(row => (row.PersonId, row.BranchId, (row.Delivered - row.Assigned!.Value).TotalSeconds)).ToList();
+        return [.. rows.Where(row => row.Assigned != null)
+            .Select(row => (row.PersonId, row.BranchId, (row.Delivered - row.Assigned!.Value).TotalSeconds))];
     }
 }

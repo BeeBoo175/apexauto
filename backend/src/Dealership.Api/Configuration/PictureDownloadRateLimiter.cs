@@ -39,9 +39,15 @@ public sealed class PictureDownloadRateLimiter(RateLimitingSettings settings) : 
         {
             _limiter.Dispose();
         }
+
+        base.Dispose(disposing);
     }
 
-    protected override ValueTask DisposeAsyncCore() => _limiter.DisposeAsync();
+    protected override async ValueTask DisposeAsyncCore()
+    {
+        await _limiter.DisposeAsync();
+        await base.DisposeAsyncCore();
+    }
 
     private sealed class RejectedLease : RateLimitLease
     {
