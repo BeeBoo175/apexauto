@@ -90,6 +90,7 @@ public static class DependencyInjection
         services.AddScoped<Application.Performance.IPerformanceSalesTeamReads, Performance.PerformanceSalesTeamReads>();
         services.AddScoped<Application.Performance.IPerformanceWorkshopTeamReads, Performance.PerformanceWorkshopTeamReads>();
         services.AddScoped<ICustomerAccountDirectory, Accounts.CustomerAccountDirectory>();
+        services.AddScoped<IStaffAssistanceQuery, Accounts.StaffAssistanceQuery>();
         services.AddScoped<IAccountSuspensionStore, Accounts.AccountSuspensionStore>();
         services.AddScoped<IAccountEditStore, Accounts.AccountEditStore>();
         services.AddScoped<IStaffAccountAdministrationStore, Accounts.StaffAccountAdministrationStore>();

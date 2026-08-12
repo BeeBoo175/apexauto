@@ -173,6 +173,7 @@ app.MapStaffInvitationEndpoints();
 app.MapStaffAccountDirectoryEndpoints();
 app.MapPerformanceQueryEndpoints();
 app.MapCustomerAccountDirectoryEndpoints();
+app.MapStaffAssistanceEndpoints();
 app.MapAccountSuspensionEndpoints();
 app.MapAccountEditEndpoints();
 app.MapStaffAccountAdministrationEndpoints();
