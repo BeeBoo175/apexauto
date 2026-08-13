@@ -52,7 +52,7 @@ function Workspace({ actor, initial, initialView: content }: Props) {
     <div className={styles.workspace} inert={workspace.historyBusy}>
       <LoadingProgress label="Loading appointments" active={busy || drawer.busy} />
       <StaffCommandBar
-        title="Intake appointments"
+        title="Intake"
         actionsRef={setHeaderActions}
         actions={
           <>

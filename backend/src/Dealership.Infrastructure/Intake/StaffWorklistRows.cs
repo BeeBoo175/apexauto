@@ -183,7 +183,7 @@ internal static class StaffWorklistRows
             row.RegistrationPlate, row.StartsAt, row.EndsAt, Status(row.CheckedIn, row.Cancelled, row.NoShow),
             row.Make, row.Model, row.Trim, row.ManufactureYear,
             row.HandlerId, row.HandlerEmail, row.HandlerEligible, row.OwnershipVersion,
-            row.HandlerName, row.HandlerPictureId, row.HandlerSuspended, row.CustomerSuspended);
+            row.HandlerName, row.HandlerPictureId, row.HandlerSuspended, row.CustomerSuspended, row.OwnerId);
     }
 
     public static IOrderedQueryable<WorklistRow> Order(IQueryable<WorklistRow> rows, StaffWorklistQuery query)

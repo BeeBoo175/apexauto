@@ -2,6 +2,9 @@ import { StaffAccount } from "@/components/account/StaffAccount";
 import { StaffEntry } from "@/components/staff/StaffEntry";
 import { LoadingProgressReady } from "@/components/ui/LoadingProgress";
 import { readOwnProfile } from "@/lib/account/server";
+import { workspaceMetadata } from "@/lib/staff/navigation";
+
+export const metadata = workspaceMetadata("/dashboard/account");
 
 export default function StaffAccountPage() {
   return (

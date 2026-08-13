@@ -2,6 +2,9 @@ import { StaffEntry } from "@/components/staff/StaffEntry";
 import { WorkCalendarClientEntry } from "@/components/staff/WorkCalendarClientEntry";
 import { hasWorkCalendarAccess } from "@/lib/staff/work-calendar";
 import type { SearchParams } from "@/lib/query";
+import { workspaceMetadata } from "@/lib/staff/navigation";
+
+export const metadata = workspaceMetadata("/dashboard/work-calendar");
 
 export default async function WorkCalendarPage({
   searchParams,

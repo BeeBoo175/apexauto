@@ -78,7 +78,7 @@ public sealed class SaleReadStore(DealershipDbContext database) : ISaleReadStore
             SaleLabels.Vehicle(facts.ManufactureYear, facts.Make, facts.Model, facts.Trim), facts.Vin,
             facts.MileageKilometres, facts.LegalName, facts.Mobile, facts.Email ?? string.Empty, facts.Branch,
             facts.CreatedAt, warranty?.DurationMonths, warranty?.MileageCapKm, tradeIn?.Valuation.Minimum,
-            tradeIn?.Valuation.Maximum);
+            tradeIn?.Valuation.Maximum, sale.CustomerId);
         return new(SaleResultStatus.Succeeded, new SaleView(sale.Id, SaleSnapshot.Of(sale), Name(names, sale.AgentId),
             Name(names, sale.DecidedById), sale.CreatedAt, sale.UpdatedAt, context, SaleAccess.Actions(actor!, sale)));
     }

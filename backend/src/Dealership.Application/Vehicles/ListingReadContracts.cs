@@ -37,7 +37,7 @@ public sealed record ListingSignedReport(Guid InspectionId, long Revision);
 
 // Who has the car on hold: the buyer, and the agent handling it once one has claimed the hold.
 // The deadline is empty while an agent handles the sale, because its timer is paused.
-public sealed record ListingHold(string Buyer, string? Agent, DateTimeOffset? ExpiresAtUtc);
+public sealed record ListingHold(string Buyer, string? Agent, DateTimeOffset? ExpiresAtUtc, Guid? BuyerId = null);
 
 public sealed record ListingWorkspace(ListingManagerItem Vehicle, ListingRevision? Draft,
     ListingRevision? ApprovedRevision, ListingPublication? Publication, ListingWithdrawal? Withdrawal,

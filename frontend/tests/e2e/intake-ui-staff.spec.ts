@@ -60,9 +60,7 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
     ).status(),
   ).toBe(404);
   await page.goto(`/dashboard/intake/${cross.id}`);
-  await expect(
-    page.getByRole("heading", { name: "Intake appointments", exact: true }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Intake", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Retry appointment", exact: true })).toBeVisible();
   await expect(page.getByLabel("VIN", { exact: true })).toHaveCount(0);
   await expect(page.getByText(cross.registrationPlate, { exact: true })).toHaveCount(0);
@@ -129,9 +127,7 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
   expect(counts()[detailPath]).toBe(detailReads);
   const reopened = await page.reload();
   expect(await reopened!.text()).not.toContain("Declared mileage");
-  await expect(
-    page.getByRole("heading", { name: "Intake appointments", exact: true }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Intake", exact: true })).toBeVisible();
   await expect(queue).toBeAttached();
   await expect(page.getByLabel("VIN", { exact: true })).toBeEditable();
   expect(counts()[detailPath] - detailReads).toBe(1);
@@ -580,9 +576,7 @@ for (const [role, email, actorRole] of staffRoles) {
     if (role === "General manager") {
       const shared = await context.newPage();
       await shared.goto(recordHref);
-      await expect(
-        shared.getByRole("heading", { name: "Intake appointments", exact: true }),
-      ).toBeVisible();
+      await expect(shared.getByRole("heading", { name: "Intake", exact: true })).toBeVisible();
       const sharedDrawer = shared.getByRole("dialog", { name: "Intake appointment", exact: true });
       await expect(sharedDrawer).toBeVisible();
       await sharedDrawer.getByRole("button", { name: "Close drawer", exact: true }).click();

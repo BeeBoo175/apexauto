@@ -21,7 +21,7 @@ public sealed class StaffAppointmentDetailTests(IntakePhotoFixture fixture) : IC
     private static readonly string[] DetailProperties =
     [
         "attendanceCorrectedAt", "branchId", "branchName", "correctedBy", "correctedByName", "correctionReason",
-        "customerEmail", "customerMobile", "customerName", "customerSuspended", "endsAt", "id", "make", "manufactureYear", "mileageKilometres", "model", "noShowAt", "ownership", "registrationPlate",
+        "customerEmail", "customerId", "customerMobile", "customerName", "customerSuspended", "endsAt", "id", "make", "manufactureYear", "mileageKilometres", "model", "noShowAt", "ownership", "registrationPlate",
         "startsAt", "status", "trim"
     ];
 

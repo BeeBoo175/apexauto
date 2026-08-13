@@ -56,6 +56,7 @@ public sealed class StaffAppointmentDetailStore(DealershipDbContext database) : 
             {
                 row.Appointment.Id,
                 row.Appointment.BranchId,
+                CustomerId = row.Appointment.OwnerId,
                 row.BranchName,
                 row.CustomerName,
                 row.Mobile,
@@ -126,7 +127,8 @@ public sealed class StaffAppointmentDetailStore(DealershipDbContext database) : 
         var detail = new StaffAppointmentDetail(row.Id, row.BranchId, row.BranchName, row.CustomerName,
             row.RegistrationPlate, row.StartsAt, row.EndsAt, status, row.Make, row.Model, row.Trim,
             row.ManufactureYear, row.MileageKilometres, wasNoShow ? noShowAt : null, row.CheckIn?.CorrectionRecordedAt, row.CheckIn?.CorrectionReason,
-            correctorId, row.Mobile, row.CustomerEmail ?? string.Empty, corrector, ownership, row.CustomerSuspended);
+            correctorId, row.Mobile, row.CustomerEmail ?? string.Empty, corrector, ownership, row.CustomerSuspended,
+            row.CustomerId);
         await transaction.CommitAsync(cancellationToken);
         return new StaffAppointmentDetailResult(StaffAppointmentDetailStatus.Succeeded, detail);
     }

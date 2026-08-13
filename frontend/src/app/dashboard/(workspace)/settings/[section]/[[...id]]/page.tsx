@@ -2,6 +2,9 @@ import { notFound } from "next/navigation";
 import { SettingsPageEntry } from "@/components/settings/SettingsPageEntry";
 import { settingsSelectionRoute } from "@/lib/settings/settings-location";
 import type { SearchParams } from "@/lib/query";
+import { workspaceMetadata } from "@/lib/staff/navigation";
+
+export const metadata = workspaceMetadata("/dashboard/settings");
 
 export default async function SelectedSettingsPage({
   params,

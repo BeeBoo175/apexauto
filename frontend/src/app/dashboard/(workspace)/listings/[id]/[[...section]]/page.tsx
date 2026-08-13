@@ -2,6 +2,9 @@ import { notFound } from "next/navigation";
 import { ListingPageEntry } from "@/components/vehicles/ListingPageEntry";
 import { listingSelectionRoute } from "@/lib/vehicles/listing-location";
 import type { SearchParams } from "@/lib/query";
+import { workspaceMetadata } from "@/lib/staff/navigation";
+
+export const metadata = workspaceMetadata("/dashboard/listings");
 
 export default async function SelectedListingPage({
   params,

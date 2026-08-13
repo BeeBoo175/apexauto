@@ -12,6 +12,9 @@ import styles from "./Home.module.css";
 const timeZone = "Asia/Kuala_Lumpur";
 const malaysiaOffsetHours = 8;
 const calendarHref = "/dashboard/work-calendar";
+// Branch bookings run from the first slot to the last, so every hour between them shows even when it is free.
+const firstWorkingHour = 9;
+const lastWorkingHour = 17;
 
 const kindLabels: Record<ScheduledWork["kind"], string> = {
   Intake: "Intake",
@@ -33,13 +36,20 @@ function useNowHour() {
   return now;
 }
 
-function byHour(items: ScheduledWork[]) {
-  const hours = new Map<number, ScheduledWork[]>();
+// Every working hour in order, with its bookings; an unusual booking outside the usual day widens the rail.
+function dayRail(items: ScheduledWork[]) {
+  const booked = new Map<number, ScheduledWork[]>();
   for (const item of items) {
     const hour = malaysiaHour(item.startsAt);
-    hours.set(hour, [...(hours.get(hour) ?? []), item]);
+    booked.set(hour, [...(booked.get(hour) ?? []), item]);
   }
-  return [...hours.entries()].sort(([first], [second]) => first - second);
+  const hours = [...booked.keys()];
+  const first = Math.min(firstWorkingHour, ...hours);
+  const last = Math.max(lastWorkingHour, ...hours);
+  return Array.from({ length: last - first + 1 }, (_, index) => {
+    const hour = first + index;
+    return [hour, booked.get(hour) ?? []] as const;
+  });
 }
 
 function scheduleSummary(items: ScheduledWork[]) {
@@ -78,8 +88,7 @@ export function ScheduleSection({
       state={{ ...state, hasData: items !== null }}
       placeholder={<span className={`${dashboard.placeholder} ${styles.shellTimeline}`} />}
     >
-      {items && items.length === 0 && <p className={dashboard.note}>Nothing is booked today.</p>}
-      {items && items.length > 0 && <HourRows items={items} showBranch={showBranch} />}
+      {items && <HourRows items={items} showBranch={showBranch} />}
     </DashboardSection>
   );
 }
@@ -88,12 +97,18 @@ function HourRows({ items, showBranch }: { items: ScheduledWork[]; showBranch: b
   const now = useNowHour();
   return (
     <ol className={styles.hoursList} aria-label="Today's bookings by hour">
-      {byHour(items).map(([hour, bookings]) => (
-        <li key={hour} className={styles.hourRow} data-past={hour < now}>
+      {dayRail(items).map(([hour, bookings]) => (
+        <li
+          key={hour}
+          className={styles.hourRow}
+          data-past={hour < now}
+          data-free={bookings.length === 0}
+        >
           <span className={styles.hourLabel}>
             {hourLabel(hour)}
             {hour === now && <span className={styles.nowTag}>Now</span>}
           </span>
+          {bookings.length === 0 && <span className={styles.freeHour}>Open</span>}
           <ul className={styles.chips}>
             {bookings.map((item) => (
               <li key={`${item.kind}:${item.id}`}>

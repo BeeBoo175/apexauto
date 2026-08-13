@@ -9,7 +9,7 @@ namespace Dealership.Application.Sales;
 public sealed record SaleContext(string ReservationNumber, string Registration, string Vehicle, string Vin,
     int MileageKilometres, string Customer, string CustomerMobile, string CustomerEmail, string Branch,
     DateTimeOffset ReservedAt, int? WarrantyMonths, int? WarrantyMileageCapKm, decimal? TradeInMinimum,
-    decimal? TradeInMaximum);
+    decimal? TradeInMaximum, Guid? CustomerId = null);
 
 // What the reading actor may do next, decided once on the server so every surface offers the same actions.
 public sealed record SaleActions(bool Claim, bool Assign, bool Release, bool SaveTerms, bool Submit, bool Decide,
@@ -24,7 +24,7 @@ public sealed record SaleSummary(Guid Id, string ReservationNumber, string? Orde
     long? PausedSeconds, DateTimeOffset? ClaimedAt, decimal NegotiatedDiscount, decimal? DiscountLimitAtSubmit,
     decimal BalancePayable, DateTimeOffset? SubmittedAt, DateTimeOffset? DecidedAt, DateTimeOffset? ClosedAt,
     string? Outcome, long Version, DateTimeOffset UpdatedAt, string? AgentName = null, Guid? AgentPictureId = null,
-    Guid? AgentId = null, bool AgentSuspended = false, bool CustomerSuspended = false);
+    Guid? AgentId = null, bool AgentSuspended = false, bool CustomerSuspended = false, Guid? CustomerId = null);
 
 public sealed record SaleQueueCounts(int ToClaim, int Handling, int Waiting, int Settling, int Completed);
 

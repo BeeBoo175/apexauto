@@ -266,7 +266,7 @@ public sealed class ListingReadStore(DealershipDbContext database) : IListingRea
                           where reservation.VehicleId == vehicleId && reservation.IsActive
                           select new ListingHold(reservation.Buyer.LegalName,
                               database.Users.Where(user => user.Id == sale.AgentId).Select(user => user.Email).FirstOrDefault(),
-                              sale.DueAt)).SingleOrDefaultAsync(cancellationToken);
+                              sale.DueAt, reservation.CustomerId)).SingleOrDefaultAsync(cancellationToken);
         return new(ListingStatus.Succeeded, new(vehicle, draft, approved, publication, withdrawal, currentSigned?.Id, report, vin, hold));
     }
 

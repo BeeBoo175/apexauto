@@ -19,7 +19,7 @@ export function IntakeClientEntry({
   const { entry, failed, retry } = useIntakeClientEntry(actor, parameters, selectedId);
   if (failed) {
     return (
-      <StaffNotice title="Intake appointments">
+      <StaffNotice title="Intake">
         <Button size="compact" variant="secondary" onClick={() => void retry()}>
           Retry appointments
         </Button>

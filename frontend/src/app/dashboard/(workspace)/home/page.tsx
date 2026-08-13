@@ -1,7 +1,9 @@
 import { HomeClientEntry } from "@/components/home/HomeClientEntry";
 import { StaffEntry } from "@/components/staff/StaffEntry";
-import { hasHomeAccess } from "@/lib/staff/navigation";
+import { hasHomeAccess, workspaceMetadata } from "@/lib/staff/navigation";
 import type { SearchParams } from "@/lib/query";
+
+export const metadata = workspaceMetadata("/dashboard/home");
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   return (

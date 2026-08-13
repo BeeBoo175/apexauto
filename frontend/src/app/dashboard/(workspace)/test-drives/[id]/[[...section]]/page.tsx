@@ -2,6 +2,9 @@ import { notFound } from "next/navigation";
 import { StaffTestDrivePageEntry } from "@/components/test-drives/StaffTestDrivePageEntry";
 import { isUuid } from "@/lib/auth/contracts";
 import type { SearchParams } from "@/lib/query";
+import { workspaceMetadata } from "@/lib/staff/navigation";
+
+export const metadata = workspaceMetadata("/dashboard/test-drives");
 
 export default async function SelectedTestDrivePage({
   params,

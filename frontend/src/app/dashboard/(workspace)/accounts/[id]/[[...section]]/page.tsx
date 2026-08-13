@@ -2,6 +2,9 @@ import { notFound } from "next/navigation";
 import { AccountsPageEntry } from "@/components/accounts/AccountsPageEntry";
 import { accountSelectionRoute } from "@/lib/accounts/accounts-location";
 import type { SearchParams } from "@/lib/query";
+import { workspaceMetadata } from "@/lib/staff/navigation";
+
+export const metadata = workspaceMetadata("/dashboard/accounts");
 
 export default async function SelectedStaffAccountPage({
   params,

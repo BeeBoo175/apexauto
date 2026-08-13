@@ -4,7 +4,7 @@ import { LoadingProgress, LoadingProgressProvider } from "@/components/ui/Loadin
 import styles from "@/app/Shell.module.css";
 
 export const metadata: Metadata = {
-  title: "Staff workspace | ApexAuto",
+  title: { default: "Staff workspace | ApexAuto", template: "%s | ApexAuto" },
   robots: { index: false, follow: false },
 };
 

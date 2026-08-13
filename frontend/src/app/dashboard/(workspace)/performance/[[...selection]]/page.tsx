@@ -4,6 +4,9 @@ import { StaffEntry } from "@/components/staff/StaffEntry";
 import { hasPerformanceAccess } from "@/lib/performance/performance";
 import { performanceSelection } from "@/lib/performance/performance-location";
 import type { SearchParams } from "@/lib/query";
+import { workspaceMetadata } from "@/lib/staff/navigation";
+
+export const metadata = workspaceMetadata("/dashboard/performance");
 
 export default async function PerformancePage({
   params,

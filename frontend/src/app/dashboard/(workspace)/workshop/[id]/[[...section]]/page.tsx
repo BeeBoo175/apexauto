@@ -2,6 +2,9 @@ import { notFound } from "next/navigation";
 import { WorkshopPageEntry } from "@/components/inspection/WorkshopPageEntry";
 import { workshopSelectionRoute } from "@/lib/inspection/workshop-location";
 import type { SearchParams } from "@/lib/query";
+import { workspaceMetadata } from "@/lib/staff/navigation";
+
+export const metadata = workspaceMetadata("/dashboard/workshop");
 
 export default async function SelectedInspectionPage({
   params,

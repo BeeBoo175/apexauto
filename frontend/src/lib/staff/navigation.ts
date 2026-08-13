@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { hasAccountAdministration } from "@/lib/accounts/staff-accounts";
 import { hasIntakeAccess, type CurrentActor } from "@/lib/auth/actor";
 import { hasInspectionAccess } from "@/lib/inspection/contracts";
@@ -39,7 +40,7 @@ export const staffWorkspaceLinks: StaffWorkspaceLink[] = [
   },
   {
     href: "/dashboard/intake",
-    label: "Intake appointments",
+    label: "Intake",
     activeBelow: true,
     allowed: hasIntakeAccess,
   },
@@ -101,4 +102,9 @@ export function staffWorkspacePath(pathname: string) {
 
 export function staffLinkActive(link: StaffWorkspaceLink, selectedPath: string) {
   return link.activeBelow ? selectedPath.startsWith(link.href) : selectedPath === link.href;
+}
+
+// The browser tab names the workspace the address names, so the sidebar, heading and tab never disagree.
+export function workspaceMetadata(path: string): Metadata {
+  return { title: staffPageTitles[path] };
 }

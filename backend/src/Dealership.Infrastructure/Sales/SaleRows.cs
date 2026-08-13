@@ -22,6 +22,7 @@ internal sealed class SaleRow
     public string Model { get; init; } = string.Empty;
     public string Trim { get; init; } = string.Empty;
     public string Customer { get; init; } = string.Empty;
+    public Guid CustomerId { get; init; }
     public string Mobile { get; init; } = string.Empty;
     public string? Email { get; init; }
     public string? Promo { get; init; }
@@ -71,6 +72,7 @@ internal static class SaleRows
             Model = vehicle.Model,
             Trim = vehicle.Trim,
             Customer = profile.LegalName,
+            CustomerId = sale.CustomerId,
             Mobile = profile.Mobile,
             Email = customer.Email,
             Promo = sale.PromoCode,
@@ -123,7 +125,7 @@ internal static class SaleRows
         row.DiscountLimitAtSubmit, row.BalancePayable, row.SubmittedAt, row.DecidedAt, row.ClosedAt,
         SalesOrder.IsClosedStatus(row.Status) ? row.Status.ToString() : null,
         row.Version, row.UpdatedAt, row.AgentName, row.AgentPictureId, row.AgentId,
-        row.AgentSuspended, row.CustomerSuspended);
+        row.AgentSuspended, row.CustomerSuspended, row.CustomerId);
 
     // Compare remaining time before counting and paging, using one instant for both bounds.
     public static IQueryable<SaleRow> TimeLeftBetween(IQueryable<SaleRow> rows, decimal? minimum,

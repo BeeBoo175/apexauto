@@ -209,6 +209,31 @@
   opacity: 0.6;
 }
 
+/* A free hour keeps its row, so a quiet or empty day still reads as a day laid out rather than a blank card. */
+.hourRow[data-free="true"] {
+  align-items: center;
+  padding: 6px 0;
+}
+
+.hourRow[data-free="true"] .hourLabel {
+  padding-top: 0;
+}
+
+.hourRow[data-free="true"] .chips {
+  display: none;
+}
+
+.freeHour {
+  display: block;
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px dashed var(--color-line);
+  border-radius: 4px;
+  color: var(--color-subtle);
+  font-size: 12px;
+  line-height: 16px;
+}
+
 .hourLabel {
   display: grid;
   justify-items: start;

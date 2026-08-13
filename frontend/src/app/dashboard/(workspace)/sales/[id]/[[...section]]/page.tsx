@@ -2,6 +2,9 @@ import { notFound } from "next/navigation";
 import { SalesPageEntry } from "@/components/sales/SalesPageEntry";
 import { saleSelectionRoute } from "@/lib/sales/sales-location";
 import type { SearchParams } from "@/lib/query";
+import { workspaceMetadata } from "@/lib/staff/navigation";
+
+export const metadata = workspaceMetadata("/dashboard/sales");
 
 export default async function SelectedSalePage({
   params,

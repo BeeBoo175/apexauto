@@ -45,6 +45,7 @@ internal static class StaffTestDriveRows
                    Trim = vehicle.Trim,
                    ManufactureYear = vehicle.ManufactureYear,
                    CustomerName = customer.LegalName,
+                   CustomerId = booking.CustomerId,
                    StartsAt = booking.StartsAt,
                    EndsAt = booking.EndsAt,
                    Status = state.Status,
@@ -137,7 +138,7 @@ internal static class StaffTestDriveRows
         row.BranchName, row.RegistrationPlate, row.Make, row.Model, row.Trim, row.ManufactureYear,
         row.CustomerName, row.StartsAt, row.EndsAt, row.Status, row.AssignmentId, row.OwnershipVersion,
         row.HandlerId, row.HandlerEmail, row.HandlerEligible, row.HandlerName, row.HandlerPictureId,
-        row.HandlerSuspended, row.CustomerSuspended);
+        row.HandlerSuspended, row.CustomerSuspended, row.CustomerId);
 
     public static IOrderedQueryable<StaffTestDriveRow> Order(IQueryable<StaffTestDriveRow> rows,
         StaffTestDriveQuery query)
@@ -202,4 +203,6 @@ internal sealed class StaffTestDriveRow
     public bool HandlerSuspended { get; init; }
 
     public bool CustomerSuspended { get; init; }
+
+    public Guid CustomerId { get; init; }
 }
