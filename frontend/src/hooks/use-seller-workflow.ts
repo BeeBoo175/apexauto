@@ -7,12 +7,13 @@ import { normalizeMalaysianPlate, validateMalaysianPlate } from "@/lib/intake/re
 import { emptyVehicle, parseVehicleDraft, type VehicleDraft } from "@/lib/intake/vehicle-draft";
 import { bookingMatchesRequest } from "@/lib/intake/receipt";
 import { apiFetchFor } from "@/lib/staff/assisted-fetch";
+import { reachableSellerStep } from "@/lib/intake/seller-steps";
+import { useSellerStep } from "./use-seller-step";
 
 const handoffKey = "apexauto-seller-vehicle-handoff";
 
 // actingFor names the customer when sales staff book the trade-in on their behalf.
-export function useSellerWorkflow(initial: SellerSnapshot, actingFor?: string) {
-  const [step, setStep] = useState(0);
+export function useSellerWorkflow(initial: SellerSnapshot, actingFor?: string, addressed = true) {
   const [vehicle, setVehicle] = useState<VehicleDraft>(emptyVehicle);
   const [plateTouched, setPlateTouched] = useState(false);
   const [plateSubmitted, setPlateSubmitted] = useState(false);
@@ -20,6 +21,11 @@ export function useSellerWorkflow(initial: SellerSnapshot, actingFor?: string) {
   const [freshQuote, setFreshQuote] = useState<Quote | null>(null);
   const [photos, setPhotos] = useState<Partial<Record<PhotoAngle, PhotoReceipt>>>({});
   const [locks, setLocks] = useState<Partial<Record<PhotoAngle, boolean>>>({});
+  const confirmedPhotos = Object.values(photos).filter(Boolean).length;
+  const { step, setStep } = useSellerStep(
+    reachableSellerStep(quote !== null, confirmedPhotos),
+    addressed,
+  );
   const valuation = useApiCommand("/api/intake/valuations", parseQuote);
   const booking = useApiCommand(
     "/api/intake/appointments",

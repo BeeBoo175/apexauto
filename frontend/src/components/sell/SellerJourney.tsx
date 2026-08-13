@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Button, buttonClassName } from "@/components/ui/Button";
+import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { Icon } from "@/components/ui/Icon";
 import { useIntakeActor } from "@/hooks/use-intake-actor";
 import { useSellerWorkflow } from "@/hooks/use-seller-workflow";
@@ -10,6 +11,8 @@ import { useSellerPhotos } from "@/hooks/use-seller-photos";
 import { useInitialToast } from "@/hooks/use-initial-toast";
 import type { SellerSnapshot } from "@/lib/intake/contracts";
 import type { CustomerLookupRow } from "@/lib/staff/assisted-customer";
+import { replaceUrlParams } from "@/lib/browser-url";
+import { SELLER_STEP_KEY } from "@/lib/intake/seller-steps";
 import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { isValidMalaysianPlate } from "@/lib/intake/registration-plate";
@@ -30,6 +33,7 @@ const stepNotes = [
 ] as const;
 
 export function SellerJourney({ initial }: { initial: SellerSnapshot }) {
+  const [generation, setGeneration] = useState(0);
   const unavailable = !initial.taxonomy || !initial.branches || initial.access >= 500;
   useInitialToast(
     unavailable
@@ -52,10 +56,29 @@ export function SellerJourney({ initial }: { initial: SellerSnapshot }) {
       </section>
     );
   }
-  return <SellerWorkflow initial={initial} ready={actor.ready} />;
+  // Starting over remounts the workflow, which clears every entered value, photo and booking attempt at once.
+  return (
+    <SellerWorkflow
+      key={generation}
+      initial={initial}
+      ready={actor.ready}
+      onStartOver={() => {
+        replaceUrlParams({ [SELLER_STEP_KEY]: "" });
+        setGeneration((current) => current + 1);
+      }}
+    />
+  );
 }
 
-function SellerWorkflow({ initial, ready }: { initial: SellerSnapshot; ready: boolean }) {
+function SellerWorkflow({
+  initial,
+  ready,
+  onStartOver,
+}: {
+  initial: SellerSnapshot;
+  ready: boolean;
+  onStartOver: () => void;
+}) {
   // Sales staff choose the customer they book for; everything below then belongs to that customer.
   const [customer, setCustomer] = useState<CustomerLookupRow | null>(null);
   const workflow = useSellerWorkflow(initial, customer?.id);
@@ -65,6 +88,19 @@ function SellerWorkflow({ initial, ready }: { initial: SellerSnapshot; ready: bo
   const plateInput = useRef<HTMLInputElement>(null);
   const { step, quote, locked, receipt } = workflow;
   const photoCount = Object.values(workflow.photos).filter(Boolean).length;
+  const [confirmingStartOver, setConfirmingStartOver] = useState(false);
+  // Anything entered is lost by leaving or starting over, so both ask first.
+  const hasWork =
+    Object.values(workflow.vehicle).some(Boolean) || quote !== null || sellerPhotos.readyCount > 0;
+
+  useEffect(() => {
+    if (!hasWork || receipt) {
+      return;
+    }
+    const guard = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener("beforeunload", guard);
+    return () => window.removeEventListener("beforeunload", guard);
+  }, [hasWork, receipt]);
 
   useEffect(() => {
     if (ready) {
@@ -137,9 +173,35 @@ function SellerWorkflow({ initial, ready }: { initial: SellerSnapshot; ready: bo
 
       <div className={styles.workspace}>
         <div className={styles.formPanel}>
-          <h1 ref={heading} tabIndex={-1}>
-            {steps[step]}
-          </h1>
+          <div className={styles.panelHeading}>
+            <h1 ref={heading} tabIndex={-1}>
+              {steps[step]}
+            </h1>
+            {hasWork && (
+              <Button
+                variant="ghost"
+                size="compact"
+                disabled={locked}
+                onClick={() => setConfirmingStartOver(true)}
+              >
+                Start over
+              </Button>
+            )}
+          </div>
+          <ConfirmationDialog
+            open={confirmingStartOver}
+            title="Start over?"
+            confirmLabel="Discard and start over"
+            cancelLabel="Keep my details"
+            danger
+            onClose={() => setConfirmingStartOver(false)}
+            onConfirm={onStartOver}
+          >
+            <p>
+              This clears the vehicle details, valuation and photos entered so far. Nothing has been
+              booked yet.
+            </p>
+          </ConfirmationDialog>
 
           {step === 0 && (
             <form

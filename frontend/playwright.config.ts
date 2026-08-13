@@ -48,6 +48,7 @@ export default defineConfig({
         "intake/no-show-contracts.spec.ts",
         "intake/staff-sell-notice-contracts.spec.ts",
         "intake/taxonomy-contracts.spec.ts",
+        "intake/seller-steps-contracts.spec.ts",
         "home/workspace-names-contracts.spec.ts",
         "intake/assisted-customer-contracts.spec.ts",
         "intake/assisted-conflict-contracts.spec.ts",

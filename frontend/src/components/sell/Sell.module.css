@@ -126,6 +126,13 @@
   border-radius: 12px;
 }
 
+.panelHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
 .formPanel h1,
 .unavailable h1 {
   margin: 0 0 8px;
