@@ -134,7 +134,7 @@ export function VehicleReservation({
   );
 }
 
-function CustomerReservation({
+export function CustomerReservation({
   detail,
   account,
   actingFor,

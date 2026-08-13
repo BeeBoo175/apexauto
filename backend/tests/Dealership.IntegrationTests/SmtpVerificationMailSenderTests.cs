@@ -174,6 +174,21 @@ public sealed partial class SmtpVerificationMailSenderTests
         var headers = message[..boundary];
         var body = message[(boundary + 4)..];
 
+        // A mail with an html part is multipart: the plain text part carries the readable fallback.
+        var marker = "boundary=";
+        var start = headers.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+        if (start >= 0)
+        {
+            // The boundary may be quoted or bare, and ends at the first quote, semicolon or line break.
+            var token = headers[(start + marker.Length)..].TrimStart('"');
+            var end = token.IndexOfAny(['"', ';', '\r', '\n']);
+            token = end < 0 ? token : token[..end];
+            var parts = body.Split("--" + token, StringSplitOptions.None)
+                .Select(part => part.Trim())
+                .Where(part => part.Contains("Content-Type:", StringComparison.OrdinalIgnoreCase));
+            return string.Join(Environment.NewLine, parts.Select(DecodeBody));
+        }
+
         if (headers.Contains("Content-Transfer-Encoding: base64", StringComparison.OrdinalIgnoreCase))
         {
             return Encoding.UTF8.GetString(Convert.FromBase64String(body));

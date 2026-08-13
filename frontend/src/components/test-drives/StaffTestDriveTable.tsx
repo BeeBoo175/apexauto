@@ -31,6 +31,7 @@ import { StaffTestDriveStatus } from "./StaffTestDriveStatus";
 import { StaffTestDriveFilters } from "./StaffTestDriveFilters";
 import styles from "@/components/staff/StaffWorklist.module.css";
 import table from "@/components/staff/StaffTable.module.css";
+import { AssistedVehicleAction } from "@/components/staff/AssistedVehicleAction";
 
 export function StaffTestDriveTable({
   list,
@@ -256,6 +257,11 @@ export function StaffTestDriveTable({
                 }
                 actions={
                   <>
+                    <AssistedVehicleAction
+                      kind="testDrive"
+                      disabled={disabled || busy}
+                      onClosed={() => void list.load(filters, active.page)}
+                    />
                     {applied.length > 0 && (
                       <Button
                         size="compact"

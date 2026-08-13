@@ -23,6 +23,7 @@ export const iconFiles = {
   next: "chevron-right.svg",
   refresh: "refresh.svg",
   search: "search.svg",
+  plus: "plus.svg",
   close: "close.svg",
   down: "chevron-down.svg",
   filter: "filter.svg",

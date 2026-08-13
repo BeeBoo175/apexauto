@@ -29,7 +29,7 @@ public static class VehicleTaxonomy
         ["Mazda|Mazda 3"] = 2014,
         ["Mazda|CX-5"] = 2013,
         ["BYD|Atto 3"] = 2022,
-        ["BYD|Dolphin"] = 2024,
+        ["BYD|Dolphin"] = 2023,
         ["BYD|Seal"] = 2024
     };
 

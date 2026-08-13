@@ -1,0 +1,104 @@
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.note {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+  margin: 0;
+  padding: 24px;
+  color: var(--color-muted);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.vehicles {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--color-line-soft);
+  border-radius: var(--radius-sm);
+  background: var(--color-paper);
+}
+
+.vehicles li + li {
+  border-top: 1px solid var(--color-line-soft);
+}
+
+.vehicle {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 16px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.vehicle:hover:not(:disabled) {
+  background: var(--color-canvas);
+}
+
+.vehicle:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: -2px;
+}
+
+.vehicleName {
+  color: var(--color-graphite);
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.vehicleMeta {
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+}
+
+.chosen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  background: var(--color-canvas);
+}
+
+.chosenText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.error {
+  margin: 0;
+  color: var(--color-signal-dark);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}

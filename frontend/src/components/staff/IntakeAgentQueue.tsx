@@ -12,6 +12,7 @@ import type { useStaffAppointmentDrawer } from "@/hooks/use-staff-appointment-dr
 import { intakeQueues, type IntakeQueue } from "@/lib/staff/contracts";
 import { AppointmentStatus } from "./AppointmentStatus";
 import styles from "./StaffQueueWorkspace.module.css";
+import { AssistedIntakeAction } from "./AssistedIntakeAction";
 
 const labels: Record<IntakeQueue, string> = {
   toClaim: "To claim",
@@ -96,6 +97,12 @@ export function IntakeAgentQueue({
             active.filters.search && !busy
               ? () => void worklist.load({ ...active.filters, search: "" }, 1)
               : undefined
+          }
+          action={
+            <AssistedIntakeAction
+              disabled={!ready || busy}
+              onBooked={() => void worklist.load(active.filters, active.page)}
+            />
           }
         />
       }

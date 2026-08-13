@@ -10,6 +10,7 @@ import type { useStaffTestDriveList } from "@/hooks/use-staff-test-drive-list";
 import { testDriveQueues } from "@/lib/test-drives/staff-query";
 import { StaffTestDriveStatus } from "./StaffTestDriveStatus";
 import styles from "@/components/staff/StaffQueueWorkspace.module.css";
+import { AssistedVehicleAction } from "@/components/staff/AssistedVehicleAction";
 
 export function StaffTestDriveQueue({
   list,
@@ -70,6 +71,13 @@ export function StaffTestDriveQueue({
             active.filters.search && !busy
               ? () => void list.load({ ...active.filters, search: "" }, 1)
               : undefined
+          }
+          action={
+            <AssistedVehicleAction
+              kind="testDrive"
+              disabled={busy}
+              onClosed={() => void list.load(active.filters, active.page)}
+            />
           }
         />
       }

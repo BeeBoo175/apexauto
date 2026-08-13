@@ -1,7 +1,6 @@
 "use client";
 
 import { useContext, useState } from "react";
-import { AssistedStartLink } from "@/components/staff/AssistedStartLink";
 import { StaffCommandBar } from "@/components/staff/StaffPage";
 import { StaffPageEntranceContext } from "@/components/staff/StaffActorBoundary";
 import { StaffQueueTabs } from "@/components/staff/StaffQueueTabs";
@@ -30,6 +29,7 @@ import { SalesContent } from "./SalesContent";
 import { SalesQueueList } from "./SalesQueueList";
 import styles from "@/components/staff/StaffQueueWorkspace.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
+import { AssistedVehicleAction } from "@/components/staff/AssistedVehicleAction";
 
 export interface SalesWorkspaceProps {
   // The opening tab is read on entry; the others are read the first time they are shown.
@@ -114,15 +114,12 @@ export function SalesWorkspace({
         actionsRef={setHeaderActions}
         actions={
           !selection.result?.data && (
-            <>
-              <AssistedStartLink href="/vehicles" label="Reserve a car for a customer" />
-              <RefreshButton
-                label="Refresh sales"
-                busy={busy}
-                disabled={!interactive || selection.busy}
-                onClick={() => void refreshDestination()}
-              />
-            </>
+            <RefreshButton
+              label="Refresh sales"
+              busy={busy}
+              disabled={!interactive || selection.busy}
+              onClick={() => void refreshDestination()}
+            />
           )
         }
       />
@@ -153,33 +150,43 @@ export function SalesWorkspace({
           </div>
         }
         search={
-          <form
-            className={styles.search}
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (!interaction.blocked && draft.trim()) {
-                void found.find(draft);
-              }
-            }}
-          >
-            <SearchField
-              label="Search my sales"
-              placeholder="Search reference, plate, customer, phone or email"
-              value={draft}
-              disabled={interaction.blocked}
-              disabledReason={interaction.message}
-              busy={found.busy}
-              onChange={setDraft}
-              onClear={
-                searching
-                  ? () => {
-                      setDraft("");
-                      void found.find("");
-                    }
-                  : undefined
-              }
-            />
-          </form>
+          <div className={styles.search}>
+            <div className={styles.searchRow}>
+              <form
+                className={styles.searchForm}
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  if (!interaction.blocked && draft.trim()) {
+                    void found.find(draft);
+                  }
+                }}
+              >
+                <SearchField
+                  label="Search my sales"
+                  placeholder="Search reference, plate, customer, phone or email"
+                  value={draft}
+                  disabled={interaction.blocked}
+                  disabledReason={interaction.message}
+                  busy={found.busy}
+                  onChange={setDraft}
+                  onClear={
+                    searching
+                      ? () => {
+                          setDraft("");
+                          void found.find("");
+                        }
+                      : undefined
+                  }
+                />
+              </form>
+              {/* Outside the form: the action opens a dialog that holds forms of its own. */}
+              <AssistedVehicleAction
+                kind="reservation"
+                disabled={interaction.blocked}
+                onClosed={() => void refresh()}
+              />
+            </div>
+          </div>
         }
         queue={
           <>

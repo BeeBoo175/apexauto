@@ -18,8 +18,7 @@ import { useMinuteClock } from "@/hooks/use-minute-clock";
 import { useRowSelection } from "@/hooks/use-row-selection";
 import { useSalesManager } from "@/hooks/use-sales-manager";
 import type { ApiResult } from "@/lib/api";
-import { actorIdentity, hasIntakeAccess, type CurrentActor } from "@/lib/auth/actor";
-import { AssistedStartLink } from "@/components/staff/AssistedStartLink";
+import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import {
   type Sale,
   tableViews,
@@ -36,6 +35,7 @@ import { saleColumns } from "./sale-columns";
 import { saleTableFilters } from "./sale-filters";
 import styles from "@/components/staff/StaffWorklist.module.css";
 import workspace from "@/components/staff/StaffWorkspace.module.css";
+import { AssistedVehicleAction } from "@/components/staff/AssistedVehicleAction";
 
 const rowId = (row: SaleSummary) => row.id;
 
@@ -134,17 +134,12 @@ export function SalesTable({
       <StaffCommandBar
         title="Sales"
         actions={
-          <>
-            {hasIntakeAccess(actor) && (
-              <AssistedStartLink href="/vehicles" label="Reserve a car for a customer" />
-            )}
-            <RefreshButton
-              label="Refresh sales"
-              busy={state.busy}
-              disabled={!state.ready}
-              onClick={() => void refresh()}
-            />
-          </>
+          <RefreshButton
+            label="Refresh sales"
+            busy={state.busy}
+            disabled={!state.ready}
+            onClick={() => void refresh()}
+          />
         }
       />
       <div
@@ -178,6 +173,11 @@ export function SalesTable({
                     }
                     actions={
                       <>
+                        <AssistedVehicleAction
+                          kind="reservation"
+                          disabled={state.busy}
+                          onClosed={() => void refresh()}
+                        />
                         {filtered && (
                           <Button
                             size="compact"

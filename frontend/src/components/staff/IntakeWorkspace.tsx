@@ -11,7 +11,6 @@ import type { CurrentActor } from "@/lib/auth/actor";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { IntakeAppointmentDrawer } from "./IntakeAppointmentDrawer";
-import { AssistedStartLink } from "./AssistedStartLink";
 import { StaffCommandBar } from "./StaffPage";
 import { StaffPageEntranceContext } from "./StaffActorBoundary";
 import layout from "./StaffWorkspace.module.css";
@@ -56,9 +55,6 @@ function Workspace({ actor, initial, initialView: content }: Props) {
         actionsRef={setHeaderActions}
         actions={
           <>
-            {(view !== "queue" || (!drawer.id && !drawer.pendingId)) && (
-              <AssistedStartLink href="/sell" label="New intake for a customer" />
-            )}
             {(view !== "queue" || (!drawer.id && !drawer.pendingId)) && (
               <RefreshButton
                 label="Refresh worklist"

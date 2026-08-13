@@ -2,7 +2,6 @@
 
 import { useContext } from "react";
 import { StaffPageEntranceContext } from "@/components/staff/StaffActorBoundary";
-import { AssistedStartLink } from "@/components/staff/AssistedStartLink";
 import { StaffCommandBar } from "@/components/staff/StaffPage";
 import workspace from "@/components/staff/StaffWorkspace.module.css";
 import { Dialog } from "@/components/ui/Dialog";
@@ -12,7 +11,7 @@ import {
   useStaffTestDriveWorkspace,
   type TestDriveEntry,
 } from "@/hooks/use-staff-test-drive-workspace";
-import { hasIntakeAccess, type CurrentActor } from "@/lib/auth/actor";
+import type { CurrentActor } from "@/lib/auth/actor";
 import { StaffTestDriveDetail } from "./StaffTestDriveDetail";
 import styles from "./StaffTestDrive.module.css";
 
@@ -37,17 +36,12 @@ export function StaffTestDriveWorkspace({
       <StaffCommandBar
         title="Test drives"
         actions={
-          <>
-            {hasIntakeAccess(actor) && (
-              <AssistedStartLink href="/vehicles" label="Book a test drive for a customer" />
-            )}
-            <RefreshButton
-              label="Refresh test drives"
-              busy={busy}
-              disabled={guard.blocked}
-              onClick={() => void refresh()}
-            />
-          </>
+          <RefreshButton
+            label="Refresh test drives"
+            busy={busy}
+            disabled={guard.blocked}
+            onClick={() => void refresh()}
+          />
         }
       />
       <div className={`${styles.page} ${animateEntry ? workspace.reveal : ""}`}>

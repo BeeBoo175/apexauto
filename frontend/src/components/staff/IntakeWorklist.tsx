@@ -22,6 +22,7 @@ import { WorklistFilters } from "./WorklistFilters";
 import { intakeColumnFilters } from "./intake-column-filters";
 import { intakeColumns } from "./intake-columns";
 import styles from "./StaffWorklist.module.css";
+import { AssistedIntakeAction } from "./AssistedIntakeAction";
 
 interface IntakeWorklistProps {
   actor: CurrentActor;
@@ -121,6 +122,10 @@ export function IntakeWorklist({ actor, worklist, drawer }: IntakeWorklistProps)
                   }
                   actions={
                     <>
+                      <AssistedIntakeAction
+                        disabled={disabled || worklist.busy}
+                        onBooked={() => void worklist.load(active.filters, active.page)}
+                      />
                       {appliedFilters.length > 0 && (
                         <Button
                           size="compact"
