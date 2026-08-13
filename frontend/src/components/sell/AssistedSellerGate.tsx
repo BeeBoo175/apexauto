@@ -9,10 +9,13 @@ export function AssistedSellerGate({
   notice,
   customer,
   locked,
+  showLink = true,
   onSelect,
   onClear,
 }: {
   notice: StaffSellNotice;
+  // Inside the staff workspace itself there is no workspace to link to.
+  showLink?: boolean;
   customer: CustomerLookupRow | null;
   locked: boolean;
   onSelect: (customer: CustomerLookupRow) => void;
@@ -22,7 +25,7 @@ export function AssistedSellerGate({
     <div className={styles.authGateCard}>
       {!customer && <p>{notice.message}</p>}
       <CustomerPicker selected={customer} disabled={locked} onSelect={onSelect} onClear={onClear} />
-      <a href={notice.href}>{notice.label}</a>
+      {showLink && <a href={notice.href}>{notice.label}</a>}
     </div>
   );
 }

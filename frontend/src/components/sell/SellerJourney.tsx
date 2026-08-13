@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Button, buttonClassName } from "@/components/ui/Button";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { Icon } from "@/components/ui/Icon";
+import { useEditGuard } from "@/hooks/use-edit-guard";
 import { useIntakeActor } from "@/hooks/use-intake-actor";
 import { useSellerWorkflow } from "@/hooks/use-seller-workflow";
 import { useSellerAppointment } from "@/hooks/use-seller-appointment";
@@ -32,7 +33,16 @@ const stepNotes = [
   "90-min branch bay",
 ] as const;
 
-export function SellerJourney({ initial }: { initial: SellerSnapshot }) {
+export function SellerJourney({
+  initial,
+  embedded = false,
+  onDone,
+}: {
+  initial: SellerSnapshot;
+  // Inside a staff drawer the journey keeps its own stage, because the address belongs to the workspace.
+  embedded?: boolean;
+  onDone?: () => void;
+}) {
   const [generation, setGeneration] = useState(0);
   const unavailable = !initial.taxonomy || !initial.branches || initial.access >= 500;
   useInitialToast(
@@ -62,8 +72,12 @@ export function SellerJourney({ initial }: { initial: SellerSnapshot }) {
       key={generation}
       initial={initial}
       ready={actor.ready}
+      embedded={embedded}
+      onDone={onDone}
       onStartOver={() => {
-        replaceUrlParams({ [SELLER_STEP_KEY]: "" });
+        if (!embedded) {
+          replaceUrlParams({ [SELLER_STEP_KEY]: "" });
+        }
         setGeneration((current) => current + 1);
       }}
     />
@@ -73,15 +87,19 @@ export function SellerJourney({ initial }: { initial: SellerSnapshot }) {
 function SellerWorkflow({
   initial,
   ready,
+  embedded,
+  onDone,
   onStartOver,
 }: {
   initial: SellerSnapshot;
   ready: boolean;
+  embedded: boolean;
+  onDone?: () => void;
   onStartOver: () => void;
 }) {
   // Sales staff choose the customer they book for; everything below then belongs to that customer.
   const [customer, setCustomer] = useState<CustomerLookupRow | null>(null);
-  const workflow = useSellerWorkflow(initial, customer?.id);
+  const workflow = useSellerWorkflow(initial, customer?.id, !embedded);
   const appointment = useSellerAppointment(initial.branches!);
   const sellerPhotos = useSellerPhotos(workflow.receivePhoto, workflow.lockPhoto, customer?.id);
   const heading = useRef<HTMLHeadingElement>(null);
@@ -93,14 +111,21 @@ function SellerWorkflow({
   const hasWork =
     Object.values(workflow.vehicle).some(Boolean) || quote !== null || sellerPhotos.readyCount > 0;
 
+  // In a drawer the drawer's own guard asks before closing; on the page the browser asks before leaving.
+  useEditGuard({
+    dirty: embedded && hasWork && !receipt,
+    pending: embedded && locked,
+    label: "Trade-in appointment",
+  });
+
   useEffect(() => {
-    if (!hasWork || receipt) {
+    if (!hasWork || receipt || embedded) {
       return;
     }
     const guard = (event: BeforeUnloadEvent) => event.preventDefault();
     window.addEventListener("beforeunload", guard);
     return () => window.removeEventListener("beforeunload", guard);
-  }, [hasWork, receipt]);
+  }, [hasWork, receipt, embedded]);
 
   useEffect(() => {
     if (ready) {
@@ -132,19 +157,27 @@ function SellerWorkflow({
             ? `Booked for ${customer.name}. The confirmation email is delivered to the customer separately, and the booking remains confirmed if mail is delayed.`
             : "A confirmation email is delivered separately. Your booking remains confirmed if mail is delayed."}
         </p>
-        <Link
-          href={customer ? "/dashboard/intake" : "/account/appointments"}
-          prefetch={false}
-          className={buttonClassName("primary", "md")}
-        >
-          {customer ? "Open intake workspace" : "View your appointments"}
-        </Link>
+        {embedded ? (
+          <Button onClick={onDone}>Done</Button>
+        ) : (
+          <Link
+            href={customer ? "/dashboard/intake" : "/account/appointments"}
+            prefetch={false}
+            className={buttonClassName("primary", "md")}
+          >
+            {customer ? "Open intake workspace" : "View your appointments"}
+          </Link>
+        )}
       </section>
     );
   }
 
   return (
-    <section className={styles.page} aria-label="Sell your car">
+    <section
+      className={styles.page}
+      data-embedded={embedded || undefined}
+      aria-label="Sell your car"
+    >
       <div className={styles.progressBand}>
         <div className={styles.progressWrap}>
           <ol className={styles.progress}>
@@ -304,6 +337,7 @@ function SellerWorkflow({
               {initial.staffNotice?.assisted && (
                 <AssistedSellerGate
                   notice={initial.staffNotice}
+                  showLink={!embedded}
                   customer={customer}
                   locked={locked || sellerPhotos.readyCount > 0}
                   onSelect={setCustomer}
