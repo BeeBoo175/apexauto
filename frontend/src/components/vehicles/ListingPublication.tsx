@@ -6,6 +6,7 @@ import type { ListingWorkspace } from "@/lib/vehicles/listing-workspace";
 import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { CustomerAvatar } from "@/components/staff/CustomerAvatar";
+import { ResolvedPersonLabel } from "@/components/staff/ResolvedPersonLabel";
 import styles from "./ListingPublication.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 
@@ -82,7 +83,20 @@ export function ListingPublication({
                 {snapshot.hold ? (
                   <>
                     <CustomerAvatar id={snapshot.hold.buyerId} name={snapshot.hold.buyer} />
-                    {snapshot.hold.agent ? ` · handled by ${snapshot.hold.agent}` : ""}
+                    {snapshot.hold.agent ? (
+                      <>
+                        {" · handled by "}
+                        {snapshot.hold.agentId ? (
+                          <ResolvedPersonLabel
+                            id={snapshot.hold.agentId}
+                            identity={snapshot.hold.agent}
+                            deferred
+                          />
+                        ) : (
+                          snapshot.hold.agent
+                        )}
+                      </>
+                    ) : null}
                   </>
                 ) : (
                   "Not on hold"

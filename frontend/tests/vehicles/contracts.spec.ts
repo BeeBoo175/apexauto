@@ -313,6 +313,13 @@ test("listing workspace validates revision and publication relationships before 
     })?.hold?.expiresAtUtc,
   ).toBeNull();
   expect(
+    parseListingWorkspace({
+      ...workspace,
+      hold: { buyer: "Nur Aina", agent: "a@x.invalid", agentId: ids[1], expiresAtUtc: null },
+    })?.hold?.agentId,
+  ).toBe(ids[1]);
+  expect(parseListingWorkspace(workspace)?.hold?.agentId).toBeNull();
+  expect(
     parseListingWorkspace({ ...workspace, hold: { buyer: "Nur Aina", expiresAtUtc: "tomorrow" } }),
   ).toBeNull();
   expect(parseListingWorkspace({ ...workspace, hold: undefined })?.hold).toBeNull();

@@ -45,6 +45,7 @@ export interface ListingWorkspace {
     buyer: string;
     buyerId: string | null;
     agent: string | null;
+    agentId: string | null;
     expiresAtUtc: string | null;
   } | null;
 }
@@ -205,6 +206,7 @@ export function parseListingWorkspace(value: unknown): ListingWorkspace | null {
       buyer: held.buyer,
       buyerId: customerIdOf({ customerId: held.buyerId }),
       agent: held.agent ?? null,
+      agentId: isUuid(held.agentId) ? held.agentId : null,
       expiresAtUtc: held.expiresAtUtc ?? null,
     };
   }
