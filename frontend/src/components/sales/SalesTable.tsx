@@ -18,7 +18,8 @@ import { useMinuteClock } from "@/hooks/use-minute-clock";
 import { useRowSelection } from "@/hooks/use-row-selection";
 import { useSalesManager } from "@/hooks/use-sales-manager";
 import type { ApiResult } from "@/lib/api";
-import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
+import { actorIdentity, hasIntakeAccess, type CurrentActor } from "@/lib/auth/actor";
+import { AssistedStartLink } from "@/components/staff/AssistedStartLink";
 import {
   type Sale,
   tableViews,
@@ -133,12 +134,17 @@ export function SalesTable({
       <StaffCommandBar
         title="Sales"
         actions={
-          <RefreshButton
-            label="Refresh sales"
-            busy={state.busy}
-            disabled={!state.ready}
-            onClick={() => void refresh()}
-          />
+          <>
+            {hasIntakeAccess(actor) && (
+              <AssistedStartLink href="/vehicles" label="Reserve a car for a customer" />
+            )}
+            <RefreshButton
+              label="Refresh sales"
+              busy={state.busy}
+              disabled={!state.ready}
+              onClick={() => void refresh()}
+            />
+          </>
         }
       />
       <div

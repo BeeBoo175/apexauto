@@ -1,6 +1,7 @@
 "use client";
 
 import { useContext, useState } from "react";
+import { AssistedStartLink } from "@/components/staff/AssistedStartLink";
 import { StaffCommandBar } from "@/components/staff/StaffPage";
 import { StaffPageEntranceContext } from "@/components/staff/StaffActorBoundary";
 import { StaffQueueTabs } from "@/components/staff/StaffQueueTabs";
@@ -113,12 +114,15 @@ export function SalesWorkspace({
         actionsRef={setHeaderActions}
         actions={
           !selection.result?.data && (
-            <RefreshButton
-              label="Refresh sales"
-              busy={busy}
-              disabled={!interactive || selection.busy}
-              onClick={() => void refreshDestination()}
-            />
+            <>
+              <AssistedStartLink href="/vehicles" label="Reserve a car for a customer" />
+              <RefreshButton
+                label="Refresh sales"
+                busy={busy}
+                disabled={!interactive || selection.busy}
+                onClick={() => void refreshDestination()}
+              />
+            </>
           )
         }
       />
