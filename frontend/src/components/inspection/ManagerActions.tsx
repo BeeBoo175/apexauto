@@ -1,6 +1,7 @@
 "use client";
 import { ResolvedPersonLabel } from "@/components/staff/ResolvedPersonLabel";
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Input";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
@@ -22,6 +23,7 @@ export function ManagerActions({
   onLock,
   onConfirmed,
   onDraft,
+  actionsContainer,
   active = true,
 }: {
   actor: CurrentActor;
@@ -31,6 +33,8 @@ export function ManagerActions({
   onLock: (locked: boolean) => void;
   onConfirmed: () => Promise<void>;
   onDraft: (dirty: boolean) => void;
+  // The workspace footer holds the primary actions, so the reopen and reassign control lives there.
+  actionsContainer?: HTMLElement | null;
   active?: boolean;
 }) {
   const [confirming, setConfirming] = useState(false);
@@ -48,19 +52,18 @@ export function ManagerActions({
   if (actor.role !== "BranchManager" || !active) {
     return null;
   }
+  const trigger = (
+    <Button size="compact" variant="secondary" disabled={disabled} onClick={() => setOpen(true)}>
+      {draft.isSigned ? "Reopen inspection" : "Reassign technician"}
+    </Button>
+  );
   return (
     <section className={`${styles.section} ${workbench.protocol}`}>
       <div className={workbench.toolbar}>
         <h2 className={workbench.sectionTitle}>Assignment & revision</h2>
-        <Button
-          size="compact"
-          variant="secondary"
-          disabled={disabled}
-          onClick={() => setOpen(true)}
-        >
-          {draft.isSigned ? "Reopen inspection" : "Reassign technician"}
-        </Button>
+        {!actionsContainer && trigger}
       </div>
+      {actionsContainer && createPortal(trigger, actionsContainer)}
       <p className={styles.help}>
         Assigned technician:{" "}
         <ResolvedPersonLabel id={draft.technicianId} identity={draft.technicianIdentity} />.

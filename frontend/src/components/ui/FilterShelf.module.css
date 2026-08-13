@@ -22,6 +22,10 @@
   box-shadow: 0 6px 16px rgb(14 27 42 / 10%);
 }
 
+.shelf:popover-open:not([data-positioned]) {
+  visibility: hidden;
+}
+
 .shelf:popover-open {
   animation: shelfReveal 120ms ease-out;
 }

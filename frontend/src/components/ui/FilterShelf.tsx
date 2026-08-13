@@ -48,6 +48,8 @@ export function FilterShelf({
     const top = above ? bounds.top - shelf.offsetHeight - 8 : bounds.bottom + 8;
     shelf.style.left = `${left}px`;
     shelf.style.top = `${Math.max(gutter, top)}px`;
+    // Until the first measured position the shelf stays invisible, so it never paints at the top left.
+    shelf.dataset.positioned = "true";
   }, [id]);
 
   useEffect(() => {
@@ -86,6 +88,9 @@ export function FilterShelf({
       style={{ positionAnchor: anchor }}
       onToggle={(event) => {
         setOpen(event.newState === "open");
+        if (event.newState !== "open") {
+          delete event.currentTarget.dataset.positioned;
+        }
         onOpenChange(event.newState === "open");
         if (event.newState === "open") {
           requestAnimationFrame(positionPanel);

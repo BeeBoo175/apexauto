@@ -181,6 +181,7 @@ export function InspectionEditor({
                     technicians={technicians}
                     disabled={disabled}
                     active={section === "inspection"}
+                    actionsContainer={footerActions}
                     onLock={editor.lockChild}
                     onConfirmed={editor.actionConfirmed}
                     onDraft={(dirty) => editor.markForm("manager", dirty)}

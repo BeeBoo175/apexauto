@@ -36,7 +36,7 @@ export function VehicleValuationFields({
         disabled={!make}
         onChange={(event) => onChange({ ...value, model: event.target.value, trim: "" })}
       >
-        <option value="">Choose model</option>
+        <option value="">{make ? "Choose model" : "Choose a make first"}</option>
         {make?.models.map((item) => (
           <option key={item.name}>{item.name}</option>
         ))}
@@ -48,7 +48,7 @@ export function VehicleValuationFields({
         disabled={!model}
         onChange={(event) => onChange({ ...value, trim: event.target.value, manufactureYear: "" })}
       >
-        <option value="">Choose trim</option>
+        <option value="">{model ? "Choose trim" : "Choose a model first"}</option>
         {model?.trims.map((item) => (
           <option key={item.name}>{item.name}</option>
         ))}
@@ -60,7 +60,7 @@ export function VehicleValuationFields({
         disabled={!trim}
         onChange={(event) => onChange({ ...value, manufactureYear: event.target.value })}
       >
-        <option value="">Choose year</option>
+        <option value="">{trim ? "Choose year" : "Choose a trim first"}</option>
         {supportedManufactureYears(trim, new Date()).map((year) => (
           <option key={year}>{year}</option>
         ))}
