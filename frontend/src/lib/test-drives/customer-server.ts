@@ -128,7 +128,7 @@ export async function relayTestDriveBooking(request: Request, vehicleId: string)
       { token: await sessionToken(), signal, method: "POST", body, onBehalfOf },
       API_DEADLINE_MS,
       undefined,
-      parseTestDriveConflict,
+      (code) => parseTestDriveConflict(code, onBehalfOf !== undefined),
     );
     return apiJson({ ...result, actor });
   } catch (error) {

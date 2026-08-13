@@ -19,9 +19,16 @@ const messages: Record<string, string> = {
   "test-drive-handling-unavailable": "The drive or vehicle is unavailable for this action.",
 };
 
-export function parseTestDriveConflict(code: unknown): ApiConflict | undefined {
+// Sales staff booking for a customer read the same outcomes about the customer, never in the second person.
+const assistedMessages: Record<string, string> = {
+  "customer-has-test-drive":
+    "This customer already has an outstanding test drive. Cancel it before booking another.",
+};
+
+export function parseTestDriveConflict(code: unknown, assisted = false): ApiConflict | undefined {
   if (typeof code !== "string" || !Object.hasOwn(messages, code)) {
     return undefined;
   }
-  return { code, message: messages[code] };
+  const message = (assisted ? assistedMessages[code] : undefined) ?? messages[code];
+  return { code, message };
 }

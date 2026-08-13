@@ -41,7 +41,7 @@ export async function relayCustomerReservation(request: Request, vehicleId: stri
       { token, signal, method: "POST", body, onBehalfOf },
       API_DEADLINE_MS,
       undefined,
-      parseReservationConflict,
+      (code) => parseReservationConflict(code, onBehalfOf !== undefined),
     );
     // Even a readable success must belong to this exact customer's captured operation.
     if (

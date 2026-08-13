@@ -1,7 +1,6 @@
 "use client";
 
 import React, {
-  useEffect,
   useEffectEvent,
   useId,
   useLayoutEffect,
@@ -98,7 +97,8 @@ export const Dialog: React.FC<DialogProps> = ({
   });
   const titleId = useId();
   const descriptionId = useId();
-  useEffect(() => {
+  // Opening in a layout effect makes the dialog modal before the browser paints its first frame.
+  useLayoutEffect(() => {
     if (!open || !element.current) {
       return;
     }

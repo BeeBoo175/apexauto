@@ -11,6 +11,11 @@
     line-height: 1.5;
   }
 
+  /* Until showModal runs the dialog is not open, and its own display rules must never paint it in flow. */
+  .surface:not([open]) {
+    display: none;
+  }
+
   .surface::backdrop {
     background: rgb(21 21 21 / 60%);
   }
