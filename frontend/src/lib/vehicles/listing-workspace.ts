@@ -1,4 +1,4 @@
-import { isRecord, isUtcInstant, isUuid } from "@/lib/auth/contracts";
+import { customerIdOf, isRecord, isUtcInstant, isUuid } from "@/lib/auth/contracts";
 import { isMyr } from "@/lib/currency-input";
 import { fuels, transmissions } from "./contracts";
 import { parseListing } from "./parse-listings";
@@ -41,7 +41,12 @@ export interface ListingWorkspace {
   currentSignedRevisionId: string | null;
   currentSignedReport: { inspectionId: string; revision: number } | null;
   vin: string;
-  hold: { buyer: string; agent: string | null; expiresAtUtc: string | null } | null;
+  hold: {
+    buyer: string;
+    buyerId: string | null;
+    agent: string | null;
+    expiresAtUtc: string | null;
+  } | null;
 }
 
 export function parseRevision(value: unknown): ListingRevision | null {
@@ -198,6 +203,7 @@ export function parseListingWorkspace(value: unknown): ListingWorkspace | null {
     }
     hold = {
       buyer: held.buyer,
+      buyerId: customerIdOf({ customerId: held.buyerId }),
       agent: held.agent ?? null,
       expiresAtUtc: held.expiresAtUtc ?? null,
     };

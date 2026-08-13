@@ -7,6 +7,7 @@ import {
   isPositiveInteger,
   isRecord,
   isUtcInstant,
+  customerIdOf,
   isUuid,
 } from "@/lib/auth/contracts";
 import { cancellationKinds, parseTestDriveSlot, testDriveStates } from "./customer";
@@ -105,6 +106,7 @@ export function parseStaffTestDriveItem(value: unknown) {
     handlerEligible: value.handlerEligible,
     handlerSuspended: value.handlerSuspended === true,
     customerSuspended: value.customerSuspended === true,
+    customerId: customerIdOf(value),
   };
 }
 

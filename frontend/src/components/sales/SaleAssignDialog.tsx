@@ -10,6 +10,7 @@ import { privateApiFetch } from "@/lib/api-browser";
 import { parseSaleAgents } from "@/lib/sales/parse";
 import { salePath } from "@/lib/sales/query";
 import type { SaleAgent } from "@/lib/sales/contracts";
+import { CustomerAvatar } from "@/components/staff/CustomerAvatar";
 
 function AgentSelection({
   value,
@@ -125,7 +126,12 @@ export function SaleAssignDialog({
       onConfirm={assign}
       facts={[
         { label: "Vehicle", value: snapshot.context.vehicle },
-        { label: "Customer", value: snapshot.context.customer },
+        {
+          label: "Customer",
+          value: (
+            <CustomerAvatar id={snapshot.context.customerId} name={snapshot.context.customer} />
+          ),
+        },
       ]}
     >
       <p>{description}</p>

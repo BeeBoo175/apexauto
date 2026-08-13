@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import type { useSaleSelection } from "@/hooks/use-sale-selection";
 import { SaleEditor } from "./SaleEditor";
 import styles from "@/components/staff/StaffQueueWorkspace.module.css";
+import { CustomerAvatar } from "@/components/staff/CustomerAvatar";
 
 // The selected sale beside the agent's queue: the same editor the managers' drawer hosts.
 export function SalesContent({
@@ -46,7 +47,8 @@ export function SalesContent({
           <h2>{sale?.context.registration ?? "Sale"}</h2>
           {sale && (
             <p>
-              {sale.context.vehicle} · {sale.context.customer}
+              {sale.context.vehicle} ·{" "}
+              <CustomerAvatar id={sale.context.customerId} name={sale.context.customer} />
             </p>
           )}
         </div>

@@ -3,6 +3,7 @@ import type { WorklistItem } from "@/lib/staff/contracts";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { staffColumnSizing } from "@/lib/staff/table-columns";
 import { AppointmentStatus } from "./AppointmentStatus";
+import { CustomerAvatar } from "./CustomerAvatar";
 import { HandlerAvatar } from "./HandlerAvatar";
 import { SuspendedPerson } from "./SuspensionBadge";
 import { VehicleDescription, VehicleRegistration } from "./VehicleTableCells";
@@ -38,7 +39,7 @@ export function intakeColumns(showBranch: boolean): DataColumn<WorklistItem>[] {
       ...staffColumnSizing.person,
       cell: (row) => (
         <SuspendedPerson person="Customer" suspended={row.customerSuspended}>
-          {row.customerName}
+          <CustomerAvatar id={row.customerId} name={row.customerName} />
         </SuspendedPerson>
       ),
     },

@@ -1,3 +1,4 @@
+import { CustomerAvatar } from "@/components/staff/CustomerAvatar";
 import { HandlerAvatar } from "@/components/staff/HandlerAvatar";
 import { SuspendedPerson } from "@/components/staff/SuspensionBadge";
 import { VehicleDescription, VehicleRegistration } from "@/components/staff/VehicleTableCells";
@@ -59,7 +60,7 @@ export function saleColumns(role: CurrentActor["role"], now: number): DataColumn
       ...staffColumnSizing.person,
       cell: (row) => (
         <SuspendedPerson person="Customer" suspended={row.customerSuspended}>
-          {row.customer}
+          <CustomerAvatar id={row.customerId} name={row.customer} />
         </SuspendedPerson>
       ),
     },

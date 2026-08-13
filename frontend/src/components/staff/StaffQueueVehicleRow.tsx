@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 import { formatMalaysianDateTime } from "@/lib/date-format";
+import { CustomerAvatar } from "./CustomerAvatar";
 import styles from "./StaffQueueWorkspace.module.css";
 
 interface QueueVehicleRow {
@@ -10,6 +11,7 @@ interface QueueVehicleRow {
   model: string;
   trim: string;
   customerName: string;
+  customerId: string | null;
   startsAt: string;
 }
 
@@ -46,7 +48,8 @@ export function StaffQueueVehicleRow({
           {status}
         </span>
         <span className={styles.jobMeta}>
-          {row.customerName} · {formatMalaysianDateTime(row.startsAt)}
+          <CustomerAvatar id={row.customerId} name={row.customerName} nested /> ·{" "}
+          {formatMalaysianDateTime(row.startsAt)}
         </span>
       </Button>
     </li>

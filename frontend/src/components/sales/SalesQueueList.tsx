@@ -1,5 +1,6 @@
 "use client";
 
+import { CustomerAvatar } from "@/components/staff/CustomerAvatar";
 import { StaffQueueFooter } from "@/components/staff/StaffQueueFooter";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -92,7 +93,9 @@ export function SalesQueueList({
                       <span>
                         {item.manufactureYear} {item.make} {item.model}
                       </span>
-                      <span>{item.customer}</span>
+                      <span>
+                        <CustomerAvatar id={item.customerId} name={item.customer} nested />
+                      </span>
                     </span>
                     {!open && (
                       <span className={sales.queueBalance}>

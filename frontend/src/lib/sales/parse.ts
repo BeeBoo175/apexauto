@@ -1,5 +1,6 @@
 import { handlerName } from "@/lib/account/handler-display";
 import {
+  customerIdOf,
   isNonNegativeInteger,
   isPositiveInteger,
   isRecord,
@@ -141,7 +142,7 @@ function parseContext(value: unknown): SaleContext | null {
   ) {
     return null;
   }
-  return value as unknown as SaleContext;
+  return { ...value, customerId: customerIdOf(value) } as unknown as SaleContext;
 }
 
 const actionKeys = [
@@ -272,6 +273,7 @@ export function parseSaleSummary(value: unknown): SaleSummary | null {
     ...value,
     agentSuspended: value.agentSuspended === true,
     customerSuspended: value.customerSuspended === true,
+    customerId: customerIdOf(value),
   } as unknown as SaleSummary;
 }
 

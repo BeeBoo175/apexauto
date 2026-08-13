@@ -20,11 +20,17 @@ import {
   type CustomerAccountRow,
 } from "@/lib/accounts/customer-accounts";
 import { staffColumnSizing } from "@/lib/staff/table-columns";
+import { CustomerAvatar } from "@/components/staff/CustomerAvatar";
 import { StaffAccountStatus } from "./StaffAccountStatus";
 import styles from "@/components/staff/StaffWorklist.module.css";
 
 const columns: DataColumn<CustomerAccountRow>[] = [
-  { id: "name", label: "Name", ...staffColumnSizing.person, cell: (row) => row.name },
+  {
+    id: "name",
+    label: "Name",
+    ...staffColumnSizing.person,
+    cell: (row) => <CustomerAvatar id={row.id} name={row.name} />,
+  },
   { id: "email", label: "Email", width: 240, cell: (row) => row.email },
   { id: "mobile", label: "Mobile", width: 144, cell: (row) => row.mobile },
   {

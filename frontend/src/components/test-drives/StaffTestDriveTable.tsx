@@ -6,6 +6,7 @@ import { RecordToolbar } from "@/components/ui/RecordToolbar";
 import { CsvExportActions } from "@/components/ui/CsvExportActions";
 import { DataTable } from "@/components/ui/data-table/DataTable";
 import type { DataColumn } from "@/components/ui/data-table/types";
+import { CustomerAvatar } from "@/components/staff/CustomerAvatar";
 import { HandlerAvatar } from "@/components/staff/HandlerAvatar";
 import { SuspendedPerson } from "@/components/staff/SuspensionBadge";
 import { StaffQueueTabs } from "@/components/staff/StaffQueueTabs";
@@ -88,7 +89,7 @@ export function StaffTestDriveTable({
       sortable: true,
       cell: (row) => (
         <SuspendedPerson person="Customer" suspended={row.customerSuspended}>
-          {row.customerName}
+          <CustomerAvatar id={row.customerId} name={row.customerName} />
         </SuspendedPerson>
       ),
     },

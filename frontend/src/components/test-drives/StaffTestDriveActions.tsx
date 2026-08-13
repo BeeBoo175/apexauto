@@ -15,6 +15,7 @@ import type { TestDriveStaffCommand } from "@/lib/test-drives/staff-commands";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import shared from "@/components/staff/StaffWorkspace.module.css";
 import styles from "./StaffTestDrive.module.css";
+import { CustomerAvatar } from "@/components/staff/CustomerAvatar";
 
 export function StaffTestDriveActions({
   actor,
@@ -250,7 +251,12 @@ export function StaffTestDriveActions({
         onConfirm={workflow.submit}
         facts={[
           { label: "Vehicle", value: detail.booking.registrationPlate },
-          { label: "Customer", value: detail.booking.customerName },
+          {
+            label: "Customer",
+            value: (
+              <CustomerAvatar id={detail.booking.customerId} name={detail.booking.customerName} />
+            ),
+          },
           { label: "Booked time", value: formatMalaysianDateTime(detail.booking.startsAt) },
           ...(captured?.body.reason
             ? [{ label: "Reason", value: String(captured.body.reason) }]

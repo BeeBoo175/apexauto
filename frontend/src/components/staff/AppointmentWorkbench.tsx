@@ -25,6 +25,7 @@ import { StaffContact } from "./StaffContact";
 import record from "./StaffRecordContent.module.css";
 import appointment from "./AppointmentWorkbench.module.css";
 import styles from "./StaffWorkspace.module.css";
+import { CustomerAvatar } from "@/components/staff/CustomerAvatar";
 
 export function AppointmentWorkbench({
   id,
@@ -221,7 +222,9 @@ export function AppointmentWorkbench({
           <IntakeRecord detail={detail} checkedInAt={command.receipt?.checkedInAt} />
           <div className={`${styles.body} ${appointment.body}`}>
             <section className={record.group} aria-label="Customer">
-              <h3 className={record.title}>{detail.customerName}</h3>
+              <h3 className={record.title}>
+                <CustomerAvatar id={detail.customerId} name={detail.customerName} />
+              </h3>
               <dl className={appointment.contacts}>
                 <StaffContact method="phone" value={detail.customerMobile} />
                 <StaffContact method="email" value={detail.customerEmail} />

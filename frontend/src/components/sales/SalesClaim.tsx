@@ -14,6 +14,7 @@ import type { SaleSummary } from "@/lib/sales/contracts";
 import { HoldWheel } from "./HoldWheel";
 import { SalesQueueList } from "./SalesQueueList";
 import styles from "@/components/staff/StaffQueueWorkspace.module.css";
+import { CustomerAvatar } from "@/components/staff/CustomerAvatar";
 
 // Open holds to claim: choosing one asks for confirmation, because claiming makes the agent its handler and pauses
 // the hold's timer. A lost response replays the same operation rather than claiming twice.
@@ -97,7 +98,10 @@ export function SalesClaim({
           hold
             ? [
                 { label: "Vehicle", value: `${hold.manufactureYear} ${hold.make} ${hold.model}` },
-                { label: "Customer", value: hold.customer },
+                {
+                  label: "Customer",
+                  value: <CustomerAvatar id={hold.customerId} name={hold.customer} />,
+                },
                 { label: "Reservation", value: hold.reservationNumber },
                 { label: "Expires", value: formatMalaysianDateTime(hold.dueAt ?? "") },
                 {

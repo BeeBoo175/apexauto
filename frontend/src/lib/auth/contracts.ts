@@ -114,3 +114,8 @@ export function authHref(path: "/login" | "/auth/continue", returnTo?: unknown):
   }
   return `${path}?returnTo=${encodeURIComponent(destination)}`;
 }
+
+// The customer account a staff read names, or null where the read does not carry it.
+export function customerIdOf(value: Record<string, unknown>) {
+  return isUuid(value.customerId) ? value.customerId : null;
+}

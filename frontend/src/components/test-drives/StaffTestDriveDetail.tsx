@@ -25,6 +25,7 @@ import { StaffTestDriveTimeline } from "./StaffTestDriveTimeline";
 import shared from "@/components/staff/StaffWorkspace.module.css";
 import facts from "@/components/staff/StaffRecordContent.module.css";
 import styles from "./StaffTestDrive.module.css";
+import { CustomerAvatar } from "@/components/staff/CustomerAvatar";
 
 type TestDriveSection = "details" | "history";
 
@@ -148,7 +149,9 @@ function LoadedTestDrive({
         <StaffTestDriveActions actor={actor} detail={detail} refresh={refresh} reading={reading}>
           <section className={facts.group}>
             <h3 className={shared.sectionTitle}>Customer</h3>
-            <p>{booking.customerName}</p>
+            <p>
+              <CustomerAvatar id={booking.customerId} name={booking.customerName} />
+            </p>
             <dl className={styles.contacts}>
               <StaffContact method="phone" value={detail.customerMobile} />
               <StaffContact method="email" value={detail.customerEmail} />

@@ -71,6 +71,7 @@ export interface SaleContext {
   customer: string;
   customerMobile: string;
   customerEmail: string;
+  customerId: string | null;
   branch: string;
   reservedAt: string;
   warrantyMonths: number | null;
@@ -165,6 +166,7 @@ export interface SaleSummary {
   agentPictureId: string | null;
   agentSuspended: boolean;
   customerSuspended: boolean;
+  customerId: string | null;
   branch: string;
   dueAt: string | null;
   pausedSeconds: number | null;

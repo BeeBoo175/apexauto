@@ -40,6 +40,7 @@ export interface WorklistItem extends AppointmentSummary {
   handlerEligible: boolean;
   handlerSuspended: boolean;
   customerSuspended: boolean;
+  customerId: string | null;
   ownershipVersion: number;
 }
 export const intakeCountKeys = [
@@ -81,6 +82,7 @@ export interface AppointmentDetail extends AppointmentSummary {
   customerMobile: string;
   customerEmail: string;
   customerSuspended: boolean;
+  customerId: string | null;
   mileageKilometres: number;
 }
 export interface CheckInDraft {

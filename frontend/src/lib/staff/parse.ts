@@ -1,6 +1,12 @@
 import { handlerName, parseHandlerDisplay } from "@/lib/account/handler-display";
 import { parseCountedPage, parseItems } from "@/lib/api";
-import { isNonNegativeInteger, isPositiveInteger, isRecord, isUuid } from "@/lib/auth/contracts";
+import {
+  customerIdOf,
+  isNonNegativeInteger,
+  isPositiveInteger,
+  isRecord,
+  isUuid,
+} from "@/lib/auth/contracts";
 import { parseSlot, parseVehicle } from "@/lib/intake/parse";
 import { parseOwnershipKind } from "./ownership";
 import {
@@ -41,6 +47,7 @@ export function parseWorklistItem(value: unknown): WorklistItem | null {
     handlerEligible: value.handlerEligible,
     handlerSuspended: value.handlerSuspended === true,
     customerSuspended: value.customerSuspended === true,
+    customerId: customerIdOf(value),
     ownershipVersion: value.ownershipVersion,
   };
 }
@@ -115,6 +122,7 @@ export function parseDetail(value: unknown): AppointmentDetail | null {
     customerMobile: value.customerMobile,
     customerEmail: value.customerEmail,
     customerSuspended: value.customerSuspended === true,
+    customerId: customerIdOf(value),
   };
 }
 
