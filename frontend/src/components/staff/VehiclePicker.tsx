@@ -48,7 +48,7 @@ export function VehiclePicker({ picker }: { picker: ReturnType<typeof useVehicle
       {picker.items.length > 0 && (
         <ul className={styles.vehicles}>
           {picker.items.map((item) => (
-            <li key={item.id}>
+            <li key={item.id} className={styles.vehicleRow}>
               <button
                 type="button"
                 className={styles.vehicle}
@@ -61,6 +61,14 @@ export function VehiclePicker({ picker }: { picker: ReturnType<typeof useVehicle
                   {item.branchName} · {formatCurrency(item.vehiclePrice)}
                 </span>
               </button>
+              <a
+                className={styles.pageLink}
+                href={`/vehicles/${item.id}`}
+                target="_blank"
+                rel="noopener"
+              >
+                View car page
+              </a>
             </li>
           ))}
         </ul>

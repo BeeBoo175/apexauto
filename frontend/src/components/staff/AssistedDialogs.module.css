@@ -36,6 +36,16 @@
   border-top: 1px solid var(--color-line-soft);
 }
 
+.vehicleRow {
+  display: flex;
+  align-items: center;
+}
+
+.vehicleRow .vehicle {
+  flex: 1 1 auto;
+  width: auto;
+}
+
 .vehicle {
   display: flex;
   flex-direction: column;
@@ -93,7 +103,17 @@
 .actions {
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 8px;
+}
+
+.actions > div {
+  justify-items: end;
+}
+
+/* Change customer and Change car are the same size in both dialogs. */
+.change {
+  min-width: 9rem;
 }
 
 .error {
@@ -101,4 +121,21 @@
   color: var(--color-signal-dark);
   font-size: 0.8125rem;
   line-height: 1.5;
+}
+
+.pageLink {
+  flex: 0 0 auto;
+  padding-inline: 16px;
+  color: var(--color-graphite);
+  font-size: 0.8125rem;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.chosenText .pageLink {
+  padding-inline: 0;
+}
+
+.pageLink:hover {
+  color: var(--color-interaction-border);
 }

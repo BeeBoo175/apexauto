@@ -66,8 +66,21 @@ export function AssistedVehicleDialog({
                   {listing.manufactureYear} {listing.make} {listing.model} {listing.trim}
                 </strong>
                 <span className={styles.vehicleMeta}>{listing.branchName}</span>
+                <a
+                  className={styles.pageLink}
+                  href={`/vehicles/${listing.id}`}
+                  target="_blank"
+                  rel="noopener"
+                >
+                  View car page
+                </a>
               </span>
-              <Button variant="secondary" size="compact" onClick={picker.clear}>
+              <Button
+                variant="secondary"
+                size="compact"
+                className={styles.change}
+                onClick={picker.clear}
+              >
                 Change car
               </Button>
             </p>

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { SearchField } from "@/components/ui/SearchField";
 import { useCustomerLookup } from "@/hooks/use-customer-lookup";
 import type { CustomerLookupRow } from "@/lib/staff/assisted-customer";
+import dialogs from "./AssistedDialogs.module.css";
 import styles from "./CustomerPicker.module.css";
 
 // Staff who book for a customer choose an existing verified account here. Contact stays masked, and staff cannot
@@ -33,7 +34,13 @@ export function CustomerPicker({
             {selected.email} · {selected.mobile}
           </span>
         </p>
-        <Button variant="secondary" size="compact" disabled={disabled} onClick={onClear}>
+        <Button
+          variant="secondary"
+          size="compact"
+          className={dialogs.change}
+          disabled={disabled}
+          onClick={onClear}
+        >
           Change customer
         </Button>
       </div>

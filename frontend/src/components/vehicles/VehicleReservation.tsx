@@ -216,6 +216,7 @@ export function CustomerReservation({
     <div className={styles.reservation}>
       <div className={styles.actions}>
         <Button
+          size={actingFor ? "compact" : "md"}
           disabled={disabled || reservation.locked}
           onClick={() => reservation.open(promo?.promoId ?? null)}
         >

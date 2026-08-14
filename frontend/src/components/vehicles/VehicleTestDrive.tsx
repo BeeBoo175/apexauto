@@ -81,7 +81,13 @@ function CustomerTestDrive({
   }
   return (
     <>
-      <Button variant="secondary" disabled={!ready || drive.locked} onClick={drive.show}>
+      <Button
+        // Staff booking for a customer in the assisted dialog have no other call to action, so it is the primary one.
+        variant={actingFor ? "primary" : "secondary"}
+        size={actingFor ? "compact" : "md"}
+        disabled={!ready || drive.locked}
+        onClick={drive.show}
+      >
         {receipt ? "View test-drive booking" : "Book a test drive"}
       </Button>
       <Dialog
