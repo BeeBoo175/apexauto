@@ -1,5 +1,6 @@
 "use client";
 
+import { StaffQueuePlaceholder } from "@/components/staff/StaffQueuePlaceholder";
 import type { ComponentProps } from "react";
 import { Button } from "@/components/ui/Button";
 import type { useInspectionDrawer } from "@/hooks/use-inspection-drawer";
@@ -27,10 +28,9 @@ export function TechnicianJobWorkspace({
   const vehicle = selection.result?.data?.draft.vehicle;
   if (!selection.id && !selection.pendingId) {
     return (
-      <section className={styles.placeholder} aria-label="Job content">
-        <h2>Select a job</h2>
-        <p>Choose an assigned job to continue, or claim an available vehicle.</p>
-      </section>
+      <StaffQueuePlaceholder label="Job content" title="Select a job">
+        Choose an assigned job to continue, or claim an available vehicle.
+      </StaffQueuePlaceholder>
     );
   }
   if (selection.busy && !selection.result?.data) {

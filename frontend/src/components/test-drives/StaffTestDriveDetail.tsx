@@ -1,5 +1,6 @@
 "use client";
 
+import { StaffQueuePlaceholder } from "@/components/staff/StaffQueuePlaceholder";
 import { useState } from "react";
 import { PersonLabel } from "@/components/staff/PersonLabel";
 import { SuspensionBadge } from "@/components/staff/SuspensionBadge";
@@ -49,15 +50,18 @@ export function StaffTestDriveDetail({
     if (record.pendingId) {
       return <StaffDrawerLoadingShell label="Loading test drive…" fact single />;
     }
+    if (!record.id) {
+      return (
+        <StaffQueuePlaceholder label="Test drive content" title="Select a test drive">
+          Choose a test drive to claim, or open your work to start it.
+        </StaffQueuePlaceholder>
+      );
+    }
     return (
       <div className={styles.empty}>
-        {record.id ? (
-          <Button variant="secondary" size="compact" onClick={() => void refresh()}>
-            Retry selected test drive
-          </Button>
-        ) : (
-          <p>Select a test drive.</p>
-        )}
+        <Button variant="secondary" size="compact" onClick={() => void refresh()}>
+          Retry selected test drive
+        </Button>
       </div>
     );
   }

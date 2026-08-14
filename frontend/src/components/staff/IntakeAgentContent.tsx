@@ -1,5 +1,6 @@
 "use client";
 
+import { StaffQueuePlaceholder } from "./StaffQueuePlaceholder";
 import { Button } from "@/components/ui/Button";
 import type { useStaffAppointmentDrawer } from "@/hooks/use-staff-appointment-drawer";
 import type { CurrentActor } from "@/lib/auth/actor";
@@ -23,10 +24,9 @@ export function IntakeAgentContent({
 }) {
   if (!selection.id && !selection.pendingId) {
     return (
-      <section className={styles.placeholder} aria-label="Appointment content">
-        <h2>Select an appointment</h2>
-        <p>Choose a branch appointment to claim, or open your work to record its arrival.</p>
-      </section>
+      <StaffQueuePlaceholder label="Appointment content" title="Select an appointment">
+        Choose a branch appointment to claim, or open your work to record its arrival.
+      </StaffQueuePlaceholder>
     );
   }
   return (

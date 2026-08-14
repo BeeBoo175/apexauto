@@ -247,6 +247,9 @@
 }
 
 .viewport {
+  /* Visually hidden labels are absolutely positioned; without a positioned ancestor they escape the clipped
+     queue lists and stretch the document, so the whole dashboard scrolls. */
+  position: relative;
   height: 100dvh;
   min-height: 0;
   overflow: hidden;

@@ -1,5 +1,6 @@
 "use client";
 
+import { StaffQueuePlaceholder } from "@/components/staff/StaffQueuePlaceholder";
 import { StaffDrawerLoadingShell } from "@/components/staff/StaffDrawerLoadingShell";
 import { Button } from "@/components/ui/Button";
 import type { useSaleSelection } from "@/hooks/use-sale-selection";
@@ -22,10 +23,9 @@ export function SalesContent({
   const sale = selection.result?.data ?? null;
   if (!selection.id && !selection.pendingId) {
     return (
-      <section className={styles.placeholder} aria-label="Sale content">
-        <h2>Select a sale</h2>
-        <p>Choose a sale you are handling, or claim an open hold to start one.</p>
-      </section>
+      <StaffQueuePlaceholder label="Sale content" title="Select a sale">
+        Choose a sale you are handling, or claim an open hold to start one.
+      </StaffQueuePlaceholder>
     );
   }
   if (selection.busy && !sale) {
