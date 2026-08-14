@@ -213,6 +213,7 @@ export function InspectionEditor({
                 onConfirmed={editor.actionConfirmed}
                 onDraft={editor.markForm}
                 actionsContainer={footerActions}
+                onShowInspection={() => onSection("inspection")}
                 editing={repairEditing}
                 onEditingChange={(editing) => setRepairMode({ key: repairKey, editing })}
               />

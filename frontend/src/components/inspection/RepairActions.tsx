@@ -8,6 +8,7 @@ import { useInspectionRepairAction } from "@/hooks/use-inspection-repair-action"
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { Draft, RepairRow } from "@/lib/inspection/contracts";
 import { formatCurrency } from "@/lib/currency-format";
+import styles from "./Inspection.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 
 export function RepairActions({
@@ -20,6 +21,7 @@ export function RepairActions({
   onDraft,
   active = true,
   actionsContainer,
+  onShowInspection,
 }: {
   actor: CurrentActor;
   draft: Draft;
@@ -30,6 +32,7 @@ export function RepairActions({
   onDraft: (dirty: boolean) => void;
   active?: boolean;
   actionsContainer?: HTMLElement | null;
+  onShowInspection: () => void;
 }) {
   const repair = useInspectionRepairAction({ actor, draft, state, onLock, onConfirmed, onDraft });
   const { notes, manager, actionable, command } = repair;
@@ -85,7 +88,18 @@ export function RepairActions({
         )}
       </ConfirmationDialog>
       {manager ? (
-        <p>Approve the exact work and requested budget shown above.</p>
+        <>
+          <p>Approve the exact work and requested budget shown above.</p>
+          {draft.isSigned && (
+            <p>
+              To reopen this signed inspection, go to the{" "}
+              <button type="button" className={styles.textLink} onClick={onShowInspection}>
+                Inspection tab
+              </button>
+              .
+            </p>
+          )}
+        </>
       ) : (
         <Textarea
           label="Completion & reinspection notes"

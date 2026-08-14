@@ -20,6 +20,7 @@ export function RepairPanel({
   onDraft,
   active = true,
   actionsContainer,
+  onShowInspection,
   editing,
   onEditingChange,
 }: {
@@ -31,6 +32,7 @@ export function RepairPanel({
   onDraft: (name: string, dirty: boolean) => void;
   active?: boolean;
   actionsContainer?: HTMLElement | null;
+  onShowInspection: () => void;
   editing: boolean;
   onEditingChange: (editing: boolean) => void;
 }) {
@@ -113,6 +115,7 @@ export function RepairPanel({
             onDraft("completion", dirty);
           }}
           actionsContainer={actionsContainer}
+          onShowInspection={onShowInspection}
         />
       )}
       {canRequest && (

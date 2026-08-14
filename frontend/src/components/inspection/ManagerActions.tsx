@@ -53,7 +53,12 @@ export function ManagerActions({
     return null;
   }
   const trigger = (
-    <Button size="compact" variant="secondary" disabled={disabled} onClick={() => setOpen(true)}>
+    <Button
+      size="compact"
+      variant={draft.isSigned ? "primary" : "secondary"}
+      disabled={disabled}
+      onClick={() => setOpen(true)}
+    >
       {draft.isSigned ? "Reopen inspection" : "Reassign technician"}
     </Button>
   );

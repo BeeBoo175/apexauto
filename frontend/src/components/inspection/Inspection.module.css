@@ -241,3 +241,18 @@
     background: #ffffff;
   }
 }
+
+.textLink {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-graphite);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+.textLink:hover {
+  color: var(--color-interaction-border);
+}

@@ -5,6 +5,7 @@ import { Button, buttonClassName } from "@/components/ui/Button";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { Icon } from "@/components/ui/Icon";
 import { useEditGuard } from "@/hooks/use-edit-guard";
+import { useSellerLeaveGuard } from "@/hooks/use-seller-leave-guard";
 import { useIntakeActor } from "@/hooks/use-intake-actor";
 import { useSellerWorkflow } from "@/hooks/use-seller-workflow";
 import { useSellerAppointment } from "@/hooks/use-seller-appointment";
@@ -118,14 +119,7 @@ function SellerWorkflow({
     label: "Trade-in appointment",
   });
 
-  useEffect(() => {
-    if (!hasWork || receipt || embedded) {
-      return;
-    }
-    const guard = (event: BeforeUnloadEvent) => event.preventDefault();
-    window.addEventListener("beforeunload", guard);
-    return () => window.removeEventListener("beforeunload", guard);
-  }, [hasWork, receipt, embedded]);
+  const leave = useSellerLeaveGuard(hasWork && !receipt && !embedded);
 
   useEffect(() => {
     if (ready) {
@@ -221,6 +215,20 @@ function SellerWorkflow({
               </Button>
             )}
           </div>
+          <ConfirmationDialog
+            open={leave.leaving}
+            title="Leave this page?"
+            confirmLabel="Discard and leave"
+            cancelLabel="Keep my details"
+            danger
+            onClose={leave.stayHere}
+            onConfirm={leave.confirmLeave}
+          >
+            <p>
+              The vehicle details, valuation and photos entered so far are lost if you leave.
+              Nothing has been booked yet.
+            </p>
+          </ConfirmationDialog>
           <ConfirmationDialog
             open={confirmingStartOver}
             title="Start over?"
