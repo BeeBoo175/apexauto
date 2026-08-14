@@ -7,10 +7,12 @@ export function VehicleValuationFields({
   taxonomy,
   value,
   onChange,
+  density = "default",
 }: {
   taxonomy: Taxonomy;
   value: ValuationDraft;
   onChange: (value: ValuationDraft) => void;
+  density?: "default" | "compact";
 }) {
   const make = taxonomy.makes.find((item) => item.name === value.make);
   const model = make?.models.find((item) => item.name === value.model);
@@ -19,6 +21,7 @@ export function VehicleValuationFields({
   return (
     <>
       <Select
+        density={density}
         label="Make"
         required
         value={value.make}
@@ -30,6 +33,7 @@ export function VehicleValuationFields({
         ))}
       </Select>
       <Select
+        density={density}
         label="Model"
         required
         value={value.model}
@@ -42,6 +46,7 @@ export function VehicleValuationFields({
         ))}
       </Select>
       <Select
+        density={density}
         label="Trim"
         required
         value={value.trim}
@@ -54,6 +59,7 @@ export function VehicleValuationFields({
         ))}
       </Select>
       <Select
+        density={density}
         label="Manufacture year"
         required
         value={value.manufactureYear}
@@ -66,6 +72,7 @@ export function VehicleValuationFields({
         ))}
       </Select>
       <Input
+        density={density}
         label="Declared mileage (km)"
         type="number"
         min="0"

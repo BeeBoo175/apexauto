@@ -8,7 +8,7 @@ import { StaffQueueFooter } from "./StaffQueueFooter";
 import { StaffQueueSearch } from "./StaffQueueSearch";
 import { StaffQueueVehicleRow } from "./StaffQueueVehicleRow";
 import type { useStaffWorklist } from "@/hooks/use-staff-worklist";
-import type { useStaffAppointmentDrawer } from "@/hooks/use-staff-appointment-drawer";
+import type { IntakeDrawer } from "@/hooks/use-intake-history";
 import { intakeQueues, type IntakeQueue } from "@/lib/staff/contracts";
 import { AppointmentStatus } from "./AppointmentStatus";
 import styles from "./StaffQueueWorkspace.module.css";
@@ -29,7 +29,7 @@ export function IntakeAgentQueue({
   inert,
 }: {
   worklist: ReturnType<typeof useStaffWorklist>;
-  drawer: ReturnType<typeof useStaffAppointmentDrawer>;
+  drawer: IntakeDrawer;
   children: ReactNode;
   className?: string;
   inert?: boolean;
@@ -100,6 +100,9 @@ export function IntakeAgentQueue({
           }
           action={
             <AssistedIntakeAction
+              open={drawer.creating}
+              onOpen={drawer.openCreate}
+              onClose={drawer.closeCreate}
               disabled={!ready || busy}
               onBooked={() => void worklist.load(active.filters, active.page)}
             />

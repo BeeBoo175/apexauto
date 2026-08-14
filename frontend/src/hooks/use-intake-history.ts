@@ -1,6 +1,6 @@
 "use client";
 
-import { useContext, useEffect, useEffectEvent, useLayoutEffect, useRef } from "react";
+import { useContext, useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { StaffLocalHistoryContext } from "@/components/staff/StaffClientEntryBoundary";
 import { useGuardedAction } from "./use-guarded-action";
@@ -8,7 +8,7 @@ import { useStaffWorklist } from "./use-staff-worklist";
 import { useStaffAppointmentDrawer } from "./use-staff-appointment-drawer";
 import type { IntakeWorkspaceSnapshot } from "./use-intake-workspace";
 import { writeAddress } from "@/lib/browser-url";
-import { intakeLocation, intakeLocationId } from "@/lib/staff/intake-location";
+import { intakeLocation, intakeLocationId, isIntakeCreating } from "@/lib/staff/intake-location";
 import { intakeQueueParams, managerQueueParams, staffQuery } from "@/lib/staff/query";
 import type { StaffFilters } from "@/lib/staff/contracts";
 
@@ -19,16 +19,34 @@ function parseIntakeUrl(pathname: string, search: string, agent: boolean) {
   }
   const parameters = Object.fromEntries(new URLSearchParams(search));
   const { filters, page } = agent ? intakeQueueParams(parameters) : managerQueueParams(parameters);
-  const href = intakeLocation(filters, page, pathId);
-  return { id: pathId, filters, page, href };
+  const creating = isIntakeCreating(search);
+  const href = intakeLocation(filters, page, pathId, creating);
+  return { id: pathId, filters, page, creating, href };
 }
+
+// The record drawer plus the new-intake drawer, whose open state lives in the address.
+export type IntakeDrawer = ReturnType<typeof useStaffAppointmentDrawer> & {
+  creating: boolean;
+  openCreate: () => void;
+  closeCreate: () => void;
+};
 
 export function useIntakeHistory(initial: IntakeWorkspaceSnapshot, agent: boolean) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const localHistoryRef = useContext(StaffLocalHistoryContext);
   const guard = useGuardedAction();
-  const initialHref = intakeLocation(initial.filters, initial.page, initial.selectedId);
+  // A reload or shared address with ?create=intake reopens the new-intake drawer.
+  const [initialCreating] = useState(
+    () => typeof window !== "undefined" && isIntakeCreating(window.location.search),
+  );
+  const [creating, setCreating] = useState(initialCreating);
+  const initialHref = intakeLocation(
+    initial.filters,
+    initial.page,
+    initial.selectedId,
+    initialCreating,
+  );
   const lastAttemptedHref = useRef(initialHref);
   const confirmed = useRef({
     filters: initial.filters,
@@ -51,6 +69,19 @@ export function useIntakeHistory(initial: IntakeWorkspaceSnapshot, agent: boolea
       return;
     }
     writeAddress(href, state, mode);
+  }
+
+  // The new-intake drawer is applied like a record selection: an explicit address is pushed on open and on close.
+  function openCreate() {
+    const { filters, page, id } = confirmed.current;
+    setCreating(true);
+    commitAddress(intakeLocation(filters, page, id, true), null, "push");
+  }
+
+  function closeCreate() {
+    const { filters, page, id } = confirmed.current;
+    setCreating(false);
+    commitAddress(intakeLocation(filters, page, id, false), null, "push");
   }
 
   function select(id: string, updateAddress = true) {
@@ -121,6 +152,7 @@ export function useIntakeHistory(initial: IntakeWorkspaceSnapshot, agent: boolea
       return;
     }
     lastAttemptedHref.current = target.href;
+    setCreating(target.creating);
     worklist.cancel();
     const listChanged =
       staffQuery(target.filters, target.page) !==
@@ -169,7 +201,7 @@ export function useIntakeHistory(initial: IntakeWorkspaceSnapshot, agent: boolea
 
   return {
     worklist,
-    drawer: { ...drawer, close },
+    drawer: { ...drawer, close, creating, openCreate, closeCreate },
     replaceList,
     refresh,
     retryTraversal,

@@ -430,10 +430,13 @@
 }
 
 .upload {
+  position: relative;
   min-width: 0;
 }
 
-.formPanel .dropZone {
+/* photoField lets the staff drawer use the same upload tiles outside the customer form panel. */
+.formPanel .dropZone,
+.photoField .dropZone {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -451,7 +454,8 @@
     background-color 160ms ease;
 }
 
-.formPanel .dropZone:hover {
+.formPanel .dropZone:hover,
+.photoField .dropZone:hover {
   border-color: var(--color-graphite-soft);
   background: var(--color-paper);
 }
@@ -585,7 +589,8 @@
   font-weight: 500;
 }
 
-.formPanel .replaceAction {
+.formPanel .replaceAction,
+.photoField .replaceAction {
   display: inline-flex;
   flex-direction: row;
   align-items: center;
@@ -601,7 +606,8 @@
   cursor: pointer;
 }
 
-.formPanel .replaceAction:hover {
+.formPanel .replaceAction:hover,
+.photoField .replaceAction:hover {
   background: rgb(14 27 42 / 95%);
 }
 

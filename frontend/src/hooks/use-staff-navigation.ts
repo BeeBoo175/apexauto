@@ -1,5 +1,6 @@
 "use client";
 
+import { isIntakeCreating } from "@/lib/staff/intake-location";
 import {
   useCallback,
   useContext,
@@ -80,9 +81,13 @@ export function useStaffNavigation() {
     if (previousRecord !== null && destinationRecord !== null) {
       const nextSelectedId = destinationRecord.id;
       const currentSelectedId = localHistory?.selectedId ?? previousRecord.id;
+      // Opening or closing the new-intake drawer by traversal leaves its draft, like selecting another record.
+      const sameDrawer =
+        isIntakeCreating(destinationUrl.search) ===
+        isIntakeCreating(new URL(confirmed.current.href).search);
       if (
         !guard.isLocked() ||
-        (!guard.getSnapshot().blocked && nextSelectedId === currentSelectedId)
+        (!guard.getSnapshot().blocked && nextSelectedId === currentSelectedId && sameDrawer)
       ) {
         confirmed.current = { href: window.location.href, state: window.history.state };
         previousPath.current = window.location.pathname;

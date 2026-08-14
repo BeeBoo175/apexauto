@@ -10,7 +10,7 @@ import { useCsvExport } from "@/hooks/use-csv-export";
 import type { TableSort } from "@/components/ui/data-table/types";
 import type { useStaffWorklist } from "@/hooks/use-staff-worklist";
 import { useToast } from "@/components/ui/Toast";
-import type { useStaffAppointmentDrawer } from "@/hooks/use-staff-appointment-drawer";
+import type { IntakeDrawer } from "@/hooks/use-intake-history";
 import { actorIdentity, type CurrentActor } from "@/lib/auth/actor";
 import { staffViewQuery } from "@/lib/staff/query";
 import { exportWorklist } from "@/lib/staff/export";
@@ -27,7 +27,7 @@ import { AssistedIntakeAction } from "./AssistedIntakeAction";
 interface IntakeWorklistProps {
   actor: CurrentActor;
   worklist: ReturnType<typeof useStaffWorklist>;
-  drawer: ReturnType<typeof useStaffAppointmentDrawer>;
+  drawer: IntakeDrawer;
 }
 
 const intakeSections = [
@@ -123,6 +123,9 @@ export function IntakeWorklist({ actor, worklist, drawer }: IntakeWorklistProps)
                   actions={
                     <>
                       <AssistedIntakeAction
+                        open={drawer.creating}
+                        onOpen={drawer.openCreate}
+                        onClose={drawer.closeCreate}
                         disabled={disabled || worklist.busy}
                         onBooked={() => void worklist.load(active.filters, active.page)}
                       />

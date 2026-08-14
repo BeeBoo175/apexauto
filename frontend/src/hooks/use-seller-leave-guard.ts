@@ -3,9 +3,20 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-// An in-app link the guard held back until the customer confirms.
+// A leave the guard held back until the customer confirms: a link to follow, or a Back out of the page.
 interface HeldLeave {
-  href: string;
+  href: string | null;
+}
+
+// The part of the Navigation API used here; TypeScript's DOM library does not describe it yet.
+interface TraverseEvent extends Event {
+  navigationType: string;
+  destination: { url: string };
+}
+
+interface NavigationTarget {
+  addEventListener: (type: "navigate", listener: (event: TraverseEvent) => void) => void;
+  removeEventListener: (type: "navigate", listener: (event: TraverseEvent) => void) => void;
 }
 
 function isPlainLeftClick(event: MouseEvent) {
@@ -13,9 +24,8 @@ function isPlainLeftClick(event: MouseEvent) {
 }
 
 // The customer's journey keeps everything in the browser until the booking, so while entered work exists every
-// way out asks first: reloading, closing the tab or leaving the site (the browser's own prompt) and following a
-// link on the site (the shared confirmation dialog, driven by the returned state). Back to an earlier page of
-// the site is not intercepted: the router unmounts the journey before any listener of ours can ask.
+// way out asks first: reloading, closing the tab or leaving the site (the browser's own prompt), and following a
+// link or pressing Back out of the page (the shared confirmation dialog, driven by the returned state).
 export function useSellerLeaveGuard(active: boolean) {
   const router = useRouter();
   const [held, setHeld] = useState<HeldLeave | null>(null);
@@ -26,6 +36,8 @@ export function useSellerLeaveGuard(active: boolean) {
       return;
     }
     const journeyPath = window.location.pathname;
+    // Browsers without the Navigation API keep the browser prompt and link guard only.
+    const navigation = (window as Window & { navigation?: NavigationTarget }).navigation;
 
     const beforeUnload = (event: BeforeUnloadEvent) => {
       event.preventDefault();
@@ -52,11 +64,26 @@ export function useSellerLeaveGuard(active: boolean) {
       });
     };
 
+    // Back and Forward are held through the Navigation API: the router commits a traversal before popstate is
+    // dispatched, so a popstate listener would hear it only after the journey is gone.
+    const traverse = (event: TraverseEvent) => {
+      if (bypass.current || event.navigationType !== "traverse" || !event.cancelable) {
+        return;
+      }
+      if (new URL(event.destination.url).pathname === journeyPath) {
+        return;
+      }
+      event.preventDefault();
+      setHeld({ href: null });
+    };
+
     window.addEventListener("beforeunload", beforeUnload);
     document.addEventListener("click", click, true);
+    navigation?.addEventListener("navigate", traverse);
     return () => {
       window.removeEventListener("beforeunload", beforeUnload);
       document.removeEventListener("click", click, true);
+      navigation?.removeEventListener("navigate", traverse);
     };
   }, [active]);
 
@@ -67,6 +94,10 @@ export function useSellerLeaveGuard(active: boolean) {
       return;
     }
     bypass.current = true;
+    if (leave.href === null) {
+      window.history.back();
+      return;
+    }
     router.push(leave.href);
   }
 

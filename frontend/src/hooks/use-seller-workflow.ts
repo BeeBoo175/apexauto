@@ -82,10 +82,11 @@ export function useSellerWorkflow(initial: SellerSnapshot, actingFor?: string, a
     return normalized;
   }
 
+  // Resolves to the quote when the valuation succeeded, otherwise null.
   async function requestQuote() {
     const normalizedPlate = commitPlate(true);
     if (validateMalaysianPlate(normalizedPlate, true)) {
-      return false;
+      return null;
     }
     const result = await valuation.submit({
       make: vehicle.make,
@@ -98,9 +99,9 @@ export function useSellerWorkflow(initial: SellerSnapshot, actingFor?: string, a
       setQuote(result.data);
       setFreshQuote(null);
       setStep(1);
-      return true;
+      return result.data;
     }
-    return false;
+    return null;
   }
 
   function saveHandoff() {
@@ -114,8 +115,9 @@ export function useSellerWorkflow(initial: SellerSnapshot, actingFor?: string, a
     }
   }
 
-  async function book(branchId: string, startsAt: string) {
-    if (!quote) {
+  // `accepted` is the quote just obtained, for callers that value and book in one action.
+  async function book(branchId: string, startsAt: string, accepted: Quote | null = quote) {
+    if (!accepted) {
       return;
     }
     const normalizedPlate = commitPlate(true);
@@ -134,7 +136,7 @@ export function useSellerWorkflow(initial: SellerSnapshot, actingFor?: string, a
         manufactureYear: Number(vehicle.manufactureYear),
         mileageKilometres: Number(vehicle.mileageKilometres),
       },
-      acceptedQuote: quote,
+      acceptedQuote: accepted,
       photoIds: Object.values(photos)
         .filter((photo): photo is PhotoReceipt => Boolean(photo))
         .map((photo) => photo.id),
