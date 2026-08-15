@@ -319,6 +319,25 @@ test("listing workspace validates revision and publication relationships before 
     })?.hold?.agentId,
   ).toBe(ids[1]);
   expect(parseListingWorkspace(workspace)?.hold?.agentId).toBeNull();
+  // A car held by a deposit request carries its customer and deadline for the timer.
+  expect(
+    parseListingWorkspace({
+      ...workspace,
+      pendingDeposit: {
+        requestId: ids[1],
+        customer: "Nur Aina",
+        customerId: ids[0],
+        expiresAtUtc: "2026-10-29T00:00:00Z",
+      },
+    })?.pendingDeposit?.requestId,
+  ).toBe(ids[1]);
+  expect(parseListingWorkspace(workspace)?.pendingDeposit).toBeNull();
+  expect(
+    parseListingWorkspace({
+      ...workspace,
+      pendingDeposit: { requestId: ids[1], customer: "", customerId: ids[0], expiresAtUtc: "x" },
+    }),
+  ).toBeNull();
   expect(
     parseListingWorkspace({ ...workspace, hold: { buyer: "Nur Aina", expiresAtUtc: "tomorrow" } }),
   ).toBeNull();

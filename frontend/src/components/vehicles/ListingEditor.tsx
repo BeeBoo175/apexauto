@@ -193,7 +193,7 @@ export function ListingEditor({
         </div>
         <div className={styles.tabContent} hidden={!publication || historical}>
           <div className={styles.publication}>
-            <ListingPublication snapshot={snapshot} editor={editor} />
+            <ListingPublication snapshot={snapshot} editor={editor} onChanged={onSaved} />
           </div>
         </div>
         {historical && record && (

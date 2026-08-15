@@ -41,6 +41,12 @@ export interface ListingWorkspace {
   currentSignedRevisionId: string | null;
   currentSignedReport: { inspectionId: string; revision: number } | null;
   vin: string;
+  pendingDeposit: {
+    requestId: string;
+    customer: string;
+    customerId: string;
+    expiresAtUtc: string;
+  } | null;
   hold: {
     buyer: string;
     buyerId: string | null;
@@ -210,6 +216,26 @@ export function parseListingWorkspace(value: unknown): ListingWorkspace | null {
       expiresAtUtc: held.expiresAtUtc ?? null,
     };
   }
+  let pendingDeposit: ListingWorkspace["pendingDeposit"] = null;
+  if (value.pendingDeposit !== null && value.pendingDeposit !== undefined) {
+    const pending = value.pendingDeposit;
+    if (
+      !isRecord(pending) ||
+      !isUuid(pending.requestId) ||
+      typeof pending.customer !== "string" ||
+      !pending.customer ||
+      !isUuid(pending.customerId) ||
+      !isUtcInstant(pending.expiresAtUtc)
+    ) {
+      return null;
+    }
+    pendingDeposit = {
+      requestId: pending.requestId,
+      customer: pending.customer,
+      customerId: pending.customerId,
+      expiresAtUtc: pending.expiresAtUtc,
+    };
+  }
   if (typeof value.vin !== "string" || !value.vin) {
     return null;
   }
@@ -230,5 +256,6 @@ export function parseListingWorkspace(value: unknown): ListingWorkspace | null {
     currentSignedReport,
     vin: value.vin,
     hold,
+    pendingDeposit,
   };
 }

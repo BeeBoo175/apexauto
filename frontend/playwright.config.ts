@@ -60,6 +60,7 @@ export default defineConfig({
         "vehicles/publication-contracts.spec.ts",
         "vehicles/withdrawal-contracts.spec.ts",
         "vehicles/account-reservation-contracts.spec.ts",
+        "vehicles/deposit-request-contracts.spec.ts",
         "vehicles/public-detail-contracts.spec.ts",
         "vehicles/financing-contracts.spec.ts",
         "vehicles/promo-contracts.spec.ts",

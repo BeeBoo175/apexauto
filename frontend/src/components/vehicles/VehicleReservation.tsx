@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, type ComponentProps, type ReactNode } from "react";
 import { Button, buttonClassName } from "@/components/ui/Button";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { Icon } from "@/components/ui/Icon";
@@ -15,6 +15,7 @@ import type { PublicVehicleDetail } from "@/lib/vehicles/public-detail";
 import type { PurchaseQuote } from "@/lib/vehicles/purchase-quote";
 import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDateTime } from "@/lib/date-format";
+import { AssistedDepositRequest } from "./AssistedDepositRequest";
 import { AssistedVehicleBooking } from "./AssistedVehicleBooking";
 import { VehicleTestDrive } from "./VehicleTestDrive";
 import styles from "./VehicleReservation.module.css";
@@ -134,7 +135,25 @@ export function VehicleReservation({
   );
 }
 
-export function CustomerReservation({
+// Staff acting for a customer send a deposit request; a customer reserves for themselves.
+export function CustomerReservation(props: ComponentProps<typeof OwnReservation>) {
+  if (props.actingFor) {
+    return (
+      <AssistedDepositRequest
+        detail={props.detail}
+        account={props.account}
+        customerId={props.actingFor}
+        promo={props.promo}
+        disabled={props.disabled}
+        testDrive={props.testDrive}
+        financing={props.financing}
+      />
+    );
+  }
+  return <OwnReservation {...props} />;
+}
+
+function OwnReservation({
   detail,
   account,
   actingFor,

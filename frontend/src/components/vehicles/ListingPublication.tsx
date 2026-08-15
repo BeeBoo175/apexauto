@@ -5,17 +5,18 @@ import { listingWithdrawalReason } from "@/lib/vehicles/listing-withdrawal";
 import type { ListingWorkspace } from "@/lib/vehicles/listing-workspace";
 import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDateTime } from "@/lib/date-format";
-import { CustomerAvatar } from "@/components/staff/CustomerAvatar";
-import { ResolvedPersonLabel } from "@/components/staff/ResolvedPersonLabel";
+import { ListingHeldBy } from "./ListingHeldBy";
 import styles from "./ListingPublication.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 
 export function ListingPublication({
   snapshot,
   editor,
+  onChanged,
 }: {
   snapshot: ListingWorkspace;
   editor: ReturnType<typeof useListingEditor>;
+  onChanged: () => void;
 }) {
   const showWithdrawal = Boolean(
     editor.hasActivePublication ||
@@ -80,27 +81,7 @@ export function ListingPublication({
             <div>
               <dt>Held by</dt>
               <dd>
-                {snapshot.hold ? (
-                  <>
-                    <CustomerAvatar id={snapshot.hold.buyerId} name={snapshot.hold.buyer} />
-                    {snapshot.hold.agent ? (
-                      <>
-                        {" · handled by "}
-                        {snapshot.hold.agentId ? (
-                          <ResolvedPersonLabel
-                            id={snapshot.hold.agentId}
-                            identity={snapshot.hold.agent}
-                            deferred
-                          />
-                        ) : (
-                          snapshot.hold.agent
-                        )}
-                      </>
-                    ) : null}
-                  </>
-                ) : (
-                  "Not on hold"
-                )}
+                <ListingHeldBy snapshot={snapshot} onChanged={onChanged} />
               </dd>
             </div>
           </dl>

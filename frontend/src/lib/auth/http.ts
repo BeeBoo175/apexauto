@@ -23,6 +23,7 @@ export async function readAuthRequest(
     | "register"
     | "logout"
     | "verify-email"
+    | "reservation-deposit"
     | "resend-verification"
     | "password-recovery"
     | "password-reset"
@@ -62,7 +63,11 @@ export async function readAuthRequest(
     return {};
   }
 
-  if (kind === "verify-email" || kind === "staff-invitation-preview") {
+  if (
+    kind === "verify-email" ||
+    kind === "staff-invitation-preview" ||
+    kind === "reservation-deposit"
+  ) {
     if (!isRecord(value) || typeof value.token !== "string" || value.token.length > 160) {
       throw new HttpError(400, "The link is invalid.");
     }

@@ -112,7 +112,7 @@ const nextConfig: NextConfig = {
       },
       {
         source:
-          "/:path(login|register|verify-email|forgot-password|reset-password|activate-account)",
+          "/:path(login|register|verify-email|confirm-deposit|forgot-password|reset-password|activate-account)",
         headers: [
           { key: "Cache-Control", value: "no-store" },
           { key: "Referrer-Policy", value: "no-referrer" },
