@@ -22,6 +22,11 @@ public sealed class CustomerProfileConfiguration : IEntityTypeConfiguration<Cust
             .OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(profile => profile.Nric).IsUnique();
         builder.HasIndex(profile => profile.RegistrationKey).IsUnique();
+        // Staff search names and mobile numbers by any part of them (ILIKE '%text%'), which only a trigram index serves.
+        builder.HasIndex(profile => profile.LegalName).HasMethod("gin").HasOperators("gin_trgm_ops")
+            .HasDatabaseName("IX_CustomerProfiles_LegalName_Trigram");
+        builder.HasIndex(profile => profile.Mobile).HasMethod("gin").HasOperators("gin_trgm_ops")
+            .HasDatabaseName("IX_CustomerProfiles_Mobile_Trigram");
         builder.Property(profile => profile.LegalName).HasMaxLength(CustomerProfile.LegalNameMaximumLength).IsRequired();
         builder.Property(profile => profile.Nric).HasMaxLength(CustomerProfile.NricLength).IsRequired();
         builder.Property(profile => profile.Mobile).HasMaxLength(CustomerProfile.MobileMaximumLength).IsRequired();

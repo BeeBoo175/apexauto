@@ -128,6 +128,7 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+        builder.HasPostgresExtension("pg_trgm");
         var testDrives = new TestDriveBookingConfiguration();
         builder.ApplyConfiguration<Domain.TestDrives.TestDriveBooking>(testDrives);
         builder.ApplyConfiguration<TestDrives.TestDriveMail>(testDrives);

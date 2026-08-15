@@ -29,6 +29,9 @@ public sealed class AccountUserConfiguration : IEntityTypeConfiguration<AccountU
         builder.HasOne<Dealership.Domain.Branches.Branch>().WithMany().HasForeignKey(user => user.BranchId)
             .OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(user => user.BranchId);
+        // The customer picker and lists search email by any part of it, which only a trigram index serves.
+        builder.HasIndex(user => user.Email).HasMethod("gin").HasOperators("gin_trgm_ops")
+            .HasDatabaseName("IX_AspNetUsers_Email_Trigram");
         builder.Property(user => user.Email).HasMaxLength(AccountCredentialPolicy.EmailMaximumLength).IsRequired();
         builder.Property(user => user.NormalizedEmail).HasMaxLength(AccountCredentialPolicy.EmailMaximumLength).IsRequired();
         builder.Property(user => user.AccountUsername).HasMaxLength(UsernamePolicy.MaximumLength).IsRequired();
