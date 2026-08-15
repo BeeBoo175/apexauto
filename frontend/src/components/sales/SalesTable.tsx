@@ -8,6 +8,8 @@ import { AppliedWorklistFilters } from "@/components/staff/AppliedWorklistFilter
 import { Button } from "@/components/ui/Button";
 import { CsvExportActions } from "@/components/ui/CsvExportActions";
 import { DataTable } from "@/components/ui/data-table/DataTable";
+import { DepositRequestCancel } from "@/components/vehicles/DepositRequestCancel";
+import { depositRequestColumns } from "./deposit-request-columns";
 import type { TableSort } from "@/components/ui/data-table/types";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { RecordToolbar } from "@/components/ui/RecordToolbar";
@@ -47,6 +49,7 @@ const emptyTitles: Record<TableView, string> = {
   AwaitingHandover: "No sales await handover",
   Delivered: "No delivered sales",
   History: "No closed sales",
+  AwaitingDeposit: "No deposit requests are waiting",
 };
 
 // The managers' one Sales table: each tab is a step in the sale, and a row opens the same editor agents use.
@@ -128,6 +131,148 @@ export function SalesTable({
     void load({ ...active.filters, sort: next?.column ?? "", direction: next?.direction ?? "asc" });
   }
 
+  const toolbar = (
+    <>
+      <StaffQueueTabs
+        label="Sale views"
+        countNoun="sales"
+        tabs={tabs}
+        value={view}
+        disabled={state.busy}
+        onChange={changeView}
+      />
+      <RecordToolbar
+        filters={null}
+        filterCount={applied.length}
+        disabled={state.busy}
+        filterSummary={
+          <AppliedWorklistFilters
+            filters={applied}
+            disabled={state.busy}
+            onRemove={(next) => void load(next)}
+          />
+        }
+        actions={
+          <>
+            <AssistedVehicleAction
+              kind="reservation"
+              disabled={state.busy}
+              onClosed={() => void refresh()}
+            />
+            {filtered && (
+              <Button size="compact" variant="ghost" disabled={state.busy} onClick={reset}>
+                Reset filters
+              </Button>
+            )}
+            <CsvExportActions
+              selected={selection.selectedRows.length}
+              disabled={
+                state.busy || !snapshot || snapshot.total === 0 || view === "AwaitingDeposit"
+              }
+              busy={csv.busy}
+              onClear={selection.clear}
+              onSelected={() => csv.exportSelected(selection.selectedRows)}
+              onAll={() => void csv.exportAll()}
+            />
+          </>
+        }
+      >
+        <form
+          className={styles.search}
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!state.busy) {
+              void load({ ...active.filters, search: search.trim() });
+            }
+          }}
+        >
+          <SearchField
+            label="Search sales"
+            placeholder="Search reference, plate, VIN, vehicle, customer, contact, promo or agent"
+            value={search}
+            disabled={false}
+            busy={state.busy}
+            onChange={setSearch}
+            onClear={
+              active.filters.search
+                ? () => {
+                    setSearch("");
+                    void load({ ...active.filters, search: "" });
+                  }
+                : undefined
+            }
+          />
+        </form>
+      </RecordToolbar>
+    </>
+  );
+
+  const depositTable =
+    snapshot && view === "AwaitingDeposit" ? (
+      <DataTable
+        toolbar={toolbar}
+        label="Deposit requests"
+        rows={snapshot.depositRequests}
+        columns={depositRequestColumns(showBranch, now, (row) => (
+          <DepositRequestCancel requestId={row.requestId} onChanged={() => void refresh()} />
+        ))}
+        sorting={{
+          value: active.filters.sort
+            ? { column: active.filters.sort, direction: active.filters.direction }
+            : null,
+          onChange: sort,
+        }}
+        rowId={(row) => row.requestId}
+        page={snapshot}
+        onPage={(nextPage, pageSize) => void load({ ...active.filters, pageSize }, nextPage)}
+        busy={state.busy}
+        disabled={false}
+        emptyState={{
+          title: filtered ? "No deposit requests match your search" : emptyTitles[view],
+          description: "Requests appear here after staff ask a customer to confirm a deposit.",
+          ...(filtered && { action: { label: "Clear search", onClick: reset } }),
+        }}
+      />
+    ) : null;
+
+  const salesTable =
+    snapshot && view !== "AwaitingDeposit" ? (
+      <DataTable
+        toolbar={toolbar}
+        label="Sales"
+        rows={snapshot.items}
+        columns={columns}
+        sorting={{
+          value: active.filters.sort
+            ? { column: active.filters.sort, direction: active.filters.direction }
+            : null,
+          onChange: sort,
+        }}
+        rowId={rowId}
+        selection={selection.selection}
+        page={snapshot}
+        onPage={(nextPage, pageSize) => void load({ ...active.filters, pageSize }, nextPage)}
+        busy={state.busy}
+        disabled={false}
+        selectedRowId={drawer.id}
+        onRowClick={(row) => void drawer.choose(row.id)}
+        emptyState={{
+          title: filtered ? "No sales match your criteria" : emptyTitles[view],
+          description: "Use the column filters, or switch tab.",
+          ...(filtered && { action: { label: "Clear filters", onClick: reset } }),
+        }}
+      />
+    ) : null;
+
+  const unavailable = snapshot ? null : (
+    <div className={styles.unavailableFilters}>
+      <p>Sales are unavailable. Retry when the service is available.</p>
+      <Button size="compact" variant="secondary" onClick={() => void refresh()}>
+        Retry sales
+      </Button>
+    </div>
+  );
+
   return (
     <div className={styles.workspace}>
       <LoadingProgress label="Loading sales" active={state.busy} />
@@ -148,117 +293,9 @@ export function SalesTable({
         inert={!state.ready}
       >
         <div className={styles.body}>
-          {snapshot ? (
-            <DataTable
-              toolbar={
-                <>
-                  <StaffQueueTabs
-                    label="Sale views"
-                    countNoun="sales"
-                    tabs={tabs}
-                    value={view}
-                    disabled={state.busy}
-                    onChange={changeView}
-                  />
-                  <RecordToolbar
-                    filters={null}
-                    filterCount={applied.length}
-                    disabled={state.busy}
-                    filterSummary={
-                      <AppliedWorklistFilters
-                        filters={applied}
-                        disabled={state.busy}
-                        onRemove={(next) => void load(next)}
-                      />
-                    }
-                    actions={
-                      <>
-                        <AssistedVehicleAction
-                          kind="reservation"
-                          disabled={state.busy}
-                          onClosed={() => void refresh()}
-                        />
-                        {filtered && (
-                          <Button
-                            size="compact"
-                            variant="ghost"
-                            disabled={state.busy}
-                            onClick={reset}
-                          >
-                            Reset filters
-                          </Button>
-                        )}
-                        <CsvExportActions
-                          selected={selection.selectedRows.length}
-                          disabled={state.busy || snapshot.total === 0}
-                          busy={csv.busy}
-                          onClear={selection.clear}
-                          onSelected={() => csv.exportSelected(selection.selectedRows)}
-                          onAll={() => void csv.exportAll()}
-                        />
-                      </>
-                    }
-                  >
-                    <form
-                      className={styles.search}
-                      onSubmit={(event) => {
-                        event.preventDefault();
-                        if (!state.busy) {
-                          void load({ ...active.filters, search: search.trim() });
-                        }
-                      }}
-                    >
-                      <SearchField
-                        label="Search sales"
-                        placeholder="Search reference, plate, VIN, vehicle, customer, contact, promo or agent"
-                        value={search}
-                        disabled={false}
-                        busy={state.busy}
-                        onChange={setSearch}
-                        onClear={
-                          active.filters.search
-                            ? () => {
-                                setSearch("");
-                                void load({ ...active.filters, search: "" });
-                              }
-                            : undefined
-                        }
-                      />
-                    </form>
-                  </RecordToolbar>
-                </>
-              }
-              label="Sales"
-              rows={snapshot.items}
-              columns={columns}
-              sorting={{
-                value: active.filters.sort
-                  ? { column: active.filters.sort, direction: active.filters.direction }
-                  : null,
-                onChange: sort,
-              }}
-              rowId={rowId}
-              selection={selection.selection}
-              page={snapshot}
-              onPage={(nextPage, pageSize) => void load({ ...active.filters, pageSize }, nextPage)}
-              busy={state.busy}
-              disabled={false}
-              selectedRowId={drawer.id}
-              onRowClick={(row) => void drawer.choose(row.id)}
-              emptyState={{
-                title: filtered ? "No sales match your criteria" : emptyTitles[view],
-                description: "Use the column filters, or switch tab.",
-                ...(filtered && { action: { label: "Clear filters", onClick: reset } }),
-              }}
-            />
-          ) : (
-            <div className={styles.unavailableFilters}>
-              <p>Sales are unavailable. Retry when the service is available.</p>
-              <Button size="compact" variant="secondary" onClick={() => void refresh()}>
-                Retry sales
-              </Button>
-            </div>
-          )}
+          {depositTable}
+          {salesTable}
+          {unavailable}
         </div>
       </div>
       <SaleDrawer

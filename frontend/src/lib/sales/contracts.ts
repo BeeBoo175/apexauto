@@ -276,6 +276,7 @@ export const tableViews = [
   { value: "AwaitingHandover", label: "Awaiting handover", count: "awaitingHandover" },
   { value: "Delivered", label: "Delivered", count: "delivered" },
   { value: "History", label: "History", count: "history" },
+  { value: "AwaitingDeposit", label: "Awaiting deposit", count: "awaitingDeposit" },
 ] as const;
 
 export type TableView = (typeof tableViews)[number]["value"];
@@ -284,7 +285,25 @@ export const tableCountKeys = tableViews.map((view) => view.count);
 
 export type TableCounts = Record<(typeof tableViews)[number]["count"], number>;
 
+// A car held for a customer who has not yet confirmed the deposit staff asked for; not a sale until they do.
+export interface DepositRequestRow {
+  requestId: string;
+  vehicleId: string;
+  registration: string;
+  manufactureYear: number;
+  make: string;
+  model: string;
+  trim: string;
+  customerId: string;
+  customer: string;
+  branch: string;
+  requestedBy: string;
+  expiresAtUtc: string;
+}
+
 export interface SalesTablePage {
+  // The Awaiting deposit tab lists requests instead of sales, so its items are empty.
+  depositRequests: DepositRequestRow[];
   items: SaleSummary[];
   total: number;
   page: number;

@@ -8,7 +8,7 @@ import {
   isUuid,
 } from "@/lib/auth/contracts";
 import { isMyr } from "@/lib/currency-input";
-import { parseCountedPage } from "@/lib/api";
+import { parseCountedPage, parseItems } from "@/lib/api";
 import { parsePaymentEvidence, parseHandoverEvidence } from "./completion-evidence";
 import {
   saleStatuses,
@@ -28,6 +28,7 @@ import {
   tableCountKeys,
   type TableCounts,
   type SalesTablePage,
+  type DepositRequestRow,
 } from "./contracts";
 
 export const text = (value: unknown): value is string => typeof value === "string" && value !== "";
@@ -288,10 +289,48 @@ export function parseSalesQueue(value: unknown): SalesQueue | null {
   return page?.counts ? { ...page, counts: page.counts } : null;
 }
 
+function parseDepositRequestRow(value: unknown): DepositRequestRow | null {
+  if (
+    !isRecord(value) ||
+    !isUuid(value.requestId) ||
+    !isUuid(value.vehicleId) ||
+    !text(value.registration) ||
+    !Number.isSafeInteger(value.manufactureYear) ||
+    !text(value.make) ||
+    !text(value.model) ||
+    !text(value.trim) ||
+    !isUuid(value.customerId) ||
+    !text(value.customer) ||
+    !text(value.branch) ||
+    !text(value.requestedBy) ||
+    !isUtcInstant(value.expiresAtUtc)
+  ) {
+    return null;
+  }
+  return value as unknown as DepositRequestRow;
+}
+
 export function parseSalesTable(value: unknown): SalesTablePage | null {
   const page = uniquePage(parseCountedPage(value, parseSaleSummary, tableCountKeys));
   const view = isRecord(value)
     ? tableViews.find((item) => item.value === value.view)?.value
     : undefined;
-  return page?.counts && view ? { ...page, counts: page.counts as TableCounts, view } : null;
+  if (!page?.counts || !view || !isRecord(value)) {
+    return null;
+  }
+  // Only the Awaiting deposit tab carries requests; any other tab must not.
+  const requests = value.depositRequests ?? [];
+  if (!Array.isArray(requests) || (view !== "AwaitingDeposit" && requests.length > 0)) {
+    return null;
+  }
+  const depositRequests = parseItems(requests, parseDepositRequestRow);
+  if (
+    !depositRequests ||
+    depositRequests.length > page.pageSize ||
+    depositRequests.length > page.total ||
+    new Set(depositRequests.map((item) => item.requestId)).size !== depositRequests.length
+  ) {
+    return null;
+  }
+  return { ...page, counts: page.counts as TableCounts, view, depositRequests };
 }
