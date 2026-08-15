@@ -21,6 +21,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                 .HasAnnotation("ProductVersion", "10.0.12")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "pg_trgm");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("Dealership.Domain.Accounts.AccountEvent", b =>
@@ -185,6 +186,18 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(1000)");
 
                     b.HasKey("UserId");
+
+                    b.HasIndex("LegalName")
+                        .HasDatabaseName("IX_CustomerProfiles_LegalName_Trigram");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("LegalName"), "gin");
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("LegalName"), new[] { "gin_trgm_ops" });
+
+                    b.HasIndex("Mobile")
+                        .HasDatabaseName("IX_CustomerProfiles_Mobile_Trigram");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Mobile"), "gin");
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("Mobile"), new[] { "gin_trgm_ops" });
 
                     b.HasIndex("Nric")
                         .IsUnique();
@@ -2212,6 +2225,12 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("BranchId");
+
+                    b.HasIndex("Email")
+                        .HasDatabaseName("IX_AspNetUsers_Email_Trigram");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Email"), "gin");
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("Email"), new[] { "gin_trgm_ops" });
 
                     b.HasIndex("NormalizedAccountUsername")
                         .IsUnique()
