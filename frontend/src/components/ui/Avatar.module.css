@@ -54,12 +54,16 @@
 .previewHost {
   position: relative;
   display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .previewHost > .trigger {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+  max-width: 100%;
   padding: 0;
   border: 0;
   border-radius: 999px;
@@ -136,7 +140,11 @@
 }
 
 .label {
+  min-width: 0;
+  overflow: hidden;
   color: inherit;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .preview [data-pending="true"] {

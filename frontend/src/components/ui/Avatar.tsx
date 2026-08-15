@@ -156,6 +156,8 @@ export function Avatar({
   );
   const behaviour = {
     className: styles.trigger,
+    // The full name stays reachable when a narrow column truncates the visible label.
+    title: label,
     onFocus: open,
     onBlur: () => setPreviewOpen(false),
     onPointerDown: (event: React.PointerEvent) => setTouchPointer(event.pointerType === "touch"),
