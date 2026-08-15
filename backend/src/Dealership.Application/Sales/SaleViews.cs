@@ -15,4 +15,6 @@ public static class SaleViews
     public const string Open = "Open";
     public const string BeingHandled = "BeingHandled";
     public const string History = "History";
+    // Deposit requests staff sent that the customer has not yet confirmed; they are not sales until they do.
+    public const string AwaitingDeposit = "AwaitingDeposit";
 }

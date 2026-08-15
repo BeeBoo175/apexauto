@@ -32,11 +32,17 @@ public sealed record SaleQueuePage(IReadOnlyList<SaleSummary> Items, int Total, 
     SaleQueueCounts Counts);
 
 public sealed record SaleTableCounts(int NeedsApproval, int Open, int BeingHandled, int Approved, int AwaitingHandover,
-    int Delivered, int History);
+    int Delivered, int History, int AwaitingDeposit = 0);
+
+// A car held for a customer who has not yet confirmed the deposit staff asked for.
+public sealed record DepositRequestRow(Guid RequestId, Guid VehicleId, string Registration, int ManufactureYear,
+    string Make, string Model, string Trim, Guid CustomerId, string Customer, string Branch, string RequestedBy,
+    DateTimeOffset ExpiresAtUtc);
 
 // View names the tab actually read, which the server chooses when the request leaves it open.
+// The Awaiting deposit tab lists requests instead of sales, so its rows ride in DepositRequests and Items is empty.
 public sealed record SaleTablePage(IReadOnlyList<SaleSummary> Items, int Total, int Page, int PageSize,
-    SaleTableCounts Counts, string View);
+    SaleTableCounts Counts, string View, IReadOnlyList<DepositRequestRow>? DepositRequests = null);
 
 public sealed record SaleTableInput
 {

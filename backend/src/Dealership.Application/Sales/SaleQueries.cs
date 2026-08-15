@@ -11,7 +11,7 @@ public static class SaleQueries
 
     public static readonly IReadOnlySet<string> TableViews =
         new HashSet<string> { SaleViews.NeedsApproval, SaleViews.Open, SaleViews.BeingHandled, SaleViews.Approved,
-            SaleViews.AwaitingHandover, SaleViews.Delivered, SaleViews.History };
+            SaleViews.AwaitingHandover, SaleViews.Delivered, SaleViews.History, SaleViews.AwaitingDeposit };
 
     public static readonly IReadOnlySet<string> Sorts = new HashSet<string>
     {

@@ -3,6 +3,7 @@ using System.Data;
 using Dealership.Application.Accounts;
 using Dealership.Application.Sales;
 using Dealership.Domain.Sales;
+using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Persistence;
 using Dealership.Infrastructure.Vehicles;
 using Microsoft.EntityFrameworkCore;
@@ -98,6 +99,8 @@ public sealed class SaleListStore(DealershipDbContext database) : ISaleListStore
         await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead,
             cancellationToken);
         var sales = scoped.AsNoTracking();
+        var now = await database.DatabaseNowAsync(cancellationToken);
+        var pending = PendingDeposits(now, group ? null : actor!.BranchId);
         // Tab totals describe the role's scope and ignore search and column filters, like every staff table.
         var counts = new SaleTableCounts(
             await sales.CountAsync(item => item.Status == SalesOrderStatus.PendingApproval, cancellationToken),
@@ -107,9 +110,17 @@ public sealed class SaleListStore(DealershipDbContext database) : ISaleListStore
             await sales.CountAsync(item => item.Status == SalesOrderStatus.Settled, cancellationToken),
             await sales.CountAsync(item => item.Status == SalesOrderStatus.Delivered, cancellationToken),
             await sales.CountAsync(item => item.Status == SalesOrderStatus.Expired ||
-                item.Status == SalesOrderStatus.Cancelled, cancellationToken));
+                item.Status == SalesOrderStatus.Cancelled, cancellationToken),
+            await pending.CountAsync(cancellationToken));
         var view = query.View ?? FirstWithWork(counts);
-        var now = await database.DatabaseNowAsync(cancellationToken);
+        if (view == SaleViews.AwaitingDeposit)
+        {
+            var requests = await DepositRowsAsync(pending, query, counts.AwaitingDeposit, cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return new(SaleResultStatus.Succeeded, new SaleTablePage([], counts.AwaitingDeposit, query.Page,
+                query.PageSize, counts, view, requests));
+        }
+
         var rows = Filter(SaleRows.Project(database, InView(sales, view)), query, group);
         rows = SaleRows.TimeLeftBetween(rows, query.MinimumHoursLeft, query.MaximumHoursLeft, now);
         var total = await rows.CountAsync(cancellationToken);
@@ -123,6 +134,50 @@ public sealed class SaleListStore(DealershipDbContext database) : ISaleListStore
         await transaction.CommitAsync(cancellationToken);
         return new(SaleResultStatus.Succeeded, new SaleTablePage([.. items.Select(SaleRows.Summary)], total, query.Page,
             query.PageSize, counts, view));
+    }
+
+    // Requests still waiting for their customer: not confirmed, cancelled or lapsed, within the role's branch.
+    private IQueryable<ReservationDepositRequest> PendingDeposits(DateTimeOffset now, Guid? branchId)
+    {
+        return database.ReservationDepositRequests.AsNoTracking().Where(request => request.ConfirmedAt == null &&
+            request.CancelledAt == null && request.ExpiresAt > now && (branchId == null || request.BranchId == branchId));
+    }
+
+    private async Task<IReadOnlyList<DepositRequestRow>> DepositRowsAsync(IQueryable<ReservationDepositRequest> pending,
+        SaleTableQuery query, int total, CancellationToken cancellationToken)
+    {
+        // Ordering and search read the joined entities, and the rows are shaped only after the page is read.
+        var rows = from request in pending
+                   join vehicle in database.Vehicles.AsNoTracking() on request.VehicleId equals vehicle.Id
+                   join branch in database.Branches.AsNoTracking() on request.BranchId equals branch.Id
+                   join profile in database.CustomerProfiles.AsNoTracking() on request.CustomerId equals profile.UserId
+                   join staff in database.Users.AsNoTracking() on request.BookedByStaffId equals staff.Id
+                   select new { request, vehicle, branch, profile, staff };
+        if (query.Search is { } search)
+        {
+            var pattern = LiteralSearch.Pattern(search);
+            rows = rows.Where(row => EF.Functions.ILike(row.profile.LegalName, pattern, "!") ||
+                EF.Functions.ILike(row.vehicle.RegistrationPlate, pattern, "!") ||
+                EF.Functions.ILike(row.vehicle.Make + " " + row.vehicle.Model, pattern, "!"));
+        }
+
+        var count = query.Search is null ? total : await rows.CountAsync(cancellationToken);
+        var ordered = (query.Sort, query.Descending) switch
+        {
+            ("customer", false) => rows.OrderBy(row => row.profile.LegalName).ThenBy(row => row.request.Id),
+            ("customer", true) => rows.OrderByDescending(row => row.profile.LegalName).ThenBy(row => row.request.Id),
+            ("vehicle", false) => rows.OrderBy(row => row.vehicle.Make).ThenBy(row => row.vehicle.Model).ThenBy(row => row.request.Id),
+            ("vehicle", true) => rows.OrderByDescending(row => row.vehicle.Make).ThenByDescending(row => row.vehicle.Model)
+                .ThenBy(row => row.request.Id),
+            ("branch", false) => rows.OrderBy(row => row.branch.Name).ThenBy(row => row.request.Id),
+            ("branch", true) => rows.OrderByDescending(row => row.branch.Name).ThenBy(row => row.request.Id),
+            (_, true) => rows.OrderByDescending(row => row.request.ExpiresAt).ThenBy(row => row.request.Id),
+            _ => rows.OrderBy(row => row.request.ExpiresAt).ThenBy(row => row.request.Id)
+        };
+        var page = await ordered.ReadPageAsync(query.Page, query.PageSize, count, cancellationToken);
+        return [.. page.Select(row => new DepositRequestRow(row.request.Id, row.vehicle.Id, row.vehicle.RegistrationPlate,
+            row.vehicle.ManufactureYear, row.vehicle.Make, row.vehicle.Model, row.vehicle.Trim, row.request.CustomerId,
+            row.profile.LegalName, row.branch.Name, row.staff.Email!, row.request.ExpiresAt))];
     }
 
     private IQueryable<SaleRow> Rows(IQueryable<SalesOrder> sales, string? search)
