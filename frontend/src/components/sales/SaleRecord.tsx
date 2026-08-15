@@ -8,7 +8,7 @@ import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { saleHasHoldTimer, type SaleSnapshot } from "@/lib/sales/contracts";
 import { historyTitle, type SaleVersion } from "@/lib/sales/sale-history";
-import { HoldWheel } from "./HoldWheel";
+import { HoldTimer } from "@/components/staff/HoldTimer";
 import { SaleStatus } from "./SaleStatus";
 import styles from "./Sales.module.css";
 import tones from "@/components/ui/StatusTone.module.css";
@@ -116,7 +116,7 @@ export function SaleRecord({
           <div className={styles.summaryClock}>
             {loadingVersion && <span className={styles.clockPlaceholder} aria-hidden="true" />}
             {!loadingVersion && running && (
-              <HoldWheel dueAt={sale.dueAt} pausedSeconds={sale.pausedSeconds} now={at} compact />
+              <HoldTimer dueAt={sale.dueAt} pausedSeconds={sale.pausedSeconds} now={at} compact />
             )}
           </div>
           <StaffDetailsDialog

@@ -1,0 +1,63 @@
+.timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.ring {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  transform: rotate(-90deg);
+}
+
+.track,
+.arc {
+  fill: none;
+  stroke-width: 4;
+}
+
+.track {
+  stroke: var(--color-line-soft);
+}
+
+.arc {
+  stroke-linecap: round;
+}
+
+.timerOpen .arc {
+  stroke: var(--color-trust);
+}
+
+.timerAmber .arc {
+  stroke: var(--color-warning);
+}
+
+.timerRed .arc {
+  stroke: var(--color-signal);
+}
+
+.timerFrozen .arc {
+  stroke: var(--color-muted);
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.text strong {
+  color: var(--color-graphite);
+  font-size: 13px;
+}
+
+.timer[data-compact="true"] .ring {
+  width: 24px;
+  height: 24px;
+}

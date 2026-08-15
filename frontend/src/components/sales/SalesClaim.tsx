@@ -11,7 +11,7 @@ import { formatMalaysianDateTime } from "@/lib/date-format";
 import { parseSaleReceipt } from "@/lib/sales/parse";
 import { salePath } from "@/lib/sales/query";
 import type { SaleSummary } from "@/lib/sales/contracts";
-import { HoldWheel } from "./HoldWheel";
+import { HoldTimer } from "@/components/staff/HoldTimer";
 import { SalesQueueList } from "./SalesQueueList";
 import styles from "@/components/staff/StaffQueueWorkspace.module.css";
 import { CustomerAvatar } from "@/components/staff/CustomerAvatar";
@@ -107,7 +107,7 @@ export function SalesClaim({
                 {
                   label: "Time left",
                   value: (
-                    <HoldWheel dueAt={hold.dueAt} pausedSeconds={hold.pausedSeconds} now={now} />
+                    <HoldTimer dueAt={hold.dueAt} pausedSeconds={hold.pausedSeconds} now={now} />
                   ),
                 },
               ]

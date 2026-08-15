@@ -13,7 +13,7 @@ import {
   type SaleSummary,
 } from "@/lib/sales/contracts";
 import { staffColumnSizing } from "@/lib/staff/table-columns";
-import { HoldWheel } from "./HoldWheel";
+import { HoldTimer } from "@/components/staff/HoldTimer";
 import { SaleStatus } from "./SaleStatus";
 import tones from "@/components/ui/StatusTone.module.css";
 import styles from "@/components/staff/StaffTable.module.css";
@@ -115,7 +115,7 @@ export function saleColumns(role: CurrentActor["role"], now: number): DataColumn
         !saleHasHoldTimer(row.status) ? (
           <span className={styles.muted}>—</span>
         ) : (
-          <HoldWheel dueAt={row.dueAt} pausedSeconds={row.pausedSeconds} now={now} compact />
+          <HoldTimer dueAt={row.dueAt} pausedSeconds={row.pausedSeconds} now={now} compact />
         ),
     },
   ];

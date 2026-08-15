@@ -16,7 +16,7 @@ import {
   type QueueView,
   type SaleSummary,
 } from "@/lib/sales/contracts";
-import { HoldWheel } from "./HoldWheel";
+import { HoldTimer } from "@/components/staff/HoldTimer";
 import { SaleStatus } from "./SaleStatus";
 import styles from "@/components/staff/StaffQueueWorkspace.module.css";
 import sales from "./Sales.module.css";
@@ -110,7 +110,7 @@ export function SalesQueueList({
                       item.status === "Settled" ||
                       item.status === "Delivered") && <SaleStatus status={item.status} />}
                     {saleHasHoldTimer(item.status) && (
-                      <HoldWheel dueAt={item.dueAt} pausedSeconds={item.pausedSeconds} now={now} />
+                      <HoldTimer dueAt={item.dueAt} pausedSeconds={item.pausedSeconds} now={now} />
                     )}
                     <span className={styles.jobMeta}>
                       {saleReference(item)}
