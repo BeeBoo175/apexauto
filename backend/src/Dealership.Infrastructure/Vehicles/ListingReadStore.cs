@@ -267,7 +267,15 @@ public sealed class ListingReadStore(DealershipDbContext database) : IListingRea
                           select new ListingHold(reservation.Buyer.LegalName,
                               database.Users.Where(user => user.Id == sale.AgentId).Select(user => user.Email).FirstOrDefault(),
                               sale.DueAt, reservation.CustomerId, sale.AgentId)).SingleOrDefaultAsync(cancellationToken);
-        return new(ListingStatus.Succeeded, new(vehicle, draft, approved, publication, withdrawal, currentSigned?.Id, report, vin, hold));
+        var now = await database.DatabaseNowAsync(cancellationToken);
+        var pendingDeposit = await (from request in database.ReservationDepositRequests.AsNoTracking()
+                                    join profile in database.CustomerProfiles.AsNoTracking() on request.CustomerId equals profile.UserId
+                                    where request.VehicleId == vehicleId && request.ConfirmedAt == null &&
+                                        request.CancelledAt == null && request.ExpiresAt > now
+                                    select new ListingPendingDeposit(request.Id, profile.LegalName, request.CustomerId,
+                                        request.ExpiresAt)).FirstOrDefaultAsync(cancellationToken);
+        return new(ListingStatus.Succeeded, new(vehicle, draft, approved, publication, withdrawal, currentSigned?.Id, report, vin,
+            hold, pendingDeposit));
     }
 
     public async Task<ListingPhotoPageResult> PhotosAsync(Guid actorId, Guid vehicleId, int page, int pageSize,

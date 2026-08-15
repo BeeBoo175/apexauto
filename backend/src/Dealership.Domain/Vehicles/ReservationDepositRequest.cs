@@ -1,0 +1,52 @@
+using Dealership.Domain.Customers;
+
+namespace Dealership.Domain.Vehicles;
+
+// Staff booking a reservation for a customer ask the customer to confirm the simulated deposit first. Until the
+// customer confirms, only this request holds the car; the reservation, its sale and the deposit start at confirmation.
+public sealed class ReservationDepositRequest
+{
+    public static readonly TimeSpan Validity = TimeSpan.FromHours(24);
+
+    private ReservationDepositRequest()
+    {
+    }
+
+    public ReservationDepositRequest(Guid id, CustomerProfile customer, ListingPublication publication,
+        Guid? promoId, Guid bookedByStaffId, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(customer);
+        ArgumentNullException.ThrowIfNull(publication);
+        if (id == Guid.Empty || promoId == Guid.Empty || bookedByStaffId == Guid.Empty ||
+            now.Offset != TimeSpan.Zero || now < publication.RecordedAt || now > DateTimeOffset.MaxValue.Add(-Validity))
+        {
+            throw new ArgumentException("A deposit request requires its customer, approved listing, staff member and UTC time.");
+        }
+
+        Id = id;
+        CustomerId = customer.UserId;
+        VehicleId = publication.VehicleId;
+        BranchId = publication.BranchId;
+        PublicationId = publication.Id;
+        PromoId = promoId;
+        BookedByStaffId = bookedByStaffId;
+        CreatedAt = now;
+        ExpiresAt = now.Add(Validity);
+    }
+
+    // Also the operation ID of the reservation that confirmation creates, so the two replay together.
+    public Guid Id { get; private set; }
+    public Guid CustomerId { get; private set; }
+    public Guid VehicleId { get; private set; }
+    public Guid BranchId { get; private set; }
+    public Guid PublicationId { get; private set; }
+    public Guid? PromoId { get; private set; }
+    public Guid BookedByStaffId { get; private set; }
+    public DateTimeOffset CreatedAt { get; private set; }
+    public DateTimeOffset ExpiresAt { get; private set; }
+    public DateTimeOffset? ConfirmedAt { get; private set; }
+    public DateTimeOffset? CancelledAt { get; private set; }
+
+    // Held for the customer: not confirmed, cancelled or lapsed, so no one else may reserve the car.
+    public bool IsPending(DateTimeOffset now) => ConfirmedAt is null && CancelledAt is null && now < ExpiresAt;
+}

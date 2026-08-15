@@ -24,7 +24,13 @@ export function AssistedSellerGate({
   return (
     <div className={styles.authGateCard}>
       {!customer && <p>{notice.message}</p>}
-      <CustomerPicker selected={customer} disabled={locked} onSelect={onSelect} onClear={onClear} />
+      <CustomerPicker
+        purpose="intake"
+        selected={customer}
+        disabled={locked}
+        onSelect={onSelect}
+        onClear={onClear}
+      />
       {showLink && <a href={notice.href}>{notice.label}</a>}
     </div>
   );

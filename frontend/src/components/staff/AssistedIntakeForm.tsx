@@ -129,6 +129,7 @@ export function AssistedIntakeForm({
           <section className={`${forms.section} ${styles.section}`} aria-label="Customer">
             <h3>Customer</h3>
             <CustomerPicker
+              purpose="intake"
               selected={customer}
               disabled={locked || photos.readyCount > 0}
               onSelect={setCustomer}

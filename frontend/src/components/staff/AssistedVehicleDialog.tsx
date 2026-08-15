@@ -52,6 +52,7 @@ export function AssistedVehicleDialog({
     >
       <div className={styles.stack}>
         <CustomerPicker
+          purpose={kind}
           selected={customer}
           disabled={Boolean(detail)}
           onSelect={setCustomer}

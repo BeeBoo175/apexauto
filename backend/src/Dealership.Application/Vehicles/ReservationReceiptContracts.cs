@@ -14,6 +14,16 @@ public sealed record ReservationReceipt(Guid Id, Guid VehicleId, Guid BranchId, 
         reservation.CreatedAt, reservation.ExpiresAt, reservation.Number);
 }
 
+// What staff see after asking a customer to confirm the deposit: the car is held until ExpiresAt.
+public sealed record ReservationDepositRequestReceipt(Guid Id, Guid VehicleId, Guid PublicationId, Guid? PromoId,
+    DateTimeOffset CreatedAt, DateTimeOffset ExpiresAt)
+{
+    public static ReservationDepositRequestReceipt From(ReservationDepositRequest request) => new(request.Id,
+        request.VehicleId, request.PublicationId, request.PromoId, request.CreatedAt, request.ExpiresAt);
+}
+
+public sealed record ReservationDepositRequestCancellationReceipt(Guid Id);
+
 public sealed record ReservationRefundReceipt(Guid Id, Guid ReservationId, string Kind, Guid? ActorId,
     string? Reason, DateTimeOffset RecordedAt, decimal Refund)
 {

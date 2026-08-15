@@ -14,10 +14,16 @@ internal sealed class PublicListingRow
 
 internal static class PublicListingQuery
 {
-    public static IQueryable<PublicListingRow> Read(DealershipDbContext database)
+    // A car is available while it has neither an active hold nor a deposit request waiting for its customer.
+    // `ownRequestId` is the confirming customer's request, which does not hold the car against its own confirmation.
+    public static IQueryable<PublicListingRow> Read(DealershipDbContext database, Guid ownRequestId = default)
     {
+        var now = DateTimeOffset.UtcNow;
         return Published(database).Where(row =>
-            !database.Reservations.Any(item => item.VehicleId == row.Vehicle.Id && item.IsActive));
+            !database.Reservations.Any(item => item.VehicleId == row.Vehicle.Id && item.IsActive) &&
+            !database.ReservationDepositRequests.Any(item => item.VehicleId == row.Vehicle.Id &&
+                item.ConfirmedAt == null && item.CancelledAt == null && item.ExpiresAt > now &&
+                item.Id != ownRequestId));
     }
 
     public static IQueryable<PublicListingRow> Published(DealershipDbContext database)

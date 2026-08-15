@@ -54,6 +54,36 @@ internal sealed class ReservationTransaction(DealershipDbContext database, IDbCo
         }
     }
 
+    public async Task<ReservationStatus> CommitRequestAsync(ReservationDepositRequest? request,
+        CancellationToken cancellationToken)
+    {
+        await transaction.CreateSavepointAsync("reservation_confirmation", cancellationToken);
+        if (request is not null)
+        {
+            database.ReservationDepositRequests.Add(request);
+            database.ReservationDepositMailOutbox.Add(new ReservationDepositMail(request, context.Customer!.Email!));
+        }
+
+        try
+        {
+            await database.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            expiry.Request();
+
+            if (request is not null)
+            {
+                mail.Request();
+            }
+
+            return ReservationStatus.Succeeded;
+        }
+        catch (DbUpdateException exception) when (exception.InnerException is PostgresException
+        { SqlState: PostgresErrorCodes.UniqueViolation })
+        {
+            return await RejectConfirmationAsync(cancellationToken);
+        }
+    }
+
     private async Task<string> NextNumberAsync(int year, CancellationToken cancellationToken)
     {
         var number = await YearlyNumberAllocator.NextAsync<ReservationNumberCounter>(database, year, cancellationToken);

@@ -52,7 +52,9 @@ public sealed class ReservationStore(DealershipDbContext database, MailDeliveryS
             var existing = await database.Reservations.AsNoTracking()
                 .SingleOrDefaultAsync(item => item.Id == request.OperationId, cancellationToken);
             var isRelease = await database.ReservationReleases.AnyAsync(item => item.Id == request.OperationId, cancellationToken);
-            var listing = await PublicListingQuery.Read(database).Where(row => row.Vehicle.Id == vehicleId &&
+            var now = await database.DatabaseNowAsync(cancellationToken);
+            // A confirming customer's own pending request does not hold the car against them.
+            var listing = await PublicListingQuery.Read(database, request.OperationId).Where(row => row.Vehicle.Id == vehicleId &&
                 !TestDriveOccupationRows.Active(database).Any(occupation => occupation.VehicleId == row.Vehicle.Id))
                 .SingleOrDefaultAsync(cancellationToken);
             var settings = await database.PurchaseSettings.FromSqlInterpolated(
@@ -61,11 +63,16 @@ public sealed class ReservationStore(DealershipDbContext database, MailDeliveryS
             var promo = await database.PromoCodes.FromSqlInterpolated(
                 $"SELECT * FROM \"PromoCodes\" WHERE \"Id\" = {request.PromoId} FOR SHARE")
                 .AsNoTracking().SingleOrDefaultAsync(cancellationToken);
-            var customerHasHold = await database.Reservations.AnyAsync(item => item.CustomerId == customerId && item.IsActive, cancellationToken);
-            var vehicleHasHold = await database.Reservations.AnyAsync(item => item.VehicleId == vehicleId && item.IsActive, cancellationToken);
-            var now = await database.DatabaseNowAsync(cancellationToken);
+            var otherRequests = database.ReservationDepositRequests.Where(item => item.ConfirmedAt == null &&
+                item.CancelledAt == null && item.ExpiresAt > now && item.Id != request.OperationId);
+            var customerHasHold = await database.Reservations.AnyAsync(item => item.CustomerId == customerId && item.IsActive, cancellationToken) ||
+                await otherRequests.AnyAsync(item => item.CustomerId == customerId, cancellationToken);
+            var vehicleHasHold = await database.Reservations.AnyAsync(item => item.VehicleId == vehicleId && item.IsActive, cancellationToken) ||
+                await otherRequests.AnyAsync(item => item.VehicleId == vehicleId, cancellationToken);
+            var existingRequest = await database.ReservationDepositRequests.AsNoTracking()
+                .SingleOrDefaultAsync(item => item.Id == request.OperationId, cancellationToken);
             return new ReservationTransaction(database, transaction, mail, expiry, new(customer, profile, listing?.Publication,
-                listing?.Revision, settings, promo, customerHasHold, vehicleHasHold, now, existing, isRelease));
+                listing?.Revision, settings, promo, customerHasHold, vehicleHasHold, now, existing, isRelease, existingRequest));
         }
         catch
         {

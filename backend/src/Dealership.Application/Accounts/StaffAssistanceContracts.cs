@@ -18,16 +18,35 @@ public sealed record AssistingStaff(Guid Id, string Role, Guid? BranchId)
 // What the picker shows: enough to recognise the person, with contact masked like the Administrator's list.
 public sealed record CustomerLookupRow(Guid Id, string Name, string Email, string Mobile);
 
-public sealed record CustomerLookupQuery(string Search)
+// What the staff member is booking, which decides who is offered: a customer is limited to one active reservation
+// and one outstanding test drive, while intake appointments have no such limit.
+public enum CustomerLookupPurpose
+{
+    Any,
+    Intake,
+    TestDrive,
+    Reservation
+}
+
+public sealed record CustomerLookupQuery(string Search, CustomerLookupPurpose Purpose = CustomerLookupPurpose.Any)
 {
     public const int MinimumSearchLength = 2;
 
     public const int MaximumResults = 10;
 
-    public static CustomerLookupQuery? Parse(string? search)
+    // The purpose token is camelCase on the wire; an empty one means no restriction, an unknown one is refused.
+    public static CustomerLookupQuery? Parse(string? search, string? purpose = null)
     {
         var text = search?.Trim() ?? string.Empty;
-        return text.Length < MinimumSearchLength || !ListSearch.IsValid(text) ? null : new(text);
+        var parsed = purpose switch
+        {
+            null or "" => CustomerLookupPurpose.Any,
+            "intake" => CustomerLookupPurpose.Intake,
+            "testDrive" => CustomerLookupPurpose.TestDrive,
+            "reservation" => CustomerLookupPurpose.Reservation,
+            _ => (CustomerLookupPurpose?)null
+        };
+        return text.Length < MinimumSearchLength || !ListSearch.IsValid(text) || parsed is null ? null : new(text, parsed.Value);
     }
 }
 

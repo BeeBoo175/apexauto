@@ -72,6 +72,8 @@ builder.Services.AddScoped<IMailDeliverySource, PasswordResetMailSource>();
 builder.Services.AddScoped<IMailDeliverySource, StaffInvitationMailSource>();
 builder.Services.AddScoped<IMailDeliverySource, AppointmentMailSource>();
 builder.Services.AddScoped<IMailDeliverySource, ReservationMailSource>();
+builder.Services.AddSingleton<ReservationDepositMailComposer>();
+builder.Services.AddScoped<IMailDeliverySource, ReservationDepositMailSource>();
 builder.Services.AddScoped<IMailDeliverySource, Dealership.Infrastructure.TestDrives.TestDriveMailSource>();
 // Delivery shares the existing durable mail worker and claim/retry bookkeeping.
 builder.Services.AddSingleton<Dealership.Infrastructure.Sales.SaleDeliveryMailComposer>();

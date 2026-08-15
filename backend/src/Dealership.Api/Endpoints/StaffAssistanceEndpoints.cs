@@ -12,13 +12,13 @@ public static class StaffAssistanceEndpoints
     }
 
     private static async Task<IResult> SearchAsync(HttpContext context, IStaffAssistanceQuery assistance,
-        CancellationToken cancellationToken, string? search = null)
+        CancellationToken cancellationToken, string? search = null, string? purpose = null)
     {
-        var query = CustomerLookupQuery.Parse(search);
+        var query = CustomerLookupQuery.Parse(search, purpose);
         if (query is null)
         {
             return Results.Problem(statusCode: 400,
-                title: $"Search by at least {CustomerLookupQuery.MinimumSearchLength} characters of a name, email or mobile.");
+                title: $"Search by at least {CustomerLookupQuery.MinimumSearchLength} characters of a name, email or mobile for a valid purpose.");
         }
 
         return await BoundedRead.RunAsync(async token =>

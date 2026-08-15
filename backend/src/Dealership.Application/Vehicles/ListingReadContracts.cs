@@ -40,9 +40,14 @@ public sealed record ListingSignedReport(Guid InspectionId, long Revision);
 public sealed record ListingHold(string Buyer, string? Agent, DateTimeOffset? ExpiresAtUtc, Guid? BuyerId = null,
     Guid? AgentId = null);
 
+// A deposit request holding the car for its customer until the customer confirms or the request expires.
+public sealed record ListingPendingDeposit(Guid RequestId, string Customer, Guid CustomerId,
+    DateTimeOffset ExpiresAtUtc);
+
 public sealed record ListingWorkspace(ListingManagerItem Vehicle, ListingRevision? Draft,
     ListingRevision? ApprovedRevision, ListingPublication? Publication, ListingWithdrawal? Withdrawal,
-    Guid? CurrentSignedRevisionId, ListingSignedReport? CurrentSignedReport, string Vin = "", ListingHold? Hold = null);
+    Guid? CurrentSignedRevisionId, ListingSignedReport? CurrentSignedReport, string Vin = "", ListingHold? Hold = null,
+    ListingPendingDeposit? PendingDeposit = null);
 
 public sealed record ListingPhotoItem(Guid Id, string ContentType, long Bytes, int Width, int Height,
     DateTimeOffset CreatedAt, DateTimeOffset? AvailableAt);

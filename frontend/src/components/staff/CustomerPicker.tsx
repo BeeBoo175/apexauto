@@ -4,24 +4,26 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { SearchField } from "@/components/ui/SearchField";
 import { useCustomerLookup } from "@/hooks/use-customer-lookup";
-import type { CustomerLookupRow } from "@/lib/staff/assisted-customer";
+import type { CustomerLookupPurpose, CustomerLookupRow } from "@/lib/staff/assisted-customer";
 import dialogs from "./AssistedDialogs.module.css";
 import styles from "./CustomerPicker.module.css";
 
 // Staff who book for a customer choose an existing verified account here. Contact stays masked, and staff cannot
 // create accounts: a customer without one registers first.
 export function CustomerPicker({
+  purpose,
   selected,
   disabled = false,
   onSelect,
   onClear,
 }: {
+  purpose: CustomerLookupPurpose;
   selected: CustomerLookupRow | null;
   disabled?: boolean;
   onSelect: (customer: CustomerLookupRow) => void;
   onClear: () => void;
 }) {
-  const lookup = useCustomerLookup();
+  const lookup = useCustomerLookup(purpose);
   const [text, setText] = useState("");
 
   if (selected) {

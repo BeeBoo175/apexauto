@@ -50,6 +50,9 @@ internal sealed class DevelopmentFixtureInterruption
             return result;
         }
 
+        public Task<ReservationStatus> CommitRequestAsync(ReservationDepositRequest? request,
+            CancellationToken cancellationToken) => inner.CommitRequestAsync(request, cancellationToken);
+
         public ValueTask DisposeAsync() => inner.DisposeAsync();
     }
 

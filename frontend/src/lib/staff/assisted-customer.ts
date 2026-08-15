@@ -6,6 +6,10 @@ export const ON_BEHALF_OF_HEADER = "X-On-Behalf-Of";
 
 export const CUSTOMER_LOOKUP_MINIMUM = 2;
 
+// What staff are booking, which decides who is offered: a customer has one active reservation and one outstanding
+// test drive at most, while intake appointments have no such limit.
+export type CustomerLookupPurpose = "intake" | "testDrive" | "reservation";
+
 // The picker shows contact masked, exactly as the backend returns it.
 export interface CustomerLookupRow {
   id: string;

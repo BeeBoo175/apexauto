@@ -20,6 +20,8 @@ export function AssistedVehicleBooking({
   return (
     <div className={styles.reservation}>
       <CustomerPicker
+        // The reservation is this page's main action; a test drive limit still shows when it is tried.
+        purpose="reservation"
         selected={customer}
         onSelect={setCustomer}
         onClear={() => setCustomer(null)}

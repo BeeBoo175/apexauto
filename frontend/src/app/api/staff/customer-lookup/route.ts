@@ -7,7 +7,7 @@ export async function GET(request: Request) {
     allowed: hasIntakeAccess,
     denial: "Your role cannot act for a customer.",
     path: "/api/staff/customer-lookup",
-    keys: ["search"],
+    keys: ["search", "purpose"],
     parse: parseCustomerLookup,
   });
 }

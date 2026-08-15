@@ -6,11 +6,12 @@ import { privateApiFetch } from "@/lib/api-browser";
 import {
   CUSTOMER_LOOKUP_MINIMUM,
   parseCustomerLookup,
+  type CustomerLookupPurpose,
   type CustomerLookupRow,
 } from "@/lib/staff/assisted-customer";
 
 // Searches the customers a staff member may act for. Only the newest search may answer.
-export function useCustomerLookup() {
+export function useCustomerLookup(purpose: CustomerLookupPurpose) {
   const read = useBoundedRead();
   const [items, setItems] = useState<CustomerLookupRow[]>([]);
   const [message, setMessage] = useState("");
@@ -29,7 +30,7 @@ export function useCustomerLookup() {
       return;
     }
     const result = await privateApiFetch(
-      `/api/staff/customer-lookup?search=${encodeURIComponent(query)}`,
+      `/api/staff/customer-lookup?search=${encodeURIComponent(query)}&purpose=${purpose}`,
       parseCustomerLookup,
       { signal: attempt.signal },
     );

@@ -52,6 +52,8 @@ public static class DependencyInjection
         services.AddScoped<ICustomerRegistrationStore, CustomerRegistrationStore>();
         services.AddScoped<IListingStore, ListingStore>();
         services.AddScoped<IReservationStore, ReservationStore>();
+        services.AddScoped<IReservationDepositRequestStore, ReservationDepositRequestStore>();
+        services.AddSingleton<ReservationDepositToken>();
         services.AddScoped<IReservationCancellationStore, ReservationCancellationStore>();
         services.AddScoped<IReservationReadStore, ReservationReadStore>();
         services.AddScoped<IListingPhotoStore, ListingPhotoStore>();
