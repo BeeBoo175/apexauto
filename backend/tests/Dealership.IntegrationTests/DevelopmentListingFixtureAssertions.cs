@@ -116,6 +116,7 @@ internal static class DevelopmentListingFixtureAssertions
         var store = services.GetRequiredService<IPublicListingStore>();
         var managers = services.GetRequiredService<IListingReadStore>();
         var catalogueTotal = 0;
+        var now = DateTimeOffset.UtcNow;
         foreach (var branch in DevelopmentFixtureManifest.Branches)
         {
             // Sales that carry a warranty or a rejected discount hold one more catalogue vehicle at their branch, and
@@ -123,13 +124,18 @@ internal static class DevelopmentListingFixtureAssertions
             var heldBySales = DevelopmentSaleScenarios.All.Count(item => item.Hold.Listing.Intake.BranchId == branch.Id &&
                 (item.WarrantyPackageId is not null || item.RejectedOnce ||
                  item.Hold.Index >= DevelopmentReservationScenarios.FirstCompletedIndex));
+            // A deposit request waiting for its customer holds its car off the catalogue like a reservation.
+            var heldByRequests = DevelopmentDepositRequestScenarios.All.Count(item =>
+                item.Listing.Intake.BranchId == branch.Id && item.Outcome == DevelopmentDepositRequestOutcome.Pending);
             var available = (branch.Id == DevelopmentTestDriveReopeningFixtures.Scenario.Intake.BranchId ? 14 : 15) -
-                heldBySales;
+                heldBySales - heldByRequests;
             var expected = await database.ListingRevisions.Where(item => item.BranchId == branch.Id)
                 .Where(item => database.Vehicles.Any(vehicle => vehicle.Id == item.VehicleId &&
                     vehicle.Status == VehicleStatus.Available))
                 .Where(item => !database.Reservations.Any(hold => hold.VehicleId == item.VehicleId && hold.IsActive))
                 .Where(item => !database.ListingWithdrawals.Any(withdrawal => withdrawal.VehicleId == item.VehicleId))
+                .Where(item => !database.ReservationDepositRequests.Any(request => request.VehicleId == item.VehicleId &&
+                    request.ConfirmedAt == null && request.CancelledAt == null && request.ExpiresAt > now))
                 .OrderBy(item => item.VehiclePrice).ThenBy(item => item.VehicleId).ToArrayAsync();
             Assert.Equal(available, expected.Length);
             Assert.Contains(expected.GroupBy(item => item.VehiclePrice), group => group.Count() > 1);

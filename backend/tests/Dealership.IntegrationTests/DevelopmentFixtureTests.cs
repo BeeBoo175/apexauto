@@ -120,6 +120,7 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
             $"{report.Fixture}: {report.State}"));
         Assert.Equal(definitions, await ReadGuardsAsync());
         await DevelopmentReservationFixtureAssertions.VerifyAsync(restarted, interrupted);
+        await DevelopmentDepositRequestFixtureAssertions.VerifyAsync(restarted);
         await using (var volumeScope = restarted.CreateAsyncScope())
         {
             await volumeScope.ServiceProvider.GetRequiredService<DealershipDbContext>().Database.OpenConnectionAsync();

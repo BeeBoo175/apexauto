@@ -11,7 +11,8 @@ public sealed record DevelopmentFixtureTiming(string Unit, TimeSpan Elapsed);
 public sealed class DevelopmentFixtureRunner(DealershipDbContext database, DevelopmentAccountFixtures accounts,
     DevelopmentIntakeFixtures intake,
     DevelopmentInspectionFixtures inspections, DevelopmentListingFixtures listings, DevelopmentPurchaseFixtures purchases,
-    DevelopmentReservationFixtures reservations, DevelopmentSaleFixtures sales,
+    DevelopmentReservationFixtures reservations, DevelopmentDepositRequestFixtures depositRequests,
+    DevelopmentSaleFixtures sales,
     DevelopmentFixtureMail mail, DevelopmentTestDriveFixtures testDrives, DevelopmentSaleVolumeFixtures salesVolume,
     DevelopmentAccountPictureFixtures accountPictures, DevelopmentInvitationFixtures invitations,
     DevelopmentLifecycleFixtures lifecycle)
@@ -83,6 +84,7 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
         reports.AddRange(await TimeAsync("Reservations", () => reservations.RunAsync(true, token)));
         reports.AddRange(await TimeAsync("Test drives", () => testDrives.RunAsync(true, token)));
         reports.AddRange(await TimeAsync("Sales", () => salesVolume.RunAsync(true, token)));
+        reports.AddRange(await TimeAsync("Deposit requests", () => depositRequests.RunAsync(true, token)));
         reports.AddRange(await TimeAsync("Account lifecycle", () => lifecycle.RunAsync(true, token)));
         return reports;
     }
@@ -113,6 +115,7 @@ public sealed class DevelopmentFixtureRunner(DealershipDbContext database, Devel
             reports.AddRange(await TimeAsync("Sales", () => sales.RunAsync(false, cancellationToken)));
             reports.AddRange(await TimeAsync("Test drives", () => testDrives.RunAsync(false, cancellationToken)));
             reports.AddRange(await TimeAsync("Sales volume", () => salesVolume.RunAsync(false, cancellationToken)));
+            reports.AddRange(await TimeAsync("Deposit requests", () => depositRequests.RunAsync(false, cancellationToken)));
             reports.AddRange(await TimeAsync("Account lifecycle", () => lifecycle.RunAsync(false, cancellationToken)));
             return reports;
         }

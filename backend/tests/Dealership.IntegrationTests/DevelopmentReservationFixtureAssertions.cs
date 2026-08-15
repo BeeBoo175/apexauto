@@ -35,10 +35,13 @@ internal static class DevelopmentReservationFixtureAssertions
         await using var scope = provider.CreateAsyncScope();
         var services = scope.ServiceProvider;
         var database = services.GetRequiredService<DealershipDbContext>();
-        // Every hold, plus the reservation cancelled by the test-drive scenario, and the volume sales' holds.
-        var holds = DevelopmentReservationScenarios.All.Count + 1 + DevelopmentSaleVolumeManifest.All.Count;
+        // Every hold, plus the reservation cancelled by the test-drive scenario, the volume sales' holds and the
+        // reservations that confirmed deposit requests made before the customer released them.
+        var confirmedRequests = DevelopmentDepositRequestScenarios.All.Count(item =>
+            item.Outcome == DevelopmentDepositRequestOutcome.Confirmed);
+        var holds = DevelopmentReservationScenarios.All.Count + 1 + DevelopmentSaleVolumeManifest.All.Count + confirmedRequests;
         Assert.Equal(holds, await database.Reservations.CountAsync());
-        Assert.Equal(DevelopmentReservationScenarios.All.Count(item => !item.KeepActive) + 1,
+        Assert.Equal(DevelopmentReservationScenarios.All.Count(item => !item.KeepActive) + 1 + confirmedRequests,
             await database.ReservationReleases.CountAsync());
         Assert.Equal(holds, await database.ReservationMailOutbox.CountAsync());
         var staffSales = DevelopmentSaleScenarios.All.Count(item =>
