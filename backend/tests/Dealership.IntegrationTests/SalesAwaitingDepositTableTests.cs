@@ -23,22 +23,31 @@ public sealed class SalesAwaitingDepositTableTests(IntakePhotoFixture fixture) :
         var page = (await new SaleListStore(scenario.Database).TableAsync(scenario.ManagerId, query, default)).Value!;
         Assert.Equal(SaleViews.AwaitingDeposit, page.View);
         Assert.Equal(1, page.Counts.AwaitingDeposit);
-        Assert.Empty(page.Items);
-        var row = Assert.Single(page.DepositRequests!);
-        Assert.Equal(deposit.Id, row.RequestId);
+        // Requests ride in the sale row shape: the booking staff member stands in as the agent and the lapse time as due.
+        var row = Assert.Single(page.Items);
+        Assert.Equal(deposit.Id, row.Id);
+        Assert.Equal(SaleViews.AwaitingDeposit, row.Status);
         Assert.Equal(scenario.Data.OwnerId, row.CustomerId);
-        Assert.Equal(deposit.ExpiresAt, row.ExpiresAtUtc);
+        Assert.Equal(deposit.VehicleId, row.VehicleId);
+        Assert.Equal(deposit.BookedByStaffId, row.AgentId);
+        Assert.Equal(deposit.ExpiresAt, row.DueAt);
         Assert.Equal(1, page.Total);
+
+        // The table's own column filters apply to requests like they do to sales.
+        var byPlate = SaleQueries.Table(new SaleTableInput { View = "awaitingDeposit", Registration = row.Registration })!;
+        Assert.Single((await new SaleListStore(scenario.Database).TableAsync(scenario.ManagerId, byPlate, default)).Value!.Items);
+        var byOtherPlate = SaleQueries.Table(new SaleTableInput { View = "awaitingDeposit", Registration = "ZZZ 0000" })!;
+        Assert.Empty((await new SaleListStore(scenario.Database).TableAsync(scenario.ManagerId, byOtherPlate, default)).Value!.Items);
 
         var search = SaleQueries.Table(new SaleTableInput { View = "awaitingDeposit", Search = "no such customer" })!;
         var none = (await new SaleListStore(scenario.Database).TableAsync(scenario.ManagerId, search, default)).Value!;
-        Assert.Empty(none.DepositRequests!);
+        Assert.Empty(none.Items);
 
         await LoginAsync(scenario.Client, scenario.Data.StaffEmail);
         Assert.Equal(HttpStatusCode.OK, (await scenario.Client.PostAsJsonAsync(
             $"/api/reservation-requests/{deposit.Id}/cancellations", new { })).StatusCode);
         var after = (await new SaleListStore(scenario.Database).TableAsync(scenario.ManagerId, query, default)).Value!;
         Assert.Equal(0, after.Counts.AwaitingDeposit);
-        Assert.Empty(after.DepositRequests!);
+        Assert.Empty(after.Items);
     }
 }

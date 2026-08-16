@@ -10,6 +10,8 @@ export const saleStatuses = [
   "Delivered",
   "Expired",
   "Cancelled",
+  // A deposit request awaiting its customer, shown in the sale table; it never is a sale's own status.
+  "AwaitingDeposit",
 ] as const;
 
 export type SaleStatus = (typeof saleStatuses)[number];
@@ -23,6 +25,7 @@ export const saleStatusLabels: Record<SaleStatus, string> = {
   Delivered: "Delivered",
   Expired: "Expired",
   Cancelled: "Cancelled",
+  AwaitingDeposit: "Awaiting deposit",
 };
 
 // The sale as it stands, or as it stood after one action: the same shape for the live record and its history.
@@ -167,6 +170,8 @@ export interface SaleSummary {
   agentSuspended: boolean;
   customerSuspended: boolean;
   customerId: string | null;
+  // Set on deposit requests, which open their car's listing instead of a sale.
+  vehicleId: string | null;
   branch: string;
   dueAt: string | null;
   pausedSeconds: number | null;
@@ -196,7 +201,7 @@ export function remainingHoldSeconds(
 }
 
 export function saleHasHoldTimer(status: SaleStatus) {
-  return ["Open", "Handling", "PendingApproval", "Approved"].includes(status);
+  return ["Open", "Handling", "PendingApproval", "Approved", "AwaitingDeposit"].includes(status);
 }
 
 export const saleDiscountOverLimit = (
@@ -286,25 +291,7 @@ export const tableCountKeys = tableViews.map((view) => view.count);
 
 export type TableCounts = Record<(typeof tableViews)[number]["count"], number>;
 
-// A car held for a customer who has not yet confirmed the deposit staff asked for; not a sale until they do.
-export interface DepositRequestRow {
-  requestId: string;
-  vehicleId: string;
-  registration: string;
-  manufactureYear: number;
-  make: string;
-  model: string;
-  trim: string;
-  customerId: string;
-  customer: string;
-  branch: string;
-  requestedBy: string;
-  expiresAtUtc: string;
-}
-
 export interface SalesTablePage {
-  // The Awaiting deposit tab lists requests instead of sales, so its items are empty.
-  depositRequests: DepositRequestRow[];
   items: SaleSummary[];
   total: number;
   page: number;

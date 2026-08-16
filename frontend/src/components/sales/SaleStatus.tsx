@@ -12,6 +12,7 @@ const statusTones: Record<Status, string> = {
   Delivered: tones.success,
   Expired: tones.neutral,
   Cancelled: tones.neutral,
+  AwaitingDeposit: tones.warning,
 };
 
 // The sale's status as one badge, shared by the queue, the table and the sale workspace.

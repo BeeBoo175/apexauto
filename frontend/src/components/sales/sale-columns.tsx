@@ -13,12 +13,17 @@ import {
   type SaleSummary,
 } from "@/lib/sales/contracts";
 import { staffColumnSizing } from "@/lib/staff/table-columns";
+import { DEPOSIT_REQUEST_HOURS } from "@/lib/vehicles/deposit-request";
 import { HoldTimer } from "@/components/staff/HoldTimer";
+import { StaffLink } from "@/components/staff/StaffLink";
 import { SaleStatus } from "./SaleStatus";
 import tones from "@/components/ui/StatusTone.module.css";
 import styles from "@/components/staff/StaffTable.module.css";
 
 function Discount({ row }: { row: SaleSummary }) {
+  if (row.status === "AwaitingDeposit") {
+    return <span className={styles.muted}>—</span>;
+  }
   return (
     <div className={styles.inline}>
       <span className={styles.money}>{formatCurrency(row.negotiatedDiscount)}</span>
@@ -37,7 +42,15 @@ export function saleColumns(role: CurrentActor["role"], now: number): DataColumn
       label: "Reference",
       sortable: true,
       width: 216,
-      cell: (row) => <strong>{saleReference(row)}</strong>,
+      cell: (row) =>
+        row.status === "AwaitingDeposit" && row.vehicleId ? (
+          // A request has no sale to open; its car's listing holds the request and its cancel action.
+          <StaffLink href={`/dashboard/listings/${row.vehicleId}/publication`}>
+            <strong>{saleReference(row)}</strong>
+          </StaffLink>
+        ) : (
+          <strong>{saleReference(row)}</strong>
+        ),
     },
     {
       id: "registration",
@@ -104,7 +117,12 @@ export function saleColumns(role: CurrentActor["role"], now: number): DataColumn
       sortable: true,
       ...staffColumnSizing.money,
       align: "right",
-      cell: (row) => <span className={styles.money}>{formatCurrency(row.balancePayable)}</span>,
+      cell: (row) =>
+        row.status === "AwaitingDeposit" ? (
+          <span className={styles.muted}>—</span>
+        ) : (
+          <span className={styles.money}>{formatCurrency(row.balancePayable)}</span>
+        ),
     },
     {
       id: "timeLeft",
@@ -115,7 +133,15 @@ export function saleColumns(role: CurrentActor["role"], now: number): DataColumn
         !saleHasHoldTimer(row.status) ? (
           <span className={styles.muted}>—</span>
         ) : (
-          <HoldTimer dueAt={row.dueAt} pausedSeconds={row.pausedSeconds} now={now} compact />
+          <HoldTimer
+            dueAt={row.dueAt}
+            pausedSeconds={row.pausedSeconds}
+            now={now}
+            totalSeconds={
+              row.status === "AwaitingDeposit" ? DEPOSIT_REQUEST_HOURS * 3600 : undefined
+            }
+            compact
+          />
         ),
     },
   ];

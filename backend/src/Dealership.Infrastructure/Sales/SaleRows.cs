@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using Dealership.Application.Sales;
 using Dealership.Domain.Sales;
+using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -44,6 +45,9 @@ internal sealed class SaleRow
     public DateTimeOffset? ClosedAt { get; init; }
     public DateTimeOffset UpdatedAt { get; init; }
     public long Version { get; init; }
+    public Guid? VehicleId { get; init; }
+    // A deposit request shown in the sale row shape; it is not a sale and has no order status.
+    public bool IsDepositRequest { get; init; }
 }
 
 internal static class SaleRows
@@ -100,6 +104,60 @@ internal static class SaleRows
             Version = sale.Version
         };
 
+    // Deposit requests awaiting their customer, in the sale row shape so the table's search, column filters and sorting
+    // apply unchanged: the booking staff member stands in as the agent and the request's lapse time as the due time.
+    public static IQueryable<SaleRow> ProjectRequests(DealershipDbContext database,
+        IQueryable<ReservationDepositRequest> requests) =>
+        from request in requests
+        join vehicle in database.Vehicles.AsNoTracking() on request.VehicleId equals vehicle.Id
+        join branch in database.Branches.AsNoTracking() on request.BranchId equals branch.Id
+        join profile in database.CustomerProfiles.AsNoTracking() on request.CustomerId equals profile.UserId
+        join customer in database.Users.AsNoTracking() on request.CustomerId equals customer.Id
+        join staff in database.Users.AsNoTracking() on request.BookedByStaffId equals staff.Id
+        select new SaleRow
+        {
+            Id = request.Id,
+            ReservationNumber = "Deposit request",
+            Status = SalesOrderStatus.Open,
+            BranchId = request.BranchId,
+            Branch = branch.Name,
+            Plate = vehicle.RegistrationPlate,
+            Vin = vehicle.Vin,
+            Year = vehicle.ManufactureYear,
+            Make = vehicle.Make,
+            Model = vehicle.Model,
+            Trim = vehicle.Trim,
+            Customer = profile.LegalName,
+            CustomerId = request.CustomerId,
+            Mobile = profile.Mobile,
+            Email = customer.Email,
+            AgentId = request.BookedByStaffId,
+            Agent = staff.Email,
+            AgentName = database.StaffProfiles.Where(item => item.UserId == request.BookedByStaffId)
+                .Select(item => item.Name).FirstOrDefault(),
+            AgentPictureId = database.AccountPictures
+                .Where(picture => picture.UserId == request.BookedByStaffId && picture.RemovedAt == null)
+                .Select(picture => (Guid?)picture.Id).FirstOrDefault(),
+            AgentSuspended = staff.SuspendedAt != null,
+            CustomerSuspended = customer.SuspendedAt != null,
+            Promo = (string?)null,
+            OrderNumber = (string?)null,
+            DueAt = request.ExpiresAt,
+            PausedSeconds = (long?)null,
+            ClaimedAt = (DateTimeOffset?)null,
+            NegotiatedDiscount = 0m,
+            DiscountLimitAtSubmit = (decimal?)null,
+            BalancePayable = 0m,
+            SubmittedAt = (DateTimeOffset?)null,
+            DecidedAt = (DateTimeOffset?)null,
+            SettledAt = (DateTimeOffset?)null,
+            ClosedAt = (DateTimeOffset?)null,
+            UpdatedAt = request.CreatedAt,
+            Version = 1,
+            VehicleId = vehicle.Id,
+            IsDepositRequest = true
+        };
+
     // One box for the common lookups: numbers, car, customer and contact, promo and agent; branch for the group scope.
     public static IQueryable<SaleRow> Search(IQueryable<SaleRow> rows, string search, bool searchBranch)
     {
@@ -120,12 +178,12 @@ internal static class SaleRows
     }
 
     public static SaleSummary Summary(SaleRow row) => new(row.Id, row.ReservationNumber, row.OrderNumber,
-        row.Status.ToString(), row.Plate, row.Year, row.Make, row.Model, row.Trim, row.Customer,
+        row.IsDepositRequest ? SaleViews.AwaitingDeposit : row.Status.ToString(), row.Plate, row.Year, row.Make, row.Model, row.Trim, row.Customer,
         row.Agent, row.Branch, row.DueAt, row.PausedSeconds, row.ClaimedAt, row.NegotiatedDiscount,
         row.DiscountLimitAtSubmit, row.BalancePayable, row.SubmittedAt, row.DecidedAt, row.ClosedAt,
-        SalesOrder.IsClosedStatus(row.Status) ? row.Status.ToString() : null,
+        !row.IsDepositRequest && SalesOrder.IsClosedStatus(row.Status) ? row.Status.ToString() : null,
         row.Version, row.UpdatedAt, row.AgentName, row.AgentPictureId, row.AgentId,
-        row.AgentSuspended, row.CustomerSuspended, row.CustomerId);
+        row.AgentSuspended, row.CustomerSuspended, row.CustomerId, row.VehicleId);
 
     // Compare remaining time before counting and paging, using one instant for both bounds.
     public static IQueryable<SaleRow> TimeLeftBetween(IQueryable<SaleRow> rows, decimal? minimum,

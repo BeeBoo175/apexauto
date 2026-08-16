@@ -8,8 +8,6 @@ import { AppliedWorklistFilters } from "@/components/staff/AppliedWorklistFilter
 import { Button } from "@/components/ui/Button";
 import { CsvExportActions } from "@/components/ui/CsvExportActions";
 import { DataTable } from "@/components/ui/data-table/DataTable";
-import { DepositRequestCancel } from "@/components/vehicles/DepositRequestCancel";
-import { depositRequestColumns } from "./deposit-request-columns";
 import type { TableSort } from "@/components/ui/data-table/types";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { RecordToolbar } from "@/components/ui/RecordToolbar";
@@ -208,62 +206,38 @@ export function SalesTable({
     </>
   );
 
-  const depositTable =
-    snapshot && view === "AwaitingDeposit" ? (
-      <DataTable
-        toolbar={toolbar}
-        label="Deposit requests"
-        rows={snapshot.depositRequests}
-        columns={depositRequestColumns(showBranch, now, (row) => (
-          <DepositRequestCancel requestId={row.requestId} onChanged={() => void refresh()} />
-        ))}
-        sorting={{
-          value: active.filters.sort
-            ? { column: active.filters.sort, direction: active.filters.direction }
-            : null,
-          onChange: sort,
-        }}
-        rowId={(row) => row.requestId}
-        page={snapshot}
-        onPage={(nextPage, pageSize) => void load({ ...active.filters, pageSize }, nextPage)}
-        busy={state.busy}
-        disabled={false}
-        emptyState={{
-          title: filtered ? "No deposit requests match your search" : emptyTitles[view],
-          description: "Requests appear here after staff ask a customer to confirm a deposit.",
-          ...(filtered && { action: { label: "Clear search", onClick: reset } }),
-        }}
-      />
-    ) : null;
-
-  const salesTable =
-    snapshot && view !== "AwaitingDeposit" ? (
-      <DataTable
-        toolbar={toolbar}
-        label="Sales"
-        rows={snapshot.items}
-        columns={columns}
-        sorting={{
-          value: active.filters.sort
-            ? { column: active.filters.sort, direction: active.filters.direction }
-            : null,
-          onChange: sort,
-        }}
-        rowId={rowId}
-        selection={selection.selection}
-        page={snapshot}
-        onPage={(nextPage, pageSize) => void load({ ...active.filters, pageSize }, nextPage)}
-        busy={state.busy}
-        disabled={false}
-        selectedRowId={drawer.id}
-        onRowClick={(row) => void drawer.choose(row.id)}
-        emptyState={{
-          title: filtered ? "No sales match your criteria" : emptyTitles[view],
-          description: "Use the column filters, or switch tab.",
-          ...(filtered && { action: { label: "Clear filters", onClick: reset } }),
-        }}
-      />
-    ) : null;
+  const salesTable = snapshot ? (
+    <DataTable
+      toolbar={toolbar}
+      label="Sales"
+      rows={snapshot.items}
+      columns={columns}
+      sorting={{
+        value: active.filters.sort
+          ? { column: active.filters.sort, direction: active.filters.direction }
+          : null,
+        onChange: sort,
+      }}
+      rowId={rowId}
+      selection={selection.selection}
+      page={snapshot}
+      onPage={(nextPage, pageSize) => void load({ ...active.filters, pageSize }, nextPage)}
+      busy={state.busy}
+      disabled={false}
+      selectedRowId={drawer.id}
+      // A deposit request is not a sale; its reference links to the listing that holds it.
+      onRowClick={(row) => {
+        if (row.status !== "AwaitingDeposit") {
+          void drawer.choose(row.id);
+        }
+      }}
+      emptyState={{
+        title: filtered ? "No sales match your criteria" : emptyTitles[view],
+        description: "Use the column filters, or switch tab.",
+        ...(filtered && { action: { label: "Clear filters", onClick: reset } }),
+      }}
+    />
+  ) : null;
 
   const unavailable = snapshot ? null : (
     <div className={styles.unavailableFilters}>
@@ -294,7 +268,6 @@ export function SalesTable({
         inert={!state.ready}
       >
         <div className={styles.body}>
-          {depositTable}
           {salesTable}
           {unavailable}
         </div>

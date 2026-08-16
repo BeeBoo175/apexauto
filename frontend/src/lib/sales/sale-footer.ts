@@ -47,6 +47,7 @@ function nextStepNote(status: SaleStatus, actions: SaleActions, dirty: boolean) 
     Delivered: "Delivered, records are read only.",
     Expired: "Hold expired, deposit refunded.",
     Cancelled: "Cancelled, deposit refunded.",
+    AwaitingDeposit: "Waiting for the customer to confirm the deposit.",
   };
   return { step, description: notes[step] };
 }

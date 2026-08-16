@@ -24,7 +24,8 @@ public sealed record SaleSummary(Guid Id, string ReservationNumber, string? Orde
     long? PausedSeconds, DateTimeOffset? ClaimedAt, decimal NegotiatedDiscount, decimal? DiscountLimitAtSubmit,
     decimal BalancePayable, DateTimeOffset? SubmittedAt, DateTimeOffset? DecidedAt, DateTimeOffset? ClosedAt,
     string? Outcome, long Version, DateTimeOffset UpdatedAt, string? AgentName = null, Guid? AgentPictureId = null,
-    Guid? AgentId = null, bool AgentSuspended = false, bool CustomerSuspended = false, Guid? CustomerId = null);
+    Guid? AgentId = null, bool AgentSuspended = false, bool CustomerSuspended = false, Guid? CustomerId = null,
+    Guid? VehicleId = null);
 
 public sealed record SaleQueueCounts(int ToClaim, int Handling, int Waiting, int Settling, int Completed);
 
@@ -34,15 +35,10 @@ public sealed record SaleQueuePage(IReadOnlyList<SaleSummary> Items, int Total, 
 public sealed record SaleTableCounts(int NeedsApproval, int Open, int BeingHandled, int Approved, int AwaitingHandover,
     int Delivered, int History, int AwaitingDeposit = 0, int All = 0);
 
-// A car held for a customer who has not yet confirmed the deposit staff asked for.
-public sealed record DepositRequestRow(Guid RequestId, Guid VehicleId, string Registration, int ManufactureYear,
-    string Make, string Model, string Trim, Guid CustomerId, string Customer, string Branch, string RequestedBy,
-    DateTimeOffset ExpiresAtUtc);
-
 // View names the tab actually read, which the server chooses when the request leaves it open.
-// The Awaiting deposit tab lists requests instead of sales, so its rows ride in DepositRequests and Items is empty.
+// The Awaiting deposit tab lists deposit requests in the sale row shape, with the "AwaitingDeposit" status.
 public sealed record SaleTablePage(IReadOnlyList<SaleSummary> Items, int Total, int Page, int PageSize,
-    SaleTableCounts Counts, string View, IReadOnlyList<DepositRequestRow>? DepositRequests = null);
+    SaleTableCounts Counts, string View);
 
 public sealed record SaleTableInput
 {
