@@ -19,25 +19,24 @@ export function StaffLoading() {
 
   const { actor, path, parameters } = presentation;
   const pathname = staffWorkspacePath(path);
-  const workshopView: StaffLoadingView =
-    actor.role === "WorkshopTechnician" ? "technician" : "inspection";
+  const workshopView: StaffLoadingView = actor.role === "WorkshopTechnician" ? "queue" : "table";
   const views: Record<string, StaffLoadingView> = {
-    "/dashboard/intake": "intake",
+    "/dashboard/intake": "table",
     "/dashboard/workshop": workshopView,
-    "/dashboard/settings": "inspection",
+    "/dashboard/settings": "table",
     // Agents get the queue workspace and managers the Sales table, so the shell follows the role.
-    "/dashboard/sales": actor.role === "SalesAgent" ? "technician" : "inspection",
-    "/dashboard/test-drives": actor.role === "SalesAgent" ? "technician" : "inspection",
+    "/dashboard/sales": actor.role === "SalesAgent" ? "queue" : "table",
+    "/dashboard/test-drives": actor.role === "SalesAgent" ? "queue" : "table",
     "/dashboard/work-calendar": "calendar",
-    "/dashboard/account": "appointment",
-    "/dashboard/accounts": "intake",
+    "/dashboard/profile": "detail",
+    "/dashboard/accounts": "table",
     "/dashboard/performance": "report",
     "/dashboard/home": "home",
   };
-  let view = views[pathname] ?? "inspection";
+  let view = views[pathname] ?? "table";
   const title = staffPageTitles[pathname] ?? "Your staff workspace";
   if (pathname === "/dashboard/intake") {
-    view = actor.role === "SalesAgent" ? "technician" : "intake";
+    view = actor.role === "SalesAgent" ? "queue" : "table";
   }
   return (
     <>

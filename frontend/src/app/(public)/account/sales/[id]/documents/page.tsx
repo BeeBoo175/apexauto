@@ -6,7 +6,7 @@ import {
   readCustomerSaleDocuments,
   readCustomerSaleReport,
 } from "@/lib/sales/customer-documents-server";
-import { AccountSaleDocuments } from "@/components/account/AccountSaleDocuments";
+import { AccountSaleDocuments } from "@/components/customer-account/AccountSaleDocuments";
 
 export const metadata = {
   title: "Your sale documents | ApexAuto",

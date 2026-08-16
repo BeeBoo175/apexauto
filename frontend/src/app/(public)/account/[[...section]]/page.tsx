@@ -1,8 +1,8 @@
 import type { SearchParams } from "@/lib/query";
 import { notFound, redirect } from "next/navigation";
-import { AccountWorkspace } from "@/components/account/AccountWorkspace";
-import { sectionFromSegments } from "@/lib/account/sections";
-import { readOwnProfile } from "@/lib/account/server";
+import { AccountWorkspace } from "@/components/customer-account/AccountWorkspace";
+import { sectionFromSegments } from "@/lib/profile/sections";
+import { readOwnProfile } from "@/lib/profile/server";
 import { historyParams } from "@/lib/intake/list-query";
 import {
   accountReservationFilters,
@@ -41,7 +41,7 @@ export default async function AccountPage({
   const profile = response.data;
 
   if (profile.role !== "Customer") {
-    redirect("/dashboard/account");
+    redirect("/dashboard/profile");
   }
 
   const entry = entryParameters(section, await searchParams);

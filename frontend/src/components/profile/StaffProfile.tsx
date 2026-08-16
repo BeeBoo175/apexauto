@@ -11,15 +11,15 @@ import { Button, buttonClassName } from "@/components/ui/Button";
 import { useAccountPicture } from "@/hooks/use-account-picture";
 import { useAccountUsername } from "@/hooks/use-account-username";
 import { useEmailVerificationResend } from "@/hooks/use-email-verification-resend";
-import type { AccountProfile } from "@/lib/account/contracts";
+import type { AccountProfile } from "@/lib/profile/contracts";
 import { roleNames } from "@/lib/auth/actor";
 import tones from "@/components/ui/StatusTone.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
-import styles from "./StaffAccount.module.css";
+import styles from "./StaffProfile.module.css";
 
 // The dashboard's own account page. Picture and username are the person's to change; name, work contact, role
 // and branch are managed by an Administrator, so they read as facts rather than controls.
-export function StaffAccount({ profile }: { profile: AccountProfile }) {
+export function StaffProfile({ profile }: { profile: AccountProfile }) {
   const picture = useAccountPicture(profile.userId, profile.pictureId);
   const username = useAccountUsername(profile.username);
   const resend = useEmailVerificationResend({

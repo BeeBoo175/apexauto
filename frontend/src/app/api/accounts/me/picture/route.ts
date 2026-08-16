@@ -1,4 +1,4 @@
-import { uploadOwnPicture } from "@/lib/account/picture-routes";
+import { uploadOwnPicture } from "@/lib/profile/picture-routes";
 
 export async function PUT(request: Request) {
   return uploadOwnPicture(request);

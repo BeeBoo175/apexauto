@@ -59,7 +59,7 @@ export function SiteNavigation({ showAccount, showStaffPortal }: SiteNavigationP
     };
   }, [menuOpen]);
 
-  const accountHref = showStaffPortal ? "/dashboard/account" : "/account";
+  const accountHref = showStaffPortal ? "/dashboard/profile" : "/account";
 
   function closeMenu() {
     setMenuOpen(false);

@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/Button";
 import { useInitialToast } from "@/hooks/use-initial-toast";
-import styles from "@/components/account/Account.module.css";
+import styles from "@/components/customer-account/Account.module.css";
 
 export default function AccountError({ reset }: { reset: () => void }) {
   useInitialToast("Your account could not be loaded. Try again when the service is available.");

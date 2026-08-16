@@ -20,7 +20,7 @@ const pages = [
   "/dashboard/test-drives",
   "/dashboard/workshop",
   "/dashboard/intake",
-  "/dashboard/account",
+  "/dashboard/profile",
 ];
 
 test("every dashboard address renders its workspace without a client error", async ({ page }) => {

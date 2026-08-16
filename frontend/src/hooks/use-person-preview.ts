@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { parsePerson, type Person } from "@/lib/account/contracts";
+import { parsePerson, type Person } from "@/lib/profile/contracts";
 import { privateApiFetch } from "@/lib/api-browser";
 import { sessionChanges } from "@/lib/auth/browser-session";
 

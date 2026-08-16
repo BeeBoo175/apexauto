@@ -13,5 +13,5 @@ test("the browser tab title is the sidebar label", () => {
   for (const link of staffWorkspaceLinks) {
     expect(workspaceMetadata(link.href).title).toBe(link.label);
   }
-  expect(workspaceMetadata("/dashboard/account").title).toBe(staffPageTitles["/dashboard/account"]);
+  expect(workspaceMetadata("/dashboard/profile").title).toBe(staffPageTitles["/dashboard/profile"]);
 });

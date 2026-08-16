@@ -83,7 +83,7 @@ export const staffWorkspaceLinks: StaffWorkspaceLink[] = [
 ];
 
 export const staffPageTitles: Record<string, string> = {
-  "/dashboard/account": "Account",
+  "/dashboard/profile": "Account",
   ...Object.fromEntries(staffWorkspaceLinks.map((link) => [link.href, link.label])),
 };
 

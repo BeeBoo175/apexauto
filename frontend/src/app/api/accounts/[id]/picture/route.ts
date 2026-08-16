@@ -1,4 +1,4 @@
-import { downloadPicture, removePicture } from "@/lib/account/picture-routes";
+import { downloadPicture, removePicture } from "@/lib/profile/picture-routes";
 
 type Context = { params: Promise<{ id: string }> };
 

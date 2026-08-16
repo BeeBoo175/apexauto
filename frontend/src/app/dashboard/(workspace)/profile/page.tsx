@@ -1,15 +1,15 @@
-import { StaffAccount } from "@/components/account/StaffAccount";
+import { StaffProfile } from "@/components/profile/StaffProfile";
 import { StaffEntry } from "@/components/staff/StaffEntry";
 import { LoadingProgressReady } from "@/components/ui/LoadingProgress";
-import { readOwnProfile } from "@/lib/account/server";
+import { readOwnProfile } from "@/lib/profile/server";
 import { workspaceMetadata } from "@/lib/staff/navigation";
 
-export const metadata = workspaceMetadata("/dashboard/account");
+export const metadata = workspaceMetadata("/dashboard/profile");
 
-export default function StaffAccountPage() {
+export default function StaffProfilePage() {
   return (
     <StaffEntry
-      path="/dashboard/account"
+      path="/dashboard/profile"
       access={() => true}
       allowUnverified
       deniedTitle="Account unavailable"
@@ -23,7 +23,7 @@ export default function StaffAccountPage() {
         return (
           <>
             <LoadingProgressReady />
-            <StaffAccount key={response.data.userId} profile={response.data} />
+            <StaffProfile key={response.data.userId} profile={response.data} />
           </>
         );
       }}

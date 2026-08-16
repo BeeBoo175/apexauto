@@ -55,7 +55,7 @@ export async function StaffEntry({
             Confirm your email address to use the staff workspace. Request a new link from your
             account if the first has expired.
           </p>
-          <StaffLink href="/dashboard/account">Open your account</StaffLink>
+          <StaffLink href="/dashboard/profile">Open your account</StaffLink>
         </StaffNotice>
       </>
     );

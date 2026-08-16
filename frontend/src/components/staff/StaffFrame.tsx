@@ -161,11 +161,11 @@ function StaffFrameContent({
               {actor && (
                 <div className={styles.session}>
                   <StaffLink
-                    href="/dashboard/account"
+                    href="/dashboard/profile"
                     prefetch={false}
                     className={styles.profile}
                     aria-label="Account"
-                    onNavigate={(event) => navigate(event, "/dashboard/account")}
+                    onNavigate={(event) => navigate(event, "/dashboard/profile")}
                   >
                     <Avatar
                       accountId={actor.userId}

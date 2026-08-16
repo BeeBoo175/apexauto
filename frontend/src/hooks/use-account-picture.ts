@@ -5,7 +5,7 @@ import {
   PICTURE_CONTENT_TYPES,
   parsePictureReceipt,
   parseRemovedPicture,
-} from "@/lib/account/contracts";
+} from "@/lib/profile/contracts";
 import { privateApiFetch } from "@/lib/api-browser";
 import { PHOTO_MAX_BYTES } from "@/lib/intake/contracts";
 

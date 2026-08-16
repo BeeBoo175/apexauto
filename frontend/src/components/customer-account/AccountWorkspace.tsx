@@ -4,13 +4,13 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { AccountPanel } from "@/components/auth/AccountPanel";
 import { useIntakeActor } from "@/hooks/use-intake-actor";
-import type { AccountProfile } from "@/lib/account/contracts";
+import type { AccountProfile } from "@/lib/profile/contracts";
 import {
   accountSectionPath,
   accountSections as sections,
   sectionFromPathname,
   type AccountSection,
-} from "@/lib/account/sections";
+} from "@/lib/profile/sections";
 import { writeAddress } from "@/lib/browser-url";
 import type { HistoryFilters } from "@/lib/intake/list-query";
 import { AppointmentHistory } from "./AppointmentHistory";

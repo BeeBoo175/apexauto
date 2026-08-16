@@ -8,7 +8,7 @@ import { Button, buttonClassName } from "@/components/ui/Button";
 import { useAccountPicture } from "@/hooks/use-account-picture";
 import { useAuthMutation } from "@/hooks/use-auth-mutation";
 import { useEmailVerificationResend } from "@/hooks/use-email-verification-resend";
-import type { AccountProfile } from "@/lib/account/contracts";
+import type { AccountProfile } from "@/lib/profile/contracts";
 import { roleNames } from "@/lib/auth/actor";
 import styles from "./AccountPanel.module.css";
 

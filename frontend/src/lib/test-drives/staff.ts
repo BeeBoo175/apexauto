@@ -1,4 +1,4 @@
-import { handlerName, parseHandlerDisplay } from "@/lib/account/handler-display";
+import { handlerName, parseHandlerDisplay } from "@/lib/profile/handler-display";
 import { parseCountedPage, parseItems } from "@/lib/api";
 import { parseActor } from "@/lib/auth/actor";
 import { parseOwnershipKind } from "@/lib/staff/ownership";

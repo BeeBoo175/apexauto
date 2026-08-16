@@ -1,4 +1,4 @@
-import { handlerName } from "@/lib/account/handler-display";
+import { handlerName } from "@/lib/profile/handler-display";
 import {
   customerIdOf,
   isNonNegativeInteger,

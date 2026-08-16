@@ -3,7 +3,7 @@
 import { Avatar } from "@/components/ui/Avatar";
 import { Dialog } from "@/components/ui/Dialog";
 import { usePersonPreview } from "@/hooks/use-person-preview";
-import type { Person } from "@/lib/account/contracts";
+import type { Person } from "@/lib/profile/contracts";
 import { roleNames } from "@/lib/auth/actor";
 import styles from "./PersonDialog.module.css";
 

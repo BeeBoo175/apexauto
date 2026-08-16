@@ -3,7 +3,7 @@ import {
   accountSectionPath,
   sectionFromPathname,
   sectionFromSegments,
-} from "@/lib/account/sections";
+} from "@/lib/profile/sections";
 
 test("account sections are kebab-case paths and the first section is the workspace root", () => {
   expect(accountSectionPath("reservations")).toBe("/account");

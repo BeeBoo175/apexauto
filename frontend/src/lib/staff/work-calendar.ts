@@ -1,4 +1,4 @@
-import { parseHandlerDisplay } from "@/lib/account/handler-display";
+import { parseHandlerDisplay } from "@/lib/profile/handler-display";
 import { parseItems, parsePage, type Page } from "@/lib/api";
 import { parseActor, type CurrentActor } from "@/lib/auth/actor";
 import { isRecord, isUtcInstant, isUuid, isNonNegativeInteger } from "@/lib/auth/contracts";

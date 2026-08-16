@@ -7,8 +7,7 @@ import { StaffTableLoadingShell } from "./StaffTableLoadingShell";
 import layout from "./Staff.module.css";
 import styles from "./StaffLoadingShell.module.css";
 
-export type StaffLoadingView =
-  "calendar" | "intake" | "inspection" | "technician" | "appointment" | "report" | "home";
+export type StaffLoadingView = "calendar" | "table" | "queue" | "detail" | "report" | "home";
 
 // The report shell follows the requested performance view and whether the actor also sees the Branches tab.
 type LoadingShellProps = {
@@ -27,7 +26,7 @@ export function StaffLoadingShell({ view, selected, report }: LoadingShellProps)
 }
 
 function LoadingContent({ view, selected = false, report }: LoadingShellProps) {
-  if (view === "technician") {
+  if (view === "queue") {
     return <TechnicianLoadingShell selected={selected} />;
   }
   if (view === "report") {
@@ -39,7 +38,7 @@ function LoadingContent({ view, selected = false, report }: LoadingShellProps) {
   if (view === "calendar") {
     return <WorkCalendarLoadingShell />;
   }
-  if (view === "appointment") {
+  if (view === "detail") {
     return (
       <div className={layout.direct}>
         <span className={`${layout.backLink} ${styles.shortValue}`} aria-hidden="true" />
