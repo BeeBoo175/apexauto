@@ -84,7 +84,7 @@ export function AssistedDepositRequest({
         open={Boolean(request.confirmation)}
         title="Send a deposit request?"
         confirmLabel={command.uncertain ? "Reconcile request" : "Send deposit request"}
-        cancelLabel="Keep browsing"
+        cancelLabel="Go back"
         busy={command.busy}
         locked={command.uncertain}
         onClose={request.close}

@@ -19,6 +19,12 @@ const titles: Record<AssistedVehicleKind, string> = {
   reservation: "Reserve a car for a customer",
 };
 
+const descriptions: Record<AssistedVehicleKind, string> = {
+  testDrive: "Choose an existing customer, then the car. The customer is emailed the confirmation.",
+  reservation:
+    "Choose an existing customer, then the car. The customer is emailed a link to confirm the deposit.",
+};
+
 // Sales staff choose the customer and then the car, and the booking itself is the customer own control: the same
 // slots, rules and confirmation, made for the customer, who is emailed the result.
 export function AssistedVehicleDialog({
@@ -44,12 +50,7 @@ export function AssistedVehicleDialog({
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      title={titles[kind]}
-      description="Choose an existing customer, then the car. The customer is emailed the confirmation."
-    >
+    <Dialog open={open} onClose={onClose} title={titles[kind]} description={descriptions[kind]}>
       <div className={styles.stack}>
         <CustomerPicker
           purpose={kind}

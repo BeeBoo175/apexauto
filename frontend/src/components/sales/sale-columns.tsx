@@ -15,7 +15,6 @@ import {
 import { staffColumnSizing } from "@/lib/staff/table-columns";
 import { DEPOSIT_REQUEST_HOURS } from "@/lib/vehicles/deposit-request";
 import { HoldTimer } from "@/components/staff/HoldTimer";
-import { StaffLink } from "@/components/staff/StaffLink";
 import { SaleStatus } from "./SaleStatus";
 import tones from "@/components/ui/StatusTone.module.css";
 import styles from "@/components/staff/StaffTable.module.css";
@@ -42,15 +41,7 @@ export function saleColumns(role: CurrentActor["role"], now: number): DataColumn
       label: "Reference",
       sortable: true,
       width: 216,
-      cell: (row) =>
-        row.status === "AwaitingDeposit" && row.vehicleId ? (
-          // A request has no sale to open; its car's listing holds the request and its cancel action.
-          <StaffLink href={`/dashboard/listings/${row.vehicleId}/publication`}>
-            <strong>{saleReference(row)}</strong>
-          </StaffLink>
-        ) : (
-          <strong>{saleReference(row)}</strong>
-        ),
+      cell: (row) => <strong>{saleReference(row)}</strong>,
     },
     {
       id: "registration",

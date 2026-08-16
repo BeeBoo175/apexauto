@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
 import { AUTH_DEADLINE_MS, isRecord } from "@/lib/auth/contracts";
 import { writeAddress } from "@/lib/browser-url";
@@ -11,8 +10,8 @@ import { writeAddress } from "@/lib/browser-url";
 export function useReservationDepositConfirm() {
   const [token, setToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
   const { success, error, warning } = useToast();
-  const router = useRouter();
   const controller = useRef<AbortController | null>(null);
   const inFlight = useRef(false);
 
@@ -54,8 +53,9 @@ export function useReservationDepositConfirm() {
 
       if (response.ok && isRecord(receipt) && receipt.ok === true) {
         writeAddress("/confirm-deposit");
-        success("Deposit confirmed. Your reservation receipt is on its way.");
-        router.push("/account");
+        success("Deposit confirmed. The reservation receipt is on its way.");
+        // Stay here: a signed-in staff member opening the link would otherwise land on their own account.
+        setConfirmed(true);
         return;
       }
 
@@ -84,5 +84,5 @@ export function useReservationDepositConfirm() {
     }
   }
 
-  return { token, busy, confirm };
+  return { token, busy, confirmed, confirm };
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import { useContext, useState } from "react";
+import { useContext, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { StaffPageEntranceContext } from "@/components/staff/StaffActorBoundary";
 import { StaffCommandBar } from "@/components/staff/StaffPage";
 import { StaffQueueTabs } from "@/components/staff/StaffQueueTabs";
@@ -29,6 +30,7 @@ import {
 } from "@/lib/sales/contracts";
 import { defaultTableFilters, tableQuery, tableViewFilters } from "@/lib/sales/query";
 import { exportSales, saleExportColumns } from "@/lib/sales/sale-export";
+import { listingSelectionHref } from "@/lib/vehicles/listing-location";
 import type { SaleSection } from "@/lib/sales/sale-sections";
 import { SaleDrawer } from "./SaleDrawer";
 import { saleColumns } from "./sale-columns";
@@ -84,6 +86,8 @@ export function SalesTable({
     version,
     selected,
   });
+  const router = useRouter();
+  const [opening, startOpening] = useTransition();
   const animateEntry = useContext(StaffPageEntranceContext);
   // Hold timers are read against this moment, which moves forward with each confirmed read.
   const [now, setNow] = useMinuteClock();
@@ -225,11 +229,18 @@ export function SalesTable({
       busy={state.busy}
       disabled={false}
       selectedRowId={drawer.id}
-      // A deposit request is not a sale; its reference links to the listing that holds it.
       onRowClick={(row) => {
-        if (row.status !== "AwaitingDeposit") {
-          void drawer.choose(row.id);
+        // A deposit request is not a sale; its row opens the listing that holds it and can cancel it.
+        if (row.status === "AwaitingDeposit" && row.vehicleId) {
+          const href = listingSelectionHref({
+            id: row.vehicleId,
+            section: "publication",
+            record: null,
+          });
+          startOpening(() => router.push(href));
+          return;
         }
+        void drawer.choose(row.id);
       }}
       emptyState={{
         title: filtered ? "No sales match your criteria" : emptyTitles[view],
@@ -250,7 +261,7 @@ export function SalesTable({
 
   return (
     <div className={styles.workspace}>
-      <LoadingProgress label="Loading sales" active={state.busy} />
+      <LoadingProgress label="Loading sales" active={state.busy || opening} />
       <StaffCommandBar
         title="Sales"
         actions={
