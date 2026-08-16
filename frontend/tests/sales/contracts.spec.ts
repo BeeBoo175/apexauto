@@ -337,6 +337,7 @@ test("queues and tables parse their counts and the table names the view it chose
       delivered: 4,
       history: 4,
       awaitingDeposit: 1,
+      all: 14,
     },
     view: "Open",
   };
@@ -360,33 +361,12 @@ test("queues and tables parse their counts and the table names the view it chose
   expect(
     parseSalesQueue({ ...queue, counts: { toClaim: 2, handling: 1, waiting: 0, approved: 0 } }),
   ).toBeNull();
-  // Awaiting deposit lists requests instead of sales, and no other tab may carry them.
-  const request = {
-    requestId: id,
-    vehicleId: id,
-    registration: "VCA 6242",
-    manufactureYear: 2021,
-    make: "Perodua",
-    model: "Ativa",
-    trim: "H",
-    customerId: id,
-    customer: "Nur Aina",
-    branch: "Glenmarie",
-    requestedBy: "agent@example.invalid",
-    expiresAtUtc: "2026-11-13T10:00:00Z",
-  };
-  const deposits = { ...table, items: [], total: 1, view: "AwaitingDeposit" };
-  expect(
-    parseSalesTable({ ...deposits, depositRequests: [request] })?.depositRequests,
-  ).toHaveLength(1);
-  expect(parseSalesTable(deposits)?.depositRequests).toEqual([]);
-  expect(parseSalesTable({ ...table, depositRequests: [request] })).toBeNull();
-  expect(
-    parseSalesTable({ ...deposits, depositRequests: [request, request], total: 2 }),
-  ).toBeNull();
-  expect(
-    parseSalesTable({ ...deposits, depositRequests: [{ ...request, expiresAtUtc: "tomorrow" }] }),
-  ).toBeNull();
+  // Awaiting deposit lists deposit requests in the sale row shape, each with the car it holds.
+  const request = { ...summary, status: "AwaitingDeposit", vehicleId: id };
+  const deposits = { ...table, items: [request], total: 1, view: "AwaitingDeposit" };
+  expect(parseSalesTable(deposits)?.items[0]?.vehicleId).toBe(id);
+  expect(parseSalesTable({ ...deposits, items: [{ ...request, vehicleId: "car" }] })).toBeNull();
+  expect(parseSalesTable({ ...table, items: [summary] })?.items[0]?.vehicleId).toBeNull();
   for (const view of ["AwaitingHandover", "Delivered"] as const) {
     expect(parseSalesTable({ ...table, view })?.view).toBe(view);
     expect(

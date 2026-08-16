@@ -28,7 +28,8 @@ public sealed class SaleListStore(DealershipDbContext database) : ISaleListStore
             [SaleViews.AwaitingHandover] = ("settled", false),
             [SaleViews.Completed] = ("closed", true),
             [SaleViews.Delivered] = ("closed", true),
-            [SaleViews.History] = ("closed", true)
+            [SaleViews.History] = ("closed", true),
+            [SaleViews.All] = ("updated", true)
         }.ToFrozenDictionary();
 
     public async Task<SaleReadResult<SaleQueuePage>> QueueAsync(Guid actorId, string view, string? search, int page,
@@ -111,7 +112,8 @@ public sealed class SaleListStore(DealershipDbContext database) : ISaleListStore
             await sales.CountAsync(item => item.Status == SalesOrderStatus.Delivered, cancellationToken),
             await sales.CountAsync(item => item.Status == SalesOrderStatus.Expired ||
                 item.Status == SalesOrderStatus.Cancelled, cancellationToken),
-            await pending.CountAsync(cancellationToken));
+            await pending.CountAsync(cancellationToken),
+            await sales.CountAsync(cancellationToken));
         var view = query.View ?? FirstWithWork(counts);
         if (view == SaleViews.AwaitingDeposit)
         {
@@ -236,6 +238,7 @@ public sealed class SaleListStore(DealershipDbContext database) : ISaleListStore
 
     private static IQueryable<SalesOrder> InView(IQueryable<SalesOrder> sales, string view) => view switch
     {
+        SaleViews.All => sales,
         SaleViews.Open => sales.Where(item => item.Status == SalesOrderStatus.Open),
         SaleViews.BeingHandled => sales.Where(item => item.Status == SalesOrderStatus.Handling),
         SaleViews.Approved => sales.Where(item => item.Status == SalesOrderStatus.Approved),

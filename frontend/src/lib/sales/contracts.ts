@@ -269,6 +269,7 @@ export interface SalesQueue {
 }
 
 export const tableViews = [
+  { value: "All", label: "All sales", count: "all" },
   { value: "NeedsApproval", label: "Needs approval", count: "needsApproval" },
   { value: "Open", label: "Open", count: "open" },
   { value: "BeingHandled", label: "Being handled", count: "beingHandled" },

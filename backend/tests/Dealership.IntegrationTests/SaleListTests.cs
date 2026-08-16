@@ -43,6 +43,15 @@ public sealed class SaleListTests(IntakePhotoFixture fixture) : IClassFixture<In
         var byAgent = (await world.Lists.TableAsync(world.Manager,
             new SaleTableQuery(1, 25, "BeingHandled", agentName, null, false), default)).Value!;
         Assert.Contains(mine.Id, byAgent.Items.Select(item => item.Id));
+        // All sales lists every sale whatever its status, and its count is the sum of the status tabs.
+        var all = (await world.Lists.TableAsync(world.Manager,
+            new SaleTableQuery(1, 100, "All", null, null, false), default)).Value!;
+        Assert.Equal("All", all.View);
+        Assert.Contains(open.Id, all.Items.Select(item => item.Id));
+        Assert.Contains(mine.Id, all.Items.Select(item => item.Id));
+        Assert.Equal(all.Total, all.Counts.All);
+        Assert.Equal(all.Counts.All, all.Counts.NeedsApproval + all.Counts.Open + all.Counts.BeingHandled +
+            all.Counts.Approved + all.Counts.AwaitingHandover + all.Counts.Delivered + all.Counts.History);
         var calendar = new WorkCalendarStore(database);
         var query = UnscheduledWorkQuery.Parse(null, null, 1, 10)!;
         var work = (await calendar.UnscheduledAsync(world.Agent, query, default)).Value!;

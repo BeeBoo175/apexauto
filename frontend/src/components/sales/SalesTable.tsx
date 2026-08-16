@@ -42,6 +42,7 @@ import { AssistedVehicleAction } from "@/components/staff/AssistedVehicleAction"
 const rowId = (row: SaleSummary) => row.id;
 
 const emptyTitles: Record<TableView, string> = {
+  All: "No sales yet",
   NeedsApproval: "No sales need approval",
   Open: "No open holds",
   BeingHandled: "No sales are being handled",

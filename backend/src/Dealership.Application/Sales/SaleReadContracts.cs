@@ -32,7 +32,7 @@ public sealed record SaleQueuePage(IReadOnlyList<SaleSummary> Items, int Total, 
     SaleQueueCounts Counts);
 
 public sealed record SaleTableCounts(int NeedsApproval, int Open, int BeingHandled, int Approved, int AwaitingHandover,
-    int Delivered, int History, int AwaitingDeposit = 0);
+    int Delivered, int History, int AwaitingDeposit = 0, int All = 0);
 
 // A car held for a customer who has not yet confirmed the deposit staff asked for.
 public sealed record DepositRequestRow(Guid RequestId, Guid VehicleId, string Registration, int ManufactureYear,

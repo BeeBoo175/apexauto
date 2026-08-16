@@ -11,6 +11,8 @@ public static class SaleViews
     public const string Approved = "Approved";
     public const string AwaitingHandover = "AwaitingHandover";
     public const string Delivered = "Delivered";
+    // Every sale whatever its status, newest activity first; deposit requests are not sales and stay out of it.
+    public const string All = "All";
     public const string NeedsApproval = "NeedsApproval";
     public const string Open = "Open";
     public const string BeingHandled = "BeingHandled";

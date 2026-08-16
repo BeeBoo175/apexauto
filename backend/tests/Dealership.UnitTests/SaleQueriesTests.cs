@@ -113,6 +113,15 @@ public sealed class SaleQueriesTests
     }
 
     [Fact]
+    public void AllSalesIsAcceptedAsATableView()
+    {
+        var query = SaleQueries.Table(new() { View = "all" });
+
+        Assert.NotNull(query);
+        Assert.Equal(SaleViews.All, query.View);
+    }
+
+    [Fact]
     public void InvalidCriteriaAreRefusedBeforeReading()
     {
         SaleTableInput[] inputs =

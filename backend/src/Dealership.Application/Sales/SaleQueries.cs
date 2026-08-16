@@ -10,7 +10,7 @@ public static class SaleQueries
         new HashSet<string> { SaleViews.ToClaim, SaleViews.Handling, SaleViews.Waiting, SaleViews.Settling, SaleViews.Completed };
 
     public static readonly IReadOnlySet<string> TableViews =
-        new HashSet<string> { SaleViews.NeedsApproval, SaleViews.Open, SaleViews.BeingHandled, SaleViews.Approved,
+        new HashSet<string> { SaleViews.All, SaleViews.NeedsApproval, SaleViews.Open, SaleViews.BeingHandled, SaleViews.Approved,
             SaleViews.AwaitingHandover, SaleViews.Delivered, SaleViews.History, SaleViews.AwaitingDeposit };
 
     public static readonly IReadOnlySet<string> Sorts = new HashSet<string>
