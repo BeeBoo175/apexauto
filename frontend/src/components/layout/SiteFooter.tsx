@@ -76,10 +76,14 @@ export function SiteFooter() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/login">Customer sign in</Link>
+                  <Link href="/login" prefetch={false}>
+                    Customer sign in
+                  </Link>
                 </li>
                 <li>
-                  <Link href="/register">Create account</Link>
+                  <Link href="/register" prefetch={false}>
+                    Create account
+                  </Link>
                 </li>
               </ul>
             </div>

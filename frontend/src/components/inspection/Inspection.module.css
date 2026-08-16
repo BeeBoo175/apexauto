@@ -201,6 +201,16 @@
   color: var(--color-interaction-border);
 }
 
+.historyRow a:active {
+  color: var(--color-interaction-border);
+  text-decoration-thickness: 2px;
+}
+
+.historyRow a:focus-visible {
+  outline: 2px solid var(--color-interaction-border);
+  outline-offset: 2px;
+}
+
 .historyRow span {
   color: var(--color-muted);
   font-size: 12px;
@@ -255,4 +265,14 @@
 
 .textLink:hover {
   color: var(--color-interaction-border);
+}
+
+.textLink:active {
+  color: var(--color-interaction-border);
+  text-decoration-thickness: 2px;
+}
+
+.textLink:focus-visible {
+  outline: 2px solid var(--color-interaction-border);
+  outline-offset: 2px;
 }

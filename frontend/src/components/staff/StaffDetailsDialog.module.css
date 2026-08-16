@@ -21,6 +21,16 @@
   color: var(--color-interaction-border);
 }
 
+.trigger:active {
+  color: var(--color-interaction-border);
+  text-decoration-thickness: 2px;
+}
+
+.trigger:disabled {
+  color: var(--color-muted);
+  cursor: not-allowed;
+}
+
 .trigger:focus-visible {
   outline: 2px solid var(--color-interaction-border);
   outline-offset: 2px;

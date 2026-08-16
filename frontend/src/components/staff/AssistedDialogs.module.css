@@ -64,6 +64,10 @@
   background: var(--color-canvas);
 }
 
+.vehicle:active:not(:disabled) {
+  background: var(--color-selected-surface);
+}
+
 .vehicle:focus-visible {
   outline: 2px solid var(--color-signal);
   outline-offset: -2px;
@@ -138,4 +142,14 @@
 
 .pageLink:hover {
   color: var(--color-interaction-border);
+}
+
+.pageLink:active {
+  color: var(--color-interaction-border);
+  text-decoration-thickness: 2px;
+}
+
+.pageLink:focus-visible {
+  outline: 2px solid var(--color-interaction-border);
+  outline-offset: 2px;
 }

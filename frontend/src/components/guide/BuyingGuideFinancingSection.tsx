@@ -301,7 +301,7 @@ export function BuyingGuideFinancingSection() {
         )}
 
         <div>
-          <Link href="/disclaimer" prefetch={false} className={buttonClassName("secondary", "md")}>
+          <Link href="/disclaimer" className={buttonClassName("secondary", "md")}>
             View financing notes
           </Link>
         </div>

@@ -63,6 +63,17 @@
   min-height: 32px;
   font-size: 13px;
   accent-color: var(--color-graphite);
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .check:hover {
+    background: var(--color-canvas);
+  }
+}
+
+.check:active {
+  background: var(--color-selected-surface);
 }
 
 .check input {

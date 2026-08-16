@@ -341,6 +341,15 @@ a.rowValue {
   background: var(--color-canvas);
 }
 
+.branchSummary:active {
+  background: var(--color-selected-surface);
+}
+
+.branchSummary:focus-visible {
+  outline: 2px solid var(--color-graphite);
+  outline-offset: -2px;
+}
+
 .branchName {
   font-weight: 700;
 }

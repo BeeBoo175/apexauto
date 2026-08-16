@@ -225,11 +225,7 @@ export function InspectionGradingSimulator() {
               </dl>
 
               <div>
-                <Link
-                  href="/buying-guide#warranty"
-                  prefetch={false}
-                  className={buttonClassName("secondary", "md")}
-                >
+                <Link href="/buying-guide#warranty" className={buttonClassName("secondary", "md")}>
                   Compare warranty plans
                 </Link>
               </div>

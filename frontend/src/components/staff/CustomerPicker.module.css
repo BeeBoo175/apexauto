@@ -89,6 +89,10 @@
   background: var(--color-canvas);
 }
 
+.result:active:not(:disabled) {
+  background: var(--color-selected-surface);
+}
+
 .result:focus-visible {
   outline: 2px solid var(--color-signal);
   outline-offset: -2px;

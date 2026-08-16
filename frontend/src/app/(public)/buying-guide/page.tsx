@@ -96,7 +96,7 @@ export default function BuyingGuidePage() {
             <Link href="/vehicles" prefetch={false} className={buttonClassName("primary", "md")}>
               Browse inspected cars
             </Link>
-            <Link href="/faq" prefetch={false} className={buttonClassName("secondary", "md")}>
+            <Link href="/faq" className={buttonClassName("secondary", "md")}>
               Read FAQ
             </Link>
           </div>

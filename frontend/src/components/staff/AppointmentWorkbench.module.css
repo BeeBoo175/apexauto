@@ -71,6 +71,16 @@
   cursor: pointer;
 }
 
+@media (hover: hover) {
+  .confirmation:hover {
+    background: var(--color-canvas);
+  }
+}
+
+.confirmation:active {
+  background: var(--color-selected-surface);
+}
+
 .confirmation input {
   flex: 0 0 16px;
   width: 16px;

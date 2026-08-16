@@ -147,7 +147,7 @@ export function BuyingGuideOverviewSection() {
             ))}
           </ul>
           <div className={styles.promiseFooter}>
-            <Link href="/branches" prefetch={false} className={buttonClassName("secondary", "md")}>
+            <Link href="/branches" className={buttonClassName("secondary", "md")}>
               Find a showroom
             </Link>
           </div>

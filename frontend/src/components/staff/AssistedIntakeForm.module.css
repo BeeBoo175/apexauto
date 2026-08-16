@@ -36,6 +36,16 @@
   font-size: 13px;
 }
 
+@media (hover: hover) {
+  .slot:hover:not(:has(input:checked)) {
+    background: var(--color-canvas);
+  }
+}
+
+.slot:active:not(:has(input:checked)) {
+  background: var(--color-selected-surface);
+}
+
 .slot:has(input:checked) {
   background: var(--color-selected-surface);
   border-color: var(--color-interaction-border);

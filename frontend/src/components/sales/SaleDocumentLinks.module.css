@@ -11,6 +11,11 @@
   color: var(--color-interaction-border);
 }
 
+.pdf:active {
+  color: var(--color-interaction-border);
+  text-decoration-thickness: 2px;
+}
+
 .pdf:focus-visible {
   outline: 2px solid var(--color-interaction-border);
   outline-offset: 2px;
@@ -42,6 +47,17 @@
   color: var(--color-muted);
   font-size: 12px;
   overflow-wrap: anywhere;
+}
+
+@media (hover: hover) {
+  .disclosure > summary:hover {
+    color: var(--color-interaction-border, var(--color-graphite));
+  }
+}
+
+.disclosure > summary:active {
+  color: var(--color-interaction-border, var(--color-graphite));
+  text-decoration: underline;
 }
 
 .disclosure > summary:focus-visible {

@@ -52,7 +52,7 @@ export function BuyingGuideTradeInSection() {
           <Link href="/sell" prefetch={false} className={buttonClassName("primary", "md")}>
             Get an instant quote
           </Link>
-          <Link href="/branches" prefetch={false} className={layout.arrowLink}>
+          <Link href="/branches" className={layout.arrowLink}>
             <span>Check branch hours</span>
             <Icon name="next" />
           </Link>

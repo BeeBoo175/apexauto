@@ -280,6 +280,16 @@
   }
 }
 
+@media (hover: hover) {
+  .breakdown summary:hover {
+    color: var(--color-signal-dark);
+  }
+}
+
+.breakdown summary:active {
+  color: var(--color-signal);
+}
+
 .breakdown summary:focus-visible {
   outline: 2px solid var(--color-signal);
   outline-offset: 4px;
