@@ -170,6 +170,13 @@
   cursor: pointer;
 }
 
+@media (hover: hover) {
+  .selectionControl:hover:not(:has(input:disabled)) {
+    border-radius: var(--radius-sm, 4px);
+    background: var(--color-selected-surface, var(--color-canvas));
+  }
+}
+
 .selectionControl:active:not(:has(input:disabled)) {
   border-radius: var(--radius-sm, 4px);
   background: var(--color-selected-surface, var(--color-canvas));
@@ -269,6 +276,12 @@
 .pageJump input::-webkit-outer-spin-button {
   margin: 0;
   appearance: none;
+}
+
+@media (hover: hover) {
+  .pageJump input:hover:not(:focus) {
+    border-color: var(--color-graphite-soft);
+  }
 }
 
 .pageJump input:focus-visible {

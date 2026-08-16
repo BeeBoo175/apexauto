@@ -187,6 +187,16 @@
   text-decoration: underline;
 }
 
+.disclosure summary:active {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+}
+
+.disclosure summary:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+}
+
 .terms {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

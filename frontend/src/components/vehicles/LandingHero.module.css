@@ -199,6 +199,11 @@
   text-decoration-color: var(--color-signal-dark);
 }
 
+.quickLinks a:active {
+  color: var(--color-graphite);
+  text-decoration-color: var(--color-graphite);
+}
+
 .quickLinks a:focus-visible {
   outline: 2px solid var(--color-signal);
   outline-offset: 3px;

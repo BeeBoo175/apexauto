@@ -460,6 +460,18 @@
   background: var(--color-paper);
 }
 
+.formPanel .dropZone:active:not([aria-disabled="true"]),
+.photoField .dropZone:active:not([aria-disabled="true"]) {
+  border-color: var(--color-graphite);
+  background: var(--color-line-soft);
+}
+
+.formPanel .dropZone:has(input:focus-visible),
+.photoField .dropZone:has(input:focus-visible) {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+}
+
 .dropZone[aria-disabled="true"] {
   opacity: 0.55;
   cursor: not-allowed;
@@ -609,6 +621,17 @@
 .formPanel .replaceAction:hover,
 .photoField .replaceAction:hover {
   background: rgb(14 27 42 / 95%);
+}
+
+.formPanel .replaceAction:active:not([aria-disabled="true"]),
+.photoField .replaceAction:active:not([aria-disabled="true"]) {
+  background: rgb(14 27 42);
+}
+
+.formPanel .replaceAction:has(input:focus-visible),
+.photoField .replaceAction:has(input:focus-visible) {
+  outline: 2px solid var(--color-paper);
+  outline-offset: 2px;
 }
 
 .replaceAction[aria-disabled="true"] {

@@ -67,6 +67,11 @@
   background: var(--color-paper);
 }
 
+.zoneTabButton:active:not([aria-selected="true"]) {
+  border-color: var(--color-graphite);
+  background: var(--color-paper);
+}
+
 .zoneTabButton[aria-selected="true"] {
   border-color: var(--color-graphite);
   background: var(--color-paper);
@@ -477,6 +482,12 @@
 .tierCard:hover {
   border-color: var(--color-graphite-soft);
   transform: translateY(-2px);
+}
+
+.tierCard:active {
+  border-color: var(--color-graphite);
+  background: var(--color-canvas);
+  transform: none;
 }
 
 .tierCard[aria-pressed="true"] {

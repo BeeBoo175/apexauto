@@ -63,6 +63,10 @@
   background: color-mix(in srgb, var(--color-canvas) 60%, var(--color-paper));
 }
 
+.historyRow summary:active {
+  background: var(--color-canvas);
+}
+
 .historyRow summary:focus-visible {
   outline: none;
 }

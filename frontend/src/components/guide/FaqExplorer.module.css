@@ -51,6 +51,12 @@
   color: var(--color-graphite);
 }
 
+.topicButton:active:not([aria-pressed="true"]) {
+  border-color: var(--color-graphite);
+  background: var(--color-paper);
+  color: var(--color-graphite);
+}
+
 .topicButton[aria-pressed="true"] {
   border-color: var(--color-graphite);
   background: var(--color-paper);
@@ -143,6 +149,16 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
+}
+
+@media (hover: hover) {
+  .accordionTrigger:hover {
+    background: var(--color-canvas);
+  }
+}
+
+.accordionTrigger:active {
+  background: var(--color-line-soft);
 }
 
 .accordionTrigger:focus-visible {

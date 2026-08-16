@@ -70,6 +70,11 @@
   text-decoration: none;
 }
 
+.recoveryLink:active,
+.accountLink:active {
+  color: var(--color-graphite);
+}
+
 .recoveryLink:focus-visible,
 .accountLink:focus-visible {
   outline: 2px solid currentColor;
@@ -120,6 +125,14 @@
 }
 
 .demoSummary:hover {
+  color: var(--color-graphite);
+}
+
+.demoSummary:active {
+  color: var(--color-signal-dark);
+}
+
+details[open] > .demoSummary {
   color: var(--color-graphite);
 }
 

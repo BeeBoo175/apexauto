@@ -10,6 +10,12 @@
   filter: brightness(0.85);
 }
 
+/* :where keeps the shared ring weaker than any feature class that styles its own focus. */
+.link:where(:focus-visible) {
+  outline: 2px solid var(--color-graphite);
+  outline-offset: 2px;
+}
+
 .link[aria-disabled="true"] {
   cursor: not-allowed;
   opacity: 0.55;

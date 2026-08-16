@@ -84,6 +84,21 @@
   text-underline-offset: 2px;
 }
 
+@media (hover: hover) {
+  .creditLink:hover {
+    color: var(--color-signal-dark);
+  }
+}
+
+.creditLink:active {
+  color: var(--color-signal);
+}
+
+.creditLink:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+}
+
 @media (max-width: 920px) {
   .policyGrid,
   .creditGrid {

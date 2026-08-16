@@ -77,6 +77,11 @@
   color: var(--color-graphite);
 }
 
+.jumpNavInner a:active {
+  background: var(--color-line-soft);
+  color: var(--color-graphite);
+}
+
 .jumpNavInner a[aria-current="location"] {
   box-shadow: inset 0 -3px var(--color-signal);
   color: var(--color-graphite);
@@ -156,6 +161,11 @@
 
 .chip:hover {
   border-color: var(--color-graphite);
+}
+
+.chip:active:not([aria-pressed="true"]) {
+  border-color: var(--color-graphite);
+  background: var(--color-canvas);
 }
 
 .chip[aria-pressed="true"] {

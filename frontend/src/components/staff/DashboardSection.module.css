@@ -68,6 +68,22 @@
   line-height: 18px;
 }
 
+.panelAside a {
+  color: var(--color-graphite);
+  text-decoration: underline;
+}
+
+@media (hover: hover) {
+  .panelAside a:hover {
+    color: var(--color-interaction-border);
+  }
+}
+
+.panelAside a:active {
+  color: var(--color-interaction-border);
+  text-decoration-thickness: 2px;
+}
+
 .note {
   margin: 0;
   color: var(--color-muted);
