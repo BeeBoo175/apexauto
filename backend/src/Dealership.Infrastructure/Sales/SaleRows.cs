@@ -113,7 +113,7 @@ internal static class SaleRows
         join branch in database.Branches.AsNoTracking() on request.BranchId equals branch.Id
         join profile in database.CustomerProfiles.AsNoTracking() on request.CustomerId equals profile.UserId
         join customer in database.Users.AsNoTracking() on request.CustomerId equals customer.Id
-        join staff in database.Users.AsNoTracking() on request.BookedByStaffId equals staff.Id
+        join staff in database.Users.AsNoTracking() on request.BookedByStaffId equals (Guid?)staff.Id
         select new SaleRow
         {
             Id = request.Id,

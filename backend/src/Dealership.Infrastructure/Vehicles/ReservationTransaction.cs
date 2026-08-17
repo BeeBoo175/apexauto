@@ -61,7 +61,10 @@ internal sealed class ReservationTransaction(DealershipDbContext database, IDbCo
         if (request is not null)
         {
             database.ReservationDepositRequests.Add(request);
-            database.ReservationDepositMailOutbox.Add(new ReservationDepositMail(request, context.Customer!.Email!));
+            if (request.BookedByStaffId is not null)
+            {
+                database.ReservationDepositMailOutbox.Add(new ReservationDepositMail(request, context.Customer!.Email!));
+            }
         }
 
         try
@@ -70,7 +73,7 @@ internal sealed class ReservationTransaction(DealershipDbContext database, IDbCo
             await transaction.CommitAsync(cancellationToken);
             expiry.Request();
 
-            if (request is not null)
+            if (request?.BookedByStaffId is not null)
             {
                 mail.Request();
             }

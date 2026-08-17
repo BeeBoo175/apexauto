@@ -8,8 +8,21 @@ namespace Dealership.Application.Vehicles;
 public sealed class ReservationDepositRequestService(IReservationStore reservations,
     IReservationDepositRequestStore requests, ReservationService reservation, TimeProvider clock)
 {
-    public async Task<DepositRequestResult> RequestAsync(Guid customerId, Guid vehicleId, ReservationRequest request,
+    public Task<DepositRequestResult> RequestAsync(Guid customerId, Guid vehicleId, ReservationRequest request,
         AssistingStaff assistedBy, CancellationToken cancellationToken)
+    {
+        return CreateAsync(customerId, vehicleId, request, assistedBy, cancellationToken);
+    }
+
+    // A customer reserving for themselves holds the car through a short payment window instead of waiting on mail.
+    public Task<DepositRequestResult> RequestOwnAsync(Guid customerId, Guid vehicleId, ReservationRequest request,
+        CancellationToken cancellationToken)
+    {
+        return CreateAsync(customerId, vehicleId, request, null, cancellationToken);
+    }
+
+    private async Task<DepositRequestResult> CreateAsync(Guid customerId, Guid vehicleId, ReservationRequest request,
+        AssistingStaff? assistedBy, CancellationToken cancellationToken)
     {
         if (customerId == Guid.Empty || vehicleId == Guid.Empty || request.OperationId == Guid.Empty ||
             request.PublicationId == Guid.Empty || request.PromoId == Guid.Empty)
@@ -55,7 +68,7 @@ public sealed class ReservationDepositRequestService(IReservationStore reservati
             return await CompleteAsync(transaction, ReservationStatus.NotFound, null, cancellationToken);
         }
 
-        if (!assistedBy.CanActAt(context.Publication.BranchId))
+        if (assistedBy is not null && !assistedBy.CanActAt(context.Publication.BranchId))
         {
             return await CompleteAsync(transaction, ReservationStatus.Forbidden, null, cancellationToken);
         }
@@ -77,7 +90,7 @@ public sealed class ReservationDepositRequestService(IReservationStore reservati
         }
 
         var deposit = new ReservationDepositRequest(request.OperationId, context.Profile, context.Publication,
-            request.PromoId, assistedBy.Id, context.Now);
+            request.PromoId, assistedBy?.Id, context.Now);
         var status = await transaction.CommitRequestAsync(deposit, cancellationToken);
         return new(status, status == ReservationStatus.Succeeded ? deposit : null);
     }
@@ -116,7 +129,7 @@ public sealed class ReservationDepositRequestService(IReservationStore reservati
         }
 
         // The request's own ID is the reservation's operation ID, so a repeated click replays one reservation.
-        var staff = new AssistingStaff(request.BookedByStaffId, string.Empty, request.BranchId);
+        var staff = request.BookedByStaffId is { } staffId ? new AssistingStaff(staffId, string.Empty, request.BranchId) : null;
         var result = await reservation.ReserveAsync(request.CustomerId, request.VehicleId,
             new(request.Id, request.PublicationId, request.PromoId), cancellationToken, staff);
         if (result.Status == ReservationStatus.Succeeded)

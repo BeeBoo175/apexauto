@@ -129,6 +129,7 @@ public static class ReservationCommandEndpoints
     private sealed record DepositConfirmationRequest(string? Token);
 
     private static async Task<IResult> ReserveAsync(Guid vehicleId, HttpContext context, ReservationService reservations,
+        ReservationDepositRequestService deposits, ReservationPaymentService payments,
         IStaffAssistanceQuery assistance, CancellationToken cancellationToken)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -147,6 +148,14 @@ public static class ReservationCommandEndpoints
                 return owner.Error;
             }
 
+            // With the payment gateway on, a customer's own reservation holds the car for a short payment window and
+            // sends them to pay; the reservation exists once the signed payment is confirmed.
+            if (owner.Staff is null && payments.IsEnabled)
+            {
+                return await PayForReservationAsync(owner.OwnerId, vehicleId, request!, reservations, deposits, payments,
+                    deadline.Token);
+            }
+
             var result = await reservations.ReserveAsync(owner.OwnerId, vehicleId, request!, deadline.Token, owner.Staff);
             var receipt = result.Reservation is null ? null : ReservationReceipt.From(result.Reservation);
             return Map(result.Status, receipt);
@@ -154,6 +163,34 @@ public static class ReservationCommandEndpoints
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
             return Unconfirmed();
+        }
+    }
+
+    private static async Task<IResult> PayForReservationAsync(Guid customerId, Guid vehicleId, ReservationRequest request,
+        ReservationService reservations, ReservationDepositRequestService deposits, ReservationPaymentService payments,
+        CancellationToken cancellationToken)
+    {
+        var held = await deposits.RequestOwnAsync(customerId, vehicleId, request, cancellationToken);
+        if (held.Status != ReservationStatus.Succeeded || held.Request is null)
+        {
+            return Map(held.Status, null);
+        }
+
+        var payment = await payments.StartForRequestAsync(held.Request, cancellationToken);
+        switch (payment.Status)
+        {
+            case DepositPaymentStatus.PaymentRequired:
+                return Results.Ok(new DepositPaymentReceipt(payment.PaymentUrl));
+            case DepositPaymentStatus.Confirmed:
+                // Paid already: the replay of the same operation returns the reservation receipt.
+                var reserved = await reservations.ReserveAsync(customerId, vehicleId, request, cancellationToken);
+                return Map(reserved.Status, reserved.Reservation is null ? null : ReservationReceipt.From(reserved.Reservation));
+            case DepositPaymentStatus.Lapsed:
+                return Results.Problem(statusCode: 410, title: "The payment window has ended and the hold was released.");
+            case DepositPaymentStatus.Unavailable:
+                return Results.Problem(statusCode: 503, title: "The payment service is temporarily unavailable.");
+            default:
+                return Results.Problem(statusCode: 409, title: "The reservation or operation has changed or is unavailable.");
         }
     }
 

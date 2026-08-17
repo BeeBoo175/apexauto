@@ -25,6 +25,21 @@ public sealed class ReservationPaymentService(IReservationDepositRequestStore re
             return new(DepositPaymentStatus.Invalid);
         }
 
+        if (request.ConfirmedAt is null && request.IsPending(clock.GetUtcNow()) && !gateway.IsEnabled)
+        {
+            return Map(await deposits.ConfirmAsync(token, cancellationToken));
+        }
+
+        return await StartForRequestAsync(request, cancellationToken);
+    }
+
+    public bool IsEnabled => gateway.IsEnabled;
+
+    // Opens or replays the bill of a request that is still holding its car; used by the emailed link and by a
+    // customer paying for their own reservation.
+    public async Task<DepositPaymentResult> StartForRequestAsync(ReservationDepositRequest request,
+        CancellationToken cancellationToken)
+    {
         if (request.ConfirmedAt is not null)
         {
             return new(DepositPaymentStatus.Confirmed);
@@ -33,11 +48,6 @@ public sealed class ReservationPaymentService(IReservationDepositRequestStore re
         if (!request.IsPending(clock.GetUtcNow()))
         {
             return new(DepositPaymentStatus.Lapsed);
-        }
-
-        if (!gateway.IsEnabled)
-        {
-            return Map(await deposits.ConfirmAsync(token, cancellationToken));
         }
 
         var existing = await payments.FindByRequestAsync(request.Id, cancellationToken);
