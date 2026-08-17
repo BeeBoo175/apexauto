@@ -7,8 +7,8 @@ import { useReservationDepositConfirm } from "@/hooks/use-reservation-deposit-co
 import styles from "./AuthForm.module.css";
 
 export function ConfirmDepositControl() {
-  const { token, busy, confirmed, confirm } = useReservationDepositConfirm();
-  useLoadingProgress("Confirming your deposit", busy);
+  const { token, busy, waiting, confirmed, confirm } = useReservationDepositConfirm();
+  useLoadingProgress("Confirming your deposit", busy || waiting);
 
   if (confirmed) {
     return (
@@ -23,11 +23,22 @@ export function ConfirmDepositControl() {
     );
   }
 
+  if (waiting) {
+    return (
+      <div className={styles.form}>
+        <p className={styles.help}>
+          Confirming your payment. This usually takes a few seconds. Keep this page open.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.form}>
       <p className={styles.help}>
-        Choose Confirm deposit to reserve the car. The RM500 deposit is simulated and refundable,
-        and no payment is taken. The link expires 24 hours after it was sent.
+        Choose Confirm deposit to reserve the car. The RM500 deposit is refundable. You may be taken
+        to Billplz to pay it securely; in a demo the payment is simulated and no real money moves.
+        The link expires 24 hours after it was sent.
       </p>
       <Button disabled={!token || busy} onClick={() => void confirm()}>
         {busy ? "Confirming" : "Confirm deposit"}
