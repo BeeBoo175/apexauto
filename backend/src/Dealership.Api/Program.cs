@@ -155,6 +155,7 @@ app.MapTaxonomyValuationEndpoints();
 app.MapListingCommandEndpoints();
 app.MapReservationCommandEndpoints();
 app.MapPaymentCallbackEndpoints();
+app.MapReservationRefundEndpoints();
 app.MapReservationQueryEndpoints();
 app.MapTestDriveCommandEndpoints();
 app.MapTestDriveQueryEndpoints();

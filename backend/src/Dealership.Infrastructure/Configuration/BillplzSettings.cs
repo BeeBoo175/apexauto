@@ -13,6 +13,9 @@ public sealed class BillplzSettings
 
     public string? CollectionId { get; set; }
 
+    // The payment order collection refunds are paid from; refunds stay off while it is empty.
+    public string? PaymentOrderCollectionId { get; set; }
+
     // The sandbox or production API root, for example https://www.billplz-sandbox.com/api/v3/.
     public string BaseUrl { get; set; } = "https://www.billplz-sandbox.com/api/v3/";
 

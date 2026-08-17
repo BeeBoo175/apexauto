@@ -61,6 +61,8 @@ public static class DependencyInjection
             .ValidateOnStart();
         services.AddScoped<IReservationPaymentStore, ReservationPaymentStore>();
         services.AddHttpClient<IPaymentGateway, BillplzPaymentGateway>(client => client.Timeout = TimeSpan.FromSeconds(15));
+        services.AddHttpClient<IPayoutGateway, BillplzPayoutGateway>(client => client.Timeout = TimeSpan.FromSeconds(15));
+        services.AddScoped<IReservationRefundStore, ReservationRefundStore>();
         services.AddScoped<IReservationCancellationStore, ReservationCancellationStore>();
         services.AddScoped<IReservationReadStore, ReservationReadStore>();
         services.AddScoped<IListingPhotoStore, ListingPhotoStore>();

@@ -1,0 +1,174 @@
+using Dealership.Domain.Vehicles;
+
+namespace Dealership.Application.Vehicles;
+
+// Pays a customer's deposit back through the provider once it is refundable. The customer gives the bank account the
+// money goes to, because the provider keeps no payer bank details; the account number goes straight to the provider
+// and is never stored, and the provider's signed callback settles the payout.
+public sealed class ReservationRefundService(IReservationRefundStore refunds, IPayoutGateway gateway, TimeProvider clock)
+{
+    private const string StatusField = "status";
+    private const string IdField = "id";
+
+    public bool IsEnabled => gateway.IsEnabled;
+
+    public async Task<IReadOnlyList<RefundView>> ListAsync(Guid customerId, CancellationToken cancellationToken)
+    {
+        if (customerId == Guid.Empty)
+        {
+            return [];
+        }
+
+        await ReconcileAsync(customerId, cancellationToken);
+        return await refunds.ListAsync(customerId, cancellationToken);
+    }
+
+    // A payout whose callback never arrived, such as while the API is not reachable by the provider, settles when its
+    // customer next looks, from the provider's own record of it.
+    private async Task ReconcileAsync(Guid customerId, CancellationToken cancellationToken)
+    {
+        if (!gateway.IsEnabled)
+        {
+            return;
+        }
+
+        foreach (var payoutId in await refunds.ProcessingPayoutsAsync(customerId, cancellationToken))
+        {
+            try
+            {
+                var status = await gateway.GetPayoutStatusAsync(payoutId, cancellationToken);
+                await SettleAsync(payoutId, status, cancellationToken);
+            }
+            catch (PaymentGatewayException)
+            {
+                // The refund stays processing and is checked again at the next look.
+            }
+        }
+    }
+
+    private async Task SettleAsync(string payoutId, string status, CancellationToken cancellationToken)
+    {
+        var refund = await refunds.FindByPayoutAsync(payoutId, cancellationToken);
+        if (refund is null)
+        {
+            return;
+        }
+
+        var settled = status.ToLowerInvariant() switch
+        {
+            "completed" => refund.Settle(true, clock.GetUtcNow()),
+            "refunded" or "cancelled" => refund.Settle(false, clock.GetUtcNow()),
+            _ => false
+        };
+        if (settled)
+        {
+            await refunds.SaveAsync(refund, cancellationToken);
+        }
+    }
+
+    public async Task<RefundResult> RequestAsync(Guid customerId, Guid paymentRequestId, BankAccountDetails account,
+        CancellationToken cancellationToken)
+    {
+        if (customerId == Guid.Empty || paymentRequestId == Guid.Empty || !IsValid(account))
+        {
+            return new(RefundStatus.Invalid);
+        }
+
+        if (!gateway.IsEnabled)
+        {
+            return new(RefundStatus.Unavailable);
+        }
+
+        var due = await refunds.FindDueAsync(customerId, paymentRequestId, cancellationToken);
+        if (due is null)
+        {
+            return new(RefundStatus.NotFound);
+        }
+
+        var now = clock.GetUtcNow();
+        var refund = await refunds.FindAsync(paymentRequestId, cancellationToken);
+        if (refund is null)
+        {
+            refund = new ReservationRefund(paymentRequestId, customerId, due.AmountSen, account.BankCode!,
+                account.AccountNumber!, account.AccountHolder!, now);
+            if (!await refunds.AddAsync(refund, cancellationToken))
+            {
+                // A parallel request holds the refund; repeating a request never pays twice.
+                refund = await refunds.FindAsync(paymentRequestId, cancellationToken);
+                return refund is null ? new(RefundStatus.Unavailable) : Describe(refund, due);
+            }
+        }
+        else if (!refund.Retry(account.BankCode!, account.AccountNumber!, account.AccountHolder!, now))
+        {
+            return Describe(refund, due);
+        }
+        else
+        {
+            await refunds.SaveAsync(refund, cancellationToken);
+        }
+
+        return await PayOutAsync(refund, due, account.AccountNumber!, cancellationToken);
+    }
+
+    // False only when the checksum is invalid; every verified delivery is acknowledged so the provider stops retrying.
+    public async Task<bool> CompleteAsync(IReadOnlyDictionary<string, string> fields, CancellationToken cancellationToken)
+    {
+        if (!gateway.IsEnabled || !gateway.VerifyPayoutCallback(fields))
+        {
+            return false;
+        }
+
+        if (!fields.TryGetValue(IdField, out var payoutId) || !fields.TryGetValue(StatusField, out var status))
+        {
+            return true;
+        }
+
+        await SettleAsync(payoutId, status, cancellationToken);
+        return true;
+    }
+
+    private async Task<RefundResult> PayOutAsync(ReservationRefund refund, RefundDue due, string accountNumber,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var payout = await gateway.CreatePayoutAsync(new(refund.Reference, refund.BankCode, accountNumber,
+                refund.AccountHolder, refund.AmountSen, "ApexAuto reservation deposit refund"), cancellationToken);
+            refund.AttachPayout(payout.Id);
+            if (string.Equals(payout.Status, "completed", StringComparison.OrdinalIgnoreCase))
+            {
+                refund.Settle(true, clock.GetUtcNow());
+            }
+
+            await refunds.SaveAsync(refund, cancellationToken);
+            return Describe(refund, due);
+        }
+        catch (PaymentGatewayException)
+        {
+            // The provider did not take it, so the customer can ask again instead of waiting for a callback.
+            refund.Fail(clock.GetUtcNow());
+            await refunds.SaveAsync(refund, cancellationToken);
+            return new(RefundStatus.Unavailable);
+        }
+    }
+
+    private static RefundResult Describe(ReservationRefund refund, RefundDue due)
+    {
+        var view = new RefundView(refund.PaymentRequestId, refund.AmountSen, due.Reason, string.Empty,
+            StateName(refund.State), refund.BankCode, refund.AccountLast4, refund.RequestedAt);
+        return new(refund.State == RefundState.Completed ? RefundStatus.Completed : RefundStatus.Processing, view);
+    }
+
+    public static string StateName(RefundState state) => state switch
+    {
+        RefundState.Processing => "processing",
+        RefundState.Completed => "completed",
+        _ => "failed"
+    };
+
+    private static bool IsValid(BankAccountDetails account) =>
+        !string.IsNullOrWhiteSpace(account.BankCode) && PayoutBanks.IsSupported(account.BankCode) &&
+        ReservationRefund.IsValidAccountNumber(account.AccountNumber) &&
+        !string.IsNullOrWhiteSpace(account.AccountHolder) && account.AccountHolder.Trim().Length <= 100 &&
+        !account.AccountHolder.Any(char.IsControl);
+}
