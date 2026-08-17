@@ -1868,6 +1868,49 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Dealership.Domain.Vehicles.ReservationDepositPayment", b =>
+                {
+                    b.Property<Guid>("RequestId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("AmountSen")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("BillId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("BillUrl")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("PaidAmountSen")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("PaidAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.HasKey("RequestId");
+
+                    b.HasIndex("BillId")
+                        .IsUnique();
+
+                    b.ToTable("ReservationDepositPayments", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ReservationDepositPayments_Shape", "\"AmountSen\" > 0 AND isfinite(\"CreatedAt\") AND (\"State\" = 'Pending' AND \"PaidAt\" IS NULL AND \"PaidAmountSen\" IS NULL OR \"State\" IN ('Paid', 'PaidUnmatched') AND isfinite(\"PaidAt\") AND \"PaidAt\" >= \"CreatedAt\" AND \"PaidAmountSen\" >= 0)");
+                        });
+                });
+
             modelBuilder.Entity("Dealership.Domain.Vehicles.ReservationDepositRequest", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3883,6 +3926,15 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("PublicationId", "VehicleId", "BranchId")
                         .HasPrincipalKey("Id", "VehicleId", "BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Dealership.Domain.Vehicles.ReservationDepositPayment", b =>
+                {
+                    b.HasOne("Dealership.Domain.Vehicles.ReservationDepositRequest", null)
+                        .WithOne()
+                        .HasForeignKey("Dealership.Domain.Vehicles.ReservationDepositPayment", "RequestId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
