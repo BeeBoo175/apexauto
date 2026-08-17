@@ -80,7 +80,7 @@ public sealed class StaffAssistedIntakeTests(IntakePhotoFixture fixture) : IClas
         return new BookingRequest(Guid.NewGuid(), data.BranchId, startsAt, "WYY 8821", vehicle, quote, photoIds);
     }
 
-    private async Task<string> ProvisionOtherBranchStaffAsync(IServiceProvider services, DealershipDbContext database)
+    private static async Task<string> ProvisionOtherBranchStaffAsync(IServiceProvider services, DealershipDbContext database)
     {
         var otherBranch = Guid.NewGuid();
         await services.GetRequiredService<BranchProvisioningService>().ProvisionBranchAsync(
