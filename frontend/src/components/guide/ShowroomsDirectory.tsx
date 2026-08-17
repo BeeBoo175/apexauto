@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { GuideHubBanner } from "@/components/guide/GuidePageShell";
 import { Icon } from "@/components/ui/Icon";
@@ -37,7 +37,7 @@ export function ShowroomsWorkspace() {
     focusRegion = "Selangor";
   }
 
-  const activeStates = new Set(highlightedStatesByScope[focusRegion]);
+  const activeStates = useMemo(() => new Set(highlightedStatesByScope[focusRegion]), [focusRegion]);
   const canReset = selectedBranch !== null || selangorFocused || zoomIndex > 0;
 
   function selectBranch(branch: ShowroomBranchInfo) {

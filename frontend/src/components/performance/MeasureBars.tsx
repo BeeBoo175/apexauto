@@ -12,7 +12,14 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { chartMargin, colors, tooltipSettings, useReducedMotion, type TipData } from "./chart-kit";
+import {
+  chartMargin,
+  colors,
+  linkedMarkClassName,
+  tooltipSettings,
+  useReducedMotion,
+  type TipData,
+} from "./chart-kit";
 import dashboard from "@/components/staff/DashboardSection.module.css";
 
 interface BarItem {
@@ -104,6 +111,7 @@ export function MeasureBars({
             {data.map((entry) => (
               <Cell
                 key={entry.name}
+                className={entry.href ? linkedMarkClassName : undefined}
                 style={{ cursor: entry.href ? "pointer" : "default" }}
                 onClick={() => {
                   if (entry.href) {

@@ -132,6 +132,15 @@
   text-underline-offset: 4px;
 }
 
+.timeline a:hover:not([aria-disabled="true"]) {
+  color: var(--color-graphite);
+}
+
+.timeline a:active:not([aria-disabled="true"]) {
+  color: var(--color-graphite);
+  text-decoration-thickness: 2px;
+}
+
 .timeline a[aria-disabled="true"] {
   color: var(--color-muted);
   cursor: not-allowed;

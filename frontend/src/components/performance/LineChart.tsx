@@ -16,6 +16,7 @@ import {
   chartHeight,
   chartMargin,
   gridStroke,
+  linkedMarkClassName,
   tickStyle,
   tooltipSettings,
   useReducedMotion,
@@ -100,6 +101,7 @@ export function LineChart({
               dot={{ r: 3, fill: line.color, strokeWidth: 0 }}
               activeDot={{
                 r: 6,
+                className: line.href || line.onSelect ? linkedMarkClassName : undefined,
                 style: { cursor: line.href || line.onSelect ? "pointer" : "default" },
                 onClick: () => {
                   if (line.href) {

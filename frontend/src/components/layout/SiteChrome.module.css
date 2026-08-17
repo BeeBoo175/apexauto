@@ -20,19 +20,37 @@
   font-size: 28px;
   font-weight: 700;
   line-height: 1;
-  transition: opacity 150ms ease;
+  text-decoration: none;
+  text-decoration-color: transparent;
+  text-decoration-thickness: 3px;
+  text-underline-offset: 7px;
+  transition:
+    opacity 150ms ease,
+    text-decoration-color 150ms ease;
 }
 
 .brand:hover {
-  opacity: 0.9;
+  text-decoration-line: underline;
+  text-decoration-color: var(--color-signal);
 }
 
 .brand:active {
-  opacity: 0.72;
+  text-decoration-line: underline;
+  text-decoration-color: var(--color-paper);
+  opacity: 0.7;
 }
 
 .brand span {
   color: var(--color-signal);
+  transition: color 150ms ease;
+}
+
+.brand:hover span {
+  color: #ff4d4f;
+}
+
+.brand:active span {
+  color: var(--color-signal-dark);
 }
 
 .navContainer {
@@ -182,19 +200,36 @@
   line-height: 1;
   color: var(--color-paper);
   text-decoration: none;
-  transition: opacity 150ms ease;
+  text-decoration-color: transparent;
+  text-decoration-thickness: 3px;
+  text-underline-offset: 7px;
+  transition:
+    opacity 150ms ease,
+    text-decoration-color 150ms ease;
 }
 
 .footerBrandMark:hover {
-  opacity: 0.9;
+  text-decoration-line: underline;
+  text-decoration-color: var(--color-signal);
 }
 
 .footerBrandMark:active {
-  opacity: 0.72;
+  text-decoration-line: underline;
+  text-decoration-color: var(--color-paper);
+  opacity: 0.7;
 }
 
 .footerBrandMark span {
   color: var(--color-signal);
+  transition: color 150ms ease;
+}
+
+.footerBrandMark:hover span {
+  color: #ff4d4f;
+}
+
+.footerBrandMark:active span {
+  color: var(--color-signal-dark);
 }
 
 .footerTagline {

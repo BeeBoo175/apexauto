@@ -377,6 +377,21 @@ a.rowValue {
 
 /* Charts draw in when they appear: lines trace, columns and bars grow, dots settle. Reduced motion skips it. */
 
+/* Chart marks that open a page or drawer: hover and press feedback for pointer users. */
+.linkedMark {
+  transition: opacity 150ms ease;
+}
+
+@media (hover: hover) {
+  .linkedMark:hover {
+    opacity: 0.8;
+  }
+}
+
+.linkedMark:active {
+  opacity: 0.6;
+}
+
 /* The hover card every chart shows: what the mark is, one line per figure and where a click goes. */
 .chartTip {
   display: grid;

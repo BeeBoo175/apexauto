@@ -18,6 +18,7 @@ import {
   chartMargin,
   colors,
   gridStroke,
+  linkedMarkClassName,
   tickStyle,
   tooltipSettings,
   useReducedMotion,
@@ -96,6 +97,7 @@ export function ColumnChart({
             {data.map((entry) => (
               <Cell
                 key={entry.name}
+                className={entry.href ? linkedMarkClassName : undefined}
                 style={{ cursor: entry.href ? "pointer" : "default" }}
                 onClick={() => {
                   if (entry.href) {

@@ -5,6 +5,9 @@ import styles from "./Performance.module.css";
 
 // Every chart on Performance and Home is drawn with Recharts and shares these settings, so scales, margins, height and
 // hover behave the same on every tab and side by side charts line up.
+// Chart marks that open a page or drawer change on hover and press, like other clickable controls.
+export const linkedMarkClassName = styles.linkedMark;
+
 export const chartHeight = 240;
 export const axisWidth = 56;
 export const chartMargin = { top: 12, right: 16, bottom: 4, left: 0 };
