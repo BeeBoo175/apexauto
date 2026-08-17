@@ -13,8 +13,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Dealership.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(DealershipDbContext))]
-    [Migration("20261113011630_CustomerDepositPayments")]
-    partial class CustomerDepositPayments
+    [Migration("20261113012339_BillplzDepositPayments")]
+    partial class BillplzDepositPayments
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -1982,6 +1982,64 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.ToTable("ReservationNumberCounters", null, t =>
                         {
                             t.HasCheckConstraint("CK_ReservationNumberCounters_Shape", "\"Year\" BETWEEN 2000 AND 9999 AND \"LastValue\" BETWEEN 0 AND 999999");
+                        });
+                });
+
+            modelBuilder.Entity("Dealership.Domain.Vehicles.ReservationRefund", b =>
+                {
+                    b.Property<Guid>("PaymentRequestId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AccountHolder")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("AccountLast4")
+                        .IsRequired()
+                        .HasMaxLength(4)
+                        .HasColumnType("character varying(4)");
+
+                    b.Property<int>("AmountSen")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Attempt")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("BankCode")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PayoutId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTimeOffset>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("SettledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.HasKey("PaymentRequestId");
+
+                    b.HasIndex("PayoutId")
+                        .IsUnique()
+                        .HasFilter("\"PayoutId\" IS NOT NULL");
+
+                    b.HasIndex("CustomerId", "State");
+
+                    b.ToTable("ReservationRefunds", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ReservationRefunds_Shape", "\"AmountSen\" > 0 AND \"Attempt\" >= 1 AND isfinite(\"RequestedAt\") AND \"State\" IN ('Processing', 'Completed', 'Failed') AND (\"State\" = 'Processing' AND \"SettledAt\" IS NULL OR \"State\" <> 'Processing' AND isfinite(\"SettledAt\") AND \"SettledAt\" >= \"RequestedAt\")");
                         });
                 });
 
@@ -3964,6 +4022,21 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("PublicationId", "VehicleId", "BranchId")
                         .HasPrincipalKey("Id", "VehicleId", "BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Dealership.Domain.Vehicles.ReservationRefund", b =>
+                {
+                    b.HasOne("Dealership.Domain.Customers.CustomerProfile", null)
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Dealership.Domain.Vehicles.ReservationDepositPayment", null)
+                        .WithOne()
+                        .HasForeignKey("Dealership.Domain.Vehicles.ReservationRefund", "PaymentRequestId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
