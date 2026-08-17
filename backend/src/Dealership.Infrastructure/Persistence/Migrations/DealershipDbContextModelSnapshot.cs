@@ -1916,7 +1916,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("BookedByStaffId")
+                    b.Property<Guid?>("BookedByStaffId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("BranchId")
@@ -1962,7 +1962,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.ToTable("ReservationDepositRequests", null, t =>
                         {
-                            t.HasCheckConstraint("CK_ReservationDepositRequests_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND isfinite(\"CreatedAt\") AND isfinite(\"ExpiresAt\") AND \"ExpiresAt\" = \"CreatedAt\" + interval '24 hours' AND (\"ConfirmedAt\" IS NULL OR (isfinite(\"ConfirmedAt\") AND \"ConfirmedAt\" >= \"CreatedAt\" AND \"ConfirmedAt\" < \"ExpiresAt\")) AND (\"CancelledAt\" IS NULL OR (\"ConfirmedAt\" IS NULL AND isfinite(\"CancelledAt\") AND \"CancelledAt\" >= \"CreatedAt\" AND \"CancelledAt\" < \"ExpiresAt\"))");
+                            t.HasCheckConstraint("CK_ReservationDepositRequests_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND isfinite(\"CreatedAt\") AND isfinite(\"ExpiresAt\") AND (\"BookedByStaffId\" IS NOT NULL AND \"ExpiresAt\" = \"CreatedAt\" + interval '24 hours' OR \"BookedByStaffId\" IS NULL AND \"ExpiresAt\" = \"CreatedAt\" + interval '15 minutes') AND (\"ConfirmedAt\" IS NULL OR (isfinite(\"ConfirmedAt\") AND \"ConfirmedAt\" >= \"CreatedAt\" AND \"ConfirmedAt\" < \"ExpiresAt\")) AND (\"CancelledAt\" IS NULL OR (\"ConfirmedAt\" IS NULL AND isfinite(\"CancelledAt\") AND \"CancelledAt\" >= \"CreatedAt\" AND \"CancelledAt\" < \"ExpiresAt\"))");
                         });
                 });
 
@@ -3944,8 +3944,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
                         .WithMany()
                         .HasForeignKey("BookedByStaffId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Dealership.Domain.Customers.CustomerProfile", null)
                         .WithMany()
