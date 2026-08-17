@@ -8,6 +8,12 @@ namespace Dealership.Infrastructure.Persistence.Migrations
     /// <inheritdoc />
     public partial class ReservationDepositRequests : Migration
     {
+        private static readonly string[] ListingPublicationIdentityColumns = ["Id", "VehicleId", "BranchId"];
+        private static readonly string[] OutboxNextDeliveryColumns = ["NextDeliveryAt", "Id"];
+        private static readonly string[] CustomerExpiresColumns = ["CustomerId", "ExpiresAt"];
+        private static readonly string[] PublicationVehicleBranchColumns = ["PublicationId", "VehicleId", "BranchId"];
+        private static readonly string[] VehicleExpiresColumns = ["VehicleId", "ExpiresAt"];
+
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -47,7 +53,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         name: "FK_ReservationDepositRequests_ListingPublications_PublicationI~",
                         columns: x => new { x.PublicationId, x.VehicleId, x.BranchId },
                         principalTable: "ListingPublications",
-                        principalColumns: new[] { "Id", "VehicleId", "BranchId" },
+                        principalColumns: ListingPublicationIdentityColumns,
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_ReservationDepositRequests_PromoCodes_PromoId",
@@ -85,7 +91,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_ReservationDepositMailOutbox_NextDeliveryAt_Id",
                 table: "ReservationDepositMailOutbox",
-                columns: new[] { "NextDeliveryAt", "Id" });
+                columns: OutboxNextDeliveryColumns);
 
             migrationBuilder.CreateIndex(
                 name: "IX_ReservationDepositMailOutbox_RequestId",
@@ -101,7 +107,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_ReservationDepositRequests_CustomerId_ExpiresAt",
                 table: "ReservationDepositRequests",
-                columns: new[] { "CustomerId", "ExpiresAt" },
+                columns: CustomerExpiresColumns,
                 filter: "\"ConfirmedAt\" IS NULL AND \"CancelledAt\" IS NULL");
 
             migrationBuilder.CreateIndex(
@@ -112,12 +118,12 @@ namespace Dealership.Infrastructure.Persistence.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_ReservationDepositRequests_PublicationId_VehicleId_BranchId",
                 table: "ReservationDepositRequests",
-                columns: new[] { "PublicationId", "VehicleId", "BranchId" });
+                columns: PublicationVehicleBranchColumns);
 
             migrationBuilder.CreateIndex(
                 name: "IX_ReservationDepositRequests_VehicleId_ExpiresAt",
                 table: "ReservationDepositRequests",
-                columns: new[] { "VehicleId", "ExpiresAt" },
+                columns: VehicleExpiresColumns,
                 filter: "\"ConfirmedAt\" IS NULL AND \"CancelledAt\" IS NULL");
         }
 

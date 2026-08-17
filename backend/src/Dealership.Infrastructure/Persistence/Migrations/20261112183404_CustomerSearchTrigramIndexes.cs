@@ -7,6 +7,8 @@ namespace Dealership.Infrastructure.Persistence.Migrations
     /// <inheritdoc />
     public partial class CustomerSearchTrigramIndexes : Migration
     {
+        private static readonly string[] TrigramOperators = ["gin_trgm_ops"];
+
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -18,21 +20,21 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                 table: "CustomerProfiles",
                 column: "LegalName")
                 .Annotation("Npgsql:IndexMethod", "gin")
-                .Annotation("Npgsql:IndexOperators", new[] { "gin_trgm_ops" });
+                .Annotation("Npgsql:IndexOperators", TrigramOperators);
 
             migrationBuilder.CreateIndex(
                 name: "IX_CustomerProfiles_Mobile_Trigram",
                 table: "CustomerProfiles",
                 column: "Mobile")
                 .Annotation("Npgsql:IndexMethod", "gin")
-                .Annotation("Npgsql:IndexOperators", new[] { "gin_trgm_ops" });
+                .Annotation("Npgsql:IndexOperators", TrigramOperators);
 
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetUsers_Email_Trigram",
                 table: "AspNetUsers",
                 column: "Email")
                 .Annotation("Npgsql:IndexMethod", "gin")
-                .Annotation("Npgsql:IndexOperators", new[] { "gin_trgm_ops" });
+                .Annotation("Npgsql:IndexOperators", TrigramOperators);
         }
 
         /// <inheritdoc />
