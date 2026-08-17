@@ -45,6 +45,9 @@ internal sealed class ReservationDepositScenario : IDisposable
     public string ReservePath { get; }
     public ReservationDepositToken Tokens { get; }
 
+    // For scenarios that replace a service, such as the payment gateway, on the same database and clock.
+    public Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory<Program> Factory => _factory;
+
     public static async Task<ReservationDepositScenario> CreateAsync(IntakePhotoFixture fixture)
     {
         var data = await CheckInTestData.CreateAsync(fixture);

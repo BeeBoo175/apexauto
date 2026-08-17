@@ -27,4 +27,7 @@ public sealed class AuthMailLinks
     }
 
     public string Create(string path, string token) => $"{_baseUrl}{path}#token={Uri.EscapeDataString(token)}";
+
+    // A link without a token, for an address a payment provider returns the browser to.
+    public string Absolute(string pathAndQuery) => $"{_baseUrl}{pathAndQuery}";
 }

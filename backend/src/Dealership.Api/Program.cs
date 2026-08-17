@@ -154,6 +154,7 @@ app.MapGet("/health/ready", async (DealershipDbContext db, CancellationToken can
 app.MapTaxonomyValuationEndpoints();
 app.MapListingCommandEndpoints();
 app.MapReservationCommandEndpoints();
+app.MapPaymentCallbackEndpoints();
 app.MapReservationQueryEndpoints();
 app.MapTestDriveCommandEndpoints();
 app.MapTestDriveQueryEndpoints();

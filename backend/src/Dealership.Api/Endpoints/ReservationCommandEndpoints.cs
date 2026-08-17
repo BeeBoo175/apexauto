@@ -22,6 +22,9 @@ public static class ReservationCommandEndpoints
         // The customer follows the link in the deposit request mail, so confirming needs no sign-in.
         app.MapPost("/api/reservation-deposits/confirmations", ConfirmDepositAsync)
             .RequireRateLimiting(ApiRateLimiting.VerificationPolicy).NoStore();
+        // The browser returns from the hosted payment page here; only the stored state is read, never the gateway.
+        app.MapGet("/api/reservation-deposits/{requestId:guid}/status", DepositStatusAsync)
+            .RequireRateLimiting(ApiRateLimiting.VerificationPolicy).NoStore();
     }
 
     private static async Task<IResult> RequestDepositAsync(Guid vehicleId, HttpContext context,
@@ -86,7 +89,7 @@ public static class ReservationCommandEndpoints
         }
     }
 
-    private static async Task<IResult> ConfirmDepositAsync(HttpContext context, ReservationDepositRequestService deposits,
+    private static async Task<IResult> ConfirmDepositAsync(HttpContext context, ReservationPaymentService payments,
         CancellationToken cancellationToken)
     {
         var (request, error) = await JsonRequestReader.ReadAsync<DepositConfirmationRequest>(context.Request, cancellationToken);
@@ -95,17 +98,42 @@ public static class ReservationCommandEndpoints
             return error;
         }
 
-        var result = await deposits.ConfirmAsync(request!.Token, cancellationToken);
+        var result = await payments.StartAsync(request!.Token, cancellationToken);
         return result.Status switch
         {
-            ReservationStatus.Succeeded => Results.NoContent(),
-            ReservationStatus.Invalid or ReservationStatus.NotFound => Results.Problem(statusCode: 400,
-                title: "The deposit link is invalid."),
-            ReservationStatus.DepositRequestLapsed => Results.Problem(statusCode: 410,
+            DepositPaymentStatus.Confirmed => Results.NoContent(),
+            DepositPaymentStatus.PaymentRequired => Results.Ok(new DepositPaymentReceipt(result.PaymentUrl)),
+            DepositPaymentStatus.Waiting => Results.Accepted(),
+            DepositPaymentStatus.Invalid => Results.Problem(statusCode: 400, title: "The deposit link is invalid."),
+            DepositPaymentStatus.Lapsed => Results.Problem(statusCode: 410,
                 title: "The deposit link has expired and the hold has been released."),
+            DepositPaymentStatus.Unavailable => Results.Problem(statusCode: 503,
+                title: "The payment service is temporarily unavailable."),
             _ => Results.Problem(statusCode: 409, title: "The deposit can no longer be confirmed for this car.")
         };
     }
+
+    private static async Task<IResult> DepositStatusAsync(Guid requestId, ReservationPaymentService payments,
+        CancellationToken cancellationToken)
+    {
+        var result = await payments.StatusAsync(requestId, cancellationToken);
+        return result.Status == DepositPaymentStatus.Invalid
+            ? Results.NotFound()
+            : Results.Ok(new DepositPaymentStatusReceipt(StatusName(result.Status)));
+    }
+
+    private static string StatusName(DepositPaymentStatus status) => status switch
+    {
+        DepositPaymentStatus.Confirmed => "confirmed",
+        DepositPaymentStatus.Waiting => "waiting",
+        DepositPaymentStatus.PaymentRequired => "payment-required",
+        DepositPaymentStatus.Lapsed => "lapsed",
+        _ => "conflict"
+    };
+
+    private sealed record DepositPaymentReceipt(string? PaymentUrl);
+
+    private sealed record DepositPaymentStatusReceipt(string Status);
 
     private sealed record DepositConfirmationRequest(string? Token);
 

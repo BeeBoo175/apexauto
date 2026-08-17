@@ -95,6 +95,19 @@ public sealed class ReservationDepositRequestService(IReservationStore reservati
             return new(ReservationStatus.Invalid);
         }
 
+        return await ConfirmRequestAsync(request, cancellationToken);
+    }
+
+    // The gateway reported the deposit paid, so the request confirms exactly as the simulated link does.
+    public async Task<ReservationResult> ConfirmPaidAsync(Guid requestId, CancellationToken cancellationToken)
+    {
+        var request = requestId == Guid.Empty ? null : await requests.FindAsync(requestId, cancellationToken);
+        return request is null ? new(ReservationStatus.Invalid) : await ConfirmRequestAsync(request, cancellationToken);
+    }
+
+    private async Task<ReservationResult> ConfirmRequestAsync(ReservationDepositRequest request,
+        CancellationToken cancellationToken)
+    {
         // A request that was cancelled or lapsed unconfirmed can no longer be confirmed; a confirmed one replays
         // its reservation.
         if (request.ConfirmedAt is null && !request.IsPending(clock.GetUtcNow()))

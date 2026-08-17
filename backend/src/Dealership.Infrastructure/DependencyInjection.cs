@@ -54,6 +54,13 @@ public static class DependencyInjection
         services.AddScoped<IReservationStore, ReservationStore>();
         services.AddScoped<IReservationDepositRequestStore, ReservationDepositRequestStore>();
         services.AddSingleton<ReservationDepositToken>();
+        services.AddOptions<BillplzSettings>()
+            .Bind(configuration.GetSection(BillplzSettings.SectionName))
+            .Validate(settings => !settings.Enabled || settings.IsComplete,
+                "Billplz needs an API key, X Signature key, collection id, HTTPS API root and public API address when enabled.")
+            .ValidateOnStart();
+        services.AddScoped<IReservationPaymentStore, ReservationPaymentStore>();
+        services.AddHttpClient<IPaymentGateway, BillplzPaymentGateway>(client => client.Timeout = TimeSpan.FromSeconds(15));
         services.AddScoped<IReservationCancellationStore, ReservationCancellationStore>();
         services.AddScoped<IReservationReadStore, ReservationReadStore>();
         services.AddScoped<IListingPhotoStore, ListingPhotoStore>();

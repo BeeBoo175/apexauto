@@ -71,6 +71,8 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
 
     public DbSet<ReservationDepositMail> ReservationDepositMailOutbox => Set<ReservationDepositMail>();
 
+    public DbSet<ReservationDepositPayment> ReservationDepositPayments => Set<ReservationDepositPayment>();
+
     public DbSet<IntakePhoto> IntakePhotos => Set<IntakePhoto>();
 
     public DbSet<PhotoRemoval> PhotoRemovals => Set<PhotoRemoval>();
@@ -160,6 +162,7 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
         builder.ApplyConfiguration(new ReservationMailConfiguration());
         builder.ApplyConfiguration(new ReservationDepositRequestConfiguration());
         builder.ApplyConfiguration(new ReservationDepositMailConfiguration());
+        builder.ApplyConfiguration(new ReservationDepositPaymentConfiguration());
         builder.ApplyConfiguration(new IntakePhotoConfiguration());
         builder.ApplyConfiguration(new PhotoRemovalConfiguration());
         var booking = new IntakeBookingConfiguration();
