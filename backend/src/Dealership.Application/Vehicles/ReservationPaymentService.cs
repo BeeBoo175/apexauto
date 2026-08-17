@@ -92,29 +92,67 @@ public sealed class ReservationPaymentService(IReservationDepositRequestStore re
             return false;
         }
 
-        if (!fields.TryGetValue(BillField, out var billId) || !fields.TryGetValue(PaidField, out var paid) ||
-            !string.Equals(paid, "true", StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
-
-        var payment = await payments.FindByBillAsync(billId, cancellationToken);
-        if (payment is null || payment.State != DepositPaymentState.Pending)
+        if (!fields.TryGetValue(BillField, out var billId) || !IsPaid(fields))
         {
             return true;
         }
 
         var paidAmount = fields.TryGetValue(PaidAmountField, out var amount) && int.TryParse(amount, out var sen) ? sen : 0;
+        await RecordPaymentAsync(billId, paidAmount, cancellationToken);
+        return true;
+    }
+
+    // The browser returns from the payment page with the provider's signed fields; a valid signature proves the bill
+    // was paid in full as well as the callback does, so the customer need not wait for the callback to arrive.
+    public async Task<DepositPaymentResult> CompleteReturnAsync(IReadOnlyDictionary<string, string> fields,
+        CancellationToken cancellationToken)
+    {
+        if (!gateway.IsEnabled || !gateway.VerifyCallback(fields))
+        {
+            return new(DepositPaymentStatus.Invalid);
+        }
+
+        var billId = fields.FirstOrDefault(field => Normalize(field.Key) == BillField).Value;
+        var payment = string.IsNullOrEmpty(billId) ? null : await payments.FindByBillAsync(billId, cancellationToken);
+        if (payment is null)
+        {
+            return new(DepositPaymentStatus.Invalid);
+        }
+
+        var paid = fields.Where(field => Normalize(field.Key) == PaidField)
+            .Any(field => string.Equals(field.Value, "true", StringComparison.OrdinalIgnoreCase));
+        if (paid)
+        {
+            await RecordPaymentAsync(billId!, payment.AmountSen, cancellationToken);
+        }
+
+        return await StatusAsync(payment.RequestId, cancellationToken);
+    }
+
+    private async Task RecordPaymentAsync(string billId, int paidAmountSen, CancellationToken cancellationToken)
+    {
+        var payment = await payments.FindByBillAsync(billId, cancellationToken);
+        if (payment is null || payment.State != DepositPaymentState.Pending)
+        {
+            return;
+        }
+
         var reserved = false;
-        if (paidAmount == payment.AmountSen)
+        if (paidAmountSen == payment.AmountSen)
         {
             var confirmation = await deposits.ConfirmPaidAsync(payment.RequestId, cancellationToken);
             reserved = confirmation.Status == ReservationStatus.Succeeded;
         }
 
-        await payments.RecordPaidAsync(billId, paidAmount, reserved, clock.GetUtcNow(), cancellationToken);
-        return true;
+        await payments.RecordPaidAsync(billId, paidAmountSen, reserved, clock.GetUtcNow(), cancellationToken);
     }
+
+    private static bool IsPaid(IReadOnlyDictionary<string, string> fields) =>
+        fields.TryGetValue(PaidField, out var paid) && string.Equals(paid, "true", StringComparison.OrdinalIgnoreCase);
+
+    // The redirect names its fields billplz[id]; the callback sends them flat.
+    private static string Normalize(string name) => name.Replace("[", string.Empty).Replace("]", string.Empty)
+        .Replace("billplz", string.Empty, StringComparison.Ordinal);
 
     private async Task<DepositPaymentResult> CreatePaymentAsync(ReservationDepositRequest request,
         CancellationToken cancellationToken)

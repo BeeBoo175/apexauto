@@ -119,21 +119,12 @@ public static class ReservationCommandEndpoints
         var result = await payments.StatusAsync(requestId, cancellationToken);
         return result.Status == DepositPaymentStatus.Invalid
             ? Results.NotFound()
-            : Results.Ok(new DepositPaymentStatusReceipt(StatusName(result.Status)));
+            : Results.Ok(new DepositPaymentStatusReceipt(PaymentCallbackEndpoints.StatusName(result.Status)));
     }
-
-    private static string StatusName(DepositPaymentStatus status) => status switch
-    {
-        DepositPaymentStatus.Confirmed => "confirmed",
-        DepositPaymentStatus.Waiting => "waiting",
-        DepositPaymentStatus.PaymentRequired => "payment-required",
-        DepositPaymentStatus.Lapsed => "lapsed",
-        _ => "conflict"
-    };
 
     private sealed record DepositPaymentReceipt(string? PaymentUrl);
 
-    private sealed record DepositPaymentStatusReceipt(string Status);
+    internal sealed record DepositPaymentStatusReceipt(string Status);
 
     private sealed record DepositConfirmationRequest(string? Token);
 

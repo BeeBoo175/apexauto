@@ -31,6 +31,19 @@ internal sealed class FakePaymentGateway(string signatureKey) : IPaymentGateway
     public bool VerifyCallback(IReadOnlyDictionary<string, string> fields) =>
         BillplzSignature.Verify(fields, signatureKey);
 
+    // What the customer's browser brings back from the payment page: nested names and no amount.
+    public Dictionary<string, string> Return(string billId, bool paid, bool signed = true)
+    {
+        var fields = new Dictionary<string, string>
+        {
+            ["billplz[id]"] = billId,
+            ["billplz[paid]"] = paid ? "true" : "false",
+            ["billplz[paid_at]"] = "2026-11-13 09:00:00 +0800"
+        };
+        fields["billplz[x_signature]"] = signed ? BillplzSignature.Compute(fields, signatureKey) : "bad";
+        return fields;
+    }
+
     public Dictionary<string, string> Callback(string billId, bool paid, int paidAmountSen, bool signed = true)
     {
         var fields = new Dictionary<string, string>

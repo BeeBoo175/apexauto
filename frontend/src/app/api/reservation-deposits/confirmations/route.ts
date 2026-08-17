@@ -46,10 +46,6 @@ export async function POST(request: Request) {
         : authJson({ message: "The payment page could not be opened. Try the link again." }, 502);
     }
 
-    if (response.status === 202) {
-      return authJson({ waiting: true }, 202);
-    }
-
     if (response.status === 400) {
       return authJson({ message: "The deposit link is invalid." }, 400);
     }

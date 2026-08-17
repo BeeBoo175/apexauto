@@ -7,8 +7,8 @@ import { useReservationDepositConfirm } from "@/hooks/use-reservation-deposit-co
 import styles from "./AuthForm.module.css";
 
 export function ConfirmDepositControl() {
-  const { token, busy, waiting, confirmed, confirm } = useReservationDepositConfirm();
-  useLoadingProgress("Confirming your deposit", busy || waiting);
+  const { token, busy, confirmed, confirm } = useReservationDepositConfirm();
+  useLoadingProgress("Confirming your deposit", busy);
 
   if (confirmed) {
     return (
@@ -19,16 +19,6 @@ export function ConfirmDepositControl() {
         <Link href="/account" className={styles.accountLink}>
           View reservations
         </Link>
-      </div>
-    );
-  }
-
-  if (waiting) {
-    return (
-      <div className={styles.form}>
-        <p className={styles.help}>
-          Confirming your payment. This usually takes a few seconds. Keep this page open.
-        </p>
       </div>
     );
   }
