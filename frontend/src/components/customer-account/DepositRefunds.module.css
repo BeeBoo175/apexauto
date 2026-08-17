@@ -1,0 +1,64 @@
+.section {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.title {
+  margin: 0;
+  color: var(--color-graphite);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.card {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  background: var(--color-paper);
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 16px;
+  color: var(--color-graphite);
+}
+
+.header span {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.text,
+.note {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.status {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 4px;
+  background: var(--color-canvas);
+  color: var(--color-graphite);
+  font-size: 0.875rem;
+}
+
+.problem {
+  margin: 0;
+  color: var(--color-signal-dark);
+  font-size: 0.875rem;
+}
+
+.form {
+  display: grid;
+  gap: 12px;
+  max-width: 420px;
+}

@@ -13,6 +13,7 @@ import { HistoryFilterForm } from "./HistoryFilterForm";
 import { ReservedCar } from "./ReservedCar";
 import { ReservationHistoryRow } from "./ReservationHistoryRow";
 import { CancelReservation } from "./CancelReservation";
+import { DepositRefunds } from "./DepositRefunds";
 import { AccountLoadingShell } from "./AccountLoadingShell";
 import styles from "./Reservations.module.css";
 import historyStyles from "./ReservationHistory.module.css";
@@ -50,6 +51,7 @@ export function AccountReservations({
         </p>
       </div>
       <div className={styles.body}>
+        <DepositRefunds actorId={actorId} />
         {!snapshot && history.busy && <AccountLoadingShell label="Loading reservations" />}
         {!snapshot && !history.busy && (
           <Button variant="secondary" disabled={disabled} onClick={() => void history.load()}>
