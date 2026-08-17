@@ -7,7 +7,11 @@ import { hasIntakeAccess } from "@/lib/auth/actor";
 import { assistedCustomerId, requireSameOrigin } from "@/lib/server/http/request";
 import { apiError, apiJson, requestApiJson, sessionToken } from "@/lib/server/http/api";
 import { confirmedActor } from "@/lib/server/http/staff-relay";
-import { parseCustomerReservation, parseCustomerReservationRequest } from "./customer-reservation";
+import {
+  isReservationPayment,
+  parseCustomerReservationOutcome,
+  parseCustomerReservationRequest,
+} from "./customer-reservation";
 import { readCustomerVehicleAccess } from "./customer-access-server";
 import { parseReservationConflict } from "./reservation-errors";
 
@@ -37,7 +41,7 @@ export async function relayCustomerReservation(request: Request, vehicleId: stri
     const party = await readBookingParty(signal, onBehalfOf);
     const result = await requestApiJson(
       `/api/vehicles/${vehicleId}/reservations`,
-      parseCustomerReservation,
+      parseCustomerReservationOutcome,
       { token, signal, method: "POST", body, onBehalfOf },
       API_DEADLINE_MS,
       undefined,
@@ -46,6 +50,7 @@ export async function relayCustomerReservation(request: Request, vehicleId: stri
     // Even a readable success must belong to this exact customer's captured operation.
     if (
       result.data &&
+      !isReservationPayment(result.data) &&
       (result.data.id !== body.operationId ||
         result.data.vehicleId !== vehicleId ||
         result.data.publicationId !== body.publicationId ||

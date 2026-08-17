@@ -1,5 +1,6 @@
 import { isRecord, isUtcInstant, isUuid } from "@/lib/auth/contracts";
 import { parsePurchasePrice, type PurchasePrice } from "./purchase-quote";
+import { providerPaymentAddress } from "./payment-address";
 
 export interface CustomerReservationRequest {
   operationId: string;
@@ -40,6 +41,24 @@ export function parseCustomerReservationRequest(value: unknown): CustomerReserva
     publicationId: value.publicationId,
     promoId: value.promoId,
   };
+}
+
+// With the payment gateway on, reserving answers with the payment page to open instead of a receipt.
+export interface CustomerReservationPayment {
+  paymentUrl: string;
+}
+
+export type CustomerReservationOutcome = CustomerReservationReceipt | CustomerReservationPayment;
+
+export function isReservationPayment(
+  value: CustomerReservationOutcome,
+): value is CustomerReservationPayment {
+  return "paymentUrl" in value;
+}
+
+export function parseCustomerReservationOutcome(value: unknown): CustomerReservationOutcome | null {
+  const paymentUrl = providerPaymentAddress(value);
+  return paymentUrl ? { paymentUrl } : parseCustomerReservation(value);
 }
 
 export function parseCustomerReservation(value: unknown): CustomerReservationReceipt | null {

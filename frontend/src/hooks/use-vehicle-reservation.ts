@@ -6,8 +6,9 @@ import { privateFetchFor } from "@/lib/staff/assisted-fetch";
 import type { PublicVehicleDetail } from "@/lib/vehicles/public-detail";
 import type { CustomerAccount } from "@/lib/auth/contracts";
 import {
+  isReservationPayment,
   matchesCustomerReservation,
-  parseCustomerReservation,
+  parseCustomerReservationOutcome,
   type CustomerReservationRequest,
 } from "@/lib/vehicles/customer-reservation";
 
@@ -20,10 +21,11 @@ export function useVehicleReservation(
   const [confirmation, setConfirmation] = useState<CustomerReservationRequest | null>(null);
   const command = useApiCommand(
     `/api/vehicles/${detail.listing.id}/reservations`,
-    parseCustomerReservation,
-    (receipt, body) =>
+    parseCustomerReservationOutcome,
+    (outcome, body) =>
+      isReservationPayment(outcome) ||
       matchesCustomerReservation(
-        receipt,
+        outcome,
         body,
         detail.listing.id,
         detail.listing.branchId,
@@ -54,10 +56,19 @@ export function useVehicleReservation(
       return;
     }
     const result = await command.submit(command.uncertain ? null : confirmation);
+    if (result?.data && isReservationPayment(result.data)) {
+      // The customer pays on the provider's page and returns to the confirm page with the signed result.
+      window.location.assign(result.data.paymentUrl);
+      return;
+    }
     if (result && !result.uncertain && result.status < 500) {
       setConfirmation(null);
     }
   }
 
-  return { command, confirmation, locked, open, close, reserve };
+  // A payment address is not a reservation: until the payment is confirmed there is no receipt to show.
+  const outcome = command.receipt;
+  const receipt = outcome && !isReservationPayment(outcome) ? outcome : null;
+
+  return { command: { ...command, receipt }, confirmation, locked, open, close, reserve };
 }

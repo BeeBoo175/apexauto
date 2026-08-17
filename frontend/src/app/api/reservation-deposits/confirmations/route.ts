@@ -5,26 +5,7 @@ import {
   readAuthRequest,
   upstreamDenial,
 } from "@/lib/auth/http";
-import { isRecord } from "@/lib/auth/contracts";
-
-const PAYMENT_HOSTS = ["billplz.com", "billplz-sandbox.com"];
-
-// Only the payment provider's own pages are valid places to send a customer to pay.
-function paymentAddress(body: unknown) {
-  if (!isRecord(body) || typeof body.paymentUrl !== "string") {
-    return null;
-  }
-
-  try {
-    const address = new URL(body.paymentUrl);
-    const hostedByProvider = PAYMENT_HOSTS.some(
-      (host) => address.hostname === host || address.hostname.endsWith(`.${host}`),
-    );
-    return address.protocol === "https:" && hostedByProvider ? address.toString() : null;
-  } catch {
-    return null;
-  }
-}
+import { providerPaymentAddress } from "@/lib/vehicles/payment-address";
 
 export async function POST(request: Request) {
   try {
@@ -40,7 +21,7 @@ export async function POST(request: Request) {
     }
 
     if (response.status === 200) {
-      const paymentUrl = paymentAddress(response.body);
+      const paymentUrl = providerPaymentAddress(response.body);
       return paymentUrl
         ? authJson({ paymentUrl })
         : authJson({ message: "The payment page could not be opened. Try the link again." }, 502);
