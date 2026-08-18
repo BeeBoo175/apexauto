@@ -1,54 +1,94 @@
 "use client";
 
+import { StaffQueueEmpty } from "@/components/staff/StaffQueueEmpty";
 import { StaffQueueFooter } from "@/components/staff/StaffQueueFooter";
 import { Button } from "@/components/ui/Button";
 import type { useTechnicianQueue } from "@/hooks/use-technician-queue";
-import type { WorkshopRow } from "@/lib/inspection/workshop-contracts";
+import type { IconName } from "@/lib/icons";
+import type { TechnicianTask, WorkshopRow } from "@/lib/inspection/workshop-contracts";
 import { WorkshopStatus } from "./WorkshopStatus";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { formatCurrency } from "@/lib/currency-format";
 import styles from "@/components/staff/StaffQueueWorkspace.module.css";
 
+const emptyTabs: Record<TechnicianTask, { icon: IconName; title: string; text: string }> = {
+  MyWork: {
+    icon: "tool",
+    title: "Nothing ready to work",
+    text: "Claim a vehicle from To claim to start.",
+  },
+  Waiting: {
+    icon: "clock",
+    title: "Nothing awaiting approval",
+    text: "Repairs sent for approval appear here.",
+  },
+  Claimable: {
+    icon: "car",
+    title: "No vehicles to claim",
+    text: "Vehicles ready for inspection appear here.",
+  },
+};
+
 export function TechnicianJobList({
   title,
+  view,
   state,
   onOpen,
   claim = false,
   selectedId = "",
   pendingId = "",
   selectionLocked = false,
+  onGoToClaim,
 }: {
   title: string;
+  view: TechnicianTask;
   state: ReturnType<typeof useTechnicianQueue>;
   onOpen: (row: WorkshopRow) => void;
   claim?: boolean;
   selectedId?: string;
   pendingId?: string;
   selectionLocked?: boolean;
+  // Opens the To claim tab, which the empty Ready tab points to.
+  onGoToClaim?: () => void;
 }) {
   const { snapshot, busy, failed } = state;
   const activeId = pendingId || selectedId;
+  const empty = emptyTabs[view];
 
   return (
     <section className={styles.queueList} aria-label={title} aria-busy={busy}>
       <div className={styles.list} key={`${snapshot?.page}:${snapshot?.pageSize}:${state.search}`}>
-        {!snapshot && !failed && (
-          <div className={styles.empty}>
-            <p>This worklist is unavailable.</p>
-            <Button
-              size="compact"
-              variant="secondary"
-              disabled={busy}
-              onClick={() => void state.retry()}
-            >
-              Retry worklist
-            </Button>
-          </div>
+        {!snapshot && !failed && !busy && (
+          <StaffQueueEmpty
+            icon="alert-triangle"
+            tone="alert"
+            title="Worklist unavailable"
+            action={{ label: "Retry worklist", disabled: busy, onClick: () => void state.retry() }}
+          >
+            Your worklists are kept as they were.
+          </StaffQueueEmpty>
         )}
-        {snapshot?.items.length === 0 && (
-          <p className={styles.empty}>
-            {state.search ? "No jobs match this search." : "No jobs in this worklist."}
-          </p>
+        {snapshot?.items.length === 0 && state.search && (
+          <StaffQueueEmpty
+            icon="search"
+            title="No matches"
+            action={{ label: "Clear search", disabled: busy, onClick: () => void state.clear() }}
+          >
+            No job matches this search.
+          </StaffQueueEmpty>
+        )}
+        {snapshot?.items.length === 0 && !state.search && (
+          <StaffQueueEmpty
+            icon={empty.icon}
+            title={empty.title}
+            link={
+              view === "MyWork" && onGoToClaim
+                ? { text: "To claim", onClick: onGoToClaim }
+                : undefined
+            }
+          >
+            {empty.text}
+          </StaffQueueEmpty>
         )}
         <ul className={styles.jobs}>
           {snapshot?.items.map((row) => (

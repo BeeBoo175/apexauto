@@ -15,17 +15,24 @@ export function IntakeAgentContent({
   actionsContainer,
   onConfirmed,
   retryTraversal,
+  onGoToClaim,
 }: {
   actor: CurrentActor;
   selection: ReturnType<typeof useStaffAppointmentDrawer>;
   actionsContainer: HTMLElement | null;
   onConfirmed: (detail: AppointmentDetail) => void;
   retryTraversal: () => boolean;
+  // Opens the To claim queue, which the empty content pane points to.
+  onGoToClaim: () => void;
 }) {
   if (!selection.id && !selection.pendingId) {
     return (
-      <StaffQueuePlaceholder label="Appointment content" title="Select an appointment">
-        Choose a branch appointment to claim, or open your work to record its arrival.
+      <StaffQueuePlaceholder
+        label="Appointment content"
+        title="Select an appointment"
+        link={{ text: "To claim", onClick: onGoToClaim }}
+      >
+        Open one from your queue, or claim one in To claim.
       </StaffQueuePlaceholder>
     );
   }

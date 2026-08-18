@@ -3,10 +3,16 @@ import workspace from "@/components/staff/StaffQueueWorkspace.module.css";
 import styles from "./TechnicianLoadingShell.module.css";
 import loading from "@/components/staff/StaffLoadingShell.module.css";
 
-export function TechnicianLoadingShell({ selected }: { selected: boolean }) {
+export function TechnicianLoadingShell({
+  selected,
+  wide = false,
+}: {
+  selected: boolean;
+  wide?: boolean;
+}) {
   return (
     <div className={workspace.workspace} aria-hidden="true">
-      <div className={workspace.columns} data-selected={selected}>
+      <div className={workspace.columns} data-selected={selected} data-wide={wide}>
         <div className={workspace.queue} data-expanded={!selected}>
           {selected && (
             <div className={workspace.mobileQueueBar}>

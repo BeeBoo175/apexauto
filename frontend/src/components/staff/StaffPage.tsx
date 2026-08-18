@@ -45,6 +45,7 @@ export function StaffLoading() {
       <StaffLoadingShell
         view={view}
         selected={path !== pathname}
+        wide={pathname === "/dashboard/sales"}
         report={{
           view: typeof parameters.view === "string" ? parameters.view : "",
           general: actor.role === "GeneralManager",

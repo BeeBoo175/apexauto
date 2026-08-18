@@ -78,6 +78,9 @@ function Workspace({ actor, initial, initialView: content }: Props) {
             actionsContainer={headerActions}
             onConfirmed={workspace.onConfirmed}
             retryTraversal={workspace.retryTraversal}
+            onGoToClaim={() =>
+              void worklist.load({ ...worklist.active.filters, queue: "toClaim" }, 1)
+            }
           />
         </content.Component>
       ) : (

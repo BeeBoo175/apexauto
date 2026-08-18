@@ -38,7 +38,7 @@ export function StaffQueueTabs<T extends string>({
   disabled?: boolean;
   mobilePresentation?: "tabs" | "select";
   countNoun?: string;
-  layout?: "scroll" | "queue";
+  layout?: "scroll" | "queue" | "queue-wide";
   onChange: (value: T) => void;
 }) {
   const selectedTab = useRef<HTMLButtonElement>(null);

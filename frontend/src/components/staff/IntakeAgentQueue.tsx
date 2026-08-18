@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState, type ReactNode } from "react";
-import { Button } from "@/components/ui/Button";
+import type { IconName } from "@/lib/icons";
+import { StaffQueueEmpty } from "./StaffQueueEmpty";
 import { StaffQueueLayout } from "./StaffQueueLayout";
 import { StaffQueueTabs } from "./StaffQueueTabs";
 import { StaffQueueFooter } from "./StaffQueueFooter";
@@ -20,6 +21,23 @@ const labels: Record<IntakeQueue, string> = {
   history: "History",
 };
 const countKeys = { toClaim: "toClaim", myWork: "myWork", history: "history" } as const;
+const emptyQueues: Record<IntakeQueue, { icon: IconName; title: string; text: string }> = {
+  toClaim: {
+    icon: "calendar",
+    title: "No appointments to claim",
+    text: "New bookings appear here to claim.",
+  },
+  myWork: {
+    icon: "inspection",
+    title: "Nothing in progress",
+    text: "Claim one from To claim to start.",
+  },
+  history: {
+    icon: "clock",
+    title: "No history yet",
+    text: "Finished appointments appear here.",
+  },
+};
 
 export function IntakeAgentQueue({
   worklist,
@@ -44,6 +62,10 @@ export function IntakeAgentQueue({
   if (lastDrawerId !== drawer.id) {
     setLastDrawerId(drawer.id);
     setExpanded(!drawer.id);
+  }
+
+  function clearSearch() {
+    void worklist.load({ ...active.filters, search: "" }, 1);
   }
 
   async function load(nextQueue = queue, page = 1, pageSize = active.filters.pageSize) {
@@ -93,11 +115,7 @@ export function IntakeAgentQueue({
               void worklist.load({ ...active.filters, search: draft.search }, 1);
             }
           }}
-          onClear={
-            active.filters.search && !busy
-              ? () => void worklist.load({ ...active.filters, search: "" }, 1)
-              : undefined
-          }
+          onClear={active.filters.search && !busy ? clearSearch : undefined}
           action={
             <AssistedIntakeAction
               open={drawer.creating}
@@ -112,20 +130,41 @@ export function IntakeAgentQueue({
       queue={
         <div className={styles.queueList}>
           <div className={styles.list} ref={list} aria-busy={busy}>
-            {!snapshot && (
-              <div className={styles.empty}>
-                <Button
-                  size="compact"
-                  variant="secondary"
-                  disabled={!ready || busy}
-                  onClick={() => void load(queue, active.page)}
-                >
-                  Retry queue
-                </Button>
-              </div>
+            {!snapshot && !busy && (
+              <StaffQueueEmpty
+                icon="alert-triangle"
+                tone="alert"
+                title="Queue unavailable"
+                action={{
+                  label: "Retry queue",
+                  disabled: !ready || busy,
+                  onClick: () => void load(queue, active.page),
+                }}
+              >
+                Your queues are kept as they were.
+              </StaffQueueEmpty>
             )}
-            {snapshot?.items.length === 0 && (
-              <p className={styles.empty}>No appointments in this queue match your search.</p>
+            {snapshot?.items.length === 0 && active.filters.search && (
+              <StaffQueueEmpty
+                icon="search"
+                title="No matches"
+                action={{ label: "Clear search", disabled: busy, onClick: clearSearch }}
+              >
+                No appointment matches this search.
+              </StaffQueueEmpty>
+            )}
+            {snapshot?.items.length === 0 && !active.filters.search && (
+              <StaffQueueEmpty
+                icon={emptyQueues[queue].icon}
+                title={emptyQueues[queue].title}
+                link={
+                  queue === "myWork"
+                    ? { text: "To claim", onClick: () => void load("toClaim") }
+                    : undefined
+                }
+              >
+                {emptyQueues[queue].text}
+              </StaffQueueEmpty>
             )}
             <ul className={styles.jobs}>
               {snapshot?.items.map((row) => (

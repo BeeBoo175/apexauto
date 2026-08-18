@@ -28,7 +28,14 @@ export function StaffTestDriveWorkspace({
   );
   // The same soft entrance as the other staff pages when this page is navigated to.
   const animateEntry = useContext(StaffPageEntranceContext);
-  const detail = <StaffTestDriveDetail actor={actor} record={record} refresh={refresh} />;
+  const detail = (
+    <StaffTestDriveDetail
+      actor={actor}
+      record={record}
+      refresh={refresh}
+      onGoToClaim={() => void list.load({ ...list.active.filters, queue: "toClaim" }, 1)}
+    />
+  );
   const surface = entry.surface;
   return (
     <>

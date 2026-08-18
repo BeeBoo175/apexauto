@@ -17,6 +17,7 @@ export function StaffQueueLayout({
   children,
   className = "",
   inert = false,
+  wide = false,
 }: {
   id: string;
   label: string;
@@ -30,9 +31,16 @@ export function StaffQueueLayout({
   children: ReactNode;
   className?: string;
   inert?: boolean;
+  // A wider queue panel, for a tab strip of five or more tabs that needs room to keep counts beside labels.
+  wide?: boolean;
 }) {
   return (
-    <div className={`${styles.columns} ${className}`} data-selected={selected} inert={inert}>
+    <div
+      className={`${styles.columns} ${className}`}
+      data-selected={selected}
+      data-wide={wide}
+      inert={inert}
+    >
       <aside className={styles.queue} aria-label={label} data-expanded={expanded}>
         {selected && (
           <div className={styles.mobileQueueBar}>

@@ -14,17 +14,24 @@ export function SalesContent({
   now,
   actionsContainer,
   onChanged,
+  onGoToClaim,
 }: {
   selection: ReturnType<typeof useSaleSelection>;
   now: number;
   actionsContainer: HTMLElement | null;
   onChanged: () => void;
+  // Opens the To claim tab, which the empty content pane points to.
+  onGoToClaim: () => void;
 }) {
   const sale = selection.result?.data ?? null;
   if (!selection.id && !selection.pendingId) {
     return (
-      <StaffQueuePlaceholder label="Sale content" title="Select a sale">
-        Choose a sale you are handling, or claim an open hold to start one.
+      <StaffQueuePlaceholder
+        label="Sale content"
+        title="Select a sale"
+        link={{ text: "To claim", onClick: onGoToClaim }}
+      >
+        Open one from your queue, or claim a hold in To claim.
       </StaffQueuePlaceholder>
     );
   }

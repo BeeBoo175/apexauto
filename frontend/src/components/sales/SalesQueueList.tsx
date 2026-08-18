@@ -1,12 +1,14 @@
 "use client";
 
 import { CustomerAvatar } from "@/components/staff/CustomerAvatar";
+import { StaffQueueEmpty } from "@/components/staff/StaffQueueEmpty";
 import { StaffQueueFooter } from "@/components/staff/StaffQueueFooter";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import type { useSalesQueue } from "@/hooks/use-sales-queue";
 import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDateTime } from "@/lib/date-format";
+import type { IconName } from "@/lib/icons";
 import {
   claimAge,
   queueViewOf,
@@ -21,14 +23,39 @@ import { SaleStatus } from "./SaleStatus";
 import styles from "@/components/staff/StaffQueueWorkspace.module.css";
 import sales from "./Sales.module.css";
 
-const emptyMessages: Record<QueueView | "Search", string> = {
-  Handling: "You are not handling any sales. Claim a hold to start one.",
-  Waiting: "No sales are waiting for a manager's approval.",
-  Settling: "No sales are awaiting settlement or handover.",
-  Completed: "You have no delivered sales.",
-  ToClaim: "No holds are waiting to be claimed.",
-  Search: "No sales match this search.",
-};
+const emptyMessages: Record<QueueView | "Search", { icon: IconName; title: string; text: string }> =
+  {
+    Handling: {
+      icon: "car",
+      title: "Nothing in progress",
+      text: "Claim a hold from To claim to start one.",
+    },
+    Waiting: {
+      icon: "clock",
+      title: "Nothing waiting",
+      text: "Sales sent for approval appear here.",
+    },
+    Settling: {
+      icon: "file-text",
+      title: "Nothing to settle",
+      text: "Sales awaiting handover appear here.",
+    },
+    Completed: {
+      icon: "check",
+      title: "No delivered sales",
+      text: "Sales you hand over appear here.",
+    },
+    ToClaim: {
+      icon: "car",
+      title: "No holds to claim",
+      text: "New holds appear here to claim.",
+    },
+    Search: {
+      icon: "search",
+      title: "No matches",
+      text: "No sale matches this search.",
+    },
+  };
 
 // One tab of the agent's queue, or search results across all tabs: the technician workspace's list, with the
 // hold's time on each row and, for search results, the tab the sale sits in.
@@ -41,6 +68,8 @@ export function SalesQueueList({
   selectedId = "",
   pendingId = "",
   selectionLocked = false,
+  onClearSearch,
+  onGoToClaim,
 }: {
   view: QueueView | "Search";
   title: string;
@@ -50,27 +79,46 @@ export function SalesQueueList({
   selectedId?: string;
   pendingId?: string;
   selectionLocked?: boolean;
+  // Clears the search in the queue's search box and shows the tabs again; only search results offer it.
+  onClearSearch?: () => void;
+  // Opens the To claim tab, which the empty Handling tab points to.
+  onGoToClaim?: () => void;
 }) {
   const { snapshot, busy, failed } = state;
   const activeId = pendingId || selectedId;
+  const empty = emptyMessages[view];
 
   return (
     <section className={styles.queueList} aria-label={title} aria-busy={busy}>
       <div className={styles.list} key={`${snapshot?.page}:${snapshot?.pageSize}:${state.search}`}>
-        {!snapshot && !failed && (
-          <div className={styles.empty}>
-            <p>This queue is unavailable.</p>
-            <Button
-              size="compact"
-              variant="secondary"
-              disabled={busy}
-              onClick={() => void state.retry()}
-            >
-              Retry queue
-            </Button>
-          </div>
+        {!snapshot && !failed && !busy && (
+          <StaffQueueEmpty
+            icon="alert-triangle"
+            tone="alert"
+            title="Queue unavailable"
+            action={{ label: "Retry queue", disabled: busy, onClick: () => void state.retry() }}
+          >
+            Your queues are kept as they were.
+          </StaffQueueEmpty>
         )}
-        {snapshot?.items.length === 0 && <p className={styles.empty}>{emptyMessages[view]}</p>}
+        {snapshot?.items.length === 0 && (
+          <StaffQueueEmpty
+            icon={empty.icon}
+            title={empty.title}
+            link={
+              view === "Handling" && onGoToClaim
+                ? { text: "To claim", onClick: onGoToClaim }
+                : undefined
+            }
+            action={
+              onClearSearch && view === "Search"
+                ? { label: "Clear search", onClick: onClearSearch }
+                : undefined
+            }
+          >
+            {empty.text}
+          </StaffQueueEmpty>
+        )}
         <ul className={styles.jobs}>
           {snapshot?.items.map((item) => {
             const open = item.status === "Open";

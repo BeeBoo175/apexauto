@@ -29,6 +29,7 @@ export function TechnicianClaim({
       <div className={styles.queueList} inert={Boolean(vehicle)}>
         <TechnicianJobList
           title="Available to claim"
+          view="Claimable"
           state={state}
           claim
           selectionLocked={selectionLocked}

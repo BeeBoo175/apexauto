@@ -13,21 +13,23 @@ export type StaffLoadingView = "calendar" | "table" | "queue" | "detail" | "repo
 type LoadingShellProps = {
   view: StaffLoadingView;
   selected?: boolean;
+  // The queue shell keeps the width of the page it stands in for, so the panel does not jump when content arrives.
+  wide?: boolean;
   report?: { view: string; general: boolean; agent: boolean };
 };
 
-export function StaffLoadingShell({ view, selected, report }: LoadingShellProps) {
+export function StaffLoadingShell({ view, selected, wide, report }: LoadingShellProps) {
   return (
     <div className={styles.shell} role="status" aria-label="Loading workspace content">
       <span className="sr-only">Loading workspace content…</span>
-      <LoadingContent view={view} selected={selected} report={report} />
+      <LoadingContent view={view} selected={selected} wide={wide} report={report} />
     </div>
   );
 }
 
-function LoadingContent({ view, selected = false, report }: LoadingShellProps) {
+function LoadingContent({ view, selected = false, wide = false, report }: LoadingShellProps) {
   if (view === "queue") {
-    return <TechnicianLoadingShell selected={selected} />;
+    return <TechnicianLoadingShell selected={selected} wide={wide} />;
   }
   if (view === "report") {
     return <PerformanceLoadingShell view={report?.view ?? ""} general={report?.general ?? false} />;

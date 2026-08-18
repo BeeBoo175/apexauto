@@ -160,6 +160,8 @@ export function TechnicianWorkspace({
             <TechnicianJobList
               key={view}
               title={viewLabels[view]}
+              view={view}
+              onGoToClaim={() => showView("Claimable")}
               state={worklists[view]}
               onOpen={open}
               selectedId={selection.id}
@@ -176,6 +178,7 @@ export function TechnicianWorkspace({
           actionsContainer={headerActions}
           refreshControl={refreshControl}
           onChanged={() => void refresh(false)}
+          onGoToClaim={() => showView("Claimable")}
         />
       </StaffQueueLayout>
     </div>

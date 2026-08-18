@@ -13,11 +13,36 @@
   padding-inline: 8px;
 }
 
-.sections[data-layout="queue"] .sectionButton {
+.sections[data-layout="queue"] .sectionButton,
+.sections[data-layout="queue-wide"] .sectionButton {
   justify-content: center;
   min-width: 0;
   padding: 8px 4px;
   font-size: 13px;
+}
+
+/* Five or more tabs in a wider queue panel: every tab keeps its count beside its label, takes at least its own
+   width and shares the rest equally, and the strip scrolls only if the panel is still too narrow. */
+.sections[data-layout="queue-wide"] .tabStrip {
+  display: grid;
+  grid-auto-columns: minmax(max-content, 1fr);
+  grid-auto-flow: column;
+  gap: 0;
+  padding-inline: 8px;
+}
+
+.sections[data-layout="queue-wide"] .sectionButton {
+  min-height: 56px;
+  padding: 8px 10px;
+}
+
+/* A smaller count leaves each tab room to breathe; [data-selected] is the shared count badge. */
+.sections[data-layout="queue-wide"] .sectionButton [data-selected] {
+  min-width: 16px;
+  height: 16px;
+  padding-inline: 4px;
+  font-size: 10px;
+  line-height: 14px;
 }
 
 .sections[data-layout="queue"] .tabStrip:has(> :nth-child(4)) .sectionButton {

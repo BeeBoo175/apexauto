@@ -1,9 +1,10 @@
 import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
 import { WorkshopStatus } from "@/components/inspection/WorkshopStatus";
 import { SaleStatus } from "@/components/sales/SaleStatus";
 import { workshopStatuses } from "@/lib/inspection/workshop-contracts";
 import { saleStatuses } from "@/lib/sales/contracts";
+import type { IconName } from "@/lib/icons";
+import { StaffQueueEmpty } from "./StaffQueueEmpty";
 import { StaffQueueTabs } from "./StaffQueueTabs";
 import { StaffQueueFooter } from "./StaffQueueFooter";
 import type { UnscheduledWorkPage, WorkItem } from "@/lib/staff/work-calendar";
@@ -12,6 +13,19 @@ import { StaffLink } from "./StaffLink";
 import queue from "./StaffQueueWorkspace.module.css";
 import styles from "./WorkCalendar.module.css";
 import { PersonLabel } from "./PersonLabel";
+
+const emptyKinds: Record<
+  "" | "workshop" | "sale",
+  { icon: IconName; title: string; text: string }
+> = {
+  "": { icon: "clock", title: "No ongoing work", text: "Jobs in progress appear here." },
+  workshop: {
+    icon: "tool",
+    title: "No workshop jobs",
+    text: "Vehicles in the workshop appear here.",
+  },
+  sale: { icon: "car", title: "No sales in progress", text: "Sales being worked appear here." },
+};
 
 export function OngoingWorkQueue({
   snapshot,
@@ -69,15 +83,25 @@ export function OngoingWorkQueue({
         )}
       </header>
       <div className={queue.list} key={`${snapshot?.page}:${snapshot?.pageSize}:${search}:${kind}`}>
-        {snapshot?.items.length === 0 && (
-          <p className={queue.empty}>No ongoing jobs match this view.</p>
+        {snapshot?.items.length === 0 && search && (
+          <StaffQueueEmpty icon="search" title="No matches">
+            No job matches this search.
+          </StaffQueueEmpty>
         )}
-        {!snapshot && (
-          <div className={queue.empty}>
-            <Button size="compact" variant="secondary" disabled={busy} onClick={onRetry}>
-              Retry ongoing work
-            </Button>
-          </div>
+        {snapshot?.items.length === 0 && !search && (
+          <StaffQueueEmpty icon={emptyKinds[kind].icon} title={emptyKinds[kind].title}>
+            {emptyKinds[kind].text}
+          </StaffQueueEmpty>
+        )}
+        {!snapshot && !busy && (
+          <StaffQueueEmpty
+            icon="alert-triangle"
+            tone="alert"
+            title="Ongoing work unavailable"
+            action={{ label: "Retry ongoing work", disabled: busy, onClick: onRetry }}
+          >
+            The last confirmed list is kept.
+          </StaffQueueEmpty>
         )}
         <ul className={queue.jobs}>
           {snapshot?.items.map((item) => (

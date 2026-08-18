@@ -39,10 +39,13 @@ export function StaffTestDriveDetail({
   actor,
   record,
   refresh,
+  onGoToClaim,
 }: {
   actor: CurrentActor;
   record: ReturnType<typeof useStaffTestDriveDetail>;
   refresh: (kind?: TestDriveStaffCommand) => Promise<boolean>;
+  // Opens the To claim queue, which the empty content pane points to.
+  onGoToClaim: () => void;
 }) {
   const detail = record.snapshot;
   if (!detail) {
@@ -52,8 +55,12 @@ export function StaffTestDriveDetail({
     }
     if (!record.id) {
       return (
-        <StaffQueuePlaceholder label="Test drive content" title="Select a test drive">
-          Choose a test drive to claim, or open your work to start it.
+        <StaffQueuePlaceholder
+          label="Test drive content"
+          title="Select a test drive"
+          link={{ text: "To claim", onClick: onGoToClaim }}
+        >
+          Open one from your queue, or claim one in To claim.
         </StaffQueuePlaceholder>
       );
     }

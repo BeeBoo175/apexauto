@@ -84,6 +84,14 @@ export function SalesWorkspace({
   const interactive = queueViews.every((item) => worklists[item].ready);
   const chosen = Boolean(selection.id || selection.pendingId);
   const searching = Boolean(found.search);
+  // A tab that has not been read yet keeps the previous tab's list on screen until its own read settles, so
+  // switching tabs never flashes an empty or unavailable list. The tab itself is selected at once.
+  const [shownView, setShownView] = useState(view);
+  const viewSettled = Boolean(worklists[view].snapshot) || worklists[view].failed;
+  if (viewSettled && shownView !== view) {
+    setShownView(view);
+  }
+  const listView = viewSettled ? view : shownView;
   // Every read returns all tab counts, so the badges follow the open tab or, before it loads, any loaded tab.
   const counts = [view, ...queueViews]
     .map((item) => worklists[item].snapshot)
@@ -92,6 +100,11 @@ export function SalesWorkspace({
   async function refresh() {
     setNow(clockNow());
     await refreshQueues();
+  }
+
+  function clearSearch() {
+    setDraft("");
+    void found.find("");
   }
 
   function showView(value: QueueView) {
@@ -132,11 +145,12 @@ export function SalesWorkspace({
         onExpandedChange={setQueueExpanded}
         className={animateEntry ? workbench.reveal : ""}
         inert={!interactive}
+        wide
         tabs={
           <div hidden={searching}>
             <StaffQueueTabs
               label="Sales queue tabs"
-              layout="queue"
+              layout="queue-wide"
               countNoun="sales"
               tabs={queueViews.map((item) => ({
                 value: item,
@@ -169,14 +183,7 @@ export function SalesWorkspace({
                   disabledReason={interaction.message}
                   busy={found.busy}
                   onChange={setDraft}
-                  onClear={
-                    searching
-                      ? () => {
-                          setDraft("");
-                          void found.find("");
-                        }
-                      : undefined
-                  }
+                  onClear={searching ? clearSearch : undefined}
                 />
               </form>
               {/* Outside the form: the action opens a dialog that holds forms of its own. */}
@@ -200,9 +207,10 @@ export function SalesWorkspace({
                 selectedId={selection.id}
                 pendingId={selection.pendingId}
                 selectionLocked={interaction.blocked}
+                onClearSearch={interaction.blocked ? undefined : clearSearch}
               />
             )}
-            {!searching && view === "ToClaim" && (
+            {!searching && listView === "ToClaim" && (
               <SalesClaim
                 state={claimable}
                 now={now}
@@ -216,17 +224,18 @@ export function SalesWorkspace({
                 }}
               />
             )}
-            {!searching && view !== "ToClaim" && (
+            {!searching && listView !== "ToClaim" && (
               <SalesQueueList
-                key={view}
-                view={view}
-                title={queueViewLabels[view]}
-                state={worklists[view]}
+                key={listView}
+                view={listView}
+                title={queueViewLabels[listView]}
+                state={worklists[listView]}
                 now={now}
                 onOpen={open}
                 selectedId={selection.id}
                 pendingId={selection.pendingId}
                 selectionLocked={interaction.blocked}
+                onGoToClaim={() => showView("ToClaim")}
               />
             )}
           </>
@@ -237,6 +246,7 @@ export function SalesWorkspace({
           now={now}
           actionsContainer={headerActions}
           onChanged={() => void refresh()}
+          onGoToClaim={() => showView("ToClaim")}
         />
       </StaffQueueLayout>
     </div>

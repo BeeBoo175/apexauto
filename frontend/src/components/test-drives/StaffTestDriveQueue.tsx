@@ -1,16 +1,39 @@
 "use client";
 
 import { useRef, useState, type ReactNode } from "react";
+import { StaffQueueEmpty } from "@/components/staff/StaffQueueEmpty";
 import { StaffQueueLayout } from "@/components/staff/StaffQueueLayout";
 import { StaffQueueTabs } from "@/components/staff/StaffQueueTabs";
 import { StaffQueueFooter } from "@/components/staff/StaffQueueFooter";
 import { StaffQueueSearch } from "@/components/staff/StaffQueueSearch";
 import { StaffQueueVehicleRow } from "@/components/staff/StaffQueueVehicleRow";
 import type { useStaffTestDriveList } from "@/hooks/use-staff-test-drive-list";
+import type { IconName } from "@/lib/icons";
 import { testDriveQueues } from "@/lib/test-drives/staff-query";
 import { StaffTestDriveStatus } from "./StaffTestDriveStatus";
 import styles from "@/components/staff/StaffQueueWorkspace.module.css";
 import { AssistedVehicleAction } from "@/components/staff/AssistedVehicleAction";
+
+const emptyQueues: Record<
+  (typeof testDriveQueues)[number]["value"],
+  { icon: IconName; title: string; text: string }
+> = {
+  toClaim: {
+    icon: "calendar",
+    title: "No test drives to claim",
+    text: "New bookings appear here to claim.",
+  },
+  myWork: {
+    icon: "car",
+    title: "Nothing in progress",
+    text: "Claim one from To claim to start.",
+  },
+  history: {
+    icon: "clock",
+    title: "No history yet",
+    text: "Finished test drives appear here.",
+  },
+};
 
 export function StaffTestDriveQueue({
   list,
@@ -30,6 +53,11 @@ export function StaffTestDriveQueue({
   const { snapshot, active, busy, draft, setDraft } = list;
   const queue =
     testDriveQueues.find((item) => item.value === active.filters.queue) ?? testDriveQueues[1];
+
+  function clearSearch() {
+    void list.load({ ...active.filters, search: "" }, 1);
+  }
+
   return (
     <StaffQueueLayout
       id="test-drive-queue"
@@ -67,11 +95,7 @@ export function StaffTestDriveQueue({
               void list.load({ ...active.filters, search: draft.search.trim() }, 1);
             }
           }}
-          onClear={
-            active.filters.search && !busy
-              ? () => void list.load({ ...active.filters, search: "" }, 1)
-              : undefined
-          }
+          onClear={active.filters.search && !busy ? clearSearch : undefined}
           action={
             <AssistedVehicleAction
               kind="testDrive"
@@ -89,8 +113,30 @@ export function StaffTestDriveQueue({
             ref={scroller}
             aria-busy={busy}
           >
-            {snapshot.items.length === 0 && (
-              <p className={styles.empty}>No test drives in this queue match your search.</p>
+            {snapshot.items.length === 0 && active.filters.search && (
+              <StaffQueueEmpty
+                icon="search"
+                title="No matches"
+                action={{ label: "Clear search", disabled: busy, onClick: clearSearch }}
+              >
+                No test drive matches this search.
+              </StaffQueueEmpty>
+            )}
+            {snapshot.items.length === 0 && !active.filters.search && (
+              <StaffQueueEmpty
+                icon={emptyQueues[queue.value].icon}
+                title={emptyQueues[queue.value].title}
+                link={
+                  queue.value === "myWork"
+                    ? {
+                        text: "To claim",
+                        onClick: () => void list.load({ ...active.filters, queue: "toClaim" }, 1),
+                      }
+                    : undefined
+                }
+              >
+                {emptyQueues[queue.value].text}
+              </StaffQueueEmpty>
             )}
             <ul className={styles.jobs}>
               {snapshot.items.map((row) => (

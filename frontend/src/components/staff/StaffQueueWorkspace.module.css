@@ -17,6 +17,12 @@
   background: var(--color-paper);
 }
 
+@media (min-width: 821px) {
+  .columns[data-wide="true"] {
+    grid-template-columns: minmax(560px, 28%) minmax(0, 1fr);
+  }
+}
+
 .workspace > header {
   flex-shrink: 0;
 }
@@ -103,25 +109,32 @@
 
 .placeholder {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 8px;
   min-height: 180px;
   padding: 32px;
   text-align: center;
 }
 
+/* Same type as the queue list's empty state, so the two panes read as one system. */
 .placeholder h2 {
-  font-size: 20px;
+  margin: 0;
+  color: var(--color-graphite);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.4;
   letter-spacing: normal;
 }
 
 .placeholder p {
-  max-width: 40ch;
+  margin: 0;
   color: var(--color-muted);
   font-size: 13px;
   line-height: 1.6;
+  text-wrap: balance;
 }
 
 .list {
@@ -256,6 +269,82 @@
   padding: 16px;
   color: var(--color-muted);
   font-size: 13px;
+}
+
+.emptyState {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 8px;
+  min-height: max(100%, 240px);
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.emptyIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 4px;
+  border: 1px solid var(--color-interaction-border);
+  border-radius: 50%;
+  background: var(--color-selected-surface);
+  color: var(--color-interaction-border);
+}
+
+.emptyIcon[data-tone="alert"] {
+  border-color: var(--color-signal);
+  background: color-mix(in srgb, var(--color-signal) 10%, var(--color-paper));
+  color: var(--color-signal);
+}
+
+.emptyTitle {
+  margin: 0;
+  color: var(--color-graphite);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.emptyText {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.6;
+  text-wrap: balance;
+}
+
+.emptyLink {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-signal);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .emptyLink:hover {
+    color: var(--color-signal-dark);
+  }
+}
+
+.emptyLink:active {
+  color: var(--color-graphite);
+  text-decoration-thickness: 2px;
+}
+
+.emptyLink:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+}
+
+.emptyAction {
+  margin-top: 4px;
 }
 
 @media (max-width: 820px) {

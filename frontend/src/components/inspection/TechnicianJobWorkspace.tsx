@@ -17,6 +17,7 @@ export function TechnicianJobWorkspace({
   actionsContainer,
   refreshControl,
   onChanged,
+  onGoToClaim,
 }: {
   actor: CurrentActor;
   selection: ReturnType<typeof useInspectionDrawer>;
@@ -24,12 +25,18 @@ export function TechnicianJobWorkspace({
   actionsContainer: HTMLElement | null;
   refreshControl: ComponentProps<typeof InspectionEditor>["refreshControl"];
   onChanged: () => void;
+  // Opens the To claim tab, which the empty content pane points to.
+  onGoToClaim: () => void;
 }) {
   const vehicle = selection.result?.data?.draft.vehicle;
   if (!selection.id && !selection.pendingId) {
     return (
-      <StaffQueuePlaceholder label="Job content" title="Select a job">
-        Choose an assigned job to continue, or claim an available vehicle.
+      <StaffQueuePlaceholder
+        label="Job content"
+        title="Select a job"
+        link={{ text: "To claim", onClick: onGoToClaim }}
+      >
+        Open one from your worklist, or claim a vehicle in To claim.
       </StaffQueuePlaceholder>
     );
   }
