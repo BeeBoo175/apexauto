@@ -1,6 +1,5 @@
 using Dealership.Api.Configuration;
 using Dealership.Application.Vehicles;
-using Dealership.Infrastructure.Vehicles;
 
 namespace Dealership.Api.Endpoints;
 
@@ -10,9 +9,9 @@ public static class PaymentCallbackEndpoints
     {
         // The provider calls this without a session; the signed fields are the only authority, so the route stays
         // under the ordinary address budget and answers 200 once a verified delivery is recorded.
-        app.MapPost(BillplzPaymentGateway.CallbackPath, ReceiveAsync).NoStore();
+        app.MapPost(PaymentRoutes.Callback, ReceiveAsync).NoStore();
         // The customer's browser brings the same signed fields back from the payment page, so the page confirms at once.
-        app.MapPost("/api/payments/billplz/returns", ReceiveReturnAsync)
+        app.MapPost(PaymentRoutes.Return, ReceiveReturnAsync)
             .RequireRateLimiting(ApiRateLimiting.VerificationPolicy).NoStore();
     }
 

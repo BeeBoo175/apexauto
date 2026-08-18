@@ -32,7 +32,7 @@ public sealed class ReservationRefundTests(IntakePhotoFixture fixture) : IClassF
         Assert.Equal(HttpStatusCode.OK, (await Post(client, scenario.ReservePath, scenario.Request,
             scenario.Data.OwnerId, assisted: false)).StatusCode);
         var bill = gateway.Bills.Single();
-        await client.PostAsJsonAsync("/api/payments/billplz/returns", new { fields = gateway.Return(bill, true) });
+        await client.PostAsJsonAsync("/api/payments/returns", new { fields = gateway.Return(bill, true) });
         var paymentId = scenario.Request.OperationId;
         var before = await client.GetFromJsonAsync<RefundList>("/api/reservation-refunds");
         Assert.True(before!.Enabled);
@@ -72,10 +72,10 @@ public sealed class ReservationRefundTests(IntakePhotoFixture fixture) : IClassF
         Assert.Single(payouts.Payouts);
 
         // An unsigned callback changes nothing; the signed one completes the refund once.
-        Assert.Equal(HttpStatusCode.BadRequest, (await Callback(client, payouts.Callback("po-1", "completed", payout, signed: false))).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await Callback(client, payouts.Callback("po-1", "completed", signed: false))).StatusCode);
         Assert.Equal(RefundState.Processing, (await scenario.Database.ReservationRefunds.AsNoTracking().SingleAsync()).State);
-        Assert.Equal(HttpStatusCode.OK, (await Callback(client, payouts.Callback("po-1", "completed", payout))).StatusCode);
-        Assert.Equal(HttpStatusCode.OK, (await Callback(client, payouts.Callback("po-1", "completed", payout))).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await Callback(client, payouts.Callback("po-1", "completed"))).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await Callback(client, payouts.Callback("po-1", "completed"))).StatusCode);
         var done = await scenario.Database.ReservationRefunds.AsNoTracking().SingleAsync();
         Assert.Equal(RefundState.Completed, done.State);
         Assert.NotNull(done.SettledAt);
@@ -90,7 +90,7 @@ public sealed class ReservationRefundTests(IntakePhotoFixture fixture) : IClassF
 
     private static Task<HttpResponseMessage> Callback(HttpClient client, Dictionary<string, string> fields)
     {
-        return client.PostAsync("/api/payments/billplz/payouts/callback", new FormUrlEncodedContent(fields));
+        return client.PostAsync("/api/payments/payouts/callback", new FormUrlEncodedContent(fields));
     }
 
     private sealed record Bank(string Code, string Name);

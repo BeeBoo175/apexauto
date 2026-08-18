@@ -9,7 +9,21 @@ public sealed record PaymentBill(string Id, string Url);
 
 public sealed class PaymentGatewayException(string message, Exception? inner = null) : Exception(message, inner);
 
+// What a verified provider message says about one bill, in the application's own terms. A null amount means the
+// message states the bill was paid in full without naming the sum.
+public sealed record PaymentNotice(string BillId, bool Paid, int? PaidAmountSen);
+
+// The addresses the provider's server and the customer's browser send results to. They name no provider so one
+// registration works for whichever gateway is configured.
+public static class PaymentRoutes
+{
+    public const string Callback = "/api/payments/callback";
+    public const string Return = "/api/payments/returns";
+    public const string PayoutCallback = "/api/payments/payouts/callback";
+}
+
 // The hosted payment provider. When it is not enabled the staff deposit link keeps confirming the simulated deposit.
+// A new provider implements this port and the payout port, and is selected where the gateways are registered.
 public interface IPaymentGateway
 {
     bool IsEnabled { get; }
@@ -19,8 +33,9 @@ public interface IPaymentGateway
     // Best effort: removes a bill that lost a creation race so it cannot be paid twice.
     Task DeleteBillAsync(string billId, CancellationToken cancellationToken);
 
-    // True only when the provider's signature over the fields is valid.
-    bool VerifyCallback(IReadOnlyDictionary<string, string> fields);
+    // The provider's message, from its server callback or the customer's signed return, with the signature checked
+    // and the provider's field names translated; null when the signature is invalid or the message is unreadable.
+    PaymentNotice? ReadNotice(IReadOnlyDictionary<string, string> fields);
 }
 
 public sealed record DepositPayer(string Name, string Email);

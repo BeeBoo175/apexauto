@@ -1,22 +1,21 @@
+using Dealership.Application.Vehicles;
 using Dealership.Domain.Common;
 using Dealership.Domain.Vehicles;
-using Dealership.Infrastructure.Configuration;
 using Dealership.Infrastructure.Identity;
 using Dealership.Infrastructure.Mail;
-using Microsoft.Extensions.Options;
 
 namespace Dealership.Infrastructure.Vehicles;
 
 // The deposit request: a button that opens the hosted deposit payment, or, while the gateway is off, confirms the
 // simulated deposit and makes the reservation.
 public sealed class ReservationDepositMailComposer(AuthMailLinks links, ReservationDepositToken tokens,
-    IOptions<BillplzSettings> payment)
+    IPaymentGateway payment)
 {
     public OutboundMail Compose(ReservationDepositMail message, ReservationDepositRequest request, string branchName,
         Vehicle vehicle)
     {
         var link = links.Create("/confirm-deposit", tokens.Create(request));
-        var paid = payment.Value.Enabled;
+        var paid = payment.IsEnabled;
         var depositLabel = paid ? "Refundable deposit" : "Simulated refundable deposit";
         var expiresAt = TimeZoneInfo.ConvertTime(request.ExpiresAt, DealershipLocale.Malaysia);
         var car = $"{vehicle.ManufactureYear} {vehicle.Make} {vehicle.Model} ({vehicle.RegistrationPlate})";
@@ -39,7 +38,7 @@ public sealed class ReservationDepositMailComposer(AuthMailLinks links, Reservat
                 new MailDetail("Vehicle", car),
                 new MailDetail("Branch", branchName),
                 new MailDetail("Refundable deposit", paid
-                    ? $"RM {Reservation.DepositAmount:N2}, paid securely through Billplz"
+                    ? $"RM {Reservation.DepositAmount:N2}, paid securely online"
                     : $"RM {Reservation.DepositAmount:N2} (simulated, no payment is taken)"),
                 new MailDetail("Held until", $"{expiresAt:dd MMM yyyy, HH:mm} (Asia/Kuala_Lumpur)")
             ],

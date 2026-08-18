@@ -22,15 +22,19 @@ export function useDepositRefunds(actorId: string) {
     // Read in the browser when the section opens, after each request, and for another signed-in customer.
     const controller = new AbortController();
     async function load() {
-      const result = await privateApiFetch(
-        "/api/account/reservation-refunds",
-        parseDepositRefundList,
-        {
-          signal: controller.signal,
-        },
-      );
-      if (!controller.signal.aborted && result.status === 200 && result.data) {
-        setList(result.data);
+      try {
+        const result = await privateApiFetch(
+          "/api/account/reservation-refunds",
+          parseDepositRefundList,
+          {
+            signal: controller.signal,
+          },
+        );
+        if (!controller.signal.aborted && result.status === 200 && result.data) {
+          setList(result.data);
+        }
+      } catch {
+        // Leaving the page, or a repeated development effect, aborts the read; the list simply stays as it was.
       }
     }
 

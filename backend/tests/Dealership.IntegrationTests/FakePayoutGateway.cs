@@ -1,9 +1,9 @@
 using Dealership.Application.Vehicles;
-using Dealership.Infrastructure.Vehicles;
 
 namespace Dealership.IntegrationTests;
 
-// Stands in for Billplz payment orders: nothing leaves the process, and callbacks carry the real checksum.
+// A provider that is not Billplz: nothing leaves the process, and a callback is genuine only when it carries the
+// shared key.
 internal sealed class FakePayoutGateway(string signatureKey) : IPayoutGateway
 {
     private readonly List<PayoutRequest> _payouts = [];
@@ -12,7 +12,7 @@ internal sealed class FakePayoutGateway(string signatureKey) : IPayoutGateway
 
     public IReadOnlyList<PayoutRequest> Payouts => _payouts;
 
-    public string ReportedStatus { get; set; } = "processing";
+    public PayoutOutcome ReportedOutcome { get; set; } = PayoutOutcome.Processing;
 
     public bool FailNext { get; set; }
 
@@ -25,30 +25,33 @@ internal sealed class FakePayoutGateway(string signatureKey) : IPayoutGateway
         }
 
         _payouts.Add(request);
-        return Task.FromResult(new PayoutResult($"po-{_payouts.Count}", "processing"));
+        return Task.FromResult(new PayoutResult($"po-{_payouts.Count}", PayoutOutcome.Processing));
     }
 
-    public Task<string> GetPayoutStatusAsync(string payoutId, CancellationToken cancellationToken) =>
-        Task.FromResult(ReportedStatus);
+    public Task<PayoutOutcome> GetPayoutOutcomeAsync(string payoutId, CancellationToken cancellationToken) =>
+        Task.FromResult(ReportedOutcome);
 
-    public bool VerifyPayoutCallback(IReadOnlyDictionary<string, string> fields) =>
-        BillplzChecksum.VerifyPayoutCallback(fields, signatureKey);
-
-    public Dictionary<string, string> Callback(string payoutId, string status, PayoutRequest payout, bool signed = true)
+    public PayoutNotice? ReadNotice(IReadOnlyDictionary<string, string> fields)
     {
-        var fields = new Dictionary<string, string>
+        if (!fields.TryGetValue("signature", out var signature) || signature != signatureKey ||
+            !fields.TryGetValue("payout", out var payoutId))
         {
-            ["id"] = payoutId,
-            ["bank_account_number"] = payout.AccountNumber,
-            ["status"] = status,
-            ["total"] = payout.AmountSen.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            ["reference_id"] = payout.Reference,
-            ["epoch"] = "1681895891"
+            return null;
+        }
+
+        var outcome = fields.GetValueOrDefault("outcome") switch
+        {
+            "completed" => PayoutOutcome.Completed,
+            "failed" => PayoutOutcome.Failed,
+            _ => PayoutOutcome.Processing
         };
-        fields["checksum"] = signed
-            ? BillplzChecksum.Compute(signatureKey, payoutId, payout.AccountNumber, status, fields["total"],
-                payout.Reference, fields["epoch"])
-            : "bad";
-        return fields;
+        return new PayoutNotice(payoutId, outcome);
     }
+
+    public Dictionary<string, string> Callback(string payoutId, string outcome, bool signed = true) => new()
+    {
+        ["payout"] = payoutId,
+        ["outcome"] = outcome,
+        ["signature"] = signed ? signatureKey : "bad"
+    };
 }

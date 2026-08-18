@@ -13,7 +13,7 @@ public static class ReservationRefundEndpoints
         routes.MapGet("/", ListAsync);
         routes.MapPost("/{paymentRequestId:guid}/bank-account", RequestAsync);
         // The provider confirms a payout without a session; its checksum is the only authority.
-        app.MapPost(BillplzPayoutGateway.CallbackPath, ReceiveCallbackAsync).NoStore();
+        app.MapPost(PaymentRoutes.PayoutCallback, ReceiveCallbackAsync).NoStore();
     }
 
     private static async Task<IResult> ListAsync(HttpContext context, ReservationRefundService refunds,

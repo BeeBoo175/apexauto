@@ -20,14 +20,13 @@ export async function POST(request: Request) {
       entries.length > 0 &&
       entries.length <= FIELD_LIMIT &&
       entries.every(
-        ([name, value]) =>
-          name.startsWith("billplz[") && typeof value === "string" && value.length <= 128,
+        ([name, value]) => name.length <= 64 && typeof value === "string" && value.length <= 128,
       );
     if (!valid) {
       return authJson({ message: "The payment return is invalid." }, 400);
     }
 
-    const response = await authUpstream("/api/payments/billplz/returns", {
+    const response = await authUpstream("/api/payments/returns", {
       method: "POST",
       body: { fields: body.fields },
       signal: request.signal,

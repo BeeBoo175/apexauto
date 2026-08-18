@@ -5,7 +5,19 @@ namespace Dealership.Application.Vehicles;
 public sealed record PayoutRequest(string Reference, string BankCode, string AccountNumber, string AccountHolder,
     int AmountSen, string Description);
 
-public sealed record PayoutResult(string Id, string Status);
+// Where a payout stands, whatever the provider calls its statuses.
+public enum PayoutOutcome
+{
+    Processing,
+    Completed,
+
+    // The provider returned or cancelled the money.
+    Failed
+}
+
+public sealed record PayoutResult(string Id, PayoutOutcome Outcome);
+
+public sealed record PayoutNotice(string PayoutId, PayoutOutcome Outcome);
 
 // The provider's money-out side. Refunds are real only when it is enabled; otherwise the deposit stays a simulated
 // record and no refund is offered.
@@ -15,11 +27,12 @@ public interface IPayoutGateway
 
     Task<PayoutResult> CreatePayoutAsync(PayoutRequest request, CancellationToken cancellationToken);
 
-    // The payout's current status, for a payout whose callback has not arrived.
-    Task<string> GetPayoutStatusAsync(string payoutId, CancellationToken cancellationToken);
+    // The payout's current outcome, for a payout whose callback has not arrived.
+    Task<PayoutOutcome> GetPayoutOutcomeAsync(string payoutId, CancellationToken cancellationToken);
 
-    // True only when the provider's checksum over the callback fields is valid.
-    bool VerifyPayoutCallback(IReadOnlyDictionary<string, string> fields);
+    // The provider's callback with its checksum checked and its field names translated; null when the checksum is
+    // invalid or the message is unreadable.
+    PayoutNotice? ReadNotice(IReadOnlyDictionary<string, string> fields);
 }
 
 public enum RefundDueReason

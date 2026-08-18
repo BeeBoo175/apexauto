@@ -1,9 +1,10 @@
+using System.Globalization;
 using Dealership.Application.Vehicles;
-using Dealership.Infrastructure.Vehicles;
 
 namespace Dealership.IntegrationTests;
 
-// Stands in for Billplz: bills are never created remotely, and callbacks are signed with the same algorithm.
+// A provider that is not Billplz: bills are never created remotely, and a message is genuine only when it carries the
+// shared key. The services under test therefore work against the port alone.
 internal sealed class FakePaymentGateway(string signatureKey) : IPaymentGateway
 {
     private readonly List<string> _bills = [];
@@ -28,36 +29,31 @@ internal sealed class FakePaymentGateway(string signatureKey) : IPaymentGateway
         return Task.CompletedTask;
     }
 
-    public bool VerifyCallback(IReadOnlyDictionary<string, string> fields) =>
-        BillplzSignature.Verify(fields, signatureKey);
-
-    // What the customer's browser brings back from the payment page: nested names and no amount.
-    public Dictionary<string, string> Return(string billId, bool paid, bool signed = true)
+    public PaymentNotice? ReadNotice(IReadOnlyDictionary<string, string> fields)
     {
-        var fields = new Dictionary<string, string>
+        if (!fields.TryGetValue("signature", out var signature) || signature != signatureKey ||
+            !fields.TryGetValue("bill", out var billId))
         {
-            ["billplz[id]"] = billId,
-            ["billplz[paid]"] = paid ? "true" : "false",
-            ["billplz[paid_at]"] = "2026-11-13 09:00:00 +0800"
-        };
-        fields["billplz[x_signature]"] = signed ? BillplzSignature.Compute(fields, signatureKey) : "bad";
-        return fields;
+            return null;
+        }
+
+        var paid = fields.TryGetValue("paid", out var state) && state == "yes";
+        int? amount = fields.TryGetValue("amount", out var sum) && int.TryParse(sum, out var sen) ? sen : null;
+        return new PaymentNotice(billId, paid, amount);
     }
+
+    // What the customer's browser brings back from the payment page: no amount.
+    public Dictionary<string, string> Return(string billId, bool paid, bool signed = true) => new()
+    {
+        ["bill"] = billId,
+        ["paid"] = paid ? "yes" : "no",
+        ["signature"] = signed ? signatureKey : "bad"
+    };
 
     public Dictionary<string, string> Callback(string billId, bool paid, int paidAmountSen, bool signed = true)
     {
-        var fields = new Dictionary<string, string>
-        {
-            ["id"] = billId,
-            ["collection_id"] = "collection",
-            ["paid"] = paid ? "true" : "false",
-            ["state"] = paid ? "paid" : "due",
-            ["amount"] = "50000",
-            ["paid_amount"] = paidAmountSen.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            ["name"] = "Nur Aina",
-            ["email"] = "customer@example.invalid"
-        };
-        fields["x_signature"] = signed ? BillplzSignature.Compute(fields, signatureKey) : "bad";
+        var fields = Return(billId, paid, signed);
+        fields["amount"] = paidAmountSen.ToString(CultureInfo.InvariantCulture);
         return fields;
     }
 }

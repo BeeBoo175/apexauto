@@ -40,7 +40,7 @@ public sealed class ReservationOwnPaymentTests(IntakePhotoFixture fixture) : ICl
             other, assisted: true);
         Assert.Equal(HttpStatusCode.Conflict, rival.StatusCode);
 
-        var paid = await client.PostAsJsonAsync("/api/payments/billplz/returns", new { fields = gateway.Return(bill, true) });
+        var paid = await client.PostAsJsonAsync("/api/payments/returns", new { fields = gateway.Return(bill, true) });
         Assert.Equal("confirmed", (await paid.Content.ReadFromJsonAsync<PaymentStatus>())!.Status);
         var reservation = await scenario.Database.Reservations.AsNoTracking().SingleAsync();
         Assert.Equal(held.Id, reservation.Id);

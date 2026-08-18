@@ -38,7 +38,7 @@ internal static class DepositPaymentSupport
 
     internal static Task<HttpResponseMessage> Callback(HttpClient client, Dictionary<string, string> fields)
     {
-        return client.PostAsync("/api/payments/billplz/callback", new FormUrlEncodedContent(fields));
+        return client.PostAsync("/api/payments/callback", new FormUrlEncodedContent(fields));
     }
 
     internal sealed record PaymentAddress(string? PaymentUrl);

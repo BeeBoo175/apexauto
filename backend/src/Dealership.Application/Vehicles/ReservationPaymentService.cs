@@ -8,10 +8,6 @@ public sealed class ReservationPaymentService(IReservationDepositRequestStore re
     IReservationPaymentStore payments, IPaymentGateway gateway, ReservationDepositRequestService deposits,
     TimeProvider clock)
 {
-    private const string PaidField = "paid";
-    private const string BillField = "id";
-    private const string PaidAmountField = "paid_amount";
-
     public async Task<DepositPaymentResult> StartAsync(string? token, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(token) || token.Length > 160)
@@ -97,18 +93,17 @@ public sealed class ReservationPaymentService(IReservationDepositRequestStore re
     // False only when the signature is invalid; every verified delivery is acknowledged so the gateway stops retrying.
     public async Task<bool> CompleteAsync(IReadOnlyDictionary<string, string> fields, CancellationToken cancellationToken)
     {
-        if (!gateway.IsEnabled || !gateway.VerifyCallback(fields))
+        var notice = gateway.IsEnabled ? gateway.ReadNotice(fields) : null;
+        if (notice is null)
         {
             return false;
         }
 
-        if (!fields.TryGetValue(BillField, out var billId) || !IsPaid(fields))
+        if (notice.Paid)
         {
-            return true;
+            await RecordPaymentAsync(notice.BillId, notice.PaidAmountSen, cancellationToken);
         }
 
-        var paidAmount = fields.TryGetValue(PaidAmountField, out var amount) && int.TryParse(amount, out var sen) ? sen : 0;
-        await RecordPaymentAsync(billId, paidAmount, cancellationToken);
         return true;
     }
 
@@ -117,29 +112,22 @@ public sealed class ReservationPaymentService(IReservationDepositRequestStore re
     public async Task<DepositPaymentResult> CompleteReturnAsync(IReadOnlyDictionary<string, string> fields,
         CancellationToken cancellationToken)
     {
-        if (!gateway.IsEnabled || !gateway.VerifyCallback(fields))
+        var notice = gateway.IsEnabled ? gateway.ReadNotice(fields) : null;
+        var payment = notice is null ? null : await payments.FindByBillAsync(notice.BillId, cancellationToken);
+        if (notice is null || payment is null)
         {
             return new(DepositPaymentStatus.Invalid);
         }
 
-        var billId = fields.FirstOrDefault(field => Normalize(field.Key) == BillField).Value;
-        var payment = string.IsNullOrEmpty(billId) ? null : await payments.FindByBillAsync(billId, cancellationToken);
-        if (payment is null)
+        if (notice.Paid)
         {
-            return new(DepositPaymentStatus.Invalid);
-        }
-
-        var paid = fields.Where(field => Normalize(field.Key) == PaidField)
-            .Any(field => string.Equals(field.Value, "true", StringComparison.OrdinalIgnoreCase));
-        if (paid)
-        {
-            await RecordPaymentAsync(billId!, payment.AmountSen, cancellationToken);
+            await RecordPaymentAsync(notice.BillId, notice.PaidAmountSen, cancellationToken);
         }
 
         return await StatusAsync(payment.RequestId, cancellationToken);
     }
 
-    private async Task RecordPaymentAsync(string billId, int paidAmountSen, CancellationToken cancellationToken)
+    private async Task RecordPaymentAsync(string billId, int? paidAmountSen, CancellationToken cancellationToken)
     {
         var payment = await payments.FindByBillAsync(billId, cancellationToken);
         if (payment is null || payment.State != DepositPaymentState.Pending)
@@ -147,22 +135,16 @@ public sealed class ReservationPaymentService(IReservationDepositRequestStore re
             return;
         }
 
+        var paidAmount = paidAmountSen ?? payment.AmountSen;
         var reserved = false;
-        if (paidAmountSen == payment.AmountSen)
+        if (paidAmount == payment.AmountSen)
         {
             var confirmation = await deposits.ConfirmPaidAsync(payment.RequestId, cancellationToken);
             reserved = confirmation.Status == ReservationStatus.Succeeded;
         }
 
-        await payments.RecordPaidAsync(billId, paidAmountSen, reserved, clock.GetUtcNow(), cancellationToken);
+        await payments.RecordPaidAsync(billId, paidAmount, reserved, clock.GetUtcNow(), cancellationToken);
     }
-
-    private static bool IsPaid(IReadOnlyDictionary<string, string> fields) =>
-        fields.TryGetValue(PaidField, out var paid) && string.Equals(paid, "true", StringComparison.OrdinalIgnoreCase);
-
-    // The redirect names its fields billplz[id]; the callback sends them flat.
-    private static string Normalize(string name) => name.Replace("[", string.Empty).Replace("]", string.Empty)
-        .Replace("billplz", string.Empty, StringComparison.Ordinal);
 
     private async Task<DepositPaymentResult> CreatePaymentAsync(ReservationDepositRequest request,
         CancellationToken cancellationToken)

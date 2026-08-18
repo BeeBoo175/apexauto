@@ -7,9 +7,6 @@ namespace Dealership.Application.Vehicles;
 // and is never stored, and the provider's signed callback settles the payout.
 public sealed class ReservationRefundService(IReservationRefundStore refunds, IPayoutGateway gateway, TimeProvider clock)
 {
-    private const string StatusField = "status";
-    private const string IdField = "id";
-
     public bool IsEnabled => gateway.IsEnabled;
 
     public async Task<IReadOnlyList<RefundView>> ListAsync(Guid customerId, CancellationToken cancellationToken)
@@ -36,8 +33,8 @@ public sealed class ReservationRefundService(IReservationRefundStore refunds, IP
         {
             try
             {
-                var status = await gateway.GetPayoutStatusAsync(payoutId, cancellationToken);
-                await SettleAsync(payoutId, status, cancellationToken);
+                var outcome = await gateway.GetPayoutOutcomeAsync(payoutId, cancellationToken);
+                await SettleAsync(payoutId, outcome, cancellationToken);
             }
             catch (PaymentGatewayException)
             {
@@ -46,7 +43,7 @@ public sealed class ReservationRefundService(IReservationRefundStore refunds, IP
         }
     }
 
-    private async Task SettleAsync(string payoutId, string status, CancellationToken cancellationToken)
+    private async Task SettleAsync(string payoutId, PayoutOutcome outcome, CancellationToken cancellationToken)
     {
         var refund = await refunds.FindByPayoutAsync(payoutId, cancellationToken);
         if (refund is null)
@@ -54,10 +51,10 @@ public sealed class ReservationRefundService(IReservationRefundStore refunds, IP
             return;
         }
 
-        var settled = status.ToLowerInvariant() switch
+        var settled = outcome switch
         {
-            "completed" => refund.Settle(true, clock.GetUtcNow()),
-            "refunded" or "cancelled" => refund.Settle(false, clock.GetUtcNow()),
+            PayoutOutcome.Completed => refund.Settle(true, clock.GetUtcNow()),
+            PayoutOutcome.Failed => refund.Settle(false, clock.GetUtcNow()),
             _ => false
         };
         if (settled)
@@ -113,17 +110,13 @@ public sealed class ReservationRefundService(IReservationRefundStore refunds, IP
     // False only when the checksum is invalid; every verified delivery is acknowledged so the provider stops retrying.
     public async Task<bool> CompleteAsync(IReadOnlyDictionary<string, string> fields, CancellationToken cancellationToken)
     {
-        if (!gateway.IsEnabled || !gateway.VerifyPayoutCallback(fields))
+        var notice = gateway.IsEnabled ? gateway.ReadNotice(fields) : null;
+        if (notice is null)
         {
             return false;
         }
 
-        if (!fields.TryGetValue(IdField, out var payoutId) || !fields.TryGetValue(StatusField, out var status))
-        {
-            return true;
-        }
-
-        await SettleAsync(payoutId, status, cancellationToken);
+        await SettleAsync(notice.PayoutId, notice.Outcome, cancellationToken);
         return true;
     }
 
@@ -135,7 +128,7 @@ public sealed class ReservationRefundService(IReservationRefundStore refunds, IP
             var payout = await gateway.CreatePayoutAsync(new(refund.Reference, refund.BankCode, accountNumber,
                 refund.AccountHolder, refund.AmountSen, "ApexAuto reservation deposit refund"), cancellationToken);
             refund.AttachPayout(payout.Id);
-            if (string.Equals(payout.Status, "completed", StringComparison.OrdinalIgnoreCase))
+            if (payout.Outcome == PayoutOutcome.Completed)
             {
                 refund.Settle(true, clock.GetUtcNow());
             }

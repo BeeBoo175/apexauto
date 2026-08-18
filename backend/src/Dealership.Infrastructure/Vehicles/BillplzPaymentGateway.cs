@@ -13,8 +13,6 @@ namespace Dealership.Infrastructure.Vehicles;
 public sealed class BillplzPaymentGateway(HttpClient client, IOptions<BillplzSettings> options, AuthMailLinks links)
     : IPaymentGateway
 {
-    public const string CallbackPath = "/api/payments/billplz/callback";
-
     private readonly BillplzSettings _settings = options.Value;
 
     public bool IsEnabled => _settings.Enabled;
@@ -28,7 +26,7 @@ public sealed class BillplzPaymentGateway(HttpClient client, IOptions<BillplzSet
             ["email"] = request.PayerEmail,
             ["amount"] = request.AmountSen.ToString(System.Globalization.CultureInfo.InvariantCulture),
             ["description"] = request.Description,
-            ["callback_url"] = _settings.PublicBaseUrl!.TrimEnd('/') + CallbackPath,
+            ["callback_url"] = _settings.PublicBaseUrl!.TrimEnd('/') + PaymentRoutes.Callback,
             ["redirect_url"] = links.Absolute($"/confirm-deposit?request={request.RequestId:D}"),
             ["reference_1_label"] = "Request",
             ["reference_1"] = request.RequestId.ToString("D")
@@ -69,9 +67,39 @@ public sealed class BillplzPaymentGateway(HttpClient client, IOptions<BillplzSet
         }
     }
 
-    public bool VerifyCallback(IReadOnlyDictionary<string, string> fields)
+    public PaymentNotice? ReadNotice(IReadOnlyDictionary<string, string> fields)
     {
-        return _settings.XSignatureKey is { Length: > 0 } key && BillplzSignature.Verify(fields, key);
+        if (_settings.XSignatureKey is not { Length: > 0 } key || !BillplzSignature.Verify(fields, key))
+        {
+            return null;
+        }
+
+        var values = FlatFields(fields);
+        if (!values.TryGetValue("id", out var billId) || string.IsNullOrEmpty(billId))
+        {
+            return null;
+        }
+
+        var paid = values.TryGetValue("paid", out var state) &&
+            string.Equals(state, "true", StringComparison.OrdinalIgnoreCase);
+        int? paidAmount = values.TryGetValue("paid_amount", out var amount) && int.TryParse(amount, out var sen)
+            ? sen
+            : null;
+        return new PaymentNotice(billId, paid, paidAmount);
+    }
+
+    // The browser return names its fields billplz[id] and the server callback sends them flat; both read as id.
+    private static Dictionary<string, string> FlatFields(IReadOnlyDictionary<string, string> fields)
+    {
+        var values = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var (name, value) in fields)
+        {
+            var flat = name.Replace("[", string.Empty).Replace("]", string.Empty)
+                .Replace("billplz", string.Empty, StringComparison.Ordinal);
+            values.TryAdd(flat, value);
+        }
+
+        return values;
     }
 
     private HttpRequestMessage Message(HttpMethod method, string path)

@@ -5,11 +5,12 @@ import { useToast } from "@/components/ui/Toast";
 import { AUTH_DEADLINE_MS, isRecord, isUuid } from "@/lib/auth/contracts";
 import { writeAddress } from "@/lib/browser-url";
 
-// The provider's own fields in the return address, without our request id, which is not part of what it signs.
+// The provider's own fields in the return address, whatever it names them, without our request id, which is not
+// part of what it signs. The API's gateway for the configured provider decides what they mean.
 function providerFields(search: URLSearchParams) {
   const fields: Record<string, string> = {};
   for (const [name, value] of search) {
-    if (name.startsWith("billplz[")) {
+    if (name !== "request") {
       fields[name] = value;
     }
   }

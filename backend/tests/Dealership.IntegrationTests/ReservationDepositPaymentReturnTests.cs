@@ -32,7 +32,7 @@ public sealed class ReservationDepositPaymentReturnTests(IntakePhotoFixture fixt
         Assert.Equal(HttpStatusCode.OK, paid.StatusCode);
         Assert.Equal("confirmed", (await paid.Content.ReadFromJsonAsync<PaymentStatus>())!.Status);
         Assert.Equal(HttpStatusCode.OK, (await Return(client, gateway.Return(bill, true))).StatusCode);
-        Assert.Equal(HttpStatusCode.OK, (await client.PostAsync("/api/payments/billplz/callback",
+        Assert.Equal(HttpStatusCode.OK, (await client.PostAsync("/api/payments/callback",
             new FormUrlEncodedContent(gateway.Callback(bill, true, 50000)))).StatusCode);
         Assert.Equal(1, await scenario.Database.Reservations.CountAsync());
         var payment = await scenario.Database.ReservationDepositPayments.AsNoTracking().SingleAsync();
@@ -42,6 +42,6 @@ public sealed class ReservationDepositPaymentReturnTests(IntakePhotoFixture fixt
 
     private static Task<HttpResponseMessage> Return(HttpClient client, Dictionary<string, string> fields)
     {
-        return client.PostAsJsonAsync("/api/payments/billplz/returns", new { fields });
+        return client.PostAsJsonAsync("/api/payments/returns", new { fields });
     }
 }
