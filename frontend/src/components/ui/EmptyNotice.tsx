@@ -1,10 +1,10 @@
-import { Button } from "@/components/ui/Button";
-import { Icon } from "@/components/ui/Icon";
+import { Button } from "./Button";
+import { Icon } from "./Icon";
 import type { IconName } from "@/lib/icons";
-import styles from "./StaffQueueWorkspace.module.css";
+import styles from "./EmptyNotice.module.css";
 
 // The guidance text with the first mention of a place in the workspace turned into a link that goes there.
-export function StaffQueueGuidance({
+export function EmptyNoticeGuidance({
   text,
   link,
 }: {
@@ -19,7 +19,7 @@ export function StaffQueueGuidance({
   return (
     <>
       {text.slice(0, start)}
-      <button type="button" className={styles.emptyLink} onClick={link.onClick}>
+      <button type="button" className={styles.link} onClick={link.onClick}>
         {link.text}
       </button>
       {text.slice(start + link.text.length)}
@@ -27,11 +27,11 @@ export function StaffQueueGuidance({
   );
 }
 
-// The shared message for a queue list that has no rows, has no match for the search or could not be read, so
-// every work queue page shows the same centred icon, title, one line of guidance and recovery action instead of
-// its own text. An alert tone colours the icon red for a queue that could not be read; every other state is blue.
-// Keep the guidance short enough for one line in the narrowest queue panel.
-export function StaffQueueEmpty({
+// The shared message for a list or table that has no rows, has no match for the search or could not be read, so
+// every such place shows the same centred icon, title, one line of guidance and recovery action instead of its own
+// text. An alert tone colours the icon red for a read that failed; every other state is blue. Keep the guidance short
+// enough for one line in the narrowest panel.
+export function EmptyNotice({
   icon,
   tone = "info",
   title,
@@ -48,19 +48,19 @@ export function StaffQueueEmpty({
   action?: { label: string; onClick: () => void; disabled?: boolean };
 }) {
   return (
-    <div className={styles.emptyState}>
-      <span className={styles.emptyIcon} data-tone={tone}>
+    <div className={styles.notice}>
+      <span className={styles.icon} data-tone={tone}>
         <Icon name={icon} />
       </span>
-      <p className={styles.emptyTitle}>{title}</p>
-      <p className={styles.emptyText}>
-        <StaffQueueGuidance text={children} link={link} />
+      <p className={styles.title}>{title}</p>
+      <p className={styles.text}>
+        <EmptyNoticeGuidance text={children} link={link} />
       </p>
       {action && (
         <Button
           size="compact"
           variant="primary"
-          className={styles.emptyAction}
+          className={styles.action}
           disabled={action.disabled}
           onClick={action.onClick}
         >

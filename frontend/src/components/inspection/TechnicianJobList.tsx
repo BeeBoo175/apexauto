@@ -1,6 +1,6 @@
 "use client";
 
-import { StaffQueueEmpty } from "@/components/staff/StaffQueueEmpty";
+import { EmptyNotice } from "@/components/ui/EmptyNotice";
 import { StaffQueueFooter } from "@/components/staff/StaffQueueFooter";
 import { Button } from "@/components/ui/Button";
 import type { useTechnicianQueue } from "@/hooks/use-technician-queue";
@@ -59,26 +59,26 @@ export function TechnicianJobList({
     <section className={styles.queueList} aria-label={title} aria-busy={busy}>
       <div className={styles.list} key={`${snapshot?.page}:${snapshot?.pageSize}:${state.search}`}>
         {!snapshot && !failed && !busy && (
-          <StaffQueueEmpty
+          <EmptyNotice
             icon="alert-triangle"
             tone="alert"
             title="Worklist unavailable"
             action={{ label: "Retry worklist", disabled: busy, onClick: () => void state.retry() }}
           >
             Your worklists are kept as they were.
-          </StaffQueueEmpty>
+          </EmptyNotice>
         )}
         {snapshot?.items.length === 0 && state.search && (
-          <StaffQueueEmpty
+          <EmptyNotice
             icon="search"
             title="No matches"
             action={{ label: "Clear search", disabled: busy, onClick: () => void state.clear() }}
           >
             No job matches this search.
-          </StaffQueueEmpty>
+          </EmptyNotice>
         )}
         {snapshot?.items.length === 0 && !state.search && (
-          <StaffQueueEmpty
+          <EmptyNotice
             icon={empty.icon}
             title={empty.title}
             link={
@@ -88,7 +88,7 @@ export function TechnicianJobList({
             }
           >
             {empty.text}
-          </StaffQueueEmpty>
+          </EmptyNotice>
         )}
         <ul className={styles.jobs}>
           {snapshot?.items.map((row) => (

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { IconName } from "@/lib/icons";
 
 export interface TableSort {
   column: string;
@@ -45,10 +46,19 @@ export interface DataTableProps<Row> {
   /** Feature-owned search, criteria, queue tabs and export actions. */
   toolbar?: ReactNode;
   rows: readonly Row[];
+  /**
+   * One empty state per table, the same on every tab: nothing narrows the table, or a search or column filter does.
+   * The table writes the wording; the caller names its rows and supplies the clear that keeps the selected tab.
+   */
   emptyState: {
-    title: string;
-    description: string;
-    action?: { label: string; onClick: () => void };
+    /** The plural name of the rows, such as "appointments". */
+    noun: string;
+    icon: IconName;
+    /** A search or column filter, not the selected tab, is narrowing the table. */
+    narrowed: boolean;
+    /** One short line about the whole page, never about a tab. */
+    hint?: string;
+    onClear?: () => void;
   };
   columns: readonly DataColumn<Row>[];
   rowId: (row: Row) => string;

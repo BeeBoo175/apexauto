@@ -1,4 +1,4 @@
-import { StaffQueueGuidance } from "./StaffQueueEmpty";
+import { EmptyNoticeGuidance } from "@/components/ui/EmptyNotice";
 import styles from "./StaffQueueWorkspace.module.css";
 
 // The shared prompt for a queue workspace's content pane when nothing is selected, so every queue page
@@ -19,7 +19,7 @@ export function StaffQueuePlaceholder({
     <section className={styles.placeholder} aria-label={label}>
       <h2>{title}</h2>
       <p>
-        <StaffQueueGuidance text={children} link={link} />
+        <EmptyNoticeGuidance text={children} link={link} />
       </p>
     </section>
   );

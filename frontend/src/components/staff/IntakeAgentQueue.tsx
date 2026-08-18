@@ -2,7 +2,7 @@
 
 import { useRef, useState, type ReactNode } from "react";
 import type { IconName } from "@/lib/icons";
-import { StaffQueueEmpty } from "./StaffQueueEmpty";
+import { EmptyNotice } from "@/components/ui/EmptyNotice";
 import { StaffQueueLayout } from "./StaffQueueLayout";
 import { StaffQueueTabs } from "./StaffQueueTabs";
 import { StaffQueueFooter } from "./StaffQueueFooter";
@@ -131,7 +131,7 @@ export function IntakeAgentQueue({
         <div className={styles.queueList}>
           <div className={styles.list} ref={list} aria-busy={busy}>
             {!snapshot && !busy && (
-              <StaffQueueEmpty
+              <EmptyNotice
                 icon="alert-triangle"
                 tone="alert"
                 title="Queue unavailable"
@@ -142,19 +142,19 @@ export function IntakeAgentQueue({
                 }}
               >
                 Your queues are kept as they were.
-              </StaffQueueEmpty>
+              </EmptyNotice>
             )}
             {snapshot?.items.length === 0 && active.filters.search && (
-              <StaffQueueEmpty
+              <EmptyNotice
                 icon="search"
                 title="No matches"
                 action={{ label: "Clear search", disabled: busy, onClick: clearSearch }}
               >
                 No appointment matches this search.
-              </StaffQueueEmpty>
+              </EmptyNotice>
             )}
             {snapshot?.items.length === 0 && !active.filters.search && (
-              <StaffQueueEmpty
+              <EmptyNotice
                 icon={emptyQueues[queue].icon}
                 title={emptyQueues[queue].title}
                 link={
@@ -164,7 +164,7 @@ export function IntakeAgentQueue({
                 }
               >
                 {emptyQueues[queue].text}
-              </StaffQueueEmpty>
+              </EmptyNotice>
             )}
             <ul className={styles.jobs}>
               {snapshot?.items.map((row) => (

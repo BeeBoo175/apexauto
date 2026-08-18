@@ -87,6 +87,13 @@ export function CustomerAccountsTable({
       label: `${label}: ${filters[key]}`,
       without: { ...filters, [key]: "" },
     }));
+  // The view tab is not a criterion to clear, so an empty tab never offers a clear.
+  const narrowed = applied.length > 0 || Boolean(filters.search);
+
+  function clearAll() {
+    void list.load({ ...filters, search: "", name: "", email: "", mobile: "" }, 1);
+  }
+
   return (
     <div className={`${styles.page} ${animateEntry ? workspace.reveal : ""}`}>
       <div className={styles.body}>
@@ -102,8 +109,11 @@ export function CustomerAccountsTable({
           onRowClick={(row) => onOpen(row.id)}
           onPage={(page, pageSize) => void list.load({ ...filters, pageSize }, page)}
           emptyState={{
-            title: "No matching customers",
-            description: "Choose another view or search.",
+            noun: "customers",
+            icon: "user",
+            narrowed,
+            hint: "Customers appear here once they sign up.",
+            onClear: clearAll,
           }}
           toolbar={
             <>

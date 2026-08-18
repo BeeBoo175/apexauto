@@ -41,18 +41,6 @@ import { AssistedVehicleAction } from "@/components/staff/AssistedVehicleAction"
 
 const rowId = (row: SaleSummary) => row.id;
 
-const emptyTitles: Record<TableView, string> = {
-  All: "No sales yet",
-  NeedsApproval: "No sales need approval",
-  Open: "No open holds",
-  BeingHandled: "No sales are being handled",
-  Approved: "No approved sales",
-  AwaitingHandover: "No sales await handover",
-  Delivered: "No delivered sales",
-  History: "No closed sales",
-  AwaitingDeposit: "No deposit requests are waiting",
-};
-
 // The managers' one Sales table: each tab is a step in the sale, and a row opens the same editor agents use.
 export function SalesTable({
   actor,
@@ -243,9 +231,11 @@ export function SalesTable({
         void drawer.choose(row.id);
       }}
       emptyState={{
-        title: filtered ? "No sales match your criteria" : emptyTitles[view],
-        description: "Use the column filters, or switch tab.",
-        ...(filtered && { action: { label: "Clear filters", onClick: reset } }),
+        noun: "sales",
+        icon: "file-text",
+        narrowed: filtered,
+        hint: "Sales appear here once a customer reserves a car.",
+        onClear: reset,
       }}
     />
   ) : null;

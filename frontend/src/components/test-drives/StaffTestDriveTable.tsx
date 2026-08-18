@@ -204,6 +204,27 @@ export function StaffTestDriveTable({
     });
   }
   const sort = filters.sort ? { column: filters.sort, direction: filters.direction } : null;
+  // The status section is not a criterion to clear, so an empty section never offers a clear.
+  const narrowed = applied.length > 0 || Boolean(filters.search);
+
+  function clearAll() {
+    void list.load(
+      {
+        ...filters,
+        search: "",
+        from: "",
+        to: "",
+        handlerId: "",
+        handler: "",
+        registration: "",
+        vehicle: "",
+        customer: "",
+        branchId: "",
+      },
+      1,
+    );
+  }
+
   return (
     <div className={styles.page}>
       <div className={styles.body}>
@@ -228,8 +249,11 @@ export function StaffTestDriveTable({
           onRowClick={(row) => open(row.id)}
           onPage={(page, pageSize) => void list.load({ ...filters, pageSize }, page)}
           emptyState={{
-            title: "No matching test drives",
-            description: "Choose another section, search or filter.",
+            noun: "test drives",
+            icon: "car",
+            narrowed,
+            hint: "Test drives appear here once customers book them.",
+            onClear: clearAll,
           }}
           toolbar={
             <>

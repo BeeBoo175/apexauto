@@ -85,12 +85,14 @@ export function ListingTable({
   );
   const { columns, applied } = listingTableFilters(state, baseColumns);
   const refinements = applied.length > 0;
-  const filtered = Boolean(active.filters.search || active.filters.publication || refinements);
+  // The publication tab is not a criterion to clear, so an empty tab never offers a clear.
+  const narrowed = Boolean(active.filters.search || refinements);
 
-  function resetFilters() {
+  function resetFilters(clearSearch = false) {
     void state.load(
       {
         ...active.filters,
+        search: clearSearch ? "" : active.filters.search,
         branchId: "",
         inspection: "",
         minimumPrice: "",
@@ -174,7 +176,7 @@ export function ListingTable({
                             size="compact"
                             variant="ghost"
                             disabled={state.busy}
-                            onClick={resetFilters}
+                            onClick={() => resetFilters()}
                           >
                             Reset filters
                           </Button>
@@ -242,22 +244,11 @@ export function ListingTable({
               selectedRowId={drawer.pendingId || drawer.id}
               onRowClick={(row) => void drawer.choose(row.vehicleId)}
               emptyState={{
-                title: filtered ? "No listings match your criteria" : "No vehicles to list yet",
-                description: filtered
-                  ? "Try another search or clear the filters."
-                  : "Checked-in vehicles will appear here for listing preparation.",
-                ...((refinements || active.filters.search) && {
-                  action: {
-                    label: refinements ? "Reset filters" : "Clear search",
-                    onClick: () => {
-                      if (refinements) {
-                        resetFilters();
-                        return;
-                      }
-                      void state.load({ ...active.filters, search: "" }, 1, true);
-                    },
-                  },
-                }),
+                noun: "listings",
+                icon: "car",
+                narrowed,
+                hint: "Checked-in vehicles appear here for listing preparation.",
+                onClear: () => resetFilters(true),
               }}
             />
           ) : (

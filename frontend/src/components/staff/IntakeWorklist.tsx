@@ -38,30 +38,6 @@ const intakeSections = [
   { value: "cancelled", label: "Cancelled", count: "cancelled" },
 ] as const;
 
-// What an empty section tab says when no search or filter narrows it.
-const emptySections: Record<string, { title: string; description: string }> = {
-  all: {
-    title: "No intake appointments yet",
-    description: "Booked appointments will appear here when customers schedule an inspection.",
-  },
-  booked: {
-    title: "No booked appointments",
-    description: "New inspection bookings appear here.",
-  },
-  checkedIn: {
-    title: "No checked-in appointments",
-    description: "Customers who have arrived appear here.",
-  },
-  noShow: {
-    title: "No no-shows",
-    description: "Appointments a customer missed appear here.",
-  },
-  cancelled: {
-    title: "No cancelled appointments",
-    description: "Cancelled bookings appear here.",
-  },
-};
-
 export function IntakeWorklist({ actor, worklist, drawer }: IntakeWorklistProps) {
   const toast = useToast();
   const disabled = Boolean(drawer.id);
@@ -93,9 +69,8 @@ export function IntakeWorklist({ actor, worklist, drawer }: IntakeWorklistProps)
     snapshot?.items.find((item) => item.branchId === active.filters.branchId)?.branchName ??
     "Selected branch";
   const appliedFilters = appliedIntakeFilters(active.filters, branchName);
-  // The section tab is not a criterion to clear: an empty tab says so, and only a search or column filter offers a clear.
+  // The section tab is not a criterion to clear, so an empty tab never offers a clear.
   const narrowed = appliedFilters.length > 0 || Boolean(active.filters.search);
-  const emptySection = emptySections[active.filters.status] ?? emptySections.all;
 
   async function sortWorklist(sort: TableSort | null) {
     await worklist.load(
@@ -218,23 +193,18 @@ export function IntakeWorklist({ actor, worklist, drawer }: IntakeWorklistProps)
             label="Scoped intake appointments"
             rows={snapshot.items}
             emptyState={{
-              title: narrowed ? "No appointments match your criteria" : emptySection.title,
-              description: narrowed
-                ? "Try another search or clear the filters to see more appointments."
-                : emptySection.description,
-              ...(narrowed && {
-                action: {
-                  label: "Clear search and filters",
-                  onClick: () =>
-                    void worklist.load(
-                      {
-                        ...resetWorklistFilters(active.filters),
-                        status: active.filters.status,
-                      },
-                      1,
-                    ),
-                },
-              }),
+              noun: "appointments",
+              icon: "calendar",
+              narrowed,
+              hint: "Booked appointments appear here when customers schedule an inspection.",
+              onClear: () =>
+                void worklist.load(
+                  {
+                    ...resetWorklistFilters(active.filters),
+                    status: active.filters.status,
+                  },
+                  1,
+                ),
             }}
             columns={columns}
             rowId={(row) => row.id}

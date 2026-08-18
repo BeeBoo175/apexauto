@@ -4,7 +4,7 @@ import { SaleStatus } from "@/components/sales/SaleStatus";
 import { workshopStatuses } from "@/lib/inspection/workshop-contracts";
 import { saleStatuses } from "@/lib/sales/contracts";
 import type { IconName } from "@/lib/icons";
-import { StaffQueueEmpty } from "./StaffQueueEmpty";
+import { EmptyNotice } from "@/components/ui/EmptyNotice";
 import { StaffQueueTabs } from "./StaffQueueTabs";
 import { StaffQueueFooter } from "./StaffQueueFooter";
 import type { UnscheduledWorkPage, WorkItem } from "@/lib/staff/work-calendar";
@@ -84,24 +84,24 @@ export function OngoingWorkQueue({
       </header>
       <div className={queue.list} key={`${snapshot?.page}:${snapshot?.pageSize}:${search}:${kind}`}>
         {snapshot?.items.length === 0 && search && (
-          <StaffQueueEmpty icon="search" title="No matches">
+          <EmptyNotice icon="search" title="No matches">
             No job matches this search.
-          </StaffQueueEmpty>
+          </EmptyNotice>
         )}
         {snapshot?.items.length === 0 && !search && (
-          <StaffQueueEmpty icon={emptyKinds[kind].icon} title={emptyKinds[kind].title}>
+          <EmptyNotice icon={emptyKinds[kind].icon} title={emptyKinds[kind].title}>
             {emptyKinds[kind].text}
-          </StaffQueueEmpty>
+          </EmptyNotice>
         )}
         {!snapshot && !busy && (
-          <StaffQueueEmpty
+          <EmptyNotice
             icon="alert-triangle"
             tone="alert"
             title="Ongoing work unavailable"
             action={{ label: "Retry ongoing work", disabled: busy, onClick: onRetry }}
           >
             The last confirmed list is kept.
-          </StaffQueueEmpty>
+          </EmptyNotice>
         )}
         <ul className={queue.jobs}>
           {snapshot?.items.map((item) => (

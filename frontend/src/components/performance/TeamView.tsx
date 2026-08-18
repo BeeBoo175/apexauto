@@ -30,6 +30,7 @@ import {
 import { HeadlineFigures } from "./HeadlineFigures";
 import {
   appliedTeamFilters,
+  noTeamFilters,
   statusChoices,
   teamQuery,
   teamUrlValues,
@@ -381,8 +382,11 @@ function TeamTable<Row extends SalesRow | WorkshopRow>({
             disabled={false}
             busy={read.busy}
             emptyState={{
-              title: "No one matches",
-              description: "Change the search or filters, or choose another period or branch.",
+              noun: "people",
+              icon: "users",
+              narrowed: appliedTeamFilters(filters, labelOf).length > 0,
+              hint: "Choose another period or branch to see more people.",
+              onClear: () => change({ ...noTeamFilters, sort: filters.sort }),
             }}
             onPage={(next, size) => {
               setPage(size === pageSize ? next : 1);

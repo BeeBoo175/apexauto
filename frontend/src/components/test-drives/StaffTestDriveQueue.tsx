@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, type ReactNode } from "react";
-import { StaffQueueEmpty } from "@/components/staff/StaffQueueEmpty";
+import { EmptyNotice } from "@/components/ui/EmptyNotice";
 import { StaffQueueLayout } from "@/components/staff/StaffQueueLayout";
 import { StaffQueueTabs } from "@/components/staff/StaffQueueTabs";
 import { StaffQueueFooter } from "@/components/staff/StaffQueueFooter";
@@ -114,16 +114,16 @@ export function StaffTestDriveQueue({
             aria-busy={busy}
           >
             {snapshot.items.length === 0 && active.filters.search && (
-              <StaffQueueEmpty
+              <EmptyNotice
                 icon="search"
                 title="No matches"
                 action={{ label: "Clear search", disabled: busy, onClick: clearSearch }}
               >
                 No test drive matches this search.
-              </StaffQueueEmpty>
+              </EmptyNotice>
             )}
             {snapshot.items.length === 0 && !active.filters.search && (
-              <StaffQueueEmpty
+              <EmptyNotice
                 icon={emptyQueues[queue.value].icon}
                 title={emptyQueues[queue.value].title}
                 link={
@@ -136,7 +136,7 @@ export function StaffTestDriveQueue({
                 }
               >
                 {emptyQueues[queue.value].text}
-              </StaffQueueEmpty>
+              </EmptyNotice>
             )}
             <ul className={styles.jobs}>
               {snapshot.items.map((row) => (

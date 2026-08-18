@@ -1,7 +1,7 @@
 "use client";
 
 import { CustomerAvatar } from "@/components/staff/CustomerAvatar";
-import { StaffQueueEmpty } from "@/components/staff/StaffQueueEmpty";
+import { EmptyNotice } from "@/components/ui/EmptyNotice";
 import { StaffQueueFooter } from "@/components/staff/StaffQueueFooter";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -92,17 +92,17 @@ export function SalesQueueList({
     <section className={styles.queueList} aria-label={title} aria-busy={busy}>
       <div className={styles.list} key={`${snapshot?.page}:${snapshot?.pageSize}:${state.search}`}>
         {!snapshot && !failed && !busy && (
-          <StaffQueueEmpty
+          <EmptyNotice
             icon="alert-triangle"
             tone="alert"
             title="Queue unavailable"
             action={{ label: "Retry queue", disabled: busy, onClick: () => void state.retry() }}
           >
             Your queues are kept as they were.
-          </StaffQueueEmpty>
+          </EmptyNotice>
         )}
         {snapshot?.items.length === 0 && (
-          <StaffQueueEmpty
+          <EmptyNotice
             icon={empty.icon}
             title={empty.title}
             link={
@@ -117,7 +117,7 @@ export function SalesQueueList({
             }
           >
             {empty.text}
-          </StaffQueueEmpty>
+          </EmptyNotice>
         )}
         <ul className={styles.jobs}>
           {snapshot?.items.map((item) => {

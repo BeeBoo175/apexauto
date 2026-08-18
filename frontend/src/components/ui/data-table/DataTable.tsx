@@ -6,7 +6,7 @@ import { useTableColumnSizing } from "@/hooks/use-table-column-sizing";
 import { columnLayout } from "@/lib/column-resize";
 import { DataTableHeader } from "./DataTableHeader";
 import { DataTablePagination } from "./DataTablePagination";
-import { Button } from "@/components/ui/Button";
+import { EmptyNotice } from "@/components/ui/EmptyNotice";
 import type { DataTableProps } from "./types";
 import styles from "./DataTable.module.css";
 
@@ -39,17 +39,8 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
   const layout = columnLayout(sizing, columnWidths, Boolean(selection));
   const selectedCount = rows.filter((row) => selection?.ids.has(rowId(row))).length;
   const all = rows.length > 0 && selectedCount === rows.length;
-  const emptyState =
-    props.page.page > 1 || props.page.total > 0
-      ? {
-          title: "No records on this page",
-          description: "Return to the first page to see the latest results for your criteria.",
-          action: {
-            label: "Go to first page",
-            onClick: () => props.onPage(1, props.page.pageSize),
-          },
-        }
-      : props.emptyState;
+  const { emptyState } = props;
+  const pastLastPage = props.page.page > 1 || props.page.total > 0;
   useEffect(() => {
     if (checkbox.current) {
       checkbox.current.indeterminate = selectedCount > 0 && !all;
@@ -191,20 +182,41 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
         </table>
       </div>
       {rows.length === 0 && (
-        <div className={styles.empty} aria-busy={props.busy}>
-          <div className={styles.emptyContent} role="status">
-            <h3>{emptyState.title}</h3>
-            <p>{emptyState.description}</p>
-          </div>
-          {emptyState.action && (
-            <Button
-              size="compact"
-              variant="secondary"
-              disabled={disabled || props.busy}
-              onClick={emptyState.action.onClick}
+        <div className={styles.empty} aria-busy={props.busy} role="status">
+          {pastLastPage && (
+            <EmptyNotice
+              icon="table"
+              title="No records on this page"
+              action={{
+                label: "Go to first page",
+                disabled: disabled || props.busy,
+                onClick: () => props.onPage(1, props.page.pageSize),
+              }}
             >
-              {emptyState.action.label}
-            </Button>
+              Return to the first page to see the latest results.
+            </EmptyNotice>
+          )}
+          {!pastLastPage && emptyState.narrowed && (
+            <EmptyNotice
+              icon="search"
+              title={`No ${emptyState.noun} match your criteria`}
+              action={
+                emptyState.onClear
+                  ? {
+                      label: "Clear search and filters",
+                      disabled: disabled || props.busy,
+                      onClick: emptyState.onClear,
+                    }
+                  : undefined
+              }
+            >
+              Try another search or clear the filters.
+            </EmptyNotice>
+          )}
+          {!pastLastPage && !emptyState.narrowed && (
+            <EmptyNotice icon={emptyState.icon} title={`No ${emptyState.noun}`}>
+              {emptyState.hint ?? "Nothing to show here yet."}
+            </EmptyNotice>
           )}
         </div>
       )}

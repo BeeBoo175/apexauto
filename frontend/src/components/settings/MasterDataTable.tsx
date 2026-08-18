@@ -133,11 +133,11 @@ export function MasterDataTable<Row extends { id: string }>({
       selectedRowId={selectedId}
       onRowClick={onOpen}
       emptyState={{
-        title: filtered
-          ? `No ${label.toLowerCase()} match your criteria`
-          : `No ${label.toLowerCase()} yet`,
-        description: `Search, use the column filters, or create a ${noun}.`,
-        ...(filtered && { action: { label: "Clear search and filters", onClick: clearAll } }),
+        noun: label.toLowerCase(),
+        icon: "table",
+        narrowed: filtered,
+        hint: `Create a ${noun} to add the first one.`,
+        onClear: clearAll,
       }}
     />
   );

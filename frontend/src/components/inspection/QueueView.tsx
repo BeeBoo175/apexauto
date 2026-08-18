@@ -119,9 +119,8 @@ export function QueueView<T>({
       active.filters.minimumBudget ||
       active.filters.maximumBudget,
     );
-  const filtered = refinements || Boolean(active.filters.search) || active.filters.status !== "All";
-  const emptyTitle = "No workshop vehicles yet";
-  const emptyDescription = "Checked-in vehicles and their current workshop work will appear here.";
+  // The status tab is not a criterion to clear, so an empty tab never offers a clear.
+  const narrowed = refinements || Boolean(active.filters.search);
 
   function changePage(page: number, pageSize: number) {
     void state.load({ ...active.filters, pageSize }, page);
@@ -141,10 +140,11 @@ export function QueueView<T>({
 
   const filteredColumns = workshopColumnFilters(state, columns, disabled);
 
-  function resetFilters() {
+  function resetFilters(clearSearch = false) {
     void state.load(
       {
         ...active.filters,
+        search: clearSearch ? "" : active.filters.search,
         branchId: "",
         from: "",
         to: "",
@@ -222,7 +222,7 @@ export function QueueView<T>({
                             size="compact"
                             variant="ghost"
                             disabled={disabled || state.busy}
-                            onClick={resetFilters}
+                            onClick={() => resetFilters()}
                           >
                             Reset filters
                           </Button>
@@ -272,22 +272,11 @@ export function QueueView<T>({
               label={title}
               rows={snapshot.items}
               emptyState={{
-                title: filtered ? `No ${title.toLowerCase()} match your criteria` : emptyTitle,
-                description: filtered
-                  ? "Try another search or clear the filters to see more records."
-                  : emptyDescription,
-                ...((refinements || active.filters.search) && {
-                  action: {
-                    label: refinements ? "Reset filters" : "Clear search",
-                    onClick: () => {
-                      if (refinements) {
-                        resetFilters();
-                        return;
-                      }
-                      void state.load({ ...active.filters, search: "" }, 1);
-                    },
-                  },
-                }),
+                noun: "workshop vehicles",
+                icon: "tool",
+                narrowed,
+                hint: "Checked-in vehicles and their workshop work appear here.",
+                onClear: () => resetFilters(true),
               }}
               columns={filteredColumns}
               sorting={{ value: active.sort, onChange: sortQueue }}

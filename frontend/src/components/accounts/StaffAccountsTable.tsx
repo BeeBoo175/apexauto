@@ -131,6 +131,16 @@ export function StaffAccountsTable({
       without: { ...filters, branchId: "" },
     });
   }
+  // The view tab is not a criterion to clear, so an empty tab never offers a clear.
+  const narrowed = applied.length > 0 || Boolean(filters.search);
+
+  function clearAll() {
+    void list.load(
+      { ...filters, search: "", name: "", email: "", mobile: "", role: "", branchId: "" },
+      1,
+    );
+  }
+
   return (
     <div className={`${styles.page} ${animateEntry ? workspace.reveal : ""}`}>
       <div className={styles.body}>
@@ -146,8 +156,11 @@ export function StaffAccountsTable({
           onRowClick={(row) => onOpen(row.id)}
           onPage={(page, pageSize) => void list.load({ ...filters, pageSize }, page)}
           emptyState={{
-            title: "No matching staff",
-            description: "Choose another view, search or filter.",
+            noun: "staff",
+            icon: "users",
+            narrowed,
+            hint: "Invite staff to add the first account.",
+            onClear: clearAll,
           }}
           toolbar={
             <>
