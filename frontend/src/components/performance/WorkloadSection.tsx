@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { PersonLabel } from "@/components/staff/PersonLabel";
 import { StaffLink } from "@/components/staff/StaffLink";
 import { StaffQueueTabs } from "@/components/staff/StaffQueueTabs";
+import { EmptyNotice } from "@/components/ui/EmptyNotice";
 import { SearchField } from "@/components/ui/SearchField";
 import { DataTablePagination } from "@/components/ui/data-table/DataTablePagination";
 import { roleNames, type Role } from "@/lib/auth/actor";
@@ -61,6 +62,7 @@ export function WorkloadSection({
   return (
     <DashboardSection
       title="Who has room"
+      fill={workload?.people.length === 0}
       aside={<AgeLegend />}
       tools={
         <div className={styles.roomTools}>
@@ -126,10 +128,14 @@ function WorkloadGroups({
   searching: boolean;
 }) {
   if (people.length === 0) {
-    return (
-      <p className={dashboard.note}>
-        {searching ? "No one matches that search." : "No one in this team holds open work."}
-      </p>
+    return searching ? (
+      <EmptyNotice icon="search" title="No matches">
+        No one matches that search.
+      </EmptyNotice>
+    ) : (
+      <EmptyNotice icon="users" title="Everyone has room">
+        No one in this team holds open work.
+      </EmptyNotice>
     );
   }
   // The read already orders people: work over a week first, then by branch for a general manager, then by name.

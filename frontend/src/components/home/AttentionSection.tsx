@@ -157,9 +157,7 @@ export function AttentionBand({
         <h2 id="home-attention" className={dashboard.panelTitle}>
           Needs you now
         </h2>
-        {ready && waiting === 0 && (
-          <span className={dashboard.panelAside}>Nothing waits on you</span>
-        )}
+        {ready && waiting === 0 && <span className={dashboard.panelAside}>All clear</span>}
       </div>
       {!ready && failed && (
         <p className={dashboard.note}>
@@ -180,7 +178,9 @@ export function AttentionBand({
               </span>
               <h3 className={styles.tileTitle}>{group.title}</h3>
             </div>
-            {ready && <span className={styles.tileTotal}>{groupTotal(group)}</span>}
+            {ready && group.lines.length > 0 && (
+              <span className={styles.tileTotal}>{groupTotal(group)}</span>
+            )}
             <AttentionLines group={group} ready={ready} />
           </div>
         ))}
@@ -207,7 +207,14 @@ function AttentionLines({ group, ready }: { group: AttentionGroup; ready: boolea
     return <span className={`${dashboard.placeholder} ${styles.shellTile}`} />;
   }
   if (group.lines.length === 0) {
-    return <p className={styles.allClear}>Nothing waiting</p>;
+    return (
+      <p className={styles.allClear}>
+        <span className={styles.clearTick} aria-hidden="true">
+          <Icon name="check" grid={24} />
+        </span>
+        Nothing waiting
+      </p>
+    );
   }
   return (
     <ul className={styles.tileLines}>

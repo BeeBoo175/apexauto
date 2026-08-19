@@ -37,6 +37,13 @@
 
 /* Two sections side by side stretch to the same height; the heading stays at the top and the chart sits at the bottom,
    so their baselines line up even when one heading wraps onto a second line. */
+/* A notice in a panel that fills its pane takes the height left between the heading and the foot, so it centres there
+   instead of sizing itself from the pane and pushing the foot out of view. */
+.fill > [class*="notice"] {
+  flex: 1 1 auto;
+  min-height: 240px;
+}
+
 .half {
   grid-column: auto;
   align-content: space-between;

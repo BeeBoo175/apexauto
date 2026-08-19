@@ -15,6 +15,7 @@ export interface SectionState {
 export function DashboardSection({
   title,
   half = false,
+  fill = false,
   aside,
   tools,
   footer,
@@ -24,6 +25,8 @@ export function DashboardSection({
 }: {
   title: string;
   half?: boolean;
+  // The content takes the height left under the heading, so a notice in it centres in the panel.
+  fill?: boolean;
   aside?: ReactNode;
   // Controls for a long list (tabs, search). With them the heading block sticks to the top of its scroll pane, so
   // the controls stay in reach while the list scrolls under them.
@@ -45,7 +48,7 @@ export function DashboardSection({
   );
   return (
     <section
-      className={`${styles.panel} ${half ? styles.half : ""} ${footer ? styles.panelWithFoot : ""}`.trim()}
+      className={`${styles.panel} ${half ? styles.half : ""} ${fill ? styles.fill : ""} ${footer ? styles.panelWithFoot : ""}`.trim()}
       aria-labelledby={headingId}
       aria-busy={state.busy}
     >

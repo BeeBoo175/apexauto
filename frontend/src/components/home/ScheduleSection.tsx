@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { StaffLink } from "@/components/staff/StaffLink";
+import { EmptyNotice } from "@/components/ui/EmptyNotice";
 import { DashboardSection, type SectionState } from "@/components/staff/DashboardSection";
 import dashboard from "@/components/staff/DashboardSection.module.css";
 import { branchLabel } from "@/lib/branches";
@@ -78,7 +79,8 @@ export function ScheduleSection({
     <DashboardSection
       title="Today's schedule"
       aside={
-        items && (
+        items &&
+        items.length > 0 && (
           <span className={dashboard.panelAside}>
             {scheduleSummary(items)},{" "}
             <StaffLink href={calendarHref}>open the work calendar</StaffLink>
@@ -88,7 +90,24 @@ export function ScheduleSection({
       state={{ ...state, hasData: items !== null }}
       placeholder={<span className={`${dashboard.placeholder} ${styles.shellTimeline}`} />}
     >
-      {items && <HourRows items={items} showBranch={showBranch} />}
+      {items && items.length === 0 && (
+        <div className={styles.ghost}>
+          <div className={styles.ghostRail} aria-hidden="true">
+            <HourRows items={items} showBranch={showBranch} />
+          </div>
+          <div className={styles.ghostMessage}>
+            <div className={styles.ghostCard}>
+              <EmptyNotice icon="calendar" title="No bookings today">
+                Appointments and test drives appear here.
+              </EmptyNotice>
+              <StaffLink href={calendarHref} className={styles.ghostLink}>
+                Open the work calendar
+              </StaffLink>
+            </div>
+          </div>
+        </div>
+      )}
+      {items && items.length > 0 && <HourRows items={items} showBranch={showBranch} />}
     </DashboardSection>
   );
 }
