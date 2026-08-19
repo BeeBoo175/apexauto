@@ -234,7 +234,7 @@
   display: grid;
   justify-items: center;
   gap: 12px;
-  max-width: 360px;
+  width: min(340px, 100%);
   padding: 20px 28px;
   border: 1px solid var(--color-line);
   border-radius: 8px;

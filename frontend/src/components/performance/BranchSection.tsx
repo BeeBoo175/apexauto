@@ -1,5 +1,6 @@
 "use client";
 
+import { EmptyChart } from "./EmptyChart";
 import { useState } from "react";
 import { usePerformanceAddressContext } from "@/hooks/use-performance-address";
 import { Select } from "@/components/ui/Input";
@@ -186,9 +187,9 @@ function BranchChart({
   );
   if (weeks.length === 0 || maximum === 0) {
     return (
-      <p className={dashboard.note}>
-        No {measure.noun} in this period, so there is no line to draw.
-      </p>
+      <EmptyChart art="line" icon="map-pin" title={`No ${measure.noun}`}>
+        Branch figures by week appear here.
+      </EmptyChart>
     );
   }
   return (

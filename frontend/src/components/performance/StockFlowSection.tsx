@@ -1,6 +1,7 @@
 import { weekLabel } from "@/lib/performance/format";
 import type { PerformanceStockFlow, StockWeek } from "@/lib/performance/performance";
 import { colors } from "./chart-kit";
+import { EmptyChart } from "./EmptyChart";
 import { Legend } from "./Legend";
 import { LineChart } from "./LineChart";
 import { DashboardSection, type SectionState } from "@/components/staff/DashboardSection";
@@ -63,8 +64,15 @@ function total(weeks: StockWeek[], key: "checkIns" | "deliveries") {
 }
 
 function StockChart({ flow }: { flow: PerformanceStockFlow }) {
-  if (flow.weeks.length === 0) {
-    return <p className={dashboard.note}>No weeks in this period.</p>;
+  if (
+    flow.weeks.length === 0 ||
+    flow.weeks.every((week) => week.checkIns + week.deliveries === 0)
+  ) {
+    return (
+      <EmptyChart art="line" icon="car" title="No vehicles moved">
+        Check-ins and deliveries in this period appear here.
+      </EmptyChart>
+    );
   }
   return (
     <LineChart

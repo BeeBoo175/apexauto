@@ -3,6 +3,7 @@ import { weekLabel } from "@/lib/performance/format";
 import { compactMoney } from "@/lib/currency-format";
 import type { PerformanceStockFlow } from "@/lib/performance/performance";
 import { ColumnChart } from "./ColumnChart";
+import { EmptyChart } from "./EmptyChart";
 import { DashboardSection, type SectionState } from "@/components/staff/DashboardSection";
 import { ChartSkeleton } from "./PerformanceSkeletons";
 import dashboard from "@/components/staff/DashboardSection.module.css";
@@ -32,11 +33,12 @@ export function ValueTrendSection({
 }
 
 function ValueColumns({ flow }: { flow: PerformanceStockFlow }) {
-  if (flow.weeks.length === 0) {
-    return <p className={dashboard.note}>No weeks in this period.</p>;
-  }
-  if (flow.weeks.every((week) => week.deliveredValue === 0)) {
-    return <p className={dashboard.note}>No sales were delivered in this period.</p>;
+  if (flow.weeks.length === 0 || flow.weeks.every((week) => week.deliveredValue === 0)) {
+    return (
+      <EmptyChart art="columns" icon="file-text" title="No sales delivered">
+        Delivered value by week appears here.
+      </EmptyChart>
+    );
   }
   return (
     <>

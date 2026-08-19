@@ -1,5 +1,6 @@
 "use client";
 
+import { EmptyChart } from "./EmptyChart";
 import { formatDays } from "@/lib/performance/format";
 import type { TeamPoint } from "@/lib/performance/team";
 import {
@@ -93,11 +94,15 @@ export function TeamCharts({
   if (state.hasData && (points.length === 0 || points.every((point) => point.volume === 0))) {
     return (
       <DashboardSection title={labels.spread} state={state} placeholder={<ChartSkeleton />}>
-        <p className={dashboard.note}>
+        <EmptyChart
+          art="columns"
+          icon="users"
+          title={points.length === 0 ? "No one in this team" : "Nothing to compare"}
+        >
           {points.length === 0
-            ? "No one in this team to show."
-            : `Nobody has ${labels.volume.toLowerCase()} in this period, so there is nothing to compare.`}
-        </p>
+            ? "People appear here once they join."
+            : `${labels.volume} per person appears here.`}
+        </EmptyChart>
       </DashboardSection>
     );
   }
@@ -146,9 +151,9 @@ function PeopleScatter({
       placeholder={<ChartSkeleton />}
     >
       {timed.length === 0 ? (
-        <p className={dashboard.note}>
-          No one has a {labels.days.toLowerCase()} figure in this period yet.
-        </p>
+        <EmptyChart art="line" icon="clock" title="No timed work yet">
+          {`${labels.days} per person appears here.`}
+        </EmptyChart>
       ) : (
         <div
           role="img"

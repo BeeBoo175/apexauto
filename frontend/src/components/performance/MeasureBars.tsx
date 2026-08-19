@@ -21,6 +21,7 @@ import {
   type TipData,
 } from "./chart-kit";
 import dashboard from "@/components/staff/DashboardSection.module.css";
+import styles from "./Performance.module.css";
 
 interface BarItem {
   key: string;
@@ -72,6 +73,20 @@ export function MeasureBars({
   if (items.length === 0) {
     return <p className={dashboard.note}>{empty}</p>;
   }
+  // A scale of zero draws no bars, tracks or figures, so a measure with nothing in it is laid out as plain rows.
+  if (items.every((item) => (item.value ?? 0) === 0)) {
+    return (
+      <ul className={styles.zeroBars} aria-label={caption}>
+        {items.map((item) => (
+          <li key={item.key} className={styles.zeroBar}>
+            <span>{item.label}</span>
+            <span className={dashboard.track} aria-hidden="true" />
+            <span className={styles.zeroFigure}>{item.text}</span>
+          </li>
+        ))}
+      </ul>
+    );
+  }
   const data = items.map((item) => {
     const lines = [{ value: item.text }, ...(item.detail ? [{ value: item.detail }] : [])];
     const tip: TipData = {
@@ -104,7 +119,7 @@ export function MeasureBars({
             dataKey="value"
             fill={color}
             radius={[0, 2, 2, 0]}
-            background={{ fill: "var(--color-canvas)", radius: 2 }}
+            background={{ fill: "#e3eafa", radius: 2 }}
             isAnimationActive={!reduced}
             animationDuration={600}
           >
