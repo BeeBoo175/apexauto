@@ -109,7 +109,7 @@ export function parseBankAccountRequest(value: unknown): BankAccountDetails | nu
   if (
     !isRecord(value) ||
     typeof value.bankCode !== "string" ||
-    !/^[A-Za-z0-9]{1,16}$/.test(value.bankCode) ||
+    !/^[A-Za-z0-9]{1,24}$/.test(value.bankCode) ||
     typeof value.accountNumber !== "string" ||
     !/^[0-9]{6,20}$/.test(value.accountNumber) ||
     typeof value.accountHolder !== "string" ||

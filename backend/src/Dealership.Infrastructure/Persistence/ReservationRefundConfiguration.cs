@@ -16,7 +16,7 @@ public sealed class ReservationRefundConfiguration : IEntityTypeConfiguration<Re
         builder.HasKey(item => item.PaymentRequestId);
         builder.Property(item => item.PaymentRequestId).ValueGeneratedNever();
         builder.Property(item => item.State).HasConversion<string>().HasMaxLength(16).IsRequired();
-        builder.Property(item => item.BankCode).HasMaxLength(16).IsRequired();
+        builder.Property(item => item.BankCode).HasMaxLength(ReservationRefund.MaximumBankCodeLength).IsRequired();
         builder.Property(item => item.AccountLast4).HasMaxLength(4).IsRequired();
         builder.Property(item => item.AccountHolder).HasMaxLength(100).IsRequired();
         builder.Property(item => item.PayoutId).HasMaxLength(64);

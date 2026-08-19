@@ -16,6 +16,8 @@ public enum RefundState
 // and never stored; only the bank, the last four digits and the holder's name stay for the customer's own view.
 public sealed class ReservationRefund
 {
+    // Long enough for the provider sandbox's DUMMYBANKVERIFIED as well as the SWIFT codes of real banks.
+    public const int MaximumBankCodeLength = 24;
     public const int AccountNumberMinimumLength = 6;
     public const int AccountNumberMaximumLength = 20;
 
@@ -106,7 +108,7 @@ public sealed class ReservationRefund
     private void SetAccount(string bankCode, string accountNumber, string accountHolder)
     {
         var holder = accountHolder?.Trim();
-        if (string.IsNullOrWhiteSpace(bankCode) || bankCode.Length > 16 || !bankCode.All(char.IsAsciiLetterOrDigit) ||
+        if (string.IsNullOrWhiteSpace(bankCode) || bankCode.Length > MaximumBankCodeLength || !bankCode.All(char.IsAsciiLetterOrDigit) ||
             !IsValidAccountNumber(accountNumber) || string.IsNullOrWhiteSpace(holder) || holder.Length > 100 ||
             holder.Any(char.IsControl))
         {

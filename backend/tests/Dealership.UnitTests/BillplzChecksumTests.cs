@@ -70,6 +70,15 @@ public sealed class BillplzChecksumTests
         Assert.Equal(RefundState.Completed, refund.State);
     }
 
+    [Fact]
+    public void ARefundAcceptsTheSandboxBankCode()
+    {
+        var refund = new ReservationRefund(Guid.NewGuid(), Guid.NewGuid(), 50000, "DUMMYBANKVERIFIED", "1234567890",
+            "Nur Aina", Now);
+
+        Assert.Equal("DUMMYBANKVERIFIED", refund.BankCode);
+    }
+
     [Theory]
     [InlineData("MBBEMYKL", "12345", "Nur Aina")]
     [InlineData("MBBEMYKL", "12345678a0", "Nur Aina")]
