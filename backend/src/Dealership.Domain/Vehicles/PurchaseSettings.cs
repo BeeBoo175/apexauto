@@ -10,6 +10,10 @@ public sealed class PurchaseSettings
     public const int MinimumReservationHoldHours = 1;
     public const int MaximumReservationHoldHours = 168;
     public const decimal DefaultMaxAgentDiscountAmount = 500m;
+    // The values a deployment starts with until an administrator changes them: the processing fee in ringgit and the
+    // 8% service tax rate.
+    public const decimal DefaultProcessingFee = 500m;
+    public const decimal DefaultSstRate = 0.08m;
 
     private PurchaseSettings()
     {

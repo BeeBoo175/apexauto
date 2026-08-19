@@ -8,17 +8,39 @@ namespace Dealership.Infrastructure.Vehicles;
 
 public sealed class PurchaseSettingsAdministrationStore(DealershipDbContext database) : IPurchaseSettingsAdministrationStore
 {
-    public async Task<PurchaseSettingsAdministrationResult> ReadAsync(Guid actorId, CancellationToken cancellationToken)
+    public async Task<PurchaseSettingsAdministrationResult> ReadAsync(Guid actorId, DateTimeOffset now,
+        CancellationToken cancellationToken)
     {
         if (!await AdministratorScope.IsAdministratorAsync(database, actorId, cancellationToken))
         {
             return new(PurchaseSettingsAdministrationStatus.Forbidden);
         }
 
-        var settings = await database.PurchaseSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
-        return settings is null
-            ? new(PurchaseSettingsAdministrationStatus.NotFound)
-            : new(PurchaseSettingsAdministrationStatus.Succeeded, PurchaseSettingsView.From(settings));
+        var settings = await database.PurchaseSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken)
+            ?? await CreateDefaultsAsync(actorId, now, cancellationToken);
+        return new(PurchaseSettingsAdministrationStatus.Succeeded, PurchaseSettingsView.From(settings));
+    }
+
+    // The same advisory lock as provisioning serialises a second administrator reading at the same moment, who then
+    // finds the row the first created.
+    private async Task<PurchaseSettings> CreateDefaultsAsync(Guid actorId, DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
+        await database.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT pg_advisory_xact_lock(hashtextextended({"purchase-configuration"}, 0))", cancellationToken);
+        var existing = await database.PurchaseSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
+        if (existing is not null)
+        {
+            return existing;
+        }
+
+        var defaults = new PurchaseSettings(PurchaseSettings.DefaultProcessingFee, PurchaseSettings.DefaultSstRate,
+            actorId, now);
+        database.PurchaseSettings.Add(defaults);
+        await database.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return defaults;
     }
 
     public async Task<PurchaseSettingsAdministrationResult> UpdateAsync(Guid actorId,

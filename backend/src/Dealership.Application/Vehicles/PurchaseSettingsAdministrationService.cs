@@ -7,7 +7,7 @@ public sealed class PurchaseSettingsAdministrationService(IPurchaseSettingsAdmin
     public Task<PurchaseSettingsAdministrationResult> ReadAsync(Guid actorId, CancellationToken cancellationToken) =>
         actorId == Guid.Empty
             ? Task.FromResult(new PurchaseSettingsAdministrationResult(PurchaseSettingsAdministrationStatus.Forbidden))
-            : store.ReadAsync(actorId, cancellationToken);
+            : store.ReadAsync(actorId, clock.GetUtcNow(), cancellationToken);
 
     public Task<PurchaseSettingsAdministrationResult> UpdateAsync(Guid actorId, PurchaseSettingsUpdateRequest request,
         CancellationToken cancellationToken)

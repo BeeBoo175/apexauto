@@ -35,6 +35,8 @@ function snapshot<T>(
 export function useSettingsWorkspace(entry: SettingsEntry) {
   const [section, setSection] = useState(entry.section);
   const [settings, setSettings] = useState<PurchaseSettings | null>(entry.settings?.data ?? null);
+  // The settings record is created by provisioning, so a confirmed 404 is a state of its own, not a failed read.
+  const [settingsMissing, setSettingsMissing] = useState(entry.settings?.status === 404);
   const [promos, setPromos] = useState(snapshot(entry, entry.promos?.data));
   const [warranties, setWarranties] = useState(snapshot(entry, entry.warranties?.data));
   const { busy, ready, begin, isCurrent, end, cancel } = useBoundedRead();
@@ -68,10 +70,15 @@ export function useSettingsWorkspace(entry: SettingsEntry) {
         if (!isCurrent(attempt)) {
           return false;
         }
-        if (result.status !== 200 || !result.data) {
+        if (result.status === 404) {
+          setSettings(null);
+          setSettingsMissing(true);
+        } else if (result.status !== 200 || !result.data) {
           throw new Error("Settings unavailable");
+        } else {
+          setSettings(result.data);
+          setSettingsMissing(false);
         }
-        setSettings(result.data);
       } else {
         const result =
           next === "promos"
@@ -108,5 +115,16 @@ export function useSettingsWorkspace(entry: SettingsEntry) {
     }
   }
 
-  return { section, settings, setSettings, promos, warranties, busy, ready, open, cancel };
+  return {
+    section,
+    settings,
+    settingsMissing,
+    setSettings,
+    promos,
+    warranties,
+    busy,
+    ready,
+    open,
+    cancel,
+  };
 }

@@ -38,7 +38,10 @@ public sealed record PurchaseSettingsAdministrationResult(PurchaseSettingsAdmini
 
 public interface IPurchaseSettingsAdministrationStore
 {
-    Task<PurchaseSettingsAdministrationResult> ReadAsync(Guid actorId, CancellationToken cancellationToken);
+    // Reads the settings; the first administrator to read a deployment with none creates the defaults, stamped with
+    // that administrator and the time given.
+    Task<PurchaseSettingsAdministrationResult> ReadAsync(Guid actorId, DateTimeOffset now,
+        CancellationToken cancellationToken);
 
     Task<PurchaseSettingsAdministrationResult> UpdateAsync(Guid actorId, PurchaseSettingsUpdateRequest request,
         DateTimeOffset now, CancellationToken cancellationToken);

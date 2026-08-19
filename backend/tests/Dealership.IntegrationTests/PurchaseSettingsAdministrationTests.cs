@@ -16,16 +16,21 @@ public sealed class PurchaseSettingsAdministrationTests(RegistrationDatabase dat
         var administrator = await AddUserAsync(AccountRoles.Administrator, true);
         var inactive = await AddUserAsync(AccountRoles.Administrator, false);
         var manager = await AddUserAsync(AccountRoles.GeneralManager, true);
-        Assert.Equal(PurchaseSettingsAdministrationStatus.NotFound, (await ReadAsync(administrator)).Status);
+        // Nobody but an administrator creates the defaults, and an update never creates them.
+        foreach (var actor in new[] { inactive, manager, Guid.NewGuid(), Guid.Empty })
+        {
+            Assert.Equal(PurchaseSettingsAdministrationStatus.Forbidden, (await ReadAsync(actor)).Status);
+        }
+
+        await using (var empty = NewContext())
+        {
+            Assert.False(await empty.PurchaseSettings.AnyAsync());
+        }
+
         Assert.Equal(PurchaseSettingsAdministrationStatus.NotFound,
             (await UpdateAsync(administrator, Request(1))).Status);
 
-        await using (var seed = NewContext())
-        {
-            seed.PurchaseSettings.Add(new(500m, 0.08m, administrator, DateTimeOffset.UtcNow.AddMinutes(-5)));
-            await seed.SaveChangesAsync();
-        }
-
+        // The first administrator read of a deployment without settings creates the defaults, stamped with them.
         var current = await ReadAsync(administrator);
         Assert.Equal(PurchaseSettingsAdministrationStatus.Succeeded, current.Status);
         Assert.Equal((500m, 0.08m, 500m, 48, 1L), (current.Settings!.ProcessingFee, current.Settings.SstRate,

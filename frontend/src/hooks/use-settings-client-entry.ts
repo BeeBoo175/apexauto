@@ -78,8 +78,10 @@ export function useSettingsClientEntry(parameters: SearchParams, selection: Sett
       import("@/components/settings/SettingsWorkspace"),
     ]);
     const list = promos?.data ?? warranties?.data ?? null;
+    // A missing settings record (404) still opens the workspace, so its Promos and Warranties sections stay reachable
+    // and the Settings section can say the record is not set up; any other failed read keeps the retry notice.
     if (
-      (section === "settings" && !settings?.data) ||
+      (section === "settings" && !settings?.data && settings?.status !== 404) ||
       (section !== "settings" &&
         (!list || list.page !== page || list.pageSize !== filters.pageSize))
     ) {

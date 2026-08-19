@@ -5,6 +5,7 @@ import { StaffPageEntranceContext } from "@/components/staff/StaffActorBoundary"
 import { StaffCommandBar } from "@/components/staff/StaffPage";
 import { StaffQueueTabs } from "@/components/staff/StaffQueueTabs";
 import { Button } from "@/components/ui/Button";
+import { EmptyNotice } from "@/components/ui/EmptyNotice";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import { useSettingsWorkspace } from "@/hooks/use-settings-workspace";
@@ -61,23 +62,45 @@ export function SettingsWorkspace({ entry }: { entry: SettingsEntry }) {
     );
   }
 
-  let body;
-  if (section === "settings") {
-    body = settings ? (
+  // The purchase settings record is created by provisioning, never by this page, so a 404 says it does not exist yet.
+  function notSetUp() {
+    return (
       <>
         {tabs}
-        <SettingsForm
-          settings={settings}
-          draft={draft}
-          busy={busy}
-          onDraft={setDraft}
-          onSaved={state.setSettings}
-          onLocked={setEditingLocked}
-        />
+        <div className={styles.fillNotice}>
+          <EmptyNotice
+            icon="table"
+            title="Settings are not set up"
+            action={{ label: "Retry settings", disabled: busy, onClick: () => void nav.reload() }}
+          >
+            The purchase settings record has not been created yet.
+          </EmptyNotice>
+        </div>
       </>
-    ) : (
-      unavailable("Settings")
     );
+  }
+
+  let body;
+  if (section === "settings") {
+    if (settings) {
+      body = (
+        <>
+          {tabs}
+          <SettingsForm
+            settings={settings}
+            draft={draft}
+            busy={busy}
+            onDraft={setDraft}
+            onSaved={state.setSettings}
+            onLocked={setEditingLocked}
+          />
+        </>
+      );
+    } else if (state.settingsMissing) {
+      body = notSetUp();
+    } else {
+      body = unavailable("Settings");
+    }
   } else if (section === "promos") {
     const table = promos ? promoTableFilters(promos.filters, busy, promoStatuses, loadList) : null;
     body =

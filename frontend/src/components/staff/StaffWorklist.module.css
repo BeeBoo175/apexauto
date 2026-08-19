@@ -24,6 +24,14 @@
   max-width: 100%;
 }
 
+/* Holds a centred notice that fills the space left under the tabs, so it centres on that space, not the whole body. */
+.fillNotice {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
 .body {
   display: flex;
   flex: 1;
