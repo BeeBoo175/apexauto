@@ -8,43 +8,101 @@
     flex-direction: column;
     gap: 8px;
     max-width: 384px;
-    width: 100%;
+    width: calc(100% - 32px);
     pointer-events: none;
   }
 
+  /* The type sets the card's tint, its icon tile and a faint edge of the same tint. */
   .toast {
+    --toast-color: var(--color-graphite);
     pointer-events: auto;
-    padding: 16px;
-    border: 1px solid;
-    border-radius: var(--radius-sm, 4px);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid color-mix(in srgb, var(--toast-color) 38%, var(--color-paper));
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--toast-color) 12%, var(--color-paper));
+    color: var(--color-graphite);
     box-shadow:
-      0 4px 6px -1px rgb(0 0 0 / 10%),
-      0 2px 4px -2px rgb(0 0 0 / 10%);
-    font-size: 12px;
-    line-height: 16px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    background: var(--color-paper);
+      0 8px 24px rgb(14 27 42 / 16%),
+      0 2px 6px rgb(14 27 42 / 10%);
   }
 
   .success {
-    color: var(--color-trust);
-    border-color: var(--color-trust);
+    --toast-color: var(--color-trust);
   }
 
   .error {
-    color: var(--color-signal);
-    border-color: var(--color-signal);
+    --toast-color: var(--color-signal);
   }
 
   .warning {
-    color: var(--color-warning);
-    border-color: var(--color-warning);
+    --toast-color: var(--color-warning);
   }
 
   .info {
+    /* The interaction blue is defined inside the staff frame only, and toasts also show on public pages. */
+    --toast-color: var(--color-interaction-border, #294e80);
+  }
+
+  .icon {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    background: var(--toast-color);
+    color: var(--color-paper);
+  }
+
+  .message {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+
+  .dismiss {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--color-muted);
+    cursor: pointer;
+  }
+
+  /* The close glyph is drawn on the 24 grid, so it is scaled down here rather than given a smaller grid. */
+  .dismiss svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  @media (hover: hover) {
+    .dismiss:hover {
+      background: color-mix(in srgb, var(--toast-color) 16%, transparent);
+      color: var(--color-graphite);
+    }
+  }
+
+  .dismiss:active {
+    background: color-mix(in srgb, var(--toast-color) 24%, transparent);
     color: var(--color-graphite);
-    border-color: var(--color-graphite);
+  }
+
+  .dismiss:focus-visible {
+    outline: 2px solid var(--toast-color);
+    outline-offset: 1px;
   }
 }

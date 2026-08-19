@@ -1,7 +1,9 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import type { IconName } from "@/lib/icons";
+import { Icon } from "./Icon";
 import styles from "./Toast.module.css";
 
 export type ToastType = "success" | "error" | "warning" | "info";
@@ -22,16 +24,31 @@ interface ToastContextValue {
 
 const ToastContext = createContext<ToastContextValue | undefined>(undefined);
 
+const toastIcons: Record<ToastType, IconName> = {
+  success: "check",
+  error: "alert-circle",
+  warning: "alert-triangle",
+  info: "info-circle",
+};
+
+// A failure stays long enough to read and act on; the others confirm something the person just did.
+const toastDurations: Record<ToastType, number> = {
+  success: 4000,
+  info: 4000,
+  warning: 6000,
+  error: 8000,
+};
+
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   const addToast = useCallback((message: string, type: ToastType = "info") => {
     const id = Math.random().toString(36).substring(2, 9);
     setToasts((prev) => [...prev, { id, type, message }]);
+  }, []);
 
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 4000);
+  const dismiss = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
 
   const value = {
@@ -46,21 +63,57 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     <ToastContext.Provider value={value}>
       {children}
       <ToastViewport>
-        {toasts.map((t) => {
-          return (
-            <div
-              key={t.id}
-              role={t.type === "error" ? "alert" : "status"}
-              className={`${styles.toast} ${styles[t.type]}`}
-            >
-              {t.message}
-            </div>
-          );
-        })}
+        {toasts.map((toast) => (
+          <ToastItem key={toast.id} toast={toast} onDismiss={dismiss} />
+        ))}
       </ToastViewport>
     </ToastContext.Provider>
   );
 };
+
+// One notification: it closes itself after its time, waits while the pointer or keyboard focus is on it, and can be
+// dismissed at once.
+function ToastItem({ toast, onDismiss }: { toast: ToastMessage; onDismiss: (id: string) => void }) {
+  const [held, setHeld] = useState(false);
+  const remaining = useRef(toastDurations[toast.type]);
+
+  useEffect(() => {
+    if (held) {
+      return;
+    }
+
+    const started = Date.now();
+    const timer = window.setTimeout(() => onDismiss(toast.id), remaining.current);
+    return () => {
+      window.clearTimeout(timer);
+      remaining.current = Math.max(remaining.current - (Date.now() - started), 1000);
+    };
+  }, [held, onDismiss, toast.id]);
+
+  return (
+    <div
+      role={toast.type === "error" ? "alert" : "status"}
+      className={`${styles.toast} ${styles[toast.type]}`}
+      onMouseEnter={() => setHeld(true)}
+      onMouseLeave={() => setHeld(false)}
+      onFocus={() => setHeld(true)}
+      onBlur={() => setHeld(false)}
+    >
+      <span className={styles.icon}>
+        <Icon name={toastIcons[toast.type]} />
+      </span>
+      <p className={styles.message}>{toast.message}</p>
+      <button
+        type="button"
+        className={styles.dismiss}
+        aria-label="Dismiss notification"
+        onClick={() => onDismiss(toast.id)}
+      >
+        <Icon name="close" />
+      </button>
+    </div>
+  );
+}
 
 function ToastViewport({ children }: { children: React.ReactNode }) {
   const [host, setHost] = useState<HTMLElement | null>(null);

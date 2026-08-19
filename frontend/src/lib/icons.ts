@@ -7,6 +7,8 @@ export const iconFiles = {
   "shield-check": "shield-check.svg",
   "map-pin": "map-pin.svg",
   "alert-triangle": "alert-triangle.svg",
+  "alert-circle": "alert-circle.svg",
+  "info-circle": "info-circle.svg",
   check: "check.svg",
   help: "help.svg",
   "file-text": "file-text.svg",
