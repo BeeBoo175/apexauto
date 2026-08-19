@@ -2005,8 +2005,8 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("BankCode")
                         .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("character varying(16)");
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
 
                     b.Property<Guid>("CustomerId")
                         .HasColumnType("uuid");
