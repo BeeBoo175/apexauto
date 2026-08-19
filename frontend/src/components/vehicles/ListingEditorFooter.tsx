@@ -93,7 +93,7 @@ export function ListingEditorFooter({
       {publicationAction === "withdraw" && (
         <ConfirmationButton
           confirmationTitle="Withdraw this listing?"
-          message="This immediately removes the listing. Any active unconverted hold will be cancelled with a full simulated deposit refund."
+          message="This immediately removes the listing. Any active unconverted hold will be cancelled with a full deposit refund."
           skipConfirmation={editor.withdrawal.uncertain}
           size="compact"
           variant="danger"

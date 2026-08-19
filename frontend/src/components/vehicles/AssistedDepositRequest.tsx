@@ -1,5 +1,6 @@
 "use client";
 
+import { usePaymentMode } from "@/hooks/use-payment-mode";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
@@ -31,6 +32,7 @@ export function AssistedDepositRequest({
   testDrive?: ReactNode;
   financing: ReactNode;
 }) {
+  const live = usePaymentMode();
   const request = useDepositRequest(detail, customerId);
   const { command } = request;
   const receipt = command.receipt;
@@ -58,8 +60,9 @@ export function AssistedDepositRequest({
             </div>
           </dl>
           <p className={styles.receiptNote}>
-            The customer is emailed a link to confirm the simulated deposit. The car is reserved and
-            the receipt is sent when they confirm. If they do not, the hold is released.
+            The customer is emailed a link to {live ? "pay" : "confirm"} the{" "}
+            {live ? "" : "simulated "}deposit. The car is reserved and the receipt is sent when they
+            confirm. If they do not, the hold is released.
           </p>
         </section>
         <div className={styles.actions}>{financing}</div>
@@ -101,8 +104,10 @@ export function AssistedDepositRequest({
         ]}
       >
         <p>
-          The customer is emailed a link to confirm the refundable RM500 simulated deposit. No real
-          payment is taken. The car is held for them for 24 hours.
+          {live
+            ? "The customer is emailed a link to pay the refundable RM500 deposit securely online."
+            : "The customer is emailed a link to confirm the refundable RM500 simulated deposit. No real payment is taken."}{" "}
+          The car is held for them for 24 hours.
         </p>
         <p>
           The reservation is made, and its receipt sent, only when they confirm. If they do not, the

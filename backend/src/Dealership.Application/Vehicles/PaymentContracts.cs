@@ -19,6 +19,7 @@ public static class PaymentRoutes
 {
     public const string Callback = "/api/payments/callback";
     public const string Return = "/api/payments/returns";
+    public const string Mode = "/api/payments/mode";
     public const string PayoutCallback = "/api/payments/payouts/callback";
 }
 

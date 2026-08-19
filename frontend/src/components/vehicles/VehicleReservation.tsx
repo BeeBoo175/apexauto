@@ -1,5 +1,6 @@
 "use client";
 
+import { usePaymentMode } from "@/hooks/use-payment-mode";
 import Link from "next/link";
 import { useEffect, type ComponentProps, type ReactNode } from "react";
 import { Button, buttonClassName } from "@/components/ui/Button";
@@ -173,6 +174,7 @@ function OwnReservation({
   financing: ReactNode;
   onReserved?: () => void;
 }) {
+  const live = usePaymentMode();
   const reservation = useVehicleReservation(detail, account, actingFor);
   const { command } = reservation;
   const receipt = command.receipt;
@@ -248,7 +250,9 @@ function OwnReservation({
         open={Boolean(reservation.confirmation)}
         title="Reserve this car?"
         confirmLabel={
-          command.uncertain ? "Reconcile reservation" : "Confirm RM500 simulated deposit"
+          command.uncertain
+            ? "Reconcile reservation"
+            : `Confirm RM500 ${live ? "deposit" : "simulated deposit"}`
         }
         cancelLabel="Keep browsing"
         busy={command.busy}
@@ -267,8 +271,10 @@ function OwnReservation({
         ]}
       >
         <p>
-          This reservation records a refundable RM500 deposit and holds the car for 48 hours. No
-          real payment is taken. The deposit counts toward your cash contribution.
+          {live
+            ? "This holds the car for 15 minutes while you pay a refundable RM500 deposit securely online. The reservation is made only once your payment is confirmed."
+            : "This reservation records a refundable RM500 deposit and holds the car for 48 hours. No real payment is taken."}{" "}
+          The deposit counts toward your cash contribution.
         </p>
         <p>
           The backend confirms availability and current terms. Your receipt shows the reserved total

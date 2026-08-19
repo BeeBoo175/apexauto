@@ -1,5 +1,6 @@
 "use client";
 
+import { usePaymentMode } from "@/hooks/use-payment-mode";
 import { useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/Button";
@@ -30,6 +31,7 @@ export function ReservedCar({
   disabled: boolean;
   onCancel: () => void;
 }) {
+  const live = usePaymentMode();
   const [failedPhoto, setFailedPhoto] = useState(false);
   const name = reservationVehicleName(item);
   return (
@@ -73,11 +75,13 @@ export function ReservedCar({
           )}
           {item.release && (
             <p className={styles.refund}>
-              {formatCurrency(item.release.refund)} simulated refund recorded
+              {formatCurrency(item.release.refund)}{" "}
+              {live ? "refund due to you" : "simulated refund recorded"}
             </p>
           )}
           <p className={styles.help}>
-            {formatCurrency(item.receipt.deposit)} simulated deposit · Fully refundable
+            {formatCurrency(item.receipt.deposit)} {live ? "" : "simulated "}deposit · Fully
+            refundable
           </p>
         </div>
       </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { usePaymentMode } from "@/hooks/use-payment-mode";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { useApiCommand } from "@/hooks/use-api-command";
 import { privateApiFetch } from "@/lib/api-browser";
@@ -27,6 +28,7 @@ export function CancelReservation({
   onConfirmed: (item: AccountReservation, receipt: CustomerReservationCancellation) => void;
   onChanged: () => void;
 }) {
+  const live = usePaymentMode();
   const command = useApiCommand(
     `/api/account/reservations/${item.receipt.id}/cancellations`,
     parseCustomerCancellation,
@@ -65,7 +67,9 @@ export function CancelReservation({
       onConfirm={cancel}
     >
       <p>
-        This releases your hold and records a full simulated deposit refund. No real money moves.
+        {live
+          ? "This releases your hold. Your deposit is refunded in full to a bank account you choose."
+          : "This releases your hold and records a full simulated deposit refund. No real money moves."}
       </p>
       {command.uncertain && (
         <p>The cancellation result is unconfirmed. Reconcile the same request before leaving.</p>

@@ -1,5 +1,6 @@
 "use client";
 
+import { usePaymentMode } from "@/hooks/use-payment-mode";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
@@ -29,6 +30,7 @@ export function AccountReservations({
   actorId: string;
   ready: boolean;
 }) {
+  const live = usePaymentMode();
   const history = useAccountReservations(page, filters, actorId);
   const [cancelling, setCancelling] = useState<AccountReservation | null>(null);
   const { snapshot } = history;
@@ -47,7 +49,7 @@ export function AccountReservations({
       <div className={styles.heading}>
         <h2 id="reservations-title">Your reservation</h2>
         <p className={styles.help}>
-          Reserve a car for 48 hours with a refundable MYR 500 simulated deposit.
+          Reserve a car with a refundable MYR 500 {live ? "" : "simulated "}deposit.
         </p>
       </div>
       <div className={styles.body}>

@@ -29,6 +29,9 @@ export function useReservationDepositConfirm() {
   const { success, error, warning } = useToast();
   const controller = useRef<AbortController | null>(null);
   const inFlight = useRef(false);
+  // The signed return is sent once per page. Development runs every effect twice, and the first run's cleanup must not
+  // cancel the one request that this guard lets through.
+  const sent = useRef<string | null>(null);
 
   const finish = useCallback(() => {
     writeAddress("/confirm-deposit");
@@ -57,7 +60,7 @@ export function useReservationDepositConfirm() {
   );
 
   const returnFromPayment = useCallback(
-    async (search: URLSearchParams, signal: AbortSignal) => {
+    async (search: URLSearchParams) => {
       const fields = providerFields(search);
       const requestId = search.get("request");
       const hasFields = Object.keys(fields).length > 0;
@@ -77,7 +80,7 @@ export function useReservationDepositConfirm() {
         const response = await fetch(target.path, {
           ...target.init,
           cache: "no-store",
-          signal: AbortSignal.any([signal, AbortSignal.timeout(AUTH_DEADLINE_MS + 2000)]),
+          signal: AbortSignal.timeout(AUTH_DEADLINE_MS + 2000),
         });
         const body: unknown = await response.json();
         if (response.ok && isRecord(body) && typeof body.status === "string") {
@@ -91,9 +94,8 @@ export function useReservationDepositConfirm() {
             : "The payment result could not be read.",
         );
       } catch {
-        if (!signal.aborted) {
-          warning("The payment result is unconfirmed. Reload this page to check again.");
-        }
+        sent.current = null;
+        warning("The payment result is unconfirmed. Reload this page to check again.");
       } finally {
         setBusy(false);
       }
@@ -102,14 +104,16 @@ export function useReservationDepositConfirm() {
   );
 
   useEffect(() => {
-    const watcher = new AbortController();
     const readFragment = () => {
       const nextToken = new URLSearchParams(window.location.hash.slice(1)).get("token");
       setToken(nextToken);
       const search = new URLSearchParams(window.location.search);
       const returned = search.get("request");
       if (returned && isUuid(returned)) {
-        void returnFromPayment(search, watcher.signal);
+        if (sent.current !== search.toString()) {
+          sent.current = search.toString();
+          void returnFromPayment(search);
+        }
         return;
       }
 
@@ -122,7 +126,6 @@ export function useReservationDepositConfirm() {
     window.addEventListener("hashchange", readFragment);
     return () => {
       controller.current?.abort();
-      watcher.abort();
       window.removeEventListener("hashchange", readFragment);
     };
   }, [error, returnFromPayment]);

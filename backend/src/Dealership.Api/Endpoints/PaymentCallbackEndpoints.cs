@@ -10,6 +10,9 @@ public static class PaymentCallbackEndpoints
         // The provider calls this without a session; the signed fields are the only authority, so the route stays
         // under the ordinary address budget and answers 200 once a verified delivery is recorded.
         app.MapPost(PaymentRoutes.Callback, ReceiveAsync).NoStore();
+        // Whether deposits go through the payment provider, so the pages can word the deposit as real or simulated.
+        app.MapGet(PaymentRoutes.Mode, (ReservationPaymentService payments) =>
+            Results.Ok(new PaymentModeReceipt(payments.IsEnabled))).NoStore();
         // The customer's browser brings the same signed fields back from the payment page, so the page confirms at once.
         app.MapPost(PaymentRoutes.Return, ReceiveReturnAsync)
             .RequireRateLimiting(ApiRateLimiting.VerificationPolicy).NoStore();
@@ -59,6 +62,8 @@ public static class PaymentCallbackEndpoints
             ? Results.Problem(statusCode: 400, title: "The payment return is invalid.")
             : Results.Ok(new ReservationCommandEndpoints.DepositPaymentStatusReceipt(StatusName(result.Status)));
     }
+
+    private sealed record PaymentModeReceipt(bool Live);
 
     private sealed record PaymentReturnRequest(Dictionary<string, string>? Fields);
 }

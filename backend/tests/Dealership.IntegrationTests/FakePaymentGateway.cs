@@ -5,12 +5,12 @@ namespace Dealership.IntegrationTests;
 
 // A provider that is not Billplz: bills are never created remotely, and a message is genuine only when it carries the
 // shared key. The services under test therefore work against the port alone.
-internal sealed class FakePaymentGateway(string signatureKey) : IPaymentGateway
+internal sealed class FakePaymentGateway(string signatureKey, bool enabled = true) : IPaymentGateway
 {
     private readonly List<string> _bills = [];
     private readonly List<string> _deleted = [];
 
-    public bool IsEnabled => true;
+    public bool IsEnabled => enabled;
 
     public IReadOnlyList<string> Bills => _bills;
 
