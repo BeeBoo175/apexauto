@@ -102,7 +102,8 @@ public sealed class DevelopmentAccountFixtureTests(RegistrationDatabase fixture)
         await using var tables = new NpgsqlCommand("""
             SELECT tablename FROM pg_tables WHERE schemaname = 'public'
                 AND tablename NOT IN ('__EFMigrationsHistory', 'Branches', 'AspNetUsers', 'CustomerProfiles',
-                    'StaffProfiles', 'EmailVerificationChallenges', 'AccountSessions') ORDER BY tablename
+                    'StaffProfiles', 'EmailVerificationChallenges', 'AccountSessions', 'PurchaseSettings')
+                ORDER BY tablename
             """, connection);
         var names = new List<string>();
         await using (var reader = await tables.ExecuteReaderAsync())
@@ -119,6 +120,10 @@ public sealed class DevelopmentAccountFixtureTests(RegistrationDatabase fixture)
             await using var query = new NpgsqlCommand($"SELECT EXISTS (SELECT 1 FROM {identifiers.QuoteIdentifier(name)})", connection);
             Assert.False((bool)(await query.ExecuteScalarAsync())!, $"Accounts-only seeding populated {name}");
         }
+
+        // The settings record is the one business row the minimal seed provisions, exactly once.
+        await using var settings = new NpgsqlCommand("SELECT count(*) FROM \"PurchaseSettings\"", connection);
+        Assert.Equal(1L, (long)(await settings.ExecuteScalarAsync())!);
     }
 
     private static async Task<string> SnapshotAsync(DealershipDbContext database) => JsonSerializer.Serialize(new

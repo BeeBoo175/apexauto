@@ -1,15 +1,18 @@
 using Dealership.Application.Accounts;
 using Dealership.Application.Branches;
+using Dealership.Application.Vehicles;
 using Dealership.Infrastructure.Branches;
 using Dealership.Infrastructure.Identity;
 using Dealership.Infrastructure.Persistence;
+using Dealership.Infrastructure.Vehicles;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dealership.Infrastructure.Development;
 
 public sealed class DevelopmentAccountFixtures(DealershipDbContext database, DevelopmentCustomerFixtures customers,
-    StaffProvisioningService staff, BranchProvisioningService branches, IPasswordHasher<AccountUser> passwords)
+    StaffProvisioningService staff, BranchProvisioningService branches, IPasswordHasher<AccountUser> passwords,
+    PurchaseConfigurationService configuration)
 {
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> SeedAsync(DevelopmentFixtureTarget target,
         CancellationToken cancellationToken)
@@ -81,7 +84,25 @@ public sealed class DevelopmentAccountFixtures(DealershipDbContext database, Dev
             reports.Add(await ReviewStaffAsync(account, cancellationToken));
         }
 
+        reports.Add(await PurchaseSettingsAsync(seed, cancellationToken));
         return reports;
+    }
+
+    // The settings record is created here, by the seeds, and never by a page read: the minimal and the demo seed both
+    // provision it from the one fixture, an existing record is reviewed and never overwritten, and it follows the
+    // fixture Administrator it is stamped with.
+    private async Task<DevelopmentFixtureReport> PurchaseSettingsAsync(bool seed, CancellationToken cancellationToken)
+    {
+        var requested = DevelopmentPurchaseFixtures.Settings;
+        if (seed)
+        {
+            var provisioned = await configuration.ProvisionSettingsAsync(requested, cancellationToken);
+            return Report("Purchase settings", provisioned.Created, provisioned.MatchesRequestedState);
+        }
+
+        var existing = await database.PurchaseSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
+        var matches = existing is not null && PurchaseConfigurationStore.Matches(existing, requested);
+        return new("Purchase settings", matches ? "matches" : existing is null ? "missing" : "drift; preserved", !matches);
     }
 
     // A fixture account the lifecycle run suspended is inactive on purpose, so the baseline check leaves it alone.

@@ -9,6 +9,7 @@ namespace Dealership.Infrastructure.Development;
 
 public sealed class DevelopmentPurchaseFixtures(DealershipDbContext database, PurchaseConfigurationService configuration)
 {
+    // The one settings fixture; the account baseline of both seeds provisions it.
     public static PurchaseSettingsRequest Settings { get; } = new(500m, 0.08m,
         DevelopmentFixtureManifest.Staff.Single(item => item.Role == AccountRoles.Administrator).Id);
 
@@ -35,8 +36,6 @@ public sealed class DevelopmentPurchaseFixtures(DealershipDbContext database, Pu
         var reports = new List<DevelopmentFixtureReport>();
         if (seed)
         {
-            var settings = await configuration.ProvisionSettingsAsync(Settings, cancellationToken);
-            reports.Add(Report("Purchase settings", settings.Created, settings.MatchesRequestedState));
             foreach (var promo in Promos)
             {
                 var result = await configuration.ProvisionPromoAsync(promo, cancellationToken);
@@ -52,8 +51,6 @@ public sealed class DevelopmentPurchaseFixtures(DealershipDbContext database, Pu
             return reports;
         }
 
-        var existing = await database.PurchaseSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
-        reports.Add(Report("Purchase settings", false, existing is not null && PurchaseConfigurationStore.Matches(existing, Settings)));
         foreach (var requested in Promos)
         {
             var promo = await database.PromoCodes.AsNoTracking().SingleOrDefaultAsync(item => item.Id == requested.Id, cancellationToken);
