@@ -33,6 +33,15 @@ export const iconFiles = {
   "table-sort-ascending": "bootstrap-arrow-up.svg",
   "table-sort-descending": "bootstrap-arrow-down.svg",
   logout: "logout.svg",
+  home: "home.svg",
+  "chart-bar": "chart-bar.svg",
+  "clipboard-list": "clipboard-list.svg",
+  "steering-wheel": "steering-wheel.svg",
+  receipt: "receipt.svg",
+  settings: "settings.svg",
+  "sidebar-collapse": "layout-sidebar-left-collapse.svg",
+  "sidebar-expand": "layout-sidebar-left-expand.svg",
+  "external-link": "external-link.svg",
 } as const;
 
 export type IconName = keyof typeof iconFiles;

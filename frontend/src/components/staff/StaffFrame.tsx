@@ -1,5 +1,5 @@
 "use client";
-import { Suspense, useEffect, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { StaffLink } from "./StaffLink";
 import { StaffClientEntryBoundary } from "./StaffClientEntryBoundary";
@@ -22,6 +22,30 @@ import { fitViewportPaths, staffLinkActive, staffWorkspaceLinks } from "@/lib/st
 import styles from "./StaffFrame.module.css";
 import { StaffActorContext, StaffNavigationContext } from "./StaffActorBoundary";
 import { StaffNavigationLockContext } from "./StaffNavigationLockContext";
+
+const COLLAPSE_STORAGE_KEY = "apexauto_staff_nav_collapsed";
+const COLLAPSE_CHANGE_EVENT = "apexauto_nav_collapse_change";
+
+function subscribeToCollapse(callback: () => void) {
+  window.addEventListener("storage", callback);
+  window.addEventListener(COLLAPSE_CHANGE_EVENT, callback);
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener(COLLAPSE_CHANGE_EVENT, callback);
+  };
+}
+
+function getCollapseSnapshot(): boolean {
+  try {
+    return localStorage.getItem(COLLAPSE_STORAGE_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function getCollapseServerSnapshot(): boolean {
+  return false;
+}
 
 export function StaffFrame({ actor, children }: { actor: CurrentActor; children: ReactNode }) {
   const session = useIntakeActor(actor);
@@ -54,6 +78,21 @@ function StaffFrameContent({
   // The signed-in person's name and picture come from the shared person read, once per session.
   const { person } = usePersonPreview(actor?.userId ?? "", Boolean(actor));
   const [mobileOpen, setMobileOpen] = useState(false);
+  const collapsed = useSyncExternalStore(
+    subscribeToCollapse,
+    getCollapseSnapshot,
+    getCollapseServerSnapshot,
+  );
+
+  function toggleCollapsed() {
+    try {
+      const next = !getCollapseSnapshot();
+      localStorage.setItem(COLLAPSE_STORAGE_KEY, next ? "true" : "false");
+      window.dispatchEvent(new Event(COLLAPSE_CHANGE_EVENT));
+    } catch {
+      // Storage access may fail in private browsing or constrained environments.
+    }
+  }
 
   function navigate(event: { preventDefault: () => void }, href: string) {
     navigation.navigate(event, href);
@@ -107,20 +146,50 @@ function StaffFrameContent({
             </div>
             <aside
               id="staff-navigation"
-              className={`${styles.sidebar} ${mobileOpen ? styles.sidebarOpen : ""}`}
+              className={`${styles.sidebar} ${mobileOpen ? styles.sidebarOpen : ""} ${collapsed ? styles.sidebarCollapsed : ""}`}
               aria-label="Dealership operations"
             >
               <div className={styles.identity}>
-                <span className={`${styles.brand} ${styles.desktopBrand}`}>
-                  Apex<span>Auto</span>
-                </span>
+                <div className={styles.identityHeader}>
+                  <span className={`${styles.brand} ${styles.desktopBrand}`}>
+                    Apex<span>Auto</span>
+                  </span>
+                  <StaffLink
+                    href="/dashboard"
+                    prefetch={false}
+                    className={styles.monogram}
+                    aria-label="ApexAuto"
+                    title={collapsed ? "ApexAuto" : undefined}
+                    data-tooltip={collapsed ? "ApexAuto" : undefined}
+                    onNavigate={(event) => navigate(event, "/dashboard")}
+                  >
+                    A<span>A</span>
+                  </StaffLink>
+                  <Button
+                    variant="shell"
+                    size="icon"
+                    className={styles.collapseToggle}
+                    aria-expanded={!collapsed}
+                    aria-controls="staff-navigation"
+                    aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}
+                    title={collapsed ? "Expand navigation" : "Collapse navigation"}
+                    data-tooltip={collapsed ? "Expand navigation" : undefined}
+                    onClick={toggleCollapsed}
+                  >
+                    <Icon name={collapsed ? "sidebar-expand" : "sidebar-collapse"} />
+                  </Button>
+                </div>
                 <StaffLink
                   className={styles.publicLink}
                   href="/"
                   prefetch={false}
+                  title={collapsed ? "View public site" : undefined}
+                  aria-label="View public site"
+                  data-tooltip={collapsed ? "View public site" : undefined}
                   onNavigate={(event) => navigate(event, "/")}
                 >
-                  View public site
+                  <Icon name="external-link" />
+                  <span className={styles.publicLinkLabel}>View public site</span>
                 </StaffLink>
               </div>
               <nav className={styles.navigation} aria-label="Staff navigation">
@@ -136,9 +205,13 @@ function StaffFrameContent({
                         prefetchOnIntent={true}
                         className={active ? styles.activeLink : styles.navLink}
                         aria-current={active ? "page" : undefined}
+                        aria-label={link.label}
+                        title={collapsed ? link.label : undefined}
+                        data-tooltip={collapsed ? link.label : undefined}
                         onNavigate={(event) => navigate(event, link.href)}
                       >
-                        {link.label}
+                        <Icon name={link.icon} />
+                        <span className={styles.navLabel}>{link.label}</span>
                       </StaffLink>
                     );
                   })}
@@ -152,9 +225,13 @@ function StaffFrameContent({
                       prefetch={false}
                       className={styles.activeLink}
                       aria-current="page"
+                      aria-label="Your staff workspace"
+                      title={collapsed ? "Your staff workspace" : undefined}
+                      data-tooltip={collapsed ? "Your staff workspace" : undefined}
                       onNavigate={(event) => navigate(event, "/dashboard")}
                     >
-                      Your staff workspace
+                      <Icon name="car" />
+                      <span className={styles.navLabel}>Your staff workspace</span>
                     </StaffLink>
                   )}
               </nav>
@@ -165,6 +242,8 @@ function StaffFrameContent({
                     prefetch={false}
                     className={styles.profile}
                     aria-label="Account"
+                    title={collapsed ? (person?.name ?? "Account") : undefined}
+                    data-tooltip={collapsed ? (person?.name ?? "Account") : undefined}
                     onNavigate={(event) => navigate(event, "/dashboard/profile")}
                   >
                     <Avatar
@@ -188,6 +267,7 @@ function StaffFrameContent({
                         ? "Retry sign out"
                         : navigation.guardState.message || "Sign out"
                     }
+                    data-tooltip={collapsed ? "Sign out" : undefined}
                     disabled={logout.busy || navigation.guardState.blocked}
                     onClick={() => {
                       navigation.operationLock.guard.request(

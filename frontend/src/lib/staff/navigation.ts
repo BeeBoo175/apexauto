@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { IconName } from "@/lib/icons";
 import { hasAccountAdministration } from "@/lib/accounts/staff-accounts";
 import { hasIntakeAccess, type CurrentActor } from "@/lib/auth/actor";
 import { hasInspectionAccess } from "@/lib/inspection/contracts";
@@ -12,6 +13,7 @@ import { hasWorkCalendarAccess } from "./work-calendar";
 export interface StaffWorkspaceLink {
   href: string;
   label: string;
+  icon: IconName;
   // Intake and workshop own nested routes, so their link stays active below the base path.
   activeBelow?: boolean;
   allowed: (actor: CurrentActor) => boolean;
@@ -26,57 +28,66 @@ export const hasHomeAccess = (actor: Pick<CurrentActor, "role">) =>
 // managers), then the work pages in the order a vehicle moves through them. The Administration and fallback links
 // are rendered by the frame itself.
 export const staffWorkspaceLinks: StaffWorkspaceLink[] = [
-  { href: "/dashboard/home", label: "Home", allowed: hasHomeAccess },
+  { href: "/dashboard/home", label: "Home", icon: "home", allowed: hasHomeAccess },
   {
     href: "/dashboard/work-calendar",
     label: "Work calendar",
+    icon: "calendar",
     allowed: (actor) => hasWorkCalendarAccess(actor.role),
   },
   {
     href: "/dashboard/performance",
     label: "Performance",
+    icon: "chart-bar",
     activeBelow: true,
     allowed: hasPerformanceAccess,
   },
   {
     href: "/dashboard/intake",
     label: "Intake",
+    icon: "clipboard-list",
     activeBelow: true,
     allowed: hasIntakeAccess,
   },
   {
     href: "/dashboard/workshop",
     label: "Workshop",
+    icon: "tool",
     activeBelow: true,
     allowed: hasInspectionAccess,
   },
   {
     href: "/dashboard/listings",
     label: "Listings",
+    icon: "car",
     activeBelow: true,
     allowed: hasListingAccess,
   },
   {
     href: "/dashboard/test-drives",
     label: "Test drives",
+    icon: "steering-wheel",
     activeBelow: true,
     allowed: (actor) => hasTestDriveAccess(actor.role),
   },
   {
     href: "/dashboard/sales",
     label: "Sales",
+    icon: "receipt",
     activeBelow: true,
     allowed: hasSalesAccess,
   },
   {
     href: "/dashboard/accounts",
     label: "Accounts",
+    icon: "users",
     activeBelow: true,
     allowed: hasAccountAdministration,
   },
   {
     href: "/dashboard/settings",
     label: "Settings",
+    icon: "settings",
     activeBelow: true,
     allowed: hasSettingsAccess,
   },
