@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Vehicles;
+using Dealership.Infrastructure.Vehicles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -80,6 +81,17 @@ public sealed class ReservationRefundTests(IntakePhotoFixture fixture) : IClassF
         Assert.Equal(RefundState.Completed, done.State);
         Assert.NotNull(done.SettledAt);
         Assert.Equal("completed", (await client.GetFromJsonAsync<RefundList>("/api/reservation-refunds"))!.Refunds.Single().State);
+
+        // The completed refund queued exactly one notice, and it tells the customer where the money went.
+        var notice = await scenario.Database.ReservationRefundMailOutbox.AsNoTracking().SingleAsync();
+        Assert.Equal(paymentId, notice.RefundId);
+        Assert.Null(notice.DeliveredAt);
+        var vehicle = await scenario.Database.Vehicles.AsNoTracking().SingleAsync();
+        var mail = ReservationRefundMailComposer.Completed(done, vehicle, scenario.Data.CustomerEmail);
+        Assert.Equal(scenario.Data.CustomerEmail, mail.Recipient);
+        Assert.Contains("RM 500.00", mail.Body);
+        Assert.Contains("Maybank, account ending 7890", mail.Body);
+        Assert.DoesNotContain("1234567890", mail.Body);
     }
 
     private static Task<HttpResponseMessage> Account(HttpClient client, Guid paymentId, string bank, string number = "1234567890")

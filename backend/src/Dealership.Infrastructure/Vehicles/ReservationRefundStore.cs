@@ -1,12 +1,13 @@
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Vehicles;
+using Dealership.Infrastructure.Mail;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
 namespace Dealership.Infrastructure.Vehicles;
 
-public sealed class ReservationRefundStore(DealershipDbContext database) : IReservationRefundStore
+public sealed class ReservationRefundStore(DealershipDbContext database, MailDeliverySignal mail) : IReservationRefundStore
 {
     public async Task<IReadOnlyList<RefundView>> ListAsync(Guid customerId, CancellationToken cancellationToken)
     {
@@ -67,11 +68,39 @@ public sealed class ReservationRefundStore(DealershipDbContext database) : IRese
         }
     }
 
+    // A completed refund commits together with its one notice, so the customer is told exactly once.
     public async Task SaveAsync(ReservationRefund refund, CancellationToken cancellationToken)
     {
         database.ReservationRefunds.Update(refund);
-        await database.SaveChangesAsync(cancellationToken);
-        database.Entry(refund).State = EntityState.Detached;
+        var notify = refund.State == RefundState.Completed && !await database.ReservationRefundMailOutbox
+            .AnyAsync(item => item.RefundId == refund.PaymentRequestId, cancellationToken);
+        var notice = notify ? new ReservationRefundMail(refund) : null;
+        if (notice is not null)
+        {
+            database.ReservationRefundMailOutbox.Add(notice);
+        }
+
+        try
+        {
+            await database.SaveChangesAsync(cancellationToken);
+            if (notify)
+            {
+                mail.Request();
+            }
+        }
+        catch (DbUpdateException exception) when (notify && exception.InnerException is PostgresException
+        { SqlState: PostgresErrorCodes.UniqueViolation, ConstraintName: "IX_ReservationRefundMailOutbox_RefundId" })
+        {
+            // A parallel settlement already recorded the refund and its notice.
+        }
+        finally
+        {
+            database.Entry(refund).State = EntityState.Detached;
+            if (notice is not null)
+            {
+                database.Entry(notice).State = EntityState.Detached;
+            }
+        }
     }
 
     // A paid deposit is refundable once its reservation was released, or at once when it could not be matched.
