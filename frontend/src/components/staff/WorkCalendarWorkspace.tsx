@@ -17,6 +17,7 @@ import { StaffNavigationContext, StaffPageEntranceContext } from "./StaffActorBo
 import { WorkCalendarFilters } from "./WorkCalendarFilters";
 import { StaffQueueTabs } from "./StaffQueueTabs";
 import { OngoingWorkQueue } from "./OngoingWorkQueue";
+import { UnassignedDayMark, WorkCalendarEvent } from "./WorkCalendarEvent";
 import layout from "./StaffWorkspace.module.css";
 import styles from "./WorkCalendar.module.css";
 
@@ -98,6 +99,14 @@ export function WorkCalendarWorkspace({
           </header>
           <Calendar
             label="Work calendar"
+            renderDayMark={(events) => <UnassignedDayMark events={events} />}
+            renderEvent={(event, { compact }) => (
+              <WorkCalendarEvent
+                event={event}
+                compact={compact}
+                showBranch={scheduled.data?.branchId === null}
+              />
+            )}
             events={
               scheduled.data
                 ? workCalendarEvents({

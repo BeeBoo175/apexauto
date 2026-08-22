@@ -1,0 +1,232 @@
+/* Chip colour is the shared status tone, so the calendar reads like the table badges. */
+.compactChip {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  min-width: 0;
+  height: 24px;
+  padding: 0 5px;
+  border: 1px solid var(--status-border);
+  border-radius: var(--radius-sm);
+  background: var(--status-background);
+  color: var(--status-foreground);
+  font-size: 12px;
+  line-height: 16px;
+  overflow: hidden;
+  text-align: left;
+}
+
+.compactChip:hover {
+  filter: brightness(0.96);
+}
+
+.compactTime {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.compactPlate {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compactChip[data-inactive] .compactPlate {
+  font-weight: 500;
+  text-decoration: line-through;
+}
+
+.compactBranch {
+  display: none;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Branch text colours stay outside the status palette (blue, green, grey, amber, red). */
+.rowBranch[data-branch="glenmarie"] {
+  color: #0a6a78;
+}
+
+.rowBranch[data-branch="petaling-jaya"] {
+  color: #9b2c5a;
+}
+
+.rowBranch[data-branch="bayan-lepas"] {
+  color: #4b3fa0;
+}
+
+.rowBranch {
+  font-weight: 600;
+}
+
+/* Day-level cue so unassigned work is visible even when it sits under "+N more". */
+.dayMark {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  margin-right: auto;
+  padding: 0 7px 0 5px;
+  border: 1px solid #c28a2a;
+  border-radius: 999px;
+  background: #ffedc7;
+  color: #8a4a00;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.dayMark > span:first-child {
+  width: 14px;
+  height: 14px;
+}
+
+/* Day popover and selected-date list: one flat row per appointment, divided by hairlines. */
+.row {
+  box-sizing: border-box;
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  min-width: 0;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-line-soft);
+  color: var(--color-graphite);
+  text-align: left;
+}
+
+.row:hover {
+  background: var(--color-canvas);
+}
+
+.rowPrimary,
+.rowSecondary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.rowTime {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-muted);
+}
+
+.rowPlate {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowStatus {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.rowSecondary {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.rowVehicle {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowBranch {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 5px;
+}
+
+.rowHandler {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.rowHandler[data-unassigned] {
+  color: var(--color-warning);
+  font-weight: 600;
+}
+
+/* Kind icon and status word only appear in cells wide enough to hold them. */
+.compactKind,
+.compactStatus {
+  display: none;
+}
+
+.compactKind {
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.compactKind > span {
+  width: 16px;
+  height: 16px;
+}
+
+.compactStatus {
+  flex-shrink: 0;
+  max-width: 64px;
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@container (min-width: 150px) {
+  .compactBranch[data-shown] {
+    display: block;
+  }
+
+  .compactKind {
+    display: inline-flex;
+    margin-left: auto;
+  }
+}
+
+@container (min-width: 200px) {
+  .compactStatus {
+    display: block;
+  }
+
+  .compactKind {
+    margin-left: 0;
+  }
+
+  .compactPlate {
+    flex: 1 1 auto;
+  }
+}
+
+.hoverCard {
+  position: fixed;
+  z-index: 60;
+  box-sizing: border-box;
+  width: 320px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  background: var(--color-paper);
+  box-shadow: 0 4px 12px rgb(14 27 42 / 14%);
+  pointer-events: none;
+}
+
+.hoverCard .row {
+  border-bottom: 0;
+}
