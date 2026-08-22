@@ -299,6 +299,32 @@
   width: 104px;
 }
 
+/* Narrow footers (a slim queue or a phone) drop the "Page" word and tighten, then wrap the controls onto their own row. */
+.pagination {
+  container-type: inline-size;
+}
+
+@container (max-width: 380px) {
+  .paginationControls {
+    gap: 4px;
+  }
+
+  .paginationControls > div {
+    width: 92px;
+  }
+
+  .pageJump > span:first-of-type {
+    display: none;
+  }
+}
+
+@container (max-width: 300px) {
+  .paginationControls {
+    justify-content: space-between;
+    width: 100%;
+  }
+}
+
 .empty {
   display: flex;
   flex-direction: column;

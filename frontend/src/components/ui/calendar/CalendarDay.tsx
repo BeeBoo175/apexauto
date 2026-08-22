@@ -16,6 +16,7 @@ export function CalendarDay<Data>({ date, events, selected, active, ...props }: 
   return (
     <div role="cell" data-date={date} className={`${styles.day} ${active ? styles.activeDay : ""}`}>
       <div className={styles.dayTop}>
+        {props.renderDayMark?.(events)}
         <button
           type="button"
           data-date-control=""

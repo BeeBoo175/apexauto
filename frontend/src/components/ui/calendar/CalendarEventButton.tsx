@@ -27,10 +27,15 @@ export function CalendarEventButton<Data>({
   return (
     <button
       type="button"
-      className={`${styles.event} ${tones[event.tone ?? "info"]}`}
-      data-tone={event.tone ?? "info"}
+      className={
+        renderEvent ? styles.customEvent : `${styles.event} ${tones[event.tone ?? "info"]}`
+      }
+      data-tone={!renderEvent ? (event.tone ?? "info") : undefined}
       data-compact={(compact && !renderEvent) || undefined}
-      title={`${event.title}, ${time}${event.label ? `, ${event.label}` : ""}`}
+      data-has-custom={Boolean(renderEvent) || undefined}
+      title={
+        renderEvent ? undefined : `${event.title}, ${time}${event.label ? `, ${event.label}` : ""}`
+      }
       aria-label={`Open ${event.title}, ${time}${event.label ? `, ${event.label}` : ""}`}
       aria-disabled={disabled || undefined}
       onClick={() => {
@@ -40,7 +45,7 @@ export function CalendarEventButton<Data>({
       }}
     >
       {renderEvent ? (
-        renderEvent(event)
+        renderEvent(event, { compact })
       ) : (
         <>
           <time dateTime={event.startsAt}>{displayTime}</time>
