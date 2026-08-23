@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Button } from "@/components/ui/Button";
 import { useIntakeActor } from "@/hooks/use-intake-actor";
-import { useInitialToast } from "@/hooks/use-initial-toast";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import type { CurrentActor } from "@/lib/auth/actor";
 import { documentLabels, type SaleDocument } from "@/lib/sales/documents";
 import { SaleDocumentLinks } from "@/components/sales/SaleDocumentLinks";
@@ -24,14 +23,6 @@ export function AccountSaleDocuments({
   reportUnavailable: boolean;
 }) {
   const session = useIntakeActor(actor);
-  useInitialToast(
-    documents === null ? "Your documents could not be loaded. Reload the page to try again." : "",
-  );
-  useInitialToast(
-    reportUnavailable
-      ? "The inspection report could not be loaded. Your sales documents remain available. Try loading the report again."
-      : "",
-  );
   if (!session.active) {
     return null;
   }
@@ -68,11 +59,8 @@ export function AccountSaleDocuments({
             </a>
           </section>
         )}
-        {(documents === null || reportUnavailable) && (
-          <Button variant="secondary" onClick={() => window.location.reload()}>
-            Try loading {documents === null ? "documents" : "report"} again
-          </Button>
-        )}
+        {documents === null && <ReloadNotice subject="Your documents" />}
+        {reportUnavailable && <ReloadNotice subject="The inspection report" />}
       </div>
     </section>
   );

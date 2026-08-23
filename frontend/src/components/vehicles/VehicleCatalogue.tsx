@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import Link from "next/link";
 import { GuideHubBanner } from "@/components/guide/GuidePageShell";
 import { Button, buttonClassName } from "@/components/ui/Button";
@@ -167,27 +168,7 @@ export function VehicleCatalogue({
               </div>
             )}
 
-            {!snapshot && (
-              <div className={styles.emptyCard}>
-                <h2 className={layout.cardHeading}>Vehicle catalogue is temporarily unavailable</h2>
-                <p>
-                  We could not reach the inventory service right now. Try loading again or reload
-                  the page.
-                </p>
-                <div className={styles.emptyActions}>
-                  <Button
-                    type="button"
-                    variant="primary"
-                    disabled={busy}
-                    onClick={() =>
-                      void catalogue.load(active.filters, active.page, { syncDraft: "none" })
-                    }
-                  >
-                    {busy ? "Loading vehicles…" : "Retry loading vehicles"}
-                  </Button>
-                </div>
-              </div>
-            )}
+            {!snapshot && <ReloadNotice subject="Vehicle catalogue" />}
           </div>
         </div>
       </div>

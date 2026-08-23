@@ -18,7 +18,7 @@ public static class ReservationMailComposer
             Hold deadline: {expiresAt:yyyy-MM-dd HH:mm} (Asia/Kuala_Lumpur)
             Agreed total: RM {reservation.Price.Total:F2}
             Promo: {reservation.PromoCode ?? "None"}
-            Simulated refundable deposit: RM {reservation.Deposit:F2}
+            Refundable deposit: RM {reservation.Deposit:F2}
             This receipt records the original confirmation. Check your account for the current reservation and refund status.
             """);
         var html = MailTemplate.Render(new MailLayout(
