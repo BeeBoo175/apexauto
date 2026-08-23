@@ -119,9 +119,15 @@ function StaffFrameContent({
             </Suspense>
             <LoadingProgress label="Opening workspace" active={navigation.pending} />
             <div className={styles.mobileBar}>
-              <span className={styles.brand}>
+              <StaffLink
+                href="/"
+                prefetch={false}
+                className={styles.brand}
+                aria-label="ApexAuto public site"
+                onNavigate={(event) => navigate(event, "/")}
+              >
                 Apex<span>Auto</span>
-              </span>
+              </StaffLink>
               {mobileOpen ? (
                 <CloseButton
                   label="Close workspaces"
@@ -151,17 +157,23 @@ function StaffFrameContent({
             >
               <div className={styles.identity}>
                 <div className={styles.identityHeader}>
-                  <span className={`${styles.brand} ${styles.desktopBrand}`}>
-                    Apex<span>Auto</span>
-                  </span>
                   <StaffLink
-                    href="/dashboard"
+                    href="/"
+                    prefetch={false}
+                    className={`${styles.brand} ${styles.desktopBrand}`}
+                    aria-label="ApexAuto public site"
+                    onNavigate={(event) => navigate(event, "/")}
+                  >
+                    Apex<span>Auto</span>
+                  </StaffLink>
+                  <StaffLink
+                    href="/"
                     prefetch={false}
                     className={styles.monogram}
-                    aria-label="ApexAuto"
-                    title={collapsed ? "ApexAuto" : undefined}
-                    data-tooltip={collapsed ? "ApexAuto" : undefined}
-                    onNavigate={(event) => navigate(event, "/dashboard")}
+                    aria-label="ApexAuto public site"
+                    title={collapsed ? "ApexAuto public site" : undefined}
+                    data-tooltip={collapsed ? "ApexAuto public site" : undefined}
+                    onNavigate={(event) => navigate(event, "/")}
                   >
                     A<span>A</span>
                   </StaffLink>
@@ -179,18 +191,6 @@ function StaffFrameContent({
                     <Icon name={collapsed ? "sidebar-expand" : "sidebar-collapse"} />
                   </Button>
                 </div>
-                <StaffLink
-                  className={styles.publicLink}
-                  href="/"
-                  prefetch={false}
-                  title={collapsed ? "View public site" : undefined}
-                  aria-label="View public site"
-                  data-tooltip={collapsed ? "View public site" : undefined}
-                  onNavigate={(event) => navigate(event, "/")}
-                >
-                  <Icon name="external-link" />
-                  <span className={styles.publicLinkLabel}>View public site</span>
-                </StaffLink>
               </div>
               <nav className={styles.navigation} aria-label="Staff navigation">
                 {staffWorkspaceLinks

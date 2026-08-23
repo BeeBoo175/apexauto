@@ -31,6 +31,8 @@
 .sidebar {
   position: sticky;
   top: 0;
+  /* Above the sticky page title bar so the collapsed navigation tooltips are never cut off by it. */
+  z-index: 60;
   display: flex;
   flex: 0 0 250px;
   width: 250px;
@@ -66,6 +68,7 @@
 
 .brand {
   color: #ffffff;
+  text-decoration: none;
   font-family: var(--font-display);
   font-size: 28px;
   font-weight: 700;
@@ -135,33 +138,6 @@
 .collapseToggle:focus-visible {
   outline: 2px solid #ffffff;
   outline-offset: 2px;
-}
-
-.publicLink {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  align-self: flex-start;
-  padding-block: 4px;
-  color: var(--staff-shell-text);
-  font-size: 12px;
-  text-underline-offset: 4px;
-}
-
-.publicLink:hover {
-  color: #ffffff;
-  text-decoration: underline;
-}
-
-.publicLink:focus-visible {
-  outline: 2px solid #ffffff;
-  outline-offset: 4px;
-}
-
-.publicLinkLabel {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .navigation {
@@ -374,24 +350,6 @@
   height: 40px;
 }
 
-.sidebarCollapsed .publicLink {
-  align-self: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  border-radius: var(--radius-sm, 4px);
-}
-
-.sidebarCollapsed .publicLink:hover {
-  background: var(--color-command-surface);
-  text-decoration: none;
-}
-
-.sidebarCollapsed .publicLinkLabel {
-  display: none;
-}
-
 .sidebarCollapsed .navigation {
   align-items: center;
   padding: 10px 0;
@@ -601,12 +559,6 @@
     padding: 8px 20px;
   }
 
-  .publicLink {
-    display: flex;
-    align-items: center;
-    min-height: 44px;
-  }
-
   .viewport .sidebar {
     flex-shrink: 0;
     max-height: 40%;
@@ -663,18 +615,6 @@
 
   .sidebarCollapsed .monogram {
     display: none;
-  }
-
-  .sidebarCollapsed .publicLink {
-    align-self: flex-start;
-    justify-content: flex-start;
-    width: auto;
-    height: auto;
-    padding-block: 4px;
-  }
-
-  .sidebarCollapsed .publicLinkLabel {
-    display: inline;
   }
 
   .sidebarCollapsed .navigation {
