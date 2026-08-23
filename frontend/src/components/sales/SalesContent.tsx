@@ -1,8 +1,8 @@
 "use client";
 
 import { StaffQueuePlaceholder } from "@/components/staff/StaffQueuePlaceholder";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import { StaffDrawerLoadingShell } from "@/components/staff/StaffDrawerLoadingShell";
-import { Button } from "@/components/ui/Button";
 import type { useSaleSelection } from "@/hooks/use-sale-selection";
 import { SaleEditor } from "./SaleEditor";
 import styles from "@/components/staff/StaffQueueWorkspace.module.css";
@@ -76,14 +76,7 @@ export function SalesContent({
       )}
       {!selection.busy && !sale && (
         <div className={styles.empty}>
-          <p>This sale is unavailable. Your queues remain retained.</p>
-          <Button
-            size="compact"
-            variant="secondary"
-            onClick={() => void selection.choose(selection.id)}
-          >
-            Retry sale
-          </Button>
+          <ReloadNotice subject="Sale" />
         </div>
       )}
     </section>

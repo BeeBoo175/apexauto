@@ -98,12 +98,6 @@
   line-height: 1.5;
 }
 
-.retry {
-  display: grid;
-  justify-items: start;
-  gap: 8px;
-}
-
 /* Rows: label and value, the bar, then one line of context. */
 .rows {
   display: grid;

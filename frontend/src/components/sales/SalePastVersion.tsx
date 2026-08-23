@@ -1,9 +1,9 @@
 "use client";
 
 import type { ComponentProps } from "react";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import { createPortal } from "react-dom";
 import { StaffRecordLoadingShell } from "@/components/staff/StaffRecordLoadingShell";
-import { Button } from "@/components/ui/Button";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import type { useSaleVersion } from "@/hooks/use-sale-version";
@@ -77,10 +77,7 @@ export function SalePastVersion({
       )}
       {review.failed && (
         <div className={workbench.protocol} role="alert">
-          <p>This version could not be loaded.</p>
-          <Button size="compact" variant="secondary" onClick={review.retry}>
-            Retry version
-          </Button>
+          <ReloadNotice subject="Version" />
         </div>
       )}
       {result && section === "customer" && <SaleFacts context={context} />}

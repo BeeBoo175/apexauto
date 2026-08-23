@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/Button";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import { Dialog } from "@/components/ui/Dialog";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { RefreshButton } from "@/components/ui/RefreshButton";
@@ -60,14 +60,7 @@ export function PromoDrawer({
         {loading && <SettingsDrawerLoadingShell fields={3} />}
         {!creating && !selection.busy && !latest && (
           <div className={workbench.protocol}>
-            <p>The promo is unavailable. Your table remains unchanged.</p>
-            <Button
-              size="compact"
-              variant="secondary"
-              onClick={() => void selection.choose(selection.id)}
-            >
-              Retry promo
-            </Button>
+            <ReloadNotice subject="Promo" />
           </div>
         )}
         {(creating || base) && (

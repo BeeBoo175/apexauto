@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import Link from "next/link";
 import { Button, buttonClassName } from "@/components/ui/Button";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
@@ -48,7 +49,7 @@ export function SellerJourney({
   const unavailable = !initial.taxonomy || !initial.branches || initial.access >= 500;
   useInitialToast(
     unavailable
-      ? "Vehicle intake is temporarily unavailable. Your session has been kept. Retry when the service is available."
+      ? "Vehicle intake is temporarily unavailable. Your session has been kept. Reload the page to try again."
       : null,
   );
   const actor = useIntakeActor(
@@ -63,7 +64,7 @@ export function SellerJourney({
     return (
       <section className={styles.unavailable}>
         <h1>Sell your car</h1>
-        <Button onClick={() => window.location.reload()}>Retry intake</Button>
+        <ReloadNotice subject="Intake" />
       </section>
     );
   }

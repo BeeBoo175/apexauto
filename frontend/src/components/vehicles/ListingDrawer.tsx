@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/Button";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import { Dialog } from "@/components/ui/Dialog";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
@@ -51,14 +51,7 @@ export function ListingDrawer({
         {selection.busy && !snapshot && <ListingLoadingShell section={section} />}
         {!selection.busy && !snapshot && (
           <div className={workbench.protocol}>
-            <p>The listing is unavailable. Your table remains unchanged.</p>
-            <Button
-              size="compact"
-              variant="secondary"
-              onClick={() => void selection.choose(selection.id)}
-            >
-              Retry listing
-            </Button>
+            <ReloadNotice subject="Listing" />
           </div>
         )}
         {snapshot && vehicle && (

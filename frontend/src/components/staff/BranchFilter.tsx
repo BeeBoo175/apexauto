@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/Button";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import { Select } from "@/components/ui/Input";
 import type { Page } from "@/lib/api";
 import type { Branch } from "@/lib/branches";
@@ -81,17 +82,7 @@ export function BranchFilter({
           </option>
         ))}
       </Select>
-      {!branches && (
-        <Button
-          size={buttonSize}
-          variant="secondary"
-          type="button"
-          disabled={disabled}
-          onClick={() => onPage(1)}
-        >
-          Retry branches
-        </Button>
-      )}
+      {!branches && <ReloadNotice subject="Branches" />}
       {pagination &&
         (paginationClassName ? (
           <div className={paginationClassName}>{pagination}</div>

@@ -69,7 +69,7 @@ export function AccountChangeDialog({
         {read.loading && <p className={styles.note}>Checking the work this employee still owns…</p>}
         {read.failed && (
           <p role="alert" className={styles.note}>
-            The open work could not be read. Close this dialog and try again.
+            The open work could not be read. Reload the page to try again.
           </p>
         )}
         {blocked && read.blockers && (

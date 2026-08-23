@@ -121,16 +121,6 @@ export function VehicleCatalogue({
                   Available showroom listings may have updated while browsing. Return to page 1 to
                   keep viewing with your current filters.
                 </p>
-                <div className={styles.emptyActions}>
-                  <Button
-                    type="button"
-                    variant="primary"
-                    disabled={busy}
-                    onClick={() => void changePage(1)}
-                  >
-                    Go to page 1
-                  </Button>
-                </div>
               </div>
             )}
 

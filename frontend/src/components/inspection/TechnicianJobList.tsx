@@ -59,13 +59,8 @@ export function TechnicianJobList({
     <section className={styles.queueList} aria-label={title} aria-busy={busy}>
       <div className={styles.list} key={`${snapshot?.page}:${snapshot?.pageSize}:${state.search}`}>
         {!snapshot && !failed && !busy && (
-          <EmptyNotice
-            icon="alert-triangle"
-            tone="alert"
-            title="Worklist unavailable"
-            action={{ label: "Retry worklist", disabled: busy, onClick: () => void state.retry() }}
-          >
-            Your worklists are kept as they were.
+          <EmptyNotice icon="alert-triangle" tone="alert" title="Worklist unavailable">
+            Reload the page to try again.
           </EmptyNotice>
         )}
         {snapshot?.items.length === 0 && state.search && (
@@ -131,7 +126,6 @@ export function TechnicianJobList({
         busy={busy}
         failed={failed}
         onPage={(page, pageSize) => void state.changePage(page, pageSize)}
-        onRetry={() => void state.retry()}
       />
     </section>
   );

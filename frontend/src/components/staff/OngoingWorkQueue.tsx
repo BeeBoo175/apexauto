@@ -37,7 +37,6 @@ export function OngoingWorkQueue({
   kinds,
   onKind,
   onPage,
-  onRetry,
 }: {
   snapshot: UnscheduledWorkPage | null;
   busy: boolean;
@@ -48,7 +47,6 @@ export function OngoingWorkQueue({
   kinds: ("workshop" | "sale")[];
   onKind: (kind: "" | "workshop" | "sale") => void;
   onPage: (page: number, pageSize: number) => void;
-  onRetry: () => void;
 }) {
   return (
     <section className={styles.ongoing} aria-label="Ongoing work" aria-busy={busy}>
@@ -94,13 +92,8 @@ export function OngoingWorkQueue({
           </EmptyNotice>
         )}
         {!snapshot && !busy && (
-          <EmptyNotice
-            icon="alert-triangle"
-            tone="alert"
-            title="Ongoing work unavailable"
-            action={{ label: "Retry ongoing work", disabled: busy, onClick: onRetry }}
-          >
-            The last confirmed list is kept.
+          <EmptyNotice icon="alert-triangle" tone="alert" title="Ongoing work unavailable">
+            Reload the page to try again.
           </EmptyNotice>
         )}
         <ul className={queue.jobs}>
@@ -144,7 +137,6 @@ export function OngoingWorkQueue({
           busy={busy}
           failed={false}
           onPage={onPage}
-          onRetry={onRetry}
         />
       )}
     </section>

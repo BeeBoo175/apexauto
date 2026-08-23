@@ -46,9 +46,7 @@ export function useSaleDocumentVersion(saleId: string, initial: SaleDocument) {
         if (denied) {
           setDocument(null);
         }
-        error(
-          "The document version could not be loaded. Retry deliberately to check access and load it again.",
-        );
+        error("The document version could not be loaded. Reload the page to try again.");
       }
     } finally {
       cancellation.current = null;

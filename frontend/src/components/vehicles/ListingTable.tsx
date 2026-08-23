@@ -1,6 +1,7 @@
 "use client";
 
 import { useContext } from "react";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import { StaffPageEntranceContext } from "@/components/staff/StaffActorBoundary";
 import { StaffCommandBar } from "@/components/staff/StaffPage";
 import { AppliedWorklistFilters } from "@/components/staff/AppliedWorklistFilters";
@@ -253,10 +254,7 @@ export function ListingTable({
             />
           ) : (
             <div className={styles.unavailableFilters}>
-              <p>Listings are unavailable. Retry when the service is available.</p>
-              <Button size="compact" variant="secondary" onClick={() => void refresh()}>
-                Retry listings
-              </Button>
+              <ReloadNotice subject="Listings" />
             </div>
           )}
         </div>

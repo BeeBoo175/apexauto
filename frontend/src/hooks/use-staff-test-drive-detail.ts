@@ -28,11 +28,11 @@ export function useStaffTestDriveDetail(
     read: privateApiFetch,
     commitAfterRead: true,
     clearOnDenied: true,
-    failureMessage: "The test drive could not be opened. Retry to read its current details.",
+    failureMessage: "The test drive could not be opened. Reload the page to try again.",
   });
   useInitialToast(
     initialId && !initial
-      ? "The selected test drive could not be opened. Retry it from the workspace."
+      ? "The selected test drive could not be opened. Reload the page to try again."
       : "",
   );
 

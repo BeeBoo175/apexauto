@@ -1,7 +1,7 @@
 "use client";
 
 import { StaffRecordLoadingShell } from "@/components/staff/StaffRecordLoadingShell";
-import { Button } from "@/components/ui/Button";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { VehicleDetailView } from "@/components/vehicles/VehicleDetailView";
 import { VehicleOverview } from "@/components/vehicles/VehicleOverview";
@@ -39,9 +39,7 @@ export function SaleVehicle({
         {read.busy ? (
           <StaffRecordLoadingShell label="Loading vehicle listing…" details={loadingDetails} />
         ) : (
-          <Button size="compact" variant="secondary" onClick={read.retry}>
-            Retry vehicle listing
-          </Button>
+          <ReloadNotice subject="Vehicle listing" />
         )}
       </section>
     );

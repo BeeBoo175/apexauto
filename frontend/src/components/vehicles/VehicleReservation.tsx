@@ -1,6 +1,7 @@
 "use client";
 
 import { usePaymentMode } from "@/hooks/use-payment-mode";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import Link from "next/link";
 import { useEffect, type ComponentProps, type ReactNode } from "react";
 import { Button, buttonClassName } from "@/components/ui/Button";
@@ -40,7 +41,9 @@ export function VehicleReservation({
 }) {
   const actor = useIntakeActor(access.actor ?? undefined);
   useInitialToast(
-    access.status >= 500 ? "Your account could not be checked. Retry before reserving." : null,
+    access.status >= 500
+      ? "Your account could not be checked. Reload the page before reserving."
+      : null,
   );
   if (!actor.active) {
     return null;
@@ -101,9 +104,7 @@ export function VehicleReservation({
   if (!access.account || !access.actor || access.status !== 200) {
     return (
       <div className={styles.actions}>
-        <Button variant="secondary" onClick={() => window.location.reload()}>
-          Retry account check
-        </Button>
+        <ReloadNotice subject="Account check" />
         {testDrive}
         {financing}
       </div>

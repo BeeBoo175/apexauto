@@ -97,12 +97,10 @@ function OpenWorkSection({
   work,
   busy,
   failed,
-  retry,
 }: {
   work: UnscheduledWorkPage | null;
   busy: boolean;
   failed: boolean;
-  retry: () => void;
 }) {
   return (
     <DashboardSection
@@ -115,7 +113,7 @@ function OpenWorkSection({
           </span>
         )
       }
-      state={{ hasData: work !== null, busy, failed, retry }}
+      state={{ hasData: work !== null, busy, failed }}
       placeholder={<RowsSkeleton count={5} />}
     >
       {work && work.items.length === 0 && <p className={dashboard.note}>You have no open work.</p>}
@@ -161,19 +159,11 @@ export function AgentHome({ entry }: { entry: Extract<HomeEntry, { kind: "agent"
             hasData: schedule.data !== null,
             busy: schedule.busy,
             failed: schedule.failed,
-            retry: schedule.retry,
           }}
           showBranch={false}
         />
       }
-      right={
-        <OpenWorkSection
-          work={mine.work}
-          busy={mine.busy}
-          failed={mine.failed}
-          retry={mine.retry}
-        />
-      }
+      right={<OpenWorkSection work={mine.work} busy={mine.busy} failed={mine.failed} />}
     />
   );
 }

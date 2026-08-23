@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/Button";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import type { useSaleDocuments } from "@/hooks/use-sale-documents";
 import type { SaleDocument } from "@/lib/sales/documents";
@@ -39,11 +39,7 @@ export function SaleDocuments({
           />
         </article>
       ))}
-      {read.failed && (
-        <Button size="compact" variant="secondary" disabled={read.busy} onClick={read.retry}>
-          Retry documents
-        </Button>
-      )}
+      {read.failed && <ReloadNotice subject="Documents" />}
     </section>
   );
 }

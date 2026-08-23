@@ -59,7 +59,6 @@ export function VehicleDetailGallery({
           className={styles.selectedPhoto}
           frameClassName={styles.selectedFrame}
           imageClassName={styles.selectedImage}
-          onRetry={() => retryThumbnail(selected.id)}
         />
       </div>
       {photos.length > 1 && (

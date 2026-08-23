@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import type { ReactNode } from "react";
 import { Button, buttonClassName } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
@@ -190,9 +191,7 @@ export function TradeInValuation({
             </div>
             {tradeIn.optionsFailed && !tradeIn.busy && (
               <div className={styles.retryAction}>
-                <Button type="button" variant="secondary" onClick={tradeIn.retryOptions}>
-                  Retry vehicle options
-                </Button>
+                <ReloadNotice subject="Vehicle options" />
               </div>
             )}
           </form>

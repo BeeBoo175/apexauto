@@ -32,7 +32,7 @@ export function StaffAccountFilters({
   const branchChoices = useBranchChoices(
     initialBranches,
     25,
-    "Branch choices could not be refreshed. Retry to load branches.",
+    "Branch choices could not be refreshed. Reload the page to try again.",
   );
   const { branches, busy } = branchChoices;
 

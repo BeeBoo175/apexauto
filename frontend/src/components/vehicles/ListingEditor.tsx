@@ -170,7 +170,6 @@ export function ListingEditor({
                 incomplete={estimate.incomplete}
                 busy={estimate.busy}
                 failed={estimate.failed}
-                onRetry={estimate.retry}
               />
             }
             fields={

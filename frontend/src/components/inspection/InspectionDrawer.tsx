@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import { Dialog, DialogActionSlot } from "@/components/ui/Dialog";
-import { Button } from "@/components/ui/Button";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { StaffDrawerLoadingShell } from "@/components/staff/StaffDrawerLoadingShell";
 import type { useInspectionDrawer } from "@/hooks/use-inspection-drawer";
@@ -67,14 +67,7 @@ export function InspectionDrawer({
         )}
         {!selection.busy && !selection.result?.data && selection.id && (
           <div className={workbench.protocol}>
-            <p>The inspection is unavailable. Your list remains unchanged.</p>
-            <Button
-              size="compact"
-              variant="secondary"
-              onClick={() => void selection.choose(selection.id)}
-            >
-              Retry inspection
-            </Button>
+            <ReloadNotice subject="Inspection" />
           </div>
         )}
       </Dialog>

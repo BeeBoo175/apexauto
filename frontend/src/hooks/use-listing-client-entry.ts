@@ -56,5 +56,5 @@ export function useListingClientEntry(actor: CurrentActor, parameters: SearchPar
         ? (selected ?? { status: 502, data: null, message: "", uncertain: false })
         : null,
     };
-  }, "Listings could not be loaded. Retry to open the workspace.");
+  });
 }

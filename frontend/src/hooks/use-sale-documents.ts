@@ -45,7 +45,7 @@ export function useSaleDocuments(saleId: string, version: number, active: boolea
             failed: true,
             documents: !denied && current?.saleId === saleId ? current.documents : null,
           }));
-          error("Documents could not be loaded. Retry to check access and load them again.");
+          error("Documents could not be loaded. Reload the page to try again.");
         }
       }
     }

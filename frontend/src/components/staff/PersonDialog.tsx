@@ -34,7 +34,9 @@ export function PersonDialog({
       description={person ? summary(person) : undefined}
     >
       {settled && !person ? (
-        <p className={styles.failed}>This profile could not be loaded. Close and try again.</p>
+        <p className={styles.failed}>
+          This profile could not be loaded. Reload the page to try again.
+        </p>
       ) : (
         <div className={styles.body} aria-busy={!person}>
           <PersonPicture id={id} name={name} person={person} />

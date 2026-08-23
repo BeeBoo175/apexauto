@@ -1,10 +1,10 @@
 "use client";
 
 import { useContext, useState } from "react";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import { StaffPageEntranceContext } from "@/components/staff/StaffActorBoundary";
 import { StaffCommandBar } from "@/components/staff/StaffPage";
 import { StaffQueueTabs } from "@/components/staff/StaffQueueTabs";
-import { Button } from "@/components/ui/Button";
 import { EmptyNotice } from "@/components/ui/EmptyNotice";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { RefreshButton } from "@/components/ui/RefreshButton";
@@ -53,10 +53,7 @@ export function SettingsWorkspace({ entry }: { entry: SettingsEntry }) {
       <>
         {tabs}
         <div className={styles.unavailableFilters}>
-          <p>{label} are unavailable. Retry when the service is available.</p>
-          <Button size="compact" variant="secondary" onClick={() => void nav.reload()}>
-            Retry {label.toLowerCase()}
-          </Button>
+          <ReloadNotice subject={label} />
         </div>
       </>
     );
@@ -68,12 +65,9 @@ export function SettingsWorkspace({ entry }: { entry: SettingsEntry }) {
       <>
         {tabs}
         <div className={styles.fillNotice}>
-          <EmptyNotice
-            icon="table"
-            title="Settings are not set up"
-            action={{ label: "Retry settings", disabled: busy, onClick: () => void nav.reload() }}
-          >
-            The purchase settings record has not been created yet.
+          <EmptyNotice icon="table" title="Settings are not set up">
+            The purchase settings record has not been created yet. Reload the page once it has been
+            set up.
           </EmptyNotice>
         </div>
       </>

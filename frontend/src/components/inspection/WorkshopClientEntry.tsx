@@ -1,7 +1,7 @@
 "use client";
 
-import { StaffLoading, StaffNotice } from "@/components/staff/StaffPage";
-import { Button } from "@/components/ui/Button";
+import { StaffLoading } from "@/components/staff/StaffPage";
+import { StaffReloadNotice } from "@/components/staff/StaffReloadNotice";
 import { useWorkshopClientEntry } from "@/hooks/use-workshop-client-entry";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { SearchParams } from "@/lib/query";
@@ -13,15 +13,9 @@ export function WorkshopClientEntry({
   actor: CurrentActor;
   parameters: SearchParams;
 }) {
-  const { entry, failed, retry } = useWorkshopClientEntry(actor, parameters);
+  const { entry, failed } = useWorkshopClientEntry(actor, parameters);
   if (failed) {
-    return (
-      <StaffNotice title="Workshop">
-        <Button size="compact" variant="secondary" onClick={() => void retry()}>
-          Retry workshop
-        </Button>
-      </StaffNotice>
-    );
+    return <StaffReloadNotice title="Workshop" />;
   }
   if (!entry) {
     return <StaffLoading />;

@@ -44,9 +44,7 @@ export function useSaleVehicle(saleId: string, active: boolean) {
             saleId,
             result: !denied && current?.saleId === saleId ? current.result : null,
           }));
-          error(
-            "The vehicle listing could not be loaded. Retry to check access and load it again.",
-          );
+          error("The vehicle listing could not be loaded. Reload the page to try again.");
         }
       }
     }

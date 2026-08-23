@@ -5,21 +5,15 @@ import {
   StaffEntryIdentityContext,
   StaffEntryRequestsContext,
 } from "@/components/staff/StaffClientEntryBoundary";
-import { useToast } from "@/components/ui/Toast";
 import { useLoadingProgress, useLoadingProgressReady } from "@/components/ui/LoadingProgress";
-import { readFailureMessage } from "@/lib/http";
 
 const subscribe = () => () => {};
 const clientSnapshot = () => true;
 const serverSnapshot = () => false;
 
-export function useStaffClientEntry<T>(
-  read: (signal: AbortSignal) => Promise<T>,
-  failureMessage: string,
-) {
+export function useStaffClientEntry<T>(read: (signal: AbortSignal) => Promise<T>) {
   const requests = useContext(StaffEntryRequestsContext);
   const id = useContext(StaffEntryIdentityContext);
-  const { error } = useToast();
   const [pending, startTransition] = useTransition();
   const hydrated = useSyncExternalStore(subscribe, clientSnapshot, serverSnapshot);
   if (!requests || !id) {
@@ -44,15 +38,8 @@ export function useStaffClientEntry<T>(
       return;
     }
     requests.release(id);
-    if (!entry) {
-      error(readFailureMessage(request.failure, failureMessage));
-    }
     return () => request.controller.abort();
-  }, [requests, id, request, entry, error, failureMessage]);
+  }, [requests, id, request]);
 
-  const retry = () => {
-    startTransition(() => setRequest(requests.open(id, read)));
-  };
-
-  return { entry, failed: Boolean(request) && !entry, retry };
+  return { entry, failed: Boolean(request) && !entry };
 }

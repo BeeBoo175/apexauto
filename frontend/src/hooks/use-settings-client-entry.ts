@@ -100,5 +100,5 @@ export function useSettingsClientEntry(parameters: SearchParams, selection: Sett
       selectedPromo: confirmed(promoId, selectedPromo),
       selectedWarranty: confirmed(warrantyId, selectedWarranty),
     };
-  }, "Settings could not be loaded. Retry to open the workspace.");
+  });
 }

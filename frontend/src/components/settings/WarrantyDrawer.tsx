@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/Button";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import { Dialog } from "@/components/ui/Dialog";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { RefreshButton } from "@/components/ui/RefreshButton";
@@ -60,14 +60,7 @@ export function WarrantyDrawer({
         {loading && <SettingsDrawerLoadingShell fields={5} />}
         {!creating && !selection.busy && !latest && (
           <div className={workbench.protocol}>
-            <p>The warranty package is unavailable. Your table remains unchanged.</p>
-            <Button
-              size="compact"
-              variant="secondary"
-              onClick={() => void selection.choose(selection.id)}
-            >
-              Retry package
-            </Button>
+            <ReloadNotice subject="Package" />
           </div>
         )}
         {(creating || base) && (

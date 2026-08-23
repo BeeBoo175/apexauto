@@ -1,6 +1,7 @@
 "use client";
 
 import { StaffQueuePlaceholder } from "@/components/staff/StaffQueuePlaceholder";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import { useState } from "react";
 import { PersonLabel } from "@/components/staff/PersonLabel";
 import { SuspensionBadge } from "@/components/staff/SuspensionBadge";
@@ -9,7 +10,6 @@ import { StaffRecordSummary, StaffSummaryFact } from "@/components/staff/StaffRe
 import { StaffStatusGroup } from "@/components/staff/StaffStatusGroup";
 import { StaffDrawerLoadingShell } from "@/components/staff/StaffDrawerLoadingShell";
 import { StaffWorkspaceTabs } from "@/components/staff/StaffWorkspaceTabs";
-import { Button } from "@/components/ui/Button";
 import { useRecordSection } from "@/hooks/use-record-section";
 import { useWorkspaceTabs } from "@/hooks/use-workspace-tabs";
 import type { useStaffTestDriveDetail } from "@/hooks/use-staff-test-drive-detail";
@@ -66,9 +66,7 @@ export function StaffTestDriveDetail({
     }
     return (
       <div className={styles.empty}>
-        <Button variant="secondary" size="compact" onClick={() => void refresh()}>
-          Retry selected test drive
-        </Button>
+        <ReloadNotice subject="Test drive" />
       </div>
     );
   }

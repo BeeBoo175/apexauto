@@ -1,6 +1,7 @@
 "use client";
 
 import { useContext, useState, useTransition } from "react";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import { useRouter } from "next/navigation";
 import { StaffPageEntranceContext } from "@/components/staff/StaffActorBoundary";
 import { StaffCommandBar } from "@/components/staff/StaffPage";
@@ -242,10 +243,7 @@ export function SalesTable({
 
   const unavailable = snapshot ? null : (
     <div className={styles.unavailableFilters}>
-      <p>Sales are unavailable. Retry when the service is available.</p>
-      <Button size="compact" variant="secondary" onClick={() => void refresh()}>
-        Retry sales
-      </Button>
+      <ReloadNotice subject="Sales" />
     </div>
   );
 

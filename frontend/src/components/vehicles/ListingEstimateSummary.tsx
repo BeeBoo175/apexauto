@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/Button";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import { formatCurrency } from "@/lib/currency-format";
 import { parseMyr } from "@/lib/currency-input";
 import type { ListingEstimate } from "@/lib/vehicles/listing-estimate";
@@ -10,14 +10,12 @@ export function ListingEstimateSummary({
   incomplete,
   busy,
   failed,
-  onRetry,
 }: {
   estimate: ListingEstimate | null;
   roadTax: string;
   incomplete: boolean;
   busy: boolean;
   failed: boolean;
-  onRetry: () => void;
 }) {
   const price = estimate?.price;
   const localRoadTax = parseMyr(roadTax);
@@ -52,11 +50,7 @@ export function ListingEstimateSummary({
         breakdown={breakdown}
         notice={notice}
       />
-      {failed && (
-        <Button size="compact" variant="secondary" disabled={busy} onClick={onRetry}>
-          Retry estimate
-        </Button>
-      )}
+      {failed && <ReloadNotice subject="Estimate" />}
     </div>
   );
 }

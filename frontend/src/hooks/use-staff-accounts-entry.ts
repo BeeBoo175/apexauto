@@ -44,5 +44,5 @@ export function useStaffAccountsEntry(
       initial: initial.data,
       branches: branches?.data ?? null,
     };
-  }, "Staff accounts could not be loaded. Retry to open the workspace.");
+  });
 }

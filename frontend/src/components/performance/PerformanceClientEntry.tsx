@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { StaffLoading, StaffNotice } from "@/components/staff/StaffPage";
-import { Button } from "@/components/ui/Button";
+import { StaffLoading } from "@/components/staff/StaffPage";
+import { StaffReloadNotice } from "@/components/staff/StaffReloadNotice";
 import { usePerformanceAddress, PerformanceAddressContext } from "@/hooks/use-performance-address";
 import { usePerformanceEntry } from "@/hooks/use-performance-entry";
 import type { CurrentActor } from "@/lib/auth/actor";
@@ -53,15 +53,9 @@ function PerformanceEntryBody({
   actor: CurrentActor;
   parameters: PerformanceParameters;
 }) {
-  const { entry, failed, retry } = usePerformanceEntry(actor, parameters);
+  const { entry, failed } = usePerformanceEntry(actor, parameters);
   if (failed) {
-    return (
-      <StaffNotice title="Performance">
-        <Button size="compact" variant="secondary" onClick={() => void retry()}>
-          Retry performance
-        </Button>
-      </StaffNotice>
-    );
+    return <StaffReloadNotice title="Performance" />;
   }
   if (!entry) {
     return <StaffLoading />;

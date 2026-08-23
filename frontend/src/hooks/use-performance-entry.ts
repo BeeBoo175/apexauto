@@ -91,5 +91,5 @@ export function usePerformanceEntry(actor: CurrentActor, parameters: SearchParam
       comparison,
       branches: branches?.data ?? null,
     };
-  }, "Performance could not be loaded. Retry to open the page.");
+  });
 }

@@ -39,5 +39,5 @@ export function useCustomerAccountsEntry(
       ...(held ? selection : { id: "", section: "details" as const }),
       initial: initial.data,
     };
-  }, "Customer accounts could not be loaded. Retry to open the workspace.");
+  });
 }

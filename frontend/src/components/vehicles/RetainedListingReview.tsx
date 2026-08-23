@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/Button";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { StaffRecordLoadingShell } from "@/components/staff/StaffRecordLoadingShell";
 import { useListingRevision } from "@/hooks/use-listing-revision";
@@ -45,10 +45,7 @@ export function RetainedListingReview({
       )}
       {!read.busy && !saved && (
         <div className={styles.publication}>
-          <p role="alert">This saved record is unavailable. Your current draft is unchanged.</p>
-          <Button size="compact" variant="secondary" onClick={read.retry}>
-            Retry saved record
-          </Button>
+          <ReloadNotice subject="Saved record" />
         </div>
       )}
       {saved && revision && draft && (

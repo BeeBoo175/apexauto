@@ -161,7 +161,7 @@ export function AttentionBand({
       </div>
       {!ready && failed && (
         <p className={dashboard.note}>
-          Some figures could not be loaded, so this may be incomplete. Refresh to try again.
+          Some figures could not be loaded, so this may be incomplete. Reload the page to try again.
         </p>
       )}
       <div className={styles.tiles} style={{ "--tiles": groups.length } as CSSProperties}>

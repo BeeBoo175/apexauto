@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/Button";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import type { StaffHistoryPage } from "@/hooks/use-staff-history";
 import timeline from "./StaffHistory.module.css";
 
@@ -19,7 +20,7 @@ export function StaffHistoryProgress({
   label: string;
   disabled?: boolean;
 }) {
-  const { history, busy, failed, load, retry } = read;
+  const { history, busy, failed, load } = read;
   if (!history && busy) {
     return (
       <div role="status" aria-label={`Loading ${label}`}>
@@ -42,15 +43,7 @@ export function StaffHistoryProgress({
   if (failed) {
     return (
       <div>
-        <p role="alert">{label} could not be loaded. Revealed history remains shown.</p>
-        <Button
-          size="compact"
-          variant="secondary"
-          disabled={disabled || busy}
-          onClick={() => void retry()}
-        >
-          Retry {label.toLowerCase()}
-        </Button>
+        <ReloadNotice subject={label} />
       </div>
     );
   }

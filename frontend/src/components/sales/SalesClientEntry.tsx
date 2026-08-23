@@ -1,7 +1,7 @@
 "use client";
 
-import { StaffLoading, StaffNotice } from "@/components/staff/StaffPage";
-import { Button } from "@/components/ui/Button";
+import { StaffLoading } from "@/components/staff/StaffPage";
+import { StaffReloadNotice } from "@/components/staff/StaffReloadNotice";
 import { useSalesClientEntry } from "@/hooks/use-sales-client-entry";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { SearchParams } from "@/lib/query";
@@ -13,15 +13,9 @@ export function SalesClientEntry({
   actor: CurrentActor;
   parameters: SearchParams;
 }) {
-  const { entry, failed, retry } = useSalesClientEntry(actor, parameters);
+  const { entry, failed } = useSalesClientEntry(actor, parameters);
   if (failed) {
-    return (
-      <StaffNotice title="Sales">
-        <Button size="compact" variant="secondary" onClick={() => void retry()}>
-          Retry sales
-        </Button>
-      </StaffNotice>
-    );
+    return <StaffReloadNotice title="Sales" />;
   }
   if (!entry) {
     return <StaffLoading />;

@@ -1,7 +1,7 @@
 "use client";
 
-import { StaffLoading, StaffNotice } from "@/components/staff/StaffPage";
-import { Button } from "@/components/ui/Button";
+import { StaffLoading } from "@/components/staff/StaffPage";
+import { StaffReloadNotice } from "@/components/staff/StaffReloadNotice";
 import { useCustomerAccountsEntry } from "@/hooks/use-customer-accounts-entry";
 import type { AccountSelectionPath } from "@/lib/accounts/accounts-location";
 import type { CurrentActor } from "@/lib/auth/actor";
@@ -17,15 +17,9 @@ export function CustomerAccountsClientEntry({
   parameters: SearchParams;
   selection: AccountSelectionPath;
 }) {
-  const { entry, failed, retry } = useCustomerAccountsEntry(actor, parameters, selection);
+  const { entry, failed } = useCustomerAccountsEntry(actor, parameters, selection);
   if (failed) {
-    return (
-      <StaffNotice title="Customer accounts">
-        <Button size="compact" variant="secondary" onClick={() => void retry()}>
-          Retry customer accounts
-        </Button>
-      </StaffNotice>
-    );
+    return <StaffReloadNotice title="Customer accounts" />;
   }
   if (!entry) {
     return <StaffLoading />;

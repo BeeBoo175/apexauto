@@ -103,5 +103,5 @@ export function useHomeEntry(actor: CurrentActor, parameters: SearchParams) {
       schedule,
       branches: branches?.data ?? null,
     };
-  }, "Home could not be loaded. Retry to open the page.");
+  });
 }

@@ -8,8 +8,7 @@ import { PHOTO_DEADLINE_MS, PHOTO_MAX_BYTES, angles } from "./contracts";
 import { confirmedActor } from "@/lib/server/http/staff-relay";
 import { parseIntakeConflict } from "./errors";
 
-const sessionUnconfirmed =
-  "Your session could not be confirmed. Retry when the service is available.";
+const sessionUnconfirmed = "Your session could not be confirmed. Reload the page to try again.";
 
 export async function relayIntake<T>(
   request: Request,

@@ -92,13 +92,8 @@ export function SalesQueueList({
     <section className={styles.queueList} aria-label={title} aria-busy={busy}>
       <div className={styles.list} key={`${snapshot?.page}:${snapshot?.pageSize}:${state.search}`}>
         {!snapshot && !failed && !busy && (
-          <EmptyNotice
-            icon="alert-triangle"
-            tone="alert"
-            title="Queue unavailable"
-            action={{ label: "Retry queue", disabled: busy, onClick: () => void state.retry() }}
-          >
-            Your queues are kept as they were.
+          <EmptyNotice icon="alert-triangle" tone="alert" title="Queue unavailable">
+            Reload the page to try again.
           </EmptyNotice>
         )}
         {snapshot?.items.length === 0 && (
@@ -183,7 +178,6 @@ export function SalesQueueList({
         busy={busy}
         failed={failed}
         onPage={(page, pageSize) => void state.changePage(page, pageSize)}
-        onRetry={() => void state.retry()}
       />
     </section>
   );

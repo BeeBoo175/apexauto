@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import Image from "next/image";
-import { Button } from "@/components/ui/Button";
 import styles from "./ListingGallery.module.css";
 
 export function ListingGallery({
@@ -50,7 +50,6 @@ export function ListingPhoto({
   className = "",
   frameClassName = "",
   imageClassName = "",
-  onRetry,
   children,
 }: {
   vehicleId: string;
@@ -63,32 +62,21 @@ export function ListingPhoto({
   className?: string;
   frameClassName?: string;
   imageClassName?: string;
-  onRetry?: () => void;
+
   children?: ReactNode;
 }) {
   const [failed, setFailed] = useState(false);
-  const [attempt, setAttempt] = useState(0);
-
-  function retry() {
-    setFailed(false);
-    setAttempt((current) => current + 1);
-    onRetry?.();
-  }
 
   return (
     <figure className={`${styles.photo} ${className}`.trim()}>
       <div className={`${styles.image} ${frameClassName}`.trim()}>
         {failed ? (
           <div className={styles.recovery}>
-            <p role="status">{label} is unavailable.</p>
-            <Button size="compact" variant="secondary" onClick={retry}>
-              Retry {label.toLowerCase()}
-            </Button>
+            <ReloadNotice subject={label} />
           </div>
         ) : (
           <Image
             className={imageClassName}
-            key={attempt}
             src={photoUrl ?? `/api/staff/listings/${vehicleId}/photos/${id}`}
             alt={`${vehicleName} · listing ${label.toLowerCase()}`}
             width={960}

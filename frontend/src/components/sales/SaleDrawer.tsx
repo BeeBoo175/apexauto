@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import { StaffDrawerLoadingShell } from "@/components/staff/StaffDrawerLoadingShell";
-import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActionSlot } from "@/components/ui/Dialog";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import type { useSaleSelection } from "@/hooks/use-sale-selection";
@@ -39,14 +39,7 @@ export function SaleDrawer({
         {loading && <StaffDrawerLoadingShell label="Loading sale…" fact />}
         {!selection.busy && !sale && selection.id && (
           <div className={workbench.protocol}>
-            <p>The sale is unavailable. Your table remains unchanged.</p>
-            <Button
-              size="compact"
-              variant="secondary"
-              onClick={() => void selection.choose(selection.id)}
-            >
-              Retry sale
-            </Button>
+            <ReloadNotice subject="Sale" />
           </div>
         )}
         {sale && (

@@ -1,5 +1,6 @@
 "use client";
 import { useContext, type ReactNode } from "react";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import { DataTable } from "@/components/ui/data-table/DataTable";
 import { RecordToolbar } from "@/components/ui/RecordToolbar";
 import { CsvExportActions } from "@/components/ui/CsvExportActions";
@@ -292,12 +293,7 @@ export function QueueView<T>({
           )}
           {!snapshot && (
             <div className={styles.unavailableFilters}>
-              <p>
-                The {title.toLowerCase()} queue is unavailable. Retry when the service is available.
-              </p>
-              <Button size="compact" variant="secondary" onClick={() => void state.load()}>
-                Retry queue
-              </Button>
+              <ReloadNotice subject="Queue" />
             </div>
           )}
         </div>

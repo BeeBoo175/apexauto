@@ -25,9 +25,7 @@ export function AccountSaleDocuments({
 }) {
   const session = useIntakeActor(actor);
   useInitialToast(
-    documents === null
-      ? "Your documents could not be loaded. Try again when the service is available."
-      : "",
+    documents === null ? "Your documents could not be loaded. Reload the page to try again." : "",
   );
   useInitialToast(
     reportUnavailable

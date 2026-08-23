@@ -1,8 +1,8 @@
 "use client";
 
 import { StaffQueuePlaceholder } from "@/components/staff/StaffQueuePlaceholder";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import type { ComponentProps } from "react";
-import { Button } from "@/components/ui/Button";
 import type { useInspectionDrawer } from "@/hooks/use-inspection-drawer";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { SelectedRepairReview } from "@/lib/inspection/repair-review";
@@ -89,14 +89,7 @@ export function TechnicianJobWorkspace({
       )}
       {!selection.busy && !selection.result?.data && (
         <div className={styles.empty}>
-          <p>This job is unavailable. Your worklists remain retained.</p>
-          <Button
-            size="compact"
-            variant="secondary"
-            onClick={() => void selection.choose(selection.id)}
-          >
-            Retry job
-          </Button>
+          <ReloadNotice subject="Job" />
         </div>
       )}
     </section>

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState, type ComponentProps } from "react";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import { createPortal } from "react-dom";
-import { Button } from "@/components/ui/Button";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
@@ -137,17 +137,7 @@ export function InspectionEditor({
       >
         {!snapshot && (
           <section className={workbench.protocol}>
-            <p>
-              The inspection is unavailable to this account or the service could not be reached.
-            </p>
-            <Button
-              size="compact"
-              variant="secondary"
-              disabled={editor.refreshing}
-              onClick={() => void editor.refresh()}
-            >
-              Retry inspection
-            </Button>
+            <ReloadNotice subject="Inspection" />
           </section>
         )}
         {snapshot && base && (

@@ -1,7 +1,7 @@
 "use client";
 
-import { StaffLoading, StaffNotice } from "@/components/staff/StaffPage";
-import { Button } from "@/components/ui/Button";
+import { StaffLoading } from "@/components/staff/StaffPage";
+import { StaffReloadNotice } from "@/components/staff/StaffReloadNotice";
 import { useSettingsClientEntry } from "@/hooks/use-settings-client-entry";
 import type { SearchParams } from "@/lib/query";
 import type { SettingsSelectionPath } from "@/lib/settings/settings-location";
@@ -13,15 +13,9 @@ export function SettingsClientEntry({
   parameters: SearchParams;
   selection: SettingsSelectionPath;
 }) {
-  const { entry, failed, retry } = useSettingsClientEntry(parameters, selection);
+  const { entry, failed } = useSettingsClientEntry(parameters, selection);
   if (failed) {
-    return (
-      <StaffNotice title="Settings">
-        <Button size="compact" variant="secondary" onClick={() => void retry()}>
-          Retry settings
-        </Button>
-      </StaffNotice>
-    );
+    return <StaffReloadNotice title="Settings" />;
   }
   if (!entry) {
     return <StaffLoading />;

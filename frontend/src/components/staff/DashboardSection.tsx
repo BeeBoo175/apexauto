@@ -1,12 +1,11 @@
 import type { ReactNode } from "react";
-import { Button } from "@/components/ui/Button";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import styles from "./DashboardSection.module.css";
 
 export interface SectionState {
   hasData: boolean;
   busy: boolean;
   failed: boolean;
-  retry: () => void;
 }
 
 // One flat section with a plain title and, on its right, what reads the section (a legend or totals). While its read
@@ -80,14 +79,7 @@ function SectionFallback({
   placeholder: ReactNode;
 }) {
   if (state.failed && !state.busy) {
-    return (
-      <div className={styles.retry}>
-        <p className={styles.note}>{title} could not be loaded.</p>
-        <Button size="compact" variant="secondary" onClick={state.retry}>
-          Retry
-        </Button>
-      </div>
-    );
+    return <ReloadNotice subject={title} />;
   }
   return (
     <div role="status" aria-label={`Loading ${title.toLowerCase()}`}>

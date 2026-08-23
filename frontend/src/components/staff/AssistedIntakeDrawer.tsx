@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/Button";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import { Dialog } from "@/components/ui/Dialog";
 import { useSellerOptions } from "@/hooks/use-seller-options";
 import type { CurrentActor } from "@/lib/auth/actor";
@@ -22,7 +22,7 @@ export function AssistedIntakeDrawer({
   onClose: () => void;
   onBooked: () => void;
 }) {
-  const { options, failed, retry } = useSellerOptions(open);
+  const { options, failed } = useSellerOptions(open);
   const notice = staffSellNotice(actor);
   const loading = !options && !failed;
 
@@ -39,10 +39,7 @@ export function AssistedIntakeDrawer({
       {loading && <StaffDrawerLoadingShell label="Loading vehicle choices…" single tabs={false} />}
       {failed && (
         <div className={workbench.protocol}>
-          <p>The vehicle choices could not be loaded.</p>
-          <Button size="compact" variant="secondary" onClick={retry}>
-            Retry
-          </Button>
+          <ReloadNotice subject="Vehicle choices" />
         </div>
       )}
       {options && notice && (

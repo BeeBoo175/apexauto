@@ -1,10 +1,10 @@
 "use client";
 
-import { Button } from "@/components/ui/Button";
 import { useWorkCalendarEntry } from "@/hooks/use-work-calendar-entry";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { SearchParams } from "@/lib/query";
-import { StaffLoading, StaffNotice } from "./StaffPage";
+import { StaffLoading } from "./StaffPage";
+import { StaffReloadNotice } from "./StaffReloadNotice";
 import { WorkCalendarWorkspace } from "./WorkCalendarWorkspace";
 
 export function WorkCalendarClientEntry({
@@ -14,15 +14,9 @@ export function WorkCalendarClientEntry({
   actor: CurrentActor;
   parameters: SearchParams;
 }) {
-  const { entry, failed, retry } = useWorkCalendarEntry(actor, parameters);
+  const { entry, failed } = useWorkCalendarEntry(actor, parameters);
   if (failed) {
-    return (
-      <StaffNotice title="Work calendar">
-        <Button size="compact" variant="secondary" onClick={() => void retry()}>
-          Retry work calendar
-        </Button>
-      </StaffNotice>
-    );
+    return <StaffReloadNotice title="Work calendar" />;
   }
   if (!entry) {
     return <StaffLoading />;

@@ -131,17 +131,8 @@ export function IntakeAgentQueue({
         <div className={styles.queueList}>
           <div className={styles.list} ref={list} aria-busy={busy}>
             {!snapshot && !busy && (
-              <EmptyNotice
-                icon="alert-triangle"
-                tone="alert"
-                title="Queue unavailable"
-                action={{
-                  label: "Retry queue",
-                  disabled: !ready || busy,
-                  onClick: () => void load(queue, active.page),
-                }}
-              >
-                Your queues are kept as they were.
+              <EmptyNotice icon="alert-triangle" tone="alert" title="Queue unavailable">
+                Reload the page to try again.
               </EmptyNotice>
             )}
             {snapshot?.items.length === 0 && active.filters.search && (
@@ -190,7 +181,6 @@ export function IntakeAgentQueue({
               failed={false}
               disabled={!ready}
               onPage={(page, pageSize) => void load(queue, page, pageSize)}
-              onRetry={() => void load(queue, active.page)}
             />
           )}
         </div>

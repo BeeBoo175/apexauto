@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { StatusPage } from "@/components/ui/StatusPage";
+import { buttonClassName } from "@/components/ui/Button";
 import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
 import { Button } from "@/components/ui/Button";
@@ -65,16 +67,25 @@ export function VehicleDetail({
         </div>
       </div>
       {!snapshot || !listing || !price ? (
-        <div className={`${layout.content} ${styles.heroBand}`}>
-          <div className={styles.unavailable}>
-            <h1 className={layout.pageHeading}>Vehicle details</h1>
-            <p>
-              {unavailable
-                ? "This vehicle is currently unavailable. Browse the catalogue for available vehicles."
-                : "Vehicle details could not be loaded. Reload the page to try again."}
-            </p>
-          </div>
-        </div>
+        <StatusPage
+          tone={unavailable ? "info" : "alert"}
+          code={unavailable ? "404" : "503"}
+          icon={unavailable ? "car" : "alert-triangle"}
+          title={
+            unavailable
+              ? "This vehicle is no longer available"
+              : "Vehicle details could not be loaded"
+          }
+          actions={
+            <Link href="/vehicles" prefetch={false} className={buttonClassName("secondary")}>
+              Browse the catalogue
+            </Link>
+          }
+        >
+          {unavailable
+            ? "It may have been reserved or sold. Browse the catalogue for other inspected cars."
+            : "The service did not answer. Reload the page to try again."}
+        </StatusPage>
       ) : (
         <VehicleDetailView
           vehicleId={id}

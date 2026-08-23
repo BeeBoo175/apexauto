@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/Button";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { Select } from "@/components/ui/Input";
 import { useEditGuard } from "@/hooks/use-edit-guard";
@@ -78,7 +78,6 @@ export function SaleAssignDialog({
   const [agents, setAgents] = useState<SaleAgent[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [agentId, setAgentId] = useState("");
-  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (!open) {
@@ -102,7 +101,7 @@ export function SaleAssignDialog({
         }
       });
     return () => cancellation.abort();
-  }, [open, snapshot.id, attempt]);
+  }, [open, snapshot.id]);
 
   async function assign() {
     if (agentId && (await editor.run("assignments", { agentId }))) {
@@ -148,14 +147,7 @@ export function SaleAssignDialog({
       )}
       {failed && (
         <p role="alert">
-          The agents could not be loaded.{" "}
-          <Button
-            size="compact"
-            variant="secondary"
-            onClick={() => setAttempt((value) => value + 1)}
-          >
-            Retry agents
-          </Button>
+          The agents could not be loaded. <ReloadNotice subject="Agents" />
         </p>
       )}
     </ConfirmationDialog>

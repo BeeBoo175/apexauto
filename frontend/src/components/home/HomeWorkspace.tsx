@@ -15,16 +15,10 @@ import { HomeBranchToolbar } from "./HomeBranchToolbar";
 import { HomeLayout } from "./HomeLayout";
 import { ScheduleSection } from "./ScheduleSection";
 
-const stateOf = (section: {
-  data: unknown;
-  busy: boolean;
-  failed: boolean;
-  retry: () => void;
-}) => ({
+const stateOf = (section: { data: unknown; busy: boolean; failed: boolean }) => ({
   hasData: section.data !== null,
   busy: section.busy,
   failed: section.failed,
-  retry: section.retry,
 });
 
 // A manager's Home: what needs them now, today's schedule and who has room. Period figures live on Performance and

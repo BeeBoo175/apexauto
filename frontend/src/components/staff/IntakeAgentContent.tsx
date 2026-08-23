@@ -1,7 +1,7 @@
 "use client";
 
 import { StaffQueuePlaceholder } from "./StaffQueuePlaceholder";
-import { Button } from "@/components/ui/Button";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import type { useStaffAppointmentDrawer } from "@/hooks/use-staff-appointment-drawer";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { AppointmentDetail } from "@/lib/staff/contracts";
@@ -76,9 +76,7 @@ export function IntakeAgentContent({
       )}
       {!selection.busy && !selection.result?.data && (
         <div className={styles.empty}>
-          <Button size="compact" variant="secondary" onClick={() => selection.open(selection.id)}>
-            Retry appointment
-          </Button>
+          <ReloadNotice subject="Appointment" />
         </div>
       )}
     </section>

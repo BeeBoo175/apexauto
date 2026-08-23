@@ -1,9 +1,9 @@
 "use client";
 
 import { useContext, useState } from "react";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import { useRouter } from "next/navigation";
 import { Calendar } from "@/components/ui/calendar/Calendar";
-import { Button } from "@/components/ui/Button";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { useWorkCalendar } from "@/hooks/use-work-calendar";
@@ -84,7 +84,6 @@ export function WorkCalendarWorkspace({
           kinds={kinds}
           onKind={(kind) => void calendar.changeWork(kind)}
           onPage={(page, pageSize) => void calendar.changePage(page, pageSize)}
-          onRetry={() => void calendar.loadUnscheduled()}
         />
         <div className={styles.scheduled} aria-label="Scheduled work" aria-busy={pending.scheduled}>
           <header className={styles.panelToolbar}>
@@ -124,20 +123,7 @@ export function WorkCalendarWorkspace({
             timeZone="Asia/Kuala_Lumpur"
             busy={pending.scheduled}
             fit
-            toolbar={
-              <>
-                {!scheduled.data && (
-                  <Button
-                    size="compact"
-                    variant="secondary"
-                    disabled={pending.scheduled}
-                    onClick={() => void calendar.loadScheduled()}
-                  >
-                    Retry scheduled work
-                  </Button>
-                )}
-              </>
-            }
+            toolbar={<>{!scheduled.data && <ReloadNotice subject="Scheduled work" />}</>}
             onMonthChange={(date) => void calendar.changeMonth(date)}
             onEventSelect={(event) => {
               if (!event.data) {

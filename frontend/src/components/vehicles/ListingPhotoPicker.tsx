@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
@@ -28,7 +29,7 @@ export function ListingPhotoPicker({
   const existingButton = useRef<HTMLButtonElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const { value, operating, change } = editor;
-  const { snapshot, busy, failed, load, retry } = photos;
+  const { snapshot, busy, failed, load } = photos;
   const ids = value.photoIds;
   const atLimit = ids.length >= MAX_LISTING_PHOTOS;
   const available =
@@ -115,11 +116,7 @@ export function ListingPhotoPicker({
               Loading photos…
             </p>
           )}
-          {failed && (
-            <Button size="compact" variant="secondary" disabled={busy} onClick={() => void retry()}>
-              Retry photos
-            </Button>
-          )}
+          {failed && <ReloadNotice subject="Photos" />}
           {snapshot?.total === 0 && <p className={styles.help}>No uploaded photos.</p>}
           {snapshot && snapshot.total > 0 && available.length === 0 && (
             <p className={styles.help}>No more photos on this page.</p>

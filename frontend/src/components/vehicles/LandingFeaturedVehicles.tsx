@@ -176,18 +176,10 @@ export function LandingFeaturedVehicles({ initial }: { initial: ApiResult<Catalo
             <div className={styles.emptyCard}>
               <h3>Featured showroom cars are temporarily unavailable</h3>
               <p>
-                We could not reach the inventory service. Retry loading featured cars or continue to
-                the vehicle catalogue.
+                We could not reach the inventory service. Reload the page to try again, or continue
+                to the vehicle catalogue.
               </p>
               <div className={styles.emptyActions}>
-                <Button
-                  type="button"
-                  variant="primary"
-                  disabled={busy}
-                  onClick={() => void selectFilter(activeChip)}
-                >
-                  {busy ? "Loading vehicles…" : "Retry featured cars"}
-                </Button>
                 <Link
                   href="/vehicles"
                   prefetch={false}

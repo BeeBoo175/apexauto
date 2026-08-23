@@ -34,7 +34,6 @@ const stateOf = (section: ReturnType<typeof usePerformanceSection>) => ({
   hasData: section.data !== null,
   busy: section.busy,
   failed: section.failed,
-  retry: section.retry,
 });
 
 // Results: how the chosen period went, as headline figures and the weekly flow of vehicles in and out.

@@ -1,7 +1,7 @@
 "use client";
 
-import { StaffLoading, StaffNotice } from "@/components/staff/StaffPage";
-import { Button } from "@/components/ui/Button";
+import { StaffLoading } from "@/components/staff/StaffPage";
+import { StaffReloadNotice } from "@/components/staff/StaffReloadNotice";
 import { useHomeEntry } from "@/hooks/use-home-entry";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { SearchParams } from "@/lib/query";
@@ -15,15 +15,9 @@ export function HomeClientEntry({
   actor: CurrentActor;
   parameters: SearchParams;
 }) {
-  const { entry, failed, retry } = useHomeEntry(actor, parameters);
+  const { entry, failed } = useHomeEntry(actor, parameters);
   if (failed) {
-    return (
-      <StaffNotice title="Home">
-        <Button size="compact" variant="secondary" onClick={() => void retry()}>
-          Retry home
-        </Button>
-      </StaffNotice>
-    );
+    return <StaffReloadNotice title="Home" />;
   }
   if (!entry) {
     return <StaffLoading />;

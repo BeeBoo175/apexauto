@@ -1,12 +1,12 @@
 "use client";
 
 import { createPortal } from "react-dom";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import type { ComponentProps } from "react";
 import { useRepairReview } from "@/hooks/use-repair-review";
 import type { RepairSelection } from "@/hooks/use-inspection-drawer";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
-import { Button } from "@/components/ui/Button";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { RepairRequestDetails, RepairRequestMetadata } from "./RepairRequestDetails";
 import styles from "./Inspection.module.css";
@@ -64,7 +64,7 @@ export function RetainedRepairReview({
         />
       )}
       {!review.busy && !review.result && (
-        <p role="alert">The selected request could not be loaded. Use refresh to retry.</p>
+        <p role="alert">The selected request could not be loaded. Reload the page to try again.</p>
       )}
       {review.result && (
         <RepairRequestDetails request={review.result.entry.request} report={review.result.report} />
@@ -75,11 +75,7 @@ export function RetainedRepairReview({
           Completed {formatMalaysianDateTime(completion.completedAt)} · {completion.notes}
         </p>
       )}
-      {!actionsContainer && (
-        <Button size="compact" variant="secondary" disabled={review.busy} onClick={review.retry}>
-          Retry selected request
-        </Button>
-      )}
+      {!actionsContainer && <ReloadNotice subject="Request" />}
     </section>
   );
 }

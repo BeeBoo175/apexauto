@@ -165,7 +165,7 @@ export function SaleTermsForm({
       )}
       {editor.optionsFailed && (
         <p className={forms.error}>
-          Warranty and trade-in choices could not be loaded. Reopen to retry.
+          Warranty and trade-in choices could not be loaded. Reload the page to try again.
         </p>
       )}
       {actionsContainer ? (

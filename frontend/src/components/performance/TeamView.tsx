@@ -335,7 +335,6 @@ function TeamTable<Row extends SalesRow | WorkshopRow>({
     hasData: people !== null,
     busy: read.busy,
     failed: read.failed,
-    retry: read.retry,
   };
   return (
     <>

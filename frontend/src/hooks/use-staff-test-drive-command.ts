@@ -130,11 +130,11 @@ export function useStaffTestDriveCommand(
       if (!attempt.signal.aborted && result.data) {
         setHandlers(result.data);
       } else if (!attempt.signal.aborted) {
-        toast.error("Handler choices could not be loaded. Retry to choose a current handler.");
+        toast.error("Handler choices could not be loaded. Reload the page to try again.");
       }
     } catch {
       if (!attempt.signal.aborted) {
-        toast.error("Handler choices could not be loaded. Retry to choose a current handler.");
+        toast.error("Handler choices could not be loaded. Reload the page to try again.");
       }
     } finally {
       if (controller.current === attempt) {

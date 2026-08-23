@@ -1,7 +1,7 @@
 "use client";
 
-import { StaffLoading, StaffNotice } from "@/components/staff/StaffPage";
-import { Button } from "@/components/ui/Button";
+import { StaffLoading } from "@/components/staff/StaffPage";
+import { StaffReloadNotice } from "@/components/staff/StaffReloadNotice";
 import { useListingClientEntry } from "@/hooks/use-listing-client-entry";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { SearchParams } from "@/lib/query";
@@ -13,15 +13,9 @@ export function ListingClientEntry({
   actor: CurrentActor;
   parameters: SearchParams;
 }) {
-  const { entry, failed, retry } = useListingClientEntry(actor, parameters);
+  const { entry, failed } = useListingClientEntry(actor, parameters);
   if (failed) {
-    return (
-      <StaffNotice title="Listings">
-        <Button size="compact" variant="secondary" onClick={() => void retry()}>
-          Retry listings
-        </Button>
-      </StaffNotice>
-    );
+    return <StaffReloadNotice title="Listings" />;
   }
   if (!entry) {
     return <StaffLoading />;

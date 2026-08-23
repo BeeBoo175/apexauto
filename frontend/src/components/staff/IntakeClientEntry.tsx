@@ -1,11 +1,11 @@
 "use client";
 
-import { Button } from "@/components/ui/Button";
 import { useIntakeClientEntry } from "@/hooks/use-intake-client-entry";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { SearchParams } from "@/lib/query";
 import { IntakeWorkspace } from "./IntakeWorkspace";
-import { StaffLoading, StaffNotice } from "./StaffPage";
+import { StaffLoading } from "./StaffPage";
+import { StaffReloadNotice } from "./StaffReloadNotice";
 
 export function IntakeClientEntry({
   actor,
@@ -16,15 +16,9 @@ export function IntakeClientEntry({
   parameters: SearchParams;
   selectedId: string;
 }) {
-  const { entry, failed, retry } = useIntakeClientEntry(actor, parameters, selectedId);
+  const { entry, failed } = useIntakeClientEntry(actor, parameters, selectedId);
   if (failed) {
-    return (
-      <StaffNotice title="Intake">
-        <Button size="compact" variant="secondary" onClick={() => void retry()}>
-          Retry appointments
-        </Button>
-      </StaffNotice>
-    );
+    return <StaffReloadNotice title="Intake" />;
   }
   if (!entry) {
     return <StaffLoading />;

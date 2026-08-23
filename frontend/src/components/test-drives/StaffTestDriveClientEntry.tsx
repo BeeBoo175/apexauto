@@ -1,7 +1,7 @@
 "use client";
 
-import { StaffLoading, StaffNotice } from "@/components/staff/StaffPage";
-import { Button } from "@/components/ui/Button";
+import { StaffLoading } from "@/components/staff/StaffPage";
+import { StaffReloadNotice } from "@/components/staff/StaffReloadNotice";
 import { useStaffTestDriveEntry } from "@/hooks/use-staff-test-drive-entry";
 import type { CurrentActor } from "@/lib/auth/actor";
 import type { SearchParams } from "@/lib/query";
@@ -18,15 +18,9 @@ export function StaffTestDriveClientEntry({
   selectedId: string;
   section: string;
 }) {
-  const { entry, failed, retry } = useStaffTestDriveEntry(actor, parameters, selectedId, section);
+  const { entry, failed } = useStaffTestDriveEntry(actor, parameters, selectedId, section);
   if (failed) {
-    return (
-      <StaffNotice title="Test drives">
-        <Button size="compact" variant="secondary" onClick={() => void retry()}>
-          Retry test drives
-        </Button>
-      </StaffNotice>
-    );
+    return <StaffReloadNotice title="Test drives" />;
   }
   if (!entry) {
     return <StaffLoading />;

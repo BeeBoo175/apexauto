@@ -66,7 +66,7 @@ export function useStaffTestDriveEntry(
       branches: branches?.data ?? null,
       surface,
     };
-  }, "Test drives could not be loaded. Retry to open the workspace.");
+  });
 }
 
 async function prepareSurface(agent: boolean) {

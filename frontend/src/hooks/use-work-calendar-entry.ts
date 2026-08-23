@@ -97,7 +97,7 @@ export function useWorkCalendarEntry(actor: CurrentActor, parameters: SearchPara
       actor.role === "GeneralManager" ? readCalendarBranches(1, signal).catch(() => null) : null,
     ]);
     return { filters, scheduled, unscheduled, branches: branches?.data ?? null };
-  }, "Work calendar could not be opened. Retry to load your work.");
+  });
 }
 
 export type WorkCalendarEntry = NonNullable<ReturnType<typeof useWorkCalendarEntry>["entry"]>;

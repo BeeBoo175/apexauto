@@ -79,11 +79,11 @@ export function useIntakeClientEntry(
           : null,
       },
     };
-  }, "Appointments could not be loaded. Retry to open the workspace.");
+  });
   const snapshot = result.entry?.snapshot;
   useEffect(() => {
     if (snapshot?.selectedId && !snapshot.selected?.data) {
-      error("The selected appointment could not be opened. Retry it from the drawer.");
+      error("The selected appointment could not be opened. Reload the page to try again.");
     }
   }, [snapshot, error]);
   return result;

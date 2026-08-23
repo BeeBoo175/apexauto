@@ -133,5 +133,5 @@ export function useWorkshopClientEntry(actor: CurrentActor, parameters: SearchPa
     }
     signal.throwIfAborted();
     return next;
-  }, "Workshop could not be loaded. Retry to open the workspace.");
+  });
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/Button";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import { useSaleDocumentVersion } from "@/hooks/use-sale-document-version";
 import { documentLabels, saleDocumentPdf, type SaleDocument } from "@/lib/sales/documents";
 import { formatMalaysianDateTime } from "@/lib/date-format";
@@ -24,16 +25,7 @@ export function SaleDocumentLinks({
   const version = useSaleDocumentVersion(saleId, initial);
   const { document } = version;
   if (!document) {
-    return (
-      <Button
-        size="compact"
-        variant="secondary"
-        disabled={version.busy}
-        onClick={() => void version.open(initial.id)}
-      >
-        Retry document
-      </Button>
-    );
+    return <ReloadNotice subject="Document" />;
   }
   const details = (
     <>

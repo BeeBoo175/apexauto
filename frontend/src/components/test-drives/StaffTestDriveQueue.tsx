@@ -160,7 +160,6 @@ export function StaffTestDriveQueue({
             busy={busy}
             failed={false}
             onPage={(page, pageSize) => void list.load({ ...active.filters, pageSize }, page)}
-            onRetry={() => void list.load(active.filters, active.page)}
           />
         </div>
       }

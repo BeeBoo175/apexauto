@@ -117,5 +117,5 @@ export function useSalesClientEntry(actor: CurrentActor, parameters: SearchParam
       ...common,
       selected,
     };
-  }, "Sales could not be loaded. Retry to open the workspace.");
+  });
 }
