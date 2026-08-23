@@ -9,7 +9,7 @@ import styles from "./SiteChrome.module.css";
 
 interface SiteNavigationProps {
   showAccount: boolean;
-  showStaffPortal: boolean;
+  staffPortalHref: string | null;
 }
 
 const PUBLIC_LINKS = [
@@ -27,7 +27,7 @@ function matchesPath(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function SiteNavigation({ showAccount, showStaffPortal }: SiteNavigationProps) {
+export function SiteNavigation({ showAccount, staffPortalHref }: SiteNavigationProps) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const toggleRef = useRef<HTMLButtonElement | null>(null);
@@ -59,7 +59,7 @@ export function SiteNavigation({ showAccount, showStaffPortal }: SiteNavigationP
     };
   }, [menuOpen]);
 
-  const accountHref = showStaffPortal ? "/dashboard/profile" : "/account";
+  const accountHref = staffPortalHref ? "/dashboard/profile" : "/account";
 
   function closeMenu() {
     setMenuOpen(false);
@@ -91,14 +91,15 @@ export function SiteNavigation({ showAccount, showStaffPortal }: SiteNavigationP
             Account
           </a>
         )}
-        {showStaffPortal && (
-          <a
-            href="/dashboard"
+        {staffPortalHref && (
+          <Link
+            href={staffPortalHref}
+            prefetch={false}
             aria-current={matchesPath(pathname, "/dashboard") ? "page" : undefined}
             onClick={mobile ? closeMenu : undefined}
           >
             Staff portal
-          </a>
+          </Link>
         )}
       </>
     );
