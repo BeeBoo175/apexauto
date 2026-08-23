@@ -27,8 +27,7 @@ export function ConfirmDepositControl() {
     <div className={styles.form}>
       <p className={styles.help}>
         Choose Confirm deposit to reserve the car. The RM500 deposit is refundable. You may be taken
-        to our payment provider to pay it securely; in a demo the payment is simulated and no real
-        money moves. The link expires 24 hours after it was sent.
+        to our payment provider to pay it securely. The link expires 24 hours after it was sent.
       </p>
       <Button disabled={!token || busy} onClick={() => void confirm()}>
         {busy ? "Confirming" : "Confirm deposit"}

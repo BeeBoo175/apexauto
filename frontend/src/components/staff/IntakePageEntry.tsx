@@ -16,8 +16,6 @@ export function IntakePageEntry({
       path={selectedId ? `/dashboard/intake/${selectedId}` : "/dashboard/intake"}
       searchParams={searchParams}
       access={hasIntakeAccess}
-      deniedTitle="Intake access unavailable"
-      deniedDescription="This role cannot access intake appointments."
     >
       {async (actor) => (
         <IntakeClientEntry

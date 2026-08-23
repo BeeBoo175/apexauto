@@ -23,8 +23,6 @@ export function ListingPageEntry({
       path={listingSelectionHref(selection)}
       searchParams={parameters}
       access={hasListingAccess}
-      deniedTitle="Listing access unavailable"
-      deniedDescription="Only Branch Managers and General Managers can manage listings."
     >
       {async (actor) => (
         <ListingClientEntry key={crypto.randomUUID()} actor={actor} parameters={await parameters} />

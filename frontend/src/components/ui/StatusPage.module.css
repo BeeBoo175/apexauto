@@ -1,0 +1,111 @@
+.page {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  min-height: clamp(320px, 70svh, 720px);
+  padding: 32px 20px;
+  background:
+    radial-gradient(
+      ellipse 70% 50% at 50% 0%,
+      color-mix(in srgb, var(--color-signal) 7%, transparent),
+      transparent 70%
+    ),
+    var(--color-canvas);
+}
+
+.panel {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 520px;
+  text-align: center;
+  --status-accent: var(--color-graphite-soft);
+}
+
+.panel[data-tone="alert"] {
+  --status-accent: var(--color-signal);
+}
+
+.code {
+  margin: 0;
+  color: color-mix(in srgb, var(--status-accent) 14%, var(--color-paper));
+  font-size: clamp(88px, 16vw, 168px);
+  font-weight: 800;
+  line-height: 0.9;
+  letter-spacing: -0.05em;
+  -webkit-text-stroke: 2px color-mix(in srgb, var(--status-accent) 45%, var(--color-paper));
+  user-select: none;
+}
+
+.road {
+  position: relative;
+  width: min(320px, 80%);
+  height: 44px;
+  margin-block: 4px 8px;
+}
+
+.road::before {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  border-top: 3px dashed var(--color-line);
+  content: "";
+}
+
+.marker {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--status-accent);
+  border-radius: 50%;
+  background: var(--color-paper);
+  color: var(--status-accent);
+  transform: translate(-50%, -50%);
+}
+
+.title {
+  margin: 0;
+  color: var(--color-graphite);
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.text {
+  max-width: 44ch;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 16px;
+  line-height: 1.6;
+  text-wrap: balance;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+@media (max-width: 480px) {
+  .title {
+    font-size: 24px;
+  }
+
+  .actions {
+    flex-direction: column;
+    align-self: stretch;
+  }
+}

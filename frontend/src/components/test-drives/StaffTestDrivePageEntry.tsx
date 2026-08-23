@@ -17,8 +17,6 @@ export function StaffTestDrivePageEntry({
       path={selectedId ? `/dashboard/test-drives/${selectedId}` : "/dashboard/test-drives"}
       searchParams={searchParams}
       access={(actor) => hasTestDriveAccess(actor.role)}
-      deniedTitle="Test drive access unavailable"
-      deniedDescription="Only sales agents and managers can read test drives."
     >
       {async (actor) => (
         <StaffTestDriveClientEntry

@@ -1,6 +1,6 @@
 import type { DemoAccount } from "@/components/auth/DemoAccounts";
 
-// Intentionally public portfolio credentials mirror DevelopmentFixtureManifest.
+// Intentionally public sample credentials mirror DevelopmentFixtureManifest.
 const password = "Password123!";
 
 export const demoAccounts: readonly DemoAccount[] = [

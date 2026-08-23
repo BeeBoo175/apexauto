@@ -23,8 +23,6 @@ export function SalesPageEntry({
       path={saleSelectionHref(selection)}
       searchParams={parameters}
       access={hasSalesAccess}
-      deniedTitle="Sales access unavailable"
-      deniedDescription="Only sales agents and managers work with sales."
     >
       {async (actor) => (
         <SalesClientEntry key={crypto.randomUUID()} actor={actor} parameters={await parameters} />

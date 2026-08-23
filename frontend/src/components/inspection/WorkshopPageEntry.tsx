@@ -28,8 +28,6 @@ export function WorkshopPageEntry({
       path={workshopSelectionHref(selection)}
       searchParams={parameters}
       access={hasInspectionAccess}
-      deniedTitle="Workshop access unavailable"
-      deniedDescription="This role cannot access inspections or repair requests."
     >
       {async (actor) => (
         <WorkshopClientEntry

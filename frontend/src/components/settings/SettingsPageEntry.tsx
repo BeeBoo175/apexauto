@@ -22,8 +22,6 @@ export function SettingsPageEntry({
       path={settingsSelectionHref(selection)}
       searchParams={searchParams}
       access={hasSettingsAccess}
-      deniedTitle="Settings access unavailable"
-      deniedDescription="Only Administrators can manage settings, promos and warranty packages."
     >
       {async () => {
         return (

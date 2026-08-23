@@ -16,8 +16,6 @@ export default async function WorkCalendarPage({
       path="/dashboard/work-calendar"
       searchParams={searchParams}
       access={(actor) => hasWorkCalendarAccess(actor.role)}
-      deniedTitle="Work calendar access unavailable"
-      deniedDescription="Sales agents and branch or general managers can read the work calendar."
     >
       {async (actor) => (
         <WorkCalendarClientEntry

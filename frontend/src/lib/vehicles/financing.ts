@@ -38,7 +38,7 @@ export function defaultCashContribution(total: number): string {
   return exactMyr(roundedDivision(totalSen, BigInt(10)))?.toFixed(2) ?? "";
 }
 
-// This local portfolio estimate mirrors PurchasePricing; the backend owns agreed terms.
+// This local estimate mirrors PurchasePricing; the backend owns agreed terms.
 export function calculateFinancing(
   total: number,
   cashContribution: number,

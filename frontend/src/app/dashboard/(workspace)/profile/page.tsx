@@ -8,13 +8,7 @@ export const metadata = workspaceMetadata("/dashboard/profile");
 
 export default function StaffProfilePage() {
   return (
-    <StaffEntry
-      path="/dashboard/profile"
-      access={() => true}
-      allowUnverified
-      deniedTitle="Account unavailable"
-      deniedDescription="Your account could not be opened."
-    >
+    <StaffEntry path="/dashboard/profile" access={() => true} allowUnverified>
       {async (actor) => {
         const response = await readOwnProfile();
         if (!response.data || response.data.userId !== actor.userId) {

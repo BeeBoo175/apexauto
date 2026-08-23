@@ -24,8 +24,6 @@ export default async function PerformancePage({
       path="/dashboard/performance"
       searchParams={searchParams}
       access={hasPerformanceAccess}
-      deniedTitle="Performance access unavailable"
-      deniedDescription="Only branch managers and general managers can read performance."
     >
       {async (actor) => (
         <PerformanceClientEntry

@@ -1,17 +1,23 @@
 "use client";
 
-import { Button } from "@/components/ui/Button";
-import { useInitialToast } from "@/hooks/use-initial-toast";
-import styles from "@/components/customer-account/Account.module.css";
+import Link from "next/link";
+import { buttonClassName } from "@/components/ui/Button";
+import { StatusPage } from "@/components/ui/StatusPage";
 
-export default function AccountError({ reset }: { reset: () => void }) {
-  useInitialToast("Your account could not be loaded. Try again when the service is available.");
-
+export default function AccountError() {
   return (
-    <section className={styles.error}>
-      <h1 className={styles.errorTitle}>Your account</h1>
-      <Button onClick={reset}>Try loading account again</Button>
-      <a href="/login">Sign in</a>
-    </section>
+    <StatusPage
+      code="503"
+      icon="alert-triangle"
+      tone="alert"
+      title="Your account could not be loaded"
+      actions={
+        <Link href="/login" className={buttonClassName("secondary")}>
+          Sign in
+        </Link>
+      }
+    >
+      The service did not answer. Reload the page to try again.
+    </StatusPage>
   );
 }

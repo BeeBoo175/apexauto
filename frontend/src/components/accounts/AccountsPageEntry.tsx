@@ -26,8 +26,6 @@ export function AccountsPageEntry({
       path={accountSelectionHref(view, selection)}
       searchParams={searchParams}
       access={hasAccountAdministration}
-      deniedTitle="Accounts access unavailable"
-      deniedDescription="Only Administrators can manage accounts."
     >
       {async (actor) => {
         const parameters = await searchParams;

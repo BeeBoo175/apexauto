@@ -61,6 +61,11 @@ const nextConfig: NextConfig = {
   // Remove X-Powered-By header to avoid fingerprinting the server stack.
   poweredByHeader: false,
 
+  // Lets a page call forbidden() so a denied account gets the full-screen 403 page (app/forbidden.tsx).
+  experimental: {
+    authInterrupts: true,
+  },
+
   logging: {
     incomingRequests: {
       ignore: [/^\/auth(?:\/|\?)/, /^\/api\/auth(?:\/|\?)/, /^\/dev\/inbox(?:\/|\?|$)/],

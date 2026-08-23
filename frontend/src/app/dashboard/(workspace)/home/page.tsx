@@ -7,13 +7,7 @@ export const metadata = workspaceMetadata("/dashboard/home");
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   return (
-    <StaffEntry
-      path="/dashboard/home"
-      searchParams={searchParams}
-      access={hasHomeAccess}
-      deniedTitle="Home unavailable"
-      deniedDescription="Home is for sales agents and branch or general managers."
-    >
+    <StaffEntry path="/dashboard/home" searchParams={searchParams} access={hasHomeAccess}>
       {async (actor) => (
         <HomeClientEntry key={crypto.randomUUID()} actor={actor} parameters={await searchParams} />
       )}
