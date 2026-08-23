@@ -304,7 +304,7 @@ test("manager explicitly approves only saved drafts with bound receipts, exact r
   await expect(dialog).toHaveCount(0);
   await expect(reconcile).toHaveCount(0);
   await expect(
-    page.getByRole("heading", { name: "Listing access unavailable", exact: true }),
+    page.getByRole("heading", { name: "You don't have access to this page", exact: true }),
   ).toBeVisible();
   await salesContext.close();
   writeFileSync(

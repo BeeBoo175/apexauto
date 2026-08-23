@@ -505,9 +505,14 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   const previousHistory = `**/api/staff/inspection/reports/${id}/revisions/1/repair-history?*`;
   await page.route(previousHistory, (route) => route.fulfill({ status: 502, body: "Unavailable" }));
   await history.getByRole("button", { name: "Show repair history", exact: true }).click();
-  await expect(history.getByRole("button", { name: "Retry repair requests" })).toBeVisible();
+  await expect(history.getByText("Reload the page to try again.")).toBeVisible();
   await page.unroute(previousHistory);
-  await history.getByRole("button", { name: "Retry repair requests" }).click();
+  await page.reload();
+  await page
+    .getByRole("navigation", { name: "Workshop sections" })
+    .getByRole("button", { name: "History", exact: true })
+    .click();
+  await history.getByRole("button", { name: "Show repair history", exact: true }).click();
   await expect(history.getByRole("link", { name: "Open repair request", exact: true })).toHaveCount(
     1,
   );
@@ -571,7 +576,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   await signInAs(sales, "aina.sofia@example.invalid", "SalesAgent");
   await sales.goto(`/dashboard/workshop/${id}`);
   await expect(
-    sales.getByRole("heading", { name: "Workshop access unavailable", exact: true }),
+    sales.getByRole("heading", { name: "You don't have access to this page", exact: true }),
   ).toBeVisible();
   expect(
     (
@@ -586,7 +591,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   await context.addCookies(changed);
   await page.goto(`/dashboard/workshop/${id}`);
   await expect(
-    page.getByRole("heading", { name: "Workshop access unavailable", exact: true }),
+    page.getByRole("heading", { name: "You don't have access to this page", exact: true }),
   ).toBeVisible();
   await expect(page.getByText("Bumper scuff requires paint repair.", { exact: true })).toHaveCount(
     0,

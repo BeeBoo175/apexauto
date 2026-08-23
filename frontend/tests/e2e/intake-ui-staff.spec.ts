@@ -61,7 +61,7 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
   ).toBe(404);
   await page.goto(`/dashboard/intake/${cross.id}`);
   await expect(page.getByRole("heading", { name: "Intake", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Retry appointment", exact: true })).toBeVisible();
+  await expect(page.getByText("Reload the page to try again.").first()).toBeVisible();
   await expect(page.getByLabel("VIN", { exact: true })).toHaveCount(0);
   await expect(page.getByText(cross.registrationPlate, { exact: true })).toHaveCount(0);
   await page.route("**/api/staff/intake/appointments?**", (route) =>
@@ -76,10 +76,10 @@ test("sales intake preserves scoped queues, workbench drafts and an exact lost c
     }),
   );
   await page.goto("/dashboard/intake?view=myWork");
-  await expect(page.getByRole("button", { name: "Retry queue", exact: true })).toBeVisible();
+  await expect(page.getByText("Reload the page to try again.").first()).toBeVisible();
   await page.unroute("**/api/staff/intake/appointments?**");
-  await page.getByRole("button", { name: "Retry queue", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Retry queue", exact: true })).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByText("Reload the page to try again.")).toHaveCount(0);
   const requests: URL[] = [];
   page.on("request", (request) => {
     const url = new URL(request.url());
@@ -456,7 +456,7 @@ for (const [role, email, actorRole] of staffRoles) {
       }
       await page.goto("/dashboard/intake");
       await expect(
-        page.getByRole("heading", { name: "Intake access unavailable", exact: true }),
+        page.getByRole("heading", { name: "You don't have access to this page", exact: true }),
       ).toBeVisible();
       expect(
         (

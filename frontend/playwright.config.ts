@@ -29,6 +29,16 @@ export default defineConfig({
   use: { trace: "off" },
   projects: [
     {
+      // Screenshots of the no-access and API-down states against the servers already running; run on request.
+      name: "states",
+      testMatch: "e2e/state-gallery.spec.ts",
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 1440, height: 1024 },
+        baseURL: process.env.APP_BASE_URL ?? "http://localhost:3000",
+      },
+    },
+    {
       name: "edit-guards",
       testMatch: "ui/edit-guards.spec.ts",
     },

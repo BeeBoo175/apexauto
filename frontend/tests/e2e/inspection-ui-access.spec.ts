@@ -10,7 +10,7 @@ test("administrator cannot enter the workshop workspace", async ({ page }) => {
   await expect(page.getByRole("progressbar")).toBeHidden();
   await page.goto("/dashboard/workshop");
   await expect(
-    page.getByRole("heading", { name: "Workshop access unavailable", exact: true }),
+    page.getByRole("heading", { name: "You don't have access to this page", exact: true }),
   ).toBeVisible();
   await expect(page.getByRole("progressbar")).toBeHidden();
 });

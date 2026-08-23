@@ -394,7 +394,7 @@ test("manager withdraws an exact publication with retained drafts, receipts, ref
     .click();
   await expect(heldDialog).toHaveCount(0);
   await expect(
-    page.getByRole("heading", { name: "Listing access unavailable", exact: true }),
+    page.getByRole("heading", { name: "You don't have access to this page", exact: true }),
   ).toBeVisible();
   await sales.close();
   writeFileSync(
