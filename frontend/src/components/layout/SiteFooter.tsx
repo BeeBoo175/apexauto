@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Logo } from "@/components/ui/Logo";
 import styles from "./SiteChrome.module.css";
 
 export function SiteFooter() {
@@ -8,7 +9,7 @@ export function SiteFooter() {
         <div className={styles.footerGrid}>
           <div className={styles.footerBrand}>
             <Link href="/" className={styles.footerBrandMark} aria-label="ApexAuto home">
-              Apex<span>Auto</span>
+              <Logo />
             </Link>
             <p className={styles.footerTagline}>
               Verified cars, transparent MYR pricing, and trusted trade-ins across Malaysia.

@@ -29,30 +29,6 @@
     text-decoration-color 150ms ease;
 }
 
-.brand:hover {
-  text-decoration-line: underline;
-  text-decoration-color: var(--color-signal);
-}
-
-.brand:active {
-  text-decoration-line: underline;
-  text-decoration-color: var(--color-paper);
-  opacity: 0.7;
-}
-
-.brand span {
-  color: var(--color-signal);
-  transition: color 150ms ease;
-}
-
-.brand:hover span {
-  color: #ff4d4f;
-}
-
-.brand:active span {
-  color: var(--color-signal-dark);
-}
-
 .navContainer {
   display: flex;
   align-items: center;
@@ -206,30 +182,6 @@
   transition:
     opacity 150ms ease,
     text-decoration-color 150ms ease;
-}
-
-.footerBrandMark:hover {
-  text-decoration-line: underline;
-  text-decoration-color: var(--color-signal);
-}
-
-.footerBrandMark:active {
-  text-decoration-line: underline;
-  text-decoration-color: var(--color-paper);
-  opacity: 0.7;
-}
-
-.footerBrandMark span {
-  color: var(--color-signal);
-  transition: color 150ms ease;
-}
-
-.footerBrandMark:hover span {
-  color: #ff4d4f;
-}
-
-.footerBrandMark:active span {
-  color: var(--color-signal-dark);
 }
 
 .footerTagline {

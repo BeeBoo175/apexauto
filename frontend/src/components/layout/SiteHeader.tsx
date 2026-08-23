@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Logo } from "@/components/ui/Logo";
 import { actorDestination } from "@/lib/auth/actor";
 import { readCurrentActor } from "@/lib/auth/server";
 import styles from "./SiteChrome.module.css";
@@ -13,7 +14,7 @@ export async function SiteHeader() {
   return (
     <header className={styles.header}>
       <Link href="/" className={styles.brand} aria-label="ApexAuto home">
-        Apex<span>Auto</span>
+        <Logo />
       </Link>
       <SiteNavigation showAccount={showAccount} staffPortalHref={staffPortalHref} />
     </header>

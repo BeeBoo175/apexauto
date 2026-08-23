@@ -76,10 +76,6 @@
   white-space: nowrap;
 }
 
-.brand span {
-  color: var(--color-signal);
-}
-
 .monogram {
   display: none;
   align-items: center;
@@ -96,10 +92,6 @@
   text-decoration: none;
   user-select: none;
   transition: background-color 150ms ease;
-}
-
-.monogram span {
-  color: var(--color-signal);
 }
 
 .monogram:hover {

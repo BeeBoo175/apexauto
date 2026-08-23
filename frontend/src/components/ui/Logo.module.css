@@ -1,0 +1,64 @@
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28em;
+  color: inherit;
+  font-family: var(--font-display);
+  line-height: 1;
+}
+
+.mark {
+  flex: none;
+  width: 1.25em;
+  height: 1.25em;
+  overflow: visible;
+}
+
+.peak,
+.chevron {
+  fill: none;
+  stroke-width: 3.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.peak {
+  stroke: currentColor;
+}
+
+.chevron {
+  stroke: var(--color-signal);
+  transition: stroke 150ms ease;
+}
+
+.word {
+  font-size: 0.9em;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.auto {
+  color: var(--color-signal);
+  transition: color 150ms ease;
+}
+
+a:hover > .logo .auto,
+a:focus-visible > .logo .auto {
+  color: #ff4d4f;
+}
+
+a:hover > .logo .chevron,
+a:focus-visible > .logo .chevron {
+  stroke: #ff4d4f;
+}
+
+a:active > .logo {
+  opacity: 0.7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chevron,
+  .auto {
+    transition: none;
+  }
+}

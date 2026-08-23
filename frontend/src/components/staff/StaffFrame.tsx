@@ -1,5 +1,6 @@
 "use client";
 import { Suspense, useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
+import { Logo } from "@/components/ui/Logo";
 import { usePathname, useSearchParams } from "next/navigation";
 import { StaffLink } from "./StaffLink";
 import { StaffClientEntryBoundary } from "./StaffClientEntryBoundary";
@@ -126,7 +127,7 @@ function StaffFrameContent({
                 aria-label="ApexAuto public site"
                 onNavigate={(event) => navigate(event, "/")}
               >
-                Apex<span>Auto</span>
+                <Logo />
               </StaffLink>
               {mobileOpen ? (
                 <CloseButton
@@ -164,7 +165,7 @@ function StaffFrameContent({
                     aria-label="ApexAuto public site"
                     onNavigate={(event) => navigate(event, "/")}
                   >
-                    Apex<span>Auto</span>
+                    <Logo />
                   </StaffLink>
                   <StaffLink
                     href="/"
@@ -175,7 +176,7 @@ function StaffFrameContent({
                     data-tooltip={collapsed ? "ApexAuto public site" : undefined}
                     onNavigate={(event) => navigate(event, "/")}
                   >
-                    A<span>A</span>
+                    <Logo markOnly />
                   </StaffLink>
                   <Button
                     variant="shell"
