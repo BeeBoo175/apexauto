@@ -718,12 +718,17 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
+                    b.Property<Guid?>("UploadedByStaffId")
+                        .HasColumnType("uuid");
+
                     b.Property<int>("Width")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ExpiresAt");
+
+                    b.HasIndex("UploadedByStaffId");
 
                     b.HasIndex("OwnerId", "CreatedAt");
 
@@ -3654,6 +3659,11 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
+                        .WithMany()
+                        .HasForeignKey("UploadedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("Dealership.Domain.Intake.PhotoRemoval", b =>
