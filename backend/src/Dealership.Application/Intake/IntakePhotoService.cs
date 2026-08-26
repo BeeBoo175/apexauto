@@ -14,7 +14,7 @@ public sealed class IntakePhotoService(ICustomerAccountQuery accounts, IPhotoIma
     }
 
     public async Task<PhotoResult> UploadAsync(Guid ownerId, Guid id, PhotoAngle angle, string contentType,
-        Stream content, CancellationToken cancellationToken)
+        Stream content, CancellationToken cancellationToken, Guid? assistedById = null)
     {
         if (id == Guid.Empty || !Enum.IsDefined(angle) || !PhotoContent.IsSupportedContentType(contentType))
         {
@@ -34,14 +34,15 @@ public sealed class IntakePhotoService(ICustomerAccountQuery accounts, IPhotoIma
         }
 
         return Result(await transfers.UploadAsync(id, content,
-            token => photos.PrepareAsync(ownerId, id, angle, validated, policy.UnsubmittedLifetime, token),
+            token => photos.PrepareAsync(ownerId, id, angle, validated, policy.UnsubmittedLifetime, token, assistedById),
             prepared => prepared.Status == PhotoStatus.Pending ? prepared.Photo : null,
             token => photos.ConfirmAsync(ownerId, id, token), cancellationToken));
     }
 
-    public async Task<PhotoResult> GetReceiptAsync(Guid ownerId, Guid id, CancellationToken cancellationToken)
+    public async Task<PhotoResult> GetReceiptAsync(Guid ownerId, Guid id, CancellationToken cancellationToken,
+        Guid? assistedById = null)
     {
-        return Result(await photos.FindAsync(ownerId, id, cancellationToken));
+        return Result(await photos.FindAsync(ownerId, id, cancellationToken, assistedById));
     }
 
     public async Task<PhotoResult> DownloadAsync(Guid ownerId, Guid id, Stream destination,

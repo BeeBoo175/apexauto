@@ -27,10 +27,12 @@ public sealed record IntakePhotoPolicy(TimeSpan UnsubmittedLifetime);
 
 public interface IIntakePhotoStore
 {
+    // assistedById is the staff member acting for the owner; a photo is then bound to that staff member.
     Task<PhotoPreparation> PrepareAsync(Guid ownerId, Guid id, PhotoAngle angle, PhotoContent content,
-        TimeSpan lifetime, CancellationToken cancellationToken);
+        TimeSpan lifetime, CancellationToken cancellationToken, Guid? assistedById = null);
 
-    Task<PhotoPreparation> FindAsync(Guid ownerId, Guid id, CancellationToken cancellationToken);
+    Task<PhotoPreparation> FindAsync(Guid ownerId, Guid id, CancellationToken cancellationToken,
+        Guid? assistedById = null);
 
     Task<PhotoPreparation> ConfirmAsync(Guid ownerId, Guid id, CancellationToken cancellationToken);
 }

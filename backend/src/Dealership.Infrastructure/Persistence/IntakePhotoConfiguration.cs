@@ -1,5 +1,6 @@
 using Dealership.Domain.Customers;
 using Dealership.Domain.Intake;
+using Dealership.Infrastructure.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -22,6 +23,8 @@ public sealed class IntakePhotoConfiguration : IEntityTypeConfiguration<IntakePh
         builder.HasAlternateKey(photo => new { photo.Id, photo.OwnerId, photo.Angle });
         builder.Property(photo => photo.Id).ValueGeneratedNever();
         builder.HasOne<CustomerProfile>().WithMany().HasForeignKey(photo => photo.OwnerId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<AccountUser>().WithMany().HasForeignKey(photo => photo.UploadedByStaffId)
             .OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(photo => new { photo.OwnerId, photo.CreatedAt });
         builder.HasIndex(photo => photo.ExpiresAt);

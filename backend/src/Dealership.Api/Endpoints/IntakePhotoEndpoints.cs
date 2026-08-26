@@ -73,7 +73,7 @@ public static class IntakePhotoEndpoints
             using var bodyDeadline = CancellationTokenSource.CreateLinkedTokenSource(deadline.Token);
             bodyDeadline.CancelAfter(TimeSpan.FromSeconds(60));
             await PhotoTemporaryFile.CopyRequestAsync(context.Request.Body, file, bodyDeadline.Token);
-            return Map(await photos.UploadAsync(owner.OwnerId, id, selectedAngle, contentType!, file, deadline.Token));
+            return Map(await photos.UploadAsync(owner.OwnerId, id, selectedAngle, contentType!, file, deadline.Token, owner.Staff?.Id));
         }
         catch (BadHttpRequestException exception)
         {
@@ -98,7 +98,7 @@ public static class IntakePhotoEndpoints
             return owner.Error;
         }
 
-        return Map(await photos.GetReceiptAsync(owner.OwnerId, id, cancellationToken));
+        return Map(await photos.GetReceiptAsync(owner.OwnerId, id, cancellationToken, owner.Staff?.Id));
     }
 
     private static async Task<IResult> DownloadAsync(Guid id, HttpContext context, IntakePhotoService photos,

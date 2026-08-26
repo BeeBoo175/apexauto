@@ -11,7 +11,7 @@ namespace Dealership.Infrastructure.Intake;
 public sealed class IntakePhotoStore(DealershipDbContext database, TimeProvider clock, PhotoCleanupSignal cleanup) : IIntakePhotoStore
 {
     public async Task<PhotoPreparation> PrepareAsync(Guid ownerId, Guid id, PhotoAngle angle, PhotoContent content,
-        TimeSpan lifetime, CancellationToken cancellationToken)
+        TimeSpan lifetime, CancellationToken cancellationToken, Guid? assistedById = null)
     {
         await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
         // Serialize the global upload identity, including two different owners racing to claim it.
@@ -27,12 +27,17 @@ public sealed class IntakePhotoStore(DealershipDbContext database, TimeProvider 
 
         if (existing is not null)
         {
-            return existing.Matches(ownerId, angle, content)
+            return existing.Matches(ownerId, angle, content) && existing.UploadedByStaffId == assistedById
                 ? await ClassifyAsync(existing, cancellationToken)
                 : new PhotoPreparation(PhotoStatus.Conflict);
         }
 
         var photo = new IntakePhoto(id, ownerId, angle, content, ReceiptTime(), lifetime);
+        if (assistedById is { } staffId)
+        {
+            photo.RecordAssistance(staffId);
+        }
+
         database.IntakePhotos.Add(photo);
         await database.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
@@ -40,7 +45,8 @@ public sealed class IntakePhotoStore(DealershipDbContext database, TimeProvider 
         return new PhotoPreparation(PhotoStatus.Pending, photo);
     }
 
-    public async Task<PhotoPreparation> FindAsync(Guid ownerId, Guid id, CancellationToken cancellationToken)
+    public async Task<PhotoPreparation> FindAsync(Guid ownerId, Guid id, CancellationToken cancellationToken,
+        Guid? assistedById = null)
     {
         if (!await IsVerifiedOwnerAsync(ownerId, lockUser: false, cancellationToken))
         {
@@ -48,7 +54,8 @@ public sealed class IntakePhotoStore(DealershipDbContext database, TimeProvider 
         }
 
         var photo = await database.IntakePhotos.AsNoTracking()
-            .SingleOrDefaultAsync(candidate => candidate.Id == id && candidate.OwnerId == ownerId, cancellationToken);
+            .SingleOrDefaultAsync(candidate => candidate.Id == id && candidate.OwnerId == ownerId &&
+                (assistedById == null || candidate.UploadedByStaffId == assistedById), cancellationToken);
         return photo is null ? new PhotoPreparation(PhotoStatus.NotFound) : await ClassifyAsync(photo, cancellationToken);
     }
 

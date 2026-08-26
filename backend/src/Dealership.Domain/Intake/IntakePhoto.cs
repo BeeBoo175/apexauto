@@ -50,6 +50,18 @@ public sealed class IntakePhoto : IPhotoObject
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset ExpiresAt { get; private set; }
     public DateTimeOffset? AvailableAt { get; private set; }
+    // Set when staff uploaded the photo for the customer; only that staff member may then read or replay it.
+    public Guid? UploadedByStaffId { get; private set; }
+
+    public void RecordAssistance(Guid staffId)
+    {
+        if (staffId == Guid.Empty)
+        {
+            throw new ArgumentException("Assisting staff require an identity.", nameof(staffId));
+        }
+
+        UploadedByStaffId = staffId;
+    }
 
     public bool Matches(Guid ownerId, PhotoAngle angle, PhotoContent content)
     {
