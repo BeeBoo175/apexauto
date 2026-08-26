@@ -77,6 +77,7 @@ export interface SaleContext {
   customerId: string | null;
   branch: string;
   reservedAt: string;
+  totalHoldSeconds: number;
   warrantyMonths: number | null;
   warrantyMileageCapKm: number | null;
   tradeInMinimum: number | null;
@@ -173,6 +174,7 @@ export interface SaleSummary {
   // Set on deposit requests, which open their car's listing instead of a sale.
   vehicleId: string | null;
   branch: string;
+  totalHoldSeconds: number;
   dueAt: string | null;
   pausedSeconds: number | null;
   claimedAt: string | null;

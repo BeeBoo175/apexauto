@@ -1,12 +1,9 @@
 import { remainingHoldSeconds } from "@/lib/sales/contracts";
 import styles from "./HoldTimer.module.css";
 
-// Sale holds last 48 hours; a deposit request holds the car for 24, so the ring is drawn against the hold's own length.
-export const SALE_HOLD_SECONDS = 48 * 3600;
-
 type TimerState = "Frozen" | "Red" | "Amber" | "Open";
 
-// Amber in the last half of the hold and red in the last eighth: 24 and 6 hours of a sale hold.
+// Amber in the last half of the hold and red in the last eighth of its original duration.
 function timerState(frozen: boolean, remaining: number, total: number): TimerState {
   if (frozen) {
     return "Frozen";
@@ -30,13 +27,13 @@ export function HoldTimer({
   dueAt,
   pausedSeconds = null,
   now,
-  totalSeconds = SALE_HOLD_SECONDS,
+  totalSeconds,
   compact = false,
 }: {
   dueAt: string | null;
   pausedSeconds?: number | null;
   now: number;
-  totalSeconds?: number;
+  totalSeconds: number;
   compact?: boolean;
 }) {
   const frozen = pausedSeconds !== null;

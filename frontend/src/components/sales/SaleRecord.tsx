@@ -116,7 +116,13 @@ export function SaleRecord({
           <div className={styles.summaryClock}>
             {loadingVersion && <span className={styles.clockPlaceholder} aria-hidden="true" />}
             {!loadingVersion && running && (
-              <HoldTimer dueAt={sale.dueAt} pausedSeconds={sale.pausedSeconds} now={at} compact />
+              <HoldTimer
+                dueAt={sale.dueAt}
+                pausedSeconds={sale.pausedSeconds}
+                now={at}
+                totalSeconds={editor.snapshot.context.totalHoldSeconds}
+                compact
+              />
             )}
           </div>
           <StaffDetailsDialog

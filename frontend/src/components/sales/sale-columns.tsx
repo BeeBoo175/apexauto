@@ -13,7 +13,6 @@ import {
   type SaleSummary,
 } from "@/lib/sales/contracts";
 import { staffColumnSizing } from "@/lib/staff/table-columns";
-import { DEPOSIT_REQUEST_HOURS } from "@/lib/vehicles/deposit-terms";
 import { HoldTimer } from "@/components/staff/HoldTimer";
 import { SaleStatus } from "./SaleStatus";
 import tones from "@/components/ui/StatusTone.module.css";
@@ -128,9 +127,7 @@ export function saleColumns(role: CurrentActor["role"], now: number): DataColumn
             dueAt={row.dueAt}
             pausedSeconds={row.pausedSeconds}
             now={now}
-            totalSeconds={
-              row.status === "AwaitingDeposit" ? DEPOSIT_REQUEST_HOURS * 3600 : undefined
-            }
+            totalSeconds={row.totalHoldSeconds}
             compact
           />
         ),

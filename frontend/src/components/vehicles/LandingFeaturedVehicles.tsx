@@ -99,7 +99,7 @@ export function LandingFeaturedVehicles({ initial }: { initial: ApiResult<Catalo
             <h2 id="featured-vehicles-heading" className={layout.sectionHeading}>
               Inspected cars ready to reserve
             </h2>
-            <p>Verified mileage, full photo galleries, and upfront MYR pricing.</p>
+            <p>Verified mileage, full photo galleries, and upfront RM pricing.</p>
           </div>
           <Link href={browseTargetHref} prefetch={false} className={layout.arrowLink}>
             {snapshot

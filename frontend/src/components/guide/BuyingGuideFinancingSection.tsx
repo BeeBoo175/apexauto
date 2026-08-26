@@ -83,7 +83,7 @@ export function BuyingGuideFinancingSection() {
         <div className={styles.fieldGrid}>
           <Input
             id="guide-fin-total"
-            label="Car / OTR budget (MYR)"
+            label="Car / OTR budget (RM)"
             inputMode="decimal"
             maxLength={14}
             value={totalDraft}
@@ -128,7 +128,7 @@ export function BuyingGuideFinancingSection() {
           </div>
           <Input
             id="guide-fin-cash"
-            label="Cash down payment (MYR)"
+            label="Cash down payment (RM)"
             inputMode="decimal"
             maxLength={14}
             value={cashDraft}
@@ -154,7 +154,7 @@ export function BuyingGuideFinancingSection() {
           </div>
           <Input
             id="guide-fin-trade-in"
-            label="Estimated trade-in credit (MYR)"
+            label="Estimated trade-in credit (RM)"
             inputMode="decimal"
             maxLength={14}
             value={customTradeIn}
@@ -190,7 +190,7 @@ export function BuyingGuideFinancingSection() {
 
         {estimate === null ? (
           <p className={styles.fieldError}>
-            Enter positive MYR amounts (up to two decimals) to preview monthly payments.
+            Enter positive RM amounts (up to two decimals) to preview monthly payments.
           </p>
         ) : (
           <>

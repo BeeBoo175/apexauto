@@ -9,7 +9,7 @@ const SELLING_STEPS = [
   {
     number: "01",
     title: "Get an indicative quote",
-    description: "Select your car details and mileage for an instant MYR guide range.",
+    description: "Select your car details and mileage for an instant RM guide range.",
   },
   {
     number: "02",

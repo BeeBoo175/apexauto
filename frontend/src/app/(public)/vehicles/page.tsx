@@ -12,7 +12,7 @@ import { catalogueParams, catalogueQuery } from "@/lib/vehicles/query";
 export const metadata: Metadata = {
   title: "Used cars for sale | ApexAuto",
   description:
-    "Browse 210-point inspected used cars across ApexAuto Malaysian showrooms. Compare verified mileage, transparent MYR pricing and reserve online.",
+    "Browse 210-point inspected used cars across ApexAuto Malaysian showrooms. Compare verified mileage, transparent RM pricing and reserve online.",
   openGraph: {
     title: "Used cars for sale | ApexAuto",
     description: "Explore inspected vehicles approved across ApexAuto Malaysian showrooms.",

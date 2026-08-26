@@ -23,7 +23,7 @@ interface TradeInValuationProps {
 const TRADE_IN_HIGHLIGHTS = [
   {
     icon: "inspection" as const,
-    title: "Instant MYR range",
+    title: "Instant RM range",
     note: "Calculated from make, model, year, and mileage.",
   },
   {

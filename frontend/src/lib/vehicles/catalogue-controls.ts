@@ -1,3 +1,4 @@
+import { formatCurrency } from "@/lib/currency-format";
 import { showroomName, type Branch } from "@/lib/branches";
 import type { Page } from "@/lib/api";
 import { fuelLabel, type CatalogueFilters } from "./contracts";
@@ -28,15 +29,7 @@ export interface AppliedCataloguePill {
 
 function formatRangePrice(value: string) {
   const numeric = Number(value);
-  if (!Number.isFinite(numeric)) {
-    return `MYR ${value.trim()}`;
-  }
-  return Number.isInteger(numeric)
-    ? `MYR ${numeric.toLocaleString("en-MY")}`
-    : `MYR ${numeric.toLocaleString("en-MY", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      })}`;
+  return Number.isFinite(numeric) ? formatCurrency(numeric) : `RM ${value.trim()}`;
 }
 
 export function sortOptionValue(filters: Pick<CatalogueFilters, "sort" | "direction">) {

@@ -143,7 +143,7 @@ export function VehicleCatalogue({
                 </h2>
                 <p>
                   {hasActiveFilters
-                    ? "Try a wider MYR price or year range, switch showrooms, or reset filters to see all available cars."
+                    ? "Try a wider RM price or year range, switch showrooms, or reset filters to see all available cars."
                     : "Showroom listings appear here after inspection and management approval. Value or sell your own car in the meantime."}
                 </p>
                 <div className={styles.emptyActions}>

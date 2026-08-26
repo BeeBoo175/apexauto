@@ -153,7 +153,12 @@ export function SalesQueueList({
                       item.status === "Settled" ||
                       item.status === "Delivered") && <SaleStatus status={item.status} />}
                     {saleHasHoldTimer(item.status) && (
-                      <HoldTimer dueAt={item.dueAt} pausedSeconds={item.pausedSeconds} now={now} />
+                      <HoldTimer
+                        dueAt={item.dueAt}
+                        pausedSeconds={item.pausedSeconds}
+                        now={now}
+                        totalSeconds={item.totalHoldSeconds}
+                      />
                     )}
                     <span className={styles.jobMeta}>
                       {saleReference(item)}

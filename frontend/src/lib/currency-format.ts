@@ -4,7 +4,8 @@ export function formatCurrency(amount: number, currency = "MYR"): string {
     maximumFractionDigits: 2,
   }).format(amount);
 
-  return `${currency} ${formatted}`;
+  const label = currency === "MYR" ? "RM" : currency;
+  return `${label} ${formatted}`;
 }
 
 const compactCurrency = new Intl.NumberFormat("en-MY", {
@@ -14,7 +15,7 @@ const compactCurrency = new Intl.NumberFormat("en-MY", {
   maximumFractionDigits: 1,
 });
 
-// Short MYR amounts for chart scales, such as "MYR 1.2M"; hovers and tables carry the exact amount.
+// Short RM amounts for chart scales, such as "RM 1.2M"; hovers and tables carry the exact amount.
 export function compactMoney(amount: number) {
   return compactCurrency.format(amount);
 }

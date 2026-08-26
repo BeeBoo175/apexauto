@@ -35,6 +35,7 @@ internal sealed class SaleRow
     public bool CustomerSuspended { get; init; }
     public DateTimeOffset? DueAt { get; init; }
     public long? PausedSeconds { get; init; }
+    public long TotalHoldSeconds { get; init; }
     public DateTimeOffset? ClaimedAt { get; init; }
     public decimal NegotiatedDiscount { get; init; }
     public decimal? DiscountLimitAtSubmit { get; init; }
@@ -92,6 +93,7 @@ internal static class SaleRows
             CustomerSuspended = customer.SuspendedAt != null,
             DueAt = sale.DueAt,
             PausedSeconds = sale.PausedSeconds,
+            TotalHoldSeconds = (long)(reservation.ExpiresAt - reservation.CreatedAt).TotalSeconds,
             ClaimedAt = sale.ClaimedAt,
             NegotiatedDiscount = sale.NegotiatedDiscount,
             DiscountLimitAtSubmit = sale.DiscountLimitAtSubmit,
@@ -143,6 +145,7 @@ internal static class SaleRows
             Promo = (string?)null,
             OrderNumber = (string?)null,
             DueAt = request.ExpiresAt,
+            TotalHoldSeconds = (long)(request.ExpiresAt - request.CreatedAt).TotalSeconds,
             PausedSeconds = (long?)null,
             ClaimedAt = (DateTimeOffset?)null,
             NegotiatedDiscount = 0m,
@@ -182,7 +185,7 @@ internal static class SaleRows
         row.Agent, row.Branch, row.DueAt, row.PausedSeconds, row.ClaimedAt, row.NegotiatedDiscount,
         row.DiscountLimitAtSubmit, row.BalancePayable, row.SubmittedAt, row.DecidedAt, row.ClosedAt,
         !row.IsDepositRequest && SalesOrder.IsClosedStatus(row.Status) ? row.Status.ToString() : null,
-        row.Version, row.UpdatedAt, row.AgentName, row.AgentPictureId, row.AgentId,
+        row.Version, row.UpdatedAt, row.TotalHoldSeconds, row.AgentName, row.AgentPictureId, row.AgentId,
         row.AgentSuspended, row.CustomerSuspended, row.CustomerId, row.VehicleId);
 
     // Compare remaining time before counting and paging, using one instant for both bounds.

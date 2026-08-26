@@ -66,7 +66,7 @@ export function BuyingGuidePricingSection() {
         <div className={styles.fieldGrid}>
           <Input
             id="guide-otr-price"
-            label="Vehicle price (MYR)"
+            label="Vehicle price (RM)"
             inputMode="decimal"
             maxLength={14}
             value={priceDraft}
@@ -136,7 +136,7 @@ export function BuyingGuidePricingSection() {
 
         {estimate === null ? (
           <p className={styles.fieldError}>
-            Enter a positive vehicle price in MYR to calculate OTR costs.
+            Enter a positive vehicle price in RM to calculate OTR costs.
           </p>
         ) : (
           <>

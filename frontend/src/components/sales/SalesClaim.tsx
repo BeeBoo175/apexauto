@@ -107,7 +107,12 @@ export function SalesClaim({
                 {
                   label: "Time left",
                   value: (
-                    <HoldTimer dueAt={hold.dueAt} pausedSeconds={hold.pausedSeconds} now={now} />
+                    <HoldTimer
+                      dueAt={hold.dueAt}
+                      pausedSeconds={hold.pausedSeconds}
+                      now={now}
+                      totalSeconds={hold.totalHoldSeconds}
+                    />
                   ),
                 },
               ]

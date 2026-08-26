@@ -558,7 +558,7 @@ test("catalogue pills and pagination slots summarize active criteria and bounded
   expect(pills.map((pill) => pill.label)).toEqual([
     "Make: Honda",
     "Model: City",
-    "Under MYR 60,000",
+    "Under RM 60,000.00",
     "Plug In Hybrid",
     "Showroom: Glenmarie",
   ]);

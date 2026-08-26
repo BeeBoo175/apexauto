@@ -8,18 +8,10 @@ import { Icon } from "@/components/ui/Icon";
 import { Select } from "@/components/ui/Input";
 import { showroomName, type Branch } from "@/lib/branches";
 import type { Taxonomy } from "@/lib/intake/contracts";
-import { FEATURED_QUICK_FILTERS } from "@/lib/vehicles/featured";
+import { catalogueBudgetOptions, FEATURED_QUICK_FILTERS } from "@/lib/vehicles/featured";
 import { catalogueDefaults, catalogueHref } from "@/lib/vehicles/query";
 import styles from "./LandingHero.module.css";
 import layout from "./VehicleLayout.module.css";
-
-const BUDGET_OPTIONS = [
-  { value: "", label: "Any budget" },
-  { value: "50000", label: "Up to MYR 50,000" },
-  { value: "75000", label: "Up to MYR 75,000" },
-  { value: "100000", label: "Up to MYR 100,000" },
-  { value: "150000", label: "Up to MYR 150,000" },
-] as const;
 
 const HERO_QUICK_LINKS = FEATURED_QUICK_FILTERS.filter((chip) => chip.showInHero);
 
@@ -135,7 +127,7 @@ export function LandingHeroWorkbench({
                 value={maximumPrice}
                 onChange={(event) => setMaximumPrice(event.target.value)}
               >
-                {BUDGET_OPTIONS.map((option) => (
+                {catalogueBudgetOptions.map((option) => (
                   <option key={option.value || "any"} value={option.value}>
                     {option.label}
                   </option>
@@ -188,7 +180,7 @@ export function LandingHeroWorkbench({
           <fieldset disabled={mode !== "sell"} className={styles.paneReset}>
             <div className={styles.sellWorkbenchBody}>
               <p className={styles.sellCopy}>
-                Check your indicative MYR trade-in range below or book a showroom intake slot.
+                Check your indicative RM trade-in range below or book a showroom intake slot.
               </p>
               <div className={styles.sellPerks}>
                 <span>

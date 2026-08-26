@@ -13,7 +13,7 @@ export function useVehicleFinancing(total: number, indicativeTradeIn = 0) {
     cash === null ? null : calculateFinancing(total, cash, Number(termYears), indicativeTradeIn);
   const error =
     cash === null
-      ? "Enter a non-negative cash contribution in MYR with at most two decimal places."
+      ? "Enter a non-negative cash contribution in RM with at most two decimal places."
       : null;
 
   return {

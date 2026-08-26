@@ -121,7 +121,7 @@ export function LandingInspectionOverview() {
                 <Icon name="car" />
               </span>
               <div>
-                <strong>Upfront itemized MYR pricing</strong>
+                <strong>Upfront itemized RM pricing</strong>
                 <p>See vehicle price, fees, road tax, and SST clearly upfront.</p>
               </div>
             </li>

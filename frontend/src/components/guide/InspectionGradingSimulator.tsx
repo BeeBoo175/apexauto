@@ -161,7 +161,7 @@ export function InspectionGradingSimulator() {
             </div>
             <Input
               id="guide-sim-cost"
-              label="Repair estimate (MYR)"
+              label="Repair estimate (RM)"
               inputMode="decimal"
               maxLength={12}
               value={costDraft}
@@ -177,7 +177,7 @@ export function InspectionGradingSimulator() {
         <aside className={guideLayout.receiptPanel} aria-label="Inspection grade outcome">
           {evaluation === null ? (
             <p className={styles.fieldError}>
-              Enter a valid MYR repair amount (for example 350.00) to calculate the grade.
+              Enter a valid RM repair amount (for example 350.00) to calculate the grade.
             </p>
           ) : (
             <>

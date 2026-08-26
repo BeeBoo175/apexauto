@@ -49,7 +49,7 @@ export function VehicleFinancing({
     allowCustomTotal && parsedCustom !== null && parsedCustom > 0 ? parsedCustom : null;
   const effectiveTotal = customTotal ?? total;
   const totalError =
-    allowCustomTotal && customTotal === null ? "Enter a positive vehicle price in MYR." : null;
+    allowCustomTotal && customTotal === null ? "Enter a positive vehicle price in RM." : null;
 
   const { cashContribution, setCashContribution, termYears, setTermYears, estimate, error } =
     useVehicleFinancing(effectiveTotal, tradeInAllowance);
@@ -102,7 +102,7 @@ export function VehicleFinancing({
                   </Select>
                 )}
                 <Input
-                  label="Target vehicle price (MYR)"
+                  label="Target vehicle price (RM)"
                   id={`${headingId}-total`}
                   inputMode="decimal"
                   maxLength={20}
@@ -117,7 +117,7 @@ export function VehicleFinancing({
             )}
             <div className={styles.sliderField}>
               <Input
-                label="Cash contribution (MYR)"
+                label="Cash contribution (RM)"
                 id={`${headingId}-cash`}
                 inputMode="decimal"
                 maxLength={20}
@@ -138,7 +138,7 @@ export function VehicleFinancing({
                 onChange={(event) => setCashContribution(Number(event.target.value).toFixed(2))}
               />
               <div className={styles.rangeLabels}>
-                <span>MYR 0</span>
+                <span>RM 0</span>
                 <span>{formatCurrency(effectiveTotal)}</span>
               </div>
               <p id={`${headingId}-cash-help`} className={styles.help}>

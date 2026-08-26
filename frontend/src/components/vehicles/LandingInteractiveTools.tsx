@@ -56,7 +56,7 @@ export function LandingInteractiveTools({
             tradeIn={tradeIn}
             headingId="landing-trade-in"
             heading="Estimate your car’s value"
-            description="Get an indicative MYR valuation and apply it directly to your monthly loan estimate."
+            description="Get an indicative RM valuation and apply it directly to your monthly loan estimate."
             allowanceLabel="Synced to financing estimate"
             unavailableNotice="Vehicle options are currently unavailable. You can still test monthly repayments in the financing calculator below."
             primaryResultAction={

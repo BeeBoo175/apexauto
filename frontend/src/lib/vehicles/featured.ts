@@ -1,3 +1,4 @@
+import { formatCurrency } from "@/lib/currency-format";
 import type { CatalogueFilters, PublicVehicle } from "./contracts";
 import { catalogueDefaults } from "./query";
 
@@ -8,24 +9,53 @@ export interface FeaturedQuickFilter {
   showInHero?: boolean;
 }
 
-export const FEATURED_QUICK_FILTERS: readonly FeaturedQuickFilter[] = [
-  { id: "all", label: "All featured", filters: catalogueDefaults },
+export const catalogueBudgetPresets = [
   {
     id: "under-60k",
-    label: "Under MYR 60,000",
-    showInHero: true,
-    filters: { ...catalogueDefaults, maximumPrice: "60000", sort: "price", direction: "asc" },
+    label: `Under ${formatCurrency(60000)}`,
+    shortLabel: "< 60k",
+    minimumPrice: "",
+    maximumPrice: "60000",
   },
   {
     id: "60k-100k",
-    label: "MYR 60,000 – MYR 100,000",
-    filters: { ...catalogueDefaults, minimumPrice: "60000", maximumPrice: "100000" },
+    label: `${formatCurrency(60000)} – ${formatCurrency(100000)}`,
+    shortLabel: "60k–100k",
+    minimumPrice: "60000",
+    maximumPrice: "100000",
   },
   {
     id: "above-100k",
-    label: "Above MYR 100,000",
-    filters: { ...catalogueDefaults, minimumPrice: "100000" },
+    label: `Above ${formatCurrency(100000)}`,
+    shortLabel: "> 100k",
+    minimumPrice: "100000",
+    maximumPrice: "",
   },
+] as const;
+
+export const catalogueBudgetOptions = [
+  { value: "", label: "Any budget" },
+  ...catalogueBudgetPresets
+    .filter((preset) => preset.maximumPrice)
+    .map((preset) => ({
+      value: preset.maximumPrice,
+      label: `Up to ${formatCurrency(Number(preset.maximumPrice))}`,
+    })),
+];
+
+export const FEATURED_QUICK_FILTERS: readonly FeaturedQuickFilter[] = [
+  { id: "all", label: "All featured", filters: catalogueDefaults },
+  ...catalogueBudgetPresets.map((preset): FeaturedQuickFilter => ({
+    id: preset.id,
+    label: preset.label,
+    showInHero: preset.minimumPrice === "",
+    filters: {
+      ...catalogueDefaults,
+      minimumPrice: preset.minimumPrice,
+      maximumPrice: preset.maximumPrice,
+      ...(preset.minimumPrice === "" ? { sort: "price", direction: "asc" } : {}),
+    },
+  })),
   {
     id: "automatic",
     label: "Automatic",

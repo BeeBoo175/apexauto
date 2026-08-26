@@ -30,7 +30,7 @@ import styles from "./Sell.module.css";
 const steps = ["Vehicle details", "Valuation", "Exterior photos", "Appointment"];
 const stepNotes = [
   "Specs and plate",
-  "Indicative MYR range",
+  "Indicative RM range",
   "Four exterior angles",
   "90-min branch bay",
 ] as const;

@@ -12,7 +12,7 @@ export function SiteFooter() {
               <Logo />
             </Link>
             <p className={styles.footerTagline}>
-              Verified cars, transparent MYR pricing, and trusted trade-ins across Malaysia.
+              Verified cars, transparent RM pricing, and trusted trade-ins across Malaysia.
             </p>
           </div>
           <nav className={styles.footerColumns} aria-label="Footer navigation">
@@ -92,7 +92,7 @@ export function SiteFooter() {
         </div>
         <div className={styles.footerBottom}>
           <p>&copy; 2026 ApexAuto Sdn Bhd. All rights reserved.</p>
-          <p>Malaysia (MYR)</p>
+          <p>Malaysia (RM)</p>
         </div>
       </div>
     </footer>

@@ -135,6 +135,7 @@ function parseContext(value: unknown): SaleContext | null {
     typeof value.customerEmail !== "string" ||
     !text(value.branch) ||
     !isUtcInstant(value.reservedAt) ||
+    !isPositiveInteger(value.totalHoldSeconds) ||
     !nullable(isNonNegativeInteger)(value.warrantyMonths) ||
     !nullable(isNonNegativeInteger)(value.warrantyMileageCapKm) ||
     !nullable(isMyr)(value.tradeInMinimum) ||
@@ -254,6 +255,7 @@ export function parseSaleSummary(value: unknown): SaleSummary | null {
     !nullable(isUuid)(value.agentPictureId) ||
     (value.agent === null) !== (value.agentId === null) ||
     !text(value.branch) ||
+    !isPositiveInteger(value.totalHoldSeconds) ||
     !nullable(isUtcInstant)(value.dueAt) ||
     !nullable(isPositiveInteger)(value.pausedSeconds) ||
     !nullable(isUtcInstant)(value.claimedAt) ||

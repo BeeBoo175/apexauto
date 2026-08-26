@@ -12,6 +12,7 @@ import {
   type CatalogueFilters as Filters,
 } from "@/lib/vehicles/contracts";
 import { countActiveCatalogueFilters } from "@/lib/vehicles/catalogue-controls";
+import { catalogueBudgetPresets } from "@/lib/vehicles/featured";
 import { catalogueDefaults } from "@/lib/vehicles/query";
 import styles from "./Catalogue.module.css";
 import layout from "./VehicleLayout.module.css";
@@ -186,43 +187,39 @@ export function CatalogueFilters({
             </div>
 
             <div className={styles.filterGroup}>
-              <span className={styles.groupHeading}>Budget (MYR)</span>
+              <span className={styles.groupHeading}>Budget (RM)</span>
               <div className={styles.budgetChips} role="group" aria-label="Quick budget presets">
-                {[
-                  { label: "< 60k", name: "Under RM 60,000", min: "", max: "60000" },
-                  {
-                    label: "60k–100k",
-                    name: "RM 60,000 to RM 100,000",
-                    min: "60000",
-                    max: "100000",
-                  },
-                  { label: "> 100k", name: "Above RM 100,000", min: "100000", max: "" },
-                ].map((preset) => {
+                {catalogueBudgetPresets.map((preset) => {
                   const activePreset =
-                    draft.minimumPrice === preset.min && draft.maximumPrice === preset.max;
+                    draft.minimumPrice === preset.minimumPrice &&
+                    draft.maximumPrice === preset.maximumPrice;
                   return (
                     <button
-                      key={preset.label}
+                      key={preset.id}
                       type="button"
                       className={styles.filterChip}
-                      aria-label={preset.name}
+                      aria-label={preset.label}
                       aria-pressed={activePreset}
                       onClick={() =>
                         setDraft(
                           activePreset
                             ? { ...draft, minimumPrice: "", maximumPrice: "" }
-                            : { ...draft, minimumPrice: preset.min, maximumPrice: preset.max },
+                            : {
+                                ...draft,
+                                minimumPrice: preset.minimumPrice,
+                                maximumPrice: preset.maximumPrice,
+                              },
                         )
                       }
                     >
-                      {preset.label}
+                      {preset.shortLabel}
                     </button>
                   );
                 })}
               </div>
               <div className={styles.rangePair}>
                 <Input
-                  label="Min (MYR)"
+                  label="Min (RM)"
                   name="minimumPrice"
                   placeholder="Any"
                   inputMode="decimal"
@@ -230,7 +227,7 @@ export function CatalogueFilters({
                   onChange={(event) => change("minimumPrice", event.target.value)}
                 />
                 <Input
-                  label="Max (MYR)"
+                  label="Max (RM)"
                   name="maximumPrice"
                   placeholder="Any"
                   inputMode="decimal"

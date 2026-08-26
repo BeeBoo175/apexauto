@@ -89,7 +89,7 @@ export function catalogueFilterError(filters: CatalogueFilters): string | null {
   }
   const prices = [filters.minimumPrice, filters.maximumPrice];
   if (prices.some((value) => value && parseMyr(value) === null)) {
-    return "Enter prices in MYR with at most two decimal places.";
+    return "Enter prices in RM with at most two decimal places.";
   }
   if (prices.every(Boolean) && Number(prices[0]) > Number(prices[1])) {
     return "Minimum price must not exceed maximum price.";
