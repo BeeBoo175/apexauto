@@ -103,7 +103,7 @@ export function useInspectionRepairRequest({
     }));
     if (amount === null || !items.length) {
       toast.error(
-        "Choose at least one finding, describe its work and enter an exact nonnegative MYR budget.",
+        "Choose at least one finding, describe its work and enter an exact nonnegative RM budget.",
       );
       return;
     }

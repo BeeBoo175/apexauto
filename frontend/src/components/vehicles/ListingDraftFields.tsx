@@ -31,7 +31,7 @@ export function ListingDraftFields({
         <h3>Pricing</h3>
         <Input
           id={`${fieldsId}-price`}
-          label="Vehicle price (MYR)"
+          label="Vehicle price (RM)"
           placeholder="e.g. 68500.00"
           inputMode="decimal"
           density="compact"
@@ -44,7 +44,7 @@ export function ListingDraftFields({
         />
         <Input
           id={`${fieldsId}-road-tax`}
-          label="Road tax (MYR)"
+          label="Road tax (RM)"
           placeholder="e.g. 90.00"
           density="compact"
           inputMode="decimal"

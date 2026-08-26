@@ -75,7 +75,7 @@ test("manager withdraws an exact publication with retained drafts, receipts, ref
   await reason.fill("");
   await reason.fill("Reason retained while discarding listing edits");
   await showFields();
-  await dialog.getByLabel("Vehicle price (MYR)", { exact: true }).fill("123.456");
+  await dialog.getByLabel("Vehicle price (RM)", { exact: true }).fill("123.456");
   await button("Discard changes").click();
   await confirm("Discard listing changes?", "Discard changes");
   await button("Publication").click();
@@ -143,7 +143,7 @@ test("manager withdraws an exact publication with retained drafts, receipts, ref
   const target = await readWorkspace();
   await reason.fill("  Showroom stock review  ");
   await showFields();
-  await dialog.getByLabel("Vehicle price (MYR)", { exact: true }).fill("123.456");
+  await dialog.getByLabel("Vehicle price (RM)", { exact: true }).fill("123.456");
   await button("Publication").click();
   await expect(reason).toHaveValue("  Showroom stock review  ");
   await expect(withdraw).toBeEnabled();
@@ -179,7 +179,7 @@ test("manager withdraws an exact publication with retained drafts, receipts, ref
   );
   await expect(reconcile).toBeEnabled();
   await showFields();
-  await expect(dialog.getByLabel("Vehicle price (MYR)", { exact: true })).toBeDisabled();
+  await expect(dialog.getByLabel("Vehicle price (RM)", { exact: true })).toBeDisabled();
   await expect(button("Save draft")).toBeDisabled();
   await expect(button("Discard changes")).toBeDisabled();
   const failedRefresh = () =>
@@ -238,7 +238,7 @@ test("manager withdraws an exact publication with retained drafts, receipts, ref
   await expect(dialog.getByText(/^Withdrawn /)).toBeVisible();
   await expect(withdraw).toHaveCount(0);
   await showFields();
-  await expect(dialog.getByLabel("Vehicle price (MYR)", { exact: true })).toHaveValue("123.456");
+  await expect(dialog.getByLabel("Vehicle price (RM)", { exact: true })).toHaveValue("123.456");
   await button("Discard changes").click();
   await confirm("Discard listing changes?", "Discard changes");
   await button("Publication").click();

@@ -60,7 +60,7 @@ test("manager explicitly approves only saved drafts with bound receipts, exact r
   const writesBefore = counts()[postPath] ?? 0;
   await showFields();
   const price = (saved.draft.vehiclePrice + 441.01).toFixed(2);
-  await dialog.getByLabel("Vehicle price (MYR)", { exact: true }).fill(price);
+  await dialog.getByLabel("Vehicle price (RM)", { exact: true }).fill(price);
   const order = saved.draft.photoIds;
   const saveAttempts: string[] = [];
   await page.route(`**${savePath}`, async (route) => {
@@ -93,12 +93,12 @@ test("manager explicitly approves only saved drafts with bound receipts, exact r
   const publicBefore = (await (await context.request.get(cataloguePath)).json()).data;
   expect(publicBefore.items.find((row: { id: string }) => row.id === item.id)).toEqual(item);
   await showFields();
-  await dialog.getByLabel("Vehicle price (MYR)", { exact: true }).fill("123.456");
+  await dialog.getByLabel("Vehicle price (RM)", { exact: true }).fill("123.456");
   await dialog.getByRole("button", { name: "Publication", exact: true }).click();
   await expect(approve).toHaveCount(0);
   await showFields();
-  await expect(dialog.getByLabel("Vehicle price (MYR)", { exact: true })).toHaveValue("123.456");
-  await dialog.getByLabel("Vehicle price (MYR)", { exact: true }).fill("45000.01");
+  await expect(dialog.getByLabel("Vehicle price (RM)", { exact: true })).toHaveValue("123.456");
+  await dialog.getByLabel("Vehicle price (RM)", { exact: true }).fill("45000.01");
   await dialog.getByRole("button", { name: "Publication", exact: true }).click();
   await expect(approve).toHaveCount(0);
   await showFields();
@@ -148,7 +148,7 @@ test("manager explicitly approves only saved drafts with bound receipts, exact r
   );
   await expect(reconcile).toBeEnabled();
   await showFields();
-  await expect(dialog.getByLabel("Vehicle price (MYR)", { exact: true })).toBeDisabled();
+  await expect(dialog.getByLabel("Vehicle price (RM)", { exact: true })).toBeDisabled();
   // An unconfirmed approval locks Refresh; reconciling is the only way to read the result.
   await expect(dialog.getByRole("button", { name: "Refresh listing", exact: true })).toBeDisabled();
   await expect(reconcile).toBeEnabled();

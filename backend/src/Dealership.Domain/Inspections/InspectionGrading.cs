@@ -32,6 +32,10 @@ public sealed record InspectionAssessment
 
 public static class InspectionGrading
 {
+    public const decimal GradeBMinimumRepairCost = 500m;
+    public const decimal GradeCMinimumRepairCost = 2500m;
+    public const decimal MaximumRepairCost = 15000m;
+
     public static InspectionAssessment Calculate(IReadOnlyCollection<InspectionDraftEntry> entries)
     {
         InspectionDraftEntry.ValidateSet(entries);
@@ -63,17 +67,17 @@ public static class InspectionGrading
             }
         }
 
-        if (worstSeverity == InspectionSeverity.CriticalDisqualifier || total > 15000m)
+        if (worstSeverity == InspectionSeverity.CriticalDisqualifier || total > MaximumRepairCost)
         {
             return new InspectionAssessment(total, null);
         }
 
-        if (worstSeverity == InspectionSeverity.MajorDefect || total >= 2500m)
+        if (worstSeverity == InspectionSeverity.MajorDefect || total >= GradeCMinimumRepairCost)
         {
             return new InspectionAssessment(total, InspectionGrade.C);
         }
 
-        if (worstSeverity == InspectionSeverity.MinorDefect || total >= 500m)
+        if (worstSeverity == InspectionSeverity.MinorDefect || total >= GradeBMinimumRepairCost)
         {
             return new InspectionAssessment(total, InspectionGrade.B);
         }

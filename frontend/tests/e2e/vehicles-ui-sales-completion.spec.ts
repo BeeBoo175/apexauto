@@ -114,10 +114,10 @@ test("sales settlement, handover, corrections and own customer PDFs retain exact
     const hirePurchase = info.project.name === "mobile";
     if (hirePurchase) {
       await selected.getByLabel("Payment method", { exact: true }).selectOption("HirePurchase");
-      await selected.getByLabel("Received customer contribution (MYR)", { exact: true }).fill("0");
+      await selected.getByLabel("Received customer contribution (RM)", { exact: true }).fill("0");
       await selected.getByLabel("Financing bank", { exact: true }).fill("Maybank");
       await selected
-        .getByLabel("Financing amount (MYR)", { exact: true })
+        .getByLabel("Financing amount (RM)", { exact: true })
         .fill(String(sale.sale.balancePayable));
       await selected
         .getByLabel("Letter of Undertaking reference", { exact: true })
@@ -125,7 +125,7 @@ test("sales settlement, handover, corrections and own customer PDFs retain exact
       await selected.getByLabel("I have verified the Letter of Undertaking").check();
     } else {
       await selected
-        .getByLabel("Received amount (MYR)", { exact: true })
+        .getByLabel("Received amount (RM)", { exact: true })
         .fill(String(sale.sale.balancePayable));
       await selected.getByLabel("Payment reference", { exact: true }).fill("CASH-48271");
       await selected.getByLabel("Payment date", { exact: true }).fill("2026-11-02");

@@ -138,13 +138,13 @@ function validateMoneyRange(lower: string, upper: string) {
   const invalidMaximum = Boolean(upper) && high === null;
   const invalidOrder = low !== null && high !== null && low > high;
   if (invalidMinimum || invalidMaximum || invalidOrder) {
-    return { error: "Enter valid MYR amounts with the minimum no greater than the maximum." };
+    return { error: "Enter valid RM amounts with the minimum no greater than the maximum." };
   }
   return { lower, upper };
 }
 
 export function MoneyRangeFilter(props: RangeFilterProps) {
-  return <NumericRangeFilter {...props} unit="MYR" validate={validateMoneyRange} />;
+  return <NumericRangeFilter {...props} unit="RM" validate={validateMoneyRange} />;
 }
 
 function validateWholeRange(lower: string, upper: string) {

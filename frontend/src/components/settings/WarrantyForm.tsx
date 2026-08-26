@@ -144,7 +144,7 @@ export function WarrantyForm({
             <div className={styles.pair}>
               <div>
                 <Input
-                  label="Price (MYR)"
+                  label="Price (RM)"
                   density="compact"
                   inputMode="decimal"
                   value={price}

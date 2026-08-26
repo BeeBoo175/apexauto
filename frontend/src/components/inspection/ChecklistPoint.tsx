@@ -44,7 +44,7 @@ export function ChecklistPoint({
   const notesLabel = entry?.kind === "NotFitted" ? "absence reason" : "finding notes";
   let readonlySeverity = "";
   if (!editable && !draft.isSigned && entry?.severity) {
-    readonlySeverity = `${label(entry.severity)} · MYR ${entry.estimate} · `;
+    readonlySeverity = `${label(entry.severity)} · RM ${entry.estimate} · `;
   }
 
   return (
@@ -139,7 +139,7 @@ export function ChecklistPoint({
                     ))}
                   </Select>
                   <Input
-                    label={`${point.code} estimate (MYR)`}
+                    label={`${point.code} estimate (RM)`}
                     placeholder="e.g. 250.00"
                     density="compact"
                     inputMode="decimal"

@@ -138,7 +138,7 @@ test("uncertain settings retain their draft and exact retry until a successful e
   });
   await page.goto("https://edit-guard.test/");
   await page.addScriptTag({ content: fixtureScript("settings") });
-  const fee = page.getByLabel("Processing fee (MYR)");
+  const fee = page.getByLabel("Processing fee (RM)");
   await fee.fill("501.00 ");
   await page.getByRole("button", { name: "Save settings", exact: true }).click();
   await expect(page.getByRole("button", { name: "Retry same save" })).toBeEnabled();
@@ -211,7 +211,7 @@ for (const outcome of ["existing", "missing"] as const) {
     await page.goto("https://edit-guard.test/");
     await page.addScriptTag({ content: fixtureScript("promo") });
     await page.getByLabel("Code", { exact: true }).fill("APEX500");
-    await page.getByLabel("Discount (MYR)", { exact: true }).fill("500.00");
+    await page.getByLabel("Discount (RM)", { exact: true }).fill("500.00");
     await page.getByLabel("Expires (Malaysia time)").fill("2030-12-01T12:00");
     await page.getByRole("button", { name: "Create promo", exact: true }).click();
     await page.getByRole("button", { name: "Check saved promo" }).click();

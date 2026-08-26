@@ -119,7 +119,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   await selectPoint(page, "EP-004");
   await page.getByLabel("EP-004 disposition", { exact: true }).selectOption("Finding");
   await page.getByLabel("EP-004 severity", { exact: true }).selectOption("MinorDefect");
-  await page.getByLabel("EP-004 estimate (MYR)", { exact: true }).fill("250.10");
+  await page.getByLabel("EP-004 estimate (RM)", { exact: true }).fill("250.10");
   await page
     .getByLabel("EP-004 finding notes", { exact: true })
     .fill("Bumper scuff requires paint repair.");
@@ -145,7 +145,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     }),
   );
   await page.getByRole("button", { name: "Refresh workshop", exact: true }).click();
-  await expect(page.getByLabel("EP-004 estimate (MYR)", { exact: true })).toHaveValue("250.10");
+  await expect(page.getByLabel("EP-004 estimate (RM)", { exact: true })).toHaveValue("250.10");
   await page.unroute(`**/api/staff/inspection/drafts/${id}/workspace`);
   await expect(page.getByRole("navigation", { name: "Workshop sections" })).toHaveCount(0);
   await expect(
@@ -191,7 +191,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   await page
     .getByLabel("EP-004 repair work", { exact: true })
     .fill("  Repair bumper scuff and inspect finish.  ");
-  await page.getByLabel("Requested budget (MYR)", { exact: true }).fill("250.10");
+  await page.getByLabel("Requested budget (RM)", { exact: true }).fill("250.10");
   await page
     .getByRole("navigation", { name: "Workshop sections" })
     .getByRole("button", { name: "Inspection", exact: true })
@@ -209,7 +209,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
   await expect(page.getByLabel("EP-004 repair work", { exact: true })).toHaveValue(
     "  Repair bumper scuff and inspect finish.  ",
   );
-  await expect(page.getByLabel("Requested budget (MYR)", { exact: true })).toHaveValue("250.10");
+  await expect(page.getByLabel("Requested budget (RM)", { exact: true })).toHaveValue("250.10");
   const requestBodies = await loseFirstReceipt(
     page,
     `**/api/staff/inspection/drafts/${id}/repair-requests`,
@@ -221,7 +221,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     .click();
   await expect(page.getByRole("button", { name: "Reconcile request", exact: true })).toBeVisible();
   await expect(page.getByLabel("EP-004 repair work", { exact: true })).toBeDisabled();
-  await expect(page.getByLabel("Requested budget (MYR)", { exact: true })).toBeDisabled();
+  await expect(page.getByLabel("Requested budget (RM)", { exact: true })).toBeDisabled();
   await expect(
     page
       .getByRole("navigation", { name: "Workshop sections" })
@@ -277,8 +277,8 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     .poll(() => new URL(manager.url()).searchParams.get("registration"))
     .toBe(registration);
   await manager.getByRole("button", { name: "Filter Requested budget", exact: true }).click();
-  await manager.getByLabel("Minimum (MYR)", { exact: true }).fill("250.10");
-  await manager.getByLabel("Maximum (MYR)", { exact: true }).fill("250.10");
+  await manager.getByLabel("Minimum (RM)", { exact: true }).fill("250.10");
+  await manager.getByLabel("Maximum (RM)", { exact: true }).fill("250.10");
   await manager.getByRole("button", { name: "Apply", exact: true }).click();
   await expect.poll(() => new URL(manager.url()).searchParams.get("minimumBudget")).toBe("250.10");
   await expect(manager.locator("tbody tr")).toHaveCount(1);

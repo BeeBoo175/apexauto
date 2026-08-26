@@ -136,7 +136,7 @@ export function RepairRequestForm({
         <p>
           {confirming === "discard"
             ? "Your unsaved repair work and budget changes will be lost."
-            : `Submit the selected repair work with a requested budget of MYR ${budget}. This removes listing availability until the work is completed; changed work or a higher budget requires fresh approval.`}
+            : `Submit the selected repair work with a requested budget of RM ${budget}. This removes listing availability until the work is completed; changed work or a higher budget requires fresh approval.`}
         </p>
       </ConfirmationDialog>
       <p className={workbench.help}>
@@ -216,7 +216,7 @@ export function RepairRequestForm({
       <div className={styles.repairBudget}>
         <Input
           id={`${formId}-budget`}
-          label="Requested budget (MYR)"
+          label="Requested budget (RM)"
           placeholder="e.g. 1500.00"
           inputMode="decimal"
           required

@@ -195,7 +195,7 @@ export function useListingEditor(
         return;
       }
       toast.error(
-        "Enter exact MYR prices, transmission, fuel and a description of at most 2000 characters.",
+        "Enter exact RM prices, transmission, fuel and a description of at most 2000 characters.",
       );
       return;
     }

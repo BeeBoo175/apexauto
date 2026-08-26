@@ -96,7 +96,7 @@ export function SaleTermsForm({
         </p>
       )}
       <Input
-        label="Negotiated discount (MYR)"
+        label="Negotiated discount (RM)"
         density="compact"
         inputMode="decimal"
         value={terms.discount}
@@ -149,7 +149,7 @@ export function SaleTermsForm({
       {terms.tradeIn && (
         <>
           <Input
-            label="Trade-in allowance (MYR)"
+            label="Trade-in allowance (RM)"
             density="compact"
             inputMode="decimal"
             value={terms.allowance}

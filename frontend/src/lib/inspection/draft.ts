@@ -63,7 +63,7 @@ export function saveContents(draft: Draft, value: ChecklistDraft) {
   );
   if (invalid) {
     return {
-      error: `${invalid.pointCode}: enter notes without line breaks and an exact nonnegative MYR estimate.`,
+      error: `${invalid.pointCode}: enter notes without line breaks and an exact nonnegative RM estimate.`,
       body: null,
     };
   }

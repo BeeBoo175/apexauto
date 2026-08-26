@@ -115,7 +115,7 @@ export function PromoForm({
               />
               <div>
                 <Input
-                  label="Discount (MYR)"
+                  label="Discount (RM)"
                   density="compact"
                   inputMode="decimal"
                   value={discount}

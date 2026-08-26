@@ -126,8 +126,8 @@ export function SaleCompletionForm({
           <Input
             label={
               payment.method === "HirePurchase"
-                ? "Received customer contribution (MYR)"
-                : "Received amount (MYR)"
+                ? "Received customer contribution (RM)"
+                : "Received amount (RM)"
             }
             density="compact"
             inputMode="decimal"
@@ -171,7 +171,7 @@ export function SaleCompletionForm({
               onChange={(event) => workflow.changePayment({ bank: event.target.value })}
             />
             <Input
-              label="Financing amount (MYR)"
+              label="Financing amount (RM)"
               density="compact"
               inputMode="decimal"
               required

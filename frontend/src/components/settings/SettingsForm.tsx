@@ -82,7 +82,7 @@ export function SettingsForm({
             <h3>Pricing</h3>
             <div className={styles.pair}>
               <SettingsField
-                label="Processing fee (MYR)"
+                label="Processing fee (RM)"
                 mode="decimal"
                 value={current.processingFee}
                 disabled={disabled}
@@ -105,7 +105,7 @@ export function SettingsForm({
             <h3>Approvals and reservations</h3>
             <div className={styles.pair}>
               <SettingsField
-                label="Agent discount limit (MYR)"
+                label="Agent discount limit (RM)"
                 mode="decimal"
                 value={current.maxAgentDiscountAmount}
                 disabled={disabled}
