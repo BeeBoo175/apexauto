@@ -47,7 +47,16 @@ public enum RefundDueReason
 
 public sealed record RefundView(Guid PaymentRequestId, int AmountSen,
     [property: JsonConverter(typeof(JsonStringEnumConverter))] RefundDueReason Reason, string Vehicle,
-    string State, string? BankCode, string? AccountLast4, DateTimeOffset DueAt);
+    string State, string? BankCode, string? AccountLast4, DateTimeOffset DueAt)
+{
+    // The wire name of a stored refund; a refund that is only due has no stored state and is named "due" by the store.
+    public static string StateName(RefundState state) => state switch
+    {
+        RefundState.Processing => "processing",
+        RefundState.Completed => "completed",
+        _ => "failed"
+    };
+}
 
 public interface IReservationRefundStore
 {

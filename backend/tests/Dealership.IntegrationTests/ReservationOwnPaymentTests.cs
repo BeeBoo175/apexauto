@@ -35,9 +35,7 @@ public sealed class ReservationOwnPaymentTests(IntakePhotoFixture fixture) : ICl
         Assert.Equal(address, (await repeated.Content.ReadFromJsonAsync<PaymentAddress>())!.PaymentUrl);
         Assert.Single(gateway.Bills);
         var other = await scenario.RegisterOtherCustomerAsync();
-        await LoginAsync(scenario.Client, scenario.Data.StaffEmail);
-        var rival = await Post(scenario.Client, scenario.ReservePath, scenario.Request with { OperationId = Guid.NewGuid() },
-            other, assisted: true);
+        var rival = await scenario.ReserveAsCustomerAsync(other, scenario.Request with { OperationId = Guid.NewGuid() });
         Assert.Equal(HttpStatusCode.Conflict, rival.StatusCode);
 
         var paid = await client.PostAsJsonAsync("/api/payments/returns", new { fields = gateway.Return(bill, true) });

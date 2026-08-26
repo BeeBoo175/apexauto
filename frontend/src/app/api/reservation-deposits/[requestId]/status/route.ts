@@ -1,7 +1,6 @@
 import { authFailure, authJson, authUpstream, upstreamDenial } from "@/lib/auth/http";
 import { isRecord, isUuid } from "@/lib/auth/contracts";
-
-const STATUSES = ["confirmed", "waiting", "payment-required", "lapsed", "conflict"];
+import { parseDepositPaymentStatus } from "@/lib/vehicles/deposit-payment-status";
 
 // The page the customer returns to after paying reads the stored state only; it never asks the payment provider.
 export async function GET(request: Request, context: { params: Promise<{ requestId: string }> }) {
@@ -22,8 +21,7 @@ export async function GET(request: Request, context: { params: Promise<{ request
     if (
       response.status === 200 &&
       isRecord(response.body) &&
-      typeof response.body.status === "string" &&
-      STATUSES.includes(response.body.status)
+      parseDepositPaymentStatus(response.body.status)
     ) {
       return authJson({ status: response.body.status });
     }

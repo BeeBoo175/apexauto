@@ -1,4 +1,4 @@
-import { isRecord, isUuid } from "@/lib/auth/contracts";
+import { isRecord, isUuid, type CustomerAccount } from "@/lib/auth/contracts";
 import { parseItems } from "@/lib/api";
 
 // Staff who book for a customer name that customer in this header; the relays and the backend both read it.
@@ -41,4 +41,14 @@ export function parseCustomerLookup(value: unknown) {
   }
   const items = parseItems(value.items, parseRow);
   return items && items.length <= 10 ? { items } : null;
+}
+
+// The customer lookup returns only verified accounts, so the account a staff member acts for is always verified.
+export function assistedAccount(row: CustomerLookupRow): CustomerAccount {
+  return {
+    userId: row.id,
+    legalName: row.name,
+    email: row.email,
+    emailVerified: true,
+  };
 }

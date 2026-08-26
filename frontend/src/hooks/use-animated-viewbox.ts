@@ -1,5 +1,6 @@
 "use client";
 
+import { prefersReducedMotion } from "@/lib/motion";
 import { useEffect, useRef, useState } from "react";
 import type { MapViewPreset } from "@/lib/guide/malaysia-map";
 
@@ -38,11 +39,7 @@ export function useAnimatedViewBox(target: MapViewPreset): MapViewPreset {
       return;
     }
 
-    const prefersReducedMotion =
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    if (prefersReducedMotion) {
+    if (prefersReducedMotion()) {
       liveRef.current = nextTarget;
       const immediate = requestAnimationFrame(() => setRendered(nextTarget));
       return () => cancelAnimationFrame(immediate);

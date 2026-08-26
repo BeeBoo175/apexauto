@@ -1,5 +1,6 @@
 "use client";
 
+import { prefersReducedMotion } from "@/lib/motion";
 import { useLayoutEffect, useRef, useState } from "react";
 import {
   isVehicleDetailSection,
@@ -36,9 +37,7 @@ export function useVehicleDetailSections() {
     panel.focus({ preventScroll: true });
     panel.scrollIntoView({
       block: "start",
-      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-        ? "instant"
-        : "smooth",
+      behavior: prefersReducedMotion() ? "instant" : "smooth",
     });
   }
 

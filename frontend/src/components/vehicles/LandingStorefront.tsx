@@ -1,5 +1,6 @@
 "use client";
 
+import { scrollIntoViewRespectingMotion } from "@/lib/motion";
 import { useInitialToast } from "@/hooks/use-initial-toast";
 import { useVehicleTradeIn } from "@/hooks/use-vehicle-trade-in";
 import type { ApiResult, Page } from "@/lib/api";
@@ -48,8 +49,7 @@ export function LandingStorefront({
     }
     const target = document.getElementById("trade-in-calculator");
     if (target) {
-      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      target.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
+      scrollIntoViewRespectingMotion(target, { block: "start" });
     }
   }
 

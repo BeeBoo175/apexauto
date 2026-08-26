@@ -11,6 +11,10 @@ public static class StaffAssistanceRoles
 
 public sealed record AssistingStaff(Guid Id, string Role, Guid? BranchId)
 {
+    // The staff member a deposit request recorded when it was made. The role is not stored with the request, so the
+    // snapshot is only valid for the request's own branch, where the request already passed the role check.
+    public static AssistingStaff Recorded(Guid staffId, Guid branchId) => new(staffId, string.Empty, branchId);
+
     // Branch roles act only at their own branch, and the General Manager acts at any branch.
     public bool CanActAt(Guid branchId) => Role == AccountRoles.GeneralManager || BranchId == branchId;
 }

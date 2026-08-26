@@ -1,8 +1,8 @@
 import { authFailure, authJson, authUpstream, upstreamDenial } from "@/lib/auth/http";
 import { isRecord } from "@/lib/auth/contracts";
 import { requireSameOrigin } from "@/lib/server/http/request";
+import { parseDepositPaymentStatus } from "@/lib/vehicles/deposit-payment-status";
 
-const STATUSES = ["confirmed", "waiting", "payment-required", "lapsed", "conflict"];
 const FIELD_LIMIT = 16;
 
 // The browser brings back the provider's signed fields from the payment page; the API verifies the signature and
@@ -35,8 +35,7 @@ export async function POST(request: Request) {
     if (
       response.status === 200 &&
       isRecord(response.body) &&
-      typeof response.body.status === "string" &&
-      STATUSES.includes(response.body.status)
+      parseDepositPaymentStatus(response.body.status)
     ) {
       return authJson({ status: response.body.status });
     }

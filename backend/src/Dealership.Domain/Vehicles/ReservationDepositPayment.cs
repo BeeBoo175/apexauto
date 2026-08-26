@@ -8,12 +8,12 @@ public enum DepositPaymentState
     // The gateway confirmed the full deposit and the reservation was made.
     Paid,
 
-    // The gateway took money but no reservation could be made, so staff refund it by hand.
+    // The gateway took money but no reservation could be made, so the customer claims the refund themselves.
     PaidUnmatched
 }
 
-// One hosted payment for the deposit of a staff deposit request. The request id is the key, so a request has one
-// bill however many times the customer opens the link.
+// One hosted payment for the deposit of a deposit request, staff-made or the customer's own. The request id is the key,
+// so a request has one bill however many times the customer opens the link.
 public sealed class ReservationDepositPayment
 {
     private ReservationDepositPayment()

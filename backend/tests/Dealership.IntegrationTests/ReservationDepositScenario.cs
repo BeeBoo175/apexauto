@@ -80,6 +80,15 @@ internal sealed class ReservationDepositScenario : IDisposable
         return RegisterCustomerAsync(_scope.ServiceProvider, Database);
     }
 
+    // Staff can no longer reserve directly, so another customer reserves for themselves on their own session.
+    public async Task<HttpResponseMessage> ReserveAsCustomerAsync(Guid customerId, ReservationRequest request)
+    {
+        var email = await Database.Users.Where(item => item.Id == customerId).Select(item => item.Email).SingleAsync();
+        using var client = _factory.CreateClient();
+        await ReservationDepositRequestTests.LoginAsync(client, email!);
+        return await ReservationDepositRequestTests.Post(client, ReservePath, request, customerId, assisted: false);
+    }
+
     public void Dispose()
     {
         Client.Dispose();

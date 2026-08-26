@@ -1,13 +1,17 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { PhotoUpload } from "@/components/sell/PhotoUpload";
 import { Button } from "@/components/ui/Button";
 import { useEditGuard } from "@/hooks/use-edit-guard";
 import { useSellerAppointment } from "@/hooks/use-seller-appointment";
 import { useSellerPhotos } from "@/hooks/use-seller-photos";
 import { useSellerWorkflow } from "@/hooks/use-seller-workflow";
-import type { SellerSnapshot } from "@/lib/intake/contracts";
+import type { Branch } from "@/lib/branches";
+import type { SellerSnapshot, Taxonomy } from "@/lib/intake/contracts";
+import type { Page } from "@/lib/api";
+import type { StaffSellNotice } from "@/lib/intake/staff-sell-notice";
+
 import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import type { CustomerLookupRow } from "@/lib/staff/assisted-customer";
@@ -25,19 +29,27 @@ import workbench from "./StaffWorkspace.module.css";
 // Staff fill in the trade-in booking for a customer on one form, in any order: the customer, the car, its
 // valuation, four photos and the bay. Nothing is stepped; the single Book action unlocks once everything is in.
 export function AssistedIntakeForm({
-  initial,
-  ready,
+  taxonomy,
+  branches,
+  staffNotice,
   onBooked,
   onClose,
 }: {
-  initial: SellerSnapshot;
-  ready: boolean;
+  taxonomy: Taxonomy;
+  branches: Page<Branch>;
+  staffNotice: StaffSellNotice;
   onBooked: () => void;
   onClose: () => void;
 }) {
+  // The seller workflow starts from a public-page snapshot; staff have no account of their own here, so it is
+  // built once from the loaded options and the customer is named separately.
+  const initial = useMemo<SellerSnapshot>(
+    () => ({ taxonomy, branches, account: null, access: 200, staffNotice }),
+    [taxonomy, branches, staffNotice],
+  );
   const [customer, setCustomer] = useState<CustomerLookupRow | null>(null);
   const workflow = useSellerWorkflow(initial, customer?.id, false);
-  const appointment = useSellerAppointment(initial.branches!);
+  const appointment = useSellerAppointment(branches);
   const photos = useSellerPhotos(workflow.receivePhoto, workflow.lockPhoto, customer?.id);
   const plateInput = useRef<HTMLInputElement>(null);
   const { quote, receipt, locked } = workflow;
@@ -57,7 +69,6 @@ export function AssistedIntakeForm({
     vehicle.registrationPlate,
   ].every(Boolean);
   const canBook =
-    ready &&
     customer !== null &&
     vehicleComplete &&
     photos.readyCount === 4 &&
@@ -139,9 +150,9 @@ export function AssistedIntakeForm({
 
           <section className={`${forms.section} ${styles.section}`} aria-label="Vehicle">
             <h3>Vehicle</h3>
-            <fieldset disabled={!ready || locked} className={styles.fieldset}>
+            <fieldset disabled={locked} className={styles.fieldset}>
               <AssistedIntakeVehicleFields
-                taxonomy={initial.taxonomy!}
+                taxonomy={taxonomy}
                 value={workflow.vehicle}
                 plateError={workflow.plateError}
                 plateInputRef={plateInput}
@@ -163,9 +174,7 @@ export function AssistedIntakeForm({
                 <PhotoUpload
                   key={item.angle}
                   photo={item}
-                  disabled={
-                    !ready || !customer || workflow.booking.busy || workflow.booking.uncertain
-                  }
+                  disabled={!customer || workflow.booking.busy || workflow.booking.uncertain}
                 />
               ))}
             </div>
@@ -173,7 +182,7 @@ export function AssistedIntakeForm({
 
           <section className={`${forms.section} ${styles.section}`} aria-label="Appointment">
             <h3>Appointment</h3>
-            <fieldset disabled={!ready || locked} className={styles.fieldset}>
+            <fieldset disabled={locked} className={styles.fieldset}>
               <AssistedIntakeAppointmentFields selection={appointment} />
             </fieldset>
             {workflow.freshQuote && (

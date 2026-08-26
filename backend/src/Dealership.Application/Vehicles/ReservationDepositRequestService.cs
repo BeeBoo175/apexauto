@@ -3,8 +3,9 @@ using Dealership.Domain.Vehicles;
 
 namespace Dealership.Application.Vehicles;
 
-// Staff reserving for a customer first ask for the simulated deposit by email. The car is held by the request for
-// 24 hours; the customer's confirmation then makes the ordinary reservation, which sends the ordinary receipt.
+// A deposit request holds the car until its deposit is paid: staff ask the customer by email and the hold lasts 24
+// hours, while a customer reserving for themselves has a short payment window. With the payment gateway off the
+// customer confirms a simulated deposit instead. Confirmation makes the ordinary reservation and sends its receipt.
 public sealed class ReservationDepositRequestService(IReservationStore reservations,
     IReservationDepositRequestStore requests, ReservationService reservation, TimeProvider clock)
 {
@@ -135,7 +136,7 @@ public sealed class ReservationDepositRequestService(IReservationStore reservati
         }
 
         // The request's own ID is the reservation's operation ID, so a repeated click replays one reservation.
-        var staff = request.BookedByStaffId is { } staffId ? new AssistingStaff(staffId, string.Empty, request.BranchId) : null;
+        var staff = request.BookedByStaffId is { } staffId ? AssistingStaff.Recorded(staffId, request.BranchId) : null;
         var result = await reservation.ReserveAsync(request.CustomerId, request.VehicleId,
             new(request.Id, request.PublicationId, request.PromoId), cancellationToken, staff);
         if (result.Status == ReservationStatus.Succeeded)

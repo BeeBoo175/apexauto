@@ -58,7 +58,8 @@ public static class ReservationCommandEndpoints
     }
 
     private static async Task<IResult> CancelDepositRequestAsync(Guid requestId, HttpContext context,
-        ReservationDepositRequestService deposits, IStaffAssistanceQuery assistance, CancellationToken cancellationToken)
+        ReservationDepositRequestService deposits, ReservationPaymentService payments,
+        IStaffAssistanceQuery assistance, CancellationToken cancellationToken)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(20));
@@ -70,7 +71,13 @@ public static class ReservationCommandEndpoints
                 return Results.Forbid();
             }
 
-            return await deposits.CancelAsync(requestId, staff, deadline.Token) switch
+            var cancelled = await deposits.CancelAsync(requestId, staff, deadline.Token);
+            if (cancelled == ReservationStatus.Succeeded)
+            {
+                await payments.ReleaseBillAsync(requestId, deadline.Token);
+            }
+
+            return cancelled switch
             {
                 ReservationStatus.Succeeded => Results.Ok(new ReservationDepositRequestCancellationReceipt(requestId)),
                 ReservationStatus.Forbidden => Results.Forbid(),

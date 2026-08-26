@@ -44,14 +44,9 @@ export function AssistedIntakeDrawer({
       )}
       {options && notice && (
         <AssistedIntakeForm
-          initial={{
-            taxonomy: options.taxonomy,
-            branches: options.branches,
-            account: null,
-            access: 200,
-            staffNotice: notice,
-          }}
-          ready
+          taxonomy={options.taxonomy}
+          branches={options.branches}
+          staffNotice={notice}
           onBooked={onBooked}
           onClose={onClose}
         />

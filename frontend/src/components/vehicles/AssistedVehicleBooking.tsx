@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { CustomerPicker } from "@/components/staff/CustomerPicker";
 import type { CustomerAccount } from "@/lib/auth/contracts";
-import type { CustomerLookupRow } from "@/lib/staff/assisted-customer";
+import { assistedAccount, type CustomerLookupRow } from "@/lib/staff/assisted-customer";
 import styles from "./VehicleReservation.module.css";
 
 // Sales staff choose the customer first, then reserve or book a test drive through the same controls a customer
@@ -27,12 +27,7 @@ export function AssistedVehicleBooking({
         onClear={() => setCustomer(null)}
       />
       {customer ? (
-        renderBooking({
-          userId: customer.id,
-          legalName: customer.name,
-          email: customer.email,
-          emailVerified: true,
-        })
+        renderBooking(assistedAccount(customer))
       ) : (
         <div className={styles.actions}>{financing}</div>
       )}

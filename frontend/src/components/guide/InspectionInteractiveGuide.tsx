@@ -1,5 +1,6 @@
 "use client";
 
+import { scrollIntoViewRespectingMotion } from "@/lib/motion";
 import { useState, type ReactNode } from "react";
 import type { InspectionCategoryKey } from "@/lib/guide/inspection-points";
 import { GuideBand } from "./GuidePageShell";
@@ -15,8 +16,7 @@ export function InspectionInteractiveGuide({ gradingSection }: { gradingSection:
     setCatalogCategory(category);
     const target = document.getElementById("catalog");
     if (target) {
-      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      target.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
+      scrollIntoViewRespectingMotion(target, { block: "start" });
     }
   }
 

@@ -18,6 +18,7 @@ public sealed class ReservationRefund
 {
     // Long enough for the provider sandbox's DUMMYBANKVERIFIED as well as the SWIFT codes of real banks.
     public const int MaximumBankCodeLength = 24;
+    public const int AccountHolderMaximumLength = 100;
     public const int AccountNumberMinimumLength = 6;
     public const int AccountNumberMaximumLength = 20;
 
@@ -57,6 +58,9 @@ public sealed class ReservationRefund
 
     // The reference the provider keeps for this attempt; a new attempt gets a new reference.
     public string Reference => $"{PaymentRequestId:N}-{Attempt}";
+
+    public static bool IsValidAccountHolder(string? accountHolder) =>
+        accountHolder?.Trim() is { Length: > 0 and <= AccountHolderMaximumLength } holder && !holder.Any(char.IsControl);
 
     public static bool IsValidAccountNumber(string? accountNumber) => accountNumber is not null &&
         accountNumber.Length is >= AccountNumberMinimumLength and <= AccountNumberMaximumLength &&
@@ -109,14 +113,13 @@ public sealed class ReservationRefund
     {
         var holder = accountHolder?.Trim();
         if (string.IsNullOrWhiteSpace(bankCode) || bankCode.Length > MaximumBankCodeLength || !bankCode.All(char.IsAsciiLetterOrDigit) ||
-            !IsValidAccountNumber(accountNumber) || string.IsNullOrWhiteSpace(holder) || holder.Length > 100 ||
-            holder.Any(char.IsControl))
+            !IsValidAccountNumber(accountNumber) || !IsValidAccountHolder(holder))
         {
             throw new ArgumentException("A refund requires a bank code, a numeric account number and the account holder.");
         }
 
         BankCode = bankCode;
         AccountLast4 = accountNumber[^4..];
-        AccountHolder = holder;
+        AccountHolder = holder!;
     }
 }

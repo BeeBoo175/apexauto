@@ -5,6 +5,7 @@ import { readCurrentActor } from "@/lib/auth/server";
 import { isRecord, isUuid } from "@/lib/auth/contracts";
 import { HttpError, readBoundedJson } from "@/lib/http";
 import { requireSameOrigin } from "@/lib/server/http/request";
+import { requireJsonRequest } from "@/lib/server/http/staff-relay";
 import {
   apiError,
   apiJson,
@@ -80,11 +81,7 @@ export async function relayCustomerCancellation(request: Request, id: string) {
     if (!isUuid(id)) {
       throw new HttpError(400, "Choose a valid reservation.");
     }
-    if (
-      request.headers.get("content-type")?.split(";")[0].trim().toLowerCase() !== "application/json"
-    ) {
-      throw new HttpError(415, "Send application/json.");
-    }
+    requireJsonRequest(request);
     const signal = AbortSignal.any([request.signal, AbortSignal.timeout(API_DEADLINE_MS)]);
     const body = await readBoundedJson(request.body, signal, 8 * 1024);
     if (!isRecord(body) || !isUuid(body.operationId) || body.reason !== null) {

@@ -59,8 +59,7 @@ public sealed class ReservationDepositRequestTests(IntakePhotoFixture fixture) :
 
         // The pending request holds the car against anyone else.
         var other = await scenario.RegisterOtherCustomerAsync();
-        var reserveAsOther = await Post(scenario.Client, scenario.ReservePath,
-            request with { OperationId = Guid.NewGuid() }, other, assisted: true);
+        var reserveAsOther = await scenario.ReserveAsCustomerAsync(other, request with { OperationId = Guid.NewGuid() });
         Assert.Equal(HttpStatusCode.Conflict, reserveAsOther.StatusCode);
         Assert.False(await scenario.Database.Reservations.AnyAsync());
 

@@ -32,7 +32,9 @@ export function accessDenied(actor: CurrentActor, message: string) {
 }
 
 export function requireJsonRequest(request: Request) {
-  if (request.headers.get("content-type")?.split(";")[0] !== "application/json") {
+  if (
+    request.headers.get("content-type")?.split(";")[0].trim().toLowerCase() !== "application/json"
+  ) {
     throw new HttpError(415, "Send application/json.");
   }
 }

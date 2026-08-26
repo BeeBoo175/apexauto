@@ -1,5 +1,6 @@
 "use client";
 
+import { prefersReducedMotion } from "@/lib/motion";
 import {
   createContext,
   useCallback,
@@ -44,7 +45,7 @@ function startStroke(bar: HTMLElement) {
   bar.hidden = false;
   bar.dataset.phase = "pending";
   synchronizeLayer(bar);
-  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const reduced = prefersReducedMotion();
   return track.animate([{ transform: "scaleX(0.04)" }, { transform: "scaleX(0.8)" }], {
     duration: reduced ? 1 : 1100,
     easing: "cubic-bezier(0.16, 1, 0.3, 1)",
@@ -109,7 +110,7 @@ export function LoadingProgressProvider({
       track.style.transform = getComputedStyle(track).transform;
       bar.dataset.phase = "pending";
     }
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduced = prefersReducedMotion();
     let frame = 0;
     let paintFrame = 0;
     let completionTimer = 0;

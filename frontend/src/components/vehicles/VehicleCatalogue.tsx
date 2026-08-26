@@ -1,5 +1,6 @@
 "use client";
 
+import { prefersReducedMotion } from "@/lib/motion";
 import { useState } from "react";
 import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import Link from "next/link";
@@ -50,10 +51,9 @@ export function VehicleCatalogue({
   async function changePage(nextPage: number) {
     const succeeded = await catalogue.load(active.filters, nextPage, { syncDraft: "none" });
     if (succeeded) {
-      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       window.scrollTo({
         top: 0,
-        behavior: reducedMotion ? "auto" : "smooth",
+        behavior: prefersReducedMotion() ? "auto" : "smooth",
       });
     }
   }

@@ -32,8 +32,7 @@ public sealed class ReservationDepositLapseTests(IntakePhotoFixture fixture) : I
 
         // The lapsed request no longer holds the car, so another customer may reserve it.
         var other = await scenario.RegisterOtherCustomerAsync();
-        var reserved = await ReservationDepositRequestTests.Post(scenario.Client, scenario.ReservePath,
-            scenario.Request with { OperationId = Guid.NewGuid() }, other, assisted: true);
+        var reserved = await scenario.ReserveAsCustomerAsync(other, scenario.Request with { OperationId = Guid.NewGuid() });
         Assert.Equal(HttpStatusCode.OK, reserved.StatusCode);
 
         var lapsed = await ReservationDepositRequestTests.Confirm(scenario.Client, scenario.Tokens.Create(

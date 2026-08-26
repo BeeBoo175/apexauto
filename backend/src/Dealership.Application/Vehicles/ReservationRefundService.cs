@@ -148,20 +148,12 @@ public sealed class ReservationRefundService(IReservationRefundStore refunds, IP
     private static RefundResult Describe(ReservationRefund refund, RefundDue due)
     {
         var view = new RefundView(refund.PaymentRequestId, refund.AmountSen, due.Reason, string.Empty,
-            StateName(refund.State), refund.BankCode, refund.AccountLast4, refund.RequestedAt);
+            RefundView.StateName(refund.State), refund.BankCode, refund.AccountLast4, refund.RequestedAt);
         return new(refund.State == RefundState.Completed ? RefundStatus.Completed : RefundStatus.Processing, view);
     }
-
-    public static string StateName(RefundState state) => state switch
-    {
-        RefundState.Processing => "processing",
-        RefundState.Completed => "completed",
-        _ => "failed"
-    };
 
     private static bool IsValid(BankAccountDetails account) =>
         !string.IsNullOrWhiteSpace(account.BankCode) && PayoutBanks.IsSupported(account.BankCode) &&
         ReservationRefund.IsValidAccountNumber(account.AccountNumber) &&
-        !string.IsNullOrWhiteSpace(account.AccountHolder) && account.AccountHolder.Trim().Length <= 100 &&
-        !account.AccountHolder.Any(char.IsControl);
+        ReservationRefund.IsValidAccountHolder(account.AccountHolder);
 }

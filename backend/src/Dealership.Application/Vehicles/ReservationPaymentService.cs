@@ -43,6 +43,7 @@ public sealed class ReservationPaymentService(IReservationDepositRequestStore re
 
         if (!request.IsPending(clock.GetUtcNow()))
         {
+            await ReleaseBillAsync(request.Id, cancellationToken);
             return new(DepositPaymentStatus.Lapsed);
         }
 
@@ -84,10 +85,22 @@ public sealed class ReservationPaymentService(IReservationDepositRequestStore re
 
         if (!request.IsPending(clock.GetUtcNow()))
         {
+            await ReleaseBillAsync(request.Id, cancellationToken);
             return new(DepositPaymentStatus.Lapsed);
         }
 
         return new(payment is null ? DepositPaymentStatus.PaymentRequired : DepositPaymentStatus.Waiting);
+    }
+
+    // A cancelled or lapsed request no longer holds the car, so its unpaid bill is removed instead of staying payable.
+    // The provider refuses to delete a bill that was already paid, which leaves a late payment to the unmatched refund.
+    public async Task ReleaseBillAsync(Guid requestId, CancellationToken cancellationToken)
+    {
+        var payment = await payments.FindByRequestAsync(requestId, cancellationToken);
+        if (payment is { State: DepositPaymentState.Pending })
+        {
+            await gateway.DeleteBillAsync(payment.BillId, cancellationToken);
+        }
     }
 
     // False only when the signature is invalid; every verified delivery is acknowledged so the gateway stops retrying.

@@ -44,8 +44,8 @@ public sealed class ReservationDepositCancellationTests(IntakePhotoFixture fixtu
         Assert.Null(workspace.PendingDeposit);
         Assert.Equal(HttpStatusCode.Gone, (await Confirm(scenario.Client, token)).StatusCode);
         var other = await scenario.RegisterOtherCustomerAsync();
-        Assert.Equal(HttpStatusCode.OK, (await Post(scenario.Client, scenario.ReservePath,
-            scenario.Request with { OperationId = Guid.NewGuid() }, other)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK,
+            (await scenario.ReserveAsCustomerAsync(other, scenario.Request with { OperationId = Guid.NewGuid() })).StatusCode);
         Assert.Equal(1, await scenario.Database.Reservations.CountAsync());
     }
 }

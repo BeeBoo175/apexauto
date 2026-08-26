@@ -20,7 +20,7 @@ public sealed class ReservationRefundStore(DealershipDbContext database, MailDel
             var refund = existing.SingleOrDefault(row => row.PaymentRequestId == item.PaymentRequestId);
             return new RefundView(item.PaymentRequestId, item.AmountSen, item.Reason,
                 $"{item.Year} {item.Make} {item.Model} ({item.Plate})",
-                refund is null ? "due" : ReservationRefundService.StateName(refund.State), refund?.BankCode,
+                refund is null ? "due" : RefundView.StateName(refund.State), refund?.BankCode,
                 refund?.AccountLast4, item.DueAt);
         }).ToList();
     }

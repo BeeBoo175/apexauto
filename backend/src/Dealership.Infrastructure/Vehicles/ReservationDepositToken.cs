@@ -48,6 +48,9 @@ public sealed class ReservationDepositToken(IOptions<JwtSettings> jwtSettings)
     {
         var message = Encoding.UTF8.GetBytes(
             $"{Purpose}:{request.Id:N}:{request.CustomerId:N}:{request.ExpiresAt.ToUnixTimeSeconds()}");
-        return HMACSHA256.HashData(Encoding.UTF8.GetBytes(jwtSettings.Value.Secret), message);
+        // A key derived for this purpose, so the session signing secret never signs deposit links directly.
+        var key = HKDF.DeriveKey(HashAlgorithmName.SHA256, Encoding.UTF8.GetBytes(jwtSettings.Value.Secret), 32,
+            info: Encoding.UTF8.GetBytes(Purpose));
+        return HMACSHA256.HashData(key, message);
     }
 }

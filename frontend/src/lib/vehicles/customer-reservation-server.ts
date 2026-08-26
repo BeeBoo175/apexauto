@@ -4,6 +4,7 @@ import { isUuid } from "@/lib/auth/contracts";
 import { API_DEADLINE_MS } from "@/lib/api";
 import { HttpError, readBoundedJson } from "@/lib/http";
 import { requireSameOrigin } from "@/lib/server/http/request";
+import { requireJsonRequest } from "@/lib/server/http/staff-relay";
 import { apiError, apiJson, requestApiJson, sessionToken } from "@/lib/server/http/api";
 import {
   isReservationPayment,
@@ -19,11 +20,7 @@ export async function relayCustomerReservation(request: Request, vehicleId: stri
     if (!isUuid(vehicleId)) {
       throw new HttpError(400, "Choose a valid vehicle.");
     }
-    if (
-      request.headers.get("content-type")?.split(";")[0].trim().toLowerCase() !== "application/json"
-    ) {
-      throw new HttpError(415, "Send application/json.");
-    }
+    requireJsonRequest(request);
     const signal = AbortSignal.any([request.signal, AbortSignal.timeout(API_DEADLINE_MS)]);
     const body = parseCustomerReservationRequest(
       await readBoundedJson(request.body, signal, 8 * 1024),

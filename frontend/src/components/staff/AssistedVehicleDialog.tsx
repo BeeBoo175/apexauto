@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
 import { useVehiclePicker } from "@/hooks/use-vehicle-picker";
 import type { CurrentActor } from "@/lib/auth/actor";
-import type { CustomerLookupRow } from "@/lib/staff/assisted-customer";
+import { assistedAccount, type CustomerLookupRow } from "@/lib/staff/assisted-customer";
 import { CustomerPicker } from "./CustomerPicker";
 import { VehiclePicker } from "./VehiclePicker";
 import styles from "./AssistedDialogs.module.css";
@@ -42,12 +42,7 @@ export function AssistedVehicleDialog({
   const picker = useVehiclePicker();
   const detail = picker.detail;
   const listing = detail?.listing;
-  const account = customer && {
-    userId: customer.id,
-    legalName: customer.name,
-    email: customer.email,
-    emailVerified: true,
-  };
+  const account = customer && assistedAccount(customer);
 
   return (
     <Dialog open={open} onClose={onClose} title={titles[kind]} description={descriptions[kind]}>
