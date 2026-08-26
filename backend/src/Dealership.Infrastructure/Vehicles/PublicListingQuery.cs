@@ -21,9 +21,8 @@ internal static class PublicListingQuery
         var now = DateTimeOffset.UtcNow;
         return Published(database).Where(row =>
             !database.Reservations.Any(item => item.VehicleId == row.Vehicle.Id && item.IsActive) &&
-            !database.ReservationDepositRequests.Any(item => item.VehicleId == row.Vehicle.Id &&
-                item.ConfirmedAt == null && item.CancelledAt == null && item.ExpiresAt > now &&
-                item.Id != ownRequestId));
+            !database.ReservationDepositRequests.Where(ReservationDepositRequest.PendingAt(now)).Any(item =>
+                item.VehicleId == row.Vehicle.Id && item.Id != ownRequestId));
     }
 
     public static IQueryable<PublicListingRow> Published(DealershipDbContext database)

@@ -134,11 +134,13 @@ public sealed class SaleListStore(DealershipDbContext database) : ISaleListStore
             query.PageSize, counts, view));
     }
 
-    // Requests still waiting for their customer: not confirmed, cancelled or lapsed, within the role's branch.
+    // Requests staff made that still wait for their customer, within the role's branch. A customer's own payment
+    // window is not a staff task, so it never appears in the tab or its count.
     private IQueryable<ReservationDepositRequest> PendingDeposits(DateTimeOffset now, Guid? branchId)
     {
-        return database.ReservationDepositRequests.AsNoTracking().Where(request => request.ConfirmedAt == null &&
-            request.CancelledAt == null && request.ExpiresAt > now && (branchId == null || request.BranchId == branchId));
+        return database.ReservationDepositRequests.AsNoTracking()
+            .Where(ReservationDepositRequest.PendingAt(now))
+            .Where(request => request.BookedByStaffId != null && (branchId == null || request.BranchId == branchId));
     }
 
     private IQueryable<SaleRow> Rows(IQueryable<SalesOrder> sales, string? search)

@@ -63,10 +63,10 @@ public sealed class ReservationStore(DealershipDbContext database, MailDeliveryS
             var promo = await database.PromoCodes.FromSqlInterpolated(
                 $"SELECT * FROM \"PromoCodes\" WHERE \"Id\" = {request.PromoId} FOR SHARE")
                 .AsNoTracking().SingleOrDefaultAsync(cancellationToken);
-            var otherRequests = database.ReservationDepositRequests.Where(item => item.ConfirmedAt == null &&
-                item.CancelledAt == null && item.ExpiresAt > now && item.Id != request.OperationId);
-            var customerHasHold = await database.Reservations.AnyAsync(item => item.CustomerId == customerId && item.IsActive, cancellationToken) ||
-                await otherRequests.AnyAsync(item => item.CustomerId == customerId, cancellationToken);
+            var otherRequests = database.ReservationDepositRequests.Where(ReservationDepositRequest.PendingAt(now))
+                .Where(item => item.Id != request.OperationId);
+            var customerHasHold = await ReservationHoldRows.HeldCustomers(database, now, request.OperationId)
+                .AnyAsync(id => id == customerId, cancellationToken);
             var vehicleHasHold = await database.Reservations.AnyAsync(item => item.VehicleId == vehicleId && item.IsActive, cancellationToken) ||
                 await otherRequests.AnyAsync(item => item.VehicleId == vehicleId, cancellationToken);
             var existingRequest = await database.ReservationDepositRequests.AsNoTracking()

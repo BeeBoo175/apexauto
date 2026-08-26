@@ -2,6 +2,7 @@ using Dealership.Application.Accounts;
 using Dealership.Domain.Common;
 using Dealership.Infrastructure.Persistence;
 using Dealership.Infrastructure.TestDrives;
+using Dealership.Infrastructure.Vehicles;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dealership.Infrastructure.Accounts;
@@ -32,19 +33,15 @@ public sealed class StaffAssistanceQuery(DealershipDbContext database) : IStaffA
         var today = AppointmentDay.StartUtc(now);
         var reservation = query.Purpose == CustomerLookupPurpose.Reservation;
         var testDrive = query.Purpose == CustomerLookupPurpose.TestDrive;
+        var heldCustomers = ReservationHoldRows.HeldCustomers(database, now);
+        var outstandingCustomers = TestDriveOccupationRows.CustomersWithOutstanding(database, today);
         var rows = await (from user in database.Users.AsNoTracking()
                           where user.Role == AccountRoles.Customer && user.IsActive && user.EmailConfirmed &&
                               user.SuspendedAt == null &&
                               // One active hold per customer, and a deposit request waiting for them counts as one.
-                              (!reservation || (!database.Reservations.Any(item => item.CustomerId == user.Id && item.IsActive) &&
-                                  !database.ReservationDepositRequests.Any(item => item.CustomerId == user.Id &&
-                                      item.ConfirmedAt == null && item.CancelledAt == null && item.ExpiresAt > now))) &&
+                              (!reservation || !heldCustomers.Contains(user.Id)) &&
                               // One outstanding test drive per customer, by the rule the booking itself applies.
-                              (!testDrive || !database.TestDriveBookings.Any(item => item.CustomerId == user.Id &&
-                                  (item.StartsAt >= today || TestDriveOccupationRows.Active(database).Any(occupation =>
-                                      occupation.BookingId == item.Id)) &&
-                                  !database.TestDriveOutcomes.Any(outcome => outcome.BookingId == item.Id) &&
-                                  !database.TestDriveCancellations.Any(cancellation => cancellation.BookingId == item.Id)))
+                              (!testDrive || !outstandingCustomers.Contains(user.Id))
                           join profile in database.CustomerProfiles.AsNoTracking() on user.Id equals profile.UserId
                           where EF.Functions.ILike(profile.LegalName, pattern, "!") ||
                               EF.Functions.ILike(user.Email!, pattern, "!") ||

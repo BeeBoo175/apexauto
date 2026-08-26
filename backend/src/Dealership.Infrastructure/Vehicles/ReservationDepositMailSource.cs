@@ -13,6 +13,7 @@ public sealed class ReservationDepositMailSource(DealershipDbContext database, R
         // A request that was confirmed, cancelled or lapsed before delivery no longer needs its mail.
         var candidates = database.ReservationDepositMailOutbox.FromSqlInterpolated($"""
             SELECT m.* FROM "ReservationDepositMailOutbox" m
+            -- The pending rule is ReservationDepositRequest.PendingAt; raw SQL cannot compose that expression.
             JOIN "ReservationDepositRequests" r ON r."Id" = m."RequestId"
             WHERE m."DeliveredAt" IS NULL AND m."NextDeliveryAt" <= {now}
               AND (m."DeliveryClaimExpiresAt" IS NULL OR m."DeliveryClaimExpiresAt" <= {now})

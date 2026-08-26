@@ -28,8 +28,8 @@ public sealed class ReservationDepositRequestStore(DealershipDbContext database,
 
     public async Task<bool> CancelAsync(Guid requestId, DateTimeOffset cancelledAt, CancellationToken cancellationToken)
     {
-        var changed = await database.ReservationDepositRequests.Where(item => item.Id == requestId &&
-                item.ConfirmedAt == null && item.CancelledAt == null && item.ExpiresAt > cancelledAt)
+        var changed = await database.ReservationDepositRequests.Where(ReservationDepositRequest.PendingAt(cancelledAt))
+            .Where(item => item.Id == requestId)
             .ExecuteUpdateAsync(update => update.SetProperty(item => item.CancelledAt, cancelledAt), cancellationToken);
         return changed == 1;
     }

@@ -269,9 +269,9 @@ public sealed class ListingReadStore(DealershipDbContext database) : IListingRea
                               sale.DueAt, reservation.CustomerId, sale.AgentId)).SingleOrDefaultAsync(cancellationToken);
         var now = await database.DatabaseNowAsync(cancellationToken);
         var pendingDeposit = await (from request in database.ReservationDepositRequests.AsNoTracking()
+                                        .Where(ReservationDepositRequest.PendingAt(now))
                                     join profile in database.CustomerProfiles.AsNoTracking() on request.CustomerId equals profile.UserId
-                                    where request.VehicleId == vehicleId && request.ConfirmedAt == null &&
-                                        request.CancelledAt == null && request.ExpiresAt > now
+                                    where request.VehicleId == vehicleId
                                     select new ListingPendingDeposit(request.Id, profile.LegalName, request.CustomerId,
                                         request.ExpiresAt)).FirstOrDefaultAsync(cancellationToken);
         return new(ListingStatus.Succeeded, new(vehicle, draft, approved, publication, withdrawal, currentSigned?.Id, report, vin,

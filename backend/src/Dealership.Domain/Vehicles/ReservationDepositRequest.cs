@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Dealership.Domain.Customers;
 
 namespace Dealership.Domain.Vehicles;
@@ -52,4 +53,8 @@ public sealed class ReservationDepositRequest
 
     // Held for the customer: not confirmed, cancelled or lapsed, so no one else may reserve the car.
     public bool IsPending(DateTimeOffset now) => ConfirmedAt is null && CancelledAt is null && now < ExpiresAt;
+
+    // The same rule as IsPending for queries; every SQL caller composes this one expression.
+    public static Expression<Func<ReservationDepositRequest, bool>> PendingAt(DateTimeOffset now) =>
+        request => request.ConfirmedAt == null && request.CancelledAt == null && request.ExpiresAt > now;
 }
