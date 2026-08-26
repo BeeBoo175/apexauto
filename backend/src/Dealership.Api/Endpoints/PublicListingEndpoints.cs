@@ -1,3 +1,4 @@
+using Dealership.Api.Configuration;
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Vehicles;
 
@@ -7,12 +8,7 @@ public static class PublicListingEndpoints
 {
     public static void MapPublicListingEndpoints(this WebApplication app)
     {
-        var routes = app.MapGroup("/api/vehicles");
-        routes.AddEndpointFilter(async (context, next) =>
-        {
-            context.HttpContext.Response.Headers.CacheControl = "no-store";
-            return await next(context);
-        });
+        var routes = app.MapGroup("/api/vehicles").NoStore();
         routes.MapGet("", ReadAsync);
         routes.MapGet("/{vehicleId:guid}", DetailAsync);
     }

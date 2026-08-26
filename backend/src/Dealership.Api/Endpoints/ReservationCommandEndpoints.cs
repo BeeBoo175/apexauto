@@ -9,12 +9,7 @@ public static class ReservationCommandEndpoints
 {
     public static void MapReservationCommandEndpoints(this WebApplication app)
     {
-        var routes = app.MapGroup("/api").RequireAuthorization();
-        routes.AddEndpointFilter(async (context, next) =>
-        {
-            context.HttpContext.Response.Headers.CacheControl = "no-store";
-            return await next(context);
-        });
+        var routes = app.MapGroup("/api").RequireAuthorization().NoStore();
         routes.MapPost("/vehicles/{vehicleId:guid}/reservations", ReserveAsync);
         routes.MapPost("/vehicles/{vehicleId:guid}/reservation-requests", RequestDepositAsync);
         routes.MapPost("/reservations/{reservationId:guid}/cancellations", CancelAsync);

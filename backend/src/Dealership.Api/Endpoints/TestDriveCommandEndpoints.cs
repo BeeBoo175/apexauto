@@ -1,3 +1,4 @@
+using Dealership.Api.Configuration;
 using Dealership.Application.Accounts;
 using Dealership.Application.TestDrives;
 using static Dealership.Api.Endpoints.HttpContextActor;
@@ -8,12 +9,7 @@ public static class TestDriveCommandEndpoints
 {
     public static void MapTestDriveCommandEndpoints(this WebApplication app)
     {
-        var routes = app.MapGroup("/api").RequireAuthorization();
-        routes.AddEndpointFilter(async (context, next) =>
-        {
-            context.HttpContext.Response.Headers.CacheControl = "no-store";
-            return await next(context);
-        });
+        var routes = app.MapGroup("/api").RequireAuthorization().NoStore();
         routes.MapPost("/vehicles/{vehicleId:guid}/test-drives", BookAsync);
         routes.MapPost("/test-drives/{id:guid}/cancellations", CancelAsync);
         routes.MapPost("/staff/test-drives/{id:guid}/cancellations", CancelByStaffAsync);

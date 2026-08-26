@@ -30,16 +30,7 @@ public static class PaymentCallbackEndpoints
     private static async Task<IResult> ReceiveAsync(HttpContext context, ReservationPaymentService payments,
         CancellationToken cancellationToken)
     {
-        if (!context.Request.HasFormContentType)
-        {
-            return Results.StatusCode(StatusCodes.Status415UnsupportedMediaType);
-        }
-
-        var form = await context.Request.ReadFormAsync(cancellationToken);
-        var fields = form.ToDictionary(field => field.Key, field => field.Value.ToString(), StringComparer.Ordinal);
-        return await payments.CompleteAsync(fields, cancellationToken)
-            ? Results.Ok()
-            : Results.StatusCode(StatusCodes.Status400BadRequest);
+        return await ProviderCallback.ReadFormAsync(context, payments.CompleteAsync, cancellationToken);
     }
 
     private static async Task<IResult> ReceiveReturnAsync(HttpContext context, ReservationPaymentService payments,

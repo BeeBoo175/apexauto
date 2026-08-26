@@ -1,7 +1,8 @@
+using Dealership.Api.Configuration;
 using Dealership.Application.Common;
-using System.IdentityModel.Tokens.Jwt;
 using Dealership.Application.Accounts;
 using Dealership.Application.Intake;
+using static Dealership.Api.Endpoints.HttpContextActor;
 
 namespace Dealership.Api.Endpoints;
 
@@ -9,12 +10,7 @@ public static class IntakeBookingEndpoints
 {
     public static void MapIntakeBookingEndpoints(this WebApplication app)
     {
-        var routes = app.MapGroup("/api/intake/appointments").RequireAuthorization();
-        routes.AddEndpointFilter(async (context, next) =>
-        {
-            context.HttpContext.Response.Headers.CacheControl = "no-store";
-            return await next(context);
-        });
+        var routes = app.MapGroup("/api/intake/appointments").RequireAuthorization().NoStore();
         routes.MapPost("", BookAsync);
         routes.MapGet("", ListAsync);
         routes.MapGet("/{id:guid}", GetReceiptAsync);
@@ -29,7 +25,7 @@ public static class IntakeBookingEndpoints
 
         try
         {
-            var result = await cancellations.CancelAsync(OwnerId(context), id, deadline.Token);
+            var result = await cancellations.CancelAsync(ActorId(context), id, deadline.Token);
             return result.Status switch
             {
                 CancellationStatus.Succeeded => Results.Ok(result.Receipt),
@@ -61,7 +57,7 @@ public static class IntakeBookingEndpoints
 
         try
         {
-            var result = await history.ListAsync(OwnerId(context), query, deadline.Token);
+            var result = await history.ListAsync(ActorId(context), query, deadline.Token);
             return result is null ? Results.Forbid() : Results.Ok(result);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
@@ -110,8 +106,6 @@ public static class IntakeBookingEndpoints
 
         return Map(await bookings.GetReceiptAsync(owner.OwnerId, id, cancellationToken, owner.Staff));
     }
-
-    private static Guid OwnerId(HttpContext context) => Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Sub)!.Value);
 
     private static IResult Map(BookingResult result)
     {

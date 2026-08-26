@@ -1,6 +1,5 @@
 using Dealership.Api.Configuration;
 using Dealership.Application.Vehicles;
-using Dealership.Infrastructure.Vehicles;
 using static Dealership.Api.Endpoints.HttpContextActor;
 
 namespace Dealership.Api.Endpoints;
@@ -47,16 +46,7 @@ public static class ReservationRefundEndpoints
     private static async Task<IResult> ReceiveCallbackAsync(HttpContext context, ReservationRefundService refunds,
         CancellationToken cancellationToken)
     {
-        if (!context.Request.HasFormContentType)
-        {
-            return Results.StatusCode(StatusCodes.Status415UnsupportedMediaType);
-        }
-
-        var form = await context.Request.ReadFormAsync(cancellationToken);
-        var fields = form.ToDictionary(field => field.Key, field => field.Value.ToString(), StringComparer.Ordinal);
-        return await refunds.CompleteAsync(fields, cancellationToken)
-            ? Results.Ok()
-            : Results.StatusCode(StatusCodes.Status400BadRequest);
+        return await ProviderCallback.ReadFormAsync(context, refunds.CompleteAsync, cancellationToken);
     }
 
     private sealed record BankReceipt(string Code, string Name);
