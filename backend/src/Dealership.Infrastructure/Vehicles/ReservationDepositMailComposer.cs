@@ -1,5 +1,4 @@
 using Dealership.Application.Vehicles;
-using Dealership.Domain.Common;
 using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Identity;
 using Dealership.Infrastructure.Mail;
@@ -16,34 +15,20 @@ public sealed class ReservationDepositMailComposer(AuthMailLinks links, Reservat
     {
         var link = links.Create("/confirm-deposit", tokens.Create(request));
         var paid = payment.IsEnabled;
-        var expiresAt = TimeZoneInfo.ConvertTime(request.ExpiresAt, DealershipLocale.Malaysia);
-        var car = $"{vehicle.ManufactureYear} {vehicle.Make} {vehicle.Model} ({vehicle.RegistrationPlate})";
-        var body = FormattableString.Invariant($"""
-            Confirm your ApexAuto reservation deposit
-            Vehicle: {car}
-            Branch: {branchName}
-            Refundable deposit: RM {Reservation.DepositAmount:F2}
-            A member of our team has asked to reserve this car for you. It is held for you until {expiresAt:yyyy-MM-dd HH:mm} (Asia/Kuala_Lumpur).
-            {(paid ? "Open this link and pay the deposit to reserve it:" : "Open this link and choose Confirm deposit to reserve it:")}
-
-            {link}
-
-            If you did not expect this, ignore this message and the hold will lapse.
-            """);
-        var html = MailTemplate.Render(new MailLayout(
+        var layout = new MailLayout(
             "Confirm your reservation deposit",
             ["A member of our team has asked to reserve this car for you. Confirm the deposit to complete your reservation."],
             [
-                new MailDetail("Vehicle", car),
+                new MailDetail("Vehicle", MailFormat.VehicleLabel(vehicle)),
                 new MailDetail("Branch", branchName),
                 new MailDetail("Refundable deposit", paid
-                    ? $"RM {Reservation.DepositAmount:N2}, paid securely online"
-                    : $"RM {Reservation.DepositAmount:N2}"),
-                new MailDetail("Held until", $"{expiresAt:dd MMM yyyy, HH:mm} (Asia/Kuala_Lumpur)")
+                    ? $"{MailFormat.Money(Reservation.DepositAmount)}, paid securely online"
+                    : MailFormat.Money(Reservation.DepositAmount)),
+                new MailDetail("Held until", MailFormat.LocalTime(request.ExpiresAt))
             ],
             ["If you did not expect this message, ignore it and the hold will lapse. You will receive your reservation receipt after you confirm."],
             "Confirm deposit",
-            link));
-        return new OutboundMail(message.RecipientEmail, "Confirm your ApexAuto reservation deposit", body, html);
+            link);        return new OutboundMail(message.RecipientEmail, "Confirm your ApexAuto reservation deposit",
+            MailTemplate.RenderText(layout), MailTemplate.Render(layout));
     }
 }

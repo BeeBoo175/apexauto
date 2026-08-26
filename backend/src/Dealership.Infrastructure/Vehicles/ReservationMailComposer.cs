@@ -1,4 +1,3 @@
-using Dealership.Domain.Common;
 using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Mail;
 
@@ -9,30 +8,18 @@ public static class ReservationMailComposer
 
     public static OutboundMail Confirmation(Reservation reservation)
     {
-        var confirmedAt = TimeZoneInfo.ConvertTime(reservation.CreatedAt, DealershipLocale.Malaysia);
-        var expiresAt = TimeZoneInfo.ConvertTime(reservation.ExpiresAt, DealershipLocale.Malaysia);
-        var body = FormattableString.Invariant($"""
-            Your ApexAuto reservation receipt
-            Reference: {reservation.Number}
-            Confirmed: {confirmedAt:yyyy-MM-dd HH:mm} (Asia/Kuala_Lumpur)
-            Hold deadline: {expiresAt:yyyy-MM-dd HH:mm} (Asia/Kuala_Lumpur)
-            Agreed total: RM {reservation.Price.Total:F2}
-            Promo: {reservation.PromoCode ?? "None"}
-            Refundable deposit: RM {reservation.Deposit:F2}
-            This receipt records the original confirmation. Check your account for the current reservation and refund status.
-            """);
-        var html = MailTemplate.Render(new MailLayout(
+        var layout = new MailLayout(
             "Your reservation receipt",
             ["Thank you for reserving with ApexAuto. This receipt records your original confirmation."],
             [
                 new MailDetail("Reference", reservation.Number),
-                new MailDetail("Confirmed", $"{confirmedAt:dd MMM yyyy, HH:mm} (Asia/Kuala_Lumpur)"),
-                new MailDetail("Hold deadline", $"{expiresAt:dd MMM yyyy, HH:mm} (Asia/Kuala_Lumpur)"),
-                new MailDetail("Agreed total", $"RM {reservation.Price.Total:N2}"),
+                new MailDetail("Confirmed", MailFormat.LocalTime(reservation.CreatedAt)),
+                new MailDetail("Hold deadline", MailFormat.LocalTime(reservation.ExpiresAt)),
+                new MailDetail("Agreed total", MailFormat.Money(reservation.Price.Total)),
                 new MailDetail("Promo", reservation.PromoCode ?? "None"),
-                new MailDetail("Refundable deposit", $"RM {reservation.Deposit:N2}")
+                new MailDetail("Refundable deposit", MailFormat.Money(reservation.Deposit))
             ],
-            ["Check your account for the current reservation and refund status. The deposit is refundable on cancellation or expiry."]));
-        return new OutboundMail(reservation.Buyer.Email, "ApexAuto reservation receipt", body, html);
+            ["Check your account for the current reservation and refund status. The deposit is refundable on cancellation or expiry."]);        return new OutboundMail(reservation.Buyer.Email, "ApexAuto reservation receipt",
+            MailTemplate.RenderText(layout), MailTemplate.Render(layout));
     }
 }

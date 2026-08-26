@@ -45,7 +45,7 @@ public sealed class ReservationMailTests(IntakePhotoFixture fixture) : IClassFix
         var reservation = await database.Reservations.AsNoTracking().SingleAsync();
         var expected = ReservationMailComposer.Confirmation(reservation);
         Assert.Equal(data.CustomerEmail, expected.Recipient);
-        Assert.Contains("RM 60630.00", expected.Body);
+        Assert.Contains("RM 60,630.00", expected.Body);
         Assert.Contains("RM 500.00", expected.Body);
         Assert.Contains("Asia/Kuala_Lumpur", expected.Body);
         Assert.DoesNotContain(reservation.Buyer.Nric, expected.Body);

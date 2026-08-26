@@ -66,6 +66,35 @@ public static class MailTemplate
         return html.ToString();
     }
 
+    // The plain-text alternative of the same layout, so the two parts can never state different facts.
+    public static string RenderText(MailLayout layout)
+    {
+        var text = new StringBuilder();
+        text.AppendLine(layout.Title);
+        foreach (var paragraph in layout.Paragraphs)
+        {
+            text.AppendLine(paragraph);
+        }
+
+        foreach (var detail in layout.Details)
+        {
+            text.AppendLine(string.Concat(detail.Label, ": ", detail.Value));
+        }
+
+        if (layout.ActionLabel is not null && layout.ActionUrl is not null)
+        {
+            text.AppendLine();
+            text.AppendLine(string.Concat(layout.ActionLabel, ": ", layout.ActionUrl));
+        }
+
+        foreach (var note in layout.Notes)
+        {
+            text.AppendLine(note);
+        }
+
+        return text.ToString().TrimEnd();
+    }
+
     private static string Preheader(string? text)
     {
         if (string.IsNullOrWhiteSpace(text))
