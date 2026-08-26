@@ -2,9 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Dealership.Application.Accounts;
-using Dealership.Application.Branches;
 using Dealership.Application.Vehicles;
-using Dealership.Infrastructure.Development;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,7 +13,7 @@ namespace Dealership.IntegrationTests;
 public sealed class StaffAssistedReservationTests(IntakePhotoFixture fixture) : IClassFixture<IntakePhotoFixture>
 {
     [Fact]
-    public async Task SalesStaffReserveForACustomerAtTheirBranchAndTheCustomerIsStillEmailed()
+    public async Task StaffCannotReserveDirectlyForACustomerWithoutADepositRequest()
     {
         using var data = await CheckInTestData.CreateAsync(fixture);
         using var scope = data.Factory.Services.CreateScope();
@@ -34,26 +32,10 @@ public sealed class StaffAssistedReservationTests(IntakePhotoFixture fixture) : 
         await LoginAsync(client, data.CustomerEmail);
         Assert.Equal(HttpStatusCode.Forbidden, (await Post(client, path, request, data.OwnerId)).StatusCode);
 
-        var otherBranch = Guid.NewGuid();
-        await services.GetRequiredService<BranchProvisioningService>().ProvisionBranchAsync(
-            DevelopmentFixtureManifest.Branches[1] with { Id = otherBranch }, CancellationToken.None);
-        var elsewhere = await ProvisionAsync(services, otherBranch, AccountRoles.SalesAgent);
-        var elsewhereEmail = await database.Users.Where(item => item.Id == elsewhere).Select(item => item.Email).SingleAsync();
-        await LoginAsync(client, elsewhereEmail!);
+        await LoginAsync(client, data.StaffEmail);
         Assert.Equal(HttpStatusCode.Forbidden, (await Post(client, path, request, data.OwnerId)).StatusCode);
         Assert.False(await database.Reservations.AnyAsync());
-
-        await LoginAsync(client, data.StaffEmail);
-        Assert.Equal(HttpStatusCode.BadRequest, (await Post(client, path, request, Guid.Empty)).StatusCode);
-        var accepted = await Post(client, path, request, data.OwnerId);
-        Assert.Equal(HttpStatusCode.OK, accepted.StatusCode);
-        var reservation = await database.Reservations.AsNoTracking().SingleAsync();
-        Assert.Equal(data.OwnerId, reservation.CustomerId);
-        Assert.Equal(data.StaffId, reservation.BookedByStaffId);
-        Assert.Equal(1, await database.ReservationMailOutbox.CountAsync(item => item.ReservationId == reservation.Id));
-        Assert.Equal(HttpStatusCode.OK, (await Post(client, path, request, data.OwnerId)).StatusCode);
     }
-
     private DealershipDbContext NewContext() => new(new DbContextOptionsBuilder<DealershipDbContext>()
         .UseNpgsql(fixture.Database.RuntimeConnectionString).Options);
 

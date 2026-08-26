@@ -138,27 +138,32 @@ export function VehicleReservation({
 }
 
 // Staff acting for a customer send a deposit request; a customer reserves for themselves.
-export function CustomerReservation(props: ComponentProps<typeof OwnReservation>) {
-  if (props.actingFor) {
+export function CustomerReservation({
+  actingFor,
+  ...own
+}: ComponentProps<typeof OwnReservation> & {
+  // The customer's id when sales staff reserve on their behalf.
+  actingFor?: string;
+}) {
+  if (actingFor) {
     return (
       <AssistedDepositRequest
-        detail={props.detail}
-        account={props.account}
-        customerId={props.actingFor}
-        promo={props.promo}
-        disabled={props.disabled}
-        testDrive={props.testDrive}
-        financing={props.financing}
+        detail={own.detail}
+        account={own.account}
+        customerId={actingFor}
+        promo={own.promo}
+        disabled={own.disabled}
+        testDrive={own.testDrive}
+        financing={own.financing}
       />
     );
   }
-  return <OwnReservation {...props} />;
+  return <OwnReservation {...own} />;
 }
 
 function OwnReservation({
   detail,
   account,
-  actingFor,
   promo,
   disabled,
   testDrive,
@@ -167,8 +172,6 @@ function OwnReservation({
 }: {
   detail: PublicVehicleDetail;
   account: CustomerAccount;
-  // The customer's id when sales staff reserve on their behalf.
-  actingFor?: string;
   promo: PurchaseQuote | null;
   disabled: boolean;
   testDrive?: ReactNode;
@@ -176,7 +179,7 @@ function OwnReservation({
   onReserved?: () => void;
 }) {
   const live = usePaymentMode();
-  const reservation = useVehicleReservation(detail, account, actingFor);
+  const reservation = useVehicleReservation(detail, account);
   const { command } = reservation;
   const receipt = command.receipt;
   const price = promo?.price ?? detail.price;
@@ -217,17 +220,13 @@ function OwnReservation({
             </div>
           </dl>
           <p className={styles.receiptNote}>
-            {actingFor
-              ? "Deposit counts toward the customer's cash down payment. The receipt is emailed to the customer."
-              : "Deposit counts toward your cash down payment. Receipt emailed separately."}
+            Deposit counts toward your cash down payment. Receipt emailed separately.
           </p>
         </section>
         <div className={styles.actions}>
-          {!actingFor && (
-            <Link href="/account" prefetch={false} className={buttonClassName("primary", "md")}>
-              Manage reservation in account
-            </Link>
-          )}
+          <Link href="/account" prefetch={false} className={buttonClassName("primary", "md")}>
+            Manage reservation in account
+          </Link>
           {financing}
         </div>
       </div>
@@ -238,7 +237,7 @@ function OwnReservation({
     <div className={styles.reservation}>
       <div className={styles.actions}>
         <Button
-          size={actingFor ? "compact" : "md"}
+          size="md"
           disabled={disabled || reservation.locked}
           onClick={() => reservation.open(promo?.promoId ?? null)}
         >

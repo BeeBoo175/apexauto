@@ -3,10 +3,8 @@ import "server-only";
 import { isUuid } from "@/lib/auth/contracts";
 import { API_DEADLINE_MS } from "@/lib/api";
 import { HttpError, readBoundedJson } from "@/lib/http";
-import { hasIntakeAccess } from "@/lib/auth/actor";
-import { assistedCustomerId, requireSameOrigin } from "@/lib/server/http/request";
+import { requireSameOrigin } from "@/lib/server/http/request";
 import { apiError, apiJson, requestApiJson, sessionToken } from "@/lib/server/http/api";
-import { confirmedActor } from "@/lib/server/http/staff-relay";
 import {
   isReservationPayment,
   parseCustomerReservationOutcome,
@@ -37,15 +35,14 @@ export async function relayCustomerReservation(request: Request, vehicleId: stri
     if (!token) {
       throw new HttpError(401, "Sign in to reserve this vehicle.");
     }
-    const onBehalfOf = assistedCustomerId(request);
-    const party = await readBookingParty(signal, onBehalfOf);
+    const party = await readBookingParty(signal);
     const result = await requestApiJson(
       `/api/vehicles/${vehicleId}/reservations`,
       parseCustomerReservationOutcome,
-      { token, signal, method: "POST", body, onBehalfOf },
+      { token, signal, method: "POST", body },
       API_DEADLINE_MS,
       undefined,
-      (code) => parseReservationConflict(code, onBehalfOf !== undefined),
+      parseReservationConflict,
     );
     // Even a readable success must belong to this exact customer's captured operation.
     if (
@@ -55,7 +52,7 @@ export async function relayCustomerReservation(request: Request, vehicleId: stri
         result.data.vehicleId !== vehicleId ||
         result.data.publicationId !== body.publicationId ||
         result.data.promoId !== body.promoId ||
-        (party.buyerEmail !== null && result.data.buyer.email !== party.buyerEmail))
+        result.data.buyer.email !== party.buyerEmail)
     ) {
       throw new HttpError(
         502,
@@ -71,16 +68,8 @@ export async function relayCustomerReservation(request: Request, vehicleId: stri
   }
 }
 
-// Who is booking: a verified customer for themselves, or sales staff for the customer they named. The backend
-// authorizes the staff role and branch and requires the named customer to be active and verified.
-async function readBookingParty(signal: AbortSignal, onBehalfOf: string | undefined) {
-  if (onBehalfOf) {
-    const actor = await confirmedActor(signal);
-    if (!hasIntakeAccess(actor)) {
-      throw new HttpError(403, "Your role cannot reserve for a customer.");
-    }
-    return { actor, buyerEmail: null };
-  }
+// Who is booking: a verified customer for themselves. Staff reserve for a customer only through deposit requests.
+async function readBookingParty(signal: AbortSignal) {
   const access = await readCustomerVehicleAccess(signal);
   if (access.status !== 200 || !access.actor || !access.account) {
     throw new HttpError(access.status, "Your customer account could not be confirmed.");

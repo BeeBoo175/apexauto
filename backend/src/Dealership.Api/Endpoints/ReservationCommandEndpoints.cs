@@ -148,15 +148,21 @@ public static class ReservationCommandEndpoints
                 return owner.Error;
             }
 
+            // Staff reserve for a customer only by asking for a deposit, never by creating the reservation directly.
+            if (owner.Staff is not null)
+            {
+                return Results.Forbid();
+            }
+
             // With the payment gateway on, a customer's own reservation holds the car for a short payment window and
             // sends them to pay; the reservation exists once the signed payment is confirmed.
-            if (owner.Staff is null && payments.IsEnabled)
+            if (payments.IsEnabled)
             {
                 return await PayForReservationAsync(owner.OwnerId, vehicleId, request!, reservations, deposits, payments,
                     deadline.Token);
             }
 
-            var result = await reservations.ReserveAsync(owner.OwnerId, vehicleId, request!, deadline.Token, owner.Staff);
+            var result = await reservations.ReserveAsync(owner.OwnerId, vehicleId, request!, deadline.Token);
             var receipt = result.Reservation is null ? null : ReservationReceipt.From(result.Reservation);
             return Map(result.Status, receipt);
         }
