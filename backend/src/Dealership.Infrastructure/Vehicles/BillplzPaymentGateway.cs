@@ -1,6 +1,3 @@
-using System.Net.Http.Headers;
-using System.Text;
-using System.Text.Json;
 using Dealership.Application.Vehicles;
 using Dealership.Infrastructure.Configuration;
 using Dealership.Infrastructure.Identity;
@@ -14,6 +11,7 @@ public sealed class BillplzPaymentGateway(HttpClient client, IOptions<BillplzSet
     : IPaymentGateway
 {
     private readonly BillplzSettings _settings = options.Value;
+    private readonly BillplzClient billplz = new(client, options.Value);
 
     public bool IsEnabled => _settings.Enabled;
 
@@ -32,23 +30,14 @@ public sealed class BillplzPaymentGateway(HttpClient client, IOptions<BillplzSet
             ["reference_1"] = request.RequestId.ToString("D")
         };
 
-        using var message = Message(HttpMethod.Post, "bills");
-        message.Content = new FormUrlEncodedContent(form);
-        using var response = await SendAsync(message, cancellationToken);
-        try
+        using var response = await billplz.SendAsync(
+            HttpMethod.Post, billplz.BillAddress("bills"), new FormUrlEncodedContent(form), cancellationToken);
+        using var document = await BillplzClient.ReadAsync(response, cancellationToken);
+        var root = document.RootElement;
+        if (root.TryGetProperty("id", out var id) && id.GetString() is { Length: > 0 } billId &&
+            root.TryGetProperty("url", out var url) && url.GetString() is { Length: > 0 } billUrl)
         {
-            await using var body = await response.Content.ReadAsStreamAsync(cancellationToken);
-            using var document = await JsonDocument.ParseAsync(body, cancellationToken: cancellationToken);
-            var root = document.RootElement;
-            if (root.TryGetProperty("id", out var id) && id.GetString() is { Length: > 0 } billId &&
-                root.TryGetProperty("url", out var url) && url.GetString() is { Length: > 0 } billUrl)
-            {
-                return new PaymentBill(billId, billUrl);
-            }
-        }
-        catch (JsonException exception)
-        {
-            throw new PaymentGatewayException("The payment provider returned an unreadable answer.", exception);
+            return new PaymentBill(billId, billUrl);
         }
 
         throw new PaymentGatewayException("The payment provider returned a bill without an address.");
@@ -58,15 +47,14 @@ public sealed class BillplzPaymentGateway(HttpClient client, IOptions<BillplzSet
     {
         try
         {
-            using var message = Message(HttpMethod.Delete, $"bills/{Uri.EscapeDataString(billId)}");
-            using var response = await SendAsync(message, cancellationToken);
+            var address = billplz.BillAddress($"bills/{Uri.EscapeDataString(billId)}");
+            using var response = await billplz.SendAsync(HttpMethod.Delete, address, null, cancellationToken);
         }
         catch (PaymentGatewayException)
         {
             // The extra bill then simply stays unpaid until it expires.
         }
     }
-
     public PaymentNotice? ReadNotice(IReadOnlyDictionary<string, string> fields)
     {
         if (_settings.XSignatureKey is not { Length: > 0 } key || !BillplzSignature.Verify(fields, key))
@@ -100,35 +88,5 @@ public sealed class BillplzPaymentGateway(HttpClient client, IOptions<BillplzSet
         }
 
         return values;
-    }
-
-    private HttpRequestMessage Message(HttpMethod method, string path)
-    {
-        // A root without its trailing slash would drop the last path segment when the path is appended.
-        var root = new Uri(_settings.BaseUrl.EndsWith('/') ? _settings.BaseUrl : _settings.BaseUrl + '/');
-        var message = new HttpRequestMessage(method, new Uri(root, path));
-        var credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes(_settings.ApiKey + ":"));
-        message.Headers.Authorization = new AuthenticationHeaderValue("Basic", credentials);
-        return message;
-    }
-
-    private async Task<HttpResponseMessage> SendAsync(HttpRequestMessage message, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var response = await client.SendAsync(message, cancellationToken);
-            if (!response.IsSuccessStatusCode)
-            {
-                var status = (int)response.StatusCode;
-                response.Dispose();
-                throw new PaymentGatewayException($"The payment provider answered {status}.");
-            }
-
-            return response;
-        }
-        catch (HttpRequestException exception)
-        {
-            throw new PaymentGatewayException("The payment provider could not be reached.", exception);
-        }
     }
 }

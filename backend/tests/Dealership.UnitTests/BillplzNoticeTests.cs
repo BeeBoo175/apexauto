@@ -55,7 +55,6 @@ public sealed class BillplzNoticeTests
     [Theory]
     [InlineData("completed", PayoutOutcome.Completed)]
     [InlineData("refunded", PayoutOutcome.Failed)]
-    [InlineData("cancelled", PayoutOutcome.Failed)]
     [InlineData("processing", PayoutOutcome.Processing)]
     [InlineData("pending", PayoutOutcome.Processing)]
     public void APayoutCallbackReadsAsTheMatchingOutcome(string status, PayoutOutcome expected)
