@@ -33,13 +33,12 @@ export interface BankAccountDetails {
 
 const STATES: DepositRefundState[] = ["due", "processing", "completed", "failed"];
 
-// The API serialises the reason as its enum number: 0 is a released reservation, 1 an unmatched payment.
 function parseReason(value: unknown): DepositRefundReason | null {
-  if (value === 0 || value === "ReservationReleased") {
+  if (value === "ReservationReleased") {
     return "released";
   }
 
-  return value === 1 || value === "PaymentUnmatched" ? "unmatched" : null;
+  return value === "PaymentUnmatched" ? "unmatched" : null;
 }
 
 function parseBank(value: unknown): RefundBank | null {

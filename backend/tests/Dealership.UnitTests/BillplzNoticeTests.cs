@@ -27,7 +27,7 @@ public sealed class BillplzNoticeTests
 
         var notice = Payments.ReadNotice(fields);
 
-        Assert.Equal(new PaymentNotice("abc123", true, 50000), notice);
+        Assert.Equal(new PaymentNotice("abc123", true, 50000, null), notice);
     }
 
     [Fact]
@@ -38,7 +38,7 @@ public sealed class BillplzNoticeTests
 
         var notice = Payments.ReadNotice(fields);
 
-        Assert.Equal(new PaymentNotice("abc123", true, null), notice);
+        Assert.Equal(new PaymentNotice("abc123", true, null, null), notice);
     }
 
     [Fact]

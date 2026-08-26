@@ -108,7 +108,7 @@ public static class IntakeBookingEndpoints
             return owner.Error;
         }
 
-        return Map(await bookings.GetReceiptAsync(owner.OwnerId, id, cancellationToken));
+        return Map(await bookings.GetReceiptAsync(owner.OwnerId, id, cancellationToken, owner.Staff));
     }
 
     private static Guid OwnerId(HttpContext context) => Guid.Parse(context.User.FindFirst(JwtRegisteredClaimNames.Sub)!.Value);

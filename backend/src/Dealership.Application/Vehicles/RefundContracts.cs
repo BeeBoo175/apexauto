@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Dealership.Domain.Vehicles;
 
 namespace Dealership.Application.Vehicles;
@@ -44,7 +45,8 @@ public enum RefundDueReason
     PaymentUnmatched
 }
 
-public sealed record RefundView(Guid PaymentRequestId, int AmountSen, RefundDueReason Reason, string Vehicle,
+public sealed record RefundView(Guid PaymentRequestId, int AmountSen,
+    [property: JsonConverter(typeof(JsonStringEnumConverter))] RefundDueReason Reason, string Vehicle,
     string State, string? BankCode, string? AccountLast4, DateTimeOffset DueAt);
 
 public interface IReservationRefundStore

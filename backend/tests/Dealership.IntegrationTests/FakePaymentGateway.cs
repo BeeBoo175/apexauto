@@ -39,7 +39,7 @@ internal sealed class FakePaymentGateway(string signatureKey, bool enabled = tru
 
         var paid = fields.TryGetValue("paid", out var state) && state == "yes";
         int? amount = fields.TryGetValue("amount", out var sum) && int.TryParse(sum, out var sen) ? sen : null;
-        return new PaymentNotice(billId, paid, amount);
+        return new PaymentNotice(billId, paid, amount, null);
     }
 
     // What the customer's browser brings back from the payment page: no amount.

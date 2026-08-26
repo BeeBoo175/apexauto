@@ -101,7 +101,7 @@ public sealed class ReservationPaymentService(IReservationDepositRequestStore re
 
         if (notice.Paid)
         {
-            await RecordPaymentAsync(notice.BillId, notice.PaidAmountSen, cancellationToken);
+            await RecordPaymentAsync(notice.BillId, notice.PaidAmountSen, notice.PaidAt, cancellationToken);
         }
 
         return true;
@@ -121,13 +121,14 @@ public sealed class ReservationPaymentService(IReservationDepositRequestStore re
 
         if (notice.Paid)
         {
-            await RecordPaymentAsync(notice.BillId, notice.PaidAmountSen, cancellationToken);
+            await RecordPaymentAsync(notice.BillId, notice.PaidAmountSen, notice.PaidAt, cancellationToken);
         }
 
         return await StatusAsync(payment.RequestId, cancellationToken);
     }
 
-    private async Task RecordPaymentAsync(string billId, int? paidAmountSen, CancellationToken cancellationToken)
+    private async Task RecordPaymentAsync(string billId, int? paidAmountSen, DateTimeOffset? paidAt,
+        CancellationToken cancellationToken)
     {
         var payment = await payments.FindByBillAsync(billId, cancellationToken);
         if (payment is null || payment.State != DepositPaymentState.Pending)
@@ -139,7 +140,7 @@ public sealed class ReservationPaymentService(IReservationDepositRequestStore re
         var reserved = false;
         if (paidAmount == payment.AmountSen)
         {
-            var confirmation = await deposits.ConfirmPaidAsync(payment.RequestId, cancellationToken);
+            var confirmation = await deposits.ConfirmPaidAsync(payment.RequestId, paidAt, cancellationToken);
             reserved = confirmation.Status == ReservationStatus.Succeeded;
         }
 

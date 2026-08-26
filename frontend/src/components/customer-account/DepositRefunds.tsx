@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Input";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
+import { useDepositRefundRequest } from "@/hooks/use-deposit-refund-request";
 import { useDepositRefunds } from "@/hooks/use-deposit-refunds";
 import { formatCurrency } from "@/lib/currency-format";
 import type { DepositRefund, RefundBank } from "@/lib/vehicles/account-refunds";
@@ -14,9 +16,13 @@ function reasonText(refund: DepositRefund) {
     : "Your payment arrived after the reservation could be made, so the deposit is yours again.";
 }
 
-function submitLabel(refund: DepositRefund, busy: boolean) {
+function submitLabel(refund: DepositRefund, busy: boolean, uncertain: boolean) {
   if (busy) {
     return "Requesting";
+  }
+
+  if (uncertain) {
+    return "Check again";
   }
 
   return refund.state === "failed" ? "Try again" : "Refund to my account";
@@ -25,14 +31,14 @@ function submitLabel(refund: DepositRefund, busy: boolean) {
 function RefundForm({
   refund,
   banks,
-  busy,
-  onSubmit,
+  onSettled,
 }: {
   refund: DepositRefund;
   banks: RefundBank[];
-  busy: boolean;
-  onSubmit: (details: { bankCode: string; accountNumber: string; accountHolder: string }) => void;
+  onSettled: () => void;
 }) {
+  const request = useDepositRefundRequest(refund.paymentRequestId, onSettled);
+  const busy = request.busy;
   const [bankCode, setBankCode] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
   const [accountHolder, setAccountHolder] = useState("");
@@ -44,7 +50,7 @@ function RefundForm({
       onSubmit={(event) => {
         event.preventDefault();
         if (ready) {
-          onSubmit({ bankCode, accountNumber, accountHolder: accountHolder.trim() });
+          void request.submit({ bankCode, accountNumber, accountHolder: accountHolder.trim() });
         }
       }}
     >
@@ -83,7 +89,7 @@ function RefundForm({
         last four digits stay on your account.
       </p>
       <Button type="submit" disabled={!ready || busy}>
-        {submitLabel(refund, busy)}
+        {submitLabel(refund, busy, request.uncertain)}
       </Button>
     </form>
   );
@@ -92,6 +98,10 @@ function RefundForm({
 export function DepositRefunds({ actorId }: { actorId: string }) {
   const refunds = useDepositRefunds(actorId);
   const list = refunds.list;
+
+  if (refunds.failed) {
+    return <ReloadNotice subject="Deposit refunds" />;
+  }
 
   if (!list?.enabled || list.refunds.length === 0) {
     return null;
@@ -124,12 +134,7 @@ export function DepositRefunds({ actorId }: { actorId: string }) {
             </p>
           )}
           {(refund.state === "due" || refund.state === "failed") && (
-            <RefundForm
-              refund={refund}
-              banks={list.banks}
-              busy={refunds.submitting === refund.paymentRequestId}
-              onSubmit={(details) => void refunds.submit(refund.paymentRequestId, details)}
-            />
+            <RefundForm refund={refund} banks={list.banks} onSettled={refunds.reload} />
           )}
         </article>
       ))}

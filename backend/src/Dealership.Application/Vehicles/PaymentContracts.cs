@@ -11,7 +11,8 @@ public sealed class PaymentGatewayException(string message, Exception? inner = n
 
 // What a verified provider message says about one bill, in the application's own terms. A null amount means the
 // message states the bill was paid in full without naming the sum.
-public sealed record PaymentNotice(string BillId, bool Paid, int? PaidAmountSen);
+// PaidAt is the provider's own payment time, so a notice that arrives late still shows when the customer paid.
+public sealed record PaymentNotice(string BillId, bool Paid, int? PaidAmountSen, DateTimeOffset? PaidAt);
 
 // The addresses the provider's server and the customer's browser send results to. They name no provider so one
 // registration works for whichever gateway is configured.

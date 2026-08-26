@@ -25,6 +25,12 @@ public sealed class TestDriveBookingService(ITestDriveBookingStore bookings, App
 
         if (context.Existing is { } existing)
         {
+            // A replay is a read of the booking, so it is limited to the staff member's branch like a new booking.
+            if (assistedBy is not null && !assistedBy.CanActAt(existing.BranchId))
+            {
+                return new(TestDriveBookingStatus.Forbidden);
+            }
+
             var matches = existing.CustomerId == customerId && existing.VehicleId == vehicleId &&
                 existing.PublicationId == normalized.PublicationId && existing.StartsAt == normalized.StartsAt;
             return matches ? new(TestDriveBookingStatus.Succeeded, existing) : new(TestDriveBookingStatus.Conflict);

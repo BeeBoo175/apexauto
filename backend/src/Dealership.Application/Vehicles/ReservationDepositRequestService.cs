@@ -108,22 +108,28 @@ public sealed class ReservationDepositRequestService(IReservationStore reservati
             return new(ReservationStatus.Invalid);
         }
 
-        return await ConfirmRequestAsync(request, cancellationToken);
+        return await ConfirmRequestAsync(request, null, cancellationToken);
     }
 
-    // The gateway reported the deposit paid, so the request confirms exactly as the simulated link does.
-    public async Task<ReservationResult> ConfirmPaidAsync(Guid requestId, CancellationToken cancellationToken)
+    // The gateway reported the deposit paid, so the request confirms exactly as the simulated link does. The
+    // provider's payment time, not the time its notice arrived, decides whether the request was still holding the car.
+    public async Task<ReservationResult> ConfirmPaidAsync(Guid requestId, DateTimeOffset? paidAt,
+        CancellationToken cancellationToken)
     {
         var request = requestId == Guid.Empty ? null : await requests.FindAsync(requestId, cancellationToken);
-        return request is null ? new(ReservationStatus.Invalid) : await ConfirmRequestAsync(request, cancellationToken);
+        return request is null
+            ? new(ReservationStatus.Invalid)
+            : await ConfirmRequestAsync(request, paidAt, cancellationToken);
     }
 
     private async Task<ReservationResult> ConfirmRequestAsync(ReservationDepositRequest request,
-        CancellationToken cancellationToken)
+        DateTimeOffset? paidAt, CancellationToken cancellationToken)
     {
-        // A request that was cancelled or lapsed unconfirmed can no longer be confirmed; a confirmed one replays
-        // its reservation.
-        if (request.ConfirmedAt is null && !request.IsPending(clock.GetUtcNow()))
+        // A request that was cancelled or lapsed unconfirmed can no longer be confirmed unless it was paid before it
+        // ran out; a confirmed one replays its reservation.
+        var heldWhenPaid = request.IsPending(clock.GetUtcNow()) || (paidAt is { } paid &&
+            request.CancelledAt is null && paid >= request.CreatedAt && paid < request.ExpiresAt);
+        if (request.ConfirmedAt is null && !heldWhenPaid)
         {
             return new(ReservationStatus.DepositRequestLapsed);
         }

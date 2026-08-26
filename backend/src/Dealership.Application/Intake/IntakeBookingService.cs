@@ -88,9 +88,16 @@ public sealed partial class IntakeBookingService(IIntakeBookingStore bookings, V
         return await transaction.CommitAsync(appointment, attachments, cancellationToken);
     }
 
-    public async Task<BookingResult> GetReceiptAsync(Guid ownerId, Guid id, CancellationToken cancellationToken)
+    public async Task<BookingResult> GetReceiptAsync(Guid ownerId, Guid id, CancellationToken cancellationToken,
+        AssistingStaff? assistedBy = null)
     {
-        return await bookings.FindAsync(ownerId, id, cancellationToken);
+        var result = await bookings.FindAsync(ownerId, id, cancellationToken);
+        if (assistedBy is not null && result.Receipt is { } receipt && !assistedBy.CanActAt(receipt.BranchId))
+        {
+            return new BookingResult(BookingStatus.Forbidden);
+        }
+
+        return result;
     }
 
     private static string? NormalizeRegistrationPlate(string? registrationPlate)

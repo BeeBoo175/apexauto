@@ -81,7 +81,8 @@ internal sealed class ReservationTransaction(DealershipDbContext database, IDbCo
             return ReservationStatus.Succeeded;
         }
         catch (DbUpdateException exception) when (exception.InnerException is PostgresException
-        { SqlState: PostgresErrorCodes.UniqueViolation })
+        { SqlState: PostgresErrorCodes.UniqueViolation } or
+        PostgresException { ConstraintName: "CK_ReservationDepositRequests_Shape" })
         {
             return await RejectConfirmationAsync(cancellationToken);
         }

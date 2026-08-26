@@ -1,3 +1,4 @@
+using System.Globalization;
 using Dealership.Application.Vehicles;
 using Dealership.Infrastructure.Configuration;
 using Dealership.Infrastructure.Identity;
@@ -73,7 +74,12 @@ public sealed class BillplzPaymentGateway(HttpClient client, IOptions<BillplzSet
         int? paidAmount = values.TryGetValue("paid_amount", out var amount) && int.TryParse(amount, out var sen)
             ? sen
             : null;
-        return new PaymentNotice(billId, paid, paidAmount);
+        // Billplz writes the time as "2015-03-09 16:23:59 +0800".
+        DateTimeOffset? paidAt = values.TryGetValue("paid_at", out var time) && DateTimeOffset.TryParse(time,
+            CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var parsed)
+            ? parsed
+            : null;
+        return new PaymentNotice(billId, paid, paidAmount, paidAt);
     }
 
     // The browser return names its fields billplz[id] and the server callback sends them flat; both read as id.
