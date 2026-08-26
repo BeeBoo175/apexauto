@@ -1,3 +1,4 @@
+import { RESERVATION_DEPOSIT } from "./deposit-terms";
 import { isRecord, isUtcInstant, isUuid } from "@/lib/auth/contracts";
 
 export interface CustomerReservationCancellation {
@@ -19,7 +20,7 @@ export function parseCustomerCancellation(value: unknown): CustomerReservationCa
     !isUuid(value.actorId) ||
     value.reason !== null ||
     !isUtcInstant(value.recordedAt) ||
-    value.refund !== 500
+    value.refund !== RESERVATION_DEPOSIT
   ) {
     return null;
   }

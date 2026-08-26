@@ -1,3 +1,6 @@
+import { formatCurrency } from "@/lib/currency-format";
+import { RESERVATION_DEPOSIT, RESERVATION_HOLD_HOURS } from "@/lib/vehicles/deposit-terms";
+
 import type { IconName } from "@/lib/icons";
 
 export interface AssetAttributionItem {
@@ -24,9 +27,8 @@ export const disclaimerNotices: readonly DisclaimerNotice[] = [
   {
     id: "simulated-payments",
     icon: "shield-check",
-    title: "RM 500 holds and refunds are simulated",
-    summary:
-      "Reservations record a 48-hour hold inside the demo without charging a card or bank account.",
+    title: `${formatCurrency(RESERVATION_DEPOSIT, "RM")} holds and refunds are simulated`,
+    summary: `Reservations record a ${RESERVATION_HOLD_HOURS}-hour hold inside the demo without charging a card or bank account.`,
     detail: "Cancelled or expired holds return an instant simulated refund.",
     href: "/buying-guide#pricing",
     linkLabel: "Hold deposit rules",

@@ -3,6 +3,8 @@ import Link from "next/link";
 import heroPhoto from "../../../public/images/apexauto-hero.avif";
 import { buttonClassName } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
+import { formatCurrency } from "@/lib/currency-format";
+import { RESERVATION_DEPOSIT, RESERVATION_HOLD_HOURS } from "@/lib/vehicles/deposit-terms";
 import type { Branch } from "@/lib/branches";
 import type { Taxonomy } from "@/lib/intake/contracts";
 import { LandingHeroWorkbench } from "./LandingHeroWorkbench";
@@ -37,7 +39,8 @@ export function LandingHero({
             Buy inspected cars. Sell yours with clarity.
           </h1>
           <p className={styles.lead}>
-            Signed 210-point inspection, upfront pricing, and a 48-hour hold on every car.
+            Signed 210-point inspection, upfront pricing, and a {RESERVATION_HOLD_HOURS}-hour hold
+            on every car.
           </p>
           <div className={styles.actions}>
             <Link href="/vehicles" prefetch={false} className={buttonClassName("secondary", "lg")}>
@@ -58,9 +61,9 @@ export function LandingHero({
             <div>
               <dt>
                 <Icon name="shield-check" />
-                <span>MYR 500</span>
+                <span>{formatCurrency(RESERVATION_DEPOSIT, "RM")}</span>
               </dt>
-              <dd>48-hour online hold</dd>
+              <dd>{RESERVATION_HOLD_HOURS}-hour online hold</dd>
             </div>
             <div>
               <dt>

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { useLoadingProgress } from "@/components/ui/LoadingProgress";
 import { useReservationDepositConfirm } from "@/hooks/use-reservation-deposit-confirm";
+import { formatCurrency } from "@/lib/currency-format";
+import { DEPOSIT_REQUEST_HOURS, RESERVATION_DEPOSIT } from "@/lib/vehicles/deposit-terms";
 import styles from "./AuthForm.module.css";
 
 export function ConfirmDepositControl() {
@@ -26,8 +28,9 @@ export function ConfirmDepositControl() {
   return (
     <div className={styles.form}>
       <p className={styles.help}>
-        Choose Confirm deposit to reserve the car. The RM500 deposit is refundable. You may be taken
-        to our payment provider to pay it securely. The link expires 24 hours after it was sent.
+        Choose Confirm deposit to reserve the car. The {formatCurrency(RESERVATION_DEPOSIT, "RM")}{" "}
+        deposit is refundable. You may be taken to our payment provider to pay it securely. The link
+        expires {DEPOSIT_REQUEST_HOURS} hours after it was sent.
       </p>
       <Button disabled={!token || busy} onClick={() => void confirm()}>
         {busy ? "Confirming" : "Confirm deposit"}

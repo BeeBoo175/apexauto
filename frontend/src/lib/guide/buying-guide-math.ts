@@ -4,7 +4,6 @@ import type { PurchasePrice } from "@/lib/vehicles/purchase-quote";
 
 export const DEFAULT_PROCESSING_FEE = 500;
 export const DEFAULT_SST_RATE = 0.08;
-export const DEFAULT_HOLD_DEPOSIT = 500;
 
 export interface GuidePriceTier {
   id: string;

@@ -1,3 +1,6 @@
+import { formatCurrency } from "@/lib/currency-format";
+import { RESERVATION_DEPOSIT, RESERVATION_HOLD_HOURS } from "@/lib/vehicles/deposit-terms";
+
 export type FaqCategory =
   | "All"
   | "Buying & warranty"
@@ -35,9 +38,8 @@ export const faqEntries: readonly FaqEntry[] = [
   {
     id: "reservation-hold",
     category: "Buying & warranty",
-    question: "How does the RM 500 reservation hold work?",
-    answer:
-      "It reserves the car for 48 hours and counts toward your cash down payment. Cancellations or expired holds trigger an immediate refund.",
+    question: `How does the ${formatCurrency(RESERVATION_DEPOSIT, "RM")} reservation hold work?`,
+    answer: `It reserves the car for ${RESERVATION_HOLD_HOURS} hours and counts toward your cash down payment. Cancellations or expired holds trigger an immediate refund.`,
     href: "/buying-guide#pricing",
     linkLabel: "See hold rules",
   },

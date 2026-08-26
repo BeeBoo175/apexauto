@@ -1,5 +1,7 @@
 "use client";
 
+import { RESERVATION_DEPOSIT } from "@/lib/vehicles/deposit-terms";
+
 import { useState } from "react";
 import Link from "next/link";
 import { Button, buttonClassName } from "@/components/ui/Button";
@@ -140,7 +142,7 @@ export function VehicleFinancing({
                 <span>{formatCurrency(effectiveTotal)}</span>
               </div>
               <p id={`${headingId}-cash-help`} className={styles.help}>
-                Includes any RM 500 hold deposit paid online.
+                Includes any {formatCurrency(RESERVATION_DEPOSIT, "RM")} hold deposit paid online.
               </p>
             </div>
             <div className={styles.sliderField}>

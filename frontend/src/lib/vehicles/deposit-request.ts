@@ -1,8 +1,7 @@
 import { isRecord, isUtcInstant, isUuid } from "@/lib/auth/contracts";
 import { parseCustomerReservationRequest } from "./customer-reservation";
 
-// Staff asking a customer to confirm the simulated deposit hold the car for 24 hours.
-export const DEPOSIT_REQUEST_HOURS = 24;
+import { DEPOSIT_REQUEST_HOURS } from "./deposit-terms";
 
 export interface DepositRequestReceipt {
   id: string;

@@ -1,3 +1,4 @@
+import { RESERVATION_DEPOSIT } from "./deposit-terms";
 import { parsePage, type Page } from "@/lib/api";
 import { parseActor, type CurrentActor } from "@/lib/auth/actor";
 import { isRecord, isUtcInstant, isUuid } from "@/lib/auth/contracts";
@@ -52,7 +53,7 @@ function parseRelease(value: unknown): CustomerReservationRelease | null {
     typeof value.kind !== "string" ||
     !Object.hasOwn(customerReservationStates, value.kind) ||
     !isUtcInstant(value.recordedAt) ||
-    value.refund !== 500 ||
+    value.refund !== RESERVATION_DEPOSIT ||
     (value.kind === "CustomerCancelled" && value.reason !== null) ||
     (value.kind === "StaffCancelled" && !value.reason) ||
     (value.reason !== null && (typeof value.reason !== "string" || !value.reason.trim()))

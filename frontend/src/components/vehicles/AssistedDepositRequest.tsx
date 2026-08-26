@@ -8,13 +8,13 @@ import { Icon } from "@/components/ui/Icon";
 import { useDepositRequest } from "@/hooks/use-deposit-request";
 import type { CustomerAccount } from "@/lib/auth/contracts";
 import { formatCurrency } from "@/lib/currency-format";
+import { DEPOSIT_REQUEST_HOURS, RESERVATION_DEPOSIT } from "@/lib/vehicles/deposit-terms";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import type { PurchaseQuote } from "@/lib/vehicles/purchase-quote";
 import type { PublicVehicleDetail } from "@/lib/vehicles/public-detail";
 import styles from "./VehicleReservation.module.css";
 
-// Staff reserving for a customer send a deposit request instead of taking the deposit themselves: the car is held
-// for 24 hours, and the customer's confirmation by email makes the reservation and sends the ordinary receipt.
+// Staff request the deposit by email; only customer confirmation creates the reservation.
 export function AssistedDepositRequest({
   detail,
   account,
@@ -47,7 +47,7 @@ export function AssistedDepositRequest({
               <Icon name="shield-check" />
               <h2>Deposit request sent</h2>
             </span>
-            <span className={styles.holdBadge}>24-hour hold</span>
+            <span className={styles.holdBadge}>{DEPOSIT_REQUEST_HOURS}-hour hold</span>
           </div>
           <dl className={styles.receiptGrid}>
             <div>
@@ -105,9 +105,9 @@ export function AssistedDepositRequest({
       >
         <p>
           {live
-            ? "The customer is emailed a link to pay the refundable RM500 deposit securely online."
-            : "The customer is emailed a link to confirm the refundable RM500 simulated deposit. No real payment is taken."}{" "}
-          The car is held for them for 24 hours.
+            ? `The customer is emailed a link to pay the refundable ${formatCurrency(RESERVATION_DEPOSIT, "RM")} deposit securely online.`
+            : `The customer is emailed a link to confirm the refundable ${formatCurrency(RESERVATION_DEPOSIT, "RM")} simulated deposit. No real payment is taken.`}{" "}
+          The car is held for them for {DEPOSIT_REQUEST_HOURS} hours.
         </p>
         <p>
           The reservation is made, and its receipt sent, only when they confirm. If they do not, the

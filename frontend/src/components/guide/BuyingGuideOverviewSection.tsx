@@ -1,3 +1,6 @@
+import { formatCurrency } from "@/lib/currency-format";
+import { RESERVATION_DEPOSIT, RESERVATION_HOLD_HOURS } from "@/lib/vehicles/deposit-terms";
+
 import Image from "next/image";
 import Link from "next/link";
 import detailPhoto from "../../../public/images/apexauto-detail.webp";
@@ -24,8 +27,8 @@ const purchaseSteps: readonly PurchaseStep[] = [
   {
     number: "02",
     icon: "shield-check",
-    title: "Reserve with a RM 500 hold",
-    summary: "Lock your car for 48 hours. Applied directly toward your cash down payment.",
+    title: `Reserve with a ${formatCurrency(RESERVATION_DEPOSIT, "RM")} hold`,
+    summary: `Lock your car for ${RESERVATION_HOLD_HOURS} hours. Applied directly toward your cash down payment.`,
   },
   {
     number: "03",

@@ -1,6 +1,7 @@
 import { isRecord, isUtcInstant, isUuid } from "@/lib/auth/contracts";
 import { parsePurchasePrice, type PurchasePrice } from "./purchase-quote";
 import { providerPaymentAddress } from "./payment-address";
+import { RESERVATION_DEPOSIT, RESERVATION_HOLD_HOURS } from "./deposit-terms";
 
 export interface CustomerReservationRequest {
   operationId: string;
@@ -77,10 +78,11 @@ export function parseCustomerReservation(value: unknown): CustomerReservationRec
     (value.promoId !== null && !isUuid(value.promoId)) ||
     (value.promoId === null && value.promoCode !== null) ||
     (value.promoId !== null && (typeof value.promoCode !== "string" || !value.promoCode.trim())) ||
-    value.deposit !== 500 ||
+    value.deposit !== RESERVATION_DEPOSIT ||
     !isUtcInstant(value.createdAt) ||
     !isUtcInstant(value.expiresAt) ||
-    Date.parse(value.expiresAt) - Date.parse(value.createdAt) !== 48 * 60 * 60 * 1000
+    Date.parse(value.expiresAt) - Date.parse(value.createdAt) !==
+      RESERVATION_HOLD_HOURS * 60 * 60 * 1000
   ) {
     return null;
   }

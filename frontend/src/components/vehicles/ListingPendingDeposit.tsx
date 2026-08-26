@@ -3,7 +3,7 @@
 import { CustomerAvatar } from "@/components/staff/CustomerAvatar";
 import { HoldTimer } from "@/components/staff/HoldTimer";
 import { useMinuteClock } from "@/hooks/use-minute-clock";
-import { DEPOSIT_REQUEST_HOURS } from "@/lib/vehicles/deposit-request";
+import { DEPOSIT_REQUEST_HOURS } from "@/lib/vehicles/deposit-terms";
 import type { ListingWorkspace } from "@/lib/vehicles/listing-workspace";
 import { DepositRequestCancel } from "./DepositRequestCancel";
 import styles from "./ListingPublication.module.css";

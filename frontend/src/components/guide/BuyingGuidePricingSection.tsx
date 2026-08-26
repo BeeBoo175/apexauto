@@ -7,10 +7,10 @@ import { Icon } from "@/components/ui/Icon";
 import { Input, Select } from "@/components/ui/Input";
 import layout from "@/components/vehicles/VehicleLayout.module.css";
 import { formatCurrency } from "@/lib/currency-format";
+import { RESERVATION_DEPOSIT, RESERVATION_HOLD_HOURS } from "@/lib/vehicles/deposit-terms";
 import { parseMyr } from "@/lib/currency-input";
 import {
   calculateGuideOtr,
-  DEFAULT_HOLD_DEPOSIT,
   DEFAULT_PROCESSING_FEE,
   guidePriceTiers,
   guideRoadTaxOptions,
@@ -109,11 +109,16 @@ export function BuyingGuidePricingSection() {
         </div>
 
         <div className={styles.holdRule}>
-          <strong>How the 48-hour {formatCurrency(DEFAULT_HOLD_DEPOSIT)} hold works</strong>
+          <strong>
+            How the {RESERVATION_HOLD_HOURS}-hour {formatCurrency(RESERVATION_DEPOSIT, "RM")} hold
+            works
+          </strong>
           <ul className={styles.holdBullets}>
             <li>
               <Icon name="check" />
-              <span>Locks the vehicle for 48 hours toward your down payment</span>
+              <span>
+                Locks the vehicle for {RESERVATION_HOLD_HOURS} hours toward your down payment
+              </span>
             </li>
             <li>
               <Icon name="check" />

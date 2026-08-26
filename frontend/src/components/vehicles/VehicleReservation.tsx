@@ -16,6 +16,11 @@ import type { CustomerVehicleAccess } from "@/lib/vehicles/customer-access";
 import type { PublicVehicleDetail } from "@/lib/vehicles/public-detail";
 import type { PurchaseQuote } from "@/lib/vehicles/purchase-quote";
 import { formatCurrency } from "@/lib/currency-format";
+import {
+  PAYMENT_WINDOW_MINUTES,
+  RESERVATION_DEPOSIT,
+  RESERVATION_HOLD_HOURS,
+} from "@/lib/vehicles/deposit-terms";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { AssistedDepositRequest } from "./AssistedDepositRequest";
 import { AssistedVehicleBooking } from "./AssistedVehicleBooking";
@@ -199,7 +204,7 @@ function OwnReservation({
               <Icon name="shield-check" />
               <h2>Reservation confirmed</h2>
             </span>
-            <span className={styles.holdBadge}>48-hour hold</span>
+            <span className={styles.holdBadge}>{RESERVATION_HOLD_HOURS}-hour hold</span>
           </div>
           <dl className={styles.receiptGrid}>
             <div>
@@ -252,7 +257,7 @@ function OwnReservation({
         confirmLabel={
           command.uncertain
             ? "Reconcile reservation"
-            : `Confirm RM500 ${live ? "deposit" : "simulated deposit"}`
+            : `Confirm ${formatCurrency(RESERVATION_DEPOSIT, "RM")} ${live ? "deposit" : "simulated deposit"}`
         }
         cancelLabel="Keep browsing"
         busy={command.busy}
@@ -272,8 +277,8 @@ function OwnReservation({
       >
         <p>
           {live
-            ? "This holds the car for 15 minutes while you pay a refundable RM500 deposit securely online. The reservation is made only once your payment is confirmed."
-            : "This reservation records a refundable RM500 deposit and holds the car for 48 hours. No real payment is taken."}{" "}
+            ? `This holds the car for ${PAYMENT_WINDOW_MINUTES} minutes while you pay a refundable ${formatCurrency(RESERVATION_DEPOSIT, "RM")} deposit securely online. The reservation is made only once your payment is confirmed.`
+            : `This reservation records a refundable ${formatCurrency(RESERVATION_DEPOSIT, "RM")} deposit and holds the car for ${RESERVATION_HOLD_HOURS} hours. No real payment is taken.`}{" "}
           The deposit counts toward your cash contribution.
         </p>
         <p>

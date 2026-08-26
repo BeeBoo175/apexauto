@@ -13,7 +13,7 @@ import {
   type SaleSummary,
 } from "@/lib/sales/contracts";
 import { staffColumnSizing } from "@/lib/staff/table-columns";
-import { DEPOSIT_REQUEST_HOURS } from "@/lib/vehicles/deposit-request";
+import { DEPOSIT_REQUEST_HOURS } from "@/lib/vehicles/deposit-terms";
 import { HoldTimer } from "@/components/staff/HoldTimer";
 import { SaleStatus } from "./SaleStatus";
 import tones from "@/components/ui/StatusTone.module.css";

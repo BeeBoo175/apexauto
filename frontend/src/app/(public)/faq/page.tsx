@@ -2,10 +2,12 @@ import type { Metadata } from "next";
 import { FaqExplorer } from "@/components/guide/FaqExplorer";
 import { GuideBand, GuideHubBanner } from "@/components/guide/GuidePageShell";
 
+import { formatCurrency } from "@/lib/currency-format";
+import { RESERVATION_DEPOSIT } from "@/lib/vehicles/deposit-terms";
+
 export const metadata: Metadata = {
   title: "Frequently Asked Questions — ApexAuto",
-  description:
-    "Quick answers on OTR pricing, RM 500 holds, 210-point grading, ApexShield warranties, trade-ins, and branches.",
+  description: `Quick answers on OTR pricing, ${formatCurrency(RESERVATION_DEPOSIT, "RM")} holds, 210-point grading, ApexShield warranties, trade-ins, and branches.`,
 };
 
 export default function FaqPage() {

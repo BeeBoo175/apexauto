@@ -6,8 +6,9 @@ import { buttonClassName } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Input";
 import layout from "@/components/vehicles/VehicleLayout.module.css";
 import { formatCurrency } from "@/lib/currency-format";
+import { RESERVATION_DEPOSIT } from "@/lib/vehicles/deposit-terms";
 import { parseMyr } from "@/lib/currency-input";
-import { DEFAULT_HOLD_DEPOSIT, percentageOfMyr } from "@/lib/guide/buying-guide-math";
+import { percentageOfMyr } from "@/lib/guide/buying-guide-math";
 import { calculateFinancing, defaultCashContribution } from "@/lib/vehicles/financing";
 import guideLayout from "./GuideLayout.module.css";
 import styles from "./BuyingGuideSections.module.css";
@@ -42,10 +43,10 @@ export function BuyingGuideFinancingSection() {
       : null;
 
   const holdCoversOrExceedsCash =
-    holdIncluded && parsedCash !== null && parsedCash < DEFAULT_HOLD_DEPOSIT;
+    holdIncluded && parsedCash !== null && parsedCash < RESERVATION_DEPOSIT;
   const additionalCashDue =
     parsedCash !== null && holdIncluded
-      ? Math.max(0, Number((parsedCash - DEFAULT_HOLD_DEPOSIT).toFixed(2)))
+      ? Math.max(0, Number((parsedCash - RESERVATION_DEPOSIT).toFixed(2)))
       : parsedCash;
 
   function applyDownPaymentPercent(percent: number) {
@@ -167,7 +168,7 @@ export function BuyingGuideFinancingSection() {
 
         <div className={styles.toggleBar}>
           <div className={styles.toggleCopy}>
-            <strong>RM 500 hold deposit already paid</strong>
+            <strong>{formatCurrency(RESERVATION_DEPOSIT, "RM")} hold deposit already paid</strong>
             <span>Counted inside your down payment so it is never charged twice.</span>
           </div>
           <button
@@ -251,7 +252,8 @@ export function BuyingGuideFinancingSection() {
                   Cash down payment
                   {holdIncluded && !holdCoversOrExceedsCash && additionalCashDue !== null && (
                     <span className={guideLayout.ledgerSubline}>
-                      Includes RM 500 hold · {formatCurrency(additionalCashDue)} due later
+                      Includes {formatCurrency(RESERVATION_DEPOSIT, "RM")} hold ·{" "}
+                      {formatCurrency(additionalCashDue)} due later
                     </span>
                   )}
                 </dt>
@@ -289,8 +291,8 @@ export function BuyingGuideFinancingSection() {
 
             {holdCoversOrExceedsCash && (
               <p className={guideLayout.receiptNote}>
-                Entered cash is below the RM 500 hold deposit; adjust cash down or turn off hold
-                credit.
+                Entered cash is below the {formatCurrency(RESERVATION_DEPOSIT, "RM")} hold deposit;
+                adjust cash down or turn off hold credit.
               </p>
             )}
 

@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { Button, buttonClassName } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
+import { formatCurrency } from "@/lib/currency-format";
+import { RESERVATION_DEPOSIT, RESERVATION_HOLD_HOURS } from "@/lib/vehicles/deposit-terms";
 import { inspectionCategoryIcons, label } from "@/lib/inspection/contracts";
 import styles from "./LandingInspectionOverview.module.css";
 import layout from "./VehicleLayout.module.css";
@@ -128,8 +130,11 @@ export function LandingInspectionOverview() {
                 <Icon name="calendar" />
               </span>
               <div>
-                <strong>48-hour hold or test drive</strong>
-                <p>Lock a car online for MYR 500 or book a showroom test drive.</p>
+                <strong>{RESERVATION_HOLD_HOURS}-hour hold or test drive</strong>
+                <p>
+                  Lock a car online for {formatCurrency(RESERVATION_DEPOSIT, "RM")} or book a
+                  showroom test drive.
+                </p>
               </div>
             </li>
           </ul>

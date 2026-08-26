@@ -1,5 +1,8 @@
 "use client";
 
+import { formatCurrency } from "@/lib/currency-format";
+import { RESERVATION_DEPOSIT } from "@/lib/vehicles/deposit-terms";
+
 import { usePaymentMode } from "@/hooks/use-payment-mode";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
@@ -49,7 +52,8 @@ export function AccountReservations({
       <div className={styles.heading}>
         <h2 id="reservations-title">Your reservation</h2>
         <p className={styles.help}>
-          Reserve a car with a refundable MYR 500 {live ? "" : "simulated "}deposit.
+          Reserve a car with a refundable {formatCurrency(RESERVATION_DEPOSIT, "RM")}{" "}
+          {live ? "" : "simulated "}deposit.
         </p>
       </div>
       <div className={styles.body}>
