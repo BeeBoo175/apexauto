@@ -405,6 +405,19 @@ a.rowValue {
   .stats {
     grid-template-columns: minmax(0, 1fr);
   }
+
+  .personRow {
+    gap: 10px;
+    padding: 8px 4px;
+    min-height: 48px;
+  }
+}
+
+@media (max-width: 480px) {
+  .personRow {
+    grid-template-columns: minmax(0, 1.2fr) minmax(50px, 1fr) 56px;
+    gap: 8px;
+  }
 }
 
 /* Branches over time: one coloured line per branch across the weeks, a scale at the left and week labels beneath. */

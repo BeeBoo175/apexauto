@@ -1,6 +1,10 @@
 /* Home fits one desktop screen like the other staff workspaces: the band of what needs the user on top, then two
    panes beside each other that scroll on their own. Narrow screens stack everything in one scroll. It shares the
    section frame of Performance.module.css. */
+.homeWorkspace {
+  min-height: 0;
+}
+
 .view {
   display: grid;
   flex: 1 1 auto;
@@ -454,6 +458,26 @@
   height: 240px;
 }
 
+.commandActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mobileToolbar {
+  display: none;
+}
+
+.desktopToolbar {
+  display: block;
+}
+
+.filterForm {
+  display: grid;
+  gap: 12px;
+  width: min(320px, 100%);
+}
+
 /* When the band wraps to two rows, or the screen is short, the panes would shrink to a sliver with a scrollbar of
    their own. The whole page scrolls instead, so there is one scroll and each pane takes the height it needs. */
 @media (max-width: 1180px), (max-height: 760px) {
@@ -489,13 +513,19 @@
 }
 
 @media (max-width: 960px) {
+  .homeWorkspace {
+    flex: none;
+    overflow: visible;
+  }
+
   .view {
     display: block;
-    overflow-y: auto;
+    flex: none;
+    overflow: visible;
   }
 
   .panes {
-    grid-template-columns: minmax(0, 1fr);
+    display: block;
   }
 
   .pane {
@@ -508,7 +538,7 @@
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 820px) {
   .band {
     padding: 16px;
   }
@@ -528,6 +558,114 @@
     border-top: 1px solid var(--color-line-soft);
   }
 
+  .tileLine {
+    min-height: 44px;
+    padding: 8px 10px;
+    align-items: center;
+  }
+
+  .ghost {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .ghostRail {
+    display: none;
+  }
+
+  .ghostMessage {
+    position: static;
+    display: block;
+    padding: 8px 0;
+  }
+
+  .ghostCard {
+    width: 100%;
+    margin: 0;
+    box-shadow: none;
+    border: 1px solid var(--color-line-soft);
+    padding: 24px 16px;
+  }
+
+  .desktopToolbar {
+    display: none !important;
+  }
+
+  .mobileToolbar {
+    display: flex;
+    align-items: center;
+  }
+
+  .mobileToolbar [class*="RecordToolbar_toolbar"] {
+    min-height: auto;
+    padding: 0;
+    margin: 0;
+    border-bottom: 0;
+    background: transparent;
+  }
+
+  .mobileToolbar [class*="RecordToolbar_toolbarMain"],
+  .mobileToolbar [class*="RecordToolbar_queryActions"] {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0;
+    margin: 0;
+  }
+
+  .mobileToolbar [class*="RecordToolbar_filterButton"] {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-sm, 4px);
+    background: transparent;
+    color: #ffffff;
+    cursor: pointer;
+    transition: background-color 140ms ease;
+  }
+
+  .mobileToolbar
+    [class*="RecordToolbar_filterButton"]
+    > span:not([class*="Icon"]):not([class*="filterCount"]) {
+    display: none;
+  }
+
+  .mobileToolbar [class*="RecordToolbar_filterButton"]:hover:not(:disabled) {
+    background-color: rgb(255 255 255 / 14%);
+  }
+
+  .mobileToolbar [class*="RecordToolbar_filterButton"]:active:not(:disabled) {
+    background-color: rgb(255 255 255 / 24%);
+  }
+
+  .mobileToolbar [class*="RecordToolbar_filterButton"]:focus-visible {
+    outline: 2px solid #ffffff;
+    outline-offset: 2px;
+  }
+
+  .mobileToolbar [class*="RecordToolbar_filterCount"] {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    height: 16px;
+    min-width: 16px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: var(--color-signal);
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 16px;
+    text-align: center;
+  }
+
   .hourRow {
     grid-template-columns: 80px minmax(0, 1fr);
     gap: 12px;
@@ -536,11 +674,7 @@
   .chips li,
   .booking {
     width: 100%;
+    min-height: 44px;
+    padding: 8px 12px;
   }
-}
-
-.filterForm {
-  display: grid;
-  gap: 12px;
-  width: min(320px, 100%);
 }

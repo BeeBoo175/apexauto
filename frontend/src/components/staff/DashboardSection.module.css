@@ -238,4 +238,11 @@
   .shellToolbar {
     padding-inline: 16px;
   }
+
+  .stickyHead,
+  .stickyFoot {
+    position: static;
+    margin: 0;
+    padding: 0;
+  }
 }

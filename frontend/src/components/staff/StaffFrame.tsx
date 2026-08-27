@@ -85,6 +85,19 @@ function StaffFrameContent({
     getCollapseServerSnapshot,
   );
 
+  useEffect(() => {
+    if (!mobileOpen) {
+      return;
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setMobileOpen(false);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [mobileOpen]);
+
   function toggleCollapsed() {
     try {
       const next = !getCollapseSnapshot();
@@ -129,28 +142,27 @@ function StaffFrameContent({
               >
                 <Logo />
               </StaffLink>
-              {mobileOpen ? (
-                <CloseButton
-                  label="Close workspaces"
-                  variant="shell"
-                  aria-expanded
-                  aria-controls="staff-navigation"
-                  disabled={!actor}
-                  onClick={() => setMobileOpen(false)}
-                />
-              ) : (
-                <Button
-                  variant="shell"
-                  size="compact"
-                  aria-expanded={false}
-                  aria-controls="staff-navigation"
-                  disabled={!actor}
-                  onClick={() => setMobileOpen(true)}
-                >
-                  Workspaces
-                </Button>
-              )}
+              <Button
+                variant="shell"
+                size="icon"
+                className={styles.mobileMenuButton}
+                aria-label="Workspaces"
+                title="Workspaces"
+                aria-expanded={mobileOpen}
+                aria-controls="staff-navigation"
+                disabled={!actor}
+                onClick={() => setMobileOpen(true)}
+              >
+                <Icon name="menu" />
+              </Button>
             </div>
+            {mobileOpen && (
+              <div
+                className={styles.backdrop}
+                onClick={() => setMobileOpen(false)}
+                aria-hidden="true"
+              />
+            )}
             <aside
               id="staff-navigation"
               className={`${styles.sidebar} ${mobileOpen ? styles.sidebarOpen : ""} ${collapsed ? styles.sidebarCollapsed : ""}`}
@@ -178,6 +190,21 @@ function StaffFrameContent({
                   >
                     <Logo markOnly />
                   </StaffLink>
+                  <StaffLink
+                    href="/"
+                    prefetch={false}
+                    className={`${styles.brand} ${styles.mobileDrawerBrand}`}
+                    aria-label="ApexAuto public site"
+                    onNavigate={(event) => navigate(event, "/")}
+                  >
+                    <Logo />
+                  </StaffLink>
+                  <CloseButton
+                    label="Close workspaces"
+                    variant="shell"
+                    className={styles.mobileDrawerClose}
+                    onClick={() => setMobileOpen(false)}
+                  />
                   <Button
                     variant="shell"
                     size="icon"

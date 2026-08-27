@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Input";
 import { Icon } from "@/components/ui/Icon";
 import type { TablePage } from "./types";
-import styles from "./DataTable.module.css";
+import styles from "./DataTablePagination.module.css";
 
 export function DataTablePagination({
   page,
