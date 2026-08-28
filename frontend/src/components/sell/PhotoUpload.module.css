@@ -1,0 +1,209 @@
+.upload {
+  position: relative;
+  min-width: 0;
+}
+
+/* photoField lets the staff drawer use the same upload tiles outside the customer form panel. */
+.formPanel .dropZone,
+.photoField .dropZone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  aspect-ratio: 16 / 10;
+  padding: 20px;
+  border: 1.5px dashed var(--color-line);
+  border-radius: 10px;
+  background: var(--color-canvas);
+  text-align: center;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease;
+}
+
+.formPanel .dropZone:hover,
+.photoField .dropZone:hover {
+  border-color: var(--color-graphite-soft);
+  background: var(--color-paper);
+}
+
+.formPanel .dropZone:active:not([aria-disabled="true"]),
+.photoField .dropZone:active:not([aria-disabled="true"]) {
+  border-color: var(--color-graphite);
+  background: var(--color-line-soft);
+}
+
+.formPanel .dropZone:has(input:focus-visible),
+.photoField .dropZone:has(input:focus-visible) {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+}
+
+.dropZone[aria-disabled="true"] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.dropIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin-bottom: 2px;
+  border-radius: 999px;
+  background: var(--color-paper);
+  border: 1px solid var(--color-line-soft);
+  color: var(--color-graphite);
+}
+
+.dropTitle {
+  color: var(--color-graphite);
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.dropHint {
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.dropCta {
+  margin-top: 4px;
+  color: var(--color-signal);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.previewFrame {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border: 1px solid var(--color-line);
+  border-radius: 10px;
+  background: var(--color-graphite);
+}
+
+.upload[data-uploaded="true"] .previewFrame {
+  border-color: var(--color-trust);
+}
+
+.upload[data-uncertain="true"] .previewFrame {
+  border-color: var(--color-signal);
+}
+
+.previewImage {
+  object-fit: cover;
+}
+
+.previewTopBar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px;
+  background: linear-gradient(180deg, rgb(14 27 42 / 72%) 0%, rgb(14 27 42 / 0%) 100%);
+}
+
+.angleBadge {
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgb(14 27 42 / 82%);
+  color: var(--color-paper);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: rgb(255 255 255 / 94%);
+  color: var(--color-graphite);
+}
+
+.statusPill svg {
+  width: 14px;
+  height: 14px;
+}
+
+.statusPill[data-tone="uploaded"] {
+  background: var(--color-trust);
+  color: var(--color-paper);
+}
+
+.statusPill[data-tone="uncertain"] {
+  background: var(--color-signal);
+  color: var(--color-paper);
+}
+
+.previewBottomBar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  background: linear-gradient(0deg, rgb(14 27 42 / 86%) 0%, rgb(14 27 42 / 35%) 100%);
+}
+
+.fileName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-paper);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.formPanel .replaceAction,
+.photoField .replaceAction {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 5px 12px;
+  border: 1px solid rgb(255 255 255 / 35%);
+  border-radius: 6px;
+  background: rgb(14 27 42 / 75%);
+  color: var(--color-paper);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.formPanel .replaceAction:hover,
+.photoField .replaceAction:hover {
+  background: rgb(14 27 42 / 95%);
+}
+
+.formPanel .replaceAction:active:not([aria-disabled="true"]),
+.photoField .replaceAction:active:not([aria-disabled="true"]) {
+  background: rgb(14 27 42);
+}
+
+.formPanel .replaceAction:has(input:focus-visible),
+.photoField .replaceAction:has(input:focus-visible) {
+  outline: 2px solid var(--color-paper);
+  outline-offset: 2px;
+}
+
+.replaceAction[aria-disabled="true"] {
+  opacity: 0.5;
+  pointer-events: none;
+}

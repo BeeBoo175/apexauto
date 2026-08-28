@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import type { SellerPhotoController } from "@/hooks/use-seller-photos";
 import type { PhotoAngle } from "@/lib/intake/contracts";
-import styles from "./Sell.module.css";
+import styles from "./PhotoUpload.module.css";
 
 const angleHints: Record<PhotoAngle, string> = {
   Driver: "Full left-side profile",
