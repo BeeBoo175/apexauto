@@ -8,7 +8,7 @@ import { TestDriveHistoryRow } from "./TestDriveHistoryRow";
 import { type TestDriveHistoryItem, type TestDriveHistoryFilters } from "@/lib/test-drives/account";
 import { CancelTestDrive } from "./CancelTestDrive";
 import { HistoryFilterForm } from "./HistoryFilterForm";
-import { EmptyState } from "./EmptyState";
+import { EmptyNotice } from "@/components/ui/EmptyNotice";
 import { AccountLoadingShell } from "./AccountLoadingShell";
 import styles from "./Account.module.css";
 import historyStyles from "./ReservationHistory.module.css";
@@ -68,13 +68,13 @@ export function AccountTestDrives({
         />
       )}
       {empty && (
-        <EmptyState
+        <EmptyNotice
+          icon="car"
           title="No test drives yet"
-          description="Choose a car and book a 30-minute test drive at its branch."
-          href="/vehicles"
-          action="Browse cars"
-          prefetch={false}
-        />
+          action={{ label: "Browse cars", href: "/vehicles", prefetch: false }}
+        >
+          Choose a car and book a 30-minute test drive at its branch.
+        </EmptyNotice>
       )}
       {snapshot && !empty && (
         <>
@@ -82,13 +82,13 @@ export function AccountTestDrives({
             {snapshot.total} test drives · Page {history.page}
           </p>
           {snapshot.items.length === 0 && (
-            <EmptyState
+            <EmptyNotice
+              icon="search"
               title="No matching test drives"
-              description="Try another search or date range, or browse cars to book a drive."
-              href="/vehicles"
-              action="Browse cars"
-              prefetch={false}
-            />
+              action={{ label: "Browse cars", href: "/vehicles", prefetch: false }}
+            >
+              Try another search or date range, or browse cars to book a drive.
+            </EmptyNotice>
           )}
           {snapshot.items.length === 0 && filtered && (
             <Button

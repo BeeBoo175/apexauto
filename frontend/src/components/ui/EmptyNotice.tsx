@@ -1,4 +1,5 @@
-import { Button } from "./Button";
+import Link from "next/link";
+import { Button, buttonClassName } from "./Button";
 import { Icon } from "./Icon";
 import type { IconName } from "@/lib/icons";
 import styles from "./EmptyNotice.module.css";
@@ -45,7 +46,10 @@ export function EmptyNotice({
   children: string;
   // A place named in the guidance, such as another tab, that the guidance links to.
   link?: { text: string; onClick: () => void };
-  action?: { label: string; onClick: () => void; disabled?: boolean };
+  // A button for an action in place, or a link when the recovery is another page.
+  action?: { label: string; disabled?: boolean } & (
+    { onClick: () => void } | { href: string; prefetch?: boolean }
+  );
 }) {
   return (
     <div className={styles.notice}>
@@ -56,7 +60,16 @@ export function EmptyNotice({
       <p className={styles.text}>
         <EmptyNoticeGuidance text={children} link={link} />
       </p>
-      {action && (
+      {action && "href" in action && (
+        <Link
+          href={action.href}
+          prefetch={action.prefetch}
+          className={buttonClassName("primary", "compact", styles.action)}
+        >
+          {action.label}
+        </Link>
+      )}
+      {action && "onClick" in action && (
         <Button
           size="compact"
           variant="primary"

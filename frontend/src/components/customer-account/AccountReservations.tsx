@@ -12,7 +12,7 @@ import {
   type ReservationFilters,
   type AccountReservation,
 } from "@/lib/vehicles/account-reservations";
-import { EmptyState } from "./EmptyState";
+import { EmptyNotice } from "@/components/ui/EmptyNotice";
 import { HistoryFilterForm } from "./HistoryFilterForm";
 import { ReservedCar } from "./ReservedCar";
 import { ReservationHistoryRow } from "./ReservationHistoryRow";
@@ -75,12 +75,13 @@ export function AccountReservations({
           </div>
         )}
         {snapshot && !featured && (
-          <EmptyState
+          <EmptyNotice
+            icon="car"
             title="No active reservation"
-            description="When you reserve a car, it and its booking details appear here."
-            href="/vehicles"
-            action="Browse cars"
-          />
+            action={{ label: "Browse cars", href: "/vehicles" }}
+          >
+            When you reserve a car, it and its booking details appear here.
+          </EmptyNotice>
         )}
         {snapshot && (snapshot.total > 0 || filtered) && (
           <section className={historyStyles.history} aria-labelledby="reservation-history-title">

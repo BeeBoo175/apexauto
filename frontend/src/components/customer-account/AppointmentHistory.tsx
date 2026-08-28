@@ -9,7 +9,7 @@ import type { Appointment } from "@/lib/intake/contracts";
 import type { HistoryFilters } from "@/lib/intake/list-query";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { CancelAppointment } from "./CancelAppointment";
-import { EmptyState } from "./EmptyState";
+import { EmptyNotice } from "@/components/ui/EmptyNotice";
 import { HistoryFilterForm } from "./HistoryFilterForm";
 import { AccountLoadingShell } from "./AccountLoadingShell";
 import styles from "./Account.module.css";
@@ -65,13 +65,13 @@ export function AppointmentHistory({
         </div>
       )}
       {empty && (
-        <EmptyState
+        <EmptyNotice
+          icon="calendar"
           title="No inspection appointments yet"
-          description="Planning to sell your car? Start with a valuation, then choose an inspection appointment."
-          href="/sell"
-          action="Value your car"
-          prefetch={false}
-        />
+          action={{ label: "Value your car", href: "/sell", prefetch: false }}
+        >
+          Planning to sell your car? Start with a valuation, then choose an inspection appointment.
+        </EmptyNotice>
       )}
       {snapshot && !empty && (
         <>
