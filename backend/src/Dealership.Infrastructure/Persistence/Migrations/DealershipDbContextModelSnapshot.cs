@@ -3415,6 +3415,42 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Dealership.Infrastructure.Vehicles.ReservationUnmatchedPaymentMail", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeliveredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DeliveryAttempts")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("DeliveryClaimExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeliveryClaimId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("NextDeliveryAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RequestId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RequestId")
+                        .IsUnique();
+
+                    b.HasIndex("NextDeliveryAt", "Id");
+
+                    b.ToTable("ReservationUnmatchedPaymentMailOutbox", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ReservationUnmatchedPaymentMailOutbox_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"DeliveryAttempts\" >= 0");
+                        });
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<System.Guid>", b =>
                 {
                     b.Property<int>("Id")
@@ -4458,6 +4494,15 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.HasOne("Dealership.Domain.Vehicles.ReservationRefund", null)
                         .WithOne()
                         .HasForeignKey("Dealership.Infrastructure.Vehicles.ReservationRefundMail", "RefundId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Dealership.Infrastructure.Vehicles.ReservationUnmatchedPaymentMail", b =>
+                {
+                    b.HasOne("Dealership.Domain.Vehicles.ReservationDepositPayment", null)
+                        .WithOne()
+                        .HasForeignKey("Dealership.Infrastructure.Vehicles.ReservationUnmatchedPaymentMail", "RequestId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
