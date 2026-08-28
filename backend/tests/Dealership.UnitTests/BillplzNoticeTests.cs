@@ -70,7 +70,7 @@ public sealed class BillplzNoticeTests
         };
         fields["checksum"] = BillplzChecksum.Compute(Key, "po-1", "1234567890", status, "50000", "ref-1", "1681895891");
 
-        Assert.Equal(new PayoutNotice("po-1", expected), Payouts.ReadNotice(fields));
+        Assert.Equal(new PayoutNotice("po-1", "ref-1", expected), Payouts.ReadNotice(fields));
 
         fields["checksum"] = "bad";
         Assert.Null(Payouts.ReadNotice(fields));

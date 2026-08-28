@@ -94,13 +94,13 @@ public sealed class ReservationRefundTests(IntakePhotoFixture fixture) : IClassF
         Assert.DoesNotContain("1234567890", mail.Body);
     }
 
-    private static Task<HttpResponseMessage> Account(HttpClient client, Guid paymentId, string bank, string number = "1234567890")
+    internal static Task<HttpResponseMessage> Account(HttpClient client, Guid paymentId, string bank, string number = "1234567890")
     {
         return client.PostAsJsonAsync($"/api/reservation-refunds/{paymentId}/bank-account",
             new BankAccountDetails(bank, number, "Nur Aina"));
     }
 
-    private static Task<HttpResponseMessage> Callback(HttpClient client, Dictionary<string, string> fields)
+    internal static Task<HttpResponseMessage> Callback(HttpClient client, Dictionary<string, string> fields)
     {
         return client.PostAsync("/api/payments/payouts/callback", new FormUrlEncodedContent(fields));
     }

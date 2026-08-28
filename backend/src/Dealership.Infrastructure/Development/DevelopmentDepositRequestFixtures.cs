@@ -7,8 +7,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Dealership.Infrastructure.Development;
 
-public sealed class DevelopmentDepositRequestFixtures(DealershipDbContext database, ReservationService reservations,
-    ReservationCancellationService cancellations, IReservationDepositRequestStore requests)
+public sealed class DevelopmentDepositRequestFixtures(DealershipDbContext database,
+    ReservationDepositRequestService depositRequests, ReservationCancellationService cancellations,
+    IReservationDepositRequestStore requests)
 {
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> RunAsync(bool seed, CancellationToken cancellationToken)
     {
@@ -52,7 +53,7 @@ public sealed class DevelopmentDepositRequestFixtures(DealershipDbContext databa
             await database.SaveChangesAsync(cancellationToken);
             database.ChangeTracker.Clear();
             created = true;
-            if (!await SettleAsync(scenario, request, customer, now, cancellationToken))
+            if (!await SettleAsync(scenario, request, customer, cancellationToken))
             {
                 return new(label, "outcome unavailable; preserved", true);
             }
@@ -72,7 +73,7 @@ public sealed class DevelopmentDepositRequestFixtures(DealershipDbContext databa
             : now - scenario.Age;
 
     private async Task<bool> SettleAsync(DevelopmentDepositRequestScenario scenario, ReservationDepositRequest request,
-        CustomerProfile customer, DateTimeOffset now, CancellationToken cancellationToken)
+        CustomerProfile customer, CancellationToken cancellationToken)
     {
         if (scenario.Outcome == DevelopmentDepositRequestOutcome.Cancelled)
         {
@@ -84,17 +85,16 @@ public sealed class DevelopmentDepositRequestFixtures(DealershipDbContext databa
             return true;
         }
 
-        // The customer's click makes the ordinary reservation under the request's own operation ID, booked by the
-        // staff member; the customer then released it, so only the request and its history remain.
-        var staff = new AssistingStaff(scenario.StaffId, AccountRoles.SalesAgent, request.BranchId);
-        var reserved = await reservations.ReserveAsync(customer.UserId, request.VehicleId,
-            new(request.Id, request.PublicationId, request.PromoId), cancellationToken, staff);
+        // The request was backdated, so it is confirmed as a payment made an hour after it was asked for; the ordinary
+        // confirmation makes the reservation under the request's own operation ID, and the customer then released it,
+        // so only the request and its history remain.
+        var reserved = await depositRequests.ConfirmPaidAsync(request.Id, request.CreatedAt + TimeSpan.FromHours(1),
+            cancellationToken);
         if (reserved.Status != ReservationStatus.Succeeded)
         {
             return false;
         }
 
-        await requests.MarkConfirmedAsync(request.Id, now, cancellationToken);
         var released = await cancellations.CancelAsync(customer.UserId, request.Id,
             new(scenario.Listing.OperationId("deposit-request-release"), null), cancellationToken);
         return released.Status == ReservationStatus.Succeeded;

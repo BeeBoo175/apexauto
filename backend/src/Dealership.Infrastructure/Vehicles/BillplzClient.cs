@@ -40,6 +40,11 @@ internal sealed class BillplzClient(HttpClient client, BillplzSettings settings)
 
             return response;
         }
+        catch (TaskCanceledException exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            // HttpClient.Timeout surfaces as a cancellation the caller did not ask for.
+            throw new PaymentGatewayTimeoutException(exception);
+        }
         catch (HttpRequestException exception)
         {
             throw new PaymentGatewayException("The payment provider could not be reached.", exception);
@@ -52,6 +57,10 @@ internal sealed class BillplzClient(HttpClient client, BillplzSettings settings)
         {
             await using var body = await response.Content.ReadAsStreamAsync(cancellationToken);
             return await JsonDocument.ParseAsync(body, cancellationToken: cancellationToken);
+        }
+        catch (TaskCanceledException exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new PaymentGatewayTimeoutException(exception);
         }
         catch (HttpRequestException exception)
         {

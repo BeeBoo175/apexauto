@@ -141,7 +141,9 @@ public sealed class ReservationDepositRequestService(IReservationStore reservati
             new(request.Id, request.PublicationId, request.PromoId), cancellationToken, staff);
         if (result.Status == ReservationStatus.Succeeded)
         {
-            await requests.MarkConfirmedAsync(request.Id, clock.GetUtcNow(), cancellationToken);
+            // A payment judged in time by the provider's clock is confirmed at that moment, which keeps the
+            // confirmation inside the request's window even when its notice is processed after the window closed.
+            await requests.MarkConfirmedAsync(request.Id, paidAt ?? clock.GetUtcNow(), cancellationToken);
         }
 
         return result;

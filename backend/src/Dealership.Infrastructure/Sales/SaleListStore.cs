@@ -253,7 +253,7 @@ public sealed class SaleListStore(DealershipDbContext database) : ISaleListStore
         if (query.Reference is { } reference)
         {
             var pattern = LiteralSearch.Pattern(reference);
-            rows = rows.Where(row => EF.Functions.ILike(row.OrderNumber ?? row.ReservationNumber, pattern, "!"));
+            rows = rows.Where(row => EF.Functions.ILike(row.OrderNumber ?? row.ReservationNumber ?? string.Empty, pattern, "!"));
         }
 
         if (query.MinimumDiscount is { } minimumDiscount)

@@ -18,7 +18,8 @@ public enum PayoutOutcome
 
 public sealed record PayoutResult(string Id, PayoutOutcome Outcome);
 
-public sealed record PayoutNotice(string PayoutId, PayoutOutcome Outcome);
+// The reference is the one the refund sent, so a payout whose creation timed out is still found when its notice arrives.
+public sealed record PayoutNotice(string PayoutId, string? Reference, PayoutOutcome Outcome);
 
 // The provider's money-out side. Refunds are real only when it is enabled; otherwise the deposit stays a simulated
 // record and no refund is offered.
@@ -75,6 +76,10 @@ public interface IReservationRefundStore
     Task<bool> AddAsync(ReservationRefund refund, CancellationToken cancellationToken);
 
     Task SaveAsync(ReservationRefund refund, CancellationToken cancellationToken);
+
+    // Writes a retried refund only while the stored refund is still the failed attempt it was read as, so two parallel
+    // retries cannot both go on to ask the provider for a payout. False when another request got there first.
+    Task<bool> SaveRetryAsync(ReservationRefund refund, int previousAttempt, CancellationToken cancellationToken);
 }
 
 public sealed record RefundDue(Guid PaymentRequestId, Guid CustomerId, int AmountSen, RefundDueReason Reason);

@@ -7,7 +7,12 @@ public sealed record PaymentBillRequest(Guid RequestId, string PayerName, string
 
 public sealed record PaymentBill(string Id, string Url);
 
-public sealed class PaymentGatewayException(string message, Exception? inner = null) : Exception(message, inner);
+public class PaymentGatewayException(string message, Exception? inner = null) : Exception(message, inner);
+
+// The request may have reached the provider before the wait ended, so whether it took effect is not known. Callers
+// that move money must not treat it as a refusal.
+public sealed class PaymentGatewayTimeoutException(Exception? inner = null)
+    : PaymentGatewayException("The payment provider did not answer in time.", inner);
 
 // What a verified provider message says about one bill, in the application's own terms. A null amount means the
 // message states the bill was paid in full without naming the sum.

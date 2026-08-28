@@ -49,5 +49,15 @@ public sealed class SalesAwaitingDepositTableTests(IntakePhotoFixture fixture) :
         var after = (await new SaleListStore(scenario.Database).TableAsync(scenario.ManagerId, query, default)).Value!;
         Assert.Equal(0, after.Counts.AwaitingDeposit);
         Assert.Empty(after.Items);
+
+        // A customer's own payment window is not a staff request, so it is neither counted nor listed.
+        var publication = await scenario.Database.ListingPublications.AsNoTracking().SingleAsync();
+        var customer = await scenario.Database.CustomerProfiles.AsNoTracking().SingleAsync(item => item.UserId == deposit.CustomerId);
+        scenario.Database.ReservationDepositRequests.Add(new(Guid.NewGuid(), customer, publication, null, null,
+            DateTimeOffset.UtcNow));
+        await scenario.Database.SaveChangesAsync();
+        var own = (await new SaleListStore(scenario.Database).TableAsync(scenario.ManagerId, query, default)).Value!;
+        Assert.Equal(0, own.Counts.AwaitingDeposit);
+        Assert.Empty(own.Items);
     }
 }

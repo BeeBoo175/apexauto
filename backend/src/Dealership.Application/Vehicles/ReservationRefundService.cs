@@ -34,7 +34,7 @@ public sealed class ReservationRefundService(IReservationRefundStore refunds, IP
             try
             {
                 var outcome = await gateway.GetPayoutOutcomeAsync(payoutId, cancellationToken);
-                await SettleAsync(payoutId, outcome, cancellationToken);
+                await SettleAsync(payoutId, null, outcome, cancellationToken);
             }
             catch (PaymentGatewayException)
             {
@@ -43,12 +43,19 @@ public sealed class ReservationRefundService(IReservationRefundStore refunds, IP
         }
     }
 
-    private async Task SettleAsync(string payoutId, PayoutOutcome outcome, CancellationToken cancellationToken)
+    private async Task SettleAsync(string payoutId, string? reference, PayoutOutcome outcome,
+        CancellationToken cancellationToken)
     {
-        var refund = await refunds.FindByPayoutAsync(payoutId, cancellationToken);
+        var refund = await refunds.FindByPayoutAsync(payoutId, cancellationToken) ??
+            await FindUnattachedAsync(reference, cancellationToken);
         if (refund is null)
         {
             return;
+        }
+
+        if (refund.PayoutId is null)
+        {
+            refund.AttachPayout(payoutId);
         }
 
         var settled = outcome switch
@@ -61,6 +68,19 @@ public sealed class ReservationRefundService(IReservationRefundStore refunds, IP
         {
             await refunds.SaveAsync(refund, cancellationToken);
         }
+    }
+
+    // The creation of this attempt's payout timed out, so no payout id was saved; the provider's notice names the
+    // reference it was created with.
+    private async Task<ReservationRefund?> FindUnattachedAsync(string? reference, CancellationToken cancellationToken)
+    {
+        if (!ReservationRefund.TryParseReference(reference, out var paymentRequestId, out var attempt))
+        {
+            return null;
+        }
+
+        var refund = await refunds.FindAsync(paymentRequestId, cancellationToken);
+        return refund is { PayoutId: null, State: RefundState.Processing } && refund.Attempt == attempt ? refund : null;
     }
 
     public async Task<RefundResult> RequestAsync(Guid customerId, Guid paymentRequestId, BankAccountDetails account,
@@ -95,13 +115,20 @@ public sealed class ReservationRefundService(IReservationRefundStore refunds, IP
                 return refund is null ? new(RefundStatus.Unavailable) : Describe(refund, due);
             }
         }
-        else if (!refund.Retry(account.BankCode!, account.AccountNumber!, account.AccountHolder!, now))
-        {
-            return Describe(refund, due);
-        }
         else
         {
-            await refunds.SaveAsync(refund, cancellationToken);
+            var previousAttempt = refund.Attempt;
+            if (!refund.Retry(account.BankCode!, account.AccountNumber!, account.AccountHolder!, now))
+            {
+                return Describe(refund, due);
+            }
+
+            if (!await refunds.SaveRetryAsync(refund, previousAttempt, cancellationToken))
+            {
+                // A parallel retry won; only its request asks the provider for a payout.
+                refund = await refunds.FindAsync(paymentRequestId, cancellationToken);
+                return refund is null ? new(RefundStatus.Unavailable) : Describe(refund, due);
+            }
         }
 
         return await PayOutAsync(refund, due, account.AccountNumber!, cancellationToken);
@@ -116,7 +143,7 @@ public sealed class ReservationRefundService(IReservationRefundStore refunds, IP
             return false;
         }
 
-        await SettleAsync(notice.PayoutId, notice.Outcome, cancellationToken);
+        await SettleAsync(notice.PayoutId, notice.Reference, notice.Outcome, cancellationToken);
         return true;
     }
 
@@ -134,6 +161,12 @@ public sealed class ReservationRefundService(IReservationRefundStore refunds, IP
             }
 
             await refunds.SaveAsync(refund, cancellationToken);
+            return Describe(refund, due);
+        }
+        catch (PaymentGatewayTimeoutException)
+        {
+            // The payout may already have been made. The refund stays processing and never starts a new attempt; the
+            // provider's notice names this attempt's reference and settles it.
             return Describe(refund, due);
         }
         catch (PaymentGatewayException)

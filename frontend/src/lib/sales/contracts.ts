@@ -155,7 +155,8 @@ export const isSalesManager = (actor: CurrentActor) =>
 // One row in an agent's queue or a manager's table, read from the sale's current columns.
 export interface SaleSummary {
   id: string;
-  reservationNumber: string;
+  // Null for a deposit request, which has no reservation yet.
+  reservationNumber: string | null;
   orderNumber: string | null;
   status: SaleStatus;
   registration: string;
@@ -189,9 +190,10 @@ export interface SaleSummary {
   updatedAt: string;
 }
 
-// The sale's own reference: its purchase order once submitted, before that its reservation number.
+// The sale's own reference: its purchase order once submitted, before that its reservation number, and for a
+// deposit request that has neither, its name.
 export const saleReference = (row: Pick<SaleSummary, "orderNumber" | "reservationNumber">) =>
-  row.orderNumber ?? row.reservationNumber;
+  row.orderNumber ?? row.reservationNumber ?? "Deposit request";
 
 export function remainingHoldSeconds(
   row: Pick<SaleSummary, "dueAt" | "pausedSeconds">,

@@ -11,7 +11,8 @@ namespace Dealership.Infrastructure.Sales;
 internal sealed class SaleRow
 {
     public Guid Id { get; init; }
-    public string ReservationNumber { get; init; } = string.Empty;
+    // Null for a deposit request, which has no reservation yet.
+    public string? ReservationNumber { get; init; }
     public string? OrderNumber { get; init; }
     public SalesOrderStatus Status { get; init; }
     public Guid BranchId { get; init; }
@@ -119,7 +120,7 @@ internal static class SaleRows
         select new SaleRow
         {
             Id = request.Id,
-            ReservationNumber = "Deposit request",
+            ReservationNumber = (string?)null,
             Status = SalesOrderStatus.Open,
             BranchId = request.BranchId,
             Branch = branch.Name,
@@ -166,7 +167,7 @@ internal static class SaleRows
     {
         var pattern = LiteralSearch.Pattern(search);
         return rows.Where(row =>
-            EF.Functions.ILike(row.ReservationNumber, pattern, "!") ||
+            row.ReservationNumber != null && EF.Functions.ILike(row.ReservationNumber, pattern, "!") ||
             row.OrderNumber != null && EF.Functions.ILike(row.OrderNumber, pattern, "!") ||
             EF.Functions.ILike(row.Plate, pattern, "!") ||
             EF.Functions.ILike(row.Vin, pattern, "!") ||
@@ -221,7 +222,7 @@ internal static class SaleRows
     // Every ordering ends in the sale identity, so paging never repeats or skips a sale.
     public static IOrderedQueryable<SaleRow> Order(IQueryable<SaleRow> rows, string sort, bool down) => sort switch
     {
-        "reference" => By(rows, row => row.OrderNumber ?? row.ReservationNumber, down),
+        "reference" => By(rows, row => row.OrderNumber ?? row.ReservationNumber ?? string.Empty, down),
         "registration" => By(rows, row => row.Plate, down),
         "vehicle" => By(rows, row => row.Year + " " + row.Make + " " + row.Model + " " + row.Trim, down),
         "customer" => By(rows, row => row.Customer, down),

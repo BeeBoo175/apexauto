@@ -68,6 +68,24 @@ public sealed class ReservationRefundStore(DealershipDbContext database, MailDel
         }
     }
 
+    public async Task<bool> SaveRetryAsync(ReservationRefund refund, int previousAttempt,
+        CancellationToken cancellationToken)
+    {
+        var updated = await database.ReservationRefunds
+            .Where(item => item.PaymentRequestId == refund.PaymentRequestId && item.State == RefundState.Failed &&
+                item.Attempt == previousAttempt)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(item => item.State, refund.State)
+                .SetProperty(item => item.Attempt, refund.Attempt)
+                .SetProperty(item => item.PayoutId, (string?)null)
+                .SetProperty(item => item.SettledAt, (DateTimeOffset?)null)
+                .SetProperty(item => item.RequestedAt, refund.RequestedAt)
+                .SetProperty(item => item.BankCode, refund.BankCode)
+                .SetProperty(item => item.AccountLast4, refund.AccountLast4)
+                .SetProperty(item => item.AccountHolder, refund.AccountHolder), cancellationToken);
+        return updated == 1;
+    }
+
     // A completed refund commits together with its one notice, so the customer is told exactly once.
     public async Task SaveAsync(ReservationRefund refund, CancellationToken cancellationToken)
     {

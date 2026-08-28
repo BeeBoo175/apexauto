@@ -19,7 +19,7 @@ public sealed record SaleView(Guid Id, SaleSnapshot Sale, string? Agent, string?
     DateTimeOffset UpdatedAt, SaleContext Context, SaleActions Actions);
 
 // One row in an agent's queue or a manager's table.
-public sealed record SaleSummary(Guid Id, string ReservationNumber, string? OrderNumber, string Status,
+public sealed record SaleSummary(Guid Id, string? ReservationNumber, string? OrderNumber, string Status,
     string Registration, int ManufactureYear, string Make, string Model, string Trim, string Customer, string? Agent, string Branch, DateTimeOffset? DueAt,
     long? PausedSeconds, DateTimeOffset? ClaimedAt, decimal NegotiatedDiscount, decimal? DiscountLimitAtSubmit,
     decimal BalancePayable, DateTimeOffset? SubmittedAt, DateTimeOffset? DecidedAt, DateTimeOffset? ClosedAt,

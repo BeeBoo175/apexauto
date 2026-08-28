@@ -29,6 +29,8 @@ public sealed class BillplzPayoutGateway(HttpClient client, IOptions<BillplzSett
             ["description"] = request.Description,
             ["total"] = total,
             ["reference_id"] = request.Reference,
+            // The application's own refund mail is the one customer notice; the provider's receipt would go to the dealership.
+            ["recipient_notification"] = "false",
             ["epoch"] = epoch,
             ["checksum"] = BillplzChecksum.Compute(_settings.XSignatureKey!, collection, request.AccountNumber, total, epoch)
         };
@@ -64,7 +66,8 @@ public sealed class BillplzPayoutGateway(HttpClient client, IOptions<BillplzSett
             return null;
         }
 
-        return new PayoutNotice(payoutId, OutcomeOf(fields.GetValueOrDefault("status")));
+        return new PayoutNotice(payoutId, fields.GetValueOrDefault("reference_id"),
+            OutcomeOf(fields.GetValueOrDefault("status")));
     }
 
     // Billplz reports completed for a paid out order and refunded when the money came back.

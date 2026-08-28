@@ -59,6 +59,16 @@ public sealed class ReservationRefund
     // The reference the provider keeps for this attempt; a new attempt gets a new reference.
     public string Reference => $"{PaymentRequestId:N}-{Attempt}";
 
+    // The payment and attempt a provider reference names, for a notice that arrives without a saved payout id.
+    public static bool TryParseReference(string? reference, out Guid paymentRequestId, out int attempt)
+    {
+        paymentRequestId = Guid.Empty;
+        attempt = 0;
+        var parts = reference?.Split('-');
+        return parts is { Length: 2 } && Guid.TryParseExact(parts[0], "N", out paymentRequestId) &&
+            int.TryParse(parts[1], out attempt) && attempt > 0;
+    }
+
     public static bool IsValidAccountHolder(string? accountHolder) =>
         accountHolder?.Trim() is { Length: > 0 and <= AccountHolderMaximumLength } holder && !holder.Any(char.IsControl);
 

@@ -240,7 +240,7 @@ export function parseSaleSummary(value: unknown): SaleSummary | null {
   if (
     !isRecord(value) ||
     !isUuid(value.id) ||
-    !text(value.reservationNumber) ||
+    !nullable(text)(value.reservationNumber) ||
     !nullable(text)(value.orderNumber) ||
     !isSaleStatus(value.status) ||
     !text(value.registration) ||

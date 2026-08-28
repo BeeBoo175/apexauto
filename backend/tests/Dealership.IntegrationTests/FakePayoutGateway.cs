@@ -16,6 +16,9 @@ internal sealed class FakePayoutGateway(string signatureKey) : IPayoutGateway
 
     public bool FailNext { get; set; }
 
+    // The provider takes the payout but the answer never arrives in time.
+    public bool TimeOutNext { get; set; }
+
     public Task<PayoutResult> CreatePayoutAsync(PayoutRequest request, CancellationToken cancellationToken)
     {
         if (FailNext)
@@ -25,6 +28,12 @@ internal sealed class FakePayoutGateway(string signatureKey) : IPayoutGateway
         }
 
         _payouts.Add(request);
+        if (TimeOutNext)
+        {
+            TimeOutNext = false;
+            throw new PaymentGatewayTimeoutException();
+        }
+
         return Task.FromResult(new PayoutResult($"po-{_payouts.Count}", PayoutOutcome.Processing));
     }
 
@@ -45,12 +54,14 @@ internal sealed class FakePayoutGateway(string signatureKey) : IPayoutGateway
             "failed" => PayoutOutcome.Failed,
             _ => PayoutOutcome.Processing
         };
-        return new PayoutNotice(payoutId, outcome);
+        return new PayoutNotice(payoutId, fields.GetValueOrDefault("reference"), outcome);
     }
 
-    public Dictionary<string, string> Callback(string payoutId, string outcome, bool signed = true) => new()
+    public Dictionary<string, string> Callback(string payoutId, string outcome, bool signed = true,
+        string? reference = null) => new()
     {
         ["payout"] = payoutId,
+        ["reference"] = reference ?? string.Empty,
         ["outcome"] = outcome,
         ["signature"] = signed ? signatureKey : "bad"
     };
