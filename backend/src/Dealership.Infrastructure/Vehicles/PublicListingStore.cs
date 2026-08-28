@@ -38,7 +38,8 @@ public sealed class PublicListingStore(DealershipDbContext database) : IPublicLi
         }
 
         // The count and bounded rows include this snapshot's committed refund catch-up.
-        var rows = Filter(PublicListingQuery.Read(database), filter);
+        var now = await database.DatabaseNowAsync(cancellationToken);
+        var rows = Filter(PublicListingQuery.Read(database, now), filter);
         var total = await rows.CountAsync(cancellationToken);
         var items = await Order(rows, filter).Select(Item)
             .ReadPageAsync(filter.Page, filter.RequestedPageSize, total, cancellationToken);
@@ -60,7 +61,8 @@ public sealed class PublicListingStore(DealershipDbContext database) : IPublicLi
     private async Task<PublicListingDetailResult> DetailSnapshotAsync(Guid vehicleId, CancellationToken cancellationToken)
     {
         await ReservationReadSnapshot.ReconcileAsync(database, vehicleId, cancellationToken);
-        var listing = PublicListingQuery.Read(database).Where(row => row.Vehicle.Id == vehicleId);
+        var now = await database.DatabaseNowAsync(cancellationToken);
+        var listing = PublicListingQuery.Read(database, now).Where(row => row.Vehicle.Id == vehicleId);
         var item = await listing.Select(Item).SingleOrDefaultAsync(cancellationToken);
         if (item is null)
         {

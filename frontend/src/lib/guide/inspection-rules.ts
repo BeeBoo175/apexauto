@@ -1,12 +1,16 @@
 import type { IconName } from "@/lib/icons";
 import { parseMyr } from "@/lib/currency-input";
 import { inspectionCategoryIcons, type Severity } from "@/lib/inspection/contracts";
-import type { InspectionCategoryKey } from "./inspection-points";
+import { formatCurrency } from "@/lib/currency-format";
+import type {
+  InspectionGradingPolicy,
+  InspectionPointItem,
+  InspectionCategoryKey,
+} from "./inspection-points";
 
 export interface InspectionCategorySummary {
   key: InspectionCategoryKey;
   title: string;
-  prefix: string;
   count: number;
   icon: IconName;
   focus: string;
@@ -22,48 +26,47 @@ export interface GradingEvaluation {
   eligibleWarrantyLabel: string;
 }
 
-export const inspectionCategories: readonly InspectionCategorySummary[] = [
+const categoryPresentation: readonly Omit<InspectionCategorySummary, "count">[] = [
   {
     key: "FrameChassis",
     title: "Frame & Chassis",
-    prefix: "FC",
-    count: 45,
     icon: inspectionCategoryIcons.FrameChassis,
     focus: "Factory weld seams, chassis rails, pillars, and flood cavity checks.",
   },
   {
     key: "EngineTransmission",
     title: "Engine & Transmission",
-    prefix: "ET",
-    count: 50,
     icon: inspectionCategoryIcons.EngineTransmission,
     focus: "Cold starts, fluid seals, cooling fans, diagnostics, and gear shifts.",
   },
   {
     key: "ExteriorPaint",
     title: "Exterior & Paint",
-    prefix: "EP",
-    count: 45,
     icon: inspectionCategoryIcons.ExteriorPaint,
     focus: "Panel gaps, paint-depth consistency, weather seals, glass, and lamps.",
   },
   {
     key: "InteriorElectrical",
     title: "Interior & Electrical",
-    prefix: "IE",
-    count: 40,
     icon: inspectionCategoryIcons.InteriorElectrical,
     focus: "True odometer checks, airbags, seat belts, cabin AC, and electronics.",
   },
   {
     key: "UnderbodyBrakesSuspension",
     title: "Underbody, Brakes & Suspension",
-    prefix: "UB",
-    count: 30,
     icon: inspectionCategoryIcons.UnderbodyBrakesSuspension,
     focus: "Tyre tread, brake pads and discs, ABS, dampers, and steering play.",
   },
 ];
+
+export function inspectionCategories(
+  points: readonly InspectionPointItem[],
+): InspectionCategorySummary[] {
+  return categoryPresentation.map((category) => ({
+    ...category,
+    count: points.filter((point) => point.category === category.key).length,
+  }));
+}
 
 export const inspectionCategoryTitles: Record<InspectionCategoryKey, string> = {
   FrameChassis: "Frame & Chassis",
@@ -73,23 +76,27 @@ export const inspectionCategoryTitles: Record<InspectionCategoryKey, string> = {
   UnderbodyBrakesSuspension: "Underbody, Brakes & Suspension",
 };
 
-export const signOffInvariants: readonly { icon: IconName; title: string; copy: string }[] = [
-  {
-    icon: "check",
-    title: "Every point checked",
-    copy: "All 210 checks inspected or marked Not fitted.",
-  },
-  {
-    icon: "tool",
-    title: "Fixed before listing",
-    copy: "Minor, Major, and paid repairs finish before sale.",
-  },
-  {
-    icon: "shield-check",
-    title: "Tamper-proof reports",
-    copy: "Signed reports lock and version cleanly on updates.",
-  },
-];
+export function signOffInvariants(
+  pointCount: number,
+): readonly { icon: IconName; title: string; copy: string }[] {
+  return [
+    {
+      icon: "check",
+      title: "Every point checked",
+      copy: `All ${pointCount} checks inspected or marked Not fitted.`,
+    },
+    {
+      icon: "tool",
+      title: "Fixed before listing",
+      copy: "Minor, Major, and paid repairs finish before sale.",
+    },
+    {
+      icon: "shield-check",
+      title: "Tamper-proof reports",
+      copy: "Signed reports lock and version cleanly on updates.",
+    },
+  ];
+}
 
 /**
  * Mirrors InspectionGrading.Calculate in Dealership.Domain:
@@ -98,6 +105,7 @@ export const signOffInvariants: readonly { icon: IconName; title: string; copy: 
 export function evaluateInspectionOutcome(
   rawCost: number,
   worstSeverity: Severity,
+  policy: InspectionGradingPolicy,
 ): GradingEvaluation | null {
   if (!Number.isFinite(rawCost) || rawCost < 0) {
     return null;
@@ -108,7 +116,7 @@ export function evaluateInspectionOutcome(
   }
 
   const isCritical = worstSeverity === "CriticalDisqualifier";
-  const overBudgetCeiling = estimatedRepairCost > 15000;
+  const overBudgetCeiling = estimatedRepairCost > policy.maximumRepairCost;
   if (isCritical || overBudgetCeiling) {
     let driver: GradingEvaluation["driver"] = "cost";
     if (isCritical && overBudgetCeiling) {
@@ -122,14 +130,14 @@ export function evaluateInspectionOutcome(
       estimatedRepairCost,
       worstSeverity,
       driver,
-      repairRequirement: "Not approved for sale (over RM 15,000 or critical defect).",
+      repairRequirement: `Not approved for sale (over ${formatCurrency(policy.maximumRepairCost)} or critical defect).`,
       eligibleWarrantyLabel: "Not eligible for warranty",
     };
   }
 
-  if (worstSeverity === "MajorDefect" || estimatedRepairCost >= 2500) {
+  if (worstSeverity === "MajorDefect" || estimatedRepairCost >= policy.gradeCMinimumRepairCost) {
     const sevHit = worstSeverity === "MajorDefect";
-    const costHit = estimatedRepairCost >= 2500;
+    const costHit = estimatedRepairCost >= policy.gradeCMinimumRepairCost;
     let driver: GradingEvaluation["driver"] = "cost";
     if (sevHit && costHit) {
       driver = "both";
@@ -147,9 +155,9 @@ export function evaluateInspectionOutcome(
     };
   }
 
-  if (worstSeverity === "MinorDefect" || estimatedRepairCost >= 500) {
+  if (worstSeverity === "MinorDefect" || estimatedRepairCost >= policy.gradeBMinimumRepairCost) {
     const sevHit = worstSeverity === "MinorDefect";
-    const costHit = estimatedRepairCost >= 500;
+    const costHit = estimatedRepairCost >= policy.gradeBMinimumRepairCost;
     let driver: GradingEvaluation["driver"] = "cost";
     if (sevHit && costHit) {
       driver = "both";

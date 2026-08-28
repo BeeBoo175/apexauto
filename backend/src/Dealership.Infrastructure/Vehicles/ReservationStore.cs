@@ -54,7 +54,7 @@ public sealed class ReservationStore(DealershipDbContext database, MailDeliveryS
             var isRelease = await database.ReservationReleases.AnyAsync(item => item.Id == request.OperationId, cancellationToken);
             var now = await database.DatabaseNowAsync(cancellationToken);
             // A confirming customer's own pending request does not hold the car against them.
-            var listing = await PublicListingQuery.Read(database, request.OperationId).Where(row => row.Vehicle.Id == vehicleId &&
+            var listing = await PublicListingQuery.Read(database, now, request.OperationId).Where(row => row.Vehicle.Id == vehicleId &&
                 !TestDriveOccupationRows.Active(database).Any(occupation => occupation.VehicleId == row.Vehicle.Id))
                 .SingleOrDefaultAsync(cancellationToken);
             var settings = await database.PurchaseSettings.FromSqlInterpolated(

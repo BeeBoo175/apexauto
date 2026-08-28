@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { inspectionPoints } from "@/lib/guide/inspection-points";
+import { parseInspectionGuide } from "@/lib/guide/inspection-points";
 import { evaluateInspectionOutcome, inspectionCategories } from "@/lib/guide/inspection-rules";
 import { isWarrantyPlanEligible } from "@/lib/guide/warranty-plans";
 import {
@@ -371,31 +371,39 @@ test("reopening and assignment handover require a fresh examination declaration"
   ).toEqual(["FC-001"]);
 });
 
-test("public inspection rules catalog contains all 210 unique points and matches grading and warranty gates", () => {
-  expect(inspectionPoints).toHaveLength(210);
-  expect(new Set(inspectionPoints.map((point) => point.code)).size).toBe(210);
+test("public inspection guide validates the catalog and applies supplied grading and warranty gates", () => {
+  const policy = {
+    gradeBMinimumRepairCost: 600,
+    gradeCMinimumRepairCost: 3000,
+    maximumRepairCost: 18000,
+  };
+  const guide = parseInspectionGuide({
+    catalogVersion: "example-catalog",
+    grading: policy,
+    points: [
+      { code: "FC-001", category: "FrameChassis", description: "Frame" },
+      { code: "ET-001", category: "EngineTransmission", description: "Engine" },
+      { code: "EP-001", category: "ExteriorPaint", description: "Exterior" },
+      { code: "IE-001", category: "InteriorElectrical", description: "Interior" },
+      { code: "UB-001", category: "UnderbodyBrakesSuspension", description: "Underbody" },
+    ],
+  });
+  expect(guide).not.toBeNull();
+  expect(inspectionCategories(guide!.points).every((category) => category.count === 1)).toBe(true);
 
-  for (const category of inspectionCategories) {
-    const inCategory = inspectionPoints.filter((point) => point.category === category.key);
-    expect(inCategory).toHaveLength(category.count);
-    for (const point of inCategory) {
-      expect(point.code.startsWith(`${category.prefix}-`)).toBe(true);
-    }
-  }
-
-  expect(evaluateInspectionOutcome(0, "Advisory")?.grade).toBe("A");
-  expect(evaluateInspectionOutcome(499.99, "Advisory")?.grade).toBe("A");
-  expect(evaluateInspectionOutcome(500, "Advisory")?.grade).toBe("B");
-  expect(evaluateInspectionOutcome(0, "MinorDefect")?.grade).toBe("B");
-  expect(evaluateInspectionOutcome(2499.99, "MinorDefect")?.grade).toBe("B");
-  expect(evaluateInspectionOutcome(2500, "Advisory")?.grade).toBe("C");
-  expect(evaluateInspectionOutcome(0, "MajorDefect")?.grade).toBe("C");
-  expect(evaluateInspectionOutcome(15000, "Advisory")?.grade).toBe("C");
-  expect(evaluateInspectionOutcome(15000.01, "Advisory")).toMatchObject({
+  expect(evaluateInspectionOutcome(0, "Advisory", policy)?.grade).toBe("A");
+  expect(evaluateInspectionOutcome(599.99, "Advisory", policy)?.grade).toBe("A");
+  expect(evaluateInspectionOutcome(600, "Advisory", policy)?.grade).toBe("B");
+  expect(evaluateInspectionOutcome(0, "MinorDefect", policy)?.grade).toBe("B");
+  expect(evaluateInspectionOutcome(2999.99, "MinorDefect", policy)?.grade).toBe("B");
+  expect(evaluateInspectionOutcome(3000, "Advisory", policy)?.grade).toBe("C");
+  expect(evaluateInspectionOutcome(0, "MajorDefect", policy)?.grade).toBe("C");
+  expect(evaluateInspectionOutcome(18000, "Advisory", policy)?.grade).toBe("C");
+  expect(evaluateInspectionOutcome(18000.01, "Advisory", policy)).toMatchObject({
     grade: null,
     isRejected: true,
   });
-  expect(evaluateInspectionOutcome(0, "CriticalDisqualifier")).toMatchObject({
+  expect(evaluateInspectionOutcome(0, "CriticalDisqualifier", policy)).toMatchObject({
     grade: null,
     isRejected: true,
   });

@@ -54,7 +54,7 @@ public sealed class DevelopmentDepositRequestFixtures(DealershipDbContext databa
             created = true;
             if (!await SettleAsync(scenario, request, customer, now, cancellationToken))
             {
-                return new(label, "outcome unavailable; preserved ", true);
+                return new(label, "outcome unavailable; preserved", true);
             }
 
             existing = await requests.FindAsync(scenario.Id, cancellationToken);

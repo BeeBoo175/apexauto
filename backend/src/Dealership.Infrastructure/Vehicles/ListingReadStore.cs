@@ -43,7 +43,8 @@ public sealed class ListingReadStore(DealershipDbContext database) : IListingRea
             return new(ListingStatus.Forbidden);
         }
 
-        var rows = Rows(actor.BranchId ?? filter.BranchId);
+        var now = await database.DatabaseNowAsync(cancellationToken);
+        var rows = Rows(actor.BranchId ?? filter.BranchId, now);
         if (filter.Registration.Length > 0)
         {
             var pattern = LiteralSearch.Pattern(filter.Registration);
@@ -124,7 +125,8 @@ public sealed class ListingReadStore(DealershipDbContext database) : IListingRea
     // Public state depends on holds, so due holds are reconciled first; without that the badges are left off.
     private async Task<ListingCounts?> CountsAsync(Guid? branchId, int batch, CancellationToken cancellationToken)
     {
-        var scope = Rows(branchId);
+        var now = await database.DatabaseNowAsync(cancellationToken);
+        var scope = Rows(branchId, now);
         if (!await ReservationReadSnapshot.ReconcileDueAsync(database,
             scope.Select(row => row.Vehicle.Id), batch, cancellationToken))
         {
@@ -238,7 +240,8 @@ public sealed class ListingReadStore(DealershipDbContext database) : IListingRea
             return new(ListingStatus.Forbidden);
         }
 
-        var rows = Rows(actor.BranchId).Where(row => row.Vehicle.Id == vehicleId);
+        var now = await database.DatabaseNowAsync(cancellationToken);
+        var rows = Rows(actor.BranchId, now).Where(row => row.Vehicle.Id == vehicleId);
         if (!await rows.AnyAsync(cancellationToken))
         {
             return new(ListingStatus.NotFound);
@@ -267,7 +270,6 @@ public sealed class ListingReadStore(DealershipDbContext database) : IListingRea
                           select new ListingHold(reservation.Buyer.LegalName,
                               database.Users.Where(user => user.Id == sale.AgentId).Select(user => user.Email).FirstOrDefault(),
                               sale.DueAt, reservation.CustomerId, sale.AgentId)).SingleOrDefaultAsync(cancellationToken);
-        var now = await database.DatabaseNowAsync(cancellationToken);
         var pendingDeposit = await (from request in database.ReservationDepositRequests.AsNoTracking()
                                         .Where(ReservationDepositRequest.PendingAt(now))
                                     join profile in database.CustomerProfiles.AsNoTracking() on request.CustomerId equals profile.UserId
@@ -316,7 +318,7 @@ public sealed class ListingReadStore(DealershipDbContext database) : IListingRea
         return new(ListingStatus.Succeeded, new(Array.AsReadOnly(items), total, page, pageSize));
     }
 
-    private IQueryable<Row> Rows(Guid? branchId)
+    private IQueryable<Row> Rows(Guid? branchId, DateTimeOffset now)
     {
         var latest = database.ListingRevisions.AsNoTracking().Where(revision =>
             !database.ListingRevisions.Any(later => later.VehicleId == revision.VehicleId && later.Version > revision.Version));
@@ -325,7 +327,7 @@ public sealed class ListingReadStore(DealershipDbContext database) : IListingRea
                            where !database.ListingPublications.Any(later => later.VehicleId == publication.VehicleId &&
                                database.ListingRevisions.Any(r => r.Id == later.RevisionId && r.Version > revision.Version))
                            select publication;
-        var publicRows = PublicListingQuery.Read(database);
+        var publicRows = PublicListingQuery.Read(database, now);
         var eligiblePublications = PublicListingQuery.Published(database);
         var activities = database.ListingRevisions.Select(item => new { item.VehicleId, item.RecordedAt })
             .Concat(database.ListingPublications.Select(item => new { item.VehicleId, item.RecordedAt }))

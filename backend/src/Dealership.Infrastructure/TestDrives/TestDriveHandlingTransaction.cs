@@ -17,9 +17,10 @@ internal sealed class TestDriveHandlingTransaction(DealershipDbContext database,
         return database.DatabaseNowAsync(cancellationToken);
     }
 
-    public Task<bool> IsVehicleEligibleAsync(CancellationToken cancellationToken)
+    public async Task<bool> IsVehicleEligibleAsync(CancellationToken cancellationToken)
     {
-        return PublicListingQuery.Read(database).AnyAsync(item => item.Vehicle.Id == context.Booking!.VehicleId,
+        var now = await database.DatabaseNowAsync(cancellationToken);
+        return await PublicListingQuery.Read(database, now).AnyAsync(item => item.Vehicle.Id == context.Booking!.VehicleId,
             cancellationToken);
     }
 

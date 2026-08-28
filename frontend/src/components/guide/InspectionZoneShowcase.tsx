@@ -10,7 +10,7 @@ import interiorPhoto from "../../../public/images/inspect-interior.jpg";
 import { Icon } from "@/components/ui/Icon";
 import layout from "@/components/vehicles/VehicleLayout.module.css";
 import type { InspectionCategoryKey } from "@/lib/guide/inspection-points";
-import { inspectionCategories } from "@/lib/guide/inspection-rules";
+import type { InspectionCategorySummary } from "@/lib/guide/inspection-rules";
 import styles from "./GuideInspection.module.css";
 
 interface ZoneDetails {
@@ -68,10 +68,12 @@ const zoneMedia: Record<InspectionCategoryKey, ZoneDetails> = {
 };
 
 export function InspectionZoneShowcase({
+  categories: inspectionCategories,
   onExploreCatalog,
 }: {
+  categories: readonly InspectionCategorySummary[];
   onExploreCatalog?: (key: InspectionCategoryKey) => void;
-} = {}) {
+}) {
   const [activeKey, setActiveKey] = useState<InspectionCategoryKey>("FrameChassis");
   const tabRefs = useRef<Partial<Record<InspectionCategoryKey, HTMLButtonElement | null>>>({});
 

@@ -45,10 +45,10 @@ public sealed class TestDriveBookingStore(DealershipDbContext database, MailDeli
                 $"SELECT 1 FROM \"Branches\" WHERE \"Id\" = {branchId} FOR UPDATE", cancellationToken);
             await database.Database.ExecuteSqlInterpolatedAsync(
                 $"SELECT 1 FROM \"Vehicles\" WHERE \"Id\" = {vehicleId} FOR UPDATE", cancellationToken);
-            var publication = await PublicListingQuery.Read(database)
+            var now = await database.DatabaseNowAsync(cancellationToken);
+            var publication = await PublicListingQuery.Read(database, now)
                 .Where(item => item.Vehicle.Id == vehicleId && item.Publication.Id == request.PublicationId)
                 .Select(item => item.Publication).SingleOrDefaultAsync(cancellationToken);
-            var now = await database.DatabaseNowAsync(cancellationToken);
             var today = AppointmentDay.StartUtc(now);
             var hasBooking = await TestDriveOccupationRows.CustomersWithOutstanding(database, today)
                 .AnyAsync(id => id == customerId, cancellationToken);

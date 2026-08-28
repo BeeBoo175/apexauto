@@ -15,14 +15,14 @@ public sealed class TestDriveReadStore(DealershipDbContext database) : ITestDriv
         DateTimeOffset until, CancellationToken cancellationToken)
     {
         await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead, cancellationToken);
-        var publication = await PublicListingQuery.Read(database).Where(row => row.Vehicle.Id == vehicleId)
+        var now = await database.DatabaseNowAsync(cancellationToken);
+        var publication = await PublicListingQuery.Read(database, now).Where(row => row.Vehicle.Id == vehicleId)
             .Select(row => new { row.Vehicle.BranchId, row.Publication.Id }).SingleOrDefaultAsync(cancellationToken);
         if (publication is null)
         {
             return null;
         }
 
-        var now = await database.DatabaseNowAsync(cancellationToken);
         var occupied = await database.TestDriveBookings.AsNoTracking()
             .Where(item => item.BranchId == publication.BranchId && item.StartsAt < until && item.EndsAt > from &&
                 !database.TestDriveCancellations.Any(cancel => cancel.BookingId == item.Id) &&

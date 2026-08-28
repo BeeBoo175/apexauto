@@ -15,10 +15,10 @@ internal sealed class PublicListingRow
 internal static class PublicListingQuery
 {
     // A car is available while it has neither an active hold nor a deposit request waiting for its customer.
+    // `now` comes from the caller, normally database time, so every hold check in one read uses one clock.
     // `ownRequestId` is the confirming customer's request, which does not hold the car against its own confirmation.
-    public static IQueryable<PublicListingRow> Read(DealershipDbContext database, Guid ownRequestId = default)
+    public static IQueryable<PublicListingRow> Read(DealershipDbContext database, DateTimeOffset now, Guid ownRequestId = default)
     {
-        var now = DateTimeOffset.UtcNow;
         return Published(database).Where(row =>
             !database.Reservations.Any(item => item.VehicleId == row.Vehicle.Id && item.IsActive) &&
             !database.ReservationDepositRequests.Where(ReservationDepositRequest.PendingAt(now)).Any(item =>

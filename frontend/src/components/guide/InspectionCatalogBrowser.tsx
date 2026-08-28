@@ -4,8 +4,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { SearchField } from "@/components/ui/SearchField";
 import layout from "@/components/vehicles/VehicleLayout.module.css";
-import { inspectionPoints, type InspectionCategoryKey } from "@/lib/guide/inspection-points";
-import { inspectionCategories, inspectionCategoryTitles } from "@/lib/guide/inspection-rules";
+import type { InspectionPointItem, InspectionCategoryKey } from "@/lib/guide/inspection-points";
+import {
+  type InspectionCategorySummary,
+  inspectionCategoryTitles,
+} from "@/lib/guide/inspection-rules";
 import { label } from "@/lib/inspection/contracts";
 import guideLayout from "./GuideLayout.module.css";
 import styles from "./InspectionCatalog.module.css";
@@ -15,14 +18,18 @@ type CategoryFilter = InspectionCategoryKey | "ALL";
 const INITIAL_VISIBLE_COUNT = 12;
 
 interface InspectionCatalogBrowserProps {
+  points: readonly InspectionPointItem[];
+  categories: readonly InspectionCategorySummary[];
   selectedCategory?: CategoryFilter;
   onSelectCategory?: (category: CategoryFilter) => void;
 }
 
 export function InspectionCatalogBrowser({
+  points: inspectionPoints,
+  categories: inspectionCategories,
   selectedCategory,
   onSelectCategory,
-}: InspectionCatalogBrowserProps = {}) {
+}: InspectionCatalogBrowserProps) {
   const [internalCategory, setInternalCategory] = useState<CategoryFilter>("FrameChassis");
   const [query, setQuery] = useState("");
   const [disqualifiersOnly, setDisqualifiersOnly] = useState(false);
@@ -67,7 +74,7 @@ export function InspectionCatalogBrowser({
 
   const activeTitle =
     effectiveCategory === "ALL"
-      ? "All 5 inspection systems"
+      ? `All ${inspectionCategories.length} inspection systems`
       : inspectionCategoryTitles[effectiveCategory];
 
   return (
@@ -81,7 +88,7 @@ export function InspectionCatalogBrowser({
             }}
           >
             <SearchField
-              label="Search 210 inspection checkpoints"
+              label={`Search ${inspectionPoints.length} inspection checkpoints`}
               value={query}
               disabled={false}
               onChange={setQuery}
@@ -153,7 +160,10 @@ export function InspectionCatalogBrowser({
             <h3 className={layout.cardHeading}>{activeTitle}</h3>
             <span>{visiblePoints.length} items</span>
           </div>
-          <ul className={styles.pointRows} aria-label="210-point inspection checklist">
+          <ul
+            className={styles.pointRows}
+            aria-label={`${inspectionPoints.length}-point inspection checklist`}
+          >
             {displayedPoints.map((point) => (
               <li
                 key={point.code}

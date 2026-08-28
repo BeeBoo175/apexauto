@@ -1,247 +1,69 @@
-export const INSPECTION_CATALOG_VERSION = "apex-inspection-1";
+import { parseItems } from "@/lib/api";
+import { isRecord } from "@/lib/auth/contracts";
+import { isMyr } from "@/lib/currency-input";
+import { checklistCategories } from "@/lib/inspection/contracts";
+import { enumValue, parsePoint } from "@/lib/inspection/parse";
 
-export type InspectionCategoryKey =
-  | "FrameChassis"
-  | "EngineTransmission"
-  | "ExteriorPaint"
-  | "InteriorElectrical"
-  | "UnderbodyBrakesSuspension";
+export type InspectionCategoryKey = (typeof checklistCategories)[number];
 
 export interface InspectionPointItem {
   code: string;
   category: InspectionCategoryKey;
   description: string;
-  disqualifierRisk?: boolean;
+  disqualifierRisk: boolean;
 }
 
+export interface InspectionGradingPolicy {
+  gradeBMinimumRepairCost: number;
+  gradeCMinimumRepairCost: number;
+  maximumRepairCost: number;
+}
+
+export interface InspectionGuide {
+  catalogVersion: string;
+  points: InspectionPointItem[];
+  grading: InspectionGradingPolicy;
+}
+
+// These highlights help readers find examples; the signed finding determines severity.
 const disqualifierHighlightCodes = new Set(["FC-038", "FC-042", "FC-043", "IE-003"]);
 
-const rawPoints: readonly [string, InspectionCategoryKey, string][] = [
-  ["FC-001", "FrameChassis", "VIN stamping identity and legibility"],
-  ["FC-002", "FrameChassis", "Manufacturer identity plate attachment and consistency"],
-  ["FC-003", "FrameChassis", "Front left chassis rail shape and alignment"],
-  ["FC-004", "FrameChassis", "Front right chassis rail shape and alignment"],
-  ["FC-005", "FrameChassis", "Rear left chassis rail shape and alignment"],
-  ["FC-006", "FrameChassis", "Rear right chassis rail shape and alignment"],
-  ["FC-007", "FrameChassis", "Front crossmember structure"],
-  ["FC-008", "FrameChassis", "Rear crossmember structure"],
-  ["FC-009", "FrameChassis", "Left front suspension tower structure"],
-  ["FC-010", "FrameChassis", "Right front suspension tower structure"],
-  ["FC-011", "FrameChassis", "Left rear suspension mounting structure"],
-  ["FC-012", "FrameChassis", "Right rear suspension mounting structure"],
-  ["FC-013", "FrameChassis", "Left A-pillar structure"],
-  ["FC-014", "FrameChassis", "Right A-pillar structure"],
-  ["FC-015", "FrameChassis", "Left B-pillar structure"],
-  ["FC-016", "FrameChassis", "Right B-pillar structure"],
-  ["FC-017", "FrameChassis", "Left C-pillar structure"],
-  ["FC-018", "FrameChassis", "Right C-pillar structure"],
-  ["FC-019", "FrameChassis", "Left roof rail structure"],
-  ["FC-020", "FrameChassis", "Right roof rail structure"],
-  ["FC-021", "FrameChassis", "Roof crossmember structure"],
-  ["FC-022", "FrameChassis", "Left sill structure"],
-  ["FC-023", "FrameChassis", "Right sill structure"],
-  ["FC-024", "FrameChassis", "Front bulkhead structure"],
-  ["FC-025", "FrameChassis", "Rear bulkhead structure"],
-  ["FC-026", "FrameChassis", "Left front floor structure"],
-  ["FC-027", "FrameChassis", "Right front floor structure"],
-  ["FC-028", "FrameChassis", "Left rear floor structure"],
-  ["FC-029", "FrameChassis", "Right rear floor structure"],
-  ["FC-030", "FrameChassis", "Spare-wheel well structure"],
-  ["FC-031", "FrameChassis", "Front crash reinforcement structure"],
-  ["FC-032", "FrameChassis", "Rear crash reinforcement structure"],
-  ["FC-033", "FrameChassis", "Left front structural apron"],
-  ["FC-034", "FrameChassis", "Right front structural apron"],
-  ["FC-035", "FrameChassis", "Left rear inner quarter structure"],
-  ["FC-036", "FrameChassis", "Right rear inner quarter structure"],
-  ["FC-037", "FrameChassis", "Structural seam and spot-weld consistency"],
-  ["FC-038", "FrameChassis", "Evidence of structural cut-and-weld joining"],
-  ["FC-039", "FrameChassis", "Structural heat distortion or repair evidence"],
-  ["FC-040", "FrameChassis", "Structural corrosion or perforation"],
-  ["FC-041", "FrameChassis", "Structural alignment and opening symmetry"],
-  ["FC-042", "FrameChassis", "Cabin sediment or waterline evidence"],
-  ["FC-043", "FrameChassis", "Enclosed cavity flood contamination evidence"],
-  ["FC-044", "FrameChassis", "Safety-belt anchor mounting structure"],
-  ["FC-045", "FrameChassis", "Subframe attachment structure"],
-  ["ET-001", "EngineTransmission", "Engine identity and recorded specification consistency"],
-  ["ET-002", "EngineTransmission", "Cold-start behavior"],
-  ["ET-003", "EngineTransmission", "Warm restart behavior"],
-  ["ET-004", "EngineTransmission", "Idle stability"],
-  ["ET-005", "EngineTransmission", "Abnormal engine mechanical noise"],
-  ["ET-006", "EngineTransmission", "Exhaust smoke condition"],
-  ["ET-007", "EngineTransmission", "Engine oil level and visible condition"],
-  ["ET-008", "EngineTransmission", "Oil filler contamination evidence"],
-  ["ET-009", "EngineTransmission", "Engine oil leakage"],
-  ["ET-010", "EngineTransmission", "Coolant level and visible condition"],
-  ["ET-011", "EngineTransmission", "Coolant contamination evidence"],
-  ["ET-012", "EngineTransmission", "Radiator condition"],
-  ["ET-013", "EngineTransmission", "Cooling hose condition"],
-  ["ET-014", "EngineTransmission", "Coolant reservoir condition"],
-  ["ET-015", "EngineTransmission", "Cooling fan operation"],
-  ["ET-016", "EngineTransmission", "Operating temperature stability"],
-  ["ET-017", "EngineTransmission", "Visible water-pump leakage"],
-  ["ET-018", "EngineTransmission", "Accessory belt condition"],
-  ["ET-019", "EngineTransmission", "Belt tensioner or pulley noise"],
-  ["ET-020", "EngineTransmission", "Engine mounting condition"],
-  ["ET-021", "EngineTransmission", "Intake duct and air-filter housing condition"],
-  ["ET-022", "EngineTransmission", "Throttle response"],
-  ["ET-023", "EngineTransmission", "Fuel line leakage or deterioration"],
-  ["ET-024", "EngineTransmission", "Fuel injector area leakage"],
-  ["ET-025", "EngineTransmission", "Fuel tank and filler sealing condition"],
-  ["ET-026", "EngineTransmission", "Ignition misfire evidence"],
-  ["ET-027", "EngineTransmission", "Engine diagnostic fault evidence"],
-  ["ET-028", "EngineTransmission", "Diagnostic readiness or recently cleared fault evidence"],
-  ["ET-029", "EngineTransmission", "Charging output condition"],
-  ["ET-030", "EngineTransmission", "Starter operation"],
-  ["ET-031", "EngineTransmission", "Visible engine wiring and connector condition"],
-  ["ET-032", "EngineTransmission", "Exhaust manifold leakage"],
-  ["ET-033", "EngineTransmission", "Exhaust pipe and silencer condition"],
-  ["ET-034", "EngineTransmission", "Exhaust mounting condition"],
-  ["ET-035", "EngineTransmission", "Visible emission-system component condition"],
-  ["ET-036", "EngineTransmission", "Transmission identity and specification consistency"],
-  ["ET-037", "EngineTransmission", "Transmission fluid level or condition where serviceable"],
-  ["ET-038", "EngineTransmission", "Transmission fluid leakage"],
-  ["ET-039", "EngineTransmission", "Transmission mounting condition"],
-  ["ET-040", "EngineTransmission", "Gear selector engagement"],
-  ["ET-041", "EngineTransmission", "Forward drive take-up"],
-  ["ET-042", "EngineTransmission", "Reverse drive take-up"],
-  ["ET-043", "EngineTransmission", "Gear change quality"],
-  ["ET-044", "EngineTransmission", "Transmission slip or shudder evidence"],
-  ["ET-045", "EngineTransmission", "Clutch engagement where fitted"],
-  ["ET-046", "EngineTransmission", "Clutch hydraulic leakage where fitted"],
-  ["ET-047", "EngineTransmission", "Transmission diagnostic fault evidence"],
-  ["ET-048", "EngineTransmission", "Differential leakage or abnormal noise"],
-  ["ET-049", "EngineTransmission", "Driveline vibration under controlled assessment"],
-  [
-    "ET-050",
-    "EngineTransmission",
-    "Engine or transmission abnormality during controlled assessment",
-  ],
-  ["EP-001", "ExteriorPaint", "Bonnet outer panel condition"],
-  ["EP-002", "ExteriorPaint", "Bonnet paint finish consistency"],
-  ["EP-003", "ExteriorPaint", "Bonnet hinges, latch and secondary catch"],
-  ["EP-004", "ExteriorPaint", "Front bumper condition and attachment"],
-  ["EP-005", "ExteriorPaint", "Rear bumper condition and attachment"],
-  ["EP-006", "ExteriorPaint", "Front grille condition"],
-  ["EP-007", "ExteriorPaint", "Left front wing condition and paint"],
-  ["EP-008", "ExteriorPaint", "Right front wing condition and paint"],
-  ["EP-009", "ExteriorPaint", "Left front door skin and paint"],
-  ["EP-010", "ExteriorPaint", "Right front door skin and paint"],
-  ["EP-011", "ExteriorPaint", "Left rear door skin and paint"],
-  ["EP-012", "ExteriorPaint", "Right rear door skin and paint"],
-  ["EP-013", "ExteriorPaint", "Left rear quarter finish"],
-  ["EP-014", "ExteriorPaint", "Right rear quarter finish"],
-  ["EP-015", "ExteriorPaint", "Roof outer panel and paint"],
-  ["EP-016", "ExteriorPaint", "Boot lid or tailgate outer panel and paint"],
-  ["EP-017", "ExteriorPaint", "Boot lid or tailgate hinges and latch"],
-  ["EP-018", "ExteriorPaint", "Front left door hinge and latch operation"],
-  ["EP-019", "ExteriorPaint", "Front right door hinge and latch operation"],
-  ["EP-020", "ExteriorPaint", "Rear left door hinge and latch operation"],
-  ["EP-021", "ExteriorPaint", "Rear right door hinge and latch operation"],
-  ["EP-022", "ExteriorPaint", "Door aperture weather seals"],
-  ["EP-023", "ExteriorPaint", "Boot or tailgate weather seal"],
-  ["EP-024", "ExteriorPaint", "Windscreen condition"],
-  ["EP-025", "ExteriorPaint", "Rear glass condition"],
-  ["EP-026", "ExteriorPaint", "Left side glazing condition"],
-  ["EP-027", "ExteriorPaint", "Right side glazing condition"],
-  ["EP-028", "ExteriorPaint", "Left exterior mirror housing and glass"],
-  ["EP-029", "ExteriorPaint", "Right exterior mirror housing and glass"],
-  ["EP-030", "ExteriorPaint", "Left headlamp lens and housing"],
-  ["EP-031", "ExteriorPaint", "Right headlamp lens and housing"],
-  ["EP-032", "ExteriorPaint", "Left rear lamp lens and housing"],
-  ["EP-033", "ExteriorPaint", "Right rear lamp lens and housing"],
-  ["EP-034", "ExteriorPaint", "Front fog or auxiliary lamp housing where fitted"],
-  ["EP-035", "ExteriorPaint", "Exterior handles and trim attachment"],
-  ["EP-036", "ExteriorPaint", "Wheel-arch liners and splash guards"],
-  ["EP-037", "ExteriorPaint", "Exterior corrosion outside structural members"],
-  ["EP-038", "ExteriorPaint", "Paint overspray evidence"],
-  ["EP-039", "ExteriorPaint", "Paint thickness consistency across comparable panels"],
-  ["EP-040", "ExteriorPaint", "Panel gap and flushness consistency"],
-  ["EP-041", "ExteriorPaint", "Exterior repair filler evidence"],
-  ["EP-042", "ExteriorPaint", "Sunroof exterior seal and drainage where fitted"],
-  ["EP-043", "ExteriorPaint", "Aerial and roof accessory attachment"],
-  ["EP-044", "ExteriorPaint", "Number plate identity, condition and attachment"],
-  ["EP-045", "ExteriorPaint", "External water ingress evidence at openings"],
-  ["IE-001", "InteriorElectrical", "Odometer display function and legibility"],
-  ["IE-002", "InteriorElectrical", "Mileage consistency with available retained records"],
-  ["IE-003", "InteriorElectrical", "Mileage tampering evidence across available indicators"],
-  ["IE-004", "InteriorElectrical", "Instrument warning-lamp self-check"],
-  ["IE-005", "InteriorElectrical", "Instrument gauges and display operation"],
-  ["IE-006", "InteriorElectrical", "Airbag warning and diagnostic evidence"],
-  ["IE-007", "InteriorElectrical", "Visible airbag trim or deployment evidence"],
-  ["IE-008", "InteriorElectrical", "Front safety-belt webbing, buckles and retractors"],
-  ["IE-009", "InteriorElectrical", "Rear safety-belt webbing, buckles and retractors"],
-  ["IE-010", "InteriorElectrical", "Front seat structure and adjustment"],
-  ["IE-011", "InteriorElectrical", "Rear seat structure and folding latches"],
-  ["IE-012", "InteriorElectrical", "Seat upholstery condition"],
-  ["IE-013", "InteriorElectrical", "Dashboard and interior trim condition"],
-  ["IE-014", "InteriorElectrical", "Headlining condition"],
-  ["IE-015", "InteriorElectrical", "Carpet and underlay condition"],
-  ["IE-016", "InteriorElectrical", "Interior dampness or contamination evidence"],
-  ["IE-017", "InteriorElectrical", "Air-conditioning cooling performance"],
-  ["IE-018", "InteriorElectrical", "Blower speed and vent distribution"],
-  ["IE-019", "InteriorElectrical", "Climate controls and demisting operation"],
-  ["IE-020", "InteriorElectrical", "Cabin filter housing condition"],
-  ["IE-021", "InteriorElectrical", "Front left window operation"],
-  ["IE-022", "InteriorElectrical", "Front right window operation"],
-  ["IE-023", "InteriorElectrical", "Rear left window operation"],
-  ["IE-024", "InteriorElectrical", "Rear right window operation"],
-  ["IE-025", "InteriorElectrical", "Central locking and supplied key operation"],
-  ["IE-026", "InteriorElectrical", "Interior door release and child-lock operation"],
-  ["IE-027", "InteriorElectrical", "Exterior mirror adjustment and folding where fitted"],
-  ["IE-028", "InteriorElectrical", "Windscreen wipers and washers"],
-  ["IE-029", "InteriorElectrical", "Rear wiper or washer where fitted"],
-  ["IE-030", "InteriorElectrical", "Headlamp and high-beam operation"],
-  ["IE-031", "InteriorElectrical", "Indicator and hazard-lamp operation"],
-  ["IE-032", "InteriorElectrical", "Brake, tail and number-plate lamp operation"],
-  ["IE-033", "InteriorElectrical", "Reverse and fog-lamp operation where fitted"],
-  ["IE-034", "InteriorElectrical", "Horn operation"],
-  ["IE-035", "InteriorElectrical", "Cabin and luggage lighting"],
-  ["IE-036", "InteriorElectrical", "Audio, infotainment and connectivity operation"],
-  ["IE-037", "InteriorElectrical", "Parking sensors and reversing camera where fitted"],
-  ["IE-038", "InteriorElectrical", "Accessory power outlets and visible wiring alterations"],
-  ["IE-039", "InteriorElectrical", "Battery condition, terminals and secure mounting"],
-  ["IE-040", "InteriorElectrical", "Electric sunroof or powered roof operation where fitted"],
-  ["UB-001", "UnderbodyBrakesSuspension", "Front left tyre tread and sidewall condition"],
-  ["UB-002", "UnderbodyBrakesSuspension", "Front right tyre tread and sidewall condition"],
-  ["UB-003", "UnderbodyBrakesSuspension", "Rear left tyre tread and sidewall condition"],
-  ["UB-004", "UnderbodyBrakesSuspension", "Rear right tyre tread and sidewall condition"],
-  ["UB-005", "UnderbodyBrakesSuspension", "Tyre size, load suitability and axle pairing"],
-  ["UB-006", "UnderbodyBrakesSuspension", "Spare tyre or supplied mobility kit condition"],
-  ["UB-007", "UnderbodyBrakesSuspension", "Wheel rim condition"],
-  ["UB-008", "UnderbodyBrakesSuspension", "Wheel fastener condition and completeness"],
-  ["UB-009", "UnderbodyBrakesSuspension", "Front brake friction material condition"],
-  ["UB-010", "UnderbodyBrakesSuspension", "Rear brake friction material condition"],
-  ["UB-011", "UnderbodyBrakesSuspension", "Front brake disc or drum condition"],
-  ["UB-012", "UnderbodyBrakesSuspension", "Rear brake disc or drum condition"],
-  ["UB-013", "UnderbodyBrakesSuspension", "Brake hose and pipe condition"],
-  ["UB-014", "UnderbodyBrakesSuspension", "Brake hydraulic leakage"],
-  ["UB-015", "UnderbodyBrakesSuspension", "Brake fluid level and visible condition"],
-  ["UB-016", "UnderbodyBrakesSuspension", "Brake pedal and assistance operation"],
-  ["UB-017", "UnderbodyBrakesSuspension", "Parking brake operation"],
-  ["UB-018", "UnderbodyBrakesSuspension", "ABS warning and diagnostic evidence"],
-  ["UB-019", "UnderbodyBrakesSuspension", "Front suspension spring condition"],
-  ["UB-020", "UnderbodyBrakesSuspension", "Rear suspension spring condition"],
-  ["UB-021", "UnderbodyBrakesSuspension", "Front damper condition and leakage"],
-  ["UB-022", "UnderbodyBrakesSuspension", "Rear damper condition and leakage"],
-  ["UB-023", "UnderbodyBrakesSuspension", "Suspension arm and bush condition"],
-  ["UB-024", "UnderbodyBrakesSuspension", "Ball joint and stabilizer link condition"],
-  ["UB-025", "UnderbodyBrakesSuspension", "Steering rack, joint and boot condition"],
-  ["UB-026", "UnderbodyBrakesSuspension", "Steering assistance leakage or abnormality"],
-  ["UB-027", "UnderbodyBrakesSuspension", "Wheel bearing play or abnormal noise"],
-  ["UB-028", "UnderbodyBrakesSuspension", "Driveshaft and CV boot condition"],
-  ["UB-029", "UnderbodyBrakesSuspension", "Underbody shields and exposed line attachment"],
-  [
-    "UB-030",
-    "UnderbodyBrakesSuspension",
-    "Directional stability, braking pull or suspension noise during controlled assessment",
-  ],
-];
+function parseGuidePoint(value: unknown): InspectionPointItem | null {
+  const point = parsePoint(value);
+  const category = enumValue(checklistCategories, point?.category);
+  if (!point || !category) {
+    return null;
+  }
+  return { ...point, category, disqualifierRisk: disqualifierHighlightCodes.has(point.code) };
+}
 
-export const inspectionPoints: readonly InspectionPointItem[] = rawPoints.map(
-  ([code, category, description]) => ({
-    code,
-    category,
-    description,
-    disqualifierRisk: disqualifierHighlightCodes.has(code),
-  }),
-);
+export function parseInspectionGuide(value: unknown): InspectionGuide | null {
+  if (
+    !isRecord(value) ||
+    typeof value.catalogVersion !== "string" ||
+    !value.catalogVersion.trim() ||
+    !isRecord(value.grading)
+  ) {
+    return null;
+  }
+  const points = parseItems(value.points, parseGuidePoint);
+  const { gradeBMinimumRepairCost, gradeCMinimumRepairCost, maximumRepairCost } = value.grading;
+  if (
+    !points?.length ||
+    new Set(points.map((point) => point.code)).size !== points.length ||
+    !checklistCategories.every((category) => points.some((point) => point.category === category)) ||
+    !isMyr(gradeBMinimumRepairCost) ||
+    !isMyr(gradeCMinimumRepairCost) ||
+    !isMyr(maximumRepairCost) ||
+    gradeBMinimumRepairCost <= 0 ||
+    gradeCMinimumRepairCost <= gradeBMinimumRepairCost ||
+    maximumRepairCost < gradeCMinimumRepairCost
+  ) {
+    return null;
+  }
+  return {
+    catalogVersion: value.catalogVersion,
+    points,
+    grading: { gradeBMinimumRepairCost, gradeCMinimumRepairCost, maximumRepairCost },
+  };
+}

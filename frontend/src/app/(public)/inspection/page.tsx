@@ -9,61 +9,17 @@ import { buttonClassName } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import layout from "@/components/vehicles/VehicleLayout.module.css";
 import type { IconName } from "@/lib/icons";
-import { signOffInvariants } from "@/lib/guide/inspection-rules";
+import { StatusPage } from "@/components/ui/StatusPage";
+import { formatCurrency } from "@/lib/currency-format";
+import { requestApiJson } from "@/lib/server/http/api";
+import { parseInspectionGuide } from "@/lib/guide/inspection-points";
+import { inspectionCategories, signOffInvariants } from "@/lib/guide/inspection-rules";
 
 export const metadata: Metadata = {
-  title: "210-Point Inspection — ApexAuto",
+  title: "Inspection standards — ApexAuto",
   description:
-    "How ApexAuto checks every car across five core systems, grades repairs A/B/C, and blocks structural, flood, or tampered vehicles.",
+    "How ApexAuto checks every car across core systems, grades repairs A/B/C, and blocks structural, flood, or tampered vehicles.",
 };
-
-const jumpItems = [
-  { id: "guarantees", label: "Zero-tolerance promise" },
-  { id: "zones", label: "5 vehicle systems" },
-  { id: "catalog", label: "210-point checklist" },
-  { id: "grading", label: "Grade simulator" },
-] as const;
-
-const inspectionMetrics = [
-  {
-    value: "210",
-    label: "Inspection checkpoints",
-    hint: "Across structure, drivetrain, electrical, interior, and road test",
-  },
-  {
-    value: "5",
-    label: "Core vehicle systems",
-    hint: "Signed off item by item before any listing is approved",
-  },
-  {
-    value: "A / B / C",
-    label: "Published condition grades",
-    hint: "Determined strictly by worst severity and verified repair total",
-  },
-  {
-    value: "RM 15k",
-    label: "Hard repair cap",
-    hint: "Cars exceeding RM 15,000 in needed work never reach sale",
-  },
-] as const;
-
-const zeroTolerancePillars: readonly { icon: IconName; title: string; copy: string }[] = [
-  {
-    icon: "alert-triangle",
-    title: "No cut-and-weld frames",
-    copy: "Zero chassis distortion or structural cutting.",
-  },
-  {
-    icon: "droplet-off",
-    title: "Zero flood damage",
-    copy: "Silt, waterlines, or trapped cavity moisture fail immediately.",
-  },
-  {
-    icon: "gauge",
-    title: "Verified mileage & RM 15k cap",
-    copy: "Odometer tampering or RM 15k+ repair costs fail at intake.",
-  },
-];
 
 const certificationWorkflow: readonly {
   step: string;
@@ -91,12 +47,75 @@ const certificationWorkflow: readonly {
   },
 ];
 
-export default function InspectionStandardsPage() {
+export default async function InspectionStandardsPage() {
+  const result = await requestApiJson("/api/inspection-guide", parseInspectionGuide);
+  const guide = result.data;
+  if (!guide) {
+    return (
+      <StatusPage
+        code={String(result.status)}
+        icon="alert-triangle"
+        title="Inspection guide unavailable"
+      />
+    );
+  }
+  const categories = inspectionCategories(guide.points);
+  const maximumRepair = formatCurrency(guide.grading.maximumRepairCost);
+  const jumpItems = [
+    { id: "guarantees", label: "Zero-tolerance promise" },
+    { id: "zones", label: `${categories.length} vehicle systems` },
+    { id: "catalog", label: `${guide.points.length}-point checklist` },
+    { id: "grading", label: "Grade simulator" },
+  ] as const;
+
+  const inspectionMetrics = [
+    {
+      value: String(guide.points.length),
+      label: "Inspection checkpoints",
+      hint: "Across structure, drivetrain, electrical, interior, and road test",
+    },
+    {
+      value: String(categories.length),
+      label: "Core vehicle systems",
+      hint: "Signed off item by item before any listing is approved",
+    },
+    {
+      value: "A / B / C",
+      label: "Published condition grades",
+      hint: "Determined strictly by worst severity and verified repair total",
+    },
+    {
+      value: maximumRepair,
+      label: "Hard repair cap",
+      hint: `Cars exceeding ${maximumRepair} in needed work never reach sale`,
+    },
+  ] as const;
+
+  const zeroTolerancePillars: readonly { icon: IconName; title: string; copy: string }[] = [
+    {
+      icon: "alert-triangle",
+      title: "No cut-and-weld frames",
+      copy: "Zero chassis distortion or structural cutting.",
+    },
+    {
+      icon: "droplet-off",
+      title: "Zero flood damage",
+      copy: "Silt, waterlines, or trapped cavity moisture fail immediately.",
+    },
+    {
+      icon: "gauge",
+      title: `Verified mileage & ${maximumRepair} cap`,
+      copy: `Odometer tampering or repair costs above ${maximumRepair} fail at intake.`,
+    },
+  ];
+
+  const invariants = signOffInvariants(guide.points.length);
+
   return (
     <>
       <GuideHubBanner
-        title="210-point inspection standards"
-        description="Every car passes five core system checks before earning Grade A, B, or C."
+        title={`${guide.points.length}-point inspection standards`}
+        description={`Every car passes ${categories.length} core system checks before earning Grade A, B, or C.`}
         actions={[
           { href: "/vehicles", label: "Browse inspected cars", variant: "primary" },
           { href: "#grading", label: "Test grading rules", variant: "shell" },
@@ -156,6 +175,8 @@ export default function InspectionStandardsPage() {
       </GuideBand>
 
       <InspectionInteractiveGuide
+        points={guide.points}
+        categories={categories}
         gradingSection={
           <GuideBand
             id="grading"
@@ -164,9 +185,9 @@ export default function InspectionStandardsPage() {
             heading="How Grades A, B, and C work"
             description="Select a grade tier or adjust inputs below to test how final grading is decided."
           >
-            <InspectionGradingSimulator />
+            <InspectionGradingSimulator policy={guide.grading} pointCount={guide.points.length} />
             <div className={styles.signOffStrip} aria-label="Inspection sign-off standards">
-              {signOffInvariants.map((item) => (
+              {invariants.map((item) => (
                 <div key={item.title} className={styles.signOffItem}>
                   <div className={styles.signOffHeading}>
                     <Icon name={item.icon} />

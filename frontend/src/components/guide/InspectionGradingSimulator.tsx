@@ -6,6 +6,7 @@ import { buttonClassName } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import layout from "@/components/vehicles/VehicleLayout.module.css";
 import { formatCurrency } from "@/lib/currency-format";
+import type { InspectionGradingPolicy } from "@/lib/guide/inspection-points";
 import { parseMyr } from "@/lib/currency-input";
 import { evaluateInspectionOutcome, type GradingEvaluation } from "@/lib/guide/inspection-rules";
 import { label, severities, type Severity } from "@/lib/inspection/contracts";
@@ -20,26 +21,35 @@ const costPresets = [
 ] as const;
 
 const driverLabels: Record<GradingEvaluation["driver"], string> = {
-  baseline: "Advisory only, under RM 500",
+  baseline: "Advisory only",
   cost: "Repair cost threshold",
   severity: "Worst finding severity cap",
   both: "Both cost and severity limit",
 };
 
-const gradeScaleSteps = [
-  { id: "A", title: "Grade A", range: "< RM 500" },
-  { id: "B", title: "Grade B", range: "RM 500 - 2,499.99" },
-  { id: "C", title: "Grade C", range: "RM 2,500 - 15,000" },
-  { id: "REJECT", title: "Rejected", range: "> RM 15k / Critical" },
-] as const;
-
-export function InspectionGradingSimulator() {
+export function InspectionGradingSimulator({
+  policy,
+  pointCount,
+}: {
+  policy: InspectionGradingPolicy;
+  pointCount: number;
+}) {
+  const gradeBMinimum = formatCurrency(policy.gradeBMinimumRepairCost);
+  const gradeCMinimum = formatCurrency(policy.gradeCMinimumRepairCost);
+  const maximumRepair = formatCurrency(policy.maximumRepairCost);
+  const gradeBMaximum = formatCurrency(policy.gradeCMinimumRepairCost - 0.01);
+  const gradeScaleSteps = [
+    { id: "A", title: "Grade A", range: `< ${gradeBMinimum}` },
+    { id: "B", title: "Grade B", range: `${gradeBMinimum} – ${gradeBMaximum}` },
+    { id: "C", title: "Grade C", range: `${gradeCMinimum} – ${maximumRepair}` },
+    { id: "REJECT", title: "Rejected", range: `> ${maximumRepair} / Critical` },
+  ];
   const [worstSeverity, setWorstSeverity] = useState<Severity>("Advisory");
   const [costDraft, setCostDraft] = useState("350.00");
 
   const parsedCost = parseMyr(costDraft);
   const evaluation =
-    parsedCost !== null ? evaluateInspectionOutcome(parsedCost, worstSeverity) : null;
+    parsedCost !== null ? evaluateInspectionOutcome(parsedCost, worstSeverity, policy) : null;
   const activeTierId = evaluation?.isRejected ? "REJECT" : (evaluation?.grade ?? "");
 
   return (
@@ -63,7 +73,9 @@ export function InspectionGradingSimulator() {
               <span className={styles.tierBadge}>Grade A</span>
               <span className={styles.tierStatus}>Approved</span>
             </div>
-            <span className={styles.tierThreshold}>&lt; RM 500 repairs · Advisory max</span>
+            <span className={styles.tierThreshold}>
+              &lt; {gradeBMinimum} repairs · Advisory max
+            </span>
             <span className={styles.tierDetail}>
               Top showroom condition; Platinum warranty eligible
             </span>
@@ -73,7 +85,7 @@ export function InspectionGradingSimulator() {
             className={styles.tierCard}
             aria-pressed={activeTierId === "B"}
             onClick={() => {
-              setCostDraft("950");
+              setCostDraft(policy.gradeBMinimumRepairCost.toFixed(2));
               setWorstSeverity("MinorDefect");
             }}
           >
@@ -81,7 +93,9 @@ export function InspectionGradingSimulator() {
               <span className={styles.tierBadge}>Grade B</span>
               <span className={styles.tierStatus}>Approved</span>
             </div>
-            <span className={styles.tierThreshold}>RM 500–2,499 · Minor wear max</span>
+            <span className={styles.tierThreshold}>
+              {gradeBMinimum}–{gradeBMaximum} · Minor wear max
+            </span>
             <span className={styles.tierDetail}>
               All minor items repaired; Gold or Silver eligible
             </span>
@@ -91,7 +105,7 @@ export function InspectionGradingSimulator() {
             className={styles.tierCard}
             aria-pressed={activeTierId === "C"}
             onClick={() => {
-              setCostDraft("3800");
+              setCostDraft(policy.gradeCMinimumRepairCost.toFixed(2));
               setWorstSeverity("MajorDefect");
             }}
           >
@@ -99,7 +113,9 @@ export function InspectionGradingSimulator() {
               <span className={styles.tierBadge}>Grade C</span>
               <span className={styles.tierStatus}>Approved</span>
             </div>
-            <span className={styles.tierThreshold}>RM 2,500–15,000 · Major repair</span>
+            <span className={styles.tierThreshold}>
+              {gradeCMinimum}–{maximumRepair} · Major repair
+            </span>
             <span className={styles.tierDetail}>
               All major repairs done first; Silver Powertrain only
             </span>
@@ -117,7 +133,7 @@ export function InspectionGradingSimulator() {
               <span className={styles.tierBadge}>Rejected</span>
               <span className={`${styles.tierStatus} ${styles.tierStatusRejected}`}>Withheld</span>
             </div>
-            <span className={styles.tierThreshold}>&gt; RM 15,000 or Critical defect</span>
+            <span className={styles.tierThreshold}>&gt; {maximumRepair} or Critical defect</span>
             <span className={styles.tierDetail}>
               Flood, structural weld, or tampering — never listed
             </span>
@@ -128,7 +144,9 @@ export function InspectionGradingSimulator() {
       <div className={styles.simulatorLayout}>
         <div className={`${styles.simulatorControls} ${layout.calmFields}`}>
           <div className={styles.controlGroup}>
-            <span className={styles.controlLabel}>Worst issue found across 210 checks</span>
+            <span className={styles.controlLabel}>
+              Worst issue found across {pointCount} checks
+            </span>
             <div className={guideLayout.chipRow} role="group" aria-label="Worst issue severity">
               {severities.map((severity) => (
                 <button

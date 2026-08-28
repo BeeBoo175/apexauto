@@ -126,7 +126,8 @@ public sealed class ListingPhotoStore(DealershipDbContext database) : IListingPh
     private async Task<ListingPhotoPreparation> FindPublicAsync(Guid vehicleId, Guid id, CancellationToken cancellationToken)
     {
         await ReservationReadSnapshot.ReconcileAsync(database, vehicleId, cancellationToken);
-        var isPublic = await (from listing in PublicListingQuery.Read(database)
+        var now = await database.DatabaseNowAsync(cancellationToken);
+        var isPublic = await (from listing in PublicListingQuery.Read(database, now)
                               join link in database.ListingRevisionPhotos on listing.Revision.Id equals link.RevisionId
                               where link.PhotoId == id && listing.Vehicle.Id == vehicleId
                               select link.PhotoId).AnyAsync(cancellationToken);
