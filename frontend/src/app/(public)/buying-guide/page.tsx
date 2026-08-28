@@ -8,6 +8,10 @@ import { BuyingGuideWarrantySection } from "@/components/guide/BuyingGuideWarran
 import { GuideJumpBar } from "@/components/guide/GuideJumpBar";
 import { GuideBand, GuideHubBanner } from "@/components/guide/GuidePageShell";
 import { buttonClassName } from "@/components/ui/Button";
+import { StatusPage } from "@/components/ui/StatusPage";
+import { formatCurrency } from "@/lib/currency-format";
+import { guideServiceTax, parsePurchaseGuide, sstPercentLabel } from "@/lib/guide/purchase-guide";
+import { requestApiJson } from "@/lib/server/http/api";
 import layout from "@/components/vehicles/VehicleLayout.module.css";
 import styles from "@/components/guide/BuyingGuideSections.module.css";
 
@@ -25,7 +29,19 @@ const jumpItems = [
   { id: "warranty", label: "ApexShield warranty" },
 ] as const;
 
-export default function BuyingGuidePage() {
+export default async function BuyingGuidePage() {
+  const result = await requestApiJson("/api/purchase-guide", parsePurchaseGuide);
+  const guide = result.data;
+  if (!guide) {
+    return (
+      <StatusPage
+        code={String(result.status)}
+        icon="alert-triangle"
+        title="Buying guide unavailable"
+      />
+    );
+  }
+
   return (
     <>
       <GuideHubBanner
@@ -46,7 +62,7 @@ export default function BuyingGuidePage() {
         heading="How buying from ApexAuto works"
         description="Four clear steps from online inspection review to showroom handover."
       >
-        <BuyingGuideOverviewSection />
+        <BuyingGuideOverviewSection guide={guide} />
       </GuideBand>
 
       <GuideBand
@@ -54,9 +70,9 @@ export default function BuyingGuidePage() {
         surface="canvas"
         headingId="pricing-heading"
         heading="Transparent on-the-road pricing"
-        description="Fixed price, RM 500 fee, road tax, and RM 40 SST. Insurance and optional warranty stay separate."
+        description={`Fixed price, ${formatCurrency(guide.processingFee, "RM")} fee, road tax, and ${formatCurrency(guideServiceTax(guide), "RM")} SST (${sstPercentLabel(guide.sstRate)}). Insurance and optional warranty stay separate.`}
       >
-        <BuyingGuidePricingSection />
+        <BuyingGuidePricingSection guide={guide} />
       </GuideBand>
 
       <GuideBand
@@ -86,7 +102,7 @@ export default function BuyingGuidePage() {
         heading="ApexShield warranty by inspection grade"
         description="Optional grade-matched coverage, billed separately from OTR pricing."
       >
-        <BuyingGuideWarrantySection />
+        <BuyingGuideWarrantySection warranties={guide.warranties} />
         <div className={styles.guideClosingCta}>
           <div className={styles.guideClosingCopy}>
             <h3 className={layout.cardHeading}>Ready to reserve your car?</h3>

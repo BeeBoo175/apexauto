@@ -1,4 +1,5 @@
 import { formatCurrency } from "@/lib/currency-format";
+import { guideServiceTax, sstPercentLabel, type PurchaseGuide } from "@/lib/guide/purchase-guide";
 import { RESERVATION_DEPOSIT, RESERVATION_HOLD_HOURS } from "@/lib/vehicles/deposit-terms";
 
 import Image from "next/image";
@@ -44,11 +45,13 @@ const purchaseSteps: readonly PurchaseStep[] = [
   },
 ];
 
-const fixedPriceGuarantees = [
-  "Published sticker price with no hidden admin surcharges",
-  "Only processing fee (RM 500) carries 8% SST (RM 40)",
-  "Optional insurance & extended ApexShield warranty itemized upfront",
-] as const;
+function fixedPriceGuarantees(guide: PurchaseGuide) {
+  return [
+    "Published sticker price with no hidden admin surcharges",
+    `Only processing fee (${formatCurrency(guide.processingFee, "RM")}) carries ${sstPercentLabel(guide.sstRate)} SST (${formatCurrency(guideServiceTax(guide), "RM")})`,
+    "Optional insurance & extended ApexShield warranty itemized upfront",
+  ];
+}
 
 const handoverDocuments = [
   {
@@ -73,7 +76,7 @@ const handoverDocuments = [
   },
 ] as const;
 
-export function BuyingGuideOverviewSection() {
+export function BuyingGuideOverviewSection({ guide }: { guide: PurchaseGuide }) {
   return (
     <div className={styles.overviewStack}>
       <ol className={styles.journeyGrid} aria-label="Four steps to buy from ApexAuto">
@@ -110,7 +113,7 @@ export function BuyingGuideOverviewSection() {
               <span className={styles.promiseBadge}>No haggling</span>
             </div>
             <ul className={styles.holdBullets}>
-              {fixedPriceGuarantees.map((item) => (
+              {fixedPriceGuarantees(guide).map((item) => (
                 <li key={item}>
                   <Icon name="check" />
                   <span>{item}</span>

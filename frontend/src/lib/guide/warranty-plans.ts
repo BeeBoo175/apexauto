@@ -1,21 +1,9 @@
-export type InspectionGradeTier = "A" | "B" | "C";
-
-export interface WarrantyTierPlan {
-  id: string;
-  name: string;
-  durationMonths: number;
-  mileageCapKm: number;
-  priceMyr: number;
-  minimumGrade: InspectionGradeTier;
-  tagline: string;
-  highlights: readonly string[];
-}
+import { formatCurrency } from "@/lib/currency-format";
+import type { GuideWarranty, InspectionGradeTier } from "./purchase-guide";
 
 export interface WarrantyMatrixRow {
   feature: string;
-  silver: boolean | string;
-  gold: boolean | string;
-  platinum: boolean | string;
+  values: readonly string[];
 }
 
 const gradeRank: Record<InspectionGradeTier, number> = {
@@ -23,66 +11,6 @@ const gradeRank: Record<InspectionGradeTier, number> = {
   B: 1,
   C: 2,
 };
-
-export const warrantyPlans: readonly WarrantyTierPlan[] = [
-  {
-    id: "silver",
-    name: "Silver (Powertrain)",
-    durationMonths: 12,
-    mileageCapKm: 25000,
-    priceMyr: 1200,
-    minimumGrade: "C",
-    tagline: "Essential engine and transmission coverage for every retail grade.",
-    highlights: [
-      "12 months or 25,000 km coverage",
-      "Available on Grade A, B, and C cars",
-      "Optional add-on separate from OTR price",
-    ],
-  },
-  {
-    id: "gold",
-    name: "Gold (Comprehensive)",
-    durationMonths: 24,
-    mileageCapKm: 50000,
-    priceMyr: 2400,
-    minimumGrade: "B",
-    tagline: "Two-year coverage for Grade A and B cars across cooling, steering, and AC.",
-    highlights: [
-      "24 months or 50,000 km coverage",
-      "Unlocks on Grade A and Grade B cars",
-      "Covers engine, gearbox, cooling, steering, and AC",
-    ],
-  },
-  {
-    id: "platinum",
-    name: "Platinum (Zero Deductible)",
-    durationMonths: 36,
-    mileageCapKm: 75000,
-    priceMyr: 3600,
-    minimumGrade: "A",
-    tagline: "Three-year zero-deductible coverage exclusively for Grade A vehicles.",
-    highlights: [
-      "36 months or 75,000 km coverage",
-      "Exclusive to Grade A vehicles",
-      "Zero deductible on covered mechanical and electrical repairs",
-    ],
-  },
-];
-
-export const warrantyMatrixRows: readonly WarrantyMatrixRow[] = [
-  { feature: "Coverage duration", silver: "12 months", gold: "24 months", platinum: "36 months" },
-  { feature: "Mileage limit", silver: "25,000 km", gold: "50,000 km", platinum: "75,000 km" },
-  {
-    feature: "One-time option price",
-    silver: "RM 1,200",
-    gold: "RM 2,400",
-    platinum: "RM 3,600",
-  },
-  { feature: "Minimum grade", silver: "Grade C", gold: "Grade B", platinum: "Grade A" },
-  { feature: "Engine & transmission internals", silver: true, gold: true, platinum: true },
-  { feature: "Cooling, steering & climate", silver: false, gold: true, platinum: true },
-  { feature: "Zero-deductible claim terms", silver: false, gold: false, platinum: true },
-];
 
 /**
  * Mirrors WarrantyPackage.IsEligibleFor: grades rank A (0) < B (1) < C (2);
@@ -96,4 +24,45 @@ export function isWarrantyPlanEligible(
     return false;
   }
   return gradeRank[vehicleGrade] <= gradeRank[minimumGrade];
+}
+
+// The active plans a car of this grade can take, as one readable phrase such as "Silver or Gold".
+export function eligibleWarrantyLabel(
+  warranties: readonly GuideWarranty[],
+  vehicleGrade: InspectionGradeTier | null,
+) {
+  const names = warranties
+    .filter((plan) => isWarrantyPlanEligible(plan.minimumGrade, vehicleGrade))
+    .map((plan) => plan.name);
+  if (names.length === 0) {
+    return "Not eligible for warranty";
+  }
+  if (names.length === 1) {
+    return names[0];
+  }
+  return `${names.slice(0, -1).join(", ")} or ${names[names.length - 1]}`;
+}
+
+// One row per term, one column per active plan, in the order the API lists them (cheapest first).
+export function warrantyMatrixRows(
+  warranties: readonly GuideWarranty[],
+): readonly WarrantyMatrixRow[] {
+  return [
+    {
+      feature: "Coverage duration",
+      values: warranties.map((plan) => `${plan.durationMonths} months`),
+    },
+    {
+      feature: "Mileage limit",
+      values: warranties.map((plan) => `${plan.mileageCapKm.toLocaleString("en-MY")} km`),
+    },
+    {
+      feature: "One-time option price",
+      values: warranties.map((plan) => formatCurrency(plan.price, "RM")),
+    },
+    {
+      feature: "Minimum grade",
+      values: warranties.map((plan) => `Grade ${plan.minimumGrade}`),
+    },
+  ];
 }

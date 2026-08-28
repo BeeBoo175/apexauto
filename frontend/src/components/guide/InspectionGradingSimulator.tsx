@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/Input";
 import layout from "@/components/vehicles/VehicleLayout.module.css";
 import { formatCurrency } from "@/lib/currency-format";
 import type { InspectionGradingPolicy } from "@/lib/guide/inspection-points";
+import type { GuideWarranty } from "@/lib/guide/purchase-guide";
+import { eligibleWarrantyLabel } from "@/lib/guide/warranty-plans";
 import { parseMyr } from "@/lib/currency-input";
 import { evaluateInspectionOutcome, type GradingEvaluation } from "@/lib/guide/inspection-rules";
 import { label, severities, type Severity } from "@/lib/inspection/contracts";
@@ -30,9 +32,11 @@ const driverLabels: Record<GradingEvaluation["driver"], string> = {
 export function InspectionGradingSimulator({
   policy,
   pointCount,
+  warranties,
 }: {
   policy: InspectionGradingPolicy;
   pointCount: number;
+  warranties: readonly GuideWarranty[];
 }) {
   const gradeBMinimum = formatCurrency(policy.gradeBMinimumRepairCost);
   const gradeCMinimum = formatCurrency(policy.gradeCMinimumRepairCost);
@@ -77,7 +81,7 @@ export function InspectionGradingSimulator({
               &lt; {gradeBMinimum} repairs · Advisory max
             </span>
             <span className={styles.tierDetail}>
-              Top showroom condition; Platinum warranty eligible
+              Top showroom condition; {eligibleWarrantyLabel(warranties, "A")} eligible
             </span>
           </button>
           <button
@@ -97,7 +101,7 @@ export function InspectionGradingSimulator({
               {gradeBMinimum}–{gradeBMaximum} · Minor wear max
             </span>
             <span className={styles.tierDetail}>
-              All minor items repaired; Gold or Silver eligible
+              All minor items repaired; {eligibleWarrantyLabel(warranties, "B")} eligible
             </span>
           </button>
           <button
@@ -117,7 +121,7 @@ export function InspectionGradingSimulator({
               {gradeCMinimum}–{maximumRepair} · Major repair
             </span>
             <span className={styles.tierDetail}>
-              All major repairs done first; Silver Powertrain only
+              All major repairs done first; {eligibleWarrantyLabel(warranties, "C")} only
             </span>
           </button>
           <button
@@ -234,7 +238,7 @@ export function InspectionGradingSimulator({
                 </div>
                 <div className={guideLayout.ledgerRow}>
                   <dt>Eligible warranty</dt>
-                  <dd>{evaluation.eligibleWarrantyLabel}</dd>
+                  <dd>{eligibleWarrantyLabel(warranties, evaluation.grade)}</dd>
                 </div>
                 <div className={guideLayout.ledgerRow}>
                   <dt>Before sale</dt>

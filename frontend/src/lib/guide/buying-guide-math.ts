@@ -2,9 +2,6 @@ import { parseMyr } from "@/lib/currency-input";
 import { exactMyr, minorUnits, roundedDivision } from "@/lib/vehicles/financing";
 import type { PurchasePrice } from "@/lib/vehicles/purchase-quote";
 
-export const DEFAULT_PROCESSING_FEE = 500;
-export const DEFAULT_SST_RATE = 0.08;
-
 export interface GuidePriceTier {
   id: string;
   label: string;
@@ -71,9 +68,9 @@ export function percentageOfMyr(amount: number, percent: number): string | null 
 export function calculateGuideOtr(
   rawVehiclePrice: number,
   rawRoadTax: number,
-  rawPromoDiscount = 0,
-  rawProcessingFee = DEFAULT_PROCESSING_FEE,
-  sstRate = DEFAULT_SST_RATE,
+  rawPromoDiscount: number,
+  rawProcessingFee: number,
+  sstRate: number,
 ): PurchasePrice | null {
   if (
     !Number.isFinite(rawVehiclePrice) ||

@@ -1,15 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Icon } from "@/components/ui/Icon";
 import { formatCurrency } from "@/lib/currency-format";
-import {
-  isWarrantyPlanEligible,
-  warrantyMatrixRows,
-  warrantyPlans,
-  type InspectionGradeTier,
-  type WarrantyTierPlan,
-} from "@/lib/guide/warranty-plans";
+import type { GuideWarranty, InspectionGradeTier } from "@/lib/guide/purchase-guide";
+import { isWarrantyPlanEligible, warrantyMatrixRows } from "@/lib/guide/warranty-plans";
 import guideLayout from "./GuideLayout.module.css";
 import styles from "./BuyingGuideWarrantySection.module.css";
 
@@ -22,28 +16,8 @@ const gradeFilterOptions: readonly { value: GradeFilter; label: string }[] = [
   { value: "C", label: "Grade C" },
 ];
 
-function renderMatrixCell(value: boolean | string) {
-  if (value === true) {
-    return (
-      <span className={styles.includedCell}>
-        <Icon name="check" />
-        <span>Included</span>
-      </span>
-    );
-  }
-  if (value === false) {
-    return (
-      <span className={styles.excludedCell}>
-        <Icon name="close" />
-        <span>Not included</span>
-      </span>
-    );
-  }
-  return value;
-}
-
-function planStatusText(plan: WarrantyTierPlan, selectedGrade: GradeFilter, eligible: boolean) {
-  const priceLabel = formatCurrency(plan.priceMyr);
+function planStatusText(plan: GuideWarranty, selectedGrade: GradeFilter, eligible: boolean) {
+  const priceLabel = formatCurrency(plan.price, "RM");
   if (selectedGrade === "ALL") {
     return `${priceLabel} · Min Grade ${plan.minimumGrade}`;
   }
@@ -53,10 +27,12 @@ function planStatusText(plan: WarrantyTierPlan, selectedGrade: GradeFilter, elig
   return `${priceLabel} · Requires Grade ${plan.minimumGrade}+`;
 }
 
-export function BuyingGuideWarrantySection() {
+export function BuyingGuideWarrantySection({
+  warranties,
+}: {
+  warranties: readonly GuideWarranty[];
+}) {
   const [selectedGrade, setSelectedGrade] = useState<GradeFilter>("ALL");
-
-  const planByIndex = [warrantyPlans[0], warrantyPlans[1], warrantyPlans[2]] as const;
 
   return (
     <div className={styles.warrantyWrap}>
@@ -80,13 +56,11 @@ export function BuyingGuideWarrantySection() {
 
       <div className={styles.matrixWrap}>
         <table className={styles.matrix}>
-          <caption className="sr-only">
-            Comparison of ApexShield Silver, Gold and Platinum warranty plans
-          </caption>
+          <caption className="sr-only">Comparison of the active ApexShield warranty plans</caption>
           <thead>
             <tr>
               <th scope="col">Coverage term</th>
-              {planByIndex.map((plan) => {
+              {warranties.map((plan) => {
                 const eligible =
                   selectedGrade === "ALL"
                     ? true
@@ -106,12 +80,12 @@ export function BuyingGuideWarrantySection() {
             </tr>
           </thead>
           <tbody>
-            {warrantyMatrixRows.map((row) => (
+            {warrantyMatrixRows(warranties).map((row) => (
               <tr key={row.feature}>
                 <th scope="row">{row.feature}</th>
-                <td>{renderMatrixCell(row.silver)}</td>
-                <td>{renderMatrixCell(row.gold)}</td>
-                <td>{renderMatrixCell(row.platinum)}</td>
+                {row.values.map((value, index) => (
+                  <td key={warranties[index].id}>{value}</td>
+                ))}
               </tr>
             ))}
           </tbody>

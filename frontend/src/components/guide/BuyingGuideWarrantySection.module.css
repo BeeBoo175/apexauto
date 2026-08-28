@@ -71,18 +71,3 @@
   color: var(--color-graphite);
   font-weight: 600;
 }
-
-.includedCell {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--color-trust);
-  font-weight: 600;
-}
-
-.excludedCell {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--color-muted);
-}

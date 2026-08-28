@@ -7,11 +7,11 @@ import { Icon } from "@/components/ui/Icon";
 import { Input, Select } from "@/components/ui/Input";
 import layout from "@/components/vehicles/VehicleLayout.module.css";
 import { formatCurrency } from "@/lib/currency-format";
+import { sstPercentLabel, type PurchaseGuide } from "@/lib/guide/purchase-guide";
 import { RESERVATION_DEPOSIT, RESERVATION_HOLD_HOURS } from "@/lib/vehicles/deposit-terms";
 import { parseMyr } from "@/lib/currency-input";
 import {
   calculateGuideOtr,
-  DEFAULT_PROCESSING_FEE,
   guidePriceTiers,
   guideRoadTaxOptions,
   guideSamplePromos,
@@ -19,7 +19,8 @@ import {
 import guideLayout from "./GuideLayout.module.css";
 import styles from "./BuyingGuideSections.module.css";
 
-export function BuyingGuidePricingSection() {
+export function BuyingGuidePricingSection({ guide }: { guide: PurchaseGuide }) {
+  const sstLabel = sstPercentLabel(guide.sstRate);
   const [selectedTierId, setSelectedTierId] = useState(guidePriceTiers[1].id);
   const [priceDraft, setPriceDraft] = useState(guidePriceTiers[1].vehiclePrice.toFixed(2));
   const [roadTaxAmount, setRoadTaxAmount] = useState(guidePriceTiers[1].roadTax);
@@ -30,7 +31,13 @@ export function BuyingGuidePricingSection() {
     guideSamplePromos.find((item) => item.code === selectedPromoCode) ?? guideSamplePromos[0];
   const estimate =
     parsedPrice !== null && parsedPrice > 0
-      ? calculateGuideOtr(parsedPrice, roadTaxAmount, promo.discount, DEFAULT_PROCESSING_FEE)
+      ? calculateGuideOtr(
+          parsedPrice,
+          roadTaxAmount,
+          promo.discount,
+          guide.processingFee,
+          guide.sstRate,
+        )
       : null;
 
   function applyTier(tierId: string) {
@@ -131,7 +138,7 @@ export function BuyingGuidePricingSection() {
       <aside className={guideLayout.receiptPanel} aria-label="OTR price breakdown">
         <div className={guideLayout.receiptHeader}>
           <h3 className={layout.cardHeading}>OTR price breakdown</h3>
-          <span className={guideLayout.receiptMeta}>8% SST on fee only</span>
+          <span className={guideLayout.receiptMeta}>{sstLabel} SST on fee only</span>
         </div>
 
         {estimate === null ? (
@@ -160,7 +167,7 @@ export function BuyingGuidePricingSection() {
                 <dd>{formatCurrency(estimate.roadTax)}</dd>
               </div>
               <div className={guideLayout.ledgerRow}>
-                <dt>Service tax (8% SST on fee)</dt>
+                <dt>Service tax ({sstLabel} SST on fee)</dt>
                 <dd>{formatCurrency(estimate.serviceTax)}</dd>
               </div>
             </dl>

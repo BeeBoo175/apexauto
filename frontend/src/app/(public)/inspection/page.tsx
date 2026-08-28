@@ -12,6 +12,7 @@ import type { IconName } from "@/lib/icons";
 import { StatusPage } from "@/components/ui/StatusPage";
 import { formatCurrency } from "@/lib/currency-format";
 import { requestApiJson } from "@/lib/server/http/api";
+import { parsePurchaseGuide } from "@/lib/guide/purchase-guide";
 import { parseInspectionGuide } from "@/lib/guide/inspection-points";
 import { inspectionCategories, signOffInvariants } from "@/lib/guide/inspection-rules";
 
@@ -48,12 +49,15 @@ const certificationWorkflow: readonly {
 ];
 
 export default async function InspectionStandardsPage() {
-  const result = await requestApiJson("/api/inspection-guide", parseInspectionGuide);
+  const [result, purchase] = await Promise.all([
+    requestApiJson("/api/inspection-guide", parseInspectionGuide),
+    requestApiJson("/api/purchase-guide", parsePurchaseGuide),
+  ]);
   const guide = result.data;
-  if (!guide) {
+  if (!guide || !purchase.data) {
     return (
       <StatusPage
-        code={String(result.status)}
+        code={String(guide ? purchase.status : result.status)}
         icon="alert-triangle"
         title="Inspection guide unavailable"
       />
@@ -185,7 +189,11 @@ export default async function InspectionStandardsPage() {
             heading="How Grades A, B, and C work"
             description="Select a grade tier or adjust inputs below to test how final grading is decided."
           >
-            <InspectionGradingSimulator policy={guide.grading} pointCount={guide.points.length} />
+            <InspectionGradingSimulator
+              policy={guide.grading}
+              pointCount={guide.points.length}
+              warranties={purchase.data.warranties}
+            />
             <div className={styles.signOffStrip} aria-label="Inspection sign-off standards">
               {invariants.map((item) => (
                 <div key={item.title} className={styles.signOffItem}>

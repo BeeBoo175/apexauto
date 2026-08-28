@@ -106,6 +106,7 @@ public static class DependencyInjection
         services.AddScoped<IPasswordRecoveryStore, PasswordRecoveryStore>();
         services.AddSingleton<PasswordResetToken>();
         services.AddScoped<IPublicBranchStore, PublicBranchStore>();
+        services.AddScoped<IPurchaseGuideQuery, PurchaseGuideQuery>();
         services.AddScoped<IIntakePhotoStore, IntakePhotoStore>();
         services.AddScoped<IPhotoTransferLock, PhotoTransferLock>();
         services.AddScoped<IIntakeBookingStore, IntakeBookingStore>();

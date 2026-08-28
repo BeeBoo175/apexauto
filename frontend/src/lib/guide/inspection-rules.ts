@@ -23,7 +23,6 @@ export interface GradingEvaluation {
   worstSeverity: Severity;
   driver: "severity" | "cost" | "both" | "baseline";
   repairRequirement: string;
-  eligibleWarrantyLabel: string;
 }
 
 const categoryPresentation: readonly Omit<InspectionCategorySummary, "count">[] = [
@@ -131,7 +130,6 @@ export function evaluateInspectionOutcome(
       worstSeverity,
       driver,
       repairRequirement: `Not approved for sale (over ${formatCurrency(policy.maximumRepairCost)} or critical defect).`,
-      eligibleWarrantyLabel: "Not eligible for warranty",
     };
   }
 
@@ -151,7 +149,6 @@ export function evaluateInspectionOutcome(
       worstSeverity,
       driver,
       repairRequirement: "All Major and Minor repairs completed before sale.",
-      eligibleWarrantyLabel: "Silver (Powertrain) only",
     };
   }
 
@@ -171,7 +168,6 @@ export function evaluateInspectionOutcome(
       worstSeverity,
       driver,
       repairRequirement: "All Minor repairs completed before sale.",
-      eligibleWarrantyLabel: "Silver or Gold (Comprehensive)",
     };
   }
 
@@ -185,6 +181,5 @@ export function evaluateInspectionOutcome(
       estimatedRepairCost > 0
         ? "Estimated repairs completed before sale; RM 0 advisories noted only."
         : "Ready for sale; zero-cost advisories noted transparently.",
-    eligibleWarrantyLabel: "Silver, Gold, or Platinum (Zero Deductible)",
   };
 }

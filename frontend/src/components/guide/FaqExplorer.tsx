@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { SearchField } from "@/components/ui/SearchField";
 import layout from "@/components/vehicles/VehicleLayout.module.css";
-import { faqCategories, faqEntries, type FaqCategory } from "@/lib/guide/faq-items";
+import { faqCategories, type FaqCategory, type FaqEntry } from "@/lib/guide/faq-items";
 import type { IconName } from "@/lib/icons";
 import styles from "./FaqExplorer.module.css";
 
@@ -18,7 +18,7 @@ const categoryIcons: Record<FaqCategory, IconName> = {
   "Branches & test drives": "map-pin",
 };
 
-export function FaqExplorer() {
+export function FaqExplorer({ faqEntries }: { faqEntries: readonly FaqEntry[] }) {
   const [category, setCategory] = useState<FaqCategory>("All");
   const [query, setQuery] = useState("");
   const [openIds, setOpenIds] = useState<string[]>([faqEntries[0].id]);
