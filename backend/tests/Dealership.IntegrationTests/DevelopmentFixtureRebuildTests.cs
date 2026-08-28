@@ -36,7 +36,7 @@ public sealed class DevelopmentFixtureRebuildTests(IntakePhotoFixture fixture) :
             .RegisterAsync(registration, CancellationToken.None);
         Assert.Equal(RegistrationStatus.Succeeded, registered.Status);
         database.Branches.Add(new Branch(Guid.NewGuid(), "ApexAuto Glenmarie", "12 Jalan Pengaturcara U1/51A",
-            "Shah Alam", "Selangor", "+60355651234", DateTimeOffset.UtcNow));
+            "Shah Alam", "Selangor", "+60355651234", "GLN", DateTimeOffset.UtcNow));
         await database.SaveChangesAsync();
         await using (var content = new MemoryStream(Encoding.UTF8.GetBytes("stale-photo-bytes")))
         {

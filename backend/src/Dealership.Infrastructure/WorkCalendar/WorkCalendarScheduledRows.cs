@@ -71,14 +71,17 @@ internal static class WorkCalendarScheduledRows
 
         var appointments = await intake.ToArrayAsync(cancellationToken);
         var bookings = await drives.ToArrayAsync(cancellationToken);
+        var codes = await BranchShortCodes.ReadAsync(database,
+            appointments.Select(row => row.BranchId).Concat(bookings.Select(row => row.BranchId)), cancellationToken);
         var items = appointments.Select(StaffWorklistRows.ToItem).Select(row => new WorkCalendarEvent(
             row.Id, "Intake", row.BranchId, row.BranchName, row.RegistrationPlate,
             $"{row.ManufactureYear} {row.Make} {row.Model} {row.Trim}", row.Status,
-            row.HandlerId, row.HandlerEmail, row.StartsAt, row.EndsAt, row.HandlerName, row.HandlerPictureId));
+            row.HandlerId, row.HandlerEmail, row.StartsAt, row.EndsAt, row.HandlerName, row.HandlerPictureId,
+            codes[row.BranchId]));
         var testDrives = bookings.Select(row => new WorkCalendarEvent(row.Id, "TestDrive", row.BranchId,
             row.BranchName, row.RegistrationPlate, $"{row.ManufactureYear} {row.Make} {row.Model} {row.Trim}",
             row.Status, row.HandlerId, row.HandlerEmail, row.StartsAt, row.EndsAt, row.HandlerName,
-            row.HandlerPictureId));
+            row.HandlerPictureId, codes[row.BranchId]));
         return [.. items.Concat(testDrives).OrderBy(row => row.StartsAt).ThenBy(row => row.Kind, StringComparer.Ordinal)
             .ThenBy(row => row.Id)];
     }

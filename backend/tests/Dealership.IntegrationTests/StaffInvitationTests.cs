@@ -272,7 +272,7 @@ public sealed class StaffInvitationTests(IntakePhotoFixture fixture) : IClassFix
         using var scope = factory.Services.CreateScope();
         var branchId = Guid.NewGuid();
         await scope.ServiceProvider.GetRequiredService<BranchProvisioningService>().ProvisionBranchAsync(
-            new(branchId, $"ApexAuto {branchId:N}", "12 Jalan Pengaturcara", "Shah Alam", "Selangor", "+60355651234"),
+            new(branchId, $"ApexAuto {branchId:N}", "12 Jalan Pengaturcara", "Shah Alam", "Selangor", "+60355651234", "GLN"),
             CancellationToken.None);
         var email = $"admin.{Guid.NewGuid():N}@example.invalid";
         Assert.True((await scope.ServiceProvider.GetRequiredService<StaffProvisioningService>().ProvisionStaffAsync(

@@ -3,7 +3,7 @@ using Dealership.Domain.Branches;
 namespace Dealership.Application.Branches;
 
 public sealed record BranchProvisioningRequest(Guid Id, string Name, string Address, string City,
-    string State, string Phone);
+    string State, string Phone, string ShortCode);
 
 public sealed record BranchProvisioningResult(bool Created, bool MatchesRequestedState);
 

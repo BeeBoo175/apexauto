@@ -21,5 +21,6 @@ public sealed class BranchConfiguration : IEntityTypeConfiguration<Branch>
         builder.Property(branch => branch.City).HasMaxLength(Branch.CityMaximumLength).IsRequired();
         builder.Property(branch => branch.State).HasMaxLength(Branch.StateMaximumLength).IsRequired();
         builder.Property(branch => branch.Phone).HasMaxLength(Branch.PhoneMaximumLength).IsRequired();
+        builder.Property(branch => branch.ShortCode).HasMaxLength(Branch.ShortCodeMaximumLength).IsRequired();
     }
 }

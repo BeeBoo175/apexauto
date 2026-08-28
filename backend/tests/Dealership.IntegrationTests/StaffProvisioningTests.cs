@@ -14,7 +14,7 @@ public sealed class StaffProvisioningTests(RegistrationDatabase database) : ICla
         using var services = database.CreateServices();
         var branchId = Guid.NewGuid();
         var branch = new BranchProvisioningRequest(branchId, "ApexAuto Glenmarie",
-            "12 Jalan Pengaturcara U1/51A", "Shah Alam", "Selangor", "+60355651234");
+            "12 Jalan Pengaturcara U1/51A", "Shah Alam", "Selangor", "+60355651234", "GLN");
         var staffId = Guid.NewGuid();
         var staff = new StaffProvisioningRequest(staffId,
             $"siti.aminah.{Guid.NewGuid():N}@example.invalid", "Password123!",
@@ -62,7 +62,7 @@ public sealed class StaffProvisioningTests(RegistrationDatabase database) : ICla
     {
         using var services = database.CreateServices();
         var branch = new BranchProvisioningRequest(Guid.NewGuid(), "ApexAuto Johor Jaya",
-            "20 Jalan Dedap", "Johor Bahru", "Johor", "+6073512345");
+            "20 Jalan Dedap", "Johor Bahru", "Johor", "+6073512345", "JJ");
         var branches = await Task.WhenAll(ProvisionBranchAsync(services, branch), ProvisionBranchAsync(services, branch));
         Assert.Single(branches, result => result.Created);
         Assert.All(branches, result => Assert.True(result.MatchesRequestedState));
@@ -80,7 +80,7 @@ public sealed class StaffProvisioningTests(RegistrationDatabase database) : ICla
         using var services = database.CreateServices();
         var branchId = Guid.NewGuid();
         await ProvisionBranchAsync(services, new BranchProvisioningRequest(branchId, "ApexAuto Bayan Lepas",
-            "16 Persiaran Bayan Indah", "Bayan Lepas", "Pulau Pinang", "+6046123456"));
+            "16 Persiaran Bayan Indah", "Bayan Lepas", "Pulau Pinang", "+6046123456", "BL"));
         var email = $"muhammad.hafiz.{Guid.NewGuid():N}@example.invalid";
         var request = new StaffProvisioningRequest(Guid.NewGuid(), email, "Password123!",
             AccountRoles.SalesAgent, branchId, "Aina Sofia", "0123456706");

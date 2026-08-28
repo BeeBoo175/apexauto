@@ -12,7 +12,7 @@ public sealed class StaffSchemaTests(RegistrationDatabase database) : IClassFixt
     public async Task RestrictedSqlEnforcesRoleBranchAssignmentAndParentRetention()
     {
         var branch = new Branch(Guid.NewGuid(), "ApexAuto Glenmarie", "12 Jalan Pengaturcara U1/51A",
-            "Shah Alam", "Selangor", "+60355651234", DateTimeOffset.UtcNow);
+            "Shah Alam", "Selangor", "+60355651234", "GLN", DateTimeOffset.UtcNow);
         var email = $"aina.sofia.{Guid.NewGuid():N}@example.invalid";
         var user = new AccountUser
         {

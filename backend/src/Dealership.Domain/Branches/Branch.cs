@@ -7,13 +7,14 @@ public sealed class Branch
     public const int CityMaximumLength = 60;
     public const int StateMaximumLength = 60;
     public const int PhoneMaximumLength = 30;
+    public const int ShortCodeMaximumLength = 4;
 
     private Branch()
     {
     }
 
     public Branch(Guid id, string name, string address, string city, string state, string phone,
-        DateTimeOffset createdAtUtc)
+        string shortCode, DateTimeOffset createdAtUtc)
     {
         if (id == Guid.Empty || createdAtUtc.Offset != TimeSpan.Zero)
         {
@@ -25,6 +26,7 @@ public sealed class Branch
         City = RequiredText(city, CityMaximumLength);
         State = RequiredText(state, StateMaximumLength);
         Phone = RequiredText(phone, PhoneMaximumLength);
+        ShortCode = RequiredText(shortCode, ShortCodeMaximumLength).ToUpperInvariant();
         Id = id;
         CreatedAtUtc = createdAtUtc;
         IsActive = true;
@@ -41,6 +43,9 @@ public sealed class Branch
     public string State { get; private set; } = string.Empty;
 
     public string Phone { get; private set; } = string.Empty;
+
+    // The label calendars and tables show where the full name would not fit.
+    public string ShortCode { get; private set; } = string.Empty;
 
     public bool IsActive { get; private set; }
 

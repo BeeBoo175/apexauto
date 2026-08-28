@@ -14,11 +14,11 @@ public static class DevelopmentFixtureManifest
     public static IReadOnlyList<BranchProvisioningRequest> Branches { get; } = Array.AsReadOnly<BranchProvisioningRequest>(
     [
         new(Guid.Parse("c77708bf-1a31-42f5-9a69-0c8766697a52"), "ApexAuto Glenmarie",
-            "12 Jalan Pengaturcara U1/51A", "Shah Alam", "Selangor", "+60355651234"),
+            "12 Jalan Pengaturcara U1/51A", "Shah Alam", "Selangor", "+60355651234", "GLN"),
         new(Guid.Parse("68f371ad-223a-43d6-b45b-b878eece79ae"), "ApexAuto Petaling Jaya",
-            "22 Jalan SS 2/55", "Petaling Jaya", "Selangor", "+60378751234"),
+            "22 Jalan SS 2/55", "Petaling Jaya", "Selangor", "+60378751234", "PJ"),
         new(Guid.Parse("a50f99b1-8ff4-4ffb-b716-c82aa21fe117"), "ApexAuto Bayan Lepas",
-            "8 Jalan Mahsuri", "Bayan Lepas", "Pulau Pinang", "+6046411234")
+            "8 Jalan Mahsuri", "Bayan Lepas", "Pulau Pinang", "+6046411234", "BL")
     ]);
 
     // Licensed non-identifiable demo pictures; see Media/attribution.json for source, author and licence.

@@ -76,13 +76,15 @@ internal static class UnscheduledWorkRows
         var saleIds = page.Where(row => row.Kind == "Sale").Select(row => row.Id).ToArray();
         var jobs = await workshop.Where(row => workshopIds.Contains(row.VehicleId)).ToArrayAsync(cancellationToken);
         var orders = await sales.Where(row => saleIds.Contains(row.Id)).ToArrayAsync(cancellationToken);
+        var codes = await BranchShortCodes.ReadAsync(database,
+            jobs.Select(row => row.BranchId).Concat(orders.Select(row => row.BranchId)), cancellationToken);
         var items = jobs.Select(row => new UnscheduledWorkItem(row.VehicleId, "Workshop", row.BranchId,
             row.BranchName, row.RegistrationPlate, $"{row.ManufactureYear} {row.Make} {row.Model} {row.Trim}",
             WorkshopRows.Status(row).ToString(), row.TechnicianId!.Value, row.TechnicianIdentity ?? string.Empty,
-            row.InspectionId, row.TechnicianIdentity, row.TechnicianPictureId))
+            row.InspectionId, row.TechnicianIdentity, row.TechnicianPictureId, codes[row.BranchId]))
             .Concat(orders.Select(row => new UnscheduledWorkItem(row.Id, "Sale", row.BranchId, row.Branch,
                 row.Plate, $"{row.Year} {row.Make} {row.Model} {row.Trim}", row.Status.ToString(), row.AgentId!.Value,
-                row.Agent ?? string.Empty, null, row.AgentName, row.AgentPictureId)))
+                row.Agent ?? string.Empty, null, row.AgentName, row.AgentPictureId, codes[row.BranchId])))
             .ToDictionary(row => (row.Kind, row.Id));
         return new(scope.CurrentActor, [.. page.Select(row => items[(row.Kind, row.Id)])], total,
             query.Page, query.PageSize, scope.BranchId, scope.Employee, counts);

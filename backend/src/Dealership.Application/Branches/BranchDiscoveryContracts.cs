@@ -1,6 +1,7 @@
 namespace Dealership.Application.Branches;
 
-public sealed record PublicBranch(Guid Id, string Name, string Address, string City, string State, string Phone);
+public sealed record PublicBranch(Guid Id, string Name, string Address, string City, string State, string Phone,
+    string ShortCode);
 
 public sealed record PublicBranchPage(IReadOnlyList<PublicBranch> Items, int Total, int Page, int PageSize);
 

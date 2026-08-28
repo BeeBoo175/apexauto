@@ -21,7 +21,7 @@ public sealed class BranchProvisioningStore(DealershipDbContext database) : IBra
         {
             // A fixture rerun reports drift without overwriting a person's edits.
             var matches = Matches(existing, new BranchProvisioningRequest(branch.Id, branch.Name,
-                branch.Address, branch.City, branch.State, branch.Phone));
+                branch.Address, branch.City, branch.State, branch.Phone, branch.ShortCode));
             return new BranchProvisioningResult(false, matches);
         }
 
@@ -35,6 +35,6 @@ public sealed class BranchProvisioningStore(DealershipDbContext database) : IBra
     {
         return existing.Name == requested.Name && existing.Address == requested.Address &&
             existing.City == requested.City && existing.State == requested.State &&
-            existing.Phone == requested.Phone && existing.IsActive;
+            existing.Phone == requested.Phone && existing.ShortCode == requested.ShortCode && existing.IsActive;
     }
 }

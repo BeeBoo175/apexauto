@@ -80,7 +80,7 @@ public sealed class AccountEventTests(IntakePhotoFixture fixture) : IClassFixtur
         var branch = Guid.NewGuid();
         await scope.ServiceProvider.GetRequiredService<Dealership.Application.Branches.BranchProvisioningService>()
             .ProvisionBranchAsync(new(branch, "ApexAuto Glenmarie", "12 Jalan Pengaturcara", "Shah Alam", "Selangor",
-                "+60355651234"), CancellationToken.None);
+                "+60355651234", "GLN"), CancellationToken.None);
         Assert.True((await staff.ProvisionStaffAsync(new(administrator, $"admin.{Guid.NewGuid():N}@example.invalid",
             "Password123!", AccountRoles.Administrator, null, "Amir Hakim", "0123456789"), CancellationToken.None)).Created);
         Assert.True((await staff.ProvisionStaffAsync(new(employee, $"agent.{Guid.NewGuid():N}@example.invalid",

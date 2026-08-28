@@ -66,14 +66,16 @@ public sealed record UnscheduledWorkQuery(WorkCalendarScope Scope, int Page, int
 
 public sealed record WorkCalendarEvent(Guid Id, string Kind, Guid BranchId, string BranchName,
     string RegistrationPlate, string Vehicle, string Status, Guid? HandlerId, string? HandlerEmail,
-    DateTimeOffset StartsAt, DateTimeOffset EndsAt, string? HandlerName = null, Guid? HandlerPictureId = null);
+    DateTimeOffset StartsAt, DateTimeOffset EndsAt, string? HandlerName, Guid? HandlerPictureId,
+    string BranchShortCode);
 
 public sealed record WorkCalendarSnapshot(CurrentActor Actor, IReadOnlyList<WorkCalendarEvent> Items,
     int Total, DateOnly From, DateOnly To, Guid? BranchId, string Employee);
 
 public sealed record UnscheduledWorkItem(Guid Id, string Kind, Guid BranchId, string BranchName,
     string RegistrationPlate, string Vehicle, string Status, Guid HandlerId, string HandlerEmail,
-    Guid? InspectionId, string? HandlerName = null, Guid? HandlerPictureId = null);
+    Guid? InspectionId, string? HandlerName, Guid? HandlerPictureId,
+    string BranchShortCode);
 
 public sealed record UnscheduledWorkCounts(int All, int Workshop, int Sale);
 

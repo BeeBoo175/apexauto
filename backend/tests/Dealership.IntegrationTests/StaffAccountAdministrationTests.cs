@@ -223,7 +223,7 @@ public sealed class StaffAccountAdministrationTests(IntakePhotoFixture fixture) 
         using var scope = factory.Services.CreateScope();
         var branchId = Guid.NewGuid();
         await scope.ServiceProvider.GetRequiredService<BranchProvisioningService>().ProvisionBranchAsync(
-            new(branchId, $"ApexAuto {branchId:N}", "12 Jalan Pengaturcara", "Shah Alam", "Selangor", "+60355651234"),
+            new(branchId, $"ApexAuto {branchId:N}", "12 Jalan Pengaturcara", "Shah Alam", "Selangor", "+60355651234", "GLN"),
             CancellationToken.None);
         return branchId;
     }

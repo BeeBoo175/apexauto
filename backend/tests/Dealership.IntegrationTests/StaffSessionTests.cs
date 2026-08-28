@@ -158,7 +158,7 @@ public sealed class StaffSessionTests(RegistrationDatabase database) : IClassFix
         var provisioner = scope.ServiceProvider.GetRequiredService<BranchProvisioningService>();
         var branchId = Guid.NewGuid();
         var result = await provisioner.ProvisionBranchAsync(new BranchProvisioningRequest(branchId, name,
-            "12 Jalan Pengaturcara U1/51A", "Shah Alam", "Selangor", "+60355651234"), CancellationToken.None);
+            "12 Jalan Pengaturcara U1/51A", "Shah Alam", "Selangor", "+60355651234", "GLN"), CancellationToken.None);
         Assert.True(result.Created);
         return branchId;
     }
