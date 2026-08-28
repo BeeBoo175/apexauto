@@ -1,0 +1,85 @@
+.prepColumn {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 24px;
+  height: 100%;
+  padding: 28px;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  background: var(--color-paper);
+  box-shadow: 0 2px 12px rgb(14 27 42 / 5%);
+}
+
+.prepList {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--color-line-soft);
+  list-style: none;
+}
+
+.prepItem {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: start;
+  gap: 14px;
+  padding-block: 16px;
+  border-bottom: 1px solid var(--color-line-soft);
+}
+
+.prepIcon {
+  margin-top: 2px;
+  color: var(--color-trust);
+}
+
+.prepIcon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.prepCopy {
+  display: grid;
+  gap: 4px;
+}
+
+.prepCopy strong {
+  color: var(--color-graphite);
+  font-size: 1rem;
+}
+
+.prepCopy span {
+  color: var(--color-muted);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+
+.prepActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 28px;
+}
+
+.tradeInPhoto {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 320px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--color-graphite);
+}
+
+.tradeInPhoto img {
+  display: block;
+  object-fit: cover;
+  object-position: 50% 52%;
+}
+
+@media (max-width: 640px) {
+  .prepColumn {
+    padding: 20px;
+  }
+}

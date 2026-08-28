@@ -5,7 +5,8 @@ import { buttonClassName } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import layout from "@/components/vehicles/VehicleLayout.module.css";
 import type { IconName } from "@/lib/icons";
-import styles from "./BuyingGuideSections.module.css";
+import sectionStyles from "./BuyingGuideSections.module.css";
+import styles from "./BuyingGuideTradeIn.module.css";
 
 const intakeSteps: readonly { icon: IconName; label: string; note: string }[] = [
   {
@@ -32,7 +33,7 @@ const intakeSteps: readonly { icon: IconName; label: string; note: string }[] = 
 
 export function BuyingGuideTradeInSection() {
   return (
-    <div className={styles.split}>
+    <div className={sectionStyles.split}>
       <div className={styles.prepColumn}>
         <ul className={styles.prepList} aria-label="What to prepare for trade-in">
           {intakeSteps.map((item) => (

@@ -13,7 +13,7 @@ import { parseMyr } from "@/lib/currency-input";
 import { evaluateInspectionOutcome, type GradingEvaluation } from "@/lib/guide/inspection-rules";
 import { label, severities, type Severity } from "@/lib/inspection/contracts";
 import guideLayout from "./GuideLayout.module.css";
-import styles from "./GuideInspection.module.css";
+import styles from "./InspectionGradingSimulator.module.css";
 
 const costPresets = [
   { label: "RM 350", value: "350.00" },

@@ -9,7 +9,8 @@ import { buttonClassName } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import layout from "@/components/vehicles/VehicleLayout.module.css";
 import type { IconName } from "@/lib/icons";
-import styles from "./BuyingGuideSections.module.css";
+import sectionStyles from "./BuyingGuideSections.module.css";
+import styles from "./BuyingGuideOverview.module.css";
 
 interface PurchaseStep {
   number: string;
@@ -112,7 +113,7 @@ export function BuyingGuideOverviewSection({ guide }: { guide: PurchaseGuide }) 
               <h3 className={layout.cardHeading}>Fixed-price promise</h3>
               <span className={styles.promiseBadge}>No haggling</span>
             </div>
-            <ul className={styles.holdBullets}>
+            <ul className={sectionStyles.holdBullets}>
               {fixedPriceGuarantees(guide).map((item) => (
                 <li key={item}>
                   <Icon name="check" />

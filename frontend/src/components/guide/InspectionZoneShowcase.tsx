@@ -11,7 +11,7 @@ import { Icon } from "@/components/ui/Icon";
 import layout from "@/components/vehicles/VehicleLayout.module.css";
 import type { InspectionCategoryKey } from "@/lib/guide/inspection-points";
 import type { InspectionCategorySummary } from "@/lib/guide/inspection-rules";
-import styles from "./GuideInspection.module.css";
+import styles from "./InspectionZoneShowcase.module.css";
 
 interface ZoneDetails {
   photo: StaticImageData;
