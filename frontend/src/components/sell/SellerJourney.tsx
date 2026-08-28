@@ -1,8 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { ReloadNotice } from "@/components/ui/ReloadNotice";
-import Link from "next/link";
-import { Button, buttonClassName } from "@/components/ui/Button";
+import { Button } from "@/components/ui/Button";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { Icon } from "@/components/ui/Icon";
 import { useEditGuard } from "@/hooks/use-edit-guard";
@@ -17,7 +16,6 @@ import type { CustomerLookupRow } from "@/lib/staff/assisted-customer";
 import { replaceUrlParams } from "@/lib/browser-url";
 import { SELLER_STEP_KEY } from "@/lib/intake/seller-steps";
 import { formatCurrency } from "@/lib/currency-format";
-import { formatMalaysianDateTime } from "@/lib/date-format";
 import { isValidMalaysianPlate } from "@/lib/intake/registration-plate";
 import { VehicleFields } from "./VehicleFields";
 import { VehicleRecord } from "./VehicleRecord";
@@ -25,15 +23,9 @@ import { PhotoUpload } from "./PhotoUpload";
 import { AppointmentFields } from "./AppointmentFields";
 import { AssistedSellerGate } from "./AssistedSellerGate";
 import { SellerAuthGate } from "./SellerAuthGate";
+import { SELLER_STEPS, SellerProgress } from "./SellerProgress";
+import { SellerReceipt } from "./SellerReceipt";
 import styles from "./Sell.module.css";
-
-const steps = ["Vehicle details", "Valuation", "Exterior photos", "Appointment"];
-const stepNotes = [
-  "Specs and plate",
-  "Indicative RM range",
-  "Four exterior angles",
-  "90-min branch bay",
-] as const;
 
 export function SellerJourney({
   initial,
@@ -140,70 +132,28 @@ function SellerWorkflow({
 
   if (receipt) {
     return (
-      <section className={styles.unavailable}>
-        <h1 ref={heading} tabIndex={-1}>
-          {customer ? "Appointment confirmed" : "Your appointment is confirmed"}
-        </h1>
-        <p className={styles.plate}>{receipt.registrationPlate}</p>
-        <p>{formatMalaysianDateTime(receipt.slot.startsAt)}</p>
-        <p className={styles.help}>Reference: {receipt.id}</p>
-        <p>
-          {customer
-            ? `Booked for ${customer.name}. The confirmation email is delivered to the customer separately, and the booking remains confirmed if mail is delayed.`
-            : "A confirmation email is delivered separately. Your booking remains confirmed if mail is delayed."}
-        </p>
-        {embedded ? (
-          <Button onClick={onDone}>Done</Button>
-        ) : (
-          <Link
-            href={customer ? "/dashboard/intake" : "/account/appointments"}
-            prefetch={false}
-            className={buttonClassName("primary", "md")}
-          >
-            {customer ? "Open intake workspace" : "View your appointments"}
-          </Link>
-        )}
-      </section>
+      <SellerReceipt
+        receipt={receipt}
+        customer={customer}
+        embedded={embedded}
+        headingRef={heading}
+        onDone={onDone}
+      />
     );
   }
-
   return (
     <section
       className={styles.page}
       data-embedded={embedded || undefined}
       aria-label="Sell your car"
     >
-      <div className={styles.progressBand}>
-        <div className={styles.progressWrap}>
-          <ol className={styles.progress}>
-            {steps.map((label, index) => {
-              const done = index < step;
-              const current = index === step;
-              return (
-                <li
-                  key={label}
-                  aria-current={current ? "step" : undefined}
-                  data-done={done || undefined}
-                >
-                  <span className={styles.stepMarker} aria-hidden="true">
-                    {done ? <Icon name="check" /> : `0${index + 1}`}
-                  </span>
-                  <div className={styles.stepText}>
-                    <span className={styles.stepTitle}>{label}</span>
-                    <span className={styles.stepNote}>{stepNotes[index]}</span>
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
-        </div>
-      </div>
+      <SellerProgress step={step} />
 
       <div className={styles.workspace}>
         <div className={styles.formPanel}>
           <div className={styles.panelHeading}>
             <h1 ref={heading} tabIndex={-1}>
-              {steps[step]}
+              {SELLER_STEPS[step]}
             </h1>
             {hasWork && (
               <Button
