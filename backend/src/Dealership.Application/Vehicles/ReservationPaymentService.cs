@@ -8,6 +8,8 @@ public sealed class ReservationPaymentService(IReservationDepositRequestStore re
     IReservationPaymentStore payments, IPaymentGateway gateway, ReservationDepositRequestService deposits,
     TimeProvider clock)
 {
+    private static readonly TimeSpan LapsedBillWindow = TimeSpan.FromHours(2);
+
     public async Task<DepositPaymentResult> StartAsync(string? token, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(token) || token.Length > 160)
@@ -100,6 +102,23 @@ public sealed class ReservationPaymentService(IReservationDepositRequestStore re
         if (payment is { State: DepositPaymentState.Pending })
         {
             await gateway.DeleteBillAsync(payment.BillId, cancellationToken);
+        }
+    }
+
+    // Removes the bills of requests that stopped holding their car without anyone reading them again. Only recent
+    // requests are looked at, so the sweep stays short; removing a bill that is already gone does nothing.
+    public async Task ReleaseLapsedBillsAsync(CancellationToken cancellationToken)
+    {
+        if (!gateway.IsEnabled)
+        {
+            return;
+        }
+
+        var now = clock.GetUtcNow();
+        foreach (var requestId in await payments.ReleasableRequestsAsync(now - LapsedBillWindow, now, 50,
+            cancellationToken))
+        {
+            await ReleaseBillAsync(requestId, cancellationToken);
         }
     }
 

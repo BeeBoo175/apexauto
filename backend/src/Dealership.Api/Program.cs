@@ -82,6 +82,7 @@ builder.Services.AddSingleton<Dealership.Infrastructure.Sales.SaleDeliveryMailCo
 builder.Services.AddScoped<IMailDeliverySource, Dealership.Infrastructure.Sales.SaleDeliveryMailSource>();
 builder.Services.AddHostedService<MailDeliveryWorker>();
 builder.Services.AddHostedService<ReservationExpiryWorker>();
+builder.Services.AddHostedService<DepositBillSweepWorker>();
 builder.Services.AddSingleton<StaffExportWorker>();
 builder.Services.AddSingleton<IStaffExportWorker>(provider => provider.GetRequiredService<StaffExportWorker>());
 builder.Services.AddHostedService(provider => provider.GetRequiredService<StaffExportWorker>());

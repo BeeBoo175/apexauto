@@ -47,6 +47,19 @@ public sealed class ReservationPaymentStore(DealershipDbContext database, MailDe
         }
     }
 
+    public async Task<IReadOnlyList<Guid>> ReleasableRequestsAsync(DateTimeOffset since, DateTimeOffset now, int limit,
+        CancellationToken cancellationToken)
+    {
+        return await (
+            from payment in database.ReservationDepositPayments.AsNoTracking()
+            join request in database.ReservationDepositRequests.AsNoTracking() on payment.RequestId equals request.Id
+            where payment.State == DepositPaymentState.Pending && request.ConfirmedAt == null &&
+                (request.CancelledAt != null && request.CancelledAt >= since ||
+                request.CancelledAt == null && request.ExpiresAt <= now && request.ExpiresAt >= since)
+            orderby request.ExpiresAt
+            select request.Id).Take(limit).ToListAsync(cancellationToken);
+    }
+
     public async Task<bool> RecordPaidAsync(string billId, int paidAmountSen, bool reserved, DateTimeOffset paidAt,
         CancellationToken cancellationToken)
     {

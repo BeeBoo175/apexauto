@@ -58,6 +58,11 @@ public interface IReservationPaymentStore
     // False when the request already has a payment, which the caller then reads instead.
     Task<bool> AddAsync(ReservationDepositPayment payment, CancellationToken cancellationToken);
 
+    // Requests that stopped holding their car since the given time (cancelled, or lapsed unconfirmed) and still have an
+    // unpaid bill.
+    Task<IReadOnlyList<Guid>> ReleasableRequestsAsync(DateTimeOffset since, DateTimeOffset now, int limit,
+        CancellationToken cancellationToken);
+
     // Persists the outcome only while the payment is still pending; false when another delivery recorded it first.
     Task<bool> RecordPaidAsync(string billId, int paidAmountSen, bool reserved, DateTimeOffset paidAt,
         CancellationToken cancellationToken);
