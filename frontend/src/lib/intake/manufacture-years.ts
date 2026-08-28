@@ -8,13 +8,12 @@ export function malaysianYear(now: Date) {
   return Number(year);
 }
 
-// Newest first, from the trim's last year (or the current Malaysian year while it is still sold) back to its
-// first year, matching the range the server accepts.
+// Newest first, from the current Malaysian year back to the trim's first year, matching the range the server accepts.
 export function supportedManufactureYears(trim: TaxonomyTrim | undefined, now: Date) {
   if (!trim) {
     return [];
   }
-  const newest = Math.min(trim.lastYear ?? Infinity, malaysianYear(now));
+  const newest = malaysianYear(now);
   const length = Math.max(0, newest - trim.firstYear + 1);
   return Array.from({ length }, (_, index) => newest - index);
 }

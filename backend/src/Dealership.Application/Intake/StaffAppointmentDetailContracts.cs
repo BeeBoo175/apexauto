@@ -4,10 +4,10 @@ namespace Dealership.Application.Intake;
 
 public sealed record StaffAppointmentDetail(Guid Id, Guid BranchId, string BranchName, string CustomerName,
     string RegistrationPlate, DateTimeOffset StartsAt, DateTimeOffset EndsAt, string Status,
-    string Make, string Model, string Trim, int ManufactureYear, int MileageKilometres, DateTimeOffset? NoShowAt = null,
-    DateTimeOffset? AttendanceCorrectedAt = null, string? CorrectionReason = null, Guid? CorrectedBy = null,
-    string CustomerMobile = "", string CustomerEmail = "", string? CorrectedByName = null,
-    AppointmentOwnership? Ownership = null, bool CustomerSuspended = false, Guid? CustomerId = null);
+    string Make, string Model, string Trim, int ManufactureYear, int MileageKilometres, DateTimeOffset? NoShowAt,
+    DateTimeOffset? AttendanceCorrectedAt, string? CorrectionReason, Guid? CorrectedBy,
+    string CustomerMobile, string CustomerEmail, string? CorrectedByName,
+    AppointmentOwnership? Ownership, bool CustomerSuspended, Guid? CustomerId);
 
 public sealed record AppointmentOwnership(long Version, Guid? HandlerId, string? HandlerEmail,
     bool HandlerEligible, Guid ActorId, string Kind, DateTimeOffset RecordedAt, string? Reason,

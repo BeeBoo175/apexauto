@@ -9,7 +9,7 @@ namespace Dealership.Application.Sales;
 public sealed record SaleContext(string ReservationNumber, string Registration, string Vehicle, string Vin,
     int MileageKilometres, string Customer, string CustomerMobile, string CustomerEmail, string Branch,
     DateTimeOffset ReservedAt, int? WarrantyMonths, int? WarrantyMileageCapKm, decimal? TradeInMinimum,
-    decimal? TradeInMaximum, long TotalHoldSeconds, Guid? CustomerId = null);
+    decimal? TradeInMaximum, long TotalHoldSeconds, Guid? CustomerId);
 
 // What the reading actor may do next, decided once on the server so every surface offers the same actions.
 public sealed record SaleActions(bool Claim, bool Assign, bool Release, bool SaveTerms, bool Submit, bool Decide,
@@ -23,10 +23,10 @@ public sealed record SaleSummary(Guid Id, string ReservationNumber, string? Orde
     string Registration, int ManufactureYear, string Make, string Model, string Trim, string Customer, string? Agent, string Branch, DateTimeOffset? DueAt,
     long? PausedSeconds, DateTimeOffset? ClaimedAt, decimal NegotiatedDiscount, decimal? DiscountLimitAtSubmit,
     decimal BalancePayable, DateTimeOffset? SubmittedAt, DateTimeOffset? DecidedAt, DateTimeOffset? ClosedAt,
-    string? Outcome, long Version, DateTimeOffset UpdatedAt, long TotalHoldSeconds, string? AgentName = null,
-    Guid? AgentPictureId = null,
-    Guid? AgentId = null, bool AgentSuspended = false, bool CustomerSuspended = false, Guid? CustomerId = null,
-    Guid? VehicleId = null);
+    string? Outcome, long Version, DateTimeOffset UpdatedAt, long TotalHoldSeconds, string? AgentName,
+    Guid? AgentPictureId,
+    Guid? AgentId, bool AgentSuspended, bool CustomerSuspended, Guid? CustomerId,
+    Guid? VehicleId);
 
 public sealed record SaleQueueCounts(int ToClaim, int Handling, int Waiting, int Settling, int Completed);
 
@@ -34,7 +34,7 @@ public sealed record SaleQueuePage(IReadOnlyList<SaleSummary> Items, int Total, 
     SaleQueueCounts Counts);
 
 public sealed record SaleTableCounts(int NeedsApproval, int Open, int BeingHandled, int Approved, int AwaitingHandover,
-    int Delivered, int History, int AwaitingDeposit = 0, int All = 0);
+    int Delivered, int History, int AwaitingDeposit, int All);
 
 // View names the tab actually read, which the server chooses when the request leaves it open.
 // The Awaiting deposit tab lists deposit requests in the sale row shape, with the "AwaitingDeposit" status.

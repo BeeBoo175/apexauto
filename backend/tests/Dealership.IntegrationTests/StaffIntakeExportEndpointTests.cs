@@ -38,7 +38,8 @@ public sealed class StaffIntakeExportEndpointTests
     {
         var item = new StaffWorklistItem(Guid.NewGuid(), Guid.NewGuid(), " \u0001@branch", " \t=SUM(1,2)",
             "VCA \"9701\"\nA", new DateTimeOffset(2026, 10, 20, 9, 0, 0, TimeSpan.FromHours(8)),
-            DateTimeOffset.UtcNow, "Booked", "Proton", "Saga", "Standard", 2020);
+            DateTimeOffset.UtcNow, "Booked", "Proton", "Saga", "Standard", 2020,
+            null, null, false, 0, null, null, false, false, null);
         var store = new ExportStore(new StaffWorklistPage([.. Enumerable.Repeat(item, 10000)], 10000, 1, 10000));
         var context = Context(Guid.NewGuid());
         var result = Assert.IsType<Microsoft.AspNetCore.Http.HttpResults.FileContentHttpResult>(await StaffIntakeExportEndpoint.ExportAsync(

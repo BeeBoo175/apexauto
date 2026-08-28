@@ -42,15 +42,10 @@ function parseTrim(value: unknown) {
   if (!isNonNegativeInteger(value.firstYear)) {
     return null;
   }
-  const lastYear = value.lastYear ?? null;
-  if (lastYear !== null && !isNonNegativeInteger(lastYear)) {
-    return null;
-  }
   return {
     name: value.name,
     baselinePrice: value.baselinePrice,
     firstYear: value.firstYear,
-    lastYear,
   };
 }
 

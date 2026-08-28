@@ -19,8 +19,6 @@ export interface TaxonomyTrim {
   name: string;
   baselinePrice: number;
   firstYear: number;
-  // Null while the trim is still sold, so its newest accepted year is the current Malaysian year.
-  lastYear: number | null;
 }
 
 export interface Taxonomy {

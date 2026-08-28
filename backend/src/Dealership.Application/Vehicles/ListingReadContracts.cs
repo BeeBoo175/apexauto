@@ -37,8 +37,8 @@ public sealed record ListingSignedReport(Guid InspectionId, long Revision);
 
 // Who has the car on hold: the buyer, and the agent handling it once one has claimed the hold.
 // The deadline is empty while an agent handles the sale, because its timer is paused.
-public sealed record ListingHold(string Buyer, string? Agent, DateTimeOffset? ExpiresAtUtc, Guid? BuyerId = null,
-    Guid? AgentId = null);
+public sealed record ListingHold(string Buyer, string? Agent, DateTimeOffset? ExpiresAtUtc, Guid? BuyerId,
+    Guid? AgentId);
 
 // A deposit request holding the car for its customer until the customer confirms or the request expires.
 public sealed record ListingPendingDeposit(Guid RequestId, string Customer, Guid CustomerId,
