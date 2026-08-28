@@ -3,11 +3,10 @@ import { API_DEADLINE_MS } from "@/lib/api";
 import { isRecord, isUuid } from "@/lib/auth/contracts";
 import { HttpError } from "@/lib/http";
 import { apiError, apiJson, requestApiJson } from "@/lib/server/http/api";
-import { accessDenied } from "@/lib/server/http/staff-relay";
+import { accessDenied, readJsonBody } from "@/lib/server/http/staff-relay";
 import {
   administratorAccess,
   administratorSession,
-  readJsonBody,
   relayAdministratorCommand,
 } from "./account-administration-relay";
 import {

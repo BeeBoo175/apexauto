@@ -1,11 +1,10 @@
 import "server-only";
 
 import { API_DEADLINE_MS } from "@/lib/api";
-import { readCurrentActor } from "@/lib/auth/server";
 import { isUuid } from "@/lib/auth/contracts";
-import { HttpError, readBoundedJson } from "@/lib/http";
+import { HttpError } from "@/lib/http";
 import { requireSameOrigin } from "@/lib/server/http/request";
-import { requireJsonRequest } from "@/lib/server/http/staff-relay";
+import { readJsonBody, requireCustomerActor } from "@/lib/server/http/staff-relay";
 import {
   apiError,
   apiJson,
@@ -19,23 +18,10 @@ import {
   parseDepositRefundReceipt,
 } from "./account-refunds";
 
-async function customerActor(signal: AbortSignal) {
-  const current = await readCurrentActor(signal);
-  if (!current.actor) {
-    throw new HttpError(current.status === 401 ? 401 : 502, "Your session could not be confirmed.");
-  }
-
-  if (current.actor.role !== "Customer") {
-    throw new HttpError(403, "Customer account required.");
-  }
-
-  return current.actor;
-}
-
 export async function relayDepositRefunds(request: Request) {
   try {
     const signal = AbortSignal.any([request.signal, AbortSignal.timeout(API_DEADLINE_MS)]);
-    const actor = await customerActor(signal);
+    const actor = await requireCustomerActor(signal);
     const result = await privateApiRead("/api/reservation-refunds", parseDepositRefundList, signal);
     return apiJson({ ...result, actor });
   } catch (error) {
@@ -51,15 +37,13 @@ export async function relayBankAccount(request: Request, paymentRequestId: strin
       throw new HttpError(400, "Choose a valid deposit.");
     }
 
-    requireJsonRequest(request);
-
     const signal = AbortSignal.any([request.signal, AbortSignal.timeout(API_DEADLINE_MS)]);
-    const body = parseBankAccountRequest(await readBoundedJson(request.body, signal, 4 * 1024));
+    const body = parseBankAccountRequest(await readJsonBody(request, signal, 4 * 1024));
     if (!body) {
       throw new HttpError(400, "Provide a bank, a numeric account number and the account holder.");
     }
 
-    const actor = await customerActor(signal);
+    const actor = await requireCustomerActor(signal);
     const result = await requestApiJson(
       `/api/reservation-refunds/${paymentRequestId}/bank-account`,
       parseDepositRefundReceipt,

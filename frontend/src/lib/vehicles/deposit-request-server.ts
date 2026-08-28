@@ -3,10 +3,10 @@ import "server-only";
 import { isUuid } from "@/lib/auth/contracts";
 import { API_DEADLINE_MS } from "@/lib/api";
 import { hasIntakeAccess } from "@/lib/auth/actor";
-import { HttpError, readBoundedJson } from "@/lib/http";
+import { HttpError } from "@/lib/http";
 import { assistedCustomerId, requireSameOrigin } from "@/lib/server/http/request";
 import { apiError, apiJson, requestApiJson, sessionToken } from "@/lib/server/http/api";
-import { confirmedActor, requireJsonRequest } from "@/lib/server/http/staff-relay";
+import { confirmedActor, readJsonBody } from "@/lib/server/http/staff-relay";
 import { parseCustomerReservationRequest } from "./customer-reservation";
 import { matchesDepositRequest, parseDepositRequestReceipt } from "./deposit-request";
 import { parseReservationConflict } from "./reservation-errors";
@@ -18,11 +18,8 @@ export async function relayDepositRequest(request: Request, vehicleId: string) {
     if (!isUuid(vehicleId)) {
       throw new HttpError(400, "Choose a valid vehicle.");
     }
-    requireJsonRequest(request);
     const signal = AbortSignal.any([request.signal, AbortSignal.timeout(API_DEADLINE_MS)]);
-    const body = parseCustomerReservationRequest(
-      await readBoundedJson(request.body, signal, 8 * 1024),
-    );
+    const body = parseCustomerReservationRequest(await readJsonBody(request, signal, 8 * 1024));
     if (!body) {
       throw new HttpError(400, "Provide valid reservation details and an operation ID.");
     }

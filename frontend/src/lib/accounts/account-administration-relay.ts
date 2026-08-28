@@ -4,7 +4,7 @@ import { isRecord } from "@/lib/auth/contracts";
 import { HttpError, readBoundedJson } from "@/lib/http";
 import { apiError, apiJson, sessionToken } from "@/lib/server/http/api";
 import { requireSameOrigin } from "@/lib/server/http/request";
-import { accessDenied, confirmedActor, requireJsonRequest } from "@/lib/server/http/staff-relay";
+import { accessDenied, confirmedActor, readJsonBody } from "@/lib/server/http/staff-relay";
 import { requestApi } from "@/lib/server/http/upstream";
 import { hasAccountAdministration } from "./staff-accounts";
 
@@ -34,11 +34,6 @@ export async function administratorSession(request: Request, signal: AbortSignal
 
   const actor = await confirmedActor(signal);
   return { token, actor, allowed: administratorAccess.allowed(actor) };
-}
-
-export async function readJsonBody(request: Request, signal: AbortSignal, limit: number) {
-  requireJsonRequest(request);
-  return readBoundedJson(request.body, signal, limit);
 }
 
 // Administrator account commands answer with an empty accepted or no-content response, so success is confirmed

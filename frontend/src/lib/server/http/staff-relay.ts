@@ -3,7 +3,7 @@ import { API_DEADLINE_MS } from "@/lib/api";
 import { parseActor, type CurrentActor } from "@/lib/auth/actor";
 import { isRecord } from "@/lib/auth/contracts";
 import { readCurrentActor } from "@/lib/auth/server";
-import { HttpError } from "@/lib/http";
+import { HttpError, readBoundedJson } from "@/lib/http";
 import { withQuery } from "@/lib/query";
 import { apiError, apiJson, privateApiRead } from "./api";
 
@@ -37,6 +37,21 @@ export function requireJsonRequest(request: Request) {
   ) {
     throw new HttpError(415, "Send application/json.");
   }
+}
+
+export async function readJsonBody(request: Request, signal: AbortSignal, limit: number) {
+  requireJsonRequest(request);
+  return readBoundedJson(request.body, signal, limit);
+}
+
+// A signed-in customer for customer-only commands; a staff or anonymous caller never reaches the upstream.
+export async function requireCustomerActor(signal: AbortSignal) {
+  const actor = await confirmedActor(signal);
+  if (actor.role !== "Customer") {
+    throw new HttpError(403, "Customer account required.");
+  }
+
+  return actor;
 }
 
 // Copies only the named browser query keys, so the upstream never receives an unreviewed parameter.
