@@ -11,16 +11,14 @@ public sealed class PasswordResetMailComposer(AuthMailLinks links, PasswordReset
         var lifetime = PasswordRecoveryPolicy.LifetimeHours == 1
             ? "one hour"
             : $"{PasswordRecoveryPolicy.LifetimeHours} hours";
-        var body = $"Open this link and deliberately submit a new password to recover your ApexAuto account:\n\n{link}\n\n" +
-            $"This link expires in {lifetime}. If you did not request a password reset, ignore this message. " +
-            "Opening the link does not change your password.";
-        var html = MailTemplate.Render(new MailLayout(
+        var layout = new MailLayout(
             "Reset your password",
             ["We received a request to reset the password for your ApexAuto account. Choose a new password to continue."],
             [],
             [$"This link expires in {lifetime}. If you did not request a password reset, ignore this message. Opening the link does not change your password."],
             "Choose a new password",
-            link));
-        return new OutboundMail(challenge.RecipientEmail, "Reset your ApexAuto password", body, html);
+            link);
+        return new OutboundMail(challenge.RecipientEmail, "Reset your ApexAuto password",
+            MailTemplate.RenderText(layout), MailTemplate.Render(layout));
     }
 }

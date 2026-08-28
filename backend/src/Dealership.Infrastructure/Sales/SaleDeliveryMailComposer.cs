@@ -22,10 +22,7 @@ public sealed class SaleDeliveryMailComposer
     {
         var sale = document.Contents().Sale;
         var link = $"{_baseUrl}/account/sales/{message.SalesOrderId}/documents";
-        var body = $"Your ApexAuto vehicle handover is complete.\n" +
-            $"Purchase order: {sale.OrderNumber}\nHandover note: {document.Number}\n\n" +
-            $"Sign in to your own account to view your issued documents:\n{link}";
-        var html = MailTemplate.Render(new MailLayout(
+        var layout = new MailLayout(
             "Your vehicle handover is complete",
             ["Congratulations on your ApexAuto vehicle. Your handover is complete and your documents are ready."],
             [
@@ -34,7 +31,8 @@ public sealed class SaleDeliveryMailComposer
             ],
             ["Sign in to your own account to view your issued documents."],
             "View your documents",
-            link));
-        return new OutboundMail(message.RecipientEmail, "ApexAuto vehicle handover confirmation", body, html);
+            link);
+        return new OutboundMail(message.RecipientEmail, "ApexAuto vehicle handover confirmation",
+            MailTemplate.RenderText(layout), MailTemplate.Render(layout));
     }
 }

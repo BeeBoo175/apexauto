@@ -33,16 +33,14 @@ public sealed class StaffInvitationMailSource(DealershipDbContext database, Auth
     private OutboundMail Compose(StaffInvitation invitation)
     {
         var link = links.Create("/activate-account", tokens.Create(invitation));
-        var body = $"{invitation.Name}, you have been invited to ApexAuto. Open this link to choose your password " +
-            $"and username:\n\n{link}\n\nThis link expires in {StaffInvitationPolicy.LifetimeHours} hours and works once. " +
-            "If you were not expecting this invitation, ignore this message.";
-        var html = MailTemplate.Render(new MailLayout(
+        var layout = new MailLayout(
             "You are invited to ApexAuto",
             [$"{invitation.Name}, you have been invited to join the ApexAuto staff workspace. Choose your password and username to activate your account."],
             [],
             [$"This link expires in {StaffInvitationPolicy.LifetimeHours} hours and works once. If you were not expecting this invitation, ignore this message."],
             "Activate account",
-            link));
-        return new OutboundMail(invitation.Email, "You are invited to ApexAuto", body, html);
+            link);
+        return new OutboundMail(invitation.Email, "You are invited to ApexAuto",
+            MailTemplate.RenderText(layout), MailTemplate.Render(layout));
     }
 }
