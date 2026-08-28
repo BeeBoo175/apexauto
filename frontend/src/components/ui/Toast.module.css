@@ -105,4 +105,14 @@
     outline: 2px solid var(--toast-color);
     outline-offset: 1px;
   }
+
+  @media (max-width: 600px) {
+    .viewport {
+      left: 16px;
+      right: 16px;
+      bottom: 16px;
+      width: auto;
+      max-width: none;
+    }
+  }
 }

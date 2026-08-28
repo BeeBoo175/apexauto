@@ -53,7 +53,6 @@ export function TechnicianWorkspace({
 }: Props) {
   const animateEntry = useContext(StaffPageEntranceContext);
   const interaction = useGuardedAction();
-  const [queueExpanded, setQueueExpanded] = useState(initialView !== "MyWork");
   const [headerActions, setHeaderActions] = useState<HTMLDivElement | null>(null);
   const {
     view,
@@ -83,7 +82,6 @@ export function TechnicianWorkspace({
 
   function open(row: WorkshopRow) {
     if (row.inspectionId) {
-      setQueueExpanded(false);
       selection.open(row.inspectionId, null, workshopRowSection(row));
     }
   }
@@ -99,10 +97,8 @@ export function TechnicianWorkspace({
       <StaffQueueLayout
         id="technician-worklist-content"
         label="Technician worklists"
-        title={viewLabels[view]}
         selected={Boolean(selection.id || selection.pendingId)}
-        expanded={queueExpanded}
-        onExpandedChange={setQueueExpanded}
+        onBackToQueue={selection.close}
         className={animateEntry ? workbench.reveal : ""}
         inert={!interactive}
         tabs={
@@ -150,7 +146,6 @@ export function TechnicianWorkspace({
               state={claimable}
               selectionLocked={selection.locked}
               onClaimed={(id) => {
-                setQueueExpanded(false);
                 showView("MyWork", false);
                 void refresh();
                 selection.open(id);

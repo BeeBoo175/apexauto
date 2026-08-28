@@ -21,6 +21,7 @@ export function SearchField({
   busy = false,
   disabledReason,
   density = "compact",
+  className = "",
 }: {
   label: string;
   value: string;
@@ -31,6 +32,7 @@ export function SearchField({
   busy?: boolean;
   disabledReason?: string;
   density?: "default" | "compact";
+  className?: string;
 }) {
   const field = useRef<HTMLDivElement>(null);
   const timer = useRef(0);
@@ -65,7 +67,7 @@ export function SearchField({
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
   return (
-    <div ref={field} className={styles.field}>
+    <div ref={field} className={`${styles.field} ${className}`.trim()}>
       <Input
         label={label}
         labelHidden

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import type { IconName } from "@/lib/icons";
 import { EmptyNotice } from "@/components/ui/EmptyNotice";
 import { StaffQueueLayout } from "./StaffQueueLayout";
@@ -52,17 +52,10 @@ export function IntakeAgentQueue({
   className?: string;
   inert?: boolean;
 }) {
-  const [expanded, setExpanded] = useState(!drawer.id);
-  const [lastDrawerId, setLastDrawerId] = useState(drawer.id);
   const list = useRef<HTMLDivElement | null>(null);
   const { active, snapshot, busy, ready, draft, setDraft } = worklist;
   const queue = active.filters.queue || "myWork";
   const selected = Boolean(drawer.id || drawer.pendingId);
-
-  if (lastDrawerId !== drawer.id) {
-    setLastDrawerId(drawer.id);
-    setExpanded(!drawer.id);
-  }
 
   function clearSearch() {
     void worklist.load({ ...active.filters, search: "" }, 1);
@@ -81,10 +74,8 @@ export function IntakeAgentQueue({
     <StaffQueueLayout
       id="intake-queue-content"
       label="Intake queues"
-      title={labels[queue]}
       selected={selected}
-      expanded={expanded}
-      onExpandedChange={setExpanded}
+      onBackToQueue={drawer.close}
       className={className}
       inert={inert}
       tabs={
@@ -166,7 +157,6 @@ export function IntakeAgentQueue({
                   selected={row.id === (drawer.pendingId || drawer.id)}
                   pending={row.id === drawer.pendingId}
                   onOpen={() => {
-                    setExpanded(false);
                     drawer.open(row.id);
                   }}
                 />

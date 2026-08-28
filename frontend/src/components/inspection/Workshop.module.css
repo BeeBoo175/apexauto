@@ -144,6 +144,158 @@
   .indexItem {
     min-height: 44px;
   }
+
+  .split {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+    height: auto;
+    min-height: 0;
+  }
+
+  .index {
+    max-height: 220px;
+    padding-right: 0;
+    padding-bottom: 12px;
+    border-right: 0;
+    border-bottom: 1px solid var(--color-line);
+  }
+
+  .detail {
+    overflow-y: visible;
+    padding-left: 0;
+  }
+}
+
+.mobileFlow {
+  display: none;
+}
+
+@media (max-width: 820px) {
+  .mobileFlow {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .categoryChipsStrip {
+    display: flex;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 8px;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--color-line-soft);
+    background: var(--color-paper);
+  }
+
+  .categoryChipsStrip::-webkit-scrollbar {
+    display: none;
+  }
+
+  .categoryChip {
+    flex: 0 0 auto;
+    min-height: 44px;
+    padding: 6px 12px;
+    gap: 6px;
+    border-radius: var(--radius-sm, 4px);
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .categoryChip[aria-pressed="true"] {
+    border-color: var(--color-interaction-border);
+    background: var(--color-selected-surface);
+    color: var(--color-graphite);
+    font-weight: 700;
+  }
+
+  .mobileCheckpointList {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 16px;
+  }
+
+  .mobileCheckpointCard {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--color-line-soft);
+    border-radius: var(--radius-sm, 4px);
+    background: var(--color-paper);
+    overflow: hidden;
+    transition: border-color 150ms ease;
+  }
+
+  .mobileCheckpointCard[data-expanded="true"] {
+    border-color: var(--color-interaction-border);
+    box-shadow: 0 2px 8px rgb(0 0 0 / 8%);
+  }
+
+  .mobileCheckpointHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    min-height: 48px;
+    padding: 12px 16px;
+    border: 0;
+    background: transparent;
+    color: var(--color-graphite);
+    text-align: left;
+    cursor: pointer;
+    appearance: none;
+  }
+
+  .mobileCheckpointHeader:hover {
+    background: var(--color-canvas);
+  }
+
+  .mobileCheckpointCard[data-expanded="true"] .mobileCheckpointHeader {
+    background: var(--color-selected-surface);
+    border-bottom: 1px solid var(--color-line-soft);
+  }
+
+  .mobileCheckpointInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .mobileCheckpointTitle {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--color-graphite);
+  }
+
+  .mobileCheckpointStatus {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .expandChevron {
+    font-size: 10px;
+    color: var(--color-muted);
+  }
+
+  .mobileInlineEditor {
+    padding: 16px;
+    background: var(--color-paper);
+  }
+
+  .emptyNotice {
+    padding: 24px 16px;
+    color: var(--color-muted);
+    text-align: center;
+    font-size: 13px;
+  }
 }
 
 @container staff-record-content (max-width: 640px) {

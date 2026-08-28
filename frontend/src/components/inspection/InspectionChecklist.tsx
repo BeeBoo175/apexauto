@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { SearchField } from "@/components/ui/SearchField";
@@ -44,7 +44,9 @@ export function InspectionChecklist({
 }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<ChecklistView>("all");
+  const [collapsedCode, setCollapsedCode] = useState("");
   const [selectedCode, setSelectedCode] = useState(draft.catalog[0]?.code ?? "");
+  const isMobile = useSyncExternalStore(subscribeMobile, mobileSnapshot, () => false);
   const views = checklistViews(draft.catalog, value, search);
   const matches = views[filter];
   const categories = [...new Set(draft.catalog.map((point) => point.category))];
@@ -140,6 +142,7 @@ export function InspectionChecklist({
             disabled={disabled}
             onChange={setSearch}
             onClear={search ? () => setSearch("") : undefined}
+            className={styles.searchField}
           />
           <div className={styles.checklistViews} aria-label="Checklist views">
             {(["all", "findings", "remaining"] as const).map((view) => (
@@ -183,7 +186,98 @@ export function InspectionChecklist({
         </div>
       </div>
       <div className={styles.managerControls}>{managerControls}</div>
-      {active && (
+      {active && isMobile && (
+        <div className={workshop.mobileFlow}>
+          <nav className={workshop.categoryChipsStrip} aria-label="Inspection categories">
+            {categories.map((cat) => {
+              const count = matches.filter((p) => p.category === cat).length;
+              const isSelected = cat === category;
+              return (
+                <Button
+                  key={cat}
+                  type="button"
+                  size="compact"
+                  variant={isSelected ? "secondary" : "ghost"}
+                  className={workshop.categoryChip}
+                  aria-pressed={isSelected}
+                  disabled={photo.file !== null || photo.busy || photo.uncertain}
+                  onClick={() => {
+                    onCategory(cat === categories[0] ? "" : inspectionQueryToken(cat));
+                  }}
+                >
+                  <span>{label(cat)}</span>
+                  <Badge variant="count" data-selected={isSelected}>
+                    {count}
+                  </Badge>
+                </Button>
+              );
+            })}
+          </nav>
+          <div className={workshop.mobileCheckpointList}>
+            {inCategory.map((point) => {
+              const isExpanded = selected?.code === point.code && collapsedCode !== point.code;
+              return (
+                <div
+                  key={point.code}
+                  className={workshop.mobileCheckpointCard}
+                  data-expanded={isExpanded}
+                >
+                  <button
+                    type="button"
+                    className={workshop.mobileCheckpointHeader}
+                    aria-expanded={isExpanded}
+                    disabled={photo.file !== null || photo.busy || photo.uncertain}
+                    onClick={() => {
+                      if (isExpanded) {
+                        setCollapsedCode(point.code);
+                      } else {
+                        setCollapsedCode("");
+                        selectPoint(point.code, point.category);
+                      }
+                    }}
+                  >
+                    <div className={workshop.mobileCheckpointInfo}>
+                      <span className={workshop.pointCode}>{point.code}</span>
+                      <strong className={workshop.mobileCheckpointTitle}>
+                        {point.description}
+                      </strong>
+                    </div>
+                    <div className={workshop.mobileCheckpointStatus}>
+                      <InspectionPointStatus
+                        kind={value.entries[point.code]?.kind}
+                        severity={value.entries[point.code]?.severity}
+                        examined={value.examined.includes(point.code)}
+                        compact
+                      />
+                      <span className={workshop.expandChevron} aria-hidden="true">
+                        {isExpanded ? "▲" : "▼"}
+                      </span>
+                    </div>
+                  </button>
+                  {isExpanded && (
+                    <div className={workshop.mobileInlineEditor}>
+                      <ChecklistPoint
+                        point={point}
+                        draft={draft}
+                        value={value}
+                        photo={photo}
+                        editable={editable}
+                        disabled={disabled}
+                        onChange={onChange}
+                        signedPoint={report?.checklist.find((p) => p.code === point.code)}
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {inCategory.length === 0 && (
+              <p className={workshop.emptyNotice}>No checklist points in this category.</p>
+            )}
+          </div>
+        </div>
+      )}
+      {active && !isMobile && (
         <div className={workshop.split}>
           <nav className={workshop.index} aria-label="Inspection points">
             {categories.map((category) => {
@@ -247,4 +341,16 @@ export function InspectionChecklist({
       )}
     </section>
   );
+}
+
+const MOBILE_QUERY = "(max-width: 820px)";
+
+function subscribeMobile(onChange: () => void) {
+  const query = window.matchMedia(MOBILE_QUERY);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
+
+function mobileSnapshot() {
+  return window.matchMedia(MOBILE_QUERY).matches;
 }

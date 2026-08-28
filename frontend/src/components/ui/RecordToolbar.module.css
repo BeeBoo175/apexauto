@@ -92,8 +92,8 @@
   }
 }
 
-@media (min-width: 541px) and (max-width: 820px) {
-  .queryActions {
-    flex-basis: 300px;
+@media (max-width: 480px) {
+  .filterButton > span:not(.filterCount) {
+    display: none;
   }
 }

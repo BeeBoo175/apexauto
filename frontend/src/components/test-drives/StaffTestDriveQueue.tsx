@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import { EmptyNotice } from "@/components/ui/EmptyNotice";
 import { StaffQueueLayout } from "@/components/staff/StaffQueueLayout";
 import { StaffQueueTabs } from "@/components/staff/StaffQueueTabs";
@@ -40,15 +40,16 @@ export function StaffTestDriveQueue({
   selectedId,
   pendingId,
   open,
+  onClose,
   children,
 }: {
   list: ReturnType<typeof useStaffTestDriveList>;
   selectedId: string;
   pendingId: string;
   open: (id: string) => void;
+  onClose?: () => void;
   children: ReactNode;
 }) {
-  const [expanded, setExpanded] = useState(!selectedId);
   const scroller = useRef<HTMLDivElement | null>(null);
   const { snapshot, active, busy, draft, setDraft } = list;
   const queue =
@@ -62,10 +63,8 @@ export function StaffTestDriveQueue({
     <StaffQueueLayout
       id="test-drive-queue"
       label="Test drive queues"
-      title={queue.label}
       selected={Boolean(selectedId || pendingId)}
-      expanded={expanded}
-      onExpandedChange={setExpanded}
+      onBackToQueue={onClose}
       tabs={
         <StaffQueueTabs
           label="Test drive queue tabs"
@@ -147,7 +146,6 @@ export function StaffTestDriveQueue({
                   selected={row.id === (pendingId || selectedId)}
                   pending={row.id === pendingId}
                   onOpen={() => {
-                    setExpanded(false);
                     open(row.id);
                   }}
                 />

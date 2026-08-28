@@ -133,8 +133,8 @@
     gap: 6px;
   }
 
-  .actions button,
-  .actions [class*="Button_button"] {
+  .actions > button,
+  .actions > [class*="Button_button"] {
     width: 36px;
     height: 36px;
     min-width: 36px;

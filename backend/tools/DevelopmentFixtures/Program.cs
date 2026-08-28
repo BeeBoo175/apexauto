@@ -114,6 +114,11 @@ try
 }
 catch (Exception exception)
 {
+    Console.Error.WriteLine($"Fixture exception: {exception.Message}\n{exception.StackTrace}");
+    if (exception.InnerException != null)
+    {
+        Console.Error.WriteLine($"Inner: {exception.InnerException.Message}\n{exception.InnerException.StackTrace}");
+    }
     // Provider errors can contain connection details; disclose only the failure category.
     var recovery = args[0] switch
     {

@@ -58,6 +58,7 @@ export function StaffTestDriveWorkspace({
             selectedId={record.id}
             pendingId={record.pendingId}
             open={open}
+            onClose={close}
           >
             <div className={styles.detailPane}>{detail}</div>
           </surface.Component>

@@ -41,8 +41,8 @@ export function ViewSwitcher<T extends string>({
           type="button"
           className={styles.option}
           aria-pressed={value === option.value}
-          aria-label={option.icon && !labelled ? option.label : undefined}
-          title={option.icon && !labelled ? option.label : undefined}
+          aria-label={option.label}
+          title={option.label}
           onClick={() => {
             if (value !== option.value) {
               onChange(option.value);
@@ -50,7 +50,7 @@ export function ViewSwitcher<T extends string>({
           }}
         >
           {option.icon && <Icon name={option.icon} />}
-          {(!option.icon || labelled) && option.label}
+          {(!option.icon || labelled) && <span className={styles.label}>{option.label}</span>}
         </button>
       ))}
     </div>

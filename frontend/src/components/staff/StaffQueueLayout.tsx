@@ -7,10 +7,7 @@ import styles from "./StaffQueueWorkspace.module.css";
 export function StaffQueueLayout({
   id,
   label,
-  title,
   selected,
-  expanded,
-  onExpandedChange,
   tabs,
   search,
   queue,
@@ -18,13 +15,11 @@ export function StaffQueueLayout({
   className = "",
   inert = false,
   wide = false,
+  onBackToQueue,
 }: {
   id: string;
   label: string;
-  title: string;
   selected: boolean;
-  expanded: boolean;
-  onExpandedChange: (expanded: boolean) => void;
   tabs: ReactNode;
   search: ReactNode;
   queue: ReactNode;
@@ -33,6 +28,7 @@ export function StaffQueueLayout({
   inert?: boolean;
   // A wider queue panel, for a tab strip of five or more tabs that needs room to keep counts beside labels.
   wide?: boolean;
+  onBackToQueue?: () => void;
 }) {
   return (
     <div
@@ -41,28 +37,38 @@ export function StaffQueueLayout({
       data-wide={wide}
       inert={inert}
     >
-      <aside className={styles.queue} aria-label={label} data-expanded={expanded}>
-        {selected && (
-          <div className={styles.mobileQueueBar}>
-            <strong>{title}</strong>
-            <Button
-              size="compact"
-              variant="secondary"
-              aria-expanded={expanded}
-              aria-controls={id}
-              onClick={() => onExpandedChange(!expanded)}
-            >
-              {expanded ? "Hide queue" : "Show queue"}
-            </Button>
-          </div>
-        )}
+      <aside className={styles.queue} aria-label={label}>
         <div className={styles.queueBody} id={id}>
           {tabs}
           {search}
           {queue}
         </div>
       </aside>
-      {children}
+      <div className={styles.workbenchPane}>
+        {selected && (
+          <div className={styles.mobileBackBar}>
+            <Button
+              type="button"
+              size="compact"
+              variant="secondary"
+              className={styles.backButton}
+              onClick={() => {
+                if (onBackToQueue) {
+                  onBackToQueue();
+                } else if (typeof window !== "undefined") {
+                  window.history.back();
+                }
+              }}
+            >
+              <span className={styles.backArrow} aria-hidden="true">
+                ←
+              </span>
+              <span>Back to queue</span>
+            </Button>
+          </div>
+        )}
+        {children}
+      </div>
     </div>
   );
 }

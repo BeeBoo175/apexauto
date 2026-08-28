@@ -57,7 +57,6 @@ export function SalesWorkspace({
 }: SalesWorkspaceProps) {
   const animateEntry = useContext(StaffPageEntranceContext);
   const interaction = useGuardedAction();
-  const [queueExpanded, setQueueExpanded] = useState(!selectedSaleId);
   const [headerActions, setHeaderActions] = useState<HTMLDivElement | null>(null);
   const [draft, setDraft] = useState("");
   // Hold timers are read against this moment, which moves forward each time the queues are refreshed.
@@ -115,7 +114,6 @@ export function SalesWorkspace({
   }
 
   function open(item: SaleSummary) {
-    setQueueExpanded(false);
     void selection.choose(item.id);
   }
 
@@ -139,10 +137,8 @@ export function SalesWorkspace({
       <StaffQueueLayout
         id="sales-queue-content"
         label="Sales queues"
-        title={searching ? "Search results" : queueViewLabels[view]}
         selected={chosen}
-        expanded={queueExpanded}
-        onExpandedChange={setQueueExpanded}
+        onBackToQueue={selection.close}
         className={animateEntry ? workbench.reveal : ""}
         inert={!interactive}
         wide
@@ -217,7 +213,6 @@ export function SalesWorkspace({
                 selectionLocked={selection.locked}
                 onConflict={() => void refresh()}
                 onClaimed={(saleId) => {
-                  setQueueExpanded(false);
                   showView("Handling");
                   void refresh();
                   void selection.choose(saleId);

@@ -204,9 +204,27 @@
   line-height: 1.5;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 640px) {
   .footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
     padding: 16px;
+  }
+
+  .footerContext {
+    flex: 0 0 auto;
+    width: 100%;
+  }
+
+  .footerActions {
+    width: 100%;
+    justify-content: stretch;
+    margin-inline-start: 0;
+  }
+
+  .footerActions > * {
+    flex: 1 1 0;
   }
 }
 
