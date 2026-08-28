@@ -20,12 +20,9 @@ public static class IntakeBookingEndpoints
     private static async Task<IResult> CancelAsync(Guid id, HttpContext context, AppointmentCancellationService cancellations,
         CancellationToken cancellationToken)
     {
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(TimeSpan.FromSeconds(20));
-
-        try
+        return await BoundedCommand.RunAsync(async deadline =>
         {
-            var result = await cancellations.CancelAsync(ActorId(context), id, deadline.Token);
+            var result = await cancellations.CancelAsync(ActorId(context), id, deadline);
             return result.Status switch
             {
                 CancellationStatus.Succeeded => Results.Ok(result.Receipt),
@@ -35,11 +32,8 @@ public static class IntakeBookingEndpoints
                 CancellationStatus.CheckedIn => Results.Problem(statusCode: 409, title: "The appointment is already checked in."),
                 _ => Results.BadRequest()
             };
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            return Results.Problem(statusCode: 503, title: "Cancellation is unconfirmed; reconcile using the same appointment ID.");
-        }
+        },
+            () => Results.Problem(statusCode: 503, title: "Cancellation is unconfirmed; reconcile using the same appointment ID."), cancellationToken);
     }
 
     private static async Task<IResult> ListAsync(HttpContext context, IAppointmentHistoryStore history,
@@ -52,47 +46,35 @@ public static class IntakeBookingEndpoints
             return Results.Problem(statusCode: 400, title: "Provide a valid paired date range of at most 366 days and valid paging.");
         }
 
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(TimeSpan.FromSeconds(20));
-
-        try
+        return await BoundedCommand.RunAsync(async deadline =>
         {
-            var result = await history.ListAsync(ActorId(context), query, deadline.Token);
+            var result = await history.ListAsync(ActorId(context), query, deadline);
             return result is null ? Results.Forbid() : Results.Ok(result);
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            return Results.Problem(statusCode: 503, title: "Appointment history is temporarily unavailable.");
-        }
+        },
+            () => Results.Problem(statusCode: 503, title: "Appointment history is temporarily unavailable."), cancellationToken);
     }
 
     private static async Task<IResult> BookAsync(HttpContext context, IntakeBookingService bookings,
         IStaffAssistanceQuery assistance, CancellationToken cancellationToken)
     {
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(TimeSpan.FromSeconds(20));
-
-        try
+        return await BoundedCommand.RunAsync(async deadline =>
         {
-            var (request, error) = await JsonRequestReader.ReadAsync<BookingRequest>(context.Request, deadline.Token);
+            var (request, error) = await JsonRequestReader.ReadAsync<BookingRequest>(context.Request, deadline);
 
             if (error is not null)
             {
                 return error;
             }
 
-            var owner = await AssistedOwner.ResolveAsync(context, assistance, deadline.Token);
+            var owner = await AssistedOwner.ResolveAsync(context, assistance, deadline);
             if (owner.Error is not null)
             {
                 return owner.Error;
             }
 
-            return Map(await bookings.BookAsync(owner.OwnerId, request!, deadline.Token, owner.Staff));
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            return Results.Problem(statusCode: 503, title: "Booking is unconfirmed; reconcile using the same booking ID and contents.");
-        }
+            return Map(await bookings.BookAsync(owner.OwnerId, request!, deadline, owner.Staff));
+        },
+            () => Results.Problem(statusCode: 503, title: "Booking is unconfirmed; reconcile using the same booking ID and contents."), cancellationToken);
     }
 
     private static async Task<IResult> GetReceiptAsync(Guid id, HttpContext context, IntakeBookingService bookings,

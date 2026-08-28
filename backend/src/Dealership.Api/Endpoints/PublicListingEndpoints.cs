@@ -18,14 +18,12 @@ public static class PublicListingEndpoints
         VehicleFuel? fuel, Guid? branchId, string? sort, string? direction, string? search, IPublicListingStore store,
         CancellationToken cancellationToken)
     {
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(TimeSpan.FromSeconds(20));
-        try
+        return await BoundedCommand.RunAsync(async deadline =>
         {
             var filter = new PublicListingFilter(page ?? 1, make, model, minimumYear, maximumYear,
                 minimumPrice, maximumPrice, transmission, fuel, branchId, sort ?? "published", direction ?? "desc",
                 pageSize ?? PublicListingFilter.PageSize, search);
-            var result = await store.ReadAsync(filter, deadline.Token);
+            var result = await store.ReadAsync(filter, deadline);
             return result.Status switch
             {
                 ListingStatus.Succeeded => Results.Ok(result.Catalogue),
@@ -33,21 +31,15 @@ public static class PublicListingEndpoints
                 ListingStatus.Unavailable => Unavailable(),
                 _ => Results.Problem(statusCode: 500)
             };
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            return Unavailable();
-        }
+        }, Unavailable, cancellationToken);
     }
 
     private static async Task<IResult> DetailAsync(Guid vehicleId, IPublicListingStore store,
         CancellationToken cancellationToken)
     {
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(TimeSpan.FromSeconds(20));
-        try
+        return await BoundedCommand.RunAsync(async deadline =>
         {
-            var result = await store.DetailAsync(vehicleId, deadline.Token);
+            var result = await store.DetailAsync(vehicleId, deadline);
             return result.Status switch
             {
                 ListingStatus.Succeeded => Results.Ok(result.Detail),
@@ -56,11 +48,7 @@ public static class PublicListingEndpoints
                 ListingStatus.Unavailable => Unavailable(),
                 _ => Results.Problem(statusCode: 500)
             };
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            return Unavailable();
-        }
+        }, Unavailable, cancellationToken);
     }
 
     private static IResult Invalid() => Results.Problem(statusCode: 400, title: "Provide valid catalogue filters and page.");

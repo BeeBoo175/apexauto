@@ -23,11 +23,9 @@ public static class TestDriveCommandEndpoints
     private static async Task<IResult> BookAsync(Guid vehicleId, HttpContext context,
         TestDriveBookingService bookings, IStaffAssistanceQuery assistance, CancellationToken cancellationToken)
     {
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(TimeSpan.FromSeconds(20));
-        try
+        return await BoundedCommand.RunAsync(async deadline =>
         {
-            var (input, error) = await JsonRequestReader.ReadAsync<BookingInput>(context.Request, deadline.Token);
+            var (input, error) = await JsonRequestReader.ReadAsync<BookingInput>(context.Request, deadline);
             if (error is not null)
             {
                 return error;
@@ -38,14 +36,14 @@ public static class TestDriveCommandEndpoints
                 return Results.Problem(statusCode: 400, title: "Provide an operation ID, publication and booked start.");
             }
 
-            var owner = await AssistedOwner.ResolveAsync(context, assistance, deadline.Token);
+            var owner = await AssistedOwner.ResolveAsync(context, assistance, deadline);
             if (owner.Error is not null)
             {
                 return owner.Error;
             }
 
             var result = await bookings.BookAsync(owner.OwnerId, vehicleId,
-                new(input.OperationId.Value, input.PublicationId.Value, input.StartsAt.Value), deadline.Token, owner.Staff);
+                new(input.OperationId.Value, input.PublicationId.Value, input.StartsAt.Value), deadline, owner.Staff);
             return result.Status switch
             {
                 TestDriveBookingStatus.Succeeded => Results.Ok(result.Booking),
@@ -57,11 +55,7 @@ public static class TestDriveCommandEndpoints
                 TestDriveBookingStatus.SlotUnavailable => Conflict("test-drive-slot-unavailable", "This slot is unavailable; choose another time."),
                 _ => Results.Problem(statusCode: 500)
             };
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            return Unconfirmed();
-        }
+        }, Unconfirmed, cancellationToken);
     }
 
     private static Task<IResult> CancelAsync(Guid id, HttpContext context,
@@ -79,11 +73,9 @@ public static class TestDriveCommandEndpoints
     private static async Task<IResult> CancelCoreAsync(Guid id, HttpContext context,
         TestDriveCancellationService cancellations, bool byStaff, CancellationToken cancellationToken)
     {
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(TimeSpan.FromSeconds(20));
-        try
+        return await BoundedCommand.RunAsync(async deadline =>
         {
-            var (input, error) = await JsonRequestReader.ReadAsync<CancellationInput>(context.Request, deadline.Token);
+            var (input, error) = await JsonRequestReader.ReadAsync<CancellationInput>(context.Request, deadline);
             if (error is not null)
             {
                 return error;
@@ -95,8 +87,8 @@ public static class TestDriveCommandEndpoints
             }
 
             var result = byStaff
-                ? await cancellations.CancelByStaffAsync(ActorId(context), id, input.OperationId.Value, input.Reason!, deadline.Token)
-                : await cancellations.CancelAsync(ActorId(context), id, input.OperationId.Value, deadline.Token);
+                ? await cancellations.CancelByStaffAsync(ActorId(context), id, input.OperationId.Value, input.Reason!, deadline)
+                : await cancellations.CancelAsync(ActorId(context), id, input.OperationId.Value, deadline);
             return result.Status switch
             {
                 TestDriveCancellationStatus.Succeeded => Results.Ok(result.Cancellation),
@@ -107,11 +99,7 @@ public static class TestDriveCommandEndpoints
                 TestDriveCancellationStatus.TooLate => Conflict("test-drive-cancellation-too-late", "The cancellation deadline has passed."),
                 _ => Results.Problem(statusCode: 500)
             };
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            return Unconfirmed();
-        }
+        }, Unconfirmed, cancellationToken);
     }
 
     internal static IResult Unconfirmed() => Results.Problem(statusCode: 503,

@@ -1,3 +1,4 @@
+using Dealership.Api.Configuration;
 using Dealership.Domain.Common;
 using Dealership.Application.TestDrives;
 using Dealership.Domain.TestDrives;
@@ -27,11 +28,9 @@ public static class TestDriveAssignmentEndpoints
     private static async Task<IResult> SubmitAsync(Guid id, HttpContext context, TestDriveAssignmentService assignments,
         string kind, CancellationToken cancellationToken)
     {
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(TimeSpan.FromSeconds(20));
-        try
+        return await BoundedCommand.RunAsync(async deadline =>
         {
-            var (input, error) = await JsonRequestReader.ReadAsync<AssignmentInput>(context.Request, deadline.Token);
+            var (input, error) = await JsonRequestReader.ReadAsync<AssignmentInput>(context.Request, deadline);
             if (error is not null)
             {
                 return error;
@@ -43,13 +42,9 @@ public static class TestDriveAssignmentEndpoints
             }
 
             var result = await assignments.ExecuteAsync(HttpContextActor.ActorId(context), id, kind,
-                new(input.OperationId.Value, input.ExpectedVersion.Value, input.HandlerId, input.Reason), deadline.Token);
+                new(input.OperationId.Value, input.ExpectedVersion.Value, input.HandlerId, input.Reason), deadline);
             return Map(result);
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            return TestDriveCommandEndpoints.Unconfirmed();
-        }
+        }, TestDriveCommandEndpoints.Unconfirmed, cancellationToken);
     }
 
     private static IResult Map(TestDriveAssignmentResult result) => result.Status switch

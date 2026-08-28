@@ -25,17 +25,15 @@ public static class ReservationCommandEndpoints
     private static async Task<IResult> RequestDepositAsync(Guid vehicleId, HttpContext context,
         ReservationDepositRequestService deposits, IStaffAssistanceQuery assistance, CancellationToken cancellationToken)
     {
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(TimeSpan.FromSeconds(20));
-        try
+        return await BoundedCommand.RunAsync(async deadline =>
         {
-            var (request, error) = await JsonRequestReader.ReadAsync<ReservationRequest>(context.Request, deadline.Token);
+            var (request, error) = await JsonRequestReader.ReadAsync<ReservationRequest>(context.Request, deadline);
             if (error is not null)
             {
                 return error;
             }
 
-            var owner = await AssistedOwner.ResolveAsync(context, assistance, deadline.Token);
+            var owner = await AssistedOwner.ResolveAsync(context, assistance, deadline);
             if (owner.Error is not null)
             {
                 return owner.Error;
@@ -47,34 +45,28 @@ public static class ReservationCommandEndpoints
                 return Results.Forbid();
             }
 
-            var result = await deposits.RequestAsync(owner.OwnerId, vehicleId, request!, owner.Staff, deadline.Token);
+            var result = await deposits.RequestAsync(owner.OwnerId, vehicleId, request!, owner.Staff, deadline);
             var receipt = result.Request is null ? null : ReservationDepositRequestReceipt.From(result.Request);
             return Map(result.Status, receipt);
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            return Unconfirmed();
-        }
+        }, Unconfirmed, cancellationToken);
     }
 
     private static async Task<IResult> CancelDepositRequestAsync(Guid requestId, HttpContext context,
         ReservationDepositRequestService deposits, ReservationPaymentService payments,
         IStaffAssistanceQuery assistance, CancellationToken cancellationToken)
     {
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(TimeSpan.FromSeconds(20));
-        try
+        return await BoundedCommand.RunAsync(async deadline =>
         {
-            var staff = await assistance.FindStaffAsync(ActorId(context), deadline.Token);
+            var staff = await assistance.FindStaffAsync(ActorId(context), deadline);
             if (staff is null)
             {
                 return Results.Forbid();
             }
 
-            var cancelled = await deposits.CancelAsync(requestId, staff, deadline.Token);
+            var cancelled = await deposits.CancelAsync(requestId, staff, deadline);
             if (cancelled == ReservationStatus.Succeeded)
             {
-                await payments.ReleaseBillAsync(requestId, deadline.Token);
+                await payments.ReleaseBillAsync(requestId, deadline);
             }
 
             return cancelled switch
@@ -84,11 +76,7 @@ public static class ReservationCommandEndpoints
                 ReservationStatus.NotFound => Results.NotFound(),
                 _ => Results.Problem(statusCode: 409, title: "The deposit request is no longer pending.")
             };
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            return Unconfirmed();
-        }
+        }, Unconfirmed, cancellationToken);
     }
 
     private static async Task<IResult> ConfirmDepositAsync(HttpContext context, ReservationPaymentService payments,
@@ -134,17 +122,15 @@ public static class ReservationCommandEndpoints
         ReservationDepositRequestService deposits, ReservationPaymentService payments,
         IStaffAssistanceQuery assistance, CancellationToken cancellationToken)
     {
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(TimeSpan.FromSeconds(20));
-        try
+        return await BoundedCommand.RunAsync(async deadline =>
         {
-            var (request, error) = await JsonRequestReader.ReadAsync<ReservationRequest>(context.Request, deadline.Token);
+            var (request, error) = await JsonRequestReader.ReadAsync<ReservationRequest>(context.Request, deadline);
             if (error is not null)
             {
                 return error;
             }
 
-            var owner = await AssistedOwner.ResolveAsync(context, assistance, deadline.Token);
+            var owner = await AssistedOwner.ResolveAsync(context, assistance, deadline);
             if (owner.Error is not null)
             {
                 return owner.Error;
@@ -161,17 +147,13 @@ public static class ReservationCommandEndpoints
             if (payments.IsEnabled)
             {
                 return await PayForReservationAsync(owner.OwnerId, vehicleId, request!, reservations, deposits, payments,
-                    deadline.Token);
+                    deadline);
             }
 
-            var result = await reservations.ReserveAsync(owner.OwnerId, vehicleId, request!, deadline.Token);
+            var result = await reservations.ReserveAsync(owner.OwnerId, vehicleId, request!, deadline);
             var receipt = result.Reservation is null ? null : ReservationReceipt.From(result.Reservation);
             return Map(result.Status, receipt);
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            return Unconfirmed();
-        }
+        }, Unconfirmed, cancellationToken);
     }
 
     private static async Task<IResult> PayForReservationAsync(Guid customerId, Guid vehicleId, ReservationRequest request,
@@ -205,24 +187,18 @@ public static class ReservationCommandEndpoints
     private static async Task<IResult> CancelAsync(Guid reservationId, HttpContext context,
         ReservationCancellationService cancellations, CancellationToken cancellationToken)
     {
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(TimeSpan.FromSeconds(20));
-        try
+        return await BoundedCommand.RunAsync(async deadline =>
         {
-            var (request, error) = await JsonRequestReader.ReadAsync<ReservationCancellationRequest>(context.Request, deadline.Token);
+            var (request, error) = await JsonRequestReader.ReadAsync<ReservationCancellationRequest>(context.Request, deadline);
             if (error is not null)
             {
                 return error;
             }
 
-            var result = await cancellations.CancelAsync(ActorId(context), reservationId, request!, deadline.Token);
+            var result = await cancellations.CancelAsync(ActorId(context), reservationId, request!, deadline);
             var receipt = result.Release is null ? null : ReservationRefundReceipt.From(result.Release);
             return Map(result.Status, receipt);
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            return Unconfirmed();
-        }
+        }, Unconfirmed, cancellationToken);
     }
 
     private static IResult Unconfirmed() => Results.Problem(statusCode: 503,

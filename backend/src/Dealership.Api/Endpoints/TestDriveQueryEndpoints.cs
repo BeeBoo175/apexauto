@@ -1,3 +1,4 @@
+using Dealership.Api.Configuration;
 using Dealership.Application.Common;
 using Dealership.Application.TestDrives;
 
@@ -20,22 +21,16 @@ public static class TestDriveQueryEndpoints
     private static async Task<IResult> SlotsAsync(Guid vehicleId, string? date,
         TestDriveDiscoveryService discovery, CancellationToken cancellationToken)
     {
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(TimeSpan.FromSeconds(20));
-        try
+        return await BoundedCommand.RunAsync(async deadline =>
         {
-            var result = await discovery.GetSlotsAsync(vehicleId, date, deadline.Token);
+            var result = await discovery.GetSlotsAsync(vehicleId, date, deadline);
             return result.Status switch
             {
                 TestDriveReadStatus.Succeeded => Results.Ok(result.Offer),
                 TestDriveReadStatus.NotFound => Results.NotFound(),
                 _ => Results.Problem(statusCode: 400, title: "Choose a yyyy-MM-dd Malaysian date inside the current booking horizon.")
             };
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            return Unavailable();
-        }
+        }, Unavailable, cancellationToken);
     }
 
     private static async Task<IResult> AccountAsync(int? page, string? from, string? to, string? search, HttpContext context,
@@ -47,12 +42,10 @@ public static class TestDriveQueryEndpoints
             return Results.Problem(statusCode: 400, title: "Provide a paired Malaysian date range of at most 366 days.");
         }
 
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(TimeSpan.FromSeconds(20));
-        try
+        return await BoundedCommand.RunAsync(async deadline =>
         {
             var result = await reads.AccountAsync(HttpContextActor.ActorId(context), page ?? 1, dates,
-                deadline.Token, search?.Trim() ?? "");
+                deadline, search?.Trim() ?? "");
             return result.Status switch
             {
                 TestDriveReadStatus.Succeeded => Results.Ok(result.History),
@@ -60,11 +53,7 @@ public static class TestDriveQueryEndpoints
                 TestDriveReadStatus.Forbidden => Results.Forbid(),
                 _ => Results.Problem(statusCode: 500)
             };
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            return Unavailable();
-        }
+        }, Unavailable, cancellationToken);
     }
 
     private static IResult Unavailable() => Results.Problem(statusCode: 503, title: "Test-drive information is temporarily unavailable.");

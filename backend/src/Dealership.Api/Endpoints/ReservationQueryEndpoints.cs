@@ -1,3 +1,4 @@
+using Dealership.Api.Configuration;
 using Dealership.Application.Common;
 using Dealership.Application.Vehicles;
 using static Dealership.Api.Endpoints.HttpContextActor;
@@ -26,17 +27,11 @@ public static class ReservationQueryEndpoints
             return Results.Problem(statusCode: 400, title: "Provide a valid paired date range of at most 366 days and a short search.");
         }
 
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(TimeSpan.FromSeconds(20));
-        try
+        return await BoundedCommand.RunAsync(async deadline =>
         {
-            var result = await store.AccountAsync(ActorId(context), page ?? 1, deadline.Token, dates, search);
+            var result = await store.AccountAsync(ActorId(context), page ?? 1, deadline, dates, search);
             return Map(result);
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            return Unavailable();
-        }
+        }, Unavailable, cancellationToken);
     }
 
     private static IResult Unavailable() => Results.Problem(statusCode: 503, title: "Reservation history is temporarily unavailable.");

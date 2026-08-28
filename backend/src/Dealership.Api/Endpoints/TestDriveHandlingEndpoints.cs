@@ -1,3 +1,4 @@
+using Dealership.Api.Configuration;
 using Dealership.Application.TestDrives;
 
 namespace Dealership.Api.Endpoints;
@@ -7,11 +8,9 @@ public static class TestDriveHandlingEndpoints
     public static async Task<IResult> StartAsync(Guid id, HttpContext context, TestDriveHandlingService handling,
         CancellationToken cancellationToken)
     {
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(TimeSpan.FromSeconds(20));
-        try
+        return await BoundedCommand.RunAsync(async deadline =>
         {
-            var (input, error) = await JsonRequestReader.ReadAsync<StartInput>(context.Request, deadline.Token);
+            var (input, error) = await JsonRequestReader.ReadAsync<StartInput>(context.Request, deadline);
             if (error is not null)
             {
                 return error;
@@ -25,22 +24,16 @@ public static class TestDriveHandlingEndpoints
 
             return Map(await handling.StartAsync(HttpContextActor.ActorId(context), id,
                 new(input.OperationId.Value, input.AssignmentId.Value, input.CustomerPresent.Value,
-                    input.DrivingLicenceChecked.Value), deadline.Token));
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            return TestDriveCommandEndpoints.Unconfirmed();
-        }
+                    input.DrivingLicenceChecked.Value), deadline));
+        }, TestDriveCommandEndpoints.Unconfirmed, cancellationToken);
     }
 
     public static async Task<IResult> OutcomeAsync(Guid id, HttpContext context, TestDriveHandlingService handling,
         CancellationToken cancellationToken)
     {
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(TimeSpan.FromSeconds(20));
-        try
+        return await BoundedCommand.RunAsync(async deadline =>
         {
-            var (input, error) = await JsonRequestReader.ReadAsync<OutcomeInput>(context.Request, deadline.Token);
+            var (input, error) = await JsonRequestReader.ReadAsync<OutcomeInput>(context.Request, deadline);
             if (error is not null)
             {
                 return error;
@@ -53,12 +46,8 @@ public static class TestDriveHandlingEndpoints
 
             return Map(await handling.RecordOutcomeAsync(HttpContextActor.ActorId(context), id,
                 new(input.OperationId.Value, input.AssignmentId.Value, input.Kind, input.CustomerPresent.Value,
-                    input.Reason, input.Notes), deadline.Token));
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            return TestDriveCommandEndpoints.Unconfirmed();
-        }
+                    input.Reason, input.Notes), deadline));
+        }, TestDriveCommandEndpoints.Unconfirmed, cancellationToken);
     }
 
     private static IResult Map(TestDriveHandlingResult result) => result.Status switch
