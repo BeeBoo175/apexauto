@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import statusTone from "@/components/ui/StatusTone.module.css";
-import { useAppointmentHistory } from "@/hooks/use-appointment-history";
+import { useAccountAppointments } from "@/hooks/use-account-appointments";
 import type { Appointment } from "@/lib/intake/contracts";
 import type { HistoryFilters } from "@/lib/intake/list-query";
 import { formatMalaysianDateTime } from "@/lib/date-format";
@@ -24,14 +24,14 @@ export function AppointmentHistory({
   page: number;
   ready: boolean;
 }) {
-  const history = useAppointmentHistory(filters, page);
+  const history = useAccountAppointments(page, filters);
   const [cancelling, setCancelling] = useState<Appointment | null>(null);
-  const { snapshot, active, draft } = history;
+  const { snapshot, draft } = history;
   const disabled = !ready || history.busy || Boolean(cancelling);
-  const filtered = Boolean(active.filters.from || active.filters.to);
+  const filtered = Boolean(history.filters.from || history.filters.to);
   const empty = snapshot?.total === 0 && !filtered;
   const pages = snapshot ? Math.max(1, Math.ceil(snapshot.total / snapshot.pageSize)) : 1;
-  const first = snapshot?.items.length ? (active.page - 1) * snapshot.pageSize + 1 : 0;
+  const first = snapshot?.items.length ? (history.page - 1) * snapshot.pageSize + 1 : 0;
   const last = first && snapshot ? first + snapshot.items.length - 1 : 0;
 
   return (
@@ -57,7 +57,7 @@ export function AppointmentHistory({
             disabled={disabled}
             busy={history.busy}
             onDraft={history.setDraft}
-            onApply={() => void history.load(draft, 1)}
+            onApply={() => void history.load(1, draft)}
           />
           <p className={styles.help}>
             Filter appointment dates in Malaysia. Leave both dates empty for all history.
@@ -77,9 +77,9 @@ export function AppointmentHistory({
         <>
           <p className={styles.help}>
             {snapshot.total} {snapshot.total === 1 ? "appointment" : "appointments"} · Page{" "}
-            {active.page}
-            {active.filters.from
-              ? ` · ${active.filters.from} to ${active.filters.to}`
+            {history.page}
+            {history.filters.from
+              ? ` · ${history.filters.from} to ${history.filters.to}`
               : " · All dates"}
           </p>
           {snapshot.items.length === 0 && (
@@ -93,7 +93,7 @@ export function AppointmentHistory({
                   onClick={() => {
                     const cleared = { from: "", to: "" };
                     history.setDraft(cleared);
-                    void history.load(cleared, 1);
+                    void history.load(1, cleared);
                   }}
                 >
                   Clear filters
@@ -164,21 +164,21 @@ export function AppointmentHistory({
                 <Button
                   variant="ghost"
                   size="icon"
-                  disabled={disabled || active.page <= 1}
-                  onClick={() => void history.load(active.filters, active.page - 1)}
+                  disabled={disabled || history.page <= 1}
+                  onClick={() => void history.load(history.page - 1, history.filters)}
                   aria-label="Previous appointments"
                   title="Previous page"
                 >
                   <Icon name="previous" />
                 </Button>
                 <span>
-                  Page {active.page} of {pages}
+                  Page {history.page} of {pages}
                 </span>
                 <Button
                   variant="ghost"
                   size="icon"
-                  disabled={disabled || active.page >= pages}
-                  onClick={() => void history.load(active.filters, active.page + 1)}
+                  disabled={disabled || history.page >= pages}
+                  onClick={() => void history.load(history.page + 1, history.filters)}
                   aria-label="Next appointments"
                   title="Next page"
                 >

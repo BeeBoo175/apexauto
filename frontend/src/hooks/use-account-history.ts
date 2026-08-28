@@ -8,7 +8,8 @@ import { dateRangeError, type HistoryFilters } from "@/lib/intake/list-query";
 import { writeAddress } from "@/lib/browser-url";
 
 interface SearchableHistoryFilters extends HistoryFilters {
-  search: string;
+  // Absent for histories that are not searchable.
+  search?: string;
 }
 
 interface HistoryPage {
@@ -104,7 +105,7 @@ function writeHistoryUrl(page: number, filters: SearchableHistoryFilters) {
   for (const [key, value] of [
     ["from", filters.from],
     ["to", filters.to],
-    ["search", filters.search.trim()],
+    ["search", filters.search?.trim() ?? ""],
   ]) {
     if (value) {
       url.searchParams.set(key, value);
