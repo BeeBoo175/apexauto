@@ -1,0 +1,53 @@
+.paging {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-line);
+}
+
+.paging svg {
+  width: 16px;
+  height: 16px;
+}
+
+.pageNumbers {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.pageButton {
+  min-width: 36px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ellipsis {
+  padding-inline: 6px;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+@media (max-width: 820px) {
+  .pageButton {
+    min-width: 44px;
+  }
+}
+
+@media (max-width: 640px) {
+  .paging {
+    justify-content: space-between;
+  }
+  .pageNumbers {
+    order: -1;
+    width: 100%;
+    justify-content: center;
+  }
+  .paging > button {
+    flex: 1;
+  }
+}

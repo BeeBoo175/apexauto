@@ -14,7 +14,7 @@ import {
 import { countActiveCatalogueFilters } from "@/lib/vehicles/catalogue-controls";
 import { catalogueBudgetPresets } from "@/lib/vehicles/featured";
 import { catalogueDefaults } from "@/lib/vehicles/query";
-import styles from "./Catalogue.module.css";
+import styles from "./CatalogueFilters.module.css";
 import layout from "./VehicleLayout.module.css";
 
 interface CatalogueFiltersProps {

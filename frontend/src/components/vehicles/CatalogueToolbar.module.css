@@ -1,0 +1,129 @@
+.controlsBar {
+  display: grid;
+  gap: 12px;
+}
+
+.quickChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.quickChip {
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+@media (hover: hover) {
+  .quickChip:hover:not(:disabled) {
+    border-color: var(--color-graphite);
+  }
+}
+
+.quickChip[aria-pressed="true"] {
+  border-color: var(--color-graphite);
+  background: var(--color-graphite);
+  color: var(--color-paper);
+}
+
+.resultsToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  padding: 12px 16px;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  background: var(--color-paper);
+  box-shadow: 0 2px 8px rgb(14 27 42 / 4%);
+}
+
+.summary {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.summary strong {
+  color: var(--color-graphite);
+  font-weight: 700;
+}
+
+.sortField {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sortLabel {
+  white-space: nowrap;
+}
+
+.sortSelect {
+  min-width: 196px;
+}
+
+.appliedBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.appliedPill {
+  gap: 6px;
+  max-width: 100%;
+  border-color: var(--color-line);
+  background: var(--color-paper);
+  color: var(--color-graphite);
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.pillText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.appliedPill svg {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  color: var(--color-muted);
+}
+
+@media (hover: hover) {
+  .appliedPill:hover:not(:disabled) {
+    border-color: var(--color-graphite);
+    background: var(--color-canvas);
+  }
+  .clearAllButton:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-signal) 8%, var(--color-paper));
+  }
+}
+
+.clearAllButton {
+  color: var(--color-signal-dark);
+}
+
+@media (max-width: 640px) {
+  .resultsToolbar {
+    align-items: stretch;
+  }
+  .sortField {
+    justify-content: space-between;
+    width: 100%;
+  }
+  .sortSelect {
+    flex: 1;
+    min-width: 0;
+  }
+}

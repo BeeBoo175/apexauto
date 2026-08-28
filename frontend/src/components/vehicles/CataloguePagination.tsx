@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { buildPaginationSlots } from "@/lib/vehicles/catalogue-controls";
 import type { CataloguePage } from "@/lib/vehicles/contracts";
-import styles from "./Catalogue.module.css";
+import styles from "./CataloguePagination.module.css";
 
 interface CataloguePaginationProps {
   page: number;

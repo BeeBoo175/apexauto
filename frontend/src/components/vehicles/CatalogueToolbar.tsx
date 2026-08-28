@@ -12,7 +12,7 @@ import {
 import type { CatalogueFilters, CataloguePage } from "@/lib/vehicles/contracts";
 import { FEATURED_QUICK_FILTERS, matchingQuickFilterId } from "@/lib/vehicles/featured";
 import { catalogueDefaults } from "@/lib/vehicles/query";
-import styles from "./Catalogue.module.css";
+import styles from "./CatalogueToolbar.module.css";
 import layout from "./VehicleLayout.module.css";
 
 interface CatalogueToolbarProps {
