@@ -24,6 +24,7 @@ export interface WorkItem {
   kind: "Intake" | "TestDrive" | "Workshop" | "Sale";
   branchId: string;
   branchName: string;
+  branchShortCode: string;
   registrationPlate: string;
   vehicle: string;
   status: string;
@@ -126,6 +127,7 @@ function parseWorkItem(value: unknown): WorkItem | null {
     !isUuid(value.id) ||
     !isUuid(value.branchId) ||
     typeof value.branchName !== "string" ||
+    typeof value.branchShortCode !== "string" ||
     typeof value.registrationPlate !== "string" ||
     typeof value.vehicle !== "string" ||
     typeof value.status !== "string" ||
@@ -147,6 +149,7 @@ function parseWorkItem(value: unknown): WorkItem | null {
     kind,
     branchId: value.branchId,
     branchName: value.branchName,
+    branchShortCode: value.branchShortCode,
     registrationPlate: value.registrationPlate,
     vehicle: value.vehicle,
     status: value.status,

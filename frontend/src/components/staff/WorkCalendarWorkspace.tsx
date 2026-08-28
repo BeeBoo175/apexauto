@@ -42,6 +42,10 @@ export function WorkCalendarWorkspace({
     kinds = ["sale"];
   }
   const appointments = scheduled.data?.items;
+  // The general manager's ordered branch list fixes each branch's colour; other roles see one branch.
+  const branchOrder =
+    calendar.branches?.items.map((branch) => branch.id) ??
+    Array.from(new Set(appointments?.map((item) => item.branchId)));
   const tabs = [
     { value: "", label: "All appointments", count: appointments?.length },
     {
@@ -103,6 +107,7 @@ export function WorkCalendarWorkspace({
               <WorkCalendarEvent
                 event={event}
                 compact={compact}
+                branchOrder={branchOrder}
                 showBranch={scheduled.data?.branchId === null}
               />
             )}

@@ -548,6 +548,7 @@ test("catalogue pills and pagination slots summarize active criteria and bounded
           city: "Shah Alam",
           state: "Selangor",
           phone: "+60355551234",
+          shortCode: "GLN",
         },
       ],
       total: 1,

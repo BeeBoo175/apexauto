@@ -17,6 +17,7 @@ const row = {
   kind: "Intake",
   branchId,
   branchName: "ApexAuto Glenmarie",
+  branchShortCode: "GLN",
   registrationPlate: "VCA 9701",
   vehicle: "2020 Proton Saga Standard",
   status: "Booked",

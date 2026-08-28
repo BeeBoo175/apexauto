@@ -7,6 +7,7 @@ export interface Branch {
   city: string;
   state: string;
   phone: string;
+  shortCode: string;
 }
 
 const text = (value: unknown): value is string => typeof value === "string" && value.length > 0;
@@ -23,7 +24,8 @@ export function parseBranch(value: unknown): Branch | null {
     !text(value.address) ||
     !text(value.city) ||
     !text(value.state) ||
-    !text(value.phone)
+    !text(value.phone) ||
+    !text(value.shortCode)
   ) {
     return null;
   }
@@ -34,6 +36,7 @@ export function parseBranch(value: unknown): Branch | null {
     city: value.city,
     state: value.state,
     phone: value.phone,
+    shortCode: value.shortCode,
   };
 }
 

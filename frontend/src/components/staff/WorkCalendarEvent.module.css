@@ -48,15 +48,15 @@
 }
 
 /* Branch text colours stay outside the status palette (blue, green, grey, amber, red). */
-.rowBranch[data-branch="glenmarie"] {
+.rowBranch[data-branch="0"] {
   color: #0a6a78;
 }
 
-.rowBranch[data-branch="petaling-jaya"] {
+.rowBranch[data-branch="1"] {
   color: #9b2c5a;
 }
 
-.rowBranch[data-branch="bayan-lepas"] {
+.rowBranch[data-branch="2"] {
   color: #4b3fa0;
 }
 

@@ -6,7 +6,7 @@ import type { CalendarEvent } from "@/components/ui/calendar/types";
 import type { ScheduledWork } from "@/lib/staff/work-calendar";
 import { calendarTime } from "@/lib/calendar";
 import { branchLabel } from "@/lib/branches";
-import { getBranchKey, branchShortCode } from "@/lib/staff/work-calendar-branch";
+import { branchPosition } from "@/lib/staff/work-calendar-branch";
 import { workItemKind, workItemLabel } from "@/lib/staff/work-calendar-presentation";
 import { Icon } from "@/components/ui/Icon";
 import tones from "@/components/ui/StatusTone.module.css";
@@ -21,19 +21,25 @@ const CARD_GAP = 4;
 interface EntryProps {
   event: CalendarEvent<ScheduledWork>;
   showBranch?: boolean;
+  branchOrder: readonly string[];
   timeZone?: string;
   locale?: string;
 }
 
-function entryFacts({ event, timeZone = "Asia/Kuala_Lumpur", locale = "en-MY" }: EntryProps) {
+function entryFacts({
+  event,
+  branchOrder,
+  timeZone = "Asia/Kuala_Lumpur",
+  locale = "en-MY",
+}: EntryProps) {
   const data = event.data;
   const start = calendarTime(event.startsAt, timeZone, locale, true);
   const end = event.endsAt ? calendarTime(event.endsAt, timeZone, locale, true) : null;
   return {
     data,
     branch: data?.branchName ? branchLabel(data.branchName) : "Branch",
-    branchKey: getBranchKey(data?.branchName),
-    branchCode: branchShortCode(data?.branchName),
+    branchPosition: branchPosition(data?.branchId, branchOrder),
+    branchCode: data?.branchShortCode ?? "",
     kind: data ? workItemKind(data) : "Appointment",
     statusText: data ? workItemLabel(data) : (event.label ?? "Scheduled"),
     plate: data?.registrationPlate ?? event.title,
@@ -66,7 +72,7 @@ function EntryRow(props: EntryProps) {
         </span>
       </span>
       <span className={styles.rowSecondary}>
-        <span className={styles.rowBranch} data-branch={facts.branchKey}>
+        <span className={styles.rowBranch} data-branch={facts.branchPosition % 3}>
           {facts.branch}
         </span>
         <span className={styles.rowHandler} data-unassigned={facts.needsStaff || undefined}>
