@@ -5,11 +5,7 @@ import Link from "next/link";
 import { GuideHubBanner } from "@/components/guide/GuidePageShell";
 import { Icon } from "@/components/ui/Icon";
 import layout from "@/components/vehicles/VehicleLayout.module.css";
-import {
-  showroomBranches,
-  type BranchRegionState,
-  type ShowroomBranchInfo,
-} from "@/lib/guide/showrooms";
+import type { BranchRegionState, ShowroomBranchInfo } from "@/lib/guide/showrooms";
 import { catalogueDefaults, catalogueHref } from "@/lib/vehicles/query";
 import { MAX_MAP_ZOOM_INDEX, ShowroomMapStage } from "./ShowroomMapStage";
 import { ShowroomSlotStrip } from "./ShowroomSlotStrip";
@@ -23,7 +19,11 @@ const highlightedStatesByScope: Record<MapFocusScope, readonly string[]> = {
   "Pulau Pinang": ["Penang"],
 };
 
-export function ShowroomsWorkspace() {
+export function ShowroomsWorkspace({
+  showroomBranches,
+}: {
+  showroomBranches: readonly ShowroomBranchInfo[];
+}) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selangorFocused, setSelangorFocused] = useState(false);
   const [hoveredBranchId, setHoveredBranchId] = useState<string | null>(null);
