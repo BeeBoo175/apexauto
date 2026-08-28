@@ -29,7 +29,8 @@ public static class TestDriveMailComposer
                 ? "Your test drive booking has been cancelled. No further action is needed."
                 : "We look forward to seeing you at the showroom. Please bring your driving licence."],
             details,
-            cancelled ? [] : ["Need to change your time? Cancel from your ApexAuto account and book again."]);        return new(message.RecipientEmail, $"ApexAuto test drive {state}", MailTemplate.RenderText(layout),
+            cancelled ? [] : ["Need to change your time? Cancel from your ApexAuto account and book again."]);
+        return new(message.RecipientEmail, $"ApexAuto test drive {state}", MailTemplate.RenderText(layout),
             MailTemplate.Render(layout));
     }
 }

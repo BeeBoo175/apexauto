@@ -28,7 +28,8 @@ public sealed class ReservationDepositMailComposer(AuthMailLinks links, Reservat
             ],
             ["If you did not expect this message, ignore it and the hold will lapse. You will receive your reservation receipt after you confirm."],
             "Confirm deposit",
-            link);        return new OutboundMail(message.RecipientEmail, "Confirm your ApexAuto reservation deposit",
+            link);
+        return new OutboundMail(message.RecipientEmail, "Confirm your ApexAuto reservation deposit",
             MailTemplate.RenderText(layout), MailTemplate.Render(layout));
     }
 }

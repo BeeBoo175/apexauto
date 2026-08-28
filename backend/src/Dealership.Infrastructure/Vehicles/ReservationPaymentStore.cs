@@ -1,12 +1,13 @@
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Vehicles;
+using Dealership.Infrastructure.Mail;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
 namespace Dealership.Infrastructure.Vehicles;
 
-public sealed class ReservationPaymentStore(DealershipDbContext database) : IReservationPaymentStore
+public sealed class ReservationPaymentStore(DealershipDbContext database, MailDeliverySignal mail) : IReservationPaymentStore
 {
     public Task<ReservationDepositPayment?> FindByRequestAsync(Guid requestId, CancellationToken cancellationToken)
     {
@@ -64,6 +65,14 @@ public sealed class ReservationPaymentStore(DealershipDbContext database) : IRes
                 .SetProperty(item => item.PaidAt, paidAt).SetProperty(item => item.PaidAmountSen, paidAmountSen),
                 cancellationToken);
         database.Entry(payment).State = EntityState.Detached;
+        if (changed == 1 && state == DepositPaymentState.PaidUnmatched && paidAmountSen > 0)
+        {
+            // Only the winning delivery queues the notice that tells the customer to claim the refund.
+            database.ReservationUnmatchedPaymentMailOutbox.Add(new(payment.RequestId, paidAt));
+            await database.SaveChangesAsync(cancellationToken);
+            mail.Request();
+        }
+
         return changed == 1;
     }
 }

@@ -18,7 +18,8 @@ public static class ReservationRefundMailComposer
                 new MailDetail("Paid to", $"{bank}, account ending {refund.AccountLast4}"),
                 new MailDetail("Completed", MailFormat.LocalTime(refund.SettledAt!.Value))
             ],
-            ["Your bank may take a short while to show the refund in your account."]);        return new OutboundMail(recipientEmail, "Your ApexAuto deposit refund",
+            ["Your bank may take a short while to show the refund in your account."]);
+        return new OutboundMail(recipientEmail, "Your ApexAuto deposit refund",
             MailTemplate.RenderText(layout), MailTemplate.Render(layout));
     }
 }

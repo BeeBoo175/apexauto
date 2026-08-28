@@ -19,7 +19,8 @@ public static class ReservationMailComposer
                 new MailDetail("Promo", reservation.PromoCode ?? "None"),
                 new MailDetail("Refundable deposit", MailFormat.Money(reservation.Deposit))
             ],
-            ["Check your account for the current reservation and refund status. The deposit is refundable on cancellation or expiry."]);        return new OutboundMail(reservation.Buyer.Email, "ApexAuto reservation receipt",
+            ["Check your account for the current reservation and refund status. The deposit is refundable on cancellation or expiry."]);
+        return new OutboundMail(reservation.Buyer.Email, "ApexAuto reservation receipt",
             MailTemplate.RenderText(layout), MailTemplate.Render(layout));
     }
 }
