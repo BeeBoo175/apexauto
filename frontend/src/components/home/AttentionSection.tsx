@@ -1,4 +1,3 @@
-import type { CSSProperties } from "react";
 import { StaffLink } from "@/components/staff/StaffLink";
 import dashboard from "@/components/staff/DashboardSection.module.css";
 import { Icon } from "@/components/ui/Icon";
@@ -10,7 +9,7 @@ import type {
   PerformanceWorkload,
 } from "@/lib/performance/performance";
 import type { ScheduledWork } from "@/lib/staff/work-calendar";
-import styles from "./Home.module.css";
+import styles from "./AttentionSection.module.css";
 
 interface AttentionLine {
   key: string;
@@ -23,8 +22,6 @@ export interface AttentionGroup {
   key: string;
   title: string;
   icon: IconName;
-  // What the tile header says when lines are waiting, when their counts do not add up to one figure.
-  summary?: string;
   lines: AttentionLine[];
 }
 
@@ -122,7 +119,6 @@ export function managerAttention({ pipeline, stages, workload, schedule }: Atten
       key: "people",
       title: "Work over a week old",
       icon: "users",
-      summary: `${stretched} ${plural(stretched, "person", "people")}`,
       lines: present([
         {
           key: "stretched",
@@ -136,8 +132,7 @@ export function managerAttention({ pipeline, stages, workload, schedule }: Atten
   return groups;
 }
 
-// What needs the user now, as flat columns grouped by where they act, divided by hairlines like the rest of the
-// staff workspace. Every column keeps the band's height whether it has lines or not, so the band never moves.
+// Each confirmed count links directly to the queue where the user can act.
 export function AttentionBand({
   groups,
   ready,
@@ -164,7 +159,7 @@ export function AttentionBand({
           Some figures could not be loaded, so this may be incomplete. Reload the page to try again.
         </p>
       )}
-      <div className={styles.tiles} style={{ "--tiles": groups.length } as CSSProperties}>
+      <div className={styles.tiles}>
         {groups.map((group) => (
           <div
             key={group.key}
@@ -178,9 +173,6 @@ export function AttentionBand({
               </span>
               <h3 className={styles.tileTitle}>{group.title}</h3>
             </div>
-            {ready && group.lines.length > 0 && (
-              <span className={styles.tileTotal}>{groupTotal(group)}</span>
-            )}
             <AttentionLines group={group} ready={ready} />
           </div>
         ))}
@@ -197,24 +189,12 @@ function tileTone(group: AttentionGroup, ready: boolean) {
   return group.lines.length > 0 ? "waiting" : "clear";
 }
 
-// The one figure that heads each column, in the same type as the headline figures on Performance.
-function groupTotal(group: AttentionGroup) {
-  return group.lines.reduce((sum, line) => sum + line.count, 0);
-}
-
 function AttentionLines({ group, ready }: { group: AttentionGroup; ready: boolean }) {
   if (!ready) {
     return <span className={`${dashboard.placeholder} ${styles.shellTile}`} />;
   }
   if (group.lines.length === 0) {
-    return (
-      <p className={styles.allClear}>
-        <span className={styles.clearTick} aria-hidden="true">
-          <Icon name="check" grid={24} />
-        </span>
-        Nothing waiting
-      </p>
-    );
+    return <p className={styles.allClear}>All clear</p>;
   }
   return (
     <ul className={styles.tileLines}>
@@ -223,6 +203,7 @@ function AttentionLines({ group, ready }: { group: AttentionGroup; ready: boolea
           <StaffLink href={line.href} className={styles.tileLine}>
             <span className={styles.tileCount}>{line.count}</span>
             <span className={styles.tileText}>{line.text}</span>
+            <Icon name="next" />
           </StaffLink>
         </li>
       ))}

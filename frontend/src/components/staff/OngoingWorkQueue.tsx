@@ -1,18 +1,12 @@
 import { Badge } from "@/components/ui/Badge";
-import { WorkshopStatus } from "@/components/inspection/WorkshopStatus";
-import { SaleStatus } from "@/components/sales/SaleStatus";
-import { workshopStatuses } from "@/lib/inspection/workshop-contracts";
-import { saleStatuses } from "@/lib/sales/contracts";
 import type { IconName } from "@/lib/icons";
 import { EmptyNotice } from "@/components/ui/EmptyNotice";
 import { StaffQueueTabs } from "./StaffQueueTabs";
 import { StaffQueueFooter } from "./StaffQueueFooter";
-import type { UnscheduledWorkPage, WorkItem } from "@/lib/staff/work-calendar";
-import { workItemHref } from "@/lib/staff/work-calendar-presentation";
-import { StaffLink } from "./StaffLink";
+import type { UnscheduledWorkPage } from "@/lib/staff/work-calendar";
+import { OngoingWorkItem } from "./OngoingWorkItem";
 import queue from "./StaffQueueWorkspace.module.css";
 import styles from "./WorkCalendar.module.css";
-import { PersonLabel } from "./PersonLabel";
 
 const emptyKinds: Record<
   "" | "workshop" | "sale",
@@ -99,33 +93,7 @@ export function OngoingWorkQueue({
         <ul className={queue.jobs}>
           {snapshot?.items.map((item) => (
             <li key={`${item.kind}:${item.id}`}>
-              <StaffLink
-                href={workItemHref(item)}
-                prefetch={false}
-                className={`${queue.job} ${styles.workLink}`}
-              >
-                <span className={queue.jobHeading}>
-                  <span className={queue.identity}>
-                    <strong>{item.registrationPlate}</strong>
-                    <span>{item.vehicle}</span>
-                  </span>
-                  <OngoingStatus item={item} />
-                </span>
-                {!own && (
-                  <span className={queue.jobMeta}>
-                    {showBranch && `${item.branchName} · `}
-                    {item.handlerId && item.handlerEmail && (
-                      <PersonLabel
-                        id={item.handlerId}
-                        name={item.handlerName ?? item.handlerEmail}
-                        identity={item.handlerEmail}
-                        pictureId={item.handlerPictureId}
-                        nested
-                      />
-                    )}
-                  </span>
-                )}
-              </StaffLink>
+              <OngoingWorkItem item={item} own={own} showBranch={showBranch} />
             </li>
           ))}
         </ul>
@@ -141,13 +109,4 @@ export function OngoingWorkQueue({
       )}
     </section>
   );
-}
-
-function OngoingStatus({ item }: { item: WorkItem }) {
-  if (item.kind === "Workshop") {
-    const status = workshopStatuses.find((value) => value === item.status);
-    return status ? <WorkshopStatus status={status} /> : null;
-  }
-  const status = saleStatuses.find((value) => value === item.status);
-  return status ? <SaleStatus status={status} /> : null;
 }

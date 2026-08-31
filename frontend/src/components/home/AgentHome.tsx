@@ -11,12 +11,12 @@ import type { CurrentActor } from "@/lib/auth/actor";
 import type { HomeEntry } from "@/hooks/use-home-entry";
 import type { SalesQueue } from "@/lib/sales/contracts";
 import { queueViewQueries } from "@/lib/sales/contracts";
-import { workItemHref, workItemLabel } from "@/lib/staff/work-calendar-presentation";
+import { OngoingWorkItem } from "@/components/staff/OngoingWorkItem";
+import queueStyles from "@/components/staff/StaffQueueWorkspace.module.css";
 import type { ScheduledWork, UnscheduledWorkPage } from "@/lib/staff/work-calendar";
 import { AttentionBand, type AttentionGroup } from "./AttentionSection";
 import { HomeLayout } from "./HomeLayout";
 import { ScheduleSection } from "./ScheduleSection";
-import styles from "./Home.module.css";
 
 const salesHref = (view: keyof typeof queueViewQueries) =>
   `/dashboard/sales?view=${queueViewQueries[view]}`;
@@ -118,14 +118,10 @@ function OpenWorkSection({
     >
       {work && work.items.length === 0 && <p className={dashboard.note}>You have no open work.</p>}
       {work && work.items.length > 0 && (
-        <ul className={styles.workList}>
+        <ul className={queueStyles.jobs}>
           {work.items.map((item) => (
             <li key={`${item.kind}:${item.id}`}>
-              <StaffLink href={workItemHref(item)} className={styles.workItem}>
-                <span className={styles.workPlate}>{item.registrationPlate}</span>
-                <span className={styles.workVehicle}>{item.vehicle}</span>
-                <span className={styles.workStatus}>{workItemLabel(item)}</span>
-              </StaffLink>
+              <OngoingWorkItem item={item} />
             </li>
           ))}
         </ul>

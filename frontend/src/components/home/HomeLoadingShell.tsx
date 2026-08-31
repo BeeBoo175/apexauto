@@ -1,7 +1,7 @@
-import type { CSSProperties } from "react";
 import dashboard from "@/components/staff/DashboardSection.module.css";
 import { RowsSkeleton } from "@/components/staff/DashboardSkeletons";
 import styles from "./Home.module.css";
+import attention from "./AttentionSection.module.css";
 
 // The first paint of Home, built from the same frame classes as the loaded page: the filter toolbar for the role
 // that has one, the band with the role's number of tiles and the two panes. The page reveals into this geometry.
@@ -14,16 +14,16 @@ export function HomeLoadingShell({ tiles, toolbar }: { tiles: number; toolbar: b
         </div>
       )}
       <div className={styles.view}>
-        <div className={styles.band}>
+        <div className={attention.band}>
           <span className={`${dashboard.placeholder} ${dashboard.shellTitle}`} />
-          <div className={styles.tiles} style={{ "--tiles": tiles } as CSSProperties}>
+          <div className={attention.tiles}>
             {Array.from({ length: tiles }, (_, index) => (
-              <div key={index} className={styles.tile}>
-                <div className={styles.tileHead}>
-                  <span className={`${dashboard.placeholder} ${styles.tileIcon}`} />
+              <div key={index} className={attention.tile}>
+                <div className={attention.tileHead}>
+                  <span className={`${dashboard.placeholder} ${attention.tileIcon}`} />
                   <span className={`${dashboard.placeholder} ${dashboard.shellTitle}`} />
                 </div>
-                <span className={`${dashboard.placeholder} ${styles.shellTile}`} />
+                <span className={`${dashboard.placeholder} ${attention.shellTile}`} />
               </div>
             ))}
           </div>
