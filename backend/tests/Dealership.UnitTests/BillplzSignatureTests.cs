@@ -43,8 +43,10 @@ public sealed class BillplzSignatureTests
     [Fact]
     public void VerifyAcceptsTheRightSignatureAndRejectsATamperedFieldAKeyOrAMissingSignature()
     {
-        var fields = new Dictionary<string, string>(Fields);
-        fields["x_signature"] = BillplzSignature.Compute(Fields, Key);
+        var fields = new Dictionary<string, string>(Fields)
+        {
+            ["x_signature"] = BillplzSignature.Compute(Fields, Key)
+        };
 
         Assert.True(BillplzSignature.Verify(fields, Key));
         Assert.False(BillplzSignature.Verify(fields, "other-key"));

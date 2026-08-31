@@ -15,14 +15,14 @@ public sealed class ReservationRefundStore(DealershipDbContext database, MailDel
         var ids = due.Select(item => item.PaymentRequestId).ToList();
         var existing = await database.ReservationRefunds.AsNoTracking()
             .Where(item => ids.Contains(item.PaymentRequestId)).ToListAsync(cancellationToken);
-        return due.OrderByDescending(item => item.DueAt).Select(item =>
+        return [.. due.OrderByDescending(item => item.DueAt).Select(item =>
         {
             var refund = existing.SingleOrDefault(row => row.PaymentRequestId == item.PaymentRequestId);
             return new RefundView(item.PaymentRequestId, item.AmountSen, item.Reason,
                 $"{item.Year} {item.Make} {item.Model} ({item.Plate})",
                 refund is null ? "due" : RefundView.StateName(refund.State), refund?.BankCode,
                 refund?.AccountLast4, item.DueAt);
-        }).ToList();
+        })];
     }
 
     public async Task<RefundDue?> FindDueAsync(Guid customerId, Guid paymentRequestId, CancellationToken cancellationToken)

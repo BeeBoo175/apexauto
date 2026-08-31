@@ -37,7 +37,7 @@ public sealed class MinimalSeedSettingsTests(IntakePhotoFixture fixture) : IClas
         Assert.False(review.Single(report => report.Fixture == "Purchase settings").RequiresAttention);
     }
 
-    private ServiceProvider CreateProvider(string connection)
+    private static ServiceProvider CreateProvider(string connection)
     {
         var configuration = new ConfigurationBuilder()
             .AddJsonFile(Path.Combine(AppContext.BaseDirectory, "appsettings.json"))
