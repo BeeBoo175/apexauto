@@ -146,7 +146,7 @@
   width: 12px;
   height: 100%;
   cursor: col-resize;
-  touch-action: none;
+  touch-action: pan-x pan-y;
 }
 
 .resize::after {

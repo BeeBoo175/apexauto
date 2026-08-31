@@ -353,6 +353,12 @@
 }
 
 @media (max-width: 820px) {
+  .workspace[data-scroll-with-host="true"] > nav {
+    position: sticky;
+    top: var(--staff-sticky-offset, 104px);
+    z-index: 3;
+  }
+
   .workspace[data-scroll-with-host="true"] .body {
     flex: 0 0 auto;
     overflow: visible;

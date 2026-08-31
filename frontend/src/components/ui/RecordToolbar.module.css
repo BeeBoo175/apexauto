@@ -93,7 +93,44 @@
 }
 
 @media (max-width: 480px) {
-  .filterButton > span:not(.filterCount) {
+  .filterLabel {
     display: none;
+  }
+}
+
+.toolbarActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.toolbarActions:empty {
+  display: none;
+}
+
+@media (max-width: 820px) {
+  .toolbar[data-summary-inline] .toolbarMain {
+    flex-wrap: nowrap;
+  }
+
+  .toolbar[data-summary-inline] .queryActions {
+    flex: 1 1 auto;
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  .toolbar[data-summary-inline] .queryActions > div {
+    min-width: 0;
+  }
+
+  .toolbar[data-summary-inline] .filterButton {
+    flex-shrink: 0;
+  }
+
+  .toolbar[data-summary-inline] .toolbarActions {
+    flex: 0 0 auto;
   }
 }

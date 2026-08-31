@@ -17,6 +17,7 @@ export function ViewSwitcher<T extends string>({
   onChange,
   className = "",
   labelled = false,
+  appearance = "shell",
 }: {
   label: string;
   value: T;
@@ -26,13 +27,14 @@ export function ViewSwitcher<T extends string>({
   className?: string;
   // Shows the text beside the icon, in wider options, when the icons alone would not be obvious.
   labelled?: boolean;
+  appearance?: "shell" | "surface";
 }) {
   return (
     <div
       role="group"
       aria-label={label}
       data-second={value === options[1].value}
-      className={`${styles.switch} ${labelled ? styles.labelled : ""} ${className}`.trim()}
+      className={`${styles.switch} ${labelled ? styles.labelled : ""} ${appearance === "surface" ? styles.surface : ""} ${className}`.trim()}
     >
       <span className={styles.thumb} aria-hidden="true" />
       {options.map((option) => (

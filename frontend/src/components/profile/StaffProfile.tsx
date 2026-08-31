@@ -35,7 +35,7 @@ export function StaffProfile({ profile }: { profile: AccountProfile }) {
   return (
     <>
       <StaffCommandBar title="Account" />
-      <div className={workbench.workspace}>
+      <div className={workbench.workspace} data-scroll-with-host="true">
         <StaffRecordSummary
           ariaLabel="Your account"
           label={place}

@@ -59,7 +59,11 @@
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scroll-padding-inline: 16px;
-  scrollbar-width: thin;
+  scrollbar-width: none;
+}
+
+.tabStrip::-webkit-scrollbar {
+  display: none;
 }
 
 .mobileSelect {

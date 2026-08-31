@@ -100,7 +100,7 @@
 }
 
 @media (max-width: 820px) {
-  .chip {
+  button.chip {
     min-height: 44px;
   }
 }

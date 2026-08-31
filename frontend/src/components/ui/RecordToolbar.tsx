@@ -35,7 +35,7 @@ export function RecordToolbar({
   const anchor = `--table-filters-${id.replace(/[^a-zA-Z0-9-]/g, "")}`;
 
   return (
-    <div className={styles.toolbar}>
+    <div className={styles.toolbar} data-summary-inline={summaryInline || undefined}>
       <div className={styles.toolbarMain}>
         <div className={styles.queryActions}>
           {children && <div className={styles.query}>{children}</div>}
@@ -44,6 +44,7 @@ export function RecordToolbar({
               variant={expanded ? "secondary" : "ghost"}
               size="compact"
               disabled={disabled}
+              aria-label="Filters"
               aria-expanded={expanded}
               aria-controls={panelId}
               popoverTarget={panelId}
@@ -52,7 +53,7 @@ export function RecordToolbar({
               data-filtered={filterCount > 0 || undefined}
             >
               <Icon name="filter" />
-              <span>Filters</span>
+              <span className={styles.filterLabel}>Filters</span>
               {filterCount > 0 && (
                 <span className={styles.filterCount} aria-label={`${filterCount} applied filters`}>
                   {filterCount}
@@ -62,7 +63,7 @@ export function RecordToolbar({
           )}
           {summaryInline && filterSummary}
         </div>
-        {actions}
+        {actions && <div className={styles.toolbarActions}>{actions}</div>}
       </div>
       {!summaryInline && filterSummary}
       {filters && (

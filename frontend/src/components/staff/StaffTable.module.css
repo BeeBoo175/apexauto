@@ -33,6 +33,10 @@
 
 .money,
 .date {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -56,4 +60,10 @@
   --status-min-height: 20px;
   --status-font-size: 12px;
   --status-line-height: 16px;
+}
+
+.inline .muted {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

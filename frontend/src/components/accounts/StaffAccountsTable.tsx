@@ -62,7 +62,9 @@ export function StaffAccountsTable({
       cell: (row) => (
         <span className={table.inline}>
           <Avatar accountId={row.id} name={row.name} pictureId={row.pictureId} size="sm" />
-          {row.name}
+          <span className={table.context} title={row.name}>
+            {row.name}
+          </span>
         </span>
       ),
     },

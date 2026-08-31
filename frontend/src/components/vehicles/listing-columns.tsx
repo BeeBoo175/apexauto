@@ -95,7 +95,11 @@ function ActivityCell({ item }: { item: ListingItem }) {
   return (
     <div className={styles.inline}>
       <Badge className={`${tones.badge} ${tones[tone]} ${styles.event}`}>{activity.label}</Badge>
-      <time className={styles.date} dateTime={activity.at}>
+      <time
+        className={styles.date}
+        dateTime={activity.at}
+        title={formatMalaysianDateTime(activity.at)}
+      >
         {formatMalaysianDateTime(activity.at)}
       </time>
     </div>

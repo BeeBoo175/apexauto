@@ -17,7 +17,12 @@ export function useColumnResize(columns: readonly ResizeColumn[]) {
     const headers = event.currentTarget
       .closest("thead")
       ?.querySelectorAll<HTMLElement>("[data-column-id]");
-    if (!headers || headers.length !== columns.length || event.button !== 0) {
+    if (
+      !headers ||
+      headers.length !== columns.length ||
+      event.button !== 0 ||
+      event.pointerType === "touch"
+    ) {
       return;
     }
     event.preventDefault();
