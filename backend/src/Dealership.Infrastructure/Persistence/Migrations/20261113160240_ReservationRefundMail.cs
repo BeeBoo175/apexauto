@@ -8,6 +8,8 @@ namespace Dealership.Infrastructure.Persistence.Migrations
     /// <inheritdoc />
     public partial class ReservationRefundMail : Migration
     {
+        private static readonly string[] DeliveryIndexColumns = ["NextDeliveryAt", "Id"];
+
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -38,7 +40,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_ReservationRefundMailOutbox_NextDeliveryAt_Id",
                 table: "ReservationRefundMailOutbox",
-                columns: new[] { "NextDeliveryAt", "Id" });
+                columns: DeliveryIndexColumns);
 
             migrationBuilder.CreateIndex(
                 name: "IX_ReservationRefundMailOutbox_RefundId",
