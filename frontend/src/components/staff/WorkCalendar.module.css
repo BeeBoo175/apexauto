@@ -69,12 +69,6 @@
   border-bottom: 1px solid var(--color-line);
 }
 
-.workLink {
-  color: var(--color-graphite);
-  text-decoration: none;
-  overflow-wrap: anywhere;
-}
-
 .workLink:hover {
   background: var(--color-canvas);
 }
@@ -171,26 +165,68 @@
   }
 }
 
+@media (min-width: 821px) and (max-width: 1100px) {
+  .workspace {
+    flex: 1 1 auto;
+    overflow-y: auto;
+  }
+
+  .content {
+    flex: none;
+  }
+}
+
+.mobileNavigation {
+  display: none;
+}
+
+.appointmentFilters {
+  width: 220px;
+  max-width: 100%;
+}
+
 @media (max-width: 820px) {
   .workspace {
     --work-queue-header-height: 45px;
   }
 
+  .sharedFilters {
+    position: sticky;
+    top: var(--staff-sticky-offset, 104px);
+    z-index: 4;
+  }
+
+  .mobileNavigation {
+    display: block;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--color-line);
+    background: var(--color-paper);
+  }
+
+  .appointmentFilters {
+    width: 100%;
+  }
+
   .ongoing {
-    height: 400px;
-    max-height: 55svh;
+    height: auto;
+    max-height: none;
+  }
+
+  .content[data-mobile-panel="appointments"] .ongoing,
+  .content[data-mobile-panel="ongoing"] .scheduled {
+    display: none;
   }
 }
 
-.filterActions {
+.warningHint {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
+  gap: 4px;
+  margin-top: 4px;
+  color: var(--color-warning);
 }
 
-.assignmentControl {
-  width: 200px;
-  min-width: 0;
+.warningHint > span {
+  width: 14px;
+  height: 14px;
 }

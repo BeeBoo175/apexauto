@@ -253,7 +253,7 @@
 
 @media (max-width: 820px) {
   .grid {
-    height: 420px;
+    height: 290px;
   }
 
   .weeks {
@@ -264,14 +264,17 @@
 
   .dayTop,
   .month[data-fit] .dayTop {
+    position: relative;
     padding: 0;
   }
 
   .date {
     display: flex;
     width: 100%;
-    min-height: 60px;
-    gap: 2px;
+    min-height: 44px;
+    gap: 4px;
+    font-size: 14px;
+    font-weight: 600;
   }
 
   .date[data-selected] {
@@ -280,10 +283,17 @@
   }
 
   .mobileCount {
-    display: block;
-    min-height: 16px;
-    color: var(--color-muted);
-    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 6px;
+  }
+
+  .eventDot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-interaction-border, var(--color-graphite));
   }
 
   .events,

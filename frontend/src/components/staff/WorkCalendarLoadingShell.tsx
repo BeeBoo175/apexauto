@@ -35,7 +35,10 @@ export function WorkCalendarLoadingShell() {
           </div>
         </div>
       </div>
-      <div className={work.content}>
+      <div className={work.mobileNavigation}>
+        <span className={styles.calendarFilter} />
+      </div>
+      <div className={work.content} data-mobile-panel="appointments">
         <aside className={work.ongoing}>
           <TabStrip count={3} narrow />
           <div className={queue.list}>

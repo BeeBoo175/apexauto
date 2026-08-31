@@ -112,6 +112,9 @@ export function Calendar<Data>(props: CalendarProps<Data>) {
         </div>
         {props.toolbar && <div className={styles.tools}>{props.toolbar}</div>}
       </div>
+      <p className={styles.mobileHint}>
+        {props.mobileHint ?? "Dots mark appointments. Select a date for details."}
+      </p>
       <CalendarMonth
         key={month}
         {...props}

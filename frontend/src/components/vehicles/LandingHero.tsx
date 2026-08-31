@@ -1,6 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import heroPhoto from "../../../public/images/apexauto-hero.avif";
 import { buttonClassName } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { formatCurrency } from "@/lib/currency-format";
@@ -30,7 +29,14 @@ export function LandingHero({
   return (
     <section className={styles.hero} aria-labelledby="landing-hero-title">
       <div className={styles.media} aria-hidden="true">
-        <Image src={heroPhoto} alt="" fill priority sizes="100vw" className={styles.mediaImage} />
+        <Image
+          src="/images/apexauto-hero.avif"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className={styles.mediaImage}
+        />
         <div className={styles.mediaScrim} />
       </div>
       <div className={`${layout.content} ${styles.inner}`}>

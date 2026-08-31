@@ -230,3 +230,46 @@
 .hoverCard .row {
   border-bottom: 0;
 }
+
+@media (max-width: 820px) {
+  .dayMark {
+    position: absolute;
+    top: 3px;
+    left: 2px;
+    height: 14px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    pointer-events: none;
+  }
+
+  .dayMark > span:nth-child(2) {
+    display: none;
+  }
+
+  .row {
+    gap: 6px;
+    padding: 12px 16px;
+  }
+
+  .rowPrimary {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 12px;
+  }
+
+  .rowTime {
+    grid-column: 1 / -1;
+  }
+
+  .rowSecondary {
+    flex-wrap: wrap;
+  }
+
+  .rowHandler {
+    flex-shrink: 1;
+    margin-left: 0;
+    overflow-wrap: anywhere;
+  }
+}

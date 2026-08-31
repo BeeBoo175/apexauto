@@ -24,6 +24,7 @@ export interface CalendarProps<Data = unknown> {
   confirmed?: boolean;
   fit?: boolean;
   toolbar?: ReactNode;
+  mobileHint?: ReactNode;
   onMonthChange: (date: string) => void;
   onEventSelect: (event: CalendarEvent<Data>) => void;
   renderDayMark?: (events: readonly CalendarEvent<Data>[]) => ReactNode;

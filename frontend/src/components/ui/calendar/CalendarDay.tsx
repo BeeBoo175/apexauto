@@ -32,7 +32,9 @@ export function CalendarDay<Data>({ date, events, selected, active, ...props }: 
           <span className={styles.dayNumber}>
             <span className={styles.dayNumberText}>{Number(date.slice(-2))}</span>
           </span>
-          <span className={styles.mobileCount}>{count > 0 ? count : ""}</span>
+          <span className={styles.mobileCount} aria-hidden="true">
+            {count > 0 && <span className={styles.eventDot} />}
+          </span>
         </button>
       </div>
       <div className={styles.events}>

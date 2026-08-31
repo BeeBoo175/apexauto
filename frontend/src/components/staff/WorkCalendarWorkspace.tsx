@@ -1,6 +1,9 @@
 "use client";
 
 import { useContext, useState } from "react";
+import { Icon } from "@/components/ui/Icon";
+import { ViewSwitcher } from "@/components/ui/ViewSwitcher";
+import { Select } from "@/components/ui/Input";
 import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import { useRouter } from "next/navigation";
 import { Calendar } from "@/components/ui/calendar/Calendar";
@@ -28,6 +31,7 @@ export function WorkCalendarWorkspace({
   actor: CurrentActor;
   entry: WorkCalendarEntry;
 }) {
+  const [mobilePanel, setMobilePanel] = useState<"appointments" | "ongoing">("appointments");
   const [scheduledKind, setScheduledKind] = useState<"" | "Intake" | "TestDrive">("");
   const calendar = useWorkCalendar(actor, entry);
   const { scheduled, unscheduled, pending } = calendar;
@@ -77,7 +81,26 @@ export function WorkCalendarWorkspace({
         }
       />
       <WorkCalendarFilters actor={actor} calendar={calendar} />
-      <div className={`${styles.content} ${animate ? layout.reveal : ""}`}>
+      <div className={styles.mobileNavigation}>
+        <ViewSwitcher
+          label="Work calendar view"
+          appearance="surface"
+          labelled
+          value={mobilePanel}
+          options={[
+            { value: "appointments", label: "Appointments", icon: "calendar" },
+            { value: "ongoing", label: "Ongoing work", icon: "clipboard-list" },
+          ]}
+          onChange={(panel) => {
+            setMobilePanel(panel);
+            window.scrollTo({ top: 0 });
+          }}
+        />
+      </div>
+      <div
+        className={`${styles.content} ${animate ? layout.reveal : ""}`}
+        data-mobile-panel={mobilePanel}
+      >
         <OngoingWorkQueue
           snapshot={unscheduled.data}
           busy={pending.unscheduled}
@@ -102,6 +125,16 @@ export function WorkCalendarWorkspace({
           </header>
           <Calendar
             label="Work calendar"
+            mobileHint={
+              <>
+                Dots mark appointments. Select a date for details.
+                {!own && (
+                  <span className={styles.warningHint}>
+                    <Icon name="alert-triangle" /> Unassigned appointments
+                  </span>
+                )}
+              </>
+            }
             renderDayMark={(events) => <UnassignedDayMark events={events} />}
             renderEvent={(event, { compact }) => (
               <WorkCalendarEvent
@@ -128,7 +161,36 @@ export function WorkCalendarWorkspace({
             timeZone="Asia/Kuala_Lumpur"
             busy={pending.scheduled}
             fit
-            toolbar={<>{!scheduled.data && <ReloadNotice subject="Scheduled work" />}</>}
+            toolbar={
+              <>
+                {!scheduled.data && <ReloadNotice subject="Scheduled work" />}
+                {actor.role !== "SalesAgent" && (
+                  <div className={styles.appointmentFilters}>
+                    <Select
+                      label="Assignment"
+                      labelHidden
+                      density="compact"
+                      value={scheduled.filters.assignment}
+                      disabled={pending.scheduled}
+                      onChange={(event) => {
+                        const assignment = event.target.value;
+                        if (
+                          assignment === "all" ||
+                          assignment === "assigned" ||
+                          assignment === "unassigned"
+                        ) {
+                          void calendar.changeAssignment(assignment);
+                        }
+                      }}
+                    >
+                      <option value="all">All appointments</option>
+                      <option value="assigned">Assigned</option>
+                      <option value="unassigned">Unassigned</option>
+                    </Select>
+                  </div>
+                )}
+              </>
+            }
             onMonthChange={(date) => void calendar.changeMonth(date)}
             onEventSelect={(event) => {
               if (!event.data) {
