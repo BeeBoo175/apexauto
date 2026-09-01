@@ -147,7 +147,6 @@ export function ListingTable({
                 <>
                   <StaffQueueTabs
                     label="Listing queues"
-                    mobilePresentation="select"
                     countNoun="listings"
                     tabs={listingPublicationOptions.map((option) => ({
                       ...option,

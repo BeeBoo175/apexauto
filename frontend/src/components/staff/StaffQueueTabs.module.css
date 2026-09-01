@@ -66,10 +66,6 @@
   display: none;
 }
 
-.mobileSelect {
-  display: none;
-}
-
 .sectionButton {
   min-height: 48px;
   height: auto;
@@ -133,15 +129,6 @@
 
   .sectionButton {
     min-height: 44px;
-  }
-
-  .sections[data-mobile-presentation="select"] .tabStrip {
-    display: none;
-  }
-
-  .sections[data-mobile-presentation="select"] .mobileSelect {
-    display: block;
-    padding: 8px 16px;
   }
 }
 

@@ -109,7 +109,6 @@
     scroll-padding-inline: 4px;
     scrollbar-width: thin;
     scrollbar-color: var(--color-line) transparent;
-    padding-block: 2px 6px;
   }
 
   .chip {

@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { Select } from "@/components/ui/Input";
 import styles from "./StaffQueueTabs.module.css";
 
 function revealTab(button: HTMLButtonElement | null) {
@@ -27,7 +26,6 @@ export function StaffQueueTabs<T extends string>({
   tabs,
   value,
   disabled = false,
-  mobilePresentation = "tabs",
   countNoun = "records",
   layout = "scroll",
   onChange,
@@ -36,7 +34,6 @@ export function StaffQueueTabs<T extends string>({
   tabs: readonly { value: T; label: string; count?: number }[];
   value: T;
   disabled?: boolean;
-  mobilePresentation?: "tabs" | "select";
   countNoun?: string;
   layout?: "scroll" | "queue" | "queue-wide";
   onChange: (value: T) => void;
@@ -58,34 +55,7 @@ export function StaffQueueTabs<T extends string>({
     return null;
   }
   return (
-    <nav
-      className={styles.sections}
-      aria-label={label}
-      data-mobile-presentation={mobilePresentation}
-      data-layout={layout}
-    >
-      {mobilePresentation === "select" && (
-        <div className={styles.mobileSelect}>
-          <Select
-            label={label}
-            labelHidden
-            value={value}
-            disabled={disabled}
-            onChange={(event) => {
-              const selected = tabs.find((tab) => tab.value === event.target.value);
-              if (selected) {
-                onChange(selected.value);
-              }
-            }}
-          >
-            {tabs.map((tab) => (
-              <option key={tab.value} value={tab.value}>
-                {tab.count === undefined ? tab.label : `${tab.label} (${tab.count})`}
-              </option>
-            ))}
-          </Select>
-        </div>
-      )}
+    <nav className={styles.sections} aria-label={label} data-layout={layout}>
       <div className={styles.tabStrip}>
         {tabs.map((tab) => (
           <Button

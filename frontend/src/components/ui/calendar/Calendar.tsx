@@ -51,6 +51,11 @@ export function Calendar<Data>(props: CalendarProps<Data>) {
     year: "numeric",
     timeZone: "UTC",
   }).format(new Date(`${first}T00:00:00Z`));
+  const shortHeading = new Intl.DateTimeFormat(props.locale, {
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${first}T00:00:00Z`));
 
   return (
     <section
@@ -60,7 +65,14 @@ export function Calendar<Data>(props: CalendarProps<Data>) {
       className={styles.calendar}
     >
       <div className={styles.toolbar}>
-        <h2 aria-live="polite">{heading}</h2>
+        <h2 aria-live="polite" aria-label={heading} title={heading}>
+          <span className={styles.fullMonth} aria-hidden="true">
+            {heading}
+          </span>
+          <span className={styles.shortMonth} aria-hidden="true">
+            {shortHeading}
+          </span>
+        </h2>
         <div className={styles.navigation}>
           <Button
             size="compact"
@@ -111,10 +123,10 @@ export function Calendar<Data>(props: CalendarProps<Data>) {
           </Button>
         </div>
         {props.toolbar && <div className={styles.tools}>{props.toolbar}</div>}
+        <div className={styles.mobileHint} aria-label="Calendar legend">
+          {props.mobileHint ?? "Select a date for details."}
+        </div>
       </div>
-      <p className={styles.mobileHint}>
-        {props.mobileHint ?? "Dots mark appointments. Select a date for details."}
-      </p>
       <CalendarMonth
         key={month}
         {...props}

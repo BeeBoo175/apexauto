@@ -127,10 +127,13 @@ export function WorkCalendarWorkspace({
             label="Work calendar"
             mobileHint={
               <>
-                Dots mark appointments. Select a date for details.
+                <span className={styles.legendKey}>
+                  <span className={styles.appointmentDot} aria-hidden="true" />
+                  Appointments
+                </span>
                 {!own && (
                   <span className={styles.warningHint}>
-                    <Icon name="alert-triangle" /> Unassigned appointments
+                    <Icon name="alert-triangle" /> Unassigned
                   </span>
                 )}
               </>
@@ -166,8 +169,11 @@ export function WorkCalendarWorkspace({
                 {!scheduled.data && <ReloadNotice subject="Scheduled work" />}
                 {actor.role !== "SalesAgent" && (
                   <div className={styles.appointmentFilters}>
+                    <span className={styles.assignmentLabel} aria-hidden="true">
+                      Assignment
+                    </span>
                     <Select
-                      label="Assignment"
+                      label="Appointment assignment"
                       labelHidden
                       density="compact"
                       value={scheduled.filters.assignment}
@@ -183,7 +189,7 @@ export function WorkCalendarWorkspace({
                         }
                       }}
                     >
-                      <option value="all">All appointments</option>
+                      <option value="all">Any assignment</option>
                       <option value="assigned">Assigned</option>
                       <option value="unassigned">Unassigned</option>
                     </Select>

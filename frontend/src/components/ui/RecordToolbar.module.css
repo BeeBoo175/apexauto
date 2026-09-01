@@ -26,6 +26,10 @@
   font-weight: 500;
 }
 
+.toolbar:has([aria-label="Applied filters"]) {
+  padding-bottom: 0;
+}
+
 .queryActions {
   flex: 1 1 360px;
   min-width: 0;

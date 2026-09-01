@@ -185,6 +185,10 @@
   max-width: 100%;
 }
 
+.assignmentLabel {
+  display: none;
+}
+
 @media (max-width: 820px) {
   .workspace {
     --work-queue-header-height: 45px;
@@ -204,7 +208,23 @@
   }
 
   .appointmentFilters {
+    display: flex;
+    align-items: center;
+    gap: 16px;
     width: 100%;
+  }
+
+  .appointmentFilters > div {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .assignmentLabel {
+    display: block;
+    flex: 0 0 88px;
+    color: var(--color-muted);
+    font-size: 14px;
+    line-height: 20px;
   }
 
   .ongoing {
@@ -218,15 +238,27 @@
   }
 }
 
+.legendKey,
 .warningHint {
   display: flex;
   align-items: center;
-  gap: 4px;
-  margin-top: 4px;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.warningHint {
   color: var(--color-warning);
 }
 
 .warningHint > span {
   width: 14px;
   height: 14px;
+}
+
+.appointmentDot {
+  flex: 0 0 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-interaction-border);
 }
