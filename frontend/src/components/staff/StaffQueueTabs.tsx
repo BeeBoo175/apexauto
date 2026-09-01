@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { ScrollStrip } from "@/components/ui/ScrollStrip";
 import styles from "./StaffQueueTabs.module.css";
 
 function revealTab(button: HTMLButtonElement | null) {
@@ -56,7 +57,7 @@ export function StaffQueueTabs<T extends string>({
   }
   return (
     <nav className={styles.sections} aria-label={label} data-layout={layout}>
-      <div className={styles.tabStrip}>
+      <ScrollStrip label={label} className={styles.tabStrip}>
         {tabs.map((tab) => (
           <Button
             key={tab.value}
@@ -78,7 +79,7 @@ export function StaffQueueTabs<T extends string>({
             )}
           </Button>
         ))}
-      </div>
+      </ScrollStrip>
     </nav>
   );
 }

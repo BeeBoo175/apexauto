@@ -104,11 +104,7 @@
     flex-wrap: nowrap;
     min-width: 0;
     max-width: 100%;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
     scroll-padding-inline: 4px;
-    scrollbar-width: thin;
-    scrollbar-color: var(--color-line) transparent;
   }
 
   .chip {

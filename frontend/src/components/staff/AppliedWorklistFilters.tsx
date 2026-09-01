@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
+import { ScrollStrip } from "@/components/ui/ScrollStrip";
 import type { AppliedFilter } from "@/lib/staff/filter-summary";
 import styles from "./WorklistFilters.module.css";
 
@@ -17,7 +18,7 @@ export function AppliedWorklistFilters<Filters>({
   }
 
   return (
-    <div className={styles.summary} role="group" aria-label="Applied filters" tabIndex={0}>
+    <ScrollStrip label="Applied filters" className={styles.summary}>
       {filters.map((filter) => {
         const without = filter.without;
         if (filter.fixed) {
@@ -45,6 +46,6 @@ export function AppliedWorklistFilters<Filters>({
           </Button>
         );
       })}
-    </div>
+    </ScrollStrip>
   );
 }

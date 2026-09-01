@@ -56,14 +56,7 @@
   flex-wrap: nowrap;
   gap: 32px;
   padding-inline: 24px;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
   scroll-padding-inline: 16px;
-  scrollbar-width: none;
-}
-
-.tabStrip::-webkit-scrollbar {
-  display: none;
 }
 
 .sectionButton {
@@ -101,17 +94,8 @@
   .sections[data-layout="queue"] .tabStrip,
   .sections[data-layout="queue-wide"] .tabStrip {
     display: flex;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
     gap: 8px;
     padding-inline: 16px;
-  }
-
-  .sections[data-layout="queue"] .tabStrip::-webkit-scrollbar,
-  .sections[data-layout="queue-wide"] .tabStrip::-webkit-scrollbar {
-    display: none;
   }
 
   .sections[data-layout="queue"] .sectionButton,
