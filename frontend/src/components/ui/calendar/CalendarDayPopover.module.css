@@ -54,6 +54,10 @@
   outline-offset: -2px;
 }
 
+.events > :last-child > button > :last-child {
+  border-bottom: 0;
+}
+
 @media (max-width: 820px) {
   .popover:popover-open {
     display: none;

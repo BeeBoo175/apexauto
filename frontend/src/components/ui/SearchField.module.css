@@ -1,7 +1,9 @@
 .field {
+  --search-height: 32px;
   position: relative;
   display: flex;
   align-items: center;
+  height: var(--search-height);
   min-width: 0;
   border-radius: var(--radius-sm, 4px);
   background: var(--color-paper);
@@ -16,9 +18,14 @@
   content: "";
 }
 
+.field[data-density="default"] {
+  --search-height: 36px;
+}
+
 .field > div {
   flex: 1;
   min-width: 0;
+  height: 100%;
 }
 
 .field input {
@@ -53,16 +60,10 @@
   filter: drop-shadow(0 0 0.35px currentColor);
 }
 
-@media (pointer: coarse) {
-  .searchIcon {
-    width: 44px;
-    height: 44px;
-  }
-}
-
 @media (max-width: 820px) {
-  .field {
-    min-height: 44px;
+  .field,
+  .field[data-density="default"] {
+    --search-height: 44px;
   }
 
   .searchIcon {

@@ -239,20 +239,6 @@
   height: 240px;
 }
 
-.commandActions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.mobileToolbar {
-  display: none;
-}
-
-.desktopToolbar {
-  display: block;
-}
-
 .filterForm {
   display: grid;
   gap: 12px;
@@ -320,85 +306,6 @@
     box-shadow: none;
     border: 1px solid var(--color-line-soft);
     padding: 24px 16px;
-  }
-
-  .desktopToolbar {
-    display: none !important;
-  }
-
-  .mobileToolbar {
-    display: flex;
-    align-items: center;
-  }
-
-  .mobileToolbar [class*="RecordToolbar_toolbar"] {
-    min-height: auto;
-    padding: 0;
-    margin: 0;
-    border-bottom: 0;
-    background: transparent;
-  }
-
-  .mobileToolbar [class*="RecordToolbar_toolbarMain"],
-  .mobileToolbar [class*="RecordToolbar_queryActions"] {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 0;
-    margin: 0;
-  }
-
-  .mobileToolbar [class*="RecordToolbar_filterButton"] {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
-    min-height: 36px;
-    padding: 0;
-    border: 0;
-    border-radius: var(--radius-sm, 4px);
-    background: transparent;
-    color: #ffffff;
-    cursor: pointer;
-    transition: background-color 140ms ease;
-  }
-
-  .mobileToolbar
-    [class*="RecordToolbar_filterButton"]
-    > span:not([class*="Icon"]):not([class*="filterCount"]) {
-    display: none;
-  }
-
-  .mobileToolbar [class*="RecordToolbar_filterButton"]:hover:not(:disabled) {
-    background-color: rgb(255 255 255 / 14%);
-  }
-
-  .mobileToolbar [class*="RecordToolbar_filterButton"]:active:not(:disabled) {
-    background-color: rgb(255 255 255 / 24%);
-  }
-
-  .mobileToolbar [class*="RecordToolbar_filterButton"]:focus-visible {
-    outline: 2px solid #ffffff;
-    outline-offset: 2px;
-  }
-
-  .mobileToolbar [class*="RecordToolbar_filterCount"] {
-    position: absolute;
-    top: 2px;
-    right: 2px;
-    height: 16px;
-    min-width: 16px;
-    padding: 0 4px;
-    border-radius: 999px;
-    background: var(--color-signal);
-    color: #ffffff;
-    font-size: 10px;
-    font-weight: 700;
-    line-height: 16px;
-    text-align: center;
   }
 
   .hourRow {

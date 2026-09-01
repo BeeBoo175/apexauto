@@ -61,8 +61,8 @@ export function RecordToolbar({
               )}
             </Button>
           )}
-          {summaryInline && filterSummary}
         </div>
+        {summaryInline && <div className={styles.summarySlot}>{filterSummary}</div>}
         {actions && <div className={styles.toolbarActions}>{actions}</div>}
       </div>
       {!summaryInline && filterSummary}

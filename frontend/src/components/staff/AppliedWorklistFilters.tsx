@@ -17,7 +17,7 @@ export function AppliedWorklistFilters<Filters>({
   }
 
   return (
-    <div className={styles.summary} role="group" aria-label="Applied filters">
+    <div className={styles.summary} role="group" aria-label="Applied filters" tabIndex={0}>
       {filters.map((filter) => {
         const without = filter.without;
         if (filter.fixed) {

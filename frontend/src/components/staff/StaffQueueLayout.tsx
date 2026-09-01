@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
 import styles from "./StaffQueueWorkspace.module.css";
 
 export function StaffQueueLayout({
@@ -46,11 +47,11 @@ export function StaffQueueLayout({
       </aside>
       <div className={styles.workbenchPane}>
         {selected && (
-          <div className={styles.mobileBackBar}>
+          <nav className={styles.mobileBackBar} aria-label="Queue navigation">
             <Button
               type="button"
               size="compact"
-              variant="secondary"
+              variant="ghost"
               className={styles.backButton}
               onClick={() => {
                 if (onBackToQueue) {
@@ -60,12 +61,10 @@ export function StaffQueueLayout({
                 }
               }}
             >
-              <span className={styles.backArrow} aria-hidden="true">
-                ←
-              </span>
-              <span>Back to queue</span>
+              <Icon name="previous" />
+              <span>Back to {label.toLowerCase()}</span>
             </Button>
-          </div>
+          </nav>
         )}
         {children}
       </div>

@@ -540,6 +540,7 @@
   .viewport .content {
     overflow: visible;
     flex: none;
+    min-height: calc(100svh - var(--staff-mobile-bar-height));
     width: 100%;
   }
 

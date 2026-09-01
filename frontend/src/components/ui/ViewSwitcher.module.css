@@ -127,7 +127,15 @@
 }
 
 .surface .thumb {
-  display: none;
+  top: 4px;
+  left: 4px;
+  width: calc((100% - 12px) / 2);
+  height: calc(100% - 8px);
+  box-shadow: inset 0 0 0 1px var(--color-interaction-border);
+}
+
+.surface[data-second="true"] .thumb {
+  transform: translateX(calc(100% + 4px));
 }
 
 .surface .option {
@@ -140,8 +148,6 @@
 }
 
 .surface .option[aria-pressed="true"] {
-  background: var(--color-paper);
-  box-shadow: inset 0 0 0 1px var(--color-interaction-border);
   color: var(--color-graphite);
   font-weight: 700;
 }

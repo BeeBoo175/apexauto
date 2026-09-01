@@ -67,7 +67,7 @@ export function SearchField({
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
   return (
-    <div ref={field} className={`${styles.field} ${className}`.trim()}>
+    <div ref={field} className={`${styles.field} ${className}`.trim()} data-density={density}>
       <Input
         label={label}
         labelHidden

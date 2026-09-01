@@ -33,18 +33,13 @@ export function HomeLayout({
       <StaffCommandBar
         title="Home"
         actions={
-          <div className={styles.commandActions}>
-            {toolbar && <div className={styles.mobileToolbar}>{toolbar}</div>}
-            <RefreshButton label="Refresh home" busy={false} disabled={false} onClick={onRefresh} />
-          </div>
+          <RefreshButton label="Refresh home" busy={false} disabled={false} onClick={onRefresh} />
         }
       />
       <div
         className={`${dashboard.workspace} ${styles.homeWorkspace} ${animateEntry ? workspace.reveal : ""}`}
       >
-        {toolbar && (
-          <div className={`${dashboard.toolbarFrame} ${styles.desktopToolbar}`}>{toolbar}</div>
-        )}
+        {toolbar && <div className={dashboard.toolbarFrame}>{toolbar}</div>}
         <LoadingProgress label="Loading home" active={busy} />
         <div className={styles.view}>
           {band}
