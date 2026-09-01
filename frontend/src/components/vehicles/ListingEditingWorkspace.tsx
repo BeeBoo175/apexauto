@@ -36,33 +36,31 @@ export function ListingEditingWorkspace({
 
   return (
     <div className={styles.editingWorkspace} data-mode={mode}>
-      <div className={styles.narrowLayoutControl}>
-        <ViewSwitcher
-          label="Editor view"
-          className={styles.layoutSwitch}
-          value={mode}
-          options={[
-            { value: "edit", label: "Fields" },
-            { value: "preview", label: "Preview" },
-          ]}
-          onChange={onMode}
-        />
-      </div>
-      <div
-        className={`${workbench.stickySectionHeader} ${styles.previewToolbar}`}
-        role="group"
-        aria-label="Preview controls"
-      >
-        <ViewSwitcher
-          label="Preview representation"
-          className={styles.previewSwitch}
-          value={target}
-          options={[
-            { value: "listing", label: "Listing page" },
-            { value: "card", label: "Catalogue card" },
-          ]}
-          onChange={onTarget}
-        />
+      <div className={`${workbench.stickySectionHeader} ${styles.previewControls}`}>
+        <div className={styles.narrowLayoutControl}>
+          <ViewSwitcher
+            label="Editor view"
+            className={styles.layoutSwitch}
+            value={mode}
+            options={[
+              { value: "edit", label: "Fields" },
+              { value: "preview", label: "Preview" },
+            ]}
+            onChange={onMode}
+          />
+        </div>
+        <div className={styles.previewToolbar} role="group" aria-label="Preview controls">
+          <ViewSwitcher
+            label="Preview representation"
+            className={styles.previewSwitch}
+            value={target}
+            options={[
+              { value: "listing", label: "Listing page" },
+              { value: "card", label: "Catalogue card" },
+            ]}
+            onChange={onTarget}
+          />
+        </div>
       </div>
       <div className={styles.split} data-mode={mode}>
         <section id={fieldsId} className={styles.formPane} aria-label="Listing fields" tabIndex={0}>

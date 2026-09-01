@@ -134,7 +134,14 @@
   border-top: 1px solid var(--color-line-soft);
 }
 
-.editingWorkspace > .previewToolbar {
+.previewControls {
+  flex: 0 0 auto;
+  gap: 0;
+  padding: 0;
+}
+
+.previewToolbar {
+  display: flex;
   flex: 0 0 auto;
   flex-direction: row;
   flex-wrap: nowrap;
@@ -218,14 +225,19 @@
   font-size: 12px;
 }
 
-@container listing-editor (max-width: 740px) {
+@container listing-editor (max-width: 820px) {
+  .previewControls {
+    gap: 12px;
+    padding: 12px 16px;
+  }
+
   .body[data-split="true"] > .tabContent:not([hidden]),
   .editingWorkspace,
   .split {
     flex: 1 0 auto;
   }
 
-  .editingWorkspace[data-mode="edit"] > .previewToolbar {
+  .editingWorkspace[data-mode="edit"] .previewToolbar {
     display: none;
   }
 
@@ -235,36 +247,38 @@
 
   .narrowLayoutControl {
     display: flex;
-    padding: 12px 16px 0;
+    padding: 0;
   }
 
-  .editingWorkspace > .previewToolbar {
+  .previewToolbar {
     height: auto;
-    min-height: 48px;
-    padding: 12px 16px 0;
+    min-height: 50px;
+    padding: 0;
     justify-content: stretch;
   }
 
   .narrowLayoutControl .layoutSwitch,
   .previewToolbar .previewSwitch {
     width: 100%;
-    --view-size: calc((100% - 4px) / 2);
-    height: 36px;
+    --view-size: calc((100% - 6px) / 2);
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    height: 50px;
   }
 
   .narrowLayoutControl .layoutSwitch button,
   .previewToolbar .previewSwitch button {
     flex: 1 1 0;
-    width: 50%;
-    max-width: 50%;
-    height: 30px;
+    width: 100%;
+    max-width: none;
+    height: 44px;
     font-size: 13px;
   }
 
   .narrowLayoutControl .layoutSwitch [class*="thumb"],
   .previewToolbar .previewSwitch [class*="thumb"] {
-    width: calc((100% - 4px) / 2);
-    height: 30px;
+    width: calc((100% - 6px) / 2);
+    height: 44px;
   }
 
   .split,
@@ -296,62 +310,14 @@
   }
 }
 
-@media (max-width: 820px) {
-  .editingWorkspace {
-    --listing-preview-toolbar-height: auto;
-  }
-
-  .narrowLayoutControl {
-    display: flex;
-    padding: 12px 16px 0;
-  }
-
-  .editingWorkspace > .previewToolbar {
-    height: auto;
-    min-height: 48px;
-    padding: 12px 16px 0;
-    justify-content: stretch;
-  }
-
-  .narrowLayoutControl .layoutSwitch,
-  .previewToolbar .previewSwitch {
-    width: 100%;
-    --view-size: calc((100% - 4px) / 2);
-    height: 36px;
-  }
-
-  .narrowLayoutControl .layoutSwitch button,
-  .previewToolbar .previewSwitch button {
-    flex: 1 1 0;
-    width: 50%;
-    max-width: 50%;
-    height: 30px;
-    font-size: 13px;
-  }
-
-  .narrowLayoutControl .layoutSwitch [class*="thumb"],
-  .previewToolbar .previewSwitch [class*="thumb"] {
-    width: calc((100% - 4px) / 2);
-    height: 30px;
-  }
-}
-
 @media (max-width: 600px) {
   .formPane {
     padding: 16px;
   }
 
-  .editingWorkspace > .previewToolbar {
-    padding-inline: 16px;
-  }
-
   .publication,
   .historicalHeading {
     padding: 16px;
-  }
-
-  .narrowLayoutControl {
-    padding-inline: 16px;
   }
 
   .previewBody {
