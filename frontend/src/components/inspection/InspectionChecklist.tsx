@@ -10,6 +10,7 @@ import { checklistViews, type ChecklistDraft, type ChecklistView } from "@/lib/i
 import { inspectionQueryToken } from "@/lib/inspection/query";
 import type { Report } from "@/lib/inspection/report-contracts";
 import { ChecklistPoint } from "./ChecklistPoint";
+import { InspectionChecklistCategories } from "./InspectionChecklistCategories";
 import { InspectionPointStatus } from "./WorkshopStatus";
 import styles from "./Inspection.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
@@ -59,7 +60,7 @@ export function InspectionChecklist({
   const selected = chosen?.category === category ? chosen : (inCategory[0] ?? chosen ?? matches[0]);
   const pointCode = selected?.code ?? selectedCode;
   const { sectionRef, toolsRef, selectedRef, selectedHidden, scrollDirection, showSelected } =
-    useInspectionChecklistScroll(active, selected?.code ?? "");
+    useInspectionChecklistScroll(active && !isMobile, selected?.code ?? "");
   // The default first category has no query key, so a stored or typed first-category key is normalized away.
   const redundantCategory = requestedCategory !== "" && category === categories[0];
   const unknownCategory = requestedCategory !== "" && !category;
@@ -109,31 +110,31 @@ export function InspectionChecklist({
       aria-label="Inspection checklist"
       hidden={!active}
     >
-      <div ref={toolsRef} className={workbench.stickySectionHeader}>
-        <div className={`${workbench.sectionHeader} ${styles.checklistHeading}`}>
-          <h2 className={workbench.sectionTitle}>Inspection checklist</h2>
-          <div
-            className={styles.selectionAction}
-            data-visible={selectedHidden && Boolean(selected)}
+      <div className={`${workbench.sectionHeader} ${styles.checklistHeading}`}>
+        <h2 className={workbench.sectionTitle}>Inspection checklist</h2>
+        <div className={styles.selectionAction} data-visible={selectedHidden && Boolean(selected)}>
+          <Button
+            size="compact"
+            variant="secondary"
+            className={styles.jumpHeaderButton}
+            aria-label={`Show selected point ${selected?.code ?? ""}`}
+            disabled={!selectedHidden || !selected}
+            onClick={showSelected}
           >
-            <Button
-              size="compact"
-              variant="secondary"
-              className={styles.jumpHeaderButton}
-              aria-label={`Show selected point ${selected?.code ?? ""}`}
-              disabled={!selectedHidden || !selected}
-              onClick={showSelected}
-            >
-              <span className={styles.jumpArrow} aria-hidden="true">
-                {jumpArrow}
-              </span>
-              <span>
-                {jumpPrefix}
-                <strong>{selected?.code}</strong>
-              </span>
-            </Button>
-          </div>
+            <span className={styles.jumpArrow} aria-hidden="true">
+              {jumpArrow}
+            </span>
+            <span>
+              {jumpPrefix}
+              <strong>{selected?.code}</strong>
+            </span>
+          </Button>
         </div>
+      </div>
+      <div
+        ref={toolsRef}
+        className={`${workbench.stickySectionHeader} ${styles.checklistControlBar}`}
+      >
         <div className={styles.checklistTools}>
           <SearchField
             label="Find a checklist point"
@@ -184,35 +185,21 @@ export function InspectionChecklist({
             </label>
           )}
         </div>
+        {active && isMobile && (
+          <InspectionChecklistCategories
+            categories={categories}
+            matches={matches}
+            category={category}
+            disabled={photo.file !== null || photo.busy || photo.uncertain}
+            onChange={(name) =>
+              onCategory(name === categories[0] ? "" : inspectionQueryToken(name))
+            }
+          />
+        )}
       </div>
       <div className={styles.managerControls}>{managerControls}</div>
       {active && isMobile && (
         <div className={workshop.mobileFlow}>
-          <nav className={workshop.categoryChipsStrip} aria-label="Inspection categories">
-            {categories.map((cat) => {
-              const count = matches.filter((p) => p.category === cat).length;
-              const isSelected = cat === category;
-              return (
-                <Button
-                  key={cat}
-                  type="button"
-                  size="compact"
-                  variant={isSelected ? "secondary" : "ghost"}
-                  className={workshop.categoryChip}
-                  aria-pressed={isSelected}
-                  disabled={photo.file !== null || photo.busy || photo.uncertain}
-                  onClick={() => {
-                    onCategory(cat === categories[0] ? "" : inspectionQueryToken(cat));
-                  }}
-                >
-                  <span>{label(cat)}</span>
-                  <Badge variant="count" data-selected={isSelected}>
-                    {count}
-                  </Badge>
-                </Button>
-              );
-            })}
-          </nav>
           <div className={workshop.mobileCheckpointList}>
             {inCategory.map((point) => {
               const isExpanded = selected?.code === point.code && collapsedCode !== point.code;
