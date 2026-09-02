@@ -105,6 +105,9 @@
     position: sticky;
     top: var(--staff-mobile-bar-height, 52px);
     z-index: 40;
+    /* Both sticky bars get their own layer, so they are painted at the same pixel whether stuck or not even at
+       fractional browser zoom. */
+    will-change: transform;
     display: flex;
     align-items: center;
     justify-content: space-between;

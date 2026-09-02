@@ -9,7 +9,7 @@ import styles from "./Performance.module.css";
 export const linkedMarkClassName = styles.linkedMark;
 
 export const chartHeight = 240;
-export const axisWidth = 56;
+export const axisWidth = 68;
 export const chartMargin = { top: 12, right: 16, bottom: 4, left: 0 };
 export const gridStroke = "var(--color-line-soft)";
 export const axisStroke = "var(--color-line)";

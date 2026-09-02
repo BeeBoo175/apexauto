@@ -159,10 +159,6 @@
     grid-column: 1 / -1;
   }
 
-  .assignmentRow .shortValue {
-    flex: 0 0 72px;
-  }
-
   .assignmentRow .calendarFilter {
     flex: 1 1 auto;
     width: auto;

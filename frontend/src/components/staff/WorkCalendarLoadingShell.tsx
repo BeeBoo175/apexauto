@@ -75,7 +75,6 @@ export function WorkCalendarLoadingShell() {
                 <span className={styles.iconControl} />
               </div>
               <div className={styles.assignmentRow}>
-                <span className={styles.shortValue} />
                 <span className={styles.calendarFilter} />
               </div>
               <div className={styles.legendRow}>

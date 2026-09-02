@@ -1,3 +1,4 @@
+import { useCalendarDayCapacity } from "@/hooks/use-calendar-day-capacity";
 import { calendarDayLabel } from "@/lib/calendar";
 import { CalendarEventButton } from "./CalendarEventButton";
 import type { CalendarProps } from "./types";
@@ -11,11 +12,17 @@ interface DayProps<Data> extends CalendarProps<Data> {
 
 export function CalendarDay<Data>({ date, events, selected, active, ...props }: DayProps<Data>) {
   const count = events.length;
-  const overflow = Math.max(0, count - 2);
+  const { day, capacity } = useCalendarDayCapacity(count, 2);
+  const overflow = Math.max(0, count - capacity);
   const label = `${calendarDayLabel(date, props.locale)}, ${count} ${count === 1 ? "event" : "events"}`;
   return (
-    <div role="cell" data-date={date} className={`${styles.day} ${active ? styles.activeDay : ""}`}>
-      <div className={styles.dayTop}>
+    <div
+      ref={day}
+      role="cell"
+      data-date={date}
+      className={`${styles.day} ${active ? styles.activeDay : ""}`}
+    >
+      <div className={styles.dayTop} data-day-top="">
         {props.renderDayMark?.(events)}
         <button
           type="button"
@@ -38,7 +45,7 @@ export function CalendarDay<Data>({ date, events, selected, active, ...props }: 
         </button>
       </div>
       <div className={styles.events}>
-        {events.slice(0, 2).map((event) => (
+        {events.slice(0, capacity).map((event) => (
           <div key={event.id} data-calendar-event="">
             <CalendarEventButton {...props} event={event} compact={props.fit} />
           </div>

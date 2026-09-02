@@ -127,10 +127,15 @@
     border-color 120ms ease;
 }
 
+/* The same flat fill as the other sidebar controls, with no border. */
 .collapseToggle:hover {
   color: #ffffff;
   background: var(--color-command-surface);
-  border-color: var(--staff-shell-line);
+}
+
+.collapseToggle:active {
+  color: #ffffff;
+  background: #243e58;
 }
 
 .collapseToggle:focus-visible {
@@ -160,22 +165,12 @@
   gap: 10px;
   min-height: 36px;
   padding: 8px 16px 8px 8px;
-  border: 1px solid var(--staff-shell-line);
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
   background: var(--color-command-surface);
   color: #ffffff;
   font-weight: 700;
   text-decoration: none;
-}
-
-.activeLink::after {
-  position: absolute;
-  right: 10px;
-  width: 4px;
-  height: 16px;
-  border-radius: 2px;
-  background: var(--color-signal);
-  content: "";
 }
 
 .activeLink:hover {
@@ -367,14 +362,6 @@
   padding: 0;
 }
 
-.sidebarCollapsed .activeLink::after {
-  right: auto;
-  left: 2px;
-  width: 3px;
-  height: 18px;
-  border-radius: 2px;
-}
-
 .sidebarCollapsed .session {
   flex-direction: column;
   align-items: center;
@@ -521,11 +508,17 @@
 }
 
 @media (max-width: 820px) {
+  /* The document is what scrolls on phones. Without this its rubber-band overscroll at the top and bottom drags the
+     sticky bars with it, which reads as the header jiggling. */
+  :global(html):has(.page),
+  :global(body):has(.page) {
+    overscroll-behavior-y: none;
+  }
+
   .page {
     --staff-mobile-bar-height: 52px;
     --staff-command-height: 52px;
     --staff-sticky-offset: 104px;
-    padding-top: var(--staff-mobile-bar-height);
   }
 
   .page,
@@ -544,11 +537,13 @@
     width: 100%;
   }
 
+  /* Sticky, like the command bar and filters beneath it, so the whole stack scrolls and sticks on one compositor
+     path; a fixed bar beside sticky ones drifts apart by a frame while scrolling. */
   .mobileBar {
-    position: fixed;
-    inset-inline: 0;
+    position: sticky;
     top: 0;
     z-index: 50;
+    will-change: transform;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -776,13 +771,6 @@
     padding: 10px 16px;
     font-size: 14px;
     gap: 12px;
-  }
-
-  .sidebarCollapsed .activeLink::after {
-    left: auto;
-    right: 10px;
-    width: 4px;
-    height: 16px;
   }
 
   .sidebarCollapsed .session {

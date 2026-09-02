@@ -1,7 +1,6 @@
 "use client";
 
 import { useContext, useState } from "react";
-import { Icon } from "@/components/ui/Icon";
 import { ViewSwitcher } from "@/components/ui/ViewSwitcher";
 import { Select } from "@/components/ui/Input";
 import { ReloadNotice } from "@/components/ui/ReloadNotice";
@@ -133,7 +132,8 @@ export function WorkCalendarWorkspace({
                 </span>
                 {!own && (
                   <span className={styles.warningHint}>
-                    <Icon name="alert-triangle" /> Unassigned
+                    <span className={styles.unassignedDot} aria-hidden="true" />
+                    Unassigned
                   </span>
                 )}
               </>
@@ -169,9 +169,6 @@ export function WorkCalendarWorkspace({
                 {!scheduled.data && <ReloadNotice subject="Scheduled work" />}
                 {actor.role !== "SalesAgent" && (
                   <div className={styles.appointmentFilters}>
-                    <span className={styles.assignmentLabel} aria-hidden="true">
-                      Assignment
-                    </span>
                     <Select
                       label="Appointment assignment"
                       labelHidden

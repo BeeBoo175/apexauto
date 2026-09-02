@@ -163,7 +163,7 @@ export function UnassignedDayMark({ events }: { events: readonly CalendarEvent<S
     return null;
   }
   return (
-    <span className={styles.dayMark} title={`${count} unassigned`}>
+    <span className={styles.dayMark} data-unassigned="" title={`${count} unassigned`}>
       <Icon name="alert-triangle" />
       <span aria-hidden="true">{count}</span>
       <span className="sr-only">{count} unassigned</span>

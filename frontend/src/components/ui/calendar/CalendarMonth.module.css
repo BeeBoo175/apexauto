@@ -289,6 +289,11 @@
     min-height: 6px;
   }
 
+  /* Beside an unassigned dot the appointment dot steps left so the pair is centred. */
+  .dayTop:has([data-unassigned]) .mobileCount {
+    transform: translateX(-4px);
+  }
+
   .eventDot {
     width: 6px;
     height: 6px;
