@@ -281,11 +281,6 @@ export function StaffTestDriveTable({
                 }
                 actions={
                   <>
-                    <AssistedVehicleAction
-                      kind="testDrive"
-                      disabled={disabled || busy}
-                      onClosed={() => void list.load(filters, active.page)}
-                    />
                     {applied.length > 0 && (
                       <Button
                         size="compact"
@@ -312,6 +307,13 @@ export function StaffTestDriveTable({
                       </Button>
                     )}
                     <CsvExportActions
+                      create={
+                        <AssistedVehicleAction
+                          kind="testDrive"
+                          disabled={disabled || busy}
+                          onClosed={() => void list.load(filters, active.page)}
+                        />
+                      }
                       selected={selection.selectedRows.length}
                       disabled={disabled || busy || snapshot.total === 0}
                       busy={csv.busy}

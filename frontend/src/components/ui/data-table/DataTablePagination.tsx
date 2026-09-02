@@ -11,11 +11,13 @@ export function DataTablePagination({
   count,
   disabled,
   onPage,
+  touchTargets = false,
 }: {
   page: TablePage;
   count: number;
   disabled: boolean;
   onPage: (page: number, pageSize: number) => void;
+  touchTargets?: boolean;
 }) {
   const pages = Math.max(1, Math.ceil(page.total / page.pageSize));
   const pageId = useId();
@@ -39,7 +41,10 @@ export function DataTablePagination({
   const recordLabel = page.total === 0 ? "0 records" : `${first}–${last} of ${page.total}`;
 
   return (
-    <nav className={styles.pagination} aria-label="Table pages">
+    <nav
+      className={`${styles.pagination} ${touchTargets ? styles.touchTargets : ""}`}
+      aria-label="Table pages"
+    >
       <span className={styles.meta} aria-live="polite">
         {recordLabel}
       </span>

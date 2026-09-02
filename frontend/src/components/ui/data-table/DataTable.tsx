@@ -6,6 +6,8 @@ import { useTableColumnSizing } from "@/hooks/use-table-column-sizing";
 import { columnLayout } from "@/lib/column-resize";
 import { DataTableHeader } from "./DataTableHeader";
 import { DataTablePagination } from "./DataTablePagination";
+import { DataTableMobile } from "./DataTableMobile";
+import { activateTableRow, activateTableRowKey } from "./row-interaction";
 import { EmptyNotice } from "@/components/ui/EmptyNotice";
 import type { DataTableProps } from "./types";
 import styles from "./DataTable.module.css";
@@ -15,6 +17,8 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
   const tableId = useId();
   const checkbox = useRef<HTMLInputElement>(null);
   const table = useRef<HTMLTableElement>(null);
+  const mobileTable = useRef<HTMLDivElement>(null);
+  const hasMobile = Boolean(props.mobile);
   const confirmedPage = useRef(props.page);
   useLayoutEffect(() => {
     const previous = confirmedPage.current;
@@ -22,18 +26,16 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
     if (previous.page === props.page.page && previous.pageSize === props.page.pageSize) {
       return;
     }
-    const scroller = table.current?.parentElement;
+    const onMobile = window.matchMedia("(max-width: 820px)").matches;
+    const scroller = hasMobile && onMobile ? mobileTable.current : table.current?.parentElement;
     if (!scroller) {
       return;
     }
     scroller.scrollTop = 0;
-    if (
-      window.matchMedia("(max-width: 820px)").matches &&
-      scroller.getBoundingClientRect().top < 0
-    ) {
+    if (onMobile && scroller.getBoundingClientRect().top < (hasMobile ? 104 : 0)) {
       scroller.scrollIntoView({ block: "start", inline: "nearest", behavior: "instant" });
     }
-  }, [props.page]);
+  }, [props.page, hasMobile]);
   const sizing = useTableColumnSizing(table, columns, Boolean(props.sorting));
   const { columnWidths, handleResizeStart } = useColumnResize(sizing);
   const layout = columnLayout(sizing, columnWidths, Boolean(selection));
@@ -68,7 +70,7 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
     >
       {props.toolbar}
       <div
-        className={`${styles.scroll} ${rows.length === 0 ? styles.emptyScroll : ""}`}
+        className={`${styles.scroll} ${rows.length === 0 ? styles.emptyScroll : ""} ${props.mobile ? styles.desktopView : ""}`}
         role="region"
         aria-label={`${props.label} records`}
         tabIndex={0}
@@ -111,42 +113,14 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
                 className={props.onRowClick ? styles.interactiveRow : undefined}
                 tabIndex={props.onRowClick && !disabled ? 0 : undefined}
                 onKeyDown={(event) => {
-                  if (
-                    !props.onRowClick ||
-                    disabled ||
-                    event.defaultPrevented ||
-                    event.repeat ||
-                    event.target !== event.currentTarget ||
-                    event.metaKey ||
-                    event.ctrlKey ||
-                    event.shiftKey ||
-                    event.altKey
-                  ) {
-                    return;
-                  }
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    props.onRowClick(row);
+                  if (props.onRowClick && !disabled) {
+                    activateTableRowKey(event, () => props.onRowClick?.(row));
                   }
                 }}
                 onClick={(event) => {
-                  if (!props.onRowClick || disabled || event.defaultPrevented) {
-                    return;
+                  if (props.onRowClick && !disabled) {
+                    activateTableRow(event, () => props.onRowClick?.(row));
                   }
-                  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
-                    return;
-                  }
-                  const target = event.target as Element;
-                  if (
-                    target.closest(
-                      "a, button, input, label, select, textarea, [contenteditable]",
-                    ) ||
-                    window.getSelection()?.isCollapsed === false
-                  ) {
-                    return;
-                  }
-                  event.currentTarget.focus({ preventScroll: true });
-                  props.onRowClick(row);
                 }}
                 data-selected={
                   props.selectedRowId === rowId(row) || selection?.ids.has(rowId(row)) || undefined
@@ -181,6 +155,7 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
           </tbody>
         </table>
       </div>
+      {props.mobile && <DataTableMobile props={props} toggle={toggle} containerRef={mobileTable} />}
       {rows.length === 0 && (
         <div className={styles.empty} aria-busy={props.busy} role="status">
           {pastLastPage && (
@@ -221,6 +196,7 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
         </div>
       )}
       <DataTablePagination
+        touchTargets={hasMobile}
         page={props.page}
         count={rows.length}
         disabled={disabled || props.busy}

@@ -113,9 +113,15 @@
 }
 
 @media (max-width: 820px) {
+  .summary {
+    gap: 8px;
+  }
+
   .chip {
     max-width: min(260px, 80vw);
-    min-height: 44px;
+    min-height: 36px;
+    padding: 6px 10px;
+    font-size: 13px;
   }
 }
 

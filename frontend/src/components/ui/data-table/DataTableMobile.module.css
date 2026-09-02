@@ -1,0 +1,115 @@
+.view {
+  display: none;
+}
+
+@media (max-width: 820px) {
+  .view {
+    display: block;
+    width: 100%;
+    scroll-margin-top: var(--staff-sticky-offset, 104px);
+  }
+
+  .table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 13px;
+    line-height: 20px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .table th:first-child {
+    width: 56%;
+  }
+
+  .table th:last-child {
+    width: 44%;
+  }
+
+  .table th {
+    padding: 4px 12px;
+    border-bottom: 1px solid var(--color-line);
+    background: var(--color-canvas);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .table td {
+    padding: 12px;
+    border-bottom: 1px solid var(--color-line-soft);
+    vertical-align: middle;
+    overflow-wrap: anywhere;
+  }
+
+  .table th:last-child,
+  .table td:last-child {
+    text-align: right;
+  }
+
+  .identityColumn {
+    position: relative;
+  }
+
+  /* Touch drags move the divider, so the handle keeps the browser from scrolling instead. */
+  .view .divider {
+    touch-action: none;
+  }
+
+  .sortButton {
+    justify-content: flex-end;
+    gap: 4px;
+    width: 100%;
+    padding-inline: 0;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: right;
+  }
+
+  .table tr[data-selected],
+  .table tr[data-active],
+  .table tbody tr:active {
+    background: var(--color-selected-surface, var(--color-canvas));
+  }
+
+  .table tr[data-active],
+  .table tr:focus-visible,
+  .table tr:has(input:focus-visible) {
+    outline: 2px solid var(--color-interaction-border);
+    outline-offset: -2px;
+  }
+
+  .table tbody tr {
+    height: 80px;
+    cursor: pointer;
+  }
+
+  .identity,
+  .identityHeader {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .identityContent {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .selection {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 44px;
+    min-height: 44px;
+    margin-left: -12px;
+    cursor: pointer;
+  }
+
+  .selection input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--color-signal);
+  }
+}

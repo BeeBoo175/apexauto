@@ -1,7 +1,7 @@
 import { useId, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { parseMyr } from "@/lib/currency-input";
+import { validateHoursRange, validateMoneyRange } from "@/lib/table-filter-ranges";
 import { dateRangeError } from "@/lib/intake/list-query";
 import styles from "./ColumnFilterForm.module.css";
 
@@ -131,18 +131,6 @@ function NumericRangeFilter({
   );
 }
 
-function validateMoneyRange(lower: string, upper: string) {
-  const low = lower ? parseMyr(lower) : null;
-  const high = upper ? parseMyr(upper) : null;
-  const invalidMinimum = Boolean(lower) && low === null;
-  const invalidMaximum = Boolean(upper) && high === null;
-  const invalidOrder = low !== null && high !== null && low > high;
-  if (invalidMinimum || invalidMaximum || invalidOrder) {
-    return { error: "Enter valid RM amounts with the minimum no greater than the maximum." };
-  }
-  return { lower, upper };
-}
-
 export function MoneyRangeFilter(props: RangeFilterProps) {
   return <NumericRangeFilter {...props} unit="RM" validate={validateMoneyRange} />;
 }
@@ -166,26 +154,13 @@ export function HoursRangeFilter({
   maximumHours,
   ...props
 }: RangeFilterProps & { maximumHours: number }) {
-  function validate(lower: string, upper: string) {
-    const first = lower.trim();
-    const last = upper.trim();
-    const invalidValue = [first, last]
-      .filter(Boolean)
-      .some(
-        (value) =>
-          !/^\d+(\.\d+)?$/.test(value) ||
-          !Number.isFinite(Number(value)) ||
-          Number(value) > maximumHours,
-      );
-    if (invalidValue || Boolean(first && last && Number(first) > Number(last))) {
-      return {
-        error: `Enter hours from 0 to ${maximumHours} with the minimum no greater than the maximum.`,
-      };
-    }
-    return { lower: first, upper: last };
-  }
-
-  return <NumericRangeFilter {...props} unit="hours" validate={validate} />;
+  return (
+    <NumericRangeFilter
+      {...props}
+      unit="hours"
+      validate={(lower, upper) => validateHoursRange(lower, upper, maximumHours)}
+    />
+  );
 }
 
 export function DateRangeFilter({

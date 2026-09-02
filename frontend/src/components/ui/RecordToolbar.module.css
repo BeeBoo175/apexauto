@@ -11,6 +11,17 @@
   justify-content: space-between;
 }
 
+.selectionBar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.createSlot {
+  display: contents;
+}
+
 .toolbar {
   display: flex;
   flex-direction: column;
@@ -27,7 +38,7 @@
 }
 
 .toolbar:has([aria-label="Applied filters"]) {
-  padding-bottom: 0;
+  padding-bottom: 12px;
 }
 
 .queryActions {
@@ -113,6 +124,68 @@
 
 .toolbarActions:empty {
   display: none;
+}
+
+.mobileDiscovery {
+  display: none;
+}
+
+@media (max-width: 820px) {
+  .mobileDiscovery {
+    display: flex;
+    flex-shrink: 0;
+    gap: 4px;
+  }
+
+  /* Search takes the first row; Sort, Filter and the create action share the second. Selection controls and export
+     follow on rows of their own. */
+  .toolbar[data-mobile-discovery] {
+    gap: 12px;
+    padding-block: 12px;
+  }
+
+  .toolbar[data-mobile-discovery] .toolbarMain {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* The groups dissolve into the grid so each control can take its own cell. */
+  .toolbar[data-mobile-discovery] .queryActions,
+  .toolbar[data-mobile-discovery] .mobileDiscovery,
+  .toolbar[data-mobile-discovery] .toolbarActions,
+  .toolbar[data-mobile-discovery] .exportActions {
+    display: contents;
+  }
+
+  .toolbar[data-mobile-discovery] .query {
+    grid-column: 1 / -1;
+    max-width: none;
+  }
+
+  .toolbar[data-mobile-discovery] .mobileDiscovery > * {
+    grid-row: 2;
+  }
+
+  .toolbar[data-mobile-discovery] .createSlot {
+    display: block;
+    grid-column: 3;
+    grid-row: 2;
+  }
+
+  .toolbar[data-mobile-discovery] .exportButton {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+
+  /* While rows are selected, the count and Clear selection sit under the export they belong to. */
+  .toolbar[data-mobile-discovery] .selectionBar {
+    grid-column: 1 / -1;
+    grid-row: 4;
+    justify-content: space-between;
+    margin-top: -4px;
+  }
 }
 
 .summarySlot {

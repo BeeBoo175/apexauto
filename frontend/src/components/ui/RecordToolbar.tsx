@@ -16,6 +16,7 @@ export function RecordToolbar({
   onFiltersOpenChange,
   defaultFiltersExpanded = false,
   summaryInline = false,
+  mobileDiscovery,
 }: {
   children?: ReactNode;
   filters: ReactNode;
@@ -28,6 +29,7 @@ export function RecordToolbar({
   // A toolbar with no search shows the applied filters on the Filters row, right after the button, instead of on a
   // row of their own.
   summaryInline?: boolean;
+  mobileDiscovery?: ReactNode;
 }) {
   const [expanded, setExpanded] = useState(defaultFiltersExpanded);
   const id = useId();
@@ -35,10 +37,15 @@ export function RecordToolbar({
   const anchor = `--table-filters-${id.replace(/[^a-zA-Z0-9-]/g, "")}`;
 
   return (
-    <div className={styles.toolbar} data-summary-inline={summaryInline || undefined}>
+    <div
+      className={styles.toolbar}
+      data-summary-inline={summaryInline || undefined}
+      data-mobile-discovery={mobileDiscovery ? true : undefined}
+    >
       <div className={styles.toolbarMain}>
         <div className={styles.queryActions}>
           {children && <div className={styles.query}>{children}</div>}
+          {mobileDiscovery && <div className={styles.mobileDiscovery}>{mobileDiscovery}</div>}
           {filters && (
             <Button
               variant={expanded ? "secondary" : "ghost"}

@@ -15,6 +15,8 @@ import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { RecordToolbar } from "@/components/ui/RecordToolbar";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import { SearchField } from "@/components/ui/SearchField";
+import { Icon } from "@/components/ui/Icon";
+import { TableSortSheet } from "@/components/ui/data-table/TableSortSheet";
 import { useCsvExport } from "@/hooks/use-csv-export";
 import { useMinuteClock } from "@/hooks/use-minute-clock";
 import { useRowSelection } from "@/hooks/use-row-selection";
@@ -36,6 +38,10 @@ import type { SaleSection } from "@/lib/sales/sale-sections";
 import { SaleDrawer } from "./SaleDrawer";
 import { saleColumns } from "./sale-columns";
 import { saleTableFilters } from "./sale-filters";
+import { SalesFilterSheet } from "./SalesFilterSheet";
+import { SaleMobileIdentity, SaleMobileMetric } from "./SaleMobileCells";
+import { saleMetrics, saleSortLabels, type SaleMetric } from "./sale-mobile";
+import mobileStyles from "./SalesMobile.module.css";
 import styles from "@/components/staff/StaffWorklist.module.css";
 import workspace from "@/components/staff/StaffWorkspace.module.css";
 import { AssistedVehicleAction } from "@/components/staff/AssistedVehicleAction";
@@ -98,6 +104,14 @@ export function SalesTable({
     exportSales(active.filters, signal, showBranch),
   );
   const [search, setSearch] = useState(active.filters.search);
+  const [metric, setMetric] = useState<SaleMetric>("balance");
+  const [discovery, setDiscovery] = useState<"sort" | "filter" | null>(null);
+  const metricHeading = saleMetrics.find((item) => item.value === metric)!.heading;
+  const sorted = Boolean(active.filters.sort);
+  const sortedColumn = columns.find((column) => column.id === active.filters.sort);
+  const sortSummary = `${sortedColumn?.label ?? active.filters.sort}, ${
+    active.filters.direction === "asc" ? "ascending" : "descending"
+  }`;
   const filtered = applied.length > 0 || Boolean(active.filters.search);
   const tabs = tableViews.map((item) => ({
     value: item.value,
@@ -120,7 +134,20 @@ export function SalesTable({
   }
 
   function sort(next: TableSort | null) {
-    void load({ ...active.filters, sort: next?.column ?? "", direction: next?.direction ?? "asc" });
+    return load({
+      ...active.filters,
+      sort: next?.column ?? "",
+      direction: next?.direction ?? "asc",
+    });
+  }
+
+  async function sortMobile(next: TableSort | null) {
+    const confirmed = await sort(next);
+    const lens = saleMetrics.find((item) => item.value === next?.column);
+    if (confirmed && lens) {
+      setMetric(lens.value);
+    }
+    return confirmed;
   }
 
   const toolbar = (
@@ -135,6 +162,46 @@ export function SalesTable({
       />
       <RecordToolbar
         filters={null}
+        mobileDiscovery={
+          <>
+            <Button
+              variant="secondary"
+              size="compact"
+              className={mobileStyles.discoveryButton}
+              data-sorted={sorted || undefined}
+              aria-label={`Sort sales${sorted ? `, ${sortSummary}` : ""}`}
+              aria-haspopup="dialog"
+              disabled={state.busy}
+              onClick={() => setDiscovery("sort")}
+            >
+              <Icon
+                name={
+                  sorted && active.filters.direction === "asc"
+                    ? "table-sort-ascending"
+                    : "table-sort-descending"
+                }
+                grid={16}
+              />
+              <span className={mobileStyles.discoveryLabel}>Sort</span>
+            </Button>
+            <Button
+              variant="secondary"
+              size="compact"
+              className={mobileStyles.discoveryButton}
+              data-filtered={applied.length > 0 || undefined}
+              aria-label={`Filter sales${applied.length ? `, ${applied.length} applied` : ""}`}
+              aria-haspopup="dialog"
+              disabled={state.busy}
+              onClick={() => setDiscovery("filter")}
+            >
+              <Icon name="filter" />
+              <span className={mobileStyles.discoveryLabel}>Filter</span>
+              {applied.length > 0 && (
+                <span className={mobileStyles.filterCount}>{applied.length}</span>
+              )}
+            </Button>
+          </>
+        }
         filterCount={applied.length}
         disabled={state.busy}
         filterSummary={
@@ -146,17 +213,25 @@ export function SalesTable({
         }
         actions={
           <>
-            <AssistedVehicleAction
-              kind="reservation"
-              disabled={state.busy}
-              onClosed={() => void refresh()}
-            />
             {filtered && (
-              <Button size="compact" variant="ghost" disabled={state.busy} onClick={reset}>
+              <Button
+                size="compact"
+                variant="ghost"
+                className={mobileStyles.resetFilters}
+                disabled={state.busy}
+                onClick={reset}
+              >
                 Reset filters
               </Button>
             )}
             <CsvExportActions
+              create={
+                <AssistedVehicleAction
+                  kind="reservation"
+                  disabled={state.busy}
+                  onClosed={() => void refresh()}
+                />
+              }
               selected={selection.selectedRows.length}
               disabled={
                 state.busy || !snapshot || snapshot.total === 0 || view === "AwaitingDeposit"
@@ -205,6 +280,32 @@ export function SalesTable({
       label="Sales"
       rows={snapshot.items}
       columns={columns}
+      mobile={{
+        controls: (
+          <div className={mobileStyles.lenses} role="tablist" aria-label="Compare sales by">
+            {saleMetrics.map((item) => (
+              <Button
+                key={item.value}
+                variant="ghost"
+                size="compact"
+                role="tab"
+                className={mobileStyles.lens}
+                aria-selected={metric === item.value}
+                onClick={() => setMetric(item.value)}
+              >
+                {item.label}
+              </Button>
+            ))}
+          </div>
+        ),
+        identityLabel: "Vehicle & order",
+        metricLabel: metricHeading,
+        metricColumn: metric,
+        identity: (row) => <SaleMobileIdentity row={row} />,
+        metric: (row) => (
+          <SaleMobileMetric row={row} metric={metric} now={now} showBranch={showBranch} />
+        ),
+      }}
       sorting={{
         value: active.filters.sort
           ? { column: active.filters.sort, direction: active.filters.direction }
@@ -271,6 +372,30 @@ export function SalesTable({
           {unavailable}
         </div>
       </div>
+      {discovery === "sort" && (
+        <TableSortSheet
+          label="sales"
+          directionLabels={saleSortLabels}
+          columns={columns}
+          value={
+            active.filters.sort
+              ? { column: active.filters.sort, direction: active.filters.direction }
+              : null
+          }
+          busy={state.busy}
+          onChange={sortMobile}
+          onClose={() => setDiscovery(null)}
+        />
+      )}
+      {discovery === "filter" && (
+        <SalesFilterSheet
+          filters={{ ...active.filters, view }}
+          showBranch={showBranch}
+          busy={state.busy}
+          load={load}
+          onClose={() => setDiscovery(null)}
+        />
+      )}
       <SaleDrawer
         key={`${actorIdentity(actor)}:${drawer.id}`}
         selection={drawer}

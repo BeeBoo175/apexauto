@@ -1,0 +1,47 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 16px;
+}
+
+.range {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.range legend {
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.bounds {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.footer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  border-top: 1px solid var(--color-line-soft);
+  padding: 12px 16px max(12px, env(safe-area-inset-bottom));
+  background: var(--color-paper);
+}
+
+.footer > :first-child {
+  margin-right: auto;
+}

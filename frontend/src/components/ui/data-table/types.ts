@@ -45,6 +45,15 @@ export interface DataTableProps<Row> {
   label: string;
   /** Feature-owned search, criteria, queue tabs and export actions. */
   toolbar?: ReactNode;
+  /** Opt-in comparative mobile presentation; desktop columns remain unchanged. */
+  mobile?: {
+    controls: ReactNode;
+    identityLabel: string;
+    metricLabel: string;
+    metricColumn: string;
+    identity: (row: Row) => ReactNode;
+    metric: (row: Row) => ReactNode;
+  };
   rows: readonly Row[];
   /**
    * One empty state per table, the same on every tab: nothing narrows the table, or a search or column filter does.

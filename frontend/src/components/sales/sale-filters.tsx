@@ -20,6 +20,15 @@ import { hoursRangeLabel, moneyRangeLabel } from "@/lib/range-label";
 
 export type LoadSales = (filters: SalesTableFilters, page: number) => Promise<boolean>;
 
+export const saleTextFilters = [
+  ["reference", "Reference"],
+  ["registration", "Registration"],
+  ["vehicle", "Vehicle"],
+  ["customer", "Customer"],
+  ["handler", "Agent"],
+  ["branch", "Branch"],
+] as const;
+
 export function saleTableFilters(
   filters: SalesTableFilters,
   busy: boolean,
@@ -33,14 +42,7 @@ export function saleTableFilters(
     label: string,
     without: Partial<SalesTableFilters>,
   ) => applied.push({ key, label, without: { ...filters, ...without } });
-  const texts = [
-    ["reference", "Reference"],
-    ["registration", "Registration"],
-    ["vehicle", "Vehicle"],
-    ["customer", "Customer"],
-    ["handler", "Agent"],
-    ["branch", "Branch"],
-  ] as const;
+  const texts = saleTextFilters;
   for (const [key, label] of texts) {
     if (filters[key]) {
       add(key, `${label}: ${filters[key]}`, { [key]: "" });

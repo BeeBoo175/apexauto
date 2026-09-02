@@ -7,6 +7,46 @@
   gap: 8px 12px;
 }
 
+@media (max-width: 820px) {
+  .pagination.touchTargets {
+    flex-wrap: wrap;
+  }
+
+  .touchTargets .meta,
+  .touchTargets .pageJump,
+  .touchTargets .pageJump > span:last-of-type {
+    font-size: 12px;
+  }
+
+  .touchTargets .paginationControls {
+    margin-left: auto;
+  }
+
+  .touchTargets .paginationControls button {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .touchTargets .paginationControls .pageSize {
+    height: 44px;
+    min-height: 44px;
+    font-size: 12px;
+  }
+
+  .touchTargets .pageJump,
+  .touchTargets .pageJump input {
+    height: 44px;
+    min-height: 44px;
+  }
+
+  .touchTargets .pageJump input {
+    width: 44px;
+    font-size: 12px;
+  }
+}
+
 .pagination {
   justify-content: space-between;
   padding: 12px 20px;

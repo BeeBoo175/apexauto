@@ -6,6 +6,12 @@
   background: var(--color-paper);
 }
 
+@media (max-width: 820px) {
+  .workspace > .desktopView {
+    display: none;
+  }
+}
+
 .pagination,
 .paginationControls {
   display: flex;
@@ -411,7 +417,8 @@
 }
 
 @media (max-width: 820px) {
-  .fillHeight > nav {
+  /* Only the pagination bar pins to the bottom; the queue tabs are also a nav and stay at the top. */
+  .fillHeight > nav[aria-label="Table pages"] {
     position: sticky;
     bottom: 0;
     z-index: 2;
