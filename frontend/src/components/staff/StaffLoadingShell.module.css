@@ -128,7 +128,124 @@
   height: 72px;
 }
 
+.desktopOnly {
+  display: contents;
+}
+
+.mobileOnly,
+.assignmentRow,
+.legendRow {
+  display: none;
+}
+
 @media (max-width: 820px) {
+  .desktopOnly {
+    display: none;
+  }
+
+  .hideOnPhone {
+    display: none;
+  }
+
+  .mobileOnly {
+    display: block;
+  }
+
+  /* The calendar's phone toolbar: the assignment select under the month, then the legend. */
+  .assignmentRow {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    grid-column: 1 / -1;
+  }
+
+  .assignmentRow .shortValue {
+    flex: 0 0 72px;
+  }
+
+  .assignmentRow .calendarFilter {
+    flex: 1 1 auto;
+    width: auto;
+  }
+
+  .legendRow {
+    display: flex;
+    gap: 20px;
+    grid-column: 1 / -1;
+  }
+
+  .calendarFilter {
+    width: 100%;
+  }
+
+  .mobileToolbar {
+    display: grid;
+    gap: 8px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--color-line-soft);
+  }
+
+  .mobileToolbar .search {
+    max-width: none;
+  }
+
+  .mobilePair {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .mobilePair .control {
+    width: auto;
+  }
+
+  .mobileLenses {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    align-items: center;
+    justify-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--color-line);
+  }
+
+  .mobileLenses .tabBar {
+    width: 100%;
+    max-width: 64px;
+  }
+
+  .mobileHeading {
+    display: grid;
+    grid-template-columns: 56% 44%;
+    align-items: center;
+    height: 52px;
+    padding-inline: 12px;
+    border-bottom: 1px solid var(--color-line);
+    background: var(--color-canvas);
+  }
+
+  .mobileHeading > :last-child {
+    justify-self: end;
+  }
+
+  .mobileRow {
+    display: grid;
+    grid-template-columns: 56% 44%;
+    align-items: center;
+    min-height: 80px;
+    padding: 12px;
+    border-bottom: 1px solid var(--color-line-soft);
+  }
+
+  .mobileIdentity {
+    display: grid;
+    gap: 6px;
+  }
+
+  .mobileIdentity .cellBar {
+    width: 70%;
+  }
+
   .control,
   .iconControl,
   .calendarFilter,
@@ -191,6 +308,13 @@
   height: 16px;
 }
 
+.mobileMetric {
+  composes: placeholder from "./StaffRecordLoadingShell.module.css";
+  justify-self: end;
+  width: 72px;
+  height: 16px;
+}
+
 .queueJob {
   display: grid;
   gap: 12px;
@@ -224,5 +348,7 @@
 /* Inside a pane toolbar, which already draws the rule beneath the tabs. */
 .tabsRowBare {
   flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
   border-bottom: 0;
 }

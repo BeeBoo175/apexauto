@@ -31,7 +31,7 @@ export function WorkCalendarLoadingShell() {
         <div className={toolbar.toolbar}>
           <div className={toolbar.toolbarMain}>
             <span className={styles.wideSearch} />
-            <span className={styles.calendarFilter} />
+            <span className={`${styles.calendarFilter} ${styles.hideOnPhone}`} />
           </div>
         </div>
       </div>
@@ -73,6 +73,14 @@ export function WorkCalendarLoadingShell() {
                 <span className={styles.control} />
                 <span className={styles.iconControl} />
                 <span className={styles.iconControl} />
+              </div>
+              <div className={styles.assignmentRow}>
+                <span className={styles.shortValue} />
+                <span className={styles.calendarFilter} />
+              </div>
+              <div className={styles.legendRow}>
+                <span className={styles.shortValue} />
+                <span className={styles.shortValue} />
               </div>
             </div>
             <div className={month.month} data-fit="true">
