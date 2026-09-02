@@ -36,7 +36,7 @@ export function useColumnMobile<Row>(
         ))}
       </div>
     ),
-    identityLabel: identity.map((column) => column.label).join(" & "),
+    identityColumns: identity.map((column) => ({ id: column.id, label: column.label })),
     metricLabel: metric.label,
     metricColumn: metric.id,
     identity: (row) => (

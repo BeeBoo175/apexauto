@@ -146,9 +146,14 @@
 
   .toolbar[data-mobile-discovery] .toolbarMain {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: center;
     gap: 8px;
+  }
+
+  /* Only a table with a create action reserves its column beside Sort and Filter. */
+  .toolbar[data-mobile-discovery] .toolbarMain:has(.createSlot:not(:empty)) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px;
   }
 
   /* The groups dissolve into the grid so each control can take its own cell. */

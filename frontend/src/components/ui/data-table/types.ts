@@ -43,7 +43,8 @@ export interface TableSorting {
 
 export interface MobileTable<Row> {
   controls: ReactNode;
-  identityLabel: string;
+  /** The columns the identity cell shows, each sortable from its heading. */
+  identityColumns: { id: string; label: string }[];
   metricLabel: string;
   metricColumn: string;
   identity: (row: Row) => ReactNode;

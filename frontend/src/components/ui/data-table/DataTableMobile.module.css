@@ -56,6 +56,18 @@
     touch-action: none;
   }
 
+  .identityHeadings {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .identityHeadings .sortButton {
+    justify-content: flex-start;
+    width: auto;
+  }
+
   .sortButton {
     justify-content: flex-end;
     gap: 4px;

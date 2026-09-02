@@ -290,7 +290,10 @@ export function SalesTable({
             ))}
           </div>
         ),
-        identityLabel: "Vehicle & order",
+        identityColumns: [
+          { id: "vehicle", label: "Vehicle" },
+          { id: "reference", label: "Order" },
+        ],
         metricLabel: metricHeading,
         metricColumn: metric,
         identity: (row) => <SaleMobileIdentity row={row} />,

@@ -1,11 +1,9 @@
-import { useEffect, useRef, type RefObject } from "react";
-import { Button } from "@/components/ui/Button";
-import { Icon } from "@/components/ui/Icon";
+import { Fragment, useEffect, useRef, type RefObject } from "react";
 import { useColumnResize } from "@/hooks/use-column-resize";
+import { MobileSortButton } from "./MobileSortButton";
 import { activateTableRow, activateTableRowKey } from "./row-interaction";
 import type { DataTableProps } from "./types";
 import headerStyles from "./DataTableHeader.module.css";
-import iconStyles from "./TableIcons.module.css";
 import styles from "./DataTableMobile.module.css";
 
 // The identity and metric columns split the width like two desktop columns; dragging the divider moves the split.
@@ -38,33 +36,31 @@ export function DataTableMobile<Row>({
     return null;
   }
   const sort = props.sorting?.value;
-  const sortable = Boolean(
-    props.sorting && props.columns.find((column) => column.id === mobile.metricColumn)?.sortable,
-  );
-  const sorted = sort?.column === mobile.metricColumn;
+  const sortable = (columnId: string) =>
+    Boolean(props.sorting && props.columns.find((column) => column.id === columnId)?.sortable);
+  const directionOf = (columnId: string) => (sort?.column === columnId ? sort.direction : null);
+  const metricDirection = directionOf(mobile.metricColumn);
   let sortDirection: "ascending" | "descending" | "none" | undefined;
   if (props.sorting) {
     sortDirection = "none";
   }
-  if (sorted) {
-    sortDirection = sort?.direction === "asc" ? "ascending" : "descending";
+  if (metricDirection) {
+    sortDirection = metricDirection === "asc" ? "ascending" : "descending";
   }
   const shares = splitColumns.map((column) => columnWidths[column.id] ?? column.width);
   const total = shares[0] + shares[1];
 
   // The desktop header cycle: ascending, then descending, then the default order.
-  function cycleSort() {
-    if (!props.sorting || !mobile) {
+  function cycleSort(columnId: string) {
+    if (!props.sorting) {
       return;
     }
-    if (sorted && sort?.direction === "desc") {
+    const current = directionOf(columnId);
+    if (current === "desc") {
       props.sorting.onChange(null);
       return;
     }
-    props.sorting.onChange({
-      column: mobile.metricColumn,
-      direction: sorted ? "desc" : "asc",
-    });
+    props.sorting.onChange({ column: columnId, direction: current ? "desc" : "asc" });
   }
 
   return (
@@ -92,7 +88,19 @@ export function DataTableMobile<Row>({
                     />
                   </label>
                 )}
-                <span>{mobile.identityLabel}</span>
+                <span className={styles.identityHeadings}>
+                  {mobile.identityColumns.map((column, index) => (
+                    <Fragment key={column.id}>
+                      {index > 0 && <span aria-hidden="true">&amp;</span>}
+                      <MobileSortButton
+                        label={column.label}
+                        sort={directionOf(column.id)}
+                        disabled={disabled || props.busy || !sortable(column.id)}
+                        onClick={() => cycleSort(column.id)}
+                      />
+                    </Fragment>
+                  ))}
+                </span>
               </div>
               <div
                 aria-hidden="true"
@@ -106,28 +114,12 @@ export function DataTableMobile<Row>({
               />
             </th>
             <th scope="col" data-column-id="metric" aria-sort={sortDirection}>
-              <Button
-                variant="ghost"
-                size="compact"
-                className={styles.sortButton}
-                disabled={disabled || props.busy || !sortable}
-                onClick={cycleSort}
-                aria-label={`Sort by ${mobile.metricLabel}`}
-              >
-                <span>{mobile.metricLabel}</span>
-                {sorted && (
-                  <span aria-hidden="true" className={iconStyles.glyph}>
-                    <Icon
-                      name={
-                        sort?.direction === "desc"
-                          ? "table-sort-descending"
-                          : "table-sort-ascending"
-                      }
-                      grid={16}
-                    />
-                  </span>
-                )}
-              </Button>
+              <MobileSortButton
+                label={mobile.metricLabel}
+                sort={metricDirection}
+                disabled={disabled || props.busy || !sortable(mobile.metricColumn)}
+                onClick={() => cycleSort(mobile.metricColumn)}
+              />
             </th>
           </tr>
         </thead>
