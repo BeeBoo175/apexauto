@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { ScrollStrip } from "@/components/ui/ScrollStrip";
 import type { DataColumn, MobileTable } from "./types";
 import styles from "./DataTableMobile.module.css";
 
@@ -20,7 +21,7 @@ export function useColumnMobile<Row>(
   const [primary, secondary] = identity;
   return {
     controls: (
-      <div className={styles.lenses} role="tablist" aria-label="Show column">
+      <ScrollStrip label="Show column" role="tablist" className={styles.lenses}>
         {metrics.map((column) => (
           <Button
             key={column.id}
@@ -34,7 +35,7 @@ export function useColumnMobile<Row>(
             {column.label}
           </Button>
         ))}
-      </div>
+      </ScrollStrip>
     ),
     identityColumns: identity.map((column) => ({ id: column.id, label: column.label })),
     metricLabel: metric.label,

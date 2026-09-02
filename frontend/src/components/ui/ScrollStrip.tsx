@@ -9,10 +9,12 @@ import styles from "./ScrollStrip.module.css";
 export function ScrollStrip({
   label,
   className = "",
+  role = "group",
   children,
 }: {
   label: string;
   className?: string;
+  role?: "group" | "tablist";
   children: ReactNode;
 }) {
   const frame = useRef<HTMLDivElement>(null);
@@ -65,23 +67,12 @@ export function ScrollStrip({
     });
   }
 
+  // Option B of the owner's choice: a fade and a small round chevron appear only on the side that has more to show.
   return (
     <div ref={frame} className={styles.frame}>
-      {edges.overflow && (
-        <Button
-          size="icon"
-          variant="ghost"
-          className={styles.scrollControl}
-          aria-label={`Scroll ${label.toLowerCase()} left`}
-          disabled={edges.start}
-          onClick={() => scroll(-1)}
-        >
-          <Icon name="previous" />
-        </Button>
-      )}
       <div
         ref={viewport}
-        role="group"
+        role={role}
         aria-label={label}
         tabIndex={0}
         className={`${styles.viewport} ${className}`.trim()}
@@ -89,17 +80,33 @@ export function ScrollStrip({
       >
         {children}
       </div>
-      {edges.overflow && (
-        <Button
-          size="icon"
-          variant="ghost"
-          className={styles.scrollControl}
-          aria-label={`Scroll ${label.toLowerCase()} right`}
-          disabled={edges.end}
-          onClick={() => scroll(1)}
-        >
-          <Icon name="next" />
-        </Button>
+      {edges.overflow && !edges.start && (
+        <>
+          <span aria-hidden="true" className={`${styles.fade} ${styles.fadeStart}`} />
+          <Button
+            size="icon"
+            variant="ghost"
+            className={`${styles.scrollControl} ${styles.controlStart}`}
+            aria-label={`Scroll ${label.toLowerCase()} left`}
+            onClick={() => scroll(-1)}
+          >
+            <Icon name="previous" grid={16} />
+          </Button>
+        </>
+      )}
+      {edges.overflow && !edges.end && (
+        <>
+          <span aria-hidden="true" className={`${styles.fade} ${styles.fadeEnd}`} />
+          <Button
+            size="icon"
+            variant="ghost"
+            className={`${styles.scrollControl} ${styles.controlEnd}`}
+            aria-label={`Scroll ${label.toLowerCase()} right`}
+            onClick={() => scroll(1)}
+          >
+            <Icon name="next" grid={16} />
+          </Button>
+        </>
       )}
     </div>
   );

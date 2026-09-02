@@ -9,6 +9,7 @@ import { StaffQueueTabs } from "@/components/staff/StaffQueueTabs";
 import { AppliedWorklistFilters } from "@/components/staff/AppliedWorklistFilters";
 import { Button } from "@/components/ui/Button";
 import { CsvExportActions } from "@/components/ui/CsvExportActions";
+import { ScrollStrip } from "@/components/ui/ScrollStrip";
 import { ResetFiltersButton } from "@/components/ui/ResetFiltersButton";
 import { DataTable } from "@/components/ui/data-table/DataTable";
 import type { TableSort } from "@/components/ui/data-table/types";
@@ -274,7 +275,7 @@ export function SalesTable({
       columns={columns}
       mobile={{
         controls: (
-          <div className={tableMobile.lenses} role="tablist" aria-label="Compare sales by">
+          <ScrollStrip label="Compare sales by" role="tablist" className={tableMobile.lenses}>
             {saleMetrics.map((item) => (
               <Button
                 key={item.value}
@@ -288,7 +289,7 @@ export function SalesTable({
                 {item.label}
               </Button>
             ))}
-          </div>
+          </ScrollStrip>
         ),
         identityColumns: [
           { id: "vehicle", label: "Vehicle" },
