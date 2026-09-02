@@ -23,7 +23,8 @@ export function DataTableMobile<Row>({
   toggle: (id: string) => void;
   containerRef: RefObject<HTMLDivElement | null>;
 }) {
-  const { mobile, rows, rowId, selection, disabled, onRowClick } = props;
+  const { rows, rowId, selection, disabled, onRowClick } = props;
+  const mobile = props.mobile === "columns" ? undefined : props.mobile;
   const checkbox = useRef<HTMLInputElement>(null);
   const selected = rows.filter((row) => selection?.ids.has(rowId(row))).length;
   const all = rows.length > 0 && selected === rows.length;
@@ -37,6 +38,9 @@ export function DataTableMobile<Row>({
     return null;
   }
   const sort = props.sorting?.value;
+  const sortable = Boolean(
+    props.sorting && props.columns.find((column) => column.id === mobile.metricColumn)?.sortable,
+  );
   const sorted = sort?.column === mobile.metricColumn;
   let sortDirection: "ascending" | "descending" | "none" | undefined;
   if (props.sorting) {
@@ -106,7 +110,7 @@ export function DataTableMobile<Row>({
                 variant="ghost"
                 size="compact"
                 className={styles.sortButton}
-                disabled={disabled || props.busy || !props.sorting}
+                disabled={disabled || props.busy || !sortable}
                 onClick={cycleSort}
                 aria-label={`Sort by ${mobile.metricLabel}`}
               >

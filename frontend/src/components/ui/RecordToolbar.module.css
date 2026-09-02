@@ -164,6 +164,15 @@
     max-width: none;
   }
 
+  .toolbar[data-mobile-discovery] .resetFilters {
+    display: none;
+  }
+
+  /* Any other toolbar action, such as a create button with a label, takes a full row. */
+  .toolbar[data-mobile-discovery] .toolbarActions > :not(.resetFilters, .exportActions) {
+    grid-column: 1 / -1;
+  }
+
   .toolbar[data-mobile-discovery] .mobileDiscovery > * {
     grid-row: 2;
   }

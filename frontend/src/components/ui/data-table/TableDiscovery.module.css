@@ -1,0 +1,36 @@
+.button {
+  flex: 1 1 0;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* An applied sort or filter tints its button like an open filter shelf; the arrow shows the sort direction. */
+.button[data-sorted],
+.button[data-filtered] {
+  border-color: var(--color-interaction-border, var(--color-graphite));
+  background: var(--color-selected-surface, var(--color-line-soft));
+}
+
+.count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 18px;
+  min-width: 18px;
+  padding-inline: 4px;
+  border-radius: 3px;
+  background: var(--color-graphite);
+  color: var(--color-paper);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.label {
+  display: inline;
+}
+
+@media (max-width: 360px) {
+  .label {
+    display: none;
+  }
+}

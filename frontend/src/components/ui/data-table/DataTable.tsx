@@ -7,6 +7,7 @@ import { columnLayout } from "@/lib/column-resize";
 import { DataTableHeader } from "./DataTableHeader";
 import { DataTablePagination } from "./DataTablePagination";
 import { DataTableMobile } from "./DataTableMobile";
+import { useColumnMobile } from "./use-column-mobile";
 import { activateTableRow, activateTableRowKey } from "./row-interaction";
 import { EmptyNotice } from "@/components/ui/EmptyNotice";
 import type { DataTableProps } from "./types";
@@ -18,7 +19,9 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
   const checkbox = useRef<HTMLInputElement>(null);
   const table = useRef<HTMLTableElement>(null);
   const mobileTable = useRef<HTMLDivElement>(null);
-  const hasMobile = Boolean(props.mobile);
+  const columnMobile = useColumnMobile(columns, props.mobile === "columns");
+  const mobile = props.mobile === "columns" ? columnMobile : props.mobile;
+  const hasMobile = Boolean(mobile);
   const confirmedPage = useRef(props.page);
   useLayoutEffect(() => {
     const previous = confirmedPage.current;
@@ -70,7 +73,7 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
     >
       {props.toolbar}
       <div
-        className={`${styles.scroll} ${rows.length === 0 ? styles.emptyScroll : ""} ${props.mobile ? styles.desktopView : ""}`}
+        className={`${styles.scroll} ${rows.length === 0 ? styles.emptyScroll : ""} ${hasMobile ? styles.desktopView : ""}`}
         role="region"
         aria-label={`${props.label} records`}
         tabIndex={0}
@@ -155,7 +158,9 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
           </tbody>
         </table>
       </div>
-      {props.mobile && <DataTableMobile props={props} toggle={toggle} containerRef={mobileTable} />}
+      {mobile && (
+        <DataTableMobile props={{ ...props, mobile }} toggle={toggle} containerRef={mobileTable} />
+      )}
       {rows.length === 0 && (
         <div className={styles.empty} aria-busy={props.busy} role="status">
           {pastLastPage && (

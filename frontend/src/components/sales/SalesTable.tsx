@@ -9,6 +9,7 @@ import { StaffQueueTabs } from "@/components/staff/StaffQueueTabs";
 import { AppliedWorklistFilters } from "@/components/staff/AppliedWorklistFilters";
 import { Button } from "@/components/ui/Button";
 import { CsvExportActions } from "@/components/ui/CsvExportActions";
+import { ResetFiltersButton } from "@/components/ui/ResetFiltersButton";
 import { DataTable } from "@/components/ui/data-table/DataTable";
 import type { TableSort } from "@/components/ui/data-table/types";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
@@ -41,7 +42,8 @@ import { saleTableFilters } from "./sale-filters";
 import { SalesFilterSheet } from "./SalesFilterSheet";
 import { SaleMobileIdentity, SaleMobileMetric } from "./SaleMobileCells";
 import { saleMetrics, saleSortLabels, type SaleMetric } from "./sale-mobile";
-import mobileStyles from "./SalesMobile.module.css";
+import tableMobile from "@/components/ui/data-table/DataTableMobile.module.css";
+import discoveryStyles from "@/components/ui/data-table/TableDiscovery.module.css";
 import styles from "@/components/staff/StaffWorklist.module.css";
 import workspace from "@/components/staff/StaffWorkspace.module.css";
 import { AssistedVehicleAction } from "@/components/staff/AssistedVehicleAction";
@@ -167,7 +169,7 @@ export function SalesTable({
             <Button
               variant="secondary"
               size="compact"
-              className={mobileStyles.discoveryButton}
+              className={discoveryStyles.button}
               data-sorted={sorted || undefined}
               aria-label={`Sort sales${sorted ? `, ${sortSummary}` : ""}`}
               aria-haspopup="dialog"
@@ -182,12 +184,12 @@ export function SalesTable({
                 }
                 grid={16}
               />
-              <span className={mobileStyles.discoveryLabel}>Sort</span>
+              <span className={discoveryStyles.label}>Sort</span>
             </Button>
             <Button
               variant="secondary"
               size="compact"
-              className={mobileStyles.discoveryButton}
+              className={discoveryStyles.button}
               data-filtered={applied.length > 0 || undefined}
               aria-label={`Filter sales${applied.length ? `, ${applied.length} applied` : ""}`}
               aria-haspopup="dialog"
@@ -195,9 +197,9 @@ export function SalesTable({
               onClick={() => setDiscovery("filter")}
             >
               <Icon name="filter" />
-              <span className={mobileStyles.discoveryLabel}>Filter</span>
+              <span className={discoveryStyles.label}>Filter</span>
               {applied.length > 0 && (
-                <span className={mobileStyles.filterCount}>{applied.length}</span>
+                <span className={discoveryStyles.count}>{applied.length}</span>
               )}
             </Button>
           </>
@@ -213,17 +215,7 @@ export function SalesTable({
         }
         actions={
           <>
-            {filtered && (
-              <Button
-                size="compact"
-                variant="ghost"
-                className={mobileStyles.resetFilters}
-                disabled={state.busy}
-                onClick={reset}
-              >
-                Reset filters
-              </Button>
-            )}
+            {filtered && <ResetFiltersButton disabled={state.busy} onClick={reset} />}
             <CsvExportActions
               create={
                 <AssistedVehicleAction
@@ -282,14 +274,14 @@ export function SalesTable({
       columns={columns}
       mobile={{
         controls: (
-          <div className={mobileStyles.lenses} role="tablist" aria-label="Compare sales by">
+          <div className={tableMobile.lenses} role="tablist" aria-label="Compare sales by">
             {saleMetrics.map((item) => (
               <Button
                 key={item.value}
                 variant="ghost"
                 size="compact"
                 role="tab"
-                className={mobileStyles.lens}
+                className={tableMobile.lens}
                 aria-selected={metric === item.value}
                 onClick={() => setMetric(item.value)}
               >

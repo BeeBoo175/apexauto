@@ -41,19 +41,24 @@ export interface TableSorting {
   onChange: (sort: TableSort | null) => void;
 }
 
+export interface MobileTable<Row> {
+  controls: ReactNode;
+  identityLabel: string;
+  metricLabel: string;
+  metricColumn: string;
+  identity: (row: Row) => ReactNode;
+  metric: (row: Row) => ReactNode;
+}
+
 export interface DataTableProps<Row> {
   label: string;
   /** Feature-owned search, criteria, queue tabs and export actions. */
   toolbar?: ReactNode;
-  /** Opt-in comparative mobile presentation; desktop columns remain unchanged. */
-  mobile?: {
-    controls: ReactNode;
-    identityLabel: string;
-    metricLabel: string;
-    metricColumn: string;
-    identity: (row: Row) => ReactNode;
-    metric: (row: Row) => ReactNode;
-  };
+  /**
+   * Opt-in comparative mobile presentation; desktop columns remain unchanged. "columns" derives it from the table's
+   * own columns: the first two identify the row and each remaining column becomes a tab for the shown value.
+   */
+  mobile?: MobileTable<Row> | "columns";
   rows: readonly Row[];
   /**
    * One empty state per table, the same on every tab: nothing narrows the table, or a search or column filter does.
