@@ -9,10 +9,11 @@ import { StaffQueueTabs } from "@/components/staff/StaffQueueTabs";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import { SearchField } from "@/components/ui/SearchField";
-import { Button } from "@/components/ui/Button";
 import { RecordToolbar } from "@/components/ui/RecordToolbar";
 import { CsvExportActions } from "@/components/ui/CsvExportActions";
+import { ResetFiltersButton } from "@/components/ui/ResetFiltersButton";
 import { DataTable } from "@/components/ui/data-table/DataTable";
+import { TableDiscovery } from "@/components/ui/data-table/TableDiscovery";
 import type { TableSort } from "@/components/ui/data-table/types";
 import { useListingManager } from "@/hooks/use-listing-manager";
 import { useRowSelection } from "@/hooks/use-row-selection";
@@ -85,6 +86,12 @@ export function ListingTable({
     exportListings(active.filters, signal),
   );
   const { columns, applied } = listingTableFilters(state, baseColumns);
+  const sorting = {
+    value: active.filters.sort
+      ? { column: active.filters.sort, direction: active.filters.direction }
+      : null,
+    onChange: sortListings,
+  };
   const refinements = applied.length > 0;
   // The publication tab is not a criterion to clear, so an empty tab never offers a clear.
   const narrowed = Boolean(active.filters.search || refinements);
@@ -160,6 +167,16 @@ export function ListingTable({
                   />
                   <RecordToolbar
                     filters={null}
+                    mobileDiscovery={
+                      <TableDiscovery
+                        label="listings"
+                        columns={columns}
+                        sorting={sorting}
+                        filterCount={applied.length}
+                        disabled={state.busy}
+                        onClearFilters={() => resetFilters()}
+                      />
+                    }
                     filterCount={applied.length}
                     disabled={false}
                     filterSummary={
@@ -172,14 +189,10 @@ export function ListingTable({
                     actions={
                       <>
                         {refinements && (
-                          <Button
-                            size="compact"
-                            variant="ghost"
+                          <ResetFiltersButton
                             disabled={state.busy}
                             onClick={() => resetFilters()}
-                          >
-                            Reset filters
-                          </Button>
+                          />
                         )}
                         <CsvExportActions
                           selected={selection.selectedRows.length}
@@ -229,12 +242,8 @@ export function ListingTable({
               label="Listings"
               rows={snapshot.items}
               columns={columns}
-              sorting={{
-                value: active.filters.sort
-                  ? { column: active.filters.sort, direction: active.filters.direction }
-                  : null,
-                onChange: sortListings,
-              }}
+              mobile="columns"
+              sorting={sorting}
               rowId={rowId}
               selection={selection.selection}
               page={snapshot}

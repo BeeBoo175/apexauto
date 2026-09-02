@@ -2,15 +2,16 @@
 import { useContext, type ReactNode } from "react";
 import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import { DataTable } from "@/components/ui/data-table/DataTable";
+import { TableDiscovery } from "@/components/ui/data-table/TableDiscovery";
 import { RecordToolbar } from "@/components/ui/RecordToolbar";
 import { CsvExportActions } from "@/components/ui/CsvExportActions";
+import { ResetFiltersButton } from "@/components/ui/ResetFiltersButton";
 import { useRowSelection } from "@/hooks/use-row-selection";
 import { useCsvExport } from "@/hooks/use-csv-export";
 import type { DataColumn, TableSort } from "@/components/ui/data-table/types";
 import type { CsvColumn } from "@/lib/csv";
 import { SearchField } from "@/components/ui/SearchField";
 import { RefreshButton } from "@/components/ui/RefreshButton";
-import { Button } from "@/components/ui/Button";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { StaffCommandBar } from "@/components/staff/StaffPage";
 import { StaffPageEntranceContext } from "@/components/staff/StaffActorBoundary";
@@ -140,6 +141,7 @@ export function QueueView<T>({
   }
 
   const filteredColumns = workshopColumnFilters(state, columns, disabled);
+  const sorting = { value: active.sort, onChange: sortQueue };
 
   function resetFilters(clearSearch = false) {
     void state.load(
@@ -207,6 +209,16 @@ export function QueueView<T>({
                   />
                   <RecordToolbar
                     filters={null}
+                    mobileDiscovery={
+                      <TableDiscovery
+                        label={title.toLowerCase()}
+                        columns={filteredColumns}
+                        sorting={sorting}
+                        filterCount={applied.length}
+                        disabled={disabled || state.busy}
+                        onClearFilters={() => resetFilters()}
+                      />
+                    }
                     disabled={disabled}
                     filterCount={applied.length}
                     filterSummary={
@@ -219,14 +231,10 @@ export function QueueView<T>({
                     actions={
                       <>
                         {refinements && (
-                          <Button
-                            size="compact"
-                            variant="ghost"
+                          <ResetFiltersButton
                             disabled={disabled || state.busy}
                             onClick={() => resetFilters()}
-                          >
-                            Reset filters
-                          </Button>
+                          />
                         )}
                         <CsvExportActions
                           selected={selection.selectedRows.length}
@@ -280,7 +288,8 @@ export function QueueView<T>({
                 onClear: () => resetFilters(true),
               }}
               columns={filteredColumns}
-              sorting={{ value: active.sort, onChange: sortQueue }}
+              mobile="columns"
+              sorting={sorting}
               rowId={rowId}
               selection={selection.selection}
               selectedRowId={selectedRowId}

@@ -1,10 +1,11 @@
 "use client";
 
-import { Button } from "@/components/ui/Button";
 import { SearchField } from "@/components/ui/SearchField";
 import { RecordToolbar } from "@/components/ui/RecordToolbar";
 import { CsvExportActions } from "@/components/ui/CsvExportActions";
+import { ResetFiltersButton } from "@/components/ui/ResetFiltersButton";
 import { DataTable } from "@/components/ui/data-table/DataTable";
+import { TableDiscovery } from "@/components/ui/data-table/TableDiscovery";
 import { useRowSelection } from "@/hooks/use-row-selection";
 import { useCsvExport } from "@/hooks/use-csv-export";
 import type { TableSort } from "@/components/ui/data-table/types";
@@ -54,9 +55,24 @@ export function IntakeWorklist({ actor, worklist, drawer }: IntakeWorklistProps)
     (row) => row.id,
     `${actorIdentity(actor)}:${query}:${worklist.revision}`,
   );
+  const sorting = {
+    value: active.sort,
+    onChange: (sort: TableSort | null) => void sortWorklist(sort),
+  };
   const csv = useCsvExport(intakeExportColumns, "intake-appointments", (signal) =>
     exportWorklist(active.filters, actor, signal, toast.info),
   );
+  function clearFilters() {
+    void worklist.load(
+      {
+        ...resetWorklistFilters(active.filters),
+        search: active.filters.search,
+        status: active.filters.status,
+      },
+      1,
+    );
+  }
+
   const filterControls = (
     <WorklistFilters
       worklist={worklist}
@@ -111,6 +127,16 @@ export function IntakeWorklist({ actor, worklist, drawer }: IntakeWorklistProps)
                 />
                 <RecordToolbar
                   filters={null}
+                  mobileDiscovery={
+                    <TableDiscovery
+                      label="intake appointments"
+                      columns={columns}
+                      sorting={sorting}
+                      filterCount={appliedFilters.length}
+                      disabled={disabled || worklist.busy}
+                      onClearFilters={clearFilters}
+                    />
+                  }
                   disabled={disabled}
                   filterCount={appliedFilters.length}
                   filterSummary={
@@ -122,33 +148,22 @@ export function IntakeWorklist({ actor, worklist, drawer }: IntakeWorklistProps)
                   }
                   actions={
                     <>
-                      <AssistedIntakeAction
-                        open={drawer.creating}
-                        onOpen={drawer.openCreate}
-                        onClose={drawer.closeCreate}
-                        disabled={disabled || worklist.busy}
-                        onBooked={() => void worklist.load(active.filters, active.page)}
-                      />
                       {appliedFilters.length > 0 && (
-                        <Button
-                          size="compact"
-                          variant="ghost"
+                        <ResetFiltersButton
                           disabled={disabled || worklist.busy}
-                          onClick={() =>
-                            void worklist.load(
-                              {
-                                ...resetWorklistFilters(active.filters),
-                                search: active.filters.search,
-                                status: active.filters.status,
-                              },
-                              1,
-                            )
-                          }
-                        >
-                          Reset filters
-                        </Button>
+                          onClick={clearFilters}
+                        />
                       )}
                       <CsvExportActions
+                        create={
+                          <AssistedIntakeAction
+                            open={drawer.creating}
+                            onOpen={drawer.openCreate}
+                            onClose={drawer.closeCreate}
+                            disabled={disabled || worklist.busy}
+                            onBooked={() => void worklist.load(active.filters, active.page)}
+                          />
+                        }
                         selected={selection.selectedRows.length}
                         disabled={disabled || worklist.busy || snapshot.total === 0}
                         busy={csv.busy}
@@ -209,7 +224,8 @@ export function IntakeWorklist({ actor, worklist, drawer }: IntakeWorklistProps)
             columns={columns}
             rowId={(row) => row.id}
             page={{ ...snapshot, page: active.page }}
-            sorting={{ value: active.sort, onChange: (sort) => void sortWorklist(sort) }}
+            mobile="columns"
+            sorting={sorting}
             disabled={disabled}
             busy={worklist.busy}
             selection={selection.selection}

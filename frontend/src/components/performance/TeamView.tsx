@@ -5,7 +5,7 @@ import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { ChoiceColumnFilter } from "@/components/ui/data-table/ChoiceColumnFilter";
 import { TextColumnFilter } from "@/components/ui/data-table/ColumnFilterForm";
 import { DataTable } from "@/components/ui/data-table/DataTable";
-import type { DataColumn } from "@/components/ui/data-table/types";
+import type { DataColumn, TableSort } from "@/components/ui/data-table/types";
 import { PersonLabel } from "@/components/staff/PersonLabel";
 import { usePerformanceExport } from "@/hooks/use-performance-export";
 import { usePerformanceSection } from "@/hooks/use-performance-section";
@@ -331,6 +331,10 @@ function TeamTable<Row extends SalesRow | WorkshopRow>({
       setPage(Math.floor(index / pageSize) + 1);
     }
   }
+  const sorting = {
+    value: filters.sort,
+    onChange: (sort: TableSort | null) => change({ ...filters, sort }),
+  };
   const sectionState = {
     hasData: people !== null,
     busy: read.busy,
@@ -358,12 +362,12 @@ function TeamTable<Row extends SalesRow | WorkshopRow>({
           <DataTable
             label={`${teamTitles[tab]} team output`}
             density="comfortable"
-            sorting={{
-              value: filters.sort,
-              onChange: (sort) => change({ ...filters, sort }),
-            }}
+            mobile="columns"
+            sorting={sorting}
             toolbar={
               <TeamTableToolbar
+                columns={tableColumns}
+                sorting={sorting}
                 filters={filters}
                 applied={appliedTeamFilters(filters, labelOf)}
                 busy={busy}

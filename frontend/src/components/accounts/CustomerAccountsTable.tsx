@@ -3,10 +3,11 @@
 import { useContext } from "react";
 import { StaffPageEntranceContext } from "@/components/staff/StaffActorBoundary";
 import workspace from "@/components/staff/StaffWorkspace.module.css";
-import { Button } from "@/components/ui/Button";
 import { SearchField } from "@/components/ui/SearchField";
 import { RecordToolbar } from "@/components/ui/RecordToolbar";
+import { ResetFiltersButton } from "@/components/ui/ResetFiltersButton";
 import { DataTable } from "@/components/ui/data-table/DataTable";
+import { TableDiscovery } from "@/components/ui/data-table/TableDiscovery";
 import type { DataColumn } from "@/components/ui/data-table/types";
 import { TextColumnFilter } from "@/components/ui/data-table/ColumnFilterForm";
 import { AppliedWorklistFilters } from "@/components/staff/AppliedWorklistFilters";
@@ -94,6 +95,10 @@ export function CustomerAccountsTable({
     void list.load({ ...filters, search: "", name: "", email: "", mobile: "" }, 1);
   }
 
+  function clearFilters() {
+    void list.load({ ...filters, name: "", email: "", mobile: "" }, 1);
+  }
+
   return (
     <div className={`${styles.page} ${animateEntry ? workspace.reveal : ""}`}>
       <div className={styles.body}>
@@ -103,6 +108,7 @@ export function CustomerAccountsTable({
           columns={filteredColumns}
           rowId={(row) => row.id}
           page={snapshot}
+          mobile="columns"
           busy={busy}
           disabled={false}
           selectedRowId={selectedId}
@@ -130,6 +136,15 @@ export function CustomerAccountsTable({
               />
               <RecordToolbar
                 filters={null}
+                mobileDiscovery={
+                  <TableDiscovery
+                    label="customers"
+                    columns={filteredColumns}
+                    filterCount={applied.length}
+                    disabled={busy}
+                    onClearFilters={clearFilters}
+                  />
+                }
                 disabled={false}
                 filterCount={applied.length}
                 filterSummary={
@@ -141,16 +156,7 @@ export function CustomerAccountsTable({
                 }
                 actions={
                   applied.length > 0 && (
-                    <Button
-                      size="compact"
-                      variant="ghost"
-                      disabled={busy}
-                      onClick={() =>
-                        void list.load({ ...filters, name: "", email: "", mobile: "" }, 1)
-                      }
-                    >
-                      Reset filters
-                    </Button>
+                    <ResetFiltersButton disabled={busy} onClick={clearFilters} />
                   )
                 }
               >

@@ -4,11 +4,12 @@ import type { ReactNode } from "react";
 import { useContext } from "react";
 import { StaffPageEntranceContext } from "@/components/staff/StaffActorBoundary";
 import workspace from "@/components/staff/StaffWorkspace.module.css";
-import { Button } from "@/components/ui/Button";
 import { SearchField } from "@/components/ui/SearchField";
 import { RecordToolbar } from "@/components/ui/RecordToolbar";
+import { ResetFiltersButton } from "@/components/ui/ResetFiltersButton";
 import { Avatar } from "@/components/ui/Avatar";
 import { DataTable } from "@/components/ui/data-table/DataTable";
+import { TableDiscovery } from "@/components/ui/data-table/TableDiscovery";
 import type { DataColumn } from "@/components/ui/data-table/types";
 import { AppliedWorklistFilters } from "@/components/staff/AppliedWorklistFilters";
 import { StaffQueueTabs } from "@/components/staff/StaffQueueTabs";
@@ -136,6 +137,10 @@ export function StaffAccountsTable({
   // The view tab is not a criterion to clear, so an empty tab never offers a clear.
   const narrowed = applied.length > 0 || Boolean(filters.search);
 
+  function clearFilters() {
+    void list.load({ ...filters, role: "", branchId: "", name: "", email: "", mobile: "" }, 1);
+  }
+
   function clearAll() {
     void list.load(
       { ...filters, search: "", name: "", email: "", mobile: "", role: "", branchId: "" },
@@ -152,6 +157,7 @@ export function StaffAccountsTable({
           columns={filteredColumns}
           rowId={(row) => row.id}
           page={snapshot}
+          mobile="columns"
           busy={busy}
           disabled={false}
           selectedRowId={selectedId}
@@ -179,6 +185,15 @@ export function StaffAccountsTable({
               />
               <RecordToolbar
                 filters={null}
+                mobileDiscovery={
+                  <TableDiscovery
+                    label="staff"
+                    columns={filteredColumns}
+                    filterCount={applied.length}
+                    disabled={busy}
+                    onClearFilters={clearFilters}
+                  />
+                }
                 disabled={false}
                 filterCount={applied.length}
                 filterSummary={
@@ -191,19 +206,7 @@ export function StaffAccountsTable({
                 actions={
                   <>
                     {applied.length > 0 && (
-                      <Button
-                        size="compact"
-                        variant="ghost"
-                        disabled={busy}
-                        onClick={() =>
-                          void list.load(
-                            { ...filters, role: "", branchId: "", name: "", email: "", mobile: "" },
-                            1,
-                          )
-                        }
-                      >
-                        Reset filters
-                      </Button>
+                      <ResetFiltersButton disabled={busy} onClick={clearFilters} />
                     )}
                     {actions}
                   </>

@@ -4,8 +4,10 @@ import { useState, type ReactNode } from "react";
 import { AppliedWorklistFilters } from "@/components/staff/AppliedWorklistFilters";
 import { Button } from "@/components/ui/Button";
 import { DataTable } from "@/components/ui/data-table/DataTable";
+import { TableDiscovery } from "@/components/ui/data-table/TableDiscovery";
 import type { DataColumn, TableSort } from "@/components/ui/data-table/types";
 import { RecordToolbar } from "@/components/ui/RecordToolbar";
+import { ResetFiltersButton } from "@/components/ui/ResetFiltersButton";
 import { SearchField } from "@/components/ui/SearchField";
 import type { ListSnapshot } from "@/hooks/use-settings-workspace";
 import { emptyListFilters, type ListFilters } from "@/lib/settings/settings";
@@ -43,6 +45,19 @@ export function MasterDataTable<Row extends { id: string }>({
   const [search, setSearch] = useState(filters.search);
   const filtered = applied.length > 0 || Boolean(filters.search);
 
+  function clearFilters() {
+    void onLoad(
+      {
+        ...emptyListFilters,
+        search: filters.search,
+        pageSize: filters.pageSize,
+        sort: filters.sort,
+        direction: filters.direction,
+      },
+      1,
+    );
+  }
+
   function clearAll() {
     setSearch("");
     void onLoad(
@@ -60,6 +75,11 @@ export function MasterDataTable<Row extends { id: string }>({
     void onLoad({ ...filters, sort: next?.column ?? "", direction: next?.direction ?? "asc" }, 1);
   }
 
+  const sorting = {
+    value: filters.sort ? { column: filters.sort, direction: filters.direction } : null,
+    onChange: sort,
+  };
+
   return (
     <DataTable
       toolbar={
@@ -67,6 +87,16 @@ export function MasterDataTable<Row extends { id: string }>({
           {tabs}
           <RecordToolbar
             filters={null}
+            mobileDiscovery={
+              <TableDiscovery
+                label={label.toLowerCase()}
+                columns={columns}
+                sorting={sorting}
+                filterCount={applied.length}
+                disabled={busy}
+                onClearFilters={clearFilters}
+              />
+            }
             filterCount={applied.length}
             disabled={busy}
             filterSummary={
@@ -78,11 +108,7 @@ export function MasterDataTable<Row extends { id: string }>({
             }
             actions={
               <>
-                {filtered && (
-                  <Button size="compact" variant="ghost" disabled={busy} onClick={clearAll}>
-                    Reset filters
-                  </Button>
-                )}
+                {filtered && <ResetFiltersButton disabled={busy} onClick={clearFilters} />}
                 <Button size="compact" disabled={busy} onClick={onCreate}>
                   New {noun}
                 </Button>
@@ -121,10 +147,8 @@ export function MasterDataTable<Row extends { id: string }>({
       label={label}
       rows={data.items}
       columns={columns}
-      sorting={{
-        value: filters.sort ? { column: filters.sort, direction: filters.direction } : null,
-        onChange: sort,
-      }}
+      mobile="columns"
+      sorting={sorting}
       rowId={(row) => row.id}
       page={{ page, pageSize: data.pageSize, total: data.total }}
       onPage={(nextPage, pageSize) => void onLoad({ ...filters, pageSize }, nextPage)}

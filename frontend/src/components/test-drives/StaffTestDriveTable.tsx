@@ -1,11 +1,12 @@
 "use client";
 
-import { Button } from "@/components/ui/Button";
 import { SearchField } from "@/components/ui/SearchField";
 import { RecordToolbar } from "@/components/ui/RecordToolbar";
 import { CsvExportActions } from "@/components/ui/CsvExportActions";
+import { ResetFiltersButton } from "@/components/ui/ResetFiltersButton";
 import { DataTable } from "@/components/ui/data-table/DataTable";
-import type { DataColumn } from "@/components/ui/data-table/types";
+import { TableDiscovery } from "@/components/ui/data-table/TableDiscovery";
+import type { DataColumn, TableSort } from "@/components/ui/data-table/types";
 import { CustomerAvatar } from "@/components/staff/CustomerAvatar";
 import { HandlerAvatar } from "@/components/staff/HandlerAvatar";
 import { SuspendedPerson } from "@/components/staff/SuspensionBadge";
@@ -163,7 +164,7 @@ export function StaffTestDriveTable({
   if (filters.from || filters.to) {
     applied.push({
       key: "dates",
-      label: `${filters.from} – ${filters.to}`,
+      label: `${filters.from} â€“ ${filters.to}`,
       without: { ...filters, from: "", to: "" },
     });
   }
@@ -225,6 +226,32 @@ export function StaffTestDriveTable({
     );
   }
 
+  function clearFilters() {
+    void list.load(
+      {
+        ...filters,
+        from: "",
+        to: "",
+        branchId: "",
+        handlerId: "",
+        handler: "",
+        registration: "",
+        vehicle: "",
+        customer: "",
+      },
+      1,
+    );
+  }
+
+  const sorting = {
+    value: sort,
+    onChange: (next: TableSort | null) =>
+      void list.load(
+        { ...filters, sort: next?.column ?? "", direction: next?.direction ?? "asc" },
+        1,
+      ),
+  };
+
   return (
     <div className={styles.page}>
       <div className={styles.body}>
@@ -234,14 +261,8 @@ export function StaffTestDriveTable({
           columns={filteredColumns}
           rowId={(row) => row.id}
           page={snapshot}
-          sorting={{
-            value: sort,
-            onChange: (next) =>
-              void list.load(
-                { ...filters, sort: next?.column ?? "", direction: next?.direction ?? "asc" },
-                1,
-              ),
-          }}
+          mobile="columns"
+          sorting={sorting}
           selection={selection.selection}
           selectedRowId={selectedId}
           disabled={disabled}
@@ -270,6 +291,16 @@ export function StaffTestDriveTable({
               />
               <RecordToolbar
                 filters={null}
+                mobileDiscovery={
+                  <TableDiscovery
+                    label="test drives"
+                    columns={filteredColumns}
+                    sorting={sorting}
+                    filterCount={applied.length}
+                    disabled={disabled || busy}
+                    onClearFilters={clearFilters}
+                  />
+                }
                 disabled={disabled}
                 filterCount={applied.length}
                 filterSummary={
@@ -282,29 +313,7 @@ export function StaffTestDriveTable({
                 actions={
                   <>
                     {applied.length > 0 && (
-                      <Button
-                        size="compact"
-                        variant="ghost"
-                        disabled={disabled || busy}
-                        onClick={() =>
-                          void list.load(
-                            {
-                              ...filters,
-                              from: "",
-                              to: "",
-                              branchId: "",
-                              handlerId: "",
-                              handler: "",
-                              registration: "",
-                              vehicle: "",
-                              customer: "",
-                            },
-                            1,
-                          )
-                        }
-                      >
-                        Reset filters
-                      </Button>
+                      <ResetFiltersButton disabled={disabled || busy} onClick={clearFilters} />
                     )}
                     <CsvExportActions
                       create={
