@@ -674,8 +674,12 @@
     outline-offset: 2px;
   }
 
+  /* The drawer's header is exactly as tall as the top bar, so opening it does not make the header jump. */
   .identity {
-    padding: 12px 16px;
+    justify-content: center;
+    height: 52px;
+    min-height: 52px;
+    padding: 0 16px;
     border-bottom: 1px solid var(--staff-shell-line);
   }
 
@@ -683,8 +687,12 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    min-height: 44px;
+    min-height: 0;
     gap: 8px;
+  }
+
+  .identity .brand {
+    font-size: 19px;
   }
 
   .activeLink,
@@ -734,7 +742,7 @@
 
   .sidebarCollapsed .identity {
     align-items: stretch;
-    padding: 12px 16px;
+    padding: 0 16px;
     gap: 8px;
   }
 
