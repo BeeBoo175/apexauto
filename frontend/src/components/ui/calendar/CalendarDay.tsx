@@ -1,4 +1,3 @@
-import { useCalendarDayCapacity } from "@/hooks/use-calendar-day-capacity";
 import { calendarDayLabel } from "@/lib/calendar";
 import { CalendarEventButton } from "./CalendarEventButton";
 import type { CalendarProps } from "./types";
@@ -12,17 +11,10 @@ interface DayProps<Data> extends CalendarProps<Data> {
 
 export function CalendarDay<Data>({ date, events, selected, active, ...props }: DayProps<Data>) {
   const count = events.length;
-  const { day, capacity } = useCalendarDayCapacity(count, 2);
-  const overflow = Math.max(0, count - capacity);
   const label = `${calendarDayLabel(date, props.locale)}, ${count} ${count === 1 ? "event" : "events"}`;
   return (
-    <div
-      ref={day}
-      role="cell"
-      data-date={date}
-      className={`${styles.day} ${active ? styles.activeDay : ""}`}
-    >
-      <div className={styles.dayTop} data-day-top="">
+    <div role="cell" data-date={date} className={`${styles.day} ${active ? styles.activeDay : ""}`}>
+      <div className={styles.dayTop}>
         {props.renderDayMark?.(events)}
         <button
           type="button"
@@ -45,13 +37,15 @@ export function CalendarDay<Data>({ date, events, selected, active, ...props }: 
         </button>
       </div>
       <div className={styles.events}>
-        {events.slice(0, capacity).map((event) => (
+        {events.slice(0, 2).map((event) => (
           <div key={event.id} data-calendar-event="">
             <CalendarEventButton {...props} event={event} compact={props.fit} />
           </div>
         ))}
       </div>
-      {overflow > 0 && <span className={styles.more}>+{overflow} more</span>}
+      {/* A short cell hides the second chip with CSS alone, so it counts one more event as hidden. */}
+      {count > 1 && <span className={`${styles.more} ${styles.moreShort}`}>+{count - 1} more</span>}
+      {count > 2 && <span className={`${styles.more} ${styles.moreTall}`}>+{count - 2} more</span>}
     </div>
   );
 }

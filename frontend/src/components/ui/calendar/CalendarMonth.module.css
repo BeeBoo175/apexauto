@@ -50,6 +50,8 @@
 }
 
 .day {
+  /* The cell's own height decides how many chips fit; see the container queries below. */
+  container-type: size;
   touch-action: manipulation;
   display: flex;
   flex-direction: column;
@@ -148,6 +150,8 @@
   container-type: inline-size;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
+  /* Rows keep their full chip height; with overflow hidden on the chips a grid would otherwise squeeze them. */
+  grid-auto-rows: max-content;
   gap: 3px;
   min-width: 0;
   max-width: 100%;
@@ -185,6 +189,10 @@
 }
 
 .mobileCount {
+  display: none;
+}
+
+.moreShort {
   display: none;
 }
 
@@ -248,6 +256,72 @@
     min-height: 12px;
     height: 12px;
     padding-top: 0;
+  }
+}
+
+/* A cell too short for two chips and the "+N more" line shows one chip and counts the second as hidden. The limit is
+   the date row, two chips, their gap and the label at each window height, so it needs no script. */
+@media (min-width: 821px) and (min-height: 821px) {
+  @container (max-height: 110px) {
+    .events {
+      max-height: 24px;
+    }
+
+    .moreTall {
+      display: none;
+    }
+
+    .moreShort {
+      display: block;
+    }
+  }
+}
+
+@media (min-width: 821px) and (min-height: 741px) and (max-height: 820px) {
+  @container (max-height: 98px) {
+    .events {
+      max-height: 24px;
+    }
+
+    .moreTall {
+      display: none;
+    }
+
+    .moreShort {
+      display: block;
+    }
+  }
+}
+
+@media (min-width: 821px) and (min-height: 601px) and (max-height: 740px) {
+  @container (max-height: 82px) {
+    .events {
+      max-height: 20px;
+    }
+
+    .moreTall {
+      display: none;
+    }
+
+    .moreShort {
+      display: block;
+    }
+  }
+}
+
+@media (min-width: 821px) and (max-height: 600px) {
+  @container (max-height: 69px) {
+    .events {
+      max-height: 20px;
+    }
+
+    .moreTall {
+      display: none;
+    }
+
+    .moreShort {
+      display: block;
+    }
   }
 }
 
