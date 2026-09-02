@@ -65,10 +65,12 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
+    gap: 12px 8px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--color-line-soft);
   }
 
+  /* Today and the month arrows read as one joined control with a shared edge. */
   .navigation {
     justify-content: flex-end;
     flex-wrap: nowrap;
@@ -78,6 +80,21 @@
   .navigation button {
     flex: 0 0 auto;
     padding-inline: 8px;
+    border: 1px solid var(--color-line);
+    border-radius: 0;
+    background: var(--color-paper);
+  }
+
+  .navigation button + button {
+    margin-left: -1px;
+  }
+
+  .navigation button:first-child {
+    border-radius: var(--radius-sm, 4px) 0 0 var(--radius-sm, 4px);
+  }
+
+  .navigation button:last-child {
+    border-radius: 0 var(--radius-sm, 4px) var(--radius-sm, 4px) 0;
   }
 
   .toolbar h2 {

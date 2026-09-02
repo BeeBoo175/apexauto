@@ -80,31 +80,39 @@ export function ScrollStrip({
       >
         {children}
       </div>
-      {edges.overflow && !edges.start && (
+      {edges.overflow && (
         <>
-          <span aria-hidden="true" className={`${styles.fade} ${styles.fadeStart}`} />
+          <span
+            aria-hidden="true"
+            className={`${styles.fade} ${styles.fadeStart}`}
+            data-hidden={edges.start || undefined}
+          />
           <Button
             size="icon"
             variant="ghost"
             className={`${styles.scrollControl} ${styles.controlStart}`}
+            data-hidden={edges.start || undefined}
+            inert={edges.start || undefined}
             aria-label={`Scroll ${label.toLowerCase()} left`}
             onClick={() => scroll(-1)}
           >
-            <Icon name="previous" grid={16} />
+            <Icon name="previous" />
           </Button>
-        </>
-      )}
-      {edges.overflow && !edges.end && (
-        <>
-          <span aria-hidden="true" className={`${styles.fade} ${styles.fadeEnd}`} />
+          <span
+            aria-hidden="true"
+            className={`${styles.fade} ${styles.fadeEnd}`}
+            data-hidden={edges.end || undefined}
+          />
           <Button
             size="icon"
             variant="ghost"
             className={`${styles.scrollControl} ${styles.controlEnd}`}
+            data-hidden={edges.end || undefined}
+            inert={edges.end || undefined}
             aria-label={`Scroll ${label.toLowerCase()} right`}
             onClick={() => scroll(1)}
           >
-            <Icon name="next" grid={16} />
+            <Icon name="next" />
           </Button>
         </>
       )}

@@ -1,5 +1,6 @@
 using Dealership.Application.Accounts;
 using Dealership.Application.Vehicles;
+using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Mail;
 using Dealership.Infrastructure.Persistence;
 using Dealership.Infrastructure.Vehicles;
@@ -43,12 +44,21 @@ public sealed class ReservationMailTests(IntakePhotoFixture fixture) : IClassFix
         Assert.Null(intent.DeliveredAt);
         Assert.Equal(0, intent.DeliveryAttempts);
         var reservation = await database.Reservations.AsNoTracking().SingleAsync();
-        var expected = ReservationMailComposer.Confirmation(reservation);
+        var expected = ReservationMailComposer.Confirmation(reservation, null);
         Assert.Equal(data.CustomerEmail, expected.Recipient);
         Assert.Contains("RM 60,630.00", expected.Body);
         Assert.Contains("RM 500.00", expected.Body);
         Assert.Contains("Asia/Kuala_Lumpur", expected.Body);
         Assert.DoesNotContain(reservation.Buyer.Nric, expected.Body);
+        Assert.DoesNotContain("Payment reference", expected.Body);
+
+        var payment = new ReservationDepositPayment(reservation.Id, "abc123", "https://billplz.example/bills/abc123",
+            50000, DateTimeOffset.UtcNow);
+        var paid = ReservationMailComposer.Confirmation(reservation, payment);
+        Assert.Contains("Payment reference", paid.Body);
+        Assert.Contains("abc123", paid.Body);
+        Assert.Contains("View Billplz receipt", paid.Body);
+        Assert.Contains("https://billplz.example/bills/abc123", paid.Body);
 
         await using (var restarted = NewContext())
         {

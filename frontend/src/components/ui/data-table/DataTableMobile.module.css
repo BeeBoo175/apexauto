@@ -68,6 +68,22 @@
     width: auto;
   }
 
+  /* The same 14px arrow the desktop headers show beside a sorted column. */
+  .sortIndicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 14px;
+    height: 14px;
+    color: var(--color-interaction-border, var(--color-graphite));
+  }
+
+  .sortIndicator > span {
+    width: 14px;
+    height: 14px;
+  }
+
   .sortButton {
     justify-content: flex-end;
     gap: 4px;

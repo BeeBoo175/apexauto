@@ -14,7 +14,8 @@ public static class ReservationUnmatchedPaymentMailComposer
             [
                 new MailDetail("Vehicle", MailFormat.VehicleLabel(vehicle)),
                 new MailDetail("Paid", MailFormat.Money(payment.PaidAmountSen!.Value / 100m)),
-                new MailDetail("Received", MailFormat.LocalTime(payment.PaidAt!.Value))
+                new MailDetail("Received", MailFormat.LocalTime(payment.PaidAt!.Value)),
+                new MailDetail("Payment reference", payment.BillId)
             ],
             ["Open your account and give the bank account to refund to. The refund is sent only when you ask for it."],
             "Claim your refund",

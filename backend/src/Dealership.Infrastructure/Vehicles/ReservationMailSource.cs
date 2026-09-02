@@ -29,6 +29,9 @@ public sealed class ReservationMailSource(DealershipDbContext database, TimeProv
     {
         var reservation = await database.Reservations.AsNoTracking()
             .SingleAsync(item => item.Id == message.ReservationId, cancellationToken);
-        return ReservationMailComposer.Confirmation(reservation);
+        // The reservation id is its deposit request's id, which keys the hosted payment when there was one.
+        var payment = await database.ReservationDepositPayments.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.RequestId == reservation.Id, cancellationToken);
+        return ReservationMailComposer.Confirmation(reservation, payment);
     }
 }

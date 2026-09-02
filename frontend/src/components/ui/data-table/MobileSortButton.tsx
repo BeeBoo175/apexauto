@@ -27,7 +27,7 @@ export function MobileSortButton({
     >
       <span>{label}</span>
       {sort && (
-        <span aria-hidden="true" className={iconStyles.glyph}>
+        <span aria-hidden="true" className={`${iconStyles.glyph} ${styles.sortIndicator}`}>
           <Icon
             name={sort === "desc" ? "table-sort-descending" : "table-sort-ascending"}
             grid={16}
