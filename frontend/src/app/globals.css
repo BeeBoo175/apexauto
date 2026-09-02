@@ -26,6 +26,12 @@
   color-scheme: light;
 }
 
+@media (max-width: 920px) {
+  :root {
+    --site-header-height: 52px;
+  }
+}
+
 body {
   background-color: var(--color-canvas);
   color: var(--color-graphite);

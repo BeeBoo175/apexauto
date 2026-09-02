@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { ScrollStrip } from "@/components/ui/ScrollStrip";
+import { Select } from "@/components/ui/Input";
 import { label } from "@/lib/inspection/contracts";
 import styles from "./Workshop.module.css";
 
@@ -19,28 +20,47 @@ export function InspectionChecklistCategories({
 }) {
   return (
     <nav className={styles.categoryNavigation} aria-label="Inspection categories">
-      <ScrollStrip label="Inspection categories" className={styles.categoryChipsStrip}>
-        {categories.map((name) => {
-          const count = matches.filter((point) => point.category === name).length;
-          const selected = name === category;
-          return (
-            <Button
-              key={name}
-              size="compact"
-              variant={selected ? "secondary" : "ghost"}
-              className={styles.categoryChip}
-              aria-pressed={selected}
-              disabled={disabled}
-              onClick={() => onChange(name)}
-            >
-              <span>{label(name)}</span>
-              <Badge variant="count" data-selected={selected}>
-                {count}
-              </Badge>
-            </Button>
-          );
-        })}
-      </ScrollStrip>
+      <div className={styles.categorySelect}>
+        <Select
+          label="Inspection category"
+          labelHidden
+          density="compact"
+          value={category}
+          title={label(category)}
+          disabled={disabled}
+          onChange={(event) => onChange(event.target.value)}
+        >
+          {categories.map((name) => (
+            <option key={name} value={name}>
+              {label(name)} ({matches.filter((point) => point.category === name).length})
+            </option>
+          ))}
+        </Select>
+      </div>
+      <div className={styles.categoryStrip}>
+        <ScrollStrip label="Inspection categories" className={styles.categoryChipsStrip}>
+          {categories.map((name) => {
+            const count = matches.filter((point) => point.category === name).length;
+            const selected = name === category;
+            return (
+              <Button
+                key={name}
+                size="compact"
+                variant={selected ? "secondary" : "ghost"}
+                className={styles.categoryChip}
+                aria-pressed={selected}
+                disabled={disabled}
+                onClick={() => onChange(name)}
+              >
+                <span>{label(name)}</span>
+                <Badge variant="count" data-selected={selected}>
+                  {count}
+                </Badge>
+              </Button>
+            );
+          })}
+        </ScrollStrip>
+      </div>
     </nav>
   );
 }

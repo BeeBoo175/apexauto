@@ -70,6 +70,10 @@
   gap: 6px;
 }
 
+.checklistViewSelect {
+  display: none;
+}
+
 .checklistHeading {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -268,6 +272,31 @@
 }
 
 @media (max-width: 480px) {
+  .checklist .checklistControlBar {
+    padding-block: 8px;
+  }
+
+  .checklistTools {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    align-items: stretch;
+    gap: 6px 8px;
+  }
+
+  .searchField,
+  .checklistTools > .checkbox {
+    grid-column: 1 / -1;
+  }
+
+  .checklistViews {
+    display: none;
+  }
+
+  .checklistViewSelect {
+    display: block;
+    min-width: 0;
+  }
+
   .fields {
     grid-template-columns: minmax(0, 1fr);
   }

@@ -355,7 +355,7 @@
 @media (max-width: 820px) {
   .workspace[data-scroll-with-host="true"] > nav {
     position: sticky;
-    top: var(--staff-sticky-offset, 104px);
+    top: var(--staff-detail-offset, var(--staff-sticky-offset, 104px));
     z-index: 3;
   }
 

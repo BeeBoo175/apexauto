@@ -124,7 +124,7 @@ export function SiteNavigation({ showAccount, staffPortalHref }: SiteNavigationP
           onClick={() => setMenuOpen((current) => !current)}
         >
           <Icon name={menuOpen ? "close" : "menu"} />
-          <span>{menuOpen ? "Close" : "Menu"}</span>
+          <span className={styles.menuLabel}>{menuOpen ? "Close" : "Menu"}</span>
         </Button>
       </div>
 

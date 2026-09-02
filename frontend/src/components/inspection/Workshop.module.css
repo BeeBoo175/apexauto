@@ -142,7 +142,9 @@
 
 @media (max-width: 820px) {
   [data-scroll-with-host="true"] .sectionBody {
-    --checklist-sticky-top: calc(var(--staff-sticky-offset, 104px) + 44px);
+    --checklist-sticky-top: calc(
+      var(--staff-detail-offset, var(--staff-sticky-offset, 104px)) + 44px
+    );
   }
 
   .indexItem {
@@ -174,6 +176,10 @@
   display: none;
 }
 
+.categorySelect {
+  display: none;
+}
+
 @media (max-width: 820px) {
   .mobileFlow {
     display: flex;
@@ -182,7 +188,7 @@
   }
 
   .categoryNavigation {
-    flex: 0 0 auto;
+    flex: 1 0 100%;
     min-width: 0;
   }
 
@@ -295,6 +301,16 @@
     color: var(--color-muted);
     text-align: center;
     font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .categorySelect {
+    display: block;
+  }
+
+  .categoryStrip {
+    display: none;
   }
 }
 

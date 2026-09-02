@@ -259,6 +259,41 @@
 }
 
 @media (max-width: 920px) {
+  /* The same phone bar as the staff dashboard: 52px, a 19px wordmark and an icon-only menu button. */
+  .header {
+    padding-inline: 16px;
+    border-bottom: 1px solid #49617a;
+  }
+
+  .brand {
+    font-size: 19px;
+  }
+
+  .menuToggle {
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    min-height: 36px;
+    padding: 0;
+    border: 1px solid #49617a;
+    border-radius: var(--radius-sm, 4px);
+    background: #203449;
+    color: #ffffff;
+  }
+
+  .menuToggle:hover {
+    background: #2a4460;
+    border-color: #5c7b9e;
+  }
+
+  .menuLabel {
+    display: none;
+  }
+
+  .mobileMenu {
+    padding-inline: 16px;
+  }
+
   .navigation {
     display: none;
   }

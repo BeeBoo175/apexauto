@@ -333,6 +333,11 @@
     min-height: 0;
   }
 
+  /* A selected record keeps its back bar stuck under the page bars; sticky tabs inside the record stack below it. */
+  .columns[data-selected="true"] {
+    --staff-detail-offset: calc(var(--staff-sticky-offset, 104px) + 48px);
+  }
+
   .columns:not([data-selected="true"]) .queue {
     display: flex;
     flex-direction: column;

@@ -3,6 +3,7 @@ import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { SearchField } from "@/components/ui/SearchField";
+import { Select } from "@/components/ui/Input";
 import { useInspectionPhoto } from "@/hooks/use-inspection-photo";
 import { useInspectionChecklistScroll } from "@/hooks/use-inspection-checklist-scroll";
 import { label, type Draft } from "@/lib/inspection/contracts";
@@ -167,6 +168,33 @@ export function InspectionChecklist({
               </Button>
             ))}
           </div>
+          <div className={styles.checklistViewSelect}>
+            <Select
+              label="Checklist view"
+              labelHidden
+              density="compact"
+              value={filter}
+              disabled={photo.file !== null || photo.busy || photo.uncertain}
+              onChange={(event) => setFilter(event.target.value as ChecklistView)}
+            >
+              {(["all", "findings", "remaining"] as const).map((view) => (
+                <option key={view} value={view}>
+                  {label(view[0].toUpperCase() + view.slice(1))} ({views[view].length})
+                </option>
+              ))}
+            </Select>
+          </div>
+          {active && isMobile && (
+            <InspectionChecklistCategories
+              categories={categories}
+              matches={matches}
+              category={category}
+              disabled={photo.file !== null || photo.busy || photo.uncertain}
+              onChange={(name) =>
+                onCategory(name === categories[0] ? "" : inspectionQueryToken(name))
+              }
+            />
+          )}
           {editable && (
             <label className={styles.checkbox}>
               <input
@@ -185,17 +213,6 @@ export function InspectionChecklist({
             </label>
           )}
         </div>
-        {active && isMobile && (
-          <InspectionChecklistCategories
-            categories={categories}
-            matches={matches}
-            category={category}
-            disabled={photo.file !== null || photo.busy || photo.uncertain}
-            onChange={(name) =>
-              onCategory(name === categories[0] ? "" : inspectionQueryToken(name))
-            }
-          />
-        )}
       </div>
       <div className={styles.managerControls}>{managerControls}</div>
       {active && isMobile && (
