@@ -1,6 +1,7 @@
 "use client";
 
 import React, {
+  useEffect,
   useEffectEvent,
   useId,
   useLayoutEffect,
@@ -26,9 +27,12 @@ export interface DialogProps {
   closeDisabled?: boolean;
   showCloseButton?: boolean;
   appearance?: "default" | "confirmation";
-  variant?: "dialog" | "drawer";
+  variant?: "dialog" | "drawer" | "sheet";
   density?: "default" | "compact";
   width?: "default" | "wide";
+  // A sheet that was asked to close keeps its place while its exit animation plays, then reports through onClosed.
+  closing?: boolean;
+  onClosed?: () => void;
 }
 
 export function DialogActionSlot({ ref }: { ref: React.Ref<HTMLDivElement> }) {
@@ -50,6 +54,8 @@ export const Dialog: React.FC<DialogProps> = ({
   variant = "dialog",
   density = "default",
   width = "default",
+  closing = false,
+  onClosed,
 }) => {
   const element = useRef<HTMLDialogElement>(null);
   const [guard] = useState(createInteractionGuard);
@@ -95,6 +101,25 @@ export const Dialog: React.FC<DialogProps> = ({
     }
     onClose();
   });
+  const finishClosing = useEffectEvent(() => onClosed?.());
+  useEffect(() => {
+    const dialog = element.current;
+    if (!closing || !dialog) {
+      return;
+    }
+    // Without an animation to wait for, such as under reduced motion, closing finishes at once.
+    if (getComputedStyle(dialog).animationName === "none") {
+      finishClosing();
+      return;
+    }
+    const exited = (event: AnimationEvent) => {
+      if (event.target === dialog) {
+        finishClosing();
+      }
+    };
+    dialog.addEventListener("animationend", exited);
+    return () => dialog.removeEventListener("animationend", exited);
+  }, [closing]);
   const titleId = useId();
   const descriptionId = useId();
   // Opening in a layout effect makes the dialog modal before the browser paints its first frame.
@@ -143,6 +168,8 @@ export const Dialog: React.FC<DialogProps> = ({
     <dialog
       ref={element}
       aria-labelledby={titleId}
+      data-closing={closing || undefined}
+      inert={closing || undefined}
       aria-describedby={!headerLoading && description ? descriptionId : undefined}
       onKeyDown={(event) => {
         if (event.key === "Escape") {

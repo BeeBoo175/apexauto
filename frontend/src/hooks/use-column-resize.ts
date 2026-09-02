@@ -4,7 +4,8 @@ import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } f
 import { resizeColumnWidths } from "@/lib/column-resize";
 import type { ResizeColumn } from "@/lib/column-resize";
 
-export function useColumnResize(columns: readonly ResizeColumn[]) {
+// A touch layout opts in to touch drags; its handles stop the browser from scrolling instead.
+export function useColumnResize(columns: readonly ResizeColumn[], { touch = false } = {}) {
   const signature = JSON.stringify(columns.map(({ id, width }) => [id, width]));
   const constraints = JSON.stringify(columns.map(({ id, minWidth }) => [id, minWidth]));
   const [snapshot, setSnapshot] = useState({ signature, widths: {} as Record<string, number> });
@@ -21,7 +22,7 @@ export function useColumnResize(columns: readonly ResizeColumn[]) {
       !headers ||
       headers.length !== columns.length ||
       event.button !== 0 ||
-      event.pointerType === "touch"
+      (event.pointerType === "touch" && !touch)
     ) {
       return;
     }
