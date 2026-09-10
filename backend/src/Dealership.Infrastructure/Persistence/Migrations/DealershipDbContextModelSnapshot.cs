@@ -68,6 +68,9 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<DateTimeOffset?>("AvailableAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<long>("Bytes")
                         .HasColumnType("bigint");
 
@@ -77,6 +80,9 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(30)");
 
                     b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("ObjectKey")
@@ -99,11 +105,54 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("UserId")
                         .IsUnique()
-                        .HasFilter("\"RemovedAt\" IS NULL");
+                        .HasFilter("\"RemovedAt\" IS NULL AND \"AvailableAt\" IS NOT NULL");
 
                     b.ToTable("AccountPictures", null, t =>
                         {
                             t.HasCheckConstraint("CK_AccountPictures_Content", "\"Bytes\" > 0 AND \"Sha256\" ~ '^[0-9a-f]{64}$' AND \"ContentType\" IN ('image/jpeg', 'image/png', 'image/webp')");
+
+                            t.HasCheckConstraint("CK_AccountPictures_Lifecycle", "isfinite(\"CreatedAt\") AND \"ExpiresAt\" > \"CreatedAt\" AND (\"AvailableAt\" IS NULL OR (isfinite(\"AvailableAt\") AND \"AvailableAt\" >= \"CreatedAt\")) AND (\"RemovedAt\" IS NULL OR (\"AvailableAt\" IS NOT NULL AND \"RemovedAt\" >= \"AvailableAt\"))");
+                        });
+                });
+
+            modelBuilder.Entity("Dealership.Domain.Accounts.AccountPictureRemoval", b =>
+                {
+                    b.Property<Guid>("PictureId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("ClaimExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ClaimId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("EligibleAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTimeOffset>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("PictureId");
+
+                    b.HasIndex("NextAttemptAt", "PictureId");
+
+                    b.ToTable("AccountPictureRemovals", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_AccountPictureRemovals_Shape", "\"Reason\" IN ('Removed', 'Replaced', 'UnconfirmedExpired') AND isfinite(\"EligibleAt\") AND isfinite(\"RequestedAt\") AND \"RequestedAt\" >= \"EligibleAt\" AND \"Attempts\" >= 0 AND isfinite(\"NextAttemptAt\") AND (\"DeletedAt\" IS NULL OR (isfinite(\"DeletedAt\") AND \"DeletedAt\" >= \"RequestedAt\")) AND ((\"ClaimId\" IS NULL) = (\"ClaimExpiresAt\" IS NULL)) AND (\"ClaimId\" IS NULL OR (\"ClaimId\" <> '00000000-0000-0000-0000-000000000000'::uuid AND isfinite(\"ClaimExpiresAt\")))");
                         });
                 });
 
@@ -3302,6 +3351,42 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.ToTable("TestDriveOccupations", (string)null);
                 });
 
+            modelBuilder.Entity("Dealership.Infrastructure.Vehicles.ListingPhotoRemoval", b =>
+                {
+                    b.Property<Guid>("PhotoId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("ClaimExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ClaimId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("EligibleAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("PhotoId");
+
+                    b.HasIndex("NextAttemptAt", "PhotoId");
+
+                    b.ToTable("ListingPhotoRemovals", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ListingPhotoRemovals_Shape", "isfinite(\"EligibleAt\") AND isfinite(\"RequestedAt\") AND \"RequestedAt\" >= \"EligibleAt\" AND \"Attempts\" >= 0 AND isfinite(\"NextAttemptAt\") AND (\"DeletedAt\" IS NULL OR (isfinite(\"DeletedAt\") AND \"DeletedAt\" >= \"RequestedAt\")) AND ((\"ClaimId\" IS NULL) = (\"ClaimExpiresAt\" IS NULL)) AND (\"ClaimId\" IS NULL OR (\"ClaimId\" <> '00000000-0000-0000-0000-000000000000'::uuid AND isfinite(\"ClaimExpiresAt\")))");
+                        });
+                });
+
             modelBuilder.Entity("Dealership.Infrastructure.Vehicles.ReservationDepositMail", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3535,6 +3620,15 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Dealership.Domain.Accounts.AccountPictureRemoval", b =>
+                {
+                    b.HasOne("Dealership.Domain.Accounts.AccountPicture", null)
+                        .WithOne()
+                        .HasForeignKey("Dealership.Domain.Accounts.AccountPictureRemoval", "PictureId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
@@ -4467,6 +4561,15 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .WithOne()
                         .HasForeignKey("Dealership.Infrastructure.TestDrives.TestDriveOccupation", "StartId", "BookingId", "VehicleId", "BranchId")
                         .HasPrincipalKey("Dealership.Domain.TestDrives.TestDriveStart", "Id", "BookingId", "VehicleId", "BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Dealership.Infrastructure.Vehicles.ListingPhotoRemoval", b =>
+                {
+                    b.HasOne("Dealership.Domain.Vehicles.ListingPhoto", null)
+                        .WithOne()
+                        .HasForeignKey("Dealership.Infrastructure.Vehicles.ListingPhotoRemoval", "PhotoId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
