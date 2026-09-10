@@ -69,7 +69,8 @@ public sealed class IntakePhotoFixture : IAsyncLifetime, IAsyncDisposable
 
     public WebApplicationFactory<Program> CreateFactory(bool failAfterPut = false, TimeProvider? clock = null,
         Action<Stream>? observeDownload = null, bool failAfterDelete = false, bool failBeforeDelete = false,
-        double? unsubmittedLifetimeHours = null, double? cancelledRetentionDays = null)
+        double? unsubmittedLifetimeHours = null, double? cancelledRetentionDays = null,
+        double? pendingUploadLifetimeHours = null)
     {
         return new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
@@ -85,6 +86,11 @@ public sealed class IntakePhotoFixture : IAsyncLifetime, IAsyncDisposable
                 if (unsubmittedLifetimeHours is not null)
                 {
                     values["IntakePhotos:UnsubmittedLifetimeHours"] = unsubmittedLifetimeHours.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                }
+
+                if (pendingUploadLifetimeHours is not null)
+                {
+                    values["PhotoCleanup:PendingUploadLifetimeHours"] = pendingUploadLifetimeHours.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 }
 
                 if (cancelledRetentionDays is not null)
@@ -187,11 +193,13 @@ public sealed class IntakePhotoFixture : IAsyncLifetime, IAsyncDisposable
         });
     }
 
-    public async Task<bool> OwnedObjectExistsAsync(Guid id)
+    public Task<bool> OwnedObjectExistsAsync(Guid id) => OwnedObjectExistsAsync($"intake/photos/{id:N}");
+
+    public async Task<bool> OwnedObjectExistsAsync(string key)
     {
         try
         {
-            await _client!.GetObjectMetadataAsync(_bucket, $"intake/photos/{id:N}");
+            await _client!.GetObjectMetadataAsync(_bucket, key);
             return true;
         }
         catch (AmazonS3Exception exception) when (exception.StatusCode == HttpStatusCode.NotFound)

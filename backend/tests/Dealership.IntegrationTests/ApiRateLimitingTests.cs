@@ -343,7 +343,7 @@ public sealed class ApiRateLimitingTests
             endpoint.RoutePattern.RawText == "/api/accounts/{id:guid}/picture" &&
             endpoint.Metadata.GetMetadata<HttpMethodMetadata>()!.HttpMethods.Contains(HttpMethods.Get));
         var uploads = Assert.Single(endpoints.OfType<RouteEndpoint>(), endpoint =>
-            endpoint.RoutePattern.RawText == "/api/accounts/me/picture" &&
+            endpoint.RoutePattern.RawText == "/api/accounts/me/picture/{pictureId:guid}" &&
             endpoint.Metadata.GetMetadata<HttpMethodMetadata>()!.HttpMethods.Contains(HttpMethods.Put));
 
         Assert.Equal(ApiRateLimiting.PictureDownloadPolicy,

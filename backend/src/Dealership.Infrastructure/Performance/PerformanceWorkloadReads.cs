@@ -1,3 +1,4 @@
+using Dealership.Domain.Accounts;
 using System.Data;
 using Dealership.Application.Accounts;
 using Dealership.Application.Performance;
@@ -39,7 +40,7 @@ public sealed class PerformanceWorkloadReads(DealershipDbContext database) : IPe
                                 BranchId = branch.Id,
                                 BranchName = branch.Name,
                                 PictureId = database.AccountPictures
-                                    .Where(picture => picture.UserId == user.Id && picture.RemovedAt == null)
+                                    .Where(AccountPicture.Current).Where(picture => picture.UserId == user.Id)
                                     .Select(picture => (Guid?)picture.Id).FirstOrDefault()
                             })
             .ToListAsync(cancellationToken);

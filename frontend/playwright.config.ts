@@ -49,6 +49,7 @@ export default defineConfig({
         "auth/browser-transport-contracts.spec.ts",
         "accounts/staff-accounts-contracts.spec.ts",
         "accounts/relay-contracts.spec.ts",
+        "accounts/picture-contracts.spec.ts",
         "accounts/accounts-location-contracts.spec.ts",
         "accounts/account-sections-contracts.spec.ts",
         "settings/settings-location-contracts.spec.ts",

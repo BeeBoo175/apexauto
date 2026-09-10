@@ -1,19 +1,19 @@
 using Dealership.Application.Photos;
 using Dealership.Domain.Accounts;
-using Dealership.Domain.Common;
 using Dealership.Domain.Photos;
 
 namespace Dealership.Application.Accounts;
 
 // A picture is visible to staff, to its owner and to customers whose records its owner handles; only the owner or an Administrator may remove it.
+// Objects are deleted by the shared cleanup worker from the durable removal receipt, never inline.
 public sealed class AccountPictureService(IAccountProfileQuery profiles, IAccountPictureStore pictures,
     IPhotoImageValidator validator, IPhotoThumbnailer thumbnailer, PhotoTransferService transfers,
-    IPhotoTransferLock locks, IPhotoStorage storage, IRecordHandlerQuery handlers, TimeProvider clock)
+    IPhotoTransferLock locks, IRecordHandlerQuery handlers, AccountPicturePolicy policy)
 {
-    public async Task<AccountPictureResult> UploadAsync(Guid actorId, string contentType, Stream content,
+    public async Task<AccountPictureResult> UploadAsync(Guid actorId, Guid pictureId, string contentType, Stream content,
         CancellationToken cancellationToken)
     {
-        if (!PhotoContent.IsSupportedContentType(contentType))
+        if (pictureId == Guid.Empty || !PhotoContent.IsSupportedContentType(contentType))
         {
             return new AccountPictureResult(AccountPictureStatus.Invalid);
         }
@@ -36,17 +36,16 @@ public sealed class AccountPictureService(IAccountProfileQuery profiles, IAccoun
             return new AccountPictureResult(AccountPictureStatus.Invalid);
         }
 
-        var picture = new AccountPicture(Guid.NewGuid(), actorId, described, UtcTime.TruncateToMicroseconds(clock.GetUtcNow()));
-        AccountPicture? replaced = null;
-        await transfers.UploadAsync(actorId, thumbnail,
-            _ => Task.FromResult(picture), prepared => prepared,
-            async token =>
-            {
-                replaced = await pictures.ReplaceAsync(picture, token);
-                return picture;
-            }, cancellationToken);
-        await DeleteObjectAsync(replaced, cancellationToken);
-        return new AccountPictureResult(AccountPictureStatus.Stored, picture.Id, picture.ContentType);
+        return Result(await transfers.UploadAsync(pictureId, thumbnail,
+            token => pictures.PrepareAsync(actorId, pictureId, described, policy.PendingLifetime, token),
+            prepared => prepared.Status == AccountPictureStatus.Pending ? prepared.Picture : null,
+            token => pictures.ConfirmAsync(actorId, pictureId, token), cancellationToken));
+    }
+
+    public async Task<AccountPictureResult> GetReceiptAsync(Guid actorId, Guid pictureId,
+        CancellationToken cancellationToken)
+    {
+        return Result(await pictures.FindAsync(actorId, pictureId, cancellationToken));
     }
 
     public async Task<AccountPictureResult> DownloadAsync(Guid viewerId, Guid ownerId, Stream destination,
@@ -60,14 +59,34 @@ public sealed class AccountPictureService(IAccountProfileQuery profiles, IAccoun
             return new AccountPictureResult(AccountPictureStatus.Forbidden);
         }
 
-        var found = await transfers.DownloadAsync(ownerId, destination,
-            token => pictures.FindAsync(ownerId, token), picture => picture, cancellationToken);
-        return found is null
-            ? new AccountPictureResult(AccountPictureStatus.NotFound)
-            : new AccountPictureResult(AccountPictureStatus.Available, found.Id, found.ContentType);
+        // A replacement can land between choosing the object and copying it; the second pass follows the new one.
+        for (var attempt = 0; attempt < 2; attempt++)
+        {
+            var current = await pictures.FindAsync(ownerId, cancellationToken);
+
+            if (current is null)
+            {
+                break;
+            }
+
+            var found = await transfers.DownloadAsync(current.Id, destination,
+                token => pictures.FindAsync(ownerId, token),
+                picture => picture?.Id == current.Id ? picture : null, cancellationToken);
+
+            if (found?.Id == current.Id)
+            {
+                return new AccountPictureResult(AccountPictureStatus.Available, Receipt(found));
+            }
+
+            destination.SetLength(0);
+            destination.Position = 0;
+        }
+
+        return new AccountPictureResult(AccountPictureStatus.NotFound);
     }
 
-    public async Task<AccountPictureResult> RemoveAsync(Guid actorId, Guid ownerId, CancellationToken cancellationToken)
+    public async Task<AccountPictureResult> RemoveAsync(Guid actorId, Guid ownerId, Guid pictureId,
+        CancellationToken cancellationToken)
     {
         var actor = await profiles.GetProfileAsync(actorId, cancellationToken);
 
@@ -77,26 +96,26 @@ public sealed class AccountPictureService(IAccountProfileQuery profiles, IAccoun
         }
 
         await using var transfer = await locks.AcquireAsync(ownerId, cancellationToken);
-        var removed = await pictures.RemoveAsync(ownerId, actorId, cancellationToken);
-        await DeleteObjectAsync(removed, cancellationToken);
-        return new AccountPictureResult(removed is null ? AccountPictureStatus.NotFound : AccountPictureStatus.Removed);
+        return Result(await pictures.RemoveAsync(ownerId, pictureId, actorId, cancellationToken));
     }
 
-    // The row is the source of truth; an object that cannot be deleted now is unreachable and only wastes space.
-    private async Task DeleteObjectAsync(AccountPicture? picture, CancellationToken cancellationToken)
+    private static AccountPictureResult Result(AccountPicturePreparation result)
     {
-        if (picture is null)
-        {
-            return;
-        }
+        var picture = result.Picture;
+        return new AccountPictureResult(result.Status,
+            picture is null ? null : Receipt(picture, result.Status, result.Removal));
+    }
 
-        try
-        {
-            await storage.DeleteAsync(picture, cancellationToken);
-        }
-        catch (PhotoStorageException)
-        {
-            // Left for a later storage sweep; the account no longer references it.
-        }
+    private static AccountPictureReceipt Receipt(AccountPicture picture)
+    {
+        return Receipt(picture, AccountPictureStatus.Available, null);
+    }
+
+    private static AccountPictureReceipt Receipt(AccountPicture picture, AccountPictureStatus status,
+        AccountPictureRemoval? removal)
+    {
+        return new AccountPictureReceipt(picture.Id, picture.ContentType, picture.Bytes, picture.CreatedAt,
+            picture.ExpiresAt, picture.AvailableAt, status.ToString(), removal?.Reason.ToString(),
+            removal?.RequestedAt, removal?.DeletedAt);
     }
 }

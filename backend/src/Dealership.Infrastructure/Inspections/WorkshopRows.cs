@@ -1,3 +1,4 @@
+using Dealership.Domain.Accounts;
 using Dealership.Application.Accounts;
 using Dealership.Application.Inspections;
 using Dealership.Domain.Vehicles;
@@ -47,7 +48,7 @@ internal static class WorkshopRows
                        .Select(profile => profile.Name).FirstOrDefault() ?? technician.UserName,
                    TechnicianEmail = technician == null ? null : technician.Email,
                    TechnicianPictureId = technician == null ? null : database.AccountPictures
-                       .Where(picture => picture.UserId == technician.Id && picture.RemovedAt == null)
+                       .Where(AccountPicture.Current).Where(picture => picture.UserId == technician.Id)
                        .Select(picture => (Guid?)picture.Id).FirstOrDefault(),
                    Revision = draft == null ? null : draft.Revision,
                    IsSigned = draft != null && draft.IsSigned,

@@ -1,3 +1,4 @@
+using Dealership.Domain.Accounts;
 using Dealership.Application.Performance;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -30,7 +31,7 @@ internal sealed class TeamPeople
                               user.IsActive,
                               user.BranchId,
                               PictureId = database.AccountPictures
-                                  .Where(picture => picture.UserId == user.Id && picture.RemovedAt == null)
+                                  .Where(AccountPicture.Current).Where(picture => picture.UserId == user.Id)
                                   .Select(picture => (Guid?)picture.Id).FirstOrDefault()
                           })
             .ToListAsync(cancellationToken);

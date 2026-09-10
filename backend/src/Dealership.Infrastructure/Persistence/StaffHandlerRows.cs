@@ -1,3 +1,4 @@
+using Dealership.Domain.Accounts;
 using Dealership.Application.Accounts;
 using Dealership.Infrastructure.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -25,7 +26,7 @@ internal static class StaffHandlerRows
         var name = await database.StaffProfiles.AsNoTracking().Where(profile => profile.UserId == id)
             .Select(profile => profile.Name).FirstOrDefaultAsync(cancellationToken);
         var pictureId = await database.AccountPictures.AsNoTracking()
-            .Where(picture => picture.UserId == id && picture.RemovedAt == null)
+            .Where(AccountPicture.Current).Where(picture => picture.UserId == id)
             .Select(picture => (Guid?)picture.Id).FirstOrDefaultAsync(cancellationToken);
         return (name, pictureId);
     }
@@ -38,7 +39,7 @@ internal static class StaffHandlerRows
             .Select(user => new StaffHandler(user.Id, user.Email ?? string.Empty,
                 database.StaffProfiles.Where(profile => profile.UserId == user.Id)
                     .Select(profile => profile.Name).FirstOrDefault() ?? string.Empty,
-                database.AccountPictures.Where(picture => picture.UserId == user.Id && picture.RemovedAt == null)
+                database.AccountPictures.Where(AccountPicture.Current).Where(picture => picture.UserId == user.Id)
                     .Select(picture => (Guid?)picture.Id).FirstOrDefault()))
             .ToArrayAsync(cancellationToken);
     }

@@ -152,6 +152,7 @@ public static class ListingPhotoEndpoints
         {
             ListingPhotoStatus.Available => Results.Ok(result.Receipt),
             ListingPhotoStatus.Pending => Results.Json(result.Receipt, statusCode: 202),
+            ListingPhotoStatus.Removed => Results.Json(result.Receipt, statusCode: 410),
             ListingPhotoStatus.Forbidden => Results.Forbid(),
             ListingPhotoStatus.NotFound => Results.NotFound(),
             ListingPhotoStatus.Unavailable => StorageUnavailable(),

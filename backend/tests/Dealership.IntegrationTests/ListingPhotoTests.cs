@@ -216,7 +216,7 @@ public sealed class ListingPhotoTests(IntakePhotoFixture fixture) : IClassFixtur
         Assert.Equal("CK_ListingRevisionPhotos_Complete", missing.ConstraintName);
     }
 
-    private static async Task<ListingPhotoResult> UploadAsync(WebApplicationFactory<Program> factory,
+    internal static async Task<ListingPhotoResult> UploadAsync(WebApplicationFactory<Program> factory,
         Guid actor, Guid vehicle, Guid id, byte[] bytes)
     {
         using var scope = factory.Services.CreateScope();
@@ -225,7 +225,7 @@ public sealed class ListingPhotoTests(IntakePhotoFixture fixture) : IClassFixtur
             .UploadAsync(actor, vehicle, id, "image/jpeg", content, CancellationToken.None);
     }
 
-    private static async Task<(Guid Id, string Email)> ProvisionAsync(IServiceProvider services, Guid? branch, string role)
+    internal static async Task<(Guid Id, string Email)> ProvisionAsync(IServiceProvider services, Guid? branch, string role)
     {
         var id = Guid.NewGuid();
         var email = $"staff.{id:N}@example.invalid";

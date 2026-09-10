@@ -1,3 +1,4 @@
+using Dealership.Domain.Accounts;
 using System.Data;
 using Dealership.Application.Common;
 using Dealership.Application.Vehicles;
@@ -76,7 +77,7 @@ public sealed class ListingHistoryStore(DealershipDbContext database) : IListing
                               ActorIdentity = database.StaffProfiles.Where(profile => profile.UserId == actor.Id)
                                   .Select(profile => profile.Name).FirstOrDefault() ?? actor.UserName ?? actor.Id.ToString(),
                               ActorPictureId = database.AccountPictures
-                                  .Where(picture => picture.UserId == actor.Id && picture.RemovedAt == null)
+                                  .Where(AccountPicture.Current).Where(picture => picture.UserId == actor.Id)
                                   .Select(picture => (Guid?)picture.Id).FirstOrDefault()
                           })
             .OrderByDescending(row => row.Entry.RecordedAt).ThenByDescending(row => row.Entry.Order)

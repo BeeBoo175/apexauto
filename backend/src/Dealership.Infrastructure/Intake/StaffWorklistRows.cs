@@ -1,3 +1,4 @@
+using Dealership.Domain.Accounts;
 using Dealership.Domain.Common;
 using System.Linq.Expressions;
 using Dealership.Application.Accounts;
@@ -133,7 +134,7 @@ internal static class StaffWorklistRows
                     HandlerName = database.StaffProfiles.Where(profile => profile.UserId == row.Row.HandlerId)
                         .Select(profile => profile.Name).FirstOrDefault(),
                     HandlerPictureId = database.AccountPictures
-                        .Where(picture => picture.UserId == row.Row.HandlerId && picture.RemovedAt == null)
+                        .Where(AccountPicture.Current).Where(picture => picture.UserId == row.Row.HandlerId)
                         .Select(picture => (Guid?)picture.Id).FirstOrDefault(),
                     HandlerEligible = handlers.Any(user => user.Id == row.Row.HandlerId &&
                         user.BranchId == row.Row.Appointment.BranchId),

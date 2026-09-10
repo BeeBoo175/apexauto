@@ -16,12 +16,13 @@ public static class AccountPictureEndpoints
             context.HttpContext.Response.Headers.XContentTypeOptions = "nosniff";
             return await next(context);
         });
-        routes.MapPut("/me/picture", UploadAsync).RequireRateLimiting(ApiRateLimiting.PhotoTransferPolicy);
+        routes.MapPut("/me/picture/{pictureId:guid}", UploadAsync).RequireRateLimiting(ApiRateLimiting.PhotoTransferPolicy);
+        routes.MapGet("/me/picture/{pictureId:guid}/receipt", GetReceiptAsync);
         routes.MapGet("/{id:guid}/picture", DownloadAsync).RequireRateLimiting(ApiRateLimiting.PictureDownloadPolicy);
-        routes.MapDelete("/{id:guid}/picture", RemoveAsync);
+        routes.MapDelete("/{id:guid}/picture/{pictureId:guid}", RemoveAsync);
     }
 
-    private static async Task<IResult> UploadAsync(HttpContext context, AccountPictureService pictures,
+    private static async Task<IResult> UploadAsync(Guid pictureId, HttpContext context, AccountPictureService pictures,
         CancellationToken cancellationToken)
     {
         var contentType = context.Request.ContentType?.Split(';', 2)[0].Trim().ToLowerInvariant();
@@ -52,7 +53,7 @@ public static class AccountPictureEndpoints
             using var bodyDeadline = CancellationTokenSource.CreateLinkedTokenSource(deadline.Token);
             bodyDeadline.CancelAfter(TimeSpan.FromSeconds(60));
             await PhotoTemporaryFile.CopyRequestAsync(context.Request.Body, file, bodyDeadline.Token);
-            return Map(await pictures.UploadAsync(HttpContextActor.ActorId(context), contentType!, file, deadline.Token));
+            return Map(await pictures.UploadAsync(HttpContextActor.ActorId(context), pictureId, contentType!, file, deadline.Token));
         }
         catch (BadHttpRequestException exception)
         {
@@ -64,8 +65,14 @@ public static class AccountPictureEndpoints
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            return Results.Problem(statusCode: 408, title: "Upload deadline exceeded; try again.");
+            return Results.Problem(statusCode: 408, title: "Upload deadline exceeded; reconcile using the same picture ID.");
         }
+    }
+
+    private static async Task<IResult> GetReceiptAsync(Guid pictureId, HttpContext context, AccountPictureService pictures,
+        CancellationToken cancellationToken)
+    {
+        return Map(await pictures.GetReceiptAsync(HttpContextActor.ActorId(context), pictureId, cancellationToken));
     }
 
     private static async Task<IResult> DownloadAsync(Guid id, HttpContext context, AccountPictureService pictures,
@@ -85,7 +92,7 @@ public static class AccountPictureEndpoints
             }
 
             file.Position = 0;
-            context.Response.ContentType = result.ContentType;
+            context.Response.ContentType = result.Receipt!.ContentType;
             context.Response.ContentLength = file.Length;
             await context.Response.StartAsync(deadline.Token);
             await file.CopyToAsync(context.Response.Body, deadline.Token);
@@ -109,12 +116,12 @@ public static class AccountPictureEndpoints
         }
     }
 
-    private static async Task<IResult> RemoveAsync(Guid id, HttpContext context, AccountPictureService pictures,
+    private static async Task<IResult> RemoveAsync(Guid id, Guid pictureId, HttpContext context, AccountPictureService pictures,
         CancellationToken cancellationToken)
     {
         try
         {
-            return Map(await pictures.RemoveAsync(HttpContextActor.ActorId(context), id, cancellationToken));
+            return MapRemoval(await pictures.RemoveAsync(HttpContextActor.ActorId(context), id, pictureId, cancellationToken));
         }
         catch (PhotoStorageException)
         {
@@ -126,11 +133,26 @@ public static class AccountPictureEndpoints
     {
         return result.Status switch
         {
-            AccountPictureStatus.Stored => Results.Ok(new { pictureId = result.PictureId }),
-            AccountPictureStatus.Removed => Results.NoContent(),
+            AccountPictureStatus.Available => Results.Ok(result.Receipt),
+            AccountPictureStatus.Pending => Results.Json(result.Receipt, statusCode: 202),
+            AccountPictureStatus.DeletionPending or AccountPictureStatus.Deleted => Results.Json(result.Receipt, statusCode: 410),
             AccountPictureStatus.Forbidden => Results.Forbid(),
+            AccountPictureStatus.Conflict => Results.Problem(statusCode: 409,
+                title: "The picture ID already belongs to different contents or another account."),
             AccountPictureStatus.NotFound => Results.NotFound(),
             _ => Results.Problem(statusCode: 400, title: "Picture contents are invalid, animated or exceed the decoded pixel limit.")
+        };
+    }
+
+    // The receipt of the removed picture answers a first removal and every replay of it.
+    private static IResult MapRemoval(AccountPictureResult result)
+    {
+        return result.Status switch
+        {
+            AccountPictureStatus.DeletionPending or AccountPictureStatus.Deleted => Results.Ok(result.Receipt),
+            AccountPictureStatus.Conflict => Results.Problem(statusCode: 409,
+                title: "That picture is not the current one; reload the account."),
+            _ => Map(result)
         };
     }
 

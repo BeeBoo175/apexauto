@@ -35,6 +35,7 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
     public DbSet<Domain.Staff.StaffProfile> StaffProfiles => Set<Domain.Staff.StaffProfile>();
 
     public DbSet<Domain.Accounts.AccountPicture> AccountPictures => Set<Domain.Accounts.AccountPicture>();
+    public DbSet<Domain.Accounts.AccountPictureRemoval> AccountPictureRemovals => Set<Domain.Accounts.AccountPictureRemoval>();
 
     public DbSet<Domain.Accounts.AccountEvent> AccountEvents => Set<Domain.Accounts.AccountEvent>();
 
@@ -99,6 +100,7 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
     public DbSet<ListingWithdrawal> ListingWithdrawals => Set<ListingWithdrawal>();
 
     public DbSet<ListingPhoto> ListingPhotos => Set<ListingPhoto>();
+    public DbSet<ListingPhotoRemoval> ListingPhotoRemovals => Set<ListingPhotoRemoval>();
 
     public DbSet<ListingRevisionPhoto> ListingRevisionPhotos => Set<ListingRevisionPhoto>();
 
@@ -186,6 +188,7 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
         var listingPhotos = new ListingPhotoConfiguration();
         builder.ApplyConfiguration<ListingPhoto>(listingPhotos);
         builder.ApplyConfiguration<ListingRevisionPhoto>(listingPhotos);
+        builder.ApplyConfiguration<ListingPhotoRemoval>(listingPhotos);
         var inspectionAssignments = new InspectionAssignmentConfiguration();
         builder.ApplyConfiguration<InspectionDraft>(inspectionAssignments);
         builder.ApplyConfiguration<InspectionAssignment>(inspectionAssignments);
@@ -202,7 +205,9 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
         builder.ApplyConfiguration(new AppointmentCheckInConfiguration());
         builder.ApplyConfiguration(new CustomerProfileConfiguration());
         builder.ApplyConfiguration(new StaffProfileConfiguration());
-        builder.ApplyConfiguration(new AccountPictureConfiguration());
+        var accountPictures = new AccountPictureConfiguration();
+        builder.ApplyConfiguration<Domain.Accounts.AccountPicture>(accountPictures);
+        builder.ApplyConfiguration<Domain.Accounts.AccountPictureRemoval>(accountPictures);
         builder.ApplyConfiguration(new AccountEventConfiguration());
         builder.ApplyConfiguration(new StaffInvitationConfiguration());
         builder.ApplyConfiguration(new AccountSessionConfiguration());

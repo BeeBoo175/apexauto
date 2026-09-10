@@ -1,3 +1,4 @@
+using Dealership.Domain.Accounts;
 using Dealership.Application.Accounts;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -16,7 +17,7 @@ public sealed class PersonQuery(DealershipDbContext database) : IPersonQuery
                       from staff in staffProfiles.DefaultIfEmpty()
                       join branch in database.Branches on user.BranchId equals branch.Id into branches
                       from branch in branches.DefaultIfEmpty()
-                      join picture in database.AccountPictures.Where(item => item.RemovedAt == null)
+                      join picture in database.AccountPictures.Where(AccountPicture.Current)
                           on user.Id equals picture.UserId into pictures
                       from picture in pictures.DefaultIfEmpty()
                       select new Person(user.Id, user.Role, customer.LegalName ?? staff.Name, user.AccountUsername,

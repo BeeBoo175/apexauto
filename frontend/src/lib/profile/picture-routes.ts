@@ -6,9 +6,15 @@ import { apiError, apiJson, requestApiJson, sessionToken } from "@/lib/server/ht
 import { requireSameOrigin } from "@/lib/server/http/request";
 import { confirmedActor } from "@/lib/server/http/staff-relay";
 import { requestApi } from "@/lib/server/http/upstream";
-import { PICTURE_CONTENT_TYPES, parsePictureReceipt } from "./contracts";
+import {
+  PICTURE_CACHE_CONTROL,
+  PICTURE_CONTENT_TYPES,
+  parsePictureReceipt,
+  parseRemovedPicture,
+} from "./contracts";
 
 const PICTURE_READ_DEADLINE_MS = 40_000;
+const PICTURE_RECEIPT_DEADLINE_MS = 20_000;
 
 async function requireToken() {
   const token = await sessionToken();
@@ -18,9 +24,13 @@ async function requireToken() {
   return token;
 }
 
-export async function uploadOwnPicture(request: Request) {
+// The browser chooses the picture id once per picked file and reuses it on every retry of that upload.
+export async function uploadOwnPicture(request: Request, pictureId: string) {
   try {
     requireSameOrigin(request);
+    if (!isUuid(pictureId)) {
+      throw new HttpError(400, "Choose a valid picture.");
+    }
     const token = await requireToken();
     const signal = AbortSignal.any([request.signal, AbortSignal.timeout(PHOTO_DEADLINE_MS)]);
     const actor = await confirmedActor(signal);
@@ -30,7 +40,7 @@ export async function uploadOwnPicture(request: Request) {
     }
     const bytes = await readBoundedBytes(request.body, signal, PHOTO_MAX_BYTES);
     const result = await requestApiJson(
-      "/api/accounts/me/picture",
+      `/api/accounts/me/picture/${pictureId}`,
       parsePictureReceipt,
       { token, signal, bytes, contentType, method: "PUT" },
       PHOTO_DEADLINE_MS,
@@ -41,33 +51,46 @@ export async function uploadOwnPicture(request: Request) {
   }
 }
 
-// The backend answers 204 with no body; the relay reports it in the shared envelope.
-export async function removePicture(request: Request, accountId: string) {
+export async function ownPictureReceipt(request: Request, pictureId: string) {
+  try {
+    if (!isUuid(pictureId)) {
+      throw new HttpError(400, "Choose a valid picture.");
+    }
+    const token = await requireToken();
+    const signal = AbortSignal.any([
+      request.signal,
+      AbortSignal.timeout(PICTURE_RECEIPT_DEADLINE_MS),
+    ]);
+    const actor = await confirmedActor(signal);
+    const result = await requestApiJson(
+      `/api/accounts/me/picture/${pictureId}/receipt`,
+      parsePictureReceipt,
+      { token, signal },
+      PICTURE_RECEIPT_DEADLINE_MS,
+    );
+    return apiJson({ ...result, actor });
+  } catch (error) {
+    return apiError(error);
+  }
+}
+
+// Removal names the picture that was seen; the backend never resolves it to the account's current picture.
+export async function removePicture(request: Request, accountId: string, pictureId: string) {
   try {
     requireSameOrigin(request);
-    if (!isUuid(accountId)) {
-      throw new HttpError(400, "Choose a valid account.");
+    if (!isUuid(accountId) || !isUuid(pictureId)) {
+      throw new HttpError(400, "Choose a valid account and picture.");
     }
     const token = await requireToken();
     const signal = AbortSignal.any([request.signal, AbortSignal.timeout(PICTURE_READ_DEADLINE_MS)]);
     const actor = await confirmedActor(signal);
-    const { response } = await requestApi(
-      `/api/accounts/${accountId}/picture`,
-      PICTURE_READ_DEADLINE_MS,
+    const result = await requestApiJson(
+      `/api/accounts/${accountId}/picture/${pictureId}`,
+      parseRemovedPicture,
       { token, signal, method: "DELETE" },
+      PICTURE_READ_DEADLINE_MS,
     );
-    await response.body?.cancel();
-    if (response.status >= 500) {
-      throw new Error("Unconfirmed picture removal");
-    }
-    const removed = response.status === 204;
-    return apiJson({
-      status: removed ? 200 : response.status,
-      data: removed ? { removed: true } : null,
-      message: removed ? "" : "This picture cannot be removed by your account.",
-      uncertain: false,
-      actor,
-    });
+    return apiJson({ ...result, actor });
   } catch (error) {
     return apiError(error);
   }
@@ -105,10 +128,8 @@ export async function downloadPicture(request: Request, accountId: string) {
       headers: {
         "Content-Type": contentType,
         "Content-Length": String(bytes.byteLength),
-        // The version in the URL changes with the picture; keying on the session cookie keeps one
-        // account's cached picture from being served to another account in the same browser.
-        "Cache-Control": "private, max-age=600",
-        Vary: "Cookie",
+        // A removed or erased picture must not outlive its removal in any browser or shared cache.
+        "Cache-Control": PICTURE_CACHE_CONTROL,
         "X-Content-Type-Options": "nosniff",
         "X-Robots-Tag": "noindex, nofollow",
       },

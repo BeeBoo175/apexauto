@@ -32,7 +32,9 @@ public sealed class ListingPhotoStore(DealershipDbContext database) : IListingPh
             var existing = await database.ListingPhotos.AsNoTracking().SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
             if (existing is not null)
             {
-                return existing.Matches(vehicleId, actorId, content) ? Classify(existing) : new(ListingPhotoStatus.Conflict);
+                return existing.Matches(vehicleId, actorId, content)
+                    ? await ClassifyReceiptAsync(existing, cancellationToken)
+                    : new(ListingPhotoStatus.Conflict);
             }
 
             var branchId = await database.Vehicles.Where(item => item.Id == vehicleId).Select(item => item.BranchId).SingleAsync(cancellationToken);
@@ -73,6 +75,11 @@ public sealed class ListingPhotoStore(DealershipDbContext database) : IListingPh
                 return new(ListingPhotoStatus.Conflict);
             }
 
+            if (await HasRemovalAsync(id, cancellationToken))
+            {
+                return new(ListingPhotoStatus.Removed, photo);
+            }
+
             photo.ConfirmAvailable(await database.DatabaseNowAsync(cancellationToken));
             await database.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
@@ -100,7 +107,10 @@ public sealed class ListingPhotoStore(DealershipDbContext database) : IListingPh
             return new(access);
         }
 
-        return await FindPhotoAsync(vehicleId, id, cancellationToken);
+        var found = await FindPhotoAsync(vehicleId, id, cancellationToken);
+        return found.Photo is { AvailableAt: null } pending
+            ? await ClassifyReceiptAsync(pending, cancellationToken)
+            : found;
     }
 
     public async Task<ListingPhotoPreparation> FindReservationAsync(Guid actorId, Guid reservationId, Guid id,
@@ -157,6 +167,19 @@ public sealed class ListingPhotoStore(DealershipDbContext database) : IListingPh
             .AnyAsync(cancellationToken);
         return exists && branchActive && (actor.Role == AccountRoles.GeneralManager || actor.BranchId == branchId)
             ? ListingPhotoStatus.Available : ListingPhotoStatus.NotFound;
+    }
+
+    // Only a pending upload can have removal intent; confirmed photos are never removed.
+    private async Task<ListingPhotoPreparation> ClassifyReceiptAsync(ListingPhoto photo, CancellationToken cancellationToken)
+    {
+        return photo.AvailableAt is null && await HasRemovalAsync(photo.Id, cancellationToken)
+            ? new(ListingPhotoStatus.Removed, photo)
+            : Classify(photo);
+    }
+
+    private async Task<bool> HasRemovalAsync(Guid photoId, CancellationToken cancellationToken)
+    {
+        return await database.ListingPhotoRemovals.AsNoTracking().AnyAsync(item => item.PhotoId == photoId, cancellationToken);
     }
 
     private static ListingPhotoPreparation Classify(ListingPhoto photo) =>

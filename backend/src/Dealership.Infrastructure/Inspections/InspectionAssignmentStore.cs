@@ -1,3 +1,4 @@
+using Dealership.Domain.Accounts;
 using System.Data;
 using Dealership.Application.Accounts;
 using Dealership.Application.Common;
@@ -32,7 +33,7 @@ public sealed class InspectionAssignmentStore(DealershipDbContext database) : II
             .Select(item => new InspectionTechnician(item.Id,
                 database.StaffProfiles.Where(profile => profile.UserId == item.Id)
                     .Select(profile => profile.Name).FirstOrDefault() ?? item.UserName!,
-                database.AccountPictures.Where(picture => picture.UserId == item.Id && picture.RemovedAt == null)
+                database.AccountPictures.Where(AccountPicture.Current).Where(picture => picture.UserId == item.Id)
                     .Select(picture => (Guid?)picture.Id).FirstOrDefault()))
             .ReadPageAsync(page, pageSize, total, cancellationToken);
         await transaction.CommitAsync(cancellationToken);

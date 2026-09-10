@@ -1,11 +1,13 @@
 using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Identity;
+using Dealership.Infrastructure.Vehicles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Dealership.Infrastructure.Persistence;
 
-public sealed class ListingPhotoConfiguration : IEntityTypeConfiguration<ListingPhoto>, IEntityTypeConfiguration<ListingRevisionPhoto>
+public sealed class ListingPhotoConfiguration : IEntityTypeConfiguration<ListingPhoto>, IEntityTypeConfiguration<ListingRevisionPhoto>,
+    IEntityTypeConfiguration<ListingPhotoRemoval>
 {
     public void Configure(EntityTypeBuilder<ListingPhoto> builder)
     {
@@ -35,5 +37,19 @@ public sealed class ListingPhotoConfiguration : IEntityTypeConfiguration<Listing
             .HasPrincipalKey(item => new { item.Id, item.VehicleId, item.BranchId }).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<ListingPhoto>().WithMany().HasForeignKey(item => new { item.PhotoId, item.VehicleId, item.BranchId })
             .HasPrincipalKey(item => new { item.Id, item.VehicleId, item.BranchId }).OnDelete(DeleteBehavior.Restrict);
+    }
+
+    public void Configure(EntityTypeBuilder<ListingPhotoRemoval> builder)
+    {
+        builder.ToTable("ListingPhotoRemovals", table => table.HasCheckConstraint("CK_ListingPhotoRemovals_Shape",
+            "isfinite(\"EligibleAt\") AND isfinite(\"RequestedAt\") AND \"RequestedAt\" >= \"EligibleAt\" AND \"Attempts\" >= 0 AND " +
+            "isfinite(\"NextAttemptAt\") AND (\"DeletedAt\" IS NULL OR (isfinite(\"DeletedAt\") AND \"DeletedAt\" >= \"RequestedAt\")) AND " +
+            "((\"ClaimId\" IS NULL) = (\"ClaimExpiresAt\" IS NULL)) AND (\"ClaimId\" IS NULL OR " +
+            "(\"ClaimId\" <> '00000000-0000-0000-0000-000000000000'::uuid AND isfinite(\"ClaimExpiresAt\")))"));
+        builder.HasKey(item => item.PhotoId);
+        builder.Property(item => item.PhotoId).ValueGeneratedNever();
+        builder.HasOne<ListingPhoto>().WithOne().HasForeignKey<ListingPhotoRemoval>(item => item.PhotoId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(item => new { item.NextAttemptAt, item.PhotoId });
     }
 }

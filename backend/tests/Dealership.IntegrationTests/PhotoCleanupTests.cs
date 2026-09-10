@@ -1,4 +1,6 @@
+using Dealership.Application.Accounts;
 using Dealership.Application.Photos;
+using Dealership.Domain.Accounts;
 using System.Net;
 using System.Net.Http.Json;
 using Dealership.Application.Intake;
@@ -11,6 +13,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Npgsql;
+using SkiaSharp;
 
 namespace Dealership.IntegrationTests;
 
@@ -166,6 +169,150 @@ public sealed class PhotoCleanupTests(IntakePhotoFixture fixture) : IClassFixtur
         }
 
         await VerifyRestrictedSqlAsync(active.Photos[0].Id, pending);
+    }
+
+    [Fact]
+    public async Task AccountPictureCleanupSurvivesCrashAfterLogicalRemovalAndLostDeletionAcknowledgements()
+    {
+        var lifetime = TimeSpan.FromSeconds(2).TotalHours;
+        using var factory = fixture.CreateFactory(pendingUploadLifetimeHours: lifetime);
+        using var client = factory.CreateClient();
+        await IntakePhotoFixture.RegisterAsync(client);
+        var ownerId = (await client.GetFromJsonAsync<AccountProfile>("/api/account/profile"))!.UserId;
+        var replaced = Guid.NewGuid();
+        var removed = Guid.NewGuid();
+        var abandoned = Guid.NewGuid();
+        var current = Guid.NewGuid();
+        Assert.Equal(HttpStatusCode.OK, (await PutPictureAsync(client, replaced, SKColors.SteelBlue)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await PutPictureAsync(client, removed, SKColors.OrangeRed)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.DeleteAsync($"/api/accounts/{ownerId}/picture/{removed}")).StatusCode);
+
+        // The process "crashed" after the logical removals: nothing was deleted inline and the receipts are durable.
+        Assert.True(await fixture.OwnedObjectExistsAsync(PictureKey(replaced)));
+        Assert.True(await fixture.OwnedObjectExistsAsync(PictureKey(removed)));
+        Assert.Equal("DeletionPending", await ReceiptStatusAsync(client, replaced, ownerId, removed));
+        using (var outage = fixture.CreateFactory(failAfterPut: true, pendingUploadLifetimeHours: lifetime))
+        using (var outageClient = outage.CreateClient())
+        {
+            outageClient.DefaultRequestHeaders.Authorization = client.DefaultRequestHeaders.Authorization;
+            Assert.Equal(HttpStatusCode.ServiceUnavailable,
+                (await PutPictureAsync(outageClient, abandoned, SKColors.Green)).StatusCode);
+        }
+
+        Assert.True(await fixture.OwnedObjectExistsAsync(PictureKey(abandoned)));
+        Assert.Equal(HttpStatusCode.OK, (await PutPictureAsync(client, current, SKColors.Purple)).StatusCode);
+        await WaitUntilAsync(await ExpiryAsync(abandoned));
+
+        using (var failing = fixture.CreateFactory(failBeforeDelete: true))
+        {
+            await RunCleanupAsync(failing);
+        }
+
+        Assert.True(await fixture.OwnedObjectExistsAsync(PictureKey(removed)));
+        Assert.True(await fixture.OwnedObjectExistsAsync(PictureKey(abandoned)));
+        await ExpirePictureClaimsAsync();
+        using (var lostAcknowledgement = fixture.CreateFactory(failAfterDelete: true))
+        {
+            await RunCleanupAsync(lostAcknowledgement);
+        }
+
+        foreach (var id in new[] { replaced, removed, abandoned })
+        {
+            Assert.False(await fixture.OwnedObjectExistsAsync(PictureKey(id)));
+        }
+
+        Assert.Equal("DeletionPending", await ReceiptStatusAsync(client, removed, ownerId, removed));
+        await ExpirePictureClaimsAsync();
+        using (var restarted = fixture.CreateFactory())
+        {
+            await RunCleanupAsync(restarted);
+        }
+
+        // The confirmed current picture is never eligible and its object and download survive every pass.
+        Assert.True(await fixture.OwnedObjectExistsAsync(PictureKey(current)));
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"/api/accounts/{ownerId}/picture")).StatusCode);
+        using (var scope = factory.Services.CreateScope())
+        {
+            var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
+            var removals = await database.AccountPictureRemovals.AsNoTracking().ToDictionaryAsync(item => item.PictureId);
+            Assert.Equal(AccountPictureRemovalReason.Replaced, removals[replaced].Reason);
+            Assert.Equal(AccountPictureRemovalReason.Removed, removals[removed].Reason);
+            Assert.Equal(AccountPictureRemovalReason.UnconfirmedExpired, removals[abandoned].Reason);
+            Assert.All(removals.Values, item => Assert.NotNull(item.DeletedAt));
+            Assert.DoesNotContain(current, removals.Keys);
+        }
+
+        Assert.Equal(HttpStatusCode.Gone, (await PutPictureAsync(client, abandoned, SKColors.Green)).StatusCode);
+        await VerifyPictureSqlAsync(current, abandoned, removed);
+    }
+
+    private async Task VerifyPictureSqlAsync(Guid current, Guid abandoned, Guid removed)
+    {
+        await using var connection = new NpgsqlConnection(fixture.Database.RuntimeConnectionString);
+        await connection.OpenAsync();
+        await using var premature = new NpgsqlCommand("""
+            INSERT INTO "AccountPictureRemovals" ("PictureId", "Reason", "EligibleAt", "RequestedAt", "Attempts", "NextAttemptAt")
+            SELECT "Id", 'Removed', "CreatedAt", "CreatedAt", 0, "CreatedAt" FROM "AccountPictures" WHERE "Id" = @id
+            """, connection);
+        premature.Parameters.AddWithValue("id", current);
+        Assert.Equal("CK_AccountPictureRemovals_Eligibility",
+            (await Assert.ThrowsAsync<PostgresException>(() => premature.ExecuteNonQueryAsync())).ConstraintName);
+        await using var rewrite = new NpgsqlCommand("UPDATE \"AccountPictureRemovals\" SET \"DeletedAt\" = NULL WHERE \"PictureId\" = @id", connection);
+        rewrite.Parameters.AddWithValue("id", removed);
+        Assert.Equal("CK_AccountPictureRemovals_Immutable",
+            (await Assert.ThrowsAsync<PostgresException>(() => rewrite.ExecuteNonQueryAsync())).ConstraintName);
+        await using var lateConfirm = new NpgsqlCommand("UPDATE \"AccountPictures\" SET \"AvailableAt\" = clock_timestamp() WHERE \"Id\" = @id", connection);
+        lateConfirm.Parameters.AddWithValue("id", abandoned);
+        Assert.Equal("CK_AccountPictures_Removal",
+            (await Assert.ThrowsAsync<PostgresException>(() => lateConfirm.ExecuteNonQueryAsync())).ConstraintName);
+        await using var secondCurrent = new NpgsqlCommand("""
+            UPDATE "AccountPictures" SET "RemovedAt" = NULL, "AvailableAt" = "CreatedAt" WHERE "Id" = @id
+            """, connection);
+        secondCurrent.Parameters.AddWithValue("id", removed);
+        Assert.Equal("23505", (await Assert.ThrowsAsync<PostgresException>(() => secondCurrent.ExecuteNonQueryAsync())).SqlState);
+    }
+
+    private static string PictureKey(Guid id) => $"accounts/pictures/{id:N}";
+
+    private static async Task<HttpResponseMessage> PutPictureAsync(HttpClient client, Guid id, SKColor color)
+    {
+        using var bitmap = new SKBitmap(32, 32);
+        bitmap.Erase(color);
+        using var image = SKImage.FromBitmap(bitmap);
+        using var data = image.Encode(SKEncodedImageFormat.Png, 90);
+        using var body = new ByteArrayContent(data.ToArray());
+        body.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/png");
+        return await client.PutAsync($"/api/accounts/me/picture/{id}", body);
+    }
+
+    private static async Task<string?> ReceiptStatusAsync(HttpClient client, Guid pictureId, Guid ownerId, Guid removeTarget)
+    {
+        // A replayed removal of an already removed picture returns that picture's own receipt.
+        using var response = await client.DeleteAsync($"/api/accounts/{ownerId}/picture/{removeTarget}");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        using var receipt = await client.GetAsync($"/api/accounts/me/picture/{pictureId}/receipt");
+        Assert.Equal(HttpStatusCode.Gone, receipt.StatusCode);
+        return (await receipt.Content.ReadFromJsonAsync<AccountPictureReceipt>())!.Status;
+    }
+
+    private async Task<DateTimeOffset> ExpiryAsync(Guid pictureId)
+    {
+        await using var connection = new NpgsqlConnection(fixture.Database.RuntimeConnectionString);
+        await connection.OpenAsync();
+        await using var command = new NpgsqlCommand("SELECT \"ExpiresAt\" FROM \"AccountPictures\" WHERE \"Id\" = @id", connection);
+        command.Parameters.AddWithValue("id", pictureId);
+        return new DateTimeOffset((DateTime)(await command.ExecuteScalarAsync())!, TimeSpan.Zero);
+    }
+
+    private async Task ExpirePictureClaimsAsync()
+    {
+        await using var connection = new NpgsqlConnection(fixture.Database.RuntimeConnectionString);
+        await connection.OpenAsync();
+        await using var command = new NpgsqlCommand("""
+            UPDATE "AccountPictureRemovals" SET "NextAttemptAt" = clock_timestamp() - interval '1 second',
+                "ClaimExpiresAt" = clock_timestamp() - interval '1 second' WHERE "DeletedAt" IS NULL
+            """, connection);
+        await command.ExecuteNonQueryAsync();
     }
 
     private static Task RunCleanupAsync(WebApplicationFactory<Program> factory)

@@ -1,3 +1,4 @@
+using Dealership.Domain.Accounts;
 using System.Linq.Expressions;
 using Dealership.Application.Sales;
 using Dealership.Domain.Sales;
@@ -88,7 +89,7 @@ internal static class SaleRows
             AgentName = database.StaffProfiles.Where(profile => profile.UserId == sale.AgentId)
                 .Select(profile => profile.Name).FirstOrDefault(),
             AgentPictureId = database.AccountPictures
-                .Where(picture => picture.UserId == sale.AgentId && picture.RemovedAt == null)
+                .Where(AccountPicture.Current).Where(picture => picture.UserId == sale.AgentId)
                 .Select(picture => (Guid?)picture.Id).FirstOrDefault(),
             AgentSuspended = agent.SuspendedAt != null,
             CustomerSuspended = customer.SuspendedAt != null,
@@ -139,7 +140,7 @@ internal static class SaleRows
             AgentName = database.StaffProfiles.Where(item => item.UserId == request.BookedByStaffId)
                 .Select(item => item.Name).FirstOrDefault(),
             AgentPictureId = database.AccountPictures
-                .Where(picture => picture.UserId == request.BookedByStaffId && picture.RemovedAt == null)
+                .Where(AccountPicture.Current).Where(picture => picture.UserId == request.BookedByStaffId)
                 .Select(picture => (Guid?)picture.Id).FirstOrDefault(),
             AgentSuspended = staff.SuspendedAt != null,
             CustomerSuspended = customer.SuspendedAt != null,

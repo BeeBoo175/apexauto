@@ -1,3 +1,4 @@
+using Dealership.Domain.Accounts;
 using Dealership.Domain.TestDrives;
 using Dealership.Application.Accounts;
 using Dealership.Application.TestDrives;
@@ -56,7 +57,7 @@ internal static class StaffTestDriveRows
                    HandlerName = database.StaffProfiles.Where(profile => profile.UserId == assignment!.HandlerId)
                        .Select(profile => profile.Name).FirstOrDefault(),
                    HandlerPictureId = database.AccountPictures
-                       .Where(picture => picture.UserId == assignment!.HandlerId && picture.RemovedAt == null)
+                       .Where(AccountPicture.Current).Where(picture => picture.UserId == assignment!.HandlerId)
                        .Select(picture => (Guid?)picture.Id).FirstOrDefault(),
                    HandlerEligible = handlers.Any(user => user.Id == assignment!.HandlerId &&
                        user.BranchId == booking.BranchId),

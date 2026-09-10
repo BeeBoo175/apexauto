@@ -117,13 +117,35 @@ export function parsePerson(value: unknown): Person | null {
   };
 }
 
-export function parsePictureReceipt(value: unknown): { pictureId: string } | null {
-  if (!isRecord(value) || !isUuid(value.pictureId)) {
+// A picture is fetched on every view, so no browser or shared cache may keep one after it is removed.
+export const PICTURE_CACHE_CONTROL = "private, no-store";
+
+const PICTURE_STATES = ["Available", "Pending", "DeletionPending", "Deleted"];
+
+export function parsePictureReceipt(value: unknown): { pictureId: string; status: string } | null {
+  if (
+    !isRecord(value) ||
+    !isUuid(value.pictureId) ||
+    typeof value.status !== "string" ||
+    !PICTURE_STATES.includes(value.status)
+  ) {
     return null;
   }
-  return { pictureId: value.pictureId };
+  return { pictureId: value.pictureId, status: value.status };
 }
 
-export function parseRemovedPicture(value: unknown): { removed: true } | null {
-  return isRecord(value) && value.removed === true ? { removed: true } : null;
+// The receipt of the picture that was removed; its reason tells a removal from a replacement.
+export function parseRemovedPicture(
+  value: unknown,
+): { pictureId: string; removalReason: string } | null {
+  const receipt = parsePictureReceipt(value);
+  if (
+    !receipt ||
+    !isRecord(value) ||
+    typeof value.removalReason !== "string" ||
+    !["DeletionPending", "Deleted"].includes(receipt.status)
+  ) {
+    return null;
+  }
+  return { pictureId: receipt.pictureId, removalReason: value.removalReason };
 }

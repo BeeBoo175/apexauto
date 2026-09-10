@@ -1,10 +1,12 @@
 using Dealership.Infrastructure.Photos;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace Dealership.Infrastructure.Inspections;
 
-public sealed class InspectionPhotoCleanupStore(DealershipDbContext database) : IPhotoCleanupSource
+public sealed class InspectionPhotoCleanupStore(DealershipDbContext database, IOptions<PhotoCleanupSettings> settings)
+    : IPhotoCleanupSource
 {
     public async Task<IReadOnlyList<Guid>> GetCandidatesAsync(CancellationToken cancellationToken)
     {
@@ -15,7 +17,7 @@ public sealed class InspectionPhotoCleanupStore(DealershipDbContext database) : 
         var retries = database.InspectionPhotoRemovals.Where(removal => removal.DeletedAt == null &&
             removal.NextAttemptAt <= now && (removal.ClaimExpiresAt == null || removal.ClaimExpiresAt <= now))
             .Select(removal => removal.PhotoId);
-        return await eligible.Union(retries).Order().Take(10).ToArrayAsync(cancellationToken);
+        return await eligible.Union(retries).Order().Take(settings.Value.BatchSize).ToArrayAsync(cancellationToken);
     }
 
     public async Task<PhotoDeletionClaim?> ClaimAsync(Guid id, CancellationToken cancellationToken)

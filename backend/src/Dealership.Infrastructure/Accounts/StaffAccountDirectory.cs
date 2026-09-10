@@ -1,3 +1,4 @@
+using Dealership.Domain.Accounts;
 using System.Data;
 using Dealership.Application.Accounts;
 using Dealership.Application.Common;
@@ -93,7 +94,7 @@ public sealed class StaffAccountDirectory(DealershipDbContext database) : IStaff
                join staff in database.StaffProfiles.AsNoTracking() on user.Id equals staff.UserId
                join branch in database.Branches.AsNoTracking() on user.BranchId equals branch.Id into branches
                from branch in branches.DefaultIfEmpty()
-               join picture in database.AccountPictures.AsNoTracking().Where(item => item.RemovedAt == null)
+               join picture in database.AccountPictures.AsNoTracking().Where(AccountPicture.Current)
                    on user.Id equals picture.UserId into pictures
                from picture in pictures.DefaultIfEmpty()
                select new DirectoryRow
