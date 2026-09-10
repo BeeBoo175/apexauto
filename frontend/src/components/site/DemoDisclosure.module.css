@@ -1,0 +1,16 @@
+.points {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding-left: 20px;
+  color: var(--color-graphite);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 24px;
+}

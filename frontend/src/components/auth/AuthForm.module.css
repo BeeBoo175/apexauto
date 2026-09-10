@@ -210,3 +210,10 @@ details[open] > .demoSummary {
   font-weight: 400;
   line-height: 1.4;
 }
+
+.demoFill {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}

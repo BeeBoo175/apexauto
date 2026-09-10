@@ -3,6 +3,7 @@ import "./globals.css";
 import styles from "./Shell.module.css";
 import { ToastProvider } from "@/components/ui/Toast";
 import { IconSprite } from "@/components/ui/IconSprite";
+import { DemoDisclosure } from "@/components/site/DemoDisclosure";
 import { StaffHistoryBoundary } from "@/components/staff/StaffClientEntryBoundary";
 
 export const metadata: Metadata = {
@@ -21,7 +22,10 @@ export default function RootLayout({
       <body className={styles.body}>
         <IconSprite />
         <StaffHistoryBoundary>
-          <ToastProvider>{children}</ToastProvider>
+          <ToastProvider>
+            {children}
+            <DemoDisclosure />
+          </ToastProvider>
         </StaffHistoryBoundary>
       </body>
     </html>

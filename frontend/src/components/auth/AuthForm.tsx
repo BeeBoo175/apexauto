@@ -3,13 +3,21 @@
 import type { FormEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { Input } from "@/components/ui/Input";
+import { demoDetails } from "@/lib/demo/demo-details";
 import { useAuthMutation } from "@/hooks/use-auth-mutation";
 import { useToast } from "@/components/ui/Toast";
 import { DemoAccounts } from "@/components/auth/DemoAccounts";
 import type { DemoAccount } from "@/components/auth/DemoAccounts";
 import styles from "./AuthForm.module.css";
 import { useLoadingProgress } from "@/components/ui/LoadingProgress";
+
+const demoFieldNames = ["legalName", "nric", "mobile", "residentialAddress"];
+
+function isInput(element: unknown): element is HTMLInputElement {
+  return element instanceof HTMLInputElement;
+}
 
 export function AuthForm({
   kind,
@@ -28,6 +36,8 @@ export function AuthForm({
 
   const { busy, uncertain, submit } = useAuthMutation(kind, destination);
   useLoadingProgress(kind === "login" ? "Signing in" : "Creating your account", busy);
+  const form = useRef<HTMLFormElement>(null);
+  const [confirmingFill, setConfirmingFill] = useState(false);
   const emailInput = useRef<HTMLInputElement>(null);
   const passwordInput = useRef<HTMLInputElement>(null);
   const submitButton = useRef<HTMLButtonElement>(null);
@@ -56,6 +66,32 @@ export function AuthForm({
     void submit(strings);
   }
 
+  function demoFields() {
+    return demoFieldNames.map((name) => form.current?.elements.namedItem(name)).filter(isInput);
+  }
+
+  function requestDemoDetails() {
+    if (demoFields().some((field) => field.value.trim() !== "")) {
+      setConfirmingFill(true);
+      return;
+    }
+
+    fillDemoDetails();
+  }
+
+  function fillDemoDetails() {
+    const details = demoDetails();
+
+    for (const field of demoFields()) {
+      field.value = details[field.name as keyof typeof details];
+    }
+
+    setConfirmingFill(false);
+    info(
+      "Fictional details filled. Review them, then enter your own email, username and password.",
+    );
+  }
+
   function fillDemoAccount(account: DemoAccount) {
     if (busy || uncertain || !emailInput.current || !passwordInput.current) {
       return;
@@ -70,7 +106,7 @@ export function AuthForm({
   }
 
   return (
-    <form method="post" onSubmit={handleSubmit} className={styles.form}>
+    <form ref={form} method="post" onSubmit={handleSubmit} className={styles.form}>
       <noscript>
         <p className={styles.help}>Enable JavaScript and reload this page to continue.</p>
       </noscript>
@@ -97,6 +133,12 @@ export function AuthForm({
               autoComplete="street-address"
               required
             />
+            <div className={styles.demoFill}>
+              <Button type="button" variant="secondary" size="compact" onClick={requestDemoDetails}>
+                Fill demo details
+              </Button>
+              <p className={styles.help}>Fills fictional name, NRIC, mobile and address.</p>
+            </div>
           </div>
         )}
         <div
@@ -182,6 +224,16 @@ export function AuthForm({
           <DemoAccounts accounts={demoAccounts} ready={hydrated} onSelect={fillDemoAccount} />
         </fieldset>
       )}
+      <ConfirmationDialog
+        open={confirmingFill}
+        title="Replace your details?"
+        confirmLabel="Replace details"
+        cancelLabel="Keep my details"
+        onClose={() => setConfirmingFill(false)}
+        onConfirm={fillDemoDetails}
+      >
+        Name, NRIC, mobile and address already contain text. Filling demo details replaces it.
+      </ConfirmationDialog>
     </form>
   );
 }

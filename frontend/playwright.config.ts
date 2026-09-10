@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import { DISCLOSURE_STORAGE_KEY } from "./src/lib/demo/disclosure";
 
 const browserJourneys = Boolean(process.env.BROWSER_EVIDENCE_DIR);
 const appBaseUrl = process.env.APP_BASE_URL;
@@ -6,6 +7,17 @@ const nextOrigin = process.env.BROWSER_NEXT_ORIGIN;
 const intakeUi = Boolean(process.env.BROWSER_INTAKE);
 // Mobile runs only the golden purchase journey; every other journey is desktop-only.
 const goldenMobileTests = "e2e/vehicles-ui-sales-completion.spec.ts";
+
+// Journeys act as returning visitors so the first-visit disclosure never covers the page under test.
+function acknowledgedDisclosure() {
+  const origins = [appBaseUrl, nextOrigin]
+    .filter((value): value is string => Boolean(value))
+    .map((value) => ({
+      origin: new URL(value).origin,
+      localStorage: [{ name: DISCLOSURE_STORAGE_KEY, value: "true" }],
+    }));
+  return { cookies: [], origins };
+}
 
 function browserTests() {
   if (intakeUi) {
@@ -47,6 +59,8 @@ export default defineConfig({
       testMatch: [
         "auth/contracts.spec.ts",
         "auth/browser-transport-contracts.spec.ts",
+        "auth/demo-details-contracts.spec.ts",
+        "auth/demo-disclosure-contracts.spec.ts",
         "accounts/staff-accounts-contracts.spec.ts",
         "accounts/relay-contracts.spec.ts",
         "accounts/picture-contracts.spec.ts",
@@ -98,12 +112,17 @@ export default defineConfig({
               ...devices["Desktop Chrome"],
               viewport: { width: 1440, height: 1024 },
               baseURL: appBaseUrl,
+              storageState: acknowledgedDisclosure(),
             },
           },
           {
             name: "mobile",
             testMatch: goldenMobileTests,
-            use: { ...devices["Pixel 7"], baseURL: appBaseUrl },
+            use: {
+              ...devices["Pixel 7"],
+              baseURL: appBaseUrl,
+              storageState: acknowledgedDisclosure(),
+            },
           },
         ]
       : []),
