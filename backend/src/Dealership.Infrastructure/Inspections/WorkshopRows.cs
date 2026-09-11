@@ -45,7 +45,7 @@ internal static class WorkshopRows
                    // The staff profile name is the display identity; the mirrored email is only a fallback.
                    TechnicianIdentity = technician == null ? null : database.StaffProfiles
                        .Where(profile => profile.UserId == technician.Id)
-                       .Select(profile => profile.Name).FirstOrDefault() ?? technician.UserName,
+                       .Select(profile => profile.Name).FirstOrDefault() ?? PersonLabels.FormerEmployee,
                    TechnicianEmail = technician == null ? null : technician.Email,
                    TechnicianPictureId = technician == null ? null : database.AccountPictures
                        .Where(AccountPicture.Current).Where(picture => picture.UserId == technician.Id)

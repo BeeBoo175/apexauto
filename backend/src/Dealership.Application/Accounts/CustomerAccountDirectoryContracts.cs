@@ -61,15 +61,17 @@ public sealed record CustomerDirectoryQuery(string Tab, string Search, int Page,
 }
 
 // The list shows masked contact only; the opened account shows the full details an Administrator needs to help.
-public sealed record CustomerAccountRow(Guid Id, string Name, string Email, string Mobile, bool Verified, bool Suspended);
+// A closed customer keeps the row and id; the name reads as the former-customer label and contact is absent.
+public sealed record CustomerAccountRow(Guid Id, string Name, string? Email, string? Mobile, bool Verified, bool Suspended,
+    bool Closed);
 
 public sealed record CustomerAccountCounts(int All, int Unverified, int Suspended);
 
 public sealed record CustomerAccountPage(CurrentActor Actor, IReadOnlyList<CustomerAccountRow> Items, int Total, int Page,
     int PageSize, CustomerAccountCounts Counts);
 
-public sealed record CustomerAccountDetail(CurrentActor Actor, Guid Id, string Name, string Username, string Email,
-    string Mobile, string Address, string Nric, bool Verified, bool Suspended);
+public sealed record CustomerAccountDetail(CurrentActor Actor, Guid Id, string Name, string? Username, string? Email,
+    string? Mobile, string? Address, string? Nric, bool Verified, bool Suspended, bool Closed);
 
 public sealed record CustomerDirectoryResult<T>(StaffAccountReadStatus Status, T? Value = default);
 

@@ -16,6 +16,7 @@ export const staffAccountTabs = [
 export const staffAccountStatusLabels: Record<string, string> = {
   Active: "Active",
   Deactivated: "Deactivated",
+  Closed: "Closed",
   Invited: "Invited",
   Suspended: "Suspended",
   Unverified: "Email not verified",

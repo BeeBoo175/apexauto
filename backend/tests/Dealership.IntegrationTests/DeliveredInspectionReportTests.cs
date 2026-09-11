@@ -44,8 +44,7 @@ public sealed class DeliveredInspectionReportTests(IntakePhotoFixture fixture) :
         var sale = await database.SalesOrders.AsNoTracking().SingleAsync(item => item.Id == hold.Id);
         var profile = await database.CustomerProfiles.AsNoTracking().SingleAsync(item => item.UserId == hold.CustomerId);
         var vehicle = await database.Vehicles.AsNoTracking().SingleAsync(item => item.Id == hold.VehicleId);
-        var review = new SaleSettlementReview(profile.LegalName, profile.Nric, profile.ResidentialAddress,
-            SaleReviewedVehicle.Of(vehicle));
+        var review = SaleSettlementReview.From(profile, SaleReviewedVehicle.Of(vehicle));
         var payment = new SalePaymentEvidence(SalePaymentMethod.Cash, sale.BalancePayable, "CASH 53819",
             new DateOnly(2026, 11, 2), null, 0m, null, false, false);
         Assert.Equal(SaleResultStatus.Succeeded, (await world.Settlement.SettleAsync(world.Agent, hold.Id,

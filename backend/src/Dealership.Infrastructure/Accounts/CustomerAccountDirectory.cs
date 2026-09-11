@@ -34,8 +34,10 @@ public sealed class CustomerAccountDirectory(DealershipDbContext database) : ICu
         var rows = await Narrow(customers, query, query.Tab).OrderBy(row => row.Name).ThenBy(row => row.Id)
             .ReadPageAsync(query.Page, query.PageSize, total, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-        var items = rows.Select(row => new CustomerAccountRow(row.Id, row.Name, PersonalDataMasking.Email(row.Email),
-            PersonalDataMasking.Mobile(row.Mobile), row.Verified, row.Suspended)).ToArray();
+        var items = rows.Select(row => new CustomerAccountRow(row.Id, row.Name,
+            row.Email is null ? null : PersonalDataMasking.Email(row.Email),
+            row.Mobile is null ? null : PersonalDataMasking.Mobile(row.Mobile),
+            row.Verified, row.Suspended, row.Closed)).ToArray();
         return new(StaffAccountReadStatus.Succeeded,
             new CustomerAccountPage(actor, items, total, query.Page, query.PageSize, counts));
     }
@@ -55,19 +57,21 @@ public sealed class CustomerAccountDirectory(DealershipDbContext database) : ICu
                          select new
                          {
                              user.Id,
-                             Name = profile.LegalName,
+                             Name = profile.LegalName ?? PersonLabels.FormerCustomer,
                              Username = user.AccountUsername,
-                             Email = user.Email!,
+                             user.Email,
                              profile.Mobile,
                              Address = profile.ResidentialAddress,
                              profile.Nric,
                              Verified = user.EmailConfirmed,
-                             Suspended = user.SuspendedAt != null
+                             Suspended = user.SuspendedAt != null,
+                             Closed = user.ClosedAt != null
                          }).SingleOrDefaultAsync(cancellationToken);
         return row is null
             ? new(StaffAccountReadStatus.NotFound)
             : new(StaffAccountReadStatus.Succeeded, new CustomerAccountDetail(actor, row.Id, row.Name, row.Username,
-                row.Email, row.Mobile, row.Address, PersonalDataMasking.Nric(row.Nric), row.Verified, row.Suspended));
+                row.Email, row.Mobile, row.Address, row.Nric is null ? null : PersonalDataMasking.Nric(row.Nric),
+                row.Verified, row.Suspended, row.Closed));
     }
 
     private Task<CurrentActor?> ActorAsync(Guid administratorId, CancellationToken cancellationToken) =>
@@ -84,11 +88,12 @@ public sealed class CustomerAccountDirectory(DealershipDbContext database) : ICu
                select new CustomerRow
                {
                    Id = user.Id,
-                   Name = profile.LegalName,
-                   Email = user.Email!,
+                   Name = profile.LegalName ?? PersonLabels.FormerCustomer,
+                   Email = user.Email,
                    Mobile = profile.Mobile,
                    Verified = user.EmailConfirmed,
-                   Suspended = user.SuspendedAt != null
+                   Suspended = user.SuspendedAt != null,
+                   Closed = user.ClosedAt != null
                };
     }
 
@@ -98,7 +103,8 @@ public sealed class CustomerAccountDirectory(DealershipDbContext database) : ICu
     {
         rows = tab switch
         {
-            CustomerAccountTabs.Unverified => rows.Where(row => !row.Verified),
+            // A closed account is neither unverified nor active, so it appears only under All.
+            CustomerAccountTabs.Unverified => rows.Where(row => !row.Verified && !row.Closed),
             CustomerAccountTabs.Suspended => rows.Where(row => row.Suspended),
             _ => rows
         };
@@ -111,20 +117,20 @@ public sealed class CustomerAccountDirectory(DealershipDbContext database) : ICu
         if (query.Email.Length > 0)
         {
             var pattern = LiteralSearch.Pattern(query.Email);
-            rows = rows.Where(row => EF.Functions.ILike(row.Email, pattern, "!"));
+            rows = rows.Where(row => EF.Functions.ILike(row.Email!, pattern, "!"));
         }
 
         if (query.Mobile.Length > 0)
         {
             var pattern = LiteralSearch.Pattern(query.Mobile);
-            rows = rows.Where(row => EF.Functions.ILike(row.Mobile, pattern, "!"));
+            rows = rows.Where(row => EF.Functions.ILike(row.Mobile!, pattern, "!"));
         }
 
         if (query.Search.Length > 0)
         {
             var pattern = LiteralSearch.Pattern(query.Search);
             rows = rows.Where(row => EF.Functions.ILike(row.Name, pattern, "!") ||
-                EF.Functions.ILike(row.Email, pattern, "!") || EF.Functions.ILike(row.Mobile, pattern, "!"));
+                EF.Functions.ILike(row.Email!, pattern, "!") || EF.Functions.ILike(row.Mobile!, pattern, "!"));
         }
 
         return rows;
@@ -136,12 +142,14 @@ public sealed class CustomerAccountDirectory(DealershipDbContext database) : ICu
 
         public string Name { get; init; } = string.Empty;
 
-        public string Email { get; init; } = string.Empty;
+        public string? Email { get; init; }
 
-        public string Mobile { get; init; } = string.Empty;
+        public string? Mobile { get; init; }
 
         public bool Verified { get; init; }
 
         public bool Suspended { get; init; }
+
+        public bool Closed { get; init; }
     }
 }

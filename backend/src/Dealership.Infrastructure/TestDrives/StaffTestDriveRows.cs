@@ -45,7 +45,7 @@ internal static class StaffTestDriveRows
                    Model = vehicle.Model,
                    Trim = vehicle.Trim,
                    ManufactureYear = vehicle.ManufactureYear,
-                   CustomerName = customer.LegalName,
+                   CustomerName = customer.LegalName ?? PersonLabels.FormerCustomer,
                    CustomerId = booking.CustomerId,
                    StartsAt = booking.StartsAt,
                    EndsAt = booking.EndsAt,

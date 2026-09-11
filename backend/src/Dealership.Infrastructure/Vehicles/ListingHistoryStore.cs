@@ -1,5 +1,6 @@
 using Dealership.Domain.Accounts;
 using System.Data;
+using Dealership.Application.Accounts;
 using Dealership.Application.Common;
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Vehicles;
@@ -75,7 +76,7 @@ public sealed class ListingHistoryStore(DealershipDbContext database) : IListing
                           {
                               Entry = entry,
                               ActorIdentity = database.StaffProfiles.Where(profile => profile.UserId == actor.Id)
-                                  .Select(profile => profile.Name).FirstOrDefault() ?? actor.UserName ?? actor.Id.ToString(),
+                                  .Select(profile => profile.Name).FirstOrDefault() ?? PersonLabels.FormerEmployee,
                               ActorPictureId = database.AccountPictures
                                   .Where(AccountPicture.Current).Where(picture => picture.UserId == actor.Id)
                                   .Select(picture => (Guid?)picture.Id).FirstOrDefault()

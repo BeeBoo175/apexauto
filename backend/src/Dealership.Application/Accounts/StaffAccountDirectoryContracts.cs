@@ -18,6 +18,8 @@ public static class StaffAccountStatuses
     public const string Active = "Active";
     public const string Suspended = "Suspended";
     public const string Deactivated = "Deactivated";
+    // Irreversibly closed: access ended and personal details removed, the row kept for history.
+    public const string Closed = "Closed";
     // A pending invitation that can still be activated, and one whose link has lapsed and needs a resend.
     public const string Invited = "Invited";
     public const string InvitationExpired = "InvitationExpired";

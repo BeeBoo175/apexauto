@@ -223,8 +223,7 @@ public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHa
             .SingleAsync(item => item.UserId == sale.CustomerId, cancellationToken);
         var vehicle = await database.Vehicles.AsNoTracking()
             .SingleAsync(item => item.Id == sale.VehicleId, cancellationToken);
-        return new SaleSettlementReview(profile.LegalName, profile.Nric, profile.ResidentialAddress,
-            SaleReviewedVehicle.Of(vehicle));
+        return SaleSettlementReview.From(profile, SaleReviewedVehicle.Of(vehicle));
     }
 
     public static async Task<SaleTermsRequest> TermsAsync(DealershipDbContext database,

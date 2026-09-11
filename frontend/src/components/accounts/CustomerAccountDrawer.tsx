@@ -81,6 +81,7 @@ export function CustomerAccountDrawer({
 
   const detail = read?.id === id ? read.detail : null;
   const suspended = row?.suspended === true;
+  const closed = row?.closed === true;
 
   async function run(action: Promise<boolean>) {
     const done = await action;
@@ -129,7 +130,7 @@ export function CustomerAccountDrawer({
               <section className={shared.section} aria-label="Contact">
                 <div className={workbench.sectionHeader}>
                   <h2 className={workbench.sectionTitle}>Contact</h2>
-                  {detail && (
+                  {detail && !closed && (
                     <Button
                       variant="secondary"
                       size="compact"
@@ -140,7 +141,13 @@ export function CustomerAccountDrawer({
                     </Button>
                   )}
                 </div>
-                {detail ? (
+                {closed && (
+                  <p className={styles.note}>
+                    This account is closed. Contact details were removed and the account cannot be
+                    changed.
+                  </p>
+                )}
+                {!closed && detail && (
                   <dl className={shared.details}>
                     <dt>Email</dt>
                     <dd>{detail.email}</dd>
@@ -153,80 +160,83 @@ export function CustomerAccountDrawer({
                     <dt>NRIC</dt>
                     <dd>{revealed?.id === id ? revealed.nric : detail.nric}</dd>
                   </dl>
-                ) : (
+                )}
+                {!closed && !detail && (
                   <p className={styles.note}>
                     {read?.id === id ? "The account could not be read." : "Loading the account…"}
                   </p>
                 )}
               </section>
-              <section className={shared.section} aria-label="Support">
-                <div className={workbench.sectionHeader}>
-                  <h2 className={workbench.sectionTitle}>Support</h2>
-                </div>
-                <ul className={styles.supportList}>
-                  <li>
-                    <span>
-                      <strong>Reveal NRIC</strong>
-                      <span>Shows the full number until you close the account.</span>
-                    </span>
-                    <Button
-                      variant="secondary"
-                      size="compact"
-                      disabled={command.busy}
-                      onClick={() => setSupport("nric-reveal")}
-                    >
-                      Reveal
-                    </Button>
-                  </li>
-                  {!row.verified && (
+              {!closed && (
+                <section className={shared.section} aria-label="Support">
+                  <div className={workbench.sectionHeader}>
+                    <h2 className={workbench.sectionTitle}>Support</h2>
+                  </div>
+                  <ul className={styles.supportList}>
                     <li>
                       <span>
-                        <strong>Email verification</strong>
-                        <span>Sends the verification link again.</span>
+                        <strong>Reveal NRIC</strong>
+                        <span>Shows the full number until you close the account.</span>
                       </span>
                       <Button
                         variant="secondary"
                         size="compact"
                         disabled={command.busy}
-                        onClick={() => setSupport("verification-resend")}
+                        onClick={() => setSupport("nric-reveal")}
                       >
-                        Resend
+                        Reveal
                       </Button>
                     </li>
-                  )}
-                  <li>
-                    <span>
-                      <strong>Password</strong>
-                      <span>Sends the usual reset link.</span>
-                    </span>
-                    <Button
-                      variant="secondary"
-                      size="compact"
-                      disabled={command.busy || suspended}
-                      onClick={() => setSupport("password-reset")}
-                    >
-                      Send reset
-                    </Button>
-                  </li>
-                  <li>
-                    <span>
-                      <strong>Sessions</strong>
-                      <span>Signs out every device.</span>
-                    </span>
-                    <Button
-                      variant="secondary"
-                      size="compact"
-                      disabled={command.busy}
-                      onClick={() => setSupport("session-revocation")}
-                    >
-                      End all
-                    </Button>
-                  </li>
-                </ul>
-                <p className={styles.note}>
-                  Each action asks for a reason and is recorded in the account history.
-                </p>
-              </section>
+                    {!row.verified && (
+                      <li>
+                        <span>
+                          <strong>Email verification</strong>
+                          <span>Sends the verification link again.</span>
+                        </span>
+                        <Button
+                          variant="secondary"
+                          size="compact"
+                          disabled={command.busy}
+                          onClick={() => setSupport("verification-resend")}
+                        >
+                          Resend
+                        </Button>
+                      </li>
+                    )}
+                    <li>
+                      <span>
+                        <strong>Password</strong>
+                        <span>Sends the usual reset link.</span>
+                      </span>
+                      <Button
+                        variant="secondary"
+                        size="compact"
+                        disabled={command.busy || suspended}
+                        onClick={() => setSupport("password-reset")}
+                      >
+                        Send reset
+                      </Button>
+                    </li>
+                    <li>
+                      <span>
+                        <strong>Sessions</strong>
+                        <span>Signs out every device.</span>
+                      </span>
+                      <Button
+                        variant="secondary"
+                        size="compact"
+                        disabled={command.busy}
+                        onClick={() => setSupport("session-revocation")}
+                      >
+                        End all
+                      </Button>
+                    </li>
+                  </ul>
+                  <p className={styles.note}>
+                    Each action asks for a reason and is recorded in the account history.
+                  </p>
+                </section>
+              )}
             </div>
           </div>
           {historyRead && (
@@ -236,34 +246,36 @@ export function CustomerAccountDrawer({
               </div>
             </div>
           )}
-          <StaffWorkspaceFooter
-            title="Access"
-            description={
-              suspended
-                ? "Lifting lets them sign in again."
-                : "Blocks sign-in, bookings and sales go on."
-            }
-          >
-            <Button
-              variant={suspended ? "primary" : "danger"}
-              size="compact"
-              disabled={command.busy}
-              onClick={() => setSuspension(suspended ? "lift" : "suspend")}
+          {!closed && (
+            <StaffWorkspaceFooter
+              title="Access"
+              description={
+                suspended
+                  ? "Lifting lets them sign in again."
+                  : "Blocks sign-in, bookings and sales go on."
+              }
             >
-              {suspended ? "Lift suspension" : "Suspend account"}
-            </Button>
-          </StaffWorkspaceFooter>
+              <Button
+                variant={suspended ? "primary" : "danger"}
+                size="compact"
+                disabled={command.busy}
+                onClick={() => setSuspension(suspended ? "lift" : "suspend")}
+              >
+                {suspended ? "Lift suspension" : "Suspend account"}
+              </Button>
+            </StaffWorkspaceFooter>
+          )}
         </div>
       )}
       <AccountEditDialog
         open={editing}
         subject={
-          detail
+          detail && !closed
             ? {
                 name: detail.name,
-                mobile: detail.mobile,
+                mobile: detail.mobile ?? "",
                 address: detail.address,
-                email: detail.email,
+                email: detail.email ?? "",
               }
             : null
         }

@@ -43,11 +43,13 @@ public sealed class StaffAssistanceQuery(DealershipDbContext database) : IStaffA
                               // One outstanding test drive per customer, by the rule the booking itself applies.
                               (!testDrive || !outstandingCustomers.Contains(user.Id))
                           join profile in database.CustomerProfiles.AsNoTracking() on user.Id equals profile.UserId
-                          where EF.Functions.ILike(profile.LegalName, pattern, "!") ||
+                          // Only active customers are listed, and an active customer is never closed, so the name,
+                          // email and mobile are recorded.
+                          where EF.Functions.ILike(profile.LegalName!, pattern, "!") ||
                               EF.Functions.ILike(user.Email!, pattern, "!") ||
-                              EF.Functions.ILike(profile.Mobile, pattern, "!")
+                              EF.Functions.ILike(profile.Mobile!, pattern, "!")
                           orderby profile.LegalName, user.Id
-                          select new { user.Id, profile.LegalName, Email = user.Email!, profile.Mobile })
+                          select new { user.Id, LegalName = profile.LegalName!, Email = user.Email!, Mobile = profile.Mobile! })
             .Take(CustomerLookupQuery.MaximumResults).ToListAsync(cancellationToken);
         var items = rows.Select(row => new CustomerLookupRow(row.Id, row.LegalName,
             PersonalDataMasking.Email(row.Email), PersonalDataMasking.Mobile(row.Mobile))).ToArray();

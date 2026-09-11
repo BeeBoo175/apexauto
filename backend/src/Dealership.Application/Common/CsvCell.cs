@@ -4,8 +4,10 @@ namespace Dealership.Application.Common;
 // prefixed with an apostrophe so it opens as text.
 public static class CsvCell
 {
-    public static string Quote(string value)
+    // A removed value (NULL) is an empty cell, never an exception.
+    public static string Quote(string? value)
     {
+        value ??= string.Empty;
         var index = 0;
         var controlPrefix = false;
         while (index < value.Length && (char.IsWhiteSpace(value[index]) || char.IsControl(value[index]) || value[index] == '﻿'))

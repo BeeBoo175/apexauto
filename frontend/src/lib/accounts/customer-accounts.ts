@@ -14,10 +14,11 @@ export const customerAccountTabs = [
 export interface CustomerAccountRow {
   id: string;
   name: string;
-  email: string;
-  mobile: string;
+  email: string | null;
+  mobile: string | null;
   verified: boolean;
   suspended: boolean;
+  closed: boolean;
 }
 
 interface CustomerAccountCounts {
@@ -39,13 +40,14 @@ export interface CustomerAccountDetail {
   actor: CurrentActor;
   id: string;
   name: string;
-  username: string;
-  email: string;
-  mobile: string;
-  address: string;
-  nric: string;
+  username: string | null;
+  email: string | null;
+  mobile: string | null;
+  address: string | null;
+  nric: string | null;
   verified: boolean;
   suspended: boolean;
+  closed: boolean;
 }
 
 export interface CustomerAccountFilters {
@@ -57,22 +59,29 @@ export interface CustomerAccountFilters {
   pageSize: number;
 }
 
-// The state a customer is shown in; a suspension outranks a missing verification.
-export function customerStatus(row: Pick<CustomerAccountRow, "verified" | "suspended">) {
+// The state a customer is shown in; a closed account outranks a suspension, which outranks a missing verification.
+export function customerStatus(row: Pick<CustomerAccountRow, "verified" | "suspended" | "closed">) {
+  if (row.closed) {
+    return "Closed";
+  }
   if (row.suspended) {
     return "Suspended";
   }
   return row.verified ? "Active" : "Unverified";
 }
 
+// A closed customer has no recorded contact; the server sends null for each removed field.
+const isOptionalText = (value: unknown) => value === null || typeof value === "string";
+
 function parseRow(value: unknown): CustomerAccountRow | null {
   return isRecord(value) &&
     isUuid(value.id) &&
     typeof value.name === "string" &&
-    typeof value.email === "string" &&
-    typeof value.mobile === "string" &&
+    isOptionalText(value.email) &&
+    isOptionalText(value.mobile) &&
     typeof value.verified === "boolean" &&
-    typeof value.suspended === "boolean"
+    typeof value.suspended === "boolean" &&
+    typeof value.closed === "boolean"
     ? (value as unknown as CustomerAccountRow)
     : null;
 }
@@ -108,13 +117,14 @@ export function parseCustomerAccountDetail(value: unknown): CustomerAccountDetai
     isRecord(value) &&
     isUuid(value.id) &&
     typeof value.name === "string" &&
-    typeof value.username === "string" &&
-    typeof value.email === "string" &&
-    typeof value.mobile === "string" &&
-    typeof value.address === "string" &&
-    typeof value.nric === "string" &&
+    isOptionalText(value.username) &&
+    isOptionalText(value.email) &&
+    isOptionalText(value.mobile) &&
+    isOptionalText(value.address) &&
+    isOptionalText(value.nric) &&
     typeof value.verified === "boolean" &&
-    typeof value.suspended === "boolean"
+    typeof value.suspended === "boolean" &&
+    typeof value.closed === "boolean"
     ? ({ ...value, actor } as unknown as CustomerAccountDetail)
     : null;
 }

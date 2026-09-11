@@ -56,10 +56,14 @@ public sealed class SaleDocumentStore(DealershipDbContext database) : ISaleDocum
 
         var profile = await database.CustomerProfiles.AsNoTracking()
             .SingleAsync(item => item.UserId == sale.CustomerId, cancellationToken);
+        if (profile.ErasedAt is not null)
+        {
+            return new(SaleResultStatus.Conflict);
+        }
+
         var vehicle = await database.Vehicles.AsNoTracking()
             .SingleAsync(item => item.Id == sale.VehicleId, cancellationToken);
-        return new(SaleResultStatus.Succeeded, new SaleSettlementReview(profile.LegalName, profile.Nric,
-            profile.ResidentialAddress, SaleReviewedVehicle.Of(vehicle)));
+        return new(SaleResultStatus.Succeeded, SaleSettlementReview.From(profile, SaleReviewedVehicle.Of(vehicle)));
     }
 
     public async Task<SaleReadResult<IReadOnlyList<SaleIssuedDocument>>> ReadAsync(Guid actorId, Guid saleId,

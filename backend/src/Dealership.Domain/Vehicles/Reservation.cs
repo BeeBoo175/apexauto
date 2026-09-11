@@ -20,6 +20,12 @@ public sealed partial class Reservation
         ArgumentNullException.ThrowIfNull(publication);
         ArgumentNullException.ThrowIfNull(listing);
         ArgumentNullException.ThrowIfNull(settings);
+        if (customer.LegalName is not { } legalName || customer.Mobile is not { } mobile ||
+            customer.Nric is not { } nric)
+        {
+            throw new ArgumentException("A reservation requires a customer whose details are recorded.");
+        }
+
         if (id == Guid.Empty || publication.RevisionId != listing.Id ||
             publication.VehicleId != listing.VehicleId || publication.BranchId != listing.BranchId ||
             now.Offset != TimeSpan.Zero || now <= DateTimeOffset.MinValue ||
@@ -40,7 +46,7 @@ public sealed partial class Reservation
         VehicleId = publication.VehicleId;
         BranchId = publication.BranchId;
         PublicationId = publication.Id;
-        Buyer = new(customer.LegalName, email, customer.Mobile, customer.Nric);
+        Buyer = new(legalName, email, mobile, nric);
         PromoId = promo?.Id;
         PromoCode = promo?.Code;
         SstRate = settings.SstRate;

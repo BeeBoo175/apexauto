@@ -106,7 +106,8 @@ public sealed class StaffAccountDirectory(DealershipDbContext database) : IStaff
                    Role = user.Role,
                    BranchId = user.BranchId,
                    BranchName = branch.Name,
-                   Status = user.IsActive ? StaffAccountStatuses.Active
+                   Status = user.ClosedAt != null ? StaffAccountStatuses.Closed
+                       : user.IsActive ? StaffAccountStatuses.Active
                        : user.SuspendedAt != null ? StaffAccountStatuses.Suspended : StaffAccountStatuses.Deactivated,
                    PictureId = (Guid?)picture.Id,
                    InvitationExpiresAt = null

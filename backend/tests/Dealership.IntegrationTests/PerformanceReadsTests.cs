@@ -256,7 +256,7 @@ public sealed class PerformanceReadsTests(IntakePhotoFixture fixture) : IClassFi
         var sale = await database.SalesOrders.AsNoTracking().SingleAsync(item => item.Id == held.Id);
         var profile = await database.CustomerProfiles.SingleAsync(item => item.UserId == sale.CustomerId);
         var vehicle = await database.Vehicles.SingleAsync(item => item.Id == sale.VehicleId);
-        var review = new SaleSettlementReview(profile.LegalName, profile.Nric, profile.ResidentialAddress, SaleReviewedVehicle.Of(vehicle));
+        var review = SaleSettlementReview.From(profile, SaleReviewedVehicle.Of(vehicle));
         var payment = new SalePaymentEvidence(SalePaymentMethod.Cash, sale.BalancePayable, "CASH 43880", new DateOnly(2026, 11, 2),
             null, 0m, null, false, false);
         Assert.Equal(SaleResultStatus.Succeeded, (await world.Settlement.SettleAsync(world.Agent, held.Id,

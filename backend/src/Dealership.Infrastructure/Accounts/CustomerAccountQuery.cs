@@ -10,8 +10,9 @@ public sealed class CustomerAccountQuery(DealershipDbContext database) : ICustom
     {
         return await (from profile in database.CustomerProfiles
                       join user in database.Users on profile.UserId equals user.Id
+                      // An active customer is never closed, so the recorded name and email are present.
                       where profile.UserId == userId && user.Role == AccountRoles.Customer && user.IsActive
-                      select new CustomerAccount(user.Id, profile.LegalName, user.Email!, user.EmailConfirmed))
+                      select new CustomerAccount(user.Id, profile.LegalName!, user.Email!, user.EmailConfirmed))
             .SingleOrDefaultAsync(cancellationToken);
     }
 }

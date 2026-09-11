@@ -1,5 +1,6 @@
 using Dealership.Domain.Accounts;
 using System.Linq.Expressions;
+using Dealership.Application.Accounts;
 using Dealership.Application.Sales;
 using Dealership.Domain.Sales;
 using Dealership.Domain.Vehicles;
@@ -78,9 +79,9 @@ internal static class SaleRows
             Make = vehicle.Make,
             Model = vehicle.Model,
             Trim = vehicle.Trim,
-            Customer = profile.LegalName,
+            Customer = profile.LegalName ?? PersonLabels.FormerCustomer,
             CustomerId = sale.CustomerId,
-            Mobile = profile.Mobile,
+            Mobile = profile.Mobile ?? string.Empty,
             Email = customer.Email,
             Promo = sale.PromoCode,
             AgentId = sale.AgentId,
@@ -131,9 +132,9 @@ internal static class SaleRows
             Make = vehicle.Make,
             Model = vehicle.Model,
             Trim = vehicle.Trim,
-            Customer = profile.LegalName,
+            Customer = profile.LegalName ?? PersonLabels.FormerCustomer,
             CustomerId = request.CustomerId,
-            Mobile = profile.Mobile,
+            Mobile = profile.Mobile ?? string.Empty,
             Email = customer.Email,
             AgentId = request.BookedByStaffId,
             Agent = staff.Email,

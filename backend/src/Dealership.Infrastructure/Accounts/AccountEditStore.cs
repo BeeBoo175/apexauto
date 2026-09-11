@@ -174,7 +174,7 @@ public sealed class AccountEditStore(DealershipDbContext database, IPasswordHash
                 invitation.RevokedAt == null && EF.Property<string>(invitation, "NormalizedEmail") == normalized, cancellationToken);
     }
 
-    private static void Track(List<AccountChange> changes, string field, string before, string? after)
+    private static void Track(List<AccountChange> changes, string field, string? before, string? after)
     {
         if (!string.Equals(before, after, StringComparison.Ordinal))
         {

@@ -7,6 +7,19 @@ namespace Dealership.Domain.Sales;
 public sealed record SaleSettlementReview(string BuyerName, string BuyerNric, string BuyerAddress,
     SaleReviewedVehicle Vehicle)
 {
+    // Callers refuse a customer whose details were removed first, so a review is never built from NULL columns.
+    public static SaleSettlementReview From(CustomerProfile profile, SaleReviewedVehicle vehicle)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+        if (profile.LegalName is not { } name || profile.Nric is not { } nric ||
+            profile.ResidentialAddress is not { } address)
+        {
+            throw new InvalidOperationException("The customer's recorded details were removed.");
+        }
+
+        return new SaleSettlementReview(name, nric, address, vehicle);
+    }
+
     public SaleSettlementReview Normalize()
     {
         if (!CustomerProfile.IsValidNric(BuyerNric) || Vehicle is null)

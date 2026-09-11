@@ -368,7 +368,7 @@ public sealed class SaleSettlementTests(IntakePhotoFixture fixture) : IClassFixt
         return new(Guid.NewGuid(), sale.Version,
             new(SalePaymentMethod.BankTransfer, sale.BalancePayable, "MBB 021126 43789", new DateOnly(2026, 11, 2),
                 null, 0m, null, false, false),
-            new(profile.LegalName, profile.Nric, profile.ResidentialAddress, SaleReviewedVehicle.Of(vehicle)));
+            SaleSettlementReview.From(profile, SaleReviewedVehicle.Of(vehicle)));
     }
     private async Task<SalesOrder> ReadAsync(Guid id)
     {

@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using Dealership.Application.Accounts;
 using Dealership.Application.Common;
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Vehicles;
@@ -274,7 +275,7 @@ public sealed class ListingReadStore(DealershipDbContext database) : IListingRea
                                         .Where(ReservationDepositRequest.PendingAt(now))
                                     join profile in database.CustomerProfiles.AsNoTracking() on request.CustomerId equals profile.UserId
                                     where request.VehicleId == vehicleId
-                                    select new ListingPendingDeposit(request.Id, profile.LegalName, request.CustomerId,
+                                    select new ListingPendingDeposit(request.Id, profile.LegalName ?? PersonLabels.FormerCustomer, request.CustomerId,
                                         request.ExpiresAt)).FirstOrDefaultAsync(cancellationToken);
         return new(ListingStatus.Succeeded, new(vehicle, draft, approved, publication, withdrawal, currentSigned?.Id, report, vin,
             hold, pendingDeposit));

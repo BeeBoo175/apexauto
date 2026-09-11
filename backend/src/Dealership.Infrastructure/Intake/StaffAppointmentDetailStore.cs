@@ -51,7 +51,13 @@ public sealed class StaffAppointmentDetailStore(DealershipDbContext database) : 
             .Join(database.Branches, item => item.BranchId, branch => branch.Id,
                 (item, branch) => new { Appointment = item, BranchName = branch.Name })
             .Join(database.CustomerProfiles, row => row.Appointment.OwnerId, customer => customer.UserId,
-                (row, customer) => new { row.Appointment, row.BranchName, CustomerName = customer.LegalName, customer.Mobile })
+                (row, customer) => new
+                {
+                    row.Appointment,
+                    row.BranchName,
+                    CustomerName = customer.LegalName ?? PersonLabels.FormerCustomer,
+                    customer.Mobile
+                })
             .Select(row => new
             {
                 row.Appointment.Id,
@@ -127,7 +133,7 @@ public sealed class StaffAppointmentDetailStore(DealershipDbContext database) : 
         var detail = new StaffAppointmentDetail(row.Id, row.BranchId, row.BranchName, row.CustomerName,
             row.RegistrationPlate, row.StartsAt, row.EndsAt, status, row.Make, row.Model, row.Trim,
             row.ManufactureYear, row.MileageKilometres, wasNoShow ? noShowAt : null, row.CheckIn?.CorrectionRecordedAt, row.CheckIn?.CorrectionReason,
-            correctorId, row.Mobile, row.CustomerEmail ?? string.Empty, corrector, ownership, row.CustomerSuspended,
+            correctorId, row.Mobile ?? string.Empty, row.CustomerEmail ?? string.Empty, corrector, ownership, row.CustomerSuspended,
             row.CustomerId);
         await transaction.CommitAsync(cancellationToken);
         return new StaffAppointmentDetailResult(StaffAppointmentDetailStatus.Succeeded, detail);

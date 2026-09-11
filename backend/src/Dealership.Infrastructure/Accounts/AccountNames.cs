@@ -1,3 +1,4 @@
+using Dealership.Application.Accounts;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,7 +16,8 @@ internal static class AccountNames
             .ToDictionaryAsync(profile => profile.UserId, profile => profile.Name, cancellationToken);
         var customers = await database.CustomerProfiles.AsNoTracking()
             .Where(profile => wanted.Contains(profile.UserId))
-            .ToDictionaryAsync(profile => profile.UserId, profile => profile.LegalName, cancellationToken);
+            .ToDictionaryAsync(profile => profile.UserId, profile => profile.LegalName ?? PersonLabels.FormerCustomer,
+                cancellationToken);
 
         foreach (var (id, name) in customers)
         {
