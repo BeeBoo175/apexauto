@@ -31,20 +31,43 @@ public sealed class ReservationPaymentStore(DealershipDbContext database, MailDe
         return rows.Count == 1 && rows[0].Email is { Length: > 0 } email ? new(rows[0].LegalName, email) : null;
     }
 
-    public async Task<bool> AddAsync(ReservationDepositPayment payment, CancellationToken cancellationToken)
+    public async Task<DepositPaymentAddResult> AddAsync(ReservationDepositPayment payment,
+        CancellationToken cancellationToken)
     {
+        // The request row is locked first, the same row a closing customer's deposit lock takes, so the recheck below
+        // and the insert see one state of the request and its customer.
+        await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
+        var request = await database.ReservationDepositRequests.FromSqlInterpolated($"""
+            SELECT * FROM "ReservationDepositRequests" WHERE "Id" = {payment.RequestId} FOR UPDATE
+            """).AsNoTracking().SingleOrDefaultAsync(cancellationToken);
+        var now = await database.DatabaseNowAsync(cancellationToken);
+        var open = request is not null && request.IsPending(now) && !await database.Users.AsNoTracking()
+            .AnyAsync(user => user.Id == request.CustomerId && user.ClosedAt != null, cancellationToken);
+        if (!open)
+        {
+            return DepositPaymentAddResult.Refused;
+        }
+
         database.ReservationDepositPayments.Add(payment);
         try
         {
             await database.SaveChangesAsync(cancellationToken);
-            return true;
+            await transaction.CommitAsync(cancellationToken);
+            return DepositPaymentAddResult.Added;
         }
         catch (DbUpdateException exception) when (exception.InnerException is PostgresException
         { SqlState: PostgresErrorCodes.UniqueViolation })
         {
             database.Entry(payment).State = EntityState.Detached;
-            return false;
+            return DepositPaymentAddResult.Exists;
         }
+    }
+
+    public Task MarkBillDeletedAsync(Guid requestId, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        return database.ReservationDepositPayments.Where(item => item.RequestId == requestId &&
+                item.State == DepositPaymentState.Pending && item.BillDeletedAt == null)
+            .ExecuteUpdateAsync(update => update.SetProperty(item => item.BillDeletedAt, now), cancellationToken);
     }
 
     public async Task<IReadOnlyList<Guid>> ReleasableRequestsAsync(DateTimeOffset since, DateTimeOffset now, int limit,
@@ -53,7 +76,7 @@ public sealed class ReservationPaymentStore(DealershipDbContext database, MailDe
         return await (
             from payment in database.ReservationDepositPayments.AsNoTracking()
             join request in database.ReservationDepositRequests.AsNoTracking() on payment.RequestId equals request.Id
-            where payment.State == DepositPaymentState.Pending && request.ConfirmedAt == null &&
+            where payment.State == DepositPaymentState.Pending && payment.BillDeletedAt == null && request.ConfirmedAt == null &&
                 (request.CancelledAt != null && request.CancelledAt >= since ||
                 request.CancelledAt == null && request.ExpiresAt <= now && request.ExpiresAt >= since)
             orderby request.ExpiresAt

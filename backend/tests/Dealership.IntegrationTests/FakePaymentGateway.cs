@@ -23,10 +23,13 @@ internal sealed class FakePaymentGateway(string signatureKey, bool enabled = tru
         return Task.FromResult(new PaymentBill(id, $"https://pay.example/bills/{id}"));
     }
 
-    public Task DeleteBillAsync(string billId, CancellationToken cancellationToken)
+    // A provider outage: the delete is attempted and recorded but never confirmed.
+    public bool DeleteFails { get; set; }
+
+    public Task<bool> DeleteBillAsync(string billId, CancellationToken cancellationToken)
     {
         _deleted.Add(billId);
-        return Task.CompletedTask;
+        return Task.FromResult(!DeleteFails);
     }
 
     public PaymentNotice? ReadNotice(IReadOnlyDictionary<string, string> fields)

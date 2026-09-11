@@ -15,6 +15,11 @@ public sealed class ReservationUnmatchedPaymentMailSource(DealershipDbContext da
             SELECT * FROM "ReservationUnmatchedPaymentMailOutbox"
             WHERE "DeliveredAt" IS NULL AND "NextDeliveryAt" <= {now}
               AND ("DeliveryClaimExpiresAt" IS NULL OR "DeliveryClaimExpiresAt" <= {now})
+              AND NOT EXISTS (
+                SELECT 1 FROM "ReservationDepositRequests" AS request
+                JOIN "AspNetUsers" AS owner ON owner."Id" = request."CustomerId"
+                WHERE request."Id" = "ReservationUnmatchedPaymentMailOutbox"."RequestId"
+                  AND owner."ClosedAt" IS NOT NULL)
             ORDER BY "NextDeliveryAt", "Id" LIMIT 1 FOR UPDATE SKIP LOCKED
             """);
 

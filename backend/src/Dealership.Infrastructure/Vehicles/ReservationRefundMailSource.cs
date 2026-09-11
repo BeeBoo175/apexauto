@@ -13,6 +13,11 @@ public sealed class ReservationRefundMailSource(DealershipDbContext database, Ti
             SELECT * FROM "ReservationRefundMailOutbox"
             WHERE "DeliveredAt" IS NULL AND "NextDeliveryAt" <= {now}
               AND ("DeliveryClaimExpiresAt" IS NULL OR "DeliveryClaimExpiresAt" <= {now})
+              AND NOT EXISTS (
+                SELECT 1 FROM "ReservationRefunds" AS refund
+                JOIN "AspNetUsers" AS owner ON owner."Id" = refund."CustomerId"
+                WHERE refund."PaymentRequestId" = "ReservationRefundMailOutbox"."RefundId"
+                  AND owner."ClosedAt" IS NOT NULL)
             ORDER BY "NextDeliveryAt", "Id" LIMIT 1 FOR UPDATE SKIP LOCKED
             """);
 

@@ -99,9 +99,10 @@ public sealed class ReservationPaymentService(IReservationDepositRequestStore re
     public async Task ReleaseBillAsync(Guid requestId, CancellationToken cancellationToken)
     {
         var payment = await payments.FindByRequestAsync(requestId, cancellationToken);
-        if (payment is { State: DepositPaymentState.Pending })
+        if (payment is { State: DepositPaymentState.Pending, BillDeletedAt: null } &&
+            await gateway.DeleteBillAsync(payment.BillId, cancellationToken))
         {
-            await gateway.DeleteBillAsync(payment.BillId, cancellationToken);
+            await payments.MarkBillDeletedAsync(requestId, clock.GetUtcNow(), cancellationToken);
         }
     }
 
@@ -192,13 +193,20 @@ public sealed class ReservationPaymentService(IReservationDepositRequestStore re
         var bill = await gateway.CreateBillAsync(new(request.Id, payer.Name, payer.Email, amountSen,
             "ApexAuto reservation deposit"), cancellationToken);
         var payment = new ReservationDepositPayment(request.Id, bill.Id, bill.Url, amountSen, clock.GetUtcNow());
-        if (await payments.AddAsync(payment, cancellationToken))
+        var added = await payments.AddAsync(payment, cancellationToken);
+        if (added == DepositPaymentAddResult.Added)
         {
             return Describe(payment);
         }
 
-        // A parallel start won the race; its bill stays and this one is removed so it cannot be paid as well.
+        // The bill was created outside the transaction, so a lost race or a request that stopped holding its car
+        // removes it here so it cannot be paid.
         await gateway.DeleteBillAsync(bill.Id, cancellationToken);
+        if (added == DepositPaymentAddResult.Refused)
+        {
+            return new(DepositPaymentStatus.Lapsed);
+        }
+
         var winner = await payments.FindByRequestAsync(request.Id, cancellationToken);
         return winner is null ? new(DepositPaymentStatus.Unavailable) : Describe(winner);
     }

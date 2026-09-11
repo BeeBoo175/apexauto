@@ -37,8 +37,9 @@ public interface IPaymentGateway
 
     Task<PaymentBill> CreateBillAsync(PaymentBillRequest request, CancellationToken cancellationToken);
 
-    // Best effort: removes a bill that lost a creation race so it cannot be paid twice.
-    Task DeleteBillAsync(string billId, CancellationToken cancellationToken);
+    // Removes an unpaid bill so it cannot be paid. True only when the provider confirmed the bill is gone; false
+    // when the provider refused or could not be reached, so the bill may still be payable.
+    Task<bool> DeleteBillAsync(string billId, CancellationToken cancellationToken);
 
     // The provider's message, from its server callback or the customer's signed return, with the signature checked
     // and the provider's field names translated; null when the signature is invalid or the message is unreadable.
@@ -46,6 +47,17 @@ public interface IPaymentGateway
 }
 
 public sealed record DepositPayer(string Name, string Email);
+
+public enum DepositPaymentAddResult
+{
+    Added,
+
+    // The request already has a payment, which the caller then reads instead.
+    Exists,
+
+    // The request no longer holds its car or its customer closed the account, so no bill may be kept.
+    Refused
+}
 
 public interface IReservationPaymentStore
 {
@@ -55,8 +67,12 @@ public interface IReservationPaymentStore
 
     Task<DepositPayer?> FindPayerAsync(Guid customerId, CancellationToken cancellationToken);
 
-    // False when the request already has a payment, which the caller then reads instead.
-    Task<bool> AddAsync(ReservationDepositPayment payment, CancellationToken cancellationToken);
+    // Stores the payment under a lock on its request, rechecking that the request still holds its car and its customer
+    // is not closed, using the database clock.
+    Task<DepositPaymentAddResult> AddAsync(ReservationDepositPayment payment, CancellationToken cancellationToken);
+
+    // Records that the provider confirmed the unpaid bill of a still pending payment is gone.
+    Task MarkBillDeletedAsync(Guid requestId, DateTimeOffset now, CancellationToken cancellationToken);
 
     // Requests that stopped holding their car since the given time (cancelled, or lapsed unconfirmed) and still have an
     // unpaid bill.

@@ -47,6 +47,9 @@ public sealed class ReservationDepositPayment
     public DateTimeOffset? PaidAt { get; private set; }
     public int? PaidAmountSen { get; private set; }
 
+    // Set only when the provider confirmed the unpaid bill is gone; a pending payment without it may still be paid.
+    public DateTimeOffset? BillDeletedAt { get; private set; }
+
     // Idempotent: only a pending payment changes, so a repeated gateway callback records nothing new.
     public bool RecordPaid(int paidAmountSen, bool reserved, DateTimeOffset now)
     {

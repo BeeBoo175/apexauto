@@ -35,6 +35,27 @@ public sealed class MailDeliveryFailureTests(RegistrationDatabase database) : IC
         Assert.Equal(1, reset.DeliveryAttempts);
     }
 
+    [Fact]
+    public async Task AMessageThatCannotBeComposedBacksOffInsteadOfHeadingTheQueueAgain()
+    {
+        using var host = new PasswordRecoveryHost(database);
+        var account = await host.RegisterAsync();
+        using var scope = host.Factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
+        var now = DateTimeOffset.UtcNow;
+        var candidates = context.EmailVerificationChallenges.FromSqlInterpolated($"""
+            SELECT * FROM "EmailVerificationChallenges" WHERE "RecipientEmail" = {account.Email} FOR UPDATE SKIP LOCKED LIMIT 1
+            """);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => MailDeliveryBookkeeping.ClaimNextAsync(context,
+            candidates, now, (_, _) => throw new InvalidOperationException("Cannot compose."), CancellationToken.None));
+
+        var challenge = await context.EmailVerificationChallenges.AsNoTracking()
+            .SingleAsync(item => item.RecipientEmail == account.Email);
+        Assert.Equal(1, challenge.DeliveryAttempts);
+        Assert.True(challenge.NextDeliveryAt > now);
+    }
+
     private sealed class ClaimFailureInterceptor : SaveChangesInterceptor
     {
         public bool FailNextClaim { get; set; }

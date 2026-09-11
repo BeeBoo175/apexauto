@@ -23,7 +23,21 @@ public static class MailDeliveryBookkeeping
         intent.DeliveryClaimExpiresAt = claim.ExpiresAt;
         intent.DeliveryAttempts = claim.Attempts;
         intent.NextDeliveryAt = claim.RetryAt;
-        var message = await compose(intent, cancellationToken);
+        OutboundMail message;
+
+        try
+        {
+            message = await compose(intent, cancellationToken);
+        }
+        catch (Exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            // Keep the claim and its backoff so a message that cannot be composed stops heading its queue.
+            await database.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            database.Entry(intent).State = EntityState.Detached;
+            throw;
+        }
+
         await database.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         database.Entry(intent).State = EntityState.Detached;

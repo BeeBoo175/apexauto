@@ -44,18 +44,21 @@ public sealed class BillplzPaymentGateway(HttpClient client, IOptions<BillplzSet
         throw new PaymentGatewayException("The payment provider returned a bill without an address.");
     }
 
-    public async Task DeleteBillAsync(string billId, CancellationToken cancellationToken)
+    public async Task<bool> DeleteBillAsync(string billId, CancellationToken cancellationToken)
     {
         try
         {
             var address = billplz.BillAddress($"bills/{Uri.EscapeDataString(billId)}");
             using var response = await billplz.SendAsync(HttpMethod.Delete, address, null, cancellationToken);
+            return true;
         }
         catch (PaymentGatewayException)
         {
-            // The extra bill then simply stays unpaid until it expires.
+            // A refused or unreachable delete leaves the bill payable, which the caller must not assume away.
+            return false;
         }
     }
+
     public PaymentNotice? ReadNotice(IReadOnlyDictionary<string, string> fields)
     {
         if (_settings.XSignatureKey is not { Length: > 0 } key || !BillplzSignature.Verify(fields, key))
