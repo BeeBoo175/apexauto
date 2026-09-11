@@ -20,7 +20,8 @@ internal static class SaleHandoverDocuments
         database.SaleDocuments.Add(new SaleDocument(sale.Id, entry.Id, SaleDocumentKind.HandoverNote, number,
             entry.RecordedAt, contents));
         var recipient = await database.Reservations.AsNoTracking().Where(item => item.Id == sale.Id)
-            .Select(item => item.Buyer.Email).SingleAsync(cancellationToken);
+            .Select(item => item.Buyer.Email).SingleAsync(cancellationToken) ??
+            throw new InvalidOperationException("A delivery requires the buyer's recorded email.");
         database.SaleDeliveryMailOutbox.Add(new SaleDeliveryMail(sale.Id, entry.Id, recipient, entry.RecordedAt));
     }
 }

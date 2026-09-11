@@ -15,7 +15,7 @@ public sealed class VerificationMailComposer(AuthMailLinks links, EmailVerificat
             [$"This link expires in {EmailVerificationPolicy.LifetimeHours} hours. If you did not create this account, ignore this message."],
             "Verify email",
             link);
-        return new OutboundMail(challenge.RecipientEmail, "Verify your ApexAuto email",
+        return new OutboundMail(MailRecipient.Require(challenge.RecipientEmail), "Verify your ApexAuto email",
             MailTemplate.RenderText(layout), MailTemplate.Render(layout));
     }
 }

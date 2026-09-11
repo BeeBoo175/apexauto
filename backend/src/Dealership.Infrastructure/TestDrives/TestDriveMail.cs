@@ -48,7 +48,7 @@ public sealed class TestDriveMail : IMailDeliveryState
     public Guid BookingId { get; private set; }
     public TestDriveMailKind Kind { get; private set; }
     public Guid? CancellationBookingId { get; private set; }
-    public string RecipientEmail { get; private set; } = string.Empty;
+    public string? RecipientEmail { get; private set; }
     public int DeliveryAttempts { get; set; }
     public DateTimeOffset NextDeliveryAt { get; set; }
     public Guid? DeliveryClaimId { get; set; }

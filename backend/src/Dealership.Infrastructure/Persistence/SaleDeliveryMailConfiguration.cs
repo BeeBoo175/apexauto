@@ -11,7 +11,7 @@ public sealed class SaleDeliveryMailConfiguration : IEntityTypeConfiguration<Sal
     {
         builder.ToTable("SaleDeliveryMailOutbox", table => table.HasCheckConstraint("CK_SaleDeliveryMailOutbox_Shape",
             "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"DeliveryAttempts\" >= 0 AND " +
-            "\"RecipientEmail\" ~ '[^[:space:]]' AND isfinite(\"NextDeliveryAt\") AND " +
+            "(\"RecipientEmail\" IS NULL OR \"RecipientEmail\" ~ '[^[:space:]]') AND isfinite(\"NextDeliveryAt\") AND " +
             "((\"DeliveryClaimId\" IS NULL) = (\"DeliveryClaimExpiresAt\" IS NULL))"));
         builder.HasKey(item => item.Id);
         builder.Property(item => item.Id).ValueGeneratedNever();

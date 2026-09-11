@@ -22,6 +22,6 @@ public sealed class EmailVerificationChallengeConfiguration : IEntityTypeConfigu
         builder.HasIndex(challenge => challenge.NextDeliveryAt);
         builder.HasIndex(challenge => challenge.ResendKey).IsUnique()
             .HasFilter("\"ResendKey\" IS NOT NULL");
-        builder.Property(challenge => challenge.RecipientEmail).HasMaxLength(254).IsRequired();
+        builder.Property(challenge => challenge.RecipientEmail).HasMaxLength(254);
     }
 }

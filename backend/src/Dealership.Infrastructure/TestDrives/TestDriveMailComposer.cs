@@ -30,7 +30,7 @@ public static class TestDriveMailComposer
                 : "We look forward to seeing you at the showroom. Please bring your driving licence."],
             details,
             cancelled ? [] : ["Need to change your time? Cancel from your ApexAuto account and book again."]);
-        return new(message.RecipientEmail, $"ApexAuto test drive {state}", MailTemplate.RenderText(layout),
+        return new(MailRecipient.Require(message.RecipientEmail), $"ApexAuto test drive {state}", MailTemplate.RenderText(layout),
             MailTemplate.Render(layout));
     }
 }

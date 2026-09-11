@@ -13,7 +13,7 @@ public sealed class SaleDeliveryMailSource(DealershipDbContext database, TimePro
         var now = clock.GetUtcNow();
         var candidates = database.SaleDeliveryMailOutbox.FromSqlInterpolated($"""
             SELECT * FROM "SaleDeliveryMailOutbox"
-            WHERE "DeliveredAt" IS NULL AND "NextDeliveryAt" <= {now}
+            WHERE "DeliveredAt" IS NULL AND "RecipientEmail" IS NOT NULL AND "NextDeliveryAt" <= {now}
               AND ("DeliveryClaimExpiresAt" IS NULL OR "DeliveryClaimExpiresAt" <= {now})
             ORDER BY "NextDeliveryAt", "Id" LIMIT 1 FOR UPDATE SKIP LOCKED
             """);

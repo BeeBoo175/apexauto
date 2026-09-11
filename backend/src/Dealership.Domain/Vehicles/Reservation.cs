@@ -3,7 +3,8 @@ using System.Text.RegularExpressions;
 
 namespace Dealership.Domain.Vehicles;
 
-public sealed record ReservationBuyer(string LegalName, string Email, string Mobile, string Nric);
+// Contact and NRIC copies are removed once the customer closes the account; the legal name stays with issued documents.
+public sealed record ReservationBuyer(string LegalName, string? Email, string? Mobile, string? Nric);
 
 public sealed partial class Reservation
 {

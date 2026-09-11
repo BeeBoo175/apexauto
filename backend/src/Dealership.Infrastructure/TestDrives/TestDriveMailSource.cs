@@ -12,7 +12,7 @@ public sealed class TestDriveMailSource(DealershipDbContext database, TimeProvid
         var now = clock.GetUtcNow();
         var candidates = database.TestDriveMailOutbox.FromSqlInterpolated($"""
             SELECT m.* FROM "TestDriveMailOutbox" m
-            WHERE m."DeliveredAt" IS NULL AND m."NextDeliveryAt" <= {now}
+            WHERE m."DeliveredAt" IS NULL AND m."RecipientEmail" IS NOT NULL AND m."NextDeliveryAt" <= {now}
               AND (m."DeliveryClaimExpiresAt" IS NULL OR m."DeliveryClaimExpiresAt" <= {now})
               AND (m."Kind" <> 'Confirmation' OR NOT EXISTS (
                   SELECT 1 FROM "TestDriveCancellations" c WHERE c."BookingId" = m."BookingId"))

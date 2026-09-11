@@ -232,7 +232,7 @@ public sealed class EmailVerificationTests(RegistrationDatabase database) : ICla
             """, connection);
         duplicate.Parameters.AddWithValue("id", Guid.NewGuid());
         duplicate.Parameters.AddWithValue("userId", challenge.UserId);
-        duplicate.Parameters.AddWithValue("email", challenge.RecipientEmail);
+        duplicate.Parameters.AddWithValue("email", challenge.RecipientEmail!);
         duplicate.Parameters.AddWithValue("createdAt", challenge.CreatedAt);
         duplicate.Parameters.AddWithValue("expiresAt", challenge.ExpiresAt);
         var duplicateError = await Assert.ThrowsAsync<PostgresException>(async () => await duplicate.ExecuteNonQueryAsync());

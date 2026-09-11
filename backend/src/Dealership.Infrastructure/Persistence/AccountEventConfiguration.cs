@@ -11,6 +11,9 @@ public sealed class AccountEventConfiguration : IEntityTypeConfiguration<Account
 {
     private static readonly JsonSerializerOptions ChangeJson = new();
 
+    private const string ReasonText = "\"Reason\" IS NOT NULL AND \"Reason\" = btrim(\"Reason\") AND " +
+        "length(\"Reason\") BETWEEN 1 AND 1000 AND \"Reason\" !~ '[[:cntrl:]]'";
+
     public void Configure(EntityTypeBuilder<AccountEvent> builder)
     {
         builder.ToTable("AccountEvents", table =>
@@ -19,18 +22,22 @@ public sealed class AccountEventConfiguration : IEntityTypeConfiguration<Account
                 "isfinite(\"RecordedAt\") AND " +
                 "\"Kind\" IN ('UsernameChanged', 'PictureRemoved', 'ProfileEdited', 'EmailChanged', 'BranchTransferred', " +
                 "'Suspended', 'SuspensionLifted', 'Deactivated', 'Reactivated', 'NricRevealed', 'SessionsRevoked', " +
-                "'VerificationResent', 'ResetSent') AND " +
+                "'VerificationResent', 'ResetSent', 'Erased') AND " +
+                "(\"Changes\" IS NULL OR jsonb_typeof(\"Changes\") = 'array') AND " +
+                "((\"MinimizedAt\" IS NOT NULL AND \"Reason\" IS NULL AND \"Changes\" IS NULL) OR " +
+                "(\"MinimizedAt\" IS NULL AND " +
                 "((\"Kind\" IN ('Suspended', 'Deactivated', 'BranchTransferred', 'NricRevealed', 'SessionsRevoked', " +
-                "'VerificationResent', 'ResetSent', 'ProfileEdited', 'EmailChanged') AND \"Reason\" IS NOT NULL AND " +
-                "\"Reason\" = btrim(\"Reason\") AND length(\"Reason\") BETWEEN 1 AND 1000 AND \"Reason\" !~ '[[:cntrl:]]') OR " +
+                "'VerificationResent', 'ResetSent', 'ProfileEdited', 'EmailChanged') AND " + ReasonText + ") OR " +
+                "(\"Kind\" = 'Erased' AND (\"Reason\" IS NULL OR (" + ReasonText + "))) OR " +
                 "(\"Kind\" NOT IN ('Suspended', 'Deactivated', 'BranchTransferred', 'NricRevealed', 'SessionsRevoked', " +
-                "'VerificationResent', 'ResetSent', 'ProfileEdited', 'EmailChanged') AND \"Reason\" IS NULL)) AND " +
-                "(\"Changes\" IS NULL OR jsonb_typeof(\"Changes\") = 'array')");
+                "'VerificationResent', 'ResetSent', 'ProfileEdited', 'EmailChanged', 'Erased') AND \"Reason\" IS NULL))))");
         });
         builder.HasKey(item => item.Id);
         builder.Property(item => item.Id).ValueGeneratedNever();
         builder.HasIndex(item => new { item.TargetId, item.RecordedAt, item.Id });
         builder.HasIndex(item => item.ActorId);
+        // One closure per account: a second erasure of the same target cannot be recorded.
+        builder.HasIndex(item => item.TargetId).IsUnique().HasFilter("\"Kind\" = 'Erased'");
         // Both identities are existing accounts; deactivation never deletes one, so history keeps its references.
         builder.HasOne<AccountUser>().WithMany().HasForeignKey(item => item.TargetId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<AccountUser>().WithMany().HasForeignKey(item => item.ActorId).OnDelete(DeleteBehavior.Restrict);

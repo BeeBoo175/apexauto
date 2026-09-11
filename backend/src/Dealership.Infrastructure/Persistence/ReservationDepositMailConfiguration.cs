@@ -11,10 +11,10 @@ public sealed class ReservationDepositMailConfiguration : IEntityTypeConfigurati
     {
         builder.ToTable("ReservationDepositMailOutbox", table => table.HasCheckConstraint("CK_ReservationDepositMailOutbox_Shape",
             "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"DeliveryAttempts\" >= 0 AND " +
-            "\"RecipientEmail\" ~ '[^[:space:]]'"));
+            "(\"RecipientEmail\" IS NULL OR \"RecipientEmail\" ~ '[^[:space:]]')"));
         builder.HasKey(item => item.Id);
         builder.Property(item => item.Id).ValueGeneratedNever();
-        builder.Property(item => item.RecipientEmail).HasMaxLength(256).IsRequired();
+        builder.Property(item => item.RecipientEmail).HasMaxLength(256);
         builder.HasIndex(item => item.RequestId).IsUnique();
         builder.HasIndex(item => new { item.NextDeliveryAt, item.Id });
         builder.HasOne<ReservationDepositRequest>().WithOne().HasForeignKey<ReservationDepositMail>(item => item.RequestId)

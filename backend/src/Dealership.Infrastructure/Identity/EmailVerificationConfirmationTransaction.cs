@@ -19,7 +19,7 @@ internal sealed class EmailVerificationConfirmationTransaction(DealershipDbConte
         _challenge = await database.EmailVerificationChallenges.FromSqlInterpolated(
             $"SELECT * FROM \"EmailVerificationChallenges\" WHERE \"Id\" = {challengeId} FOR UPDATE")
             .SingleAsync(cancellationToken);
-        return new EmailVerificationConfirmationChallenge(tokens.Verify(token, _challenge), _challenge.RecipientEmail,
+        return new EmailVerificationConfirmationChallenge(tokens.Verify(token, _challenge), _challenge.RecipientEmail ?? string.Empty,
             _challenge.ExpiresAt, _challenge.InvalidatedAt, _challenge.ConsumedAt);
     }
 

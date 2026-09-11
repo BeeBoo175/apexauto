@@ -49,7 +49,7 @@ public sealed class ReservationMailTests(IntakePhotoFixture fixture) : IClassFix
         Assert.Contains("RM 60,630.00", expected.Body);
         Assert.Contains("RM 500.00", expected.Body);
         Assert.Contains("Asia/Kuala_Lumpur", expected.Body);
-        Assert.DoesNotContain(reservation.Buyer.Nric, expected.Body);
+        Assert.DoesNotContain(reservation.Buyer.Nric!, expected.Body);
         Assert.DoesNotContain("Payment reference", expected.Body);
 
         var payment = new ReservationDepositPayment(reservation.Id, "abc123", "https://billplz.example/bills/abc123",

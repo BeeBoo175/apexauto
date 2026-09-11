@@ -12,13 +12,13 @@ public sealed class AppointmentMailConfiguration : IEntityTypeConfiguration<Appo
         builder.ToTable("AppointmentMailOutbox", table =>
         {
             table.HasCheckConstraint("CK_AppointmentMailOutbox_Shape",
-                "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"RecipientEmail\" ~ '[^[:space:]]' AND \"DeliveryAttempts\" >= 0");
+                "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND (\"RecipientEmail\" IS NULL OR \"RecipientEmail\" ~ '[^[:space:]]') AND \"DeliveryAttempts\" >= 0");
             table.HasCheckConstraint("CK_AppointmentMailOutbox_Kind", "\"Kind\" IN ('Confirmation', 'Cancellation', 'CheckIn')");
         });
         builder.HasKey(item => item.Id);
         builder.Property(item => item.Id).ValueGeneratedNever();
         builder.Property(item => item.Kind).HasConversion<string>().HasMaxLength(16);
-        builder.Property(item => item.RecipientEmail).HasMaxLength(256).IsRequired();
+        builder.Property(item => item.RecipientEmail).HasMaxLength(256);
         builder.HasIndex(item => new { item.AppointmentId, item.Kind }).IsUnique();
         builder.HasIndex(item => new { item.NextDeliveryAt, item.Id });
         builder.HasOne<IntakeAppointment>().WithMany().HasForeignKey(item => item.AppointmentId)

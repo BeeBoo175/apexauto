@@ -8,7 +8,7 @@ public sealed class PasswordResetChallenge : IMailDeliveryState
 
     public Guid UserId { get; init; }
 
-    public string RecipientEmail { get; init; } = string.Empty;
+    public string? RecipientEmail { get; init; }
 
     public DateTimeOffset CreatedAt { get; init; }
 

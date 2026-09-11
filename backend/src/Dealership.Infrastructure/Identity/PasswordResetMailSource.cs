@@ -12,7 +12,7 @@ public sealed class PasswordResetMailSource(DealershipDbContext database, Passwo
         var now = clock.GetUtcNow();
         var candidates = database.PasswordResetChallenges.FromSqlInterpolated($"""
             SELECT * FROM "PasswordResetChallenges"
-            WHERE "DeliveredAt" IS NULL AND "InvalidatedAt" IS NULL AND "ConsumedAt" IS NULL
+            WHERE "DeliveredAt" IS NULL AND "RecipientEmail" IS NOT NULL AND "InvalidatedAt" IS NULL AND "ConsumedAt" IS NULL
               AND "ExpiresAt" > {now} AND "NextDeliveryAt" <= {now}
               AND ("DeliveryClaimExpiresAt" IS NULL OR "DeliveryClaimExpiresAt" <= {now})
             ORDER BY "NextDeliveryAt", "CreatedAt", "Id"

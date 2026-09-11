@@ -30,7 +30,7 @@ public static class ReservationMailComposer
             ["Check your account for the current reservation and refund status. The deposit is refundable on cancellation or expiry."],
             payment is null ? null : "View Billplz receipt",
             payment?.BillUrl);
-        return new OutboundMail(reservation.Buyer.Email, "ApexAuto reservation receipt",
+        return new OutboundMail(MailRecipient.Require(reservation.Buyer.Email), "ApexAuto reservation receipt",
             MailTemplate.RenderText(layout), MailTemplate.Render(layout));
     }
 }

@@ -27,7 +27,7 @@ public sealed class ReservationDepositMail : IMailDeliveryState
 
     public Guid RequestId { get; private set; }
 
-    public string RecipientEmail { get; private set; } = string.Empty;
+    public string? RecipientEmail { get; private set; }
 
     public int DeliveryAttempts { get; set; }
 

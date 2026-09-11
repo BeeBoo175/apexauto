@@ -19,7 +19,7 @@ public static class AppointmentMailComposer
                 new MailDetail("Registration", appointment.RegistrationPlate)
             ],
             ["Need to change plans? Cancel from your ApexAuto account or repeat the vehicle intake process to book again."]);
-        return new OutboundMail(message.RecipientEmail, "ApexAuto inspection booking confirmed",
+        return new OutboundMail(MailRecipient.Require(message.RecipientEmail), "ApexAuto inspection booking confirmed",
             MailTemplate.RenderText(layout), MailTemplate.Render(layout));
     }
 
@@ -30,7 +30,7 @@ public static class AppointmentMailComposer
             ["Your inspection booking has been cancelled. No further action is needed for this booking."],
             [new MailDetail("Reference", message.AppointmentId.ToString("D"))],
             ["To book again, repeat the vehicle intake process."]);
-        return new OutboundMail(message.RecipientEmail, "ApexAuto inspection booking cancelled",
+        return new OutboundMail(MailRecipient.Require(message.RecipientEmail), "ApexAuto inspection booking cancelled",
             MailTemplate.RenderText(layout), MailTemplate.Render(layout));
     }
 
@@ -45,7 +45,7 @@ public static class AppointmentMailComposer
                 new MailDetail("Status", "Pending inspection")
             ],
             []);
-        return new OutboundMail(message.RecipientEmail, "ApexAuto vehicle check-in confirmed",
+        return new OutboundMail(MailRecipient.Require(message.RecipientEmail), "ApexAuto vehicle check-in confirmed",
             MailTemplate.RenderText(layout), MailTemplate.Render(layout));
     }
 }

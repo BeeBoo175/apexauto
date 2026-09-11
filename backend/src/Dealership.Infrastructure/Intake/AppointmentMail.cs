@@ -39,7 +39,7 @@ public sealed class AppointmentMail : IMailDeliveryState
 
     public Guid? CheckInAppointmentId { get; private set; }
 
-    public string RecipientEmail { get; private set; } = string.Empty;
+    public string? RecipientEmail { get; private set; }
 
     public int DeliveryAttempts { get; set; }
 

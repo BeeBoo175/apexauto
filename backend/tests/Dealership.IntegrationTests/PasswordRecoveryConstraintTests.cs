@@ -69,7 +69,7 @@ public sealed class PasswordRecoveryConstraintTests(RegistrationDatabase databas
             """, connection);
         command.Parameters.AddWithValue("id", Guid.NewGuid());
         command.Parameters.AddWithValue("user", userId);
-        command.Parameters.AddWithValue("email", challenge.RecipientEmail);
+        command.Parameters.AddWithValue("email", challenge.RecipientEmail!);
         command.Parameters.AddWithValue("created", challenge.CreatedAt);
         command.Parameters.AddWithValue("expires", expires);
         var failure = await Assert.ThrowsAsync<PostgresException>(async () => await command.ExecuteNonQueryAsync());

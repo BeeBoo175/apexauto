@@ -11,7 +11,7 @@ public sealed class AppointmentMailSource(DealershipDbContext database, TimeProv
         var now = clock.GetUtcNow();
         var candidates = database.AppointmentMailOutbox.FromSqlInterpolated($"""
             SELECT m.* FROM "AppointmentMailOutbox" m
-            WHERE m."DeliveredAt" IS NULL AND m."NextDeliveryAt" <= {now}
+            WHERE m."DeliveredAt" IS NULL AND m."RecipientEmail" IS NOT NULL AND m."NextDeliveryAt" <= {now}
               AND (m."DeliveryClaimExpiresAt" IS NULL OR m."DeliveryClaimExpiresAt" <= {now})
               AND (m."Kind" <> 'Confirmation' OR NOT EXISTS (
                   SELECT 1 FROM "IntakeAppointments" a WHERE a."Id" = m."AppointmentId" AND a."CancelledAt" IS NOT NULL))

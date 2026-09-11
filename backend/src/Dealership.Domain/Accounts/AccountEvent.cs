@@ -17,7 +17,8 @@ public enum AccountEventKind
     NricRevealed,
     SessionsRevoked,
     VerificationResent,
-    ResetSent
+    ResetSent,
+    Erased
 }
 
 // One field an action changed, with the values either side as plain invariant text.
@@ -66,6 +67,9 @@ public sealed class AccountEvent
 
     public DateTimeOffset RecordedAt { get; private set; }
 
+    // Set when the target account closed and its reason and changes were removed; the receipt itself stays.
+    public DateTimeOffset? MinimizedAt { get; private set; }
+
     // Every administrative action except lifting a suspension or reactivating carries the administrator's reason;
     // self-service changes and those two lifts do not.
     public static bool RequiresReason(AccountEventKind kind)
@@ -83,6 +87,12 @@ public sealed class AccountEvent
 
     private static bool IsValidReasonFor(AccountEventKind kind, string? reason)
     {
+        // An Administrator who erases a customer states a reason; the customer closing their own account does not.
+        if (kind == AccountEventKind.Erased)
+        {
+            return reason is null || IsValidReason(reason);
+        }
+
         if (!RequiresReason(kind))
         {
             return reason is null;

@@ -37,8 +37,8 @@ public sealed class ReservationConfiguration : IEntityTypeConfiguration<Reservat
                 "(\"PromoId\" IS NULL AND \"PromoCode\" IS NULL AND \"PromoDiscount\" = 0) OR " +
                 "(\"PromoId\" IS NOT NULL AND \"PromoCode\" IS NOT NULL AND length(\"PromoCode\") BETWEEN 1 AND 50)");
             table.HasCheckConstraint("CK_Reservations_Buyer",
-                "\"BuyerName\" ~ '[^[:space:]]' AND \"BuyerEmail\" ~ '[^[:space:]]' AND " +
-                "\"BuyerMobile\" ~ '[^[:space:]]' AND \"BuyerNric\" ~ '^[0-9]{12}$'");
+                "\"BuyerName\" ~ '[^[:space:]]' AND (\"BuyerEmail\" IS NULL OR \"BuyerEmail\" ~ '[^[:space:]]') AND " +
+                "(\"BuyerMobile\" IS NULL OR \"BuyerMobile\" ~ '[^[:space:]]') AND (\"BuyerNric\" IS NULL OR \"BuyerNric\" ~ '^[0-9]{12}$')");
         });
         builder.HasKey(item => item.Id);
         builder.Property(item => item.Id).ValueGeneratedNever();
@@ -62,9 +62,9 @@ public sealed class ReservationConfiguration : IEntityTypeConfiguration<Reservat
         {
             buyer.IsRequired();
             buyer.Property(item => item.LegalName).HasColumnName("BuyerName").HasMaxLength(200).IsRequired();
-            buyer.Property(item => item.Email).HasColumnName("BuyerEmail").HasMaxLength(256).IsRequired();
-            buyer.Property(item => item.Mobile).HasColumnName("BuyerMobile").HasMaxLength(30).IsRequired();
-            buyer.Property(item => item.Nric).HasColumnName("BuyerNric").HasMaxLength(12).IsRequired();
+            buyer.Property(item => item.Email).HasColumnName("BuyerEmail").HasMaxLength(256);
+            buyer.Property(item => item.Mobile).HasColumnName("BuyerMobile").HasMaxLength(30);
+            buyer.Property(item => item.Nric).HasColumnName("BuyerNric").HasMaxLength(12);
         });
         builder.ComplexProperty(item => item.Price, price =>
         {

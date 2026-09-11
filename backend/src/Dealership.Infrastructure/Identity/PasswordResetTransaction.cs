@@ -19,7 +19,7 @@ internal sealed class PasswordResetTransaction(DealershipDbContext database, IDb
         _challenge = await database.PasswordResetChallenges.FromSqlInterpolated(
             $"SELECT * FROM \"PasswordResetChallenges\" WHERE \"Id\" = {challengeId} FOR UPDATE")
             .SingleAsync(cancellationToken);
-        return new PasswordResetChallengeContext(tokens.Verify(token, _challenge), _challenge.RecipientEmail,
+        return new PasswordResetChallengeContext(tokens.Verify(token, _challenge), _challenge.RecipientEmail ?? string.Empty,
             _challenge.ExpiresAt, _challenge.InvalidatedAt, _challenge.ConsumedAt, _challenge.CompletedSecurityStamp);
     }
 

@@ -18,7 +18,7 @@ public sealed class PasswordResetMailComposer(AuthMailLinks links, PasswordReset
             [$"This link expires in {lifetime}. If you did not request a password reset, ignore this message. Opening the link does not change your password."],
             "Choose a new password",
             link);
-        return new OutboundMail(challenge.RecipientEmail, "Reset your ApexAuto password",
+        return new OutboundMail(MailRecipient.Require(challenge.RecipientEmail), "Reset your ApexAuto password",
             MailTemplate.RenderText(layout), MailTemplate.Render(layout));
     }
 }

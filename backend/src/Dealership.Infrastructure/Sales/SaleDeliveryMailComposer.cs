@@ -32,7 +32,7 @@ public sealed class SaleDeliveryMailComposer
             ["Sign in to your own account to view your issued documents."],
             "View your documents",
             link);
-        return new OutboundMail(message.RecipientEmail, "ApexAuto vehicle handover confirmation",
+        return new OutboundMail(MailRecipient.Require(message.RecipientEmail), "ApexAuto vehicle handover confirmation",
             MailTemplate.RenderText(layout), MailTemplate.Render(layout));
     }
 }

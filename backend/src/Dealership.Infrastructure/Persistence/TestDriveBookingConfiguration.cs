@@ -37,11 +37,11 @@ public sealed class TestDriveBookingConfiguration : IEntityTypeConfiguration<Tes
         {
             table.HasCheckConstraint("CK_TestDriveMailOutbox_Kind", "\"Kind\" IN ('Confirmation', 'Cancellation')");
             table.HasCheckConstraint("CK_TestDriveMailOutbox_Shape",
-                "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"RecipientEmail\" ~ '[^[:space:]]' AND \"DeliveryAttempts\" >= 0 AND isfinite(\"NextDeliveryAt\") AND ((\"DeliveryClaimId\" IS NULL) = (\"DeliveryClaimExpiresAt\" IS NULL))");
+                "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND (\"RecipientEmail\" IS NULL OR \"RecipientEmail\" ~ '[^[:space:]]') AND \"DeliveryAttempts\" >= 0 AND isfinite(\"NextDeliveryAt\") AND ((\"DeliveryClaimId\" IS NULL) = (\"DeliveryClaimExpiresAt\" IS NULL))");
         });
         builder.HasKey(item => item.Id);
         builder.Property(item => item.Id).ValueGeneratedNever();
-        builder.Property(item => item.RecipientEmail).HasMaxLength(256).IsRequired();
+        builder.Property(item => item.RecipientEmail).HasMaxLength(256);
         builder.Property(item => item.Kind).HasConversion<string>().HasMaxLength(16).IsRequired();
         builder.Property(item => item.CancellationBookingId)
             .HasComputedColumnSql("CASE WHEN \"Kind\" = 'Cancellation' THEN \"BookingId\" END", stored: true);

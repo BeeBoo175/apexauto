@@ -20,7 +20,7 @@ public sealed class PasswordResetChallengeConfiguration : IEntityTypeConfigurati
                  "ConsumedAt" < "ExpiresAt" AND "InvalidatedAt" IS NULL)
                 """);
             table.HasCheckConstraint("CK_PasswordResetChallenges_Identity", """
-                "Id" <> '00000000-0000-0000-0000-000000000000'::uuid AND "RecipientEmail" ~ '[^[:space:]]'
+                "Id" <> '00000000-0000-0000-0000-000000000000'::uuid AND ("RecipientEmail" IS NULL OR "RecipientEmail" ~ '[^[:space:]]')
                 """);
         });
         builder.HasKey(challenge => challenge.Id);
@@ -30,7 +30,7 @@ public sealed class PasswordResetChallengeConfiguration : IEntityTypeConfigurati
         builder.HasIndex(challenge => challenge.UserId).IsUnique()
             .HasFilter("\"InvalidatedAt\" IS NULL AND \"ConsumedAt\" IS NULL");
         builder.HasIndex(challenge => challenge.NextDeliveryAt);
-        builder.Property(challenge => challenge.RecipientEmail).HasMaxLength(254).IsRequired();
+        builder.Property(challenge => challenge.RecipientEmail).HasMaxLength(254);
         builder.Property(challenge => challenge.CompletedSecurityStamp).HasMaxLength(256);
     }
 }

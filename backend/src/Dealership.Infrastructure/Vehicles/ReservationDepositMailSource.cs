@@ -15,7 +15,7 @@ public sealed class ReservationDepositMailSource(DealershipDbContext database, R
             SELECT m.* FROM "ReservationDepositMailOutbox" m
             -- The pending rule is ReservationDepositRequest.PendingAt; raw SQL cannot compose that expression.
             JOIN "ReservationDepositRequests" r ON r."Id" = m."RequestId"
-            WHERE m."DeliveredAt" IS NULL AND m."NextDeliveryAt" <= {now}
+            WHERE m."DeliveredAt" IS NULL AND m."RecipientEmail" IS NOT NULL AND m."NextDeliveryAt" <= {now}
               AND (m."DeliveryClaimExpiresAt" IS NULL OR m."DeliveryClaimExpiresAt" <= {now})
               AND r."ConfirmedAt" IS NULL AND r."CancelledAt" IS NULL AND r."ExpiresAt" > {now}
             ORDER BY m."NextDeliveryAt", m."Id" LIMIT 1 FOR UPDATE OF m SKIP LOCKED

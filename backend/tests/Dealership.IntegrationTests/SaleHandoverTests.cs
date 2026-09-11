@@ -238,7 +238,7 @@ public sealed class SaleHandoverTests(IntakePhotoFixture fixture) : IClassFixtur
         var claim = Assert.IsType<ClaimedMail>(await source.ClaimNextAsync(default));
         Assert.Equal(held.Buyer.Email, claim.Message.Recipient);
         Assert.Contains($"/account/sales/{held.Id}/documents", claim.Message.Body);
-        Assert.DoesNotContain(held.Buyer.Nric, claim.Message.Body);
+        Assert.DoesNotContain(held.Buyer.Nric!, claim.Message.Body);
         Assert.NotEqual(intent.DeliveryClaimId, claim.ClaimId);
         await source.MarkDeliveredAsync(intent.Id, intent.DeliveryClaimId!.Value, default);
         Assert.Null(await database.SaleDeliveryMailOutbox.Where(item => item.Id == intent.Id).Select(item => item.DeliveredAt).SingleAsync());
