@@ -216,18 +216,18 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTimeOffset?>("ErasedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("LegalName")
-                        .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
                     b.Property<string>("Mobile")
-                        .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
                     b.Property<string>("Nric")
-                        .IsRequired()
                         .HasMaxLength(12)
                         .HasColumnType("character varying(12)");
 
@@ -235,7 +235,6 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<string>("ResidentialAddress")
-                        .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
@@ -261,11 +260,11 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.ToTable("CustomerProfiles", null, t =>
                         {
-                            t.HasCheckConstraint("CK_CustomerProfiles_Nric", "\"Nric\" ~ '^[0-9]{12}$'");
+                            t.HasCheckConstraint("CK_CustomerProfiles_Nric", "(\"ErasedAt\" IS NULL AND \"Nric\" IS NOT NULL AND \"Nric\" ~ '^[0-9]{12}$') OR (\"ErasedAt\" IS NOT NULL AND \"Nric\" IS NULL)");
 
                             t.HasCheckConstraint("CK_CustomerProfiles_RegistrationKey", "\"RegistrationKey\" <> '00000000-0000-0000-0000-000000000000'::uuid");
 
-                            t.HasCheckConstraint("CK_CustomerProfiles_RequiredText", "\"LegalName\" ~ '[^[:space:]]' AND \"Mobile\" ~ '[^[:space:]]' AND \"ResidentialAddress\" ~ '[^[:space:]]'");
+                            t.HasCheckConstraint("CK_CustomerProfiles_RequiredText", "(\"ErasedAt\" IS NULL AND \"LegalName\" IS NOT NULL AND \"Mobile\" IS NOT NULL AND \"ResidentialAddress\" IS NOT NULL AND \"LegalName\" ~ '[^[:space:]]' AND \"Mobile\" ~ '[^[:space:]]' AND \"ResidentialAddress\" ~ '[^[:space:]]') OR (\"ErasedAt\" IS NOT NULL AND \"LegalName\" IS NULL AND \"Mobile\" IS NULL AND \"ResidentialAddress\" IS NULL)");
                         });
                 });
 
@@ -2308,19 +2307,20 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .HasColumnType("integer");
 
                     b.Property<string>("AccountUsername")
-                        .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
                     b.Property<Guid?>("BranchId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTimeOffset?>("ClosedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("text");
 
                     b.Property<string>("Email")
-                        .IsRequired()
                         .HasMaxLength(254)
                         .HasColumnType("character varying(254)");
 
@@ -2345,7 +2345,6 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .HasComputedColumnSql("upper(\"AccountUsername\")", true);
 
                     b.Property<string>("NormalizedEmail")
-                        .IsRequired()
                         .HasMaxLength(254)
                         .HasColumnType("character varying(254)");
 
@@ -2406,9 +2405,11 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.ToTable("AspNetUsers", null, t =>
                         {
-                            t.HasCheckConstraint("CK_Users_AccountUsername", "\"AccountUsername\" ~ '^[A-Za-z0-9._]{3,30}$'");
+                            t.HasCheckConstraint("CK_Users_AccountUsername", "(\"ClosedAt\" IS NULL AND \"AccountUsername\" IS NOT NULL AND \"AccountUsername\" ~ '^[A-Za-z0-9._]{3,30}$') OR (\"ClosedAt\" IS NOT NULL AND \"AccountUsername\" IS NULL AND \"UserName\" IS NULL AND \"NormalizedUserName\" IS NULL)");
 
-                            t.HasCheckConstraint("CK_Users_EmailNormalization", "length(\"Email\") > 0 AND \"Email\" = btrim(\"Email\", U&'\\0009\\000A\\000B\\000C\\000D\\0020\\0085\\00A0\\1680\\2000\\2001\\2002\\2003\\2004\\2005\\2006\\2007\\2008\\2009\\200A\\2028\\2029\\202F\\205F\\3000') AND \"NormalizedEmail\" = upper(\"Email\")");
+                            t.HasCheckConstraint("CK_Users_Closed", "\"ClosedAt\" IS NULL OR (NOT \"IsActive\" AND \"SuspendedAt\" IS NULL AND \"PasswordHash\" IS NULL AND NOT \"EmailConfirmed\")");
+
+                            t.HasCheckConstraint("CK_Users_EmailNormalization", "(\"ClosedAt\" IS NULL AND \"Email\" IS NOT NULL AND \"NormalizedEmail\" IS NOT NULL AND length(\"Email\") > 0 AND \"Email\" = btrim(\"Email\", U&'\\0009\\000A\\000B\\000C\\000D\\0020\\0085\\00A0\\1680\\2000\\2001\\2002\\2003\\2004\\2005\\2006\\2007\\2008\\2009\\200A\\2028\\2029\\202F\\205F\\3000') AND \"NormalizedEmail\" = upper(\"Email\")) OR (\"ClosedAt\" IS NOT NULL AND \"Email\" IS NULL AND \"NormalizedEmail\" IS NULL)");
 
                             t.HasCheckConstraint("CK_Users_RoleBranch", "\"Role\" IN ('Customer', 'SalesAgent', 'WorkshopTechnician', 'BranchManager', 'GeneralManager', 'Administrator') AND ((\"Role\" IN ('SalesAgent', 'WorkshopTechnician', 'BranchManager') AND \"BranchId\" IS NOT NULL) OR (\"Role\" IN ('Customer', 'GeneralManager', 'Administrator') AND \"BranchId\" IS NULL))");
 
