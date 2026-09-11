@@ -40,6 +40,9 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
+                    b.Property<DateTimeOffset?>("MinimizedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Reason")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
@@ -54,11 +57,15 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("ActorId");
 
+                    b.HasIndex("TargetId")
+                        .IsUnique()
+                        .HasFilter("\"Kind\" = 'Erased'");
+
                     b.HasIndex("TargetId", "RecordedAt", "Id");
 
                     b.ToTable("AccountEvents", null, t =>
                         {
-                            t.HasCheckConstraint("CK_AccountEvents_Shape", "isfinite(\"RecordedAt\") AND \"Kind\" IN ('UsernameChanged', 'PictureRemoved', 'ProfileEdited', 'EmailChanged', 'BranchTransferred', 'Suspended', 'SuspensionLifted', 'Deactivated', 'Reactivated', 'NricRevealed', 'SessionsRevoked', 'VerificationResent', 'ResetSent') AND ((\"Kind\" IN ('Suspended', 'Deactivated', 'BranchTransferred', 'NricRevealed', 'SessionsRevoked', 'VerificationResent', 'ResetSent', 'ProfileEdited', 'EmailChanged') AND \"Reason\" IS NOT NULL AND \"Reason\" = btrim(\"Reason\") AND length(\"Reason\") BETWEEN 1 AND 1000 AND \"Reason\" !~ '[[:cntrl:]]') OR (\"Kind\" NOT IN ('Suspended', 'Deactivated', 'BranchTransferred', 'NricRevealed', 'SessionsRevoked', 'VerificationResent', 'ResetSent', 'ProfileEdited', 'EmailChanged') AND \"Reason\" IS NULL)) AND (\"Changes\" IS NULL OR jsonb_typeof(\"Changes\") = 'array')");
+                            t.HasCheckConstraint("CK_AccountEvents_Shape", "isfinite(\"RecordedAt\") AND \"Kind\" IN ('UsernameChanged', 'PictureRemoved', 'ProfileEdited', 'EmailChanged', 'BranchTransferred', 'Suspended', 'SuspensionLifted', 'Deactivated', 'Reactivated', 'NricRevealed', 'SessionsRevoked', 'VerificationResent', 'ResetSent', 'Erased') AND (\"Changes\" IS NULL OR jsonb_typeof(\"Changes\") = 'array') AND ((\"MinimizedAt\" IS NOT NULL AND \"Reason\" IS NULL AND \"Changes\" IS NULL) OR (\"MinimizedAt\" IS NULL AND ((\"Kind\" IN ('Suspended', 'Deactivated', 'BranchTransferred', 'NricRevealed', 'SessionsRevoked', 'VerificationResent', 'ResetSent', 'ProfileEdited', 'EmailChanged') AND \"Reason\" IS NOT NULL AND \"Reason\" = btrim(\"Reason\") AND length(\"Reason\") BETWEEN 1 AND 1000 AND \"Reason\" !~ '[[:cntrl:]]') OR (\"Kind\" = 'Erased' AND (\"Reason\" IS NULL OR (\"Reason\" IS NOT NULL AND \"Reason\" = btrim(\"Reason\") AND length(\"Reason\") BETWEEN 1 AND 1000 AND \"Reason\" !~ '[[:cntrl:]]'))) OR (\"Kind\" NOT IN ('Suspended', 'Deactivated', 'BranchTransferred', 'NricRevealed', 'SessionsRevoked', 'VerificationResent', 'ResetSent', 'ProfileEdited', 'EmailChanged', 'Erased') AND \"Reason\" IS NULL))))");
                         });
                 });
 
@@ -1827,7 +1834,6 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                             b1.IsRequired();
 
                             b1.Property<string>("Email")
-                                .IsRequired()
                                 .HasMaxLength(256)
                                 .HasColumnType("character varying(256)")
                                 .HasColumnName("BuyerEmail");
@@ -1839,13 +1845,11 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                                 .HasColumnName("BuyerName");
 
                             b1.Property<string>("Mobile")
-                                .IsRequired()
                                 .HasMaxLength(30)
                                 .HasColumnType("character varying(30)")
                                 .HasColumnName("BuyerMobile");
 
                             b1.Property<string>("Nric")
-                                .IsRequired()
                                 .HasMaxLength(12)
                                 .HasColumnType("character varying(12)")
                                 .HasColumnName("BuyerNric");
@@ -1914,7 +1918,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.ToTable("Reservations", null, t =>
                         {
-                            t.HasCheckConstraint("CK_Reservations_Buyer", "\"BuyerName\" ~ '[^[:space:]]' AND \"BuyerEmail\" ~ '[^[:space:]]' AND \"BuyerMobile\" ~ '[^[:space:]]' AND \"BuyerNric\" ~ '^[0-9]{12}$'");
+                            t.HasCheckConstraint("CK_Reservations_Buyer", "\"BuyerName\" ~ '[^[:space:]]' AND (\"BuyerEmail\" IS NULL OR \"BuyerEmail\" ~ '[^[:space:]]') AND (\"BuyerMobile\" IS NULL OR \"BuyerMobile\" ~ '[^[:space:]]') AND (\"BuyerNric\" IS NULL OR \"BuyerNric\" ~ '^[0-9]{12}$')");
 
                             t.HasCheckConstraint("CK_Reservations_Number", "\"Number\" ~ '^VRS-[0-9]{4}-[0-9]{6}$'");
 
@@ -2454,7 +2458,6 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("RecipientEmail")
-                        .IsRequired()
                         .HasMaxLength(254)
                         .HasColumnType("character varying(254)");
 
@@ -2524,7 +2527,6 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("RecipientEmail")
-                        .IsRequired()
                         .HasMaxLength(254)
                         .HasColumnType("character varying(254)");
 
@@ -2545,7 +2547,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         {
                             t.HasCheckConstraint("CK_PasswordResetChallenges_Attempts", "\"DeliveryAttempts\" >= 0");
 
-                            t.HasCheckConstraint("CK_PasswordResetChallenges_Identity", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"RecipientEmail\" ~ '[^[:space:]]'");
+                            t.HasCheckConstraint("CK_PasswordResetChallenges_Identity", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND (\"RecipientEmail\" IS NULL OR \"RecipientEmail\" ~ '[^[:space:]]')");
 
                             t.HasCheckConstraint("CK_PasswordResetChallenges_Lifetime", "\"ExpiresAt\" = \"CreatedAt\" + interval '1 hour'");
 
@@ -3095,7 +3097,6 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("RecipientEmail")
-                        .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
 
@@ -3112,7 +3113,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         {
                             t.HasCheckConstraint("CK_AppointmentMailOutbox_Kind", "\"Kind\" IN ('Confirmation', 'Cancellation', 'CheckIn')");
 
-                            t.HasCheckConstraint("CK_AppointmentMailOutbox_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"RecipientEmail\" ~ '[^[:space:]]' AND \"DeliveryAttempts\" >= 0");
+                            t.HasCheckConstraint("CK_AppointmentMailOutbox_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND (\"RecipientEmail\" IS NULL OR \"RecipientEmail\" ~ '[^[:space:]]') AND \"DeliveryAttempts\" >= 0");
                         });
                 });
 
@@ -3140,7 +3141,6 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("RecipientEmail")
-                        .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
 
@@ -3158,7 +3158,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.ToTable("SaleDeliveryMailOutbox", null, t =>
                         {
-                            t.HasCheckConstraint("CK_SaleDeliveryMailOutbox_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"DeliveryAttempts\" >= 0 AND \"RecipientEmail\" ~ '[^[:space:]]' AND isfinite(\"NextDeliveryAt\") AND ((\"DeliveryClaimId\" IS NULL) = (\"DeliveryClaimExpiresAt\" IS NULL))");
+                            t.HasCheckConstraint("CK_SaleDeliveryMailOutbox_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"DeliveryAttempts\" >= 0 AND (\"RecipientEmail\" IS NULL OR \"RecipientEmail\" ~ '[^[:space:]]') AND isfinite(\"NextDeliveryAt\") AND ((\"DeliveryClaimId\" IS NULL) = (\"DeliveryClaimExpiresAt\" IS NULL))");
                         });
                 });
 
@@ -3303,7 +3303,6 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("RecipientEmail")
-                        .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
 
@@ -3320,7 +3319,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         {
                             t.HasCheckConstraint("CK_TestDriveMailOutbox_Kind", "\"Kind\" IN ('Confirmation', 'Cancellation')");
 
-                            t.HasCheckConstraint("CK_TestDriveMailOutbox_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"RecipientEmail\" ~ '[^[:space:]]' AND \"DeliveryAttempts\" >= 0 AND isfinite(\"NextDeliveryAt\") AND ((\"DeliveryClaimId\" IS NULL) = (\"DeliveryClaimExpiresAt\" IS NULL))");
+                            t.HasCheckConstraint("CK_TestDriveMailOutbox_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND (\"RecipientEmail\" IS NULL OR \"RecipientEmail\" ~ '[^[:space:]]') AND \"DeliveryAttempts\" >= 0 AND isfinite(\"NextDeliveryAt\") AND ((\"DeliveryClaimId\" IS NULL) = (\"DeliveryClaimExpiresAt\" IS NULL))");
                         });
                 });
 
@@ -3412,7 +3411,6 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("RecipientEmail")
-                        .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
 
@@ -3428,7 +3426,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.ToTable("ReservationDepositMailOutbox", null, t =>
                         {
-                            t.HasCheckConstraint("CK_ReservationDepositMailOutbox_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"DeliveryAttempts\" >= 0 AND \"RecipientEmail\" ~ '[^[:space:]]'");
+                            t.HasCheckConstraint("CK_ReservationDepositMailOutbox_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"DeliveryAttempts\" >= 0 AND (\"RecipientEmail\" IS NULL OR \"RecipientEmail\" ~ '[^[:space:]]')");
                         });
                 });
 
