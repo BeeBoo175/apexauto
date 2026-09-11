@@ -59,13 +59,16 @@ public sealed class CustomerProfile
 
     public Guid RegistrationKey { get; private set; }
 
-    public string LegalName { get; private set; } = string.Empty;
+    // The four personal fields are NULL together once the customer is erased; ErasedAt marks that state.
+    public string? LegalName { get; private set; }
 
-    public string Nric { get; private set; } = string.Empty;
+    public string? Nric { get; private set; }
 
-    public string Mobile { get; private set; } = string.Empty;
+    public string? Mobile { get; private set; }
 
-    public string ResidentialAddress { get; private set; } = string.Empty;
+    public string? ResidentialAddress { get; private set; }
+
+    public DateTimeOffset? ErasedAt { get; private set; }
 
     public static bool IsValidNric(string? nric)
     {

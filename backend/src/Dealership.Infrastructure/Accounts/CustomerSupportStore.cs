@@ -20,7 +20,7 @@ public sealed class CustomerSupportStore(DealershipDbContext database, TimeProvi
         }
 
         var nric = await (from user in database.Users.AsNoTracking()
-                          where user.Id == customerId && user.Role == AccountRoles.Customer
+                          where user.Id == customerId && user.Role == AccountRoles.Customer && user.ClosedAt == null
                           join profile in database.CustomerProfiles.AsNoTracking() on user.Id equals profile.UserId
                           select profile.Nric).SingleOrDefaultAsync(cancellationToken);
         if (nric is null)
@@ -58,7 +58,7 @@ public sealed class CustomerSupportStore(DealershipDbContext database, TimeProvi
 
         var user = await database.Users.FromSqlInterpolated(
             $"SELECT * FROM \"AspNetUsers\" WHERE \"Id\" = {customerId} FOR UPDATE").SingleOrDefaultAsync(cancellationToken);
-        if (user is not { Role: AccountRoles.Customer })
+        if (user is not { Role: AccountRoles.Customer, ClosedAt: null })
         {
             return CustomerSupportStatus.NotFound;
         }
@@ -82,7 +82,7 @@ public sealed class CustomerSupportStore(DealershipDbContext database, TimeProvi
         }
 
         var contact = await database.Users.AsNoTracking()
-            .Where(user => user.Id == customerId && user.Role == AccountRoles.Customer)
+            .Where(user => user.Id == customerId && user.Role == AccountRoles.Customer && user.ClosedAt == null)
             .Select(user => new CustomerContact(user.Email!, user.EmailConfirmed, user.IsActive))
             .SingleOrDefaultAsync(cancellationToken);
         return contact is null ? (CustomerSupportStatus.NotFound, null) : (CustomerSupportStatus.Succeeded, contact);

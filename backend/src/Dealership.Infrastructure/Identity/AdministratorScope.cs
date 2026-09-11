@@ -63,7 +63,9 @@ internal static class AdministratorScope
         var user = administrators?.SingleOrDefault(item => item.Id == targetId) ?? await database.Users
             .FromSqlInterpolated($"SELECT * FROM \"AspNetUsers\" WHERE \"Id\" = {targetId} FOR UPDATE")
             .SingleOrDefaultAsync(cancellationToken);
-        return user is null
+        // A closed account is irreversibly erased, so no administrator writer may touch it; to them it no longer exists.
+        // The erase command itself is the only caller that reads a closed row, and it does so outside this prologue.
+        return user is null or { ClosedAt: not null }
             ? new(AdministratorTargetOutcome.NotFound)
             : new(AdministratorTargetOutcome.Locked, user, administrators);
     }

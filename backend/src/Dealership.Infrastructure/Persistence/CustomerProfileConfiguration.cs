@@ -11,9 +11,12 @@ public sealed class CustomerProfileConfiguration : IEntityTypeConfiguration<Cust
     {
         builder.ToTable("CustomerProfiles", table =>
         {
-            table.HasCheckConstraint("CK_CustomerProfiles_Nric", "\"Nric\" ~ '^[0-9]{12}$'");
+            // Biconditionals on ErasedAt: an unerased profile must be complete, an erased one must hold none of it.
+            table.HasCheckConstraint("CK_CustomerProfiles_Nric",
+                "(\"ErasedAt\" IS NULL AND \"Nric\" IS NOT NULL AND \"Nric\" ~ '^[0-9]{12}$') OR (\"ErasedAt\" IS NOT NULL AND \"Nric\" IS NULL)");
             table.HasCheckConstraint("CK_CustomerProfiles_RequiredText",
-                "\"LegalName\" ~ '[^[:space:]]' AND \"Mobile\" ~ '[^[:space:]]' AND \"ResidentialAddress\" ~ '[^[:space:]]'");
+                "(\"ErasedAt\" IS NULL AND \"LegalName\" IS NOT NULL AND \"Mobile\" IS NOT NULL AND \"ResidentialAddress\" IS NOT NULL AND \"LegalName\" ~ '[^[:space:]]' AND \"Mobile\" ~ '[^[:space:]]' AND \"ResidentialAddress\" ~ '[^[:space:]]') OR " +
+                "(\"ErasedAt\" IS NOT NULL AND \"LegalName\" IS NULL AND \"Mobile\" IS NULL AND \"ResidentialAddress\" IS NULL)");
             table.HasCheckConstraint("CK_CustomerProfiles_RegistrationKey", "\"RegistrationKey\" <> '00000000-0000-0000-0000-000000000000'::uuid");
         });
         builder.HasKey(profile => profile.UserId);
@@ -27,9 +30,9 @@ public sealed class CustomerProfileConfiguration : IEntityTypeConfiguration<Cust
             .HasDatabaseName("IX_CustomerProfiles_LegalName_Trigram");
         builder.HasIndex(profile => profile.Mobile).HasMethod("gin").HasOperators("gin_trgm_ops")
             .HasDatabaseName("IX_CustomerProfiles_Mobile_Trigram");
-        builder.Property(profile => profile.LegalName).HasMaxLength(CustomerProfile.LegalNameMaximumLength).IsRequired();
-        builder.Property(profile => profile.Nric).HasMaxLength(CustomerProfile.NricLength).IsRequired();
-        builder.Property(profile => profile.Mobile).HasMaxLength(CustomerProfile.MobileMaximumLength).IsRequired();
-        builder.Property(profile => profile.ResidentialAddress).HasMaxLength(CustomerProfile.AddressMaximumLength).IsRequired();
+        builder.Property(profile => profile.LegalName).HasMaxLength(CustomerProfile.LegalNameMaximumLength);
+        builder.Property(profile => profile.Nric).HasMaxLength(CustomerProfile.NricLength);
+        builder.Property(profile => profile.Mobile).HasMaxLength(CustomerProfile.MobileMaximumLength);
+        builder.Property(profile => profile.ResidentialAddress).HasMaxLength(CustomerProfile.AddressMaximumLength);
     }
 }
