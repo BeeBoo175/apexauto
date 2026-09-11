@@ -1934,6 +1934,9 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.Property<int>("AmountSen")
                         .HasColumnType("integer");
 
+                    b.Property<DateTimeOffset?>("BillDeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("BillId")
                         .IsRequired()
                         .HasMaxLength(64)
