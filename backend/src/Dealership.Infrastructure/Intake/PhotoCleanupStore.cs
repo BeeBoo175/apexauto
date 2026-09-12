@@ -38,13 +38,6 @@ public sealed class PhotoCleanupStore(DealershipDbContext database, TimeProvider
         }
 
         var now = await database.DatabaseNowAsync(cancellationToken);
-        var eligibility = await GetEligibilityAsync(photo, cancellationToken);
-
-        if (eligibility is null || now < eligibility.Value.At)
-        {
-            return null;
-        }
-
         var removal = await database.PhotoRemovals.SingleOrDefaultAsync(item => item.PhotoId == id, cancellationToken);
 
         if (removal is { DeletedAt: not null } || removal?.NextAttemptAt > now || removal?.ClaimExpiresAt > now)
@@ -54,6 +47,14 @@ public sealed class PhotoCleanupStore(DealershipDbContext database, TimeProvider
 
         if (removal is null)
         {
+            // An existing receipt already proved its eligibility, including an owner-erased one.
+            var eligibility = await GetEligibilityAsync(photo, cancellationToken);
+
+            if (eligibility is null || now < eligibility.Value.At)
+            {
+                return null;
+            }
+
             removal = new PhotoRemoval
             {
                 PhotoId = id,

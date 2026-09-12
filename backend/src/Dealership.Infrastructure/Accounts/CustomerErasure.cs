@@ -61,6 +61,7 @@ internal static class CustomerErasure
                 (r."BuyerEmail" IS NOT NULL OR r."BuyerMobile" IS NOT NULL OR r."BuyerNric" IS NOT NULL)
             """, cancellationToken);
 
+        await RemoveUploadsAsync(database, userId, now, cancellationToken);
         profile.Erase(now);
         database.AccountEvents.Add(new AccountEvent(operationId, userId, actorId, AccountEventKind.Erased, reason, null,
             now));
@@ -68,6 +69,29 @@ internal static class CustomerErasure
         await database.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE "AccountEvents" SET "Reason" = NULL, "Changes" = NULL, "MinimizedAt" = {now}
             WHERE "TargetId" = {userId} AND "MinimizedAt" IS NULL AND ("Reason" IS NOT NULL OR "Changes" IS NOT NULL)
+            """, cancellationToken);
+    }
+
+    // Unattached intake uploads and photographs of appointments that never happened get a removal receipt for the
+    // shared cleanup worker; attached evidence of appointments that took place is retained. Pictures whose objects
+    // are already gone drop their hash now, the rest when the worker confirms deletion.
+    private static async Task RemoveUploadsAsync(DealershipDbContext database, Guid userId, DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        await database.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO "PhotoRemovals" ("PhotoId", "Reason", "RequestedAt", "EligibleAt", "Attempts", "NextAttemptAt")
+            SELECT p."Id", 'OwnerErased', {now}, {now}, 0, {now}
+            FROM "IntakePhotos" p
+            WHERE p."OwnerId" = {userId} AND NOT EXISTS (SELECT 1 FROM "PhotoRemovals" r WHERE r."PhotoId" = p."Id") AND
+                (NOT EXISTS (SELECT 1 FROM "AppointmentPhotos" l WHERE l."PhotoId" = p."Id") OR EXISTS
+                    (SELECT 1 FROM "AppointmentPhotos" l JOIN "IntakeAppointments" a ON a."Id" = l."AppointmentId"
+                     WHERE l."PhotoId" = p."Id" AND a."CancelledAt" IS NULL AND a."EndsAt" < {now} AND
+                        NOT EXISTS (SELECT 1 FROM "AppointmentCheckIns" c WHERE c."AppointmentId" = a."Id")))
+            """, cancellationToken);
+        await database.Database.ExecuteSqlInterpolatedAsync($"""
+            UPDATE "AccountPictures" p SET "Sha256" = NULL
+            WHERE p."UserId" = {userId} AND p."Sha256" IS NOT NULL AND EXISTS
+                (SELECT 1 FROM "AccountPictureRemovals" r WHERE r."PictureId" = p."Id" AND r."DeletedAt" IS NOT NULL)
             """, cancellationToken);
     }
 

@@ -81,6 +81,12 @@ public sealed class AccountPictureCleanupStore(DealershipDbContext database, IOp
         await database.AccountPictureRemovals.Where(item => item.PictureId == photoId && item.ClaimId == claimId &&
                 item.ClaimExpiresAt > now && item.DeletedAt == null)
             .ExecuteUpdateAsync(update => update.SetProperty(item => item.DeletedAt, now), cancellationToken);
+
+        // The hash can identify the image, so a closed owner's picture drops it once the object is gone.
+        await database.AccountPictures.Where(picture => picture.Id == photoId && picture.Sha256 != null &&
+                database.Users.Any(user => user.Id == picture.UserId && user.ClosedAt != null) &&
+                database.AccountPictureRemovals.Any(item => item.PictureId == photoId && item.DeletedAt != null))
+            .ExecuteUpdateAsync(update => update.SetProperty(picture => picture.Sha256, (string?)null), cancellationToken);
     }
 
     private static (AccountPictureRemovalReason Reason, DateTimeOffset At)? GetEligibility(AccountPicture picture)

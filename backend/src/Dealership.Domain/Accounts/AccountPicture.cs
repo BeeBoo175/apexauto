@@ -46,7 +46,10 @@ public sealed class AccountPicture : IPhotoObject
 
     public long Bytes { get; private set; }
 
-    public string Sha256 { get; private set; } = string.Empty;
+    // Cleared once the object of a closed owner's picture is confirmed deleted; the hash can identify the image.
+    public string? Sha256 { get; private set; }
+
+    string IPhotoObject.Sha256 => Sha256 ?? string.Empty;
 
     public DateTimeOffset CreatedAt { get; private set; }
 

@@ -3,7 +3,10 @@ namespace Dealership.Domain.Intake;
 public enum PhotoRemovalReason
 {
     UnsubmittedExpired,
-    CancelledRetentionExpired
+    CancelledRetentionExpired,
+
+    // The owner's account was erased: unattached uploads and photographs of appointments that never happened.
+    OwnerErased
 }
 
 public sealed class PhotoRemoval

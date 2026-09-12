@@ -13,7 +13,7 @@ public sealed class AccountPictureConfiguration : IEntityTypeConfiguration<Accou
         builder.ToTable("AccountPictures", table =>
         {
             table.HasCheckConstraint("CK_AccountPictures_Content",
-                "\"Bytes\" > 0 AND \"Sha256\" ~ '^[0-9a-f]{64}$' AND \"ContentType\" IN ('image/jpeg', 'image/png', 'image/webp')");
+                "\"Bytes\" > 0 AND (\"Sha256\" IS NULL OR \"Sha256\" ~ '^[0-9a-f]{64}$') AND \"ContentType\" IN ('image/jpeg', 'image/png', 'image/webp')");
             table.HasCheckConstraint("CK_AccountPictures_Lifecycle",
                 "isfinite(\"CreatedAt\") AND \"ExpiresAt\" > \"CreatedAt\" AND " +
                 "(\"AvailableAt\" IS NULL OR (isfinite(\"AvailableAt\") AND \"AvailableAt\" >= \"CreatedAt\")) AND " +
@@ -27,7 +27,7 @@ public sealed class AccountPictureConfiguration : IEntityTypeConfiguration<Accou
             .OnDelete(DeleteBehavior.Restrict);
         builder.Property(picture => picture.ObjectKey).HasMaxLength(200).IsRequired();
         builder.Property(picture => picture.ContentType).HasMaxLength(30).IsRequired();
-        builder.Property(picture => picture.Sha256).HasMaxLength(64).IsRequired();
+        builder.Property(picture => picture.Sha256).HasMaxLength(64);
     }
 
     public void Configure(EntityTypeBuilder<AccountPictureRemoval> builder)
