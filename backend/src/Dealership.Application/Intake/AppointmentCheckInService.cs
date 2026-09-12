@@ -68,6 +68,12 @@ public sealed class AppointmentCheckInService(IAppointmentCheckInStore checkIns,
                 : new CheckInResult(CheckInStatus.Conflict);
         }
 
+        // A closed customer has no address to notify, so the bundle cannot be written; answer before building it.
+        if (context.Customer is { IsClosed: true })
+        {
+            return new CheckInResult(CheckInStatus.CustomerClosed);
+        }
+
         if (context.Customer is not { IsActive: true, EmailConfirmed: true, Role: AccountRoles.Customer } ||
             appointment.CancelledAt is not null)
         {

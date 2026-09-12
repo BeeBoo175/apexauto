@@ -172,6 +172,7 @@ public static class StaffIntakeEndpoints
             CheckInStatus.VehicleConflict => Results.Problem(statusCode: 409,
                 title: "The VIN or registration already identifies a vehicle.",
                 extensions: new Dictionary<string, object?> { ["code"] = "vehicle-identity-conflict" }),
+            CheckInStatus.CustomerClosed => ClosedCustomer.Problem(),
             _ => Results.Problem(statusCode: 500)
         };
     }

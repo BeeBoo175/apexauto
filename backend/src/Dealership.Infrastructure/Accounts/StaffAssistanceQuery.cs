@@ -20,6 +20,12 @@ public sealed class StaffAssistanceQuery(DealershipDbContext database) : IStaffA
             : null;
     }
 
+    public async Task<bool> IsClosedAsync(Guid customerId, CancellationToken cancellationToken)
+    {
+        return await database.Users.AsNoTracking()
+            .AnyAsync(user => user.Id == customerId && user.ClosedAt != null, cancellationToken);
+    }
+
     public async Task<CustomerLookupResult> SearchCustomersAsync(Guid staffId, CustomerLookupQuery query,
         CancellationToken cancellationToken)
     {

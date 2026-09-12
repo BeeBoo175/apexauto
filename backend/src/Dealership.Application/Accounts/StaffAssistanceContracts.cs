@@ -61,6 +61,9 @@ public interface IStaffAssistanceQuery
     // Null when the actor is not an active staff member whose role may act for a customer.
     Task<AssistingStaff?> FindStaffAsync(Guid staffId, CancellationToken cancellationToken);
 
+    // True when the customer closed their account, which no staff command may act for.
+    Task<bool> IsClosedAsync(Guid customerId, CancellationToken cancellationToken);
+
     // Only customers who can be served now are offered: active, not suspended, with a verified email.
     Task<CustomerLookupResult> SearchCustomersAsync(Guid staffId, CustomerLookupQuery query,
         CancellationToken cancellationToken);

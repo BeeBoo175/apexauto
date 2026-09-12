@@ -36,6 +36,7 @@ public static class SaleDocumentCorrectionEndpoints
                 SaleResultStatus.NotFound => Results.NotFound(),
                 SaleResultStatus.Conflict => Results.Problem(statusCode: 409,
                     title: "The sale or document changed, or this operation was already used for different contents."),
+                SaleResultStatus.CustomerClosed => ClosedCustomer.Problem(),
                 _ => Results.Problem(statusCode: 503, title: "Document correction is temporarily unavailable.")
             };
         }

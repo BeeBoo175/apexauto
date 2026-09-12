@@ -49,7 +49,10 @@ public sealed class SaleCommandStore(DealershipDbContext database, MailDeliveryS
             now = now < sale.UpdatedAt ? sale.UpdatedAt : now;
             var occupied = await TestDriveOccupationRows.Active(database)
                 .AnyAsync(item => item.VehicleId == sale.VehicleId, cancellationToken);
-            return new SaleCommandTransaction(database, transaction, new(actor, branchActive, sale, existing, now, occupied), mail);
+            var customerClosed = await database.Users.AsNoTracking()
+                .AnyAsync(user => user.Id == sale.CustomerId && user.ClosedAt != null, cancellationToken);
+            return new SaleCommandTransaction(database, transaction,
+                new(actor, branchActive, sale, existing, now, occupied, customerClosed), mail);
         }
         catch
         {

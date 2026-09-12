@@ -58,7 +58,7 @@ public sealed class SaleDocumentStore(DealershipDbContext database) : ISaleDocum
             .SingleAsync(item => item.UserId == sale.CustomerId, cancellationToken);
         if (profile.ErasedAt is not null)
         {
-            return new(SaleResultStatus.Conflict);
+            return new(SaleResultStatus.CustomerClosed);
         }
 
         var vehicle = await database.Vehicles.AsNoTracking()

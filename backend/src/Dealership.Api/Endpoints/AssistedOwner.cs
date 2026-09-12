@@ -26,8 +26,14 @@ internal static class AssistedOwner
         }
 
         var staff = await assistance.FindStaffAsync(actorId, cancellationToken);
-        return staff is null
-            ? new(actorId, null, Results.Forbid())
+        if (staff is null)
+        {
+            return new(actorId, null, Results.Forbid());
+        }
+
+        // Answered before the command runs so no booking, photo or deposit insert is attempted for a closed person.
+        return await assistance.IsClosedAsync(customerId, cancellationToken)
+            ? new(actorId, null, ClosedCustomer.Problem())
             : new(customerId, staff);
     }
 }

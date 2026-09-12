@@ -19,12 +19,13 @@ public enum CheckInStatus
     Invalid,
     Conflict,
     Unavailable,
-    VehicleConflict
+    VehicleConflict,
+    CustomerClosed
 }
 
 public sealed record CheckInResult(CheckInStatus Status, CheckInReceipt? Receipt = null);
 
-public sealed record CheckInCustomer(bool IsActive, bool EmailConfirmed, string Role);
+public sealed record CheckInCustomer(bool IsActive, bool EmailConfirmed, string Role, bool IsClosed = false);
 
 public sealed record CheckInContext(IntakeAppointment? Appointment, BranchStaff? Staff,
     CheckInCustomer? Customer, bool BranchActive, AppointmentCheckIn? Existing, Guid? HandlerId);

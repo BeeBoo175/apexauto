@@ -41,7 +41,8 @@ public sealed class AppointmentCheckInStore(DealershipDbContext database, MailDe
                 .Select(item => item.HandlerId).FirstOrDefaultAsync(cancellationToken);
             var context = new CheckInContext(appointment,
                 staff is null ? null : new BranchStaff(staff.IsActive, staff.Role, staff.BranchId),
-                customer is null ? null : new CheckInCustomer(customer.IsActive, customer.EmailConfirmed, customer.Role),
+                customer is null ? null : new CheckInCustomer(customer.IsActive, customer.EmailConfirmed, customer.Role,
+                    customer.ClosedAt is not null),
                 branchActive, existing, handlerId);
             return new AppointmentCheckInTransaction(database, transaction, context, appointmentId, customer?.Email, mail);
         }

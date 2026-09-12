@@ -43,6 +43,12 @@ public sealed class SaleDocumentCorrectionService(ISaleCommandStore sales)
                 : new(SaleResultStatus.Conflict);
         }
 
+        // A correction would write new personal details for someone who has closed their account.
+        if (transaction.Context.CustomerClosed)
+        {
+            return new(SaleResultStatus.CustomerClosed);
+        }
+
         if (transaction.Context.Existing is not null || sale.Version != request.ExpectedVersion ||
             sale.Status is not (SalesOrderStatus.Settled or SalesOrderStatus.Delivered))
         {
