@@ -101,7 +101,6 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Sha256")
-                        .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
@@ -116,7 +115,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.ToTable("AccountPictures", null, t =>
                         {
-                            t.HasCheckConstraint("CK_AccountPictures_Content", "\"Bytes\" > 0 AND \"Sha256\" ~ '^[0-9a-f]{64}$' AND \"ContentType\" IN ('image/jpeg', 'image/png', 'image/webp')");
+                            t.HasCheckConstraint("CK_AccountPictures_Content", "\"Bytes\" > 0 AND (\"Sha256\" IS NULL OR \"Sha256\" ~ '^[0-9a-f]{64}$') AND \"ContentType\" IN ('image/jpeg', 'image/png', 'image/webp')");
 
                             t.HasCheckConstraint("CK_AccountPictures_Lifecycle", "isfinite(\"CreatedAt\") AND \"ExpiresAt\" > \"CreatedAt\" AND (\"AvailableAt\" IS NULL OR (isfinite(\"AvailableAt\") AND \"AvailableAt\" >= \"CreatedAt\")) AND (\"RemovedAt\" IS NULL OR (\"AvailableAt\" IS NOT NULL AND \"RemovedAt\" >= \"AvailableAt\"))");
                         });
@@ -839,7 +838,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.ToTable("PhotoRemovals", null, t =>
                         {
-                            t.HasCheckConstraint("CK_PhotoRemovals_Shape", "\"Reason\" IN ('UnsubmittedExpired', 'CancelledRetentionExpired') AND \"RequestedAt\" >= \"EligibleAt\" AND \"Attempts\" >= 0 AND (\"DeletedAt\" IS NULL OR \"DeletedAt\" >= \"RequestedAt\") AND ((\"ClaimId\" IS NULL) = (\"ClaimExpiresAt\" IS NULL))");
+                            t.HasCheckConstraint("CK_PhotoRemovals_Shape", "\"Reason\" IN ('UnsubmittedExpired', 'CancelledRetentionExpired', 'OwnerErased') AND \"RequestedAt\" >= \"EligibleAt\" AND \"Attempts\" >= 0 AND (\"DeletedAt\" IS NULL OR \"DeletedAt\" >= \"RequestedAt\") AND ((\"ClaimId\" IS NULL) = (\"ClaimExpiresAt\" IS NULL))");
                         });
                 });
 
